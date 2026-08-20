@@ -82,6 +82,160 @@ translation, sense, concept, and relation remain evidence-bearing and
 revisable. Stable identity protects their lineage; it does not make their
 content infallible.
 
+The bibliographic ladder is not universal. Physical artifacts use a parallel
+`tos.artifact.*` spine; modern critical, documentary, or synoptic composites
+use `tos.composite.*`. A composite can collect and align many members while
+remaining distinct from every physical object, member transcription, provider
+page, reconstructed line, translation, and interpretation. Provider coverage
+is a dated observation: a short visible source list cannot silently override a
+stronger exact membership record or become a negative fact.
+
+Aggregate printed volumes remain bibliographic rather than becoming
+`tos.composite.*` by analogy. A branch source planting may bind one exact
+`Work` through its `Collection` and `contains_work` claim. This preserves the
+named source contribution while keeping other chapters, editions, Items, and
+rights states independently addressable.
+
+A standalone monograph binds directly to its bibliographic `Work`; the route
+does not invent a one-member `Collection`. A direct Work planting is only the
+identity floor. It does not imply a complete Expression/Edition/Item ladder,
+source access, textual equivalence, accepted responsibility, or semantics.
+
+A thematic or publication-history subset named by a backlog remains a bounded
+scope over its actual parent Work unless independent bibliographic evidence
+establishes another Work. Its label is not enough to reify a new object.
+Subset membership and count require exact source-visible claims; current
+database results remain dated provider observations. The numerical-only
+tablets omitted from ATU 1 and published in ATU 5 therefore ground an ATU 5
+source route without becoming a second book, a fixed artifact set, or a
+metrological or semantic class.
+
+At the address layer, the anchor identity, immutable File target, selected
+representation digest, and selector expression remain distinct. Text
+positions are Unicode-code-point half-open spans; byte positions are another
+type; alternative selectors and ordered refinements are explicit; mechanical
+resolution never becomes human verification. A tracked nonpublic record may
+retain a locator or withheld-selector receipt, but not copied source text.
+`tos_source_anchor_v2` is additive laboratory soil, not a migration of current
+v1 anchors.
+
+The text layer above an anchor is append-only as well. Raw OCR, machine or
+diplomatic transcription, reviewed source text, and normalized text receive
+separate identities and immutable content digests. A successor names its exact
+predecessor record and content, records every code-point edit or a governed
+withheld-operations receipt, and declares the editorial policy that permits
+the transformation. Mechanical replay, human source review, language
+competence, accepted downstream use, and publication authority are independent
+gates; rights records and any publication authority remain separately
+digest-bound rather than compressed into a boolean. A normalization successor
+can support normalized search without
+silently becoming the diplomatic reading of the witness.
+
+The first real use keeps that separation literal. A question-scoped
+`structural_extraction` resolves the exact first paragraph of
+`Za-I-Vorrede-1` in the DTA Part-I TEI and records only its seven source-layout
+lines and six line breaks. Exact text stays ignored and mode `0600`; tracked
+records remain text-free and unreviewed. This is a source-returnable machine
+layer, not an accepted German reading, linguistic segmentation, translation
+source, semantic object, graph fact, canon entry, or publication authority.
+
+The matching historical Russian scope is represented independently, not as a
+premature bilingual edge. Page 6 of the exact Antonovsky/Prometey 1911 PDF
+produces one private `raw_ocr` layer from its embedded Poppler text and one
+private bbox byproduct. Six source-observed lines and five line breaks are
+addressable through text-free tracked records. Visual inspection confirms the
+region but reveals that one visibly joined historical word is emitted as four
+tokens, so uncertainty is explicit and no silent repair occurs. Having one
+German machine layer and one Russian machine layer at the same work location
+does not establish accepted text on either side, passage identity,
+translation, alignment, lexical or semantic equivalence, graph truth, or
+canon authority.
+
+The first relation-bearing successor is deliberately weaker than an accepted
+pair. A deterministic first-`U+002E` rule freezes one exact proposed sentence
+span on each private layer and binds both spans to one opaque, software-made
+one-to-one alignment claim. The two segmentations and the alignment remain
+`proposed`; the target spacing conflict remains visible in evidence; no token
+layer, translation technique, fidelity judgment, review, projection, semantic
+edge, graph/canon authority, or publication route is inferred. This establishes
+the source-return and identity floor on which a later competent adjudication
+could act without making that adjudication routine or retroactive.
+
+The execution layer is append-only too. Each materialized transformation names
+distinct immutable input, output, and byproduct entities, with explicit
+derivation edges and an exact terminal state. It captures argv, configuration,
+software/runtime or model identity, responsibility, manual interventions,
+measurements, and replay limits without compressing them into a generic method
+string. Failed or stopped work may retain diagnostics as byproducts but cannot
+expose them as authoritative output. External manifest fixity closes the exact
+receipt bytes while avoiding a self-referential self-hash. That closure proves
+neither that the reported execution happened nor that its output is true,
+reviewed, rights-cleared, publishable, semantic, or canonical. Provenance v2 is
+additive; legacy v1 events are migrated only for a concrete return-to-source or
+reproducibility question.
+
+The semantic layer is stand-off and assertion-first. A source occurrence may
+be stable at one exact anchor, while a lexeme, lexical sense, sign, concept,
+translation correspondence, or relation remains a separately identified and
+revisable proposal. Their opaque IDs do not encode the current label or
+translation. Every semantic claim names its maker, time, method, evidence
+direction, source anchors, certainty meaning, alternatives, status, and review
+refs. A sign becomes accepted only through a rare source-visible real-human
+promotion checkpoint with declared competence and an unassisted baseline
+frozen before model suggestions. A graph edge is downstream of an accepted
+relation and accepted supporting claim; it is never a shortcut around them.
+The public synthetic semantic-annotation v2 laboratory proves these closure
+and rejection mechanics without creating any accepted semantic object.
+
+Text-unit identity sits between a frozen source-text layer and every
+alignment, lexical, semantic, retrieval, or graph consumer. The additive
+source-text-unit v1 packet does not choose one canonical tokenizer. It binds
+opaque scheme, segmentation, and unit IDs to exact ordered anchors, declared
+boundary methods, explicit coverage and gaps, reciprocal alternatives, review
+scope, and visibility inheritance. Layout lines, source-observed structure,
+orthographic tokens, linguistic units, model subwords, and virtual analytic
+nodes remain different kinds with different authority. Stable IDs do not
+encode text, labels, ordinals, offsets, or the current analysis; projections
+remain disposable and status-preserving. The public-synthetic A/B/C proves
+only closure and rejection mechanics and migrates no historical method label.
+
+Existing authored routes enter that law through an explicit evidence bridge,
+not an in-place rewrite. The first bridge keeps the DTA's twelve paragraph
+units and the Zarathustra route's twelve authored units as reciprocal competing
+segmentations over one exact private comparison layer. It binds the route's
+source/translation witnesses, nodes, relations, and historical reviews by
+digest, inventories the missing modern claim/review closure, and changes none
+of their authority. Thus authored continuity is preserved while source return
+becomes exact; `canonical_source` remains a route-local role rather than a
+shortcut to critical-text, translation, semantic, graph, or Human Gold status.
+
+Translation correspondence is another stand-off assertion layer, not a field
+inside either text. The additive translation-alignment v1 packet binds two
+exact expression/edition/item/file and frozen text-layer states, their
+segmentation and tokenization identities, and ordered source/target anchors.
+Stable alignment and claim IDs survive changes to explanations and mapping
+interpretation. Cardinality, direction, order, technique, confidence, maker,
+competition, supersession, review, and rights posture remain independent.
+Software/model/imported mappings cannot accept themselves; a real-human
+source-and-target-visible competence review is a separate event. Any TEI,
+Web Annotation, XLIFF, TMX, or graph form is a reproducible projection of an
+accepted owner claim and inherits the most restrictive visibility boundary.
+The public-synthetic A/B/C proves only these closure and rejection mechanics.
+
+Institutional catalogue metadata follows the same attribution law. A control
+number keeps its native scheme; a holding statement keeps both the reporting
+catalogue and the reported holding institution. Thus an RNL field may verify
+that RNL reports an RSL call number without verifying an RSL public record,
+physical copy, service state, or ToS Item. Cross-catalogue sequence shape is a
+discovery lead, never an identity bridge by itself.
+
+Time follows the same law. A Work has no single self-evident year: composition,
+manuscript fixation, printing, title-page dating, private circulation, public
+release, reception, and later preservation are separate claim facets. The
+current first-publication profiles exercise one bounded ordering facet while
+retaining intervals, stage boundaries, availability, precision, provenance,
+and explicit uncertainty.
+
 ### Source-witness topology
 
 `ToS/source-witnesses/` combines a tracked catalog with a speaking physical
@@ -89,20 +243,63 @@ tree:
 
 ```text
 catalog/
+artifacts/<tradition>/<site>/<physical-identity>/
+scholarly-composites/<genre-or-method>/<tradition>/<composition-identity>/
+places/<place>/
+organizations/<historical-organization>/
 works/<responsibility>/<work>/expressions/<language-and-responsibility>/
   editions/<edition>/items/<item>/
 collections/<responsibility>/<collection>/
+chronology/<responsibility>/first-publication/
+provision-activities/
 ```
 
 Collections prevent multi-work volumes from being duplicated under every
 contained work. Stable ToS IDs, not paths, own identity, so the tree can be
 improved through explicit migrations.
 
+The artifact and scholarly-composite spines prevent non-book sources from
+being forced into that bibliographic topology. Their first tracked records may
+remain content-free while preserving exact external identities, dated
+representations, membership observations, rights, provenance, and branch
+plantings. Composite coordinates are useful source addresses only after the
+exact editorial representation is frozen; they do not inherit physical layout
+or philological acceptance.
+
 Only the immutable item bytes inside `payload/` are gitignored. The item
 manifest, digest, provenance, rights, forensic report, and catalog entry stay
 tracked. Working OCR, model caches, benchmarks, and large derivatives route to
 the `abyss-stack` laboratory or host-managed storage. Reviewed source-near
 text may return to the witness tree when rights permit.
+
+Provision statements may themselves be physically distributed across one
+manifestation. The Antonovsky 1913 witness makes this explicit: cover imprint,
+title-page place/year, and printer line are separately anchored before being
+joined by bounded Edition claims. Publication and manufacture remain distinct
+activities, and normalized Place/Organization identities never overwrite the
+literal historical statements that support them.
+
+One physical statement may also carry several provision roles. The 1893
+Naumann title page's combined `Druck und Verlag` wording is preserved once as
+literal evidence and materialized as separate publication and manufacture
+claims. Distinct GND publisher and printer authorities remain provisional
+normalizations; neither their separation nor the shared literal establishes a
+legal-entity relation, release date, textual state, or current rights.
+
+The 1886 *Jenseits von Gut und Böse* title page exercises the same invariant
+on a second Work and exact Item. Its shared `Druck und Verlag` literal yields
+two Edition-owned claim packets, never a flattened publisher/printer field.
+The following-page `Alle Rechte vorbehalten.` line is a historically addressed
+source statement, not a present-day rights decision; local custody, public
+redistribution, derivative use, and future-server admission remain separate
+questions.
+
+The 1892 second *Zur Genealogie der Moral* Edition exercises the distributed-
+statement variant. Its title page identifies `Verlag`, Leipzig, and 1892,
+while a terminal page independently identifies `Druck` and Leipzig without a
+date. A claim may bind both source surfaces without pretending that the
+Edition year is a printer-line date. Source return therefore belongs to the
+individual activity claim, not to a flattened imprint field.
 
 See `ToS/doctrine/CORPUS_FOUNDATION.md` for identity, anchor, sign, claim,
 translation, rights, and projection law, and
@@ -114,6 +311,82 @@ Lexical indexes, embeddings, vector stores, RDF, property graphs, KAG exports,
 and visualization databases are readers over stronger tracked records. They
 must be reproducible from versioned inputs and may not become the sole copy of
 an assertion or review decision.
+
+The first corpus-wide bibliographic reader lives under
+`ToS/derived-exports/graph/`. It keeps every claim as a node between its
+subject and object, preserves literal objects as literals, and carries exact
+routes to evidence, maker, provenance time and method, review posture, source
+line, and claim digest on every edge. It is deliberately separate from the
+atlas/view graph projection: one reads the source-witness claim spine, while
+the other reads the philosophy branch and its review lenses. Neither is a
+second owner.
+
+The source spine now materializes the full declared identity ladder through
+three claim families: Work `has_expression` Expression, Expression
+`embodied_by` Edition, and Edition `exemplified_by` Item. Owner records keep
+the speaking structural links and cite the exact outgoing claim IDs; validation
+requires exact two-way closure against the claim packets and item manifests.
+This deliberate overlap is traceability, not competing truth. In particular,
+an embodiment link is bibliographic topology and cannot establish textual or
+critical-edition equivalence.
+
+The bounded Nietzsche corpus additionally gives every current Work exactly one
+Work-owned `authored_by` packet to the Friedrich Nietzsche Agent. That
+corpus-wide closure is documentary and provenance-bound, not a convention
+derived from paths, and it does not select an author-final text or flatten
+editorial, paratext, translation, or transmission responsibility.
+
+Responsibility evidence may resolve through an Expression-local source anchor,
+not only a collection boundary map. The 1913 Antonovsky case binds a
+`translated_by` claim to one proposed whole-page title-page anchor and exact
+file digest while keeping the Agent identity provisional. A page credit is
+bibliographic evidence; it is not accepted text, translation quality,
+editorial equivalence across reprints, or a biography of the translator.
+
+Agent identity reconciliation is a separate evidence layer. For the Mysl 1996
+translator set, GND plus national-library and established Nietzsche-editorial
+records verify Карен Араевич Свасьян and Николай Николаевич Полилов while the
+source claims continue to target the same stable Agent IDs. The corresponding
+Флёрова Agent remains provisional because the authority chain stops at
+initials. A stronger label may enrich an Agent node; it never rewrites the
+source-visible credit, changes a responsibility claim, or equates Expressions.
+
+Stable IDs and speaking paths may diverge during an honest correction. The
+Antonovsky Agent retains the already referenced `tos.agent.yuri-antonovsky`
+identity so three source-owned claims and their digests do not silently change,
+but its physical route migrates to `agents/yuliy-antonovsky/` after GND and RSL
+resolve `Ю. М.` to `Юлий Михайлович`. The retained `yuri` token is explicitly a
+legacy locator, not a forename assertion. This is the intended use of the
+identity/path boundary: preserve lineage while making human navigation truer.
+
+Edition-level provision is likewise claim-owned rather than flattened into
+publisher/place/date fields. A bounded provision claim groups the exact
+transcribed or reported statement with typed activity, role-specific Place and
+Organization references, a declared temporal facet, evidence, provenance, and
+review posture. A normalized participant is only a claim-originating graph
+route: it cannot bypass the claim, replace the literal statement, or equate a
+publisher with a printer, successor, or public-release event.
+
+The *Zarathustra* provision extensions are deliberately Edition-exact. The
+part-I, part-II, part-III, and part-IV claims each return to a separate DTA
+authority record; shared labels and one shared holding shelfmark are never the
+evidence for copying a claim. The historical Schmeitzner Corporate Body is
+modeled as an Organization and kept distinct from the affiliated Person,
+later firms, and rights holders. Part IV separately reuses the historical
+C. G. Naumann Verlag Organization while rejecting the related printer and
+founder Person as substitutions. Its reported 1891 statement year is not the
+1885 private print, November-1890 printing completion, planned spring-1891
+delivery, or March-1892 actual delivery. These statement years are not
+printing, receipt, delivery, or public-release dates. This is an
+identity-and-provenance boundary, not accepted bibliography or Edition, Item,
+or textual equivalence.
+
+The repository-local query route verifies the entire tracked graph against a
+fresh source-backed rebuild before returning any selected claim. It exposes
+exact AND selectors and returns the source JSONL object plus its complete graph
+trace as deterministic stdout JSON. It refuses unbounded implicit dumps and
+silent truncation, persists nothing, and does not turn a reader into runtime,
+review, or graph authority.
 
 This boundary lets ToS compare graph and retrieval technologies without
 changing what owns philosophical meaning.

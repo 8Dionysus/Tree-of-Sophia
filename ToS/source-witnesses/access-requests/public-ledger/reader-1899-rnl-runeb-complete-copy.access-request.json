@@ -1,0 +1,84 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/access-request.schema.json",
+  "schema_version": "tos_access_request_v1",
+  "request_id": "tos.access-request.reader-1899-rnl-runeb-complete-copy",
+  "material": {
+    "title": "Фридрих Ницше, Так говорил Заратустра: символическая поэма",
+    "responsibility": "перевод с немецкого; переводчик в издании не указан",
+    "edition_or_resource": "Москва: издание редакции журнала «Читатель», 1899; НЭБ 000200_000018_v19_rc_1709542; объект ob000000411; каталогизировано 236 страниц, публичный ZIP возвращает 22 фрагментарных фотоснимка",
+    "requested_portion": "Сначала текущий шифр РНБ, подтверждение физического объёма и пояснение статуса фрагментарного цифрового объекта; затем, если возможно и законно, полный последовательный цифровой образ всех 236 страниц либо отсутствующие страницы, включая оборот титула, предварительные, оглавление и последние страницы с выходными сведениями.",
+    "identifiers": [
+      {"scheme": "RuNEB record", "value": "000200_000018_v19_rc_1709542"},
+      {"scheme": "provider object basename", "value": "ob000000411"}
+    ],
+    "tos_refs": [
+      "tos.work.friedrich-nietzsche.also-sprach-zarathustra",
+      "tos.expression.friedrich-nietzsche.also-sprach-zarathustra.ru-reader-1899-uncredited",
+      "tos.edition.friedrich-nietzsche.also-sprach-zarathustra.moscow-reader-editorial-office-1899",
+      "tos.item.friedrich-nietzsche.also-sprach-zarathustra.ru-reader-1899-uncredited.rnl-rusneb-fragment-pdf-parts"
+    ],
+    "discovery_refs": [
+      "ToS/source-witnesses/discovery/runs/reader-1899-rnl-rusneb-fragment-source-witness.2026-08-01.v1.json"
+    ]
+  },
+  "rights_holder_or_institution": {
+    "name": "Российская национальная библиотека через Национальную электронную библиотеку",
+    "role": "library",
+    "identification_evidence_urls": [
+      "https://rusneb.ru/catalog/000200_000018_v19_rc_1709542/",
+      "https://rusneb.ru/faq/",
+      "https://rusneb.ru/user-agreement/"
+    ],
+    "identity_status": "identified"
+  },
+  "contact_route": {
+    "channel_type": "institutional-form",
+    "public_institutional_url": "https://rusneb.ru/feedback/",
+    "refreshed_at": "2026-08-01T18:15:16-06:00",
+    "personal_contact_committed": false
+  },
+  "project_description_ref": "README.md",
+  "research_purpose": "Получить полное источник-видимое свидетельство 1899 года для локального сохранения, постраничной инвентаризации, OCR и ограниченной колляции с точными состояниями 1898 и 1900 годов, не публикуя и не передавая исходные файлы.",
+  "requested_format": "Текущий каталоговый шифр и пояснение цифрового статуса; при наличии и разрешении — полный PDF либо последовательные TIFF/JPEG в исходном порядке и разрешении. Допустим ответ только с отсутствующими страницами, если он позволяет восстановить полный доказательный порядок без изменения исходных файлов.",
+  "requested_permissions": {
+    "local_access": "requested",
+    "ocr_or_transcription": "requested",
+    "indexing": "requested",
+    "embeddings": "requested",
+    "quotation": "requested",
+    "metadata_publication": "requested",
+    "derivative_publication": "not-requested",
+    "server_processing": "not-requested",
+    "source_redistribution": "not-requested"
+  },
+  "local_storage_conditions": {
+    "access_controlled": true,
+    "source_payload_gitignored": true,
+    "location_class": "operator-controlled-local-ToS-storage",
+    "retention_posture": "Хранить полученные исходные файлы только локально и в пределах письменно сообщённых учреждением условий; не публиковать, не загружать на сервер и не передавать их; сохранить фрагментарный объект отдельно и поддерживать удаление новой копии при отзыве, истечении разрешения или соответствующем условии учреждения.",
+    "removal_supported": true
+  },
+  "non_redistribution_without_permission": true,
+  "technical_access_bypass_used": false,
+  "access_status": "rights-unknown",
+  "request_status": "draft-not-sent",
+  "human_send_approval": false,
+  "sent_at": null,
+  "response": {
+    "state": "none",
+    "received_at": null,
+    "permission_expires_at": null,
+    "conditions": [],
+    "safe_evidence_refs": []
+  },
+  "private_correspondence_ref": null,
+  "redacted_public_receipt_ref": null,
+  "personal_or_confidential_data_committed": false,
+  "rights_record_refs": [
+    "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-reader-1899-uncredited/editions/moscow-reader-editorial-office-1899/items/rnl-rusneb-fragment-pdf-parts/rights.json"
+  ],
+  "provenance_event_refs": [
+    "tos.event.access-request-draft.reader-1899-rnl-runeb-complete-copy.2026-08-01"
+  ],
+  "record_version": 1
+}

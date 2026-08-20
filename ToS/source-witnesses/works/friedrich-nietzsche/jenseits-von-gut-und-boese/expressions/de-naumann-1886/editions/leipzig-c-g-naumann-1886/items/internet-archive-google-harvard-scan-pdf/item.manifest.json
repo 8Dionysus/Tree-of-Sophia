@@ -1,0 +1,54 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/source-item-manifest.schema.json",
+  "schema_version": "tos_source_item_manifest_v1",
+  "item_id": "tos.item.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.internet-archive-google-harvard-scan-pdf",
+  "item_kind": "digitized_physical_copy",
+  "embodiment_ref": "tos.edition.friedrich-nietzsche.jenseits-von-gut-und-boese.leipzig-c-g-naumann-1886",
+  "storage_posture": "local_gitignored_payload",
+  "payload_files": [
+    {
+      "file_id": "tos.file.sha256.6ae316c90f958d09045fea27b2430b86623ebb85f8a27146099d028775cdc80a",
+      "relative_path": "payload/jenseits-von-gut-und-boese-naumann-1886.pdf",
+      "original_basename": "bub_gb_YIURAAAAYAAJ.pdf",
+      "media_type": "application/pdf",
+      "byte_size": 13944828,
+      "sha256": "6ae316c90f958d09045fea27b2430b86623ebb85f8a27146099d028775cdc80a",
+      "fixity_verified_at": "2026-07-28T22:28:51-06:00",
+      "container_member": false
+    },
+    {
+      "file_id": "tos.file.sha256.6227d4a797fb27608386733a9d71fd06c049e5458c9e0687cb582f0c31177be0",
+      "relative_path": "payload/jenseits-von-gut-und-boese-naumann-1886.djvu.xml",
+      "original_basename": "bub_gb_YIURAAAAYAAJ_djvu.xml",
+      "media_type": "application/vnd.djvu+xml",
+      "byte_size": 3581142,
+      "sha256": "6227d4a797fb27608386733a9d71fd06c049e5458c9e0687cb582f0c31177be0",
+      "fixity_verified_at": "2026-07-28T23:52:05-06:00",
+      "container_member": false
+    },
+    {
+      "file_id": "tos.file.sha256.ba8f4c91a317a3de03ab1f318860aaba6837d979e1ec99365e6d13def7db5a34",
+      "relative_path": "payload/jenseits-von-gut-und-boese-naumann-1886.abbyy.xml.gz",
+      "original_basename": "bub_gb_YIURAAAAYAAJ_abbyy.gz",
+      "media_type": "application/gzip",
+      "byte_size": 6445855,
+      "sha256": "ba8f4c91a317a3de03ab1f318860aaba6837d979e1ec99365e6d13def7db5a34",
+      "fixity_verified_at": "2026-07-28T23:52:05-06:00",
+      "container_member": false
+    }
+  ],
+  "acquisition_event_ref": "tos.event.acquisition.jenseits-naumann-1886.internet-archive-google-harvard-scan-package.2026-07-29",
+  "rights_ref": "ToS/source-witnesses/works/friedrich-nietzsche/jenseits-von-gut-und-boese/expressions/de-naumann-1886/editions/leipzig-c-g-naumann-1886/items/internet-archive-google-harvard-scan-pdf/rights.json",
+  "provenance_ref": "ToS/source-witnesses/works/friedrich-nietzsche/jenseits-von-gut-und-boese/expressions/de-naumann-1886/editions/leipzig-c-g-naumann-1886/items/internet-archive-google-harvard-scan-pdf/provenance.scan-package.jsonl",
+  "forensic_report_ref": "ToS/source-witnesses/works/friedrich-nietzsche/jenseits-von-gut-und-boese/expressions/de-naumann-1886/editions/leipzig-c-g-naumann-1886/items/internet-archive-google-harvard-scan-pdf/forensic-report.md",
+  "resource_inventory_ref": "ToS/source-witnesses/works/friedrich-nietzsche/jenseits-von-gut-und-boese/expressions/de-naumann-1886/editions/leipzig-c-g-naumann-1886/items/internet-archive-google-harvard-scan-pdf/resource-inventory.json",
+  "source_record_refs": [
+    "ToS/source-witnesses/works/friedrich-nietzsche/jenseits-von-gut-und-boese/expressions/de-naumann-1886/editions/leipzig-c-g-naumann-1886/edition.json",
+    "ToS/source-witnesses/works/friedrich-nietzsche/jenseits-von-gut-und-boese/expressions/de-naumann-1886/editions/leipzig-c-g-naumann-1886/items/internet-archive-google-harvard-scan-pdf/source-metadata-snapshot.json",
+    "ToS/source-witnesses/works/friedrich-nietzsche/jenseits-von-gut-und-boese/expressions/de-naumann-1886/editions/leipzig-c-g-naumann-1886/items/internet-archive-google-harvard-scan-pdf/provenance.jsonl",
+    "https://archive.org/details/bub_gb_YIURAAAAYAAJ"
+  ],
+  "visibility": "local_only",
+  "manifest_version": 2,
+  "supersedes_manifest_ref": null
+}

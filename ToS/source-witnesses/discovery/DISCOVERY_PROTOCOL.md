@@ -85,6 +85,16 @@ Availability, age, a public-domain badge, and an open API are evidence, not a
 global legal conclusion. Unknown or conflicting rights route to local-only
 handling and, where useful, an access request.
 
+Do not turn that caution into a blanket closed-corpus assumption. Many works,
+editions, transcriptions, scans, and repository objects are public domain or
+licensed for free, noncommercial, attribution-bound, or broader
+redistribution. Capture the exact statement and terms, the object and layer
+they cover, jurisdiction, commercial/noncommercial boundary, attribution and
+share-alike duties, modification limits, source URL, access date, and review
+status. When the evidence affirmatively permits the intended use, route that
+exact material toward the matching public access class instead of leaving it
+closed by inertia.
+
 ## 6. Compare channels
 
 After the run, compare channels without hiding zero results:

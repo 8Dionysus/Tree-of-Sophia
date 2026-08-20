@@ -1,0 +1,247 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://tree-of-sophia.local/ToS/contracts/private-transfer-source-visible-review-bundle.schema.json",
+  "title": "Tree of Sophia private model source-visible transfer review bundle",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "$schema",
+    "schema_version",
+    "bundle_id",
+    "route_readiness_id",
+    "work_ref",
+    "qualified_unit_key",
+    "status",
+    "created_at",
+    "maker",
+    "render_method",
+    "source",
+    "target",
+    "observed_findings",
+    "authority_boundary"
+  ],
+  "properties": {
+    "$schema": {
+      "const": "https://tree-of-sophia.local/ToS/contracts/private-transfer-source-visible-review-bundle.schema.json"
+    },
+    "schema_version": {
+      "const": "tos_private_transfer_source_visible_review_bundle_v1"
+    },
+    "bundle_id": {"const": "tos.private-transfer-review.jenseits-187.v1"},
+    "route_readiness_id": {
+      "const": "tos-transfer-route-readiness-jenseits-p0308-random-unit-187"
+    },
+    "work_ref": {
+      "const": "tos.work.friedrich-nietzsche.jenseits-von-gut-und-boese"
+    },
+    "qualified_unit_key": {"const": "187"},
+    "status": {"const": "model_source_visible_reviewed"},
+    "created_at": {"type": "string", "format": "date-time"},
+    "maker": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["maker_type", "agent_ref"],
+      "properties": {
+        "maker_type": {"const": "model"},
+        "agent_ref": {"type": "string", "minLength": 3}
+      }
+    },
+    "render_method": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "tool",
+        "resolution_dpi",
+        "format",
+        "color_mode",
+        "render_files_retained"
+      ],
+      "properties": {
+        "tool": {"const": "pdftoppm"},
+        "resolution_dpi": {"const": 180},
+        "format": {"const": "png"},
+        "color_mode": {"const": "default"},
+        "render_files_retained": {"const": false}
+      }
+    },
+    "source": {"$ref": "#/$defs/sourceWitness"},
+    "target": {"$ref": "#/$defs/targetWitness"},
+    "observed_findings": {
+      "type": "array",
+      "minItems": 2,
+      "maxItems": 2,
+      "uniqueItems": true,
+      "items": {"$ref": "#/$defs/finding"},
+      "allOf": [
+        {"contains": {"properties": {"finding_id": {"const": "source-automatic-ocr-not-diplomatic"}}, "required": ["finding_id"]}},
+        {"contains": {"properties": {"finding_id": {"const": "target-automatic-line-omission"}}, "required": ["finding_id"]}}
+      ]
+    },
+    "authority_boundary": {"type": "string", "minLength": 160}
+  },
+  "$defs": {
+    "sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "repoPath": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "^(?!/)(?!.*(?:^|/)\\.\\.(?:/|$))[^\\u0000]+$"
+    },
+    "tosId": {
+      "type": "string",
+      "pattern": "^tos\\.[a-z0-9]+(?:[.-][a-z0-9]+)*$"
+    },
+    "pageRender": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["page", "render_sha256"],
+      "properties": {
+        "page": {"type": "integer", "minimum": 1},
+        "render_sha256": {"$ref": "#/$defs/sha256"}
+      }
+    },
+    "diplomaticLine": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["page", "line", "text"],
+      "properties": {
+        "page": {"type": "integer", "minimum": 1},
+        "line": {"type": "integer", "minimum": 1},
+        "text": {"type": "string", "minLength": 1}
+      }
+    },
+    "sourceWitness": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "language",
+        "expression_ref",
+        "item_ref",
+        "file_ref",
+        "file_sha256",
+        "payload_ref",
+        "rights_ref",
+        "automatic_candidate_ref",
+        "automatic_candidate_sha256",
+        "pages",
+        "start_marker",
+        "end_exclusive_marker",
+        "diplomatic_lines",
+        "critical_witness"
+      ],
+      "properties": {
+        "language": {"const": "de"},
+        "expression_ref": {"$ref": "#/$defs/tosId"},
+        "item_ref": {"$ref": "#/$defs/tosId"},
+        "file_ref": {"$ref": "#/$defs/tosId"},
+        "file_sha256": {"$ref": "#/$defs/sha256"},
+        "payload_ref": {"$ref": "#/$defs/repoPath"},
+        "rights_ref": {"$ref": "#/$defs/repoPath"},
+        "automatic_candidate_ref": {"$ref": "#/$defs/repoPath"},
+        "automatic_candidate_sha256": {"$ref": "#/$defs/sha256"},
+        "pages": {"type": "array", "minItems": 2, "maxItems": 2, "uniqueItems": true, "items": {"$ref": "#/$defs/pageRender"}},
+        "start_marker": {"const": "187."},
+        "end_exclusive_marker": {"const": "188."},
+        "diplomatic_lines": {"type": "array", "minItems": 2, "uniqueItems": true, "items": {"$ref": "#/$defs/diplomaticLine"}},
+        "critical_witness": {"$ref": "#/$defs/criticalWitness"}
+      }
+    },
+    "targetWitness": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "language",
+        "expression_ref",
+        "item_ref",
+        "file_ref",
+        "file_sha256",
+        "payload_ref",
+        "rights_ref",
+        "automatic_candidate_ref",
+        "automatic_candidate_sha256",
+        "pages",
+        "start_marker",
+        "end_exclusive_marker",
+        "diplomatic_lines"
+      ],
+      "properties": {
+        "language": {"const": "ru"},
+        "expression_ref": {"$ref": "#/$defs/tosId"},
+        "item_ref": {"$ref": "#/$defs/tosId"},
+        "file_ref": {"$ref": "#/$defs/tosId"},
+        "file_sha256": {"$ref": "#/$defs/sha256"},
+        "payload_ref": {"$ref": "#/$defs/repoPath"},
+        "rights_ref": {"$ref": "#/$defs/repoPath"},
+        "automatic_candidate_ref": {"$ref": "#/$defs/repoPath"},
+        "automatic_candidate_sha256": {"$ref": "#/$defs/sha256"},
+        "pages": {"type": "array", "minItems": 2, "maxItems": 2, "uniqueItems": true, "items": {"$ref": "#/$defs/pageRender"}},
+        "start_marker": {"const": "187"},
+        "end_exclusive_marker": {"const": "188"},
+        "diplomatic_lines": {"type": "array", "minItems": 2, "uniqueItems": true, "items": {"$ref": "#/$defs/diplomaticLine"}}
+      }
+    },
+    "criticalWitness": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "source_role",
+        "stable_locator",
+        "local_payload_ref",
+        "local_payload_sha256",
+        "local_payload_bytes",
+        "selector",
+        "text",
+        "retrieval"
+      ],
+      "properties": {
+        "source_role": {"const": "critical_edition_comparison_not_historical_item"},
+        "stable_locator": {"const": "http://www.nietzschesource.org/eKGWB/JGB-187"},
+        "local_payload_ref": {"$ref": "#/$defs/repoPath"},
+        "local_payload_sha256": {"$ref": "#/$defs/sha256"},
+        "local_payload_bytes": {"type": "integer", "minimum": 1},
+        "selector": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind", "value"],
+          "properties": {
+            "kind": {"const": "html_anchor_following_txt_block"},
+            "value": {"const": "eKGWB/JGB-187"}
+          }
+        },
+        "text": {"type": "string", "minLength": 100},
+        "retrieval": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "endpoint",
+            "retrieved_at",
+            "http_status",
+            "transport",
+            "bounded_repeat_fetches",
+            "repeat_fetches_byte_identical",
+            "https_attempt_failed_before_http_response"
+          ],
+          "properties": {
+            "endpoint": {"type": "string", "pattern": "^http://www\\.nietzschesource\\.org/"},
+            "retrieved_at": {"type": "string", "format": "date-time"},
+            "http_status": {"const": 200},
+            "transport": {"const": "unencrypted_http"},
+            "bounded_repeat_fetches": {"const": 2},
+            "repeat_fetches_byte_identical": {"const": true},
+            "https_attempt_failed_before_http_response": {"const": true}
+          }
+        }
+      }
+    },
+    "finding": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["finding_id", "scope", "severity", "finding"],
+      "properties": {
+        "finding_id": {"enum": ["source-automatic-ocr-not-diplomatic", "target-automatic-line-omission"]},
+        "scope": {"enum": ["source", "target"]},
+        "severity": {"const": "material"},
+        "finding": {"type": "string", "minLength": 40}
+      }
+    }
+  }
+}

@@ -1,0 +1,59 @@
+{
+  "authority_limits": {
+    "canon_effect": false,
+    "graph_truth_established": false,
+    "human_review_performed": false,
+    "legacy_migration_performed": false,
+    "lexeme_established": false,
+    "linguistic_word_established": false,
+    "model_invoked": false,
+    "private_source_used": false,
+    "real_language_boundary_accepted": false,
+    "semantic_truth_established": false
+  },
+  "authority_posture": "public_synthetic_contract_mechanics_only",
+  "builder": {
+    "ref": "scripts/build_source_text_unit_v1_lab.py",
+    "sha256": "4da34c86754934fe44b0e24188cd1016df2a296101c63d163d7587108cf9c930"
+  },
+  "contract": {
+    "ref": "ToS/contracts/source-text-unit-packet-v1.schema.json",
+    "sha256": "6ba96f4298cf5e88ae261c53c46c7d51681d0f0f0faf3bcecce2e309a0e071ab"
+  },
+  "plan": {
+    "ref": "ToS/research-packets/foundation-laboratory-2026-07/source-text-unit-v1-abc/plan.json",
+    "sha256": "0b9434f0e21f20073b23d85faa002f8a684ab40c9c694628349b4491baa627e8"
+  },
+  "research": {
+    "ref": "ToS/research-packets/foundation-laboratory-2026-07/SOURCE_TEXT_UNIT_SEGMENTATION_RESEARCH_2026-08-11.md",
+    "sha256": "ff73e7a7053f7eeb710d1d183b2ecab08401cdba3604c82843ba37556ffcb9bc"
+  },
+  "schema_version": "tos_source_text_unit_v1_lab_manifest_v1",
+  "source": {
+    "ref": "ToS/research-packets/foundation-laboratory-2026-07/source-text-unit-v1-abc/public-synthetic-source.x-tos-unit.txt",
+    "sha256": "312864bbb2666e8cb5130797996afcf8debb5b4fb3234e4cad81bcb82bff53b3"
+  },
+  "variants": [
+    {
+      "expected_schema_valid": true,
+      "expected_semantic_valid": true,
+      "packet_ref": "ToS/research-packets/foundation-laboratory-2026-07/source-text-unit-v1-abc/variant-a-source-layout-observation.json",
+      "packet_sha256": "c7065c753a9b7b1df46c579041d39cdaa89db007408bf3d597f8539d1c586de4",
+      "variant_id": "A"
+    },
+    {
+      "expected_schema_valid": true,
+      "expected_semantic_valid": true,
+      "packet_ref": "ToS/research-packets/foundation-laboratory-2026-07/source-text-unit-v1-abc/variant-b-competing-segmentations.json",
+      "packet_sha256": "653f3663aa1fc04f20a8f5d2e412dc5b19e121fada1f584837f36d9a06142e3b",
+      "variant_id": "B"
+    },
+    {
+      "expected_schema_valid": false,
+      "expected_semantic_valid": false,
+      "packet_ref": "ToS/research-packets/foundation-laboratory-2026-07/source-text-unit-v1-abc/variant-c-invalid-acceptance.json",
+      "packet_sha256": "5edca499ad3d1775b043ed51c33179ebfab503496a16205e4b90166326b0ae53",
+      "variant_id": "C"
+    }
+  ]
+}

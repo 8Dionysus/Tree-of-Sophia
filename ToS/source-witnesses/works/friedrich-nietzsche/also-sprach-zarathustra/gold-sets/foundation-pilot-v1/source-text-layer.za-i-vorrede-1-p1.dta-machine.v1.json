@@ -1,0 +1,101 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/source-text-layer.schema.json",
+  "admission": {
+    "accepted_uses": [],
+    "automatic_validation_complete": true,
+    "human_language_competence": "blocked",
+    "human_review_performed": false,
+    "language_competence_evidence_refs": [],
+    "mechanical_status": "fixity_verified",
+    "model_output_is_ground_truth": false,
+    "promotion_authorized": false,
+    "review_ref": null,
+    "review_status": "unreviewed",
+    "routine_human_task_created": false,
+    "validator_proves_content_truth": false
+  },
+  "authority_boundary": "a source text layer is one immutable, source-returnable representation with explicit derivation, uncertainty, review, competence, rights, and use scope; mechanical validation, model output, normalization, or agreement with another layer does not make it accepted source text, translation evidence, linguistic truth, semantic evidence, graph truth, canon authority, or publication permission",
+  "derivation": {
+    "change_payload": {
+      "kind": "none"
+    },
+    "input_layers": [],
+    "loss_posture": "preservation_intended",
+    "maker": {
+      "agent_ref": "software:tos-zarathustra-source-text-foundation-builder",
+      "configuration_digest": "ff9343b8af24828b91a87ee9cbbd3d9de7326246942177e5282de37140fa900e",
+      "configuration_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/za-i-vorrede-1-source-text-foundation.plan.v1.json",
+      "maker_type": "software",
+      "method": "tei-lb-aware-structural-extraction",
+      "version": "1"
+    },
+    "method": "structural_extraction",
+    "preservation_goal": "source_near",
+    "silent_changes_allowed": false
+  },
+  "editorial_policy": {
+    "historical_language_preserved": true,
+    "layout_posture": "encode_explicitly",
+    "method_declared": true,
+    "policy_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/za-i-vorrede-1-source-text-foundation.plan.v1.json",
+    "policy_sha256": "ff9343b8af24828b91a87ee9cbbd3d9de7326246942177e5282de37140fa900e",
+    "printing_errors_silently_corrected": false,
+    "transcription_goal": "machine_candidate",
+    "typography_posture": "preserve",
+    "uncertainty_representation": "explicit-never-silent",
+    "unicode_normalization": "none"
+  },
+  "layer_id": "tos.text-layer.za-i-vorrede-1.dta-part-1-p1.sid-ccc855b0446c4dcc5c51db88a4baebd2",
+  "layer_role": "machine_transcription",
+  "layer_version": 1,
+  "provenance_event_ref": "tos.event.native-extraction.za-i-vorrede-1.dta-part-1-p1.2026-08-12",
+  "representation": {
+    "character_normalization": "none",
+    "charset": "UTF-8",
+    "content_file_id": "tos.file.sha256.dcc0b25c1e91eaadc1e8b2982dca89cc8a4c355c756b67d996349c8dd9668a61",
+    "content_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/local-content/source-text-foundation/za-i-vorrede-1/dta-part-1-paragraph-1.machine-transcription.txt",
+    "content_sha256": "dcc0b25c1e91eaadc1e8b2982dca89cc8a4c355c756b67d996349c8dd9668a61",
+    "content_visibility": "local_only",
+    "language": "de",
+    "line_break_posture": "source_preserved",
+    "media_type": "text/plain",
+    "publication_authority_refs": [],
+    "publication_authorized": false,
+    "rights_record_refs": [
+      {
+        "ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/de-schmeitzner-1883-part-1/editions/chemnitz-schmeitzner-1883-part-1/items/dta-sbb-corrected-tei-p5/rights.json",
+        "sha256": "0ee4a2f6301450e155a623f4b692c936f13d07b296a512db9875652492cbbfc4"
+      }
+    ],
+    "storage": "ignored_local",
+    "text_scope": {
+      "end": 349,
+      "interval": "half_open",
+      "position_unit": "unicode_code_point",
+      "start": 0
+    },
+    "tracked_content": false
+  },
+  "schema_version": "tos_source_text_layer_v1",
+  "source_binding": {
+    "anchor_contract": "tos_source_anchor_v2",
+    "anchors": [
+      {
+        "anchor_id": "tos.anchor.za-i-vorrede-1.dta-part-1-p1.sid-1aa3b374f096252babaec253bb170107",
+        "anchor_record_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/source-anchor-v2.za-i-vorrede-1-p1.dta.v1.json",
+        "anchor_record_sha256": "a0f895355db939014763812a8e392f66ae89344990ea652fc0f99aeb3865b128"
+      }
+    ],
+    "edition_ref": "tos.edition.friedrich-nietzsche.also-sprach-zarathustra.chemnitz-schmeitzner-1883-part-1",
+    "expression_ref": "tos.expression.friedrich-nietzsche.also-sprach-zarathustra.de-schmeitzner-1883-part-1",
+    "item_ref": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-schmeitzner-1883-part-1.dta-sbb-corrected-tei-p5",
+    "source_file_ref": "tos.file.sha256.d3fa5f8af39d87c8f0ede7a0b52b26da0c57e73125d3b0bd2a836b80eae24a4b",
+    "source_file_sha256": "d3fa5f8af39d87c8f0ede7a0b52b26da0c57e73125d3b0bd2a836b80eae24a4b",
+    "work_ref": "tos.work.friedrich-nietzsche.also-sprach-zarathustra"
+  },
+  "supersedes_layer_ref": null,
+  "uncertainty": {
+    "annotations": [],
+    "status": "none"
+  }
+}

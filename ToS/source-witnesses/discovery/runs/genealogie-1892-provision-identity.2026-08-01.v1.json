@@ -1,0 +1,344 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/material-discovery-record.schema.json",
+  "schema_version": "tos_material_discovery_record_v1",
+  "discovery_id": "tos.discovery.genealogie-1892-provision-identity.2026-08-01",
+  "protocol_ref": "ToS/source-witnesses/discovery/DISCOVERY_PROTOCOL.md",
+  "target": {
+    "target_kind": "edition",
+    "known_tos_refs": [
+      "tos.work.friedrich-nietzsche.zur-genealogie-der-moral",
+      "tos.edition.friedrich-nietzsche.zur-genealogie-der-moral.leipzig-c-g-naumann-1892-second",
+      "tos.item.friedrich-nietzsche.zur-genealogie-der-moral.de-naumann-1892-second.wikimedia-commons-unc-scan-pdf"
+    ],
+    "description": "Exact role-separated publication and manufacture identity for the fixity-verified Genealogie 1892 second-edition Item without deriving provision facts from labels or collapsing publisher, printer, place, Edition year, printing completion, release, textual state, and current rights.",
+    "required_properties": [
+      "source-visible publication statement on PDF page 5",
+      "source-visible printer statement on PDF page 204",
+      "publisher and printer Organization separation",
+      "source-visible place and bounded statement year",
+      "source-return anchors for both provision surfaces"
+    ],
+    "acceptable_substitutions": [
+      "an exact independent institutional record for another 1892 second-edition copy that preserves the imprint without asserting Item equivalence"
+    ],
+    "languages": ["de"],
+    "formats": ["PDF", "metadata", "JSON-LD", "HTML", "scholarly article", "historical-critical commentary"],
+    "purpose_ref": "ToS/research-packets/foundation-laboratory-2026-07/GENEALOGIE_1892_PROVISION_IDENTITY_RESEARCH.md"
+  },
+  "channels": [
+    {
+      "channel_id": "channel-commons-ia-genealogie-1892-exact-item",
+      "sequence": 1,
+      "channel_type": "collection-aggregator",
+      "role": "originating-record",
+      "source_name": "Wikimedia Commons exact revision, Internet Archive source lineage, and local fixity-verified UNC research copy",
+      "endpoint_url": "https://commons.wikimedia.org/wiki/File:Zur_Genealogie_der_Moral_-_eine_Streitschrift_(IA_zurgenealogieder00niet).pdf",
+      "interface_type": "api",
+      "interface_version": "Wikimedia Commons and Internet Archive APIs as served 2026-08-01 plus direct visual inspection of the exact local payload",
+      "exact_query": "Refresh Commons page ID 95720779 and IA item zurgenealogieder00niet, verify the exact local PDF SHA-256 5705dbc4f32faa924919fd533962c931e92462d72dab5183610eb68adeecac03, and visually inspect PDF pages 5 and 204",
+      "queried_at": "2026-08-01T06:49:32-06:00",
+      "elapsed_seconds": 2.7,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.commons-genealogie-1892-exact-item-provision",
+          "rank": 1,
+          "title_as_displayed": "Zur Genealogie der Moral : eine Streitschrift",
+          "result_url": "https://commons.wikimedia.org/wiki/File:Zur_Genealogie_der_Moral_-_eine_Streitschrift_(IA_zurgenealogieder00niet).pdf",
+          "originating_record_url": "https://commons.wikimedia.org/w/api.php?action=query&format=json&formatversion=2&prop=imageinfo&pageids=95720779&iiprop=url%7Csize%7Csha1%7Ctimestamp%7Cmime%7Cextmetadata",
+          "identifiers": [
+            {"scheme": "Wikimedia Commons page ID", "value": "95720779"},
+            {"scheme": "Internet Archive source-lineage identifier", "value": "zurgenealogieder00niet"},
+            {"scheme": "local SHA-256", "value": "5705dbc4f32faa924919fd533962c931e92462d72dab5183610eb68adeecac03"}
+          ],
+          "available_formats": ["Text PDF", "JSON metadata", "page preview"],
+          "declared_rights": {
+            "statement": "Wikimedia Commons declares the exact revision Public domain and Copyrighted=False.",
+            "scope": "digital-object",
+            "evidence_url": "https://commons.wikimedia.org/wiki/File:Zur_Genealogie_der_Moral_-_eine_Streitschrift_(IA_zurgenealogieder00niet).pdf",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-download",
+          "machine_interface": "api",
+          "decision": "select",
+          "rationale": "Only the exact fixity-verified Item proves the publisher/year statement on page 5 and the separate printer statement on page 204; no payload, OCR, transcription, or rendered page is added to Git.",
+          "acquisition": {"downloaded": false, "acquired_at": null, "byte_size": null, "sha256": null, "event_ref": null},
+          "snapshot": {"state": "captured", "format": "static-snapshot", "sha256": "f135b78ec76a6c0fb5db6c61f3d6ff485ffca14deabbb76170e01dad90f83240", "reason": "The tracked source-metadata snapshot preserves originating-object identity; refreshed Commons and IA response digests are recorded in the research packet."}
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-dnb-genealogie-naumann-authorities",
+      "sequence": 2,
+      "channel_type": "national-catalog",
+      "role": "originating-record",
+      "source_name": "Deutsche Nationalbibliothek Work and GND authority records",
+      "endpoint_url": "https://d-nb.info/gnd/4342502-1",
+      "interface_type": "api",
+      "interface_version": "same-day GND linked-data observations already captured by the Naumann identity pass plus bounded 2026-08-01 retries",
+      "exact_query": "Resolve Work GND 4342502-1, publisher GND 1072998033, printer GND 16034133-4, and Leipzig GND 4035206-7; retain role separation and reject same_as, legal unity, and succession inference",
+      "queried_at": "2026-08-01T06:49:30-06:00",
+      "elapsed_seconds": 0.7,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.dnb-gnd-4342502-1-genealogie-work-provision",
+          "rank": 1,
+          "title_as_displayed": "Zur Genealogie der Moral",
+          "result_url": "https://d-nb.info/gnd/4342502-1",
+          "originating_record_url": "https://d-nb.info/gnd/4342502-1/about/lds",
+          "identifiers": [{"scheme": "GND", "value": "4342502-1"}],
+          "available_formats": ["HTML", "RDF"],
+          "declared_rights": {"statement": "GND metadata is supplied under CC0 1.0.", "scope": "metadata", "evidence_url": "https://www.dnb.de/EN/Professionell/Metadatendienste/Datenbezug/LDS/lds_node.html", "tos_conclusion": "evidence-only-not-a-rights-conclusion"},
+          "availability": "metadata-only",
+          "machine_interface": "api",
+          "decision": "select",
+          "rationale": "The Work authority identifies Nietzsche's Work but is not Item identity, title-page transcription, or a release date.",
+          "acquisition": {"downloaded": false, "acquired_at": null, "byte_size": null, "sha256": null, "event_ref": null},
+          "snapshot": {"state": "not-captured", "format": null, "sha256": null, "reason": "The current linked-data retry failed to connect; the existing 2026-07-30 source snapshot remains the bounded evidence and the failure was not bypassed."}
+        },
+        {
+          "result_id": "tos-discovery-result.dnb-gnd-1072998033-naumann-publisher-genealogie",
+          "rank": 2,
+          "title_as_displayed": "C. G. Naumann Verlag (Leipzig)",
+          "result_url": "https://d-nb.info/gnd/1072998033",
+          "originating_record_url": "https://d-nb.info/gnd/1072998033/about/lds",
+          "identifiers": [{"scheme": "GND", "value": "1072998033"}],
+          "available_formats": ["JSON-LD", "RDF"],
+          "declared_rights": {"statement": "GND metadata is supplied under CC0 1.0.", "scope": "metadata", "evidence_url": "https://www.dnb.de/EN/Professionell/Metadatendienste/Datenbezug/LDS/lds_node.html", "tos_conclusion": "evidence-only-not-a-rights-conclusion"},
+          "availability": "metadata-only",
+          "machine_interface": "api",
+          "decision": "select",
+          "rationale": "The same-day authority evidence supports the role-specific provisional publisher Organization and remains distinct from the printer authority.",
+          "acquisition": {"downloaded": false, "acquired_at": null, "byte_size": null, "sha256": null, "event_ref": null},
+          "snapshot": {"state": "not-captured", "format": null, "sha256": null, "reason": "The same-day response digest is preserved in the Naumann 1893 research; the current retry failed to connect and was not bypassed."}
+        },
+        {
+          "result_id": "tos-discovery-result.dnb-gnd-16034133-4-naumann-printer-genealogie",
+          "rank": 3,
+          "title_as_displayed": "Druckerei C. G. Naumann",
+          "result_url": "https://d-nb.info/gnd/16034133-4",
+          "originating_record_url": "https://d-nb.info/gnd/16034133-4/about/lds",
+          "identifiers": [{"scheme": "GND", "value": "16034133-4"}],
+          "available_formats": ["JSON-LD", "RDF"],
+          "declared_rights": {"statement": "GND metadata is supplied under CC0 1.0.", "scope": "metadata", "evidence_url": "https://www.dnb.de/EN/Professionell/Metadatendienste/Datenbezug/LDS/lds_node.html", "tos_conclusion": "evidence-only-not-a-rights-conclusion"},
+          "availability": "metadata-only",
+          "machine_interface": "api",
+          "decision": "select",
+          "rationale": "The distinct printer authority supports a role-specific provisional Organization without licensing a claim of legal separation from or identity with the publisher record.",
+          "acquisition": {"downloaded": false, "acquired_at": null, "byte_size": null, "sha256": null, "event_ref": null},
+          "snapshot": {"state": "not-captured", "format": null, "sha256": null, "reason": "The same-day response digest is preserved in the Naumann 1893 research; the current retry failed to connect and was not bypassed."}
+        },
+        {
+          "result_id": "tos-discovery-result.dnb-gnd-4035206-7-leipzig-genealogie",
+          "rank": 4,
+          "title_as_displayed": "Leipzig",
+          "result_url": "https://d-nb.info/gnd/4035206-7",
+          "originating_record_url": "https://d-nb.info/gnd/4035206-7/about/lds",
+          "identifiers": [{"scheme": "GND", "value": "4035206-7"}],
+          "available_formats": ["JSON-LD", "RDF"],
+          "declared_rights": {"statement": "GND metadata is supplied under CC0 1.0.", "scope": "metadata", "evidence_url": "https://www.dnb.de/EN/Professionell/Metadatendienste/Datenbezug/LDS/lds_node.html", "tos_conclusion": "evidence-only-not-a-rights-conclusion"},
+          "availability": "metadata-only",
+          "machine_interface": "api",
+          "decision": "select",
+          "rationale": "The authority supports the existing provisional Place normalization and does not replace either exact LEIPZIG literal.",
+          "acquisition": {"downloaded": false, "acquired_at": null, "byte_size": null, "sha256": null, "event_ref": null},
+          "snapshot": {"state": "not-captured", "format": null, "sha256": null, "reason": "The same-day response digest is preserved in the preceding foundation research; the current retry failed to connect and was not bypassed."}
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-ndz-genealogie-1892-independent-copy",
+      "sequence": 3,
+      "channel_type": "specialized-scholarly-project",
+      "role": "originating-record",
+      "source_name": "Nietzsche Documentation Center Naumburg collection bibliography",
+      "endpoint_url": "https://www.nietzsche-dokumentationszentrum-naumburg.de/assets/BibliografieSammlungMarjolijnvandenAssem.pdf",
+      "interface_type": "web",
+      "interface_version": "institutional collection bibliography current to 2026-03-27",
+      "exact_query": "Inspect entry 73 for title, author, series, exact edition statement, imprint, extent, and shelfmark",
+      "queried_at": "2026-08-01T06:43:00-06:00",
+      "elapsed_seconds": 1.0,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.ndz-1892sw001-genealogie-second-edition",
+          "rank": 1,
+          "title_as_displayed": "Zur Genealogie der Moral : eine Streitschrift",
+          "result_url": "https://www.nietzsche-dokumentationszentrum-naumburg.de/assets/BibliografieSammlungMarjolijnvandenAssem.pdf",
+          "originating_record_url": "https://www.nietzsche-dokumentationszentrum-naumburg.de/assets/BibliografieSammlungMarjolijnvandenAssem.pdf",
+          "identifiers": [{"scheme": "NDZ shelfmark", "value": "1892SW001"}],
+          "available_formats": ["PDF collection bibliography"],
+          "declared_rights": {"statement": null, "scope": "metadata", "evidence_url": null, "tos_conclusion": "evidence-only-not-a-rights-conclusion"},
+          "availability": "open-view",
+          "machine_interface": "html",
+          "decision": "select",
+          "rationale": "The current institutional bibliography independently identifies a 1892 second-edition copy, Leipzig C. G. Naumann, XIV plus 182 pages; it does not identify or equate the UNC Item.",
+          "acquisition": {"downloaded": false, "acquired_at": null, "byte_size": null, "sha256": null, "event_ref": null},
+          "snapshot": {"state": "not-captured", "format": null, "sha256": null, "reason": "The current institutional PDF was inspected through the public route and not retained."}
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-established-genealogie-edition-history",
+      "sequence": 4,
+      "channel_type": "specialized-scholarly-project",
+      "role": "scholarly-index",
+      "source_name": "Andreas Urs Sommer historical-critical commentary and William A. B. Parkhurst genetic study",
+      "endpoint_url": "https://doi.org/10.11588/diglit.70912",
+      "interface_type": "web",
+      "interface_version": "established 2019 and 2022 scholarship checked 2026-08-01",
+      "exact_query": "Constrain interpretation of the 1892 Edition through established print-history, correction-sheet, first-print, later-edition, and genetic-stage evidence",
+      "queried_at": "2026-08-01T06:40:00-06:00",
+      "elapsed_seconds": 1.0,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.sommer-2019-genealogie-commentary-provision",
+          "rank": 1,
+          "title_as_displayed": "Kommentar zu Nietzsches Zur Genealogie der Moral",
+          "result_url": "https://doi.org/10.11588/diglit.70912",
+          "originating_record_url": "https://digi.hadw-bw.de/view/nietzsche_kom5_2/",
+          "identifiers": [{"scheme": "DOI", "value": "10.11588/diglit.70912"}],
+          "available_formats": ["digital commentary", "metadata", "IIIF"],
+          "declared_rights": {"statement": "The displayed commentary is marked In Copyright.", "scope": "content", "evidence_url": "https://digi.hadw-bw.de/view/nietzsche_kom5_2/", "tos_conclusion": "evidence-only-not-a-rights-conclusion"},
+          "availability": "open-view",
+          "machine_interface": "html",
+          "decision": "select",
+          "rationale": "The commentary distinguishes the 1887 first print, the 1892 second edition, the later series half-title, the 1894 third edition, and unresolved copy layers.",
+          "acquisition": {"downloaded": false, "acquired_at": null, "byte_size": null, "sha256": null, "event_ref": null},
+          "snapshot": {"state": "not-captured", "format": null, "sha256": null, "reason": "The established result is already bounded in the Genealogie authorial-witness route; no content body is retained by this provision pass."}
+        },
+        {
+          "result_id": "tos-discovery-result.parkhurst-2022-genealogie-genetic-preface-provision",
+          "rank": 2,
+          "title_as_displayed": "A Genetic Interpretation of the Preface of The Genealogy of Morals",
+          "result_url": "https://doi.org/10.3390/genealogy6040081",
+          "originating_record_url": "https://doi.org/10.3390/genealogy6040081",
+          "identifiers": [{"scheme": "DOI", "value": "10.3390/genealogy6040081"}],
+          "available_formats": ["open scholarly article", "metadata"],
+          "declared_rights": {"statement": "Publisher record reports an open-access article.", "scope": "content", "evidence_url": "https://doi.org/10.3390/genealogy6040081", "tos_conclusion": "evidence-only-not-a-rights-conclusion"},
+          "availability": "open-view",
+          "machine_interface": "html",
+          "decision": "select",
+          "rationale": "The direct genetic study separates document and edition stages but supplies no stronger provision statement than the exact 1892 Item.",
+          "acquisition": {"downloaded": false, "acquired_at": null, "byte_size": null, "sha256": null, "event_ref": null},
+          "snapshot": {"state": "not-captured", "format": null, "sha256": null, "reason": "No article body is retained by this provision pass."}
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-fresh-genealogie-2025-2026",
+      "sequence": 5,
+      "channel_type": "specialized-scholarly-project",
+      "role": "scholarly-index",
+      "source_name": "University of Basel documentary edition and current 2026 publisher-catalog freshness check",
+      "endpoint_url": "https://nietzsche.philhist.unibas.ch/gm/",
+      "interface_type": "web",
+      "interface_version": "Basel edition viewable since December 2025 and current publisher records checked 2026-08-01",
+      "exact_query": "Find the freshest directly relevant 2025-2026 philological result or correction affecting the 1892 Edition identity, provision statements, or stage separation",
+      "queried_at": "2026-08-01T06:44:00-06:00",
+      "elapsed_seconds": 3.5,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.basel-2025-genealogie-documentary-edition-provision",
+          "rank": 1,
+          "title_as_displayed": "Zur Genealogie der Moral: Digitale Edition der Druckmanuskripte, Korrekturbogen und Erstausgabe",
+          "result_url": "https://nietzsche.philhist.unibas.ch/gm/",
+          "originating_record_url": "https://nietzsche.philhist.unibas.ch/resources/data/data.json",
+          "identifiers": [],
+          "available_formats": ["digital scholarly edition", "document-surface index", "metadata registry"],
+          "declared_rights": {"statement": "Freely viewable; no explicit reusable-content license was found on the inspected edition pages.", "scope": "content", "evidence_url": "https://nietzsche.philhist.unibas.ch/gm/", "tos_conclusion": "evidence-only-not-a-rights-conclusion"},
+          "availability": "open-view",
+          "machine_interface": "html",
+          "decision": "select",
+          "rationale": "The freshest direct philological route sharpens print-manuscript, correction-sheet, and 1887 first-print separation but does not alter the two source-visible 1892 statements.",
+          "acquisition": {"downloaded": false, "acquired_at": null, "byte_size": null, "sha256": null, "event_ref": null},
+          "snapshot": {"state": "not-captured", "format": null, "sha256": null, "reason": "The route is already recorded in the 2026-07-30 authorial-witness research; no source body is retained here."}
+        },
+        {
+          "result_id": "tos-discovery-result.hackett-2026-genealogy-translation-edition-rejected",
+          "rank": 2,
+          "title_as_displayed": "On the Genealogy of Morality, Hackett Signature Edition",
+          "result_url": "https://hackettpublishing.com/philosophy/on-the-genealogy-of-morality-hackett-signature-edition",
+          "originating_record_url": "https://hackettpublishing.com/philosophy/on-the-genealogy-of-morality-hackett-signature-edition",
+          "identifiers": [],
+          "available_formats": ["publisher HTML", "later English translation edition"],
+          "declared_rights": {"statement": null, "scope": "content", "evidence_url": null, "tos_conclusion": "evidence-only-not-a-rights-conclusion"},
+          "availability": "metadata-only",
+          "machine_interface": "html",
+          "decision": "reject",
+          "rationale": "The 2026 record is relevant to later translation comparison but cannot identify, transcribe, or correct the German 1892 provision statements.",
+          "acquisition": {"downloaded": false, "acquired_at": null, "byte_size": null, "sha256": null, "event_ref": null},
+          "snapshot": {"state": "not-captured", "format": null, "sha256": null, "reason": "Rejected for this exact-edition provision target."}
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-general-web-genealogie-1892-last",
+      "sequence": 6,
+      "channel_type": "general-web-search",
+      "role": "lead-only",
+      "source_name": "General web search after exact, official, independent institutional, established, and fresh routes",
+      "endpoint_url": "https://www.google.com/search",
+      "interface_type": "web",
+      "interface_version": "search results observed 2026-08-01",
+      "exact_query": "Zur Genealogie der Moral Zweite Auflage Leipzig Verlag von C. G. Naumann 1892 Druck von C. G. Naumann",
+      "queried_at": "2026-08-01T06:46:00-06:00",
+      "elapsed_seconds": 1.2,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.abebooks-genealogie-1892-listing-rejected",
+          "rank": 1,
+          "title_as_displayed": "Zur Genealogie der Moral; Eine Streitschrift",
+          "result_url": "https://www.abebooks.com/servlet/BookDetailsPL?bi=6120824498",
+          "originating_record_url": "https://www.abebooks.com/servlet/BookDetailsPL?bi=6120824498",
+          "identifiers": [],
+          "available_formats": ["HTML marketplace listing"],
+          "declared_rights": {"statement": null, "scope": "metadata", "evidence_url": null, "tos_conclusion": "evidence-only-not-a-rights-conclusion"},
+          "availability": "open-view",
+          "machine_interface": "html",
+          "decision": "reject",
+          "rationale": "The marketplace listing repeats second edition, Leipzig, Naumann, and 1892 but adds no exact evidence stronger than the local Item, institutional copy, or established commentary.",
+          "acquisition": {"downloaded": false, "acquired_at": null, "byte_size": null, "sha256": null, "event_ref": null},
+          "snapshot": {"state": "not-captured", "format": null, "sha256": null, "reason": "Rejected lead only."}
+        }
+      ]
+    }
+  ],
+  "channel_comparison": [
+    {"channel_id":"channel-commons-ia-genealogie-1892-exact-item","completeness":"strong","metadata_precision":"strong","rights_clarity":"strong","machine_interface_quality":"strong","human_minutes":0,"machine_seconds":2.7,"notes":"Only the exact fixity-verified Item proves the two source-visible statements; the Commons and current IA PDF byte revisions remain distinct."},
+    {"channel_id":"channel-dnb-genealogie-naumann-authorities","completeness":"adequate","metadata_precision":"strong","rights_clarity":"strong","machine_interface_quality":"limited","human_minutes":0,"machine_seconds":0.7,"notes":"Best identity layer from same-day captured GND evidence; all current retries failed to connect and were not bypassed."},
+    {"channel_id":"channel-ndz-genealogie-1892-independent-copy","completeness":"strong","metadata_precision":"strong","rights_clarity":"unknown","machine_interface_quality":"adequate","human_minutes":0,"machine_seconds":1.0,"notes":"Current independent institutional copy confirms Edition statement, imprint, extent, and shelfmark without Item equivalence."},
+    {"channel_id":"channel-established-genealogie-edition-history","completeness":"strong","metadata_precision":"strong","rights_clarity":"limited","machine_interface_quality":"strong","human_minutes":0,"machine_seconds":1.0,"notes":"Established commentary and genetic work constrain Edition and textual-stage interpretation but do not replace the exact pages."},
+    {"channel_id":"channel-fresh-genealogie-2025-2026","completeness":"adequate","metadata_precision":"strong","rights_clarity":"limited","machine_interface_quality":"strong","human_minutes":0,"machine_seconds":3.5,"notes":"The December-2025 documentary edition is the freshest direct philological route; the 2026 English edition belongs to a later translation branch and was rejected for this target."},
+    {"channel_id":"channel-general-web-genealogie-1892-last","completeness":"limited","metadata_precision":"limited","rights_clarity":"unknown","machine_interface_quality":"adequate","human_minutes":0,"machine_seconds":1.2,"notes":"General web ran last; marketplace evidence was explicitly rejected."}
+  ],
+  "selected_result_ids": [
+    "tos-discovery-result.commons-genealogie-1892-exact-item-provision",
+    "tos-discovery-result.dnb-gnd-4342502-1-genealogie-work-provision",
+    "tos-discovery-result.dnb-gnd-1072998033-naumann-publisher-genealogie",
+    "tos-discovery-result.dnb-gnd-16034133-4-naumann-printer-genealogie",
+    "tos-discovery-result.dnb-gnd-4035206-7-leipzig-genealogie",
+    "tos-discovery-result.ndz-1892sw001-genealogie-second-edition",
+    "tos-discovery-result.sommer-2019-genealogie-commentary-provision",
+    "tos-discovery-result.parkhurst-2022-genealogie-genetic-preface-provision",
+    "tos-discovery-result.basel-2025-genealogie-documentary-edition-provision"
+  ],
+  "rejected_result_ids": [
+    "tos-discovery-result.hackett-2026-genealogy-translation-edition-rejected",
+    "tos-discovery-result.abebooks-genealogie-1892-listing-rejected"
+  ],
+  "rights_inference_from_availability_prohibited": true,
+  "general_web_search_is_last_resort": true,
+  "technical_access_bypass_used": false,
+  "maker": {"maker_type": "model", "agent_ref": "model:codex"},
+  "started_at": "2026-08-01T06:33:00-06:00",
+  "ended_at": "2026-08-01T06:51:02-06:00",
+  "status": "reconciled",
+  "provenance_event_refs": ["tos.event.discovery.genealogie-1892-provision-identity.2026-08-01"],
+  "record_version": 1,
+  "supersedes_discovery_ref": null
+}

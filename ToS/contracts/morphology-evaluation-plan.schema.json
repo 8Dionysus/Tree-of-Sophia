@@ -1,0 +1,343 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://tree-of-sophia.local/ToS/contracts/morphology-evaluation-plan.schema.json",
+  "title": "Tree of Sophia source-gated historical German morphology evaluation plan",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "$schema",
+    "schema_version",
+    "plan_id",
+    "experiment_id",
+    "plan_kind",
+    "status",
+    "frozen_before_variant_outputs",
+    "research_question",
+    "source_lexical_index",
+    "stage_order",
+    "a_census",
+    "abc_followup",
+    "rights_posture",
+    "human_authority",
+    "semantic_boundary",
+    "authority_boundary"
+  ],
+  "properties": {
+    "$schema": {
+      "const": "https://tree-of-sophia.local/ToS/contracts/morphology-evaluation-plan.schema.json"
+    },
+    "schema_version": {"const": "tos_source_gated_morphology_evaluation_plan_v1"},
+    "plan_id": {
+      "type": "string",
+      "pattern": "^morphology-evaluation-plan:[a-z0-9]+(?:[.-][a-z0-9]+)*$"
+    },
+    "experiment_id": {"const": "tos-historical-german-morphology-v1"},
+    "plan_kind": {"const": "historical-german-morphology"},
+    "status": {"const": "ready-for-a-census"},
+    "frozen_before_variant_outputs": {"const": true},
+    "research_question": {"type": "string", "minLength": 40},
+    "source_lexical_index": {"$ref": "#/$defs/sourceLexicalIndex"},
+    "stage_order": {
+      "const": [
+        "identity-control",
+        "a-whole-vocabulary-census",
+        "freeze-contextual-disagreement-sample-if-triggered",
+        "a-b-c-contextual-comparison-if-admitted"
+      ]
+    },
+    "a_census": {"$ref": "#/$defs/aCensus"},
+    "abc_followup": {"$ref": "#/$defs/abcFollowup"},
+    "rights_posture": {"$ref": "#/$defs/rightsPosture"},
+    "human_authority": {"$ref": "#/$defs/humanAuthority"},
+    "semantic_boundary": {"$ref": "#/$defs/semanticBoundary"},
+    "authority_boundary": {"type": "string", "minLength": 40}
+  },
+  "$defs": {
+    "digest": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "repoPath": {
+      "type": "string",
+      "pattern": "^ToS/[A-Za-z0-9._/-]+$"
+    },
+    "sourceLexicalIndex": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "work_ref",
+        "index_plan_ref",
+        "index_plan_sha256",
+        "tracked_projection_ref",
+        "tracked_projection_sha256",
+        "local_database_relative_path",
+        "local_database_sha256",
+        "source_item_count",
+        "exact_form_row_count",
+        "normalized_form_hash_count",
+        "token_occurrence_count",
+        "source_text_accepted",
+        "rights_cleared"
+      ],
+      "properties": {
+        "work_ref": {
+          "const": "tos.work.friedrich-nietzsche.also-sprach-zarathustra"
+        },
+        "index_plan_ref": {"$ref": "#/$defs/repoPath"},
+        "index_plan_sha256": {"$ref": "#/$defs/digest"},
+        "tracked_projection_ref": {"$ref": "#/$defs/repoPath"},
+        "tracked_projection_sha256": {"$ref": "#/$defs/digest"},
+        "local_database_relative_path": {"$ref": "#/$defs/repoPath"},
+        "local_database_sha256": {"$ref": "#/$defs/digest"},
+        "source_item_count": {"type": "integer", "minimum": 1},
+        "exact_form_row_count": {"type": "integer", "minimum": 1},
+        "normalized_form_hash_count": {"type": "integer", "minimum": 1},
+        "token_occurrence_count": {"type": "integer", "minimum": 1},
+        "source_text_accepted": {"const": false},
+        "rights_cleared": {"const": false}
+      }
+    },
+    "aCensus": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "status",
+        "question",
+        "input_unit",
+        "selection",
+        "ordering",
+        "exact_surface_mutated",
+        "normalization_before_analysis",
+        "identity_control",
+        "candidate",
+        "local_packet",
+        "tracked_receipt_ref",
+        "metrics",
+        "quality_claims_allowed"
+      ],
+      "properties": {
+        "status": {"const": "materialization-admitted"},
+        "question": {"type": "string", "minLength": 40},
+        "input_unit": {"const": "one-row-per-exact-form"},
+        "selection": {"const": "all-exact-form-rows"},
+        "ordering": {"const": "exact-form-sha256-then-exact-form-utf8"},
+        "exact_surface_mutated": {"const": false},
+        "normalization_before_analysis": {"const": false},
+        "identity_control": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["method", "lemma_claim"],
+          "properties": {
+            "method": {"const": "return-exact-surface-only"},
+            "lemma_claim": {"const": false}
+          }
+        },
+        "candidate": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "label",
+            "artifact",
+            "version",
+            "source_commit",
+            "wheel_sha256",
+            "execution_posture"
+          ],
+          "properties": {
+            "label": {"const": "A"},
+            "artifact": {"const": "DWDSmor Open"},
+            "version": {"const": "0.18.0"},
+            "source_commit": {
+              "const": "f97b92ce2a5d6db8750afbdb222eb39470e57cf6"
+            },
+            "wheel_sha256": {
+              "const": "395a15e15286b0c191b42355b6e3c2a43c8959621ccf3563336c2e30399a2973"
+            },
+            "execution_posture": {"const": "proposal-only-preserve-all-analyses-and-unknowns"}
+          }
+        },
+        "local_packet": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "relative_path",
+            "format",
+            "schema_version",
+            "required_fields",
+            "source_bearing",
+            "visibility"
+          ],
+          "properties": {
+            "relative_path": {"$ref": "#/$defs/repoPath"},
+            "format": {"const": "jsonl"},
+            "schema_version": {"const": "tos_morphology_input_row_v1"},
+            "required_fields": {
+              "const": [
+                "schema_version",
+                "form_key",
+                "exact_form",
+                "exact_form_sha256",
+                "normalized_form_sha256",
+                "occurrence_count"
+              ]
+            },
+            "source_bearing": {"const": true},
+            "visibility": {"const": "gitignored-local-only"}
+          }
+        },
+        "tracked_receipt_ref": {"$ref": "#/$defs/repoPath"},
+        "metrics": {
+          "const": [
+            "exact-input-preservation",
+            "form-type-coverage",
+            "token-weighted-coverage",
+            "unknown-form-rate",
+            "analysis-count-distribution",
+            "provider-category-distribution",
+            "root-analysis-availability",
+            "repeat-determinism",
+            "wall-and-cpu-time",
+            "peak-rss",
+            "installed-and-output-bytes"
+          ]
+        },
+        "quality_claims_allowed": {"const": false}
+      }
+    },
+    "abcFollowup": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "status",
+        "trigger",
+        "selection_after_a_census_allowed",
+        "selection_after_b_or_c_output_forbidden",
+        "maximum_occurrences",
+        "minimum_occurrences_for_narrow_question",
+        "same_occurrences_across_variants",
+        "context_required",
+        "strata",
+        "variants",
+        "human_work_scheduled",
+        "competent_gold_required_for_accuracy"
+      ],
+      "properties": {
+        "status": {"const": "blocked-not-materialized"},
+        "trigger": {
+          "const": "reviewed-a-census-residue-or-concrete-source-translation-sign-retrieval-question"
+        },
+        "selection_after_a_census_allowed": {"const": true},
+        "selection_after_b_or_c_output_forbidden": {"const": true},
+        "maximum_occurrences": {"const": 30},
+        "minimum_occurrences_for_narrow_question": {"const": 1},
+        "same_occurrences_across_variants": {"const": true},
+        "context_required": {"const": true},
+        "strata": {
+          "const": [
+            "common-inflection",
+            "historical-spelling",
+            "contextual-ambiguity",
+            "compound-truncation-or-coinage",
+            "name-foreign-or-citation",
+            "tokenization-or-page-boundary-hazard"
+          ]
+        },
+        "variants": {
+          "const": [
+            {
+              "label": "A",
+              "method": "dwdsmor-open-0.18.0-direct-surface"
+            },
+            {
+              "label": "B",
+              "method": "de-zdl-lg-4.0.0-direct-unchanged-context"
+            },
+            {
+              "label": "C",
+              "method": "dtaec-type-normalizer-bf13bc3-then-exact-b"
+            }
+          ]
+        },
+        "human_work_scheduled": {"const": false},
+        "competent_gold_required_for_accuracy": {"const": true}
+      }
+    },
+    "rightsPosture": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "content_visibility",
+        "network_allowed",
+        "public_text_authorized",
+        "future_site_route",
+        "a_license_status",
+        "b_license_status",
+        "c_license_status"
+      ],
+      "properties": {
+        "content_visibility": {"const": "local_only"},
+        "network_allowed": {"const": false},
+        "public_text_authorized": {"const": false},
+        "future_site_route": {"const": "blocked"},
+        "a_license_status": {"const": "verified-local-gpl-experiment"},
+        "b_license_status": {"const": "artifact-level-review-required"},
+        "c_license_status": {"const": "research-only-rights-ambiguity"}
+      }
+    },
+    "humanAuthority": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "current_operator_scope",
+        "german_linguistic_acceptance_scope",
+        "machine_agreement_is_gold",
+        "missing_competent_review_effect"
+      ],
+      "properties": {
+        "current_operator_scope": {
+          "const": [
+            "source-page-identity",
+            "visible-correspondence",
+            "candidate-provenance",
+            "russian-explanation-usefulness"
+          ]
+        },
+        "german_linguistic_acceptance_scope": {
+          "const": "declared-german-competence-required"
+        },
+        "machine_agreement_is_gold": {"const": false},
+        "missing_competent_review_effect": {
+          "const": "retain-machine-triangulated-candidate-or-unresolved"
+        }
+      }
+    },
+    "semanticBoundary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "creates_accepted_source",
+        "creates_lemma",
+        "creates_lexeme",
+        "creates_sign",
+        "creates_concept",
+        "creates_translation",
+        "creates_claim",
+        "creates_relation",
+        "creates_graph_effect",
+        "opens_human_backlog"
+      ],
+      "properties": {
+        "creates_accepted_source": {"const": false},
+        "creates_lemma": {"const": false},
+        "creates_lexeme": {"const": false},
+        "creates_sign": {"const": false},
+        "creates_concept": {"const": false},
+        "creates_translation": {"const": false},
+        "creates_claim": {"const": false},
+        "creates_relation": {"const": false},
+        "creates_graph_effect": {"const": false},
+        "opens_human_backlog": {"const": false}
+      }
+    }
+  }
+}

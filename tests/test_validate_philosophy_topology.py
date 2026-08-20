@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import copy
 import sys
 import tempfile
 import unittest
@@ -111,6 +112,175 @@ class ValidatePhilosophyTopologyTests(unittest.TestCase):
             issues = validate_philosophy_topology.run_validation(repo_root)
 
         self.assertEqual(issues, [])
+
+    def test_declared_empty_branch_manifests_are_checked(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            repo_root = Path(tmpdir) / "Tree-of-Sophia"
+            self.write_valid_surface(repo_root)
+            write_json(
+                repo_root / "ToS/philosophy/trunk/branch.manifest.json",
+                {
+                    "path": "ToS/philosophy/trunk",
+                    "branch_id": "philosophy.trunk",
+                    "role": "fixture trunk",
+                    "source_planting_refs": [
+                        "ToS/philosophy/trunk/sources/plantings/stale/source-planting.json"
+                    ],
+                    "source_planting_count": 1,
+                },
+            )
+            write_json(
+                repo_root / "ToS/philosophy/trunk/sources/branch.manifest.json",
+                {
+                    "planting_refs": [
+                        "ToS/philosophy/trunk/sources/plantings/stale/source-planting.json"
+                    ],
+                    "planting_count": 1,
+                },
+            )
+
+            issues = validate_philosophy_topology.run_validation(repo_root)
+
+        self.assertIn(
+            (
+                "ToS/philosophy/trunk/branch",
+                "source_planting_refs differs from exact planting files",
+            ),
+            issues,
+        )
+        self.assertIn(
+            (
+                "ToS/philosophy/trunk/branch",
+                "source_planting_count differs from exact planting count",
+            ),
+            issues,
+        )
+        self.assertIn(
+            (
+                "ToS/philosophy/trunk/sources",
+                "planting_refs differs from exact planting files",
+            ),
+            issues,
+        )
+        self.assertIn(
+            (
+                "ToS/philosophy/trunk/sources",
+                "planting_count differs from exact planting count",
+            ),
+            issues,
+        )
+
+    def test_current_source_planting_contract_fails_closed_on_promotion(self) -> None:
+        schema_path = Path("ToS/contracts/philosophy-source-planting.schema.json")
+        validator = validate_philosophy_topology.load_schema_validator(
+            REPO_ROOT,
+            schema_path,
+        )
+        planting_path = (
+            REPO_ROOT
+            / "ToS/philosophy/eras/bronze-age/regions/west-asia/traditions/"
+            "proto-cuneiform-accounting-ontologies/sources/plantings/"
+            "cdli-p000015/source-planting.json"
+        )
+        planting = json.loads(planting_path.read_text(encoding="utf-8"))
+        self.assertEqual([], list(validator.iter_errors(planting)))
+
+        composite_planting_path = (
+            REPO_ROOT
+            / "ToS/philosophy/eras/bronze-age/regions/west-asia/traditions/"
+            "proto-cuneiform-accounting-ontologies/sources/plantings/"
+            "dcclt-q000023/source-planting.json"
+        )
+        composite_planting = json.loads(
+            composite_planting_path.read_text(encoding="utf-8")
+        )
+        self.assertEqual([], list(validator.iter_errors(composite_planting)))
+
+        bibliographic_planting_path = (
+            REPO_ROOT
+            / "ToS/philosophy/eras/bronze-age/regions/west-asia/traditions/"
+            "proto-cuneiform-accounting-ontologies/sources/plantings/"
+            "atu2-green-sign-list/source-planting.json"
+        )
+        bibliographic_planting = json.loads(
+            bibliographic_planting_path.read_text(encoding="utf-8")
+        )
+        self.assertEqual([], list(validator.iter_errors(bibliographic_planting)))
+
+        direct_work_planting_path = (
+            REPO_ROOT
+            / "ToS/philosophy/eras/bronze-age/regions/west-asia/traditions/"
+            "proto-cuneiform-accounting-ontologies/sources/plantings/"
+            "atu3-lexical-lists/source-planting.json"
+        )
+        direct_work_planting = json.loads(
+            direct_work_planting_path.read_text(encoding="utf-8")
+        )
+        self.assertEqual([], list(validator.iter_errors(direct_work_planting)))
+
+        cdlb_planting_root = (
+            REPO_ROOT
+            / "ToS/philosophy/eras/bronze-age/regions/west-asia/traditions/"
+            "proto-cuneiform-accounting-ontologies/sources/plantings"
+        )
+        cdlb_source_planting = json.loads(
+            (
+                cdlb_planting_root
+                / "cdlb-2021-6-quantitative-sign-use/source-planting.json"
+            ).read_text(encoding="utf-8")
+        )
+        cdlb_control_planting = json.loads(
+            (
+                cdlb_planting_root
+                / "born-kelley-2021-tribute-control/source-planting.json"
+            ).read_text(encoding="utf-8")
+        )
+        self.assertEqual(
+            [], list(validator.iter_errors(cdlb_source_planting))
+        )
+        self.assertEqual(
+            [], list(validator.iter_errors(cdlb_control_planting))
+        )
+        self.assertEqual(
+            cdlb_source_planting["source_witness"],
+            cdlb_control_planting["source_witness"],
+        )
+        self.assertEqual(
+            {16, 22},
+            {
+                cdlb_source_planting["source_backlog_anchor"]["line"],
+                cdlb_control_planting["source_backlog_anchor"]["line"],
+            },
+        )
+        self.assertFalse(
+            cdlb_source_planting["authority"]["source_text_admitted"]
+        )
+        self.assertEqual(
+            "not_started",
+            cdlb_control_planting["authority"]["semantic_status"],
+        )
+
+        false_graph_promotion = copy.deepcopy(planting)
+        false_graph_promotion["authority"]["graph_status"] = "promoted"
+        self.assertTrue(list(validator.iter_errors(false_graph_promotion)))
+
+        false_human_task = copy.deepcopy(planting)
+        false_human_task["authority"]["human_task_created"] = True
+        self.assertTrue(list(validator.iter_errors(false_human_task)))
+
+        false_composite_promotion = copy.deepcopy(composite_planting)
+        false_composite_promotion["authority"]["source_text_admitted"] = True
+        self.assertTrue(list(validator.iter_errors(false_composite_promotion)))
+
+        unbound_bibliographic_planting = copy.deepcopy(bibliographic_planting)
+        del unbound_bibliographic_planting["source_witness"]["membership_claim_ref"]
+        self.assertTrue(list(validator.iter_errors(unbound_bibliographic_planting)))
+
+        partial_container_binding = copy.deepcopy(direct_work_planting)
+        partial_container_binding["source_witness"]["container_id"] = (
+            "tos.collection.proto-cuneiform.unsupported-wrapper"
+        )
+        self.assertTrue(list(validator.iter_errors(partial_container_binding)))
 
     def test_research_packet_route_traversal_fails(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:

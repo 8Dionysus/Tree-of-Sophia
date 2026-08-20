@@ -1,0 +1,326 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/provenance-event-v2.schema.json",
+  "activity": {
+    "ended_at": "2026-08-12T08:46:33Z",
+    "event_type": "native_extraction",
+    "exit_code": 0,
+    "started_at": "2026-08-12T08:46:33Z",
+    "status": "completed_with_warnings",
+    "terminal_reason": null,
+    "warnings": [
+      "Poppler emitted seventeen Invalid Font Weight warnings while returning the frozen bbox bytes.",
+      "The embedded text is an unreviewed raw candidate and one visual letterspacing divergence remains unresolved.",
+      "The exact PDF, bbox intermediate, and extracted text remain local-only; publication is unauthorized.",
+      "The unsigned self-recorded event proves neither execution truth nor source fidelity."
+    ]
+  },
+  "authority_boundary": {
+    "claims_not_established": [
+      "execution_truth",
+      "content_truth",
+      "source_fidelity",
+      "translation_quality",
+      "semantic_correctness",
+      "rights_clearance",
+      "human_review",
+      "publication_authority",
+      "canon_authority"
+    ],
+    "validator_role": "mechanics_and_closure_only_not_truth"
+  },
+  "derivations": [
+    {
+      "derivation_id": "tos.derivation.za-i-vorrede-1.antonovsky-1911-target-text-foundation.1",
+      "description": "The exact fixity-bound PDF, tracked plan, pinned Poppler version, and declared word/line rule determine this bounded text, address, or layout record.",
+      "influence_asserted": true,
+      "input_entity_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-antonovsky-1911/editions/saint-petersburg-prometey-1911-fourth/items/rsl-neb-scan-pdf/payload/antonovsky-prometey-1911-rsl-neb.pdf",
+      "output_entity_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/local-content/target-text-foundation/za-i-vorrede-1/antonovsky-1911-page-6-opening-paragraph.raw-embedded-text.txt",
+      "relation": "selection_from"
+    },
+    {
+      "derivation_id": "tos.derivation.za-i-vorrede-1.antonovsky-1911-target-text-foundation.2",
+      "description": "The exact fixity-bound PDF, tracked plan, pinned Poppler version, and declared word/line rule determine this bounded text, address, or layout record.",
+      "influence_asserted": true,
+      "input_entity_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-antonovsky-1911/editions/saint-petersburg-prometey-1911-fourth/items/rsl-neb-scan-pdf/payload/antonovsky-prometey-1911-rsl-neb.pdf",
+      "output_entity_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/local-content/target-text-foundation/za-i-vorrede-1/antonovsky-1911-page-6.bbox.html",
+      "relation": "selection_from"
+    },
+    {
+      "derivation_id": "tos.derivation.za-i-vorrede-1.antonovsky-1911-target-text-foundation.3",
+      "description": "The exact fixity-bound PDF, tracked plan, pinned Poppler version, and declared word/line rule determine this bounded text, address, or layout record.",
+      "influence_asserted": true,
+      "input_entity_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-antonovsky-1911/editions/saint-petersburg-prometey-1911-fourth/items/rsl-neb-scan-pdf/payload/antonovsky-prometey-1911-rsl-neb.pdf",
+      "output_entity_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/source-anchor-v2.za-i-vorrede-1-p1.antonovsky-1911.v1.json",
+      "relation": "selection_from"
+    },
+    {
+      "derivation_id": "tos.derivation.za-i-vorrede-1.antonovsky-1911-target-text-foundation.4",
+      "description": "The exact fixity-bound PDF, tracked plan, pinned Poppler version, and declared word/line rule determine this bounded text, address, or layout record.",
+      "influence_asserted": true,
+      "input_entity_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-antonovsky-1911/editions/saint-petersburg-prometey-1911-fourth/items/rsl-neb-scan-pdf/payload/antonovsky-prometey-1911-rsl-neb.pdf",
+      "output_entity_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/source-text-layer.za-i-vorrede-1-p1.antonovsky-1911-embedded.v1.json",
+      "relation": "selection_from"
+    },
+    {
+      "derivation_id": "tos.derivation.za-i-vorrede-1.antonovsky-1911-target-text-foundation.5",
+      "description": "The exact fixity-bound PDF, tracked plan, pinned Poppler version, and declared word/line rule determine this bounded text, address, or layout record.",
+      "influence_asserted": true,
+      "input_entity_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-antonovsky-1911/editions/saint-petersburg-prometey-1911-fourth/items/rsl-neb-scan-pdf/payload/antonovsky-prometey-1911-rsl-neb.pdf",
+      "output_entity_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/source-text-unit.za-i-vorrede-1-p1.antonovsky-1911-layout.v1.json",
+      "relation": "selection_from"
+    }
+  ],
+  "entities": {
+    "byproducts": [],
+    "inputs": [
+      {
+        "availability": "owner_local",
+        "content_disclosure": "private_content",
+        "entity_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-antonovsky-1911/editions/saint-petersburg-prometey-1911-fourth/items/rsl-neb-scan-pdf/payload/antonovsky-prometey-1911-rsl-neb.pdf",
+        "fixity_verified": true,
+        "fixity_verified_at": "2026-08-12T08:46:33Z",
+        "media_type": "application/pdf",
+        "role": "fixity-verified-local-antonovsky-1911-pdf",
+        "sha256": "57518b50e24fee37b3e9c151e853c36ad34258f51a8b65b8233742d69017db69",
+        "size_bytes": 62952283
+      },
+      {
+        "availability": "tracked",
+        "content_disclosure": "public_metadata_only",
+        "entity_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/za-i-vorrede-1-antonovsky-1911-target-text-foundation.plan.v1.json",
+        "fixity_verified": true,
+        "fixity_verified_at": "2026-08-12T08:46:33Z",
+        "media_type": "application/json",
+        "role": "tracked-text-free-materialization-plan",
+        "sha256": "b0ea384938569f8ff660217334fa48a1e54f301e3480b1fbf122bf963c905c4b",
+        "size_bytes": 8987
+      }
+    ],
+    "outputs": [
+      {
+        "availability": "ignored_local",
+        "content_disclosure": "private_content",
+        "entity_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/local-content/target-text-foundation/za-i-vorrede-1/antonovsky-1911-page-6-opening-paragraph.raw-embedded-text.txt",
+        "fixity_verified": true,
+        "fixity_verified_at": "2026-08-12T08:46:33Z",
+        "media_type": "text/plain; charset=utf-8",
+        "role": "ignored-local-raw-embedded-text",
+        "sha256": "3b856676c48ad6f4ef18397f429ab740c2efb917600ac6c72fc4481b89c4b71c",
+        "size_bytes": 633
+      },
+      {
+        "availability": "ignored_local",
+        "content_disclosure": "private_content",
+        "entity_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/local-content/target-text-foundation/za-i-vorrede-1/antonovsky-1911-page-6.bbox.html",
+        "fixity_verified": true,
+        "fixity_verified_at": "2026-08-12T08:46:33Z",
+        "media_type": "application/xhtml+xml",
+        "role": "ignored-local-poppler-bbox-intermediate",
+        "sha256": "568eee56e3dd91156ff77e4464133a5570c49049aed1b61a81283cb06e5f92e4",
+        "size_bytes": 30714
+      },
+      {
+        "availability": "tracked",
+        "content_disclosure": "public_metadata_only",
+        "entity_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/source-anchor-v2.za-i-vorrede-1-p1.antonovsky-1911.v1.json",
+        "fixity_verified": true,
+        "fixity_verified_at": "2026-08-12T08:46:33Z",
+        "media_type": "application/json",
+        "role": "tracked-text-free-foundation-record",
+        "sha256": "8669be117aa3058a4a21f7453b83d4e7c5c9d11483efa6a201beb55c8fc06dde",
+        "size_bytes": 2573
+      },
+      {
+        "availability": "tracked",
+        "content_disclosure": "public_metadata_only",
+        "entity_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/source-text-layer.za-i-vorrede-1-p1.antonovsky-1911-embedded.v1.json",
+        "fixity_verified": true,
+        "fixity_verified_at": "2026-08-12T08:46:33Z",
+        "media_type": "application/json",
+        "role": "tracked-text-free-foundation-record",
+        "sha256": "fe6660ea7d473a57290c23904fde948ddb6cb437edea1730fb33a775e7168dee",
+        "size_bytes": 6036
+      },
+      {
+        "availability": "tracked",
+        "content_disclosure": "public_metadata_only",
+        "entity_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/source-text-unit.za-i-vorrede-1-p1.antonovsky-1911-layout.v1.json",
+        "fixity_verified": true,
+        "fixity_verified_at": "2026-08-12T08:46:33Z",
+        "media_type": "application/json",
+        "role": "tracked-text-free-foundation-record",
+        "sha256": "285ced48c13ea395c9e09465ac974c79b64f35915470bc3b75abb8ac54d91472",
+        "size_bytes": 31291
+      }
+    ]
+  },
+  "event_id": "tos.event.native-extraction.za-i-vorrede-1.antonovsky-1911-pdf-page-6-opening.2026-08-12",
+  "event_version": 1,
+  "evidence_authentication": {
+    "capture_posture": "tool_captured",
+    "producer_control_boundary": "The same local builder executed extraction and emitted this unsigned record; independent byte checks can replay closure but cannot authenticate execution, the provider OCR process, or textual fidelity.",
+    "signature_bindings": [],
+    "signature_status": "unsigned",
+    "verification_status": "mechanically_verified"
+  },
+  "manual_changes": {
+    "change_receipts": [],
+    "statement": "No manual edit occurred between Poppler bbox extraction and the private raw layer; words and lines are joined only by the tracked plan's rule.",
+    "status": "none_declared"
+  },
+  "measurements": [
+    {
+      "evidence_binding": null,
+      "method": "filesystem stat after exact digest verification",
+      "metric": "input_bytes",
+      "status": "measured",
+      "unit": "bytes",
+      "value": 62952283
+    },
+    {
+      "evidence_binding": null,
+      "method": "sum of exact private and tracked output entity byte counts",
+      "metric": "output_bytes",
+      "status": "measured",
+      "unit": "bytes",
+      "value": 71247
+    },
+    {
+      "evidence_binding": null,
+      "method": "no human content review or correction was scheduled or performed",
+      "metric": "human_active_seconds",
+      "status": "not_applicable",
+      "unit": null,
+      "value": null
+    }
+  ],
+  "method": {
+    "command_capture": {
+      "argv": [
+        "python",
+        "scripts/build_zarathustra_target_text_foundation.py",
+        "--build",
+        "--local-input-root",
+        "/srv/AbyssOS/Tree-of-Sophia",
+        "--local-output-root",
+        "/srv/AbyssOS/Tree-of-Sophia"
+      ],
+      "argv_sha256": "fbae924a5602e20f31534124baf495d98e05634abd3b5c563f78978a8a30f0c4",
+      "disclosure": "inline",
+      "withholding_reason": null
+    },
+    "configuration_binding": {
+      "ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/za-i-vorrede-1-antonovsky-1911-target-text-foundation.plan.v1.json",
+      "sha256": "b0ea384938569f8ff660217334fa48a1e54f301e3480b1fbf122bf963c905c4b"
+    },
+    "environment": {
+      "backend": "poppler-pdftotext-26.01.0-bbox-layout",
+      "environment_profile_binding": {
+        "ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/za-i-vorrede-1-antonovsky-1911-target-text-foundation.plan.v1.json",
+        "sha256": "b0ea384938569f8ff660217334fa48a1e54f301e3480b1fbf122bf963c905c4b"
+      },
+      "hardware_target": "cpu",
+      "runtime": "CPython",
+      "runtime_artifact_sha256": "7af874aca05879e1823cd820913b42fb8d8b994738a05ec39ce4256d85b03861",
+      "runtime_version": "3.14.6",
+      "unicode_version": "16.0.0"
+    },
+    "model_invocations": [],
+    "procedure": {
+      "name": "poppler-bbox-word-line-extraction",
+      "purpose": "Which exact embedded-PDF word boxes and source-observed print lines underlie the opening paragraph of Zarathustra's preface in the exact Antonovsky 1911 Item?",
+      "version": "1"
+    },
+    "software_components": [
+      {
+        "artifact_ref": "scripts/build_zarathustra_target_text_foundation.py",
+        "artifact_sha256": "62d35662d6ebd45833edaf189ec9777b6343e10fa74e7020e4c07b5c1248c21b",
+        "name": "Tree of Sophia Zarathustra target-text foundation builder",
+        "role": "native-extraction-and-record-builder",
+        "verification_status": "verified",
+        "version": "1"
+      },
+      {
+        "artifact_ref": "runtime:pdftotext-executable",
+        "artifact_sha256": "017ad394f1953a2b07467d34323eb7d26deb1d661ef61513c009f1bc4f03393b",
+        "name": "pdftotext",
+        "role": "pdf-embedded-text-bbox-extractor",
+        "verification_status": "verified",
+        "version": "26.01.0"
+      },
+      {
+        "artifact_ref": "runtime:cpython-executable",
+        "artifact_sha256": "7af874aca05879e1823cd820913b42fb8d8b994738a05ec39ce4256d85b03861",
+        "name": "CPython",
+        "role": "language-runtime",
+        "verification_status": "verified",
+        "version": "3.14.6"
+      }
+    ]
+  },
+  "record_binding": {
+    "digest_algorithm": "sha256",
+    "digest_scope": "exact_event_record_bytes",
+    "manifest_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/za-i-vorrede-1-antonovsky-1911-target-text-foundation.plan.v1.json"
+  },
+  "reproducibility": {
+    "classification": "replay_ready",
+    "known_gaps": [
+      "The receipt is unsigned and self-recorded by the transformation runner.",
+      "No human reviewed the embedded text or source-visible line content.",
+      "The provider's embedded-text production history remains unknown.",
+      "The exact source, bbox intermediate, and extracted text are absent from Git."
+    ],
+    "replay_scope": "Exact Antonovsky 1911 PDF digest, tracked plan and builder, pinned Poppler version and executable digest, page-region guards, private bbox/text digests, tracked record digests, and fail-closed authority posture."
+  },
+  "responsibility": [
+    {
+      "agent_kind": "software",
+      "agent_ref": "software:tos-zarathustra-target-text-foundation-builder",
+      "evidence_binding": {
+        "ref": "scripts/build_zarathustra_target_text_foundation.py",
+        "sha256": "62d35662d6ebd45833edaf189ec9777b6343e10fa74e7020e4c07b5c1248c21b"
+      },
+      "human_evidence_status": "not_applicable",
+      "responsibility_posture": "performed",
+      "role": "executor"
+    },
+    {
+      "agent_kind": "model",
+      "agent_ref": "model:openai-codex",
+      "evidence_binding": {
+        "ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/za-i-vorrede-1-antonovsky-1911-target-text-foundation.plan.v1.json",
+        "sha256": "b0ea384938569f8ff660217334fa48a1e54f301e3480b1fbf122bf963c905c4b"
+      },
+      "human_evidence_status": "not_applicable",
+      "responsibility_posture": "observed",
+      "role": "observer"
+    }
+  ],
+  "review_and_authority": {
+    "accepted_uses": [],
+    "competence_evidence_bindings": [],
+    "human_review_status": "not_performed",
+    "mechanical_validation": "passed",
+    "promotion_authorized": false,
+    "review_bindings": []
+  },
+  "rights_and_visibility": {
+    "content_visibility": "local_only",
+    "intended_uses": [
+      "local_research",
+      "preservation",
+      "indexing"
+    ],
+    "publication_authority_bindings": [],
+    "publication_authorized": false,
+    "rights_record_bindings": [
+      {
+        "ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-antonovsky-1911/editions/saint-petersburg-prometey-1911-fourth/items/rsl-neb-scan-pdf/rights.json",
+        "sha256": "ebf9a2e82f2dc75a43c73df998d3addc36564cdc1bcd3279630e8fc5404768a4"
+      }
+    ]
+  },
+  "schema_version": "tos_provenance_event_v2",
+  "supersedes_event_ref": null
+}

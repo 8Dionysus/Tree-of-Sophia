@@ -1,0 +1,66 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://tree-of-sophia.local/ToS/contracts/expression-derivation.schema.json",
+  "title": "Tree of Sophia Expression derivation qualifiers",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "profile",
+    "derivation_kind",
+    "directness",
+    "relation_scope",
+    "work_relation_scope",
+    "statement_basis",
+    "collation_status",
+    "endpoint_identity_status",
+    "transitive",
+    "asymmetric",
+    "irreflexive",
+    "equivalence_inferred"
+  ],
+  "properties": {
+    "profile": {
+      "const": "tos_expression_derivation_qualifiers_v1"
+    },
+    "derivation_kind": {
+      "enum": ["revision", "translation", "abridgement", "arrangement", "other"]
+    },
+    "directness": {
+      "enum": ["direct_source", "one_of_sources"]
+    },
+    "relation_scope": {
+      "enum": ["whole_expression", "partial_expression", "unspecified"]
+    },
+    "work_relation_scope": {
+      "const": "same_work"
+    },
+    "statement_basis": {
+      "enum": [
+        "creator_statement",
+        "editorial_statement",
+        "institutional_record",
+        "scholarly_report",
+        "collation",
+        "mixed"
+      ]
+    },
+    "collation_status": {
+      "enum": ["not_collated", "partially_collated", "collated"]
+    },
+    "endpoint_identity_status": {
+      "const": "both_expression_records_materialized"
+    },
+    "transitive": {
+      "const": false
+    },
+    "asymmetric": {
+      "const": true
+    },
+    "irreflexive": {
+      "const": true
+    },
+    "equivalence_inferred": {
+      "const": false
+    }
+  }
+}

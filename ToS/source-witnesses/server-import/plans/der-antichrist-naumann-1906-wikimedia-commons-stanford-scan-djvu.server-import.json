@@ -1,0 +1,147 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/server-import-contract.schema.json",
+  "schema_version": "tos_server_import_contract_v1",
+  "server_import_id": "tos.server-import.der-antichrist-naumann-1906-wikimedia-commons-stanford-scan-djvu",
+  "item_ref": "tos.item.friedrich-nietzsche.nietzsches-werke-band-8.naumann-1906.wikimedia-commons-stanford-scan-djvu",
+  "manifest": {
+    "ref": "ToS/source-witnesses/collections/friedrich-nietzsche/nietzsches-werke-erste-abtheilung-band-viii-naumann-1906/editions/leipzig-c-g-naumann-1906/items/wikimedia-commons-stanford-scan-djvu/item.manifest.json",
+    "sha256": "ed83c237674c899472d15dfe3dbe88511276413d61c4544c4e7c45c2375b3ad9",
+    "verified": true
+  },
+  "payload_files": [
+    {
+      "file_ref": "tos.file.sha256.8f61aaecd55339fc3ba11eca24fbeef85e953d1a262200b36e59d5fbc545ca9d",
+      "relative_path": "payload/nietzsches-werke-viii-1906-commons-stanford.djvu",
+      "byte_size": 24324176,
+      "sha256": "8f61aaecd55339fc3ba11eca24fbeef85e953d1a262200b36e59d5fbc545ca9d",
+      "verified": true
+    }
+  ],
+  "rights_policy": {
+    "rights_record_ref": "ToS/source-witnesses/collections/friedrich-nietzsche/nietzsches-werke-erste-abtheilung-band-viii-naumann-1906/editions/leipzig-c-g-naumann-1906/items/wikimedia-commons-stanford-scan-djvu/rights.json",
+    "rights_record_sha256": "2d4a75df5b6dca59e12ea2f2eefb7b05c0255b6924a7c58dff176b032f9cc6d3",
+    "assessment_status": "rights-unknown",
+    "review_status": "unreviewed",
+    "jurisdictions_reviewed": [
+      "DE",
+      "US"
+    ],
+    "permission_or_license_refs": [
+      "ToS/research-packets/foundation-laboratory-2026-07/ANTICHRIST_1906_COMMONS_STANFORD_LAYERED_RIGHTS_ASSESSMENT.md",
+      "ToS/source-witnesses/collections/friedrich-nietzsche/nietzsches-werke-erste-abtheilung-band-viii-naumann-1906/editions/leipzig-c-g-naumann-1906/items/wikimedia-commons-stanford-scan-djvu/source-metadata-snapshot.json",
+      "https://commons.wikimedia.org/wiki/File:Nietzsche%27s_Werke,_VIII.djvu",
+      "https://commons.wikimedia.org/wiki/Template:PD-old-auto-1923",
+      "https://commons.wikimedia.org/wiki/Commons:When_to_use_the_PD-scan_tag",
+      "https://creativecommons.org/publicdomain/mark/1.0/",
+      "https://creativecommons.org/publicdomain/zero/1.0/",
+      "https://creativecommons.org/licenses/by-sa/4.0/",
+      "https://foundation.wikimedia.org/wiki/Policy:Terms_of_Use",
+      "https://archive.org/metadata/nietzscheswerke00nietgoog",
+      "https://www.gesetze-im-internet.de/urhg/BJNR012730965.html",
+      "https://pro.deutsche-digitale-bibliothek.de/daten-liefern/teilnahmekriterien/rechtliches/das-urheberrecht-digitalen-abbildungen",
+      "https://www.copyright.gov/circs/circ15a.pdf",
+      "https://www.copyright.gov/circs/circ38b.pdf",
+      "https://www.copyright.gov/title17/92chap1.html#104a",
+      "https://www.copyright.gov/title17/92chap3.html#304",
+      "https://tile.loc.gov/storage-services/service/ll/usrep/usrep565/usrep565302/usrep565302.pdf",
+      "https://www.copyright.gov/comp3/",
+      "https://library.stanford.edu/copyright-notice",
+      "https://library.stanford.edu/stanford-university-libraries-open-metadata-policy"
+    ],
+    "expires_at": null,
+    "recheck_before_transfer": true
+  },
+  "access_class": "metadata-only",
+  "allowed_derivatives": {
+    "ocr": {
+      "state": "prohibited",
+      "conditions": [
+        "The represented historical and faithful mechanical layers have positive DE/US evidence, but the exact mixed DjVu, archive editorial layer, human rights review, and operator approval gates remain unresolved; local laboratory OCR is a separate non-public lane."
+      ]
+    },
+    "transcription": {
+      "state": "prohibited",
+      "conditions": [
+        "Automatic historical OCR is rights-positive only as a mechanical rendering; the 490 TXTz chunks have not been decoded, checked, textually accepted, or authorized for server publication."
+      ]
+    },
+    "page_images": {
+      "state": "prohibited",
+      "conditions": [
+        "The operator-held DjVu remains local and is never uploaded to the future site; any public candidate must be independently reacquired and reviewed by layer."
+      ]
+    },
+    "snippets": {
+      "state": "prohibited",
+      "conditions": [
+        "No source-text publication is authorized by this metadata-only plan."
+      ]
+    },
+    "lexical_index": {
+      "state": "conditional",
+      "conditions": [
+        "Public-safe, source-attributed ToS bibliographic and provenance metadata plus scoped licensed Commons metadata only; no payload-derived text, provider database row, or dictionary-recoverable source forms."
+      ]
+    },
+    "embeddings": {
+      "state": "prohibited",
+      "conditions": [
+        "No server-side source processing is authorized while archive editorial matter, Stanford furniture, OCR layout, DjVu package, and Internet Archive metadata remain unresolved."
+      ]
+    },
+    "alignments": {
+      "state": "prohibited",
+      "conditions": [
+        "No content-bearing German-Russian alignment may be served under this source plan."
+      ]
+    },
+    "translations": {
+      "state": "prohibited",
+      "conditions": [
+        "Translation publication requires its own accepted text, responsibility, provenance, and rights decisions."
+      ]
+    },
+    "annotations": {
+      "state": "prohibited",
+      "conditions": [
+        "No source-bearing annotation publication is authorized by this plan."
+      ]
+    },
+    "search_projection": {
+      "state": "conditional",
+      "conditions": [
+        "Metadata-only records with no payload-derived text, OCR coordinates, provider database rows, or restricted furniture."
+      ]
+    },
+    "graph_projection": {
+      "state": "conditional",
+      "conditions": [
+        "Public-safe work, expression, edition, collection, membership, item, provenance, source-route, and layer-status metadata only; proposed pages 228-329 remain visibly unreviewed and contaminated Internet Archive metadata is not identity authority."
+      ]
+    }
+  },
+  "payload_transfer_authorized": false,
+  "operator_transfer_approval": {
+    "approved": false,
+    "approved_by_real_human": false,
+    "approved_at": null,
+    "approval_ref": null
+  },
+  "server_import_status": "blocked-rights",
+  "publication_status": "metadata-only",
+  "server_receipt_refs": [],
+  "takedown": {
+    "public_contact_url": "https://github.com/8Dionysus/Tree-of-Sophia/issues",
+    "procedure_ref": "ToS/source-witnesses/server-import/SERVER_IMPORT_PROTOCOL.md",
+    "disable_supported": true,
+    "delete_supported": true,
+    "last_reviewed_at": "2026-08-10T12:28:41-06:00"
+  },
+  "provenance_event_refs": [
+    "tos.event.server-import-plan.der-antichrist-naumann-1906.subsection-correction.2026-08-10"
+  ],
+  "server_copy_is_authority": false,
+  "automatic_checkout_payload_discovery_allowed": false,
+  "contract_version": 4,
+  "supersedes_server_import_ref": "tos.server-import.der-antichrist-naumann-1906-wikimedia-commons-stanford-scan-djvu"
+}

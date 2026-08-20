@@ -1,0 +1,834 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://tree-of-sophia.local/ToS/contracts/source-gated-llm-evaluation-plan.schema.json",
+  "title": "Tree of Sophia task-specific source-gated LLM evaluation plan",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "$schema",
+    "schema_version",
+    "plan_id",
+    "plan_kind",
+    "experiment_id",
+    "work_ref",
+    "status",
+    "frozen_at",
+    "frozen_before_variant_outputs",
+    "source_evidence_gate",
+    "human_baseline_gate",
+    "historical_gate_snapshot",
+    "selection_contract",
+    "task_families",
+    "prepared_task_contract",
+    "tasks",
+    "blindness_and_authority",
+    "rights_posture",
+    "result",
+    "provenance_event_ref",
+    "plan_version"
+  ],
+  "properties": {
+    "$schema": {
+      "const": "https://tree-of-sophia.local/ToS/contracts/source-gated-llm-evaluation-plan.schema.json"
+    },
+    "schema_version": {
+      "const": "tos_source_gated_llm_evaluation_plan_v2"
+    },
+    "plan_id": {
+      "type": "string",
+      "pattern": "^tos\\.evaluation-plan\\.[a-z0-9]+(?:[.-][a-z0-9]+)*$"
+    },
+    "plan_kind": {
+      "const": "llm-assistance"
+    },
+    "experiment_id": {
+      "const": "tos-llm-assistance-v1"
+    },
+    "work_ref": {
+      "type": "string",
+      "pattern": "^tos\\.work\\.[a-z0-9]+(?:[.-][a-z0-9]+)*$"
+    },
+    "status": {
+      "enum": [
+        "blocked-not-materialized",
+        "materialized-awaiting-human-baseline",
+        "ready",
+        "running",
+        "awaiting-real-human-review",
+        "closed",
+        "superseded"
+      ]
+    },
+    "frozen_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "frozen_before_variant_outputs": {
+      "const": true
+    },
+    "source_evidence_gate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "gate_kind",
+        "required_eligible_source_units",
+        "current_eligible_source_units",
+        "eligible_source_posture",
+        "required_per_task_fields",
+        "gate_status"
+      ],
+      "properties": {
+        "gate_kind": {
+          "const": "task-specific-accepted-anchor-set"
+        },
+        "required_eligible_source_units": {
+          "const": 20
+        },
+        "current_eligible_source_units": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 20
+        },
+        "eligible_source_posture": {
+          "const": "accepted-task-specific-source-evidence"
+        },
+        "required_per_task_fields": {
+          "const": [
+            "source_anchor_refs",
+            "accepted_source_sha256",
+            "source_review_event_ref",
+            "local_content_ref",
+            "local_content_sha256"
+          ]
+        },
+        "gate_status": {
+          "enum": [
+            "blocked",
+            "satisfied"
+          ]
+        }
+      }
+    },
+    "human_baseline_gate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "gate_kind",
+        "required_frozen_baseline_units",
+        "current_frozen_baseline_units",
+        "baseline_frozen_before_suggestions",
+        "opening_triggers",
+        "human_work_scheduled",
+        "gate_status"
+      ],
+      "properties": {
+        "gate_kind": {
+          "const": "task-specific-unassisted-human-baseline"
+        },
+        "required_frozen_baseline_units": {
+          "const": 20
+        },
+        "current_frozen_baseline_units": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 20
+        },
+        "baseline_frozen_before_suggestions": {
+          "const": true
+        },
+        "opening_triggers": {
+          "const": [
+            "twenty-source-eligible-tasks-materialized",
+            "subjective-sign-judgment-required"
+          ]
+        },
+        "human_work_scheduled": {
+          "type": "boolean"
+        },
+        "gate_status": {
+          "enum": [
+            "blocked",
+            "satisfied"
+          ]
+        }
+      }
+    },
+    "historical_gate_snapshot": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "snapshot_kind",
+        "source_review_plan_ref",
+        "source_review_plan_sha256",
+        "laboratory_plan_ref",
+        "laboratory_plan_sha256",
+        "gold_status_ref",
+        "gold_status_sha256",
+        "required_human_accepted_source_units",
+        "observed_human_accepted_source_units",
+        "required_human_double_checked_gold_units",
+        "observed_human_double_checked_gold_units",
+        "snapshot_status",
+        "scheduling_authority",
+        "execution_authority"
+      ],
+      "properties": {
+        "snapshot_kind": {
+          "const": "superseded-universal-30-15-gate"
+        },
+        "source_review_plan_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "source_review_plan_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "laboratory_plan_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "laboratory_plan_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "gold_status_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "gold_status_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "required_human_accepted_source_units": {
+          "const": 30
+        },
+        "observed_human_accepted_source_units": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 30
+        },
+        "required_human_double_checked_gold_units": {
+          "const": 15
+        },
+        "observed_human_double_checked_gold_units": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 15
+        },
+        "snapshot_status": {
+          "const": "historical-blocked-evidence"
+        },
+        "scheduling_authority": {
+          "const": false
+        },
+        "execution_authority": {
+          "const": false
+        }
+      }
+    },
+    "selection_contract": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "required_total_tasks",
+        "random_tasks",
+        "hard_tasks",
+        "content_bearing_source_required",
+        "same_tasks_across_variants",
+        "selection_after_output_forbidden",
+        "manual_rubric_frozen_before_output",
+        "task_materialization_status"
+      ],
+      "properties": {
+        "required_total_tasks": {
+          "const": 20
+        },
+        "random_tasks": {
+          "const": 10
+        },
+        "hard_tasks": {
+          "const": 10
+        },
+        "content_bearing_source_required": {
+          "const": true
+        },
+        "same_tasks_across_variants": {
+          "const": true
+        },
+        "selection_after_output_forbidden": {
+          "const": true
+        },
+        "manual_rubric_frozen_before_output": {
+          "const": true
+        },
+        "task_materialization_status": {
+          "enum": [
+            "blocked",
+            "frozen"
+          ]
+        }
+      }
+    },
+    "task_families": {
+      "type": "array",
+      "minItems": 4,
+      "uniqueItems": true,
+      "contains": {
+        "const": "sign-candidate-and-refusal"
+      },
+      "items": {
+        "enum": [
+          "structure-proposal",
+          "alignment-proposal",
+          "translation-alternative",
+          "sign-candidate-and-refusal",
+          "evidence-grounded-relation-proposal"
+        ]
+      }
+    },
+    "prepared_task_contract": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "selected_task_family",
+        "bounded_question",
+        "required_total_tasks",
+        "random_tasks",
+        "hard_tasks",
+        "task_instances_materialized",
+        "source_anchor_refs",
+        "source_text_present",
+        "same_inputs_across_variants",
+        "human_only_baseline_before_suggestions",
+        "required_output_fields",
+        "allowed_decisions",
+        "forbidden_claims",
+        "execution_profile_ref",
+        "profile_refresh_required_on_plan_change",
+        "human_work_scheduled"
+      ],
+      "properties": {
+        "selected_task_family": {
+          "const": "sign-candidate-and-refusal"
+        },
+        "bounded_question": {
+          "type": "string",
+          "minLength": 80
+        },
+        "required_total_tasks": {
+          "const": 20
+        },
+        "random_tasks": {
+          "const": 10
+        },
+        "hard_tasks": {
+          "const": 10
+        },
+        "task_instances_materialized": {
+          "type": "boolean"
+        },
+        "source_anchor_refs": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "source_text_present": {
+          "type": "boolean"
+        },
+        "same_inputs_across_variants": {
+          "const": true
+        },
+        "human_only_baseline_before_suggestions": {
+          "const": true
+        },
+        "required_output_fields": {
+          "const": [
+            "task_id",
+            "decision",
+            "candidate_label",
+            "source_anchor_refs",
+            "bounded_rationale",
+            "uncertainty",
+            "failure_reason"
+          ]
+        },
+        "allowed_decisions": {
+          "const": [
+            "propose",
+            "abstain",
+            "uncertain",
+            "failed"
+          ]
+        },
+        "forbidden_claims": {
+          "type": "array",
+          "minItems": 5,
+          "uniqueItems": true,
+          "contains": {
+            "const": "canon-status"
+          },
+          "items": {
+            "enum": [
+              "accepted-sign",
+              "accepted-concept",
+              "accepted-relation",
+              "accepted-translation",
+              "etymological-fact-without-external-evidence",
+              "canon-status"
+            ]
+          }
+        },
+        "execution_profile_ref": {
+          "const": "abyss-stack:mechanics/inference-pilots/parts/tos-foundation-lab/examples/tos-llm-assistance-profile.v1.json"
+        },
+        "profile_refresh_required_on_plan_change": {
+          "const": true
+        },
+        "human_work_scheduled": {
+          "type": "boolean"
+        }
+      }
+    },
+    "tasks": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/task"
+      }
+    },
+    "blindness_and_authority": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "blind_variant_labels",
+        "recognized_comparator_sealed",
+        "gold_hidden_until_outputs_frozen",
+        "model_output_is_proposal_only",
+        "automatic_promotion_forbidden",
+        "human_acceptance_required",
+        "abstention_allowed",
+        "uncertainty_allowed"
+      ],
+      "properties": {
+        "blind_variant_labels": {
+          "const": true
+        },
+        "recognized_comparator_sealed": {
+          "const": true
+        },
+        "gold_hidden_until_outputs_frozen": {
+          "const": true
+        },
+        "model_output_is_proposal_only": {
+          "const": true
+        },
+        "automatic_promotion_forbidden": {
+          "const": true
+        },
+        "human_acceptance_required": {
+          "const": true
+        },
+        "abstention_allowed": {
+          "const": true
+        },
+        "uncertainty_allowed": {
+          "const": true
+        }
+      }
+    },
+    "rights_posture": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "content_visibility",
+        "network_allowed",
+        "public_text_authorized"
+      ],
+      "properties": {
+        "content_visibility": {
+          "const": "local_only"
+        },
+        "network_allowed": {
+          "const": false
+        },
+        "public_text_authorized": {
+          "const": false
+        }
+      }
+    },
+    "result": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "run_count",
+        "run_refs",
+        "human_review_receipts",
+        "metric_results",
+        "winner",
+        "promotion_authorized",
+        "conclusion"
+      ],
+      "properties": {
+        "run_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "run_refs": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "human_review_receipts": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "metric_results": {
+          "type": "array",
+          "items": {
+            "type": "object"
+          }
+        },
+        "winner": {
+          "enum": [
+            "A",
+            "B",
+            "C",
+            "no-winner",
+            null
+          ]
+        },
+        "promotion_authorized": {
+          "type": "boolean"
+        },
+        "conclusion": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "provenance_event_ref": {
+      "type": "string",
+      "pattern": "^tos\\.event\\.[a-z0-9]+(?:[.-][a-z0-9]+)*$"
+    },
+    "plan_version": {
+      "type": "integer",
+      "minimum": 3
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "status": {
+            "const": "blocked-not-materialized"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "source_evidence_gate": {
+            "properties": {
+              "gate_status": {
+                "const": "blocked"
+              }
+            }
+          },
+          "human_baseline_gate": {
+            "properties": {
+              "current_frozen_baseline_units": {
+                "const": 0
+              },
+              "human_work_scheduled": {
+                "const": false
+              },
+              "gate_status": {
+                "const": "blocked"
+              }
+            }
+          },
+          "selection_contract": {
+            "properties": {
+              "task_materialization_status": {
+                "const": "blocked"
+              }
+            }
+          },
+          "prepared_task_contract": {
+            "properties": {
+              "task_instances_materialized": {
+                "const": false
+              },
+              "source_anchor_refs": {
+                "maxItems": 0
+              },
+              "source_text_present": {
+                "const": false
+              },
+              "human_work_scheduled": {
+                "const": false
+              }
+            }
+          },
+          "tasks": {
+            "maxItems": 0
+          },
+          "result": {
+            "properties": {
+              "run_count": {
+                "const": 0
+              },
+              "run_refs": {
+                "maxItems": 0
+              },
+              "human_review_receipts": {
+                "maxItems": 0
+              },
+              "metric_results": {
+                "maxItems": 0
+              },
+              "winner": {
+                "const": null
+              },
+              "promotion_authorized": {
+                "const": false
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "status": {
+            "const": "materialized-awaiting-human-baseline"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "source_evidence_gate": {
+            "properties": {
+              "current_eligible_source_units": {
+                "const": 20
+              },
+              "gate_status": {
+                "const": "satisfied"
+              }
+            }
+          },
+          "human_baseline_gate": {
+            "properties": {
+              "human_work_scheduled": {
+                "const": true
+              },
+              "gate_status": {
+                "const": "blocked"
+              }
+            }
+          },
+          "selection_contract": {
+            "properties": {
+              "task_materialization_status": {
+                "const": "frozen"
+              }
+            }
+          },
+          "prepared_task_contract": {
+            "properties": {
+              "task_instances_materialized": {
+                "const": true
+              },
+              "source_anchor_refs": {
+                "minItems": 20
+              },
+              "source_text_present": {
+                "const": true
+              },
+              "human_work_scheduled": {
+                "const": true
+              }
+            }
+          },
+          "tasks": {
+            "minItems": 20,
+            "maxItems": 20
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "status": {
+            "enum": [
+              "ready",
+              "running",
+              "awaiting-real-human-review",
+              "closed"
+            ]
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "source_evidence_gate": {
+            "properties": {
+              "current_eligible_source_units": {
+                "const": 20
+              },
+              "gate_status": {
+                "const": "satisfied"
+              }
+            }
+          },
+          "human_baseline_gate": {
+            "properties": {
+              "current_frozen_baseline_units": {
+                "const": 20
+              },
+              "gate_status": {
+                "const": "satisfied"
+              }
+            }
+          },
+          "selection_contract": {
+            "properties": {
+              "task_materialization_status": {
+                "const": "frozen"
+              }
+            }
+          },
+          "prepared_task_contract": {
+            "properties": {
+              "task_instances_materialized": {
+                "const": true
+              },
+              "source_anchor_refs": {
+                "minItems": 20
+              },
+              "source_text_present": {
+                "const": true
+              }
+            }
+          },
+          "tasks": {
+            "minItems": 20,
+            "maxItems": 20,
+            "items": {
+              "$ref": "#/$defs/execution_task"
+            }
+          }
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "sha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "task": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "task_id",
+        "task_family",
+        "stratum",
+        "source_anchor_refs",
+        "accepted_source_sha256",
+        "source_review_event_ref",
+        "local_content_ref",
+        "local_content_sha256",
+        "human_baseline_ref",
+        "human_baseline_sha256",
+        "eligible_for_variant_execution"
+      ],
+      "properties": {
+        "task_id": {
+          "type": "string",
+          "pattern": "^tos-task-[a-z0-9-]+$"
+        },
+        "task_family": {
+          "const": "sign-candidate-and-refusal"
+        },
+        "stratum": {
+          "enum": [
+            "random",
+            "hard"
+          ]
+        },
+        "source_anchor_refs": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "accepted_source_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "source_review_event_ref": {
+          "type": "string",
+          "pattern": "^tos\\.event\\.[a-z0-9]+(?:[.-][a-z0-9]+)*$"
+        },
+        "local_content_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "local_content_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "human_baseline_ref": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "human_baseline_sha256": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/sha256"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "eligible_for_variant_execution": {
+          "type": "boolean"
+        }
+      }
+    },
+    "execution_task": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/task"
+        },
+        {
+          "properties": {
+            "human_baseline_ref": {
+              "type": "string",
+              "minLength": 1
+            },
+            "human_baseline_sha256": {
+              "$ref": "#/$defs/sha256"
+            },
+            "eligible_for_variant_execution": {
+              "const": true
+            }
+          }
+        }
+      ]
+    }
+  }
+}

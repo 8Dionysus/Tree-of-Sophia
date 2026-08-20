@@ -1,0 +1,135 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/bounded-translation-research-input.schema.json",
+  "schema_version": "tos_bounded_translation_research_input_v1",
+  "packet_id": "tos.bounded-translation-research-input.za-i-vorrede-1-opening-sentence.v1",
+  "status": "eligible_for_local_machine_calibration",
+  "prepared_at": "2026-07-29T08:31:00Z",
+  "work_ref": "tos.work.friedrich-nietzsche.also-sprach-zarathustra",
+  "target": {
+    "review_unit_id": "tos-translation-source-review-v2-001",
+    "context_anchor_ref": "tos.anchor.zarathustra-translation-pilot-v1.t001",
+    "critical_locator_siglum": "Za-I-Vorrede-1",
+    "unit_kind": "first-complete-sentence",
+    "unit_ordinal": 1
+  },
+  "bindings": {
+    "corpus_decision": {
+      "ref": "docs/decisions/TOS-D-0020-corpus-evidence-spine-and-witness-storage.md",
+      "sha256": "fb28a914610ffaf7f6541f29282734caeed6de81cc9a33d4e7065c55193b4e6b"
+    },
+    "admission_research": {
+      "ref": "ToS/research-packets/foundation-laboratory-2026-07/BOUNDED_TRANSLATION_SOURCE_ADMISSION_RESEARCH.md",
+      "sha256": "de9d2fd6ff83982c638909be2fdad27b254b8b9d64b0c5751d04c6ae5ee28902"
+    },
+    "source_review_plan": {
+      "ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/translation-source-review-plan.v2.json",
+      "sha256": "ba04adba9787c91ffca017128db0250f5565663084ba7f60a609e227b88eaf25"
+    },
+    "accepted_translation_plan": {
+      "ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/translation-laboratory-plan.v1.json",
+      "sha256": "9a260fb4a21c44a67b56d2887ebba4d01d82c49c5d3008b39ed44d4779145ee4"
+    },
+    "german_source_triangulation": {
+      "ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/german-source-triangulation.ekgwb-dta-naumann.za-i-vorrede-1.v1.json",
+      "sha256": "e98d28af59363bd73152cb42608b21caa6cb92aa1181fa90ba18a675f64fdbd9"
+    },
+    "preexisting_authored_canon_node": {
+      "ref": "ToS/canon/source/friedrich-nietzsche/thus-spoke-zarathustra/prologue-1/node.json",
+      "sha256": "951067db45d8cad8fad485adbbc3294dda7c824647dc820dd2529716b8317ed8"
+    },
+    "preexisting_public_compatibility_mirror": {
+      "ref": "ToS/public-compatibility/source_node.example.json",
+      "sha256": "951067db45d8cad8fad485adbbc3294dda7c824647dc820dd2529716b8317ed8"
+    },
+    "dta_item_manifest": {
+      "ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/de-schmeitzner-1883-part-1/editions/chemnitz-schmeitzner-1883-part-1/items/dta-sbb-corrected-tei-p5/item.manifest.json",
+      "sha256": "b030e789d9c15dc2fed621e81e091927243883f7d577438162fc6be4e7b3d55b"
+    },
+    "dta_rights_record": {
+      "ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/de-schmeitzner-1883-part-1/editions/chemnitz-schmeitzner-1883-part-1/items/dta-sbb-corrected-tei-p5/rights.json",
+      "sha256": "0ee4a2f6301450e155a623f4b692c936f13d07b296a512db9875652492cbbfc4"
+    }
+  },
+  "source_derivation": {
+    "source_role": "registered_dta_provider_transcription",
+    "item_ref": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-schmeitzner-1883-part-1.dta-sbb-corrected-tei-p5",
+    "file_ref": "tos.file.sha256.d3fa5f8af39d87c8f0ede7a0b52b26da0c57e73125d3b0bd2a836b80eae24a4b",
+    "file_sha256": "d3fa5f8af39d87c8f0ede7a0b52b26da0c57e73125d3b0bd2a836b80eae24a4b",
+    "payload_relative_path": "works/friedrich-nietzsche/also-sprach-zarathustra/expressions/de-schmeitzner-1883-part-1/editions/chemnitz-schmeitzner-1883-part-1/items/dta-sbb-corrected-tei-p5/payload/nietzsche_zarathustra01_1883.tei.xml",
+    "selector": {
+      "kind": "tei-structural-plus-deterministic-sentence-boundary",
+      "section": "TEI/text[1]/body[1]/div[1]/div[1]",
+      "paragraph_ordinal": 1,
+      "sentence_ordinal": 1,
+      "boundary_rule": "first-full-stop-inclusive-after-source-aware-dta-dehyphenation"
+    },
+    "transformations": [
+      "remove_dta_printed_hyphen_marker_u00ac_and_following_whitespace",
+      "select_first_full_stop_inclusive",
+      "collapse_unicode_whitespace_to_ascii_space"
+    ],
+    "model_used_for_boundary_or_text": false,
+    "source_text_emitted_to_tracked_packet": false
+  },
+  "local_artifact": {
+    "ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/local-content/translation/research-inputs/za-i-vorrede-1-opening-sentence.v1.json",
+    "artifact_sha256": "a19c2f080eaff61b9412c0555954b632ffc4dd6c06f47f46aa464ab389d2b9f4",
+    "artifact_byte_size": 1875,
+    "source_text_sha256": "a507f7293ac73ec37f7c78a38b3270f45bc98418b8fd824f2ab72ebc18377224",
+    "source_text_codepoints": 115,
+    "normalized_alpha_tokens": 20,
+    "normalized_sequence_sha256": "424ce3d50546611525c2cc5fbf2089a9866b56a025ac7176b8691913543f5f0f",
+    "gitignored": true,
+    "source_text_copied_into_tracked_admission": false,
+    "source_text_present_locally": true
+  },
+  "machine_corroboration": {
+    "dta_ekgwb_whitespace_collapsed_exact": true,
+    "dta_ekgwb_normalized_tokens_exact": true,
+    "naumann_first_twenty_normalized_tokens_exact": true,
+    "ekgwb_is_one_way_corroboration_only": true,
+    "philological_acceptance_performed": false
+  },
+  "experiment_scope": {
+    "purpose": "translation_method_calibration",
+    "runtime_owner": "abyss-stack",
+    "environment": "local-only",
+    "allowed_uses": [
+      "blind-ai-only-model-prompt-decoding-calibration",
+      "runtime-cost-speed-and-resource-measurement",
+      "source-return-and-reproducibility-checks",
+      "operator-russian-readability-rhythm-and-usefulness-feedback",
+      "sourced-or-unresolved-machine-analysis-proposals"
+    ],
+    "recognized_comparator_visible": false,
+    "preexisting_authored_translation_surfaces_visible": false,
+    "outputs_are_candidates_only": true
+  },
+  "rights_and_visibility": {
+    "dta_rights_posture": "licensed-current-header-and-terms-stale-oai-preserved-unreviewed",
+    "human_rights_review": false,
+    "local_research_only": true,
+    "source_or_derivative_redistribution_authorized_by_this_route": false,
+    "public_site_upload_authorized": false,
+    "tracked_packet_contains_source_text": false
+  },
+  "gate_effects": {
+    "bounded_local_research_inputs": 1,
+    "human_debt_units": 0,
+    "accepted_german_units": 0,
+    "accepted_translation_lanes_opened": [],
+    "semantic_tasks_opened": 0,
+    "canon_or_graph_promotion_authorized": false
+  },
+  "authority_boundary": "one exact local DTA-derived string is eligible only for blind local machine-method calibration; the packet grants no German, translation, semantic, rights, graph, or canon authority",
+  "does_not_establish": [
+    "philologically_accepted_source",
+    "accepted_german_orthography_or_grammar",
+    "translation_fidelity_or_quality",
+    "accepted_translation_lane",
+    "rights_clearance_or_redistribution",
+    "semantic_sign_or_relation",
+    "graph_truth_or_canon_promotion",
+    "preexisting_authored_canon_source_revalidated"
+  ]
+}

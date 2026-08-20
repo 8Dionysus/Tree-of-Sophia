@@ -55,6 +55,10 @@ layer. Lived witness may explain sustained attention and salience, but it
 remains distinct from primary text, bibliographic evidence, scholarship,
 interpretation, and canon.
 
+The current private-by-default capture and authorship route is
+`ToS/zarathustra/lived-witness/`. It creates no record until the human author
+explicitly invokes it and confirms the exact body.
+
 See [GOLDEN_GROWTH_KERNEL](../zarathustra/GOLDEN_GROWTH_KERNEL.md) for the
 current architecture and preparation boundary.
 
@@ -162,11 +166,16 @@ The first public route uses:
 - `tos.concept.becoming`
 - `tos.concept.overcoming`
 
-The current role contract is asymmetric on purpose:
+The current authored-route role contract is asymmetric on purpose:
 
-- German as canonical source authority
-- Russian as human-reviewed working translation
-- English as bridge translation for public structural use
+- German as the route-local `canonical_source` witness
+- Russian as Dionysus's authored `working_translation` witness
+- English as Dionysus's authored `bridge_translation` witness
+
+Those labels preserve the living route and its authorship; they do not by
+themselves establish a modern accepted German layer, competence-scoped human
+review, accepted translation, semantic claim, or graph admission. The exact
+evidence bridge records that distinction without rewriting the route.
 
 This route grows one `node_id` with `language_witnesses`, not three node copies.
 It may also record `translation_tensions` when drift is philosophically load-bearing.

@@ -1,0 +1,376 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/material-discovery-record.schema.json",
+  "schema_version": "tos_material_discovery_record_v1",
+  "discovery_id": "tos.discovery.proto-cuneiform-atu3-lexical-lists-critical-edition.2026-08-12",
+  "protocol_ref": "ToS/source-witnesses/discovery/DISCOVERY_PROTOCOL.md",
+  "target": {
+    "target_kind": "critical-edition",
+    "known_tos_refs": [
+      "tos.work.proto-cuneiform.die-lexikalischen-listen-der-archaischen-texte-aus-uruk"
+    ],
+    "description": "Resolve the A01 ATU 3 anchor as one standalone bibliographic Work, preserve exact responsibility and LLATU coordinate semantics, check established and current functional interpretations, and find a lawful local-research route without acquiring source text.",
+    "required_properties": [
+      "exact 1993 Work and publication identity",
+      "authorship and collaboration roles without creator flattening",
+      "LLATU page-entry coordinate semantics",
+      "recognized lexical-tradition and direct-review controls",
+      "fresh 2025-2026 social, classificatory, and encoding controls",
+      "layer-specific access and redistribution posture"
+    ],
+    "acceptable_substitutions": [
+      "a lawfully supplied complete ATU 3 Item with exact front matter and fixity",
+      "a library-provided bounded research packet with explicit local-processing terms",
+      "a later scholarly edition that supplies explicit ATU 3/LLATU concordances without erasing the historical coordinate"
+    ],
+    "languages": ["de", "sux", "en", "und"],
+    "formats": ["book metadata", "critical-edition catalog", "review publication", "lexical-corpus documentation", "sign concordance", "Unicode proposal", "rights and reproduction terms"],
+    "purpose_ref": "ToS/research-packets/foundation-laboratory-2026-07/A01_ATU3_LEXICAL_LISTS_SOURCE_PLANTING_RESEARCH_2026-08-12.md"
+  },
+  "channels": [
+    {
+      "channel_id": "channel-atu3-official-bibliography",
+      "sequence": 1,
+      "channel_type": "specialized-scholarly-project",
+      "role": "originating-record",
+      "source_name": "CDLI publication record, Freie Universität Berlin ATU project, Gebr. Mann publisher, and HEIDI exact holding",
+      "endpoint_url": "https://cdli.earth/publications/1785922",
+      "interface_type": "web",
+      "interface_version": "current institutional records checked 2026-08-12",
+      "exact_query": "Resolve ATU 3 / ADFU 13, responsibility statement, series, date, extent, ISBN, identifiers, language, and holdings before selecting a witness.",
+      "queried_at": "2026-08-12T13:00:00-06:00",
+      "elapsed_seconds": 4.1,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.atu3-exact-work-and-publication",
+          "rank": 1,
+          "title_as_displayed": "Die lexikalischen Listen der archaischen Texte aus Uruk",
+          "result_url": "https://cdli.earth/publications/1785922",
+          "originating_record_url": "https://www.geschkult.fu-berlin.de/en/e/vaa/forschung/projekte_abgeschlossen/archaische_texte/index.html",
+          "identifiers": [
+            {"scheme": "ATU", "value": "3"},
+            {"scheme": "ADFU", "value": "13"},
+            {"scheme": "CDLI publication", "value": "1785922"},
+            {"scheme": "ISBN", "value": "978-3-7861-1687-5"},
+            {"scheme": "OCLC", "value": "489728713"},
+            {"scheme": "K10plus-PPN", "value": "1104598086"}
+          ],
+          "available_formats": ["bibliographic HTML", "BibTeX", "RIS", "publisher metadata", "library holdings"],
+          "declared_rights": {"statement": null, "scope": "content", "evidence_url": null, "tos_conclusion": "evidence-only-not-a-rights-conclusion"},
+          "availability": "metadata-only",
+          "machine_interface": "html",
+          "decision": "select",
+          "rationale": "The combined institutional records fix the standalone Work and publication identity and preserve the specific authors-versus-collaborator statement without supplying a source Item.",
+          "acquisition": {"downloaded": false, "acquired_at": null, "byte_size": null, "sha256": null, "event_ref": null},
+          "snapshot": {"state": "not-needed", "format": null, "sha256": null, "reason": "Public metadata was sufficient for the bounded Work planting."}
+        },
+        {
+          "result_id": "tos-discovery-result.atu3-publisher-out-of-print-state",
+          "rank": 2,
+          "title_as_displayed": "Die lexikalischen Listen der Archaischen Texte aus Uruk",
+          "result_url": "https://www.reimer-mann-verlag.de/controller.php?cmd=detail&titelnummer=301687&verlag=3",
+          "originating_record_url": "https://www.reimer-mann-verlag.de/controller.php?cmd=detail&titelnummer=301687&verlag=3",
+          "identifiers": [{"scheme": "ISBN", "value": "978-3-7861-1687-5"}],
+          "available_formats": ["publisher catalog metadata", "generic manual-order banner"],
+          "declared_rights": {"statement": null, "scope": "content", "evidence_url": null, "tos_conclusion": "evidence-only-not-a-rights-conclusion"},
+          "availability": "unavailable",
+          "machine_interface": "html",
+          "decision": "select",
+          "rationale": "The publisher fixes responsibility, extent, ISBN, series, year, and out-of-print status. Its generic order banner is not treated as proof of stock or reuse rights.",
+          "acquisition": {"downloaded": false, "acquired_at": null, "byte_size": null, "sha256": null, "event_ref": null},
+          "snapshot": {"state": "not-needed", "format": null, "sha256": null, "reason": "No order or content acquisition was needed."}
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-atu3-established-scholarship",
+      "sequence": 2,
+      "channel_type": "specialized-scholarly-project",
+      "role": "scholarly-index",
+      "source_name": "Direct ATU 3 reviews, Veldhuis lexical-tradition history, Gabriel frontier analysis, and DCCLT method",
+      "endpoint_url": "https://researchportal.helsinki.fi/en/publications/history-of-the-cuneiform-lexical-tradition/",
+      "interface_type": "web",
+      "interface_version": "recognized publications and current institutional records checked 2026-08-12",
+      "exact_query": "Identify direct reviews and the strongest established accounts of lexical-list history and function; retain competing hypotheses and source-layer limits.",
+      "queried_at": "2026-08-12T13:05:00-06:00",
+      "elapsed_seconds": 3.2,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.veldhuis-2014-lexical-tradition",
+          "rank": 1,
+          "title_as_displayed": "History of the Cuneiform Lexical Tradition",
+          "result_url": "https://researchportal.helsinki.fi/en/publications/history-of-the-cuneiform-lexical-tradition/",
+          "originating_record_url": "https://cdli.earth/publications/1787447",
+          "identifiers": [{"scheme": "GTR", "value": "6"}],
+          "available_formats": ["peer-reviewed monograph metadata", "institutional publication record", "CDLI bibliography"],
+          "declared_rights": {"statement": null, "scope": "content", "evidence_url": null, "tos_conclusion": "evidence-only-not-a-rights-conclusion"},
+          "availability": "metadata-only",
+          "machine_interface": "html",
+          "decision": "select",
+          "rationale": "The monograph is the established long-range account of lexical texts as historically changing scholarly and educational artifacts, not timeless dictionaries.",
+          "acquisition": {"downloaded": false, "acquired_at": null, "byte_size": null, "sha256": null, "event_ref": null},
+          "snapshot": {"state": "not-captured", "format": null, "sha256": null, "reason": "The current task records method and bibliographic identity only."}
+        },
+        {
+          "result_id": "tos-discovery-result.gabriel-2020-proto-cuneiform-frontier",
+          "rank": 2,
+          "title_as_displayed": "Die archaischen Listen aus Uruk und die proto-keilschriftliche frontier",
+          "result_url": "https://www.degruyterbrill.com/document/doi/10.1515/janeh-2020-0002/html",
+          "originating_record_url": "https://www.degruyterbrill.com/journal/key/janeh/7/1/html",
+          "identifiers": [{"scheme": "DOI", "value": "10.1515/janeh-2020-0002"}],
+          "available_formats": ["publisher abstract", "journal issue metadata"],
+          "declared_rights": {"statement": null, "scope": "content", "evidence_url": null, "tos_conclusion": "evidence-only-not-a-rights-conclusion"},
+          "availability": "open-view",
+          "machine_interface": "html",
+          "decision": "select",
+          "rationale": "The article explicitly keeps archaic-list function unresolved and offers the expanding proto-cuneiform frontier as a hypothesis rather than a universal semantic ontology.",
+          "acquisition": {"downloaded": false, "acquired_at": null, "byte_size": null, "sha256": null, "event_ref": null},
+          "snapshot": {"state": "not-captured", "format": null, "sha256": null, "reason": "No article body entered ToS."}
+        },
+        {
+          "result_id": "tos-discovery-result.atu3-direct-review-trail",
+          "rank": 3,
+          "title_as_displayed": "ATU 3 direct reviews by Steinkeller and Veldhuis",
+          "result_url": "https://www.jstor.org/stable/41668245",
+          "originating_record_url": "https://www.ocf.berkeley.edu/~veldhuis/publications.html",
+          "identifiers": [],
+          "available_formats": ["review metadata", "journal stable record", "author bibliography"],
+          "declared_rights": {"statement": null, "scope": "content", "evidence_url": null, "tos_conclusion": "evidence-only-not-a-rights-conclusion"},
+          "availability": "metadata-only",
+          "machine_interface": "html",
+          "decision": "select",
+          "rationale": "Direct reviews are correction surfaces for the 1993 edition; no review assertion is promoted without exact source-visible evidence.",
+          "acquisition": {"downloaded": false, "acquired_at": null, "byte_size": null, "sha256": null, "event_ref": null},
+          "snapshot": {"state": "not-captured", "format": null, "sha256": null, "reason": "Only the review trail was required for this bounded planting."}
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-atu3-fresh-method-and-identity",
+      "sequence": 3,
+      "channel_type": "identifier-registry",
+      "role": "mixed",
+      "source_name": "2025 archaic colophons, 2026 Scribal Worlds, current PCSL LLATU, and Unicode Proto-Cuneiform status",
+      "endpoint_url": "https://oracc.museum.upenn.edu/pcsl/signlist/Abbreviations/index.html",
+      "interface_type": "web",
+      "interface_version": "sources checked 2026-08-12; Unicode pipeline updated 2026-08-04",
+      "exact_query": "Check the freshest social, classificatory, coordinate, and encoding evidence relevant to ATU 3 without turning current interpretations or working identifiers into source truth.",
+      "queried_at": "2026-08-12T13:10:00-06:00",
+      "elapsed_seconds": 4.4,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.lecompte-naccaro-2025-colophons",
+          "rank": 1,
+          "title_as_displayed": "The Colophons of the Archaic Lists and their Social Setting",
+          "result_url": "https://www.degruyterbrill.com/document/doi/10.1515/za-2025-0001/html",
+          "originating_record_url": "https://www.degruyterbrill.com/journal/key/zava/115/1/html",
+          "identifiers": [{"scheme": "DOI", "value": "10.1515/za-2025-0001"}],
+          "available_formats": ["open-access article HTML", "publisher PDF"],
+          "declared_rights": {"statement": "Creative Commons Attribution 4.0 International", "scope": "content", "evidence_url": "https://www.degruyterbrill.com/document/doi/10.1515/za-2025-0001/html", "tos_conclusion": "evidence-only-not-a-rights-conclusion"},
+          "availability": "open-view",
+          "machine_interface": "html",
+          "decision": "select",
+          "rationale": "The re-edited colophons make social organization and educational use current evidence questions and complicate a single undifferentiated scribe category.",
+          "acquisition": {"downloaded": false, "acquired_at": null, "byte_size": null, "sha256": null, "event_ref": null},
+          "snapshot": {"state": "not-captured", "format": null, "sha256": null, "reason": "The article remains remote; no content was mirrored."}
+        },
+        {
+          "result_id": "tos-discovery-result.scribal-worlds-2026-classification",
+          "rank": 2,
+          "title_as_displayed": "Scribal Worlds: Scholarship and classification in cuneiform cultures",
+          "result_url": "https://uclpress.co.uk/book/scribal-worlds/",
+          "originating_record_url": "https://doi.org/10.14324/111.9781806550821",
+          "identifiers": [{"scheme": "DOI", "value": "10.14324/111.9781806550821"}, {"scheme": "PDF ISBN", "value": "9781806550821"}],
+          "available_formats": ["open-access book", "chapter downloads", "publisher metadata"],
+          "declared_rights": {"statement": "Creative Commons Attribution-NonCommercial-NoDerivatives 4.0 International", "scope": "content", "evidence_url": "https://uclpress.co.uk/book/scribal-worlds/", "tos_conclusion": "evidence-only-not-a-rights-conclusion"},
+          "availability": "open-view",
+          "machine_interface": "html",
+          "decision": "select",
+          "rationale": "The June 2026 volume makes ontology and classification explicit research questions and requires contextual interpretation of fragmentary textual and material evidence.",
+          "acquisition": {"downloaded": false, "acquired_at": null, "byte_size": null, "sha256": null, "event_ref": null},
+          "snapshot": {"state": "not-captured", "format": null, "sha256": null, "reason": "The open-access volume was consulted by publisher metadata and remains remote."}
+        },
+        {
+          "result_id": "tos-discovery-result.pcsl-llatu-working-concordance",
+          "rank": 3,
+          "title_as_displayed": "PCSL LLATU Concordance",
+          "result_url": "https://oracc.museum.upenn.edu/pcsl/signlist/LLATUConcordance/index.html",
+          "originating_record_url": "https://oracc.museum.upenn.edu/pcsl/signlist/Abbreviations/index.html",
+          "identifiers": [{"scheme": "LLATU example", "value": "177_01"}],
+          "available_formats": ["working concordance HTML", "sign pages", "comparison chart"],
+          "declared_rights": {"statement": null, "scope": "content", "evidence_url": null, "tos_conclusion": "evidence-only-not-a-rights-conclusion"},
+          "availability": "open-view",
+          "machine_interface": "html",
+          "decision": "select",
+          "rationale": "PCSL explicitly defines LLATU as page plus page-local sign index and exposes mappings to mutable working sign identities rather than hiding the concordance layer.",
+          "acquisition": {"downloaded": false, "acquired_at": null, "byte_size": null, "sha256": null, "event_ref": null},
+          "snapshot": {"state": "not-captured", "format": null, "sha256": null, "reason": "No sign list, image, or concordance dataset was imported."}
+        },
+        {
+          "result_id": "tos-discovery-result.unicode-proto-cuneiform-provisional-atu3",
+          "rank": 4,
+          "title_as_displayed": "Proposal to Encode Proto-Cuneiform / Proposed New Characters Pipeline",
+          "result_url": "https://www.unicode.org/L2/L2025/25211-proto-cuneiform.pdf",
+          "originating_record_url": "https://www.unicode.org/alloc/Pipeline.html",
+          "identifiers": [{"scheme": "Unicode document", "value": "L2/25-211"}, {"scheme": "UTC action", "value": "185-C2"}],
+          "available_formats": ["official proposal PDF", "UTC minutes", "live allocation pipeline", "UTR 56"],
+          "declared_rights": {"statement": "Unicode technical-document terms apply; no document body or character data is republished in this planting.", "scope": "content", "evidence_url": "https://www.unicode.org/copyright.html", "tos_conclusion": "evidence-only-not-a-rights-conclusion"},
+          "availability": "open-view",
+          "machine_interface": "html",
+          "decision": "select",
+          "rationale": "The proposal uses ATU 3/LLATU, while the 2026 pipeline still marks the Proto-Cuneiform allocation provisional; proposed code points remain technical coordinates.",
+          "acquisition": {"downloaded": false, "acquired_at": null, "byte_size": null, "sha256": null, "event_ref": null},
+          "snapshot": {"state": "not-captured", "format": null, "sha256": null, "reason": "Currentness is preserved by dated references; no standard data entered the source spine."}
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-atu3-current-library-access",
+      "sequence": 4,
+      "channel_type": "university-catalog",
+      "role": "digital-object-record",
+      "source_name": "Heidelberg exact holding and reproduction service",
+      "endpoint_url": "https://katalog.ub.uni-heidelberg.de/titel/3639871",
+      "interface_type": "web",
+      "interface_version": "holding indexed 2026-08-12; reproduction page updated 2025-07-22",
+      "exact_query": "Resolve one current institution-owned lawful research-access route, exact shelfmarks, service limits, and copyright warning without placing an order.",
+      "queried_at": "2026-08-12T13:15:00-06:00",
+      "elapsed_seconds": 2.6,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.heidelberg-atu3-holding-and-reproduction",
+          "rank": 1,
+          "title_as_displayed": "HEIDI holding and Reproduction of library material",
+          "result_url": "https://www.ub.uni-heidelberg.de/Englisch/helios/digi/reproduktion.html",
+          "originating_record_url": "https://katalog.ub.uni-heidelberg.de/titel/3639871",
+          "identifiers": [{"scheme": "Heidelberg shelfmark", "value": "93 B 726::13"}, {"scheme": "Heidelberg media number", "value": "03639871"}],
+          "available_formats": ["loanable physical holding", "reading-room holding", "online reproduction request", "digital or paper reproduction options"],
+          "declared_rights": {"statement": "Material subject to copyright may not be reproduced or may be reproduced only in part.", "scope": "digital-object", "evidence_url": "https://www.ub.uni-heidelberg.de/Englisch/helios/digi/reproduktion.html", "tos_conclusion": "evidence-only-not-a-rights-conclusion"},
+          "availability": "permission-required",
+          "machine_interface": "manual-only",
+          "decision": "select",
+          "rationale": "The exact holding and institution-owned reproduction form support a later human-authorized request while preserving the library's copyright and preservation discretion.",
+          "acquisition": {"downloaded": false, "acquired_at": null, "byte_size": null, "sha256": null, "event_ref": null},
+          "snapshot": {"state": "not-needed", "format": null, "sha256": null, "reason": "No form, order, payment, or source acquisition occurred."}
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-atu3-general-web-final",
+      "sequence": 5,
+      "channel_type": "general-web-search",
+      "role": "lead-only",
+      "source_name": "Final general-web screen for lawful full text and false access routes",
+      "endpoint_url": "https://openlibrary.org/works/OL2554610W/Die_lexikalischen_Listen_der_archaischen_Texte_aus_Uruk",
+      "interface_type": "web",
+      "interface_version": "general web checked after authoritative sources on 2026-08-12",
+      "exact_query": "Search the exact title, ISBN, ATU 3, and LLATU for a lawful complete digital Item; resolve final object identity and rights before any acquisition.",
+      "queried_at": "2026-08-12T13:20:00-06:00",
+      "elapsed_seconds": 1.8,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.openlibrary-atu3-metadata-not-item",
+          "rank": 1,
+          "title_as_displayed": "Die lexikalischen Listen der archaischen Texte aus Uruk",
+          "result_url": "https://openlibrary.org/works/OL2554610W/Die_lexikalischen_Listen_der_archaischen_Texte_aus_Uruk",
+          "originating_record_url": "https://openlibrary.org/books/OL20080862M",
+          "identifiers": [{"scheme": "Open Library Work", "value": "OL2554610W"}, {"scheme": "Open Library Edition", "value": "OL20080862M"}],
+          "available_formats": ["community catalog metadata"],
+          "declared_rights": {"statement": null, "scope": "content", "evidence_url": null, "tos_conclusion": "evidence-only-not-a-rights-conclusion"},
+          "availability": "metadata-only",
+          "machine_interface": "html",
+          "decision": "reject",
+          "rationale": "The record corroborates metadata but exposes no lawful complete source Item and is weaker than the publisher, CDLI, and library records.",
+          "acquisition": {"downloaded": false, "acquired_at": null, "byte_size": null, "sha256": null, "event_ref": null},
+          "snapshot": {"state": "not-needed", "format": null, "sha256": null, "reason": "No source object was available to capture."}
+        }
+      ]
+    }
+  ],
+  "channel_comparison": [
+    {
+      "channel_id": "channel-atu3-official-bibliography",
+      "completeness": "strong",
+      "metadata_precision": "strong",
+      "rights_clarity": "limited",
+      "machine_interface_quality": "adequate",
+      "human_minutes": 0,
+      "machine_seconds": 4.1,
+      "notes": "Best Work, responsibility, series, identifier, extent, language, and holding evidence; no source Item or content license."
+    },
+    {
+      "channel_id": "channel-atu3-established-scholarship",
+      "completeness": "adequate",
+      "metadata_precision": "strong",
+      "rights_clarity": "limited",
+      "machine_interface_quality": "adequate",
+      "human_minutes": 0,
+      "machine_seconds": 3.2,
+      "notes": "Best historical and functional controls; preserves direct review and competing explanations rather than fixing one ancient purpose."
+    },
+    {
+      "channel_id": "channel-atu3-fresh-method-and-identity",
+      "completeness": "strong",
+      "metadata_precision": "strong",
+      "rights_clarity": "adequate",
+      "machine_interface_quality": "adequate",
+      "human_minutes": 0,
+      "machine_seconds": 4.4,
+      "notes": "Best current evidence for social context, classification limits, LLATU coordinate semantics, and provisional encoding state."
+    },
+    {
+      "channel_id": "channel-atu3-current-library-access",
+      "completeness": "adequate",
+      "metadata_precision": "strong",
+      "rights_clarity": "adequate",
+      "machine_interface_quality": "limited",
+      "human_minutes": 0,
+      "machine_seconds": 2.6,
+      "notes": "Best lawful access route; explicitly preserves copyright, service, preservation, order, and payment gates."
+    },
+    {
+      "channel_id": "channel-atu3-general-web-final",
+      "completeness": "limited",
+      "metadata_precision": "adequate",
+      "rights_clarity": "poor",
+      "machine_interface_quality": "adequate",
+      "human_minutes": 0,
+      "machine_seconds": 1.8,
+      "notes": "Found redundant community metadata but no lawful complete source Item; no unverified mirror was selected."
+    }
+  ],
+  "selected_result_ids": [
+    "tos-discovery-result.atu3-exact-work-and-publication",
+    "tos-discovery-result.atu3-publisher-out-of-print-state",
+    "tos-discovery-result.veldhuis-2014-lexical-tradition",
+    "tos-discovery-result.gabriel-2020-proto-cuneiform-frontier",
+    "tos-discovery-result.atu3-direct-review-trail",
+    "tos-discovery-result.lecompte-naccaro-2025-colophons",
+    "tos-discovery-result.scribal-worlds-2026-classification",
+    "tos-discovery-result.pcsl-llatu-working-concordance",
+    "tos-discovery-result.unicode-proto-cuneiform-provisional-atu3",
+    "tos-discovery-result.heidelberg-atu3-holding-and-reproduction"
+  ],
+  "rejected_result_ids": [
+    "tos-discovery-result.openlibrary-atu3-metadata-not-item"
+  ],
+  "rights_inference_from_availability_prohibited": true,
+  "general_web_search_is_last_resort": true,
+  "technical_access_bypass_used": false,
+  "maker": {
+    "maker_type": "model",
+    "agent_ref": "model:codex"
+  },
+  "started_at": "2026-08-12T13:00:00-06:00",
+  "ended_at": "2026-08-12T13:25:35-06:00",
+  "status": "reconciled",
+  "provenance_event_refs": [
+    "tos.event.discovery.proto-cuneiform-atu3-lexical-lists-critical-edition.2026-08-12"
+  ],
+  "record_version": 1,
+  "supersedes_discovery_ref": null
+}

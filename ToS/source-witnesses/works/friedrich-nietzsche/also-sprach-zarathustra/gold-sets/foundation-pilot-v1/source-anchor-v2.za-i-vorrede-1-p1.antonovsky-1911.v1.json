@@ -1,0 +1,59 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/source-anchor-v2.schema.json",
+  "anchor_id": "tos.anchor.za-i-vorrede-1.antonovsky-1911-p6-p1.sid-757e8e0511ecc840fabdef0b2df14eef",
+  "anchor_version": 1,
+  "passage_id": "tos.passage.za-i-vorrede-1.antonovsky-1911-p6-p1.sid-060f0de5a650f07ba123918daf57a31a",
+  "provenance_event_ref": "tos.event.native-extraction.za-i-vorrede-1.antonovsky-1911-pdf-page-6-opening.2026-08-12",
+  "publication_boundary": {
+    "public_payload_expected": false,
+    "record_storage": "tracked",
+    "source_content_visibility": "local_only",
+    "source_text_in_record": false
+  },
+  "resolution_status": "mechanically_resolved",
+  "review_ref": null,
+  "review_status": "unreviewed",
+  "schema_version": "tos_source_anchor_v2",
+  "selector_method": {
+    "configuration_digest": "b0ea384938569f8ff660217334fa48a1e54f301e3480b1fbf122bf963c905c4b",
+    "configuration_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/za-i-vorrede-1-antonovsky-1911-target-text-foundation.plan.v1.json",
+    "maker_type": "software",
+    "method": "poppler-bbox-word-line-extraction",
+    "version": "1"
+  },
+  "selector_payload": {
+    "expression": {
+      "mode": "single",
+      "selector": {
+        "selector": {
+          "coordinate_space": "points",
+          "height": 68.392,
+          "page_identity": {
+            "page_number": 6
+          },
+          "source_height": 565.92,
+          "source_width": 792.0,
+          "type": "page_region",
+          "width": 281.4307,
+          "x": 438.48,
+          "y": 198.6
+        },
+        "state": {
+          "character_normalization": "none",
+          "media_type": "application/pdf",
+          "representation_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-antonovsky-1911/editions/saint-petersburg-prometey-1911-fourth/items/rsl-neb-scan-pdf/payload/antonovsky-prometey-1911-rsl-neb.pdf",
+          "representation_sha256": "57518b50e24fee37b3e9c151e853c36ad34258f51a8b65b8233742d69017db69",
+          "state_type": "digest_state"
+        }
+      }
+    },
+    "kind": "selector_expression"
+  },
+  "supersedes_anchor_ref": null,
+  "target": {
+    "file_id": "tos.file.sha256.57518b50e24fee37b3e9c151e853c36ad34258f51a8b65b8233742d69017db69",
+    "file_sha256": "57518b50e24fee37b3e9c151e853c36ad34258f51a8b65b8233742d69017db69",
+    "item_id": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.ru-antonovsky-1911.rsl-neb-scan-pdf",
+    "media_type": "application/pdf"
+  }
+}

@@ -1,0 +1,229 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://tree-of-sophia.local/ToS/contracts/parallel-numbered-unit-label-map.schema.json",
+  "title": "Tree of Sophia parallel numbered-unit label map",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "$schema",
+    "schema_version",
+    "map_id",
+    "work_ref",
+    "source_witness",
+    "target_witness",
+    "rights_basis",
+    "map_authority",
+    "source_text_included",
+    "method",
+    "pairings",
+    "unpaired_units",
+    "summary",
+    "provenance_ref",
+    "provenance_event_ref",
+    "map_version",
+    "authority_boundary",
+    "does_not_establish"
+  ],
+  "properties": {
+    "$schema": {
+      "const": "https://tree-of-sophia.local/ToS/contracts/parallel-numbered-unit-label-map.schema.json"
+    },
+    "schema_version": {
+      "const": "tos_parallel_numbered_unit_label_map_v1"
+    },
+    "map_id": {
+      "type": "string",
+      "pattern": "^tos\\.parallel-numbered-unit-label-map\\.[a-z0-9]+(?:[.-][a-z0-9]+)*$"
+    },
+    "work_ref": {"$ref": "#/$defs/tosId"},
+    "source_witness": {"$ref": "#/$defs/witnessBinding"},
+    "target_witness": {"$ref": "#/$defs/witnessBinding"},
+    "rights_basis": {
+      "type": "array",
+      "minItems": 2,
+      "maxItems": 2,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["role", "ref", "sha256"],
+        "properties": {
+          "role": {"enum": ["source", "target"]},
+          "ref": {"$ref": "#/$defs/repoRelativePath"},
+          "sha256": {"$ref": "#/$defs/sha256"}
+        }
+      }
+    },
+    "map_authority": {
+      "const": "mechanical_shared_number_label_candidate_only"
+    },
+    "source_text_included": {"const": false},
+    "method": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "name",
+        "version",
+        "maker_type",
+        "local_payloads_read",
+        "pairing_key",
+        "requires_materialized_label_in_both_maps",
+        "source_to_target_text_compared",
+        "translation_alignment_inferred",
+        "semantic_matching_used",
+        "no_source_text_emitted"
+      ],
+      "properties": {
+        "name": {
+          "const": "exact-shared-structural-label-key-intersection"
+        },
+        "version": {"const": "1"},
+        "maker_type": {"const": "software"},
+        "local_payloads_read": {"const": false},
+        "pairing_key": {"const": "unit_key"},
+        "requires_materialized_label_in_both_maps": {"const": true},
+        "source_to_target_text_compared": {"const": false},
+        "translation_alignment_inferred": {"const": false},
+        "semantic_matching_used": {"const": false},
+        "no_source_text_emitted": {"const": true}
+      }
+    },
+    "pairings": {
+      "type": "array",
+      "minItems": 298,
+      "maxItems": 298,
+      "items": {"$ref": "#/$defs/pairing"}
+    },
+    "unpaired_units": {
+      "const": [
+        {
+          "side": "source",
+          "unit_key": "237a",
+          "reason": "target_witness_has_corresponding_prose_without_repeated_number_label",
+          "target_unit_materialized": false,
+          "translation_alignment_claimed": false,
+          "status": "proposed"
+        }
+      ]
+    },
+    "summary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "source_numbered_unit_count",
+        "target_numbered_unit_count",
+        "shared_materialized_label_count",
+        "pairing_count",
+        "source_only_unit_keys",
+        "target_only_unit_keys",
+        "all_pairing_statuses",
+        "human_review_performed",
+        "translation_alignment_claimed"
+      ],
+      "properties": {
+        "source_numbered_unit_count": {"const": 299},
+        "target_numbered_unit_count": {"const": 298},
+        "shared_materialized_label_count": {"const": 298},
+        "pairing_count": {"const": 298},
+        "source_only_unit_keys": {"const": ["237a"]},
+        "target_only_unit_keys": {"const": []},
+        "all_pairing_statuses": {"const": ["proposed"]},
+        "human_review_performed": {"const": false},
+        "translation_alignment_claimed": {"const": false}
+      }
+    },
+    "provenance_ref": {"$ref": "#/$defs/repoRelativePath"},
+    "provenance_event_ref": {"$ref": "#/$defs/tosId"},
+    "map_version": {"type": "integer", "minimum": 1},
+    "supersedes_map_ref": {
+      "anyOf": [
+        {"$ref": "#/$defs/repoRelativePath"},
+        {"type": "null"}
+      ]
+    },
+    "authority_boundary": {
+      "const": "mechanical pairing of identical structural number-label keys already materialized independently in two exact witness maps; no text comparison, exact passage boundary, source-to-target passage alignment, translation correspondence, equivalence or quality, semantics, rights clearance, or canon authority"
+    },
+    "does_not_establish": {
+      "const": [
+        "source_text",
+        "target_text",
+        "exact_line_boundaries",
+        "exact_passage_end_boundaries",
+        "source_to_target_passage_alignment",
+        "translation_correspondence",
+        "translation_equivalence",
+        "translation_quality",
+        "textual_identity",
+        "semantics",
+        "rights_clearance",
+        "canon_promotion"
+      ]
+    }
+  },
+  "$defs": {
+    "tosId": {
+      "type": "string",
+      "pattern": "^tos\\.(agent|work|expression|edition|collection|item|file|passage|region|anchor|occurrence|annotation|claim|rights|review|event)\\.[a-z0-9]+(?:[.-][a-z0-9]+)*$"
+    },
+    "sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "repoRelativePath": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "^(?![A-Za-z][A-Za-z0-9+.-]*:)(?!/)(?!.*(?:^|/)\\.\\.(?:/|$))[^\\u0000]+$"
+    },
+    "witnessBinding": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "expression_ref",
+        "edition_ref",
+        "item_ref",
+        "file_ref",
+        "file_sha256",
+        "numbered_unit_map_ref",
+        "numbered_unit_map_sha256"
+      ],
+      "properties": {
+        "expression_ref": {"$ref": "#/$defs/tosId"},
+        "edition_ref": {"$ref": "#/$defs/tosId"},
+        "item_ref": {"$ref": "#/$defs/tosId"},
+        "file_ref": {"$ref": "#/$defs/tosId"},
+        "file_sha256": {"$ref": "#/$defs/sha256"},
+        "numbered_unit_map_ref": {"$ref": "#/$defs/repoRelativePath"},
+        "numbered_unit_map_sha256": {"$ref": "#/$defs/sha256"}
+      }
+    },
+    "unitKey": {
+      "type": "string",
+      "pattern": "^(?:[1-9]|[1-9][0-9]|[12][0-9]{2})(?:a)?$"
+    },
+    "pairing": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "sequence",
+        "unit_key",
+        "source_anchor_ref",
+        "source_pdf_page",
+        "target_anchor_ref",
+        "target_pdf_page",
+        "basis",
+        "status",
+        "human_review_performed",
+        "translation_alignment_claimed"
+      ],
+      "properties": {
+        "sequence": {"type": "integer", "minimum": 1, "maximum": 298},
+        "unit_key": {"$ref": "#/$defs/unitKey"},
+        "source_anchor_ref": {"$ref": "#/$defs/tosId"},
+        "source_pdf_page": {"type": "integer", "minimum": 1},
+        "target_anchor_ref": {"$ref": "#/$defs/tosId"},
+        "target_pdf_page": {"type": "integer", "minimum": 1},
+        "basis": {"const": "shared_materialized_number_label_key"},
+        "status": {"const": "proposed"},
+        "human_review_performed": {"const": false},
+        "translation_alignment_claimed": {"const": false}
+      }
+    }
+  }
+}

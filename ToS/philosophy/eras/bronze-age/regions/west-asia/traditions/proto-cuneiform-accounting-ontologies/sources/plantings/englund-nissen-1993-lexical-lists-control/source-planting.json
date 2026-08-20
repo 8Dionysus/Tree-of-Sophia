@@ -1,0 +1,49 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/philosophy-source-planting.schema.json",
+  "schema_version": "tos_philosophy_source_planting_v1",
+  "planting_id": "tos.planting.a01.englund-nissen-1993-lexical-lists-control",
+  "atlas_row_id": "A01",
+  "dossier_id": "A01",
+  "branch_path": "ToS/philosophy/eras/bronze-age/regions/west-asia/traditions/proto-cuneiform-accounting-ontologies",
+  "source_backlog_anchor": {
+    "path": "ToS/philosophy/eras/bronze-age/regions/west-asia/traditions/proto-cuneiform-accounting-ontologies/sources/source-anchor-backlog.jsonl",
+    "line": 26,
+    "source_table_index": 14,
+    "source_row_index": 8,
+    "source_label": "Englund & Nissen 1993 [24]"
+  },
+  "source_witness": {
+    "work_id": "tos.work.proto-cuneiform.die-lexikalischen-listen-der-archaischen-texte-aus-uruk",
+    "record_ref": "ToS/source-witnesses/works/proto-cuneiform-scholarship/die-lexikalischen-listen-der-archaischen-texte-aus-uruk/work.json",
+    "relationship": "grounds_source_backlog_anchor"
+  },
+  "discovery_ref": "ToS/source-witnesses/discovery/runs/proto-cuneiform-atu3-lexical-lists-critical-edition.2026-08-12.v1.json",
+  "provenance_event_ref": "tos.event.annotation.proto-cuneiform-a01-deduplicated-control-roles.2026-08-12",
+  "research_ref": "ToS/research-packets/foundation-laboratory-2026-07/A01_ATU3_LEXICAL_LISTS_SOURCE_PLANTING_RESEARCH_2026-08-12.md",
+  "fulfilled_source_needs": [
+    "the exact Work behind Englund and Nissen 1993 is deduplicated against the ATU 3 lexical-lists planting",
+    "the standalone critical monograph remains distinct from aggregate collection and later digital-composite topology",
+    "Englund and Nissen authorship remains separate from Damerow's source-reported collaboration role",
+    "the foundational lexical-list edition is retained as a source route rather than an automatic ancient ontology",
+    "LLATU, ZATU, PCSL, Unicode, reading, gloss, and semantic identity remain separate layers",
+    "current 2025-2026 variation-aware lexical-list and technical controls remain attached to the reuse boundary"
+  ],
+  "remaining_controls": [
+    "no complete ATU 3 Item, source-visible contents map, Expression, Edition, or payload is admitted",
+    "list order and grouping are evidence for a scribal artifact and practice, not direct philosophical or ontological truth",
+    "no line, entry, sign form, reading, gloss, translation, etymology, concordance, semantic relation, or graph fact is created",
+    "the prepared Heidelberg access request remains unsent and creates no access or redistribution authority",
+    "this role-specific planting reuses the existing Work and does not manufacture a duplicate bibliographic entity",
+    "no redundant human review task is opened"
+  ],
+  "research_order": [
+    "official_and_classical_documentation",
+    "established_top_scholarship",
+    "fresh_current_relevance_check"
+  ],
+  "authority": {"source_status": "metadata_witness_planted", "review_status": "unreviewed", "source_text_admitted": false, "semantic_status": "not_started", "graph_status": "not_promoted", "canon_status": "not_canon", "human_task_created": false},
+  "status": "source_witness_planted",
+  "maker": {"maker_type": "model", "agent_ref": "model:codex", "human_review_performed": false},
+  "created_at": "2026-08-12T16:59:19-06:00",
+  "record_version": 1
+}

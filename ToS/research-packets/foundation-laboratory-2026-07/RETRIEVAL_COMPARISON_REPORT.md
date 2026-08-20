@@ -1,10 +1,14 @@
 # Retrieval Comparison Report: Foundation Pilot v1
 
-Status: variants A/B/C executed; real human relevance review not started
+Status: text variants A/B/C and the separate direct-visual challenger C
+executed; the five-query source-visible engineering-routing inspection is
+complete at advisory non-human authority; real human relevance judgments
+remain zero
 Experiment: `tos-retrieval-foundation-v1`
 Frozen query set: 20 queries, sealed before variant output
 Indexed sample: 36 source-addressable units, of which 24 contain extracted text
 Execution date: 2026-07-22
+Direct-visual execution snapshot: 2026-07-30
 
 ## Result first
 
@@ -19,6 +23,28 @@ promotion, and there is no quality winner before human grading.
   local at inference time, and mechanically reproducible across two separate
   runs. Its 20 ranked-anchor lists and 237,643-byte vector index are identical
   between runs.
+- A separate direct-visual experiment reuses the same 20 query bytes and all
+  36 digest-frozen page PNGs. Its exact Qwen3-VL-Embedding-2B revision,
+  29-wheel CPU closure, 18-file model tree, isolated offline runtime, visual
+  input-use audit, network audit, source-to-image crosswalk, and immutable
+  text-control receipts were admitted without force and executed once in the
+  audit-complete r9 packet. It remains a different experiment, not a fourth
+  text-retrieval result in the comparison table below.
+- A fresh durable preflight returned `ready` with 19,101,630,464 available
+  memory bytes against the unchanged 17,179,869,184-byte floor, 125,899,755,520
+  free `/srv` bytes, load 3.3755, and 100 °C within the owner's monitored
+  100–105 °C active range. `abyss-machine resource launch` then admitted the
+  heavy/indexing foreground run with a declared 12 GiB demand and no force.
+- The r9 challenger produced stable first/warm rankings for 20/20 queries,
+  resolved all 200 returned anchors, and returned the model-proposed target
+  for 19/19 evaluable queries. That last number is advisory, not relevance
+  gold. It recovered one source-return route missed by both text controls;
+  declared hard negatives appeared in 9/10 slots and outranked the proposed
+  expected result in four queries. Both cross-language proposed targets were
+  present, but same-language hard negatives outranked them.
+- The earlier r8 execution is retained as an audit-incomplete negative:
+  rankings and scores match r9 for 20/20 queries, but it did not persist the
+  76-row normalization audit. It is not substituted for r9 or promoted.
 - On a common advisory denominator of 19 non-coverage queries, A returns the
   model-proposed target in the first ten for 17 queries, B for 18, and C for
   17. This is not a quality score: the target declarations are model-proposed
@@ -48,6 +74,11 @@ promotion, and there is no quality winner before human grading.
 No nDCG@10, hard-negative error rate, or human correction cost is reported.
 Those fields remain `null`. All successful run packets remain
 `awaiting-manual-review`; no derived index is canonical.
+
+The direct-visual result remains outside the comparable text A/B/C table
+because it indexes page images, not the same 24 extracted-text passages. Its
+separate measurements below establish execution, stability, source-return
+behavior, and cost, but not human relevance or a winner.
 
 ## Comparable measurements
 
@@ -109,6 +140,147 @@ recorded without reconstructing a receipt. The second C run used identical
 inputs and method, captured the complete owner receipt immediately, and
 reproduced all 20 ranked-anchor lists plus the exact index digest. Both local
 indexes remain isolated under their run roots.
+
+## Direct visual challenger: audit-complete execution, human quality open
+
+`tos-visual-retrieval-foundation-v1` is a distinct output-blind experiment.
+It does not rename or supersede Granite as text-retrieval variant C. Its own
+challenger C asks a different question: can a Russian or German text query
+retrieve the relevant source page directly from its image when extracted or
+OCR text is absent, corrupt, or contaminated?
+
+The source-owned plan was frozen before model acquisition or challenger output:
+
+- plan SHA-256
+  `27e142883d4385b8b69857ab7ebcbee7facb16454e54649ef6ed1df15e3b7c25`;
+- 20 unchanged private query strings and 36 unchanged page PNGs;
+- render-manifest SHA-256
+  `734e7474923ec2697a243b1e1b322c43c4e2a8b82b6336df57ab82f3bbc8fec7`;
+- immutable text-control receipt SHA-256 values
+  `d6d13bae304ff72afa126143921865415740b2342cb49d0c70e252de51e691fa`
+  for A and
+  `b879670826b2b5f512bceac56f3cc0b48eaeec72e4c7e375f72cc40c9901b3db`
+  for B;
+- `Qwen/Qwen3-VL-Embedding-2B` revision
+  `9f2f7e710d6d81056aa5c0a4f04764fec6bb7bda`, 2,127,532,032 parameters,
+  Apache-2.0, selected 2,048-dimensional output.
+
+The host-owned setup then closed the exact local execution route without
+placing model or runtime bytes in Tree of Sophia:
+
+- frozen acquisition: 4,549,670,315 bytes, comprising 4,271,068,726 model
+  bytes and 278,601,589 bytes across 29 CPU wheels;
+- acquisition receipt SHA-256
+  `c93062e4cd6395b30ab057be184b80afd41a1632203424b528fec14f63c43c73`;
+- isolated runtime: 1,182,279,019 bytes and 27,587 inventoried artifacts;
+- runtime-manifest SHA-256
+  `ff730fe5780216fe84f26b7fbed6c57d0f0de58cabac5026d6af403e094632ba`;
+- runtime artifact-set SHA-256
+  `837f70def92d6808d975f1d2c4871aec24a184443307266531909105a23ebf38`.
+
+Early setup failures remain evidence. The first runtime materialization
+exposed an undeclared `torchvision` import dependency before model load. The
+corrected closure makes that dependency explicit. A later code audit exposed
+that the reviewed upstream helper can catch an image-processing exception and
+fall back to a `NULL` text input. The admitted bridge now fails closed unless
+all 36 requests demonstrably consume exactly one decoded page image. It also
+records and requires zero network attempts. These controls prove execution
+integrity only; they are not model-quality evidence.
+
+The earlier 2026-07-29 blocked preflight remains valid negative admission
+evidence. After unrelated reservations cleared, the same frozen plan and
+unchanged 16 GiB floor received a fresh owner `ready` decision:
+
+`tos-visual-retrieval-foundation-v1/preflight-receipts/visual-c-run-20260730t1059z-r9-ready.json`
+
+Its SHA-256 is
+`f414a54061695e3692cd237703e67b2e4934a1b79f419ec5e5faf04dc2dd8449`.
+At `2026-07-30T10:59:29.798724+00:00` it established:
+
+| Admission fact | Observed | Frozen requirement / decision |
+| --- | ---: | --- |
+| source plan | exact digest admitted | pass |
+| isolated runtime | exact manifest and artifact set admitted | pass |
+| `/srv` free bytes | 125,899,755,520 | at least 21,474,836,480; pass |
+| storage-owner request | 6,697,153,963 bytes | `allow` |
+| load 1m | 3.37548828125 | at most 8; pass |
+| temperature | 100 °C | at most 105 °C watch boundary; pass with owner observation |
+| available memory | 19,101,630,464 bytes | at least 17,179,869,184; pass |
+| heavy/indexing owner admission | `allow` | `allow` required; pass |
+
+The run started at `2026-07-30T11:06:54.023571+00:00` and finished at
+`2026-07-30T11:53:40.785922+00:00` with exit 0. It was launched only through
+the host owner, with no force. The copied owner launch receipt has SHA-256
+`d2fcc9ef3e6af0d0421bedc516bac7850876f0318822443c611d69eee012ddc4`.
+The retained audit-complete packet is
+`tos-visual-retrieval-foundation-v1/zarathustra-qwen-vl-visual-c-20260730t1059z-r9/variant-C`.
+
+| Direct-visual r9 evidence | Observed |
+| --- | ---: |
+| page images / queries | 36 / 20 |
+| vector dimension / persisted normalization rows | 2,048 / 76 |
+| stable first/warm rankings | 20 / 20 |
+| resolved ranked anchors | 200 / 200 |
+| model-proposed target at 10 | 19 / 19 evaluable |
+| C recovery where A and B missed | 1 |
+| hard-negative presence / declared slots | 9 / 10 |
+| hard negative outranks proposed expected | 4 queries |
+| cross-language proposed target present | 2 / 2 |
+| model load / page encoding | 1.042 s / 2,507.904 s |
+| median first / warm query latency | 6,800.709 / 6,955.081 ms |
+| runner / owner wall | 2,806.762 / 2,807.234 s |
+| bridge / host-runner peak RSS | 4,742,041,600 / 63,909,888 bytes |
+| owner cgroup memory / swap peak | 4,808,843,264 / 380,157,952 bytes |
+
+An independent reconstruction rechecked seven frozen digests, 36 PNGs, 42
+control artifacts, 18 model artifacts, all 76 normalization records, 36
+serialized 2,048-dimensional page vectors, 200 returned anchors, and r8/r9
+ranking-score parity without importing the laboratory validator. The maximum
+persisted post-serialization norm error was
+`3.5762786865234375e-7`. Query vectors were not persisted, so their norms
+cannot be recomputed from output bytes; that limitation remains explicit.
+
+Two declared triggers opened: one material source-return recovery and
+hard-negative/cross-language ambiguity. The resulting narrow review scope is
+only `tos-query-003`, `009`, `010`, `011`, and `020`; it is unscheduled, has
+zero human judgments, and requires criteria-based source-visible ranking
+review without retyping. No interface was materialized and no routine human
+backlog was created.
+
+The later adoption/source-return question activated that exact narrow scope.
+`direct-visual-retrieval-routing-inspection.v1.json` records a text-free,
+source-visible inspection by `model:codex` at `advisory-nonhuman` authority.
+The maker read the five frozen private query strings and inspected eight exact
+page PNGs at original resolution; it did not use a prepared validator to set
+the dispositions and did not create human labels.
+
+The route result is asymmetric and actionable:
+
+- in `tos-query-003`, `009`, `010`, and `020`, the declared hard negative is
+  rank 1 and the proposed expected witness is lower; the visual pages show
+  apparent cross-witness parallels, but the ranking violates the declared
+  target language or witness and cannot establish an alignment;
+- in `tos-query-010`, two further German pages, including a contents page,
+  also outrank the requested Russian witness, so language and content-class
+  policy cannot be inferred from visual similarity;
+- in `tos-query-011`, A and B cannot return the image-only Antonovsky page,
+  while visual C returns the exact expected page at rank 1. This is the one
+  material source-return recovery.
+
+Therefore the current unfiltered direct-visual route is rejected as the
+default or primary retrieval path. The exact r9 challenger is retained only as
+an opt-in fallback after a declared lexical/native/OCR-backed text route has
+no usable candidate or the requested witness is known to lack a usable text
+layer. A future method revision must constrain Work, expression, edition,
+item, witness, intended language, and allowed content class before ranking;
+it may not relabel the current output after the fact. Returned pages remain
+source candidates, never accepted text, relevance gold, alignment, sign, or
+semantic authority.
+
+A returned image is still not a transcription, quotation, source-text
+acceptance, semantic judgment, or philosophical claim. The tracked text-free
+result receipt proves exact mechanics and the trigger boundary; it does not
+select a winner, adopt the method, or authorize promotion or publication.
 
 ## Variant A: what remains proven
 
@@ -298,10 +470,16 @@ frozen runs; it belongs in a separately declared method revision.
    filtering as future declared variants. Do not retroactively call the
    observed A/B/C outputs a hybrid system.
 10. Keep the isolated B collection and C run-local indexes only through manual
-   review, then delete them
-   unless an explicit retention decision says otherwise.
+    review, then delete them
+    unless an explicit retention decision says otherwise.
 11. Preserve the C runtime/cache only while it supports the remaining frozen
-   laboratory; its versioned removal route is already recorded.
+    laboratory; its versioned removal route is already recorded.
+12. Retain direct-visual r9 as the audit-complete challenger and r8 as a
+    preserved audit-incomplete negative. The exact five-query advisory
+    engineering-routing inspection is complete: reject the current unfiltered
+    method as a default route and retain it only as an opt-in post-text-
+    coverage fallback. Human relevance remains unstarted, and no routine
+    human task is created.
 
 ## Comparison still required
 
@@ -314,6 +492,10 @@ A genuine quality conclusion still requires:
 - separate indexing, query, machine, storage, and human-time costs;
 - candidate-depth and target-language-policy trials declared before output;
 - a corpus-scale Qdrant run large enough to exercise its vector index;
+- a competence-appropriate human relevance episode only if a later claim
+  requires nDCG, hard-negative correctness, accepted alignment, promotion, or
+  a production/public adoption decision; the current fallback-routing choice
+  is already bounded by the five-query advisory inspection;
 - final deletion or retention receipts for all derived indexes.
 
 Until those conditions hold, the defensible conclusion is narrower: lexical

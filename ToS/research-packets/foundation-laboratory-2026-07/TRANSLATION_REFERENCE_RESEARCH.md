@@ -1,14 +1,19 @@
 # Translation Reference Research
 
-Status: bounded research complete; zero reference content admitted; human bibliographic and rights review pending
+Status: bounded research complete; eKGWB rights/transport refreshed
+2026-07-30; source-first etymology evidence route refreshed 2026-08-08;
+Stanford post-street metadata refreshed 2026-08-11 and remains unresolved;
+zero reference content admitted; human bibliographic and rights review pending
 
-Research snapshot: 2026-07-23
+Research snapshot: 2026-08-11; eKGWB rights/transport refresh: 2026-07-30;
+etymology evidence-route refresh: 2026-08-08; Stanford post-street metadata
+refresh: 2026-08-11
 
 Machine-readable register:
 `ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/translation-reference-register.v1.json`
 
 Register SHA-256:
-`6e58c070f6c0b251c1607ca24be5482d5ee5634749c7e6bbda5f683764bd3758`
+`6df55e6cddd8560e4a3533867b866edae91e89b746b2a49523b07c268812c76c`
 
 Contract:
 `ToS/contracts/translation-reference-register.schema.json`
@@ -36,6 +41,14 @@ question to translation reference material:
 
 No source text, dictionary article, translation passage, or subscriber-only
 content was downloaded or copied during this research.
+
+The dedicated
+[`ETYMOLOGY_EVIDENCE_ROUTE_RESEARCH.md`](ETYMOLOGY_EVIDENCE_ROUTE_RESEARCH.md)
+refresh applies the same order to the lexical foundation. It resolves current
+TEI/LMF orientation, exact DWDS and DWB addressing, automated-use limits, an
+open source-visible Kluge 1889 candidate, established evaluation work, and
+fresh 2025-2026 historical-language methods. It creates a route, not an
+etymology corpus or accepted etymology.
 
 ## Governing distinctions
 
@@ -73,12 +86,16 @@ Use: period-sensitive sense evidence and historical citations.
 
 Limits:
 
-- cite the exact article, cited source range, displayed version, URL, and
-  access date;
+- resolve the exact lemma and grammatical homograph, then cite the article,
+  cited source range, stable `lemid` URL, displayed version when available,
+  and access date;
 - do not infer Nietzsche's intended sense from a dictionary entry alone;
-- the landing surface did not establish a reusable license for article data,
-  so ToS permits consultation and citation only until resource-specific terms
-  are reviewed.
+- the current API has no discovered public OpenAPI contract or reusable
+  article-data license, so it is a discovery aid rather than a durable ToS
+  dependency;
+- the `Wort` control resolved the neuter article as `W26937`, while the
+  convenience entrypoint returned fuzzy `-wort` (`V04845`); shortcut output
+  is therefore not exact lexical identity.
 
 ### Modern German control
 
@@ -94,16 +111,21 @@ Limits:
 
 - record the exact article revision or access date;
 - never replace 1880s evidence with a contemporary definition;
-- the general BBAW repository statement says owner-produced resources are
-  normally CC BY-SA unless otherwise stated, but that general statement is
-  not enough to assign a license to a particular online dictionary article.
+- follow the current [citation guidance](https://www.dwds.de/d/zitieren);
+- current [terms](https://www.dwds.de/d/nutzungsbedingungen) distinguish
+  ordinary lookup from automated queries, crawling, parsing, text/data mining,
+  and other content use, so no agent or bulk route is authorized without
+  express permission or a documented legal basis.
 
 ### Etymological dictionary
 
-The same BBAW inventory documents the
-[*Etymologisches Wörterbuch des Deutschen*](https://fedora.dwds.de/de/lexik/)
-(EtymWB), developed under Wolfgang Pfeifer, with more than 22,000 headwords
-and continued revision.
+The official DWDS page documents the
+[*Etymologisches Wörterbuch des Deutschen*](https://www.dwds.de/d/wb-etymwb)
+(EtymWB), developed under Wolfgang Pfeifer. The digital version is based on
+the second 1993 print edition, was updated by Pfeifer through 2020, and reports
+more than 23,000 lexemes, over 9,000 main entries, and over 14,000 subentries.
+Exact headword routes such as
+[`/wb/etymwb/Wort`](https://www.dwds.de/wb/etymwb/Wort) support point citation.
 
 Use: externally sourced etymological evidence.
 
@@ -111,17 +133,50 @@ Limits:
 
 - etymological history does not prove semantic intention in a Nietzsche
   passage;
-- each claim needs the exact headword, revision or access date, and a second
-  source when the history is contested;
-- an LLM's recollection or paraphrase of an entry is not evidence.
+- every claim needs the exact headword URL, resource identity, access date,
+  and competing evidence or an explicit unresolved state;
+- an LLM's recollection or paraphrase of an entry is not evidence;
+- current terms support point consultation but do not authorize using EtymWB
+  as an unrestricted agent backend or bulk corpus.
+
+### Open historical etymological control
+
+Wikimedia Commons exposes Friedrich Kluge's source-visible public-domain
+[*Etymologisches Wörterbuch der deutschen Sprache*, fourth improved edition,
+1889](https://commons.wikimedia.org/wiki/File:Etymologisches_W%C3%B6rterbuch_der_deutschen_Sprache_4._Auflage.djvu).
+Its current object metadata reports 535 pages, 28,671,111 bytes, and SHA-1
+`c4c9722f1d7842fc1e601032eed18d16ec5e0b81`. The exact object was not
+downloaded or admitted.
+
+Use: historically near, page-returnable A candidate for later local OCR and
+manual-source comparison.
+
+Limits:
+
+- nineteenth-century etymology is dated evidence, not modern truth;
+- later acquisition still needs exact-object SHA-256, provenance, and
+  item-level review;
+- the linked Internet Archive identifier currently carries mismatched 2002
+  Kluge/Seebold metadata and must not identify the Commons bytes;
+- a public-domain declaration does not prove OCR quality or accept any
+  etymology.
 
 ### Historical corpus
 
-The BBAW [corpus inventory](https://fedora.dwds.de/de/corpus/) describes the
-*Deutsches Textarchiv* (DTA) as a cross-disciplinary reference corpus of
-German-language texts from approximately 1600–1900, with spelling-tolerant
-search, text/image views, downloadable records, TEI P5 annotation, and open
-licenses where copyright permits. Its
+The BBAW *Deutsches Textarchiv* (DTA) is a cross-disciplinary reference corpus
+of German-language texts from approximately 1600–1900, with text/image views,
+downloadable records, TEI P5 annotation, and item-specific rights evidence.
+The full public part sequence has now been resolved as four exact DTA objects:
+Schmeitzner parts [1](https://www.deutschestextarchiv.de/book/show/nietzsche_zarathustra01_1883)
+and [2](https://www.deutschestextarchiv.de/book/show/nietzsche_zarathustra02_1883)
+from 1883, [part 3](https://www.deutschestextarchiv.de/book/show/nietzsche_zarathustra03_1884)
+from 1884, and Naumann's [first public part 4](https://www.deutschestextarchiv.de/book/show/nietzsche_zarathustra04_1891)
+from 1891. DTA IDs `16840`–`16843`, exact holding copies, and four
+checksum-bound local DTABf/TEI P5 items are preserved separately. Every live
+header reports OCR followed by native-speaker checking under DTA's
+transcription guidelines. That is stronger external source-quality evidence,
+not ToS textual acceptance, whole-work equivalence, or a critical-edition
+reading. The
 [DTABf documentation](https://deutschestextarchiv.github.io/dtabf/einfuehrung.html)
 defines a constrained TEI P5 profile and provides its own citation and CC
 BY-SA 3.0 DE notice.
@@ -134,7 +189,11 @@ Limits:
 - frequency is not sense, recurrence, or philosophical importance;
 - every result must return to the exact document, source edition, and image;
 - the DTABf documentation license does not license every DTA text or image;
-- every selected item retains its own rights and citation record.
+- every selected item retains its own rights and citation record;
+- the current DTA terms and all four TEI headers say CC BY-SA 4.0 for the
+  annotated text, while all four live Dublin Core fields still carry the former
+  CC BY-NC 3.0;
+- DTA facsimile rights remain separate from the annotated text.
 
 ## II. Established scholarly resources
 
@@ -160,7 +219,16 @@ Limits:
 - eKGWB does not replace the acquired Naumann scan or its source-visible
   review;
 - search hits are observations, not semantic conclusions;
-- ToS must not turn a no-derivatives edition into a freely transformed corpus.
+- ToS must not share a transformed eKGWB corpus under NoDerivatives.
+
+The later
+[`EKGWB_RIGHTS_AND_TRANSPORT_REFRESH.md`](EKGWB_RIGHTS_AND_TRANSPORT_REFRESH.md)
+corrects the earlier, broader local-use assumption. CC BY-NC-ND 4.0 permits
+non-commercial production and reproduction of private adaptations while
+prohibiting their sharing. Private local indexing, embeddings, normalization,
+and analysis can therefore be researched with full provenance and
+source-return. This does not authorize publication, authenticate the current
+HTTP response, admit a critical source, or establish German competence.
 
 ### Print critical route
 
@@ -287,6 +355,33 @@ eKGWB search and Nietzsche Online only if lawful access is obtained and its
 edition-specific omissions are measured. It must not silently define the
 Nietzsche corpus.
 
+### eKGWB live rights and transport refresh
+
+The 2026-07-30 ordered refresh checked current official documentation and
+law, established eKGWB scholarship, and the live host route. The resulting
+model-authored rights record separates:
+
+- private non-commercial adaptation, which CC BY-NC-ND 4.0 permits;
+- sharing adapted material, which it prohibits;
+- unmodified sharing that the license can permit, but which current ToS
+  operator policy does not authorize for the captured payload;
+- institutional preservation corroboration, now supported by an Arquivo.pt
+  HTTPS replay with WARC lineage and a target block matching the current owner
+  object;
+- source admission, which remains blocked because neither the current
+  HTTP-only owner route nor the archive's own non-validation posture
+  establishes publisher-origin authentication;
+- linguistic and translation acceptance, which remains competence-blocked.
+
+The exact target block is byte-identical across the 2023 institutional
+snapshot, the 2024-dated current owner object, and the 2026 owner include
+(`f58a13c189bcf22db19fcbca2345e660a771656c89010c67d55eb4a00c4cc398`).
+This is fixity corroboration, not source acceptance. The unsent access request
+is retained only for a publisher-authenticated current copy or direct
+publisher deposit and clarification of any server, quotation, or sharing
+scope. It is no longer treated as necessary merely for private local
+adaptation or as if no institutional archive witness existed.
+
 ### Freshness rule
 
 At execution time, recheck all of the following even if this register remains
@@ -305,9 +400,65 @@ structurally valid:
 An early-2026 catalog update is evidence of a dated surface, not proof that a
 resource remains unchanged.
 
+### 2026 translation release frontier
+
+The current
+[Stanford University Press record](https://www.sup.org/books/theory-and-philosophy/thus-spoke-zarathustra)
+lists *Thus Spoke Zarathustra*, Complete Works volume 7, translated with an
+afterword by Paul S. Loeb and David F. Tinsley, for August 2026. The publisher
+announces 424 pages, cloth ISBN `9780804728799`, paper ISBN `9781503647282`,
+notebook-variant cross-references, discussion of translation problems, and a
+key-term glossary. Its Spring/Summer catalog adds eBook ISBN
+`9781503647299`.
+
+The dated
+[`STANFORD_LOEB_TINSLEY_RELEASE_FRONTIER_REFRESH_2026-08-08.md`](STANFORD_LOEB_TINSLEY_RELEASE_FRONTIER_REFRESH_2026-08-08.md)
+returns first to those official surfaces, then to the established
+Loeb–Tinsley Complete Works lineage and Robin Small's specialist review of
+volume 14, and only then to current distribution metadata. On 2026-08-08 the
+publisher still gives only August, while current preorder records converge on
+an anticipated 2026-08-11 street date. Records also conflict at 424 versus
+552 pages. The conflict is manifestation evidence to preserve, not a value to
+normalize before an exact copy exists.
+
+The later
+[`STANFORD_LOEB_TINSLEY_PRE_STREET_DRIFT_CHECK_2026-08-10.md`](STANFORD_LOEB_TINSLEY_PRE_STREET_DRIFT_CHECK_2026-08-10.md)
+repeats the same order before the anticipated street date actually begins at
+Stanford. The exact official catalog still says 424 pages, while current
+Google Books records for all three ISBNs, Harvard's still-preorder record, and
+iMusic now say 552; an indexed Stanford-page snippet also says 552. iMusic's
+simultaneous `Released Jul 10` and `out of stock` fields are retained as an
+internal vendor-feed conflict, not promoted to publication evidence. The
+current publisher HTML transport returned a Vercel HTTP 429 and was not
+bypassed. Publisher excerpts and an unresolved third-party upload were not
+opened, preserving rights and blind-lane boundaries. No independent volume-7
+review was found in the dated scholarly-index and general-web-last pass.
+
+The post-street
+[`STANFORD_LOEB_TINSLEY_POST_STREET_METADATA_CHECK_2026-08-11.md`](STANFORD_LOEB_TINSLEY_POST_STREET_METADATA_CHECK_2026-08-11.md)
+then runs after 2026-08-11 begins at Stanford. Direct publisher HTML remains
+HTTP 429 without bypass, and the exact catalog bytes remain unchanged at 424
+pages. Harvard now exposes add-to-cart for both print ISBNs at 552 pages, but
+other current routes remain preorder, delayed, out of stock, internally
+misdated, or at 424 pages. The eBook metadata date has arrived, while exact
+Crossref and Open Library routes remain empty. This is a distribution
+transition and a preserved manifestation conflict, not publisher-authenticated
+release or lawful custody.
+
+No preview page was deliberately opened. A general-search response did emit
+an unsolicited metadata-adjacent contents and common-terms snippet; it is not
+quoted, retained, admitted, or usable for blind adjudication. The register
+therefore keeps the volume as a post-street metadata-only unresolved research
+candidate under its stable v1 ID. No review-copy request was sent. A current
+publisher response or exact lawfully held manifestation must precede title
+and copyright-page inspection, extent reconciliation, rights review,
+independent reception assessment, and passage-level suitability. Newness and
+prior translator reputation establish neither recognition nor quality for
+volume 7.
+
 ## Admission result
 
-The register contains 14 candidates covering all nine required categories:
+The register contains 16 candidates covering all nine required categories:
 
 - historical German dictionary;
 - modern German dictionary;
@@ -323,17 +474,29 @@ The result is deliberately **zero admitted content entries**:
 
 - zero human bibliographic reviews;
 - zero human rights reviews;
+- one model-authored eKGWB rights/transport record separating private
+  adaptation from shared derivatives;
+- one institutional WARC-backed preservation corroboration receipt, with zero
+  admitted content;
 - zero permission requests sent;
 - zero dictionary articles frozen;
 - zero corpus slices frozen;
 - zero critical-edition passages imported;
+- one eKGWB section locator registered as metadata-only, with zero text
+  capture and zero citation-witness admission;
 - zero recognized or additional translation passages revealed;
+- one August 2026 English translation rechecked three days before its
+  anticipated retailer-supplied street date, still registered as metadata-only
+  and deferred with a preserved 424/552-page conflict;
 - zero accepted lexical senses or etymologies.
 
-The laboratory remains blocked first on the 30-unit real-human two-pass German
-source review. When that gate closes, reference admission still proceeds item
-by item; source acceptance does not automatically clear rights, and rights
-clearance does not automatically establish a scholarly reading.
+The laboratory remains blocked on publisher-origin authentication,
+critical-source admission, and German-competent source acceptance. The
+30-unit interface remains an unscheduled reusable option rather than a
+standing human backlog. When a concrete source question triggers review,
+reference admission still proceeds item by item: source acceptance does not
+automatically clear publication rights, and a private-use rights route does
+not establish a scholarly reading.
 
 ## Planned use order after source acceptance
 

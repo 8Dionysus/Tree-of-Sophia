@@ -1,0 +1,66 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://tree-of-sophia.local/ToS/contracts/hierarchical-numbered-unit-label-correspondence.schema.json",
+  "title": "Tree of Sophia hierarchical numbered-unit label correspondence",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["$schema", "schema_version", "map_id", "work_ref", "source_witness", "target_witness", "rights_basis", "map_authority", "method", "pairings", "summary", "source_text_included", "target_text_included", "provenance_ref", "provenance_event_ref", "map_version", "authority_boundary", "does_not_establish"],
+  "properties": {
+    "$schema": {"const": "https://tree-of-sophia.local/ToS/contracts/hierarchical-numbered-unit-label-correspondence.schema.json"},
+    "schema_version": {"const": "tos_hierarchical_numbered_unit_label_correspondence_v1"},
+    "map_id": {"$ref": "#/$defs/tosId"},
+    "work_ref": {"$ref": "#/$defs/tosId"},
+    "source_witness": {"$ref": "#/$defs/witness"},
+    "target_witness": {"$ref": "#/$defs/witness"},
+    "rights_basis": {"type": "array", "minItems": 2, "maxItems": 3, "items": {"$ref": "#/$defs/rightsRef"}},
+    "map_authority": {"const": "mechanical_shared_series_qualified_number_label_candidate_only"},
+    "method": {
+      "type": "object", "additionalProperties": false,
+      "required": ["name", "version", "maker_type", "local_payloads_read", "pairing_key", "requires_materialized_label_in_both_maps", "source_to_target_text_compared", "translation_alignment_inferred", "semantic_matching_used", "no_text_emitted"],
+      "properties": {
+        "name": {"const": "exact-shared-series-qualified-structural-label-key-intersection"},
+        "version": {"const": "1"}, "maker_type": {"const": "software"},
+        "local_payloads_read": {"const": false}, "pairing_key": {"const": "series_key:unit_key"},
+        "requires_materialized_label_in_both_maps": {"const": true},
+        "source_to_target_text_compared": {"const": false}, "translation_alignment_inferred": {"const": false},
+        "semantic_matching_used": {"const": false}, "no_text_emitted": {"const": true}
+      }
+    },
+    "pairings": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/pairing"}},
+    "summary": {
+      "type": "object", "additionalProperties": false,
+      "required": ["source_numbered_unit_count", "target_numbered_unit_count", "shared_qualified_label_count", "pairing_count", "source_only_qualified_keys", "target_only_qualified_keys", "all_pairing_statuses", "human_review_performed", "translation_alignment_claimed"],
+      "properties": {
+        "source_numbered_unit_count": {"type": "integer", "minimum": 1}, "target_numbered_unit_count": {"type": "integer", "minimum": 1},
+        "shared_qualified_label_count": {"type": "integer", "minimum": 1}, "pairing_count": {"type": "integer", "minimum": 1},
+        "source_only_qualified_keys": {"type": "array", "items": {"$ref": "#/$defs/qualifiedKey"}},
+        "target_only_qualified_keys": {"type": "array", "items": {"$ref": "#/$defs/qualifiedKey"}},
+        "all_pairing_statuses": {"const": ["proposed"]}, "human_review_performed": {"const": false},
+        "translation_alignment_claimed": {"const": false}
+      }
+    },
+    "source_text_included": {"const": false}, "target_text_included": {"const": false},
+    "provenance_ref": {"$ref": "#/$defs/repoPath"}, "provenance_event_ref": {"$ref": "#/$defs/tosId"},
+    "map_version": {"type": "integer", "minimum": 1}, "supersedes_map_ref": {"type": ["string", "null"]},
+    "authority_boundary": {"type": "string", "minLength": 160},
+    "does_not_establish": {"type": "array", "minItems": 10, "uniqueItems": true, "items": {"type": "string"}}
+  },
+  "$defs": {
+    "digest": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "repoPath": {"type": "string", "pattern": "^ToS/[A-Za-z0-9._/-]+$"},
+    "tosId": {"type": "string", "pattern": "^tos\\.[A-Za-z0-9._-]+$"},
+    "qualifiedKey": {"type": "string", "pattern": "^[a-z0-9-]+:[1-9][0-9]*$"},
+    "fileRef": {"type": "object", "additionalProperties": false, "required": ["ref", "sha256"], "properties": {"ref": {"$ref": "#/$defs/repoPath"}, "sha256": {"$ref": "#/$defs/digest"}}},
+    "rightsRef": {"type": "object", "additionalProperties": false, "required": ["role", "ref", "sha256"], "properties": {"role": {"enum": ["source_address", "source_navigation", "target"]}, "ref": {"$ref": "#/$defs/repoPath"}, "sha256": {"$ref": "#/$defs/digest"}}},
+    "witness": {
+      "type": "object", "additionalProperties": false,
+      "required": ["expression_ref", "edition_ref", "item_ref", "file_ref", "file_sha256", "numbered_unit_map_ref", "numbered_unit_map_sha256"],
+      "properties": {"expression_ref": {"$ref": "#/$defs/tosId"}, "edition_ref": {"$ref": "#/$defs/tosId"}, "item_ref": {"$ref": "#/$defs/tosId"}, "file_ref": {"$ref": "#/$defs/tosId"}, "file_sha256": {"$ref": "#/$defs/digest"}, "numbered_unit_map_ref": {"$ref": "#/$defs/repoPath"}, "numbered_unit_map_sha256": {"$ref": "#/$defs/digest"}}
+    },
+    "pairing": {
+      "type": "object", "additionalProperties": false,
+      "required": ["sequence", "qualified_unit_key", "series_key", "unit_key", "source_anchor_ref", "source_page", "target_anchor_ref", "target_pdf_page", "basis", "status", "human_review_performed", "translation_alignment_claimed"],
+      "properties": {"sequence": {"type": "integer", "minimum": 1}, "qualified_unit_key": {"$ref": "#/$defs/qualifiedKey"}, "series_key": {"type": "string", "pattern": "^[a-z0-9-]+$"}, "unit_key": {"type": "string", "pattern": "^[1-9][0-9]*$"}, "source_anchor_ref": {"$ref": "#/$defs/tosId"}, "source_page": {"type": "integer", "minimum": 1}, "target_anchor_ref": {"$ref": "#/$defs/tosId"}, "target_pdf_page": {"type": "integer", "minimum": 1}, "basis": {"const": "shared_materialized_series_qualified_number_label_key"}, "status": {"const": "proposed"}, "human_review_performed": {"const": false}, "translation_alignment_claimed": {"const": false}}
+    }
+  }
+}

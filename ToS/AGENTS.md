@@ -35,8 +35,8 @@ nearest nested `AGENTS.md` for the branch being touched.
 | Branch | Owns |
 | --- | --- |
 | `doctrine/` | knowledge law, node contracts, templates, interpretation posture |
-| `source-witnesses/` | source-facing witness material |
-| `zarathustra/` | first golden growth kernel and current bounded route orientation |
+| `source-witnesses/` | source-facing bibliographic, physical-artifact, scholarly-composite, text, provenance, and rights material |
+| `zarathustra/` | first golden growth kernel, private lived-witness route, and current bounded route orientation |
 | `research-packets/` | non-authoritative research scaffolds |
 | `philosophy/` | domain-shaped philosophical growth |
 | `candidate-intake/` | provisional extraction and promotion residue |
@@ -54,6 +54,7 @@ editing:
 | Artifact | Owner |
 | --- | --- |
 | primary text, edition, translation, or aligned witness | `source-witnesses/` |
+| voluntary first-person lived testimony | `zarathustra/lived-witness/` |
 | annotation layer, semantic distinction, or promotion law | `doctrine/` |
 | machine-checkable payload shape | `contracts/` |
 | extracted observation or agent proposal | `candidate-intake/` |
@@ -76,8 +77,8 @@ Keep these boundaries visible:
 
 | Surface | Owner |
 | --- | --- |
-| identity, anchor, sign, assertion, and translation law | `doctrine/` |
-| tracked catalogs, object records, payload route, fixity, provenance, rights, source-near text | `source-witnesses/` |
+| identity, anchor, text-unit, sign, assertion, and translation law | `doctrine/` |
+| tracked catalogs, bibliographic records, physical artifacts, scholarly composites, payload route, fixity, provenance, rights, source-near text | `source-witnesses/` |
 | machine-checkable record shapes | `contracts/` |
 | extraction/OCR/LLM/embedding/graph experiment mechanics | `abyss-stack` |
 | host models, caches, runtimes, reservations, and large temporary data | `/etc/abyss-machine` and `/srv/abyss-machine` owner routes |
@@ -99,5 +100,6 @@ transformation event. Graph and retrieval stores remain disposable readers.
 ## Validation
 
 Run the branch-local validator first. For source-home topology changes, use
-`scripts/validate_tos_source_home.py`, `scripts/validate_philosophy_topology.py`,
-and `scripts/validate_nested_agents.py`.
+`scripts/validate_tos_source_home.py`, `scripts/validate_lived_witness_route.py`,
+`scripts/validate_philosophy_topology.py`, and
+`scripts/validate_nested_agents.py`.

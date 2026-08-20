@@ -20,12 +20,44 @@
   "identity_status": "verified",
   "source_refs": [
     "ToS/canon/source/friedrich-nietzsche/thus-spoke-zarathustra/prologue-1/node.json",
-    "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/de-naumann-1893/editions/leipzig-c-g-naumann-1893/items/internet-archive-cornell-auto-epub/forensic-report.md"
+    "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/de-naumann-1893/editions/leipzig-c-g-naumann-1893/items/internet-archive-cornell-auto-epub/forensic-report.md",
+    "ToS/source-witnesses/discovery/runs/ekgwb-za-i-vorrede-1.2026-07-28.v1.json",
+    "ToS/source-witnesses/discovery/runs/zarathustra-authorial-witness-route.2026-07-30.v1.json",
+    "ToS/research-packets/foundation-laboratory-2026-07/ZARATHUSTRA_AUTHORIAL_WITNESS_ROUTE.md",
+    "https://d-nb.info/gnd/4099324-3"
   ],
-  "external_identifiers": [],
+  "external_identifiers": [
+    {
+      "scheme": "GND",
+      "value": "4099324-3",
+      "source_ref": "https://d-nb.info/gnd/4099324-3",
+      "status": "verified"
+    }
+  ],
   "same_as_posture": "no_equivalence_claim",
-  "responsibility_claim_refs": [],
-  "notes": "One work identity connects the German source and Russian translation expressions without treating their texts as identical.",
-  "record_version": 1,
+  "responsibility_claim_refs": [
+    "tos.claim.work.also-sprach-zarathustra.authored-by-friedrich-nietzsche"
+  ],
+  "chronology_claim_refs": [
+    "tos.claim.work.also-sprach-zarathustra.first-publication-chronology"
+  ],
+  "expression_claim_refs": [
+    "tos.claim.topology.work-expression.friedrich-nietzsche.also-sprach-zarathustra.has-expression.de-naumann-1891-part-4",
+    "tos.claim.topology.work-expression.friedrich-nietzsche.also-sprach-zarathustra.has-expression.de-naumann-1893",
+    "tos.claim.topology.work-expression.friedrich-nietzsche.also-sprach-zarathustra.has-expression.de-schmeitzner-1883-part-1",
+    "tos.claim.topology.work-expression.friedrich-nietzsche.also-sprach-zarathustra.has-expression.de-schmeitzner-1883-part-2",
+    "tos.claim.topology.work-expression.friedrich-nietzsche.also-sprach-zarathustra.has-expression.de-schmeitzner-1884-part-3",
+    "tos.claim.topology.work-expression.friedrich-nietzsche.also-sprach-zarathustra.has-expression.ru-antonovsky-1900",
+    "tos.claim.topology.work-expression.friedrich-nietzsche.also-sprach-zarathustra.has-expression.ru-antonovsky-1903",
+    "tos.claim.topology.work-expression.friedrich-nietzsche.also-sprach-zarathustra.has-expression.ru-antonovsky-1907",
+    "tos.claim.topology.work-expression.friedrich-nietzsche.also-sprach-zarathustra.has-expression.ru-antonovsky-1911",
+    "tos.claim.topology.work-expression.friedrich-nietzsche.also-sprach-zarathustra.has-expression.ru-antonovsky-1913",
+    "tos.claim.topology.work-expression.friedrich-nietzsche.also-sprach-zarathustra.has-expression.ru-antonovsky-cultural-revolution",
+    "tos.claim.topology.work-expression.friedrich-nietzsche.also-sprach-zarathustra.has-expression.ru-antonovsky-mysl-1996",
+    "tos.claim.topology.work-expression.friedrich-nietzsche.also-sprach-zarathustra.has-expression.ru-nani-1899-nine-fragments",
+    "tos.claim.topology.work-expression.friedrich-nietzsche.also-sprach-zarathustra.has-expression.ru-reader-1899-uncredited"
+  ],
+  "notes": "One work identity connects distinct German publication and manuscript routes plus translation expressions without treating their texts as identical. The current authorial-witness route preserves region-level notebook attribution, D 17 for part IV, the separate corrected GSA 71/25a private-print ensemble, and eKGWB critical addresses without creating a remote Item, synthetic author-final text, rights clearance, or semantic authority. The provisional uncredited Russian Reader Expression and the distinct exact Nani nine-fragment Expression preserve separate 1899 routes; neither creates derivation, equivalence, completeness, accepted text, translation quality, or semantic authority.",
+  "record_version": 10,
   "supersedes_ref": null
 }

@@ -1,0 +1,58 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/philosophy-source-planting.schema.json",
+  "schema_version": "tos_philosophy_source_planting_v1",
+  "planting_id": "tos.planting.a02.tinney-texts-tablets-teaching-control",
+  "atlas_row_id": "A02",
+  "dossier_id": "A02",
+  "branch_path": "ToS/philosophy/eras/bronze-age/regions/west-asia/traditions/old-babylonian-scribal-wisdom-law",
+  "source_backlog_anchor": {
+    "path": "ToS/philosophy/eras/bronze-age/regions/west-asia/traditions/old-babylonian-scribal-wisdom-law/sources/source-anchor-backlog.jsonl",
+    "line": 19,
+    "source_table_index": 14,
+    "source_row_index": 1,
+    "source_label": "Steve Tinney, Texts, Tablets, and Teaching"
+  },
+  "source_witness": {
+    "work_id": "tos.work.old-babylonian-scholarship.texts-tablets-and-teaching",
+    "record_ref": "ToS/source-witnesses/works/old-babylonian-scholarship/texts-tablets-and-teaching/work.json",
+    "relationship": "grounds_source_backlog_anchor"
+  },
+  "discovery_ref": "ToS/source-witnesses/discovery/runs/old-babylonian-nippur-ur-school-tablets.2026-08-13.v1.json",
+  "provenance_event_ref": "tos.event.annotation.old-babylonian-a02-deduplicated-control-roles.2026-08-13",
+  "research_ref": "ToS/research-packets/foundation-laboratory-2026-07/A02_NIPPUR_UR_SCHOOL_TABLETS_SOURCE_PLANTING_RESEARCH_2026-08-13.md",
+  "fulfilled_source_needs": [
+    "the exact Tinney 1998 Work behind the compact control label is deduplicated against the Nippur and Ur archaeological-array route",
+    "its cross-site account remains a bounded historical synthesis rather than an identity for the tablets, one school, or one curriculum",
+    "exercise sequence, tablet typology, archaeological context, recycling, and preservation bias remain visible as separate controls",
+    "the Penn historical-reference warning and the need for current House F, locality, variability, and standardization scholarship remain attached",
+    "the control role returns to the same discovery record, research packet, authorship claim, and Work identity without another web search"
+  ],
+  "remaining_controls": [
+    "the article does not replace specialized monographs, object records, excavation publications, or current critical scholarship",
+    "no archaeological Collection, membership list, tablet identity, school classification, text, translation, or interpretation is created",
+    "this second role-specific planting references the same Work and does not manufacture a duplicate bibliographic entity or claim",
+    "no source payload, semantic claim, graph relation, canon state, external request, server transfer, or human task is created"
+  ],
+  "research_order": [
+    "official_and_classical_documentation",
+    "established_top_scholarship",
+    "fresh_current_relevance_check"
+  ],
+  "authority": {
+    "source_status": "metadata_witness_planted",
+    "review_status": "unreviewed",
+    "source_text_admitted": false,
+    "semantic_status": "not_started",
+    "graph_status": "not_promoted",
+    "canon_status": "not_canon",
+    "human_task_created": false
+  },
+  "status": "source_witness_planted",
+  "maker": {
+    "maker_type": "model",
+    "agent_ref": "model:codex",
+    "human_review_performed": false
+  },
+  "created_at": "2026-08-13T01:38:00-06:00",
+  "record_version": 1
+}

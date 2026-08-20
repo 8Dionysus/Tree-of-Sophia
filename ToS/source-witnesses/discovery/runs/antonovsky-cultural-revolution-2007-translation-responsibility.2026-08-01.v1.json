@@ -1,0 +1,330 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/material-discovery-record.schema.json",
+  "schema_version": "tos_material_discovery_record_v1",
+  "discovery_id": "tos.discovery.antonovsky-cultural-revolution-2007-translation-responsibility.2026-08-01",
+  "protocol_ref": "ToS/source-witnesses/discovery/DISCOVERY_PROTOCOL.md",
+  "target": {
+    "target_kind": "translation",
+    "known_tos_refs": [
+      "tos.agent.yuri-antonovsky",
+      "tos.expression.friedrich-nietzsche.also-sprach-zarathustra.ru-antonovsky-cultural-revolution",
+      "tos.edition.friedrich-nietzsche.also-sprach-zarathustra.moscow-cultural-revolution-2007-volume-4",
+      "tos.item.friedrich-nietzsche.also-sprach-zarathustra.ru-antonovsky-cultural-revolution-2007.operator-pdf"
+    ],
+    "description": "Exact translator responsibility for the separately identified, checked, and newly edited 2007 Antonovsky Expression without collapsing its historical lineage or the edition's other editorial roles.",
+    "required_properties": [
+      "source-visible translator credit",
+      "exact 2007 edition identity",
+      "translation-lineage boundary",
+      "editorial-intervention boundary",
+      "stable translator Agent",
+      "source-return anchors",
+      "no textual equivalence or translation-quality inference"
+    ],
+    "acceptable_substitutions": [
+      "an originating national-library record that preserves the exact volume and translator role",
+      "a publisher or scholarly edition record that distinguishes the 2007 editorial state from earlier Antonovsky witnesses"
+    ],
+    "languages": ["ru", "de", "en"],
+    "formats": ["PDF", "HTML", "metadata", "MARC21", "scholarly article"],
+    "purpose_ref": "ToS/research-packets/foundation-laboratory-2026-07/ANTONOVSKY_CULTURAL_REVOLUTION_2007_TRANSLATION_RESPONSIBILITY_RESEARCH.md"
+  },
+  "channels": [
+    {
+      "channel_id": "channel-runeb-rsl-exact-edition",
+      "sequence": 1,
+      "channel_type": "national-catalog",
+      "role": "originating-record",
+      "source_name": "National Electronic Library and Russian State Library exact edition records",
+      "endpoint_url": "https://rusneb.ru/catalog/000199_000009_005395580/",
+      "interface_type": "web",
+      "interface_version": "RuNEB and RSL HTML/MARC21 records as served 2026-08-01",
+      "exact_query": "Resolve RuNEB 000199_000009_005395580 and RSL 01005395580; compare volume, year, ISBN, translator, scientific editor, and extent to the exact local pages",
+      "queried_at": "2026-08-01T07:10:00-06:00",
+      "elapsed_seconds": 12.4,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.runeb-005395580-antonovsky-2007-responsibility",
+          "rank": 1,
+          "title_as_displayed": "Полное собрание сочинений. Т. 4. Так говорил Заратустра",
+          "result_url": "https://rusneb.ru/catalog/000199_000009_005395580/",
+          "originating_record_url": "https://rusneb.ru/catalog/000199_000009_005395580/",
+          "identifiers": [
+            {"scheme": "RuNEB record", "value": "000199_000009_005395580"},
+            {"scheme": "ISBN", "value": "978-5-250-06018-9"}
+          ],
+          "available_formats": ["HTML", "MARC21"],
+          "declared_rights": {"statement": null, "scope": "metadata", "evidence_url": null, "tos_conclusion": "evidence-only-not-a-rights-conclusion"},
+          "availability": "metadata-only",
+          "machine_interface": "html",
+          "decision": "select",
+          "rationale": "The national-library record independently names Antonovsky as translator and Oznobkina as scientific editor for the exact 2007 volume while preserving the German source language and Russian Expression language.",
+          "acquisition": {"downloaded": false, "acquired_at": null, "byte_size": null, "sha256": null, "event_ref": null},
+          "snapshot": {"state": "not-captured", "format": null, "sha256": null, "reason": "The live response was inspected and hashed but not retained; its digest is recorded in the research packet."}
+        },
+        {
+          "result_id": "tos-discovery-result.rsl-01005395580-antonovsky-2007-responsibility",
+          "rank": 2,
+          "title_as_displayed": "Так говорил Заратустра. Т. 4",
+          "result_url": "https://search.rsl.ru/ru/record/01005395580",
+          "originating_record_url": "https://search.rsl.ru/ru/record/01005395580",
+          "identifiers": [
+            {"scheme": "RSL record", "value": "01005395580"},
+            {"scheme": "ISBN", "value": "978-5-250-06018-9"}
+          ],
+          "available_formats": ["HTML metadata"],
+          "declared_rights": {"statement": null, "scope": "metadata", "evidence_url": null, "tos_conclusion": "evidence-only-not-a-rights-conclusion"},
+          "availability": "metadata-only",
+          "machine_interface": "html",
+          "decision": "select",
+          "rationale": "The originating RSL record corroborates the exact edition-level translator and scientific-editor roles but does not identify the operator-held PDF bytes.",
+          "acquisition": {"downloaded": false, "acquired_at": null, "byte_size": null, "sha256": null, "event_ref": null},
+          "snapshot": {"state": "not-captured", "format": null, "sha256": null, "reason": "The live response was inspected and hashed but not retained; its digest is recorded in the research packet."}
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-ifla-lrm-bibframe-model",
+      "sequence": 2,
+      "channel_type": "specialized-scholarly-project",
+      "role": "scholarly-index",
+      "source_name": "IFLA Library Reference Model and Library of Congress BIBFRAME",
+      "endpoint_url": "https://repository.ifla.org/items/version/13",
+      "interface_type": "web",
+      "interface_version": "IFLA LRM 2024-07 and BIBFRAME site last edited 2026-06-29; 2014 role/relationship drafts used with draft status retained",
+      "exact_query": "Inspect official Work/Expression cardinality, representative-expression boundaries, translation derivation, and explicit agent-role modelling",
+      "queried_at": "2026-08-01T07:13:00-06:00",
+      "elapsed_seconds": 4.4,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.ifla-lrm-2024-expression-boundary",
+          "rank": 1,
+          "title_as_displayed": "IFLA Library Reference Model: A Conceptual Model for Bibliographic Information",
+          "result_url": "https://repository.ifla.org/items/version/13",
+          "originating_record_url": "https://repository.ifla.org/items/version/13",
+          "identifiers": [{"scheme": "IFLA repository handle", "value": "20.500.14598/40.2"}],
+          "available_formats": ["PDF", "HTML metadata"],
+          "declared_rights": {"statement": "CC BY 4.0 for the IFLA LRM standard record and files.", "scope": "content", "evidence_url": "https://repository.ifla.org/items/version/13", "tos_conclusion": "evidence-only-not-a-rights-conclusion"},
+          "availability": "open-download",
+          "machine_interface": "html",
+          "decision": "select",
+          "rationale": "The current official model supports separate Expressions as realizations of one Work and does not turn a representative or canonical Expression into all other Expressions.",
+          "acquisition": {"downloaded": false, "acquired_at": null, "byte_size": null, "sha256": null, "event_ref": null},
+          "snapshot": {"state": "not-needed", "format": null, "sha256": null, "reason": "The maintained official standard is cited by exact version; no local copy was required for this bounded modelling decision."}
+        },
+        {
+          "result_id": "tos-discovery-result.loc-bibframe-agent-role-boundary",
+          "rank": 2,
+          "title_as_displayed": "Bibliographic Framework Initiative",
+          "result_url": "https://www.loc.gov/bibframe/",
+          "originating_record_url": "https://www.loc.gov/bibframe/",
+          "identifiers": [],
+          "available_formats": ["HTML", "RDF vocabulary"],
+          "declared_rights": {"statement": "The cited 2014 draft pages state that the Library of Congress waived copyright to the extent possible under law.", "scope": "content", "evidence_url": "https://www.loc.gov/bibframe/docs/bibframe-authorities.html", "tos_conclusion": "evidence-only-not-a-rights-conclusion"},
+          "availability": "open-view",
+          "machine_interface": "html",
+          "decision": "select",
+          "rationale": "The official framework supports explicit agent roles and translation derivation; the older supporting documents retain draft status and are not promoted into the ToS predicate contract.",
+          "acquisition": {"downloaded": false, "acquired_at": null, "byte_size": null, "sha256": null, "event_ref": null},
+          "snapshot": {"state": "not-needed", "format": null, "sha256": null, "reason": "The live official pages remain directly citable and their draft/currentness boundaries are recorded in the research packet."}
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-established-translation-scholarship",
+      "sequence": 3,
+      "channel_type": "specialized-scholarly-project",
+      "role": "scholarly-index",
+      "source_name": "Perm University peer-reviewed translation research and contemporary 2007 edition reception",
+      "endpoint_url": "https://press.psu.ru/index.php/philsoc/article/view/7762",
+      "interface_type": "web",
+      "interface_version": "journal record and contemporary review as served 2026-08-01",
+      "exact_query": "Assess whether established research and contemporary reception treat Nietzsche translation strategy and the 2007 editorial intervention as materially significant",
+      "queried_at": "2026-08-01T07:17:00-06:00",
+      "elapsed_seconds": 5.5,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.pertsev-2015-retranslation-nietzsche",
+          "rank": 1,
+          "title_as_displayed": "Для чего переводить Ницше заново?",
+          "result_url": "https://press.psu.ru/index.php/philsoc/article/view/7762",
+          "originating_record_url": "https://doi.org/10.17072/2078-7898/2015-3-24-31",
+          "identifiers": [{"scheme": "DOI", "value": "10.17072/2078-7898/2015-3-24-31"}],
+          "available_formats": ["HTML", "PDF"],
+          "declared_rights": {"statement": "The journal record declares Creative Commons Attribution 4.0.", "scope": "content", "evidence_url": "https://press.psu.ru/index.php/philsoc/article/view/7762", "tos_conclusion": "evidence-only-not-a-rights-conclusion"},
+          "availability": "open-download",
+          "machine_interface": "html",
+          "decision": "select",
+          "rationale": "The peer-reviewed article establishes the philosophical, linguistic, stylistic, and temporal pressure for retaining exact translation witnesses rather than one normalized Antonovsky text.",
+          "acquisition": {"downloaded": false, "acquired_at": null, "byte_size": null, "sha256": null, "event_ref": null},
+          "snapshot": {"state": "not-needed", "format": null, "sha256": null, "reason": "The DOI and journal record provide a stable citation; no article payload was copied into ToS."}
+        },
+        {
+          "result_id": "tos-discovery-result.boiko-2007-cultural-revolution-review",
+          "rank": 2,
+          "title_as_displayed": "Сверхчеловек и Заратустра",
+          "result_url": "https://www.ng.ru/koncep/2007-09-13/10_zaratustra.html",
+          "originating_record_url": "https://www.ng.ru/koncep/2007-09-13/10_zaratustra.html",
+          "identifiers": [],
+          "available_formats": ["HTML"],
+          "declared_rights": {"statement": "The publisher requires a direct hyperlink when its materials are used; no ToS source-content reuse is inferred.", "scope": "content", "evidence_url": "https://www.ng.ru/koncep/2007-09-13/10_zaratustra.html", "tos_conclusion": "evidence-only-not-a-rights-conclusion"},
+          "availability": "open-view",
+          "machine_interface": "html",
+          "decision": "select",
+          "rationale": "The contemporary review independently identifies the exact 2007 volume as an editorially revised Antonovsky witness, but the local printed pages remain the claim authority.",
+          "acquisition": {"downloaded": false, "acquired_at": null, "byte_size": null, "sha256": null, "event_ref": null},
+          "snapshot": {"state": "not-needed", "format": null, "sha256": null, "reason": "The page is used as contextual corroboration only and no article content was retained."}
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-fresh-translation-scholarship",
+      "sequence": 4,
+      "channel_type": "specialized-scholarly-project",
+      "role": "scholarly-index",
+      "source_name": "Current Russian Zarathustra translation scholarship",
+      "endpoint_url": "https://publications.hse.ru/en/articles/1061726305",
+      "interface_type": "web",
+      "interface_version": "2025 publication metadata and 2026 repository search surface as served 2026-08-01",
+      "exact_query": "Find current inspectable work on Russian Zarathustra translation variants, strategy, rhythm, and concept translatability with explicit Antonovsky comparison",
+      "queried_at": "2026-08-01T07:21:00-06:00",
+      "elapsed_seconds": 3.1,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.ermakova-2025-ivanov-zarathustra-translation",
+          "rank": 1,
+          "title_as_displayed": "Перевод Вяч. Иванова из книги Ф. Ницше «Так говорил Заратустра»",
+          "result_url": "https://publications.hse.ru/en/articles/1061726305",
+          "originating_record_url": "https://doi.org/10.17588/2076-9210.2025.2.161-169",
+          "identifiers": [{"scheme": "DOI", "value": "10.17588/2076-9210.2025.2.161-169"}],
+          "available_formats": ["HTML metadata", "PDF"],
+          "declared_rights": {"statement": null, "scope": "content", "evidence_url": null, "tos_conclusion": "evidence-only-not-a-rights-conclusion"},
+          "availability": "open-view",
+          "machine_interface": "html",
+          "decision": "select",
+          "rationale": "The current article compares Russian translation strategies including Antonovsky and preserves variants, rhetoric, rhythm, and historical style as distinct evidence dimensions.",
+          "acquisition": {"downloaded": false, "acquired_at": null, "byte_size": null, "sha256": null, "event_ref": null},
+          "snapshot": {"state": "not-needed", "format": null, "sha256": null, "reason": "The article is contextual current scholarship, not direct evidence for the 2007 responsibility line."}
+        },
+        {
+          "result_id": "tos-discovery-result.tsu-2026-nietzsche-concept-translatability-uninspectable",
+          "rank": 2,
+          "title_as_displayed": "Qualification work on the translatability of Friedrich Nietzsche's concepts in Thus Spoke Zarathustra",
+          "result_url": "https://vital.lib.tsu.ru/vital/access/services/Download/vital%3A21934/SOURCE01",
+          "originating_record_url": null,
+          "identifiers": [{"scheme": "TSU repository object", "value": "vital:21934"}],
+          "available_formats": ["PDF"],
+          "declared_rights": {"statement": null, "scope": "unknown", "evidence_url": null, "tos_conclusion": "evidence-only-not-a-rights-conclusion"},
+          "availability": "unavailable",
+          "machine_interface": "manual-only",
+          "decision": "reject",
+          "rationale": "The fresh lead names Antonovsky and semantic concept comparison, but repository protection prevented inspection and the qualification-work status is weaker than the selected scholarship.",
+          "acquisition": {"downloaded": false, "acquired_at": null, "byte_size": null, "sha256": null, "event_ref": null},
+          "snapshot": {"state": "not-permitted", "format": null, "sha256": null, "reason": "The repository returned an access-denied challenge; no bypass was attempted."}
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-current-publisher-reuse-control",
+      "sequence": 5,
+      "channel_type": "publisher-catalog",
+      "role": "lead-only",
+      "source_name": "Azbuka current publisher catalog",
+      "endpoint_url": "https://azbooka.ru/books/tak-govoril-zaratustra",
+      "interface_type": "web",
+      "interface_version": "publisher product page as served 2026-08-01 for a 2026 edition",
+      "exact_query": "Inspect current publisher reuse of Antonovsky attribution and test the expanded personal name against reconciled authority evidence",
+      "queried_at": "2026-08-01T07:24:00-06:00",
+      "elapsed_seconds": 1.1,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.azbuka-2026-yuri-antonovsky-negative-control",
+          "rank": 1,
+          "title_as_displayed": "Так говорил Заратустра (Мировая классика)",
+          "result_url": "https://azbooka.ru/books/tak-govoril-zaratustra",
+          "originating_record_url": "https://azbooka.ru/books/tak-govoril-zaratustra",
+          "identifiers": [{"scheme": "ISBN", "value": "978-5-389-17299-9"}],
+          "available_formats": ["HTML metadata"],
+          "declared_rights": {"statement": null, "scope": "metadata", "evidence_url": null, "tos_conclusion": "evidence-only-not-a-rights-conclusion"},
+          "availability": "metadata-only",
+          "machine_interface": "html",
+          "decision": "reject",
+          "rationale": "The 2026 publisher card demonstrates continued attribution reuse but expands the translator as Yuri, conflicting with stronger authority evidence for Yuliy; it does not identify the 2007 Expression or prove equivalence.",
+          "acquisition": {"downloaded": false, "acquired_at": null, "byte_size": null, "sha256": null, "event_ref": null},
+          "snapshot": {"state": "not-needed", "format": null, "sha256": null, "reason": "The current card is retained only as an authority-collision and freshness control."}
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-general-web-rights-last",
+      "sequence": 6,
+      "channel_type": "general-web-search",
+      "role": "lead-only",
+      "source_name": "General web exact-ISBN, responsibility-block, and license search",
+      "endpoint_url": "https://www.google.com/search",
+      "interface_type": "web",
+      "interface_version": "search results observed 2026-08-01",
+      "exact_query": "978-5-250-06018-9 PDF скачать лицензия; Так говорил Заратустра Культурная революция 2007 лицензия; Перевод Ю. М. Антоновского Сверка научное редактирование",
+      "queried_at": "2026-08-01T07:27:00-06:00",
+      "elapsed_seconds": 1.3,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.general-web-2007-mirror-no-license",
+          "rank": 1,
+          "title_as_displayed": "Ницше Ф. В. Полное собрание сочинений в 13 томах. Том 04",
+          "result_url": "https://publ.lib.ru/ARCHIVES/N/NICSHE_Fridrih_Vil%27gel%27m_%28filosof%29/_Nicshe_F.V..html",
+          "originating_record_url": null,
+          "identifiers": [],
+          "available_formats": ["HTML", "DjVu lead"],
+          "declared_rights": {"statement": null, "scope": "unknown", "evidence_url": null, "tos_conclusion": "evidence-only-not-a-rights-conclusion"},
+          "availability": "open-download",
+          "machine_interface": "html",
+          "decision": "reject",
+          "rationale": "The mirror reproduces the responsibility block but provides neither stronger object identity nor a verifiable license for ToS redistribution; open download is not permission.",
+          "acquisition": {"downloaded": false, "acquired_at": null, "byte_size": null, "sha256": null, "event_ref": null},
+          "snapshot": {"state": "not-needed", "format": null, "sha256": null, "reason": "The result is weaker than the exact local item and national-library metadata and was not retained."}
+        }
+      ]
+    }
+  ],
+  "channel_comparison": [
+    {"channel_id": "channel-runeb-rsl-exact-edition", "completeness": "strong", "metadata_precision": "strong", "rights_clarity": "limited", "machine_interface_quality": "adequate", "human_minutes": 0, "machine_seconds": 12.4, "notes": "Strong exact Edition identity and responsibility metadata; no exact digital-item identity or redistribution permission."},
+    {"channel_id": "channel-ifla-lrm-bibframe-model", "completeness": "adequate", "metadata_precision": "strong", "rights_clarity": "strong", "machine_interface_quality": "adequate", "human_minutes": 0, "machine_seconds": 4.4, "notes": "Strong conceptual boundaries; BIBFRAME supporting role documents retain their 2014 draft status."},
+    {"channel_id": "channel-established-translation-scholarship", "completeness": "adequate", "metadata_precision": "strong", "rights_clarity": "adequate", "machine_interface_quality": "adequate", "human_minutes": 0, "machine_seconds": 5.5, "notes": "Established translation significance and contemporaneous editorial context, but not a substitute for the printed responsibility pages."},
+    {"channel_id": "channel-fresh-translation-scholarship", "completeness": "limited", "metadata_precision": "adequate", "rights_clarity": "limited", "machine_interface_quality": "limited", "human_minutes": 0, "machine_seconds": 3.1, "notes": "One inspectable 2025 scholarly comparator and one inaccessible 2026 qualification-work lead."},
+    {"channel_id": "channel-current-publisher-reuse-control", "completeness": "limited", "metadata_precision": "limited", "rights_clarity": "unknown", "machine_interface_quality": "adequate", "human_minutes": 0, "machine_seconds": 1.1, "notes": "Useful current reuse and name-collision control only; rejected for 2007 identity and authority."},
+    {"channel_id": "channel-general-web-rights-last", "completeness": "poor", "metadata_precision": "limited", "rights_clarity": "poor", "machine_interface_quality": "adequate", "human_minutes": 0, "machine_seconds": 1.3, "notes": "General web was searched last and yielded no stronger evidence or reusable license."}
+  ],
+  "selected_result_ids": [
+    "tos-discovery-result.runeb-005395580-antonovsky-2007-responsibility",
+    "tos-discovery-result.rsl-01005395580-antonovsky-2007-responsibility",
+    "tos-discovery-result.ifla-lrm-2024-expression-boundary",
+    "tos-discovery-result.loc-bibframe-agent-role-boundary",
+    "tos-discovery-result.pertsev-2015-retranslation-nietzsche",
+    "tos-discovery-result.boiko-2007-cultural-revolution-review",
+    "tos-discovery-result.ermakova-2025-ivanov-zarathustra-translation"
+  ],
+  "rejected_result_ids": [
+    "tos-discovery-result.tsu-2026-nietzsche-concept-translatability-uninspectable",
+    "tos-discovery-result.azbuka-2026-yuri-antonovsky-negative-control",
+    "tos-discovery-result.general-web-2007-mirror-no-license"
+  ],
+  "rights_inference_from_availability_prohibited": true,
+  "general_web_search_is_last_resort": true,
+  "technical_access_bypass_used": false,
+  "maker": {"maker_type": "model", "agent_ref": "model:codex"},
+  "started_at": "2026-08-01T07:10:00-06:00",
+  "ended_at": "2026-08-01T07:34:00-06:00",
+  "status": "reconciled",
+  "provenance_event_refs": [
+    "tos.event.discovery.also-sprach-zarathustra.ru-antonovsky-cultural-revolution-2007.translation-responsibility.2026-08-01"
+  ],
+  "record_version": 1,
+  "supersedes_discovery_ref": null
+}

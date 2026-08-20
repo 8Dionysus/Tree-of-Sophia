@@ -1,0 +1,82 @@
+{
+  "schema_version": "tos_corpus_record_v1",
+  "record_type": "work",
+  "record_id": "tos.work.proto-cuneiform.archaic-administrative-texts-from-uruk-the-early-campaigns",
+  "preferred_label": "Archaic Administrative Texts from Uruk: The Early Campaigns",
+  "variant_labels": [
+    {
+      "value": "ATU 5",
+      "language": "und",
+      "source_ref": "https://www.geschkult.fu-berlin.de/en/e/vaa/forschung/projekte_abgeschlossen/archaische_texte/index.html",
+      "status": "verified"
+    },
+    {
+      "value": "Archaic Administrative Texts from Uruk",
+      "language": "en",
+      "source_ref": "https://www.reimer-mann-verlag.de/controller.php?cmd=detail&titelnummer=301745&verlag=3",
+      "status": "verified"
+    }
+  ],
+  "identity_status": "verified",
+  "source_refs": [
+    "ToS/research-packets/foundation-laboratory-2026-07/A01_ATU5_NUMERICAL_TEXTS_LAYER_SOURCE_PLANTING_RESEARCH_2026-08-12.md",
+    "ToS/source-witnesses/discovery/runs/proto-cuneiform-atu5-numerical-texts-layer.2026-08-12.v1.json",
+    "https://cdli.earth/publications/1139",
+    "https://cdli.earth/publications/1785923",
+    "https://www.reimer-mann-verlag.de/controller.php?cmd=detail&titelnummer=301745&verlag=3",
+    "https://zenon.dainst.org/Record/000223247/Access"
+  ],
+  "external_identifiers": [
+    {
+      "scheme": "ATU",
+      "value": "5",
+      "source_ref": "https://www.geschkult.fu-berlin.de/en/e/vaa/forschung/projekte_abgeschlossen/archaische_texte/index.html",
+      "status": "verified"
+    },
+    {
+      "scheme": "ADFU",
+      "value": "15",
+      "source_ref": "https://cdli.earth/publications/1785923",
+      "status": "verified"
+    },
+    {
+      "scheme": "CDLI publication",
+      "value": "1139",
+      "source_ref": "https://cdli.earth/publications/1139",
+      "status": "verified"
+    },
+    {
+      "scheme": "CDLI publication",
+      "value": "1785923",
+      "source_ref": "https://cdli.earth/publications/1785923",
+      "status": "verified"
+    },
+    {
+      "scheme": "ISBN",
+      "value": "978-3-7861-1745-2",
+      "source_ref": "https://www.reimer-mann-verlag.de/controller.php?cmd=detail&titelnummer=301745&verlag=3",
+      "status": "verified"
+    },
+    {
+      "scheme": "CiNii NCID",
+      "value": "BB0633060X",
+      "source_ref": "https://ci.nii.ac.jp/ncid/BB0633060X?l=en",
+      "status": "verified"
+    },
+    {
+      "scheme": "OCLC",
+      "value": "32446352",
+      "source_ref": "https://openlibrary.org/isbn/9783786117452",
+      "status": "unverified"
+    }
+  ],
+  "same_as_posture": "no_equivalence_claim",
+  "responsibility_claim_refs": [
+    "tos.claim.work.proto-cuneiform.atu5.authored-by-robert-k-englund",
+    "tos.claim.work.proto-cuneiform.atu5.contributed-by-rainer-m-boehmer"
+  ],
+  "expression_claim_refs": [],
+  "notes": "Standalone scholarly Work published in 1994 under the two series identifiers ATU 5 and ADFU 15. The publisher reports Robert K. Englund with a contribution by Rainer M. Boehmer. Nissen 2024 identifies numerical-only tablets omitted from ATU 1 as later published in ATU 5; that is a historically recoverable subset inside this Work, not a second Work and not the distinct ATU 2 numerical-systems analysis. Publisher ca. 820 documents and current CDLI 897 related artifacts remain dated, source-specific coverage observations. No Expression, Edition, Item, payload, exact tablet membership, sign inventory, source text, image, semantics, or redistribution permission is admitted.",
+  "record_version": 1,
+  "supersedes_ref": null
+}

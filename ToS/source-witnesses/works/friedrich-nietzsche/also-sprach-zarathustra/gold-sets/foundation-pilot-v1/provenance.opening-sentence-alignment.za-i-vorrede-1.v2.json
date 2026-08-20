@@ -1,0 +1,393 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/provenance-event-v2.schema.json",
+  "activity": {
+    "ended_at": "2026-08-12T09:27:07Z",
+    "event_type": "alignment",
+    "exit_code": 0,
+    "started_at": "2026-08-12T09:27:07Z",
+    "status": "completed_with_warnings",
+    "terminal_reason": null,
+    "warnings": [
+      "Both sentence segmentations and their one-to-one mapping are unreviewed proposals.",
+      "The target layer retains an unresolved embedded-text versus visual-spacing discrepancy.",
+      "No translation fidelity, lexical equivalence, semantics, graph truth, canon authority, or publication permission is established.",
+      "The unsigned self-recorded event proves mechanics and closure, not execution or content truth."
+    ]
+  },
+  "authority_boundary": {
+    "claims_not_established": [
+      "execution_truth",
+      "content_truth",
+      "source_fidelity",
+      "translation_quality",
+      "semantic_correctness",
+      "rights_clearance",
+      "human_review",
+      "publication_authority",
+      "canon_authority"
+    ],
+    "validator_role": "mechanics_and_closure_only_not_truth"
+  },
+  "derivations": [
+    {
+      "derivation_id": "tos.derivation.za-i-vorrede-1.opening-sentence-alignment.1",
+      "description": "The exact private layer contributes only its fixed selector and digest to this text-free proposal; no source text is disclosed.",
+      "influence_asserted": true,
+      "input_entity_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/local-content/source-text-foundation/za-i-vorrede-1/dta-part-1-paragraph-1.machine-transcription.txt",
+      "output_entity_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/source-text-unit.za-i-vorrede-1-p1.dta-sentence-proposal.v1.json",
+      "relation": "aggregation_from"
+    },
+    {
+      "derivation_id": "tos.derivation.za-i-vorrede-1.opening-sentence-alignment.2",
+      "description": "The exact private layer contributes only its fixed selector and digest to this text-free proposal; no source text is disclosed.",
+      "influence_asserted": true,
+      "input_entity_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/local-content/target-text-foundation/za-i-vorrede-1/antonovsky-1911-page-6-opening-paragraph.raw-embedded-text.txt",
+      "output_entity_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/source-text-unit.za-i-vorrede-1-p1.dta-sentence-proposal.v1.json",
+      "relation": "aggregation_from"
+    },
+    {
+      "derivation_id": "tos.derivation.za-i-vorrede-1.opening-sentence-alignment.3",
+      "description": "The exact private layer contributes only its fixed selector and digest to this text-free proposal; no source text is disclosed.",
+      "influence_asserted": true,
+      "input_entity_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/local-content/source-text-foundation/za-i-vorrede-1/dta-part-1-paragraph-1.machine-transcription.txt",
+      "output_entity_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/source-text-unit.za-i-vorrede-1-p1.antonovsky-1911-sentence-proposal.v1.json",
+      "relation": "aggregation_from"
+    },
+    {
+      "derivation_id": "tos.derivation.za-i-vorrede-1.opening-sentence-alignment.4",
+      "description": "The exact private layer contributes only its fixed selector and digest to this text-free proposal; no source text is disclosed.",
+      "influence_asserted": true,
+      "input_entity_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/local-content/target-text-foundation/za-i-vorrede-1/antonovsky-1911-page-6-opening-paragraph.raw-embedded-text.txt",
+      "output_entity_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/source-text-unit.za-i-vorrede-1-p1.antonovsky-1911-sentence-proposal.v1.json",
+      "relation": "aggregation_from"
+    },
+    {
+      "derivation_id": "tos.derivation.za-i-vorrede-1.opening-sentence-alignment.5",
+      "description": "The exact private layer contributes only its fixed selector and digest to this text-free proposal; no source text is disclosed.",
+      "influence_asserted": true,
+      "input_entity_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/local-content/source-text-foundation/za-i-vorrede-1/dta-part-1-paragraph-1.machine-transcription.txt",
+      "output_entity_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/translation-alignment.za-i-vorrede-1-opening-sentence.dta-1883-antonovsky-1911.v1.json",
+      "relation": "aggregation_from"
+    },
+    {
+      "derivation_id": "tos.derivation.za-i-vorrede-1.opening-sentence-alignment.6",
+      "description": "The exact private layer contributes only its fixed selector and digest to this text-free proposal; no source text is disclosed.",
+      "influence_asserted": true,
+      "input_entity_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/local-content/target-text-foundation/za-i-vorrede-1/antonovsky-1911-page-6-opening-paragraph.raw-embedded-text.txt",
+      "output_entity_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/translation-alignment.za-i-vorrede-1-opening-sentence.dta-1883-antonovsky-1911.v1.json",
+      "relation": "aggregation_from"
+    }
+  ],
+  "entities": {
+    "byproducts": [],
+    "inputs": [
+      {
+        "availability": "ignored_local",
+        "content_disclosure": "private_content",
+        "entity_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/local-content/source-text-foundation/za-i-vorrede-1/dta-part-1-paragraph-1.machine-transcription.txt",
+        "fixity_verified": true,
+        "fixity_verified_at": "2026-08-12T09:27:07Z",
+        "media_type": "text/plain; charset=utf-8",
+        "role": "ignored-local-source-paragraph-text-layer",
+        "sha256": "dcc0b25c1e91eaadc1e8b2982dca89cc8a4c355c756b67d996349c8dd9668a61",
+        "size_bytes": 353
+      },
+      {
+        "availability": "ignored_local",
+        "content_disclosure": "private_content",
+        "entity_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/local-content/target-text-foundation/za-i-vorrede-1/antonovsky-1911-page-6-opening-paragraph.raw-embedded-text.txt",
+        "fixity_verified": true,
+        "fixity_verified_at": "2026-08-12T09:27:07Z",
+        "media_type": "text/plain; charset=utf-8",
+        "role": "ignored-local-target-paragraph-text-layer",
+        "sha256": "3b856676c48ad6f4ef18397f429ab740c2efb917600ac6c72fc4481b89c4b71c",
+        "size_bytes": 633
+      },
+      {
+        "availability": "tracked",
+        "content_disclosure": "public_metadata_only",
+        "entity_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/za-i-vorrede-1-opening-sentence-alignment.plan.v1.json",
+        "fixity_verified": true,
+        "fixity_verified_at": "2026-08-12T09:27:07Z",
+        "media_type": "application/json",
+        "role": "tracked-text-free-alignment-plan",
+        "sha256": "39c6e6e90f1c325d9995099f9df6beef2bd1a34af7e620f9b19ae160586897ad",
+        "size_bytes": 10111
+      },
+      {
+        "availability": "tracked",
+        "content_disclosure": "public_metadata_only",
+        "entity_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/source-text-layer.za-i-vorrede-1-p1.dta-machine.v1.json",
+        "fixity_verified": true,
+        "fixity_verified_at": "2026-08-12T09:27:07Z",
+        "media_type": "application/json",
+        "role": "source-text-layer-record",
+        "sha256": "da6f419b73ead06b24a307ef917b6387d66600882968698170e99d6aba10c9ed",
+        "size_bytes": 5165
+      },
+      {
+        "availability": "tracked",
+        "content_disclosure": "public_metadata_only",
+        "entity_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/source-text-layer.za-i-vorrede-1-p1.antonovsky-1911-embedded.v1.json",
+        "fixity_verified": true,
+        "fixity_verified_at": "2026-08-12T09:27:07Z",
+        "media_type": "application/json",
+        "role": "target-text-layer-record",
+        "sha256": "fe6660ea7d473a57290c23904fde948ddb6cb437edea1730fb33a775e7168dee",
+        "size_bytes": 6036
+      },
+      {
+        "availability": "tracked",
+        "content_disclosure": "public_metadata_only",
+        "entity_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/source-text-unit.za-i-vorrede-1-p1.dta-layout.v1.json",
+        "fixity_verified": true,
+        "fixity_verified_at": "2026-08-12T09:27:07Z",
+        "media_type": "application/json",
+        "role": "source-layout-packet",
+        "sha256": "eb1947576475abe92370e3b233fd0aa24f1e36e3536ee5e499ccc6a71a612081",
+        "size_bytes": 34041
+      },
+      {
+        "availability": "tracked",
+        "content_disclosure": "public_metadata_only",
+        "entity_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/source-text-unit.za-i-vorrede-1-p1.antonovsky-1911-layout.v1.json",
+        "fixity_verified": true,
+        "fixity_verified_at": "2026-08-12T09:27:07Z",
+        "media_type": "application/json",
+        "role": "target-layout-packet",
+        "sha256": "285ced48c13ea395c9e09465ac974c79b64f35915470bc3b75abb8ac54d91472",
+        "size_bytes": 31291
+      },
+      {
+        "availability": "tracked",
+        "content_disclosure": "public_metadata_only",
+        "entity_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/edition-reading-admission.dta-ekgwb.za-i-vorrede-1.v1.json",
+        "fixity_verified": true,
+        "fixity_verified_at": "2026-08-12T09:27:07Z",
+        "media_type": "application/json",
+        "role": "source-edition-reading-admission",
+        "sha256": "8c43f11e0824cc6acdd8a7b321fde3089c63020c7af20145ceb359339cbe6980",
+        "size_bytes": 6026
+      },
+      {
+        "availability": "tracked",
+        "content_disclosure": "public_metadata_only",
+        "entity_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-antonovsky-1911/expression.json",
+        "fixity_verified": true,
+        "fixity_verified_at": "2026-08-12T09:27:07Z",
+        "media_type": "application/json",
+        "role": "target-expression-record",
+        "sha256": "057464160cdc38726be59c3744e9f7a132d6bdb53555c54ccc0a050438435f33",
+        "size_bytes": 1773
+      },
+      {
+        "availability": "tracked",
+        "content_disclosure": "public_metadata_only",
+        "entity_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-antonovsky-1911/responsibility-claims.jsonl",
+        "fixity_verified": true,
+        "fixity_verified_at": "2026-08-12T09:27:07Z",
+        "media_type": "application/json",
+        "role": "target-translated-by-responsibility-claims",
+        "sha256": "0f9ef8441a2c8a28a2ff5579e40d8a267959cc8b380720d12e1ad781a5ed886b",
+        "size_bytes": 1229
+      }
+    ],
+    "outputs": [
+      {
+        "availability": "tracked",
+        "content_disclosure": "public_metadata_only",
+        "entity_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/source-text-unit.za-i-vorrede-1-p1.dta-sentence-proposal.v1.json",
+        "fixity_verified": true,
+        "fixity_verified_at": "2026-08-12T09:27:07Z",
+        "media_type": "application/json",
+        "role": "tracked-text-free-source-target-or-alignment-record",
+        "sha256": "7375b25355d28cb86aa2102eed879659b62a3816d3c21e8419348408ccaf7fcf",
+        "size_bytes": 10949
+      },
+      {
+        "availability": "tracked",
+        "content_disclosure": "public_metadata_only",
+        "entity_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/source-text-unit.za-i-vorrede-1-p1.antonovsky-1911-sentence-proposal.v1.json",
+        "fixity_verified": true,
+        "fixity_verified_at": "2026-08-12T09:27:07Z",
+        "media_type": "application/json",
+        "role": "tracked-text-free-source-target-or-alignment-record",
+        "sha256": "61644c8f199de32233226bece7d0301cf9e7309e380c5dc415cf55de1e44ddcb",
+        "size_bytes": 11085
+      },
+      {
+        "availability": "tracked",
+        "content_disclosure": "public_metadata_only",
+        "entity_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/translation-alignment.za-i-vorrede-1-opening-sentence.dta-1883-antonovsky-1911.v1.json",
+        "fixity_verified": true,
+        "fixity_verified_at": "2026-08-12T09:27:07Z",
+        "media_type": "application/json",
+        "role": "tracked-text-free-source-target-or-alignment-record",
+        "sha256": "64181d7020b7f43937c0e3eb35e9aaa7c70c5a6debfa1ff85102eb378e15b73c",
+        "size_bytes": 11997
+      }
+    ]
+  },
+  "event_id": "tos.event.alignment.za-i-vorrede-1.dta-1883-antonovsky-1911-opening-sentence.2026-08-12",
+  "event_version": 1,
+  "evidence_authentication": {
+    "capture_posture": "tool_captured",
+    "producer_control_boundary": "The same local builder read the private layers and emitted this unsigned record; independent replay can verify bytes and selectors but cannot authenticate execution, language correctness, or translation fidelity.",
+    "signature_bindings": [],
+    "signature_status": "unsigned",
+    "verification_status": "mechanically_verified"
+  },
+  "manual_changes": {
+    "change_receipts": [],
+    "statement": "No manual change was applied to either private source span; the builder emits only selectors, digests, identities, provenance, and closed authority.",
+    "status": "none_declared"
+  },
+  "measurements": [
+    {
+      "evidence_binding": null,
+      "method": "sum of exact fixity-bound input entity byte counts",
+      "metric": "input_bytes",
+      "status": "measured",
+      "unit": "bytes",
+      "value": 96658
+    },
+    {
+      "evidence_binding": null,
+      "method": "sum of exact serialized tracked output byte counts",
+      "metric": "output_bytes",
+      "status": "measured",
+      "unit": "bytes",
+      "value": 34031
+    },
+    {
+      "evidence_binding": null,
+      "method": "no human content review or adjudication was scheduled or performed",
+      "metric": "human_active_seconds",
+      "status": "not_applicable",
+      "unit": null,
+      "value": null
+    }
+  ],
+  "method": {
+    "command_capture": {
+      "argv": [
+        "python",
+        "scripts/build_zarathustra_opening_sentence_alignment.py",
+        "--build",
+        "--local-input-root",
+        "/srv/AbyssOS/Tree-of-Sophia"
+      ],
+      "argv_sha256": "9ec8d0d47ea0af7c9a655e092b290b1add5f8a9b9eb80a0b559328e573b01a6d",
+      "disclosure": "inline",
+      "withholding_reason": null
+    },
+    "configuration_binding": {
+      "ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/za-i-vorrede-1-opening-sentence-alignment.plan.v1.json",
+      "sha256": "39c6e6e90f1c325d9995099f9df6beef2bd1a34af7e620f9b19ae160586897ad"
+    },
+    "environment": {
+      "backend": "python-standard-library-exact-code-point-selection",
+      "environment_profile_binding": {
+        "ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/za-i-vorrede-1-opening-sentence-alignment.plan.v1.json",
+        "sha256": "39c6e6e90f1c325d9995099f9df6beef2bd1a34af7e620f9b19ae160586897ad"
+      },
+      "hardware_target": "cpu",
+      "runtime": "CPython",
+      "runtime_artifact_sha256": "7af874aca05879e1823cd820913b42fb8d8b994738a05ec39ce4256d85b03861",
+      "runtime_version": "3.14.6",
+      "unicode_version": "16.0.0"
+    },
+    "model_invocations": [],
+    "procedure": {
+      "name": "exact-first-full-stop-inclusive-ordinal-correspondence-proposal",
+      "purpose": "Can ToS represent the ordinal first-sentence correspondence between the exact DTA 1883 and Antonovsky 1911 opening paragraphs while preserving source return, unresolved target spacing, rights, competence, and review gates, without claiming translation fidelity?",
+      "version": "1"
+    },
+    "software_components": [
+      {
+        "artifact_ref": "scripts/build_zarathustra_opening_sentence_alignment.py",
+        "artifact_sha256": "80d312d541718d5fc5e57caa5689202102ec527fe311e29f362c341e76f9d52d",
+        "name": "Tree of Sophia opening-sentence alignment builder",
+        "role": "sentence-selection-and-alignment-proposal-builder",
+        "verification_status": "verified",
+        "version": "1"
+      },
+      {
+        "artifact_ref": "runtime:cpython-executable",
+        "artifact_sha256": "7af874aca05879e1823cd820913b42fb8d8b994738a05ec39ce4256d85b03861",
+        "name": "CPython",
+        "role": "language-runtime",
+        "verification_status": "verified",
+        "version": "3.14.6"
+      }
+    ]
+  },
+  "record_binding": {
+    "digest_algorithm": "sha256",
+    "digest_scope": "exact_event_record_bytes",
+    "manifest_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/za-i-vorrede-1-opening-sentence-alignment.plan.v1.json"
+  },
+  "reproducibility": {
+    "classification": "replay_ready",
+    "known_gaps": [
+      "The receipt is unsigned and self-recorded by the transformation runner.",
+      "Neither sentence segmentation nor their correspondence has human adjudication.",
+      "The German machine layer remains unaccepted and the Russian OCR layer retains unresolved spacing.",
+      "Both exact private paragraph layers are intentionally absent from Git."
+    ],
+    "replay_scope": "Exact private layer digests, code-point selectors, first-full-stop guards, tracked input bindings, deterministic packet serialization, CPython runtime digest, and fail-closed authority posture."
+  },
+  "responsibility": [
+    {
+      "agent_kind": "software",
+      "agent_ref": "software:tos-zarathustra-opening-sentence-alignment-builder",
+      "evidence_binding": {
+        "ref": "scripts/build_zarathustra_opening_sentence_alignment.py",
+        "sha256": "80d312d541718d5fc5e57caa5689202102ec527fe311e29f362c341e76f9d52d"
+      },
+      "human_evidence_status": "not_applicable",
+      "responsibility_posture": "performed",
+      "role": "executor"
+    },
+    {
+      "agent_kind": "model",
+      "agent_ref": "model:openai-codex",
+      "evidence_binding": {
+        "ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/za-i-vorrede-1-opening-sentence-alignment.plan.v1.json",
+        "sha256": "39c6e6e90f1c325d9995099f9df6beef2bd1a34af7e620f9b19ae160586897ad"
+      },
+      "human_evidence_status": "not_applicable",
+      "responsibility_posture": "observed",
+      "role": "observer"
+    }
+  ],
+  "review_and_authority": {
+    "accepted_uses": [],
+    "competence_evidence_bindings": [],
+    "human_review_status": "not_performed",
+    "mechanical_validation": "passed",
+    "promotion_authorized": false,
+    "review_bindings": []
+  },
+  "rights_and_visibility": {
+    "content_visibility": "local_only",
+    "intended_uses": [
+      "local_research",
+      "indexing"
+    ],
+    "publication_authority_bindings": [],
+    "publication_authorized": false,
+    "rights_record_bindings": [
+      {
+        "ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/de-schmeitzner-1883-part-1/editions/chemnitz-schmeitzner-1883-part-1/items/dta-sbb-corrected-tei-p5/rights.json",
+        "sha256": "0ee4a2f6301450e155a623f4b692c936f13d07b296a512db9875652492cbbfc4"
+      },
+      {
+        "ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-antonovsky-1911/editions/saint-petersburg-prometey-1911-fourth/items/rsl-neb-scan-pdf/rights.json",
+        "sha256": "ebf9a2e82f2dc75a43c73df998d3addc36564cdc1bcd3279630e8fc5404768a4"
+      }
+    ]
+  },
+  "schema_version": "tos_provenance_event_v2",
+  "supersedes_event_ref": null
+}

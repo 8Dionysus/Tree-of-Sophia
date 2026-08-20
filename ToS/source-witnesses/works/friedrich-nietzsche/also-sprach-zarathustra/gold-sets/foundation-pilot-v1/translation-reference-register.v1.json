@@ -4,7 +4,7 @@
   "register_id": "tos.translation-reference-register.zarathustra-foundation-v1",
   "work_ref": "tos.work.friedrich-nietzsche.also-sprach-zarathustra",
   "laboratory_plan_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/translation-laboratory-plan.v1.json",
-  "research_snapshot": "2026-07-23",
+  "research_snapshot": "2026-08-11",
   "status": "researched-not-content-admitted",
   "research_order": [
     "classical-official-documentation",
@@ -47,19 +47,22 @@
         "publishers": [],
         "authors": ["Jacob Grimm", "Wilhelm Grimm"],
         "editors": [],
-        "translators": []
+        "translators": ["Ю. М. Антоновский"]
       },
       "dating": {
         "original_or_coverage_date": "printed first edition published 1854-1960",
-        "edition_or_version": "Wörterbuchnetz web surface reports version 01/25; exact article revision must be captured per consultation",
-        "verified_at": "2026-07-23"
+        "edition_or_version": "live Wörterbuchnetz DWB surface and undocumented API as served 2026-08-08; exact article URL uses the resolved DWB lemma ID",
+        "verified_at": "2026-08-08"
       },
       "identifiers": [
-        {"scheme": "resource-siglum", "value": "1DWB"}
+        {"scheme": "resource-siglum", "value": "1DWB"},
+        {"scheme": "Wörterbuchnetz dictionary siglum", "value": "DWB"}
       ],
-      "primary_url": "https://woerterbuchnetz.de/",
+      "primary_url": "https://woerterbuchnetz.de/DWB",
       "evidence_urls": [
         "https://woerterbuchnetz.de/",
+        "https://api.woerterbuchnetz.de/dictionaries",
+        "https://woerterbuchnetz.de/js/wbProperties.js",
         "https://fedora.dwds.de/de/lexik/"
       ],
       "scholarly_posture": "institutionally maintained historical German dictionary and a starting witness for period-sensitive senses, never a sufficient Nietzsche-specific interpretation",
@@ -69,7 +72,9 @@
       ],
       "limits": [
         "dictionary article date and cited source range must be recorded per word",
-        "the digital presentation license was not established from the landing page",
+        "the live API has no discovered public OpenAPI contract and is a discovery aid rather than a durable ToS dependency",
+        "the convenience entrypoint endpoint can return a fuzzy first hit, so exact lemma-list and homograph selection are mandatory",
+        "the digital presentation license was not established from the current owner surfaces",
         "a dictionary sense does not establish Nietzsche's intended sense"
       ],
       "access": {
@@ -86,9 +91,12 @@
         "redistribution": "not-authorized",
         "derivative_use": "unknown",
         "citation_requirements": [
-          "cite dictionary title, article headword, Wörterbuchnetz URL, displayed version, and access date"
+          "cite article headword, dictionary title, stable lemid URL, displayed version when available, and access date"
         ],
-        "rights_evidence_urls": ["https://woerterbuchnetz.de/"]
+        "rights_evidence_urls": [
+          "https://woerterbuchnetz.de/",
+          "https://woerterbuchnetz.de/js/wbProperties.js"
+        ]
       },
       "tos_refs": {"record_refs": [], "path_refs": []},
       "admission": {
@@ -98,10 +106,10 @@
         "accepted_as_truth": false,
         "blocking_reasons": [
           "exact article and source citations are not yet selected",
-          "resource-specific reuse terms require human review"
+          "no reusable article-data license or documented API contract was established"
         ]
       },
-      "notes": "Prefer article-level citation and preserve disagreement with modern and Nietzsche-specific resources."
+      "notes": "Resolve the exact lemma and grammatical homograph before citation. The 2026-08-08 Wort control resolved neuter W26937; the convenience endpoint instead returned fuzzy -wort V04845 and is rejected for exact addressing."
     },
     {
       "reference_id": "tos-ref.dwds.woerterbuch",
@@ -119,15 +127,16 @@
       "dating": {
         "original_or_coverage_date": "contemporary German lexicographic project",
         "edition_or_version": "continuously expanded; exact article revision must be frozen at consultation time",
-        "verified_at": "2026-07-23"
+        "verified_at": "2026-08-08"
       },
       "identifiers": [
         {"scheme": "resource-name", "value": "DWDS-Wörterbuch"}
       ],
-      "primary_url": "https://www.dwds.de/",
+      "primary_url": "https://www.dwds.de/wb/Wort",
       "evidence_urls": [
         "https://fedora.dwds.de/de/lexik/",
-        "https://fedora.dwds.de/de/repo/"
+        "https://www.dwds.de/d/zitieren",
+        "https://www.dwds.de/d/nutzungsbedingungen"
       ],
       "scholarly_posture": "continuously maintained modern German meaning dictionary used as a control against anachronistic or obsolete readings",
       "intended_uses": [
@@ -136,7 +145,8 @@
       ],
       "limits": [
         "modern definitions cannot substitute for late-nineteenth-century evidence",
-        "the exact online dictionary dataset license was not confirmed from the general repository policy",
+        "current terms distinguish normal lookup from automated querying, crawling, parsing, text/data mining, and other content use",
+        "no agent or bulk-content route is authorized without express permission or a documented statutory basis",
         "article revision must be snapshotted per use"
       ],
       "access": {
@@ -153,11 +163,11 @@
         "redistribution": "not-authorized",
         "derivative_use": "unknown",
         "citation_requirements": [
-          "cite the DWDS article URL, article revision or access date, and owning BBAW project"
+          "follow the official DWDS format with exact article URL, resource identity, and access date"
         ],
         "rights_evidence_urls": [
-          "https://fedora.dwds.de/de/repo/",
-          "https://fedora.dwds.de/de/imprint/"
+          "https://www.dwds.de/d/zitieren",
+          "https://www.dwds.de/d/nutzungsbedingungen"
         ]
       },
       "tos_refs": {"record_refs": [], "path_refs": []},
@@ -171,7 +181,7 @@
           "modern meaning must be triangulated with historical witnesses"
         ]
       },
-      "notes": "Use as a modern control, not as the historical authority for Nietzsche's German."
+      "notes": "Use as a point-consulted modern control, not as the historical authority for Nietzsche's German or an unrestricted machine corpus."
     },
     {
       "reference_id": "tos-ref.dwds.pfeifer-etymwb",
@@ -187,17 +197,19 @@
         "translators": []
       },
       "dating": {
-        "original_or_coverage_date": "developed in the 1980s",
-        "edition_or_version": "over 22000 headwords and continuously supplemented and revised; exact article revision must be frozen",
-        "verified_at": "2026-07-23"
+        "original_or_coverage_date": "developed in the 1980s; first and second print editions 1989 and 1993",
+        "edition_or_version": "digital version based on the second 1993 edition, updated by Wolfgang Pfeifer through 2020; over 23000 lexemes, over 9000 main entries, and over 14000 subentries",
+        "verified_at": "2026-08-08"
       },
       "identifiers": [
         {"scheme": "resource-siglum", "value": "EtymWB"}
       ],
-      "primary_url": "https://www.dwds.de/",
+      "primary_url": "https://www.dwds.de/d/wb-etymwb",
       "evidence_urls": [
-        "https://fedora.dwds.de/de/lexik/",
-        "https://fedora.dwds.de/de/repo/"
+        "https://www.dwds.de/d/wb-etymwb",
+        "https://clarin.bbaw.de/en/objects/dwds%3A3/",
+        "https://www.dwds.de/d/zitieren",
+        "https://www.dwds.de/d/nutzungsbedingungen"
       ],
       "scholarly_posture": "institutionally maintained etymological reference candidate; every etymological statement still needs exact article citation and competing-source review",
       "intended_uses": [
@@ -207,7 +219,9 @@
       "limits": [
         "etymological reconstruction is not semantic intention",
         "model paraphrase of an entry is not evidence",
-        "the exact resource license and article revision remain item-level questions"
+        "no etymology is accepted from one source",
+        "current DWDS terms do not authorize an unrestricted automated or bulk-content route",
+        "the exact headword URL and access date must be recorded per finding"
       ],
       "access": {
         "access_state": "open-web",
@@ -223,11 +237,11 @@
         "redistribution": "not-authorized",
         "derivative_use": "unknown",
         "citation_requirements": [
-          "cite EtymWB, the exact headword URL, revision or access date, and the BBAW owner"
+          "cite the headword, Wolfgang Pfeifer et al., the 1993 resource basis, exact EtymWB URL, and access date using the official DWDS guidance"
         ],
         "rights_evidence_urls": [
-          "https://fedora.dwds.de/de/repo/",
-          "https://fedora.dwds.de/de/imprint/"
+          "https://www.dwds.de/d/zitieren",
+          "https://www.dwds.de/d/nutzungsbedingungen"
         ]
       },
       "tos_refs": {"record_refs": [], "path_refs": []},
@@ -238,16 +252,92 @@
         "accepted_as_truth": false,
         "blocking_reasons": [
           "no headword packet has been selected",
-          "a second etymological source is required for contested claims"
+          "a second etymological source is required for every accepted finding or disagreement must remain unresolved",
+          "automated access requires express permission or a documented legal basis"
         ]
       },
-      "notes": "An accepted ToS etymology may cite this resource but can never be created from model memory alone."
+      "notes": "Use exact routes such as https://www.dwds.de/wb/etymwb/Wort for point consultation. Wörterbuchnetz configures EtymWb as a remote DWDS resource; its failed API route is not a backend contract."
+    },
+    {
+      "reference_id": "tos-ref.kluge.1889-fourth-commons",
+      "category": "etymological_dictionary",
+      "research_tier": "current-access-rights-and-version-surfaces",
+      "title": "Etymologisches Wörterbuch der deutschen Sprache, vierte verbesserte Auflage (Kluge 1889), Wikimedia Commons object",
+      "languages": ["de"],
+      "responsibility": {
+        "institutions": ["Wikimedia Commons"],
+        "publishers": ["Karl J. Trübner"],
+        "authors": ["Friedrich Kluge"],
+        "editors": [],
+        "translators": []
+      },
+      "dating": {
+        "original_or_coverage_date": "1889",
+        "edition_or_version": "Vierte verbesserte Auflage; source-visible title page; 535-page Commons DjVu metadata checked 2026-08-08",
+        "verified_at": "2026-08-08"
+      },
+      "identifiers": [
+        {"scheme": "Wikimedia Commons page ID", "value": "71024227"},
+        {"scheme": "Commons object SHA-1", "value": "c4c9722f1d7842fc1e601032eed18d16ec5e0b81"}
+      ],
+      "primary_url": "https://commons.wikimedia.org/wiki/File:Etymologisches_W%C3%B6rterbuch_der_deutschen_Sprache_4._Auflage.djvu",
+      "evidence_urls": [
+        "https://commons.wikimedia.org/wiki/File:Etymologisches_W%C3%B6rterbuch_der_deutschen_Sprache_4._Auflage.djvu",
+        "https://commons.wikimedia.org/w/api.php?action=query&format=json&prop=imageinfo&iiprop=url%7Csize%7Csha1%7Cmime%7Cextmetadata&titles=File%3AEtymologisches_W%C3%B6rterbuch_der_deutschen_Sprache_4._Auflage.djvu"
+      ],
+      "scholarly_posture": "historically near, source-visible public-domain etymological witness suitable for a later page-returnable OCR and citation control, never a modern or sole etymological authority",
+      "intended_uses": [
+        "etymology-evidence",
+        "historical-sense-evidence",
+        "bibliographic-identity"
+      ],
+      "limits": [
+        "nineteenth-century etymological scholarship is historically dated and must be triangulated with current and occurrence evidence",
+        "the Commons object has not been acquired or SHA-256 registered by ToS",
+        "the linked Internet Archive identifier currently exposes mismatched 2002 Kluge-Seebold metadata and cannot identify the Commons bytes",
+        "public-domain metadata does not establish OCR quality or accepted etymology"
+      ],
+      "access": {
+        "access_state": "open-download-candidate",
+        "acquisition_state": "not-acquired",
+        "content_ingested_for_translation_lab": false,
+        "access_request_required_before_content_use": false,
+        "contact_routes": [
+          "https://commons.wikimedia.org/wiki/File:Etymologisches_W%C3%B6rterbuch_der_deutschen_Sprache_4._Auflage.djvu"
+        ],
+        "request_state": "not-required-for-web-consultation"
+      },
+      "rights": {
+        "assessment": "resource-specific-review-required",
+        "license_uri": null,
+        "redistribution": "per-item-review-required",
+        "derivative_use": "per-item-review-required",
+        "citation_requirements": [
+          "cite Kluge, fourth improved edition, Strasbourg, Karl J. Trübner, 1889, exact page, Commons object URL, and access date"
+        ],
+        "rights_evidence_urls": [
+          "https://commons.wikimedia.org/wiki/File:Etymologisches_W%C3%B6rterbuch_der_deutschen_Sprache_4._Auflage.djvu"
+        ]
+      },
+      "tos_refs": {"record_refs": [], "path_refs": []},
+      "admission": {
+        "state": "research-candidate",
+        "human_bibliographic_review": false,
+        "human_rights_review": false,
+        "accepted_as_truth": false,
+        "blocking_reasons": [
+          "no exact-object ToS acquisition event or SHA-256 exists",
+          "no page-level OCR or source-visible quality trial has run",
+          "every future etymology finding requires competing evidence and an exact Nietzsche occurrence anchor"
+        ]
+      },
+      "notes": "Selected as future open historical A soil because its exact 1889 title page and current Commons public-domain object are visible. Do not inherit the contaminated linked Internet Archive metadata."
     },
     {
       "reference_id": "tos-ref.dta.historical-corpus",
       "category": "historical_corpus",
       "research_tier": "classical-official-documentation",
-      "title": "Deutsches Textarchiv (DTA)",
+      "title": "Deutsches Textarchiv (DTA) and the Zarathustra public part sequence",
       "languages": ["de"],
       "responsibility": {
         "institutions": ["Berlin-Brandenburgische Akademie der Wissenschaften, Zentrum Sprache"],
@@ -258,36 +348,48 @@
       },
       "dating": {
         "original_or_coverage_date": "German-language texts approximately 1600-1900",
-        "edition_or_version": "DTA corpus and DTABf documentation available in 2026; DTABf citation labels the documentation 2011-2025",
-        "verified_at": "2026-07-23"
+        "edition_or_version": "DTA corpus plus four separate Zarathustra part witnesses: Schmeitzner 1883 parts 1–2, Schmeitzner 1884 part 3, and Naumann 1891 public part 4; DTA IDs 16840–16843",
+        "verified_at": "2026-07-28"
       },
       "identifiers": [
         {"scheme": "resource-name", "value": "DTA"},
-        {"scheme": "encoding-profile", "value": "DTABf / TEI P5"}
+        {"scheme": "encoding-profile", "value": "DTABf / TEI P5"},
+        {"scheme": "DTA-ID-sequence", "value": "16840-16843"},
+        {"scheme": "holding-shelfmark", "value": "SBB-PK 19 ZZ 10200-1/3; SUB Göttingen 8 PHIL I, 7352:4 RARA"}
       ],
-      "primary_url": "https://fedora.dwds.de/de/corpus/",
+      "primary_url": "https://www.deutschestextarchiv.de/book/show/nietzsche_zarathustra01_1883",
       "evidence_urls": [
-        "https://fedora.dwds.de/de/corpus/",
+        "https://www.deutschestextarchiv.de/book/show/nietzsche_zarathustra01_1883",
+        "https://www.deutschestextarchiv.de/book/show/nietzsche_zarathustra02_1883",
+        "https://www.deutschestextarchiv.de/book/show/nietzsche_zarathustra03_1884",
+        "https://www.deutschestextarchiv.de/book/show/nietzsche_zarathustra04_1891",
+        "https://www.deutschestextarchiv.de/book/download_xml/nietzsche_zarathustra01_1883",
+        "https://www.deutschestextarchiv.de/doku/nutzungsbedingungen",
         "https://deutschestextarchiv.github.io/dtabf/einfuehrung.html",
-        "https://fedora.dwds.de/de/repo/"
+        "https://textgridlab.org/1.0/tgsearch-public/search"
       ],
-      "scholarly_posture": "historical New High German reference-corpus candidate with text-image views, spelling-tolerant search, TEI P5 annotation, and downloadable records where rights permit",
+      "scholarly_posture": "historical New High German reference corpus plus four exact, source-structured Zarathustra part witnesses; DTA reports OCR followed by native-speaker checking under its transcription guidelines, which is external quality evidence rather than ToS acceptance or whole-work equivalence",
       "intended_uses": [
         "historical-concordance",
         "historical-sense-evidence",
-        "bibliographic-identity"
+        "bibliographic-identity",
+        "critical-source-comparison"
       ],
       "limits": [
         "corpus frequency does not establish Nietzsche's sense",
         "every selected document retains its own source and license",
-        "DTABf documentation license does not automatically license corpus texts or images"
+        "DTABf documentation license does not automatically license corpus texts or images",
+        "the DTA readings are not critical-edition readings and have not been accepted by ToS",
+        "the four different publications and holding-copy routes must not be flattened into one silent text",
+        "facsimile-image rights remain separate from the annotated text",
+        "current DTA terms and four TEI headers report CC BY-SA 4.0 while all four live Dublin Core fields still report the former CC BY-NC 3.0"
       ],
       "access": {
-        "access_state": "open-download-candidate",
-        "acquisition_state": "web-consultation-only",
+        "access_state": "local-only",
+        "acquisition_state": "local-item-registered",
         "content_ingested_for_translation_lab": false,
         "access_request_required_before_content_use": false,
-        "contact_routes": ["https://fedora.dwds.de/de/corpus/"],
+        "contact_routes": ["https://www.deutschestextarchiv.de/"],
         "request_state": "not-required-for-web-consultation"
       },
       "rights": {
@@ -299,23 +401,60 @@
           "cite DTA, the exact document identifier and source edition, access date, and document-specific license"
         ],
         "rights_evidence_urls": [
-          "https://fedora.dwds.de/de/corpus/",
-          "https://fedora.dwds.de/de/repo/",
-          "https://deutschestextarchiv.github.io/dtabf/einfuehrung.html"
+          "https://www.deutschestextarchiv.de/doku/nutzungsbedingungen",
+          "https://www.deutschestextarchiv.de/api/tei_header/nietzsche_zarathustra01_1883",
+          "https://www.deutschestextarchiv.de/api/oai_dc/nietzsche_zarathustra01_1883",
+          "https://www.deutschestextarchiv.de/api/tei_header/nietzsche_zarathustra02_1883",
+          "https://www.deutschestextarchiv.de/api/oai_dc/nietzsche_zarathustra02_1883",
+          "https://www.deutschestextarchiv.de/api/tei_header/nietzsche_zarathustra03_1884",
+          "https://www.deutschestextarchiv.de/api/oai_dc/nietzsche_zarathustra03_1884",
+          "https://www.deutschestextarchiv.de/api/tei_header/nietzsche_zarathustra04_1891",
+          "https://www.deutschestextarchiv.de/api/oai_dc/nietzsche_zarathustra04_1891"
         ]
       },
-      "tos_refs": {"record_refs": [], "path_refs": []},
+      "tos_refs": {
+        "record_refs": [
+          "tos.expression.friedrich-nietzsche.also-sprach-zarathustra.de-schmeitzner-1883-part-1",
+          "tos.edition.friedrich-nietzsche.also-sprach-zarathustra.chemnitz-schmeitzner-1883-part-1",
+          "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-schmeitzner-1883-part-1.dta-sbb-corrected-tei-p5",
+          "tos.expression.friedrich-nietzsche.also-sprach-zarathustra.de-schmeitzner-1883-part-2",
+          "tos.edition.friedrich-nietzsche.also-sprach-zarathustra.chemnitz-schmeitzner-1883-part-2",
+          "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-schmeitzner-1883-part-2.dta-sbb-corrected-tei-p5",
+          "tos.expression.friedrich-nietzsche.also-sprach-zarathustra.de-schmeitzner-1884-part-3",
+          "tos.edition.friedrich-nietzsche.also-sprach-zarathustra.chemnitz-schmeitzner-1884-part-3",
+          "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-schmeitzner-1884-part-3.dta-sbb-corrected-tei-p5",
+          "tos.expression.friedrich-nietzsche.also-sprach-zarathustra.de-naumann-1891-part-4",
+          "tos.edition.friedrich-nietzsche.also-sprach-zarathustra.leipzig-naumann-1891-part-4",
+          "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-naumann-1891-part-4.dta-sub-goettingen-corrected-tei-p5"
+        ],
+        "path_refs": [
+          "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/de-schmeitzner-1883-part-1/expression.json",
+          "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/de-schmeitzner-1883-part-1/editions/chemnitz-schmeitzner-1883-part-1/edition.json",
+          "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/de-schmeitzner-1883-part-1/editions/chemnitz-schmeitzner-1883-part-1/items/dta-sbb-corrected-tei-p5/item.manifest.json",
+          "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/de-schmeitzner-1883-part-2/expression.json",
+          "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/de-schmeitzner-1883-part-2/editions/chemnitz-schmeitzner-1883-part-2/edition.json",
+          "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/de-schmeitzner-1883-part-2/editions/chemnitz-schmeitzner-1883-part-2/items/dta-sbb-corrected-tei-p5/item.manifest.json",
+          "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/de-schmeitzner-1884-part-3/expression.json",
+          "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/de-schmeitzner-1884-part-3/editions/chemnitz-schmeitzner-1884-part-3/edition.json",
+          "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/de-schmeitzner-1884-part-3/editions/chemnitz-schmeitzner-1884-part-3/items/dta-sbb-corrected-tei-p5/item.manifest.json",
+          "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/de-naumann-1891-part-4/expression.json",
+          "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/de-naumann-1891-part-4/editions/leipzig-naumann-1891-part-4/edition.json",
+          "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/de-naumann-1891-part-4/editions/leipzig-naumann-1891-part-4/items/dta-sub-goettingen-corrected-tei-p5/item.manifest.json"
+        ]
+      },
       "admission": {
-        "state": "research-candidate",
+        "state": "local-research-candidate",
         "human_bibliographic_review": false,
         "human_rights_review": false,
         "accepted_as_truth": false,
         "blocking_reasons": [
           "no period-matched comparison corpus slice has been frozen",
-          "document-level licenses and source editions remain unreviewed"
+          "the exact annotated-text license evidence is internally conflicting",
+          "no exact comparison to a critical-edition passage has been completed",
+          "no German-competent ToS reviewer has accepted any reading"
         ]
       },
-      "notes": "Use a declared late-nineteenth-century control slice and preserve source-image return for every cited occurrence."
+      "notes": "Four exact TEIs are checksum-bound in local gitignored custody. Use each as an independently sourced structured witness with page-return anchors and explicit edition identity; do not treat institutional checking, open-license evidence, cross-part concatenation, or schema validity as ToS textual acceptance."
     },
     {
       "reference_id": "tos-ref.nietzsche-source.ekgwb",
@@ -333,7 +472,7 @@
       "dating": {
         "original_or_coverage_date": "digital form of KGW 1967- and KGB 1975-",
         "edition_or_version": "digital critical edition with approximately 6600 incorporated philological corrections, stable sigla URLs, and XML-TEI encoding",
-        "verified_at": "2026-07-23"
+        "verified_at": "2026-07-28"
       },
       "identifiers": [
         {"scheme": "edition-siglum", "value": "eKGWB"}
@@ -374,18 +513,23 @@
         ],
         "rights_evidence_urls": ["https://doc.nietzschesource.org/en/rights"]
       },
-      "tos_refs": {"record_refs": [], "path_refs": []},
+      "tos_refs": {
+        "record_refs": [],
+        "path_refs": [
+          "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/critical-edition-witness.ekgwb.za-i-vorrede-1.v1.json"
+        ]
+      },
       "admission": {
         "state": "citation-only-candidate",
         "human_bibliographic_review": false,
         "human_rights_review": false,
         "accepted_as_truth": false,
         "blocking_reasons": [
-          "no exact passage citations have been frozen",
+          "Za-I-Vorrede-1 is frozen only as a metadata locator; exact passage alignment and human bibliographic/rights review remain pending",
           "no-derivatives boundary excludes treating the edition as a freely transformable ToS corpus"
         ]
       },
-      "notes": "Primary candidate for critical cross-check and Nietzsche-wide recurrence lookup, with exact URL and license provenance on every use."
+      "notes": "Primary candidate for critical cross-check and Nietzsche-wide recurrence lookup. One metadata-only Za-I-Vorrede-1 route is frozen without text capture or admission."
     },
     {
       "reference_id": "tos-ref.degruyter.ksa-band-4",
@@ -714,7 +858,7 @@
       "limits": [
         "the 2007 edited text is not assumed equivalent to 1898, 1911, 1996, or other Antonovsky editions",
         "recognized-comparator content remains sealed until independent lanes freeze",
-        "local payload rights are unreviewed and redistribution is not authorized"
+        "the current RU/US layered assessment is model-authored and unreviewed by a human; the aggregate PDF is in copyright and redistribution is not authorized"
       ],
       "access": {
         "access_state": "local-only",
@@ -727,7 +871,7 @@
         "request_state": "blocked-pending-rights-route"
       },
       "rights": {
-        "assessment": "copyright-not-evaluated",
+        "assessment": "in-copyright",
         "license_uri": null,
         "redistribution": "not-authorized",
         "derivative_use": "local-research-only",
@@ -736,7 +880,9 @@
         ],
         "rights_evidence_urls": [
           "https://rusneb.ru/catalog/000199_000009_005395580/",
-          "http://rightsstatements.org/vocab/CNE/1.0/"
+          "https://www.consultant.ru/document/cons_doc_LAW_64629/26eaf5de7ca59025f4388fe2980d3dd03dd5e775/",
+          "https://www.consultant.ru/document/cons_doc_LAW_64629/675b81f0bc9b8ecd68ea332ecfd9d1562541fb98/",
+          "https://www.copyright.gov/title17/92chap1.html"
         ]
       },
       "tos_refs": {
@@ -749,7 +895,8 @@
         "path_refs": [
           "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-antonovsky-cultural-revolution/expression.json",
           "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-antonovsky-cultural-revolution/editions/moscow-cultural-revolution-2007-volume-4/edition.json",
-          "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-antonovsky-cultural-revolution/editions/moscow-cultural-revolution-2007-volume-4/items/operator-pdf/rights.json"
+          "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-antonovsky-cultural-revolution/editions/moscow-cultural-revolution-2007-volume-4/items/operator-pdf/rights.json",
+          "ToS/research-packets/foundation-laboratory-2026-07/ANTONOVSKY_2007_CULTURAL_REVOLUTION_LAYERED_RIGHTS_ASSESSMENT.md"
         ]
       },
       "admission": {
@@ -761,7 +908,7 @@
           "real human source review has accepted 0 of 30 German units",
           "recognized comparator is sealed",
           "translation-lineage equivalence is unresolved",
-          "human rights review and permission route are absent"
+          "the model-authored layered assessment does not provide human legal clearance or publication permission"
         ]
       },
       "notes": "This is the current sealed comparator identity in the laboratory plan, not a pre-revealed answer key."
@@ -782,28 +929,33 @@
       "dating": {
         "original_or_coverage_date": "published 1911",
         "edition_or_version": "fourth edition, Saint Petersburg, VIII + 292 pages; full-view and PDF links are exposed by NEB",
-        "verified_at": "2026-07-23"
+        "verified_at": "2026-08-01"
       },
       "identifiers": [
-        {"scheme": "NEB-record", "value": "000199_000009_003693383"}
+        {"scheme": "NEB-record", "value": "000199_000009_003693383"},
+        {"scheme": "RSL-record", "value": "01003693383"}
       ],
       "primary_url": "https://rusneb.ru/catalog/000199_000009_003693383/",
       "evidence_urls": [
-        "https://rusneb.ru/catalog/000199_000009_003693383/"
+        "https://rusneb.ru/catalog/000199_000009_003693383/",
+        "https://search.rsl.ru/ru/record/01003693383",
+        "https://rusneb.ru/user-agreement/"
       ],
-      "scholarly_posture": "historical Antonovsky translation witness candidate suitable for lineage comparison with the edited 2007 expression",
+      "scholarly_posture": "exact local historical Antonovsky witness whose source-visible revision history requires edition-specific lineage comparison with the 1913, 1996, and edited 2007 expressions",
       "intended_uses": [
         "translation-witness",
-        "bibliographic-identity"
+        "bibliographic-identity",
+        "critical-source-comparison"
       ],
       "limits": [
-        "free viewer or download availability is not by itself a completed rights assessment",
-        "the fourth edition must not be treated as textually identical to the 2007 scientific redaction",
-        "the item has not been acquired or fixity-registered by ToS"
+        "official viewing and download availability do not establish a reusable-content license or redistribution permission",
+        "the fourth edition must not be treated as textually identical to the 1900, 1903, 1907, 1913, 1996, or 2007 states",
+        "the embedded PDF text layer is not reviewed source text and has not been ingested into the translation laboratory",
+        "all source-visible anchors and bibliographic claims remain model-made and unreviewed"
       ],
       "access": {
-        "access_state": "open-download-candidate",
-        "acquisition_state": "not-acquired",
+        "access_state": "local-only",
+        "acquisition_state": "local-item-registered",
         "content_ingested_for_translation_lab": false,
         "access_request_required_before_content_use": false,
         "contact_routes": [
@@ -814,28 +966,43 @@
       "rights": {
         "assessment": "resource-specific-review-required",
         "license_uri": null,
-        "redistribution": "per-item-review-required",
-        "derivative_use": "per-item-review-required",
+        "redistribution": "not-authorized",
+        "derivative_use": "local-research-only",
         "citation_requirements": [
           "cite translator, fourth-edition statement, publisher, year, page, NEB record, and exact acquired-item digest if later admitted"
         ],
         "rights_evidence_urls": [
-          "https://rusneb.ru/catalog/000199_000009_003693383/"
+          "https://rusneb.ru/catalog/000199_000009_003693383/",
+          "https://rusneb.ru/user-agreement/"
         ]
       },
-      "tos_refs": {"record_refs": [], "path_refs": []},
+      "tos_refs": {
+        "record_refs": [
+          "tos.expression.friedrich-nietzsche.also-sprach-zarathustra.ru-antonovsky-1911",
+          "tos.edition.friedrich-nietzsche.also-sprach-zarathustra.saint-petersburg-prometey-1911-fourth",
+          "tos.item.friedrich-nietzsche.also-sprach-zarathustra.ru-antonovsky-1911.rsl-neb-scan-pdf",
+          "tos.rights.zarathustra-antonovsky-1911.rsl-neb-scan-pdf"
+        ],
+        "path_refs": [
+          "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-antonovsky-1911/expression.json",
+          "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-antonovsky-1911/editions/saint-petersburg-prometey-1911-fourth/edition.json",
+          "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-antonovsky-1911/editions/saint-petersburg-prometey-1911-fourth/items/rsl-neb-scan-pdf/item.manifest.json",
+          "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-antonovsky-1911/editions/saint-petersburg-prometey-1911-fourth/items/rsl-neb-scan-pdf/rights.json"
+        ]
+      },
       "admission": {
-        "state": "research-candidate",
+        "state": "local-research-candidate",
         "human_bibliographic_review": false,
         "human_rights_review": false,
         "accepted_as_truth": false,
         "blocking_reasons": [
-          "rights statement and file-level terms require review before acquisition",
-          "translation-lineage relation to other Antonovsky editions is unreviewed",
-          "no fixity or source-item record exists in ToS"
+          "no human has accepted the bibliographic anchors or source reading",
+          "translation-lineage relations to the 1913, 1996, and 2007 expressions remain unreviewed",
+          "the embedded text layer has not been admitted or compared passage by passage",
+          "no human rights and jurisdiction review authorizes redistribution or future-site upload"
         ]
       },
-      "notes": "High-value historical comparator because it can expose editorial change hidden by a shared translator label."
+      "notes": "High-value local comparator: Antonovsky's own 1911 preface says the prior editions were new reworkings rather than simple reprints. The exact file is fixity-registered and local-only; no text, equivalence, translation quality, semantic layer, human acceptance, or publication permission is created."
     },
     {
       "reference_id": "tos-ref.ru.mysl-1996-volume-2",
@@ -852,8 +1019,8 @@
       },
       "dating": {
         "original_or_coverage_date": "published 1996",
-        "edition_or_version": "volume 2 of a two-volume collected edition; work-specific Zarathustra translator attribution remains pending source-visible review",
-        "verified_at": "2026-07-23"
+        "edition_or_version": "volume 2 of a two-volume collected edition; the visible contents assign Also sprach Zarathustra to Yu. M. Antonovsky",
+        "verified_at": "2026-08-11"
       },
       "identifiers": [
         {"scheme": "ISBN", "value": "5-244-00854-2"},
@@ -861,15 +1028,16 @@
       ],
       "primary_url": "https://ci.nii.ac.jp/ncid/BA35025034",
       "evidence_urls": [
-        "https://ci.nii.ac.jp/ncid/BA35025034"
+        "https://ci.nii.ac.jp/ncid/BA35025034",
+        "https://philosophy.ru/library/"
       ],
-      "scholarly_posture": "additional Russian collected-edition witness candidate; bibliographic presence is supported, but the Zarathustra translator and textual equivalence are deliberately unresolved",
+      "scholarly_posture": "additional Russian collected-edition witness candidate; the local source visibly identifies Antonovsky as the Zarathustra translator, while human bibliographic acceptance and textual equivalence remain deliberately unresolved",
       "intended_uses": [
         "translation-witness",
         "bibliographic-identity"
       ],
       "limits": [
-        "the volume lists multiple translators and does not yet prove the work-specific attribution",
+        "the work-specific translator attribution is source-visible and model-recorded but not human-accepted",
         "equivalence with the 2007 Antonovsky expression is not assumed",
         "the local aggregate PDF is in copyright with no redistribution authorization"
       ],
@@ -884,16 +1052,20 @@
         "request_state": "blocked-pending-rights-route"
       },
       "rights": {
-        "assessment": "copyright-not-evaluated",
+        "assessment": "in-copyright",
         "license_uri": null,
         "redistribution": "not-authorized",
         "derivative_use": "local-research-only",
         "citation_requirements": [
-          "cite exact volume, editor, publisher, year, page, work-specific translator once verified, and ToS item identity"
+          "cite exact volume, editor, publisher, year, page, work-specific translator, and ToS item identity"
         ],
         "rights_evidence_urls": [
           "https://ci.nii.ac.jp/ncid/BA35025034",
-          "http://rightsstatements.org/vocab/CNE/1.0/"
+          "https://www.consultant.ru/document/cons_doc_LAW_64629/26eaf5de7ca59025f4388fe2980d3dd03dd5e775/",
+          "https://www.consultant.ru/document/cons_doc_LAW_64629/675b81f0bc9b8ecd68ea332ecfd9d1562541fb98/",
+          "https://www.consultant.ru/document/cons_doc_LAW_64629/366db9d9c7215d66ada95405f1654967f2ae5e4b/",
+          "https://www.copyright.gov/title17/92chap1.html",
+          "https://www.copyright.gov/title17/92chap3.html"
         ]
       },
       "tos_refs": {
@@ -906,21 +1078,22 @@
         "path_refs": [
           "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-antonovsky-mysl-1996/expression.json",
           "ToS/source-witnesses/collections/friedrich-nietzsche/works-in-two-volumes-volume-2-mysl-1996/editions/moscow-mysl-1996-volume-2/edition.json",
-          "ToS/source-witnesses/collections/friedrich-nietzsche/works-in-two-volumes-volume-2-mysl-1996/editions/moscow-mysl-1996-volume-2/items/operator-pdf/rights.json"
+          "ToS/source-witnesses/collections/friedrich-nietzsche/works-in-two-volumes-volume-2-mysl-1996/editions/moscow-mysl-1996-volume-2/items/operator-pdf/rights.json",
+          "ToS/research-packets/foundation-laboratory-2026-07/MYSL_1996_VOLUME_2_LAYERED_RIGHTS_ASSESSMENT.md"
         ]
       },
       "admission": {
-        "state": "bibliographic-review-blocked",
+        "state": "rights-review-blocked",
         "human_bibliographic_review": false,
         "human_rights_review": false,
         "accepted_as_truth": false,
         "blocking_reasons": [
-          "work-specific translator attribution requires manual title-page and contents review",
+          "source-visible work-specific translator attribution remains without human bibliographic acceptance",
           "candidate equivalence with other Russian expressions is unresolved",
-          "rights review and content-use permission are absent"
+          "the model-authored layered assessment is in-copyright; human legal review and permission for content-bearing redistribution are absent"
         ]
       },
-      "notes": "This entry exists to preserve uncertainty rather than to manufacture a second independent Russian translation."
+      "notes": "This entry records a source-visible Antonovsky attribution without manufacturing equivalence to another expression or publication permission."
     },
     {
       "reference_id": "tos-ref.en.parkes-oup-2008",
@@ -1067,11 +1240,118 @@
         ]
       },
       "notes": "Use to test preservation of versification and poetic form after independent lanes, alongside rather than instead of Parkes."
+    },
+    {
+      "reference_id": "tos-ref.en.loeb-tinsley-stanford-2026-forthcoming",
+      "category": "additional_en_translation_candidate",
+      "research_tier": "current-access-rights-and-version-surfaces",
+      "title": "Thus Spoke Zarathustra, Complete Works of Friedrich Nietzsche, volume 7, translated with an afterword by Paul S. Loeb and David F. Tinsley",
+      "languages": ["en"],
+      "responsibility": {
+        "institutions": ["Stanford University"],
+        "publishers": ["Stanford University Press"],
+        "authors": ["Friedrich Nietzsche"],
+        "editors": [],
+        "translators": ["Paul S. Loeb", "David F. Tinsley"]
+      },
+      "dating": {
+        "original_or_coverage_date": "publisher catalog schedules August 2026; distribution metadata supplies 2026-08-11; after that date began at Stanford, direct publisher HTML remained unavailable and no publisher-authenticated completed release was established",
+        "edition_or_version": "Complete Works volume 7; cloth, paper, and eBook manifestations announced; the exact official catalog remains at 424 pages while current records preserve 424 and 552 values; Harvard exposes post-street cart availability, other print routes remain preorder, delayed, or internally conflicting, and no exact manifestation has been inspected",
+        "verified_at": "2026-08-11"
+      },
+      "identifiers": [
+        {"scheme": "ISBN-hardcover", "value": "9780804728799"},
+        {"scheme": "ISBN-paperback", "value": "9781503647282"},
+        {"scheme": "ISBN-ebook", "value": "9781503647299"},
+        {"scheme": "Complete Works volume", "value": "7"}
+      ],
+      "primary_url": "https://www.sup.org/books/theory-and-philosophy/thus-spoke-zarathustra",
+      "evidence_urls": [
+        "https://www.sup.org/books/theory-and-philosophy/thus-spoke-zarathustra",
+        "https://supress.sites-pro.stanford.edu/sites/supress/files/media/file/spring26_catalog.pdf",
+        "https://www.sup.org/books/theory-and-philosophy/thus-spoke-zarathustra/desk-examination-copy-requests",
+        "https://scholarlypublishingcollective.org/psup/nietzsche-studies/article/51/1/133/210365/Unpublished-Fragments-from-the-Period-of-Thus",
+        "https://imusic.co/books/9781503647282/friedrich-nietzsche-2026-thus-spoke-zarathustra-volume-7-the-complete-works-of-friedrich-nietzsche-paperback-book",
+        "https://www.harvard.com/book/9781503647282",
+        "https://books.google.com/books/about/Thus_Spoke_Zarathustra.html?id=Oi2H0QEACAAJ",
+        "https://books.google.com/books/about/Thus_Spoke_Zarathustra.html?id=kgrzEQAAQBAJ"
+      ],
+      "scholarly_posture": "post-street metadata-only publisher-backed English translation candidate whose announced notebook-variant cross-references, translation-issues afterword, and key-term glossary are directly relevant to later translation-laboratory comparison; established specialist review of the translators' earlier Complete Works volume supports candidate value but does not transfer a quality verdict to volume 7",
+      "intended_uses": [
+        "translation-witness",
+        "critical-source-comparison",
+        "allusion-notes",
+        "bibliographic-identity"
+      ],
+      "limits": [
+        "on 2026-08-11 after the anticipated date began at Stanford, the volume advanced only to post-street metadata-only unresolved, not an inspectable or admitted translation",
+        "publisher description is not passage-level quality evidence",
+        "the exact official catalog remains at 424 pages while current external records preserve both 424 and 552 values, so extent cannot be normalized before manifestation-specific inspection",
+        "Harvard now exposes add-to-cart for both print ISBNs at 552 pages, while iMusic and other current routes preserve preorder, delayed-delivery, out-of-stock, July 10, and 424-page values; distribution conflict is not publisher-authenticated release",
+        "current direct Stanford title and copy-request transport returned Vercel HTTP 429 and was not bypassed; a stale search-index record is not substituted for publisher transport",
+        "no preview page was deliberately opened, but a general-search response emitted an unsolicited metadata-adjacent contents and common-terms snippet; it is not quoted, retained, admitted, or usable for blind adjudication",
+        "publisher excerpts and unresolved third-party uploads were not opened or admitted because rights, version, and blind-lane gates remain closed",
+        "specialist review of the translators' 2019 volume 14 is established lineage evidence, not reception or a quality verdict for volume 7",
+        "newness does not establish recognition, accuracy, or superiority",
+        "the in-copyright text has not been acquired and no review-copy request was sent",
+        "publisher-authenticated release, manifestation identity, pagination, lawful custody, rights, and passage-level suitability remain unverified"
+      ],
+      "access": {
+        "access_state": "metadata-only",
+        "acquisition_state": "not-acquired",
+        "content_ingested_for_translation_lab": false,
+        "access_request_required_before_content_use": true,
+        "contact_routes": [
+          "https://www.sup.org/books/theory-and-philosophy/thus-spoke-zarathustra",
+          "https://www.sup.org/books/theory-and-philosophy/thus-spoke-zarathustra/desk-examination-copy-requests"
+        ],
+        "request_state": "blocked-pending-rights-route"
+      },
+      "rights": {
+        "assessment": "in-copyright",
+        "license_uri": null,
+        "redistribution": "not-authorized",
+        "derivative_use": "not-authorized",
+        "citation_requirements": [
+          "after release, cite both translators, exact manifestation, Complete Works volume 7, ISBN, publication date, and page or stable locator"
+        ],
+        "rights_evidence_urls": [
+          "https://www.sup.org/books/theory-and-philosophy/thus-spoke-zarathustra",
+          "https://supress.sites-pro.stanford.edu/sites/supress/files/media/file/spring26_catalog.pdf",
+          "https://www.sup.org/books/theory-and-philosophy/thus-spoke-zarathustra/desk-examination-copy-requests"
+        ]
+      },
+      "tos_refs": {
+        "record_refs": [],
+        "path_refs": [
+          "ToS/research-packets/foundation-laboratory-2026-07/STANFORD_LOEB_TINSLEY_RELEASE_FRONTIER_REFRESH_2026-08-08.md",
+          "ToS/research-packets/foundation-laboratory-2026-07/STANFORD_LOEB_TINSLEY_PRE_STREET_DRIFT_CHECK_2026-08-10.md",
+          "ToS/source-witnesses/discovery/runs/stanford-loeb-tinsley-pre-street-drift.2026-08-10.v1.json",
+          "ToS/research-packets/foundation-laboratory-2026-07/STANFORD_LOEB_TINSLEY_POST_STREET_METADATA_CHECK_2026-08-11.md",
+          "ToS/source-witnesses/discovery/runs/stanford-loeb-tinsley-post-street-metadata.2026-08-11.v2.json",
+          "ToS/research-packets/foundation-laboratory-2026-07/ZARATHUSTRA_AUTHORIAL_WITNESS_ROUTE.md",
+          "ToS/source-witnesses/discovery/runs/zarathustra-authorial-witness-route.2026-07-30.v1.json"
+        ]
+      },
+      "admission": {
+        "state": "research-candidate",
+        "human_bibliographic_review": false,
+        "human_rights_review": false,
+        "accepted_as_truth": false,
+        "blocking_reasons": [
+          "no completed publisher-authenticated release has been established after the 2026-08-11 Stanford date began",
+          "no exact manifestation or content has been inspected",
+          "the 424-versus-552 extent conflict remains unresolved per manifestation",
+          "rights and permissible research-use scope remain unreviewed",
+          "passage-level comparison and recognition evidence do not yet exist"
+        ]
+      },
+      "notes": "The 2026-08-11 post-street check preserves the unchanged official-catalog 424-page record, publisher HTTP 429 without bypass, Harvard's new cart signal at 552 pages, contradictory print preorder, delivery, stock, date, and extent feeds, and the eBook metadata date without acquiring content. A search response emitted an unsolicited metadata-adjacent snippet; this context is excluded from blind adjudication and no text is retained. The stable v1 reference ID preserves research history and does not assert current forthcoming status. The next trigger is a current publisher response or an exact lawfully held manifestation, followed by separate rights and suitability review."
     }
   ],
   "coverage": {
     "required_category_count": 9,
-    "entry_count": 14,
+    "entry_count": 16,
     "all_required_categories_present": true,
     "content_admitted_entries": 0,
     "human_bibliographic_reviews": 0,

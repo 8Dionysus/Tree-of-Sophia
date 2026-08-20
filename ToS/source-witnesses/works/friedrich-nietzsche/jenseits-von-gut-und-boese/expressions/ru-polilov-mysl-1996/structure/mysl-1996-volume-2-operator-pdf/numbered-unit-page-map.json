@@ -1,0 +1,3152 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/target-numbered-unit-page-map.schema.json",
+  "schema_version": "tos_target_numbered_unit_page_map_v1",
+  "map_id": "tos.target-numbered-unit-page-map.friedrich-nietzsche.jenseits-von-gut-und-boese.ru-polilov-mysl-1996",
+  "work_ref": "tos.work.friedrich-nietzsche.jenseits-von-gut-und-boese",
+  "expression_ref": "tos.expression.friedrich-nietzsche.jenseits-von-gut-und-boese.ru-polilov-mysl-1996",
+  "edition_ref": "tos.edition.friedrich-nietzsche.works-in-two-volumes.moscow-mysl-1996-volume-2",
+  "item_ref": "tos.item.friedrich-nietzsche.works-in-two-volumes-volume-2-mysl-1996.operator-pdf",
+  "scan_file": {
+    "file_ref": "tos.file.sha256.ce16b68089dee0fc53a31d9e97723991b292dd8835c43bbbb40a9373c9a436aa",
+    "file_sha256": "ce16b68089dee0fc53a31d9e97723991b292dd8835c43bbbb40a9373c9a436aa",
+    "inventory_profile": "pdf_pages_v1"
+  },
+  "inventory": {
+    "ref": "ToS/source-witnesses/collections/friedrich-nietzsche/works-in-two-volumes-volume-2-mysl-1996/editions/moscow-mysl-1996-volume-2/items/operator-pdf/resource-inventory.json",
+    "sha256": "16773e2de732fe444a4656d5ea47f1ea21f27416dddd8e911cd98845f6287502"
+  },
+  "work_boundary": {
+    "ref": "ToS/source-witnesses/collections/friedrich-nietzsche/works-in-two-volumes-volume-2-mysl-1996/structure/work-boundaries/work-boundary-map.json",
+    "sha256": "e2f66f463fff651a68258dda1dfc6e77bd7d040991f11f2a0965218925d7d60e",
+    "member_sequence": 2,
+    "start_page": 238,
+    "end_page": 406,
+    "epistemic_status": "inferred",
+    "review_status": "unreviewed"
+  },
+  "map_authority": "model_reviewed_target_structure_candidate_only",
+  "source_text_included": false,
+  "method": {
+    "name": "ordered-embedded-pdf-bbox-candidate-plus-source-visible-gap-review",
+    "version": "1",
+    "maker_type": "mixed",
+    "local_payloads_read": true,
+    "navigation_tool": {
+      "name": "pdftotext",
+      "version": "26.01.0",
+      "mode": "bbox-layout"
+    },
+    "layer_trials": [
+      {
+        "layer": "embedded_plain_text",
+        "result": "reading order, running heads, and damaged numeral labels prevent a complete deterministic map",
+        "selected_role": "rejected_as_complete_map_source"
+      },
+      {
+        "layer": "embedded_bbox_unordered_candidates",
+        "result": "page geometry narrows numeral candidates but admits unrelated numbers without an order constraint",
+        "selected_role": "rejected_without_order_constraint"
+      },
+      {
+        "layer": "embedded_bbox_ordered_candidates_plus_source_visible_gap_review",
+        "result": "265 ordered candidates plus 33 bounded visible page judgments close the target label sequence",
+        "selected_role": "selected_bounded_structure_route"
+      }
+    ],
+    "candidate_filter": {
+      "single_word_line_only": true,
+      "x_min_points": {
+        "minimum": 145,
+        "maximum": 175
+      },
+      "y_min_points": {
+        "minimum": 40,
+        "maximum": 490
+      },
+      "maximum_stripped_character_count": 5,
+      "normalizations": [
+        "trim surrounding whitespace and terminal periods",
+        "map Cyrillic а/А to structural suffix a",
+        "map the isolated OCR glyph Cyrillic б to candidate 6"
+      ]
+    },
+    "ordered_bbox_candidate_matches": 265,
+    "source_visible_review": {
+      "maker_type": "model",
+      "human_repeat_performed": false,
+      "gap_review_unit_keys": [
+        "8",
+        "29",
+        "33",
+        "38",
+        "41",
+        "46",
+        "47",
+        "49",
+        "52",
+        "69",
+        "77",
+        "85",
+        "93",
+        "102",
+        "111",
+        "120",
+        "129",
+        "134",
+        "137",
+        "145",
+        "150",
+        "153",
+        "162",
+        "171",
+        "180",
+        "195",
+        "203",
+        "207",
+        "225",
+        "250",
+        "263",
+        "264",
+        "285"
+      ],
+      "ocr_disambiguation_unit_keys": [
+        "6"
+      ],
+      "supplemental_label_unit_keys": [
+        "65a",
+        "73a"
+      ]
+    },
+    "cross_lingual_text_matching_used": false,
+    "semantic_matching_used": false,
+    "no_source_text_emitted": true
+  },
+  "unit_starts": [
+    {
+      "sequence": 1,
+      "unit_key": "1",
+      "pdf_page": 241,
+      "resource_id": "pdf-page-0241",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.ru-polilov-mysl-1996.unit-1.pdf-start-page",
+      "basis": "embedded_pdf_bbox_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 2,
+      "unit_key": "2",
+      "pdf_page": 241,
+      "resource_id": "pdf-page-0241",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.ru-polilov-mysl-1996.unit-2.pdf-start-page",
+      "basis": "embedded_pdf_bbox_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 3,
+      "unit_key": "3",
+      "pdf_page": 242,
+      "resource_id": "pdf-page-0242",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.ru-polilov-mysl-1996.unit-3.pdf-start-page",
+      "basis": "embedded_pdf_bbox_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 4,
+      "unit_key": "4",
+      "pdf_page": 243,
+      "resource_id": "pdf-page-0243",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.ru-polilov-mysl-1996.unit-4.pdf-start-page",
+      "basis": "embedded_pdf_bbox_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 5,
+      "unit_key": "5",
+      "pdf_page": 243,
+      "resource_id": "pdf-page-0243",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.ru-polilov-mysl-1996.unit-5.pdf-start-page",
+      "basis": "embedded_pdf_bbox_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 6,
+      "unit_key": "6",
+      "pdf_page": 244,
+      "resource_id": "pdf-page-0244",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.ru-polilov-mysl-1996.unit-6.pdf-start-page",
+      "basis": "source_visible_ocr_disambiguation",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 7,
+      "unit_key": "7",
+      "pdf_page": 245,
+      "resource_id": "pdf-page-0245",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.ru-polilov-mysl-1996.unit-7.pdf-start-page",
+      "basis": "embedded_pdf_bbox_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 8,
+      "unit_key": "8",
+      "pdf_page": 246,
+      "resource_id": "pdf-page-0246",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.ru-polilov-mysl-1996.unit-8.pdf-start-page",
+      "basis": "source_visible_gap_review",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 9,
+      "unit_key": "9",
+      "pdf_page": 246,
+      "resource_id": "pdf-page-0246",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.ru-polilov-mysl-1996.unit-9.pdf-start-page",
+      "basis": "embedded_pdf_bbox_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 10,
+      "unit_key": "10",
+      "pdf_page": 247,
+      "resource_id": "pdf-page-0247",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.ru-polilov-mysl-1996.unit-10.pdf-start-page",
+      "basis": "embedded_pdf_bbox_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 11,
+      "unit_key": "11",
+      "pdf_page": 248,
+      "resource_id": "pdf-page-0248",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.ru-polilov-mysl-1996.unit-11.pdf-start-page",
+      "basis": "embedded_pdf_bbox_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 12,
+      "unit_key": "12",
+      "pdf_page": 249,
+      "resource_id": "pdf-page-0249",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.ru-polilov-mysl-1996.unit-12.pdf-start-page",
+      "basis": "embedded_pdf_bbox_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 13,
+      "unit_key": "13",
+      "pdf_page": 250,
+      "resource_id": "pdf-page-0250",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.ru-polilov-mysl-1996.unit-13.pdf-start-page",
+      "basis": "embedded_pdf_bbox_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 14,
+      "unit_key": "14",
+      "pdf_page": 251,
+      "resource_id": "pdf-page-0251",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.ru-polilov-mysl-1996.unit-14.pdf-start-page",
+      "basis": "embedded_pdf_bbox_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 15,
+      "unit_key": "15",
+      "pdf_page": 251,
+      "resource_id": "pdf-page-0251",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.ru-polilov-mysl-1996.unit-15.pdf-start-page",
+      "basis": "embedded_pdf_bbox_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 16,
+      "unit_key": "16",
+      "pdf_page": 252,
+      "resource_id": "pdf-page-0252",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.ru-polilov-mysl-1996.unit-16.pdf-start-page",
+      "basis": "embedded_pdf_bbox_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 17,
+      "unit_key": "17",
+      "pdf_page": 253,
+      "resource_id": "pdf-page-0253",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.ru-polilov-mysl-1996.unit-17.pdf-start-page",
+      "basis": "embedded_pdf_bbox_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 18,
+      "unit_key": "18",
+      "pdf_page": 253,
+      "resource_id": "pdf-page-0253",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.ru-polilov-mysl-1996.unit-18.pdf-start-page",
+      "basis": "embedded_pdf_bbox_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 19,
+      "unit_key": "19",
+      "pdf_page": 253,
+      "resource_id": "pdf-page-0253",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.ru-polilov-mysl-1996.unit-19.pdf-start-page",
+      "basis": "embedded_pdf_bbox_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 20,
+      "unit_key": "20",
+      "pdf_page": 255,
+      "resource_id": "pdf-page-0255",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.ru-polilov-mysl-1996.unit-20.pdf-start-page",
+      "basis": "embedded_pdf_bbox_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 21,
+      "unit_key": "21",
+      "pdf_page": 256,
+      "resource_id": "pdf-page-0256",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.ru-polilov-mysl-1996.unit-21.pdf-start-page",
+      "basis": "embedded_pdf_bbox_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 22,
+      "unit_key": "22",
+      "pdf_page": 257,
+      "resource_id": "pdf-page-0257",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.ru-polilov-mysl-1996.unit-22.pdf-start-page",
+      "basis": "embedded_pdf_bbox_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 23,
+      "unit_key": "23",
+      "pdf_page": 258,
+      "resource_id": "pdf-page-0258",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.ru-polilov-mysl-1996.unit-23.pdf-start-page",
+      "basis": "embedded_pdf_bbox_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 24,
+      "unit_key": "24",
+      "pdf_page": 260,
+      "resource_id": "pdf-page-0260",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.ru-polilov-mysl-1996.unit-24.pdf-start-page",
+      "basis": "embedded_pdf_bbox_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 25,
+      "unit_key": "25",
+      "pdf_page": 260,
+      "resource_id": "pdf-page-0260",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.ru-polilov-mysl-1996.unit-25.pdf-start-page",
+      "basis": "embedded_pdf_bbox_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 26,
+      "unit_key": "26",
+      "pdf_page": 262,
+      "resource_id": "pdf-page-0262",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.ru-polilov-mysl-1996.unit-26.pdf-start-page",
+      "basis": "embedded_pdf_bbox_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 27,
+      "unit_key": "27",
+      "pdf_page": 263,
+      "resource_id": "pdf-page-0263",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.ru-polilov-mysl-1996.unit-27.pdf-start-page",
+      "basis": "embedded_pdf_bbox_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 28,
+      "unit_key": "28",
+      "pdf_page": 263,
+      "resource_id": "pdf-page-0263",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.ru-polilov-mysl-1996.unit-28.pdf-start-page",
+      "basis": "embedded_pdf_bbox_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 29,
+      "unit_key": "29",
+      "pdf_page": 265,
+      "resource_id": "pdf-page-0265",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.ru-polilov-mysl-1996.unit-29.pdf-start-page",
+      "basis": "source_visible_gap_review",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 30,
+      "unit_key": "30",
+      "pdf_page": 265,
+      "resource_id": "pdf-page-0265",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.ru-polilov-mysl-1996.unit-30.pdf-start-page",
+      "basis": "embedded_pdf_bbox_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 31,
+      "unit_key": "31",
+      "pdf_page": 266,
+      "resource_id": "pdf-page-0266",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.ru-polilov-mysl-1996.unit-31.pdf-start-page",
+      "basis": "embedded_pdf_bbox_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 32,
+      "unit_key": "32",
+      "pdf_page": 266,
+      "resource_id": "pdf-page-0266",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.ru-polilov-mysl-1996.unit-32.pdf-start-page",
+      "basis": "embedded_pdf_bbox_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 33,
+      "unit_key": "33",
+      "pdf_page": 268,
+      "resource_id": "pdf-page-0268",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.ru-polilov-mysl-1996.unit-33.pdf-start-page",
+      "basis": "source_visible_gap_review",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 34,
+      "unit_key": "34",
+      "pdf_page": 268,
+      "resource_id": "pdf-page-0268",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.ru-polilov-mysl-1996.unit-34.pdf-start-page",
+      "basis": "embedded_pdf_bbox_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 35,
+      "unit_key": "35",
+      "pdf_page": 269,
+      "resource_id": "pdf-page-0269",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.ru-polilov-mysl-1996.unit-35.pdf-start-page",
+      "basis": "embedded_pdf_bbox_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 36,
+      "unit_key": "36",
+      "pdf_page": 269,
+      "resource_id": "pdf-page-0269",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.ru-polilov-mysl-1996.unit-36.pdf-start-page",
+      "basis": "embedded_pdf_bbox_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 37,
+      "unit_key": "37",
+      "pdf_page": 270,
+      "resource_id": "pdf-page-0270",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.ru-polilov-mysl-1996.unit-37.pdf-start-page",
+      "basis": "embedded_pdf_bbox_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 38,
+      "unit_key": "38",
+      "pdf_page": 271,
+      "resource_id": "pdf-page-0271",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.ru-polilov-mysl-1996.unit-38.pdf-start-page",
+      "basis": "source_visible_gap_review",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 39,
+      "unit_key": "39",
+      "pdf_page": 271,
+      "resource_id": "pdf-page-0271",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.ru-polilov-mysl-1996.unit-39.pdf-start-page",
+      "basis": "embedded_pdf_bbox_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 40,
+      "unit_key": "40",
+      "pdf_page": 272,
+      "resource_id": "pdf-page-0272",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.ru-polilov-mysl-1996.unit-40.pdf-start-page",
+      "basis": "embedded_pdf_bbox_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 41,
+      "unit_key": "41",
+      "pdf_page": 273,
+      "resource_id": "pdf-page-0273",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.ru-polilov-mysl-1996.unit-41.pdf-start-page",
+      "basis": "source_visible_gap_review",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 42,
+      "unit_key": "42",
+      "pdf_page": 273,
+      "resource_id": "pdf-page-0273",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.ru-polilov-mysl-1996.unit-42.pdf-start-page",
+      "basis": "embedded_pdf_bbox_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 43,
+      "unit_key": "43",
+      "pdf_page": 273,
+      "resource_id": "pdf-page-0273",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.ru-polilov-mysl-1996.unit-43.pdf-start-page",
+      "basis": "embedded_pdf_bbox_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 44,
+      "unit_key": "44",
+      "pdf_page": 274,
+      "resource_id": "pdf-page-0274",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.ru-polilov-mysl-1996.unit-44.pdf-start-page",
+      "basis": "embedded_pdf_bbox_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 45,
+      "unit_key": "45",
+      "pdf_page": 277,
+      "resource_id": "pdf-page-0277",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.ru-polilov-mysl-1996.unit-45.pdf-start-page",
+      "basis": "embedded_pdf_bbox_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 46,
+      "unit_key": "46",
+      "pdf_page": 278,
+      "resource_id": "pdf-page-0278",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.ru-polilov-mysl-1996.unit-46.pdf-start-page",
+      "basis": "source_visible_gap_review",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 47,
+      "unit_key": "47",
+      "pdf_page": 279,
+      "resource_id": "pdf-page-0279",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.ru-polilov-mysl-1996.unit-47.pdf-start-page",
+      "basis": "source_visible_gap_review",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 48,
+      "unit_key": "48",
+      "pdf_page": 280,
+      "resource_id": "pdf-page-0280",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.ru-polilov-mysl-1996.unit-48.pdf-start-page",
+      "basis": "embedded_pdf_bbox_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 49,
+      "unit_key": "49",
+      "pdf_page": 281,
+      "resource_id": "pdf-page-0281",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.ru-polilov-mysl-1996.unit-49.pdf-start-page",
+      "basis": "source_visible_gap_review",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 50,
+      "unit_key": "50",
+      "pdf_page": 281,
+      "resource_id": "pdf-page-0281",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.ru-polilov-mysl-1996.unit-50.pdf-start-page",
+      "basis": "embedded_pdf_bbox_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 51,
+      "unit_key": "51",
+      "pdf_page": 281,
+      "resource_id": "pdf-page-0281",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.ru-polilov-mysl-1996.unit-51.pdf-start-page",
+      "basis": "embedded_pdf_bbox_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 52,
+      "unit_key": "52",
+      "pdf_page": 282,
+      "resource_id": "pdf-page-0282",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.ru-polilov-mysl-1996.unit-52.pdf-start-page",
+      "basis": "source_visible_gap_review",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 53,
+      "unit_key": "53",
+      "pdf_page": 282,
+      "resource_id": "pdf-page-0282",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.ru-polilov-mysl-1996.unit-53.pdf-start-page",
+      "basis": "embedded_pdf_bbox_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 54,
+      "unit_key": "54",
+      "pdf_page": 282,
+      "resource_id": "pdf-page-0282",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.ru-polilov-mysl-1996.unit-54.pdf-start-page",
+      "basis": "embedded_pdf_bbox_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 55,
+      "unit_key": "55",
+      "pdf_page": 283,
+      "resource_id": "pdf-page-0283",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.ru-polilov-mysl-1996.unit-55.pdf-start-page",
+      "basis": "embedded_pdf_bbox_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 56,
+      "unit_key": "56",
+      "pdf_page": 283,
+      "resource_id": "pdf-page-0283",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.ru-polilov-mysl-1996.unit-56.pdf-start-page",
+      "basis": "embedded_pdf_bbox_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 57,
+      "unit_key": "57",
+      "pdf_page": 284,
+      "resource_id": "pdf-page-0284",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.ru-polilov-mysl-1996.unit-57.pdf-start-page",
+      "basis": "embedded_pdf_bbox_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 58,
+      "unit_key": "58",
+      "pdf_page": 284,
+      "resource_id": "pdf-page-0284",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.ru-polilov-mysl-1996.unit-58.pdf-start-page",
+      "basis": "embedded_pdf_bbox_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 59,
+      "unit_key": "59",
+      "pdf_page": 286,
+      "resource_id": "pdf-page-0286",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.ru-polilov-mysl-1996.unit-59.pdf-start-page",
+      "basis": "embedded_pdf_bbox_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 60,
+      "unit_key": "60",
+      "pdf_page": 287,
+      "resource_id": "pdf-page-0287",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.ru-polilov-mysl-1996.unit-60.pdf-start-page",
+      "basis": "embedded_pdf_bbox_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 61,
+      "unit_key": "61",
+      "pdf_page": 287,
+      "resource_id": "pdf-page-0287",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.ru-polilov-mysl-1996.unit-61.pdf-start-page",
+      "basis": "embedded_pdf_bbox_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 62,
+      "unit_key": "62",
+      "pdf_page": 288,
+      "resource_id": "pdf-page-0288",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.ru-polilov-mysl-1996.unit-62.pdf-start-page",
+      "basis": "embedded_pdf_bbox_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 63,
+      "unit_key": "63",
+      "pdf_page": 291,
+      "resource_id": "pdf-page-0291",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.ru-polilov-mysl-1996.unit-63.pdf-start-page",
+      "basis": "embedded_pdf_bbox_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 64,
+      "unit_key": "64",
+      "pdf_page": 291,
+      "resource_id": "pdf-page-0291",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.ru-polilov-mysl-1996.unit-64.pdf-start-page",
+      "basis": "embedded_pdf_bbox_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 65,
+      "unit_key": "65",
+      "pdf_page": 291,
+      "resource_id": "pdf-page-0291",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.ru-polilov-mysl-1996.unit-65.pdf-start-page",
+      "basis": "embedded_pdf_bbox_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 66,
+      "unit_key": "65a",
+      "pdf_page": 291,
+      "resource_id": "pdf-page-0291",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.ru-polilov-mysl-1996.unit-65a.pdf-start-page",
+      "basis": "embedded_pdf_bbox_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 67,
+      "unit_key": "66",
+      "pdf_page": 291,
+      "resource_id": "pdf-page-0291",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.ru-polilov-mysl-1996.unit-66.pdf-start-page",
+      "basis": "embedded_pdf_bbox_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 68,
+      "unit_key": "67",
+      "pdf_page": 291,
+      "resource_id": "pdf-page-0291",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.ru-polilov-mysl-1996.unit-67.pdf-start-page",
+      "basis": "embedded_pdf_bbox_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 69,
+      "unit_key": "68",
+      "pdf_page": 291,
+      "resource_id": "pdf-page-0291",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.ru-polilov-mysl-1996.unit-68.pdf-start-page",
+      "basis": "embedded_pdf_bbox_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 70,
+      "unit_key": "69",
+      "pdf_page": 292,
+      "resource_id": "pdf-page-0292",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.ru-polilov-mysl-1996.unit-69.pdf-start-page",
+      "basis": "source_visible_gap_review",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 71,
+      "unit_key": "70",
+      "pdf_page": 292,
+      "resource_id": "pdf-page-0292",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.ru-polilov-mysl-1996.unit-70.pdf-start-page",
+      "basis": "embedded_pdf_bbox_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 72,
+      "unit_key": "71",
+      "pdf_page": 292,
+      "resource_id": "pdf-page-0292",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.ru-polilov-mysl-1996.unit-71.pdf-start-page",
+      "basis": "embedded_pdf_bbox_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 73,
+      "unit_key": "72",
+      "pdf_page": 292,
+      "resource_id": "pdf-page-0292",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.ru-polilov-mysl-1996.unit-72.pdf-start-page",
+      "basis": "embedded_pdf_bbox_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 74,
+      "unit_key": "73",
+      "pdf_page": 292,
+      "resource_id": "pdf-page-0292",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.ru-polilov-mysl-1996.unit-73.pdf-start-page",
+      "basis": "embedded_pdf_bbox_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 75,
+      "unit_key": "73a",
+      "pdf_page": 292,
+      "resource_id": "pdf-page-0292",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.ru-polilov-mysl-1996.unit-73a.pdf-start-page",
+      "basis": "embedded_pdf_bbox_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 76,
+      "unit_key": "74",
+      "pdf_page": 292,
+      "resource_id": "pdf-page-0292",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.ru-polilov-mysl-1996.unit-74.pdf-start-page",
+      "basis": "embedded_pdf_bbox_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 77,
+      "unit_key": "75",
+      "pdf_page": 292,
+      "resource_id": "pdf-page-0292",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.ru-polilov-mysl-1996.unit-75.pdf-start-page",
+      "basis": "embedded_pdf_bbox_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 78,
+      "unit_key": "76",
+      "pdf_page": 292,
+      "resource_id": "pdf-page-0292",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.ru-polilov-mysl-1996.unit-76.pdf-start-page",
+      "basis": "embedded_pdf_bbox_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 79,
+      "unit_key": "77",
+      "pdf_page": 293,
+      "resource_id": "pdf-page-0293",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.ru-polilov-mysl-1996.unit-77.pdf-start-page",
+      "basis": "source_visible_gap_review",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 80,
+      "unit_key": "78",
+      "pdf_page": 293,
+      "resource_id": "pdf-page-0293",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.ru-polilov-mysl-1996.unit-78.pdf-start-page",
+      "basis": "embedded_pdf_bbox_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 81,
+      "unit_key": "79",
+      "pdf_page": 293,
+      "resource_id": "pdf-page-0293",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.ru-polilov-mysl-1996.unit-79.pdf-start-page",
+      "basis": "embedded_pdf_bbox_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 82,
+      "unit_key": "80",
+      "pdf_page": 293,
+      "resource_id": "pdf-page-0293",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.ru-polilov-mysl-1996.unit-80.pdf-start-page",
+      "basis": "embedded_pdf_bbox_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 83,
+      "unit_key": "81",
+      "pdf_page": 293,
+      "resource_id": "pdf-page-0293",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.ru-polilov-mysl-1996.unit-81.pdf-start-page",
+      "basis": "embedded_pdf_bbox_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 84,
+      "unit_key": "82",
+      "pdf_page": 293,
+      "resource_id": "pdf-page-0293",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.ru-polilov-mysl-1996.unit-82.pdf-start-page",
+      "basis": "embedded_pdf_bbox_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 85,
+      "unit_key": "83",
+      "pdf_page": 293,
+      "resource_id": "pdf-page-0293",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.ru-polilov-mysl-1996.unit-83.pdf-start-page",
+      "basis": "embedded_pdf_bbox_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 86,
+      "unit_key": "84",
+      "pdf_page": 293,
+      "resource_id": "pdf-page-0293",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.ru-polilov-mysl-1996.unit-84.pdf-start-page",
+      "basis": "embedded_pdf_bbox_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 87,
+      "unit_key": "85",
+      "pdf_page": 294,
+      "resource_id": "pdf-page-0294",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.ru-polilov-mysl-1996.unit-85.pdf-start-page",
+      "basis": "source_visible_gap_review",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 88,
+      "unit_key": "86",
+      "pdf_page": 294,
+      "resource_id": "pdf-page-0294",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.ru-polilov-mysl-1996.unit-86.pdf-start-page",
+      "basis": "embedded_pdf_bbox_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 89,
+      "unit_key": "87",
+      "pdf_page": 294,
+      "resource_id": "pdf-page-0294",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.ru-polilov-mysl-1996.unit-87.pdf-start-page",
+      "basis": "embedded_pdf_bbox_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 90,
+      "unit_key": "88",
+      "pdf_page": 294,
+      "resource_id": "pdf-page-0294",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.ru-polilov-mysl-1996.unit-88.pdf-start-page",
+      "basis": "embedded_pdf_bbox_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 91,
+      "unit_key": "89",
+      "pdf_page": 294,
+      "resource_id": "pdf-page-0294",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.ru-polilov-mysl-1996.unit-89.pdf-start-page",
+      "basis": "embedded_pdf_bbox_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 92,
+      "unit_key": "90",
+      "pdf_page": 294,
+      "resource_id": "pdf-page-0294",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.ru-polilov-mysl-1996.unit-90.pdf-start-page",
+      "basis": "embedded_pdf_bbox_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 93,
+      "unit_key": "91",
+      "pdf_page": 294,
+      "resource_id": "pdf-page-0294",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.ru-polilov-mysl-1996.unit-91.pdf-start-page",
+      "basis": "embedded_pdf_bbox_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 94,
+      "unit_key": "92",
+      "pdf_page": 294,
+      "resource_id": "pdf-page-0294",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.ru-polilov-mysl-1996.unit-92.pdf-start-page",
+      "basis": "embedded_pdf_bbox_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 95,
+      "unit_key": "93",
+      "pdf_page": 295,
+      "resource_id": "pdf-page-0295",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.ru-polilov-mysl-1996.unit-93.pdf-start-page",
+      "basis": "source_visible_gap_review",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 96,
+      "unit_key": "94",
+      "pdf_page": 295,
+      "resource_id": "pdf-page-0295",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.ru-polilov-mysl-1996.unit-94.pdf-start-page",
+      "basis": "embedded_pdf_bbox_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 97,
+      "unit_key": "95",
+      "pdf_page": 295,
+      "resource_id": "pdf-page-0295",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.ru-polilov-mysl-1996.unit-95.pdf-start-page",
+      "basis": "embedded_pdf_bbox_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 98,
+      "unit_key": "96",
+      "pdf_page": 295,
+      "resource_id": "pdf-page-0295",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.ru-polilov-mysl-1996.unit-96.pdf-start-page",
+      "basis": "embedded_pdf_bbox_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 99,
+      "unit_key": "97",
+      "pdf_page": 295,
+      "resource_id": "pdf-page-0295",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.ru-polilov-mysl-1996.unit-97.pdf-start-page",
+      "basis": "embedded_pdf_bbox_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 100,
+      "unit_key": "98",
+      "pdf_page": 295,
+      "resource_id": "pdf-page-0295",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.ru-polilov-mysl-1996.unit-98.pdf-start-page",
+      "basis": "embedded_pdf_bbox_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 101,
+      "unit_key": "99",
+      "pdf_page": 295,
+      "resource_id": "pdf-page-0295",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.ru-polilov-mysl-1996.unit-99.pdf-start-page",
+      "basis": "embedded_pdf_bbox_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 102,
+      "unit_key": "100",
+      "pdf_page": 295,
+      "resource_id": "pdf-page-0295",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.ru-polilov-mysl-1996.unit-100.pdf-start-page",
+      "basis": "embedded_pdf_bbox_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 103,
+      "unit_key": "101",
+      "pdf_page": 295,
+      "resource_id": "pdf-page-0295",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.ru-polilov-mysl-1996.unit-101.pdf-start-page",
+      "basis": "embedded_pdf_bbox_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 104,
+      "unit_key": "102",
+      "pdf_page": 296,
+      "resource_id": "pdf-page-0296",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.ru-polilov-mysl-1996.unit-102.pdf-start-page",
+      "basis": "source_visible_gap_review",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 105,
+      "unit_key": "103",
+      "pdf_page": 296,
+      "resource_id": "pdf-page-0296",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.ru-polilov-mysl-1996.unit-103.pdf-start-page",
+      "basis": "embedded_pdf_bbox_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 106,
+      "unit_key": "104",
+      "pdf_page": 296,
+      "resource_id": "pdf-page-0296",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.ru-polilov-mysl-1996.unit-104.pdf-start-page",
+      "basis": "embedded_pdf_bbox_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 107,
+      "unit_key": "105",
+      "pdf_page": 296,
+      "resource_id": "pdf-page-0296",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.ru-polilov-mysl-1996.unit-105.pdf-start-page",
+      "basis": "embedded_pdf_bbox_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 108,
+      "unit_key": "106",
+      "pdf_page": 296,
+      "resource_id": "pdf-page-0296",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.ru-polilov-mysl-1996.unit-106.pdf-start-page",
+      "basis": "embedded_pdf_bbox_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 109,
+      "unit_key": "107",
+      "pdf_page": 296,
+      "resource_id": "pdf-page-0296",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.ru-polilov-mysl-1996.unit-107.pdf-start-page",
+      "basis": "embedded_pdf_bbox_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 110,
+      "unit_key": "108",
+      "pdf_page": 296,
+      "resource_id": "pdf-page-0296",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.ru-polilov-mysl-1996.unit-108.pdf-start-page",
+      "basis": "embedded_pdf_bbox_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 111,
+      "unit_key": "109",
+      "pdf_page": 296,
+      "resource_id": "pdf-page-0296",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.ru-polilov-mysl-1996.unit-109.pdf-start-page",
+      "basis": "embedded_pdf_bbox_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 112,
+      "unit_key": "110",
+      "pdf_page": 296,
+      "resource_id": "pdf-page-0296",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.ru-polilov-mysl-1996.unit-110.pdf-start-page",
+      "basis": "embedded_pdf_bbox_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 113,
+      "unit_key": "111",
+      "pdf_page": 297,
+      "resource_id": "pdf-page-0297",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.ru-polilov-mysl-1996.unit-111.pdf-start-page",
+      "basis": "source_visible_gap_review",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 114,
+      "unit_key": "112",
+      "pdf_page": 297,
+      "resource_id": "pdf-page-0297",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.ru-polilov-mysl-1996.unit-112.pdf-start-page",
+      "basis": "embedded_pdf_bbox_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 115,
+      "unit_key": "113",
+      "pdf_page": 297,
+      "resource_id": "pdf-page-0297",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.ru-polilov-mysl-1996.unit-113.pdf-start-page",
+      "basis": "embedded_pdf_bbox_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 116,
+      "unit_key": "114",
+      "pdf_page": 297,
+      "resource_id": "pdf-page-0297",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.ru-polilov-mysl-1996.unit-114.pdf-start-page",
+      "basis": "embedded_pdf_bbox_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 117,
+      "unit_key": "115",
+      "pdf_page": 297,
+      "resource_id": "pdf-page-0297",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.ru-polilov-mysl-1996.unit-115.pdf-start-page",
+      "basis": "embedded_pdf_bbox_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 118,
+      "unit_key": "116",
+      "pdf_page": 297,
+      "resource_id": "pdf-page-0297",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.ru-polilov-mysl-1996.unit-116.pdf-start-page",
+      "basis": "embedded_pdf_bbox_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 119,
+      "unit_key": "117",
+      "pdf_page": 297,
+      "resource_id": "pdf-page-0297",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.ru-polilov-mysl-1996.unit-117.pdf-start-page",
+      "basis": "embedded_pdf_bbox_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 120,
+      "unit_key": "118",
+      "pdf_page": 297,
+      "resource_id": "pdf-page-0297",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.ru-polilov-mysl-1996.unit-118.pdf-start-page",
+      "basis": "embedded_pdf_bbox_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 121,
+      "unit_key": "119",
+      "pdf_page": 297,
+      "resource_id": "pdf-page-0297",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.ru-polilov-mysl-1996.unit-119.pdf-start-page",
+      "basis": "embedded_pdf_bbox_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 122,
+      "unit_key": "120",
+      "pdf_page": 298,
+      "resource_id": "pdf-page-0298",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.ru-polilov-mysl-1996.unit-120.pdf-start-page",
+      "basis": "source_visible_gap_review",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 123,
+      "unit_key": "121",
+      "pdf_page": 298,
+      "resource_id": "pdf-page-0298",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.ru-polilov-mysl-1996.unit-121.pdf-start-page",
+      "basis": "embedded_pdf_bbox_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 124,
+      "unit_key": "122",
+      "pdf_page": 298,
+      "resource_id": "pdf-page-0298",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.ru-polilov-mysl-1996.unit-122.pdf-start-page",
+      "basis": "embedded_pdf_bbox_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 125,
+      "unit_key": "123",
+      "pdf_page": 298,
+      "resource_id": "pdf-page-0298",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.ru-polilov-mysl-1996.unit-123.pdf-start-page",
+      "basis": "embedded_pdf_bbox_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 126,
+      "unit_key": "124",
+      "pdf_page": 298,
+      "resource_id": "pdf-page-0298",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.ru-polilov-mysl-1996.unit-124.pdf-start-page",
+      "basis": "embedded_pdf_bbox_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 127,
+      "unit_key": "125",
+      "pdf_page": 298,
+      "resource_id": "pdf-page-0298",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.ru-polilov-mysl-1996.unit-125.pdf-start-page",
+      "basis": "embedded_pdf_bbox_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 128,
+      "unit_key": "126",
+      "pdf_page": 298,
+      "resource_id": "pdf-page-0298",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.ru-polilov-mysl-1996.unit-126.pdf-start-page",
+      "basis": "embedded_pdf_bbox_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 129,
+      "unit_key": "127",
+      "pdf_page": 298,
+      "resource_id": "pdf-page-0298",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.ru-polilov-mysl-1996.unit-127.pdf-start-page",
+      "basis": "embedded_pdf_bbox_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 130,
+      "unit_key": "128",
+      "pdf_page": 298,
+      "resource_id": "pdf-page-0298",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.ru-polilov-mysl-1996.unit-128.pdf-start-page",
+      "basis": "embedded_pdf_bbox_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 131,
+      "unit_key": "129",
+      "pdf_page": 299,
+      "resource_id": "pdf-page-0299",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.ru-polilov-mysl-1996.unit-129.pdf-start-page",
+      "basis": "source_visible_gap_review",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 132,
+      "unit_key": "130",
+      "pdf_page": 299,
+      "resource_id": "pdf-page-0299",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.ru-polilov-mysl-1996.unit-130.pdf-start-page",
+      "basis": "embedded_pdf_bbox_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 133,
+      "unit_key": "131",
+      "pdf_page": 299,
+      "resource_id": "pdf-page-0299",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.ru-polilov-mysl-1996.unit-131.pdf-start-page",
+      "basis": "embedded_pdf_bbox_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 134,
+      "unit_key": "132",
+      "pdf_page": 299,
+      "resource_id": "pdf-page-0299",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.ru-polilov-mysl-1996.unit-132.pdf-start-page",
+      "basis": "embedded_pdf_bbox_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 135,
+      "unit_key": "133",
+      "pdf_page": 299,
+      "resource_id": "pdf-page-0299",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.ru-polilov-mysl-1996.unit-133.pdf-start-page",
+      "basis": "embedded_pdf_bbox_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 136,
+      "unit_key": "134",
+      "pdf_page": 299,
+      "resource_id": "pdf-page-0299",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.ru-polilov-mysl-1996.unit-134.pdf-start-page",
+      "basis": "source_visible_gap_review",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 137,
+      "unit_key": "135",
+      "pdf_page": 299,
+      "resource_id": "pdf-page-0299",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.ru-polilov-mysl-1996.unit-135.pdf-start-page",
+      "basis": "embedded_pdf_bbox_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 138,
+      "unit_key": "136",
+      "pdf_page": 299,
+      "resource_id": "pdf-page-0299",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.ru-polilov-mysl-1996.unit-136.pdf-start-page",
+      "basis": "embedded_pdf_bbox_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 139,
+      "unit_key": "137",
+      "pdf_page": 300,
+      "resource_id": "pdf-page-0300",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.ru-polilov-mysl-1996.unit-137.pdf-start-page",
+      "basis": "source_visible_gap_review",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 140,
+      "unit_key": "138",
+      "pdf_page": 300,
+      "resource_id": "pdf-page-0300",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.ru-polilov-mysl-1996.unit-138.pdf-start-page",
+      "basis": "embedded_pdf_bbox_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 141,
+      "unit_key": "139",
+      "pdf_page": 300,
+      "resource_id": "pdf-page-0300",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.ru-polilov-mysl-1996.unit-139.pdf-start-page",
+      "basis": "embedded_pdf_bbox_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 142,
+      "unit_key": "140",
+      "pdf_page": 300,
+      "resource_id": "pdf-page-0300",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.ru-polilov-mysl-1996.unit-140.pdf-start-page",
+      "basis": "embedded_pdf_bbox_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 143,
+      "unit_key": "141",
+      "pdf_page": 300,
+      "resource_id": "pdf-page-0300",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.ru-polilov-mysl-1996.unit-141.pdf-start-page",
+      "basis": "embedded_pdf_bbox_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 144,
+      "unit_key": "142",
+      "pdf_page": 300,
+      "resource_id": "pdf-page-0300",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.ru-polilov-mysl-1996.unit-142.pdf-start-page",
+      "basis": "embedded_pdf_bbox_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 145,
+      "unit_key": "143",
+      "pdf_page": 300,
+      "resource_id": "pdf-page-0300",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.ru-polilov-mysl-1996.unit-143.pdf-start-page",
+      "basis": "embedded_pdf_bbox_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 146,
+      "unit_key": "144",
+      "pdf_page": 300,
+      "resource_id": "pdf-page-0300",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.ru-polilov-mysl-1996.unit-144.pdf-start-page",
+      "basis": "embedded_pdf_bbox_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 147,
+      "unit_key": "145",
+      "pdf_page": 301,
+      "resource_id": "pdf-page-0301",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.ru-polilov-mysl-1996.unit-145.pdf-start-page",
+      "basis": "source_visible_gap_review",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 148,
+      "unit_key": "146",
+      "pdf_page": 301,
+      "resource_id": "pdf-page-0301",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.ru-polilov-mysl-1996.unit-146.pdf-start-page",
+      "basis": "embedded_pdf_bbox_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 149,
+      "unit_key": "147",
+      "pdf_page": 301,
+      "resource_id": "pdf-page-0301",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.ru-polilov-mysl-1996.unit-147.pdf-start-page",
+      "basis": "embedded_pdf_bbox_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 150,
+      "unit_key": "148",
+      "pdf_page": 301,
+      "resource_id": "pdf-page-0301",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.ru-polilov-mysl-1996.unit-148.pdf-start-page",
+      "basis": "embedded_pdf_bbox_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 151,
+      "unit_key": "149",
+      "pdf_page": 301,
+      "resource_id": "pdf-page-0301",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.ru-polilov-mysl-1996.unit-149.pdf-start-page",
+      "basis": "embedded_pdf_bbox_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 152,
+      "unit_key": "150",
+      "pdf_page": 301,
+      "resource_id": "pdf-page-0301",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.ru-polilov-mysl-1996.unit-150.pdf-start-page",
+      "basis": "source_visible_gap_review",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 153,
+      "unit_key": "151",
+      "pdf_page": 301,
+      "resource_id": "pdf-page-0301",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.ru-polilov-mysl-1996.unit-151.pdf-start-page",
+      "basis": "embedded_pdf_bbox_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 154,
+      "unit_key": "152",
+      "pdf_page": 301,
+      "resource_id": "pdf-page-0301",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.ru-polilov-mysl-1996.unit-152.pdf-start-page",
+      "basis": "embedded_pdf_bbox_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 155,
+      "unit_key": "153",
+      "pdf_page": 302,
+      "resource_id": "pdf-page-0302",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.ru-polilov-mysl-1996.unit-153.pdf-start-page",
+      "basis": "source_visible_gap_review",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 156,
+      "unit_key": "154",
+      "pdf_page": 302,
+      "resource_id": "pdf-page-0302",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.ru-polilov-mysl-1996.unit-154.pdf-start-page",
+      "basis": "embedded_pdf_bbox_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 157,
+      "unit_key": "155",
+      "pdf_page": 302,
+      "resource_id": "pdf-page-0302",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.ru-polilov-mysl-1996.unit-155.pdf-start-page",
+      "basis": "embedded_pdf_bbox_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 158,
+      "unit_key": "156",
+      "pdf_page": 302,
+      "resource_id": "pdf-page-0302",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.ru-polilov-mysl-1996.unit-156.pdf-start-page",
+      "basis": "embedded_pdf_bbox_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 159,
+      "unit_key": "157",
+      "pdf_page": 302,
+      "resource_id": "pdf-page-0302",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.ru-polilov-mysl-1996.unit-157.pdf-start-page",
+      "basis": "embedded_pdf_bbox_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 160,
+      "unit_key": "158",
+      "pdf_page": 302,
+      "resource_id": "pdf-page-0302",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.ru-polilov-mysl-1996.unit-158.pdf-start-page",
+      "basis": "embedded_pdf_bbox_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 161,
+      "unit_key": "159",
+      "pdf_page": 302,
+      "resource_id": "pdf-page-0302",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.ru-polilov-mysl-1996.unit-159.pdf-start-page",
+      "basis": "embedded_pdf_bbox_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 162,
+      "unit_key": "160",
+      "pdf_page": 302,
+      "resource_id": "pdf-page-0302",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.ru-polilov-mysl-1996.unit-160.pdf-start-page",
+      "basis": "embedded_pdf_bbox_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 163,
+      "unit_key": "161",
+      "pdf_page": 302,
+      "resource_id": "pdf-page-0302",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.ru-polilov-mysl-1996.unit-161.pdf-start-page",
+      "basis": "embedded_pdf_bbox_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 164,
+      "unit_key": "162",
+      "pdf_page": 303,
+      "resource_id": "pdf-page-0303",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.ru-polilov-mysl-1996.unit-162.pdf-start-page",
+      "basis": "source_visible_gap_review",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 165,
+      "unit_key": "163",
+      "pdf_page": 303,
+      "resource_id": "pdf-page-0303",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.ru-polilov-mysl-1996.unit-163.pdf-start-page",
+      "basis": "embedded_pdf_bbox_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 166,
+      "unit_key": "164",
+      "pdf_page": 303,
+      "resource_id": "pdf-page-0303",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.ru-polilov-mysl-1996.unit-164.pdf-start-page",
+      "basis": "embedded_pdf_bbox_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 167,
+      "unit_key": "165",
+      "pdf_page": 303,
+      "resource_id": "pdf-page-0303",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.ru-polilov-mysl-1996.unit-165.pdf-start-page",
+      "basis": "embedded_pdf_bbox_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 168,
+      "unit_key": "166",
+      "pdf_page": 303,
+      "resource_id": "pdf-page-0303",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.ru-polilov-mysl-1996.unit-166.pdf-start-page",
+      "basis": "embedded_pdf_bbox_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 169,
+      "unit_key": "167",
+      "pdf_page": 303,
+      "resource_id": "pdf-page-0303",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.ru-polilov-mysl-1996.unit-167.pdf-start-page",
+      "basis": "embedded_pdf_bbox_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 170,
+      "unit_key": "168",
+      "pdf_page": 303,
+      "resource_id": "pdf-page-0303",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.ru-polilov-mysl-1996.unit-168.pdf-start-page",
+      "basis": "embedded_pdf_bbox_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 171,
+      "unit_key": "169",
+      "pdf_page": 303,
+      "resource_id": "pdf-page-0303",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.ru-polilov-mysl-1996.unit-169.pdf-start-page",
+      "basis": "embedded_pdf_bbox_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 172,
+      "unit_key": "170",
+      "pdf_page": 303,
+      "resource_id": "pdf-page-0303",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.ru-polilov-mysl-1996.unit-170.pdf-start-page",
+      "basis": "embedded_pdf_bbox_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 173,
+      "unit_key": "171",
+      "pdf_page": 304,
+      "resource_id": "pdf-page-0304",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.ru-polilov-mysl-1996.unit-171.pdf-start-page",
+      "basis": "source_visible_gap_review",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 174,
+      "unit_key": "172",
+      "pdf_page": 304,
+      "resource_id": "pdf-page-0304",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.ru-polilov-mysl-1996.unit-172.pdf-start-page",
+      "basis": "embedded_pdf_bbox_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 175,
+      "unit_key": "173",
+      "pdf_page": 304,
+      "resource_id": "pdf-page-0304",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.ru-polilov-mysl-1996.unit-173.pdf-start-page",
+      "basis": "embedded_pdf_bbox_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 176,
+      "unit_key": "174",
+      "pdf_page": 304,
+      "resource_id": "pdf-page-0304",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.ru-polilov-mysl-1996.unit-174.pdf-start-page",
+      "basis": "embedded_pdf_bbox_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 177,
+      "unit_key": "175",
+      "pdf_page": 304,
+      "resource_id": "pdf-page-0304",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.ru-polilov-mysl-1996.unit-175.pdf-start-page",
+      "basis": "embedded_pdf_bbox_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 178,
+      "unit_key": "176",
+      "pdf_page": 304,
+      "resource_id": "pdf-page-0304",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.ru-polilov-mysl-1996.unit-176.pdf-start-page",
+      "basis": "embedded_pdf_bbox_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 179,
+      "unit_key": "177",
+      "pdf_page": 304,
+      "resource_id": "pdf-page-0304",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.ru-polilov-mysl-1996.unit-177.pdf-start-page",
+      "basis": "embedded_pdf_bbox_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 180,
+      "unit_key": "178",
+      "pdf_page": 304,
+      "resource_id": "pdf-page-0304",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.ru-polilov-mysl-1996.unit-178.pdf-start-page",
+      "basis": "embedded_pdf_bbox_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 181,
+      "unit_key": "179",
+      "pdf_page": 304,
+      "resource_id": "pdf-page-0304",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.ru-polilov-mysl-1996.unit-179.pdf-start-page",
+      "basis": "embedded_pdf_bbox_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 182,
+      "unit_key": "180",
+      "pdf_page": 305,
+      "resource_id": "pdf-page-0305",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.ru-polilov-mysl-1996.unit-180.pdf-start-page",
+      "basis": "source_visible_gap_review",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 183,
+      "unit_key": "181",
+      "pdf_page": 305,
+      "resource_id": "pdf-page-0305",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.ru-polilov-mysl-1996.unit-181.pdf-start-page",
+      "basis": "embedded_pdf_bbox_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 184,
+      "unit_key": "182",
+      "pdf_page": 305,
+      "resource_id": "pdf-page-0305",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.ru-polilov-mysl-1996.unit-182.pdf-start-page",
+      "basis": "embedded_pdf_bbox_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 185,
+      "unit_key": "183",
+      "pdf_page": 305,
+      "resource_id": "pdf-page-0305",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.ru-polilov-mysl-1996.unit-183.pdf-start-page",
+      "basis": "embedded_pdf_bbox_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 186,
+      "unit_key": "184",
+      "pdf_page": 305,
+      "resource_id": "pdf-page-0305",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.ru-polilov-mysl-1996.unit-184.pdf-start-page",
+      "basis": "embedded_pdf_bbox_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 187,
+      "unit_key": "185",
+      "pdf_page": 305,
+      "resource_id": "pdf-page-0305",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.ru-polilov-mysl-1996.unit-185.pdf-start-page",
+      "basis": "embedded_pdf_bbox_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 188,
+      "unit_key": "186",
+      "pdf_page": 306,
+      "resource_id": "pdf-page-0306",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.ru-polilov-mysl-1996.unit-186.pdf-start-page",
+      "basis": "embedded_pdf_bbox_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 189,
+      "unit_key": "187",
+      "pdf_page": 307,
+      "resource_id": "pdf-page-0307",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.ru-polilov-mysl-1996.unit-187.pdf-start-page",
+      "basis": "embedded_pdf_bbox_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 190,
+      "unit_key": "188",
+      "pdf_page": 308,
+      "resource_id": "pdf-page-0308",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.ru-polilov-mysl-1996.unit-188.pdf-start-page",
+      "basis": "embedded_pdf_bbox_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 191,
+      "unit_key": "189",
+      "pdf_page": 310,
+      "resource_id": "pdf-page-0310",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.ru-polilov-mysl-1996.unit-189.pdf-start-page",
+      "basis": "embedded_pdf_bbox_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 192,
+      "unit_key": "190",
+      "pdf_page": 310,
+      "resource_id": "pdf-page-0310",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.ru-polilov-mysl-1996.unit-190.pdf-start-page",
+      "basis": "embedded_pdf_bbox_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 193,
+      "unit_key": "191",
+      "pdf_page": 311,
+      "resource_id": "pdf-page-0311",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.ru-polilov-mysl-1996.unit-191.pdf-start-page",
+      "basis": "embedded_pdf_bbox_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 194,
+      "unit_key": "192",
+      "pdf_page": 312,
+      "resource_id": "pdf-page-0312",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.ru-polilov-mysl-1996.unit-192.pdf-start-page",
+      "basis": "embedded_pdf_bbox_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 195,
+      "unit_key": "193",
+      "pdf_page": 313,
+      "resource_id": "pdf-page-0313",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.ru-polilov-mysl-1996.unit-193.pdf-start-page",
+      "basis": "embedded_pdf_bbox_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 196,
+      "unit_key": "194",
+      "pdf_page": 313,
+      "resource_id": "pdf-page-0313",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.ru-polilov-mysl-1996.unit-194.pdf-start-page",
+      "basis": "embedded_pdf_bbox_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 197,
+      "unit_key": "195",
+      "pdf_page": 315,
+      "resource_id": "pdf-page-0315",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.ru-polilov-mysl-1996.unit-195.pdf-start-page",
+      "basis": "source_visible_gap_review",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 198,
+      "unit_key": "196",
+      "pdf_page": 315,
+      "resource_id": "pdf-page-0315",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.ru-polilov-mysl-1996.unit-196.pdf-start-page",
+      "basis": "embedded_pdf_bbox_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 199,
+      "unit_key": "197",
+      "pdf_page": 315,
+      "resource_id": "pdf-page-0315",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.ru-polilov-mysl-1996.unit-197.pdf-start-page",
+      "basis": "embedded_pdf_bbox_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 200,
+      "unit_key": "198",
+      "pdf_page": 315,
+      "resource_id": "pdf-page-0315",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.ru-polilov-mysl-1996.unit-198.pdf-start-page",
+      "basis": "embedded_pdf_bbox_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 201,
+      "unit_key": "199",
+      "pdf_page": 316,
+      "resource_id": "pdf-page-0316",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.ru-polilov-mysl-1996.unit-199.pdf-start-page",
+      "basis": "embedded_pdf_bbox_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 202,
+      "unit_key": "200",
+      "pdf_page": 317,
+      "resource_id": "pdf-page-0317",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.ru-polilov-mysl-1996.unit-200.pdf-start-page",
+      "basis": "embedded_pdf_bbox_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 203,
+      "unit_key": "201",
+      "pdf_page": 318,
+      "resource_id": "pdf-page-0318",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.ru-polilov-mysl-1996.unit-201.pdf-start-page",
+      "basis": "embedded_pdf_bbox_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 204,
+      "unit_key": "202",
+      "pdf_page": 320,
+      "resource_id": "pdf-page-0320",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.ru-polilov-mysl-1996.unit-202.pdf-start-page",
+      "basis": "embedded_pdf_bbox_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 205,
+      "unit_key": "203",
+      "pdf_page": 322,
+      "resource_id": "pdf-page-0322",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.ru-polilov-mysl-1996.unit-203.pdf-start-page",
+      "basis": "source_visible_gap_review",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 206,
+      "unit_key": "204",
+      "pdf_page": 324,
+      "resource_id": "pdf-page-0324",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.ru-polilov-mysl-1996.unit-204.pdf-start-page",
+      "basis": "embedded_pdf_bbox_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 207,
+      "unit_key": "205",
+      "pdf_page": 326,
+      "resource_id": "pdf-page-0326",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.ru-polilov-mysl-1996.unit-205.pdf-start-page",
+      "basis": "embedded_pdf_bbox_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 208,
+      "unit_key": "206",
+      "pdf_page": 327,
+      "resource_id": "pdf-page-0327",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.ru-polilov-mysl-1996.unit-206.pdf-start-page",
+      "basis": "embedded_pdf_bbox_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 209,
+      "unit_key": "207",
+      "pdf_page": 328,
+      "resource_id": "pdf-page-0328",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.ru-polilov-mysl-1996.unit-207.pdf-start-page",
+      "basis": "source_visible_gap_review",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 210,
+      "unit_key": "208",
+      "pdf_page": 329,
+      "resource_id": "pdf-page-0329",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.ru-polilov-mysl-1996.unit-208.pdf-start-page",
+      "basis": "embedded_pdf_bbox_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 211,
+      "unit_key": "209",
+      "pdf_page": 332,
+      "resource_id": "pdf-page-0332",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.ru-polilov-mysl-1996.unit-209.pdf-start-page",
+      "basis": "embedded_pdf_bbox_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 212,
+      "unit_key": "210",
+      "pdf_page": 333,
+      "resource_id": "pdf-page-0333",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.ru-polilov-mysl-1996.unit-210.pdf-start-page",
+      "basis": "embedded_pdf_bbox_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 213,
+      "unit_key": "211",
+      "pdf_page": 335,
+      "resource_id": "pdf-page-0335",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.ru-polilov-mysl-1996.unit-211.pdf-start-page",
+      "basis": "embedded_pdf_bbox_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 214,
+      "unit_key": "212",
+      "pdf_page": 336,
+      "resource_id": "pdf-page-0336",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.ru-polilov-mysl-1996.unit-212.pdf-start-page",
+      "basis": "embedded_pdf_bbox_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 215,
+      "unit_key": "213",
+      "pdf_page": 337,
+      "resource_id": "pdf-page-0337",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.ru-polilov-mysl-1996.unit-213.pdf-start-page",
+      "basis": "embedded_pdf_bbox_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 216,
+      "unit_key": "214",
+      "pdf_page": 339,
+      "resource_id": "pdf-page-0339",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.ru-polilov-mysl-1996.unit-214.pdf-start-page",
+      "basis": "embedded_pdf_bbox_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 217,
+      "unit_key": "215",
+      "pdf_page": 339,
+      "resource_id": "pdf-page-0339",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.ru-polilov-mysl-1996.unit-215.pdf-start-page",
+      "basis": "embedded_pdf_bbox_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 218,
+      "unit_key": "216",
+      "pdf_page": 340,
+      "resource_id": "pdf-page-0340",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.ru-polilov-mysl-1996.unit-216.pdf-start-page",
+      "basis": "embedded_pdf_bbox_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 219,
+      "unit_key": "217",
+      "pdf_page": 340,
+      "resource_id": "pdf-page-0340",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.ru-polilov-mysl-1996.unit-217.pdf-start-page",
+      "basis": "embedded_pdf_bbox_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 220,
+      "unit_key": "218",
+      "pdf_page": 340,
+      "resource_id": "pdf-page-0340",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.ru-polilov-mysl-1996.unit-218.pdf-start-page",
+      "basis": "embedded_pdf_bbox_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 221,
+      "unit_key": "219",
+      "pdf_page": 341,
+      "resource_id": "pdf-page-0341",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.ru-polilov-mysl-1996.unit-219.pdf-start-page",
+      "basis": "embedded_pdf_bbox_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 222,
+      "unit_key": "220",
+      "pdf_page": 341,
+      "resource_id": "pdf-page-0341",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.ru-polilov-mysl-1996.unit-220.pdf-start-page",
+      "basis": "embedded_pdf_bbox_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 223,
+      "unit_key": "221",
+      "pdf_page": 342,
+      "resource_id": "pdf-page-0342",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.ru-polilov-mysl-1996.unit-221.pdf-start-page",
+      "basis": "embedded_pdf_bbox_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 224,
+      "unit_key": "222",
+      "pdf_page": 343,
+      "resource_id": "pdf-page-0343",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.ru-polilov-mysl-1996.unit-222.pdf-start-page",
+      "basis": "embedded_pdf_bbox_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 225,
+      "unit_key": "223",
+      "pdf_page": 343,
+      "resource_id": "pdf-page-0343",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.ru-polilov-mysl-1996.unit-223.pdf-start-page",
+      "basis": "embedded_pdf_bbox_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 226,
+      "unit_key": "224",
+      "pdf_page": 344,
+      "resource_id": "pdf-page-0344",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.ru-polilov-mysl-1996.unit-224.pdf-start-page",
+      "basis": "embedded_pdf_bbox_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 227,
+      "unit_key": "225",
+      "pdf_page": 346,
+      "resource_id": "pdf-page-0346",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.ru-polilov-mysl-1996.unit-225.pdf-start-page",
+      "basis": "source_visible_gap_review",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 228,
+      "unit_key": "226",
+      "pdf_page": 347,
+      "resource_id": "pdf-page-0347",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.ru-polilov-mysl-1996.unit-226.pdf-start-page",
+      "basis": "embedded_pdf_bbox_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 229,
+      "unit_key": "227",
+      "pdf_page": 347,
+      "resource_id": "pdf-page-0347",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.ru-polilov-mysl-1996.unit-227.pdf-start-page",
+      "basis": "embedded_pdf_bbox_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 230,
+      "unit_key": "228",
+      "pdf_page": 348,
+      "resource_id": "pdf-page-0348",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.ru-polilov-mysl-1996.unit-228.pdf-start-page",
+      "basis": "embedded_pdf_bbox_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 231,
+      "unit_key": "229",
+      "pdf_page": 349,
+      "resource_id": "pdf-page-0349",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.ru-polilov-mysl-1996.unit-229.pdf-start-page",
+      "basis": "embedded_pdf_bbox_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 232,
+      "unit_key": "230",
+      "pdf_page": 350,
+      "resource_id": "pdf-page-0350",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.ru-polilov-mysl-1996.unit-230.pdf-start-page",
+      "basis": "embedded_pdf_bbox_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 233,
+      "unit_key": "231",
+      "pdf_page": 352,
+      "resource_id": "pdf-page-0352",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.ru-polilov-mysl-1996.unit-231.pdf-start-page",
+      "basis": "embedded_pdf_bbox_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 234,
+      "unit_key": "232",
+      "pdf_page": 353,
+      "resource_id": "pdf-page-0353",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.ru-polilov-mysl-1996.unit-232.pdf-start-page",
+      "basis": "embedded_pdf_bbox_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 235,
+      "unit_key": "233",
+      "pdf_page": 354,
+      "resource_id": "pdf-page-0354",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.ru-polilov-mysl-1996.unit-233.pdf-start-page",
+      "basis": "embedded_pdf_bbox_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 236,
+      "unit_key": "234",
+      "pdf_page": 354,
+      "resource_id": "pdf-page-0354",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.ru-polilov-mysl-1996.unit-234.pdf-start-page",
+      "basis": "embedded_pdf_bbox_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 237,
+      "unit_key": "235",
+      "pdf_page": 355,
+      "resource_id": "pdf-page-0355",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.ru-polilov-mysl-1996.unit-235.pdf-start-page",
+      "basis": "embedded_pdf_bbox_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 238,
+      "unit_key": "236",
+      "pdf_page": 355,
+      "resource_id": "pdf-page-0355",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.ru-polilov-mysl-1996.unit-236.pdf-start-page",
+      "basis": "embedded_pdf_bbox_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 239,
+      "unit_key": "237",
+      "pdf_page": 355,
+      "resource_id": "pdf-page-0355",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.ru-polilov-mysl-1996.unit-237.pdf-start-page",
+      "basis": "embedded_pdf_bbox_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 240,
+      "unit_key": "238",
+      "pdf_page": 356,
+      "resource_id": "pdf-page-0356",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.ru-polilov-mysl-1996.unit-238.pdf-start-page",
+      "basis": "embedded_pdf_bbox_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 241,
+      "unit_key": "239",
+      "pdf_page": 356,
+      "resource_id": "pdf-page-0356",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.ru-polilov-mysl-1996.unit-239.pdf-start-page",
+      "basis": "embedded_pdf_bbox_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 242,
+      "unit_key": "240",
+      "pdf_page": 359,
+      "resource_id": "pdf-page-0359",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.ru-polilov-mysl-1996.unit-240.pdf-start-page",
+      "basis": "embedded_pdf_bbox_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 243,
+      "unit_key": "241",
+      "pdf_page": 360,
+      "resource_id": "pdf-page-0360",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.ru-polilov-mysl-1996.unit-241.pdf-start-page",
+      "basis": "embedded_pdf_bbox_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 244,
+      "unit_key": "242",
+      "pdf_page": 361,
+      "resource_id": "pdf-page-0361",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.ru-polilov-mysl-1996.unit-242.pdf-start-page",
+      "basis": "embedded_pdf_bbox_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 245,
+      "unit_key": "243",
+      "pdf_page": 362,
+      "resource_id": "pdf-page-0362",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.ru-polilov-mysl-1996.unit-243.pdf-start-page",
+      "basis": "embedded_pdf_bbox_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 246,
+      "unit_key": "244",
+      "pdf_page": 362,
+      "resource_id": "pdf-page-0362",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.ru-polilov-mysl-1996.unit-244.pdf-start-page",
+      "basis": "embedded_pdf_bbox_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 247,
+      "unit_key": "245",
+      "pdf_page": 365,
+      "resource_id": "pdf-page-0365",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.ru-polilov-mysl-1996.unit-245.pdf-start-page",
+      "basis": "embedded_pdf_bbox_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 248,
+      "unit_key": "246",
+      "pdf_page": 366,
+      "resource_id": "pdf-page-0366",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.ru-polilov-mysl-1996.unit-246.pdf-start-page",
+      "basis": "embedded_pdf_bbox_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 249,
+      "unit_key": "247",
+      "pdf_page": 367,
+      "resource_id": "pdf-page-0367",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.ru-polilov-mysl-1996.unit-247.pdf-start-page",
+      "basis": "embedded_pdf_bbox_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 250,
+      "unit_key": "248",
+      "pdf_page": 368,
+      "resource_id": "pdf-page-0368",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.ru-polilov-mysl-1996.unit-248.pdf-start-page",
+      "basis": "embedded_pdf_bbox_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 251,
+      "unit_key": "249",
+      "pdf_page": 368,
+      "resource_id": "pdf-page-0368",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.ru-polilov-mysl-1996.unit-249.pdf-start-page",
+      "basis": "embedded_pdf_bbox_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 252,
+      "unit_key": "250",
+      "pdf_page": 369,
+      "resource_id": "pdf-page-0369",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.ru-polilov-mysl-1996.unit-250.pdf-start-page",
+      "basis": "source_visible_gap_review",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 253,
+      "unit_key": "251",
+      "pdf_page": 369,
+      "resource_id": "pdf-page-0369",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.ru-polilov-mysl-1996.unit-251.pdf-start-page",
+      "basis": "embedded_pdf_bbox_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 254,
+      "unit_key": "252",
+      "pdf_page": 371,
+      "resource_id": "pdf-page-0371",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.ru-polilov-mysl-1996.unit-252.pdf-start-page",
+      "basis": "embedded_pdf_bbox_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 255,
+      "unit_key": "253",
+      "pdf_page": 372,
+      "resource_id": "pdf-page-0372",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.ru-polilov-mysl-1996.unit-253.pdf-start-page",
+      "basis": "embedded_pdf_bbox_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 256,
+      "unit_key": "254",
+      "pdf_page": 373,
+      "resource_id": "pdf-page-0373",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.ru-polilov-mysl-1996.unit-254.pdf-start-page",
+      "basis": "embedded_pdf_bbox_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 257,
+      "unit_key": "255",
+      "pdf_page": 375,
+      "resource_id": "pdf-page-0375",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.ru-polilov-mysl-1996.unit-255.pdf-start-page",
+      "basis": "embedded_pdf_bbox_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 258,
+      "unit_key": "256",
+      "pdf_page": 375,
+      "resource_id": "pdf-page-0375",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.ru-polilov-mysl-1996.unit-256.pdf-start-page",
+      "basis": "embedded_pdf_bbox_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 259,
+      "unit_key": "257",
+      "pdf_page": 379,
+      "resource_id": "pdf-page-0379",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.ru-polilov-mysl-1996.unit-257.pdf-start-page",
+      "basis": "embedded_pdf_bbox_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 260,
+      "unit_key": "258",
+      "pdf_page": 379,
+      "resource_id": "pdf-page-0379",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.ru-polilov-mysl-1996.unit-258.pdf-start-page",
+      "basis": "embedded_pdf_bbox_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 261,
+      "unit_key": "259",
+      "pdf_page": 380,
+      "resource_id": "pdf-page-0380",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.ru-polilov-mysl-1996.unit-259.pdf-start-page",
+      "basis": "embedded_pdf_bbox_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 262,
+      "unit_key": "260",
+      "pdf_page": 381,
+      "resource_id": "pdf-page-0381",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.ru-polilov-mysl-1996.unit-260.pdf-start-page",
+      "basis": "embedded_pdf_bbox_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 263,
+      "unit_key": "261",
+      "pdf_page": 384,
+      "resource_id": "pdf-page-0384",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.ru-polilov-mysl-1996.unit-261.pdf-start-page",
+      "basis": "embedded_pdf_bbox_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 264,
+      "unit_key": "262",
+      "pdf_page": 385,
+      "resource_id": "pdf-page-0385",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.ru-polilov-mysl-1996.unit-262.pdf-start-page",
+      "basis": "embedded_pdf_bbox_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 265,
+      "unit_key": "263",
+      "pdf_page": 386,
+      "resource_id": "pdf-page-0386",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.ru-polilov-mysl-1996.unit-263.pdf-start-page",
+      "basis": "source_visible_gap_review",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 266,
+      "unit_key": "264",
+      "pdf_page": 389,
+      "resource_id": "pdf-page-0389",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.ru-polilov-mysl-1996.unit-264.pdf-start-page",
+      "basis": "source_visible_gap_review",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 267,
+      "unit_key": "265",
+      "pdf_page": 389,
+      "resource_id": "pdf-page-0389",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.ru-polilov-mysl-1996.unit-265.pdf-start-page",
+      "basis": "embedded_pdf_bbox_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 268,
+      "unit_key": "266",
+      "pdf_page": 390,
+      "resource_id": "pdf-page-0390",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.ru-polilov-mysl-1996.unit-266.pdf-start-page",
+      "basis": "embedded_pdf_bbox_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 269,
+      "unit_key": "267",
+      "pdf_page": 390,
+      "resource_id": "pdf-page-0390",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.ru-polilov-mysl-1996.unit-267.pdf-start-page",
+      "basis": "embedded_pdf_bbox_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 270,
+      "unit_key": "268",
+      "pdf_page": 390,
+      "resource_id": "pdf-page-0390",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.ru-polilov-mysl-1996.unit-268.pdf-start-page",
+      "basis": "embedded_pdf_bbox_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 271,
+      "unit_key": "269",
+      "pdf_page": 392,
+      "resource_id": "pdf-page-0392",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.ru-polilov-mysl-1996.unit-269.pdf-start-page",
+      "basis": "embedded_pdf_bbox_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 272,
+      "unit_key": "270",
+      "pdf_page": 394,
+      "resource_id": "pdf-page-0394",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.ru-polilov-mysl-1996.unit-270.pdf-start-page",
+      "basis": "embedded_pdf_bbox_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 273,
+      "unit_key": "271",
+      "pdf_page": 394,
+      "resource_id": "pdf-page-0394",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.ru-polilov-mysl-1996.unit-271.pdf-start-page",
+      "basis": "embedded_pdf_bbox_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 274,
+      "unit_key": "272",
+      "pdf_page": 395,
+      "resource_id": "pdf-page-0395",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.ru-polilov-mysl-1996.unit-272.pdf-start-page",
+      "basis": "embedded_pdf_bbox_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 275,
+      "unit_key": "273",
+      "pdf_page": 395,
+      "resource_id": "pdf-page-0395",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.ru-polilov-mysl-1996.unit-273.pdf-start-page",
+      "basis": "embedded_pdf_bbox_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 276,
+      "unit_key": "274",
+      "pdf_page": 395,
+      "resource_id": "pdf-page-0395",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.ru-polilov-mysl-1996.unit-274.pdf-start-page",
+      "basis": "embedded_pdf_bbox_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 277,
+      "unit_key": "275",
+      "pdf_page": 396,
+      "resource_id": "pdf-page-0396",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.ru-polilov-mysl-1996.unit-275.pdf-start-page",
+      "basis": "embedded_pdf_bbox_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 278,
+      "unit_key": "276",
+      "pdf_page": 396,
+      "resource_id": "pdf-page-0396",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.ru-polilov-mysl-1996.unit-276.pdf-start-page",
+      "basis": "embedded_pdf_bbox_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 279,
+      "unit_key": "277",
+      "pdf_page": 396,
+      "resource_id": "pdf-page-0396",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.ru-polilov-mysl-1996.unit-277.pdf-start-page",
+      "basis": "embedded_pdf_bbox_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 280,
+      "unit_key": "278",
+      "pdf_page": 396,
+      "resource_id": "pdf-page-0396",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.ru-polilov-mysl-1996.unit-278.pdf-start-page",
+      "basis": "embedded_pdf_bbox_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 281,
+      "unit_key": "279",
+      "pdf_page": 397,
+      "resource_id": "pdf-page-0397",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.ru-polilov-mysl-1996.unit-279.pdf-start-page",
+      "basis": "embedded_pdf_bbox_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 282,
+      "unit_key": "280",
+      "pdf_page": 397,
+      "resource_id": "pdf-page-0397",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.ru-polilov-mysl-1996.unit-280.pdf-start-page",
+      "basis": "embedded_pdf_bbox_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 283,
+      "unit_key": "281",
+      "pdf_page": 397,
+      "resource_id": "pdf-page-0397",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.ru-polilov-mysl-1996.unit-281.pdf-start-page",
+      "basis": "embedded_pdf_bbox_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 284,
+      "unit_key": "282",
+      "pdf_page": 397,
+      "resource_id": "pdf-page-0397",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.ru-polilov-mysl-1996.unit-282.pdf-start-page",
+      "basis": "embedded_pdf_bbox_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 285,
+      "unit_key": "283",
+      "pdf_page": 398,
+      "resource_id": "pdf-page-0398",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.ru-polilov-mysl-1996.unit-283.pdf-start-page",
+      "basis": "embedded_pdf_bbox_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 286,
+      "unit_key": "284",
+      "pdf_page": 398,
+      "resource_id": "pdf-page-0398",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.ru-polilov-mysl-1996.unit-284.pdf-start-page",
+      "basis": "embedded_pdf_bbox_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 287,
+      "unit_key": "285",
+      "pdf_page": 399,
+      "resource_id": "pdf-page-0399",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.ru-polilov-mysl-1996.unit-285.pdf-start-page",
+      "basis": "source_visible_gap_review",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 288,
+      "unit_key": "286",
+      "pdf_page": 399,
+      "resource_id": "pdf-page-0399",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.ru-polilov-mysl-1996.unit-286.pdf-start-page",
+      "basis": "embedded_pdf_bbox_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 289,
+      "unit_key": "287",
+      "pdf_page": 399,
+      "resource_id": "pdf-page-0399",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.ru-polilov-mysl-1996.unit-287.pdf-start-page",
+      "basis": "embedded_pdf_bbox_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 290,
+      "unit_key": "288",
+      "pdf_page": 399,
+      "resource_id": "pdf-page-0399",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.ru-polilov-mysl-1996.unit-288.pdf-start-page",
+      "basis": "embedded_pdf_bbox_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 291,
+      "unit_key": "289",
+      "pdf_page": 400,
+      "resource_id": "pdf-page-0400",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.ru-polilov-mysl-1996.unit-289.pdf-start-page",
+      "basis": "embedded_pdf_bbox_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 292,
+      "unit_key": "290",
+      "pdf_page": 400,
+      "resource_id": "pdf-page-0400",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.ru-polilov-mysl-1996.unit-290.pdf-start-page",
+      "basis": "embedded_pdf_bbox_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 293,
+      "unit_key": "291",
+      "pdf_page": 401,
+      "resource_id": "pdf-page-0401",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.ru-polilov-mysl-1996.unit-291.pdf-start-page",
+      "basis": "embedded_pdf_bbox_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 294,
+      "unit_key": "292",
+      "pdf_page": 401,
+      "resource_id": "pdf-page-0401",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.ru-polilov-mysl-1996.unit-292.pdf-start-page",
+      "basis": "embedded_pdf_bbox_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 295,
+      "unit_key": "293",
+      "pdf_page": 401,
+      "resource_id": "pdf-page-0401",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.ru-polilov-mysl-1996.unit-293.pdf-start-page",
+      "basis": "embedded_pdf_bbox_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 296,
+      "unit_key": "294",
+      "pdf_page": 402,
+      "resource_id": "pdf-page-0402",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.ru-polilov-mysl-1996.unit-294.pdf-start-page",
+      "basis": "embedded_pdf_bbox_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 297,
+      "unit_key": "295",
+      "pdf_page": 402,
+      "resource_id": "pdf-page-0402",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.ru-polilov-mysl-1996.unit-295.pdf-start-page",
+      "basis": "embedded_pdf_bbox_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 298,
+      "unit_key": "296",
+      "pdf_page": 404,
+      "resource_id": "pdf-page-0404",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.ru-polilov-mysl-1996.unit-296.pdf-start-page",
+      "basis": "embedded_pdf_bbox_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    }
+  ],
+  "numbering_asymmetries": [
+    {
+      "source_unit_key": "237a",
+      "source_map_ref": "ToS/source-witnesses/works/friedrich-nietzsche/jenseits-von-gut-und-boese/expressions/de-naumann-1886/editions/leipzig-c-g-naumann-1886/items/internet-archive-google-harvard-scan-pdf/structure/numbered-unit-page-map.json",
+      "source_map_sha256": "fb7c15005968bb5795388714ab2b725593f5f29f31cb29c71cece77f751b2b90",
+      "target_state": "corresponding_prose_present_without_repeated_unit_label",
+      "target_numbered_unit_materialized": false,
+      "exact_translation_alignment_claimed": false
+    }
+  ],
+  "summary": {
+    "integer_numbered_unit_count": 296,
+    "supplemental_numbered_units": [
+      "65a",
+      "73a"
+    ],
+    "source_only_nonmaterialized_numbered_units": [
+      "237a"
+    ],
+    "numbered_unit_count": 298,
+    "exact_start_page_candidates_materialized": 298,
+    "unresolved_unit_count": 0,
+    "start_pages_monotonic": true,
+    "all_anchor_statuses": [
+      "proposed"
+    ],
+    "human_review_performed": false
+  },
+  "provenance_ref": "ToS/source-witnesses/works/friedrich-nietzsche/jenseits-von-gut-und-boese/expressions/ru-polilov-mysl-1996/structure/mysl-1996-volume-2-operator-pdf/provenance.jsonl",
+  "provenance_event_ref": "tos.event.target-numbered-unit-page-map.friedrich-nietzsche.jenseits-von-gut-und-boese.ru-polilov-mysl-1996.2026-07-29",
+  "map_version": 1,
+  "supersedes_map_ref": null,
+  "authority_boundary": "model-reviewed target-visible numbered-label start-page candidates and proposed whole-page addresses for one exact translation scan only; no target text, exact line boundary, translation alignment, translation equivalence or quality, textual identity, semantics, rights clearance, or canon authority",
+  "does_not_establish": [
+    "target_text",
+    "exact_line_boundaries",
+    "exact_passage_end_boundaries",
+    "accepted_translation_text",
+    "translation_correspondence",
+    "translation_equivalence",
+    "translation_quality",
+    "textual_identity",
+    "semantics",
+    "rights_clearance",
+    "canon_promotion"
+  ]
+}

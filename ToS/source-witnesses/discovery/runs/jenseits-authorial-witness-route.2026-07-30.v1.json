@@ -1,0 +1,873 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/material-discovery-record.schema.json",
+  "schema_version": "tos_material_discovery_record_v1",
+  "discovery_id": "tos.discovery.jenseits-authorial-witness-route.2026-07-30",
+  "protocol_ref": "ToS/source-witnesses/discovery/DISCOVERY_PROTOCOL.md",
+  "target": {
+    "target_kind": "work",
+    "known_tos_refs": [
+      "tos.work.friedrich-nietzsche.jenseits-von-gut-und-boese"
+    ],
+    "description": "An exact, responsibility-aware route from region-specific preparatory material through D 18, correction copies, the 1886 first print, later authorial correction, and the Colli/Montinari critical address family.",
+    "required_properties": [
+      "current holding archive and exact shelfmark routes",
+      "notebook, loose-leaf, print-manuscript, proof, correction-copy, historical-print, and critical-text layers kept distinct",
+      "whole-notebook identity not flattened into whole-work membership",
+      "stable GSA, ORES, Mette, DFGA, HAAB, and eKGWB identifiers",
+      "digital access and rights evidence recorded separately",
+      "established genetic scholarship checked before fresh textual-genetic work",
+      "one exact future experiment route without admitting source text or semantics"
+    ],
+    "acceptable_substitutions": [
+      "an archive-supplied reproduction of one exact region after operator-approved acquisition and rights review",
+      "a recognized facsimile or critical edition with exact archival lineage and stronger textual authority",
+      "an independently held first-print object with clearer exact-object reuse evidence"
+    ],
+    "languages": [
+      "de",
+      "en"
+    ],
+    "formats": [
+      "archival metadata",
+      "library catalog",
+      "IIIF Presentation 2",
+      "manuscript facsimile",
+      "correction proof",
+      "critical-edition HTML",
+      "historical-critical commentary",
+      "research publication"
+    ],
+    "purpose_ref": "ToS/research-packets/foundation-laboratory-2026-07/JENSEITS_AUTHORIAL_WITNESS_ROUTE.md"
+  },
+  "channels": [
+    {
+      "channel_id": "channel-gsa-ores-jenseits-authorial-route",
+      "sequence": 1,
+      "channel_type": "specialized-scholarly-project",
+      "role": "originating-record",
+      "source_name": "Goethe- und Schiller-Archiv ORES and Kalliope",
+      "endpoint_url": "https://ores.klassik-stiftung.de/ords/f?p=401:2:::::P2_ID:75093",
+      "interface_type": "iiif",
+      "interface_version": "ORES archival records, Kalliope EAD SRU, and IIIF Presentation 2 manifests as served 2026-07-30",
+      "exact_query": "Direct ORES record and manifest reconciliation for GSA 71/26, 71/151-71/156, 71/231, and 71/232; exact Kalliope SRU query ead.unitid=\"GSA 71/26\"; no image-service requests",
+      "queried_at": "2026-07-30T15:05:00-06:00",
+      "elapsed_seconds": 1.740074,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.gsa-71-26-jenseits-d18",
+          "rank": 1,
+          "title_as_displayed": "Jenseits von Gut und Böse",
+          "result_url": "https://ores.klassik-stiftung.de/ords/f?p=401:2:::::P2_ID:75093",
+          "originating_record_url": "https://ores.klassik-stiftung.de/ords/f?p=401:2:::::P2_ID:75093",
+          "identifiers": [
+            {
+              "scheme": "GSA",
+              "value": "71/26"
+            },
+            {
+              "scheme": "ORES",
+              "value": "75093"
+            },
+            {
+              "scheme": "Mette",
+              "value": "D 18"
+            },
+            {
+              "scheme": "DFGA",
+              "value": "D-18"
+            },
+            {
+              "scheme": "Kalliope",
+              "value": "DE-2060-BE-71-75093"
+            }
+          ],
+          "available_formats": [
+            "archival metadata",
+            "Kalliope EAD parent and nine child records",
+            "IIIF Presentation 2 manifest",
+            "232 JPEG canvases"
+          ],
+          "declared_rights": {
+            "statement": "The exact ORES IIIF manifest declares the digitized object Public Domain; the GSA usage and publication-permission rules remain a separate layer.",
+            "scope": "digital-object",
+            "evidence_url": "https://ores.klassik-stiftung.de/ords/rest_api/iiif/digi_gsa/75093/manifest",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-view",
+          "machine_interface": "iiif",
+          "decision": "select",
+          "rationale": "Current official route to the 108-leaf print manuscript, mostly in Nietzsche's hand and partly in another hand. Its nine Kalliope child groups are archival navigation, not exact proof of every final content boundary.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-captured",
+            "format": null,
+            "sha256": null,
+            "reason": "Exact live records and manifest were inspected; no manuscript image or metadata body was persisted."
+          }
+        },
+        {
+          "result_id": "tos-discovery-result.gsa-jenseits-w-i-3-8-family",
+          "rank": 2,
+          "title_as_displayed": "Studien aus der Umwertungszeit, z.T. im \"Jenseits\" verwendet",
+          "result_url": "https://ores.klassik-stiftung.de/ords/f?p=401:2:::::P2_ID:75260",
+          "originating_record_url": "https://ores.klassik-stiftung.de/ords/f?p=401:2:::::P2_ID:75260",
+          "identifiers": [
+            {
+              "scheme": "GSA range",
+              "value": "71/151-71/156"
+            },
+            {
+              "scheme": "ORES set",
+              "value": "75260-75265"
+            },
+            {
+              "scheme": "Mette family",
+              "value": "W I 3-W I 8"
+            }
+          ],
+          "available_formats": [
+            "six archival records",
+            "six IIIF Presentation 2 manifests",
+            "706 total ORES canvases"
+          ],
+          "declared_rights": {
+            "statement": "Every exact checked IIIF manifest declares its digitized object Public Domain; general GSA publication rules remain separate.",
+            "scope": "digital-object",
+            "evidence_url": "https://ores.klassik-stiftung.de/ords/rest_api/iiif/digi_gsa/75260/manifest",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-view",
+          "machine_interface": "iiif",
+          "decision": "select",
+          "rationale": "Official preparatory family. The title says only that parts were used in Jenseits, so each future work-membership claim requires an exact region and source.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-captured",
+            "format": null,
+            "sha256": null,
+            "reason": "Only exact live record and manifest metadata were inspected."
+          }
+        },
+        {
+          "result_id": "tos-discovery-result.gsa-jenseits-mp-xv-xvi-region-route",
+          "rank": 3,
+          "title_as_displayed": "Mp XV and Mp XVI mixed loose-leaf region route",
+          "result_url": "https://ores.klassik-stiftung.de/ords/f?p=401:2:::::P2_ID:212281",
+          "originating_record_url": "https://ores.klassik-stiftung.de/ords/f?p=401:2:::::P2_ID:212281",
+          "identifiers": [
+            {
+              "scheme": "GSA set",
+              "value": "71/231, 71/232"
+            },
+            {
+              "scheme": "ORES set",
+              "value": "212281, 212283"
+            },
+            {
+              "scheme": "Mette family",
+              "value": "Mp XV, Mp XVI"
+            }
+          ],
+          "available_formats": [
+            "two archival records",
+            "IIIF Presentation 2 manifests",
+            "separate DFGA subdivision routes"
+          ],
+          "declared_rights": {
+            "statement": "The exact checked manifests declare their digitized objects Public Domain; general GSA publication rules remain separate.",
+            "scope": "digital-object",
+            "evidence_url": "https://ores.klassik-stiftung.de/ords/rest_api/iiif/digi_gsa/212283/manifest",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-view",
+          "machine_interface": "iiif",
+          "decision": "select",
+          "rationale": "Mixed loose-leaf complexes needed only for exact commentary-supported regions. The official titles do not authorize whole-complex Jenseits membership.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-captured",
+            "format": null,
+            "sha256": null,
+            "reason": "No source-bearing image or metadata body was persisted."
+          }
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-haab-jenseits-correction-copies",
+      "sequence": 2,
+      "channel_type": "university-catalog",
+      "role": "originating-record",
+      "source_name": "Herzogin Anna Amalia Bibliothek OPAC and digital collections",
+      "endpoint_url": "https://opac.lbs-weimar.gbv.de/DB=2/XMLPRS=N/PPN?PPN=30939905X",
+      "interface_type": "iiif",
+      "interface_version": "HAAB OPAC, electronic-reproduction record, IIIF manifests, and use rules as served 2026-07-30",
+      "exact_query": "Direct PPN reconciliation for 30939905X and 642420394; shelfmarks C 4619 and C 4615; EPN manifests 1216143412 and 1649470630; use and scan-publication rules",
+      "queried_at": "2026-07-30T15:05:05-06:00",
+      "elapsed_seconds": 1.093743,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.haab-c4619-jenseits-correction-copy",
+          "rank": 1,
+          "title_as_displayed": "Jenseits von Gut und Böse",
+          "result_url": "https://opac.lbs-weimar.gbv.de/DB=2/XMLPRS=N/PPN?PPN=30939905X",
+          "originating_record_url": "https://opac.lbs-weimar.gbv.de/DB=2/XMLPRS=N/PPN?PPN=30939905X",
+          "identifiers": [
+            {
+              "scheme": "HAAB shelfmark",
+              "value": "C 4619"
+            },
+            {
+              "scheme": "PPN",
+              "value": "30939905X"
+            },
+            {
+              "scheme": "EPN",
+              "value": "1216143412"
+            },
+            {
+              "scheme": "URN",
+              "value": "urn:nbn:de:gbv:32-1-10013792115"
+            }
+          ],
+          "available_formats": [
+            "library catalog metadata",
+            "digital viewer",
+            "IIIF Presentation manifest",
+            "285 JPEG canvases"
+          ],
+          "declared_rights": {
+            "statement": "The IIIF license field is the literal placeholder iiif_license; HAAB rules retain a separate consent route for reproduction and publication.",
+            "scope": "unknown",
+            "evidence_url": "https://www.klassik-stiftung.de/herzogin-anna-amalia-bibliothek/benutzung/benutzungsordnung/",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-view",
+          "machine_interface": "iiif",
+          "decision": "select",
+          "rationale": "Official route to Nietzsche's complete correction copy with provenance, marginalia, and marks. It can preserve authorial corrections later than the first print and must remain a separate witness.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-captured",
+            "format": null,
+            "sha256": null,
+            "reason": "Catalog and manifest metadata were inspected; no page image or source body was retained."
+          }
+        },
+        {
+          "result_id": "tos-discovery-result.haab-c4615-jenseits-correction-proof",
+          "rank": 2,
+          "title_as_displayed": "Jenseits von Gut und Böse : Korrekturabzug",
+          "result_url": "https://opac.lbs-weimar.gbv.de/DB=2/XMLPRS=N/PPN?PPN=642420394",
+          "originating_record_url": "https://opac.lbs-weimar.gbv.de/DB=2/XMLPRS=N/PPN?PPN=30939905X",
+          "identifiers": [
+            {
+              "scheme": "HAAB shelfmark",
+              "value": "C 4615"
+            },
+            {
+              "scheme": "PPN",
+              "value": "30939905X"
+            },
+            {
+              "scheme": "EPN",
+              "value": "1649470630"
+            },
+            {
+              "scheme": "URN",
+              "value": "urn:nbn:de:gbv:32-1-10025989559"
+            }
+          ],
+          "available_formats": [
+            "library catalog metadata",
+            "partial correction-proof digital viewer",
+            "IIIF Presentation manifest",
+            "232 JPEG canvases"
+          ],
+          "declared_rights": {
+            "statement": "The IIIF license field is the literal placeholder iiif_license; HAAB rules retain a separate consent route for reproduction and publication.",
+            "scope": "unknown",
+            "evidence_url": "https://www.klassik-stiftung.de/herzogin-anna-amalia-bibliothek/benutzung/kopieren-scannen-drucken/",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-view",
+          "machine_interface": "iiif",
+          "decision": "select",
+          "rationale": "Official partial proof witness with Nietzsche corrections and explicit missing sheets. It must not be described as a complete proof or collapsed into C 4619.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-captured",
+            "format": null,
+            "sha256": null,
+            "reason": "No proof image, correction text, or metadata body was retained."
+          }
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-nietzsche-source-jenseits-critical-route",
+      "sequence": 3,
+      "channel_type": "specialized-scholarly-project",
+      "role": "mixed",
+      "source_name": "Nietzsche Source DFGA and eKGWB",
+      "endpoint_url": "http://www.nietzschesource.org/DFGA/D-18",
+      "interface_type": "api",
+      "interface_version": "DFGA API and eKGWB static include as observed 2026-07-30; later same-day endpoint refresh timed out",
+      "exact_query": "GET /DFGAapi/api/fe/book/D-18 and /resources/scripts/static_html_include.php?book=%23eKGWB%2FJGB; two bounded eKGWB observations; no response body retained",
+      "queried_at": "2026-07-30T15:05:10-06:00",
+      "elapsed_seconds": 15.000945,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.dfga-jenseits-d18",
+          "rank": 1,
+          "title_as_displayed": "D-18",
+          "result_url": "http://www.nietzschesource.org/DFGA/D-18",
+          "originating_record_url": "https://ores.klassik-stiftung.de/ords/f?p=401:2:::::P2_ID:75093",
+          "identifiers": [
+            {
+              "scheme": "DFGA",
+              "value": "D-18"
+            },
+            {
+              "scheme": "GSA",
+              "value": "71/26"
+            },
+            {
+              "scheme": "Mette",
+              "value": "D 18"
+            }
+          ],
+          "available_formats": [
+            "DFGA book metadata",
+            "224 image records",
+            "240 logical identifiers",
+            "later same-day timed-out route"
+          ],
+          "declared_rights": {
+            "statement": "Nietzsche Source states CC BY-NC-ND 4.0 for its content and separately describes a DFGA agreement for non-commercial derivatives; GSA and HAAB rules are independent.",
+            "scope": "content",
+            "evidence_url": "https://doc.nietzschesource.org/en/rights",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "unknown",
+          "machine_interface": "api",
+          "decision": "select",
+          "rationale": "Same-day bounded metadata observed 116 folio sheets, 224 image records, 240 logical IDs, pagination 1-105, and isPublic false; the later 15-second timeout is retained as transport asymmetry rather than overwriting the earlier observation.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-captured",
+            "format": null,
+            "sha256": null,
+            "reason": "No API response body, manuscript image, or logical-address body was persisted."
+          }
+        },
+        {
+          "result_id": "tos-discovery-result.ekgwb-jenseits-whole-work",
+          "rank": 2,
+          "title_as_displayed": "Jenseits von Gut und Böse",
+          "result_url": "http://www.nietzschesource.org/eKGWB/JGB",
+          "originating_record_url": "https://doc.nietzschesource.org/en/ekgwb",
+          "identifiers": [
+            {
+              "scheme": "eKGWB",
+              "value": "JGB"
+            },
+            {
+              "scheme": "transient response SHA-256",
+              "value": "143d6330c94bf00b135f887eeed5f20f6caee6a98174746227af255583ae8b20"
+            }
+          ],
+          "available_formats": [
+            "critical-edition HTML",
+            "302 stable content IDs",
+            "unretained 624405-byte transient response"
+          ],
+          "declared_rights": {
+            "statement": "Nietzsche Source states CC BY-NC-ND 4.0; private non-commercial adaptation and sharing an adapted derivative are different rights questions.",
+            "scope": "content",
+            "evidence_url": "https://doc.nietzschesource.org/en/rights",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "unknown",
+          "machine_interface": "html",
+          "decision": "select",
+          "rationale": "Two byte-identical bounded observations exposed 302 stable comparison addresses. The body was not retained, no text was admitted, and the same counter's zero correction-popup observation is not generalized.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-captured",
+            "format": null,
+            "sha256": null,
+            "reason": "Only byte count, digest, identifier count, and address classes were retained."
+          }
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-erara-jenseits-first-print",
+      "sequence": 4,
+      "channel_type": "university-catalog",
+      "role": "digital-object-record",
+      "source_name": "Zentralbibliothek Zürich e-rara",
+      "endpoint_url": "https://www.e-rara.ch/zuz/content/titleinfo/20295083",
+      "interface_type": "iiif",
+      "interface_version": "e-rara title record, DOI, IIIF, OCR, and rights routes as observed 2026-07-30",
+      "exact_query": "Exact title, author, publisher, year, shelfmark, DOI, format, and rights reconciliation for e-rara record 20295083; no download",
+      "queried_at": "2026-07-30T15:05:30-06:00",
+      "elapsed_seconds": 0.86998,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.erara-jenseits-naumann-1886",
+          "rank": 1,
+          "title_as_displayed": "Jenseits von Gut und Böse",
+          "result_url": "https://www.e-rara.ch/zuz/content/titleinfo/20295083",
+          "originating_record_url": "https://www.e-rara.ch/zuz/content/titleinfo/20295083",
+          "identifiers": [
+            {
+              "scheme": "ZB Zürich shelfmark",
+              "value": "43.273"
+            },
+            {
+              "scheme": "DOI",
+              "value": "10.3931/e-rara-73194"
+            }
+          ],
+          "available_formats": [
+            "official-library metadata",
+            "IIIF",
+            "OCR",
+            "ALTO",
+            "download route"
+          ],
+          "declared_rights": {
+            "statement": "The exact record declares Public Domain Mark and supplies citation guidance.",
+            "scope": "digital-object",
+            "evidence_url": "https://www.e-rara.ch/zuz/content/titleinfo/20295083",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-download",
+          "machine_interface": "iiif",
+          "decision": "select",
+          "rationale": "Independent official-library route to a Naumann 1886 first print. ToS already has an exact local first-print package, so this remains a remote alternative rather than a duplicate Item or accepted OCR source.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-captured",
+            "format": null,
+            "sha256": null,
+            "reason": "No duplicate first-print object, OCR, ALTO, or metadata body was acquired."
+          }
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-established-jenseits-genesis",
+      "sequence": 5,
+      "channel_type": "publisher-catalog",
+      "role": "scholarly-index",
+      "source_name": "De Gruyter and Heidelberg Academy historical-critical Jenseits scholarship",
+      "endpoint_url": "https://doi.org/10.1515/9783110298901",
+      "interface_type": "web",
+      "interface_version": "Official DOI, publisher, and HAdW digital records as served 2026-07-30",
+      "exact_query": "Exact work-genesis, commentary, and KGW IX 14 records for Röllin 2013, Sommer 2016, and the 2023 bibliographic form of Nachbericht zur neunten Abteilung",
+      "queried_at": "2026-07-30T15:05:35-06:00",
+      "elapsed_seconds": 1.089566,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.roellin-jenseits-genesis-2013",
+          "rank": 1,
+          "title_as_displayed": "Ein Fädchen um’s Druckmanuskript und fertig? Zur Werkgenese von Jenseits von Gut und Böse",
+          "result_url": "https://doi.org/10.1515/9783110298901",
+          "originating_record_url": "https://www.degruyterbrill.com/document/doi/10.1515/9783110298901/html",
+          "identifiers": [
+            {
+              "scheme": "DOI",
+              "value": "10.1515/9783110298901"
+            }
+          ],
+          "available_formats": [
+            "publisher metadata",
+            "scholarly book chapter"
+          ],
+          "declared_rights": {
+            "statement": null,
+            "scope": "unknown",
+            "evidence_url": "https://www.degruyterbrill.com/document/doi/10.1515/9783110298901/html",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "subscription",
+          "machine_interface": "html",
+          "decision": "select",
+          "rationale": "Principal established genetic study for D 18 assembly, the recoverable 308-aphorism state, renumbering, reordering, and late additions.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-captured",
+            "format": null,
+            "sha256": null,
+            "reason": "No restricted chapter body was retained."
+          }
+        },
+        {
+          "result_id": "tos-discovery-result.hadw-sommer-jenseits-commentary-2016",
+          "rank": 2,
+          "title_as_displayed": "Kommentar zu Nietzsches Jenseits von Gut und Böse",
+          "result_url": "https://doi.org/10.11588/diglit.69929",
+          "originating_record_url": "https://digi.hadw-bw.de/view/nietzsche_kom5_1",
+          "identifiers": [
+            {
+              "scheme": "DOI",
+              "value": "10.11588/diglit.69929"
+            }
+          ],
+          "available_formats": [
+            "open historical-critical commentary",
+            "page-addressable digital edition"
+          ],
+          "declared_rights": {
+            "statement": "The HAdW record supplies open online access; exact reuse conditions remain source-specific.",
+            "scope": "content",
+            "evidence_url": "https://digi.hadw-bw.de/view/nietzsche_kom5_1",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-view",
+          "machine_interface": "html",
+          "decision": "select",
+          "rationale": "Established bridge across D 18 composition, 1886 production, C 4619 corrections, later numbering history, and exact dictated-sheet regions.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-captured",
+            "format": null,
+            "sha256": null,
+            "reason": "Only exact source-return routes and bounded claims were retained."
+          }
+        },
+        {
+          "result_id": "tos-discovery-result.kgw-ix14-nachbericht-2023",
+          "rank": 3,
+          "title_as_displayed": "Nachbericht zur neunten Abteilung",
+          "result_url": "https://doi.org/10.1515/9783111022284",
+          "originating_record_url": "https://www.degruyter.com/document/doi/10.1515/9783111022284/html",
+          "identifiers": [
+            {
+              "scheme": "DOI",
+              "value": "10.1515/9783111022284"
+            },
+            {
+              "scheme": "KGW",
+              "value": "IX 14"
+            }
+          ],
+          "available_formats": [
+            "publisher metadata",
+            "critical-edition Nachbericht"
+          ],
+          "declared_rights": {
+            "statement": null,
+            "scope": "unknown",
+            "evidence_url": "https://www.degruyter.com/document/doi/10.1515/9783111022284/html",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "subscription",
+          "machine_interface": "html",
+          "decision": "select",
+          "rationale": "Current established control for manuscript descriptions, cross-references, corrigenda, and concordances; it is not imported as source text.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-captured",
+            "format": null,
+            "sha256": null,
+            "reason": "No restricted critical-edition body was retained."
+          }
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-fresh-jenseits-textual-genetics",
+      "sequence": 6,
+      "channel_type": "publisher-catalog",
+      "role": "mixed",
+      "source_name": "Current manuscript chronology and textual-genetic Jenseits research",
+      "endpoint_url": "https://doi.org/10.1515/nietzstu-2024-0001",
+      "interface_type": "web",
+      "interface_version": "Official DOI, publisher, Crossref, and university publication records as served 2026-07-30",
+      "exact_query": "Current direct research for Jenseits manuscript chronology and passage-level textual genetics, prioritized by publication date and exact manuscript addresses",
+      "queried_at": "2026-07-30T15:05:40-06:00",
+      "elapsed_seconds": 1.026968,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.roellin-manuscript-chronology-2024",
+          "rank": 1,
+          "title_as_displayed": "Chronologie der Manuskripte 1885–89. Nachtrag zu KGW IX",
+          "result_url": "https://doi.org/10.1515/nietzstu-2024-0001",
+          "originating_record_url": "https://doi.org/10.1515/nietzstu-2024-0001",
+          "identifiers": [
+            {
+              "scheme": "DOI",
+              "value": "10.1515/nietzstu-2024-0001"
+            }
+          ],
+          "available_formats": [
+            "journal metadata",
+            "chronology article"
+          ],
+          "declared_rights": {
+            "statement": null,
+            "scope": "unknown",
+            "evidence_url": "https://doi.org/10.1515/nietzstu-2024-0001",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "subscription",
+          "machine_interface": "html",
+          "decision": "select",
+          "rationale": "Fresh chronology control for 1885-1889 manuscript dating. It does not change D 18 identity without an exact passage-level argument.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-captured",
+            "format": null,
+            "sha256": null,
+            "reason": "No article body was retained."
+          }
+        },
+        {
+          "result_id": "tos-discovery-result.pichler-jenseits-section-22-2025",
+          "rank": 2,
+          "title_as_displayed": "Genese – Kontext – These: Nietzsches Nachlass und das Potential textgenetischer Lektüren für die philosophiehistorische Forschung",
+          "result_url": "https://doi.org/10.24894/978-3-7965-5300-4",
+          "originating_record_url": "https://ucrisportal.univie.ac.at/en/publications/genese-kontext-these-nietzsches-nachlass-und-das-potential-textge/",
+          "identifiers": [
+            {
+              "scheme": "DOI",
+              "value": "10.24894/978-3-7965-5300-4"
+            },
+            {
+              "scheme": "ISBN ebook",
+              "value": "978-3-7965-5300-4"
+            }
+          ],
+          "available_formats": [
+            "publisher metadata",
+            "university publication record",
+            "2025 book chapter"
+          ],
+          "declared_rights": {
+            "statement": null,
+            "scope": "unknown",
+            "evidence_url": "https://ucrisportal.univie.ac.at/en/publications/genese-kontext-these-nietzsches-nachlass-und-das-potential-textge/",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "subscription",
+          "machine_interface": "html",
+          "decision": "select",
+          "rationale": "Freshest direct method for ToS: a region-specific JGB §22 comparison across W I 7 leaves 44v-45r, D 18 leaf 27r, and publication, while separating textual genesis from philosophical validity.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-captured",
+            "format": null,
+            "sha256": null,
+            "reason": "No chapter body was retained; only exact bibliographic and route evidence was recorded."
+          }
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-general-web-jenseits-authorial-route",
+      "sequence": 7,
+      "channel_type": "general-web-search",
+      "role": "lead-only",
+      "source_name": "General web search",
+      "endpoint_url": "https://www.google.com/search?q=%22Jenseits+von+Gut+und+B%C3%B6se%22+Druckmanuskript+2026",
+      "interface_type": "web",
+      "interface_version": "Search results as observed 2026-07-30",
+      "exact_query": "\"Jenseits von Gut und Böse\" Druckmanuskript 2026; \"Jenseits von Gut und Böse\" textgenetisch 2026; all useful leads reopened at archive, library, DOI, publisher, or institutional records",
+      "queried_at": "2026-07-30T15:05:45-06:00",
+      "elapsed_seconds": 0.370468,
+      "result_order_preserved": true,
+      "results": []
+    }
+  ],
+  "channel_comparison": [
+    {
+      "channel_id": "channel-gsa-ores-jenseits-authorial-route",
+      "completeness": "strong",
+      "metadata_precision": "strong",
+      "rights_clarity": "limited",
+      "machine_interface_quality": "strong",
+      "human_minutes": 31,
+      "machine_seconds": 1.740074,
+      "notes": "Authoritative archive, shelfmark, hand, extent, child-record, and exact IIIF routes; object-level Public Domain labels and general publication rules remain separate."
+    },
+    {
+      "channel_id": "channel-haab-jenseits-correction-copies",
+      "completeness": "strong",
+      "metadata_precision": "strong",
+      "rights_clarity": "limited",
+      "machine_interface_quality": "strong",
+      "human_minutes": 24,
+      "machine_seconds": 1.093743,
+      "notes": "Exact physical and digital routes to a complete correction copy and partial proof; IIIF placeholder licensing is not rights evidence."
+    },
+    {
+      "channel_id": "channel-nietzsche-source-jenseits-critical-route",
+      "completeness": "adequate",
+      "metadata_precision": "strong",
+      "rights_clarity": "limited",
+      "machine_interface_quality": "limited",
+      "human_minutes": 18,
+      "machine_seconds": 15.000945,
+      "notes": "Useful codicological and stable critical address route; earlier same-day bounded observations coexist with the later timeout and no body was retained."
+    },
+    {
+      "channel_id": "channel-erara-jenseits-first-print",
+      "completeness": "adequate",
+      "metadata_precision": "strong",
+      "rights_clarity": "strong",
+      "machine_interface_quality": "strong",
+      "human_minutes": 8,
+      "machine_seconds": 0.86998,
+      "notes": "Independent official-library first-print alternative with clear object-level Public Domain Mark evidence; no duplicate acquisition."
+    },
+    {
+      "channel_id": "channel-established-jenseits-genesis",
+      "completeness": "strong",
+      "metadata_precision": "strong",
+      "rights_clarity": "limited",
+      "machine_interface_quality": "adequate",
+      "human_minutes": 29,
+      "machine_seconds": 1.089566,
+      "notes": "Established work-genesis, historical-critical commentary, and manuscript-control baseline."
+    },
+    {
+      "channel_id": "channel-fresh-jenseits-textual-genetics",
+      "completeness": "strong",
+      "metadata_precision": "strong",
+      "rights_clarity": "limited",
+      "machine_interface_quality": "adequate",
+      "human_minutes": 22,
+      "machine_seconds": 1.026968,
+      "notes": "Current chronology control and the freshest exact region-level method, yielding a deferred W I 7 -> D 18 -> JGB §22 experiment route."
+    },
+    {
+      "channel_id": "channel-general-web-jenseits-authorial-route",
+      "completeness": "limited",
+      "metadata_precision": "poor",
+      "rights_clarity": "poor",
+      "machine_interface_quality": "limited",
+      "human_minutes": 5,
+      "machine_seconds": 0.370468,
+      "notes": "Used last for leads and dated freshness checks; no search-result claim was imported without an originating record."
+    }
+  ],
+  "selected_result_ids": [
+    "tos-discovery-result.gsa-71-26-jenseits-d18",
+    "tos-discovery-result.gsa-jenseits-w-i-3-8-family",
+    "tos-discovery-result.gsa-jenseits-mp-xv-xvi-region-route",
+    "tos-discovery-result.haab-c4619-jenseits-correction-copy",
+    "tos-discovery-result.haab-c4615-jenseits-correction-proof",
+    "tos-discovery-result.dfga-jenseits-d18",
+    "tos-discovery-result.ekgwb-jenseits-whole-work",
+    "tos-discovery-result.erara-jenseits-naumann-1886",
+    "tos-discovery-result.roellin-jenseits-genesis-2013",
+    "tos-discovery-result.hadw-sommer-jenseits-commentary-2016",
+    "tos-discovery-result.kgw-ix14-nachbericht-2023",
+    "tos-discovery-result.roellin-manuscript-chronology-2024",
+    "tos-discovery-result.pichler-jenseits-section-22-2025"
+  ],
+  "rejected_result_ids": [],
+  "rights_inference_from_availability_prohibited": true,
+  "general_web_search_is_last_resort": true,
+  "technical_access_bypass_used": false,
+  "maker": {
+    "maker_type": "model",
+    "agent_ref": "model:codex"
+  },
+  "started_at": "2026-07-30T13:00:00-06:00",
+  "ended_at": "2026-07-30T15:06:00-06:00",
+  "status": "executed",
+  "provenance_event_refs": [
+    "tos.event.discovery.jenseits.authorial-witness-route.2026-07-30"
+  ],
+  "record_version": 1,
+  "supersedes_discovery_ref": null
+}

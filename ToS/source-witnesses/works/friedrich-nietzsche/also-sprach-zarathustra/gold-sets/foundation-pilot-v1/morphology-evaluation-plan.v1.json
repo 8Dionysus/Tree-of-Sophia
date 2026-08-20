@@ -1,0 +1,149 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/morphology-evaluation-plan.schema.json",
+  "schema_version": "tos_source_gated_morphology_evaluation_plan_v1",
+  "plan_id": "morphology-evaluation-plan:zarathustra-dta-first-editions-parts-1-4-v1",
+  "experiment_id": "tos-historical-german-morphology-v1",
+  "plan_kind": "historical-german-morphology",
+  "status": "ready-for-a-census",
+  "frozen_before_variant_outputs": true,
+  "research_question": "What direct, explainable morphology candidate coverage does DWDSmor Open 0.18.0 provide over every exact form in the four-part DTA Zarathustra lexical observation, how does type coverage differ from token-weighted coverage, and which preserved unknown or ambiguous residues justify a later contextual comparison?",
+  "source_lexical_index": {
+    "work_ref": "tos.work.friedrich-nietzsche.also-sprach-zarathustra",
+    "index_plan_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/lexical-indexes/dta-first-editions-parts-1-4-v1/index-plan.v1.json",
+    "index_plan_sha256": "cd942ad6d08407b014acff95ddf1e2e466e7147eaa5d7f099809fe1d06aa0112",
+    "tracked_projection_ref": "ToS/derived-exports/lexical-search/zarathustra-dta-first-editions-parts-1-4-v1.min.json",
+    "tracked_projection_sha256": "20a7e96bb09f2e00705a2ab2f6e5ef38573010918b1f59c4afa53c97706621c1",
+    "local_database_relative_path": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/local-content/lexical-search/zarathustra-dta-first-editions-parts-1-4-v1.sqlite3",
+    "local_database_sha256": "c2912a9f481205f0de9a1a0242b26a3419e3d82d44163ab91a2a2ab16ced5736",
+    "source_item_count": 4,
+    "exact_form_row_count": 11352,
+    "normalized_form_hash_count": 10113,
+    "token_occurrence_count": 86287,
+    "source_text_accepted": false,
+    "rights_cleared": false
+  },
+  "stage_order": [
+    "identity-control",
+    "a-whole-vocabulary-census",
+    "freeze-contextual-disagreement-sample-if-triggered",
+    "a-b-c-contextual-comparison-if-admitted"
+  ],
+  "a_census": {
+    "status": "materialization-admitted",
+    "question": "How many exact form types and token-weighted occurrences receive zero, one, or multiple explainable DWDSmor analyses without altering the historical surface?",
+    "input_unit": "one-row-per-exact-form",
+    "selection": "all-exact-form-rows",
+    "ordering": "exact-form-sha256-then-exact-form-utf8",
+    "exact_surface_mutated": false,
+    "normalization_before_analysis": false,
+    "identity_control": {
+      "method": "return-exact-surface-only",
+      "lemma_claim": false
+    },
+    "candidate": {
+      "label": "A",
+      "artifact": "DWDSmor Open",
+      "version": "0.18.0",
+      "source_commit": "f97b92ce2a5d6db8750afbdb222eb39470e57cf6",
+      "wheel_sha256": "395a15e15286b0c191b42355b6e3c2a43c8959621ccf3563336c2e30399a2973",
+      "execution_posture": "proposal-only-preserve-all-analyses-and-unknowns"
+    },
+    "local_packet": {
+      "relative_path": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/local-content/morphology/zarathustra-dta-exact-form-census-v1.jsonl",
+      "format": "jsonl",
+      "schema_version": "tos_morphology_input_row_v1",
+      "required_fields": [
+        "schema_version",
+        "form_key",
+        "exact_form",
+        "exact_form_sha256",
+        "normalized_form_sha256",
+        "occurrence_count"
+      ],
+      "source_bearing": true,
+      "visibility": "gitignored-local-only"
+    },
+    "tracked_receipt_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/morphology-input-receipt.v1.json",
+    "metrics": [
+      "exact-input-preservation",
+      "form-type-coverage",
+      "token-weighted-coverage",
+      "unknown-form-rate",
+      "analysis-count-distribution",
+      "provider-category-distribution",
+      "root-analysis-availability",
+      "repeat-determinism",
+      "wall-and-cpu-time",
+      "peak-rss",
+      "installed-and-output-bytes"
+    ],
+    "quality_claims_allowed": false
+  },
+  "abc_followup": {
+    "status": "blocked-not-materialized",
+    "trigger": "reviewed-a-census-residue-or-concrete-source-translation-sign-retrieval-question",
+    "selection_after_a_census_allowed": true,
+    "selection_after_b_or_c_output_forbidden": true,
+    "maximum_occurrences": 30,
+    "minimum_occurrences_for_narrow_question": 1,
+    "same_occurrences_across_variants": true,
+    "context_required": true,
+    "strata": [
+      "common-inflection",
+      "historical-spelling",
+      "contextual-ambiguity",
+      "compound-truncation-or-coinage",
+      "name-foreign-or-citation",
+      "tokenization-or-page-boundary-hazard"
+    ],
+    "variants": [
+      {
+        "label": "A",
+        "method": "dwdsmor-open-0.18.0-direct-surface"
+      },
+      {
+        "label": "B",
+        "method": "de-zdl-lg-4.0.0-direct-unchanged-context"
+      },
+      {
+        "label": "C",
+        "method": "dtaec-type-normalizer-bf13bc3-then-exact-b"
+      }
+    ],
+    "human_work_scheduled": false,
+    "competent_gold_required_for_accuracy": true
+  },
+  "rights_posture": {
+    "content_visibility": "local_only",
+    "network_allowed": false,
+    "public_text_authorized": false,
+    "future_site_route": "blocked",
+    "a_license_status": "verified-local-gpl-experiment",
+    "b_license_status": "artifact-level-review-required",
+    "c_license_status": "research-only-rights-ambiguity"
+  },
+  "human_authority": {
+    "current_operator_scope": [
+      "source-page-identity",
+      "visible-correspondence",
+      "candidate-provenance",
+      "russian-explanation-usefulness"
+    ],
+    "german_linguistic_acceptance_scope": "declared-german-competence-required",
+    "machine_agreement_is_gold": false,
+    "missing_competent_review_effect": "retain-machine-triangulated-candidate-or-unresolved"
+  },
+  "semantic_boundary": {
+    "creates_accepted_source": false,
+    "creates_lemma": false,
+    "creates_lexeme": false,
+    "creates_sign": false,
+    "creates_concept": false,
+    "creates_translation": false,
+    "creates_claim": false,
+    "creates_relation": false,
+    "creates_graph_effect": false,
+    "opens_human_backlog": false
+  },
+  "authority_boundary": "source-gated private input admission and morphology-candidate experiment design only; no accepted German, source correction, lemma, lexeme, sign, concept, translation, claim, relation, graph, canon, rights clearance, publication, or human backlog"
+}

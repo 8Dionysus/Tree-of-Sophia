@@ -1,0 +1,90 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/access-request.schema.json",
+  "schema_version": "tos_access_request_v1",
+  "request_id": "tos.access-request.antonovsky-1907-rsl-neb-replacement",
+  "material": {
+    "title": "Фридрих Ницше, Так говорил Заратустра",
+    "responsibility": "перевод с немецкого Ю. М. Антоновского",
+    "edition_or_resource": "3-е изд.; Санкт-Петербург: тип. Ф. Вайсберга и П. Гершунина, 1907; удалённая или заменённая карточка НЭБ 000199_000009_003693382; запись РНБ 004843723 сообщает шифр РГБ V 106/216",
+    "requested_portion": "Сначала просим подтвердить, является ли сообщённый в поле 899 записи РНБ шифр РГБ V 106/216 действующим шифром именно этого издания, указать подразделение или фонд хранения, текущий идентификатор записи РГБ и связь с удалённым или заменённым объектом НЭБ 000199_000009_003693382. Также просим сообщить, существует ли цифровой объект и каковы законные условия просмотра и изготовления исследовательской копии. Если копирование допустимо, сначала просим титульный лист, оборот титула, все предварительные страницы, оглавление и последние страницы с выходными сведениями; затем, если возможно и законно, полную исследовательскую цифровую копию только для локальной постраничной колляции без публикации исходного файла.",
+    "identifiers": [
+      {"scheme": "RuNEB record", "value": "000199_000009_003693382"},
+      {"scheme": "RNL system number", "value": "004843723"},
+      {"scheme": "RNL RUSMARC 001", "value": "v19\\rc\\1717109"},
+      {"scheme": "RSL shelfmark reported by RNL", "value": "V 106/216"}
+    ],
+    "tos_refs": [
+      "tos.work.friedrich-nietzsche.also-sprach-zarathustra",
+      "tos.expression.friedrich-nietzsche.also-sprach-zarathustra.ru-antonovsky-1907",
+      "tos.edition.friedrich-nietzsche.also-sprach-zarathustra.saint-petersburg-vaisberg-gershunin-typography-1907-third"
+    ],
+    "discovery_refs": [
+      "ToS/source-witnesses/discovery/runs/antonovsky-1907-runeb-edition.2026-08-01.v1.json",
+      "ToS/source-witnesses/discovery/runs/antonovsky-1907-rnl-primo-current-holding.2026-08-10.v3.json",
+      "ToS/source-witnesses/discovery/runs/antonovsky-1907-rnl-reported-rsl-holding.2026-08-10.v4.json"
+    ]
+  },
+  "rights_holder_or_institution": {
+    "name": "Российская государственная библиотека — оператор Национальной электронной библиотеки",
+    "role": "library",
+    "identification_evidence_urls": [
+      "https://rusneb.ru/catalog/000199_000009_003693382/",
+      "https://rusneb.ru/faq/",
+      "https://rusneb.ru/user-agreement/",
+      "https://webservices.nlr.ru/util/?method=recordFormat&vid=07NLR_VU1&sysid=004843723&format=001&base=NLR01",
+      "https://nlr.ru/rusmarc-texts/rusmarc/mf_det8.php",
+      "https://www.loc.gov/marc/marbi/2002/2002-15.html",
+      "https://www.rsl.ru/elektronnye-resursy/elektronnyy-katalog"
+    ],
+    "identity_status": "identified"
+  },
+  "contact_route": {
+    "channel_type": "institutional-form",
+    "public_institutional_url": "https://rusneb.ru/feedback/",
+    "refreshed_at": "2026-08-10T06:34:03-06:00",
+    "personal_contact_committed": false
+  },
+  "project_description_ref": "README.md",
+  "research_purpose": "Подтвердить текущую источник-видимую идентичность и физическую координату третьего издания 1907 года в фондах РГБ, проверить связь сообщённого РНБ шифра V 106/216 с бывшим объектом НЭБ и, при допустимости, получить локальное свидетельство для OCR, структурного анализа и постраничной текстологической колляции, не публикуя и не передавая исходный файл.",
+  "requested_format": "Сначала институциональный ответ с действующим идентификатором записи, подтверждённым шифром V 106/216, подразделением хранения и связью с объектом НЭБ; при наличии и разрешении — ключевые библиографические страницы, затем полный PDF либо TIFF/JPEG в исходном порядке и разрешении после отдельного согласования условий.",
+  "requested_permissions": {
+    "local_access": "requested",
+    "ocr_or_transcription": "requested",
+    "indexing": "requested",
+    "embeddings": "requested",
+    "quotation": "requested",
+    "metadata_publication": "requested",
+    "derivative_publication": "not-requested",
+    "server_processing": "not-requested",
+    "source_redistribution": "not-requested"
+  },
+  "local_storage_conditions": {
+    "access_controlled": true,
+    "source_payload_gitignored": true,
+    "location_class": "operator-controlled-local-ToS-storage",
+    "retention_posture": "Хранить полученные исходные файлы только локально и в пределах письменно сообщённых учреждением условий; не публиковать, не загружать на сервер и не передавать их; поддерживать удаление при отзыве, истечении разрешения или соответствующем условии учреждения.",
+    "removal_supported": true
+  },
+  "non_redistribution_without_permission": true,
+  "technical_access_bypass_used": false,
+  "access_status": "rights-unknown",
+  "request_status": "draft-not-sent",
+  "human_send_approval": false,
+  "sent_at": null,
+  "response": {
+    "state": "none",
+    "received_at": null,
+    "permission_expires_at": null,
+    "conditions": [],
+    "safe_evidence_refs": []
+  },
+  "private_correspondence_ref": null,
+  "redacted_public_receipt_ref": null,
+  "personal_or_confidential_data_committed": false,
+  "rights_record_refs": [],
+  "provenance_event_refs": [
+    "tos.event.access-request-draft.antonovsky-1907-rsl-neb-replacement.2026-08-01",
+    "tos.event.access-request-scope-reconciliation.antonovsky-1907-rnl-reported-rsl-holding.2026-08-10"
+  ],
+  "record_version": 2
+}

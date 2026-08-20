@@ -23,7 +23,7 @@ Semantic growth begins on this floor. It is not collapsed into it.
 | Posture | Meaning | Examples |
 | --- | --- | --- |
 | immutable | the recorded value never changes; a change creates another object/event | acquired file bytes, SHA-256 digest, signed receipt, review event |
-| persistent identity | the identifier remains while correctable descriptions accumulate | work, expression, edition, item, passage, annotation, claim |
+| persistent identity | the identifier remains while correctable descriptions accumulate | work, expression, edition, item, text layer, passage, occurrence, lexeme, sign, concept, relation, annotation, claim |
 | versioned assertion | content may be superseded without erasing lineage | title attribution, date, lemma, etymology, translation, concept boundary, relation |
 | derived projection | safely rebuildable from stronger tracked surfaces | search index, vector index, graph store, KAG export, visualization |
 
@@ -41,11 +41,61 @@ ToS uses an LRM-shaped local profile without claiming full IFLA conformance.
 | `edition` | a published or edited manifestation that embodies one or more expressions | one acquired scan or download |
 | `item` | one physical or digital copy/container as acquired | its metadata record or every file extracted from it |
 | `file` | one immutable byte sequence with media type and digest | the work itself |
+| `text-layer` | one immutable, role-bearing textual representation of an exact source scope | accepted text, the source file itself, or a silently mutable OCR field |
 | `collection` | an aggregate publication or container holding multiple works/expressions | a single contained work |
 
 Authorship, translation responsibility, edition identity, date, place, and
 container membership are claims with evidence status. A filename may seed a
 lead but cannot settle any of them.
+
+The identity ladder is both structurally declared and claim-addressable. A
+Work's Expressions, an Expression's Editions, and an Edition's Items remain
+visible in their owner records, while `has_expression`, `embodied_by`, and
+`exemplified_by` claim packets carry the relation's own ID, exact evidence,
+maker, provenance, visibility, and review state. The two representations must
+close exactly; neither is allowed to drift into a second truth. These are
+bibliographic topology predicates. `embodied_by` does not entail that two
+texts are identical, author-final, critical, accepted, or semantically
+equivalent.
+
+The ladder does not absorb every source kind. A physical artifact has its own
+`tos.artifact.*` identity, independent of the catalog that currently describes
+it. A documentary, critical, or synoptic reconstruction across witnesses has
+its own `tos.composite.*` identity, independent of the provider that currently
+renders it. Artifact, catalog record, member transcription, composite,
+editorial coordinate, translation, and interpretation remain separate. Stable
+membership or a stable Q-number supports return and comparison; it does not
+make the reconstruction an ancient original or its readings semantically
+fixed.
+
+Responsibility claims retain their role-specific subject and Agent object:
+Work author, Expression translator, Edition editor, paratext author, designer,
+publisher, copyist, corrector, and rights holder are not interchangeable
+variants of a generic creator field. A role not yet admitted by the governing
+schema and validator remains an explicit research need rather than an
+untyped edge.
+
+## Chronology law
+
+A Work has no single self-evident date. Composition, inscription, dispatch,
+printing, title-page year, private issue, public sale, posthumous editing,
+reception, preservation, and digitization are different temporal claims.
+Ordering a corpus therefore requires a named facet and keeps the claim that
+supplied it source-returnable.
+
+The first bounded source profile is `first_publication_chronology`. Its object
+retains a Gregorian interval, the meaning of its boundaries, one event or an
+ordered sequence of stages, availability posture, precision, and an explicit
+ordering warning. A staged Work may have different earliest-publication and
+sequence-completion boundaries. A private completion does not become public
+availability, and a posthumous first print does not become authorial
+completion or an author-final text.
+
+`chronology_claim_refs` link a Work to these evidence-bearing packets without
+putting a mutable year into identity. Derived timelines may sort by interval
+start or end only when they declare the chosen facet and uncertainty law. The
+current first-publication profile creates no composition chronology, universal
+canonical order, human acceptance, semantic relation, or canon.
 
 ## Identifier law
 
@@ -56,8 +106,9 @@ tos.<class>.<stable-local-name>
 ```
 
 where `<class>` is one of `agent`, `work`, `expression`, `edition`,
-`collection`, `item`, `file`, `passage`, `region`, `anchor`, `occurrence`,
-`annotation`, `claim`, `rights`, `review`, or `event`.
+`collection`, `item`, `artifact`, `composite`, `file`, `text-layer`, `passage`, `region`, `anchor`, `occurrence`,
+`lexeme`, `annotation`, `sign`, `concept`, `claim`, `relation`, `rights`,
+`review`, or `event`.
 
 Rules:
 
@@ -91,6 +142,24 @@ The preferred bundle contains:
 If OCR changes, the visual region and old selector remain. A new text anchor
 may supersede the old one while preserving the relationship.
 
+An anchor's persistent identity, the immutable target file, the exact
+representation state, and the selector are separate. Text offsets count
+Unicode code points in logical order and use a half-open `[start,end)`
+interval; byte offsets use a different selector type. Every text selector
+declares the normalization and digest of the representation it addresses.
+Independent alternatives and an ordered refinement chain are never encoded as
+one ambiguous list. Mechanical resolution and human source-visible review are
+separate states.
+
+Copied quote text follows the rights and visibility of the exact layer it
+reproduces. A tracked nonpublic anchor therefore carries locators or a
+digest-bound receipt for an ignored private selector, not copied source text.
+A digest-only receipt is inspectable provenance but is not itself resolvable.
+The additive `tos_source_anchor_v2` contract exercises this law on public
+synthetic fixtures only. Existing `tos_source_anchor_v1` records retain their
+historical meaning until one concrete source question justifies a bounded
+successor; no bulk reinterpretation is permitted.
+
 ## Text-bearing layers
 
 The following layers never overwrite one another:
@@ -109,6 +178,115 @@ The following layers never overwrite one another:
 Unicode NFC belongs only in an explicitly normalized layer. Historical
 spelling, typography, punctuation, whitespace, glyph uncertainty, and OCR
 errors remain visible in source-near layers.
+
+The additive `tos_source_text_layer_v1` contract makes this separation
+first-class. Each layer binds one exact Work/Expression/Edition/Item/File
+scope and `tos_source_anchor_v2`, an immutable UTF-8 artifact and digest, its
+role, language, Unicode form, storage and publication posture, explicit
+digest-bound rights and publication-authority refs, and the exact
+predecessor record/content digests where derivation exists. Explicit
+code-point edit operations are half-open and independently replayable; a
+withheld operation stream needs its own governed receipt. Normalization is a
+successor, never a rewrite.
+
+`structural_extraction` is the bounded no-model route from one exact
+machine-readable witness structure to a source-near immutable text layer. It
+must name the selector and extraction policy, preserve every declared source
+feature, fail on an unexpected element, and retain the result as an unreviewed
+machine transcription. It is not an identity copy, OCR, manual transcription,
+or linguistic analysis. The first real use is one DTA paragraph at
+`Za-I-Vorrede-1`: seven TEI `lb`-delimited print lines and six line breaks,
+stored privately and projected only as text-free tracked identity, digest,
+range, provenance, and authority records.
+
+PDF embedded text is a different source observation. For the exact
+Antonovsky/Prometey 1911 page-6 opening paragraph, pinned Poppler bbox output
+is retained as a private diagnostic byproduct and its mechanically selected
+text as a private `raw_ocr` layer. Six layout lines and five line breaks may be
+addressed, but the layer remains lossy and unreviewed: visual inspection found
+one print-joined historical word split into four embedded-text tokens. A
+source-visible discrepancy must be recorded as uncertainty, not silently
+repaired. This route is not diplomatic transcription, accepted Russian,
+translation correspondence, or a reason to infer alignment merely because a
+German layer exists nearby.
+
+An explicit alignment proposal is a separate claim layer. The first real
+question-scoped use selects only the exact first `U+002E`-terminated span from
+each of those private paragraphs, freezes the two partial sentence
+segmentations with exact excluded remainders, and binds them to one opaque
+one-to-one claim. `proposed` is the ceiling: the method does not tokenize,
+translate, resolve the Russian spacing uncertainty, adjudicate technique or
+fidelity, accept either language layer, create review or projection work, or
+authorize semantics, graph/canon promotion, redistribution, or publication.
+Any stronger state requires source-and-target-visible, competence-appropriate
+evidence for the exact claim, not confidence in the deterministic builder.
+
+Mechanical validation, source-visible review, reviewer language competence,
+accepted use, and rights/publication authority are separate gates. In
+particular, an unreviewed diplomatic candidate can match an anchored source
+selection exactly and still have no accepted use; a normalized successor
+cannot claim diplomatic or source-fidelity authority. The public synthetic
+A/B/C laboratory proves only byte/digest closure, edit replay, and explicit
+NFD-to-NFC succession. It creates no accepted transcription, German
+competence, translation, sign, semantic claim, graph truth, canon effect, or
+bulk migration obligation.
+
+Dividing one frozen layer is an additive assertion layer of its own. The
+`tos_source_text_unit_packet_v1` contract binds opaque packet, scheme,
+segmentation, unit, review, and projection identities to one exact immutable
+text layer. Those identities do not derive from text, labels, ordinals,
+offsets, or the current analysis. Physical lines, source-observed structure,
+orthographic tokens, linguistic words or sentence-like units, punctuation,
+whitespace, graphemes, model subwords, milestones, and non-surface analytic
+nodes remain distinct kinds. A segmentation never edits its input.
+
+Every source-bearing unit returns through ordered exact anchors. Declared
+coverage, gaps, overlap, punctuation, whitespace, line breaks, hyphenation,
+normalization posture, parent/child membership, competing alternatives, and
+supersession remain explicit. No character may disappear merely because an
+algorithm ignores it. Source-observed layout is not accepted linguistic
+analysis; machine, model, imported, and synthetic results cannot accept
+themselves. A sampled review may calibrate a method but cannot silently accept
+a complete segmentation. Acceptance requires a separate source-visible
+real-human review over the exact frozen layer, declared scope, and relevant
+competence. Model subwords and virtual nodes cannot promote themselves to an
+occurrence, lexeme, sense, sign, concept, relation, or graph fact.
+
+TEI, CoNLL-U, Web Annotation, ISO/LAF-family JSON, retrieval chunks, and graph
+forms are status-preserving derived projections. The public-synthetic A/B/C
+laboratory proves only range, digest, reference, coverage, gap, competition,
+review, visibility, and projection mechanics. It establishes no real German
+boundary, token, word, human review, translation, semantic claim, or canon
+effect. The historical `tos-local-sentence-segmentation-v1` string remains a
+legacy proposed method label until one concrete source question justifies a
+bounded migration.
+
+## Execution provenance
+
+Every materialized acquisition or transformation is an Activity over
+immutable Entities with separately named responsible Agents. Inputs, outputs,
+and diagnostic byproducts remain distinct; co-occurrence does not imply
+derivation, so every claimed derivation has its own directed edge. A successful
+event requires at least one authoritative output. A failed or stopped event
+retains its exit state and may retain diagnostics as byproducts, but it must not
+promote partial material to output.
+
+The additive `tos_provenance_event_v2` contract captures exact argv and
+configuration, software and runtime identity, optional model invocation,
+responsibility, manual-change receipts, measurements, timestamps, terminal
+state, rights/visibility, review, authentication, and a bounded replay
+classification. Unknown or unavailable evidence remains explicit rather than
+being represented as a false zero or a generic success. Exact receipt bytes are
+bound by an external manifest to avoid a self-referential self-hash.
+
+Five planes remain independent: byte and lineage closure; replay
+specification; evidence authentication; human/source/language review; and
+rights, publication, semantic, and canon authority. A schema-valid, hash-closed
+unsigned receipt proves mechanics only. It does not authenticate the producer,
+prove that the reported run occurred, establish output quality, or authorize
+downstream use. Existing `tos_provenance_event_v1` records retain their
+historical meaning. A v2 successor is created for new materialized work or a
+question-triggered migration, never for a bulk version-count increase.
 
 ## Sign ladder
 
@@ -130,6 +308,35 @@ timeless semantic entity.
 The identity of a record may be stable while its interpretation is corrected.
 No model may silently lift an occurrence into a concept.
 
+The semantic identities remain distinct:
+
+- `occurrence_id` identifies one addressable appearance in an exact witness;
+- `lexeme_id` identifies a linguistic normalization whose membership remains
+  a versioned claim;
+- `sign_id` is assigned only after an evidence-bearing human promotion
+  decision over a concrete candidate;
+- `concept_id` identifies a contestable interpretation family, not a hidden
+  synonym for a sign;
+- `claim_id` identifies one versioned assertion with maker, time, method,
+  evidence, alternatives, uncertainty, and review;
+- `relation_id` identifies one typed relation record whose claim and evidence
+  remain separately resolvable.
+
+Before sign promotion, the stable candidate identity is an `annotation_id` or
+`claim_id`, never a prematurely minted `sign_id`. Labels remain mutable and do
+not determine any of these identities.
+
+The additive `tos_semantic_annotation_packet_v2` contract materializes this
+law as stand-off records. Its opaque stable IDs are issued independently of
+labels and readings; exact anchors bind source-near observations; every
+interpretive assertion remains a maker-, method-, evidence-, uncertainty-,
+alternative-, and review-bearing claim. A relation is not its supporting
+claim, and a graph may project only an accepted claim without becoming its
+authority. The current public-synthetic A/B/C proves these mechanics and
+fail-closed promotion controls only. It adds no accepted sign, concept,
+semantic relation, canon example, source reading, human review, or model act;
+the existing semantic ladder and canon therefore remain unchanged.
+
 ## Assertion layers
 
 Each annotation or claim declares exactly one primary layer:
@@ -149,6 +356,13 @@ An assertion may cite another layer but cannot disguise its own posture. Lived
 witness may explain sustained attention and salience; it cannot settle source
 text, bibliography, etymology, or necessary meaning.
 
+The exact first-person body, capture conditions, experience/capture time,
+author confirmation, privacy, permission, and revision lifecycle belong to
+the dedicated `ToS/zarathustra/lived-witness/` route and
+`ToS/contracts/lived-witness-packet.schema.json`. A generic claim may cite an
+author-confirmed packet only through its own evidence, visibility, and review
+route; it does not replace that authored record.
+
 ## Claim law
 
 A claim records:
@@ -167,6 +381,13 @@ Allowed review states include `unreviewed`, `accepted`, `accepted_with_limits`,
 
 Confidence is the maker's declared uncertainty, not an objective probability
 that the claim is true.
+
+A generated claim catalog may expose subject, predicate, object, evidence,
+maker, provenance, review posture, exact source line, and canonical source
+digest for query and graph preparation only when the claim's visibility
+permits that tracked projection. It remains a projection of the authored claim
+packet: catalog presence, projection parity, or graph emission cannot accept,
+reject, or reinterpret the claim.
 
 ## Translation law
 
@@ -199,7 +420,48 @@ unless a documented legal or permission decision says otherwise. Unknown,
 conflicting, permission-requested, research-only, local-only, and public are
 valid explicit states.
 
+The relevant constraint is evaluated per layer and per content carried. A
+`local-only` file may still be cited as the research witness behind a
+public-safe bibliographic record or provenance edge; that reference does not
+redistribute the file. A derivative that reproduces, transforms, quotes, or
+otherwise carries protected source content receives its own explicit rights
+and visibility decision. Source payload, metadata, provenance, transcription,
+translation, annotation, and export therefore remain separately governable
+even when they share one lineage.
+
+The rights gate is evidence-seeking, not presumptively closed. Public-domain,
+open-license, permission-granted, and conditional noncommercial routes are
+positive outcomes when verified for the exact layer, object, jurisdiction, and
+intended use. Conditions such as attribution, noncommercial use, no
+derivatives, share-alike, or source-site terms remain machine-readable
+restrictions rather than being flattened into either “free” or “forbidden”.
+
+An Item-level `rights.json` therefore has two distinct jobs. Its top-level
+status is the conservative admission posture for the exact Item and File as a
+whole. Optional `layer_assessments` preserve narrower conclusions for the
+original work, translation, preface, commentary, editing, edition
+presentation, digital scan, embedded text, annotation, or metadata. A positive
+layer does not lift the aggregate Item/File gate: every content-bearing public
+or server route must select the exact layer it carries, the reviewed
+jurisdiction, and the intended use. Unknown marginalia or scan production can
+therefore keep the exact PDF local while a separately reviewed public-domain
+text layer remains a real positive finding rather than being erased.
+
 ## Projection boundary
+
+Translation alignment follows the same evidence law before projection. Each
+side resolves through an exact Work/Expression/Edition/Item/File, frozen text
+layer, source-text-unit packet or other frozen segmentation/tokenization
+artifact, and ordered source anchors. The
+mapping receives a stable opaque identity and a separate versioned claim;
+cardinality, order, omission/addition, technique, certainty, maker,
+competition, supersession, and review are not compressed into one confidence
+score. A machine, model, imported memory, or exchange file may propose but
+cannot accept. Acceptance requires a distinct source-and-target-visible
+real-human review with declared competence and a frozen unassisted baseline.
+The most restrictive source, target, or packet visibility follows every
+derivative. TEI, Web Annotation, XLIFF, TMX, and graph views are therefore
+rebuildable projections, never the authority for the alignment or translation.
 
 The authoritative chain is:
 
@@ -212,6 +474,13 @@ tracked identity/claim/review records
 A projection may be deleted and rebuilt without deleting knowledge. No graph
 database, vector store, annotation-service database, workbook, or model cache
 may be the sole copy of an assertion or review decision.
+
+The tracked bibliographic graph profile reifies the claim between subject and
+object. Every projected edge begins at that claim and preserves its canonical
+digest, evidence nodes, maker, provenance event with time and method, and
+review posture. Literal dates, edition-state objects, and unresolved statuses
+remain claim-scoped literals rather than false stable identities. This graph
+shape improves navigation; it cannot accept the claim or turn it into canon.
 
 ## Growth rule
 

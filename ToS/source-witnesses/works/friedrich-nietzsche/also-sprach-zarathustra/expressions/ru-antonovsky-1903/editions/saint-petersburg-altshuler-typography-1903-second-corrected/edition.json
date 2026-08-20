@@ -1,0 +1,78 @@
+{
+  "schema_version": "tos_corpus_record_v1",
+  "record_type": "edition",
+  "record_id": "tos.edition.friedrich-nietzsche.also-sprach-zarathustra.saint-petersburg-altshuler-typography-1903-second-corrected",
+  "preferred_label": "Так говорил Заратустра, Санкт-Петербург, второе исправленное издание, 1903",
+  "variant_labels": [],
+  "identity_status": "provisional",
+  "source_refs": [
+    "ToS/source-witnesses/discovery/runs/antonovsky-1903-rsl-edition-holdings.2026-08-01.v1.json",
+    "ToS/research-packets/foundation-laboratory-2026-07/ANTONOVSKY_1903_RSL_EDITION_RESEARCH.md",
+    "ToS/source-witnesses/discovery/runs/antonovsky-1903-rsl-rnl-current-holdings.2026-08-10.v2.json",
+    "ToS/research-packets/foundation-laboratory-2026-07/ANTONOVSKY_1903_RSL_RNL_CURRENT_HOLDINGS_RESEARCH.md",
+    "https://search.rsl.ru/ru/record/01003693381",
+    "https://primo.nlr.ru/primo_library/libweb/action/dlDisplay.do?vid=07NLR_VU1&docId=07NLR_LMS004843722",
+    "https://webservices.nlr.ru/util/?method=recordFormat&vid=07NLR_VU1&sysid=004843722&format=001&base=NLR01",
+    "https://www.litfund.ru/auction/445/52/"
+  ],
+  "external_identifiers": [
+    {
+      "scheme": "RSL public record",
+      "value": "01003693381",
+      "source_ref": "https://search.rsl.ru/ru/record/01003693381",
+      "status": "verified"
+    },
+    {
+      "scheme": "RSL MARC 001",
+      "value": "003693381",
+      "source_ref": "https://search.rsl.ru/ru/record/01003693381",
+      "status": "verified"
+    },
+    {
+      "scheme": "NLR source identifier reported by RSL",
+      "value": "(NLR)rc\\1717108",
+      "source_ref": "https://search.rsl.ru/ru/record/01003693381",
+      "status": "unverified"
+    },
+    {
+      "scheme": "RNL Primo record",
+      "value": "07NLR_LMS004843722",
+      "source_ref": "https://primo.nlr.ru/primo_library/libweb/action/dlDisplay.do?vid=07NLR_VU1&docId=07NLR_LMS004843722",
+      "status": "verified"
+    },
+    {
+      "scheme": "RNL system number",
+      "value": "004843722",
+      "source_ref": "https://webservices.nlr.ru/util/?method=recordFormat&vid=07NLR_VU1&sysid=004843722&format=001&base=NLR01",
+      "status": "verified"
+    },
+    {
+      "scheme": "RNL RUSMARC 001",
+      "value": "v19\\rc\\1717108",
+      "source_ref": "https://webservices.nlr.ru/util/?method=recordFormat&vid=07NLR_VU1&sysid=004843722&format=001&base=NLR01",
+      "status": "verified"
+    },
+    {
+      "scheme": "RNL shelfmark",
+      "value": "129/5943",
+      "source_ref": "http://aleph23.nlr.ru/F?func=item-global&doc_library=NLR01&local_base=NLR01&doc_number=004843722",
+      "status": "verified"
+    },
+    {
+      "scheme": "RNL shelfmark",
+      "value": "38.35.6.32",
+      "source_ref": "http://aleph23.nlr.ru/F?func=item-global&doc_library=NLR01&local_base=NLR01&doc_number=004843722",
+      "status": "verified"
+    }
+  ],
+  "same_as_posture": "no_equivalence_claim",
+  "embodies_expression_refs": [
+    "tos.expression.friedrich-nietzsche.also-sprach-zarathustra.ru-antonovsky-1903"
+  ],
+  "edition_statement": "2-е изд., испр.",
+  "publication_claim_refs": [],
+  "exemplar_claim_refs": [],
+  "notes": "The current RSL and RNL records identify the exact Russian Antonovsky second corrected Edition at Saint Petersburg in 1903 with extent [2], III, [3], 432, [2], V pages. RNL Primo record 07NLR_LMS004843722 and system number 004843722 resolve the current RNL endpoint. The shared rc\\1717108 control core, identical 20061002170739.2 transaction value, and matching bibliography reconcile the RSL and RNL records while preserving their distinct literal wrappers (NLR)rc\\1717108 and v19\\rc\\1717108. RSL records four holdings: FB L 31/57, FB Рб 33/442, FB T 97/44, and OMF 801-85/11097-8; RNL records two actionable holdings: 129/5943 and 38.35.6.32. All six remote holdings are not ToS Items. One RNL TEMP row with barcode 4843722-70, undefined fund and status, and no shelfmark is rejected rather than normalized or promoted. No record-specific digital object, source pages, or bytes were acquired. The literal catalogue string тип. Альтшулера remains typography evidence and is not converted into a publisher or provision-activity claim. No exemplar identity, responsibility, textual equivalence, new derivation, rights, or semantic claim is created.",
+  "record_version": 2,
+  "supersedes_ref": null
+}

@@ -4,3 +4,200 @@ Each JSON file binds one current item manifest and rights record to a future
 server decision. All foundation plans are deliberately `blocked-rights`,
 `metadata-only`, and unapproved. They are evidence that no current payload is
 authorized for transfer, not deployment configuration.
+
+The Antonovsky 1913 Commons plan preserves a stronger positive source-rights
+candidate without bypassing the operator's local-payload rule. The Commons
+public-domain statement remains exact-object provider evidence. The independent
+United States historical-layer result uses the 17 U.S.C. §104A source-country
+condition rather than the domestic pre-1931 shorthand. Under
+§104A(h)(8)(C)(i), Germany is the first-publication source country for
+Nietzsche's original Work, so the tracked source-country endpoint is 1970;
+Russia's 1950 reviewed-jurisdiction endpoint remains a distinct fact. The
+current plan still exposes metadata/provenance only and transfers no local
+file.
+
+The two Naumann 1893 plans preserve a deliberate item-level fork inside one
+scan family. The exact image-container PDF records a positive DE/US
+public-domain assessment for its historical and faithful-scan layers, but its
+operator-held bytes remain local and the plan stays blocked, metadata-only,
+and unapproved. The automatic EPUB remains rights-unknown at plan level: its
+historical and mechanical layers are positive, while the later Internet
+Archive notice and born-digital package layers prevent an aggregate clearance.
+The independent United States historical-layer route uses 17 U.S.C. §104A's
+source-country-term condition rather than the domestic pre-1931 shorthand.
+All reviewed historical German terms ended before possible 1996 restoration,
+but this correction changes neither plan's aggregate result. The exact PDM
+remained current on 2026-08-10; the live Internet Archive terms route returned
+only a JavaScript shell, so the substantive 2026-08-02 terms capture remains
+historical evidence and the human rights gate stays closed. Neither plan
+permits uploading the local file. A future PDF must be separately reacquired
+and reviewed; a future EPUB must be newly built from an accepted rights-positive
+source, not treated as cleared by removing the conflicting package material.
+
+The four DTA TEIs bring the plan set to nine. Current DTA terms and all four
+live TEI headers provide positive CC BY-SA evidence. Their layer-specific
+records therefore classify the exact annotated TEIs as `licensed`, while
+retaining the former CC BY-NC value still emitted through Dublin Core, the
+separate unrestricted plain-text claim, and distinct holding-library
+facsimile postures. The independent United States historical assessment uses
+17 U.S.C. §104A's source-country-term condition, not a domestic pre-1931
+shortcut. Each plan records that open upstream route but remains
+`blocked-rights` and metadata-only: human rights review, German acceptance,
+fresh public-object acquisition, and explicit operator transfer approval have
+not occurred, and the operator-held TEIs are not future-site upload sources.
+
+The tenth plan covers the exact 1886 Naumann *Jenseits von Gut und Böse*
+Harvard/Google three-file scan package selected through Internet Archive. Its
+historical Work and Edition, faithful page-scan layer, and automatic historical
+OCR text are `public_domain_reviewed` for DE/US. Its generated Google cover,
+Harvard holding furniture, word-coordinate XML, PDF/derivative package, and
+metadata remain unresolved, so the aggregate record is `conflicting_evidence`
+and the plan remains rights-unknown. The separately addressed `Alle Rechte
+vorbehalten.` line is historical evidence rather than a current prohibition or
+permission. The plan still transfers no local payload and authorizes no
+content-bearing derivative. A future site may only select or reacquire an
+independently reviewed current object; the different Harvard/Hathi volume found
+through Institutional Books is a separate route, not the same Item.
+
+The eleventh plan covers the exact Wikimedia Commons revision of the
+UNC/Internet Archive scan of the 1892 second Naumann *Zur Genealogie der
+Moral*. The historical Work and Edition presentation, faithful historical page
+scan, and automatic historical OCR text are `public_domain_reviewed` for
+DE/US. Commons structured metadata is separately CC0 1.0 and unstructured
+description prose CC BY-SA 4.0. The exact mixed PDF remains aggregate
+`conflicting_evidence`: its physical binding, UNC holding furniture, OCR
+layout, wrapper, and Internet Archive metadata are unresolved, and Commons'
+exact description currently supplies only a United States template rather
+than a complete source-country expression. The plan therefore remains
+rights-unknown, metadata-only, blocked, and operator-unapproved. It transfers
+no local payload and authorizes no content-bearing derivative. A future object
+must be independently reacquired from its then-current exact route and may not
+substitute the current byte-different Internet Archive PDF.
+
+The twelfth plan covers the exact Commons/Stanford DjVu of the 1906 Naumann
+*Nietzsche's Werke*, Band VIII aggregate that contains *Der Antichrist*.
+The represented historical Work, 1906 presentation, faithful printed-page
+scan, and automatic historical OCR text are `public_domain_reviewed` for
+DE/US. Commons structured metadata is separately CC0 1.0 and its unstructured
+description CC BY-SA 4.0. Archive editorial matter remains conflicting, while
+Stanford binding and holding furniture, OCR layout, the DjVu package, and
+contaminated Internet Archive metadata remain unresolved. The exact aggregate
+therefore stays rights-unknown, metadata-only, blocked, and operator-unapproved.
+The corrected United States route does not adopt Commons' pre-1931 sentence as
+an independent ToS conclusion: §104A(g) is the Presidential-proclamation
+subsection, while the Work and assessed presentation routes fail the
+restored-work definition's source-country-expiration condition in
+§104A(h)(6)(B); any qualifying restored term
+for a distinct contribution actually published in 1906 ended at 2001-12-31.
+This changes neither the aggregate result nor the closed server boundary.
+The plan keeps the operator-held DjVu local, all source-bearing derivatives
+prohibited, the model-only pages 228-329 boundary visibly unreviewed, and
+server consumption limited to public-safe metadata until a separately
+reacquired current object passes exact fixity, layer, human-rights, quality,
+text-admission, and operator-approval gates.
+
+A companion metadata-only plan covers the separately registered exact local
+Internet Archive Google/Stanford navigation Item: DjVuXML, a 525-member JP2
+ZIP, and 525-leaf scandata. Its corrected Work-layer route likewise applies
+§104A(h)(6)(B), not the Presidential-proclamation subsection §104A(g), and
+records 2001-12-31 only as the
+conditional endpoint of any qualifying restored 1906 term; the provider's
+`NOT_IN_COPYRIGHT` fields are evidence, not an independent ToS legal
+conclusion. Exact local fixity does not establish textual identity with the
+Commons DjVu, clear the derivative package or contaminated metadata, or
+authorize upload. The aggregate remains `conflicting_evidence`; all
+source-bearing derivatives and payload transfer remain prohibited, with only
+public-safe metadata projections conditional and no human or operator
+approval.
+
+The thirteenth plan covers the exact MDZ PDF generated for the Bamberg
+`30.1972` copy of the standalone 1888 Naumann *Der Fall Wagner*. MDZ's
+`NoC-NC 1.0` statement now resolves the exact digital-object layer as
+`permission_granted`: the statement permits non-commercial Item reuse but is
+a descriptive contractual Rights Statement, not a free-culture license.
+Nietzsche's Work, the 1888 presentation, and the faithful printed-page scan
+are separately public-domain-reviewed for DE/US. The United States historical
+result is now explicitly grounded in 17 U.S.C. §104A's source-country-term
+condition rather than the domestic pre-1931 shorthand; the corrected route
+changes neither the aggregate status nor the closed transfer boundary.
+Current provider response bytes drifted while identity, rights value, canvas
+count, and attribution stayed stable, and no response body was retained.
+BSB/BDR bibliographic metadata is separately CC0. The exact PDF contains no
+embedded book OCR.
+These positive layers do not authorize transfer under this plan: the
+operator-held PDF and all source-bearing derivatives remain prohibited, and
+only public-safe identity, holding, provenance, attribution-duty, issue-risk,
+and layer-specific rights metadata may be projected.
+
+The fourteenth plan covers the exact MDZ PDF generated for the BSB
+`Ph.pr. 881 kc` copy of the standalone 1889 Naumann
+*Götzen-Dämmerung*. Its `CC BY-NC-SA 4.0` declaration is retained as concrete
+exact-object license evidence. Nietzsche's Work, the 1889 presentation, and
+the faithful printed-page scan are separately public-domain-reviewed for
+DE/US through 17 U.S.C. §104A's source-country-term condition, not through a
+domestic pre-1931 shortcut. The correction changes neither the licensed
+aggregate result nor the closed transfer boundary. Current provider response
+bytes drifted while identity, license value, canvas count, and attribution
+stayed stable, and no response body was retained. BSB/BDR bibliographic
+metadata is separately CC0, and the exact PDF contains no embedded book OCR.
+Attribution, non-commercial use, license/source
+notice, modification notice, and ShareAlike for shared adapted material remain
+exact-scope duties. The current plan nevertheless transfers no local file and
+authorizes no OCR, transcription, translation, critical edition, snippet,
+embedding, or content-bearing graph/search projection. A later public object
+must be independently reacquired and pass fresh fixity, rights, quality,
+human-review, and operator gates.
+
+The fifteenth plan covers permanent Commons revision `1074063624` of the
+Getty/Internet Archive scan of the posthumous 1908 Insel *Ecce homo*, copy
+965. Commons' `PD-US-expired` statement is retained as positive but explicitly
+US-scoped provider evidence. The independent route now applies 17 U.S.C.
+§104A: Nietzsche and Richter's German terms ended before possible 1996
+restoration, while any possible restored 1908 van de Velde term ended at
+2003-12-31. Van de Velde's binding and ornaments remain active in Germany
+through 2027-12-31; the Getty scan, Commons derivative, and every content-
+bearing derivative remain separately reviewable. The aggregate plan therefore
+stays restricted, blocked, metadata-only, and operator-unapproved. The
+operator-held PDF stays local; only public-safe metadata may be projected.
+
+The sixteenth plan covers the exact RSL/RuNEB PDF of Antonovsky's 1911 fourth
+edition. The historical Work, 1911 translation and preface, and presentation
+are public-domain-reviewed for RU/US, including the foreign-work URAA
+source-country boundary. For Nietzsche's published original Work,
+§104A(h)(8)(C)(i) makes Germany the source country and the tracked endpoint is
+1970; the Russian reviewed-jurisdiction calculation ending in 1950 is kept
+separate. That correction changes no aggregate result and does not clear the
+exact digital package: RuNEB's current terms support bounded local research
+but expose no resource-specific redistribution license, and the scan and
+embedded-text production history remains unresolved. The aggregate plan
+therefore stays rights-unknown, metadata-only, blocked, and
+operator-unapproved. The
+62,952,283-byte operator-held PDF, embedded text, page images, transcriptions,
+translations, embeddings, and content-bearing annotations remain prohibited
+for server transfer. Only public-safe bibliographic metadata, fixity,
+provenance, and source-return addresses may be projected.
+
+The local 2007 Cultural Revolution plan separately records the positive
+public-domain RU/US status of Nietzsche's Work and Antonovsky's historical
+translation substrate while refusing to propagate either result to the exact
+newly edited Expression. Source-visible 2007 notices keep translation editing,
+commentary translation, and design in copyright; the underlying modern
+commentary and publisher contribution remain unresolved. The exact
+162,778,307-byte vector-outline PDF is therefore restricted, metadata-only,
+blocked, and operator-unapproved. No payload, page image, OCR, transcription,
+snippet, embedding, alignment, translation, or source-bearing annotation may
+be transferred. Only public-safe identity, contributor-role, provenance,
+fixity, and eight-layer status metadata may be projected.
+
+The exact 1996 Mysl volume plan separately carries an eleven-layer RU/US
+assessment. Nietzsche's Works and the historical Antonovsky and Polilov
+translation substrates are positive historical layers; Svasyan's 1996
+translation, compilation, editing, notes, and the aggregate PDF are active;
+Flerova identity, publisher contribution, portrait/presentation, scan, and
+ABBYY text remain unresolved. The aggregate is therefore `restricted`, not a
+public-domain package assembled from its older substrates. The plan remains
+metadata-only, rights-blocked, transfer-false, and operator-unapproved. It
+prohibits OCR, transcription, page images, snippets, embeddings, alignments,
+translations, and source-bearing annotations; only public-safe identity,
+fixity, provenance, contributor-role, and layer-status metadata may be
+projected. Neither the local PDF nor a stripped derivative may be uploaded.

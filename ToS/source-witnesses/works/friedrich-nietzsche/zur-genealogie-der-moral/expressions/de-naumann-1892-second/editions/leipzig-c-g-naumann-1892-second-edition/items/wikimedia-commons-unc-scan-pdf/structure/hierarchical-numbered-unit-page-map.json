@@ -1,0 +1,1068 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/hierarchical-source-numbered-unit-page-map.schema.json",
+  "schema_version": "tos_hierarchical_source_numbered_unit_page_map_v1",
+  "map_id": "tos.hierarchical-source-numbered-unit-page-map.friedrich-nietzsche.zur-genealogie-der-moral.de-naumann-1892-second",
+  "work_ref": "tos.work.friedrich-nietzsche.zur-genealogie-der-moral",
+  "expression_ref": "tos.expression.friedrich-nietzsche.zur-genealogie-der-moral.de-naumann-1892-second",
+  "edition_ref": "tos.edition.friedrich-nietzsche.zur-genealogie-der-moral.leipzig-c-g-naumann-1892-second",
+  "address_witness": {
+    "item_ref": "tos.item.friedrich-nietzsche.zur-genealogie-der-moral.de-naumann-1892-second.wikimedia-commons-unc-scan-pdf",
+    "file_ref": "tos.file.sha256.5705dbc4f32faa924919fd533962c931e92462d72dab5183610eb68adeecac03",
+    "file_sha256": "5705dbc4f32faa924919fd533962c931e92462d72dab5183610eb68adeecac03",
+    "inventory_profile": "pdf_pages_v1",
+    "inventory": {
+      "ref": "ToS/source-witnesses/works/friedrich-nietzsche/zur-genealogie-der-moral/expressions/de-naumann-1892-second/editions/leipzig-c-g-naumann-1892-second-edition/items/wikimedia-commons-unc-scan-pdf/resource-inventory.json",
+      "sha256": "ce313c4f2760c7abfcae4127614e0fc2c30d955c73d96b84d6b57e760dc73ee1"
+    },
+    "rights": {
+      "ref": "ToS/source-witnesses/works/friedrich-nietzsche/zur-genealogie-der-moral/expressions/de-naumann-1892-second/editions/leipzig-c-g-naumann-1892-second-edition/items/wikimedia-commons-unc-scan-pdf/rights.json",
+      "sha256": "df69951170daee136b3703aaae91ddca6c9f1469bebbd35f94c8ae473338c4a0"
+    }
+  },
+  "navigation_witness": {
+    "item_ref": "tos.item.friedrich-nietzsche.zur-genealogie-der-moral.de-naumann-1892-second.wikimedia-commons-unc-scan-pdf",
+    "file_ref": "tos.file.sha256.5705dbc4f32faa924919fd533962c931e92462d72dab5183610eb68adeecac03",
+    "file_sha256": "5705dbc4f32faa924919fd533962c931e92462d72dab5183610eb68adeecac03",
+    "inventory_profile": "pdf_pages_v1",
+    "inventory": {
+      "ref": "ToS/source-witnesses/works/friedrich-nietzsche/zur-genealogie-der-moral/expressions/de-naumann-1892-second/editions/leipzig-c-g-naumann-1892-second-edition/items/wikimedia-commons-unc-scan-pdf/resource-inventory.json",
+      "sha256": "ce313c4f2760c7abfcae4127614e0fc2c30d955c73d96b84d6b57e760dc73ee1"
+    },
+    "rights": {
+      "ref": "ToS/source-witnesses/works/friedrich-nietzsche/zur-genealogie-der-moral/expressions/de-naumann-1892-second/editions/leipzig-c-g-naumann-1892-second-edition/items/wikimedia-commons-unc-scan-pdf/rights.json",
+      "sha256": "df69951170daee136b3703aaae91ddca6c9f1469bebbd35f94c8ae473338c4a0"
+    }
+  },
+  "navigation_relation": {
+    "relation_scope": "same-fixity-bound-file-page-index",
+    "address_page_from_navigation_page_offset": 0,
+    "source_visible_compared_address_pages": [],
+    "full_container_page_identity_claimed": false,
+    "textual_identity_claimed": false
+  },
+  "represented_page_range": {
+    "start_page": 7,
+    "end_page": 202,
+    "basis": "source-visible numbered preface and three essay title, opening, number-label, transition, and terminal page inspection"
+  },
+  "work_boundary": null,
+  "map_authority": "machine_candidates_with_bounded_model_source_visible_gap_review_only",
+  "source_text_included": false,
+  "method": {
+    "name": "series-scoped-fixed-page-number-candidate-verification-plus-source-visible-gap-review",
+    "version": "1",
+    "maker_type": "mixed",
+    "local_payloads_read": true,
+    "candidate_verification_profiles": [
+      "poppler-pdftotext-bbox-short-line-number-candidate-v1"
+    ],
+    "numeric_candidate_normalizations": [
+      "remove non-ASCII alphanumeric characters",
+      "ASCII casefold",
+      "map i l x to 1, o to 0, s to 5, z to 2",
+      "join at most two adjacent same-baseline PDF short-line fragments"
+    ],
+    "series_trials": [
+      {
+        "series_key": "preface",
+        "expected_unit_count": 8,
+        "machine_number_candidate_count": 7,
+        "source_visible_override_unit_keys": [
+          "1"
+        ]
+      },
+      {
+        "series_key": "essay-1",
+        "expected_unit_count": 17,
+        "machine_number_candidate_count": 16,
+        "source_visible_override_unit_keys": [
+          "11"
+        ]
+      },
+      {
+        "series_key": "essay-2",
+        "expected_unit_count": 25,
+        "machine_number_candidate_count": 21,
+        "source_visible_override_unit_keys": [
+          "1",
+          "13",
+          "15",
+          "20"
+        ]
+      },
+      {
+        "series_key": "essay-3",
+        "expected_unit_count": 28,
+        "machine_number_candidate_count": 28,
+        "source_visible_override_unit_keys": []
+      }
+    ],
+    "source_visible_review": {
+      "maker_type": "model",
+      "human_repeat_performed": false,
+      "reviewed_address_pages": [
+        7,
+        40,
+        61,
+        90,
+        94,
+        105
+      ],
+      "override_unit_refs": [
+        "preface:1",
+        "essay-1:11",
+        "essay-2:1",
+        "essay-2:13",
+        "essay-2:15",
+        "essay-2:20"
+      ]
+    },
+    "source_to_target_text_compared": false,
+    "translation_alignment_inferred": false,
+    "semantic_matching_used": false,
+    "no_source_text_emitted": true
+  },
+  "series": [
+    {
+      "series_key": "preface",
+      "series_sequence": 1,
+      "series_kind": "numbered-preface",
+      "start_page": 7,
+      "end_page": 18,
+      "expected_unit_count": 8,
+      "status": "proposed",
+      "unit_starts": [
+        {
+          "sequence": 1,
+          "unit_key": "1",
+          "source_page": 7,
+          "resource_id": "pdf-page-0007",
+          "navigation_page": 7,
+          "anchor_ref": "tos.anchor.friedrich-nietzsche.zur-genealogie-der-moral.de-naumann-1892-second.preface.unit-1.source-start-page",
+          "basis": "source_visible_gap_review",
+          "status": "proposed",
+          "human_review_performed": false
+        },
+        {
+          "sequence": 2,
+          "unit_key": "2",
+          "source_page": 8,
+          "resource_id": "pdf-page-0008",
+          "navigation_page": 8,
+          "anchor_ref": "tos.anchor.friedrich-nietzsche.zur-genealogie-der-moral.de-naumann-1892-second.preface.unit-2.source-start-page",
+          "basis": "embedded_pdf_bbox_number_candidate",
+          "status": "proposed",
+          "human_review_performed": false
+        },
+        {
+          "sequence": 3,
+          "unit_key": "3",
+          "source_page": 9,
+          "resource_id": "pdf-page-0009",
+          "navigation_page": 9,
+          "anchor_ref": "tos.anchor.friedrich-nietzsche.zur-genealogie-der-moral.de-naumann-1892-second.preface.unit-3.source-start-page",
+          "basis": "embedded_pdf_bbox_number_candidate",
+          "status": "proposed",
+          "human_review_performed": false
+        },
+        {
+          "sequence": 4,
+          "unit_key": "4",
+          "source_page": 11,
+          "resource_id": "pdf-page-0011",
+          "navigation_page": 11,
+          "anchor_ref": "tos.anchor.friedrich-nietzsche.zur-genealogie-der-moral.de-naumann-1892-second.preface.unit-4.source-start-page",
+          "basis": "embedded_pdf_bbox_number_candidate",
+          "status": "proposed",
+          "human_review_performed": false
+        },
+        {
+          "sequence": 5,
+          "unit_key": "5",
+          "source_page": 13,
+          "resource_id": "pdf-page-0013",
+          "navigation_page": 13,
+          "anchor_ref": "tos.anchor.friedrich-nietzsche.zur-genealogie-der-moral.de-naumann-1892-second.preface.unit-5.source-start-page",
+          "basis": "embedded_pdf_bbox_number_candidate",
+          "status": "proposed",
+          "human_review_performed": false
+        },
+        {
+          "sequence": 6,
+          "unit_key": "6",
+          "source_page": 14,
+          "resource_id": "pdf-page-0014",
+          "navigation_page": 14,
+          "anchor_ref": "tos.anchor.friedrich-nietzsche.zur-genealogie-der-moral.de-naumann-1892-second.preface.unit-6.source-start-page",
+          "basis": "embedded_pdf_bbox_number_candidate",
+          "status": "proposed",
+          "human_review_performed": false
+        },
+        {
+          "sequence": 7,
+          "unit_key": "7",
+          "source_page": 15,
+          "resource_id": "pdf-page-0015",
+          "navigation_page": 15,
+          "anchor_ref": "tos.anchor.friedrich-nietzsche.zur-genealogie-der-moral.de-naumann-1892-second.preface.unit-7.source-start-page",
+          "basis": "embedded_pdf_bbox_number_candidate",
+          "status": "proposed",
+          "human_review_performed": false
+        },
+        {
+          "sequence": 8,
+          "unit_key": "8",
+          "source_page": 17,
+          "resource_id": "pdf-page-0017",
+          "navigation_page": 17,
+          "anchor_ref": "tos.anchor.friedrich-nietzsche.zur-genealogie-der-moral.de-naumann-1892-second.preface.unit-8.source-start-page",
+          "basis": "embedded_pdf_bbox_number_candidate",
+          "status": "proposed",
+          "human_review_performed": false
+        }
+      ]
+    },
+    {
+      "series_key": "essay-1",
+      "series_sequence": 2,
+      "series_kind": "numbered-essay",
+      "start_page": 19,
+      "end_page": 58,
+      "expected_unit_count": 17,
+      "status": "proposed",
+      "unit_starts": [
+        {
+          "sequence": 1,
+          "unit_key": "1",
+          "source_page": 21,
+          "resource_id": "pdf-page-0021",
+          "navigation_page": 21,
+          "anchor_ref": "tos.anchor.friedrich-nietzsche.zur-genealogie-der-moral.de-naumann-1892-second.essay-1.unit-1.source-start-page",
+          "basis": "embedded_pdf_bbox_number_candidate",
+          "status": "proposed",
+          "human_review_performed": false
+        },
+        {
+          "sequence": 2,
+          "unit_key": "2",
+          "source_page": 22,
+          "resource_id": "pdf-page-0022",
+          "navigation_page": 22,
+          "anchor_ref": "tos.anchor.friedrich-nietzsche.zur-genealogie-der-moral.de-naumann-1892-second.essay-1.unit-2.source-start-page",
+          "basis": "embedded_pdf_bbox_number_candidate",
+          "status": "proposed",
+          "human_review_performed": false
+        },
+        {
+          "sequence": 3,
+          "unit_key": "3",
+          "source_page": 25,
+          "resource_id": "pdf-page-0025",
+          "navigation_page": 25,
+          "anchor_ref": "tos.anchor.friedrich-nietzsche.zur-genealogie-der-moral.de-naumann-1892-second.essay-1.unit-3.source-start-page",
+          "basis": "embedded_pdf_bbox_number_candidate",
+          "status": "proposed",
+          "human_review_performed": false
+        },
+        {
+          "sequence": 4,
+          "unit_key": "4",
+          "source_page": 26,
+          "resource_id": "pdf-page-0026",
+          "navigation_page": 26,
+          "anchor_ref": "tos.anchor.friedrich-nietzsche.zur-genealogie-der-moral.de-naumann-1892-second.essay-1.unit-4.source-start-page",
+          "basis": "embedded_pdf_bbox_number_candidate",
+          "status": "proposed",
+          "human_review_performed": false
+        },
+        {
+          "sequence": 5,
+          "unit_key": "5",
+          "source_page": 27,
+          "resource_id": "pdf-page-0027",
+          "navigation_page": 27,
+          "anchor_ref": "tos.anchor.friedrich-nietzsche.zur-genealogie-der-moral.de-naumann-1892-second.essay-1.unit-5.source-start-page",
+          "basis": "embedded_pdf_bbox_number_candidate",
+          "status": "proposed",
+          "human_review_performed": false
+        },
+        {
+          "sequence": 6,
+          "unit_key": "6",
+          "source_page": 29,
+          "resource_id": "pdf-page-0029",
+          "navigation_page": 29,
+          "anchor_ref": "tos.anchor.friedrich-nietzsche.zur-genealogie-der-moral.de-naumann-1892-second.essay-1.unit-6.source-start-page",
+          "basis": "embedded_pdf_bbox_number_candidate",
+          "status": "proposed",
+          "human_review_performed": false
+        },
+        {
+          "sequence": 7,
+          "unit_key": "7",
+          "source_page": 31,
+          "resource_id": "pdf-page-0031",
+          "navigation_page": 31,
+          "anchor_ref": "tos.anchor.friedrich-nietzsche.zur-genealogie-der-moral.de-naumann-1892-second.essay-1.unit-7.source-start-page",
+          "basis": "embedded_pdf_bbox_number_candidate",
+          "status": "proposed",
+          "human_review_performed": false
+        },
+        {
+          "sequence": 8,
+          "unit_key": "8",
+          "source_page": 33,
+          "resource_id": "pdf-page-0033",
+          "navigation_page": 33,
+          "anchor_ref": "tos.anchor.friedrich-nietzsche.zur-genealogie-der-moral.de-naumann-1892-second.essay-1.unit-8.source-start-page",
+          "basis": "embedded_pdf_bbox_number_candidate",
+          "status": "proposed",
+          "human_review_performed": false
+        },
+        {
+          "sequence": 9,
+          "unit_key": "9",
+          "source_page": 35,
+          "resource_id": "pdf-page-0035",
+          "navigation_page": 35,
+          "anchor_ref": "tos.anchor.friedrich-nietzsche.zur-genealogie-der-moral.de-naumann-1892-second.essay-1.unit-9.source-start-page",
+          "basis": "embedded_pdf_bbox_number_candidate",
+          "status": "proposed",
+          "human_review_performed": false
+        },
+        {
+          "sequence": 10,
+          "unit_key": "10",
+          "source_page": 36,
+          "resource_id": "pdf-page-0036",
+          "navigation_page": 36,
+          "anchor_ref": "tos.anchor.friedrich-nietzsche.zur-genealogie-der-moral.de-naumann-1892-second.essay-1.unit-10.source-start-page",
+          "basis": "embedded_pdf_bbox_number_candidate",
+          "status": "proposed",
+          "human_review_performed": false
+        },
+        {
+          "sequence": 11,
+          "unit_key": "11",
+          "source_page": 40,
+          "resource_id": "pdf-page-0040",
+          "navigation_page": 40,
+          "anchor_ref": "tos.anchor.friedrich-nietzsche.zur-genealogie-der-moral.de-naumann-1892-second.essay-1.unit-11.source-start-page",
+          "basis": "source_visible_gap_review",
+          "status": "proposed",
+          "human_review_performed": false
+        },
+        {
+          "sequence": 12,
+          "unit_key": "12",
+          "source_page": 44,
+          "resource_id": "pdf-page-0044",
+          "navigation_page": 44,
+          "anchor_ref": "tos.anchor.friedrich-nietzsche.zur-genealogie-der-moral.de-naumann-1892-second.essay-1.unit-12.source-start-page",
+          "basis": "embedded_pdf_bbox_number_candidate",
+          "status": "proposed",
+          "human_review_performed": false
+        },
+        {
+          "sequence": 13,
+          "unit_key": "13",
+          "source_page": 46,
+          "resource_id": "pdf-page-0046",
+          "navigation_page": 46,
+          "anchor_ref": "tos.anchor.friedrich-nietzsche.zur-genealogie-der-moral.de-naumann-1892-second.essay-1.unit-13.source-start-page",
+          "basis": "embedded_pdf_bbox_number_candidate",
+          "status": "proposed",
+          "human_review_performed": false
+        },
+        {
+          "sequence": 14,
+          "unit_key": "14",
+          "source_page": 48,
+          "resource_id": "pdf-page-0048",
+          "navigation_page": 48,
+          "anchor_ref": "tos.anchor.friedrich-nietzsche.zur-genealogie-der-moral.de-naumann-1892-second.essay-1.unit-14.source-start-page",
+          "basis": "embedded_pdf_bbox_number_candidate",
+          "status": "proposed",
+          "human_review_performed": false
+        },
+        {
+          "sequence": 15,
+          "unit_key": "15",
+          "source_page": 51,
+          "resource_id": "pdf-page-0051",
+          "navigation_page": 51,
+          "anchor_ref": "tos.anchor.friedrich-nietzsche.zur-genealogie-der-moral.de-naumann-1892-second.essay-1.unit-15.source-start-page",
+          "basis": "embedded_pdf_bbox_number_candidate",
+          "status": "proposed",
+          "human_review_performed": false
+        },
+        {
+          "sequence": 16,
+          "unit_key": "16",
+          "source_page": 54,
+          "resource_id": "pdf-page-0054",
+          "navigation_page": 54,
+          "anchor_ref": "tos.anchor.friedrich-nietzsche.zur-genealogie-der-moral.de-naumann-1892-second.essay-1.unit-16.source-start-page",
+          "basis": "embedded_pdf_bbox_number_candidate",
+          "status": "proposed",
+          "human_review_performed": false
+        },
+        {
+          "sequence": 17,
+          "unit_key": "17",
+          "source_page": 57,
+          "resource_id": "pdf-page-0057",
+          "navigation_page": 57,
+          "anchor_ref": "tos.anchor.friedrich-nietzsche.zur-genealogie-der-moral.de-naumann-1892-second.essay-1.unit-17.source-start-page",
+          "basis": "embedded_pdf_bbox_number_candidate",
+          "status": "proposed",
+          "human_review_performed": false
+        }
+      ]
+    },
+    {
+      "series_key": "essay-2",
+      "series_sequence": 3,
+      "series_kind": "numbered-essay",
+      "start_page": 59,
+      "end_page": 114,
+      "expected_unit_count": 25,
+      "status": "proposed",
+      "unit_starts": [
+        {
+          "sequence": 1,
+          "unit_key": "1",
+          "source_page": 61,
+          "resource_id": "pdf-page-0061",
+          "navigation_page": 61,
+          "anchor_ref": "tos.anchor.friedrich-nietzsche.zur-genealogie-der-moral.de-naumann-1892-second.essay-2.unit-1.source-start-page",
+          "basis": "source_visible_gap_review",
+          "status": "proposed",
+          "human_review_performed": false
+        },
+        {
+          "sequence": 2,
+          "unit_key": "2",
+          "source_page": 63,
+          "resource_id": "pdf-page-0063",
+          "navigation_page": 63,
+          "anchor_ref": "tos.anchor.friedrich-nietzsche.zur-genealogie-der-moral.de-naumann-1892-second.essay-2.unit-2.source-start-page",
+          "basis": "embedded_pdf_bbox_number_candidate",
+          "status": "proposed",
+          "human_review_performed": false
+        },
+        {
+          "sequence": 3,
+          "unit_key": "3",
+          "source_page": 65,
+          "resource_id": "pdf-page-0065",
+          "navigation_page": 65,
+          "anchor_ref": "tos.anchor.friedrich-nietzsche.zur-genealogie-der-moral.de-naumann-1892-second.essay-2.unit-3.source-start-page",
+          "basis": "embedded_pdf_bbox_number_candidate",
+          "status": "proposed",
+          "human_review_performed": false
+        },
+        {
+          "sequence": 4,
+          "unit_key": "4",
+          "source_page": 68,
+          "resource_id": "pdf-page-0068",
+          "navigation_page": 68,
+          "anchor_ref": "tos.anchor.friedrich-nietzsche.zur-genealogie-der-moral.de-naumann-1892-second.essay-2.unit-4.source-start-page",
+          "basis": "embedded_pdf_bbox_number_candidate",
+          "status": "proposed",
+          "human_review_performed": false
+        },
+        {
+          "sequence": 5,
+          "unit_key": "5",
+          "source_page": 69,
+          "resource_id": "pdf-page-0069",
+          "navigation_page": 69,
+          "anchor_ref": "tos.anchor.friedrich-nietzsche.zur-genealogie-der-moral.de-naumann-1892-second.essay-2.unit-5.source-start-page",
+          "basis": "embedded_pdf_bbox_number_candidate",
+          "status": "proposed",
+          "human_review_performed": false
+        },
+        {
+          "sequence": 6,
+          "unit_key": "6",
+          "source_page": 71,
+          "resource_id": "pdf-page-0071",
+          "navigation_page": 71,
+          "anchor_ref": "tos.anchor.friedrich-nietzsche.zur-genealogie-der-moral.de-naumann-1892-second.essay-2.unit-6.source-start-page",
+          "basis": "embedded_pdf_bbox_number_candidate",
+          "status": "proposed",
+          "human_review_performed": false
+        },
+        {
+          "sequence": 7,
+          "unit_key": "7",
+          "source_page": 74,
+          "resource_id": "pdf-page-0074",
+          "navigation_page": 74,
+          "anchor_ref": "tos.anchor.friedrich-nietzsche.zur-genealogie-der-moral.de-naumann-1892-second.essay-2.unit-7.source-start-page",
+          "basis": "embedded_pdf_bbox_number_candidate",
+          "status": "proposed",
+          "human_review_performed": false
+        },
+        {
+          "sequence": 8,
+          "unit_key": "8",
+          "source_page": 78,
+          "resource_id": "pdf-page-0078",
+          "navigation_page": 78,
+          "anchor_ref": "tos.anchor.friedrich-nietzsche.zur-genealogie-der-moral.de-naumann-1892-second.essay-2.unit-8.source-start-page",
+          "basis": "embedded_pdf_bbox_number_candidate",
+          "status": "proposed",
+          "human_review_performed": false
+        },
+        {
+          "sequence": 9,
+          "unit_key": "9",
+          "source_page": 79,
+          "resource_id": "pdf-page-0079",
+          "navigation_page": 79,
+          "anchor_ref": "tos.anchor.friedrich-nietzsche.zur-genealogie-der-moral.de-naumann-1892-second.essay-2.unit-9.source-start-page",
+          "basis": "embedded_pdf_bbox_number_candidate",
+          "status": "proposed",
+          "human_review_performed": false
+        },
+        {
+          "sequence": 10,
+          "unit_key": "10",
+          "source_page": 81,
+          "resource_id": "pdf-page-0081",
+          "navigation_page": 81,
+          "anchor_ref": "tos.anchor.friedrich-nietzsche.zur-genealogie-der-moral.de-naumann-1892-second.essay-2.unit-10.source-start-page",
+          "basis": "embedded_pdf_bbox_number_candidate",
+          "status": "proposed",
+          "human_review_performed": false
+        },
+        {
+          "sequence": 11,
+          "unit_key": "11",
+          "source_page": 82,
+          "resource_id": "pdf-page-0082",
+          "navigation_page": 82,
+          "anchor_ref": "tos.anchor.friedrich-nietzsche.zur-genealogie-der-moral.de-naumann-1892-second.essay-2.unit-11.source-start-page",
+          "basis": "embedded_pdf_bbox_number_candidate",
+          "status": "proposed",
+          "human_review_performed": false
+        },
+        {
+          "sequence": 12,
+          "unit_key": "12",
+          "source_page": 86,
+          "resource_id": "pdf-page-0086",
+          "navigation_page": 86,
+          "anchor_ref": "tos.anchor.friedrich-nietzsche.zur-genealogie-der-moral.de-naumann-1892-second.essay-2.unit-12.source-start-page",
+          "basis": "embedded_pdf_bbox_number_candidate",
+          "status": "proposed",
+          "human_review_performed": false
+        },
+        {
+          "sequence": 13,
+          "unit_key": "13",
+          "source_page": 90,
+          "resource_id": "pdf-page-0090",
+          "navigation_page": 90,
+          "anchor_ref": "tos.anchor.friedrich-nietzsche.zur-genealogie-der-moral.de-naumann-1892-second.essay-2.unit-13.source-start-page",
+          "basis": "source_visible_gap_review",
+          "status": "proposed",
+          "human_review_performed": false
+        },
+        {
+          "sequence": 14,
+          "unit_key": "14",
+          "source_page": 92,
+          "resource_id": "pdf-page-0092",
+          "navigation_page": 92,
+          "anchor_ref": "tos.anchor.friedrich-nietzsche.zur-genealogie-der-moral.de-naumann-1892-second.essay-2.unit-14.source-start-page",
+          "basis": "embedded_pdf_bbox_number_candidate",
+          "status": "proposed",
+          "human_review_performed": false
+        },
+        {
+          "sequence": 15,
+          "unit_key": "15",
+          "source_page": 94,
+          "resource_id": "pdf-page-0094",
+          "navigation_page": 94,
+          "anchor_ref": "tos.anchor.friedrich-nietzsche.zur-genealogie-der-moral.de-naumann-1892-second.essay-2.unit-15.source-start-page",
+          "basis": "source_visible_gap_review",
+          "status": "proposed",
+          "human_review_performed": false
+        },
+        {
+          "sequence": 16,
+          "unit_key": "16",
+          "source_page": 96,
+          "resource_id": "pdf-page-0096",
+          "navigation_page": 96,
+          "anchor_ref": "tos.anchor.friedrich-nietzsche.zur-genealogie-der-moral.de-naumann-1892-second.essay-2.unit-16.source-start-page",
+          "basis": "embedded_pdf_bbox_number_candidate",
+          "status": "proposed",
+          "human_review_performed": false
+        },
+        {
+          "sequence": 17,
+          "unit_key": "17",
+          "source_page": 99,
+          "resource_id": "pdf-page-0099",
+          "navigation_page": 99,
+          "anchor_ref": "tos.anchor.friedrich-nietzsche.zur-genealogie-der-moral.de-naumann-1892-second.essay-2.unit-17.source-start-page",
+          "basis": "embedded_pdf_bbox_number_candidate",
+          "status": "proposed",
+          "human_review_performed": false
+        },
+        {
+          "sequence": 18,
+          "unit_key": "18",
+          "source_page": 101,
+          "resource_id": "pdf-page-0101",
+          "navigation_page": 101,
+          "anchor_ref": "tos.anchor.friedrich-nietzsche.zur-genealogie-der-moral.de-naumann-1892-second.essay-2.unit-18.source-start-page",
+          "basis": "embedded_pdf_bbox_number_candidate",
+          "status": "proposed",
+          "human_review_performed": false
+        },
+        {
+          "sequence": 19,
+          "unit_key": "19",
+          "source_page": 102,
+          "resource_id": "pdf-page-0102",
+          "navigation_page": 102,
+          "anchor_ref": "tos.anchor.friedrich-nietzsche.zur-genealogie-der-moral.de-naumann-1892-second.essay-2.unit-19.source-start-page",
+          "basis": "embedded_pdf_bbox_number_candidate",
+          "status": "proposed",
+          "human_review_performed": false
+        },
+        {
+          "sequence": 20,
+          "unit_key": "20",
+          "source_page": 105,
+          "resource_id": "pdf-page-0105",
+          "navigation_page": 105,
+          "anchor_ref": "tos.anchor.friedrich-nietzsche.zur-genealogie-der-moral.de-naumann-1892-second.essay-2.unit-20.source-start-page",
+          "basis": "source_visible_gap_review",
+          "status": "proposed",
+          "human_review_performed": false
+        },
+        {
+          "sequence": 21,
+          "unit_key": "21",
+          "source_page": 106,
+          "resource_id": "pdf-page-0106",
+          "navigation_page": 106,
+          "anchor_ref": "tos.anchor.friedrich-nietzsche.zur-genealogie-der-moral.de-naumann-1892-second.essay-2.unit-21.source-start-page",
+          "basis": "embedded_pdf_bbox_number_candidate",
+          "status": "proposed",
+          "human_review_performed": false
+        },
+        {
+          "sequence": 22,
+          "unit_key": "22",
+          "source_page": 108,
+          "resource_id": "pdf-page-0108",
+          "navigation_page": 108,
+          "anchor_ref": "tos.anchor.friedrich-nietzsche.zur-genealogie-der-moral.de-naumann-1892-second.essay-2.unit-22.source-start-page",
+          "basis": "embedded_pdf_bbox_number_candidate",
+          "status": "proposed",
+          "human_review_performed": false
+        },
+        {
+          "sequence": 23,
+          "unit_key": "23",
+          "source_page": 109,
+          "resource_id": "pdf-page-0109",
+          "navigation_page": 109,
+          "anchor_ref": "tos.anchor.friedrich-nietzsche.zur-genealogie-der-moral.de-naumann-1892-second.essay-2.unit-23.source-start-page",
+          "basis": "embedded_pdf_bbox_number_candidate",
+          "status": "proposed",
+          "human_review_performed": false
+        },
+        {
+          "sequence": 24,
+          "unit_key": "24",
+          "source_page": 111,
+          "resource_id": "pdf-page-0111",
+          "navigation_page": 111,
+          "anchor_ref": "tos.anchor.friedrich-nietzsche.zur-genealogie-der-moral.de-naumann-1892-second.essay-2.unit-24.source-start-page",
+          "basis": "embedded_pdf_bbox_number_candidate",
+          "status": "proposed",
+          "human_review_performed": false
+        },
+        {
+          "sequence": 25,
+          "unit_key": "25",
+          "source_page": 113,
+          "resource_id": "pdf-page-0113",
+          "navigation_page": 113,
+          "anchor_ref": "tos.anchor.friedrich-nietzsche.zur-genealogie-der-moral.de-naumann-1892-second.essay-2.unit-25.source-start-page",
+          "basis": "embedded_pdf_bbox_number_candidate",
+          "status": "proposed",
+          "human_review_performed": false
+        }
+      ]
+    },
+    {
+      "series_key": "essay-3",
+      "series_sequence": 4,
+      "series_kind": "numbered-essay",
+      "start_page": 115,
+      "end_page": 202,
+      "expected_unit_count": 28,
+      "status": "proposed",
+      "unit_starts": [
+        {
+          "sequence": 1,
+          "unit_key": "1",
+          "source_page": 117,
+          "resource_id": "pdf-page-0117",
+          "navigation_page": 117,
+          "anchor_ref": "tos.anchor.friedrich-nietzsche.zur-genealogie-der-moral.de-naumann-1892-second.essay-3.unit-1.source-start-page",
+          "basis": "embedded_pdf_bbox_number_candidate",
+          "status": "proposed",
+          "human_review_performed": false
+        },
+        {
+          "sequence": 2,
+          "unit_key": "2",
+          "source_page": 117,
+          "resource_id": "pdf-page-0117",
+          "navigation_page": 117,
+          "anchor_ref": "tos.anchor.friedrich-nietzsche.zur-genealogie-der-moral.de-naumann-1892-second.essay-3.unit-2.source-start-page",
+          "basis": "embedded_pdf_bbox_number_candidate",
+          "status": "proposed",
+          "human_review_performed": false
+        },
+        {
+          "sequence": 3,
+          "unit_key": "3",
+          "source_page": 119,
+          "resource_id": "pdf-page-0119",
+          "navigation_page": 119,
+          "anchor_ref": "tos.anchor.friedrich-nietzsche.zur-genealogie-der-moral.de-naumann-1892-second.essay-3.unit-3.source-start-page",
+          "basis": "embedded_pdf_bbox_number_candidate",
+          "status": "proposed",
+          "human_review_performed": false
+        },
+        {
+          "sequence": 4,
+          "unit_key": "4",
+          "source_page": 121,
+          "resource_id": "pdf-page-0121",
+          "navigation_page": 121,
+          "anchor_ref": "tos.anchor.friedrich-nietzsche.zur-genealogie-der-moral.de-naumann-1892-second.essay-3.unit-4.source-start-page",
+          "basis": "embedded_pdf_bbox_number_candidate",
+          "status": "proposed",
+          "human_review_performed": false
+        },
+        {
+          "sequence": 5,
+          "unit_key": "5",
+          "source_page": 123,
+          "resource_id": "pdf-page-0123",
+          "navigation_page": 123,
+          "anchor_ref": "tos.anchor.friedrich-nietzsche.zur-genealogie-der-moral.de-naumann-1892-second.essay-3.unit-5.source-start-page",
+          "basis": "embedded_pdf_bbox_number_candidate",
+          "status": "proposed",
+          "human_review_performed": false
+        },
+        {
+          "sequence": 6,
+          "unit_key": "6",
+          "source_page": 125,
+          "resource_id": "pdf-page-0125",
+          "navigation_page": 125,
+          "anchor_ref": "tos.anchor.friedrich-nietzsche.zur-genealogie-der-moral.de-naumann-1892-second.essay-3.unit-6.source-start-page",
+          "basis": "embedded_pdf_bbox_number_candidate",
+          "status": "proposed",
+          "human_review_performed": false
+        },
+        {
+          "sequence": 7,
+          "unit_key": "7",
+          "source_page": 128,
+          "resource_id": "pdf-page-0128",
+          "navigation_page": 128,
+          "anchor_ref": "tos.anchor.friedrich-nietzsche.zur-genealogie-der-moral.de-naumann-1892-second.essay-3.unit-7.source-start-page",
+          "basis": "embedded_pdf_bbox_number_candidate",
+          "status": "proposed",
+          "human_review_performed": false
+        },
+        {
+          "sequence": 8,
+          "unit_key": "8",
+          "source_page": 131,
+          "resource_id": "pdf-page-0131",
+          "navigation_page": 131,
+          "anchor_ref": "tos.anchor.friedrich-nietzsche.zur-genealogie-der-moral.de-naumann-1892-second.essay-3.unit-8.source-start-page",
+          "basis": "embedded_pdf_bbox_number_candidate",
+          "status": "proposed",
+          "human_review_performed": false
+        },
+        {
+          "sequence": 9,
+          "unit_key": "9",
+          "source_page": 137,
+          "resource_id": "pdf-page-0137",
+          "navigation_page": 137,
+          "anchor_ref": "tos.anchor.friedrich-nietzsche.zur-genealogie-der-moral.de-naumann-1892-second.essay-3.unit-9.source-start-page",
+          "basis": "embedded_pdf_bbox_number_candidate",
+          "status": "proposed",
+          "human_review_performed": false
+        },
+        {
+          "sequence": 10,
+          "unit_key": "10",
+          "source_page": 140,
+          "resource_id": "pdf-page-0140",
+          "navigation_page": 140,
+          "anchor_ref": "tos.anchor.friedrich-nietzsche.zur-genealogie-der-moral.de-naumann-1892-second.essay-3.unit-10.source-start-page",
+          "basis": "embedded_pdf_bbox_number_candidate",
+          "status": "proposed",
+          "human_review_performed": false
+        },
+        {
+          "sequence": 11,
+          "unit_key": "11",
+          "source_page": 142,
+          "resource_id": "pdf-page-0142",
+          "navigation_page": 142,
+          "anchor_ref": "tos.anchor.friedrich-nietzsche.zur-genealogie-der-moral.de-naumann-1892-second.essay-3.unit-11.source-start-page",
+          "basis": "embedded_pdf_bbox_number_candidate",
+          "status": "proposed",
+          "human_review_performed": false
+        },
+        {
+          "sequence": 12,
+          "unit_key": "12",
+          "source_page": 145,
+          "resource_id": "pdf-page-0145",
+          "navigation_page": 145,
+          "anchor_ref": "tos.anchor.friedrich-nietzsche.zur-genealogie-der-moral.de-naumann-1892-second.essay-3.unit-12.source-start-page",
+          "basis": "embedded_pdf_bbox_number_candidate",
+          "status": "proposed",
+          "human_review_performed": false
+        },
+        {
+          "sequence": 13,
+          "unit_key": "13",
+          "source_page": 147,
+          "resource_id": "pdf-page-0147",
+          "navigation_page": 147,
+          "anchor_ref": "tos.anchor.friedrich-nietzsche.zur-genealogie-der-moral.de-naumann-1892-second.essay-3.unit-13.source-start-page",
+          "basis": "embedded_pdf_bbox_number_candidate",
+          "status": "proposed",
+          "human_review_performed": false
+        },
+        {
+          "sequence": 14,
+          "unit_key": "14",
+          "source_page": 150,
+          "resource_id": "pdf-page-0150",
+          "navigation_page": 150,
+          "anchor_ref": "tos.anchor.friedrich-nietzsche.zur-genealogie-der-moral.de-naumann-1892-second.essay-3.unit-14.source-start-page",
+          "basis": "embedded_pdf_bbox_number_candidate",
+          "status": "proposed",
+          "human_review_performed": false
+        },
+        {
+          "sequence": 15,
+          "unit_key": "15",
+          "source_page": 155,
+          "resource_id": "pdf-page-0155",
+          "navigation_page": 155,
+          "anchor_ref": "tos.anchor.friedrich-nietzsche.zur-genealogie-der-moral.de-naumann-1892-second.essay-3.unit-15.source-start-page",
+          "basis": "embedded_pdf_bbox_number_candidate",
+          "status": "proposed",
+          "human_review_performed": false
+        },
+        {
+          "sequence": 16,
+          "unit_key": "16",
+          "source_page": 159,
+          "resource_id": "pdf-page-0159",
+          "navigation_page": 159,
+          "anchor_ref": "tos.anchor.friedrich-nietzsche.zur-genealogie-der-moral.de-naumann-1892-second.essay-3.unit-16.source-start-page",
+          "basis": "embedded_pdf_bbox_number_candidate",
+          "status": "proposed",
+          "human_review_performed": false
+        },
+        {
+          "sequence": 17,
+          "unit_key": "17",
+          "source_page": 161,
+          "resource_id": "pdf-page-0161",
+          "navigation_page": 161,
+          "anchor_ref": "tos.anchor.friedrich-nietzsche.zur-genealogie-der-moral.de-naumann-1892-second.essay-3.unit-17.source-start-page",
+          "basis": "embedded_pdf_bbox_number_candidate",
+          "status": "proposed",
+          "human_review_performed": false
+        },
+        {
+          "sequence": 18,
+          "unit_key": "18",
+          "source_page": 167,
+          "resource_id": "pdf-page-0167",
+          "navigation_page": 167,
+          "anchor_ref": "tos.anchor.friedrich-nietzsche.zur-genealogie-der-moral.de-naumann-1892-second.essay-3.unit-18.source-start-page",
+          "basis": "embedded_pdf_bbox_number_candidate",
+          "status": "proposed",
+          "human_review_performed": false
+        },
+        {
+          "sequence": 19,
+          "unit_key": "19",
+          "source_page": 170,
+          "resource_id": "pdf-page-0170",
+          "navigation_page": 170,
+          "anchor_ref": "tos.anchor.friedrich-nietzsche.zur-genealogie-der-moral.de-naumann-1892-second.essay-3.unit-19.source-start-page",
+          "basis": "embedded_pdf_bbox_number_candidate",
+          "status": "proposed",
+          "human_review_performed": false
+        },
+        {
+          "sequence": 20,
+          "unit_key": "20",
+          "source_page": 173,
+          "resource_id": "pdf-page-0173",
+          "navigation_page": 173,
+          "anchor_ref": "tos.anchor.friedrich-nietzsche.zur-genealogie-der-moral.de-naumann-1892-second.essay-3.unit-20.source-start-page",
+          "basis": "embedded_pdf_bbox_number_candidate",
+          "status": "proposed",
+          "human_review_performed": false
+        },
+        {
+          "sequence": 21,
+          "unit_key": "21",
+          "source_page": 177,
+          "resource_id": "pdf-page-0177",
+          "navigation_page": 177,
+          "anchor_ref": "tos.anchor.friedrich-nietzsche.zur-genealogie-der-moral.de-naumann-1892-second.essay-3.unit-21.source-start-page",
+          "basis": "embedded_pdf_bbox_number_candidate",
+          "status": "proposed",
+          "human_review_performed": false
+        },
+        {
+          "sequence": 22,
+          "unit_key": "22",
+          "source_page": 179,
+          "resource_id": "pdf-page-0179",
+          "navigation_page": 179,
+          "anchor_ref": "tos.anchor.friedrich-nietzsche.zur-genealogie-der-moral.de-naumann-1892-second.essay-3.unit-22.source-start-page",
+          "basis": "embedded_pdf_bbox_number_candidate",
+          "status": "proposed",
+          "human_review_performed": false
+        },
+        {
+          "sequence": 23,
+          "unit_key": "23",
+          "source_page": 182,
+          "resource_id": "pdf-page-0182",
+          "navigation_page": 182,
+          "anchor_ref": "tos.anchor.friedrich-nietzsche.zur-genealogie-der-moral.de-naumann-1892-second.essay-3.unit-23.source-start-page",
+          "basis": "embedded_pdf_bbox_number_candidate",
+          "status": "proposed",
+          "human_review_performed": false
+        },
+        {
+          "sequence": 24,
+          "unit_key": "24",
+          "source_page": 186,
+          "resource_id": "pdf-page-0186",
+          "navigation_page": 186,
+          "anchor_ref": "tos.anchor.friedrich-nietzsche.zur-genealogie-der-moral.de-naumann-1892-second.essay-3.unit-24.source-start-page",
+          "basis": "embedded_pdf_bbox_number_candidate",
+          "status": "proposed",
+          "human_review_performed": false
+        },
+        {
+          "sequence": 25,
+          "unit_key": "25",
+          "source_page": 190,
+          "resource_id": "pdf-page-0190",
+          "navigation_page": 190,
+          "anchor_ref": "tos.anchor.friedrich-nietzsche.zur-genealogie-der-moral.de-naumann-1892-second.essay-3.unit-25.source-start-page",
+          "basis": "embedded_pdf_bbox_number_candidate",
+          "status": "proposed",
+          "human_review_performed": false
+        },
+        {
+          "sequence": 26,
+          "unit_key": "26",
+          "source_page": 195,
+          "resource_id": "pdf-page-0195",
+          "navigation_page": 195,
+          "anchor_ref": "tos.anchor.friedrich-nietzsche.zur-genealogie-der-moral.de-naumann-1892-second.essay-3.unit-26.source-start-page",
+          "basis": "embedded_pdf_bbox_number_candidate",
+          "status": "proposed",
+          "human_review_performed": false
+        },
+        {
+          "sequence": 27,
+          "unit_key": "27",
+          "source_page": 198,
+          "resource_id": "pdf-page-0198",
+          "navigation_page": 198,
+          "anchor_ref": "tos.anchor.friedrich-nietzsche.zur-genealogie-der-moral.de-naumann-1892-second.essay-3.unit-27.source-start-page",
+          "basis": "embedded_pdf_bbox_number_candidate",
+          "status": "proposed",
+          "human_review_performed": false
+        },
+        {
+          "sequence": 28,
+          "unit_key": "28",
+          "source_page": 201,
+          "resource_id": "pdf-page-0201",
+          "navigation_page": 201,
+          "anchor_ref": "tos.anchor.friedrich-nietzsche.zur-genealogie-der-moral.de-naumann-1892-second.essay-3.unit-28.source-start-page",
+          "basis": "embedded_pdf_bbox_number_candidate",
+          "status": "proposed",
+          "human_review_performed": false
+        }
+      ]
+    }
+  ],
+  "summary": {
+    "series_count": 4,
+    "numbered_unit_count": 78,
+    "machine_number_candidate_count": 72,
+    "source_visible_override_unit_count": 6,
+    "source_visible_reviewed_page_count": 6,
+    "exact_start_page_candidates_materialized": 78,
+    "unresolved_unit_count": 0,
+    "start_pages_monotonic_within_series": true,
+    "all_anchor_statuses": [
+      "proposed"
+    ],
+    "human_review_performed": false,
+    "accepted_german_unit_count": 0
+  },
+  "provenance_ref": "ToS/source-witnesses/works/friedrich-nietzsche/zur-genealogie-der-moral/expressions/de-naumann-1892-second/editions/leipzig-c-g-naumann-1892-second-edition/items/wikimedia-commons-unc-scan-pdf/structure/provenance.numbered-unit-page-map.jsonl",
+  "provenance_event_ref": "tos.event.hierarchical-source-numbered-unit-page-map.friedrich-nietzsche.zur-genealogie-der-moral.de-naumann-1892-second.2026-08-08",
+  "map_version": 1,
+  "supersedes_map_ref": null,
+  "authority_boundary": "fixity-bound German source-page start candidates for independently named series-qualified printed number labels only, verified through disposable embedded or provider OCR navigation plus a bounded model-visible review of explicit OCR gaps; all anchors remain proposed whole-page addresses, the provider OCR remains unaccepted, and no source prose, exact passage end, accepted German, source-to-target passage alignment, translation relation, equivalence, quality, textual or edition identity, semantics, rights clearance, transfer eligibility, target gold, or canon authority follows",
+  "does_not_establish": [
+    "source_text",
+    "exact_line_boundaries",
+    "exact_passage_end_boundaries",
+    "accepted_german",
+    "provider_ocr_correctness",
+    "full_container_page_identity",
+    "source_to_target_passage_alignment",
+    "translation_correspondence",
+    "translation_equivalence",
+    "translation_quality",
+    "textual_identity",
+    "edition_equivalence",
+    "semantics",
+    "rights_clearance",
+    "eligible_target_unit",
+    "target_gold",
+    "canon_promotion"
+  ]
+}

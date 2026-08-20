@@ -1,0 +1,272 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/material-discovery-record.schema.json",
+  "schema_version": "tos_material_discovery_record_v1",
+  "discovery_id": "tos.discovery.proto-cuneiform-britannica-cuneiform-synthesis.2026-08-12",
+  "protocol_ref": "ToS/source-witnesses/discovery/DISCOVERY_PROTOCOL.md",
+  "target": {
+    "target_kind": "work",
+    "known_tos_refs": [
+      "tos.work.proto-cuneiform.britannica-cuneiform"
+    ],
+    "description": "Resolve Britannica's Cuneiform page as the A01 dossier's brief synthetic and navigational Work, establish its current AI-analysis and reuse boundary, and test every broad origin role against established and fresh direct scholarship without acquiring the article body or admitting its assertions.",
+    "required_properties": [
+      "exact stable topic URL, displayed Work title, publisher identity, and mutable-web-page boundary",
+      "current official terms and exact permission channel for local AI-assisted research",
+      "current byline and revision date either verified from the originating page or explicitly unresolved",
+      "encyclopedia synthesis separated from artifact, chronology, language, sign, and semantic authority",
+      "established top controls on proto-cuneiform's relation to language and symbolic administration",
+      "freshest directly relevant origin scholarship and current technical terminology control"
+    ],
+    "acceptable_substitutions": [
+      "the source dossier's exact citation and stable URL for Work identity when the originating article page presents an automated-client access challenge",
+      "official publisher terms and permission portal for rights and contact routing",
+      "originating scholarly and standards pages for comparison controls"
+    ],
+    "languages": ["en", "de", "und"],
+    "formats": ["mutable encyclopedia HTML", "official terms HTML", "publisher permission form", "research article HTML", "research article PDF", "institutional book record", "technical standard HTML"],
+    "purpose_ref": "ToS/research-packets/foundation-laboratory-2026-07/A01_BRITANNICA_CUNEIFORM_SYNTHESIS_SOURCE_PLANTING_RESEARCH_2026-08-12.md"
+  },
+  "channels": [
+    {
+      "channel_id": "channel-britannica-cuneiform-official",
+      "sequence": 1,
+      "channel_type": "publisher-catalog",
+      "role": "originating-record",
+      "source_name": "Encyclopaedia Britannica topic route, corporate Terms of Use, and syndication permission form",
+      "endpoint_url": "https://www.britannica.com/topic/cuneiform",
+      "interface_type": "web",
+      "interface_version": "topic, terms, and permission routes checked 2026-08-12",
+      "exact_query": "Resolve the exact Cuneiform Work route, publisher identity, current article accessibility, current terms governing personal, scholarly, automated, and AI use, and the publisher-designated permission channel.",
+      "queried_at": "2026-08-12T15:40:00-06:00",
+      "elapsed_seconds": 2.1,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.britannica-cuneiform-topic-work",
+          "rank": 1,
+          "title_as_displayed": "Cuneiform",
+          "result_url": "https://www.britannica.com/topic/cuneiform",
+          "originating_record_url": "https://www.britannica.com/topic/cuneiform",
+          "identifiers": [
+            {"scheme": "Britannica topic URL slug", "value": "cuneiform"}
+          ],
+          "available_formats": ["mutable encyclopedia HTML for ordinary browser access"],
+          "declared_rights": {"statement": "Britannica content is governed by the publisher Terms of Use; availability is not a redistribution or AI-analysis license.", "scope": "content", "evidence_url": "https://corporate.britannica.com/termsofuse.html", "tos_conclusion": "evidence-only-not-a-rights-conclusion"},
+          "availability": "open-view",
+          "machine_interface": "manual-only",
+          "decision": "select",
+          "rationale": "The stable topic URL and displayed title resolve the Work named by the dossier. The automated research client received HTTP 403, so the current byline, revision date, and body remain unresolved and no bypass or snippet-based reconstruction was attempted.",
+          "acquisition": {"downloaded": false, "acquired_at": null, "byte_size": null, "sha256": null, "event_ref": null},
+          "snapshot": {"state": "not-permitted", "format": null, "sha256": null, "reason": "No article body was captured; technical access was challenged and AI-assisted analysis requires express written consent under current terms."}
+        },
+        {
+          "result_id": "tos-discovery-result.britannica-current-terms-and-permission-route",
+          "rank": 2,
+          "title_as_displayed": "Britannica Terms of Use and syndication form",
+          "result_url": "https://corporate.britannica.com/termsofuse.html",
+          "originating_record_url": "https://corporate.britannica.com/termsofuse.html",
+          "identifiers": [
+            {"scheme": "terms effective date", "value": "2024-02-08"},
+            {"scheme": "permission form", "value": "https://britannica.tfaforms.net/47"}
+          ],
+          "available_formats": ["official terms HTML", "official publisher form"],
+          "declared_rights": {"statement": "Personal and bounded educational use is described, while data mining, scraping, AI training, and computer analysis require express written consent; publishing, distributing, or retransmitting content is not generally granted.", "scope": "content", "evidence_url": "https://corporate.britannica.com/termsofuse.html", "tos_conclusion": "evidence-only-not-a-rights-conclusion"},
+          "availability": "open-view",
+          "machine_interface": "html",
+          "decision": "select",
+          "rationale": "The official terms establish the exact restriction relevant to the ToS laboratory and point to a live publisher-controlled permission form. A draft-not-sent request is therefore prepared without acquiring content.",
+          "acquisition": {"downloaded": false, "acquired_at": null, "byte_size": null, "sha256": null, "event_ref": null},
+          "snapshot": {"state": "not-needed", "format": null, "sha256": null, "reason": "Rights evidence is retained as a dated live official URL and compact public-safe request record."}
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-britannica-cuneiform-established-scholarship",
+      "sequence": 2,
+      "channel_type": "specialized-scholarly-project",
+      "role": "scholarly-index",
+      "source_name": "CDLI and Institute for the Study of Ancient Cultures established research routes",
+      "endpoint_url": "https://cdli.earth/articles/cdlj/2006-1",
+      "interface_type": "web",
+      "interface_version": "official publication routes checked 2026-08-12",
+      "exact_query": "Identify established high-value scholarship that tests a brief encyclopedia narrative about the origin and early character of proto-cuneiform, especially its relation to oral language, administration, semantic categories, and definitions of writing.",
+      "queried_at": "2026-08-12T15:44:00-06:00",
+      "elapsed_seconds": 3.8,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.damerow-2006-origins-historical-epistemology",
+          "rank": 1,
+          "title_as_displayed": "The Origins of Writing as a Problem of Historical Epistemology",
+          "result_url": "https://cdli.earth/articles/cdlj/2006-1",
+          "originating_record_url": "https://cdli.earth/articles/cdlj/2006-1",
+          "identifiers": [
+            {"scheme": "CDLJ", "value": "2006:1"},
+            {"scheme": "ISSN", "value": "1540-8779"}
+          ],
+          "available_formats": ["publisher HTML", "publisher PDF"],
+          "declared_rights": {"statement": null, "scope": "unknown", "evidence_url": null, "tos_conclusion": "evidence-only-not-a-rights-conclusion"},
+          "availability": "open-view",
+          "machine_interface": "html",
+          "decision": "select",
+          "rationale": "Damerow supplies the strongest established control against a linear encyclopedia origin story: restricted administrative use, simple semantic categories, weak phonetic coding, incomplete conventionalization, symbolic precursors, and later structural reorganization toward oral language.",
+          "acquisition": {"downloaded": false, "acquired_at": null, "byte_size": null, "sha256": null, "event_ref": null},
+          "snapshot": {"state": "not-captured", "format": null, "sha256": null, "reason": "The exact publication route and bounded methodological conclusions were sufficient; no article payload entered ToS."}
+        },
+        {
+          "result_id": "tos-discovery-result.woods-visible-language-earliest-mesopotamian-writing",
+          "rank": 2,
+          "title_as_displayed": "Visible Language: Inventions of Writing in the Ancient Middle East and Beyond",
+          "result_url": "https://isac.uchicago.edu/research/publications/oimp/oimp-32-visible-language-inventions-writing-ancient-middle-east-and",
+          "originating_record_url": "https://isac.uchicago.edu/research/publications/oimp/oimp-32-visible-language-inventions-writing-ancient-middle-east-and",
+          "identifiers": [
+            {"scheme": "OIMP", "value": "32"},
+            {"scheme": "ISBN", "value": "978-1-885923-76-9"},
+            {"scheme": "reprint year", "value": "2015"},
+            {"scheme": "first edition year", "value": "2010"}
+          ],
+          "available_formats": ["official publication metadata HTML", "institution-hosted book PDF route"],
+          "declared_rights": {"statement": "The institutional page exposes a free PDF route; no general redistribution conclusion is inferred.", "scope": "content", "evidence_url": "https://isac.uchicago.edu/research/publications/oimp/oimp-32-visible-language-inventions-writing-ancient-middle-east-and", "tos_conclusion": "evidence-only-not-a-rights-conclusion"},
+          "availability": "open-download",
+          "machine_interface": "html",
+          "decision": "select",
+          "rationale": "Woods's visible-and-permanent-language frame and earliest-Mesopotamian synthesis provide an established definitional comparison. The frame is retained as a claim-bearing model rather than imposed over Damerow's proto-writing distinction.",
+          "acquisition": {"downloaded": false, "acquired_at": null, "byte_size": null, "sha256": null, "event_ref": null},
+          "snapshot": {"state": "not-captured", "format": null, "sha256": null, "reason": "No book payload or chapter text was needed for this metadata planting."}
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-britannica-cuneiform-fresh-current",
+      "sequence": 3,
+      "channel_type": "publisher-catalog",
+      "role": "scholarly-index",
+      "source_name": "Antiquity direct origin study and final Unicode 17 technical standard",
+      "endpoint_url": "https://www.cambridge.org/core/journals/antiquity/article/seals-and-signs-tracing-the-origins-of-writing-in-ancient-southwest-asia/B3C2D400F3F80A7A0162D9035C9C2804",
+      "interface_type": "web",
+      "interface_version": "publisher article and Unicode 17 final standard checked 2026-08-12",
+      "exact_query": "Find the freshest directly relevant research that challenges simple proto-cuneiform origin genealogies and a current technical standard that exposes terminology and encoding boundaries without being mistaken for archaeological authority.",
+      "queried_at": "2026-08-12T15:48:00-06:00",
+      "elapsed_seconds": 4.5,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.kelley-cartolano-ferrara-seals-and-signs",
+          "rank": 1,
+          "title_as_displayed": "Seals and signs: tracing the origins of writing in ancient South-west Asia",
+          "result_url": "https://www.cambridge.org/core/journals/antiquity/article/seals-and-signs-tracing-the-origins-of-writing-in-ancient-southwest-asia/B3C2D400F3F80A7A0162D9035C9C2804",
+          "originating_record_url": "https://www.cambridge.org/core/journals/antiquity/article/seals-and-signs-tracing-the-origins-of-writing-in-ancient-southwest-asia/B3C2D400F3F80A7A0162D9035C9C2804",
+          "identifiers": [
+            {"scheme": "DOI", "value": "10.15184/aqy.2024.165"},
+            {"scheme": "online publication date", "value": "2024-11-05"},
+            {"scheme": "issue", "value": "Antiquity 99(403), February 2025"}
+          ],
+          "available_formats": ["open article HTML", "article PDF", "citation export"],
+          "declared_rights": {"statement": "Creative Commons Attribution-NonCommercial-NoDerivatives 4.0 International.", "scope": "content", "evidence_url": "https://www.cambridge.org/core/journals/antiquity/article/seals-and-signs-tracing-the-origins-of-writing-in-ancient-southwest-asia/B3C2D400F3F80A7A0162D9035C9C2804", "tos_conclusion": "evidence-only-not-a-rights-conclusion"},
+          "availability": "open-download",
+          "machine_interface": "html",
+          "decision": "select",
+          "rationale": "The freshest direct origin study located replaces shape-only lineage with context-supported, chronologically bounded correlations across independent multimedia systems and stresses that token-to-sign ancestry outside numerals is rarely demonstrable.",
+          "acquisition": {"downloaded": false, "acquired_at": null, "byte_size": null, "sha256": null, "event_ref": null},
+          "snapshot": {"state": "not-captured", "format": null, "sha256": null, "reason": "No article text, figure, or derivative was imported under the NC-ND license."}
+        },
+        {
+          "result_id": "tos-discovery-result.unicode-17-cuneiform-technical-control",
+          "rank": 2,
+          "title_as_displayed": "The Unicode Standard, Version 17.0 — Chapter 11, Cuneiform",
+          "result_url": "https://www.unicode.org/versions/Unicode17.0.0/core-spec/chapter-11/",
+          "originating_record_url": "https://www.unicode.org/versions/Unicode17.0.0/core-spec/chapter-11/",
+          "identifiers": [
+            {"scheme": "Unicode version", "value": "17.0.0"}
+          ],
+          "available_formats": ["final standard HTML", "standard PDF route"],
+          "declared_rights": {"statement": "Unicode materials are governed by Unicode terms; this planting uses only the official technical route and no payload.", "scope": "content", "evidence_url": "https://www.unicode.org/copyright.html", "tos_conclusion": "evidence-only-not-a-rights-conclusion"},
+          "availability": "open-view",
+          "machine_interface": "html",
+          "decision": "select",
+          "rationale": "Unicode 17 supplies current encoding terminology and explicitly exposes broad versus narrow uses of cuneiform. It is retained as a technical interoperability control, not archaeological or semantic authority for proto-cuneiform.",
+          "acquisition": {"downloaded": false, "acquired_at": null, "byte_size": null, "sha256": null, "event_ref": null},
+          "snapshot": {"state": "not-needed", "format": null, "sha256": null, "reason": "A live final-standard route is sufficient for terminology and encoding currentness."}
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-britannica-cuneiform-general-web-last",
+      "sequence": 4,
+      "channel_type": "general-web-search",
+      "role": "lead-only",
+      "source_name": "Final indexed-web and 2025-2026 relevance screen",
+      "endpoint_url": "https://www.britannica.com/topic/cuneiform",
+      "interface_type": "web",
+      "interface_version": "search indexes checked 2026-08-12",
+      "exact_query": "Check indexed Britannica snippets and third-party citations only for unresolved leads; search 2025-2026 Antiquity, CDLI, and DOI-indexed results for a newer exact full resynthesis; reject snippets as article-body or revision authority and reject generic OCR or later-cuneiform work.",
+      "queried_at": "2026-08-12T15:53:00-06:00",
+      "elapsed_seconds": 1.6,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.indexed-britannica-snippets-not-source-body",
+          "rank": 1,
+          "title_as_displayed": "Indexed snippets and third-party citations for Britannica Cuneiform",
+          "result_url": "https://www.britannica.com/topic/cuneiform",
+          "originating_record_url": null,
+          "identifiers": [],
+          "available_formats": ["search-result snippets", "third-party citations"],
+          "declared_rights": {"statement": null, "scope": "unknown", "evidence_url": null, "tos_conclusion": "evidence-only-not-a-rights-conclusion"},
+          "availability": "metadata-only",
+          "machine_interface": "html",
+          "decision": "reject",
+          "rationale": "Snippets corroborate the page route but cannot establish the complete current body, byline, revision date, or exact wording. A third-party 2023 citation date is not promoted as Britannica's current revision date.",
+          "acquisition": {"downloaded": false, "acquired_at": null, "byte_size": null, "sha256": null, "event_ref": null},
+          "snapshot": {"state": "not-needed", "format": null, "sha256": null, "reason": "Weak derivative evidence was rejected rather than captured."}
+        },
+        {
+          "result_id": "tos-discovery-result.current-but-nonresponsive-cuneiform-results",
+          "rank": 2,
+          "title_as_displayed": "2025-2026 later-cuneiform text editions, OCR, legibility, and sign-classification results",
+          "result_url": "https://cdli.earth/articles/cdlj",
+          "originating_record_url": null,
+          "identifiers": [],
+          "available_formats": ["journal listings", "research-result listings"],
+          "declared_rights": {"statement": null, "scope": "unknown", "evidence_url": null, "tos_conclusion": "evidence-only-not-a-rights-conclusion"},
+          "availability": "open-view",
+          "machine_interface": "html",
+          "decision": "reject",
+          "rationale": "The located current results address later periods, particular object editions, recognition, or representation rather than a full evidential reassessment of proto-cuneiform origins. Fresh publication date alone does not make them relevant controls for this source anchor.",
+          "acquisition": {"downloaded": false, "acquired_at": null, "byte_size": null, "sha256": null, "event_ref": null},
+          "snapshot": {"state": "not-needed", "format": null, "sha256": null, "reason": "Non-comparable results were rejected without content capture."}
+        }
+      ]
+    }
+  ],
+  "channel_comparison": [
+    {"channel_id": "channel-britannica-cuneiform-official", "completeness": "adequate", "metadata_precision": "strong", "rights_clarity": "strong", "machine_interface_quality": "limited", "human_minutes": 8.0, "machine_seconds": 2.1, "notes": "The Work route, publisher, terms, restriction, and permission channel are exact. Current byline, revision date, and body remain unresolved because the article route challenged the automated client; no bypass was used."},
+    {"channel_id": "channel-britannica-cuneiform-established-scholarship", "completeness": "strong", "metadata_precision": "strong", "rights_clarity": "adequate", "machine_interface_quality": "strong", "human_minutes": 12.0, "machine_seconds": 3.8, "notes": "Damerow and Woods supply high-value, mutually informative controls on administration, language representation, and definitions of writing. Neither is flattened into one universal model."},
+    {"channel_id": "channel-britannica-cuneiform-fresh-current", "completeness": "strong", "metadata_precision": "strong", "rights_clarity": "strong", "machine_interface_quality": "strong", "human_minutes": 10.0, "machine_seconds": 4.5, "notes": "The 2024-online/2025-issue Antiquity study is the freshest directly relevant origin paper located. Unicode 17 is current but bounded to technical terminology and encoding."},
+    {"channel_id": "channel-britannica-cuneiform-general-web-last", "completeness": "adequate", "metadata_precision": "limited", "rights_clarity": "limited", "machine_interface_quality": "adequate", "human_minutes": 5.0, "machine_seconds": 1.6, "notes": "Search snippets were rejected as body and revision authority. No 2025-2026 full direct resynthesis was located; this is a bounded negative result, not proof of absence."}
+  ],
+  "selected_result_ids": [
+    "tos-discovery-result.britannica-cuneiform-topic-work",
+    "tos-discovery-result.britannica-current-terms-and-permission-route",
+    "tos-discovery-result.damerow-2006-origins-historical-epistemology",
+    "tos-discovery-result.woods-visible-language-earliest-mesopotamian-writing",
+    "tos-discovery-result.kelley-cartolano-ferrara-seals-and-signs",
+    "tos-discovery-result.unicode-17-cuneiform-technical-control"
+  ],
+  "rejected_result_ids": [
+    "tos-discovery-result.indexed-britannica-snippets-not-source-body",
+    "tos-discovery-result.current-but-nonresponsive-cuneiform-results"
+  ],
+  "rights_inference_from_availability_prohibited": true,
+  "general_web_search_is_last_resort": true,
+  "technical_access_bypass_used": false,
+  "maker": {"maker_type": "model", "agent_ref": "model:codex"},
+  "started_at": "2026-08-12T15:40:00-06:00",
+  "ended_at": "2026-08-12T15:56:00-06:00",
+  "status": "reconciled",
+  "provenance_event_refs": [
+    "tos.event.discovery.proto-cuneiform-britannica-cuneiform-synthesis.2026-08-12"
+  ],
+  "record_version": 1,
+  "supersedes_discovery_ref": null
+}

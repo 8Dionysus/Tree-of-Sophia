@@ -1,0 +1,63 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/philosophy-source-planting.schema.json",
+  "schema_version": "tos_philosophy_source_planting_v1",
+  "planting_id": "tos.planting.a01.atu5-numerical-texts-layer",
+  "atlas_row_id": "A01",
+  "dossier_id": "A01",
+  "branch_path": "ToS/philosophy/eras/bronze-age/regions/west-asia/traditions/proto-cuneiform-accounting-ontologies",
+  "source_backlog_anchor": {
+    "path": "ToS/philosophy/eras/bronze-age/regions/west-asia/traditions/proto-cuneiform-accounting-ontologies/sources/source-anchor-backlog.jsonl",
+    "line": 15,
+    "source_table_index": 13,
+    "source_row_index": 7,
+    "source_label": "ATU 5 numerical texts layer [53]"
+  },
+  "source_witness": {
+    "work_id": "tos.work.proto-cuneiform.archaic-administrative-texts-from-uruk-the-early-campaigns",
+    "record_ref": "ToS/source-witnesses/works/proto-cuneiform-scholarship/archaic-administrative-texts-from-uruk-the-early-campaigns/work.json",
+    "relationship": "grounds_source_backlog_anchor"
+  },
+  "discovery_ref": "ToS/source-witnesses/discovery/runs/proto-cuneiform-atu5-numerical-texts-layer.2026-08-12.v1.json",
+  "provenance_event_ref": "tos.event.discovery.proto-cuneiform-atu5-numerical-texts-layer.2026-08-12",
+  "research_ref": "ToS/research-packets/foundation-laboratory-2026-07/A01_ATU5_NUMERICAL_TEXTS_LAYER_SOURCE_PLANTING_RESEARCH_2026-08-12.md",
+  "fulfilled_source_needs": [
+    "exact ATU 5 and ADFU 15 identity resolved as one standalone 1994 Work",
+    "Englund authorship separated from Boehmer's exact reported contribution wording",
+    "Nissen 2024 evidence fixes numerical-only tablets as a historical subset omitted from ATU 1 and published in ATU 5",
+    "numerical-only layer distinguished from the distinct ATU 2 numerical-systems analysis Work",
+    "publisher document estimate separated from the dated current CDLI result count",
+    "direct reviews and current 2024-2026 corpus, contextual, PCSL, and Unicode controls retained",
+    "rights-aware DAI local-research access request prepared but not sent"
+  ],
+  "remaining_controls": [
+    "the backlog label names a historically meaningful subset inside ATU 5, not a separate Work",
+    "no complete ATU 5 Item, bounded numerical packet, source payload, or source-visible contents map has been acquired or admitted",
+    "no Expression or Edition rung is asserted before a source-bearing manifestation is available",
+    "no exact numerical-only tablet membership or count is asserted from approximate publisher or current provider totals",
+    "no tablet record, catalog entry, copy, plate, transliteration, sign form, image, reading, value, metrological system, translation, or etymology has been copied",
+    "ATU coordinates, CDLI artifact identities, PCSL/ACN identities, Unicode characters, numeric values, contextual quantities, and semantics remain distinct",
+    "no model-made membership, concordance, semantics, graph fact, canon state, or human task follows from this planting"
+  ],
+  "research_order": [
+    "official_and_classical_documentation",
+    "established_top_scholarship",
+    "fresh_current_relevance_check"
+  ],
+  "authority": {
+    "source_status": "metadata_witness_planted",
+    "review_status": "unreviewed",
+    "source_text_admitted": false,
+    "semantic_status": "not_started",
+    "graph_status": "not_promoted",
+    "canon_status": "not_canon",
+    "human_task_created": false
+  },
+  "status": "source_witness_planted",
+  "maker": {
+    "maker_type": "model",
+    "agent_ref": "model:codex",
+    "human_review_performed": false
+  },
+  "created_at": "2026-08-12T14:08:27-06:00",
+  "record_version": 1
+}

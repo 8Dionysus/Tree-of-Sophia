@@ -1,0 +1,53 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/source-item-manifest.schema.json",
+  "schema_version": "tos_source_item_manifest_v1",
+  "item_id": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.ru-reader-1899-uncredited.rnl-rusneb-fragment-pdf-parts",
+  "item_kind": "digitized_physical_copy",
+  "embodiment_ref": "tos.edition.friedrich-nietzsche.also-sprach-zarathustra.moscow-reader-editorial-office-1899",
+  "storage_posture": "local_gitignored_payload",
+  "payload_files": [
+    {
+      "file_id": "tos.file.sha256.f27a4c1bc95d6452ebe8f13358ded0e0a3012031481285e0239bccb7bfb86b4d",
+      "relative_path": "payload/ob000000411_0001.pdf",
+      "original_basename": "ob000000411_0001.pdf",
+      "media_type": "application/pdf",
+      "byte_size": 155778671,
+      "sha256": "f27a4c1bc95d6452ebe8f13358ded0e0a3012031481285e0239bccb7bfb86b4d",
+      "fixity_verified_at": "2026-08-01T18:15:16-06:00",
+      "container_member": true
+    },
+    {
+      "file_id": "tos.file.sha256.3b760f94356ecd938e7356b6115c055a8ba38dee029c379166bf9867afc8f818",
+      "relative_path": "payload/ob000000411_0002.pdf",
+      "original_basename": "ob000000411_0002.pdf",
+      "media_type": "application/pdf",
+      "byte_size": 167408539,
+      "sha256": "3b760f94356ecd938e7356b6115c055a8ba38dee029c379166bf9867afc8f818",
+      "fixity_verified_at": "2026-08-01T18:15:16-06:00",
+      "container_member": true
+    },
+    {
+      "file_id": "tos.file.sha256.d3ce8e66b1f11da99a74362ae2014d73871fe7bb37189b0ea3bf7ff0ed4cef3d",
+      "relative_path": "payload/ob000000411_0003.pdf",
+      "original_basename": "ob000000411_0003.pdf",
+      "media_type": "application/pdf",
+      "byte_size": 206863786,
+      "sha256": "d3ce8e66b1f11da99a74362ae2014d73871fe7bb37189b0ea3bf7ff0ed4cef3d",
+      "fixity_verified_at": "2026-08-01T18:15:16-06:00",
+      "container_member": true
+    }
+  ],
+  "acquisition_event_ref": "tos.event.acquisition.reader-1899-rnl-rusneb-fragment-pdf-parts.2026-08-01",
+  "rights_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-reader-1899-uncredited/editions/moscow-reader-editorial-office-1899/items/rnl-rusneb-fragment-pdf-parts/rights.json",
+  "provenance_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-reader-1899-uncredited/editions/moscow-reader-editorial-office-1899/items/rnl-rusneb-fragment-pdf-parts/provenance.jsonl",
+  "forensic_report_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-reader-1899-uncredited/editions/moscow-reader-editorial-office-1899/items/rnl-rusneb-fragment-pdf-parts/forensic-report.md",
+  "resource_inventory_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-reader-1899-uncredited/editions/moscow-reader-editorial-office-1899/items/rnl-rusneb-fragment-pdf-parts/resource-inventory.json",
+  "source_record_refs": [
+    "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-reader-1899-uncredited/editions/moscow-reader-editorial-office-1899/edition.json",
+    "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-reader-1899-uncredited/editions/moscow-reader-editorial-office-1899/items/rnl-rusneb-fragment-pdf-parts/source-metadata-snapshot.json",
+    "https://rusneb.ru/catalog/000200_000018_v19_rc_1709542/"
+  ],
+  "visibility": "local_only",
+  "manifest_version": 1,
+  "supersedes_manifest_ref": null
+}

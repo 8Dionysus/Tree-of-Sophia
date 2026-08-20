@@ -18,3 +18,10 @@ discovery/
 Acquired bytes route to the exact item `payload/`; restricted correspondence
 routes to `../access-requests/private/`; scholarly interpretation routes to a
 research packet or claim, never into the discovery record.
+
+Documentary-edition routes require the same separation. A digital edition may
+represent a manuscript, correction sheet, and historical print without
+becoming a fourth physical witness or a locally held Item. Record its object
+registry, source-surface addresses, access state, and explicit license
+evidence; do not copy source-bearing XML or infer reuse permission from open
+viewing.

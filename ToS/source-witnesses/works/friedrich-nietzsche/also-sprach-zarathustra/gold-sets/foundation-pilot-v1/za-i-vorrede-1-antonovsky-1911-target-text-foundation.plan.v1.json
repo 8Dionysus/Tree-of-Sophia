@@ -1,0 +1,141 @@
+{
+  "schema_version": "tos_zarathustra_target_text_foundation_plan_v1",
+  "plan_id": "tos.target-text-foundation.za-i-vorrede-1.antonovsky-1911-pdf-page-6-opening-paragraph.v1",
+  "plan_version": 1,
+  "created_at": "2026-08-12T08:46:33Z",
+  "question": "Which exact embedded-PDF word boxes and source-observed print lines underlie the opening paragraph of Zarathustra's preface in the exact Antonovsky 1911 Item?",
+  "scope": {
+    "work_ref": "tos.work.friedrich-nietzsche.also-sprach-zarathustra",
+    "expression_ref": "tos.expression.friedrich-nietzsche.also-sprach-zarathustra.ru-antonovsky-1911",
+    "edition_ref": "tos.edition.friedrich-nietzsche.also-sprach-zarathustra.saint-petersburg-prometey-1911-fourth",
+    "item_ref": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.ru-antonovsky-1911.rsl-neb-scan-pdf",
+    "file_ref": "tos.file.sha256.57518b50e24fee37b3e9c151e853c36ad34258f51a8b65b8233742d69017db69",
+    "file_sha256": "57518b50e24fee37b3e9c151e853c36ad34258f51a8b65b8233742d69017db69",
+    "source_relative_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-antonovsky-1911/editions/saint-petersburg-prometey-1911-fourth/items/rsl-neb-scan-pdf/payload/antonovsky-prometey-1911-rsl-neb.pdf",
+    "resource_inventory_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-antonovsky-1911/editions/saint-petersburg-prometey-1911-fourth/items/rsl-neb-scan-pdf/resource-inventory.json",
+    "rights_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-antonovsky-1911/editions/saint-petersburg-prometey-1911-fourth/items/rsl-neb-scan-pdf/rights.json"
+  },
+  "selector": {
+    "page_number": 6,
+    "page_resource_id": "pdf-page-0006",
+    "page_width_points": 792.0,
+    "page_height_points": 565.92,
+    "region_points": {
+      "x": 438.48,
+      "y": 198.6,
+      "width": 281.4307,
+      "height": 68.392
+    },
+    "block_match_count": 1,
+    "selected_line_start": 0,
+    "selected_line_count": 6,
+    "expected_word_count": 59,
+    "first_word_sha256": "c8f6109b240e7599565725df849247a72b61a94c8ee5d5daadef9a4a6f208409",
+    "last_word_sha256": "7c50e880dfca1a58d6d18586d75dd844031b6143c16e5b5a3114af4bd927f897",
+    "next_line_first_word_sha256": "d52543d6624b36905968eda137b9fa7c0ebdecdd6f6e651424b414279bee7c54"
+  },
+  "extraction_policy": {
+    "method": "poppler-bbox-word-line-extraction",
+    "method_version": "1",
+    "software_name": "pdftotext",
+    "software_version": "26.01.0",
+    "argv": [
+      "pdftotext",
+      "-f",
+      "6",
+      "-l",
+      "6",
+      "-bbox-layout",
+      "SOURCE_PDF",
+      "-"
+    ],
+    "expected_bbox_sha256": "568eee56e3dd91156ff77e4464133a5570c49049aed1b61a81283cb06e5f92e4",
+    "expected_bbox_bytes": 30714,
+    "expected_warning": "Syntax Warning: Invalid Font Weight",
+    "expected_warning_count": 17,
+    "word_join_rule": "join consecutive Poppler word elements inside each selected line with exactly one U+0020",
+    "line_join_rule": "join the six selected Poppler line elements with exactly one U+000A and write no terminal line feed",
+    "visual_relation": "the extracted string preserves the embedded word-token layer; spaced tokens caused by visual letterspacing are not silently joined or corrected",
+    "unicode_normalization": "none",
+    "expected_content_sha256": "3b856676c48ad6f4ef18397f429ab740c2efb917600ac6c72fc4481b89c4b71c",
+    "expected_content_bytes": 633,
+    "expected_content_codepoints": 349,
+    "output_role": "raw_ocr",
+    "source_text_authority": false,
+    "linguistic_authority": false,
+    "translation_authority": false
+  },
+  "visual_check": {
+    "performed_by": "model_source_visible",
+    "rendered_page_number": 6,
+    "render_dpi": 180,
+    "finding": "one visually letterspaced historical word is emitted as four separate embedded-text tokens; the raw layer preserves those tokens and records the visually joined reading only as a withheld unresolved alternative",
+    "embedded_token_sequence_sha256": "1e3148c880cf818fc7c9331805636966e47ed2f6a2bc744e5c1f79fda3484c01",
+    "visually_joined_candidate_sha256": "29c0d1ba8d8c33fe6522027d48390b26648da5485a1860de08643fe06250c5d5",
+    "human_review_performed": false,
+    "source_text_accepted": false
+  },
+  "outputs": {
+    "anchor_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/source-anchor-v2.za-i-vorrede-1-p1.antonovsky-1911.v1.json",
+    "text_layer_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/source-text-layer.za-i-vorrede-1-p1.antonovsky-1911-embedded.v1.json",
+    "text_unit_packet_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/source-text-unit.za-i-vorrede-1-p1.antonovsky-1911-layout.v1.json",
+    "provenance_event_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/provenance.target-text-foundation.za-i-vorrede-1.antonovsky-1911.v2.json",
+    "private_content_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/local-content/target-text-foundation/za-i-vorrede-1/antonovsky-1911-page-6-opening-paragraph.raw-embedded-text.txt",
+    "private_bbox_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/local-content/target-text-foundation/za-i-vorrede-1/antonovsky-1911-page-6.bbox.html"
+  },
+  "opaque_ids": {
+    "anchor_id": "tos.anchor.za-i-vorrede-1.antonovsky-1911-p6-p1.sid-757e8e0511ecc840fabdef0b2df14eef",
+    "passage_id": "tos.passage.za-i-vorrede-1.antonovsky-1911-p6-p1.sid-060f0de5a650f07ba123918daf57a31a",
+    "layer_id": "tos.text-layer.za-i-vorrede-1.antonovsky-1911-p6-p1.sid-b0a53934f56299cd91c135bf77240144",
+    "packet_id": "tos.source-text-unit-packet.sid-8182607da6ca1000fa4a4bc5f78ddda6",
+    "scheme_id": "tos.text-unit-scheme.sid-1d64c18f988e57c089dd8e5338bb395f",
+    "segmentation_id": "tos.text-segmentation.sid-fcef7bfffb0a2fa18deabbe105899e16",
+    "uncertainty_annotation_id": "tos.annotation.za-i-vorrede-1.antonovsky-1911-letterspacing.sid-09e8af5692c67c7a484cf665291b9052",
+    "anchor_ids": [
+      "tos.anchor.za-i-vorrede-1.antonovsky-1911-layout.sid-595d57f5d1f33a95c58bfda4825b5eb8",
+      "tos.anchor.za-i-vorrede-1.antonovsky-1911-layout.sid-53d2420743c08b731c25c41b26b5d7f3",
+      "tos.anchor.za-i-vorrede-1.antonovsky-1911-layout.sid-c61764ea0ddd02f4ed3478825dae5c77",
+      "tos.anchor.za-i-vorrede-1.antonovsky-1911-layout.sid-c663788adb8266b90afe6a6403541d94",
+      "tos.anchor.za-i-vorrede-1.antonovsky-1911-layout.sid-ee0eabc61b8c204489a8351a49ee9c0b",
+      "tos.anchor.za-i-vorrede-1.antonovsky-1911-layout.sid-4e0f2865d0c7e8aa2f4c2ff901011e44",
+      "tos.anchor.za-i-vorrede-1.antonovsky-1911-layout.sid-bb687e70016d59e23a4f46bcd4060385",
+      "tos.anchor.za-i-vorrede-1.antonovsky-1911-layout.sid-8a463ab6202716be870b1ab654778413",
+      "tos.anchor.za-i-vorrede-1.antonovsky-1911-layout.sid-e80e01d76cff4427e131f8d4f2d4f49e",
+      "tos.anchor.za-i-vorrede-1.antonovsky-1911-layout.sid-bba102aaddcb61fc1071403aa9542a5e",
+      "tos.anchor.za-i-vorrede-1.antonovsky-1911-layout.sid-b7380ffaa06dbd09c10c90bdfab10259",
+      "tos.anchor.za-i-vorrede-1.antonovsky-1911-layout.sid-8ccabf05260aefc23453a4ee12ddfce9"
+    ],
+    "unit_ids": [
+      "tos.text-unit.sid-6f1ba590f656ba4977424a65146b9b4b",
+      "tos.text-unit.sid-ecdfefbe3f82a8293cca52eee3a3894a",
+      "tos.text-unit.sid-2ecd3c3f21a0a02e57e6626c46c06dae",
+      "tos.text-unit.sid-43212f9806ba48e10dbe236cfc136170",
+      "tos.text-unit.sid-ee7b58f2b58e241931290189941d2f21",
+      "tos.text-unit.sid-3a147df005692e544f25fe1c07e45e0a",
+      "tos.text-unit.sid-444bd60d6dd97d645dc5899cfc0c22c6",
+      "tos.text-unit.sid-379741e0754e894ea39b338ae0329251",
+      "tos.text-unit.sid-9960bb576dec6ec489bb06cdebb4c7b4",
+      "tos.text-unit.sid-d48579c598b6f165d5d73e90720e5669",
+      "tos.text-unit.sid-f69ffba4fdf9649c1c48cdcc4383d240"
+    ]
+  },
+  "storage_and_rights": {
+    "source_visibility": "local_only",
+    "private_output_mode": "0600",
+    "tracked_records_are_text_free": true,
+    "publication_authorized": false,
+    "future_site_transfer_authorized": false,
+    "local_noncommercial_research_only": true,
+    "rights_posture": "the historical translation layers are public-domain-reviewed for RU and US, but the exact recent RSL/RuNEB scan and embedded-text layers remain copyright-undetermined and local-only"
+  },
+  "authority_boundary": {
+    "human_review_performed": false,
+    "russian_language_competence_assessed_for_this_layer": false,
+    "accepted_russian": false,
+    "accepted_translation": false,
+    "source_target_alignment_created": false,
+    "semantic_or_sign_claim_created": false,
+    "graph_or_canon_effect": false,
+    "routine_human_task_created": false
+  }
+}

@@ -1,0 +1,479 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/material-discovery-record.schema.json",
+  "schema_version": "tos_material_discovery_record_v1",
+  "discovery_id": "tos.discovery.old-babylonian-cdli-digital-artifact-registry.2026-08-12",
+  "protocol_ref": "ToS/source-witnesses/discovery/DISCOVERY_PROTOCOL.md",
+  "target": {
+    "target_kind": "work",
+    "known_tos_refs": [
+      "tos.work.digital-cuneiform-corpora.cuneiform-digital-library-initiative"
+    ],
+    "description": "Resolve CDLI as one evolving modern scholarly digital-resource Work for A02, distinguish it from its operators, releases, artifact records, physical objects, images, inscriptions, publications and derived datasets, and preserve current field-level provenance, rights and currentness controls without acquiring content.",
+    "required_properties": [
+      "project and scholarly-resource identity across founding and current official documentation",
+      "artifact metadata fields and uncertainty relations",
+      "search, API, linked-data and export capabilities separated from authority",
+      "metadata, text, image, software and publication rights separated by layer",
+      "current 2026 activity evidence without inventing an immutable release",
+      "fresh evidence about manual, scripted and LLM-assisted metadata production",
+      "future exact artifact and release reconciliation route"
+    ],
+    "acceptable_substitutions": [
+      "a dated official project page for current service activity",
+      "an exact versioned export only for a future release-level laboratory Item",
+      "a holding-institution record or original publication for field-level artifact corroboration"
+    ],
+    "languages": [
+      "en",
+      "und",
+      "akk",
+      "sux"
+    ],
+    "formats": [
+      "official documentation",
+      "HTML catalogue",
+      "JSON API",
+      "JSON-LD",
+      "RDF",
+      "tabular export",
+      "ATF/JTF",
+      "bibliographic metadata",
+      "research publication"
+    ],
+    "purpose_ref": "ToS/research-packets/foundation-laboratory-2026-07/A02_CDLI_DIGITAL_ARTIFACT_REGISTRY_SOURCE_PLANTING_RESEARCH_2026-08-12.md"
+  },
+  "channels": [
+    {
+      "channel_id": "channel-cdli-official-classical",
+      "sequence": 1,
+      "channel_type": "specialized-scholarly-project",
+      "role": "originating-record",
+      "source_name": "CDLI official documentation and Max Planck founding preprint",
+      "endpoint_url": "https://cdli.earth/about",
+      "interface_type": "web",
+      "interface_version": "current CDLI documentation checked 2026-08-12; founding preprint version 2001-08-21",
+      "exact_query": "Read the founding project statement and current About, API, artifact-field, search, terms, contribution and publishing documentation; resolve project scope, data layers, identifiers, uncertainty fields, update behavior and rights without treating availability as permission.",
+      "queried_at": "2026-08-12T20:52:00-06:00",
+      "elapsed_seconds": 14.8,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.cdli-founding-preprint-2001",
+          "rank": 1,
+          "title_as_displayed": "The Cuneiform Digital Library (CDLI)",
+          "result_url": "https://www.mpiwg-berlin.mpg.de/Preprints/P183.PDF",
+          "originating_record_url": "https://www.mpiwg-berlin.mpg.de/Preprints/P183.PDF",
+          "identifiers": [
+            {"scheme": "MPIWG Preprint", "value": "183"},
+            {"scheme": "version date", "value": "2001-08-21"}
+          ],
+          "available_formats": ["institutional PDF"],
+          "declared_rights": {
+            "statement": null,
+            "scope": "content",
+            "evidence_url": null,
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-view",
+          "machine_interface": "html",
+          "decision": "select",
+          "rationale": "The early official account fixes the founding representation layers: transliterations, glossaries, digitized originals and photographic archives, with later analyses derived from them.",
+          "acquisition": {"downloaded": false, "acquired_at": null, "byte_size": null, "sha256": null, "event_ref": null},
+          "snapshot": {"state": "not-captured", "format": null, "sha256": null, "reason": "The institutional source was read remotely; no publication payload was required for a metadata-only planting."}
+        },
+        {
+          "result_id": "tos-discovery-result.cdli-current-about",
+          "rank": 2,
+          "title_as_displayed": "About the Cuneiform Digital Library Initiative",
+          "result_url": "https://cdli.earth/about",
+          "originating_record_url": "https://cdli.earth/about",
+          "identifiers": [{"scheme": "project abbreviation", "value": "CDLI"}],
+          "available_formats": ["official project HTML"],
+          "declared_rights": {
+            "statement": "The page describes open online access but does not present one blanket reuse licence for every CDLI layer.",
+            "scope": "metadata",
+            "evidence_url": "https://cdli.earth/terms-of-use",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-view",
+          "machine_interface": "html",
+          "decision": "select",
+          "rationale": "The current official page defines the international collaboration, broad chronological scope, text-and-image resource layers, partners and mutable current coverage figures.",
+          "acquisition": {"downloaded": false, "acquired_at": null, "byte_size": null, "sha256": null, "event_ref": null},
+          "snapshot": {"state": "not-captured", "format": null, "sha256": null, "reason": "The live page is intentionally treated as volatile dated evidence, not an immutable release."}
+        },
+        {
+          "result_id": "tos-discovery-result.cdli-current-api-and-artifact-fields",
+          "rank": 3,
+          "title_as_displayed": "CDLI API and Artifact metadata fields",
+          "result_url": "https://cdli.earth/docs/api",
+          "originating_record_url": "https://cdli.earth/docs/artifact-metadata-fields",
+          "identifiers": [{"scheme": "artifact identifier family", "value": "P/Q/S"}],
+          "available_formats": ["JSON API", "JSON-LD", "RDF", "RDF/XML", "N-Triples", "Turtle", "CSV", "TSV", "XLSX"],
+          "declared_rights": {
+            "statement": null,
+            "scope": "metadata",
+            "evidence_url": "https://cdli.earth/terms-of-use",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-view",
+          "machine_interface": "api",
+          "decision": "select",
+          "rationale": "The exact documentation separates artifact, composite, collection, publication, provenience, writing-place, archive, language, genre, material and uncertainty fields and exposes update events and linked-data representations.",
+          "acquisition": {"downloaded": false, "acquired_at": null, "byte_size": null, "sha256": null, "event_ref": null},
+          "snapshot": {"state": "not-captured", "format": null, "sha256": null, "reason": "No API response or bulk export was needed to establish the resource identity and future interface route."}
+        },
+        {
+          "result_id": "tos-discovery-result.cdli-current-terms-contribution-and-publishing",
+          "rank": 4,
+          "title_as_displayed": "CDLI Terms of Use, Contribute, and Publishing guidance",
+          "result_url": "https://cdli.earth/terms-of-use",
+          "originating_record_url": "https://cdli.earth/terms-of-use",
+          "identifiers": [],
+          "available_formats": ["terms HTML", "contribution guidance HTML", "journal-editor guidance HTML"],
+          "declared_rights": {
+            "statement": "Artifact photographs and original images are generally owned by holding institutions and image use is noncommercial; line art follows the named publication or creator; transliterations and translations may be reused according to academic practice with acknowledgement for considerable reuse.",
+            "scope": "unknown",
+            "evidence_url": "https://cdli.earth/terms-of-use",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-view",
+          "machine_interface": "html",
+          "decision": "select",
+          "rationale": "The official pages prove that images, text, metadata contributions, software and publication links have different owners and workflows; no blanket licence may be inferred.",
+          "acquisition": {"downloaded": false, "acquired_at": null, "byte_size": null, "sha256": null, "event_ref": null},
+          "snapshot": {"state": "not-captured", "format": null, "sha256": null, "reason": "The terms URLs and dated research receipt preserve the evidence route; no governed payload entered ToS."}
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-cdli-established-scholarship",
+      "sequence": 2,
+      "channel_type": "publisher-catalog",
+      "role": "scholarly-index",
+      "source_name": "Versioned primer and established digital-edition, linked-data, provenance and machine-corpus scholarship",
+      "endpoint_url": "https://zenodo.org/records/15309738",
+      "interface_type": "web",
+      "interface_version": "publisher and repository records checked 2026-08-12",
+      "exact_query": "Read field-shaping descriptions of CDLI identity and use; separate project Work, digital edition, linked-data projection, collection provenance and derived machine-learning dataset boundaries.",
+      "queried_at": "2026-08-12T21:03:00-06:00",
+      "elapsed_seconds": 11.2,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.cdli-primer-2025",
+          "rank": 1,
+          "title_as_displayed": "The Cuneiform Digital Library Initiative: A Primer",
+          "result_url": "https://zenodo.org/records/15309738",
+          "originating_record_url": "https://zenodo.org/records/15309738",
+          "identifiers": [{"scheme": "DOI", "value": "10.5281/zenodo.15309738"}, {"scheme": "version", "value": "1.0"}],
+          "available_formats": ["Zenodo metadata", "HTML lesson", "PDF lesson"],
+          "declared_rights": {
+            "statement": "Zenodo displays Copyright for the lesson rather than a Creative Commons licence.",
+            "scope": "content",
+            "evidence_url": "https://zenodo.org/records/15309738",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-download",
+          "machine_interface": "html",
+          "decision": "select",
+          "rationale": "The versioned 2025 guide is the strongest current scholarly overview of project history, catalogue structure, search, contribution and citation; its DOI identifies the primer, not CDLI itself.",
+          "acquisition": {"downloaded": false, "acquired_at": null, "byte_size": null, "sha256": null, "event_ref": null},
+          "snapshot": {"state": "not-captured", "format": null, "sha256": null, "reason": "The repository metadata was sufficient; the copyrighted lesson body was not imported."}
+        },
+        {
+          "result_id": "tos-discovery-result.cdli-lod-edition-2018",
+          "rank": 2,
+          "title_as_displayed": "Towards a Linked Open Data Edition of Sumerian Corpora",
+          "result_url": "https://aclanthology.org/L18-1387/",
+          "originating_record_url": "https://aclanthology.org/L18-1387/",
+          "identifiers": [{"scheme": "ACL Anthology", "value": "L18-1387"}],
+          "available_formats": ["bibliographic HTML", "paper PDF", "BibTeX"],
+          "declared_rights": {
+            "statement": "ACL Anthology publication access applies to the paper; no upstream CDLI payload right is inferred.",
+            "scope": "content",
+            "evidence_url": "https://aclanthology.org/L18-1387/",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-download",
+          "machine_interface": "html",
+          "decision": "select",
+          "rationale": "The paper demonstrates that CDLI metadata and ATF can feed linked-data editions while remaining transformed, derived representations rather than source authority.",
+          "acquisition": {"downloaded": false, "acquired_at": null, "byte_size": null, "sha256": null, "event_ref": null},
+          "snapshot": {"state": "not-captured", "format": null, "sha256": null, "reason": "No paper or derived data payload was needed for this source-boundary planting."}
+        },
+        {
+          "result_id": "tos-discovery-result.cdli-networked-provenance-2022",
+          "rank": 3,
+          "title_as_displayed": "Envisioning networked provenance data storytelling with American cuneiform collections",
+          "result_url": "https://doi.org/10.1007/s00799-022-00335-0",
+          "originating_record_url": "https://doi.org/10.1007/s00799-022-00335-0",
+          "identifiers": [{"scheme": "DOI", "value": "10.1007/s00799-022-00335-0"}],
+          "available_formats": ["publisher record", "open-access article PDF"],
+          "declared_rights": {
+            "statement": "Creative Commons Attribution 4.0 applies to the article subject to credited third-party material.",
+            "scope": "content",
+            "evidence_url": "https://doi.org/10.1007/s00799-022-00335-0",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-download",
+          "machine_interface": "html",
+          "decision": "select",
+          "rationale": "The case study shows why findspot, custody, collector history, archival reconciliation, imaging and CDLI ingestion need separate item- and collection-level provenance relations.",
+          "acquisition": {"downloaded": false, "acquired_at": null, "byte_size": null, "sha256": null, "event_ref": null},
+          "snapshot": {"state": "not-captured", "format": null, "sha256": null, "reason": "The article was read remotely; no third-party collection image or record was copied."}
+        },
+        {
+          "result_id": "tos-discovery-result.cuneiml-derived-cdli-2023",
+          "rank": 4,
+          "title_as_displayed": "CuneiML: A Machine Learning Dataset for Cuneiform Tablet Analysis",
+          "result_url": "https://doi.org/10.5334/johd.151",
+          "originating_record_url": "https://doi.org/10.5334/johd.151",
+          "identifiers": [{"scheme": "DOI", "value": "10.5334/johd.151"}],
+          "available_formats": ["open-access data paper", "derived dataset metadata"],
+          "declared_rights": {
+            "statement": "The article and derived dataset declare their own terms; no right over upstream museum images is inferred.",
+            "scope": "digital-object",
+            "evidence_url": "https://doi.org/10.5334/johd.151",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-view",
+          "machine_interface": "html",
+          "decision": "select",
+          "rationale": "The derived corpus demonstrates both the scale enabled by CDLI and the selection, image-availability, scraping and preprocessing bias introduced downstream.",
+          "acquisition": {"downloaded": false, "acquired_at": null, "byte_size": null, "sha256": null, "event_ref": null},
+          "snapshot": {"state": "not-captured", "format": null, "sha256": null, "reason": "No derived dataset or upstream image was admitted."}
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-cdli-fresh-current",
+      "sequence": 3,
+      "channel_type": "specialized-scholarly-project",
+      "role": "mixed",
+      "source_name": "Live CDLI activity, current institutional project evidence, 2026 metadata-production study and 2026 ML challenger",
+      "endpoint_url": "https://cdli.earth/",
+      "interface_type": "web",
+      "interface_version": "live project surfaces and publications checked 2026-08-12",
+      "exact_query": "Check whether CDLI is active in 2026, whether a current immutable release is exposed, how current metadata is actually produced and corrected, and which fresh ML claims are relevant without being promoted to source authority.",
+      "queried_at": "2026-08-12T21:17:00-06:00",
+      "elapsed_seconds": 12.6,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.cdli-live-updates-2026",
+          "rank": 1,
+          "title_as_displayed": "The CDLI Collection",
+          "result_url": "https://cdli.earth/",
+          "originating_record_url": "https://cdli.earth/",
+          "identifiers": [{"scheme": "latest inspected accepted update date", "value": "2026-05-20"}],
+          "available_formats": ["live search", "accepted update-event listing", "project news"],
+          "declared_rights": {
+            "statement": "Public viewing and contribution interfaces are available; rights remain layer-specific under the terms of use.",
+            "scope": "metadata",
+            "evidence_url": "https://cdli.earth/terms-of-use",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-view",
+          "machine_interface": "html",
+          "decision": "select",
+          "rationale": "Accepted metadata updates dated May 2026 prove that the service and curation stream are live, but they do not name one immutable current database release.",
+          "acquisition": {"downloaded": false, "acquired_at": null, "byte_size": null, "sha256": null, "event_ref": null},
+          "snapshot": {"state": "not-captured", "format": null, "sha256": null, "reason": "A dated live-state observation is recorded; no mutable homepage snapshot was preserved."}
+        },
+        {
+          "result_id": "tos-discovery-result.cdli-mpg-current-project",
+          "rank": 2,
+          "title_as_displayed": "The Cuneiform Digital Library Initiative",
+          "result_url": "https://www.gea.mpg.de/200475/the-cuneiform-digital-library-intitiative",
+          "originating_record_url": "https://www.gea.mpg.de/200475/the-cuneiform-digital-library-intitiative",
+          "identifiers": [],
+          "available_formats": ["current institutional project HTML"],
+          "declared_rights": {
+            "statement": null,
+            "scope": "metadata",
+            "evidence_url": null,
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-view",
+          "machine_interface": "html",
+          "decision": "select",
+          "rationale": "The current institutional page corroborates more than 400,000 records, 738 provenienced sites, 1,284 collections and ongoing growth after the 2022 interface launch while naming current and former collaborators separately.",
+          "acquisition": {"downloaded": false, "acquired_at": null, "byte_size": null, "sha256": null, "event_ref": null},
+          "snapshot": {"state": "not-captured", "format": null, "sha256": null, "reason": "The live institutional record is retained as dated corroboration, not a release snapshot."}
+        },
+        {
+          "result_id": "tos-discovery-result.cdli-metadata-production-2026",
+          "rank": 3,
+          "title_as_displayed": "Semi-Automatic Annotation of Babylonian Cuneiform Texts",
+          "result_url": "https://doi.org/10.5334/johd.494",
+          "originating_record_url": "https://openhumanitiesdata.metajnl.com/articles/494/files/69aab84bc3ecd.pdf",
+          "identifiers": [{"scheme": "DOI", "value": "10.5334/johd.494"}, {"scheme": "journal article", "value": "12:41"}],
+          "available_formats": ["open-access article PDF", "dataset references", "software references"],
+          "declared_rights": {
+            "statement": "The article is CC BY 4.0; its linked datasets have separate CC BY 4.0 or CC BY-SA 3.0 licences.",
+            "scope": "content",
+            "evidence_url": "https://doi.org/10.5334/johd.494",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-download",
+          "machine_interface": "html",
+          "decision": "select",
+          "rationale": "The March 2026 peer-reviewed study directly documents source-dependent CDLI metadata creation and augmentation, mainly manual work aided by scripts and Microsoft Copilot, and explicit quality limits.",
+          "acquisition": {"downloaded": false, "acquired_at": null, "byte_size": null, "sha256": null, "event_ref": null},
+          "snapshot": {"state": "not-captured", "format": null, "sha256": null, "reason": "The paper was read remotely; no article or dataset payload entered the repository."}
+        },
+        {
+          "result_id": "tos-discovery-result.cuneiform-tablet-metadata-network-2026",
+          "rank": 4,
+          "title_as_displayed": "A novel network for classification of cuneiform tablet metadata",
+          "result_url": "https://arxiv.org/abs/2603.03892",
+          "originating_record_url": "https://arxiv.org/abs/2603.03892",
+          "identifiers": [{"scheme": "arXiv", "value": "2603.03892v2"}, {"scheme": "version date", "value": "2026-07-15"}],
+          "available_formats": ["preprint HTML", "preprint PDF", "source-code link"],
+          "declared_rights": {
+            "statement": "The arXiv record exposes a distribution licence for the preprint; upstream training data and artifact rights require separate review.",
+            "scope": "content",
+            "evidence_url": "https://arxiv.org/abs/2603.03892",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-download",
+          "machine_interface": "html",
+          "decision": "defer",
+          "rationale": "The July 2026 point-cloud classifier is a relevant future A/B/C challenger under limited annotations, but as a preprint it cannot establish any artifact's identity, provenience, date, genre or reading.",
+          "acquisition": {"downloaded": false, "acquired_at": null, "byte_size": null, "sha256": null, "event_ref": null},
+          "snapshot": {"state": "not-captured", "format": null, "sha256": null, "reason": "No preprint, model, point cloud or code was acquired during source planting."}
+        },
+        {
+          "result_id": "tos-discovery-result.cdli-monthly-release-2022-not-current",
+          "rank": 5,
+          "title_as_displayed": "Cuneiform Digital Library Initiative (CDLI) - 2022.01",
+          "result_url": "https://zenodo.org/records/5831280",
+          "originating_record_url": "https://zenodo.org/records/5831280",
+          "identifiers": [{"scheme": "Zenodo record", "value": "5831280"}, {"scheme": "release", "value": "2022.01"}],
+          "available_formats": ["historical monthly deposit", "Zenodo metadata"],
+          "declared_rights": {
+            "statement": "The historical deposit's own record governs that release; it does not state the rights or identity of a 2026 export.",
+            "scope": "digital-object",
+            "evidence_url": "https://zenodo.org/records/5831280",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-download",
+          "machine_interface": "api",
+          "decision": "reject",
+          "rationale": "The exact 2022.01 deposit is valid historical release evidence but is rejected as a current 2026 database snapshot or currentness authority.",
+          "acquisition": {"downloaded": false, "acquired_at": null, "byte_size": null, "sha256": null, "event_ref": null},
+          "snapshot": {"state": "not-needed", "format": null, "sha256": null, "reason": "No historical bulk package was needed to plant the current resource identity."}
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-cdli-general-web-last",
+      "sequence": 4,
+      "channel_type": "general-web-search",
+      "role": "lead-only",
+      "source_name": "General web search after official and scholarly channels",
+      "endpoint_url": "https://www.google.com/search",
+      "interface_type": "web",
+      "interface_version": null,
+      "exact_query": "Cuneiform Digital Library Initiative CDLI project corpus database current 2026",
+      "queried_at": "2026-08-12T21:32:00-06:00",
+      "elapsed_seconds": 2.1,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.wikipedia-cdli-rejected-authority",
+          "rank": 1,
+          "title_as_displayed": "Cuneiform Digital Library Initiative",
+          "result_url": "https://en.wikipedia.org/wiki/Cuneiform_Digital_Library_Initiative",
+          "originating_record_url": "https://en.wikipedia.org/wiki/Cuneiform_Digital_Library_Initiative",
+          "identifiers": [],
+          "available_formats": ["community encyclopedia HTML"],
+          "declared_rights": {
+            "statement": "Wikipedia page terms apply to the page; linked CDLI layers remain separately governed.",
+            "scope": "content",
+            "evidence_url": "https://en.wikipedia.org/wiki/Cuneiform_Digital_Library_Initiative",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-view",
+          "machine_interface": "html",
+          "decision": "reject",
+          "rationale": "The page is useful for discoverability but cannot resolve current operator identity, exact release, field provenance, layer-specific rights or scholarly correctness better than the official and peer-reviewed sources.",
+          "acquisition": {"downloaded": false, "acquired_at": null, "byte_size": null, "sha256": null, "event_ref": null},
+          "snapshot": {"state": "not-needed", "format": null, "sha256": null, "reason": "The community summary is rejected as planting authority."}
+        }
+      ]
+    }
+  ],
+  "channel_comparison": [
+    {
+      "channel_id": "channel-cdli-official-classical",
+      "completeness": "strong",
+      "metadata_precision": "strong",
+      "rights_clarity": "adequate",
+      "machine_interface_quality": "strong",
+      "human_minutes": 34,
+      "machine_seconds": 14.8,
+      "notes": "Best identity, field-model, API, update and layer-specific terms route; current coverage figures remain mutable and the terms are not one blanket licence."
+    },
+    {
+      "channel_id": "channel-cdli-established-scholarship",
+      "completeness": "adequate",
+      "metadata_precision": "strong",
+      "rights_clarity": "adequate",
+      "machine_interface_quality": "adequate",
+      "human_minutes": 31,
+      "machine_seconds": 11.2,
+      "notes": "Best route for resource history, digital-edition, linked-data, material-provenance and derived-dataset limits; not a substitute for live release evidence."
+    },
+    {
+      "channel_id": "channel-cdli-fresh-current",
+      "completeness": "strong",
+      "metadata_precision": "strong",
+      "rights_clarity": "limited",
+      "machine_interface_quality": "adequate",
+      "human_minutes": 28,
+      "machine_seconds": 12.6,
+      "notes": "Proves 2026 activity and, crucially, source-dependent manual, scripted and LLM-assisted metadata production; no immutable 2026 bulk release was established."
+    },
+    {
+      "channel_id": "channel-cdli-general-web-last",
+      "completeness": "limited",
+      "metadata_precision": "limited",
+      "rights_clarity": "poor",
+      "machine_interface_quality": "adequate",
+      "human_minutes": 3,
+      "machine_seconds": 2.1,
+      "notes": "Useful only for discoverability and terminology pressure after stronger channels; rejected as authority."
+    }
+  ],
+  "selected_result_ids": [
+    "tos-discovery-result.cdli-founding-preprint-2001",
+    "tos-discovery-result.cdli-current-about",
+    "tos-discovery-result.cdli-current-api-and-artifact-fields",
+    "tos-discovery-result.cdli-current-terms-contribution-and-publishing",
+    "tos-discovery-result.cdli-primer-2025",
+    "tos-discovery-result.cdli-lod-edition-2018",
+    "tos-discovery-result.cdli-networked-provenance-2022",
+    "tos-discovery-result.cuneiml-derived-cdli-2023",
+    "tos-discovery-result.cdli-live-updates-2026",
+    "tos-discovery-result.cdli-mpg-current-project",
+    "tos-discovery-result.cdli-metadata-production-2026"
+  ],
+  "rejected_result_ids": [
+    "tos-discovery-result.cdli-monthly-release-2022-not-current",
+    "tos-discovery-result.wikipedia-cdli-rejected-authority"
+  ],
+  "rights_inference_from_availability_prohibited": true,
+  "general_web_search_is_last_resort": true,
+  "technical_access_bypass_used": false,
+  "maker": {"maker_type": "model", "agent_ref": "model:codex"},
+  "started_at": "2026-08-12T20:52:00-06:00",
+  "ended_at": "2026-08-12T21:36:00-06:00",
+  "status": "reconciled",
+  "provenance_event_refs": [
+    "tos.event.discovery.old-babylonian-cdli-digital-artifact-registry.2026-08-12"
+  ],
+  "record_version": 1,
+  "supersedes_discovery_ref": null
+}

@@ -1,0 +1,299 @@
+{
+  "schema_version": "tos_rights_record_v1",
+  "rights_id": "tos.rights.goetzen-daemmerung.naumann-1889.mdz-bsb-scan-pdf",
+  "scope_refs": [
+    "tos.item.friedrich-nietzsche.goetzen-daemmerung.de-naumann-1889.mdz-bsb-scan-pdf",
+    "tos.file.sha256.f41a1dee091edd895d1f18a510dc73b48949257e882d3390c6c8f72beeb8d086"
+  ],
+  "assessment_status": "licensed",
+  "rights_statement_uri": null,
+  "license_uri": "https://creativecommons.org/licenses/by-nc-sa/4.0/",
+  "jurisdictions_reviewed": [
+    "DE",
+    "US"
+  ],
+  "source_refs": [
+    "ToS/research-packets/foundation-laboratory-2026-07/MDZ_FALL_WAGNER_1888_GOETZEN_1889_LAYERED_RIGHTS_ASSESSMENT.md",
+    "ToS/source-witnesses/works/friedrich-nietzsche/goetzen-daemmerung/expressions/de-naumann-1889/editions/leipzig-c-g-naumann-1889/items/mdz-bsb-scan-pdf/source-metadata-snapshot.json",
+    "https://www.digitale-sammlungen.de/en/details/bsb00069119",
+    "https://api.digitale-sammlungen.de/iiif/presentation/v2/bsb00069119/manifest",
+    "https://download.digitale-sammlungen.de/BOOKS/download.pl?id=bsb00069119&nr=1&ersteseite=1&letzteseite=164",
+    "https://www.digitale-sammlungen.de/en/download-options",
+    "https://creativecommons.org/licenses/by-nc-sa/4.0/",
+    "https://creativecommons.org/licenses/by-nc-sa/4.0/legalcode",
+    "https://www.gesetze-im-internet.de/urhg/__64.html",
+    "https://www.copyright.gov/circs/circ15a.pdf",
+    "https://www.copyright.gov/title17/92chap1.html#104a",
+    "https://www.copyright.gov/gatt.html",
+    "https://tile.loc.gov/storage-services/service/ll/usrep/usrep565/usrep565302/usrep565302.pdf",
+    "https://www.copyright.gov/comp3/chap300/ch300-copyrightable-authorship.pdf",
+    "https://oai.bsb-muenchen.de/doc/en/bavarian-digital-repository"
+  ],
+  "layer_assessments": [
+    {
+      "layer_id": "tos.rights.goetzen-daemmerung.naumann-1889.mdz-bsb-scan-pdf.layer.original-work",
+      "layer_role": "original_work",
+      "scope_refs": [
+        "tos.work.friedrich-nietzsche.goetzen-daemmerung"
+      ],
+      "assessment_status": "public_domain_reviewed",
+      "assessment_basis": "law",
+      "rights_statement_uri": null,
+      "license_uri": null,
+      "jurisdictions_reviewed": [
+        "DE",
+        "US"
+      ],
+      "source_refs": [
+        "ToS/research-packets/foundation-laboratory-2026-07/MDZ_FALL_WAGNER_1888_GOETZEN_1889_LAYERED_RIGHTS_ASSESSMENT.md",
+        "https://www.gesetze-im-internet.de/urhg/__64.html",
+        "https://www.copyright.gov/circs/circ15a.pdf",
+        "https://www.copyright.gov/circs/circ38b.pdf",
+        "https://www.copyright.gov/title17/92chap1.html#104a",
+        "https://www.copyright.gov/gatt.html",
+        "https://tile.loc.gov/storage-services/service/ll/usrep/usrep565/usrep565302/usrep565302.pdf"
+      ],
+      "rights_holder_refs": [],
+      "permissions": [
+        "the historical Goetzen-Daemmerung Work may be treated as public domain in the reviewed DE and US routes subject to source-specific and server-admission controls"
+      ],
+      "restrictions": [
+        "the Work-level result does not clear a particular transcription, translation, edition, scan, digital object, provider contribution, critical reconstruction, or accepted text"
+      ],
+      "redistribution_posture": "authorized_with_conditions",
+      "derivative_posture": "allowed_with_conditions",
+      "server_processing_posture": "authorized_with_conditions",
+      "term": {
+        "calculation_status": "expired",
+        "basis": "Nietzsche died in 1900; the ordinary German life-plus-seventy term ended at 1970-12-31, before the possible 1996 United States restoration date, so the Work fails 17 U.S.C. §104A's source-country-protection condition",
+        "starts_on": null,
+        "ends_on": "1970-12-31",
+        "uncertainty": "The calculation is limited to Nietzsche's historical Work in the reviewed DE and US routes and includes no later textual, editorial, or digital contribution."
+      },
+      "uncertainty": "Work-level public domain does not prove source correctness, author-final status, edition authority, or permission for later layers.",
+      "assessed_at": "2026-08-10T09:32:00-06:00",
+      "review_status": "unreviewed",
+      "rationale": "The German source-country term ended before possible United States restoration under 17 U.S.C. §104A; the historical result remains separate from every later textual, editorial, scan, and provider layer."
+    },
+    {
+      "layer_id": "tos.rights.goetzen-daemmerung.naumann-1889.mdz-bsb-scan-pdf.layer.edition-presentation",
+      "layer_role": "edition_presentation",
+      "scope_refs": [
+        "tos.edition.friedrich-nietzsche.goetzen-daemmerung.leipzig-c-g-naumann-1889"
+      ],
+      "assessment_status": "public_domain_reviewed",
+      "assessment_basis": "law",
+      "rights_statement_uri": null,
+      "license_uri": null,
+      "jurisdictions_reviewed": [
+        "DE",
+        "US"
+      ],
+      "source_refs": [
+        "ToS/research-packets/foundation-laboratory-2026-07/MDZ_FALL_WAGNER_1888_GOETZEN_1889_LAYERED_RIGHTS_ASSESSMENT.md",
+        "ToS/source-witnesses/works/friedrich-nietzsche/goetzen-daemmerung/expressions/de-naumann-1889/editions/leipzig-c-g-naumann-1889/items/mdz-bsb-scan-pdf/source-metadata-snapshot.json",
+        "https://www.gesetze-im-internet.de/urhg/__66.html",
+        "https://www.gesetze-im-internet.de/urhg/__70.html",
+        "https://www.copyright.gov/circs/circ15a.pdf",
+        "https://www.copyright.gov/title17/92chap1.html#104a",
+        "https://www.copyright.gov/gatt.html",
+        "https://tile.loc.gov/storage-services/service/ll/usrep/usrep565/usrep565302/usrep565302.pdf"
+      ],
+      "rights_holder_refs": [],
+      "permissions": [
+        "the source-visible 1889 typography and historical presentation may be treated as public domain in the reviewed DE and US routes"
+      ],
+      "restrictions": [
+        "the result excludes physical holding furniture, provider cover, scanning, generated PDF, metadata, the changed 1893 second edition, and future critical or AI-plus-human editions",
+        "the result does not establish identity with D 21, proof states, the 1893 editorial state, or any critical reconstruction"
+      ],
+      "redistribution_posture": "authorized_with_conditions",
+      "derivative_posture": "allowed_with_conditions",
+      "server_processing_posture": "authorized_with_conditions",
+      "term": {
+        "calculation_status": "expired",
+        "basis": "the Edition was published with an 1889 title-page date; even the conservative German anonymous-publication route ended at 1959-12-31, before the possible 1996 United States restoration date, so the historical presentation fails §104A's source-country-protection condition",
+        "starts_on": null,
+        "ends_on": "1959-12-31",
+        "uncertainty": "No anonymous status or separately protected presentation contributor is asserted; the conservative boundary only shows that no reviewed historical-presentation term remains active."
+      },
+      "uncertainty": "Unknown historical presentation contributors are not identified or assigned rights, and no textual collation is performed by this layer.",
+      "assessed_at": "2026-08-10T09:32:00-06:00",
+      "review_status": "unreviewed",
+      "rationale": "The historical presentation was outside its German source-country term before possible United States restoration under §104A, while later physical, digital, editorial, and textual layers remain separate."
+    },
+    {
+      "layer_id": "tos.rights.goetzen-daemmerung.naumann-1889.mdz-bsb-scan-pdf.layer.faithful-historical-page-scan",
+      "layer_role": "digital_scan",
+      "scope_refs": [
+        "tos.item.friedrich-nietzsche.goetzen-daemmerung.de-naumann-1889.mdz-bsb-scan-pdf",
+        "tos.file.sha256.f41a1dee091edd895d1f18a510dc73b48949257e882d3390c6c8f72beeb8d086"
+      ],
+      "assessment_status": "public_domain_reviewed",
+      "assessment_basis": "mixed",
+      "rights_statement_uri": null,
+      "license_uri": null,
+      "jurisdictions_reviewed": [
+        "DE",
+        "US"
+      ],
+      "source_refs": [
+        "ToS/research-packets/foundation-laboratory-2026-07/MDZ_FALL_WAGNER_1888_GOETZEN_1889_LAYERED_RIGHTS_ASSESSMENT.md",
+        "ToS/source-witnesses/works/friedrich-nietzsche/goetzen-daemmerung/expressions/de-naumann-1889/editions/leipzig-c-g-naumann-1889/items/mdz-bsb-scan-pdf/resource-inventory.json",
+        "ToS/source-witnesses/works/friedrich-nietzsche/goetzen-daemmerung/expressions/de-naumann-1889/editions/leipzig-c-g-naumann-1889/items/mdz-bsb-scan-pdf/source-metadata-snapshot.json",
+        "https://pro.deutsche-digitale-bibliothek.de/daten-liefern/teilnahmekriterien/rechtliches/das-urheberrecht-digitalen-abbildungen",
+        "https://www.copyright.gov/comp3/chap300/ch300-copyrightable-authorship.pdf"
+      ],
+      "rights_holder_refs": [],
+      "permissions": [
+        "faithful captures of the historical public-domain printed pages may be treated as public-domain material in the reviewed DE and US routes subject to exact-layer and source controls"
+      ],
+      "restrictions": [
+        "the result excludes the MDZ cover and PDF wrapper, holding furniture, provider metadata, marks, contracts, creative enhancement, and other jurisdictions",
+        "the operator-held PDF remains local and is not authorized for future-site upload"
+      ],
+      "redistribution_posture": "authorized_with_conditions",
+      "derivative_posture": "allowed_with_conditions",
+      "server_processing_posture": "authorized_with_conditions",
+      "term": {
+        "calculation_status": "not_applicable",
+        "basis": "current German institutional book-scan guidance and the United States Copyright Office Compendium treat faithful simple scanning or mere digitization of public-domain printed pages as creating no new copyrightable authorship",
+        "starts_on": null,
+        "ends_on": null,
+        "uncertainty": "The result is limited to faithful historical printed-page capture in DE and US and does not clear contracts, creative enhancement, holding furniture, database rights, marks, or other jurisdictions."
+      },
+      "uncertainty": "The exact MDZ object remains subject to a separate CC BY-NC-SA license layer even though faithful printed-page capture has an independent positive copyright basis.",
+      "assessed_at": "2026-08-10T09:32:00-06:00",
+      "review_status": "unreviewed",
+      "rationale": "German institutional guidance and the United States mere-copy rule converge for faithful historical printed-page scans only."
+    },
+    {
+      "layer_id": "tos.rights.goetzen-daemmerung.naumann-1889.mdz-bsb-scan-pdf.layer.exact-mdz-digital-object",
+      "layer_role": "other",
+      "scope_refs": [
+        "tos.item.friedrich-nietzsche.goetzen-daemmerung.de-naumann-1889.mdz-bsb-scan-pdf",
+        "tos.file.sha256.f41a1dee091edd895d1f18a510dc73b48949257e882d3390c6c8f72beeb8d086",
+        "https://api.digitale-sammlungen.de/iiif/presentation/v2/bsb00069119/manifest"
+      ],
+      "assessment_status": "licensed",
+      "assessment_basis": "license",
+      "rights_statement_uri": null,
+      "license_uri": "https://creativecommons.org/licenses/by-nc-sa/4.0/",
+      "jurisdictions_reviewed": [
+        "DE",
+        "US"
+      ],
+      "source_refs": [
+        "ToS/research-packets/foundation-laboratory-2026-07/MDZ_FALL_WAGNER_1888_GOETZEN_1889_LAYERED_RIGHTS_ASSESSMENT.md",
+        "https://www.digitale-sammlungen.de/en/details/bsb00069119",
+        "https://api.digitale-sammlungen.de/iiif/presentation/v2/bsb00069119/manifest",
+        "https://download.digitale-sammlungen.de/BOOKS/download.pl?id=bsb00069119&nr=1&ersteseite=1&letzteseite=164",
+        "https://www.digitale-sammlungen.de/en/download-options",
+        "https://creativecommons.org/licenses/by-nc-sa/4.0/",
+        "https://creativecommons.org/licenses/by-nc-sa/4.0/legalcode"
+      ],
+      "rights_holder_refs": [
+        "https://www.bsb-muenchen.de/"
+      ],
+      "permissions": [
+        "the exact MDZ digital object may be reproduced, shared, and adapted for non-commercial purposes under CC BY-NC-SA 4.0 for the rights the licensor has authority to license",
+        "a separately reacquired current upstream object may be considered for non-commercial public use after exact attribution, ShareAlike, quality, human-review, and operator gates"
+      ],
+      "restrictions": [
+        "sharing requires creator and attribution information supplied by the licensor, copyright notice where supplied, the license URI, source URI where reasonably practicable, and an indication of modifications",
+        "shared adapted material must use the same or a compatible license and no additional effective restriction or technological measure may be imposed",
+        "the license is non-commercial and only covers rights the licensor has authority to license; other copyright, contract, trademark, privacy, moral-right, and institutional interests may apply",
+        "credit must preserve Bayerische Staatsbibliothek, call number Ph.pr. 881 kc, page or folio, URN, MDZ source route, and the CC BY-NC-SA 4.0 notice",
+        "the operator-held PDF remains local and is never uploaded to the future site"
+      ],
+      "redistribution_posture": "authorized_with_conditions",
+      "derivative_posture": "allowed_with_conditions",
+      "server_processing_posture": "authorized_with_conditions",
+      "term": {
+        "calculation_status": "not_applicable",
+        "basis": "the exact-object reuse route arises from the current CC BY-NC-SA 4.0 declaration rather than a copyright-term calculation",
+        "starts_on": null,
+        "ends_on": null,
+        "uncertainty": "The license is irrevocable only for rights the licensor had authority to grant; exact scope, other rights, and future source identity remain subject to current verification."
+      },
+      "uncertainty": "The exact current license is positive; provider authority over every possible third-party right, other jurisdictions, and non-copyright controls remain outside this model review.",
+      "assessed_at": "2026-08-10T09:32:00-06:00",
+      "review_status": "unreviewed",
+      "rationale": "The exact IIIF manifest and generated-PDF gate converge on CC BY-NC-SA 4.0, supplying an operative non-commercial license for the identified digital object subject to attribution and ShareAlike conditions."
+    },
+    {
+      "layer_id": "tos.rights.goetzen-daemmerung.naumann-1889.mdz-bsb-scan-pdf.layer.bsb-bdr-bibliographic-metadata",
+      "layer_role": "metadata",
+      "scope_refs": [
+        "ToS/source-witnesses/works/friedrich-nietzsche/goetzen-daemmerung/expressions/de-naumann-1889/editions/leipzig-c-g-naumann-1889/items/mdz-bsb-scan-pdf/source-metadata-snapshot.json",
+        "https://www.digitale-sammlungen.de/en/details/bsb00069119"
+      ],
+      "assessment_status": "licensed",
+      "assessment_basis": "license",
+      "rights_statement_uri": null,
+      "license_uri": "https://creativecommons.org/publicdomain/zero/1.0/",
+      "jurisdictions_reviewed": [
+        "DE",
+        "US"
+      ],
+      "source_refs": [
+        "ToS/research-packets/foundation-laboratory-2026-07/MDZ_FALL_WAGNER_1888_GOETZEN_1889_LAYERED_RIGHTS_ASSESSMENT.md",
+        "https://oai.bsb-muenchen.de/doc/en/bavarian-digital-repository",
+        "https://creativecommons.org/publicdomain/zero/1.0/",
+        "https://www.digitale-sammlungen.de/en/details/bsb00069119"
+      ],
+      "rights_holder_refs": [
+        "https://www.bsb-muenchen.de/"
+      ],
+      "permissions": [
+        "BSB and BDR bibliographic title metadata may be reused under CC0 1.0 subject to exact field scope and provenance"
+      ],
+      "restrictions": [
+        "CC0 applies to the identified bibliographic metadata surface and is not a license for the PDF, page images, provider cover, holding furniture, third-party prose, or source text",
+        "ToS retains source attribution and exact identifiers even where CC0 does not require attribution"
+      ],
+      "redistribution_posture": "authorized",
+      "derivative_posture": "allowed",
+      "server_processing_posture": "authorized",
+      "term": {
+        "calculation_status": "not_applicable",
+        "basis": "BSB and BDR publish the identified bibliographic data under CC0 1.0",
+        "starts_on": null,
+        "ends_on": null,
+        "uncertainty": "Field boundaries, third-party linked content, descriptive prose, and non-copyright rights remain separately scoped."
+      },
+      "uncertainty": "The metadata route does not convert the CC BY-NC-SA digital object into CC0 material.",
+      "assessed_at": "2026-08-10T09:32:00-06:00",
+      "review_status": "unreviewed",
+      "rationale": "Current BSB and BDR open-data documentation and the exact search surface supply a distinct CC0 route for bibliographic metadata."
+    }
+  ],
+  "permissions": [
+    "local preservation and bounded research use",
+    "public bibliographic metadata, stable identifiers, and provenance may remain tracked",
+    "the historical Work, 1889 Edition presentation, and faithful historical printed-page scan have a positive public-domain basis in the reviewed DE and US routes",
+    "the exact MDZ digital object has a provider-declared CC BY-NC-SA 4.0 non-commercial license route",
+    "BSB and BDR bibliographic metadata has a separate scoped CC0 1.0 route"
+  ],
+  "restrictions": [
+    "reuse of the exact digital object is non-commercial and requires attribution, source and license notice, modification notice, and ShareAlike for shared adapted material",
+    "the operator-held PDF remains local and is never uploaded to the future site",
+    "the file contains no embedded book OCR; no OCR, accepted German, transcription, translation, critical edition, or AI-plus-human edition is inferred",
+    "the CC license is not projected onto unrelated metadata, later editorial states, critical reconstructions, or future ToS contributions",
+    "any future public payload requires separate current reacquisition, fixity, conditions, layer-specific rights, quality, human review, and explicit operator approval"
+  ],
+  "visibility": "local_only",
+  "redistribution_posture": "not_authorized",
+  "derivative_posture": "local_research_only",
+  "assessed_by": {
+    "maker_type": "model",
+    "agent_ref": "model:codex"
+  },
+  "assessed_at": "2026-08-10T09:32:00-06:00",
+  "rationale": "The historical Work and presentation were outside their German source-country terms before possible United States restoration under 17 U.S.C. §104A, and the faithful scan separately adds no reviewed human authorship. The exact MDZ digital object is licensed under CC BY-NC-SA 4.0, and BSB bibliographic metadata is separately CC0. The corrected United States route changes no aggregate status; the operator-held payload remains local-only and non-transferable until the independent future-publication gates are satisfied.",
+  "review_status": "unreviewed",
+  "review_refs": [],
+  "access_request_ref": null,
+  "record_version": 3,
+  "supersedes_rights_ref": "tos.rights.goetzen-daemmerung.naumann-1889.mdz-bsb-scan-pdf"
+}

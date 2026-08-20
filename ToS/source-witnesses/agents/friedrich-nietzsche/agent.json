@@ -13,11 +13,20 @@
   ],
   "identity_status": "verified",
   "source_refs": [
-    "ToS/canon/source/friedrich-nietzsche/thus-spoke-zarathustra/prologue-1/node.json"
+    "ToS/canon/source/friedrich-nietzsche/thus-spoke-zarathustra/prologue-1/node.json",
+    "ToS/source-witnesses/discovery/runs/ecce-homo-insel-1908-open-scan-witness.2026-07-30.v1.json",
+    "https://d-nb.info/gnd/118587943"
   ],
-  "external_identifiers": [],
+  "external_identifiers": [
+    {
+      "scheme": "GND",
+      "value": "118587943",
+      "source_ref": "ToS/source-witnesses/discovery/runs/ecce-homo-insel-1908-open-scan-witness.2026-07-30.v1.json",
+      "status": "verified"
+    }
+  ],
   "same_as_posture": "no_equivalence_claim",
-  "notes": "Author identity is established for the current bounded route; external authority identifiers remain to be reconciled.",
-  "record_version": 1,
+  "notes": "Author identity is established for the current bounded route. The DNB/GND authority identifier is now reconciled through the exact Ecce Homo work and 1908-edition discovery record; this does not turn any specific transmitted text into an author-final state.",
+  "record_version": 2,
   "supersedes_ref": null
 }

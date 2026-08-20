@@ -46,6 +46,220 @@ Three real defects were preserved instead of rewritten:
 
 No graph-backend winner is declared.
 
+## Subsequent catalog-backed bibliographic projection — refreshed 2026-08-01
+
+The later source-witness foundation now has a separate tracked JSON graph at
+`ToS/derived-exports/graph/source-witness-bibliographic-claims.min.json`.
+This is not a fourth backend and does not rerun or rewrite the frozen 13-claim
+A/B/C experiment. It applies corrected A's claim-first reference semantics to
+the current generated source-witness catalog:
+
+- 121 public-metadata-only bibliographic claims;
+- 419 nodes and 852 edges;
+- 121 claim trace packets;
+- 35 claim-scoped literal objects;
+- 24 resolved provenance events carrying exact time and method;
+- zero direct subject-to-object edges;
+- 121 explicit `unreviewed` states.
+
+The 58 topology claims materialize the complete declared corpus ladder as
+separate source packets: 21 Work `has_expression` Expression, 21 Expression
+`embodied_by` Edition, and 16 Edition `exemplified_by` Item relations. These
+are bibliographic topology claims, not textual-equivalence assertions.
+The responsibility layer separately closes seven Work `authored_by` Friedrich
+Nietzsche claims—one per current Work—without deriving authorship from folder
+names or collapsing it into a generic creator edge.
+It also carries ten Expression `translated_by` claims. The exact 1911
+Antonovsky Expression returns to its own title-page anchor and remains
+separate from the exact 1913 Expression, which resolves a proposed page-7
+title-page anchor to its Item and file digest. The separately researched 2007
+Cultural Revolution
+Expression resolves two proposed page anchors and retains the checked/newly
+edited lineage warning, while the 1996 claim stays attached to its own
+Expression. Sharing an Agent object creates no textual-equivalence edge among
+those Expressions.
+The chronology layer separately carries seven Work
+`first_publication_chronology` literal profiles. Their staged/private/public
+and posthumous distinctions remain claim objects; the graph does not select a
+single Work year or convert ordering into truth.
+
+The 2026-08-01 bounded provision surface contains sixteen Edition-owned literal
+objects, three normalized Places, and eight distinct historical Organizations.
+The original two-case A/B/C result remains frozen; a separate
+extension adds only the exact 1883 first-part *Zarathustra* statement, Chemnitz,
+and the historical Schmeitzner Corporate Body. A later pass adds part II and
+part III from their own exact DTA records, not from the first claim or repeated
+labels. A further exact part-IV pass reports only `Naumann; Leipzig; 1891`
+while retaining the 1885 private print, 1890 printing, planned 1891 delivery,
+and March-1892 actual delivery as separate chronology evidence. The exact 1913
+Antonovsky Item then contributes one publication claim across its cover and
+title page plus a separate manufacture claim for the following-page printer
+line. The consolidated 1893 Naumann title page then contributes one publication
+and one manufacture claim over the same exact `Druck und Verlag` literal while
+keeping the publisher and printer Organization routes distinct. The exact 1886
+*Jenseits von Gut und Böse* Item then contributes its own publication and
+manufacture pair over a separately addressed title-page `Druck und Verlag`
+literal, with the following-page historical rights statement outside the
+provision object. The exact 1892 second *Genealogie* Item adds one page-5 publication
+statement and one separately anchored, undated page-204 manufacture statement;
+the Edition year remains distinct from printing completion and release. All
+twenty-eight normalized-participant edges begin at claim nodes. Exact
+normalized queries return nine claims for Leipzig, three distinct claims for
+Chemnitz or Schmeitzner, two claims for Saint Petersburg, one exact part-IV
+subject result, and two exact consolidated-1893 subject results. The modern Berlin Insel
+successor, Person Ernst Schmeitzner GND, and Naumann founder Person remain
+outside the normalized claim routes; the Naumann printer is reachable only
+through the three exact 1893, 1886, and 1892 manufacture claims. Vladimir Posse
+and the brothers-Linnik printer-as-publisher shortcut are likewise absent. The
+graph creates no direct Edition-to-Place or Edition-to-Organization assertion.
+
+Every structural edge begins at a reified claim node and carries the source
+claim digest, source file/line, evidence nodes, maker, provenance event, and
+review posture. The projection fails closed when a subject, identity-like
+object, evidence reference, provenance event, source line/digest, alternative,
+or superseded claim cannot resolve. It reads the catalog and source packets;
+it does not replace either.
+
+The atlas/view projection remains a different derived surface. It was not
+expanded because its 11 view lenses, clusters, and review packets belong to
+the philosophy-domain graph workbench rather than to source-witness
+bibliographic claim closure.
+
+This subsequent projection supplies a portable current-corpus reader for
+future `abyss-stack`, Neo4j, Oxigraph, MCP, UI, or site work. It supplies no new
+human correctness evidence, no backend winner, and no claim promotion.
+
+### Independent source-return inspection
+
+A separate one-off inspection read raw records, item manifests, source claim
+files, the generated catalog, and the generated graph without importing the
+builder or validator. It found:
+
+- exact raw-record/claim closure for 21 `has_expression`, 21 `embodied_by`,
+  and 16 `exemplified_by` relations;
+- exact one-to-one closure between seven current Work records and seven
+  `first_publication_chronology` claims, including one staged and six
+  single-event profiles;
+- byte-level agreement for the chronology claim-file output digest and all 18
+  input digests recorded by its provenance event;
+- 121/121 catalog rows returning to the expected source line and canonical
+  claim digest;
+- 121/121 graph traces returning to the same source line and digest;
+- 419 nodes, including 121 claims, 79 identities, 159 evidence nodes, 35
+  literals, one maker, and 24 provenance events;
+- 852/852 edges beginning at their own reified claim node;
+- zero direct subject-to-object edges.
+
+The original two provision rows were additionally inspected from metadata
+snapshot to raw source claim, catalog line, graph literal, normalized
+identities, and negative query. Their frozen experiment receipt preserves that
+direct check, the rejected flat-field representation, schema mutations, and
+local cost snapshot. The later first-part *Zarathustra* row was independently
+inspected through positive Chemnitz/Organization and negative part-II,
+part-III, and Person-GND queries at its checkpoint. The subsequent part-II and
+part-III rows were each inspected by exact subject and source return; the
+Chemnitz query now returns three distinct claims, while the Person-GND control
+still returns no match. The Antonovsky pair was inspected by exact Edition and
+Saint Petersburg queries: publication reaches only the `Жизнь для всех`
+Organization, manufacture reaches only the brothers-Linnik Organization, and
+both retain their own source-return paths. The consolidated Naumann 1893 pair
+was inspected by exact Edition, publisher, printer, and Leipzig queries:
+publication and manufacture return two distinct claims over the same literal,
+the printer query returned manufacture alone at that checkpoint, and every
+edge remained claim-originating. The later Jenseits 1886 pair was independently
+inspected by exact Edition and normalized publisher/printer queries: both
+claims return to their exact source rows, the printer route now contains only
+the two manufacture claims at that checkpoint, and the publisher route contains the exact
+Jenseits Edition without collapsing the two Organizations. None of these
+episodes creates human review evidence.
+
+The later 1892 *Genealogie* pair was then inspected independently by exact
+Edition, publisher, printer, and Leipzig queries. Its two literals remain
+different because they come from different pages; the printer query now
+contains three manufacture claims across three Editions, the publisher query
+contains five publication claims, and every returned edge still begins at its
+own claim node. The undated printer line is not converted into a dated printing
+event.
+
+The later 2007 Antonovsky responsibility route was inspected by exact
+Expression and Agent queries. The exact Expression returns one unreviewed
+`translated_by` claim. The subsequent 1911 route adds one independently
+anchored fourth *Zarathustra* Expression, two separate provision claims, and a
+local-only RSL/RuNEB Item. The Agent query now returns five responsibility claims
+across four distinct *Zarathustra* Expressions plus the separate Mysl
+*Ecce Homo* Expression. No graph edge connects those Expressions as equivalent.
+
+A temporary negative probe then removed one Work-owned
+`expression_claim_refs` entry and ran the actual foundation validator. It
+failed with the exact missing closure instead of accepting the still-present
+record link or generated graph as a substitute. These are mechanical and
+nonhuman trace checks, not truth review.
+
+A second isolated negative probe removed the *Antichrist* Work's sole
+`responsibility_claim_refs` entry. The actual foundation validator rejected
+the orphaned `authored_by` claim, the stale catalog, and the changed
+digest-bound Work input together. The production tree was not altered by that
+probe.
+
+A third clean-copy baseline passed before two chronology mutations were tried
+separately. Changing the staged *Zarathustra* interval end from 1885 to 1884
+was rejected because it no longer matched the last stage, no longer matched
+the provenance digest, and made the generated catalog stale. Restoring that
+claim and removing the Work's sole `chronology_claim_refs` entry was rejected
+as a missing exact chronology closure, a changed topology-provenance input,
+and a stale catalog. The temporary copies were then deleted; the production
+tree was not altered.
+
+### Current-corpus read-only query route
+
+The subsequent projection now has a repository-local stdout query reader. It
+does not add a graph backend or change the frozen A/B/C result. Before
+answering, the reader validates the tracked payload, verifies its projection
+fingerprint, rebuilds the complete graph from the exact catalog and source
+packets, and requires canonical parity.
+
+Manual probes outside the unit-test harness established:
+
+- the exact `Ecce Homo` `edited_by` claim returned the Edition and Raoul
+  Richter identity nodes, source JSONL line 2 and its canonical digest,
+  evidence, `model:codex` maker, timestamped annotation event, and unchanged
+  `unreviewed` status;
+- the exact *Der Fall Wagner* nominal-issue claim returned a literal object
+  rather than an identity, preserving both textual identity and textual
+  difference as `unresolved`;
+- an AND query for the *Mysl* collection subject plus `contains_work`
+  returned exactly the seven sorted membership claims;
+- a Work plus `has_expression` query returned all eight separately sourced
+  *Zarathustra* Expressions;
+- a cross-tree `embodied_by` query returned the Russian *Zarathustra*
+  Expression and the aggregate *Mysl* Edition as one exact claim, without a
+  textual-equivalence assertion;
+- an Edition plus `exemplified_by` query returned the two distinct 1893
+  Naumann Items, each with the Edition record, Item record, and item manifest
+  as three evidence nodes;
+- the same Expression paired with an unrelated *Ecce Homo* Edition returned
+  explicit `no_match`;
+- a bounded `authored_by` query returned exactly seven sorted Work claims, each
+  to the Friedrich Nietzsche Agent;
+- a bounded `first_publication_chronology` query returned exactly seven sorted
+  Work claims from the dedicated chronology source file; the *Zarathustra*
+  source return preserved four stages with `public/public/public/private`
+  availability;
+- the same chronology predicate paired with a *Der Fall Wagner* Edition
+  returned explicit `no_match`, and limit 6 rejected all seven matches instead
+  of truncating them;
+- an *Antichrist* Work plus Raoul Richter plus `authored_by` query returned
+  explicit `no_match`;
+- a selector-free invocation exited 2 instead of dumping the graph;
+- a 20-match `embodied_by` request with limit 19 exited 2 instead of returning
+  a silently truncated result; a seven-match `authored_by` request with limit
+  6 likewise exited 2, and the 110-match `unreviewed` route remains
+  over-limit by default.
+
+The output is deterministic navigation and includes the exact source claim
+object. It is not human trace-time evidence, bibliographic acceptance, a
+runtime API, site contract, or publication surface.
+
 ## Frozen graph soil
 
 Tracked inputs:

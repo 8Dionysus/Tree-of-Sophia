@@ -1,0 +1,65 @@
+{
+  "authority_limits": {
+    "canon_effect": false,
+    "graph_truth_established": false,
+    "human_review_performed": false,
+    "legacy_migration_performed": false,
+    "lexeme_established": false,
+    "linguistic_word_established": false,
+    "model_invoked": false,
+    "private_source_used": false,
+    "real_language_boundary_accepted": false,
+    "semantic_truth_established": false
+  },
+  "input_posture": "public_synthetic_only",
+  "language": "x-tos-unit",
+  "negative_controls": [
+    "text-derived-unit-id",
+    "duplicate-unit-id",
+    "duplicate-scheme-id",
+    "duplicate-segmentation-id",
+    "missing-scheme-ref",
+    "missing-unit-ref",
+    "missing-anchor-ref",
+    "source-layer-digest-drift",
+    "anchor-exact-digest-drift",
+    "anchor-out-of-bounds",
+    "anchor-reversed-range",
+    "unit-anchor-order-overlap",
+    "one-way-parent-child",
+    "self-parent-unit",
+    "one-way-competing-segmentation",
+    "self-competing-segmentation",
+    "hidden-exhaustive-coverage-gap",
+    "undeclared-overlap",
+    "accepted-machine-result-without-review",
+    "accepted-with-sample-only-review",
+    "accepted-without-language-competence",
+    "model-subword-promoted-to-linguistic-authority",
+    "graph-projection-of-proposed-segmentation",
+    "projection-visibility-widening",
+    "self-supersession"
+  ],
+  "question": "Can ToS preserve exact source text units and reciprocal competing segmentations without turning a method result into source or linguistic truth?",
+  "schema_version": "tos_source_text_unit_v1_lab_plan_v1",
+  "variants": [
+    {
+      "expected_schema_valid": true,
+      "expected_semantic_valid": true,
+      "purpose": "Exact physical-line and line-break observation only",
+      "variant_id": "A"
+    },
+    {
+      "expected_schema_valid": true,
+      "expected_semantic_valid": true,
+      "purpose": "Reciprocal sentence and hyphen-tokenization alternatives, all unresolved",
+      "variant_id": "B"
+    },
+    {
+      "expected_schema_valid": false,
+      "expected_semantic_valid": false,
+      "purpose": "Invalid model-shaped acceptance without review and with hidden coverage gap",
+      "variant_id": "C"
+    }
+  ]
+}

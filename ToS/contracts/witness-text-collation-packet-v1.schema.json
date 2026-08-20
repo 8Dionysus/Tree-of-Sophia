@@ -1,0 +1,512 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://tree-of-sophia.local/ToS/contracts/witness-text-collation-packet-v1.schema.json",
+  "title": "Tree of Sophia witness-text collation packet v1",
+  "description": "Additive stand-off contract for exact multi-witness passage comparison without inferring textual truth, preferred reading, genealogy, equivalence, translation, semantics, graph truth, canon, or publication authority.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "$schema",
+    "schema_version",
+    "packet_id",
+    "packet_version",
+    "supersedes_packet_ref",
+    "content_posture",
+    "granularity",
+    "witnesses",
+    "collations",
+    "reviews",
+    "projections",
+    "rights_and_visibility",
+    "authority_boundary"
+  ],
+  "properties": {
+    "$schema": {"const": "https://tree-of-sophia.local/ToS/contracts/witness-text-collation-packet-v1.schema.json"},
+    "schema_version": {"const": "tos_witness_text_collation_packet_v1"},
+    "packet_id": {"$ref": "#/$defs/packetId"},
+    "packet_version": {"type": "integer", "minimum": 1},
+    "supersedes_packet_ref": {
+      "oneOf": [{"$ref": "#/$defs/packetId"}, {"type": "null"}]
+    },
+    "content_posture": {
+      "enum": ["source_bound", "public_synthetic_contract_exercise"]
+    },
+    "granularity": {
+      "enum": ["document", "section", "paragraph", "sentence", "phrase", "token", "mixed"]
+    },
+    "witnesses": {
+      "type": "array",
+      "minItems": 2,
+      "uniqueItems": true,
+      "items": {"$ref": "#/$defs/witness"}
+    },
+    "collations": {
+      "type": "array",
+      "minItems": 1,
+      "items": {"$ref": "#/$defs/collation"}
+    },
+    "reviews": {
+      "type": "array",
+      "items": {"$ref": "#/$defs/review"}
+    },
+    "projections": {
+      "type": "array",
+      "items": {"$ref": "#/$defs/projection"}
+    },
+    "rights_and_visibility": {"$ref": "#/$defs/rightsAndVisibility"},
+    "authority_boundary": {"$ref": "#/$defs/authorityBoundary"}
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {"packet_version": {"minimum": 2}},
+        "required": ["packet_version"]
+      },
+      "then": {
+        "properties": {"supersedes_packet_ref": {"$ref": "#/$defs/packetId"}}
+      }
+    },
+    {
+      "if": {
+        "properties": {"content_posture": {"const": "public_synthetic_contract_exercise"}},
+        "required": ["content_posture"]
+      },
+      "then": {
+        "properties": {
+          "witnesses": {
+            "items": {
+              "properties": {
+                "visibility": {"const": "public"},
+                "publication_authorized": {"const": true}
+              }
+            }
+          },
+          "collations": {
+            "items": {
+              "properties": {
+                "status": {"enum": ["proposed", "ambiguous", "deferred", "rejected"]}
+              }
+            }
+          },
+          "reviews": {"maxItems": 0},
+          "projections": {"maxItems": 0},
+          "rights_and_visibility": {
+            "properties": {
+              "witness_visibility": {"const": "public"},
+              "packet_visibility": {"const": "public"},
+              "effective_visibility": {"const": "public"},
+              "private_source_used": {"const": false},
+              "publication_authorized": {"const": true}
+            }
+          }
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "boundedRef": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "^(?!/)(?!~[\\\\/])(?![A-Za-z]:[\\\\/])(?!.*(?:^|/)\\.\\.(?:/|$)).+$"
+    },
+    "languageTag": {
+      "type": "string",
+      "pattern": "^(?:[A-Za-z]{2,8}(?:-[A-Za-z0-9]{1,8})*|x(?:-[A-Za-z0-9]{1,8})+)$"
+    },
+    "visibility": {
+      "enum": ["public", "public_metadata_only", "controlled", "local_only", "restricted", "unknown"]
+    },
+    "workId": {"type": "string", "pattern": "^tos\\.work\\.[a-z0-9]+(?:[.-][a-z0-9]+)*$"},
+    "expressionId": {"type": "string", "pattern": "^tos\\.expression\\.[a-z0-9]+(?:[.-][a-z0-9]+)*$"},
+    "editionId": {"type": "string", "pattern": "^tos\\.edition\\.[a-z0-9]+(?:[.-][a-z0-9]+)*$"},
+    "itemId": {"type": "string", "pattern": "^tos\\.item\\.[a-z0-9]+(?:[.-][a-z0-9]+)*$"},
+    "fileId": {"type": "string", "pattern": "^tos\\.file\\.[a-z0-9]+(?:[.-][a-z0-9]+)*$"},
+    "anchorId": {"type": "string", "pattern": "^tos\\.anchor\\.[a-z0-9]+(?:[.-][a-z0-9]+)*$"},
+    "packetId": {"type": "string", "pattern": "^tos\\.witness-text-collation-packet\\.sid-[a-f0-9]{32}$"},
+    "witnessId": {"type": "string", "pattern": "^tos\\.witness-text-collation-witness\\.sid-[a-f0-9]{32}$"},
+    "collationId": {"type": "string", "pattern": "^tos\\.witness-text-collation\\.sid-[a-f0-9]{32}$"},
+    "claimId": {"type": "string", "pattern": "^tos\\.witness-text-collation-claim\\.sid-[a-f0-9]{32}$"},
+    "reviewId": {"type": "string", "pattern": "^tos\\.witness-text-collation-review\\.sid-[a-f0-9]{32}$"},
+    "projectionId": {"type": "string", "pattern": "^tos\\.witness-text-collation-projection\\.sid-[a-f0-9]{32}$"},
+    "digestBoundRef": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["ref", "sha256"],
+      "properties": {
+        "ref": {"$ref": "#/$defs/boundedRef"},
+        "sha256": {"$ref": "#/$defs/sha256"}
+      }
+    },
+    "selector": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "start", "end", "position_unit", "interval"],
+      "properties": {
+        "type": {"const": "text_position"},
+        "start": {"type": "integer", "minimum": 0},
+        "end": {"type": "integer", "minimum": 1},
+        "position_unit": {"const": "unicode_code_point"},
+        "interval": {"const": "half_open"}
+      }
+    },
+    "witness": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "witness_id",
+        "ordinal",
+        "work_ref",
+        "expression_ref",
+        "edition_ref",
+        "item_ref",
+        "file_ref",
+        "file_sha256",
+        "text_layer_ref",
+        "text_layer_sha256",
+        "text_unit_packet",
+        "language",
+        "anchor_ref",
+        "selector",
+        "exact_sha256",
+        "source_return_ref",
+        "source_text_in_record",
+        "rights_refs",
+        "visibility",
+        "publication_authorized"
+      ],
+      "properties": {
+        "witness_id": {"$ref": "#/$defs/witnessId"},
+        "ordinal": {"type": "integer", "minimum": 1},
+        "work_ref": {"$ref": "#/$defs/workId"},
+        "expression_ref": {"$ref": "#/$defs/expressionId"},
+        "edition_ref": {"$ref": "#/$defs/editionId"},
+        "item_ref": {"$ref": "#/$defs/itemId"},
+        "file_ref": {"$ref": "#/$defs/fileId"},
+        "file_sha256": {"$ref": "#/$defs/sha256"},
+        "text_layer_ref": {"$ref": "#/$defs/boundedRef"},
+        "text_layer_sha256": {"$ref": "#/$defs/sha256"},
+        "text_unit_packet": {"$ref": "#/$defs/digestBoundRef"},
+        "language": {"$ref": "#/$defs/languageTag"},
+        "anchor_ref": {"$ref": "#/$defs/anchorId"},
+        "selector": {"$ref": "#/$defs/selector"},
+        "exact_sha256": {"$ref": "#/$defs/sha256"},
+        "source_return_ref": {"$ref": "#/$defs/boundedRef"},
+        "source_text_in_record": {"const": false},
+        "rights_refs": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {"$ref": "#/$defs/boundedRef"}
+        },
+        "visibility": {"$ref": "#/$defs/visibility"},
+        "publication_authorized": {"type": "boolean"}
+      }
+    },
+    "operationSummary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["equal", "replace", "delete", "insert"],
+      "properties": {
+        "equal": {"type": "integer", "minimum": 0},
+        "replace": {"type": "integer", "minimum": 0},
+        "delete": {"type": "integer", "minimum": 0},
+        "insert": {"type": "integer", "minimum": 0}
+      }
+    },
+    "comparisonView": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "view_id",
+        "normalization",
+        "normalization_version",
+        "witness_a_codepoints",
+        "witness_b_codepoints",
+        "exact_equal",
+        "similarity_metric",
+        "similarity_score_ppm",
+        "opcode_count",
+        "opcode_tag_counts",
+        "opcode_extent_counts",
+        "private_edit_script_sha256"
+      ],
+      "properties": {
+        "view_id": {"type": "string", "pattern": "^[a-z][a-z0-9._-]*$"},
+        "normalization": {
+          "enum": ["none", "NFC", "whitespace_collapsed", "alphanumeric_casefold", "custom"]
+        },
+        "normalization_version": {"type": "string", "minLength": 1},
+        "witness_a_codepoints": {"type": "integer", "minimum": 0},
+        "witness_b_codepoints": {"type": "integer", "minimum": 0},
+        "exact_equal": {"type": "boolean"},
+        "similarity_metric": {"enum": ["sequence_matcher_ratio", "none", "custom"]},
+        "similarity_score_ppm": {"type": "integer", "minimum": 0, "maximum": 1000000},
+        "opcode_count": {"type": "integer", "minimum": 1},
+        "opcode_tag_counts": {"$ref": "#/$defs/operationSummary"},
+        "opcode_extent_counts": {"$ref": "#/$defs/operationSummary"},
+        "private_edit_script_sha256": {"$ref": "#/$defs/sha256"}
+      }
+    },
+    "maker": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["maker_kind", "agent_ref", "made_at", "method", "method_version", "software_ref", "configuration_sha256", "provenance_event_ref", "output_posture"],
+      "properties": {
+        "maker_kind": {"enum": ["human", "software", "model", "mixed"]},
+        "agent_ref": {"type": "string", "minLength": 1},
+        "made_at": {"type": "string", "format": "date-time"},
+        "method": {"type": "string", "minLength": 1},
+        "method_version": {"type": "string", "minLength": 1},
+        "software_ref": {"$ref": "#/$defs/boundedRef"},
+        "configuration_sha256": {"$ref": "#/$defs/sha256"},
+        "provenance_event_ref": {"type": "string", "pattern": "^tos\\.event\\.[a-z0-9]+(?:[.-][a-z0-9]+)*$"},
+        "output_posture": {"const": "proposal_not_textual_truth"}
+      }
+    },
+    "evidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["evidence_ref", "sha256", "role", "witness_refs", "authority_effect"],
+      "properties": {
+        "evidence_ref": {"$ref": "#/$defs/boundedRef"},
+        "sha256": {"$ref": "#/$defs/sha256"},
+        "role": {"enum": ["method_input", "source_observation", "qualification", "rights", "support"]},
+        "witness_refs": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {"$ref": "#/$defs/witnessId"}
+        },
+        "authority_effect": {
+          "enum": ["none", "supports_proposal", "supports_reviewed_decision"]
+        }
+      }
+    },
+    "collation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "collation_id",
+        "collation_version",
+        "supersedes_collation_ref",
+        "identity_policy",
+        "claim_id",
+        "claim_version",
+        "supersedes_claim_ref",
+        "direction",
+        "ordered_witness_refs",
+        "relation_scope",
+        "correspondence_shape",
+        "correspondence_basis",
+        "status",
+        "status_reason",
+        "comparison_method",
+        "comparison_views",
+        "private_detail",
+        "maker",
+        "evidence",
+        "competing_collation_refs",
+        "review_refs",
+        "interpretive_boundary"
+      ],
+      "properties": {
+        "collation_id": {"$ref": "#/$defs/collationId"},
+        "collation_version": {"type": "integer", "minimum": 1},
+        "supersedes_collation_ref": {
+          "oneOf": [{"$ref": "#/$defs/collationId"}, {"type": "null"}]
+        },
+        "identity_policy": {"const": "opaque-id-independent-of-text-label-offset-score-algorithm-and-current-correspondence"},
+        "claim_id": {"$ref": "#/$defs/claimId"},
+        "claim_version": {"type": "integer", "minimum": 1},
+        "supersedes_claim_ref": {
+          "oneOf": [{"$ref": "#/$defs/claimId"}, {"type": "null"}]
+        },
+        "direction": {"const": "symmetric_comparison"},
+        "ordered_witness_refs": {
+          "type": "array",
+          "minItems": 2,
+          "maxItems": 2,
+          "uniqueItems": true,
+          "items": {"$ref": "#/$defs/witnessId"}
+        },
+        "relation_scope": {"enum": ["same_work", "cross_work", "unresolved"]},
+        "correspondence_shape": {"enum": ["one_to_one", "one_to_many", "many_to_one", "many_to_many", "unresolved"]},
+        "correspondence_basis": {"enum": ["ordinal_and_surface_similarity", "structural_locator", "manual_assertion", "imported_apparatus", "mixed"]},
+        "status": {"enum": ["proposed", "ambiguous", "accepted", "accepted_with_limits", "rejected", "deferred", "superseded"]},
+        "status_reason": {"type": "string", "minLength": 1},
+        "comparison_method": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["algorithm", "algorithm_version", "tokenization", "autojunk", "source_text_mutated", "base_or_lemma_selected"],
+          "properties": {
+            "algorithm": {"type": "string", "minLength": 1},
+            "algorithm_version": {"type": "string", "minLength": 1},
+            "tokenization": {"enum": ["unicode_code_point", "whitespace", "declared_custom", "none"]},
+            "autojunk": {"type": "boolean"},
+            "source_text_mutated": {"const": false},
+            "base_or_lemma_selected": {"const": false}
+          }
+        },
+        "comparison_views": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {"$ref": "#/$defs/comparisonView"}
+        },
+        "private_detail": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["ref", "sha256", "tracked", "visibility", "reconstructive_detail"],
+          "properties": {
+            "ref": {"$ref": "#/$defs/boundedRef"},
+            "sha256": {"$ref": "#/$defs/sha256"},
+            "tracked": {"const": false},
+            "visibility": {"const": "local_only"},
+            "reconstructive_detail": {"const": true}
+          }
+        },
+        "maker": {"$ref": "#/$defs/maker"},
+        "evidence": {
+          "type": "array",
+          "minItems": 1,
+          "items": {"$ref": "#/$defs/evidence"}
+        },
+        "competing_collation_refs": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {"$ref": "#/$defs/collationId"}
+        },
+        "review_refs": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {"$ref": "#/$defs/reviewId"}
+        },
+        "interpretive_boundary": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["preferred_reading_selected", "textual_equivalence_established", "expression_derivation_established", "translation_relation_inferred", "lexical_equivalence_inferred", "semantic_relation_inferred"],
+          "properties": {
+            "preferred_reading_selected": {"const": false},
+            "textual_equivalence_established": {"const": false},
+            "expression_derivation_established": {"const": false},
+            "translation_relation_inferred": {"const": false},
+            "lexical_equivalence_inferred": {"const": false},
+            "semantic_relation_inferred": {"const": false}
+          }
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {"status": {"enum": ["accepted", "accepted_with_limits", "rejected", "superseded"]}},
+            "required": ["status"]
+          },
+          "then": {
+            "properties": {"review_refs": {"minItems": 1}}
+          }
+        }
+      ]
+    },
+    "review": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["review_id", "reviewed_collation_refs", "reviewer_ref", "made_at", "source_visible", "decision", "language_competence", "evidence_refs"],
+      "properties": {
+        "review_id": {"$ref": "#/$defs/reviewId"},
+        "reviewed_collation_refs": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {"$ref": "#/$defs/collationId"}
+        },
+        "reviewer_ref": {"type": "string", "minLength": 1},
+        "made_at": {"type": "string", "format": "date-time"},
+        "source_visible": {"const": true},
+        "decision": {"enum": ["accept", "accept_with_limits", "reject", "defer", "supersede"]},
+        "language_competence": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["language", "status", "evidence_ref"],
+            "properties": {
+              "language": {"$ref": "#/$defs/languageTag"},
+              "status": {"enum": ["attested", "limited", "blocked"]},
+              "evidence_ref": {
+                "oneOf": [{"$ref": "#/$defs/boundedRef"}, {"type": "null"}]
+              }
+            }
+          }
+        },
+        "evidence_refs": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {"$ref": "#/$defs/boundedRef"}
+        }
+      }
+    },
+    "projection": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["projection_id", "projection_kind", "artifact_ref", "artifact_sha256", "source_collation_refs", "authority", "visibility", "publication_authorized"],
+      "properties": {
+        "projection_id": {"$ref": "#/$defs/projectionId"},
+        "projection_kind": {"enum": ["tei_apparatus", "alignment_table", "variant_graph", "graphml", "other"]},
+        "artifact_ref": {"$ref": "#/$defs/boundedRef"},
+        "artifact_sha256": {"$ref": "#/$defs/sha256"},
+        "source_collation_refs": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {"$ref": "#/$defs/collationId"}
+        },
+        "authority": {"const": "derived_non_authoritative_view"},
+        "visibility": {"$ref": "#/$defs/visibility"},
+        "publication_authorized": {"type": "boolean"}
+      }
+    },
+    "rightsAndVisibility": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["witness_visibility", "packet_visibility", "effective_visibility", "rights_record_refs", "private_source_used", "publication_authorized", "inheritance_policy"],
+      "properties": {
+        "witness_visibility": {"$ref": "#/$defs/visibility"},
+        "packet_visibility": {"$ref": "#/$defs/visibility"},
+        "effective_visibility": {"$ref": "#/$defs/visibility"},
+        "rights_record_refs": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {"$ref": "#/$defs/boundedRef"}
+        },
+        "private_source_used": {"type": "boolean"},
+        "publication_authorized": {"type": "boolean"},
+        "inheritance_policy": {"const": "most-restrictive-witness-packet-detail-and-destination-wins"}
+      }
+    },
+    "authorityBoundary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["tree_role", "graph_role", "source_role", "validators_prove_mechanics_not_truth", "collation_is_claim_not_textual_truth", "machine_or_model_may_propose_not_accept", "human_observation_is_not_human_review", "projection_is_not_owner_truth", "preferred_reading_not_inferred", "equivalence_not_inferred", "derivation_not_inferred", "translation_not_inferred", "semantics_not_inferred", "canon_effect"],
+      "properties": {
+        "tree_role": {"const": "orientation"},
+        "graph_role": {"const": "relation"},
+        "source_role": {"const": "authority"},
+        "validators_prove_mechanics_not_truth": {"const": true},
+        "collation_is_claim_not_textual_truth": {"const": true},
+        "machine_or_model_may_propose_not_accept": {"const": true},
+        "human_observation_is_not_human_review": {"const": true},
+        "projection_is_not_owner_truth": {"const": true},
+        "preferred_reading_not_inferred": {"const": true},
+        "equivalence_not_inferred": {"const": true},
+        "derivation_not_inferred": {"const": true},
+        "translation_not_inferred": {"const": true},
+        "semantics_not_inferred": {"const": true},
+        "canon_effect": {"const": false}
+      }
+    }
+  }
+}

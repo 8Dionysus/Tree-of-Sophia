@@ -75,6 +75,14 @@ German remains the authoritative source witness.
 Russian and English remain reviewable witness layers around that source rather
 than replacement canons.
 
+Here “authoritative” is route-local authored authority: the node consistently
+orients its reading around the German witness. It is not a claim that the
+German block is a critical or philologically accepted text. The Russian and
+English roles likewise preserve Dionysus's authored witnesses but do not stand
+in for a modern accepted translation packet or competence-scoped Human Gold.
+The text-free authored-canon evidence bridge binds this route back to the exact
+DTA section while leaving all of those stronger gates closed.
+
 In the current donor posture, Russian and English are explicitly carried as
 Dionysus witnesses inside the paragraph-aligned trilingual surface.
 That attribution should stay visible rather than collapse back into anonymous

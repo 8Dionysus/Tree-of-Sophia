@@ -88,10 +88,13 @@ read-aloud layer.
 The companion `semantic-ladder-packet.schema.json` fixes the order exact form
 -> concordance -> context -> morphology -> lemma -> section/work/author
 recurrence -> translation correspondences -> sign candidate -> real-human
-decision -> relations -> concepts -> competing readings -> graph. A packet
-cannot exist without accepted source-review references. If the manual sign
-stage is not `human-accepted`, every relation/concept/counterreading/graph
-stage must remain `blocked` or `not-started`.
+decision -> relations -> concepts -> competing readings -> graph. The current
+v3 contract permits a content-free `blocked-not-materialized` packet so the
+route can exist without fabricating accepted source evidence. Materialized
+analysis still requires a packet-local accepted source bundle and
+language-competence evidence. If the manual sign stage is not
+`human-accepted`, every relation/concept/counterreading/graph stage must
+remain `blocked` or `not-started`.
 
 The stack-owned read-only `gate-translation-lab` was then run twice against
 the real private packet:

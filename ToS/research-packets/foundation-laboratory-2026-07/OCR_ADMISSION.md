@@ -2,7 +2,7 @@
 
 Status: A retained as deterministic comparator; B R1 stopped and rejected; C full-packet mechanics executed and awaiting human review
 
-Snapshot: 2026-07-23
+Snapshot: 2026-07-28
 
 Experiment: `tos-ocr-foundation-v1`
 
@@ -65,6 +65,42 @@ reading-order defects, additions, and uncertainty. Five were
 `accept-with-limits` and one was `uncertain`. These are advisory nonhuman
 observations. No human diplomatic gold, CER, WER, correction-time result, or
 accepted transcription exists.
+
+### Independent raw-artifact recomputation
+
+On 2026-07-28, a one-off shell inspection independently recomputed the
+mechanical aggregates for A R2 from its immutable private artifacts. It did
+not call the runner, its metric-building functions, or a repository validator.
+The inspected inputs were:
+
+- `run.receipt.json`, SHA-256
+  `a6eb5ed985870b2b67b5d16b152db7c25f5075961020affd8582a879aaecc517`;
+- `raw-output/ocr-output-manifest.json`, SHA-256
+  `91e1f9574d9c88343c9ca3b6b31ca9731e9fab93cc464e21a4bea88871d8f8b8`;
+- `metrics/tesseract-ocr-summary.json`, SHA-256
+  `8ef969c23712ee5ad106e743f1ffab6af5464ce97a8d5ebf554693d546aed13d`.
+
+The inspection recalculated file digests and byte sizes directly for all 144
+text/TSV/hOCR/ALTO outputs; Unicode and non-whitespace character counts for
+all 36 text files; word-row counts, confidence-row counts, per-page mean and
+median confidence directly from all 36 TSV files; unique source and sample
+counts; empty-output count; mean page confidence; and pages per minute from
+the recorded wall interval. Results:
+
+| Recomputed field | Raw result | Recorded result | Mismatch |
+| --- | ---: | ---: | ---: |
+| output files checked | 144 | 144 declared | 0 |
+| text count records checked | 36 | 36 declared | 0 |
+| TSV diagnostic records checked | 36 | 36 declared | 0 |
+| samples / unique sources / empty texts | 36 / 3 / 0 | 36 / 3 / 0 | 0 |
+| mean of page confidences | 88.343545980493 | 88.34354598049339 | below 1e-12 |
+| pages per minute | 68.044794448293 | 68.04479444829315 | below 1e-12 |
+
+This closes one independent recomputation gate for **mechanical metrics only**.
+It is stronger than a green schema check because it reads the output bytes and
+TSV rows again through a separate one-off route. It still cannot produce CER,
+WER, reading-order accuracy, correction cost, source acceptance, or an OCR
+winner: those require independent accepted gold rather than engine output.
 
 ### B — stopped negative result
 

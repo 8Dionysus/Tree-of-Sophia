@@ -1,6 +1,7 @@
 # Structure Recovery Report: Foundation Pilot v1
 
-Status: variants A, B, and C executed; awaiting real-human review
+Status: variants A, B, and C executed; common-page advisory comparison
+complete; no content-acceptance question open
 Experiment: `tos-structure-recovery-v1`
 Frozen scopes: A/B 36 units; C 12 output-blind pages selected before execution
 Execution dates: 2026-07-22 through 2026-07-23
@@ -22,13 +23,30 @@ Three materially different structure routes now have real machine evidence:
   slow and memory-intensive on this CPU host.
 
 No variant has a structural F1, reading-order score, accepted transcription,
-or measured human correction cost. Human manual-review receipts remain
+or measured human correction cost. Human structure-review receipts remain
 **0**. Six source-visible advisory model inspections were recorded for B and
 six for C, but every one is `advisory-nonhuman` and forbids promotion.
 
+A later direct comparison inspected the same six frozen pages against all
+three actual outputs. It is recorded without source text in
+`structure-common-page-comparison.v1.json`. Variant identities were visible
+from their artifact paths, so this is explicitly **not blind review**. It
+supports per-page engineering route choices, not a quality score or content
+promotion.
+
 The result therefore retains A/B/C as distinct laboratory evidence without
-declaring a quality winner or moving any output into ToS text, semantics, or
-canon.
+declaring a universal quality winner or moving any output into ToS text,
+semantics, or canon. No standing human batch is opened. A human episode becomes
+relevant only if a concrete adoption, accepted-structure, correction-cost, or
+promotion question later requires it.
+
+Separately from the A/B/C extraction outputs, the source-owned witness route
+now has a deterministic text-free structure map across the four DTA part
+witnesses and the Naumann 1893 EPUB/PDF pair. It yields 82 named
+division-start correspondences and 246 stable proposed addresses: one TEI
+structural path, one exact EPUB member, and one whole PDF page per
+correspondence. This closes an addressing gap; it does not improve or accept
+any A/B/C transcription.
 
 ## Preserved runs
 
@@ -148,36 +166,275 @@ transcription. Its improved visible structure on several pages must be
 weighed against page-level errors, omitted witness marks, approximately
 95-minute wall time for 12 pages, and an 11.4 GiB observed owner footprint.
 
+## Same-page A/B/C comparison
+
+The later comparison used two already-frozen pages from each source group and
+returned to the original-resolution page PNG plus the exact A metadata/native
+layout, B ordered blocks, and C ordered blocks. It assessed only visible
+structure: main-content order, furniture separation, roles, grouping,
+identity-bearing block retention, visible omissions/additions, and source
+return. It did not assess German or Russian correctness, transcription
+accuracy, translation, or semantics.
+
+| Frozen page | A | B | C | Bounded route |
+| --- | --- | --- | --- | --- |
+| Antonovsky 300 | native layer empty | verse and marginal numbers damaged | main verse order useful; relations absent | C for visual structure navigation |
+| Antonovsky 330 | native layer empty | broad prose order useful; margins flattened | marginal labels moved before prose in wrong order | B for broad prose-order navigation |
+| Mysl 4 | identity blocks and layout retained; roles absent | identity-bearing front matter omitted or flattened | title, credits, and footer roles separated; glyph errors remain | C for front-matter navigation, with A as cheap embedded-layer companion |
+| Mysl 8 | corrupt embedded layer exposed; no visual repair | inherited corruption plus adjacent-block reversal | visual paragraph order recovered; substitutions remain | C for visual order navigation |
+| Naumann 59 | mapped EPUB body order usable but flat | one flattened block | paragraphs, page number, and provider furniture separated; handwriting omitted | C for scan-page navigation |
+| Naumann 380 | mapped EPUB body order usable but flat | one flattened block | title, subtitle, section, refrain, page, and furniture separated; ornament/relations absent | C for song-page navigation |
+
+The `5 C / 1 B / 0 A` bounded preference count is deliberately **not** an
+accuracy measure. A answers a different native-layer question, the Naumann A/B
+routes consume mapped EPUB members while C consumes rendered PDF pages, and C
+costs orders of magnitude more while failing materially on Antonovsky 330.
+The defensible method is a question-scoped per-page fallback with source
+return, not a family-wide winner.
+
+## Exact Naumann 1886 numbered-unit source trial
+
+A later bounded A/B/C trial targeted a different question: whether the exact
+1886 *Jenseits von Gut und Böse* scan could support stable numbered-unit
+start-page navigation without first accepting any OCR text.
+
+- A, the PDF embedded text layer, lost too many printed numerals and was
+  rejected as a complete map source.
+- B, the provider DjVu XML, exposed all 274 pages and word coordinates. It was
+  retained as an independent secondary navigation layer.
+- C, the compressed provider ABBYY XML, exposed the same 274-page order plus
+  paragraph, line, word, and character geometry. A strict ordered alignment
+  produced 272 of the 299 expected machine candidates.
+- The remaining 27 algorithmic gaps were not hidden behind looser matching.
+  Explicit scan-visible review supplied their start pages; additional bounded
+  review retained OCR disambiguations as such.
+
+The exact source page also revealed a structural correction. PDF page 189
+prints `237.` a second time after “Sieben Weibs-Sprüchlein” and before 238.
+The source-only map therefore preserves 299 units: integers 1–296 plus 65a,
+73a, and 237a. It emits 299 proposed whole-page anchors and no OCR strings.
+
+The Russian Mysl witness does not repeat 237/237a at the corresponding prose:
+the prose follows the Seven Sayings before 238. The parallel map records this
+asymmetry and stays at division granularity. No exact translation alignment
+was inferred.
+
+The focused numbered-unit builder completed in about 2.5 seconds on the
+resident CPU after the local companions were present. The broader resource
+inventory rebuild, which re-read all ten locally available source items and
+decompressed the 88 MB ABBYY working stream, took about 65 seconds. These are
+observed route costs, not quality scores.
+
+## Exact Polilov/Mysl 1996 target-label trial
+
+A separate bounded A/B/C trial then asked a narrower target-only question:
+whether the exact local Polilov/Mysl 1996 PDF could expose stable Russian
+numbered-label start pages without transcribing the translation or aligning it
+to the German.
+
+- A, plain embedded PDF text, preserved substantial readable material but
+  mixed reading order, running heads, and damaged numerals. It was rejected as
+  a complete deterministic label map.
+- B, bbox-filtered numerals without an order constraint, narrowed the search
+  but still admitted unrelated page numbers. It was rejected on its own.
+- C, the same bbox geometry constrained by the expected target label order,
+  supplied 265 machine candidates. All 33 gaps were checked against visible
+  pages instead of being hidden behind a looser OCR rule.
+
+The selected route yields 298 monotonic proposed whole-page starts for
+integers 1–296 plus visibly printed `65a` and `73a`. One embedded OCR glyph for
+§6 was preserved as a source-visible OCR disambiguation rather than silently
+treated as a clean machine match.
+
+The target does not print a second 237/237a label. The separate source map's
+`237a` is therefore recorded as a source-only, nonmaterialized asymmetry.
+Nothing in the target map pairs a Russian unit with a German unit. It
+establishes neither accepted Russian text nor source-to-target alignment,
+translation equivalence, translation quality, or semantics.
+
+The local builder reproduced the final map from the fixity-bound PDF in under
+one second on the resident host during this run. That is route-cost evidence
+for this exact embedded layer, not a quality score or a general OCR benchmark.
+
+A separate release-safe transform now intersects the 298 labels materialized
+on both sides and resolves each pair to its two proposed page anchors. It reads
+neither payload nor text, and it leaves source-only `237a` unpaired. This makes
+future review returnable at shared-label granularity; it does not perform the
+source-to-target passage alignment that remains an open content question.
+
+## Hierarchical Mysl target and German source trial
+
+The remaining twelve frozen transfer pages belong to two works whose printed
+numbering cannot honestly reuse the flat *Jenseits* label map. *Zur Genealogie
+der Moral* resets its numerals across four independent series: preface and
+essays 1, 2, and 3. *Der Antichrist* has one 1–62 series. A later bounded
+target-only trial therefore preserves series-qualified identities instead of
+collapsing repeated labels into one false unit namespace.
+
+Over the exact local Mysl PDF, ordered embedded-PDF bbox candidates supplied
+123 of 140 proposed starts. Seventeen gaps were resolved through model-only
+source-visible page inspection: seven *Genealogie* starts across seven pages
+and ten *Antichrist* starts across nine pages. The resulting maps preserve:
+
+| Target expression | Series | Proposed starts | Ordered bbox | Visible model overrides |
+| --- | ---: | ---: | ---: | ---: |
+| *Genealogie*, Svasyan | 4 | 78 | 71 | 7 |
+| *Antichrist*, Flerova | 1 | 62 | 52 | 10 |
+| **Total** | **5** | **140** | **123** | **17** |
+
+The builder emits no Russian prose. It binds the exact local Item inventory
+and collection work-boundary map, emits proposed whole-page anchors, and keeps
+all starts unreviewed by a real human. A separate target-only crosswalk narrows
+the six frozen *Genealogie* pages to eight possible series-qualified routes
+and the six *Antichrist* pages to twelve.
+
+The source continuation keeps the German witnesses distinct. *Genealogie*
+uses the exact fixity-bound 1892 second-edition PDF and yields 78 proposed
+starts: 72 embedded-PDF bbox candidates plus six bounded source-visible gap
+resolutions. *Antichrist* uses the exact 523-page Commons DjVu as its address
+witness and a separately registered, fixity-bound 525-page Internet Archive
+DjVuXML Item as navigation evidence. Fifty-one starts are provider-OCR number
+candidates and eleven are bounded source-visible gap resolutions. The
+source-visible relation between those containers is only a two-page offset
+over the compared work region; it is not whole-container page or textual
+identity.
+
+| German expression | Series | Proposed starts | Machine candidates | Visible gap resolutions |
+| --- | ---: | ---: | ---: | ---: |
+| *Genealogie*, Naumann 1892 second | 4 | 78 | 72 | 6 |
+| *Antichrist*, Naumann 1906 volume VIII | 1 | 62 | 51 | 11 |
+| **Total** | **5** | **140** | **123** | **17** |
+
+A payload-free transform intersects only independently materialized
+`series:unit` keys. It closes all 140 structural label pairs, then composes
+eight possible German routes for the six *Genealogie* pages and twelve for
+the six *Antichrist* pages. All twelve frozen pages are therefore
+structurally source-routable, but the route is still ineligible.
+
+This closes address navigation only. It supplies no exact line or passage-end
+boundary, accepted German or Russian, source-to-target passage alignment,
+translation relation, semantics, rights clearance, eligible transfer unit,
+target gold, canon effect, or human work.
+
+## Frozen target-passage boundary materialization
+
+A later target-only continuation used those structural routes as conservative
+inputs, then returned to the exact ignored Mysl PDF. For all thirty-five routes
+it sliced the ordered word-bbox layer from one visible numbered-unit label to
+the next label in the same series. The result preserves the frozen twenty-page
+sample and makes the earlier spill ambiguity testable:
+
+- 35 private layer-exact automatic passage candidates were materialized;
+- 32 geometrically intersect the frozen candidate page;
+- *Jenseits* 284/page 399, *Jenseits* 46/page 279, and *Antichrist*
+  `main:35`/page 661 are explicit rejected nonintersections;
+- all private strings remain mode 0600 under the ignored owner-local content
+  tree; tracked artifacts contain only geometry, counts, digests, anchors,
+  provenance, and zero-effect gates.
+
+This is exact only relative to the automatic PDF bbox layer. It creates no
+diplomatic or accepted Russian, German source passage, source-to-target
+alignment, translation relation, eligibility, target gold, semantic or canon
+effect, publication route, or human task.
+
+## Frozen German source-passage boundary materialization
+
+The German companion preserves all thirty-five routes but requires both
+numbered-unit boundaries to resolve inside one named automatic source layer or
+through an exact source-visible marker bound to that layer. Thirty-two private
+mode-0600 candidates meet that mechanical condition: twelve ABBYY paragraph
+slices, nine DjVuXML line slices, four Antichrist JP2-marker-plus-following-
+DjVuXML-line slices, and seven PDF-bbox line slices. Three routes retain
+unresolved boundaries rather than invented coordinates: *Jenseits* 32/201 and
+*Genealogie* `essay-1:10`.
+
+Tracked output is source-text-free and records geometry, digests, counts,
+witness relations, thirty-two proposed anchors, and the three negatives. Three
+visible Antichrist markers recover the four former route gaps through the exact
+Internet Archive JP2 ZIP and scandata package without changing the separate
+Commons address Item or its bounded two-page navigation-only relation. No
+textual identity is asserted. The result creates no diplomatic or accepted
+German, source-target passage or translation alignment, eligibility, gold,
+human task, semantic or canon effect, rights clearance, or publication route.
+
+### Later forensic boundary closure
+
+The historical pass above correctly retained three unresolved routes at its
+own checkpoint. A later append-only forensic return, recorded in
+`TRANSFER_SOURCE_BOUNDARY_FORENSIC_RETURN.md`, resolved those exact gaps from
+source-visible markers without rewriting that earlier evidence:
+
+- *Jenseits* §32 begins after an embedded same-PDF image-mask marker and at the
+  first following Poppler bbox record;
+- *Jenseits* §201 uses direct same-PDF Poppler bbox boundaries;
+- *Genealogie* I:10 ends before I:11 through an embedded same-PDF image-mask
+  marker and the first following Poppler bbox record.
+
+The current source candidate set therefore contains 35 of 35 private
+mode-0600 layer-exact candidates and zero unresolved boundaries. The separate
+tracked-only readiness projection joins those source candidates to the 35
+target candidates without reading either private text layer: it preserves 32
+frozen-page intersections, three target nonintersections, and at least one
+dual mechanically available intersecting route for every one of the twenty
+frozen pages. This closure remains address mechanics only; it accepts no
+German or Russian passage and creates no bilingual pair, source-target
+alignment, eligibility, gold, human task, semantic claim, publication route,
+or canon effect.
+
 ## Decisions
 
 1. Preserve the contaminated A revision, failed B language route, and all
    earlier C setup/scope failures as negative evidence.
 2. Retain corrected A for container inventory, anchors, EPUB body extraction,
    and selected readable ABBYY mechanics only.
-3. Retain corrected B as a fast, provenance-routed hybrid comparator; reject
-   the five inspected output examples and make no family-wide rejection.
-4. Retain C as a high-cost independent challenger; reject the inspected
-   Antonovsky page 330 result and accept five inspected packets only with
-   nonhuman advisory limits.
+3. Retain corrected B as a fast, provenance-routed hybrid comparator and the
+   bounded prose-order preference on Antonovsky page 330; reject the five
+   earlier inspected output examples and make no family-wide rejection.
+4. Retain C as a high-cost independent challenger and the bounded
+   visual-structure preference on five common pages; reject the inspected
+   Antonovsky page 330 result and keep every retained packet under nonhuman
+   advisory limits.
 5. Do not compare B's 36-unit full scope to C's 12-page subset as if they were
    an equal benchmark.
-6. Do not report structural F1, reading-order accuracy, correction minutes,
-   or a winner until real-human gold exists and at least one aggregate is
-   manually recomputed from raw artifacts.
-7. Keep all 15 gold candidates unaccepted until two real source-visible human
-   passes are recorded.
+6. Do not report structural F1, reading-order accuracy, correction minutes, or
+   a universal winner from the same-page comparison. A future metric requires
+   a separately opened question, suitable gold, and manual recomputation from
+   raw artifacts.
+7. Keep all 15 gold candidates unaccepted, but do not turn them into a standing
+   human backlog. Open only the smallest competence-appropriate source-visible
+   subset required by a concrete adoption or promotion question.
+8. Reuse the 246 Zarathustra structural addresses, 299 Jenseits source starts,
+   298 target-only Polilov/Mysl starts, and 140 independently materialized
+   source plus 140 target Genealogie/Antichrist series-qualified starts for
+   future bounded review and comparison,
+   but require a narrower reviewed anchor before treating a whole member or
+   page as an exact passage boundary.
+9. Keep source and target numbered-unit maps independent. The derived
+   shared-label pairs may seed later explicit passage-alignment review, but
+   they do not themselves prove textual, translational, or semantic
+   correspondence.
+10. Keep the Genealogie and Antichrist target-only crosswalks immutable as
+    historical inputs. Their separately evidenced German maps and source-route
+    compositions remain proposed address candidates; never promote shared
+    numerals or work identity into passage or translation alignment.
 
 ## What remains unknown
 
 - exact CER/WER, punctuation fidelity, and structural F1;
-- whether C's apparent structural gains survive blind human review across the
-  full 36-page packet;
+- whether C's apparent structural gains survive question-triggered,
+  competence-appropriate human review on a predeclared adoption subset;
 - whether B can improve under a new, predeclared branch hypothesis;
 - correction minutes and therefore real human-inclusive cost;
 - whether a clean scan-derived German witness disagrees materially with the
   provided auto-EPUB text;
+- whether independently reviewed narrow source and target anchors support any
+  unit-level translation alignment beyond shared visible numbering;
+- whether question-specific source-visible start and end boundaries can be
+  accepted for either *Genealogie* or *Antichrist* without flattening the
+  preserved documentary, container, or numbering structure;
 - whether any structure output is stable enough to seed translation,
   semantic, sign, relation, concept, or graph work.
 
 Those unknowns are blockers to content acceptance, not reasons to erase the
-executed machine evidence.
+executed machine evidence. Stable addresses make the evidence returnable; they
+do not answer the unknowns.

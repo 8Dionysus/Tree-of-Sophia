@@ -1,0 +1,398 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/material-discovery-record.schema.json",
+  "schema_version": "tos_material_discovery_record_v1",
+  "discovery_id": "tos.discovery.proto-cuneiform-getty-mesopotamia-city-bureaucracy-writing.2026-08-12",
+  "protocol_ref": "ToS/source-witnesses/discovery/DISCOVERY_PROTOCOL.md",
+  "target": {
+    "target_kind": "work",
+    "known_tos_refs": [
+      "tos.work.proto-cuneiform.getty-mesopotamia-civilization-begins-digital-experience"
+    ],
+    "description": "Resolve Getty's Mesopotamia: Civilization Begins digital experience as the A01 dossier's museum overview Work, establish its current reuse and local AI-processing boundary, and test its compressed association of cities, bureaucracy, and writing against established and fresh archaeology without acquiring or admitting the page body.",
+    "required_properties": [
+      "exact stable page URL, displayed Work title, institutional context, and mutable-web boundary",
+      "digital experience distinguished from the exhibition and the separate 2020 publication of the same title",
+      "current official terms and public institutional contact route for local AI-assisted research",
+      "city, infrastructure, bureaucracy, administration, agriculture, religion, and writing decomposed as separate variables",
+      "established top controls on early writing, economic administration, and urbanization",
+      "freshest directly relevant controls on local agency, northern urbanization, non-writing administration, and writing-sealing experiments"
+    ],
+    "acceptable_substitutions": [
+      "the stable Getty page URL and displayed title for mutable Work identity when no individual byline or editorial revision date is present",
+      "the official exhibition hub for distinguishing the digital experience from the exhibition publication",
+      "originating publisher and scholarly-project pages for bounded comparison controls"
+    ],
+    "languages": ["en", "und"],
+    "formats": ["mutable museum HTML", "official terms HTML", "institutional contact HTML", "scholarly book record", "research article HTML", "research article PDF"],
+    "purpose_ref": "ToS/research-packets/foundation-laboratory-2026-07/A01_GETTY_MESOPOTAMIA_CITY_BUREAUCRACY_WRITING_SOURCE_PLANTING_RESEARCH_2026-08-12.md"
+  },
+  "channels": [
+    {
+      "channel_id": "channel-getty-mesopotamia-official",
+      "sequence": 1,
+      "channel_type": "publisher-catalog",
+      "role": "originating-record",
+      "source_name": "J. Paul Getty Trust digital experience, exhibition hub, Terms of Use, and contact route",
+      "endpoint_url": "https://www.getty.edu/art/exhibitions/mesopotamia/explore.html",
+      "interface_type": "web",
+      "interface_version": "page, exhibition, terms, and contact routes checked 2026-08-12",
+      "exact_query": "Resolve the exact digital-experience Work, its relation to the exhibition and same-title publication, any visible individual byline or editorial revision date, the current reuse boundary, and the public institutional contact route.",
+      "queried_at": "2026-08-12T15:58:00-06:00",
+      "elapsed_seconds": 3.4,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.getty-mesopotamia-digital-experience-work",
+          "rank": 1,
+          "title_as_displayed": "Mesopotamia: Civilization Begins",
+          "result_url": "https://www.getty.edu/art/exhibitions/mesopotamia/explore.html",
+          "originating_record_url": "https://www.getty.edu/art/exhibitions/mesopotamia/explore.html",
+          "identifiers": [
+            {"scheme": "Getty exhibition digital experience URL path", "value": "/art/exhibitions/mesopotamia/explore.html"}
+          ],
+          "available_formats": ["mutable institutional HTML for ordinary browser access"],
+          "declared_rights": {"statement": "The page displays Getty copyright and is governed by the Getty Terms of Use; it carries no page-specific open license.", "scope": "content", "evidence_url": "https://www.getty.edu/legal/terms-of-use/", "tos_conclusion": "evidence-only-not-a-rights-conclusion"},
+          "availability": "open-view",
+          "machine_interface": "html",
+          "decision": "select",
+          "rationale": "The stable URL and title resolve the exact Work named by the dossier. No individual byline or authoritative editorial revision date is displayed. The HTTP Last-Modified header is transport metadata only, so no Agent, responsibility claim, Expression, or exact revision is inferred.",
+          "acquisition": {"downloaded": false, "acquired_at": null, "byte_size": null, "sha256": null, "event_ref": null},
+          "snapshot": {"state": "not-captured", "format": null, "sha256": null, "reason": "The exact public route and bounded source-reported overview were sufficient for research; no page payload or interactive asset entered ToS."}
+        },
+        {
+          "result_id": "tos-discovery-result.getty-mesopotamia-exhibition-and-publication-distinction",
+          "rank": 2,
+          "title_as_displayed": "Mesopotamia: Civilization Begins",
+          "result_url": "https://www.getty.edu/art/exhibitions/mesopotamia/",
+          "originating_record_url": "https://www.getty.edu/art/exhibitions/mesopotamia/",
+          "identifiers": [
+            {"scheme": "exhibition organizers", "value": "Musee du Louvre and J. Paul Getty Museum"},
+            {"scheme": "separate publication editors", "value": "Ariane Thomas and Timothy Potts"},
+            {"scheme": "separate publication year", "value": "2020"}
+          ],
+          "available_formats": ["official exhibition HTML", "separate publication listing"],
+          "declared_rights": {"statement": "The exhibition hub is governed by Getty Terms of Use; no general redistribution permission is inferred.", "scope": "content", "evidence_url": "https://www.getty.edu/legal/terms-of-use/", "tos_conclusion": "evidence-only-not-a-rights-conclusion"},
+          "availability": "open-view",
+          "machine_interface": "html",
+          "decision": "select",
+          "rationale": "The hub establishes that the Louvre-Getty exhibition, its digital experience, and the 2020 publication edited by Thomas and Potts are related but distinct entities. The publication editors are not treated as authors of the webpage.",
+          "acquisition": {"downloaded": false, "acquired_at": null, "byte_size": null, "sha256": null, "event_ref": null},
+          "snapshot": {"state": "not-needed", "format": null, "sha256": null, "reason": "The live official identity route is sufficient for the negative same-identity control."}
+        },
+        {
+          "result_id": "tos-discovery-result.getty-current-terms-and-communications-route",
+          "rank": 3,
+          "title_as_displayed": "Terms of Use and Contact Us",
+          "result_url": "https://www.getty.edu/legal/terms-of-use/",
+          "originating_record_url": "https://www.getty.edu/legal/terms-of-use/",
+          "identifiers": [
+            {"scheme": "public communications email", "value": "gettycommunications@getty.edu"},
+            {"scheme": "terms page structured publication timestamp", "value": "2026-03-26T19:38:36.608Z"}
+          ],
+          "available_formats": ["official terms HTML", "official contact HTML"],
+          "declared_rights": {"statement": "Getty authorizes bounded personal noncommercial or fair-use viewing, downloading, and printing but reserves website content and prohibits reproduction or redistribution without permission except where an explicit open license applies. The separate CC BY 4.0 rule for museum collection-record text does not apply to this exhibition page.", "scope": "content", "evidence_url": "https://www.getty.edu/legal/terms-of-use/", "tos_conclusion": "evidence-only-not-a-rights-conclusion"},
+          "availability": "open-view",
+          "machine_interface": "html",
+          "decision": "select",
+          "rationale": "The official terms and current contact page define a conservative page-specific boundary. They do not expressly discuss AI or text-and-data mining, so no such prohibition is invented; a draft request asks only for explicit local research processing permission and no redistribution.",
+          "acquisition": {"downloaded": false, "acquired_at": null, "byte_size": null, "sha256": null, "event_ref": null},
+          "snapshot": {"state": "not-needed", "format": null, "sha256": null, "reason": "Rights and contact evidence is retained as dated live official URLs and a compact public-safe request record."}
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-getty-mesopotamia-established-scholarship",
+      "sequence": 2,
+      "channel_type": "specialized-scholarly-project",
+      "role": "scholarly-index",
+      "source_name": "CDLI and university-press established scholarship routes",
+      "endpoint_url": "https://cdli.earth/publications/1657148",
+      "interface_type": "web",
+      "interface_version": "official publication routes checked 2026-08-12",
+      "exact_query": "Identify established high-value scholarship that tests how early writing, economic administration, urbanization, institutions, and causal explanation are related in Late Uruk Mesopotamia.",
+      "queried_at": "2026-08-12T16:03:00-06:00",
+      "elapsed_seconds": 4.2,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.nissen-damerow-englund-archaic-bookkeeping",
+          "rank": 1,
+          "title_as_displayed": "Archaic Bookkeeping: Writing and Techniques of Economic Administration in the Ancient Near East",
+          "result_url": "https://cdli.earth/publications/1657148",
+          "originating_record_url": "https://cdli.earth/publications/1657148",
+          "identifiers": [
+            {"scheme": "publication year", "value": "1993"},
+            {"scheme": "authors", "value": "Hans J. Nissen; Peter Damerow; Robert K. Englund"}
+          ],
+          "available_formats": ["official scholarly-project bibliographic record"],
+          "declared_rights": {"statement": null, "scope": "unknown", "evidence_url": null, "tos_conclusion": "evidence-only-not-a-rights-conclusion"},
+          "availability": "metadata-only",
+          "machine_interface": "html",
+          "decision": "select",
+          "rationale": "This remains the established direct synthesis connecting archaic writing with techniques of economic administration. Its domain does not license an inference that all urban institutions were one centralized bureaucracy or that writing caused the city.",
+          "acquisition": {"downloaded": false, "acquired_at": null, "byte_size": null, "sha256": null, "event_ref": null},
+          "snapshot": {"state": "not-needed", "format": null, "sha256": null, "reason": "The exact bibliographic route and model role were sufficient; no book payload entered ToS."}
+        },
+        {
+          "result_id": "tos-discovery-result.algaze-urban-landscape-2008",
+          "rank": 2,
+          "title_as_displayed": "Ancient Mesopotamia at the Dawn of Civilization: The Evolution of an Urban Landscape",
+          "result_url": "https://academic.oup.com/chicago-scholarship-online/book/303",
+          "originating_record_url": "https://academic.oup.com/chicago-scholarship-online/book/303",
+          "identifiers": [
+            {"scheme": "DOI", "value": "10.7208/chicago/9780226013787.001.0001"},
+            {"scheme": "publication date", "value": "2008-11-15"},
+            {"scheme": "author", "value": "Guillermo Algaze"}
+          ],
+          "available_formats": ["official publisher metadata HTML", "subscription book"],
+          "declared_rights": {"statement": "Publisher access and reuse terms apply; no open license is declared on the book record.", "scope": "content", "evidence_url": "https://academic.oup.com/chicago-scholarship-online/book/303", "tos_conclusion": "evidence-only-not-a-rights-conclusion"},
+          "availability": "subscription",
+          "machine_interface": "html",
+          "decision": "select",
+          "rationale": "Algaze supplies an influential urban-landscape and regional-economic model. It remains a model to test, not consensus or a direct source for every city-bureaucracy-writing edge; current local-agency scholarship explicitly challenges top-down expansion narratives.",
+          "acquisition": {"downloaded": false, "acquired_at": null, "byte_size": null, "sha256": null, "event_ref": null},
+          "snapshot": {"state": "not-captured", "format": null, "sha256": null, "reason": "Only public bibliographic and abstract-level metadata was used."}
+        },
+        {
+          "result_id": "tos-discovery-result.damerow-2006-administrative-protowriting-control",
+          "rank": 3,
+          "title_as_displayed": "The Origins of Writing as a Problem of Historical Epistemology",
+          "result_url": "https://cdli.earth/articles/cdlj/2006-1",
+          "originating_record_url": "https://cdli.earth/articles/cdlj/2006-1",
+          "identifiers": [
+            {"scheme": "CDLJ", "value": "2006:1"},
+            {"scheme": "author", "value": "Peter Damerow"}
+          ],
+          "available_formats": ["publisher HTML", "publisher PDF"],
+          "declared_rights": {"statement": null, "scope": "unknown", "evidence_url": null, "tos_conclusion": "evidence-only-not-a-rights-conclusion"},
+          "availability": "open-view",
+          "machine_interface": "html",
+          "decision": "select",
+          "rationale": "Damerow prevents the Getty overview's earliest-writing language from silently turning restricted administrative notation into full language representation or a universal linear stage sequence.",
+          "acquisition": {"downloaded": false, "acquired_at": null, "byte_size": null, "sha256": null, "event_ref": null},
+          "snapshot": {"state": "not-captured", "format": null, "sha256": null, "reason": "The exact publication route and bounded methodological control were sufficient."}
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-getty-mesopotamia-fresh-current",
+      "sequence": 3,
+      "channel_type": "publisher-catalog",
+      "role": "scholarly-index",
+      "source_name": "Cambridge, Springer Nature, and University of Chicago Press current archaeology routes",
+      "endpoint_url": "https://www.cambridge.org/core/journals/cambridge-archaeological-journal/article/reframing-the-uruk-expansion-glocalization-and-local-dynamics-in-the-late-chalcolithic-adhaimsirwan-drainage-basin-iraqi-kurdistan/6D0017216B86F0F5084F8BD4C2504A9A",
+      "interface_type": "web",
+      "interface_version": "publisher records checked 2026-08-12",
+      "exact_query": "Find the freshest directly relevant work that can falsify a simple city to bureaucracy to writing sequence, prioritize matching archaeological variables over date alone, and classify every access and license boundary.",
+      "queried_at": "2026-08-12T16:08:00-06:00",
+      "elapsed_seconds": 5.9,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.lewis-2025-reframing-uruk-expansion",
+          "rank": 1,
+          "title_as_displayed": "Reframing the Uruk Expansion: Glocalization and Local Dynamics in the Late Chalcolithic Adhaim-Sirwan Drainage Basin, Iraqi Kurdistan",
+          "result_url": "https://www.cambridge.org/core/journals/cambridge-archaeological-journal/article/reframing-the-uruk-expansion-glocalization-and-local-dynamics-in-the-late-chalcolithic-adhaimsirwan-drainage-basin-iraqi-kurdistan/6D0017216B86F0F5084F8BD4C2504A9A",
+          "originating_record_url": "https://www.cambridge.org/core/journals/cambridge-archaeological-journal/article/reframing-the-uruk-expansion-glocalization-and-local-dynamics-in-the-late-chalcolithic-adhaimsirwan-drainage-basin-iraqi-kurdistan/6D0017216B86F0F5084F8BD4C2504A9A",
+          "identifiers": [
+            {"scheme": "DOI", "value": "10.1017/S0959774324000404"},
+            {"scheme": "online publication date", "value": "2025-03-26"},
+            {"scheme": "author", "value": "Michael P. Lewis"}
+          ],
+          "available_formats": ["open article HTML", "article PDF", "citation export"],
+          "declared_rights": {"statement": "Creative Commons Attribution 4.0 International.", "scope": "content", "evidence_url": "https://www.cambridge.org/core/journals/cambridge-archaeological-journal/article/reframing-the-uruk-expansion-glocalization-and-local-dynamics-in-the-late-chalcolithic-adhaimsirwan-drainage-basin-iraqi-kurdistan/6D0017216B86F0F5084F8BD4C2504A9A", "tos_conclusion": "evidence-only-not-a-rights-conclusion"},
+          "availability": "open-download",
+          "machine_interface": "html",
+          "decision": "select",
+          "rationale": "Lewis directly replaces top-down grand narrative with local agency and glocalized interaction, while treating rare tablets, sealings, and tokens as bounded evidence rather than automatic proof of a southern bureaucracy or colony.",
+          "acquisition": {"downloaded": false, "acquired_at": null, "byte_size": null, "sha256": null, "event_ref": null},
+          "snapshot": {"state": "not-captured", "format": null, "sha256": null, "reason": "License and full-text availability were verified, but no article payload was needed for this metadata planting."}
+        },
+        {
+          "result_id": "tos-discovery-result.fragnoli-2025-tell-brak-urbanization",
+          "rank": 2,
+          "title_as_displayed": "Pottery production, early urbanization and the Uruk phenomenon at Tell Brak in Upper Mesopotamia",
+          "result_url": "https://link.springer.com/article/10.1007/s12520-025-02290-8",
+          "originating_record_url": "https://link.springer.com/article/10.1007/s12520-025-02290-8",
+          "identifiers": [
+            {"scheme": "DOI", "value": "10.1007/s12520-025-02290-8"},
+            {"scheme": "publication date", "value": "2025-08-05"},
+            {"scheme": "article number", "value": "17:178"}
+          ],
+          "available_formats": ["open article HTML", "article PDF", "supplementary files"],
+          "declared_rights": {"statement": "Creative Commons Attribution 4.0 International; third-party material may have separate credits.", "scope": "content", "evidence_url": "https://link.springer.com/article/10.1007/s12520-025-02290-8", "tos_conclusion": "evidence-only-not-a-rights-conclusion"},
+          "availability": "open-download",
+          "machine_interface": "html",
+          "decision": "select",
+          "rationale": "Tell Brak supplies a direct current counterexample to a south-only bundled origin: northern proto-urban growth and social complexity precede Late Uruk southern elements, and the paper separates local production, coordination, trade, and later interaction.",
+          "acquisition": {"downloaded": false, "acquired_at": null, "byte_size": null, "sha256": null, "event_ref": null},
+          "snapshot": {"state": "not-captured", "format": null, "sha256": null, "reason": "The originating metadata, open license, abstract, and bounded archaeological comparison were sufficient; no payload or supplement entered ToS."}
+        },
+        {
+          "result_id": "tos-discovery-result.khanipour-yeganeh-2025-tol-e-sangi-sealing",
+          "rank": 3,
+          "title_as_displayed": "New evidence for sealing in the Pre-Pottery Neolithic from Tol-e Sangi, Iran",
+          "result_url": "https://www.cambridge.org/core/journals/antiquity/article/new-evidence-for-sealing-in-the-prepottery-neolithic-from-tole-sangi-iran/38BB1B87394ADC75B5CFF82498B947A2",
+          "originating_record_url": "https://www.cambridge.org/core/journals/antiquity/article/new-evidence-for-sealing-in-the-prepottery-neolithic-from-tole-sangi-iran/38BB1B87394ADC75B5CFF82498B947A2",
+          "identifiers": [
+            {"scheme": "DOI", "value": "10.15184/aqy.2024.234"},
+            {"scheme": "online publication date", "value": "2025-01-16"},
+            {"scheme": "issue", "value": "Antiquity 99(405), June 2025, e17"}
+          ],
+          "available_formats": ["open article HTML", "article PDF", "citation export"],
+          "declared_rights": {"statement": "Creative Commons Attribution 4.0 International.", "scope": "content", "evidence_url": "https://www.cambridge.org/core/journals/antiquity/article/new-evidence-for-sealing-in-the-prepottery-neolithic-from-tole-sangi-iran/38BB1B87394ADC75B5CFF82498B947A2", "tos_conclusion": "evidence-only-not-a-rights-conclusion"},
+          "availability": "open-download",
+          "machine_interface": "html",
+          "decision": "select",
+          "rationale": "A sealing and possible tokens in a non-urban Pre-Pottery Neolithic context show that sealing, storage control, social complexity, bureaucracy, and writing cannot be made equivalent. Object function remains interpretation-sensitive.",
+          "acquisition": {"downloaded": false, "acquired_at": null, "byte_size": null, "sha256": null, "event_ref": null},
+          "snapshot": {"state": "not-captured", "format": null, "sha256": null, "reason": "The open originating record supplied the needed counterexample; no text, figure, or artifact image entered ToS."}
+        },
+        {
+          "result_id": "tos-discovery-result.yousefi-zoshk-hessari-2026-script-over-sealings",
+          "rank": 4,
+          "title_as_displayed": "Script over Sealings: Proto-Elamite Bureaucratic Innovation at Tepe Sofalin, Iran",
+          "result_url": "https://www.journals.uchicago.edu/doi/10.1086/739810",
+          "originating_record_url": "https://www.journals.uchicago.edu/doi/10.1086/739810",
+          "identifiers": [
+            {"scheme": "DOI", "value": "10.1086/739810"},
+            {"scheme": "issue", "value": "Near Eastern Archaeology 89(1), March 2026"},
+            {"scheme": "authors", "value": "Rouhollah Yousefi Zoshk; Morteza Hessari"}
+          ],
+          "available_formats": ["public metadata and abstract HTML", "paywalled full text"],
+          "declared_rights": {"statement": "Copyright 2026 American Society of Overseas Research; the publisher page reserves text-and-data-mining and AI-training rights.", "scope": "content", "evidence_url": "https://www.journals.uchicago.edu/doi/10.1086/739810", "tos_conclusion": "evidence-only-not-a-rights-conclusion"},
+          "availability": "subscription",
+          "machine_interface": "html",
+          "decision": "select",
+          "rationale": "The public abstract treats writing-over-sealing as a shift or experiment in administrative authority and keeps sign readings, centralized oversight, and local adaptation open. It is a precise 2026 control, but only public metadata and abstract-level conclusions may be used without further access authority.",
+          "acquisition": {"downloaded": false, "acquired_at": null, "byte_size": null, "sha256": null, "event_ref": null},
+          "snapshot": {"state": "not-permitted", "format": null, "sha256": null, "reason": "No paywalled body or PDF was acquired, analyzed, or imported."}
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-getty-mesopotamia-general-web-last",
+      "sequence": 4,
+      "channel_type": "general-web-search",
+      "role": "lead-only",
+      "source_name": "Final indexed-web and 2025-2026 relevance screen",
+      "endpoint_url": "https://www.getty.edu/art/exhibitions/mesopotamia/explore.html",
+      "interface_type": "web",
+      "interface_version": "search indexes checked 2026-08-12",
+      "exact_query": "Search 2025-2026 for a newer exact synthesis of Late Uruk city, bureaucracy, and writing; reject generic first-city and writing-caused-bureaucracy narratives, snippets, social posts, and work that is fresh but does not test this causal bundle.",
+      "queried_at": "2026-08-12T16:14:00-06:00",
+      "elapsed_seconds": 2.0,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.generic-city-bureaucracy-writing-causal-summaries",
+          "rank": 1,
+          "title_as_displayed": "Generic first-city and writing-created-bureaucracy summaries",
+          "result_url": "https://www.getty.edu/art/exhibitions/mesopotamia/explore.html",
+          "originating_record_url": null,
+          "identifiers": [],
+          "available_formats": ["search snippets", "popular-history HTML", "social posts"],
+          "declared_rights": {"statement": null, "scope": "unknown", "evidence_url": null, "tos_conclusion": "evidence-only-not-a-rights-conclusion"},
+          "availability": "unknown",
+          "machine_interface": "unknown",
+          "decision": "reject",
+          "rationale": "These results repeat the proposition being tested, collapse co-occurrence into causation, omit source-returnable evidence and regional alternatives, or provide weaker metadata than originating scholarship.",
+          "acquisition": {"downloaded": false, "acquired_at": null, "byte_size": null, "sha256": null, "event_ref": null},
+          "snapshot": {"state": "not-needed", "format": null, "sha256": null, "reason": "Rejected leads do not merit content capture."}
+        },
+        {
+          "result_id": "tos-discovery-result.khosravi-2026-tyalineh-current-but-peripheral",
+          "rank": 2,
+          "title_as_displayed": "The late prehistoric administrative artefacts from Tapeh Tyalineh, Kermanshah, western Iran",
+          "result_url": "https://www.cambridge.org/core/journals/antiquity/article/late-prehistoric-administrative-artefacts-from-tapeh-tyalineh-kermanshah-western-iran/7375FF97E8C9D411B4EF28244E212D13",
+          "originating_record_url": "https://www.cambridge.org/core/journals/antiquity/article/late-prehistoric-administrative-artefacts-from-tapeh-tyalineh-kermanshah-western-iran/7375FF97E8C9D411B4EF28244E212D13",
+          "identifiers": [
+            {"scheme": "DOI", "value": "10.15184/aqy.2025.10259"},
+            {"scheme": "online publication date", "value": "2026-01-06"},
+            {"scheme": "author", "value": "Shokouh Khosravi"}
+          ],
+          "available_formats": ["publisher metadata and article HTML"],
+          "declared_rights": {"statement": "No page-specific open-license conclusion was established in this bounded screen.", "scope": "unknown", "evidence_url": null, "tos_conclusion": "evidence-only-not-a-rights-conclusion"},
+          "availability": "open-view",
+          "machine_interface": "html",
+          "decision": "defer",
+          "rationale": "The article is genuinely current and relevant to administrative technologies outside the classic center, but its early-third-millennium context does not directly test the Late Uruk bundle. Date alone does not outrank the closer Tol-e Sangi, Tell Brak, Lewis, and Tepe Sofalin controls.",
+          "acquisition": {"downloaded": false, "acquired_at": null, "byte_size": null, "sha256": null, "event_ref": null},
+          "snapshot": {"state": "not-captured", "format": null, "sha256": null, "reason": "Deferred as a future geographic and administrative-technology route; no payload entered ToS."}
+        }
+      ]
+    }
+  ],
+  "channel_comparison": [
+    {
+      "channel_id": "channel-getty-mesopotamia-official",
+      "completeness": "strong",
+      "metadata_precision": "strong",
+      "rights_clarity": "strong",
+      "machine_interface_quality": "adequate",
+      "human_minutes": 12.0,
+      "machine_seconds": 3.4,
+      "notes": "The exact Work, related-but-distinct exhibition and publication, current terms, and institutional contact route are resolved. Individual byline and editorial revision date remain honestly unresolved."
+    },
+    {
+      "channel_id": "channel-getty-mesopotamia-established-scholarship",
+      "completeness": "strong",
+      "metadata_precision": "strong",
+      "rights_clarity": "adequate",
+      "machine_interface_quality": "strong",
+      "human_minutes": 14.0,
+      "machine_seconds": 4.2,
+      "notes": "Archaic Bookkeeping, Algaze, and Damerow expose distinct administration, urbanization, and writing models. None is collapsed into one universal cause."
+    },
+    {
+      "channel_id": "channel-getty-mesopotamia-fresh-current",
+      "completeness": "strong",
+      "metadata_precision": "strong",
+      "rights_clarity": "strong",
+      "machine_interface_quality": "strong",
+      "human_minutes": 18.0,
+      "machine_seconds": 5.9,
+      "notes": "The closest 2025-2026 controls were selected by claim fit, not novelty alone. Two are CC BY 4.0, Tol-e Sangi is CC BY 4.0, and Tepe Sofalin remains abstract-only under the publisher boundary."
+    },
+    {
+      "channel_id": "channel-getty-mesopotamia-general-web-last",
+      "completeness": "adequate",
+      "metadata_precision": "limited",
+      "rights_clarity": "limited",
+      "machine_interface_quality": "adequate",
+      "human_minutes": 6.0,
+      "machine_seconds": 2.0,
+      "notes": "Generic causal retellings were rejected. One genuinely current but less direct study was deferred rather than promoted merely because it is dated 2026."
+    }
+  ],
+  "selected_result_ids": [
+    "tos-discovery-result.getty-mesopotamia-digital-experience-work",
+    "tos-discovery-result.getty-mesopotamia-exhibition-and-publication-distinction",
+    "tos-discovery-result.getty-current-terms-and-communications-route",
+    "tos-discovery-result.nissen-damerow-englund-archaic-bookkeeping",
+    "tos-discovery-result.algaze-urban-landscape-2008",
+    "tos-discovery-result.damerow-2006-administrative-protowriting-control",
+    "tos-discovery-result.lewis-2025-reframing-uruk-expansion",
+    "tos-discovery-result.fragnoli-2025-tell-brak-urbanization",
+    "tos-discovery-result.khanipour-yeganeh-2025-tol-e-sangi-sealing",
+    "tos-discovery-result.yousefi-zoshk-hessari-2026-script-over-sealings"
+  ],
+  "rejected_result_ids": [
+    "tos-discovery-result.generic-city-bureaucracy-writing-causal-summaries"
+  ],
+  "rights_inference_from_availability_prohibited": true,
+  "general_web_search_is_last_resort": true,
+  "technical_access_bypass_used": false,
+  "maker": {
+    "maker_type": "model",
+    "agent_ref": "model:codex"
+  },
+  "started_at": "2026-08-12T15:58:00-06:00",
+  "ended_at": "2026-08-12T16:18:00-06:00",
+  "status": "reconciled",
+  "provenance_event_refs": [
+    "tos.event.discovery.proto-cuneiform-getty-mesopotamia-city-bureaucracy-writing.2026-08-12"
+  ],
+  "record_version": 1,
+  "supersedes_discovery_ref": null
+}

@@ -1,0 +1,174 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/collection-work-boundary-map.schema.json",
+  "schema_version": "tos_collection_work_boundary_map_v1",
+  "map_id": "tos.collection-work-boundary-map.friedrich-nietzsche.mysl-1996-volume-2",
+  "collection_ref": "tos.collection.friedrich-nietzsche.works-in-two-volumes-volume-2-mysl-1996",
+  "edition_ref": "tos.edition.friedrich-nietzsche.works-in-two-volumes.moscow-mysl-1996-volume-2",
+  "item_ref": "tos.item.friedrich-nietzsche.works-in-two-volumes-volume-2-mysl-1996.operator-pdf",
+  "file_id": "tos.file.sha256.ce16b68089dee0fc53a31d9e97723991b292dd8835c43bbbb40a9373c9a436aa",
+  "file_sha256": "ce16b68089dee0fc53a31d9e97723991b292dd8835c43bbbb40a9373c9a436aa",
+  "resource_inventory_ref": "ToS/source-witnesses/collections/friedrich-nietzsche/works-in-two-volumes-volume-2-mysl-1996/editions/moscow-mysl-1996-volume-2/items/operator-pdf/resource-inventory.json",
+  "resource_inventory_sha256": "16773e2de732fe444a4656d5ea47f1ea21f27416dddd8e911cd98845f6287502",
+  "page_count": 831,
+  "members": [
+    {
+      "sequence": 1,
+      "work_ref": "tos.work.friedrich-nietzsche.also-sprach-zarathustra",
+      "expression_ref": "tos.expression.friedrich-nietzsche.also-sprach-zarathustra.ru-antonovsky-mysl-1996",
+      "membership_claim_ref": "tos.claim.collection.mysl-1996-volume-2.contains-also-sprach-zarathustra",
+      "translation_responsibility_claim_ref": "tos.claim.expression.mysl-1996-volume-2.also-sprach-zarathustra.translated-by-yuri-antonovsky",
+      "title_page_anchor_ref": "tos.anchor.mysl-1996-volume-2.work-title.also-sprach-zarathustra",
+      "boundary_evidence_anchor_refs": [
+        "tos.anchor.mysl-1996-volume-2.work-title.also-sprach-zarathustra",
+        "tos.anchor.mysl-1996-volume-2.work-title.jenseits-von-gut-und-boese"
+      ],
+      "start_page": 5,
+      "end_page": 237,
+      "epistemic_status": "inferred",
+      "review_status": "unreviewed"
+    },
+    {
+      "sequence": 2,
+      "work_ref": "tos.work.friedrich-nietzsche.jenseits-von-gut-und-boese",
+      "expression_ref": "tos.expression.friedrich-nietzsche.jenseits-von-gut-und-boese.ru-polilov-mysl-1996",
+      "membership_claim_ref": "tos.claim.collection.mysl-1996-volume-2.contains-jenseits-von-gut-und-boese",
+      "translation_responsibility_claim_ref": "tos.claim.expression.mysl-1996-volume-2.jenseits-von-gut-und-boese.translated-by-n-polilov",
+      "title_page_anchor_ref": "tos.anchor.mysl-1996-volume-2.work-title.jenseits-von-gut-und-boese",
+      "boundary_evidence_anchor_refs": [
+        "tos.anchor.mysl-1996-volume-2.work-title.jenseits-von-gut-und-boese",
+        "tos.anchor.mysl-1996-volume-2.work-title.zur-genealogie-der-moral"
+      ],
+      "start_page": 238,
+      "end_page": 406,
+      "epistemic_status": "inferred",
+      "review_status": "unreviewed"
+    },
+    {
+      "sequence": 3,
+      "work_ref": "tos.work.friedrich-nietzsche.zur-genealogie-der-moral",
+      "expression_ref": "tos.expression.friedrich-nietzsche.zur-genealogie-der-moral.ru-svasyan-mysl-1996",
+      "membership_claim_ref": "tos.claim.collection.mysl-1996-volume-2.contains-zur-genealogie-der-moral",
+      "translation_responsibility_claim_ref": "tos.claim.expression.mysl-1996-volume-2.zur-genealogie-der-moral.translated-by-k-a-svasyan",
+      "title_page_anchor_ref": "tos.anchor.mysl-1996-volume-2.work-title.zur-genealogie-der-moral",
+      "boundary_evidence_anchor_refs": [
+        "tos.anchor.mysl-1996-volume-2.work-title.zur-genealogie-der-moral",
+        "tos.anchor.mysl-1996-volume-2.work-title.der-fall-wagner"
+      ],
+      "start_page": 407,
+      "end_page": 524,
+      "epistemic_status": "inferred",
+      "review_status": "unreviewed"
+    },
+    {
+      "sequence": 4,
+      "work_ref": "tos.work.friedrich-nietzsche.der-fall-wagner",
+      "expression_ref": "tos.expression.friedrich-nietzsche.der-fall-wagner.ru-polilov-mysl-1996",
+      "membership_claim_ref": "tos.claim.collection.mysl-1996-volume-2.contains-der-fall-wagner",
+      "translation_responsibility_claim_ref": "tos.claim.expression.mysl-1996-volume-2.der-fall-wagner.translated-by-n-polilov",
+      "title_page_anchor_ref": "tos.anchor.mysl-1996-volume-2.work-title.der-fall-wagner",
+      "boundary_evidence_anchor_refs": [
+        "tos.anchor.mysl-1996-volume-2.work-title.der-fall-wagner",
+        "tos.anchor.mysl-1996-volume-2.work-title.goetzen-daemmerung"
+      ],
+      "start_page": 525,
+      "end_page": 555,
+      "epistemic_status": "inferred",
+      "review_status": "unreviewed"
+    },
+    {
+      "sequence": 5,
+      "work_ref": "tos.work.friedrich-nietzsche.goetzen-daemmerung",
+      "expression_ref": "tos.expression.friedrich-nietzsche.goetzen-daemmerung.ru-polilov-mysl-1996",
+      "membership_claim_ref": "tos.claim.collection.mysl-1996-volume-2.contains-goetzen-daemmerung",
+      "translation_responsibility_claim_ref": "tos.claim.expression.mysl-1996-volume-2.goetzen-daemmerung.translated-by-n-polilov",
+      "title_page_anchor_ref": "tos.anchor.mysl-1996-volume-2.work-title.goetzen-daemmerung",
+      "boundary_evidence_anchor_refs": [
+        "tos.anchor.mysl-1996-volume-2.work-title.goetzen-daemmerung",
+        "tos.anchor.mysl-1996-volume-2.work-title.der-antichrist"
+      ],
+      "start_page": 556,
+      "end_page": 630,
+      "epistemic_status": "inferred",
+      "review_status": "unreviewed"
+    },
+    {
+      "sequence": 6,
+      "work_ref": "tos.work.friedrich-nietzsche.der-antichrist",
+      "expression_ref": "tos.expression.friedrich-nietzsche.der-antichrist.ru-flerova-mysl-1996",
+      "membership_claim_ref": "tos.claim.collection.mysl-1996-volume-2.contains-der-antichrist",
+      "translation_responsibility_claim_ref": "tos.claim.expression.mysl-1996-volume-2.der-antichrist.translated-by-v-a-flerova",
+      "title_page_anchor_ref": "tos.anchor.mysl-1996-volume-2.work-title.der-antichrist",
+      "boundary_evidence_anchor_refs": [
+        "tos.anchor.mysl-1996-volume-2.work-title.der-antichrist",
+        "tos.anchor.mysl-1996-volume-2.work-title.ecce-homo"
+      ],
+      "start_page": 631,
+      "end_page": 692,
+      "epistemic_status": "inferred",
+      "review_status": "unreviewed"
+    },
+    {
+      "sequence": 7,
+      "work_ref": "tos.work.friedrich-nietzsche.ecce-homo",
+      "expression_ref": "tos.expression.friedrich-nietzsche.ecce-homo.ru-antonovsky-mysl-1996",
+      "membership_claim_ref": "tos.claim.collection.mysl-1996-volume-2.contains-ecce-homo",
+      "translation_responsibility_claim_ref": "tos.claim.expression.mysl-1996-volume-2.ecce-homo.translated-by-yuri-antonovsky",
+      "title_page_anchor_ref": "tos.anchor.mysl-1996-volume-2.work-title.ecce-homo",
+      "boundary_evidence_anchor_refs": [
+        "tos.anchor.mysl-1996-volume-2.work-title.ecce-homo",
+        "tos.anchor.mysl-1996-volume-2.section.notes"
+      ],
+      "start_page": 693,
+      "end_page": 769,
+      "epistemic_status": "inferred",
+      "review_status": "unreviewed"
+    }
+  ],
+  "non_member_sections": [
+    {
+      "label": "Примечания и справочный аппарат",
+      "start_page": 770,
+      "end_page": 830,
+      "boundary_anchor_ref": "tos.anchor.mysl-1996-volume-2.section.notes",
+      "epistemic_status": "inferred",
+      "review_status": "unreviewed"
+    },
+    {
+      "label": "Выходные данные цифрового контейнера",
+      "start_page": 831,
+      "end_page": 831,
+      "boundary_anchor_ref": "tos.anchor.mysl-1996-volume-2.section.colophon",
+      "epistemic_status": "observed",
+      "review_status": "unreviewed"
+    }
+  ],
+  "crosscheck_anchor_refs": [
+    "tos.anchor.mysl-1996-volume-2.toc-p829",
+    "tos.anchor.mysl-1996-volume-2.toc-p830"
+  ],
+  "source_text_included": false,
+  "maker": {
+    "maker_type": "model",
+    "agent_ref": "model:codex",
+    "method": "source-visible title-page and table-of-contents inspection over a fixity-bound local PDF"
+  },
+  "review_status": "unreviewed",
+  "establishes": [
+    "proposed seven-work sequence in the exact local item",
+    "proposed container-page boundaries for those works",
+    "source-visible Russian title and translator-credit metadata",
+    "stable page anchors for later source return"
+  ],
+  "does_not_establish": [
+    "accepted source text or transcription",
+    "textual identity with any other edition",
+    "translation correctness or quality",
+    "exact original-language expression identity",
+    "semantic units, signs, concepts, or relations",
+    "rights clearance or permission to publish source bytes",
+    "human review or canon acceptance"
+  ],
+  "provenance_event_ref": "tos.event.collection-structure.friedrich-nietzsche.mysl-1996-volume-2.2026-07-28",
+  "map_version": 1,
+  "supersedes_map_ref": null
+}

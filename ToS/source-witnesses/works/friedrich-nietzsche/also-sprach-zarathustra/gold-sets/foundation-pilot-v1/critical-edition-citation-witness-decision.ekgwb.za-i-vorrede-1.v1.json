@@ -1,0 +1,109 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/critical-edition-citation-witness-decision.schema.json",
+  "schema_version": "tos_critical_edition_citation_witness_decision_v1",
+  "packet_id": "tos.critical-edition-citation-witness-decision.ekgwb.za-i-vorrede-1.v1",
+  "status": "human_admitted_with_limits",
+  "work_ref": "tos.work.friedrich-nietzsche.also-sprach-zarathustra",
+  "target": {
+    "review_unit_id": "tos-translation-source-review-v2-001",
+    "context_anchor_ref": "tos.anchor.zarathustra-translation-pilot-v1.t001",
+    "critical_locator_siglum": "Za-I-Vorrede-1",
+    "critical_locator_url": "https://www.nietzschesource.org/eKGWB/Za-I-Vorrede-1",
+    "decision_scope": "citation-witness-only"
+  },
+  "evidence": {
+    "historical_metadata_packet": {
+      "ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/critical-edition-witness.ekgwb.za-i-vorrede-1.v1.json",
+      "sha256": "494a1a69ea9bdbd8c7038c9644d3dd1bfe6e073f22c40bdb0826f1a5207ac0d0"
+    },
+    "machine_triangulation_packet": {
+      "ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/german-source-triangulation.ekgwb-dta-naumann.za-i-vorrede-1.v1.json",
+      "sha256": "e98d28af59363bd73152cb42608b21caa6cb92aa1181fa90ba18a675f64fdbd9"
+    },
+    "institutional_corroboration_record": {
+      "ref": "ToS/source-witnesses/discovery/runs/ekgwb-za-i-vorrede-1-institutional-corroboration.2026-07-30.v3.json",
+      "sha256": "ed76d41783a9cce768c1d42b4f447f493e833ad0156b918ca2a2260cd2a2c230"
+    },
+    "rights_record": {
+      "ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/rights.ekgwb.za-i-vorrede-1.v1.json",
+      "sha256": "01e25aad68d99c527ec089aad9deb9569b23b9dc7daf300d15efed261d1e0740"
+    },
+    "ordered_research_refresh": {
+      "ref": "ToS/research-packets/foundation-laboratory-2026-07/EKGWB_CITATION_WITNESS_DECISION_REFRESH_2026-08-08.md",
+      "sha256": "ed4a4c6cb7cfbdabfe3851e53b5a2a550f401d28bcb6779be989ee223bfaefca"
+    }
+  },
+  "bibliographic_identity": {
+    "title": "Digitale Kritische Gesamtausgabe Werke und Briefe",
+    "edition_siglum": "eKGWB",
+    "author": "Friedrich Nietzsche",
+    "print_editors": [
+      "Giorgio Colli",
+      "Mazzino Montinari"
+    ],
+    "digital_editor": "Paolo D'Iorio",
+    "publisher": "Nietzsche Source",
+    "publication_start_year": 2009,
+    "identity_evidence_posture": "official-documentation-editor-account-institutional-catalog-agree"
+  },
+  "transport_and_fixity": {
+    "owner_transport_posture": "publisher-host-observed-over-unauthenticated-http",
+    "publisher_authentication_established": false,
+    "institutional_archive_corroboration": true,
+    "archive_validates_publisher_origin": false,
+    "exact_target_block_sha256": "f58a13c189bcf22db19fcbca2345e660a771656c89010c67d55eb4a00c4cc398",
+    "dta_normalized_sequence_agreement": true,
+    "normalized_sequence_sha256": "6d3deb76b489989f2a8ed3782f3ae9c12914a0ab6baea1b9f21432bcc8749e16",
+    "german_linguistic_correctness_established": false
+  },
+  "rights_scope": {
+    "declared_license": "CC-BY-NC-ND-4.0",
+    "assessment_status": "conflicting-layer-evidence",
+    "private_noncommercial_local_research_supported": true,
+    "adapted_material_sharing_authorized": false,
+    "source_publication_authorized_by_tos": false,
+    "commercial_use_authorized": false,
+    "human_scope_review_required": true,
+    "not_legal_advice": true
+  },
+  "proposed_decision": {
+    "model_recommendation": "admit-with-limits",
+    "allowed_if_admitted": [
+      "cite the exact eKGWB locator as an edition-typed witness",
+      "use the local-only observed reading for bounded private non-commercial AI-only translation experiments",
+      "use the local-only observed reading for bounded private non-commercial AI+human translation experiments"
+    ],
+    "still_prohibited_if_admitted": [
+      "claim publisher-authenticated transport or publisher signature",
+      "claim accepted German, German linguistic correctness, philological finality, or passage-level human acceptance",
+      "open a human-only translation lane for the current operator",
+      "reveal a recognized translation before independent experimental lanes freeze",
+      "publish or share source payloads or adapted source-bearing material",
+      "authorize commercial use, semantic promotion, graph truth, or canon promotion"
+    ],
+    "single_human_question": "Admit this eKGWB unit with exactly these limits as a citation-only witness for private AI-only and AI+human translation experiments?"
+  },
+  "human_decision": {
+    "decision_status": "admit-with-limits",
+    "reviewer_ref": "human:dionysus",
+    "reviewed_at": "2026-08-08T09:16:54-06:00",
+    "bibliographic_identity_accepted": true,
+    "bounded_rights_scope_accepted": true,
+    "citation_witness_admitted": true,
+    "rationale": "Admitted on the operator's explicit instruction only for the declared private, non-commercial citation-witness scope and its AI-only and AI+human experimental lanes."
+  },
+  "gate_effects": {
+    "critical_edition_unit_admitted": true,
+    "accepted_german_unit_created": false,
+    "translation_lanes_opened": [
+      "ai_only",
+      "ai_human"
+    ],
+    "human_only_lane_opened": false,
+    "recognized_translation_revealed": false,
+    "semantic_or_canon_promotion_authorized": false
+  },
+  "provenance_event_ref": "tos.event.annotation.ekgwb-citation-witness-decision-admission.naumann-uraa-rights-binding-refresh.2026-08-10",
+  "authority_boundary": "citation-witness admission decision only: not publisher authentication, accepted German, German linguistic review, translation acceptance, publication permission, semantic evidence, graph truth, or canon authority",
+  "supersedes_decision_ref": null
+}

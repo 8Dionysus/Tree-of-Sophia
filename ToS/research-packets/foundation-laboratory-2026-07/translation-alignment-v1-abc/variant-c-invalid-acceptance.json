@@ -1,0 +1,315 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/translation-alignment-packet-v1.schema.json",
+  "alignments": [
+    {
+      "alignment_id": "tos.translation-alignment.sid-2b4c976a205b3a983696b6a205981564",
+      "alignment_version": 1,
+      "certainty": {
+        "meaning": "maker_declared_uncertainty_not_truth_probability",
+        "value": 0.5
+      },
+      "claim_id": "tos.translation-alignment-claim.sid-5d6273060edb4bcdcc0ec3e274840339",
+      "claim_version": 1,
+      "competing_alignment_refs": [
+        "tos.translation-alignment.sid-93821a1c1b9e77415d716df04f9f8cc3"
+      ],
+      "correspondence_shape": "one_to_one",
+      "direction": "source_to_target",
+      "epistemic_status": "observed_structure",
+      "evidence": [
+        {
+          "description": "Exact invented spans are present only to exercise ordered stand-off mapping mechanics.",
+          "evidence_ref": "ToS/research-packets/foundation-laboratory-2026-07/translation-alignment-v1-abc/plan.json",
+          "role": "method_input",
+          "source_anchor_refs": [
+            "tos.anchor.translation-alignment-v1.synthetic-source-two"
+          ],
+          "target_anchor_refs": [
+            "tos.anchor.translation-alignment-v1.synthetic-target-two-whole"
+          ]
+        }
+      ],
+      "identity_policy": "opaque-id-independent-of-text-label-translation-and-current-mapping",
+      "maker": {
+        "agent_ref": "software:tos-translation-alignment-v1-lab-builder",
+        "made_at": "2026-08-11T14:00:00Z",
+        "maker_kind": "synthetic_fixture",
+        "method": "deterministic public-synthetic mapping fixture construction",
+        "method_output_posture": "proposal_not_truth",
+        "provenance_event_ref": "synthetic:no-runtime-provenance-event-claimed",
+        "simulates_kind": "model",
+        "simulation_notice": "synthetic fixture only; no corresponding human, software, model, translation, or review act occurred"
+      },
+      "order_posture": "monotonic",
+      "ordered_source_anchor_refs": [
+        "tos.anchor.translation-alignment-v1.synthetic-source-two"
+      ],
+      "ordered_target_anchor_refs": [
+        "tos.anchor.translation-alignment-v1.synthetic-target-two-whole"
+      ],
+      "review_refs": [],
+      "status": "accepted",
+      "status_reason": "Deliberately invalid: a synthetic/model-shaped proposal attempts acceptance without a real-human review.",
+      "supersedes_alignment_ref": null,
+      "supersedes_claim_ref": null,
+      "translation_techniques": [
+        "unresolved"
+      ]
+    },
+    {
+      "alignment_id": "tos.translation-alignment.sid-93821a1c1b9e77415d716df04f9f8cc3",
+      "alignment_version": 1,
+      "certainty": {
+        "meaning": "maker_declared_uncertainty_not_truth_probability",
+        "value": 0.5
+      },
+      "claim_id": "tos.translation-alignment-claim.sid-035353c476774772d31ad130b157e533",
+      "claim_version": 1,
+      "competing_alignment_refs": [
+        "tos.translation-alignment.sid-2b4c976a205b3a983696b6a205981564"
+      ],
+      "correspondence_shape": "one_to_many",
+      "direction": "source_to_target",
+      "epistemic_status": "observed_structure",
+      "evidence": [
+        {
+          "description": "Exact invented spans are present only to exercise ordered stand-off mapping mechanics.",
+          "evidence_ref": "ToS/research-packets/foundation-laboratory-2026-07/translation-alignment-v1-abc/plan.json",
+          "role": "method_input",
+          "source_anchor_refs": [
+            "tos.anchor.translation-alignment-v1.synthetic-source-two"
+          ],
+          "target_anchor_refs": [
+            "tos.anchor.translation-alignment-v1.synthetic-target-two-part-a",
+            "tos.anchor.translation-alignment-v1.synthetic-target-two-part-b"
+          ]
+        }
+      ],
+      "identity_policy": "opaque-id-independent-of-text-label-translation-and-current-mapping",
+      "maker": {
+        "agent_ref": "software:tos-translation-alignment-v1-lab-builder",
+        "made_at": "2026-08-11T14:00:00Z",
+        "maker_kind": "synthetic_fixture",
+        "method": "deterministic public-synthetic mapping fixture construction",
+        "method_output_posture": "proposal_not_truth",
+        "provenance_event_ref": "synthetic:no-runtime-provenance-event-claimed",
+        "simulates_kind": "model",
+        "simulation_notice": "synthetic fixture only; no corresponding human, software, model, translation, or review act occurred"
+      },
+      "order_posture": "monotonic",
+      "ordered_source_anchor_refs": [
+        "tos.anchor.translation-alignment-v1.synthetic-source-two"
+      ],
+      "ordered_target_anchor_refs": [
+        "tos.anchor.translation-alignment-v1.synthetic-target-two-part-a",
+        "tos.anchor.translation-alignment-v1.synthetic-target-two-part-b"
+      ],
+      "review_refs": [],
+      "status": "proposed",
+      "status_reason": "Public-synthetic proposal exercises mapping mechanics and establishes no translation truth.",
+      "supersedes_alignment_ref": null,
+      "supersedes_claim_ref": null,
+      "translation_techniques": [
+        "unresolved"
+      ]
+    }
+  ],
+  "authority_boundary": {
+    "alignment_is_claim_not_translation_truth": true,
+    "canon_effect": false,
+    "exports_are_not_owner_truth": true,
+    "graph_role": "relation",
+    "lexical_equivalence_not_inferred": true,
+    "machine_or_model_may_propose_not_accept": true,
+    "source_role": "authority",
+    "tree_role": "orientation",
+    "unaligned_members_are_first_class": true,
+    "validators_prove_mechanics_not_truth": true
+  },
+  "content_posture": "public_synthetic_contract_exercise",
+  "granularity": "mixed",
+  "packet_id": "tos.translation-alignment-packet.sid-e6916f53efe77944c9ba595563d4c33a",
+  "packet_version": 1,
+  "projections": [],
+  "reviews": [],
+  "rights_and_visibility": {
+    "effective_visibility": "public",
+    "inheritance_policy": "most_restrictive_side_or_packet_wins",
+    "packet_visibility": "public",
+    "private_source_used": false,
+    "publication_authorized": true,
+    "rights_record_refs": [
+      "ToS/research-packets/foundation-laboratory-2026-07/translation-alignment-v1-abc/plan.json"
+    ],
+    "source_visibility": "public",
+    "target_visibility": "public"
+  },
+  "schema_version": "tos_translation_alignment_packet_v1",
+  "source_side": {
+    "anchors": [
+      {
+        "anchor_ref": "tos.anchor.translation-alignment-v1.synthetic-source-one",
+        "exact_sha256": "002826403682778533cd800ace70b8b5f096cd0a95741f588e4a7bcde810c1cc",
+        "ordinal": 1,
+        "selector": {
+          "end": 18,
+          "interval": "half_open",
+          "position_unit": "unicode_code_point",
+          "start": 0,
+          "type": "text_position"
+        },
+        "source_return": {
+          "locator_ref": "ToS/research-packets/foundation-laboratory-2026-07/translation-alignment-v1-abc/public-synthetic-source.x-tos-src.txt",
+          "required": true
+        },
+        "text_layer_ref": "ToS/research-packets/foundation-laboratory-2026-07/translation-alignment-v1-abc/public-synthetic-source.x-tos-src.txt",
+        "text_layer_sha256": "63a1081d585f8d6f07d51e8c0c09fd54dc36eee7270971b1ad5f5f0e324e5e1a"
+      },
+      {
+        "anchor_ref": "tos.anchor.translation-alignment-v1.synthetic-source-two",
+        "exact_sha256": "ed26907b651487d367a1b1ae65c51412d05e6665ba64c384b6f721f1c50a9c64",
+        "ordinal": 2,
+        "selector": {
+          "end": 35,
+          "interval": "half_open",
+          "position_unit": "unicode_code_point",
+          "start": 19,
+          "type": "text_position"
+        },
+        "source_return": {
+          "locator_ref": "ToS/research-packets/foundation-laboratory-2026-07/translation-alignment-v1-abc/public-synthetic-source.x-tos-src.txt",
+          "required": true
+        },
+        "text_layer_ref": "ToS/research-packets/foundation-laboratory-2026-07/translation-alignment-v1-abc/public-synthetic-source.x-tos-src.txt",
+        "text_layer_sha256": "63a1081d585f8d6f07d51e8c0c09fd54dc36eee7270971b1ad5f5f0e324e5e1a"
+      }
+    ],
+    "edition_ref": "tos.edition.translation-alignment-v1.synthetic-miniature.source",
+    "expression_ref": "tos.expression.translation-alignment-v1.synthetic-miniature.source",
+    "file_ref": "tos.file.translation-alignment-v1.synthetic-miniature.source.utf8",
+    "file_sha256": "63a1081d585f8d6f07d51e8c0c09fd54dc36eee7270971b1ad5f5f0e324e5e1a",
+    "item_ref": "tos.item.translation-alignment-v1.synthetic-miniature.source",
+    "language": "x-tos-src",
+    "publication_authorized": true,
+    "rights_refs": [
+      "ToS/research-packets/foundation-laboratory-2026-07/translation-alignment-v1-abc/plan.json"
+    ],
+    "segmentation": {
+      "artifact_ref": "ToS/research-packets/foundation-laboratory-2026-07/translation-alignment-v1-abc/source-segmentation.json",
+      "sha256": "3500417ea57222ede1575fe7039965293466cf3cd7f2f62b0e49110641c7a453",
+      "state": "frozen"
+    },
+    "side_role": "source",
+    "text_layer_ref": "ToS/research-packets/foundation-laboratory-2026-07/translation-alignment-v1-abc/public-synthetic-source.x-tos-src.txt",
+    "text_layer_sha256": "63a1081d585f8d6f07d51e8c0c09fd54dc36eee7270971b1ad5f5f0e324e5e1a",
+    "tokenization": {
+      "artifact_ref": "ToS/research-packets/foundation-laboratory-2026-07/translation-alignment-v1-abc/source-tokenization.json",
+      "sha256": "fa81efa5b6d61a1ea27c395326214f01730990116244900af0de2cac4c46c157",
+      "state": "frozen"
+    },
+    "visibility": "public",
+    "work_ref": "tos.work.translation-alignment-v1.synthetic-miniature"
+  },
+  "supersedes_packet_ref": null,
+  "target_side": {
+    "anchors": [
+      {
+        "anchor_ref": "tos.anchor.translation-alignment-v1.synthetic-target-one",
+        "exact_sha256": "ee17a53dbdac53ce14195a30d5924153011bf2fe143c6f224d702e6d94d98752",
+        "ordinal": 1,
+        "selector": {
+          "end": 15,
+          "interval": "half_open",
+          "position_unit": "unicode_code_point",
+          "start": 0,
+          "type": "text_position"
+        },
+        "source_return": {
+          "locator_ref": "ToS/research-packets/foundation-laboratory-2026-07/translation-alignment-v1-abc/public-synthetic-target.x-tos-tgt.txt",
+          "required": true
+        },
+        "text_layer_ref": "ToS/research-packets/foundation-laboratory-2026-07/translation-alignment-v1-abc/public-synthetic-target.x-tos-tgt.txt",
+        "text_layer_sha256": "2311244ff57ef7e3e0eee3d5aa5601b8f6d6957d3cd1dc68e2b70399278ed6c0"
+      },
+      {
+        "anchor_ref": "tos.anchor.translation-alignment-v1.synthetic-target-two-whole",
+        "exact_sha256": "a105d074c679a0fa88a81ced8554fbcc5a6c79569baa835a5ff0f4d73e78dde5",
+        "ordinal": 2,
+        "selector": {
+          "end": 42,
+          "interval": "half_open",
+          "position_unit": "unicode_code_point",
+          "start": 16,
+          "type": "text_position"
+        },
+        "source_return": {
+          "locator_ref": "ToS/research-packets/foundation-laboratory-2026-07/translation-alignment-v1-abc/public-synthetic-target.x-tos-tgt.txt",
+          "required": true
+        },
+        "text_layer_ref": "ToS/research-packets/foundation-laboratory-2026-07/translation-alignment-v1-abc/public-synthetic-target.x-tos-tgt.txt",
+        "text_layer_sha256": "2311244ff57ef7e3e0eee3d5aa5601b8f6d6957d3cd1dc68e2b70399278ed6c0"
+      },
+      {
+        "anchor_ref": "tos.anchor.translation-alignment-v1.synthetic-target-two-part-a",
+        "exact_sha256": "1d632cf9cb195eafce3048141962b4818fe50574f94e9118329ec3651ec70a24",
+        "ordinal": 3,
+        "selector": {
+          "end": 31,
+          "interval": "half_open",
+          "position_unit": "unicode_code_point",
+          "start": 16,
+          "type": "text_position"
+        },
+        "source_return": {
+          "locator_ref": "ToS/research-packets/foundation-laboratory-2026-07/translation-alignment-v1-abc/public-synthetic-target.x-tos-tgt.txt",
+          "required": true
+        },
+        "text_layer_ref": "ToS/research-packets/foundation-laboratory-2026-07/translation-alignment-v1-abc/public-synthetic-target.x-tos-tgt.txt",
+        "text_layer_sha256": "2311244ff57ef7e3e0eee3d5aa5601b8f6d6957d3cd1dc68e2b70399278ed6c0"
+      },
+      {
+        "anchor_ref": "tos.anchor.translation-alignment-v1.synthetic-target-two-part-b",
+        "exact_sha256": "1a5de230ee2acd014581ec19a1534009880732b74594f7aac9085663a3745aa5",
+        "ordinal": 4,
+        "selector": {
+          "end": 42,
+          "interval": "half_open",
+          "position_unit": "unicode_code_point",
+          "start": 32,
+          "type": "text_position"
+        },
+        "source_return": {
+          "locator_ref": "ToS/research-packets/foundation-laboratory-2026-07/translation-alignment-v1-abc/public-synthetic-target.x-tos-tgt.txt",
+          "required": true
+        },
+        "text_layer_ref": "ToS/research-packets/foundation-laboratory-2026-07/translation-alignment-v1-abc/public-synthetic-target.x-tos-tgt.txt",
+        "text_layer_sha256": "2311244ff57ef7e3e0eee3d5aa5601b8f6d6957d3cd1dc68e2b70399278ed6c0"
+      }
+    ],
+    "edition_ref": "tos.edition.translation-alignment-v1.synthetic-miniature.target",
+    "expression_ref": "tos.expression.translation-alignment-v1.synthetic-miniature.target",
+    "file_ref": "tos.file.translation-alignment-v1.synthetic-miniature.target.utf8",
+    "file_sha256": "2311244ff57ef7e3e0eee3d5aa5601b8f6d6957d3cd1dc68e2b70399278ed6c0",
+    "item_ref": "tos.item.translation-alignment-v1.synthetic-miniature.target",
+    "language": "x-tos-tgt",
+    "publication_authorized": true,
+    "rights_refs": [
+      "ToS/research-packets/foundation-laboratory-2026-07/translation-alignment-v1-abc/plan.json"
+    ],
+    "segmentation": {
+      "artifact_ref": "ToS/research-packets/foundation-laboratory-2026-07/translation-alignment-v1-abc/target-segmentation.json",
+      "sha256": "c9d46ea0722a1ae1c36a3990f70968acbd96b43b01afa787db4a3ce3270fafe2",
+      "state": "frozen"
+    },
+    "side_role": "target",
+    "text_layer_ref": "ToS/research-packets/foundation-laboratory-2026-07/translation-alignment-v1-abc/public-synthetic-target.x-tos-tgt.txt",
+    "text_layer_sha256": "2311244ff57ef7e3e0eee3d5aa5601b8f6d6957d3cd1dc68e2b70399278ed6c0",
+    "tokenization": {
+      "artifact_ref": "ToS/research-packets/foundation-laboratory-2026-07/translation-alignment-v1-abc/target-tokenization.json",
+      "sha256": "f79f066ccca7e633465e011f8f2ada0cad7c83409df8bcb82b389634ba018720",
+      "state": "frozen"
+    },
+    "visibility": "public",
+    "work_ref": "tos.work.translation-alignment-v1.synthetic-miniature"
+  }
+}

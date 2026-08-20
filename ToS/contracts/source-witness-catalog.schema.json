@@ -10,23 +10,28 @@
     "source_root",
     "generated_by",
     "record_schema_ref",
+    "claim_schema_ref",
     "record_files",
+    "claim_file",
     "counts",
     "catalog_sha256",
     "authority_boundary"
   ],
   "properties": {
-    "schema_version": {"const": "tos_source_witness_catalog_v1"},
+    "schema_version": {"const": "tos_source_witness_catalog_v3"},
     "owner_repo": {"const": "Tree-of-Sophia"},
     "source_root": {"const": "ToS/source-witnesses"},
     "generated_by": {"const": "scripts/build_source_witness_catalog.py"},
     "record_schema_ref": {"const": "ToS/contracts/corpus-record.schema.json"},
+    "claim_schema_ref": {"const": "ToS/contracts/claim-packet.schema.json"},
     "record_files": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["agent", "work", "expression", "edition", "collection", "item"],
+      "required": ["agent", "place", "organization", "work", "expression", "edition", "collection", "item"],
       "properties": {
         "agent": {"const": "ToS/source-witnesses/catalog/agents.jsonl"},
+        "place": {"const": "ToS/source-witnesses/catalog/places.jsonl"},
+        "organization": {"const": "ToS/source-witnesses/catalog/organizations.jsonl"},
         "work": {"const": "ToS/source-witnesses/catalog/works.jsonl"},
         "expression": {"const": "ToS/source-witnesses/catalog/expressions.jsonl"},
         "edition": {"const": "ToS/source-witnesses/catalog/editions.jsonl"},
@@ -34,22 +39,39 @@
         "item": {"const": "ToS/source-witnesses/catalog/items.jsonl"}
       }
     },
+    "claim_file": {"const": "ToS/source-witnesses/catalog/claims.jsonl"},
     "counts": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["agent", "work", "expression", "edition", "collection", "item", "total"],
+      "required": [
+        "agent",
+        "place",
+        "organization",
+        "work",
+        "expression",
+        "edition",
+        "collection",
+        "item",
+        "object_total",
+        "claim",
+        "total"
+      ],
       "properties": {
         "agent": {"type": "integer", "minimum": 0},
+        "place": {"type": "integer", "minimum": 0},
+        "organization": {"type": "integer", "minimum": 0},
         "work": {"type": "integer", "minimum": 0},
         "expression": {"type": "integer", "minimum": 0},
         "edition": {"type": "integer", "minimum": 0},
         "collection": {"type": "integer", "minimum": 0},
         "item": {"type": "integer", "minimum": 0},
+        "object_total": {"type": "integer", "minimum": 1},
+        "claim": {"type": "integer", "minimum": 0},
         "total": {"type": "integer", "minimum": 1}
       }
     },
     "catalog_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
-    "authority_boundary": {"const": "generated navigation over tracked object records; not bibliographic, textual, rights, or semantic authority"}
+    "authority_boundary": {"const": "generated navigation over tracked object and claim records; not bibliographic, textual, rights, review, or semantic authority"}
   },
   "$defs": {
     "entry": {
@@ -68,7 +90,7 @@
       "properties": {
         "schema_version": {"const": "tos_source_witness_catalog_entry_v1"},
         "record_id": {"type": "string", "minLength": 1},
-        "record_type": {"enum": ["agent", "work", "expression", "edition", "collection", "item"]},
+        "record_type": {"enum": ["agent", "place", "organization", "work", "expression", "edition", "collection", "item"]},
         "preferred_label": {"type": "string", "minLength": 1},
         "identity_status": {"enum": ["provisional", "verified", "disputed", "superseded"]},
         "source_record_ref": {"type": "string", "pattern": "^ToS/source-witnesses/.+\\.json$"},
@@ -83,6 +105,157 @@
           }
         }
       }
+    },
+    "claim_entry": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema_version",
+        "claim_id",
+        "claim_type",
+        "assertion_layer",
+        "subject_ref",
+        "predicate",
+        "object",
+        "evidence_refs",
+        "maker",
+        "provenance_event_ref",
+        "epistemic_status",
+        "review_status",
+        "review_refs",
+        "visibility",
+        "claim_version",
+        "source_claim_file_ref",
+        "source_claim_line",
+        "claim_sha256"
+      ],
+      "properties": {
+        "schema_version": {
+          "const": "tos_source_witness_claim_catalog_entry_v1"
+        },
+        "claim_id": {"$ref": "#/$defs/tosId"},
+        "claim_type": {
+          "enum": [
+            "bibliographic",
+            "textual",
+            "linguistic",
+            "translation",
+            "semantic",
+            "relation",
+            "rights",
+            "lived_witness",
+            "canon"
+          ]
+        },
+        "assertion_layer": {
+          "enum": [
+            "forensic_observation",
+            "bibliographic_assertion",
+            "textual_observation",
+            "linguistic_analysis",
+            "translation_alignment",
+            "translation_judgment",
+            "semantic_interpretation",
+            "scholarly_report",
+            "lived_witness",
+            "canon_judgment"
+          ]
+        },
+        "subject_ref": {"$ref": "#/$defs/tosId"},
+        "predicate": {"type": "string", "pattern": "^[a-z][a-z0-9_.-]*$"},
+        "object": {
+          "oneOf": [
+            {"type": "string"},
+            {"type": "number"},
+            {"type": "boolean"},
+            {"type": "object", "minProperties": 1},
+            {"type": "array", "minItems": 1}
+          ]
+        },
+        "qualifiers": {
+          "type": "object",
+          "minProperties": 1
+        },
+        "evidence_refs": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {"type": "string", "minLength": 1}
+        },
+        "maker": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["maker_type", "agent_ref"],
+          "properties": {
+            "maker_type": {
+              "enum": [
+                "human",
+                "software",
+                "model",
+                "mixed",
+                "imported_source"
+              ]
+            },
+            "agent_ref": {"type": "string", "minLength": 1}
+          }
+        },
+        "provenance_event_ref": {"$ref": "#/$defs/tosId"},
+        "epistemic_status": {
+          "enum": [
+            "observed",
+            "inferred",
+            "reported",
+            "interpreted",
+            "uncertain",
+            "disputed"
+          ]
+        },
+        "review_status": {
+          "enum": [
+            "unreviewed",
+            "accepted",
+            "accepted_with_limits",
+            "rejected",
+            "ambiguous",
+            "deferred",
+            "superseded"
+          ]
+        },
+        "review_refs": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {"$ref": "#/$defs/tosId"}
+        },
+        "visibility": {
+          "enum": [
+            "local_only",
+            "research_group",
+            "permission_requested",
+            "public_metadata_only",
+            "public"
+          ]
+        },
+        "claim_version": {"type": "integer", "minimum": 1},
+        "supersedes_claim_ref": {
+          "anyOf": [
+            {"$ref": "#/$defs/tosId"},
+            {"type": "null"}
+          ]
+        },
+        "source_claim_file_ref": {
+          "type": "string",
+          "pattern": "^ToS/source-witnesses/.+/(membership|responsibility|publication|provision-activity|work-chronology|work-expression|expression-edition|edition-item|expression-derivation)-claims\\.jsonl$"
+        },
+        "source_claim_line": {"type": "integer", "minimum": 1},
+        "claim_sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        }
+      }
+    },
+    "tosId": {
+      "type": "string",
+      "pattern": "^tos\\.(agent|place|organization|work|expression|edition|collection|item|file|passage|region|anchor|occurrence|lexeme|annotation|sign|concept|claim|relation|rights|review|event)\\.[a-z0-9]+(?:[.-][a-z0-9]+)*$"
     }
   }
 }

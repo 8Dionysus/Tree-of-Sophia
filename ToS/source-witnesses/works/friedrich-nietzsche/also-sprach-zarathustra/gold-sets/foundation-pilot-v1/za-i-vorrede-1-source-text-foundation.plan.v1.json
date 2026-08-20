@@ -1,0 +1,100 @@
+{
+  "schema_version": "tos_zarathustra_source_text_foundation_plan_v1",
+  "plan_id": "tos.source-text-foundation.za-i-vorrede-1.dta-part-1-paragraph-1.v1",
+  "plan_version": 1,
+  "created_at": "2026-08-12T08:07:17Z",
+  "question": "Which exact DTA provider-transcription paragraph and source-observed print-line boundaries underlie the existing opening-sentence calibration at Za-I-Vorrede-1?",
+  "scope": {
+    "work_ref": "tos.work.friedrich-nietzsche.also-sprach-zarathustra",
+    "expression_ref": "tos.expression.friedrich-nietzsche.also-sprach-zarathustra.de-schmeitzner-1883-part-1",
+    "edition_ref": "tos.edition.friedrich-nietzsche.also-sprach-zarathustra.chemnitz-schmeitzner-1883-part-1",
+    "item_ref": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-schmeitzner-1883-part-1.dta-sbb-corrected-tei-p5",
+    "file_ref": "tos.file.sha256.d3fa5f8af39d87c8f0ede7a0b52b26da0c57e73125d3b0bd2a836b80eae24a4b",
+    "file_sha256": "d3fa5f8af39d87c8f0ede7a0b52b26da0c57e73125d3b0bd2a836b80eae24a4b",
+    "source_relative_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/de-schmeitzner-1883-part-1/editions/chemnitz-schmeitzner-1883-part-1/items/dta-sbb-corrected-tei-p5/payload/nietzsche_zarathustra01_1883.tei.xml",
+    "rights_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/de-schmeitzner-1883-part-1/editions/chemnitz-schmeitzner-1883-part-1/items/dta-sbb-corrected-tei-p5/rights.json"
+  },
+  "selector": {
+    "scheme": "xpath-1.0-local-name",
+    "value": "/*[local-name()='TEI']/*[local-name()='text']/*[local-name()='body']/*[local-name()='div'][1]/*[local-name()='div'][1]/*[local-name()='p'][1]",
+    "expected_match_count": 1
+  },
+  "extraction_policy": {
+    "method": "tei-lb-aware-structural-extraction",
+    "method_version": "1",
+    "accepted_child_elements": [
+      "lb"
+    ],
+    "line_break_rule": "each TEI lb becomes exactly one U+000A; the XML formatting U+000A immediately following that empty element is consumed once",
+    "character_data_rule": "all other paragraph character data is preserved in document order without Unicode normalization",
+    "terminal_newline": false,
+    "unicode_normalization": "none",
+    "output_role": "machine_transcription",
+    "source_text_authority": false,
+    "linguistic_authority": false
+  },
+  "outputs": {
+    "anchor_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/source-anchor-v2.za-i-vorrede-1-p1.dta.v1.json",
+    "text_layer_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/source-text-layer.za-i-vorrede-1-p1.dta-machine.v1.json",
+    "text_unit_packet_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/source-text-unit.za-i-vorrede-1-p1.dta-layout.v1.json",
+    "provenance_event_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/provenance.source-text-foundation.za-i-vorrede-1.v2.json",
+    "private_content_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/local-content/source-text-foundation/za-i-vorrede-1/dta-part-1-paragraph-1.machine-transcription.txt"
+  },
+  "opaque_ids": {
+    "anchor_id": "tos.anchor.za-i-vorrede-1.dta-part-1-p1.sid-1aa3b374f096252babaec253bb170107",
+    "passage_id": "tos.passage.za-i-vorrede-1.dta-part-1-p1.sid-f7722a33d49ee51f412c10f1b8b21313",
+    "layer_id": "tos.text-layer.za-i-vorrede-1.dta-part-1-p1.sid-ccc855b0446c4dcc5c51db88a4baebd2",
+    "packet_id": "tos.source-text-unit-packet.sid-a88a079a1add23b0bac47ee807b1b768",
+    "scheme_id": "tos.text-unit-scheme.sid-75b520001e7521bbaef5a8fbc8b620c2",
+    "segmentation_id": "tos.text-segmentation.sid-c98e50e37a33c89f6b91ca62488b8d65",
+    "anchor_ids": [
+      "tos.anchor.za-i-vorrede-1.dta-layout.sid-e768ee9329067fee5f21c5618b24e369",
+      "tos.anchor.za-i-vorrede-1.dta-layout.sid-9d91cb2e2e67ad94901a909a7f450634",
+      "tos.anchor.za-i-vorrede-1.dta-layout.sid-c9fbdfe65304675b345d9e9e8cc5180f",
+      "tos.anchor.za-i-vorrede-1.dta-layout.sid-be3c42f120b373b7df01a05b617ef8b9",
+      "tos.anchor.za-i-vorrede-1.dta-layout.sid-f982cd25f5fe078879fb768851648f3a",
+      "tos.anchor.za-i-vorrede-1.dta-layout.sid-98afbed27f791d61f2c823c270e05881",
+      "tos.anchor.za-i-vorrede-1.dta-layout.sid-e9400b248d510f95d3bd8a23b2967a09",
+      "tos.anchor.za-i-vorrede-1.dta-layout.sid-5d454d914c885d7a1c5dae5f39516f7a",
+      "tos.anchor.za-i-vorrede-1.dta-layout.sid-2c58a26a68daa29cf46a6be2a90158d0",
+      "tos.anchor.za-i-vorrede-1.dta-layout.sid-91202bf1e43a31bf4e5422aba9d8effd",
+      "tos.anchor.za-i-vorrede-1.dta-layout.sid-efcc33a9ab6bc290ddfc8c5d0f8ed85f",
+      "tos.anchor.za-i-vorrede-1.dta-layout.sid-ade2177f49a022c5341b869516e16f7b",
+      "tos.anchor.za-i-vorrede-1.dta-layout.sid-0d0ebef6a5f8e77cc805bb6cd7be67fb",
+      "tos.anchor.za-i-vorrede-1.dta-layout.sid-2f88192787e75832a488c81567a51d18"
+    ],
+    "unit_ids": [
+      "tos.text-unit.sid-9bfb5e4640a1697209adcfd43a1fe92a",
+      "tos.text-unit.sid-1dc03712d62cb695f8ddb834a6ab2b71",
+      "tos.text-unit.sid-6ea3742d749fe28e29c095fa1d7f1998",
+      "tos.text-unit.sid-d6c752b913377333fe2b2e84e565c927",
+      "tos.text-unit.sid-8421a7dd2dc7dfc446e53cddccd1fd9d",
+      "tos.text-unit.sid-cd0018aa593ac1b692512ecde364a9d7",
+      "tos.text-unit.sid-2e6c9f266bae6e45ae1a14be34bdc90a",
+      "tos.text-unit.sid-3d17d945832e8692cc36086debc07f1c",
+      "tos.text-unit.sid-71e4535a6a6dfef0938b22204bdab6d9",
+      "tos.text-unit.sid-b9e59c7c407db302581f553a9aa6b12b",
+      "tos.text-unit.sid-d08062a6bf382c8875cae0f4e3a03ff8",
+      "tos.text-unit.sid-d4835e7ef320f3ee1ad5e35ab4d178ca",
+      "tos.text-unit.sid-f5b7e3b09bb2cb7c4c461ce5fba20283"
+    ]
+  },
+  "storage_and_rights": {
+    "source_visibility": "local_only",
+    "private_output_mode": "0600",
+    "tracked_records_are_text_free": true,
+    "publication_authorized": false,
+    "future_site_transfer_authorized": false,
+    "local_noncommercial_research_only": true
+  },
+  "authority_boundary": {
+    "human_review_performed": false,
+    "german_language_competence_attested": false,
+    "accepted_german": false,
+    "accepted_translation_input": false,
+    "translation_alignment_created": false,
+    "semantic_or_sign_claim_created": false,
+    "graph_or_canon_effect": false,
+    "routine_human_task_created": false
+  }
+}

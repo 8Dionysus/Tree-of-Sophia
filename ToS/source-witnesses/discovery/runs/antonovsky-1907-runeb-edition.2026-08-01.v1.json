@@ -1,0 +1,340 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/material-discovery-record.schema.json",
+  "schema_version": "tos_material_discovery_record_v1",
+  "discovery_id": "tos.discovery.antonovsky-1907-runeb-edition.2026-08-01",
+  "protocol_ref": "ToS/source-witnesses/discovery/DISCOVERY_PROTOCOL.md",
+  "target": {
+    "target_kind": "item",
+    "known_tos_refs": [
+      "tos.work.friedrich-nietzsche.also-sprach-zarathustra",
+      "tos.expression.friedrich-nietzsche.also-sprach-zarathustra.ru-antonovsky-1907"
+    ],
+    "description": "An exact institution-controlled physical or digital witness of the Saint Petersburg 1907 third Antonovsky Zarathustra Edition, sufficient to resolve current replacement identity, holding coordinates, lawful local research access, page-level return, file fixity, and rights without turning a removed catalog card into a ToS Item.",
+    "required_properties": [
+      "originating institutional record and current replacement identifier",
+      "exact third-edition identity",
+      "holding institution and shelfmark",
+      "complete page-level source return",
+      "source-visible title and provision statements",
+      "file fixity for any acquired reproduction",
+      "source-specific local-use and redistribution conditions"
+    ],
+    "acceptable_substitutions": [
+      "an institution-authenticated catalog record and lawful complete research reproduction sufficient for bounded collation",
+      "a tiered institutional reproduction beginning with title, provision, preliminary, contents, and terminal pages"
+    ],
+    "languages": ["ru", "de", "en"],
+    "formats": ["printed book", "PDF", "TIFF", "JPEG", "IIIF", "MARC21", "catalog metadata"],
+    "purpose_ref": "ToS/research-packets/foundation-laboratory-2026-07/ANTONOVSKY_1907_RUNEB_EDITION_RESEARCH.md"
+  },
+  "channels": [
+    {
+      "channel_id": "channel-runeb-antonovsky-1907-exact-record",
+      "sequence": 1,
+      "channel_type": "national-catalog",
+      "role": "originating-record",
+      "source_name": "National Electronic Library exact record sourced from the Russian State Library",
+      "endpoint_url": "https://rusneb.ru/catalog/000199_000009_003693382/",
+      "interface_type": "web",
+      "interface_version": "RuNEB public catalog observed 2026-08-01",
+      "exact_query": "Inspect exact RuNEB record 000199_000009_003693382 for title, author, place, literal typography string, year, source library, current availability state, reader/download routes, and record replacement notice",
+      "queried_at": "2026-08-01T16:20:00-06:00",
+      "elapsed_seconds": 8,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.antonovsky-1907-runeb-exact-removed-record",
+          "rank": 1,
+          "title_as_displayed": "Так говорил Заратустра",
+          "result_url": "https://rusneb.ru/catalog/000199_000009_003693382/",
+          "originating_record_url": "https://rusneb.ru/catalog/000199_000009_003693382/",
+          "identifiers": [
+            {"scheme": "RuNEB record", "value": "000199_000009_003693382"}
+          ],
+          "available_formats": ["HTML catalog metadata"],
+          "declared_rights": {
+            "statement": null,
+            "scope": "metadata",
+            "evidence_url": null,
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "metadata-only",
+          "machine_interface": "html",
+          "decision": "select",
+          "rationale": "The originating national-catalog card exactly joins Nietzsche, Saint Petersburg, the literal string тип. Ф. Вайсберга и П. Гершунина, year 1907, RSL source institution, and the RuNEB identifier. The live card is removed or replaced and supplies no current source pages, reader, download, shelfmark, or file.",
+          "acquisition": {"downloaded": false, "acquired_at": null, "byte_size": null, "sha256": null, "event_ref": null},
+          "snapshot": {
+            "state": "not-captured",
+            "format": null,
+            "sha256": null,
+            "reason": "The bounded public fields and removed-or-replaced state were transcribed into tracked research; cookies and mutable page data were not committed."
+          }
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-source-and-established-1907-lineage",
+      "sequence": 2,
+      "channel_type": "specialized-scholarly-project",
+      "role": "scholarly-index",
+      "source_name": "Exact 1911 translator preface and established Alexander Blok library scholarship",
+      "endpoint_url": "https://imwerden.de/pdf/blok_issledovaniya_i_materialy_1991__ocr.pdf",
+      "interface_type": "web",
+      "interface_version": "exact local 1911 source anchor and 1991 scholarship inspected 2026-08-01",
+      "exact_query": "Return to Antonovsky's exact 1911 revision-history preface, then inspect the 1991 Blok study and its cited 1986 library description for the 1907 third-edition identity, page citation, and reported Blok-library copy",
+      "queried_at": "2026-08-01T16:25:00-06:00",
+      "elapsed_seconds": 3,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.antonovsky-1907-source-established-third-edition",
+          "rank": 1,
+          "title_as_displayed": "Ницше Ф. Так говорил Заратустра: Книга для всех и ни для кого / Пер. с нем. Ю. М. Антоновского. 3-е изд. СПб., 1907. С. 353—359",
+          "result_url": "https://imwerden.de/pdf/blok_issledovaniya_i_materialy_1991__ocr.pdf",
+          "originating_record_url": "https://rusneb.ru/catalog/000199_000009_003693383/",
+          "identifiers": [],
+          "available_formats": ["PDF scholarship", "exact 1911 source anchor"],
+          "declared_rights": {
+            "statement": null,
+            "scope": "content",
+            "evidence_url": null,
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-view",
+          "machine_interface": "html",
+          "decision": "select",
+          "rationale": "Antonovsky's source-visible 1911 preface identifies the 1907 predecessor as the third edition and reports its revision lineage; the Blok study independently cites the same edition and a Blok-library copy. Neither source supplies a current 1907 shelfmark or source object.",
+          "acquisition": {"downloaded": false, "acquired_at": null, "byte_size": null, "sha256": null, "event_ref": null},
+          "snapshot": {
+            "state": "not-needed",
+            "format": null,
+            "sha256": null,
+            "reason": "The exact 1911 source anchor is already admitted locally, while the scholarship citation and bounded conclusion are sufficient for discovery."
+          }
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-fresh-antonovsky-translation-scholarship",
+      "sequence": 3,
+      "channel_type": "specialized-scholarly-project",
+      "role": "scholarly-index",
+      "source_name": "Fresh 2025 direct comparison of Russian Zarathustra translations",
+      "endpoint_url": "https://doi.org/10.17588/2076-9210.2025.2.161-169",
+      "interface_type": "web",
+      "interface_version": "publication and institutional metadata checked 2026-08-01",
+      "exact_query": "Check the freshest inspectable direct comparison of Ivanov, Antonovsky, Borzakovsky, and Golosovker for stylistic, rhythmic, variant, and strategy evidence relevant to exact witness separation",
+      "queried_at": "2026-08-01T16:28:00-06:00",
+      "elapsed_seconds": 0,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.antonovsky-1907-ermakova-2025-variant-control",
+          "rank": 1,
+          "title_as_displayed": "Стилистические особенности русских переводов книги Ф. Ницше Так говорил Заратустра",
+          "result_url": "https://doi.org/10.17588/2076-9210.2025.2.161-169",
+          "originating_record_url": "https://publications.hse.ru/articles/984166485",
+          "identifiers": [{"scheme": "DOI", "value": "10.17588/2076-9210.2025.2.161-169"}],
+          "available_formats": ["HTML", "article metadata"],
+          "declared_rights": {
+            "statement": null,
+            "scope": "content",
+            "evidence_url": null,
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-view",
+          "machine_interface": "html",
+          "decision": "select",
+          "rationale": "Fresh variant-aware scholarship strengthens the need to preserve exact historical translation witnesses and editions; it does not resolve the 1907 Item or create textual equivalence.",
+          "acquisition": {"downloaded": false, "acquired_at": null, "byte_size": null, "sha256": null, "event_ref": null},
+          "snapshot": {
+            "state": "not-needed",
+            "format": null,
+            "sha256": null,
+            "reason": "The DOI, institutional metadata route, and bounded methodological conclusion are retained without ingesting article content."
+          }
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-runeb-current-replacement-route",
+      "sequence": 4,
+      "channel_type": "national-catalog",
+      "role": "lead-only",
+      "source_name": "Current RuNEB access rules and institutional feedback route",
+      "endpoint_url": "https://rusneb.ru/feedback/",
+      "interface_type": "web",
+      "interface_version": "RuNEB agreement, FAQ, and feedback pages checked 2026-08-01",
+      "exact_query": "Inspect current RuNEB agreement, FAQ, and feedback route for catalog-versus-content boundaries, open-item download conditions, participant holdings, and a lawful way to ask which record replaced 000199_000009_003693382",
+      "queried_at": "2026-08-01T16:31:00-06:00",
+      "elapsed_seconds": 5,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.antonovsky-1907-runeb-replacement-request-route",
+          "rank": 1,
+          "title_as_displayed": "Обратная связь — Национальная электронная библиотека",
+          "result_url": "https://rusneb.ru/feedback/",
+          "originating_record_url": "https://rusneb.ru/faq/",
+          "identifiers": [{"scheme": "RuNEB removed record", "value": "000199_000009_003693382"}],
+          "available_formats": ["HTML", "institutional feedback form"],
+          "declared_rights": {
+            "statement": "Only record-specifically open objects may be downloaded; participant institutions control their holdings and applicable access.",
+            "scope": "content",
+            "evidence_url": "https://rusneb.ru/user-agreement/",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "permission-required",
+          "machine_interface": "html",
+          "decision": "select",
+          "rationale": "The feedback route is the current lawful path for resolving the replacement identifier, RSL holding, digital-object status, and research-copy terms. It authorizes no send, access, or redistribution.",
+          "acquisition": {"downloaded": false, "acquired_at": null, "byte_size": null, "sha256": null, "event_ref": null},
+          "snapshot": {
+            "state": "not-needed",
+            "format": null,
+            "sha256": null,
+            "reason": "Current public institutional URLs and bounded conditions are recorded; no form submission or correspondence exists."
+          }
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-pushkin-house-blok-copy-route",
+      "sequence": 5,
+      "channel_type": "specialized-scholarly-project",
+      "role": "lead-only",
+      "source_name": "Pushkin House manuscript department route for the reported Blok-library copy",
+      "endpoint_url": "https://pushkinskijdom.ru/rukopisnyj-otdel/",
+      "interface_type": "web",
+      "interface_version": "official current notice indexed 2026-08-01; reading room closed 2026-07-01 through 2026-09-01",
+      "exact_query": "Check the current official manuscript-department route, reading-room availability, application window, and lawful contact path for locating the 1907 copy reported in Blok's library",
+      "queried_at": "2026-08-01T16:34:00-06:00",
+      "elapsed_seconds": 3,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.antonovsky-1907-pushkin-house-closed-secondary-route",
+          "rank": 1,
+          "title_as_displayed": "Рукописный отдел — Пушкинский Дом",
+          "result_url": "https://pushkinskijdom.ru/rukopisnyj-otdel/",
+          "originating_record_url": null,
+          "identifiers": [],
+          "available_formats": ["institutional reading-room access", "research enquiry"],
+          "declared_rights": {
+            "statement": null,
+            "scope": "unknown",
+            "evidence_url": null,
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "permission-required",
+          "machine_interface": "manual-only",
+          "decision": "defer",
+          "rationale": "This is a secondary route to the reported Blok-library copy. The current closure and paused applications prevent immediate use, and the route supplies no shelfmark, digital object, or rights grant.",
+          "acquisition": {"downloaded": false, "acquired_at": null, "byte_size": null, "sha256": null, "event_ref": null},
+          "snapshot": {
+            "state": "not-captured",
+            "format": null,
+            "sha256": null,
+            "reason": "The official search-indexed closure notice and route were recorded without weakening TLS validation or submitting an application."
+          }
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-general-web-antonovsky-1907-last",
+      "sequence": 6,
+      "channel_type": "general-web-search",
+      "role": "lead-only",
+      "source_name": "General web search for exact physical-copy corroboration and open-library negatives",
+      "endpoint_url": "https://www.antiqueauction.ru/lot/niczshe-f-tak-govoril-zaratustra-kniga-dlya-vseh-i-ni-dlya-kogo-per-s-nem-yu-m-antonovskogo-3-e-izd",
+      "interface_type": "web",
+      "interface_version": "public auction page and open-library APIs checked 2026-08-01",
+      "exact_query": "After official, source, established, fresh, and current institutional routes, search exact title, Antonovsky, 3-е изд., тип. Ф. Вайсберга и П. Гершунина, 1907; check Internet Archive and Open Library exact-year APIs",
+      "queried_at": "2026-08-01T16:38:00-06:00",
+      "elapsed_seconds": 7,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.antonovsky-1907-auction-physical-copy-corroboration",
+          "rank": 1,
+          "title_as_displayed": "Ницше Ф. Так говорил Заратустра. Книга для всех и ни для кого / Пер. с нем. Ю. М. Антоновского. 3-е изд.",
+          "result_url": "https://www.antiqueauction.ru/lot/niczshe-f-tak-govoril-zaratustra-kniga-dlya-vseh-i-ni-dlya-kogo-per-s-nem-yu-m-antonovskogo-3-e-izd",
+          "originating_record_url": null,
+          "identifiers": [],
+          "available_formats": ["HTML auction description"],
+          "declared_rights": {
+            "statement": null,
+            "scope": "metadata",
+            "evidence_url": null,
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "unavailable",
+          "machine_interface": "html",
+          "decision": "defer",
+          "rationale": "The sold-copy description corroborates edition statement, place, typography string, year, and reports VIII, 363 pages, size, damage, and restoration. Marketplace metadata cannot establish institutional custody, publisher identity, source rights, or an acquired ToS Item.",
+          "acquisition": {"downloaded": false, "acquired_at": null, "byte_size": null, "sha256": null, "event_ref": null},
+          "snapshot": {
+            "state": "not-captured",
+            "format": null,
+            "sha256": null,
+            "reason": "Only the bounded secondary lead is preserved; no media or page body was acquired."
+          }
+        },
+        {
+          "result_id": "tos-discovery-result.antonovsky-1907-open-libraries-no-exact-item",
+          "rank": 2,
+          "title_as_displayed": "Internet Archive and Open Library exact 1907 Antonovsky queries — no matching digital Item",
+          "result_url": "https://archive.org/advancedsearch.php?q=title%3A%22%D0%A2%D0%B0%D0%BA%20%D0%B3%D0%BE%D0%B2%D0%BE%D1%80%D0%B8%D0%BB%20%D0%97%D0%B0%D1%80%D0%B0%D1%82%D1%83%D1%81%D1%82%D1%80%D0%B0%22%20AND%20year%3A1907&fl%5B%5D=identifier&output=json",
+          "originating_record_url": "https://openlibrary.org/search.json?title=%D0%A2%D0%B0%D0%BA%20%D0%B3%D0%BE%D0%B2%D0%BE%D1%80%D0%B8%D0%BB%20%D0%97%D0%B0%D1%80%D0%B0%D1%82%D1%83%D1%81%D1%82%D1%80%D0%B0&publish_year=1907",
+          "identifiers": [],
+          "available_formats": ["JSON search responses"],
+          "declared_rights": {
+            "statement": null,
+            "scope": "unknown",
+            "evidence_url": null,
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "unavailable",
+          "machine_interface": "api",
+          "decision": "reject",
+          "rationale": "Neither exact-year query returned an exact Russian Antonovsky 1907 digital object. This is a time-sensitive negative availability result, not proof that no copy exists.",
+          "acquisition": {"downloaded": false, "acquired_at": null, "byte_size": null, "sha256": null, "event_ref": null},
+          "snapshot": {
+            "state": "not-captured",
+            "format": null,
+            "sha256": null,
+            "reason": "The negative live queries are reproducible from the recorded URLs and will be refreshed before acquisition work."
+          }
+        }
+      ]
+    }
+  ],
+  "channel_comparison": [
+    {"channel_id": "channel-runeb-antonovsky-1907-exact-record", "completeness": "adequate", "metadata_precision": "strong", "rights_clarity": "limited", "machine_interface_quality": "adequate", "human_minutes": 8, "machine_seconds": 8, "notes": "Best exact Edition identity, but the removed-or-replaced state supplies no Item, shelfmark, file, or record-specific rights."},
+    {"channel_id": "channel-source-and-established-1907-lineage", "completeness": "adequate", "metadata_precision": "strong", "rights_clarity": "unknown", "machine_interface_quality": "adequate", "human_minutes": 5, "machine_seconds": 3, "notes": "Strong edition-number and lineage corroboration; no current source object or holding coordinate."},
+    {"channel_id": "channel-fresh-antonovsky-translation-scholarship", "completeness": "adequate", "metadata_precision": "strong", "rights_clarity": "unknown", "machine_interface_quality": "adequate", "human_minutes": 3, "machine_seconds": 0, "notes": "Fresh exact-witness methodological control; no bibliographic endpoint or source payload."},
+    {"channel_id": "channel-runeb-current-replacement-route", "completeness": "adequate", "metadata_precision": "strong", "rights_clarity": "adequate", "machine_interface_quality": "adequate", "human_minutes": 5, "machine_seconds": 5, "notes": "Current lawful route for replacement and access questions; no form was submitted."},
+    {"channel_id": "channel-pushkin-house-blok-copy-route", "completeness": "limited", "metadata_precision": "limited", "rights_clarity": "unknown", "machine_interface_quality": "poor", "human_minutes": 4, "machine_seconds": 3, "notes": "Independent secondary holding route currently closed; no shelfmark or digital Item."},
+    {"channel_id": "channel-general-web-antonovsky-1907-last", "completeness": "limited", "metadata_precision": "adequate", "rights_clarity": "poor", "machine_interface_quality": "adequate", "human_minutes": 5, "machine_seconds": 7, "notes": "Secondary sold-copy corroboration plus time-sensitive open-library negatives; outside identity, rights, and custody authority."}
+  ],
+  "selected_result_ids": [
+    "tos-discovery-result.antonovsky-1907-runeb-exact-removed-record",
+    "tos-discovery-result.antonovsky-1907-source-established-third-edition",
+    "tos-discovery-result.antonovsky-1907-ermakova-2025-variant-control",
+    "tos-discovery-result.antonovsky-1907-runeb-replacement-request-route"
+  ],
+  "rejected_result_ids": [
+    "tos-discovery-result.antonovsky-1907-open-libraries-no-exact-item"
+  ],
+  "rights_inference_from_availability_prohibited": true,
+  "general_web_search_is_last_resort": true,
+  "technical_access_bypass_used": false,
+  "maker": {"maker_type": "model", "agent_ref": "model:codex"},
+  "started_at": "2026-08-01T16:20:00-06:00",
+  "ended_at": "2026-08-01T16:42:33-06:00",
+  "status": "incomplete",
+  "provenance_event_refs": [
+    "tos.event.discovery.antonovsky-1907-runeb-edition.2026-08-01"
+  ],
+  "record_version": 1
+}

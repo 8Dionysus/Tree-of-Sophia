@@ -20,7 +20,7 @@
       "const": "tos_corpus_record_v1"
     },
     "record_type": {
-      "enum": ["agent", "work", "expression", "edition", "collection", "item"]
+      "enum": ["agent", "place", "organization", "work", "expression", "edition", "collection", "item"]
     },
     "record_id": {
       "$ref": "#/$defs/tosId"
@@ -70,11 +70,31 @@
       "enum": ["not_assessed", "no_equivalence_claim", "candidate_equivalence", "reviewed_equivalence", "reviewed_distinct"]
     },
     "work_ref": {"$ref": "#/$defs/tosId"},
+    "expression_claim_refs": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {"$ref": "#/$defs/tosId"}
+    },
     "language": {"$ref": "#/$defs/languageTagOrUnd"},
     "expression_role": {
       "enum": ["source_language", "translation", "adaptation", "critical_text", "other", "unknown"]
     },
     "responsibility_claim_refs": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {"$ref": "#/$defs/tosId"}
+    },
+    "chronology_claim_refs": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {"$ref": "#/$defs/tosId"}
+    },
+    "embodiment_claim_refs": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {"$ref": "#/$defs/tosId"}
+    },
+    "derivation_claim_refs": {
       "type": "array",
       "uniqueItems": true,
       "items": {"$ref": "#/$defs/tosId"}
@@ -88,6 +108,16 @@
       "type": ["string", "null"]
     },
     "publication_claim_refs": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {"$ref": "#/$defs/tosId"}
+    },
+    "provision_activity_claim_refs": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {"$ref": "#/$defs/tosId"}
+    },
+    "exemplar_claim_refs": {
       "type": "array",
       "uniqueItems": true,
       "items": {"$ref": "#/$defs/tosId"}
@@ -113,12 +143,16 @@
   },
   "allOf": [
     {
+      "if": {"properties": {"record_type": {"const": "work"}}},
+      "then": {"required": ["expression_claim_refs"]}
+    },
+    {
       "if": {"properties": {"record_type": {"const": "expression"}}},
-      "then": {"required": ["work_ref", "language", "expression_role", "responsibility_claim_refs"]}
+      "then": {"required": ["work_ref", "language", "expression_role", "responsibility_claim_refs", "embodiment_claim_refs"]}
     },
     {
       "if": {"properties": {"record_type": {"const": "edition"}}},
-      "then": {"required": ["embodies_expression_refs", "publication_claim_refs"]}
+      "then": {"required": ["embodies_expression_refs", "publication_claim_refs", "exemplar_claim_refs"]}
     },
     {
       "if": {"properties": {"record_type": {"const": "collection"}}},
@@ -132,7 +166,7 @@
   "$defs": {
     "tosId": {
       "type": "string",
-      "pattern": "^tos\\.(agent|work|expression|edition|collection|item|file|passage|region|anchor|occurrence|annotation|claim|rights|review|event)\\.[a-z0-9]+(?:[.-][a-z0-9]+)*$"
+      "pattern": "^tos\\.(agent|place|organization|work|expression|edition|collection|item|file|passage|region|anchor|occurrence|annotation|claim|rights|review|event)\\.[a-z0-9]+(?:[.-][a-z0-9]+)*$"
     },
     "repoRelativePath": {
       "type": "string",

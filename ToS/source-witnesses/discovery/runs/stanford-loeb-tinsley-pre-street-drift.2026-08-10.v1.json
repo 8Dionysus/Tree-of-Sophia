@@ -1,0 +1,318 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/material-discovery-record.schema.json",
+  "schema_version": "tos_material_discovery_record_v1",
+  "discovery_id": "tos.discovery.stanford-loeb-tinsley-pre-street-drift.2026-08-10",
+  "protocol_ref": "ToS/source-witnesses/discovery/DISCOVERY_PROTOCOL.md",
+  "target": {
+    "target_kind": "edition",
+    "known_tos_refs": [
+      "tos.work.friedrich-nietzsche.also-sprach-zarathustra"
+    ],
+    "description": "Pre-street-date manifestation, extent, availability, rights, and reception refresh for Stanford Complete Works volume 7 translated by Paul S. Loeb and David F. Tinsley without acquiring or revealing its content",
+    "required_properties": [
+      "publisher-authenticated release state",
+      "cloth, paper, and eBook ISBNs kept distinct",
+      "extent conflict preserved per manifestation",
+      "current availability state",
+      "independent scholarly reception distinguished from advance praise and announcements",
+      "content and rights gates kept closed"
+    ],
+    "acceptable_substitutions": [
+      "an exact publisher-authenticated post-release manifestation after lawful-custody and rights review",
+      "a publisher or library record that resolves one ISBN without claiming possession of the book",
+      "an independent post-publication scholarly review used only as reception evidence"
+    ],
+    "languages": ["en"],
+    "formats": ["publisher metadata", "publisher catalog PDF", "ISBN metadata", "retailer metadata", "scholarly index", "general web lead"],
+    "purpose_ref": "ToS/research-packets/foundation-laboratory-2026-07/STANFORD_LOEB_TINSLEY_PRE_STREET_DRIFT_CHECK_2026-08-10.md"
+  },
+  "channels": [
+    {
+      "channel_id": "channel-stanford-loeb-official-publisher",
+      "sequence": 1,
+      "channel_type": "publisher-catalog",
+      "role": "originating-record",
+      "source_name": "Stanford University Press title page, copy-request route, and Spring/Summer 2026 catalog",
+      "endpoint_url": "https://www.sup.org/books/theory-and-philosophy/thus-spoke-zarathustra",
+      "interface_type": "web",
+      "interface_version": "current publisher HTML transport and exact catalog PDF checked 2026-08-10",
+      "exact_query": "Open the exact publisher title and copy-request URLs, then inspect the exact publisher Spring/Summer 2026 catalog entry for title, responsibility, release window, extent, formats, and ISBNs without opening book excerpts",
+      "queried_at": "2026-08-10T18:51:45-06:00",
+      "elapsed_seconds": 11.3,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.stanford-loeb-current-title-transport",
+          "rank": 1,
+          "title_as_displayed": "Thus Spoke Zarathustra | Stanford University Press",
+          "result_url": "https://www.sup.org/books/theory-and-philosophy/thus-spoke-zarathustra",
+          "originating_record_url": "https://www.sup.org/books/theory-and-philosophy/thus-spoke-zarathustra",
+          "identifiers": [
+            {"scheme": "ISBN-hardcover", "value": "9780804728799"},
+            {"scheme": "ISBN-paperback", "value": "9781503647282"},
+            {"scheme": "ISBN-ebook", "value": "9781503647299"}
+          ],
+          "available_formats": ["publisher HTML behind current Vercel security checkpoint"],
+          "declared_rights": {"statement": null, "scope": "metadata", "evidence_url": null, "tos_conclusion": "evidence-only-not-a-rights-conclusion"},
+          "availability": "unknown",
+          "machine_interface": "html",
+          "decision": "needs-reconciliation",
+          "rationale": "The exact current route returned HTTP 429 Vercel security checkpoint bytes. ToS did not bypass it and does not infer the current page's extent or release state from that response.",
+          "acquisition": {"downloaded": false, "acquired_at": null, "byte_size": null, "sha256": null, "event_ref": null},
+          "snapshot": {"state": "not-captured", "format": null, "sha256": null, "reason": "The security-checkpoint response was inspected transiently and deleted; it is transport evidence, not a source snapshot."}
+        },
+        {
+          "result_id": "tos-discovery-result.stanford-loeb-spring-2026-catalog",
+          "rank": 2,
+          "title_as_displayed": "Stanford University Press Spring/Summer 2026 catalog, page 3",
+          "result_url": "https://supress.sites-pro.stanford.edu/sites/supress/files/media/file/spring26_catalog.pdf",
+          "originating_record_url": "https://supress.sites-pro.stanford.edu/sites/supress/files/media/file/spring26_catalog.pdf",
+          "identifiers": [
+            {"scheme": "ISBN-hardcover", "value": "9780804728799"},
+            {"scheme": "ISBN-paperback", "value": "9781503647282"},
+            {"scheme": "ISBN-ebook", "value": "9781503647299"}
+          ],
+          "available_formats": ["52-page publisher PDF catalog"],
+          "declared_rights": {"statement": "No book-content reuse license observed; catalog metadata cited as publisher evidence.", "scope": "metadata", "evidence_url": "https://supress.sites-pro.stanford.edu/sites/supress/files/media/file/spring26_catalog.pdf", "tos_conclusion": "evidence-only-not-a-rights-conclusion"},
+          "availability": "open-view",
+          "machine_interface": "html",
+          "decision": "select",
+          "rationale": "The current 5,446,888-byte official catalog, SHA-256 3b2f5d08cd48a92a01486ebf529c9ba1b6407c73a4e7d561324efc679614075e, still gives August 2026 and 424 pages for the three announced formats. It was transiently inspected and not admitted as a book source.",
+          "acquisition": {"downloaded": false, "acquired_at": null, "byte_size": null, "sha256": null, "event_ref": null},
+          "snapshot": {"state": "not-captured", "format": null, "sha256": null, "reason": "The publisher catalog was transiently downloaded for current metadata verification and deleted; no catalog or book payload is retained in ToS."}
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-stanford-loeb-established-lineage",
+      "sequence": 2,
+      "channel_type": "specialized-scholarly-project",
+      "role": "scholarly-index",
+      "source_name": "Journal of Nietzsche Studies review of the translators' earlier Stanford Complete Works volume",
+      "endpoint_url": "https://doi.org/10.5325/jnietstud.51.1.0133",
+      "interface_type": "web",
+      "interface_version": "DOI and established specialist review baseline rechecked 2026-08-10",
+      "exact_query": "Reconfirm whether the established Robin Small review concerns volume 7 or only the translators' earlier volume 14, and prohibit transfer of its quality verdict",
+      "queried_at": "2026-08-10T18:53:00-06:00",
+      "elapsed_seconds": 1.7,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.stanford-loeb-small-volume-14-review",
+          "rank": 1,
+          "title_as_displayed": "Unpublished Fragments from the Period of Thus Spoke Zarathustra (Summer 1882-Winter 1883/84)",
+          "result_url": "https://doi.org/10.5325/jnietstud.51.1.0133",
+          "originating_record_url": "https://doi.org/10.5325/jnietstud.51.1.0133",
+          "identifiers": [{"scheme": "DOI", "value": "10.5325/jnietstud.51.1.0133"}],
+          "available_formats": ["specialist review metadata", "journal article"],
+          "declared_rights": {"statement": null, "scope": "content", "evidence_url": null, "tos_conclusion": "evidence-only-not-a-rights-conclusion"},
+          "availability": "metadata-only",
+          "machine_interface": "html",
+          "decision": "select",
+          "rationale": "The review establishes relevant translator and series lineage for volume 14 only. It is not reception or a quality verdict for volume 7.",
+          "acquisition": {"downloaded": false, "acquired_at": null, "byte_size": null, "sha256": null, "event_ref": null},
+          "snapshot": {"state": "not-needed", "format": null, "sha256": null, "reason": "The established citation and scope were already recorded; no article body was needed or retained."}
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-stanford-loeb-identifier-registries",
+      "sequence": 3,
+      "channel_type": "identifier-registry",
+      "role": "mixed",
+      "source_name": "Google Books, Crossref, and Open Library exact ISBN routes",
+      "endpoint_url": "https://books.google.com/books?vid=ISBN9781503647299",
+      "interface_type": "web",
+      "interface_version": "Google Books HTML, Crossref REST, and Open Library Books API checked 2026-08-10",
+      "exact_query": "Resolve each of 9780804728799, 9781503647282, and 9781503647299 independently; compare dates, extent, format links, and current preview signals; then check exact ISBN presence in Crossref and Open Library",
+      "queried_at": "2026-08-10T18:56:46-06:00",
+      "elapsed_seconds": 6.2,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.stanford-loeb-google-books-three-isbns",
+          "rank": 1,
+          "title_as_displayed": "Thus Spoke Zarathustra - three Google Books ISBN records",
+          "result_url": "https://books.google.com/books?vid=ISBN9781503647299",
+          "originating_record_url": "https://books.google.com/books?vid=ISBN9780804728799",
+          "identifiers": [
+            {"scheme": "ISBN-hardcover", "value": "9780804728799"},
+            {"scheme": "ISBN-paperback", "value": "9781503647282"},
+            {"scheme": "ISBN-ebook", "value": "9781503647299"}
+          ],
+          "available_formats": ["Google Books HTML metadata", "limited-preview signal on at least one route"],
+          "declared_rights": {"statement": "Preview and provider metadata are not a content-use license.", "scope": "metadata", "evidence_url": "https://books.google.com/books?vid=ISBN9781503647299", "tos_conclusion": "evidence-only-not-a-rights-conclusion"},
+          "availability": "open-view",
+          "machine_interface": "html",
+          "decision": "needs-reconciliation",
+          "rationale": "All three current records report 552 pages, and the eBook route reports 2026 M08 11. No preview content was opened. These provider values conflict with the official PDF catalog's 424-page value and do not alone prove completed publication.",
+          "acquisition": {"downloaded": false, "acquired_at": null, "byte_size": null, "sha256": null, "event_ref": null},
+          "snapshot": {"state": "not-captured", "format": null, "sha256": null, "reason": "Transient metadata HTML was inspected and deleted; no preview or book content was opened or retained."}
+        },
+        {
+          "result_id": "tos-discovery-result.stanford-loeb-crossref-openlibrary-empty",
+          "rank": 2,
+          "title_as_displayed": "Exact Crossref and Open Library ISBN checks",
+          "result_url": "https://api.crossref.org/works?query.bibliographic=9781503647299",
+          "originating_record_url": "https://openlibrary.org/api/books?bibkeys=ISBN:9781503647299&jscmd=data&format=json",
+          "identifiers": [
+            {"scheme": "ISBN-hardcover", "value": "9780804728799"},
+            {"scheme": "ISBN-paperback", "value": "9781503647282"},
+            {"scheme": "ISBN-ebook", "value": "9781503647299"}
+          ],
+          "available_formats": ["Crossref REST JSON", "Open Library Books API JSON"],
+          "declared_rights": {"statement": null, "scope": "metadata", "evidence_url": null, "tos_conclusion": "evidence-only-not-a-rights-conclusion"},
+          "availability": "metadata-only",
+          "machine_interface": "api",
+          "decision": "defer",
+          "rationale": "No matching Crossref item and no Open Library ISBN object were returned on this date. Registry absence is a dated negative result, not proof of nonpublication or nonexistence.",
+          "acquisition": {"downloaded": false, "acquired_at": null, "byte_size": null, "sha256": null, "event_ref": null},
+          "snapshot": {"state": "not-needed", "format": null, "sha256": null, "reason": "Only empty exact-query outcomes were needed; response bodies were not retained."}
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-stanford-loeb-fresh-distribution",
+      "sequence": 4,
+      "channel_type": "meta-search",
+      "role": "lead-only",
+      "source_name": "Harvard Book Store and iMusic current distribution metadata",
+      "endpoint_url": "https://www.harvard.com/book/9781503647282",
+      "interface_type": "web",
+      "interface_version": "current retailer HTML checked 2026-08-10 before the anticipated street date",
+      "exact_query": "Open exact paperback ISBN records, inspect date, extent, format cross-links, availability, and preorder/release labels, and treat stores as distribution evidence rather than publisher authority",
+      "queried_at": "2026-08-10T18:52:20-06:00",
+      "elapsed_seconds": 3.4,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.stanford-loeb-harvard-preorder",
+          "rank": 1,
+          "title_as_displayed": "Thus Spoke Zarathustra: Volume 7 - Harvard Book Store",
+          "result_url": "https://www.harvard.com/book/9781503647282",
+          "originating_record_url": "https://www.harvard.com/book/9781503647282",
+          "identifiers": [
+            {"scheme": "ISBN-paperback", "value": "9781503647282"},
+            {"scheme": "ISBN-hardcover", "value": "9780804728799"}
+          ],
+          "available_formats": ["retailer HTML metadata", "paperback preorder", "hardcover preorder"],
+          "declared_rights": {"statement": null, "scope": "metadata", "evidence_url": null, "tos_conclusion": "evidence-only-not-a-rights-conclusion"},
+          "availability": "metadata-only",
+          "machine_interface": "html",
+          "decision": "select",
+          "rationale": "The exact record reports 552 pages, August 11 2026, and preorder for both print ISBNs, with publication dates subject to change. This is strong current distribution evidence but not a publisher-confirmed exact release or possession record.",
+          "acquisition": {"downloaded": false, "acquired_at": null, "byte_size": null, "sha256": null, "event_ref": null},
+          "snapshot": {"state": "not-captured", "format": null, "sha256": null, "reason": "Dynamic retailer HTML was inspected transiently and deleted."}
+        },
+        {
+          "result_id": "tos-discovery-result.stanford-loeb-imusic-conflict",
+          "rank": 2,
+          "title_as_displayed": "Thus Spoke Zarathustra: Volume 7 - iMusic paperback",
+          "result_url": "https://imusic.co/books/9781503647282/friedrich-nietzsche-2026-thus-spoke-zarathustra-volume-7-the-complete-works-of-friedrich-nietzsche-paperback-book",
+          "originating_record_url": "https://imusic.co/books/9781503647282/friedrich-nietzsche-2026-thus-spoke-zarathustra-volume-7-the-complete-works-of-friedrich-nietzsche-paperback-book",
+          "identifiers": [{"scheme": "ISBN-paperback", "value": "9781503647282"}],
+          "available_formats": ["retailer HTML metadata"],
+          "declared_rights": {"statement": null, "scope": "metadata", "evidence_url": null, "tos_conclusion": "evidence-only-not-a-rights-conclusion"},
+          "availability": "unknown",
+          "machine_interface": "html",
+          "decision": "needs-reconciliation",
+          "rationale": "The live record now says 552 pages while simultaneously exposing out of stock and Released Jul 10. These values conflict internally and with the official catalog and Harvard preorder state, so they are retained as vendor-feed drift rather than release evidence.",
+          "acquisition": {"downloaded": false, "acquired_at": null, "byte_size": null, "sha256": null, "event_ref": null},
+          "snapshot": {"state": "not-captured", "format": null, "sha256": null, "reason": "Dynamic retailer HTML was inspected transiently and deleted; no vendor claim is promoted to source authority."}
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-stanford-loeb-general-web-last",
+      "sequence": 5,
+      "channel_type": "general-web-search",
+      "role": "lead-only",
+      "source_name": "OpenAlex exact scholarly-index search followed by DuckDuckGo exact general-web search",
+      "endpoint_url": "https://html.duckduckgo.com/html/?q=%22Thus+Spoke+Zarathustra%22+%22Paul+S.+Loeb%22+%22David+F.+Tinsley%22+review+2026",
+      "interface_type": "web",
+      "interface_version": "OpenAlex API and DuckDuckGo HTML results checked 2026-08-10 after higher-authority channels",
+      "exact_query": "Exact title plus both translators plus review plus 2026; classify publisher snippets, announcements, retailer records, and third-party uploads separately; look for an independent volume-7 review",
+      "queried_at": "2026-08-10T18:58:58-06:00",
+      "elapsed_seconds": 3.1,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.stanford-loeb-no-independent-review",
+          "rank": 1,
+          "title_as_displayed": "No independent post-publication review of Stanford Complete Works volume 7 found",
+          "result_url": "https://html.duckduckgo.com/html/?q=%22Thus+Spoke+Zarathustra%22+%22Paul+S.+Loeb%22+%22David+F.+Tinsley%22+review+2026",
+          "originating_record_url": null,
+          "identifiers": [],
+          "available_formats": ["search-result metadata", "OpenAlex result metadata"],
+          "declared_rights": {"statement": null, "scope": "metadata", "evidence_url": null, "tos_conclusion": "evidence-only-not-a-rights-conclusion"},
+          "availability": "metadata-only",
+          "machine_interface": "html",
+          "decision": "defer",
+          "rationale": "The pass returned the publisher route, the earlier volume-14 review, announcements, and retailers but no independent review of volume 7. This is a dated pre-street negative, not proof that no advance assessment exists.",
+          "acquisition": {"downloaded": false, "acquired_at": null, "byte_size": null, "sha256": null, "event_ref": null},
+          "snapshot": {"state": "not-needed", "format": null, "sha256": null, "reason": "The result order and bounded classifications are retained in this record; transient search bodies were deleted."}
+        },
+        {
+          "result_id": "tos-discovery-result.stanford-loeb-progressive-geographies-announcement",
+          "rank": 2,
+          "title_as_displayed": "Friedrich Nietzsche, Thus Spoke Zarathustra - trans. Paul S. Loeb and David F. Tinsley, Stanford University Press, August 2026",
+          "result_url": "https://progressivegeographies.com/2026/07/30/friedrich-nietzsche-thus-spoke-zarathustra-trans-paul-s-loeb-and-david-f-tinsley-stanford-university-press-august-2026/",
+          "originating_record_url": "https://www.sup.org/books/theory-and-philosophy/thus-spoke-zarathustra?tab=reviews",
+          "identifiers": [],
+          "available_formats": ["dated web announcement"],
+          "declared_rights": {"statement": null, "scope": "content", "evidence_url": null, "tos_conclusion": "evidence-only-not-a-rights-conclusion"},
+          "availability": "open-view",
+          "machine_interface": "html",
+          "decision": "reject",
+          "rationale": "The post reproduces publisher description and cover promotion but contains no independent passage-level or translation review. It is an announcement, not reception evidence.",
+          "acquisition": {"downloaded": false, "acquired_at": null, "byte_size": null, "sha256": null, "event_ref": null},
+          "snapshot": {"state": "not-needed", "format": null, "sha256": null, "reason": "Classification required only the dated announcement surface; no image or copied book content was retained."}
+        },
+        {
+          "result_id": "tos-discovery-result.stanford-loeb-third-party-upload",
+          "rank": 3,
+          "title_as_displayed": "Nietzsche's Thus Spoke Zarathustra, translated by Paul S. Loeb and David F. Tinsley",
+          "result_url": "https://www.academia.edu/166153453/Nietzsches_Thus_Spoke_Zarathustra_translated_by_Paul_S_Loeb_and_David_F_Tinsley",
+          "originating_record_url": null,
+          "identifiers": [],
+          "available_formats": ["uninspected third-party result"],
+          "declared_rights": {"statement": null, "scope": "unknown", "evidence_url": null, "tos_conclusion": "evidence-only-not-a-rights-conclusion"},
+          "availability": "unknown",
+          "machine_interface": "none",
+          "decision": "reject",
+          "rationale": "The result was not opened. Authorization, deposited version, completeness, final-manifestation identity, and permissible use are unresolved, and opening it would contaminate blind translation lanes.",
+          "acquisition": {"downloaded": false, "acquired_at": null, "byte_size": null, "sha256": null, "event_ref": null},
+          "snapshot": {"state": "not-permitted", "format": null, "sha256": null, "reason": "No access or capture occurred because rights, version, and blind-lane boundaries are unresolved."}
+        }
+      ]
+    }
+  ],
+  "channel_comparison": [
+    {"channel_id": "channel-stanford-loeb-official-publisher", "completeness": "adequate", "metadata_precision": "strong", "rights_clarity": "limited", "machine_interface_quality": "limited", "human_minutes": 9, "machine_seconds": 11.3, "notes": "The exact catalog is authoritative for its dated 424-page announcement; live title-page transport was denied and no bypass was attempted."},
+    {"channel_id": "channel-stanford-loeb-established-lineage", "completeness": "adequate", "metadata_precision": "strong", "rights_clarity": "limited", "machine_interface_quality": "adequate", "human_minutes": 2, "machine_seconds": 1.7, "notes": "Strong lineage evidence for the earlier volume only; no verdict transfers to volume 7."},
+    {"channel_id": "channel-stanford-loeb-identifier-registries", "completeness": "adequate", "metadata_precision": "adequate", "rights_clarity": "limited", "machine_interface_quality": "adequate", "human_minutes": 7, "machine_seconds": 6.2, "notes": "Google resolves all ISBNs at 552 pages; empty Crossref/Open Library checks and Google API quota failure remain explicit negatives."},
+    {"channel_id": "channel-stanford-loeb-fresh-distribution", "completeness": "adequate", "metadata_precision": "limited", "rights_clarity": "poor", "machine_interface_quality": "adequate", "human_minutes": 6, "machine_seconds": 3.4, "notes": "Harvard supplies a coherent preorder state; iMusic's internally conflicting release and stock fields are retained as drift."},
+    {"channel_id": "channel-stanford-loeb-general-web-last", "completeness": "adequate", "metadata_precision": "limited", "rights_clarity": "poor", "machine_interface_quality": "adequate", "human_minutes": 8, "machine_seconds": 3.1, "notes": "No independent volume-7 review found; announcement and unresolved third-party upload rejected for their proposed roles."}
+  ],
+  "selected_result_ids": [
+    "tos-discovery-result.stanford-loeb-spring-2026-catalog",
+    "tos-discovery-result.stanford-loeb-small-volume-14-review",
+    "tos-discovery-result.stanford-loeb-harvard-preorder"
+  ],
+  "rejected_result_ids": [
+    "tos-discovery-result.stanford-loeb-progressive-geographies-announcement",
+    "tos-discovery-result.stanford-loeb-third-party-upload"
+  ],
+  "rights_inference_from_availability_prohibited": true,
+  "general_web_search_is_last_resort": true,
+  "technical_access_bypass_used": false,
+  "maker": {"maker_type": "model", "agent_ref": "model:codex"},
+  "started_at": "2026-08-10T18:51:45-06:00",
+  "ended_at": "2026-08-10T18:59:30-06:00",
+  "status": "executed",
+  "provenance_event_refs": [
+    "tos.event.discovery.translation-reference-register-stanford-pre-street-drift.2026-08-10"
+  ],
+  "record_version": 1,
+  "supersedes_discovery_ref": null
+}

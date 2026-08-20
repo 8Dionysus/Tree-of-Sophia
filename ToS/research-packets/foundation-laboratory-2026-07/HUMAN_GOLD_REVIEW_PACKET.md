@@ -1,10 +1,31 @@
 # Fifteen-Page Human Gold Review Packet
 
 Status: blind source-visible interface materialized and mechanically verified;
-no human transcription, double check, OCR quality result, structure judgment,
-or gold acceptance completed
+one rare calibration observation preserved without completion attestation;
+no double check, OCR quality result, gold acceptance, or remaining human debt
 
 Materialization date: 2026-07-23
+
+Successor note, 2026-07-26: this document records the frozen v1 interface and
+its original two-reviewer posture. New assurance claims are governed
+additively by `ToS/contracts/manual-gold-assurance.schema.json`,
+`gold-assurance.v2.json`, and `HUMAN_ASSURANCE_RESEARCH.md`. The current
+solo+AI route uses criteria review by default; a delayed, pass-1-hidden
+same-human recheck is intra-annotator stability only, and German textual
+review remains language-competence-blocked. Packet cardinality is not
+scheduled human work.
+
+Closure update, 2026-07-28: the mutable Workbench session preserved
+`tos-sample-antonovsky-p011` as one rare independent calibration observation
+and closed with `attestation_status: not-collected`,
+`promotion_authorized: false`, and `human_debt_units: 0`. The other fourteen
+units are explicitly unscheduled. The source autosave remained byte-identical
+at SHA-256
+`6ba7619bf4591353fb8d5afea75a92d0e2ddd705cbb5adb37885c883cc4a1635`;
+the private closure and receipt digests are respectively
+`e0ff950043eb823b7894ef3e4ee958f5292b111dc7d9f7d408dc9a3620b848da`
+and
+`bc655fe8129df8b30bdeb304a2eec0de02723eaf4a8e984ecf5ebac486f0f355`.
 
 ## Question
 
@@ -135,7 +156,9 @@ Mechanical closure can prove source identity, ordering, blindness, file
 fixity, and declared review shape. It cannot prove that a reviewer is human or
 that a transcription is correct.
 
-The next admissible evidence is:
+The legacy full-packet exact-reference experiment remains available only if a
+future research question explicitly justifies its cost. Its next admissible
+evidence would then be:
 
 1. a real human completes all fifteen pass-1 units against the visible pages;
 2. a different real human independently completes pass 2 without viewing pass
@@ -146,5 +169,10 @@ The next admissible evidence is:
 4. only then may OCR CER/WER, structure quality, reading order, and human
    correction time be manually measured and compared.
 
-Until that happens, A/B/C quality ranking, translation, semantic promotion,
-and golden-kernel transfer remain blocked by design.
+That optional route is not an operator backlog. Current solo+AI human work is
+opened only by a new source or method calibration, serious candidate
+disagreement, unresolved or semantic risk, a translation question within
+declared competence, or periodic drift control. UI regression uses synthetic
+fixtures or one separately declared control episode. Exact-reference metrics
+that still require fifteen adjudicated units remain unmeasured rather than
+being converted into fourteen repetitive tasks.

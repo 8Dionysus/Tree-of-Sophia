@@ -1,0 +1,497 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/provenance-event-v2.schema.json",
+  "activity": {
+    "ended_at": "2026-08-12T10:19:48Z",
+    "event_type": "alignment",
+    "exit_code": 0,
+    "started_at": "2026-08-12T10:19:48Z",
+    "status": "completed_with_warnings",
+    "terminal_reason": null,
+    "warnings": [
+      "The 2007 Workbench observation has no completion attestation and creates no gold or human review.",
+      "Both sentence boundaries and the cross-edition correspondence remain proposed.",
+      "Surface similarity establishes no source fidelity, preferred reading, textual equivalence, Expression derivation, translation judgment, or semantics.",
+      "The exact 2007 PDF and all source-bearing or reconstructive derivatives remain local-only and publication-unauthorized.",
+      "The unsigned self-recorded event proves mechanics and closure, not execution or content truth."
+    ]
+  },
+  "authority_boundary": {
+    "claims_not_established": [
+      "execution_truth",
+      "content_truth",
+      "source_fidelity",
+      "translation_quality",
+      "semantic_correctness",
+      "rights_clearance",
+      "human_review",
+      "publication_authority",
+      "canon_authority"
+    ],
+    "validator_role": "mechanics_and_closure_only_not_truth"
+  },
+  "derivations": [
+    {
+      "derivation_id": "tos.derivation.antonovsky-2007-source-anchor.1",
+      "description": "The tracked text-free anchor identifies the exact page region of the fixed local 2007 PDF witness.",
+      "influence_asserted": true,
+      "input_entity_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-antonovsky-cultural-revolution/editions/moscow-cultural-revolution-2007-volume-4/items/operator-pdf/payload/Так говорил Заратустра П Антоновского.pdf",
+      "output_entity_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/source-anchor-v2.antonovsky-2007-p011.v1.json",
+      "relation": "selection_from"
+    },
+    {
+      "derivation_id": "tos.derivation.antonovsky-2007-source-layer.1",
+      "description": "The tracked text-free layer record binds the private observation bytes, exact PDF page, uncertainty, rights, and no-review posture.",
+      "influence_asserted": true,
+      "input_entity_ref": "abyss-stack:artifact/tree-of-sophia-foundation-lab/human-review/zarathustra-15-page-gold-pass-1-20260723/human-review-workbench.pass-1.autosave.json",
+      "output_entity_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/source-text-layer.antonovsky-2007-p011-human-observation.v1.json",
+      "relation": "aggregation_from"
+    },
+    {
+      "derivation_id": "tos.derivation.antonovsky-2007-sentence-unit.1",
+      "description": "The text-free unit packet selects one exact private span and digest without accepting its boundary or content.",
+      "influence_asserted": true,
+      "input_entity_ref": "abyss-stack:artifact/tree-of-sophia-foundation-lab/human-review/zarathustra-15-page-gold-pass-1-20260723/human-review-workbench.pass-1.autosave.json",
+      "output_entity_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/source-text-unit.antonovsky-2007-p011-opening-sentence-proposal.v1.json",
+      "relation": "selection_from"
+    },
+    {
+      "derivation_id": "tos.derivation.antonovsky-2007-1911-collation.1",
+      "description": "The 2007 private sentence contributes only its source-bound selector, digest, and comparison metrics to the proposal.",
+      "influence_asserted": true,
+      "input_entity_ref": "abyss-stack:artifact/tree-of-sophia-foundation-lab/human-review/zarathustra-15-page-gold-pass-1-20260723/human-review-workbench.pass-1.autosave.json",
+      "output_entity_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/witness-text-collation.antonovsky-2007-1911-opening-sentence.v1.json",
+      "relation": "aggregation_from"
+    },
+    {
+      "derivation_id": "tos.derivation.antonovsky-2007-1911-collation.2",
+      "description": "The existing 1911 private sentence proposal contributes only its source-bound selector, digest, and comparison metrics.",
+      "influence_asserted": true,
+      "input_entity_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/local-content/target-text-foundation/za-i-vorrede-1/antonovsky-1911-page-6-opening-paragraph.raw-embedded-text.txt",
+      "output_entity_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/witness-text-collation.antonovsky-2007-1911-opening-sentence.v1.json",
+      "relation": "aggregation_from"
+    }
+  ],
+  "entities": {
+    "byproducts": [
+      {
+        "availability": "ignored_local",
+        "content_disclosure": "private_content",
+        "entity_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/local-content/witness-text-collation/antonovsky-2007-1911-opening-sentence/antonovsky-2007-p011.human-observation.txt",
+        "fixity_verified": true,
+        "fixity_verified_at": "2026-08-12T10:19:48Z",
+        "media_type": "text/plain; charset=utf-8",
+        "role": "ignored-local-human-observation-text-layer",
+        "sha256": "e38271c52b23dc46c2c3826b609b4cae5abeca4bea5bb075cfc14a631c8b45b2",
+        "size_bytes": 2646
+      },
+      {
+        "availability": "ignored_local",
+        "content_disclosure": "private_content",
+        "entity_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/local-content/witness-text-collation/antonovsky-2007-1911-opening-sentence/comparison-details.json",
+        "fixity_verified": true,
+        "fixity_verified_at": "2026-08-12T10:19:48Z",
+        "media_type": "application/json",
+        "role": "ignored-local-reconstructive-collation-detail",
+        "sha256": "21cc98766b7e97cc80023a234e7090aaf3ef39b169094db028a3bde41176f5ab",
+        "size_bytes": 18254
+      }
+    ],
+    "inputs": [
+      {
+        "availability": "owner_local",
+        "content_disclosure": "private_content",
+        "entity_ref": "abyss-stack:artifact/tree-of-sophia-foundation-lab/human-review/zarathustra-15-page-gold-pass-1-20260723/human-review-workbench.pass-1.autosave.json",
+        "fixity_verified": true,
+        "fixity_verified_at": "2026-08-12T10:19:48Z",
+        "media_type": "application/json",
+        "role": "unattested-human-workbench-observation-autosave",
+        "sha256": "6ba7619bf4591353fb8d5afea75a92d0e2ddd705cbb5adb37885c883cc4a1635",
+        "size_bytes": 11736
+      },
+      {
+        "availability": "owner_local",
+        "content_disclosure": "private_content",
+        "entity_ref": "abyss-stack:artifact/tree-of-sophia-foundation-lab/human-review/zarathustra-15-page-gold-pass-1-20260723/human-review-workbench.sparse-calibration-closure/closure.json",
+        "fixity_verified": true,
+        "fixity_verified_at": "2026-08-12T10:19:48Z",
+        "media_type": "application/json",
+        "role": "no-gold-no-attestation-sparse-calibration-closure",
+        "sha256": "e0ff950043eb823b7894ef3e4ee958f5292b111dc7d9f7d408dc9a3620b848da",
+        "size_bytes": 2526
+      },
+      {
+        "availability": "owner_local",
+        "content_disclosure": "private_content",
+        "entity_ref": "abyss-stack:artifact/tree-of-sophia-foundation-lab/human-review/zarathustra-15-page-gold-pass-1-20260723/human-review-workbench.sparse-calibration-closure/receipt.json",
+        "fixity_verified": true,
+        "fixity_verified_at": "2026-08-12T10:19:48Z",
+        "media_type": "application/json",
+        "role": "sparse-calibration-closure-receipt",
+        "sha256": "bc655fe8129df8b30bdeb304a2eec0de02723eaf4a8e984ecf5ebac486f0f355",
+        "size_bytes": 1153
+      },
+      {
+        "availability": "ignored_local",
+        "content_disclosure": "private_content",
+        "entity_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-antonovsky-cultural-revolution/editions/moscow-cultural-revolution-2007-volume-4/items/operator-pdf/payload/Так говорил Заратустра П Антоновского.pdf",
+        "fixity_verified": true,
+        "fixity_verified_at": "2026-08-12T10:19:48Z",
+        "media_type": "application/pdf",
+        "role": "exact-2007-local-pdf-witness",
+        "sha256": "49614015865f8c65a68746b1a6dc9a8b7f036d817b2e04b1f3b94fec8ef7b0c2",
+        "size_bytes": 162778307
+      },
+      {
+        "availability": "ignored_local",
+        "content_disclosure": "private_content",
+        "entity_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/local-content/target-text-foundation/za-i-vorrede-1/antonovsky-1911-page-6-opening-paragraph.raw-embedded-text.txt",
+        "fixity_verified": true,
+        "fixity_verified_at": "2026-08-12T10:19:48Z",
+        "media_type": "text/plain; charset=utf-8",
+        "role": "exact-1911-private-raw-text-layer",
+        "sha256": "3b856676c48ad6f4ef18397f429ab740c2efb917600ac6c72fc4481b89c4b71c",
+        "size_bytes": 633
+      },
+      {
+        "availability": "tracked",
+        "content_disclosure": "public_metadata_only",
+        "entity_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/antonovsky-2007-1911-opening-sentence-collation.plan.v1.json",
+        "fixity_verified": true,
+        "fixity_verified_at": "2026-08-12T10:19:48Z",
+        "media_type": "application/json",
+        "role": "tracked-text-free-collation-plan",
+        "sha256": "13d73e9570e83588b8d8f5c36b79f5740def5b5157bc6d00ef2e908faf9cff23",
+        "size_bytes": 14863
+      },
+      {
+        "availability": "tracked",
+        "content_disclosure": "public_metadata_only",
+        "entity_ref": "ToS/research-packets/foundation-laboratory-2026-07/WITNESS_TEXT_COLLATION_FOUNDATION_RESEARCH_2026-08-12.md",
+        "fixity_verified": true,
+        "fixity_verified_at": "2026-08-12T10:19:48Z",
+        "media_type": "text/markdown; charset=utf-8",
+        "role": "ordered-witness-text-collation-research",
+        "sha256": "4dd508c050b16736e90f44fac5eb0bd63375381f2260faba85b8a1bb207b6d07",
+        "size_bytes": 9902
+      },
+      {
+        "availability": "tracked",
+        "content_disclosure": "public_metadata_only",
+        "entity_ref": "ToS/contracts/witness-text-collation-packet-v1.schema.json",
+        "fixity_verified": true,
+        "fixity_verified_at": "2026-08-12T10:19:48Z",
+        "media_type": "application/json",
+        "role": "witness-text-collation-contract",
+        "sha256": "492e0976d2f93d266b84a2916f8269e1e7f5c8dafda2f1921cc0ac9a023687cf",
+        "size_bytes": 20584
+      },
+      {
+        "availability": "tracked",
+        "content_disclosure": "public_metadata_only",
+        "entity_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/gold-assurance.v2.json",
+        "fixity_verified": true,
+        "fixity_verified_at": "2026-08-12T10:19:48Z",
+        "media_type": "application/json",
+        "role": "solo-human-plus-ai-assurance-boundary",
+        "sha256": "95d187b87cd3aa99727ae413705a064ca2fec75b345d99c19014c7cf918adb10",
+        "size_bytes": 13859
+      },
+      {
+        "availability": "tracked",
+        "content_disclosure": "public_metadata_only",
+        "entity_ref": "ToS/research-packets/foundation-laboratory-2026-07/HUMAN_ASSURANCE_RESEARCH.md",
+        "fixity_verified": true,
+        "fixity_verified_at": "2026-08-12T10:19:48Z",
+        "media_type": "text/markdown; charset=utf-8",
+        "role": "human-assurance-method-research",
+        "sha256": "a9bdda49b0524f49d98cbd7168e97134b971f6679821488dbd0450c3efd7063c",
+        "size_bytes": 9741
+      },
+      {
+        "availability": "tracked",
+        "content_disclosure": "public_metadata_only",
+        "entity_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-antonovsky-cultural-revolution/editions/moscow-cultural-revolution-2007-volume-4/items/operator-pdf/item.manifest.json",
+        "fixity_verified": true,
+        "fixity_verified_at": "2026-08-12T10:19:48Z",
+        "media_type": "application/json",
+        "role": "exact-2007-item-manifest",
+        "sha256": "d9e8d6912cca6637e2922cd25709377c73a94c061dc9925e9ee0f5d2f277dc84",
+        "size_bytes": 2388
+      },
+      {
+        "availability": "tracked",
+        "content_disclosure": "public_metadata_only",
+        "entity_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-antonovsky-cultural-revolution/editions/moscow-cultural-revolution-2007-volume-4/items/operator-pdf/resource-inventory.json",
+        "fixity_verified": true,
+        "fixity_verified_at": "2026-08-12T10:19:48Z",
+        "media_type": "application/json",
+        "role": "exact-2007-page-resource-inventory",
+        "sha256": "53f2b02a71731554381a32ee5ca1c0fad353a971cb3a67ab2e58c869df79a272",
+        "size_bytes": 151434
+      },
+      {
+        "availability": "tracked",
+        "content_disclosure": "public_metadata_only",
+        "entity_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-antonovsky-cultural-revolution/editions/moscow-cultural-revolution-2007-volume-4/items/operator-pdf/rights.json",
+        "fixity_verified": true,
+        "fixity_verified_at": "2026-08-12T10:19:48Z",
+        "media_type": "application/json",
+        "role": "2007-layered-rights",
+        "sha256": "8c672f22af6e94a6969bc9206592deaea0e1dc6ceed2ee8cf806f5b8fb34013d",
+        "size_bytes": 29591
+      },
+      {
+        "availability": "tracked",
+        "content_disclosure": "public_metadata_only",
+        "entity_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/source-text-layer.za-i-vorrede-1-p1.antonovsky-1911-embedded.v1.json",
+        "fixity_verified": true,
+        "fixity_verified_at": "2026-08-12T10:19:48Z",
+        "media_type": "application/json",
+        "role": "1911-private-layer-record",
+        "sha256": "fe6660ea7d473a57290c23904fde948ddb6cb437edea1730fb33a775e7168dee",
+        "size_bytes": 6036
+      },
+      {
+        "availability": "tracked",
+        "content_disclosure": "public_metadata_only",
+        "entity_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/source-text-unit.za-i-vorrede-1-p1.antonovsky-1911-sentence-proposal.v1.json",
+        "fixity_verified": true,
+        "fixity_verified_at": "2026-08-12T10:19:48Z",
+        "media_type": "application/json",
+        "role": "1911-sentence-unit-proposal",
+        "sha256": "61644c8f199de32233226bece7d0301cf9e7309e380c5dc415cf55de1e44ddcb",
+        "size_bytes": 11085
+      },
+      {
+        "availability": "tracked",
+        "content_disclosure": "public_metadata_only",
+        "entity_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-antonovsky-1911/editions/saint-petersburg-prometey-1911-fourth/items/rsl-neb-scan-pdf/rights.json",
+        "fixity_verified": true,
+        "fixity_verified_at": "2026-08-12T10:19:48Z",
+        "media_type": "application/json",
+        "role": "1911-layered-rights",
+        "sha256": "ebf9a2e82f2dc75a43c73df998d3addc36564cdc1bcd3279630e8fc5404768a4",
+        "size_bytes": 22868
+      }
+    ],
+    "outputs": [
+      {
+        "availability": "tracked",
+        "content_disclosure": "public_metadata_only",
+        "entity_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/source-anchor-v2.antonovsky-2007-p011.v1.json",
+        "fixity_verified": true,
+        "fixity_verified_at": "2026-08-12T10:19:48Z",
+        "media_type": "application/json",
+        "role": "tracked-text-free-anchor-layer-unit-or-collation-record",
+        "sha256": "3ac384b121515d5c14107a7e334785396b614aff076a83d4d1e3200b7d042cd6",
+        "size_bytes": 2587
+      },
+      {
+        "availability": "tracked",
+        "content_disclosure": "public_metadata_only",
+        "entity_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/source-text-layer.antonovsky-2007-p011-human-observation.v1.json",
+        "fixity_verified": true,
+        "fixity_verified_at": "2026-08-12T10:19:48Z",
+        "media_type": "application/json",
+        "role": "tracked-text-free-anchor-layer-unit-or-collation-record",
+        "sha256": "65393408e2d6e5ed1fa71f8792f726a58de6759d60327693b32009010c823aff",
+        "size_bytes": 5771
+      },
+      {
+        "availability": "tracked",
+        "content_disclosure": "public_metadata_only",
+        "entity_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/source-text-unit.antonovsky-2007-p011-opening-sentence-proposal.v1.json",
+        "fixity_verified": true,
+        "fixity_verified_at": "2026-08-12T10:19:48Z",
+        "media_type": "application/json",
+        "role": "tracked-text-free-anchor-layer-unit-or-collation-record",
+        "sha256": "ab0f4a5a971d2500561e99a2ac0bb8b4f069e08876892961ba46b4f98a2aa93f",
+        "size_bytes": 13677
+      },
+      {
+        "availability": "tracked",
+        "content_disclosure": "public_metadata_only",
+        "entity_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/witness-text-collation.antonovsky-2007-1911-opening-sentence.v1.json",
+        "fixity_verified": true,
+        "fixity_verified_at": "2026-08-12T10:19:48Z",
+        "media_type": "application/json",
+        "role": "tracked-text-free-anchor-layer-unit-or-collation-record",
+        "sha256": "3de499de1c474ad5a8bac6af7452faed9169d8c6848ae5faa161ff9356192c63",
+        "size_bytes": 15957
+      }
+    ]
+  },
+  "event_id": "tos.event.alignment.antonovsky-2007-1911-opening-sentence-collation.2026-08-12",
+  "event_version": 1,
+  "evidence_authentication": {
+    "capture_posture": "tool_captured",
+    "producer_control_boundary": "The autosave, closure, private sources, and builder are operator-local. Exact digests support replay but do not authenticate the human observation as a completed review or prove textual truth.",
+    "signature_bindings": [],
+    "signature_status": "unsigned",
+    "verification_status": "mechanically_verified"
+  },
+  "manual_changes": {
+    "change_receipts": [],
+    "statement": "The builder copies the preserved human observation exactly and applies no manual correction; that prior unattested observation is an input, not a manual edit to this run.",
+    "status": "none_declared"
+  },
+  "measurements": [
+    {
+      "evidence_binding": null,
+      "method": "sum of exact fixity-bound input entity byte counts",
+      "metric": "input_bytes",
+      "status": "measured",
+      "unit": "bytes",
+      "value": 163086706
+    },
+    {
+      "evidence_binding": null,
+      "method": "sum of exact serialized tracked and ignored-local output byte counts",
+      "metric": "output_bytes",
+      "status": "measured",
+      "unit": "bytes",
+      "value": 58892
+    },
+    {
+      "evidence_binding": null,
+      "method": "exact Workbench active_seconds preserved by autosave and sparse-calibration closure",
+      "metric": "human_active_seconds",
+      "status": "measured",
+      "unit": "seconds",
+      "value": 1520.0
+    }
+  ],
+  "method": {
+    "command_capture": {
+      "argv": [
+        "python",
+        "scripts/build_antonovsky_2007_1911_collation.py",
+        "--build",
+        "--owner-root",
+        "/srv/AbyssOS/Tree-of-Sophia",
+        "--artifact-root",
+        "/srv/abyss-machine/storage/artifacts"
+      ],
+      "argv_sha256": "2f09d7bc8ebad8304cff740718a5cd836a13c6dee60e2a6ee75ba8d852fd02be",
+      "disclosure": "inline",
+      "withholding_reason": null
+    },
+    "configuration_binding": {
+      "ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/antonovsky-2007-1911-opening-sentence-collation.plan.v1.json",
+      "sha256": "13d73e9570e83588b8d8f5c36b79f5740def5b5157bc6d00ef2e908faf9cff23"
+    },
+    "environment": {
+      "backend": "python-standard-library-difflib-sequence-matcher",
+      "environment_profile_binding": {
+        "ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/antonovsky-2007-1911-opening-sentence-collation.plan.v1.json",
+        "sha256": "13d73e9570e83588b8d8f5c36b79f5740def5b5157bc6d00ef2e908faf9cff23"
+      },
+      "hardware_target": "cpu",
+      "runtime": "CPython",
+      "runtime_artifact_sha256": "7af874aca05879e1823cd820913b42fb8d8b994738a05ec39ce4256d85b03861",
+      "runtime_version": "3.14.6",
+      "unicode_version": "16.0.0"
+    },
+    "model_invocations": [],
+    "procedure": {
+      "name": "python-difflib-sequence-matcher-character-collation",
+      "purpose": "Can one already-preserved, unattested human observation from Antonovsky 2007 page 11 be reused as a local-only source-bound comparison candidate against the exact Antonovsky 1911 opening-sentence proposal without creating gold, source acceptance, textual equivalence, or edition genealogy?",
+      "version": "1"
+    },
+    "software_components": [
+      {
+        "artifact_ref": "scripts/build_antonovsky_2007_1911_collation.py",
+        "artifact_sha256": "dc7af7e1238fd151218436a9dc7718886f678f3e646ab5b9c767e95a3bcc929f",
+        "name": "Tree of Sophia Antonovsky witness collation builder",
+        "role": "observation-materialization-and-collation-proposal-builder",
+        "verification_status": "verified",
+        "version": "1"
+      },
+      {
+        "artifact_ref": "runtime:cpython-executable",
+        "artifact_sha256": "7af874aca05879e1823cd820913b42fb8d8b994738a05ec39ce4256d85b03861",
+        "name": "CPython",
+        "role": "language-runtime",
+        "verification_status": "verified",
+        "version": "3.14.6"
+      }
+    ]
+  },
+  "record_binding": {
+    "digest_algorithm": "sha256",
+    "digest_scope": "exact_event_record_bytes",
+    "manifest_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/antonovsky-2007-1911-opening-sentence-collation.plan.v1.json"
+  },
+  "reproducibility": {
+    "classification": "replay_ready",
+    "known_gaps": [
+      "The human observation has no completion attestation or pass receipt.",
+      "The 2007 source layer and both sentence boundaries are unreviewed.",
+      "The comparison algorithm is character-level screening, not philological adjudication.",
+      "The private source and reconstructive detail are intentionally absent from Git.",
+      "The receipt is unsigned and self-recorded by the local builder."
+    ],
+    "replay_scope": "Exact artifact, PDF, layer, unit, rights, selector, digest, comparison-view, private-detail, runtime, and non-promotion closure."
+  },
+  "responsibility": [
+    {
+      "agent_kind": "human",
+      "agent_ref": "human:dionysus",
+      "evidence_binding": null,
+      "human_evidence_status": "unattested",
+      "responsibility_posture": "performed",
+      "role": "operator"
+    },
+    {
+      "agent_kind": "software",
+      "agent_ref": "software:tos-antonovsky-2007-1911-collation-builder",
+      "evidence_binding": {
+        "ref": "scripts/build_antonovsky_2007_1911_collation.py",
+        "sha256": "dc7af7e1238fd151218436a9dc7718886f678f3e646ab5b9c767e95a3bcc929f"
+      },
+      "human_evidence_status": "not_applicable",
+      "responsibility_posture": "performed",
+      "role": "executor"
+    },
+    {
+      "agent_kind": "model",
+      "agent_ref": "model:openai-codex",
+      "evidence_binding": {
+        "ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/antonovsky-2007-1911-opening-sentence-collation.plan.v1.json",
+        "sha256": "13d73e9570e83588b8d8f5c36b79f5740def5b5157bc6d00ef2e908faf9cff23"
+      },
+      "human_evidence_status": "not_applicable",
+      "responsibility_posture": "observed",
+      "role": "observer"
+    }
+  ],
+  "review_and_authority": {
+    "accepted_uses": [],
+    "competence_evidence_bindings": [],
+    "human_review_status": "not_performed",
+    "mechanical_validation": "passed",
+    "promotion_authorized": false,
+    "review_bindings": []
+  },
+  "rights_and_visibility": {
+    "content_visibility": "local_only",
+    "intended_uses": [
+      "local_research",
+      "indexing"
+    ],
+    "publication_authority_bindings": [],
+    "publication_authorized": false,
+    "rights_record_bindings": [
+      {
+        "ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-antonovsky-cultural-revolution/editions/moscow-cultural-revolution-2007-volume-4/items/operator-pdf/rights.json",
+        "sha256": "8c672f22af6e94a6969bc9206592deaea0e1dc6ceed2ee8cf806f5b8fb34013d"
+      },
+      {
+        "ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-antonovsky-1911/editions/saint-petersburg-prometey-1911-fourth/items/rsl-neb-scan-pdf/rights.json",
+        "sha256": "ebf9a2e82f2dc75a43c73df998d3addc36564cdc1bcd3279630e8fc5404768a4"
+      }
+    ]
+  },
+  "schema_version": "tos_provenance_event_v2",
+  "supersedes_event_ref": null
+}

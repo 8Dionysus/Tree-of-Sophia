@@ -1,0 +1,34 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/source-item-manifest.schema.json",
+  "schema_version": "tos_source_item_manifest_v1",
+  "item_id": "tos.item.friedrich-nietzsche.zur-genealogie-der-moral.de-naumann-1892-second.wikimedia-commons-unc-scan-pdf",
+  "item_kind": "digitized_physical_copy",
+  "embodiment_ref": "tos.edition.friedrich-nietzsche.zur-genealogie-der-moral.leipzig-c-g-naumann-1892-second",
+  "storage_posture": "local_gitignored_payload",
+  "payload_files": [
+    {
+      "file_id": "tos.file.sha256.5705dbc4f32faa924919fd533962c931e92462d72dab5183610eb68adeecac03",
+      "relative_path": "payload/zur-genealogie-der-moral-naumann-1892-second-edition.pdf",
+      "original_basename": "Zur_Genealogie_der_Moral_-_eine_Streitschrift_(IA_zurgenealogieder00niet).pdf",
+      "media_type": "application/pdf",
+      "byte_size": 13227300,
+      "sha256": "5705dbc4f32faa924919fd533962c931e92462d72dab5183610eb68adeecac03",
+      "fixity_verified_at": "2026-07-30T07:54:23-06:00",
+      "container_member": false
+    }
+  ],
+  "acquisition_event_ref": "tos.event.acquisition.zur-genealogie-der-moral.naumann-1892-second.wikimedia-commons-unc-scan-pdf.2026-07-30",
+  "rights_ref": "ToS/source-witnesses/works/friedrich-nietzsche/zur-genealogie-der-moral/expressions/de-naumann-1892-second/editions/leipzig-c-g-naumann-1892-second-edition/items/wikimedia-commons-unc-scan-pdf/rights.json",
+  "provenance_ref": "ToS/source-witnesses/works/friedrich-nietzsche/zur-genealogie-der-moral/expressions/de-naumann-1892-second/editions/leipzig-c-g-naumann-1892-second-edition/items/wikimedia-commons-unc-scan-pdf/provenance.jsonl",
+  "forensic_report_ref": "ToS/source-witnesses/works/friedrich-nietzsche/zur-genealogie-der-moral/expressions/de-naumann-1892-second/editions/leipzig-c-g-naumann-1892-second-edition/items/wikimedia-commons-unc-scan-pdf/forensic-report.md",
+  "resource_inventory_ref": "ToS/source-witnesses/works/friedrich-nietzsche/zur-genealogie-der-moral/expressions/de-naumann-1892-second/editions/leipzig-c-g-naumann-1892-second-edition/items/wikimedia-commons-unc-scan-pdf/resource-inventory.json",
+  "source_record_refs": [
+    "ToS/source-witnesses/works/friedrich-nietzsche/zur-genealogie-der-moral/expressions/de-naumann-1892-second/editions/leipzig-c-g-naumann-1892-second-edition/edition.json",
+    "ToS/source-witnesses/works/friedrich-nietzsche/zur-genealogie-der-moral/expressions/de-naumann-1892-second/editions/leipzig-c-g-naumann-1892-second-edition/items/wikimedia-commons-unc-scan-pdf/source-metadata-snapshot.json",
+    "https://commons.wikimedia.org/wiki/File:Zur_Genealogie_der_Moral_-_eine_Streitschrift_(IA_zurgenealogieder00niet).pdf",
+    "https://archive.org/details/zurgenealogieder00niet"
+  ],
+  "visibility": "local_only",
+  "manifest_version": 1,
+  "supersedes_manifest_ref": null
+}

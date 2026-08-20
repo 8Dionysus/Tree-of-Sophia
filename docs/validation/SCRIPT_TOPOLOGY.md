@@ -69,6 +69,116 @@ companions, catalog parity, and any locally present payload bytes. Neither tool
 can certify bibliographic truth, OCR quality, rights clearance, translation,
 semantics, or human acceptance.
 
+The Antonovsky 2007/1911 collation builder is an explicit-local source
+projection route over one previously preserved Workbench observation and one
+existing 1911 private layer. It writes source-bearing and reconstructive detail
+only to ignored mode-`0600` owner storage, while Git receives text-free
+anchor/layer/unit/collation/provenance records. The release-safe source
+validator checks their schema, selector, digest, rights, metric, provenance,
+and non-promotion closure without requiring either private witness. This route
+cannot convert an observation into review or gold, or surface similarity into
+preferred reading, textual equivalence, genealogy, derivation, translation,
+semantics, graph truth, canon, or publication authority.
+
+The authored-canon evidence-bridge builder is another explicit-local source
+route, but it reconciles two histories rather than two Editions. It extracts
+the complete DTA `Za-I-Vorrede-1` section, preserves raw and declared
+comparison-normalized text plus operations only in ignored mode-`0600` owner
+storage, and writes text-free exact-source records alongside a digest-bound
+inventory of the existing authored route. Release validation checks both
+reciprocal segmentations, 12/12 ordered normalized matches, authored witness
+roles, 92 node and 125 relation closure, legacy review bindings, provenance,
+and all zero-authority effects without requiring private text. It neither
+rewrites canon nor treats a route-local source/translation role or historical
+review note as modern philological, translation, semantic, graph, or human
+evidence.
+
+Explicit-local structure builders remain separate from that release-safe
+validator. The Mysl transfer-target builder reads one exact ignored PDF only
+when given a payload root, preserves independently resetting *Genealogie* and
+*Antichrist* number series, and writes text-free proposed anchors and target-only
+crosswalks. Release validation checks their tracked schemas, digests, frozen
+transfer-frame closure, and zero-authority gates without requiring the book.
+
+The German transfer-source builder follows the same split while preserving a
+more demanding witness boundary: *Genealogie* uses one exact local PDF, whereas
+*Antichrist* binds a Commons DjVu address witness to a separate Internet
+Archive DjVuXML navigation Item through a bounded two-page relation. Its
+tracked outputs contain 140 proposed source addresses and no prose. A second,
+payload-free builder intersects only `series:unit` keys and composes twenty
+possible German structural routes for all twelve frozen candidate pages. The
+release validator proves inventory, rights, anchor, digest, provenance, label,
+and route closure; it explicitly cannot prove accepted text, exact passage
+ends, source-target passage alignment, translation, eligibility, gold,
+semantics, canon, or human judgment.
+
+The transfer target-passage builder is the next deliberately local-only layer.
+It keeps the twenty frozen pages and thirty-five conservative routes unchanged,
+then slices each expected target numbered unit from its label to the next
+same-series label in the exact Mysl PDF bbox layer. Thirty-five private mode-0600
+files stay ignored; tracked geometry, counts, digests, anchors, and provenance
+retain thirty-two real page intersections and three nonintersection negatives.
+Its release validator proves that closure without reading private text. Layer
+exactness is not diplomatic or accepted Russian, source-passage evidence,
+alignment, target gold, eligibility, semantics, canon, or human judgment.
+
+The companion transfer source-passage builder returns to the exact German
+layers and materializes all thirty-five private mode-0600 candidates.
+Twenty-nine use one named ABBYY, DjVuXML, or PDF-bbox layer; four use an exact
+source-visible JP2 marker bound through same-Item scandata to the first
+following DjVuXML line; two use an embedded same-PDF image-mask marker bound to
+the first following Poppler bbox record. Tracked data contains geometry,
+digests, witness relations, counts, anchors, and no source strings. The
+validator fixes both visible-marker mechanisms and separately preserves the
+Antichrist Commons-address to Internet-Archive-navigation two-page relation as
+navigation only, with no textual-identity claim.
+
+The tracked-only readiness builder then joins source and target candidate IDs
+without reading private content. It records thirty-five dual mechanically
+available routes, the target's thirty-two intersections and three
+nonintersections, and at least one dual intersecting route for each of the
+twenty frozen pages. Its validator prevents co-availability from becoming a
+bilingual passage pair. None of these builders or validators accepts German or
+Russian, aligns a source passage to a target passage, opens eligibility or
+gold, schedules human work, or creates semantic, publication, or canon
+authority.
+
+The catalog/validator pair also owns exact mechanical closure for the three
+authored identity-ladder claim files under `ToS/source-witnesses/relations/`.
+It must reconcile Work→Expression, Expression→Edition, and Edition→Item claim
+IDs against their record fields and item manifests, and must reject any attempt
+to treat bibliographic embodiment as textual equivalence.
+It also closes each currently declared Work chronology reference against the
+dedicated first-publication object contract and digest-bound batch event. This
+checks ordering mechanics only; it cannot certify a universal Work date,
+historical completeness, or accepted chronology.
+
+Catalog v3 additionally projects the bounded Place and Organization families
+used by Edition-owned `provision_activity` claims. The validator keeps the
+literal statement, activity kind, role-specific participants, temporal facet,
+normalized identity, Edition reference, evidence, and provenance in exact
+closure. This mechanics cannot promote an authority match, equate a publisher
+with a printer or successor, or turn a statement date into public release.
+
+The source-witness bibliographic graph pair is a downstream generated route,
+not a second source validator. Its builder and validator read the public-safe
+catalog plus exact claim, evidence, anchor, and provenance records, keep every
+assertion reified as a claim node, and reject any edge that loses source return.
+They do not emit direct subject-object truth edges or own graph runtime
+behavior.
+
+Normalized provision participants are emitted only as claim-originating
+`has_normalized_place` or `has_normalized_agent` edges. Querying one of those
+identities remains source-return navigation through the reified claim, not an
+Edition-to-identity fact assertion.
+
+The companion bibliographic graph query script is a deterministic, read-only
+stdout reader. It verifies a complete source-backed rebuild before applying
+explicit AND selectors and returns the exact source claim plus complete trace
+bundle. It rejects selector-free requests and silent truncation; it does not
+write query artifacts or create review, relation, runtime, or service
+authority.
+
 The current mechanics-local homes are:
 
 - `mechanics/agon/parts/threshold-registry/`, where the part owns its builder,

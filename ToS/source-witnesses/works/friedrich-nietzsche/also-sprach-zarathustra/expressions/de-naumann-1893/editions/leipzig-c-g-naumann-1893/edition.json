@@ -6,16 +6,27 @@
   "variant_labels": [],
   "identity_status": "provisional",
   "source_refs": [
-    "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/de-naumann-1893/editions/leipzig-c-g-naumann-1893/items/internet-archive-cornell-auto-epub/forensic-report.md"
+    "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/de-naumann-1893/editions/leipzig-c-g-naumann-1893/items/internet-archive-cornell-auto-epub/forensic-report.md",
+    "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/de-naumann-1893/editions/leipzig-c-g-naumann-1893/items/internet-archive-image-container-pdf/forensic-report.md",
+    "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/de-naumann-1893/structure/provision-statements/anchors.jsonl",
+    "ToS/research-packets/foundation-laboratory-2026-07/NAUMANN_1893_PROVISION_IDENTITY_RESEARCH.md"
   ],
   "external_identifiers": [],
   "same_as_posture": "no_equivalence_claim",
   "embodies_expression_refs": [
     "tos.expression.friedrich-nietzsche.also-sprach-zarathustra.de-naumann-1893"
   ],
-  "edition_statement": null,
+  "edition_statement": "Zweite Auflage, mit Portrait und Brieffacsimile des Autors.",
   "publication_claim_refs": [],
-  "notes": "Place, publisher, and year are visible in the EPUB image resource; full bibliographic reconciliation remains unreviewed.",
-  "record_version": 1,
+  "provision_activity_claim_refs": [
+    "tos.claim.edition.also-sprach-zarathustra.naumann-1893.provision-publication",
+    "tos.claim.edition.also-sprach-zarathustra.naumann-1893.provision-manufacture"
+  ],
+  "exemplar_claim_refs": [
+    "tos.claim.topology.edition-item.friedrich-nietzsche.also-sprach-zarathustra.leipzig-c-g-naumann-1893.exemplified-by.internet-archive-cornell-auto-epub",
+    "tos.claim.topology.edition-item.friedrich-nietzsche.also-sprach-zarathustra.leipzig-c-g-naumann-1893.exemplified-by.internet-archive-image-container-pdf"
+  ],
+  "notes": "The exact fixity-verified PDF title page supplies the Edition statement and the combined literal Druck und Verlag von C. G. Naumann, Leipzig, 1893. Publication and manufacture are preserved as separate unreviewed claims with role-specific provisional Organization identities. The statement does not establish one universal Work-level edition ordinal, exact printing or release chronology, accepted German, textual equivalence, or rights clearance.",
+  "record_version": 3,
   "supersedes_ref": null
 }

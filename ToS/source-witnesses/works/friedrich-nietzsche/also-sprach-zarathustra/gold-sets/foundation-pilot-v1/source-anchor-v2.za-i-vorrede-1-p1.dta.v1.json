@@ -1,0 +1,52 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/source-anchor-v2.schema.json",
+  "anchor_id": "tos.anchor.za-i-vorrede-1.dta-part-1-p1.sid-1aa3b374f096252babaec253bb170107",
+  "anchor_version": 1,
+  "passage_id": "tos.passage.za-i-vorrede-1.dta-part-1-p1.sid-f7722a33d49ee51f412c10f1b8b21313",
+  "provenance_event_ref": "tos.event.native-extraction.za-i-vorrede-1.dta-part-1-p1.2026-08-12",
+  "publication_boundary": {
+    "public_payload_expected": false,
+    "record_storage": "tracked",
+    "source_content_visibility": "local_only",
+    "source_text_in_record": false
+  },
+  "resolution_status": "mechanically_resolved",
+  "review_ref": null,
+  "review_status": "unreviewed",
+  "schema_version": "tos_source_anchor_v2",
+  "selector_method": {
+    "configuration_digest": "ff9343b8af24828b91a87ee9cbbd3d9de7326246942177e5282de37140fa900e",
+    "configuration_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/za-i-vorrede-1-source-text-foundation.plan.v1.json",
+    "maker_type": "software",
+    "method": "tei-lb-aware-structural-extraction",
+    "version": "1"
+  },
+  "selector_payload": {
+    "expression": {
+      "mode": "single",
+      "selector": {
+        "selector": {
+          "conforms_to": "https://www.w3.org/TR/1999/REC-xpath-19991116/",
+          "scheme": "xpath-1.0-local-name",
+          "type": "structural",
+          "value": "/*[local-name()='TEI']/*[local-name()='text']/*[local-name()='body']/*[local-name()='div'][1]/*[local-name()='div'][1]/*[local-name()='p'][1]"
+        },
+        "state": {
+          "character_normalization": "none",
+          "media_type": "application/xml",
+          "representation_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/de-schmeitzner-1883-part-1/editions/chemnitz-schmeitzner-1883-part-1/items/dta-sbb-corrected-tei-p5/payload/nietzsche_zarathustra01_1883.tei.xml",
+          "representation_sha256": "d3fa5f8af39d87c8f0ede7a0b52b26da0c57e73125d3b0bd2a836b80eae24a4b",
+          "state_type": "digest_state"
+        }
+      }
+    },
+    "kind": "selector_expression"
+  },
+  "supersedes_anchor_ref": null,
+  "target": {
+    "file_id": "tos.file.sha256.d3fa5f8af39d87c8f0ede7a0b52b26da0c57e73125d3b0bd2a836b80eae24a4b",
+    "file_sha256": "d3fa5f8af39d87c8f0ede7a0b52b26da0c57e73125d3b0bd2a836b80eae24a4b",
+    "item_id": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-schmeitzner-1883-part-1.dta-sbb-corrected-tei-p5",
+    "media_type": "application/xml"
+  }
+}

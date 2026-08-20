@@ -1,0 +1,28 @@
+{
+  "schema_version": "tos_corpus_record_v1",
+  "record_type": "collection",
+  "record_id": "tos.collection.friedrich-nietzsche.nietzsches-werke-erste-abtheilung-band-8-naumann-1906",
+  "preferred_label": "Nietzsche's Werke. Erste Abtheilung. Band VIII. Leipzig: C. G. Naumann, 1906",
+  "variant_labels": [
+    {
+      "value": "Nietzsche's Werke, VIII",
+      "language": "de",
+      "source_ref": "https://commons.wikimedia.org/wiki/File:Nietzsche%27s_Werke,_VIII.djvu",
+      "status": "verified"
+    }
+  ],
+  "identity_status": "verified",
+  "source_refs": [
+    "ToS/source-witnesses/collections/friedrich-nietzsche/nietzsches-werke-erste-abtheilung-band-viii-naumann-1906/editions/leipzig-c-g-naumann-1906/items/wikimedia-commons-stanford-scan-djvu/source-metadata-snapshot.json",
+    "ToS/source-witnesses/discovery/runs/der-antichrist-naumann-1906-open-scan-witness.2026-07-30.v1.json",
+    "https://commons.wikimedia.org/wiki/File:Nietzsche%27s_Werke,_VIII.djvu"
+  ],
+  "external_identifiers": [],
+  "same_as_posture": "no_equivalence_claim",
+  "membership_claim_refs": [
+    "tos.claim.collection.nietzsches-werke-band-8-naumann-1906.contains-der-antichrist"
+  ],
+  "notes": "Aggregate historical publication. The current boundary map deliberately represents only Der Antichrist, the member needed by this transfer step, and records the remaining page ranges as unrepresented rather than manufacturing identities or duplicating the item under contained works. Other visible contents remain discoverable from the source metadata but unmodeled here.",
+  "record_version": 1,
+  "supersedes_ref": null
+}

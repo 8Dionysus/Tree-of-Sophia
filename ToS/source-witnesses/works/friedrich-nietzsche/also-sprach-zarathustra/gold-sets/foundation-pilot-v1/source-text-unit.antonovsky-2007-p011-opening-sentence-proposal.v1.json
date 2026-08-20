@@ -1,0 +1,273 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/source-text-unit-packet-v1.schema.json",
+  "anchors": [
+    {
+      "anchor_ref": "tos.anchor.antonovsky-2007-p011-scope.sid-a77ac5f9e922918ee66c4a24c86fd95f",
+      "anchor_role": "scope",
+      "exact_sha256": "e38271c52b23dc46c2c3826b609b4cae5abeca4bea5bb075cfc14a631c8b45b2",
+      "ordinal": 1,
+      "selector": {
+        "end": 1503,
+        "interval": "half_open",
+        "position_unit": "unicode_code_point",
+        "start": 0,
+        "type": "text_position"
+      },
+      "source_return": {
+        "locator_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/local-content/witness-text-collation/antonovsky-2007-1911-opening-sentence/antonovsky-2007-p011.human-observation.txt",
+        "required": true
+      },
+      "text_layer_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/local-content/witness-text-collation/antonovsky-2007-1911-opening-sentence/antonovsky-2007-p011.human-observation.txt",
+      "text_layer_sha256": "e38271c52b23dc46c2c3826b609b4cae5abeca4bea5bb075cfc14a631c8b45b2"
+    },
+    {
+      "anchor_ref": "tos.anchor.antonovsky-2007-p011-heading.sid-28a319a6a2884c0a970e37aea36fe4ba",
+      "anchor_role": "gap",
+      "exact_sha256": "7b68eab0fe39cb6828f3dc2db48d0d4e00c54f0a0fb7041fb429a60129f53e34",
+      "ordinal": 2,
+      "selector": {
+        "end": 65,
+        "interval": "half_open",
+        "position_unit": "unicode_code_point",
+        "start": 0,
+        "type": "text_position"
+      },
+      "source_return": {
+        "locator_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/local-content/witness-text-collation/antonovsky-2007-1911-opening-sentence/antonovsky-2007-p011.human-observation.txt",
+        "required": true
+      },
+      "text_layer_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/local-content/witness-text-collation/antonovsky-2007-1911-opening-sentence/antonovsky-2007-p011.human-observation.txt",
+      "text_layer_sha256": "e38271c52b23dc46c2c3826b609b4cae5abeca4bea5bb075cfc14a631c8b45b2"
+    },
+    {
+      "anchor_ref": "tos.anchor.antonovsky-2007-p011-interstitial.sid-d72af5b9e4e4b7f7f5e01d5c3a9e7759",
+      "anchor_role": "whitespace",
+      "exact_sha256": "75a11da44c802486bc6f65640aa48a730f0f684c5c07a42ba3cd1735eb3fb070",
+      "ordinal": 3,
+      "selector": {
+        "end": 67,
+        "interval": "half_open",
+        "position_unit": "unicode_code_point",
+        "start": 65,
+        "type": "text_position"
+      },
+      "source_return": {
+        "locator_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/local-content/witness-text-collation/antonovsky-2007-1911-opening-sentence/antonovsky-2007-p011.human-observation.txt",
+        "required": true
+      },
+      "text_layer_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/local-content/witness-text-collation/antonovsky-2007-1911-opening-sentence/antonovsky-2007-p011.human-observation.txt",
+      "text_layer_sha256": "e38271c52b23dc46c2c3826b609b4cae5abeca4bea5bb075cfc14a631c8b45b2"
+    },
+    {
+      "anchor_ref": "tos.anchor.antonovsky-2007-p011-opening-sentence.sid-f57f5a26e04d54f6f7ff641ef77c6078",
+      "anchor_role": "content",
+      "exact_sha256": "feb753bc7821c4c67e18fca1769f234ec4986162f37fea34491ccfd93feb83b3",
+      "ordinal": 4,
+      "selector": {
+        "end": 168,
+        "interval": "half_open",
+        "position_unit": "unicode_code_point",
+        "start": 67,
+        "type": "text_position"
+      },
+      "source_return": {
+        "locator_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/local-content/witness-text-collation/antonovsky-2007-1911-opening-sentence/antonovsky-2007-p011.human-observation.txt",
+        "required": true
+      },
+      "text_layer_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/local-content/witness-text-collation/antonovsky-2007-1911-opening-sentence/antonovsky-2007-p011.human-observation.txt",
+      "text_layer_sha256": "e38271c52b23dc46c2c3826b609b4cae5abeca4bea5bb075cfc14a631c8b45b2"
+    },
+    {
+      "anchor_ref": "tos.anchor.antonovsky-2007-p011-remainder.sid-a2dd5cb0d1688ee2233702101a19b49c",
+      "anchor_role": "gap",
+      "exact_sha256": "4d36bbc39635b7c2f5c36d02426c1f8e87343f8c07dc799bf37918a826080dcc",
+      "ordinal": 5,
+      "selector": {
+        "end": 1503,
+        "interval": "half_open",
+        "position_unit": "unicode_code_point",
+        "start": 168,
+        "type": "text_position"
+      },
+      "source_return": {
+        "locator_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/local-content/witness-text-collation/antonovsky-2007-1911-opening-sentence/antonovsky-2007-p011.human-observation.txt",
+        "required": true
+      },
+      "text_layer_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/local-content/witness-text-collation/antonovsky-2007-1911-opening-sentence/antonovsky-2007-p011.human-observation.txt",
+      "text_layer_sha256": "e38271c52b23dc46c2c3826b609b4cae5abeca4bea5bb075cfc14a631c8b45b2"
+    }
+  ],
+  "authority_boundary": {
+    "graph_role": "relation",
+    "legacy_bulk_migration_authorized": false,
+    "model_token_is_not_linguistic_token": true,
+    "projection_is_owner_truth": false,
+    "segmentation_is_method_result_not_source_truth": true,
+    "source_role": "authority",
+    "source_unit_is_not_lexeme_sign_or_concept": true,
+    "tree_role": "orientation",
+    "validators_prove_mechanics_not_truth": true
+  },
+  "content_posture": "source_bound",
+  "packet_id": "tos.source-text-unit-packet.sid-3826772a24244758930a61fec02ca565",
+  "packet_version": 1,
+  "projections": [],
+  "reviews": [],
+  "rights_and_visibility": {
+    "effective_visibility": "local_only",
+    "inheritance_policy": "most-restrictive-source-packet-and-destination-wins",
+    "packet_visibility": "public_metadata_only",
+    "private_source_used": true,
+    "publication_authorized": false,
+    "rights_record_refs": [
+      "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-antonovsky-cultural-revolution/editions/moscow-cultural-revolution-2007-volume-4/items/operator-pdf/rights.json"
+    ],
+    "source_visibility": "local_only"
+  },
+  "schema_version": "tos_source_text_unit_packet_v1",
+  "schemes": [
+    {
+      "analysis_role": "orthographic",
+      "authority_limit": {
+        "algorithmic_output_is_linguistic_truth": false,
+        "algorithmic_output_is_source_truth": false,
+        "model_subword_is_lexeme": false,
+        "text_mutation_allowed": false,
+        "unit_identity_is_semantic_identity": false
+      },
+      "boundary_basis": "rule_based",
+      "identity_policy": "opaque-id-independent-of-name-label-text-ordinal-offset-and-current-analysis",
+      "method": {
+        "agent_ref": "software:tos-antonovsky-2007-1911-collation-builder",
+        "configuration_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/antonovsky-2007-1911-opening-sentence-collation.plan.v1.json",
+        "locale": "ru",
+        "made_at": "2026-08-12T10:19:48Z",
+        "maker_kind": "software",
+        "method_name": "first-non-whitespace-after-first-full-stop-through-second-full-stop",
+        "method_version": "1",
+        "model_ref": null,
+        "output_posture": "method_result_not_source_or_linguistic_truth",
+        "provenance_event_ref": "tos.event.alignment.antonovsky-2007-1911-opening-sentence-collation.2026-08-12",
+        "software_refs": [
+          "scripts/build_antonovsky_2007_1911_collation.py"
+        ],
+        "tailoring_ref": null,
+        "unicode_revision": null,
+        "unicode_version": "16.0.0"
+      },
+      "policies": {
+        "hyphenation": "preserve_source",
+        "line_break": "declared_excluded",
+        "normalization": "no-text-mutation-separate-successor-layer",
+        "overlap": "forbid",
+        "punctuation": "included_in_neighbor",
+        "unreported_gaps_allowed": false,
+        "whitespace": "declared_excluded"
+      },
+      "scheme_id": "tos.text-unit-scheme.sid-e9b0cbf3640e91b3f0fbdd6c5f25c23a",
+      "scheme_name": "ru first-prose-sentence boundary proposal",
+      "scheme_version": 1,
+      "supersedes_scheme_ref": null,
+      "unit_kinds": [
+        "sentence"
+      ]
+    }
+  ],
+  "segmentations": [
+    {
+      "competing_segmentation_refs": [],
+      "coverage": {
+        "coverage_posture": "declared_partial",
+        "excluded_anchor_refs": [
+          "tos.anchor.antonovsky-2007-p011-heading.sid-28a319a6a2884c0a970e37aea36fe4ba",
+          "tos.anchor.antonovsky-2007-p011-interstitial.sid-d72af5b9e4e4b7f7f5e01d5c3a9e7759",
+          "tos.anchor.antonovsky-2007-p011-remainder.sid-a2dd5cb0d1688ee2233702101a19b49c"
+        ],
+        "overlap_requires_declaration": true,
+        "scope_anchor_ref": "tos.anchor.antonovsky-2007-p011-scope.sid-a77ac5f9e922918ee66c4a24c86fd95f",
+        "source_reconstruction_required": true,
+        "unreported_gaps_allowed": false
+      },
+      "declared_uses": [
+        "source_observation"
+      ],
+      "identity_policy": "opaque-id-independent-of-scheme-name-unit-order-text-and-current-boundaries",
+      "linguistic_authority": false,
+      "maker": {
+        "agent_ref": "software:tos-antonovsky-2007-1911-collation-builder",
+        "configuration_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/antonovsky-2007-1911-opening-sentence-collation.plan.v1.json",
+        "locale": "ru",
+        "made_at": "2026-08-12T10:19:48Z",
+        "maker_kind": "software",
+        "method_name": "first-non-whitespace-after-first-full-stop-through-second-full-stop",
+        "method_version": "1",
+        "model_ref": null,
+        "output_posture": "method_result_not_source_or_linguistic_truth",
+        "provenance_event_ref": "tos.event.alignment.antonovsky-2007-1911-opening-sentence-collation.2026-08-12",
+        "software_refs": [
+          "scripts/build_antonovsky_2007_1911_collation.py"
+        ],
+        "tailoring_ref": null,
+        "unicode_revision": null,
+        "unicode_version": "16.0.0"
+      },
+      "ordered_unit_refs": [
+        "tos.text-unit.sid-b658f82e4b1f9b8a6657165d4fcd2a57"
+      ],
+      "review_refs": [],
+      "scheme_ref": "tos.text-unit-scheme.sid-e9b0cbf3640e91b3f0fbdd6c5f25c23a",
+      "segmentation_id": "tos.text-segmentation.sid-bbd26c6e4bcce751f7f4e4330c5a568b",
+      "segmentation_version": 1,
+      "semantic_authority": false,
+      "source_text_authority": false,
+      "status": "proposed",
+      "status_reason": "Only one first-prose-sentence candidate is selected; heading, interstitial whitespace, and exact remainder are digest-bound as excluded coverage. No completion attestation or linguistic review exists.",
+      "supersedes_segmentation_ref": null
+    }
+  ],
+  "source_layer": {
+    "immutable": true,
+    "interval": "half_open",
+    "language": "ru",
+    "media_type": "text/plain; charset=utf-8",
+    "position_unit": "unicode_code_point",
+    "publication_authorized": false,
+    "text_layer_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/local-content/witness-text-collation/antonovsky-2007-1911-opening-sentence/antonovsky-2007-p011.human-observation.txt",
+    "text_layer_sha256": "e38271c52b23dc46c2c3826b609b4cae5abeca4bea5bb075cfc14a631c8b45b2",
+    "unicode_form": "source_preserved",
+    "visibility": "local_only"
+  },
+  "source_scope": {
+    "edition_ref": "tos.edition.friedrich-nietzsche.also-sprach-zarathustra.moscow-cultural-revolution-2007-volume-4",
+    "expression_ref": "tos.expression.friedrich-nietzsche.also-sprach-zarathustra.ru-antonovsky-cultural-revolution",
+    "file_ref": "tos.file.sha256.49614015865f8c65a68746b1a6dc9a8b7f036d817b2e04b1f3b94fec8ef7b0c2",
+    "file_sha256": "49614015865f8c65a68746b1a6dc9a8b7f036d817b2e04b1f3b94fec8ef7b0c2",
+    "item_ref": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.ru-antonovsky-cultural-revolution-2007.operator-pdf",
+    "work_ref": "tos.work.friedrich-nietzsche.also-sprach-zarathustra"
+  },
+  "supersedes_packet_ref": null,
+  "units": [
+    {
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability",
+        "value": 0.5
+      },
+      "continuity": "contiguous",
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "ordered_anchor_refs": [
+        "tos.anchor.antonovsky-2007-p011-opening-sentence.sid-f57f5a26e04d54f6f7ff641ef77c6078"
+      ],
+      "ordered_child_unit_refs": [],
+      "parent_unit_refs": [],
+      "semantic_promotion": false,
+      "source_text_mutated": false,
+      "status_reason": "A deterministic punctuation-and-whitespace rule selects the first prose span after the page heading and section marker. The boundary and underlying unattested observation remain unreviewed.",
+      "supersedes_unit_ref": null,
+      "surface_posture": "source_bearing",
+      "unit_id": "tos.text-unit.sid-b658f82e4b1f9b8a6657165d4fcd2a57",
+      "unit_kind": "sentence",
+      "unit_version": 1
+    }
+  ]
+}

@@ -49,10 +49,283 @@ and append-only review history. An occurrence can be stable at that address.
 Its lemma, etymology, translation, sense, motif, concept, and relations remain
 versioned claims that can deepen without losing the source beneath them.
 
+Not every witness is a book. Physical artifacts use a parallel
+provider-independent artifact spine, while modern scholarly composites use
+their own composition identity and retain every member and provider
+representation as a separate layer. A composite Q-number may stabilize
+documentary comparison without turning the reconstruction into a physical
+object, ancient original, accepted reading, fixed sign meaning, or semantic
+fact.
+
+Book-like backlog anchors keep the bibliographic ladder intact. When the named
+source is one work inside an aggregate critical volume, a planting identifies
+the exact `Work`, its `Collection` container, and the evidence-bearing
+`contains_work` claim; it does not flatten the whole volume into one work or
+pretend that an accessible chapter is the complete book.
+
+When the named source is a standalone monograph, the planting points directly
+to its `Work` and leaves unsupported Expression, Edition, Item, and file rungs
+open. The filesystem must not invent a one-member Collection or a complete
+source witness merely because publication metadata is available.
+
+A backlog label may name a thematically or historically recoverable subset
+inside that monograph. The planting keeps the label and its exact evidence as
+scope while still binding the real parent `Work`; it does not manufacture a
+second Work. Subset membership, count, page or artifact coordinates, and
+interpretation remain separate claims until source-visible evidence supports
+them. The ATU 5 numerical-only layer exercises this boundary: Nissen's 2024
+publication history proves the omission/recovery class, not its complete
+membership or numerical semantics.
+
+A durable address is not a naked offset. Its persistent anchor ID, immutable
+target file, exact representation state, selector semantics, mechanical
+resolution, human review, and publication posture stay separate. The additive
+source-anchor v2 contract now proves those distinctions on invented public
+JSON, Unicode text, and container/XHTML fixtures only; all current corpus
+anchors remain v1 until one real source question justifies a bounded successor.
+
+Text derived from those bytes is likewise a chain of immutable, role-bearing
+representations rather than one editable field. The additive source-text-layer
+contract keeps raw OCR, a diplomatic candidate, reviewed source text, and
+explicit normalization distinct; every transition returns to an exact v2
+source anchor or predecessor digest and replays its declared edits. Its public
+synthetic A/B/C proves mechanics only: no layer is reviewed, accepted for
+translation or semantics, or suitable for publication; rights records and
+publication-authority refs remain explicit and empty. No current corpus record
+is migrated.
+
+One real bounded successor now exercises that route without widening its
+authority: the exact DTA Part-I Item yields one private, mode-`0600`
+`Za-I-Vorrede-1` paragraph through a declared structural extraction. Its
+tracked anchor, layer, layout-unit packet, and provenance receipt expose only
+identity, XPath, digests, ranges, rights posture, and closed gates. Seven
+source-observed print lines are addressable, but no accepted German, sentence
+or word boundary, translation input, semantic claim, publication route, or
+human backlog is created.
+
+One independent Antonovsky/Prometey 1911 successor now gives the same opening
+location a target-side mechanical floor. The exact page-6 region yields a
+private mode-`0600` 633-byte embedded-text layer, a private bbox byproduct,
+and text-free anchor, layer, six-line/five-line-break unit, and provenance
+records. A direct source-visible check preserves an unresolved PDF-text versus
+print-spacing conflict instead of correcting it. This is neither accepted
+Russian nor an accepted bilingual pair: no translation truth, semantic
+relation, publication route, canon effect, or human backlog follows from
+co-location.
+
+One later, question-scoped successor now tests the missing relation without
+promoting it. It selects only the exact first full-stop-delimited span of each
+private paragraph, records source-returnable half-open ranges and digests in
+two proposed sentence-unit packets, and emits one software-made, one-to-one
+translation-alignment claim with status `proposed`. The exact text remains
+local; the Russian spacing uncertainty remains unresolved; tokenization,
+review, projection, accepted German/Russian, translation fidelity, lexical
+equivalence, semantics, graph/canon effect, and publication authority all
+remain absent.
+
+Division of one frozen layer is a separate additive identity problem. The
+source-text-unit v1 contract gives opaque identities to the scheme,
+segmentation, and units while keeping physical layout, source-observed
+structure, orthographic or linguistic analysis, and model-input pieces apart.
+Every source-bearing unit returns through ordered exact anchors; coverage,
+gaps, overlap, punctuation, whitespace, line breaks, and hyphenation stay
+explicit. Competing segmentations remain reciprocal alternatives, and model
+subwords cannot silently become words, lexemes, signs, concepts, or graph
+facts. Its public-synthetic A/B/C proves range, digest, coverage, competition,
+and acceptance-gate mechanics only. The historical
+`tos-local-sentence-segmentation-v1` label is not reinterpreted or migrated.
+
+The living authored Zarathustra route now returns to this spine through a
+non-migrating bridge. The complete DTA `Za-I-Vorrede-1` section retains its
+twelve TEI paragraphs while the existing authored German witness retains its
+twelve different segment boundaries; all 12/12 authored segments match the
+complete declared-normalized source sequence. Exact text and comparison
+operations remain ignored and mode `0600`; Git keeps selectors, digests, and
+the current 92-node/125-relation inventory. Route-local roles and historical
+review notes remain visible but do not become accepted German, accepted
+translation, modern human evidence, semantic or graph truth, canon revision,
+publication, transfer, or bulk-migration authority.
+
+Every materialized transformation around those layers also receives an
+append-only execution receipt. The additive provenance-event v2 contract binds
+exact inputs, outputs, diagnostic byproducts, explicit derivation edges,
+command/configuration/runtime or model details, responsibility, manual changes,
+measurements, terminal state, rights posture, review, and replay limits. A
+successful run must name an authoritative output; a failed run must not promote
+one. Fixity and replay specification remain distinct from signature,
+source-visible review, content truth, publication authority, and canon. The
+legacy v1 records keep their historical meaning and are not bulk-migrated.
+
+Semantic identity above those layers is now explicit rather than hidden in a
+generic annotation body. The additive semantic-annotation v2 contract keeps
+occurrence, lexeme, lexical sense, sign, concept, claim, relation, review, and
+graph projection separate. Higher semantic IDs are opaque and independent of
+mutable labels, glosses, translations, or current concept names. Its public
+synthetic A/B/C binds exact source spans, preserves two reciprocal competing
+sign proposals without review or graph effect, and rejects a model-shaped
+promotion without real-human evidence. This proves contract mechanics only;
+it establishes no sign, concept, interpretation, graph truth, or human review,
+and it migrates no current corpus packet.
+
+Translation alignment now has the same source-first boundary. The additive
+translation-alignment v1 contract binds both sides to exact
+Work/Expression/Edition/Item/File identities, frozen text layers,
+segmentation/tokenization artifacts, and ordered anchors before recording a
+mapping claim. One-to-one, one-to-many, many-to-one, many-to-many, omission,
+addition, reorder, and unresolved states remain explicit; competing maps are
+not collapsed. Machine and model methods may propose, while acceptance
+requires a separate source-and-target-visible real-human review with declared
+language and translation competence. TEI, Web Annotation, XLIFF, TMX, and
+graph forms remain derived projections. The public-synthetic A/B/C establishes
+only fail-closed mechanics and migrates no existing translation packet.
+
 The local source payload lives in a narrowly gitignored item directory under
 `ToS/source-witnesses/`. The public repository retains catalogs, manifests,
 checksums, forensic reports, rights posture, provenance, contracts, and review
 evidence. Search and graph surfaces are rebuilt from those stronger records.
+The current identity ladder is no longer only implicit in record fields: 64
+separate, unreviewed claim packets make every declared Work→Expression,
+Expression→Edition, and Edition→Item link source-returnable without asserting
+textual equivalence.
+
+The responsibility layer now also closes one evidence-bearing `authored_by`
+claim for each of the seven current Nietzsche Works. These links come from the
+recorded documentary routes and digest-bound provenance; they are not inferred
+from author-named folders and remain model-made and unreviewed.
+
+The exact 1913 Antonovsky Expression now separately closes over one
+`translated_by` claim to the existing provisional Antonovsky Agent. Its
+evidence returns to a digest-bound whole-page anchor on PDF page 7. This does
+not expand the translator's initials into an accepted person identity, equate
+later Expressions, accept the Russian text, or assess translation quality.
+
+The same exact 1913 Edition now also demonstrates why provision identity must
+return to source surfaces rather than a convenient catalog label. Its cover
+imprint, title-page place/year, and printer line live on PDF pages 5, 7, and 8.
+Two Edition-owned claims therefore keep publication and manufacture separate,
+with one provisional Saint Petersburg Place and distinct publishing-imprint
+and printer Organizations. The title page alone does not prove the publisher,
+the printer is not promoted to publisher, and Vladimir Posse is not substituted
+for what the book displays.
+
+The 1996 Mysl translator layer now distinguishes identity resolution from the
+responsibility claims it supports. `К. А. Свасьян` and `Н. Полилов` resolve
+through independent national-library, established-editorial, and GND routes
+to Карен Араевич Свасьян (`120452367`) and Николай Николаевич Полилов
+(`1012315509`). `В. А. Флёрова` deliberately remains provisional and
+initials-only: official records corroborate the translator label but do not
+disclose a defensible full identity, and a chronologically impossible namesake
+is retained as a negative control. No responsibility claim, Expression
+identity, text, or translation judgment changes with these Agent records.
+
+The older `Ю. М. Антоновский` route now closes over a separate official
+identity chain: GND `123235553` joins the Cyrillic initials to `Julij
+Michajlovič`, translator occupation, and *Tak govoril Zaratustra*; RSL expands
+the same initials to `Юлий Михайлович Антоновский (1857-1913)`. The stable
+legacy ref `tos.agent.yuri-antonovsky` and its three existing claim objects are
+retained for lineage, while the speaking path is corrected to
+`agents/yuliy-antonovsky/` and the former `Yuri M. Antonovsky` expansion is
+rejected. This is an Agent/path correction, not accepted text or Expression
+equivalence.
+
+The Antonovsky revision lineage now also has exact institutional Edition
+endpoints for 1900, 1903, and 1907. The Lithuanian National Library identifies
+the 1900 first counted Edition and one holding. A current RSL/RNL crosswalk
+now resolves that 1900 endpoint to RSL `01003693380`, RNL Primo
+`07NLR_LMS004843721`, system number `004843721`, and three additional remote
+holdings. It preserves the unresolved LNB `[s.n.]`, `[3], XI` versus RSL/RNL
+`тип. Б.М. Вольфа`, `[4], XII` discrepancy for source-page adjudication. The
+Russian State Library identifies the 1903 `2-е изд., испр.` and four holdings.
+A current RNL crosswalk resolves that same 1903 bibliographic endpoint to Primo
+record `07NLR_LMS004843722`, system
+number `004843722`, and two additional remote shelfmarks, `129/5943` and
+`38.35.6.32`, while rejecting one undefined `TEMP` row and a generic RSL
+online-reading modal as false Item/digital-object evidence. The current RuNEB
+card identifies the 1907 third Edition while reporting that the card was
+removed or replaced.
+The current RNL Primo record now independently resolves that 1907 endpoint to
+record `07NLR_LMS004843723`, system number `004843723`, and three Russian Book
+Fund shelfmarks: `17.145.5.1`, `17.145.5.1а`, and `17.145.5.1 Б`. These remain
+remote holdings rather than ToS Items: no exact source bytes were acquired.
+An identifier-first RUSMARC return now also preserves control value
+`v19\rc\1717109` and interprets `899 |a RuMoRGB |j V 106/216` as an
+RNL-reported RSL shelfmark using official field and organization-code
+documentation. The attribution is part of the identifier scheme: the
+predicted RSL route `01003693382` remains HTTP `404`, so no current RSL public
+record, physical Item, availability, or custody claim is manufactured.
+`[s.n.]` and `тип. Б.М. Вольфа` remain unresolved catalogue statements in
+1900, while `тип. Альтшулера` and
+`тип. Ф. Вайсберга и П. Гершунина` remain typography evidence rather than
+inferred publishers. All three Expressions stay provisional and uncollated;
+the existing 1903→1900 and 1907→1903 derivation claims do not become
+equivalence.
+
+The same seven Works now carry separate first-publication chronology profiles.
+They preserve staged, private, public, author-supervised, and posthumous
+boundaries instead of collapsing composition, printing, title-page year, and
+release into one supposedly stable date. These profiles are source-returnable
+ordering claims, not accepted chronology or a complete philosophical timeline.
+
+The first Edition-level provision experiment preserves two literal Leipzig
+imprint statements while resolving one provisional Place and two distinct
+provisional historical publisher Organizations. A subsequent bounded extension
+adds the exact 1883 first part of *Also sprach Zarathustra*, one provisional
+Chemnitz Place, and the historical Schmeitzner publishing Organization. The
+next extension adds parts II and III only after each separate DTA authority
+record and an independent e-rara holding route were checked; neither claim is
+copied from part I or from repeated labels. The Organization remains distinct
+from the Person Ernst Schmeitzner. A fourth exact-Edition pass admits only the
+DTA-reported `Naumann; Leipzig; 1891` statement for part IV while retaining
+the 1885 private print, November-1890 printing, planned spring-1891 delivery,
+and March-1892 actual delivery as distinct chronology evidence. It reuses the
+provisional Leipzig Place and historical C. G. Naumann Verlag Organization,
+not the related printer or founder Person. Statement dates, printing,
+manuscript dispatch, delivery, public release, publisher, printer, and modern
+successor remain separate. Every identity and claim is model-made and
+unreviewed; the generated graph reaches normalized participants only through
+source-returnable claim nodes.
+
+A fifth provision pass uses the exact Antonovsky 1913 Item rather than an
+authority-record shortcut. It joins the cover imprint to the title-page
+place/year for publication and keeps the page-8 brothers-Linnik line in a
+separate manufacture claim. The three source addresses are proposed anchors;
+the claims and normalized identities remain model-made and unreviewed.
+
+A sixth pass returns to the fixity-verified 1893 Naumann title page. Its exact
+`Zweite Auflage` statement stays manifestation wording rather than a universal
+Work-level ordinal, while the single `Druck und Verlag` imprint opens two
+role-specific Edition claims over the same literal: publication reaches the
+provisional publisher Organization and manufacture reaches a separate
+provisional printer Organization. The following-page historical translation-
+right reservation remains evidence, not current permission or prohibition;
+the Item stays local-only and redistribution remains unauthorized.
+
+A seventh pass returns independently to the fixity-verified 1886 *Jenseits
+von Gut und Böse* Item. PDF page 3 carries one `Druck und Verlag` literal, so
+the exact Edition owns separate publication and manufacture claims resolving
+to the existing provisional GND-backed publisher and printer Organizations.
+PDF page 4's `Alle Rechte vorbehalten.` is preserved only as historical
+evidence: it supplies neither current permission nor prohibition. The Item
+remains local-only, redistribution and derivatives remain unknown, and no
+Edition statement, exact release, accepted German, human review, semantics,
+publication, or canon follows.
+
+An eighth pass tests a harder two-surface case on the fixity-verified 1892
+second edition of *Zur Genealogie der Moral*. PDF page 5 supplies `Verlag von
+C. G. Naumann` and the Edition year; PDF page 204 separately supplies `Druck
+von C. G. Naumann` without a date. Publication and manufacture therefore
+remain separate, page-returnable claims. The 1892 title-page year is not
+promoted to printing completion or public release, and the publisher and
+printer authorities remain distinct provisional normalization targets.
+
+A ninth structural pass returns to the exact local Mysl volume without adding
+its prose to Git. It preserves four independently resetting numbered series
+for *Zur Genealogie der Moral* and one for *Der Antichrist*: 140 proposed
+target starts narrow the remaining twelve frozen transfer pages to twenty
+possible target-only routes. No German parallel route is materialized, so the
+result creates no passage alignment, accepted text, translation relation,
+semantic claim, eligible transfer unit, target gold, rights clearance, or
+human task.
 
 ## Current Public Route
 
@@ -61,11 +334,20 @@ through a source-owned tiny-entry seam before any downstream export.
 
 - human route: [ToS/zarathustra/public-entry/TINY_ENTRY_ROUTE](ToS/zarathustra/public-entry/TINY_ENTRY_ROUTE.md) -> [ToS/zarathustra/prologue-1/TRILINGUAL_ENTRY](ToS/zarathustra/prologue-1/TRILINGUAL_ENTRY.md)
 - machine-facing root-entry companion: `ToS/derived-exports/root_entry_map.min.json`
+- source-returnable bibliographic claim graph:
+  `ToS/derived-exports/graph/source-witness-bibliographic-claims.min.json`
+- exact read-only claim trace route:
+  `scripts/query_source_witness_bibliographic_graph.py`
 - bounded export seam: [mechanics/boundary-bridge/parts/derived-kag-seam/docs/KAG_EXPORT](mechanics/boundary-bridge/parts/derived-kag-seam/docs/KAG_EXPORT.md)
 
-The tiny-entry seam is orientation, not a second canon. The export seam may
-serve `aoa-kag`, graph consumers, and future visualization stacks, but it does
-not become ToS authority.
+The tiny-entry seam is orientation, not a second canon. The bibliographic graph
+reifies every source claim and returns each edge to its exact claim, evidence,
+maker, provenance event, and review posture; it emits no unqualified
+subject-to-object truth edge. Its local query route verifies full source parity
+before returning the exact source JSONL object and complete trace bundle; it
+writes no state and does not accept the claim. Export seams may serve
+`aoa-kag`, graph consumers, and future visualization stacks, but they do not
+become ToS authority.
 
 ## Repository Organs
 

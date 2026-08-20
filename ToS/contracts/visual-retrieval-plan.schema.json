@@ -1,0 +1,437 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://tree-of-sophia.local/ToS/contracts/visual-retrieval-plan.schema.json",
+  "title": "Tree of Sophia frozen direct page-image retrieval plan",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "$schema",
+    "schema_version",
+    "plan_id",
+    "experiment_id",
+    "work_ref",
+    "status",
+    "frozen_at",
+    "frozen_before_challenger_outputs",
+    "query_projection",
+    "page_image_corpus",
+    "fixed_controls",
+    "challenger",
+    "metrics",
+    "human_assurance",
+    "rights_posture",
+    "result",
+    "provenance_event_ref",
+    "plan_version"
+  ],
+  "properties": {
+    "$schema": {
+      "const": "https://tree-of-sophia.local/ToS/contracts/visual-retrieval-plan.schema.json"
+    },
+    "schema_version": {
+      "const": "tos_visual_retrieval_plan_v1"
+    },
+    "plan_id": {
+      "type": "string",
+      "pattern": "^tos\\.visual-retrieval-plan\\.[a-z0-9]+(?:[.-][a-z0-9]+)*$"
+    },
+    "experiment_id": {
+      "const": "tos-visual-retrieval-foundation-v1"
+    },
+    "work_ref": {
+      "type": "string",
+      "pattern": "^tos\\.work\\.[a-z0-9]+(?:[.-][a-z0-9]+)*$"
+    },
+    "status": {
+      "enum": [
+        "frozen-awaiting-runtime-admission",
+        "ready",
+        "running",
+        "awaiting-triggered-review",
+        "closed",
+        "superseded"
+      ]
+    },
+    "frozen_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "frozen_before_challenger_outputs": {
+      "const": true
+    },
+    "query_projection": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "source_query_plan_ref",
+        "source_query_plan_sha256",
+        "query_content_ref",
+        "query_content_sha256",
+        "query_count",
+        "query_modality",
+        "target_modality",
+        "same_query_bytes_as_text_retrieval",
+        "source_to_visual_anchor_crosswalk",
+        "resolved_query_count",
+        "unresolved_query_ids",
+        "selection_after_output_forbidden"
+      ],
+      "properties": {
+        "source_query_plan_ref": {"$ref": "#/$defs/repoRef"},
+        "source_query_plan_sha256": {"$ref": "#/$defs/sha256"},
+        "query_content_ref": {"$ref": "#/$defs/repoRelativeRef"},
+        "query_content_sha256": {"$ref": "#/$defs/sha256"},
+        "query_count": {"const": 20},
+        "query_modality": {"const": "text"},
+        "target_modality": {"const": "page-image"},
+        "same_query_bytes_as_text_retrieval": {"const": true},
+        "source_to_visual_anchor_crosswalk": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "source_sample_plan_ref",
+            "source_sample_plan_sha256",
+            "visual_sample_plan_ref",
+            "visual_sample_plan_sha256",
+            "join",
+            "source_anchor_count",
+            "visual_anchor_count",
+            "one_to_one_for_frozen_queries"
+          ],
+          "properties": {
+            "source_sample_plan_ref": {"$ref": "#/$defs/repoRef"},
+            "source_sample_plan_sha256": {"$ref": "#/$defs/sha256"},
+            "visual_sample_plan_ref": {"$ref": "#/$defs/repoRef"},
+            "visual_sample_plan_sha256": {"$ref": "#/$defs/sha256"},
+            "join": {
+              "const": "retrieval anchor -> source sample_id -> visual source_sample_id -> page-image anchor"
+            },
+            "source_anchor_count": {"type": "integer", "minimum": 1},
+            "visual_anchor_count": {"type": "integer", "minimum": 1},
+            "one_to_one_for_frozen_queries": {"const": true}
+          }
+        },
+        "resolved_query_count": {"const": 20},
+        "unresolved_query_ids": {"type": "array", "maxItems": 0},
+        "selection_after_output_forbidden": {"const": true}
+      }
+    },
+    "page_image_corpus": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "visual_sample_plan_ref",
+        "visual_sample_plan_sha256",
+        "render_manifest_ref",
+        "render_artifact_ref",
+        "render_manifest_sha256",
+        "render_count",
+        "render_status",
+        "shared_render_bytes_unchanged",
+        "preprocessing",
+        "source_groups",
+        "content_location"
+      ],
+      "properties": {
+        "visual_sample_plan_ref": {"$ref": "#/$defs/repoRef"},
+        "visual_sample_plan_sha256": {"$ref": "#/$defs/sha256"},
+        "render_manifest_ref": {"$ref": "#/$defs/repoRelativeRef"},
+        "render_artifact_ref": {"$ref": "#/$defs/repoRelativeRef"},
+        "render_manifest_sha256": {"$ref": "#/$defs/sha256"},
+        "render_count": {"const": 36},
+        "render_status": {"const": "digest-frozen"},
+        "shared_render_bytes_unchanged": {"const": true},
+        "preprocessing": {
+          "const": {
+            "crop": false,
+            "deskew": false,
+            "denoise": false,
+            "threshold": false,
+            "contrast_adjustment": false
+          }
+        },
+        "source_groups": {
+          "const": [
+            "ocr-antonovsky-2007",
+            "ocr-mysl-1996",
+            "ocr-naumann-1893"
+          ]
+        },
+        "content_location": {"const": "owner-local-abyss-machine-artifact-store"}
+      }
+    },
+    "fixed_controls": {
+      "type": "array",
+      "minItems": 2,
+      "maxItems": 2,
+      "prefixItems": [
+        {
+          "$ref": "#/$defs/controlA"
+        },
+        {
+          "$ref": "#/$defs/controlB"
+        }
+      ],
+      "items": false
+    },
+    "challenger": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "label",
+        "method",
+        "model_id",
+        "source_revision",
+        "repository_last_modified",
+        "license",
+        "parameter_count",
+        "embedding_dimensions",
+        "supported_modalities",
+        "runtime_route",
+        "remote_code_posture",
+        "dry_run_selected_bytes",
+        "download_status",
+        "selection_basis",
+        "non_claims"
+      ],
+      "properties": {
+        "label": {"const": "C"},
+        "method": {"const": "direct-page-image-multimodal-embedding"},
+        "model_id": {"const": "Qwen/Qwen3-VL-Embedding-2B"},
+        "source_revision": {
+          "const": "9f2f7e710d6d81056aa5c0a4f04764fec6bb7bda"
+        },
+        "repository_last_modified": {
+          "const": "2026-04-16T08:54:25Z"
+        },
+        "license": {"const": "Apache-2.0"},
+        "parameter_count": {"const": 2127532032},
+        "embedding_dimensions": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["maximum", "selected"],
+          "properties": {
+            "maximum": {"const": 2048},
+            "selected": {"const": 2048}
+          }
+        },
+        "supported_modalities": {
+          "const": ["text", "image", "screenshot", "video", "mixed"]
+        },
+        "runtime_route": {
+          "const": "isolated-host-managed-cpu-runtime"
+        },
+        "remote_code_posture": {
+          "const": "review-and-hash-upstream-helper-before-local-execution"
+        },
+        "dry_run_selected_bytes": {
+          "const": 4266564017
+        },
+        "download_status": {
+          "enum": ["not-started", "downloaded-and-verified"]
+        },
+        "selection_basis": {
+          "type": "array",
+          "minItems": 5,
+          "uniqueItems": true,
+          "items": {"type": "string", "minLength": 1}
+        },
+        "non_claims": {
+          "const": [
+            "model-card benchmarks establish ToS quality",
+            "image relevance establishes transcription",
+            "visual retrieval output is a quotation source",
+            "model rank establishes philosophical relevance",
+            "successful execution promotes the model"
+          ]
+        }
+      }
+    },
+    "metrics": {
+      "const": [
+        "build_seconds",
+        "warm_query_seconds",
+        "whole_run_seconds",
+        "index_bytes",
+        "peak_memory_bytes",
+        "model_proposed_target_at_10_advisory",
+        "coverage_recovery_advisory",
+        "source_anchor_resolution",
+        "human_ndcg_at_10",
+        "human_hard_negative_error_rate",
+        "human_review_minutes"
+      ]
+    },
+    "human_assurance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "routine_review_scheduled",
+        "triggered_review_only",
+        "trigger_conditions",
+        "human_judgment_status",
+        "human_receipt_count",
+        "model_inspection_authority",
+        "promotion_without_human_review"
+      ],
+      "properties": {
+        "routine_review_scheduled": {"const": false},
+        "triggered_review_only": {"const": true},
+        "trigger_conditions": {
+          "const": [
+            "challenger materially changes a source-return route",
+            "method adoption is being considered",
+            "hard-negative or cross-language behavior remains ambiguous",
+            "periodic drift control is explicitly opened"
+          ]
+        },
+        "human_judgment_status": {"const": "not_started"},
+        "human_receipt_count": {"const": 0},
+        "model_inspection_authority": {"const": "advisory-nonhuman"},
+        "promotion_without_human_review": {"const": false}
+      }
+    },
+    "rights_posture": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "source_and_query_visibility",
+        "network_content_transfer_allowed",
+        "public_page_images_authorized",
+        "tracked_surface"
+      ],
+      "properties": {
+        "source_and_query_visibility": {"const": "local_only"},
+        "network_content_transfer_allowed": {"const": false},
+        "public_page_images_authorized": {"const": false},
+        "tracked_surface": {
+          "const": "plan-digests-anchor-crosswalk-method-and-noncontent-results-only"
+        }
+      }
+    },
+    "result": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "run_count",
+        "run_refs",
+        "index_refs",
+        "metric_results",
+        "human_review_receipts",
+        "winner",
+        "promotion_authorized",
+        "conclusion"
+      ],
+      "properties": {
+        "run_count": {"type": "integer", "minimum": 0},
+        "run_refs": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {"type": "string", "minLength": 1}
+        },
+        "index_refs": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {"type": "string", "minLength": 1}
+        },
+        "metric_results": {"type": "array", "items": {"type": "object"}},
+        "human_review_receipts": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {"type": "string", "minLength": 1}
+        },
+        "winner": {"enum": ["A", "B", "C", "no-winner", null]},
+        "promotion_authorized": {"const": false},
+        "conclusion": {"type": "string", "minLength": 1}
+      }
+    },
+    "provenance_event_ref": {
+      "type": "string",
+      "pattern": "^tos\\.event\\.[a-z0-9]+(?:[.-][a-z0-9]+)*$"
+    },
+    "plan_version": {"type": "integer", "minimum": 1}
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "status": {"const": "frozen-awaiting-runtime-admission"}
+        }
+      },
+      "then": {
+        "properties": {
+          "challenger": {
+            "properties": {
+              "download_status": {"const": "not-started"}
+            }
+          },
+          "result": {
+            "properties": {
+              "run_count": {"const": 0},
+              "run_refs": {"maxItems": 0},
+              "index_refs": {"maxItems": 0},
+              "metric_results": {"maxItems": 0},
+              "human_review_receipts": {"maxItems": 0},
+              "winner": {"const": null}
+            }
+          }
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "sha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "repoRef": {
+      "type": "string",
+      "pattern": "^ToS/(?!.*(?:^|/)\\.\\.(?:/|$))[^/].+$"
+    },
+    "repoRelativeRef": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "^(?![A-Za-z][A-Za-z0-9+.-]*:)(?!/)(?!.*(?:^|/)\\.\\.(?:/|$))[^\\u0000]+$"
+    },
+    "controlA": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "label",
+        "method",
+        "experiment_id",
+        "run_ref",
+        "run_receipt_sha256",
+        "reuse_posture"
+      ],
+      "properties": {
+        "label": {"const": "A"},
+        "method": {"const": "source-text-sqlite-fts5"},
+        "experiment_id": {"const": "tos-retrieval-foundation-v1"},
+        "run_ref": {"$ref": "#/$defs/repoRelativeRef"},
+        "run_receipt_sha256": {"$ref": "#/$defs/sha256"},
+        "reuse_posture": {"const": "immutable-completed-control-no-rerun"}
+      }
+    },
+    "controlB": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "label",
+        "method",
+        "experiment_id",
+        "run_ref",
+        "run_receipt_sha256",
+        "reuse_posture"
+      ],
+      "properties": {
+        "label": {"const": "B"},
+        "method": {"const": "source-text-qwen3-embedding-qdrant-reranker"},
+        "experiment_id": {"const": "tos-retrieval-foundation-v1"},
+        "run_ref": {"$ref": "#/$defs/repoRelativeRef"},
+        "run_receipt_sha256": {"$ref": "#/$defs/sha256"},
+        "reuse_posture": {"const": "immutable-completed-control-no-rerun"}
+      }
+    }
+  }
+}

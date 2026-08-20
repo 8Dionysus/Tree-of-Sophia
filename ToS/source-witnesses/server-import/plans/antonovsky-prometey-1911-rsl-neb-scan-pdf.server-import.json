@@ -1,0 +1,138 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/server-import-contract.schema.json",
+  "schema_version": "tos_server_import_contract_v1",
+  "server_import_id": "tos.server-import.antonovsky-prometey-1911-rsl-neb-scan-pdf",
+  "item_ref": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.ru-antonovsky-1911.rsl-neb-scan-pdf",
+  "manifest": {
+    "ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-antonovsky-1911/editions/saint-petersburg-prometey-1911-fourth/items/rsl-neb-scan-pdf/item.manifest.json",
+    "sha256": "6a21be945e6a566a0220c4717d03539620527dd5be15502482b88aa63a006f7f",
+    "verified": true
+  },
+  "payload_files": [
+    {
+      "file_ref": "tos.file.sha256.57518b50e24fee37b3e9c151e853c36ad34258f51a8b65b8233742d69017db69",
+      "relative_path": "payload/antonovsky-prometey-1911-rsl-neb.pdf",
+      "byte_size": 62952283,
+      "sha256": "57518b50e24fee37b3e9c151e853c36ad34258f51a8b65b8233742d69017db69",
+      "verified": true
+    }
+  ],
+  "rights_policy": {
+    "rights_record_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-antonovsky-1911/editions/saint-petersburg-prometey-1911-fourth/items/rsl-neb-scan-pdf/rights.json",
+    "rights_record_sha256": "ebf9a2e82f2dc75a43c73df998d3addc36564cdc1bcd3279630e8fc5404768a4",
+    "assessment_status": "rights-unknown",
+    "review_status": "unreviewed",
+    "jurisdictions_reviewed": [
+      "RU",
+      "US"
+    ],
+    "permission_or_license_refs": [
+      "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-antonovsky-1911/editions/saint-petersburg-prometey-1911-fourth/items/rsl-neb-scan-pdf/source-metadata-snapshot.json",
+      "ToS/research-packets/foundation-laboratory-2026-07/ANTONOVSKY_1911_RSL_RUNEB_LAYERED_RIGHTS_ASSESSMENT.md",
+      "https://rusneb.ru/user-agreement/",
+      "https://www.consultant.ru/document/cons_doc_LAW_64629/26eaf5de7ca59025f4388fe2980d3dd03dd5e775/",
+      "https://www.consultant.ru/document/cons_doc_LAW_64629/675b81f0bc9b8ecd68ea332ecfd9d1562541fb98/",
+      "https://www.consultant.ru/document/cons_doc_LAW_64629/366db9d9c7215d66ada95405f1654967f2ae5e4b/",
+      "https://www.copyright.gov/title17/92chap1.html",
+      "https://www.copyright.gov/title17/92chap1.html#104a",
+      "https://www.copyright.gov/circs/circ38b.pdf",
+      "https://www.gesetze-im-internet.de/urhg/__64.html",
+      "https://www.copyright.gov/comp3/docs/compendium.pdf"
+    ],
+    "expires_at": null,
+    "recheck_before_transfer": true
+  },
+  "access_class": "metadata-only",
+  "allowed_derivatives": {
+    "ocr": {
+      "state": "prohibited",
+      "conditions": [
+        "No server-side source processing is authorized by this metadata-only plan."
+      ]
+    },
+    "transcription": {
+      "state": "prohibited",
+      "conditions": [
+        "No source transcription is served by this plan."
+      ]
+    },
+    "page_images": {
+      "state": "prohibited",
+      "conditions": [
+        "The operator-held local scan remains off the future public site."
+      ]
+    },
+    "snippets": {
+      "state": "prohibited",
+      "conditions": [
+        "No source-text publication is authorized by this plan."
+      ]
+    },
+    "lexical_index": {
+      "state": "conditional",
+      "conditions": [
+        "Public-safe bibliographic metadata only; no source text or recoverable content."
+      ]
+    },
+    "embeddings": {
+      "state": "prohibited",
+      "conditions": [
+        "No server-side source processing is authorized by this plan."
+      ]
+    },
+    "alignments": {
+      "state": "prohibited",
+      "conditions": [
+        "No content-bearing aligned text is served by this plan."
+      ]
+    },
+    "translations": {
+      "state": "prohibited",
+      "conditions": [
+        "Local research permission does not authorize publication of a translation or source-derived text."
+      ]
+    },
+    "annotations": {
+      "state": "prohibited",
+      "conditions": [
+        "No source-bearing annotation publication is authorized by this plan."
+      ]
+    },
+    "search_projection": {
+      "state": "conditional",
+      "conditions": [
+        "Metadata-only records with no payload-derived text."
+      ]
+    },
+    "graph_projection": {
+      "state": "conditional",
+      "conditions": [
+        "Public-safe metadata and provenance only; no restricted or unreviewed source content."
+      ]
+    }
+  },
+  "payload_transfer_authorized": false,
+  "operator_transfer_approval": {
+    "approved": false,
+    "approved_by_real_human": false,
+    "approved_at": null,
+    "approval_ref": null
+  },
+  "server_import_status": "blocked-rights",
+  "publication_status": "metadata-only",
+  "server_receipt_refs": [],
+  "takedown": {
+    "public_contact_url": "https://github.com/8Dionysus/Tree-of-Sophia/issues",
+    "procedure_ref": "ToS/source-witnesses/server-import/SERVER_IMPORT_PROTOCOL.md",
+    "disable_supported": true,
+    "delete_supported": true,
+    "last_reviewed_at": "2026-08-10T12:02:55-06:00"
+  },
+  "provenance_event_refs": [
+    "tos.event.server-import-plan.antonovsky-prometey-1911-rsl-neb-scan-pdf.source-country-endpoint-correction.2026-08-10"
+  ],
+  "server_copy_is_authority": false,
+  "automatic_checkout_payload_discovery_allowed": false,
+  "contract_version": 3,
+  "supersedes_server_import_ref": "tos.server-import.antonovsky-prometey-1911-rsl-neb-scan-pdf"
+}

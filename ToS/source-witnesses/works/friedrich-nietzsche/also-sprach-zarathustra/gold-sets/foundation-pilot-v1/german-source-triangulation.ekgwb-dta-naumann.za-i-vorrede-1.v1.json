@@ -1,0 +1,184 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/german-source-triangulation.schema.json",
+  "schema_version": "tos_german_source_triangulation_v1",
+  "packet_id": "tos.german-source-triangulation.ekgwb-dta-naumann.za-i-vorrede-1.v1",
+  "status": "machine_triangulated_candidate",
+  "prepared_at": "2026-07-29T08:02:25Z",
+  "work_ref": "tos.work.friedrich-nietzsche.also-sprach-zarathustra",
+  "target": {
+    "review_unit_id": "tos-translation-source-review-v2-001",
+    "context_anchor_ref": "tos.anchor.zarathustra-translation-pilot-v1.t001",
+    "critical_locator_siglum": "Za-I-Vorrede-1",
+    "critical_locator_scope": "Zarathustra's Vorrede, section 1"
+  },
+  "bindings": {
+    "assisted_review_plan": {
+      "ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/german-assisted-source-review.v1.json",
+      "sha256": "882aaf20f81116b4d7a66ef1f8e72d8e3489c762cc5f1c42856fd06b2a837638"
+    },
+    "source_review_plan": {
+      "ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/translation-source-review-plan.v2.json",
+      "sha256": "ba04adba9787c91ffca017128db0250f5565663084ba7f60a609e227b88eaf25"
+    },
+    "metadata_critical_witness_packet": {
+      "ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/critical-edition-witness.ekgwb.za-i-vorrede-1.v1.json",
+      "sha256": "494a1a69ea9bdbd8c7038c9644d3dd1bfe6e073f22c40bdb0826f1a5207ac0d0"
+    }
+  },
+  "inputs": {
+    "ekgwb": {
+      "source_role": "critical_edition_candidate_local_copy",
+      "local_payload_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/local-content/translation/source-review/critical-edition-candidates/ekgwb/za-i/static-html-include.response.html",
+      "payload_sha256": "3ad9b3f601eccf45446c71f2758d1aa5fd70fb01cc67c81453526f1b7eeb7061",
+      "byte_size": 180138,
+      "retrieval": {
+        "official_endpoint": "http://www.nietzschesource.org/resources/scripts/static_html_include.php?book=%23eKGWB%2FZa-I",
+        "fetched_at": "2026-07-29T08:02:25Z",
+        "http_status": 200,
+        "media_type": "text/html; charset=UTF-8",
+        "transport": "unencrypted_http",
+        "tls_authenticity_established": false,
+        "response_persisted_local_only": true,
+        "bounded_repeat_fetches": 2,
+        "repeat_fetches_byte_identical": true
+      },
+      "selector": {
+        "kind": "html_element_id",
+        "value": "eKGWB/Za-I-Vorrede-1"
+      },
+      "rights": {
+        "declared_license": "CC-BY-NC-ND-4.0",
+        "license_uri": "https://creativecommons.org/licenses/by-nc-nd/4.0/",
+        "official_rights_ref": "https://doc.nietzschesource.org/en/rights",
+        "human_rights_review": false,
+        "local_research_only": true,
+        "redistribution_authorized": false,
+        "derivative_publication_authorized": false
+      },
+      "source_text_tracked": false
+    },
+    "dta_tei": {
+      "item_ref": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-schmeitzner-1883-part-1.dta-sbb-corrected-tei-p5",
+      "file_ref": "tos.file.sha256.d3fa5f8af39d87c8f0ede7a0b52b26da0c57e73125d3b0bd2a836b80eae24a4b",
+      "file_sha256": "d3fa5f8af39d87c8f0ede7a0b52b26da0c57e73125d3b0bd2a836b80eae24a4b",
+      "payload_relative_path": "works/friedrich-nietzsche/also-sprach-zarathustra/expressions/de-schmeitzner-1883-part-1/editions/chemnitz-schmeitzner-1883-part-1/items/dta-sbb-corrected-tei-p5/payload/nietzsche_zarathustra01_1883.tei.xml",
+      "item_manifest": {
+        "ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/de-schmeitzner-1883-part-1/editions/chemnitz-schmeitzner-1883-part-1/items/dta-sbb-corrected-tei-p5/item.manifest.json",
+        "sha256": "b030e789d9c15dc2fed621e81e091927243883f7d577438162fc6be4e7b3d55b"
+      },
+      "rights_record": {
+        "ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/de-schmeitzner-1883-part-1/editions/chemnitz-schmeitzner-1883-part-1/items/dta-sbb-corrected-tei-p5/rights.json",
+        "sha256": "0ee4a2f6301450e155a623f4b692c936f13d07b296a512db9875652492cbbfc4"
+      },
+      "source_text_tracked": false
+    },
+    "naumann_auto_epub": {
+      "item_ref": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-naumann-1893.internet-archive-cornell-auto-epub",
+      "file_ref": "tos.file.sha256.adc7eeae2d5a5cf2b225ef81170b595c77664167a539f0cb1a478184aca8e9de",
+      "file_sha256": "adc7eeae2d5a5cf2b225ef81170b595c77664167a539f0cb1a478184aca8e9de",
+      "payload_relative_path": "works/friedrich-nietzsche/also-sprach-zarathustra/expressions/de-naumann-1893/editions/leipzig-c-g-naumann-1893/items/internet-archive-cornell-auto-epub/payload/Nietzsche_Also_sprach_Zarathustra_1893.epub",
+      "item_manifest": {
+        "ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/de-naumann-1893/editions/leipzig-c-g-naumann-1893/items/internet-archive-cornell-auto-epub/item.manifest.json",
+        "sha256": "e67ec084b9537a30932aa9ac93bf27e4a440e5ac5d24efd4affd041f5b38e596"
+      },
+      "rights_record": {
+        "ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/de-naumann-1893/editions/leipzig-c-g-naumann-1893/items/internet-archive-cornell-auto-epub/rights.json",
+        "sha256": "2eefad7531e4d872ad9f1c92909d7eff5c82064f11bd25a044bd28965c5ea4fd"
+      },
+      "source_text_tracked": false
+    }
+  },
+  "method": {
+    "implementation": "python-standard-library",
+    "normalization": [
+      "unicode_nfkc",
+      "unicode_casefold",
+      "unicode_alpha_token_sequence"
+    ],
+    "dta_dehyphenation": "remove_dta_printed_hyphen_marker_u00ac_and_following_whitespace_before_tokenization",
+    "comparison": "python_stdlib_difflib_sequence_matcher_autojunk_false",
+    "model_used_for_text_decision": false,
+    "translation_performed": false,
+    "source_text_emitted": false
+  },
+  "results": {
+    "ekgwb_reference": {
+      "paragraphs": 12,
+      "normalized_tokens": 261,
+      "normalized_sequence_sha256": "6d3deb76b489989f2a8ed3782f3ae9c12914a0ab6baea1b9f21432bcc8749e16"
+    },
+    "dta_exact_comparison": {
+      "section_selector": "TEI/text[1]/body[1]/div[1]/div[1]",
+      "paragraphs": 12,
+      "normalized_tokens": 261,
+      "normalized_sequence_sha256": "6d3deb76b489989f2a8ed3782f3ae9c12914a0ab6baea1b9f21432bcc8749e16",
+      "equal_paragraphs": 12,
+      "equal_tokens": 261,
+      "exact_after_source_aware_normalization": true
+    },
+    "normalization_failure_control": {
+      "naive_generic_whitespace_join_false_token_splits": 3,
+      "source_aware_dehyphenation_required": true,
+      "false_discrepancy_preserved": true
+    },
+    "naumann_ocr_comparison": {
+      "epub_members": [
+        {
+          "path": "EPUB/page_55.html",
+          "sha256": "0e29c6e4e9c29756a1014530c1f5d4a9140a6fbb3ca613a296a174f3e296fa5c"
+        },
+        {
+          "path": "EPUB/page_56.html",
+          "sha256": "0aec8864adf973d300fa4e1a4e923c492199ca9d8ccc0726cafd0200992d62c7"
+        }
+      ],
+      "candidate_tokens": 392,
+      "equal_reference_tokens": 260,
+      "single_token_replacements": 1,
+      "page_furniture_insertions": 15,
+      "trailing_next_section_tokens": 116,
+      "equal_run_lengths": [
+        111,
+        53,
+        96
+      ],
+      "exact_textual_identity": false,
+      "translation_claimed": false
+    }
+  },
+  "source_posture": "machine_triangulated_candidate",
+  "rights_and_transport_boundary": {
+    "unencrypted_transport_is_authenticity_risk": true,
+    "all_payloads_remain_local": true,
+    "tracked_packet_contains_source_text": false,
+    "rights_clearance_claimed": false,
+    "critical_edition_admission_authorized": false
+  },
+  "gate_effects": {
+    "machine_triangulated_units": 1,
+    "human_task_created": false,
+    "human_debt_units": 0,
+    "source_unit_selected_for_human_review": false,
+    "accepted_german_units": 0,
+    "critical_edition_units_admitted": 0,
+    "translation_lanes_opened": [],
+    "semantic_tasks_opened": 0,
+    "promotion_authorized": false
+  },
+  "authority_boundary": "machine-only text-free triangulation evidence over one local critical-edition candidate, one DTA TEI witness, and one automatic-OCR EPUB witness; not accepted German, critical-edition admission, translation evidence, semantics, rights clearance, or canon authority",
+  "does_not_establish": [
+    "source_authenticity_over_http",
+    "bibliographic_acceptance",
+    "rights_clearance",
+    "accepted_german_text",
+    "german_orthographic_correctness",
+    "german_grammatical_correctness",
+    "german_semantics",
+    "critical_edition_admission",
+    "translation_correspondence",
+    "translation_equivalence",
+    "translation_quality",
+    "semantic_annotation",
+    "canon_promotion"
+  ]
+}

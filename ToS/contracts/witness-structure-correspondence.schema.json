@@ -1,0 +1,395 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://tree-of-sophia.local/ToS/contracts/witness-structure-correspondence.schema.json",
+  "title": "Tree of Sophia witness structure correspondence",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "$schema",
+    "schema_version",
+    "correspondence_map_id",
+    "work_ref",
+    "correspondence_authority",
+    "source_text_included",
+    "source_parts",
+    "target_witnesses",
+    "scan_resource_relation",
+    "method",
+    "part_routes",
+    "correspondences",
+    "summary",
+    "provenance_ref",
+    "provenance_event_ref",
+    "map_version",
+    "authority_boundary",
+    "does_not_establish"
+  ],
+  "properties": {
+    "$schema": {
+      "const": "https://tree-of-sophia.local/ToS/contracts/witness-structure-correspondence.schema.json"
+    },
+    "schema_version": {"const": "tos_witness_structure_correspondence_v1"},
+    "correspondence_map_id": {
+      "type": "string",
+      "pattern": "^tos\\.structure-map\\.[a-z0-9]+(?:[.-][a-z0-9]+)*$"
+    },
+    "work_ref": {"$ref": "#/$defs/tosId"},
+    "correspondence_authority": {"const": "mechanical_candidate_only"},
+    "source_text_included": {"const": false},
+    "source_parts": {
+      "type": "array",
+      "minItems": 4,
+      "maxItems": 4,
+      "items": {"$ref": "#/$defs/witness"}
+    },
+    "target_witnesses": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["epub", "pdf"],
+      "properties": {
+        "epub": {"$ref": "#/$defs/witness"},
+        "pdf": {"$ref": "#/$defs/witness"}
+      }
+    },
+    "scan_resource_relation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "state",
+        "epub_member_page_range",
+        "pdf_page_index_range",
+        "formula",
+        "basis",
+        "exact_content_identity_claimed"
+      ],
+      "properties": {
+        "state": {"const": "mechanical_enumeration_candidate"},
+        "epub_member_page_range": {"$ref": "#/$defs/integerRange"},
+        "pdf_page_index_range": {"$ref": "#/$defs/integerRange"},
+        "formula": {"const": "pdf_page_index = epub_member_page_number + 1"},
+        "basis": {
+          "type": "array",
+          "minItems": 2,
+          "items": {"type": "string", "minLength": 1}
+        },
+        "exact_content_identity_claimed": {"const": false}
+      }
+    },
+    "method": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "name",
+        "version",
+        "normalization",
+        "selection_unit",
+        "source_context_token_limit",
+        "target_window_page_count",
+        "score",
+        "no_llm",
+        "no_source_text_emitted"
+      ],
+      "properties": {
+        "name": {"const": "named-division-heading-and-context-correspondence"},
+        "version": {"const": "1"},
+        "normalization": {"const": "unicode-nfkc-casefold-alpha-token-sequence"},
+        "selection_unit": {"const": "named_primary_tei_division_start"},
+        "source_context_token_limit": {"const": 160},
+        "target_window_page_count": {"const": 2},
+        "score": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["context_cosine_weight", "heading_token_coverage_weight"],
+          "properties": {
+            "context_cosine_weight": {"const": 0.8},
+            "heading_token_coverage_weight": {"const": 0.2}
+          }
+        },
+        "no_llm": {"const": true},
+        "no_source_text_emitted": {"const": true}
+      }
+    },
+    "part_routes": {
+      "type": "array",
+      "minItems": 4,
+      "maxItems": 4,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "part_label",
+          "source_item_ref",
+          "selection_policy",
+          "target_epub_member_page_range"
+        ],
+        "properties": {
+          "part_label": {"$ref": "#/$defs/partLabel"},
+          "source_item_ref": {"$ref": "#/$defs/tosId"},
+          "selection_policy": {"type": "string", "minLength": 1},
+          "target_epub_member_page_range": {"$ref": "#/$defs/integerRange"}
+        }
+      }
+    },
+    "correspondences": {
+      "type": "array",
+      "minItems": 1,
+      "items": {"$ref": "#/$defs/correspondence"}
+    },
+    "summary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "correspondence_count",
+        "part_counts",
+        "match_mode_counts",
+        "monotonic_within_each_part"
+      ],
+      "properties": {
+        "correspondence_count": {"type": "integer", "minimum": 1},
+        "part_counts": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["I", "II", "III", "IV"],
+          "properties": {
+            "I": {"type": "integer", "minimum": 1},
+            "II": {"type": "integer", "minimum": 1},
+            "III": {"type": "integer", "minimum": 1},
+            "IV": {"type": "integer", "minimum": 1}
+          }
+        },
+        "match_mode_counts": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "integer",
+            "minimum": 0
+          }
+        },
+        "monotonic_within_each_part": {"const": true}
+      }
+    },
+    "provenance_ref": {"$ref": "#/$defs/repoRelativePath"},
+    "provenance_event_ref": {"$ref": "#/$defs/tosId"},
+    "map_version": {"type": "integer", "minimum": 1},
+    "supersedes_map_ref": {
+      "anyOf": [
+        {"$ref": "#/$defs/repoRelativePath"},
+        {"type": "null"}
+      ]
+    },
+    "authority_boundary": {
+      "const": "named structural starts and locator candidates only; no source text, textual identity, edition equivalence, accepted German, translation, semantics, or canon authority"
+    },
+    "does_not_establish": {
+      "const": [
+        "source_text",
+        "exact_textual_identity",
+        "edition_equivalence",
+        "accepted_german",
+        "translation_correspondence",
+        "semantic_correspondence",
+        "canon_promotion"
+      ]
+    }
+  },
+  "$defs": {
+    "tosId": {
+      "type": "string",
+      "pattern": "^tos\\.(agent|work|expression|edition|collection|item|file|passage|region|anchor|occurrence|annotation|claim|rights|review|event)\\.[a-z0-9]+(?:[.-][a-z0-9]+)*$"
+    },
+    "sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "repoRelativePath": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "^(?![A-Za-z][A-Za-z0-9+.-]*:)(?!/)(?!.*(?:^|/)\\.\\.(?:/|$))[^\\u0000]+$"
+    },
+    "partLabel": {"enum": ["I", "II", "III", "IV"]},
+    "integerRange": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["first", "last"],
+      "properties": {
+        "first": {"type": "integer", "minimum": 0},
+        "last": {"type": "integer", "minimum": 0}
+      }
+    },
+    "fingerprint": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["algorithm", "normalization", "sha256"],
+      "properties": {
+        "algorithm": {"const": "sha256"},
+        "normalization": {"type": "string", "minLength": 1},
+        "sha256": {"$ref": "#/$defs/sha256"},
+        "character_count": {"type": "integer", "minimum": 0},
+        "token_count": {"type": "integer", "minimum": 0}
+      },
+      "oneOf": [
+        {"required": ["character_count"]},
+        {"required": ["token_count"]}
+      ]
+    },
+    "witness": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "item_ref",
+        "file_ref",
+        "file_sha256",
+        "inventory_ref",
+        "profile"
+      ],
+      "properties": {
+        "part_label": {"$ref": "#/$defs/partLabel"},
+        "item_ref": {"$ref": "#/$defs/tosId"},
+        "file_ref": {"$ref": "#/$defs/tosId"},
+        "file_sha256": {"$ref": "#/$defs/sha256"},
+        "inventory_ref": {"$ref": "#/$defs/repoRelativePath"},
+        "profile": {"enum": ["tei_structure_v1", "epub_resources_v1", "pdf_pages_v1"]}
+      }
+    },
+    "sourceLocator": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "item_ref",
+        "file_ref",
+        "inventory_ref",
+        "resource_id",
+        "tei_path",
+        "tei_depth",
+        "tei_page_label",
+        "label_fingerprint",
+        "matching_window_fingerprint"
+      ],
+      "properties": {
+        "item_ref": {"$ref": "#/$defs/tosId"},
+        "file_ref": {"$ref": "#/$defs/tosId"},
+        "inventory_ref": {"$ref": "#/$defs/repoRelativePath"},
+        "resource_id": {"type": "string", "pattern": "^tei-div-[0-9]{4}$"},
+        "tei_path": {"type": "string", "minLength": 1},
+        "tei_depth": {"type": "integer", "minimum": 1},
+        "tei_page_label": {"type": "string", "minLength": 1},
+        "label_fingerprint": {"$ref": "#/$defs/fingerprint"},
+        "matching_window_fingerprint": {"$ref": "#/$defs/fingerprint"}
+      }
+    },
+    "epubLocator": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "item_ref",
+        "file_ref",
+        "inventory_ref",
+        "resource_id",
+        "member_path",
+        "member_sha256",
+        "scan_page_number",
+        "spine_index",
+        "content_fingerprint"
+      ],
+      "properties": {
+        "item_ref": {"$ref": "#/$defs/tosId"},
+        "file_ref": {"$ref": "#/$defs/tosId"},
+        "inventory_ref": {"$ref": "#/$defs/repoRelativePath"},
+        "resource_id": {"type": "string", "pattern": "^epub-member-[0-9]{4}$"},
+        "member_path": {"type": "string", "pattern": "^EPUB/page_[0-9]+\\.html$"},
+        "member_sha256": {"$ref": "#/$defs/sha256"},
+        "scan_page_number": {"type": "integer", "minimum": 0},
+        "spine_index": {"type": "integer", "minimum": 1},
+        "content_fingerprint": {"$ref": "#/$defs/fingerprint"}
+      }
+    },
+    "pdfLocator": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "item_ref",
+        "file_ref",
+        "inventory_ref",
+        "resource_id",
+        "page_index"
+      ],
+      "properties": {
+        "item_ref": {"$ref": "#/$defs/tosId"},
+        "file_ref": {"$ref": "#/$defs/tosId"},
+        "inventory_ref": {"$ref": "#/$defs/repoRelativePath"},
+        "resource_id": {"type": "string", "pattern": "^pdf-page-[0-9]{4}$"},
+        "page_index": {"type": "integer", "minimum": 1}
+      }
+    },
+    "matchEvidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "mode",
+        "normalized_heading_occurrence_count",
+        "context_cosine",
+        "heading_token_coverage",
+        "candidate_score",
+        "runner_up_score",
+        "score_margin",
+        "search_page_range",
+        "target_window_pages",
+        "status"
+      ],
+      "properties": {
+        "mode": {
+          "enum": [
+            "normalized_heading_unique",
+            "normalized_heading_context_disambiguated",
+            "normalized_context_without_heading_sequence"
+          ]
+        },
+        "normalized_heading_occurrence_count": {"type": "integer", "minimum": 0},
+        "context_cosine": {"type": "number", "minimum": 0, "maximum": 1},
+        "heading_token_coverage": {"type": "number", "minimum": 0, "maximum": 1},
+        "candidate_score": {"type": "number", "minimum": 0, "maximum": 1},
+        "runner_up_score": {
+          "anyOf": [
+            {"type": "number", "minimum": 0, "maximum": 1},
+            {"type": "null"}
+          ]
+        },
+        "score_margin": {
+          "anyOf": [
+            {"type": "number", "minimum": 0, "maximum": 1},
+            {"type": "null"}
+          ]
+        },
+        "search_page_range": {"$ref": "#/$defs/integerRange"},
+        "target_window_pages": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 2,
+          "items": {"type": "integer", "minimum": 0}
+        },
+        "status": {"const": "machine_corroborated_candidate"}
+      }
+    },
+    "correspondence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "correspondence_id",
+        "part_label",
+        "sequence",
+        "source",
+        "target_epub",
+        "target_pdf",
+        "match"
+      ],
+      "properties": {
+        "correspondence_id": {
+          "type": "string",
+          "pattern": "^structure-[ivx]+-[0-9]{3}$"
+        },
+        "part_label": {"$ref": "#/$defs/partLabel"},
+        "sequence": {"type": "integer", "minimum": 1},
+        "source": {"$ref": "#/$defs/sourceLocator"},
+        "target_epub": {"$ref": "#/$defs/epubLocator"},
+        "target_pdf": {"$ref": "#/$defs/pdfLocator"},
+        "match": {"$ref": "#/$defs/matchEvidence"}
+      }
+    }
+  }
+}

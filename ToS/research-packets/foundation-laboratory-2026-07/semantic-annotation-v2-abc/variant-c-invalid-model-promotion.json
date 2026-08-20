@@ -1,0 +1,401 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/semantic-annotation-packet-v2.schema.json",
+  "annotation_id": "tos.annotation.sid-8d28d9f2f6b662eba75812c550eb6548",
+  "annotation_version": 1,
+  "authority_boundary": {
+    "frequency_is_semantic_evidence_not_semantic_proof": true,
+    "graph_role": "relation",
+    "model_may_propose_but_not_promote_stable_sign": true,
+    "promotion_review_posture": "rare-triggered-source-visible-human-checkpoint",
+    "routine_human_review_per_occurrence": false,
+    "source_role": "authority",
+    "tree_role": "orientation",
+    "validators_prove_mechanics_not_truth": true
+  },
+  "claims": [
+    {
+      "certainty": {
+        "meaning": "maker_declared_uncertainty_not_truth_probability",
+        "value": 1.0
+      },
+      "claim_id": "tos.claim.sid-6b7dc1b1994a838760c9b47d3eb76d60",
+      "claim_status": "observed",
+      "claim_type": "textual_observation",
+      "claim_version": 1,
+      "competing_claim_refs": [],
+      "epistemic_status": "observed",
+      "evidence": [
+        {
+          "anchor_refs": [
+            "tos.anchor.semantic-v2.synthetic-flame-1"
+          ],
+          "description": "Exact public-synthetic source span bound by digest and position selector.",
+          "direction": "supports",
+          "evidence_ref": "ToS/research-packets/foundation-laboratory-2026-07/semantic-annotation-v2-abc/public-synthetic-source.txt",
+          "role": "support"
+        }
+      ],
+      "maker": {
+        "agent_ref": "software:tos-semantic-annotation-v2-lab-builder",
+        "made_at": "2026-08-11T12:00:00Z",
+        "maker_kind": "synthetic_fixture",
+        "method": "deterministic public-synthetic contract fixture construction",
+        "provenance_event_ref": "synthetic:no-runtime-provenance-event-claimed",
+        "simulates_kind": "software",
+        "simulation_notice": "synthetic fixture only; no corresponding human, software, or model act occurred"
+      },
+      "proposition": {
+        "object": {
+          "kind": "digest",
+          "media_type": "text/plain; charset=utf-8",
+          "sha256": "bd9dc5f78dac9fad83a604327bf29bf368b8921f8cedfb3d3673efbe1f4eb449"
+        },
+        "predicate": "has_exact_form_digest",
+        "subject_ref": "tos.occurrence.semantic-v2.synthetic-flame-1"
+      },
+      "review_refs": [],
+      "stage": "exact_form",
+      "status_reason": "Synthetic occurrence observation exercises exact-form mechanics only.",
+      "supersedes_claim_ref": null,
+      "target_anchor_refs": [
+        "tos.anchor.semantic-v2.synthetic-flame-1"
+      ]
+    },
+    {
+      "certainty": {
+        "meaning": "maker_declared_uncertainty_not_truth_probability",
+        "value": 1.0
+      },
+      "claim_id": "tos.claim.sid-1752eb7bea713115e9592416a0974ddb",
+      "claim_status": "observed",
+      "claim_type": "textual_observation",
+      "claim_version": 1,
+      "competing_claim_refs": [],
+      "epistemic_status": "observed",
+      "evidence": [
+        {
+          "anchor_refs": [
+            "tos.anchor.semantic-v2.synthetic-flame-2"
+          ],
+          "description": "Exact public-synthetic source span bound by digest and position selector.",
+          "direction": "supports",
+          "evidence_ref": "ToS/research-packets/foundation-laboratory-2026-07/semantic-annotation-v2-abc/public-synthetic-source.txt",
+          "role": "support"
+        }
+      ],
+      "maker": {
+        "agent_ref": "software:tos-semantic-annotation-v2-lab-builder",
+        "made_at": "2026-08-11T12:00:00Z",
+        "maker_kind": "synthetic_fixture",
+        "method": "deterministic public-synthetic contract fixture construction",
+        "provenance_event_ref": "synthetic:no-runtime-provenance-event-claimed",
+        "simulates_kind": "software",
+        "simulation_notice": "synthetic fixture only; no corresponding human, software, or model act occurred"
+      },
+      "proposition": {
+        "object": {
+          "kind": "digest",
+          "media_type": "text/plain; charset=utf-8",
+          "sha256": "bd9dc5f78dac9fad83a604327bf29bf368b8921f8cedfb3d3673efbe1f4eb449"
+        },
+        "predicate": "has_exact_form_digest",
+        "subject_ref": "tos.occurrence.semantic-v2.synthetic-flame-2"
+      },
+      "review_refs": [],
+      "stage": "exact_form",
+      "status_reason": "Synthetic occurrence observation exercises exact-form mechanics only.",
+      "supersedes_claim_ref": null,
+      "target_anchor_refs": [
+        "tos.anchor.semantic-v2.synthetic-flame-2"
+      ]
+    },
+    {
+      "certainty": {
+        "meaning": "maker_declared_uncertainty_not_truth_probability",
+        "value": 0.55
+      },
+      "claim_id": "tos.claim.sid-14b9fe36366f506ef55818f7b0be1158",
+      "claim_status": "accepted",
+      "claim_type": "sign_identity",
+      "claim_version": 1,
+      "competing_claim_refs": [
+        "tos.claim.sid-17ca559d9cc0de97900839cfcecccd37"
+      ],
+      "epistemic_status": "interpreted",
+      "evidence": [
+        {
+          "anchor_refs": [
+            "tos.anchor.semantic-v2.synthetic-flame-1",
+            "tos.anchor.semantic-v2.synthetic-flame-2"
+          ],
+          "description": "The same two source spans permit competing synthetic readings; recurrence alone does not decide identity.",
+          "direction": "does_not_decide",
+          "evidence_ref": "ToS/research-packets/foundation-laboratory-2026-07/semantic-annotation-v2-abc/public-synthetic-source.txt",
+          "role": "context"
+        }
+      ],
+      "maker": {
+        "agent_ref": "software:tos-semantic-annotation-v2-lab-builder",
+        "made_at": "2026-08-11T12:00:00Z",
+        "maker_kind": "synthetic_fixture",
+        "method": "deterministic public-synthetic contract fixture construction",
+        "provenance_event_ref": "synthetic:no-runtime-provenance-event-claimed",
+        "simulates_kind": "model",
+        "simulation_notice": "synthetic fixture only; no corresponding human, software, or model act occurred"
+      },
+      "proposition": {
+        "object": {
+          "description": "Synthetic reading A treats both occurrences as one sign of continuity.",
+          "entity_refs": [
+            "tos.occurrence.semantic-v2.synthetic-flame-1",
+            "tos.occurrence.semantic-v2.synthetic-flame-2"
+          ],
+          "kind": "entity_set"
+        },
+        "predicate": "groups_occurrences_as_candidate_sign",
+        "subject_ref": "tos.sign.sid-40f50dd2add1effb00bf5c6b198ccb51"
+      },
+      "review_refs": [],
+      "stage": "stable_sign_candidate",
+      "status_reason": "Deliberately invalid: synthetic model-shaped proposal attempts promotion without human review.",
+      "supersedes_claim_ref": null,
+      "target_anchor_refs": [
+        "tos.anchor.semantic-v2.synthetic-flame-1",
+        "tos.anchor.semantic-v2.synthetic-flame-2"
+      ]
+    },
+    {
+      "certainty": {
+        "meaning": "maker_declared_uncertainty_not_truth_probability",
+        "value": 0.55
+      },
+      "claim_id": "tos.claim.sid-17ca559d9cc0de97900839cfcecccd37",
+      "claim_status": "proposed",
+      "claim_type": "sign_identity",
+      "claim_version": 1,
+      "competing_claim_refs": [
+        "tos.claim.sid-14b9fe36366f506ef55818f7b0be1158"
+      ],
+      "epistemic_status": "interpreted",
+      "evidence": [
+        {
+          "anchor_refs": [
+            "tos.anchor.semantic-v2.synthetic-flame-1",
+            "tos.anchor.semantic-v2.synthetic-flame-2"
+          ],
+          "description": "The same two source spans permit competing synthetic readings; recurrence alone does not decide identity.",
+          "direction": "does_not_decide",
+          "evidence_ref": "ToS/research-packets/foundation-laboratory-2026-07/semantic-annotation-v2-abc/public-synthetic-source.txt",
+          "role": "context"
+        }
+      ],
+      "maker": {
+        "agent_ref": "software:tos-semantic-annotation-v2-lab-builder",
+        "made_at": "2026-08-11T12:00:00Z",
+        "maker_kind": "synthetic_fixture",
+        "method": "deterministic public-synthetic contract fixture construction",
+        "provenance_event_ref": "synthetic:no-runtime-provenance-event-claimed",
+        "simulates_kind": "model",
+        "simulation_notice": "synthetic fixture only; no corresponding human, software, or model act occurred"
+      },
+      "proposition": {
+        "object": {
+          "description": "Synthetic reading B treats the later occurrence as transforming the earlier sign.",
+          "entity_refs": [
+            "tos.occurrence.semantic-v2.synthetic-flame-1",
+            "tos.occurrence.semantic-v2.synthetic-flame-2"
+          ],
+          "kind": "entity_set"
+        },
+        "predicate": "groups_occurrences_as_candidate_sign",
+        "subject_ref": "tos.sign.sid-fac28d7c3ca8a1e9af008da93ce58c88"
+      },
+      "review_refs": [],
+      "stage": "stable_sign_candidate",
+      "status_reason": "Model-shaped synthetic proposal remains unreviewed and non-authoritative.",
+      "supersedes_claim_ref": null,
+      "target_anchor_refs": [
+        "tos.anchor.semantic-v2.synthetic-flame-1",
+        "tos.anchor.semantic-v2.synthetic-flame-2"
+      ]
+    }
+  ],
+  "content_posture": "public_synthetic_contract_exercise",
+  "entities": [
+    {
+      "admission_review_refs": [],
+      "admission_status": "observed",
+      "display_labels": [
+        {
+          "language": "en",
+          "mutable": true,
+          "role": "display",
+          "value": "flame"
+        }
+      ],
+      "entity_id": "tos.occurrence.semantic-v2.synthetic-flame-1",
+      "entity_kind": "occurrence",
+      "entity_version": 1,
+      "identity_basis": {
+        "anchor_refs": [
+          "tos.anchor.semantic-v2.synthetic-flame-1"
+        ],
+        "claim_refs": [],
+        "parent_entity_refs": []
+      },
+      "identity_policy": "opaque-id-independent-of-label-gloss-translation-and-current-interpretation",
+      "supersedes_entity_ref": null
+    },
+    {
+      "admission_review_refs": [],
+      "admission_status": "observed",
+      "display_labels": [
+        {
+          "language": "en",
+          "mutable": true,
+          "role": "display",
+          "value": "flame"
+        }
+      ],
+      "entity_id": "tos.occurrence.semantic-v2.synthetic-flame-2",
+      "entity_kind": "occurrence",
+      "entity_version": 1,
+      "identity_basis": {
+        "anchor_refs": [
+          "tos.anchor.semantic-v2.synthetic-flame-2"
+        ],
+        "claim_refs": [],
+        "parent_entity_refs": []
+      },
+      "identity_policy": "opaque-id-independent-of-label-gloss-translation-and-current-interpretation",
+      "supersedes_entity_ref": null
+    },
+    {
+      "admission_review_refs": [],
+      "admission_status": "accepted",
+      "display_labels": [
+        {
+          "language": "en",
+          "mutable": true,
+          "role": "editorial",
+          "value": "flame as continuity"
+        }
+      ],
+      "entity_id": "tos.sign.sid-40f50dd2add1effb00bf5c6b198ccb51",
+      "entity_kind": "sign",
+      "entity_version": 1,
+      "identity_basis": {
+        "anchor_refs": [
+          "tos.anchor.semantic-v2.synthetic-flame-1",
+          "tos.anchor.semantic-v2.synthetic-flame-2"
+        ],
+        "claim_refs": [
+          "tos.claim.sid-14b9fe36366f506ef55818f7b0be1158"
+        ],
+        "parent_entity_refs": [
+          "tos.occurrence.semantic-v2.synthetic-flame-1",
+          "tos.occurrence.semantic-v2.synthetic-flame-2"
+        ]
+      },
+      "identity_policy": "opaque-id-independent-of-label-gloss-translation-and-current-interpretation",
+      "supersedes_entity_ref": null
+    },
+    {
+      "admission_review_refs": [],
+      "admission_status": "proposed",
+      "display_labels": [
+        {
+          "language": "en",
+          "mutable": true,
+          "role": "editorial",
+          "value": "flame as transformation"
+        }
+      ],
+      "entity_id": "tos.sign.sid-fac28d7c3ca8a1e9af008da93ce58c88",
+      "entity_kind": "sign",
+      "entity_version": 1,
+      "identity_basis": {
+        "anchor_refs": [
+          "tos.anchor.semantic-v2.synthetic-flame-1",
+          "tos.anchor.semantic-v2.synthetic-flame-2"
+        ],
+        "claim_refs": [
+          "tos.claim.sid-17ca559d9cc0de97900839cfcecccd37"
+        ],
+        "parent_entity_refs": [
+          "tos.occurrence.semantic-v2.synthetic-flame-1",
+          "tos.occurrence.semantic-v2.synthetic-flame-2"
+        ]
+      },
+      "identity_policy": "opaque-id-independent-of-label-gloss-translation-and-current-interpretation",
+      "supersedes_entity_ref": null
+    }
+  ],
+  "graph_projection": {
+    "edges": [],
+    "node_refs": [],
+    "posture": "downstream-derived-projection-only",
+    "projection_event_refs": [],
+    "source_return_required": true
+  },
+  "relations": [],
+  "reviews": [],
+  "rights_and_visibility": {
+    "private_source_used": false,
+    "publication_authorized": true,
+    "record_visibility": "public",
+    "rights_basis_refs": [
+      "ToS/research-packets/foundation-laboratory-2026-07/semantic-annotation-v2-abc/plan.json"
+    ],
+    "source_content_visibility": "public_synthetic"
+  },
+  "schema_version": "tos_semantic_annotation_packet_v2",
+  "source_scope": {
+    "expression_ref": "tos.expression.semantic-v2.synthetic-miniature.en",
+    "file_ref": "tos.file.semantic-v2.synthetic-miniature.utf8",
+    "file_sha256": "7057e4420a5bf7779f384ec722015e4c2cdb2eaad8fea809d3e536b9d6c7acc3",
+    "item_ref": "tos.item.semantic-v2.synthetic-miniature.tracked",
+    "rights_refs": [
+      "ToS/research-packets/foundation-laboratory-2026-07/semantic-annotation-v2-abc/plan.json"
+    ],
+    "source_anchors": [
+      {
+        "anchor_ref": "tos.anchor.semantic-v2.synthetic-flame-1",
+        "exact_sha256": "bd9dc5f78dac9fad83a604327bf29bf368b8921f8cedfb3d3673efbe1f4eb449",
+        "page_return": {
+          "locator_ref": "ToS/research-packets/foundation-laboratory-2026-07/semantic-annotation-v2-abc/public-synthetic-source.txt",
+          "required": true
+        },
+        "selector": {
+          "end": 18,
+          "interval": "half_open",
+          "position_unit": "unicode_code_point",
+          "start": 13,
+          "type": "text_position"
+        },
+        "source_ref": "ToS/research-packets/foundation-laboratory-2026-07/semantic-annotation-v2-abc/public-synthetic-source.txt",
+        "source_sha256": "7057e4420a5bf7779f384ec722015e4c2cdb2eaad8fea809d3e536b9d6c7acc3"
+      },
+      {
+        "anchor_ref": "tos.anchor.semantic-v2.synthetic-flame-2",
+        "exact_sha256": "bd9dc5f78dac9fad83a604327bf29bf368b8921f8cedfb3d3673efbe1f4eb449",
+        "page_return": {
+          "locator_ref": "ToS/research-packets/foundation-laboratory-2026-07/semantic-annotation-v2-abc/public-synthetic-source.txt",
+          "required": true
+        },
+        "selector": {
+          "end": 67,
+          "interval": "half_open",
+          "position_unit": "unicode_code_point",
+          "start": 62,
+          "type": "text_position"
+        },
+        "source_ref": "ToS/research-packets/foundation-laboratory-2026-07/semantic-annotation-v2-abc/public-synthetic-source.txt",
+        "source_sha256": "7057e4420a5bf7779f384ec722015e4c2cdb2eaad8fea809d3e536b9d6c7acc3"
+      }
+    ],
+    "source_text_layer_ref": "ToS/research-packets/foundation-laboratory-2026-07/semantic-annotation-v2-abc/public-synthetic-source.txt",
+    "work_ref": "tos.work.semantic-v2.synthetic-miniature"
+  },
+  "supersedes_annotation_ref": null
+}

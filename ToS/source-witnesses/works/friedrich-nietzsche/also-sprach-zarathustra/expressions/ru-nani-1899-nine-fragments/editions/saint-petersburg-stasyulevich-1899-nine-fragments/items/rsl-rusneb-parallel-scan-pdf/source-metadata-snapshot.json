@@ -1,0 +1,67 @@
+{
+  "schema_version": "tos_source_metadata_snapshot_v1",
+  "captured_at": "2026-08-01T20:16:26-06:00",
+  "capture_method": {
+    "maker_type": "software",
+    "name": "RSL and RuNEB catalog and user-agreement records via curl; official PDF acquisition",
+    "version": "curl 8.18.0"
+  },
+  "source_url": "https://rusneb.ru/catalog/000199_000009_003689091/",
+  "item_page_url": "https://rusneb.ru/catalog/000199_000009_003689091/",
+  "originating_record_url": "https://search.rsl.ru/ru/record/01003689091",
+  "metadata": {
+    "runeb_record_id": "000199_000009_003689091",
+    "rsl_record_id": "01003689091",
+    "rsl_call_number": "FB M 53/102",
+    "title": "Так говорил Заратустра : [Кн. для всех и никого]",
+    "author": "Фридрих Ницше",
+    "responsibility_statement": "Девять отрывков в пер. [и с предисл.] С. П. Нани",
+    "publication_place": "Санкт-Петербург",
+    "publisher": null,
+    "manufacturer": "типография М. М. Стасюлевича",
+    "published_year": "1899",
+    "extent": "XIV, [2], 105 с.; 24 см",
+    "languages": ["Русский", "Немецкий"],
+    "general_notes": [
+      "Parallel German title page.",
+      "Parallel Russian and German text.",
+      "Source-visible censor statement is dated 18 October 1898 and is not treated as publication date."
+    ],
+    "source_holding": "Российская государственная библиотека",
+    "access_statement": "RSL marks the document freely accessible and RuNEB exposes an official unauthenticated PDF download route.",
+    "rights_boundary": "Free access is not an exact-object redistribution license. The source payload remains local-only."
+  },
+  "live_response_digests": {
+    "runeb_catalog_html_sha256": "e26fd86c2a3f0601dc5c3d12906b481fce6c16e355ff405aca4491345754e28a",
+    "rsl_record_html_sha256": "0167b7772bd4d41ba98c186a634e782d5a6df6d5a00b9dce093ddae1eaab383b",
+    "runeb_user_agreement_html_sha256": "72e2760c409d9408c823483eb8a1d43c87422249762daa7e055176c4c4c8f18d",
+    "nietzsche_documentation_center_html_sha256": "d6be8cff85948c158d02d1c5c96943782a56810833c0ba84116255f0d4b5b977",
+    "nlo_report_html_sha256": "ebdad82b036884ec2d800946436b84db377f3c3852b2b62688dfc7fbc42fed46",
+    "litfund_2025_html_sha256": "f9b479d11d338e0db6491e44e84c8a3964feeb6d79e131175876a1fb57642e39",
+    "boundary": "These current HTML response digests are volatile service observations, not durable Item fixity."
+  },
+  "download": {
+    "name": "nani-1899-rusneb.pdf",
+    "canonical_local_name": "nani-1899-rsl-rusneb.pdf",
+    "format": "PDF",
+    "source_role": "official RuNEB digital return for the exact catalog record",
+    "size": 16228737,
+    "sha256": "044be8c36536c751d1f846109b4e99534323138b7ad829e6266ef3150d1e5704",
+    "sha1": "7c8aae149fd05c4304ee420e191ac563c45278f9",
+    "md5": "50f490a41a97cc52f6a1cf2dd7bb65a8",
+    "mime": "application/pdf",
+    "pages": 60,
+    "download_route": "https://rusneb.ru/local/tools/exalead/getFiles.php?book_id=000199_000009_003689091&doc_type=pdf",
+    "retention_posture": "byte-exact canonical payload retained only in ignored owner-local source storage"
+  },
+  "observed_extent_boundary": {
+    "pdf_surface_count": 60,
+    "cataloged_extent": "XIV, [2], 105 pages",
+    "last_visible_printed_page_number": 103,
+    "unnumbered_contents_surface_present": true,
+    "handwritten_notes_present": true,
+    "complete_cataloged_extent_returned": null,
+    "boundary": "The institutional extent, source-visible terminal numbering, unnumbered matter, and conflicting secondary copy descriptions are retained without a completeness conclusion."
+  },
+  "snapshot_status": "compact public metadata and exact local payload identity captured; live HTML digests are volatile; no raw HTML, source text, page image, accepted transcription, or rights clearance is stored"
+}

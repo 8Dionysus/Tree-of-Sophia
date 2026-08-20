@@ -1,0 +1,454 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/material-discovery-record.schema.json",
+  "schema_version": "tos_material_discovery_record_v1",
+  "discovery_id": "tos.discovery.antonovsky-agent-identity-reconciliation.2026-08-01",
+  "protocol_ref": "ToS/source-witnesses/discovery/DISCOVERY_PROTOCOL.md",
+  "target": {
+    "target_kind": "translation",
+    "known_tos_refs": [
+      "tos.agent.yuri-antonovsky",
+      "tos.expression.friedrich-nietzsche.also-sprach-zarathustra.ru-antonovsky-1913",
+      "tos.expression.friedrich-nietzsche.also-sprach-zarathustra.ru-antonovsky-mysl-1996",
+      "tos.expression.friedrich-nietzsche.ecce-homo.ru-antonovsky-mysl-1996"
+    ],
+    "description": "Authority reconciliation and speaking-path correction for the stable Antonovsky Agent already targeted by three exact responsibility claims.",
+    "required_properties": [
+      "exact Ю. М. initials to full-name bridge",
+      "stable external authority identifier",
+      "Nietzsche and Zarathustra translator context",
+      "legacy Yuri expansion rejection",
+      "stable claim-object preservation",
+      "no Expression equivalence or translation acceptance"
+    ],
+    "acceptable_substitutions": [
+      "an official authority transliteration plus an independent national-library Cyrillic full-name expansion",
+      "retention of a legacy stable ToS ID with an explicit non-name posture and corrected speaking path"
+    ],
+    "languages": [
+      "ru",
+      "de"
+    ],
+    "formats": [
+      "MARC21 XML",
+      "JSON-LD",
+      "HTML",
+      "PDF",
+      "metadata"
+    ],
+    "purpose_ref": "ToS/research-packets/foundation-laboratory-2026-07/ANTONOVSKY_AGENT_IDENTITY_RECONCILIATION_RESEARCH.md"
+  },
+  "channels": [
+    {
+      "channel_id": "channel-dnb-antonovsky-authority",
+      "sequence": 1,
+      "channel_type": "national-catalog",
+      "role": "originating-record",
+      "source_name": "Deutsche Nationalbibliothek Gemeinsame Normdatei",
+      "endpoint_url": "https://services.dnb.de/sru/authorities",
+      "interface_type": "api",
+      "interface_version": "DNB SRU 1.1 MARC21 XML and JSON-LD as served 2026-08-01",
+      "exact_query": "per=Antonovskij; inspect GND 123235553 and reject unrelated Antonovsky identities",
+      "queried_at": "2026-08-01T03:24:00-06:00",
+      "elapsed_seconds": 2.6,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.dnb-gnd-123235553-julij-antonovskij",
+          "rank": 1,
+          "title_as_displayed": "Antonovskij, Julij M.",
+          "result_url": "https://d-nb.info/gnd/123235553",
+          "originating_record_url": "https://services.dnb.de/sru/authorities?version=1.1&operation=searchRetrieve&query=per%3D%22Antonovskij%22&recordSchema=MARC21-xml&maximumRecords=100",
+          "identifiers": [
+            {
+              "scheme": "GND",
+              "value": "123235553"
+            }
+          ],
+          "available_formats": [
+            "MARC21 XML",
+            "RDF",
+            "JSON-LD"
+          ],
+          "declared_rights": {
+            "statement": "The JSON-LD authority metadata declares CC0 1.0.",
+            "scope": "metadata",
+            "evidence_url": "https://d-nb.info/gnd/123235553/about/lds.jsonld",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "metadata-only",
+          "machine_interface": "api",
+          "decision": "select",
+          "rationale": "The record joins the original-script initials Антоновский, Ю. М. to Julij Michajlovič, translator occupation, and the publication context Tak govoril Zaratustra; RSL supplies the exact Cyrillic full-name bridge.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-captured",
+            "format": null,
+            "sha256": null,
+            "reason": "The current SRU and JSON-LD responses were hashed but not retained in the repository; their digests and exact fields are recorded in the research packet."
+          }
+        },
+        {
+          "result_id": "tos-discovery-result.dnb-gnd-1089232756-michail-jakovlevich-antonovskij-negative",
+          "rank": 2,
+          "title_as_displayed": "Antonovskij, Michail Jakovlevič",
+          "result_url": "https://d-nb.info/gnd/1089232756",
+          "originating_record_url": "https://services.dnb.de/sru/authorities?version=1.1&operation=searchRetrieve&query=per%3D%22Antonovskij%22&recordSchema=MARC21-xml&maximumRecords=100",
+          "identifiers": [
+            {
+              "scheme": "GND",
+              "value": "1089232756"
+            }
+          ],
+          "available_formats": [
+            "MARC21 XML",
+            "RDF",
+            "JSON-LD"
+          ],
+          "declared_rights": {
+            "statement": null,
+            "scope": "metadata",
+            "evidence_url": null,
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "metadata-only",
+          "machine_interface": "api",
+          "decision": "reject",
+          "rationale": "The forename, initials, chronology, and work context do not match the Ю. М. Nietzsche translator; it is retained only as an authority-search collision control.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-captured",
+            "format": null,
+            "sha256": null,
+            "reason": "No authority payload was retained; the false-positive boundary is recorded from the bounded result set."
+          }
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-rsl-antonovsky-full-name-bridge",
+      "sequence": 2,
+      "channel_type": "national-catalog",
+      "role": "originating-record",
+      "source_name": "Russian State Library and National Electronic Library",
+      "endpoint_url": "https://search.rsl.ru/",
+      "interface_type": "web",
+      "interface_version": "RSL and NEL catalog HTML and MARC21 as served 2026-08-01",
+      "exact_query": "Inspect Nietzsche records where Ю. М. Антоновский expands to a full MARC personal name and dated authority form",
+      "queried_at": "2026-08-01T03:26:00-06:00",
+      "elapsed_seconds": 4.0,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.rsl-zarathustra-2009-yuliy-mikhailovich-antonovsky",
+          "rank": 1,
+          "title_as_displayed": "Так говорил Заратустра: книга для всех и ни для кого",
+          "result_url": "https://search.rsl.ru/ru/record/01004322945",
+          "originating_record_url": "https://search.rsl.ru/ru/record/01004322945",
+          "identifiers": [
+            {
+              "scheme": "RSL record",
+              "value": "01004322945"
+            }
+          ],
+          "available_formats": [
+            "HTML",
+            "MARC21"
+          ],
+          "declared_rights": {
+            "statement": "RSL marks the document open for reading; no ToS republication decision is inferred.",
+            "scope": "digital-object",
+            "evidence_url": "https://search.rsl.ru/ru/record/01004322945",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-view",
+          "machine_interface": "html",
+          "decision": "select",
+          "rationale": "The same Zarathustra responsibility initials expand in MARC 700 to Антоновский, Юлий Михайлович, 1857-1913, role translator.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-captured",
+            "format": null,
+            "sha256": null,
+            "reason": "The current public catalog response was hashed but not retained."
+          }
+        },
+        {
+          "result_id": "tos-discovery-result.neb-ecce-homo-1911-yuliy-mikhailovich-antonovsky",
+          "rank": 2,
+          "title_as_displayed": "Автобиография = (Ecce homo)",
+          "result_url": "https://rusneb.ru/catalog/000199_000009_003782420/",
+          "originating_record_url": "https://rusneb.ru/catalog/000199_000009_003782420/",
+          "identifiers": [
+            {
+              "scheme": "NEL record",
+              "value": "000199_000009_003782420"
+            }
+          ],
+          "available_formats": [
+            "HTML",
+            "MARC21",
+            "PDF"
+          ],
+          "declared_rights": {
+            "statement": "NEL exposes an open-view digital object; identity evidence does not authorize ToS redistribution.",
+            "scope": "digital-object",
+            "evidence_url": "https://rusneb.ru/catalog/000199_000009_003782420/",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-view",
+          "machine_interface": "html",
+          "decision": "select",
+          "rationale": "The exact 1911 Nietzsche record independently expands Ю. М. to Юлий Михайлович Антоновский, 1857-1913, for editing and preface roles; those roles remain distinct from translation.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-captured",
+            "format": null,
+            "sha256": null,
+            "reason": "No source PDF, page image, or catalog payload was acquired."
+          }
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-established-antonovsky-reference-and-scholarship",
+      "sequence": 3,
+      "channel_type": "specialized-scholarly-project",
+      "role": "scholarly-index",
+      "source_name": "New Encyclopedic Dictionary and Institute of Philosophy RAS Nietzsche scholarship",
+      "endpoint_url": "https://pj.iphras.ru/issue/download/307/144",
+      "interface_type": "web",
+      "interface_version": "1911 reference reproduction and 2020 peer-reviewed journal PDF as served 2026-08-01",
+      "exact_query": "Verify the full name, dates, translator profession, and direct Nietzsche and Zarathustra context in established historical and scholarly sources",
+      "queried_at": "2026-08-01T03:30:00-06:00",
+      "elapsed_seconds": 8.0,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.nes-1911-yuliy-mikhailovich-antonovsky",
+          "rank": 1,
+          "title_as_displayed": "Антоновский, Юлий Михайлович",
+          "result_url": "https://ru.wikisource.org/wiki/НЭС/Антоновский,_Юлий_Михайлович",
+          "originating_record_url": "https://ru.wikisource.org/wiki/НЭС/Антоновский,_Юлий_Михайлович",
+          "identifiers": [
+            {
+              "scheme": "Wikisource revision",
+              "value": "3676035"
+            }
+          ],
+          "available_formats": [
+            "HTML",
+            "scan-linked transcription"
+          ],
+          "declared_rights": {
+            "statement": "The Wikisource page is CC BY-SA and links its 1911 source scan; this identity pass acquires neither text nor scan.",
+            "scope": "metadata",
+            "evidence_url": "https://ru.wikisource.org/wiki/НЭС/Антоновский,_Юлий_Михайлович",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-view",
+          "machine_interface": "html",
+          "decision": "select",
+          "rationale": "The contemporary reference entry names Юлий Михайлович Антоновский, identifies him as writer and translator, and explicitly reports four editions of his Zarathustra translation by 1911.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-captured",
+            "format": null,
+            "sha256": null,
+            "reason": "The current page response was hashed but no source or transcription payload was retained."
+          }
+        },
+        {
+          "result_id": "tos-discovery-result.iphras-2020-frank-nietzsche-antonovsky",
+          "rank": 2,
+          "title_as_displayed": "С. Л. Франк в архиве Ф. Ницше: выступление в Веймаре 1932 г.",
+          "result_url": "https://pj.iphras.ru/issue/download/307/144",
+          "originating_record_url": "https://pj.iphras.ru/issue/download/307/144",
+          "identifiers": [
+            {
+              "scheme": "ISSN",
+              "value": "2658-4883"
+            }
+          ],
+          "available_formats": [
+            "PDF"
+          ],
+          "declared_rights": {
+            "statement": "The journal requires attribution for reproduction; this pass retains only public metadata and a response digest.",
+            "scope": "content",
+            "evidence_url": "https://pj.iphras.ru/issue/download/307/144",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-view",
+          "machine_interface": "html",
+          "decision": "select",
+          "rationale": "The peer-reviewed Institute of Philosophy RAS publication identifies Юлий Михайлович Антоновский (1857-1913) and names his Zarathustra and other Nietzsche translations.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-captured",
+            "format": null,
+            "sha256": null,
+            "reason": "The response was inspected and hashed in temporary storage but the PDF was not retained by ToS."
+          }
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-general-web-antonovsky-identity-last",
+      "sequence": 4,
+      "channel_type": "general-web-search",
+      "role": "lead-only",
+      "source_name": "General web search after authority and established sources",
+      "endpoint_url": "https://www.google.com/search",
+      "interface_type": "web",
+      "interface_version": "search results and current publisher page observed 2026-08-01",
+      "exact_query": "Ю. М. Антоновский Юлий Михайлович Ницше; Yuri M. Antonovsky translator; current Zarathustra editions and corrections",
+      "queried_at": "2026-08-01T03:33:00-06:00",
+      "elapsed_seconds": 3.0,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.ast-current-yuliy-mikhailovich-antonovsky",
+          "rank": 1,
+          "title_as_displayed": "Так говорил Заратустра",
+          "result_url": "https://ast.ru/book/tak-govoril-zaratustra-882344/",
+          "originating_record_url": "https://ast.ru/book/tak-govoril-zaratustra-882344/",
+          "identifiers": [
+            {
+              "scheme": "AST SKU",
+              "value": "ASE000000000882344"
+            }
+          ],
+          "available_formats": [
+            "HTML"
+          ],
+          "declared_rights": {
+            "statement": null,
+            "scope": "metadata",
+            "evidence_url": null,
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-view",
+          "machine_interface": "html",
+          "decision": "defer",
+          "rationale": "The current publisher page spells out Юлий Михайлович Антоновский as translator, but freshness corroboration does not replace the authority chain.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-captured",
+            "format": null,
+            "sha256": null,
+            "reason": "The current response was hashed but not retained."
+          }
+        }
+      ]
+    }
+  ],
+  "channel_comparison": [
+    {
+      "channel_id": "channel-dnb-antonovsky-authority",
+      "completeness": "strong",
+      "metadata_precision": "strong",
+      "rights_clarity": "strong",
+      "machine_interface_quality": "strong",
+      "human_minutes": 0,
+      "machine_seconds": 2.6,
+      "notes": "Best stable external identity and initials-to-transliteration route; includes translator and Zarathustra context."
+    },
+    {
+      "channel_id": "channel-rsl-antonovsky-full-name-bridge",
+      "completeness": "strong",
+      "metadata_precision": "strong",
+      "rights_clarity": "adequate",
+      "machine_interface_quality": "adequate",
+      "human_minutes": 0,
+      "machine_seconds": 4.0,
+      "notes": "Best Cyrillic full-name and life-date bridge from the same initials in Nietzsche records."
+    },
+    {
+      "channel_id": "channel-established-antonovsky-reference-and-scholarship",
+      "completeness": "strong",
+      "metadata_precision": "strong",
+      "rights_clarity": "adequate",
+      "machine_interface_quality": "adequate",
+      "human_minutes": 0,
+      "machine_seconds": 8.0,
+      "notes": "Contemporary reference and peer-reviewed scholarly corroboration bind the person to Nietzsche and Zarathustra without owning the authority ID."
+    },
+    {
+      "channel_id": "channel-general-web-antonovsky-identity-last",
+      "completeness": "limited",
+      "metadata_precision": "adequate",
+      "rights_clarity": "limited",
+      "machine_interface_quality": "adequate",
+      "human_minutes": 0,
+      "machine_seconds": 3.0,
+      "notes": "General web ran last, corroborated the resolved name, and supplied no credible Yuri identity for the translator."
+    }
+  ],
+  "selected_result_ids": [
+    "tos-discovery-result.dnb-gnd-123235553-julij-antonovskij",
+    "tos-discovery-result.rsl-zarathustra-2009-yuliy-mikhailovich-antonovsky",
+    "tos-discovery-result.neb-ecce-homo-1911-yuliy-mikhailovich-antonovsky",
+    "tos-discovery-result.nes-1911-yuliy-mikhailovich-antonovsky",
+    "tos-discovery-result.iphras-2020-frank-nietzsche-antonovsky"
+  ],
+  "rejected_result_ids": [
+    "tos-discovery-result.dnb-gnd-1089232756-michail-jakovlevich-antonovskij-negative"
+  ],
+  "rights_inference_from_availability_prohibited": true,
+  "general_web_search_is_last_resort": true,
+  "technical_access_bypass_used": false,
+  "maker": {
+    "maker_type": "model",
+    "agent_ref": "model:codex"
+  },
+  "started_at": "2026-08-01T03:18:00-06:00",
+  "ended_at": "2026-08-01T03:36:00-06:00",
+  "status": "reconciled",
+  "provenance_event_refs": [
+    "tos.event.discovery.antonovsky-agent-identity-reconciliation.2026-08-01"
+  ],
+  "record_version": 1,
+  "supersedes_discovery_ref": null
+}

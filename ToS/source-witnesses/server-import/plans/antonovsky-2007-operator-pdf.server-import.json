@@ -5,7 +5,7 @@
   "item_ref": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.ru-antonovsky-cultural-revolution-2007.operator-pdf",
   "manifest": {
     "ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-antonovsky-cultural-revolution/editions/moscow-cultural-revolution-2007-volume-4/items/operator-pdf/item.manifest.json",
-    "sha256": "9f8162da5e5726e977daf59d1b47bae40b774b8e624400a28d0675a71e13faff",
+    "sha256": "d9e8d6912cca6637e2922cd25709377c73a94c061dc9925e9ee0f5d2f277dc84",
     "verified": true
   },
   "payload_files": [
@@ -19,27 +19,42 @@
   ],
   "rights_policy": {
     "rights_record_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-antonovsky-cultural-revolution/editions/moscow-cultural-revolution-2007-volume-4/items/operator-pdf/rights.json",
-    "rights_record_sha256": "26895a4adc07ac58b9fd91ecbaf359307e3103f5e451d77919fdd297cb37801b",
-    "assessment_status": "rights-unknown",
+    "rights_record_sha256": "8c672f22af6e94a6969bc9206592deaea0e1dc6ceed2ee8cf806f5b8fb34013d",
+    "assessment_status": "restricted",
     "review_status": "unreviewed",
-    "jurisdictions_reviewed": [],
-    "permission_or_license_refs": [],
+    "jurisdictions_reviewed": [
+      "RU",
+      "US"
+    ],
+    "permission_or_license_refs": [
+      "ToS/research-packets/foundation-laboratory-2026-07/ANTONOVSKY_2007_CULTURAL_REVOLUTION_LAYERED_RIGHTS_ASSESSMENT.md",
+      "https://rusneb.ru/catalog/000199_000009_005395580/",
+      "https://www.consultant.ru/document/cons_doc_LAW_64629/26eaf5de7ca59025f4388fe2980d3dd03dd5e775/",
+      "https://www.consultant.ru/document/cons_doc_LAW_64629/675b81f0bc9b8ecd68ea332ecfd9d1562541fb98/",
+      "https://www.consultant.ru/document/cons_doc_LAW_64629/366db9d9c7215d66ada95405f1654967f2ae5e4b/",
+      "https://www.vsrf.ru/files/27771/",
+      "https://www.copyright.gov/title17/92chap1.html",
+      "https://www.copyright.gov/eco/help-limitation.html",
+      "https://www.copyright.gov/comp3/docs/compendium.pdf",
+      "https://www.ivir.nl/publicaties/download/1507.pdf",
+      "https://www.wipo.int/edocs/mdocs/copyright/en/sccr_48/sccr_48_5.pdf"
+    ],
     "expires_at": null,
     "recheck_before_transfer": true
   },
   "access_class": "metadata-only",
   "allowed_derivatives": {
-    "ocr": {"state": "prohibited", "conditions": ["No server-side source processing is authorized."]},
-    "transcription": {"state": "prohibited", "conditions": ["No server-side source processing is authorized."]},
-    "page_images": {"state": "prohibited", "conditions": ["No page-image publication is authorized."]},
-    "snippets": {"state": "prohibited", "conditions": ["No source-text publication is authorized."]},
-    "lexical_index": {"state": "conditional", "conditions": ["Public-safe bibliographic metadata only; no source text."]},
-    "embeddings": {"state": "prohibited", "conditions": ["No server-side source processing is authorized."]},
-    "alignments": {"state": "prohibited", "conditions": ["No restricted aligned text may be served."]},
-    "translations": {"state": "prohibited", "conditions": ["Translation rights remain unreviewed."]},
-    "annotations": {"state": "prohibited", "conditions": ["No source-bearing annotation publication is authorized."]},
-    "search_projection": {"state": "conditional", "conditions": ["Metadata-only records with no payload-derived text."]},
-    "graph_projection": {"state": "conditional", "conditions": ["Metadata and provenance only; no restricted content."]}
+    "ocr": {"state": "prohibited", "conditions": ["Local OCR research does not authorize server-side processing of the protected 2007 editing, commentary translation, design, or aggregate PDF."]},
+    "transcription": {"state": "prohibited", "conditions": ["The public-domain historical substrate does not clear the exact newly edited 2007 Expression; no source transcription may be transferred or served."]},
+    "page_images": {"state": "prohibited", "conditions": ["The exact pages reproduce protected 2007 editing, commentary translation, and design and remain local-only."]},
+    "snippets": {"state": "prohibited", "conditions": ["No source-text, commentary, or design-bearing snippet publication is authorized by this record."]},
+    "lexical_index": {"state": "conditional", "conditions": ["Public-safe bibliographic, fixity, contributor-role, provenance, and layer-status metadata only; no payload-derived forms or dictionary-recoverable text."]},
+    "embeddings": {"state": "prohibited", "conditions": ["No server-side processing or publication of source-, translation-, commentary-, or design-derived embeddings is authorized."]},
+    "alignments": {"state": "prohibited", "conditions": ["No alignment containing the protected 2007 Expression, commentary translation, or operator-PDF text may be transferred or served."]},
+    "translations": {"state": "prohibited", "conditions": ["The exact 2007 translation editing is in copyright; separate future translation work requires its own source, provenance, quality, rights, and operator decisions."]},
+    "annotations": {"state": "prohibited", "conditions": ["No source-bearing, quotation-bearing, or payload-coordinate-bearing annotation publication is authorized."]},
+    "search_projection": {"state": "conditional", "conditions": ["Metadata-only records with no payload-derived text, OCR positions, page imagery, commentary, design, or embeddings."]},
+    "graph_projection": {"state": "conditional", "conditions": ["Public-safe Work, Expression, Edition, Item, contributor-role, provenance, exact-file fixity, and eight-layer rights-status metadata only; no protected content."]}
   },
   "payload_transfer_authorized": false,
   "operator_transfer_approval": {
@@ -56,10 +71,10 @@
     "procedure_ref": "ToS/source-witnesses/server-import/SERVER_IMPORT_PROTOCOL.md",
     "disable_supported": true,
     "delete_supported": true,
-    "last_reviewed_at": "2026-07-23T00:00:00Z"
+    "last_reviewed_at": "2026-08-11T16:08:15Z"
   },
-  "provenance_event_refs": ["tos.event.server-import-plan.foundation.2026-07-23"],
+  "provenance_event_refs": ["tos.event.server-import-plan.antonovsky-cultural-revolution-2007-operator-pdf.layered-rights.2026-08-11"],
   "server_copy_is_authority": false,
   "automatic_checkout_payload_discovery_allowed": false,
-  "contract_version": 1
+  "contract_version": 2
 }

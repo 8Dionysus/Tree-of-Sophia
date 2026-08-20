@@ -1,0 +1,306 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/material-discovery-record.schema.json",
+  "schema_version": "tos_material_discovery_record_v1",
+  "discovery_id": "tos.discovery.proto-cuneiform-cdlb-2021-6-quantitative-sign-use.2026-08-12",
+  "protocol_ref": "ToS/source-witnesses/discovery/DISCOVERY_PROTOCOL.md",
+  "target": {
+    "target_kind": "research-publication",
+    "known_tos_refs": [
+      "tos.work.proto-cuneiform.a-quantitative-analysis-of-proto-cuneiform-sign-use-in-archaic-tribute"
+    ],
+    "description": "Resolve CDLB 2021:6 as one exact research Work, distinguish its dated corpus measurements from sign properties, preserve its dual A01 source and control roles, and check current method, code, rights, and 2025-2026 relevance without acquiring content.",
+    "required_properties": [
+      "exact article title, responsibility, journal identity, and publication date",
+      "article-text rights separated from artifact-image and software rights",
+      "2020 corpus snapshot and all material counting parameters",
+      "Tribute case-study conclusions bounded as frontier interpretation",
+      "versioned code and data route with currentness and license state",
+      "current PCSL and Unicode comparison without false comparability"
+    ],
+    "acceptable_substitutions": [
+      "the publisher PDF for exact article verification",
+      "a versioned software deposit for reproducing the historical count method",
+      "a current corpus snapshot only when its inclusion and normalization parameters are explicit"
+    ],
+    "languages": ["en", "und", "sux"],
+    "formats": ["journal HTML", "journal PDF", "citation metadata", "versioned software deposit", "source repository", "static JSON", "working sign-list frequency surface", "Unicode proposal"],
+    "purpose_ref": "ToS/research-packets/foundation-laboratory-2026-07/A01_CDLB_2021_6_QUANTITATIVE_SIGN_USE_SOURCE_PLANTING_RESEARCH_2026-08-12.md"
+  },
+  "channels": [
+    {
+      "channel_id": "channel-cdlb-2021-6-official-publication",
+      "sequence": 1,
+      "channel_type": "specialized-scholarly-project",
+      "role": "originating-record",
+      "source_name": "Cuneiform Digital Library Initiative article, PDF, citation metadata, and author profiles",
+      "endpoint_url": "https://cdli.earth/articles/cdlb/2021-6",
+      "interface_type": "web",
+      "interface_version": "current CDLI publication surface checked 2026-08-12",
+      "exact_query": "Resolve exact CDLB 2021:6 title, authors, date, issue, ISSN, licenses, PDF, citation key, author identities, and whether the older ToS descriptive label is an actual title.",
+      "queried_at": "2026-08-12T14:11:00-06:00",
+      "elapsed_seconds": 3.7,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.cdlb-2021-6-exact-article",
+          "rank": 1,
+          "title_as_displayed": "A Quantitative Analysis of Proto-Cuneiform Sign Use in Archaic Tribute",
+          "result_url": "https://cdli.earth/articles/cdlb/2021-6",
+          "originating_record_url": "https://cdli.earth/articles/cdlb/2021-6",
+          "identifiers": [
+            {"scheme": "CDLB", "value": "2021:6"},
+            {"scheme": "CDLI article", "value": "cdlb-2021-6"},
+            {"scheme": "ISSN", "value": "1540-8760"},
+            {"scheme": "BibTeX key", "value": "Born2021Quantitative"}
+          ],
+          "available_formats": ["open article HTML", "publisher PDF", "BibTeX", "RIS"],
+          "declared_rights": {"statement": "Creative Commons Attribution 4.0 International except where noted and for artifact images, which follow CDLI terms of use.", "scope": "content", "evidence_url": "https://cdli.earth/articles/cdlb/2021-6", "tos_conclusion": "evidence-only-not-a-rights-conclusion"},
+          "availability": "open-download",
+          "machine_interface": "html",
+          "decision": "select",
+          "rationale": "The originating publication fixes the exact Work identity, authorship, date, methodological claims, citation, and layer-specific rights statement.",
+          "acquisition": {"downloaded": false, "acquired_at": null, "byte_size": null, "sha256": null, "event_ref": null},
+          "snapshot": {"state": "not-captured", "format": null, "sha256": null, "reason": "No article payload was needed for the metadata-only planting."}
+        },
+        {
+          "result_id": "tos-discovery-result.cdlb-2021-6-rejected-mistitle",
+          "rank": 2,
+          "title_as_displayed": "An Updated Sign List for Proto-cuneiform",
+          "result_url": "https://cdli.earth/articles/cdlb/2021-6",
+          "originating_record_url": "https://cdli.earth/articles/cdlb/2021-6",
+          "identifiers": [],
+          "available_formats": ["historical ToS descriptive label"],
+          "declared_rights": {"statement": null, "scope": "metadata", "evidence_url": null, "tos_conclusion": "evidence-only-not-a-rights-conclusion"},
+          "availability": "metadata-only",
+          "machine_interface": "none",
+          "decision": "reject",
+          "rationale": "This is not the title displayed by CDLI and is rejected as a Work label. The prior digest-bound record is retained as history rather than silently rewritten.",
+          "acquisition": {"downloaded": false, "acquired_at": null, "byte_size": null, "sha256": null, "event_ref": null},
+          "snapshot": {"state": "not-needed", "format": null, "sha256": null, "reason": "The rejected string already exists as historical metadata; no content capture applies."}
+        },
+        {
+          "result_id": "tos-discovery-result.cdlb-born-author-profile",
+          "rank": 3,
+          "title_as_displayed": "Born, Logan - Authors",
+          "result_url": "https://cdli.earth/authors/1466",
+          "originating_record_url": "https://cdli.earth/authors/1466",
+          "identifiers": [{"scheme": "CDLI author", "value": "1466"}],
+          "available_formats": ["author metadata HTML"],
+          "declared_rights": {"statement": null, "scope": "metadata", "evidence_url": null, "tos_conclusion": "evidence-only-not-a-rights-conclusion"},
+          "availability": "open-view",
+          "machine_interface": "html",
+          "decision": "select",
+          "rationale": "The exact profile corroborates the source-reported name and affiliation but exposes no ORCID, so broader identity remains provisional.",
+          "acquisition": {"downloaded": false, "acquired_at": null, "byte_size": null, "sha256": null, "event_ref": null},
+          "snapshot": {"state": "not-needed", "format": null, "sha256": null, "reason": "Public author metadata was sufficient."}
+        },
+        {
+          "result_id": "tos-discovery-result.cdlb-kelley-author-profile",
+          "rank": 4,
+          "title_as_displayed": "Kelley, Kathryn Erin - Authors",
+          "result_url": "https://cdli.earth/authors/1177",
+          "originating_record_url": "https://cdli.earth/authors/1177",
+          "identifiers": [
+            {"scheme": "CDLI author", "value": "1177"},
+            {"scheme": "ORCID", "value": "0000-0003-2886-1606"}
+          ],
+          "available_formats": ["author metadata HTML", "ORCID link"],
+          "declared_rights": {"statement": null, "scope": "metadata", "evidence_url": null, "tos_conclusion": "evidence-only-not-a-rights-conclusion"},
+          "availability": "open-view",
+          "machine_interface": "html",
+          "decision": "select",
+          "rationale": "The exact CDLI author profile supplies a direct ORCID identity link without extending article responsibility beyond the cited Work.",
+          "acquisition": {"downloaded": false, "acquired_at": null, "byte_size": null, "sha256": null, "event_ref": null},
+          "snapshot": {"state": "not-needed", "format": null, "sha256": null, "reason": "Public author and identifier metadata was sufficient."}
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-cdlb-2021-6-established-method",
+      "sequence": 2,
+      "channel_type": "specialized-scholarly-project",
+      "role": "scholarly-index",
+      "source_name": "CDLB article methodology, ATU 2 substrate, Englund 1998 baseline, and Tribute interpretation trail",
+      "endpoint_url": "https://cdli.earth/articles/cdlb/2021-6",
+      "interface_type": "web",
+      "interface_version": "article HTML and PDF checked 2026-08-12",
+      "exact_query": "Read the exact corpus scope, counting parameters, normalization choices, spatial-order caveats, and competing Tribute interpretations; separate reported measurements from sign and semantic truth.",
+      "queried_at": "2026-08-12T14:15:00-06:00",
+      "elapsed_seconds": 5.2,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.cdlb-2021-6-method-and-tribute",
+          "rank": 1,
+          "title_as_displayed": "A Quantitative Analysis of Proto-Cuneiform Sign Use in Archaic Tribute",
+          "result_url": "https://cdli.earth/articles/cdlb/2021-6",
+          "originating_record_url": "https://cdli.earth/articles/cdlb/2021-6.pdf",
+          "identifiers": [{"scheme": "CDLB", "value": "2021:6"}],
+          "available_formats": ["peer-reviewed article HTML", "publisher PDF", "tables and methodological notes"],
+          "declared_rights": {"statement": "Creative Commons Attribution 4.0 International except where noted and for artifact images.", "scope": "content", "evidence_url": "https://cdli.earth/articles/cdlb/2021-6", "tos_conclusion": "evidence-only-not-a-rights-conclusion"},
+          "availability": "open-download",
+          "machine_interface": "html",
+          "decision": "select",
+          "rationale": "The full source makes frequency parameterization, approximate counts, non-linear case organization, and Tribute interpretation limits explicit; it is stronger evidence than secondary summaries.",
+          "acquisition": {"downloaded": false, "acquired_at": null, "byte_size": null, "sha256": null, "event_ref": null},
+          "snapshot": {"state": "not-captured", "format": null, "sha256": null, "reason": "The open source remains canonical remotely; no article body or table was copied into ToS."}
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-cdlb-2021-6-versioned-software",
+      "sequence": 3,
+      "channel_type": "identifier-registry",
+      "role": "digital-object-record",
+      "source_name": "Zenodo version and concept records plus originating GitHub repository",
+      "endpoint_url": "https://zenodo.org/records/4062226",
+      "interface_type": "api",
+      "interface_version": "Zenodo record API and GitHub repository API checked 2026-08-12",
+      "exact_query": "Resolve the exact historical software version, concept DOI current target, source repository state, last substantive data update, and license evidence before considering reproduction or reuse.",
+      "queried_at": "2026-08-12T14:20:00-06:00",
+      "elapsed_seconds": 3.3,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.zenodo-proto-cuneiform-sign-count-v1-0-2",
+          "rank": 1,
+          "title_as_displayed": "MrLogarithm/pe-pc-datasets-interface: Proto-cuneiform sign count utilities",
+          "result_url": "https://zenodo.org/records/4062226",
+          "originating_record_url": "https://github.com/MrLogarithm/pe-pc-datasets-interface/tree/v1.0.2",
+          "identifiers": [
+            {"scheme": "DOI", "value": "10.5281/zenodo.4062226"},
+            {"scheme": "Zenodo concept DOI", "value": "10.5281/zenodo.3858116"},
+            {"scheme": "version", "value": "v1.0.2"},
+            {"scheme": "archive MD5", "value": "dfd3c0d25d9ea286d0c0b21c4f7d54eb"}
+          ],
+          "available_formats": ["Zenodo metadata JSON", "versioned source ZIP", "GitHub tag"],
+          "declared_rights": {"statement": "Zenodo metadata reports other-open; no specific license text was established in this run.", "scope": "digital-object", "evidence_url": "https://zenodo.org/records/4062226", "tos_conclusion": "evidence-only-not-a-rights-conclusion"},
+          "availability": "open-download",
+          "machine_interface": "api",
+          "decision": "select",
+          "rationale": "The versioned deposit is the exact reproducibility coordinate cited by the article, but its vague license metadata does not authorize import or redistribution.",
+          "acquisition": {"downloaded": false, "acquired_at": null, "byte_size": null, "sha256": null, "event_ref": null},
+          "snapshot": {"state": "not-captured", "format": null, "sha256": null, "reason": "No software or data archive was needed for this metadata planting."}
+        },
+        {
+          "result_id": "tos-discovery-result.github-pe-pc-interface-current-state",
+          "rank": 2,
+          "title_as_displayed": "MrLogarithm/pe-pc-datasets-interface",
+          "result_url": "https://github.com/MrLogarithm/pe-pc-datasets-interface",
+          "originating_record_url": "https://github.com/MrLogarithm/pe-pc-datasets-interface",
+          "identifiers": [
+            {"scheme": "latest commit", "value": "b99657cc7fd4a7899bad38d9110275457629bfb3"},
+            {"scheme": "default branch", "value": "master"}
+          ],
+          "available_formats": ["Git repository", "notebooks", "static JSON", "GitHub metadata API"],
+          "declared_rights": {"statement": null, "scope": "content", "evidence_url": null, "tos_conclusion": "evidence-only-not-a-rights-conclusion"},
+          "availability": "open-view",
+          "machine_interface": "api",
+          "decision": "select",
+          "rationale": "The source repository was last pushed 2022-08-27, while its last substantive static-data update is dated 2020-10-01. GitHub reports no recognized license, so availability remains separate from reuse permission.",
+          "acquisition": {"downloaded": false, "acquired_at": null, "byte_size": null, "sha256": null, "event_ref": null},
+          "snapshot": {"state": "not-captured", "format": null, "sha256": null, "reason": "Repository metadata was checked without cloning or importing code."}
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-cdlb-2021-6-fresh-controls",
+      "sequence": 4,
+      "channel_type": "specialized-scholarly-project",
+      "role": "mixed",
+      "source_name": "Current PCSL frequencies, 2025 Unicode proposal and 2025 precursor scholarship",
+      "endpoint_url": "https://oracc.museum.upenn.edu/pcsl/signlist/Frequencies/index.html",
+      "interface_type": "web",
+      "interface_version": "live PCSL crawled 2026-08; Unicode 18.0 remains a 2026 draft route",
+      "exact_query": "Check the freshest relevant frequency, sign-identity, encoding, and interpretive controls; reject direct comparison or semantic promotion when source parameters differ.",
+      "queried_at": "2026-08-12T14:25:00-06:00",
+      "elapsed_seconds": 4.6,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.pcsl-current-sign-frequencies",
+          "rank": 1,
+          "title_as_displayed": "PCSL Signlist - Sign Frequencies",
+          "result_url": "https://oracc.museum.upenn.edu/pcsl/signlist/Frequencies/index.html",
+          "originating_record_url": "https://oracc.museum.upenn.edu/pcsl/signlist/index.html",
+          "identifiers": [{"scheme": "PCSL surface", "value": "Sign Frequencies"}],
+          "available_formats": ["live frequency HTML", "sign pages", "PCSL identifiers"],
+          "declared_rights": {"statement": null, "scope": "content", "evidence_url": null, "tos_conclusion": "evidence-only-not-a-rights-conclusion"},
+          "availability": "open-view",
+          "machine_interface": "html",
+          "decision": "select",
+          "rationale": "The current counts materially differ from the 2020 table and therefore supply a drift signal, but the page does not expose enough matching count parameters for direct numerical comparison.",
+          "acquisition": {"downloaded": false, "acquired_at": null, "byte_size": null, "sha256": null, "event_ref": null},
+          "snapshot": {"state": "not-captured", "format": null, "sha256": null, "reason": "No sign-list or frequency data was imported."}
+        },
+        {
+          "result_id": "tos-discovery-result.unicode-proto-cuneiform-current-control-cdlb",
+          "rank": 2,
+          "title_as_displayed": "Proposal to Encode Proto-Cuneiform",
+          "result_url": "https://www.unicode.org/L2/L2025/25211-proto-cuneiform.pdf",
+          "originating_record_url": "https://www.unicode.org/versions/Unicode18.0.0/",
+          "identifiers": [
+            {"scheme": "Unicode document", "value": "L2/25-211"},
+            {"scheme": "Unicode version", "value": "18.0 draft"}
+          ],
+          "available_formats": ["official proposal PDF", "draft version page", "allocation pipeline", "UTC minutes"],
+          "declared_rights": {"statement": "Unicode technical-document terms apply; no document body or character data is republished.", "scope": "content", "evidence_url": "https://www.unicode.org/copyright.html", "tos_conclusion": "evidence-only-not-a-rights-conclusion"},
+          "availability": "open-view",
+          "machine_interface": "html",
+          "decision": "select",
+          "rationale": "The proposal and draft pipeline expose current PCSL-derived technical identities while preserving the distinction between encoding coordinates and readings, occurrences, or meanings.",
+          "acquisition": {"downloaded": false, "acquired_at": null, "byte_size": null, "sha256": null, "event_ref": null},
+          "snapshot": {"state": "not-captured", "format": null, "sha256": null, "reason": "Currentness is retained through dated official references; no standard data entered ToS."}
+        },
+        {
+          "result_id": "tos-discovery-result.kelley-cartolano-ferrara-2025-context-control-cdlb",
+          "rank": 3,
+          "title_as_displayed": "Seals and signs: tracing the origins of writing in ancient South-west Asia",
+          "result_url": "https://www.cambridge.org/core/journals/antiquity/article/seals-and-signs-tracing-the-origins-of-writing-in-ancient-southwest-asia/B3C2D400F3F80A7A0162D9035C9C2804",
+          "originating_record_url": "https://doi.org/10.15184/aqy.2024.165",
+          "identifiers": [{"scheme": "DOI", "value": "10.15184/aqy.2024.165"}],
+          "available_formats": ["open-access article HTML", "publisher PDF"],
+          "declared_rights": {"statement": "Creative Commons Attribution-NonCommercial-NoDerivatives 4.0 International", "scope": "content", "evidence_url": "https://www.cambridge.org/core/journals/antiquity/article/seals-and-signs-tracing-the-origins-of-writing-in-ancient-southwest-asia/B3C2D400F3F80A7A0162D9035C9C2804", "tos_conclusion": "evidence-only-not-a-rights-conclusion"},
+          "availability": "open-view",
+          "machine_interface": "html",
+          "decision": "select",
+          "rationale": "The fresh precursor study is retained only as a contextual control against inferring stable semantics from shape or adjacency; it does not replace corpus frequency evidence.",
+          "acquisition": {"downloaded": false, "acquired_at": null, "byte_size": null, "sha256": null, "event_ref": null},
+          "snapshot": {"state": "not-captured", "format": null, "sha256": null, "reason": "The remote article was not mirrored or transformed."}
+        }
+      ]
+    }
+  ],
+  "channel_comparison": [
+    {"channel_id": "channel-cdlb-2021-6-official-publication", "completeness": "strong", "metadata_precision": "strong", "rights_clarity": "strong", "machine_interface_quality": "adequate", "human_minutes": 4.0, "machine_seconds": 3.7, "notes": "Complete for Work identity, authorship, date, citation, and article rights. Originating journal record and exact author profiles were selected as authority; the old ToS mistitle was explicitly rejected. Stable HTML and PDF were available, while one author page temporarily required direct retrieval."},
+    {"channel_id": "channel-cdlb-2021-6-established-method", "completeness": "strong", "metadata_precision": "strong", "rights_clarity": "strong", "machine_interface_quality": "strong", "human_minutes": 9.0, "machine_seconds": 5.2, "notes": "Complete section- and footnote-level direct evidence for the reported snapshot, parameters, and bounded Tribute case. The same article CC BY statement applies while artifact images remain separate; no table or body was copied."},
+    {"channel_id": "channel-cdlb-2021-6-versioned-software", "completeness": "adequate", "metadata_precision": "strong", "rights_clarity": "limited", "machine_interface_quality": "strong", "human_minutes": 5.0, "machine_seconds": 3.3, "notes": "Exact version DOI, concept DOI, tag, archive checksum, commit, and timestamps were resolved. Dependency and dataset reconstruction remain future work, and other-open plus no recognized GitHub license is insufficient for reuse. The route was not imported."},
+    {"channel_id": "channel-cdlb-2021-6-fresh-controls", "completeness": "adequate", "metadata_precision": "strong", "rights_clarity": "limited", "machine_interface_quality": "adequate", "human_minutes": 6.0, "machine_seconds": 4.6, "notes": "Current frequency, identity/encoding, and interpretive controls were located. PCSL live values lack fully comparable parameter metadata and its HTML occasionally returned 502; the official Unicode source is precise. Selected to expose drift, not overwrite the historical snapshot."}
+  ],
+  "selected_result_ids": [
+    "tos-discovery-result.cdlb-2021-6-exact-article",
+    "tos-discovery-result.cdlb-born-author-profile",
+    "tos-discovery-result.cdlb-kelley-author-profile",
+    "tos-discovery-result.cdlb-2021-6-method-and-tribute",
+    "tos-discovery-result.zenodo-proto-cuneiform-sign-count-v1-0-2",
+    "tos-discovery-result.github-pe-pc-interface-current-state",
+    "tos-discovery-result.pcsl-current-sign-frequencies",
+    "tos-discovery-result.unicode-proto-cuneiform-current-control-cdlb",
+    "tos-discovery-result.kelley-cartolano-ferrara-2025-context-control-cdlb"
+  ],
+  "rejected_result_ids": [
+    "tos-discovery-result.cdlb-2021-6-rejected-mistitle"
+  ],
+  "rights_inference_from_availability_prohibited": true,
+  "general_web_search_is_last_resort": true,
+  "technical_access_bypass_used": false,
+  "maker": {"maker_type": "model", "agent_ref": "model:codex"},
+  "started_at": "2026-08-12T14:11:00-06:00",
+  "ended_at": "2026-08-12T14:39:02-06:00",
+  "status": "reconciled",
+  "provenance_event_refs": [
+    "tos.event.discovery.proto-cuneiform-cdlb-2021-6-quantitative-sign-use.2026-08-12"
+  ],
+  "record_version": 1,
+  "supersedes_discovery_ref": null
+}

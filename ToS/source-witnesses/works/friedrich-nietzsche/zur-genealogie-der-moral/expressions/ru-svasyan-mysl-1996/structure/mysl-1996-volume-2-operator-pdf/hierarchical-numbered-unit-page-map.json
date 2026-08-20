@@ -1,0 +1,979 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/hierarchical-target-numbered-unit-page-map.schema.json",
+  "schema_version": "tos_hierarchical_target_numbered_unit_page_map_v1",
+  "map_id": "tos.hierarchical-target-numbered-unit-page-map.friedrich-nietzsche.zur-genealogie-der-moral.ru-svasyan-mysl-1996",
+  "work_ref": "tos.work.friedrich-nietzsche.zur-genealogie-der-moral",
+  "expression_ref": "tos.expression.friedrich-nietzsche.zur-genealogie-der-moral.ru-svasyan-mysl-1996",
+  "edition_ref": "tos.edition.friedrich-nietzsche.works-in-two-volumes.moscow-mysl-1996-volume-2",
+  "item_ref": "tos.item.friedrich-nietzsche.works-in-two-volumes-volume-2-mysl-1996.operator-pdf",
+  "scan_file": {
+    "file_ref": "tos.file.sha256.ce16b68089dee0fc53a31d9e97723991b292dd8835c43bbbb40a9373c9a436aa",
+    "file_sha256": "ce16b68089dee0fc53a31d9e97723991b292dd8835c43bbbb40a9373c9a436aa",
+    "inventory_profile": "pdf_pages_v1"
+  },
+  "inventory": {
+    "ref": "ToS/source-witnesses/collections/friedrich-nietzsche/works-in-two-volumes-volume-2-mysl-1996/editions/moscow-mysl-1996-volume-2/items/operator-pdf/resource-inventory.json",
+    "sha256": "16773e2de732fe444a4656d5ea47f1ea21f27416dddd8e911cd98845f6287502"
+  },
+  "work_boundary": {
+    "ref": "ToS/source-witnesses/collections/friedrich-nietzsche/works-in-two-volumes-volume-2-mysl-1996/structure/work-boundaries/work-boundary-map.json",
+    "sha256": "e2f66f463fff651a68258dda1dfc6e77bd7d040991f11f2a0965218925d7d60e",
+    "member_sequence": 3,
+    "start_page": 407,
+    "end_page": 524,
+    "epistemic_status": "inferred",
+    "review_status": "unreviewed"
+  },
+  "map_authority": "machine_candidates_with_bounded_model_gap_review_only",
+  "target_text_included": false,
+  "method": {
+    "name": "series-scoped-ordered-embedded-pdf-bbox-candidate-plus-source-visible-gap-review",
+    "version": "1",
+    "maker_type": "mixed",
+    "local_payloads_read": true,
+    "navigation_tool": {
+      "name": "pdftotext",
+      "version": "26.01.0",
+      "mode": "bbox-layout"
+    },
+    "candidate_filter": {
+      "single_word_line_only": true,
+      "x_min_points": {
+        "minimum": 145,
+        "maximum": 175
+      },
+      "y_min_points": {
+        "minimum": 40,
+        "maximum": 490
+      },
+      "maximum_stripped_character_count": 3,
+      "accepted_pattern": "positive integer with optional terminal period",
+      "normalizations": [
+        "trim surrounding whitespace",
+        "remove one terminal period"
+      ]
+    },
+    "series_trials": [
+      {
+        "series_key": "preface",
+        "expected_unit_count": 8,
+        "ordered_bbox_candidate_match_count": 8,
+        "source_visible_override_unit_keys": []
+      },
+      {
+        "series_key": "essay-1",
+        "expected_unit_count": 17,
+        "ordered_bbox_candidate_match_count": 14,
+        "source_visible_override_unit_keys": [
+          "5",
+          "8",
+          "9"
+        ]
+      },
+      {
+        "series_key": "essay-2",
+        "expected_unit_count": 25,
+        "ordered_bbox_candidate_match_count": 24,
+        "source_visible_override_unit_keys": [
+          "15"
+        ]
+      },
+      {
+        "series_key": "essay-3",
+        "expected_unit_count": 28,
+        "ordered_bbox_candidate_match_count": 25,
+        "source_visible_override_unit_keys": [
+          "3",
+          "18",
+          "28"
+        ]
+      }
+    ],
+    "source_visible_review": {
+      "maker_type": "model",
+      "human_repeat_performed": false,
+      "reviewed_target_pdf_pages": [
+        419,
+        423,
+        424,
+        460,
+        474,
+        503,
+        524
+      ],
+      "override_unit_refs": [
+        "essay-1:5",
+        "essay-1:8",
+        "essay-1:9",
+        "essay-2:15",
+        "essay-3:3",
+        "essay-3:18",
+        "essay-3:28"
+      ]
+    },
+    "cross_lingual_text_matching_used": false,
+    "semantic_matching_used": false,
+    "no_target_text_emitted": true
+  },
+  "series": [
+    {
+      "series_key": "preface",
+      "series_sequence": 1,
+      "series_kind": "numbered-preface",
+      "start_page": 408,
+      "end_page": 414,
+      "expected_unit_count": 8,
+      "status": "proposed",
+      "unit_starts": [
+        {
+          "sequence": 1,
+          "unit_key": "1",
+          "pdf_page": 408,
+          "resource_id": "pdf-page-0408",
+          "anchor_ref": "tos.anchor.friedrich-nietzsche.zur-genealogie-der-moral.ru-svasyan-mysl-1996.preface.unit-1.pdf-start-page",
+          "basis": "embedded_pdf_bbox_order_candidate",
+          "status": "proposed",
+          "human_review_performed": false
+        },
+        {
+          "sequence": 2,
+          "unit_key": "2",
+          "pdf_page": 408,
+          "resource_id": "pdf-page-0408",
+          "anchor_ref": "tos.anchor.friedrich-nietzsche.zur-genealogie-der-moral.ru-svasyan-mysl-1996.preface.unit-2.pdf-start-page",
+          "basis": "embedded_pdf_bbox_order_candidate",
+          "status": "proposed",
+          "human_review_performed": false
+        },
+        {
+          "sequence": 3,
+          "unit_key": "3",
+          "pdf_page": 409,
+          "resource_id": "pdf-page-0409",
+          "anchor_ref": "tos.anchor.friedrich-nietzsche.zur-genealogie-der-moral.ru-svasyan-mysl-1996.preface.unit-3.pdf-start-page",
+          "basis": "embedded_pdf_bbox_order_candidate",
+          "status": "proposed",
+          "human_review_performed": false
+        },
+        {
+          "sequence": 4,
+          "unit_key": "4",
+          "pdf_page": 410,
+          "resource_id": "pdf-page-0410",
+          "anchor_ref": "tos.anchor.friedrich-nietzsche.zur-genealogie-der-moral.ru-svasyan-mysl-1996.preface.unit-4.pdf-start-page",
+          "basis": "embedded_pdf_bbox_order_candidate",
+          "status": "proposed",
+          "human_review_performed": false
+        },
+        {
+          "sequence": 5,
+          "unit_key": "5",
+          "pdf_page": 411,
+          "resource_id": "pdf-page-0411",
+          "anchor_ref": "tos.anchor.friedrich-nietzsche.zur-genealogie-der-moral.ru-svasyan-mysl-1996.preface.unit-5.pdf-start-page",
+          "basis": "embedded_pdf_bbox_order_candidate",
+          "status": "proposed",
+          "human_review_performed": false
+        },
+        {
+          "sequence": 6,
+          "unit_key": "6",
+          "pdf_page": 412,
+          "resource_id": "pdf-page-0412",
+          "anchor_ref": "tos.anchor.friedrich-nietzsche.zur-genealogie-der-moral.ru-svasyan-mysl-1996.preface.unit-6.pdf-start-page",
+          "basis": "embedded_pdf_bbox_order_candidate",
+          "status": "proposed",
+          "human_review_performed": false
+        },
+        {
+          "sequence": 7,
+          "unit_key": "7",
+          "pdf_page": 413,
+          "resource_id": "pdf-page-0413",
+          "anchor_ref": "tos.anchor.friedrich-nietzsche.zur-genealogie-der-moral.ru-svasyan-mysl-1996.preface.unit-7.pdf-start-page",
+          "basis": "embedded_pdf_bbox_order_candidate",
+          "status": "proposed",
+          "human_review_performed": false
+        },
+        {
+          "sequence": 8,
+          "unit_key": "8",
+          "pdf_page": 414,
+          "resource_id": "pdf-page-0414",
+          "anchor_ref": "tos.anchor.friedrich-nietzsche.zur-genealogie-der-moral.ru-svasyan-mysl-1996.preface.unit-8.pdf-start-page",
+          "basis": "embedded_pdf_bbox_order_candidate",
+          "status": "proposed",
+          "human_review_performed": false
+        }
+      ]
+    },
+    {
+      "series_key": "essay-1",
+      "series_sequence": 2,
+      "series_kind": "numbered-essay",
+      "start_page": 415,
+      "end_page": 438,
+      "expected_unit_count": 17,
+      "status": "proposed",
+      "unit_starts": [
+        {
+          "sequence": 1,
+          "unit_key": "1",
+          "pdf_page": 415,
+          "resource_id": "pdf-page-0415",
+          "anchor_ref": "tos.anchor.friedrich-nietzsche.zur-genealogie-der-moral.ru-svasyan-mysl-1996.essay-1.unit-1.pdf-start-page",
+          "basis": "embedded_pdf_bbox_order_candidate",
+          "status": "proposed",
+          "human_review_performed": false
+        },
+        {
+          "sequence": 2,
+          "unit_key": "2",
+          "pdf_page": 416,
+          "resource_id": "pdf-page-0416",
+          "anchor_ref": "tos.anchor.friedrich-nietzsche.zur-genealogie-der-moral.ru-svasyan-mysl-1996.essay-1.unit-2.pdf-start-page",
+          "basis": "embedded_pdf_bbox_order_candidate",
+          "status": "proposed",
+          "human_review_performed": false
+        },
+        {
+          "sequence": 3,
+          "unit_key": "3",
+          "pdf_page": 417,
+          "resource_id": "pdf-page-0417",
+          "anchor_ref": "tos.anchor.friedrich-nietzsche.zur-genealogie-der-moral.ru-svasyan-mysl-1996.essay-1.unit-3.pdf-start-page",
+          "basis": "embedded_pdf_bbox_order_candidate",
+          "status": "proposed",
+          "human_review_performed": false
+        },
+        {
+          "sequence": 4,
+          "unit_key": "4",
+          "pdf_page": 418,
+          "resource_id": "pdf-page-0418",
+          "anchor_ref": "tos.anchor.friedrich-nietzsche.zur-genealogie-der-moral.ru-svasyan-mysl-1996.essay-1.unit-4.pdf-start-page",
+          "basis": "embedded_pdf_bbox_order_candidate",
+          "status": "proposed",
+          "human_review_performed": false
+        },
+        {
+          "sequence": 5,
+          "unit_key": "5",
+          "pdf_page": 419,
+          "resource_id": "pdf-page-0419",
+          "anchor_ref": "tos.anchor.friedrich-nietzsche.zur-genealogie-der-moral.ru-svasyan-mysl-1996.essay-1.unit-5.pdf-start-page",
+          "basis": "source_visible_gap_review",
+          "status": "proposed",
+          "human_review_performed": false
+        },
+        {
+          "sequence": 6,
+          "unit_key": "6",
+          "pdf_page": 420,
+          "resource_id": "pdf-page-0420",
+          "anchor_ref": "tos.anchor.friedrich-nietzsche.zur-genealogie-der-moral.ru-svasyan-mysl-1996.essay-1.unit-6.pdf-start-page",
+          "basis": "embedded_pdf_bbox_order_candidate",
+          "status": "proposed",
+          "human_review_performed": false
+        },
+        {
+          "sequence": 7,
+          "unit_key": "7",
+          "pdf_page": 421,
+          "resource_id": "pdf-page-0421",
+          "anchor_ref": "tos.anchor.friedrich-nietzsche.zur-genealogie-der-moral.ru-svasyan-mysl-1996.essay-1.unit-7.pdf-start-page",
+          "basis": "embedded_pdf_bbox_order_candidate",
+          "status": "proposed",
+          "human_review_performed": false
+        },
+        {
+          "sequence": 8,
+          "unit_key": "8",
+          "pdf_page": 423,
+          "resource_id": "pdf-page-0423",
+          "anchor_ref": "tos.anchor.friedrich-nietzsche.zur-genealogie-der-moral.ru-svasyan-mysl-1996.essay-1.unit-8.pdf-start-page",
+          "basis": "source_visible_gap_review",
+          "status": "proposed",
+          "human_review_performed": false
+        },
+        {
+          "sequence": 9,
+          "unit_key": "9",
+          "pdf_page": 424,
+          "resource_id": "pdf-page-0424",
+          "anchor_ref": "tos.anchor.friedrich-nietzsche.zur-genealogie-der-moral.ru-svasyan-mysl-1996.essay-1.unit-9.pdf-start-page",
+          "basis": "source_visible_gap_review",
+          "status": "proposed",
+          "human_review_performed": false
+        },
+        {
+          "sequence": 10,
+          "unit_key": "10",
+          "pdf_page": 424,
+          "resource_id": "pdf-page-0424",
+          "anchor_ref": "tos.anchor.friedrich-nietzsche.zur-genealogie-der-moral.ru-svasyan-mysl-1996.essay-1.unit-10.pdf-start-page",
+          "basis": "embedded_pdf_bbox_order_candidate",
+          "status": "proposed",
+          "human_review_performed": false
+        },
+        {
+          "sequence": 11,
+          "unit_key": "11",
+          "pdf_page": 427,
+          "resource_id": "pdf-page-0427",
+          "anchor_ref": "tos.anchor.friedrich-nietzsche.zur-genealogie-der-moral.ru-svasyan-mysl-1996.essay-1.unit-11.pdf-start-page",
+          "basis": "embedded_pdf_bbox_order_candidate",
+          "status": "proposed",
+          "human_review_performed": false
+        },
+        {
+          "sequence": 12,
+          "unit_key": "12",
+          "pdf_page": 429,
+          "resource_id": "pdf-page-0429",
+          "anchor_ref": "tos.anchor.friedrich-nietzsche.zur-genealogie-der-moral.ru-svasyan-mysl-1996.essay-1.unit-12.pdf-start-page",
+          "basis": "embedded_pdf_bbox_order_candidate",
+          "status": "proposed",
+          "human_review_performed": false
+        },
+        {
+          "sequence": 13,
+          "unit_key": "13",
+          "pdf_page": 430,
+          "resource_id": "pdf-page-0430",
+          "anchor_ref": "tos.anchor.friedrich-nietzsche.zur-genealogie-der-moral.ru-svasyan-mysl-1996.essay-1.unit-13.pdf-start-page",
+          "basis": "embedded_pdf_bbox_order_candidate",
+          "status": "proposed",
+          "human_review_performed": false
+        },
+        {
+          "sequence": 14,
+          "unit_key": "14",
+          "pdf_page": 432,
+          "resource_id": "pdf-page-0432",
+          "anchor_ref": "tos.anchor.friedrich-nietzsche.zur-genealogie-der-moral.ru-svasyan-mysl-1996.essay-1.unit-14.pdf-start-page",
+          "basis": "embedded_pdf_bbox_order_candidate",
+          "status": "proposed",
+          "human_review_performed": false
+        },
+        {
+          "sequence": 15,
+          "unit_key": "15",
+          "pdf_page": 434,
+          "resource_id": "pdf-page-0434",
+          "anchor_ref": "tos.anchor.friedrich-nietzsche.zur-genealogie-der-moral.ru-svasyan-mysl-1996.essay-1.unit-15.pdf-start-page",
+          "basis": "embedded_pdf_bbox_order_candidate",
+          "status": "proposed",
+          "human_review_performed": false
+        },
+        {
+          "sequence": 16,
+          "unit_key": "16",
+          "pdf_page": 435,
+          "resource_id": "pdf-page-0435",
+          "anchor_ref": "tos.anchor.friedrich-nietzsche.zur-genealogie-der-moral.ru-svasyan-mysl-1996.essay-1.unit-16.pdf-start-page",
+          "basis": "embedded_pdf_bbox_order_candidate",
+          "status": "proposed",
+          "human_review_performed": false
+        },
+        {
+          "sequence": 17,
+          "unit_key": "17",
+          "pdf_page": 437,
+          "resource_id": "pdf-page-0437",
+          "anchor_ref": "tos.anchor.friedrich-nietzsche.zur-genealogie-der-moral.ru-svasyan-mysl-1996.essay-1.unit-17.pdf-start-page",
+          "basis": "embedded_pdf_bbox_order_candidate",
+          "status": "proposed",
+          "human_review_performed": false
+        }
+      ]
+    },
+    {
+      "series_key": "essay-2",
+      "series_sequence": 3,
+      "series_kind": "numbered-essay",
+      "start_page": 439,
+      "end_page": 471,
+      "expected_unit_count": 25,
+      "status": "proposed",
+      "unit_starts": [
+        {
+          "sequence": 1,
+          "unit_key": "1",
+          "pdf_page": 439,
+          "resource_id": "pdf-page-0439",
+          "anchor_ref": "tos.anchor.friedrich-nietzsche.zur-genealogie-der-moral.ru-svasyan-mysl-1996.essay-2.unit-1.pdf-start-page",
+          "basis": "embedded_pdf_bbox_order_candidate",
+          "status": "proposed",
+          "human_review_performed": false
+        },
+        {
+          "sequence": 2,
+          "unit_key": "2",
+          "pdf_page": 440,
+          "resource_id": "pdf-page-0440",
+          "anchor_ref": "tos.anchor.friedrich-nietzsche.zur-genealogie-der-moral.ru-svasyan-mysl-1996.essay-2.unit-2.pdf-start-page",
+          "basis": "embedded_pdf_bbox_order_candidate",
+          "status": "proposed",
+          "human_review_performed": false
+        },
+        {
+          "sequence": 3,
+          "unit_key": "3",
+          "pdf_page": 441,
+          "resource_id": "pdf-page-0441",
+          "anchor_ref": "tos.anchor.friedrich-nietzsche.zur-genealogie-der-moral.ru-svasyan-mysl-1996.essay-2.unit-3.pdf-start-page",
+          "basis": "embedded_pdf_bbox_order_candidate",
+          "status": "proposed",
+          "human_review_performed": false
+        },
+        {
+          "sequence": 4,
+          "unit_key": "4",
+          "pdf_page": 443,
+          "resource_id": "pdf-page-0443",
+          "anchor_ref": "tos.anchor.friedrich-nietzsche.zur-genealogie-der-moral.ru-svasyan-mysl-1996.essay-2.unit-4.pdf-start-page",
+          "basis": "embedded_pdf_bbox_order_candidate",
+          "status": "proposed",
+          "human_review_performed": false
+        },
+        {
+          "sequence": 5,
+          "unit_key": "5",
+          "pdf_page": 444,
+          "resource_id": "pdf-page-0444",
+          "anchor_ref": "tos.anchor.friedrich-nietzsche.zur-genealogie-der-moral.ru-svasyan-mysl-1996.essay-2.unit-5.pdf-start-page",
+          "basis": "embedded_pdf_bbox_order_candidate",
+          "status": "proposed",
+          "human_review_performed": false
+        },
+        {
+          "sequence": 6,
+          "unit_key": "6",
+          "pdf_page": 445,
+          "resource_id": "pdf-page-0445",
+          "anchor_ref": "tos.anchor.friedrich-nietzsche.zur-genealogie-der-moral.ru-svasyan-mysl-1996.essay-2.unit-6.pdf-start-page",
+          "basis": "embedded_pdf_bbox_order_candidate",
+          "status": "proposed",
+          "human_review_performed": false
+        },
+        {
+          "sequence": 7,
+          "unit_key": "7",
+          "pdf_page": 447,
+          "resource_id": "pdf-page-0447",
+          "anchor_ref": "tos.anchor.friedrich-nietzsche.zur-genealogie-der-moral.ru-svasyan-mysl-1996.essay-2.unit-7.pdf-start-page",
+          "basis": "embedded_pdf_bbox_order_candidate",
+          "status": "proposed",
+          "human_review_performed": false
+        },
+        {
+          "sequence": 8,
+          "unit_key": "8",
+          "pdf_page": 449,
+          "resource_id": "pdf-page-0449",
+          "anchor_ref": "tos.anchor.friedrich-nietzsche.zur-genealogie-der-moral.ru-svasyan-mysl-1996.essay-2.unit-8.pdf-start-page",
+          "basis": "embedded_pdf_bbox_order_candidate",
+          "status": "proposed",
+          "human_review_performed": false
+        },
+        {
+          "sequence": 9,
+          "unit_key": "9",
+          "pdf_page": 450,
+          "resource_id": "pdf-page-0450",
+          "anchor_ref": "tos.anchor.friedrich-nietzsche.zur-genealogie-der-moral.ru-svasyan-mysl-1996.essay-2.unit-9.pdf-start-page",
+          "basis": "embedded_pdf_bbox_order_candidate",
+          "status": "proposed",
+          "human_review_performed": false
+        },
+        {
+          "sequence": 10,
+          "unit_key": "10",
+          "pdf_page": 451,
+          "resource_id": "pdf-page-0451",
+          "anchor_ref": "tos.anchor.friedrich-nietzsche.zur-genealogie-der-moral.ru-svasyan-mysl-1996.essay-2.unit-10.pdf-start-page",
+          "basis": "embedded_pdf_bbox_order_candidate",
+          "status": "proposed",
+          "human_review_performed": false
+        },
+        {
+          "sequence": 11,
+          "unit_key": "11",
+          "pdf_page": 452,
+          "resource_id": "pdf-page-0452",
+          "anchor_ref": "tos.anchor.friedrich-nietzsche.zur-genealogie-der-moral.ru-svasyan-mysl-1996.essay-2.unit-11.pdf-start-page",
+          "basis": "embedded_pdf_bbox_order_candidate",
+          "status": "proposed",
+          "human_review_performed": false
+        },
+        {
+          "sequence": 12,
+          "unit_key": "12",
+          "pdf_page": 455,
+          "resource_id": "pdf-page-0455",
+          "anchor_ref": "tos.anchor.friedrich-nietzsche.zur-genealogie-der-moral.ru-svasyan-mysl-1996.essay-2.unit-12.pdf-start-page",
+          "basis": "embedded_pdf_bbox_order_candidate",
+          "status": "proposed",
+          "human_review_performed": false
+        },
+        {
+          "sequence": 13,
+          "unit_key": "13",
+          "pdf_page": 457,
+          "resource_id": "pdf-page-0457",
+          "anchor_ref": "tos.anchor.friedrich-nietzsche.zur-genealogie-der-moral.ru-svasyan-mysl-1996.essay-2.unit-13.pdf-start-page",
+          "basis": "embedded_pdf_bbox_order_candidate",
+          "status": "proposed",
+          "human_review_performed": false
+        },
+        {
+          "sequence": 14,
+          "unit_key": "14",
+          "pdf_page": 458,
+          "resource_id": "pdf-page-0458",
+          "anchor_ref": "tos.anchor.friedrich-nietzsche.zur-genealogie-der-moral.ru-svasyan-mysl-1996.essay-2.unit-14.pdf-start-page",
+          "basis": "embedded_pdf_bbox_order_candidate",
+          "status": "proposed",
+          "human_review_performed": false
+        },
+        {
+          "sequence": 15,
+          "unit_key": "15",
+          "pdf_page": 460,
+          "resource_id": "pdf-page-0460",
+          "anchor_ref": "tos.anchor.friedrich-nietzsche.zur-genealogie-der-moral.ru-svasyan-mysl-1996.essay-2.unit-15.pdf-start-page",
+          "basis": "source_visible_gap_review",
+          "status": "proposed",
+          "human_review_performed": false
+        },
+        {
+          "sequence": 16,
+          "unit_key": "16",
+          "pdf_page": 460,
+          "resource_id": "pdf-page-0460",
+          "anchor_ref": "tos.anchor.friedrich-nietzsche.zur-genealogie-der-moral.ru-svasyan-mysl-1996.essay-2.unit-16.pdf-start-page",
+          "basis": "embedded_pdf_bbox_order_candidate",
+          "status": "proposed",
+          "human_review_performed": false
+        },
+        {
+          "sequence": 17,
+          "unit_key": "17",
+          "pdf_page": 462,
+          "resource_id": "pdf-page-0462",
+          "anchor_ref": "tos.anchor.friedrich-nietzsche.zur-genealogie-der-moral.ru-svasyan-mysl-1996.essay-2.unit-17.pdf-start-page",
+          "basis": "embedded_pdf_bbox_order_candidate",
+          "status": "proposed",
+          "human_review_performed": false
+        },
+        {
+          "sequence": 18,
+          "unit_key": "18",
+          "pdf_page": 463,
+          "resource_id": "pdf-page-0463",
+          "anchor_ref": "tos.anchor.friedrich-nietzsche.zur-genealogie-der-moral.ru-svasyan-mysl-1996.essay-2.unit-18.pdf-start-page",
+          "basis": "embedded_pdf_bbox_order_candidate",
+          "status": "proposed",
+          "human_review_performed": false
+        },
+        {
+          "sequence": 19,
+          "unit_key": "19",
+          "pdf_page": 464,
+          "resource_id": "pdf-page-0464",
+          "anchor_ref": "tos.anchor.friedrich-nietzsche.zur-genealogie-der-moral.ru-svasyan-mysl-1996.essay-2.unit-19.pdf-start-page",
+          "basis": "embedded_pdf_bbox_order_candidate",
+          "status": "proposed",
+          "human_review_performed": false
+        },
+        {
+          "sequence": 20,
+          "unit_key": "20",
+          "pdf_page": 466,
+          "resource_id": "pdf-page-0466",
+          "anchor_ref": "tos.anchor.friedrich-nietzsche.zur-genealogie-der-moral.ru-svasyan-mysl-1996.essay-2.unit-20.pdf-start-page",
+          "basis": "embedded_pdf_bbox_order_candidate",
+          "status": "proposed",
+          "human_review_performed": false
+        },
+        {
+          "sequence": 21,
+          "unit_key": "21",
+          "pdf_page": 467,
+          "resource_id": "pdf-page-0467",
+          "anchor_ref": "tos.anchor.friedrich-nietzsche.zur-genealogie-der-moral.ru-svasyan-mysl-1996.essay-2.unit-21.pdf-start-page",
+          "basis": "embedded_pdf_bbox_order_candidate",
+          "status": "proposed",
+          "human_review_performed": false
+        },
+        {
+          "sequence": 22,
+          "unit_key": "22",
+          "pdf_page": 468,
+          "resource_id": "pdf-page-0468",
+          "anchor_ref": "tos.anchor.friedrich-nietzsche.zur-genealogie-der-moral.ru-svasyan-mysl-1996.essay-2.unit-22.pdf-start-page",
+          "basis": "embedded_pdf_bbox_order_candidate",
+          "status": "proposed",
+          "human_review_performed": false
+        },
+        {
+          "sequence": 23,
+          "unit_key": "23",
+          "pdf_page": 469,
+          "resource_id": "pdf-page-0469",
+          "anchor_ref": "tos.anchor.friedrich-nietzsche.zur-genealogie-der-moral.ru-svasyan-mysl-1996.essay-2.unit-23.pdf-start-page",
+          "basis": "embedded_pdf_bbox_order_candidate",
+          "status": "proposed",
+          "human_review_performed": false
+        },
+        {
+          "sequence": 24,
+          "unit_key": "24",
+          "pdf_page": 470,
+          "resource_id": "pdf-page-0470",
+          "anchor_ref": "tos.anchor.friedrich-nietzsche.zur-genealogie-der-moral.ru-svasyan-mysl-1996.essay-2.unit-24.pdf-start-page",
+          "basis": "embedded_pdf_bbox_order_candidate",
+          "status": "proposed",
+          "human_review_performed": false
+        },
+        {
+          "sequence": 25,
+          "unit_key": "25",
+          "pdf_page": 471,
+          "resource_id": "pdf-page-0471",
+          "anchor_ref": "tos.anchor.friedrich-nietzsche.zur-genealogie-der-moral.ru-svasyan-mysl-1996.essay-2.unit-25.pdf-start-page",
+          "basis": "embedded_pdf_bbox_order_candidate",
+          "status": "proposed",
+          "human_review_performed": false
+        }
+      ]
+    },
+    {
+      "series_key": "essay-3",
+      "series_sequence": 4,
+      "series_kind": "numbered-essay",
+      "start_page": 472,
+      "end_page": 524,
+      "expected_unit_count": 28,
+      "status": "proposed",
+      "unit_starts": [
+        {
+          "sequence": 1,
+          "unit_key": "1",
+          "pdf_page": 472,
+          "resource_id": "pdf-page-0472",
+          "anchor_ref": "tos.anchor.friedrich-nietzsche.zur-genealogie-der-moral.ru-svasyan-mysl-1996.essay-3.unit-1.pdf-start-page",
+          "basis": "embedded_pdf_bbox_order_candidate",
+          "status": "proposed",
+          "human_review_performed": false
+        },
+        {
+          "sequence": 2,
+          "unit_key": "2",
+          "pdf_page": 472,
+          "resource_id": "pdf-page-0472",
+          "anchor_ref": "tos.anchor.friedrich-nietzsche.zur-genealogie-der-moral.ru-svasyan-mysl-1996.essay-3.unit-2.pdf-start-page",
+          "basis": "embedded_pdf_bbox_order_candidate",
+          "status": "proposed",
+          "human_review_performed": false
+        },
+        {
+          "sequence": 3,
+          "unit_key": "3",
+          "pdf_page": 474,
+          "resource_id": "pdf-page-0474",
+          "anchor_ref": "tos.anchor.friedrich-nietzsche.zur-genealogie-der-moral.ru-svasyan-mysl-1996.essay-3.unit-3.pdf-start-page",
+          "basis": "source_visible_gap_review",
+          "status": "proposed",
+          "human_review_performed": false
+        },
+        {
+          "sequence": 4,
+          "unit_key": "4",
+          "pdf_page": 475,
+          "resource_id": "pdf-page-0475",
+          "anchor_ref": "tos.anchor.friedrich-nietzsche.zur-genealogie-der-moral.ru-svasyan-mysl-1996.essay-3.unit-4.pdf-start-page",
+          "basis": "embedded_pdf_bbox_order_candidate",
+          "status": "proposed",
+          "human_review_performed": false
+        },
+        {
+          "sequence": 5,
+          "unit_key": "5",
+          "pdf_page": 476,
+          "resource_id": "pdf-page-0476",
+          "anchor_ref": "tos.anchor.friedrich-nietzsche.zur-genealogie-der-moral.ru-svasyan-mysl-1996.essay-3.unit-5.pdf-start-page",
+          "basis": "embedded_pdf_bbox_order_candidate",
+          "status": "proposed",
+          "human_review_performed": false
+        },
+        {
+          "sequence": 6,
+          "unit_key": "6",
+          "pdf_page": 477,
+          "resource_id": "pdf-page-0477",
+          "anchor_ref": "tos.anchor.friedrich-nietzsche.zur-genealogie-der-moral.ru-svasyan-mysl-1996.essay-3.unit-6.pdf-start-page",
+          "basis": "embedded_pdf_bbox_order_candidate",
+          "status": "proposed",
+          "human_review_performed": false
+        },
+        {
+          "sequence": 7,
+          "unit_key": "7",
+          "pdf_page": 479,
+          "resource_id": "pdf-page-0479",
+          "anchor_ref": "tos.anchor.friedrich-nietzsche.zur-genealogie-der-moral.ru-svasyan-mysl-1996.essay-3.unit-7.pdf-start-page",
+          "basis": "embedded_pdf_bbox_order_candidate",
+          "status": "proposed",
+          "human_review_performed": false
+        },
+        {
+          "sequence": 8,
+          "unit_key": "8",
+          "pdf_page": 481,
+          "resource_id": "pdf-page-0481",
+          "anchor_ref": "tos.anchor.friedrich-nietzsche.zur-genealogie-der-moral.ru-svasyan-mysl-1996.essay-3.unit-8.pdf-start-page",
+          "basis": "embedded_pdf_bbox_order_candidate",
+          "status": "proposed",
+          "human_review_performed": false
+        },
+        {
+          "sequence": 9,
+          "unit_key": "9",
+          "pdf_page": 484,
+          "resource_id": "pdf-page-0484",
+          "anchor_ref": "tos.anchor.friedrich-nietzsche.zur-genealogie-der-moral.ru-svasyan-mysl-1996.essay-3.unit-9.pdf-start-page",
+          "basis": "embedded_pdf_bbox_order_candidate",
+          "status": "proposed",
+          "human_review_performed": false
+        },
+        {
+          "sequence": 10,
+          "unit_key": "10",
+          "pdf_page": 486,
+          "resource_id": "pdf-page-0486",
+          "anchor_ref": "tos.anchor.friedrich-nietzsche.zur-genealogie-der-moral.ru-svasyan-mysl-1996.essay-3.unit-10.pdf-start-page",
+          "basis": "embedded_pdf_bbox_order_candidate",
+          "status": "proposed",
+          "human_review_performed": false
+        },
+        {
+          "sequence": 11,
+          "unit_key": "11",
+          "pdf_page": 488,
+          "resource_id": "pdf-page-0488",
+          "anchor_ref": "tos.anchor.friedrich-nietzsche.zur-genealogie-der-moral.ru-svasyan-mysl-1996.essay-3.unit-11.pdf-start-page",
+          "basis": "embedded_pdf_bbox_order_candidate",
+          "status": "proposed",
+          "human_review_performed": false
+        },
+        {
+          "sequence": 12,
+          "unit_key": "12",
+          "pdf_page": 490,
+          "resource_id": "pdf-page-0490",
+          "anchor_ref": "tos.anchor.friedrich-nietzsche.zur-genealogie-der-moral.ru-svasyan-mysl-1996.essay-3.unit-12.pdf-start-page",
+          "basis": "embedded_pdf_bbox_order_candidate",
+          "status": "proposed",
+          "human_review_performed": false
+        },
+        {
+          "sequence": 13,
+          "unit_key": "13",
+          "pdf_page": 491,
+          "resource_id": "pdf-page-0491",
+          "anchor_ref": "tos.anchor.friedrich-nietzsche.zur-genealogie-der-moral.ru-svasyan-mysl-1996.essay-3.unit-13.pdf-start-page",
+          "basis": "embedded_pdf_bbox_order_candidate",
+          "status": "proposed",
+          "human_review_performed": false
+        },
+        {
+          "sequence": 14,
+          "unit_key": "14",
+          "pdf_page": 492,
+          "resource_id": "pdf-page-0492",
+          "anchor_ref": "tos.anchor.friedrich-nietzsche.zur-genealogie-der-moral.ru-svasyan-mysl-1996.essay-3.unit-14.pdf-start-page",
+          "basis": "embedded_pdf_bbox_order_candidate",
+          "status": "proposed",
+          "human_review_performed": false
+        },
+        {
+          "sequence": 15,
+          "unit_key": "15",
+          "pdf_page": 495,
+          "resource_id": "pdf-page-0495",
+          "anchor_ref": "tos.anchor.friedrich-nietzsche.zur-genealogie-der-moral.ru-svasyan-mysl-1996.essay-3.unit-15.pdf-start-page",
+          "basis": "embedded_pdf_bbox_order_candidate",
+          "status": "proposed",
+          "human_review_performed": false
+        },
+        {
+          "sequence": 16,
+          "unit_key": "16",
+          "pdf_page": 498,
+          "resource_id": "pdf-page-0498",
+          "anchor_ref": "tos.anchor.friedrich-nietzsche.zur-genealogie-der-moral.ru-svasyan-mysl-1996.essay-3.unit-16.pdf-start-page",
+          "basis": "embedded_pdf_bbox_order_candidate",
+          "status": "proposed",
+          "human_review_performed": false
+        },
+        {
+          "sequence": 17,
+          "unit_key": "17",
+          "pdf_page": 499,
+          "resource_id": "pdf-page-0499",
+          "anchor_ref": "tos.anchor.friedrich-nietzsche.zur-genealogie-der-moral.ru-svasyan-mysl-1996.essay-3.unit-17.pdf-start-page",
+          "basis": "embedded_pdf_bbox_order_candidate",
+          "status": "proposed",
+          "human_review_performed": false
+        },
+        {
+          "sequence": 18,
+          "unit_key": "18",
+          "pdf_page": 503,
+          "resource_id": "pdf-page-0503",
+          "anchor_ref": "tos.anchor.friedrich-nietzsche.zur-genealogie-der-moral.ru-svasyan-mysl-1996.essay-3.unit-18.pdf-start-page",
+          "basis": "source_visible_gap_review",
+          "status": "proposed",
+          "human_review_performed": false
+        },
+        {
+          "sequence": 19,
+          "unit_key": "19",
+          "pdf_page": 504,
+          "resource_id": "pdf-page-0504",
+          "anchor_ref": "tos.anchor.friedrich-nietzsche.zur-genealogie-der-moral.ru-svasyan-mysl-1996.essay-3.unit-19.pdf-start-page",
+          "basis": "embedded_pdf_bbox_order_candidate",
+          "status": "proposed",
+          "human_review_performed": false
+        },
+        {
+          "sequence": 20,
+          "unit_key": "20",
+          "pdf_page": 506,
+          "resource_id": "pdf-page-0506",
+          "anchor_ref": "tos.anchor.friedrich-nietzsche.zur-genealogie-der-moral.ru-svasyan-mysl-1996.essay-3.unit-20.pdf-start-page",
+          "basis": "embedded_pdf_bbox_order_candidate",
+          "status": "proposed",
+          "human_review_performed": false
+        },
+        {
+          "sequence": 21,
+          "unit_key": "21",
+          "pdf_page": 509,
+          "resource_id": "pdf-page-0509",
+          "anchor_ref": "tos.anchor.friedrich-nietzsche.zur-genealogie-der-moral.ru-svasyan-mysl-1996.essay-3.unit-21.pdf-start-page",
+          "basis": "embedded_pdf_bbox_order_candidate",
+          "status": "proposed",
+          "human_review_performed": false
+        },
+        {
+          "sequence": 22,
+          "unit_key": "22",
+          "pdf_page": 510,
+          "resource_id": "pdf-page-0510",
+          "anchor_ref": "tos.anchor.friedrich-nietzsche.zur-genealogie-der-moral.ru-svasyan-mysl-1996.essay-3.unit-22.pdf-start-page",
+          "basis": "embedded_pdf_bbox_order_candidate",
+          "status": "proposed",
+          "human_review_performed": false
+        },
+        {
+          "sequence": 23,
+          "unit_key": "23",
+          "pdf_page": 512,
+          "resource_id": "pdf-page-0512",
+          "anchor_ref": "tos.anchor.friedrich-nietzsche.zur-genealogie-der-moral.ru-svasyan-mysl-1996.essay-3.unit-23.pdf-start-page",
+          "basis": "embedded_pdf_bbox_order_candidate",
+          "status": "proposed",
+          "human_review_performed": false
+        },
+        {
+          "sequence": 24,
+          "unit_key": "24",
+          "pdf_page": 514,
+          "resource_id": "pdf-page-0514",
+          "anchor_ref": "tos.anchor.friedrich-nietzsche.zur-genealogie-der-moral.ru-svasyan-mysl-1996.essay-3.unit-24.pdf-start-page",
+          "basis": "embedded_pdf_bbox_order_candidate",
+          "status": "proposed",
+          "human_review_performed": false
+        },
+        {
+          "sequence": 25,
+          "unit_key": "25",
+          "pdf_page": 517,
+          "resource_id": "pdf-page-0517",
+          "anchor_ref": "tos.anchor.friedrich-nietzsche.zur-genealogie-der-moral.ru-svasyan-mysl-1996.essay-3.unit-25.pdf-start-page",
+          "basis": "embedded_pdf_bbox_order_candidate",
+          "status": "proposed",
+          "human_review_performed": false
+        },
+        {
+          "sequence": 26,
+          "unit_key": "26",
+          "pdf_page": 520,
+          "resource_id": "pdf-page-0520",
+          "anchor_ref": "tos.anchor.friedrich-nietzsche.zur-genealogie-der-moral.ru-svasyan-mysl-1996.essay-3.unit-26.pdf-start-page",
+          "basis": "embedded_pdf_bbox_order_candidate",
+          "status": "proposed",
+          "human_review_performed": false
+        },
+        {
+          "sequence": 27,
+          "unit_key": "27",
+          "pdf_page": 522,
+          "resource_id": "pdf-page-0522",
+          "anchor_ref": "tos.anchor.friedrich-nietzsche.zur-genealogie-der-moral.ru-svasyan-mysl-1996.essay-3.unit-27.pdf-start-page",
+          "basis": "embedded_pdf_bbox_order_candidate",
+          "status": "proposed",
+          "human_review_performed": false
+        },
+        {
+          "sequence": 28,
+          "unit_key": "28",
+          "pdf_page": 524,
+          "resource_id": "pdf-page-0524",
+          "anchor_ref": "tos.anchor.friedrich-nietzsche.zur-genealogie-der-moral.ru-svasyan-mysl-1996.essay-3.unit-28.pdf-start-page",
+          "basis": "source_visible_gap_review",
+          "status": "proposed",
+          "human_review_performed": false
+        }
+      ]
+    }
+  ],
+  "summary": {
+    "series_count": 4,
+    "numbered_unit_count": 78,
+    "ordered_bbox_candidate_match_count": 71,
+    "source_visible_override_unit_count": 7,
+    "source_visible_reviewed_page_count": 7,
+    "exact_start_page_candidates_materialized": 78,
+    "unresolved_unit_count": 0,
+    "start_pages_monotonic": true,
+    "all_anchor_statuses": [
+      "proposed"
+    ],
+    "human_review_performed": false
+  },
+  "provenance_ref": "ToS/source-witnesses/works/friedrich-nietzsche/zur-genealogie-der-moral/expressions/ru-svasyan-mysl-1996/structure/mysl-1996-volume-2-operator-pdf/provenance.numbered-unit-page-map.jsonl",
+  "provenance_event_ref": "tos.event.hierarchical-target-numbered-unit-page-map.friedrich-nietzsche.zur-genealogie-der-moral.ru-svasyan-mysl-1996.2026-08-08",
+  "map_version": 1,
+  "supersedes_map_ref": null,
+  "authority_boundary": "machine-derived target-visible series-qualified numbered-label start-page candidates with bounded model-only review of explicit machine gaps, plus proposed whole-page addresses for one exact local translation scan only; repeated numeral labels remain distinct by series identity, and no target prose, exact line or passage-end boundary, accepted Russian, source-to-target alignment, translation relation, semantics, rights clearance, eligible transfer unit, target gold, or canon authority follows",
+  "does_not_establish": [
+    "target_text",
+    "exact_line_boundaries",
+    "exact_passage_end_boundaries",
+    "accepted_translation_text",
+    "source_to_target_passage_alignment",
+    "translation_correspondence",
+    "translation_equivalence",
+    "translation_quality",
+    "textual_identity",
+    "semantics",
+    "rights_clearance",
+    "eligible_target_unit",
+    "target_gold",
+    "canon_promotion"
+  ]
+}

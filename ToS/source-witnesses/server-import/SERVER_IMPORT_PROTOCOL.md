@@ -42,6 +42,13 @@ Every item plan names:
 
 No class is inferred from a file's age, local availability, or repository
 metadata. `public-payload` requires affirmative, scope-specific rights evidence.
+A metadata-only site record may state that research used a named local ToS item
+and preserve its provenance without transferring or serving that item's bytes.
+Verified public-domain, open-license, permission-granted, or conditional
+noncommercial evidence may open a matching public route for the exact material
+it covers. The importer must enforce every recorded condition; it must not
+generalize permission from a work to an edition, from an edition to a scan, or
+from a catalog record to source bytes.
 
 ## Derivative matrix
 
@@ -65,3 +72,8 @@ The future importer must:
 
 Repository checkout, generated catalog, graph export, or future site build may
 never silently discover and upload gitignored payload bytes.
+
+For the current operator-supplied local corpus, the future public-site route is
+metadata/provenance only: the source files remain local even if another
+material derived through the research lineage later receives separate
+publication permission.

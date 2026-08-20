@@ -1,0 +1,296 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://tree-of-sophia.local/ToS/contracts/german-assisted-source-review.schema.json",
+  "title": "Tree of Sophia German assisted source review",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "$schema",
+    "schema_version",
+    "plan_id",
+    "status",
+    "method_research",
+    "source_review_plan",
+    "critical_edition_witness_packets",
+    "operating_model",
+    "competence_boundary",
+    "evidence_lanes",
+    "source_postures",
+    "translation_gates",
+    "scheduling",
+    "current_state"
+  ],
+  "properties": {
+    "$schema": {
+      "const": "https://tree-of-sophia.local/ToS/contracts/german-assisted-source-review.schema.json"
+    },
+    "schema_version": {"const": "tos_german_assisted_source_review_v1"},
+    "plan_id": {
+      "type": "string",
+      "pattern": "^tos\\.german-assisted-review\\.[a-z0-9]+(?:[.-][a-z0-9]+)*$"
+    },
+    "status": {
+      "enum": ["prepared_not_run", "in_progress", "closed", "superseded"]
+    },
+    "method_research": {"$ref": "#/$defs/digestBoundRef"},
+    "source_review_plan": {"$ref": "#/$defs/digestBoundRef"},
+    "critical_edition_witness_packets": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 3,
+      "uniqueItems": true,
+      "items": {"$ref": "#/$defs/digestBoundRef"}
+    },
+    "operating_model": {"const": "solo_human_plus_ai"},
+    "competence_boundary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "operator_german_competence",
+        "allowed_human_claims",
+        "blocked_human_claims",
+        "machine_agreement_supplies_language_competence"
+      ],
+      "properties": {
+        "operator_german_competence": {"const": "visual_only"},
+        "allowed_human_claims": {
+          "type": "array",
+          "minItems": 6,
+          "uniqueItems": true,
+          "items": {
+            "enum": [
+              "page_identity",
+              "region_identity",
+              "legibility",
+              "layout",
+              "reading_order",
+              "visible_glyph_correspondence",
+              "russian_explanation_usefulness",
+              "defer_or_escalate"
+            ]
+          }
+        },
+        "blocked_human_claims": {
+          "type": "array",
+          "minItems": 5,
+          "uniqueItems": true,
+          "items": {
+            "enum": [
+              "german_orthography",
+              "german_grammar",
+              "german_semantics",
+              "german_etymology",
+              "translation_fidelity",
+              "human_only_german_translation"
+            ]
+          }
+        },
+        "machine_agreement_supplies_language_competence": {"const": false}
+      }
+    },
+    "evidence_lanes": {
+      "type": "array",
+      "minItems": 5,
+      "maxItems": 5,
+      "uniqueItems": true,
+      "items": {
+        "enum": [
+          "page_visible_human",
+          "critical_edition_witness",
+          "independent_machine_candidates",
+          "ai_explanation_with_sources",
+          "human_decision_within_competence"
+        ]
+      },
+      "allOf": [
+        {"contains": {"const": "page_visible_human"}},
+        {"contains": {"const": "critical_edition_witness"}},
+        {"contains": {"const": "independent_machine_candidates"}},
+        {"contains": {"const": "ai_explanation_with_sources"}},
+        {"contains": {"const": "human_decision_within_competence"}}
+      ]
+    },
+    "source_postures": {
+      "type": "array",
+      "minItems": 5,
+      "maxItems": 5,
+      "uniqueItems": true,
+      "items": {
+        "enum": [
+          "visual_identity_confirmed",
+          "machine_triangulated_candidate",
+          "critical_edition_witness_admitted",
+          "language_competence_blocked",
+          "german_competent_human_accepted"
+        ]
+      }
+    },
+    "translation_gates": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "critical_edition_requires_rights_review",
+        "ai_only_experiment",
+        "ai_human_experiment",
+        "human_only_lane",
+        "accepted_translation"
+      ],
+      "properties": {
+        "critical_edition_requires_rights_review": {"const": true},
+        "ai_only_experiment": {
+          "const": "requires_admitted_critical_edition_witness"
+        },
+        "ai_human_experiment": {
+          "const": "requires_admitted_critical_edition_witness_and_remains_assisted"
+        },
+        "human_only_lane": {"const": "blocked_without_german_competence"},
+        "accepted_translation": {
+          "const": "blocked_without_german_competent_human_review"
+        }
+      }
+    },
+    "scheduling": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "packet_units_are_human_debt",
+        "unit_min",
+        "unit_max",
+        "triggers",
+        "interface_test_route"
+      ],
+      "properties": {
+        "packet_units_are_human_debt": {"const": false},
+        "unit_min": {"const": 1},
+        "unit_max": {"const": 3},
+        "triggers": {
+          "type": "array",
+          "minItems": 5,
+          "uniqueItems": true,
+          "items": {
+            "enum": [
+              "specific_source_discrepancy",
+              "next_translation_anchor",
+              "new_source_or_method_calibration",
+              "unresolved_glyph_or_semantic_risk",
+              "periodic_drift_control"
+            ]
+          }
+        },
+        "interface_test_route": {"const": "synthetic_german_like_fixture"}
+      }
+    },
+    "current_state": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "prepared_units",
+        "selected_unit_ids",
+        "human_debt_units",
+        "runs",
+        "machine_triangulated_units",
+        "accepted_german_units",
+        "prepared_critical_edition_witness_packets",
+        "admitted_critical_edition_units",
+        "translation_lanes_opened",
+        "promotion_authorized"
+      ],
+      "properties": {
+        "prepared_units": {"const": 30},
+        "selected_unit_ids": {
+          "type": "array",
+          "maxItems": 3,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "pattern": "^tos-translation-[a-z0-9-]+$"
+          }
+        },
+        "human_debt_units": {"const": 0},
+        "runs": {"type": "integer", "minimum": 0},
+        "machine_triangulated_units": {"type": "integer", "minimum": 0},
+        "accepted_german_units": {"type": "integer", "minimum": 0},
+        "prepared_critical_edition_witness_packets": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "admitted_critical_edition_units": {"type": "integer", "minimum": 0},
+        "translation_lanes_opened": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "enum": ["ai_only", "ai_human", "human_only"]
+          }
+        },
+        "promotion_authorized": {"type": "boolean"}
+      }
+    }
+  },
+  "$defs": {
+    "sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "repoRef": {
+      "type": "string",
+      "pattern": "^(?!/)(?!.*(?:^|/)\\.\\.(?:/|$))ToS/[A-Za-z0-9._/-]+$"
+    },
+    "digestBoundRef": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["ref", "sha256"],
+      "properties": {
+        "ref": {"$ref": "#/$defs/repoRef"},
+        "sha256": {"$ref": "#/$defs/sha256"}
+      }
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "competence_boundary": {
+            "properties": {
+              "operator_german_competence": {"const": "visual_only"}
+            },
+            "required": ["operator_german_competence"]
+          }
+        },
+        "required": ["competence_boundary"]
+      },
+      "then": {
+        "properties": {
+          "current_state": {
+            "properties": {
+              "accepted_german_units": {"const": 0},
+              "translation_lanes_opened": {
+                "not": {"contains": {"const": "human_only"}}
+              },
+              "promotion_authorized": {"const": false}
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "status": {"const": "prepared_not_run"}
+        },
+        "required": ["status"]
+      },
+      "then": {
+        "properties": {
+          "current_state": {
+            "properties": {
+              "selected_unit_ids": {"maxItems": 0},
+              "runs": {"const": 0},
+              "machine_triangulated_units": {"const": 0},
+              "accepted_german_units": {"const": 0},
+              "admitted_critical_edition_units": {"const": 0},
+              "translation_lanes_opened": {"maxItems": 0},
+              "promotion_authorized": {"const": false}
+            }
+          }
+        }
+      }
+    }
+  ]
+}

@@ -2,7 +2,10 @@
 
 Status: live-host research snapshot plus bounded graph, retrieval, and OCR A/B/C evidence, not a general benchmark result
 
-Observed: 2026-07-23; OCR C full packet completed after preserved configuration and runner-scope failures
+Observed: 2026-07-23; live model/device/storage facts refreshed 2026-07-26;
+direct-visual runtime, admission, and execution refreshed 2026-07-30;
+Russian-surface Qwen GEC admission and execution plus non-executing software
+watch facts refreshed 2026-08-08
 
 Host owner: `/etc/abyss-machine/AGENTS.md` and storage policy
 
@@ -29,6 +32,15 @@ OOM configuration failure, an invalid runner-scope attempt, exact one-page
 repeats, and one successful 36/36 run. These are execution, resource, and
 advisory inspection facts. Human-gold metrics and an OCR winner remain absent.
 
+One later source-free Russian-surface question admitted the smaller
+Qwen3.5-0.8B base plus a pinned SyntErr-to-LoRuGEC adapter in a separate BF16
+CPU runtime. The 36-control run completed in 111.711071750 seconds with a
+3.5 GiB cgroup peak and zero process swap, proving fit. All outputs were then
+read: only 3/15 correction targets were exact, two clean literary controls and
+one intentional repetition were changed. Machine fit therefore does not imply
+method fit; this profile is rejected as a required or autonomous correction
+stage.
+
 ## Observed machine surface
 
 | Surface | Observation | Laboratory implication |
@@ -39,15 +51,17 @@ advisory inspection facts. Human-gold metrics and an OCR winner remain absent.
 | swap | zram about 20.6 GB, roughly 7.2 GB already used during probe | swap activity is a stop signal, not free model capacity |
 | GPU | Intel Arrow Lake-P Arc Pro 130T/140T integrated GPU; Vulkan 1.4/OpenCL visible | shared-memory Vulkan/OpenVINO trials are viable; no dedicated-VRAM assumption |
 | NPU | Intel `8086:7d1d`, `intel_vpu`, `/dev/accel/accel0` | only compatible fixed/INT4 OpenVINO routes; do not assume universal support |
-| OpenVINO | 2026.2; CPU/GPU/NPU visible | preferred cross-device comparison surface |
-| root filesystem | about 105 GB free at probe | large mutable AI artifacts still prohibited here |
-| `/srv` | about 69.6 GB free, 87% used; owner class `watch` | every material download requires storage preflight |
+| OpenVINO | `2026.2.0-21903-52ddc073857-releases/2026/2`; CPU/GPU/NPU visible at `2026-07-26T16:41:58-06:00` | preferred cross-device comparison surface; model/device proof still required |
+| root filesystem | 97,383,477,248 bytes free in the owner pressure snapshot | large mutable AI artifacts still prohibited here |
+| `/srv` | 123,556,466,688 bytes free, 72.11% used, owner class `green` at `2026-07-26T16:46:26-06:00` | capacity is not acquisition permission; every material download still requires preflight |
 | existing AI cache | `/srv/abyss-machine/cache/ai` about 44 GB | reuse and account for cache; do not duplicate weights |
-| llama.cpp runtimes | about 5.3 GB; Vulkan build b9060 available | preferred GGUF baseline |
+| llama.cpp runtimes | pinned Vulkan+CPU build at commit `05ff59cb57860cc992fc6dcede32c696efea711c` | preferred resident GGUF baseline |
 | oneAPI | about 5.7 GB present | SYCL is possible but not first-route ready |
 
 This is a capability snapshot. The latest owner benchmark had skipped all
 three OpenVINO devices and was not an affirmative performance result.
+See `LOCAL_LLM_ADMISSION.md` for the 2026-07-26 official-docs, established
+work, and freshest-primary-work refresh and the exact no-download decision.
 
 ## Storage and runtime law
 
@@ -76,11 +90,11 @@ three OpenVINO devices and was not an affirmative performance result.
 
 | Model | Format/runtime | Approximate stored size | First-wave role | State |
 | --- | --- | ---: | --- | --- |
-| Gemma 4 E2B | GGUF Q4_K_XL, llama.cpp Vulkan | 3.184 GB | low-cost LLM A | ready |
-| Gemma 4 E4B | GGUF Q5_K_XL, llama.cpp Vulkan | 6.656 GB | stronger LLM B | ready, sequential |
+| Gemma 4 E2B | GGUF UD-Q4_K_XL, llama.cpp Vulkan+CPU | 3,184,494,720 bytes | low-cost LLM A | ready after task-material gate |
+| Gemma 4 E4B | GGUF UD-Q5_K_XL, llama.cpp Vulkan+CPU | 6,656,152,736 bytes | stronger LLM B | ready after task-material gate, sequential |
 | Qwen3-Embedding-0.6B | OpenVINO INT8 | 612 MB | dense retrieval/alignment | ready |
 | Granite Embedding 311M Multilingual R2 | official OpenVINO INT8 subset at exact revision | 348,082,051 bytes across 11 selected files | independent multilingual Retrieval C | installed in host cache; CPU smoke and two frozen packet runs pass mechanically |
-| Qwen3 4B | OpenVINO INT4 | 2.29 GB plus existing repository objects | LLM C/family control | ready via owner/deployment route |
+| Qwen3 4B | OpenVINO INT4 | 2.29 GB plus existing repository objects | LLM C/family/runtime control | ready after task-material gate via owner/deployment route |
 | Qwen3 8B | OpenVINO INT4 | 4.88 GB plus existing repository objects | conditional capacity challenger | present, not default |
 | Phi-3.5 mini | OpenVINO INT4 | 2.09 GB plus existing repository objects | older control | present, conditional |
 | Whisper tiny / large-v3-turbo | OpenVINO | present | future spoken/recitation branch, outside first text lab | out of current scope |
@@ -96,17 +110,17 @@ requires it.
 | --- | --- | --- | --- |
 | Poppler utilities | resident | PDF forensics/render/native extraction | capture exact version in run receipt |
 | Tesseract 5.5.2 | isolated `tesseract-5.5.2-fc44` runtime materialized; exact runtime-manifest SHA-256 `83b73ba91c49e53dbe75bd458e4ecc0c0558f2288ec43ff758fc6d51b22f5ca9` | OCR A completed twice on all 36 pages | human diplomatic gold and source-visible human review |
-| OCRmyPDF 17.8.1 | packaging candidate, not installed for this lab | optional searchable derivative after OCR retention | isolated Python 3.12 runtime; never owns rendering or recognition |
+| OCRmyPDF 17.10.0 current watch | packaging candidate, not installed for this lab | optional searchable derivative after OCR retention | isolated Python 3.12 runtime; strict code/input/output/archive separation; never owns rendering or recognition |
 | Kraken 7.0.2 + Party v4 | isolated `kraken-7.0.2-party-c2589b1` runtime materialized; manifest SHA-256 `304bd3c3aee20a83ae5f2c1a28ae3ea466d8d5d5808bfd8eb9b99d07c53ad110` | B stopped at 27/36 after decoder saturation and source-visible failures | unchanged configuration rejected; any new Party route needs a new hypothesis and experiment identity |
-| OpenVINO 2026.2 | CPU/GPU/NPU visible | embeddings, Qwen3, OCR candidate | per-model device compatibility proof |
+| OpenVINO 2026.2 resident; 2026.3 current upstream | CPU/GPU/NPU visible | embeddings, Qwen3, OCR candidate | per-model device compatibility proof; no currentness-driven upgrade |
 | llama.cpp Vulkan | host-managed build available | Gemma 4 trials | prompt and sampling receipt contract |
 | llama.cpp SYCL | oneAPI present; command not ready on PATH | optional Intel GPU comparison | build/version/dependency justification |
 | PaddleOCR 3.7.0 + PaddleX 3.7.2 + PaddlePaddle CPU 3.3.1 | isolated runtime and exact server detector plus Latin/East-Slavic recognizers materialized; manifest SHA-256 `6ade62666178becc448e412421ce5a6f511c84ed45856bb07bbb68eb71bb51e9` | C one-page exact repeat and 36/36 full-packet execution | second full-packet repeat, human diplomatic gold, correction cost, and source-visible human review |
-| Docling | candidate, version must be >=2.91 | layout/structure challenger | isolated environment, exact 2.114.x or reviewed later version |
+| Docling 2.118.1 current watch | candidate, not installed for this lab; version must be >=2.91 | layout/structure challenger | isolated environment and exact task-local version; no rerun from recency alone |
 | INCEpTION | not installed for this lab | annotation challenger | Java/service storage and reversible trial route |
 | CATMA | not installed for this lab | qualitative annotation challenger | deployment/export/reversibility review |
 | PyOxigraph 0.5.9 | isolated host runtime installed under `/srv/abyss-machine/runtimes/tree-of-sophia-foundation-lab/pyoxigraph-0.5.9`; named-graph/SPARQL smoke and Graph C run passed | RDF projection challenger | exact wheel, source revision, runtime manifest, license, delete/rebuild, and Store bytes captured |
-| Neo4j 5.26.26 Community | resident `abyss_neo4j_1` service used by Graph B through a credential-contained bridge | property-graph challenger | shared-store cost is not exactly isolatable; namespace cleanup and community authorization boundary remain required |
+| Neo4j 5.26.26 LTS Community; 2026.06 current upstream | resident `abyss_neo4j_1` service used by Graph B through a credential-contained bridge | property-graph challenger | shared-store cost is not exactly isolatable; namespace cleanup and community authorization boundary remain required; no currentness-driven migration |
 | Granite R2 tokenizer + OpenVINO IR | exact revision installed under host cache/runtime roots; Tokenizers 0.23.1 isolated; OpenVINO 2026.2 inherited read-only | independent Retrieval C | exact 11-file digests, failed `AFFINITY` attempt, corrected CPU smoke, owner-receipted repeat, and deletion route retained; human quality gate remains |
 
 Installing all candidates up front is explicitly rejected. Each setup follows
@@ -116,7 +130,7 @@ the experiment that needs it and has a rollback receipt.
 
 | Route | Frozen software/model surface | Known acquisition floor | Admission state |
 | --- | --- | ---: | --- |
-| A | Fedora 44 Tesseract `5.5.2-1.fc44`; `deu`/`rus` language packs `4.1.0-12.fc44`; optional OCRmyPDF 17.8.1 | 8,927,653-byte isolated runtime tree | retained deterministic comparator after exact R1/R2 recognition repeat; about 126.6-126.7 MB child peak RSS |
+| A | Fedora 44 Tesseract `5.5.2-1.fc44`; `deu`/`rus` language packs `4.1.0-12.fc44`; optional future OCRmyPDF 17.10.0 packaging | 8,927,653-byte isolated recognition runtime tree | retained deterministic comparator after exact R1/R2 recognition repeat; about 126.6-126.7 MB child peak RSS |
 | B | Kraken 7.0.2; Party commit `c2589b1b515ed690f883c6afaef6c01ce29bf72d`; Party v4 DOI `10.5281/zenodo.20642057`, 518,329,816-byte model | 1,816,411,644-byte isolated runtime tree | R1 stopped at 27/36; 3.7 GB RAM and 809 MB swap peaks; unchanged configuration rejected |
 | C | PaddleOCR 3.7.0; PaddleX 3.7.2; PaddlePaddle CPU 3.3.1; `PP-OCRv5_server_det`; `latin_PP-OCRv5_mobile_rec`; `eslav_PP-OCRv5_mobile_rec` | 1,268,461,715-byte isolated runtime tree; artifact-set SHA-256 `b8d239f91b99d1b8dd427ba453c71d638bd204792a00697d250f08742de191ee` | one-page exact repeat at 3.6-3.7 GB RAM and zero swap; full 36-page run at 4 GB RAM plus 136.8 MB swap; awaits human review |
 
@@ -198,12 +212,13 @@ maximum contexts are never the default local test setting.
 | resident Gemma 4 E4B | none | feasible sequential workhorse | first wave B |
 | resident Qwen3 4B INT4 | none | feasible OpenVINO family/runtime control | first wave C |
 | resident Qwen3 8B INT4 | none | feasible but higher memory/cost | only after smaller-model failure taxonomy |
+| Qwen3.5-0.8B + SyntErr-to-LoRuGEC adapter | acquired exact base plus two selected adapter files for local research | measured 3.5 GiB cgroup peak, zero process swap, 111.711071750 s for 36 controls | machine-fit proven; quality-negative profile rejected as required/autonomous Russian-surface stage; no private-candidate run, production admission, or redistribution |
 | Qwen3.5-4B | new artifact | likely feasible with reduced context | second wave after storage preflight |
 | TranslateGemma 4B | gated new artifact | runtime feasible; rights/context uncertain | license-gated second wave |
 | Granite Embedding 311M Multilingual R2 | 348,082,051 bytes already present | strong CPU/OpenVINO fit; independent IBM family; 200+ languages | Retrieval C executed twice; deterministic mechanics proven; human quality unresolved |
 | gte-multilingual-base | new compact artifact | feasible but older repository route requests remote model code | retain as comparator, not selected for C |
 | BGE-M3 | roughly 2.27 GB model artifact | feasible but heavy and multi-mode | retain as literature reference; do not confound current C |
-| Qwen3-VL-Embedding-2B | new 4+ GB source artifact | possible but costly for current scope | defer until visual-retrieval gold case exists |
+| Qwen3-VL-Embedding-2B | exact 4,549,670,315-byte acquisition and 1,182,279,019-byte isolated CPU runtime in host-owned storage | fresh unforced preflight passed with 19,101,630,464 available bytes against the unchanged 17,179,869,184-byte floor; r9 completed in 2,807.234 s with 4,808,843,264-byte memory and 380,157,952-byte swap peaks | retain audit-complete r9 mechanics and r8 negative; no rerun without a new question; human relevance and adoption remain open |
 | PaddleOCR-VL 0.9B | new runtime/models | potentially feasible on Intel path | hard-page conditional only |
 | Qwen3.6 35B-A3B | large new artifact | total-weight and memory/storage pressure | reject first wave |
 
@@ -222,8 +237,10 @@ The safe order is designed to gain evidence before resource cost:
    packet if the final repeatability decision requires it, reveal sealed reference
    witnesses only after independent drafts freeze, and perform manual review;
 7. resident E2B, E4B, and Qwen3 4B sequential LLM proposals;
-8. only then decide whether fusion, visual retrieval, or another service/model
-   install is justified.
+8. preserve the separately frozen visual-retrieval decision and prepared
+   Qwen3-VL CPU route; execute it only after fresh unforced resource admission;
+9. only then decide whether fusion or another service/model install is
+   justified.
 
 OCR, embeddings, LLMs, graph services, and annotation services should not all
 run concurrently. Experiments are small enough that isolation is more
@@ -284,13 +301,26 @@ method.
 ## Current machine-fit decision
 
 The host is sufficient for the first laboratory and for producing the first
-gold packet. Reuse and measurement remain the default. Granite R2 is the
-already earned bounded retrieval exception; the sequential OCR gate has now
-earned and materialized all three isolated runtimes without placing them in the
-repository or Fedora root. A is cheap and repeatable, B is prohibitively slow
-and rejected in its unchanged configuration, and C is viable at explicit
-`960/max` with a much larger memory footprint than A. None can be called a
-winner without double-checked human transcription, correction-time accounting,
-and source-visible human review. Qwen3.5-4B, TranslateGemma, visual embeddings,
-SYCL, NPU generation, and service-heavy annotation tools remain candidates
-whose admission depends on new evidence from the smaller stack.
+gold packet. Reuse and measurement remain the default. The 2026-07-26
+freshness gate admits resident Gemma 4 E2B, Gemma 4 E4B, and Qwen3 4B as the
+next sequential model-proposal A/B/C set, but it does not admit execution
+before the matching human/source packet exists. Qwen3 8B is escalation only;
+Qwen3.5-4B, TranslateGemma, Qwen3.6, SYCL, and NPU generation remain closed
+without a specific failure hypothesis.
+
+The Qwen3.5-0.8B GEC exception does not reopen Qwen3.5-4B for translation. It
+answered one source-free Russian-surface question with a different adapter,
+scope, runtime, and preservation test, and it closed at a negative method
+decision. Its local runtime and cache remain removable host artifacts; the
+adapter's absent formal license and missing production trust evidence prohibit
+publication, redistribution, and automatic consumer admission.
+
+Granite R2 is the already earned bounded retrieval exception; the sequential
+OCR gate has now earned and materialized all three isolated runtimes without
+placing them in the repository or Fedora root. A is cheap and repeatable, B is
+prohibitively slow and rejected in its unchanged configuration, and C is viable
+at explicit `960/max` with a much larger memory footprint than A. None can be
+called a winner without double-checked human transcription, correction-time
+accounting, and source-visible human review. Visual embeddings and
+service-heavy annotation tools likewise remain candidates whose admission
+depends on new evidence from the smaller stack.

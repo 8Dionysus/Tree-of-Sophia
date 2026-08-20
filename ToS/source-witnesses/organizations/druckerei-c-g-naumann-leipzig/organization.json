@@ -1,0 +1,32 @@
+{
+  "schema_version": "tos_corpus_record_v1",
+  "record_type": "organization",
+  "record_id": "tos.organization.druckerei-c-g-naumann-leipzig",
+  "preferred_label": "Druckerei C. G. Naumann",
+  "variant_labels": [
+    {
+      "value": "C. G. Naumann (Firma)",
+      "language": "de",
+      "source_ref": "ToS/source-witnesses/discovery/runs/naumann-1893-provision-identity.2026-08-01.v1.json",
+      "status": "verified"
+    }
+  ],
+  "identity_status": "provisional",
+  "source_refs": [
+    "ToS/research-packets/foundation-laboratory-2026-07/NAUMANN_1893_PROVISION_IDENTITY_RESEARCH.md",
+    "ToS/source-witnesses/discovery/runs/naumann-1893-provision-identity.2026-08-01.v1.json",
+    "https://d-nb.info/gnd/16034133-4"
+  ],
+  "external_identifiers": [
+    {
+      "scheme": "GND",
+      "value": "16034133-4",
+      "source_ref": "ToS/source-witnesses/discovery/runs/naumann-1893-provision-identity.2026-08-01.v1.json",
+      "status": "verified"
+    }
+  ],
+  "same_as_posture": "no_equivalence_claim",
+  "notes": "The official GND record identifies Druckerei C. G. Naumann as a Leipzig Company distinct from GND 1072998033, C. G. Naumann Verlag. The exact 1893 title page assigns Druck and Verlag to the literal C. G. Naumann. This provisional role-specific identity asserts neither legal separation nor identity between the two authority records, and it is not a successor claim.",
+  "record_version": 1,
+  "supersedes_ref": null
+}

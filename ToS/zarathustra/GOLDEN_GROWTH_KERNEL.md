@@ -134,6 +134,11 @@ Lived witness may guide review and make the human root visible. It cannot by
 itself settle what Nietzsche wrote, what a passage must mean, or what all
 philosophy should become.
 
+The prepared capture, privacy, authorship, revision, and permission route is
+`ToS/zarathustra/lived-witness/`. Its existence creates no testimony and no
+human backlog; it opens only when the author explicitly chooses to record one
+first-person account.
+
 ## Preparation boundary
 
 This note prepares the repository for the kernel. It does not claim that the

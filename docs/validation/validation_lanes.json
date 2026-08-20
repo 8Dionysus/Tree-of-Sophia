@@ -322,6 +322,10 @@
       {
         "label": "validate ToS source home",
         "command": ["python", "scripts/validate_tos_source_home.py"]
+      },
+      {
+        "label": "validate lived-witness private route",
+        "command": ["python", "scripts/validate_lived_witness_route.py"]
       }
     ],
     "source_witness_foundation": [
@@ -332,6 +336,38 @@
       {
         "label": "validate source-witness evidence spine",
         "command": ["python", "scripts/validate_source_witness_foundation.py"]
+      },
+      {
+        "label": "validate witness-structure correspondence",
+        "command": ["python", "scripts/validate_witness_structure_correspondence.py"]
+      },
+      {
+        "label": "validate Nietzsche transfer source routes",
+        "command": ["python", "scripts/validate_nietzsche_transfer_source_routes.py"]
+      },
+      {
+        "label": "validate golden-kernel transfer target passages",
+        "command": ["python", "scripts/validate_golden_kernel_transfer_target_passages.py"]
+      },
+      {
+        "label": "validate golden-kernel transfer source passages",
+        "command": ["python", "scripts/validate_golden_kernel_transfer_source_passages.py"]
+      },
+      {
+        "label": "check golden-kernel transfer route readiness",
+        "command": ["python", "scripts/build_golden_kernel_transfer_route_readiness.py", "--check"]
+      },
+      {
+        "label": "validate golden-kernel transfer route readiness",
+        "command": ["python", "scripts/validate_golden_kernel_transfer_route_readiness.py"]
+      },
+      {
+        "label": "validate Zarathustra lexical projection",
+        "command": ["python", "scripts/validate_zarathustra_lexical_index.py"]
+      },
+      {
+        "label": "check Zarathustra exact-form recurrence projection",
+        "command": ["python", "scripts/build_zarathustra_recurrence_projection.py", "--check"]
       }
     ],
     "philosophy_topology": [
@@ -374,6 +410,14 @@
       {
         "label": "validate ToS corpus index",
         "command": ["python", "scripts/validate_tos_corpus_index.py"]
+      },
+      {
+        "label": "check source-witness bibliographic graph",
+        "command": ["python", "scripts/build_source_witness_bibliographic_graph.py", "--check"]
+      },
+      {
+        "label": "validate source-witness bibliographic graph",
+        "command": ["python", "scripts/validate_source_witness_bibliographic_graph.py"]
       },
       {
         "label": "check philosophy atlas projection",
@@ -480,6 +524,14 @@
         "command": ["python", "scripts/validate_tos_corpus_index.py"]
       },
       {
+        "label": "check source-witness bibliographic graph",
+        "command": ["python", "scripts/build_source_witness_bibliographic_graph.py", "--check"]
+      },
+      {
+        "label": "validate source-witness bibliographic graph",
+        "command": ["python", "scripts/validate_source_witness_bibliographic_graph.py"]
+      },
+      {
         "label": "check philosophy atlas projection",
         "command": ["python", "scripts/build_philosophy_atlas_projection.py", "--check"]
       },
@@ -536,6 +588,38 @@
         "command": ["python", "scripts/validate_source_witness_foundation.py"]
       },
       {
+        "label": "validate witness-structure correspondence",
+        "command": ["python", "scripts/validate_witness_structure_correspondence.py"]
+      },
+      {
+        "label": "validate Nietzsche transfer source routes",
+        "command": ["python", "scripts/validate_nietzsche_transfer_source_routes.py"]
+      },
+      {
+        "label": "validate golden-kernel transfer target passages",
+        "command": ["python", "scripts/validate_golden_kernel_transfer_target_passages.py"]
+      },
+      {
+        "label": "validate golden-kernel transfer source passages",
+        "command": ["python", "scripts/validate_golden_kernel_transfer_source_passages.py"]
+      },
+      {
+        "label": "check golden-kernel transfer route readiness",
+        "command": ["python", "scripts/build_golden_kernel_transfer_route_readiness.py", "--check"]
+      },
+      {
+        "label": "validate golden-kernel transfer route readiness",
+        "command": ["python", "scripts/validate_golden_kernel_transfer_route_readiness.py"]
+      },
+      {
+        "label": "validate Zarathustra lexical projection",
+        "command": ["python", "scripts/validate_zarathustra_lexical_index.py"]
+      },
+      {
+        "label": "check Zarathustra exact-form recurrence projection",
+        "command": ["python", "scripts/build_zarathustra_recurrence_projection.py", "--check"]
+      },
+      {
         "label": "validate philosophy topology",
         "command": ["python", "scripts/validate_philosophy_topology.py"]
       },
@@ -570,6 +654,14 @@
       {
         "label": "validate ToS corpus index",
         "command": ["python", "scripts/validate_tos_corpus_index.py"]
+      },
+      {
+        "label": "check source-witness bibliographic graph",
+        "command": ["python", "scripts/build_source_witness_bibliographic_graph.py", "--check"]
+      },
+      {
+        "label": "validate source-witness bibliographic graph",
+        "command": ["python", "scripts/validate_source_witness_bibliographic_graph.py"]
       },
       {
         "label": "check philosophy atlas projection",

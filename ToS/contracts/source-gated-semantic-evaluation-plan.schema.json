@@ -1,0 +1,1052 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://tree-of-sophia.local/ToS/contracts/source-gated-semantic-evaluation-plan.schema.json",
+  "title": "Tree of Sophia task-specific source-gated semantic evaluation plan",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "$schema",
+    "schema_version",
+    "plan_id",
+    "plan_kind",
+    "experiment_id",
+    "work_ref",
+    "status",
+    "frozen_at",
+    "frozen_before_variant_outputs",
+    "task_specific_source_gate",
+    "assurance_policy",
+    "historical_gate_snapshot",
+    "selection_contract",
+    "task_families",
+    "prepared_task_contract",
+    "tasks",
+    "blindness_and_authority",
+    "rights_posture",
+    "result",
+    "provenance_event_ref",
+    "plan_version"
+  ],
+  "properties": {
+    "$schema": {
+      "const": "https://tree-of-sophia.local/ToS/contracts/source-gated-semantic-evaluation-plan.schema.json"
+    },
+    "schema_version": {
+      "const": "tos_source_gated_semantic_evaluation_plan_v2"
+    },
+    "plan_id": {
+      "type": "string",
+      "pattern": "^tos\\.evaluation-plan\\.[a-z0-9]+(?:[.-][a-z0-9]+)*$"
+    },
+    "plan_kind": {
+      "const": "semantic-annotation"
+    },
+    "experiment_id": {
+      "const": "tos-semantic-annotation-v1"
+    },
+    "work_ref": {
+      "type": "string",
+      "pattern": "^tos\\.work\\.[a-z0-9]+(?:[.-][a-z0-9]+)*$"
+    },
+    "status": {
+      "enum": [
+        "blocked-not-materialized",
+        "materialized-awaiting-assurance",
+        "ready",
+        "running",
+        "awaiting-real-human-review",
+        "closed",
+        "superseded"
+      ]
+    },
+    "frozen_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "frozen_before_variant_outputs": {
+      "const": true
+    },
+    "task_specific_source_gate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "gate_kind",
+        "required_materialized_tasks",
+        "current_eligible_tasks",
+        "required_per_task_fields",
+        "accepted_source_is_task_local",
+        "universal_packet_completion_required",
+        "gate_status"
+      ],
+      "properties": {
+        "gate_kind": {
+          "const": "task-specific-accepted-anchor-set"
+        },
+        "required_materialized_tasks": {
+          "const": 20
+        },
+        "current_eligible_tasks": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 20
+        },
+        "required_per_task_fields": {
+          "const": [
+            "source_anchor_refs",
+            "accepted_source_sha256",
+            "source_review_event_ref",
+            "local_content_ref",
+            "local_content_sha256"
+          ]
+        },
+        "accepted_source_is_task_local": {
+          "const": true
+        },
+        "universal_packet_completion_required": {
+          "const": false
+        },
+        "gate_status": {
+          "enum": [
+            "blocked",
+            "satisfied"
+          ]
+        }
+      }
+    },
+    "assurance_policy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "routine_human_work_for_prepared_rows",
+        "unassisted_baseline_task_families",
+        "baseline_frozen_before_model_suggestions",
+        "language_competence_task_families",
+        "second_human_review_posture",
+        "second_human_review_triggers",
+        "missing_competent_review_effect",
+        "model_disagreement_is_human_perspective",
+        "rationale_preserved_separately_from_label",
+        "alternatives_and_refusal_preserved",
+        "human_work_scheduled"
+      ],
+      "properties": {
+        "routine_human_work_for_prepared_rows": {
+          "const": false
+        },
+        "unassisted_baseline_task_families": {
+          "const": [
+            "sign-candidate-and-refusal",
+            "competing-reading"
+          ]
+        },
+        "baseline_frozen_before_model_suggestions": {
+          "const": true
+        },
+        "language_competence_task_families": {
+          "const": [
+            "morphology-and-lemma"
+          ]
+        },
+        "second_human_review_posture": {
+          "const": "triggered-exception-not-routine"
+        },
+        "second_human_review_triggers": {
+          "const": [
+            "declared-language-competence-gap",
+            "high-impact-canon-promotion",
+            "persistent-source-grounded-ambiguity",
+            "operator-baseline-instability"
+          ]
+        },
+        "missing_competent_review_effect": {
+          "const": "leave-unresolved-never-infer-acceptance"
+        },
+        "model_disagreement_is_human_perspective": {
+          "const": false
+        },
+        "rationale_preserved_separately_from_label": {
+          "const": true
+        },
+        "alternatives_and_refusal_preserved": {
+          "const": true
+        },
+        "human_work_scheduled": {
+          "type": "boolean"
+        }
+      }
+    },
+    "historical_gate_snapshot": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "snapshot_kind",
+        "source_review_plan_ref",
+        "source_review_plan_sha256",
+        "laboratory_plan_ref",
+        "laboratory_plan_sha256",
+        "gold_status_ref",
+        "gold_status_sha256",
+        "required_human_accepted_source_units",
+        "observed_human_accepted_source_units",
+        "required_human_double_checked_gold_units",
+        "observed_human_double_checked_gold_units",
+        "snapshot_status",
+        "scheduling_authority",
+        "execution_authority"
+      ],
+      "properties": {
+        "snapshot_kind": {
+          "const": "superseded-universal-30-15-gate"
+        },
+        "source_review_plan_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "source_review_plan_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "laboratory_plan_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "laboratory_plan_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "gold_status_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "gold_status_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "required_human_accepted_source_units": {
+          "const": 30
+        },
+        "observed_human_accepted_source_units": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 30
+        },
+        "required_human_double_checked_gold_units": {
+          "const": 15
+        },
+        "observed_human_double_checked_gold_units": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 15
+        },
+        "snapshot_status": {
+          "const": "historical-blocked-evidence"
+        },
+        "scheduling_authority": {
+          "const": false
+        },
+        "execution_authority": {
+          "const": false
+        }
+      }
+    },
+    "selection_contract": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "required_total_tasks",
+        "random_tasks",
+        "hard_tasks",
+        "required_tasks_per_family",
+        "content_bearing_source_required",
+        "same_tasks_across_variants",
+        "selection_after_output_forbidden",
+        "rubric_frozen_before_output",
+        "task_materialization_status"
+      ],
+      "properties": {
+        "required_total_tasks": {
+          "const": 20
+        },
+        "random_tasks": {
+          "const": 10
+        },
+        "hard_tasks": {
+          "const": 10
+        },
+        "required_tasks_per_family": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "exact-occurrence-and-context",
+            "morphology-and-lemma",
+            "sign-candidate-and-refusal",
+            "competing-reading"
+          ],
+          "properties": {
+            "exact-occurrence-and-context": {
+              "const": 5
+            },
+            "morphology-and-lemma": {
+              "const": 5
+            },
+            "sign-candidate-and-refusal": {
+              "const": 5
+            },
+            "competing-reading": {
+              "const": 5
+            }
+          }
+        },
+        "content_bearing_source_required": {
+          "const": true
+        },
+        "same_tasks_across_variants": {
+          "const": true
+        },
+        "selection_after_output_forbidden": {
+          "const": true
+        },
+        "rubric_frozen_before_output": {
+          "const": true
+        },
+        "task_materialization_status": {
+          "enum": [
+            "blocked",
+            "frozen"
+          ]
+        }
+      }
+    },
+    "task_families": {
+      "const": [
+        "exact-occurrence-and-context",
+        "morphology-and-lemma",
+        "sign-candidate-and-refusal",
+        "competing-reading"
+      ]
+    },
+    "prepared_task_contract": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "bounded_question",
+        "task_instances_materialized",
+        "source_anchor_refs",
+        "source_text_present",
+        "variant_routes",
+        "required_output_fields",
+        "allowed_decisions",
+        "forbidden_claims",
+        "human_work_scheduled"
+      ],
+      "properties": {
+        "bounded_question": {
+          "type": "string",
+          "minLength": 120
+        },
+        "task_instances_materialized": {
+          "type": "boolean"
+        },
+        "source_anchor_refs": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "source_text_present": {
+          "type": "boolean"
+        },
+        "variant_routes": {
+          "const": [
+            {
+              "variant": "A",
+              "route": "tos-claim-packet-manual",
+              "authority": "proposal-only"
+            },
+            {
+              "variant": "B",
+              "route": "inception-export",
+              "authority": "proposal-only"
+            },
+            {
+              "variant": "C",
+              "route": "catma-export",
+              "authority": "proposal-only"
+            }
+          ]
+        },
+        "required_output_fields": {
+          "const": [
+            "task_id",
+            "decision",
+            "label_or_candidate",
+            "source_anchor_refs",
+            "bounded_rationale",
+            "alternatives_considered",
+            "uncertainty",
+            "failure_or_refusal_reason"
+          ]
+        },
+        "allowed_decisions": {
+          "const": [
+            "observe",
+            "propose",
+            "accept-with-limits",
+            "reject",
+            "ambiguous",
+            "defer",
+            "abstain",
+            "failed"
+          ]
+        },
+        "forbidden_claims": {
+          "const": [
+            "immutable-semantic-entity",
+            "accepted-sign-without-human-promotion",
+            "accepted-concept-without-human-promotion",
+            "accepted-relation-without-human-promotion",
+            "model-consensus-as-human-agreement",
+            "graph-projection-as-authority",
+            "canon-status"
+          ]
+        },
+        "human_work_scheduled": {
+          "type": "boolean"
+        }
+      }
+    },
+    "tasks": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/task"
+      }
+    },
+    "blindness_and_authority": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "blind_variant_labels",
+        "model_suggestions_hidden_until_unassisted_baseline",
+        "model_output_is_proposal_only",
+        "automatic_promotion_forbidden",
+        "human_promotion_required_for_canon",
+        "abstention_allowed",
+        "uncertainty_allowed",
+        "unresolved_is_valid_outcome",
+        "validator_proves_semantic_truth"
+      ],
+      "properties": {
+        "blind_variant_labels": {
+          "const": true
+        },
+        "model_suggestions_hidden_until_unassisted_baseline": {
+          "const": true
+        },
+        "model_output_is_proposal_only": {
+          "const": true
+        },
+        "automatic_promotion_forbidden": {
+          "const": true
+        },
+        "human_promotion_required_for_canon": {
+          "const": true
+        },
+        "abstention_allowed": {
+          "const": true
+        },
+        "uncertainty_allowed": {
+          "const": true
+        },
+        "unresolved_is_valid_outcome": {
+          "const": true
+        },
+        "validator_proves_semantic_truth": {
+          "const": false
+        }
+      }
+    },
+    "rights_posture": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "content_visibility",
+        "network_allowed",
+        "public_text_authorized"
+      ],
+      "properties": {
+        "content_visibility": {
+          "const": "local_only"
+        },
+        "network_allowed": {
+          "const": false
+        },
+        "public_text_authorized": {
+          "const": false
+        }
+      }
+    },
+    "result": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "run_count",
+        "run_refs",
+        "human_review_receipts",
+        "metric_results",
+        "winner",
+        "promotion_authorized",
+        "conclusion"
+      ],
+      "properties": {
+        "run_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "run_refs": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "human_review_receipts": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "metric_results": {
+          "type": "array",
+          "items": {
+            "type": "object"
+          }
+        },
+        "winner": {
+          "enum": [
+            "A",
+            "B",
+            "C",
+            "no-winner",
+            null
+          ]
+        },
+        "promotion_authorized": {
+          "type": "boolean"
+        },
+        "conclusion": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "provenance_event_ref": {
+      "type": "string",
+      "pattern": "^tos\\.event\\.[a-z0-9]+(?:[.-][a-z0-9]+)*$"
+    },
+    "plan_version": {
+      "type": "integer",
+      "minimum": 2
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "status": {
+            "const": "blocked-not-materialized"
+          }
+        },
+        "required": [
+          "status"
+        ]
+      },
+      "then": {
+        "properties": {
+          "task_specific_source_gate": {
+            "properties": {
+              "current_eligible_tasks": {
+                "const": 0
+              },
+              "gate_status": {
+                "const": "blocked"
+              }
+            }
+          },
+          "assurance_policy": {
+            "properties": {
+              "human_work_scheduled": {
+                "const": false
+              }
+            }
+          },
+          "selection_contract": {
+            "properties": {
+              "task_materialization_status": {
+                "const": "blocked"
+              }
+            }
+          },
+          "prepared_task_contract": {
+            "properties": {
+              "task_instances_materialized": {
+                "const": false
+              },
+              "source_anchor_refs": {
+                "maxItems": 0
+              },
+              "source_text_present": {
+                "const": false
+              },
+              "human_work_scheduled": {
+                "const": false
+              }
+            }
+          },
+          "tasks": {
+            "maxItems": 0
+          },
+          "result": {
+            "properties": {
+              "run_count": {
+                "const": 0
+              },
+              "run_refs": {
+                "maxItems": 0
+              },
+              "human_review_receipts": {
+                "maxItems": 0
+              },
+              "metric_results": {
+                "maxItems": 0
+              },
+              "winner": {
+                "const": null
+              },
+              "promotion_authorized": {
+                "const": false
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "status": {
+            "const": "materialized-awaiting-assurance"
+          }
+        },
+        "required": [
+          "status"
+        ]
+      },
+      "then": {
+        "properties": {
+          "task_specific_source_gate": {
+            "properties": {
+              "current_eligible_tasks": {
+                "const": 20
+              },
+              "gate_status": {
+                "const": "satisfied"
+              }
+            }
+          },
+          "assurance_policy": {
+            "properties": {
+              "human_work_scheduled": {
+                "const": true
+              }
+            }
+          },
+          "selection_contract": {
+            "properties": {
+              "task_materialization_status": {
+                "const": "frozen"
+              }
+            }
+          },
+          "prepared_task_contract": {
+            "properties": {
+              "task_instances_materialized": {
+                "const": true
+              },
+              "source_anchor_refs": {
+                "minItems": 1
+              },
+              "source_text_present": {
+                "const": true
+              },
+              "human_work_scheduled": {
+                "const": true
+              }
+            }
+          },
+          "tasks": {
+            "minItems": 20,
+            "maxItems": 20,
+            "items": {
+              "allOf": [
+                {
+                  "$ref": "#/$defs/task"
+                },
+                {
+                  "properties": {
+                    "eligible_for_variant_execution": {
+                      "const": false
+                    }
+                  }
+                }
+              ]
+            }
+          },
+          "result": {
+            "properties": {
+              "run_count": {
+                "const": 0
+              },
+              "run_refs": {
+                "maxItems": 0
+              },
+              "metric_results": {
+                "maxItems": 0
+              },
+              "winner": {
+                "const": null
+              },
+              "promotion_authorized": {
+                "const": false
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "status": {
+            "enum": [
+              "ready",
+              "running",
+              "awaiting-real-human-review",
+              "closed"
+            ]
+          }
+        },
+        "required": [
+          "status"
+        ]
+      },
+      "then": {
+        "properties": {
+          "task_specific_source_gate": {
+            "properties": {
+              "current_eligible_tasks": {
+                "const": 20
+              },
+              "gate_status": {
+                "const": "satisfied"
+              }
+            }
+          },
+          "selection_contract": {
+            "properties": {
+              "task_materialization_status": {
+                "const": "frozen"
+              }
+            }
+          },
+          "prepared_task_contract": {
+            "properties": {
+              "task_instances_materialized": {
+                "const": true
+              },
+              "source_anchor_refs": {
+                "minItems": 1
+              },
+              "source_text_present": {
+                "const": true
+              }
+            }
+          },
+          "tasks": {
+            "minItems": 20,
+            "maxItems": 20,
+            "items": {
+              "$ref": "#/$defs/executionTask"
+            }
+          }
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "sha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "task": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "task_id",
+        "task_family",
+        "stratum",
+        "epistemic_layer",
+        "assurance_route",
+        "source_anchor_refs",
+        "accepted_source_sha256",
+        "source_review_event_ref",
+        "local_content_ref",
+        "local_content_sha256",
+        "required_context_refs",
+        "language_competence_evidence_refs",
+        "unassisted_human_baseline_ref",
+        "unassisted_human_baseline_sha256",
+        "eligible_for_variant_execution"
+      ],
+      "properties": {
+        "task_id": {
+          "type": "string",
+          "pattern": "^tos-task-[a-z0-9-]+$"
+        },
+        "task_family": {
+          "enum": [
+            "exact-occurrence-and-context",
+            "morphology-and-lemma",
+            "sign-candidate-and-refusal",
+            "competing-reading"
+          ]
+        },
+        "stratum": {
+          "enum": [
+            "random",
+            "hard"
+          ]
+        },
+        "epistemic_layer": {
+          "enum": [
+            "textual_observation",
+            "linguistic_analysis",
+            "semantic_interpretation"
+          ]
+        },
+        "assurance_route": {
+          "enum": [
+            "source-visible-evidence",
+            "language-competent-evidence",
+            "unassisted-operator-baseline"
+          ]
+        },
+        "source_anchor_refs": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "accepted_source_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "source_review_event_ref": {
+          "type": "string",
+          "pattern": "^tos\\.event\\.[a-z0-9]+(?:[.-][a-z0-9]+)*$"
+        },
+        "local_content_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "local_content_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "required_context_refs": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "language_competence_evidence_refs": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "unassisted_human_baseline_ref": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "unassisted_human_baseline_sha256": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/sha256"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "eligible_for_variant_execution": {
+          "type": "boolean"
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "task_family": {
+                "const": "exact-occurrence-and-context"
+              }
+            },
+            "required": [
+              "task_family"
+            ]
+          },
+          "then": {
+            "properties": {
+              "epistemic_layer": {
+                "const": "textual_observation"
+              },
+              "assurance_route": {
+                "const": "source-visible-evidence"
+              },
+              "language_competence_evidence_refs": {
+                "maxItems": 0
+              },
+              "unassisted_human_baseline_ref": {
+                "const": null
+              },
+              "unassisted_human_baseline_sha256": {
+                "const": null
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "task_family": {
+                "const": "morphology-and-lemma"
+              }
+            },
+            "required": [
+              "task_family"
+            ]
+          },
+          "then": {
+            "properties": {
+              "epistemic_layer": {
+                "const": "linguistic_analysis"
+              },
+              "assurance_route": {
+                "const": "language-competent-evidence"
+              },
+              "unassisted_human_baseline_ref": {
+                "const": null
+              },
+              "unassisted_human_baseline_sha256": {
+                "const": null
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "task_family": {
+                "enum": [
+                  "sign-candidate-and-refusal",
+                  "competing-reading"
+                ]
+              }
+            },
+            "required": [
+              "task_family"
+            ]
+          },
+          "then": {
+            "properties": {
+              "epistemic_layer": {
+                "const": "semantic_interpretation"
+              },
+              "assurance_route": {
+                "const": "unassisted-operator-baseline"
+              }
+            }
+          }
+        }
+      ]
+    },
+    "executionTask": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/task"
+        },
+        {
+          "properties": {
+            "eligible_for_variant_execution": {
+              "const": true
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "task_family": {
+                "const": "morphology-and-lemma"
+              }
+            },
+            "required": [
+              "task_family"
+            ]
+          },
+          "then": {
+            "properties": {
+              "language_competence_evidence_refs": {
+                "minItems": 1
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "task_family": {
+                "enum": [
+                  "sign-candidate-and-refusal",
+                  "competing-reading"
+                ]
+              }
+            },
+            "required": [
+              "task_family"
+            ]
+          },
+          "then": {
+            "properties": {
+              "unassisted_human_baseline_ref": {
+                "type": "string",
+                "minLength": 1
+              },
+              "unassisted_human_baseline_sha256": {
+                "$ref": "#/$defs/sha256"
+              }
+            }
+          }
+        }
+      ]
+    }
+  }
+}

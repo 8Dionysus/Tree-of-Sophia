@@ -15,6 +15,20 @@ Only the bytes beneath an item's `payload/` directory are ignored by Git.
 Identity records, manifests, fixity, provenance, rights posture, forensic
 reports, anchors, reviews, and the generated navigation catalog remain tracked.
 
+`local_only` governs access to the source bytes; it does not erase their
+research role. A local item may remain the exact witness behind extraction,
+comparison, translation work, annotations, or later claims. Public-safe
+metadata may name the work, expression, translator, edition, year, local item
+ID, file digest, and provenance relation when the evidence and privacy posture
+support those assertions. Publishing that provenance is not publication of
+the payload.
+
+A content-bearing derivative receives its own rights and visibility
+assessment. It may cite the local witness while remaining local itself, or it
+may be published only when its own scope is affirmatively permitted. The
+source payload does not become publishable merely because a metadata record,
+claim, or separately permitted derivative refers back to it.
+
 ## Host-policy interpretation
 
 `abyss-machine` owns host caches, model downloads, runtimes, benchmark output,
@@ -48,3 +62,8 @@ A future site or server imports an item by manifest, verifies every digest,
 applies the rights and visibility record, writes a receipt, and preserves the
 stable item/file identifiers. Repository checkout, graph export, or catalog
 generation must never silently upload local payload bytes.
+
+The operator policy for the present local corpus is stricter: these local
+source payloads remain off the future public site. The site may expose
+public-safe source identity and provenance and may publish separately
+authorized materials, but it must not receive or serve the local source files.

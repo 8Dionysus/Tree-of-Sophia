@@ -1,0 +1,155 @@
+{
+  "snapshot_version": 1,
+  "captured_at": "2026-07-28T19:28:13-06:00",
+  "target": "Deutsches Textarchiv structured transcription of the first published part of Also sprach Zarathustra, grounded in the SBB-PK copy",
+  "work_authority": {
+    "source": "Deutsche Nationalbibliothek Gemeinsame Normdatei",
+    "record_url": "https://d-nb.info/gnd/4099324-3",
+    "gnd": "4099324-3",
+    "preferred_name": "Also sprach Zarathustra",
+    "publication_interval": "1883-1885",
+    "queried_at": "2026-07-28T19:28:12-06:00",
+    "response_sha256": "7137f6938216a103cbb88790d754fb2f30172a1b7824fc74641a063d40670fa9"
+  },
+  "dta_record": {
+    "publisher": "Deutsches Textarchiv, Berlin-Brandenburgische Akademie der Wissenschaften",
+    "record_url": "https://www.deutschestextarchiv.de/book/show/nietzsche_zarathustra01_1883",
+    "page_view_url": "https://www.deutschestextarchiv.de/book/view/nietzsche_zarathustra01_1883?p=1",
+    "tei_url": "https://www.deutschestextarchiv.de/book/download_xml/nietzsche_zarathustra01_1883",
+    "tei_header_url": "https://www.deutschestextarchiv.de/api/tei_header/nietzsche_zarathustra01_1883",
+    "dublin_core_url": "https://www.deutschestextarchiv.de/api/oai_dc/nietzsche_zarathustra01_1883",
+    "terms_url": "https://www.deutschestextarchiv.de/doku/nutzungsbedingungen",
+    "identifier": "nietzsche_zarathustra01_1883",
+    "dta_id": "16840",
+    "urn": "urn:nbn:de:kobv:b4-200905194290",
+    "source_bibliography": {
+      "title": "Also sprach Zarathustra: Ein Buch für Alle und Keinen",
+      "part_or_volume": "[1]",
+      "edition_number_claim": "1",
+      "publisher": "Schmeitzner",
+      "place": "Chemnitz",
+      "year": "1883",
+      "extent": "114 pages"
+    },
+    "source_item": {
+      "holding_institution": "Staatsbibliothek zu Berlin – Preußischer Kulturbesitz",
+      "shelfmark": "SBB-PK, 19 ZZ 10200-1/3",
+      "image_count": 123,
+      "image_publication_posture": "The DTA terms permit scientific and private noncommercial display with attribution to the holding library and exact copy; third-party image publication requires coordination with the holding library.",
+      "images_acquired_by_tos": false
+    },
+    "digital_text": {
+      "format": "XML/TEI P5 in the DTA Basisformat",
+      "tokens_reported": 19669,
+      "types_reported": 3819,
+      "characters_reported": 121387,
+      "quality_statement": "The current TEI header says the work was automatically recognized by OCR, then checked by native speakers under the DTA transcription guidelines.",
+      "corpus_labels": [
+        "core",
+        "ready",
+        "mts"
+      ],
+      "tos_quality_conclusion": "externally human-checked structured witness; not yet ToS-accepted German source or gold"
+    },
+    "captured_response_artifacts": [
+      {
+        "role": "page-view-response",
+        "byte_size": 32888,
+        "sha256": "8b907a90e572eeaf1508568041d6893063dd371ac81d4ea5e409118ee7891181"
+      },
+      {
+        "role": "terms-response",
+        "byte_size": 17139,
+        "sha256": "358ee60a576f69a6996df19e27469ccbef8cb3f9230fc9c97a50b163c4591d56"
+      },
+      {
+        "role": "tei-header-response",
+        "byte_size": 8953,
+        "sha256": "52d7bbeddba135e3311f55471a8980f6f8edad4470ad0ac796aca637d83778c1"
+      },
+      {
+        "role": "dublin-core-response",
+        "byte_size": 1031,
+        "sha256": "371d74b552cc457206b1f019312fd16515a53da6cc62f61917e70d3a3b7f7e88"
+      }
+    ]
+  },
+  "rights_evidence": {
+    "current_tei_header": {
+      "statement": "Distributed under the Creative Commons Attribution-ShareAlike 4.0 License.",
+      "license_uri": "https://creativecommons.org/licenses/by-sa/4.0/deed.de",
+      "scope": "annotated DTA digital text"
+    },
+    "current_terms": {
+      "statement": "DTA full texts are CC BY-SA 4.0 unless otherwise marked; reuse must attribute Deutsches Textarchiv. The pure-text version is described as public domain without restriction.",
+      "scope": "DTA full text and distinct pure-text layer",
+      "effective_since_claim": "2020-06-16"
+    },
+    "stale_dublin_core": {
+      "statement": "Creative Commons Attribution-NonCommercial 3.0 Unported License",
+      "scope": "Dublin Core rights field",
+      "conflict": "The live Dublin Core endpoint still reports the pre-2020 license while the current terms and current TEI header report CC BY-SA 4.0."
+    },
+    "facsimile_layer": {
+      "statement": "Image rights generally remain with the holding library; third-party publication requires coordination with that library unless explicitly marked otherwise.",
+      "scope": "DTA-displayed scans"
+    },
+    "tos_conclusion": "positive open-license evidence with a stale metadata conflict; exact TEI remains local and publication routing is unresolved pending review"
+  },
+  "textgrid_crosscheck": {
+    "search_endpoint": "https://textgridlab.org/1.0/tgsearch-public/search",
+    "exact_query": "q=title:\"Also sprach Zarathustra\" AND edition.agent.value:\"Nietzsche, Friedrich\" AND format:\"text/tg.edition+tg.aggregation+xml\"; target=metadata; order=asc:issued; limit=100; allProjects=true",
+    "queried_at": "2026-07-28T19:19:46-06:00",
+    "response_hits": 5,
+    "response_sha256": "1da7310970c5d312abc1c7dd2ec75b0c00d615605a694a15498fe2c81dc77138",
+    "results_in_order": [
+      {
+        "rank": 1,
+        "edition_uri": "textgrid:4bmwr.0",
+        "edition_pid": "hdl:21.11113/4bmwr.0",
+        "child_text_uri": "textgrid:4bnbs.0",
+        "source": "DTA first edition, part 1, Chemnitz 1883",
+        "edition_license_claim": "CC-BY-4.0",
+        "child_tei_license_claim": "CC0-1.0"
+      },
+      {
+        "rank": 2,
+        "edition_uri": "textgrid:4bn9d.0",
+        "edition_pid": "hdl:21.11113/4bn9d.0",
+        "child_text_uri": "textgrid:4bnwn.0",
+        "source": "DTA first edition, part 2, Chemnitz 1883",
+        "edition_license_claim": "CC-BY-4.0",
+        "child_tei_license_claim": "CC0-1.0"
+      },
+      {
+        "rank": 3,
+        "edition_uri": "textgrid:4bnhg.0",
+        "edition_pid": "hdl:21.11113/4bnhg.0",
+        "child_text_uri": "textgrid:4bnbq.0",
+        "source": "DTA first public edition, part 4, Leipzig 1891",
+        "edition_license_claim": "CC-BY-4.0",
+        "child_tei_license_claim": "CC0-1.0"
+      },
+      {
+        "rank": 4,
+        "edition_uri": "textgrid:4bnjk.0",
+        "edition_pid": "hdl:21.11113/4bnjk.0",
+        "child_text_uri": "textgrid:4bmkp.0",
+        "source": "DTA first edition, part 3, Chemnitz 1884",
+        "edition_license_claim": "CC-BY-4.0",
+        "child_tei_license_claim": "CC0-1.0"
+      },
+      {
+        "rank": 5,
+        "edition_uri": "textgrid:4k23z.0",
+        "edition_pid": "hdl:21.11113/4k23z.0",
+        "child_text_uri": "textgrid:4k1s0.0",
+        "source": "Projekt Gutenberg-DE transcription, Naumann 1901",
+        "edition_license_claim": "CC-BY-4.0",
+        "child_tei_license_claim": "noncommercial use free"
+      }
+    ],
+    "selection_note": "TextGrid supplies stable archival alternates and reveals all four first-publication part witnesses, but the direct DTA part-1 object is selected because it exposes the current TEI, facsimiles, current quality statement, and exact holding-copy provenance together."
+  },
+  "snapshot_boundary": "This file preserves public metadata, quality statements, rights statements, identifiers, response digests, and selection evidence. It contains no source-text payload and makes no ToS source-acceptance decision."
+}

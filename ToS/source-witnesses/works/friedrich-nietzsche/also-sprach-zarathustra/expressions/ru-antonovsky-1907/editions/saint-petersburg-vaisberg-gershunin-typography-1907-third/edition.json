@@ -1,0 +1,97 @@
+{
+  "schema_version": "tos_corpus_record_v1",
+  "record_type": "edition",
+  "record_id": "tos.edition.friedrich-nietzsche.also-sprach-zarathustra.saint-petersburg-vaisberg-gershunin-typography-1907-third",
+  "preferred_label": "Так говорил Заратустра, Санкт-Петербург, третье издание, 1907",
+  "variant_labels": [],
+  "identity_status": "provisional",
+  "source_refs": [
+    "ToS/source-witnesses/discovery/runs/antonovsky-1907-runeb-edition.2026-08-01.v1.json",
+    "ToS/research-packets/foundation-laboratory-2026-07/ANTONOVSKY_1907_RUNEB_EDITION_RESEARCH.md",
+    "ToS/source-witnesses/discovery/runs/antonovsky-1907-rnl-gak-holding.2026-08-10.v2.json",
+    "ToS/research-packets/foundation-laboratory-2026-07/ANTONOVSKY_1907_RNL_GAK_HOLDING_RESEARCH.md",
+    "ToS/source-witnesses/discovery/runs/antonovsky-1907-rnl-primo-current-holding.2026-08-10.v3.json",
+    "ToS/research-packets/foundation-laboratory-2026-07/ANTONOVSKY_1907_RNL_PRIMO_CURRENT_HOLDING_RESEARCH.md",
+    "ToS/source-witnesses/discovery/runs/antonovsky-1907-rnl-reported-rsl-holding.2026-08-10.v4.json",
+    "ToS/research-packets/foundation-laboratory-2026-07/ANTONOVSKY_1907_RNL_REPORTED_RSL_HOLDING_RESEARCH.md",
+    "https://rusneb.ru/catalog/000199_000009_003693382/",
+    "https://nlr.ru/e-case3/sc2.php/web_gak/lc/67133/82",
+    "https://primo.nlr.ru/primo_library/libweb/action/dlDisplay.do?vid=07NLR_VU1&docId=07NLR_LMS004843723",
+    "https://webservices.nlr.ru/util/?method=recordFormat&vid=07NLR_VU1&sysid=004843723&format=001&base=NLR01",
+    "https://nlr.ru/rusmarc-texts/rusmarc/mf_det8.php",
+    "https://www.loc.gov/marc/marbi/2002/2002-15.html",
+    "https://imwerden.de/pdf/blok_issledovaniya_i_materialy_1991__ocr.pdf"
+  ],
+  "external_identifiers": [
+    {
+      "scheme": "RuNEB record",
+      "value": "000199_000009_003693382",
+      "source_ref": "https://rusneb.ru/catalog/000199_000009_003693382/",
+      "status": "verified"
+    },
+    {
+      "scheme": "RNL GAK divider",
+      "value": "67133",
+      "source_ref": "https://nlr.ru/e-case3/sc2.php/web_gak/lc/67133/1",
+      "status": "verified"
+    },
+    {
+      "scheme": "RNL GAK card",
+      "value": "67133/82",
+      "source_ref": "https://nlr.ru/e-case3/sc2.php/web_gak/lc/67133/82",
+      "status": "verified"
+    },
+    {
+      "scheme": "RNL Primo record",
+      "value": "07NLR_LMS004843723",
+      "source_ref": "https://primo.nlr.ru/primo_library/libweb/action/dlDisplay.do?vid=07NLR_VU1&docId=07NLR_LMS004843723",
+      "status": "verified"
+    },
+    {
+      "scheme": "RNL system number",
+      "value": "004843723",
+      "source_ref": "https://webservices.nlr.ru/util/?method=recordFormat&vid=07NLR_VU1&sysid=004843723&format=001&base=NLR01",
+      "status": "verified"
+    },
+    {
+      "scheme": "RNL RUSMARC 001",
+      "value": "v19\\rc\\1717109",
+      "source_ref": "https://webservices.nlr.ru/util/?method=recordFormat&vid=07NLR_VU1&sysid=004843723&format=001&base=NLR01",
+      "status": "verified"
+    },
+    {
+      "scheme": "RNL shelfmark",
+      "value": "17.145.5.1",
+      "source_ref": "http://aleph23.nlr.ru/F?func=item-global&doc_library=NLR01&local_base=NLR01&doc_number=004843723",
+      "status": "verified"
+    },
+    {
+      "scheme": "RNL shelfmark",
+      "value": "17.145.5.1а",
+      "source_ref": "http://aleph23.nlr.ru/F?func=item-global&doc_library=NLR01&local_base=NLR01&doc_number=004843723",
+      "status": "verified"
+    },
+    {
+      "scheme": "RNL shelfmark",
+      "value": "17.145.5.1 Б",
+      "source_ref": "http://aleph23.nlr.ru/F?func=item-global&doc_library=NLR01&local_base=NLR01&doc_number=004843723",
+      "status": "verified"
+    },
+    {
+      "scheme": "RSL shelfmark reported by RNL",
+      "value": "V 106/216",
+      "source_ref": "https://webservices.nlr.ru/util/?method=recordFormat&vid=07NLR_VU1&sysid=004843723&format=001&base=NLR01",
+      "status": "verified"
+    }
+  ],
+  "same_as_posture": "no_equivalence_claim",
+  "embodies_expression_refs": [
+    "tos.expression.friedrich-nietzsche.also-sprach-zarathustra.ru-antonovsky-1907"
+  ],
+  "edition_statement": "3-е изд.",
+  "publication_claim_refs": [],
+  "exemplar_claim_refs": [],
+  "notes": "The prior removed or replaced RuNEB record identifies the exact Saint Petersburg 1907 Edition and records the literal typography string тип. Ф. Вайсберга и П. Гершунина, while Antonovsky's exact 1911 preface and established Blok scholarship identify it as the third edition. RNL GAK divider 67133 card 82 independently confirms the third Edition and institutionally reports extent VIII, 363 с. The current RNL Primo record 07NLR_LMS004843723, system number 004843723, and RUSMARC 001 v19\\rc\\1717109 independently confirm that description, report catalogue dimension 16 cm, and expose three physical holdings in the Russian Book Fund at пл. Островского under shelfmarks 17.145.5.1, 17.145.5.1а, and 17.145.5.1 Б. Their item rows report В хранении and catalogue code Web заказ, but official RNL guidance does not establish actual online eligibility for a 1907 edition. Official RUSMARC field semantics and official MARC organization-code evidence now establish that field 899 |a RuMoRGB |j V 106/216 is an RNL-reported RSL shelfmark. This verifies the bounded metadata statement, not a current RSL public record, physically inspected or serviceable RSL copy, or ToS Item. The predicted RSL route 01003693382 remains HTTP 404 and is not a verified identifier; the separate field 899 |a БАН row has no call number and is not counted as a resolved holding. All remote holdings are not ToS Items; no source pages, digital object, or book bytes were acquired. The overwritten GAK handwriting is not transcribed and is not equated to V 106/216. The typography string is not converted into a publisher, printer Organization, or provision-activity claim. No exemplar claim, responsibility claim, textual equivalence, new derivation, rights conclusion, semantic claim, or human bibliography is materialized.",
+  "record_version": 4,
+  "supersedes_ref": null
+}

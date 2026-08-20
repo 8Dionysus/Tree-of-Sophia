@@ -1,0 +1,52 @@
+{
+  "schema_version": "tos_corpus_record_v1",
+  "record_type": "agent",
+  "record_id": "tos.agent.yuri-antonovsky",
+  "preferred_label": "Юлий Михайлович Антоновский",
+  "variant_labels": [
+    {
+      "value": "Ю. М. Антоновский",
+      "language": "ru",
+      "source_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-antonovsky-1913/structure/title-page/anchors.jsonl",
+      "status": "verified"
+    },
+    {
+      "value": "Antonovskij, Julij M.",
+      "language": "de",
+      "source_ref": "ToS/source-witnesses/discovery/runs/antonovsky-agent-identity-reconciliation.2026-08-01.v1.json",
+      "status": "verified"
+    },
+    {
+      "value": "Antonovskij, Julij Michajlovič",
+      "language": "de",
+      "source_ref": "ToS/source-witnesses/discovery/runs/antonovsky-agent-identity-reconciliation.2026-08-01.v1.json",
+      "status": "verified"
+    },
+    {
+      "value": "Yuri M. Antonovsky",
+      "language": "en",
+      "source_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-antonovsky-cultural-revolution/editions/moscow-cultural-revolution-2007-volume-4/items/operator-pdf/forensic-report.md",
+      "status": "rejected"
+    }
+  ],
+  "identity_status": "verified",
+  "source_refs": [
+    "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-antonovsky-cultural-revolution/editions/moscow-cultural-revolution-2007-volume-4/items/operator-pdf/forensic-report.md",
+    "ToS/source-witnesses/collections/friedrich-nietzsche/works-in-two-volumes-volume-2-mysl-1996/structure/work-boundaries/work-boundary-map.json",
+    "ToS/source-witnesses/discovery/runs/antonovsky-agent-identity-reconciliation.2026-08-01.v1.json",
+    "https://d-nb.info/gnd/123235553",
+    "https://search.rsl.ru/ru/record/01004322945"
+  ],
+  "external_identifiers": [
+    {
+      "scheme": "GND",
+      "value": "123235553",
+      "source_ref": "ToS/source-witnesses/discovery/runs/antonovsky-agent-identity-reconciliation.2026-08-01.v1.json",
+      "status": "verified"
+    }
+  ],
+  "same_as_posture": "no_equivalence_claim",
+  "notes": "The exact 1913 title page and later Mysl and scholarly editions credit Ю. М. Антоновский. DNB GND 123235553 links the Cyrillic initials to Antonovskij, Julij Michajlovič, translator of Tak govoril Zaratustra; RSL expands the exact same initials in a Zarathustra record to Юлий Михайлович Антоновский (1857-1913). The legacy ToS record ID retains `yuri` solely for stable lineage and is not a forename assertion; the speaking filesystem route is `yuliy-antonovsky`. The earlier English form Yuri M. Antonovsky is rejected. Identity verification does not accept any translation text or equate the 1911, 1913, 1996, 2007, or later Expressions.",
+  "record_version": 3,
+  "supersedes_ref": null
+}

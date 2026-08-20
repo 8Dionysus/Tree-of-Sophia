@@ -203,10 +203,17 @@
         "ToS/source-witnesses/**/edition.json",
         "ToS/source-witnesses/**/collection.json",
         "ToS/source-witnesses/**/item.json",
+        "ToS/source-witnesses/**/membership-claims.jsonl",
+        "ToS/source-witnesses/**/responsibility-claims.jsonl",
+        "ToS/source-witnesses/**/publication-claims.jsonl",
+        "ToS/source-witnesses/**/work-expression-claims.jsonl",
+        "ToS/source-witnesses/**/expression-edition-claims.jsonl",
+        "ToS/source-witnesses/**/edition-item-claims.jsonl",
+        "ToS/contracts/claim-packet.schema.json",
         "ToS/contracts/source-witness-catalog.schema.json"
       ],
       "reads": [
-        "tracked source-witness corpus identity records"
+        "tracked source-witness corpus identity and bibliographic claim records"
       ],
       "writes": [
         "ToS/source-witnesses/catalog/*.jsonl and catalog.manifest.json unless --check is used"
@@ -215,6 +222,822 @@
       "validation_lane": "source_witness_foundation",
       "ci_inclusion": "release",
       "test_target": "tests/test_source_witness_foundation.py",
+      "disposition": "keep"
+    },
+    {
+      "path": "scripts/build_source_witness_bibliographic_graph.py",
+      "family": "projection_builder",
+      "organ_lane": "projection/generated",
+      "owner_surface": "ToS/derived-exports/graph/README.md",
+      "source_truth": [
+        "ToS/source-witnesses/catalog/catalog.manifest.json",
+        "ToS/source-witnesses/catalog/*.jsonl",
+        "ToS/source-witnesses/**/membership-claims.jsonl",
+        "ToS/source-witnesses/**/responsibility-claims.jsonl",
+        "ToS/source-witnesses/**/publication-claims.jsonl",
+        "ToS/source-witnesses/**/work-expression-claims.jsonl",
+        "ToS/source-witnesses/**/expression-edition-claims.jsonl",
+        "ToS/source-witnesses/**/edition-item-claims.jsonl",
+        "ToS/source-witnesses/**/*provenance*.jsonl",
+        "ToS/source-witnesses/**/*anchor*.jsonl",
+        "scripts/source_witness_bibliographic_graph_common.py",
+        "ToS/contracts/source-witness-bibliographic-graph.schema.json"
+      ],
+      "reads": [
+        "public-safe source-witness object/claim catalog and the exact claim, evidence, anchor, and provenance records to which it returns"
+      ],
+      "writes": [
+        "ToS/derived-exports/graph/source-witness-bibliographic-claims.min.json unless --check is used"
+      ],
+      "side_effects": "tracked generated claim-reified bibliographic graph with no direct subject-object truth edges",
+      "validation_lane": "graph_exports",
+      "ci_inclusion": "release",
+      "test_target": "tests/test_source_witness_bibliographic_graph.py",
+      "disposition": "keep"
+    },
+    {
+      "path": "scripts/source_witness_bibliographic_graph_common.py",
+      "family": "projection_helper",
+      "organ_lane": "shared-library",
+      "owner_surface": "ToS/contracts/source-witness-bibliographic-graph.schema.json",
+      "source_truth": [
+        "ToS/source-witnesses/catalog/catalog.manifest.json",
+        "ToS/source-witnesses/catalog/*.jsonl",
+        "ToS/source-witnesses/**/membership-claims.jsonl",
+        "ToS/source-witnesses/**/responsibility-claims.jsonl",
+        "ToS/source-witnesses/**/publication-claims.jsonl",
+        "ToS/source-witnesses/**/work-expression-claims.jsonl",
+        "ToS/source-witnesses/**/expression-edition-claims.jsonl",
+        "ToS/source-witnesses/**/edition-item-claims.jsonl",
+        "ToS/source-witnesses/**/*provenance*.jsonl",
+        "ToS/source-witnesses/**/*anchor*.jsonl",
+        "ToS/contracts/source-witness-bibliographic-graph.schema.json"
+      ],
+      "reads": [
+        "source-witness catalog plus exact claim, identity, evidence, anchor, provenance, and review surfaces"
+      ],
+      "writes": [],
+      "side_effects": "library only",
+      "validation_lane": "graph_exports",
+      "ci_inclusion": "focused-tests",
+      "test_target": "tests/test_source_witness_bibliographic_graph.py",
+      "disposition": "keep"
+    },
+    {
+      "path": "scripts/query_source_witness_bibliographic_graph.py",
+      "family": "projection_reader",
+      "organ_lane": "projection/generated",
+      "owner_surface": "ToS/derived-exports/graph/README.md",
+      "source_truth": [
+        "ToS/source-witnesses/catalog/catalog.manifest.json",
+        "ToS/source-witnesses/catalog/*.jsonl",
+        "ToS/source-witnesses/**/membership-claims.jsonl",
+        "ToS/source-witnesses/**/responsibility-claims.jsonl",
+        "ToS/source-witnesses/**/publication-claims.jsonl",
+        "ToS/source-witnesses/**/work-expression-claims.jsonl",
+        "ToS/source-witnesses/**/expression-edition-claims.jsonl",
+        "ToS/source-witnesses/**/edition-item-claims.jsonl",
+        "ToS/source-witnesses/**/*provenance*.jsonl",
+        "ToS/source-witnesses/**/*anchor*.jsonl",
+        "ToS/derived-exports/graph/source-witness-bibliographic-claims.min.json",
+        "scripts/source_witness_bibliographic_graph_common.py",
+        "ToS/contracts/source-witness-bibliographic-graph.schema.json"
+      ],
+      "reads": [
+        "generated bibliographic graph plus the complete public-safe catalog and exact source-owned claim, evidence, anchor, and provenance records required to prove rebuild parity"
+      ],
+      "writes": [],
+      "side_effects": "deterministic stdout JSON only; selector-free and over-limit reads fail closed",
+      "validation_lane": "graph_exports",
+      "ci_inclusion": "focused-tests",
+      "test_target": "tests/test_source_witness_bibliographic_graph.py",
+      "disposition": "keep"
+    },
+    {
+      "path": "scripts/build_source_resource_inventories.py",
+      "family": "projection_builder",
+      "organ_lane": "projection/generated",
+      "owner_surface": "ToS/source-witnesses/README.md",
+      "source_truth": [
+        "ToS/source-witnesses/**/item.manifest.json",
+        "ToS/source-witnesses/**/payload/*",
+        "ToS/contracts/source-resource-inventory.schema.json"
+      ],
+      "reads": [
+        "tracked item manifests and explicitly selected local source payload root"
+      ],
+      "writes": [
+        "ToS/source-witnesses/**/resource-inventory.json unless --check is used"
+      ],
+      "side_effects": "tracked text-free PDF, bundled DjVu, EPUB, TEI, DjVu XML, and ABBYY XML resource inventories",
+      "validation_lane": "source_witness_foundation",
+      "ci_inclusion": "focused-tests",
+      "test_target": "tests/test_source_resource_inventories.py",
+      "disposition": "keep"
+    },
+    {
+      "path": "scripts/build_zarathustra_lexical_index.py",
+      "family": "projection_builder",
+      "organ_lane": "projection/generated",
+      "owner_surface": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/lexical-indexes/dta-first-editions-parts-1-4-v1/README.md",
+      "source_truth": [
+        "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/lexical-indexes/dta-first-editions-parts-1-4-v1/index-plan.v1.json",
+        "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/de-*/**/item.manifest.json",
+        "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/de-*/**/resource-inventory.json",
+        "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/de-*/**/rights.json",
+        "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/de-*/**/payload/*.tei.xml",
+        "ToS/contracts/lexical-index-plan.schema.json",
+        "ToS/contracts/lexical-index-projection.schema.json"
+      ],
+      "reads": [
+        "the exact four local DTA TEI payloads plus their tracked manifests, resource inventories, rights records, and lexical plan"
+      ],
+      "writes": [
+        "the tracked hash-only lexical projection and an explicit gitignored local SQLite/FTS5 database unless --check is used"
+      ],
+      "side_effects": "tracked non-sequential hash/count/resource read model plus private source-bearing local search projection",
+      "validation_lane": "source_witness_foundation",
+      "ci_inclusion": "focused-tests",
+      "test_target": "tests/test_zarathustra_lexical_index.py",
+      "disposition": "keep"
+    },
+    {
+      "path": "scripts/build_zarathustra_recurrence_projection.py",
+      "family": "projection_builder",
+      "organ_lane": "projection/generated",
+      "owner_surface": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/lexical-indexes/dta-first-editions-parts-1-4-v1/README.md",
+      "source_truth": [
+        "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/lexical-indexes/dta-first-editions-parts-1-4-v1/recurrence-plan.v1.json",
+        "ToS/derived-exports/lexical-search/zarathustra-dta-first-editions-parts-1-4-v1.min.json",
+        "ToS/contracts/lexical-recurrence-plan.schema.json",
+        "ToS/contracts/lexical-recurrence-projection.schema.json",
+        "ToS/contracts/provenance-event.schema.json",
+        "ToS/research-packets/foundation-laboratory-2026-07/EXACT_FORM_RECURRENCE_FOUNDATION_RESEARCH.md"
+      ],
+      "reads": [
+        "the frozen recurrence plan and tracked hash/count/resource lexical projection only; no source payload, exact string, or private lexical database"
+      ],
+      "writes": [
+        "the tracked hash-only exact-form recurrence projection and its provenance unless --check is used"
+      ],
+      "side_effects": "tracked frequency/range/DP observation tuples only; no source acceptance, morphology, lemma, lexeme, sign candidate, semantics, public route, or human backlog",
+      "validation_lane": "source_witness_foundation",
+      "ci_inclusion": "release",
+      "test_target": "tests/test_zarathustra_lexical_index.py",
+      "disposition": "keep"
+    },
+    {
+      "path": "scripts/build_semantic_source_recurrence_bundle.py",
+      "family": "projection_builder",
+      "organ_lane": "projection/generated",
+      "owner_surface": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/README.md",
+      "source_truth": [
+        "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/semantic-source-recurrence-plan.v1.json",
+        "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/initial-sign-packet.v5.json",
+        "ToS/derived-exports/lexical-search/zarathustra-dta-first-editions-parts-1-4-recurrence-v1.min.json",
+        "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/local-content/lexical-search/*.sqlite3",
+        "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/de-*/**/payload/*.tei.xml"
+      ],
+      "reads": [
+        "one frozen selected-hash recurrence plan, the unchanged semantic packet, tracked recurrence tuple, exact ignored lexical database, and four fixity-bound local TEI payloads"
+      ],
+      "writes": [
+        "one ignored mode-0600 complete raw-witness occurrence-return bundle plus a tracked string/position-free receipt and provenance unless --check is used"
+      ],
+      "side_effects": "private 145-occurrence raw TEI return plus tracked aggregate recurrence closure only; no packet-stage change, German, morphology, lemma, sense, sign, human, semantic, graph, canon, transfer, or publication authority",
+      "validation_lane": "source_witness_foundation",
+      "ci_inclusion": "focused-tests",
+      "test_target": "tests/test_source_witness_foundation.py",
+      "disposition": "keep"
+    },
+    {
+      "path": "scripts/build_zarathustra_usage_context_bundle.py",
+      "family": "projection_builder",
+      "organ_lane": "projection/generated",
+      "owner_surface": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/lexical-indexes/dta-first-editions-parts-1-4-v1/README.md",
+      "source_truth": [
+        "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/lexical-indexes/dta-first-editions-parts-1-4-v1/usage-context-plan.v1.json",
+        "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/lexical-indexes/dta-first-editions-parts-1-4-v1/usage-context-receipt.v1.json",
+        "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/lexical-indexes/dta-first-editions-parts-1-4-v1/usage-context-provenance.jsonl",
+        "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/local-content/lexical-search/*.sqlite3",
+        "ToS/contracts/lexical-usage-context-plan.schema.json",
+        "ToS/contracts/lexical-usage-context-row.schema.json",
+        "ToS/contracts/lexical-usage-context-receipt.schema.json",
+        "ToS/contracts/provenance-event.schema.json",
+        "ToS/research-packets/foundation-laboratory-2026-07/QUESTION_SCOPED_USAGE_CONTEXT_FOUNDATION_RESEARCH.md"
+      ],
+      "reads": [
+        "one frozen question-scoped plan, the exact ignored lexical SQLite database, and the tracked lexical and recurrence projections"
+      ],
+      "writes": [
+        "one ignored mode-0600 source-bearing JSONL context bundle plus a tracked string-free receipt and provenance unless --check is used"
+      ],
+      "side_effects": "private complete page-bounded KWIC method control plus tracked fixity/count/selector closure only; no accepted source, sentence, morphology, lemma, lexeme, sign, semantics, public route, or human backlog",
+      "validation_lane": "source_witness_foundation",
+      "ci_inclusion": "focused-tests",
+      "test_target": "tests/test_zarathustra_lexical_index.py",
+      "disposition": "keep"
+    },
+    {
+      "path": "scripts/build_zarathustra_morphology_input.py",
+      "family": "projection_builder",
+      "organ_lane": "projection/generated",
+      "owner_surface": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/README.md",
+      "source_truth": [
+        "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/morphology-evaluation-plan.v1.json",
+        "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/morphology-input-receipt.v1.json",
+        "ToS/derived-exports/lexical-search/zarathustra-dta-first-editions-parts-1-4-v1.min.json",
+        "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/local-content/lexical-search/*.sqlite3",
+        "ToS/contracts/morphology-evaluation-plan.schema.json",
+        "ToS/contracts/morphology-input-receipt.schema.json"
+      ],
+      "reads": [
+        "the exact local lexical SQLite projection plus its tracked hash/count/resource projection, frozen morphology plan, and prior input receipt"
+      ],
+      "writes": [
+        "one ignored source-bearing exact-form JSONL census and its tracked text-free digest/count receipt unless --check is used"
+      ],
+      "side_effects": "private deterministic morphology-provider input only; no provider output, accepted source, lemma, lexeme, sign, semantics, rights clearance, publication, or human backlog",
+      "validation_lane": "source_witness_foundation",
+      "ci_inclusion": "focused-tests",
+      "test_target": "tests/test_zarathustra_lexical_index.py",
+      "disposition": "keep"
+    },
+    {
+      "path": "scripts/record_zarathustra_morphology_census_result.py",
+      "family": "projection_builder",
+      "organ_lane": "projection/generated",
+      "owner_surface": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/README.md",
+      "source_truth": [
+        "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/morphology-evaluation-plan.v1.json",
+        "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/morphology-input-receipt.v1.json",
+        "ToS/contracts/morphology-census-result-receipt.schema.json",
+        "abyss-machine:storage/artifacts/tree-of-sophia-foundation-lab/tos-historical-german-morphology-v1/<run-id>/variant-A"
+      ],
+      "reads": [
+        "one exact owner-local morphology A run, its private raw rows and receipts, the frozen Tree plan, the private input packet, and the admitted runtime manifest"
+      ],
+      "writes": [
+        "one tracked text-free morphology census result receipt unless --check is used"
+      ],
+      "side_effects": "recomputed aggregate provider coverage, ambiguity, unknown-residue shape, repeat determinism, performance, and artifact fixity only; no source strings, provider lemma strings, accepted morphology, lemma, lexeme, sign, semantics, rights clearance, publication, B/C materialization, or human backlog",
+      "validation_lane": "source_witness_foundation",
+      "ci_inclusion": "focused-tests",
+      "test_target": "tests/test_zarathustra_lexical_index.py",
+      "disposition": "keep"
+    },
+    {
+      "path": "scripts/build_zarathustra_morphology_context_packet.py",
+      "family": "projection_builder",
+      "organ_lane": "projection/generated",
+      "owner_surface": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/README.md",
+      "source_truth": [
+        "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/morphology-contextual-episode.selected-form-b.v1.json",
+        "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/morphology-census-result.a-dwdsmor-open-0.18.0.v1.json",
+        "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/semantic-source-recurrence-receipt.v1.json",
+        "ToS/contracts/morphology-contextual-episode-plan.schema.json",
+        "ToS/contracts/morphology-contextual-episode-row.schema.json",
+        "ToS/contracts/morphology-contextual-episode-receipt.schema.json",
+        "ToS/contracts/provenance-event.schema.json",
+        "ToS/research-packets/foundation-laboratory-2026-07/HISTORICAL_GERMAN_MORPHOLOGY_ADMISSION.md"
+      ],
+      "reads": [
+        "one exact private DWDSmor A stream, the frozen selected-form recurrence plan and receipt, the complete private recurrence bundle, and three fixity-bound local TEI payloads"
+      ],
+      "writes": [
+        "one ignored mode-0600 three-row raw-TEI context packet plus a tracked text/position-free receipt and provenance unless --check is used"
+      ],
+      "side_effects": "output-blind first/median/last context freeze for one concrete B-only machine proposal; no B acquisition or output, C admission, accepted German, morphology, lemma, lexeme, sign, semantics, publication, or human backlog",
+      "validation_lane": "source_witness_foundation",
+      "ci_inclusion": "focused-tests",
+      "test_target": "tests/test_zarathustra_lexical_index.py",
+      "disposition": "keep"
+    },
+    {
+      "path": "scripts/record_zarathustra_morphology_contextual_result.py",
+      "family": "projection_builder",
+      "organ_lane": "projection/generated",
+      "owner_surface": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/README.md",
+      "source_truth": [
+        "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/morphology-contextual-episode.selected-form-b.v1.json",
+        "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/morphology-contextual-episode.selected-form-b.receipt.v1.json",
+        "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/morphology-contextual-episode.selected-form-b.artifact-admission.v1.json",
+        "ToS/contracts/morphology-contextual-result-receipt.schema.json",
+        "abyss-machine:storage/artifacts/tree-of-sophia-foundation-lab/tos-historical-german-morphology-v1/zarathustra-zdl-b-20260812t1354z/variant-B",
+        "abyss-machine:storage/artifacts/tree-of-sophia-foundation-lab/tos-historical-german-morphology-v1/resource-runs/zarathustra-zdl-b-20260812t1354z.json"
+      ],
+      "reads": [
+        "the exact private contextual B run, raw provider rows, frozen source plan and packet receipt, admitted runtime manifest and artifact registry record, plus the owner resource receipt"
+      ],
+      "writes": [
+        "one tracked text-free contextual result receipt and one provenance event unless --check is used"
+      ],
+      "side_effects": "recomputed token-stream return, target alignment, provider-label aggregates, repeat determinism, runtime and trust closure, resource cost, and local rights posture only; no source strings, provider lemma strings, accepted German, tokenization, morphology, lemma, lexeme, sign, semantics, graph, canon, publication, redistribution, or human backlog",
+      "validation_lane": "source_witness_foundation",
+      "ci_inclusion": "focused-tests",
+      "test_target": "tests/test_zarathustra_lexical_index.py",
+      "disposition": "keep"
+    },
+    {
+      "path": "scripts/record_zarathustra_visual_retrieval_result.py",
+      "family": "projection_builder",
+      "organ_lane": "projection/generated",
+      "owner_surface": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/README.md",
+      "source_truth": [
+        "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/visual-retrieval-plan.v1.json",
+        "ToS/contracts/visual-retrieval-result-receipt.schema.json",
+        "abyss-machine:storage/artifacts/tree-of-sophia-foundation-lab/tos-visual-retrieval-foundation-v1/<run-id>/variant-C"
+      ],
+      "reads": [
+        "one exact owner-local direct-page-image retrieval C run, its prior audit-incomplete run, private fixed controls and query packet, frozen Tree plans, admitted runtime, model artifacts, and host resource receipt"
+      ],
+      "writes": [
+        "one tracked text-free direct-visual retrieval result receipt unless --check is used"
+      ],
+      "side_effects": "independently recomputed fixity, normalization, ranking stability, source-anchor resolution, advisory aggregates, performance, resource cost, and rare review triggers only; no source or query strings, accepted relevance, transcription, translation, sign, semantics, winner, method adoption, promotion, publication, routine human backlog, or review interface",
+      "validation_lane": "source_witness_foundation",
+      "ci_inclusion": "focused-tests",
+      "test_target": "tests/test_zarathustra_visual_retrieval_result.py",
+      "disposition": "keep"
+    },
+    {
+      "path": "scripts/build_mysl_transfer_target_structure.py",
+      "family": "projection_builder",
+      "organ_lane": "projection/generated",
+      "owner_surface": "ToS/contracts/hierarchical-target-numbered-unit-page-map.schema.json",
+      "source_truth": [
+        "ToS/source-witnesses/collections/friedrich-nietzsche/works-in-two-volumes-volume-2-mysl-1996/editions/moscow-mysl-1996-volume-2/items/operator-pdf/item.manifest.json",
+        "ToS/source-witnesses/collections/friedrich-nietzsche/works-in-two-volumes-volume-2-mysl-1996/editions/moscow-mysl-1996-volume-2/items/operator-pdf/resource-inventory.json",
+        "ToS/source-witnesses/collections/friedrich-nietzsche/works-in-two-volumes-volume-2-mysl-1996/editions/moscow-mysl-1996-volume-2/items/operator-pdf/payload/*",
+        "ToS/source-witnesses/collections/friedrich-nietzsche/works-in-two-volumes-volume-2-mysl-1996/structure/work-boundaries/work-boundary-map.json",
+        "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/transfer-samples.json",
+        "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/transfer-target-anchors.v1.jsonl",
+        "ToS/contracts/hierarchical-target-numbered-unit-page-map.schema.json",
+        "ToS/contracts/transfer-candidate-target-structural-crosswalk.schema.json",
+        "ToS/contracts/source-anchor.schema.json"
+      ],
+      "reads": [
+        "the exact local Mysl 1996 PDF, its tracked inventory, collection work boundaries, frozen transfer plan and candidate anchors, plus the target rights record"
+      ],
+      "writes": [
+        "tracked text-free hierarchical target maps, proposed whole-page anchors, target-only frozen-candidate crosswalks, and provenance for Genealogie and Antichrist unless --check is used"
+      ],
+      "side_effects": "140 proposed series-qualified target starts and 20 target-only candidate routes with no tracked prose, German parallel route, passage alignment, accepted text, translation relation, eligibility, target gold, semantics, rights clearance, or human work",
+      "validation_lane": "source_witness_foundation",
+      "ci_inclusion": "focused-tests",
+      "test_target": "tests/test_source_witness_foundation.py",
+      "disposition": "keep"
+    },
+    {
+      "path": "scripts/build_nietzsche_transfer_source_structure.py",
+      "family": "projection_builder",
+      "organ_lane": "projection/generated",
+      "owner_surface": "ToS/contracts/hierarchical-source-numbered-unit-page-map.schema.json",
+      "source_truth": [
+        "ToS/source-witnesses/works/friedrich-nietzsche/zur-genealogie-der-moral/expressions/de-naumann-1892-second/editions/leipzig-c-g-naumann-1892-second-edition/items/wikimedia-commons-unc-scan-pdf/item.manifest.json",
+        "ToS/source-witnesses/works/friedrich-nietzsche/zur-genealogie-der-moral/expressions/de-naumann-1892-second/editions/leipzig-c-g-naumann-1892-second-edition/items/wikimedia-commons-unc-scan-pdf/resource-inventory.json",
+        "ToS/source-witnesses/works/friedrich-nietzsche/zur-genealogie-der-moral/expressions/de-naumann-1892-second/editions/leipzig-c-g-naumann-1892-second-edition/items/wikimedia-commons-unc-scan-pdf/payload/*",
+        "ToS/source-witnesses/collections/friedrich-nietzsche/nietzsches-werke-erste-abtheilung-band-viii-naumann-1906/editions/leipzig-c-g-naumann-1906/items/wikimedia-commons-stanford-scan-djvu/item.manifest.json",
+        "ToS/source-witnesses/collections/friedrich-nietzsche/nietzsches-werke-erste-abtheilung-band-viii-naumann-1906/editions/leipzig-c-g-naumann-1906/items/internet-archive-google-stanford-djvu-xml/item.manifest.json",
+        "ToS/source-witnesses/collections/friedrich-nietzsche/nietzsches-werke-erste-abtheilung-band-viii-naumann-1906/editions/leipzig-c-g-naumann-1906/items/internet-archive-google-stanford-djvu-xml/payload/*",
+        "ToS/contracts/hierarchical-source-numbered-unit-page-map.schema.json",
+        "ToS/contracts/source-anchor.schema.json"
+      ],
+      "reads": [
+        "the exact local Genealogie PDF and separate Antichrist Commons DjVu plus Internet Archive DjVuXML navigation Item, all with fixity, inventory, and layered rights bindings"
+      ],
+      "writes": [
+        "two tracked text-free German hierarchical numbered-unit maps, 140 proposed whole-page anchors, and provenance unless --check is used"
+      ],
+      "side_effects": "78 Genealogie and 62 Antichrist proposed source starts with explicit OCR/visible-review basis and no accepted German, passage ends, alignment, translation, semantics, eligibility, gold, canon, or human work",
+      "validation_lane": "source_witness_foundation",
+      "ci_inclusion": "focused-tests",
+      "test_target": "tests/test_nietzsche_transfer_source_routes.py",
+      "disposition": "keep"
+    },
+    {
+      "path": "scripts/build_nietzsche_transfer_source_routes.py",
+      "family": "projection_builder",
+      "organ_lane": "projection/generated",
+      "owner_surface": "ToS/contracts/transfer-candidate-source-structural-route.schema.json",
+      "source_truth": [
+        "ToS/contracts/hierarchical-numbered-unit-label-correspondence.schema.json",
+        "ToS/contracts/transfer-candidate-source-structural-route.schema.json",
+        "ToS/source-witnesses/works/friedrich-nietzsche/zur-genealogie-der-moral/**/hierarchical-numbered-unit-page-map.json",
+        "ToS/source-witnesses/works/friedrich-nietzsche/der-antichrist/**/hierarchical-numbered-unit-page-map.json",
+        "ToS/source-witnesses/works/friedrich-nietzsche/{zur-genealogie-der-moral,der-antichrist}/**/transfer-candidate-page-crosswalk.v1.json",
+        "ToS/source-witnesses/**/rights.json"
+      ],
+      "reads": [
+        "tracked source and target hierarchical maps, target-only frozen-candidate crosswalks, and rights records; no witness payload or text"
+      ],
+      "writes": [
+        "140 text-free series-qualified label pairings, 20 possible source structural routes for 12 frozen candidate pages, and provenance unless --check is used"
+      ],
+      "side_effects": "structural navigation candidates only, with exact passage ends, source-target passage alignment, translation, accepted text, eligibility, gold, semantics, rights clearance, canon, and human work held false",
+      "validation_lane": "source_witness_foundation",
+      "ci_inclusion": "focused-tests",
+      "test_target": "tests/test_nietzsche_transfer_source_routes.py",
+      "disposition": "keep"
+    },
+    {
+      "path": "scripts/build_jenseits_polilov_numbered_unit_structure.py",
+      "family": "projection_builder",
+      "organ_lane": "projection/generated",
+      "owner_surface": "ToS/contracts/target-numbered-unit-page-map.schema.json",
+      "source_truth": [
+        "ToS/source-witnesses/collections/friedrich-nietzsche/works-in-two-volumes-volume-2-mysl-1996/editions/moscow-mysl-1996-volume-2/items/operator-pdf/item.manifest.json",
+        "ToS/source-witnesses/collections/friedrich-nietzsche/works-in-two-volumes-volume-2-mysl-1996/editions/moscow-mysl-1996-volume-2/items/operator-pdf/resource-inventory.json",
+        "ToS/source-witnesses/collections/friedrich-nietzsche/works-in-two-volumes-volume-2-mysl-1996/editions/moscow-mysl-1996-volume-2/items/operator-pdf/payload/*",
+        "ToS/source-witnesses/collections/friedrich-nietzsche/works-in-two-volumes-volume-2-mysl-1996/structure/work-boundaries/work-boundary-map.json",
+        "ToS/source-witnesses/works/friedrich-nietzsche/jenseits-von-gut-und-boese/expressions/de-naumann-1886/**/structure/numbered-unit-page-map.json",
+        "ToS/contracts/target-numbered-unit-page-map.schema.json",
+        "ToS/contracts/source-anchor.schema.json"
+      ],
+      "reads": [
+        "the exact local Polilov/Mysl 1996 PDF, its tracked resource inventory and work boundary, plus the digest-bound source map only for explicit numbering asymmetry"
+      ],
+      "writes": [
+        "the tracked text-free target numbered-unit page map, proposed whole-page target anchors, and provenance unless --check is used"
+      ],
+      "side_effects": "tracked model-reviewed start-page candidates for 298 visible target labels without target text, cross-lingual alignment, or acceptance",
+      "validation_lane": "source_witness_foundation",
+      "ci_inclusion": "focused-tests",
+      "test_target": "tests/test_witness_structure_correspondence.py",
+      "disposition": "keep"
+    },
+    {
+      "path": "scripts/build_jenseits_numbered_unit_structure.py",
+      "family": "projection_builder",
+      "organ_lane": "projection/generated",
+      "owner_surface": "ToS/contracts/numbered-unit-page-map.schema.json",
+      "source_truth": [
+        "ToS/source-witnesses/works/friedrich-nietzsche/jenseits-von-gut-und-boese/expressions/de-naumann-1886/editions/leipzig-c-g-naumann-1886/items/internet-archive-google-harvard-scan-pdf/item.manifest.json",
+        "ToS/source-witnesses/works/friedrich-nietzsche/jenseits-von-gut-und-boese/expressions/de-naumann-1886/editions/leipzig-c-g-naumann-1886/items/internet-archive-google-harvard-scan-pdf/resource-inventory.json",
+        "ToS/source-witnesses/works/friedrich-nietzsche/jenseits-von-gut-und-boese/expressions/de-naumann-1886/editions/leipzig-c-g-naumann-1886/items/internet-archive-google-harvard-scan-pdf/payload/*",
+        "ToS/contracts/numbered-unit-page-map.schema.json",
+        "ToS/contracts/source-anchor.schema.json"
+      ],
+      "reads": [
+        "the exact local Naumann 1886 PDF, DjVu XML, and ABBYY XML gzip package plus its tracked resource inventory"
+      ],
+      "writes": [
+        "the tracked text-free Naumann 1886 numbered-unit page map, proposed whole-page source anchors, and provenance unless --check is used"
+      ],
+      "side_effects": "tracked model-reviewed start-page candidates for 299 source units without OCR text or acceptance",
+      "validation_lane": "source_witness_foundation",
+      "ci_inclusion": "focused-tests",
+      "test_target": "tests/test_witness_structure_correspondence.py",
+      "disposition": "keep"
+    },
+    {
+      "path": "scripts/build_jenseits_numbered_unit_label_correspondence.py",
+      "family": "projection_builder",
+      "organ_lane": "projection/generated",
+      "owner_surface": "ToS/contracts/parallel-numbered-unit-label-map.schema.json",
+      "source_truth": [
+        "ToS/source-witnesses/works/friedrich-nietzsche/jenseits-von-gut-und-boese/expressions/de-naumann-1886/editions/leipzig-c-g-naumann-1886/items/internet-archive-google-harvard-scan-pdf/structure/numbered-unit-page-map.json",
+        "ToS/source-witnesses/works/friedrich-nietzsche/jenseits-von-gut-und-boese/expressions/ru-polilov-mysl-1996/structure/mysl-1996-volume-2-operator-pdf/numbered-unit-page-map.json",
+        "ToS/source-witnesses/works/friedrich-nietzsche/jenseits-von-gut-und-boese/expressions/de-naumann-1886/editions/leipzig-c-g-naumann-1886/items/internet-archive-google-harvard-scan-pdf/rights.json",
+        "ToS/source-witnesses/collections/friedrich-nietzsche/works-in-two-volumes-volume-2-mysl-1996/editions/moscow-mysl-1996-volume-2/items/operator-pdf/rights.json",
+        "ToS/contracts/parallel-numbered-unit-label-map.schema.json"
+      ],
+      "reads": [
+        "tracked source and target numbered-unit maps plus their rights records; no local payload or text"
+      ],
+      "writes": [
+        "the tracked text-free shared-number-label pairing map and provenance unless --check is used"
+      ],
+      "side_effects": "298 proposed shared structural label pairings with source-only 237a retained unpaired and no passage or translation claim",
+      "validation_lane": "source_witness_foundation",
+      "ci_inclusion": "focused-tests",
+      "test_target": "tests/test_witness_structure_correspondence.py",
+      "disposition": "keep"
+    },
+    {
+      "path": "scripts/build_zarathustra_german_source_triangulation.py",
+      "family": "projection_builder",
+      "organ_lane": "projection/generated",
+      "owner_surface": "ToS/contracts/german-source-triangulation.schema.json",
+      "source_truth": [
+        "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/german-assisted-source-review.v1.json",
+        "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/translation-source-review-plan.v2.json",
+        "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/critical-edition-witness.ekgwb.za-i-vorrede-1.v1.json",
+        "ToS/source-witnesses/discovery/runs/ekgwb-za-i-vorrede-1.2026-07-28.v1.json",
+        "ToS/source-witnesses/**/item.manifest.json",
+        "ToS/source-witnesses/**/rights.json",
+        "ToS/source-witnesses/**/local-content/translation/source-review/critical-edition-candidates/ekgwb/za-i/static-html-include.response.html",
+        "ToS/source-witnesses/**/payload/*",
+        "ToS/contracts/german-source-triangulation.schema.json"
+      ],
+      "reads": [
+        "one explicit local-only eKGWB HTTP response, one fixity-verified DTA TEI, one fixity-verified Naumann automatic-OCR EPUB, and their tracked plans, manifests, and rights records"
+      ],
+      "writes": [
+        "one reconciled public-safe discovery record, one tracked text-free machine-triangulation packet, and separate provenance unless --check is used"
+      ],
+      "side_effects": "tracked aggregate comparison counts and one-way fingerprints only; no source text, German acceptance, critical-edition admission, translation lane, semantics, or promotion",
+      "validation_lane": "source_witness_foundation",
+      "ci_inclusion": "focused-tests",
+      "test_target": "tests/test_source_witness_foundation.py",
+      "disposition": "keep"
+    },
+    {
+      "path": "scripts/build_zarathustra_bounded_translation_input.py",
+      "family": "projection_builder",
+      "organ_lane": "projection/generated",
+      "owner_surface": "ToS/contracts/bounded-translation-research-input.schema.json",
+      "source_truth": [
+        "docs/decisions/TOS-D-0020-corpus-evidence-spine-and-witness-storage.md",
+        "ToS/research-packets/foundation-laboratory-2026-07/BOUNDED_TRANSLATION_SOURCE_ADMISSION_RESEARCH.md",
+        "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/german-source-triangulation.ekgwb-dta-naumann.za-i-vorrede-1.v1.json",
+        "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/translation-source-review-plan.v2.json",
+        "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/translation-laboratory-plan.v1.json",
+        "ToS/canon/source/friedrich-nietzsche/thus-spoke-zarathustra/prologue-1/node.json",
+        "ToS/public-compatibility/source_node.example.json",
+        "ToS/source-witnesses/**/item.manifest.json",
+        "ToS/source-witnesses/**/rights.json",
+        "ToS/source-witnesses/**/local-content/translation/source-review/critical-edition-candidates/ekgwb/za-i/static-html-include.response.html",
+        "ToS/source-witnesses/**/payload/*",
+        "ToS/contracts/bounded-translation-research-input.schema.json"
+      ],
+      "reads": [
+        "one explicit DTA TEI, one local-only eKGWB response, the first twenty Naumann OCR tokens, and digest-bound source, rights, research, triangulation, and frozen translation-plan evidence"
+      ],
+      "writes": [
+        "one ignored local JSON source string plus a tracked text-free admission packet and separate provenance unless --check is used"
+      ],
+      "side_effects": "admits exactly one DTA-derived source artifact to local blind machine-method calibration only and seals pre-existing authored translation surfaces; no German acceptance, accepted translation lane, comparator reveal, canon revalidation, semantics, rights clearance, publication, graph, or promotion",
+      "validation_lane": "source_witness_foundation",
+      "ci_inclusion": "focused-tests",
+      "test_target": "tests/test_source_witness_foundation.py",
+      "disposition": "keep"
+    },
+    {
+      "path": "scripts/build_antonovsky_2007_1911_collation.py",
+      "family": "source_projection_builder",
+      "organ_lane": "source/topology",
+      "owner_surface": "ToS/source-witnesses/README.md",
+      "source_truth": [
+        "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/antonovsky-2007-1911-opening-sentence-collation.plan.v1.json",
+        "ToS/research-packets/foundation-laboratory-2026-07/WITNESS_TEXT_COLLATION_FOUNDATION_RESEARCH_2026-08-12.md",
+        "ToS/contracts/witness-text-collation-packet-v1.schema.json",
+        "ToS/contracts/source-anchor-v2.schema.json",
+        "ToS/contracts/source-text-layer.schema.json",
+        "ToS/contracts/source-text-unit-packet-v1.schema.json",
+        "ToS/contracts/provenance-event-v2.schema.json",
+        "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/gold-assurance.v2.json",
+        "ToS/source-witnesses/**/item.manifest.json",
+        "ToS/source-witnesses/**/resource-inventory.json",
+        "ToS/source-witnesses/**/rights.json",
+        "ToS/source-witnesses/**/local-content/witness-text-collation/*",
+        "ToS/source-witnesses/**/local-content/target-text-foundation/*"
+      ],
+      "reads": [
+        "one fixed unattested p011 Workbench observation and sparse-calibration closure, the exact local Antonovsky 2007 PDF page binding, the existing Antonovsky 1911 private paragraph/sentence proposal, layered rights, and the frozen collation plan"
+      ],
+      "writes": [
+        "one ignored mode-0600 observation layer, one ignored mode-0600 reconstructive comparison detail, and five tracked text-free source-anchor, source-text-layer, source-text-unit, witness-collation, and provenance records unless --check is used"
+      ],
+      "side_effects": "one question-scoped same-language witness correspondence proposal only; no repeated human work, attestation, review, gold, accepted text or boundary, preferred reading, textual equivalence, Edition genealogy, Expression derivation, translation, lexical or semantic identity, projection, graph/canon effect, redistribution, or publication",
+      "validation_lane": "source_witness_foundation",
+      "ci_inclusion": "focused-tests",
+      "test_target": "tests/test_antonovsky_witness_text_collation.py",
+      "disposition": "keep"
+    },
+    {
+      "path": "scripts/build_zarathustra_authored_canon_evidence_bridge.py",
+      "family": "source_projection_builder",
+      "organ_lane": "source/topology",
+      "owner_surface": "ToS/source-witnesses/README.md",
+      "source_truth": [
+        "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/authored-canon-evidence-bridge.plan.v1.json",
+        "ToS/research-packets/foundation-laboratory-2026-07/AUTHORED_CANON_EVIDENCE_BRIDGE_RESEARCH_2026-08-12.md",
+        "ToS/contracts/authored-route-evidence-bridge-v1.schema.json",
+        "ToS/contracts/source-anchor-v2.schema.json",
+        "ToS/contracts/source-text-layer.schema.json",
+        "ToS/contracts/source-text-unit-packet-v1.schema.json",
+        "ToS/contracts/provenance-event-v2.schema.json",
+        "ToS/canon/source/friedrich-nietzsche/thus-spoke-zarathustra/prologue-1/node.json",
+        "ToS/canon/relations/friedrich-nietzsche/thus-spoke-zarathustra/prologue-1/edges.csv",
+        "ToS/source-witnesses/**/payload/nietzsche_zarathustra01_1883.tei.xml",
+        "ToS/source-witnesses/**/local-content/authored-canon-evidence-bridge/*"
+      ],
+      "reads": [
+        "the exact DTA Part-I TEI, frozen bridge plan, authored trilingual source node and donor, route-local canon nodes and relations, legacy review records, layered rights, and any existing private bridge artifacts"
+      ],
+      "writes": [
+        "four ignored mode-0600 exact/comparison artifacts plus six tracked text-free source-anchor, raw/normalized source-text-layer, source/authored segmentation, route-bridge, and provenance records unless --check is used"
+      ],
+      "side_effects": "representation and inventory reconciliation only; preserves competing DTA/authored boundaries and the existing canon, with no accepted German or translation, modern human attestation, claim/evidence or semantic closure, graph/canon promotion, human task, publication, server transfer, or bulk migration",
+      "validation_lane": "source_witness_foundation",
+      "ci_inclusion": "focused-tests",
+      "test_target": "tests/test_zarathustra_authored_canon_evidence_bridge.py",
+      "disposition": "keep"
+    },
+    {
+      "path": "scripts/build_zarathustra_opening_sentence_alignment.py",
+      "family": "source_projection_builder",
+      "organ_lane": "source/topology",
+      "owner_surface": "ToS/source-witnesses/README.md",
+      "source_truth": [
+        "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/za-i-vorrede-1-opening-sentence-alignment.plan.v1.json",
+        "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/source-text-layer.za-i-vorrede-1-p1.dta-machine.v1.json",
+        "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/source-text-layer.za-i-vorrede-1-p1.antonovsky-1911-embedded.v1.json",
+        "ToS/contracts/source-text-unit-packet-v1.schema.json",
+        "ToS/contracts/translation-alignment-packet-v1.schema.json",
+        "ToS/contracts/provenance-event-v2.schema.json"
+      ],
+      "reads": [
+        "the two existing exact ignored private paragraph layers plus their tracked identity, layout, edition-reading, translated-by, rights, and frozen alignment-plan evidence"
+      ],
+      "writes": [
+        "two tracked text-free proposed sentence-unit packets, one tracked text-free proposed alignment packet, and one tracked provenance-event-v2 record unless --check is used"
+      ],
+      "side_effects": "one question-scoped real ordinal first-sentence correspondence proposal only; no tracked source text, accepted sentence boundary, German/Russian, translation act or fidelity, lexical equivalence, human review/task, projection, semantics, graph/canon effect, redistribution, publication, another sentence, or bulk migration",
+      "validation_lane": "source_witness_foundation",
+      "ci_inclusion": "focused-tests",
+      "test_target": "tests/test_source_witness_foundation.py",
+      "disposition": "keep"
+    },
+    {
+      "path": "scripts/build_zarathustra_source_text_foundation.py",
+      "family": "source_projection_builder",
+      "organ_lane": "source/topology",
+      "owner_surface": "ToS/source-witnesses/README.md",
+      "source_truth": [
+        "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/za-i-vorrede-1-source-text-foundation.plan.v1.json",
+        "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/de-schmeitzner-1883-part-1/editions/chemnitz-schmeitzner-1883-part-1/items/dta-sbb-corrected-tei-p5/item.manifest.json",
+        "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/de-schmeitzner-1883-part-1/editions/chemnitz-schmeitzner-1883-part-1/items/dta-sbb-corrected-tei-p5/rights.json",
+        "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/de-schmeitzner-1883-part-1/editions/chemnitz-schmeitzner-1883-part-1/items/dta-sbb-corrected-tei-p5/payload/nietzsche_zarathustra01_1883.tei.xml",
+        "ToS/contracts/source-anchor-v2.schema.json",
+        "ToS/contracts/source-text-layer.schema.json",
+        "ToS/contracts/source-text-unit-packet-v1.schema.json",
+        "ToS/contracts/provenance-event-v2.schema.json"
+      ],
+      "reads": [
+        "one exact fixity-bound DTA Part-I TEI, its tracked identity and layered-rights records, and one frozen Za-I-Vorrede-1 source-text-foundation plan"
+      ],
+      "writes": [
+        "one ignored mode-0600 353-byte provider-transcription paragraph plus tracked text-free source-anchor-v2, source-text-layer-v1, source-text-unit-v1, and provenance-event-v2 records unless --check is used"
+      ],
+      "side_effects": "one question-scoped real source-layout foundation only; no accepted German, sentence/token boundary, translation input or alignment, semantic or sign claim, graph/canon effect, human task, redistribution, publication, another paragraph, or bulk migration",
+      "validation_lane": "source_witness_foundation",
+      "ci_inclusion": "focused-tests",
+      "test_target": "tests/test_source_witness_foundation.py",
+      "disposition": "keep"
+    },
+    {
+      "path": "scripts/build_zarathustra_target_text_foundation.py",
+      "family": "source_projection_builder",
+      "organ_lane": "source/topology",
+      "owner_surface": "ToS/source-witnesses/README.md",
+      "source_truth": [
+        "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/za-i-vorrede-1-antonovsky-1911-target-text-foundation.plan.v1.json",
+        "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-antonovsky-1911/editions/saint-petersburg-prometey-1911-fourth/items/rsl-neb-scan-pdf/item.manifest.json",
+        "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-antonovsky-1911/editions/saint-petersburg-prometey-1911-fourth/items/rsl-neb-scan-pdf/resource-inventory.json",
+        "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-antonovsky-1911/editions/saint-petersburg-prometey-1911-fourth/items/rsl-neb-scan-pdf/rights.json",
+        "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-antonovsky-1911/editions/saint-petersburg-prometey-1911-fourth/items/rsl-neb-scan-pdf/payload/antonovsky-prometey-1911-rsl-neb.pdf",
+        "ToS/contracts/source-anchor-v2.schema.json",
+        "ToS/contracts/source-text-layer.schema.json",
+        "ToS/contracts/source-text-unit-packet-v1.schema.json",
+        "ToS/contracts/provenance-event-v2.schema.json"
+      ],
+      "reads": [
+        "one exact fixity-bound Antonovsky 1911 PDF, its page-resource and layered-rights records, and one frozen page-6 opening-paragraph target-text-foundation plan"
+      ],
+      "writes": [
+        "one ignored mode-0600 633-byte raw embedded-text paragraph, one ignored exact Poppler bbox intermediate, and tracked text-free source-anchor-v2, source-text-layer-v1, source-text-unit-v1, and provenance-event-v2 records unless --check is used"
+      ],
+      "side_effects": "one question-scoped real target-layout foundation only; no accepted Russian, diplomatic text, sentence/token boundary, accepted translation or alignment, semantic or sign claim, graph/canon effect, human task, redistribution, publication, another paragraph, or bulk migration",
+      "validation_lane": "source_witness_foundation",
+      "ci_inclusion": "focused-tests",
+      "test_target": "tests/test_source_witness_foundation.py",
+      "disposition": "keep"
+    },
+    {
+      "path": "scripts/build_golden_kernel_transfer_candidates.py",
+      "family": "projection_builder",
+      "organ_lane": "projection/generated",
+      "owner_surface": "ToS/contracts/golden-kernel-transfer-plan.schema.json",
+      "source_truth": [
+        "ToS/source-witnesses/collections/friedrich-nietzsche/works-in-two-volumes-volume-2-mysl-1996/editions/moscow-mysl-1996-volume-2/items/operator-pdf/item.manifest.json",
+        "ToS/source-witnesses/collections/friedrich-nietzsche/works-in-two-volumes-volume-2-mysl-1996/editions/moscow-mysl-1996-volume-2/items/operator-pdf/payload/*",
+        "ToS/source-witnesses/collections/friedrich-nietzsche/works-in-two-volumes-volume-2-mysl-1996/structure/work-boundaries/work-boundary-map.json",
+        "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/transfer-samples.json",
+        "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/gold-assurance.v2.json",
+        "ToS/contracts/golden-kernel-transfer-plan.schema.json",
+        "ToS/contracts/source-anchor.schema.json"
+      ],
+      "reads": [
+        "one exact local Mysl 1996 PDF, its unreviewed work boundaries, the blocked transfer plan, and the solo-human-plus-AI assurance contract"
+      ],
+      "writes": [
+        "twenty ignored local pdftotext page candidates plus tracked ineligible candidate metadata, proposed whole-page anchors, and provenance unless --check is used"
+      ],
+      "side_effects": "freezes ten digest-random and ten mechanically difficult private page candidates before variant outputs; creates no target gold, semantic label, accepted sign, human debt, or execution authority",
+      "validation_lane": "source_witness_foundation",
+      "ci_inclusion": "focused-tests",
+      "test_target": "tests/test_source_witness_foundation.py",
+      "disposition": "keep"
+    },
+    {
+      "path": "scripts/build_golden_kernel_transfer_target_passages.py",
+      "family": "projection_builder",
+      "organ_lane": "projection/generated",
+      "owner_surface": "ToS/contracts/transfer-target-passage-candidate-set.schema.json",
+      "source_truth": [
+        "ToS/source-witnesses/collections/friedrich-nietzsche/works-in-two-volumes-volume-2-mysl-1996/editions/moscow-mysl-1996-volume-2/items/operator-pdf/item.manifest.json",
+        "ToS/source-witnesses/collections/friedrich-nietzsche/works-in-two-volumes-volume-2-mysl-1996/editions/moscow-mysl-1996-volume-2/items/operator-pdf/rights.json",
+        "ToS/source-witnesses/collections/friedrich-nietzsche/works-in-two-volumes-volume-2-mysl-1996/editions/moscow-mysl-1996-volume-2/items/operator-pdf/payload/*",
+        "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/transfer-samples.json",
+        "ToS/source-witnesses/works/friedrich-nietzsche/{jenseits-von-gut-und-boese,zur-genealogie-der-moral,der-antichrist}/**/structure/**",
+        "ToS/source-witnesses/works/friedrich-nietzsche/{jenseits-von-gut-und-boese,zur-genealogie-der-moral,der-antichrist}/alignments/structure/**",
+        "ToS/contracts/transfer-target-passage-candidate-set.schema.json",
+        "ToS/contracts/source-anchor.schema.json"
+      ],
+      "reads": [
+        "the exact local Mysl PDF plus the tracked frozen transfer plan, target structural maps, source structural routes and pairings, rights, and source anchors"
+      ],
+      "writes": [
+        "thirty-five ignored mode-0600 private target-passage JSON files plus a tracked text-free candidate set, proposed/rejected anchors, and provenance unless --check is used"
+      ],
+      "side_effects": "keeps the frozen twenty-page frame; materializes thirty-five layer-exact bbox candidates with thirty-two page intersections and three explicit negative intersections; creates no accepted text, source passage, alignment, eligibility, gold, human, semantic, canon, or publication effect",
+      "validation_lane": "source_witness_foundation",
+      "ci_inclusion": "focused-tests",
+      "test_target": "tests/test_golden_kernel_transfer_target_passages.py",
+      "disposition": "keep"
+    },
+    {
+      "path": "scripts/build_golden_kernel_transfer_source_passages.py",
+      "family": "projection_builder",
+      "organ_lane": "projection/generated",
+      "owner_surface": "ToS/contracts/transfer-source-passage-candidate-set.schema.json",
+      "source_truth": [
+        "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/transfer-target-passage-candidates.v1.json",
+        "ToS/source-witnesses/works/friedrich-nietzsche/{jenseits-von-gut-und-boese,zur-genealogie-der-moral,der-antichrist}/**/structure/**",
+        "ToS/source-witnesses/works/friedrich-nietzsche/jenseits-von-gut-und-boese/**/items/internet-archive-google-harvard-scan-pdf/{item.manifest.json,resource-inventory.json,rights.json,forensic-report.md,payload/*}",
+        "ToS/source-witnesses/works/friedrich-nietzsche/zur-genealogie-der-moral/**/items/wikimedia-commons-unc-scan-pdf/{item.manifest.json,resource-inventory.json,rights.json,forensic-report.md,payload/*}",
+        "ToS/source-witnesses/collections/friedrich-nietzsche/nietzsches-werke-erste-abtheilung-band-viii-naumann-1906/**/items/{wikimedia-commons-stanford-scan-djvu,internet-archive-google-stanford-djvu-xml}/{item.manifest.json,resource-inventory.json,rights.json,payload/*}",
+        "ToS/contracts/transfer-source-passage-candidate-set.schema.json",
+        "ToS/contracts/source-anchor.schema.json"
+      ],
+      "reads": [
+        "the tracked thirty-five-route target frame plus exact local German PDF image masks and bbox layers, ABBYY, DjVuXML, JP2 ZIP, and scandata layers, source maps, manifests, inventories, forensic marker reports, and separate rights records"
+      ],
+      "writes": [
+        "thirty-five ignored mode-0600 private German automatic-layer or exact source-visible-marker passage JSON files plus a tracked text-free candidate set, thirty-five proposed anchors, and provenance unless --check is used"
+      ],
+      "side_effects": "keeps and materializes all thirty-five routes through same-layer boundaries, exact JP2/scandata marker returns, or exact same-PDF image-mask/Poppler returns; creates no diplomatic or accepted German, source-target alignment, eligibility, gold, human, semantic, canon, or publication effect",
+      "validation_lane": "source_witness_foundation",
+      "ci_inclusion": "focused-tests",
+      "test_target": "tests/test_golden_kernel_transfer_source_passages.py",
+      "disposition": "keep"
+    },
+    {
+      "path": "scripts/build_golden_kernel_transfer_route_readiness.py",
+      "family": "projection_builder",
+      "organ_lane": "projection/generated",
+      "owner_surface": "ToS/contracts/transfer-route-readiness-projection.schema.json",
+      "source_truth": [
+        "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/transfer-target-passage-candidates.v1.json",
+        "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/transfer-source-passage-candidates.v1.json",
+        "ToS/contracts/transfer-route-readiness-projection.schema.json"
+      ],
+      "reads": [
+        "tracked candidate identities, mechanical statuses, boundary-layer names, frozen-page identities, and authority flags only; no private content"
+      ],
+      "writes": [
+        "one tracked text-free thirty-five-route and twenty-page readiness projection plus one provenance event unless --check is used"
+      ],
+      "side_effects": "reports 35 dual mechanically available routes, 32 frozen-page intersections, three target nonintersections, and 20 of 20 pages with an intersecting route; creates no bilingual pair, alignment, accepted text, eligibility, gold, human, semantic, publication, or canon effect",
+      "validation_lane": "source_witness_foundation",
+      "ci_inclusion": "release",
+      "test_target": "tests/test_golden_kernel_transfer_route_readiness.py",
+      "disposition": "keep"
+    },
+    {
+      "path": "scripts/build_witness_structure_correspondence.py",
+      "family": "projection_builder",
+      "organ_lane": "projection/generated",
+      "owner_surface": "ToS/contracts/witness-structure-correspondence.schema.json",
+      "source_truth": [
+        "ToS/source-witnesses/**/resource-inventory.json",
+        "ToS/source-witnesses/**/payload/*",
+        "ToS/contracts/witness-structure-correspondence.schema.json",
+        "ToS/contracts/witness-structure-anchor-set.schema.json",
+        "ToS/contracts/source-anchor.schema.json"
+      ],
+      "reads": [
+        "four fixity-verified local DTA TEIs, the local Naumann 1893 EPUB, and tracked source resource inventories"
+      ],
+      "writes": [
+        "the tracked text-free Naumann 1893 to DTA-parts structure-correspondence map, proposed structural anchor set, source-anchor records, and provenance unless --check is used"
+      ],
+      "side_effects": "tracked mechanical named-division locator candidates and stable proposed addresses without source text or acceptance",
+      "validation_lane": "source_witness_foundation",
+      "ci_inclusion": "focused-tests",
+      "test_target": "tests/test_witness_structure_correspondence.py",
       "disposition": "keep"
     },
     {
@@ -242,6 +1065,98 @@
       "disposition": "keep"
     },
     {
+      "path": "scripts/build_semantic_annotation_v2_lab.py",
+      "family": "source_fixture_builder",
+      "organ_lane": "source/topology",
+      "owner_surface": "ToS/contracts/semantic-annotation-packet-v2.schema.json",
+      "source_truth": [
+        "ToS/contracts/semantic-annotation-packet-v2.schema.json",
+        "ToS/research-packets/foundation-laboratory-2026-07/SEMANTIC_IDENTITY_ANNOTATION_RESEARCH_2026-08-11.md",
+        "ToS/research-packets/foundation-laboratory-2026-07/semantic-annotation-v2-abc/plan.json",
+        "ToS/research-packets/foundation-laboratory-2026-07/semantic-annotation-v2-abc/public-synthetic-source.txt"
+      ],
+      "reads": [
+        "semantic annotation v2 contract, ordered research report, deterministic public-synthetic source and plan, and builder bytes"
+      ],
+      "writes": [
+        "tracked public-synthetic A occurrence packet, B reciprocal competing-sign packet, deliberately invalid C promotion packet, source/plan, and exact lab manifest"
+      ],
+      "side_effects": "public synthetic fixture generation only; no corpus payload, model invocation, human evidence, accepted sign or concept, graph effect, publication widening, or canon effect",
+      "validation_lane": "source_witness_foundation",
+      "ci_inclusion": "focused-tests",
+      "test_target": "tests/test_source_witness_foundation.py",
+      "disposition": "keep"
+    },
+    {
+      "path": "scripts/build_translation_alignment_v1_lab.py",
+      "family": "source_fixture_builder",
+      "organ_lane": "source/topology",
+      "owner_surface": "ToS/contracts/translation-alignment-packet-v1.schema.json",
+      "source_truth": [
+        "ToS/contracts/translation-alignment-packet-v1.schema.json",
+        "ToS/research-packets/foundation-laboratory-2026-07/TRANSLATION_ALIGNMENT_IDENTITY_RESEARCH_2026-08-11.md",
+        "ToS/research-packets/foundation-laboratory-2026-07/translation-alignment-v1-abc/plan.json",
+        "ToS/research-packets/foundation-laboratory-2026-07/translation-alignment-v1-abc/public-synthetic-source.x-tos-src.txt",
+        "ToS/research-packets/foundation-laboratory-2026-07/translation-alignment-v1-abc/public-synthetic-target.x-tos-tgt.txt"
+      ],
+      "reads": [
+        "translation-alignment v1 contract, ordered research, deterministic invented source/target sides, frozen synthetic analysis artifacts, plan, and builder bytes"
+      ],
+      "writes": [
+        "tracked public-synthetic source/target and analysis fixtures, valid A and B mapping packets, deliberately invalid C acceptance packet, plan, and exact lab manifest"
+      ],
+      "side_effects": "public synthetic fixture generation only; no corpus payload, translation, aligner/model invocation, human evidence, accepted alignment, lexical equivalence, projection, graph, or canon effect",
+      "validation_lane": "source_witness_foundation",
+      "ci_inclusion": "focused-tests",
+      "test_target": "tests/test_source_witness_foundation.py",
+      "disposition": "keep"
+    },
+    {
+      "path": "scripts/build_source_text_unit_v1_lab.py",
+      "family": "source_fixture_builder",
+      "organ_lane": "source/topology",
+      "owner_surface": "ToS/contracts/source-text-unit-packet-v1.schema.json",
+      "source_truth": [
+        "ToS/contracts/source-text-unit-packet-v1.schema.json",
+        "ToS/research-packets/foundation-laboratory-2026-07/SOURCE_TEXT_UNIT_SEGMENTATION_RESEARCH_2026-08-11.md",
+        "ToS/research-packets/foundation-laboratory-2026-07/source-text-unit-v1-abc/plan.json",
+        "ToS/research-packets/foundation-laboratory-2026-07/source-text-unit-v1-abc/public-synthetic-source.x-tos-unit.txt"
+      ],
+      "reads": [
+        "source-text-unit v1 contract, ordered research, deterministic invented ASCII source, plan, and builder bytes"
+      ],
+      "writes": [
+        "tracked public-synthetic source, valid A layout and B reciprocal segmentation packets, deliberately invalid C acceptance packet, plan, and exact lab manifest"
+      ],
+      "side_effects": "public synthetic fixture generation only; no corpus payload, tokenizer/model invocation, human evidence, accepted boundary, legacy migration, lexical or semantic identity, projection, graph, publication, or canon effect",
+      "validation_lane": "source_witness_foundation",
+      "ci_inclusion": "focused-tests",
+      "test_target": "tests/test_source_witness_foundation.py",
+      "disposition": "keep"
+    },
+    {
+      "path": "scripts/build_provenance_event_v2_lab.py",
+      "family": "source_fixture_builder",
+      "organ_lane": "source/topology",
+      "owner_surface": "ToS/source-witnesses/README.md",
+      "source_truth": [
+        "ToS/contracts/provenance-event-v2.schema.json",
+        "ToS/research-packets/foundation-laboratory-2026-07/provenance-event-v2-abc/plan.json",
+        "ToS/research-packets/foundation-laboratory-2026-07/provenance-event-v2-abc/input-fixture.txt"
+      ],
+      "reads": [
+        "tracked public-synthetic UTF-8 input fixture, frozen plan, provenance v2 contract, builder bytes, and host runtime identity"
+      ],
+      "writes": [
+        "tracked public-synthetic environment profile, A copy output, B NFC output, C diagnostic byproduct, three v2 event records, and exact lab manifest"
+      ],
+      "side_effects": "variant C intentionally returns exit code 7 after preserving its failed terminal event and diagnostic byproduct; no corpus payload, model, human evidence, accepted content, publication, semantics, graph, or canon effect",
+      "validation_lane": "source_witness_foundation",
+      "ci_inclusion": "focused-tests",
+      "test_target": "tests/test_source_witness_foundation.py",
+      "disposition": "keep"
+    },
+    {
       "path": "scripts/validate_source_witness_foundation.py",
       "family": "source_validator",
       "organ_lane": "source/topology",
@@ -250,19 +1165,244 @@
         "ToS/doctrine/CORPUS_FOUNDATION.md",
         "ToS/contracts/corpus-record.schema.json",
         "ToS/contracts/source-item-manifest.schema.json",
+        "ToS/contracts/source-resource-inventory.schema.json",
         "ToS/contracts/rights-record.schema.json",
         "ToS/contracts/provenance-event.schema.json",
+        "ToS/contracts/provenance-event-v2.schema.json",
+        "ToS/research-packets/foundation-laboratory-2026-07/provenance-event-v2-abc/lab.manifest.json",
+        "ToS/contracts/semantic-annotation-packet-v2.schema.json",
+        "ToS/research-packets/foundation-laboratory-2026-07/semantic-annotation-v2-abc/lab.manifest.json",
+        "ToS/contracts/translation-alignment-packet-v1.schema.json",
+        "ToS/research-packets/foundation-laboratory-2026-07/translation-alignment-v1-abc/lab.manifest.json",
         "ToS/contracts/claim-packet.schema.json",
-        "ToS/contracts/source-witness-catalog.schema.json"
+        "ToS/contracts/source-witness-catalog.schema.json",
+        "ToS/contracts/source-anchor-v2.schema.json",
+        "ToS/research-packets/foundation-laboratory-2026-07/source-anchor-v2-abc/lab.manifest.json",
+        "ToS/contracts/source-text-layer.schema.json",
+        "ToS/research-packets/foundation-laboratory-2026-07/source-text-layer-abc/lab.manifest.json",
+        "ToS/contracts/source-text-unit-packet-v1.schema.json",
+        "ToS/research-packets/foundation-laboratory-2026-07/source-text-unit-v1-abc/lab.manifest.json",
+        "ToS/contracts/witness-text-collation-packet-v1.schema.json",
+        "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/antonovsky-2007-1911-opening-sentence-collation.plan.v1.json",
+        "ToS/contracts/authored-route-evidence-bridge-v1.schema.json",
+        "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/authored-canon-evidence-bridge.plan.v1.json",
+        "ToS/contracts/german-assisted-source-review.schema.json",
+        "ToS/contracts/critical-edition-witness-admission.schema.json",
+        "ToS/contracts/critical-edition-citation-witness-decision.schema.json",
+        "ToS/contracts/german-source-triangulation.schema.json",
+        "ToS/contracts/edition-reading-admission.schema.json",
+        "ToS/contracts/bounded-translation-research-input.schema.json",
+        "ToS/contracts/hierarchical-target-numbered-unit-page-map.schema.json",
+        "ToS/contracts/transfer-candidate-target-structural-crosswalk.schema.json",
+        "ToS/contracts/source-gated-evaluation-plan.schema.json",
+        "ToS/contracts/source-gated-llm-evaluation-plan.schema.json",
+        "ToS/contracts/manual-error-ledger-record.schema.json"
       ],
       "reads": [
-        "source-witness records, companions, generated catalog, and any present local payload bytes"
+        "source-witness records, companions, text-free resource inventories, generated catalog, the public synthetic source-anchor v2, source-text-layer, source-text-unit-v1, provenance-event-v2, semantic-annotation-v2, and translation-alignment-v1 A/B/C laboratories, the real tracked text-free Antonovsky 2007/1911 witness-collation proposal, the authored Zarathustra route evidence bridge and its zero-authority canon inventory, bounded aggregate manual-review ledger and provenance, governed private-evidence handoff and public-safe derivative, and any present local payload bytes"
+      ],
+      "writes": [],
+      "side_effects": "validation output only; source-anchor v2, source-text-layer, source-text-unit-v1, provenance-event-v2, semantic-annotation-v2, translation-alignment-v1, witness-text-collation, and authored-route bridge checks report mechanics and closure only, never corpus content, execution truth, accepted boundary, preferred reading, equivalence, genealogy, derivation, translation, human review, accepted alignment, semantic truth, graph admission, or canon authority",
+      "validation_lane": "source_witness_foundation",
+      "ci_inclusion": "release",
+      "test_target": "tests/test_source_witness_foundation.py",
+      "disposition": "keep"
+    },
+    {
+      "path": "scripts/validate_source_witness_bibliographic_graph.py",
+      "family": "projection_validator",
+      "organ_lane": "projection/generated",
+      "owner_surface": "ToS/derived-exports/graph/README.md",
+      "source_truth": [
+        "ToS/source-witnesses/catalog/catalog.manifest.json",
+        "ToS/source-witnesses/catalog/*.jsonl",
+        "ToS/source-witnesses/**/membership-claims.jsonl",
+        "ToS/source-witnesses/**/responsibility-claims.jsonl",
+        "ToS/source-witnesses/**/publication-claims.jsonl",
+        "ToS/source-witnesses/**/work-expression-claims.jsonl",
+        "ToS/source-witnesses/**/expression-edition-claims.jsonl",
+        "ToS/source-witnesses/**/edition-item-claims.jsonl",
+        "ToS/source-witnesses/**/*provenance*.jsonl",
+        "ToS/source-witnesses/**/*anchor*.jsonl",
+        "ToS/derived-exports/graph/source-witness-bibliographic-claims.min.json",
+        "scripts/source_witness_bibliographic_graph_common.py",
+        "ToS/contracts/source-witness-bibliographic-graph.schema.json"
+      ],
+      "reads": [
+        "generated bibliographic graph and every exact source surface needed to rebuild and resolve its traces"
+      ],
+      "writes": [],
+      "side_effects": "validation output only",
+      "validation_lane": "graph_exports",
+      "ci_inclusion": "release",
+      "test_target": "tests/test_source_witness_bibliographic_graph.py",
+      "disposition": "keep"
+    },
+    {
+      "path": "scripts/validate_zarathustra_lexical_index.py",
+      "family": "projection_validator",
+      "organ_lane": "source/topology",
+      "owner_surface": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/lexical-indexes/dta-first-editions-parts-1-4-v1/README.md",
+      "source_truth": [
+        "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/lexical-indexes/dta-first-editions-parts-1-4-v1/index-plan.v1.json",
+        "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/lexical-indexes/dta-first-editions-parts-1-4-v1/provenance.jsonl",
+        "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/lexical-indexes/dta-first-editions-parts-1-4-v1/usage-context-plan.v1.json",
+        "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/lexical-indexes/dta-first-editions-parts-1-4-v1/usage-context-receipt.v1.json",
+        "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/lexical-indexes/dta-first-editions-parts-1-4-v1/usage-context-provenance.jsonl",
+        "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/morphology-contextual-episode.selected-form-b.v1.json",
+        "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/morphology-contextual-episode.selected-form-b.receipt.v1.json",
+        "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/provenance.morphology-contextual-episode.selected-form-b.v1.jsonl",
+        "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/morphology-contextual-episode.selected-form-b.artifact-admission.v1.json",
+        "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/provenance.morphology-contextual-episode.selected-form-b.artifact-admission.v1.jsonl",
+        "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/morphology-contextual-episode.selected-form-b.result.v1.json",
+        "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/provenance.morphology-contextual-episode.selected-form-b.result.v1.jsonl",
+        "ToS/derived-exports/lexical-search/zarathustra-dta-first-editions-parts-1-4-v1.min.json",
+        "ToS/contracts/lexical-index-plan.schema.json",
+        "ToS/contracts/lexical-index-projection.schema.json",
+        "ToS/contracts/lexical-usage-context-plan.schema.json",
+        "ToS/contracts/lexical-usage-context-receipt.schema.json",
+        "ToS/contracts/morphology-contextual-episode-plan.schema.json",
+        "ToS/contracts/morphology-contextual-episode-receipt.schema.json",
+        "ToS/contracts/morphology-contextual-artifact-admission.schema.json",
+        "ToS/contracts/morphology-contextual-result-receipt.schema.json",
+        "ToS/contracts/provenance-event.schema.json"
+      ],
+      "reads": [
+        "tracked lexical plan, hash/count/resource projection, provenance, source manifests, rights records, resource inventories, question-scoped usage-context evidence, the output-blind morphology-context freeze, retained source-free artifact admission refusal, and the later text-free B execution result; optional explicit local SQLite root"
       ],
       "writes": [],
       "side_effects": "validation output only",
       "validation_lane": "source_witness_foundation",
       "ci_inclusion": "release",
-      "test_target": "tests/test_source_witness_foundation.py",
+      "test_target": "tests/test_zarathustra_lexical_index.py",
+      "disposition": "keep"
+    },
+    {
+      "path": "scripts/validate_witness_structure_correspondence.py",
+      "family": "source_validator",
+      "organ_lane": "source/topology",
+      "owner_surface": "ToS/contracts/witness-structure-correspondence.schema.json",
+      "source_truth": [
+        "ToS/contracts/witness-structure-correspondence.schema.json",
+        "ToS/contracts/witness-structure-anchor-set.schema.json",
+        "ToS/contracts/parallel-witness-structure-map.schema.json",
+        "ToS/contracts/numbered-unit-page-map.schema.json",
+        "ToS/contracts/target-numbered-unit-page-map.schema.json",
+        "ToS/contracts/parallel-numbered-unit-label-map.schema.json",
+        "ToS/contracts/source-anchor.schema.json",
+        "ToS/contracts/provenance-event.schema.json",
+        "ToS/source-witnesses/**/resource-inventory.json",
+        "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/alignments/structure/**",
+        "ToS/source-witnesses/works/friedrich-nietzsche/jenseits-von-gut-und-boese/alignments/structure/**",
+        "ToS/source-witnesses/works/friedrich-nietzsche/jenseits-von-gut-und-boese/expressions/de-naumann-1886/**/structure/**",
+        "ToS/source-witnesses/works/friedrich-nietzsche/jenseits-von-gut-und-boese/expressions/ru-polilov-mysl-1996/structure/**"
+      ],
+      "reads": [
+        "tracked text-free structure-correspondence, source and target numbered-unit page maps, shared-number-label pairing candidates, proposed structural anchors, provenance, cited resource inventories, and target work boundary"
+      ],
+      "writes": [],
+      "side_effects": "validation output only",
+      "validation_lane": "source_witness_foundation",
+      "ci_inclusion": "release",
+      "test_target": "tests/test_witness_structure_correspondence.py",
+      "disposition": "keep"
+    },
+    {
+      "path": "scripts/validate_nietzsche_transfer_source_routes.py",
+      "family": "source_validator",
+      "organ_lane": "source/topology",
+      "owner_surface": "ToS/contracts/transfer-candidate-source-structural-route.schema.json",
+      "source_truth": [
+        "ToS/contracts/hierarchical-source-numbered-unit-page-map.schema.json",
+        "ToS/contracts/hierarchical-numbered-unit-label-correspondence.schema.json",
+        "ToS/contracts/transfer-candidate-source-structural-route.schema.json",
+        "ToS/contracts/source-anchor.schema.json",
+        "ToS/contracts/provenance-event.schema.json",
+        "ToS/source-witnesses/works/friedrich-nietzsche/{zur-genealogie-der-moral,der-antichrist}/**/structure/**",
+        "ToS/source-witnesses/works/friedrich-nietzsche/{zur-genealogie-der-moral,der-antichrist}/alignments/structure/**",
+        "ToS/source-witnesses/**/resource-inventory.json",
+        "ToS/source-witnesses/**/rights.json"
+      ],
+      "reads": [
+        "tracked German source maps, proposed anchors, source and target inventories, rights, pairings, candidate routes, target-only crosswalks, and digest-bound provenance"
+      ],
+      "writes": [],
+      "side_effects": "validation output only; checks 140 structural pairs and 20 routes while rejecting text, alignment, eligibility, gold, human, and semantic promotion",
+      "validation_lane": "source_witness_foundation",
+      "ci_inclusion": "release",
+      "test_target": "tests/test_nietzsche_transfer_source_routes.py",
+      "disposition": "keep"
+    },
+    {
+      "path": "scripts/validate_golden_kernel_transfer_target_passages.py",
+      "family": "source_validator",
+      "organ_lane": "source/topology",
+      "owner_surface": "ToS/contracts/transfer-target-passage-candidate-set.schema.json",
+      "source_truth": [
+        "ToS/contracts/transfer-target-passage-candidate-set.schema.json",
+        "ToS/contracts/source-anchor.schema.json",
+        "ToS/contracts/provenance-event.schema.json",
+        "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/transfer-samples.json",
+        "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/transfer-target-passage-candidates.v1.json",
+        "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/transfer-target-passage-anchors.v1.jsonl",
+        "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/transfer-provenance.jsonl",
+        ".gitignore"
+      ],
+      "reads": [
+        "tracked schema, frozen plan, text-free candidate closure, anchors, provenance, input digests, and ignore boundary; optionally the explicit private output root"
+      ],
+      "writes": [],
+      "side_effects": "validation output only; preserves exactly thirty-five candidates, thirty-two intersections, three rejected nonintersections, ignored private content, and zero accepted-text/alignment/eligibility/gold/human/semantic/canon effects",
+      "validation_lane": "source_witness_foundation",
+      "ci_inclusion": "release",
+      "test_target": "tests/test_golden_kernel_transfer_target_passages.py",
+      "disposition": "keep"
+    },
+    {
+      "path": "scripts/validate_golden_kernel_transfer_source_passages.py",
+      "family": "source_validator",
+      "organ_lane": "source/topology",
+      "owner_surface": "ToS/contracts/transfer-source-passage-candidate-set.schema.json",
+      "source_truth": [
+        "ToS/contracts/transfer-source-passage-candidate-set.schema.json",
+        "ToS/contracts/source-anchor.schema.json",
+        "ToS/contracts/provenance-event.schema.json",
+        "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/transfer-target-passage-candidates.v1.json",
+        "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/transfer-source-passage-candidates.v1.json",
+        "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/transfer-source-passage-anchors.v1.jsonl",
+        "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/transfer-provenance.jsonl",
+        ".gitignore"
+      ],
+      "reads": [
+        "tracked schema, target frame, text-free source candidate closure, anchors, provenance, input digests, rights and ignore boundary; optionally the explicit private output root"
+      ],
+      "writes": [],
+      "side_effects": "validation output only; preserves exactly thirty-five private layer-exact or exact source-visible-marker routes, exact PDF and JP2 marker returns, Antichrist address/navigation non-identity, ignored private content, and zero accepted-German/alignment/eligibility/gold/human/semantic/canon effects",
+      "validation_lane": "source_witness_foundation",
+      "ci_inclusion": "release",
+      "test_target": "tests/test_golden_kernel_transfer_source_passages.py",
+      "disposition": "keep"
+    },
+    {
+      "path": "scripts/validate_golden_kernel_transfer_route_readiness.py",
+      "family": "source_validator",
+      "organ_lane": "source/topology",
+      "owner_surface": "ToS/contracts/transfer-route-readiness-projection.schema.json",
+      "source_truth": [
+        "ToS/contracts/transfer-route-readiness-projection.schema.json",
+        "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/transfer-target-passage-candidates.v1.json",
+        "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/transfer-source-passage-candidates.v1.json",
+        "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/transfer-route-readiness.v1.json",
+        "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/transfer-provenance.jsonl"
+      ],
+      "reads": [
+        "tracked readiness contract, source and target candidate frames, text-free projection, input digests, and provenance"
+      ],
+      "writes": [],
+      "side_effects": "validation output only; independently checks 35 dual candidate routes, the 32/3 intersection split, 20 of 20 frozen-page coverage, text-free shape, and zero alignment/eligibility/gold/human/semantic/publication/canon effects",
+      "validation_lane": "source_witness_foundation",
+      "ci_inclusion": "release",
+      "test_target": "tests/test_golden_kernel_transfer_route_readiness.py",
       "disposition": "keep"
     },
     {
@@ -1181,6 +2321,28 @@
       "disposition": "keep"
     },
     {
+      "path": "scripts/validate_lived_witness_route.py",
+      "family": "source_validator",
+      "organ_lane": "source/topology",
+      "owner_surface": "ToS/zarathustra/lived-witness/AGENTS.md",
+      "source_truth": [
+        "ToS/zarathustra/lived-witness/CAPTURE_PROTOCOL.md",
+        "ToS/zarathustra/lived-witness/CAPTURE_FORM.md",
+        "ToS/contracts/lived-witness-packet.schema.json",
+        ".gitignore"
+      ],
+      "reads": [
+        "lived-witness route documents and schemas",
+        "Git ignore and tracked-path state for the private capture boundary"
+      ],
+      "writes": [],
+      "side_effects": "validation output only",
+      "validation_lane": "source_home",
+      "ci_inclusion": "release",
+      "test_target": "tests/test_lived_witness_route.py",
+      "disposition": "keep"
+    },
+    {
       "path": "scripts/validation_lanes.py",
       "family": "lane_loader",
       "organ_lane": "validation-authority",
@@ -1196,6 +2358,30 @@
       "validation_lane": "validation_authority",
       "ci_inclusion": "release",
       "test_target": "tests/test_validation_lanes.py",
+      "disposition": "keep"
+    },
+    {
+      "path": "scripts/record_golden_kernel_transfer_source_visible_review.py",
+      "family": "private_evidence_recorder",
+      "organ_lane": "projection/generated",
+      "owner_surface": "ToS/contracts/transfer-source-visible-review-receipt.schema.json",
+      "source_truth": [
+        "ToS/contracts/private-transfer-source-visible-review-bundle.schema.json",
+        "ToS/contracts/transfer-source-visible-review-receipt.schema.json",
+        "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/transfer-route-readiness.v1.json",
+        "ToS/source-witnesses/**/rights.json",
+        "operator-local Tree of Sophia payloads and ignored source-visible review bundle"
+      ],
+      "reads": [
+        "one mode-0600 private model source-visible bundle, exact German and Russian PDFs, frozen private automatic candidates, one local eKGWB HTML response, and tracked rights records"
+      ],
+      "writes": [
+        "one deterministic tracked text-free fixity, render-reproduction, and aggregate token-diagnostic receipt unless --check is used"
+      ],
+      "side_effects": "creates no accepted source or target passage, alignment, eligibility, gold, human debt, semantic object, publication authority, or canon effect; temporary renders are deleted",
+      "validation_lane": "source_witness_foundation",
+      "ci_inclusion": "focused-tests",
+      "test_target": "tests/test_golden_kernel_transfer_source_visible_review.py",
       "disposition": "keep"
     }
   ]

@@ -1,0 +1,865 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/material-discovery-record.schema.json",
+  "schema_version": "tos_material_discovery_record_v1",
+  "discovery_id": "tos.discovery.antichrist-authorial-witness-route.2026-07-30",
+  "protocol_ref": "ToS/source-witnesses/discovery/DISCOVERY_PROTOCOL.md",
+  "target": {
+    "target_kind": "work",
+    "known_tos_refs": [
+      "tos.work.friedrich-nietzsche.der-antichrist",
+      "tos.item.friedrich-nietzsche.nietzsches-werke-band-8.naumann-1906.wikimedia-commons-stanford-scan-djvu"
+    ],
+    "description": "An exact, responsibility-aware route from region-only preparatory material through D 22, the independent Overbeck A 311 copy, the editorially intervened 1895 first print, the existing 1906 aggregate Item, later de-suppressed and critical layers, plus a separate contested Gesetz-associated leaf route.",
+    "required_properties": [
+      "current archive, library, critical-edition, and scholarly routes",
+      "preparatory notebooks admitted only through exact source-backed regions",
+      "D 22 leaf order and mixed leaf-side evidence preserved",
+      "Overbeck A 311 retained as an independent copy rather than autograph",
+      "1895 first-print editorial responsibility and four interventions explicit",
+      "1906 archive edition not presumed to repair the 1895 state",
+      "GSA 71/32 folio 47 retained as a contested associated adjunct rather than AC 63",
+      "digital-object access and reusable-content rights recorded separately",
+      "official evidence checked before established and fresh scholarship",
+      "no source text, image, OCR, semantics, transfer unit, or human task admitted"
+    ],
+    "acceptable_substitutions": [
+      "an archive-supplied reproduction of one exact region after operator-approved acquisition and rights review",
+      "a recognized facsimile or critical edition with exact archival lineage and stronger textual authority",
+      "an independently held 1895 first-print object with clear exact-object provenance and reuse evidence"
+    ],
+    "languages": [
+      "de",
+      "en"
+    ],
+    "formats": [
+      "archival metadata",
+      "library catalog",
+      "IIIF Presentation 2",
+      "print manuscript",
+      "handwritten copy",
+      "historical print",
+      "critical-edition HTML",
+      "historical-critical commentary",
+      "research publication"
+    ],
+    "purpose_ref": "ToS/research-packets/foundation-laboratory-2026-07/ANTICHRIST_AUTHORIAL_WITNESS_ROUTE.md"
+  },
+  "channels": [
+    {
+      "channel_id": "channel-gsa-ores-antichrist-authorial-route",
+      "sequence": 1,
+      "channel_type": "specialized-scholarly-project",
+      "role": "originating-record",
+      "source_name": "Goethe- und Schiller-Archiv ORES and Kalliope",
+      "endpoint_url": "https://ores.klassik-stiftung.de/ords/f?p=401:2:::::P2_ID:75100",
+      "interface_type": "iiif",
+      "interface_version": "ORES archival records, Kalliope MODS 3.7 SRU, and IIIF Presentation 2 manifests as served 2026-07-30",
+      "exact_query": "Direct ORES record and manifest reconciliation for GSA 71/29, GSA 71/157 through GSA 71/162, and GSA 71/32; exact Kalliope SRU queries by ead.unitid for the same shelfmarks; no image-service requests",
+      "queried_at": "2026-07-30T17:10:00-06:00",
+      "elapsed_seconds": 19.139283,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.gsa-71-29-antichrist-d22",
+          "rank": 1,
+          "title_as_displayed": "Der Antichrist. Fluch auf das Christenthum.",
+          "result_url": "https://ores.klassik-stiftung.de/ords/f?p=401:2:::::P2_ID:75100",
+          "originating_record_url": "https://kalliope-verbund.info/DE-2060-BE-71-75100",
+          "identifiers": [
+            {
+              "scheme": "GSA",
+              "value": "71/29"
+            },
+            {
+              "scheme": "ORES",
+              "value": "75100"
+            },
+            {
+              "scheme": "Mette",
+              "value": "D 22"
+            },
+            {
+              "scheme": "DFGA",
+              "value": "D-22"
+            },
+            {
+              "scheme": "Kalliope",
+              "value": "DE-2060-BE-71-75100"
+            }
+          ],
+          "available_formats": [
+            "archival metadata",
+            "Kalliope MODS record",
+            "IIIF Presentation 2 manifest",
+            "104 JPEG canvases"
+          ],
+          "declared_rights": {
+            "statement": "The exact ORES IIIF manifest declares the digitized object Public Domain; GSA reproduction and publication rules remain a separate layer.",
+            "scope": "digital-object",
+            "evidence_url": "https://ores.klassik-stiftung.de/ords/rest_api/iiif/digi_gsa/75100/manifest",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-view",
+          "machine_interface": "iiif",
+          "decision": "select",
+          "rationale": "Official 51-leaf autograph print-manuscript route. The record preserves nontrivial leaf order, identifies leaf 2r as the original Antichrist title leaf, and identifies leaf 51v as an Ecce homo / Der Fall Wagner preliminary state, prohibiting a frictionless one-work whole-object reading.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-captured",
+            "format": null,
+            "sha256": null,
+            "reason": "Exact live record and manifest metadata were inspected; no manuscript image or metadata body was persisted."
+          }
+        },
+        {
+          "result_id": "tos-discovery-result.gsa-antichrist-wii1-wii6-regions",
+          "rank": 2,
+          "title_as_displayed": "W II 1-W II 6 revaluation notebooks and register",
+          "result_url": "https://germanistik.philhist.unibas.ch/de/forschung/forschungsprojekte/ndl/der-spaete-nietzsche/",
+          "originating_record_url": "https://kalliope-verbund.info/findingaid?fa.id=DE-2060-BE-71",
+          "identifiers": [
+            {
+              "scheme": "GSA",
+              "value": "71/157-71/162"
+            },
+            {
+              "scheme": "ORES",
+              "value": "75266-75271"
+            },
+            {
+              "scheme": "Mette",
+              "value": "W II 1-W II 6"
+            },
+            {
+              "scheme": "DFGA",
+              "value": "W-II-1-W-II-6"
+            },
+            {
+              "scheme": "KGW IX",
+              "value": "6-9"
+            }
+          ],
+          "available_formats": [
+            "archival metadata",
+            "Kalliope MODS records",
+            "IIIF Presentation 2 manifests",
+            "differentiated-transcription edition references"
+          ],
+          "declared_rights": {
+            "statement": "Each inspected ORES manifest declares its exact digital object Public Domain; the Basel scholarly edition and GSA publication rules retain separate rights layers.",
+            "scope": "digital-object",
+            "evidence_url": "https://ores.klassik-stiftung.de/ords/rest_api/iiif/digi_gsa/75268/manifest",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-view",
+          "machine_interface": "iiif",
+          "decision": "select",
+          "rationale": "Current official identities for mixed 1887-1888 revaluation soil. Only exact source-backed regions such as W II 3 and W II 4 preliminary states may be connected to Der Antichrist; whole-notebook work membership is prohibited.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-captured",
+            "format": null,
+            "sha256": null,
+            "reason": "Only exact record, manifest, and edition-project metadata were inspected."
+          }
+        },
+        {
+          "result_id": "tos-discovery-result.gsa-71-32-fol47-antichrist-gesetz-adjunct",
+          "rank": 3,
+          "title_as_displayed": "GSA 71/32, fol. 47: associated Gesetz leaf inside the D 25 archive object",
+          "result_url": "https://ores.klassik-stiftung.de/ords/f?p=401:2:::::P2_ID:75105",
+          "originating_record_url": "https://kalliope-verbund.info/DE-2060-BE-71-75105",
+          "identifiers": [
+            {
+              "scheme": "GSA",
+              "value": "71/32 fol. 47"
+            },
+            {
+              "scheme": "ORES",
+              "value": "75105"
+            },
+            {
+              "scheme": "Mette",
+              "value": "D 25"
+            },
+            {
+              "scheme": "DFGA",
+              "value": "D-25"
+            }
+          ],
+          "available_formats": [
+            "archive-object metadata",
+            "IIIF Presentation 2 manifest",
+            "121 JPEG canvases",
+            "region-level historical-critical description"
+          ],
+          "declared_rights": {
+            "statement": "The exact D 25 ORES manifest declares the digital object Public Domain; this does not resolve the associated-work claim or general publication rules.",
+            "scope": "digital-object",
+            "evidence_url": "https://ores.klassik-stiftung.de/ords/rest_api/iiif/digi_gsa/75105/manifest",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-view",
+          "machine_interface": "iiif",
+          "decision": "select",
+          "rationale": "Exact physical-container route for folio 47, whose front begins Gegeben am Tage des Heils and whose reverse carries Ecce homo preliminary material. It remains a contested associated adjunct supported by D 22's struck printer instruction and material evidence, not AC 63 and not proof of Ecce homo membership.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-captured",
+            "format": null,
+            "sha256": null,
+            "reason": "No manuscript image or metadata body was retained; the leaf-level relation is grounded through established commentary."
+          }
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-basel-overbeck-antichrist-copy",
+      "sequence": 2,
+      "channel_type": "university-catalog",
+      "role": "originating-record",
+      "source_name": "Universitaetsbibliothek Basel and e-manuscripta",
+      "endpoint_url": "https://www.e-manuscripta.ch/bau/content/titleinfo/2276748",
+      "interface_type": "iiif",
+      "interface_version": "e-manuscripta catalog and IIIF Presentation 2 as served 2026-07-30",
+      "exact_query": "Direct catalog, DOI, rights, and IIIF reconciliation for Universitaetsbibliothek Basel NL 53 : A 311; no canvas or PDF requests",
+      "queried_at": "2026-07-30T17:13:00-06:00",
+      "elapsed_seconds": 4.044123,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.basel-nl53-a311-overbeck-antichrist-copy",
+          "rank": 1,
+          "title_as_displayed": "Umwerthung aller Werthe : 1. Buch",
+          "result_url": "https://www.e-manuscripta.ch/bau/content/titleinfo/2276748",
+          "originating_record_url": "https://doi.org/10.7891/e-manuscripta-80918",
+          "identifiers": [
+            {
+              "scheme": "UB Basel shelfmark",
+              "value": "NL 53 : A 311"
+            },
+            {
+              "scheme": "e-manuscripta",
+              "value": "2276748"
+            },
+            {
+              "scheme": "DOI",
+              "value": "10.7891/e-manuscripta-80918"
+            }
+          ],
+          "available_formats": [
+            "university catalog metadata",
+            "IIIF Presentation 2 manifest",
+            "123 JPEG canvases",
+            "downloadable PDF not acquired"
+          ],
+          "declared_rights": {
+            "statement": "Public Domain Mark; freely downloadable, with the holding institution requesting information, full source attribution, and a specimen or link when reused.",
+            "scope": "digital-object",
+            "evidence_url": "https://www.e-manuscripta.ch/bau/content/titleinfo/2276748",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-download",
+          "machine_interface": "iiif",
+          "decision": "select",
+          "rationale": "Exact independent early-1889 Overbeck copy, IV plus 113 pages, in the Franz Overbeck estate. It is a near-author comparison witness that omits the Gesetz, not Nietzsche's autograph, an author-approved print, or another label for D 22.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-captured",
+            "format": null,
+            "sha256": null,
+            "reason": "Catalog and manifest metadata were inspected transiently; no image, PDF, or metadata snapshot was acquired."
+          }
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-first-print-antichrist-1895",
+      "sequence": 3,
+      "channel_type": "open-library",
+      "role": "lead-only",
+      "source_name": "Google Books Cornell holding metadata and established bibliographic crosscheck",
+      "endpoint_url": "https://books.google.com/books?id=kd8cDQEACAAJ",
+      "interface_type": "web",
+      "interface_version": "Google Books metadata as rechecked 2026-07-30",
+      "exact_query": "Exact Google Books volume kd8cDQEACAAJ and Cornell key CORNELL:31924024495412; crosscheck against HAdW volume VIII 1895 publication identity; no-view status retained",
+      "queried_at": "2026-07-30T17:16:00-06:00",
+      "elapsed_seconds": 0.614827,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.cornell-google-books-antichrist-1895-first-print",
+          "rank": 1,
+          "title_as_displayed": "Nietzsche's Werke, Erste Abtheilung, Band VIII",
+          "result_url": "https://books.google.com/books?id=kd8cDQEACAAJ",
+          "originating_record_url": null,
+          "identifiers": [
+            {
+              "scheme": "Google Books",
+              "value": "kd8cDQEACAAJ"
+            },
+            {
+              "scheme": "Cornell",
+              "value": "CORNELL:31924024495412"
+            }
+          ],
+          "available_formats": [
+            "bibliographic metadata",
+            "holding-copy lead"
+          ],
+          "declared_rights": {
+            "statement": null,
+            "scope": "unknown",
+            "evidence_url": null,
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "metadata-only",
+          "machine_interface": "html",
+          "decision": "defer",
+          "rationale": "Exact no-view bibliographic lead for the 1895 Koegel/Naumann volume. It does not yet provide an independently inspectable, rights-scoped source object, so no new Item or access request is created.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-captured",
+            "format": null,
+            "sha256": null,
+            "reason": "Metadata-only lead already recorded in the earlier 1906 discovery run; no duplicate snapshot was created."
+          }
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-nietzsche-source-antichrist-critical-route",
+      "sequence": 4,
+      "channel_type": "specialized-scholarly-project",
+      "role": "scholarly-index",
+      "source_name": "Nietzsche Source DFGA, eKGWB, documentation, and rights",
+      "endpoint_url": "https://doc.nietzschesource.org/en/ekgwb",
+      "interface_type": "web",
+      "interface_version": "Current documentation plus bounded HTTPS transport checks on 2026-07-30",
+      "exact_query": "Read current eKGWB and rights documentation; request https eKGWB/AC, eKGWB/AC-1, DFGA/D-22, and static_html_include.php?book=%23eKGWB%2FAC with 30-second limits; retain no response body",
+      "queried_at": "2026-07-30T17:20:00-06:00",
+      "elapsed_seconds": 120.009638,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.nietzsche-source-antichrist-critical-documentation",
+          "rank": 1,
+          "title_as_displayed": "Digital Critical Edition of Nietzsche's Works and Letters (eKGWB)",
+          "result_url": "https://doc.nietzschesource.org/en/ekgwb",
+          "originating_record_url": "https://doc.nietzschesource.org/en/rights",
+          "identifiers": [
+            {
+              "scheme": "eKGWB work",
+              "value": "AC"
+            },
+            {
+              "scheme": "eKGWB example",
+              "value": "AC-1"
+            },
+            {
+              "scheme": "DFGA",
+              "value": "D-22"
+            }
+          ],
+          "available_formats": [
+            "edition documentation",
+            "rights documentation",
+            "intended stable critical addresses"
+          ],
+          "declared_rights": {
+            "statement": "Nietzsche Source states CC BY-NC-ND 4.0 for site content and separately describes a non-commercial derivative-work agreement for DFGA.",
+            "scope": "content",
+            "evidence_url": "https://doc.nietzschesource.org/en/rights",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-view",
+          "machine_interface": "html",
+          "decision": "select",
+          "rationale": "Current authoritative documentation identifies eKGWB as the Colli/Montinari digital critical edition with stable work and section addresses. Documentation, rights, live transport, and locally admitted content remain separate claims.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-captured",
+            "format": null,
+            "sha256": null,
+            "reason": "Only current public documentation was read; no edition body or documentation snapshot was retained."
+          }
+        },
+        {
+          "result_id": "tos-discovery-result.nietzsche-source-antichrist-live-addresses-timeout",
+          "rank": 2,
+          "title_as_displayed": "Current live AC and D-22 address transport",
+          "result_url": "https://www.nietzschesource.org/eKGWB/AC-1",
+          "originating_record_url": "https://www.nietzschesource.org/DFGA/D-22",
+          "identifiers": [
+            {
+              "scheme": "transport observation",
+              "value": "2026-07-30-four-https-timeouts"
+            }
+          ],
+          "available_formats": [
+            "intended HTML route",
+            "intended DFGA route"
+          ],
+          "declared_rights": {
+            "statement": "The current Nietzsche Source rights page applies independently of whether a particular transport request responds.",
+            "scope": "unknown",
+            "evidence_url": "https://doc.nietzschesource.org/en/rights",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "unknown",
+          "machine_interface": "unknown",
+          "decision": "defer",
+          "rationale": "All four bounded HTTPS requests timed out after 30 seconds with status 000 and zero bytes. No critical body, section census, or current response claim can be made from this run.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-captured",
+            "format": null,
+            "sha256": null,
+            "reason": "The server returned no bytes; no failed-response artifact or placeholder body was retained."
+          }
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-established-antichrist-text-history",
+      "sequence": 5,
+      "channel_type": "specialized-scholarly-project",
+      "role": "scholarly-index",
+      "source_name": "Heidelberg Academy historical-critical Nietzsche commentary",
+      "endpoint_url": "https://digi.hadw-bw.de/view/nietzsche_kom6_2/0031",
+      "interface_type": "web",
+      "interface_version": "HAdW digital commentary pages and OCR as served 2026-07-30",
+      "exact_query": "Read exact overview pages 3-8 and exact Gesetz commentary pages 315-322; reconcile D 22, A 311, 1895 interventions, Schlechta 1956, KGW VI 3 1969, and GSA 71/32 folio 47; no volume download",
+      "queried_at": "2026-07-30T17:25:00-06:00",
+      "elapsed_seconds": 2.146583,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.hadw-sommer-antichrist-commentary-2013",
+          "rank": 1,
+          "title_as_displayed": "Historischer und kritischer Kommentar zu Nietzsches Der Antichrist",
+          "result_url": "https://doi.org/10.11588/diglit.70914#0031",
+          "originating_record_url": "https://doi.org/10.11588/diglit.70914",
+          "identifiers": [
+            {
+              "scheme": "DOI",
+              "value": "10.11588/diglit.70914"
+            },
+            {
+              "scheme": "HAdW NK",
+              "value": "6/2"
+            }
+          ],
+          "available_formats": [
+            "historical-critical commentary HTML",
+            "page OCR",
+            "page facsimile",
+            "volume PDF not acquired"
+          ],
+          "declared_rights": {
+            "statement": "In Copyright",
+            "scope": "content",
+            "evidence_url": "https://digi.hadw-bw.de/view/nietzsche_kom6_2/0031",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-view",
+          "machine_interface": "html",
+          "decision": "select",
+          "rationale": "Established historical-critical control for D 22 title states and Köselitz corrections, A 311, the 1895 first-print interventions, later archive-edition propagation, Schlechta 1956, Colli/Montinari 1969, and the materially separate Gesetz route.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-captured",
+            "format": null,
+            "sha256": null,
+            "reason": "Only bounded commentary pages were read; no copyrighted volume, page image, or OCR body was retained."
+          }
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-fresh-antichrist-research",
+      "sequence": 6,
+      "channel_type": "publisher-catalog",
+      "role": "scholarly-index",
+      "source_name": "Current KGW IX project, Springer, Nietzsche-Studien, and institutional research metadata",
+      "endpoint_url": "https://germanistik.philhist.unibas.ch/de/forschung/forschungsprojekte/ndl/der-spaete-nietzsche/",
+      "interface_type": "web",
+      "interface_version": "Official and publisher pages current through 2026-07-30",
+      "exact_query": "Current KGW IX manuscript method and volume map; direct Antichrist genesis work first online 2025; 2025 review/method counterweight; 2026 Antichrist publication and philological-identity search",
+      "queried_at": "2026-07-30T17:31:00-06:00",
+      "elapsed_seconds": 3.487244,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.basel-kgwix-late-nietzsche-method",
+          "rank": 1,
+          "title_as_displayed": "Der spaete Nietzsche. Manuskriptedition des Nachlasses 1885-1889 (KGW IX)",
+          "result_url": "https://germanistik.philhist.unibas.ch/de/forschung/forschungsprojekte/ndl/der-spaete-nietzsche/",
+          "originating_record_url": "https://www.fritz-thyssen-stiftung.de/fundings/friedrich-nietzsche-kritische-gesamtausgabe-der-werke-abteilung-ix-der-handschriftliche-nachlass-ab-fruehjahr-1885-in-differenzierter-transkription/",
+          "identifiers": [
+            {
+              "scheme": "KGW",
+              "value": "IX 1-14"
+            }
+          ],
+          "available_formats": [
+            "official project documentation",
+            "volume-to-notebook map",
+            "method statement"
+          ],
+          "declared_rights": {
+            "statement": null,
+            "scope": "unknown",
+            "evidence_url": null,
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-view",
+          "machine_interface": "html",
+          "decision": "select",
+          "rationale": "Current official method control: preserve notebook topology, corrections, deletions, overwriting, and draft process rather than extracting smoothed fragments. This directly constrains future ToS note-region modelling.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-captured",
+            "format": null,
+            "sha256": null,
+            "reason": "Current project documentation was read in place; no PDF or edition body was retained."
+          }
+        },
+        {
+          "result_id": "tos-discovery-result.brobjer-antichrist-workshop-2025",
+          "rank": 2,
+          "title_as_displayed": "The Origin and Development of The Antichrist: In Nietzsche's Workshop",
+          "result_url": "https://doi.org/10.1007/978-3-032-06550-6_4",
+          "originating_record_url": "https://link.springer.com/chapter/10.1007/978-3-032-06550-6_4",
+          "identifiers": [
+            {
+              "scheme": "DOI",
+              "value": "10.1007/978-3-032-06550-6_4"
+            }
+          ],
+          "available_formats": [
+            "publisher metadata",
+            "abstract",
+            "notes",
+            "subscription chapter not acquired"
+          ],
+          "declared_rights": {
+            "statement": "Subscription content; purchase offered for personal use.",
+            "scope": "content",
+            "evidence_url": "https://link.springer.com/chapter/10.1007/978-3-032-06550-6_4",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "subscription",
+          "machine_interface": "html",
+          "decision": "select",
+          "rationale": "Freshest located direct genesis study, first online 2025-11-04. Its roughly 300-page note-corpus reconstruction claim motivates exact region-to-section experiments but is not whole-notebook membership, textual identity, or witness authority.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-captured",
+            "format": null,
+            "sha256": null,
+            "reason": "Only publisher-supplied metadata, abstract, and notes were used; the subscription chapter was not bypassed or retained."
+          }
+        },
+        {
+          "result_id": "tos-discovery-result.di-sarno-antichrist-new-publications-2025",
+          "rank": 3,
+          "title_as_displayed": "Neuerscheinungen zu Nietzsches Der Antichrist und der Umwertung aller Werte",
+          "result_url": "https://doi.org/10.1515/nietzstu-2025-0007",
+          "originating_record_url": "https://www.degruyterbrill.com/document/doi/10.1515/nietzstu-2025-0007/html",
+          "identifiers": [
+            {
+              "scheme": "DOI",
+              "value": "10.1515/nietzstu-2025-0007"
+            }
+          ],
+          "available_formats": [
+            "publisher HTML",
+            "review article"
+          ],
+          "declared_rights": {
+            "statement": "Copyrighted publisher article; no reusable-content license was observed.",
+            "scope": "content",
+            "evidence_url": "https://www.degruyterbrill.com/document/doi/10.1515/nietzstu-2025-0007/html",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-view",
+          "machine_interface": "html",
+          "decision": "select",
+          "rationale": "Fresh method counterweight against treating inferred intention or detached Nachlass material as controlling work meaning. It supports keeping genetic construction and work-level semantic interpretation as distinct outputs.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-captured",
+            "format": null,
+            "sha256": null,
+            "reason": "The publisher page was consulted in place; no article body was stored."
+          }
+        },
+        {
+          "result_id": "tos-discovery-result.zittel-antichrist-literary-reflections-2026",
+          "rank": 4,
+          "title_as_displayed": "Literarische Spiegelungen: Nietzsche, Victor Hugo, das Gesetzbuch des Manu und der Antichrist",
+          "result_url": "https://hdl.handle.net/10278/5117127",
+          "originating_record_url": "https://iris.unive.it/handle/10278/5117127",
+          "identifiers": [
+            {
+              "scheme": "Handle",
+              "value": "10278/5117127"
+            },
+            {
+              "scheme": "journal",
+              "value": "Nietzscheforschung 33 (2026)"
+            }
+          ],
+          "available_formats": [
+            "institutional metadata",
+            "abstract",
+            "in-press record without file"
+          ],
+          "declared_rights": {
+            "statement": "No file is attached; the institutional record states copyright and all rights reserved unless otherwise indicated.",
+            "scope": "content",
+            "evidence_url": "https://iris.unive.it/handle/10278/5117127",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "metadata-only",
+          "machine_interface": "html",
+          "decision": "defer",
+          "rationale": "Fresh 2026 semantic and intertextual lead concerning Manu, Hugo, literary form, and mediation. It does not change D 22, A 311, 1895 first-print, or critical-route identity and remains outside this source-witness admission.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-captured",
+            "format": null,
+            "sha256": null,
+            "reason": "Only the institutional abstract and bibliographic state were classified; no publication file exists in the record."
+          }
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-general-web-antichrist-authorial-route",
+      "sequence": 7,
+      "channel_type": "general-web-search",
+      "role": "lead-only",
+      "source_name": "General web search",
+      "endpoint_url": "https://www.google.com/search?q=%22Der+Antichrist%22+manuscript+1895+2026",
+      "interface_type": "web",
+      "interface_version": "Search results as observed 2026-07-30",
+      "exact_query": "\"Der Antichrist\" manuscript 1895 2026; \"D 22\" Antichrist; \"Gesetz wider das Christenthum\" 2026; all useful leads reopened at archive, library, DOI, publisher, or institutional records",
+      "queried_at": "2026-07-30T17:39:00-06:00",
+      "elapsed_seconds": 1.108465,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.general-web-antichrist-original-manuscript-reprints",
+          "rank": 1,
+          "title_as_displayed": "Modern PDFs and reprints marketed as original manuscript or original 1895 text",
+          "result_url": "https://www.google.com/search?q=%22Der+Antichrist%22+%22original+manuscript%22+PDF",
+          "originating_record_url": null,
+          "identifiers": [],
+          "available_formats": [
+            "search leads",
+            "commercial reprints",
+            "unprovenanced modern PDFs"
+          ],
+          "declared_rights": {
+            "statement": null,
+            "scope": "unknown",
+            "evidence_url": null,
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "unknown",
+          "machine_interface": "html",
+          "decision": "reject",
+          "rationale": "No originating archival or item-level bibliographic identity, frequent conflation of modern typesetting, first print, manuscript, and critical text, and no rights chain. No result was admitted.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-captured",
+            "format": null,
+            "sha256": null,
+            "reason": "No noisy result page, commercial reprint metadata, or unprovenanced PDF was retained."
+          }
+        }
+      ]
+    }
+  ],
+  "channel_comparison": [
+    {
+      "channel_id": "channel-gsa-ores-antichrist-authorial-route",
+      "completeness": "strong",
+      "metadata_precision": "strong",
+      "rights_clarity": "limited",
+      "machine_interface_quality": "strong",
+      "human_minutes": 36,
+      "machine_seconds": 19.139283,
+      "notes": "Authoritative D 22, notebook-family, and D 25 container identities with exact leaf-order and mixed-leaf warnings; object-level Public Domain labels and general publication rules remain separate."
+    },
+    {
+      "channel_id": "channel-basel-overbeck-antichrist-copy",
+      "completeness": "strong",
+      "metadata_precision": "strong",
+      "rights_clarity": "strong",
+      "machine_interface_quality": "strong",
+      "human_minutes": 14,
+      "machine_seconds": 4.044123,
+      "notes": "Exact A 311 independent-copy identity, extent, DOI, IIIF route, and Public Domain Mark with requested attribution; no payload acquired."
+    },
+    {
+      "channel_id": "channel-first-print-antichrist-1895",
+      "completeness": "limited",
+      "metadata_precision": "adequate",
+      "rights_clarity": "poor",
+      "machine_interface_quality": "limited",
+      "human_minutes": 7,
+      "machine_seconds": 0.614827,
+      "notes": "Exact bibliographic lead but no independently inspectable source object or reusable-content evidence; the first-print source-quality gap remains explicit."
+    },
+    {
+      "channel_id": "channel-nietzsche-source-antichrist-critical-route",
+      "completeness": "limited",
+      "metadata_precision": "strong",
+      "rights_clarity": "limited",
+      "machine_interface_quality": "poor",
+      "human_minutes": 10,
+      "machine_seconds": 120.009638,
+      "notes": "Current critical-edition and rights documentation is strong; all four live HTTPS content routes timed out and supplied no body or section census."
+    },
+    {
+      "channel_id": "channel-established-antichrist-text-history",
+      "completeness": "strong",
+      "metadata_precision": "strong",
+      "rights_clarity": "strong",
+      "machine_interface_quality": "adequate",
+      "human_minutes": 31,
+      "machine_seconds": 2.146583,
+      "notes": "Established production, editorial-intervention, and contested-adjunct baseline; commentary remains in copyright and was used only as scholarship."
+    },
+    {
+      "channel_id": "channel-fresh-antichrist-research",
+      "completeness": "strong",
+      "metadata_precision": "strong",
+      "rights_clarity": "adequate",
+      "machine_interface_quality": "adequate",
+      "human_minutes": 34,
+      "machine_seconds": 3.487244,
+      "notes": "Current KGW IX method, late-2025 direct genesis work, a 2025 method counterweight, and a 2026 semantic lead; none changes physical witness identities."
+    },
+    {
+      "channel_id": "channel-general-web-antichrist-authorial-route",
+      "completeness": "limited",
+      "metadata_precision": "poor",
+      "rights_clarity": "poor",
+      "machine_interface_quality": "limited",
+      "human_minutes": 5,
+      "machine_seconds": 1.108465,
+      "notes": "Used last for freshness and missing-route leads; unprovenanced original-manuscript and original-1895 claims were rejected."
+    }
+  ],
+  "selected_result_ids": [
+    "tos-discovery-result.gsa-71-29-antichrist-d22",
+    "tos-discovery-result.gsa-antichrist-wii1-wii6-regions",
+    "tos-discovery-result.gsa-71-32-fol47-antichrist-gesetz-adjunct",
+    "tos-discovery-result.basel-nl53-a311-overbeck-antichrist-copy",
+    "tos-discovery-result.nietzsche-source-antichrist-critical-documentation",
+    "tos-discovery-result.hadw-sommer-antichrist-commentary-2013",
+    "tos-discovery-result.basel-kgwix-late-nietzsche-method",
+    "tos-discovery-result.brobjer-antichrist-workshop-2025",
+    "tos-discovery-result.di-sarno-antichrist-new-publications-2025"
+  ],
+  "rejected_result_ids": [
+    "tos-discovery-result.general-web-antichrist-original-manuscript-reprints"
+  ],
+  "rights_inference_from_availability_prohibited": true,
+  "general_web_search_is_last_resort": true,
+  "technical_access_bypass_used": false,
+  "maker": {
+    "maker_type": "model",
+    "agent_ref": "model:codex"
+  },
+  "started_at": "2026-07-30T16:58:00-06:00",
+  "ended_at": "2026-07-30T17:42:00-06:00",
+  "status": "executed",
+  "provenance_event_refs": [
+    "tos.event.discovery.antichrist.authorial-witness-route.2026-07-30"
+  ],
+  "record_version": 1,
+  "supersedes_discovery_ref": null
+}

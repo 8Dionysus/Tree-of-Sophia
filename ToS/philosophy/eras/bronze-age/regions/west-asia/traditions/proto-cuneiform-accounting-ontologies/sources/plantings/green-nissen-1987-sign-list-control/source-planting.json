@@ -1,0 +1,52 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/philosophy-source-planting.schema.json",
+  "schema_version": "tos_philosophy_source_planting_v1",
+  "planting_id": "tos.planting.a01.green-nissen-1987-sign-list-control",
+  "atlas_row_id": "A01",
+  "dossier_id": "A01",
+  "branch_path": "ToS/philosophy/eras/bronze-age/regions/west-asia/traditions/proto-cuneiform-accounting-ontologies",
+  "source_backlog_anchor": {
+    "path": "ToS/philosophy/eras/bronze-age/regions/west-asia/traditions/proto-cuneiform-accounting-ontologies/sources/source-anchor-backlog.jsonl",
+    "line": 25,
+    "source_table_index": 14,
+    "source_row_index": 7,
+    "source_label": "Green & Nissen 1987 [24]"
+  },
+  "source_witness": {
+    "work_id": "tos.work.proto-cuneiform.atu-2-green-sign-list",
+    "record_ref": "ToS/source-witnesses/works/proto-cuneiform-scholarship/atu-2-green-sign-list/work.json",
+    "container_id": "tos.collection.proto-cuneiform.zeichenliste-der-archaischen-texte-aus-uruk-atu-2-green-nissen-1987",
+    "container_ref": "ToS/source-witnesses/collections/proto-cuneiform-scholarship/zeichenliste-der-archaischen-texte-aus-uruk-atu-2-green-nissen-1987/collection.json",
+    "membership_claim_ref": "tos.claim.collection.proto-cuneiform.atu-2.contains-green-sign-list",
+    "relationship": "grounds_source_backlog_anchor"
+  },
+  "discovery_ref": "ToS/source-witnesses/discovery/runs/proto-cuneiform-atu2-signlist-critical-edition.2026-08-12.v1.json",
+  "provenance_event_ref": "tos.event.annotation.proto-cuneiform-a01-deduplicated-control-roles.2026-08-12",
+  "research_ref": "ToS/research-packets/foundation-laboratory-2026-07/A01_ATU2_SIGNLIST_SOURCE_PLANTING_RESEARCH_2026-08-12.md",
+  "fulfilled_source_needs": [
+    "the exact Work behind Green and Nissen 1987 is deduplicated against the ATU 2 sign-list planting",
+    "Green's contained sign-list Work remains distinct from the aggregate ATU 2 Collection and the numerical-systems Work",
+    "the 1987 reference-tool role is retained without freezing its signs, readings, or concordances as current",
+    "ZATU numbers, LLATU coordinates, PCSL OIDs, and Unicode coordinates remain distinct identity systems",
+    "recognized review history and current PCSL and Unicode status remain controls on reuse",
+    "the unresolved exact contained-work title and section boundaries remain explicit"
+  ],
+  "remaining_controls": [
+    "the sign list requires comparison with current source-bearing data before any sign identity or reading is accepted",
+    "a sign-list entry is not automatically an occurrence, lexical value, translation, concept, or semantic relation",
+    "no full ATU 2 Item, payload, sign entry, form, reading, gloss, translation, etymology, or concordance is admitted",
+    "the prepared access request remains unsent and creates no access or redistribution authority",
+    "this role-specific planting reuses the existing Work-in-Collection topology and creates no duplicate Work",
+    "no redundant human review task is opened"
+  ],
+  "research_order": [
+    "official_and_classical_documentation",
+    "established_top_scholarship",
+    "fresh_current_relevance_check"
+  ],
+  "authority": {"source_status": "metadata_witness_planted", "review_status": "unreviewed", "source_text_admitted": false, "semantic_status": "not_started", "graph_status": "not_promoted", "canon_status": "not_canon", "human_task_created": false},
+  "status": "source_witness_planted",
+  "maker": {"maker_type": "model", "agent_ref": "model:codex", "human_review_performed": false},
+  "created_at": "2026-08-12T16:59:19-06:00",
+  "record_version": 1
+}

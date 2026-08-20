@@ -1,0 +1,124 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/material-discovery-record.schema.json",
+  "schema_version": "tos_material_discovery_record_v1",
+  "discovery_id": "tos.discovery.antonovsky-cultural-revolution-2007-volume-4.2026-07-28",
+  "protocol_ref": "ToS/source-witnesses/discovery/DISCOVERY_PROTOCOL.md",
+  "target": {
+    "target_kind": "edition",
+    "known_tos_refs": [
+      "tos.expression.friedrich-nietzsche.also-sprach-zarathustra.ru-antonovsky-cultural-revolution",
+      "tos.edition.friedrich-nietzsche.also-sprach-zarathustra.moscow-cultural-revolution-2007-volume-4"
+    ],
+    "description": "An originating catalog record for the 2007 Cultural Revolution volume 4 edition of Так говорил Заратустра translated by Yu. M. Antonovsky.",
+    "required_properties": [
+      "edition identity",
+      "volume identity",
+      "publication year and publisher",
+      "translator responsibility",
+      "stable catalog identifier"
+    ],
+    "acceptable_substitutions": [
+      "another originating national-library or publisher record with equivalent edition-level evidence"
+    ],
+    "languages": [
+      "ru"
+    ],
+    "formats": [
+      "metadata",
+      "HTML"
+    ],
+    "purpose_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-antonovsky-cultural-revolution/editions/moscow-cultural-revolution-2007-volume-4/items/operator-pdf/forensic-report.md"
+  },
+  "channels": [
+    {
+      "channel_id": "channel-rsl-edition-record",
+      "sequence": 1,
+      "channel_type": "national-catalog",
+      "role": "originating-record",
+      "source_name": "Российская государственная библиотека",
+      "endpoint_url": "https://search.rsl.ru/ru/record/01005395580",
+      "interface_type": "web",
+      "interface_version": "RSL HTML record as served 2026-07-28",
+      "exact_query": "GET https://search.rsl.ru/ru/record/01005395580",
+      "queried_at": "2026-07-28T18:40:27-06:00",
+      "elapsed_seconds": 1.769697,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.rsl-01005395580",
+          "rank": 1,
+          "title_as_displayed": "Так говорил Заратустра. Т. 4",
+          "result_url": "https://search.rsl.ru/ru/record/01005395580",
+          "originating_record_url": "https://search.rsl.ru/ru/record/01005395580",
+          "identifiers": [
+            {
+              "scheme": "RSL record",
+              "value": "01005395580"
+            },
+            {
+              "scheme": "ISBN",
+              "value": "978-5-250-06018-9"
+            }
+          ],
+          "available_formats": [
+            "HTML metadata"
+          ],
+          "declared_rights": {
+            "statement": null,
+            "scope": "metadata",
+            "evidence_url": null,
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "metadata-only",
+          "machine_interface": "html",
+          "decision": "select",
+          "rationale": "The national-library record matches the volume title, series, publisher, year, translator, scientific editor, 432-page extent, and ISBN. It identifies the edition, not the exact operator-provided PDF.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-captured",
+            "format": null,
+            "sha256": null,
+            "reason": "The live public catalog record was inspected directly; no source payload or tracked web snapshot was needed for this metadata reconciliation."
+          }
+        }
+      ]
+    }
+  ],
+  "channel_comparison": [
+    {
+      "channel_id": "channel-rsl-edition-record",
+      "completeness": "strong",
+      "metadata_precision": "strong",
+      "rights_clarity": "unknown",
+      "machine_interface_quality": "adequate",
+      "human_minutes": 0,
+      "machine_seconds": 1.769697,
+      "notes": "Strong edition-level bibliographic evidence from a stable national-library record; no digital-item acquisition or rights evidence."
+    }
+  ],
+  "selected_result_ids": [
+    "tos-discovery-result.rsl-01005395580"
+  ],
+  "rejected_result_ids": [],
+  "rights_inference_from_availability_prohibited": true,
+  "general_web_search_is_last_resort": true,
+  "technical_access_bypass_used": false,
+  "maker": {
+    "maker_type": "model",
+    "agent_ref": "model:codex"
+  },
+  "started_at": "2026-07-28T18:40:27-06:00",
+  "ended_at": "2026-07-28T18:40:29-06:00",
+  "status": "reconciled",
+  "provenance_event_refs": [
+    "tos.event.discovery.antonovsky-cultural-revolution-2007-volume-4.2026-07-28"
+  ],
+  "record_version": 1,
+  "supersedes_discovery_ref": null
+}

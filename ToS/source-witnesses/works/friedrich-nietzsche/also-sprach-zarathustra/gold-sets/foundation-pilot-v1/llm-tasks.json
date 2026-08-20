@@ -1,28 +1,54 @@
 {
-  "$schema": "https://tree-of-sophia.local/ToS/contracts/source-gated-evaluation-plan.schema.json",
-  "schema_version": "tos_source_gated_evaluation_plan_v1",
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/source-gated-llm-evaluation-plan.schema.json",
+  "schema_version": "tos_source_gated_llm_evaluation_plan_v2",
   "plan_id": "tos.evaluation-plan.zarathustra-llm-assistance-v1",
   "plan_kind": "llm-assistance",
   "experiment_id": "tos-llm-assistance-v1",
   "work_ref": "tos.work.friedrich-nietzsche.also-sprach-zarathustra",
   "status": "blocked-not-materialized",
-  "frozen_at": "2026-07-23T23:50:00Z",
+  "frozen_at": "2026-07-28T15:47:00Z",
   "frozen_before_variant_outputs": true,
-  "source_gate": {
-    "review_plan_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/translation-source-review-plan.v2.json",
-    "review_plan_sha256": "ba04adba9787c91ffca017128db0250f5565663084ba7f60a609e227b88eaf25",
-    "laboratory_plan_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/translation-laboratory-plan.v1.json",
-    "laboratory_plan_sha256": "9a260fb4a21c44a67b56d2887ebba4d01d82c49c5d3008b39ed44d4779145ee4",
-    "required_human_accepted_units": 30,
-    "current_human_accepted_units": 0,
+  "source_evidence_gate": {
+    "gate_kind": "task-specific-accepted-anchor-set",
+    "required_eligible_source_units": 20,
+    "current_eligible_source_units": 0,
+    "eligible_source_posture": "accepted-task-specific-source-evidence",
+    "required_per_task_fields": [
+      "source_anchor_refs",
+      "accepted_source_sha256",
+      "source_review_event_ref",
+      "local_content_ref",
+      "local_content_sha256"
+    ],
     "gate_status": "blocked"
   },
-  "human_gold_gate": {
+  "human_baseline_gate": {
+    "gate_kind": "task-specific-unassisted-human-baseline",
+    "required_frozen_baseline_units": 20,
+    "current_frozen_baseline_units": 0,
+    "baseline_frozen_before_suggestions": true,
+    "opening_triggers": [
+      "twenty-source-eligible-tasks-materialized",
+      "subjective-sign-judgment-required"
+    ],
+    "human_work_scheduled": false,
+    "gate_status": "blocked"
+  },
+  "historical_gate_snapshot": {
+    "snapshot_kind": "superseded-universal-30-15-gate",
+    "source_review_plan_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/translation-source-review-plan.v2.json",
+    "source_review_plan_sha256": "ba04adba9787c91ffca017128db0250f5565663084ba7f60a609e227b88eaf25",
+    "laboratory_plan_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/translation-laboratory-plan.v1.json",
+    "laboratory_plan_sha256": "9a260fb4a21c44a67b56d2887ebba4d01d82c49c5d3008b39ed44d4779145ee4",
     "gold_status_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/gold-status.json",
     "gold_status_sha256": "dbe08e50066674cbffd40d79125e08a039ea18cb03630440172a91176de2a990",
-    "required_human_double_checked_units": 15,
-    "current_human_double_checked_units": 0,
-    "gate_status": "blocked"
+    "required_human_accepted_source_units": 30,
+    "observed_human_accepted_source_units": 0,
+    "required_human_double_checked_gold_units": 15,
+    "observed_human_double_checked_gold_units": 0,
+    "snapshot_status": "historical-blocked-evidence",
+    "scheduling_authority": false,
+    "execution_authority": false
   },
   "selection_contract": {
     "required_total_tasks": 20,
@@ -41,6 +67,44 @@
     "sign-candidate-and-refusal",
     "evidence-grounded-relation-proposal"
   ],
+  "prepared_task_contract": {
+    "selected_task_family": "sign-candidate-and-refusal",
+    "bounded_question": "Given one accepted passage and its supplied Tree of Sophia anchors, propose at most one recurring sign candidate or abstain; cite only supplied anchors, state uncertainty, and do not assert accepted semantic truth.",
+    "required_total_tasks": 20,
+    "random_tasks": 10,
+    "hard_tasks": 10,
+    "task_instances_materialized": false,
+    "source_anchor_refs": [],
+    "source_text_present": false,
+    "same_inputs_across_variants": true,
+    "human_only_baseline_before_suggestions": true,
+    "required_output_fields": [
+      "task_id",
+      "decision",
+      "candidate_label",
+      "source_anchor_refs",
+      "bounded_rationale",
+      "uncertainty",
+      "failure_reason"
+    ],
+    "allowed_decisions": [
+      "propose",
+      "abstain",
+      "uncertain",
+      "failed"
+    ],
+    "forbidden_claims": [
+      "accepted-sign",
+      "accepted-concept",
+      "accepted-relation",
+      "accepted-translation",
+      "etymological-fact-without-external-evidence",
+      "canon-status"
+    ],
+    "execution_profile_ref": "abyss-stack:mechanics/inference-pilots/parts/tos-foundation-lab/examples/tos-llm-assistance-profile.v1.json",
+    "profile_refresh_required_on_plan_change": true,
+    "human_work_scheduled": false
+  },
   "tasks": [],
   "blindness_and_authority": {
     "blind_variant_labels": true,
@@ -64,8 +128,8 @@
     "metric_results": [],
     "winner": null,
     "promotion_authorized": false,
-    "conclusion": "No LLM-assistance A/B/C task was materialized or run because accepted source text, frozen target gold, and a completed manual rubric are absent."
+    "conclusion": "No LLM-assistance A/B/C task was materialized or run. The next gate is twenty task-specific accepted source units followed by an unassisted human baseline only for those materialized subjective tasks; the historical 30/15 packet counts schedule no work and authorize no execution."
   },
-  "provenance_event_ref": "tos.event.annotation.zarathustra-source-gated-evaluation-plans-v1.2026-07-23",
-  "plan_version": 1
+  "provenance_event_ref": "tos.event.annotation.zarathustra-task-specific-llm-gate-v2.2026-07-28",
+  "plan_version": 3
 }

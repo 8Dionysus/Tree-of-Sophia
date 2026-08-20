@@ -1,0 +1,88 @@
+{
+  "schema_version": "tos_source_metadata_snapshot_v1",
+  "captured_at": "2026-08-01T18:15:16-06:00",
+  "capture_method": {
+    "maker_type": "software",
+    "name": "RuNEB catalog and user-agreement records via curl; official ZIP acquisition and member extraction",
+    "version": "curl 8.18.0; Info-ZIP 6.00"
+  },
+  "source_url": "https://rusneb.ru/catalog/000200_000018_v19_rc_1709542/",
+  "item_page_url": "https://rusneb.ru/catalog/000200_000018_v19_rc_1709542/",
+  "originating_record_url": null,
+  "metadata": {
+    "runeb_record_id": "000200_000018_v19_rc_1709542",
+    "provider_object_basename": "ob000000411",
+    "title": "Так говорил Заратустра: cимволическая поэма, перевод с немецкого",
+    "author": "Фр. Ницше",
+    "translator_statement": null,
+    "publication_place": "Москва",
+    "publisher": "издание редакции журнала \"Читатель\"",
+    "published_year": "1899",
+    "extent": "236 с.; 18 см",
+    "language": "Русский",
+    "general_note": "Отт. из журн. \"Читатель\" 1899, кн. 16 (166), 18 (168)-20 (170), 26 (176)-28 (178), 30 (180)-35 (185)",
+    "source_holding": "Российская национальная библиотека",
+    "access_statement": "The RuNEB card exposes free viewing and an official unauthenticated ZIP download route.",
+    "rights_boundary": "The current RuNEB user agreement supports bounded access and research use under law but is not a resource-specific redistribution license. All source payloads remain local-only."
+  },
+  "live_response_digests": {
+    "runeb_catalog_html_sha256": "bc0cf3ad9712232513c02723f2ce581d115d467d56d1d18fa9199fed843303f3",
+    "runeb_user_agreement_html_sha256": "f3b50ecdbcd8202fdca1ae863435e3d972e5afa6fb70758ea09dceff09957698",
+    "boundary": "These current HTML response digests are volatile service-response observations, not durable item fixity."
+  },
+  "download_container": {
+    "name": "rusneb-000200_000018_v19_rc_1709542.zip",
+    "format": "ZIP",
+    "source_role": "official RuNEB transport container",
+    "size": 530051690,
+    "sha256": "d1da6726dac40fa1fe2c7c9ed14d07d22e46ade0975113f868bf0594c5cba516",
+    "member_count": 3,
+    "retention_posture": "transport container retained only in owner temporary storage during intake; its three byte-exact PDF members are the canonical local payloads",
+    "download_route": "https://rusneb.ru/local/tools/exalead/getFiles.php with book_id=000200_000018_v19_rc_1709542 and doc_type=zip"
+  },
+  "files": [
+    {
+      "name": "ob000000411_0001.pdf",
+      "format": "PDF",
+      "source_role": "first provider PDF member; title page and selected photographed spreads",
+      "size": 155778671,
+      "sha256": "f27a4c1bc95d6452ebe8f13358ded0e0a3012031481285e0239bccb7bfb86b4d",
+      "sha1": "6a01c7e536af6a326ce2339d62c7d917feeac7b6",
+      "md5": "996bafa93ad0f417f5fb753b2e345c27",
+      "mime": "application/pdf",
+      "pages": 7
+    },
+    {
+      "name": "ob000000411_0002.pdf",
+      "format": "PDF",
+      "source_role": "second provider PDF member; selected photographed spreads",
+      "size": 167408539,
+      "sha256": "3b760f94356ecd938e7356b6115c055a8ba38dee029c379166bf9867afc8f818",
+      "sha1": "bf2ca7d7f318c8aeaa489e169e724f72430c096a",
+      "md5": "a546cbb3c526975aec9818c5a106fff4",
+      "mime": "application/pdf",
+      "pages": 7
+    },
+    {
+      "name": "ob000000411_0003.pdf",
+      "format": "PDF",
+      "source_role": "third provider PDF member; selected photographed spreads",
+      "size": 206863786,
+      "sha256": "d3ce8e66b1f11da99a74362ae2014d73871fe7bb37189b0ea3bf7ff0ed4cef3d",
+      "sha1": "1ad31f106c3cff567604feba6d372b12495cbd30",
+      "md5": "f647024b2bf945c88153654d3439b3f8",
+      "mime": "application/pdf",
+      "pages": 8
+    }
+  ],
+  "observed_fragment": {
+    "pdf_surface_count": 22,
+    "title_page_present": true,
+    "observed_printed_page_pairs": [
+      "8-9", "32-33", "44-45", "48-49", "50-51", "54-55", "60-61", "64-65", "70-71", "72-73", "part-II-opening-and-87", "94-95", "96-97", "102-103", "106-107", "108-109", "110-111", "112-113", "120-121", "126-127", "138-139"
+    ],
+    "complete_cataloged_extent_returned": false,
+    "boundary": "Printed-page labels are model-read visual observations over photographed spreads, not a human-reviewed collation or accepted transcription."
+  },
+  "snapshot_status": "compact public metadata and exact local member identity captured; live HTML digests are volatile; no raw HTML, source text, page image, accepted transcription, or rights clearance is stored"
+}

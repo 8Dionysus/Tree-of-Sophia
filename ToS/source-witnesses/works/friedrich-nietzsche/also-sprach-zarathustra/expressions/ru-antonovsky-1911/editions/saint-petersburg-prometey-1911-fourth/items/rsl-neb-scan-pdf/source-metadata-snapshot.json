@@ -1,0 +1,49 @@
+{
+  "schema_version": "tos_source_metadata_snapshot_v1",
+  "captured_at": "2026-08-01T08:24:56-06:00",
+  "capture_method": {
+    "maker_type": "software",
+    "name": "RuNEB catalog, RSL catalog and MARC21 records via curl",
+    "version": "curl 8.18.0"
+  },
+  "source_url": "https://rusneb.ru/catalog/000199_000009_003693383/",
+  "item_page_url": "https://rusneb.ru/catalog/000199_000009_003693383/",
+  "originating_record_url": "https://search.rsl.ru/ru/record/01003693383",
+  "metadata": {
+    "runeb_record_id": "000199_000009_003693383",
+    "rsl_record_id": "01003693383",
+    "title": "Так говорил Заратустра : Книга для всех и ни для кого",
+    "author": "Ницше, Фридрих (1844-1900)",
+    "translator_statement": "перевод Ю. М. Антоновского",
+    "translator_authority": "Антоновский, Юлий Михайлович (1857-1913), переводчик",
+    "edition_statement": "4-е изд.",
+    "publication_place": "Санкт-Петербург",
+    "publisher": "Прометей",
+    "published_year": "1911",
+    "extent": "VIII, 292 с.",
+    "language": "rus",
+    "source_language": "ger",
+    "source_holding": "Российская государственная библиотека",
+    "access_statement": "The RuNEB record exposes free viewing and an official PDF download route.",
+    "rights_boundary": "The current RuNEB user agreement supports bounded access and research use under law but is not a resource-specific redistribution license. The exact file remains local-only."
+  },
+  "live_response_digests": {
+    "runeb_catalog_html_sha256": "0a273ad0b73d85e2e55dc4692d67a4cbb27abe6f9318074b08555587e83a9e8a",
+    "rsl_record_html_sha256": "fad9d9f36c110e0ff7e30cc76ab78441308d35c6445eda4c08cc358743de758c",
+    "runeb_user_agreement_html_sha256": "111ae0dcc2ef1bba6bee60575a1cd0c925a9ddf56154d665ce8a367079b2e5ca",
+    "boundary": "These current HTML response digests are volatile service-response observations, not durable item fixity."
+  },
+  "file": {
+    "name": "antonovsky-prometey-1911-rsl-neb.pdf",
+    "format": "PDF",
+    "source_role": "official RuNEB download of the RSL digital copy",
+    "size": 62952283,
+    "sha256": "57518b50e24fee37b3e9c151e853c36ad34258f51a8b65b8233742d69017db69",
+    "sha1": "3e3f79fd632d4a6cc1e37d1ce50d97a271b1fe7d",
+    "md5": "7ccfb876440404adcd0db6bd1b171b01",
+    "mime": "application/pdf",
+    "pages": 153,
+    "download_route": "https://rusneb.ru/local/tools/exalead/getFiles.php with book_id=000199_000009_003693383 and doc_type=pdf"
+  },
+  "snapshot_status": "compact public metadata and exact local file identity captured; live HTML digests are volatile; no raw HTML, MARC payload, source text, page image, or rights clearance is stored"
+}

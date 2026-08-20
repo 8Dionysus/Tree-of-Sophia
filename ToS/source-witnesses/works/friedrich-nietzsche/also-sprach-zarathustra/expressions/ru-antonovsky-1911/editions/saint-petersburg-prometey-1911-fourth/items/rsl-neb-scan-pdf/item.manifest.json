@@ -1,0 +1,34 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/source-item-manifest.schema.json",
+  "schema_version": "tos_source_item_manifest_v1",
+  "item_id": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.ru-antonovsky-1911.rsl-neb-scan-pdf",
+  "item_kind": "digitized_physical_copy",
+  "embodiment_ref": "tos.edition.friedrich-nietzsche.also-sprach-zarathustra.saint-petersburg-prometey-1911-fourth",
+  "storage_posture": "local_gitignored_payload",
+  "payload_files": [
+    {
+      "file_id": "tos.file.sha256.57518b50e24fee37b3e9c151e853c36ad34258f51a8b65b8233742d69017db69",
+      "relative_path": "payload/antonovsky-prometey-1911-rsl-neb.pdf",
+      "original_basename": "antonovsky-prometey-1911-rsl-neb.pdf",
+      "media_type": "application/pdf",
+      "byte_size": 62952283,
+      "sha256": "57518b50e24fee37b3e9c151e853c36ad34258f51a8b65b8233742d69017db69",
+      "fixity_verified_at": "2026-08-01T08:22:14-06:00",
+      "container_member": false
+    }
+  ],
+  "acquisition_event_ref": "tos.event.acquisition.antonovsky-prometey-1911-rsl-neb-pdf.2026-08-01",
+  "rights_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-antonovsky-1911/editions/saint-petersburg-prometey-1911-fourth/items/rsl-neb-scan-pdf/rights.json",
+  "provenance_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-antonovsky-1911/editions/saint-petersburg-prometey-1911-fourth/items/rsl-neb-scan-pdf/provenance.jsonl",
+  "forensic_report_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-antonovsky-1911/editions/saint-petersburg-prometey-1911-fourth/items/rsl-neb-scan-pdf/forensic-report.md",
+  "resource_inventory_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-antonovsky-1911/editions/saint-petersburg-prometey-1911-fourth/items/rsl-neb-scan-pdf/resource-inventory.json",
+  "source_record_refs": [
+    "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-antonovsky-1911/editions/saint-petersburg-prometey-1911-fourth/edition.json",
+    "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-antonovsky-1911/editions/saint-petersburg-prometey-1911-fourth/items/rsl-neb-scan-pdf/source-metadata-snapshot.json",
+    "https://rusneb.ru/catalog/000199_000009_003693383/",
+    "https://search.rsl.ru/ru/record/01003693383"
+  ],
+  "visibility": "local_only",
+  "manifest_version": 1,
+  "supersedes_manifest_ref": null
+}

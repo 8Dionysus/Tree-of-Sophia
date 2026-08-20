@@ -1,0 +1,466 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/material-discovery-record.schema.json",
+  "schema_version": "tos_material_discovery_record_v1",
+  "discovery_id": "tos.discovery.goetzen-daemmerung-naumann-1889-open-scan-witness.2026-07-30",
+  "protocol_ref": "ToS/source-witnesses/discovery/DISCOVERY_PROTOCOL.md",
+  "target": {
+    "target_kind": "item",
+    "known_tos_refs": [
+      "tos.work.friedrich-nietzsche.goetzen-daemmerung"
+    ],
+    "description": "An exact, source-visible, original-German historical item witness for the standalone 1889 Naumann publication of Götzen-Dämmerung.",
+    "required_properties": [
+      "original German historical witness",
+      "exact standalone publication identity",
+      "holding-copy and scan lineage",
+      "stable institutional identifiers",
+      "exact acquired-object fixity",
+      "positive rights evidence kept separate from ToS publication authority",
+      "explicit non-equivalence to manuscript, critical text, the altered 1893 second edition, and later collected editions"
+    ],
+    "acceptable_substitutions": [
+      "another exact 1889 standalone copy with stronger holding provenance",
+      "an author-corrected copy or critical-edition witness with exact citation identity",
+      "a non-downloadable institutional copy retained as a written-access-request candidate"
+    ],
+    "languages": [
+      "de"
+    ],
+    "formats": [
+      "metadata",
+      "IIIF page images",
+      "PDF page images",
+      "provider transcription challenger"
+    ],
+    "purpose_ref": "ToS/research-packets/foundation-laboratory-2026-07/LIMITATIONS_AND_NEXT_STEPS.md"
+  },
+  "channels": [
+    {
+      "channel_id": "channel-dnb-goetzen-daemmerung-work-authority",
+      "sequence": 1,
+      "channel_type": "national-catalog",
+      "role": "originating-record",
+      "source_name": "Deutsche Nationalbibliothek Gemeinsame Normdatei",
+      "endpoint_url": "https://d-nb.info/gnd/4501140-0/about/lds.jsonld",
+      "interface_type": "api",
+      "interface_version": "GND linked-data JSON-LD as served 2026-07-30",
+      "exact_query": "GET https://d-nb.info/gnd/4501140-0/about/lds.jsonld",
+      "queried_at": "2026-07-30T09:36:53-06:00",
+      "elapsed_seconds": 0.901,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.dnb-gnd-4501140-0-goetzen-daemmerung",
+          "rank": 1,
+          "title_as_displayed": "Götzen-Dämmerung",
+          "result_url": "https://d-nb.info/gnd/4501140-0",
+          "originating_record_url": "https://d-nb.info/gnd/4501140-0",
+          "identifiers": [
+            {
+              "scheme": "GND",
+              "value": "4501140-0"
+            },
+            {
+              "scheme": "author GND",
+              "value": "118587943"
+            }
+          ],
+          "available_formats": [
+            "JSON-LD",
+            "RDF"
+          ],
+          "declared_rights": {
+            "statement": "CC0 1.0 for the DNB metadata record",
+            "scope": "metadata",
+            "evidence_url": "http://creativecommons.org/publicdomain/zero/1.0/",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "metadata-only",
+          "machine_interface": "api",
+          "decision": "needs-reconciliation",
+          "rationale": "The authority record fixes work identity, Nietzsche authorship, and publication year 1889, but does not identify a physical or digital item.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "captured",
+            "format": "static-snapshot",
+            "sha256": "ac330ea80bdbde4d251549a265e903849317f8d301547cc71a28e276a62423c5",
+            "reason": "The exact current authority response is retained as metadata-only evidence."
+          }
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-dta-goetzen-daemmerung-author-corpus",
+      "sequence": 2,
+      "channel_type": "specialized-scholarly-project",
+      "role": "scholarly-index",
+      "source_name": "Deutsches Textarchiv",
+      "endpoint_url": "https://www.deutschestextarchiv.de/search",
+      "interface_type": "web",
+      "interface_version": "DTA metadata search as served 2026-07-30",
+      "exact_query": "GET https://www.deutschestextarchiv.de/search?in=metadata&q=Nietzsche and exact-title checks for Götzen-Dämmerung",
+      "queried_at": "2026-07-30T09:37:00-06:00",
+      "elapsed_seconds": 1.211,
+      "result_order_preserved": true,
+      "results": []
+    },
+    {
+      "channel_id": "channel-textgrid-goetzen-daemmerung-corpus",
+      "sequence": 3,
+      "channel_type": "university-catalog",
+      "role": "mixed",
+      "source_name": "TextGrid Repository TG-search API",
+      "endpoint_url": "https://textgridlab.org/1.0/tgsearch-public/search",
+      "interface_type": "api",
+      "interface_version": "TextGrid public repository API as served 2026-07-30",
+      "exact_query": "title:\"Götzen-Dämmerung\" AND edition.agent.value:\"Nietzsche, Friedrich\"; target=metadata; allProjects=true",
+      "queried_at": "2026-07-30T09:37:30-06:00",
+      "elapsed_seconds": 0.935,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.textgrid-kolimo-goetzen-daemmerung",
+          "rank": 1,
+          "title_as_displayed": "Götzen-Dämmerung",
+          "result_url": "https://www.textgridrep.org/browse/4k1x3.0",
+          "originating_record_url": "https://textgridlab.org/1.0/tgcrud-public/rest/textgrid:4k1x3.0/metadata",
+          "identifiers": [
+            {
+              "scheme": "TextGrid edition URI",
+              "value": "textgrid:4k1x3.0"
+            },
+            {
+              "scheme": "TextGrid work URI",
+              "value": "textgrid:4k23k.0"
+            }
+          ],
+          "available_formats": [
+            "TEI XML",
+            "TextGrid metadata XML",
+            "ORE aggregation XML"
+          ],
+          "declared_rights": {
+            "statement": "Edition metadata reports CC BY 4.0.",
+            "scope": "content",
+            "evidence_url": "https://textgridlab.org/1.0/tgcrud-public/rest/textgrid:4k1x3.0/metadata",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-download",
+          "machine_interface": "api",
+          "decision": "defer",
+          "rationale": "The Kolimo+ record is a useful modern corpus-text challenger, but its 2026 repository issue date and corpus metadata do not identify a historical physical copy, the first publication, or a critical text.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "captured",
+            "format": "static-snapshot",
+            "sha256": "2135247726f4a326bbe5e53ac0b03ab22c282c9af83e93b5670f811d69a47765",
+            "reason": "The exact one-hit metadata response and its modern corpus identity are retained."
+          }
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-hadw-goetzen-daemmerung-text-history",
+      "sequence": 4,
+      "channel_type": "specialized-scholarly-project",
+      "role": "scholarly-index",
+      "source_name": "Heidelberger Akademie der Wissenschaften digital Historischer und kritischer Kommentar",
+      "endpoint_url": "https://digi.hadw-bw.de/view/nietzsche_kom6_1/0216",
+      "interface_type": "web",
+      "interface_version": "HAdW digital commentary as served 2026-07-30; DOI 10.11588/diglit.70913",
+      "exact_query": "Bounded commentary pages 0216-0219 for the production, publication, and second-edition history of Götzen-Dämmerung",
+      "queried_at": "2026-07-30T09:38:44-06:00",
+      "elapsed_seconds": 2.501,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.hadw-sommer-goetzen-daemmerung-production-history",
+          "rank": 1,
+          "title_as_displayed": "Historischer und kritischer Kommentar zu Friedrich Nietzsches Werken, Band 6/1",
+          "result_url": "https://digi.hadw-bw.de/view/nietzsche_kom6_1/0216",
+          "originating_record_url": "https://doi.org/10.11588/diglit.70913",
+          "identifiers": [
+            {
+              "scheme": "DOI",
+              "value": "10.11588/diglit.70913"
+            }
+          ],
+          "available_formats": [
+            "page image",
+            "OCR reading view",
+            "PDF volume"
+          ],
+          "declared_rights": {
+            "statement": null,
+            "scope": "content",
+            "evidence_url": null,
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-view",
+          "machine_interface": "html",
+          "decision": "defer",
+          "rationale": "The scholarly commentary establishes the late-1888 production, end-of-January-1889 availability, and Köselitz's textual changes in the 1893 second edition. It is editorial-risk evidence, not a replacement item or accepted critical text.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "captured",
+            "format": "static-snapshot",
+            "sha256": "0aaab45d73bcd48e9db10839071520f7e5878dd680cf3fffd9aec220acceb7b7",
+            "reason": "A bounded local response set preserves production and edition-history evidence without importing it as source text."
+          }
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-google-books-goetzen-daemmerung-1889",
+      "sequence": 5,
+      "channel_type": "collection-aggregator",
+      "role": "lead-only",
+      "source_name": "Google Books",
+      "endpoint_url": "https://books.google.com/books",
+      "interface_type": "web",
+      "interface_version": "Google Books record and offered links as served 2026-07-30",
+      "exact_query": "GET https://books.google.com/books?id=a5_kNGGl6xkC and inspect offered EPUB/PDF routes without bypassing access controls",
+      "queried_at": "2026-07-30T09:40:02-06:00",
+      "elapsed_seconds": 1.917,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.google-books-a5-knggl6xkc-goetzen-daemmerung",
+          "rank": 1,
+          "title_as_displayed": "Götzen-Dämmerung oder Wie man mit dem Hammer philosophirt",
+          "result_url": "https://books.google.com/books?id=a5_kNGGl6xkC",
+          "originating_record_url": "https://books.google.com/books?id=a5_kNGGl6xkC",
+          "identifiers": [
+            {
+              "scheme": "Google Books volume ID",
+              "value": "a5_kNGGl6xkC"
+            }
+          ],
+          "available_formats": [
+            "bibliographic metadata",
+            "offered EPUB link",
+            "offered PDF link"
+          ],
+          "declared_rights": {
+            "statement": "Google presents a full-view/public-domain bibliographic lead, but the tested download responses did not yield source bytes.",
+            "scope": "digital-object",
+            "evidence_url": "https://books.google.com/books?id=a5_kNGGl6xkC",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-view",
+          "machine_interface": "html",
+          "decision": "needs-reconciliation",
+          "rationale": "The record is a useful 1889 lead but labels the Austrian National Library object Edition 2, conflicting with the scholarly history that places Köselitz's altered second edition in 1893. Both offered downloads returned HTML anti-bot challenges, so no bytes were admitted and no bypass was attempted.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "captured",
+            "format": "static-snapshot",
+            "sha256": "16745d7b2e32f67a308d06b90a8c7760843d9b12f08437c72b0e59d1e9023085",
+            "reason": "The current volume response and the conflicting edition label are retained as lead and reconciliation evidence."
+          }
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-mdz-bsb-goetzen-daemmerung-1889",
+      "sequence": 6,
+      "channel_type": "university-catalog",
+      "role": "digital-object-record",
+      "source_name": "Münchener DigitalisierungsZentrum and B3Kat",
+      "endpoint_url": "https://api.digitale-sammlungen.de/iiif/presentation/v2/bsb00069119/manifest",
+      "interface_type": "iiif",
+      "interface_version": "MDZ IIIF Presentation 2 manifest, detail record, MARC, RDF, and immediate PDF service as served 2026-07-30",
+      "exact_query": "GET exact IIIF object bsb00069119; reconcile MDZ details, B3Kat BV020368110, URN, BSB holding Ph.pr. 881 kc, and request canvases 1-164 through the documented immediate PDF service",
+      "queried_at": "2026-07-30T09:55:05-06:00",
+      "elapsed_seconds": 3.781,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.mdz-bsb00069119-goetzen-daemmerung-1889",
+          "rank": 1,
+          "title_as_displayed": "Götzen-Dämmerung oder Wie man mit dem Hammer philosophirt",
+          "result_url": "https://www.digitale-sammlungen.de/en/details/bsb00069119",
+          "originating_record_url": "https://opacplus.bsb-muenchen.de/title/BV020368110",
+          "identifiers": [
+            {
+              "scheme": "MDZ digital object",
+              "value": "bsb00069119"
+            },
+            {
+              "scheme": "URN",
+              "value": "urn:nbn:de:bvb:12-bsb00069119-0"
+            },
+            {
+              "scheme": "B3Kat",
+              "value": "BV020368110"
+            },
+            {
+              "scheme": "OCLC",
+              "value": "21010699"
+            }
+          ],
+          "available_formats": [
+            "IIIF Presentation manifest",
+            "IIIF page images",
+            "MARC",
+            "RDF",
+            "generated PDF"
+          ],
+          "declared_rights": {
+            "statement": "Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International",
+            "scope": "digital-object",
+            "evidence_url": "https://creativecommons.org/licenses/by-nc-sa/4.0/",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-download",
+          "machine_interface": "iiif",
+          "decision": "select",
+          "rationale": "The institutional record and visible pages establish the 1889 standalone Naumann publication without an edition statement, the BSB Ph.pr. 881 kc copy, 164 ordered canvases, stable identifiers, and an exact official PDF route. It is admitted as an item witness only; no OCR, German text, critical-text equivalence, or publication authority follows.",
+          "acquisition": {
+            "downloaded": true,
+            "acquired_at": "2026-07-30T09:51:59-06:00",
+            "byte_size": 68398920,
+            "sha256": "f41a1dee091edd895d1f18a510dc73b48949257e882d3390c6c8f72beeb8d086",
+            "event_ref": "tos.event.acquisition.goetzen-daemmerung-naumann-1889.mdz-bsb-scan-pdf.2026-07-30"
+          },
+          "snapshot": {
+            "state": "captured",
+            "format": "static-snapshot",
+            "sha256": "78592308c82efec100af888c496a145436e7b0ef06da6685ce084896ff04151f",
+            "reason": "The exact IIIF manifest digest retains publication, holding, license, service, and ordered-canvas identity."
+          }
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-general-web-goetzen-daemmerung",
+      "sequence": 7,
+      "channel_type": "general-web-search",
+      "role": "lead-only",
+      "source_name": "General web search",
+      "endpoint_url": "https://www.google.com/search",
+      "interface_type": "web",
+      "interface_version": "search results observed 2026-07-30",
+      "exact_query": "\"Götzen-Dämmerung\" 1889 Naumann first edition scan; current institutional object, scholarly commentary, and rights route",
+      "queried_at": "2026-07-30T09:56:00-06:00",
+      "elapsed_seconds": 1.9,
+      "result_order_preserved": true,
+      "results": []
+    }
+  ],
+  "channel_comparison": [
+    {
+      "channel_id": "channel-dnb-goetzen-daemmerung-work-authority",
+      "completeness": "adequate",
+      "metadata_precision": "strong",
+      "rights_clarity": "strong",
+      "machine_interface_quality": "strong",
+      "human_minutes": 1.0,
+      "machine_seconds": 0.901,
+      "notes": "Best work-identity authority; no item bytes or holding-copy identity."
+    },
+    {
+      "channel_id": "channel-dta-goetzen-daemmerung-author-corpus",
+      "completeness": "limited",
+      "metadata_precision": "strong",
+      "rights_clarity": "strong",
+      "machine_interface_quality": "adequate",
+      "human_minutes": 0.5,
+      "machine_seconds": 1.211,
+      "notes": "The current author corpus has seven Nietzsche objects but no target."
+    },
+    {
+      "channel_id": "channel-textgrid-goetzen-daemmerung-corpus",
+      "completeness": "adequate",
+      "metadata_precision": "limited",
+      "rights_clarity": "strong",
+      "machine_interface_quality": "strong",
+      "human_minutes": 2.0,
+      "machine_seconds": 0.935,
+      "notes": "Useful modern text challenger; weak historical-item identity."
+    },
+    {
+      "channel_id": "channel-hadw-goetzen-daemmerung-text-history",
+      "completeness": "strong",
+      "metadata_precision": "strong",
+      "rights_clarity": "unknown",
+      "machine_interface_quality": "adequate",
+      "human_minutes": 5.0,
+      "machine_seconds": 2.501,
+      "notes": "Best source for production and second-edition history; not a source item."
+    },
+    {
+      "channel_id": "channel-google-books-goetzen-daemmerung-1889",
+      "completeness": "limited",
+      "metadata_precision": "limited",
+      "rights_clarity": "limited",
+      "machine_interface_quality": "limited",
+      "human_minutes": 5.0,
+      "machine_seconds": 1.917,
+      "notes": "Useful lead, but the Edition 2 label conflicts with the 1893 second-edition history and the tested downloads returned HTML."
+    },
+    {
+      "channel_id": "channel-mdz-bsb-goetzen-daemmerung-1889",
+      "completeness": "strong",
+      "metadata_precision": "strong",
+      "rights_clarity": "strong",
+      "machine_interface_quality": "strong",
+      "human_minutes": 16.0,
+      "machine_seconds": 3.781,
+      "notes": "Best exact institutional item route, with ordered images, stable identifiers, holding provenance, concrete license evidence, and acquired-byte fixity."
+    },
+    {
+      "channel_id": "channel-general-web-goetzen-daemmerung",
+      "completeness": "limited",
+      "metadata_precision": "limited",
+      "rights_clarity": "poor",
+      "machine_interface_quality": "limited",
+      "human_minutes": 3.0,
+      "machine_seconds": 1.9,
+      "notes": "Used last for leads and current-route cross-checks; no result was selected as authority."
+    }
+  ],
+  "selected_result_ids": [
+    "tos-discovery-result.mdz-bsb00069119-goetzen-daemmerung-1889"
+  ],
+  "rejected_result_ids": [],
+  "rights_inference_from_availability_prohibited": true,
+  "general_web_search_is_last_resort": true,
+  "technical_access_bypass_used": false,
+  "maker": {
+    "maker_type": "model",
+    "agent_ref": "model:codex"
+  },
+  "started_at": "2026-07-30T09:36:53-06:00",
+  "ended_at": "2026-07-30T09:56:02-06:00",
+  "status": "reconciled",
+  "provenance_event_refs": [
+    "tos.event.discovery.goetzen-daemmerung-naumann-1889-open-scan-witness.2026-07-30"
+  ],
+  "record_version": 1,
+  "supersedes_discovery_ref": null
+}

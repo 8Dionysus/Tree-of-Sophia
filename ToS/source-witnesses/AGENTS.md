@@ -6,9 +6,10 @@ This file applies to primary witness and source files under
 ## Role
 
 `ToS/source-witnesses/` holds the corpus evidence spine that grounds authored
-ToS routes: work/expression/edition/item identity, immutable local payloads,
-primary-language text, translations, aligned witnesses, fixity, provenance,
-rights, and forensic evidence.
+ToS routes: bibliographic work/expression/edition/item identity, parallel
+physical-artifact identity, immutable local payloads, primary-language text,
+translations, aligned witnesses, fixity, provenance, rights, and forensic
+evidence.
 
 ## Operating Card
 
@@ -17,7 +18,7 @@ rights, and forensic evidence.
 | role | primary witness and source-facing evidence surface |
 | input | acquired item, primary-language text, translation, collection membership, source-page metadata, or provenance/rights evidence |
 | output | addressable reviewable witness surface with explicit identity, fixity, source, and rights posture |
-| owner | `ToS/source-witnesses/AGENTS.md`, `README.md`, tracked catalog, and nearest object record |
+| owner | `ToS/source-witnesses/AGENTS.md`, `README.md`, nearest object/claim record, and generated tracked catalog |
 | next route | source witness -> `ToS/philosophy/` branch or `ToS/candidate-intake/` pass -> `ToS/canon/` review |
 | tools | manual corpus gate, source route docs, witness manifests |
 | check | route validator when the witness feeds a current public or export surface |
@@ -29,9 +30,53 @@ rights, and forensic evidence.
 - Use the identity ladder `work -> expression -> edition -> item -> file`.
   Route multi-work publications through `collections/` and evidence-bearing
   membership claims.
+- Route a physical artifact that is not naturally bibliographic through
+  `artifacts/<tradition>/<site>/<physical-identity>/`. Do not force it into the
+  Work/Expression/Edition/Item ladder or key its durable path to a mutable
+  digital provider.
+- Route a modern documentary, critical, or synoptic composite through
+  `scholarly-composites/<genre-or-method>/<tradition>/<composition-identity>/`.
+  Keep its durable identity independent of the provider and retain member
+  assertions and representation coverage as dated evidence.
+- Keep physical artifact, catalog record, inscription or transliteration,
+  scholarly composite, photograph, line art, and interpretation as separate
+  layers. A stable sign or artifact ID does not establish a fixed reading,
+  translation, semantics, philosophy status, graph fact, or canon state.
+- Keep a composite, its physical members, member transliterations, editorial
+  lines, translations, and provider pages separate. Page-visible source lists
+  do not become completeness claims, and absence from one representation does
+  not erase a stronger exact membership relation.
 - Treat paths as navigation and tracked IDs as identity. Never merge two
   objects only because their paths, titles, translators, or sampled text look
   similar.
+- Treat authored claim packets and provenance events as relation authority.
+  The generated claim catalog is source-returnable navigation only. Project
+  only `public` or `public_metadata_only` claims; fail closed on less-visible
+  packets until a reviewed public-safe derivative exists.
+- Keep every Work in the current `works/friedrich-nietzsche/` corpus closed
+  over its explicit `authored_by` packet to the Nietzsche Agent. Do not infer
+  this claim from the responsibility path. A future anonymous, disputed,
+  collaborative, or differently authored Work needs its own evidence-bearing
+  responsibility design instead of inheriting the bounded Nietzsche rule.
+- Keep those seven Works closed over exactly one source-owned
+  `first_publication_chronology` packet. Preserve interval start and end,
+  stage sequence, precision, availability, and the ordering warning; never
+  replace this profile with an untyped Work year. Composition, printing,
+  title-page, public-sale, posthumous editorial, reception, and digitization
+  time require distinct claims.
+- Keep Edition `provision_activity_claim_refs` in exact sibling-file closure.
+  A provision activity groups its literal statement, typed activity, role-
+  specific places and agents, temporal assertion, evidence, provenance, and
+  review posture. Preserve transcription separately from normalized Place or
+  Organization identity; never infer a publisher from an Edition label,
+  substitute a printer or modern successor, turn a statement year into a
+  public-release date, or emit a direct Edition-to-identity graph fact.
+- Keep the declared identity ladder and its outgoing claim refs in exact
+  closure: Work `expression_claim_refs`, Expression
+  `embodiment_claim_refs`, and Edition `exemplar_claim_refs` must resolve to
+  the three owned files under `relations/` and agree with `work_ref`,
+  `embodies_expression_refs`, and item-manifest `embodiment_ref`. Never infer
+  textual equivalence from this bibliographic topology.
 - Keep only item `payload/` content gitignored. Track manifest, SHA-256,
   provenance, rights, forensic report, and catalog entry.
 - Preserve original bytes. OCR, correction, normalization, segmentation, and
@@ -50,8 +95,9 @@ rights, and forensic evidence.
 
 ## Validation
 
-Use the source-foundation validator for catalog, object-record, payload-ignore,
-fixity, rights, and reference mechanics. Use the review checklist for source
-identity, edition, translation, rights, or interpretation judgments. If the
-witness participates in the current bounded route, also use tiny-entry and
+Use the source-foundation validator for object/claim catalog parity,
+source-line/digest return, object/claim closure, payload-ignore, fixity, rights,
+and reference mechanics. Use the review checklist for source identity,
+edition, relation truth, translation, rights, or interpretation judgments. If
+the witness participates in the current bounded route, also use tiny-entry and
 export validators.

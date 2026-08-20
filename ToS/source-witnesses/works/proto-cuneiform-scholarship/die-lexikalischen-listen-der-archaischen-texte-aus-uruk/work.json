@@ -1,0 +1,76 @@
+{
+  "schema_version": "tos_corpus_record_v1",
+  "record_type": "work",
+  "record_id": "tos.work.proto-cuneiform.die-lexikalischen-listen-der-archaischen-texte-aus-uruk",
+  "preferred_label": "Die lexikalischen Listen der archaischen Texte aus Uruk",
+  "variant_labels": [
+    {
+      "value": "ATU 3",
+      "language": "und",
+      "source_ref": "https://www.geschkult.fu-berlin.de/en/e/vaa/forschung/projekte_abgeschlossen/archaische_texte/index.html",
+      "status": "verified"
+    },
+    {
+      "value": "LLATU",
+      "language": "und",
+      "source_ref": "https://oracc.museum.upenn.edu/pcsl/signlist/Abbreviations/index.html",
+      "status": "verified"
+    }
+  ],
+  "identity_status": "verified",
+  "source_refs": [
+    "ToS/research-packets/foundation-laboratory-2026-07/A01_ATU3_LEXICAL_LISTS_SOURCE_PLANTING_RESEARCH_2026-08-12.md",
+    "ToS/source-witnesses/discovery/runs/proto-cuneiform-atu3-lexical-lists-critical-edition.2026-08-12.v1.json",
+    "https://cdli.earth/publications/1785922",
+    "https://www.reimer-mann-verlag.de/controller.php?cmd=detail&titelnummer=301687&verlag=3",
+    "https://katalog.ub.uni-heidelberg.de/titel/3639871"
+  ],
+  "external_identifiers": [
+    {
+      "scheme": "ATU",
+      "value": "3",
+      "source_ref": "https://www.geschkult.fu-berlin.de/en/e/vaa/forschung/projekte_abgeschlossen/archaische_texte/index.html",
+      "status": "verified"
+    },
+    {
+      "scheme": "ADFU",
+      "value": "13",
+      "source_ref": "https://cdli.earth/publications/1785922",
+      "status": "verified"
+    },
+    {
+      "scheme": "CDLI publication",
+      "value": "1785922",
+      "source_ref": "https://cdli.earth/publications/1785922",
+      "status": "verified"
+    },
+    {
+      "scheme": "ISBN",
+      "value": "978-3-7861-1687-5",
+      "source_ref": "https://katalog.ub.uni-heidelberg.de/titel/3639871",
+      "status": "verified"
+    },
+    {
+      "scheme": "OCLC",
+      "value": "489728713",
+      "source_ref": "https://search.worldcat.org/de/title/lexikalischen-listen-der-archaischen-texte-aus-uruk/oclc/489728713",
+      "status": "verified"
+    },
+    {
+      "scheme": "K10plus-PPN",
+      "value": "1104598086",
+      "source_ref": "https://katalog.ub.uni-heidelberg.de/titel/3639871",
+      "status": "verified"
+    }
+  ],
+  "same_as_posture": "no_equivalence_claim",
+  "responsibility_claim_refs": [
+    "tos.claim.work.proto-cuneiform.atu3.authored-by-robert-k-englund",
+    "tos.claim.work.proto-cuneiform.atu3.authored-by-hans-j-nissen",
+    "tos.claim.work.proto-cuneiform.atu3.contributed-by-peter-damerow"
+  ],
+  "expression_claim_refs": [],
+  "notes": "Standalone scholarly Work reported as ATU 3 / ADFU 13, Berlin: Gebr. Mann, 1993. Current official and library records report Robert K. Englund and Hans J. Nissen as authors and Peter Damerow as collaborator; CDLI flattens all three into its author list. LLATU denotes the book's sign-index coordinate system at pp. 177-327, not a separate Work, stable sign identity, reading, gloss, or semantic ontology. No Expression, Edition, Item, payload, source text, sign inventory, or redistribution permission is admitted.",
+  "record_version": 1,
+  "supersedes_ref": null
+}

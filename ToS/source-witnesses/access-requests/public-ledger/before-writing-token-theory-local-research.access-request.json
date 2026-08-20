@@ -1,0 +1,81 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/access-request.schema.json",
+  "schema_version": "tos_access_request_v1",
+  "request_id": "tos.access-request.before-writing-token-theory-local-research",
+  "material": {
+    "title": "Before Writing, Vol. I: From Counting to Cuneiform and Before Writing, Vol. II: A Catalog of Near Eastern Tokens",
+    "responsibility": "Denise Schmandt-Besserat",
+    "edition_or_resource": "University of Texas Press, 1992; Volume I current paperback ISBN 978-1-4773-2576-6; Volume II print ISBN 978-0-292-72670-3",
+    "requested_portion": "The complete text, notes, tables, charts, drawings, photographs, and catalog data of both volumes, or the largest lawful machine-readable research subset University of Texas Press can authorize. If third-party image rights prevent complete access, text, tabular catalog data, stable page order, and exact image-credit metadata without the restricted images are acceptable.",
+    "identifiers": [
+      {"scheme": "ISBN", "value": "978-0-292-70783-2"},
+      {"scheme": "ISBN", "value": "978-1-4773-2576-6"},
+      {"scheme": "Library of Congress Classification", "value": "CJ4867.S36 1992"},
+      {"scheme": "Volume II ISBN", "value": "978-0-292-72670-3"}
+    ],
+    "tos_refs": [
+      "tos.work.proto-cuneiform.before-writing-volume-i-from-counting-to-cuneiform"
+    ],
+    "discovery_refs": [
+      "ToS/source-witnesses/discovery/runs/proto-cuneiform-schmandt-besserat-token-tablet-debate.2026-08-12.v1.json"
+    ]
+  },
+  "rights_holder_or_institution": {
+    "name": "University of Texas Press",
+    "role": "publisher",
+    "identification_evidence_urls": [
+      "https://utpress.utexas.edu/9781477325766/",
+      "https://utpress.utexas.edu/9780292726703/",
+      "https://utpress.utexas.edu/book-permissions/"
+    ],
+    "identity_status": "identified"
+  },
+  "contact_route": {
+    "channel_type": "public-institutional-email",
+    "public_institutional_url": "mailto:permissions@utpress.utexas.edu",
+    "refreshed_at": "2026-08-12T17:36:00-06:00",
+    "personal_contact_committed": false
+  },
+  "project_description_ref": "README.md",
+  "research_purpose": "Test the historical token-to-tablet theory against its artifact catalog, classical critiques, and current archaeological scholarship in Tree of Sophia's source-first laboratory. The access-controlled local solo-plus-AI study would preserve exact pages and artifact identifiers, compare morphology only under explicit transformations, separate physical observations from functional and semantic interpretations, retain counterexamples and competing media, and measure source returnability, error, cost, speed, and human attention. It is not model development or training.",
+  "requested_format": "Permission to make or receive one access-controlled local research copy of each volume, preserve fixity and page provenance, run local OCR or transcription, structured extraction, indexing, retrieval, embeddings, image-to-catalog alignment, and source-grounded computer-assisted comparison, and quote only bounded passages with attribution. No public source-file hosting, model-training corpus, content-bearing derivative publication, server processing, or redistribution is requested.",
+  "requested_permissions": {
+    "local_access": "requested",
+    "ocr_or_transcription": "requested",
+    "indexing": "requested",
+    "embeddings": "requested",
+    "quotation": "requested",
+    "metadata_publication": "requested",
+    "derivative_publication": "not-requested",
+    "server_processing": "not-requested",
+    "source_redistribution": "not-requested"
+  },
+  "local_storage_conditions": {
+    "access_controlled": true,
+    "source_payload_gitignored": true,
+    "location_class": "operator-controlled-local-ToS-storage",
+    "retention_posture": "Retain only under the publisher's written conditions; preserve fixity and provenance; keep book bytes, OCR, extracted catalog data, indexes, embeddings, and content-bearing derivatives local and removable; publish neither the volumes nor restricted derivatives.",
+    "removal_supported": true
+  },
+  "non_redistribution_without_permission": true,
+  "technical_access_bypass_used": false,
+  "access_status": "restricted",
+  "request_status": "draft-not-sent",
+  "human_send_approval": false,
+  "sent_at": null,
+  "response": {
+    "state": "none",
+    "received_at": null,
+    "permission_expires_at": null,
+    "conditions": [],
+    "safe_evidence_refs": []
+  },
+  "private_correspondence_ref": null,
+  "redacted_public_receipt_ref": null,
+  "personal_or_confidential_data_committed": false,
+  "rights_record_refs": [],
+  "provenance_event_refs": [
+    "tos.event.access-request-draft.before-writing-token-theory-local-research.2026-08-12"
+  ],
+  "record_version": 1
+}

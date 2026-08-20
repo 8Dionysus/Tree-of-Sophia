@@ -1,0 +1,441 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/material-discovery-record.schema.json",
+  "schema_version": "tos_material_discovery_record_v1",
+  "discovery_id": "tos.discovery.proto-cuneiform-atu5-numerical-texts-layer.2026-08-12",
+  "protocol_ref": "ToS/source-witnesses/discovery/DISCOVERY_PROTOCOL.md",
+  "target": {
+    "target_kind": "critical-edition",
+    "known_tos_refs": [
+      "tos.work.proto-cuneiform.archaic-administrative-texts-from-uruk-the-early-campaigns"
+    ],
+    "description": "Resolve the A01 ATU 5 numerical-texts-layer anchor as a historically documented subset inside one standalone bibliographic Work, preserve dual-series and responsibility identity, check established and fresh numerical/sign controls, and find a lawful local-research route without acquiring source content.",
+    "required_properties": [
+      "exact 1994 Work and dual-series publication identity",
+      "authorship and contribution roles without creator flattening",
+      "source-backed numerical-only subset boundary without a false second Work",
+      "recognized direct-review and numerical-context controls",
+      "fresh 2024-2026 corpus, precursor, concordance, and encoding controls",
+      "layer-specific access and redistribution posture"
+    ],
+    "acceptable_substitutions": [
+      "a lawfully supplied complete ATU 5 Item with exact front matter and fixity",
+      "a library-provided bounded numerical-text research packet with explicit local-processing terms",
+      "an exact source-visible ATU 5 catalog and plate concordance that identifies numerical-only members without erasing the historical Work"
+    ],
+    "languages": ["en", "de", "sux", "und"],
+    "formats": [
+      "book metadata",
+      "critical-edition catalog",
+      "publication-history article",
+      "review publication",
+      "artifact database documentation",
+      "sign and numeral concordance",
+      "Unicode proposal",
+      "rights and library access terms"
+    ],
+    "purpose_ref": "ToS/research-packets/foundation-laboratory-2026-07/A01_ATU5_NUMERICAL_TEXTS_LAYER_SOURCE_PLANTING_RESEARCH_2026-08-12.md"
+  },
+  "channels": [
+    {
+      "channel_id": "channel-atu5-official-bibliography",
+      "sequence": 1,
+      "channel_type": "specialized-scholarly-project",
+      "role": "originating-record",
+      "source_name": "Freie Universitaet Berlin ATU project, CDLI publication records, Gebr. Mann publisher, Zenon, and CiNii",
+      "endpoint_url": "https://cdli.earth/publications/1139",
+      "interface_type": "web",
+      "interface_version": "current institutional records checked 2026-08-12",
+      "exact_query": "Resolve ATU 5 / ADFU 15 as one Work; verify title, responsibility wording, series, year, extent, contents, identifiers, and availability before selecting a witness.",
+      "queried_at": "2026-08-12T13:35:00-06:00",
+      "elapsed_seconds": 5.2,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.atu5-exact-work-dual-series",
+          "rank": 1,
+          "title_as_displayed": "Archaic Administrative Texts from Uruk: The Early Campaigns",
+          "result_url": "https://cdli.earth/publications/1139",
+          "originating_record_url": "https://www.geschkult.fu-berlin.de/en/e/vaa/forschung/projekte_abgeschlossen/archaische_texte/index.html",
+          "identifiers": [
+            {"scheme": "ATU", "value": "5"},
+            {"scheme": "ADFU", "value": "15"},
+            {"scheme": "CDLI publication", "value": "1139"},
+            {"scheme": "CDLI publication", "value": "1785923"},
+            {"scheme": "ISBN", "value": "978-3-7861-1745-2"},
+            {"scheme": "CiNii NCID", "value": "BB0633060X"}
+          ],
+          "available_formats": ["bibliographic HTML", "BibTeX", "RIS", "institutional catalog metadata"],
+          "declared_rights": {"statement": null, "scope": "content", "evidence_url": null, "tos_conclusion": "evidence-only-not-a-rights-conclusion"},
+          "availability": "metadata-only",
+          "machine_interface": "html",
+          "decision": "select",
+          "rationale": "The combined institutional records prove that ATU 5 and ADFU 15 identify one 1994 book and preserve the author-versus-contributor distinction without supplying a source Item.",
+          "acquisition": {"downloaded": false, "acquired_at": null, "byte_size": null, "sha256": null, "event_ref": null},
+          "snapshot": {"state": "not-needed", "format": null, "sha256": null, "reason": "Public metadata was sufficient for the bounded Work identity planting."}
+        },
+        {
+          "result_id": "tos-discovery-result.atu5-publisher-content-and-extent",
+          "rank": 2,
+          "title_as_displayed": "Archaic Administrative Texts from Uruk",
+          "result_url": "https://www.reimer-mann-verlag.de/controller.php?cmd=detail&titelnummer=301745&verlag=3",
+          "originating_record_url": "https://www.reimer-mann-verlag.de/controller.php?cmd=reihen&reihe=Ausgrabungen+der+Deutschen+Forschungsgemeinschaft+in+Uruk-Warka&verlag=3",
+          "identifiers": [
+            {"scheme": "ISBN", "value": "978-3-7861-1745-2"},
+            {"scheme": "ATU", "value": "5"},
+            {"scheme": "ADFU", "value": "15"}
+          ],
+          "available_formats": ["publisher metadata", "contents description", "out-of-print status"],
+          "declared_rights": {"statement": null, "scope": "content", "evidence_url": null, "tos_conclusion": "evidence-only-not-a-rights-conclusion"},
+          "availability": "unavailable",
+          "machine_interface": "html",
+          "decision": "select",
+          "rationale": "The publisher fixes the exact responsibility wording and describes approximately 820 documents, catalog, transliterations, sign glossary, copies, and plates; its extent differs from catalogs and is retained as source-specific metadata.",
+          "acquisition": {"downloaded": false, "acquired_at": null, "byte_size": null, "sha256": null, "event_ref": null},
+          "snapshot": {"state": "not-needed", "format": null, "sha256": null, "reason": "No source content, order, or acquisition was needed."}
+        },
+        {
+          "result_id": "tos-discovery-result.nissen-2024-atu5-numerical-omission-boundary",
+          "rank": 3,
+          "title_as_displayed": "Uruk and I",
+          "result_url": "https://cdli.earth/articles/cdlj/2024-1",
+          "originating_record_url": "https://cdli.earth/articles/cdlj/2024-1.pdf",
+          "identifiers": [{"scheme": "CDLJ", "value": "2024:1"}],
+          "available_formats": ["open article HTML", "open article PDF"],
+          "declared_rights": {"statement": "CDLI journal access and reuse terms apply to the article; no article body is republished here.", "scope": "content", "evidence_url": "https://cdli.earth/terms-of-use", "tos_conclusion": "evidence-only-not-a-rights-conclusion"},
+          "availability": "open-view",
+          "machine_interface": "html",
+          "decision": "select",
+          "rationale": "Nissen directly reports that Falkenstein omitted numerical-only tablets from ATU 1 and that Englund published them in ATU 5, proving the subset boundary without creating a second Work.",
+          "acquisition": {"downloaded": false, "acquired_at": null, "byte_size": null, "sha256": null, "event_ref": null},
+          "snapshot": {"state": "not-captured", "format": null, "sha256": null, "reason": "The remote article was inspected; no article content entered Git."}
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-atu5-established-scholarship",
+      "sequence": 2,
+      "channel_type": "specialized-scholarly-project",
+      "role": "scholarly-index",
+      "source_name": "KeiBi direct-review index and journal records",
+      "endpoint_url": "https://vergil.uni-tuebingen.de/keibi/Record/KEI00000292",
+      "interface_type": "web",
+      "interface_version": "direct review records checked 2026-08-12",
+      "exact_query": "Identify direct reviews of ATU 5 and the strongest established correction and contextual-analysis surfaces without promoting inaccessible review assertions.",
+      "queried_at": "2026-08-12T13:43:00-06:00",
+      "elapsed_seconds": 3.1,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.atu5-direct-review-trail",
+          "rank": 1,
+          "title_as_displayed": "ATU 5 reviews by Foster, Powell, Friberg, and Bauer",
+          "result_url": "https://vergil.uni-tuebingen.de/keibi/Record/KEI00000292",
+          "originating_record_url": "https://cdli.earth/publications/1638759",
+          "identifiers": [{"scheme": "Powell review DOI", "value": "10.2307/605288"}],
+          "available_formats": ["review bibliography", "journal metadata", "indexed review excerpt"],
+          "declared_rights": {"statement": null, "scope": "content", "evidence_url": null, "tos_conclusion": "evidence-only-not-a-rights-conclusion"},
+          "availability": "metadata-only",
+          "machine_interface": "html",
+          "decision": "select",
+          "rationale": "Four direct reviews provide correction surfaces; Powell's indexed excerpt also supplies a bounded content map, but no inaccessible review-body claim is imported.",
+          "acquisition": {"downloaded": false, "acquired_at": null, "byte_size": null, "sha256": null, "event_ref": null},
+          "snapshot": {"state": "not-captured", "format": null, "sha256": null, "reason": "Only bibliographic and source-visible indexed evidence was required."}
+        },
+        {
+          "result_id": "tos-discovery-result.friberg-1999-counting-accounting-review",
+          "rank": 2,
+          "title_as_displayed": "Counting and Accounting in the Proto-Literate Middle East: Examples from Two New Volumes of Proto-Cuneiform Texts",
+          "result_url": "https://doi.org/10.2307/1359734",
+          "originating_record_url": "https://www.journals.uchicago.edu/doi/10.2307/1359734",
+          "identifiers": [{"scheme": "DOI", "value": "10.2307/1359734"}],
+          "available_formats": ["journal metadata", "review-article abstract/indexing"],
+          "declared_rights": {"statement": null, "scope": "content", "evidence_url": null, "tos_conclusion": "evidence-only-not-a-rights-conclusion"},
+          "availability": "subscription",
+          "machine_interface": "html",
+          "decision": "select",
+          "rationale": "The long direct review is retained as the principal established analytical route; its inaccessible body is not paraphrased as inspected evidence.",
+          "acquisition": {"downloaded": false, "acquired_at": null, "byte_size": null, "sha256": null, "event_ref": null},
+          "snapshot": {"state": "not-permitted", "format": null, "sha256": null, "reason": "No authorized article-body capture was available in this pass."}
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-atu5-fresh-method-and-identity",
+      "sequence": 3,
+      "channel_type": "identifier-registry",
+      "role": "mixed",
+      "source_name": "2025 seal/sign research, current CDLI coverage, PCSL numerical concordances, and Unicode pipeline",
+      "endpoint_url": "https://oracc.museum.upenn.edu/pcsl/signlist/Numbers/index.html",
+      "interface_type": "web",
+      "interface_version": "current surfaces checked 2026-08-12; Unicode 18.0 remains draft",
+      "exact_query": "Check the freshest contextual, corpus, sign/numeral identity, and encoding evidence relevant to the ATU 5 numerical subset without turning current representations into source or semantic truth.",
+      "queried_at": "2026-08-12T13:49:00-06:00",
+      "elapsed_seconds": 5.4,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.cdli-atu5-current-coverage-and-examples",
+          "rank": 1,
+          "title_as_displayed": "CDLI ATU 5 publication search and numerical tablet records",
+          "result_url": "https://cdli.earth/search?publication_bibtexkey=Englund1994ATU5",
+          "originating_record_url": "https://cdli.earth/artifacts/753",
+          "identifiers": [
+            {"scheme": "current result count", "value": "897"},
+            {"scheme": "CDLI artifact", "value": "P000753"},
+            {"scheme": "CDLI artifact", "value": "P000754"},
+            {"scheme": "CDLI artifact", "value": "P000755"}
+          ],
+          "available_formats": ["search HTML", "artifact HTML", "JSON API", "tabular export", "transliteration"],
+          "declared_rights": {"statement": "CDLI textual page data and transliterations may be reused with attribution under stated terms; photographs and line art remain separately owned.", "scope": "digital-object", "evidence_url": "https://cdli.earth/terms-of-use", "tos_conclusion": "evidence-only-not-a-rights-conclusion"},
+          "availability": "open-view",
+          "machine_interface": "api",
+          "decision": "select",
+          "rationale": "The dated 897-result surface and exact numerical-tablet examples prove current provider coverage and subset existence, not timeless corpus size or exhaustive numerical-only membership.",
+          "acquisition": {"downloaded": false, "acquired_at": null, "byte_size": null, "sha256": null, "event_ref": null},
+          "snapshot": {"state": "not-captured", "format": null, "sha256": null, "reason": "No current provider dataset, image, or transliteration was imported."}
+        },
+        {
+          "result_id": "tos-discovery-result.kelley-cartolano-ferrara-2025-seals-signs",
+          "rank": 2,
+          "title_as_displayed": "Seals and signs: tracing the origins of writing in ancient South-west Asia",
+          "result_url": "https://www.cambridge.org/core/journals/antiquity/article/seals-and-signs-tracing-the-origins-of-writing-in-ancient-southwest-asia/B3C2D400F3F80A7A0162D9035C9C2804",
+          "originating_record_url": "https://doi.org/10.15184/aqy.2024.165",
+          "identifiers": [{"scheme": "DOI", "value": "10.15184/aqy.2024.165"}],
+          "available_formats": ["open-access article HTML", "publisher PDF"],
+          "declared_rights": {"statement": "Creative Commons Attribution-NonCommercial-NoDerivatives 4.0 International", "scope": "content", "evidence_url": "https://www.cambridge.org/core/journals/antiquity/article/seals-and-signs-tracing-the-origins-of-writing-in-ancient-southwest-asia/B3C2D400F3F80A7A0162D9035C9C2804", "tos_conclusion": "evidence-only-not-a-rights-conclusion"},
+          "availability": "open-view",
+          "machine_interface": "html",
+          "decision": "select",
+          "rationale": "The article makes numerical notation and sign precursors contextual research questions and warns against semantic inference from shape or adjacency alone.",
+          "acquisition": {"downloaded": false, "acquired_at": null, "byte_size": null, "sha256": null, "event_ref": null},
+          "snapshot": {"state": "not-captured", "format": null, "sha256": null, "reason": "The article remains remote and no derivative was made."}
+        },
+        {
+          "result_id": "tos-discovery-result.pcsl-acn-numerical-working-layers",
+          "rank": 3,
+          "title_as_displayed": "PCSL ACN Concordance and Numbers",
+          "result_url": "https://oracc.museum.upenn.edu/pcsl/signlist/ACNConcordance/index.html",
+          "originating_record_url": "https://oracc.museum.upenn.edu/pcsl/signlist/Numbers/index.html",
+          "identifiers": [{"scheme": "PCSL surface", "value": "ACN Concordance"}],
+          "available_formats": ["working concordance HTML", "number list", "frequency surface"],
+          "declared_rights": {"statement": null, "scope": "content", "evidence_url": null, "tos_conclusion": "evidence-only-not-a-rights-conclusion"},
+          "availability": "open-view",
+          "machine_interface": "html",
+          "decision": "select",
+          "rationale": "PCSL exposes numeric-versus-ideographic separation and variant choices; these remain mutable scholarly coordinates rather than ATU 5 membership or contextual value.",
+          "acquisition": {"downloaded": false, "acquired_at": null, "byte_size": null, "sha256": null, "event_ref": null},
+          "snapshot": {"state": "not-captured", "format": null, "sha256": null, "reason": "No sign list, images, or concordance data entered ToS."}
+        },
+        {
+          "result_id": "tos-discovery-result.unicode-archaic-numerals-current-state",
+          "rank": 4,
+          "title_as_displayed": "Proposal to Encode Proto-Cuneiform and Unicode 18.0 draft",
+          "result_url": "https://www.unicode.org/L2/L2025/25211-proto-cuneiform.pdf",
+          "originating_record_url": "https://www.unicode.org/versions/Unicode18.0.0/",
+          "identifiers": [
+            {"scheme": "Unicode document", "value": "L2/25-211"},
+            {"scheme": "Unicode version", "value": "18.0 draft"},
+            {"scheme": "UTC meeting", "value": "185"}
+          ],
+          "available_formats": ["official proposal PDF", "draft version page", "allocation pipeline", "UTC minutes", "UTR 56"],
+          "declared_rights": {"statement": "Unicode technical-document terms apply; no document body or character data is republished in this planting.", "scope": "content", "evidence_url": "https://www.unicode.org/copyright.html", "tos_conclusion": "evidence-only-not-a-rights-conclusion"},
+          "availability": "open-view",
+          "machine_interface": "html",
+          "decision": "select",
+          "rationale": "Archaic numerals are planned for Unicode 18.0 while the nonnumeric block remains provisional; numeric properties and code points remain technical coordinates, not contextual metrological meanings.",
+          "acquisition": {"downloaded": false, "acquired_at": null, "byte_size": null, "sha256": null, "event_ref": null},
+          "snapshot": {"state": "not-captured", "format": null, "sha256": null, "reason": "Currentness is preserved through dated official links; no standard data was copied."}
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-atu5-current-library-access",
+      "sequence": 4,
+      "channel_type": "university-catalog",
+      "role": "digital-object-record",
+      "source_name": "DAI Zenon holding and Orient Department library service",
+      "endpoint_url": "https://zenon.dainst.org/Record/000223247/Access",
+      "interface_type": "web",
+      "interface_version": "institutional holding and public service route checked 2026-08-12",
+      "exact_query": "Resolve one institution-owned lawful scholarly access route and a tiered request scope without sending a message or inferring content rights.",
+      "queried_at": "2026-08-12T13:58:00-06:00",
+      "elapsed_seconds": 2.9,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.dai-atu5-holding-and-copy-inquiry",
+          "rank": 1,
+          "title_as_displayed": "DAI Zenon ATU 5 holding and Orient Department Library",
+          "result_url": "https://www.dainst.org/en/departments/orient-department/about-us/organisation/library",
+          "originating_record_url": "https://zenon.dainst.org/Record/000223247/Access",
+          "identifiers": [{"scheme": "Zenon record", "value": "000223247"}, {"scheme": "ISBN", "value": "3-7861-1745-4"}],
+          "available_formats": ["physical holding metadata", "public institutional inquiry route", "scans or copies on inquiry"],
+          "declared_rights": {"statement": "The library may supply scans or copies on inquiry; exact copyright, service, and research-use conditions must be requested.", "scope": "digital-object", "evidence_url": "https://www.dainst.org/en/departments/orient-department/about-us/organisation/library", "tos_conclusion": "evidence-only-not-a-rights-conclusion"},
+          "availability": "permission-required",
+          "machine_interface": "manual-only",
+          "decision": "select",
+          "rationale": "The exact holding and public service page support a later tiered human-authorized request while preserving copying, rights, and institutional discretion.",
+          "acquisition": {"downloaded": false, "acquired_at": null, "byte_size": null, "sha256": null, "event_ref": null},
+          "snapshot": {"state": "not-needed", "format": null, "sha256": null, "reason": "No inquiry, source acquisition, or personal data entry occurred."}
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-atu5-rights-documentation",
+      "sequence": 5,
+      "channel_type": "specialized-scholarly-project",
+      "role": "digital-object-record",
+      "source_name": "CDLI API, metadata, and terms documentation",
+      "endpoint_url": "https://cdli.earth/terms-of-use",
+      "interface_type": "web",
+      "interface_version": "current CDLI documentation checked 2026-08-12",
+      "exact_query": "Separate reuse conditions for metadata and transliterations from photographs, line art, publication pages, and plates before any future provider snapshot or content intake.",
+      "queried_at": "2026-08-12T14:02:00-06:00",
+      "elapsed_seconds": 2.1,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.cdli-layered-terms-and-api",
+          "rank": 1,
+          "title_as_displayed": "CDLI Terms of Use and API documentation",
+          "result_url": "https://cdli.earth/terms-of-use",
+          "originating_record_url": "https://cdli.earth/docs/api",
+          "identifiers": [],
+          "available_formats": ["terms HTML", "API documentation", "search documentation", "metadata-field documentation"],
+          "declared_rights": {"statement": "Textual page data and transliterations are reusable with CDLI attribution under stated academic practice; artifact photographs and author-owned line art are separately governed.", "scope": "digital-object", "evidence_url": "https://cdli.earth/terms-of-use", "tos_conclusion": "evidence-only-not-a-rights-conclusion"},
+          "availability": "open-view",
+          "machine_interface": "api",
+          "decision": "select",
+          "rationale": "The terms require layer-specific rights classification and prohibit treating a public CDLI record as one blanket license for images, line art, plates, or the ATU 5 volume.",
+          "acquisition": {"downloaded": false, "acquired_at": null, "byte_size": null, "sha256": null, "event_ref": null},
+          "snapshot": {"state": "not-needed", "format": null, "sha256": null, "reason": "Terms are cited as current evidence; no provider content was acquired."}
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-atu5-general-web-final",
+      "sequence": 6,
+      "channel_type": "general-web-search",
+      "role": "lead-only",
+      "source_name": "Final exact-title and ISBN web screen for a lawful complete Item",
+      "endpoint_url": "https://openlibrary.org/isbn/9783786117452",
+      "interface_type": "web",
+      "interface_version": "general web checked after authoritative sources on 2026-08-12",
+      "exact_query": "Search the exact title, ISBNs, ATU 5, ADFU 15, and Englund1994ATU5 for a lawful complete digital Item; reject metadata-only and unverified mirror routes.",
+      "queried_at": "2026-08-12T14:05:00-06:00",
+      "elapsed_seconds": 1.7,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.openlibrary-atu5-metadata-not-item",
+          "rank": 1,
+          "title_as_displayed": "Archaic Administrative Texts from Uruk",
+          "result_url": "https://openlibrary.org/isbn/9783786117452",
+          "originating_record_url": "https://openlibrary.org/books/OL12912936M",
+          "identifiers": [{"scheme": "Open Library Edition", "value": "OL12912936M"}, {"scheme": "OCLC", "value": "32446352"}],
+          "available_formats": ["community catalog metadata"],
+          "declared_rights": {"statement": null, "scope": "content", "evidence_url": null, "tos_conclusion": "evidence-only-not-a-rights-conclusion"},
+          "availability": "metadata-only",
+          "machine_interface": "api",
+          "decision": "reject",
+          "rationale": "The community record adds no lawful source Item and is weaker than the publisher, CDLI, DAI, and CiNii records; no unverified mirror was selected.",
+          "acquisition": {"downloaded": false, "acquired_at": null, "byte_size": null, "sha256": null, "event_ref": null},
+          "snapshot": {"state": "not-needed", "format": null, "sha256": null, "reason": "No source object was available to capture."}
+        }
+      ]
+    }
+  ],
+  "channel_comparison": [
+    {
+      "channel_id": "channel-atu5-official-bibliography",
+      "completeness": "strong",
+      "metadata_precision": "strong",
+      "rights_clarity": "limited",
+      "machine_interface_quality": "adequate",
+      "human_minutes": 0,
+      "machine_seconds": 5.2,
+      "notes": "Best Work, dual-series, responsibility, extent, contents, and historical numerical-subset evidence; no source Item or content license."
+    },
+    {
+      "channel_id": "channel-atu5-established-scholarship",
+      "completeness": "adequate",
+      "metadata_precision": "strong",
+      "rights_clarity": "limited",
+      "machine_interface_quality": "adequate",
+      "human_minutes": 0,
+      "machine_seconds": 3.1,
+      "notes": "Best direct correction and analytical routes; inaccessible review bodies remain unasserted."
+    },
+    {
+      "channel_id": "channel-atu5-fresh-method-and-identity",
+      "completeness": "strong",
+      "metadata_precision": "strong",
+      "rights_clarity": "adequate",
+      "machine_interface_quality": "strong",
+      "human_minutes": 0,
+      "machine_seconds": 5.4,
+      "notes": "Best current provider coverage, contextual method, numeric/ideographic separation, and provisional encoding-state controls."
+    },
+    {
+      "channel_id": "channel-atu5-current-library-access",
+      "completeness": "adequate",
+      "metadata_precision": "strong",
+      "rights_clarity": "adequate",
+      "machine_interface_quality": "limited",
+      "human_minutes": 0,
+      "machine_seconds": 2.9,
+      "notes": "Best lawful institutional access route; exact copy scope and all rights remain inquiry-dependent."
+    },
+    {
+      "channel_id": "channel-atu5-rights-documentation",
+      "completeness": "adequate",
+      "metadata_precision": "strong",
+      "rights_clarity": "strong",
+      "machine_interface_quality": "strong",
+      "human_minutes": 0,
+      "machine_seconds": 2.1,
+      "notes": "Separates reusable metadata/transliterations from separately governed photographs, line art, plates, and publication pages."
+    },
+    {
+      "channel_id": "channel-atu5-general-web-final",
+      "completeness": "limited",
+      "metadata_precision": "adequate",
+      "rights_clarity": "poor",
+      "machine_interface_quality": "adequate",
+      "human_minutes": 0,
+      "machine_seconds": 1.7,
+      "notes": "Found redundant community metadata but no lawful complete source Item; no unverified mirror was selected."
+    }
+  ],
+  "selected_result_ids": [
+    "tos-discovery-result.atu5-exact-work-dual-series",
+    "tos-discovery-result.atu5-publisher-content-and-extent",
+    "tos-discovery-result.nissen-2024-atu5-numerical-omission-boundary",
+    "tos-discovery-result.atu5-direct-review-trail",
+    "tos-discovery-result.friberg-1999-counting-accounting-review",
+    "tos-discovery-result.cdli-atu5-current-coverage-and-examples",
+    "tos-discovery-result.kelley-cartolano-ferrara-2025-seals-signs",
+    "tos-discovery-result.pcsl-acn-numerical-working-layers",
+    "tos-discovery-result.unicode-archaic-numerals-current-state",
+    "tos-discovery-result.dai-atu5-holding-and-copy-inquiry",
+    "tos-discovery-result.cdli-layered-terms-and-api"
+  ],
+  "rejected_result_ids": [
+    "tos-discovery-result.openlibrary-atu5-metadata-not-item"
+  ],
+  "rights_inference_from_availability_prohibited": true,
+  "general_web_search_is_last_resort": true,
+  "technical_access_bypass_used": false,
+  "maker": {
+    "maker_type": "model",
+    "agent_ref": "model:codex"
+  },
+  "started_at": "2026-08-12T13:35:00-06:00",
+  "ended_at": "2026-08-12T14:08:27-06:00",
+  "status": "reconciled",
+  "provenance_event_refs": [
+    "tos.event.discovery.proto-cuneiform-atu5-numerical-texts-layer.2026-08-12"
+  ],
+  "record_version": 1,
+  "supersedes_discovery_ref": null
+}

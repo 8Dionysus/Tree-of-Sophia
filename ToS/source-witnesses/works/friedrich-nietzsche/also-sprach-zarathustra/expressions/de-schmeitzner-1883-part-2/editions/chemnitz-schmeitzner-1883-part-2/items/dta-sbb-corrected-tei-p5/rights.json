@@ -1,0 +1,252 @@
+{
+  "schema_version": "tos_rights_record_v1",
+  "rights_id": "tos.rights.zarathustra-chemnitz-schmeitzner-1883-part-2.dta-sbb-corrected-tei-p5",
+  "scope_refs": [
+    "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-schmeitzner-1883-part-2.dta-sbb-corrected-tei-p5",
+    "tos.file.sha256.b78a09d74bcc1dd9610b81ee348387942a5df1f9e6c8a4340fb7f2221d8372cb"
+  ],
+  "assessment_status": "licensed",
+  "rights_statement_uri": "https://www.deutschestextarchiv.de/doku/nutzungsbedingungen",
+  "license_uri": "https://creativecommons.org/licenses/by-sa/4.0/",
+  "jurisdictions_reviewed": [
+    "DE",
+    "US"
+  ],
+  "source_refs": [
+    "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/de-schmeitzner-1883-part-2/editions/chemnitz-schmeitzner-1883-part-2/items/dta-sbb-corrected-tei-p5/source-metadata-snapshot.json",
+    "ToS/research-packets/foundation-laboratory-2026-07/DTA_ZARATHUSTRA_PARTS_1_4_LAYERED_RIGHTS_ASSESSMENT.md",
+    "https://www.deutschestextarchiv.de/doku/nutzungsbedingungen",
+    "https://www.deutschestextarchiv.de/api/tei_header/nietzsche_zarathustra02_1883",
+    "https://www.deutschestextarchiv.de/api/oai_dc/nietzsche_zarathustra02_1883",
+    "https://creativecommons.org/licenses/by-sa/4.0/legalcode.en",
+    "https://www.gesetze-im-internet.de/urhg/__64.html",
+    "https://www.gesetze-im-internet.de/urhg/__69.html",
+    "https://www.gesetze-im-internet.de/urhg/__70.html",
+    "https://www.copyright.gov/circs/circ15a.pdf",
+    "https://www.copyright.gov/title17/92chap1.html#104a",
+    "https://www.copyright.gov/gatt.html"
+  ],
+  "layer_assessments": [
+    {
+      "layer_id": "tos.rights.zarathustra-chemnitz-schmeitzner-1883-part-2.dta-sbb-corrected-tei-p5.layer.original-work",
+      "layer_role": "original_work",
+      "scope_refs": [
+        "tos.work.friedrich-nietzsche.also-sprach-zarathustra"
+      ],
+      "assessment_status": "public_domain_reviewed",
+      "assessment_basis": "law",
+      "rights_statement_uri": null,
+      "license_uri": null,
+      "jurisdictions_reviewed": [
+        "DE",
+        "US"
+      ],
+      "source_refs": [
+        "ToS/research-packets/foundation-laboratory-2026-07/DTA_ZARATHUSTRA_PARTS_1_4_LAYERED_RIGHTS_ASSESSMENT.md",
+        "https://www.gesetze-im-internet.de/urhg/__64.html",
+        "https://www.gesetze-im-internet.de/urhg/__69.html",
+        "https://www.copyright.gov/circs/circ15a.pdf",
+        "https://www.copyright.gov/title17/92chap1.html#104a",
+        "https://www.copyright.gov/gatt.html"
+      ],
+      "rights_holder_refs": [],
+      "permissions": [
+        "Nietzsche's underlying Work may be used in Germany and the United States under the reviewed public-domain term rules"
+      ],
+      "restrictions": [
+        "this result does not select or clear a modern critical, editorial, or digital German text",
+        "authorship, name, integrity, and other non-copyright rules remain separate where applicable",
+        "jurisdictions other than DE and US remain unreviewed",
+        "this layer result is not operator approval to transfer the local Item"
+      ],
+      "redistribution_posture": "authorized_with_conditions",
+      "derivative_posture": "allowed_with_conditions",
+      "server_processing_posture": "authorized_with_conditions",
+      "term": {
+        "calculation_status": "expired",
+        "basis": "Nietzsche died in 1900; the ordinary German life-plus-seventy term ended at 1970-12-31, before the possible 1996 United States restoration date, so the Work fails 17 U.S.C. §104A's source-country-protection condition",
+        "starts_on": null,
+        "ends_on": "1970-12-31",
+        "uncertainty": "The calculation is limited to the historical Work and the reviewed DE/US route; no later textual state is included."
+      },
+      "uncertainty": "Work-level public domain does not identify an accepted German source or authorize a later editorial layer.",
+      "assessed_at": "2026-08-10T08:22:20-06:00",
+      "review_status": "unreviewed",
+      "rationale": "The German source-country term ended before possible United States restoration under 17 U.S.C. §104A; the historical result is kept separate from every later digital contribution."
+    },
+    {
+      "layer_id": "tos.rights.zarathustra-chemnitz-schmeitzner-1883-part-2.dta-sbb-corrected-tei-p5.layer.edition-presentation",
+      "layer_role": "edition_presentation",
+      "scope_refs": [
+        "tos.edition.friedrich-nietzsche.also-sprach-zarathustra.chemnitz-schmeitzner-1883-part-2"
+      ],
+      "assessment_status": "public_domain_reviewed",
+      "assessment_basis": "law",
+      "rights_statement_uri": null,
+      "license_uri": null,
+      "jurisdictions_reviewed": [
+        "DE",
+        "US"
+      ],
+      "source_refs": [
+        "ToS/research-packets/foundation-laboratory-2026-07/DTA_ZARATHUSTRA_PARTS_1_4_LAYERED_RIGHTS_ASSESSMENT.md",
+        "https://www.gesetze-im-internet.de/urhg/__70.html",
+        "https://www.copyright.gov/circs/circ15a.pdf",
+        "https://www.copyright.gov/title17/92chap1.html#104a",
+        "https://www.copyright.gov/gatt.html"
+      ],
+      "rights_holder_refs": [],
+      "permissions": [
+        "the source-visible 1883 historical Edition presentation may be used in the reviewed DE/US public-domain route"
+      ],
+      "restrictions": [
+        "the historical Edition is not classified as a modern scientific or critical edition",
+        "the result does not cover DTA's annotation or holding-library facsimiles",
+        "jurisdictions other than DE and US remain unreviewed",
+        "this layer result is not operator approval to transfer the local Item"
+      ],
+      "redistribution_posture": "authorized_with_conditions",
+      "derivative_posture": "allowed_with_conditions",
+      "server_processing_posture": "authorized_with_conditions",
+      "term": {
+        "calculation_status": "expired",
+        "basis": "the Edition was published in 1883; even a conservative German twenty-five-year scientific-edition analogy ended at 1908-12-31, before the possible 1996 United States restoration date, so the historical presentation fails §104A's source-country-protection condition",
+        "starts_on": null,
+        "ends_on": "1908-12-31",
+        "uncertainty": "No modern scientific-edition status is asserted; the calculation only shows that no such historical presentation term could remain active."
+      },
+      "uncertainty": "Unknown historical presentation contributors are not identified or assigned rights by this record.",
+      "assessed_at": "2026-08-10T08:22:20-06:00",
+      "review_status": "unreviewed",
+      "rationale": "The exact historical presentation was outside its German source-country term before possible United States restoration under §104A, while the DTA digital layers remain separately licensed."
+    },
+    {
+      "layer_id": "tos.rights.zarathustra-chemnitz-schmeitzner-1883-part-2.dta-sbb-corrected-tei-p5.layer.annotated-tei",
+      "layer_role": "annotation",
+      "scope_refs": [
+        "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-schmeitzner-1883-part-2.dta-sbb-corrected-tei-p5",
+        "tos.file.sha256.b78a09d74bcc1dd9610b81ee348387942a5df1f9e6c8a4340fb7f2221d8372cb"
+      ],
+      "assessment_status": "licensed",
+      "assessment_basis": "license",
+      "rights_statement_uri": "https://www.deutschestextarchiv.de/doku/nutzungsbedingungen",
+      "license_uri": "https://creativecommons.org/licenses/by-sa/4.0/",
+      "jurisdictions_reviewed": [
+        "DE",
+        "US"
+      ],
+      "source_refs": [
+        "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/de-schmeitzner-1883-part-2/editions/chemnitz-schmeitzner-1883-part-2/items/dta-sbb-corrected-tei-p5/source-metadata-snapshot.json",
+        "ToS/research-packets/foundation-laboratory-2026-07/DTA_ZARATHUSTRA_PARTS_1_4_LAYERED_RIGHTS_ASSESSMENT.md",
+        "https://www.deutschestextarchiv.de/doku/nutzungsbedingungen",
+        "https://www.deutschestextarchiv.de/api/tei_header/nietzsche_zarathustra02_1883",
+        "https://creativecommons.org/licenses/by-sa/4.0/legalcode.en"
+      ],
+      "rights_holder_refs": [
+        "Deutsches Textarchiv, Berlin-Brandenburgische Akademie der Wissenschaften"
+      ],
+      "permissions": [
+        "the exact upstream annotated TEI may be reproduced, shared, and adapted under CC BY-SA 4.0",
+        "technical format changes are permitted by the license"
+      ],
+      "restrictions": [
+        "shared material requires DTA attribution, a license link, and change indication where applicable",
+        "shared adaptations must satisfy ShareAlike and no-additional-restrictions conditions",
+        "the current DTA OAI Dublin Core endpoint still exposes the former CC BY-NC 3.0 label and must remain in provenance",
+        "DTA's introductory noncommercial-use prose requires fresh human review before a real public deployment",
+        "the license does not prove German correctness, critical status, or ToS source acceptance",
+        "the operator's local-payload rule independently prohibits transfer of this local file"
+      ],
+      "redistribution_posture": "authorized_with_conditions",
+      "derivative_posture": "allowed_with_conditions",
+      "server_processing_posture": "authorized_with_conditions",
+      "term": {
+        "calculation_status": "not_applicable",
+        "basis": "current exact TEI header and DTA terms apply CC BY-SA 4.0 to the annotated full text",
+        "starts_on": null,
+        "ends_on": null,
+        "uncertainty": "The public license is current and non-expiring while conditions are met; response content and provider availability still require recheck before use."
+      },
+      "uncertainty": "The stale OAI field and broader DTA prose are preserved, but the current exact header and dated terms support the positive licensed route.",
+      "assessed_at": "2026-08-10T08:22:20-06:00",
+      "review_status": "unreviewed",
+      "rationale": "The exact generated header and current provider terms agree on CC BY-SA 4.0 and explain the older OAI label as the pre-2020 license."
+    },
+    {
+      "layer_id": "tos.rights.zarathustra-chemnitz-schmeitzner-1883-part-2.dta-sbb-corrected-tei-p5.layer.tei-metadata",
+      "layer_role": "metadata",
+      "scope_refs": [
+        "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-schmeitzner-1883-part-2.dta-sbb-corrected-tei-p5",
+        "tos.file.sha256.b78a09d74bcc1dd9610b81ee348387942a5df1f9e6c8a4340fb7f2221d8372cb"
+      ],
+      "assessment_status": "licensed",
+      "assessment_basis": "mixed",
+      "rights_statement_uri": "https://www.deutschestextarchiv.de/doku/nutzungsbedingungen",
+      "license_uri": "https://creativecommons.org/licenses/by-sa/4.0/",
+      "jurisdictions_reviewed": [
+        "DE",
+        "US"
+      ],
+      "source_refs": [
+        "ToS/research-packets/foundation-laboratory-2026-07/DTA_ZARATHUSTRA_PARTS_1_4_LAYERED_RIGHTS_ASSESSMENT.md",
+        "https://www.deutschestextarchiv.de/api/tei_header/nietzsche_zarathustra02_1883",
+        "https://www.deutschestextarchiv.de/api/oai_dc/nietzsche_zarathustra02_1883",
+        "https://creativecommons.org/licenses/by-sa/4.0/legalcode.en"
+      ],
+      "rights_holder_refs": [
+        "Deutsches Textarchiv, Berlin-Brandenburgische Akademie der Wissenschaften"
+      ],
+      "permissions": [
+        "public-safe factual metadata and the metadata embedded in the licensed TEI may be retained with source attribution"
+      ],
+      "restrictions": [
+        "the stale OAI license field must not be normalized away",
+        "substantial database extraction and third-party authority records require their own scope review",
+        "metadata permission does not authorize source text, facsimiles, or operator-local payload transfer"
+      ],
+      "redistribution_posture": "metadata_only",
+      "derivative_posture": "allowed_with_conditions",
+      "server_processing_posture": "authorized_with_conditions",
+      "term": {
+        "calculation_status": "not_applicable",
+        "basis": "the exact TEI availability statement covers the TEI package while factual metadata is separately source-attributed",
+        "starts_on": null,
+        "ends_on": null,
+        "uncertainty": "Not every external authority fact in the header is owned by DTA, and no blanket database-right conclusion is made."
+      },
+      "uncertainty": "The record permits bounded public-safe facts, not an unrestricted copy of every external metadata dataset.",
+      "assessed_at": "2026-08-10T08:22:20-06:00",
+      "review_status": "unreviewed",
+      "rationale": "The metadata layer remains useful and source-visible without being collapsed into the licensed source text or external authority ownership."
+    }
+  ],
+  "permissions": [
+    "local preservation and bounded research use",
+    "the exact upstream annotated TEI is positively licensed under CC BY-SA 4.0 with attribution and ShareAlike conditions",
+    "public-safe source metadata and provenance may remain tracked",
+    "a separately reacquired future upstream object may enter public admission after fresh fixity, rights, quality, and operator review"
+  ],
+  "restrictions": [
+    "the current OAI Dublin Core field still reports the former CC BY-NC 3.0 license and remains explicit stale evidence",
+    "the acquired object is annotated TEI rather than the distinct DTA pure-text layer",
+    "DTA facsimile rights and holding-library conditions do not transfer to this TEI record and no facsimile bytes were acquired",
+    "the operator-held local copy remains off the future public site regardless of the upstream license",
+    "no source text, facsimile, embedding, alignment, translation, or other content-bearing derivative is authorized for server transfer by this model-authored record",
+    "human rights review and explicit operator transfer approval have not occurred",
+    "rights status is not German correctness, source acceptance, critical-text status, semantics, or canon"
+  ],
+  "visibility": "local_only",
+  "redistribution_posture": "not_authorized",
+  "derivative_posture": "local_research_only",
+  "assessed_by": {
+    "maker_type": "model",
+    "agent_ref": "model:codex"
+  },
+  "assessed_at": "2026-08-10T08:22:20-06:00",
+  "rationale": "Current exact-object evidence supports a positive CC BY-SA 4.0 assessment for DTA's annotated TEI. The historical Work and Edition were already outside their German source-country terms before possible United States restoration under 17 U.S.C. §104A. The pre-2020 OAI label, DTA's additional prose, the separate plain-text and facsimile layers, German quality, and operator transfer remain explicit independent boundaries.",
+  "review_status": "unreviewed",
+  "review_refs": [],
+  "access_request_ref": null,
+  "record_version": 3,
+  "supersedes_rights_ref": null
+}

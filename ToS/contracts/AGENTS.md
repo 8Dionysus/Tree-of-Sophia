@@ -27,6 +27,10 @@ validators.
 - Keep `node_id` grammar stable and ToS-owned.
 - Keep multilingual witness support inside one shared authored identity unless
   the node contract itself changes.
+- For lived witness, enforce human authorship, exact-body/capture provenance,
+  separate permissions, and non-promotion shape without pretending that a
+  schema can verify memory, consent, personal context, or meaning. Direct
+  author review remains in `ToS/zarathustra/lived-witness/`.
 - Route runtime, graph UI, MCP, Neo4j, KAG envelope, and service behavior to
   owning runtime or downstream surfaces.
 

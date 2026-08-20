@@ -14,10 +14,22 @@
 
 - [TOS-D-0020 - Corpus Evidence Spine And Witness Storage](../TOS-D-0020-corpus-evidence-spine-and-witness-storage.md) (`docs/decisions/TOS-D-0020-corpus-evidence-spine-and-witness-storage.md`)
 - [TOS-D-0021 - Domain Vocabulary And Active Route Naming](../TOS-D-0021-domain-vocabulary-and-active-route-naming.md) (`docs/decisions/TOS-D-0021-domain-vocabulary-and-active-route-naming.md`)
+- [TOS-D-0022 - Expression Derivation Is Not Equivalence](../TOS-D-0022-expression-derivation-is-not-equivalence.md) (`docs/decisions/TOS-D-0022-expression-derivation-is-not-equivalence.md`)
+- [TOS-D-0023 - Participant-Scoped Translation Exposure](../TOS-D-0023-participant-scoped-translation-exposure.md) (`docs/decisions/TOS-D-0023-participant-scoped-translation-exposure.md`)
+- [TOS-D-0024 - Artifact Witness Spine](../TOS-D-0024-artifact-witness-spine.md) (`docs/decisions/TOS-D-0024-artifact-witness-spine.md`)
+- [TOS-D-0025 - Scholarly Composite Witness Spine](../TOS-D-0025-scholarly-composite-witness-spine.md) (`docs/decisions/TOS-D-0025-scholarly-composite-witness-spine.md`)
+
+## derived-graph
+
+- [TOS-D-0022 - Expression Derivation Is Not Equivalence](../TOS-D-0022-expression-derivation-is-not-equivalence.md) (`docs/decisions/TOS-D-0022-expression-derivation-is-not-equivalence.md`)
 
 ## docs/decisions
 
 - [TOS-D-0001 - Source-First Decision Rationale Lane](../TOS-D-0001-source-first-decision-rationale-lane.md) (`docs/decisions/TOS-D-0001-source-first-decision-rationale-lane.md`)
+
+## docs/rationale
+
+- [TOS-D-0022 - Expression Derivation Is Not Equivalence](../TOS-D-0022-expression-derivation-is-not-equivalence.md) (`docs/decisions/TOS-D-0022-expression-derivation-is-not-equivalence.md`)
 
 ## docs/route-law
 
@@ -32,6 +44,9 @@
 - [TOS-D-0019 - Zarathustra Golden Growth Kernel](../TOS-D-0019-zarathustra-golden-growth-kernel.md) (`docs/decisions/TOS-D-0019-zarathustra-golden-growth-kernel.md`)
 - [TOS-D-0020 - Corpus Evidence Spine And Witness Storage](../TOS-D-0020-corpus-evidence-spine-and-witness-storage.md) (`docs/decisions/TOS-D-0020-corpus-evidence-spine-and-witness-storage.md`)
 - [TOS-D-0021 - Domain Vocabulary And Active Route Naming](../TOS-D-0021-domain-vocabulary-and-active-route-naming.md) (`docs/decisions/TOS-D-0021-domain-vocabulary-and-active-route-naming.md`)
+- [TOS-D-0023 - Participant-Scoped Translation Exposure](../TOS-D-0023-participant-scoped-translation-exposure.md) (`docs/decisions/TOS-D-0023-participant-scoped-translation-exposure.md`)
+- [TOS-D-0024 - Artifact Witness Spine](../TOS-D-0024-artifact-witness-spine.md) (`docs/decisions/TOS-D-0024-artifact-witness-spine.md`)
+- [TOS-D-0025 - Scholarly Composite Witness Spine](../TOS-D-0025-scholarly-composite-witness-spine.md) (`docs/decisions/TOS-D-0025-scholarly-composite-witness-spine.md`)
 
 ## docs/testing
 
@@ -57,6 +72,8 @@
 
 - [TOS-D-0003 - Philosophy Domain Tree](../TOS-D-0003-philosophy-domain-tree.md) (`docs/decisions/TOS-D-0003-philosophy-domain-tree.md`)
 - [TOS-D-0006 - Research Packet Authority Correction](../TOS-D-0006-research-packet-authority-correction.md) (`docs/decisions/TOS-D-0006-research-packet-authority-correction.md`)
+- [TOS-D-0024 - Artifact Witness Spine](../TOS-D-0024-artifact-witness-spine.md) (`docs/decisions/TOS-D-0024-artifact-witness-spine.md`)
+- [TOS-D-0025 - Scholarly Composite Witness Spine](../TOS-D-0025-scholarly-composite-witness-spine.md) (`docs/decisions/TOS-D-0025-scholarly-composite-witness-spine.md`)
 
 ## legacy/provenance
 
@@ -90,6 +107,12 @@
 - [TOS-D-0005 - Mechanics Operation Topology](../TOS-D-0005-mechanics-operation-topology.md) (`docs/decisions/TOS-D-0005-mechanics-operation-topology.md`)
 - [TOS-D-0007 - Doctrine Mechanics And Zarathustra Route Correction](../TOS-D-0007-doctrine-mechanics-and-zarathustra-route-correction.md) (`docs/decisions/TOS-D-0007-doctrine-mechanics-and-zarathustra-route-correction.md`)
 - [TOS-D-0009 - Validation Lane Command Authority](../TOS-D-0009-validation-lane-command-authority.md) (`docs/decisions/TOS-D-0009-validation-lane-command-authority.md`)
+
+## research
+
+- [TOS-D-0023 - Participant-Scoped Translation Exposure](../TOS-D-0023-participant-scoped-translation-exposure.md) (`docs/decisions/TOS-D-0023-participant-scoped-translation-exposure.md`)
+- [TOS-D-0024 - Artifact Witness Spine](../TOS-D-0024-artifact-witness-spine.md) (`docs/decisions/TOS-D-0024-artifact-witness-spine.md`)
+- [TOS-D-0025 - Scholarly Composite Witness Spine](../TOS-D-0025-scholarly-composite-witness-spine.md) (`docs/decisions/TOS-D-0025-scholarly-composite-witness-spine.md`)
 
 ## research-packet
 
@@ -127,6 +150,7 @@
 - [TOS-D-0008 - Root Validation Route Unloading](../TOS-D-0008-root-validation-route-unloading.md) (`docs/decisions/TOS-D-0008-root-validation-route-unloading.md`)
 - [TOS-D-0009 - Validation Lane Command Authority](../TOS-D-0009-validation-lane-command-authority.md) (`docs/decisions/TOS-D-0009-validation-lane-command-authority.md`)
 - [TOS-D-0021 - Domain Vocabulary And Active Route Naming](../TOS-D-0021-domain-vocabulary-and-active-route-naming.md) (`docs/decisions/TOS-D-0021-domain-vocabulary-and-active-route-naming.md`)
+- [TOS-D-0022 - Expression Derivation Is Not Equivalence](../TOS-D-0022-expression-derivation-is-not-equivalence.md) (`docs/decisions/TOS-D-0022-expression-derivation-is-not-equivalence.md`)
 
 ## source-home
 
@@ -142,6 +166,10 @@
 
 - [TOS-D-0020 - Corpus Evidence Spine And Witness Storage](../TOS-D-0020-corpus-evidence-spine-and-witness-storage.md) (`docs/decisions/TOS-D-0020-corpus-evidence-spine-and-witness-storage.md`)
 - [TOS-D-0021 - Domain Vocabulary And Active Route Naming](../TOS-D-0021-domain-vocabulary-and-active-route-naming.md) (`docs/decisions/TOS-D-0021-domain-vocabulary-and-active-route-naming.md`)
+- [TOS-D-0022 - Expression Derivation Is Not Equivalence](../TOS-D-0022-expression-derivation-is-not-equivalence.md) (`docs/decisions/TOS-D-0022-expression-derivation-is-not-equivalence.md`)
+- [TOS-D-0023 - Participant-Scoped Translation Exposure](../TOS-D-0023-participant-scoped-translation-exposure.md) (`docs/decisions/TOS-D-0023-participant-scoped-translation-exposure.md`)
+- [TOS-D-0024 - Artifact Witness Spine](../TOS-D-0024-artifact-witness-spine.md) (`docs/decisions/TOS-D-0024-artifact-witness-spine.md`)
+- [TOS-D-0025 - Scholarly Composite Witness Spine](../TOS-D-0025-scholarly-composite-witness-spine.md) (`docs/decisions/TOS-D-0025-scholarly-composite-witness-spine.md`)
 
 ## storage-boundary
 
@@ -172,6 +200,10 @@
 ## ToS/source-home
 
 - [TOS-D-0009 - Validation Lane Command Authority](../TOS-D-0009-validation-lane-command-authority.md) (`docs/decisions/TOS-D-0009-validation-lane-command-authority.md`)
+
+## translation-method
+
+- [TOS-D-0023 - Participant-Scoped Translation Exposure](../TOS-D-0023-participant-scoped-translation-exposure.md) (`docs/decisions/TOS-D-0023-participant-scoped-translation-exposure.md`)
 
 ## zarathustra
 

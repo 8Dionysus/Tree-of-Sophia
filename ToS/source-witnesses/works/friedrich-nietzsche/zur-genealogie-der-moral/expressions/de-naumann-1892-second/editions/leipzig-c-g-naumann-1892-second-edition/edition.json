@@ -1,0 +1,44 @@
+{
+  "schema_version": "tos_corpus_record_v1",
+  "record_type": "edition",
+  "record_id": "tos.edition.friedrich-nietzsche.zur-genealogie-der-moral.leipzig-c-g-naumann-1892-second",
+  "preferred_label": "Zur Genealogie der Moral, second edition, Leipzig, C. G. Naumann, 1892",
+  "variant_labels": [
+    {
+      "value": "Zur Genealogie der Moral. Eine Streitschrift",
+      "language": "de",
+      "source_ref": "ToS/source-witnesses/works/friedrich-nietzsche/zur-genealogie-der-moral/expressions/de-naumann-1892-second/editions/leipzig-c-g-naumann-1892-second-edition/items/wikimedia-commons-unc-scan-pdf/source-metadata-snapshot.json",
+      "status": "verified"
+    }
+  ],
+  "identity_status": "verified",
+  "source_refs": [
+    "ToS/source-witnesses/works/friedrich-nietzsche/zur-genealogie-der-moral/expressions/de-naumann-1892-second/editions/leipzig-c-g-naumann-1892-second-edition/items/wikimedia-commons-unc-scan-pdf/source-metadata-snapshot.json",
+    "https://archive.org/details/zurgenealogieder00niet",
+    "https://openlibrary.org/books/OL25582970M"
+  ],
+  "external_identifiers": [
+    {
+      "scheme": "Open Library edition",
+      "value": "OL25582970M",
+      "source_ref": "https://openlibrary.org/books/OL25582970M",
+      "status": "verified"
+    }
+  ],
+  "same_as_posture": "no_equivalence_claim",
+  "embodies_expression_refs": [
+    "tos.expression.friedrich-nietzsche.zur-genealogie-der-moral.de-naumann-1892-second"
+  ],
+  "edition_statement": "Zweite Auflage",
+  "publication_claim_refs": [],
+  "provision_activity_claim_refs": [
+    "tos.claim.edition.zur-genealogie-der-moral.naumann-1892-second.provision-publication",
+    "tos.claim.edition.zur-genealogie-der-moral.naumann-1892-second.provision-manufacture"
+  ],
+  "exemplar_claim_refs": [
+    "tos.claim.topology.edition-item.friedrich-nietzsche.zur-genealogie-der-moral.leipzig-c-g-naumann-1892-second.exemplified-by.wikimedia-commons-unc-scan-pdf"
+  ],
+  "notes": "PDF page 5 visibly states title, subtitle, Nietzsche, Zweite Auflage, Leipzig, Verlag von C. G. Naumann, and 1892; PDF page 204 separately states Leipzig, Druck von C. G. Naumann. The two role-specific claims do not establish exact printing completion or public release, equivalence to the 1887 first edition, or acceptance of the embedded OCR.",
+  "record_version": 3,
+  "supersedes_ref": null
+}

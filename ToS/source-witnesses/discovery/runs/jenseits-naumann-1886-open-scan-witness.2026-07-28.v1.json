@@ -1,0 +1,531 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/material-discovery-record.schema.json",
+  "schema_version": "tos_material_discovery_record_v1",
+  "discovery_id": "tos.discovery.jenseits-naumann-1886-open-scan-witness.2026-07-28",
+  "protocol_ref": "ToS/source-witnesses/discovery/DISCOVERY_PROTOCOL.md",
+  "target": {
+    "target_kind": "item",
+    "known_tos_refs": [
+      "tos.work.friedrich-nietzsche.jenseits-von-gut-und-boese"
+    ],
+    "description": "An exact, source-visible, openly reachable German witness of the 1886 C. G. Naumann edition of Jenseits von Gut und Böse for source-first transfer experiments beyond Zarathustra.",
+    "required_properties": [
+      "original German",
+      "1886 Naumann edition identity",
+      "source-visible title page",
+      "stable digital-object identifier",
+      "exact object fixity",
+      "positive rights evidence kept separate from ToS legal review"
+    ],
+    "acceptable_substitutions": [
+      "another source-visible scan of the 1886 Naumann edition with stronger holding-copy provenance and equally explicit object-level rights evidence"
+    ],
+    "languages": [
+      "de"
+    ],
+    "formats": [
+      "metadata",
+      "PDF page images",
+      "embedded OCR candidate"
+    ],
+    "purpose_ref": "ToS/research-packets/foundation-laboratory-2026-07/LIMITATIONS_AND_NEXT_STEPS.md"
+  },
+  "channels": [
+    {
+      "channel_id": "channel-dnb-jenseits-work-authority",
+      "sequence": 1,
+      "channel_type": "national-catalog",
+      "role": "originating-record",
+      "source_name": "Deutsche Nationalbibliothek Gemeinsame Normdatei",
+      "endpoint_url": "https://d-nb.info/gnd/4211811-6/about/lds.jsonld",
+      "interface_type": "api",
+      "interface_version": "GND linked-data JSON-LD as served 2026-07-28",
+      "exact_query": "GET https://d-nb.info/gnd/4211811-6/about/lds.jsonld",
+      "queried_at": "2026-07-28T22:27:45-06:00",
+      "elapsed_seconds": 1,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.dnb-gnd-4211811-6-jenseits",
+          "rank": 1,
+          "title_as_displayed": "Jenseits von Gut und Böse",
+          "result_url": "https://d-nb.info/gnd/4211811-6",
+          "originating_record_url": "https://d-nb.info/gnd/4211811-6",
+          "identifiers": [
+            {
+              "scheme": "GND",
+              "value": "4211811-6"
+            },
+            {
+              "scheme": "author GND",
+              "value": "118587943"
+            }
+          ],
+          "available_formats": [
+            "JSON-LD",
+            "RDF"
+          ],
+          "declared_rights": {
+            "statement": "CC0 1.0 for the DNB metadata record",
+            "scope": "metadata",
+            "evidence_url": "http://creativecommons.org/publicdomain/zero/1.0/",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "metadata-only",
+          "machine_interface": "api",
+          "decision": "needs-reconciliation",
+          "rationale": "The authority record fixes whole-work identity, Nietzsche authorship, German language, and 1886. It does not identify the exact scan or its content-layer rights.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "captured",
+            "format": "static-snapshot",
+            "sha256": "f257a77f380b78e85746f53eaf233b330ed77f277fe7a580a859c236a4dd7fec",
+            "reason": "The exact current authority response digest and parsed work identity are retained without source text."
+          }
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-dta-nietzsche-author-corpus",
+      "sequence": 2,
+      "channel_type": "specialized-scholarly-project",
+      "role": "scholarly-index",
+      "source_name": "Deutsches Textarchiv",
+      "endpoint_url": "https://www.deutschestextarchiv.de/search",
+      "interface_type": "web",
+      "interface_version": "DTA metadata search as served 2026-07-28",
+      "exact_query": "GET https://www.deutschestextarchiv.de/search?in=metadata&q=Nietzsche",
+      "queried_at": "2026-07-28T22:27:46-06:00",
+      "elapsed_seconds": 1,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.dta-nietzsche-zarathustra01-1883",
+          "rank": 1,
+          "title_as_displayed": "Nietzsche, Friedrich: Also sprach Zarathustra. [Bd. 1]. Chemnitz, 1883.",
+          "result_url": "https://www.deutschestextarchiv.de/book/show/nietzsche_zarathustra01_1883",
+          "originating_record_url": "https://www.deutschestextarchiv.de/book/show/nietzsche_zarathustra01_1883",
+          "identifiers": [{"scheme": "DTA directory name", "value": "nietzsche_zarathustra01_1883"}],
+          "available_formats": ["HTML", "TEI XML"],
+          "declared_rights": {"statement": null, "scope": "unknown", "evidence_url": null, "tos_conclusion": "evidence-only-not-a-rights-conclusion"},
+          "availability": "open-view",
+          "machine_interface": "html",
+          "decision": "reject",
+          "rationale": "Different Nietzsche work.",
+          "acquisition": {"downloaded": false, "acquired_at": null, "byte_size": null, "sha256": null, "event_ref": null},
+          "snapshot": {"state": "captured", "format": "static-snapshot", "sha256": "4beaed1543528458951a6d3fecfc2b7b6507f062e3dce691a23840315d0020ed", "reason": "The exact seven-result author response and order are retained."}
+        },
+        {
+          "result_id": "tos-discovery-result.dta-nietzsche-zarathustra02-1883",
+          "rank": 2,
+          "title_as_displayed": "Nietzsche, Friedrich: Also sprach Zarathustra. Bd. 2. Chemnitz, 1883.",
+          "result_url": "https://www.deutschestextarchiv.de/book/show/nietzsche_zarathustra02_1883",
+          "originating_record_url": "https://www.deutschestextarchiv.de/book/show/nietzsche_zarathustra02_1883",
+          "identifiers": [{"scheme": "DTA directory name", "value": "nietzsche_zarathustra02_1883"}],
+          "available_formats": ["HTML", "TEI XML"],
+          "declared_rights": {"statement": null, "scope": "unknown", "evidence_url": null, "tos_conclusion": "evidence-only-not-a-rights-conclusion"},
+          "availability": "open-view",
+          "machine_interface": "html",
+          "decision": "reject",
+          "rationale": "Different Nietzsche work.",
+          "acquisition": {"downloaded": false, "acquired_at": null, "byte_size": null, "sha256": null, "event_ref": null},
+          "snapshot": {"state": "captured", "format": "static-snapshot", "sha256": "4beaed1543528458951a6d3fecfc2b7b6507f062e3dce691a23840315d0020ed", "reason": "The exact seven-result author response and order are retained."}
+        },
+        {
+          "result_id": "tos-discovery-result.dta-nietzsche-zarathustra03-1884",
+          "rank": 3,
+          "title_as_displayed": "Nietzsche, Friedrich: Also sprach Zarathustra. Bd. 3. Chemnitz, 1884.",
+          "result_url": "https://www.deutschestextarchiv.de/book/show/nietzsche_zarathustra03_1884",
+          "originating_record_url": "https://www.deutschestextarchiv.de/book/show/nietzsche_zarathustra03_1884",
+          "identifiers": [{"scheme": "DTA directory name", "value": "nietzsche_zarathustra03_1884"}],
+          "available_formats": ["HTML", "TEI XML"],
+          "declared_rights": {"statement": null, "scope": "unknown", "evidence_url": null, "tos_conclusion": "evidence-only-not-a-rights-conclusion"},
+          "availability": "open-view",
+          "machine_interface": "html",
+          "decision": "reject",
+          "rationale": "Different Nietzsche work.",
+          "acquisition": {"downloaded": false, "acquired_at": null, "byte_size": null, "sha256": null, "event_ref": null},
+          "snapshot": {"state": "captured", "format": "static-snapshot", "sha256": "4beaed1543528458951a6d3fecfc2b7b6507f062e3dce691a23840315d0020ed", "reason": "The exact seven-result author response and order are retained."}
+        },
+        {
+          "result_id": "tos-discovery-result.dta-nietzsche-zarathustra04-1891",
+          "rank": 4,
+          "title_as_displayed": "Nietzsche, Friedrich: Also sprach Zarathustra. Bd. 4. Leipzig, 1891.",
+          "result_url": "https://www.deutschestextarchiv.de/book/show/nietzsche_zarathustra04_1891",
+          "originating_record_url": "https://www.deutschestextarchiv.de/book/show/nietzsche_zarathustra04_1891",
+          "identifiers": [{"scheme": "DTA directory name", "value": "nietzsche_zarathustra04_1891"}],
+          "available_formats": ["HTML", "TEI XML"],
+          "declared_rights": {"statement": null, "scope": "unknown", "evidence_url": null, "tos_conclusion": "evidence-only-not-a-rights-conclusion"},
+          "availability": "open-view",
+          "machine_interface": "html",
+          "decision": "reject",
+          "rationale": "Different Nietzsche work.",
+          "acquisition": {"downloaded": false, "acquired_at": null, "byte_size": null, "sha256": null, "event_ref": null},
+          "snapshot": {"state": "captured", "format": "static-snapshot", "sha256": "4beaed1543528458951a6d3fecfc2b7b6507f062e3dce691a23840315d0020ed", "reason": "The exact seven-result author response and order are retained."}
+        },
+        {
+          "result_id": "tos-discovery-result.dta-nietzsche-tragoedie-1872",
+          "rank": 5,
+          "title_as_displayed": "Nietzsche, Friedrich: Die Geburt der Tragödie aus dem Geiste der Musik. Leipzig, 1872.",
+          "result_url": "https://www.deutschestextarchiv.de/book/show/nietzsche_tragoedie_1872",
+          "originating_record_url": "https://www.deutschestextarchiv.de/book/show/nietzsche_tragoedie_1872",
+          "identifiers": [{"scheme": "DTA directory name", "value": "nietzsche_tragoedie_1872"}],
+          "available_formats": ["HTML", "TEI XML"],
+          "declared_rights": {"statement": null, "scope": "unknown", "evidence_url": null, "tos_conclusion": "evidence-only-not-a-rights-conclusion"},
+          "availability": "open-view",
+          "machine_interface": "html",
+          "decision": "reject",
+          "rationale": "Different Nietzsche work.",
+          "acquisition": {"downloaded": false, "acquired_at": null, "byte_size": null, "sha256": null, "event_ref": null},
+          "snapshot": {"state": "captured", "format": "static-snapshot", "sha256": "4beaed1543528458951a6d3fecfc2b7b6507f062e3dce691a23840315d0020ed", "reason": "The exact seven-result author response and order are retained."}
+        },
+        {
+          "result_id": "tos-discovery-result.dta-nietzsche-homer-1869",
+          "rank": 6,
+          "title_as_displayed": "Nietzsche, Friedrich: Homer und die klassische Philologie. Basel, 1869.",
+          "result_url": "https://www.deutschestextarchiv.de/book/show/nietzsche_homer_1869",
+          "originating_record_url": "https://www.deutschestextarchiv.de/book/show/nietzsche_homer_1869",
+          "identifiers": [{"scheme": "DTA directory name", "value": "nietzsche_homer_1869"}],
+          "available_formats": ["HTML", "TEI XML"],
+          "declared_rights": {"statement": null, "scope": "unknown", "evidence_url": null, "tos_conclusion": "evidence-only-not-a-rights-conclusion"},
+          "availability": "open-view",
+          "machine_interface": "html",
+          "decision": "reject",
+          "rationale": "Different Nietzsche work.",
+          "acquisition": {"downloaded": false, "acquired_at": null, "byte_size": null, "sha256": null, "event_ref": null},
+          "snapshot": {"state": "captured", "format": "static-snapshot", "sha256": "4beaed1543528458951a6d3fecfc2b7b6507f062e3dce691a23840315d0020ed", "reason": "The exact seven-result author response and order are retained."}
+        },
+        {
+          "result_id": "tos-discovery-result.dta-nietzsche-messina-1882",
+          "rank": 7,
+          "title_as_displayed": "Nietzsche, Friedrich: Idyllen aus Messina. In: Internationale Monatsschrift, Bd. 1,5. Chemnitz, 1882, S. 269-275.",
+          "result_url": "https://www.deutschestextarchiv.de/book/show/nietzsche_messina_1882",
+          "originating_record_url": "https://www.deutschestextarchiv.de/book/show/nietzsche_messina_1882",
+          "identifiers": [{"scheme": "DTA directory name", "value": "nietzsche_messina_1882"}],
+          "available_formats": ["HTML", "TEI XML"],
+          "declared_rights": {"statement": null, "scope": "unknown", "evidence_url": null, "tos_conclusion": "evidence-only-not-a-rights-conclusion"},
+          "availability": "open-view",
+          "machine_interface": "html",
+          "decision": "reject",
+          "rationale": "Different Nietzsche work.",
+          "acquisition": {"downloaded": false, "acquired_at": null, "byte_size": null, "sha256": null, "event_ref": null},
+          "snapshot": {"state": "captured", "format": "static-snapshot", "sha256": "4beaed1543528458951a6d3fecfc2b7b6507f062e3dce691a23840315d0020ed", "reason": "The exact seven-result author response and order are retained."}
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-textgrid-jenseits-editions",
+      "sequence": 3,
+      "channel_type": "university-catalog",
+      "role": "mixed",
+      "source_name": "TextGrid Repository TG-search API",
+      "endpoint_url": "https://textgridlab.org/1.0/tgsearch-public/search",
+      "interface_type": "api",
+      "interface_version": "TextGrid public repository API as served 2026-07-28",
+      "exact_query": "GET /1.0/tgsearch-public/search with q=title:\"Jenseits von Gut und Böse\" AND edition.agent.value:\"Nietzsche, Friedrich\" AND format:\"text/tg.edition+tg.aggregation+xml\"; target=metadata; order=asc:issued; limit=100; allProjects=true",
+      "queried_at": "2026-07-28T22:27:47-06:00",
+      "elapsed_seconds": 1,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.textgrid-kolimo-jenseits-genealogie",
+          "rank": 1,
+          "title_as_displayed": "Zur Genealogie der Moral Jenseits von Gut und Böse. Zur Genealogie der Moral",
+          "result_url": "https://www.textgridrep.org/browse/4k1p6.0",
+          "originating_record_url": "https://textgridlab.org/1.0/tgcrud-public/rest/textgrid:4k1p6.0/metadata",
+          "identifiers": [
+            {"scheme": "TextGrid edition URI", "value": "textgrid:4k1p6.0"},
+            {"scheme": "TextGrid work URI", "value": "textgrid:4k1k0.0"},
+            {"scheme": "Handle", "value": "hdl:21.11113/4k1p6.0"}
+          ],
+          "available_formats": ["TEI XML", "TextGrid metadata XML", "ORE aggregation XML"],
+          "declared_rights": {
+            "statement": "Edition metadata reports CC BY 4.0.",
+            "scope": "content",
+            "evidence_url": "https://textgridlab.org/1.0/tgcrud-public/rest/textgrid:4k1p6.0/metadata",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-download",
+          "machine_interface": "api",
+          "decision": "reject",
+          "rationale": "The 2016 Kolimo+ record has a combined Jenseits/Genealogie title and imported work metadata. It does not identify the exact 1886 Naumann print and cannot serve as its primary source witness.",
+          "acquisition": {"downloaded": false, "acquired_at": null, "byte_size": null, "sha256": null, "event_ref": null},
+          "snapshot": {"state": "captured", "format": "static-snapshot", "sha256": "d6df212ef58c9165a3b816a8bfcf3bb1d7be2632caf3387628e40a0875e77879", "reason": "The exact one-hit response, identifiers, combined title, publication date, and license claim are retained."}
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-internet-archive-jenseits",
+      "sequence": 4,
+      "channel_type": "open-library",
+      "role": "digital-object-record",
+      "source_name": "Internet Archive Advanced Search and Metadata APIs",
+      "endpoint_url": "https://archive.org/advancedsearch.php",
+      "interface_type": "api",
+      "interface_version": "Internet Archive public APIs as served 2026-07-28",
+      "exact_query": "GET advancedsearch.php with q=title:(\"Jenseits von Gut und Böse\") AND creator:(Nietzsche); fields identifier,title,creator,date,publisher,language,contributor,scanner,source,licenseurl; rows=100; page=1; output=json; then GET /metadata/bub_gb_YIURAAAAYAAJ",
+      "queried_at": "2026-07-28T22:27:48-06:00",
+      "elapsed_seconds": 1,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.ia-bub-gb-yiuraaaayaaaj",
+          "rank": 1,
+          "title_as_displayed": "Jenseits von Gut und Böse Vorspiel einer Philosophie der Zukunft",
+          "result_url": "https://archive.org/details/bub_gb_YIURAAAAYAAJ",
+          "originating_record_url": "https://archive.org/metadata/bub_gb_YIURAAAAYAAJ",
+          "identifiers": [
+            {"scheme": "Internet Archive identifier", "value": "bub_gb_YIURAAAAYAAJ"},
+            {"scheme": "Internet Archive ARK", "value": "ark:/13960/t6n048588"},
+            {"scheme": "Google Books ID", "value": "YIURAAAAYAAJ"},
+            {"scheme": "OCLC", "value": "247426798"}
+          ],
+          "available_formats": ["PDF", "page images", "OCR derivatives", "metadata JSON"],
+          "declared_rights": {
+            "statement": "Internet Archive marks the exact item with Public Domain Mark 1.0.",
+            "scope": "digital-object",
+            "evidence_url": "http://creativecommons.org/publicdomain/mark/1.0/",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-download",
+          "machine_interface": "api",
+          "decision": "select",
+          "rationale": "The first-ranked record identifies Nietzsche, C. G. Naumann, 1886, Harvard, Google, and an exact PDF. Its source-visible title page confirms the historical edition, and local SHA-1 and MD5 match the provider metadata.",
+          "acquisition": {
+            "downloaded": true,
+            "acquired_at": "2026-07-28T22:22:27-06:00",
+            "byte_size": 13944828,
+            "sha256": "6ae316c90f958d09045fea27b2430b86623ebb85f8a27146099d028775cdc80a",
+            "event_ref": "tos.event.acquisition.jenseits-naumann-1886.internet-archive-google-harvard-scan-pdf.2026-07-28"
+          },
+          "snapshot": {
+            "state": "captured",
+            "format": "static-snapshot",
+            "sha256": "171d5dfe173de1d576e7517db83834fffda524f345935e20db1cbdb0de6be845",
+            "reason": "The exact current item metadata response digest, file checksums, and parsed source chain are retained."
+          }
+        },
+        {
+          "result_id": "tos-discovery-result.ia-montinari-2026-upload",
+          "rank": 2,
+          "title_as_displayed": "Nietzsche ''Jenseits Von Gut Und Böse'' Montanari",
+          "result_url": "https://archive.org/details/nietzsche-jenseits-von-gut-und-bose-montinari_202602",
+          "originating_record_url": "https://archive.org/metadata/nietzsche-jenseits-von-gut-und-bose-montinari_202602",
+          "identifiers": [{"scheme": "Internet Archive identifier", "value": "nietzsche-jenseits-von-gut-und-bose-montinari_202602"}],
+          "available_formats": ["unknown until item reconciliation"],
+          "declared_rights": {"statement": "Search result reports Public Domain Mark 1.0.", "scope": "digital-object", "evidence_url": "https://creativecommons.org/publicdomain/mark/1.0/", "tos_conclusion": "evidence-only-not-a-rights-conclusion"},
+          "availability": "open-view",
+          "machine_interface": "api",
+          "decision": "reject",
+          "rationale": "A 2026 user upload labelled Montanari is not the exact 1886 Naumann witness and has not been source-reconciled.",
+          "acquisition": {"downloaded": false, "acquired_at": null, "byte_size": null, "sha256": null, "event_ref": null},
+          "snapshot": {"state": "captured", "format": "static-snapshot", "sha256": "6e0167d0e2463ffce3540073ae5d4e5254f06a2d85ef88fe06cdc100584c3bea", "reason": "Ordered search metadata and rejection rationale are retained."}
+        },
+        {
+          "result_id": "tos-discovery-result.ia-robarts-naumann-1900",
+          "rank": 3,
+          "title_as_displayed": "Jenseits von Gut und Böse : Vorspiel einer Philosophie der Zukunft",
+          "result_url": "https://archive.org/details/jenseitsvongutun00niet",
+          "originating_record_url": "https://archive.org/metadata/jenseitsvongutun00niet",
+          "identifiers": [{"scheme": "Internet Archive identifier", "value": "jenseitsvongutun00niet"}],
+          "available_formats": ["unknown until item reconciliation"],
+          "declared_rights": {"statement": null, "scope": "unknown", "evidence_url": null, "tos_conclusion": "evidence-only-not-a-rights-conclusion"},
+          "availability": "open-view",
+          "machine_interface": "api",
+          "decision": "reject",
+          "rationale": "The Robarts record is dated 1900 and is a later Naumann witness, not the exact 1886 target.",
+          "acquisition": {"downloaded": false, "acquired_at": null, "byte_size": null, "sha256": null, "event_ref": null},
+          "snapshot": {"state": "captured", "format": "static-snapshot", "sha256": "6e0167d0e2463ffce3540073ae5d4e5254f06a2d85ef88fe06cdc100584c3bea", "reason": "Ordered search metadata and rejection rationale are retained."}
+        },
+        {
+          "result_id": "tos-discovery-result.ia-dual-zimmern-2024",
+          "rank": 4,
+          "title_as_displayed": "Nietzsche Jenseits Von Gut Und Böse [dual, Zimmern]",
+          "result_url": "https://archive.org/details/nietzsche-jenseits-von-gut-und-bose-dual-zimmern_202403",
+          "originating_record_url": "https://archive.org/metadata/nietzsche-jenseits-von-gut-und-bose-dual-zimmern_202403",
+          "identifiers": [{"scheme": "Internet Archive identifier", "value": "nietzsche-jenseits-von-gut-und-bose-dual-zimmern_202403"}],
+          "available_formats": ["unknown until item reconciliation"],
+          "declared_rights": {"statement": null, "scope": "unknown", "evidence_url": null, "tos_conclusion": "evidence-only-not-a-rights-conclusion"},
+          "availability": "open-view",
+          "machine_interface": "api",
+          "decision": "reject",
+          "rationale": "A 2024 dual-language user upload is not the exact historical German edition target.",
+          "acquisition": {"downloaded": false, "acquired_at": null, "byte_size": null, "sha256": null, "event_ref": null},
+          "snapshot": {"state": "captured", "format": "static-snapshot", "sha256": "6e0167d0e2463ffce3540073ae5d4e5254f06a2d85ef88fe06cdc100584c3bea", "reason": "Ordered search metadata and rejection rationale are retained."}
+        },
+        {
+          "result_id": "tos-discovery-result.ia-generic-jenseits-2024",
+          "rank": 5,
+          "title_as_displayed": "Friedrich Nietzsche Jenseits Von Gut Und Böse",
+          "result_url": "https://archive.org/details/friedrich-nietzsche-jenseits-von-gut-und-bose",
+          "originating_record_url": "https://archive.org/metadata/friedrich-nietzsche-jenseits-von-gut-und-bose",
+          "identifiers": [{"scheme": "Internet Archive identifier", "value": "friedrich-nietzsche-jenseits-von-gut-und-bose"}],
+          "available_formats": ["unknown until item reconciliation"],
+          "declared_rights": {"statement": null, "scope": "unknown", "evidence_url": null, "tos_conclusion": "evidence-only-not-a-rights-conclusion"},
+          "availability": "open-view",
+          "machine_interface": "api",
+          "decision": "reject",
+          "rationale": "A 2024 user upload lacks exact 1886 Naumann identity in the ordered result metadata.",
+          "acquisition": {"downloaded": false, "acquired_at": null, "byte_size": null, "sha256": null, "event_ref": null},
+          "snapshot": {"state": "captured", "format": "static-snapshot", "sha256": "6e0167d0e2463ffce3540073ae5d4e5254f06a2d85ef88fe06cdc100584c3bea", "reason": "Ordered search metadata and rejection rationale are retained."}
+        },
+        {
+          "result_id": "tos-discovery-result.ia-nabu-reprint-2010",
+          "rank": 6,
+          "title_as_displayed": "Jenseits Von Gut und Böse: Vorspiel Einer Philosophie der Zukunft",
+          "result_url": "https://archive.org/details/isbn_9781141178117",
+          "originating_record_url": "https://archive.org/metadata/isbn_9781141178117",
+          "identifiers": [{"scheme": "Internet Archive identifier", "value": "isbn_9781141178117"}],
+          "available_formats": ["unknown until item reconciliation"],
+          "declared_rights": {"statement": null, "scope": "unknown", "evidence_url": null, "tos_conclusion": "evidence-only-not-a-rights-conclusion"},
+          "availability": "open-view",
+          "machine_interface": "api",
+          "decision": "reject",
+          "rationale": "A 2010 Nabu Press reprint is not the exact 1886 Naumann physical edition target.",
+          "acquisition": {"downloaded": false, "acquired_at": null, "byte_size": null, "sha256": null, "event_ref": null},
+          "snapshot": {"state": "captured", "format": "static-snapshot", "sha256": "6e0167d0e2463ffce3540073ae5d4e5254f06a2d85ef88fe06cdc100584c3bea", "reason": "Ordered search metadata and rejection rationale are retained."}
+        },
+        {
+          "result_id": "tos-discovery-result.ia-montinari-1887-labelled",
+          "rank": 7,
+          "title_as_displayed": "Nietzsche '' Jenseits Von Gut Und Bose'' [montinari]",
+          "result_url": "https://archive.org/details/nietzsche-jenseits-von-gut-und-bose-montinari",
+          "originating_record_url": "https://archive.org/metadata/nietzsche-jenseits-von-gut-und-bose-montinari",
+          "identifiers": [{"scheme": "Internet Archive identifier", "value": "nietzsche-jenseits-von-gut-und-bose-montinari"}],
+          "available_formats": ["unknown until item reconciliation"],
+          "declared_rights": {"statement": null, "scope": "unknown", "evidence_url": null, "tos_conclusion": "evidence-only-not-a-rights-conclusion"},
+          "availability": "open-view",
+          "machine_interface": "api",
+          "decision": "reject",
+          "rationale": "A user-upload result labelled Montinari and dated 1887 is not the exact 1886 Naumann scan target.",
+          "acquisition": {"downloaded": false, "acquired_at": null, "byte_size": null, "sha256": null, "event_ref": null},
+          "snapshot": {"state": "captured", "format": "static-snapshot", "sha256": "6e0167d0e2463ffce3540073ae5d4e5254f06a2d85ef88fe06cdc100584c3bea", "reason": "Ordered search metadata and rejection rationale are retained."}
+        },
+        {
+          "result_id": "tos-discovery-result.ia-dual-zimmern-2023",
+          "rank": 8,
+          "title_as_displayed": "Nietzsche Jenseits Von Gut Und Böse [dual, Zimmern]",
+          "result_url": "https://archive.org/details/nietzsche-jenseits-von-gut-und-bose-dual-zimmern",
+          "originating_record_url": "https://archive.org/metadata/nietzsche-jenseits-von-gut-und-bose-dual-zimmern",
+          "identifiers": [{"scheme": "Internet Archive identifier", "value": "nietzsche-jenseits-von-gut-und-bose-dual-zimmern"}],
+          "available_formats": ["unknown until item reconciliation"],
+          "declared_rights": {"statement": null, "scope": "unknown", "evidence_url": null, "tos_conclusion": "evidence-only-not-a-rights-conclusion"},
+          "availability": "open-view",
+          "machine_interface": "api",
+          "decision": "reject",
+          "rationale": "A 2023 dual-language user upload is not the exact historical German edition target.",
+          "acquisition": {"downloaded": false, "acquired_at": null, "byte_size": null, "sha256": null, "event_ref": null},
+          "snapshot": {"state": "captured", "format": "static-snapshot", "sha256": "6e0167d0e2463ffce3540073ae5d4e5254f06a2d85ef88fe06cdc100584c3bea", "reason": "Ordered search metadata and rejection rationale are retained."}
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-google-books-jenseits-id",
+      "sequence": 5,
+      "channel_type": "meta-search",
+      "role": "originating-record",
+      "source_name": "Google Books Volumes API",
+      "endpoint_url": "https://www.googleapis.com/books/v1/volumes/YIURAAAAYAAJ",
+      "interface_type": "api",
+      "interface_version": "Google Books Volumes API as served 2026-07-28",
+      "exact_query": "GET https://www.googleapis.com/books/v1/volumes/YIURAAAAYAAJ",
+      "queried_at": "2026-07-28T22:27:49-06:00",
+      "elapsed_seconds": 1,
+      "result_order_preserved": true,
+      "results": []
+    }
+  ],
+  "channel_comparison": [
+    {
+      "channel_id": "channel-dnb-jenseits-work-authority",
+      "completeness": "adequate",
+      "metadata_precision": "strong",
+      "rights_clarity": "strong",
+      "machine_interface_quality": "strong",
+      "human_minutes": 0,
+      "machine_seconds": 1,
+      "notes": "Strong whole-work authority and CC0 metadata, but no exact digital object."
+    },
+    {
+      "channel_id": "channel-dta-nietzsche-author-corpus",
+      "completeness": "limited",
+      "metadata_precision": "strong",
+      "rights_clarity": "unknown",
+      "machine_interface_quality": "adequate",
+      "human_minutes": 0,
+      "machine_seconds": 1,
+      "notes": "A useful negative corpus result: all seven current Nietzsche entries are preserved and the target is absent."
+    },
+    {
+      "channel_id": "channel-textgrid-jenseits-editions",
+      "completeness": "limited",
+      "metadata_precision": "limited",
+      "rights_clarity": "strong",
+      "machine_interface_quality": "strong",
+      "human_minutes": 0,
+      "machine_seconds": 1,
+      "notes": "Machine-readable and openly licensed, but the single combined-title imported record does not ground the exact historical edition."
+    },
+    {
+      "channel_id": "channel-internet-archive-jenseits",
+      "completeness": "strong",
+      "metadata_precision": "strong",
+      "rights_clarity": "adequate",
+      "machine_interface_quality": "strong",
+      "human_minutes": 0,
+      "machine_seconds": 2,
+      "notes": "The exact 1886 item is first-ranked, source-visible, checksum-reconciled, and marked with Public Domain Mark 1.0; ToS legal review remains separate."
+    },
+    {
+      "channel_id": "channel-google-books-jenseits-id",
+      "completeness": "poor",
+      "metadata_precision": "unknown",
+      "rights_clarity": "unknown",
+      "machine_interface_quality": "poor",
+      "human_minutes": 0,
+      "machine_seconds": 1,
+      "notes": "The exact ID request returned HTTP 429 RESOURCE_EXHAUSTED because the API project quota was zero; no Google metadata was imported."
+    }
+  ],
+  "selected_result_ids": [
+    "tos-discovery-result.ia-bub-gb-yiuraaaayaaaj"
+  ],
+  "rejected_result_ids": [
+    "tos-discovery-result.dta-nietzsche-zarathustra01-1883",
+    "tos-discovery-result.dta-nietzsche-zarathustra02-1883",
+    "tos-discovery-result.dta-nietzsche-zarathustra03-1884",
+    "tos-discovery-result.dta-nietzsche-zarathustra04-1891",
+    "tos-discovery-result.dta-nietzsche-tragoedie-1872",
+    "tos-discovery-result.dta-nietzsche-homer-1869",
+    "tos-discovery-result.dta-nietzsche-messina-1882",
+    "tos-discovery-result.textgrid-kolimo-jenseits-genealogie",
+    "tos-discovery-result.ia-montinari-2026-upload",
+    "tos-discovery-result.ia-robarts-naumann-1900",
+    "tos-discovery-result.ia-dual-zimmern-2024",
+    "tos-discovery-result.ia-generic-jenseits-2024",
+    "tos-discovery-result.ia-nabu-reprint-2010",
+    "tos-discovery-result.ia-montinari-1887-labelled",
+    "tos-discovery-result.ia-dual-zimmern-2023"
+  ],
+  "rights_inference_from_availability_prohibited": true,
+  "general_web_search_is_last_resort": true,
+  "technical_access_bypass_used": false,
+  "maker": {
+    "maker_type": "model",
+    "agent_ref": "model:codex"
+  },
+  "started_at": "2026-07-28T22:27:45-06:00",
+  "ended_at": "2026-07-28T22:29:32-06:00",
+  "status": "reconciled",
+  "provenance_event_refs": [
+    "tos.event.discovery.jenseits-naumann-1886-open-scan-witness.2026-07-28"
+  ],
+  "record_version": 1,
+  "supersedes_discovery_ref": null
+}

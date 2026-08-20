@@ -31,7 +31,7 @@
     "$schema": {
       "const": "https://tree-of-sophia.local/ToS/contracts/golden-kernel-transfer-plan.schema.json"
     },
-    "schema_version": {"const": "tos_golden_kernel_transfer_plan_v1"},
+    "schema_version": {"const": "tos_golden_kernel_transfer_plan_v2"},
     "transfer_plan_id": {
       "type": "string",
       "pattern": "^tos\\.transfer-plan\\.[a-z0-9]+(?:[.-][a-z0-9]+)*$"
@@ -62,7 +62,20 @@
         "file_ref": {"$ref": "#/$defs/tosId"},
         "file_sha256": {"$ref": "#/$defs/sha256"},
         "rights_record_ref": {"type": "string", "minLength": 1},
-        "rights_assessment_status": {"const": "copyright_not_evaluated"}
+        "rights_assessment_status": {
+          "enum": [
+            "not_assessed",
+            "copyright_not_evaluated",
+            "copyright_undetermined",
+            "in_copyright",
+            "public_domain_reviewed",
+            "licensed",
+            "permission_requested",
+            "permission_granted",
+            "permission_denied",
+            "conflicting_evidence"
+          ]
+        }
       }
     },
     "status": {
@@ -181,6 +194,14 @@
       "type": "array",
       "minItems": 3,
       "items": {"$ref": "#/$defs/scoutingUnit"}
+    },
+    "candidate_preparation": {
+      "$ref": "#/$defs/candidatePreparation"
+    },
+    "candidate_target_units": {
+      "type": "array",
+      "maxItems": 20,
+      "items": {"$ref": "#/$defs/candidateTargetUnit"}
     },
     "target_units": {
       "type": "array",
@@ -329,6 +350,43 @@
     },
     {
       "if": {
+        "required": ["candidate_target_units"],
+        "properties": {
+          "candidate_target_units": {"minItems": 1}
+        }
+      },
+      "then": {
+        "required": ["candidate_preparation"],
+        "properties": {
+          "candidate_target_units": {
+            "minItems": 20,
+            "maxItems": 20,
+            "allOf": [
+              {
+                "contains": {
+                  "type": "object",
+                  "properties": {"stratum": {"const": "random"}},
+                  "required": ["stratum"]
+                },
+                "minContains": 10,
+                "maxContains": 10
+              },
+              {
+                "contains": {
+                  "type": "object",
+                  "properties": {"stratum": {"const": "hard"}},
+                  "required": ["stratum"]
+                },
+                "minContains": 10,
+                "maxContains": 10
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "if": {
         "properties": {
           "status": {
             "enum": ["ready", "running", "awaiting-real-human-review", "closed"]
@@ -383,6 +441,11 @@
       "type": "string",
       "pattern": "^tos\\.(work|collection|item|file|anchor|event)\\.[a-z0-9]+(?:[.-][a-z0-9]+)*$"
     },
+    "repoRelativePath": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "^(?![A-Za-z][A-Za-z0-9+.-]*:)(?!/)(?!.*(?:^|/)\\.\\.(?:/|$))[^\\u0000]+$"
+    },
     "scoutingUnit": {
       "type": "object",
       "additionalProperties": false,
@@ -412,6 +475,232 @@
         "eligible_for_semantic_transfer": {"const": false},
         "selection_status": {"const": "scouting-only"},
         "selection_rationale": {"type": "string", "minLength": 1},
+        "limitations": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {"type": "string", "minLength": 1}
+        }
+      }
+    },
+    "candidatePreparation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "protocol_version",
+        "prepared_at",
+        "builder",
+        "source_extraction",
+        "deterministic_randomization_key_sha256",
+        "work_quotas",
+        "content_filter",
+        "variant_outputs_visible",
+        "human_review_performed",
+        "model_source_visible_review",
+        "authority"
+      ],
+      "properties": {
+        "protocol_version": {"const": 1},
+        "prepared_at": {"type": "string", "format": "date-time"},
+        "builder": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["ref", "sha256"],
+          "properties": {
+            "ref": {"$ref": "#/$defs/repoRelativePath"},
+            "sha256": {"$ref": "#/$defs/sha256"}
+          }
+        },
+        "source_extraction": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "tool",
+            "version",
+            "mode",
+            "network_access",
+            "source_text_tracked"
+          ],
+          "properties": {
+            "tool": {"const": "pdftotext"},
+            "version": {"type": "string", "minLength": 1},
+            "mode": {"const": "layout-utf8-whole-page"},
+            "network_access": {"const": false},
+            "source_text_tracked": {"const": false}
+          }
+        },
+        "deterministic_randomization_key_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "work_quotas": {
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 3,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["work_ref", "random", "hard"],
+            "properties": {
+              "work_ref": {"$ref": "#/$defs/tosId"},
+              "random": {"type": "integer", "minimum": 3, "maximum": 4},
+              "hard": {"type": "integer", "minimum": 3, "maximum": 4}
+            }
+          }
+        },
+        "content_filter": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "boundary_trim_pages",
+            "minimum_alphabetic_characters",
+            "minimum_nonblank_lines",
+            "random_method",
+            "hard_method",
+            "hard_excludes_random_pages"
+          ],
+          "properties": {
+            "boundary_trim_pages": {"const": 3},
+            "minimum_alphabetic_characters": {"type": "integer", "minimum": 1},
+            "minimum_nonblank_lines": {"type": "integer", "minimum": 1},
+            "random_method": {
+              "const": "lowest-sha256-rank-per-work-before-variant-outputs"
+            },
+            "hard_method": {
+              "const": "highest-mechanical-layout-score-per-work-before-variant-outputs"
+            },
+            "hard_excludes_random_pages": {"const": true}
+          }
+        },
+        "variant_outputs_visible": {"const": false},
+        "human_review_performed": {"const": false},
+        "model_source_visible_review": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "reviewer_ref",
+            "candidate_count",
+            "scope",
+            "status"
+          ],
+          "properties": {
+            "reviewer_ref": {"const": "model:codex"},
+            "candidate_count": {"const": 20},
+            "scope": {
+              "const": "whole-page-is-content-bearing-and-not-title-or-reference-matter"
+            },
+            "status": {"const": "completed_with_limits"}
+          }
+        },
+        "authority": {"const": "prepared-local-candidate-soil-only"}
+      }
+    },
+    "candidateTargetUnit": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "unit_id",
+        "anchor_ref",
+        "work_ref",
+        "expression_ref",
+        "item_ref",
+        "file_ref",
+        "page",
+        "page_resource_id",
+        "candidate_scope",
+        "stratum",
+        "selection_basis",
+        "selection_rank",
+        "selection_metrics",
+        "provisional_difficulty_signals",
+        "source_content_ref",
+        "source_content_sha256",
+        "source_content_bytes",
+        "source_layer",
+        "source_review_status",
+        "source_review_scope",
+        "target_gold_status",
+        "frozen_before_variant_outputs",
+        "eligible_for_variant_execution",
+        "limitations"
+      ],
+      "properties": {
+        "unit_id": {
+          "type": "string",
+          "pattern": "^tos-target-candidate-[a-z0-9-]+$"
+        },
+        "anchor_ref": {"$ref": "#/$defs/tosId"},
+        "work_ref": {"$ref": "#/$defs/tosId"},
+        "expression_ref": {
+          "type": "string",
+          "pattern": "^tos\\.expression\\.[a-z0-9]+(?:[.-][a-z0-9]+)*$"
+        },
+        "item_ref": {"$ref": "#/$defs/tosId"},
+        "file_ref": {"$ref": "#/$defs/tosId"},
+        "page": {"type": "integer", "minimum": 1},
+        "page_resource_id": {
+          "type": "string",
+          "pattern": "^pdf-page-[0-9]{4}$"
+        },
+        "candidate_scope": {"const": "whole-page"},
+        "stratum": {"enum": ["random", "hard"]},
+        "selection_basis": {
+          "enum": [
+            "deterministic-digest-order",
+            "mechanical-layout-hardness"
+          ]
+        },
+        "selection_rank": {"type": "integer", "minimum": 1},
+        "selection_metrics": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "nonspace_characters",
+            "alphabetic_characters",
+            "nonblank_lines",
+            "punctuation_characters",
+            "line_end_hyphenations",
+            "page_edge_fragment_signals",
+            "numbered_heading_candidates",
+            "mechanical_hardness_score"
+          ],
+          "properties": {
+            "nonspace_characters": {"type": "integer", "minimum": 1},
+            "alphabetic_characters": {"type": "integer", "minimum": 1},
+            "nonblank_lines": {"type": "integer", "minimum": 1},
+            "punctuation_characters": {"type": "integer", "minimum": 0},
+            "line_end_hyphenations": {"type": "integer", "minimum": 0},
+            "page_edge_fragment_signals": {"type": "integer", "minimum": 0},
+            "numbered_heading_candidates": {"type": "integer", "minimum": 0},
+            "mechanical_hardness_score": {"type": "integer", "minimum": 1}
+          }
+        },
+        "provisional_difficulty_signals": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "enum": [
+              "digest-random-baseline",
+              "mechanical-hardness-top-rank",
+              "dense-text",
+              "punctuation-rich",
+              "line-end-hyphenation",
+              "page-edge-fragment-risk",
+              "numbered-heading-candidate"
+            ]
+          }
+        },
+        "source_content_ref": {"$ref": "#/$defs/repoRelativePath"},
+        "source_content_sha256": {"$ref": "#/$defs/sha256"},
+        "source_content_bytes": {"type": "integer", "minimum": 1},
+        "source_layer": {"const": "embedded-pdf-text-pdftotext-layout"},
+        "source_review_status": {"const": "model_source_visible"},
+        "source_review_scope": {
+          "const": "content-bearing-page-and-route-only"
+        },
+        "target_gold_status": {"const": "not_started"},
+        "frozen_before_variant_outputs": {"const": true},
+        "eligible_for_variant_execution": {"const": false},
         "limitations": {
           "type": "array",
           "minItems": 1,

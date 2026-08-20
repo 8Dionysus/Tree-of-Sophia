@@ -70,8 +70,33 @@ It follows the frozen method rather than optimizing toward an observed answer:
 | --- | --- | --- |
 | `gte-multilingual-base` | retain as comparator | July 2025 repository state; documented SentenceTransformers path enables remote model code |
 | BGE-M3 | retain as literature/reference candidate | older, roughly 2.27 GB, and dense+sparse+multi-vector behavior would change more than one variable |
-| Qwen3-VL-Embedding-2B | defer to visual-search experiment | current sample/query lane has text passages, not frozen page images and visual relevance judgments |
+| Qwen3-VL-Embedding-2B | defer from this text run to a separate visual-search experiment | this frozen text lane has passages rather than page images; a later experiment must independently freeze its image corpus and relevance boundary |
 | lexical+dense fusion | defer to derived experiment | combines A/B components and is not the independent C required by the goal |
+
+## Post-freeze visual-route status
+
+This historical decision remains unchanged for text Retrieval C. A distinct
+experiment was subsequently frozen on 2026-07-29 with the same 20 query bytes,
+36 digest-bound page images, immutable completed text controls, and
+`Qwen/Qwen3-VL-Embedding-2B` revision
+`9f2f7e710d6d81056aa5c0a4f04764fec6bb7bda`.
+
+Its exact acquisition and isolated offline CPU runtime are now mechanically
+admitted. The 2026-07-29 memory-gated preflight remains preserved negative
+evidence, but a fresh 2026-07-30 preflight later returned `ready` without
+changing the 17,179,869,184-byte floor or using force. Owner-routed r9 then
+completed over all 36 images and 20 queries with a persisted normalization
+audit and text-free Tree result receipt. Its rankings and scores match the
+preserved audit-incomplete r8 execution 20/20. A later exact five-query,
+source-visible advisory inspection closes the immediate engineering-routing
+question: four rank-1 language/witness-policy failures reject the current
+unfiltered route as default, while one A/B-missed image-only page recovery
+retains it as an opt-in post-text-coverage fallback with predeclared
+item/witness/language/content-class constraints. Human relevance remains
+unjudged, and no transcription, quotation, source acceptance, accepted
+alignment, winner, promotion, or production/public adoption follows. This
+later route does not retroactively alter the output-blind Granite selection
+above.
 
 ## Comparability lock
 

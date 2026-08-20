@@ -1,0 +1,336 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/material-discovery-record.schema.json",
+  "schema_version": "tos_material_discovery_record_v1",
+  "discovery_id": "tos.discovery.proto-cuneiform-cdlb-2003-2-script-direction.2026-08-12",
+  "protocol_ref": "ToS/source-witnesses/discovery/DISCOVERY_PROTOCOL.md",
+  "target": {
+    "target_kind": "research-publication",
+    "known_tos_refs": [
+      "tos.work.proto-cuneiform.pisan-dub-ba-and-the-direction-of-cuneiform-script"
+    ],
+    "description": "Resolve CDLB 2003:2 as one exact research Work, reconstruct its material argument about cuneiform script direction without admitting that argument as period-level truth, and test it against classical disagreement, current CDLI object routes, rights, fresh tag scholarship, and transform-aware visual methodology.",
+    "required_properties": [
+      "exact title, author, journal identity, publication date, HTML and PDF version labels, and journal scope",
+      "article-text rights separated from artifact-image, transcription, and later-publication rights",
+      "physical artifact top, attachment axis, line direction, sign orientation, reading order, and editorial transform kept distinct",
+      "competing Powell, Picchioni, and Fitzgerald chronologies preserved",
+      "current CDLI coordinates for the five article-named tags",
+      "fresh 2025-2026 direct and methodological controls"
+    ],
+    "acceptable_substitutions": [
+      "publisher HTML and PDF for exact publication identity and argument",
+      "institutional catalogs for the Nelson dissertation",
+      "current CDLI API and artifact records only as identity and source-return controls"
+    ],
+    "languages": ["en", "de", "it", "sux", "und"],
+    "formats": ["journal HTML", "journal PDF", "citation metadata", "author metadata", "institutional catalog", "artifact metadata", "current ATF", "research article HTML"],
+    "purpose_ref": "ToS/research-packets/foundation-laboratory-2026-07/A01_CDLB_2003_2_SCRIPT_DIRECTION_SOURCE_PLANTING_RESEARCH_2026-08-12.md"
+  },
+  "channels": [
+    {
+      "channel_id": "channel-cdlb-2003-2-official-publication",
+      "sequence": 1,
+      "channel_type": "specialized-scholarly-project",
+      "role": "originating-record",
+      "source_name": "Cuneiform Digital Library Initiative article, PDF, citation metadata, author profile, journal index, and terms",
+      "endpoint_url": "https://cdli.earth/articles/cdlb/2003-2",
+      "interface_type": "web",
+      "interface_version": "current CDLI publication surface checked 2026-08-12",
+      "exact_query": "Resolve the exact CDLB 2003:2 title, author, publication date, HTML and PDF version labels, issue, ISSN, citation key, journal scope, and layer-specific rights.",
+      "queried_at": "2026-08-12T15:15:00-06:00",
+      "elapsed_seconds": 4.8,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.cdlb-2003-2-exact-article",
+          "rank": 1,
+          "title_as_displayed": "pisan dub-ba and the Direction of Cuneiform Script",
+          "result_url": "https://cdli.earth/articles/cdlb/2003-2",
+          "originating_record_url": "https://cdli.earth/articles/cdlb/2003-2",
+          "identifiers": [
+            {"scheme": "CDLB", "value": "2003:2"},
+            {"scheme": "CDLI article", "value": "cdlb-2003-2"},
+            {"scheme": "ISSN", "value": "1540-8760"},
+            {"scheme": "BibTeX key", "value": "Fitzgerald2003pisan"}
+          ],
+          "available_formats": ["open article HTML", "publisher PDF", "BibTeX", "RIS"],
+          "declared_rights": {"statement": "Creative Commons Attribution 4.0 International except where noted and for artifact images, which follow CDLI terms of use.", "scope": "content", "evidence_url": "https://cdli.earth/articles/cdlb/2003-2", "tos_conclusion": "evidence-only-not-a-rights-conclusion"},
+          "availability": "open-download",
+          "machine_interface": "html",
+          "decision": "select",
+          "rationale": "The originating record fixes the Work identity, author, issue, 2003-02-24 publication date, HTML version 2003-02-24, citation, and article rights; the publisher PDF separately reports version 2003-02-25 and a UCLA affiliation.",
+          "acquisition": {"downloaded": false, "acquired_at": null, "byte_size": null, "sha256": null, "event_ref": null},
+          "snapshot": {"state": "not-captured", "format": null, "sha256": null, "reason": "No article payload was needed for this metadata-only planting."}
+        },
+        {
+          "result_id": "tos-discovery-result.cdlb-fitzgerald-author-profile",
+          "rank": 2,
+          "title_as_displayed": "Fitzgerald, Madeleine - Authors",
+          "result_url": "https://cdli.earth/authors/1263",
+          "originating_record_url": "https://cdli.earth/authors/1263",
+          "identifiers": [
+            {"scheme": "CDLI author", "value": "1263"}
+          ],
+          "available_formats": ["author metadata HTML"],
+          "declared_rights": {"statement": null, "scope": "metadata", "evidence_url": null, "tos_conclusion": "evidence-only-not-a-rights-conclusion"},
+          "availability": "open-view",
+          "machine_interface": "html",
+          "decision": "select",
+          "rationale": "The exact CDLI profile corroborates the source-reported name and links the 2002 Yale dissertation but exposes neither a current institution nor ORCID, so broader identity remains provisional.",
+          "acquisition": {"downloaded": false, "acquired_at": null, "byte_size": null, "sha256": null, "event_ref": null},
+          "snapshot": {"state": "not-needed", "format": null, "sha256": null, "reason": "Public author metadata was sufficient."}
+        },
+        {
+          "result_id": "tos-discovery-result.cdlb-2003-2-journal-and-terms",
+          "rank": 3,
+          "title_as_displayed": "Cuneiform Digital Library Bulletin and CDLI Terms of Use",
+          "result_url": "https://cdli.earth/articles/cdlb",
+          "originating_record_url": "https://cdli.earth/terms-of-use",
+          "identifiers": [
+            {"scheme": "ISSN", "value": "1540-8760"}
+          ],
+          "available_formats": ["journal index HTML", "terms HTML"],
+          "declared_rights": {"statement": "Article text, artifact photographs, transliterations, and translations are governed in separate scopes; photographs remain owned by holding institutions except where noted.", "scope": "content", "evidence_url": "https://cdli.earth/terms-of-use", "tos_conclusion": "evidence-only-not-a-rights-conclusion"},
+          "availability": "open-view",
+          "machine_interface": "html",
+          "decision": "select",
+          "rationale": "The journal index establishes the refereed short-note scope, while the terms prevent the article's CC BY statement from being generalized to artifact photographs or every CDLI layer.",
+          "acquisition": {"downloaded": false, "acquired_at": null, "byte_size": null, "sha256": null, "event_ref": null},
+          "snapshot": {"state": "not-needed", "format": null, "sha256": null, "reason": "Rights and scope are preserved as dated linked evidence without local payload capture."}
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-cdlb-2003-2-classical-and-established",
+      "sequence": 2,
+      "channel_type": "specialized-scholarly-project",
+      "role": "scholarly-index",
+      "source_name": "Publisher article, Visible Language record, Nelson institutional catalogs, and KeiBi",
+      "endpoint_url": "https://cdli.earth/articles/cdlb/2003-2.pdf",
+      "interface_type": "web",
+      "interface_version": "publisher and institutional records checked 2026-08-12",
+      "exact_query": "Read Fitzgerald's complete material argument; retain the Delitzsch, Deimel, Falkenstein, Powell, Picchioni, and Goetze positions as competing models; verify Powell's originating record, Nelson's dissertation identity, and the KeiBi article coordinate.",
+      "queried_at": "2026-08-12T15:19:00-06:00",
+      "elapsed_seconds": 7.1,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.cdlb-2003-2-material-argument",
+          "rank": 1,
+          "title_as_displayed": "pisan dub-ba and the Direction of Cuneiform Script",
+          "result_url": "https://cdli.earth/articles/cdlb/2003-2.pdf",
+          "originating_record_url": "https://cdli.earth/articles/cdlb/2003-2",
+          "identifiers": [
+            {"scheme": "CDLB", "value": "2003:2"},
+            {"scheme": "PDF version", "value": "2003-02-25"}
+          ],
+          "available_formats": ["publisher PDF", "article HTML"],
+          "declared_rights": {"statement": "Creative Commons Attribution 4.0 International except where noted and for artifact images, which follow CDLI terms of use.", "scope": "content", "evidence_url": "https://cdli.earth/articles/cdlb/2003-2", "tos_conclusion": "evidence-only-not-a-rights-conclusion"},
+          "availability": "open-download",
+          "machine_interface": "html",
+          "decision": "select",
+          "rationale": "The complete article establishes the exact object classes, named tags, hole-and-attachment inference, drawing omission warning, competing chronology, and explicitly prospective Kassite and international-environment explanations.",
+          "acquisition": {"downloaded": false, "acquired_at": null, "byte_size": null, "sha256": null, "event_ref": null},
+          "snapshot": {"state": "not-captured", "format": null, "sha256": null, "reason": "The argument was inspected remotely; no article body or figure entered ToS."}
+        },
+        {
+          "result_id": "tos-discovery-result.powell-1981-direction-of-script",
+          "rank": 2,
+          "title_as_displayed": "Three Problems in the History of Cuneiform Writing: Origins, Direction of Script, and Literacy",
+          "result_url": "https://journals.uc.edu/index.php/vl/article/view/5328",
+          "originating_record_url": "https://journals.uc.edu/index.php/vl/article/view/5328",
+          "identifiers": [
+            {"scheme": "Visible Language article", "value": "5328"},
+            {"scheme": "publication year", "value": "1981"}
+          ],
+          "available_formats": ["publisher metadata HTML", "article PDF"],
+          "declared_rights": {"statement": null, "scope": "unknown", "evidence_url": null, "tos_conclusion": "evidence-only-not-a-rights-conclusion"},
+          "availability": "open-view",
+          "machine_interface": "html",
+          "decision": "select",
+          "rationale": "The originating journal record verifies the classical alternative that vertical reading persisted through roughly 2300 BCE and that stylus manipulation contributed to the transition; this remains a competing model, not inherited fact.",
+          "acquisition": {"downloaded": false, "acquired_at": null, "byte_size": null, "sha256": null, "event_ref": null},
+          "snapshot": {"state": "not-captured", "format": null, "sha256": null, "reason": "Only the publication route and bounded thesis were needed as a comparison control."}
+        },
+        {
+          "result_id": "tos-discovery-result.nelson-1976-pisan-dub-ba-dissertation",
+          "rank": 3,
+          "title_as_displayed": "Pisan-dub-ba Texts from the Sumerian Ur III Dynasty",
+          "result_url": "https://ci.nii.ac.jp/ncid/BA25072016?l=en",
+          "originating_record_url": "https://katalog.ub.uni-heidelberg.de/titel/66415591",
+          "identifiers": [
+            {"scheme": "CiNii NCID", "value": "BA25072016"},
+            {"scheme": "publication year", "value": "1976"}
+          ],
+          "available_formats": ["institutional catalog metadata"],
+          "declared_rights": {"statement": null, "scope": "metadata", "evidence_url": null, "tos_conclusion": "evidence-only-not-a-rights-conclusion"},
+          "availability": "metadata-only",
+          "machine_interface": "html",
+          "decision": "select",
+          "rationale": "Independent institutional catalogs establish Richard Carroll Nelson's 440-leaf University of Minnesota dissertation as the major earlier corpus treatment without implying access or reuse rights to its body.",
+          "acquisition": {"downloaded": false, "acquired_at": null, "byte_size": null, "sha256": null, "event_ref": null},
+          "snapshot": {"state": "not-needed", "format": null, "sha256": null, "reason": "Catalog metadata is sufficient for this contextual source route."}
+        },
+        {
+          "result_id": "tos-discovery-result.keibi-cdlb-2003-2-record",
+          "rank": 4,
+          "title_as_displayed": "pisan dub-ba and the Direction of Cuneiform Script",
+          "result_url": "https://ocb.uni-tuebingen.de/Record/KEI00007026",
+          "originating_record_url": "https://ocb.uni-tuebingen.de/Record/KEI00007026",
+          "identifiers": [
+            {"scheme": "KeiBi", "value": "62:302"}
+          ],
+          "available_formats": ["bibliographic metadata HTML"],
+          "declared_rights": {"statement": null, "scope": "metadata", "evidence_url": null, "tos_conclusion": "evidence-only-not-a-rights-conclusion"},
+          "availability": "open-view",
+          "machine_interface": "html",
+          "decision": "select",
+          "rationale": "KeiBi supplies an independent article coordinate and the form Madeleine A. Fitzgerald, but the middle initial is not promoted into the preferred Agent label because originating sources omit it.",
+          "acquisition": {"downloaded": false, "acquired_at": null, "byte_size": null, "sha256": null, "event_ref": null},
+          "snapshot": {"state": "not-needed", "format": null, "sha256": null, "reason": "The metadata comparison is represented by the live bibliographic route."}
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-cdlb-2003-2-current-object-routes",
+      "sequence": 3,
+      "channel_type": "specialized-scholarly-project",
+      "role": "digital-object-record",
+      "source_name": "Current CDLI API documentation, artifact catalog records, ATF, and photograph routes",
+      "endpoint_url": "https://cdli.earth/docs/api",
+      "interface_type": "api",
+      "interface_version": "current CDLI REST and artifact surfaces checked 2026-08-12",
+      "exact_query": "Resolve ICP 1, ICP 2, ICP 446, ICP 447, and TUT 164-03 to current CDLI identifiers; check object classification, opening-line source return, and live photo routes without downloading or inferring physical orientation from normalized ATF.",
+      "queried_at": "2026-08-12T15:24:00-06:00",
+      "elapsed_seconds": 9.6,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.cdli-five-pisan-dub-ba-object-routes",
+          "rank": 1,
+          "title_as_displayed": "ICP 1, ICP 2, ICP 446, ICP 447, and TUT 164-03 current CDLI records",
+          "result_url": "https://cdli.earth/artifacts/134765",
+          "originating_record_url": "https://cdli.earth/docs/api",
+          "identifiers": [
+            {"scheme": "CDLI artifact", "value": "P134765"},
+            {"scheme": "CDLI artifact", "value": "P134766"},
+            {"scheme": "CDLI artifact", "value": "P139616"},
+            {"scheme": "CDLI artifact", "value": "P139619"},
+            {"scheme": "CDLI artifact", "value": "P135739"}
+          ],
+          "available_formats": ["REST JSON", "artifact metadata HTML", "current ATF", "photograph route under separate terms"],
+          "declared_rights": {"statement": "Artifact photographs remain owned by their holding institutions except where noted; CDLI terms govern image and text reuse separately.", "scope": "digital-object", "evidence_url": "https://cdli.earth/terms-of-use", "tos_conclusion": "evidence-only-not-a-rights-conclusion"},
+          "availability": "open-view",
+          "machine_interface": "api",
+          "decision": "select",
+          "rationale": "Current records map the five historical coordinates to stable P-numbers, classify each as a tag, and expose source-return routes. Normalized ATF and catalog metadata do not establish physical top, cord axis, text direction, or image transform.",
+          "acquisition": {"downloaded": false, "acquired_at": null, "byte_size": null, "sha256": null, "event_ref": null},
+          "snapshot": {"state": "not-permitted", "format": null, "sha256": null, "reason": "No artifact JSON, ATF, or photograph was imported; future image use requires a separate rights and observation route."}
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-cdlb-2003-2-fresh-scholarship",
+      "sequence": 4,
+      "channel_type": "general-web-search",
+      "role": "mixed",
+      "source_name": "Fresh publisher-hosted tag scholarship, CDLB visual-method research, and final targeted web relevance screen",
+      "endpoint_url": "https://journals.ur.edu.pl/anabasis/article/view/12297",
+      "interface_type": "web",
+      "interface_version": "publisher and journal surfaces checked 2026-08-12",
+      "exact_query": "Find the freshest directly relevant 2025-2026 scholarship on pisan-dub-ba morphology, physical attachment evidence, transform-sensitive cuneiform visualization, and any exact peer-reviewed re-dating of the whole script-direction transition; reject generic OCR and sign-classification results.",
+      "queried_at": "2026-08-12T15:28:00-06:00",
+      "elapsed_seconds": 8.4,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.stepien-2025-new-pisan-dub-ba-tablet",
+          "rank": 1,
+          "title_as_displayed": "The New ‘pisan-dub-ba’ Tablet from the Time of the Ur III Dynasty, in the Collection of the National Museum in Wrocław (Poland)",
+          "result_url": "https://journals.ur.edu.pl/anabasis/article/view/12297",
+          "originating_record_url": "https://journals.ur.edu.pl/anabasis/article/view/12297",
+          "identifiers": [
+            {"scheme": "journal volume", "value": "14-15 (2023-2024)"},
+            {"scheme": "actual publication date", "value": "2025-12-27"}
+          ],
+          "available_formats": ["publisher article metadata HTML", "article PDF"],
+          "declared_rights": {"statement": "Creative Commons Attribution-NonCommercial-NoDerivatives 4.0 International.", "scope": "content", "evidence_url": "https://journals.ur.edu.pl/anabasis/article/view/12297", "tos_conclusion": "evidence-only-not-a-rights-conclusion"},
+          "availability": "open-download",
+          "machine_interface": "html",
+          "decision": "select",
+          "rationale": "This refereed article, nominally in a 2023-2024 volume but actually published in late 2025, reports more than 800 known tags, affirms Fitzgerald's physical-hole inference, and adds a new Wrocław example without settling the global chronology.",
+          "acquisition": {"downloaded": false, "acquired_at": null, "byte_size": null, "sha256": null, "event_ref": null},
+          "snapshot": {"state": "not-captured", "format": null, "sha256": null, "reason": "No article, figure, or derivative was imported under the NC-ND license."}
+        },
+        {
+          "result_id": "tos-discovery-result.surdi-2026-transform-sensitive-visualization",
+          "rank": 2,
+          "title_as_displayed": "Improving Legibility: Visual Strategies for Four Unpublished Cuneiform Objects from Ghent University",
+          "result_url": "https://cdli.earth/articles/cdlb/2026-1",
+          "originating_record_url": "https://cdli.earth/articles/cdlb/2026-1",
+          "identifiers": [
+            {"scheme": "CDLB", "value": "2026:1"},
+            {"scheme": "publication date", "value": "2026-01-02"}
+          ],
+          "available_formats": ["open article HTML", "publisher PDF"],
+          "declared_rights": {"statement": "Creative Commons Attribution 4.0 International except where noted and for artifact images, which follow CDLI terms of use.", "scope": "content", "evidence_url": "https://cdli.earth/articles/cdlb/2026-1", "tos_conclusion": "evidence-only-not-a-rights-conclusion"},
+          "availability": "open-download",
+          "machine_interface": "html",
+          "decision": "select",
+          "rationale": "The article shows on a cord-impressed pisan-dub-ba tag that a sign-legibility transform can flatten depth and obscure the morphology needed for attachment-axis judgment; raw images and every derived view must remain distinct witnesses.",
+          "acquisition": {"downloaded": false, "acquired_at": null, "byte_size": null, "sha256": null, "event_ref": null},
+          "snapshot": {"state": "not-captured", "format": null, "sha256": null, "reason": "No visual asset, article body, or processed representation was copied into ToS."}
+        },
+        {
+          "result_id": "tos-discovery-result.generic-cuneiform-ocr-not-orientation-control",
+          "rank": 3,
+          "title_as_displayed": "Generic 2025-2026 cuneiform OCR, language-identification, and sign-classification results",
+          "result_url": "https://arxiv.org/search/?query=cuneiform+OCR&searchtype=all",
+          "originating_record_url": null,
+          "identifiers": [],
+          "available_formats": ["research-result listings", "preprints"],
+          "declared_rights": {"statement": null, "scope": "unknown", "evidence_url": null, "tos_conclusion": "evidence-only-not-a-rights-conclusion"},
+          "availability": "open-view",
+          "machine_interface": "html",
+          "decision": "reject",
+          "rationale": "Generic recognition and classification work does not test attachment holes, cord impressions, physical top, view transforms, or the Powell-Picchioni-Fitzgerald chronology; no exact newer peer-reviewed global re-dating was located.",
+          "acquisition": {"downloaded": false, "acquired_at": null, "byte_size": null, "sha256": null, "event_ref": null},
+          "snapshot": {"state": "not-needed", "format": null, "sha256": null, "reason": "Non-comparable leads were rejected without content capture."}
+        }
+      ]
+    }
+  ],
+  "channel_comparison": [
+    {"channel_id": "channel-cdlb-2003-2-official-publication", "completeness": "strong", "metadata_precision": "strong", "rights_clarity": "strong", "machine_interface_quality": "strong", "human_minutes": 6.0, "machine_seconds": 4.8, "notes": "Complete for Work identity, responsibility, publication and divergent version labels, issue, citation, journal scope, and article-versus-image rights. Broader Agent identity remains provisional."},
+    {"channel_id": "channel-cdlb-2003-2-classical-and-established", "completeness": "strong", "metadata_precision": "strong", "rights_clarity": "adequate", "machine_interface_quality": "strong", "human_minutes": 13.0, "machine_seconds": 7.1, "notes": "The exact argument, classical disagreement, and established tag-corpus route were resolved. Picchioni and Goetze remain source-cited positions rather than newly planted Works in this bounded slice."},
+    {"channel_id": "channel-cdlb-2003-2-current-object-routes", "completeness": "strong", "metadata_precision": "strong", "rights_clarity": "strong", "machine_interface_quality": "strong", "human_minutes": 8.0, "machine_seconds": 9.6, "notes": "All five named examples were mapped to current CDLI identifiers and live source routes. No artifact, photograph, ATF, or orientation observation was admitted."},
+    {"channel_id": "channel-cdlb-2003-2-fresh-scholarship", "completeness": "adequate", "metadata_precision": "strong", "rights_clarity": "strong", "machine_interface_quality": "strong", "human_minutes": 9.0, "machine_seconds": 8.4, "notes": "A late-2025 direct tag study and 2026 transform-sensitive method control were located. No exact newer peer-reviewed global re-dating was found; that is a bounded search outcome, not a complete literature claim."}
+  ],
+  "selected_result_ids": [
+    "tos-discovery-result.cdlb-2003-2-exact-article",
+    "tos-discovery-result.cdlb-fitzgerald-author-profile",
+    "tos-discovery-result.cdlb-2003-2-journal-and-terms",
+    "tos-discovery-result.cdlb-2003-2-material-argument",
+    "tos-discovery-result.powell-1981-direction-of-script",
+    "tos-discovery-result.nelson-1976-pisan-dub-ba-dissertation",
+    "tos-discovery-result.keibi-cdlb-2003-2-record",
+    "tos-discovery-result.cdli-five-pisan-dub-ba-object-routes",
+    "tos-discovery-result.stepien-2025-new-pisan-dub-ba-tablet",
+    "tos-discovery-result.surdi-2026-transform-sensitive-visualization"
+  ],
+  "rejected_result_ids": [
+    "tos-discovery-result.generic-cuneiform-ocr-not-orientation-control"
+  ],
+  "rights_inference_from_availability_prohibited": true,
+  "general_web_search_is_last_resort": true,
+  "technical_access_bypass_used": false,
+  "maker": {"maker_type": "model", "agent_ref": "model:codex"},
+  "started_at": "2026-08-12T15:15:00-06:00",
+  "ended_at": "2026-08-12T15:32:49-06:00",
+  "status": "reconciled",
+  "provenance_event_refs": [
+    "tos.event.discovery.proto-cuneiform-cdlb-2003-2-script-direction.2026-08-12"
+  ],
+  "record_version": 1,
+  "supersedes_discovery_ref": null
+}

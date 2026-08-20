@@ -1,0 +1,77 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/access-request.schema.json",
+  "schema_version": "tos_access_request_v1",
+  "request_id": "tos.access-request.britannica-cuneiform-local-ai-research",
+  "material": {
+    "title": "Cuneiform",
+    "responsibility": "Encyclopaedia Britannica, Inc.; current article byline unresolved",
+    "edition_or_resource": "Mutable Encyclopaedia Britannica topic page at https://www.britannica.com/topic/cuneiform; exact current revision date unresolved",
+    "requested_portion": "The complete current article text and its bibliographic/revision metadata, solely for access-controlled local noncommercial solo-plus-AI research. No images, videos, third-party media, or linked external works are requested.",
+    "identifiers": [
+      {"scheme": "Britannica topic URL slug", "value": "cuneiform"}
+    ],
+    "tos_refs": [
+      "tos.work.proto-cuneiform.britannica-cuneiform"
+    ],
+    "discovery_refs": [
+      "ToS/source-witnesses/discovery/runs/proto-cuneiform-britannica-cuneiform-synthesis.2026-08-12.v1.json"
+    ]
+  },
+  "rights_holder_or_institution": {
+    "name": "Encyclopaedia Britannica, Inc.",
+    "role": "publisher",
+    "identification_evidence_urls": [
+      "https://www.britannica.com/topic/cuneiform",
+      "https://corporate.britannica.com/termsofuse.html"
+    ],
+    "identity_status": "identified"
+  },
+  "contact_route": {
+    "channel_type": "publisher-rights-portal",
+    "public_institutional_url": "https://britannica.tfaforms.net/47",
+    "refreshed_at": "2026-08-12T15:56:00-06:00",
+    "personal_contact_committed": false
+  },
+  "project_description_ref": "README.md",
+  "research_purpose": "Evaluate how a concise reference synthesis can serve as a navigation baseline for Tree of Sophia while every historical assertion is decomposed to direct scholarship and source-returnable evidence. The local study would compare the article's terminology and claims with established and fresh research, measure unsupported-assertion and returnability failures, and improve provenance-aware indexing. It is not model development or training.",
+  "requested_format": "Permission to make one access-controlled local machine-readable research copy of the current article text and metadata, retain source fixity and provenance, run local transcription normalization, indexing, retrieval, embeddings, and computer-assisted comparison, and quote only bounded passages with attribution. No public article body, image, content-bearing derivative, model training corpus, server-hosted processing copy, or redistribution is requested.",
+  "requested_permissions": {
+    "local_access": "requested",
+    "ocr_or_transcription": "requested",
+    "indexing": "requested",
+    "embeddings": "requested",
+    "quotation": "requested",
+    "metadata_publication": "requested",
+    "derivative_publication": "not-requested",
+    "server_processing": "not-requested",
+    "source_redistribution": "not-requested"
+  },
+  "local_storage_conditions": {
+    "access_controlled": true,
+    "source_payload_gitignored": true,
+    "location_class": "operator-controlled-local-ToS-storage",
+    "retention_posture": "Retain only under Britannica's written conditions; preserve exact revision and fixity metadata; keep article bytes, extracted text, embeddings, and content-bearing derivatives local and removable; publish neither the article nor restricted derivatives.",
+    "removal_supported": true
+  },
+  "non_redistribution_without_permission": true,
+  "technical_access_bypass_used": false,
+  "access_status": "restricted",
+  "request_status": "draft-not-sent",
+  "human_send_approval": false,
+  "sent_at": null,
+  "response": {
+    "state": "none",
+    "received_at": null,
+    "permission_expires_at": null,
+    "conditions": [],
+    "safe_evidence_refs": []
+  },
+  "private_correspondence_ref": null,
+  "redacted_public_receipt_ref": null,
+  "personal_or_confidential_data_committed": false,
+  "rights_record_refs": [],
+  "provenance_event_refs": [
+    "tos.event.access-request-draft.britannica-cuneiform-local-ai-research.2026-08-12"
+  ],
+  "record_version": 1
+}

@@ -1,0 +1,64 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/philosophy-source-planting.schema.json",
+  "schema_version": "tos_philosophy_source_planting_v1",
+  "planting_id": "tos.planting.a01.schmandt-besserat-token-tablet-debate",
+  "atlas_row_id": "A01",
+  "dossier_id": "A01",
+  "branch_path": "ToS/philosophy/eras/bronze-age/regions/west-asia/traditions/proto-cuneiform-accounting-ontologies",
+  "source_backlog_anchor": {
+    "path": "ToS/philosophy/eras/bronze-age/regions/west-asia/traditions/proto-cuneiform-accounting-ontologies/sources/source-anchor-backlog.jsonl",
+    "line": 27,
+    "source_table_index": 14,
+    "source_row_index": 9,
+    "source_label": "Историография токенов и Schmandt-Besserat debate [42]"
+  },
+  "source_witness": {
+    "work_id": "tos.work.proto-cuneiform.before-writing-volume-i-from-counting-to-cuneiform",
+    "record_ref": "ToS/source-witnesses/works/proto-cuneiform-scholarship/before-writing-volume-i-from-counting-to-cuneiform/work.json",
+    "relationship": "grounds_source_backlog_anchor"
+  },
+  "discovery_ref": "ToS/source-witnesses/discovery/runs/proto-cuneiform-schmandt-besserat-token-tablet-debate.2026-08-12.v1.json",
+  "provenance_event_ref": "tos.event.discovery.proto-cuneiform-schmandt-besserat-token-tablet-debate.2026-08-12",
+  "research_ref": "ToS/research-packets/foundation-laboratory-2026-07/A01_SCHMANDT_BESSERAT_TOKEN_TABLET_DEBATE_SOURCE_PLANTING_RESEARCH_2026-08-12.md",
+  "fulfilled_source_needs": [
+    "the direct 1992 Schmandt-Besserat theory Work is resolved separately from its manifestations and from the companion Volume II primary-data catalog",
+    "the author's strongest token-to-writing continuity thesis is retained as an attributed claim rather than normalized into accepted history",
+    "classical criticism, historical-epistemology controls, and sustained 1993 review debate are retained",
+    "empirical reassessment separates physical clay objects from a preaccepted accounting-token function and documents coexistence after writing",
+    "fresh 2025 scholarship replaces one universal ladder with context-supported, multi-media, episodic, and regional transition hypotheses",
+    "morphology, chronology, context, impression, sign identity, value, function, continuity, replacement, coexistence, and alternative media are separated",
+    "an exact pair-level evidence contract and A/B/C laboratory design are prepared",
+    "a public-safe unsent route for lawful local research access to both monographs is prepared"
+  ],
+  "remaining_controls": [
+    "no monograph, article, catalog, image, or artifact payload is acquired, committed, or redistributed",
+    "Volume II must be modeled as its own Work before any catalog-level source planting or artifact import",
+    "every proposed token-to-impression or token-to-sign pair requires exact anchors, transformations, context, chronology, values, counterexamples, and alternatives",
+    "a clay object's accounting function cannot be inferred from geometric form alone",
+    "coexistence rejects simple universal replacement but does not automatically reject all local influence hypotheses",
+    "no historical transition, archaeological fact, semantic object, graph relation, canon state, or human task is admitted",
+    "the access-request draft remains unsent and grants no use or publication right"
+  ],
+  "research_order": [
+    "official_and_classical_documentation",
+    "established_top_scholarship",
+    "fresh_current_relevance_check"
+  ],
+  "authority": {
+    "source_status": "metadata_witness_planted",
+    "review_status": "unreviewed",
+    "source_text_admitted": false,
+    "semantic_status": "not_started",
+    "graph_status": "not_promoted",
+    "canon_status": "not_canon",
+    "human_task_created": false
+  },
+  "status": "source_witness_planted",
+  "maker": {
+    "maker_type": "model",
+    "agent_ref": "model:codex",
+    "human_review_performed": false
+  },
+  "created_at": "2026-08-12T17:36:00-06:00",
+  "record_version": 1
+}

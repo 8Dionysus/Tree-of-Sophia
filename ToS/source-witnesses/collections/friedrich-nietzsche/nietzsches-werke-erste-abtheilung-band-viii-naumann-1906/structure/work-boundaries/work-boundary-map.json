@@ -1,0 +1,84 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/collection-work-boundary-map.schema.json",
+  "schema_version": "tos_collection_work_boundary_map_v1",
+  "map_id": "tos.collection-work-boundary-map.friedrich-nietzsche.nietzsches-werke-band-8-naumann-1906",
+  "collection_ref": "tos.collection.friedrich-nietzsche.nietzsches-werke-erste-abtheilung-band-8-naumann-1906",
+  "edition_ref": "tos.edition.friedrich-nietzsche.nietzsches-werke-band-8.leipzig-c-g-naumann-1906",
+  "item_ref": "tos.item.friedrich-nietzsche.nietzsches-werke-band-8.naumann-1906.wikimedia-commons-stanford-scan-djvu",
+  "file_id": "tos.file.sha256.8f61aaecd55339fc3ba11eca24fbeef85e953d1a262200b36e59d5fbc545ca9d",
+  "file_sha256": "8f61aaecd55339fc3ba11eca24fbeef85e953d1a262200b36e59d5fbc545ca9d",
+  "resource_inventory_ref": "ToS/source-witnesses/collections/friedrich-nietzsche/nietzsches-werke-erste-abtheilung-band-viii-naumann-1906/editions/leipzig-c-g-naumann-1906/items/wikimedia-commons-stanford-scan-djvu/resource-inventory.json",
+  "resource_inventory_sha256": "597b72094b4c875df672ada698ab4638a4070024fe9e4710441e44fca38f54db",
+  "page_count": 523,
+  "coverage_posture": "partial_membership_representation",
+  "members": [
+    {
+      "sequence": 1,
+      "source_sequence": 4,
+      "work_ref": "tos.work.friedrich-nietzsche.der-antichrist",
+      "expression_ref": "tos.expression.friedrich-nietzsche.der-antichrist.de-naumann-1906-volume-8",
+      "membership_claim_ref": "tos.claim.collection.nietzsches-werke-band-8-naumann-1906.contains-der-antichrist",
+      "responsibility_claim_ref": null,
+      "title_page_anchor_ref": "tos.anchor.nietzsches-werke-band-8-naumann-1906.der-antichrist-work-start-p0228",
+      "boundary_evidence_anchor_refs": [
+        "tos.anchor.nietzsches-werke-band-8-naumann-1906.der-antichrist-work-start-p0228",
+        "tos.anchor.nietzsches-werke-band-8-naumann-1906.der-antichrist-end-p0329",
+        "tos.anchor.nietzsches-werke-band-8-naumann-1906.next-section-p0330"
+      ],
+      "start_page": 228,
+      "end_page": 329,
+      "epistemic_status": "observed",
+      "review_status": "unreviewed"
+    }
+  ],
+  "non_member_sections": [],
+  "unrepresented_sections": [
+    {
+      "label": "Container pages before the currently represented Der Antichrist member; includes front matter and other collection content not modeled by this partial map",
+      "start_page": 1,
+      "end_page": 227,
+      "boundary_anchor_ref": "tos.anchor.nietzsches-werke-band-8-naumann-1906.container-start-p0001",
+      "epistemic_status": "observed",
+      "review_status": "unreviewed"
+    },
+    {
+      "label": "Container pages after the currently represented Der Antichrist member; includes later collection content and end matter not modeled by this partial map",
+      "start_page": 330,
+      "end_page": 523,
+      "boundary_anchor_ref": "tos.anchor.nietzsches-werke-band-8-naumann-1906.next-section-p0330",
+      "epistemic_status": "observed",
+      "review_status": "unreviewed"
+    }
+  ],
+  "crosscheck_anchor_refs": [
+    "tos.anchor.nietzsches-werke-band-8-naumann-1906.toc-p0011",
+    "tos.anchor.nietzsches-werke-band-8-naumann-1906.der-antichrist-title-p0230",
+    "tos.anchor.nietzsches-werke-band-8-naumann-1906.der-antichrist-main-start-p0232"
+  ],
+  "source_text_included": false,
+  "maker": {
+    "maker_type": "model",
+    "agent_ref": "model:codex",
+    "method": "source-visible contents, preface, internal-title, main-start, terminal, and following-section inspection over a fixity-bound local DjVu"
+  },
+  "review_status": "unreviewed",
+  "establishes": [
+    "proposed Der Antichrist membership in the exact 1906 aggregate item",
+    "proposed scan-page range 228 through 329 for the preface and work",
+    "separate title, main-text start, terminal, and following-section page anchors",
+    "explicitly partial collection membership representation"
+  ],
+  "does_not_establish": [
+    "complete identity or boundaries for every work in the aggregate volume",
+    "accepted source text or transcription",
+    "textual identity with the 1888 manuscript, 1895 first printing, or any critical edition",
+    "provider OCR quality or accepted German",
+    "translation correspondence or quality",
+    "semantic units, signs, concepts, or relations",
+    "rights clearance or permission to publish source bytes",
+    "human review or canon acceptance"
+  ],
+  "provenance_event_ref": "tos.event.collection-structure.friedrich-nietzsche.nietzsches-werke-band-8-naumann-1906.2026-07-30",
+  "map_version": 1,
+  "supersedes_map_ref": null
+}

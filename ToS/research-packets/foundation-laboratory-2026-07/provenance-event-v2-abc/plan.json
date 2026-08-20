@@ -1,0 +1,36 @@
+{
+  "schema_version": "tos_provenance_event_v2_lab_plan_v1",
+  "lab_id": "tos.lab.provenance-event-v2.synthetic-abc",
+  "purpose": "Exercise digest-bound success, transformation, and honest failure provenance over public synthetic bytes.",
+  "variants": [
+    {
+      "variant_id": "A",
+      "operation": "identity-copy",
+      "expected_status": "completed",
+      "expected_relation": "identity_copy_of"
+    },
+    {
+      "variant_id": "B",
+      "operation": "unicode-nfc",
+      "expected_status": "completed",
+      "expected_relation": "revision_of"
+    },
+    {
+      "variant_id": "C",
+      "operation": "ascii-strict-negative-control",
+      "expected_status": "failed",
+      "expected_relation": null
+    }
+  ],
+  "authority_limits": {
+    "public_synthetic_bytes_only": true,
+    "private_source_used": false,
+    "model_invoked": false,
+    "human_evidence_created": false,
+    "execution_attested_by_signature": false,
+    "content_truth_established": false,
+    "rights_clearance_established": false,
+    "semantic_claim_created": false,
+    "canon_effect": false
+  }
+}

@@ -1,0 +1,239 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/material-discovery-record.schema.json",
+  "schema_version": "tos_material_discovery_record_v1",
+  "discovery_id": "tos.discovery.naumann-1893-provision-identity.2026-08-01",
+  "protocol_ref": "ToS/source-witnesses/discovery/DISCOVERY_PROTOCOL.md",
+  "target": {
+    "target_kind": "edition",
+    "known_tos_refs": [
+      "tos.work.friedrich-nietzsche.also-sprach-zarathustra",
+      "tos.edition.friedrich-nietzsche.also-sprach-zarathustra.leipzig-c-g-naumann-1893",
+      "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-naumann-1893.internet-archive-image-container-pdf"
+    ],
+    "description": "Exact Edition statement and role-separated publication and manufacture identity for the fixity-verified Naumann 1893 Item without deriving provision facts from a directory label or collapsing publisher, printer, place, statement year, release, textual state, and current rights.",
+    "required_properties": [
+      "source-visible Edition statement",
+      "source-visible publication and manufacture statement",
+      "publisher and printer Organization separation",
+      "source-visible place and statement year",
+      "source-return anchors for the Edition, provision, and historical-rights statements"
+    ],
+    "acceptable_substitutions": [
+      "an exact institutional catalog record for this manifestation that preserves publisher and printer roles without asserting Item equivalence"
+    ],
+    "languages": ["de"],
+    "formats": ["PDF", "metadata", "JSON-LD", "HTML", "scholarly monograph"],
+    "purpose_ref": "ToS/research-packets/foundation-laboratory-2026-07/NAUMANN_1893_PROVISION_IDENTITY_RESEARCH.md"
+  },
+  "channels": [
+    {
+      "channel_id": "channel-ia-naumann-1893-exact-item",
+      "sequence": 1,
+      "channel_type": "collection-aggregator",
+      "role": "originating-record",
+      "source_name": "Internet Archive exact digital object and local fixity-verified research copy",
+      "endpoint_url": "https://archive.org/metadata/NietzscheAlsoSprachZarathustra1893",
+      "interface_type": "api",
+      "interface_version": "Internet Archive metadata API as served 2026-08-01 plus direct visual inspection of the exact local payload",
+      "exact_query": "Refresh item NietzscheAlsoSprachZarathustra1893, verify the recorded PDF and EPUB file identities, and visually inspect exact local PDF SHA-256 61c947e5aff76a64d82600cc52dcb25ff1b5862530d3a99c96824da885c1e6cf on pages 46 and 47",
+      "queried_at": "2026-08-01T05:05:00-06:00",
+      "elapsed_seconds": 9.1,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.ia-naumann-1893-exact-item-provision",
+          "rank": 1,
+          "title_as_displayed": "Also Sprach Zarathustra",
+          "result_url": "https://archive.org/details/NietzscheAlsoSprachZarathustra1893",
+          "originating_record_url": "https://archive.org/metadata/NietzscheAlsoSprachZarathustra1893",
+          "identifiers": [
+            {"scheme": "Internet Archive identifier", "value": "NietzscheAlsoSprachZarathustra1893"},
+            {"scheme": "ARK", "value": "ark:/13960/t9574r74x"},
+            {"scheme": "local SHA-256", "value": "61c947e5aff76a64d82600cc52dcb25ff1b5862530d3a99c96824da885c1e6cf"}
+          ],
+          "available_formats": ["Image Container PDF", "EPUB", "JSON metadata"],
+          "declared_rights": {
+            "statement": "Internet Archive exposes Public Domain Mark 1.0 for the digital object; the source itself also prints Uebersetzungsrecht vorbehalten on PDF page 47.",
+            "scope": "digital-object",
+            "evidence_url": "https://archive.org/details/NietzscheAlsoSprachZarathustra1893",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-download",
+          "machine_interface": "api",
+          "decision": "select",
+          "rationale": "Only the exact fixity-verified Item establishes the Edition wording, combined Druck und Verlag statement, Leipzig statement, year, and historical translation-right reservation; no payload or rendered page is added to Git.",
+          "acquisition": {"downloaded": false, "acquired_at": null, "byte_size": null, "sha256": null, "event_ref": null},
+          "snapshot": {"state": "captured", "format": "static-snapshot", "sha256": "22c2274df0b86707804e206e0e403ecb65ce22b21efcc533cde4ddc186e4e648", "reason": "The tracked source-metadata snapshot preserves originating-object identity; the current 2026-08-01 metadata response digest is recorded separately in the research packet."}
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-dnb-naumann-leipzig-authorities",
+      "sequence": 2,
+      "channel_type": "national-catalog",
+      "role": "originating-record",
+      "source_name": "Deutsche Nationalbibliothek Gemeinsame Normdatei",
+      "endpoint_url": "https://d-nb.info/gnd/1072998033/about/lds",
+      "interface_type": "api",
+      "interface_version": "GND linked data as served 2026-08-01",
+      "exact_query": "Resolve publisher GND 1072998033, printer GND 16034133-4, and Leipzig GND 4035206-7; compare preferred names, variants, place, and founder without inferring same_as or corporate succession",
+      "queried_at": "2026-08-01T05:08:00-06:00",
+      "elapsed_seconds": 4.8,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.dnb-gnd-1072998033-naumann-publisher",
+          "rank": 1,
+          "title_as_displayed": "C. G. Naumann Verlag (Leipzig)",
+          "result_url": "https://d-nb.info/gnd/1072998033",
+          "originating_record_url": "https://d-nb.info/gnd/1072998033/about/lds",
+          "identifiers": [{"scheme": "GND", "value": "1072998033"}],
+          "available_formats": ["JSON-LD", "RDF"],
+          "declared_rights": {"statement": "GND metadata is supplied under CC0 1.0.", "scope": "metadata", "evidence_url": "https://www.dnb.de/EN/Professionell/Metadatendienste/Datenbezug/LDS/lds_node.html", "tos_conclusion": "evidence-only-not-a-rights-conclusion"},
+          "availability": "metadata-only",
+          "machine_interface": "api",
+          "decision": "select",
+          "rationale": "The national authority supports the provisional publisher Organization and the verified variant Verlag von C. G. Naumann while remaining distinct from the printer authority.",
+          "acquisition": {"downloaded": false, "acquired_at": null, "byte_size": null, "sha256": null, "event_ref": null},
+          "snapshot": {"state": "not-captured", "format": null, "sha256": null, "reason": "The current response was inspected and hashed but not retained; SHA-256 bd80376b3617c2ba761976097b844bdb0877c06e288982c6d89110bac6fcb972 is recorded in the research packet."}
+        },
+        {
+          "result_id": "tos-discovery-result.dnb-gnd-16034133-4-naumann-printer",
+          "rank": 2,
+          "title_as_displayed": "Druckerei C. G. Naumann",
+          "result_url": "https://d-nb.info/gnd/16034133-4",
+          "originating_record_url": "https://d-nb.info/gnd/16034133-4/about/lds",
+          "identifiers": [{"scheme": "GND", "value": "16034133-4"}],
+          "available_formats": ["JSON-LD", "RDF"],
+          "declared_rights": {"statement": "GND metadata is supplied under CC0 1.0.", "scope": "metadata", "evidence_url": "https://www.dnb.de/EN/Professionell/Metadatendienste/Datenbezug/LDS/lds_node.html", "tos_conclusion": "evidence-only-not-a-rights-conclusion"},
+          "availability": "metadata-only",
+          "machine_interface": "api",
+          "decision": "select",
+          "rationale": "The distinct printer authority supports a role-specific provisional Organization without licensing a claim of legal separation from or identity with the publisher record.",
+          "acquisition": {"downloaded": false, "acquired_at": null, "byte_size": null, "sha256": null, "event_ref": null},
+          "snapshot": {"state": "not-captured", "format": null, "sha256": null, "reason": "The current response was inspected and hashed but not retained; SHA-256 212820db62cf1db8a4517328c8a48cb2377ed008ef901c7dbd232572eb3c255c is recorded in the research packet."}
+        },
+        {
+          "result_id": "tos-discovery-result.dnb-gnd-4035206-7-leipzig",
+          "rank": 3,
+          "title_as_displayed": "Leipzig",
+          "result_url": "https://d-nb.info/gnd/4035206-7",
+          "originating_record_url": "https://d-nb.info/gnd/4035206-7/about/lds",
+          "identifiers": [{"scheme": "GND", "value": "4035206-7"}],
+          "available_formats": ["JSON-LD", "RDF"],
+          "declared_rights": {"statement": "GND metadata is supplied under CC0 1.0.", "scope": "metadata", "evidence_url": "https://www.dnb.de/EN/Professionell/Metadatendienste/Datenbezug/LDS/lds_node.html", "tos_conclusion": "evidence-only-not-a-rights-conclusion"},
+          "availability": "metadata-only",
+          "machine_interface": "api",
+          "decision": "select",
+          "rationale": "The authority supports the existing provisional Place normalization and does not replace the exact title-page literal LEIPZIG.",
+          "acquisition": {"downloaded": false, "acquired_at": null, "byte_size": null, "sha256": null, "event_ref": null},
+          "snapshot": {"state": "not-captured", "format": null, "sha256": null, "reason": "The current response was inspected and hashed but not retained; SHA-256 e4007667fe7377b9e87b7c64af8d51636c1fb80269fd80b875f747169a4042d6 is recorded in the research packet."}
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-established-naumann-1893-bibliography",
+      "sequence": 3,
+      "channel_type": "specialized-scholarly-project",
+      "role": "scholarly-index",
+      "source_name": "David Marc Hoffmann publication history and Deutsches Literaturarchiv Marbach Work record",
+      "endpoint_url": "https://doi.org/10.1515/9783110870206",
+      "interface_type": "web",
+      "interface_version": "1991 scholarly monograph publisher preview and DLA record as served 2026-08-01",
+      "exact_query": "Reconcile the source-visible zweite Auflage statement with the staged publication history of Zarathustra parts I-IV and the 1893 collected issue",
+      "queried_at": "2026-08-01T05:12:00-06:00",
+      "elapsed_seconds": 13.7,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.hoffmann-1991-zarathustra-chronik",
+          "rank": 1,
+          "title_as_displayed": "Zur Geschichte des Nietzsche-Archivs",
+          "result_url": "https://doi.org/10.1515/9783110870206",
+          "originating_record_url": "https://doi.org/10.1515/9783110870206",
+          "identifiers": [{"scheme": "DOI", "value": "10.1515/9783110870206"}],
+          "available_formats": ["publisher preview PDF", "HTML metadata"],
+          "declared_rights": {"statement": null, "scope": "content", "evidence_url": null, "tos_conclusion": "evidence-only-not-a-rights-conclusion"},
+          "availability": "open-view",
+          "machine_interface": "html",
+          "decision": "select",
+          "rationale": "Established source-based chronology explains why the manifestation wording zweite Auflage must not become one universal Work-level edition ordinal or an exact release date.",
+          "acquisition": {"downloaded": false, "acquired_at": null, "byte_size": null, "sha256": null, "event_ref": null},
+          "snapshot": {"state": "not-captured", "format": null, "sha256": null, "reason": "A temporary publisher preview was inspected and hashed but is not tracked; SHA-256 7a955f86d3d19e9eaa85018b7814ad1e3e6c383e745613854866710cae1e3de7 is recorded in the research packet."}
+        },
+        {
+          "result_id": "tos-discovery-result.dla-ak00003291-zarathustra-work",
+          "rank": 2,
+          "title_as_displayed": "Also sprach Zarathustra",
+          "result_url": "https://www.dla-marbach.de/find/opac/id/AK00003291/",
+          "originating_record_url": "https://www.dla-marbach.de/find/opac/id/AK00003291/",
+          "identifiers": [{"scheme": "DLA Work record", "value": "AK00003291"}],
+          "available_formats": ["HTML"],
+          "declared_rights": {"statement": null, "scope": "metadata", "evidence_url": null, "tos_conclusion": "evidence-only-not-a-rights-conclusion"},
+          "availability": "metadata-only",
+          "machine_interface": "html",
+          "decision": "select",
+          "rationale": "The current Work record preserves the 1883 parts I-III, 1885 private part IV, and 1891 publisher issue of part IV as distinct chronology boundaries; it is not Item equivalence or title-page transcription.",
+          "acquisition": {"downloaded": false, "acquired_at": null, "byte_size": null, "sha256": null, "event_ref": null},
+          "snapshot": {"state": "not-captured", "format": null, "sha256": null, "reason": "The current response was inspected and hashed but not retained; SHA-256 bede361b80d70ebac11f8487d622851f9536ca3efcf5acc2a0c699a376fd29b7 is recorded in the research packet."}
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-fresh-current-naumann-1893-reconciliation",
+      "sequence": 4,
+      "channel_type": "meta-search",
+      "role": "lead-only",
+      "source_name": "Fresh current scholarly and library reconciliation",
+      "endpoint_url": "https://www.google.com/search",
+      "interface_type": "web",
+      "interface_version": "current search results observed 2026-08-01",
+      "exact_query": "Search current 2025-2026 library and scholarly records for a correction to the exact Naumann 1893 Edition statement, imprint, publisher/printer roles, or chronology",
+      "queried_at": "2026-08-01T05:17:00-06:00",
+      "elapsed_seconds": 8.6,
+      "result_order_preserved": true,
+      "results": []
+    },
+    {
+      "channel_id": "channel-general-web-naumann-1893-last",
+      "sequence": 5,
+      "channel_type": "general-web-search",
+      "role": "lead-only",
+      "source_name": "General web search after exact, official, and established routes",
+      "endpoint_url": "https://www.google.com/search",
+      "interface_type": "web",
+      "interface_version": "search results observed 2026-08-01",
+      "exact_query": "Also sprach Zarathustra 1893 Zweite Auflage C. G. Naumann Druck Verlag exact edition",
+      "queried_at": "2026-08-01T05:19:00-06:00",
+      "elapsed_seconds": 3.5,
+      "result_order_preserved": true,
+      "results": []
+    }
+  ],
+  "channel_comparison": [
+    {"channel_id":"channel-ia-naumann-1893-exact-item","completeness":"strong","metadata_precision":"strong","rights_clarity":"limited","machine_interface_quality":"strong","human_minutes":0,"machine_seconds":9.1,"notes":"Only the exact fixity-verified manifestation proves the source-visible Edition, provision, and historical-rights statements; the payload remains local and untracked."},
+    {"channel_id":"channel-dnb-naumann-leipzig-authorities","completeness":"strong","metadata_precision":"strong","rights_clarity":"strong","machine_interface_quality":"strong","human_minutes":0,"machine_seconds":4.8,"notes":"Best current authority layer for role-specific normalized Organizations and Place; it does not license a legal-entity or same_as claim."},
+    {"channel_id":"channel-established-naumann-1893-bibliography","completeness":"adequate","metadata_precision":"strong","rights_clarity":"limited","machine_interface_quality":"adequate","human_minutes":0,"machine_seconds":13.7,"notes":"Established chronology constrains interpretation of zweite Auflage but does not replace the exact Item or provide a release day."},
+    {"channel_id":"channel-fresh-current-naumann-1893-reconciliation","completeness":"limited","metadata_precision":"adequate","rights_clarity":"unknown","machine_interface_quality":"adequate","human_minutes":0,"machine_seconds":8.6,"notes":"No 2025-2026 correction or stronger exact record was found; absence is preserved rather than converted to completeness."},
+    {"channel_id":"channel-general-web-naumann-1893-last","completeness":"limited","metadata_precision":"limited","rights_clarity":"unknown","machine_interface_quality":"adequate","human_minutes":0,"machine_seconds":3.5,"notes":"General web ran last; marketplace and copied descriptions supplied no stronger authority and were not promoted as results."}
+  ],
+  "selected_result_ids": [
+    "tos-discovery-result.ia-naumann-1893-exact-item-provision",
+    "tos-discovery-result.dnb-gnd-1072998033-naumann-publisher",
+    "tos-discovery-result.dnb-gnd-16034133-4-naumann-printer",
+    "tos-discovery-result.dnb-gnd-4035206-7-leipzig",
+    "tos-discovery-result.hoffmann-1991-zarathustra-chronik",
+    "tos-discovery-result.dla-ak00003291-zarathustra-work"
+  ],
+  "rejected_result_ids": [],
+  "rights_inference_from_availability_prohibited": true,
+  "general_web_search_is_last_resort": true,
+  "technical_access_bypass_used": false,
+  "maker": {"maker_type": "model", "agent_ref": "model:codex"},
+  "started_at": "2026-08-01T05:05:00-06:00",
+  "ended_at": "2026-08-01T05:22:00-06:00",
+  "status": "reconciled",
+  "provenance_event_refs": ["tos.event.discovery.naumann-1893-provision-identity.2026-08-01"],
+  "record_version": 1,
+  "supersedes_discovery_ref": null
+}

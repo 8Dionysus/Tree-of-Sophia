@@ -1,0 +1,251 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/material-discovery-record.schema.json",
+  "schema_version": "tos_material_discovery_record_v1",
+  "discovery_id": "tos.discovery.proto-cuneiform-p000015-artifact-source.2026-08-12",
+  "protocol_ref": "ToS/source-witnesses/discovery/DISCOVERY_PROTOCOL.md",
+  "target": {
+    "target_kind": "artifact",
+    "known_tos_refs": ["tos.artifact.proto-cuneiform.uruk.w-12256-i-k-l-o"],
+    "description": "Resolve the exact physical identity, current digital record, source layers, scholarship controls, and rights boundary for the A01 P000015 lexical-tablet anchor without acquiring source content.",
+    "required_properties": [
+      "physical artifact identity separate from provider record",
+      "reported date, provenience, dimensions, custody, and genre",
+      "language uncertainty retained",
+      "composite, inscription, photograph, and line-art layers separated",
+      "ordered official, established, and fresh research",
+      "layer-specific rights posture"
+    ],
+    "acceptable_substitutions": [
+      "an originating museum record that independently resolves the same inventory numbers",
+      "the primary ATU publication plates used only after exact rights and source handling",
+      "a versioned CDLI API response with equivalent physical identity fields"
+    ],
+    "languages": ["und", "en", "de"],
+    "formats": ["artifact catalog metadata", "JSON API", "primary bibliography", "scholarly article", "provider terms"],
+    "purpose_ref": "ToS/research-packets/foundation-laboratory-2026-07/A01_CDLI_P000015_SOURCE_PLANTING_RESEARCH_2026-08-12.md"
+  },
+  "channels": [
+    {
+      "channel_id": "channel-cdli-p000015-official",
+      "sequence": 1,
+      "channel_type": "specialized-scholarly-project",
+      "role": "originating-record",
+      "source_name": "Cuneiform Digital Library Initiative exact artifact, API, documentation, and terms",
+      "endpoint_url": "https://cdli.earth/P000015",
+      "interface_type": "api",
+      "interface_version": "current CDLI HTML and JSON surfaces checked 2026-08-12; documentation dated 2026-08-12",
+      "exact_query": "Resolve P000015 through the exact artifact page and /artifacts/15/json; inspect current API, metadata-field, and terms pages; stream and hash responses without retaining source content.",
+      "queried_at": "2026-08-12T11:07:00-06:00",
+      "elapsed_seconds": 2.4,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.cdli-p000015-exact-artifact",
+          "rank": 1,
+          "title_as_displayed": "CDLI Lexical 000023, ex. 091 (P000015)",
+          "result_url": "https://cdli.earth/P000015",
+          "originating_record_url": "https://cdli.earth/P000015",
+          "identifiers": [
+            {"scheme": "CDLI", "value": "P000015"},
+            {"scheme": "museum inventory", "value": "VAT 17858 + VAT 17886"},
+            {"scheme": "excavation", "value": "W 12256,i + W 12256,k + W 12256,l + W 12256,o"}
+          ],
+          "available_formats": ["artifact HTML metadata", "JSON API", "linked inscription", "linked photograph", "linked line art"],
+          "declared_rights": {"statement": "CDLI terms separate photographs, line art, and transliterations or translations and require attribution or permission according to layer.", "scope": "metadata", "evidence_url": "https://cdli.earth/terms-of-use", "tos_conclusion": "evidence-only-not-a-rights-conclusion"},
+          "availability": "open-view",
+          "machine_interface": "api",
+          "decision": "select",
+          "rationale": "The exact HTML and JSON record agree on the physical identifier ensemble, Uruk III period, Uruk find context, Berlin custody, dimensions, lexical genre, undetermined language, and composite links. Provider record and physical artifact remain distinct.",
+          "acquisition": {"downloaded": false, "acquired_at": null, "byte_size": null, "sha256": null, "event_ref": null},
+          "snapshot": {"state": "not-captured", "format": null, "sha256": null, "reason": "Responses were streamed for current metadata verification and hashing; no catalog snapshot or content layer was retained."}
+        },
+        {
+          "result_id": "tos-discovery-result.cdli-current-api-metadata-terms",
+          "rank": 2,
+          "title_as_displayed": "CDLI API, artifact metadata fields, and Terms of Use",
+          "result_url": "https://cdli.earth/docs/api",
+          "originating_record_url": "https://cdli.earth/docs/artifact-metadata-fields",
+          "identifiers": [],
+          "available_formats": ["current API documentation", "current field semantics", "current terms"],
+          "declared_rights": {"statement": "Current CDLI terms were inspected layer by layer; availability was not treated as redistribution permission.", "scope": "metadata", "evidence_url": "https://cdli.earth/terms-of-use", "tos_conclusion": "evidence-only-not-a-rights-conclusion"},
+          "availability": "open-view",
+          "machine_interface": "html",
+          "decision": "select",
+          "rationale": "The documentation defines current machine access and uncertainty-bearing fields; the terms justify public-safe metadata only for this planting and keep images, line art, and text separate.",
+          "acquisition": {"downloaded": false, "acquired_at": null, "byte_size": null, "sha256": null, "event_ref": null},
+          "snapshot": {"state": "not-captured", "format": null, "sha256": null, "reason": "Documentation and terms were checked live and fingerprinted, not mirrored."}
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-p000015-classical-publications",
+      "sequence": 2,
+      "channel_type": "specialized-scholarly-project",
+      "role": "scholarly-index",
+      "source_name": "CDLI bibliographic records for ATU 2, ATU 3, and Archaic Bookkeeping",
+      "endpoint_url": "https://cdli.earth/publications/1785922",
+      "interface_type": "web",
+      "interface_version": "current CDLI publication records checked 2026-08-12",
+      "exact_query": "Resolve the exact classical publication lineage cited by P000015: ATU 2 plate 46, ATU 3 plate 66 W 12256i+, and Archaic Bookkeeping; do not acquire plates or book content.",
+      "queried_at": "2026-08-12T11:07:10-06:00",
+      "elapsed_seconds": 1.1,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.p000015-atu2-atu3",
+          "rank": 1,
+          "title_as_displayed": "ATU 2 and ATU 3 exact P000015 publication lineage",
+          "result_url": "https://cdli.earth/publications/1785922",
+          "originating_record_url": "https://cdli.earth/publications/1638433",
+          "identifiers": [{"scheme": "CDLI publication", "value": "1638433"}, {"scheme": "CDLI publication", "value": "1785922"}],
+          "available_formats": ["bibliographic metadata", "publication reference", "plate reference"],
+          "declared_rights": {"statement": null, "scope": "content", "evidence_url": null, "tos_conclusion": "evidence-only-not-a-rights-conclusion"},
+          "availability": "metadata-only",
+          "machine_interface": "html",
+          "decision": "select",
+          "rationale": "The exact classical references establish the artifact's publication lineage. Plates and publication bodies were neither acquired nor assumed reusable.",
+          "acquisition": {"downloaded": false, "acquired_at": null, "byte_size": null, "sha256": null, "event_ref": null},
+          "snapshot": {"state": "not-needed", "format": null, "sha256": null, "reason": "Bibliographic identity was sufficient for the metadata planting; no plate content was needed."}
+        },
+        {
+          "result_id": "tos-discovery-result.p000015-archaic-bookkeeping",
+          "rank": 2,
+          "title_as_displayed": "Archaic Bookkeeping",
+          "result_url": "https://cdli.earth/publications/1657148",
+          "originating_record_url": "https://cdli.earth/publications/1657148",
+          "identifiers": [{"scheme": "CDLI publication", "value": "1657148"}],
+          "available_formats": ["bibliographic metadata"],
+          "declared_rights": {"statement": null, "scope": "content", "evidence_url": null, "tos_conclusion": "evidence-only-not-a-rights-conclusion"},
+          "availability": "metadata-only",
+          "machine_interface": "html",
+          "decision": "select",
+          "rationale": "The established synthesis is retained as context for accounting systems, not as evidence that P000015 is philosophy or that any sign has a single translation.",
+          "acquisition": {"downloaded": false, "acquired_at": null, "byte_size": null, "sha256": null, "event_ref": null},
+          "snapshot": {"state": "not-needed", "format": null, "sha256": null, "reason": "Only the bibliographic route and bounded contextual role were required."}
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-proto-cuneiform-established-controls",
+      "sequence": 3,
+      "channel_type": "specialized-scholarly-project",
+      "role": "scholarly-index",
+      "source_name": "Established CDLI sign-list and excavation-documentation scholarship",
+      "endpoint_url": "https://cdli.earth/articles/cdlb/2021-6",
+      "interface_type": "web",
+      "interface_version": "CDLI publications checked 2026-08-12",
+      "exact_query": "Read the established methodological controls most directly relevant to P000015: sign-list limits and Uruk excavation-documentation limits; retain conclusions without copying artifact content.",
+      "queried_at": "2026-08-12T11:07:20-06:00",
+      "elapsed_seconds": 1.8,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.born-kelley-2021-sign-list-control",
+          "rank": 1,
+          "title_as_displayed": "An Updated Sign List for Proto-cuneiform",
+          "result_url": "https://cdli.earth/articles/cdlb/2021-6",
+          "originating_record_url": "https://cdli.earth/articles/cdlb/2021-6",
+          "identifiers": [],
+          "available_formats": ["open scholarly article", "sign-list methodology"],
+          "declared_rights": {"statement": "Article text is CC BY 4.0 except artifact images.", "scope": "content", "evidence_url": "https://cdli.earth/articles/cdlb/2021-6", "tos_conclusion": "evidence-only-not-a-rights-conclusion"},
+          "availability": "open-view",
+          "machine_interface": "html",
+          "decision": "select",
+          "rationale": "The article treats frequency tables as snapshots and avoids simple translations because signs may be used in multiple ways. This directly blocks one-sign-one-meaning semantics.",
+          "acquisition": {"downloaded": false, "acquired_at": null, "byte_size": null, "sha256": null, "event_ref": null},
+          "snapshot": {"state": "not-captured", "format": null, "sha256": null, "reason": "The article was read and fingerprinted live; no article or artifact image was retained."}
+        },
+        {
+          "result_id": "tos-discovery-result.nissen-2024-uruk-documentation-control",
+          "rank": 2,
+          "title_as_displayed": "The Excavations in Uruk-Warka and Their Documentation",
+          "result_url": "https://cdli.earth/articles/cdlj/2024-1",
+          "originating_record_url": "https://cdli.earth/articles/cdlj/2024-1",
+          "identifiers": [],
+          "available_formats": ["open scholarly article", "excavation documentation history"],
+          "declared_rights": {"statement": "Article text is CC BY 4.0 except artifact images.", "scope": "content", "evidence_url": "https://cdli.earth/articles/cdlj/2024-1", "tos_conclusion": "evidence-only-not-a-rights-conclusion"},
+          "availability": "open-view",
+          "machine_interface": "html",
+          "decision": "select",
+          "rationale": "The article documents limits and unevenness in the Uruk excavation record, so cataloged provenience remains a reported claim rather than self-interpreting certainty.",
+          "acquisition": {"downloaded": false, "acquired_at": null, "byte_size": null, "sha256": null, "event_ref": null},
+          "snapshot": {"state": "not-captured", "format": null, "sha256": null, "reason": "The methodological conclusion was retained without mirroring article or image content."}
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-proto-writing-fresh-frontier",
+      "sequence": 4,
+      "channel_type": "specialized-scholarly-project",
+      "role": "scholarly-index",
+      "source_name": "Fresh peer-reviewed precursor research and current technical encoding route",
+      "endpoint_url": "https://www.cambridge.org/core/journals/antiquity/article/seals-and-signs-tracing-the-origins-of-writing-in-ancient-southwest-asia/B3C2D400F3F80A7A0162D9035C9C2804",
+      "interface_type": "web",
+      "interface_version": "Antiquity article online 2024-11-05, issue 2025-02; Unicode L2/25-211 current 2025 draft lead checked 2026-08-12",
+      "exact_query": "Check the freshest relevant peer-reviewed precursor claim and current official proto-cuneiform encoding proposal; use both as frontier controls, not as P000015 sign-semantic proof.",
+      "queried_at": "2026-08-12T11:07:35-06:00",
+      "elapsed_seconds": 2.2,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.kelley-cartolano-ferrara-2025-seals-signs",
+          "rank": 1,
+          "title_as_displayed": "Seals and signs: tracing the origins of writing in ancient Southwest Asia",
+          "result_url": "https://www.cambridge.org/core/journals/antiquity/article/seals-and-signs-tracing-the-origins-of-writing-in-ancient-southwest-asia/B3C2D400F3F80A7A0162D9035C9C2804",
+          "originating_record_url": "https://doi.org/10.15184/aqy.2024.165",
+          "identifiers": [{"scheme": "DOI", "value": "10.15184/aqy.2024.165"}],
+          "available_formats": ["peer-reviewed article", "HTML", "PDF"],
+          "declared_rights": {"statement": "CC BY-NC-ND 4.0", "scope": "content", "evidence_url": "https://doi.org/10.15184/aqy.2024.165", "tos_conclusion": "evidence-only-not-a-rights-conclusion"},
+          "availability": "open-view",
+          "machine_interface": "html",
+          "decision": "select",
+          "rationale": "The article argues for specific pre-literate seal-motif precursors while explicitly leaving the extent of the relationship unclear. It sharpens the frontier without proving any individual P000015 reading.",
+          "acquisition": {"downloaded": false, "acquired_at": null, "byte_size": null, "sha256": null, "event_ref": null},
+          "snapshot": {"state": "not-captured", "format": null, "sha256": null, "reason": "The current methodological conclusion and bibliographic identity were retained; article content was not mirrored."}
+        },
+        {
+          "result_id": "tos-discovery-result.unicode-l2-25-211-proto-cuneiform",
+          "rank": 2,
+          "title_as_displayed": "Preliminary proposal to encode Proto-Cuneiform in Unicode",
+          "result_url": "https://www.unicode.org/L2/L2025/25211-proto-cuneiform.pdf",
+          "originating_record_url": "https://www.unicode.org/L2/L2025/25211-proto-cuneiform.pdf",
+          "identifiers": [{"scheme": "Unicode document", "value": "L2/25-211"}],
+          "available_formats": ["official draft technical proposal", "PDF"],
+          "declared_rights": {"statement": null, "scope": "content", "evidence_url": null, "tos_conclusion": "evidence-only-not-a-rights-conclusion"},
+          "availability": "open-view",
+          "machine_interface": "html",
+          "decision": "defer",
+          "rationale": "The draft is a relevant future sign-ID and encoding input, but it is not needed to establish this artifact's identity and was not downloaded. Draft encoding identity must not become semantic identity.",
+          "acquisition": {"downloaded": false, "acquired_at": null, "byte_size": null, "sha256": null, "event_ref": null},
+          "snapshot": {"state": "not-needed", "format": null, "sha256": null, "reason": "The 28 MB draft was left remote because the first metadata planting does not require its content."}
+        }
+      ]
+    }
+  ],
+  "channel_comparison": [
+    {"channel_id": "channel-cdli-p000015-official", "completeness": "strong", "metadata_precision": "strong", "rights_clarity": "adequate", "machine_interface_quality": "strong", "human_minutes": 0, "machine_seconds": 2.4, "notes": "Best exact artifact identity and current operational route; still a mutable catalog record rather than the physical object."},
+    {"channel_id": "channel-p000015-classical-publications", "completeness": "adequate", "metadata_precision": "strong", "rights_clarity": "limited", "machine_interface_quality": "adequate", "human_minutes": 0, "machine_seconds": 1.1, "notes": "Strong publication lineage; plates and book content remain outside the current rights and acquisition boundary."},
+    {"channel_id": "channel-proto-cuneiform-established-controls", "completeness": "adequate", "metadata_precision": "strong", "rights_clarity": "strong", "machine_interface_quality": "adequate", "human_minutes": 0, "machine_seconds": 1.8, "notes": "Strong controls against fixed sign translation and overconfident archaeological context; not artifact identity authority."},
+    {"channel_id": "channel-proto-writing-fresh-frontier", "completeness": "adequate", "metadata_precision": "adequate", "rights_clarity": "adequate", "machine_interface_quality": "adequate", "human_minutes": 0, "machine_seconds": 2.2, "notes": "Useful current frontier and encoding inputs; neither is exact evidence for P000015 sign semantics."}
+  ],
+  "selected_result_ids": [
+    "tos-discovery-result.cdli-p000015-exact-artifact",
+    "tos-discovery-result.cdli-current-api-metadata-terms",
+    "tos-discovery-result.p000015-atu2-atu3",
+    "tos-discovery-result.p000015-archaic-bookkeeping",
+    "tos-discovery-result.born-kelley-2021-sign-list-control",
+    "tos-discovery-result.nissen-2024-uruk-documentation-control",
+    "tos-discovery-result.kelley-cartolano-ferrara-2025-seals-signs"
+  ],
+  "rejected_result_ids": [],
+  "rights_inference_from_availability_prohibited": true,
+  "general_web_search_is_last_resort": true,
+  "technical_access_bypass_used": false,
+  "maker": {"maker_type": "model", "agent_ref": "model:codex"},
+  "started_at": "2026-08-12T11:07:00-06:00",
+  "ended_at": "2026-08-12T11:10:39-06:00",
+  "status": "reconciled",
+  "provenance_event_refs": ["tos.event.discovery.proto-cuneiform-p000015-artifact-source.2026-08-12"],
+  "record_version": 1,
+  "supersedes_discovery_ref": null
+}

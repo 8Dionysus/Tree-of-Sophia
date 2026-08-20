@@ -1,0 +1,136 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/scholarly-composite-witness.schema.json",
+  "schema_version": "tos_scholarly_composite_witness_v1",
+  "composite_id": "tos.composite.proto-cuneiform.archaic-vessels-and-garments",
+  "composite_kind": "documentary_composite",
+  "preferred_label": "Archaic Vessels and Garments",
+  "identity_status": "verified",
+  "path_identity": {
+    "basis": "scholarly_composition_identity",
+    "provider_independent": true,
+    "note": "The speaking route follows the lexical composition and proto-cuneiform tradition; DCCLT, ORACC, CDLI, Q000023, and P471693 remain provider or registry coordinates."
+  },
+  "identifiers": [
+    {"scheme": "ORACC/DCCLT composite", "value": "Q000023", "source_ref": "https://oracc.museum.upenn.edu/dcclt/Q000023"},
+    {"scheme": "CDLI composite artifact", "value": "P471693", "source_ref": "https://cdli.earth/P471693"},
+    {"scheme": "CDLI internal artifact", "value": "471693", "source_ref": "https://cdli.earth/artifacts/471693/json"}
+  ],
+  "editorial_object": {
+    "title": "Archaic Vessels and Garments",
+    "tradition": "proto-cuneiform lexical tradition",
+    "genre": "thematic lexical list",
+    "period_label": "Archaic / Uruk III witness tradition",
+    "description": "A modern documentary composite that reconstructs a lexical composition from multiple surviving witnesses and provides shared editorial line coordinates.",
+    "modern_reconstruction": true,
+    "ancient_original": false,
+    "physical_artifact": false
+  },
+  "provider_representations": [
+    {
+      "provider": "Digital Corpus of Cuneiform Lexical Texts on ORACC",
+      "representation_role": "composite_edition",
+      "record_id": "Q000023",
+      "record_url": "https://oracc.museum.upenn.edu/dcclt/Q000023",
+      "api_url": "https://oracc.museum.upenn.edu/dcclt/corpusjson/Q000023.json",
+      "checked_at": "2026-08-12T11:51:00-06:00",
+      "mutable": true,
+      "response_fingerprints": [
+        {"surface": "https://oracc.museum.upenn.edu/dcclt/Q000023", "byte_size": 68210, "sha256": "89c1d97e859e91da7abbd7a9168c1c7b6ec5c2d6e4258291ac7b4b9a013062b4", "captured": false}
+      ]
+    },
+    {
+      "provider": "Digital Corpus of Cuneiform Lexical Texts on ORACC",
+      "representation_role": "member_context",
+      "record_id": "P000015",
+      "record_url": "https://oracc.museum.upenn.edu/dcclt/P000015",
+      "api_url": "https://oracc.museum.upenn.edu/dcclt/corpusjson/P000015.json",
+      "checked_at": "2026-08-12T11:51:00-06:00",
+      "mutable": true,
+      "response_fingerprints": [
+        {"surface": "https://oracc.museum.upenn.edu/dcclt/P000015", "byte_size": 49547, "sha256": "464e98e8287b30c866f8eb8bad68f9452396becd0e6b3672df462af98facafd7", "captured": false}
+      ]
+    },
+    {
+      "provider": "Cuneiform Digital Library Initiative",
+      "representation_role": "composite_catalog",
+      "record_id": "P471693",
+      "record_url": "https://cdli.earth/artifacts/471693",
+      "api_url": "https://cdli.earth/artifacts/471693/json",
+      "checked_at": "2026-08-12T11:54:00-06:00",
+      "mutable": true,
+      "response_fingerprints": [
+        {"surface": "https://cdli.earth/artifacts/471693", "byte_size": 159408, "sha256": "b2c5faa3c66e0e5414bf75fb7c16b3d1c6917d568f70659875b20ee08a95abba", "captured": false},
+        {"surface": "https://cdli.earth/artifacts/471693/json", "byte_size": 166018, "sha256": "d2e9ee1e9334651b827ffbba9c49952cf87a6146149905f3450ea78b912bf4aa", "captured": false}
+      ]
+    }
+  ],
+  "member_observations": [
+    {
+      "observation_id": "tos.observation.composite.q000023.member.p000015.2026-08-12",
+      "member_artifact_id": "tos.artifact.proto-cuneiform.uruk.w-12256-i-k-l-o",
+      "relationship": "reported_witness_of",
+      "provider_relation_ids": ["CDLI composite relation 31", "CDLI witness index 91", "ATF redirects >>Q000023"],
+      "source_refs": ["https://cdli.earth/artifacts/15/json", "https://cdli.earth/artifacts/471693/json", "https://oracc.museum.upenn.edu/dcclt/P000015"],
+      "member_text_stored": false,
+      "review_status": "unreviewed"
+    }
+  ],
+  "coverage_observations": [
+    {
+      "provider": "Cuneiform Digital Library Initiative",
+      "surface": "https://cdli.earth/artifacts/471693/json",
+      "observed_member_count": 98,
+      "observed_tagged_count": 97,
+      "named_member_present": true,
+      "coverage_posture": "full_api_list",
+      "checked_at": "2026-08-12T11:54:00-06:00",
+      "note": "The JSON witness array contains 98 members and includes artifact 15 / P000015; the current CDLI lexical-composites page separately displays 98 witnesses and 97 tagged witnesses."
+    },
+    {
+      "provider": "Digital Corpus of Cuneiform Lexical Texts on ORACC",
+      "surface": "https://oracc.museum.upenn.edu/dcclt/Q000023",
+      "observed_member_count": 36,
+      "observed_tagged_count": null,
+      "named_member_present": false,
+      "coverage_posture": "page_exposed_unknown",
+      "checked_at": "2026-08-12T11:51:00-06:00",
+      "note": "The Q-page exposes 36 source links and does not list P000015 there. The page makes no completeness claim, while the exact P-page classifies P000015 under Archaic Vessels and Garments and CDLI preserves the direct membership relation."
+    }
+  ],
+  "content_layer": {
+    "role": "modern_scholarly_composite",
+    "formats": ["ORACC HTML composite", "CDLI ATF composite", "ORACC project JSON bulk distribution"],
+    "availability": "open_view",
+    "content_stored": false,
+    "source_text_admitted": false,
+    "source_refs": ["https://oracc.museum.upenn.edu/dcclt/Q000023", "https://cdli.earth/artifacts/471693/json", "https://oracc.museum.upenn.edu/json/"],
+    "scope_note": "The live providers expose a modern editorial text and member transliterations. This tracked packet retains only identity, counts, fingerprints, and relation evidence; it does not accept or publish their content."
+  },
+  "layer_separation": {
+    "composite_is_physical_artifact": false,
+    "composite_is_ancient_original": false,
+    "provider_page_is_composite_identity": false,
+    "member_is_composite": false,
+    "editorial_line_is_artifact_line": false,
+    "sign_has_fixed_translation": false,
+    "composite_is_philosophy": false
+  },
+  "rights_ref": "ToS/source-witnesses/scholarly-composites/lexical/proto-cuneiform/archaic-vessels-and-garments/rights.json",
+  "discovery_ref": "ToS/source-witnesses/discovery/runs/proto-cuneiform-q000023-scholarly-composite.2026-08-12.v1.json",
+  "provenance_event_ref": "tos.event.discovery.proto-cuneiform-q000023-scholarly-composite.2026-08-12",
+  "research_ref": "ToS/research-packets/foundation-laboratory-2026-07/A01_DCCLT_Q000023_SCHOLARLY_COMPOSITE_RESEARCH_2026-08-12.md",
+  "philosophy_planting_refs": ["ToS/philosophy/eras/bronze-age/regions/west-asia/traditions/proto-cuneiform-accounting-ontologies/sources/plantings/dcclt-q000023/source-planting.json"],
+  "authority": {
+    "evidence_status": "metadata_witness",
+    "review_status": "unreviewed",
+    "visibility": "public_metadata_only",
+    "source_text_admitted": false,
+    "semantic_authority": false,
+    "graph_authority": false,
+    "canon_authority": false,
+    "publication_authority": false
+  },
+  "maker": {"maker_type": "model", "agent_ref": "model:codex", "human_review_performed": false},
+  "created_at": "2026-08-12T11:59:00-06:00",
+  "record_version": 1
+}

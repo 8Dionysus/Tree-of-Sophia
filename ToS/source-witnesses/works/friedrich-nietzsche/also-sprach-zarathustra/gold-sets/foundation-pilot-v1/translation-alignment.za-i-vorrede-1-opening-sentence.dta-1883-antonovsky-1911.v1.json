@@ -1,0 +1,216 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/translation-alignment-packet-v1.schema.json",
+  "alignments": [
+    {
+      "alignment_id": "tos.translation-alignment.sid-e989702b5c374347bc221017f0b0196f",
+      "alignment_version": 1,
+      "certainty": {
+        "meaning": "maker_declared_uncertainty_not_truth_probability",
+        "value": 0.5
+      },
+      "claim_id": "tos.translation-alignment-claim.sid-78dac7706ca1408398342752c191f371",
+      "claim_version": 1,
+      "competing_alignment_refs": [],
+      "correspondence_shape": "one_to_one",
+      "direction": "source_to_target",
+      "epistemic_status": "inferred",
+      "evidence": [
+        {
+          "description": "The tracked text-free plan freezes the exact selection and ordinal-pairing rule, selectors, digests, and authority limits.",
+          "evidence_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/za-i-vorrede-1-opening-sentence-alignment.plan.v1.json",
+          "role": "method_input",
+          "source_anchor_refs": [
+            "tos.anchor.za-i-vorrede-1.dta-sentence.sid-63245ddb5a9447dcabf57201e7e1a134"
+          ],
+          "target_anchor_refs": [
+            "tos.anchor.za-i-vorrede-1.antonovsky-1911-sentence.sid-f464215f25df44f7a57656b586012a42"
+          ]
+        },
+        {
+          "description": "The source expression has bounded edition-reading admission; this does not accept the sentence segmentation or alignment.",
+          "evidence_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/edition-reading-admission.dta-ekgwb.za-i-vorrede-1.v1.json",
+          "role": "qualification",
+          "source_anchor_refs": [
+            "tos.anchor.za-i-vorrede-1.dta-sentence.sid-63245ddb5a9447dcabf57201e7e1a134"
+          ],
+          "target_anchor_refs": []
+        },
+        {
+          "description": "The target expression record establishes the independently modeled Russian expression identity.",
+          "evidence_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-antonovsky-1911/expression.json",
+          "role": "support",
+          "source_anchor_refs": [],
+          "target_anchor_refs": [
+            "tos.anchor.za-i-vorrede-1.antonovsky-1911-sentence.sid-f464215f25df44f7a57656b586012a42"
+          ]
+        },
+        {
+          "description": "The responsibility record supplies the translated-by lineage; it does not prove this sentence correspondence or its quality.",
+          "evidence_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-antonovsky-1911/responsibility-claims.jsonl",
+          "role": "support",
+          "source_anchor_refs": [
+            "tos.anchor.za-i-vorrede-1.dta-sentence.sid-63245ddb5a9447dcabf57201e7e1a134"
+          ],
+          "target_anchor_refs": [
+            "tos.anchor.za-i-vorrede-1.antonovsky-1911-sentence.sid-f464215f25df44f7a57656b586012a42"
+          ]
+        },
+        {
+          "description": "The target raw layer retains an unresolved embedded-text versus visual-spacing discrepancy; the proposal does not resolve it.",
+          "evidence_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/source-text-layer.za-i-vorrede-1-p1.antonovsky-1911-embedded.v1.json#/uncertainty/annotations/0",
+          "role": "qualification",
+          "source_anchor_refs": [],
+          "target_anchor_refs": [
+            "tos.anchor.za-i-vorrede-1.antonovsky-1911-sentence.sid-f464215f25df44f7a57656b586012a42"
+          ]
+        }
+      ],
+      "identity_policy": "opaque-id-independent-of-text-label-translation-and-current-mapping",
+      "maker": {
+        "agent_ref": "software:tos-zarathustra-opening-sentence-alignment-builder",
+        "configuration_sha256": "39c6e6e90f1c325d9995099f9df6beef2bd1a34af7e620f9b19ae160586897ad",
+        "made_at": "2026-08-12T09:27:07Z",
+        "maker_kind": "software",
+        "method": "exact-first-full-stop-inclusive-ordinal-correspondence-proposal",
+        "method_output_posture": "proposal_not_truth",
+        "provenance_event_ref": "tos.event.alignment.za-i-vorrede-1.dta-1883-antonovsky-1911-opening-sentence.2026-08-12",
+        "software_ref": "scripts/build_zarathustra_opening_sentence_alignment.py",
+        "software_version": "1"
+      },
+      "order_posture": "monotonic",
+      "ordered_source_anchor_refs": [
+        "tos.anchor.za-i-vorrede-1.dta-sentence.sid-63245ddb5a9447dcabf57201e7e1a134"
+      ],
+      "ordered_target_anchor_refs": [
+        "tos.anchor.za-i-vorrede-1.antonovsky-1911-sentence.sid-f464215f25df44f7a57656b586012a42"
+      ],
+      "review_refs": [],
+      "status": "proposed",
+      "status_reason": "The two exact spans are proposed as an ordinal structural correspondence only. Translation fidelity, wording, grammar, lexical equivalence, and semantic interpretation remain unreviewed.",
+      "supersedes_alignment_ref": null,
+      "supersedes_claim_ref": null,
+      "translation_techniques": [
+        "unresolved"
+      ]
+    }
+  ],
+  "authority_boundary": {
+    "alignment_is_claim_not_translation_truth": true,
+    "canon_effect": false,
+    "exports_are_not_owner_truth": true,
+    "graph_role": "relation",
+    "lexical_equivalence_not_inferred": true,
+    "machine_or_model_may_propose_not_accept": true,
+    "source_role": "authority",
+    "tree_role": "orientation",
+    "unaligned_members_are_first_class": true,
+    "validators_prove_mechanics_not_truth": true
+  },
+  "content_posture": "source_bound",
+  "granularity": "sentence",
+  "packet_id": "tos.translation-alignment-packet.sid-b80a0b94f6c84543ada333b116df9880",
+  "packet_version": 1,
+  "projections": [],
+  "reviews": [],
+  "rights_and_visibility": {
+    "effective_visibility": "local_only",
+    "inheritance_policy": "most_restrictive_side_or_packet_wins",
+    "packet_visibility": "public_metadata_only",
+    "private_source_used": true,
+    "publication_authorized": false,
+    "rights_record_refs": [
+      "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/de-schmeitzner-1883-part-1/editions/chemnitz-schmeitzner-1883-part-1/items/dta-sbb-corrected-tei-p5/rights.json",
+      "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-antonovsky-1911/editions/saint-petersburg-prometey-1911-fourth/items/rsl-neb-scan-pdf/rights.json"
+    ],
+    "source_visibility": "local_only",
+    "target_visibility": "local_only"
+  },
+  "schema_version": "tos_translation_alignment_packet_v1",
+  "source_side": {
+    "anchors": [
+      {
+        "anchor_ref": "tos.anchor.za-i-vorrede-1.dta-sentence.sid-63245ddb5a9447dcabf57201e7e1a134",
+        "exact_sha256": "1d85aba9e23381294c5d70afc2ca27cdc44edf99c73ec7537b546df1157bd328",
+        "ordinal": 1,
+        "selector": {
+          "end": 115,
+          "interval": "half_open",
+          "position_unit": "unicode_code_point",
+          "start": 0,
+          "type": "text_position"
+        },
+        "source_return": {
+          "locator_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/local-content/source-text-foundation/za-i-vorrede-1/dta-part-1-paragraph-1.machine-transcription.txt",
+          "required": true
+        },
+        "text_layer_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/source-text-layer.za-i-vorrede-1-p1.dta-machine.v1.json",
+        "text_layer_sha256": "dcc0b25c1e91eaadc1e8b2982dca89cc8a4c355c756b67d996349c8dd9668a61"
+      }
+    ],
+    "edition_ref": "tos.edition.friedrich-nietzsche.also-sprach-zarathustra.chemnitz-schmeitzner-1883-part-1",
+    "expression_ref": "tos.expression.friedrich-nietzsche.also-sprach-zarathustra.de-schmeitzner-1883-part-1",
+    "file_ref": "tos.file.sha256.d3fa5f8af39d87c8f0ede7a0b52b26da0c57e73125d3b0bd2a836b80eae24a4b",
+    "file_sha256": "d3fa5f8af39d87c8f0ede7a0b52b26da0c57e73125d3b0bd2a836b80eae24a4b",
+    "item_ref": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-schmeitzner-1883-part-1.dta-sbb-corrected-tei-p5",
+    "language": "de",
+    "publication_authorized": false,
+    "rights_refs": [
+      "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/de-schmeitzner-1883-part-1/editions/chemnitz-schmeitzner-1883-part-1/items/dta-sbb-corrected-tei-p5/rights.json"
+    ],
+    "segmentation": {
+      "artifact_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/source-text-unit.za-i-vorrede-1-p1.dta-sentence-proposal.v1.json",
+      "sha256": "7375b25355d28cb86aa2102eed879659b62a3816d3c21e8419348408ccaf7fcf",
+      "state": "frozen"
+    },
+    "side_role": "source",
+    "text_layer_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/source-text-layer.za-i-vorrede-1-p1.dta-machine.v1.json",
+    "text_layer_sha256": "dcc0b25c1e91eaadc1e8b2982dca89cc8a4c355c756b67d996349c8dd9668a61",
+    "tokenization": null,
+    "visibility": "local_only",
+    "work_ref": "tos.work.friedrich-nietzsche.also-sprach-zarathustra"
+  },
+  "supersedes_packet_ref": null,
+  "target_side": {
+    "anchors": [
+      {
+        "anchor_ref": "tos.anchor.za-i-vorrede-1.antonovsky-1911-sentence.sid-f464215f25df44f7a57656b586012a42",
+        "exact_sha256": "fd26665b0e6cd602fdad957179b19d676534006d21048e24473f58241041a6d6",
+        "ordinal": 1,
+        "selector": {
+          "end": 107,
+          "interval": "half_open",
+          "position_unit": "unicode_code_point",
+          "start": 0,
+          "type": "text_position"
+        },
+        "source_return": {
+          "locator_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/local-content/target-text-foundation/za-i-vorrede-1/antonovsky-1911-page-6-opening-paragraph.raw-embedded-text.txt",
+          "required": true
+        },
+        "text_layer_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/source-text-layer.za-i-vorrede-1-p1.antonovsky-1911-embedded.v1.json",
+        "text_layer_sha256": "3b856676c48ad6f4ef18397f429ab740c2efb917600ac6c72fc4481b89c4b71c"
+      }
+    ],
+    "edition_ref": "tos.edition.friedrich-nietzsche.also-sprach-zarathustra.saint-petersburg-prometey-1911-fourth",
+    "expression_ref": "tos.expression.friedrich-nietzsche.also-sprach-zarathustra.ru-antonovsky-1911",
+    "file_ref": "tos.file.sha256.57518b50e24fee37b3e9c151e853c36ad34258f51a8b65b8233742d69017db69",
+    "file_sha256": "57518b50e24fee37b3e9c151e853c36ad34258f51a8b65b8233742d69017db69",
+    "item_ref": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.ru-antonovsky-1911.rsl-neb-scan-pdf",
+    "language": "ru",
+    "publication_authorized": false,
+    "rights_refs": [
+      "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-antonovsky-1911/editions/saint-petersburg-prometey-1911-fourth/items/rsl-neb-scan-pdf/rights.json"
+    ],
+    "segmentation": {
+      "artifact_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/source-text-unit.za-i-vorrede-1-p1.antonovsky-1911-sentence-proposal.v1.json",
+      "sha256": "61644c8f199de32233226bece7d0301cf9e7309e380c5dc415cf55de1e44ddcb",
+      "state": "frozen"
+    },
+    "side_role": "target",
+    "text_layer_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/source-text-layer.za-i-vorrede-1-p1.antonovsky-1911-embedded.v1.json",
+    "text_layer_sha256": "3b856676c48ad6f4ef18397f429ab740c2efb917600ac6c72fc4481b89c4b71c",
+    "tokenization": null,
+    "visibility": "local_only",
+    "work_ref": "tos.work.friedrich-nietzsche.also-sprach-zarathustra"
+  }
+}

@@ -1,0 +1,135 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/server-import-contract.schema.json",
+  "schema_version": "tos_server_import_contract_v1",
+  "server_import_id": "tos.server-import.dta-zarathustra-part-3-tei",
+  "item_ref": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-schmeitzner-1884-part-3.dta-sbb-corrected-tei-p5",
+  "manifest": {
+    "ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/de-schmeitzner-1884-part-3/editions/chemnitz-schmeitzner-1884-part-3/items/dta-sbb-corrected-tei-p5/item.manifest.json",
+    "sha256": "5f8a6284fde8975db7435b25ba94f452b5307ec4cb6a6e1726f64a46243f2f20",
+    "verified": true
+  },
+  "payload_files": [
+    {
+      "file_ref": "tos.file.sha256.722dbdab2a3d28ea1691dad4c9fbec62bb7f4caf2699212fd7eef40f1ac8f331",
+      "relative_path": "payload/nietzsche_zarathustra03_1884.tei.xml",
+      "byte_size": 194001,
+      "sha256": "722dbdab2a3d28ea1691dad4c9fbec62bb7f4caf2699212fd7eef40f1ac8f331",
+      "verified": true
+    }
+  ],
+  "rights_policy": {
+    "rights_record_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/de-schmeitzner-1884-part-3/editions/chemnitz-schmeitzner-1884-part-3/items/dta-sbb-corrected-tei-p5/rights.json",
+    "rights_record_sha256": "49bf34db0be4abd2f234525c1c43edcab3801984c382abfa40acb778d1adfacd",
+    "assessment_status": "open-licensed",
+    "review_status": "unreviewed",
+    "jurisdictions_reviewed": [
+      "DE",
+      "US"
+    ],
+    "permission_or_license_refs": [
+      "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/de-schmeitzner-1884-part-3/editions/chemnitz-schmeitzner-1884-part-3/items/dta-sbb-corrected-tei-p5/source-metadata-snapshot.json",
+      "ToS/research-packets/foundation-laboratory-2026-07/DTA_ZARATHUSTRA_PARTS_1_4_LAYERED_RIGHTS_ASSESSMENT.md",
+      "https://www.deutschestextarchiv.de/doku/nutzungsbedingungen",
+      "https://www.deutschestextarchiv.de/api/tei_header/nietzsche_zarathustra03_1884",
+      "https://www.deutschestextarchiv.de/api/oai_dc/nietzsche_zarathustra03_1884",
+      "https://creativecommons.org/licenses/by-sa/4.0/legalcode.en",
+      "https://www.copyright.gov/title17/92chap1.html#104a",
+      "https://www.copyright.gov/gatt.html"
+    ],
+    "expires_at": null,
+    "recheck_before_transfer": true
+  },
+  "access_class": "metadata-only",
+  "allowed_derivatives": {
+    "ocr": {
+      "state": "prohibited",
+      "conditions": [
+        "The item is already a structured transcription; this plan authorizes no server-side source processing."
+      ]
+    },
+    "transcription": {
+      "state": "prohibited",
+      "conditions": [
+        "No source text is served by this metadata-only plan."
+      ]
+    },
+    "page_images": {
+      "state": "prohibited",
+      "conditions": [
+        "No page images were acquired; DTA facsimile and holding-library conditions remain separate."
+      ]
+    },
+    "snippets": {
+      "state": "prohibited",
+      "conditions": [
+        "The upstream annotated TEI is open-licensed, but no source text is served from the operator-held local payload without separate human rights and operator transfer approval."
+      ]
+    },
+    "lexical_index": {
+      "state": "conditional",
+      "conditions": [
+        "Public-safe bibliographic metadata only; no source text."
+      ]
+    },
+    "embeddings": {
+      "state": "prohibited",
+      "conditions": [
+        "No server-side source processing is authorized by this plan."
+      ]
+    },
+    "alignments": {
+      "state": "prohibited",
+      "conditions": [
+        "No content-bearing aligned text is served by this plan."
+      ]
+    },
+    "translations": {
+      "state": "prohibited",
+      "conditions": [
+        "Source licensing and source quality do not authorize a translation publication decision."
+      ]
+    },
+    "annotations": {
+      "state": "prohibited",
+      "conditions": [
+        "No source-bearing annotation publication is authorized by this plan."
+      ]
+    },
+    "search_projection": {
+      "state": "conditional",
+      "conditions": [
+        "Metadata-only records with no payload-derived text."
+      ]
+    },
+    "graph_projection": {
+      "state": "conditional",
+      "conditions": [
+        "Public-safe metadata, source identity, and provenance only."
+      ]
+    }
+  },
+  "payload_transfer_authorized": false,
+  "operator_transfer_approval": {
+    "approved": false,
+    "approved_by_real_human": false,
+    "approved_at": null,
+    "approval_ref": null
+  },
+  "server_import_status": "blocked-rights",
+  "publication_status": "metadata-only",
+  "server_receipt_refs": [],
+  "takedown": {
+    "public_contact_url": "https://github.com/8Dionysus/Tree-of-Sophia/issues",
+    "procedure_ref": "ToS/source-witnesses/server-import/SERVER_IMPORT_PROTOCOL.md",
+    "disable_supported": true,
+    "delete_supported": true,
+    "last_reviewed_at": "2026-08-10T08:22:20-06:00"
+  },
+  "provenance_event_refs": [
+    "tos.event.server-import-plan.dta-zarathustra-part-3-tei.uraa-correction.2026-08-10"
+  ],
+  "server_copy_is_authority": false,
+  "automatic_checkout_payload_discovery_allowed": false,
+  "contract_version": 3,
+  "supersedes_server_import_ref": null
+}

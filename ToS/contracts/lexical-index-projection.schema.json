@@ -1,0 +1,448 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://tree-of-sophia.local/ToS/contracts/lexical-index-projection.schema.json",
+  "title": "Tree of Sophia source-withholding lexical index projection",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "$schema",
+    "schema_version",
+    "generated_or_authored",
+    "projection_id",
+    "plan_id",
+    "plan_ref",
+    "plan_sha256",
+    "generator_ref",
+    "generator_sha256",
+    "builder",
+    "work_ref",
+    "source_items",
+    "summary",
+    "hash_profiles",
+    "field_posture",
+    "form_rows",
+    "local_projection_receipt",
+    "content_exposure",
+    "rights_and_visibility",
+    "semantic_boundary",
+    "authority_boundary"
+  ],
+  "properties": {
+    "$schema": {
+      "const": "https://tree-of-sophia.local/ToS/contracts/lexical-index-projection.schema.json"
+    },
+    "schema_version": {"const": "tos_lexical_index_projection_v1"},
+    "generated_or_authored": {"const": "generated_from_source"},
+    "projection_id": {
+      "type": "string",
+      "pattern": "^lexical-index-projection:[a-z0-9]+(?:[.-][a-z0-9]+)*$"
+    },
+    "plan_id": {
+      "type": "string",
+      "pattern": "^lexical-index-plan:[a-z0-9]+(?:[.-][a-z0-9]+)*$"
+    },
+    "plan_ref": {"$ref": "#/$defs/repoRelativePath"},
+    "plan_sha256": {"$ref": "#/$defs/sha256"},
+    "generator_ref": {"$ref": "#/$defs/repoRelativePath"},
+    "generator_sha256": {"$ref": "#/$defs/sha256"},
+    "builder": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["surface"],
+      "properties": {
+        "surface": {"$ref": "#/$defs/repoRelativePath"}
+      }
+    },
+    "work_ref": {"$ref": "#/$defs/workId"},
+    "source_items": {
+      "type": "array",
+      "minItems": 1,
+      "items": {"$ref": "#/$defs/sourceItemReceipt"}
+    },
+    "summary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "source_item_count",
+        "body_page_count",
+        "section_count",
+        "token_occurrence_count",
+        "exact_form_row_count",
+        "normalized_form_hash_count",
+        "source_editorial_occurrence_count",
+        "unsectioned_occurrence_count",
+        "semantic_fields_populated"
+      ],
+      "properties": {
+        "source_item_count": {"type": "integer", "minimum": 1},
+        "body_page_count": {"type": "integer", "minimum": 1},
+        "section_count": {"type": "integer", "minimum": 1},
+        "token_occurrence_count": {"type": "integer", "minimum": 1},
+        "exact_form_row_count": {"type": "integer", "minimum": 1},
+        "normalized_form_hash_count": {"type": "integer", "minimum": 1},
+        "source_editorial_occurrence_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "unsectioned_occurrence_count": {"type": "integer", "minimum": 0},
+        "semantic_fields_populated": {"const": 0}
+      }
+    },
+    "hash_profiles": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["exact_form", "normalized_form"],
+      "properties": {
+        "exact_form": {"$ref": "#/$defs/hashProfile"},
+        "normalized_form": {"$ref": "#/$defs/hashProfile"}
+      }
+    },
+    "field_posture": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "exact_form",
+        "normalized_form",
+        "lemma",
+        "phrase",
+        "prefix",
+        "section",
+        "page",
+        "language",
+        "edition",
+        "translation",
+        "sign_candidate"
+      ],
+      "properties": {
+        "exact_form": {"$ref": "#/$defs/fieldState"},
+        "normalized_form": {"$ref": "#/$defs/fieldState"},
+        "lemma": {"$ref": "#/$defs/fieldState"},
+        "phrase": {"$ref": "#/$defs/fieldState"},
+        "prefix": {"$ref": "#/$defs/fieldState"},
+        "section": {"$ref": "#/$defs/fieldState"},
+        "page": {"$ref": "#/$defs/fieldState"},
+        "language": {"$ref": "#/$defs/fieldState"},
+        "edition": {"$ref": "#/$defs/fieldState"},
+        "translation": {"$ref": "#/$defs/fieldState"},
+        "sign_candidate": {"$ref": "#/$defs/fieldState"}
+      }
+    },
+    "form_rows": {
+      "type": "array",
+      "minItems": 1,
+      "items": {"$ref": "#/$defs/formRow"}
+    },
+    "local_projection_receipt": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "relative_path",
+        "database_sha256",
+        "database_bytes",
+        "sqlite_version",
+        "fts5_enabled",
+        "table_counts",
+        "query_probes"
+      ],
+      "properties": {
+        "relative_path": {"$ref": "#/$defs/repoRelativePath"},
+        "database_sha256": {"$ref": "#/$defs/sha256"},
+        "database_bytes": {"type": "integer", "minimum": 1},
+        "sqlite_version": {"type": "string", "minLength": 1},
+        "fts5_enabled": {"const": true},
+        "table_counts": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["source_items", "pages", "sections", "occurrences", "forms"],
+          "properties": {
+            "source_items": {"type": "integer", "minimum": 1},
+            "pages": {"type": "integer", "minimum": 1},
+            "sections": {"type": "integer", "minimum": 1},
+            "occurrences": {"type": "integer", "minimum": 1},
+            "forms": {"type": "integer", "minimum": 1}
+          }
+        },
+        "query_probes": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "exact_form",
+            "normalized_form",
+            "prefix",
+            "phrase",
+            "section",
+            "page",
+            "language",
+            "edition",
+            "lemma",
+            "translation",
+            "sign_candidate"
+          ],
+          "properties": {
+            "exact_form": {"$ref": "#/$defs/probe"},
+            "normalized_form": {"$ref": "#/$defs/probe"},
+            "prefix": {"$ref": "#/$defs/probe"},
+            "phrase": {"$ref": "#/$defs/probe"},
+            "section": {"$ref": "#/$defs/probe"},
+            "page": {"$ref": "#/$defs/probe"},
+            "language": {"$ref": "#/$defs/probe"},
+            "edition": {"$ref": "#/$defs/probe"},
+            "lemma": {"$ref": "#/$defs/probe"},
+            "translation": {"$ref": "#/$defs/probe"},
+            "sign_candidate": {"$ref": "#/$defs/probe"}
+          }
+        }
+      }
+    },
+    "content_exposure": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "tracked_exact_strings",
+        "tracked_sequence",
+        "tracked_context",
+        "tracked_occurrence_positions",
+        "tracked_form_hashes",
+        "dictionary_recovery_possible",
+        "confidentiality_claimed"
+      ],
+      "properties": {
+        "tracked_exact_strings": {"const": false},
+        "tracked_sequence": {"const": false},
+        "tracked_context": {"const": false},
+        "tracked_occurrence_positions": {"const": false},
+        "tracked_form_hashes": {"const": true},
+        "dictionary_recovery_possible": {"const": true},
+        "confidentiality_claimed": {"const": false}
+      }
+    },
+    "rights_and_visibility": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "source_payload_visibility",
+        "tracked_projection_visibility",
+        "future_site_route",
+        "rights_review_required_before_public_route"
+      ],
+      "properties": {
+        "source_payload_visibility": {"const": "local-only"},
+        "tracked_projection_visibility": {"const": "local-only"},
+        "future_site_route": {"const": "blocked"},
+        "rights_review_required_before_public_route": {"const": true}
+      }
+    },
+    "semantic_boundary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "accepts_source_text",
+        "creates_occurrence_authority",
+        "creates_lexeme",
+        "creates_lemma",
+        "creates_sign_candidate",
+        "creates_sign",
+        "opens_initial_sign_packet",
+        "frequency_is_semantic_sufficiency"
+      ],
+      "properties": {
+        "accepts_source_text": {"const": false},
+        "creates_occurrence_authority": {"const": false},
+        "creates_lexeme": {"const": false},
+        "creates_lemma": {"const": false},
+        "creates_sign_candidate": {"const": false},
+        "creates_sign": {"const": false},
+        "opens_initial_sign_packet": {"const": false},
+        "frequency_is_semantic_sufficiency": {"const": false}
+      }
+    },
+    "authority_boundary": {
+      "const": "mechanical source-observation and rebuildable local search only; no accepted German, rights clearance, lexeme, lemma, translation, sign, concept, claim, relation, graph, canon, or publication authority"
+    }
+  },
+  "$defs": {
+    "sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "workId": {
+      "type": "string",
+      "pattern": "^tos\\.work\\.[a-z0-9]+(?:[.-][a-z0-9]+)*$"
+    },
+    "itemId": {
+      "type": "string",
+      "pattern": "^tos\\.item\\.[a-z0-9]+(?:[.-][a-z0-9]+)*$"
+    },
+    "fileId": {
+      "type": "string",
+      "pattern": "^tos\\.file\\.sha256\\.[a-f0-9]{64}$"
+    },
+    "repoRelativePath": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "^(?![A-Za-z][A-Za-z0-9+.-]*:)(?!/)(?!.*(?:^|/)\\.\\.(?:/|$))[^\\u0000]+$"
+    },
+    "sourceItemReceipt": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "part_order",
+        "item_ref",
+        "file_id",
+        "file_sha256",
+        "manifest_ref",
+        "resource_inventory_ref",
+        "rights_ref",
+        "rights_assessment_status",
+        "rights_review_status",
+        "language",
+        "edition_ref",
+        "body_page_count",
+        "section_count",
+        "token_occurrence_count"
+      ],
+      "properties": {
+        "part_order": {"type": "integer", "minimum": 1},
+        "item_ref": {"$ref": "#/$defs/itemId"},
+        "file_id": {"$ref": "#/$defs/fileId"},
+        "file_sha256": {"$ref": "#/$defs/sha256"},
+        "manifest_ref": {"$ref": "#/$defs/repoRelativePath"},
+        "resource_inventory_ref": {"$ref": "#/$defs/repoRelativePath"},
+        "rights_ref": {"$ref": "#/$defs/repoRelativePath"},
+        "rights_assessment_status": {"type": "string", "minLength": 1},
+        "rights_review_status": {"type": "string", "minLength": 1},
+        "language": {"const": "de"},
+        "edition_ref": {
+          "type": "string",
+          "pattern": "^tos\\.edition\\.[a-z0-9]+(?:[.-][a-z0-9]+)*$"
+        },
+        "body_page_count": {"type": "integer", "minimum": 1},
+        "section_count": {"type": "integer", "minimum": 1},
+        "token_occurrence_count": {"type": "integer", "minimum": 1}
+      }
+    },
+    "hashProfile": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["algorithm", "input", "normalization", "confidentiality"],
+      "properties": {
+        "algorithm": {"const": "sha256"},
+        "input": {"type": "string", "minLength": 1},
+        "normalization": {"type": "string", "minLength": 1},
+        "confidentiality": {"const": "none-low-entropy-dictionary-recovery-possible"}
+      }
+    },
+    "fieldState": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["local", "tracked", "authority"],
+      "properties": {
+        "local": {
+          "enum": [
+            "materialized",
+            "query-capability",
+            "metadata-filter",
+            "not-applicable",
+            "blocked"
+          ]
+        },
+        "tracked": {
+          "enum": [
+            "hash-only",
+            "aggregate-resource-refs",
+            "metadata",
+            "not-materialized",
+            "not-applicable",
+            "blocked"
+          ]
+        },
+        "authority": {"type": "string", "minLength": 1},
+        "blocker_refs": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {"type": "string", "minLength": 1}
+        }
+      }
+    },
+    "formRow": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "form_key",
+        "exact_form_sha256",
+        "normalized_form_sha256",
+        "occurrence_count",
+        "source_editorial_occurrence_count",
+        "unsectioned_occurrence_count",
+        "source_items"
+      ],
+      "properties": {
+        "form_key": {
+          "type": "string",
+          "pattern": "^lexical-form:sha256:[a-f0-9]{64}$"
+        },
+        "exact_form_sha256": {"$ref": "#/$defs/sha256"},
+        "normalized_form_sha256": {"$ref": "#/$defs/sha256"},
+        "occurrence_count": {"type": "integer", "minimum": 1},
+        "source_editorial_occurrence_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "unsectioned_occurrence_count": {"type": "integer", "minimum": 0},
+        "source_items": {
+          "type": "array",
+          "minItems": 1,
+          "items": {"$ref": "#/$defs/formItemHit"}
+        }
+      }
+    },
+    "formItemHit": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "item_ref",
+        "occurrence_count",
+        "page_hits",
+        "section_hits"
+      ],
+      "properties": {
+        "item_ref": {"$ref": "#/$defs/itemId"},
+        "occurrence_count": {"type": "integer", "minimum": 1},
+        "page_hits": {
+          "type": "array",
+          "minItems": 1,
+          "items": {"$ref": "#/$defs/resourceHit"}
+        },
+        "section_hits": {
+          "type": "array",
+          "items": {"$ref": "#/$defs/resourceHit"}
+        }
+      }
+    },
+    "resourceHit": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["resource_id", "occurrence_count"],
+      "properties": {
+        "resource_id": {
+          "type": "string",
+          "pattern": "^tei-(pb|div)-[0-9]{4}$"
+        },
+        "occurrence_count": {"type": "integer", "minimum": 1}
+      }
+    },
+    "probe": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["status", "result_count"],
+      "properties": {
+        "status": {
+          "enum": ["passed", "blocked-not-materialized", "not-applicable"]
+        },
+        "result_count": {"type": ["integer", "null"], "minimum": 0},
+        "blocker_refs": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {"type": "string", "minLength": 1}
+        }
+      }
+    }
+  }
+}

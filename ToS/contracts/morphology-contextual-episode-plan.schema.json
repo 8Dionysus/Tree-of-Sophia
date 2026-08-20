@@ -1,0 +1,295 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://tree-of-sophia.local/ToS/contracts/morphology-contextual-episode-plan.schema.json",
+  "title": "Tree of Sophia morphology contextual episode plan",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "$schema",
+    "schema_version",
+    "plan_id",
+    "experiment_id",
+    "episode_id",
+    "status",
+    "frozen_before_b_output",
+    "research",
+    "parent_morphology_plan",
+    "a_trigger",
+    "source_recurrence",
+    "selection",
+    "context_policy",
+    "variants",
+    "local_packet",
+    "tracked_receipt_ref",
+    "provenance_ref",
+    "rights_and_visibility",
+    "competence_boundary",
+    "semantic_boundary",
+    "authority_boundary"
+  ],
+  "properties": {
+    "$schema": {"const": "https://tree-of-sophia.local/ToS/contracts/morphology-contextual-episode-plan.schema.json"},
+    "schema_version": {"const": "tos_morphology_contextual_episode_plan_v1"},
+    "plan_id": {"const": "morphology-contextual-episode-plan:zarathustra-selected-form-b-v1"},
+    "experiment_id": {"const": "tos-historical-german-morphology-v1"},
+    "episode_id": {"const": "zarathustra-selected-form-context-b-v1"},
+    "status": {"const": "ready-to-materialize-context-packet"},
+    "frozen_before_b_output": {"const": true},
+    "research": {"$ref": "#/$defs/refDigest"},
+    "parent_morphology_plan": {"$ref": "#/$defs/refDigest"},
+    "a_trigger": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "trigger_kind",
+        "result_receipt",
+        "private_raw_output",
+        "selected_row_sha256",
+        "form_key",
+        "exact_form_sha256",
+        "normalized_form_sha256",
+        "input_preserved",
+        "unknown",
+        "lemma_analysis_count",
+        "provider_pos_categories",
+        "separable_candidate_count",
+        "source_values_tracked"
+      ],
+      "properties": {
+        "trigger_kind": {"const": "concrete-contextual-pos-and-separable-component-disambiguation"},
+        "result_receipt": {"$ref": "#/$defs/refDigest"},
+        "private_raw_output": {
+          "allOf": [
+            {"$ref": "#/$defs/refDigest"},
+            {
+              "type": "object",
+              "required": ["bytes", "visibility"],
+              "properties": {
+                "bytes": {"const": 54495917},
+                "visibility": {"const": "owner-local-only"}
+              }
+            }
+          ]
+        },
+        "selected_row_sha256": {"$ref": "#/$defs/sha256"},
+        "form_key": {"pattern": "^lexical-form:sha256:[0-9a-f]{64}$"},
+        "exact_form_sha256": {"$ref": "#/$defs/sha256"},
+        "normalized_form_sha256": {"$ref": "#/$defs/sha256"},
+        "input_preserved": {"const": true},
+        "unknown": {"const": false},
+        "lemma_analysis_count": {"const": 2},
+        "provider_pos_categories": {
+          "const": ["ADV", "V"]
+        },
+        "separable_candidate_count": {"const": 1},
+        "source_values_tracked": {"const": false}
+      }
+    },
+    "source_recurrence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["plan", "receipt", "local_bundle", "occurrence_count"],
+      "properties": {
+        "plan": {"$ref": "#/$defs/refDigest"},
+        "receipt": {"$ref": "#/$defs/refDigest"},
+        "local_bundle": {
+          "allOf": [
+            {"$ref": "#/$defs/refDigest"},
+            {
+              "type": "object",
+              "required": ["bytes", "mode", "visibility"],
+              "properties": {
+                "bytes": {"const": 119035},
+                "mode": {"const": "0600"},
+                "visibility": {"const": "gitignored-local-only"}
+              }
+            }
+          ]
+        },
+        "occurrence_count": {"const": 145}
+      }
+    },
+    "selection": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "method",
+        "ordered_by",
+        "recurrence_ranks",
+        "rank_roles",
+        "selection_count",
+        "b_output_visible_during_selection",
+        "c_output_visible_during_selection",
+        "semantic_labels_used",
+        "human_work_scheduled"
+      ],
+      "properties": {
+        "method": {"const": "ordered-recurrence-first-inclusive-median-last"},
+        "ordered_by": {"const": ["part_order", "token_ordinal", "occurrence_id"]},
+        "recurrence_ranks": {"const": [1, 73, 145]},
+        "rank_roles": {"const": ["first", "inclusive-median", "last"]},
+        "selection_count": {"const": 3},
+        "b_output_visible_during_selection": {"const": false},
+        "c_output_visible_during_selection": {"const": false},
+        "semantic_labels_used": {"const": false},
+        "human_work_scheduled": {"const": false}
+      }
+    },
+    "context_policy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "text_source",
+        "unit_rules",
+        "sentence_boundary_claimed",
+        "exact_surface_mutated",
+        "target_offset_unit",
+        "serialization",
+        "network_allowed"
+      ],
+      "properties": {
+        "text_source": {"const": "fixity-bound-raw-tei-character-data"},
+        "unit_rules": {"const": ["nearest-ancestor-p", "nearest-ancestor-lg-containing-target-line"]},
+        "sentence_boundary_claimed": {"const": false},
+        "exact_surface_mutated": {"const": false},
+        "target_offset_unit": {"const": "unicode-codepoint"},
+        "serialization": {"const": "lxml-itertext-source-order-no-network"},
+        "network_allowed": {"const": false}
+      }
+    },
+    "variants": {
+      "type": "array",
+      "prefixItems": [
+        {"$ref": "#/$defs/variantA"},
+        {"$ref": "#/$defs/variantB"},
+        {"$ref": "#/$defs/variantC"}
+      ],
+      "items": false,
+      "minItems": 3,
+      "maxItems": 3
+    },
+    "local_packet": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["relative_path", "format", "schema_ref", "schema_version", "mode", "source_bearing", "visibility", "expected_row_count"],
+      "properties": {
+        "relative_path": {"pattern": "^ToS/.*/local-content/.*\\.jsonl$"},
+        "format": {"const": "jsonl"},
+        "schema_ref": {"const": "ToS/contracts/morphology-contextual-episode-row.schema.json"},
+        "schema_version": {"const": "tos_morphology_contextual_episode_row_v1"},
+        "mode": {"const": "0600"},
+        "source_bearing": {"const": true},
+        "visibility": {"const": "gitignored-local-only"},
+        "expected_row_count": {"const": 3}
+      }
+    },
+    "tracked_receipt_ref": {"pattern": "^ToS/.*\\.json$"},
+    "provenance_ref": {"pattern": "^ToS/.*\\.jsonl$"},
+    "rights_and_visibility": {"$ref": "#/$defs/rights"},
+    "competence_boundary": {"$ref": "#/$defs/competence"},
+    "semantic_boundary": {"$ref": "#/$defs/semanticBoundary"},
+    "authority_boundary": {"type": "string", "minLength": 120}
+  },
+  "$defs": {
+    "sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "refDigest": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["ref", "sha256"],
+      "properties": {
+        "ref": {"type": "string", "minLength": 1, "not": {"pattern": "^/|(^|/)\\.\\.(/|$)"}},
+        "sha256": {"$ref": "#/$defs/sha256"},
+        "bytes": {"type": "integer", "minimum": 1},
+        "mode": {"type": "string"},
+        "visibility": {"type": "string"}
+      }
+    },
+    "variantA": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["label", "method", "status", "acquired", "executed", "role"],
+      "properties": {
+        "label": {"const": "A"},
+        "method": {"const": "dwdsmor-open-0.18.0-direct-surface"},
+        "status": {"const": "existing-context-free-candidate-set"},
+        "acquired": {"const": true},
+        "executed": {"const": true},
+        "role": {"const": "preserved-ambiguity-trigger"}
+      }
+    },
+    "variantB": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["label", "method", "status", "acquired", "executed", "version", "source_commit", "wheel_sha256", "wheel_bytes", "license_status", "role"],
+      "properties": {
+        "label": {"const": "B"},
+        "method": {"const": "de-zdl-lg-4.0.0-direct-unchanged-context"},
+        "status": {"const": "admitted-unacquired"},
+        "acquired": {"const": false},
+        "executed": {"const": false},
+        "version": {"const": "4.0.0"},
+        "source_commit": {"const": "7eabc17097a3ea39f5cc9c030a605ff7edc20ae4"},
+        "wheel_sha256": {"const": "9d35263ac80e80e9730ee21830ffdbe96cf256b72c71e30326ae5865456ade9a"},
+        "wheel_bytes": {"const": 627548130},
+        "license_status": {"const": "artifact-level-review-required-before-execution"},
+        "role": {"const": "contextual-pos-and-separable-component-challenger"}
+      }
+    },
+    "variantC": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["label", "method", "status", "acquired", "executed", "reason", "role"],
+      "properties": {
+        "label": {"const": "C"},
+        "method": {"const": "dtaec-type-normalizer-then-exact-b"},
+        "status": {"const": "blocked-question-inapplicable"},
+        "acquired": {"const": false},
+        "executed": {"const": false},
+        "reason": {"const": "selected exact-form and normalized-form hashes are identical; this episode asks contextual POS and separable-component disambiguation rather than historical normalization"},
+        "role": {"const": "reserved-for-separate-normalization-question"}
+      }
+    },
+    "rights": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["source_content", "tracked_derivative", "b_artifact", "c_artifact", "future_site_route"],
+      "properties": {
+        "source_content": {"const": "local-only-not-publication-cleared"},
+        "tracked_derivative": {"const": "text-and-position-free-not-publication-cleared"},
+        "b_artifact": {"const": "local-research-only-pending-artifact-level-license-inventory"},
+        "c_artifact": {"const": "not-admitted-for-this-question"},
+        "future_site_route": {"const": "blocked"}
+      }
+    },
+    "competence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["machine_output_authority", "german_competent_gold_count", "accepted_morphology_count", "accepted_lemma_count", "human_work_scheduled"],
+      "properties": {
+        "machine_output_authority": {"const": "proposal-only"},
+        "german_competent_gold_count": {"const": 0},
+        "accepted_morphology_count": {"const": 0},
+        "accepted_lemma_count": {"const": 0},
+        "human_work_scheduled": {"const": false}
+      }
+    },
+    "semanticBoundary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["creates_accepted_source", "creates_morphology", "creates_lemma", "creates_lexeme", "creates_sign_candidate", "creates_sign", "creates_semantic_claim", "creates_translation", "creates_graph_fact", "opens_human_backlog", "changes_initial_sign_packet"],
+      "properties": {
+        "creates_accepted_source": {"const": false},
+        "creates_morphology": {"const": false},
+        "creates_lemma": {"const": false},
+        "creates_lexeme": {"const": false},
+        "creates_sign_candidate": {"const": false},
+        "creates_sign": {"const": false},
+        "creates_semantic_claim": {"const": false},
+        "creates_translation": {"const": false},
+        "creates_graph_fact": {"const": false},
+        "opens_human_backlog": {"const": false},
+        "changes_initial_sign_packet": {"const": false}
+      }
+    }
+  }
+}

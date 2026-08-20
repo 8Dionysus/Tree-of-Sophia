@@ -1,0 +1,606 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/provenance-event-v2.schema.json",
+  "activity": {
+    "ended_at": "2026-08-12T18:30:00Z",
+    "event_type": "alignment",
+    "exit_code": 0,
+    "started_at": "2026-08-12T18:30:00Z",
+    "status": "completed_with_warnings",
+    "terminal_reason": null,
+    "warnings": [
+      "All twelve normalized German segment matches are mechanical representation evidence only.",
+      "Legacy review notes contain no modern machine-readable human attestation.",
+      "The bridge changes no source, translation, semantic, graph, canon, publication, or transfer authority."
+    ]
+  },
+  "authority_boundary": {
+    "claims_not_established": [
+      "execution_truth",
+      "content_truth",
+      "source_fidelity",
+      "translation_quality",
+      "semantic_correctness",
+      "rights_clearance",
+      "human_review",
+      "publication_authority",
+      "canon_authority"
+    ],
+    "validator_role": "mechanics_and_closure_only_not_truth"
+  },
+  "derivations": [
+    {
+      "derivation_id": "tos.derivation.zarathustra-authored-canon-evidence-bridge.1",
+      "description": "The exact DTA TEI, frozen plan, and digest-bound authored route surfaces determine this non-promoting bridge output.",
+      "influence_asserted": true,
+      "input_entity_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/de-schmeitzner-1883-part-1/editions/chemnitz-schmeitzner-1883-part-1/items/dta-sbb-corrected-tei-p5/payload/nietzsche_zarathustra01_1883.tei.xml",
+      "output_entity_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/local-content/authored-canon-evidence-bridge/za-i-vorrede-1/dta-section.raw.txt",
+      "relation": "selection_from"
+    },
+    {
+      "derivation_id": "tos.derivation.zarathustra-authored-canon-evidence-bridge.2",
+      "description": "The exact DTA TEI, frozen plan, and digest-bound authored route surfaces determine this non-promoting bridge output.",
+      "influence_asserted": true,
+      "input_entity_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/de-schmeitzner-1883-part-1/editions/chemnitz-schmeitzner-1883-part-1/items/dta-sbb-corrected-tei-p5/payload/nietzsche_zarathustra01_1883.tei.xml",
+      "output_entity_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/local-content/authored-canon-evidence-bridge/za-i-vorrede-1/dta-section.editorial-normalized.txt",
+      "relation": "selection_from"
+    },
+    {
+      "derivation_id": "tos.derivation.zarathustra-authored-canon-evidence-bridge.3",
+      "description": "The exact DTA TEI, frozen plan, and digest-bound authored route surfaces determine this non-promoting bridge output.",
+      "influence_asserted": true,
+      "input_entity_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/de-schmeitzner-1883-part-1/editions/chemnitz-schmeitzner-1883-part-1/items/dta-sbb-corrected-tei-p5/payload/nietzsche_zarathustra01_1883.tei.xml",
+      "output_entity_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/local-content/authored-canon-evidence-bridge/za-i-vorrede-1/normalization-operations.json",
+      "relation": "selection_from"
+    },
+    {
+      "derivation_id": "tos.derivation.zarathustra-authored-canon-evidence-bridge.4",
+      "description": "The exact DTA TEI, frozen plan, and digest-bound authored route surfaces determine this non-promoting bridge output.",
+      "influence_asserted": true,
+      "input_entity_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/de-schmeitzner-1883-part-1/editions/chemnitz-schmeitzner-1883-part-1/items/dta-sbb-corrected-tei-p5/payload/nietzsche_zarathustra01_1883.tei.xml",
+      "output_entity_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/local-content/authored-canon-evidence-bridge/za-i-vorrede-1/comparison-details.json",
+      "relation": "selection_from"
+    },
+    {
+      "derivation_id": "tos.derivation.zarathustra-authored-canon-evidence-bridge.5",
+      "description": "The exact DTA TEI, frozen plan, and digest-bound authored route surfaces determine this non-promoting bridge output.",
+      "influence_asserted": true,
+      "input_entity_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/de-schmeitzner-1883-part-1/editions/chemnitz-schmeitzner-1883-part-1/items/dta-sbb-corrected-tei-p5/payload/nietzsche_zarathustra01_1883.tei.xml",
+      "output_entity_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/source-anchor-v2.za-i-vorrede-1-section.dta.v1.json",
+      "relation": "selection_from"
+    },
+    {
+      "derivation_id": "tos.derivation.zarathustra-authored-canon-evidence-bridge.6",
+      "description": "The exact DTA TEI, frozen plan, and digest-bound authored route surfaces determine this non-promoting bridge output.",
+      "influence_asserted": true,
+      "input_entity_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/de-schmeitzner-1883-part-1/editions/chemnitz-schmeitzner-1883-part-1/items/dta-sbb-corrected-tei-p5/payload/nietzsche_zarathustra01_1883.tei.xml",
+      "output_entity_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/source-text-layer.za-i-vorrede-1-section.dta-raw.v1.json",
+      "relation": "selection_from"
+    },
+    {
+      "derivation_id": "tos.derivation.zarathustra-authored-canon-evidence-bridge.7",
+      "description": "The exact DTA TEI, frozen plan, and digest-bound authored route surfaces determine this non-promoting bridge output.",
+      "influence_asserted": true,
+      "input_entity_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/de-schmeitzner-1883-part-1/editions/chemnitz-schmeitzner-1883-part-1/items/dta-sbb-corrected-tei-p5/payload/nietzsche_zarathustra01_1883.tei.xml",
+      "output_entity_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/source-text-layer.za-i-vorrede-1-section.dta-normalized.v1.json",
+      "relation": "selection_from"
+    },
+    {
+      "derivation_id": "tos.derivation.zarathustra-authored-canon-evidence-bridge.8",
+      "description": "The exact DTA TEI, frozen plan, and digest-bound authored route surfaces determine this non-promoting bridge output.",
+      "influence_asserted": true,
+      "input_entity_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/de-schmeitzner-1883-part-1/editions/chemnitz-schmeitzner-1883-part-1/items/dta-sbb-corrected-tei-p5/payload/nietzsche_zarathustra01_1883.tei.xml",
+      "output_entity_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/source-text-unit.za-i-vorrede-1-section.dta-authored-crosswalk.v1.json",
+      "relation": "selection_from"
+    },
+    {
+      "derivation_id": "tos.derivation.zarathustra-authored-canon-evidence-bridge.9",
+      "description": "The exact DTA TEI, frozen plan, and digest-bound authored route surfaces determine this non-promoting bridge output.",
+      "influence_asserted": true,
+      "input_entity_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/de-schmeitzner-1883-part-1/editions/chemnitz-schmeitzner-1883-part-1/items/dta-sbb-corrected-tei-p5/payload/nietzsche_zarathustra01_1883.tei.xml",
+      "output_entity_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/authored-route-evidence-bridge.za-i-vorrede-1.v1.json",
+      "relation": "selection_from"
+    },
+    {
+      "derivation_id": "tos.derivation.zarathustra-authored-canon-evidence-bridge.authored-10",
+      "description": "The text-free bridge inventory and assurance posture bind this exact authored-route or historical-review surface without promoting it.",
+      "influence_asserted": true,
+      "input_entity_ref": "ToS/canon/source/friedrich-nietzsche/thus-spoke-zarathustra/prologue-1/node.json",
+      "output_entity_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/authored-route-evidence-bridge.za-i-vorrede-1.v1.json",
+      "relation": "was_derived_from"
+    },
+    {
+      "derivation_id": "tos.derivation.zarathustra-authored-canon-evidence-bridge.authored-11",
+      "description": "The text-free bridge inventory and assurance posture bind this exact authored-route or historical-review surface without promoting it.",
+      "influence_asserted": true,
+      "input_entity_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/alignments/prologue-1/Z_1_1_1_de_ru_en.md",
+      "output_entity_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/authored-route-evidence-bridge.za-i-vorrede-1.v1.json",
+      "relation": "was_derived_from"
+    },
+    {
+      "derivation_id": "tos.derivation.zarathustra-authored-canon-evidence-bridge.authored-12",
+      "description": "The text-free bridge inventory and assurance posture bind this exact authored-route or historical-review surface without promoting it.",
+      "influence_asserted": true,
+      "input_entity_ref": "ToS/canon/relations/friedrich-nietzsche/thus-spoke-zarathustra/prologue-1/edges.csv",
+      "output_entity_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/authored-route-evidence-bridge.za-i-vorrede-1.v1.json",
+      "relation": "was_derived_from"
+    },
+    {
+      "derivation_id": "tos.derivation.zarathustra-authored-canon-evidence-bridge.authored-13",
+      "description": "The text-free bridge inventory and assurance posture bind this exact authored-route or historical-review surface without promoting it.",
+      "influence_asserted": true,
+      "input_entity_ref": "ToS/review-ledger/2026-03-23-zarathustra-trilingual-entry-review.md",
+      "output_entity_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/authored-route-evidence-bridge.za-i-vorrede-1.v1.json",
+      "relation": "was_derived_from"
+    },
+    {
+      "derivation_id": "tos.derivation.zarathustra-authored-canon-evidence-bridge.authored-14",
+      "description": "The text-free bridge inventory and assurance posture bind this exact authored-route or historical-review surface without promoting it.",
+      "influence_asserted": true,
+      "input_entity_ref": "ToS/review-ledger/2026-03-25-zarathustra-pass-001-stabilization-review.md",
+      "output_entity_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/authored-route-evidence-bridge.za-i-vorrede-1.v1.json",
+      "relation": "was_derived_from"
+    },
+    {
+      "derivation_id": "tos.derivation.zarathustra-authored-canon-evidence-bridge.authored-15",
+      "description": "The text-free bridge inventory and assurance posture bind this exact authored-route or historical-review surface without promoting it.",
+      "influence_asserted": true,
+      "input_entity_ref": "ToS/review-ledger/2026-03-25-zarathustra-witness-provenance-and-tiny-hop-review.md",
+      "output_entity_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/authored-route-evidence-bridge.za-i-vorrede-1.v1.json",
+      "relation": "was_derived_from"
+    },
+    {
+      "derivation_id": "tos.derivation.zarathustra-authored-canon-evidence-bridge.authored-16",
+      "description": "The text-free bridge inventory and assurance posture bind this exact authored-route or historical-review surface without promoting it.",
+      "influence_asserted": true,
+      "input_entity_ref": "ToS/review-ledger/2026-03-26-tree-canonical-layer-review.md",
+      "output_entity_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/authored-route-evidence-bridge.za-i-vorrede-1.v1.json",
+      "relation": "was_derived_from"
+    },
+    {
+      "derivation_id": "tos.derivation.zarathustra-authored-canon-evidence-bridge.authored-17",
+      "description": "The text-free bridge inventory and assurance posture bind this exact authored-route or historical-review surface without promoting it.",
+      "influence_asserted": true,
+      "input_entity_ref": "ToS/review-ledger/2026-03-28-zarathustra-deferred-analogy-review.md",
+      "output_entity_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/authored-route-evidence-bridge.za-i-vorrede-1.v1.json",
+      "relation": "was_derived_from"
+    },
+    {
+      "derivation_id": "tos.derivation.zarathustra-authored-canon-evidence-bridge.authored-18",
+      "description": "The text-free bridge inventory and assurance posture bind this exact authored-route or historical-review surface without promoting it.",
+      "influence_asserted": true,
+      "input_entity_ref": "ToS/review-ledger/2026-03-28-zarathustra-deferred-commentary-review.md",
+      "output_entity_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/authored-route-evidence-bridge.za-i-vorrede-1.v1.json",
+      "relation": "was_derived_from"
+    },
+    {
+      "derivation_id": "tos.derivation.zarathustra-authored-canon-evidence-bridge.authored-19",
+      "description": "The text-free bridge inventory and assurance posture bind this exact authored-route or historical-review surface without promoting it.",
+      "influence_asserted": true,
+      "input_entity_ref": "ToS/review-ledger/2026-03-28-zarathustra-relation-residue-review.md",
+      "output_entity_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/authored-route-evidence-bridge.za-i-vorrede-1.v1.json",
+      "relation": "was_derived_from"
+    },
+    {
+      "derivation_id": "tos.derivation.zarathustra-authored-canon-evidence-bridge.authored-20",
+      "description": "The text-free bridge inventory and assurance posture bind this exact authored-route or historical-review surface without promoting it.",
+      "influence_asserted": true,
+      "input_entity_ref": "ToS/review-ledger/2026-07-21-zarathustra-golden-kernel-architecture-review.md",
+      "output_entity_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/authored-route-evidence-bridge.za-i-vorrede-1.v1.json",
+      "relation": "was_derived_from"
+    }
+  ],
+  "entities": {
+    "byproducts": [],
+    "inputs": [
+      {
+        "availability": "owner_local",
+        "content_disclosure": "private_content",
+        "entity_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/de-schmeitzner-1883-part-1/editions/chemnitz-schmeitzner-1883-part-1/items/dta-sbb-corrected-tei-p5/payload/nietzsche_zarathustra01_1883.tei.xml",
+        "fixity_verified": true,
+        "fixity_verified_at": "2026-08-12T18:30:00Z",
+        "media_type": "application/xml",
+        "role": "fixity-verified-local-dta-tei-source",
+        "sha256": "d3fa5f8af39d87c8f0ede7a0b52b26da0c57e73125d3b0bd2a836b80eae24a4b",
+        "size_bytes": 159265
+      },
+      {
+        "availability": "tracked",
+        "content_disclosure": "public_metadata_only",
+        "entity_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/authored-canon-evidence-bridge.plan.v1.json",
+        "fixity_verified": true,
+        "fixity_verified_at": "2026-08-12T18:30:00Z",
+        "media_type": "application/json",
+        "role": "tracked-text-free-bridge-plan",
+        "sha256": "097b12fe1c183b31dd15e720a50b437664011a4c70150cb7335fa3a5d7b2e04e",
+        "size_bytes": 12994
+      },
+      {
+        "availability": "tracked",
+        "content_disclosure": "public_content",
+        "entity_ref": "ToS/research-packets/foundation-laboratory-2026-07/AUTHORED_CANON_EVIDENCE_BRIDGE_RESEARCH_2026-08-12.md",
+        "fixity_verified": true,
+        "fixity_verified_at": "2026-08-12T18:30:00Z",
+        "media_type": "text/markdown; charset=utf-8",
+        "role": "tracked-reconciliation-research",
+        "sha256": "bcc419613aa2778547210d087e96d721673d11874e5e0e98e3f20e5bfb7d72e7",
+        "size_bytes": 6392
+      },
+      {
+        "availability": "tracked",
+        "content_disclosure": "public_metadata_only",
+        "entity_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/de-schmeitzner-1883-part-1/editions/chemnitz-schmeitzner-1883-part-1/items/dta-sbb-corrected-tei-p5/rights.json",
+        "fixity_verified": true,
+        "fixity_verified_at": "2026-08-12T18:30:00Z",
+        "media_type": "application/json",
+        "role": "tracked-source-rights-record",
+        "sha256": "0ee4a2f6301450e155a623f4b692c936f13d07b296a512db9875652492cbbfc4",
+        "size_bytes": 14842
+      },
+      {
+        "availability": "tracked",
+        "content_disclosure": "public_content",
+        "entity_ref": "ToS/canon/source/friedrich-nietzsche/thus-spoke-zarathustra/prologue-1/node.json",
+        "fixity_verified": true,
+        "fixity_verified_at": "2026-08-12T18:30:00Z",
+        "media_type": "application/json",
+        "role": "tracked-authored-source-node",
+        "sha256": "951067db45d8cad8fad485adbbc3294dda7c824647dc820dd2529716b8317ed8",
+        "size_bytes": 14135
+      },
+      {
+        "availability": "tracked",
+        "content_disclosure": "public_content",
+        "entity_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/alignments/prologue-1/Z_1_1_1_de_ru_en.md",
+        "fixity_verified": true,
+        "fixity_verified_at": "2026-08-12T18:30:00Z",
+        "media_type": "text/markdown; charset=utf-8",
+        "role": "tracked-authored-trilingual-donor",
+        "sha256": "2ffe1efbdd8cd4685443328e711f254e711510df16a139d134b3b705612b31ee",
+        "size_bytes": 7012
+      },
+      {
+        "availability": "tracked",
+        "content_disclosure": "public_content",
+        "entity_ref": "ToS/canon/relations/friedrich-nietzsche/thus-spoke-zarathustra/prologue-1/edges.csv",
+        "fixity_verified": true,
+        "fixity_verified_at": "2026-08-12T18:30:00Z",
+        "media_type": "text/csv; charset=utf-8",
+        "role": "tracked-authored-relation-pack",
+        "sha256": "08039b49130f36a2ed4869421d5123885ee69e06f514807e14b656e8cff53d0f",
+        "size_bytes": 30069
+      },
+      {
+        "availability": "tracked",
+        "content_disclosure": "public_content",
+        "entity_ref": "ToS/review-ledger/2026-03-23-zarathustra-trilingual-entry-review.md",
+        "fixity_verified": true,
+        "fixity_verified_at": "2026-08-12T18:30:00Z",
+        "media_type": "text/markdown; charset=utf-8",
+        "role": "tracked-legacy-review-record",
+        "sha256": "1ce361ad965f7ed44af07a2a0781948fadfc885724c091295e39d0be341fe093",
+        "size_bytes": 2915
+      },
+      {
+        "availability": "tracked",
+        "content_disclosure": "public_content",
+        "entity_ref": "ToS/review-ledger/2026-03-25-zarathustra-pass-001-stabilization-review.md",
+        "fixity_verified": true,
+        "fixity_verified_at": "2026-08-12T18:30:00Z",
+        "media_type": "text/markdown; charset=utf-8",
+        "role": "tracked-legacy-review-record",
+        "sha256": "6feaadee1321ec266cbec489824fb8eea5411226241af836a5cc96e277e13c30",
+        "size_bytes": 2644
+      },
+      {
+        "availability": "tracked",
+        "content_disclosure": "public_content",
+        "entity_ref": "ToS/review-ledger/2026-03-25-zarathustra-witness-provenance-and-tiny-hop-review.md",
+        "fixity_verified": true,
+        "fixity_verified_at": "2026-08-12T18:30:00Z",
+        "media_type": "text/markdown; charset=utf-8",
+        "role": "tracked-legacy-review-record",
+        "sha256": "df656c50f4ae62b31adf6a46ff35d82e2291357d954d20c30380b6f1b807aa2f",
+        "size_bytes": 2950
+      },
+      {
+        "availability": "tracked",
+        "content_disclosure": "public_content",
+        "entity_ref": "ToS/review-ledger/2026-03-26-tree-canonical-layer-review.md",
+        "fixity_verified": true,
+        "fixity_verified_at": "2026-08-12T18:30:00Z",
+        "media_type": "text/markdown; charset=utf-8",
+        "role": "tracked-legacy-review-record",
+        "sha256": "79f3e24a3eb23c616319ffab4e06b467a366473cd62f2654747312fe6a79d953",
+        "size_bytes": 2623
+      },
+      {
+        "availability": "tracked",
+        "content_disclosure": "public_content",
+        "entity_ref": "ToS/review-ledger/2026-03-28-zarathustra-deferred-analogy-review.md",
+        "fixity_verified": true,
+        "fixity_verified_at": "2026-08-12T18:30:00Z",
+        "media_type": "text/markdown; charset=utf-8",
+        "role": "tracked-legacy-review-record",
+        "sha256": "7475f4b1b40e08b2f8aa0bab2daa61469683ab685ec20671b126dc6009fd8bbc",
+        "size_bytes": 1547
+      },
+      {
+        "availability": "tracked",
+        "content_disclosure": "public_content",
+        "entity_ref": "ToS/review-ledger/2026-03-28-zarathustra-deferred-commentary-review.md",
+        "fixity_verified": true,
+        "fixity_verified_at": "2026-08-12T18:30:00Z",
+        "media_type": "text/markdown; charset=utf-8",
+        "role": "tracked-legacy-review-record",
+        "sha256": "c77ec9caeac903af18a0e39b3f81606b787ce3feb97a4de4c25c04e054e85e89",
+        "size_bytes": 1125
+      },
+      {
+        "availability": "tracked",
+        "content_disclosure": "public_content",
+        "entity_ref": "ToS/review-ledger/2026-03-28-zarathustra-relation-residue-review.md",
+        "fixity_verified": true,
+        "fixity_verified_at": "2026-08-12T18:30:00Z",
+        "media_type": "text/markdown; charset=utf-8",
+        "role": "tracked-legacy-review-record",
+        "sha256": "dbd22a507ca4cc150fd2187c251dfafe010e07dc8d89860ff0e4457e9634278f",
+        "size_bytes": 827
+      },
+      {
+        "availability": "tracked",
+        "content_disclosure": "public_content",
+        "entity_ref": "ToS/review-ledger/2026-07-21-zarathustra-golden-kernel-architecture-review.md",
+        "fixity_verified": true,
+        "fixity_verified_at": "2026-08-12T18:30:00Z",
+        "media_type": "text/markdown; charset=utf-8",
+        "role": "tracked-legacy-review-record",
+        "sha256": "358c6036ee838d0c3800ab831324b0baca208e2783e2af878d1083c43596e5bf",
+        "size_bytes": 2796
+      }
+    ],
+    "outputs": [
+      {
+        "availability": "ignored_local",
+        "content_disclosure": "private_content",
+        "entity_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/local-content/authored-canon-evidence-bridge/za-i-vorrede-1/dta-section.raw.txt",
+        "fixity_verified": true,
+        "fixity_verified_at": "2026-08-12T18:30:00Z",
+        "media_type": "text/plain; charset=utf-8",
+        "role": "ignored-local-evidence-bridge-artifact",
+        "sha256": "030a1addc74acff740171105444c091198179ff30caedc77edee8b62a434f57a",
+        "size_bytes": 1638
+      },
+      {
+        "availability": "ignored_local",
+        "content_disclosure": "private_content",
+        "entity_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/local-content/authored-canon-evidence-bridge/za-i-vorrede-1/dta-section.editorial-normalized.txt",
+        "fixity_verified": true,
+        "fixity_verified_at": "2026-08-12T18:30:00Z",
+        "media_type": "text/plain; charset=utf-8",
+        "role": "ignored-local-evidence-bridge-artifact",
+        "sha256": "d4a4f3222aa61d315e180c19738b654c7ce62dc3ee420386c0ac713a7753b96e",
+        "size_bytes": 1618
+      },
+      {
+        "availability": "ignored_local",
+        "content_disclosure": "private_content",
+        "entity_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/local-content/authored-canon-evidence-bridge/za-i-vorrede-1/normalization-operations.json",
+        "fixity_verified": true,
+        "fixity_verified_at": "2026-08-12T18:30:00Z",
+        "media_type": "application/json",
+        "role": "ignored-local-evidence-bridge-artifact",
+        "sha256": "fefc61e081ca7645fdd463227d88c774a08df2750289e9acb048901ef7edf0df",
+        "size_bytes": 14226
+      },
+      {
+        "availability": "ignored_local",
+        "content_disclosure": "private_content",
+        "entity_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/local-content/authored-canon-evidence-bridge/za-i-vorrede-1/comparison-details.json",
+        "fixity_verified": true,
+        "fixity_verified_at": "2026-08-12T18:30:00Z",
+        "media_type": "application/json",
+        "role": "ignored-local-evidence-bridge-artifact",
+        "sha256": "bc9b8f1e13209c6865552977b4047c23422aa5a7b4effb8ac4a948c7befc878f",
+        "size_bytes": 6549
+      },
+      {
+        "availability": "tracked",
+        "content_disclosure": "public_metadata_only",
+        "entity_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/source-anchor-v2.za-i-vorrede-1-section.dta.v1.json",
+        "fixity_verified": true,
+        "fixity_verified_at": "2026-08-12T18:30:00Z",
+        "media_type": "application/json",
+        "role": "tracked-text-free-evidence-bridge-record",
+        "sha256": "09199af3ccd59d602607eba022b3d0d8b629719ab5b8cec5a62b507e4b6fe03e",
+        "size_bytes": 2519
+      },
+      {
+        "availability": "tracked",
+        "content_disclosure": "public_metadata_only",
+        "entity_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/source-text-layer.za-i-vorrede-1-section.dta-raw.v1.json",
+        "fixity_verified": true,
+        "fixity_verified_at": "2026-08-12T18:30:00Z",
+        "media_type": "application/json",
+        "role": "tracked-text-free-evidence-bridge-record",
+        "sha256": "31a09432845ecd3b805c407b0d3c559ec570b961f84a7b07e720ca73b664adbc",
+        "size_bytes": 5152
+      },
+      {
+        "availability": "tracked",
+        "content_disclosure": "public_metadata_only",
+        "entity_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/source-text-layer.za-i-vorrede-1-section.dta-normalized.v1.json",
+        "fixity_verified": true,
+        "fixity_verified_at": "2026-08-12T18:30:00Z",
+        "media_type": "application/json",
+        "role": "tracked-text-free-evidence-bridge-record",
+        "sha256": "30f40d967f0e6bdc4c3812553162832bec13f0f04e0c55aa229c3f103ab6c41e",
+        "size_bytes": 6079
+      },
+      {
+        "availability": "tracked",
+        "content_disclosure": "public_metadata_only",
+        "entity_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/source-text-unit.za-i-vorrede-1-section.dta-authored-crosswalk.v1.json",
+        "fixity_verified": true,
+        "fixity_verified_at": "2026-08-12T18:30:00Z",
+        "media_type": "application/json",
+        "role": "tracked-text-free-evidence-bridge-record",
+        "sha256": "123ba3ad10907740322acd176aa3abc05a81739f5412525f5063021c39aaa018",
+        "size_bytes": 86393
+      },
+      {
+        "availability": "tracked",
+        "content_disclosure": "public_metadata_only",
+        "entity_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/authored-route-evidence-bridge.za-i-vorrede-1.v1.json",
+        "fixity_verified": true,
+        "fixity_verified_at": "2026-08-12T18:30:00Z",
+        "media_type": "application/json",
+        "role": "tracked-text-free-evidence-bridge-record",
+        "sha256": "f75d5c8f6d113cdd07d1f3a12a97d8a705b87cd292735c9ed74a7b206772d05b",
+        "size_bytes": 14895
+      }
+    ]
+  },
+  "event_id": "tos.event.reconciliation.zarathustra-authored-canon-evidence-bridge.2026-08-12",
+  "event_version": 1,
+  "evidence_authentication": {
+    "capture_posture": "tool_captured",
+    "producer_control_boundary": "The same local builder emitted the unsigned receipt; exact replay proves closure, not execution authenticity, human authorship, language competence, or semantic truth.",
+    "signature_bindings": [],
+    "signature_status": "unsigned",
+    "verification_status": "mechanically_verified"
+  },
+  "manual_changes": {
+    "change_receipts": [],
+    "statement": "No manual content edit occurred; raw extraction, declared comparison normalization, source/authored boundary construction, and digest inventory are deterministic builder operations.",
+    "status": "none_declared"
+  },
+  "measurements": [
+    {
+      "evidence_binding": null,
+      "method": "filesystem stat after exact digest verification",
+      "metric": "input_bytes",
+      "status": "measured",
+      "unit": "bytes",
+      "value": 159265
+    },
+    {
+      "evidence_binding": null,
+      "method": "sum of exact serialized output entity byte counts",
+      "metric": "output_bytes",
+      "status": "measured",
+      "unit": "bytes",
+      "value": 139069
+    },
+    {
+      "evidence_binding": null,
+      "method": "no human content review or correction was scheduled or performed",
+      "metric": "human_active_seconds",
+      "status": "not_applicable",
+      "unit": null,
+      "value": null
+    }
+  ],
+  "method": {
+    "command_capture": {
+      "argv": null,
+      "argv_sha256": "ee2f4ef64419fe3513b2f0aacda21b4f58f565615bf1af4dc391e4f74dc00cd1",
+      "disclosure": "withheld_digest_only",
+      "withholding_reason": "The exact build argv contains the owner-local absolute corpus root; its digest is retained without embedding a non-portable machine path."
+    },
+    "configuration_binding": {
+      "ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/authored-canon-evidence-bridge.plan.v1.json",
+      "sha256": "097b12fe1c183b31dd15e720a50b437664011a4c70150cb7335fa3a5d7b2e04e"
+    },
+    "environment": {
+      "backend": "python-standard-library-elementtree-difflib-csv",
+      "environment_profile_binding": {
+        "ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/authored-canon-evidence-bridge.plan.v1.json",
+        "sha256": "097b12fe1c183b31dd15e720a50b437664011a4c70150cb7335fa3a5d7b2e04e"
+      },
+      "hardware_target": "cpu",
+      "runtime": "CPython",
+      "runtime_artifact_sha256": "7af874aca05879e1823cd820913b42fb8d8b994738a05ec39ce4256d85b03861",
+      "runtime_version": "3.14.6",
+      "unicode_version": "16.0.0"
+    },
+    "model_invocations": [],
+    "procedure": {
+      "name": "authored-canon-evidence-bridge",
+      "purpose": "How does the pre-existing twelve-segment authored Zarathustra route return to the exact DTA Za-I-Vorrede-1 witness without silently acquiring modern source, translation, semantic, review, graph, or canon authority?",
+      "version": "1"
+    },
+    "software_components": [
+      {
+        "artifact_ref": "scripts/build_zarathustra_authored_canon_evidence_bridge.py",
+        "artifact_sha256": "2480b33428be642c1bd8b719aac983aafb3568fa53244d41b97b44ab1ddbfd0c",
+        "name": "Tree of Sophia authored canon evidence bridge builder",
+        "role": "section-extraction-normalization-crosswalk-and-record-builder",
+        "verification_status": "verified",
+        "version": "1"
+      },
+      {
+        "artifact_ref": "runtime:cpython-executable",
+        "artifact_sha256": "7af874aca05879e1823cd820913b42fb8d8b994738a05ec39ce4256d85b03861",
+        "name": "CPython",
+        "role": "language-runtime",
+        "verification_status": "verified",
+        "version": "3.14.6"
+      }
+    ]
+  },
+  "record_binding": {
+    "digest_algorithm": "sha256",
+    "digest_scope": "exact_event_record_bytes",
+    "manifest_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/authored-canon-evidence-bridge.plan.v1.json"
+  },
+  "reproducibility": {
+    "classification": "partially_specified",
+    "known_gaps": [
+      "The receipt is unsigned and self-recorded by the transformation runner.",
+      "The exact build argv is withheld because it contains the owner-local absolute corpus root; replay requires an operator-supplied local input/output root.",
+      "No German-competent human reviewed the extracted text or authored boundary map.",
+      "No old review note was reinterpreted as a modern human attestation.",
+      "Private source and comparison artifacts remain intentionally absent from Git."
+    ],
+    "replay_scope": "Exact DTA digest, frozen plan and builder, source/authored surface digests, declared normalization, complete twelve-segment sequence match, private artifact fixity, text-free bridge records, and zero-authority posture."
+  },
+  "responsibility": [
+    {
+      "agent_kind": "software",
+      "agent_ref": "software:tos-zarathustra-authored-canon-evidence-bridge-builder",
+      "evidence_binding": {
+        "ref": "scripts/build_zarathustra_authored_canon_evidence_bridge.py",
+        "sha256": "2480b33428be642c1bd8b719aac983aafb3568fa53244d41b97b44ab1ddbfd0c"
+      },
+      "human_evidence_status": "not_applicable",
+      "responsibility_posture": "performed",
+      "role": "executor"
+    }
+  ],
+  "review_and_authority": {
+    "accepted_uses": [],
+    "competence_evidence_bindings": [],
+    "human_review_status": "blocked",
+    "mechanical_validation": "passed",
+    "promotion_authorized": false,
+    "review_bindings": []
+  },
+  "rights_and_visibility": {
+    "content_visibility": "local_only",
+    "intended_uses": [
+      "local_research",
+      "preservation",
+      "indexing"
+    ],
+    "publication_authority_bindings": [],
+    "publication_authorized": false,
+    "rights_record_bindings": [
+      {
+        "ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/de-schmeitzner-1883-part-1/editions/chemnitz-schmeitzner-1883-part-1/items/dta-sbb-corrected-tei-p5/rights.json",
+        "sha256": "0ee4a2f6301450e155a623f4b692c936f13d07b296a512db9875652492cbbfc4"
+      }
+    ]
+  },
+  "schema_version": "tos_provenance_event_v2",
+  "supersedes_event_ref": null
+}

@@ -40,7 +40,7 @@
         "canon_judgment"
       ]
     },
-    "subject_ref": {"type": "string", "minLength": 1},
+    "subject_ref": {"$ref": "#/$defs/tosId"},
     "predicate": {"type": "string", "pattern": "^[a-z][a-z0-9_.-]*$"},
     "object": {
       "oneOf": [
@@ -102,6 +102,10 @@
       "uniqueItems": true,
       "items": {"type": "string", "minLength": 1}
     },
+    "qualifiers": {
+      "type": "object",
+      "minProperties": 1
+    },
     "review_status": {
       "enum": ["unreviewed", "accepted", "accepted_with_limits", "rejected", "ambiguous", "deferred", "superseded"]
     },
@@ -143,12 +147,32 @@
       "then": {
         "properties": {"reviews": {"minItems": 1}}
       }
+    },
+    {
+      "if": {
+        "properties": {"predicate": {"const": "is_derivative_of"}},
+        "required": ["predicate"]
+      },
+      "then": {
+        "required": ["qualifiers"],
+        "properties": {
+          "claim_type": {"const": "relation"},
+          "subject_ref": {
+            "type": "string",
+            "pattern": "^tos\\.expression\\.[a-z0-9]+(?:[.-][a-z0-9]+)*$"
+          },
+          "object": {
+            "type": "string",
+            "pattern": "^tos\\.expression\\.[a-z0-9]+(?:[.-][a-z0-9]+)*$"
+          }
+        }
+      }
     }
   ],
   "$defs": {
     "tosId": {
       "type": "string",
-      "pattern": "^tos\\.(agent|work|expression|edition|collection|item|file|passage|region|anchor|occurrence|annotation|claim|rights|review|event)\\.[a-z0-9]+(?:[.-][a-z0-9]+)*$"
+      "pattern": "^tos\\.(agent|work|expression|edition|collection|item|file|passage|region|anchor|occurrence|lexeme|annotation|sign|concept|claim|relation|rights|review|event)\\.[a-z0-9]+(?:[.-][a-z0-9]+)*$"
     }
   }
 }

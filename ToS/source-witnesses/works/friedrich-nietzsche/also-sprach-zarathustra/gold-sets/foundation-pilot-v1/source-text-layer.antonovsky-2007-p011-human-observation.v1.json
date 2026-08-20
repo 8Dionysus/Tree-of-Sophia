@@ -1,0 +1,116 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/source-text-layer.schema.json",
+  "admission": {
+    "accepted_uses": [],
+    "automatic_validation_complete": true,
+    "human_language_competence": "not_assessed",
+    "human_review_performed": false,
+    "language_competence_evidence_refs": [],
+    "mechanical_status": "fixity_verified",
+    "model_output_is_ground_truth": false,
+    "promotion_authorized": false,
+    "review_ref": null,
+    "review_status": "unreviewed",
+    "routine_human_task_created": false,
+    "validator_proves_content_truth": false
+  },
+  "authority_boundary": "a source text layer is one immutable, source-returnable representation with explicit derivation, uncertainty, review, competence, rights, and use scope; mechanical validation, model output, normalization, or agreement with another layer does not make it accepted source text, translation evidence, linguistic truth, semantic evidence, graph truth, canon authority, or publication permission",
+  "derivation": {
+    "change_payload": {
+      "kind": "none"
+    },
+    "input_layers": [],
+    "loss_posture": "preservation_intended",
+    "maker": {
+      "agent_ref": "human:dionysus",
+      "configuration_digest": "13d73e9570e83588b8d8f5c36b79f5740def5b5157bc6d00ef2e908faf9cff23",
+      "configuration_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/antonovsky-2007-1911-opening-sentence-collation.plan.v1.json",
+      "maker_type": "human",
+      "method": "blind-source-visible-workbench-transcription-observation",
+      "version": "1"
+    },
+    "method": "manual_transcription",
+    "preservation_goal": "source_near",
+    "silent_changes_allowed": false
+  },
+  "editorial_policy": {
+    "historical_language_preserved": true,
+    "layout_posture": "logical_reflow",
+    "method_declared": true,
+    "policy_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/antonovsky-2007-1911-opening-sentence-collation.plan.v1.json",
+    "policy_sha256": "13d73e9570e83588b8d8f5c36b79f5740def5b5157bc6d00ef2e908faf9cff23",
+    "printing_errors_silently_corrected": false,
+    "transcription_goal": "diplomatic",
+    "typography_posture": "preserve",
+    "uncertainty_representation": "explicit-never-silent",
+    "unicode_normalization": "none"
+  },
+  "layer_id": "tos.text-layer.antonovsky-2007-p011-human-observation.sid-8691dcb4b1539a789f9a2672d7d69afb",
+  "layer_role": "diplomatic_transcription",
+  "layer_version": 1,
+  "provenance_event_ref": "tos.event.alignment.antonovsky-2007-1911-opening-sentence-collation.2026-08-12",
+  "representation": {
+    "character_normalization": "none",
+    "charset": "UTF-8",
+    "content_file_id": "tos.file.sha256.e38271c52b23dc46c2c3826b609b4cae5abeca4bea5bb075cfc14a631c8b45b2",
+    "content_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/local-content/witness-text-collation/antonovsky-2007-1911-opening-sentence/antonovsky-2007-p011.human-observation.txt",
+    "content_sha256": "e38271c52b23dc46c2c3826b609b4cae5abeca4bea5bb075cfc14a631c8b45b2",
+    "content_visibility": "local_only",
+    "language": "ru",
+    "line_break_posture": "logical_reflow",
+    "media_type": "text/plain",
+    "publication_authority_refs": [],
+    "publication_authorized": false,
+    "rights_record_refs": [
+      {
+        "ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-antonovsky-cultural-revolution/editions/moscow-cultural-revolution-2007-volume-4/items/operator-pdf/rights.json",
+        "sha256": "8c672f22af6e94a6969bc9206592deaea0e1dc6ceed2ee8cf806f5b8fb34013d"
+      }
+    ],
+    "storage": "ignored_local",
+    "text_scope": {
+      "end": 1503,
+      "interval": "half_open",
+      "position_unit": "unicode_code_point",
+      "start": 0
+    },
+    "tracked_content": false
+  },
+  "schema_version": "tos_source_text_layer_v1",
+  "source_binding": {
+    "anchor_contract": "tos_source_anchor_v2",
+    "anchors": [
+      {
+        "anchor_id": "tos.anchor.antonovsky-2007-p011.sid-646e947cb3c8f4d6654c46efa172f609",
+        "anchor_record_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/source-anchor-v2.antonovsky-2007-p011.v1.json",
+        "anchor_record_sha256": "3ac384b121515d5c14107a7e334785396b614aff076a83d4d1e3200b7d042cd6"
+      }
+    ],
+    "edition_ref": "tos.edition.friedrich-nietzsche.also-sprach-zarathustra.moscow-cultural-revolution-2007-volume-4",
+    "expression_ref": "tos.expression.friedrich-nietzsche.also-sprach-zarathustra.ru-antonovsky-cultural-revolution",
+    "item_ref": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.ru-antonovsky-cultural-revolution-2007.operator-pdf",
+    "source_file_ref": "tos.file.sha256.49614015865f8c65a68746b1a6dc9a8b7f036d817b2e04b1f3b94fec8ef7b0c2",
+    "source_file_sha256": "49614015865f8c65a68746b1a6dc9a8b7f036d817b2e04b1f3b94fec8ef7b0c2",
+    "work_ref": "tos.work.friedrich-nietzsche.also-sprach-zarathustra"
+  },
+  "supersedes_layer_ref": null,
+  "uncertainty": {
+    "annotations": [
+      {
+        "alternatives": [
+          {
+            "status": "possible",
+            "value": null,
+            "value_in_record": false,
+            "value_sha256": "1eb2292829618ee6474e1f61fc98182266c207d8d7cb1ad51540810bc4de2f35"
+          }
+        ],
+        "anchor_ref": "tos.anchor.antonovsky-2007-p011.sid-646e947cb3c8f4d6654c46efa172f609",
+        "annotation_id": "tos.annotation.antonovsky-2007-p011-human-ambiguity.sid-8846af42fb4d0b3b066b42e209f99e03",
+        "kind": "ambiguous_reading",
+        "resolution": "unresolved"
+      }
+    ],
+    "status": "unresolved"
+  }
+}

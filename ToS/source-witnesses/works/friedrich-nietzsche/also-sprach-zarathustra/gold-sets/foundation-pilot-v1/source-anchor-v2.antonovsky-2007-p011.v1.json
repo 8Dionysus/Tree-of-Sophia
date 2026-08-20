@@ -1,0 +1,59 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/source-anchor-v2.schema.json",
+  "anchor_id": "tos.anchor.antonovsky-2007-p011.sid-646e947cb3c8f4d6654c46efa172f609",
+  "anchor_version": 1,
+  "passage_id": "tos.passage.antonovsky-2007-p011.sid-81f8112e559e47e80087e5a92b26ef66",
+  "provenance_event_ref": "tos.event.alignment.antonovsky-2007-1911-opening-sentence-collation.2026-08-12",
+  "publication_boundary": {
+    "public_payload_expected": false,
+    "record_storage": "tracked",
+    "source_content_visibility": "local_only",
+    "source_text_in_record": false
+  },
+  "resolution_status": "mechanically_resolved",
+  "review_ref": null,
+  "review_status": "unreviewed",
+  "schema_version": "tos_source_anchor_v2",
+  "selector_method": {
+    "configuration_digest": "13d73e9570e83588b8d8f5c36b79f5740def5b5157bc6d00ef2e908faf9cff23",
+    "configuration_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/antonovsky-2007-1911-opening-sentence-collation.plan.v1.json",
+    "maker_type": "mixed",
+    "method": "frozen-sample-whole-page-region-binding",
+    "version": "1"
+  },
+  "selector_payload": {
+    "expression": {
+      "mode": "single",
+      "selector": {
+        "selector": {
+          "coordinate_space": "points",
+          "height": 842.0,
+          "page_identity": {
+            "page_number": 11
+          },
+          "source_height": 842.0,
+          "source_width": 595.0,
+          "type": "page_region",
+          "width": 595.0,
+          "x": 0.0,
+          "y": 0.0
+        },
+        "state": {
+          "character_normalization": "none",
+          "media_type": "application/pdf",
+          "representation_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-antonovsky-cultural-revolution/editions/moscow-cultural-revolution-2007-volume-4/items/operator-pdf/payload/Так говорил Заратустра П Антоновского.pdf",
+          "representation_sha256": "49614015865f8c65a68746b1a6dc9a8b7f036d817b2e04b1f3b94fec8ef7b0c2",
+          "state_type": "digest_state"
+        }
+      }
+    },
+    "kind": "selector_expression"
+  },
+  "supersedes_anchor_ref": null,
+  "target": {
+    "file_id": "tos.file.sha256.49614015865f8c65a68746b1a6dc9a8b7f036d817b2e04b1f3b94fec8ef7b0c2",
+    "file_sha256": "49614015865f8c65a68746b1a6dc9a8b7f036d817b2e04b1f3b94fec8ef7b0c2",
+    "item_id": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.ru-antonovsky-cultural-revolution-2007.operator-pdf",
+    "media_type": "application/pdf"
+  }
+}

@@ -1,0 +1,34 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/source-item-manifest.schema.json",
+  "schema_version": "tos_source_item_manifest_v1",
+  "item_id": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.ru-nani-1899-nine-fragments.rsl-rusneb-parallel-scan-pdf",
+  "item_kind": "digitized_physical_copy",
+  "embodiment_ref": "tos.edition.friedrich-nietzsche.also-sprach-zarathustra.saint-petersburg-stasyulevich-1899-nine-fragments",
+  "storage_posture": "local_gitignored_payload",
+  "payload_files": [
+    {
+      "file_id": "tos.file.sha256.044be8c36536c751d1f846109b4e99534323138b7ad829e6266ef3150d1e5704",
+      "relative_path": "payload/nani-1899-rsl-rusneb.pdf",
+      "original_basename": "nani-1899-rusneb.pdf",
+      "media_type": "application/pdf",
+      "byte_size": 16228737,
+      "sha256": "044be8c36536c751d1f846109b4e99534323138b7ad829e6266ef3150d1e5704",
+      "fixity_verified_at": "2026-08-01T20:16:26-06:00",
+      "container_member": false
+    }
+  ],
+  "acquisition_event_ref": "tos.event.acquisition.nani-1899-rsl-rusneb-parallel-scan-pdf.2026-08-01",
+  "rights_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-nani-1899-nine-fragments/editions/saint-petersburg-stasyulevich-1899-nine-fragments/items/rsl-rusneb-parallel-scan-pdf/rights.json",
+  "provenance_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-nani-1899-nine-fragments/editions/saint-petersburg-stasyulevich-1899-nine-fragments/items/rsl-rusneb-parallel-scan-pdf/provenance.jsonl",
+  "forensic_report_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-nani-1899-nine-fragments/editions/saint-petersburg-stasyulevich-1899-nine-fragments/items/rsl-rusneb-parallel-scan-pdf/forensic-report.md",
+  "resource_inventory_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-nani-1899-nine-fragments/editions/saint-petersburg-stasyulevich-1899-nine-fragments/items/rsl-rusneb-parallel-scan-pdf/resource-inventory.json",
+  "source_record_refs": [
+    "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-nani-1899-nine-fragments/editions/saint-petersburg-stasyulevich-1899-nine-fragments/edition.json",
+    "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-nani-1899-nine-fragments/editions/saint-petersburg-stasyulevich-1899-nine-fragments/items/rsl-rusneb-parallel-scan-pdf/source-metadata-snapshot.json",
+    "https://rusneb.ru/catalog/000199_000009_003689091/",
+    "https://search.rsl.ru/ru/record/01003689091"
+  ],
+  "visibility": "local_only",
+  "manifest_version": 1,
+  "supersedes_manifest_ref": null
+}

@@ -1,0 +1,375 @@
+{
+  "schema_version": "tos_structure_common_page_comparison_v1",
+  "comparison_id": "tos-structure-common-page-comparison-20260812",
+  "experiment_id": "tos-structure-recovery-v1",
+  "status": "completed-advisory-nonhuman",
+  "selection": {
+    "sample_plan_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/sample-plan.json",
+    "sample_plan_sha256": "a813f0a19361ccc773d1427ab696a76296993c999abb2ff35376bae422bbb9d1",
+    "selection_was_frozen_before_variant_outputs": true,
+    "common_page_count": 6,
+    "selection_scope": "intersection of the earlier source-visible A, B, and C structure evidence on two pages from each of the three source groups"
+  },
+  "inspection": {
+    "inspected_at_utc": "2026-08-12T15:05:53Z",
+    "source_visible": true,
+    "variant_labels_visible": true,
+    "blind_comparison": false,
+    "blindness_boundary": "The run and artifact paths reveal A, B, and C. This record must not be described as blind review.",
+    "maker": {
+      "maker_type": "model",
+      "agent_ref": "codex/root",
+      "method": "Direct visual inspection of six frozen page PNGs at original resolution against A metadata and native-layout output, B ordered blocks, and C ordered blocks; no automatic quality score was used."
+    },
+    "criteria": [
+      "main-content-order",
+      "page-furniture-separation",
+      "heading-section-and-number-role-recovery",
+      "verse-paragraph-and-refrain-grouping",
+      "identity-bearing-block-retention",
+      "visible-omission-addition-or-duplication",
+      "source-return-and-method-boundary"
+    ],
+    "language_accuracy_assessed": false,
+    "transcription_accuracy_assessed": false,
+    "copyrighted_source_strings_embedded": false,
+    "review_authority": "advisory-nonhuman",
+    "promotion_authorized": false
+  },
+  "run_bindings": [
+    {
+      "variant": "A",
+      "run_id": "foundation-pilot-v1-structure-a-headfix-20260722",
+      "run_receipt_ref": "tos-structure-recovery-v1/foundation-pilot-v1-structure-a-headfix-20260722/variant-A/run.receipt.json",
+      "run_receipt_sha256": "1c6d36f114c99ec8e5e3ce05ae43af85affe12ad078c65d15e72bbff36c98acc",
+      "input_mode": "native container or embedded text layer"
+    },
+    {
+      "variant": "B",
+      "run_id": "structure-b-full-36-20260723-r2",
+      "run_receipt_ref": "tos-structure-recovery-v1/structure-b-full-36-20260723-r2/variant-B/run.receipt.json",
+      "run_receipt_sha256": "eabba0f0b0ab17d56824579290995c3eebadb633eba5abc1bb37d9c039a7214d",
+      "input_mode": "provenance-routed Docling hybrid"
+    },
+    {
+      "variant": "C",
+      "run_id": "structure-c-full-12-20260723-r1",
+      "run_receipt_ref": "tos-structure-recovery-v1/structure-c-full-12-20260723-r1/variant-C/run.receipt.json",
+      "run_receipt_sha256": "60c5a85c03b67b2fb81b0c37077904d002a4baa186f72fe40b576b2ca7762fb9",
+      "input_mode": "rendered page image through PaddleOCR-VL and PP-DocLayoutV3"
+    }
+  ],
+  "samples": [
+    {
+      "sample_id": "tos-sample-antonovsky-p300",
+      "visual_sample_id": "tos-ocr-sample-antonovsky-p300",
+      "source_anchor_ref": "tos.anchor.zarathustra-foundation-pilot-v1.antonovsky-p300",
+      "source_visual_sha256": "0ba170a4a068b0e7623949da22830ce0f25ad6b208300728f7a4bb591a804c6c",
+      "variant_results": [
+        {
+          "variant": "A",
+          "output_ref": "tos-structure-recovery-v1/foundation-pilot-v1-structure-a-headfix-20260722/variant-A/raw-output/tos-sample-antonovsky-p300.json",
+          "output_sha256": "28eb0692da38f5f47b581f7bc43498ba00ed5288687d4cb9307363920e59f1d2",
+          "content_sha256": "ef6cbd2161eaea7943ce8693b9824d23d1793ffb1c0fca05b600d3899b44c977",
+          "disposition": "unusable-for-visible-structure",
+          "finding_codes": [
+            "visible-page-has-content",
+            "native-output-empty"
+          ]
+        },
+        {
+          "variant": "B",
+          "output_ref": "tos-structure-recovery-v1/structure-b-full-36-20260723-r2/variant-B/raw-output/tos-sample-antonovsky-p300/ordered-blocks.json",
+          "output_sha256": "6bcb7b63edfbe97c0727af88b5982483849f7f9f836672d36db8054b9fb951a0",
+          "disposition": "reject",
+          "finding_codes": [
+            "marginal-numbers-interleaved-with-content",
+            "verse-lines-merged-and-fragmented",
+            "structural-roles-not-recovered"
+          ]
+        },
+        {
+          "variant": "C",
+          "output_ref": "tos-structure-recovery-v1/structure-c-full-12-20260723-r1/variant-C/raw-output/tos-ocr-sample-antonovsky-p300/ordered-blocks.json",
+          "output_sha256": "d8b0be46d01d0239d4dde75599fa87a6e485fe69a1590df10b8cc5d896e3c1b2",
+          "disposition": "accept-with-limits",
+          "finding_codes": [
+            "main-verse-order-preserved",
+            "marginal-numbers-separated",
+            "stanza-and-continuation-relations-absent"
+          ]
+        }
+      ],
+      "bounded_preference": {
+        "variant": "C",
+        "eligible_use": "visual-structure-navigation-only",
+        "reason": "Only C preserves the visible main verse sequence while separating marginal numbering; it still does not recover stanza relations or accepted text."
+      }
+    },
+    {
+      "sample_id": "tos-sample-antonovsky-p330",
+      "visual_sample_id": "tos-ocr-sample-antonovsky-p330",
+      "source_anchor_ref": "tos.anchor.zarathustra-foundation-pilot-v1.antonovsky-p330",
+      "source_visual_sha256": "cdaa114dc8e5091d357fc124f8fe42c7207da08e8a4a36d2d23c6c278c239a07",
+      "variant_results": [
+        {
+          "variant": "A",
+          "output_ref": "tos-structure-recovery-v1/foundation-pilot-v1-structure-a-headfix-20260722/variant-A/raw-output/tos-sample-antonovsky-p330.json",
+          "output_sha256": "01b3ec8b8806343ce83cfc2d8651c77bd0d27b08c677529fbab86698babd82a6",
+          "content_sha256": "ef6cbd2161eaea7943ce8693b9824d23d1793ffb1c0fca05b600d3899b44c977",
+          "disposition": "unusable-for-visible-structure",
+          "finding_codes": [
+            "visible-page-has-content",
+            "native-output-empty"
+          ]
+        },
+        {
+          "variant": "B",
+          "output_ref": "tos-structure-recovery-v1/structure-b-full-36-20260723-r2/variant-B/raw-output/tos-sample-antonovsky-p330/ordered-blocks.json",
+          "output_sha256": "f230a2724a1f60b6cf4a2fedd8432fc527d0c00e7cb407ddd42ba568f2534fc6",
+          "disposition": "accept-with-limits",
+          "finding_codes": [
+            "main-prose-order-broadly-preserved",
+            "marginal-numbers-flattened",
+            "ending-role-only-partly-recovered"
+          ]
+        },
+        {
+          "variant": "C",
+          "output_ref": "tos-structure-recovery-v1/structure-c-full-12-20260723-r1/variant-C/raw-output/tos-ocr-sample-antonovsky-p330/ordered-blocks.json",
+          "output_sha256": "c6f77e0c0e145fcc75cee164b470f3d2e365161bf2f1095b9f84e9c8ba07fb31",
+          "disposition": "reject",
+          "finding_codes": [
+            "marginal-numbers-moved-before-prose",
+            "marginal-number-order-incorrect",
+            "main-prose-contains-visible-substitutions"
+          ]
+        }
+      ],
+      "bounded_preference": {
+        "variant": "B",
+        "eligible_use": "broad-main-prose-order-navigation-only",
+        "reason": "B preserves the broad prose sequence more safely than C on this page, although it flattens marginal numbering and does not establish accepted text."
+      }
+    },
+    {
+      "sample_id": "tos-sample-mysl-p004",
+      "visual_sample_id": "tos-ocr-sample-mysl-p004",
+      "source_anchor_ref": "tos.anchor.zarathustra-foundation-pilot-v1.mysl-p004",
+      "source_visual_sha256": "3e2e205265f835e6dfe122ae53ee631d3c01b42d2ff7b089e4b8d5cbe7bc9c6e",
+      "variant_results": [
+        {
+          "variant": "A",
+          "output_ref": "tos-structure-recovery-v1/foundation-pilot-v1-structure-a-headfix-20260722/variant-A/raw-output/tos-sample-mysl-p004.json",
+          "output_sha256": "a3677a3717e649c071e79c446db74ac114b14baf607d7ce21804ae091a93dc2d",
+          "content_sha256": "5c3e7538e4ac3fca2e90a50d541067c8122adcbc2ed198a0bd8342af113bfed6",
+          "disposition": "accept-with-limits",
+          "finding_codes": [
+            "identity-bearing-blocks-retained",
+            "layout-whitespace-broadly-retained",
+            "semantic-roles-absent"
+          ]
+        },
+        {
+          "variant": "B",
+          "output_ref": "tos-structure-recovery-v1/structure-b-full-36-20260723-r2/variant-B/raw-output/tos-sample-mysl-p004/ordered-blocks.json",
+          "output_sha256": "23a03cc2b56998c4bd43363f8e8eaa7b6e8208e592bfcf2f15bf87eb7901345d",
+          "disposition": "reject",
+          "finding_codes": [
+            "identity-bearing-front-matter-omitted",
+            "credit-relations-flattened",
+            "picture-placeholder-does-not-preserve-omitted-roles"
+          ]
+        },
+        {
+          "variant": "C",
+          "output_ref": "tos-structure-recovery-v1/structure-c-full-12-20260723-r1/variant-C/raw-output/tos-ocr-sample-mysl-p004/ordered-blocks.json",
+          "output_sha256": "487f47d0fc0948fde8237a637a5fec84d99a9c72d978e35ae844a5514ef7c643",
+          "disposition": "accept-with-limits",
+          "finding_codes": [
+            "title-credit-and-footer-roles-separated",
+            "identity-bearing-front-matter-retained",
+            "visible-glyph-substitutions-remain"
+          ]
+        }
+      ],
+      "bounded_preference": {
+        "variant": "C",
+        "eligible_use": "front-matter-structure-navigation-only",
+        "reason": "C provides the most useful role separation while retaining the visible identity-bearing blocks; A remains a cheaper evidence companion for the embedded layout layer."
+      }
+    },
+    {
+      "sample_id": "tos-sample-mysl-p008",
+      "visual_sample_id": "tos-ocr-sample-mysl-p008",
+      "source_anchor_ref": "tos.anchor.zarathustra-foundation-pilot-v1.mysl-p008",
+      "source_visual_sha256": "46a5ccc7d484cc7258f929eb63bcd0cd25790b83bb6192ba943282ab865e5ce0",
+      "variant_results": [
+        {
+          "variant": "A",
+          "output_ref": "tos-structure-recovery-v1/foundation-pilot-v1-structure-a-headfix-20260722/variant-A/raw-output/tos-sample-mysl-p008.json",
+          "output_sha256": "a784b260ffe03c0ca69711240cb77e72eb00c0f1a48cc25cd2ba318adecb507a",
+          "content_sha256": "ca2a7b92d0eac681f994cae62df4be3ead037b14ca13cfc84c8dffbbcc36b439",
+          "disposition": "reject",
+          "finding_codes": [
+            "source-text-layer-corruption-inherited",
+            "paragraph-order-broadly-usable",
+            "visual-repair-not-performed"
+          ]
+        },
+        {
+          "variant": "B",
+          "output_ref": "tos-structure-recovery-v1/structure-b-full-36-20260723-r2/variant-B/raw-output/tos-sample-mysl-p008/ordered-blocks.json",
+          "output_sha256": "888088904c5b1cd2533ae281cab69d318789d73eeebe4973934c2c8f00745b0e",
+          "disposition": "reject",
+          "finding_codes": [
+            "source-text-layer-corruption-inherited",
+            "adjacent-main-content-blocks-reversed",
+            "paragraph-roles-flat"
+          ]
+        },
+        {
+          "variant": "C",
+          "output_ref": "tos-structure-recovery-v1/structure-c-full-12-20260723-r1/variant-C/raw-output/tos-ocr-sample-mysl-p008/ordered-blocks.json",
+          "output_sha256": "432537308b367799f5f93258a900590a2d9e672eb4993c15808f06cd72c0b02e",
+          "disposition": "accept-with-limits",
+          "finding_codes": [
+            "visual-main-content-order-recovered",
+            "section-and-page-numbers-separated",
+            "visible-substitutions-remain"
+          ]
+        }
+      ],
+      "bounded_preference": {
+        "variant": "C",
+        "eligible_use": "visual-main-content-order-navigation-only",
+        "reason": "C follows the visible paragraph sequence and avoids B's reversal, but its substitutions make it ineligible as accepted text."
+      }
+    },
+    {
+      "sample_id": "tos-sample-naumann-page-059",
+      "visual_sample_id": "tos-ocr-sample-naumann-p060",
+      "source_anchor_ref": "tos.anchor.zarathustra-foundation-pilot-v1.naumann-page-059",
+      "source_visual_sha256": "6326776b3a435932de7e3630f718718a8c0b3c2b8ff2ed73d933c6426447b819",
+      "comparison_boundary": "A and B use the mapped exact EPUB member while C uses the rendered image-container PDF page; these are related witness layers, not byte-identical inputs.",
+      "variant_results": [
+        {
+          "variant": "A",
+          "output_ref": "tos-structure-recovery-v1/foundation-pilot-v1-structure-a-headfix-20260722/variant-A/raw-output/tos-sample-naumann-page-059.json",
+          "output_sha256": "b9e6775c991dc81d75b0b5bf69e07f6b87c8dc47736ea4ebefbbd26f96747cbe",
+          "content_sha256": "5c861b612e8c18acd1ce680e26147510e3f134869dc689f0278b69658e2c6851",
+          "disposition": "accept-with-limits",
+          "finding_codes": [
+            "container-body-order-broadly-preserved",
+            "page-furniture-inherited",
+            "visual-marks-and-roles-not-recovered"
+          ]
+        },
+        {
+          "variant": "B",
+          "output_ref": "tos-structure-recovery-v1/structure-b-full-36-20260723-r2/variant-B/raw-output/tos-sample-naumann-page-059/ordered-blocks.json",
+          "output_sha256": "db1ad06bad12afef9357efca80d6c05ea75ffd7d4e6ebdab4e90a2f4c75726d3",
+          "disposition": "reject",
+          "finding_codes": [
+            "whole-page-content-flattened",
+            "page-furniture-inherited",
+            "visual-marks-and-roles-not-recovered"
+          ]
+        },
+        {
+          "variant": "C",
+          "output_ref": "tos-structure-recovery-v1/structure-c-full-12-20260723-r1/variant-C/raw-output/tos-ocr-sample-naumann-p060/ordered-blocks.json",
+          "output_sha256": "54be0f0ee7c7e78d851d4b329097b6b0ca76a4dcc3a023a6668c48b8fdeb0b3b",
+          "disposition": "accept-with-limits",
+          "finding_codes": [
+            "main-paragraphs-separated",
+            "page-number-and-provider-furniture-separated",
+            "handwritten-annotations-omitted"
+          ]
+        }
+      ],
+      "bounded_preference": {
+        "variant": "C",
+        "eligible_use": "scan-page-structure-navigation-only",
+        "reason": "C separates the printed page roles and furniture most usefully, but omission of handwritten witness marks prevents full witness-structure use."
+      }
+    },
+    {
+      "sample_id": "tos-sample-naumann-page-380",
+      "visual_sample_id": "tos-ocr-sample-naumann-p381",
+      "source_anchor_ref": "tos.anchor.zarathustra-foundation-pilot-v1.naumann-page-380",
+      "source_visual_sha256": "fcc249fe1e5fa110764d7226ed2ec5cc1a6faab760633ba3431d7cac4db5cecf",
+      "comparison_boundary": "A and B use the mapped exact EPUB member while C uses the rendered image-container PDF page; these are related witness layers, not byte-identical inputs.",
+      "variant_results": [
+        {
+          "variant": "A",
+          "output_ref": "tos-structure-recovery-v1/foundation-pilot-v1-structure-a-headfix-20260722/variant-A/raw-output/tos-sample-naumann-page-380.json",
+          "output_sha256": "82972a1b80fc75b3a8eb4261259be2eb42dfa3800d749f3072819e12eb9eb8df",
+          "content_sha256": "a6d7d8eebb0bab2bb820b49446a3307c24c577b376e9a5b8333daf716a855872",
+          "disposition": "accept-with-limits",
+          "finding_codes": [
+            "container-body-order-broadly-preserved",
+            "title-section-refrain-and-furniture-flattened",
+            "visual-ornament-not-recovered"
+          ]
+        },
+        {
+          "variant": "B",
+          "output_ref": "tos-structure-recovery-v1/structure-b-full-36-20260723-r2/variant-B/raw-output/tos-sample-naumann-page-380/ordered-blocks.json",
+          "output_sha256": "4f5056a57b846bcb03243e447a92ab5af1b83269db6ed00ef966899072fe50bb",
+          "disposition": "reject",
+          "finding_codes": [
+            "whole-page-content-flattened",
+            "title-section-and-refrain-roles-not-recovered",
+            "page-furniture-inherited"
+          ]
+        },
+        {
+          "variant": "C",
+          "output_ref": "tos-structure-recovery-v1/structure-c-full-12-20260723-r1/variant-C/raw-output/tos-ocr-sample-naumann-p381/ordered-blocks.json",
+          "output_sha256": "9adc97235a4f59031bc0af7e3743c86afa86fa1417ea298ec2b7919c59fd2cb5",
+          "disposition": "accept-with-limits",
+          "finding_codes": [
+            "title-subtitle-section-and-refrain-separated",
+            "page-number-and-provider-furniture-separated",
+            "ornament-and-explicit-stanza-relations-absent"
+          ]
+        }
+      ],
+      "bounded_preference": {
+        "variant": "C",
+        "eligible_use": "song-page-structure-navigation-only",
+        "reason": "C exposes the most useful title, section, refrain, page, and furniture roles while still omitting ornament and explicit stanza relations."
+      }
+    }
+  ],
+  "aggregate": {
+    "common_page_count": 6,
+    "bounded_preference_counts": {
+      "A": 0,
+      "B": 1,
+      "C": 5
+    },
+    "preference_count_is_quality_score": false,
+    "family_winner_declared": false,
+    "route_findings": [
+      "Retain A as the cheapest container and native-layer evidence route, including faithful exposure of empty or contaminated source layers; do not use it as a universal visual recovery route.",
+      "Retain B as the fast provenance-routed hybrid and the bounded ordinary-prose preference on the inspected final page; do not use it by default for verse, identity-heavy front matter, or scan marks.",
+      "Prefer C only when the concrete question requires visual role or reading-order recovery on a hard page; its five bounded preferences coexist with one major page regression and its much higher measured cost.",
+      "Use per-page fallback and source return rather than a single family-wide winner."
+    ],
+    "human_task_opened": false,
+    "human_trigger": "Open a competence-appropriate source-visible human episode only if a concrete adoption, accepted-structure, correction-cost, or promotion question cannot be answered without it; do not create a standing review batch merely because these six comparisons exist.",
+    "prohibited_inferences": [
+      "accepted transcription",
+      "German-language correctness",
+      "Russian-language correctness",
+      "translation fidelity",
+      "structural F1 or reading-order accuracy",
+      "human correction cost",
+      "family-wide quality winner",
+      "semantic sign relation graph or canon authority"
+    ]
+  },
+  "authority_boundary": "This text-free record preserves one model-authored source-visible engineering comparison. It may guide a later question-scoped route choice, but it creates no accepted source text, gold label, human review, language judgment, translation claim, semantic object, graph edge, publication right, or canon effect."
+}

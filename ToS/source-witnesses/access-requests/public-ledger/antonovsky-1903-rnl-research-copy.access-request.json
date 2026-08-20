@@ -1,0 +1,87 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/access-request.schema.json",
+  "schema_version": "tos_access_request_v1",
+  "request_id": "tos.access-request.antonovsky-1903-rnl-research-copy",
+  "material": {
+    "title": "Фридрих Ницше, Так говорил Заратустра",
+    "responsibility": "перевод с немецкого Ю. М. Антоновского",
+    "edition_or_resource": "2-е изд., испр.; Санкт-Петербург: тип. Альтшулера, 1903; [2], III, [3], 432, [2], V с.; запись Primo 07NLR_LMS004843722; системный номер 004843722",
+    "requested_portion": "Современный каталог РНБ показывает два экземпляра в Русском книжном фонде (Главное здание) под шифрами 129/5943 и 38.35.6.32, со статусами Web заказ и В хранении. Просим сообщить актуальный порядок работы именно с изданием 1903 года, допустимость и условия изготовления исследовательской копии, а также существование цифрового объекта, который не раскрыт в записи. Форма РНБ «Рекомендовать к оцифровке» для системного номера 004843722 рассматривается нами только как отдельная рекомендация, а не как заказ или разрешение. Если копирование допустимо, сначала просим титульный лист, оборот титула, все предварительные страницы, оглавление и последние страницы с выходными сведениями; затем, если возможно и законно, полную цифровую копию только для локального исследования без публикации исходного файла.",
+    "identifiers": [
+      {"scheme": "RNL Primo record", "value": "07NLR_LMS004843722"},
+      {"scheme": "RNL system number", "value": "004843722"},
+      {"scheme": "RNL RUSMARC 001", "value": "v19\\rc\\1717108"},
+      {"scheme": "RNL shelfmark", "value": "129/5943"},
+      {"scheme": "RNL shelfmark", "value": "38.35.6.32"},
+      {"scheme": "RSL public record", "value": "01003693381"}
+    ],
+    "tos_refs": [
+      "tos.work.friedrich-nietzsche.also-sprach-zarathustra",
+      "tos.expression.friedrich-nietzsche.also-sprach-zarathustra.ru-antonovsky-1903",
+      "tos.edition.friedrich-nietzsche.also-sprach-zarathustra.saint-petersburg-altshuler-typography-1903-second-corrected"
+    ],
+    "discovery_refs": [
+      "ToS/source-witnesses/discovery/runs/antonovsky-1903-rsl-rnl-current-holdings.2026-08-10.v2.json"
+    ]
+  },
+  "rights_holder_or_institution": {
+    "name": "Российская национальная библиотека",
+    "role": "library",
+    "identification_evidence_urls": [
+      "https://primo.nlr.ru/primo_library/libweb/action/dlDisplay.do?vid=07NLR_VU1&docId=07NLR_LMS004843722",
+      "https://webservices.nlr.ru/util/?method=recordFormat&vid=07NLR_VU1&sysid=004843722&format=001&base=NLR01",
+      "http://aleph23.nlr.ru/F?func=item-global&doc_library=NLR01&local_base=NLR01&doc_number=004843722",
+      "https://nlr.ru/nlr_visit/RA1812/elektronnyie-katalogi-rnb",
+      "https://nlr.ru/nlr_visit/RA1804/faq"
+    ],
+    "identity_status": "identified"
+  },
+  "contact_route": {
+    "channel_type": "institutional-form",
+    "public_institutional_url": "https://nlr.ru/nlr_visit/RA1860/obratnaya-svyaz",
+    "refreshed_at": "2026-08-10T05:20:00-06:00",
+    "personal_contact_committed": false
+  },
+  "project_description_ref": "README.md",
+  "research_purpose": "Получить источник-видимое свидетельство второго исправленного издания 1903 года в редакционной последовательности Антоновского и, при допустимости, локальный исследовательский материал для OCR, транскрипции, индексации, этимологического и семантического исследования и постраничной колляции без публикации или передачи исходного файла. Современная запись и два шифра используются только как точные координаты запроса, а не как права или источник текста.",
+  "requested_format": "Ответ с условиями работы и копирования для системного номера 004843722 и ссылкой на цифровой объект, если он существует; при наличии разрешения — сначала ключевые библиографические страницы, затем полный PDF либо TIFF/JPEG в исходном порядке и разрешении после отдельного согласования условий.",
+  "requested_permissions": {
+    "local_access": "requested",
+    "ocr_or_transcription": "requested",
+    "indexing": "requested",
+    "embeddings": "requested",
+    "quotation": "requested",
+    "metadata_publication": "requested",
+    "derivative_publication": "not-requested",
+    "server_processing": "not-requested",
+    "source_redistribution": "not-requested"
+  },
+  "local_storage_conditions": {
+    "access_controlled": true,
+    "source_payload_gitignored": true,
+    "location_class": "operator-controlled-local-ToS-storage",
+    "retention_posture": "Хранить полученные исходные файлы только локально в пределах письменно сообщённых РНБ условий; не публиковать, не загружать на сервер и не передавать их; поддерживать удаление при отзыве, истечении разрешения или соответствующем условии учреждения.",
+    "removal_supported": true
+  },
+  "non_redistribution_without_permission": true,
+  "technical_access_bypass_used": false,
+  "access_status": "rights-unknown",
+  "request_status": "draft-not-sent",
+  "human_send_approval": false,
+  "sent_at": null,
+  "response": {
+    "state": "none",
+    "received_at": null,
+    "permission_expires_at": null,
+    "conditions": [],
+    "safe_evidence_refs": []
+  },
+  "private_correspondence_ref": null,
+  "redacted_public_receipt_ref": null,
+  "personal_or_confidential_data_committed": false,
+  "rights_record_refs": [],
+  "provenance_event_refs": [
+    "tos.event.access-request-draft.antonovsky-1903-rnl-research-copy.2026-08-10"
+  ],
+  "record_version": 1
+}

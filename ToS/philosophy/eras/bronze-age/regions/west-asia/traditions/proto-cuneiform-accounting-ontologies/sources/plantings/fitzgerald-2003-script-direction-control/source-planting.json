@@ -1,0 +1,49 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/philosophy-source-planting.schema.json",
+  "schema_version": "tos_philosophy_source_planting_v1",
+  "planting_id": "tos.planting.a01.fitzgerald-2003-script-direction-control",
+  "atlas_row_id": "A01",
+  "dossier_id": "A01",
+  "branch_path": "ToS/philosophy/eras/bronze-age/regions/west-asia/traditions/proto-cuneiform-accounting-ontologies",
+  "source_backlog_anchor": {
+    "path": "ToS/philosophy/eras/bronze-age/regions/west-asia/traditions/proto-cuneiform-accounting-ontologies/sources/source-anchor-backlog.jsonl",
+    "line": 24,
+    "source_table_index": 14,
+    "source_row_index": 6,
+    "source_label": "Fitzgerald 2003 [54]"
+  },
+  "source_witness": {
+    "work_id": "tos.work.proto-cuneiform.pisan-dub-ba-and-the-direction-of-cuneiform-script",
+    "record_ref": "ToS/source-witnesses/works/proto-cuneiform-scholarship/pisan-dub-ba-and-the-direction-of-cuneiform-script/work.json",
+    "relationship": "grounds_source_backlog_anchor"
+  },
+  "discovery_ref": "ToS/source-witnesses/discovery/runs/proto-cuneiform-cdlb-2003-2-script-direction.2026-08-12.v1.json",
+  "provenance_event_ref": "tos.event.annotation.proto-cuneiform-a01-deduplicated-control-roles.2026-08-12",
+  "research_ref": "ToS/research-packets/foundation-laboratory-2026-07/A01_CDLB_2003_2_SCRIPT_DIRECTION_SOURCE_PLANTING_RESEARCH_2026-08-12.md",
+  "fulfilled_source_needs": [
+    "the exact Work behind Fitzgerald 2003 is deduplicated against CDLB 2003:2",
+    "the source's later Ur III and Old Babylonian tag evidence is preserved as comparative rather than direct Late Uruk evidence",
+    "physical top, attachment axis, text direction, sign orientation, reading order, and modern display transform remain separate",
+    "competing chronologies remain visible instead of being collapsed into one inherited period-level fact",
+    "fresh 2025 tag scholarship and 2026 transform-aware visualization remain methodological controls",
+    "the article's narrow material argument remains distinct from corpus-wide claims about every cuneiform object"
+  ],
+  "remaining_controls": [
+    "the proposed direction change and its dating remain source-reported scholarly interpretations",
+    "later tags constrain a comparative model but do not prove Late Uruk tablet orientation",
+    "catalog labels and normalized ATF do not establish physical top or attachment axis",
+    "no article body, artifact image, spatial annotation, orientation observation, chronology claim, semantic relation, or graph fact is created",
+    "this role-specific planting reuses the existing Work and does not manufacture a duplicate bibliographic entity",
+    "no redundant human review task is opened"
+  ],
+  "research_order": [
+    "official_and_classical_documentation",
+    "established_top_scholarship",
+    "fresh_current_relevance_check"
+  ],
+  "authority": {"source_status": "metadata_witness_planted", "review_status": "unreviewed", "source_text_admitted": false, "semantic_status": "not_started", "graph_status": "not_promoted", "canon_status": "not_canon", "human_task_created": false},
+  "status": "source_witness_planted",
+  "maker": {"maker_type": "model", "agent_ref": "model:codex", "human_review_performed": false},
+  "created_at": "2026-08-12T16:59:19-06:00",
+  "record_version": 1
+}

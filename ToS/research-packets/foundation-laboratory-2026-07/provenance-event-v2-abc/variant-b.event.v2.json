@@ -1,0 +1,202 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/provenance-event-v2.schema.json",
+  "schema_version": "tos_provenance_event_v2",
+  "event_id": "tos.event.provenance-v2.synthetic-b.2026-08-11",
+  "event_version": 1,
+  "supersedes_event_ref": null,
+  "record_binding": {
+    "manifest_ref": "ToS/research-packets/foundation-laboratory-2026-07/provenance-event-v2-abc/lab.manifest.json",
+    "digest_algorithm": "sha256",
+    "digest_scope": "exact_event_record_bytes"
+  },
+  "activity": {
+    "event_type": "normalization",
+    "started_at": "2026-08-11T13:12:34.788378+00:00",
+    "ended_at": "2026-08-11T13:12:34.788943+00:00",
+    "status": "completed",
+    "terminal_reason": null,
+    "exit_code": 0,
+    "warnings": []
+  },
+  "entities": {
+    "inputs": [
+      {
+        "entity_ref": "ToS/research-packets/foundation-laboratory-2026-07/provenance-event-v2-abc/input-fixture.txt",
+        "role": "public-synthetic-input",
+        "sha256": "dcc492420fc77018ce8b7eb59458568e7901e9751194f4dbe7a1044ca16ccd2e",
+        "size_bytes": 7,
+        "media_type": "text/plain; charset=utf-8",
+        "availability": "tracked",
+        "content_disclosure": "synthetic_public",
+        "fixity_verified": true,
+        "fixity_verified_at": "2026-08-11T13:12:34.788943+00:00"
+      }
+    ],
+    "outputs": [
+      {
+        "entity_ref": "ToS/research-packets/foundation-laboratory-2026-07/provenance-event-v2-abc/variant-b.nfc.txt",
+        "role": "authoritative-synthetic-output",
+        "sha256": "7b49b9e063bd91a4f9252b413261f5557b9c570aa61516989499f64a62dbcdd6",
+        "size_bytes": 6,
+        "media_type": "text/plain; charset=utf-8",
+        "availability": "tracked",
+        "content_disclosure": "synthetic_public",
+        "fixity_verified": true,
+        "fixity_verified_at": "2026-08-11T13:12:34.788943+00:00"
+      }
+    ],
+    "byproducts": []
+  },
+  "derivations": [
+    {
+      "derivation_id": "tos.derivation.provenance-v2.synthetic-b",
+      "input_entity_ref": "ToS/research-packets/foundation-laboratory-2026-07/provenance-event-v2-abc/input-fixture.txt",
+      "output_entity_ref": "ToS/research-packets/foundation-laboratory-2026-07/provenance-event-v2-abc/variant-b.nfc.txt",
+      "relation": "revision_of",
+      "influence_asserted": true,
+      "description": "Unicode NFC normalization of the exact UTF-8 input entity."
+    }
+  ],
+  "responsibility": [
+    {
+      "agent_ref": "software:tos-provenance-event-v2-lab-builder",
+      "agent_kind": "software",
+      "role": "executor",
+      "responsibility_posture": "performed",
+      "evidence_binding": {
+        "ref": "scripts/build_provenance_event_v2_lab.py",
+        "sha256": "1effde40706c1ee4790e8425145b02424627ecd08b71dd8b014f5b0705ca9f4d"
+      },
+      "human_evidence_status": "not_applicable"
+    }
+  ],
+  "method": {
+    "procedure": {
+      "name": "unicode-nfc",
+      "version": "1",
+      "purpose": "Public synthetic provenance mechanics and negative-control exercise."
+    },
+    "command_capture": {
+      "disclosure": "inline",
+      "argv": [
+        "python",
+        "scripts/build_provenance_event_v2_lab.py",
+        "--variant",
+        "B"
+      ],
+      "argv_sha256": "8a32eb98de682d0c6d742ba55c4d26b7dc671b8e4083cb604ed35af710fc74be",
+      "withholding_reason": null
+    },
+    "configuration_binding": {
+      "ref": "ToS/research-packets/foundation-laboratory-2026-07/provenance-event-v2-abc/plan.json",
+      "sha256": "29ea70620ae43bf0734a007280332fe9cdeee9db7dc1391f4208f4c37966864b"
+    },
+    "software_components": [
+      {
+        "name": "Tree of Sophia provenance v2 laboratory builder",
+        "version": "1",
+        "role": "transformation-runner",
+        "artifact_ref": "scripts/build_provenance_event_v2_lab.py",
+        "artifact_sha256": "1effde40706c1ee4790e8425145b02424627ecd08b71dd8b014f5b0705ca9f4d",
+        "verification_status": "verified"
+      },
+      {
+        "name": "CPython",
+        "version": "3.14.6",
+        "role": "language-runtime",
+        "artifact_ref": "runtime:cpython-executable",
+        "artifact_sha256": "7af874aca05879e1823cd820913b42fb8d8b994738a05ec39ce4256d85b03861",
+        "verification_status": "verified"
+      }
+    ],
+    "model_invocations": [],
+    "environment": {
+      "runtime": "CPython",
+      "runtime_version": "3.14.6",
+      "runtime_artifact_sha256": "7af874aca05879e1823cd820913b42fb8d8b994738a05ec39ce4256d85b03861",
+      "backend": "python-standard-library",
+      "hardware_target": "cpu",
+      "unicode_version": "16.0.0",
+      "environment_profile_binding": {
+        "ref": "ToS/research-packets/foundation-laboratory-2026-07/provenance-event-v2-abc/environment-profile.json",
+        "sha256": "a86aa17c764a7a8f1d4218cad8296fe19b16f57e7a9d3e710f78cbe0c5f3c77a"
+      }
+    }
+  },
+  "manual_changes": {
+    "status": "none_declared",
+    "change_receipts": [],
+    "statement": "No manual edit occurred between input read and output or failure capture."
+  },
+  "measurements": [
+    {
+      "metric": "wall_duration_ms",
+      "status": "measured",
+      "value": 0.511644,
+      "unit": "ms",
+      "method": "time.perf_counter_ns around the bounded variant operation",
+      "evidence_binding": null
+    },
+    {
+      "metric": "input_bytes",
+      "status": "measured",
+      "value": 7,
+      "unit": "bytes",
+      "method": "filesystem stat after exact input read",
+      "evidence_binding": null
+    },
+    {
+      "metric": "output_bytes",
+      "status": "measured",
+      "value": 6,
+      "unit": "bytes",
+      "method": "filesystem stat after exact output write",
+      "evidence_binding": null
+    }
+  ],
+  "evidence_authentication": {
+    "capture_posture": "tool_captured",
+    "signature_status": "unsigned",
+    "signature_bindings": [],
+    "verification_status": "unverified",
+    "producer_control_boundary": "The same local script executed the operation and wrote this unsigned record; later byte validation checks closure but does not authenticate execution truth."
+  },
+  "rights_and_visibility": {
+    "rights_record_bindings": [],
+    "intended_uses": [
+      "synthetic_contract_test"
+    ],
+    "content_visibility": "public_synthetic",
+    "publication_authorized": false,
+    "publication_authority_bindings": []
+  },
+  "review_and_authority": {
+    "mechanical_validation": "not_run",
+    "human_review_status": "not_performed",
+    "review_bindings": [],
+    "accepted_uses": [],
+    "promotion_authorized": false,
+    "competence_evidence_bindings": []
+  },
+  "reproducibility": {
+    "classification": "replay_ready",
+    "known_gaps": [
+      "The execution receipt is unsigned and self-reported by the transformation runner."
+    ],
+    "replay_scope": "Exact synthetic bytes, tracked plan, builder digest, CPython executable digest, Unicode version, argv, terminal status, and expected output or failure byproduct."
+  },
+  "authority_boundary": {
+    "validator_role": "mechanics_and_closure_only_not_truth",
+    "claims_not_established": [
+      "execution_truth",
+      "content_truth",
+      "source_fidelity",
+      "translation_quality",
+      "semantic_correctness",
+      "rights_clearance",
+      "human_review",
+      "publication_authority",
+      "canon_authority"
+    ]
+  }
+}

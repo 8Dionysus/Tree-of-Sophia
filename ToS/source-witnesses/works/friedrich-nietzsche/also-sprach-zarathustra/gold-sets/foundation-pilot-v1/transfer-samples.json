@@ -1,6 +1,6 @@
 {
   "$schema": "https://tree-of-sophia.local/ToS/contracts/golden-kernel-transfer-plan.schema.json",
-  "schema_version": "tos_golden_kernel_transfer_plan_v1",
+  "schema_version": "tos_golden_kernel_transfer_plan_v2",
   "transfer_plan_id": "tos.transfer-plan.zarathustra-foundation-pilot-v1",
   "experiment_ref": "abyss-stack:mechanics/inference-pilots/parts/tos-foundation-lab/examples/tos-foundation-suite.v1.json#tos-golden-kernel-transfer-v1",
   "kernel_work_ref": "tos.work.friedrich-nietzsche.also-sprach-zarathustra",
@@ -13,10 +13,10 @@
     "file_ref": "tos.file.sha256.ce16b68089dee0fc53a31d9e97723991b292dd8835c43bbbb40a9373c9a436aa",
     "file_sha256": "ce16b68089dee0fc53a31d9e97723991b292dd8835c43bbbb40a9373c9a436aa",
     "rights_record_ref": "ToS/source-witnesses/collections/friedrich-nietzsche/works-in-two-volumes-volume-2-mysl-1996/editions/moscow-mysl-1996-volume-2/items/operator-pdf/rights.json",
-    "rights_assessment_status": "copyright_not_evaluated"
+    "rights_assessment_status": "in_copyright"
   },
   "status": "blocked-not-run",
-  "frozen_at": "2026-07-23T23:35:00Z",
+  "frozen_at": "2026-07-29T16:10:00Z",
   "frozen_before_variant_outputs": true,
   "kernel_evidence_gate": {
     "accepted_source_units": 0,
@@ -38,7 +38,7 @@
       "kernel human-double-checked gold is 0 of 15 candidate units",
       "human-accepted Zarathustra sign packets do not exist",
       "human-accepted Zarathustra translation packets do not exist",
-      "content-bearing target excerpts and target-text manual gold are not frozen"
+      "twenty content-bearing target candidates are frozen locally but target-text human gold is 0 of 20"
     ]
   },
   "target_sampling_contract": {
@@ -85,7 +85,7 @@
       "limitations": [
         "title page rather than a content-bearing philosophical passage",
         "no target-text manual gold",
-        "work identity has not yet been promoted into a standalone ToS Work record"
+        "standalone Work and Expression records now exist, but their source boundaries and identities remain unreviewed"
       ]
     },
     {
@@ -103,7 +103,7 @@
       "limitations": [
         "title page rather than a content-bearing philosophical passage",
         "no target-text manual gold",
-        "work identity has not yet been promoted into a standalone ToS Work record"
+        "standalone Work and Expression records now exist, but their source boundaries and identities remain unreviewed"
       ]
     },
     {
@@ -121,7 +121,7 @@
       "limitations": [
         "title page rather than a content-bearing philosophical passage",
         "no target-text manual gold",
-        "work identity has not yet been promoted into a standalone ToS Work record"
+        "standalone Work and Expression records now exist, but their source boundaries and identities remain unreviewed"
       ]
     }
   ],
@@ -208,7 +208,7 @@
     "metric_results": [],
     "winner": null,
     "promotion_decision": "blocked",
-    "conclusion": "No A/B/C semantic transfer was run. Current evidence can locate three out-of-kernel title-page boundaries, but it cannot show whether a reviewed Zarathustra kernel helps, harms, or has no effect on annotation of other Nietzsche works."
+    "conclusion": "No A/B/C semantic transfer was run. Twenty private whole-page target candidates are now selected and digest-frozen before variant outputs, but they remain machine-prepared, human-unreviewed, without target gold, and ineligible for execution; therefore no benefit, harm, or semantic-transfer claim exists."
   },
   "rights_posture": {
     "content_visibility": "local_only",
@@ -216,6 +216,998 @@
     "public_text_authorized": false,
     "network_allowed": false
   },
-  "provenance_event_ref": "tos.event.annotation.zarathustra-transfer-plan-v2.2026-07-24",
-  "plan_version": 1
+  "provenance_event_ref": "tos.event.annotation.zarathustra-transfer-rights-binding-v4.2026-08-11",
+  "plan_version": 2,
+  "candidate_preparation": {
+    "protocol_version": 1,
+    "prepared_at": "2026-07-29T16:10:00Z",
+    "builder": {
+      "ref": "scripts/build_golden_kernel_transfer_candidates.py",
+      "sha256": "71f61e32b16bd797ae3bc80c97b9cba454539661422a1ff652ddefbf2e849d2c"
+    },
+    "source_extraction": {
+      "tool": "pdftotext",
+      "version": "26.01.0",
+      "mode": "layout-utf8-whole-page",
+      "network_access": false,
+      "source_text_tracked": false
+    },
+    "deterministic_randomization_key_sha256": "d024f45ea430ee5fb91fed1210d02fd005a6e5f00ad42803980ce308e60d6a2a",
+    "work_quotas": [
+      {
+        "work_ref": "tos.work.friedrich-nietzsche.jenseits-von-gut-und-boese",
+        "random": 4,
+        "hard": 4
+      },
+      {
+        "work_ref": "tos.work.friedrich-nietzsche.zur-genealogie-der-moral",
+        "random": 3,
+        "hard": 3
+      },
+      {
+        "work_ref": "tos.work.friedrich-nietzsche.der-antichrist",
+        "random": 3,
+        "hard": 3
+      }
+    ],
+    "content_filter": {
+      "boundary_trim_pages": 3,
+      "minimum_alphabetic_characters": 800,
+      "minimum_nonblank_lines": 15,
+      "random_method": "lowest-sha256-rank-per-work-before-variant-outputs",
+      "hard_method": "highest-mechanical-layout-score-per-work-before-variant-outputs",
+      "hard_excludes_random_pages": true
+    },
+    "variant_outputs_visible": false,
+    "human_review_performed": false,
+    "model_source_visible_review": {
+      "reviewer_ref": "model:codex",
+      "candidate_count": 20,
+      "scope": "whole-page-is-content-bearing-and-not-title-or-reference-matter",
+      "status": "completed_with_limits"
+    },
+    "authority": "prepared-local-candidate-soil-only"
+  },
+  "candidate_target_units": [
+    {
+      "unit_id": "tos-target-candidate-jenseits-p0308-random",
+      "anchor_ref": "tos.anchor.zarathustra-foundation-pilot-v1.transfer-jenseits-p0308",
+      "work_ref": "tos.work.friedrich-nietzsche.jenseits-von-gut-und-boese",
+      "expression_ref": "tos.expression.friedrich-nietzsche.jenseits-von-gut-und-boese.ru-polilov-mysl-1996",
+      "item_ref": "tos.item.friedrich-nietzsche.works-in-two-volumes-volume-2-mysl-1996.operator-pdf",
+      "file_ref": "tos.file.sha256.ce16b68089dee0fc53a31d9e97723991b292dd8835c43bbbb40a9373c9a436aa",
+      "page": 308,
+      "page_resource_id": "pdf-page-0308",
+      "candidate_scope": "whole-page",
+      "stratum": "random",
+      "selection_basis": "deterministic-digest-order",
+      "selection_rank": 1,
+      "selection_metrics": {
+        "nonspace_characters": 2048,
+        "alphabetic_characters": 1924,
+        "nonblank_lines": 44,
+        "punctuation_characters": 116,
+        "line_end_hyphenations": 13,
+        "page_edge_fragment_signals": 2,
+        "numbered_heading_candidates": 2,
+        "mechanical_hardness_score": 5524
+      },
+      "provisional_difficulty_signals": [
+        "digest-random-baseline",
+        "line-end-hyphenation",
+        "page-edge-fragment-risk",
+        "numbered-heading-candidate"
+      ],
+      "source_content_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/local-content/transfer-targets/v1/tos-target-candidate-jenseits-p0308-random.txt",
+      "source_content_sha256": "c2276434c7e43a2cec90380163bfbbec34c5e87a5e8249f4e7380446531682a1",
+      "source_content_bytes": 4404,
+      "source_layer": "embedded-pdf-text-pdftotext-layout",
+      "source_review_status": "model_source_visible",
+      "source_review_scope": "content-bearing-page-and-route-only",
+      "target_gold_status": "not_started",
+      "frozen_before_variant_outputs": true,
+      "eligible_for_variant_execution": false,
+      "limitations": [
+        "pdftotext embedded layer is an automatic extraction candidate, not a diplomatic transcription",
+        "whole-page scope may split a sentence or numbered unit",
+        "work boundary and Russian expression identity remain unreviewed",
+        "no human source review, target gold, semantic label, sign match, or relation exists",
+        "local source content is not authorized for publication",
+        "digest rank controls bounded sampling but does not prove broader representativeness"
+      ]
+    },
+    {
+      "unit_id": "tos-target-candidate-jenseits-p0399-random",
+      "anchor_ref": "tos.anchor.zarathustra-foundation-pilot-v1.transfer-jenseits-p0399",
+      "work_ref": "tos.work.friedrich-nietzsche.jenseits-von-gut-und-boese",
+      "expression_ref": "tos.expression.friedrich-nietzsche.jenseits-von-gut-und-boese.ru-polilov-mysl-1996",
+      "item_ref": "tos.item.friedrich-nietzsche.works-in-two-volumes-volume-2-mysl-1996.operator-pdf",
+      "file_ref": "tos.file.sha256.ce16b68089dee0fc53a31d9e97723991b292dd8835c43bbbb40a9373c9a436aa",
+      "page": 399,
+      "page_resource_id": "pdf-page-0399",
+      "candidate_scope": "whole-page",
+      "stratum": "random",
+      "selection_basis": "deterministic-digest-order",
+      "selection_rank": 2,
+      "selection_metrics": {
+        "nonspace_characters": 1647,
+        "alphabetic_characters": 1543,
+        "nonblank_lines": 40,
+        "punctuation_characters": 87,
+        "line_end_hyphenations": 14,
+        "page_edge_fragment_signals": 1,
+        "numbered_heading_candidates": 5,
+        "mechanical_hardness_score": 5159
+      },
+      "provisional_difficulty_signals": [
+        "digest-random-baseline",
+        "line-end-hyphenation",
+        "page-edge-fragment-risk",
+        "numbered-heading-candidate"
+      ],
+      "source_content_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/local-content/transfer-targets/v1/tos-target-candidate-jenseits-p0399-random.txt",
+      "source_content_sha256": "22385b5b39d2c59b59f76c22ed38ebac1ea58d7a3d8203d4479bf21f8ea8f4de",
+      "source_content_bytes": 3691,
+      "source_layer": "embedded-pdf-text-pdftotext-layout",
+      "source_review_status": "model_source_visible",
+      "source_review_scope": "content-bearing-page-and-route-only",
+      "target_gold_status": "not_started",
+      "frozen_before_variant_outputs": true,
+      "eligible_for_variant_execution": false,
+      "limitations": [
+        "pdftotext embedded layer is an automatic extraction candidate, not a diplomatic transcription",
+        "whole-page scope may split a sentence or numbered unit",
+        "work boundary and Russian expression identity remain unreviewed",
+        "no human source review, target gold, semantic label, sign match, or relation exists",
+        "local source content is not authorized for publication",
+        "digest rank controls bounded sampling but does not prove broader representativeness"
+      ]
+    },
+    {
+      "unit_id": "tos-target-candidate-jenseits-p0336-random",
+      "anchor_ref": "tos.anchor.zarathustra-foundation-pilot-v1.transfer-jenseits-p0336",
+      "work_ref": "tos.work.friedrich-nietzsche.jenseits-von-gut-und-boese",
+      "expression_ref": "tos.expression.friedrich-nietzsche.jenseits-von-gut-und-boese.ru-polilov-mysl-1996",
+      "item_ref": "tos.item.friedrich-nietzsche.works-in-two-volumes-volume-2-mysl-1996.operator-pdf",
+      "file_ref": "tos.file.sha256.ce16b68089dee0fc53a31d9e97723991b292dd8835c43bbbb40a9373c9a436aa",
+      "page": 336,
+      "page_resource_id": "pdf-page-0336",
+      "candidate_scope": "whole-page",
+      "stratum": "random",
+      "selection_basis": "deterministic-digest-order",
+      "selection_rank": 3,
+      "selection_metrics": {
+        "nonspace_characters": 2061,
+        "alphabetic_characters": 1954,
+        "nonblank_lines": 44,
+        "punctuation_characters": 101,
+        "line_end_hyphenations": 12,
+        "page_edge_fragment_signals": 1,
+        "numbered_heading_candidates": 2,
+        "mechanical_hardness_score": 5037
+      },
+      "provisional_difficulty_signals": [
+        "digest-random-baseline",
+        "line-end-hyphenation",
+        "page-edge-fragment-risk",
+        "numbered-heading-candidate"
+      ],
+      "source_content_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/local-content/transfer-targets/v1/tos-target-candidate-jenseits-p0336-random.txt",
+      "source_content_sha256": "00152effa91d1bfee16e2b7f5ef55ef47576616484c40698d0ac583441905f3b",
+      "source_content_bytes": 4451,
+      "source_layer": "embedded-pdf-text-pdftotext-layout",
+      "source_review_status": "model_source_visible",
+      "source_review_scope": "content-bearing-page-and-route-only",
+      "target_gold_status": "not_started",
+      "frozen_before_variant_outputs": true,
+      "eligible_for_variant_execution": false,
+      "limitations": [
+        "pdftotext embedded layer is an automatic extraction candidate, not a diplomatic transcription",
+        "whole-page scope may split a sentence or numbered unit",
+        "work boundary and Russian expression identity remain unreviewed",
+        "no human source review, target gold, semantic label, sign match, or relation exists",
+        "local source content is not authorized for publication",
+        "digest rank controls bounded sampling but does not prove broader representativeness"
+      ]
+    },
+    {
+      "unit_id": "tos-target-candidate-jenseits-p0325-random",
+      "anchor_ref": "tos.anchor.zarathustra-foundation-pilot-v1.transfer-jenseits-p0325",
+      "work_ref": "tos.work.friedrich-nietzsche.jenseits-von-gut-und-boese",
+      "expression_ref": "tos.expression.friedrich-nietzsche.jenseits-von-gut-und-boese.ru-polilov-mysl-1996",
+      "item_ref": "tos.item.friedrich-nietzsche.works-in-two-volumes-volume-2-mysl-1996.operator-pdf",
+      "file_ref": "tos.file.sha256.ce16b68089dee0fc53a31d9e97723991b292dd8835c43bbbb40a9373c9a436aa",
+      "page": 325,
+      "page_resource_id": "pdf-page-0325",
+      "candidate_scope": "whole-page",
+      "stratum": "random",
+      "selection_basis": "deterministic-digest-order",
+      "selection_rank": 4,
+      "selection_metrics": {
+        "nonspace_characters": 2288,
+        "alphabetic_characters": 2194,
+        "nonblank_lines": 47,
+        "punctuation_characters": 89,
+        "line_end_hyphenations": 16,
+        "page_edge_fragment_signals": 2,
+        "numbered_heading_candidates": 1,
+        "mechanical_hardness_score": 5982
+      },
+      "provisional_difficulty_signals": [
+        "digest-random-baseline",
+        "line-end-hyphenation",
+        "page-edge-fragment-risk",
+        "numbered-heading-candidate"
+      ],
+      "source_content_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/local-content/transfer-targets/v1/tos-target-candidate-jenseits-p0325-random.txt",
+      "source_content_sha256": "e1d73b175bcabcc85b651fa2b3466d94efafc6237a9cb1a489149e866445d51c",
+      "source_content_bytes": 4913,
+      "source_layer": "embedded-pdf-text-pdftotext-layout",
+      "source_review_status": "model_source_visible",
+      "source_review_scope": "content-bearing-page-and-route-only",
+      "target_gold_status": "not_started",
+      "frozen_before_variant_outputs": true,
+      "eligible_for_variant_execution": false,
+      "limitations": [
+        "pdftotext embedded layer is an automatic extraction candidate, not a diplomatic transcription",
+        "whole-page scope may split a sentence or numbered unit",
+        "work boundary and Russian expression identity remain unreviewed",
+        "no human source review, target gold, semantic label, sign match, or relation exists",
+        "local source content is not authorized for publication",
+        "digest rank controls bounded sampling but does not prove broader representativeness"
+      ]
+    },
+    {
+      "unit_id": "tos-target-candidate-genealogie-p0410-random",
+      "anchor_ref": "tos.anchor.zarathustra-foundation-pilot-v1.transfer-genealogie-p0410",
+      "work_ref": "tos.work.friedrich-nietzsche.zur-genealogie-der-moral",
+      "expression_ref": "tos.expression.friedrich-nietzsche.zur-genealogie-der-moral.ru-svasyan-mysl-1996",
+      "item_ref": "tos.item.friedrich-nietzsche.works-in-two-volumes-volume-2-mysl-1996.operator-pdf",
+      "file_ref": "tos.file.sha256.ce16b68089dee0fc53a31d9e97723991b292dd8835c43bbbb40a9373c9a436aa",
+      "page": 410,
+      "page_resource_id": "pdf-page-0410",
+      "candidate_scope": "whole-page",
+      "stratum": "random",
+      "selection_basis": "deterministic-digest-order",
+      "selection_rank": 1,
+      "selection_metrics": {
+        "nonspace_characters": 2025,
+        "alphabetic_characters": 1903,
+        "nonblank_lines": 44,
+        "punctuation_characters": 114,
+        "line_end_hyphenations": 18,
+        "page_edge_fragment_signals": 2,
+        "numbered_heading_candidates": 2,
+        "mechanical_hardness_score": 6289
+      },
+      "provisional_difficulty_signals": [
+        "digest-random-baseline",
+        "line-end-hyphenation",
+        "page-edge-fragment-risk",
+        "numbered-heading-candidate"
+      ],
+      "source_content_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/local-content/transfer-targets/v1/tos-target-candidate-genealogie-p0410-random.txt",
+      "source_content_sha256": "ec3b0609eca47ca1a4041945527e63cf24f5383f80201a98181c1680fa77c760",
+      "source_content_bytes": 4343,
+      "source_layer": "embedded-pdf-text-pdftotext-layout",
+      "source_review_status": "model_source_visible",
+      "source_review_scope": "content-bearing-page-and-route-only",
+      "target_gold_status": "not_started",
+      "frozen_before_variant_outputs": true,
+      "eligible_for_variant_execution": false,
+      "limitations": [
+        "pdftotext embedded layer is an automatic extraction candidate, not a diplomatic transcription",
+        "whole-page scope may split a sentence or numbered unit",
+        "work boundary and Russian expression identity remain unreviewed",
+        "no human source review, target gold, semantic label, sign match, or relation exists",
+        "local source content is not authorized for publication",
+        "digest rank controls bounded sampling but does not prove broader representativeness"
+      ]
+    },
+    {
+      "unit_id": "tos-target-candidate-genealogie-p0519-random",
+      "anchor_ref": "tos.anchor.zarathustra-foundation-pilot-v1.transfer-genealogie-p0519",
+      "work_ref": "tos.work.friedrich-nietzsche.zur-genealogie-der-moral",
+      "expression_ref": "tos.expression.friedrich-nietzsche.zur-genealogie-der-moral.ru-svasyan-mysl-1996",
+      "item_ref": "tos.item.friedrich-nietzsche.works-in-two-volumes-volume-2-mysl-1996.operator-pdf",
+      "file_ref": "tos.file.sha256.ce16b68089dee0fc53a31d9e97723991b292dd8835c43bbbb40a9373c9a436aa",
+      "page": 519,
+      "page_resource_id": "pdf-page-0519",
+      "candidate_scope": "whole-page",
+      "stratum": "random",
+      "selection_basis": "deterministic-digest-order",
+      "selection_rank": 2,
+      "selection_metrics": {
+        "nonspace_characters": 2307,
+        "alphabetic_characters": 2143,
+        "nonblank_lines": 47,
+        "punctuation_characters": 152,
+        "line_end_hyphenations": 14,
+        "page_edge_fragment_signals": 1,
+        "numbered_heading_candidates": 1,
+        "mechanical_hardness_score": 5809
+      },
+      "provisional_difficulty_signals": [
+        "digest-random-baseline",
+        "line-end-hyphenation",
+        "page-edge-fragment-risk",
+        "numbered-heading-candidate"
+      ],
+      "source_content_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/local-content/transfer-targets/v1/tos-target-candidate-genealogie-p0519-random.txt",
+      "source_content_sha256": "6192e1bd77e5afee92d4d02643a0d25a61e9e0c537ae16118158fe5cfcc5ce7b",
+      "source_content_bytes": 4837,
+      "source_layer": "embedded-pdf-text-pdftotext-layout",
+      "source_review_status": "model_source_visible",
+      "source_review_scope": "content-bearing-page-and-route-only",
+      "target_gold_status": "not_started",
+      "frozen_before_variant_outputs": true,
+      "eligible_for_variant_execution": false,
+      "limitations": [
+        "pdftotext embedded layer is an automatic extraction candidate, not a diplomatic transcription",
+        "whole-page scope may split a sentence or numbered unit",
+        "work boundary and Russian expression identity remain unreviewed",
+        "no human source review, target gold, semantic label, sign match, or relation exists",
+        "local source content is not authorized for publication",
+        "digest rank controls bounded sampling but does not prove broader representativeness"
+      ]
+    },
+    {
+      "unit_id": "tos-target-candidate-genealogie-p0489-random",
+      "anchor_ref": "tos.anchor.zarathustra-foundation-pilot-v1.transfer-genealogie-p0489",
+      "work_ref": "tos.work.friedrich-nietzsche.zur-genealogie-der-moral",
+      "expression_ref": "tos.expression.friedrich-nietzsche.zur-genealogie-der-moral.ru-svasyan-mysl-1996",
+      "item_ref": "tos.item.friedrich-nietzsche.works-in-two-volumes-volume-2-mysl-1996.operator-pdf",
+      "file_ref": "tos.file.sha256.ce16b68089dee0fc53a31d9e97723991b292dd8835c43bbbb40a9373c9a436aa",
+      "page": 489,
+      "page_resource_id": "pdf-page-0489",
+      "candidate_scope": "whole-page",
+      "stratum": "random",
+      "selection_basis": "deterministic-digest-order",
+      "selection_rank": 3,
+      "selection_metrics": {
+        "nonspace_characters": 2333,
+        "alphabetic_characters": 2228,
+        "nonblank_lines": 47,
+        "punctuation_characters": 102,
+        "line_end_hyphenations": 17,
+        "page_edge_fragment_signals": 1,
+        "numbered_heading_candidates": 1,
+        "mechanical_hardness_score": 6015
+      },
+      "provisional_difficulty_signals": [
+        "digest-random-baseline",
+        "line-end-hyphenation",
+        "page-edge-fragment-risk",
+        "numbered-heading-candidate"
+      ],
+      "source_content_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/local-content/transfer-targets/v1/tos-target-candidate-genealogie-p0489-random.txt",
+      "source_content_sha256": "6bcd5a0c9072324479c985a79062ab80549220e344bf4eb330e13ae76a9cac54",
+      "source_content_bytes": 4957,
+      "source_layer": "embedded-pdf-text-pdftotext-layout",
+      "source_review_status": "model_source_visible",
+      "source_review_scope": "content-bearing-page-and-route-only",
+      "target_gold_status": "not_started",
+      "frozen_before_variant_outputs": true,
+      "eligible_for_variant_execution": false,
+      "limitations": [
+        "pdftotext embedded layer is an automatic extraction candidate, not a diplomatic transcription",
+        "whole-page scope may split a sentence or numbered unit",
+        "work boundary and Russian expression identity remain unreviewed",
+        "no human source review, target gold, semantic label, sign match, or relation exists",
+        "local source content is not authorized for publication",
+        "digest rank controls bounded sampling but does not prove broader representativeness"
+      ]
+    },
+    {
+      "unit_id": "tos-target-candidate-antichrist-p0637-random",
+      "anchor_ref": "tos.anchor.zarathustra-foundation-pilot-v1.transfer-antichrist-p0637",
+      "work_ref": "tos.work.friedrich-nietzsche.der-antichrist",
+      "expression_ref": "tos.expression.friedrich-nietzsche.der-antichrist.ru-flerova-mysl-1996",
+      "item_ref": "tos.item.friedrich-nietzsche.works-in-two-volumes-volume-2-mysl-1996.operator-pdf",
+      "file_ref": "tos.file.sha256.ce16b68089dee0fc53a31d9e97723991b292dd8835c43bbbb40a9373c9a436aa",
+      "page": 637,
+      "page_resource_id": "pdf-page-0637",
+      "candidate_scope": "whole-page",
+      "stratum": "random",
+      "selection_basis": "deterministic-digest-order",
+      "selection_rank": 1,
+      "selection_metrics": {
+        "nonspace_characters": 2091,
+        "alphabetic_characters": 1952,
+        "nonblank_lines": 44,
+        "punctuation_characters": 135,
+        "line_end_hyphenations": 17,
+        "page_edge_fragment_signals": 2,
+        "numbered_heading_candidates": 2,
+        "mechanical_hardness_score": 6321
+      },
+      "provisional_difficulty_signals": [
+        "digest-random-baseline",
+        "line-end-hyphenation",
+        "page-edge-fragment-risk",
+        "numbered-heading-candidate"
+      ],
+      "source_content_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/local-content/transfer-targets/v1/tos-target-candidate-antichrist-p0637-random.txt",
+      "source_content_sha256": "da6747ec152f2b230d6346f49838edde5acbfc9f8818372c824768b96b6c49dc",
+      "source_content_bytes": 4513,
+      "source_layer": "embedded-pdf-text-pdftotext-layout",
+      "source_review_status": "model_source_visible",
+      "source_review_scope": "content-bearing-page-and-route-only",
+      "target_gold_status": "not_started",
+      "frozen_before_variant_outputs": true,
+      "eligible_for_variant_execution": false,
+      "limitations": [
+        "pdftotext embedded layer is an automatic extraction candidate, not a diplomatic transcription",
+        "whole-page scope may split a sentence or numbered unit",
+        "work boundary and Russian expression identity remain unreviewed",
+        "no human source review, target gold, semantic label, sign match, or relation exists",
+        "local source content is not authorized for publication",
+        "digest rank controls bounded sampling but does not prove broader representativeness"
+      ]
+    },
+    {
+      "unit_id": "tos-target-candidate-antichrist-p0655-random",
+      "anchor_ref": "tos.anchor.zarathustra-foundation-pilot-v1.transfer-antichrist-p0655",
+      "work_ref": "tos.work.friedrich-nietzsche.der-antichrist",
+      "expression_ref": "tos.expression.friedrich-nietzsche.der-antichrist.ru-flerova-mysl-1996",
+      "item_ref": "tos.item.friedrich-nietzsche.works-in-two-volumes-volume-2-mysl-1996.operator-pdf",
+      "file_ref": "tos.file.sha256.ce16b68089dee0fc53a31d9e97723991b292dd8835c43bbbb40a9373c9a436aa",
+      "page": 655,
+      "page_resource_id": "pdf-page-0655",
+      "candidate_scope": "whole-page",
+      "stratum": "random",
+      "selection_basis": "deterministic-digest-order",
+      "selection_rank": 2,
+      "selection_metrics": {
+        "nonspace_characters": 2087,
+        "alphabetic_characters": 1950,
+        "nonblank_lines": 44,
+        "punctuation_characters": 129,
+        "line_end_hyphenations": 12,
+        "page_edge_fragment_signals": 1,
+        "numbered_heading_candidates": 2,
+        "mechanical_hardness_score": 5231
+      },
+      "provisional_difficulty_signals": [
+        "digest-random-baseline",
+        "line-end-hyphenation",
+        "page-edge-fragment-risk",
+        "numbered-heading-candidate"
+      ],
+      "source_content_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/local-content/transfer-targets/v1/tos-target-candidate-antichrist-p0655-random.txt",
+      "source_content_sha256": "67e0e45b9e5f951d3d9cd631449502de5a4baf7a8f662cd3d197c2c0e5e5d326",
+      "source_content_bytes": 4464,
+      "source_layer": "embedded-pdf-text-pdftotext-layout",
+      "source_review_status": "model_source_visible",
+      "source_review_scope": "content-bearing-page-and-route-only",
+      "target_gold_status": "not_started",
+      "frozen_before_variant_outputs": true,
+      "eligible_for_variant_execution": false,
+      "limitations": [
+        "pdftotext embedded layer is an automatic extraction candidate, not a diplomatic transcription",
+        "whole-page scope may split a sentence or numbered unit",
+        "work boundary and Russian expression identity remain unreviewed",
+        "no human source review, target gold, semantic label, sign match, or relation exists",
+        "local source content is not authorized for publication",
+        "digest rank controls bounded sampling but does not prove broader representativeness"
+      ]
+    },
+    {
+      "unit_id": "tos-target-candidate-antichrist-p0663-random",
+      "anchor_ref": "tos.anchor.zarathustra-foundation-pilot-v1.transfer-antichrist-p0663",
+      "work_ref": "tos.work.friedrich-nietzsche.der-antichrist",
+      "expression_ref": "tos.expression.friedrich-nietzsche.der-antichrist.ru-flerova-mysl-1996",
+      "item_ref": "tos.item.friedrich-nietzsche.works-in-two-volumes-volume-2-mysl-1996.operator-pdf",
+      "file_ref": "tos.file.sha256.ce16b68089dee0fc53a31d9e97723991b292dd8835c43bbbb40a9373c9a436aa",
+      "page": 663,
+      "page_resource_id": "pdf-page-0663",
+      "candidate_scope": "whole-page",
+      "stratum": "random",
+      "selection_basis": "deterministic-digest-order",
+      "selection_rank": 3,
+      "selection_metrics": {
+        "nonspace_characters": 2130,
+        "alphabetic_characters": 1980,
+        "nonblank_lines": 45,
+        "punctuation_characters": 141,
+        "line_end_hyphenations": 17,
+        "page_edge_fragment_signals": 1,
+        "numbered_heading_candidates": 2,
+        "mechanical_hardness_score": 6146
+      },
+      "provisional_difficulty_signals": [
+        "digest-random-baseline",
+        "line-end-hyphenation",
+        "page-edge-fragment-risk",
+        "numbered-heading-candidate"
+      ],
+      "source_content_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/local-content/transfer-targets/v1/tos-target-candidate-antichrist-p0663-random.txt",
+      "source_content_sha256": "c1ec72e13057e80aa18179eb6914342e21df7fa12ae11c5e7efa0f99fc1bea80",
+      "source_content_bytes": 4583,
+      "source_layer": "embedded-pdf-text-pdftotext-layout",
+      "source_review_status": "model_source_visible",
+      "source_review_scope": "content-bearing-page-and-route-only",
+      "target_gold_status": "not_started",
+      "frozen_before_variant_outputs": true,
+      "eligible_for_variant_execution": false,
+      "limitations": [
+        "pdftotext embedded layer is an automatic extraction candidate, not a diplomatic transcription",
+        "whole-page scope may split a sentence or numbered unit",
+        "work boundary and Russian expression identity remain unreviewed",
+        "no human source review, target gold, semantic label, sign match, or relation exists",
+        "local source content is not authorized for publication",
+        "digest rank controls bounded sampling but does not prove broader representativeness"
+      ]
+    },
+    {
+      "unit_id": "tos-target-candidate-jenseits-p0319-hard",
+      "anchor_ref": "tos.anchor.zarathustra-foundation-pilot-v1.transfer-jenseits-p0319",
+      "work_ref": "tos.work.friedrich-nietzsche.jenseits-von-gut-und-boese",
+      "expression_ref": "tos.expression.friedrich-nietzsche.jenseits-von-gut-und-boese.ru-polilov-mysl-1996",
+      "item_ref": "tos.item.friedrich-nietzsche.works-in-two-volumes-volume-2-mysl-1996.operator-pdf",
+      "file_ref": "tos.file.sha256.ce16b68089dee0fc53a31d9e97723991b292dd8835c43bbbb40a9373c9a436aa",
+      "page": 319,
+      "page_resource_id": "pdf-page-0319",
+      "candidate_scope": "whole-page",
+      "stratum": "hard",
+      "selection_basis": "mechanical-layout-hardness",
+      "selection_rank": 1,
+      "selection_metrics": {
+        "nonspace_characters": 2306,
+        "alphabetic_characters": 2197,
+        "nonblank_lines": 47,
+        "punctuation_characters": 106,
+        "line_end_hyphenations": 22,
+        "page_edge_fragment_signals": 2,
+        "numbered_heading_candidates": 1,
+        "mechanical_hardness_score": 7062
+      },
+      "provisional_difficulty_signals": [
+        "mechanical-hardness-top-rank",
+        "line-end-hyphenation",
+        "page-edge-fragment-risk",
+        "numbered-heading-candidate"
+      ],
+      "source_content_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/local-content/transfer-targets/v1/tos-target-candidate-jenseits-p0319-hard.txt",
+      "source_content_sha256": "bd0ce1df8f6ce52f42fcca15a98325c15d302d0ad095a36e87e2d1cc25cec343",
+      "source_content_bytes": 4903,
+      "source_layer": "embedded-pdf-text-pdftotext-layout",
+      "source_review_status": "model_source_visible",
+      "source_review_scope": "content-bearing-page-and-route-only",
+      "target_gold_status": "not_started",
+      "frozen_before_variant_outputs": true,
+      "eligible_for_variant_execution": false,
+      "limitations": [
+        "pdftotext embedded layer is an automatic extraction candidate, not a diplomatic transcription",
+        "whole-page scope may split a sentence or numbered unit",
+        "work boundary and Russian expression identity remain unreviewed",
+        "no human source review, target gold, semantic label, sign match, or relation exists",
+        "local source content is not authorized for publication",
+        "mechanical score does not establish philosophical or semantic difficulty"
+      ]
+    },
+    {
+      "unit_id": "tos-target-candidate-jenseits-p0267-hard",
+      "anchor_ref": "tos.anchor.zarathustra-foundation-pilot-v1.transfer-jenseits-p0267",
+      "work_ref": "tos.work.friedrich-nietzsche.jenseits-von-gut-und-boese",
+      "expression_ref": "tos.expression.friedrich-nietzsche.jenseits-von-gut-und-boese.ru-polilov-mysl-1996",
+      "item_ref": "tos.item.friedrich-nietzsche.works-in-two-volumes-volume-2-mysl-1996.operator-pdf",
+      "file_ref": "tos.file.sha256.ce16b68089dee0fc53a31d9e97723991b292dd8835c43bbbb40a9373c9a436aa",
+      "page": 267,
+      "page_resource_id": "pdf-page-0267",
+      "candidate_scope": "whole-page",
+      "stratum": "hard",
+      "selection_basis": "mechanical-layout-hardness",
+      "selection_rank": 2,
+      "selection_metrics": {
+        "nonspace_characters": 2317,
+        "alphabetic_characters": 2204,
+        "nonblank_lines": 47,
+        "punctuation_characters": 110,
+        "line_end_hyphenations": 21,
+        "page_edge_fragment_signals": 2,
+        "numbered_heading_candidates": 1,
+        "mechanical_hardness_score": 6937
+      },
+      "provisional_difficulty_signals": [
+        "mechanical-hardness-top-rank",
+        "line-end-hyphenation",
+        "page-edge-fragment-risk",
+        "numbered-heading-candidate"
+      ],
+      "source_content_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/local-content/transfer-targets/v1/tos-target-candidate-jenseits-p0267-hard.txt",
+      "source_content_sha256": "9c957363a2700a3d0fb9ac0b6f56a5a57efc9b9246caea2d544139d37d7809c1",
+      "source_content_bytes": 4939,
+      "source_layer": "embedded-pdf-text-pdftotext-layout",
+      "source_review_status": "model_source_visible",
+      "source_review_scope": "content-bearing-page-and-route-only",
+      "target_gold_status": "not_started",
+      "frozen_before_variant_outputs": true,
+      "eligible_for_variant_execution": false,
+      "limitations": [
+        "pdftotext embedded layer is an automatic extraction candidate, not a diplomatic transcription",
+        "whole-page scope may split a sentence or numbered unit",
+        "work boundary and Russian expression identity remain unreviewed",
+        "no human source review, target gold, semantic label, sign match, or relation exists",
+        "local source content is not authorized for publication",
+        "mechanical score does not establish philosophical or semantic difficulty"
+      ]
+    },
+    {
+      "unit_id": "tos-target-candidate-jenseits-p0321-hard",
+      "anchor_ref": "tos.anchor.zarathustra-foundation-pilot-v1.transfer-jenseits-p0321",
+      "work_ref": "tos.work.friedrich-nietzsche.jenseits-von-gut-und-boese",
+      "expression_ref": "tos.expression.friedrich-nietzsche.jenseits-von-gut-und-boese.ru-polilov-mysl-1996",
+      "item_ref": "tos.item.friedrich-nietzsche.works-in-two-volumes-volume-2-mysl-1996.operator-pdf",
+      "file_ref": "tos.file.sha256.ce16b68089dee0fc53a31d9e97723991b292dd8835c43bbbb40a9373c9a436aa",
+      "page": 321,
+      "page_resource_id": "pdf-page-0321",
+      "candidate_scope": "whole-page",
+      "stratum": "hard",
+      "selection_basis": "mechanical-layout-hardness",
+      "selection_rank": 3,
+      "selection_metrics": {
+        "nonspace_characters": 2354,
+        "alphabetic_characters": 2212,
+        "nonblank_lines": 48,
+        "punctuation_characters": 135,
+        "line_end_hyphenations": 20,
+        "page_edge_fragment_signals": 1,
+        "numbered_heading_candidates": 1,
+        "mechanical_hardness_score": 6714
+      },
+      "provisional_difficulty_signals": [
+        "mechanical-hardness-top-rank",
+        "line-end-hyphenation",
+        "page-edge-fragment-risk",
+        "numbered-heading-candidate"
+      ],
+      "source_content_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/local-content/transfer-targets/v1/tos-target-candidate-jenseits-p0321-hard.txt",
+      "source_content_sha256": "8760df3686df34abf17e98df2fccfb661504d02d6261d51bf5c3f20a32f6b0fa",
+      "source_content_bytes": 4998,
+      "source_layer": "embedded-pdf-text-pdftotext-layout",
+      "source_review_status": "model_source_visible",
+      "source_review_scope": "content-bearing-page-and-route-only",
+      "target_gold_status": "not_started",
+      "frozen_before_variant_outputs": true,
+      "eligible_for_variant_execution": false,
+      "limitations": [
+        "pdftotext embedded layer is an automatic extraction candidate, not a diplomatic transcription",
+        "whole-page scope may split a sentence or numbered unit",
+        "work boundary and Russian expression identity remain unreviewed",
+        "no human source review, target gold, semantic label, sign match, or relation exists",
+        "local source content is not authorized for publication",
+        "mechanical score does not establish philosophical or semantic difficulty"
+      ]
+    },
+    {
+      "unit_id": "tos-target-candidate-jenseits-p0279-hard",
+      "anchor_ref": "tos.anchor.zarathustra-foundation-pilot-v1.transfer-jenseits-p0279",
+      "work_ref": "tos.work.friedrich-nietzsche.jenseits-von-gut-und-boese",
+      "expression_ref": "tos.expression.friedrich-nietzsche.jenseits-von-gut-und-boese.ru-polilov-mysl-1996",
+      "item_ref": "tos.item.friedrich-nietzsche.works-in-two-volumes-volume-2-mysl-1996.operator-pdf",
+      "file_ref": "tos.file.sha256.ce16b68089dee0fc53a31d9e97723991b292dd8835c43bbbb40a9373c9a436aa",
+      "page": 279,
+      "page_resource_id": "pdf-page-0279",
+      "candidate_scope": "whole-page",
+      "stratum": "hard",
+      "selection_basis": "mechanical-layout-hardness",
+      "selection_rank": 4,
+      "selection_metrics": {
+        "nonspace_characters": 2220,
+        "alphabetic_characters": 2096,
+        "nonblank_lines": 46,
+        "punctuation_characters": 115,
+        "line_end_hyphenations": 19,
+        "page_edge_fragment_signals": 2,
+        "numbered_heading_candidates": 2,
+        "mechanical_hardness_score": 6650
+      },
+      "provisional_difficulty_signals": [
+        "mechanical-hardness-top-rank",
+        "line-end-hyphenation",
+        "page-edge-fragment-risk",
+        "numbered-heading-candidate"
+      ],
+      "source_content_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/local-content/transfer-targets/v1/tos-target-candidate-jenseits-p0279-hard.txt",
+      "source_content_sha256": "b5a63d6409c0dc395c7aa196d6e9b4ca18169421369f7b5da4ccd416a2c9dffd",
+      "source_content_bytes": 4784,
+      "source_layer": "embedded-pdf-text-pdftotext-layout",
+      "source_review_status": "model_source_visible",
+      "source_review_scope": "content-bearing-page-and-route-only",
+      "target_gold_status": "not_started",
+      "frozen_before_variant_outputs": true,
+      "eligible_for_variant_execution": false,
+      "limitations": [
+        "pdftotext embedded layer is an automatic extraction candidate, not a diplomatic transcription",
+        "whole-page scope may split a sentence or numbered unit",
+        "work boundary and Russian expression identity remain unreviewed",
+        "no human source review, target gold, semantic label, sign match, or relation exists",
+        "local source content is not authorized for publication",
+        "mechanical score does not establish philosophical or semantic difficulty"
+      ]
+    },
+    {
+      "unit_id": "tos-target-candidate-genealogie-p0426-hard",
+      "anchor_ref": "tos.anchor.zarathustra-foundation-pilot-v1.transfer-genealogie-p0426",
+      "work_ref": "tos.work.friedrich-nietzsche.zur-genealogie-der-moral",
+      "expression_ref": "tos.expression.friedrich-nietzsche.zur-genealogie-der-moral.ru-svasyan-mysl-1996",
+      "item_ref": "tos.item.friedrich-nietzsche.works-in-two-volumes-volume-2-mysl-1996.operator-pdf",
+      "file_ref": "tos.file.sha256.ce16b68089dee0fc53a31d9e97723991b292dd8835c43bbbb40a9373c9a436aa",
+      "page": 426,
+      "page_resource_id": "pdf-page-0426",
+      "candidate_scope": "whole-page",
+      "stratum": "hard",
+      "selection_basis": "mechanical-layout-hardness",
+      "selection_rank": 1,
+      "selection_metrics": {
+        "nonspace_characters": 2360,
+        "alphabetic_characters": 2238,
+        "nonblank_lines": 47,
+        "punctuation_characters": 117,
+        "line_end_hyphenations": 22,
+        "page_edge_fragment_signals": 1,
+        "numbered_heading_candidates": 1,
+        "mechanical_hardness_score": 6932
+      },
+      "provisional_difficulty_signals": [
+        "mechanical-hardness-top-rank",
+        "line-end-hyphenation",
+        "page-edge-fragment-risk",
+        "numbered-heading-candidate"
+      ],
+      "source_content_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/local-content/transfer-targets/v1/tos-target-candidate-genealogie-p0426-hard.txt",
+      "source_content_sha256": "ca205c2dc4d31da91a1b1cc165f45a05f0aa7d8b994cc1cfbab52ba64269fe65",
+      "source_content_bytes": 4990,
+      "source_layer": "embedded-pdf-text-pdftotext-layout",
+      "source_review_status": "model_source_visible",
+      "source_review_scope": "content-bearing-page-and-route-only",
+      "target_gold_status": "not_started",
+      "frozen_before_variant_outputs": true,
+      "eligible_for_variant_execution": false,
+      "limitations": [
+        "pdftotext embedded layer is an automatic extraction candidate, not a diplomatic transcription",
+        "whole-page scope may split a sentence or numbered unit",
+        "work boundary and Russian expression identity remain unreviewed",
+        "no human source review, target gold, semantic label, sign match, or relation exists",
+        "local source content is not authorized for publication",
+        "mechanical score does not establish philosophical or semantic difficulty"
+      ]
+    },
+    {
+      "unit_id": "tos-target-candidate-genealogie-p0482-hard",
+      "anchor_ref": "tos.anchor.zarathustra-foundation-pilot-v1.transfer-genealogie-p0482",
+      "work_ref": "tos.work.friedrich-nietzsche.zur-genealogie-der-moral",
+      "expression_ref": "tos.expression.friedrich-nietzsche.zur-genealogie-der-moral.ru-svasyan-mysl-1996",
+      "item_ref": "tos.item.friedrich-nietzsche.works-in-two-volumes-volume-2-mysl-1996.operator-pdf",
+      "file_ref": "tos.file.sha256.ce16b68089dee0fc53a31d9e97723991b292dd8835c43bbbb40a9373c9a436aa",
+      "page": 482,
+      "page_resource_id": "pdf-page-0482",
+      "candidate_scope": "whole-page",
+      "stratum": "hard",
+      "selection_basis": "mechanical-layout-hardness",
+      "selection_rank": 2,
+      "selection_metrics": {
+        "nonspace_characters": 2302,
+        "alphabetic_characters": 2143,
+        "nonblank_lines": 47,
+        "punctuation_characters": 154,
+        "line_end_hyphenations": 19,
+        "page_edge_fragment_signals": 2,
+        "numbered_heading_candidates": 1,
+        "mechanical_hardness_score": 6866
+      },
+      "provisional_difficulty_signals": [
+        "mechanical-hardness-top-rank",
+        "line-end-hyphenation",
+        "page-edge-fragment-risk",
+        "numbered-heading-candidate"
+      ],
+      "source_content_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/local-content/transfer-targets/v1/tos-target-candidate-genealogie-p0482-hard.txt",
+      "source_content_sha256": "a2589ec288a18abbbdf4298e4b4e4874fb36bd45f6363118cbac3c16aad0c6a1",
+      "source_content_bytes": 4909,
+      "source_layer": "embedded-pdf-text-pdftotext-layout",
+      "source_review_status": "model_source_visible",
+      "source_review_scope": "content-bearing-page-and-route-only",
+      "target_gold_status": "not_started",
+      "frozen_before_variant_outputs": true,
+      "eligible_for_variant_execution": false,
+      "limitations": [
+        "pdftotext embedded layer is an automatic extraction candidate, not a diplomatic transcription",
+        "whole-page scope may split a sentence or numbered unit",
+        "work boundary and Russian expression identity remain unreviewed",
+        "no human source review, target gold, semantic label, sign match, or relation exists",
+        "local source content is not authorized for publication",
+        "mechanical score does not establish philosophical or semantic difficulty"
+      ]
+    },
+    {
+      "unit_id": "tos-target-candidate-genealogie-p0463-hard",
+      "anchor_ref": "tos.anchor.zarathustra-foundation-pilot-v1.transfer-genealogie-p0463",
+      "work_ref": "tos.work.friedrich-nietzsche.zur-genealogie-der-moral",
+      "expression_ref": "tos.expression.friedrich-nietzsche.zur-genealogie-der-moral.ru-svasyan-mysl-1996",
+      "item_ref": "tos.item.friedrich-nietzsche.works-in-two-volumes-volume-2-mysl-1996.operator-pdf",
+      "file_ref": "tos.file.sha256.ce16b68089dee0fc53a31d9e97723991b292dd8835c43bbbb40a9373c9a436aa",
+      "page": 463,
+      "page_resource_id": "pdf-page-0463",
+      "candidate_scope": "whole-page",
+      "stratum": "hard",
+      "selection_basis": "mechanical-layout-hardness",
+      "selection_rank": 3,
+      "selection_metrics": {
+        "nonspace_characters": 2091,
+        "alphabetic_characters": 1968,
+        "nonblank_lines": 44,
+        "punctuation_characters": 118,
+        "line_end_hyphenations": 20,
+        "page_edge_fragment_signals": 2,
+        "numbered_heading_candidates": 2,
+        "mechanical_hardness_score": 6699
+      },
+      "provisional_difficulty_signals": [
+        "mechanical-hardness-top-rank",
+        "line-end-hyphenation",
+        "page-edge-fragment-risk",
+        "numbered-heading-candidate"
+      ],
+      "source_content_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/local-content/transfer-targets/v1/tos-target-candidate-genealogie-p0463-hard.txt",
+      "source_content_sha256": "a5b601174b2287d5e4cc321321e6a99fd1c03ab0d33930f01e6b96d44439a3c9",
+      "source_content_bytes": 4511,
+      "source_layer": "embedded-pdf-text-pdftotext-layout",
+      "source_review_status": "model_source_visible",
+      "source_review_scope": "content-bearing-page-and-route-only",
+      "target_gold_status": "not_started",
+      "frozen_before_variant_outputs": true,
+      "eligible_for_variant_execution": false,
+      "limitations": [
+        "pdftotext embedded layer is an automatic extraction candidate, not a diplomatic transcription",
+        "whole-page scope may split a sentence or numbered unit",
+        "work boundary and Russian expression identity remain unreviewed",
+        "no human source review, target gold, semantic label, sign match, or relation exists",
+        "local source content is not authorized for publication",
+        "mechanical score does not establish philosophical or semantic difficulty"
+      ]
+    },
+    {
+      "unit_id": "tos-target-candidate-antichrist-p0668-hard",
+      "anchor_ref": "tos.anchor.zarathustra-foundation-pilot-v1.transfer-antichrist-p0668",
+      "work_ref": "tos.work.friedrich-nietzsche.der-antichrist",
+      "expression_ref": "tos.expression.friedrich-nietzsche.der-antichrist.ru-flerova-mysl-1996",
+      "item_ref": "tos.item.friedrich-nietzsche.works-in-two-volumes-volume-2-mysl-1996.operator-pdf",
+      "file_ref": "tos.file.sha256.ce16b68089dee0fc53a31d9e97723991b292dd8835c43bbbb40a9373c9a436aa",
+      "page": 668,
+      "page_resource_id": "pdf-page-0668",
+      "candidate_scope": "whole-page",
+      "stratum": "hard",
+      "selection_basis": "mechanical-layout-hardness",
+      "selection_rank": 1,
+      "selection_metrics": {
+        "nonspace_characters": 2134,
+        "alphabetic_characters": 2007,
+        "nonblank_lines": 45,
+        "punctuation_characters": 120,
+        "line_end_hyphenations": 20,
+        "page_edge_fragment_signals": 2,
+        "numbered_heading_candidates": 2,
+        "mechanical_hardness_score": 6754
+      },
+      "provisional_difficulty_signals": [
+        "mechanical-hardness-top-rank",
+        "line-end-hyphenation",
+        "page-edge-fragment-risk",
+        "numbered-heading-candidate"
+      ],
+      "source_content_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/local-content/transfer-targets/v1/tos-target-candidate-antichrist-p0668-hard.txt",
+      "source_content_sha256": "537a366ba584d7aec0768cda92aaf6886c63bc41066ea27a6eba14a6b45d1e8e",
+      "source_content_bytes": 4550,
+      "source_layer": "embedded-pdf-text-pdftotext-layout",
+      "source_review_status": "model_source_visible",
+      "source_review_scope": "content-bearing-page-and-route-only",
+      "target_gold_status": "not_started",
+      "frozen_before_variant_outputs": true,
+      "eligible_for_variant_execution": false,
+      "limitations": [
+        "pdftotext embedded layer is an automatic extraction candidate, not a diplomatic transcription",
+        "whole-page scope may split a sentence or numbered unit",
+        "work boundary and Russian expression identity remain unreviewed",
+        "no human source review, target gold, semantic label, sign match, or relation exists",
+        "local source content is not authorized for publication",
+        "mechanical score does not establish philosophical or semantic difficulty"
+      ]
+    },
+    {
+      "unit_id": "tos-target-candidate-antichrist-p0685-hard",
+      "anchor_ref": "tos.anchor.zarathustra-foundation-pilot-v1.transfer-antichrist-p0685",
+      "work_ref": "tos.work.friedrich-nietzsche.der-antichrist",
+      "expression_ref": "tos.expression.friedrich-nietzsche.der-antichrist.ru-flerova-mysl-1996",
+      "item_ref": "tos.item.friedrich-nietzsche.works-in-two-volumes-volume-2-mysl-1996.operator-pdf",
+      "file_ref": "tos.file.sha256.ce16b68089dee0fc53a31d9e97723991b292dd8835c43bbbb40a9373c9a436aa",
+      "page": 685,
+      "page_resource_id": "pdf-page-0685",
+      "candidate_scope": "whole-page",
+      "stratum": "hard",
+      "selection_basis": "mechanical-layout-hardness",
+      "selection_rank": 2,
+      "selection_metrics": {
+        "nonspace_characters": 2356,
+        "alphabetic_characters": 2215,
+        "nonblank_lines": 47,
+        "punctuation_characters": 138,
+        "line_end_hyphenations": 20,
+        "page_edge_fragment_signals": 1,
+        "numbered_heading_candidates": 1,
+        "mechanical_hardness_score": 6734
+      },
+      "provisional_difficulty_signals": [
+        "mechanical-hardness-top-rank",
+        "line-end-hyphenation",
+        "page-edge-fragment-risk",
+        "numbered-heading-candidate"
+      ],
+      "source_content_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/local-content/transfer-targets/v1/tos-target-candidate-antichrist-p0685-hard.txt",
+      "source_content_sha256": "93c62e20a13dbb7d2427ee2b76b0980c437c9920952262893642a0971eea197f",
+      "source_content_bytes": 4997,
+      "source_layer": "embedded-pdf-text-pdftotext-layout",
+      "source_review_status": "model_source_visible",
+      "source_review_scope": "content-bearing-page-and-route-only",
+      "target_gold_status": "not_started",
+      "frozen_before_variant_outputs": true,
+      "eligible_for_variant_execution": false,
+      "limitations": [
+        "pdftotext embedded layer is an automatic extraction candidate, not a diplomatic transcription",
+        "whole-page scope may split a sentence or numbered unit",
+        "work boundary and Russian expression identity remain unreviewed",
+        "no human source review, target gold, semantic label, sign match, or relation exists",
+        "local source content is not authorized for publication",
+        "mechanical score does not establish philosophical or semantic difficulty"
+      ]
+    },
+    {
+      "unit_id": "tos-target-candidate-antichrist-p0661-hard",
+      "anchor_ref": "tos.anchor.zarathustra-foundation-pilot-v1.transfer-antichrist-p0661",
+      "work_ref": "tos.work.friedrich-nietzsche.der-antichrist",
+      "expression_ref": "tos.expression.friedrich-nietzsche.der-antichrist.ru-flerova-mysl-1996",
+      "item_ref": "tos.item.friedrich-nietzsche.works-in-two-volumes-volume-2-mysl-1996.operator-pdf",
+      "file_ref": "tos.file.sha256.ce16b68089dee0fc53a31d9e97723991b292dd8835c43bbbb40a9373c9a436aa",
+      "page": 661,
+      "page_resource_id": "pdf-page-0661",
+      "candidate_scope": "whole-page",
+      "stratum": "hard",
+      "selection_basis": "mechanical-layout-hardness",
+      "selection_rank": 3,
+      "selection_metrics": {
+        "nonspace_characters": 2107,
+        "alphabetic_characters": 2002,
+        "nonblank_lines": 44,
+        "punctuation_characters": 98,
+        "line_end_hyphenations": 18,
+        "page_edge_fragment_signals": 2,
+        "numbered_heading_candidates": 3,
+        "mechanical_hardness_score": 6375
+      },
+      "provisional_difficulty_signals": [
+        "mechanical-hardness-top-rank",
+        "line-end-hyphenation",
+        "page-edge-fragment-risk",
+        "numbered-heading-candidate"
+      ],
+      "source_content_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/local-content/transfer-targets/v1/tos-target-candidate-antichrist-p0661-hard.txt",
+      "source_content_sha256": "d68bcdf29c79b9ec201dc4090b6e93f9a25fcc90a125648be84cb2ef238be580",
+      "source_content_bytes": 4545,
+      "source_layer": "embedded-pdf-text-pdftotext-layout",
+      "source_review_status": "model_source_visible",
+      "source_review_scope": "content-bearing-page-and-route-only",
+      "target_gold_status": "not_started",
+      "frozen_before_variant_outputs": true,
+      "eligible_for_variant_execution": false,
+      "limitations": [
+        "pdftotext embedded layer is an automatic extraction candidate, not a diplomatic transcription",
+        "whole-page scope may split a sentence or numbered unit",
+        "work boundary and Russian expression identity remain unreviewed",
+        "no human source review, target gold, semantic label, sign match, or relation exists",
+        "local source content is not authorized for publication",
+        "mechanical score does not establish philosophical or semantic difficulty"
+      ]
+    }
+  ]
 }

@@ -1,0 +1,199 @@
+{
+  "schema_version": "tos_source_metadata_snapshot_v1",
+  "captured_at": "2026-07-30T10:58:00-06:00",
+  "capture_method": {
+    "maker_type": "mixed",
+    "name": "ordered primary-source capture, scholarship reconciliation, and source-visible scan review",
+    "version": "curl 8.18.0; Poppler 26.01.0"
+  },
+  "target": "Exact historical German item for Ecce Homo with editorial strata, physical-copy lineage, fixity, and rights evidence kept explicit",
+  "work_authority": {
+    "source": "Deutsche Nationalbibliothek Gemeinsame Normdatei",
+    "record_url": "https://d-nb.info/gnd/4115395-9",
+    "gnd": "4115395-9",
+    "preferred_name": "Ecce homo",
+    "production_date": "1888-",
+    "publication_date": "1908",
+    "author_gnd": "118587943",
+    "record_modified_at": "2026-05-04T15:37:20.000",
+    "metadata_license": "CC0 1.0",
+    "response_byte_size": 3543,
+    "response_sha256": "315846a137c4c55ec6bed9a2afd54998bc83f6d15b8da435c563035d44343e26"
+  },
+  "dnb_1908_bibliographic_record": {
+    "record_url": "https://d-nb.info/999650270",
+    "dnb_id": "999650270",
+    "title": "Ecce homo",
+    "statement_of_responsibility": "[Verf.:] Friedrich Nietzsche. [Nachw. v. Raoul Richter]",
+    "publication": "Leipzig : Insel-Verl., [1908]",
+    "extent_as_cataloged": "155 S.",
+    "printer": "Friedrich Richter",
+    "typeface": "Renaissance-Antiqua (Genzsch & Heyse)",
+    "contributor_gnds": [
+      "116512857",
+      "118626442"
+    ],
+    "oclc_values": [
+      "632401240",
+      "238855049"
+    ],
+    "record_modified_at": "2026-03-22T06:48:47.000",
+    "jsonld_response_byte_size": 2844,
+    "jsonld_response_sha256": "6b416ca9249ae9439be3ae0922d34229e2873bc8b264599b4c9b2c819ea28749",
+    "sru_response_byte_size": 5651,
+    "sru_response_sha256": "09bbc1f71d0f69d7f032be8f5254bcbcf91ac365c8458e52d7471c2e6eb4b0c7"
+  },
+  "wikimedia_commons_record": {
+    "page_id": 95001469,
+    "permanent_revision_id": 1074063624,
+    "canonical_title": "File:Ecce homo (IA eccehomo00niet_0).pdf",
+    "description_url": "https://commons.wikimedia.org/w/index.php?oldid=1074063624",
+    "download_url": "https://upload.wikimedia.org/wikipedia/commons/e/e3/Ecce_homo_%28IA_eccehomo00niet_0%29.pdf",
+    "file_timestamp": "2020-10-12T21:31:51Z",
+    "uploader": "Fæ",
+    "byte_size": 9703400,
+    "sha1": "c8d7cd1891e1d32a878e93694db5fff0d473bdf6",
+    "local_sha1_match": true,
+    "local_sha256": "f3058ff02611cc961de1f7c4fbf0ebc0e4427a913da718189b33a0dde11339bc",
+    "mime_type": "application/pdf",
+    "pdf_pages": 166,
+    "license_short_name": "Public domain",
+    "usage_terms": "Public domain",
+    "rights_template": "PD-US-expired",
+    "rights_scope_note": "The file page states public-domain status in the United States and warns that non-US works also require source-country review.",
+    "source_lineage_identifier": "eccehomo00niet_0",
+    "api_response_byte_size": 1065,
+    "api_response_sha256": "8e1910cc5a92aa10e4abd327b728088a79fa63297ef0405b7d9c51cd4634235a",
+    "permanent_page_response_byte_size": 102180,
+    "permanent_page_response_sha256": "54b994f016a76ff92b242f6656c808b6808c997a35330dc726e2abe21bb97630"
+  },
+  "internet_archive_source_lineage": {
+    "identifier": "eccehomo00niet_0",
+    "identifier_ark": "ark:/13960/t0002sf78",
+    "item_page_url": "https://archive.org/details/eccehomo00niet_0",
+    "metadata_url": "https://archive.org/metadata/eccehomo00niet_0",
+    "title": "Ecce homo",
+    "creator": "Nietzsche, Friedrich Wilhelm, 1844-1900",
+    "publisher": "Leipzig, Insel-Verlag",
+    "date": "1908",
+    "language": "ger",
+    "description": "154 p. ; 25 cm",
+    "contributor": "Getty Research Institute",
+    "sponsor": "Getty Research Institute",
+    "getty_catalog_control_number": "9925562160001551",
+    "scanner": "scribe2.valencia.archive.org",
+    "camera": "Canon EOS 5D Mark II",
+    "ppi": 500,
+    "scan_date": "2014-05-20",
+    "call_number": "B3316 .A23",
+    "oclc": "9422039",
+    "openlibrary_edition": "OL33158796M",
+    "openlibrary_work": "OL24945055W",
+    "current_pdf_byte_size": 9726827,
+    "current_pdf_md5": "ebb63d648b59096f6684322db6091fba",
+    "current_pdf_sha1": "1cf12032bdcba84d8cddd1da8074cb9c62cd9c4c",
+    "current_pdf_sha256": "53428497f81307b77800648c4646f36d9ce8b30ff7e72b668b3ffdb11a2b2823",
+    "current_pdf_differs_from_acquired_commons_revision": true,
+    "metadata_response_byte_size": 38110,
+    "metadata_response_sha256": "410cc09fc75d081030d15aece50f62b615653c2604313dd1c0c520b7d5b48cb9",
+    "scandata_response_sha256": "50aa2937d40665a7784eec5f33e89401489b6e25fe8987c48da0f01376972fd4",
+    "meta_xml_response_sha256": "215581b1881e8f8c46d299683f3586a90c53b5557ef8b19c9c7f2e232d3147df",
+    "marc_xml_response_sha256": "753b338ce33e75eade82e12d7ec658f0982b428ede811371dec82db676d28654"
+  },
+  "openlibrary_record": {
+    "edition": "OL33158796M",
+    "work": "OL24945055W",
+    "extent_as_cataloged": "154 p.",
+    "oclc": "9422039",
+    "response_byte_size": 2027,
+    "response_sha256": "59734c63f6d6f15c3228d0cec8aeaf9ed98771dd781734ae9bb482ada82e525a"
+  },
+  "source_visible_scan": {
+    "review_maker": "model",
+    "human_repeat_performed": false,
+    "reviewed_pdf_page_ranges": [
+      "1-18",
+      "130-166"
+    ],
+    "observations": [
+      "PDF page 1 is the front binding with the Ecce Homo emblem; pages 2-6 are furniture and blank leaves.",
+      "PDF pages 8-9 carry Henry van de Velde's decorative two-leaf title; page 10 is an Internet Archive marker.",
+      "PDF page 11 begins Ecce Homo, Wie man wird — was man ist, Vorwort and shows printed page 7.",
+      "PDF page 17 carries the dated author note An diesem vollkommnen Tage on printed page 13; page 18 begins Warum ich so weise bin on printed page 14.",
+      "PDF page 130 continues Nietzsche's text; pages 131-134 contain Ruhm und Ewigkeit through printed page 130.",
+      "PDF page 135 is the distinct title Nachwort des Herausgebers, page 136 is blank, and page 137 begins Raoul Richter's afterword on printed page 133.",
+      "PDF pages 145-158 continue Richter's afterword through printed page 154; page 159 is the contents leaf.",
+      "PDF page 161 is the colophon: 1,250 copies, 1,100 normal-paper and 150 Japan-paper copies, printed by Friedrich Richter, binding and ornaments by Henry van de Velde, copy number 965.",
+      "PDF page 165 carries the Getty barcode and label; page 166 is the rear binding."
+    ]
+  },
+  "pagination_conflict": {
+    "dnb_extent": "155 S.",
+    "internet_archive_extent": "154 p.",
+    "openlibrary_extent": "154 p.",
+    "last_visible_printed_page": 154,
+    "decision": "preserve all catalog claims and the source-visible endpoint; do not silently normalize the edition extent"
+  },
+  "editorial_and_critical_boundary": {
+    "established_source": "Andreas Urs Sommer, Historischer und kritischer Kommentar zu Nietzsches Werken, Band 6/2, 2013",
+    "established_source_doi": "10.11588/diglit.70914",
+    "findings": [
+      "The 1908 first edition substantially follows the Köselitz editorial copy.",
+      "Passages were removed or destroyed in the family editorial history.",
+      "The later Colli/Montinari reconstruction is philologically more reliable than the earlier editions.",
+      "The 1908 edition was edited by Raoul Richter and designed by Henry van de Velde."
+    ],
+    "decision": "admit the 1908 physical witness and its edition-scoped expression without treating it as an author-final or critical text"
+  },
+  "fresh_research_leads": [
+    {
+      "citation": "Wolfram Groddeck, „lisez: Nietzsche“. Anmerkungen zu Nietzsches letztem Buch, Nietzsche-Studien 54 (2025), 1-15",
+      "doi": "10.1515/nietzstu-2024-0035",
+      "publication_status": "CC BY 4.0 article",
+      "snapshot_sha256": "43acc4e4de9b448cbdf3e539cfb950f211db81bb9c22d3676f2c5b6f0d2bd291",
+      "relevance": "Ecce Homo is complete as a composed work yet transmitted through a complex and fragmentary editorial history; its paratext and self-reading resist flattening into one neutral text."
+    },
+    {
+      "citation": "Beat Röllin, Post für Nietzsche Dionysos. Zu Ecce homo, Warum ich so weise bin 3, Nietzsche-Studien 54 (2025), 184-201",
+      "doi": "10.1515/nietzstu-2025-0024",
+      "publication_status": "CC BY 4.0 article record; full article snapshot not retained",
+      "relevance": "The textual history includes a more authentic version preserved through a Köselitz copy and renewed chronology around early January 1889."
+    },
+    {
+      "citation": "Ecce Homo – Notes on Duplicates: The Great Politics of the Self, 2026, pp. 75-94",
+      "doi": "10.1515/9783110688436-006",
+      "publication_status": "restricted full text; abstract only",
+      "relevance": "Frontier semantic lead: self-quotation may act as deliberate re-performance rather than stable duplication. No full-text claim is admitted."
+    }
+  ],
+  "negative_and_deferred_channels": {
+    "deutsches_textarchiv": {
+      "author_corpus_response_byte_size": 37243,
+      "author_corpus_response_sha256": "66f46b94968fb10b2c171c1d549f5624ea34ef17457156531ed1ba9c153ede66",
+      "exact_title_response_byte_size": 23426,
+      "exact_title_response_sha256": "fc38940b3eb4d02a4a9a4434ae755c76d5d4f63c6b2a3fa369db71293345fa83",
+      "target_present": false,
+      "decision": "no current Nietzsche Ecce Homo item; the exact-title hit is an unrelated 1650 funeral sermon"
+    },
+    "textgrid": {
+      "exact_query": "title:\"Ecce homo\" AND edition.agent.value:\"Nietzsche, Friedrich\"; target=metadata; allProjects=true",
+      "response_byte_size": 3400,
+      "response_sha256": "153cb84d56181628f17341edf6601e240a824da560bb70272f928377d75ff4ad",
+      "response_hits": 2,
+      "edition_uri": "textgrid:4k1f3.0",
+      "work_uri": "textgrid:4k17q.0",
+      "text_uri": "textgrid:4k1mw.0",
+      "repository_issued": "2026-02-01",
+      "bibliographic_publication": "2016-06",
+      "license_claim": "CC BY 4.0",
+      "decision": "defer as a modern corpus-text challenger; it is not a historical physical-copy record or a critical text"
+    },
+    "google_books": {
+      "http_status": 429,
+      "status": "RESOURCE_EXHAUSTED",
+      "decision": "unavailable current cross-check; no bypass and no metadata claim imported"
+    }
+  },
+  "snapshot_boundary": "This tracked snapshot preserves bibliographic identity, exact digital-object fixity, physical-copy lineage, edition/editorial strata, source-visible boundaries, research order, catalog conflicts, rights evidence, and explicit uncertainty. It contains no source text and accepts no OCR, German reading, critical reconstruction, translation, semantics, or publication.",
+  "snapshot_version": 1
+}

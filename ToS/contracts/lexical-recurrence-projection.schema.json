@@ -1,0 +1,249 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://tree-of-sophia.local/ToS/contracts/lexical-recurrence-projection.schema.json",
+  "title": "Tree of Sophia exact-form recurrence observation projection",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "$schema",
+    "schema_version",
+    "generated_or_authored",
+    "projection_id",
+    "plan",
+    "source_projection",
+    "generator",
+    "work_ref",
+    "segmentation_totals",
+    "method_views",
+    "summary",
+    "rows",
+    "content_exposure",
+    "rights_and_visibility",
+    "semantic_boundary",
+    "provenance_event_ref",
+    "authority_boundary"
+  ],
+  "properties": {
+    "$schema": {
+      "const": "https://tree-of-sophia.local/ToS/contracts/lexical-recurrence-projection.schema.json"
+    },
+    "schema_version": {"const": "tos_lexical_recurrence_projection_v1"},
+    "generated_or_authored": {"const": "generated_from_tracked_lexical_projection"},
+    "projection_id": {
+      "type": "string",
+      "pattern": "^lexical-recurrence-projection:[a-z0-9]+(?:[.-][a-z0-9]+)*$"
+    },
+    "plan": {"$ref": "#/$defs/refDigest"},
+    "source_projection": {
+      "allOf": [
+        {"$ref": "#/$defs/refDigest"},
+        {
+          "type": "object",
+          "properties": {
+            "schema_version": {"const": "tos_lexical_index_projection_v1"}
+          },
+          "required": ["schema_version"]
+        }
+      ]
+    },
+    "generator": {"$ref": "#/$defs/refDigest"},
+    "work_ref": {"$ref": "#/$defs/workId"},
+    "segmentation_totals": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["part_count", "section_count", "page_count", "token_count", "parts"],
+      "properties": {
+        "part_count": {"const": 4},
+        "section_count": {"const": 213},
+        "page_count": {"const": 506},
+        "token_count": {"const": 86287},
+        "parts": {
+          "type": "array",
+          "minItems": 4,
+          "maxItems": 4,
+          "items": {"$ref": "#/$defs/partTotal"}
+        }
+      }
+    },
+    "method_views": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["A", "B", "C"],
+      "properties": {
+        "A": {"const": "absolute-frequency"},
+        "B": {"const": "structural-range"},
+        "C": {"const": "tupleized-part-size-aware-dispersion"}
+      }
+    },
+    "summary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "row_count",
+        "token_occurrence_count",
+        "single_part_form_count",
+        "all_four_parts_form_count",
+        "singleton_form_count",
+        "minimum_part_dp_millionths",
+        "maximum_part_dp_millionths",
+        "semantic_fields_populated"
+      ],
+      "properties": {
+        "row_count": {"const": 11352},
+        "token_occurrence_count": {"const": 86287},
+        "single_part_form_count": {"type": "integer", "minimum": 1, "maximum": 11352},
+        "all_four_parts_form_count": {"type": "integer", "minimum": 1, "maximum": 11352},
+        "singleton_form_count": {"type": "integer", "minimum": 1, "maximum": 11352},
+        "minimum_part_dp_millionths": {"type": "integer", "minimum": 0, "maximum": 1000000},
+        "maximum_part_dp_millionths": {"type": "integer", "minimum": 0, "maximum": 1000000},
+        "semantic_fields_populated": {"const": 0}
+      }
+    },
+    "rows": {
+      "type": "array",
+      "minItems": 11352,
+      "maxItems": 11352,
+      "items": {"$ref": "#/$defs/recurrenceRow"}
+    },
+    "content_exposure": {"$ref": "#/$defs/contentExposure"},
+    "rights_and_visibility": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "source_payload_visibility",
+        "tracked_projection_visibility",
+        "future_site_route",
+        "rights_review_required_before_public_route"
+      ],
+      "properties": {
+        "source_payload_visibility": {"const": "local-only"},
+        "tracked_projection_visibility": {"const": "local-only"},
+        "future_site_route": {"const": "blocked"},
+        "rights_review_required_before_public_route": {"const": true}
+      }
+    },
+    "semantic_boundary": {"$ref": "#/$defs/semanticBoundary"},
+    "provenance_event_ref": {"$ref": "#/$defs/eventId"},
+    "authority_boundary": {"type": "string", "minLength": 1}
+  },
+  "$defs": {
+    "refDigest": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["ref", "sha256"],
+      "properties": {
+        "ref": {"$ref": "#/$defs/repoRelativePath"},
+        "sha256": {"$ref": "#/$defs/sha256"},
+        "schema_version": {"type": "string", "minLength": 1}
+      }
+    },
+    "partTotal": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["part_order", "item_ref", "token_count"],
+      "properties": {
+        "part_order": {"type": "integer", "minimum": 1, "maximum": 4},
+        "item_ref": {"$ref": "#/$defs/itemId"},
+        "token_count": {"type": "integer", "minimum": 1}
+      }
+    },
+    "recurrenceRow": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "form_key",
+        "exact_form_sha256",
+        "normalized_form_sha256",
+        "occurrence_count",
+        "part_range",
+        "section_range",
+        "page_range",
+        "part_dp_millionths",
+        "maximum_part_share_millionths",
+        "source_editorial_occurrence_count",
+        "unsectioned_occurrence_count"
+      ],
+      "properties": {
+        "form_key": {"type": "string", "pattern": "^lexical-form:sha256:[a-f0-9]{64}$"},
+        "exact_form_sha256": {"$ref": "#/$defs/sha256"},
+        "normalized_form_sha256": {"$ref": "#/$defs/sha256"},
+        "occurrence_count": {"type": "integer", "minimum": 1},
+        "part_range": {"type": "integer", "minimum": 1, "maximum": 4},
+        "section_range": {"type": "integer", "minimum": 0, "maximum": 213},
+        "page_range": {"type": "integer", "minimum": 1, "maximum": 506},
+        "part_dp_millionths": {"type": "integer", "minimum": 0, "maximum": 1000000},
+        "maximum_part_share_millionths": {"type": "integer", "minimum": 1, "maximum": 1000000},
+        "source_editorial_occurrence_count": {"type": "integer", "minimum": 0},
+        "unsectioned_occurrence_count": {"type": "integer", "minimum": 0}
+      }
+    },
+    "contentExposure": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "tracked_exact_strings",
+        "tracked_sequence",
+        "tracked_context",
+        "tracked_occurrence_positions",
+        "tracked_form_hashes",
+        "dictionary_recovery_possible",
+        "confidentiality_claimed"
+      ],
+      "properties": {
+        "tracked_exact_strings": {"const": false},
+        "tracked_sequence": {"const": false},
+        "tracked_context": {"const": false},
+        "tracked_occurrence_positions": {"const": false},
+        "tracked_form_hashes": {"const": true},
+        "dictionary_recovery_possible": {"const": true},
+        "confidentiality_claimed": {"const": false}
+      }
+    },
+    "semanticBoundary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "accepts_source_text",
+        "creates_occurrence_authority",
+        "creates_morphology",
+        "creates_lemma",
+        "creates_lexeme",
+        "creates_sign_candidate",
+        "creates_sign",
+        "creates_concept",
+        "opens_initial_sign_packet",
+        "opens_human_backlog"
+      ],
+      "properties": {
+        "accepts_source_text": {"const": false},
+        "creates_occurrence_authority": {"const": false},
+        "creates_morphology": {"const": false},
+        "creates_lemma": {"const": false},
+        "creates_lexeme": {"const": false},
+        "creates_sign_candidate": {"const": false},
+        "creates_sign": {"const": false},
+        "creates_concept": {"const": false},
+        "opens_initial_sign_packet": {"const": false},
+        "opens_human_backlog": {"const": false}
+      }
+    },
+    "workId": {
+      "type": "string",
+      "pattern": "^tos\\.work\\.[a-z0-9]+(?:[.-][a-z0-9]+)*$"
+    },
+    "itemId": {
+      "type": "string",
+      "pattern": "^tos\\.item\\.[a-z0-9]+(?:[.-][a-z0-9]+)*$"
+    },
+    "eventId": {
+      "type": "string",
+      "pattern": "^tos\\.event\\.[a-z0-9]+(?:[.-][a-z0-9]+)*$"
+    },
+    "sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "repoRelativePath": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "^(?![A-Za-z][A-Za-z0-9+.-]*:)(?!/)(?!.*(?:^|/)\\.\\.(?:/|$))[^\\u0000]+$"
+    }
+  }
+}

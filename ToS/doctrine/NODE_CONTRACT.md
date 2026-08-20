@@ -64,6 +64,14 @@ The current public roles are:
 - `working_translation`
 - `bridge_translation`
 
+These are authored route roles, not automatic assurance verdicts.
+`canonical_source` identifies the source-facing witness used by that node; it
+does not by itself establish a critical edition, accepted German reading, or
+modern source review. Likewise, `working_translation` and
+`bridge_translation` identify authored translation functions, not accepted
+translation packets or competence-scoped Human Gold. Any stronger use must
+return through the exact source/translation evidence spine and its own review.
+
 Each witness block keeps the same `segment_id` values across languages so the node stays one node rather than three copies.
 When a witness is maintainer-curated rather than bibliographically fixed, that posture should be named explicitly instead of being left implicit.
 

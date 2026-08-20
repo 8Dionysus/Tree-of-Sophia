@@ -6,21 +6,36 @@
   "variant_labels": [],
   "identity_status": "verified",
   "source_refs": [
-    "ToS/source-witnesses/collections/friedrich-nietzsche/works-in-two-volumes-volume-2-mysl-1996/editions/moscow-mysl-1996-volume-2/items/operator-pdf/forensic-report.md"
+    "ToS/source-witnesses/collections/friedrich-nietzsche/works-in-two-volumes-volume-2-mysl-1996/editions/moscow-mysl-1996-volume-2/items/operator-pdf/forensic-report.md",
+    "ToS/source-witnesses/discovery/runs/mysl-1996-volume-2.2026-07-28.v1.json",
+    "https://irbis-nbuv.gov.ua/cgi-bin/irbis_nbuv/cgiirbis_64.exe?C21COM=S&I21DBN=EC&P21DBN=EC&S21CNR=20&S21COLORTERMS=1&S21FMT=fullwebr&S21P01=0&S21P02=0&S21P03=A%3D&S21REF=10&S21STN=1&S21STR=%D0%9D%D0%B8%D1%86%D1%88%D0%B5+%D0%A4%24&Z21ID=",
+    "https://ci.nii.ac.jp/ncid/BA35025034"
   ],
   "external_identifiers": [
     {
       "scheme": "ISBN",
       "value": "5-244-00854-2",
-      "source_ref": "ToS/source-witnesses/collections/friedrich-nietzsche/works-in-two-volumes-volume-2-mysl-1996/editions/moscow-mysl-1996-volume-2/items/operator-pdf/forensic-report.md",
+      "source_ref": "https://irbis-nbuv.gov.ua/cgi-bin/irbis_nbuv/cgiirbis_64.exe?C21COM=S&I21DBN=EC&P21DBN=EC&S21CNR=20&S21COLORTERMS=1&S21FMT=fullwebr&S21P01=0&S21P02=0&S21P03=A%3D&S21REF=10&S21STN=1&S21STR=%D0%9D%D0%B8%D1%86%D1%88%D0%B5+%D0%A4%24&Z21ID=",
+      "status": "verified"
+    },
+    {
+      "scheme": "NCID",
+      "value": "BA35025034",
+      "source_ref": "https://ci.nii.ac.jp/ncid/BA35025034",
       "status": "verified"
     }
   ],
   "same_as_posture": "no_equivalence_claim",
   "membership_claim_refs": [
-    "tos.claim.collection.mysl-1996-volume-2.contains-also-sprach-zarathustra"
+    "tos.claim.collection.mysl-1996-volume-2.contains-also-sprach-zarathustra",
+    "tos.claim.collection.mysl-1996-volume-2.contains-jenseits-von-gut-und-boese",
+    "tos.claim.collection.mysl-1996-volume-2.contains-zur-genealogie-der-moral",
+    "tos.claim.collection.mysl-1996-volume-2.contains-der-fall-wagner",
+    "tos.claim.collection.mysl-1996-volume-2.contains-goetzen-daemmerung",
+    "tos.claim.collection.mysl-1996-volume-2.contains-der-antichrist",
+    "tos.claim.collection.mysl-1996-volume-2.contains-ecce-homo"
   ],
-  "notes": "Aggregate publication; contained works must be represented through membership claims rather than duplicating the item under each work.",
-  "record_version": 1,
+  "notes": "Aggregate publication containing seven source-visible works. Membership is represented through evidence-bearing claims and a fixity-bound boundary map rather than by duplicating the item under each work. NCID BA35025034 identifies the two-volume set record, not the operator-provided PDF item.",
+  "record_version": 3,
   "supersedes_ref": null
 }

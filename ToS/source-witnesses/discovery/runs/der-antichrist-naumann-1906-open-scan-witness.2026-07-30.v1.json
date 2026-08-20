@@ -1,0 +1,652 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/material-discovery-record.schema.json",
+  "schema_version": "tos_material_discovery_record_v1",
+  "discovery_id": "tos.discovery.der-antichrist-naumann-1906-open-scan-witness.2026-07-30",
+  "protocol_ref": "ToS/source-witnesses/discovery/DISCOVERY_PROTOCOL.md",
+  "target": {
+    "target_kind": "item",
+    "known_tos_refs": [
+      "tos.work.friedrich-nietzsche.der-antichrist"
+    ],
+    "description": "An exact, source-visible, openly reachable original-German historical witness for Der Antichrist that can move the transfer work beyond its provisional Russian collection expression while preserving edition risk.",
+    "required_properties": [
+      "original German historical witness",
+      "source-visible publication and member-work boundaries",
+      "stable digital-object identifier",
+      "exact object fixity",
+      "holding-copy or scan lineage",
+      "positive rights evidence kept separate from ToS legal review",
+      "explicit non-equivalence to manuscript, first printing, and critical text"
+    ],
+    "acceptable_substitutions": [
+      "the exact 1895 first-print volume with source-visible pages and a currently authorized download route",
+      "a critical-edition witness with exact citation identity and rights-compatible local access",
+      "another historical German edition with stronger editorial and holding-copy provenance"
+    ],
+    "languages": [
+      "de"
+    ],
+    "formats": [
+      "metadata",
+      "DjVu page images",
+      "PDF page images",
+      "provider transcription challenger"
+    ],
+    "purpose_ref": "ToS/research-packets/foundation-laboratory-2026-07/LIMITATIONS_AND_NEXT_STEPS.md"
+  },
+  "channels": [
+    {
+      "channel_id": "channel-dnb-der-antichrist-work-authority",
+      "sequence": 1,
+      "channel_type": "national-catalog",
+      "role": "originating-record",
+      "source_name": "Deutsche Nationalbibliothek Gemeinsame Normdatei",
+      "endpoint_url": "https://d-nb.info/gnd/4373217-3/about/lds.jsonld",
+      "interface_type": "api",
+      "interface_version": "GND linked-data JSON-LD as served 2026-07-30",
+      "exact_query": "GET https://d-nb.info/gnd/4373217-3/about/lds.jsonld",
+      "queried_at": "2026-07-30T09:00:12-06:00",
+      "elapsed_seconds": 0.998,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.dnb-gnd-4373217-3-der-antichrist",
+          "rank": 1,
+          "title_as_displayed": "Der Antichrist",
+          "result_url": "https://d-nb.info/gnd/4373217-3",
+          "originating_record_url": "https://d-nb.info/gnd/4373217-3",
+          "identifiers": [
+            {
+              "scheme": "GND",
+              "value": "4373217-3"
+            },
+            {
+              "scheme": "author GND",
+              "value": "118587943"
+            }
+          ],
+          "available_formats": [
+            "JSON-LD",
+            "RDF"
+          ],
+          "declared_rights": {
+            "statement": "CC0 1.0 for the DNB metadata record",
+            "scope": "metadata",
+            "evidence_url": "http://creativecommons.org/publicdomain/zero/1.0/",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "metadata-only",
+          "machine_interface": "api",
+          "decision": "needs-reconciliation",
+          "rationale": "The authority record fixes the work identity, Nietzsche authorship, production year 1888, and publication year 1895. It does not identify a physical or digital item.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "captured",
+            "format": "static-snapshot",
+            "sha256": "9f77e8e288f037d50313ec7cab7fbafc2d4eb933850cfb7cb1d3254428392fa3",
+            "reason": "The exact authority-response digest and parsed work identity are retained without source text."
+          }
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-dta-der-antichrist-author-corpus",
+      "sequence": 2,
+      "channel_type": "specialized-scholarly-project",
+      "role": "scholarly-index",
+      "source_name": "Deutsches Textarchiv",
+      "endpoint_url": "https://www.deutschestextarchiv.de/search",
+      "interface_type": "web",
+      "interface_version": "DTA metadata search as served 2026-07-30",
+      "exact_query": "GET https://www.deutschestextarchiv.de/search?in=metadata&q=Nietzsche",
+      "queried_at": "2026-07-30T09:00:13-06:00",
+      "elapsed_seconds": 1.302,
+      "result_order_preserved": true,
+      "results": []
+    },
+    {
+      "channel_id": "channel-textgrid-der-antichrist-corpus",
+      "sequence": 3,
+      "channel_type": "university-catalog",
+      "role": "mixed",
+      "source_name": "TextGrid Repository TG-search API",
+      "endpoint_url": "https://textgridlab.org/1.0/tgsearch-public/search",
+      "interface_type": "api",
+      "interface_version": "TextGrid public repository API as served 2026-07-30",
+      "exact_query": "q=title:\"Der Antichrist\" AND edition.agent.value:\"Nietzsche, Friedrich\" AND format:\"text/tg.edition+tg.aggregation+xml\"; target=metadata; order=asc:issued; limit=100; allProjects=true",
+      "queried_at": "2026-07-30T09:00:14-06:00",
+      "elapsed_seconds": 1.064,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.textgrid-kolimo-der-antichrist",
+          "rank": 1,
+          "title_as_displayed": "Der Antichrist",
+          "result_url": "https://www.textgridrep.org/browse/4k28z.0",
+          "originating_record_url": "https://textgridlab.org/1.0/tgcrud-public/rest/textgrid:4k28z.0/metadata",
+          "identifiers": [
+            {
+              "scheme": "TextGrid edition URI",
+              "value": "textgrid:4k28z.0"
+            },
+            {
+              "scheme": "TextGrid work URI",
+              "value": "textgrid:4k1zp.0"
+            },
+            {
+              "scheme": "Handle",
+              "value": "hdl:21.11113/4k28z.0"
+            }
+          ],
+          "available_formats": [
+            "TEI XML",
+            "TextGrid metadata XML",
+            "ORE aggregation XML"
+          ],
+          "declared_rights": {
+            "statement": "Edition metadata reports CC BY 4.0.",
+            "scope": "content",
+            "evidence_url": "https://textgridlab.org/1.0/tgcrud-public/rest/textgrid:4k28z.0/metadata",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-download",
+          "machine_interface": "api",
+          "decision": "defer",
+          "rationale": "The Kolimo+ record is a useful 2016 corpus-text challenger, but the 2026 repository issue date and corpus metadata do not identify a historical physical copy, the 1895 first printing, or a critical text.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "captured",
+            "format": "static-snapshot",
+            "sha256": "2485d28cf19b09ec14e7e8080dbe2b0c0786ddf716f5d448c4be534b896f76bf",
+            "reason": "The exact one-hit response, identifiers, corpus date, repository date, language, and license claim are retained."
+          }
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-internet-archive-der-antichrist",
+      "sequence": 4,
+      "channel_type": "open-library",
+      "role": "digital-object-record",
+      "source_name": "Internet Archive advanced search and metadata APIs",
+      "endpoint_url": "https://archive.org/advancedsearch.php",
+      "interface_type": "api",
+      "interface_version": "Internet Archive APIs as served 2026-07-30",
+      "exact_query": "q=title:(\"Der Antichrist\") AND creator:(Nietzsche); fl=identifier,title,creator,date,year,publisher,language,rights,licenseurl; sort=date asc; rows=100; page=1; output=json; then exact metadata requests for the apparent 1895 target and Commons-linked scan lineage",
+      "queried_at": "2026-07-30T09:00:15-06:00",
+      "elapsed_seconds": 1.185,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.internet-archive-der-antichrist-1895-html5-upload",
+          "rank": 1,
+          "title_as_displayed": "Nietzsche, Friedrich Der Antichrist ( 1895, 70 S., Text)",
+          "result_url": "https://archive.org/details/nietzsche-friedrich-der-antichrist-1895-70-s.-text",
+          "originating_record_url": "https://archive.org/metadata/nietzsche-friedrich-der-antichrist-1895-70-s.-text",
+          "identifiers": [
+            {
+              "scheme": "Internet Archive identifier",
+              "value": "nietzsche-friedrich-der-antichrist-1895-70-s.-text"
+            },
+            {
+              "scheme": "PDF SHA-1",
+              "value": "ece2fac5658b0483d82667c7aa9035cb30503a33"
+            }
+          ],
+          "available_formats": [
+            "Text PDF",
+            "DjVu XML"
+          ],
+          "declared_rights": {
+            "statement": null,
+            "scope": "unknown",
+            "evidence_url": null,
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-download",
+          "machine_interface": "api",
+          "decision": "reject",
+          "rationale": "The 293,412-byte PDF is an HTML5 user upload in fringe/deemphasize collections with no publisher, holding institution, sponsor, rights field, license, or visible scan provenance. Its title string cannot establish the 1895 physical edition.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "captured",
+            "format": "static-snapshot",
+            "sha256": "a9361b7ced8b907268a5b709fd0288697548487bbd262f672fc467f3852ca51d",
+            "reason": "The exact metadata response preserves the provenance and rights omissions that caused rejection."
+          }
+        },
+        {
+          "result_id": "tos-discovery-result.internet-archive-nietzscheswerke00nietgoog-contaminated-lineage",
+          "rank": 2,
+          "title_as_displayed": "Gesammelte Werke",
+          "result_url": "https://archive.org/details/nietzscheswerke00nietgoog",
+          "originating_record_url": "https://archive.org/metadata/nietzscheswerke00nietgoog",
+          "identifiers": [
+            {
+              "scheme": "Internet Archive identifier",
+              "value": "nietzscheswerke00nietgoog"
+            },
+            {
+              "scheme": "Internet Archive ARK",
+              "value": "ark:/13960/t5fb5fb3v"
+            },
+            {
+              "scheme": "Google Books source identifier",
+              "value": "raDHLnqFdIwC"
+            }
+          ],
+          "available_formats": [
+            "Image Container PDF",
+            "JP2 page package",
+            "DjVu XML",
+            "ABBYY XML gzip",
+            "scandata XML"
+          ],
+          "declared_rights": {
+            "statement": "possible-copyright-status reports NOT_IN_COPYRIGHT; no rights or license field is present",
+            "scope": "unknown",
+            "evidence_url": "https://archive.org/metadata/nietzscheswerke00nietgoog",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-download",
+          "machine_interface": "api",
+          "decision": "needs-reconciliation",
+          "rationale": "Commons names this object as scan lineage and its original PDF retains Google ID raDHLnqFdIwC, but the current item metadata describes Gustav Siewerth, Düsseldorf 1971, while the visible scan is Nietzsche, Naumann 1906. The contaminated metadata cannot establish bibliographic identity or rights.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "captured",
+            "format": "static-snapshot",
+            "sha256": "286abfe969937de21d88153d87ffab2108aa9ed196003381e3deb8b0abb6ad52",
+            "reason": "The exact current metadata and file-list digest preserve both the Google scan lineage and the provider-record contamination."
+          }
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-google-books-der-antichrist-1895-cornell",
+      "sequence": 5,
+      "channel_type": "collection-aggregator",
+      "role": "digital-object-record",
+      "source_name": "Google Books",
+      "endpoint_url": "https://books.google.com/books",
+      "interface_type": "web",
+      "interface_version": "Google Books record page as served 2026-07-30",
+      "exact_query": "GET https://books.google.com/books?id=kd8cDQEACAAJ&hl=en after exact-title and first-volume lead reconciliation",
+      "queried_at": "2026-07-30T09:00:17-06:00",
+      "elapsed_seconds": 0.682,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.google-books-kd8c-dqeacaaj-cornell-1895",
+          "rank": 1,
+          "title_as_displayed": "Nietzsche's Werke: Der Fall Wagner. Götzen-Dämmerung. Nietzsche contra Wagner. Umwerthung aller Werthe (Erstes Buch: Der Antichrist) Gedichte",
+          "result_url": "https://books.google.com/books?id=kd8cDQEACAAJ",
+          "originating_record_url": "https://books.google.com/books?id=kd8cDQEACAAJ",
+          "identifiers": [
+            {
+              "scheme": "Google Books volume ID",
+              "value": "kd8cDQEACAAJ"
+            },
+            {
+              "scheme": "Cornell bibliographic key",
+              "value": "CORNELL:31924024495412"
+            }
+          ],
+          "available_formats": [
+            "bibliographic metadata",
+            "snippet view"
+          ],
+          "declared_rights": {
+            "statement": "Record flags is_public_domain=false, is_browsable=false, can_download_pdf=false, and can_download_epub=false.",
+            "scope": "digital-object",
+            "evidence_url": "https://books.google.com/books?id=kd8cDQEACAAJ",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "metadata-only",
+          "machine_interface": "html",
+          "decision": "defer",
+          "rationale": "The record is a strong bibliographic lead for the Cornell 1895 Naumann volume, but it exposes neither viewable source pages nor downloadable bytes. It remains a future institutional-access or written-request candidate; no request was sent.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "captured",
+            "format": "static-snapshot",
+            "sha256": "0ea5abe42ba4ba11d1fd9e781aadd70edcdbba38c4b962ce2e1ccb7f252f0952",
+            "reason": "The exact current HTML-response digest preserves publisher, year, Cornell origin, alternate record, and no-view/no-download flags."
+          }
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-wikimedia-commons-naumann-1906-volume-8",
+      "sequence": 6,
+      "channel_type": "collection-aggregator",
+      "role": "digital-object-record",
+      "source_name": "Wikimedia Commons MediaWiki API",
+      "endpoint_url": "https://commons.wikimedia.org/w/api.php",
+      "interface_type": "api",
+      "interface_version": "MediaWiki imageinfo and revision API as served 2026-07-30",
+      "exact_query": "action=query; format=json; formatversion=2; prop=imageinfo|revisions; titles=File:Nietzsche's Werke, VIII.djvu; iiprop=url|size|sha1|mime|timestamp|user|canonicaltitle|extmetadata; rvprop=ids|timestamp|user|comment|sha1|contentmodel",
+      "queried_at": "2026-07-30T09:00:17-06:00",
+      "elapsed_seconds": 0.224,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.wikimedia-commons-nietzsches-werke-band-8-naumann-1906",
+          "rank": 1,
+          "title_as_displayed": "Nietzsche's Werke, VIII.djvu",
+          "result_url": "https://commons.wikimedia.org/wiki/File:Nietzsche%27s_Werke,_VIII.djvu",
+          "originating_record_url": "https://commons.wikimedia.org/w/index.php?curid=16394410",
+          "identifiers": [
+            {
+              "scheme": "Wikimedia Commons page ID",
+              "value": "16394410"
+            },
+            {
+              "scheme": "source SHA-1",
+              "value": "decddcd95661f368fbf725ee855350b9cb3701d2"
+            },
+            {
+              "scheme": "source-lineage Internet Archive identifier",
+              "value": "nietzscheswerke00nietgoog"
+            }
+          ],
+          "available_formats": [
+            "DjVu page images",
+            "embedded OCR navigation layer",
+            "MediaWiki metadata",
+            "page thumbnails"
+          ],
+          "declared_rights": {
+            "statement": "Public domain; Copyrighted=False; AttributionRequired=false; PD-old-100-expired and Public Domain Mark categories",
+            "scope": "digital-object",
+            "evidence_url": "https://commons.wikimedia.org/wiki/File:Nietzsche%27s_Werke,_VIII.djvu",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-download",
+          "machine_interface": "api",
+          "decision": "select",
+          "rationale": "The exact Commons revision exposes 523 pages, byte size, SHA-1, MIME type, an open exact-file URL, source lineage, and positive rights fields. Visible pages identify the Stanford copy and Naumann 1906 volume, and delimit Der Antichrist. It is acquired as a historical archive-edition witness, not accepted German, the 1895 first printing, or a critical text.",
+          "acquisition": {
+            "downloaded": true,
+            "acquired_at": "2026-07-30T08:44:40-06:00",
+            "byte_size": 24324176,
+            "sha256": "8f61aaecd55339fc3ba11eca24fbeef85e953d1a262200b36e59d5fbc545ca9d",
+            "event_ref": "tos.event.acquisition.nietzsches-werke-band-8.naumann-1906.wikimedia-commons-stanford-scan-djvu.2026-07-30"
+          },
+          "snapshot": {
+            "state": "captured",
+            "format": "static-snapshot",
+            "sha256": "131d60b15c1588a1e2998573c58b7c295800a4440c5a97b0d07a96f0dbef4194",
+            "reason": "The exact API-response digest preserves file revision identity, fixity, source lineage, page count, and provider rights fields without source text."
+          }
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-hadw-critical-commentary-der-antichrist",
+      "sequence": 7,
+      "channel_type": "specialized-scholarly-project",
+      "role": "scholarly-index",
+      "source_name": "Heidelberger Akademie der Wissenschaften digital Historischer und kritischer Kommentar",
+      "endpoint_url": "https://digi.hadw-bw.de/view/nietzsche_kom6_2/0031/text_ocr",
+      "interface_type": "web",
+      "interface_version": "HAdW digital commentary page as served 2026-07-30; print volume 2013",
+      "exact_query": "Exact commentary page for Andreas Urs Sommer, Kommentar zu Nietzsches Der Antichrist, section on first publication and editorial interventions",
+      "queried_at": "2026-07-30T09:00:18-06:00",
+      "elapsed_seconds": 1.024,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.hadw-sommer-2013-der-antichrist-editorial-history",
+          "rank": 1,
+          "title_as_displayed": "Historischer und kritischer Kommentar zu Friedrich Nietzsches Werken, Band 6/2: Kommentar zu Der Antichrist",
+          "result_url": "https://digi.hadw-bw.de/view/nietzsche_kom6_2/0031/text_ocr",
+          "originating_record_url": "https://digi.hadw-bw.de/view/nietzsche_kom6_2",
+          "identifiers": [],
+          "available_formats": [
+            "page image",
+            "OCR reading view",
+            "PDF volume"
+          ],
+          "declared_rights": {
+            "statement": null,
+            "scope": "content",
+            "evidence_url": null,
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-view",
+          "machine_interface": "html",
+          "decision": "defer",
+          "rationale": "The leading historical-critical commentary corroborates that the work first appeared in Koegel's 1895 volume with Köselitz corrections and four suppressed passages. It is retained as editorial-risk evidence, not as a replacement source item or an accepted critical text.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "captured",
+            "format": "static-snapshot",
+            "sha256": "547d19c02daa6df0ccfd5eef9f6f1396eefc98d4a0ad9452a5220a7fde320b07",
+            "reason": "The exact current page-response digest preserves the cited editorial-history context without importing it as source text."
+          }
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-wikisource-naumann-1906-volume-8",
+      "sequence": 8,
+      "channel_type": "specialized-scholarly-project",
+      "role": "mixed",
+      "source_name": "German Wikisource ProofreadPage index",
+      "endpoint_url": "https://de.wikisource.org/wiki/Index:Nietzsche%27s_Werke,_VIII.djvu",
+      "interface_type": "api",
+      "interface_version": "MediaWiki API and ProofreadPage index as served 2026-07-30",
+      "exact_query": "action=query; prop=categories|revisions; titles=Index:Nietzsche's Werke, VIII.djvu; revision content inspected for the exact pagelist",
+      "queried_at": "2026-07-30T09:00:19-06:00",
+      "elapsed_seconds": 0.221,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.wikisource-nietzsches-werke-band-8-index",
+          "rank": 1,
+          "title_as_displayed": "Index:Nietzsche's Werke, VIII.djvu",
+          "result_url": "https://de.wikisource.org/wiki/Index:Nietzsche%27s_Werke,_VIII.djvu",
+          "originating_record_url": "https://de.wikisource.org/w/index.php?curid=286095",
+          "identifiers": [
+            {
+              "scheme": "German Wikisource page ID",
+              "value": "286095"
+            }
+          ],
+          "available_formats": [
+            "ProofreadPage index",
+            "page transcriptions for scan pages 420 through 454"
+          ],
+          "declared_rights": {
+            "statement": null,
+            "scope": "content",
+            "evidence_url": null,
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-view",
+          "machine_interface": "api",
+          "decision": "defer",
+          "rationale": "The index is categorized complete, but its actual pagelist covers only Dionysos-Dithyramben on scan pages 420-454. It provides no accepted or twice-proofread Der Antichrist transcription and must not be generalized to the 523-page volume.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "captured",
+            "format": "static-snapshot",
+            "sha256": "fe1f337b401b6ad4c308e65baa5a438ae5872af4e4938d161da7c0ecc22c707c",
+            "reason": "The exact index response and revision content preserve the limited page range behind the misleading volume-level completion category."
+          }
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-general-web-der-antichrist",
+      "sequence": 9,
+      "channel_type": "general-web-search",
+      "role": "lead-only",
+      "source_name": "General web search",
+      "endpoint_url": "https://www.google.com/search",
+      "interface_type": "web",
+      "interface_version": "search results observed 2026-07-30",
+      "exact_query": "\"Der Antichrist\" 1895 Koegel first edition scan; \"Der Antichrist\" 1906 Naumann Nietzsche Werke VIII; current scholarly commentary and institutional digital copies",
+      "queried_at": "2026-07-30T09:00:20-06:00",
+      "elapsed_seconds": 2.1,
+      "result_order_preserved": true,
+      "results": []
+    }
+  ],
+  "channel_comparison": [
+    {
+      "channel_id": "channel-dnb-der-antichrist-work-authority",
+      "completeness": "adequate",
+      "metadata_precision": "strong",
+      "rights_clarity": "strong",
+      "machine_interface_quality": "strong",
+      "human_minutes": 1.0,
+      "machine_seconds": 0.998,
+      "notes": "Best work-identity authority; no item bytes or edition-copy identity."
+    },
+    {
+      "channel_id": "channel-dta-der-antichrist-author-corpus",
+      "completeness": "limited",
+      "metadata_precision": "strong",
+      "rights_clarity": "strong",
+      "machine_interface_quality": "adequate",
+      "human_minutes": 0.5,
+      "machine_seconds": 1.302,
+      "notes": "Author corpus contains seven Nietzsche objects but no Der Antichrist."
+    },
+    {
+      "channel_id": "channel-textgrid-der-antichrist-corpus",
+      "completeness": "adequate",
+      "metadata_precision": "limited",
+      "rights_clarity": "strong",
+      "machine_interface_quality": "strong",
+      "human_minutes": 2.0,
+      "machine_seconds": 1.064,
+      "notes": "Useful modern corpus challenger; weak historical-item identity."
+    },
+    {
+      "channel_id": "channel-internet-archive-der-antichrist",
+      "completeness": "adequate",
+      "metadata_precision": "poor",
+      "rights_clarity": "poor",
+      "machine_interface_quality": "strong",
+      "human_minutes": 8.0,
+      "machine_seconds": 1.185,
+      "notes": "Strong file interfaces, but the apparent 1895 upload lacks provenance and the scan-lineage item is bibliographically contaminated."
+    },
+    {
+      "channel_id": "channel-google-books-der-antichrist-1895-cornell",
+      "completeness": "limited",
+      "metadata_precision": "strong",
+      "rights_clarity": "limited",
+      "machine_interface_quality": "limited",
+      "human_minutes": 4.0,
+      "machine_seconds": 0.682,
+      "notes": "Strong 1895 Cornell bibliographic lead; no view or download route."
+    },
+    {
+      "channel_id": "channel-wikimedia-commons-naumann-1906-volume-8",
+      "completeness": "strong",
+      "metadata_precision": "adequate",
+      "rights_clarity": "strong",
+      "machine_interface_quality": "strong",
+      "human_minutes": 14.0,
+      "machine_seconds": 0.224,
+      "notes": "Best exact open digital object after source-visible reconciliation; historical archive edition rather than first or critical edition."
+    },
+    {
+      "channel_id": "channel-hadw-critical-commentary-der-antichrist",
+      "completeness": "strong",
+      "metadata_precision": "strong",
+      "rights_clarity": "unknown",
+      "machine_interface_quality": "adequate",
+      "human_minutes": 5.0,
+      "machine_seconds": 1.024,
+      "notes": "Best scholarly editorial-risk authority in the run; not an item acquisition route."
+    },
+    {
+      "channel_id": "channel-wikisource-naumann-1906-volume-8",
+      "completeness": "poor",
+      "metadata_precision": "limited",
+      "rights_clarity": "limited",
+      "machine_interface_quality": "adequate",
+      "human_minutes": 3.0,
+      "machine_seconds": 0.221,
+      "notes": "Volume-level completion label is misleading for this target because the pagelist covers only pages 420-454."
+    },
+    {
+      "channel_id": "channel-general-web-der-antichrist",
+      "completeness": "limited",
+      "metadata_precision": "limited",
+      "rights_clarity": "poor",
+      "machine_interface_quality": "limited",
+      "human_minutes": 4.0,
+      "machine_seconds": 2.1,
+      "notes": "Used last for leads and cross-checks; no general-search result was selected as authority."
+    }
+  ],
+  "selected_result_ids": [
+    "tos-discovery-result.wikimedia-commons-nietzsches-werke-band-8-naumann-1906"
+  ],
+  "rejected_result_ids": [
+    "tos-discovery-result.internet-archive-der-antichrist-1895-html5-upload"
+  ],
+  "rights_inference_from_availability_prohibited": true,
+  "general_web_search_is_last_resort": true,
+  "technical_access_bypass_used": false,
+  "maker": {
+    "maker_type": "model",
+    "agent_ref": "model:codex"
+  },
+  "started_at": "2026-07-30T09:00:12-06:00",
+  "ended_at": "2026-07-30T09:00:22-06:00",
+  "status": "reconciled",
+  "provenance_event_refs": [
+    "tos.event.discovery.der-antichrist-naumann-1906-open-scan-witness.2026-07-30"
+  ],
+  "record_version": 1,
+  "supersedes_discovery_ref": null
+}

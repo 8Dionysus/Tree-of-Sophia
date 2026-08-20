@@ -1,0 +1,207 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://tree-of-sophia.local/ToS/contracts/source-resource-inventory.schema.json",
+  "title": "Tree of Sophia source resource inventory",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "$schema",
+    "schema_version",
+    "item_id",
+    "generated_from_manifest_ref",
+    "inventory_authority",
+    "source_text_included",
+    "files",
+    "generator",
+    "provenance_event_ref",
+    "inventory_version"
+  ],
+  "properties": {
+    "$schema": {
+      "const": "https://tree-of-sophia.local/ToS/contracts/source-resource-inventory.schema.json"
+    },
+    "schema_version": {"const": "tos_source_resource_inventory_v1"},
+    "item_id": {"$ref": "#/$defs/tosId"},
+    "generated_from_manifest_ref": {"$ref": "#/$defs/repoRelativePath"},
+    "inventory_authority": {"const": "mechanical_metadata_only"},
+    "source_text_included": {"const": false},
+    "files": {
+      "type": "array",
+      "minItems": 1,
+      "items": {"$ref": "#/$defs/fileInventory"}
+    },
+    "generator": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "version"],
+      "properties": {
+        "name": {"const": "build_source_resource_inventories.py"},
+        "version": {"const": "1"}
+      }
+    },
+    "provenance_event_ref": {"$ref": "#/$defs/tosId"},
+    "inventory_version": {"type": "integer", "minimum": 1},
+    "supersedes_inventory_ref": {
+      "anyOf": [
+        {"$ref": "#/$defs/repoRelativePath"},
+        {"type": "null"}
+      ]
+    },
+    "authority_boundary": {
+      "const": "resource enumeration, geometry, ordering, counts, and one-way fingerprints only; no source text, bibliographic acceptance, textual acceptance, rights clearance, translation, semantics, or canon authority"
+    }
+  },
+  "$defs": {
+    "tosId": {
+      "type": "string",
+      "pattern": "^tos\\.(agent|work|expression|edition|collection|item|file|passage|region|anchor|occurrence|annotation|claim|rights|review|event)\\.[a-z0-9]+(?:[.-][a-z0-9]+)*$"
+    },
+    "sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "repoRelativePath": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "^(?![A-Za-z][A-Za-z0-9+.-]*:)(?!/)(?!.*(?:^|/)\\.\\.(?:/|$))[^\\u0000]+$"
+    },
+    "fingerprint": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["algorithm", "normalization", "sha256", "character_count"],
+      "properties": {
+        "algorithm": {"const": "sha256"},
+        "normalization": {"const": "unicode-nfc-whitespace-collapse"},
+        "sha256": {"$ref": "#/$defs/sha256"},
+        "character_count": {"type": "integer", "minimum": 0}
+      }
+    },
+    "locator": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "page_index": {"type": "integer", "minimum": 1},
+        "leaf_number": {"type": "integer", "minimum": 0},
+        "width_points": {"type": "number", "exclusiveMinimum": 0},
+        "height_points": {"type": "number", "exclusiveMinimum": 0},
+        "width_pixels": {"type": "integer", "minimum": 1},
+        "height_pixels": {"type": "integer", "minimum": 1},
+        "resolution_dpi": {"type": "integer", "minimum": 1},
+        "rotation_degrees": {"type": "integer"},
+        "member_path": {
+          "type": "string",
+          "minLength": 1,
+          "pattern": "^(?!/)(?!.*(?:^|/)\\.\\.(?:/|$))[^\\u0000]+$"
+        },
+        "container_order": {"type": "integer", "minimum": 1},
+        "spine_index": {"type": "integer", "minimum": 1},
+        "tei_path": {"type": "string", "minLength": 1},
+        "tei_depth": {"type": "integer", "minimum": 1},
+        "tei_page_label": {"type": "string", "minLength": 1},
+        "tei_facs_ref": {"type": "string", "minLength": 1},
+        "tei_n": {"type": "string", "minLength": 1},
+        "tei_type": {"type": "string", "minLength": 1},
+        "parent_resource_id": {"type": "string", "minLength": 1}
+      },
+      "minProperties": 1
+    },
+    "resource": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["resource_id", "resource_kind", "locator"],
+      "properties": {
+        "resource_id": {
+          "type": "string",
+          "pattern": "^[a-z0-9]+(?:[.-][a-z0-9]+)*$"
+        },
+        "resource_kind": {
+          "enum": [
+            "pdf_page",
+            "djvu_page",
+            "epub_member",
+            "tei_page_break",
+            "tei_division",
+            "ocr_page",
+            "image_page",
+            "scan_data_page"
+          ]
+        },
+        "locator": {"$ref": "#/$defs/locator"},
+        "media_type": {"type": "string", "pattern": "^[a-z0-9.+-]+/[a-z0-9.+-]+$"},
+        "byte_size": {"type": "integer", "minimum": 0},
+        "sha256": {"$ref": "#/$defs/sha256"},
+        "structural_role": {
+          "enum": [
+            "page",
+            "spine_resource",
+            "navigation",
+            "package_metadata",
+            "container_metadata",
+            "auxiliary_resource",
+            "page_break",
+            "division",
+            "contents"
+          ]
+        },
+        "image_resource_count": {"type": "integer", "minimum": 0},
+        "paragraph_count": {"type": "integer", "minimum": 0},
+        "line_count": {"type": "integer", "minimum": 0},
+        "word_count": {"type": "integer", "minimum": 0},
+        "label_fingerprint": {"$ref": "#/$defs/fingerprint"},
+        "content_fingerprint": {"$ref": "#/$defs/fingerprint"}
+      }
+    },
+    "summary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["resource_count"],
+      "properties": {
+        "resource_count": {"type": "integer", "minimum": 1},
+        "page_count": {"type": "integer", "minimum": 1},
+        "image_resource_count": {"type": "integer", "minimum": 0},
+        "distinct_page_geometry_count": {"type": "integer", "minimum": 1},
+        "member_count": {"type": "integer", "minimum": 1},
+        "spine_item_count": {"type": "integer", "minimum": 0},
+        "xhtml_count": {"type": "integer", "minimum": 0},
+        "page_break_count": {"type": "integer", "minimum": 0},
+        "division_count": {"type": "integer", "minimum": 0},
+        "max_division_depth": {"type": "integer", "minimum": 0},
+        "paragraph_count": {"type": "integer", "minimum": 0},
+        "line_count": {"type": "integer", "minimum": 0},
+        "word_count": {"type": "integer", "minimum": 0}
+      }
+    },
+    "fileInventory": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "file_id",
+        "file_sha256",
+        "media_type",
+        "profile",
+        "summary",
+        "resources"
+      ],
+      "properties": {
+        "file_id": {"$ref": "#/$defs/tosId"},
+        "file_sha256": {"$ref": "#/$defs/sha256"},
+        "media_type": {"type": "string", "pattern": "^[a-z0-9.+-]+/[a-z0-9.+-]+$"},
+        "profile": {
+          "enum": [
+            "pdf_pages_v1",
+            "djvu_pages_v1",
+            "epub_resources_v1",
+            "tei_structure_v1",
+            "djvu_xml_pages_v1",
+            "abbyy_xml_pages_v1",
+            "jp2_zip_pages_v1",
+            "scandata_pages_v1"
+          ]
+        },
+        "summary": {"$ref": "#/$defs/summary"},
+        "resources": {
+          "type": "array",
+          "minItems": 1,
+          "items": {"$ref": "#/$defs/resource"}
+        }
+      }
+    }
+  }
+}

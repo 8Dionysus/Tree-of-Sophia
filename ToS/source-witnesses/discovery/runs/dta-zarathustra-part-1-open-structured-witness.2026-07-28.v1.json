@@ -1,0 +1,461 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/material-discovery-record.schema.json",
+  "schema_version": "tos_material_discovery_record_v1",
+  "discovery_id": "tos.discovery.dta-zarathustra-part-1-open-structured-witness.2026-07-28",
+  "protocol_ref": "ToS/source-witnesses/discovery/DISCOVERY_PROTOCOL.md",
+  "target": {
+    "target_kind": "expression",
+    "known_tos_refs": [
+      "tos.work.friedrich-nietzsche.also-sprach-zarathustra",
+      "tos.expression.friedrich-nietzsche.also-sprach-zarathustra.de-naumann-1893"
+    ],
+    "description": "An openly reusable, structured German witness for the first published part of Also sprach Zarathustra, including Zarathustra's Vorrede, with exact printed-source provenance and a source-visible facsimile route.",
+    "required_properties": [
+      "original German",
+      "first-part bibliographic identity",
+      "structured page-addressable text",
+      "visible originating print",
+      "external quality statement",
+      "exact object fixity",
+      "layer-specific rights evidence"
+    ],
+    "acceptable_substitutions": [
+      "another structured first-edition part-1 witness with page-level source linkage, documented correction, and equally explicit rights evidence"
+    ],
+    "languages": [
+      "de"
+    ],
+    "formats": [
+      "metadata",
+      "XML/TEI P5",
+      "facsimile images"
+    ],
+    "purpose_ref": "ToS/research-packets/foundation-laboratory-2026-07/TRANSLATION_SOURCE_REVIEW_V2.md"
+  },
+  "channels": [
+    {
+      "channel_id": "channel-dnb-zarathustra-work-authority",
+      "sequence": 1,
+      "channel_type": "national-catalog",
+      "role": "originating-record",
+      "source_name": "Deutsche Nationalbibliothek Gemeinsame Normdatei",
+      "endpoint_url": "https://d-nb.info/gnd/4099324-3/about/lds.jsonld",
+      "interface_type": "api",
+      "interface_version": "GND linked-data JSON-LD as served 2026-07-28",
+      "exact_query": "GET https://d-nb.info/gnd/4099324-3/about/lds.jsonld with Accept: application/ld+json",
+      "queried_at": "2026-07-28T19:28:12-06:00",
+      "elapsed_seconds": 0.942916,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.dnb-gnd-4099324-3-part-1-run",
+          "rank": 1,
+          "title_as_displayed": "Also sprach Zarathustra",
+          "result_url": "https://d-nb.info/gnd/4099324-3",
+          "originating_record_url": "https://d-nb.info/gnd/4099324-3",
+          "identifiers": [
+            {
+              "scheme": "GND",
+              "value": "4099324-3"
+            }
+          ],
+          "available_formats": [
+            "JSON-LD",
+            "RDF"
+          ],
+          "declared_rights": {
+            "statement": null,
+            "scope": "metadata",
+            "evidence_url": null,
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "metadata-only",
+          "machine_interface": "api",
+          "decision": "needs-reconciliation",
+          "rationale": "The national authority record fixes work identity and the 1883-1885 publication interval. It does not identify the first-part digital object or its text and image rights.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "captured",
+            "format": "static-snapshot",
+            "sha256": "7ece7c040dd478d335ae110b826996343f97ac4c8b9d97b2c99f0342a480e55d",
+            "reason": "The compact source snapshot preserves the exact authority identifier, query time, and response digest without retaining the full live response."
+          }
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-dta-zarathustra-part-1",
+      "sequence": 2,
+      "channel_type": "specialized-scholarly-project",
+      "role": "mixed",
+      "source_name": "Deutsches Textarchiv",
+      "endpoint_url": "https://www.deutschestextarchiv.de/book/show/nietzsche_zarathustra01_1883",
+      "interface_type": "api",
+      "interface_version": "DTA web, TEI-header, Dublin Core, media, and download endpoints as served 2026-07-28",
+      "exact_query": "GET book/view/nietzsche_zarathustra01_1883?p=1; GET doku/nutzungsbedingungen; GET api/tei_header/nietzsche_zarathustra01_1883; GET api/oai_dc/nietzsche_zarathustra01_1883; GET media/images/nietzsche_zarathustra01_1883/nietzsche_zarathustra01_1883_0007_1600px.jpg; GET book/download_xml/nietzsche_zarathustra01_1883. Initial no-cookie responses set verified=1; failed bounded download retries and final successful requests are retained in elapsed time.",
+      "queried_at": "2026-07-28T19:20:55-06:00",
+      "elapsed_seconds": 231.71843,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.dta-zarathustra01-1883-tei",
+          "rank": 1,
+          "title_as_displayed": "Nietzsche, Friedrich: Also sprach Zarathustra. [Bd. 1]. Chemnitz, 1883.",
+          "result_url": "https://www.deutschestextarchiv.de/book/show/nietzsche_zarathustra01_1883",
+          "originating_record_url": "https://www.deutschestextarchiv.de/book/show/nietzsche_zarathustra01_1883",
+          "identifiers": [
+            {
+              "scheme": "DTA ID",
+              "value": "16840"
+            },
+            {
+              "scheme": "DTA directory name",
+              "value": "nietzsche_zarathustra01_1883"
+            },
+            {
+              "scheme": "URN",
+              "value": "urn:nbn:de:kobv:b4-200905194290"
+            },
+            {
+              "scheme": "holding-copy shelfmark",
+              "value": "SBB-PK, 19 ZZ 10200-1/3"
+            }
+          ],
+          "available_formats": [
+            "XML/TEI P5",
+            "HTML",
+            "plain text",
+            "TCF",
+            "123 page images"
+          ],
+          "declared_rights": {
+            "statement": "The current TEI header and DTA terms say CC BY-SA 4.0 for annotated full text; the terms distinguish unrestricted pure text and separately restricted holding-library images. The live Dublin Core endpoint still reports the former CC BY-NC 3.0 field.",
+            "scope": "content",
+            "evidence_url": "https://www.deutschestextarchiv.de/doku/nutzungsbedingungen",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-download",
+          "machine_interface": "api",
+          "decision": "select",
+          "rationale": "The DTA object identifies the 1883 Schmeitzner first part and exact SBB-PK copy, exposes 123 page images, supplies page-addressable DTABf TEI, and reports native-speaker post-OCR checking. The exact TEI is acquired as an externally checked structured witness, not ToS-accepted German or a critical edition.",
+          "acquisition": {
+            "downloaded": true,
+            "acquired_at": "2026-07-28T19:25:32-06:00",
+            "byte_size": 159265,
+            "sha256": "d3fa5f8af39d87c8f0ede7a0b52b26da0c57e73125d3b0bd2a836b80eae24a4b",
+            "event_ref": "tos.event.acquisition.dta-zarathustra-part-1-tei.2026-07-28"
+          },
+          "snapshot": {
+            "state": "captured",
+            "format": "static-snapshot",
+            "sha256": "7ece7c040dd478d335ae110b826996343f97ac4c8b9d97b2c99f0342a480e55d",
+            "reason": "A compact snapshot preserves bibliographic, holding-copy, quality, rights-conflict, endpoint, and response-digest evidence without source-text content."
+          }
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-textgrid-zarathustra-editions",
+      "sequence": 3,
+      "channel_type": "university-catalog",
+      "role": "mixed",
+      "source_name": "TextGrid Repository TG-search and TG-crud APIs",
+      "endpoint_url": "https://textgridlab.org/1.0/tgsearch-public/search",
+      "interface_type": "api",
+      "interface_version": "TextGrid public repository APIs and 2026-04 documentation as served 2026-07-28",
+      "exact_query": "GET /1.0/tgsearch-public/search with q=title:\"Also sprach Zarathustra\" AND edition.agent.value:\"Nietzsche, Friedrich\" AND format:\"text/tg.edition+tg.aggregation+xml\"; target=metadata; order=asc:issued; limit=100; allProjects=true; then GET TG-crud metadata/data/tech for the five edition hits and their relevant child objects",
+      "queried_at": "2026-07-28T19:19:46-06:00",
+      "elapsed_seconds": 59.858099,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.textgrid-dta-zarathustra-part-1",
+          "rank": 1,
+          "title_as_displayed": "Also sprach Zarathustra",
+          "result_url": "https://www.textgridrep.org/browse/4bmwr.0",
+          "originating_record_url": "https://textgridlab.org/1.0/tgcrud-public/rest/textgrid:4bmwr.0/metadata",
+          "identifiers": [
+            {
+              "scheme": "TextGrid edition URI",
+              "value": "textgrid:4bmwr.0"
+            },
+            {
+              "scheme": "TextGrid text URI",
+              "value": "textgrid:4bnbs.0"
+            },
+            {
+              "scheme": "Handle",
+              "value": "hdl:21.11113/4bmwr.0"
+            }
+          ],
+          "available_formats": [
+            "TEI XML",
+            "TextGrid metadata XML",
+            "ORE aggregation XML"
+          ],
+          "declared_rights": {
+            "statement": "Edition metadata reports CC BY 4.0; the imported child TEI header reports CC0 1.0.",
+            "scope": "content",
+            "evidence_url": "https://textgridlab.org/1.0/tgcrud-public/rest/textgrid:4bmwr.0/metadata",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-download",
+          "machine_interface": "api",
+          "decision": "defer",
+          "rationale": "This is a stable public archive alternate of the same DTA-derived part-1 text. It is retained for future fixity and version comparison, while the direct current DTA object is selected because it couples text, facsimile, correction statement, and holding-copy provenance.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "captured",
+            "format": "static-snapshot",
+            "sha256": "7ece7c040dd478d335ae110b826996343f97ac4c8b9d97b2c99f0342a480e55d",
+            "reason": "The compact snapshot retains the exact query, rank, persistent identifiers, child relation, and license claims."
+          }
+        },
+        {
+          "result_id": "tos-discovery-result.textgrid-dta-zarathustra-part-2",
+          "rank": 2,
+          "title_as_displayed": "Also sprach Zarathustra",
+          "result_url": "https://www.textgridrep.org/browse/4bn9d.0",
+          "originating_record_url": "https://textgridlab.org/1.0/tgcrud-public/rest/textgrid:4bn9d.0/metadata",
+          "identifiers": [
+            {
+              "scheme": "TextGrid edition URI",
+              "value": "textgrid:4bn9d.0"
+            },
+            {
+              "scheme": "TextGrid text URI",
+              "value": "textgrid:4bnwn.0"
+            }
+          ],
+          "available_formats": [
+            "TEI XML",
+            "TextGrid metadata XML"
+          ],
+          "declared_rights": {
+            "statement": "Edition metadata reports CC BY 4.0; the imported child TEI header reports CC0 1.0.",
+            "scope": "content",
+            "evidence_url": "https://textgridlab.org/1.0/tgcrud-public/rest/textgrid:4bn9d.0/metadata",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-download",
+          "machine_interface": "api",
+          "decision": "reject",
+          "rationale": "Useful future part-2 witness, but outside this exact part-1 and Vorrede target.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "captured",
+            "format": "static-snapshot",
+            "sha256": "7ece7c040dd478d335ae110b826996343f97ac4c8b9d97b2c99f0342a480e55d",
+            "reason": "The exact rank and part-2 identity are retained for future expansion."
+          }
+        },
+        {
+          "result_id": "tos-discovery-result.textgrid-dta-zarathustra-part-4",
+          "rank": 3,
+          "title_as_displayed": "Also sprach Zarathustra",
+          "result_url": "https://www.textgridrep.org/browse/4bnhg.0",
+          "originating_record_url": "https://textgridlab.org/1.0/tgcrud-public/rest/textgrid:4bnhg.0/metadata",
+          "identifiers": [
+            {
+              "scheme": "TextGrid edition URI",
+              "value": "textgrid:4bnhg.0"
+            },
+            {
+              "scheme": "TextGrid text URI",
+              "value": "textgrid:4bnbq.0"
+            }
+          ],
+          "available_formats": [
+            "TEI XML",
+            "TextGrid metadata XML"
+          ],
+          "declared_rights": {
+            "statement": "Edition metadata reports CC BY 4.0; the imported child TEI header reports CC0 1.0.",
+            "scope": "content",
+            "evidence_url": "https://textgridlab.org/1.0/tgcrud-public/rest/textgrid:4bnhg.0/metadata",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-download",
+          "machine_interface": "api",
+          "decision": "reject",
+          "rationale": "Useful future part-4 witness, but outside this exact part-1 and Vorrede target.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "captured",
+            "format": "static-snapshot",
+            "sha256": "7ece7c040dd478d335ae110b826996343f97ac4c8b9d97b2c99f0342a480e55d",
+            "reason": "The exact rank and part-4 identity are retained for future expansion."
+          }
+        },
+        {
+          "result_id": "tos-discovery-result.textgrid-dta-zarathustra-part-3",
+          "rank": 4,
+          "title_as_displayed": "Also sprach Zarathustra",
+          "result_url": "https://www.textgridrep.org/browse/4bnjk.0",
+          "originating_record_url": "https://textgridlab.org/1.0/tgcrud-public/rest/textgrid:4bnjk.0/metadata",
+          "identifiers": [
+            {
+              "scheme": "TextGrid edition URI",
+              "value": "textgrid:4bnjk.0"
+            },
+            {
+              "scheme": "TextGrid text URI",
+              "value": "textgrid:4bmkp.0"
+            }
+          ],
+          "available_formats": [
+            "TEI XML",
+            "TextGrid metadata XML"
+          ],
+          "declared_rights": {
+            "statement": "Edition metadata reports CC BY 4.0; the imported child TEI header reports CC0 1.0.",
+            "scope": "content",
+            "evidence_url": "https://textgridlab.org/1.0/tgcrud-public/rest/textgrid:4bnjk.0/metadata",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-download",
+          "machine_interface": "api",
+          "decision": "reject",
+          "rationale": "Useful future part-3 witness, but outside this exact part-1 and Vorrede target.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "captured",
+            "format": "static-snapshot",
+            "sha256": "7ece7c040dd478d335ae110b826996343f97ac4c8b9d97b2c99f0342a480e55d",
+            "reason": "The exact rank and part-3 identity are retained for future expansion."
+          }
+        },
+        {
+          "result_id": "tos-discovery-result.textgrid-gutenberg-zarathustra-1901",
+          "rank": 5,
+          "title_as_displayed": "Also sprach Zarathustra – Ein Buch für Alle und Keinen",
+          "result_url": "https://www.textgridrep.org/browse/4k23z.0",
+          "originating_record_url": "https://textgridlab.org/1.0/tgcrud-public/rest/textgrid:4k23z.0/metadata",
+          "identifiers": [
+            {
+              "scheme": "TextGrid edition URI",
+              "value": "textgrid:4k23z.0"
+            },
+            {
+              "scheme": "TextGrid text URI",
+              "value": "textgrid:4k1s0.0"
+            }
+          ],
+          "available_formats": [
+            "TEI XML",
+            "TextGrid metadata XML"
+          ],
+          "declared_rights": {
+            "statement": "Edition metadata reports CC BY 4.0; the imported Gutenberg-derived child TEI says noncommercial use is free.",
+            "scope": "content",
+            "evidence_url": "https://textgridlab.org/1.0/tgcrud-public/rest/textgrid:4k23z.0/metadata",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-download",
+          "machine_interface": "api",
+          "decision": "reject",
+          "rationale": "The 1901 complete text is useful later as a different-edition comparator, but it is not the exact 1883 part-1 source targeted here and its layer-specific license claims require reconciliation.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "captured",
+            "format": "static-snapshot",
+            "sha256": "7ece7c040dd478d335ae110b826996343f97ac4c8b9d97b2c99f0342a480e55d",
+            "reason": "The exact fifth-ranked alternate and its rights conflict are retained without acquiring the text."
+          }
+        }
+      ]
+    }
+  ],
+  "channel_comparison": [
+    {
+      "channel_id": "channel-dnb-zarathustra-work-authority",
+      "completeness": "limited",
+      "metadata_precision": "strong",
+      "rights_clarity": "limited",
+      "machine_interface_quality": "strong",
+      "human_minutes": 0,
+      "machine_seconds": 0.942916,
+      "notes": "Best authority for work identity and publication interval; it does not close the exact edition, digital object, quality, or rights questions."
+    },
+    {
+      "channel_id": "channel-dta-zarathustra-part-1",
+      "completeness": "strong",
+      "metadata_precision": "strong",
+      "rights_clarity": "adequate",
+      "machine_interface_quality": "adequate",
+      "human_minutes": 0,
+      "machine_seconds": 231.71843,
+      "notes": "Best exact target: source-visible first-part print, page-addressable TEI, holding-copy provenance, and external native-speaker check. Initial cookie challenge, slow endpoints, and stale Dublin Core rights metadata reduce interface and rights clarity."
+    },
+    {
+      "channel_id": "channel-textgrid-zarathustra-editions",
+      "completeness": "strong",
+      "metadata_precision": "strong",
+      "rights_clarity": "adequate",
+      "machine_interface_quality": "strong",
+      "human_minutes": 0,
+      "machine_seconds": 59.858099,
+      "notes": "Excellent stable archival and API route covering all four first-publication parts plus a 1901 comparator. It is secondary to DTA for this part-1 target because the direct DTA object exposes current facsimile and correction context."
+    }
+  ],
+  "selected_result_ids": [
+    "tos-discovery-result.dta-zarathustra01-1883-tei"
+  ],
+  "rejected_result_ids": [
+    "tos-discovery-result.textgrid-dta-zarathustra-part-2",
+    "tos-discovery-result.textgrid-dta-zarathustra-part-3",
+    "tos-discovery-result.textgrid-dta-zarathustra-part-4",
+    "tos-discovery-result.textgrid-gutenberg-zarathustra-1901"
+  ],
+  "rights_inference_from_availability_prohibited": true,
+  "general_web_search_is_last_resort": true,
+  "technical_access_bypass_used": false,
+  "maker": {
+    "maker_type": "model",
+    "agent_ref": "model:codex"
+  },
+  "started_at": "2026-07-28T19:19:46-06:00",
+  "ended_at": "2026-07-28T19:28:13-06:00",
+  "status": "reconciled",
+  "provenance_event_refs": [
+    "tos.event.discovery.dta-zarathustra-part-1-open-structured-witness.2026-07-28"
+  ],
+  "record_version": 1,
+  "supersedes_discovery_ref": null
+}

@@ -6,16 +6,34 @@
   "variant_labels": [],
   "identity_status": "verified",
   "source_refs": [
-    "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-antonovsky-cultural-revolution/editions/moscow-cultural-revolution-2007-volume-4/items/operator-pdf/forensic-report.md"
+    "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-antonovsky-cultural-revolution/editions/moscow-cultural-revolution-2007-volume-4/items/operator-pdf/forensic-report.md",
+    "ToS/source-witnesses/discovery/runs/antonovsky-cultural-revolution-2007-volume-4.2026-07-28.v1.json",
+    "https://search.rsl.ru/ru/record/01005395580"
   ],
-  "external_identifiers": [],
+  "external_identifiers": [
+    {
+      "scheme": "RSL record",
+      "value": "01005395580",
+      "source_ref": "https://search.rsl.ru/ru/record/01005395580",
+      "status": "verified"
+    },
+    {
+      "scheme": "ISBN",
+      "value": "978-5-250-06018-9",
+      "source_ref": "https://search.rsl.ru/ru/record/01005395580",
+      "status": "verified"
+    }
+  ],
   "same_as_posture": "no_equivalence_claim",
   "embodies_expression_refs": [
     "tos.expression.friedrich-nietzsche.also-sprach-zarathustra.ru-antonovsky-cultural-revolution"
   ],
   "edition_statement": "Том 4 полного собрания сочинений в 13 томах; перевод Ю. М. Антоновского, новая редакция 2007 года",
   "publication_claim_refs": [],
-  "notes": "The visible copyright page also names editor E. V. Oznobkina and commentary translator A. G. Zhavoronkov.",
-  "record_version": 1,
+  "exemplar_claim_refs": [
+    "tos.claim.topology.edition-item.friedrich-nietzsche.also-sprach-zarathustra.moscow-cultural-revolution-2007-volume-4.exemplified-by.operator-pdf"
+  ],
+  "notes": "The visible copyright page also names editor E. V. Oznobkina and commentary translator A. G. Zhavoronkov. The RSL record reconciles the edition identity but is not asserted to identify the operator-provided PDF item.",
+  "record_version": 3,
   "supersedes_ref": null
 }

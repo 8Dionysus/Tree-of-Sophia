@@ -1,0 +1,639 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/material-discovery-record.schema.json",
+  "schema_version": "tos_material_discovery_record_v1",
+  "discovery_id": "tos.discovery.antonovsky-1907-rnl-reported-rsl-holding.2026-08-10",
+  "protocol_ref": "ToS/source-witnesses/discovery/DISCOVERY_PROTOCOL.md",
+  "target": {
+    "target_kind": "edition",
+    "known_tos_refs": [
+      "tos.work.friedrich-nietzsche.also-sprach-zarathustra",
+      "tos.expression.friedrich-nietzsche.also-sprach-zarathustra.ru-antonovsky-1907",
+      "tos.edition.friedrich-nietzsche.also-sprach-zarathustra.saint-petersburg-vaisberg-gershunin-typography-1907-third"
+    ],
+    "description": "Identifier-first interpretation of the exact current RNL RUSMARC 001 and field 899 cross-agency holding statement, with current RSL and former RuNEB service-state controls, without manufacturing an RSL record, physical Item, availability, digital object, or rights conclusion",
+    "required_properties": [
+      "RNL RUSMARC record-control identifier",
+      "RUSMARC field 899 semantics",
+      "RuMoRGB organization identity",
+      "reported RSL holding coordinate",
+      "current RSL public-record state",
+      "current former-RuNEB-card state",
+      "lawful confirmation and source-access route"
+    ],
+    "acceptable_substitutions": [
+      "current RSL catalogue record linked by an institution",
+      "RSL confirmation of the reported call number and its current department",
+      "institution-supplied bibliographic pages before a complete research reproduction"
+    ],
+    "languages": [
+      "ru",
+      "en"
+    ],
+    "formats": [
+      "catalogue metadata",
+      "RUSMARC",
+      "MARC organization-code documentation",
+      "physical holding",
+      "institutional response"
+    ],
+    "purpose_ref": "ToS/research-packets/foundation-laboratory-2026-07/ANTONOVSKY_1907_RNL_REPORTED_RSL_HOLDING_RESEARCH.md"
+  },
+  "channels": [
+    {
+      "channel_id": "channel-antonovsky-1907-rusmarc-organization-documentation",
+      "sequence": 1,
+      "channel_type": "identifier-registry",
+      "role": "mixed",
+      "source_name": "Official RUSMARC field 899 and Library of Congress MARC organization-code documentation",
+      "endpoint_url": "https://nlr.ru/rusmarc-texts/rusmarc/mf_det8.php",
+      "interface_type": "web",
+      "interface_version": "official RUSMARC and MARC organization documentation checked 2026-08-10",
+      "exact_query": "Interpret field 899 subfields a and j and independently identify organization code RuMoRGB before assigning any institution or call-number semantics to the exact 1907 record",
+      "queried_at": "2026-08-10T06:20:00-06:00",
+      "elapsed_seconds": 4,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.antonovsky-1907-rusmarc-899-location-semantics",
+          "rank": 1,
+          "title_as_displayed": "RUSMARC — 899 Данные о местонахождении (устаревшее)",
+          "result_url": "https://nlr.ru/rusmarc-texts/rusmarc/mf_det8.php",
+          "originating_record_url": null,
+          "identifiers": [],
+          "available_formats": [
+            "official HTML format documentation"
+          ],
+          "declared_rights": {
+            "statement": null,
+            "scope": "metadata",
+            "evidence_url": null,
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-view",
+          "machine_interface": "html",
+          "decision": "select",
+          "rationale": "The official format says repeated field 899 reports copy locations, subfield a names or codes the holding organization, and subfield j carries the storage call number. Its deprecated status marks format history, not semantic absence.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-captured",
+            "format": null,
+            "sha256": null,
+            "reason": "Public official method evidence was read without retaining a mutable page snapshot."
+          }
+        },
+        {
+          "result_id": "tos-discovery-result.antonovsky-1907-rumorgb-rsl-organization-code",
+          "rank": 2,
+          "title_as_displayed": "MARC Code List for Organizations and RSL proposal 2002-15",
+          "result_url": "https://www.loc.gov/marc/marbi/2002/2002-15.html",
+          "originating_record_url": "https://www.loc.gov/marc/organizations/",
+          "identifiers": [
+            {
+              "scheme": "MARC organization code",
+              "value": "RuMoRGB"
+            }
+          ],
+          "available_formats": [
+            "official HTML organization-code documentation",
+            "official MARC proposal"
+          ],
+          "declared_rights": {
+            "statement": null,
+            "scope": "metadata",
+            "evidence_url": null,
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-view",
+          "machine_interface": "html",
+          "decision": "select",
+          "rationale": "LOC explains that MARC organization codes identify bibliographic and holding institutions; the RSL-authored proposal names Russian State Library as source and repeatedly uses RuMoRGB for institution-specific RSL data. This identifies the organization code without proving a particular live copy.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-needed",
+            "format": null,
+            "sha256": null,
+            "reason": "The stable official URLs remain the return route; no mutable snapshot or copyrighted source payload was required."
+          }
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-antonovsky-1907-rnl-exact-rusmarc",
+      "sequence": 2,
+      "channel_type": "national-catalog",
+      "role": "originating-record",
+      "source_name": "Russian National Library exact tagged RUSMARC record",
+      "endpoint_url": "https://webservices.nlr.ru/util/?method=recordFormat&vid=07NLR_VU1&sysid=004843723&format=001&base=NLR01",
+      "interface_type": "web",
+      "interface_version": "official NLR01 tagged RUSMARC response checked 2026-08-10",
+      "exact_query": "Fetch exact system number 004843723; preserve control fields 001 and 005 and every 801, 852, 899, and 899-M row; interpret only after binding field and organization-code documentation",
+      "queried_at": "2026-08-10T06:29:55-06:00",
+      "elapsed_seconds": 1,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.antonovsky-1907-rnl-rusmarc-1717109-rsl-v-106-216",
+          "rank": 1,
+          "title_as_displayed": "Так говорил Заратустра : Книга для всех и ни для кого — tagged RUSMARC",
+          "result_url": "https://webservices.nlr.ru/util/?method=recordFormat&vid=07NLR_VU1&sysid=004843723&format=001&base=NLR01",
+          "originating_record_url": "https://primo.nlr.ru/primo_library/libweb/action/dlDisplay.do?vid=07NLR_VU1&docId=07NLR_LMS004843723",
+          "identifiers": [
+            {
+              "scheme": "RNL Primo record",
+              "value": "07NLR_LMS004843723"
+            },
+            {
+              "scheme": "RNL system number",
+              "value": "004843723"
+            },
+            {
+              "scheme": "RNL RUSMARC 001",
+              "value": "v19\\rc\\1717109"
+            },
+            {
+              "scheme": "RSL shelfmark reported by RNL",
+              "value": "V 106/216"
+            }
+          ],
+          "available_formats": [
+            "tagged RUSMARC",
+            "HTML full record",
+            "MARC21 download"
+          ],
+          "declared_rights": {
+            "statement": null,
+            "scope": "metadata",
+            "evidence_url": null,
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "metadata-only",
+          "machine_interface": "html",
+          "decision": "select",
+          "rationale": "The current official response literally exposes 001 v19\\rc\\1717109 and 899 |a RuMoRGB |j V 106/216. Bound to the official format and organization-code documentation, this verifies an RNL record-control value and an RNL-reported RSL call number, not an RSL record or physically inspected Item. The separate 899 |a БАН row has no call number and is not promoted.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-captured",
+            "format": null,
+            "sha256": null,
+            "reason": "The transient 9,371-byte response had SHA-256 b80e9ac98527f520e9b6ea4ca726fff06a0dc218e68f4b22b8d73b1cf3b8b4ce; its 145-byte headers had SHA-256 9baa29da45e085b6520c94089a6d345c6a88494f3c713516cc23c289660b1254. No catalogue page or book payload is retained."
+          }
+        },
+        {
+          "result_id": "tos-discovery-result.antonovsky-1907-rnl-ban-without-call-number",
+          "rank": 2,
+          "title_as_displayed": "RUSMARC 899 organization-only row: БАН",
+          "result_url": "https://webservices.nlr.ru/util/?method=recordFormat&vid=07NLR_VU1&sysid=004843723&format=001&base=NLR01",
+          "originating_record_url": "https://primo.nlr.ru/primo_library/libweb/action/dlDisplay.do?vid=07NLR_VU1&docId=07NLR_LMS004843723",
+          "identifiers": [],
+          "available_formats": [
+            "tagged RUSMARC"
+          ],
+          "declared_rights": {
+            "statement": null,
+            "scope": "metadata",
+            "evidence_url": null,
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "unknown",
+          "machine_interface": "html",
+          "decision": "defer",
+          "rationale": "The row reports an institution but contains no subfield j and therefore supplies no actionable copy coordinate. It is preserved as incomplete metadata, not counted as a resolved holding and not converted into an Item or identifier.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-needed",
+            "format": null,
+            "sha256": null,
+            "reason": "The literal row is already bounded inside the exact-record result; no separate snapshot is needed."
+          }
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-antonovsky-1907-established-source-control",
+      "sequence": 3,
+      "channel_type": "specialized-scholarly-project",
+      "role": "scholarly-index",
+      "source_name": "Exact Antonovsky edition history and established Blok scholarship",
+      "endpoint_url": "https://imwerden.de/pdf/blok_issledovaniya_i_materialy_1991__ocr.pdf",
+      "interface_type": "web",
+      "interface_version": "retained exact-source and established evidence rebound to the cross-agency holding interpretation 2026-08-10",
+      "exact_query": "Check that the RNL-reported RSL shelfmark strengthens only the already established exact 1907 Edition endpoint and does not replace Antonovsky's source-visible edition history or manufacture text authority",
+      "queried_at": "2026-08-10T06:31:00-06:00",
+      "elapsed_seconds": 0,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.antonovsky-1907-established-edition-boundary-v4",
+          "rank": 1,
+          "title_as_displayed": "Antonovsky exact edition-history statement and Blok 1991 holding context",
+          "result_url": "https://imwerden.de/pdf/blok_issledovaniya_i_materialy_1991__ocr.pdf",
+          "originating_record_url": null,
+          "identifiers": [],
+          "available_formats": [
+            "exact local source anchor",
+            "PDF scholarship"
+          ],
+          "declared_rights": {
+            "statement": null,
+            "scope": "content",
+            "evidence_url": null,
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-view",
+          "machine_interface": "html",
+          "decision": "select",
+          "rationale": "The exact source-reported edition sequence and established scholarship already identify the third Edition. The newly interpreted RSL call number is a holding coordinate only and supplies no text, collation, equivalence, or accepted bibliography.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-needed",
+            "format": null,
+            "sha256": null,
+            "reason": "The exact anchor and established scholarship are already cited by the superseded discoveries; this result preserves their authority boundary."
+          }
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-antonovsky-1907-fresh-method-control",
+      "sequence": 4,
+      "channel_type": "specialized-scholarly-project",
+      "role": "scholarly-index",
+      "source_name": "Fresh 2025 direct translation-comparison method and current 2026 institutional surfaces",
+      "endpoint_url": "https://doi.org/10.17588/2076-9210.2025.2.161-169",
+      "interface_type": "web",
+      "interface_version": "fresh 2025 scholarship and 2026 official interfaces checked in the prior ordered pass and rebound 2026-08-10",
+      "exact_query": "Retain the freshest exact-witness comparison control while testing whether any newer institutional surface closes the RSL record or source-witness gap",
+      "queried_at": "2026-08-10T06:31:00-06:00",
+      "elapsed_seconds": 1,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.antonovsky-1907-fresh-exact-witness-boundary-v4",
+          "rank": 1,
+          "title_as_displayed": "Ermakova 2025 direct translation comparison — exact-witness control",
+          "result_url": "https://doi.org/10.17588/2076-9210.2025.2.161-169",
+          "originating_record_url": null,
+          "identifiers": [
+            {
+              "scheme": "DOI",
+              "value": "10.17588/2076-9210.2025.2.161-169"
+            }
+          ],
+          "available_formats": [
+            "article metadata"
+          ],
+          "declared_rights": {
+            "statement": null,
+            "scope": "content",
+            "evidence_url": null,
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-view",
+          "machine_interface": "html",
+          "decision": "select",
+          "rationale": "The freshest retained method still requires exact witnesses for translation comparison. A cross-agency call number cannot substitute for missing 1907 pages or authorize etymological, semantic, quality, or equivalence judgments.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-needed",
+            "format": null,
+            "sha256": null,
+            "reason": "No article payload was reacquired; only the already retained methodological boundary is reused."
+          }
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-antonovsky-1907-rsl-runeb-current-state",
+      "sequence": 5,
+      "channel_type": "national-catalog",
+      "role": "mixed",
+      "source_name": "Current RSL predicted public route and former RuNEB exact card",
+      "endpoint_url": "https://search.rsl.ru/ru/record/01003693382",
+      "interface_type": "web",
+      "interface_version": "RSL Search HTTP state and RuNEB transport state checked 2026-08-10",
+      "exact_query": "Test the predicted exact RSL public route and exact former RuNEB card directly; preserve HTTP and transport state without treating failure as absence or promoting predicted identifiers",
+      "queried_at": "2026-08-10T06:29:56-06:00",
+      "elapsed_seconds": 11,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.antonovsky-1907-rsl-predicted-record-01003693382-still-404",
+          "rank": 1,
+          "title_as_displayed": "Predicted RSL record 01003693382 — HTTP 404",
+          "result_url": "https://search.rsl.ru/ru/record/01003693382",
+          "originating_record_url": null,
+          "identifiers": [],
+          "available_formats": [
+            "HTTP service response"
+          ],
+          "declared_rights": {
+            "statement": null,
+            "scope": "metadata",
+            "evidence_url": null,
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "unavailable",
+          "machine_interface": "html",
+          "decision": "reject",
+          "rationale": "The predicted route still returns HTTP 404. Sequence proximity to the verified 1900 and 1903 records does not verify this RSL public identifier, and the RNL-reported shelfmark does not repair that identifier gap.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-captured",
+            "format": null,
+            "sha256": null,
+            "reason": "The transient 44,048-byte 404 body had SHA-256 fb211bce5038f2d9d31636d01043581b40b6ce8944361af3d1db3724455f37be; its 1,184-byte headers had SHA-256 f417947455187a1a007aa08a9c0fbbfa139530865e8147580e6d5cfd445540ce. The mutable response was not retained."
+          }
+        },
+        {
+          "result_id": "tos-discovery-result.antonovsky-1907-runeb-exact-card-current-timeout",
+          "rank": 2,
+          "title_as_displayed": "RuNEB card 000199_000009_003693382 — current transport timeout",
+          "result_url": "https://rusneb.ru/catalog/000199_000009_003693382/",
+          "originating_record_url": null,
+          "identifiers": [
+            {
+              "scheme": "RuNEB record",
+              "value": "000199_000009_003693382"
+            }
+          ],
+          "available_formats": [
+            "prior institutional metadata",
+            "current transport state"
+          ],
+          "declared_rights": {
+            "statement": null,
+            "scope": "metadata",
+            "evidence_url": null,
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "unknown",
+          "machine_interface": "unknown",
+          "decision": "defer",
+          "rationale": "The current request timed out before response bytes arrived. That transport failure neither verifies a live card nor disproves the prior observed removed-or-replaced state; the prior exact identifier remains provenance, not a current digital-object claim.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-captured",
+            "format": null,
+            "sha256": null,
+            "reason": "The request timed out after 10 seconds with zero response bytes; absence of a response is not catalog absence evidence."
+          }
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-antonovsky-1907-rsl-current-lawful-access",
+      "sequence": 6,
+      "channel_type": "national-catalog",
+      "role": "lead-only",
+      "source_name": "Current Russian State Library catalogue and copying routes",
+      "endpoint_url": "https://www.rsl.ru/elektronnye-resursy/elektronnyy-katalog",
+      "interface_type": "web",
+      "interface_version": "current official RSL catalogue and copying guidance checked 2026-08-10",
+      "exact_query": "Identify the lawful route for confirming an RNL-reported RSL call number and, only after confirmation, requesting record-specific viewing or copying conditions without placing an order or accepting terms",
+      "queried_at": "2026-08-10T06:32:00-06:00",
+      "elapsed_seconds": 2,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.antonovsky-1907-rsl-confirmation-copy-route-v4",
+          "rank": 1,
+          "title_as_displayed": "RSL electronic catalogue and copying-fragments service",
+          "result_url": "https://www.rsl.ru/elektronnye-resursy/elektronnyy-katalog",
+          "originating_record_url": "https://promo.rsl.ru/kopirovanie",
+          "identifiers": [
+            {
+              "scheme": "RSL shelfmark reported by RNL",
+              "value": "V 106/216"
+            }
+          ],
+          "available_formats": [
+            "official catalogue guidance",
+            "institutional enquiry",
+            "copying service information"
+          ],
+          "declared_rights": {
+            "statement": "RSL states that copying is provided within applicable copyright law; no record-specific permission or availability is stated for this 1907 edition.",
+            "scope": "unknown",
+            "evidence_url": "https://promo.rsl.ru/kopirovanie",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "permission-required",
+          "machine_interface": "manual-only",
+          "decision": "select",
+          "rationale": "The refocused draft asks RSL to confirm V 106/216, department, current service state, and relation to the former RuNEB object before requesting tiered bibliographic pages or a research copy. No form, message, order, payment, account creation, or terms acceptance occurred.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-needed",
+            "format": null,
+            "sha256": null,
+            "reason": "Only public route and scope metadata are required for the unsent draft; current terms must be refreshed before any deliberate human-authorized action."
+          }
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-antonovsky-1907-general-web-last-v4",
+      "sequence": 7,
+      "channel_type": "general-web-search",
+      "role": "lead-only",
+      "source_name": "Bounded exact-identifier and exact-shelfmark general-web-last control",
+      "endpoint_url": "https://www.google.com/search?q=%22V+106%2F216%22+%22%D0%97%D0%B0%D1%80%D0%B0%D1%82%D1%83%D1%81%D1%82%D1%80%D0%B0%22",
+      "interface_type": "web",
+      "interface_version": "bounded general-web-last search after official field and record reconciliation 2026-08-10",
+      "exact_query": "Search the literal shelfmark, exact RuNEB code, and predicted RSL route only after official documentation and exact institutional metadata; reject mirrors, snippets, and sequence guesses that do not expose a stronger source",
+      "queried_at": "2026-08-10T06:33:00-06:00",
+      "elapsed_seconds": 1,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.antonovsky-1907-general-web-no-current-rsl-record-v4",
+          "rank": 1,
+          "title_as_displayed": "No general-web result resolves a current exact RSL record or source Item",
+          "result_url": "https://search.rsl.ru/ru/record/01003693382",
+          "originating_record_url": null,
+          "identifiers": [],
+          "available_formats": [
+            "search results",
+            "catalogue snippets"
+          ],
+          "declared_rights": {
+            "statement": null,
+            "scope": "unknown",
+            "evidence_url": null,
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "unavailable",
+          "machine_interface": "html",
+          "decision": "reject",
+          "rationale": "No result outranks the exact RNL record, official field semantics, or official RuMoRGB evidence. None supplies a current RSL record, exact source pages, lawful digital Item, rights, accepted text, or translation evidence.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-needed",
+            "format": null,
+            "sha256": null,
+            "reason": "Search-result pages are mutable and supplied no authoritative new object; no snapshot was retained."
+          }
+        }
+      ]
+    }
+  ],
+  "channel_comparison": [
+    {
+      "channel_id": "channel-antonovsky-1907-rusmarc-organization-documentation",
+      "completeness": "strong",
+      "metadata_precision": "strong",
+      "rights_clarity": "limited",
+      "machine_interface_quality": "adequate",
+      "human_minutes": 12,
+      "machine_seconds": 4,
+      "notes": "Defines both halves of the interpretation: what field 899 means and why RuMoRGB denotes RSL, while making no record-specific availability claim."
+    },
+    {
+      "channel_id": "channel-antonovsky-1907-rnl-exact-rusmarc",
+      "completeness": "strong",
+      "metadata_precision": "strong",
+      "rights_clarity": "unknown",
+      "machine_interface_quality": "strong",
+      "human_minutes": 10,
+      "machine_seconds": 1,
+      "notes": "Best exact metadata evidence for RNL 001 and the RNL-reported RSL shelfmark; also preserves the incomplete БАН row and distinct current RNL holdings."
+    },
+    {
+      "channel_id": "channel-antonovsky-1907-established-source-control",
+      "completeness": "adequate",
+      "metadata_precision": "strong",
+      "rights_clarity": "unknown",
+      "machine_interface_quality": "adequate",
+      "human_minutes": 2,
+      "machine_seconds": 0,
+      "notes": "Keeps exact source-reported edition lineage and established bibliographic evidence above later holding interpretation."
+    },
+    {
+      "channel_id": "channel-antonovsky-1907-fresh-method-control",
+      "completeness": "adequate",
+      "metadata_precision": "strong",
+      "rights_clarity": "unknown",
+      "machine_interface_quality": "adequate",
+      "human_minutes": 1,
+      "machine_seconds": 1,
+      "notes": "Fresh exact-witness method blocks a shelfmark from becoming translation, collation, etymological, or semantic evidence."
+    },
+    {
+      "channel_id": "channel-antonovsky-1907-rsl-runeb-current-state",
+      "completeness": "limited",
+      "metadata_precision": "adequate",
+      "rights_clarity": "unknown",
+      "machine_interface_quality": "limited",
+      "human_minutes": 3,
+      "machine_seconds": 11,
+      "notes": "Provides honest current 404 and timeout states; neither is overread as proof of bibliographic or physical absence."
+    },
+    {
+      "channel_id": "channel-antonovsky-1907-rsl-current-lawful-access",
+      "completeness": "adequate",
+      "metadata_precision": "adequate",
+      "rights_clarity": "limited",
+      "machine_interface_quality": "adequate",
+      "human_minutes": 4,
+      "machine_seconds": 2,
+      "notes": "Supports a precise confirmation-first draft without creating a service order, permission, payment, or source-access outcome."
+    },
+    {
+      "channel_id": "channel-antonovsky-1907-general-web-last-v4",
+      "completeness": "limited",
+      "metadata_precision": "limited",
+      "rights_clarity": "poor",
+      "machine_interface_quality": "adequate",
+      "human_minutes": 1,
+      "machine_seconds": 1,
+      "notes": "Negative control only; no result resolves a stronger RSL identity or exact source witness."
+    }
+  ],
+  "selected_result_ids": [
+    "tos-discovery-result.antonovsky-1907-rusmarc-899-location-semantics",
+    "tos-discovery-result.antonovsky-1907-rumorgb-rsl-organization-code",
+    "tos-discovery-result.antonovsky-1907-rnl-rusmarc-1717109-rsl-v-106-216",
+    "tos-discovery-result.antonovsky-1907-established-edition-boundary-v4",
+    "tos-discovery-result.antonovsky-1907-fresh-exact-witness-boundary-v4",
+    "tos-discovery-result.antonovsky-1907-rsl-confirmation-copy-route-v4"
+  ],
+  "rejected_result_ids": [
+    "tos-discovery-result.antonovsky-1907-rsl-predicted-record-01003693382-still-404",
+    "tos-discovery-result.antonovsky-1907-general-web-no-current-rsl-record-v4"
+  ],
+  "rights_inference_from_availability_prohibited": true,
+  "general_web_search_is_last_resort": true,
+  "technical_access_bypass_used": false,
+  "maker": {
+    "maker_type": "model",
+    "agent_ref": "model:codex"
+  },
+  "started_at": "2026-08-10T06:20:00-06:00",
+  "ended_at": "2026-08-10T06:34:03-06:00",
+  "status": "incomplete",
+  "provenance_event_refs": [
+    "tos.event.discovery.antonovsky-1907-rnl-reported-rsl-holding.2026-08-10"
+  ],
+  "record_version": 4,
+  "supersedes_discovery_ref": "tos.discovery.antonovsky-1907-rnl-primo-current-holding.2026-08-10"
+}

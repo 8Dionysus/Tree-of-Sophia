@@ -1,0 +1,587 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://tree-of-sophia.local/ToS/contracts/source-witness-bibliographic-graph.schema.json",
+  "title": "Tree of Sophia source-witness bibliographic claim graph",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "schema_ref",
+    "owner_repo",
+    "surface_kind",
+    "generated_by",
+    "source_refs",
+    "input_digests",
+    "graph_layers",
+    "relation_model",
+    "counts",
+    "review_counts",
+    "visibility_counts",
+    "nodes",
+    "edges",
+    "claim_traces",
+    "authority_boundary",
+    "validation_refs",
+    "projection_fingerprint"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "tos_source_witness_bibliographic_graph_v1"
+    },
+    "schema_ref": {
+      "const": "ToS/contracts/source-witness-bibliographic-graph.schema.json"
+    },
+    "owner_repo": {
+      "const": "Tree-of-Sophia"
+    },
+    "surface_kind": {
+      "const": "derived_source_witness_bibliographic_claim_graph"
+    },
+    "generated_by": {
+      "const": "scripts/build_source_witness_bibliographic_graph.py"
+    },
+    "source_refs": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "catalog_manifest_ref",
+        "claim_catalog_ref",
+        "object_catalog_refs"
+      ],
+      "properties": {
+        "catalog_manifest_ref": {
+          "const": "ToS/source-witnesses/catalog/catalog.manifest.json"
+        },
+        "claim_catalog_ref": {
+          "const": "ToS/source-witnesses/catalog/claims.jsonl"
+        },
+        "object_catalog_refs": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "agent",
+            "place",
+            "organization",
+            "work",
+            "expression",
+            "edition",
+            "collection",
+            "item"
+          ],
+          "properties": {
+            "agent": {
+              "const": "ToS/source-witnesses/catalog/agents.jsonl"
+            },
+            "place": {
+              "const": "ToS/source-witnesses/catalog/places.jsonl"
+            },
+            "organization": {
+              "const": "ToS/source-witnesses/catalog/organizations.jsonl"
+            },
+            "work": {
+              "const": "ToS/source-witnesses/catalog/works.jsonl"
+            },
+            "expression": {
+              "const": "ToS/source-witnesses/catalog/expressions.jsonl"
+            },
+            "edition": {
+              "const": "ToS/source-witnesses/catalog/editions.jsonl"
+            },
+            "collection": {
+              "const": "ToS/source-witnesses/catalog/collections.jsonl"
+            },
+            "item": {
+              "const": "ToS/source-witnesses/catalog/items.jsonl"
+            }
+          }
+        }
+      }
+    },
+    "input_digests": {
+      "type": "object",
+      "minProperties": 10,
+      "additionalProperties": {
+        "$ref": "#/$defs/sha256"
+      },
+      "propertyNames": {
+        "$ref": "#/$defs/repoRelativePath"
+      }
+    },
+    "graph_layers": {
+      "const": [
+        "bibliographic"
+      ]
+    },
+    "relation_model": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "assertion_form",
+        "direct_subject_object_edges",
+        "edge_trace_rule",
+        "runtime_owner"
+      ],
+      "properties": {
+        "assertion_form": {
+          "const": "reified_claim_node"
+        },
+        "direct_subject_object_edges": {
+          "const": false
+        },
+        "edge_trace_rule": {
+          "type": "string",
+          "minLength": 1
+        },
+        "runtime_owner": {
+          "const": "abyss-stack"
+        }
+      }
+    },
+    "counts": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "source_claims",
+        "nodes",
+        "edges",
+        "claim_traces",
+        "direct_subject_object_edges",
+        "node_kinds",
+        "edge_kinds"
+      ],
+      "properties": {
+        "source_claims": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "nodes": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "edges": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "claim_traces": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "direct_subject_object_edges": {
+          "const": 0
+        },
+        "node_kinds": {
+          "$ref": "#/$defs/nonnegativeCounts"
+        },
+        "edge_kinds": {
+          "$ref": "#/$defs/nonnegativeCounts"
+        }
+      }
+    },
+    "review_counts": {
+      "$ref": "#/$defs/nonnegativeCounts"
+    },
+    "visibility_counts": {
+      "$ref": "#/$defs/nonnegativeCounts"
+    },
+    "nodes": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/node"
+      }
+    },
+    "edges": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/edge"
+      }
+    },
+    "claim_traces": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/claimTrace"
+      }
+    },
+    "authority_boundary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "authoritative_claims",
+        "projection_role",
+        "does_not_establish"
+      ],
+      "properties": {
+        "authoritative_claims": {
+          "type": "string",
+          "minLength": 1
+        },
+        "projection_role": {
+          "type": "string",
+          "minLength": 1
+        },
+        "does_not_establish": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "validation_refs": {
+      "type": "array",
+      "minItems": 3,
+      "uniqueItems": true,
+      "items": {
+        "$ref": "#/$defs/repoRelativePath"
+      }
+    },
+    "projection_fingerprint": {
+      "$ref": "#/$defs/sha256"
+    }
+  },
+  "$defs": {
+    "sha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "repoRelativePath": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "^(?![A-Za-z][A-Za-z0-9+.-]*:)(?!/)(?!.*(?:^|/)\\.\\.(?:/|$))[^\\u0000]+$"
+    },
+    "tosClaimId": {
+      "type": "string",
+      "pattern": "^tos\\.claim\\.[a-z0-9]+(?:[.-][a-z0-9]+)*$"
+    },
+    "nonnegativeCounts": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "integer",
+        "minimum": 0
+      }
+    },
+    "node": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "node_id",
+        "node_kind",
+        "source_ref",
+        "source_sha256",
+        "properties"
+      ],
+      "properties": {
+        "node_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "node_kind": {
+          "enum": [
+            "identity",
+            "claim",
+            "literal",
+            "evidence",
+            "provenance_event",
+            "maker",
+            "review"
+          ]
+        },
+        "source_ref": {
+          "$ref": "#/$defs/repoRelativePath"
+        },
+        "source_line": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "source_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "properties": {
+          "type": "object"
+        }
+      }
+    },
+    "edge": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "edge_id",
+        "edge_kind",
+        "from_id",
+        "to_id",
+        "claim_ref",
+        "claim_sha256",
+        "evidence_node_ids",
+        "maker_node_id",
+        "provenance_event_node_id",
+        "review_status",
+        "source_claim_file_ref",
+        "source_claim_line"
+      ],
+      "properties": {
+        "edge_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "edge_kind": {
+          "enum": [
+            "has_subject",
+            "has_object",
+            "made_by",
+            "generated_by",
+            "supported_by",
+            "counterevidenced_by",
+            "reviewed_by",
+            "has_normalized_place",
+            "has_normalized_agent",
+            "alternative_to",
+            "supersedes"
+          ]
+        },
+        "from_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "to_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "claim_ref": {
+          "$ref": "#/$defs/tosClaimId"
+        },
+        "claim_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "evidence_node_ids": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "maker_node_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "provenance_event_node_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "review_status": {
+          "enum": [
+            "unreviewed",
+            "accepted",
+            "accepted_with_limits",
+            "rejected",
+            "ambiguous",
+            "deferred",
+            "superseded"
+          ]
+        },
+        "source_claim_file_ref": {
+          "$ref": "#/$defs/repoRelativePath"
+        },
+        "source_claim_line": {
+          "type": "integer",
+          "minimum": 1
+        }
+      }
+    },
+    "claimTrace": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "claim_ref",
+        "claim_sha256",
+        "claim_node_id",
+        "subject_node_id",
+        "object_node_id",
+        "predicate",
+        "assertion_layer",
+        "epistemic_status",
+        "confidence",
+        "qualifiers",
+        "maker_node_id",
+        "provenance_event_node_id",
+        "evidence_node_ids",
+        "counterevidence_node_ids",
+        "review_node_ids",
+        "normalized_identity_node_ids",
+        "review_status",
+        "visibility",
+        "alternative_claim_refs",
+        "counterevidence_refs",
+        "supersedes_claim_ref",
+        "source_claim_file_ref",
+        "source_claim_line",
+        "source_claim_sha256",
+        "edge_ids"
+      ],
+      "properties": {
+        "claim_ref": {
+          "$ref": "#/$defs/tosClaimId"
+        },
+        "claim_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "claim_node_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "subject_node_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "object_node_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "predicate": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9_.-]*$"
+        },
+        "assertion_layer": {
+          "enum": [
+            "bibliographic_assertion",
+            "scholarly_report"
+          ]
+        },
+        "epistemic_status": {
+          "enum": [
+            "observed",
+            "inferred",
+            "reported",
+            "interpreted",
+            "uncertain",
+            "disputed"
+          ]
+        },
+        "confidence": {
+          "oneOf": [
+            {
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "qualifiers": {
+          "oneOf": [
+            {"type": "object"},
+            {"type": "null"}
+          ]
+        },
+        "maker_node_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "provenance_event_node_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "evidence_node_ids": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "counterevidence_node_ids": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "review_node_ids": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "normalized_identity_node_ids": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "review_status": {
+          "enum": [
+            "unreviewed",
+            "accepted",
+            "accepted_with_limits",
+            "rejected",
+            "ambiguous",
+            "deferred",
+            "superseded"
+          ]
+        },
+        "visibility": {
+          "enum": [
+            "public",
+            "public_metadata_only"
+          ]
+        },
+        "alternative_claim_refs": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/tosClaimId"
+          }
+        },
+        "counterevidence_refs": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "supersedes_claim_ref": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/tosClaimId"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "source_claim_file_ref": {
+          "$ref": "#/$defs/repoRelativePath"
+        },
+        "source_claim_line": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "source_claim_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "edge_ids": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,59 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/philosophy-source-planting.schema.json",
+  "schema_version": "tos_philosophy_source_planting_v1",
+  "planting_id": "tos.planting.a01.atu2-green-sign-list",
+  "atlas_row_id": "A01",
+  "dossier_id": "A01",
+  "branch_path": "ToS/philosophy/eras/bronze-age/regions/west-asia/traditions/proto-cuneiform-accounting-ontologies",
+  "source_backlog_anchor": {
+    "path": "ToS/philosophy/eras/bronze-age/regions/west-asia/traditions/proto-cuneiform-accounting-ontologies/sources/source-anchor-backlog.jsonl",
+    "line": 13,
+    "source_table_index": 13,
+    "source_row_index": 5,
+    "source_label": "ATU 2 — Zeichenliste der archaischen Texte aus Uruk [24]"
+  },
+  "source_witness": {
+    "work_id": "tos.work.proto-cuneiform.atu-2-green-sign-list",
+    "record_ref": "ToS/source-witnesses/works/proto-cuneiform-scholarship/atu-2-green-sign-list/work.json",
+    "container_id": "tos.collection.proto-cuneiform.zeichenliste-der-archaischen-texte-aus-uruk-atu-2-green-nissen-1987",
+    "container_ref": "ToS/source-witnesses/collections/proto-cuneiform-scholarship/zeichenliste-der-archaischen-texte-aus-uruk-atu-2-green-nissen-1987/collection.json",
+    "membership_claim_ref": "tos.claim.collection.proto-cuneiform.atu-2.contains-green-sign-list",
+    "relationship": "grounds_source_backlog_anchor"
+  },
+  "discovery_ref": "ToS/source-witnesses/discovery/runs/proto-cuneiform-atu2-signlist-critical-edition.2026-08-12.v1.json",
+  "provenance_event_ref": "tos.event.discovery.proto-cuneiform-atu2-signlist-critical-edition.2026-08-12",
+  "research_ref": "ToS/research-packets/foundation-laboratory-2026-07/A01_ATU2_SIGNLIST_SOURCE_PLANTING_RESEARCH_2026-08-12.md",
+  "fulfilled_source_needs": [
+    "exact ATU 2 bibliographic identity and 1987 Edition metadata",
+    "Green's sign-list contribution separated from its aggregate volume",
+    "Damerow-Englund numerical-systems contribution preserved as a distinct Work",
+    "recognized review trail and current sign-identity controls",
+    "false full-text routes and partial chapter copies identified",
+    "rights-aware local-research access request prepared but not sent"
+  ],
+  "remaining_controls": [
+    "no full ATU 2 Item or Green sign-list payload has been acquired or admitted",
+    "the exact contained-work title and the volume's remaining section boundaries remain unresolved",
+    "no sign entry, form, allograph, reading, gloss, translation, or etymology has been copied",
+    "ZATU numbers, PCSL OIDs, and provisional Unicode code points must remain distinct identity coordinates",
+    "no model-made sign concordance, semantics, graph fact, canon state, or human task follows from this planting"
+  ],
+  "research_order": [
+    "official_and_classical_documentation",
+    "established_top_scholarship",
+    "fresh_current_relevance_check"
+  ],
+  "authority": {
+    "source_status": "metadata_witness_planted",
+    "review_status": "unreviewed",
+    "source_text_admitted": false,
+    "semantic_status": "not_started",
+    "graph_status": "not_promoted",
+    "canon_status": "not_canon",
+    "human_task_created": false
+  },
+  "status": "source_witness_planted",
+  "maker": {"maker_type": "model", "agent_ref": "model:codex", "human_review_performed": false},
+  "created_at": "2026-08-12T12:49:58-06:00",
+  "record_version": 1
+}

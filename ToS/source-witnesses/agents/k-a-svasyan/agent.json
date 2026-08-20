@@ -1,0 +1,32 @@
+{
+  "schema_version": "tos_corpus_record_v1",
+  "record_type": "agent",
+  "record_id": "tos.agent.k-a-svasyan",
+  "preferred_label": "Карен Араевич Свасьян",
+  "variant_labels": [
+    {
+      "value": "К. А. Свасьян",
+      "language": "ru",
+      "source_ref": "ToS/source-witnesses/collections/friedrich-nietzsche/works-in-two-volumes-volume-2-mysl-1996/structure/work-boundaries/work-boundary-map.json",
+      "status": "verified"
+    }
+  ],
+  "identity_status": "verified",
+  "source_refs": [
+    "ToS/source-witnesses/collections/friedrich-nietzsche/works-in-two-volumes-volume-2-mysl-1996/structure/work-boundaries/work-boundary-map.json",
+    "ToS/source-witnesses/discovery/runs/mysl-translator-identity-reconciliation.2026-08-01.v1.json",
+    "https://d-nb.info/gnd/120452367"
+  ],
+  "external_identifiers": [
+    {
+      "scheme": "GND",
+      "value": "120452367",
+      "source_ref": "ToS/source-witnesses/discovery/runs/mysl-translator-identity-reconciliation.2026-08-01.v1.json",
+      "status": "verified"
+    }
+  ],
+  "same_as_posture": "no_equivalence_claim",
+  "notes": "The exact local volume credits К. А. Свасьян as translator of «К генеалогии морали» and separately as compiler, editor, and author of notes. DNB GND 120452367 includes the Cyrillic initials, translator occupation, and Nietzsche editor/translator context; the RSL Nietzsche record expands them to Карен Араевич Свасьян. This identity does not make distinct Russian Expressions equivalent or accept their texts.",
+  "record_version": 2,
+  "supersedes_ref": null
+}

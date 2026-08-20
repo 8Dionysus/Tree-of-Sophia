@@ -38,6 +38,9 @@ For orientation, read only the route you need:
 | agent-surface shape | [DESIGN.AGENTS](DESIGN.AGENTS.md) |
 | ToS source home or branch work | [ToS/AGENTS](ToS/AGENTS.md), then the owning branch card |
 | corpus identity, payload, anchor, provenance, or rights | [CORPUS_FOUNDATION](ToS/doctrine/CORPUS_FOUNDATION.md) -> [source-witness route](ToS/source-witnesses/README.md) -> [source-witness AGENTS](ToS/source-witnesses/AGENTS.md) |
+| text-unit, segmentation, tokenization, or boundary identity | [source-text-unit research](ToS/research-packets/foundation-laboratory-2026-07/SOURCE_TEXT_UNIT_SEGMENTATION_RESEARCH_2026-08-11.md) -> [source-text-unit contract](ToS/contracts/source-text-unit-packet-v1.schema.json) -> exact frozen text-layer, review, or derived-export owner |
+| semantic identity, claim, review, relation, or graph admission | [semantic identity research](ToS/research-packets/foundation-laboratory-2026-07/SEMANTIC_IDENTITY_ANNOTATION_RESEARCH_2026-08-11.md) -> [corpus contracts](ToS/contracts/CORPUS_CONTRACTS.md) -> nearest candidate/review/canon/export owner |
+| translation alignment identity, competing map, or interchange export | [translation alignment research](ToS/research-packets/foundation-laboratory-2026-07/TRANSLATION_ALIGNMENT_IDENTITY_RESEARCH_2026-08-11.md) -> [translation-alignment contract](ToS/contracts/translation-alignment-packet-v1.schema.json) -> exact source/target witness, review, or derived-export owner |
 | golden-kernel architecture | [GOLDEN_GROWTH_KERNEL](ToS/zarathustra/GOLDEN_GROWTH_KERNEL.md), then the nearest witness, intake, review, canon, contract, or export owner |
 | bounded public Zarathustra route | [TINY_ENTRY_ROUTE](ToS/zarathustra/public-entry/TINY_ENTRY_ROUTE.md) |
 | mechanics | [mechanics](mechanics/README.md), package `AGENTS.md`, package `ROADMAP.md`, active part route |
@@ -67,12 +70,30 @@ or manifest, and the narrowest relevant validator before broader gates.
   and technique authority route to their owning AoA repositories or layers.
 - Filesystem paths are speaking navigation; tracked ToS IDs own corpus
   identity. A move requires reference migration, not identity replacement.
+- Physical artifacts, provider records, inscriptions or transliterations,
+  scholarly composites, composite members, reconstructed lines, and visual
+  media are separate witness layers. A composite coordinate or stable Q-ID
+  never makes a reconstruction an ancient original, physical layout, fixed
+  reading, semantic fact, or canon.
 - Only item `payload/` bytes may use the corpus Git ignore. Item metadata,
   digest, provenance, rights, forensic evidence, and catalog membership remain
   tracked.
 - Native extraction, OCR, correction, normalization, alignment, translation,
   annotation, and review are separate versioned events. Never overwrite an
   earlier layer to make a later result appear clean.
+- Physical layout, source-observed structure, orthographic and linguistic
+  units, model-input pieces, and non-surface analytic nodes are separate
+  segmentation layers. Bind exact frozen text, make coverage and gaps
+  explicit, preserve competing analyses, and never let an ordinal, tokenizer,
+  model subword, or green validator create linguistic or semantic authority.
+- Occurrence, lexeme, lexical sense, sign, concept, claim, relation, review,
+  and graph projection are separate identities. Never derive a durable
+  semantic ID from a mutable label, gloss, translation, or current concept
+  name, and never project an unaccepted claim as a fact edge.
+- Translation alignment, its claim, its review, and its interchange or graph
+  projection are separate identities. Bind both exact text-layer and anchor
+  sets; keep omission, addition, reorder, and competing maps first class; do
+  not let an aligner, XLIFF/TMX/TEI import, or green validator accept a mapping.
 - Validators prove mechanics. Manual source-visible review owns text,
   translation, semantic, rights, and canon judgments.
 
@@ -97,6 +118,11 @@ Multi-work volumes belong under
 preflight before material `/srv` writes. Never download models or build heavy
 runtimes into this repository; route those trials through the `abyss-stack`
 laboratory and `/etc/abyss-machine` owner controls.
+
+For non-bibliographic witnesses, route physical objects through
+`source-witnesses/artifacts/` and modern documentary, critical, or synoptic
+reconstructions through `source-witnesses/scholarly-composites/`. Do not force
+either into the book ladder or key its durable identity to a mutable provider.
 
 Use `docs/AGENTS_ROOT_REFERENCE.md` only to audit preserved root-reference
 rules. If a preserved rule still governs current work, move it to the owning

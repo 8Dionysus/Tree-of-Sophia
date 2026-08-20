@@ -1,0 +1,244 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://tree-of-sophia.local/ToS/contracts/transfer-source-visible-review-receipt.schema.json",
+  "title": "Tree of Sophia text-free transfer source-visible review receipt",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "$schema",
+    "schema_version",
+    "generated_or_authored",
+    "receipt_id",
+    "recorded_at_utc",
+    "status",
+    "route_readiness_id",
+    "work_ref",
+    "qualified_unit_key",
+    "generator",
+    "private_bundle",
+    "evidence_inputs",
+    "reproduction",
+    "comparisons",
+    "observed_findings",
+    "effects",
+    "rights_and_visibility",
+    "authority_boundary"
+  ],
+  "properties": {
+    "$schema": {"const": "https://tree-of-sophia.local/ToS/contracts/transfer-source-visible-review-receipt.schema.json"},
+    "schema_version": {"const": "tos_transfer_source_visible_review_receipt_v1"},
+    "generated_or_authored": {"const": "generated_from_private_model_source_visible_review_bundle"},
+    "receipt_id": {"const": "tos.transfer-source-visible-review.jenseits-187.v1"},
+    "recorded_at_utc": {"type": "string", "format": "date-time"},
+    "status": {"const": "machine-triangulated-candidate-not-admitted"},
+    "route_readiness_id": {"const": "tos-transfer-route-readiness-jenseits-p0308-random-unit-187"},
+    "work_ref": {"const": "tos.work.friedrich-nietzsche.jenseits-von-gut-und-boese"},
+    "qualified_unit_key": {"const": "187"},
+    "generator": {"$ref": "#/$defs/generator"},
+    "private_bundle": {"$ref": "#/$defs/privateBundle"},
+    "evidence_inputs": {"$ref": "#/$defs/evidenceInputs"},
+    "reproduction": {"$ref": "#/$defs/reproduction"},
+    "comparisons": {"$ref": "#/$defs/comparisons"},
+    "observed_findings": {
+      "type": "array",
+      "minItems": 2,
+      "maxItems": 2,
+      "uniqueItems": true,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["finding_id", "scope", "severity", "evidence_role"],
+        "properties": {
+          "finding_id": {"enum": ["source-automatic-ocr-not-diplomatic", "target-automatic-line-omission"]},
+          "scope": {"enum": ["source", "target"]},
+          "severity": {"const": "material"},
+          "evidence_role": {"const": "model_observation_not_human_truth"}
+        }
+      }
+    },
+    "effects": {"$ref": "#/$defs/effects"},
+    "rights_and_visibility": {"$ref": "#/$defs/rightsVisibility"},
+    "authority_boundary": {"type": "string", "minLength": 220}
+  },
+  "$defs": {
+    "sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "repoPath": {"type": "string", "minLength": 1, "pattern": "^(?!/)(?!.*(?:^|/)\\.\\.(?:/|$))[^\\u0000]+$"},
+    "tosId": {"type": "string", "pattern": "^tos\\.[a-z0-9]+(?:[.-][a-z0-9]+)*$"},
+    "generator": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["ref", "sha256"],
+      "properties": {
+        "ref": {"const": "scripts/record_golden_kernel_transfer_source_visible_review.py"},
+        "sha256": {"$ref": "#/$defs/sha256"}
+      }
+    },
+    "privateBundle": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["owner", "relative_ref", "sha256", "bytes", "mode", "source_bearing", "review_mode", "human_review_performed"],
+      "properties": {
+        "owner": {"const": "operator-local-tree-of-sophia"},
+        "relative_ref": {"const": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/local-content/transfer-source-visible-review/v1/jenseits-187/review-bundle.json"},
+        "sha256": {"$ref": "#/$defs/sha256"},
+        "bytes": {"type": "integer", "minimum": 1},
+        "mode": {"const": "0600"},
+        "source_bearing": {"const": true},
+        "review_mode": {"const": "model_source_visible"},
+        "human_review_performed": {"const": false}
+      }
+    },
+    "pageRender": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["page", "sha256"],
+      "properties": {
+        "page": {"type": "integer", "minimum": 1},
+        "sha256": {"$ref": "#/$defs/sha256"}
+      }
+    },
+    "witnessInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["language", "expression_ref", "item_ref", "file_ref", "file_sha256", "rights_ref", "rights_sha256", "automatic_candidate_ref", "automatic_candidate_sha256", "page_renders"],
+      "properties": {
+        "language": {"enum": ["de", "ru"]},
+        "expression_ref": {"$ref": "#/$defs/tosId"},
+        "item_ref": {"$ref": "#/$defs/tosId"},
+        "file_ref": {"$ref": "#/$defs/tosId"},
+        "file_sha256": {"$ref": "#/$defs/sha256"},
+        "rights_ref": {"$ref": "#/$defs/repoPath"},
+        "rights_sha256": {"$ref": "#/$defs/sha256"},
+        "automatic_candidate_ref": {"$ref": "#/$defs/repoPath"},
+        "automatic_candidate_sha256": {"$ref": "#/$defs/sha256"},
+        "page_renders": {"type": "array", "minItems": 2, "maxItems": 2, "uniqueItems": true, "items": {"$ref": "#/$defs/pageRender"}}
+      }
+    },
+    "criticalInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["stable_locator", "source_role", "payload_sha256", "payload_bytes", "selector_kind", "selector_value", "transport", "bounded_repeat_fetches", "repeat_fetches_byte_identical", "transport_authenticated"],
+      "properties": {
+        "stable_locator": {"const": "http://www.nietzschesource.org/eKGWB/JGB-187"},
+        "source_role": {"const": "critical_edition_comparison_not_historical_item"},
+        "payload_sha256": {"$ref": "#/$defs/sha256"},
+        "payload_bytes": {"type": "integer", "minimum": 1},
+        "selector_kind": {"const": "html_anchor_following_txt_block"},
+        "selector_value": {"const": "eKGWB/JGB-187"},
+        "transport": {"const": "unencrypted_http"},
+        "bounded_repeat_fetches": {"const": 2},
+        "repeat_fetches_byte_identical": {"const": true},
+        "transport_authenticated": {"const": false}
+      }
+    },
+    "evidenceInputs": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["source", "target", "critical_witness"],
+      "properties": {
+        "source": {"$ref": "#/$defs/witnessInput"},
+        "target": {"$ref": "#/$defs/witnessInput"},
+        "critical_witness": {"$ref": "#/$defs/criticalInput"}
+      }
+    },
+    "reproduction": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["private_schema_validated", "private_fixity_verified", "source_payload_fixity_verified", "target_payload_fixity_verified", "automatic_candidate_fixity_verified", "critical_payload_fixity_verified", "critical_selector_resolved", "critical_declared_text_matches_selected_alpha_tokens", "render_tool", "resolution_dpi", "render_count", "render_hashes_reproduced", "temporary_renders_retained", "network_used"],
+      "properties": {
+        "private_schema_validated": {"const": true},
+        "private_fixity_verified": {"const": true},
+        "source_payload_fixity_verified": {"const": true},
+        "target_payload_fixity_verified": {"const": true},
+        "automatic_candidate_fixity_verified": {"const": true},
+        "critical_payload_fixity_verified": {"const": true},
+        "critical_selector_resolved": {"const": true},
+        "critical_declared_text_matches_selected_alpha_tokens": {"const": true},
+        "render_tool": {"const": "pdftoppm"},
+        "resolution_dpi": {"const": 180},
+        "render_count": {"const": 4},
+        "render_hashes_reproduced": {"const": true},
+        "temporary_renders_retained": {"const": false},
+        "network_used": {"const": false}
+      }
+    },
+    "tokenDiff": {
+      "type": "object",
+      "required": ["reference_token_count", "candidate_token_count", "equal_token_count", "reference_missing_token_count", "candidate_extra_token_count", "replacement_block_count", "deletion_block_count", "insertion_block_count", "exact_alpha_token_sequence"],
+      "properties": {
+        "reference_token_count": {"type": "integer", "minimum": 1},
+        "candidate_token_count": {"type": "integer", "minimum": 1},
+        "equal_token_count": {"type": "integer", "minimum": 0},
+        "reference_missing_token_count": {"type": "integer", "minimum": 0},
+        "candidate_extra_token_count": {"type": "integer", "minimum": 0},
+        "replacement_block_count": {"type": "integer", "minimum": 0},
+        "deletion_block_count": {"type": "integer", "minimum": 0},
+        "insertion_block_count": {"type": "integer", "minimum": 0},
+        "exact_alpha_token_sequence": {"type": "boolean"}
+      }
+    },
+    "comparisons": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["source_diplomatic_against_critical", "source_automatic_against_diplomatic", "target_automatic_against_diplomatic"],
+      "properties": {
+        "source_diplomatic_against_critical": {
+          "unevaluatedProperties": false,
+          "allOf": [
+            {"$ref": "#/$defs/tokenDiff"},
+            {"type": "object", "required": ["comparison_role", "historical_critical_equivalence_established"], "properties": {"comparison_role": {"const": "critical_comparison_not_historical_identity"}, "historical_critical_equivalence_established": {"const": false}}}
+          ]
+        },
+        "source_automatic_against_diplomatic": {
+          "unevaluatedProperties": false,
+          "allOf": [
+            {"$ref": "#/$defs/tokenDiff"},
+            {"type": "object", "required": ["comparison_role"], "properties": {"comparison_role": {"const": "automatic_ocr_diagnostic_against_private_model_transcript"}}}
+          ]
+        },
+        "target_automatic_against_diplomatic": {
+          "unevaluatedProperties": false,
+          "allOf": [
+            {"$ref": "#/$defs/tokenDiff"},
+            {"type": "object", "required": ["comparison_role", "observed_complete_visible_line_omission_count"], "properties": {"comparison_role": {"const": "automatic_extraction_diagnostic_against_private_model_transcript"}, "observed_complete_visible_line_omission_count": {"const": 1}}}
+          ]
+        }
+      }
+    },
+    "effects": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["accepted_source_passage", "accepted_target_passage", "source_to_target_alignment", "eligible_for_variant_execution", "target_gold", "human_review_performed", "human_debt_units", "semantic_work_opened", "signs_created", "concepts_created", "claims_created", "relations_created", "graph_edges_created", "canon_effect", "publication_authorized"],
+      "properties": {
+        "accepted_source_passage": {"const": false},
+        "accepted_target_passage": {"const": false},
+        "source_to_target_alignment": {"const": false},
+        "eligible_for_variant_execution": {"const": false},
+        "target_gold": {"const": false},
+        "human_review_performed": {"const": false},
+        "human_debt_units": {"const": 0},
+        "semantic_work_opened": {"const": false},
+        "signs_created": {"const": 0},
+        "concepts_created": {"const": 0},
+        "claims_created": {"const": 0},
+        "relations_created": {"const": 0},
+        "graph_edges_created": {"const": 0},
+        "canon_effect": {"const": false},
+        "publication_authorized": {"const": false}
+      }
+    },
+    "rightsVisibility": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["private_source_and_target_text_retained_local_only", "tracked_receipt_contains_source_or_target_strings", "tracked_receipt_contains_private_absolute_paths", "source_and_target_publication_authorized", "critical_derivative_publication_authorized", "rights_clearance_established"],
+      "properties": {
+        "private_source_and_target_text_retained_local_only": {"const": true},
+        "tracked_receipt_contains_source_or_target_strings": {"const": false},
+        "tracked_receipt_contains_private_absolute_paths": {"const": false},
+        "source_and_target_publication_authorized": {"const": false},
+        "critical_derivative_publication_authorized": {"const": false},
+        "rights_clearance_established": {"const": false}
+      }
+    }
+  }
+}

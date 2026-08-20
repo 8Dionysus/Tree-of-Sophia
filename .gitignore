@@ -11,6 +11,12 @@ dist/
 /ToS/source-witnesses/works/**/gold-sets/*/local-content/*
 !/ToS/source-witnesses/works/**/gold-sets/*/local-content/README.md
 
+# First-person lived-witness records are private by default. The route card,
+# protocol, form, and storage boundary remain tracked; authored bodies and
+# capture artifacts do not enter Git without a separate explicit decision.
+/ToS/zarathustra/lived-witness/local-content/*
+!/ToS/zarathustra/lived-witness/local-content/README.md
+
 # Private access-request correspondence and personal/confidential attachments.
 # Only the boundary route card remains tracked.
 /ToS/source-witnesses/access-requests/private/*

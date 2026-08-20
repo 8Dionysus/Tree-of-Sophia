@@ -1,0 +1,163 @@
+{
+  "schema_version": "tos_source_metadata_snapshot_v1",
+  "captured_at": "2026-07-30T09:56:00-06:00",
+  "capture_method": {
+    "maker_type": "mixed",
+    "name": "ordered authority, scholarly text-history, MDZ IIIF/B3Kat, exact PDF acquisition, and source-visible review",
+    "version": "curl 8.18.0; Poppler 26.01.0; Python 3.14.6"
+  },
+  "target": "Exact German 1888 Naumann item witness for Der Fall Wagner",
+  "work_authority": {
+    "source": "Deutsche Nationalbibliothek Gemeinsame Normdatei",
+    "record_url": "https://d-nb.info/gnd/4226521-6",
+    "gnd": "4226521-6",
+    "preferred_name": "Der Fall Wagner",
+    "publication_date": "1888",
+    "author_gnd": "118587943",
+    "metadata_license": "CC0 1.0",
+    "record_modified_at": "2025-02-07T15:50:27.000",
+    "queried_at": "2026-07-30T09:36:52-06:00",
+    "response_byte_size": 3594,
+    "response_sha256": "81602870b4bbe381ac8de4839ea47a4fe86ef079ff83d7352bb35b3932c2631c"
+  },
+  "mdz_digital_object": {
+    "digital_object_id": "bsb11827837",
+    "details_url": "https://www.digitale-sammlungen.de/en/details/bsb11827837",
+    "iiif_manifest_url": "https://api.digitale-sammlungen.de/iiif/presentation/v2/bsb11827837/manifest",
+    "title": "Der Fall Wagner: Ein Musikanten-Problem",
+    "creator": "Nietzsche, Friedrich",
+    "publication": "Leipzig : Naumann, 1888",
+    "extent": "4 Bl., 58 S.",
+    "language": "German",
+    "holding_institution": "Bamberg, Staatsbibliothek",
+    "call_number": "30.1972",
+    "bsb_id": "991127142709707356",
+    "b3kat_id": "BV020338451",
+    "oclc": "217629023",
+    "urn": "urn:nbn:de:bvb:12-bsb11827837-1",
+    "electronic_reproduction_year": "2024",
+    "iiif_canvas_count": 74,
+    "rights_statement_uri": "https://rightsstatements.org/vocab/NoC-NC/1.0/",
+    "details_response_byte_size": 51164,
+    "details_response_sha256": "7891d4401dc09d42d9b4ace339ccca3785086c6fbc2172cca7807958fbf1dc35",
+    "iiif_manifest_response_byte_size": 66332,
+    "iiif_manifest_response_sha256": "0e16c8152ff92a18c223191bde452f08334c547ad2126af8da5b756fffdef681",
+    "marc_response_byte_size": 6150,
+    "marc_response_sha256": "8a6cff24b3285ebe2eb1a5b01ecadb36c6bfc0b32f8e390519f0e47063cafecb",
+    "rdf_response_byte_size": 3379,
+    "rdf_response_sha256": "dd99fe5f1f14d0e01452d69cd74fe15e2ebcc4f080d6d49665f7d0fe8b92db",
+    "queried_at": "2026-07-30T09:55:05-06:00"
+  },
+  "mdz_immediate_pdf": {
+    "download_service_entry": "https://download.digitale-sammlungen.de/BOOKS/download.pl?id=bsb11827837&nr=1&ersteseite=1&letzteseite=74",
+    "generated_basename": "17854266678888bsb11827837.pdf",
+    "local_basename": "bsb11827837.pdf",
+    "acquired_at": "2026-07-30T09:51:23-06:00",
+    "byte_size": 31518299,
+    "md5": "4327af405bdcaabf59d59f1e7a34b441",
+    "sha1": "6bf0ac120082468b7c22dabbf7748c6af4a51910",
+    "sha256": "37fc9eb2d26886be936efe06c7fbeaf9f6dab231b3a81bc2cb5e824e98f984ed",
+    "pdf_version": "1.4",
+    "pdf_page_count": 75,
+    "encrypted": false,
+    "tagged": false,
+    "javascript": false,
+    "page_media_box_points": "595 x 842",
+    "image_rows": 76,
+    "scan_image_rows": 74,
+    "embedded_book_ocr_present": false,
+    "extracted_cover_text_byte_size": 221,
+    "extracted_cover_text_sha256": "cce2bcca7c4642c939b46ccfd6db65530fe0d38f90fac818a0b70c9e0316b5ec",
+    "page_mapping": "PDF page 1 is an MDZ-generated bibliographic cover; PDF pages 2-75 map one-to-one and in order to IIIF canvases 1-74."
+  },
+  "source_visible_scan": {
+    "review_maker": "model",
+    "human_repeat_performed": false,
+    "reviewed_iiif_canvases": [
+      1,
+      2,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10,
+      11,
+      12,
+      13,
+      61,
+      62,
+      63,
+      64,
+      65,
+      66,
+      67,
+      68,
+      69,
+      70,
+      71,
+      72,
+      73,
+      74
+    ],
+    "observations": [
+      "Canvas 1 is the red Bamberg holding binding and canvas 2 carries call number 30.1972.",
+      "Canvas 5 is the historical title page: Der Fall Wagner, Ein Musikanten-Problem, Friedrich Nietzsche, Leipzig, Verlag von C. G. Naumann, 1888.",
+      "The title page does not display a 'Zweite Auflage' statement.",
+      "Canvases 7-10 contain the Vorwort; canvas 11 is the internal work title and canvas 13 begins printed page 1.",
+      "Canvases 61-69 cover the terminal printed sequence through printed page 57; canvas 69 carries the terminal paragraph and holding stamp.",
+      "Canvas 70 is the printer leaf; canvases 71-73 are rear furniture and canvas 74 is the rear binding."
+    ]
+  },
+  "scholarly_text_history": {
+    "source": "Andreas Urs Sommer, Historischer und kritischer Kommentar zu Friedrich Nietzsches Werken, Band 6/1",
+    "doi": "10.11588/diglit.70913",
+    "record_url": "https://digi.hadw-bw.de/view/nietzsche_kom6_1/0022",
+    "bounded_findings": [
+      "Nietzsche sent the printing manuscript to Naumann on 26 June 1888 and continued supplying additions.",
+      "By 9 August 1888 Nietzsche had already corrected galley proofs and was awaiting the proofs of the Nachschriften.",
+      "Printing was complete in September; official publication occurred on 22 September 1888.",
+      "The run comprised 1000 copies, with its second half designated 'Zweite Auflage'; the exact Bamberg title page carries no such designation."
+    ],
+    "page_response_sha256": {
+      "0024": "258ba6040ba3cee9340ddd4a03d84e2c7ad653e677036c180012784eab85e1ab",
+      "0025": "cb711dfbbb27c0bd09eef411ff97f90739abc2631c012d04c9d6bcf0ad85110d",
+      "0026": "75a126d644fb73d94e106fe1e0ad5c05e2f270dd802582c851c43afa9e625296"
+    },
+    "queried_at": "2026-07-30T09:38:41-06:00",
+    "critical_text_admitted": false
+  },
+  "negative_and_deferred_channels": {
+    "deutsches_textarchiv": {
+      "queried_at": "2026-07-30T09:37:00-06:00",
+      "nietzsche_author_result_count": 7,
+      "target_present": false,
+      "response_byte_size": 37243,
+      "response_sha256": "bec1e06c8c2d08a7228290cce0c9e5cd70129d617e80c0a48703fe6b6a8413fe"
+    },
+    "textgrid": {
+      "queried_at": "2026-07-30T09:37:30-06:00",
+      "response_hits": 1,
+      "edition_uri": "textgrid:4k22h.0",
+      "work_uri": "textgrid:4k190.0",
+      "repository_issued_at": "2026-02-01",
+      "license_claim": "CC BY 4.0",
+      "decision": "deferred as a modern corpus-text challenger, not the physical 1888 witness",
+      "response_byte_size": 1885,
+      "response_sha256": "b0e06d348a3741289191154c65f734a3fd42895cb03e397d954e280bbe3bd940"
+    },
+    "google_books": {
+      "volume_id": "n38ktXZkxHkC",
+      "record_url": "https://books.google.com/books/about/Der_Fall_Wagner.html?id=n38ktXZkxHkC",
+      "bibliographic_lead": "Naumann 1888, 58 pages, original from the Bavarian State Library (Bamberg)",
+      "offered_download_result": "HTML anti-bot challenge for EPUB and HTML not-found response for the stale PDF link; neither response was admitted as source bytes",
+      "technical_access_bypass_used": false,
+      "decision": "reconciled to the originating MDZ/B3Kat object and official MDZ download service"
+    },
+    "naumann_1906_aggregate": {
+      "item_ref": "tos.item.friedrich-nietzsche.nietzsches-werke-band-8.naumann-1906.wikimedia-commons-stanford-scan-djvu",
+      "decision": "retain as a later parallel collection witness; do not substitute it for the exact 1888 standalone edition"
+    }
+  },
+  "snapshot_boundary": "The snapshot preserves work authority, exact publication and holding identity, scholarly production history, rights evidence, local fixity, PDF-to-IIIF page mapping, and bounded visual observations. It accepts no OCR, German text, critical text, translation, semantics, or public payload transfer."
+}

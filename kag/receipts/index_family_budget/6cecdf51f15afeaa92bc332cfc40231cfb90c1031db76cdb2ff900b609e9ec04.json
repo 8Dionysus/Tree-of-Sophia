@@ -1,0 +1,17 @@
+{
+  "allowed_bytes": 20770731,
+  "allowed_tracked_bytes": 21190269,
+  "approved_by": "repository-owner",
+  "base_ref": "d95a583272acb84dcb5b7e6896801f0364c7b234",
+  "changed_generated_bytes": 20770731,
+  "changed_generated_files": 538,
+  "decision_ref": "aoa-kag:docs/decisions/AOA-KAG-D-0017-portable-content-addressed-repository-family.md",
+  "default_limit_bytes": 1048576,
+  "head_family_digest": "6cecdf51f15afeaa92bc332cfc40231cfb90c1031db76cdb2ff900b609e9ec04",
+  "reason": "The source-first foundation branch intentionally carries cumulative reviewed corpus and evidence growth since the workflow-pinned base; this bounded TextGrid refresh adds only a discovery receipt, research packet, audit updates, and their deterministic index projection while preserving full/incremental parity and zero content authority.",
+  "repo": "Tree-of-Sophia",
+  "schema_version": "aoa-repo-local-kag-budget-receipt-v1",
+  "scope": "generated_delta_and_tracked_size",
+  "tracked_bytes": 21190269,
+  "tracked_bytes_max": 11534336
+}

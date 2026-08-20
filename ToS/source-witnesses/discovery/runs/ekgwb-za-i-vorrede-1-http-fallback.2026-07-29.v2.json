@@ -1,0 +1,148 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/material-discovery-record.schema.json",
+  "schema_version": "tos_material_discovery_record_v1",
+  "discovery_id": "tos.discovery.ekgwb-za-i-vorrede-1-http-fallback.2026-07-29",
+  "protocol_ref": "ToS/source-witnesses/discovery/DISCOVERY_PROTOCOL.md",
+  "target": {
+    "target_kind": "critical-edition",
+    "known_tos_refs": [
+      "tos.work.friedrich-nietzsche.also-sprach-zarathustra",
+      "tos.expression.friedrich-nietzsche.also-sprach-zarathustra.de-naumann-1893"
+    ],
+    "description": "A directly inspectable official Nietzsche Source response containing eKGWB Za-I-Vorrede-1, with transport and rights limits kept explicit.",
+    "required_properties": [
+      "critical-edition identity",
+      "exact stable section locator",
+      "directly inspectable current passage",
+      "originating scholarly record",
+      "declared rights evidence separated from ToS rights judgment"
+    ],
+    "acceptable_substitutions": [
+      "an authenticated HTTPS or institutionally supplied copy of the same exact eKGWB section",
+      "another scholarly critical edition with exact passage-level addressability and a reviewable rights route"
+    ],
+    "languages": [
+      "de"
+    ],
+    "formats": [
+      "metadata",
+      "HTML",
+      "TEI"
+    ],
+    "purpose_ref": "ToS/research-packets/foundation-laboratory-2026-07/GERMAN_ASSISTED_REVIEW_RESEARCH.md"
+  },
+  "channels": [
+    {
+      "channel_id": "channel-nietzsche-source-https",
+      "sequence": 1,
+      "channel_type": "specialized-scholarly-project",
+      "role": "digital-object-record",
+      "source_name": "Nietzsche Source",
+      "endpoint_url": "https://www.nietzschesource.org/resources/scripts/static_html_include.php?book=%23eKGWB%2FZa-I",
+      "interface_type": "web",
+      "interface_version": null,
+      "exact_query": "Two bounded curl 8.18.0 GET requests with redirects and 20-second timeout to the exact HTTPS static include endpoint; both failed to connect to port 443 before any HTTP response.",
+      "queried_at": "2026-07-29T08:02:21Z",
+      "elapsed_seconds": 0.903357,
+      "result_order_preserved": true,
+      "results": []
+    },
+    {
+      "channel_id": "channel-nietzsche-source-http-spa",
+      "sequence": 2,
+      "channel_type": "specialized-scholarly-project",
+      "role": "digital-object-record",
+      "source_name": "Nietzsche Source",
+      "endpoint_url": "http://www.nietzschesource.org/resources/scripts/static_html_include.php?book=%23eKGWB%2FZa-I",
+      "interface_type": "web",
+      "interface_version": "public SPA static include route observed 2026-07-29",
+      "exact_query": "Two bounded curl 8.18.0 GET requests with redirects and 20-second timeout to the exact HTTP static include endpoint discovered from the public Nietzsche Source SPA.",
+      "queried_at": "2026-07-29T08:02:23Z",
+      "elapsed_seconds": 1.943764,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.ekgwb-official-http-static-za-i",
+          "rank": 1,
+          "title_as_displayed": "Nietzsche Source eKGWB, Also sprach Zarathustra I",
+          "result_url": "http://www.nietzschesource.org/resources/scripts/static_html_include.php?book=%23eKGWB%2FZa-I",
+          "originating_record_url": "http://www.nietzschesource.org/eKGWB/Za-I-Vorrede-1",
+          "identifiers": [
+            {
+              "scheme": "eKGWB",
+              "value": "Za-I-Vorrede-1"
+            }
+          ],
+          "available_formats": [
+            "HTML"
+          ],
+          "declared_rights": {
+            "statement": "CC BY-NC-ND 4.0",
+            "scope": "content",
+            "evidence_url": "https://doc.nietzschesource.org/en/rights",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-view",
+          "machine_interface": "html",
+          "decision": "select",
+          "rationale": "The official public SPA route returned the exact part containing the named section twice with identical bytes. Selection is local research evidence only: unencrypted transport prevents an authenticity claim, and rights remain unreviewed.",
+          "acquisition": {
+            "downloaded": true,
+            "acquired_at": "2026-07-29T08:02:23Z",
+            "byte_size": 180138,
+            "sha256": "3ad9b3f601eccf45446c71f2758d1aa5fd70fb01cc67c81453526f1b7eeb7061",
+            "event_ref": "tos.event.acquisition.ekgwb-za-i-static-html.2026-07-29"
+          },
+          "snapshot": {
+            "state": "captured",
+            "format": "static-snapshot",
+            "sha256": "3ad9b3f601eccf45446c71f2758d1aa5fd70fb01cc67c81453526f1b7eeb7061",
+            "reason": "The exact response is preserved only in the gitignored local-content lane and is not a publication payload."
+          }
+        }
+      ]
+    }
+  ],
+  "channel_comparison": [
+    {
+      "channel_id": "channel-nietzsche-source-https",
+      "completeness": "unknown",
+      "metadata_precision": "unknown",
+      "rights_clarity": "limited",
+      "machine_interface_quality": "poor",
+      "human_minutes": 0,
+      "machine_seconds": 0.903357,
+      "notes": "Both HTTPS requests failed before an HTTP response; this does not show that the resource is absent."
+    },
+    {
+      "channel_id": "channel-nietzsche-source-http-spa",
+      "completeness": "strong",
+      "metadata_precision": "strong",
+      "rights_clarity": "limited",
+      "machine_interface_quality": "adequate",
+      "human_minutes": 0,
+      "machine_seconds": 1.943764,
+      "notes": "Both public-route responses were 180138 bytes with the same SHA-256. HTTP is unencrypted, and the declared BY-NC-ND posture is evidence rather than ToS clearance."
+    }
+  ],
+  "selected_result_ids": [
+    "tos-discovery-result.ekgwb-official-http-static-za-i"
+  ],
+  "rejected_result_ids": [],
+  "rights_inference_from_availability_prohibited": true,
+  "general_web_search_is_last_resort": true,
+  "technical_access_bypass_used": false,
+  "maker": {
+    "maker_type": "model",
+    "agent_ref": "model:codex"
+  },
+  "started_at": "2026-07-29T08:02:21Z",
+  "ended_at": "2026-07-29T08:02:25Z",
+  "status": "reconciled",
+  "provenance_event_refs": [
+    "tos.event.discovery.ekgwb-za-i-vorrede-1-http-fallback.2026-07-29",
+    "tos.event.acquisition.ekgwb-za-i-static-html.2026-07-29"
+  ],
+  "record_version": 2,
+  "supersedes_discovery_ref": "tos.discovery.ekgwb-za-i-vorrede-1.2026-07-28"
+}

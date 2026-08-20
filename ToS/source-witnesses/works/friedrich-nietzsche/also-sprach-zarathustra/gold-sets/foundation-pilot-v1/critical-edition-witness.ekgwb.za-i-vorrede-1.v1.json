@@ -1,0 +1,141 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/critical-edition-witness-admission.schema.json",
+  "schema_version": "tos_critical_edition_witness_admission_v1",
+  "packet_id": "tos.critical-edition-witness.ekgwb.za-i-vorrede-1.v1",
+  "status": "metadata_registered_rights_review_pending",
+  "work_ref": "tos.work.friedrich-nietzsche.also-sprach-zarathustra",
+  "reference_register": {
+    "ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/translation-reference-register.v1.json",
+    "reference_id": "tos-ref.nietzsche-source.ekgwb"
+  },
+  "source_review_plan": {
+    "ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/translation-source-review-plan.v2.json",
+    "sha256": "ba04adba9787c91ffca017128db0250f5565663084ba7f60a609e227b88eaf25"
+  },
+  "assisted_review_plan_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/german-assisted-source-review.v1.json",
+  "reference_identity": {
+    "title": "Digitale Kritische Gesamtausgabe Werke und Briefe (eKGWB)",
+    "edition_siglum": "eKGWB",
+    "author": "Friedrich Nietzsche",
+    "editors": [
+      "Giorgio Colli",
+      "Mazzino Montinari"
+    ],
+    "digital_editor": "Paolo D'Iorio",
+    "publisher": "Nietzsche Source",
+    "scholarly_posture": "digital critical comparison witness for the Colli-Montinari German reference edition"
+  },
+  "target": {
+    "review_unit_id": "tos-translation-source-review-v2-001",
+    "context_anchor_ref": "tos.anchor.zarathustra-translation-pilot-v1.t001",
+    "structural_context": "Zarathustra's Vorrede, section 1",
+    "critical_locator_siglum": "Za-I-Vorrede-1",
+    "critical_locator_url": "https://www.nietzschesource.org/eKGWB/Za-I-Vorrede-1",
+    "alignment_state": "local_structure_compatible_exact_critical_passage_unverified"
+  },
+  "locator_evidence": {
+    "checked_at": "2026-07-28T17:52:40-06:00",
+    "stable_url_policy_ref": "https://doc.nietzschesource.org/en/ekgwb",
+    "exact_locator_corroboration_refs": [
+      "https://www.nietzschesource.org/SN/large-2014",
+      "https://philarchive.org/archive/ALIEFY"
+    ],
+    "direct_fetch_state": "temporarily_unavailable",
+    "direct_fetch_note": "On 2026-07-28 both the research browser and a bounded curl retry failed to reach Nietzsche Source directly. Current search indexes still expose the official stable-siglum documentation, rights page, and independent scholarly uses of Za-I-Vorrede-1, but no current critical-edition passage was fetched or compared in this event."
+  },
+  "local_structural_context": {
+    "state": "local_section_boundary_observed_critical_text_not_compared",
+    "checked_at": "2026-07-28T17:52:40-06:00",
+    "maker": "model:codex",
+    "source_expression_ref": "tos.expression.friedrich-nietzsche.also-sprach-zarathustra.de-naumann-1893",
+    "epub_witness": {
+      "item_ref": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-naumann-1893.internet-archive-cornell-auto-epub",
+      "file_ref": "tos.file.sha256.adc7eeae2d5a5cf2b225ef81170b595c77664167a539f0cb1a478184aca8e9de",
+      "file_sha256": "adc7eeae2d5a5cf2b225ef81170b595c77664167a539f0cb1a478184aca8e9de",
+      "section_start_member": {
+        "path": "EPUB/page_55.html",
+        "sha256": "0e29c6e4e9c29756a1014530c1f5d4a9140a6fbb3ca613a296a174f3e296fa5c"
+      },
+      "next_section_boundary_member": {
+        "path": "EPUB/page_56.html",
+        "sha256": "0aec8864adf973d300fa4e1a4e923c492199ca9d8ccc0726cafd0200992d62c7"
+      }
+    },
+    "visual_witness": {
+      "item_ref": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-naumann-1893.internet-archive-image-container-pdf",
+      "file_ref": "tos.file.sha256.61c947e5aff76a64d82600cc52dcb25ff1b5862530d3a99c96824da885c1e6cf",
+      "file_sha256": "61c947e5aff76a64d82600cc52dcb25ff1b5862530d3a99c96824da885c1e6cf",
+      "section_start_anchor_ref": "tos.anchor.zarathustra-foundation-pilot-v1.ocr-naumann-p056",
+      "section_start_pdf_page": 56,
+      "next_section_pdf_page": 57,
+      "rendered_pages_persisted": false
+    },
+    "comparison": {
+      "critical_locator_scope": "Zarathustra's Vorrede, section 1",
+      "local_correspondence": "structure-compatible",
+      "exact_critical_text_compared": false,
+      "exact_passage_alignment_claimed": false,
+      "german_linguistic_correctness_assessed": false,
+      "human_review_performed": false,
+      "source_unit_selected_for_review": false
+    },
+    "limits": [
+      "the local EPUB is an automatic OCR derivative and cannot establish the critical reading",
+      "section numbering and the transition to section 2 establish structural compatibility only",
+      "the inaccessible eKGWB passage prevents exact critical-text comparison",
+      "model source-visible inspection is not human German-language or bibliographic review"
+    ]
+  },
+  "rights_gate": {
+    "rights_evidence_ref": "https://doc.nietzschesource.org/en/rights",
+    "declared_license": "CC-BY-NC-ND-4.0",
+    "license_uri": "https://creativecommons.org/licenses/by-nc-nd/4.0/",
+    "web_consultation_posture": "open_scholarly_consultation_with_exact_citation",
+    "human_bibliographic_review": false,
+    "human_rights_review": false,
+    "citation_witness_admission_authorized": false,
+    "content_storage_authorized": false,
+    "derivative_use_authorized": false,
+    "blocking_reasons": [
+      "human bibliographic and rights review has not occurred",
+      "the no-derivatives boundary forbids treating eKGWB as a transformable ToS corpus",
+      "the exact eKGWB passage has not been directly fetched or compared with the local source-visible scan"
+    ]
+  },
+  "content_boundary": {
+    "source_text_stored": false,
+    "source_text_quoted": false,
+    "source_text_sha256": null,
+    "transformation_performed": false,
+    "local_payload_created": false
+  },
+  "provenance": {
+    "event_ref": "tos.event.alignment.ekgwb.za-i-vorrede-1-local-structure.2026-07-28",
+    "prepared_at": "2026-07-28T17:52:40-06:00",
+    "maker": "model:codex",
+    "method": "official edition and rights refresh, fail-closed direct-fetch retry, local fixity verification, and source-visible EPUB/PDF section-boundary comparison",
+    "observations": [
+      "current search indexes expose Nietzsche Source documentation of eKGWB as a citable digital critical edition using stable siglum URLs",
+      "current search indexes expose the Nietzsche Source CC BY-NC-ND 4.0 rights declaration",
+      "independent scholarly sources use Za-I-Vorrede-1 as the exact section siglum",
+      "the fixity-verified local EPUB member page_55 and scan PDF page 56 begin printed section 1",
+      "the fixity-verified local EPUB member page_56 and scan PDF page 57 contain the transition from section 1 to printed section 2",
+      "no eKGWB passage text was fetched, stored, quoted, transformed, or compared"
+    ],
+    "inferences": [
+      "the first prepared source-review unit is structurally inside the local Naumann witness's Vorrede section 1 and is compatible with the scope named by Za-I-Vorrede-1",
+      "structural compatibility does not prove exact critical-text alignment, rights clearance, German textual correctness, or source acceptance"
+    ]
+  },
+  "gate_effects": {
+    "human_task_created": false,
+    "human_debt_units": 0,
+    "source_unit_selected_for_review": false,
+    "accepted_german_unit_created": false,
+    "critical_edition_unit_admitted": false,
+    "translation_lanes_opened": [],
+    "recognized_translation_revealed": false,
+    "promotion_authorized": false
+  },
+  "authority_boundary": "metadata and critical locator only: this packet is not source text, passage alignment, rights clearance, accepted German, translation evidence, semantic evidence, or promotion authority"
+}

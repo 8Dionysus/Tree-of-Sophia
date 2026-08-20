@@ -1,0 +1,98 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/access-request.schema.json",
+  "schema_version": "tos_access_request_v1",
+  "request_id": "tos.access-request.nietzsche-source-ekgwb-research-access",
+  "material": {
+    "title": "Digitale Kritische Gesamtausgabe Werke und Briefe (eKGWB)",
+    "responsibility": "Giorgio Colli and Mazzino Montinari, reference-edition editors; Paolo D'Iorio, digital-edition editor; Nietzsche Source and Association HyperNietzsche, publication route",
+    "edition_or_resource": "Nietzsche Source eKGWB, exact stable locator Za-I-Vorrede-1",
+    "requested_portion": "The exact critical-edition passage addressed by Za-I-Vorrede-1, plus enough machine-readable metadata to verify its edition identity and stable locator; no bulk corpus request",
+    "identifiers": [
+      {
+        "scheme": "eKGWB siglum",
+        "value": "Za-I-Vorrede-1"
+      },
+      {
+        "scheme": "GND work",
+        "value": "4099324-3"
+      }
+    ],
+    "tos_refs": [
+      "tos.work.friedrich-nietzsche.also-sprach-zarathustra",
+      "tos.expression.friedrich-nietzsche.also-sprach-zarathustra.de-naumann-1893"
+    ],
+    "discovery_refs": [
+      "ToS/source-witnesses/discovery/runs/ekgwb-za-i-vorrede-1.2026-07-28.v1.json",
+      "ToS/source-witnesses/discovery/runs/ekgwb-za-i-vorrede-1-http-fallback.2026-07-29.v2.json",
+      "ToS/source-witnesses/discovery/runs/ekgwb-za-i-vorrede-1-institutional-corroboration.2026-07-30.v3.json"
+    ]
+  },
+  "rights_holder_or_institution": {
+    "name": "Nietzsche Source / Association HyperNietzsche",
+    "role": "scholarly-project",
+    "identification_evidence_urls": [
+      "https://doc.nietzschesource.org/en/",
+      "https://doc.nietzschesource.org/en/editions",
+      "https://doc.nietzschesource.org/en/ekgwb",
+      "https://doc.nietzschesource.org/en/rights",
+      "https://www.item.ens.fr/nietzsche/"
+    ],
+    "identity_status": "probable-needs-human-review"
+  },
+  "contact_route": {
+    "channel_type": "public-institutional-email",
+    "public_institutional_url": "https://www.item.ens.fr/nietzsche/",
+    "refreshed_at": "2026-07-28T18:27:55-06:00",
+    "personal_contact_committed": false
+  },
+  "project_description_ref": "README.md",
+  "research_purpose": "Obtain publisher-origin authentication for one exact German critical-edition passage already observed through the public HTTP SPA route and independently preserved by Arquivo.pt, verify it against fixity-bound historical witnesses before any translation or semantic work, and clarify only external server, quotation, metadata-publication, or sharing scopes beyond private non-commercial local research.",
+  "requested_format": "A publisher-authenticated current HTTPS passage or direct current publisher or institutional-deposit HTML/TEI copy with a citable edition identifier, plus clarification of the requested external-use scopes; an institutional historical archive witness already exists, and no bulk delivery is requested.",
+  "requested_permissions": {
+    "local_access": "requested",
+    "ocr_or_transcription": "not-requested",
+    "indexing": "not-requested",
+    "embeddings": "not-requested",
+    "quotation": "requested",
+    "metadata_publication": "requested",
+    "derivative_publication": "not-requested",
+    "server_processing": "requested",
+    "source_redistribution": "not-requested"
+  },
+  "local_storage_conditions": {
+    "access_controlled": true,
+    "source_payload_gitignored": true,
+    "location_class": "operator-controlled-local-ToS-storage",
+    "retention_posture": "Retain only within the permission or declared-license scope actually confirmed for this passage; support later expiry, withdrawal, and deletion.",
+    "removal_supported": true
+  },
+  "non_redistribution_without_permission": true,
+  "technical_access_bypass_used": false,
+  "access_status": "research-only",
+  "request_status": "draft-not-sent",
+  "human_send_approval": false,
+  "sent_at": null,
+  "response": {
+    "state": "none",
+    "received_at": null,
+    "permission_expires_at": null,
+    "conditions": [],
+    "safe_evidence_refs": []
+  },
+  "private_correspondence_ref": null,
+  "redacted_public_receipt_ref": null,
+  "personal_or_confidential_data_committed": false,
+  "rights_record_refs": [
+    "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/translation-reference-register.v1.json",
+    "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/critical-edition-witness.ekgwb.za-i-vorrede-1.v1.json",
+    "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/rights.ekgwb.za-i-vorrede-1.v1.json"
+  ],
+  "provenance_event_refs": [
+    "tos.event.access-request-draft.nietzsche-source-ekgwb.2026-07-28",
+    "tos.event.access-request-route-refresh.nietzsche-source-ekgwb.2026-07-28",
+    "tos.event.access-request-scope-reconciliation.nietzsche-source-ekgwb.2026-07-29",
+    "tos.event.rights-assessment.ekgwb-local-research-route.2026-07-30",
+    "tos.event.access-request-scope-reconciliation.nietzsche-source-ekgwb-institutional-archive.2026-07-30"
+  ],
+  "record_version": 5
+}

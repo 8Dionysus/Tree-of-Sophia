@@ -1,0 +1,204 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/transfer-candidate-target-structural-crosswalk.schema.json",
+  "schema_version": "tos_transfer_candidate_target_structural_crosswalk_v1",
+  "crosswalk_id": "tos.transfer-candidate-target-crosswalk.friedrich-nietzsche.zur-genealogie-der-moral.ru-svasyan-mysl-1996-v1",
+  "status": "prepared-target-structural-only-ineligible",
+  "work_ref": "tos.work.friedrich-nietzsche.zur-genealogie-der-moral",
+  "target_expression_ref": "tos.expression.friedrich-nietzsche.zur-genealogie-der-moral.ru-svasyan-mysl-1996",
+  "target_item_ref": "tos.item.friedrich-nietzsche.works-in-two-volumes-volume-2-mysl-1996.operator-pdf",
+  "inputs": {
+    "transfer_plan": {
+      "ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/transfer-samples.json",
+    "sha256": "55f9cf6486f57a83ad28c1439493cd946862eb43e1750110fc55a8c961769fbf"
+    },
+    "candidate_anchor_set": {
+      "ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/transfer-target-anchors.v1.jsonl",
+      "sha256": "e4dfbb6f35100e1ba44975ab9efa6ccbad4e507ab499e2a5119c5ef31129596a"
+    },
+    "target_hierarchical_numbered_unit_map": {
+      "ref": "ToS/source-witnesses/works/friedrich-nietzsche/zur-genealogie-der-moral/expressions/ru-svasyan-mysl-1996/structure/mysl-1996-volume-2-operator-pdf/hierarchical-numbered-unit-page-map.json",
+      "sha256": "f7012f8538be5c1962eb8e7f9a38b41785e8e9d8af4dd834349115227e66d5b4"
+    },
+    "target_rights": {
+      "ref": "ToS/source-witnesses/collections/friedrich-nietzsche/works-in-two-volumes-volume-2-mysl-1996/editions/moscow-mysl-1996-volume-2/items/operator-pdf/rights.json",
+      "sha256": "4d7d4c69118416796f847be97d83cc04a9a30213fda9710d5412918c8f8bdbb7"
+    }
+  },
+  "method": {
+    "name": "tracked-target-page-to-hierarchical-proposed-unit-start-crosswalk",
+    "version": "1",
+    "selection_frame_changed": false,
+    "source_or_target_text_read": false,
+    "page_intersection_rule": "preceding proposed target unit start plus every proposed target unit start on the candidate page",
+    "source_parallel_unit_map_available": false
+  },
+  "summary": {
+    "candidate_page_count": 6,
+    "random_page_count": 3,
+    "hard_page_count": 3,
+    "page_with_unit_start_count": 2,
+    "page_without_unit_start_count": 4,
+    "possible_target_unit_route_count": 8,
+    "source_parallel_route_count": 0,
+    "human_review_count": 0,
+    "eligible_target_unit_count": 0,
+    "target_gold_count": 0
+  },
+  "candidates": [
+    {
+      "candidate_unit_id": "tos-target-candidate-genealogie-p0410-random",
+      "candidate_anchor_ref": "tos.anchor.zarathustra-foundation-pilot-v1.transfer-genealogie-p0410",
+      "target_pdf_page": 410,
+      "stratum": "random",
+      "page_relation": "prior-target-unit-spill-plus-unit-starts",
+      "possible_target_unit_refs": [
+        "preface:3",
+        "preface:4"
+      ],
+      "starts_on_page_target_unit_refs": [
+        "preface:4"
+      ],
+      "next_proposed_start": {
+        "target_unit_ref": "preface:5",
+        "target_pdf_page": 411
+      },
+      "source_parallel_route_status": "not_materialized",
+      "exact_page_end_boundary_known": false,
+      "eligible_for_variant_execution": false,
+      "target_gold_status": "not_started"
+    },
+    {
+      "candidate_unit_id": "tos-target-candidate-genealogie-p0519-random",
+      "candidate_anchor_ref": "tos.anchor.zarathustra-foundation-pilot-v1.transfer-genealogie-p0519",
+      "target_pdf_page": 519,
+      "stratum": "random",
+      "page_relation": "within-one-proposed-target-numbered-unit",
+      "possible_target_unit_refs": [
+        "essay-3:25"
+      ],
+      "starts_on_page_target_unit_refs": [],
+      "next_proposed_start": {
+        "target_unit_ref": "essay-3:26",
+        "target_pdf_page": 520
+      },
+      "source_parallel_route_status": "not_materialized",
+      "exact_page_end_boundary_known": false,
+      "eligible_for_variant_execution": false,
+      "target_gold_status": "not_started"
+    },
+    {
+      "candidate_unit_id": "tos-target-candidate-genealogie-p0489-random",
+      "candidate_anchor_ref": "tos.anchor.zarathustra-foundation-pilot-v1.transfer-genealogie-p0489",
+      "target_pdf_page": 489,
+      "stratum": "random",
+      "page_relation": "within-one-proposed-target-numbered-unit",
+      "possible_target_unit_refs": [
+        "essay-3:11"
+      ],
+      "starts_on_page_target_unit_refs": [],
+      "next_proposed_start": {
+        "target_unit_ref": "essay-3:12",
+        "target_pdf_page": 490
+      },
+      "source_parallel_route_status": "not_materialized",
+      "exact_page_end_boundary_known": false,
+      "eligible_for_variant_execution": false,
+      "target_gold_status": "not_started"
+    },
+    {
+      "candidate_unit_id": "tos-target-candidate-genealogie-p0426-hard",
+      "candidate_anchor_ref": "tos.anchor.zarathustra-foundation-pilot-v1.transfer-genealogie-p0426",
+      "target_pdf_page": 426,
+      "stratum": "hard",
+      "page_relation": "within-one-proposed-target-numbered-unit",
+      "possible_target_unit_refs": [
+        "essay-1:10"
+      ],
+      "starts_on_page_target_unit_refs": [],
+      "next_proposed_start": {
+        "target_unit_ref": "essay-1:11",
+        "target_pdf_page": 427
+      },
+      "source_parallel_route_status": "not_materialized",
+      "exact_page_end_boundary_known": false,
+      "eligible_for_variant_execution": false,
+      "target_gold_status": "not_started"
+    },
+    {
+      "candidate_unit_id": "tos-target-candidate-genealogie-p0482-hard",
+      "candidate_anchor_ref": "tos.anchor.zarathustra-foundation-pilot-v1.transfer-genealogie-p0482",
+      "target_pdf_page": 482,
+      "stratum": "hard",
+      "page_relation": "within-one-proposed-target-numbered-unit",
+      "possible_target_unit_refs": [
+        "essay-3:8"
+      ],
+      "starts_on_page_target_unit_refs": [],
+      "next_proposed_start": {
+        "target_unit_ref": "essay-3:9",
+        "target_pdf_page": 484
+      },
+      "source_parallel_route_status": "not_materialized",
+      "exact_page_end_boundary_known": false,
+      "eligible_for_variant_execution": false,
+      "target_gold_status": "not_started"
+    },
+    {
+      "candidate_unit_id": "tos-target-candidate-genealogie-p0463-hard",
+      "candidate_anchor_ref": "tos.anchor.zarathustra-foundation-pilot-v1.transfer-genealogie-p0463",
+      "target_pdf_page": 463,
+      "stratum": "hard",
+      "page_relation": "prior-target-unit-spill-plus-unit-starts",
+      "possible_target_unit_refs": [
+        "essay-2:17",
+        "essay-2:18"
+      ],
+      "starts_on_page_target_unit_refs": [
+        "essay-2:18"
+      ],
+      "next_proposed_start": {
+        "target_unit_ref": "essay-2:19",
+        "target_pdf_page": 464
+      },
+      "source_parallel_route_status": "not_materialized",
+      "exact_page_end_boundary_known": false,
+      "eligible_for_variant_execution": false,
+      "target_gold_status": "not_started"
+    }
+  ],
+  "source_text_included": false,
+  "target_text_included": false,
+  "effects": {
+    "candidate_frame_changed": false,
+    "exact_passage_boundary_created": false,
+    "source_text_accepted": false,
+    "target_text_accepted": false,
+    "source_to_target_alignment_created": false,
+    "translation_alignment_created": false,
+    "target_unit_eligible": false,
+    "target_gold_created": false,
+    "semantic_work_opened": false,
+    "human_work_scheduled": false
+  },
+  "provenance_event_ref": "tos.event.transfer-candidate-target-crosswalk.friedrich-nietzsche.zur-genealogie-der-moral.2026-08-08",
+  "does_not_establish": [
+    "source_text",
+    "target_text",
+    "exact_line_boundaries",
+    "exact_passage_end_boundaries",
+    "source_parallel_unit_route",
+    "source_to_target_passage_alignment",
+    "translation_correspondence",
+    "translation_equivalence",
+    "translation_quality",
+    "textual_identity",
+    "accepted_german",
+    "accepted_russian",
+    "target_gold",
+    "eligible_target_unit",
+    "semantics",
+    "rights_clearance",
+    "canon_promotion"
+  ],
+  "authority_boundary": "text-free target-side narrowing of already-frozen whole-page transfer candidates through one proposed hierarchical target numbered-unit map; no German parallel unit map is materialized, so the result establishes neither a source route nor source-to-target passage alignment, accepted German or Russian, translation correspondence, equivalence or quality, exact passage ends, eligible target units, target gold, semantic work, human work, rights clearance, or canon authority"
+}

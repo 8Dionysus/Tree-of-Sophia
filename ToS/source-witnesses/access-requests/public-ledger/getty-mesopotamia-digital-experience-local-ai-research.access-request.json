@@ -1,0 +1,78 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/access-request.schema.json",
+  "schema_version": "tos_access_request_v1",
+  "request_id": "tos.access-request.getty-mesopotamia-digital-experience-local-ai-research",
+  "material": {
+    "title": "Mesopotamia: Civilization Begins",
+    "responsibility": "J. Paul Getty Trust; individual digital-experience byline unresolved",
+    "edition_or_resource": "Mutable Getty exhibition digital experience at https://www.getty.edu/art/exhibitions/mesopotamia/explore.html; authoritative editorial revision date unresolved",
+    "requested_portion": "The current text and bibliographic/revision metadata of the digital experience, solely for access-controlled local noncommercial solo-plus-AI research. No images, video, interactive media, collection-object media, or linked third-party works are requested.",
+    "identifiers": [
+      {"scheme": "Getty exhibition digital experience URL path", "value": "/art/exhibitions/mesopotamia/explore.html"}
+    ],
+    "tos_refs": [
+      "tos.work.proto-cuneiform.getty-mesopotamia-civilization-begins-digital-experience"
+    ],
+    "discovery_refs": [
+      "ToS/source-witnesses/discovery/runs/proto-cuneiform-getty-mesopotamia-city-bureaucracy-writing.2026-08-12.v1.json"
+    ]
+  },
+  "rights_holder_or_institution": {
+    "name": "J. Paul Getty Trust",
+    "role": "publisher",
+    "identification_evidence_urls": [
+      "https://www.getty.edu/art/exhibitions/mesopotamia/explore.html",
+      "https://www.getty.edu/legal/terms-of-use/",
+      "https://www.getty.edu/about/contact/"
+    ],
+    "identity_status": "identified"
+  },
+  "contact_route": {
+    "channel_type": "public-institutional-email",
+    "public_institutional_url": "mailto:gettycommunications@getty.edu",
+    "refreshed_at": "2026-08-12T16:18:00-06:00",
+    "personal_contact_committed": false
+  },
+  "project_description_ref": "README.md",
+  "research_purpose": "Evaluate how an institutional public-history synthesis can orient Tree of Sophia while its city, bureaucracy, administration, and writing propositions are decomposed to source-returnable archaeological scholarship. The local study would preserve the exact page revision, compare its compressed account with established and current research, measure unsupported causal edges and retained alternatives, and improve provenance-aware indexing. It is not model development or training.",
+  "requested_format": "Permission to make one access-controlled local machine-readable research copy of the current page text and metadata, retain source fixity and provenance, run local transcription normalization, indexing, retrieval, embeddings, and computer-assisted comparison, and quote only bounded passages with attribution. No public page body, image, interactive asset, content-bearing derivative, model-training corpus, server-hosted processing copy, or redistribution is requested.",
+  "requested_permissions": {
+    "local_access": "requested",
+    "ocr_or_transcription": "requested",
+    "indexing": "requested",
+    "embeddings": "requested",
+    "quotation": "requested",
+    "metadata_publication": "requested",
+    "derivative_publication": "not-requested",
+    "server_processing": "not-requested",
+    "source_redistribution": "not-requested"
+  },
+  "local_storage_conditions": {
+    "access_controlled": true,
+    "source_payload_gitignored": true,
+    "location_class": "operator-controlled-local-ToS-storage",
+    "retention_posture": "Retain only under Getty's written conditions; preserve exact revision and fixity metadata; keep page bytes, extracted text, indexes, embeddings, and content-bearing derivatives local and removable; publish neither the page nor restricted derivatives.",
+    "removal_supported": true
+  },
+  "non_redistribution_without_permission": true,
+  "technical_access_bypass_used": false,
+  "access_status": "restricted",
+  "request_status": "draft-not-sent",
+  "human_send_approval": false,
+  "sent_at": null,
+  "response": {
+    "state": "none",
+    "received_at": null,
+    "permission_expires_at": null,
+    "conditions": [],
+    "safe_evidence_refs": []
+  },
+  "private_correspondence_ref": null,
+  "redacted_public_receipt_ref": null,
+  "personal_or_confidential_data_committed": false,
+  "rights_record_refs": [],
+  "provenance_event_refs": [
+    "tos.event.access-request-draft.getty-mesopotamia-digital-experience-local-ai-research.2026-08-12"
+  ],
+  "record_version": 1
+}

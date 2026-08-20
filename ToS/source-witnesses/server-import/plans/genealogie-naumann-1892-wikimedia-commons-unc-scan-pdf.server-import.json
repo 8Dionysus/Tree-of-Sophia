@@ -1,0 +1,142 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/server-import-contract.schema.json",
+  "schema_version": "tos_server_import_contract_v1",
+  "server_import_id": "tos.server-import.genealogie-naumann-1892-wikimedia-commons-unc-scan-pdf",
+  "item_ref": "tos.item.friedrich-nietzsche.zur-genealogie-der-moral.de-naumann-1892-second.wikimedia-commons-unc-scan-pdf",
+  "manifest": {
+    "ref": "ToS/source-witnesses/works/friedrich-nietzsche/zur-genealogie-der-moral/expressions/de-naumann-1892-second/editions/leipzig-c-g-naumann-1892-second-edition/items/wikimedia-commons-unc-scan-pdf/item.manifest.json",
+    "sha256": "18d25135ff69029ce6381715c72925b7e684e552476b36c7777da3232288fa4e",
+    "verified": true
+  },
+  "payload_files": [
+    {
+      "file_ref": "tos.file.sha256.5705dbc4f32faa924919fd533962c931e92462d72dab5183610eb68adeecac03",
+      "relative_path": "payload/zur-genealogie-der-moral-naumann-1892-second-edition.pdf",
+      "byte_size": 13227300,
+      "sha256": "5705dbc4f32faa924919fd533962c931e92462d72dab5183610eb68adeecac03",
+      "verified": true
+    }
+  ],
+  "rights_policy": {
+    "rights_record_ref": "ToS/source-witnesses/works/friedrich-nietzsche/zur-genealogie-der-moral/expressions/de-naumann-1892-second/editions/leipzig-c-g-naumann-1892-second-edition/items/wikimedia-commons-unc-scan-pdf/rights.json",
+    "rights_record_sha256": "df69951170daee136b3703aaae91ddca6c9f1469bebbd35f94c8ae473338c4a0",
+    "assessment_status": "rights-unknown",
+    "review_status": "unreviewed",
+    "jurisdictions_reviewed": [
+      "DE",
+      "US"
+    ],
+    "permission_or_license_refs": [
+      "ToS/research-packets/foundation-laboratory-2026-07/GENEALOGIE_1892_COMMONS_UNC_LAYERED_RIGHTS_ASSESSMENT.md",
+      "ToS/source-witnesses/works/friedrich-nietzsche/zur-genealogie-der-moral/expressions/de-naumann-1892-second/editions/leipzig-c-g-naumann-1892-second-edition/items/wikimedia-commons-unc-scan-pdf/source-metadata-snapshot.json",
+      "https://commons.wikimedia.org/wiki/File:Zur_Genealogie_der_Moral_-_eine_Streitschrift_(IA_zurgenealogieder00niet).pdf",
+      "https://commons.wikimedia.org/wiki/Template:PD-US-expired",
+      "https://commons.wikimedia.org/wiki/Commons:When_to_use_the_PD-scan_tag",
+      "https://creativecommons.org/publicdomain/zero/1.0/",
+      "https://creativecommons.org/licenses/by-sa/4.0/",
+      "https://foundation.wikimedia.org/wiki/Policy:Terms_of_Use",
+      "https://archive.org/metadata/zurgenealogieder00niet",
+      "https://www.gesetze-im-internet.de/urhg/BJNR012730965.html",
+      "https://pro.deutsche-digitale-bibliothek.de/daten-liefern/teilnahmekriterien/rechtliches/lizenzen-und-rechtehinweise-der-lizenzkorb-der-deutschen-digitalen-bibliothek",
+      "https://www.copyright.gov/circs/circ15a.pdf",
+      "https://www.copyright.gov/circs/circ38b.pdf",
+      "https://www.copyright.gov/title17/92chap1.html#104a",
+      "https://www.copyright.gov/comp3/"
+    ],
+    "expires_at": null,
+    "recheck_before_transfer": true
+  },
+  "access_class": "metadata-only",
+  "allowed_derivatives": {
+    "ocr": {
+      "state": "prohibited",
+      "conditions": [
+        "The historical and faithful mechanical layers have positive DE/US evidence, but the exact mixed PDF, human rights review, and operator approval gates remain unresolved; local laboratory OCR is a separate non-public lane."
+      ]
+    },
+    "transcription": {
+      "state": "prohibited",
+      "conditions": [
+        "Automatic historical OCR is rights-positive only as a mechanical rendering; it has not been checked, textually accepted, or authorized for server publication."
+      ]
+    },
+    "page_images": {
+      "state": "prohibited",
+      "conditions": [
+        "The operator-held scan remains local and is never uploaded to the future site; any public candidate must be independently reacquired and reviewed by layer."
+      ]
+    },
+    "snippets": {
+      "state": "prohibited",
+      "conditions": [
+        "No source-text publication is authorized by this metadata-only plan."
+      ]
+    },
+    "lexical_index": {
+      "state": "conditional",
+      "conditions": [
+        "Public-safe, source-attributed ToS bibliographic and provenance metadata plus scoped licensed Commons metadata only; no payload-derived text, provider database row, or dictionary-recoverable source forms."
+      ]
+    },
+    "embeddings": {
+      "state": "prohibited",
+      "conditions": [
+        "No server-side source processing is authorized while binding, UNC furniture, OCR layout, PDF package, and Internet Archive metadata layers remain unresolved."
+      ]
+    },
+    "alignments": {
+      "state": "prohibited",
+      "conditions": [
+        "No content-bearing German–Russian alignment may be served under this source plan."
+      ]
+    },
+    "translations": {
+      "state": "prohibited",
+      "conditions": [
+        "Translation publication requires its own accepted text, responsibility, provenance, and rights decisions."
+      ]
+    },
+    "annotations": {
+      "state": "prohibited",
+      "conditions": [
+        "No source-bearing annotation publication is authorized by this plan."
+      ]
+    },
+    "search_projection": {
+      "state": "conditional",
+      "conditions": [
+        "Metadata-only records with no payload-derived text, OCR coordinates, provider database rows, or restricted furniture."
+      ]
+    },
+    "graph_projection": {
+      "state": "conditional",
+      "conditions": [
+        "Public-safe work, expression, edition, item, provenance, layer-status, and source-route metadata only; the current Internet Archive byte revision is not an identity substitute."
+      ]
+    }
+  },
+  "payload_transfer_authorized": false,
+  "operator_transfer_approval": {
+    "approved": false,
+    "approved_by_real_human": false,
+    "approved_at": null,
+    "approval_ref": null
+  },
+  "server_import_status": "blocked-rights",
+  "publication_status": "metadata-only",
+  "server_receipt_refs": [],
+  "takedown": {
+    "public_contact_url": "https://github.com/8Dionysus/Tree-of-Sophia/issues",
+    "procedure_ref": "ToS/source-witnesses/server-import/SERVER_IMPORT_PROTOCOL.md",
+    "disable_supported": true,
+    "delete_supported": true,
+    "last_reviewed_at": "2026-08-02T05:17:00-06:00"
+  },
+  "provenance_event_refs": [
+    "tos.event.server-import-plan.genealogie-naumann-1892.layered-rights.2026-08-02"
+  ],
+  "server_copy_is_authority": false,
+  "automatic_checkout_payload_discovery_allowed": false,
+  "contract_version": 2,
+  "supersedes_server_import_ref": null
+}

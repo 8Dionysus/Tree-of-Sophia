@@ -1,0 +1,68 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/philosophy-source-planting.schema.json",
+  "schema_version": "tos_philosophy_source_planting_v1",
+  "planting_id": "tos.planting.a02.etcsl-digital-corpus",
+  "atlas_row_id": "A02",
+  "dossier_id": "A02",
+  "branch_path": "ToS/philosophy/eras/bronze-age/regions/west-asia/traditions/old-babylonian-scribal-wisdom-law",
+  "source_backlog_anchor": {
+    "path": "ToS/philosophy/eras/bronze-age/regions/west-asia/traditions/old-babylonian-scribal-wisdom-law/sources/source-anchor-backlog.jsonl",
+    "line": 11,
+    "source_table_index": 13,
+    "source_row_index": 1,
+    "source_label": "ETCSL"
+  },
+  "source_witness": {
+    "work_id": "tos.work.digital-sumerian-corpora.electronic-text-corpus-of-sumerian-literature",
+    "record_ref": "ToS/source-witnesses/works/digital-sumerian-corpora/electronic-text-corpus-of-sumerian-literature/work.json",
+    "relationship": "grounds_source_backlog_anchor"
+  },
+  "discovery_ref": "ToS/source-witnesses/discovery/runs/old-babylonian-etcsl-digital-corpus.2026-08-12.v1.json",
+  "provenance_event_ref": "tos.event.discovery.old-babylonian-etcsl-digital-corpus.2026-08-12",
+  "research_ref": "ToS/research-packets/foundation-laboratory-2026-07/A02_ETCSL_DIGITAL_CORPUS_SOURCE_PLANTING_RESEARCH_2026-08-12.md",
+  "fulfilled_source_needs": [
+    "ETCSL is identified from Oxford's own documentation as a completed 1997–2006 project and a collaborative 1998–2006 digital scholarly corpus Work",
+    "its nearly four hundred reconstructed Sumerian literary compositions, transliterations, English prose translations, bibliography, and search are preserved as discoverable historical capabilities rather than silently imported content",
+    "the prescribed citation and seven named contributors are modeled without flattening director, editor, developer, and associate roles into ancient authorship",
+    "ETCSL's own warning that reconstructed texts and translations can age establishes a currentness control for every later composition-level use",
+    "ORACC and ePSD2 provide a current transformation and lemmatization route while remaining distinct releases whose character, lemma, and translation coverage must be compared",
+    "CDLI supplies a stable publication route and future physical-witness context without making a publication record equal to a tablet or critical edition",
+    "established corpus, textual-criticism, and Linked Open Data scholarship separates navigation and derived graph utility from manuscript authority",
+    "a fresh SumTablets preprint is retained only as a future OCR and transliteration challenger whose reported aggregate score does not establish literary-text accuracy",
+    "an A/B/C laboratory design is prepared for ETCSL-only, current successor comparison, and manuscript-returnable critical reconstruction"
+  ],
+  "remaining_controls": [
+    "ETCSL is not a continuously maintained critical edition and must be checked against current composition-specific scholarship before supporting a reading",
+    "a project Work is not the ancient corpus, an individual composition, a manuscript, a transliteration Expression, a translation, an Edition, or an Item",
+    "the exact OTA revised-edition files, version identity, checksums, licence, and redistribution terms remain unresolved and no payload is admitted",
+    "public web access and OTA public availability do not by themselves grant redistribution, publication, or model-training rights",
+    "ETCSL composite lines must not erase variant manuscripts, lacunae, restorations, recopying history, or uncertainty",
+    "ORACC and ePSD2 transformations are not presumed textually identical to ETCSL and their omitted translations and changed lemmata remain material",
+    "the DCSL project record is current, but its named endpoint and an inspectable release were not verified and it is not called ETCSL's active successor",
+    "SumTablets is a 2026 preprint and derived dataset, not a critical edition, rights authority for upstream data, or human-verified reading",
+    "the later A02 backlog label ETCSL project publications must reuse this Work and discovery route unless a distinct publication is planted as its own Work",
+    "no source body, ancient Work, Collection, membership, Expression, Edition, Item, artifact, composite, reading, translation, lemma, semantic object, graph relation, canon state, access request, external communication, or human task is admitted"
+  ],
+  "research_order": [
+    "official_and_classical_documentation",
+    "established_top_scholarship",
+    "fresh_current_relevance_check"
+  ],
+  "authority": {
+    "source_status": "metadata_witness_planted",
+    "review_status": "unreviewed",
+    "source_text_admitted": false,
+    "semantic_status": "not_started",
+    "graph_status": "not_promoted",
+    "canon_status": "not_canon",
+    "human_task_created": false
+  },
+  "status": "source_witness_planted",
+  "maker": {
+    "maker_type": "model",
+    "agent_ref": "model:codex",
+    "human_review_performed": false
+  },
+  "created_at": "2026-08-12T18:36:00-06:00",
+  "record_version": 1
+}

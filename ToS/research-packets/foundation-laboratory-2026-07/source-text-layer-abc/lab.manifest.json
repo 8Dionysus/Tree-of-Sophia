@@ -1,0 +1,71 @@
+{
+  "schema_version": "tos_source_text_layer_lab_v1",
+  "contract_ref": "ToS/contracts/source-text-layer.schema.json",
+  "authority_posture": "public_synthetic_mechanics_only",
+  "source_anchor": {
+    "anchor_id": "tos.anchor.synthetic.source-anchor-v2.variant-b",
+    "anchor_record_ref": "ToS/research-packets/foundation-laboratory-2026-07/source-anchor-v2-abc/variant-b.anchor.json",
+    "anchor_record_sha256": "a239a6c8cfd0e59cc76c9bc6e88d0b5058dcb1176786063a5b26bb474bf6b004",
+    "expected_selection": "café",
+    "expected_selection_sha256": "81ef060bcd98adc7824eb5c1ada83c32491b16018e11e79f00ab9d09e04b015a",
+    "review_status": "unreviewed"
+  },
+  "editorial_policy": {
+    "ref": "ToS/research-packets/foundation-laboratory-2026-07/source-text-layer-abc/editorial-policy.json",
+    "sha256": "b286682eb1b1f3d127fa0087271c6eed1431e794199e70b563c936b895638c6f"
+  },
+  "variants": [
+    {
+      "variant_id": "A",
+      "question": "Can an immutable raw OCR candidate remain source-returnable without becoming source truth?",
+      "layer_ref": "ToS/research-packets/foundation-laboratory-2026-07/source-text-layer-abc/variant-a.layer.json",
+      "layer_sha256": "9012b944f621bcb95e3b824b22af6e5aa9c083db275ae187a611ab51d65cdb72",
+      "content_ref": "ToS/research-packets/foundation-laboratory-2026-07/source-text-layer-abc/variant-a-raw-ocr.txt",
+      "content_sha256": "f6c83e3641a08ec21aebc01296ff12f5a46780f0fbadb1c8101309123b95d2c6",
+      "expected_text": "cafe",
+      "expected_text_sha256": "a860b858265b22dad3aaf1165cfc2936daf1d3d86e0b7b77e3cc07f59f96858f"
+    },
+    {
+      "variant_id": "B",
+      "question": "Can one explicit source-anchored Unicode insertion replay A into a diplomatic candidate while preserving A?",
+      "layer_ref": "ToS/research-packets/foundation-laboratory-2026-07/source-text-layer-abc/variant-b.layer.json",
+      "layer_sha256": "4f3ca1efacf7fe1211df35ccc4c5860af1ff5ef5d4bdba8b6c0c549c9012a265",
+      "content_ref": "ToS/research-packets/foundation-laboratory-2026-07/source-text-layer-abc/variant-b-diplomatic.txt",
+      "content_sha256": "dcc492420fc77018ce8b7eb59458568e7901e9751194f4dbe7a1044ca16ccd2e",
+      "expected_text": "café",
+      "expected_text_sha256": "81ef060bcd98adc7824eb5c1ada83c32491b16018e11e79f00ab9d09e04b015a"
+    },
+    {
+      "variant_id": "C",
+      "question": "Can declared NFC normalization replay B into an access projection without overwriting or relabeling B?",
+      "layer_ref": "ToS/research-packets/foundation-laboratory-2026-07/source-text-layer-abc/variant-c.layer.json",
+      "layer_sha256": "c6a5a206aaaf24abd530befcde7711d5a04c40730d55de2a17f2d58014cedc54",
+      "content_ref": "ToS/research-packets/foundation-laboratory-2026-07/source-text-layer-abc/variant-c-normalized.txt",
+      "content_sha256": "7b49b9e063bd91a4f9252b413261f5557b9c570aa61516989499f64a62dbcdd6",
+      "expected_text": "café",
+      "expected_text_sha256": "850f7dc43910ff890f8879c0ed26fe697c93a067ad93a7d50f466a7028a9bf4e"
+    }
+  ],
+  "negative_controls": [
+    "silent_correction_without_operations",
+    "input_record_digest_drift",
+    "edit_span_or_digest_mismatch",
+    "unreviewed_layer_claims_accepted_use",
+    "normalized_layer_claims_diplomatic_use",
+    "language_sensitive_use_without_competence",
+    "tracked_nonpublic_explicit_text",
+    "publication_use_without_publication_authority",
+    "self_supersession"
+  ],
+  "authority_limits": {
+    "real_source_payload_used": false,
+    "human_review_performed": false,
+    "source_text_accepted": false,
+    "translation_created": false,
+    "linguistic_claim_created": false,
+    "semantic_claim_created": false,
+    "graph_effect_created": false,
+    "canon_effect": false,
+    "routine_human_task_created": false
+  }
+}

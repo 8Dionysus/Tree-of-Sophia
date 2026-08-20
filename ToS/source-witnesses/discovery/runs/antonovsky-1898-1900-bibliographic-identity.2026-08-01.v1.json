@@ -1,0 +1,647 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/material-discovery-record.schema.json",
+  "schema_version": "tos_material_discovery_record_v1",
+  "discovery_id": "tos.discovery.antonovsky-1898-1900-bibliographic-identity.2026-08-01",
+  "protocol_ref": "ToS/source-witnesses/discovery/DISCOVERY_PROTOCOL.md",
+  "target": {
+    "target_kind": "item",
+    "known_tos_refs": [
+      "tos.work.friedrich-nietzsche.also-sprach-zarathustra",
+      "tos.expression.friedrich-nietzsche.also-sprach-zarathustra.ru-antonovsky-1900"
+    ],
+    "description": "An institution-controlled exact 1898 Antonovsky New Journal supplement or offprint and an exact 1900 Edition witness, sufficient to distinguish first appearance, edition identity, responsibility, textual state, lawful local research use, and redistribution posture.",
+    "required_properties": [
+      "originating institutional record and shelfmark",
+      "exact 1898 or 1900 edition identity",
+      "complete page-level source return",
+      "translator responsibility as displayed",
+      "file fixity for any acquired copy",
+      "source-specific local-use and redistribution conditions"
+    ],
+    "acceptable_substitutions": [
+      "an institution-authenticated catalog record plus a lawful complete research reproduction sufficient for bounded collation"
+    ],
+    "languages": [
+      "ru",
+      "de"
+    ],
+    "formats": [
+      "PDF",
+      "TIFF",
+      "JPEG",
+      "IIIF",
+      "MARC21",
+      "RUSMARC",
+      "catalog metadata"
+    ],
+    "purpose_ref": "ToS/research-packets/foundation-laboratory-2026-07/ANTONOVSKY_1898_1900_BIBLIOGRAPHIC_IDENTITY_RESEARCH.md"
+  },
+  "channels": [
+    {
+      "channel_id": "channel-rnl-new-journal-1898",
+      "sequence": 1,
+      "channel_type": "national-catalog",
+      "role": "originating-record",
+      "source_name": "Russian National Library / National Electronic Library periodical record",
+      "endpoint_url": "https://rusneb.ru/catalog/000200_000018_RU_NLR_INFOCOMM7_1000052153/",
+      "interface_type": "web",
+      "interface_version": "RNL/RuNEB record inspected 2026-08-01",
+      "exact_query": "Locate the originating periodical record and exact 1898 issue identities for Новый журнал иностранной литературы, искусства и науки, including volume 4(6), numbers 10-12",
+      "queried_at": "2026-08-01T10:00:00-06:00",
+      "elapsed_seconds": 0,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.rnl-new-journal-parent-and-1898-issues",
+          "rank": 1,
+          "title_as_displayed": "Новый журнал иностранной литературы, искусства и науки: Илл. ежемес. издание",
+          "result_url": "https://rusneb.ru/catalog/000200_000018_RU_NLR_INFOCOMM7_1000052153/",
+          "originating_record_url": "https://rusneb.ru/catalog/000200_000018_RU_NLR_INFOCOMM7_1000052153/",
+          "identifiers": [
+            {
+              "scheme": "RNL record",
+              "value": "RU_NLR_INFOCOMM7_1000052153"
+            },
+            {
+              "scheme": "RNL issue record",
+              "value": "RU_NLR_INFOCOMM7_1000052169"
+            },
+            {
+              "scheme": "RNL issue record",
+              "value": "RU_NLR_INFOCOMM7_1000052170"
+            },
+            {
+              "scheme": "RNL issue record",
+              "value": "RU_NLR_INFOCOMM7_1000052171"
+            }
+          ],
+          "available_formats": [
+            "HTML",
+            "RUSMARC"
+          ],
+          "declared_rights": {
+            "statement": null,
+            "scope": "metadata",
+            "evidence_url": null,
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "metadata-only",
+          "machine_interface": "html",
+          "decision": "select",
+          "rationale": "The record establishes the exact Bulgakov periodical and 1898 issue identities but exposes descriptions only and does not supply the missing Zarathustra supplement pages.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-captured",
+            "format": null,
+            "sha256": null,
+            "reason": "The live institutional metadata was recorded by stable record identifiers; no response snapshot or source payload was admitted."
+          }
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-internet-archive-new-journal-1898-bindings",
+      "sequence": 2,
+      "channel_type": "open-library",
+      "role": "digital-object-record",
+      "source_name": "Internet Archive scans derived from the Penn State / Google Books New Journal bindings",
+      "endpoint_url": "https://archive.org/details/novyj-zurnal-inostrannoj-literatury-iskusstva-i-nauki-4.1898",
+      "interface_type": "bulk",
+      "interface_version": "Internet Archive item files inspected 2026-08-01",
+      "exact_query": "Inspect the 1898 bound-volume contents and negative-control volume for source-visible issue headings, Antonovsky responsibility, separately paginated ranges, and missing supplement leaves",
+      "queried_at": "2026-08-01T10:33:36-06:00",
+      "elapsed_seconds": 152,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.internet-archive-new-journal-1898-volume-3-negative-control",
+          "rank": 1,
+          "title_as_displayed": "Novyj žurnal inostrannoj literatury, iskusstva i nauki 3.1898",
+          "result_url": "https://archive.org/details/novyj-zurnal-inostrannoj-literatury-iskusstva-i-nauki-3.1898",
+          "originating_record_url": "https://archive.org/details/novyj-zurnal-inostrannoj-literatury-iskusstva-i-nauki-3.1898",
+          "identifiers": [{"scheme": "Internet Archive identifier", "value": "novyj-zurnal-inostrannoj-literatury-iskusstva-i-nauki-3.1898"}],
+          "available_formats": ["FULL TEXT", "PDF", "DjVuXML", "Scandata"],
+          "declared_rights": {"statement": null, "scope": "digital-object", "evidence_url": null, "tos_conclusion": "evidence-only-not-a-rights-conclusion"},
+          "availability": "open-download",
+          "machine_interface": "bulk-data",
+          "decision": "reject",
+          "rationale": "The January-March binding was inspected as a negative control and does not expose an admitted Zarathustra supplement leaf or exact target Item.",
+          "acquisition": {"downloaded": true, "acquired_at": "2026-08-01T10:36:08-06:00", "byte_size": 3536775, "sha256": "7ca0631e83dbc6410106dc6e16f38e82e0f2351a49a8553fc6c93d17c6b91f74", "event_ref": "tos.event.discovery.antonovsky-1898-1900-bibliographic-identity.2026-08-01"},
+          "snapshot": {"state": "not-captured", "format": null, "sha256": null, "reason": "The OCR derivative was digest-receipted in temporary host storage and was not admitted as a ToS source payload."}
+        },
+        {
+          "result_id": "tos-discovery-result.internet-archive-new-journal-1898-volume-4",
+          "rank": 2,
+          "title_as_displayed": "Novyj žurnal inostrannoj literatury, iskusstva i nauki 4.1898",
+          "result_url": "https://archive.org/details/novyj-zurnal-inostrannoj-literatury-iskusstva-i-nauki-4.1898",
+          "originating_record_url": "https://archive.org/details/novyj-zurnal-inostrannoj-literatury-iskusstva-i-nauki-4.1898",
+          "identifiers": [{"scheme": "Internet Archive identifier", "value": "novyj-zurnal-inostrannoj-literatury-iskusstva-i-nauki-4.1898"}],
+          "available_formats": ["FULL TEXT", "PDF", "DjVuXML", "Scandata"],
+          "declared_rights": {"statement": null, "scope": "digital-object", "evidence_url": null, "tos_conclusion": "evidence-only-not-a-rights-conclusion"},
+          "availability": "open-download",
+          "machine_interface": "bulk-data",
+          "decision": "select",
+          "rationale": "The binding exposes the June number 6 and July number 7 contents entries with Antonovsky responsibility and separately paginated ranges, but not the supplement leaves themselves.",
+          "acquisition": {"downloaded": true, "acquired_at": "2026-08-01T10:36:22-06:00", "byte_size": 2609082, "sha256": "4926530bed0829cc8f4b89a35fd23163fc8d147e20507710d43155d39843ece5", "event_ref": "tos.event.discovery.antonovsky-1898-1900-bibliographic-identity.2026-08-01"},
+          "snapshot": {"state": "not-captured", "format": null, "sha256": null, "reason": "The OCR derivative was digest-receipted in temporary host storage and was not admitted as a ToS source payload."}
+        },
+        {
+          "result_id": "tos-discovery-result.internet-archive-new-journal-1898-volume-5",
+          "rank": 3,
+          "title_as_displayed": "Novyj žurnal inostrannoj literatury, iskusstva i nauki 5.1898",
+          "result_url": "https://archive.org/details/novyj-zurnal-inostrannoj-literatury-iskusstva-i-nauki-5.1898",
+          "originating_record_url": "https://archive.org/details/novyj-zurnal-inostrannoj-literatury-iskusstva-i-nauki-5.1898",
+          "identifiers": [{"scheme": "Internet Archive identifier", "value": "novyj-zurnal-inostrannoj-literatury-iskusstva-i-nauki-5.1898"}],
+          "available_formats": ["FULL TEXT", "PDF", "DjVuXML", "Scandata"],
+          "declared_rights": {"statement": null, "scope": "digital-object", "evidence_url": null, "tos_conclusion": "evidence-only-not-a-rights-conclusion"},
+          "availability": "open-download",
+          "machine_interface": "bulk-data",
+          "decision": "select",
+          "rationale": "The binding exposes the August number 8 contents entry and Antonovsky responsibility, while OCR damage and absent supplement leaves prohibit extent or text admission.",
+          "acquisition": {"downloaded": true, "acquired_at": "2026-08-01T10:36:26-06:00", "byte_size": 2255931, "sha256": "eaa4421b76f0b9b5ee495544cad44743788b4bee6126b68dff8300d6acaf5538", "event_ref": "tos.event.discovery.antonovsky-1898-1900-bibliographic-identity.2026-08-01"},
+          "snapshot": {"state": "not-captured", "format": null, "sha256": null, "reason": "The OCR derivative was digest-receipted in temporary host storage and was not admitted as a ToS source payload."}
+        },
+        {
+          "result_id": "tos-discovery-result.internet-archive-new-journal-1898-volume-6",
+          "rank": 4,
+          "title_as_displayed": "Novyj žurnal inostrannoj literatury, iskusstva i nauki 6.1898",
+          "result_url": "https://archive.org/details/novyj-zurnal-inostrannoj-literatury-iskusstva-i-nauki-6.1898",
+          "originating_record_url": "https://archive.org/details/novyj-zurnal-inostrannoj-literatury-iskusstva-i-nauki-6.1898",
+          "identifiers": [{"scheme": "Internet Archive identifier", "value": "novyj-zurnal-inostrannoj-literatury-iskusstva-i-nauki-6.1898"}],
+          "available_formats": ["FULL TEXT", "PDF", "DjVuXML", "Scandata"],
+          "declared_rights": {"statement": null, "scope": "digital-object", "evidence_url": null, "tos_conclusion": "evidence-only-not-a-rights-conclusion"},
+          "availability": "open-download",
+          "machine_interface": "bulk-data",
+          "decision": "select",
+          "rationale": "The binding exposes the October number 10 special-supplement entry for Zarathustra pages 49-64; PDF inspection confirms that the bound scan does not return those leaves.",
+          "acquisition": {"downloaded": true, "acquired_at": "2026-08-01T10:33:36-06:00", "byte_size": 1613554, "sha256": "e46fe014e6d97ba43faeb5f0f7cd475da0a361ddbb983c5f78553ca195977219", "event_ref": "tos.event.discovery.antonovsky-1898-1900-bibliographic-identity.2026-08-01"},
+          "snapshot": {"state": "not-captured", "format": null, "sha256": null, "reason": "The OCR derivative and separately checked PDF were kept only in temporary host storage; neither was admitted as the missing supplement Item."}
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-rsl-rusneb-1911-creator-statement",
+      "sequence": 3,
+      "channel_type": "national-catalog",
+      "role": "digital-object-record",
+      "source_name": "RSL/RuNEB 1911 fourth-edition Item containing Antonovsky's preface",
+      "endpoint_url": "https://rusneb.ru/catalog/000199_000009_003693383/",
+      "interface_type": "web",
+      "interface_version": "exact admitted Item re-inspected 2026-08-01",
+      "exact_query": "Return to Antonovsky's exact 1911 preface and distinguish the 1898 journal excerpts from his self-counted editions of 1900, 1903, 1907, and 1911",
+      "queried_at": "2026-08-01T10:05:00-06:00",
+      "elapsed_seconds": 0,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.antonovsky-1911-preface-distinguishes-1898-and-1900",
+          "rank": 1,
+          "title_as_displayed": "Так говорил Заратустра: Книга для всех и ни для кого, 4-е изд.",
+          "result_url": "https://rusneb.ru/catalog/000199_000009_003693383/",
+          "originating_record_url": "https://search.rsl.ru/ru/record/01003693383",
+          "identifiers": [
+            {
+              "scheme": "RuNEB record",
+              "value": "000199_000009_003693383"
+            },
+            {
+              "scheme": "RSL record",
+              "value": "01003693383"
+            }
+          ],
+          "available_formats": [
+            "PDF",
+            "HTML",
+            "MARC21"
+          ],
+          "declared_rights": {
+            "statement": "The exact 1911 object is available for bounded research under the RuNEB access route; that access does not grant rights in a different 1898 or 1900 object.",
+            "scope": "digital-object",
+            "evidence_url": "https://rusneb.ru/user-agreement/",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-download",
+          "machine_interface": "html",
+          "decision": "select",
+          "rationale": "The creator statement directly distinguishes the 1898 appearance from the 1900-1911 edition count but is not a substitute for either missing exact Item.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-needed",
+            "format": null,
+            "sha256": null,
+            "reason": "The already fixity-bound local 1911 Item owns this evidence; no duplicate acquisition was performed."
+          }
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-rnl-reader-1899",
+      "sequence": 4,
+      "channel_type": "national-catalog",
+      "role": "originating-record",
+      "source_name": "Russian National Library / National Electronic Library 1899 Reader Edition record",
+      "endpoint_url": "https://rusneb.ru/catalog/000200_000018_v19_rc_1709542/",
+      "interface_type": "web",
+      "interface_version": "RNL/RuNEB record inspected 2026-08-01",
+      "exact_query": "Identify the uncredited Moscow Reader edition cited by the 1901 contemporary review and preserve its journal-issue provenance",
+      "queried_at": "2026-08-01T10:10:00-06:00",
+      "elapsed_seconds": 0,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.rnl-reader-1899-edition",
+          "rank": 1,
+          "title_as_displayed": "Так говорил Заратустра: cимволическая поэма перевод с немецкого",
+          "result_url": "https://rusneb.ru/catalog/000200_000018_v19_rc_1709542/",
+          "originating_record_url": "https://rusneb.ru/catalog/000200_000018_v19_rc_1709542/",
+          "identifiers": [
+            {
+              "scheme": "RNL record",
+              "value": "v19_rc_1709542"
+            }
+          ],
+          "available_formats": [
+            "HTML",
+            "RUSMARC",
+            "fragmentary ZIP"
+          ],
+          "declared_rights": {
+            "statement": null,
+            "scope": "digital-object",
+            "evidence_url": null,
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-view",
+          "machine_interface": "html",
+          "decision": "select",
+          "rationale": "The exact national-library record establishes the separate 1899 Moscow Reader Edition, 236-page extent, offprint issue list, and absence of translator responsibility in its title statement; it does not settle Expression identity or equivalence.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-captured",
+            "format": null,
+            "sha256": null,
+            "reason": "The offered copy is fragmentary and was not admitted as the missing complete comparison witness."
+          }
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-kazneb-lichtenberger-1901",
+      "sequence": 5,
+      "channel_type": "national-catalog",
+      "role": "digital-object-record",
+      "source_name": "National Electronic Library of Kazakhstan contemporary 1901 source",
+      "endpoint_url": "https://kazneb.kz/FileStore/dataFiles/66/43/1552934/content/full.pdf?isPortal=true",
+      "interface_type": "web",
+      "interface_version": "KazNEB PDF inspected 2026-08-01",
+      "exact_query": "Inspect the 1901 Russian introduction to Henri Lichtenberger, Философия Ницше, for the 1898 Antonovsky excerpts and the separately issued uncredited reprint",
+      "queried_at": "2026-08-01T10:38:40-06:00",
+      "elapsed_seconds": 0,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.nevedomsky-1901-reports-uncredited-reprint",
+          "rank": 1,
+          "title_as_displayed": "Философия Ницше",
+          "result_url": "https://kazneb.kz/FileStore/dataFiles/66/43/1552934/content/full.pdf?isPortal=true",
+          "originating_record_url": null,
+          "identifiers": [],
+          "available_formats": [
+            "PDF"
+          ],
+          "declared_rights": {
+            "statement": null,
+            "scope": "digital-object",
+            "evidence_url": null,
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-download",
+          "machine_interface": "html",
+          "decision": "select",
+          "rationale": "The contemporary source reports both the 1898 Antonovsky journal excerpts and a separate reprint made without his permission or name; its later page-89 citation joins that report to the Reader Edition. It remains a report, not collation.",
+          "acquisition": {
+            "downloaded": true,
+            "acquired_at": "2026-08-01T10:38:40-06:00",
+            "byte_size": 10668873,
+            "sha256": "99f6b2a8541907873107e9ad2d993cc05ba2a677dd38de08c997347695aa6abd",
+            "event_ref": "tos.event.discovery.antonovsky-1898-1900-bibliographic-identity.2026-08-01"
+          },
+          "snapshot": {
+            "state": "not-captured",
+            "format": null,
+            "sha256": null,
+            "reason": "The temporary research download is digest-receipted but is not retained as a ToS source Item or public payload."
+          }
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-established-translation-scholarship",
+      "sequence": 6,
+      "channel_type": "specialized-scholarly-project",
+      "role": "scholarly-index",
+      "source_name": "Established peer-reviewed Russian Zarathustra translation research",
+      "endpoint_url": "https://doi.org/10.17072/2078-7898/2015-3-24-31",
+      "interface_type": "web",
+      "interface_version": "DOI and established article route rechecked 2026-08-01",
+      "exact_query": "Check established translation scholarship for the methodological limits of translator-name identity and the need to compare meaning, rhythm, style, and strategy at witness level",
+      "queried_at": "2026-08-01T10:45:00-06:00",
+      "elapsed_seconds": 0,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.pertsev-2015-witness-level-translation-comparison",
+          "rank": 1,
+          "title_as_displayed": "Для чего переводить Ницше заново?",
+          "result_url": "https://doi.org/10.17072/2078-7898/2015-3-24-31",
+          "originating_record_url": "https://doi.org/10.17072/2078-7898/2015-3-24-31",
+          "identifiers": [{"scheme": "DOI", "value": "10.17072/2078-7898/2015-3-24-31"}],
+          "available_formats": ["HTML", "PDF"],
+          "declared_rights": {"statement": null, "scope": "content", "evidence_url": null, "tos_conclusion": "evidence-only-not-a-rights-conclusion"},
+          "availability": "open-view",
+          "machine_interface": "html",
+          "decision": "select",
+          "rationale": "The article supports edition- and witness-specific comparison of philosophical sense, style, rhythm, and reader effect; it supplies no direct identity or derivation claim for 1898-1900.",
+          "acquisition": {"downloaded": false, "acquired_at": null, "byte_size": null, "sha256": null, "event_ref": null},
+          "snapshot": {"state": "not-captured", "format": null, "sha256": null, "reason": "Established scholarship was used to constrain method, not as the target historical source."}
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-current-translation-scholarship",
+      "sequence": 7,
+      "channel_type": "specialized-scholarly-project",
+      "role": "scholarly-index",
+      "source_name": "Higher School of Economics 2025 translation-comparison record",
+      "endpoint_url": "https://publications.hse.ru/en/articles/1061726305",
+      "interface_type": "web",
+      "interface_version": "HSE publication record rechecked 2026-08-01",
+      "exact_query": "Find current inspectable scholarship that compares Antonovsky with other Russian Zarathustra translation states through variants, style, rhythm, and strategy",
+      "queried_at": "2026-08-01T10:20:00-06:00",
+      "elapsed_seconds": 0,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.ermakova-2025-variant-aware-translation-comparison",
+          "rank": 1,
+          "title_as_displayed": "Перевод Вяч. Иванова из книги Ф. Ницше «Так говорил Заратустра»",
+          "result_url": "https://publications.hse.ru/en/articles/1061726305",
+          "originating_record_url": "https://publications.hse.ru/en/articles/1061726305",
+          "identifiers": [
+            {
+              "scheme": "DOI",
+              "value": "10.17588/2076-9210.2025.2.170-177"
+            }
+          ],
+          "available_formats": [
+            "HTML",
+            "PDF"
+          ],
+          "declared_rights": {
+            "statement": null,
+            "scope": "content",
+            "evidence_url": null,
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-view",
+          "machine_interface": "html",
+          "decision": "select",
+          "rationale": "Current scholarship confirms that meaningful comparison depends on exact variants, style, rhythm, and strategy; it does not settle the 1898-1900 bibliographic endpoints.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-captured",
+            "format": null,
+            "sha256": null,
+            "reason": "The publication record was used as current supporting scholarship, not as the target historical witness."
+          }
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-general-web-1898-title-page-last",
+      "sequence": 8,
+      "channel_type": "general-web-search",
+      "role": "lead-only",
+      "source_name": "General web exact-title and surviving-copy search",
+      "endpoint_url": "https://www.auction-imperia.ru/book/120_5.htm",
+      "interface_type": "web",
+      "interface_version": "auction catalog and source photograph inspected 2026-08-01",
+      "exact_query": "\"Так говорил Заратустра\" \"Новый журнал иностранной литературы\" 1898 Антоновского 90 с",
+      "queried_at": "2026-08-01T10:42:56-06:00",
+      "elapsed_seconds": 0,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.auction-imperia-1898-source-visible-title-page",
+          "rank": 1,
+          "title_as_displayed": "Ницше, Ф. Так говорил Заратустра. Книга для всех и ни для кого, 1898",
+          "result_url": "https://www.auction-imperia.ru/book/120_5.htm",
+          "originating_record_url": null,
+          "identifiers": [
+            {
+              "scheme": "auction lot",
+              "value": "Auction 120, lot 94"
+            }
+          ],
+          "available_formats": [
+            "HTML",
+            "JPEG source photograph"
+          ],
+          "declared_rights": {
+            "statement": null,
+            "scope": "digital-object",
+            "evidence_url": null,
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-view",
+          "machine_interface": "html",
+          "decision": "needs-reconciliation",
+          "rationale": "The photograph directly exposes the 1898 title page, journal-office imprint, and historically reversed displayed initials М. Ю.; the commercial holding does not supply institution-controlled identity, a complete digital Item, or redistribution permission.",
+          "acquisition": {
+            "downloaded": true,
+            "acquired_at": "2026-08-01T10:42:56-06:00",
+            "byte_size": 383929,
+            "sha256": "eaa13fe8b08752711b1bef68fb7b7f720383ff9a27154ae2dc4ab7bfd30ccc42",
+            "event_ref": "tos.event.discovery.antonovsky-1898-1900-bibliographic-identity.2026-08-01"
+          },
+          "snapshot": {
+            "state": "not-permitted",
+            "format": null,
+            "sha256": null,
+            "reason": "The image was inspected and digest-receipted for local research but no permission to preserve it in Git or redistribute it was identified."
+          }
+        },
+        {
+          "result_id": "tos-discovery-result.marketplace-1898-description-duplicate",
+          "rank": 2,
+          "title_as_displayed": "First Russian Translation of Zarathustra, 1898",
+          "result_url": "https://www.zvab.com/servlet/SearchResults?curl=%2Ftitel%2Falso-sprach-zarathustra%2Fautor%2Fnietzsche%2Ferstausgabe%2F",
+          "originating_record_url": null,
+          "identifiers": [],
+          "available_formats": [
+            "HTML"
+          ],
+          "declared_rights": {
+            "statement": null,
+            "scope": "unknown",
+            "evidence_url": null,
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-view",
+          "machine_interface": "html",
+          "decision": "reject",
+          "rationale": "The marketplace description repeats the 90-page 1898 identity and reports omission of part IV, but supplies no stronger originating record, source return, or rights evidence than the selected leads.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-captured",
+            "format": null,
+            "sha256": null,
+            "reason": "Rejected marketplace prose was retained only as a discovery result URL."
+          }
+        }
+      ]
+    }
+  ],
+  "channel_comparison": [
+    {
+      "channel_id": "channel-rnl-new-journal-1898",
+      "completeness": "limited",
+      "metadata_precision": "strong",
+      "rights_clarity": "poor",
+      "machine_interface_quality": "adequate",
+      "human_minutes": 0,
+      "machine_seconds": 0,
+      "notes": "Exact periodical and issue identities are institutional, but the supplement pages are unavailable through this route."
+    },
+    {
+      "channel_id": "channel-internet-archive-new-journal-1898-bindings",
+      "completeness": "limited",
+      "metadata_precision": "adequate",
+      "rights_clarity": "poor",
+      "machine_interface_quality": "strong",
+      "human_minutes": 0,
+      "machine_seconds": 152,
+      "notes": "The bound scans expose issue headings and contents entries but omit the separately paginated Zarathustra leaves, so they constrain identity without supplying the target text."
+    },
+    {
+      "channel_id": "channel-rsl-rusneb-1911-creator-statement",
+      "completeness": "adequate",
+      "metadata_precision": "strong",
+      "rights_clarity": "adequate",
+      "machine_interface_quality": "adequate",
+      "human_minutes": 0,
+      "machine_seconds": 0,
+      "notes": "The source-returnable creator statement distinguishes first appearance from edition count without supplying the missing Items."
+    },
+    {
+      "channel_id": "channel-rnl-reader-1899",
+      "completeness": "adequate",
+      "metadata_precision": "strong",
+      "rights_clarity": "limited",
+      "machine_interface_quality": "adequate",
+      "human_minutes": 0,
+      "machine_seconds": 0,
+      "notes": "The exact 1899 Edition is institutionally identified, but the offered digital copy is fragmentary and Expression identity remains unresolved."
+    },
+    {
+      "channel_id": "channel-kazneb-lichtenberger-1901",
+      "completeness": "adequate",
+      "metadata_precision": "adequate",
+      "rights_clarity": "limited",
+      "machine_interface_quality": "adequate",
+      "human_minutes": 0,
+      "machine_seconds": 0,
+      "notes": "The contemporary report supplies direct historical lineage evidence but is not a collation or originating record for the target copies."
+    },
+    {
+      "channel_id": "channel-established-translation-scholarship",
+      "completeness": "limited",
+      "metadata_precision": "adequate",
+      "rights_clarity": "limited",
+      "machine_interface_quality": "adequate",
+      "human_minutes": 0,
+      "machine_seconds": 0,
+      "notes": "Established scholarship constrains the comparison method but supplies no exact identity, relation, or rights evidence for the target historical witnesses."
+    },
+    {
+      "channel_id": "channel-current-translation-scholarship",
+      "completeness": "limited",
+      "metadata_precision": "adequate",
+      "rights_clarity": "limited",
+      "machine_interface_quality": "adequate",
+      "human_minutes": 0,
+      "machine_seconds": 0,
+      "notes": "Fresh scholarship supports exact witness comparison but does not identify the target historical Items."
+    },
+    {
+      "channel_id": "channel-general-web-1898-title-page-last",
+      "completeness": "limited",
+      "metadata_precision": "adequate",
+      "rights_clarity": "poor",
+      "machine_interface_quality": "adequate",
+      "human_minutes": 0,
+      "machine_seconds": 0,
+      "notes": "The physical title page is visible, but commercial provenance and absent reuse terms prevent corpus admission as an exact public Item."
+    }
+  ],
+  "selected_result_ids": [
+    "tos-discovery-result.rnl-new-journal-parent-and-1898-issues",
+    "tos-discovery-result.internet-archive-new-journal-1898-volume-4",
+    "tos-discovery-result.internet-archive-new-journal-1898-volume-5",
+    "tos-discovery-result.internet-archive-new-journal-1898-volume-6",
+    "tos-discovery-result.antonovsky-1911-preface-distinguishes-1898-and-1900",
+    "tos-discovery-result.rnl-reader-1899-edition",
+    "tos-discovery-result.nevedomsky-1901-reports-uncredited-reprint",
+    "tos-discovery-result.pertsev-2015-witness-level-translation-comparison",
+    "tos-discovery-result.ermakova-2025-variant-aware-translation-comparison"
+  ],
+  "rejected_result_ids": [
+    "tos-discovery-result.internet-archive-new-journal-1898-volume-3-negative-control",
+    "tos-discovery-result.marketplace-1898-description-duplicate"
+  ],
+  "rights_inference_from_availability_prohibited": true,
+  "general_web_search_is_last_resort": true,
+  "technical_access_bypass_used": false,
+  "maker": {
+    "maker_type": "model",
+    "agent_ref": "model:codex"
+  },
+  "started_at": "2026-08-01T10:00:00-06:00",
+  "ended_at": "2026-08-01T10:55:00-06:00",
+  "status": "incomplete",
+  "provenance_event_refs": [
+    "tos.event.discovery.antonovsky-1898-1900-bibliographic-identity.2026-08-01"
+  ],
+  "record_version": 1,
+  "supersedes_discovery_ref": null
+}

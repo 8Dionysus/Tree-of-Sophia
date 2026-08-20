@@ -1,0 +1,188 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://tree-of-sophia.local/ToS/contracts/transfer-route-readiness-projection.schema.json",
+  "title": "Tree of Sophia transfer route readiness projection",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "$schema",
+    "schema_version",
+    "projection_id",
+    "target_candidate_set",
+    "source_candidate_set",
+    "routes",
+    "frozen_pages",
+    "summary",
+    "effects",
+    "provenance_event_ref",
+    "status",
+    "authority_boundary",
+    "does_not_establish"
+  ],
+  "properties": {
+    "$schema": {"const": "https://tree-of-sophia.local/ToS/contracts/transfer-route-readiness-projection.schema.json"},
+    "schema_version": {"const": "tos_transfer_route_readiness_projection_v1"},
+    "projection_id": {"const": "tos.transfer-route-readiness.golden-kernel-v1"},
+    "target_candidate_set": {"$ref": "#/$defs/inputRef"},
+    "source_candidate_set": {"$ref": "#/$defs/inputRef"},
+    "routes": {
+      "type": "array",
+      "minItems": 35,
+      "maxItems": 35,
+      "uniqueItems": true,
+      "items": {"$ref": "#/$defs/route"}
+    },
+    "frozen_pages": {
+      "type": "array",
+      "minItems": 20,
+      "maxItems": 20,
+      "uniqueItems": true,
+      "items": {"$ref": "#/$defs/frozenPage"}
+    },
+    "summary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "conservative_route_count",
+        "source_candidate_available_route_count",
+        "target_candidate_available_route_count",
+        "dual_candidate_available_route_count",
+        "dual_candidate_frozen_page_intersection_count",
+        "dual_candidate_target_nonintersection_count",
+        "frozen_page_count",
+        "frozen_pages_with_dual_intersecting_route_count",
+        "source_to_target_alignment_count",
+        "eligible_target_unit_count",
+        "target_gold_count",
+        "human_review_count"
+      ],
+      "properties": {
+        "conservative_route_count": {"const": 35},
+        "source_candidate_available_route_count": {"const": 35},
+        "target_candidate_available_route_count": {"const": 35},
+        "dual_candidate_available_route_count": {"const": 35},
+        "dual_candidate_frozen_page_intersection_count": {"const": 32},
+        "dual_candidate_target_nonintersection_count": {"const": 3},
+        "frozen_page_count": {"const": 20},
+        "frozen_pages_with_dual_intersecting_route_count": {"const": 20},
+        "source_to_target_alignment_count": {"const": 0},
+        "eligible_target_unit_count": {"const": 0},
+        "target_gold_count": {"const": 0},
+        "human_review_count": {"const": 0}
+      }
+    },
+    "effects": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "readiness_projection_created",
+        "tracked_source_or_target_text_created",
+        "source_to_target_passage_alignment_created",
+        "translation_alignment_created",
+        "target_unit_eligible",
+        "target_gold_created",
+        "semantic_work_opened",
+        "human_work_scheduled",
+        "publication_authorized",
+        "canon_effect"
+      ],
+      "properties": {
+        "readiness_projection_created": {"const": true},
+        "tracked_source_or_target_text_created": {"const": false},
+        "source_to_target_passage_alignment_created": {"const": false},
+        "translation_alignment_created": {"const": false},
+        "target_unit_eligible": {"const": false},
+        "target_gold_created": {"const": false},
+        "semantic_work_opened": {"const": false},
+        "human_work_scheduled": {"const": false},
+        "publication_authorized": {"const": false},
+        "canon_effect": {"const": false}
+      }
+    },
+    "provenance_event_ref": {"const": "tos.event.projection.golden-kernel-transfer-route-readiness-v1.2026-08-09"},
+    "status": {"const": "mechanically-prepared-ineligible"},
+    "authority_boundary": {"type": "string", "minLength": 1},
+    "does_not_establish": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {"type": "string", "minLength": 1}
+    }
+  },
+  "$defs": {
+    "sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "repoPath": {"type": "string", "minLength": 1, "pattern": "^(?!/)(?!.*(?:^|/)\\.\\.(?:/|$))[^\\u0000]+$"},
+    "inputRef": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["ref", "sha256"],
+      "properties": {
+        "ref": {"$ref": "#/$defs/repoPath"},
+        "sha256": {"$ref": "#/$defs/sha256"}
+      }
+    },
+    "route": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "route_readiness_id",
+        "target_passage_candidate_id",
+        "source_passage_candidate_id",
+        "frozen_page_candidate_id",
+        "work_ref",
+        "qualified_unit_key",
+        "source_candidate_status",
+        "source_boundary_layer",
+        "target_candidate_status",
+        "target_boundary_layer",
+        "readiness_class",
+        "source_candidate_available",
+        "target_candidate_available",
+        "frozen_page_intersection",
+        "accepted_source_or_target_text",
+        "source_to_target_passage_alignment",
+        "eligible_for_variant_execution",
+        "target_gold",
+        "human_review_performed"
+      ],
+      "properties": {
+        "route_readiness_id": {"type": "string", "pattern": "^tos-transfer-route-readiness-[a-z0-9-]+$"},
+        "target_passage_candidate_id": {"type": "string", "pattern": "^tos-target-passage-candidate-[a-z0-9-]+$"},
+        "source_passage_candidate_id": {"type": "string", "pattern": "^tos-source-passage-candidate-[a-z0-9-]+$"},
+        "frozen_page_candidate_id": {"type": "string", "pattern": "^tos-target-candidate-[a-z0-9-]+$"},
+        "work_ref": {"type": "string", "pattern": "^tos\\.work\\.[a-z0-9]+(?:[.-][a-z0-9]+)*$"},
+        "qualified_unit_key": {"type": "string", "pattern": "^(?:[a-z0-9-]+:)?[0-9]+(?:a)?$"},
+        "source_candidate_status": {"const": "materialized-layer-exact-candidate"},
+        "source_boundary_layer": {"enum": ["abbyy-xml-paragraph", "djvu-xml-line", "jp2-visible-marker-plus-djvu-xml-line", "pdf-visible-marker-plus-poppler-pdf-bbox-line", "poppler-pdf-bbox-line"]},
+        "target_candidate_status": {"enum": ["proposed-intersecting-layer-exact", "rejected-nonintersecting-layer-exact"]},
+        "target_boundary_layer": {"const": "embedded-pdf-bbox-pdftotext-automatic-candidate"},
+        "readiness_class": {"enum": ["dual-private-layer-candidates-frozen-page-intersecting", "dual-private-layer-candidates-target-nonintersecting"]},
+        "source_candidate_available": {"const": true},
+        "target_candidate_available": {"const": true},
+        "frozen_page_intersection": {"type": "boolean"},
+        "accepted_source_or_target_text": {"const": false},
+        "source_to_target_passage_alignment": {"const": false},
+        "eligible_for_variant_execution": {"const": false},
+        "target_gold": {"const": false},
+        "human_review_performed": {"const": false}
+      }
+    },
+    "frozenPage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["frozen_page_candidate_id", "route_readiness_refs", "dual_intersecting_route_count", "dual_target_nonintersecting_route_count", "status"],
+      "properties": {
+        "frozen_page_candidate_id": {"type": "string", "pattern": "^tos-target-candidate-[a-z0-9-]+$"},
+        "route_readiness_refs": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {"type": "string", "pattern": "^tos-transfer-route-readiness-[a-z0-9-]+$"}
+        },
+        "dual_intersecting_route_count": {"type": "integer", "minimum": 1},
+        "dual_target_nonintersecting_route_count": {"type": "integer", "minimum": 0},
+        "status": {"const": "has-dual-private-intersecting-route"}
+      }
+    }
+  }
+}

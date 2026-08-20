@@ -6,17 +6,35 @@
   "variant_labels": [],
   "identity_status": "verified",
   "source_refs": [
-    "ToS/source-witnesses/collections/friedrich-nietzsche/works-in-two-volumes-volume-2-mysl-1996/editions/moscow-mysl-1996-volume-2/items/operator-pdf/forensic-report.md"
+    "ToS/source-witnesses/collections/friedrich-nietzsche/works-in-two-volumes-volume-2-mysl-1996/editions/moscow-mysl-1996-volume-2/items/operator-pdf/forensic-report.md",
+    "ToS/source-witnesses/discovery/runs/mysl-1996-volume-2.2026-07-28.v1.json",
+    "https://irbis-nbuv.gov.ua/cgi-bin/irbis_nbuv/cgiirbis_64.exe?C21COM=S&I21DBN=EC&P21DBN=EC&S21CNR=20&S21COLORTERMS=1&S21FMT=fullwebr&S21P01=0&S21P02=0&S21P03=A%3D&S21REF=10&S21STN=1&S21STR=%D0%9D%D0%B8%D1%86%D1%88%D0%B5+%D0%A4%24&Z21ID="
   ],
-  "external_identifiers": [],
+  "external_identifiers": [
+    {
+      "scheme": "ISBN",
+      "value": "5-244-00854-2",
+      "source_ref": "https://irbis-nbuv.gov.ua/cgi-bin/irbis_nbuv/cgiirbis_64.exe?C21COM=S&I21DBN=EC&P21DBN=EC&S21CNR=20&S21COLORTERMS=1&S21FMT=fullwebr&S21P01=0&S21P02=0&S21P03=A%3D&S21REF=10&S21STN=1&S21STR=%D0%9D%D0%B8%D1%86%D1%88%D0%B5+%D0%A4%24&Z21ID=",
+      "status": "verified"
+    }
+  ],
   "same_as_posture": "no_equivalence_claim",
   "embodies_expression_refs": [
-    "tos.expression.friedrich-nietzsche.also-sprach-zarathustra.ru-antonovsky-mysl-1996"
+    "tos.expression.friedrich-nietzsche.also-sprach-zarathustra.ru-antonovsky-mysl-1996",
+    "tos.expression.friedrich-nietzsche.jenseits-von-gut-und-boese.ru-polilov-mysl-1996",
+    "tos.expression.friedrich-nietzsche.zur-genealogie-der-moral.ru-svasyan-mysl-1996",
+    "tos.expression.friedrich-nietzsche.der-fall-wagner.ru-polilov-mysl-1996",
+    "tos.expression.friedrich-nietzsche.goetzen-daemmerung.ru-polilov-mysl-1996",
+    "tos.expression.friedrich-nietzsche.der-antichrist.ru-flerova-mysl-1996",
+    "tos.expression.friedrich-nietzsche.ecce-homo.ru-antonovsky-mysl-1996"
   ],
   "collection_ref": "tos.collection.friedrich-nietzsche.works-in-two-volumes-volume-2-mysl-1996",
   "edition_statement": "Том 2; составитель, редактор и автор примечаний К. А. Свасьян",
   "publication_claim_refs": [],
-  "notes": "The expression list is intentionally incomplete and currently records only the Zarathustra member used by this laboratory.",
-  "record_version": 1,
+  "exemplar_claim_refs": [
+    "tos.claim.topology.edition-item.friedrich-nietzsche.works-in-two-volumes.moscow-mysl-1996-volume-2.exemplified-by.operator-pdf"
+  ],
+  "notes": "The expression list records the seven source-visible work translations in the exact local item. Their work identities and displayed translator credits are separated from textual-equivalence and translation-quality judgments. The NBUV record reports 830 pages while the local PDF container has 831 pages; the edition match is retained without asserting exact digital-item equivalence.",
+  "record_version": 4,
   "supersedes_ref": null
 }

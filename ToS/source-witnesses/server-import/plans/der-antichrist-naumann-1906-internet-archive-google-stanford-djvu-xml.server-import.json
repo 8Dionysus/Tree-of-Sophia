@@ -1,0 +1,123 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/server-import-contract.schema.json",
+  "schema_version": "tos_server_import_contract_v1",
+  "server_import_id": "tos.server-import.der-antichrist-naumann-1906-internet-archive-google-stanford-djvu-xml",
+  "item_ref": "tos.item.friedrich-nietzsche.nietzsches-werke-band-8.naumann-1906.internet-archive-google-stanford-djvu-xml",
+  "manifest": {
+    "ref": "ToS/source-witnesses/collections/friedrich-nietzsche/nietzsches-werke-erste-abtheilung-band-viii-naumann-1906/editions/leipzig-c-g-naumann-1906/items/internet-archive-google-stanford-djvu-xml/item.manifest.json",
+    "sha256": "dfb5bc272a28372146173c20b4ea0dcbcf68de7060d8e5c96827182372bbae65",
+    "verified": true
+  },
+  "payload_files": [
+    {
+      "file_ref": "tos.file.sha256.2307ace28af92da2b0128a5ef750e995d83a5655359e0debd3adb0cf1044b8c7",
+      "relative_path": "payload/nietzscheswerke00nietgoog_djvu.xml",
+      "byte_size": 8882082,
+      "sha256": "2307ace28af92da2b0128a5ef750e995d83a5655359e0debd3adb0cf1044b8c7",
+      "verified": true
+    },
+    {
+      "file_ref": "tos.file.sha256.fa52999956bb9190e54ef2d52ed03dfbbfd4f1e91c0034319c341d48702d19a9",
+      "relative_path": "payload/nietzscheswerke00nietgoog_jp2.zip",
+      "byte_size": 79087792,
+      "sha256": "fa52999956bb9190e54ef2d52ed03dfbbfd4f1e91c0034319c341d48702d19a9",
+      "verified": true
+    },
+    {
+      "file_ref": "tos.file.sha256.5b2c0fe0ec55f1d330a17c066adbc56f2e0bc5b5cd4eb4761fe844601e73a8d5",
+      "relative_path": "payload/nietzscheswerke00nietgoog_scandata.xml",
+      "byte_size": 157669,
+      "sha256": "5b2c0fe0ec55f1d330a17c066adbc56f2e0bc5b5cd4eb4761fe844601e73a8d5",
+      "verified": true
+    }
+  ],
+  "rights_policy": {
+    "rights_record_ref": "ToS/source-witnesses/collections/friedrich-nietzsche/nietzsches-werke-erste-abtheilung-band-viii-naumann-1906/editions/leipzig-c-g-naumann-1906/items/internet-archive-google-stanford-djvu-xml/rights.json",
+    "rights_record_sha256": "12f517a1ef899d21126603eeb44fb9c80bf6bd50a37c67a876731f7be9cc19f2",
+    "assessment_status": "rights-unknown",
+    "review_status": "unreviewed",
+    "jurisdictions_reviewed": ["DE", "US"],
+    "permission_or_license_refs": [
+      "ToS/research-packets/foundation-laboratory-2026-07/ANTICHRIST_1906_COMMONS_STANFORD_LAYERED_RIGHTS_ASSESSMENT.md",
+      "ToS/source-witnesses/collections/friedrich-nietzsche/nietzsches-werke-erste-abtheilung-band-viii-naumann-1906/editions/leipzig-c-g-naumann-1906/items/internet-archive-google-stanford-djvu-xml/source-metadata-snapshot.json",
+      "ToS/source-witnesses/collections/friedrich-nietzsche/nietzsches-werke-erste-abtheilung-band-viii-naumann-1906/editions/leipzig-c-g-naumann-1906/items/internet-archive-google-stanford-djvu-xml/source-metadata-snapshot.jp2-scandata.2026-08-08.json",
+      "https://archive.org/metadata/nietzscheswerke00nietgoog",
+      "https://www.copyright.gov/circs/circ38b.pdf",
+      "https://www.copyright.gov/title17/92chap1.html#104a",
+      "https://www.copyright.gov/title17/92chap3.html#304"
+    ],
+    "expires_at": null,
+    "recheck_before_transfer": true
+  },
+  "access_class": "metadata-only",
+  "allowed_derivatives": {
+    "ocr": {
+      "state": "prohibited",
+      "conditions": ["The payload is already provider OCR; no server-side copy, regeneration, or source-text publication is authorized."]
+    },
+    "transcription": {
+      "state": "prohibited",
+      "conditions": ["Provider OCR is navigation-only, unaccepted as German, and not a publication transcription."]
+    },
+    "page_images": {
+      "state": "prohibited",
+      "conditions": ["The exact JP2 page-image package is locally held, but no exact-package redistribution or future-site upload route is authorized."]
+    },
+    "snippets": {
+      "state": "prohibited",
+      "conditions": ["No payload-derived OCR string or source-text snippet may be served under this plan."]
+    },
+    "lexical_index": {
+      "state": "conditional",
+      "conditions": ["Public-safe bibliographic, fixity, lineage, structural-count, and rights-status metadata only; no recoverable source forms or OCR coordinates."]
+    },
+    "embeddings": {
+      "state": "prohibited",
+      "conditions": ["No payload-derived vector representation is authorized while the exact structured derivative remains local-research-only."]
+    },
+    "alignments": {
+      "state": "prohibited",
+      "conditions": ["No content-bearing alignment may be served; text-free series-qualified structural candidates require a separate public-safe projection decision."]
+    },
+    "translations": {
+      "state": "prohibited",
+      "conditions": ["Translation publication requires independently accepted source and target text, responsibility, provenance, and rights decisions."]
+    },
+    "annotations": {
+      "state": "prohibited",
+      "conditions": ["No source-bearing annotation publication is authorized by this metadata-only plan."]
+    },
+    "search_projection": {
+      "state": "conditional",
+      "conditions": ["Metadata-only records with no payload-derived text, OCR coordinates, provider database rows, or dictionary-recoverable forms."]
+    },
+    "graph_projection": {
+      "state": "conditional",
+      "conditions": ["Public-safe Work, Expression, Edition, Item, provenance, fixity, lineage, structural-count, and layer-status metadata only; no same-as, page-identity, textual-identity, OCR-correctness, translation, or semantic edge."]
+    }
+  },
+  "payload_transfer_authorized": false,
+  "operator_transfer_approval": {
+    "approved": false,
+    "approved_by_real_human": false,
+    "approved_at": null,
+    "approval_ref": null
+  },
+  "server_import_status": "blocked-rights",
+  "publication_status": "metadata-only",
+  "server_receipt_refs": [],
+  "takedown": {
+    "public_contact_url": "https://github.com/8Dionysus/Tree-of-Sophia/issues",
+    "procedure_ref": "ToS/source-witnesses/server-import/SERVER_IMPORT_PROTOCOL.md",
+    "disable_supported": true,
+    "delete_supported": true,
+    "last_reviewed_at": "2026-08-10T12:28:41-06:00"
+  },
+  "provenance_event_refs": [
+    "tos.event.server-import-plan.der-antichrist-naumann-1906.internet-archive-google-stanford-djvu-xml.subsection-correction.2026-08-10"
+  ],
+  "server_copy_is_authority": false,
+  "automatic_checkout_payload_discovery_allowed": false,
+  "contract_version": 4,
+  "supersedes_server_import_ref": "tos.server-import.der-antichrist-naumann-1906-internet-archive-google-stanford-djvu-xml"
+}

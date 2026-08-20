@@ -5,20 +5,437 @@
     "tos.item.friedrich-nietzsche.also-sprach-zarathustra.ru-antonovsky-cultural-revolution-2007.operator-pdf",
     "tos.file.sha256.49614015865f8c65a68746b1a6dc9a8b7f036d817b2e04b1f3b94fec8ef7b0c2"
   ],
-  "assessment_status": "copyright_not_evaluated",
-  "rights_statement_uri": "http://rightsstatements.org/vocab/CNE/1.0/",
+  "assessment_status": "in_copyright",
+  "rights_statement_uri": null,
   "license_uri": null,
-  "jurisdictions_reviewed": [],
+  "jurisdictions_reviewed": [
+    "RU",
+    "US"
+  ],
   "source_refs": [
-    "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-antonovsky-cultural-revolution/editions/moscow-cultural-revolution-2007-volume-4/items/operator-pdf/forensic-report.md"
+    "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-antonovsky-cultural-revolution/editions/moscow-cultural-revolution-2007-volume-4/items/operator-pdf/forensic-report.md",
+    "ToS/source-witnesses/discovery/runs/antonovsky-cultural-revolution-2007-volume-4.2026-07-28.v1.json",
+    "ToS/research-packets/foundation-laboratory-2026-07/ANTONOVSKY_2007_CULTURAL_REVOLUTION_LAYERED_RIGHTS_ASSESSMENT.md",
+    "ToS/research-packets/foundation-laboratory-2026-07/ANTONOVSKY_1911_RSL_RUNEB_LAYERED_RIGHTS_ASSESSMENT.md",
+    "ToS/research-packets/foundation-laboratory-2026-07/ANTONOVSKY_1913_LAYERED_RIGHTS_ASSESSMENT.md",
+    "https://rusneb.ru/catalog/000199_000009_005395580/",
+    "https://search.rsl.ru/ru/record/01005395580",
+    "https://www.consultant.ru/document/cons_doc_LAW_64629/26eaf5de7ca59025f4388fe2980d3dd03dd5e775/",
+    "https://www.consultant.ru/document/cons_doc_LAW_64629/675b81f0bc9b8ecd68ea332ecfd9d1562541fb98/",
+    "https://www.consultant.ru/document/cons_doc_LAW_64629/366db9d9c7215d66ada95405f1654967f2ae5e4b/",
+    "https://www.vsrf.ru/files/27771/",
+    "https://www.copyright.gov/title17/",
+    "https://www.copyright.gov/title17/92chap1.html",
+    "https://www.copyright.gov/eco/help-limitation.html",
+    "https://www.copyright.gov/comp3/docs/compendium.pdf",
+    "https://www.ivir.nl/publicaties/download/1507.pdf",
+    "https://www.wipo.int/edocs/mdocs/copyright/en/sccr_48/sccr_48_5.pdf",
+    "https://webcast.wipo.int/video/SCCR_48_2026-05-22_b0fc88ed-308f-4728-738f-08deaff9ce9f"
+  ],
+  "layer_assessments": [
+    {
+      "layer_id": "tos.rights.zarathustra-antonovsky-cultural-revolution-2007.operator-pdf.layer.original-german-work",
+      "layer_role": "original_work",
+      "scope_refs": [
+        "tos.work.friedrich-nietzsche.also-sprach-zarathustra"
+      ],
+      "assessment_status": "public_domain_reviewed",
+      "assessment_basis": "law",
+      "rights_statement_uri": null,
+      "license_uri": null,
+      "jurisdictions_reviewed": [
+        "RU",
+        "US"
+      ],
+      "source_refs": [
+        "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/work.json",
+        "ToS/research-packets/foundation-laboratory-2026-07/ANTONOVSKY_2007_CULTURAL_REVOLUTION_LAYERED_RIGHTS_ASSESSMENT.md",
+        "ToS/research-packets/foundation-laboratory-2026-07/ANTONOVSKY_1911_RSL_RUNEB_LAYERED_RIGHTS_ASSESSMENT.md",
+        "https://www.consultant.ru/document/cons_doc_LAW_64629/675b81f0bc9b8ecd68ea332ecfd9d1562541fb98/",
+        "https://www.consultant.ru/document/cons_doc_LAW_64629/366db9d9c7215d66ada95405f1654967f2ae5e4b/",
+        "https://www.copyright.gov/title17/92chap1.html"
+      ],
+      "rights_holder_refs": [],
+      "permissions": [
+        "the underlying Nietzsche Work may be used in Russia and the United States without consent or remuneration under the reviewed public-domain route"
+      ],
+      "restrictions": [
+        "authorship, the author's name, and integrity remain protected where applicable",
+        "this result does not select or clear a modern critical, editorial, or digital German text",
+        "jurisdictions other than RU and US remain unreviewed",
+        "this layer result does not authorize use or transfer of the protected 2007 Edition or operator PDF"
+      ],
+      "redistribution_posture": "authorized_with_conditions",
+      "derivative_posture": "allowed_with_conditions",
+      "server_processing_posture": "authorized_with_conditions",
+      "term": {
+        "calculation_status": "expired",
+        "basis": "Nietzsche died in 1900. In the reviewed Russian jurisdiction, the earlier Russian fifty-year route ended in 1950. For the United States restoration analysis, 17 U.S.C. §104A(h)(8)(C)(i) makes Germany, the country of first publication, the source country of the published original Work; German life-plus-seventy protection ended in 1970. Both endpoints precede the possible 1996 restoration date.",
+        "starts_on": null,
+        "ends_on": "1970-12-31",
+        "uncertainty": "The endpoint records the German source-country operand used by §104A. The separate Russian reviewed-jurisdiction endpoint remains 1950. No later editorial, translation, commentary, design, or digital contribution is included."
+      },
+      "uncertainty": "The positive result is jurisdiction- and Work-layer-specific and admits no source text.",
+      "assessed_at": "2026-08-11T10:08:15-06:00",
+      "review_status": "unreviewed",
+      "rationale": "The prior exact-witness route establishes distinct expired Russian and German source-country terms for Nietzsche's historical Work; those results do not propagate to the 2007 Edition."
+    },
+    {
+      "layer_id": "tos.rights.zarathustra-antonovsky-cultural-revolution-2007.operator-pdf.layer.historical-antonovsky-translation-substrate",
+      "layer_role": "translation",
+      "scope_refs": [
+        "tos.expression.friedrich-nietzsche.also-sprach-zarathustra.ru-antonovsky-cultural-revolution"
+      ],
+      "assessment_status": "public_domain_reviewed",
+      "assessment_basis": "law",
+      "rights_statement_uri": null,
+      "license_uri": null,
+      "jurisdictions_reviewed": [
+        "RU",
+        "US"
+      ],
+      "source_refs": [
+        "ToS/source-witnesses/agents/yuliy-antonovsky/agent.json",
+        "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-antonovsky-cultural-revolution/expression.json",
+        "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-antonovsky-cultural-revolution/editions/moscow-cultural-revolution-2007-volume-4/items/operator-pdf/forensic-report.md",
+        "ToS/research-packets/foundation-laboratory-2026-07/ANTONOVSKY_2007_CULTURAL_REVOLUTION_LAYERED_RIGHTS_ASSESSMENT.md",
+        "ToS/research-packets/foundation-laboratory-2026-07/ANTONOVSKY_1911_RSL_RUNEB_LAYERED_RIGHTS_ASSESSMENT.md",
+        "ToS/research-packets/foundation-laboratory-2026-07/ANTONOVSKY_1913_LAYERED_RIGHTS_ASSESSMENT.md",
+        "https://www.consultant.ru/document/cons_doc_LAW_64629/26eaf5de7ca59025f4388fe2980d3dd03dd5e775/",
+        "https://www.consultant.ru/document/cons_doc_LAW_64629/675b81f0bc9b8ecd68ea332ecfd9d1562541fb98/",
+        "https://www.consultant.ru/document/cons_doc_LAW_64629/366db9d9c7215d66ada95405f1654967f2ae5e4b/",
+        "https://www.copyright.gov/title17/92chap1.html"
+      ],
+      "rights_holder_refs": [],
+      "permissions": [
+        "Antonovsky's independently identified historical translation contribution may be used in the reviewed RU and US public-domain route subject to authorship, name, integrity, and exact-expression boundaries"
+      ],
+      "restrictions": [
+        "this result covers only the historical substrate, not the exact newly edited 2007 Russian Expression",
+        "no textual equivalence to the 1898, 1900, 1903, 1907, 1911, 1913, 1996, or another later Expression is asserted",
+        "public-domain status is not a translation-quality, correctness, alignment, or source-text acceptance verdict",
+        "this layer result does not authorize extraction, redistribution, or server processing of the operator PDF"
+      ],
+      "redistribution_posture": "authorized_with_conditions",
+      "derivative_posture": "allowed_with_conditions",
+      "server_processing_posture": "authorized_with_conditions",
+      "term": {
+        "calculation_status": "expired",
+        "basis": "Antonovsky died in 1913; the earlier Russian fifty-year term ended before the 1993 transition, so the historical translation contribution was already public domain in its source country before the United States 1996 restoration boundary",
+        "starts_on": null,
+        "ends_on": "1963-12-31",
+        "uncertainty": "The source-visible 2007 lineage statement identifies an Antonovsky substrate but does not identify the exact historical source Edition or prove word-for-word continuity."
+      },
+      "uncertainty": "The public-domain result must not be mistaken for a status assigned to the exact 2007 editing or text.",
+      "assessed_at": "2026-08-11T10:08:15-06:00",
+      "review_status": "unreviewed",
+      "rationale": "The historical Antonovsky contribution has an independently expired term, while the exact 2007 source page requires a separate new-editing layer and rejects cross-edition equivalence."
+    },
+    {
+      "layer_id": "tos.rights.zarathustra-antonovsky-cultural-revolution-2007.operator-pdf.layer.translation-editing-2007",
+      "layer_role": "editing",
+      "scope_refs": [
+        "tos.expression.friedrich-nietzsche.also-sprach-zarathustra.ru-antonovsky-cultural-revolution",
+        "tos.edition.friedrich-nietzsche.also-sprach-zarathustra.moscow-cultural-revolution-2007-volume-4"
+      ],
+      "assessment_status": "in_copyright",
+      "assessment_basis": "law",
+      "rights_statement_uri": null,
+      "license_uri": null,
+      "jurisdictions_reviewed": [
+        "RU",
+        "US"
+      ],
+      "source_refs": [
+        "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-antonovsky-cultural-revolution/editions/moscow-cultural-revolution-2007-volume-4/items/operator-pdf/forensic-report.md",
+        "ToS/research-packets/foundation-laboratory-2026-07/ANTONOVSKY_2007_CULTURAL_REVOLUTION_LAYERED_RIGHTS_ASSESSMENT.md",
+        "https://rusneb.ru/catalog/000199_000009_005395580/",
+        "https://www.consultant.ru/document/cons_doc_LAW_64629/26eaf5de7ca59025f4388fe2980d3dd03dd5e775/",
+        "https://www.consultant.ru/document/cons_doc_LAW_64629/675b81f0bc9b8ecd68ea332ecfd9d1562541fb98/",
+        "https://www.copyright.gov/title17/92chap1.html",
+        "https://www.copyright.gov/eco/help-limitation.html"
+      ],
+      "rights_holder_refs": [
+        "Е. В. Ознобкина"
+      ],
+      "permissions": [
+        "the exact contribution may be inspected in the operator-controlled local research lane"
+      ],
+      "restrictions": [
+        "no redistribution, public transcription, public translation, snippet publication, or server processing is authorized",
+        "the exact editorial delta, ownership chain, and final term endpoint are not established",
+        "the source-visible notice does not make the credited person the owner of every Edition layer",
+        "the historical public-domain substrate does not erase the protected 2007 editing"
+      ],
+      "redistribution_posture": "not_authorized",
+      "derivative_posture": "local_research_only",
+      "server_processing_posture": "not_authorized",
+      "term": {
+        "calculation_status": "active",
+        "basis": "The exact Edition identifies a newly edited translation, credits E. V. Oznobkina, and carries a 2007 notice for the editing. Russian Articles 1260 and 1281 protect qualifying derivative contribution under life plus seventy; United States §§102-104 and §103 protect qualifying new editorial material without extending that protection to the public-domain substrate.",
+        "starts_on": null,
+        "ends_on": null,
+        "uncertainty": "The precise date of creation, death date, authorship and ownership chain, copyrightable delta, and resulting term endpoint are not established; no evidence supports expiration as of 2026."
+      },
+      "uncertainty": "ToS treats the visibly claimed recent contribution fail-closed without adjudicating originality or ownership.",
+      "assessed_at": "2026-08-11T10:08:15-06:00",
+      "review_status": "unreviewed",
+      "rationale": "The Edition explicitly separates new checking and editing from Antonovsky's historical translation and claims the recent editorial contribution in 2007."
+    },
+    {
+      "layer_id": "tos.rights.zarathustra-antonovsky-cultural-revolution-2007.operator-pdf.layer.underlying-critical-commentary",
+      "layer_role": "commentary",
+      "scope_refs": [
+        "tos.edition.friedrich-nietzsche.also-sprach-zarathustra.moscow-cultural-revolution-2007-volume-4"
+      ],
+      "assessment_status": "copyright_undetermined",
+      "assessment_basis": "mixed",
+      "rights_statement_uri": null,
+      "license_uri": null,
+      "jurisdictions_reviewed": [
+        "RU",
+        "US"
+      ],
+      "source_refs": [
+        "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-antonovsky-cultural-revolution/editions/moscow-cultural-revolution-2007-volume-4/items/operator-pdf/forensic-report.md",
+        "ToS/research-packets/foundation-laboratory-2026-07/ANTONOVSKY_2007_CULTURAL_REVOLUTION_LAYERED_RIGHTS_ASSESSMENT.md",
+        "https://www.consultant.ru/document/cons_doc_LAW_64629/26eaf5de7ca59025f4388fe2980d3dd03dd5e775/",
+        "https://www.copyright.gov/title17/92chap1.html"
+      ],
+      "rights_holder_refs": [],
+      "permissions": [
+        "the source-visible existence and attribution of the commentary may be recorded as public-safe bibliographic facts"
+      ],
+      "restrictions": [
+        "the commentary text may be inspected only in the operator-controlled local research lane",
+        "no redistribution, public transcription, public translation, snippet publication, or server processing is authorized",
+        "the exact source Edition, original publication date, ownership chain, permissions, and term have not been established",
+        "Nietzsche's public-domain Work status does not propagate to later critical commentary"
+      ],
+      "redistribution_posture": "not_authorized",
+      "derivative_posture": "local_research_only",
+      "server_processing_posture": "not_authorized",
+      "term": {
+        "calculation_status": "unknown",
+        "basis": "The Edition attributes the underlying commentary to Giorgio Colli and Mazzino Montinari, but this pass does not establish the exact source publication, complete contributor set, source-country term, ownership chain, or license.",
+        "starts_on": null,
+        "ends_on": null,
+        "uncertainty": "The layer is kept separate from the 2007 Russian translation and from Nietzsche's historical Work; no status is inferred from either."
+      },
+      "uncertainty": "The available source-visible statement is sufficient to separate the layer but not to clear or conclusively calculate it.",
+      "assessed_at": "2026-08-11T10:08:15-06:00",
+      "review_status": "unreviewed",
+      "rationale": "The modern scholarly commentary is an independent contribution whose exact rights route has not been completed."
+    },
+    {
+      "layer_id": "tos.rights.zarathustra-antonovsky-cultural-revolution-2007.operator-pdf.layer.commentary-translation-2007",
+      "layer_role": "translation",
+      "scope_refs": [
+        "tos.edition.friedrich-nietzsche.also-sprach-zarathustra.moscow-cultural-revolution-2007-volume-4"
+      ],
+      "assessment_status": "in_copyright",
+      "assessment_basis": "law",
+      "rights_statement_uri": null,
+      "license_uri": null,
+      "jurisdictions_reviewed": [
+        "RU",
+        "US"
+      ],
+      "source_refs": [
+        "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-antonovsky-cultural-revolution/editions/moscow-cultural-revolution-2007-volume-4/items/operator-pdf/forensic-report.md",
+        "ToS/research-packets/foundation-laboratory-2026-07/ANTONOVSKY_2007_CULTURAL_REVOLUTION_LAYERED_RIGHTS_ASSESSMENT.md",
+        "https://www.consultant.ru/document/cons_doc_LAW_64629/26eaf5de7ca59025f4388fe2980d3dd03dd5e775/",
+        "https://www.consultant.ru/document/cons_doc_LAW_64629/675b81f0bc9b8ecd68ea332ecfd9d1562541fb98/",
+        "https://www.copyright.gov/title17/92chap1.html",
+        "https://www.copyright.gov/eco/help-limitation.html"
+      ],
+      "rights_holder_refs": [
+        "А. Г. Жаворонков"
+      ],
+      "permissions": [
+        "the exact contribution may be inspected in the operator-controlled local research lane"
+      ],
+      "restrictions": [
+        "no redistribution, public transcription, public translation, snippet publication, or server processing is authorized",
+        "the ownership chain and final term endpoint are not established",
+        "the translation remains separate from the underlying commentary and Nietzsche's Work"
+      ],
+      "redistribution_posture": "not_authorized",
+      "derivative_posture": "local_research_only",
+      "server_processing_posture": "not_authorized",
+      "term": {
+        "calculation_status": "active",
+        "basis": "The exact Edition credits A. G. Zhavoronkov and carries a 2007 notice for the Russian translation of the commentary. Russian Articles 1260 and 1281 and United States §§102-104 treat the qualifying translation as a separate recent contribution.",
+        "starts_on": null,
+        "ends_on": null,
+        "uncertainty": "The creation date, death date, ownership chain, and exact term endpoint are not established; no evidence supports expiration as of 2026."
+      },
+      "uncertainty": "The notice and recent date support fail-closed in-copyright treatment but do not establish every ownership fact.",
+      "assessed_at": "2026-08-11T10:08:15-06:00",
+      "review_status": "unreviewed",
+      "rationale": "The source visibly identifies and separately claims a 2007 Russian commentary-translation contribution."
+    },
+    {
+      "layer_id": "tos.rights.zarathustra-antonovsky-cultural-revolution-2007.operator-pdf.layer.edition-design-2007",
+      "layer_role": "edition_presentation",
+      "scope_refs": [
+        "tos.edition.friedrich-nietzsche.also-sprach-zarathustra.moscow-cultural-revolution-2007-volume-4"
+      ],
+      "assessment_status": "in_copyright",
+      "assessment_basis": "law",
+      "rights_statement_uri": null,
+      "license_uri": null,
+      "jurisdictions_reviewed": [
+        "RU",
+        "US"
+      ],
+      "source_refs": [
+        "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-antonovsky-cultural-revolution/editions/moscow-cultural-revolution-2007-volume-4/items/operator-pdf/forensic-report.md",
+        "ToS/research-packets/foundation-laboratory-2026-07/ANTONOVSKY_2007_CULTURAL_REVOLUTION_LAYERED_RIGHTS_ASSESSMENT.md",
+        "https://www.consultant.ru/document/cons_doc_LAW_64629/675b81f0bc9b8ecd68ea332ecfd9d1562541fb98/",
+        "https://www.vsrf.ru/files/27771/",
+        "https://www.copyright.gov/title17/92chap1.html"
+      ],
+      "rights_holder_refs": [
+        "И. Бернштейн"
+      ],
+      "permissions": [
+        "the exact design may be inspected in the operator-controlled local research lane"
+      ],
+      "restrictions": [
+        "no page-image, layout, design-bearing derivative, or server processing is authorized",
+        "the source-visible notice does not prove that every typographic or functional element is independently protected",
+        "the ownership chain and final term endpoint are not established"
+      ],
+      "redistribution_posture": "not_authorized",
+      "derivative_posture": "local_research_only",
+      "server_processing_posture": "not_authorized",
+      "term": {
+        "calculation_status": "active",
+        "basis": "The exact Edition credits I. Bernshtein and carries a 2007 notice for design. The recent claimed human contribution is treated as protected under the current RU/US originality and term routes unless exact contrary evidence or permission is established.",
+        "starts_on": null,
+        "ends_on": null,
+        "uncertainty": "The exact copyrightable scope, creation date, death date, ownership chain, and term endpoint are not established; no evidence supports expiration as of 2026."
+      },
+      "uncertainty": "ToS does not adjudicate the originality of every page element but cannot clear a source-visible recent design claim by age of the underlying Work.",
+      "assessed_at": "2026-08-11T10:08:15-06:00",
+      "review_status": "unreviewed",
+      "rationale": "The source visibly identifies a separate designer and 2007 design claim, requiring a closed page-image and layout boundary."
+    },
+    {
+      "layer_id": "tos.rights.zarathustra-antonovsky-cultural-revolution-2007.operator-pdf.layer.publisher-edition-contribution-2007",
+      "layer_role": "other",
+      "scope_refs": [
+        "tos.edition.friedrich-nietzsche.also-sprach-zarathustra.moscow-cultural-revolution-2007-volume-4"
+      ],
+      "assessment_status": "copyright_undetermined",
+      "assessment_basis": "mixed",
+      "rights_statement_uri": null,
+      "license_uri": null,
+      "jurisdictions_reviewed": [
+        "RU",
+        "US"
+      ],
+      "source_refs": [
+        "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-antonovsky-cultural-revolution/editions/moscow-cultural-revolution-2007-volume-4/items/operator-pdf/forensic-report.md",
+        "ToS/research-packets/foundation-laboratory-2026-07/ANTONOVSKY_2007_CULTURAL_REVOLUTION_LAYERED_RIGHTS_ASSESSMENT.md",
+        "https://rusneb.ru/catalog/000199_000009_005395580/",
+        "https://www.consultant.ru/document/cons_doc_LAW_64629/26eaf5de7ca59025f4388fe2980d3dd03dd5e775/",
+        "https://www.copyright.gov/title17/92chap1.html"
+      ],
+      "rights_holder_refs": [
+        "Культурная Революция"
+      ],
+      "permissions": [
+        "public-safe imprint and bibliographic facts may be recorded with provenance"
+      ],
+      "restrictions": [
+        "the exact scope of the publisher notice across selection, arrangement, editorial work, and other Edition contributions is not established",
+        "no blanket publisher ownership of every included layer is inferred",
+        "no redistribution, source-bearing derivative, or server processing is authorized"
+      ],
+      "redistribution_posture": "not_authorized",
+      "derivative_posture": "local_research_only",
+      "server_processing_posture": "not_authorized",
+      "term": {
+        "calculation_status": "unknown",
+        "basis": "The exact Edition carries a separate 2007 publisher notice, but the notice does not identify the copyrightable contribution, authorship basis, transfer instruments, or term endpoint.",
+        "starts_on": null,
+        "ends_on": null,
+        "uncertainty": "Some Edition-level selection or arrangement may be protected while isolated facts and functional elements may not be; no aggregate scope is invented."
+      },
+      "uncertainty": "The publisher claim is retained as evidence without being expanded into ownership of every text, comment, design, or digital layer.",
+      "assessed_at": "2026-08-11T10:08:15-06:00",
+      "review_status": "unreviewed",
+      "rationale": "A source-visible 2007 publisher notice requires a separate unresolved layer because its exact contribution and rights chain are not stated."
+    },
+    {
+      "layer_id": "tos.rights.zarathustra-antonovsky-cultural-revolution-2007.operator-pdf.layer.exact-operator-digital-package",
+      "layer_role": "other",
+      "scope_refs": [
+        "tos.item.friedrich-nietzsche.also-sprach-zarathustra.ru-antonovsky-cultural-revolution-2007.operator-pdf",
+        "tos.file.sha256.49614015865f8c65a68746b1a6dc9a8b7f036d817b2e04b1f3b94fec8ef7b0c2"
+      ],
+      "assessment_status": "in_copyright",
+      "assessment_basis": "mixed",
+      "rights_statement_uri": null,
+      "license_uri": null,
+      "jurisdictions_reviewed": [
+        "RU",
+        "US"
+      ],
+      "source_refs": [
+        "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-antonovsky-cultural-revolution/editions/moscow-cultural-revolution-2007-volume-4/items/operator-pdf/item.manifest.json",
+        "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-antonovsky-cultural-revolution/editions/moscow-cultural-revolution-2007-volume-4/items/operator-pdf/forensic-report.md",
+        "ToS/research-packets/foundation-laboratory-2026-07/ANTONOVSKY_2007_CULTURAL_REVOLUTION_LAYERED_RIGHTS_ASSESSMENT.md",
+        "https://www.vsrf.ru/files/27771/",
+        "https://www.copyright.gov/comp3/docs/compendium.pdf",
+        "https://www.ivir.nl/publicaties/download/1507.pdf",
+        "https://www.wipo.int/edocs/mdocs/copyright/en/sccr_48/sccr_48_5.pdf"
+      ],
+      "rights_holder_refs": [],
+      "permissions": [
+        "one exact operator-controlled copy may remain locally preserved and inspected for bounded research",
+        "public-safe identity, fixity, provenance, container, and layer-status metadata may remain tracked"
+      ],
+      "restrictions": [
+        "the exact file reproduces protected 2007 editing, commentary translation, and design and is not authorized for redistribution",
+        "the earlier acquisition route, digital creator, exact transformation workflow, and reuse permission are unknown",
+        "the embedded 2021 CorelDRAW metadata is technical evidence, not authorship, ownership, publication, or license evidence",
+        "no payload, page image, OCR, transcription, snippet, embedding, alignment, translation, annotation, or other content-bearing derivative may be transferred to the future site",
+        "any future public object must be independently permitted and pass fresh fixity, quality, rights, human-review, and operator-approval gates"
+      ],
+      "redistribution_posture": "not_authorized",
+      "derivative_posture": "local_research_only",
+      "server_processing_posture": "not_authorized",
+      "term": {
+        "calculation_status": "active",
+        "basis": "The aggregate PDF reproduces multiple protected 2007 contributions. Whether the later vector conversion independently adds copyright does not affect the still-active content-bearing ceiling.",
+        "starts_on": null,
+        "ends_on": null,
+        "uncertainty": "The independent originality, creator, creation history, ownership, contract, and term of the digital package are unresolved; its protected reproduced layers are sufficient to keep the aggregate closed."
+      },
+      "uncertainty": "The aggregate status does not identify every rights holder or decide the protectability of vectorization; it records that the exact mixed object is not cleared.",
+      "assessed_at": "2026-08-11T10:08:15-06:00",
+      "review_status": "unreviewed",
+      "rationale": "The exact operator PDF carries protected recent content and has no acquisition license or object-specific reuse permission, so it remains in copyright, local-only, and non-transferable."
+    }
   ],
   "permissions": [
-    "local preservation and bounded research use pending human rights review"
+    "operator-controlled local preservation and bounded research use without public distribution",
+    "public bibliographic facts, provenance, fixity identifiers, container facts, credited roles, layer status, and non-content-bearing source-return addresses may remain tracked",
+    "Nietzsche's Work and Antonovsky's historical translation substrate have positive public-domain assessments in the reviewed RU and US routes",
+    "a separately acquired or created future source may be assessed independently after exact provenance, quality, rights, human-review, and operator gates"
   ],
   "restrictions": [
-    "no payload redistribution authorized",
-    "no public derivative text publication authorized",
-    "visible 2007 copyright notices apply to publisher, edited translation, commentary translation, and design"
+    "the operator-held PDF remains local and must not be uploaded to the future ToS site",
+    "the exact 2007 Expression is not public domain merely because its historical Antonovsky substrate is",
+    "the 2007 translation editing, commentary translation, and design are treated as in copyright; the underlying commentary and publisher contribution remain separately unresolved",
+    "no source text, page image, OCR, transcription, snippet, embedding, alignment, translation, annotation, or other content-bearing derivative is authorized for server transfer or publication",
+    "the exact acquisition route and any object-specific reuse permission are unknown",
+    "human legal review and explicit operator transfer approval have not occurred",
+    "jurisdictions other than RU and US remain unreviewed",
+    "rights status is not source-text acceptance, translation-quality review, German competence, semantic authority, or canon promotion"
   ],
   "visibility": "local_only",
   "redistribution_posture": "not_authorized",
@@ -27,11 +444,11 @@
     "maker_type": "model",
     "agent_ref": "model:codex"
   },
-  "assessed_at": "2026-07-22T11:20:52-06:00",
-  "rationale": "The file was supplied locally for research. The visible edition includes explicit 2007 copyright notices, but no jurisdiction-specific legal review or permission record has been completed.",
+  "assessed_at": "2026-08-11T10:08:15-06:00",
+  "rationale": "The historical Nietzsche Work and Antonovsky translation substrate have positive RU/US public-domain results, but the exact 2007 Edition visibly claims new translation editing, commentary translation, design, and a publisher contribution. The later operator PDF reproduces those protected layers and has no acquisition license or reuse permission. The aggregate Item is therefore in copyright, local-only, and unauthorized for redistribution, public derivatives, or future-site transfer.",
   "review_status": "unreviewed",
   "review_refs": [],
   "access_request_ref": null,
-  "record_version": 1,
-  "supersedes_rights_ref": null
+  "record_version": 2,
+  "supersedes_rights_ref": "tos.rights.zarathustra-antonovsky-cultural-revolution-2007.operator-pdf"
 }

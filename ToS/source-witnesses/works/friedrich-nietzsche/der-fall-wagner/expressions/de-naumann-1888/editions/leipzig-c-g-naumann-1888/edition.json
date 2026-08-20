@@ -1,0 +1,53 @@
+{
+  "schema_version": "tos_corpus_record_v1",
+  "record_type": "edition",
+  "record_id": "tos.edition.friedrich-nietzsche.der-fall-wagner.leipzig-c-g-naumann-1888",
+  "preferred_label": "Der Fall Wagner, Leipzig, C. G. Naumann, 1888",
+  "variant_labels": [
+    {
+      "value": "Der Fall Wagner. Ein Musikanten-Problem",
+      "language": "de",
+      "source_ref": "ToS/source-witnesses/works/friedrich-nietzsche/der-fall-wagner/expressions/de-naumann-1888/editions/leipzig-c-g-naumann-1888/items/mdz-bamberg-scan-pdf/source-metadata-snapshot.json",
+      "status": "verified"
+    }
+  ],
+  "identity_status": "verified",
+  "source_refs": [
+    "ToS/source-witnesses/works/friedrich-nietzsche/der-fall-wagner/expressions/de-naumann-1888/editions/leipzig-c-g-naumann-1888/items/mdz-bamberg-scan-pdf/source-metadata-snapshot.json",
+    "https://opacplus.bsb-muenchen.de/title/BV020338451",
+    "https://d-nb.info/gnd/4226521-6"
+  ],
+  "external_identifiers": [
+    {
+      "scheme": "B3Kat",
+      "value": "BV020338451",
+      "source_ref": "https://opacplus.bsb-muenchen.de/title/BV020338451",
+      "status": "verified"
+    },
+    {
+      "scheme": "OCLC",
+      "value": "217629023",
+      "source_ref": "https://opacplus.bsb-muenchen.de/title/BV020338451",
+      "status": "verified"
+    }
+  ],
+  "same_as_posture": "no_equivalence_claim",
+  "embodies_expression_refs": [
+    "tos.expression.friedrich-nietzsche.der-fall-wagner.de-naumann-1888"
+  ],
+  "edition_statement": null,
+  "publication_claim_refs": [
+    "tos.claim.edition.der-fall-wagner.naumann-1888.title-page-year",
+    "tos.claim.edition.der-fall-wagner.naumann-1888.author-supervised-first-publication",
+    "tos.claim.edition.der-fall-wagner.naumann-1888.printing-completed",
+    "tos.claim.edition.der-fall-wagner.naumann-1888.official-publication",
+    "tos.claim.edition.der-fall-wagner.naumann-1888.print-run-extent",
+    "tos.claim.edition.der-fall-wagner.naumann-1888.nominal-later-issue-state"
+  ],
+  "exemplar_claim_refs": [
+    "tos.claim.topology.edition-item.friedrich-nietzsche.der-fall-wagner.leipzig-c-g-naumann-1888.exemplified-by.mdz-bamberg-scan-pdf"
+  ],
+  "notes": "The title page, MDZ IIIF manifest, and B3Kat MARC record agree on Nietzsche, Leipzig, Naumann, 1888, and 4 leaves plus 58 pages. The title page carries no 'Zweite Auflage' statement. The scholarly commentary reports that the second half of the same 1000-copy printing was labelled 'Zweite Auflage'; this exact unlabelled copy is therefore retained without silently flattening the nominal issue distinction.",
+  "record_version": 3,
+  "supersedes_ref": null
+}

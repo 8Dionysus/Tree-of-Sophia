@@ -1,0 +1,56 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/philosophy-source-planting.schema.json",
+  "schema_version": "tos_philosophy_source_planting_v1",
+  "planting_id": "tos.planting.a01.dcclt-q000023",
+  "atlas_row_id": "A01",
+  "dossier_id": "A01",
+  "branch_path": "ToS/philosophy/eras/bronze-age/regions/west-asia/traditions/proto-cuneiform-accounting-ontologies",
+  "source_backlog_anchor": {
+    "path": "ToS/philosophy/eras/bronze-age/regions/west-asia/traditions/proto-cuneiform-accounting-ontologies/sources/source-anchor-backlog.jsonl",
+    "line": 12,
+    "source_table_index": 13,
+    "source_row_index": 4,
+    "source_label": "DCCLT link from P000015 [24]"
+  },
+  "source_witness": {
+    "composite_id": "tos.composite.proto-cuneiform.archaic-vessels-and-garments",
+    "record_ref": "ToS/source-witnesses/scholarly-composites/lexical/proto-cuneiform/archaic-vessels-and-garments/composite-witness.json",
+    "relationship": "grounds_source_backlog_anchor"
+  },
+  "discovery_ref": "ToS/source-witnesses/discovery/runs/proto-cuneiform-q000023-scholarly-composite.2026-08-12.v1.json",
+  "provenance_event_ref": "tos.event.discovery.proto-cuneiform-q000023-scholarly-composite.2026-08-12",
+  "research_ref": "ToS/research-packets/foundation-laboratory-2026-07/A01_DCCLT_Q000023_SCHOLARLY_COMPOSITE_RESEARCH_2026-08-12.md",
+  "fulfilled_source_needs": [
+    "DCCLT / ORACC scholarly-composite identity linked from P000015",
+    "exact Q000023 / P471693 reconciliation",
+    "source-returnable P000015 membership observation",
+    "provider representation coverage comparison",
+    "DCCLT project license and third-party media boundary",
+    "content-acquisition A/B/C route prepared"
+  ],
+  "remaining_controls": [
+    "no composite or member text has been frozen, acquired, or admitted",
+    "no exact attribution roster or public content derivative has been prepared",
+    "the DCCLT 36-link page view and CDLI 98-member API remain separate observed representations",
+    "no full-composite philological or language-competent review has been performed",
+    "no sign reading, gloss, translation, etymology, semantic relation, graph fact, or canon state follows from composite membership"
+  ],
+  "research_order": [
+    "official_and_classical_documentation",
+    "established_top_scholarship",
+    "fresh_current_relevance_check"
+  ],
+  "authority": {
+    "source_status": "metadata_witness_planted",
+    "review_status": "unreviewed",
+    "source_text_admitted": false,
+    "semantic_status": "not_started",
+    "graph_status": "not_promoted",
+    "canon_status": "not_canon",
+    "human_task_created": false
+  },
+  "status": "source_witness_planted",
+  "maker": {"maker_type": "model", "agent_ref": "model:codex", "human_review_performed": false},
+  "created_at": "2026-08-12T11:59:00-06:00",
+  "record_version": 1
+}
