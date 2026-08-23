@@ -26,6 +26,9 @@ No unreleased changes.
 
 - Repo Validation now fetches `aoa-stats` at the published commit and asserts
   exact `HEAD` equality before running the release gate.
+- Regenerated the pinned `aoa-kag` portable family for the corrected release
+  surface and recorded its owner budget receipt; the 63 changed shard/manifest
+  files are derived parity evidence, not new ToS meaning or KAG authority.
 - The release contract records `aoa-kag@v0.5.0` at commit
   `813a7f69dc96ec031dad9b897a6991792cc48b7a` and its workflow action at the
   separate immutable commit
