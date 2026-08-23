@@ -18,7 +18,7 @@ learnable. The kernel transfers method, evidence discipline, and review
 judgment—not Nietzsche's ontology as a universal schema. See
 [Zarathustra Golden Growth Kernel](ToS/zarathustra/GOLDEN_GROWTH_KERNEL.md).
 
-> Current release: `v0.5.1`. See [CHANGELOG](CHANGELOG.md) for release notes.
+> Current release: `v0.5.2`. See [CHANGELOG](CHANGELOG.md) for release notes.
 
 ## Start Here
 
