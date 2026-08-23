@@ -60,7 +60,8 @@ direction.
 | Architecture and direction | [DESIGN](DESIGN.md) · [ROADMAP](ROADMAP.md) · [CHANGELOG](CHANGELOG.md) |
 | Source home and philosophy tree | [ToS](ToS/README.md) · [philosophy](ToS/philosophy/) |
 | Corpus foundation | [doctrine](ToS/doctrine/CORPUS_FOUNDATION.md) · [source witnesses](ToS/source-witnesses/README.md) |
-| Golden kernel | [contract](ToS/zarathustra/GOLDEN_GROWTH_KERNEL.md) · [public entry](ToS/zarathustra/public-entry/TINY_ENTRY_ROUTE.md) |
+| Golden kernel | [contract](ToS/zarathustra/GOLDEN_GROWTH_KERNEL.md) · [public route](ToS/zarathustra/public-entry/TINY_ENTRY_ROUTE.md) · [worked capsule](ToS/zarathustra/prologue-1/TRILINGUAL_ENTRY.md) |
+| Machine-facing seams | [root map](ToS/derived-exports/root_entry_map.min.json) · [bounded KAG export](mechanics/boundary-bridge/parts/derived-kag-seam/docs/KAG_EXPORT.md) |
 | Agent or contributor work | [AGENTS](AGENTS.md) · [mechanics](mechanics/README.md) |
 | Decisions and validation | [decision records](docs/decisions/README.md) · [verification route](AGENTS.md#verify) |
 
