@@ -7,6 +7,33 @@ Tracking starts with the community-docs baseline for this repository.
 
 ## [Unreleased]
 
+No unreleased changes.
+
+## [0.5.0] - 2026-08-22
+
+### Summary
+
+- Tree-of-Sophia grows from the v0.4.0 root-entry/statistics contour into a
+  source-first corpus foundation with stable witness identity, provenance,
+  rights, review, and bounded derivation routes.
+- The repository adopts a portable content-addressed KAG index family with
+  deterministic compatibility views and explicit generated-size/family
+  receipts.
+- The active ToS routing consumer now targets the `aoa-sdk` control plane
+  while preserving the `aoa-routing` compatibility namespace.
+- The exact v0.4.0-to-current-main range contains five first-parent commits;
+  each is reconciled below rather than inferred from the former `[Unreleased]`
+  prose alone.
+
+### Changed
+
+- Reconciled the five-commit release range, including the KAG storage-family
+  migration, source-first corpus foundation, routing-consumer migration,
+  accepted provider-family pin, and completion of the foundation source tree.
+- The release consumer contract now names ABI, source/trust-root matching,
+  durable evidence, materialized subject stores, fail-closed admission, and
+  the distinction between authored ToS meaning and generated readmodels.
+
 ### Added
 
 - Planted the exact A01 `ATU 5 numerical texts layer [53]` backlog row through
@@ -599,6 +626,100 @@ Tracking starts with the community-docs baseline for this repository.
 - Clarified that agents transfer source-return and review method—not
   Nietzsche's ontology—and that gold material must preserve rejected,
   ambiguous, and counter-reading outcomes rather than accepted labels alone.
+
+### Fixed
+
+- Fixed source-witness inventory admission so manifest payload byte-size and
+  SHA-256 fixity are required before inventory membership.
+- Fixed empty philosophy-branch manifest consistency and added a stale-manifest
+  negative control.
+- Fixed lexical local-database verification and regenerated the landed
+  portable owner-family receipt against the source tree.
+- Fixed the release archaeology gap by recovering all five first-parent
+  commits, including commits that did not touch `CHANGELOG.md`.
+
+### Deprecated
+
+- The tracked v2 monolithic KAG representation is no longer the authored
+  storage form. Its deterministic v2 logical view remains a compatibility
+  route; downstream consumer migration is not claimed.
+- Direct predecessor checkout consumption is no longer the active ToS route.
+  The `aoa-routing` namespace remains compatibility support until its separate
+  consumer-zero and retirement gates are complete.
+
+### Removed
+
+- Removed the tracked v2 monolith snapshot implementation in favor of the
+  portable content-addressed shard family and bounded compatibility assembly.
+- Removed the active direct predecessor checkout dependency from the ToS
+  routing consumer. No predecessor repository was archived or deleted.
+
+### Security
+
+- Private source payload bytes remain outside Git; tracked records carry
+  metadata, fixity, provenance, rights, visibility, and fail-closed
+  publication posture.
+- GitHub checkout/setup and the accepted `aoa-kag` owner-family action use
+  immutable revisions; `aoa-stats` is fetched at revision
+  `9ae714d21f9ea13e7b67404e769ad42d31d36c8d`.
+- Generated readmodels are subordinate to ToS-authored meaning and require
+  ABI/trust-root matching, durable evidence, subject-store verification, and
+  fail-closed consumer selection before use.
+- No public C2PA, SLSA, in-toto, Sigstore, or Cosign attestation is claimed
+  for this source release. Those controls apply when a generated PDF, media,
+  or export bundle becomes a separately published artifact.
+- The Repo Validation workflow still clones `abyss-machine` from mutable
+  `main`; this release does not claim an immutable verifier-input pin.
+
+### First-Parent Reconciliation (5/5)
+
+1. `8126cc3` — Adopt portable KAG index family (#138): admitted the
+   content-addressed shard family, compatibility assembly, family digests, and
+   generated-size receipts. KAG generated churn is grouped with this capability
+   rather than counted as duplicate product work.
+2. `54be6f2` — Build the Tree of Sophia corpus foundation (#139): added the
+   source-home identity ladder, witness/provenance/rights contracts, source
+   inventories, bounded research routes, and their generated companions.
+3. `d95a583` — Retarget ToS routing consumer to `aoa-sdk` (#140): changed the
+   active provider route while retaining `aoa-routing` as compatibility support;
+   no sibling release or retirement is implied.
+4. `77f0cef` — Pin accepted `aoa-kag` owner-family DAG (#141): bound the
+   consumer to the accepted provider-family action and refreshed the relevant
+   generated validation surface.
+5. `afc87a3` — Land source-first corpus foundation completion (#142): completed
+   the source, schema, research, validator, generated-index, and evidence
+   surfaces that make the preceding foundation reviewable. Large generated
+   KAG/readmodel churn is an explicit derived companion, not a separate
+   semantic source.
+
+No first-parent commit in the exact v0.4.0 range is an internal/noise-only,
+duplicate, or intentionally excluded product commit. Release-only markers and
+this reconciliation are metadata for the release and are not counted as a
+sixth product capability.
+
+### Validation
+
+- The repository release gate and the generated readmodel artifact validator
+  are required before publication; federation preflight and postpublish audit
+  are separate release-owner checks.
+- The consumer dependency is `aoa-kag@v0.5.0`; this section does not substitute
+  a moving sibling branch or an unpublished candidate.
+- CI, artifact receipts, runtime receipts, and publication delivery each prove
+  only their declared layer. No human semantic, canon, rights, runtime health,
+  deployment, proof/eval, or owner acceptance claim is made here.
+
+### Notes
+
+- Existing detailed human-first entries below remain part of this release;
+  they retain their source, review, rights, and non-promotion limits.
+- New schema families are additive and versioned. Consumers must reject
+  unsupported schema/ABI versions rather than infer meaning.
+- KAG consumers should pin the portable family manifest/digest and use the
+  deterministic v2 compatibility route during migration.
+- There is no package-level upgrade/downgrade matrix in Tree-of-Sophia, and
+  this release does not claim one.
+- ToS/canon remains unchanged by the completion range; generated exports and
+  KAG indexes remain downstream readmodels, not source authority.
 
 ## [0.4.0] - 2026-07-14
 

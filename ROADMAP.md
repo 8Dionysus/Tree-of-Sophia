@@ -65,9 +65,9 @@ The current repository move is:
 
 ## Current release contour
 
-The live `v0.4.0` release contour grows the bounded root-entry line into a
-source-linked philosophy atlas and graph-review tree, then adds one bounded
-owner-local Table I reference measurement without widening canon:
+The live `v0.5.0` release contour grows the bounded root-entry and
+owner-local-statistics line into a source-first corpus foundation, portable KAG
+family, and graph-review tree without widening canon:
 
 | Contour | Surfaces |
 | --- | --- |
@@ -77,6 +77,8 @@ owner-local Table I reference measurement without widening canon:
 | multilingual planting | `ToS/philosophy/atlas/multilingual/`, `ToS/philosophy/graph-workbench/language-packets/` |
 | bounded export and downstream trust | `mechanics/boundary-bridge/parts/derived-kag-seam/`, `mechanics/release-support/parts/artifact-bundles/`, `kag/` |
 | owner-local reference measurement | `stats/`, `scripts/validate_local_stats_port.py` |
+| source-first corpus foundation | `ToS/source-witnesses/`, `ToS/contracts/`, `ToS/derived-exports/`, `ToS/research-packets/` |
+| portable provider and routing boundary | `kag/`, `aoa-sdk` consumer route, `aoa-kag` owner-family validation |
 
 This contour keeps atlas rows, planted dossiers, graph-workbench material,
 multilingual packets, KAG records, and generated readmodels subordinate to
