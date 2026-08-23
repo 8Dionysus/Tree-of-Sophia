@@ -9,6 +9,64 @@ Tracking starts with the community-docs baseline for this repository.
 
 No unreleased changes.
 
+## [0.5.3] - 2026-08-23
+
+### Summary
+
+- Revalidated the Tree consumer against the exact published `aoa-kag@v0.5.2`
+  commit `8136d3eb629da28cea1206d13a8f1df52ee14739` after the exact published
+  `aoa-stats@v0.2.2` commit `f119805cda69b3edeb2a4c5e407368d70e68650d`.
+- Published the required immutable successor for the corrected provider and
+  generated-family identities without rewriting the immutable `v0.5.2`
+  release.
+
+### Changed
+
+- Repo Validation now fetches `aoa-stats` at the exact v0.2.2 commit and
+  asserts `HEAD` equality before running the release gate.
+- The release contract now names the exact v0.5.2 KAG provider commit while
+  keeping the published provider release distinct from the immutable
+  `repo-local-kag-index` workflow action commit `6a79e62c7d20b6b11406dee78f409ada4a51bb3f`.
+- Regenerated the portable KAG family and its owner budget receipt against
+  the landed Tree source after the final KAG provider revalidation.
+- Aligned the current README, roadmap, release contract, tests, and changelog
+  with the v0.5.3 successor contour.
+
+### Security
+
+- The existing v0.5.2 tag, GitHub Release, and official artifact record remain
+  immutable and are not retagged, reused, or rewritten.
+- A new source commit does not inherit the predecessor artifact identity; any
+  v0.5.3 artifact record must bind its own exact landed Tree source ref.
+- Exact provider pins and generated parity do not prove runtime health,
+  artifact admission, semantic proof, or owner/human acceptance. Artifact
+  gates remain separate, including `manual_review_required` where the trust
+  root requires it.
+
+### First-Parent Reconciliation (1/1)
+
+1. This bounded successor updates exact provider identities, release markers,
+   and generated KAG parity after the final KAG provider landed. It does not
+   change authored ToS meaning, sibling repositories, the prior v0.5.2 tag or
+   Release, or the predecessor artifact record.
+
+### Validation
+
+- The exact published stats and KAG provider refs, immutable action identity,
+  local provider/generation checks, source release gate, hosted Repo
+  Validation, and artifact route remain separate owner checks.
+- The compatibility canary pins `aoa-stats` exactly but its other scheduled
+  sibling inputs remain a moving lane; it is not immutable release proof.
+- Source, CI, merge, tag, GitHub Release, artifact trust, runtime, proof,
+  delivery, closure, and acceptance remain separate claims.
+
+### Notes
+
+- `v0.5.2` remains immutable historical release state, including its exact
+  provider identities and artifact boundary.
+- This correction changes provider/currentness and derived release evidence,
+  not philosophical source meaning or canon.
+
 ## [0.5.2] - 2026-08-23
 
 ### Summary
