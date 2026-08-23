@@ -32,7 +32,7 @@ class RoadmapParityTestCase(unittest.TestCase):
         payload = load_json("ToS/derived-exports/root_entry_map.min.json")
         release = current_release(readme)
 
-        self.assertEqual("v0.5.2", release)
+        self.assertEqual("v0.5.3", release)
         self.assertIn(f"## [{release.removeprefix('v')}]", changelog)
         self.assertIn(f"`{release}`", roadmap)
         self.assertIn("Current release contour", roadmap)
@@ -82,6 +82,33 @@ class RoadmapParityTestCase(unittest.TestCase):
         for surface in indexed_surfaces:
             with self.subTest(indexed_surface=surface):
                 self.assertTrue((REPO_ROOT / surface).exists(), surface)
+
+    def test_release_contract_keeps_exact_current_provider_identities(self) -> None:
+        release_contract = read_text("docs/RELEASING.md")
+        workflow = read_text(".github/workflows/repo-validation.yml")
+
+        self.assertIn(
+            "`aoa-stats@v0.2.2`, commit `f119805cda69b3edeb2a4c5e407368d70e68650d`",
+            release_contract,
+        )
+        self.assertIn(
+            "`aoa-kag@v0.5.2`, commit `8136d3eb629da28cea1206d13a8f1df52ee14739`",
+            release_contract,
+        )
+        self.assertIn(
+            "8Dionysus/aoa-kag/.github/actions/repo-local-kag-index@"
+            "6a79e62c7d20b6b11406dee78f409ada4a51bb3f",
+            release_contract,
+        )
+        self.assertIn(
+            "AOA_STATS_REVISION: f119805cda69b3edeb2a4c5e407368d70e68650d",
+            workflow,
+        )
+        self.assertIn(
+            "uses: 8Dionysus/aoa-kag/.github/actions/repo-local-kag-index@"
+            "6a79e62c7d20b6b11406dee78f409ada4a51bb3f",
+            workflow,
+        )
 
 
 if __name__ == "__main__":
