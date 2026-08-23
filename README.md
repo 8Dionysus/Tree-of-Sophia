@@ -62,8 +62,8 @@ direction.
 | Corpus foundation | [doctrine](ToS/doctrine/CORPUS_FOUNDATION.md) · [source witnesses](ToS/source-witnesses/README.md) |
 | Golden kernel | [contract](ToS/zarathustra/GOLDEN_GROWTH_KERNEL.md) · [public route](ToS/zarathustra/public-entry/TINY_ENTRY_ROUTE.md) · [worked capsule](ToS/zarathustra/prologue-1/TRILINGUAL_ENTRY.md) |
 | Machine-facing seams | [root map](ToS/derived-exports/root_entry_map.min.json) · [bounded KAG export](mechanics/boundary-bridge/parts/derived-kag-seam/docs/KAG_EXPORT.md) |
-| Agent or contributor work | [AGENTS](AGENTS.md) · [mechanics](mechanics/README.md) |
-| Decisions and validation | [decision records](docs/decisions/README.md) · [verification route](AGENTS.md#verify) |
+| Agent or contributor work | [AGENTS](AGENTS.md#verify) · [scripts](scripts/AGENTS.md) · [mechanics](mechanics/README.md) |
+| Decisions | [records](docs/decisions/README.md) |
 
 This README is a public route, not a branch inventory, validator report, or
 release ledger. Detailed meaning stays with the nearest authored source;
