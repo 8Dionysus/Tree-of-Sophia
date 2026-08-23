@@ -11,7 +11,7 @@ jobs:
     name: Repo Validation
     runs-on: ubuntu-latest
     env:
-      AOA_STATS_REVISION: dc608fd5de3fcaf0301f356c9efd52e2bdd350ce
+      AOA_STATS_REVISION: 339ecb2db22ac4552fa88756b650896ebbff5b56
     steps:
       - name: Checkout
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd

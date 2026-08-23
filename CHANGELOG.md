@@ -9,6 +9,62 @@ Tracking starts with the community-docs baseline for this repository.
 
 No unreleased changes.
 
+## [0.5.2] - 2026-08-23
+
+### Summary
+
+- Revalidated the direct `aoa-stats` consumer edge against the exact published
+  `aoa-stats@v0.2.1` commit
+  `339ecb2db22ac4552fa88756b650896ebbff5b56`.
+- Published the compatible successor needed to make the current provider
+  identity truthful without rewriting the immutable `v0.5.1` release.
+
+### Changed
+
+- Repo Validation now fetches `aoa-stats` at the exact v0.2.1 commit and
+  asserts `HEAD` equality before running the release gate.
+- The release contract now names the v0.2.1 provider identity while keeping
+  the published `aoa-kag` provider commit and immutable workflow action
+  identity distinct.
+- Revalidated the owner-local stats port, generated readmodels, local KAG
+  provider, KAG export edge, and OS Abyss generated-readmodel bundle route.
+
+### Security
+
+- The existing `v0.5.1` tag, GitHub Release, and official artifact record
+  remain immutable and are not retagged or reused for this successor.
+- The exact v0.5.1 artifact record remains agent-allow and
+  release/public-manual-review-required; no manual verdict is inferred or
+  overwritten by this source correction.
+- Exact provider pins do not prove runtime health, KAG freshness, artifact
+  admission for the successor, semantic acceptance, or human owner
+  acceptance.
+
+### First-Parent Reconciliation (1/1)
+
+1. This single successor commit updates the direct stats provider identity,
+   release contract, current release markers, and generated KAG parity for
+   the revalidated source surface. It does not change ToS meaning, sibling
+   providers, the v0.5.1 tag or Release, or the prior artifact record.
+
+### Validation
+
+- The exact `aoa-stats@v0.2.1` checkout, local stats port, local KAG provider,
+  generated readmodels, source release gate, and artifact bundle validator
+  remain separate owner checks.
+- PR/CI, merge, tag, GitHub Release, artifact trust, runtime, proof,
+  delivery, closure, and acceptance remain separate claims.
+- The KAG MCP owner snapshot is stale and the bounded edge search returned no
+  traversable IDs; the repo-local source edge and validators remain the
+  authoritative Tree evidence for this release.
+
+### Notes
+
+- `v0.5.1` remains immutable historical release state, including its exact
+  `aoa-stats@v0.2.0` pin and official artifact record.
+- A new successor source commit does not inherit the old artifact identity;
+  any future v0.5.2 artifact admission must bind its own exact source ref.
+
 ## [0.5.1] - 2026-08-23
 
 ### Summary
