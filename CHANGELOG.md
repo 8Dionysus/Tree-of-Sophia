@@ -9,6 +9,63 @@ Tracking starts with the community-docs baseline for this repository.
 
 No unreleased changes.
 
+## [0.5.1] - 2026-08-23
+
+### Summary
+
+- Corrected the direct `aoa-stats` consumer pin from an ancestor revision to
+  the exact published `aoa-stats@v0.2.0` commit
+  `dc608fd5de3fcaf0301f356c9efd52e2bdd350ce`.
+- Made the direct `aoa-stats` and `aoa-kag` provider edges explicit in the
+  release contract, including the distinction between the published KAG
+  provider commit and the immutable KAG workflow action commit.
+- Corrected the release evidence identity for the KAG action and preserved the
+  production artifact disposition as `manual_review_required`.
+
+### Changed
+
+- Repo Validation now fetches `aoa-stats` at the published commit and asserts
+  exact `HEAD` equality before running the release gate.
+- Regenerated the pinned `aoa-kag` portable family for the corrected release
+  surface and recorded its owner budget receipt; the 63 changed shard/manifest
+  files are derived parity evidence, not new ToS meaning or KAG authority.
+- The release contract records `aoa-kag@v0.5.0` at commit
+  `813a7f69dc96ec031dad9b897a6991792cc48b7a` and its workflow action at the
+  separate immutable commit
+  `6a79e62c7d20b6b11406dee78f409ada4a51bb3f`.
+
+### Security
+
+- This corrective patch changes source/CI dependency identity only. It does
+  not rewrite `v0.5.0`, publish an artifact asset, add an attestation, or
+  change the production trust verdict. The production consumer remains
+  `manual_review_required` until an independent owner trust gate changes it.
+- Exact provider pins do not prove runtime health, KAG freshness, artifact
+  admission, semantic acceptance, or human owner acceptance.
+
+### First-Parent Reconciliation (1/1)
+
+1. The single landed corrective-release commit updates the direct provider pin,
+   records the release/federation dependency identities, and aligns the
+   release markers and changelog. It is one bounded release correction, not a
+   new source-meaning or sibling-repository change.
+
+### Validation
+
+- The local `aoa-stats` port, local KAG provider, source release gate, and
+  generated readmodel artifact validator are separate owner checks.
+- Repo Validation must fetch the exact published stats commit and retain the
+  immutable KAG action ref; PR/CI, merge, tag, GitHub Release, artifact trust,
+  runtime, proof, delivery, closure, and acceptance remain separate claims.
+- The production artifact trust result remains `manual_review_required`; no
+  `allow` or `warn` inference is made from the source correction.
+
+### Notes
+
+- `v0.5.0` remains immutable historical release state. The published provider
+  identities above are evidence for this corrective source release, not moving
+  sibling branches or unpublished candidates.
+
 ## [0.5.0] - 2026-08-22
 
 ### Summary
