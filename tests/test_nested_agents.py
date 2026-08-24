@@ -65,6 +65,7 @@ class NestedAgentsRouteTests(unittest.TestCase):
             corpus_task["owner_handoff_context_tokens"],
             corpus_task["budget"]["owner_handoff_max_tokens"],
         )
+        self.assertLessEqual(corpus_task["budget"]["owner_handoff_max_tokens"], 1200)
         self.assertEqual(
             ["AGENTS.md", "ToS/AGENTS.md", "ToS/doctrine/AGENTS.md"],
             corpus_currentness["inheritance_stack"],
