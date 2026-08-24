@@ -118,6 +118,14 @@ class AgentSurfaceTests(unittest.TestCase):
                 path=Path("SKILL.md"),
             )
 
+        with self.assertRaisesRegex(ValueError, "multiline description"):
+            builder.frontmatter_scalars(
+                "name: example\n"
+                "description: \"first line\n"
+                "  continuation line\n",
+                path=Path("SKILL.md"),
+            )
+
     def test_generated_kag_family_has_a_matching_receipt(self) -> None:
         manifest = json.loads(
             (ROOT / ".agents/agent-surface.manifest.json").read_text(encoding="utf-8")
@@ -139,6 +147,21 @@ class AgentSurfaceTests(unittest.TestCase):
                 issues = validator.validate_manifest(ROOT)
         self.assertIn(
             (str(manifest_path), "duplicate task probe source_authority"),
+            issues,
+        )
+
+    def test_port_manifests_are_currentness_inputs(self) -> None:
+        manifest = json.loads(
+            (ROOT / ".agents/agent-surface.manifest.json").read_text(encoding="utf-8")
+        )
+        manifest["owner_ports"]["eval_port"]["currentness_inputs"].remove("evals/PORT.yaml")
+        with tempfile.TemporaryDirectory() as temporary:
+            manifest_path = Path(temporary) / "manifest.json"
+            manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
+            with mock.patch.object(validator, "MANIFEST_PATH", manifest_path):
+                issues = validator.validate_manifest(ROOT)
+        self.assertIn(
+            (str(manifest_path), "eval_port manifest must be a currentness input"),
             issues,
         )
 

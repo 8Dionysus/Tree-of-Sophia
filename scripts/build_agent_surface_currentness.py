@@ -68,6 +68,23 @@ def word_count(value: str) -> int:
     return len(WORD_RE.findall(value))
 
 
+def quoted_scalar_is_open(value: str) -> bool:
+    if not value or value[0] not in ("'", '"'):
+        return False
+    quote = value[0]
+    if quote == "'":
+        return "'" not in value[1:]
+    escaped = False
+    for character in value[1:]:
+        if escaped:
+            escaped = False
+        elif character == "\\":
+            escaped = True
+        elif character == '"':
+            return False
+    return True
+
+
 def frontmatter_scalars(block: str, *, path: Path) -> dict[str, str | None]:
     """Read top-level fields and known fields from the metadata mapping only."""
     values: dict[str, str | None] = {key: None for key in FRONTMATTER_KEYS}
@@ -94,11 +111,15 @@ def frontmatter_scalars(block: str, *, path: Path) -> dict[str, str | None]:
                     raise ValueError(f"{path}:{line_number}: duplicate frontmatter field {key}")
                 if not separator or not value.strip():
                     raise ValueError(f"{path}:{line_number}: frontmatter field {key} needs a scalar")
-                if key == "description" and re.fullmatch(r"[>|][0-9+-]*", value.strip()):
+                scalar = value.strip()
+                if key == "description" and (
+                    re.fullmatch(r"[>|][0-9+-]*", scalar)
+                    or quoted_scalar_is_open(scalar)
+                ):
                     raise ValueError(
                         f"{path}:{line_number}: multiline description scalars are not supported"
                     )
-                values[key] = value.strip()
+                values[key] = scalar
                 continue
             if key in METADATA_FRONTMATTER_KEYS:
                 raise ValueError(

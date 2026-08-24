@@ -352,6 +352,9 @@ def validate_manifest(root: Path = REPO_ROOT) -> list[Issue]:
         local_owner = port.get("local_owner")
         if isinstance(local_owner, str) and local_owner not in port.get("currentness_inputs", []):
             issues.append((MANIFEST_PATH.as_posix(), f"{port_id} local_owner must be a currentness input"))
+        manifest_route = port.get("manifest")
+        if isinstance(manifest_route, str) and manifest_route not in port.get("currentness_inputs", []):
+            issues.append((MANIFEST_PATH.as_posix(), f"{port_id} manifest must be a currentness input"))
         if port_id == "kag_provider":
             issues.extend(generated_family_issues(root, port))
 
