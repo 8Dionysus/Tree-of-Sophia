@@ -17,6 +17,16 @@ PACKAGE_SLUG_RE = re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
 ALLOWED_CLASSES = {"head-fed/local", "local"}
 ALLOWED_STATUSES = {"active", "planted"}
 IGNORED_MECHANICS_DIRS = {"__pycache__", "legacy"}
+MARKDOWN_LINK_RE = re.compile(r"(?<!!)\[[^\]]+\]\(([^)\s]+)")
+SCRIPT_REFERENCE_RE = re.compile(r"(?<![A-Za-z0-9_.-])((?:scripts|mechanics)/[A-Za-z0-9_./-]+\.(?:py|sh))")
+SCRIPT_INVENTORY_PATH = Path("docs/validation/script_inventory.json")
+ROUTE_MAP_MARKERS = (
+    "## Task-to-owner map",
+    "## Progressive disclosure",
+    "topology.json",
+    "validation_lanes.json",
+    "docs/decisions/README.md",
+)
 
 
 def load_topology(repo_root: Path, issues: list[Issue]) -> dict[str, object] | None:
@@ -50,6 +60,151 @@ def read_text_if_file(repo_root: Path, relative_path: str) -> str | None:
     if not path.is_file():
         return None
     return path.read_text(encoding="utf-8")
+
+
+def current_mechanics_markdown(repo_root: Path) -> tuple[Path, ...]:
+    mechanics_root = repo_root / "mechanics"
+    if not mechanics_root.is_dir():
+        return ()
+    return tuple(
+        sorted(
+            path
+            for path in mechanics_root.rglob("*.md")
+            if path.name != "AGENTS.md" and "legacy" not in path.relative_to(repo_root).parts
+        )
+    )
+
+
+def resolve_doc_reference(repo_root: Path, source_path: Path, reference: str) -> Path | None:
+    target = reference.strip("<>").split("#", 1)[0].split("?", 1)[0]
+    if not target or target.startswith(("#", "/")) or "://" in target or target.startswith("mailto:"):
+        return None
+
+    candidates = (source_path.parent / target, repo_root / target)
+    for candidate in candidates:
+        if candidate.exists():
+            return candidate
+    return None
+
+
+def load_inventory_paths(repo_root: Path, issues: list[Issue]) -> set[str]:
+    path = repo_root / SCRIPT_INVENTORY_PATH
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+    except FileNotFoundError:
+        issues.append((SCRIPT_INVENTORY_PATH.as_posix(), "missing script inventory for route references"))
+        return set()
+    except json.JSONDecodeError as exc:
+        issues.append((SCRIPT_INVENTORY_PATH.as_posix(), f"invalid script inventory: {exc}"))
+        return set()
+
+    entries = payload.get("script_surfaces") if isinstance(payload, dict) else None
+    if not isinstance(entries, list):
+        issues.append((SCRIPT_INVENTORY_PATH.as_posix(), "script inventory must contain a script_surfaces list"))
+        return set()
+    paths: set[str] = set()
+    for entry in entries:
+        if isinstance(entry, dict) and isinstance(entry.get("path"), str):
+            paths.add(entry["path"])
+    return paths
+
+
+def validate_route_map(
+    repo_root: Path,
+    issues: list[Issue],
+    packages: dict[str, dict[str, object]],
+    package_parts: dict[str, set[str]],
+) -> None:
+    root_text = read_text_if_file(repo_root, "mechanics/README.md")
+    if root_text is None:
+        return
+
+    for marker in ROUTE_MAP_MARKERS:
+        if marker not in root_text:
+            issues.append(("mechanics/README.md", f"missing executable-architecture route marker: {marker}"))
+
+    for slug in packages:
+        package_ref = f"]({slug}/README.md)"
+        if package_ref not in root_text:
+            issues.append(("mechanics/README.md", f"package {slug} is missing from the human package map"))
+
+        package_path = f"mechanics/{slug}/README.md"
+        package_text = read_text_if_file(repo_root, package_path)
+        if package_text is None:
+            continue
+        for companion in ("PARTS.md", "PROVENANCE.md", "ROADMAP.md"):
+            if companion not in package_text:
+                issues.append((package_path, f"package route does not link to {companion}"))
+
+        parts_text = read_text_if_file(repo_root, f"mechanics/{slug}/PARTS.md")
+        if parts_text is None:
+            continue
+        for part in sorted(package_parts.get(slug, set())):
+            part_ref = f"parts/{part}/README.md"
+            if part_ref not in parts_text:
+                issues.append(
+                    (
+                        f"mechanics/{slug}/PARTS.md",
+                        f"active part {part} is not present in the package selection map",
+                    )
+                )
+
+
+def validate_documentation_references(repo_root: Path, issues: list[Issue]) -> None:
+    inventory_paths = load_inventory_paths(repo_root, issues)
+    for path in current_mechanics_markdown(repo_root):
+        relative = path.relative_to(repo_root).as_posix()
+        text = path.read_text(encoding="utf-8")
+        for reference in MARKDOWN_LINK_RE.findall(text):
+            if reference.startswith(("#", "http:", "https:", "mailto:")):
+                continue
+            if resolve_doc_reference(repo_root, path, reference) is None:
+                issues.append((relative, f"broken local documentation route: {reference}"))
+
+        for reference in SCRIPT_REFERENCE_RE.findall(text):
+            resolved = resolve_doc_reference(repo_root, path, reference)
+            if resolved is None:
+                issues.append((relative, f"stale executable reference: {reference}"))
+                continue
+            resolved_relative = resolved.relative_to(repo_root).as_posix()
+            if resolved_relative not in inventory_paths:
+                issues.append(
+                    (
+                        relative,
+                        f"executable reference is absent from script inventory: {resolved_relative}",
+                    )
+                )
+
+
+def validate_context_budget(repo_root: Path, issues: list[Issue], topology: dict[str, object]) -> None:
+    budget = topology.get("always_on_context_budget")
+    if not isinstance(budget, dict):
+        issues.append((TOPOLOGY_PATH.as_posix(), "always_on_context_budget must be an object"))
+        return
+
+    surface = budget.get("surface")
+    metric = budget.get("metric")
+    maximum = budget.get("max_tokens")
+    if surface != "mechanics/README.md":
+        issues.append((TOPOLOGY_PATH.as_posix(), "always_on_context_budget.surface must be mechanics/README.md"))
+    if metric != "whitespace_tokens_v1":
+        issues.append((TOPOLOGY_PATH.as_posix(), "always_on_context_budget.metric is unsupported"))
+    if isinstance(maximum, bool) or not isinstance(maximum, int) or maximum <= 0:
+        issues.append((TOPOLOGY_PATH.as_posix(), "always_on_context_budget.max_tokens must be a positive integer"))
+        return
+
+    text = read_text_if_file(repo_root, str(surface)) if isinstance(surface, str) else None
+    if text is None:
+        issues.append((str(surface), "always-on context surface is missing"))
+        return
+    measured = len(text.split())
+    if measured > maximum:
+        issues.append(
+            (
+                str(surface),
+                f"always-on context exceeds {maximum} whitespace tokens: {measured}",
+            )
+        )
 
 
 def discover_package_dirs(repo_root: Path) -> set[str]:
@@ -255,6 +410,9 @@ def run_validation(repo_root: Path | None = None) -> list[Issue]:
     if len(order) != len(set(order)):
         issues.append((TOPOLOGY_PATH.as_posix(), "packages must be unique"))
 
+    validate_context_budget(root, issues, topology)
+    validate_route_map(root, issues, seen, package_parts)
+    validate_documentation_references(root, issues)
     validate_moved_targets(root, issues, topology, seen, package_parts)
 
     return issues

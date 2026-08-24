@@ -25,8 +25,11 @@ Inventories describe coverage. They are not command authority.
 
 - Source-home checks route to `ToS/source_home.manifest.json` and the nearest
   `ToS/**/AGENTS.md`.
-- Mechanics checks route to `mechanics/topology.json` and package-local
-  `PARTS.md`, `PROVENANCE.md`, and `ROADMAP.md`.
+- Mechanics checks route to `mechanics/topology.json`, the package-local
+  `PARTS.md` maps, and the active part route. The mechanics lane also checks
+  current route links, executable script references, and the bounded
+  always-on mechanics entrypoint; `PROVENANCE.md` and `ROADMAP.md` remain
+  on-demand historical and growth surfaces.
 - Mechanics-local contract tests route to the owning mechanic lane before
   broader repo tests.
 - Generated parity checks route from source surface to builder to generated

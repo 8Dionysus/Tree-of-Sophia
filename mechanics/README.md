@@ -10,13 +10,13 @@ source witnesses, canon, Zarathustra, or the philosophy domain tree changes.
 ## Route
 
 1. Choose the package from the map below.
-2. Read package `AGENTS.md`, `README.md`, `PARTS.md`, `PROVENANCE.md`, and
-   `ROADMAP.md`.
-3. Follow the active part route named by `PARTS.md`.
-4. Use `PROVENANCE.md` only when former placement or source lineage matters.
-5. Enter package-local `legacy/` only through `PROVENANCE.md`, and only in
-   packages that have real moved-path or raw-receipt accounting.
-6. Run the package or part validator, then the repo-level mechanics gate.
+2. Before editing, read the nearest `AGENTS.md`; use package `README.md` and
+   `PARTS.md` to select the active part.
+3. Follow that part's `README.md` to its payload, executable, and check.
+4. Read payload docs, schemas, examples, or manifests only for the operation at
+   hand. Use `PROVENANCE.md` only for former placement or source lineage, and
+   `ROADMAP.md` only for future pressure.
+5. Run the named owner check, then the repository-level mechanics gate.
 
 ## Shared Package Map
 
@@ -49,6 +49,28 @@ around the philosophy home without moving the authored home into mechanics.
 | [`source-witnessing`](source-witnessing/README.md) | local | witness route discipline before branch or canon movement |
 | [`canon-formation`](canon-formation/README.md) | local | reviewed promotion into canonical nodes, relations, and registries |
 | [`relation-weaving`](relation-weaving/README.md) | local | graph-workbench fragments and relation-pack promotion |
+
+## Task-to-owner map
+
+This entrypoint routes; the strongest carrier below owns the current detail.
+
+| Task | Strongest carrier | Exact next route |
+| --- | --- | --- |
+| Understand a repeated operation | Authored part contract and its payload docs | Package `PARTS.md` -> active part `README.md` -> named docs/schema/config |
+| Choose a package or part | Human map here plus machine map in [`topology.json`](topology.json) | Package `PARTS.md`; do not infer ownership from a directory tour |
+| Run a builder or validator | Executable script/CLI; blocking order in [`validation_lanes.json`](../docs/validation/validation_lanes.json) | Part `README.md` `tools`/`check` -> owning lane; mechanics-local discovery remains [`run_mechanics_local_tests.py`](../scripts/run_mechanics_local_tests.py) |
+| Change a schema, config, or manifest | Part-local schema/config/manifest | Source contract -> builder -> generated companion -> validator; generated output is never authoring truth |
+| Check release or validation state | Validation lane manifest and release entrypoint | [`mechanics/release-support`](release-support/README.md) -> [`docs/RELEASING.md`](../docs/RELEASING.md) -> named lane |
+| Find durable rationale | Authored decision record; generated indexes are lookup only | [`docs/decisions/README.md`](../docs/decisions/README.md) -> `TOS-D-*`; current source or mechanic contract remains stronger |
+| Inspect live state or execution evidence | Owner telemetry, status surface, receipt, or external AoA owner | Follow the receipt/status handle named by the active part; mechanics docs do not snapshot runtime truth |
+
+## Progressive disclosure
+
+Always-on context stays here: what mechanics own, where package selection starts,
+and which owner carries each task. Everything else is on demand: the nearest
+`AGENTS.md` for edit law, `PARTS.md` for selection, the active part `README.md`
+for operation, and its payload or executable for detail. Historical placement
+and future growth remain behind `PROVENANCE.md` and `ROADMAP.md` respectively.
 
 ## Status Semantics
 
@@ -115,7 +137,6 @@ The `mechanics_topology` and `route_docs` sequences in
 `docs/validation/validation_lanes.json` own executable verification. Use
 `mechanics/AGENTS.md` for the focused operator route.
 
-For release-facing changes, run:
-
-Repository-wide verification routes through the `release_check` sequence in
-`docs/validation/validation_lanes.json` and its script entrypoint.
+For release-facing changes, repository-wide verification routes through the
+`release_check` sequence in `docs/validation/validation_lanes.json` and its
+script entrypoint.

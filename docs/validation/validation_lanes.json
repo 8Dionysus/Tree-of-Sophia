@@ -70,7 +70,7 @@
       "layer": "mechanics",
       "mode": "blocking",
       "owner_surface": "mechanics/topology.json",
-      "purpose": "Protect mechanics packages, active parts, package-local legacy policy, and moved-path accounting.",
+      "purpose": "Protect mechanics packages, active parts, route-doc currentness, package-local legacy policy, moved-path accounting, and the bounded mechanics entrypoint.",
       "command_sequence": "mechanics_topology",
       "failure_route": "mechanics/AGENTS.md",
       "does_not_own": [

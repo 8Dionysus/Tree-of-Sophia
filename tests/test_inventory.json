@@ -377,6 +377,21 @@
       "disposition": "keep"
     },
     {
+      "path": "tests/test_mechanics_route_docs.py",
+      "home": "tests",
+      "home_scope": "root",
+      "family": "mechanics_route_docs",
+      "validation_lane": "mechanics_topology",
+      "owner_surface": "mechanics/topology.json",
+      "protects": "mechanics package and part selection routes, current executable references, and the bounded always-on mechanics entrypoint",
+      "coverage_authority": "tests/AGENTS.md root unittest discovery",
+      "mode": "blocking",
+      "runtime_cost": "fast",
+      "focused_target": "tests/test_mechanics_route_docs.py",
+      "failure_route": "Fix mechanics/README.md, mechanics/topology.json, package PARTS.md, or the mechanics topology validator before changing route expectations.",
+      "disposition": "keep"
+    },
+    {
       "path": "tests/test_test_topology.py",
       "home": "tests",
       "home_scope": "root",
