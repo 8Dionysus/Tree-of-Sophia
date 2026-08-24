@@ -35,6 +35,8 @@ observation, review, canon, bounded concept hop, and derived read models.
   owning branches.
 - Keep the first public route narrow: one bounded source route, one capsule,
   one source authority surface, and one bounded concept hop.
+- Treat the public-entry as a bounded public route: it may orient and return to
+  source/review, but it does not widen source or canon authority.
 
 ## Engineering Sequence
 

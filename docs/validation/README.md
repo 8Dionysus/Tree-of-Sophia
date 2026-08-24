@@ -17,6 +17,8 @@ own owner surfaces.
 | `validation_lanes.json` | executable command authority for named validation lanes |
 | `script_inventory.json` | descriptive map of active `*/scripts/*` surfaces to owners, lanes, and side effects |
 | `SCRIPT_TOPOLOGY.md` | descriptive map of script homes, families, side effects, and lane posture |
+| `agents_route_inventory.json` | source map for tracked route cards, inheritance, task routes, context budgets, and influencing surfaces |
+| `../../.agents/agents-route.current.json` | generated route-card currentness read model; never stronger than the cards or owner docs |
 | `../testing/TEST_TOPOLOGY.md` | descriptive map of test homes, families, and failure routes |
 
 Inventories describe coverage. They are not command authority.
@@ -38,6 +40,9 @@ Inventories describe coverage. They are not command authority.
   Validator scripts are covered there as script organs; a separate validator
   registry only becomes useful after ToS grows a distinct validator-module
   surface.
+- AGENTS route topology routes to `agents_route_inventory.json`, its generated
+  currentness companion, and `scripts/agents_route_harness.py`; the harness is
+  a deterministic route-shape check, not a behavioral or semantic eval.
 - Test topology routes to `docs/testing/TEST_TOPOLOGY.md`, `tests/AGENTS.md`,
   and `tests/test_inventory.json`.
 - Local eval pressure routes to `evals/`, while proof authority stays with

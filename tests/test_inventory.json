@@ -377,6 +377,21 @@
       "disposition": "keep"
     },
     {
+      "path": "tests/test_nested_agents.py",
+      "home": "tests",
+      "home_scope": "root",
+      "family": "validator_behavior",
+      "validation_lane": "route_docs",
+      "owner_surface": "DESIGN.AGENTS.md",
+      "protects": "AGENTS route-card tracked parity, inheritance, currentness, executable-reference, context-budget, and deterministic task-route guards",
+      "coverage_authority": "tests/AGENTS.md root unittest discovery",
+      "mode": "blocking",
+      "runtime_cost": "fast",
+      "focused_target": "tests/test_nested_agents.py",
+      "failure_route": "Fix the route inventory, route-card validator, currentness builder, or harness before changing guard expectations.",
+      "disposition": "keep"
+    },
+    {
       "path": "tests/test_mechanics_route_docs.py",
       "home": "tests",
       "home_scope": "root",

@@ -33,6 +33,8 @@ validators.
   author review remains in `ToS/zarathustra/lived-witness/`.
 - Route runtime, graph UI, MCP, Neo4j, KAG envelope, and service behavior to
   owning runtime or downstream surfaces.
+- For translation alignment, bind both exact text layers and anchor sets;
+  keep competing maps and review outcomes separate from the interchange form.
 
 ## Validation
 

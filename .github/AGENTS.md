@@ -1,8 +1,10 @@
 # AGENTS.md
 
-## Guidance for `.github/`
+## Local role
 
 `.github/` is this repository's GitHub platform surface: workflows, PR templates, issue templates, CODEOWNERS, and repository metadata.
+
+## Read before editing
 
 Read the root `AGENTS.md` first. Root `AGENTS.md` owns repository identity, owner boundaries, the branch/PR/CI/merge route, and the shortest local validation path. This file owns only the GitHub-native files under `.github/`.
 

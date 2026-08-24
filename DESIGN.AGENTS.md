@@ -49,6 +49,24 @@ the nearer card or a stronger AoA owner.
 The nearer card owns local risk. The root card owns repository identity and the
 route back to stronger owners.
 
+## Progressive disclosure and currentness
+
+The root `AGENTS.md` is the universal map of repository identity, topology,
+owner routes, cross-surface boundaries, verification, and completion. A nested
+card adds only action-changing local owner, source authority, invariant,
+nearest check, and escalation/return route. Specialized reference knowledge
+stays on demand in the owning source, contract, decision, skill, or validator.
+
+The machine-readable route map is
+[`docs/validation/agents_route_inventory.json`](docs/validation/agents_route_inventory.json).
+The generated companion
+`.agents/agents-route.current.json` records tracked/discovered parity,
+inheritance stacks, hashes, and context budgets. The deterministic
+`scripts/agents_route_harness.py` evaluates declared task routes and explicitly
+makes no model, semantic, or human time-to-owner claim. `DESIGN.AGENTS.md` is
+the shape reference, not an inherited card; `docs/AGENTS_ROOT_REFERENCE.md`
+is preserved historical law and not a competing root.
+
 ## Movement
 
 Good agent movement in ToS:

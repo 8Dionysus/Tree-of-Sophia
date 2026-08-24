@@ -168,7 +168,7 @@
       "layer": "agent-route-card",
       "mode": "blocking",
       "owner_surface": "scripts/validate_nested_agents.py",
-      "purpose": "Verify route-card structure without freezing ordinary prose as doctrine.",
+      "purpose": "Verify route-card inventory, inheritance, generated currentness, executable references, and deterministic context budgets without freezing ordinary prose as doctrine.",
       "command_sequence": "route_docs",
       "failure_route": "DESIGN.AGENTS.md",
       "does_not_own": [
@@ -497,8 +497,16 @@
     ],
     "route_docs": [
       {
+        "label": "check AGENTS route-card currentness",
+        "command": ["python", "scripts/build_agents_route_currentness.py", "--check"]
+      },
+      {
         "label": "validate route-card structure",
         "command": ["python", "scripts/validate_nested_agents.py"]
+      },
+      {
+        "label": "run deterministic AGENTS task route harness",
+        "command": ["python", "scripts/agents_route_harness.py", "--check"]
       }
     ],
     "agent_surface": [
@@ -761,8 +769,16 @@
         "command": ["python", "mechanics/questbook/scripts/validate_questbook_surface.py"]
       },
       {
+        "label": "check AGENTS route-card currentness",
+        "command": ["python", "scripts/build_agents_route_currentness.py", "--check"]
+      },
+      {
         "label": "validate route-card structure",
         "command": ["python", "scripts/validate_nested_agents.py"]
+      },
+      {
+        "label": "run deterministic AGENTS task route harness",
+        "command": ["python", "scripts/agents_route_harness.py", "--check"]
       },
       {
         "label": "check agent-surface currentness",
