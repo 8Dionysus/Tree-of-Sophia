@@ -4,6 +4,7 @@ from __future__ import annotations
 import argparse
 import json
 import re
+import subprocess
 import sys
 from pathlib import Path
 from typing import Any
@@ -76,6 +77,12 @@ KAG_BUDGET_RECEIPT_SCOPES = {
     "tracked_size",
     "generated_delta_and_tracked_size",
     "v2_to_v3_migration",
+}
+KAG_BUDGET_EXCEEDANCE_RELATIONS: dict[frozenset[str], str | None] = {
+    frozenset(): None,
+    frozenset({"generated_delta"}): "generated_delta",
+    frozenset({"tracked_size"}): "tracked_size",
+    frozenset({"generated_delta", "tracked_size"}): "generated_delta_and_tracked_size",
 }
 KAG_BUDGET_DECISION_REF = (
     "aoa-kag:docs/decisions/"
@@ -152,12 +159,84 @@ def _is_integer(value: Any) -> bool:
     return isinstance(value, int) and not isinstance(value, bool)
 
 
+def budget_exceedance_relation(
+    *,
+    changed_generated_bytes: Any,
+    default_limit_bytes: Any,
+    tracked_bytes: Any,
+    tracked_bytes_max: Any,
+) -> str | None:
+    """Map measured budget booleans to the canonical aoa-kag scope vocabulary."""
+    values = {
+        "changed_generated_bytes": changed_generated_bytes,
+        "default_limit_bytes": default_limit_bytes,
+        "tracked_bytes": tracked_bytes,
+        "tracked_bytes_max": tracked_bytes_max,
+    }
+    malformed = [field for field, value in values.items() if not _is_integer(value)]
+    if malformed:
+        raise ValueError(f"budget relation fields must be integers: {', '.join(sorted(malformed))}")
+    negative = [field for field, value in values.items() if value < 0]
+    if negative:
+        raise ValueError(f"budget relation fields must not be negative: {', '.join(sorted(negative))}")
+    exceeded = frozenset(
+        dimension
+        for dimension, is_exceeded in (
+            ("generated_delta", changed_generated_bytes > default_limit_bytes),
+            ("tracked_size", tracked_bytes > tracked_bytes_max),
+        )
+        if is_exceeded
+    )
+    return KAG_BUDGET_EXCEEDANCE_RELATIONS[exceeded]
+
+
+def _base_has_v3_manifest(root: Path, base_ref: str) -> bool | None:
+    """Return the owner-source migration discriminator for an exact base ref."""
+    try:
+        resolved = subprocess.run(
+            ("git", "rev-parse", "--verify", f"{base_ref}^{{commit}}"),
+            cwd=root,
+            check=False,
+            capture_output=True,
+            text=True,
+        )
+        if resolved.returncode != 0:
+            return None
+        manifest = subprocess.run(
+            (
+                "git",
+                "cat-file",
+                "-e",
+                f"{resolved.stdout.strip()}:kag/indexes/index_family.manifest.json",
+            ),
+            cwd=root,
+            check=False,
+            capture_output=True,
+        )
+    except OSError:
+        return None
+    return manifest.returncode == 0
+
+
+def canonical_budget_scope(
+    relation: str | None,
+    *,
+    base_has_v3: bool,
+) -> str | None:
+    """Mirror aoa-kag's narrow pre-v3 migration branch before normal mapping."""
+    if not base_has_v3:
+        return "v2_to_v3_migration"
+    return relation
+
+
 def budget_receipt_contract_issues(
     root: Path,
     manifest: dict[str, Any],
     receipt: Any,
     digest: str,
     receipt_path: Path,
+    *,
+    base_has_v3: bool | None = None,
 ) -> list[Issue]:
     """Admit the v1 receipt shape emitted by aoa-kag's portable-family owner."""
     label = _relative_label(root, receipt_path)
@@ -239,6 +318,64 @@ def budget_receipt_contract_issues(
     for field, expected in expected_values.items():
         if expected is not None and receipt.get(field) != expected:
             issues.append((label, f"budget receipt field {field} does not match the family contract"))
+
+    relation: str | None = None
+    relation_inputs = (
+        receipt.get("changed_generated_bytes"),
+        budgets.get("changed_generated_bytes_max") if isinstance(budgets, dict) else None,
+        summary.get("tracked_bytes") if isinstance(summary, dict) else None,
+        budgets.get("tracked_bytes_max") if isinstance(budgets, dict) else None,
+    )
+    if all(_is_integer(value) for value in relation_inputs):
+        try:
+            relation = budget_exceedance_relation(
+                changed_generated_bytes=relation_inputs[0],
+                default_limit_bytes=relation_inputs[1],
+                tracked_bytes=relation_inputs[2],
+                tracked_bytes_max=relation_inputs[3],
+            )
+        except ValueError as exc:
+            issues.append((label, f"budget receipt exceedance relation is malformed: {exc}"))
+
+    def verified_base_has_v3() -> bool | None:
+        if base_has_v3 is not None:
+            return base_has_v3
+        if not isinstance(base_ref, str):
+            return None
+        return _base_has_v3_manifest(root, base_ref)
+
+    if isinstance(scope, str) and scope == "v2_to_v3_migration":
+        base_has_v3_result = verified_base_has_v3()
+        if base_has_v3_result is None:
+            issues.append((label, "cannot verify v2_to_v3_migration base family"))
+        elif base_has_v3_result:
+            issues.append((label, "v2_to_v3_migration requires a base without a v3 family manifest"))
+    elif isinstance(scope, str) and relation is not None:
+        base_has_v3_result = verified_base_has_v3()
+        if base_has_v3_result is False:
+            expected_scope = canonical_budget_scope(relation, base_has_v3=False)
+            issues.append(
+                (
+                    label,
+                    f"budget receipt scope must be {expected_scope!r} for a pre-v3 base family",
+                )
+            )
+        elif base_has_v3_result is None:
+            issues.append((label, "cannot verify budget receipt base family"))
+        else:
+            expected_scope = canonical_budget_scope(relation, base_has_v3=True)
+            if scope != expected_scope:
+                issues.append(
+                    (
+                        label,
+                        f"budget receipt scope does not match the current exceedance: expected {expected_scope!r}",
+                    )
+                )
+    elif isinstance(scope, str) and relation is None and all(
+        _is_integer(value) for value in relation_inputs
+    ):
+        if scope != "v2_to_v3_migration":
+            issues.append((label, "budget receipt scope cannot authorize a family with no exceeded budget dimension"))
 
     changed_bytes = receipt.get("changed_generated_bytes")
     allowed_bytes = receipt.get("allowed_bytes")

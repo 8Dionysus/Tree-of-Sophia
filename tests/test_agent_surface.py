@@ -16,6 +16,45 @@ import validate_agent_surface as validator  # noqa: E402
 
 
 class AgentSurfaceTests(unittest.TestCase):
+    @staticmethod
+    def _budget_case(
+        *,
+        changed_generated_bytes: int,
+        default_limit_bytes: int,
+        tracked_bytes: int,
+        tracked_bytes_max: int,
+        scope: str,
+    ) -> tuple[dict, dict, str]:
+        digest = "a" * 64
+        base_ref = "b" * 40
+        manifest = {
+            "schema_version": "aoa-repo-local-kag-family-manifest-v3",
+            "repo": {"name": "Tree-of-Sophia", "git_ref": "git-index-source-tree"},
+            "budgets": {
+                "changed_generated_bytes_max": default_limit_bytes,
+                "tracked_bytes_max": tracked_bytes_max,
+            },
+            "summary": {"tracked_bytes": tracked_bytes},
+        }
+        receipt = {
+            "schema_version": validator.KAG_BUDGET_RECEIPT_SCHEMA_VERSION,
+            "repo": "Tree-of-Sophia",
+            "scope": scope,
+            "base_ref": base_ref,
+            "head_family_digest": digest,
+            "changed_generated_bytes": changed_generated_bytes,
+            "changed_generated_files": 1,
+            "default_limit_bytes": default_limit_bytes,
+            "allowed_bytes": changed_generated_bytes,
+            "tracked_bytes": tracked_bytes,
+            "tracked_bytes_max": tracked_bytes_max,
+            "allowed_tracked_bytes": tracked_bytes,
+            "reason": "focused budget scope control",
+            "approved_by": "test-owner",
+            "decision_ref": validator.KAG_BUDGET_DECISION_REF,
+        }
+        return manifest, receipt, digest
+
     def test_current_surface_has_expected_inventory_and_probe_depths(self) -> None:
         current = builder.build_currentness(ROOT)
         self.assertEqual(
@@ -143,6 +182,175 @@ class AgentSurfaceTests(unittest.TestCase):
         self.assertEqual(
             validator.generated_family_issues(ROOT, manifest["owner_ports"]["kag_provider"]),
             [],
+        )
+
+    def test_budget_exceedance_relation_maps_single_joint_and_equality_cases(self) -> None:
+        cases = (
+            ((10, 10, 20, 20), None),
+            ((11, 10, 20, 20), "generated_delta"),
+            ((10, 10, 21, 20), "tracked_size"),
+            ((11, 10, 21, 20), "generated_delta_and_tracked_size"),
+        )
+        for (changed, default, tracked, tracked_max), expected in cases:
+            with self.subTest(changed=changed, tracked=tracked):
+                self.assertEqual(
+                    validator.budget_exceedance_relation(
+                        changed_generated_bytes=changed,
+                        default_limit_bytes=default,
+                        tracked_bytes=tracked,
+                        tracked_bytes_max=tracked_max,
+                    ),
+                    expected,
+                )
+
+    def test_budget_scope_mismatches_are_rejected_in_both_directions(self) -> None:
+        cases = (
+            ((11, 10, 20, 20), "tracked_size", "generated_delta"),
+            ((10, 10, 21, 20), "generated_delta", "tracked_size"),
+            ((11, 10, 21, 20), "generated_delta", "generated_delta_and_tracked_size"),
+            ((11, 10, 21, 20), "tracked_size", "generated_delta_and_tracked_size"),
+        )
+        for (changed, default, tracked, tracked_max), scope, expected in cases:
+            with self.subTest(scope=scope, changed=changed, tracked=tracked):
+                family_manifest, receipt, digest = self._budget_case(
+                    changed_generated_bytes=changed,
+                    default_limit_bytes=default,
+                    tracked_bytes=tracked,
+                    tracked_bytes_max=tracked_max,
+                    scope=scope,
+                )
+                issues = validator.budget_receipt_contract_issues(
+                    ROOT,
+                    family_manifest,
+                    receipt,
+                    digest,
+                    ROOT / "focused-budget-receipt.json",
+                    base_has_v3=True,
+                )
+                self.assertIn(
+                    (
+                        "focused-budget-receipt.json",
+                        f"budget receipt scope does not match the current exceedance: expected {expected!r}",
+                    ),
+                    issues,
+                )
+
+    def test_budget_receipt_scope_rejects_no_exceedance(self) -> None:
+        family_manifest, receipt, digest = self._budget_case(
+            changed_generated_bytes=10,
+            default_limit_bytes=10,
+            tracked_bytes=20,
+            tracked_bytes_max=20,
+            scope="generated_delta",
+        )
+        self.assertIn(
+            (
+                "focused-budget-receipt.json",
+                "budget receipt scope cannot authorize a family with no exceeded budget dimension",
+            ),
+            validator.budget_receipt_contract_issues(
+                ROOT,
+                family_manifest,
+                receipt,
+                digest,
+                ROOT / "focused-budget-receipt.json",
+                base_has_v3=True,
+            ),
+        )
+
+    def test_malformed_budget_relation_is_rejected(self) -> None:
+        with self.assertRaisesRegex(ValueError, "must be integers"):
+            validator.budget_exceedance_relation(
+                changed_generated_bytes="not-an-integer",
+                default_limit_bytes=10,
+                tracked_bytes=20,
+                tracked_bytes_max=20,
+            )
+
+    def test_v2_to_v3_migration_scope_is_a_narrow_base_exception(self) -> None:
+        relation = validator.budget_exceedance_relation(
+            changed_generated_bytes=11,
+            default_limit_bytes=10,
+            tracked_bytes=20,
+            tracked_bytes_max=20,
+        )
+        self.assertEqual(
+            validator.canonical_budget_scope(relation, base_has_v3=False),
+            "v2_to_v3_migration",
+        )
+        self.assertEqual(
+            validator.canonical_budget_scope(relation, base_has_v3=True),
+            "generated_delta",
+        )
+        family_manifest, receipt, digest = self._budget_case(
+            changed_generated_bytes=11,
+            default_limit_bytes=10,
+            tracked_bytes=20,
+            tracked_bytes_max=20,
+            scope="v2_to_v3_migration",
+        )
+        self.assertEqual(
+            validator.budget_receipt_contract_issues(
+                ROOT,
+                family_manifest,
+                receipt,
+                digest,
+                ROOT / "focused-budget-receipt.json",
+                base_has_v3=False,
+            ),
+            [],
+        )
+        self.assertIn(
+            (
+                "focused-budget-receipt.json",
+                "v2_to_v3_migration requires a base without a v3 family manifest",
+            ),
+            validator.budget_receipt_contract_issues(
+                ROOT,
+                family_manifest,
+                receipt,
+                digest,
+                ROOT / "focused-budget-receipt.json",
+                base_has_v3=True,
+            ),
+        )
+
+    def test_current_receipt_rejects_review_scope_case(self) -> None:
+        manifest = json.loads(
+            (ROOT / ".agents/agent-surface.manifest.json").read_text(encoding="utf-8")
+        )
+        port = manifest["owner_ports"]["kag_provider"]
+        family = port["generated_family"]
+        family_manifest = json.loads((ROOT / family["manifest"]).read_text(encoding="utf-8"))
+        digest = family_manifest["family_identity"]["content_digest"]
+        receipt_path = ROOT / family["receipt_root"] / f"{digest}.json"
+        receipt = json.loads(receipt_path.read_text(encoding="utf-8"))
+        relation = validator.budget_exceedance_relation(
+            changed_generated_bytes=receipt["changed_generated_bytes"],
+            default_limit_bytes=family_manifest["budgets"]["changed_generated_bytes_max"],
+            tracked_bytes=family_manifest["summary"]["tracked_bytes"],
+            tracked_bytes_max=family_manifest["budgets"]["tracked_bytes_max"],
+        )
+        wrong_scope = "generated_delta" if relation != "generated_delta" else "tracked_size"
+        receipt["scope"] = wrong_scope
+        issues = validator.budget_receipt_contract_issues(
+            ROOT,
+            family_manifest,
+            receipt,
+            digest,
+            receipt_path,
+            base_has_v3=True,
+        )
+        self.assertIn(
+            (
+                receipt_path.relative_to(ROOT).as_posix(),
+                (
+                    f"budget receipt scope does not match the current exceedance: expected {relation!r}"
+                    if relation is not None
+                    else "budget receipt scope cannot authorize a family with no exceeded budget dimension"
+                ),
+            ),
+            issues,
         )
 
     def test_generated_kag_family_rejects_a_digest_only_receipt(self) -> None:
