@@ -90,7 +90,10 @@ map does not make a copied packet a second source owner.
 
 The focused command is the agent_surface lane in
 docs/validation/validation_lanes.json: python scripts/validate_agent_surface.py
---check.
+--check --fetch-budget-bases.
+The explicit preflight fetches each missing receipt-bound base commit by its
+exact immutable ref, so this documented lane also works in a shallow clone;
+without the flag, an unavailable base remains a fail-closed validation error.
 It checks manifest/package parity, metadata activation parity, on-demand route
 resolution, owner-port inputs, task-probe negative controls, public-safe
 authored surfaces, and generated currentness. Release checks call the same
