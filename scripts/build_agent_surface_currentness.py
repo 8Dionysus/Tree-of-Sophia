@@ -30,6 +30,10 @@ FRONTMATTER_KEYS = (
     "aoa_source_repo",
     "aoa_portable_profile",
 )
+TOP_LEVEL_FRONTMATTER_KEYS = ("name", "description", "license", "compatibility")
+METADATA_FRONTMATTER_KEYS = tuple(
+    key for key in FRONTMATTER_KEYS if key not in TOP_LEVEL_FRONTMATTER_KEYS
+)
 OPENAI_KEYS = ("implicit_activation_policy", "allow_implicit_invocation")
 IGNORED_PACKAGE_PARTS = {
     ".deps",
@@ -64,9 +68,51 @@ def word_count(value: str) -> int:
     return len(WORD_RE.findall(value))
 
 
-def scalar_from_block(block: str, key: str) -> str | None:
-    match = re.search(rf"^(?:\s*){re.escape(key)}:\s*(.*?)\s*$", block, re.MULTILINE)
-    return match.group(1).strip() if match else None
+def frontmatter_scalars(block: str, *, path: Path) -> dict[str, str | None]:
+    """Read top-level fields and known fields from the metadata mapping only."""
+    values: dict[str, str | None] = {key: None for key in FRONTMATTER_KEYS}
+    metadata_active = False
+    metadata_seen = False
+    for line_number, line in enumerate(block.splitlines(), start=1):
+        stripped = line.strip()
+        if not stripped or stripped.startswith("#"):
+            continue
+        indent = len(line) - len(line.lstrip(" "))
+        key, separator, value = stripped.partition(":")
+        if indent == 0:
+            if key == "metadata":
+                if metadata_seen:
+                    raise ValueError(f"{path}:{line_number}: duplicate metadata mapping")
+                if not separator or value.strip():
+                    raise ValueError(f"{path}:{line_number}: metadata must be a mapping")
+                metadata_seen = True
+                metadata_active = True
+                continue
+            metadata_active = False
+            if key in TOP_LEVEL_FRONTMATTER_KEYS:
+                if values[key] is not None:
+                    raise ValueError(f"{path}:{line_number}: duplicate frontmatter field {key}")
+                if not separator or not value.strip():
+                    raise ValueError(f"{path}:{line_number}: frontmatter field {key} needs a scalar")
+                values[key] = value.strip()
+                continue
+            if key in METADATA_FRONTMATTER_KEYS:
+                raise ValueError(
+                    f"{path}:{line_number}: {key} must be an immediate child of metadata"
+                )
+            continue
+        if key not in METADATA_FRONTMATTER_KEYS:
+            continue
+        if not metadata_active or indent != 2:
+            raise ValueError(
+                f"{path}:{line_number}: {key} must be an immediate child of metadata"
+            )
+        if values[key] is not None:
+            raise ValueError(f"{path}:{line_number}: duplicate metadata field {key}")
+        if not separator or not value.strip():
+            raise ValueError(f"{path}:{line_number}: metadata field {key} needs a scalar")
+        values[key] = value.strip()
+    return values
 
 
 def boolean_scalar(value: str | None, *, key: str, path: Path) -> bool | None:
@@ -82,23 +128,32 @@ def boolean_scalar(value: str | None, *, key: str, path: Path) -> bool | None:
 def policy_scalars(text: str, *, path: Path) -> dict[str, str | None]:
     """Read activation fields only from the top-level YAML policy mapping."""
     values: dict[str, str | None] = {key: None for key in OPENAI_KEYS}
-    policy_indent: int | None = None
+    policy_active = False
+    policy_seen = False
     for line_number, line in enumerate(text.splitlines(), start=1):
         stripped = line.strip()
         if not stripped or stripped.startswith("#"):
             continue
         indent = len(line) - len(line.lstrip(" "))
         if stripped == "policy:":
-            if policy_indent is not None:
-                raise ValueError(f"{path}:{line_number}: duplicate top-level policy mapping")
             if indent != 0:
                 raise ValueError(f"{path}:{line_number}: policy mapping must be top-level")
-            policy_indent = indent
+            if policy_seen:
+                raise ValueError(f"{path}:{line_number}: duplicate top-level policy mapping")
+            policy_seen = True
+            policy_active = True
             continue
         key, separator, value = stripped.partition(":")
+        if indent == 0:
+            policy_active = False
+            if key in OPENAI_KEYS:
+                raise ValueError(
+                    f"{path}:{line_number}: {key} must be an immediate child of policy"
+                )
+            continue
         if key not in OPENAI_KEYS:
             continue
-        if policy_indent is None or indent != policy_indent + 2:
+        if not policy_active or indent != 2:
             raise ValueError(
                 f"{path}:{line_number}: {key} must be an immediate child of policy"
             )
@@ -148,7 +203,7 @@ def parse_skill(skill_path: Path) -> dict[str, Any]:
         raise ValueError(f"{skill_path}: missing YAML frontmatter")
     frontmatter = match.group(1)
     body = text[match.end():]
-    values = {key: scalar_from_block(frontmatter, key) for key in FRONTMATTER_KEYS}
+    values = frontmatter_scalars(frontmatter, path=skill_path)
     if not values["name"] or not values["description"]:
         raise ValueError(f"{skill_path}: name and description are required")
     openai_path = skill_path.parent / "agents" / "openai.yaml"

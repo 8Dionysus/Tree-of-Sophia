@@ -87,6 +87,28 @@ class AgentSurfaceTests(unittest.TestCase):
                 path=Path("agents/openai.yaml"),
             )
 
+    def test_policy_scope_closes_at_next_top_level_mapping(self) -> None:
+        with self.assertRaisesRegex(ValueError, "immediate child of policy"):
+            builder.policy_scalars(
+                "policy:\n"
+                "  implicit_activation_policy: invoke\n"
+                "  allow_implicit_invocation: true\n"
+                "display:\n"
+                "  implicit_activation_policy: manual\n"
+                "  allow_implicit_invocation: false\n",
+                path=Path("agents/openai.yaml"),
+            )
+
+    def test_frontmatter_fields_follow_metadata_mapping(self) -> None:
+        with self.assertRaisesRegex(ValueError, "immediate child of metadata"):
+            builder.frontmatter_scalars(
+                "metadata:\n"
+                "  aoa_invocation_mode: explicit-only\n"
+                "name: example\n"
+                "aoa_invocation_mode: explicit-preferred\n",
+                path=Path("SKILL.md"),
+            )
+
     def test_generated_kag_family_has_a_matching_receipt(self) -> None:
         manifest = json.loads(
             (ROOT / ".agents/agent-surface.manifest.json").read_text(encoding="utf-8")
