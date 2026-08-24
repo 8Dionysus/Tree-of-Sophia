@@ -190,6 +190,14 @@ class NestedAgentsRouteTests(unittest.TestCase):
             self.assertNotEqual("working-tree", agents_route_harness.current_ref(root))
             (root / "dirty.txt").write_text("dirty\n", encoding="utf-8")
             self.assertEqual("working-tree", agents_route_harness.current_ref(root))
+            self.assertEqual(
+                "working-tree",
+                agents_route_harness.requested_source_ref("working-tree", "immutable-ref"),
+            )
+            self.assertEqual(
+                "immutable-ref",
+                agents_route_harness.requested_source_ref("clean-ref", "immutable-ref"),
+            )
 
 
 if __name__ == "__main__":

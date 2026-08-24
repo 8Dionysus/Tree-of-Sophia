@@ -56,6 +56,14 @@ def current_ref(repo_root: Path) -> str:
         return "working-tree"
 
 
+def requested_source_ref(observed_ref: str, requested_ref: str | None) -> str:
+    """Keep dirty-tree provenance stronger than a caller-supplied label."""
+
+    if observed_ref == "working-tree" or not requested_ref:
+        return observed_ref
+    return requested_ref
+
+
 def task_prompt_digest(inventory: dict[str, Any]) -> str:
     payload = "\n".join(f"{task['id']}\n{task['prompt']}" for task in inventory["task_routes"])
     return sha256_bytes(payload.encode("utf-8"))
@@ -262,8 +270,7 @@ def main() -> int:
     )
     args = parser.parse_args()
     result = build_result(REPO_ROOT, include_timing=args.volatile_timing)
-    if args.source_ref:
-        result["source_ref"] = args.source_ref
+    result["source_ref"] = requested_source_ref(result["source_ref"], args.source_ref)
     rendered = json.dumps(result, ensure_ascii=False, indent=2, sort_keys=True) + "\n"
     if args.output:
         output = args.output if args.output.is_absolute() else REPO_ROOT / args.output
