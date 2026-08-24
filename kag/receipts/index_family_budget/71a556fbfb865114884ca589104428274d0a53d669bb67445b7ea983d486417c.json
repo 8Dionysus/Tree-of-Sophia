@@ -1,0 +1,17 @@
+{
+  "allowed_bytes": 2994537,
+  "allowed_tracked_bytes": 27376090,
+  "approved_by": "repository-owner",
+  "base_ref": "16c443b1c7a6e573bc0b6e82aa8739fb904935a7",
+  "changed_generated_bytes": 2994537,
+  "changed_generated_files": 41,
+  "decision_ref": "aoa-kag:docs/decisions/AOA-KAG-D-0017-portable-content-addressed-repository-family.md",
+  "default_limit_bytes": 1048576,
+  "head_family_digest": "71a556fbfb865114884ca589104428274d0a53d669bb67445b7ea983d486417c",
+  "reason": "Reject empty migration receipts while preserving the measured generated-delta and tracked-size relation, exact-base fail-closed admission, and owner-generated currentness after PR #155.",
+  "repo": "Tree-of-Sophia",
+  "schema_version": "aoa-repo-local-kag-budget-receipt-v1",
+  "scope": "generated_delta_and_tracked_size",
+  "tracked_bytes": 27376090,
+  "tracked_bytes_max": 11534336
+}
