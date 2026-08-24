@@ -1,86 +1,75 @@
 # Tree of Sophia
 
-`Tree-of-Sophia` (ToS) is AoA's source-first living architecture for
-philosophy and world thought. It grows works, witnesses, concepts, lineages,
-contexts, and reviewed relations into an inspectable tree that can also be
-read as graphs without losing its roots.
+Tree of Sophia (ToS) is a source-grounded map of philosophy and world thought.
+It organizes works, editions, files, passages, translations, concepts,
+interpretations, contexts, and intellectual lineages into an authored,
+reviewable tree. Systems reproduce this tree as graphs, search indexes, and
+public routes.
 
-> Growth is not accumulation: a branch must be able to show its root.
+Every branch cites its source. Nodes and relations record provenance, exact
+source routes, interpretation history, and review status. ToS traces how ideas
+descend, diverge, inherit, and return across languages, traditions, places,
+and time while preserving uncertainty and competing readings.
 
-## Purpose and authority
+## How ToS works
 
-ToS owns ToS-authored meaning: source witnesses, doctrine, node and relation
-shape, branch growth, review, canon, and bounded public or downstream seams.
-Generated, exported, indexed, graph, and runtime views remain subordinate to
-those authored sources.
+ToS uses one inspectable path:
 
-Its evidence path is:
+`work -> expression -> edition -> item -> immutable file -> passage or region -> observation -> claim or interpretation -> human review -> canon or explicit deferral -> derived view`
 
-`source -> identity and provenance -> addressable representation -> proposed interpretation -> human review -> canon or explicit deferral -> derived view`
+Every stage is identified and versioned. Witnesses ground material; doctrine
+defines node, relation, naming, and evidence law; intake holds observations
+and proposals; the review ledger records acceptance, rejection, ambiguity,
+counter-readings, and rationale; canon holds reviewed authored knowledge;
+exports derive graph, retrieval, KAG, and runtime views. Human review owns
+textual and philosophical judgment, interpretation, and canon. Validators
+cover mechanics. Authored ToS sources govern generated views.
 
-Each transition stays traceable and versioned. Evidence, extraction,
-translation, interpretation, and acceptance are distinct layers; uncertainty
-and competing readings remain visible. AI may assist with proposals, but human
-review owns interpretive judgment and canon. Validators prove mechanics, not
-philosophical or textual truth.
+## How ToS grows
 
-## Growth model
+ToS grows along two linked fronts:
 
-ToS couples two fronts:
+- a world-philosophy corpus foundation that orders works, witnesses, editions,
+  languages, time, place, traditions, transmission, and stable text addresses;
+- *Thus Spoke Zarathustra* as the first golden growth kernel, a deeply worked
+  branch testing the full path from source evidence through review to authored
+  knowledge and derived views.
 
-- a world-philosophy corpus soil that preserves works, witnesses, languages,
-  traditions, contexts, and transmission without confusing indexing with
-  interpretation;
-- *Thus Spoke Zarathustra* as the first golden growth kernel: a complete,
-  source-returning path through evidence, interpretation, review, and derived
-  projection.
+The corpus provides breadth. The kernel makes the cycle legible and reusable
+and transfers source and review discipline. Each source keeps its ontology and
+vocabulary; new works or traditions may extend the model.
 
-The kernel transfers method and review discipline, not Nietzsche's ontology as
-a universal schema. New sources and traditions may require the model itself to
-grow.
+## Current state
 
-## Current posture
+Current release: `v0.5.0`.
 
-> Current release: `v0.5.0`. See [CHANGELOG](CHANGELOG.md) for release notes.
+Foundation work tests heterogeneous witnesses, text representations,
+segmentation, translation alignment, provenance, bibliographic and semantic
+claims, and derived projections. Synthetic, private, model-made, and
+unreviewed records retain their declared mechanical status. Text, identity,
+translation, interpretation, rights posture, graph truth, publication
+authority, and canon require matching source evidence and owner review.
 
-Foundation work exercises the evidence chain across heterogeneous witnesses,
-text representations, segmentation, translation alignment, provenance,
-bibliographic and semantic claims, and derived projections. Synthetic,
-private, model-made, or unreviewed exercises prove only their declared
-mechanics: they establish no accepted text, identity, translation,
-interpretation, rights posture, graph truth, publication authority, or canon.
-See [ROADMAP](ROADMAP.md) for progress and current direction.
-
-## Start here
+## Explore
 
 | Need | Route |
 | --- | --- |
-| Identity and authority | [CHARTER](CHARTER.md) · [BOUNDARIES](BOUNDARIES.md) |
-| Architecture and direction | [DESIGN](DESIGN.md) · [ROADMAP](ROADMAP.md) · [CHANGELOG](CHANGELOG.md) |
-| Source home and philosophy tree | [ToS](ToS/README.md) · [philosophy](ToS/philosophy/) |
-| Corpus foundation | [doctrine](ToS/doctrine/CORPUS_FOUNDATION.md) · [source witnesses](ToS/source-witnesses/README.md) |
-| Golden kernel | [contract](ToS/zarathustra/GOLDEN_GROWTH_KERNEL.md) · [public route](ToS/zarathustra/public-entry/TINY_ENTRY_ROUTE.md) · [worked capsule](ToS/zarathustra/prologue-1/TRILINGUAL_ENTRY.md) |
-| Machine-facing seams | [root map](ToS/derived-exports/root_entry_map.min.json) · [bounded KAG export](mechanics/boundary-bridge/parts/derived-kag-seam/docs/KAG_EXPORT.md) |
-| Agent or contributor work | [AGENTS](AGENTS.md#verify) · [scripts](scripts/AGENTS.md) · [mechanics](mechanics/README.md) |
-| Decisions | [records](docs/decisions/README.md) |
+| Understand the architecture | [CHARTER](CHARTER.md) · [DESIGN](DESIGN.md) · [BOUNDARIES](BOUNDARIES.md) |
+| Enter the philosophical tree | [ToS](ToS/README.md) · [philosophy](ToS/philosophy/) |
+| Inspect the evidence foundation | [doctrine](ToS/doctrine/CORPUS_FOUNDATION.md) · [source witnesses](ToS/source-witnesses/README.md) |
+| Follow the golden kernel | [contract](ToS/zarathustra/GOLDEN_GROWTH_KERNEL.md) · [public route](ToS/zarathustra/public-entry/TINY_ENTRY_ROUTE.md) · [worked capsule](ToS/zarathustra/prologue-1/TRILINGUAL_ENTRY.md) |
+| Read generated views | [root map](ToS/derived-exports/root_entry_map.min.json) · [bounded KAG export](mechanics/boundary-bridge/parts/derived-kag-seam/docs/KAG_EXPORT.md) |
+| Contribute and validate | [AGENTS](AGENTS.md#verify) · [scripts](scripts/AGENTS.md) · [mechanics](mechanics/README.md) |
+| Track direction and decisions | [ROADMAP](ROADMAP.md) · [CHANGELOG](CHANGELOG.md) · [records](docs/decisions/README.md) |
 
-This README is a public route, not a branch inventory, validator report, or
-release ledger. Detailed meaning stays with the nearest authored source;
-repeatable operations stay in `mechanics/`; rationale, checks, and downstream
-projections stay with their named owners.
+Meaning stays in authored sources, operations in `mechanics/`, and decisions
+and projections with their named owners.
 
-## Ecosystem boundary
+## Relationship to AoA
 
-`Agents-of-Abyss` owns ecosystem law; `abyss-stack` owns runtime;
-`aoa-kag` consumes bounded knowledge projections. Memory, evaluation,
-statistics, SDK, routing, playbook, skill, and technique authority remain with
-their respective AoA owners. None replaces ToS-authored meaning.
-
-## Working rule
-
-Grow ToS by making the next source route clearer. Add material only when it
-improves traceability, review, branch structure, or graph readiness without
-weakening source authority.
+`Agents-of-Abyss` supplies ecosystem law and agent federation, `abyss-stack`
+supplies runtime, and `aoa-kag` consumes bounded knowledge projections. ToS is
+their meaning-bearing philosophical tree.
 
 ## License
 
