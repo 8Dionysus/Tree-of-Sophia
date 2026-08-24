@@ -43,6 +43,23 @@ class NestedAgentsRouteTests(unittest.TestCase):
             all(not task["selected_validation"]["unknown_lanes"] for task in result["tasks"])
         )
 
+        corpus_task = next(
+            task for task in result["tasks"] if task["id"] == "corpus_identity_provenance_rights"
+        )
+        self.assertEqual(
+            ["AGENTS.md", "ToS/AGENTS.md", "ToS/doctrine/AGENTS.md"],
+            corpus_task["inheritance_stack"],
+        )
+        self.assertFalse(corpus_task["owner_handoff"]["in_inheritance_stack"])
+        self.assertTrue(corpus_task["owner_handoff"]["exists"])
+        self.assertEqual(
+            ["AGENTS.md", "ToS/AGENTS.md", "ToS/doctrine/AGENTS.md"],
+            next(
+                task for task in currentness["task_routes"]
+                if task["id"] == "corpus_identity_provenance_rights"
+            )["inheritance_stack"],
+        )
+
     def test_duplicate_nested_card_is_a_negative_control(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)

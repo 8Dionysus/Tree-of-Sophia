@@ -78,6 +78,26 @@ def inheritance_stack(repo_root: Path, card: Path, discovered: set[Path]) -> lis
     return [relative_path(repo_root, value) for value in ancestors]
 
 
+def target_inheritance_stack(repo_root: Path, target: Path, discovered: set[Path]) -> list[str]:
+    """Resolve the inherited cards from the file being acted on.
+
+    An owner route may be a deliberate handoff outside the target's local
+    scope.  It must not replace the nearest cards that govern the target.
+    """
+
+    ancestors: list[Path] = []
+    cursor = target if target.is_dir() else target.parent
+    while True:
+        candidate = repo_root / "AGENTS.md" if cursor == repo_root else cursor / "AGENTS.md"
+        if candidate in discovered:
+            ancestors.append(candidate)
+        if cursor == repo_root:
+            break
+        cursor = cursor.parent
+    ancestors.reverse()
+    return [relative_path(repo_root, value) for value in ancestors]
+
+
 def path_record(repo_root: Path, value: str, *, role: str) -> dict[str, Any]:
     path = repo_root / value
     if not path.is_file():
@@ -123,12 +143,13 @@ def build_currentness(repo_root: Path = REPO_ROOT) -> dict[str, Any]:
         target = repo_root / task["target"]
         owner = repo_root / task["owner_route"]
         owner_exists = owner.is_file()
-        stack = inheritance_stack(repo_root, owner, discovered) if owner_exists else []
+        stack = target_inheritance_stack(repo_root, target, discovered)
         inherited_tokens = sum(
             whitespace_tokens((repo_root / path).read_text(encoding="utf-8"))
             for path in stack
             if (repo_root / path).is_file()
         )
+        owner_handoff = path_record(repo_root, task["owner_route"], role="owner_handoff")
         additional = [path_record(repo_root, path, role="on_demand") for path in task["on_demand_surfaces"]]
         task_routes.append(
             {
@@ -139,6 +160,8 @@ def build_currentness(repo_root: Path = REPO_ROOT) -> dict[str, Any]:
                 "owner_exists": owner_exists,
                 "inheritance_stack": stack,
                 "inherited_context_tokens": inherited_tokens,
+                "owner_in_inheritance_stack": task["owner_route"] in stack,
+                "owner_handoff": owner_handoff,
                 "additional_context_tokens": sum(
                     item.get("whitespace_tokens", 0) for item in additional
                 ),

@@ -11,7 +11,11 @@ import time
 from pathlib import Path
 from typing import Any
 
-from build_agents_route_currentness import inheritance_stack, load_inventory, whitespace_tokens
+from build_agents_route_currentness import (
+    load_inventory,
+    target_inheritance_stack,
+    whitespace_tokens,
+)
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
@@ -80,9 +84,10 @@ def evaluate_task(
     started = time.perf_counter_ns()
     owner_path = repo_root / task["owner_route"]
     target_path = repo_root / task["target"]
-    stack_names = inheritance_stack(repo_root, owner_path, discovered) if owner_path.is_file() else []
+    stack_names = target_inheritance_stack(repo_root, target_path, discovered)
     stack = [repo_root / path for path in stack_names]
-    stack_text = route_text(repo_root, stack)
+    owner_handoff = [owner_path] if owner_path.is_file() and owner_path not in stack else []
+    stack_text = route_text(repo_root, stack + owner_handoff)
     missing_required_markers = [marker for marker in task["required_markers"] if marker.lower() not in stack_text]
     missing_boundary_markers = [marker for marker in task["boundary_markers"] if marker.lower() not in stack_text]
     missing_validation_paths = [path for path in task["validation_paths"] if not path_exists(repo_root, path)]
@@ -140,7 +145,6 @@ def evaluate_task(
         or missing_on_demand
         or not target_path.is_file()
         or not owner_path.is_file()
-        or not owner_in_stack
         or budget_violations
     )
     return {
@@ -159,6 +163,14 @@ def evaluate_task(
             else "deterministic route lookup; timing omitted from canonical result"
         ),
         "inheritance_stack": [path.relative_to(repo_root).as_posix() for path in stack],
+        "owner_handoff": {
+            "path": task["owner_route"],
+            "exists": owner_path.is_file(),
+            "in_inheritance_stack": owner_path in stack,
+            "whitespace_tokens": whitespace_tokens(owner_path.read_text(encoding="utf-8"))
+            if owner_path.is_file() and owner_path not in stack
+            else 0,
+        },
         "declared_extra_reads": {
             "count": len(task["on_demand_surfaces"]),
             "paths": task["on_demand_surfaces"],
