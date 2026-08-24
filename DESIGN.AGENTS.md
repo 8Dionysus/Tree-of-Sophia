@@ -40,6 +40,12 @@ Add local details only where they change action.
 | scripts/tests cards | deterministic check ownership |
 | docs cards | decision and documentation route law |
 
+The package-level model-facing route and owner-port map lives in
+[.agents/README](.agents/README.md), with its authored machine companion at
+[.agents/agent-surface.manifest.json](.agents/agent-surface.manifest.json).
+Those surfaces describe progressive loading and handoff; they do not replace
+the nearer card or a stronger AoA owner.
+
 The nearer card owns local risk. The root card owns repository identity and the
 route back to stronger owners.
 

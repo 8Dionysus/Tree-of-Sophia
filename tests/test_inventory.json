@@ -392,6 +392,21 @@
       "disposition": "keep"
     },
     {
+      "path": "tests/test_agent_surface.py",
+      "home": "tests",
+      "home_scope": "root",
+      "family": "agent_surface_contract",
+      "validation_lane": "agent_surface",
+      "owner_surface": ".agents/agent-surface.manifest.json",
+      "protects": "skill discovery metadata parity, progressive disclosure route closure, owner-port currentness, task-probe negative controls, and public-safe model-facing documentation",
+      "coverage_authority": "tests/AGENTS.md root unittest discovery",
+      "mode": "blocking",
+      "runtime_cost": "fast",
+      "focused_target": "tests/test_agent_surface.py",
+      "failure_route": "Fix the .agents source map, generated currentness builder, validator, or owner-port route before changing agent-surface expectations.",
+      "disposition": "keep"
+    },
+    {
       "path": "tests/test_test_topology.py",
       "home": "tests",
       "home_scope": "root",

@@ -2346,6 +2346,60 @@
       "disposition": "keep"
     },
     {
+      "path": "scripts/build_agent_surface_currentness.py",
+      "family": "projection_builder",
+      "organ_lane": "projection/generated",
+      "owner_surface": ".agents/agent-surface.manifest.json",
+      "source_truth": [
+        ".agents/agent-surface.manifest.json",
+        ".agents/skills/**/SKILL.md",
+        ".agents/skills/**/agents/openai.yaml",
+        "evals/",
+        "stats/",
+        "kag/",
+        "memo/"
+      ],
+      "reads": [
+        "the authored agent-surface manifest",
+        "all 25 local skill packages and their companions",
+        "declared owner-port currentness inputs"
+      ],
+      "writes": [
+        ".agents/agent-surface.current.json"
+      ],
+      "side_effects": "deterministic generated currentness read model only; no source, runtime, owner, or receipt mutation",
+      "validation_lane": "agent_surface",
+      "ci_inclusion": "release",
+      "test_target": "tests/test_agent_surface.py",
+      "disposition": "keep"
+    },
+    {
+      "path": "scripts/validate_agent_surface.py",
+      "family": "source_validator",
+      "organ_lane": "source/topology",
+      "owner_surface": ".agents/agent-surface.manifest.json",
+      "source_truth": [
+        ".agents/agent-surface.manifest.json",
+        ".agents/README.md",
+        ".agents/skills/**",
+        "evals/",
+        "stats/",
+        "kag/",
+        "memo/"
+      ],
+      "reads": [
+        "authored model-facing map and task probes",
+        "skill frontmatter, activation metadata, and companion routes",
+        "generated currentness parity and owner-port inputs"
+      ],
+      "writes": [],
+      "side_effects": "validation output only",
+      "validation_lane": "agent_surface",
+      "ci_inclusion": "release",
+      "test_target": "tests/test_agent_surface.py",
+      "disposition": "keep"
+    },
+    {
       "path": "scripts/validation_lanes.py",
       "family": "lane_loader",
       "organ_lane": "validation-authority",

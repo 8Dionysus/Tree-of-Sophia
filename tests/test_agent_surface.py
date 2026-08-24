@@ -1,0 +1,88 @@
+from __future__ import annotations
+
+import sys
+import tempfile
+import unittest
+from pathlib import Path
+from unittest import mock
+
+
+ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT / "scripts"))
+
+import build_agent_surface_currentness as builder  # noqa: E402
+import validate_agent_surface as validator  # noqa: E402
+
+
+class AgentSurfaceTests(unittest.TestCase):
+    def test_current_surface_has_expected_inventory_and_probe_depths(self) -> None:
+        current = builder.build_currentness(ROOT)
+        self.assertEqual(
+            current["package_inventory"],
+            {
+                "agents_metadata": 25,
+                "assets": 56,
+                "checks": 16,
+                "examples": 25,
+                "references": 58,
+                "scripts": 6,
+                "skill_entrypoints": 25,
+            },
+        )
+        self.assertEqual(len(current["packages"]), 25)
+        self.assertEqual(max(current["task_probe_depths"].values()), 5)
+        self.assertEqual(validator.validate_manifest(ROOT), [])
+
+    def test_activation_metadata_positive_and_negative_controls(self) -> None:
+        self.assertEqual(
+            validator.activation_policy_issues(
+                "explicit-preferred", "invoke", True, "aoa-change-protocol"
+            ),
+            [],
+        )
+        self.assertEqual(
+            validator.activation_policy_issues(
+                "explicit-preferred", "suggest", False, "aoa-checkpoint-closeout-bridge"
+            ),
+            [],
+        )
+        self.assertTrue(
+            validator.activation_policy_issues(
+                "explicit-only", "invoke", True, "aoa-approval-gate-check"
+            )
+        )
+
+    def test_external_owner_reference_is_not_a_local_companion_route(self) -> None:
+        package = ROOT / ".agents/skills/aoa-summon"
+        self.assertEqual(validator._check_local_reference_routes(ROOT, package), [])
+
+    def test_stale_currentness_is_rejected(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            (root / ".agents").mkdir()
+            (root / ".agents/agent-surface.current.json").write_bytes(b"stale")
+            with mock.patch.object(validator, "rendered_currentness", return_value=b"fresh"):
+                self.assertEqual(
+                    validator.currentness_parity_issues(root),
+                    [
+                        (
+                            ".agents/agent-surface.current.json",
+                            "generated currentness is stale",
+                        )
+                    ],
+                )
+
+    def test_public_safety_rejects_host_local_and_secret_markers(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            (root / ".agents").mkdir()
+            (root / ".agents/README.md").write_text("operator path /srv/private", encoding="utf-8")
+            (root / ".agents/agent-surface.manifest.json").write_text(
+                '{"token":"OPENAI_API_KEY"}', encoding="utf-8"
+            )
+            issues = validator.public_safety_issues(root)
+            self.assertEqual(len(issues), 2)
+
+
+if __name__ == "__main__":
+    unittest.main()

@@ -1,0 +1,322 @@
+{
+  "schema_version": "tos_agent_tool_owner_port_documentation_v1",
+  "owner_repo": "Tree-of-Sophia",
+  "owner_surface": ".agents/AGENTS.md",
+  "human_entrypoint": ".agents/README.md",
+  "generated_currentness": ".agents/agent-surface.current.json",
+  "builder": "scripts/build_agent_surface_currentness.py",
+  "validator": "scripts/validate_agent_surface.py",
+  "context_budget": {
+    "metric": "whitespace_tokens_v1",
+    "discovery_description_max_words": 100,
+    "triggered_body_max_words": 2000,
+    "mandatory_task_probe_depth_max": 5,
+    "interpretation": "A drift guard for progressive disclosure, not a semantic-completeness or owner-acceptance claim."
+  },
+  "package_inventory": {
+    "skill_entrypoints": 25,
+    "references": 58,
+    "examples": 25,
+    "checks": 16,
+    "scripts": 6,
+    "assets": 56,
+    "agents_metadata": 25
+  },
+  "carrier_roles": {
+    "always_discovered": {
+      "paths": [".agents/skills/*/SKILL.md", ".agents/skills/*/agents/openai.yaml"],
+      "consumer": "Codex skill discovery and package selection",
+      "load_moment": "before a trigger; description is the selection signal",
+      "canonical_owner": "aoa-skills source metadata, locally exported",
+      "freshness": "frontmatter identity/description and activation metadata parity",
+      "next_organ": "selected skill body or the nearest owner route"
+    },
+    "triggered_body": {
+      "paths": [".agents/skills/*/SKILL.md"],
+      "consumer": "the agent after a skill trigger",
+      "load_moment": "triggered",
+      "canonical_owner": "aoa-skills skill source; local package preserves the exported contract",
+      "freshness": "package digest and source metadata are current in the generated read model",
+      "next_organ": "the skill's named owner, validator, or refusal/return route"
+    },
+    "on_demand_reference": {
+      "paths": [".agents/skills/*/references/**"],
+      "consumer": "a triggered task that needs a schema, rationale, or boundary detail",
+      "load_moment": "on demand",
+      "canonical_owner": "the source skill package and its AoA source owner",
+      "freshness": "resolved local route and package digest",
+      "next_organ": "return to the triggered body; hand schema authority to its named owner"
+    },
+    "on_demand_example": {
+      "paths": [".agents/skills/*/examples/**"],
+      "consumer": "a triggered task needing a worked shape",
+      "load_moment": "on demand",
+      "canonical_owner": "the source skill package and its AoA source owner",
+      "freshness": "resolved local route and package digest",
+      "next_organ": "apply only the example's bounded shape, then use the owner contract"
+    },
+    "review_check": {
+      "paths": [".agents/skills/*/checks/**"],
+      "consumer": "human or agent review of a skill-shaped result",
+      "load_moment": "on demand after the result exists",
+      "canonical_owner": "the skill source owner; checks do not replace owner review",
+      "freshness": "resolved route and package digest",
+      "next_organ": "named owner review or validation lane"
+    },
+    "executable_helper": {
+      "paths": [".agents/skills/*/scripts/**"],
+      "consumer": "a task that explicitly needs a local helper",
+      "load_moment": "on demand and local",
+      "canonical_owner": "the skill package source owner",
+      "freshness": "resolved executable route; advisory unless a separate lane promotes it",
+      "next_organ": "the helper's declared contract and the owner validation lane"
+    },
+    "portable_asset": {
+      "paths": [".agents/skills/*/assets/**"],
+      "consumer": "skill package display",
+      "load_moment": "package display or install",
+      "canonical_owner": "the source skill package; portable copies are not local doctrine",
+      "freshness": "package digest",
+      "next_organ": "the package source owner for changes"
+    }
+  },
+  "skill_families": {
+    "engineering_core": {
+      "skills": [
+        "aoa-adr-write",
+        "aoa-bounded-context-map",
+        "aoa-change-protocol",
+        "aoa-contract-test",
+        "aoa-core-logic-boundary",
+        "aoa-invariant-coverage-audit",
+        "aoa-port-adapter-refactor",
+        "aoa-property-invariants",
+        "aoa-source-of-truth-check",
+        "aoa-tdd-slice"
+      ],
+      "consumer": "Tree-of-Sophia contributors and coding agents handling source, docs, contracts, boundaries, and tests",
+      "load_moment": "description for selection, SKILL.md after trigger, references/examples only when the bounded task needs them",
+      "canonical_owner": "8Dionysus/aoa-skills; repository owner remains the named local source, docs, mechanics, or test organ",
+      "freshness": "local package metadata, companion routes, and generated package digests; source-owner refresh is a separate upstream event",
+      "next_organ": "nearest local owner contract and its narrow validator/test, or the stronger AoA owner named by the route",
+      "negative_controls": [
+        "Do not use an ADR to resolve source-of-truth ambiguity.",
+        "Do not let a generated export, validator, or package map replace an authored owner."
+      ]
+    },
+    "risk_controls": {
+      "skills": [
+        "aoa-approval-gate-check",
+        "aoa-dry-run-first",
+        "aoa-local-stack-bringup",
+        "aoa-safe-infra-change",
+        "aoa-sanitized-share"
+      ],
+      "consumer": "agents handling mutation, deployment, runtime, infrastructure, or public-sharing pressure",
+      "load_moment": "description for selection, SKILL.md after a risk trigger, scripts/references only for the chosen bounded control",
+      "canonical_owner": "8Dionysus/aoa-skills for the skill contract; approval, runtime, infrastructure, and public-sharing owners retain their own authority",
+      "freshness": "local package metadata and route parity; live status, operator evidence, and receipts are external carriers",
+      "next_organ": "approval or dry-run carrier, named runtime/infrastructure owner, or sanitized sharing surface; return without fabricating success",
+      "negative_controls": [
+        "A dry-run is not authorization and an approval classification is not a preview.",
+        "Do not put secrets, host paths, transient status, or operator evidence in public authored docs."
+      ]
+    },
+    "session_growth": {
+      "skills": [
+        "aoa-automation-opportunity-scan",
+        "aoa-checkpoint-closeout-bridge",
+        "aoa-commit-growth-seam",
+        "aoa-quest-harvest",
+        "aoa-session-donor-harvest",
+        "aoa-session-progression-lift",
+        "aoa-session-route-forks",
+        "aoa-session-self-diagnose",
+        "aoa-session-self-repair",
+        "aoa-summon"
+      ],
+      "consumer": "reviewed AoA session and closeout flows that need bounded next routes or growth candidates",
+      "load_moment": "description for selection, SKILL.md after a reviewed-session trigger, references/examples for the named packet shape",
+      "canonical_owner": "8Dionysus/aoa-skills for the portable skill; reviewed session, memory, eval, quest, routing, and playbook owners retain their own records",
+      "freshness": "local package metadata and route parity; no live session snapshot or progression state is authored here",
+      "next_organ": "reviewed session artifact -> named AoA owner skill/port -> owner validation and explicit return",
+      "negative_controls": [
+        "Do not diagnose or repair a live or unreviewed session.",
+        "Do not turn a candidate, checkpoint hint, or skill result into a verdict, authority grant, or durable memory by implication."
+      ]
+    }
+  },
+  "skills": [
+    {"id":"aoa-adr-write","family":"engineering_core","entrypoint":".agents/skills/aoa-adr-write/SKILL.md"},
+    {"id":"aoa-approval-gate-check","family":"risk_controls","entrypoint":".agents/skills/aoa-approval-gate-check/SKILL.md"},
+    {"id":"aoa-automation-opportunity-scan","family":"session_growth","entrypoint":".agents/skills/aoa-automation-opportunity-scan/SKILL.md"},
+    {"id":"aoa-bounded-context-map","family":"engineering_core","entrypoint":".agents/skills/aoa-bounded-context-map/SKILL.md"},
+    {"id":"aoa-change-protocol","family":"engineering_core","entrypoint":".agents/skills/aoa-change-protocol/SKILL.md"},
+    {"id":"aoa-checkpoint-closeout-bridge","family":"session_growth","entrypoint":".agents/skills/aoa-checkpoint-closeout-bridge/SKILL.md"},
+    {"id":"aoa-commit-growth-seam","family":"session_growth","entrypoint":".agents/skills/aoa-commit-growth-seam/SKILL.md"},
+    {"id":"aoa-contract-test","family":"engineering_core","entrypoint":".agents/skills/aoa-contract-test/SKILL.md"},
+    {"id":"aoa-core-logic-boundary","family":"engineering_core","entrypoint":".agents/skills/aoa-core-logic-boundary/SKILL.md"},
+    {"id":"aoa-dry-run-first","family":"risk_controls","entrypoint":".agents/skills/aoa-dry-run-first/SKILL.md"},
+    {"id":"aoa-invariant-coverage-audit","family":"engineering_core","entrypoint":".agents/skills/aoa-invariant-coverage-audit/SKILL.md"},
+    {"id":"aoa-local-stack-bringup","family":"risk_controls","entrypoint":".agents/skills/aoa-local-stack-bringup/SKILL.md"},
+    {"id":"aoa-port-adapter-refactor","family":"engineering_core","entrypoint":".agents/skills/aoa-port-adapter-refactor/SKILL.md"},
+    {"id":"aoa-property-invariants","family":"engineering_core","entrypoint":".agents/skills/aoa-property-invariants/SKILL.md"},
+    {"id":"aoa-quest-harvest","family":"session_growth","entrypoint":".agents/skills/aoa-quest-harvest/SKILL.md"},
+    {"id":"aoa-safe-infra-change","family":"risk_controls","entrypoint":".agents/skills/aoa-safe-infra-change/SKILL.md"},
+    {"id":"aoa-sanitized-share","family":"risk_controls","entrypoint":".agents/skills/aoa-sanitized-share/SKILL.md"},
+    {"id":"aoa-session-donor-harvest","family":"session_growth","entrypoint":".agents/skills/aoa-session-donor-harvest/SKILL.md"},
+    {"id":"aoa-session-progression-lift","family":"session_growth","entrypoint":".agents/skills/aoa-session-progression-lift/SKILL.md"},
+    {"id":"aoa-session-route-forks","family":"session_growth","entrypoint":".agents/skills/aoa-session-route-forks/SKILL.md"},
+    {"id":"aoa-session-self-diagnose","family":"session_growth","entrypoint":".agents/skills/aoa-session-self-diagnose/SKILL.md"},
+    {"id":"aoa-session-self-repair","family":"session_growth","entrypoint":".agents/skills/aoa-session-self-repair/SKILL.md"},
+    {"id":"aoa-source-of-truth-check","family":"engineering_core","entrypoint":".agents/skills/aoa-source-of-truth-check/SKILL.md"},
+    {"id":"aoa-summon","family":"session_growth","entrypoint":".agents/skills/aoa-summon/SKILL.md"},
+    {"id":"aoa-tdd-slice","family":"engineering_core","entrypoint":".agents/skills/aoa-tdd-slice/SKILL.md"}
+  ],
+  "owner_ports": {
+    "eval_port": {
+      "local_owner": "evals/AGENTS.md",
+      "manifest": "evals/PORT.yaml",
+      "consumer": "eval pressure intake and local-port validation before central eval selection or verdict",
+      "load_moment": "when a repository task produces or asks for eval pressure",
+      "canonical_owner": "8Dionysus/aoa-evals",
+      "freshness": "local route and PORT.yaml; central validator/source checkout determines shared protocol compatibility",
+      "next_organ": "aoa-evals local port validator, then central selection/proof/verdict owner",
+      "currentness_inputs": ["evals/PORT.yaml", "evals/README.md", "evals/intake/README.md", "evals/suites/README.md", "evals/reports/README.md"],
+      "carrier_classes": ["local_intake_port", "route_card"]
+    },
+    "stats_port": {
+      "local_owner": "stats/AGENTS.md",
+      "manifest": "stats/port.manifest.json",
+      "consumer": "owner-local measurement readers and aoa-stats composition",
+      "load_moment": "when a declared Tree-of-Sophia question needs a measurement or reference packet",
+      "canonical_owner": "8Dionysus/aoa-stats for shared grammar; Tree-of-Sophia for the question and source population",
+      "freshness": "manifest, source population, route map, and evidence-linked reference packet at a named revision; reference-only, not live",
+      "next_organ": "atlas/source owner -> aoa-stats protocol validator and cross-owner composition",
+      "currentness_inputs": ["stats/port.manifest.json", "stats/README.md", "stats/packets/table-i-prepared-dossier-route-ratio.reference.json", "ToS/philosophy/atlas/master-tables/table-i/rows.jsonl", "ToS/philosophy/atlas/dossiers/prepared-dossier-routes.json"],
+      "carrier_classes": ["local_intake_port", "machine_manifest", "reference_packet"]
+    },
+    "kag_provider": {
+      "local_owner": "kag/AGENTS.md",
+      "manifest": "kag/manifest.json",
+      "consumer": "aoa-kag registry/composition, abyss-stack federation, and MCP resources",
+      "load_moment": "when a downstream consumer requests the portable ToS provider family or its currentness",
+      "canonical_owner": "8Dionysus/aoa-kag for registry/composition; ToS derived exports own meaning",
+      "freshness": "source export, derived seam, local manifest/index family, and compact provider records; runtime graph status remains downstream",
+      "next_organ": "ToS derived-export owner -> local KAG validator -> aoa-kag registry/MCP consumer",
+      "currentness_inputs": ["kag/manifest.json", "kag/README.md", "kag/indexes/index_family.manifest.json", "kag/indexes/provider_readiness_index.json", "kag/nodes/kag_export_capsule.json", "kag/nodes/derived_export_route.json", "kag/edges/kag_export_returns_to_route.json", "kag/projections/mcp_source_return.json", "ToS/derived-exports/kag_export.min.json", "ToS/derived-exports/philosophy_graph_projection.min.json", "mechanics/boundary-bridge/parts/derived-kag-seam/docs/KAG_EXPORT.md"],
+      "carrier_classes": ["machine_manifest", "generated_read_model", "mcp_resource", "receipt"]
+    },
+    "memo_port": {
+      "local_owner": "memo/AGENTS.md",
+      "manifest": "memo/PORT.yaml",
+      "consumer": "tree-local candidate intake and the stronger aoa-memo memory owner",
+      "load_moment": "when reviewed evidence suggests a bounded memory candidate or owner handoff",
+      "canonical_owner": "8Dionysus/aoa-memo",
+      "freshness": "PORT.yaml, local route docs, candidate/receipt/export posture, and generated index; no claim of durable or live memory",
+      "next_organ": "candidate-only helper -> local validator -> reviewed aoa-memo intake/decision",
+      "currentness_inputs": ["memo/PORT.yaml", "memo/README.md", "memo/INDEX.md", "memo/index.min.json"],
+      "carrier_classes": ["local_intake_port", "generated_read_model", "receipt"]
+    }
+  },
+  "task_probes": [
+    {
+      "id": "source_authority",
+      "first_route": "aoa-source-of-truth-check",
+      "skill_ids": ["aoa-source-of-truth-check"],
+      "required_chain": ["canonical source or contract", "named owner", "downstream projection only after source"],
+      "mandatory_reading_depth": 3,
+      "negative_controls": ["generated view is not source", "receipt is not source", "ADR is not a substitute for unresolved authority"]
+    },
+    {
+      "id": "bounded_context_mapping",
+      "first_route": "aoa-bounded-context-map",
+      "skill_ids": ["aoa-bounded-context-map"],
+      "required_chain": ["contexts", "interfaces", "nearest owner contract", "narrow check"],
+      "mandatory_reading_depth": 3,
+      "negative_controls": ["do not invent a taxonomy for a clear local contract", "do not move authority while mapping boundaries"]
+    },
+    {
+      "id": "repo_local_change",
+      "first_route": "aoa-change-protocol",
+      "skill_ids": ["aoa-change-protocol", "aoa-tdd-slice"],
+      "required_chain": ["root and nearest route card", "bounded diff", "focused validation", "report and next owner"],
+      "mandatory_reading_depth": 4,
+      "negative_controls": ["do not rewrite strong surfaces without pressure", "do not widen into runtime or source authority"]
+    },
+    {
+      "id": "session_diagnosis_repair",
+      "first_route": "aoa-session-self-diagnose",
+      "skill_ids": ["aoa-session-self-diagnose", "aoa-session-self-repair"],
+      "required_chain": ["reviewed session artifact", "diagnosis packet", "repair packet", "owner health check"],
+      "mandatory_reading_depth": 5,
+      "negative_controls": ["live or unreviewed evidence fails closed", "diagnosis does not mutate", "repair cannot mint authority"]
+    },
+    {
+      "id": "approval_or_dry_run",
+      "first_route": "aoa-approval-gate-check or aoa-dry-run-first",
+      "skill_ids": ["aoa-approval-gate-check", "aoa-dry-run-first"],
+      "required_chain": ["authority classification", "preview when available", "explicit confirmation", "typed owner carrier"],
+      "mandatory_reading_depth": 4,
+      "negative_controls": ["dry-run is not authorization", "approval classification is not mutation", "no hidden external write"]
+    },
+    {
+      "id": "eval_intake",
+      "first_route": "evals/PORT.yaml",
+      "skill_ids": [],
+      "port_id": "eval_port",
+      "required_chain": ["local pressure", "PORT.yaml", "aoa-evals local validation", "central selection or verdict owner"],
+      "mandatory_reading_depth": 3,
+      "negative_controls": ["local packet is not a verdict", "advisory local route is not release authority"]
+    },
+    {
+      "id": "owner_local_stats",
+      "first_route": "stats/port.manifest.json",
+      "skill_ids": [],
+      "port_id": "stats_port",
+      "required_chain": ["authored question", "measurement declaration", "evidence-linked packet", "aoa-stats grammar"],
+      "mandatory_reading_depth": 4,
+      "negative_controls": ["reference snapshot is not live", "ratio is not philosophical or eval verdict"]
+    },
+    {
+      "id": "kag_currentness",
+      "first_route": "kag/manifest.json",
+      "skill_ids": [],
+      "port_id": "kag_provider",
+      "required_chain": ["ToS derived export", "derived KAG seam", "local provider validation", "aoa-kag/MCP consumer"],
+      "mandatory_reading_depth": 5,
+      "negative_controls": ["local provider is not runtime graph authority", "generated record does not author ToS meaning"]
+    },
+    {
+      "id": "memo_candidate_routing",
+      "first_route": "memo/PORT.yaml",
+      "skill_ids": [],
+      "port_id": "memo_port",
+      "required_chain": ["candidate-only route", "local validation", "reviewed aoa-memo intake"],
+      "mandatory_reading_depth": 5,
+      "negative_controls": ["candidate is not durable memory", "index is not a memory decision", "receipt is not a claim"]
+    }
+  ],
+  "companion_surfaces": [
+    {"path":".agents/AGENTS.md","role":"current owner contract","load_moment":"route selection","canonical_owner":"Tree-of-Sophia"},
+    {"path":".agents/spark/AGENTS.md","role":"Spark fast-loop owner contract","load_moment":"Spark route selected","canonical_owner":"Tree-of-Sophia"},
+    {"path":".agents/spark/SWARM.md","role":"Spark swarm companion","load_moment":"explicit Spark swarm only","canonical_owner":"Tree-of-Sophia"},
+    {"path":"agents/openai.yaml","role":"skill display/activation metadata","load_moment":"discovery/install","canonical_owner":"each skill package source owner"},
+    {"path":"references/","role":"on-demand reference family","load_moment":"triggered task asks for detail","canonical_owner":"each skill package source owner"},
+    {"path":"examples/","role":"on-demand example family","load_moment":"triggered task asks for a worked shape","canonical_owner":"each skill package source owner"},
+    {"path":"checks/","role":"review companion family","load_moment":"result review","canonical_owner":"each skill package source owner"},
+    {"path":"scripts/","role":"local executable helper family","load_moment":"explicit helper need","canonical_owner":"each skill package source owner"},
+    {"path":"assets/","role":"portable package asset family","load_moment":"package display/install","canonical_owner":"each skill package source owner"}
+  ],
+  "public_safety": {
+    "authored_surfaces": [".agents/README.md", ".agents/agent-surface.manifest.json"],
+    "forbidden_classes": ["host-local paths", "secrets", "session snapshots", "provider internals", "transient runtime claims", "operator evidence"],
+    "allowed_carriers": ["task-local files", "tool or MCP resources", "owner status surfaces", "typed receipts"]
+  },
+  "duplication_policy": {
+    "observed_pressure": "portable packages contain repeated reference schemas and logo assets",
+    "local_action": "preserve portable copies and verify their local routes",
+    "canonical_next_organ": "aoa-skills source owner",
+    "negative_control": "do not make a local shared copy or delete package-local portable assets"
+  }
+}

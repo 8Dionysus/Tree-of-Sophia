@@ -67,6 +67,7 @@ authority, and canon require matching source evidence and owner review.
 | Need | Route |
 | --- | --- |
 | Understand the architecture | [CHARTER](CHARTER.md) · [DESIGN](DESIGN.md) · [BOUNDARIES](BOUNDARIES.md) |
+| Navigate model-facing tools and owner ports | [.agents/README](.agents/README.md) · [agent-surface map](.agents/agent-surface.manifest.json) · [agent-surface validation](docs/validation/validation_lanes.json) |
 | Enter the philosophical tree | [ToS](ToS/README.md) · [philosophy](ToS/philosophy/) |
 | Inspect the evidence foundation | [doctrine](ToS/doctrine/CORPUS_FOUNDATION.md) · [source witnesses](ToS/source-witnesses/README.md) |
 | Follow the golden kernel | [contract](ToS/zarathustra/GOLDEN_GROWTH_KERNEL.md) · [public route](ToS/zarathustra/public-entry/TINY_ENTRY_ROUTE.md) · [worked capsule](ToS/zarathustra/prologue-1/TRILINGUAL_ENTRY.md) |
