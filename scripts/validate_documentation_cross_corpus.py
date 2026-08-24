@@ -240,17 +240,33 @@ def validate_surface_rules(surface_rules: Any, issues: list[Issue]) -> None:
         or set(extensions) != EXPECTED_SURFACE_EXTENSIONS
     ):
         _issue(issues, location, f"include_extensions must be the explicit set {sorted(EXPECTED_SURFACE_EXTENSIONS)}")
-    for field in ("exclude_paths", "exclude_prefixes"):
+    for field in ("exclude_paths", "generated_carrier_paths", "exclude_prefixes", "generated_carrier_prefixes"):
         values = surface_rules.get(field)
-        if not isinstance(values, list) or not all(isinstance(item, str) and item for item in values):
+        if (
+            not isinstance(values, list)
+            or (field.startswith("generated_carrier_") and not values)
+            or not all(isinstance(item, str) and item for item in values)
+        ):
             _issue(issues, location, f"{field} must be a list of non-empty strings")
             continue
         for item in values:
             path = Path(item)
             if path.is_absolute() or ".." in path.parts or "//" in item:
                 _issue(issues, location, f"{field} contains an unsafe path: {item}")
-            if field == "exclude_prefixes" and not item.endswith("/"):
+            if field.endswith("prefixes") and not item.endswith("/"):
                 _issue(issues, location, f"exclude prefix must end with '/': {item}")
+    exclude_paths = surface_rules.get("exclude_paths")
+    generated_carrier_paths = surface_rules.get("generated_carrier_paths")
+    if isinstance(exclude_paths, list) and isinstance(generated_carrier_paths, list):
+        unexpected_paths = sorted(set(exclude_paths) - set(generated_carrier_paths))
+        if unexpected_paths:
+            _issue(issues, location, f"exclude_paths must stay within generated_carrier_paths: {', '.join(unexpected_paths)}")
+    exclude_prefixes = surface_rules.get("exclude_prefixes")
+    generated_carrier_prefixes = surface_rules.get("generated_carrier_prefixes")
+    if isinstance(exclude_prefixes, list) and isinstance(generated_carrier_prefixes, list):
+        unexpected_prefixes = sorted(set(exclude_prefixes) - set(generated_carrier_prefixes))
+        if unexpected_prefixes:
+            _issue(issues, location, f"exclude_prefixes must stay within generated_carrier_prefixes: {', '.join(unexpected_prefixes)}")
 
 
 def validate_context_probe_configuration(probes: Any, issues: list[Issue]) -> None:
@@ -555,12 +571,14 @@ def validate_context_probes(repo_root: Path, payload: dict[str, Any], issues: li
             continue
         try:
             if measure == "agents_route_max_inherited":
-                route_payload = json.loads((repo_root / surfaces[0]).read_text(encoding="utf-8"))
-                values = [
-                    route.get("inherited_context_tokens")
-                    for route in route_payload.get("task_routes", [])
-                    if isinstance(route, dict) and isinstance(route.get("inherited_context_tokens"), int)
-                ]
+                values: list[int] = []
+                for surface in surfaces:
+                    route_payload = json.loads((repo_root / surface).read_text(encoding="utf-8"))
+                    values.extend(
+                        route.get("inherited_context_tokens")
+                        for route in route_payload.get("task_routes", [])
+                        if isinstance(route, dict) and isinstance(route.get("inherited_context_tokens"), int)
+                    )
                 value = max(values, default=0)
             elif measure == "generated_summary":
                 if len(surfaces) != 1:

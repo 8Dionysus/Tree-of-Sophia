@@ -26,6 +26,8 @@
     "include_extensions": [".md", ".txt", ".yaml", ".yml", ".json", ".py", ".sh"],
     "exclude_paths": ["docs/validation/documentation-family.current.json"],
     "exclude_prefixes": ["kag/indexes/", "kag/receipts/index_family_budget/"],
+    "generated_carrier_paths": ["docs/validation/documentation-family.current.json"],
+    "generated_carrier_prefixes": ["kag/indexes/", "kag/receipts/index_family_budget/"],
     "exclude_reason": "The generated projection and canonical KAG index/receipt carriers are excluded from this source digest to avoid a cross-carrier self-index cycle; their own owner validators remain currentness inputs."
   },
   "role_legend": {

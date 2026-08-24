@@ -320,6 +320,19 @@ class DocumentationCrossCorpusTests(unittest.TestCase):
         self.assertTrue(any("unsafe path" in message for _, message in issues))
         self.assertTrue(any("must end with '/'" in message for _, message in issues))
 
+        issues = []
+        validator.validate_surface_rules(
+            {
+                "include_extensions": sorted(validator.EXPECTED_SURFACE_EXTENSIONS),
+                "exclude_paths": [],
+                "exclude_prefixes": ["ToS/"],
+                "generated_carrier_paths": ["docs/validation/documentation-family.current.json"],
+                "generated_carrier_prefixes": ["kag/indexes/", "kag/receipts/index_family_budget/"],
+            },
+            issues,
+        )
+        self.assertTrue(any("generated_carrier_prefixes" in message for _, message in issues))
+
     def test_family_match_rules_reject_unresolved_overlap(self) -> None:
         source_map = json.loads(
             (ROOT / "docs/validation/documentation_family_map.json").read_text(encoding="utf-8")
@@ -342,6 +355,25 @@ class DocumentationCrossCorpusTests(unittest.TestCase):
             issues: list[tuple[str, str]] = []
             validator.validate_context_probes(root, payload, issues)
         self.assertTrue(any("context budget exceeded" in message for _, message in issues))
+
+    def test_inherited_route_probe_measures_all_configured_surfaces(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            write_text(root / "first.json", json.dumps({"task_routes": [{"inherited_context_tokens": 2}]}))
+            write_text(root / "second.json", json.dumps({"task_routes": [{"inherited_context_tokens": 5}]}))
+            payload = {
+                "context_probes": [
+                    {
+                        "id": "routes",
+                        "surfaces": ["first.json", "second.json"],
+                        "measure": "agents_route_max_inherited",
+                        "max_tokens": 4,
+                    }
+                ]
+            }
+            issues: list[tuple[str, str]] = []
+            validator.validate_context_probes(root, payload, issues)
+        self.assertTrue(any("context budget exceeded: 5>4" in message for _, message in issues))
 
 
 if __name__ == "__main__":
