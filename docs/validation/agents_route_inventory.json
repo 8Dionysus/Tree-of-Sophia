@@ -1,0 +1,350 @@
+{
+  "schema_version": "tos_agents_route_inventory_v1",
+  "owner_repo": "Tree-of-Sophia",
+  "owner_surface": "DESIGN.AGENTS.md",
+  "validator": "scripts/validate_nested_agents.py",
+  "currentness": ".agents/agents-route.current.json",
+  "harness": "scripts/agents_route_harness.py",
+  "route_card_discovery": {
+    "root_cards": ["AGENTS.md"],
+    "route_roots": [
+      ".agents",
+      ".github",
+      "ToS",
+      "docs",
+      "mechanics",
+      "scripts",
+      "tests",
+      "evals",
+      "memo",
+      "kag",
+      "stats",
+      "manifests"
+    ],
+    "tracked_rule": "git ls-files entries whose basename is exactly AGENTS.md",
+    "untracked_policy": "discovered route cards must be tracked",
+    "inheritance_rule": "root AGENTS.md plus every nearest ancestor card, ordered from root to target",
+    "preserved_non_cards": [
+      {
+        "path": "DESIGN.AGENTS.md",
+        "role": "agent-surface shape reference; not an inherited route card"
+      },
+      {
+        "path": "docs/AGENTS_ROOT_REFERENCE.md",
+        "role": "preserved historical root law; not active inheritance or competing root"
+      }
+    ]
+  },
+  "influencing_surfaces": [
+    {
+      "path": "AGENTS.md",
+      "role": "active universal repository identity, topology, owner routes, boundaries, verification, and completion"
+    },
+    {
+      "path": "DESIGN.AGENTS.md",
+      "role": "authored route-card shape and progressive-loading guidance"
+    },
+    {
+      "path": "DESIGN.md",
+      "role": "system shape and source/generated authority boundaries"
+    },
+    {
+      "path": "README.md",
+      "role": "human entrypoint and links to canonical route surfaces"
+    },
+    {
+      "path": "CHARTER.md",
+      "role": "repository purpose and contribution identity"
+    },
+    {
+      "path": "BOUNDARIES.md",
+      "role": "owner and non-owner boundary orientation"
+    },
+    {
+      "path": "ROADMAP.md",
+      "role": "current direction and next pressure"
+    },
+    {
+      "path": "docs/AGENTS_ROOT_REFERENCE.md",
+      "role": "preserved root-law provenance used only for audit"
+    },
+    {
+      "path": ".agents/README.md",
+      "role": "model-facing skill and owner-port progressive-disclosure entrypoint"
+    },
+    {
+      "path": ".agents/agent-surface.manifest.json",
+      "role": "skill, owner-port, carrier, and task-probe map"
+    },
+    {
+      "path": ".agents/agent-surface.current.json",
+      "role": "generated skill/port currentness read model"
+    },
+    {
+      "path": "docs/validation/validation_lanes.json",
+      "role": "executable validation command authority"
+    },
+    {
+      "path": "scripts/build_agents_route_currentness.py",
+      "role": "deterministic generated currentness builder for route-card hashes and stacks"
+    },
+    {
+      "path": "scripts/validate_nested_agents.py",
+      "role": "structural, inheritance, reference, and currentness validator"
+    },
+    {
+      "path": "scripts/agents_route_harness.py",
+      "role": "deterministic representative task-route and context-budget harness"
+    },
+    {
+      "path": "tests/test_nested_agents.py",
+      "role": "focused positive and negative controls for route-card guard families"
+    },
+    {
+      "path": "docs/validation/SCRIPT_TOPOLOGY.md",
+      "role": "script ownership, inventory, and command-plane boundary"
+    },
+    {
+      "path": "docs/validation/script_inventory.json",
+      "role": "deterministic script coverage and side-effect inventory"
+    },
+    {
+      "path": ".github/workflows/repo-validation.yml",
+      "role": "CI execution of the release lane"
+    },
+    {
+      "path": ".github/pull_request_template.md",
+      "role": "PR evidence and boundary reporting prompt"
+    }
+  ],
+  "context_budget": {
+    "metric": "whitespace_tokens_v1",
+    "inherited_stack_max_tokens": 2800,
+    "task_overrides": {
+      "release_validation": 7000
+    },
+    "additional_context_max_tokens": 20000,
+    "owner_hops_max": 8,
+    "missing_task_law_max": 0,
+    "boundary_deviation_max": 0,
+    "completion_coverage_min": 1.0,
+    "interpretation": "Deterministic route-shape and disclosure guard; it does not claim model behavior, semantic correctness, owner acceptance, or human time-to-owner."
+  },
+  "scope_duplication_policy": {
+    "byte_identical_nested_cards": "error",
+    "near_duplicate_cards": "manual review",
+    "interpretation": "A repeated sentence is not automatically duplication; the guard only rejects a nested card that is byte-identical to its inherited parent."
+  },
+  "task_routes": [
+    {
+      "id": "source_witness_intake",
+      "prompt": "Add or inspect one source witness and route it into the source-first tree.",
+      "target": "ToS/source-witnesses/README.md",
+      "owner_route": "ToS/source-witnesses/AGENTS.md",
+      "required_scopes": ["work/expression/edition/item identity", "provenance", "rights", "source return"],
+      "required_markers": ["primary witness", "identity ladder", "rights", "source-foundation validator"],
+      "boundary_markers": ["source witness", "canon", "generated"],
+      "on_demand_surfaces": ["ToS/source-witnesses/README.md", "ToS/doctrine/CORPUS_FOUNDATION.md"],
+      "validation_lanes": ["source_witness_foundation", "route_docs"],
+      "validation_paths": ["scripts/validate_source_witness_foundation.py", "scripts/validate_nested_agents.py"],
+      "completion_evidence": ["ToS/source-witnesses/AGENTS.md", "ToS/source-witnesses/README.md", "scripts/validate_source_witness_foundation.py"],
+      "handoff_routes": ["ToS/candidate-intake/AGENTS.md", "ToS/review-ledger/AGENTS.md"]
+    },
+    {
+      "id": "corpus_identity_provenance_rights",
+      "prompt": "Audit corpus identity, provenance, fixity, and rights without promoting a catalog or provider record to truth.",
+      "target": "ToS/doctrine/CORPUS_FOUNDATION.md",
+      "owner_route": "ToS/source-witnesses/AGENTS.md",
+      "required_scopes": ["stable identity", "fixity", "provenance", "rights posture", "visibility"],
+      "required_markers": ["identity ladder", "fixity", "provenance", "rights"],
+      "boundary_markers": ["source-facing", "generated", "review"],
+      "on_demand_surfaces": ["ToS/doctrine/CORPUS_FOUNDATION.md", "ToS/source-witnesses/README.md"],
+      "validation_lanes": ["source_witness_foundation", "route_docs"],
+      "validation_paths": ["scripts/build_source_witness_catalog.py", "scripts/validate_source_witness_foundation.py"],
+      "completion_evidence": ["ToS/source-witnesses/AGENTS.md", "ToS/doctrine/CORPUS_FOUNDATION.md", "scripts/validate_source_witness_foundation.py"],
+      "handoff_routes": ["ToS/review-ledger/AGENTS.md"]
+    },
+    {
+      "id": "text_segmentation",
+      "prompt": "Define or review a text-unit or segmentation packet while keeping frozen text, layers, gaps, and review distinct.",
+      "target": "ToS/contracts/source-text-unit-packet-v1.schema.json",
+      "owner_route": "ToS/contracts/AGENTS.md",
+      "required_scopes": ["exact frozen text", "segmentation layer", "coverage and gaps", "review status"],
+      "required_markers": ["segmentation", "exact frozen text", "source-text-unit", "review"],
+      "boundary_markers": ["tokenizer", "linguistic", "semantic"],
+      "on_demand_surfaces": ["ToS/research-packets/foundation-laboratory-2026-07/SOURCE_TEXT_UNIT_SEGMENTATION_RESEARCH_2026-08-11.md", "ToS/contracts/source-text-unit-packet-v1.schema.json"],
+      "validation_lanes": ["source_witness_foundation", "route_docs"],
+      "validation_paths": ["scripts/validate_source_witness_foundation.py", "scripts/validate_nested_agents.py"],
+      "completion_evidence": ["ToS/contracts/AGENTS.md", "ToS/contracts/source-text-unit-packet-v1.schema.json", "scripts/validate_source_witness_foundation.py"],
+      "handoff_routes": ["ToS/review-ledger/AGENTS.md", "ToS/derived-exports/AGENTS.md"]
+    },
+    {
+      "id": "translation_alignment",
+      "prompt": "Review a translation-alignment route and preserve competing maps, anchors, visibility, and human review boundaries.",
+      "target": "ToS/contracts/translation-alignment-packet-v1.schema.json",
+      "owner_route": "ToS/contracts/AGENTS.md",
+      "required_scopes": ["source and target text layers", "anchor sets", "competing maps", "review and rights"],
+      "required_markers": ["translation alignment", "anchor sets", "competing maps", "review"],
+      "boundary_markers": ["aligner", "translation", "canon"],
+      "on_demand_surfaces": ["ToS/research-packets/foundation-laboratory-2026-07/TRANSLATION_ALIGNMENT_IDENTITY_RESEARCH_2026-08-11.md", "ToS/contracts/translation-alignment-packet-v1.schema.json"],
+      "validation_lanes": ["source_witness_foundation", "route_docs"],
+      "validation_paths": ["scripts/validate_source_witness_foundation.py", "scripts/validate_nested_agents.py"],
+      "completion_evidence": ["ToS/contracts/AGENTS.md", "ToS/contracts/translation-alignment-packet-v1.schema.json", "scripts/validate_source_witness_foundation.py"],
+      "handoff_routes": ["ToS/review-ledger/AGENTS.md", "ToS/derived-exports/AGENTS.md"]
+    },
+    {
+      "id": "semantic_claim_review_canon",
+      "prompt": "Move a source-linked semantic proposal through candidate intake and review toward canon without treating a projection as acceptance.",
+      "target": "ToS/candidate-intake/AGENTS.md",
+      "owner_route": "ToS/candidate-intake/AGENTS.md",
+      "required_scopes": ["source anchor", "proposal status", "uncertainty", "review outcome", "canon boundary"],
+      "required_markers": ["provisional", "source-linked", "uncertainty", "canon"],
+      "boundary_markers": ["candidate", "review", "canon", "derived"],
+      "on_demand_surfaces": ["ToS/research-packets/foundation-laboratory-2026-07/SEMANTIC_IDENTITY_ANNOTATION_RESEARCH_2026-08-11.md", "ToS/contracts/CORPUS_CONTRACTS.md", "ToS/review-ledger/AGENTS.md", "ToS/canon/AGENTS.md"],
+      "validation_lanes": ["intake_contracts", "canon_contracts", "route_docs"],
+      "validation_paths": ["scripts/validate_intake_pack.py", "scripts/validate_tree_node_contracts.py", "scripts/validate_nested_agents.py"],
+      "completion_evidence": ["ToS/candidate-intake/AGENTS.md", "ToS/review-ledger/AGENTS.md", "ToS/canon/AGENTS.md", "scripts/validate_intake_pack.py"],
+      "handoff_routes": ["ToS/review-ledger/AGENTS.md", "ToS/canon/AGENTS.md", "ToS/public-compatibility/AGENTS.md"]
+    },
+    {
+      "id": "philosophy_graph_workbench",
+      "prompt": "Prepare a philosophy graph-workbench view or proposal while keeping source-side graph preparation distinct from runtime rendering.",
+      "target": "ToS/philosophy/graph-workbench/AGENTS.md",
+      "owner_route": "ToS/philosophy/graph-workbench/AGENTS.md",
+      "required_scopes": ["branch topology", "source-side graph proposal", "lens/cluster contract", "runtime handoff"],
+      "required_markers": ["graph-workbench", "proposed nodes", "runtime rendering", "derived projection"],
+      "boundary_markers": ["runtime", "Neo4j", "MCP", "canon"],
+      "on_demand_surfaces": ["ToS/philosophy/README.md", "ToS/philosophy/philosophy.manifest.json", "ToS/philosophy/graph-workbench/PLANTING_INTERFACE.md"],
+      "validation_lanes": ["philosophy_topology", "graph_exports", "route_docs"],
+      "validation_paths": ["scripts/build_philosophy_graph_views.py", "scripts/validate_philosophy_graph_views.py", "scripts/validate_philosophy_topology.py"],
+      "completion_evidence": ["ToS/philosophy/AGENTS.md", "ToS/philosophy/graph-workbench/AGENTS.md", "scripts/validate_philosophy_topology.py"],
+      "handoff_routes": ["ToS/derived-exports/AGENTS.md", "ToS/canon/AGENTS.md"]
+    },
+    {
+      "id": "zarathustra_public_entry",
+      "prompt": "Repair or extend the bounded Zarathustra public entry without widening source or canon authority.",
+      "target": "ToS/zarathustra/public-entry/TINY_ENTRY_ROUTE.md",
+      "owner_route": "ToS/zarathustra/AGENTS.md",
+      "required_scopes": ["bounded source route", "capsule", "source authority", "tiny-entry boundary"],
+      "required_markers": ["public-entry", "source-to-review", "bounded public route", "tiny-entry"],
+      "boundary_markers": ["source witness", "canon", "derived export"],
+      "on_demand_surfaces": ["ToS/zarathustra/GOLDEN_GROWTH_KERNEL.md", "ToS/zarathustra/public-entry/TINY_ENTRY_ROUTE.md", "mechanics/boundary-bridge/parts/derived-kag-seam/docs/KAG_EXPORT.md"],
+      "validation_lanes": ["public_entry", "route_docs"],
+      "validation_paths": ["scripts/validate_tiny_entry_route.py", "mechanics/boundary-bridge/parts/derived-kag-seam/scripts/validate_kag_export.py"],
+      "completion_evidence": ["ToS/zarathustra/AGENTS.md", "ToS/zarathustra/public-entry/TINY_ENTRY_ROUTE.md", "scripts/validate_tiny_entry_route.py"],
+      "handoff_routes": ["ToS/public-compatibility/AGENTS.md", "ToS/derived-exports/AGENTS.md"]
+    },
+    {
+      "id": "mechanics_package_change",
+      "prompt": "Change one mechanics package or part and route operation law through the local package contract and validator.",
+      "target": "mechanics/boundary-bridge/README.md",
+      "owner_route": "mechanics/boundary-bridge/AGENTS.md",
+      "required_scopes": ["package owner", "active part", "operation boundary", "local validation"],
+      "required_markers": ["operation topology", "active part", "mechanics topology", "derived seams"],
+      "boundary_markers": ["ToS", "runtime", "canon"],
+      "on_demand_surfaces": ["mechanics/README.md", "mechanics/boundary-bridge/PARTS.md", "mechanics/boundary-bridge/PROVENANCE.md"],
+      "validation_lanes": ["mechanics_topology", "mechanics_local", "route_docs"],
+      "validation_paths": ["scripts/validate_mechanics_topology.py", "scripts/validate_nested_agents.py"],
+      "completion_evidence": ["mechanics/AGENTS.md", "mechanics/boundary-bridge/AGENTS.md", "mechanics/topology.json", "scripts/validate_mechanics_topology.py"],
+      "handoff_routes": ["mechanics/boundary-bridge/parts/derived-kag-seam/README.md"]
+    },
+    {
+      "id": "decision_rationale",
+      "prompt": "Record a durable route or boundary decision and keep current authority in its stronger owner surface.",
+      "target": "docs/decisions/README.md",
+      "owner_route": "docs/decisions/AGENTS.md",
+      "required_scopes": ["why", "options", "consequences", "source owner", "generated index"],
+      "required_markers": ["durable decision rationale", "Index Metadata", "current source", "generated indexes"],
+      "boundary_markers": ["weaker", "source authority", "generated"],
+      "on_demand_surfaces": ["docs/decisions/README.md", "docs/decisions/TEMPLATE.md", "docs/decisions/indexes/index_contract.yaml"],
+      "validation_lanes": ["generated_parity", "route_docs"],
+      "validation_paths": ["scripts/generate_decision_indexes.py", "scripts/validate_decision_records.py"],
+      "completion_evidence": ["docs/decisions/AGENTS.md", "docs/decisions/indexes/index_contract.yaml", "scripts/validate_decision_records.py"],
+      "handoff_routes": ["docs/AGENTS.md"]
+    },
+    {
+      "id": "release_validation",
+      "prompt": "Run or repair the release and validation route, preserving command authority, generated parity, and CI evidence.",
+      "target": "scripts/release_check.py",
+      "owner_route": "scripts/AGENTS.md",
+      "required_scopes": ["lane authority", "ordered command sequence", "generated parity", "CI/PR evidence"],
+      "required_markers": ["release_check", "validation_lanes.json", "script_inventory.json", "generated"],
+      "boundary_markers": ["source-owned", "release", "runtime"],
+      "on_demand_surfaces": ["docs/validation/validation_lanes.json", "docs/validation/SCRIPT_TOPOLOGY.md", "docs/RELEASING.md", ".github/workflows/repo-validation.yml"],
+      "validation_lanes": ["validation_authority", "release", "route_docs"],
+      "validation_paths": ["scripts/validation_lanes.py", "scripts/release_check.py", "scripts/validate_nested_agents.py"],
+      "completion_evidence": ["scripts/AGENTS.md", "docs/validation/validation_lanes.json", "scripts/release_check.py", ".github/workflows/repo-validation.yml"],
+      "handoff_routes": [".github/AGENTS.md", "docs/RELEASING.md"]
+    },
+    {
+      "id": "agent_skill",
+      "prompt": "Add or refresh one agent skill package while preserving discovery metadata, on-demand companions, and the stronger skill owner.",
+      "target": ".agents/skills/aoa-change-protocol/SKILL.md",
+      "owner_route": ".agents/AGENTS.md",
+      "required_scopes": ["skill discovery", "triggered body", "on-demand companion", "activation metadata", "source owner"],
+      "required_markers": ["model-facing", "owning homes", "skill", "validate_nested_agents"],
+      "boundary_markers": ["proof authority", "runtime", "source surfaces"],
+      "on_demand_surfaces": [".agents/README.md", ".agents/skills/aoa-change-protocol/SKILL.md", ".agents/skills/aoa-change-protocol/agents/openai.yaml"],
+      "validation_lanes": ["agent_surface", "route_docs"],
+      "validation_paths": ["scripts/build_agent_surface_currentness.py", "scripts/validate_agent_surface.py", "scripts/validate_nested_agents.py"],
+      "completion_evidence": [".agents/AGENTS.md", ".agents/agent-surface.manifest.json", ".agents/agent-surface.current.json", "scripts/validate_agent_surface.py"],
+      "handoff_routes": [".agents/skills/aoa-change-protocol/SKILL.md"]
+    },
+    {
+      "id": "eval_port",
+      "prompt": "Route local evaluation pressure without turning a ToS packet into a central proof verdict.",
+      "target": "evals/PORT.yaml",
+      "owner_route": "evals/AGENTS.md",
+      "required_scopes": ["local intake", "source refs", "central owner", "verdict boundary"],
+      "required_markers": ["aoa-evals", "local", "verdict", "intake"],
+      "boundary_markers": ["proof doctrine", "central", "source witnesses"],
+      "on_demand_surfaces": ["evals/README.md", "evals/PORT.yaml", "evals/intake/README.md"],
+      "validation_lanes": ["eval_port", "route_docs"],
+      "validation_paths": ["evals/PORT.yaml", "evals/AGENTS.md"],
+      "completion_evidence": ["evals/AGENTS.md", "evals/PORT.yaml", "evals/README.md"],
+      "handoff_routes": ["aoa-evals"]
+    },
+    {
+      "id": "stats_port",
+      "prompt": "Answer an owner-local measurement question and hand its reference packet to the shared stats grammar without claiming live state.",
+      "target": "stats/port.manifest.json",
+      "owner_route": "stats/AGENTS.md",
+      "required_scopes": ["authored population", "measurement declaration", "evidence packet", "shared grammar"],
+      "required_markers": ["aoa-stats", "measurement", "reference", "population"],
+      "boundary_markers": ["cross-owner composition", "philosophical meaning", "canon status"],
+      "on_demand_surfaces": ["stats/README.md", "stats/port.manifest.json", "ToS/philosophy/atlas/README.md"],
+      "validation_lanes": ["local_stats_port", "route_docs"],
+      "validation_paths": ["scripts/validate_local_stats_port.py", "stats/port.manifest.json"],
+      "completion_evidence": ["stats/AGENTS.md", "stats/port.manifest.json", "scripts/validate_local_stats_port.py"],
+      "handoff_routes": ["aoa-stats"]
+    },
+    {
+      "id": "kag_port",
+      "prompt": "Refresh the local KAG provider route while returning to ToS derived exports and keeping runtime/MCP authority downstream.",
+      "target": "kag/manifest.json",
+      "owner_route": "kag/AGENTS.md",
+      "required_scopes": ["derived export", "local provider", "source return", "runtime boundary"],
+      "required_markers": ["KAG provider", "derived-exports", "MCP", "runtime"],
+      "boundary_markers": ["source-linked", "derived", "MCP"],
+      "on_demand_surfaces": ["kag/README.md", "kag/manifest.json", "mechanics/boundary-bridge/parts/derived-kag-seam/docs/KAG_EXPORT.md"],
+      "validation_lanes": ["local_kag_provider", "public_entry", "route_docs"],
+      "validation_paths": ["scripts/validate_local_kag_provider.py", "mechanics/boundary-bridge/parts/derived-kag-seam/scripts/validate_kag_export.py"],
+      "completion_evidence": ["kag/AGENTS.md", "kag/manifest.json", "scripts/validate_local_kag_provider.py"],
+      "handoff_routes": ["ToS/derived-exports/AGENTS.md", "aoa-kag"]
+    },
+    {
+      "id": "memo_port",
+      "prompt": "Prepare a tree-local memory candidate and route it through reviewed aoa-memo intake without treating a receipt or index as memory truth.",
+      "target": "memo/PORT.yaml",
+      "owner_route": "memo/AGENTS.md",
+      "required_scopes": ["candidate-only", "evidence refs", "local validation", "reviewed landing"],
+      "required_markers": ["candidate", "aoa-memo", "reviewed", "receipt"],
+      "boundary_markers": ["durable memory", "source-linked", "runtime"],
+      "on_demand_surfaces": ["memo/README.md", "memo/PORT.yaml", "memo/INDEX.md"],
+      "validation_lanes": ["route_docs"],
+      "validation_paths": ["memo/PORT.yaml", "memo/AGENTS.md"],
+      "completion_evidence": ["memo/AGENTS.md", "memo/PORT.yaml", "memo/INDEX.md"],
+      "handoff_routes": ["aoa-memo"]
+    }
+  ]
+}

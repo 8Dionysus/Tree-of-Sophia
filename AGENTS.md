@@ -179,6 +179,15 @@ targeted generator checks. Use
 interpretive, structural, or boundary-sensitive changes outside validator
 coverage.
 
+## Completion
+
+A route is complete when the owning source or operation change is explicit,
+the nearest validator or manual review is run, generated companions are
+current, and the handoff names changed surfaces, evidence, skipped checks,
+residual risk, and the next owner. Landing additionally requires green PR
+checks, merge, and synchronized local `main`; runtime, semantic, and human
+acceptance remain separate claims.
+
 ## Report
 
 Close out with changed surfaces, validation run, skipped checks, decision

@@ -22,6 +22,19 @@ target.
 Inventories describe script surfaces. They do not store release command order
 and do not promote advisory helpers into hard gates.
 
+## AGENTS route-card topology
+
+The AGENTS route inventory is a separate source map at
+[`agents_route_inventory.json`](agents_route_inventory.json). It names the
+exact tracked-card set, root-plus-nearest-ancestor inheritance, preserved
+non-card references, influencing surfaces, representative task routes, and
+context budgets. The generated `.agents/agents-route.current.json` companion
+records hashes and counts; `scripts/build_agents_route_currentness.py` owns its
+deterministic projection, `scripts/validate_nested_agents.py` owns structural
+and currentness admission, and `scripts/agents_route_harness.py` owns the
+route-shape probe. These three surfaces do not claim model behavior, semantic
+acceptance, human time-to-owner, or owner acceptance.
+
 ## Inventory Fields
 
 Each entry records:

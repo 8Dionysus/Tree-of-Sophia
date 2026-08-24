@@ -192,6 +192,50 @@
       "disposition": "keep"
     },
     {
+      "path": "scripts/agents_route_harness.py",
+      "family": "source_validator",
+      "organ_lane": "route-card",
+      "owner_surface": "DESIGN.AGENTS.md",
+      "source_truth": [
+        "docs/validation/agents_route_inventory.json",
+        "DESIGN.AGENTS.md"
+      ],
+      "reads": [
+        "docs/validation/agents_route_inventory.json",
+        "**/AGENTS.md",
+        "declared task targets, validation paths, and completion evidence"
+      ],
+      "writes": [],
+      "side_effects": "deterministic route-shape JSON or stdout; no source meaning, semantic acceptance, or human behavior claim",
+      "validation_lane": "route_docs",
+      "ci_inclusion": "release",
+      "test_target": "tests/test_nested_agents.py",
+      "disposition": "keep"
+    },
+    {
+      "path": "scripts/build_agents_route_currentness.py",
+      "family": "projection_builder",
+      "organ_lane": "route-card",
+      "owner_surface": "docs/validation/agents_route_inventory.json",
+      "source_truth": [
+        "docs/validation/agents_route_inventory.json",
+        "DESIGN.AGENTS.md",
+        "**/AGENTS.md"
+      ],
+      "reads": [
+        "docs/validation/agents_route_inventory.json",
+        "tracked and discovered AGENTS.md cards"
+      ],
+      "writes": [
+        ".agents/agents-route.current.json"
+      ],
+      "side_effects": "deterministic generated route-card currentness read model; subordinate to authored cards and owner docs",
+      "validation_lane": "route_docs",
+      "ci_inclusion": "release",
+      "test_target": "tests/test_nested_agents.py",
+      "disposition": "keep"
+    },
+    {
       "path": "scripts/build_source_witness_catalog.py",
       "family": "projection_builder",
       "organ_lane": "projection/generated",
@@ -2048,16 +2092,20 @@
       "owner_surface": "DESIGN.AGENTS.md",
       "source_truth": [
         "DESIGN.AGENTS.md",
-        "AGENTS.md"
+        "AGENTS.md",
+        "docs/validation/agents_route_inventory.json",
+        ".agents/agents-route.current.json"
       ],
       "reads": [
-        "**/AGENTS.md"
+        "**/AGENTS.md",
+        "docs/validation/agents_route_inventory.json",
+        ".agents/agents-route.current.json"
       ],
       "writes": [],
-      "side_effects": "validation output only",
+      "side_effects": "validation output only for route-card inventory, inheritance, currentness, and local executable references",
       "validation_lane": "route_docs",
       "ci_inclusion": "release",
-      "test_target": "tests/test_script_topology.py",
+      "test_target": "tests/test_nested_agents.py",
       "disposition": "keep"
     },
     {
