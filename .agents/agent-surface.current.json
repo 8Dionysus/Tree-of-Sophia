@@ -1,0 +1,1110 @@
+{
+  "builder": "scripts/build_agent_surface_currentness.py",
+  "manifest_sha256": "6bcfd39698d98c1070c17b92d855c9f31523167c31ab1988f736191c5acc2dec",
+  "owner_ports": [
+    {
+      "id": "eval_port",
+      "inputs": [
+        {
+          "bytes": 1336,
+          "path": "evals/AGENTS.md",
+          "sha256": "242dc973b2e4fc502f695504ff259bf7def71c798ab0951641863d8b899085da"
+        },
+        {
+          "bytes": 290,
+          "path": "evals/PORT.yaml",
+          "sha256": "aee850f7f77b536b1fe5b0a81d9c6829a3b96f2a538338307dbb0e6ebcde45c9"
+        },
+        {
+          "bytes": 868,
+          "path": "evals/README.md",
+          "sha256": "fa76fd721c8af352999eb5768da002948aed05e6773184ca5ae1de80fcf0a4a8"
+        },
+        {
+          "bytes": 355,
+          "path": "evals/intake/README.md",
+          "sha256": "272a564ba4b3c2a0abcc962be9b84e8a8dc67dd12d4940bc8fd8d432c360947c"
+        },
+        {
+          "bytes": 345,
+          "path": "evals/suites/README.md",
+          "sha256": "887c567bf75d474e022befa59cf035fc5cc5ae7dfb1195b0b6d0bb05fec02d82"
+        },
+        {
+          "bytes": 292,
+          "path": "evals/reports/README.md",
+          "sha256": "0b3a3dd45974043089215bc8b443a764f986863a3a1502a5817e356157fce09c"
+        }
+      ],
+      "manifest": "evals/PORT.yaml"
+    },
+    {
+      "id": "kag_provider",
+      "inputs": [
+        {
+          "bytes": 1700,
+          "path": "kag/AGENTS.md",
+          "sha256": "a3b7c62fa90be68fe72b1dd57aded2cbd3ea8ae4a9552fd2a9b5d6ba533dc625"
+        },
+        {
+          "bytes": 1735,
+          "path": "kag/manifest.json",
+          "sha256": "2e2225bde027a625886adb4f555a0a39fc2b75582665feeb3220aeae05f2e150"
+        },
+        {
+          "bytes": 1154,
+          "path": "kag/README.md",
+          "sha256": "54c451bdcdfeb87816e998936d95ab1b8553c5cba4301d99aca9d26684680c9c"
+        },
+        {
+          "bytes": 1436,
+          "path": "kag/indexes/provider_readiness_index.json",
+          "sha256": "43d09f54c04d1de8476a3930d4bf75bc2d329dc12591e7bcb8c94dd17687bb02"
+        },
+        {
+          "bytes": 1406,
+          "path": "kag/nodes/kag_export_capsule.json",
+          "sha256": "1c136c729e1ea771ddf8b398c4f0f7f1f5ed8d46289b627b56c71555c5e64484"
+        },
+        {
+          "bytes": 1279,
+          "path": "kag/nodes/derived_export_route.json",
+          "sha256": "09ff66e3e8fc00fff8592a95c235d48c4e5ed9e9aeee49fcac6dd7f087c45649"
+        },
+        {
+          "bytes": 1553,
+          "path": "kag/edges/kag_export_returns_to_route.json",
+          "sha256": "36b2723b2420333bdd967e047030e31c28d778e2c8753276757c26dca4b4b8e2"
+        },
+        {
+          "bytes": 1749,
+          "path": "kag/projections/mcp_source_return.json",
+          "sha256": "55a598899f9a50a8f688098536afc0887101159ad9e1266cb6e390baae5cc3ef"
+        },
+        {
+          "bytes": 1788,
+          "path": "ToS/derived-exports/kag_export.min.json",
+          "sha256": "c8b725a325b27034a8ed1e22e481c80e5a6c31e751d56bd094d530738a2c1fa1"
+        },
+        {
+          "bytes": 19330698,
+          "path": "ToS/derived-exports/philosophy_graph_projection.min.json",
+          "sha256": "ac3312df24a101ceb0c750825610d3389a23ee62c293ad95d79c392fe984188e"
+        },
+        {
+          "bytes": 2717,
+          "path": "mechanics/boundary-bridge/parts/derived-kag-seam/docs/KAG_EXPORT.md",
+          "sha256": "fa00a06dde5b8ce12eb1bea28fbcc44abec6def9ba9584fac888bb464a7bb551"
+        }
+      ],
+      "manifest": "kag/manifest.json"
+    },
+    {
+      "id": "memo_port",
+      "inputs": [
+        {
+          "bytes": 2747,
+          "path": "memo/AGENTS.md",
+          "sha256": "6b2093b9f3d9c909d500f8cac75f30d2537f9a4abb8d6a56cf1ee58a68b05078"
+        },
+        {
+          "bytes": 567,
+          "path": "memo/PORT.yaml",
+          "sha256": "a87eb2295df65ca74a2e77577acc1ec821bf37a44a90e5359a5dc01ae8dbbf3a"
+        },
+        {
+          "bytes": 680,
+          "path": "memo/README.md",
+          "sha256": "664b5e862372f681cc44adc00170baca6e7e46477d9be4cb110046dd8767361b"
+        },
+        {
+          "bytes": 463,
+          "path": "memo/INDEX.md",
+          "sha256": "a297f012fc374a58938b6bb938b87370370f2c1720ed39a3646aebcbd69324d7"
+        },
+        {
+          "bytes": 303,
+          "path": "memo/index.min.json",
+          "sha256": "64ea4b985984f15e1153838df02653c394574541ae2d2c9652e5b20f87a7698c"
+        }
+      ],
+      "manifest": "memo/PORT.yaml"
+    },
+    {
+      "id": "stats_port",
+      "inputs": [
+        {
+          "bytes": 2096,
+          "path": "stats/AGENTS.md",
+          "sha256": "cbc29cf364095427ecee4b2363c987b4623d90c9f304bb0020b30bcc3e13da7e"
+        },
+        {
+          "bytes": 4062,
+          "path": "stats/port.manifest.json",
+          "sha256": "733089f2ee84ee4be4bb627ce894584a8447c021c7c7c73cab5ba4872b551ac7"
+        },
+        {
+          "bytes": 2059,
+          "path": "stats/README.md",
+          "sha256": "78217eb936b7cef49f97c92e4132d00ef9ba8abfb80ab69f103408c5d6fc4aba"
+        },
+        {
+          "bytes": 2506,
+          "path": "stats/packets/table-i-prepared-dossier-route-ratio.reference.json",
+          "sha256": "ce95e5abeaa8db959315ab92d464651734c932c0ade3f18b0dfb3d0c0da9872d"
+        },
+        {
+          "bytes": 221266,
+          "path": "ToS/philosophy/atlas/master-tables/table-i/rows.jsonl",
+          "sha256": "a07c0be1d73f202740a2312514bde8a7313bf8e90b7861e814f719d0a8bcf206"
+        },
+        {
+          "bytes": 8972,
+          "path": "ToS/philosophy/atlas/dossiers/prepared-dossier-routes.json",
+          "sha256": "182030af917d01d3296bf03e4737cd99087e3886523f832fb477765b6ed16faf"
+        }
+      ],
+      "manifest": "stats/port.manifest.json"
+    }
+  ],
+  "owner_repo": "Tree-of-Sophia",
+  "package_inventory": {
+    "agents_metadata": 25,
+    "assets": 56,
+    "checks": 16,
+    "examples": 25,
+    "references": 58,
+    "scripts": 6,
+    "skill_entrypoints": 25
+  },
+  "packages": [
+    {
+      "activation": {
+        "allow_implicit_invocation": true,
+        "implicit_activation_policy": "invoke"
+      },
+      "companion_counts": {
+        "assets": 2,
+        "checks": 0,
+        "examples": 1,
+        "references": 2,
+        "scripts": 0
+      },
+      "entrypoint": ".agents/skills/aoa-adr-write/SKILL.md",
+      "frontmatter": {
+        "aoa_invocation_mode": "explicit-preferred",
+        "aoa_portable_profile": "codex-facing-wave-3",
+        "aoa_scope": "core",
+        "aoa_source_repo": "8Dionysus/aoa-skills",
+        "aoa_source_skill_path": "skills/core/engineering/aoa-adr-write/SKILL.md",
+        "aoa_status": "canonical",
+        "compatibility": "Designed for Codex or similar coding agents with repository file access and an interactive shell. Network access is optional and only needed when repository validation or referenced workflows require it.",
+        "description_words": 61,
+        "license": "Apache-2.0",
+        "name": "aoa-adr-write"
+      },
+      "id": "aoa-adr-write",
+      "on_demand_families_present": [
+        "references",
+        "examples",
+        "assets"
+      ],
+      "package_bytes": 16259,
+      "package_file_count": 7,
+      "package_sha256": "69f83b217c5ca27bb64846964596e2242817d06083ad7c27297a9d3dce9e1fc4",
+      "triggered_body_words": 1073
+    },
+    {
+      "activation": {
+        "allow_implicit_invocation": false,
+        "implicit_activation_policy": "manual"
+      },
+      "companion_counts": {
+        "assets": 2,
+        "checks": 1,
+        "examples": 1,
+        "references": 0,
+        "scripts": 0
+      },
+      "entrypoint": ".agents/skills/aoa-approval-gate-check/SKILL.md",
+      "frontmatter": {
+        "aoa_invocation_mode": "explicit-only",
+        "aoa_portable_profile": "codex-facing-wave-3",
+        "aoa_scope": "risk",
+        "aoa_source_repo": "8Dionysus/aoa-skills",
+        "aoa_source_skill_path": "skills/risk/aoa-approval-gate-check/SKILL.md",
+        "aoa_status": "canonical",
+        "compatibility": "Designed for Codex or similar coding agents with repository file access and an interactive shell. Network access is optional and only needed when repository validation or referenced workflows require it.",
+        "description_words": 57,
+        "license": "Apache-2.0",
+        "name": "aoa-approval-gate-check"
+      },
+      "id": "aoa-approval-gate-check",
+      "on_demand_families_present": [
+        "examples",
+        "checks",
+        "assets"
+      ],
+      "package_bytes": 8029,
+      "package_file_count": 6,
+      "package_sha256": "bcc0222eb899546760ac7c575c0f90f4a98984c28c8726b968f3e56cdebad05f",
+      "triggered_body_words": 523
+    },
+    {
+      "activation": {
+        "allow_implicit_invocation": false,
+        "implicit_activation_policy": "manual"
+      },
+      "companion_counts": {
+        "assets": 2,
+        "checks": 1,
+        "examples": 1,
+        "references": 8,
+        "scripts": 0
+      },
+      "entrypoint": ".agents/skills/aoa-automation-opportunity-scan/SKILL.md",
+      "frontmatter": {
+        "aoa_invocation_mode": "explicit-only",
+        "aoa_portable_profile": "codex-facing-wave-3",
+        "aoa_scope": "core",
+        "aoa_source_repo": "8Dionysus/aoa-skills",
+        "aoa_source_skill_path": "skills/core/session-growth/aoa-automation-opportunity-scan/SKILL.md",
+        "aoa_status": "evaluated",
+        "compatibility": "Designed for Codex or similar coding agents with repository file access and an interactive shell. Network access is optional and only needed when repository validation or referenced workflows require it.",
+        "description_words": 86,
+        "license": "Apache-2.0",
+        "name": "aoa-automation-opportunity-scan"
+      },
+      "id": "aoa-automation-opportunity-scan",
+      "on_demand_families_present": [
+        "references",
+        "examples",
+        "checks",
+        "assets"
+      ],
+      "package_bytes": 23952,
+      "package_file_count": 14,
+      "package_sha256": "4775ae26a561f13d22a9be0ec174ff50894ac64530ff91b35d54e0d90201855b",
+      "triggered_body_words": 962
+    },
+    {
+      "activation": {
+        "allow_implicit_invocation": true,
+        "implicit_activation_policy": "invoke"
+      },
+      "companion_counts": {
+        "assets": 2,
+        "checks": 0,
+        "examples": 1,
+        "references": 2,
+        "scripts": 0
+      },
+      "entrypoint": ".agents/skills/aoa-bounded-context-map/SKILL.md",
+      "frontmatter": {
+        "aoa_invocation_mode": "explicit-preferred",
+        "aoa_portable_profile": "codex-facing-wave-3",
+        "aoa_scope": "core",
+        "aoa_source_repo": "8Dionysus/aoa-skills",
+        "aoa_source_skill_path": "skills/core/engineering/aoa-bounded-context-map/SKILL.md",
+        "aoa_status": "canonical",
+        "compatibility": "Designed for Codex or similar coding agents with repository file access and an interactive shell. Network access is optional and only needed when repository validation or referenced workflows require it.",
+        "description_words": 53,
+        "license": "Apache-2.0",
+        "name": "aoa-bounded-context-map"
+      },
+      "id": "aoa-bounded-context-map",
+      "on_demand_families_present": [
+        "references",
+        "examples",
+        "assets"
+      ],
+      "package_bytes": 17598,
+      "package_file_count": 7,
+      "package_sha256": "7e508bb6381505fe706762ba132fc43a076c73a9e535221eca5f7b7de17844fd",
+      "triggered_body_words": 855
+    },
+    {
+      "activation": {
+        "allow_implicit_invocation": true,
+        "implicit_activation_policy": "invoke"
+      },
+      "companion_counts": {
+        "assets": 2,
+        "checks": 1,
+        "examples": 1,
+        "references": 0,
+        "scripts": 0
+      },
+      "entrypoint": ".agents/skills/aoa-change-protocol/SKILL.md",
+      "frontmatter": {
+        "aoa_invocation_mode": "explicit-preferred",
+        "aoa_portable_profile": "codex-facing-wave-3",
+        "aoa_scope": "core",
+        "aoa_source_repo": "8Dionysus/aoa-skills",
+        "aoa_source_skill_path": "skills/core/engineering/aoa-change-protocol/SKILL.md",
+        "aoa_status": "canonical",
+        "compatibility": "Designed for Codex or similar coding agents with repository file access and an interactive shell. Network access is optional and only needed when repository validation or referenced workflows require it.",
+        "description_words": 50,
+        "license": "Apache-2.0",
+        "name": "aoa-change-protocol"
+      },
+      "id": "aoa-change-protocol",
+      "on_demand_families_present": [
+        "examples",
+        "checks",
+        "assets"
+      ],
+      "package_bytes": 10200,
+      "package_file_count": 6,
+      "package_sha256": "842853159341436d25b48ed9bb5832ab27ee09ec7483000c434dda7c6f1cec1b",
+      "triggered_body_words": 666
+    },
+    {
+      "activation": {
+        "allow_implicit_invocation": false,
+        "implicit_activation_policy": "suggest"
+      },
+      "companion_counts": {
+        "assets": 2,
+        "checks": 1,
+        "examples": 1,
+        "references": 3,
+        "scripts": 0
+      },
+      "entrypoint": ".agents/skills/aoa-checkpoint-closeout-bridge/SKILL.md",
+      "frontmatter": {
+        "aoa_invocation_mode": "explicit-preferred",
+        "aoa_portable_profile": "codex-facing-wave-3",
+        "aoa_scope": "core",
+        "aoa_source_repo": "8Dionysus/aoa-skills",
+        "aoa_source_skill_path": "skills/core/session-growth/aoa-checkpoint-closeout-bridge/SKILL.md",
+        "aoa_status": "evaluated",
+        "compatibility": "Designed for Codex or similar coding agents with repository file access and an interactive shell. Network access is optional and only needed when repository validation or referenced workflows require it.",
+        "description_words": 90,
+        "license": "Apache-2.0",
+        "name": "aoa-checkpoint-closeout-bridge"
+      },
+      "id": "aoa-checkpoint-closeout-bridge",
+      "on_demand_families_present": [
+        "references",
+        "examples",
+        "checks",
+        "assets"
+      ],
+      "package_bytes": 18145,
+      "package_file_count": 9,
+      "package_sha256": "553e3b139b72c4a9d790831fc5b3a12b54c085aff34c975a2ed5d7bcfec7102f",
+      "triggered_body_words": 1199
+    },
+    {
+      "activation": {
+        "allow_implicit_invocation": false,
+        "implicit_activation_policy": "manual"
+      },
+      "companion_counts": {
+        "assets": 2,
+        "checks": 1,
+        "examples": 1,
+        "references": 0,
+        "scripts": 0
+      },
+      "entrypoint": ".agents/skills/aoa-commit-growth-seam/SKILL.md",
+      "frontmatter": {
+        "aoa_invocation_mode": "explicit-only",
+        "aoa_portable_profile": "codex-facing-wave-3",
+        "aoa_scope": "core",
+        "aoa_source_repo": "8Dionysus/aoa-skills",
+        "aoa_source_skill_path": "skills/core/session-growth/aoa-commit-growth-seam/SKILL.md",
+        "aoa_status": "evaluated",
+        "compatibility": "Designed for Codex or similar coding agents with repository file access and an interactive shell. Network access is optional and only needed when repository validation or referenced workflows require it.",
+        "description_words": 81,
+        "license": "Apache-2.0",
+        "name": "aoa-commit-growth-seam"
+      },
+      "id": "aoa-commit-growth-seam",
+      "on_demand_families_present": [
+        "examples",
+        "checks",
+        "assets"
+      ],
+      "package_bytes": 11037,
+      "package_file_count": 6,
+      "package_sha256": "2c1bd8545f04181bf6a83b4d0997548f42d96c3367ecaa53ca3e6f1766267887",
+      "triggered_body_words": 829
+    },
+    {
+      "activation": {
+        "allow_implicit_invocation": true,
+        "implicit_activation_policy": "invoke"
+      },
+      "companion_counts": {
+        "assets": 2,
+        "checks": 0,
+        "examples": 1,
+        "references": 1,
+        "scripts": 0
+      },
+      "entrypoint": ".agents/skills/aoa-contract-test/SKILL.md",
+      "frontmatter": {
+        "aoa_invocation_mode": "explicit-preferred",
+        "aoa_portable_profile": "codex-facing-wave-3",
+        "aoa_scope": "core",
+        "aoa_source_repo": "8Dionysus/aoa-skills",
+        "aoa_source_skill_path": "skills/core/engineering/aoa-contract-test/SKILL.md",
+        "aoa_status": "canonical",
+        "compatibility": "Designed for Codex or similar coding agents with repository file access and an interactive shell. Network access is optional and only needed when repository validation or referenced workflows require it.",
+        "description_words": 52,
+        "license": "Apache-2.0",
+        "name": "aoa-contract-test"
+      },
+      "id": "aoa-contract-test",
+      "on_demand_families_present": [
+        "references",
+        "examples",
+        "assets"
+      ],
+      "package_bytes": 13719,
+      "package_file_count": 6,
+      "package_sha256": "a0dd1ac10cb1f95a8e67f5244971f2ae418e04995e8a5b5cdb56d7cb92e628f5",
+      "triggered_body_words": 699
+    },
+    {
+      "activation": {
+        "allow_implicit_invocation": true,
+        "implicit_activation_policy": "invoke"
+      },
+      "companion_counts": {
+        "assets": 2,
+        "checks": 0,
+        "examples": 1,
+        "references": 1,
+        "scripts": 0
+      },
+      "entrypoint": ".agents/skills/aoa-core-logic-boundary/SKILL.md",
+      "frontmatter": {
+        "aoa_invocation_mode": "explicit-preferred",
+        "aoa_portable_profile": "codex-facing-wave-3",
+        "aoa_scope": "core",
+        "aoa_source_repo": "8Dionysus/aoa-skills",
+        "aoa_source_skill_path": "skills/core/engineering/aoa-core-logic-boundary/SKILL.md",
+        "aoa_status": "evaluated",
+        "compatibility": "Designed for Codex or similar coding agents with repository file access and an interactive shell. Network access is optional and only needed when repository validation or referenced workflows require it.",
+        "description_words": 57,
+        "license": "Apache-2.0",
+        "name": "aoa-core-logic-boundary"
+      },
+      "id": "aoa-core-logic-boundary",
+      "on_demand_families_present": [
+        "references",
+        "examples",
+        "assets"
+      ],
+      "package_bytes": 15092,
+      "package_file_count": 6,
+      "package_sha256": "a3c8957ac0622ca243afa6e03903bf811dfcbe2fe517f8b69c3d19737ad169b2",
+      "triggered_body_words": 761
+    },
+    {
+      "activation": {
+        "allow_implicit_invocation": false,
+        "implicit_activation_policy": "manual"
+      },
+      "companion_counts": {
+        "assets": 4,
+        "checks": 1,
+        "examples": 1,
+        "references": 2,
+        "scripts": 2
+      },
+      "entrypoint": ".agents/skills/aoa-dry-run-first/SKILL.md",
+      "frontmatter": {
+        "aoa_invocation_mode": "explicit-only",
+        "aoa_portable_profile": "codex-facing-wave-3",
+        "aoa_scope": "risk",
+        "aoa_source_repo": "8Dionysus/aoa-skills",
+        "aoa_source_skill_path": "skills/risk/aoa-dry-run-first/SKILL.md",
+        "aoa_status": "canonical",
+        "compatibility": "Designed for Codex or similar coding agents with repository file access and an interactive shell. Network access is optional and only needed when repository validation or referenced workflows require it.",
+        "description_words": 59,
+        "license": "Apache-2.0",
+        "name": "aoa-dry-run-first"
+      },
+      "id": "aoa-dry-run-first",
+      "on_demand_families_present": [
+        "references",
+        "examples",
+        "checks",
+        "scripts",
+        "assets"
+      ],
+      "package_bytes": 20986,
+      "package_file_count": 12,
+      "package_sha256": "8be04ba2bd4c59a3734b5c5a59fd6a764a534a929a3f819b2ae09e0c607db188",
+      "triggered_body_words": 585
+    },
+    {
+      "activation": {
+        "allow_implicit_invocation": true,
+        "implicit_activation_policy": "invoke"
+      },
+      "companion_counts": {
+        "assets": 2,
+        "checks": 0,
+        "examples": 1,
+        "references": 1,
+        "scripts": 0
+      },
+      "entrypoint": ".agents/skills/aoa-invariant-coverage-audit/SKILL.md",
+      "frontmatter": {
+        "aoa_invocation_mode": "explicit-preferred",
+        "aoa_portable_profile": "codex-facing-wave-3",
+        "aoa_scope": "core",
+        "aoa_source_repo": "8Dionysus/aoa-skills",
+        "aoa_source_skill_path": "skills/core/engineering/aoa-invariant-coverage-audit/SKILL.md",
+        "aoa_status": "canonical",
+        "compatibility": "Designed for Codex or similar coding agents with repository file access and an interactive shell. Network access is optional and only needed when repository validation or referenced workflows require it.",
+        "description_words": 61,
+        "license": "Apache-2.0",
+        "name": "aoa-invariant-coverage-audit"
+      },
+      "id": "aoa-invariant-coverage-audit",
+      "on_demand_families_present": [
+        "references",
+        "examples",
+        "assets"
+      ],
+      "package_bytes": 13335,
+      "package_file_count": 6,
+      "package_sha256": "c85e6f77d65daa95c50a2ca9ae78043a3e4de81974307708bc6da1ed9df8e1d5",
+      "triggered_body_words": 717
+    },
+    {
+      "activation": {
+        "allow_implicit_invocation": false,
+        "implicit_activation_policy": "manual"
+      },
+      "companion_counts": {
+        "assets": 4,
+        "checks": 1,
+        "examples": 1,
+        "references": 2,
+        "scripts": 2
+      },
+      "entrypoint": ".agents/skills/aoa-local-stack-bringup/SKILL.md",
+      "frontmatter": {
+        "aoa_invocation_mode": "explicit-only",
+        "aoa_portable_profile": "codex-facing-wave-3",
+        "aoa_scope": "risk",
+        "aoa_source_repo": "8Dionysus/aoa-skills",
+        "aoa_source_skill_path": "skills/risk/aoa-local-stack-bringup/SKILL.md",
+        "aoa_status": "evaluated",
+        "compatibility": "Designed for Codex or similar coding agents with repository file access and an interactive shell. Network access is optional and only needed when repository validation or referenced workflows require it.",
+        "description_words": 60,
+        "license": "Apache-2.0",
+        "name": "aoa-local-stack-bringup"
+      },
+      "id": "aoa-local-stack-bringup",
+      "on_demand_families_present": [
+        "references",
+        "examples",
+        "checks",
+        "scripts",
+        "assets"
+      ],
+      "package_bytes": 20980,
+      "package_file_count": 12,
+      "package_sha256": "e453c0f694f55dc422572019e1532623357a3625d5c37b8bad110128bee8ced8",
+      "triggered_body_words": 785
+    },
+    {
+      "activation": {
+        "allow_implicit_invocation": true,
+        "implicit_activation_policy": "invoke"
+      },
+      "companion_counts": {
+        "assets": 2,
+        "checks": 0,
+        "examples": 1,
+        "references": 1,
+        "scripts": 0
+      },
+      "entrypoint": ".agents/skills/aoa-port-adapter-refactor/SKILL.md",
+      "frontmatter": {
+        "aoa_invocation_mode": "explicit-preferred",
+        "aoa_portable_profile": "codex-facing-wave-3",
+        "aoa_scope": "core",
+        "aoa_source_repo": "8Dionysus/aoa-skills",
+        "aoa_source_skill_path": "skills/core/engineering/aoa-port-adapter-refactor/SKILL.md",
+        "aoa_status": "evaluated",
+        "compatibility": "Designed for Codex or similar coding agents with repository file access and an interactive shell. Network access is optional and only needed when repository validation or referenced workflows require it.",
+        "description_words": 60,
+        "license": "Apache-2.0",
+        "name": "aoa-port-adapter-refactor"
+      },
+      "id": "aoa-port-adapter-refactor",
+      "on_demand_families_present": [
+        "references",
+        "examples",
+        "assets"
+      ],
+      "package_bytes": 14058,
+      "package_file_count": 6,
+      "package_sha256": "87985a96a35185e4d2fdddb5b8e6d5448fd13e4ad589467f0c62e87c2e37847a",
+      "triggered_body_words": 753
+    },
+    {
+      "activation": {
+        "allow_implicit_invocation": true,
+        "implicit_activation_policy": "invoke"
+      },
+      "companion_counts": {
+        "assets": 2,
+        "checks": 0,
+        "examples": 1,
+        "references": 1,
+        "scripts": 0
+      },
+      "entrypoint": ".agents/skills/aoa-property-invariants/SKILL.md",
+      "frontmatter": {
+        "aoa_invocation_mode": "explicit-preferred",
+        "aoa_portable_profile": "codex-facing-wave-3",
+        "aoa_scope": "core",
+        "aoa_source_repo": "8Dionysus/aoa-skills",
+        "aoa_source_skill_path": "skills/core/engineering/aoa-property-invariants/SKILL.md",
+        "aoa_status": "canonical",
+        "compatibility": "Designed for Codex or similar coding agents with repository file access and an interactive shell. Network access is optional and only needed when repository validation or referenced workflows require it.",
+        "description_words": 62,
+        "license": "Apache-2.0",
+        "name": "aoa-property-invariants"
+      },
+      "id": "aoa-property-invariants",
+      "on_demand_families_present": [
+        "references",
+        "examples",
+        "assets"
+      ],
+      "package_bytes": 14266,
+      "package_file_count": 6,
+      "package_sha256": "b1392b574aa8bf757d4493b0f3242aeb7d96b1059533b2252d974b0c054ec67e",
+      "triggered_body_words": 721
+    },
+    {
+      "activation": {
+        "allow_implicit_invocation": false,
+        "implicit_activation_policy": "manual"
+      },
+      "companion_counts": {
+        "assets": 2,
+        "checks": 1,
+        "examples": 1,
+        "references": 4,
+        "scripts": 0
+      },
+      "entrypoint": ".agents/skills/aoa-quest-harvest/SKILL.md",
+      "frontmatter": {
+        "aoa_invocation_mode": "explicit-only",
+        "aoa_portable_profile": "codex-facing-wave-3",
+        "aoa_scope": "core",
+        "aoa_source_repo": "8Dionysus/aoa-skills",
+        "aoa_source_skill_path": "skills/core/session-growth/aoa-quest-harvest/SKILL.md",
+        "aoa_status": "evaluated",
+        "compatibility": "Designed for Codex or similar coding agents with repository file access and an interactive shell. Network access is optional and only needed when repository validation or referenced workflows require it.",
+        "description_words": 95,
+        "license": "Apache-2.0",
+        "name": "aoa-quest-harvest"
+      },
+      "id": "aoa-quest-harvest",
+      "on_demand_families_present": [
+        "references",
+        "examples",
+        "checks",
+        "assets"
+      ],
+      "package_bytes": 20636,
+      "package_file_count": 10,
+      "package_sha256": "2cb57bba42ace46ec1c7a4e5cd3d8397f5a76b1ed69d1255e57496ddffb15f7f",
+      "triggered_body_words": 1238
+    },
+    {
+      "activation": {
+        "allow_implicit_invocation": false,
+        "implicit_activation_policy": "manual"
+      },
+      "companion_counts": {
+        "assets": 4,
+        "checks": 1,
+        "examples": 1,
+        "references": 2,
+        "scripts": 2
+      },
+      "entrypoint": ".agents/skills/aoa-safe-infra-change/SKILL.md",
+      "frontmatter": {
+        "aoa_invocation_mode": "explicit-only",
+        "aoa_portable_profile": "codex-facing-wave-3",
+        "aoa_scope": "risk",
+        "aoa_source_repo": "8Dionysus/aoa-skills",
+        "aoa_source_skill_path": "skills/risk/aoa-safe-infra-change/SKILL.md",
+        "aoa_status": "canonical",
+        "compatibility": "Designed for Codex or similar coding agents with repository file access and an interactive shell. Network access is optional and only needed when repository validation or referenced workflows require it.",
+        "description_words": 54,
+        "license": "Apache-2.0",
+        "name": "aoa-safe-infra-change"
+      },
+      "id": "aoa-safe-infra-change",
+      "on_demand_families_present": [
+        "references",
+        "examples",
+        "checks",
+        "scripts",
+        "assets"
+      ],
+      "package_bytes": 20724,
+      "package_file_count": 12,
+      "package_sha256": "c16bd0c63d9bef69aede59431497f856bc9406937e720a961acb19b90cf19103",
+      "triggered_body_words": 433
+    },
+    {
+      "activation": {
+        "allow_implicit_invocation": false,
+        "implicit_activation_policy": "manual"
+      },
+      "companion_counts": {
+        "assets": 2,
+        "checks": 1,
+        "examples": 1,
+        "references": 0,
+        "scripts": 0
+      },
+      "entrypoint": ".agents/skills/aoa-sanitized-share/SKILL.md",
+      "frontmatter": {
+        "aoa_invocation_mode": "explicit-only",
+        "aoa_portable_profile": "codex-facing-wave-3",
+        "aoa_scope": "risk",
+        "aoa_source_repo": "8Dionysus/aoa-skills",
+        "aoa_source_skill_path": "skills/risk/aoa-sanitized-share/SKILL.md",
+        "aoa_status": "canonical",
+        "compatibility": "Designed for Codex or similar coding agents with repository file access and an interactive shell. Network access is optional and only needed when repository validation or referenced workflows require it.",
+        "description_words": 65,
+        "license": "Apache-2.0",
+        "name": "aoa-sanitized-share"
+      },
+      "id": "aoa-sanitized-share",
+      "on_demand_families_present": [
+        "examples",
+        "checks",
+        "assets"
+      ],
+      "package_bytes": 9809,
+      "package_file_count": 6,
+      "package_sha256": "5cef655233093093f929f198a48ecc481d918168e2eae499dfaba5f712b54ffc",
+      "triggered_body_words": 730
+    },
+    {
+      "activation": {
+        "allow_implicit_invocation": false,
+        "implicit_activation_policy": "manual"
+      },
+      "companion_counts": {
+        "assets": 2,
+        "checks": 1,
+        "examples": 1,
+        "references": 8,
+        "scripts": 0
+      },
+      "entrypoint": ".agents/skills/aoa-session-donor-harvest/SKILL.md",
+      "frontmatter": {
+        "aoa_invocation_mode": "explicit-only",
+        "aoa_portable_profile": "codex-facing-wave-3",
+        "aoa_scope": "core",
+        "aoa_source_repo": "8Dionysus/aoa-skills",
+        "aoa_source_skill_path": "skills/core/session-growth/aoa-session-donor-harvest/SKILL.md",
+        "aoa_status": "evaluated",
+        "compatibility": "Designed for Codex or similar coding agents with repository file access and an interactive shell. Network access is optional and only needed when repository validation or referenced workflows require it.",
+        "description_words": 93,
+        "license": "Apache-2.0",
+        "name": "aoa-session-donor-harvest"
+      },
+      "id": "aoa-session-donor-harvest",
+      "on_demand_families_present": [
+        "references",
+        "examples",
+        "checks",
+        "assets"
+      ],
+      "package_bytes": 31006,
+      "package_file_count": 14,
+      "package_sha256": "230b34136a0bf07651ca80cbeea8bb2d5d99e6e27032114acedebe5ddf855536",
+      "triggered_body_words": 1811
+    },
+    {
+      "activation": {
+        "allow_implicit_invocation": false,
+        "implicit_activation_policy": "manual"
+      },
+      "companion_counts": {
+        "assets": 2,
+        "checks": 1,
+        "examples": 1,
+        "references": 4,
+        "scripts": 0
+      },
+      "entrypoint": ".agents/skills/aoa-session-progression-lift/SKILL.md",
+      "frontmatter": {
+        "aoa_invocation_mode": "explicit-only",
+        "aoa_portable_profile": "codex-facing-wave-3",
+        "aoa_scope": "core",
+        "aoa_source_repo": "8Dionysus/aoa-skills",
+        "aoa_source_skill_path": "skills/core/session-growth/aoa-session-progression-lift/SKILL.md",
+        "aoa_status": "evaluated",
+        "compatibility": "Designed for Codex or similar coding agents with repository file access and an interactive shell. Network access is optional and only needed when repository validation or referenced workflows require it.",
+        "description_words": 71,
+        "license": "Apache-2.0",
+        "name": "aoa-session-progression-lift"
+      },
+      "id": "aoa-session-progression-lift",
+      "on_demand_families_present": [
+        "references",
+        "examples",
+        "checks",
+        "assets"
+      ],
+      "package_bytes": 18121,
+      "package_file_count": 10,
+      "package_sha256": "ac49e13fadb48d452a49f369f2d8db49157798ee6b2dd3a0982f494f21f6906b",
+      "triggered_body_words": 1017
+    },
+    {
+      "activation": {
+        "allow_implicit_invocation": false,
+        "implicit_activation_policy": "manual"
+      },
+      "companion_counts": {
+        "assets": 2,
+        "checks": 1,
+        "examples": 1,
+        "references": 3,
+        "scripts": 0
+      },
+      "entrypoint": ".agents/skills/aoa-session-route-forks/SKILL.md",
+      "frontmatter": {
+        "aoa_invocation_mode": "explicit-only",
+        "aoa_portable_profile": "codex-facing-wave-3",
+        "aoa_scope": "core",
+        "aoa_source_repo": "8Dionysus/aoa-skills",
+        "aoa_source_skill_path": "skills/core/session-growth/aoa-session-route-forks/SKILL.md",
+        "aoa_status": "evaluated",
+        "compatibility": "Designed for Codex or similar coding agents with repository file access and an interactive shell. Network access is optional and only needed when repository validation or referenced workflows require it.",
+        "description_words": 81,
+        "license": "Apache-2.0",
+        "name": "aoa-session-route-forks"
+      },
+      "id": "aoa-session-route-forks",
+      "on_demand_families_present": [
+        "references",
+        "examples",
+        "checks",
+        "assets"
+      ],
+      "package_bytes": 14155,
+      "package_file_count": 9,
+      "package_sha256": "af93c3edb345b149635e0c13d5924894d703dfeb27ea8965a2480fd15eb06c02",
+      "triggered_body_words": 761
+    },
+    {
+      "activation": {
+        "allow_implicit_invocation": false,
+        "implicit_activation_policy": "manual"
+      },
+      "companion_counts": {
+        "assets": 2,
+        "checks": 1,
+        "examples": 1,
+        "references": 3,
+        "scripts": 0
+      },
+      "entrypoint": ".agents/skills/aoa-session-self-diagnose/SKILL.md",
+      "frontmatter": {
+        "aoa_invocation_mode": "explicit-only",
+        "aoa_portable_profile": "codex-facing-wave-3",
+        "aoa_scope": "core",
+        "aoa_source_repo": "8Dionysus/aoa-skills",
+        "aoa_source_skill_path": "skills/core/session-growth/aoa-session-self-diagnose/SKILL.md",
+        "aoa_status": "evaluated",
+        "compatibility": "Designed for Codex or similar coding agents with repository file access and an interactive shell. Network access is optional and only needed when repository validation or referenced workflows require it.",
+        "description_words": 68,
+        "license": "Apache-2.0",
+        "name": "aoa-session-self-diagnose"
+      },
+      "id": "aoa-session-self-diagnose",
+      "on_demand_families_present": [
+        "references",
+        "examples",
+        "checks",
+        "assets"
+      ],
+      "package_bytes": 14922,
+      "package_file_count": 9,
+      "package_sha256": "9096eb97068f982c6b0705615416be8b5c25ad7346e8ac3431c4656b8173f7af",
+      "triggered_body_words": 850
+    },
+    {
+      "activation": {
+        "allow_implicit_invocation": false,
+        "implicit_activation_policy": "manual"
+      },
+      "companion_counts": {
+        "assets": 2,
+        "checks": 1,
+        "examples": 1,
+        "references": 4,
+        "scripts": 0
+      },
+      "entrypoint": ".agents/skills/aoa-session-self-repair/SKILL.md",
+      "frontmatter": {
+        "aoa_invocation_mode": "explicit-only",
+        "aoa_portable_profile": "codex-facing-wave-3",
+        "aoa_scope": "core",
+        "aoa_source_repo": "8Dionysus/aoa-skills",
+        "aoa_source_skill_path": "skills/core/session-growth/aoa-session-self-repair/SKILL.md",
+        "aoa_status": "evaluated",
+        "compatibility": "Designed for Codex or similar coding agents with repository file access and an interactive shell. Network access is optional and only needed when repository validation or referenced workflows require it.",
+        "description_words": 64,
+        "license": "Apache-2.0",
+        "name": "aoa-session-self-repair"
+      },
+      "id": "aoa-session-self-repair",
+      "on_demand_families_present": [
+        "references",
+        "examples",
+        "checks",
+        "assets"
+      ],
+      "package_bytes": 15517,
+      "package_file_count": 10,
+      "package_sha256": "ca51605b56259b9da1fdd437e363331abe4e2cd4027a7a7621ee3c3ac0e6fe9a",
+      "triggered_body_words": 806
+    },
+    {
+      "activation": {
+        "allow_implicit_invocation": true,
+        "implicit_activation_policy": "invoke"
+      },
+      "companion_counts": {
+        "assets": 2,
+        "checks": 0,
+        "examples": 1,
+        "references": 1,
+        "scripts": 0
+      },
+      "entrypoint": ".agents/skills/aoa-source-of-truth-check/SKILL.md",
+      "frontmatter": {
+        "aoa_invocation_mode": "explicit-preferred",
+        "aoa_portable_profile": "codex-facing-wave-3",
+        "aoa_scope": "core",
+        "aoa_source_repo": "8Dionysus/aoa-skills",
+        "aoa_source_skill_path": "skills/core/engineering/aoa-source-of-truth-check/SKILL.md",
+        "aoa_status": "canonical",
+        "compatibility": "Designed for Codex or similar coding agents with repository file access and an interactive shell. Network access is optional and only needed when repository validation or referenced workflows require it.",
+        "description_words": 58,
+        "license": "Apache-2.0",
+        "name": "aoa-source-of-truth-check"
+      },
+      "id": "aoa-source-of-truth-check",
+      "on_demand_families_present": [
+        "references",
+        "examples",
+        "assets"
+      ],
+      "package_bytes": 17170,
+      "package_file_count": 6,
+      "package_sha256": "d403ecb915db59ea7bd2e3a29577b822ab13880768510128425de60f5aec1d40",
+      "triggered_body_words": 1074
+    },
+    {
+      "activation": {
+        "allow_implicit_invocation": false,
+        "implicit_activation_policy": "manual"
+      },
+      "companion_counts": {
+        "assets": 2,
+        "checks": 1,
+        "examples": 1,
+        "references": 4,
+        "scripts": 0
+      },
+      "entrypoint": ".agents/skills/aoa-summon/SKILL.md",
+      "frontmatter": {
+        "aoa_invocation_mode": "explicit-only",
+        "aoa_portable_profile": "codex-facing-wave-3",
+        "aoa_scope": "core",
+        "aoa_source_repo": "8Dionysus/aoa-skills",
+        "aoa_source_skill_path": "skills/core/session-growth/aoa-summon/SKILL.md",
+        "aoa_status": "evaluated",
+        "compatibility": "Designed for Codex or similar coding agents with repository file access and an interactive shell. Network access is optional and only needed when repository validation or referenced workflows require it.",
+        "description_words": 95,
+        "license": "Apache-2.0",
+        "name": "aoa-summon"
+      },
+      "id": "aoa-summon",
+      "on_demand_families_present": [
+        "references",
+        "examples",
+        "checks",
+        "assets"
+      ],
+      "package_bytes": 20874,
+      "package_file_count": 10,
+      "package_sha256": "8d9ca521802857728001132ec77e5bef464493ec5b84a8944380e00bf7223279",
+      "triggered_body_words": 1077
+    },
+    {
+      "activation": {
+        "allow_implicit_invocation": true,
+        "implicit_activation_policy": "invoke"
+      },
+      "companion_counts": {
+        "assets": 2,
+        "checks": 0,
+        "examples": 1,
+        "references": 1,
+        "scripts": 0
+      },
+      "entrypoint": ".agents/skills/aoa-tdd-slice/SKILL.md",
+      "frontmatter": {
+        "aoa_invocation_mode": "explicit-preferred",
+        "aoa_portable_profile": "codex-facing-wave-3",
+        "aoa_scope": "core",
+        "aoa_source_repo": "8Dionysus/aoa-skills",
+        "aoa_source_skill_path": "skills/core/engineering/aoa-tdd-slice/SKILL.md",
+        "aoa_status": "canonical",
+        "compatibility": "Designed for Codex or similar coding agents with repository file access and an interactive shell. Network access is optional and only needed when repository validation or referenced workflows require it.",
+        "description_words": 45,
+        "license": "Apache-2.0",
+        "name": "aoa-tdd-slice"
+      },
+      "id": "aoa-tdd-slice",
+      "on_demand_families_present": [
+        "references",
+        "examples",
+        "assets"
+      ],
+      "package_bytes": 12217,
+      "package_file_count": 6,
+      "package_sha256": "132c36237e5f03047bc7191646c11488375cc4d6efcd48d9629f342e8dfc8b96",
+      "triggered_body_words": 647
+    }
+  ],
+  "schema_version": "tos_agent_tool_owner_port_current_v1",
+  "source_manifest": ".agents/agent-surface.manifest.json",
+  "task_probe_depths": {
+    "approval_or_dry_run": 4,
+    "bounded_context_mapping": 3,
+    "eval_intake": 3,
+    "kag_currentness": 5,
+    "memo_candidate_routing": 5,
+    "owner_local_stats": 4,
+    "repo_local_change": 4,
+    "session_diagnosis_repair": 5,
+    "source_authority": 3
+  }
+}

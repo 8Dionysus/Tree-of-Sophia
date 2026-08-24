@@ -177,6 +177,20 @@
         "release command authority"
       ]
     },
+    "agent_surface": {
+      "label": "agent surface",
+      "layer": "agent-tool-owner-port",
+      "mode": "blocking",
+      "owner_surface": ".agents/agent-surface.manifest.json",
+      "purpose": "Verify model-facing discovery, trigger, on-demand, owner-port, task-probe, public-safety, and generated-currentness routes without promoting them to source or runtime authority.",
+      "command_sequence": "agent_surface",
+      "failure_route": ".agents/AGENTS.md",
+      "does_not_own": [
+        "skill source content in aoa-skills",
+        "ToS philosophical meaning",
+        "runtime, MCP, eval, stats, KAG, or memo authority"
+      ]
+    },
     "public_entry": {
       "label": "public entry",
       "layer": "public-compatibility",
@@ -301,7 +315,8 @@
         "local_kag_provider",
         "local_stats_port",
         "questbook_surface",
-        "route_docs"
+        "route_docs",
+        "agent_surface"
       ],
       "failure_route": "docs/RELEASING.md",
       "does_not_own": [
@@ -484,6 +499,16 @@
       {
         "label": "validate route-card structure",
         "command": ["python", "scripts/validate_nested_agents.py"]
+      }
+    ],
+    "agent_surface": [
+      {
+        "label": "check agent-surface currentness",
+        "command": ["python", "scripts/build_agent_surface_currentness.py", "--check"]
+      },
+      {
+        "label": "validate agent-surface routes",
+        "command": ["python", "scripts/validate_agent_surface.py", "--check"]
       }
     ],
     "public_entry": [
@@ -738,6 +763,14 @@
       {
         "label": "validate route-card structure",
         "command": ["python", "scripts/validate_nested_agents.py"]
+      },
+      {
+        "label": "check agent-surface currentness",
+        "command": ["python", "scripts/build_agent_surface_currentness.py", "--check"]
+      },
+      {
+        "label": "validate agent-surface routes",
+        "command": ["python", "scripts/validate_agent_surface.py", "--check"]
       },
       {
         "label": "check decision indexes",
