@@ -153,6 +153,34 @@ class DocumentationCrossCorpusTests(unittest.TestCase):
         validator.validate_source_map(ROOT, source_map, issues)
         self.assertTrue(any("extension groups must exactly cover" in message for _, message in issues))
 
+    def test_tracked_source_binding_accepts_the_builder_operation(self) -> None:
+        source_map = json.loads(
+            (ROOT / "docs/validation/documentation_family_map.json").read_text(encoding="utf-8")
+        )
+        issues: list[tuple[str, str]] = []
+        validator.validate_source_map(ROOT, source_map, issues)
+        self.assertEqual([], issues)
+        self.assertEqual(builder.TRACKED_SOURCE, source_map["atlas_method"]["tracked_source"])
+        self.assertEqual(builder.TRACKED_SOURCE, builder.build_currentness(ROOT)["tracked_source"])
+
+    def test_tracked_source_binding_rejects_an_unsupported_declaration(self) -> None:
+        source_map = json.loads(
+            (ROOT / "docs/validation/documentation_family_map.json").read_text(encoding="utf-8")
+        )
+        source_map["atlas_method"]["tracked_source"] = "find tracked -print0"
+        issues: list[tuple[str, str]] = []
+        validator.validate_source_map(ROOT, source_map, issues)
+        self.assertTrue(any("tracked_source must match the builder operation" in message for _, message in issues))
+
+    def test_tracked_source_mutation_cannot_produce_a_contradictory_carrier(self) -> None:
+        source_map = json.loads(
+            (ROOT / "docs/validation/documentation_family_map.json").read_text(encoding="utf-8")
+        )
+        source_map["atlas_method"]["tracked_source"] = "find tracked -print0"
+        with mock.patch.object(builder, "load_map", return_value=(ROOT / builder.MAP_PATH, source_map)):
+            with self.assertRaisesRegex(ValueError, "tracked_source must match the builder operation"):
+                builder.build_currentness(ROOT)
+
     def test_human_scope_uses_authored_exclusion_glob(self) -> None:
         human_extensions = {".yaml"}
         self.assertFalse(
@@ -227,6 +255,43 @@ class DocumentationCrossCorpusTests(unittest.TestCase):
                 issues: list[tuple[str, str]] = []
                 validator.validate_markdown_routes(root, issues)
         self.assertEqual([], issues)
+
+    def test_markdown_footnotes_are_not_destinations_and_reference_definitions_are(self) -> None:
+        text = "[guide]: target.md\n[^1]: This is explanatory prose.\n"
+        self.assertEqual(("target.md",), validator.validate_mechanics_topology.markdown_destinations(text))
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            write_text(root / "README.md", "[guide][guide]\n" + text)
+            write_text(root / "target.md", "# Target\n")
+            with mock.patch.object(validator, "tracked_paths", return_value=[Path("README.md"), Path("target.md")]):
+                issues: list[tuple[str, str]] = []
+                validator.validate_markdown_routes(root, issues)
+        self.assertEqual([], issues)
+
+    def test_markdown_reference_definition_breakage_remains_a_negative_control(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            write_text(root / "README.md", "[guide][guide]\n[guide]: missing.md\n[^1]: missing-footnote-text.md\n")
+            with mock.patch.object(validator, "tracked_paths", return_value=[Path("README.md")]):
+                issues: list[tuple[str, str]] = []
+                validator.validate_markdown_routes(root, issues)
+        self.assertTrue(any("broken local documentation route: missing.md" in message for _, message in issues))
+        self.assertFalse(any("missing-footnote-text.md" in message for _, message in issues))
+
+    def test_markdown_definition_mutation_is_not_silently_accepted(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            write_text(root / "README.md", "[guide][guide]\n[guide]: target.md\n")
+            write_text(root / "target.md", "# Target\n")
+            with mock.patch.object(validator, "tracked_paths", return_value=[Path("README.md"), Path("target.md")]):
+                valid_issues: list[tuple[str, str]] = []
+                validator.validate_markdown_routes(root, valid_issues)
+            self.assertEqual([], valid_issues)
+            write_text(root / "README.md", "[guide][guide]\n[guide]: missing.md\n")
+            with mock.patch.object(validator, "tracked_paths", return_value=[Path("README.md"), Path("target.md")]):
+                mutated_issues: list[tuple[str, str]] = []
+                validator.validate_markdown_routes(root, mutated_issues)
+        self.assertTrue(any("broken local documentation route: missing.md" in message for _, message in mutated_issues))
 
     def test_active_stale_executable_route_fails_closed(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:

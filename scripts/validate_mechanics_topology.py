@@ -106,6 +106,7 @@ def markdown_destinations(text: str, *, rendered_only: bool = False) -> tuple[st
     definitions = {
         re.sub(r"\s+", " ", label.strip()).casefold(): (angle or bare)
         for label, angle, bare in MARKDOWN_REFERENCE_DEFINITION_RE.findall(text)
+        if not label.strip().startswith("^")
     }
     destinations.extend(definitions.values())
     return tuple(destinations)

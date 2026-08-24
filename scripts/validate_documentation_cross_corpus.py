@@ -13,6 +13,7 @@ from typing import Any
 from build_documentation_family_currentness import (
     CURRENTNESS_PATH,
     MAP_PATH,
+    TRACKED_SOURCE,
     build_currentness,
     family_for,
     included_surface,
@@ -189,6 +190,13 @@ def validate_source_map(repo_root: Path, payload: dict[str, Any], issues: list[I
     structured_extensions = atlas_method.get("structured_carrier_extensions") if isinstance(atlas_method, dict) else None
     executable_extensions = atlas_method.get("executable_carrier_extensions") if isinstance(atlas_method, dict) else None
     human_exclusion = atlas_method.get("human_exclusion") if isinstance(atlas_method, dict) else None
+    tracked_source = atlas_method.get("tracked_source") if isinstance(atlas_method, dict) else None
+    if tracked_source != TRACKED_SOURCE:
+        _issue(
+            issues,
+            f"{MAP_PATH.as_posix()}#atlas_method",
+            f"tracked_source must match the builder operation: {TRACKED_SOURCE}",
+        )
     extension_groups = {
         "human_extensions": human_extensions,
         "structured_carrier_extensions": structured_extensions,
