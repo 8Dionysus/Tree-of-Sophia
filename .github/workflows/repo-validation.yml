@@ -52,6 +52,7 @@ jobs:
           git -C "$AOA_KAG_ROOT" remote add origin https://github.com/8Dionysus/aoa-kag.git
           git -C "$AOA_KAG_ROOT" fetch --quiet --no-tags --depth=1 origin "$AOA_KAG_REVISION" "$AOA_KAG_ACTION_REVISION"
           git -C "$AOA_KAG_ROOT" checkout --quiet --detach "$AOA_KAG_REVISION"
+          git -C "$AOA_KAG_ROOT" fetch --quiet --no-tags --unshallow origin
           test "$(git -C "$AOA_KAG_ROOT" rev-parse HEAD)" = "$AOA_KAG_REVISION"
 
       - name: Validate exact aoa-kag provider and separate action ABI

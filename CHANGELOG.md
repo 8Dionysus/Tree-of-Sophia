@@ -23,7 +23,9 @@ Tracking starts with the community-docs baseline for this repository.
 - Adds an exact-source CI check for the published `aoa-kag` provider body at
   `f46f146cc79a26fa81ad0f400b9c5774df293e57` and independently fetches the
   executable action at `6a79e62c7d20b6b11406dee78f409ada4a51bb3f`, proving the
-  two immutable action snapshots remain distinct.
+  two immutable action snapshots remain distinct. The provider checkout is
+  completed to full history before its history-dependent owner validator runs,
+  so a shallow CI fetch cannot manufacture a generated-index drift verdict.
 - Keeps the subject-store isolation regression standalone-safe by testing the
   Tree-owned process binding with a local resolver double; the full
   `abyss-machine` owner path remains exercised by the release audit.
