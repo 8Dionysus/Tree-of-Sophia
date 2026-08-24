@@ -16,6 +16,19 @@ import validate_agent_surface as validator  # noqa: E402
 
 
 class AgentSurfaceTests(unittest.TestCase):
+    _RELATION_VALUES = {
+        None: (10, 10, 20, 20),
+        "generated_delta": (11, 10, 20, 20),
+        "tracked_size": (10, 10, 21, 20),
+        "generated_delta_and_tracked_size": (11, 10, 21, 20),
+    }
+    _RECEIPT_SCOPES = (
+        "v2_to_v3_migration",
+        "generated_delta",
+        "tracked_size",
+        "generated_delta_and_tracked_size",
+    )
+
     @staticmethod
     def _budget_case(
         *,
@@ -54,6 +67,37 @@ class AgentSurfaceTests(unittest.TestCase):
             "decision_ref": validator.KAG_BUDGET_DECISION_REF,
         }
         return manifest, receipt, digest
+
+    @classmethod
+    def _budget_issues(
+        cls,
+        *,
+        base_state: str,
+        relation: str | None,
+        scope: str,
+    ) -> list[tuple[str, str]]:
+        changed, default, tracked, tracked_max = cls._RELATION_VALUES[relation]
+        family_manifest, receipt, digest = cls._budget_case(
+            changed_generated_bytes=changed,
+            default_limit_bytes=default,
+            tracked_bytes=tracked,
+            tracked_bytes_max=tracked_max,
+            scope=scope,
+        )
+        arguments = {
+            "root": ROOT,
+            "manifest": family_manifest,
+            "receipt": receipt,
+            "digest": digest,
+            "receipt_path": ROOT / "focused-budget-receipt.json",
+        }
+        if base_state == "unavailable":
+            with mock.patch.object(validator, "_base_has_v3_manifest", return_value=None):
+                return validator.budget_receipt_contract_issues(**arguments)
+        return validator.budget_receipt_contract_issues(
+            **arguments,
+            base_has_v3=base_state == "v3",
+        )
 
     def test_current_surface_has_expected_inventory_and_probe_depths(self) -> None:
         current = builder.build_currentness(ROOT)
@@ -186,6 +230,7 @@ class AgentSurfaceTests(unittest.TestCase):
 
     def test_budget_exceedance_relation_maps_single_joint_and_equality_cases(self) -> None:
         cases = (
+            ((9, 10, 19, 20), None),
             ((10, 10, 20, 20), None),
             ((11, 10, 20, 20), "generated_delta"),
             ((10, 10, 21, 20), "tracked_size"),
@@ -202,6 +247,89 @@ class AgentSurfaceTests(unittest.TestCase):
                     ),
                     expected,
                 )
+
+    def test_budget_admission_truth_table_covers_all_three_inputs(self) -> None:
+        for base_state in ("pre-v3", "v3", "unavailable"):
+            for relation in self._RELATION_VALUES:
+                for scope in self._RECEIPT_SCOPES:
+                    with self.subTest(base=base_state, relation=relation, scope=scope):
+                        issues = self._budget_issues(
+                            base_state=base_state,
+                            relation=relation,
+                            scope=scope,
+                        )
+                        expected_admission = relation is not None and (
+                            base_state == "pre-v3"
+                            and scope == "v2_to_v3_migration"
+                            or base_state == "v3"
+                            and scope == relation
+                        )
+                        self.assertEqual(not issues, expected_admission)
+                        if base_state == "unavailable":
+                            self.assertTrue(
+                                any("cannot verify" in message for _, message in issues)
+                            )
+
+    def test_budget_admission_mutations_reject_each_decisive_change(self) -> None:
+        valid_cases = (
+            ("pre-v3", "generated_delta", "v2_to_v3_migration"),
+            ("pre-v3", "tracked_size", "v2_to_v3_migration"),
+            ("pre-v3", "generated_delta_and_tracked_size", "v2_to_v3_migration"),
+            ("v3", "generated_delta", "generated_delta"),
+            ("v3", "tracked_size", "tracked_size"),
+            ("v3", "generated_delta_and_tracked_size", "generated_delta_and_tracked_size"),
+        )
+        for base_state, relation, scope in valid_cases:
+            with self.subTest(mutation="baseline", base=base_state, relation=relation):
+                self.assertEqual(
+                    self._budget_issues(
+                        base_state=base_state,
+                        relation=relation,
+                        scope=scope,
+                    ),
+                    [],
+                )
+            for mutated_base in ("pre-v3", "v3", "unavailable"):
+                if mutated_base == base_state:
+                    continue
+                with self.subTest(mutation="base", base=mutated_base, relation=relation):
+                    self.assertTrue(
+                        self._budget_issues(
+                            base_state=mutated_base,
+                            relation=relation,
+                            scope=scope,
+                        )
+                    )
+            for mutated_scope in self._RECEIPT_SCOPES:
+                if mutated_scope == scope:
+                    continue
+                with self.subTest(mutation="scope", base=base_state, scope=mutated_scope):
+                    self.assertTrue(
+                        self._budget_issues(
+                            base_state=base_state,
+                            relation=relation,
+                            scope=mutated_scope,
+                        )
+                    )
+
+        # Changing either measured predicate on a v3-valid case must change
+        # the canonical relation or collapse it to the no-exceedance state.
+        for relation, scope in (
+            ("generated_delta", "generated_delta"),
+            ("tracked_size", "tracked_size"),
+            ("generated_delta_and_tracked_size", "generated_delta_and_tracked_size"),
+        ):
+            for mutated_relation in self._RELATION_VALUES:
+                if mutated_relation == relation:
+                    continue
+                with self.subTest(mutation="measured-relation", relation=relation, mutated=mutated_relation):
+                    self.assertTrue(
+                        self._budget_issues(
+                            base_state="v3",
+                            relation=mutated_relation,
+                            scope=scope,
+                        )
+                    )
 
     def test_budget_scope_mismatches_are_rejected_in_both_directions(self) -> None:
         cases = (
@@ -259,13 +387,26 @@ class AgentSurfaceTests(unittest.TestCase):
         )
 
     def test_malformed_budget_relation_is_rejected(self) -> None:
-        with self.assertRaisesRegex(ValueError, "must be integers"):
-            validator.budget_exceedance_relation(
-                changed_generated_bytes="not-an-integer",
-                default_limit_bytes=10,
-                tracked_bytes=20,
-                tracked_bytes_max=20,
-            )
+        fields = {
+            "changed_generated_bytes": 10,
+            "default_limit_bytes": 10,
+            "tracked_bytes": 20,
+            "tracked_bytes_max": 20,
+        }
+        for field in fields:
+            for malformed in ("10", 10.0, True, None):
+                with self.subTest(field=field, malformed=malformed):
+                    values = dict(fields)
+                    values[field] = malformed
+                    with self.assertRaisesRegex(ValueError, "must be integers"):
+                        validator.budget_exceedance_relation(**values)
+
+        for field in fields:
+            with self.subTest(field=field, malformed="negative"):
+                values = dict(fields)
+                values[field] = -1
+                with self.assertRaisesRegex(ValueError, "must not be negative"):
+                    validator.budget_exceedance_relation(**values)
 
     def test_v2_to_v3_migration_scope_is_a_narrow_base_exception(self) -> None:
         relation = validator.budget_exceedance_relation(
@@ -282,6 +423,8 @@ class AgentSurfaceTests(unittest.TestCase):
             validator.canonical_budget_scope(relation, base_has_v3=True),
             "generated_delta",
         )
+        self.assertIsNone(validator.canonical_budget_scope(None, base_has_v3=False))
+        self.assertIsNone(validator.canonical_budget_scope(None, base_has_v3=True))
         family_manifest, receipt, digest = self._budget_case(
             changed_generated_bytes=11,
             default_limit_bytes=10,
@@ -312,6 +455,28 @@ class AgentSurfaceTests(unittest.TestCase):
                 digest,
                 ROOT / "focused-budget-receipt.json",
                 base_has_v3=True,
+            ),
+        )
+
+        migration_manifest, migration_receipt, migration_digest = self._budget_case(
+            changed_generated_bytes=10,
+            default_limit_bytes=10,
+            tracked_bytes=20,
+            tracked_bytes_max=20,
+            scope="v2_to_v3_migration",
+        )
+        self.assertIn(
+            (
+                "focused-budget-receipt.json",
+                "budget receipt scope cannot authorize a family with no exceeded budget dimension",
+            ),
+            validator.budget_receipt_contract_issues(
+                ROOT,
+                migration_manifest,
+                migration_receipt,
+                migration_digest,
+                ROOT / "focused-budget-receipt.json",
+                base_has_v3=False,
             ),
         )
 

@@ -262,6 +262,8 @@ def canonical_budget_scope(
     base_has_v3: bool,
 ) -> str | None:
     """Mirror aoa-kag's narrow pre-v3 migration branch before normal mapping."""
+    if relation is None:
+        return None
     if not base_has_v3:
         return "v2_to_v3_migration"
     return relation
@@ -387,15 +389,23 @@ def budget_receipt_contract_issues(
             fetch_missing_base=fetch_missing_base,
         )
 
-    if isinstance(scope, str) and scope == "v2_to_v3_migration":
+    if isinstance(scope, str) and scope in KAG_BUDGET_RECEIPT_SCOPES:
+        # Base state, measured relation, and requested scope are independent
+        # admission inputs. Resolve the exact base before applying either the
+        # pre-v3 exception or the v3 measured-scope mapping so an unavailable
+        # base remains fail-closed for every recognized scope.
         base_has_v3_result = verified_base_has_v3()
         if base_has_v3_result is None:
-            issues.append((label, "cannot verify v2_to_v3_migration base family"))
-        elif base_has_v3_result:
-            issues.append((label, "v2_to_v3_migration requires a base without a v3 family manifest"))
-    elif isinstance(scope, str) and relation is not None:
-        base_has_v3_result = verified_base_has_v3()
-        if base_has_v3_result is False:
+            if scope == "v2_to_v3_migration":
+                issues.append((label, "cannot verify v2_to_v3_migration base family"))
+            else:
+                issues.append((label, "cannot verify budget receipt base family"))
+        elif relation is None:
+            issues.append((label, "budget receipt scope cannot authorize a family with no exceeded budget dimension"))
+        elif scope == "v2_to_v3_migration":
+            if base_has_v3_result:
+                issues.append((label, "v2_to_v3_migration requires a base without a v3 family manifest"))
+        elif base_has_v3_result is False:
             expected_scope = canonical_budget_scope(relation, base_has_v3=False)
             issues.append(
                 (
@@ -403,8 +413,6 @@ def budget_receipt_contract_issues(
                     f"budget receipt scope must be {expected_scope!r} for a pre-v3 base family",
                 )
             )
-        elif base_has_v3_result is None:
-            issues.append((label, "cannot verify budget receipt base family"))
         else:
             expected_scope = canonical_budget_scope(relation, base_has_v3=True)
             if scope != expected_scope:
@@ -414,11 +422,6 @@ def budget_receipt_contract_issues(
                         f"budget receipt scope does not match the current exceedance: expected {expected_scope!r}",
                     )
                 )
-    elif isinstance(scope, str) and relation is None and all(
-        _is_integer(value) for value in relation_inputs
-    ):
-        if scope != "v2_to_v3_migration":
-            issues.append((label, "budget receipt scope cannot authorize a family with no exceeded budget dimension"))
 
     changed_bytes = receipt.get("changed_generated_bytes")
     allowed_bytes = receipt.get("allowed_bytes")
