@@ -7,7 +7,22 @@ Tracking starts with the community-docs baseline for this repository.
 
 ## [Unreleased]
 
-No unreleased changes.
+### Changed
+
+- Makes the separate KAG action ABI explicit in current source: the executable
+  `repo-local-kag-index` workflow action remains pinned to immutable
+  `6a79e62c7d20b6b11406dee78f409ada4a51bb3f`, while the provider body remains
+  pinned to immutable `f46f146cc79a26fa81ad0f400b9c5774df293e57`.
+- Adds an executable parity guard and owner decision so neither identity is
+  misreported as the other. This is a current-source compatibility repair
+  only; it does not create or rewrite a tag or Release.
+
+### Validation
+
+- The workflow and release-contract parity tests require the exact provider
+  and action refs and assert their intentional inequality. Action execution,
+  provider source identity, artifact admission, runtime, proof, delivery,
+  closure, and acceptance remain separate claims.
 
 ## [0.5.0] - 2026-08-23
 
