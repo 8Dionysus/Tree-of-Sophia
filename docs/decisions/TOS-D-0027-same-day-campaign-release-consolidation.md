@@ -96,13 +96,9 @@ human acceptance.
 
 ## Validation
 
-Validate decision indexes and records with:
-
-```bash
-python scripts/generate_decision_indexes.py
-python scripts/generate_decision_indexes.py --check
-python scripts/validate_decision_records.py
-```
+Validate decision indexes and records with `python scripts/generate_decision_indexes.py`,
+`python scripts/generate_decision_indexes.py --check`, and
+`python scripts/validate_decision_records.py`.
 
 The release execution must additionally bind the immutable pre-cleanup corpus,
 the content-conservation ledger, the exact landed source, provider evidence,
