@@ -6,8 +6,10 @@ interpretations, contexts, and intellectual lineages into an authored,
 reviewable tree. Systems reproduce this tree as graphs, search indexes, and
 public routes.
 
-Every branch cites its source. Nodes and relations record provenance, exact
-source routes, interpretation history, and review status. ToS traces how ideas
+Source-backed branches cite their source. Scaffold branches remain explicit
+about their provisional role until that evidence exists. Nodes and relations
+record provenance, exact source routes, interpretation history, and review
+status. ToS traces how ideas
 descend, diverge, inherit, and return across languages, traditions, places,
 and time while preserving uncertainty and competing readings.
 
