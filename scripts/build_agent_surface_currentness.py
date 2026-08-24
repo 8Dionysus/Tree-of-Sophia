@@ -79,6 +79,37 @@ def boolean_scalar(value: str | None, *, key: str, path: Path) -> bool | None:
     raise ValueError(f"{path}: {key} must be the YAML boolean literal true or false")
 
 
+def policy_scalars(text: str, *, path: Path) -> dict[str, str | None]:
+    """Read activation fields only from the top-level YAML policy mapping."""
+    values: dict[str, str | None] = {key: None for key in OPENAI_KEYS}
+    policy_indent: int | None = None
+    for line_number, line in enumerate(text.splitlines(), start=1):
+        stripped = line.strip()
+        if not stripped or stripped.startswith("#"):
+            continue
+        indent = len(line) - len(line.lstrip(" "))
+        if stripped == "policy:":
+            if policy_indent is not None:
+                raise ValueError(f"{path}:{line_number}: duplicate top-level policy mapping")
+            if indent != 0:
+                raise ValueError(f"{path}:{line_number}: policy mapping must be top-level")
+            policy_indent = indent
+            continue
+        key, separator, value = stripped.partition(":")
+        if key not in OPENAI_KEYS:
+            continue
+        if policy_indent is None or indent != policy_indent + 2:
+            raise ValueError(
+                f"{path}:{line_number}: {key} must be an immediate child of policy"
+            )
+        if values[key] is not None:
+            raise ValueError(f"{path}:{line_number}: duplicate policy field {key}")
+        if not separator or not value.strip():
+            raise ValueError(f"{path}:{line_number}: policy field {key} needs a scalar")
+        values[key] = value.strip()
+    return values
+
+
 def _fallback_package_files(package_root: Path) -> list[Path]:
     return [
         child
@@ -122,10 +153,7 @@ def parse_skill(skill_path: Path) -> dict[str, Any]:
         raise ValueError(f"{skill_path}: name and description are required")
     openai_path = skill_path.parent / "agents" / "openai.yaml"
     openai_text = openai_path.read_text(encoding="utf-8")
-    activation = {
-        key: scalar_from_block(openai_text, key)
-        for key in OPENAI_KEYS
-    }
+    activation = policy_scalars(openai_text, path=openai_path)
     activation["allow_implicit_invocation"] = boolean_scalar(
         activation["allow_implicit_invocation"],
         key="allow_implicit_invocation",

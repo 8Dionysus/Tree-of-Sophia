@@ -77,6 +77,16 @@ class AgentSurfaceTests(unittest.TestCase):
                 path=Path("agents/openai.yaml"),
             )
 
+    def test_activation_metadata_must_be_in_policy_mapping(self) -> None:
+        with self.assertRaisesRegex(ValueError, "immediate child of policy"):
+            builder.policy_scalars(
+                "implicit_activation_policy: manual\n"
+                "policy:\n"
+                "  implicit_activation_policy: invoke\n"
+                "  allow_implicit_invocation: true\n",
+                path=Path("agents/openai.yaml"),
+            )
+
     def test_generated_kag_family_has_a_matching_receipt(self) -> None:
         manifest = json.loads(
             (ROOT / ".agents/agent-surface.manifest.json").read_text(encoding="utf-8")
