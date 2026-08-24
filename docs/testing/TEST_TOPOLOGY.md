@@ -48,6 +48,7 @@ mechanic package or part should carry the regression with its own source.
 | `validator_behavior` | Focused validator behavior without making validators doctrine. | The exact validator script and its source owner. |
 | `mechanics_validator_behavior` | Mechanics-local validator behavior. | Owning mechanic package or part. |
 | `mechanics_schema_contract` | Mechanics-local schema and example contracts. | Owning mechanic package or part. |
+| `mechanics_route_docs` | Package/part selection links, current executable references, and the bounded mechanics entrypoint. | `mechanics/README.md`, `mechanics/topology.json`, package `PARTS.md`, and active part routes. |
 | `source_home_contract` | ToS source-home manifest and branch schema. | `ToS/source_home.manifest.json` and source-home schema. |
 | `validator_behavior` | Source-witness evidence-spine checks and other bounded validator behavior. | The exact validator plus its source owner and contracts. |
 | `command_authority` | Lane manifest shape, release coverage, and command delegation. | `docs/validation/validation_lanes.json`. |

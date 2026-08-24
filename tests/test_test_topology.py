@@ -119,7 +119,10 @@ class TestTopologyTests(unittest.TestCase):
                     self.assertIn(entry["validation_lane"], {"mechanics_local", "experience_contracts"})
                 else:
                     self.assertEqual("root", entry["home_scope"])
-                    self.assertIn(entry["validation_lane"], {"experience_contracts", "generated_parity", "questbook_surface"})
+                    self.assertIn(
+                        entry["validation_lane"],
+                        {"experience_contracts", "generated_parity", "questbook_surface", "mechanics_topology"},
+                    )
 
 
 if __name__ == "__main__":

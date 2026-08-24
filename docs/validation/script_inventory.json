@@ -2025,17 +2025,20 @@
       "owner_surface": "mechanics/topology.json",
       "source_truth": [
         "mechanics/topology.json",
-        "mechanics/*/PARTS.md"
+        "mechanics/README.md",
+        "mechanics/*/PARTS.md",
+        "docs/validation/script_inventory.json"
       ],
       "reads": [
         "mechanics/topology.json",
-        "mechanics/**"
+        "mechanics/**",
+        "docs/validation/script_inventory.json"
       ],
       "writes": [],
       "side_effects": "validation output only",
       "validation_lane": "mechanics_topology",
       "ci_inclusion": "release",
-      "test_target": "tests/test_script_topology.py",
+      "test_target": "tests/test_mechanics_route_docs.py",
       "disposition": "keep"
     },
     {
