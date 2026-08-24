@@ -508,7 +508,7 @@
       },
       {
         "label": "validate agent-surface routes",
-        "command": ["python", "scripts/validate_agent_surface.py", "--check"]
+        "command": ["python", "scripts/validate_agent_surface.py", "--check", "--fetch-budget-bases"]
       }
     ],
     "public_entry": [
@@ -770,7 +770,7 @@
       },
       {
         "label": "validate agent-surface routes",
-        "command": ["python", "scripts/validate_agent_surface.py", "--check"]
+        "command": ["python", "scripts/validate_agent_surface.py", "--check", "--fetch-budget-bases"]
       },
       {
         "label": "check decision indexes",

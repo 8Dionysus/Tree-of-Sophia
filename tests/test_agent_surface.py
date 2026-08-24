@@ -315,6 +315,29 @@ class AgentSurfaceTests(unittest.TestCase):
             ),
         )
 
+    def test_budget_validation_can_fetch_an_exact_missing_base(self) -> None:
+        family_manifest, receipt, digest = self._budget_case(
+            changed_generated_bytes=11,
+            default_limit_bytes=10,
+            tracked_bytes=20,
+            tracked_bytes_max=20,
+            scope="generated_delta",
+        )
+        with (
+            mock.patch.object(validator, "_base_has_v3_manifest", side_effect=[None, True]),
+            mock.patch.object(validator, "_fetch_exact_base_ref", return_value=True) as fetch,
+        ):
+            issues = validator.budget_receipt_contract_issues(
+                ROOT,
+                family_manifest,
+                receipt,
+                digest,
+                ROOT / "focused-budget-receipt.json",
+                fetch_missing_base=True,
+            )
+        self.assertEqual(issues, [])
+        fetch.assert_called_once_with(ROOT, "b" * 40)
+
     def test_current_receipt_rejects_review_scope_case(self) -> None:
         manifest = json.loads(
             (ROOT / ".agents/agent-surface.manifest.json").read_text(encoding="utf-8")
