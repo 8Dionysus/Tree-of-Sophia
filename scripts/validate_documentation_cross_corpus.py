@@ -71,6 +71,14 @@ EXPECTED_CONTEXT_PROBE_IDS = {
     "public_entry",
     "machine_projection_summary",
 }
+CANONICAL_SOURCE_MAP_ROUTES = {
+    "owner_surface": "docs/validation/README.md",
+    "schema_ref": "docs/validation/documentation-family-map.schema.json",
+    "currentness_schema_ref": "docs/validation/documentation-family-currentness.schema.json",
+    "generated_currentness": "docs/validation/documentation-family.current.json",
+    "builder": "scripts/build_documentation_family_currentness.py",
+    "validator": "scripts/validate_documentation_cross_corpus.py",
+}
 COMMAND_CARRIER_SPLIT_RE = re.compile(r"(?:;|&&|\|\||,|(?<=[.!?])\s+)")
 
 
@@ -114,6 +122,9 @@ def validate_source_map(repo_root: Path, payload: dict[str, Any], issues: list[I
         _issue(issues, MAP_PATH.as_posix(), "unsupported schema_version")
     if payload.get("owner_repo") != "Tree-of-Sophia":
         _issue(issues, MAP_PATH.as_posix(), "owner_repo must be Tree-of-Sophia")
+    for key, expected in CANONICAL_SOURCE_MAP_ROUTES.items():
+        if payload.get(key) != expected:
+            _issue(issues, MAP_PATH.as_posix(), f"{key} must remain the canonical route: {expected}")
     for key in ("owner_surface", "schema_ref", "currentness_schema_ref", "generated_currentness", "builder", "validator"):
         value = payload.get(key)
         if not isinstance(value, str) or not value:
@@ -572,13 +583,24 @@ def validate_context_probes(repo_root: Path, payload: dict[str, Any], issues: li
         try:
             if measure == "agents_route_max_inherited":
                 values: list[int] = []
+                missing_measurements: list[str] = []
                 for surface in surfaces:
                     route_payload = json.loads((repo_root / surface).read_text(encoding="utf-8"))
-                    values.extend(
+                    surface_values = [
                         route.get("inherited_context_tokens")
                         for route in route_payload.get("task_routes", [])
                         if isinstance(route, dict) and isinstance(route.get("inherited_context_tokens"), int)
+                    ]
+                    if not surface_values:
+                        missing_measurements.append(surface)
+                    values.extend(surface_values)
+                if missing_measurements:
+                    _issue(
+                        issues,
+                        f"context_probes#{probe_id}",
+                        f"configured route surface produced no inherited measurements: {', '.join(missing_measurements)}",
                     )
+                    continue
                 value = max(values, default=0)
             elif measure == "generated_summary":
                 if len(surfaces) != 1:

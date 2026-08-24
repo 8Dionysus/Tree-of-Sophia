@@ -113,6 +113,14 @@ class DocumentationCrossCorpusTests(unittest.TestCase):
         validator.validate_source_map(ROOT, source_map, issues)
         self.assertTrue(any("not in command authority" in message for _, message in issues))
 
+        source_map = json.loads(
+            (ROOT / "docs/validation/documentation_family_map.json").read_text(encoding="utf-8")
+        )
+        source_map["generated_currentness"] = "README.md"
+        issues = []
+        validator.validate_source_map(ROOT, source_map, issues)
+        self.assertTrue(any("canonical route" in message for _, message in issues))
+
     def test_human_scope_uses_authored_exclusion_glob(self) -> None:
         human_extensions = {".yaml"}
         self.assertFalse(
@@ -374,6 +382,23 @@ class DocumentationCrossCorpusTests(unittest.TestCase):
             issues: list[tuple[str, str]] = []
             validator.validate_context_probes(root, payload, issues)
         self.assertTrue(any("context budget exceeded: 5>4" in message for _, message in issues))
+
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            write_text(root / "empty.json", json.dumps({"task_routes": []}))
+            payload = {
+                "context_probes": [
+                    {
+                        "id": "routes",
+                        "surfaces": ["empty.json"],
+                        "measure": "agents_route_max_inherited",
+                        "max_tokens": 4,
+                    }
+                ]
+            }
+            issues = []
+            validator.validate_context_probes(root, payload, issues)
+        self.assertTrue(any("produced no inherited measurements" in message for _, message in issues))
 
 
 if __name__ == "__main__":
