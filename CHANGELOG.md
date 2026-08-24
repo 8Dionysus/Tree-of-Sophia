@@ -7,7 +7,60 @@ Tracking starts with the community-docs baseline for this repository.
 
 ## [Unreleased]
 
-No unreleased changes.
+### Changed
+
+- Makes the separate KAG action ABI explicit in current source: the executable
+  `repo-local-kag-index` workflow action remains pinned to immutable
+  `6a79e62c7d20b6b11406dee78f409ada4a51bb3f`, while the provider body remains
+  pinned to immutable `f46f146cc79a26fa81ad0f400b9c5774df293e57`.
+- Adds an executable parity guard and owner decision so neither identity is
+  misreported as the other. This is a current-source compatibility repair
+  only; it does not create or rewrite a tag or Release.
+- Makes an explicitly supplied Tree subject-store root authoritative for the
+  validator process, so the missing-store rehearsal cannot fall through to an
+  ambient host default. The host store remains untouched; the deny-before-
+  materialization and post-materialization intent states remain separate.
+- Adds an exact-source CI check for the published `aoa-kag` provider body at
+  `f46f146cc79a26fa81ad0f400b9c5774df293e57` and independently fetches the
+  executable action at `6a79e62c7d20b6b11406dee78f409ada4a51bb3f`, proving the
+  two immutable action snapshots remain distinct. The provider checkout is
+  completed to full history before its history-dependent owner validator runs,
+  so a shallow CI fetch cannot manufacture a generated-index drift verdict.
+- Keeps the subject-store isolation regression standalone-safe by testing the
+  Tree-owned process binding with a local resolver double; the full
+  `abyss-machine` owner path remains exercised by the release audit.
+- Preserves the raw subject-store CLI value until owner resolution, rejecting
+  empty or repository-root values before materialization so an empty shell
+  expansion cannot become `Path('.')` and fall through to the checkout.
+- Rebinds the module default as well as environment roots during the nested
+  materialized-store rehearsal, so its trust gate inspects the temporary store
+  rather than the already-populated primary store.
+- Isolates the negative precondition gate on every invocation, including
+  `--no-clean` reruns, so retained materialized subjects cannot turn the
+  required deny-before-materialization state into an allow. The rehearsal uses
+  both a fresh registry and an empty temporary store.
+
+### Validation
+
+- The workflow and release-contract parity tests require the exact provider
+  and action refs and assert their intentional inequality. Action execution,
+  provider source identity, artifact admission, runtime, proof, delivery,
+  closure, and acceptance remain separate claims.
+- The artifact-bundle isolation regression proves that an empty explicit root
+  is the only store candidate during the rehearsal and that process state is
+  restored afterward. This is an Unreleased source/tooling repair only; no
+  tag, Release, artifact verdict, runtime, proof, or acceptance claim changes.
+- The CLI regression covers both raw empty input and an explicit current-
+  directory root; both fail closed before any subject-store writes.
+- The nested-scope regression proves temporary-store binding and restoration of
+  the outer and ambient defaults around the adversarial trust gate.
+- The owner validator keeps its deny-before-materialization rehearsal on an
+  empty temporary root and fresh registry even when a prior materialized store
+  is retained.
+- The hosted workflow validates the exact provider source and separate action
+  snapshots before the Tree release audit. These checks prove source-level
+  compatibility evidence only; they do not prove artifact admission, runtime,
+  proof, delivery, closure, or owner/human acceptance.
 
 ## [0.5.0] - 2026-08-23
 

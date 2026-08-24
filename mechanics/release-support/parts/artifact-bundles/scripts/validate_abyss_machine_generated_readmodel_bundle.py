@@ -8,6 +8,8 @@ import os
 import shutil
 import sys
 import tempfile
+from collections.abc import Iterator
+from contextlib import contextmanager
 from pathlib import Path
 from typing import Any
 
@@ -42,6 +44,47 @@ TRUST_ROOT_MODE = "host_managed"
 PRODUCER = "Tree-of-Sophia generated readmodel builder"
 EXPECTED_REQUIRED_CONTROLS = ["abi_signature"]
 REQUIRED_SUBJECT_STORE_BLOCKER = "required_artifact_subject_store_not_verified"
+SUBJECT_STORE_ENV_NAMES = (
+    "ABYSS_MACHINE_ARTIFACT_SUBJECT_STORE_ROOT",
+    "ABYSS_MACHINE_ARTIFACT_SUBJECT_STORE_ROOTS",
+)
+
+
+@contextmanager
+def _subject_store_scope(artifact_bundles: Any, store_root: Path) -> Iterator[None]:
+    """Bind every artifact-store lookup in this validator to one explicit root.
+
+    The OS Abyss resolver intentionally appends its host default after reading
+    environment roots.  A Tree rehearsal that only supplies an environment
+    root can therefore see an unrelated host store and turn the required
+    missing-store denial into an allow.  This process-local binding keeps the
+    owner validator's explicit root authoritative while restoring both the
+    imported module and environment state on exit.
+    """
+
+    target = Path(store_root).expanduser().resolve()
+    missing = object()
+    previous_default = getattr(
+        artifact_bundles,
+        "DEFAULT_ARTIFACT_SUBJECT_STORE_ROOT",
+        missing,
+    )
+    previous_env = {name: os.environ.get(name) for name in SUBJECT_STORE_ENV_NAMES}
+    try:
+        artifact_bundles.DEFAULT_ARTIFACT_SUBJECT_STORE_ROOT = target
+        for name in SUBJECT_STORE_ENV_NAMES:
+            os.environ[name] = str(target)
+        yield
+    finally:
+        if previous_default is missing:
+            delattr(artifact_bundles, "DEFAULT_ARTIFACT_SUBJECT_STORE_ROOT")
+        else:
+            artifact_bundles.DEFAULT_ARTIFACT_SUBJECT_STORE_ROOT = previous_default
+        for name, value in previous_env.items():
+            if value is None:
+                os.environ.pop(name, None)
+            else:
+                os.environ[name] = value
 
 
 def _candidate_abyss_machine_roots() -> list[Path]:
@@ -624,7 +667,29 @@ def _verify_materialized_subject_store(
     abyss_repo_root: Path,
     store_root: Path | None = None,
 ) -> dict[str, Any]:
-    target_store_root = store_root or tmp_root / "subject-store"
+    target_store_root = (store_root or tmp_root / "subject-store").resolve()
+    with _subject_store_scope(artifact_bundles, target_store_root):
+        return _verify_materialized_subject_store_impl(
+            artifact_bundles=artifact_bundles,
+            manifest=manifest,
+            bundle_dir=bundle_dir,
+            registry_dir=registry_dir,
+            tmp_root=tmp_root,
+            abyss_repo_root=abyss_repo_root,
+            target_store_root=target_store_root,
+        )
+
+
+def _verify_materialized_subject_store_impl(
+    *,
+    artifact_bundles: Any,
+    manifest: Path,
+    bundle_dir: Path,
+    registry_dir: Path,
+    tmp_root: Path,
+    abyss_repo_root: Path,
+    target_store_root: Path,
+) -> dict[str, Any]:
     pre_registry = _registry_roundtrip(
         artifact_bundles,
         bundle_dir,
@@ -728,6 +793,32 @@ def _validate_in_bundle_dir(
     clean: bool,
 ) -> dict[str, Any]:
     artifact_bundles, abyss_machine_root, package_root = _import_artifact_bundles()
+    with _subject_store_scope(artifact_bundles, subject_store_root):
+        return _validate_in_bundle_dir_impl(
+            manifest,
+            subject,
+            bundle_dir,
+            registry_dir,
+            subject_store_root,
+            artifact_bundles=artifact_bundles,
+            abyss_machine_root=abyss_machine_root,
+            package_root=package_root,
+            clean=clean,
+        )
+
+
+def _validate_in_bundle_dir_impl(
+    manifest: Path,
+    subject: Path,
+    bundle_dir: Path,
+    registry_dir: Path,
+    subject_store_root: Path,
+    *,
+    artifact_bundles: Any,
+    abyss_machine_root: Path | None,
+    package_root: str | None,
+    clean: bool,
+) -> dict[str, Any]:
     _assert_manifest_contract_shape(manifest)
     _assert_public_safe_subjects(manifest, subject)
     if clean:
@@ -763,11 +854,30 @@ def _validate_in_bundle_dir(
         manifest=manifest,
         abyss_repo_root=abyss_repo_root,
     )
-    pre_materialization_gate = _trust_gate_denies_without_subject_store(
-        artifact_bundles,
-        registry_dir,
-        registry,
-    )
+    # A --no-clean rerun may retain a valid materialized store. Keep the
+    # negative precondition independent from that retained state so it still
+    # proves deny-before-materialization on every invocation.
+    with tempfile.TemporaryDirectory(
+        prefix="tos-generated-readmodel-precondition-",
+        dir=_default_tmp_root(),
+    ) as precondition_tmp:
+        precondition_root = Path(precondition_tmp)
+        precondition_registry_dir = precondition_root / "registry"
+        with _subject_store_scope(artifact_bundles, precondition_root):
+            precondition_registry = _registry_roundtrip(
+                artifact_bundles,
+                bundle_dir,
+                precondition_registry_dir,
+                lifecycle_state="release-ready",
+                evidence_ref="materialized-subject-store-negative-precondition",
+                manifest=manifest,
+                abyss_repo_root=abyss_repo_root,
+            )
+            pre_materialization_gate = _trust_gate_denies_without_subject_store(
+                artifact_bundles,
+                precondition_registry_dir,
+                precondition_registry,
+            )
     materialized = artifact_bundles.materialize_artifact_subjects(
         bundle_dir,
         store_root=subject_store_root,
@@ -858,18 +968,38 @@ def _validate_in_bundle_dir(
     return _sanitize_public_payload(payload, abyss_machine_root)
 
 
+def _resolve_subject_store_root(subject_store_root: Path | str | None) -> Path:
+    if subject_store_root is None:
+        return DEFAULT_SUBJECT_STORE_ROOT.resolve()
+    if isinstance(subject_store_root, str) and not subject_store_root.strip():
+        raise ValueError("explicit subject_store_root must be a non-empty path")
+    candidate = Path(subject_store_root).expanduser()
+    if candidate == Path("."):
+        raise ValueError(
+            "explicit subject_store_root must not resolve to the repository root"
+        )
+    if not candidate.is_absolute():
+        candidate = REPO_ROOT / candidate
+    resolved = candidate.resolve()
+    if resolved == REPO_ROOT.resolve():
+        raise ValueError(
+            "explicit subject_store_root must not resolve to the repository root"
+        )
+    return resolved
+
+
 def validate_bundle(
     manifest: Path,
     subject: Path,
     bundle_dir: Path | None,
     registry_dir: Path | None,
-    subject_store_root: Path | None = None,
+    subject_store_root: Path | str | None = None,
     *,
     clean: bool,
 ) -> dict[str, Any]:
     target = bundle_dir or DEFAULT_BUNDLE_DIR
     target_registry = registry_dir or DEFAULT_REGISTRY_DIR
-    target_subject_store = subject_store_root or DEFAULT_SUBJECT_STORE_ROOT
+    target_subject_store = _resolve_subject_store_root(subject_store_root)
     return _validate_in_bundle_dir(
         manifest,
         subject,
@@ -886,7 +1016,9 @@ def main() -> int:
     parser.add_argument("--subject", type=Path, default=DEFAULT_SUBJECT)
     parser.add_argument("--bundle-dir", type=Path, default=DEFAULT_BUNDLE_DIR)
     parser.add_argument("--registry-dir", type=Path, default=DEFAULT_REGISTRY_DIR)
-    parser.add_argument("--subject-store-root", type=Path, default=DEFAULT_SUBJECT_STORE_ROOT)
+    # Keep this raw so an empty shell expansion stays distinguishable from
+    # Path('.') before subject-store resolution.
+    parser.add_argument("--subject-store-root", default=None)
     parser.add_argument("--no-clean", action="store_true", help="do not remove the previous generated bundle directory first")
     parser.add_argument("--json", action="store_true", help="print the full validation payload")
     args = parser.parse_args()
@@ -895,7 +1027,7 @@ def main() -> int:
     subject = args.subject if args.subject.is_absolute() else REPO_ROOT / args.subject
     bundle_dir = args.bundle_dir if args.bundle_dir.is_absolute() else REPO_ROOT / args.bundle_dir
     registry_dir = args.registry_dir if args.registry_dir.is_absolute() else REPO_ROOT / args.registry_dir
-    subject_store_root = args.subject_store_root if args.subject_store_root.is_absolute() else REPO_ROOT / args.subject_store_root
+    subject_store_root = args.subject_store_root
 
     payload = validate_bundle(
         manifest,

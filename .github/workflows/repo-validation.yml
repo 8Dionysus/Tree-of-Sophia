@@ -12,6 +12,8 @@ jobs:
     runs-on: ubuntu-latest
     env:
       AOA_STATS_REVISION: 88ff38b1b38eef939f2c5b4541cbe8363a05fc8d
+      AOA_KAG_REVISION: f46f146cc79a26fa81ad0f400b9c5774df293e57
+      AOA_KAG_ACTION_REVISION: 6a79e62c7d20b6b11406dee78f409ada4a51bb3f
     steps:
       - name: Checkout
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
@@ -46,8 +48,31 @@ jobs:
           git -C "$AOA_STATS_ROOT" checkout --quiet --detach FETCH_HEAD
           test "$(git -C "$AOA_STATS_ROOT" rev-parse HEAD)" = "$AOA_STATS_REVISION"
 
+      - name: Fetch pinned aoa-kag provider and action sources
+        env:
+          AOA_KAG_ROOT: ${{ runner.temp }}/aoa-kag
+        run: |
+          git init --quiet "$AOA_KAG_ROOT"
+          git -C "$AOA_KAG_ROOT" remote add origin https://github.com/8Dionysus/aoa-kag.git
+          git -C "$AOA_KAG_ROOT" fetch --quiet --no-tags --depth=1 origin "$AOA_KAG_REVISION" "$AOA_KAG_ACTION_REVISION"
+          git -C "$AOA_KAG_ROOT" checkout --quiet --detach "$AOA_KAG_REVISION"
+          git -C "$AOA_KAG_ROOT" fetch --quiet --no-tags --unshallow origin
+          test "$(git -C "$AOA_KAG_ROOT" rev-parse HEAD)" = "$AOA_KAG_REVISION"
+
+      - name: Validate exact aoa-kag provider and separate action ABI
+        env:
+          AOA_KAG_ROOT: ${{ runner.temp }}/aoa-kag
+        run: |
+          python "$AOA_KAG_ROOT/scripts/validate_kag.py" --scope local
+          provider_action_digest="$(git -C "$AOA_KAG_ROOT" show "$AOA_KAG_REVISION:.github/actions/repo-local-kag-index/action.yml" | sha256sum | cut -d' ' -f1)"
+          executable_action_digest="$(git -C "$AOA_KAG_ROOT" show "$AOA_KAG_ACTION_REVISION:.github/actions/repo-local-kag-index/action.yml" | sha256sum | cut -d' ' -f1)"
+          test "$provider_action_digest" != "$executable_action_digest"
+          test -n "$provider_action_digest"
+          test -n "$executable_action_digest"
+
       - name: Run release audit
         env:
           ABYSS_MACHINE_REPO_ROOT: ${{ runner.temp }}/abyss-machine
+          AOA_KAG_ROOT: ${{ runner.temp }}/aoa-kag
           AOA_STATS_ROOT: ${{ runner.temp }}/aoa-stats
         run: python scripts/release_check.py

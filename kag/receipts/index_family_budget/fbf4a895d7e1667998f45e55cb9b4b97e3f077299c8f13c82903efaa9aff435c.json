@@ -1,0 +1,17 @@
+{
+  "allowed_bytes": 19551086,
+  "allowed_tracked_bytes": 27365860,
+  "approved_by": "repository-owner",
+  "base_ref": "effb9c860cb0e605d04da40a19acbfbd77e3dcb2",
+  "changed_generated_bytes": 19551086,
+  "changed_generated_files": 274,
+  "decision_ref": "aoa-kag:docs/decisions/AOA-KAG-D-0017-portable-content-addressed-repository-family.md",
+  "default_limit_bytes": 1048576,
+  "head_family_digest": "fbf4a895d7e1667998f45e55cb9b4b97e3f077299c8f13c82903efaa9aff435c",
+  "reason": "Rebase Tree repair family onto current main while preserving immutable v0.5.0, exact KAG provider/action provenance, empty-root fail-closed behavior, and nested subject-store isolation.",
+  "repo": "Tree-of-Sophia",
+  "schema_version": "aoa-repo-local-kag-budget-receipt-v1",
+  "scope": "generated_delta_and_tracked_size",
+  "tracked_bytes": 27365860,
+  "tracked_bytes_max": 11534336
+}
