@@ -191,6 +191,20 @@
         "runtime, MCP, eval, stats, KAG, or memo authority"
       ]
     },
+    "cross_corpus_documentation": {
+      "label": "cross-corpus documentation",
+      "layer": "documentation-currentness",
+      "mode": "blocking",
+      "owner_surface": "docs/validation/documentation_family_map.json",
+      "purpose": "Coordinate family coverage, exact tracked currentness, route closure, executable references, authority declarations, public safety, and selected context budgets across existing owner validators.",
+      "command_sequence": "cross_corpus_documentation",
+      "failure_route": "docs/validation/README.md",
+      "does_not_own": [
+        "ToS authored meaning",
+        "runtime or receipt acceptance",
+        "external KAG, eval, stats, memo, or proof authority"
+      ]
+    },
     "public_entry": {
       "label": "public entry",
       "layer": "public-compatibility",
@@ -316,7 +330,8 @@
         "local_stats_port",
         "questbook_surface",
         "route_docs",
-        "agent_surface"
+        "agent_surface",
+        "cross_corpus_documentation"
       ],
       "failure_route": "docs/RELEASING.md",
       "does_not_own": [
@@ -517,6 +532,16 @@
       {
         "label": "validate agent-surface routes",
         "command": ["python", "scripts/validate_agent_surface.py", "--check", "--fetch-budget-bases"]
+      }
+    ],
+    "cross_corpus_documentation": [
+      {
+        "label": "check documentation family currentness",
+        "command": ["python", "scripts/build_documentation_family_currentness.py", "--check"]
+      },
+      {
+        "label": "validate cross-corpus documentation guards",
+        "command": ["python", "scripts/validate_documentation_cross_corpus.py"]
       }
     ],
     "public_entry": [
@@ -787,6 +812,14 @@
       {
         "label": "validate agent-surface routes",
         "command": ["python", "scripts/validate_agent_surface.py", "--check", "--fetch-budget-bases"]
+      },
+      {
+        "label": "check documentation family currentness",
+        "command": ["python", "scripts/build_documentation_family_currentness.py", "--check"]
+      },
+      {
+        "label": "validate cross-corpus documentation guards",
+        "command": ["python", "scripts/validate_documentation_cross_corpus.py"]
       },
       {
         "label": "check decision indexes",

@@ -18,6 +18,11 @@ The machine map is agent-surface.manifest.json. The generated structural read
 model is agent-surface.current.json. The map is authored here; the currentness
 file is rebuilt, never hand-edited.
 
+The cross-corpus family map is [docs/validation/documentation_family_map.json](../docs/validation/documentation_family_map.json).
+Its generated currentness carrier is on demand; it joins exact tracked
+documentation, structured, and executable surfaces without replacing this
+skill/port map or any stronger owner.
+
 ## Skill families
 
 The repository carries 25 portable skill entrypoints. Their source owner is

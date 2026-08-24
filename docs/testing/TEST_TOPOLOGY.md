@@ -41,6 +41,7 @@ mechanic package or part should carry the regression with its own source.
 | Family | Protects | Owner Surface |
 | --- | --- | --- |
 | `root_front_door` | Root entrypoint routing and command-light public docs. | `README.md`, `ROADMAP.md`. |
+| `documentation_cross_corpus` | Cross-family documentation routes, exact currentness, authority declarations, public-safety markers, and context probes. | `docs/validation/documentation_family_map.json` and `scripts/validate_documentation_cross_corpus.py`. |
 | `release_contour` | Current release-facing route and root-entry expectations. | `ROADMAP.md` and release lane manifest. |
 | `generated_parity` | Derived read models and generated indexes remain rebuildable from source. | Builder scripts, schemas, generated companions. |
 | `mechanics_generated_parity` | Mechanics-owned generated companions remain tied to their part source. | Owning mechanic part. |

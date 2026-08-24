@@ -750,6 +750,21 @@
       "focused_target": "tests/test_artifact_subject_store_isolation.py",
       "failure_route": "Fix the Tree artifact-bundle validator isolation boundary before changing test expectations.",
       "disposition": "keep"
+    },
+    {
+      "path": "tests/test_documentation_cross_corpus.py",
+      "home": "tests",
+      "home_scope": "root",
+      "family": "documentation_cross_corpus",
+      "validation_lane": "cross_corpus_documentation",
+      "owner_surface": "docs/validation/documentation_family_map.json",
+      "protects": "cross-family route closure, executable currentness, authority conflict, generated parity, family coverage, public safety, and context-budget guards",
+      "coverage_authority": "tests/AGENTS.md root unittest discovery",
+      "mode": "blocking",
+      "runtime_cost": "fast",
+      "focused_target": "tests/test_documentation_cross_corpus.py",
+      "failure_route": "Fix the authored family map, generated carrier, coordinator, or named owner validator before changing test expectations.",
+      "disposition": "keep"
     }
   ]
 }

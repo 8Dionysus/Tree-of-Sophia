@@ -51,6 +51,13 @@ class ValidateActiveNamingTests(unittest.TestCase):
                     )
                 )
 
+    def test_documentation_currentness_projection_is_not_active_naming_authority(self) -> None:
+        self.assertTrue(
+            validate_active_naming.is_excluded(
+                validate_active_naming.REPO_ROOT / "docs/validation/documentation-family.current.json"
+            )
+        )
+
     def test_terminal_sentence_period_is_not_path_or_id_marker(self) -> None:
         self.assertIsNone(active_reference(f"This was a {retired_s_token()}."))
         self.assertIsNone(active_reference(f"the next {retired_w_token()}."))

@@ -1,0 +1,28 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://tree-of-sophia.invalid/schemas/documentation-family-map-v1.json",
+  "title": "Tree-of-Sophia documentation family map",
+  "type": "object",
+  "required": ["schema_version", "owner_repo", "owner_surface", "schema_ref", "currentness_schema_ref", "generated_currentness", "builder", "validator", "atlas_method", "surface_rules", "families", "authority_declarations", "public_authored_surfaces", "public_forbidden_markers", "context_probes", "guard_families", "projection_decision"],
+  "properties": {
+    "schema_version": {"const": "tos_documentation_family_map_v1"},
+    "owner_repo": {"const": "Tree-of-Sophia"},
+    "owner_surface": {"type": "string"},
+    "schema_ref": {"type": "string"},
+    "currentness_schema_ref": {"type": "string"},
+    "generated_currentness": {"type": "string"},
+    "builder": {"type": "string"},
+    "validator": {"type": "string"},
+  "atlas_method": {"type": "object", "required": ["human_extensions", "structured_carrier_extensions", "executable_carrier_extensions", "human_exclusion"], "properties": {"human_extensions": {"type": "array", "minItems": 1, "items": {"type": "string"}}, "structured_carrier_extensions": {"type": "array", "minItems": 1, "items": {"type": "string"}}, "executable_carrier_extensions": {"type": "array", "minItems": 1, "items": {"type": "string"}}, "human_exclusion": {"type": "string", "minLength": 1}}},
+    "surface_rules": {"type": "object", "required": ["include_extensions", "exclude_paths", "exclude_prefixes", "generated_carrier_paths", "generated_carrier_prefixes"], "properties": {"include_extensions": {"type": "array", "minItems": 1, "items": {"type": "string"}}, "exclude_paths": {"type": "array", "items": {"type": "string"}}, "exclude_prefixes": {"type": "array", "items": {"type": "string"}}, "generated_carrier_paths": {"type": "array", "minItems": 1, "items": {"type": "string"}}, "generated_carrier_prefixes": {"type": "array", "minItems": 1, "items": {"type": "string"}}}},
+    "families": {"type": "array", "minItems": 15, "items": {"type": "object", "required": ["id", "label", "match", "consumer", "load_moment", "owner", "roles", "currentness_inputs", "next_organ", "context", "public_safety", "validation_lane", "authority_keys"], "properties": {"validation_lane": {"type": "string", "minLength": 1}, "authority_keys": {"type": "array", "minItems": 1, "items": {"type": "string"}}}}},
+    "authority_declarations": {"type": "array", "items": {"type": "object", "required": ["id", "owner", "strength"]}},
+    "external_owner_handles": {"type": "array", "items": {"type": "object", "required": ["id", "owner", "handle", "role", "authority"]}},
+    "public_authored_surfaces": {"type": "array", "minItems": 1, "items": {"type": "string"}},
+    "public_forbidden_markers": {"type": "array", "minItems": 1, "items": {"type": "string"}},
+    "context_probes": {"type": "array", "minItems": 1, "items": {"type": "object", "required": ["id", "surfaces", "measure", "max_tokens"], "properties": {"surfaces": {"type": "array", "minItems": 1, "items": {"type": "string"}}, "measure": {"enum": ["agents_route_max_inherited", "generated_summary", "sum", "max"]}}}},
+    "guard_families": {"type": "array", "items": {"type": "object", "required": ["id", "kind", "reuses"]}},
+    "projection_decision": {"type": "object", "required": ["decision_ref", "llms_txt", "evidence", "chosen_projection", "consumer", "posture"]}
+  },
+  "additionalProperties": true
+}

@@ -2492,6 +2492,49 @@
       "ci_inclusion": "focused-tests",
       "test_target": "tests/test_golden_kernel_transfer_source_visible_review.py",
       "disposition": "keep"
+    },
+    {
+      "path": "scripts/build_documentation_family_currentness.py",
+      "family": "projection_builder",
+      "organ_lane": "projection/generated",
+      "owner_surface": "docs/validation/documentation_family_map.json",
+      "source_truth": [
+        "docs/validation/documentation_family_map.json",
+        "docs/validation/documentation-family-map.schema.json",
+        "git ls-files -z"
+      ],
+      "reads": [
+        "authored family law and tracked textual, structured, and executable route surfaces"
+      ],
+      "writes": [
+        "docs/validation/documentation-family.current.json"
+      ],
+      "side_effects": "deterministic generated family/hash/currentness carrier only; no source, runtime, owner, or receipt mutation",
+      "validation_lane": "cross_corpus_documentation",
+      "ci_inclusion": "release",
+      "test_target": "tests/test_documentation_cross_corpus.py",
+      "disposition": "keep"
+    },
+    {
+      "path": "scripts/validate_documentation_cross_corpus.py",
+      "family": "source_validator",
+      "organ_lane": "source/topology",
+      "owner_surface": "docs/validation/documentation_family_map.json",
+      "source_truth": [
+        "docs/validation/documentation_family_map.json",
+        "docs/validation/validation_lanes.json",
+        "docs/validation/documentation-family.current.json",
+        "existing owner validators named by the family map"
+      ],
+      "reads": [
+        "tracked Markdown routes, local executable references, explicit authority declarations, public authored surfaces, and selected context carriers"
+      ],
+      "writes": [],
+      "side_effects": "validation output only; it coordinates existing validators and does not promote carriers to source or acceptance",
+      "validation_lane": "cross_corpus_documentation",
+      "ci_inclusion": "release",
+      "test_target": "tests/test_documentation_cross_corpus.py",
+      "disposition": "keep"
     }
   ]
 }

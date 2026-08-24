@@ -6,6 +6,10 @@
 
 - [TOS-D-0004 - Operational Route Cards](../TOS-D-0004-operational-route-cards.md) (`docs/decisions/TOS-D-0004-operational-route-cards.md`)
 
+## agent-routing
+
+- [TOS-D-0032 - TOS-D-0032 cross-corpus documentation map and minimal projection](../TOS-D-0032-cross-corpus-documentation-map-and-minimal-projection.md) (`docs/decisions/TOS-D-0032-cross-corpus-documentation-map-and-minimal-projection.md`)
+
 ## agents/mesh
 
 - [TOS-D-0018 - Codex Spark Agent Lane Home](../TOS-D-0018-codex-spark-agent-lane-home.md) (`docs/decisions/TOS-D-0018-codex-spark-agent-lane-home.md`)
@@ -88,6 +92,10 @@
 
 - [TOS-D-0019 - Zarathustra Golden Growth Kernel](../TOS-D-0019-zarathustra-golden-growth-kernel.md) (`docs/decisions/TOS-D-0019-zarathustra-golden-growth-kernel.md`)
 
+## documentation/families
+
+- [TOS-D-0032 - TOS-D-0032 cross-corpus documentation map and minimal projection](../TOS-D-0032-cross-corpus-documentation-map-and-minimal-projection.md) (`docs/decisions/TOS-D-0032-cross-corpus-documentation-map-and-minimal-projection.md`)
+
 ## domain-topology
 
 - [TOS-D-0003 - Philosophy Domain Tree](../TOS-D-0003-philosophy-domain-tree.md) (`docs/decisions/TOS-D-0003-philosophy-domain-tree.md`)
@@ -98,6 +106,10 @@
 ## generated
 
 - [TOS-D-0026 - Exact-Current Federated Provider Identities](../TOS-D-0026-exact-current-federated-provider-identities.md) (`docs/decisions/TOS-D-0026-exact-current-federated-provider-identities.md`)
+
+## generated/carrier
+
+- [TOS-D-0032 - TOS-D-0032 cross-corpus documentation map and minimal projection](../TOS-D-0032-cross-corpus-documentation-map-and-minimal-projection.md) (`docs/decisions/TOS-D-0032-cross-corpus-documentation-map-and-minimal-projection.md`)
 
 ## GitHub workflow
 
@@ -263,6 +275,10 @@
 
 - [TOS-D-0029 - Model-facing skill and owner-port route architecture](../TOS-D-0029-agent-tool-owner-port-documentation-architecture.md) (`docs/decisions/TOS-D-0029-agent-tool-owner-port-documentation-architecture.md`)
 - [TOS-D-0030 - Explicit separate KAG action ABI and provider identity](../TOS-D-0030-exact-kag-action-provider-alignment.md) (`docs/decisions/TOS-D-0030-exact-kag-action-provider-alignment.md`)
+
+## validation/currentness
+
+- [TOS-D-0032 - TOS-D-0032 cross-corpus documentation map and minimal projection](../TOS-D-0032-cross-corpus-documentation-map-and-minimal-projection.md) (`docs/decisions/TOS-D-0032-cross-corpus-documentation-map-and-minimal-projection.md`)
 
 ## zarathustra
 

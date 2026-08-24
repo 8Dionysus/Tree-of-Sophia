@@ -1,0 +1,18 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://tree-of-sophia.invalid/schemas/documentation-family-currentness-v1.json",
+  "title": "Tree-of-Sophia generated documentation family currentness",
+  "type": "object",
+  "required": ["schema_version", "source_map", "source_map_sha256", "tracked_surface_digest", "coverage", "family_summaries", "tracked_surfaces", "context_summary"],
+  "properties": {
+    "schema_version": {"const": "tos_documentation_family_currentness_v1"},
+    "source_map": {"type": "string"},
+    "source_map_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "tracked_surface_digest": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "coverage": {"type": "object"},
+    "family_summaries": {"type": "array"},
+    "tracked_surfaces": {"type": "array"},
+    "context_summary": {"type": "object"}
+  },
+  "additionalProperties": true
+}
