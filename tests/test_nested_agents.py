@@ -38,6 +38,9 @@ class NestedAgentsRouteTests(unittest.TestCase):
         self.assertEqual(15, result["route_success_count"])
         self.assertEqual(0, result["behavioral_model_runs"])
         self.assertIsNone(result["behavioral_claim"])
+        self.assertTrue(
+            all(not task["selected_validation"]["unknown_lanes"] for task in result["tasks"])
+        )
 
     def test_duplicate_nested_card_is_a_negative_control(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
@@ -72,6 +75,19 @@ class NestedAgentsRouteTests(unittest.TestCase):
         self.assertFalse(result["route_success"])
         self.assertEqual(1, result["missing_task_specific_law"]["count"])
         self.assertIn("inherited_context_tokens>1", result["budget"]["violations"])
+
+    def test_unknown_validation_lane_is_a_negative_control(self) -> None:
+        inventory_path, inventory = build_agents_route_currentness.load_inventory(REPO_ROOT)
+        del inventory_path
+        discovered = set(build_agents_route_currentness.discover_route_cards(REPO_ROOT, inventory))
+        task = copy.deepcopy(inventory["task_routes"][0])
+        task["validation_lanes"].append("lane-that-is-not-in-the-command-authority-manifest")
+        result = agents_route_harness.evaluate_task(REPO_ROOT, inventory, task, discovered)
+        self.assertFalse(result["route_success"])
+        self.assertEqual(
+            ["lane-that-is-not-in-the-command-authority-manifest"],
+            result["selected_validation"]["unknown_lanes"],
+        )
 
 
 if __name__ == "__main__":

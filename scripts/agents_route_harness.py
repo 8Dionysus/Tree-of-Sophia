@@ -15,6 +15,7 @@ from build_agents_route_currentness import inheritance_stack, load_inventory, wh
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
+VALIDATION_LANES_PATH = Path("docs/validation/validation_lanes.json")
 
 
 def sha256_bytes(payload: bytes) -> str:
@@ -47,7 +48,25 @@ def task_prompt_digest(inventory: dict[str, Any]) -> str:
     return sha256_bytes(payload.encode("utf-8"))
 
 
-def evaluate_task(repo_root: Path, inventory: dict[str, Any], task: dict[str, Any], discovered: set[Path]) -> dict[str, Any]:
+def load_validation_lane_names(repo_root: Path) -> set[str]:
+    """Load the command-authority lane IDs used by task route declarations."""
+
+    manifest = json.loads((repo_root / VALIDATION_LANES_PATH).read_text(encoding="utf-8"))
+    lanes = manifest.get("lanes")
+    if not isinstance(lanes, dict):
+        return set()
+    return {name for name in lanes if isinstance(name, str)}
+
+
+def evaluate_task(
+    repo_root: Path,
+    inventory: dict[str, Any],
+    task: dict[str, Any],
+    discovered: set[Path],
+    validation_lane_names: set[str] | None = None,
+) -> dict[str, Any]:
+    if validation_lane_names is None:
+        validation_lane_names = load_validation_lane_names(repo_root)
     started = time.perf_counter_ns()
     owner_path = repo_root / task["owner_route"]
     target_path = repo_root / task["target"]
@@ -57,6 +76,9 @@ def evaluate_task(repo_root: Path, inventory: dict[str, Any], task: dict[str, An
     missing_required_markers = [marker for marker in task["required_markers"] if marker.lower() not in stack_text]
     missing_boundary_markers = [marker for marker in task["boundary_markers"] if marker.lower() not in stack_text]
     missing_validation_paths = [path for path in task["validation_paths"] if not path_exists(repo_root, path)]
+    unknown_validation_lanes = [
+        lane for lane in task["validation_lanes"] if lane not in validation_lane_names
+    ]
     missing_completion = [path for path in task["completion_evidence"] if not path_exists(repo_root, path)]
     missing_on_demand = [path for path in task["on_demand_surfaces"] if not path_exists(repo_root, path)]
     budget = inventory["context_budget"]
@@ -99,6 +121,7 @@ def evaluate_task(repo_root: Path, inventory: dict[str, Any], task: dict[str, An
         missing_required_markers
         or missing_boundary_markers
         or missing_validation_paths
+        or unknown_validation_lanes
         or missing_completion
         or missing_on_demand
         or not target_path.is_file()
@@ -126,6 +149,7 @@ def evaluate_task(repo_root: Path, inventory: dict[str, Any], task: dict[str, An
         },
         "selected_validation": {
             "lanes": task["validation_lanes"],
+            "unknown_lanes": unknown_validation_lanes,
             "paths": task["validation_paths"],
         },
         "boundary_deviation": {
@@ -154,7 +178,11 @@ def build_result(repo_root: Path = REPO_ROOT) -> dict[str, Any]:
     from build_agents_route_currentness import discover_route_cards
 
     discovered = set(discover_route_cards(repo_root, inventory))
-    tasks = [evaluate_task(repo_root, inventory, task, discovered) for task in inventory["task_routes"]]
+    validation_lane_names = load_validation_lane_names(repo_root)
+    tasks = [
+        evaluate_task(repo_root, inventory, task, discovered, validation_lane_names)
+        for task in inventory["task_routes"]
+    ]
     successful = sum(1 for task in tasks if task["route_success"])
     return {
         "schema_version": "tos_agents_route_harness_result_v1",
