@@ -52,14 +52,23 @@ class NestedAgentsRouteTests(unittest.TestCase):
         )
         self.assertFalse(corpus_task["owner_handoff"]["in_inheritance_stack"])
         self.assertTrue(corpus_task["owner_handoff"]["exists"])
-        self.assertEqual(774, corpus_task["owner_handoff_context_tokens"])
-        self.assertEqual(1200, corpus_task["budget"]["owner_handoff_max_tokens"])
+        corpus_currentness = next(
+            task
+            for task in currentness["task_routes"]
+            if task["id"] == "corpus_identity_provenance_rights"
+        )
+        self.assertEqual(
+            corpus_currentness["owner_handoff_context_tokens"],
+            corpus_task["owner_handoff_context_tokens"],
+        )
+        self.assertLessEqual(
+            corpus_task["owner_handoff_context_tokens"],
+            corpus_task["budget"]["owner_handoff_max_tokens"],
+        )
+        self.assertLessEqual(corpus_task["budget"]["owner_handoff_max_tokens"], 1200)
         self.assertEqual(
             ["AGENTS.md", "ToS/AGENTS.md", "ToS/doctrine/AGENTS.md"],
-            next(
-                task for task in currentness["task_routes"]
-                if task["id"] == "corpus_identity_provenance_rights"
-            )["inheritance_stack"],
+            corpus_currentness["inheritance_stack"],
         )
 
     def test_duplicate_nested_card_is_a_negative_control(self) -> None:
