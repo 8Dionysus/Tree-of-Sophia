@@ -87,6 +87,38 @@ EXPECTED_PUBLIC_AUTHORED_SURFACES = {
     "ToS/zarathustra/public-entry/TINY_ENTRY_ROUTE.md",
     "docs/validation/README.md",
 }
+EXPECTED_PUBLIC_FORBIDDEN_MARKERS = {
+    "/home/",
+    "/srv/",
+    "/tmp/",
+    "file://",
+    "BEGIN PRIVATE KEY",
+    "OPENAI_API_KEY",
+    "AWS_SECRET_ACCESS_KEY",
+    "session_id",
+    "holder_pid",
+    "terminal_pid",
+    "/runtime-state/",
+    "provider_credentials",
+    "provider_secret",
+}
+EXPECTED_FAMILY_MATCHES = {
+    "root": {"kind": "root_files"},
+    "agents-skills": {"prefix": ".agents/skills/"},
+    "agents-other": {"prefix": ".agents/", "exclude_prefixes": [".agents/skills/"]},
+    "github": {"prefix": ".github/"},
+    "tos": {"prefix": "ToS/"},
+    "docs": {"prefix": "docs/"},
+    "evals": {"prefix": "evals/"},
+    "stats": {"prefix": "stats/"},
+    "kag": {"prefix": "kag/"},
+    "mechanics": {"prefix": "mechanics/"},
+    "scripts": {"prefix": "scripts/"},
+    "tests": {"prefix": "tests/"},
+    "manifests": {"prefix": "manifests/"},
+    "memo": {"prefix": "memo/"},
+    "quests": {"prefix": "quests/"},
+}
 EXPECTED_GENERATED_CARRIER_PATHS = {"docs/validation/documentation-family.current.json"}
 EXPECTED_GENERATED_CARRIER_PREFIXES = {"kag/indexes/", "kag/receipts/index_family_budget/"}
 CANONICAL_SOURCE_MAP_ROUTES = {
@@ -246,6 +278,11 @@ def validate_source_map(repo_root: Path, payload: dict[str, Any], issues: list[I
         missing_public_surfaces = sorted(EXPECTED_PUBLIC_AUTHORED_SURFACES - set(public_surfaces))
         if missing_public_surfaces:
             _issue(issues, MAP_PATH.as_posix(), f"public_authored_surfaces is missing required entries: {', '.join(missing_public_surfaces)}")
+    public_markers = payload.get("public_forbidden_markers")
+    if isinstance(public_markers, list) and all(isinstance(item, str) for item in public_markers):
+        missing_public_markers = sorted(EXPECTED_PUBLIC_FORBIDDEN_MARKERS - set(public_markers))
+        if missing_public_markers:
+            _issue(issues, MAP_PATH.as_posix(), f"public_forbidden_markers is missing required entries: {', '.join(missing_public_markers)}")
     guard_families = payload.get("guard_families")
     if not isinstance(guard_families, list) or {item.get("id") for item in guard_families if isinstance(item, dict)} != {
         "broken_markdown_route", "stale_executable_route", "authority_conflict", "generated_projection_mismatch", "missing_family_coverage", "public_safety", "context_budget"
@@ -386,6 +423,11 @@ def validate_family_match_rules(families: Any, issues: list[Issue]) -> None:
         if not isinstance(match, dict):
             _issue(issues, f"{location}#{family_id}", "match must be an object")
             continue
+        expected_match = EXPECTED_FAMILY_MATCHES.get(family_id)
+        if expected_match is None:
+            _issue(issues, f"{location}#{family_id}", "family id has no canonical matcher")
+        elif match != expected_match:
+            _issue(issues, f"{location}#{family_id}", "family match does not match its canonical matcher")
         if match.get("kind") == "root_files":
             root_count += 1
             continue
@@ -517,7 +559,19 @@ def validate_markdown_routes(repo_root: Path, issues: list[Issue]) -> None:
     for path in _tracked_markdown_paths(repo_root):
         relative = path.relative_to(repo_root).as_posix()
         text = path.read_text(encoding="utf-8")
-        for reference in validate_mechanics_topology.markdown_destinations(text, rendered_only=True):
+        rendered = validate_mechanics_topology.rendered_markdown(text)
+        definitions = {
+            re.sub(r"\s+", " ", label.strip()).casefold(): (angle or bare)
+            for label, angle, bare in validate_mechanics_topology.MARKDOWN_REFERENCE_DEFINITION_RE.findall(rendered)
+        }
+        references = list(validate_mechanics_topology.markdown_destinations(rendered))
+        for label, explicit_label in validate_mechanics_topology.MARKDOWN_REFERENCE_USE_RE.findall(rendered):
+            key = re.sub(r"\s+", " ", (explicit_label or label).strip()).casefold()
+            if key not in definitions:
+                _issue(issues, relative, f"unresolved reference-style documentation route: {explicit_label or label}")
+            else:
+                references.append(definitions[key])
+        for reference in references:
             if reference.startswith(("http:", "https:", "mailto:")):
                 continue
             resolved = validate_mechanics_topology.resolve_doc_reference(repo_root, path, reference)
@@ -579,7 +633,6 @@ def validate_executable_routes(repo_root: Path, issues: list[Issue]) -> None:
             path.name == "CHANGELOG.md"
             or relative.startswith(("ToS/research-packets/", "ToS/review-ledger/"))
             or relative.startswith("kag/receipts/")
-            or relative in {"evals/AGENTS.md", "memo/AGENTS.md", "kag/AGENTS.md"}
         ):
             continue
         text = path.read_text(encoding="utf-8")

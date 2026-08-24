@@ -173,6 +173,24 @@ class DocumentationCrossCorpusTests(unittest.TestCase):
         self.assertTrue(any("public_authored_surfaces" in message for _, message in issues))
         self.assertTrue(any("public_forbidden_markers" in message for _, message in issues))
 
+        source_map = json.loads(
+            (ROOT / "docs/validation/documentation_family_map.json").read_text(encoding="utf-8")
+        )
+        source_map["public_forbidden_markers"].remove("BEGIN PRIVATE KEY")
+        issues = []
+        validator.validate_source_map(ROOT, source_map, issues)
+        self.assertTrue(any("missing required entries" in message for _, message in issues))
+
+    def test_family_match_guard_binds_ids_to_canonical_matchers(self) -> None:
+        source_map = json.loads(
+            (ROOT / "docs/validation/documentation_family_map.json").read_text(encoding="utf-8")
+        )
+        families = deepcopy(source_map["families"])
+        families[0]["match"], families[1]["match"] = families[1]["match"], families[0]["match"]
+        issues: list[tuple[str, str]] = []
+        validator.validate_family_match_rules(families, issues)
+        self.assertTrue(any("canonical matcher" in message for _, message in issues))
+
     def test_markdown_file_and_fragment_routes_fail_closed(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
@@ -184,6 +202,15 @@ class DocumentationCrossCorpusTests(unittest.TestCase):
         self.assertTrue(any("broken local documentation route" in message for _, message in issues))
         self.assertTrue(any("broken local documentation fragment" in message for _, message in issues))
 
+    def test_unresolved_reference_style_markdown_route_fails_closed(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            write_text(root / "README.md", "[guide][missing]\n")
+            with mock.patch.object(validator, "tracked_paths", return_value=[Path("README.md")]):
+                issues: list[tuple[str, str]] = []
+                validator.validate_markdown_routes(root, issues)
+        self.assertTrue(any("unresolved reference-style documentation route" in message for _, message in issues))
+
     def test_active_stale_executable_route_fails_closed(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
@@ -193,6 +220,16 @@ class DocumentationCrossCorpusTests(unittest.TestCase):
                 issues: list[tuple[str, str]] = []
                 validator.validate_executable_routes(root, issues)
         self.assertTrue(any("stale executable reference" in message for _, message in issues))
+
+    def test_active_route_card_shell_reference_is_not_exempt(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            write_text(root / "evals/AGENTS.md", "Run `scripts/not-present.sh`.\n")
+            with mock.patch.object(validator, "tracked_paths", return_value=[Path("evals/AGENTS.md")]):
+                with mock.patch.object(validator.validate_nested_agents, "discover_route_cards", return_value=[]):
+                    issues: list[tuple[str, str]] = []
+                    validator.validate_executable_routes(root, issues)
+        self.assertTrue(any("stale executable reference: scripts/not-present.sh" in message for _, message in issues))
 
     def test_external_or_historical_executable_carrier_is_not_local_stale_route(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
