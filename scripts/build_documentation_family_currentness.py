@@ -15,9 +15,6 @@ from typing import Any
 REPO_ROOT = Path(__file__).resolve().parents[1]
 MAP_PATH = Path("docs/validation/documentation_family_map.json")
 CURRENTNESS_PATH = Path("docs/validation/documentation-family.current.json")
-HUMAN_EXTENSIONS = {".md", ".txt", ".yaml", ".yml"}
-
-
 def sha256_bytes(payload: bytes) -> str:
     return hashlib.sha256(payload).hexdigest()
 
@@ -83,8 +80,8 @@ def family_for(path: Path, families: list[dict[str, Any]]) -> str | None:
     return None
 
 
-def surface_kind(path: Path) -> str:
-    if path.suffix in HUMAN_EXTENSIONS:
+def surface_kind(path: Path, human_extensions: set[str]) -> str:
+    if path.suffix in human_extensions:
         return "human"
     if path.suffix == ".json":
         return "structured"
@@ -93,15 +90,20 @@ def surface_kind(path: Path) -> str:
     return "other"
 
 
-def in_human_scope(path: Path) -> bool:
-    return path.suffix in HUMAN_EXTENSIONS and not (
+def in_human_scope(path: Path, human_extensions: set[str]) -> bool:
+    return path.suffix in human_extensions and not (
         path.as_posix().startswith(".agents/skills/")
         and path.parts[-2:] == ("agents", "openai.yaml")
     )
 
 
-def human_scope(repo_root: Path, paths: list[Path], families: list[dict[str, Any]]) -> dict[str, Any]:
-    human = [path for path in paths if in_human_scope(path)]
+def human_scope(
+    repo_root: Path,
+    paths: list[Path],
+    families: list[dict[str, Any]],
+    human_extensions: set[str],
+) -> dict[str, Any]:
+    human = [path for path in paths if in_human_scope(path, human_extensions)]
     by_family: Counter[str] = Counter()
     bytes_by_family: Counter[str] = Counter()
     lines_by_family: Counter[str] = Counter()
@@ -124,7 +126,7 @@ def human_scope(repo_root: Path, paths: list[Path], families: list[dict[str, Any
             for family_id in sorted(by_family)
         },
         "excluded_skill_launch_metadata": sum(
-            path.suffix in HUMAN_EXTENSIONS
+            path.suffix in human_extensions
             and path.as_posix().startswith(".agents/skills/")
             and path.parts[-2:] == ("agents", "openai.yaml")
             for path in paths
@@ -136,6 +138,7 @@ def build_currentness(repo_root: Path = REPO_ROOT) -> dict[str, Any]:
     map_path, source_map = load_map(repo_root)
     families = source_map["families"]
     surface_rules = source_map["surface_rules"]
+    human_extensions = set(source_map["atlas_method"]["human_extensions"])
     tracked = tracked_paths(repo_root)
     projection_tracked = projection_tracked_paths(tracked, surface_rules)
     surface_paths = [path for path in projection_tracked if included_surface(path, surface_rules)]
@@ -151,7 +154,7 @@ def build_currentness(repo_root: Path = REPO_ROOT) -> dict[str, Any]:
             unhandled.append(relative)
             family_id = "unhandled"
         payload = (repo_root / path).read_bytes()
-        kind = surface_kind(path)
+        kind = surface_kind(path, human_extensions)
         kind_counts[kind] += 1
         record = {
             "path": relative,
@@ -191,7 +194,7 @@ def build_currentness(repo_root: Path = REPO_ROOT) -> dict[str, Any]:
         "unhandled_family_count": len(unhandled),
         "unhandled_paths": sorted(unhandled),
         "surface_kind_counts": dict(sorted(kind_counts.items())),
-        "human_scope": human_scope(repo_root, tracked, families),
+        "human_scope": human_scope(repo_root, tracked, families, human_extensions),
     }
     context_summary = {
         "metric": "whitespace_tokens_v1",

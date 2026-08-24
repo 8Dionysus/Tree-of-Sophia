@@ -123,6 +123,21 @@ def validate_source_map(repo_root: Path, payload: dict[str, Any], issues: list[I
         elif not (repo_root / value).exists():
             _issue(issues, MAP_PATH.as_posix(), f"{key} points to missing path: {value}")
 
+    atlas_method = payload.get("atlas_method")
+    human_extensions = atlas_method.get("human_extensions") if isinstance(atlas_method, dict) else None
+    if (
+        not isinstance(human_extensions, list)
+        or not human_extensions
+        or not all(isinstance(item, str) and item.startswith(".") for item in human_extensions)
+        or len(human_extensions) != len(set(human_extensions))
+    ):
+        _issue(issues, f"{MAP_PATH.as_posix()}#atlas_method", "human_extensions must be a non-empty unique list of dotted strings")
+    else:
+        surface_rules = payload.get("surface_rules")
+        included_extensions = surface_rules.get("include_extensions") if isinstance(surface_rules, dict) else None
+        if isinstance(included_extensions, list) and not set(human_extensions).issubset(included_extensions):
+            _issue(issues, f"{MAP_PATH.as_posix()}#atlas_method", "human_extensions must be included by surface_rules.include_extensions")
+
     families = payload.get("families")
     if not isinstance(families, list):
         _issue(issues, MAP_PATH.as_posix(), "families must be a list")
@@ -324,16 +339,30 @@ def validate_family_authority_claims(
         for declaration in declarations
         if isinstance(declaration, dict) and isinstance(declaration.get("id"), str)
     }
+    families_by_id = {
+        family.get("id"): family
+        for family in families
+        if isinstance(family, dict) and isinstance(family.get("id"), str)
+    }
+    referenced_keys: dict[str, set[str]] = {family_id: set() for family_id in families_by_id}
     for family in families:
         if not isinstance(family, dict):
             continue
         family_id = family.get("id", "<unknown>")
         family_owner = family.get("owner")
         authority_keys = family.get("authority_keys")
-        if not isinstance(authority_keys, list):
-            _issue(issues, f"{MAP_PATH.as_posix()}#{family_id}", "authority_keys must be a list")
+        if (
+            not isinstance(authority_keys, list)
+            or not authority_keys
+            or not all(isinstance(key, str) and key for key in authority_keys)
+        ):
+            _issue(issues, f"{MAP_PATH.as_posix()}#{family_id}", "authority_keys must be a non-empty list of strings")
             continue
         for authority_key in authority_keys:
+            if not isinstance(authority_key, str):
+                continue
+            if isinstance(family_id, str):
+                referenced_keys.setdefault(family_id, set()).add(authority_key)
             declaration = declarations_by_id.get(authority_key)
             location = f"{MAP_PATH.as_posix()}#{family_id}"
             if declaration is None:
@@ -343,6 +372,22 @@ def validate_family_authority_claims(
                 _issue(issues, location, f"authority key {authority_key} is bound to family {declaration.get('family_id')!r}, not {family_id!r}")
             if declaration.get("family_owner") != family_owner:
                 _issue(issues, location, f"family owner conflicts with declaration {authority_key}")
+
+    for declaration in declarations:
+        if not isinstance(declaration, dict) or declaration.get("family_id") is None:
+            continue
+        declaration_id = declaration.get("id")
+        family_id = declaration.get("family_id")
+        family = families_by_id.get(family_id)
+        if family is None:
+            _issue(issues, "authority_declarations", f"family-bound declaration references unknown family: {family_id}")
+            continue
+        if not isinstance(declaration_id, str) or declaration_id not in referenced_keys.get(family_id, set()):
+            _issue(
+                issues,
+                f"{MAP_PATH.as_posix()}#{family_id}",
+                f"family-bound declaration is not referenced by authority_keys: {declaration_id}",
+            )
 
 
 def _tracked_markdown_paths(repo_root: Path) -> list[Path]:
@@ -472,7 +517,6 @@ def _context_tokens(text: str) -> int:
 
 def validate_context_probes(repo_root: Path, payload: dict[str, Any], issues: list[Issue]) -> dict[str, int]:
     measured: dict[str, int] = {}
-    generated: dict[str, Any] | None = None
     for probe in payload.get("context_probes", []):
         if not isinstance(probe, dict):
             _issue(issues, "context_probes", "probe must be an object")
@@ -496,9 +540,15 @@ def validate_context_probes(repo_root: Path, payload: dict[str, Any], issues: li
                 ]
                 value = max(values, default=0)
             elif measure == "generated_summary":
-                if generated is None:
-                    generated = json.loads((repo_root / CURRENTNESS_PATH).read_text(encoding="utf-8"))
-                value = _context_tokens(json.dumps(generated.get("context_summary", {}), ensure_ascii=False, sort_keys=True))
+                if len(surfaces) != 1:
+                    _issue(issues, f"context_probes#{probe_id}", "generated_summary requires exactly one configured surface")
+                    continue
+                generated_payload = json.loads((repo_root / surfaces[0]).read_text(encoding="utf-8"))
+                summary = generated_payload.get("context_summary")
+                if not isinstance(summary, dict):
+                    _issue(issues, f"context_probes#{probe_id}", "configured generated_summary surface lacks context_summary")
+                    continue
+                value = _context_tokens(json.dumps(summary, ensure_ascii=False, sort_keys=True))
             else:
                 values = [_context_tokens((repo_root / surface).read_text(encoding="utf-8")) for surface in surfaces]
                 value = sum(values) if measure == "sum" else max(values, default=0)

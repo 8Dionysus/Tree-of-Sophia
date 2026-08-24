@@ -27,11 +27,12 @@ class DocumentationCrossCorpusTests(unittest.TestCase):
             (ROOT / "docs/validation/documentation_family_map.json").read_text(encoding="utf-8")
         )
         current = builder.build_currentness(ROOT)
+        human_extensions = set(source_map["atlas_method"]["human_extensions"])
         self.assertEqual(source_map["schema_ref"], "docs/validation/documentation-family-map.schema.json")
         human_records = [
             record
             for record in current["tracked_surfaces"]
-            if builder.in_human_scope(Path(record["path"]))
+            if builder.in_human_scope(Path(record["path"]), human_extensions)
         ]
         self.assertEqual(current["coverage"]["human_scope"]["count"], len(human_records))
         self.assertEqual(
@@ -89,6 +90,18 @@ class DocumentationCrossCorpusTests(unittest.TestCase):
         issues = []
         validator.validate_family_authority_claims(families, declarations, issues)
         self.assertTrue(any("has no declaration" in message for _, message in issues))
+
+        families = deepcopy(source_map["families"])
+        families[0]["authority_keys"] = []
+        issues = []
+        validator.validate_family_authority_claims(families, declarations, issues)
+        self.assertTrue(any("non-empty list" in message for _, message in issues))
+
+        families = deepcopy(source_map["families"])
+        families[0]["authority_keys"].remove("repository_identity")
+        issues = []
+        validator.validate_family_authority_claims(families, declarations, issues)
+        self.assertTrue(any("not referenced by authority_keys" in message for _, message in issues))
 
     def test_source_map_requires_public_safety_lists(self) -> None:
         source_map = json.loads(
@@ -192,6 +205,31 @@ class DocumentationCrossCorpusTests(unittest.TestCase):
                 issues: list[tuple[str, str]] = []
                 validator.validate_generated_projection(root, issues)
         self.assertTrue(any("projection is stale" in message for _, message in issues))
+
+    def test_generated_summary_probe_uses_its_configured_surface(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            write_text(root / "configured.json", json.dumps({"context_summary": {"one": "two"}}))
+            payload = {
+                "context_probes": [
+                    {"id": "summary", "surfaces": ["missing.json"], "measure": "generated_summary", "max_tokens": 20}
+                ]
+            }
+            issues: list[tuple[str, str]] = []
+            validator.validate_context_probes(root, payload, issues)
+        self.assertTrue(any("cannot measure probe" in message for _, message in issues))
+
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            write_text(root / "wrong.json", json.dumps({"not_a_summary": {}}))
+            payload = {
+                "context_probes": [
+                    {"id": "summary", "surfaces": ["wrong.json"], "measure": "generated_summary", "max_tokens": 20}
+                ]
+            }
+            issues = []
+            validator.validate_context_probes(root, payload, issues)
+        self.assertTrue(any("lacks context_summary" in message for _, message in issues))
 
     def test_missing_family_coverage_is_detected(self) -> None:
         payload = {"families": [{"id": "root"}]}
