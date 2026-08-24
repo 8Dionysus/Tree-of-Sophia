@@ -70,6 +70,38 @@ PUBLIC_FORBIDDEN = (
     "AWS_SECRET_ACCESS_KEY",
     "file://",
 )
+KAG_BUDGET_RECEIPT_SCHEMA_VERSION = "aoa-repo-local-kag-budget-receipt-v1"
+KAG_BUDGET_RECEIPT_SCOPES = {
+    "generated_delta",
+    "tracked_size",
+    "generated_delta_and_tracked_size",
+    "v2_to_v3_migration",
+}
+KAG_BUDGET_DECISION_REF = (
+    "aoa-kag:docs/decisions/"
+    "AOA-KAG-D-0017-portable-content-addressed-repository-family.md"
+)
+KAG_TIERED_DECISION_REF = (
+    "aoa-kag:docs/decisions/"
+    "AOA-KAG-D-0039-tiered-content-addressed-kag-distribution.md"
+)
+KAG_BUDGET_RECEIPT_REQUIRED_FIELDS = {
+    "schema_version",
+    "repo",
+    "scope",
+    "base_ref",
+    "head_family_digest",
+    "changed_generated_bytes",
+    "changed_generated_files",
+    "default_limit_bytes",
+    "allowed_bytes",
+    "tracked_bytes",
+    "tracked_bytes_max",
+    "allowed_tracked_bytes",
+    "reason",
+    "approved_by",
+    "decision_ref",
+}
 
 
 def activation_policy_issues(
@@ -106,6 +138,123 @@ def public_safety_issues(root: Path = REPO_ROOT) -> list[Issue]:
         for forbidden in PUBLIC_FORBIDDEN:
             if forbidden in text:
                 issues.append((relative, f"contains forbidden public-safety marker {forbidden!r}"))
+    return issues
+
+
+def _relative_label(root: Path, path: Path) -> str:
+    try:
+        return path.relative_to(root).as_posix()
+    except ValueError:
+        return str(path)
+
+
+def _is_integer(value: Any) -> bool:
+    return isinstance(value, int) and not isinstance(value, bool)
+
+
+def budget_receipt_contract_issues(
+    root: Path,
+    manifest: dict[str, Any],
+    receipt: Any,
+    digest: str,
+    receipt_path: Path,
+) -> list[Issue]:
+    """Admit the v1 receipt shape emitted by aoa-kag's portable-family owner."""
+    label = _relative_label(root, receipt_path)
+    if not isinstance(receipt, dict):
+        return [(label, "budget receipt must be a JSON object")]
+
+    issues: list[Issue] = []
+    for field in sorted(KAG_BUDGET_RECEIPT_REQUIRED_FIELDS):
+        if field not in receipt:
+            issues.append((label, f"budget receipt missing required field {field}"))
+
+    string_fields = (
+        "schema_version",
+        "repo",
+        "scope",
+        "base_ref",
+        "head_family_digest",
+        "reason",
+        "approved_by",
+        "decision_ref",
+    )
+    for field in string_fields:
+        if field in receipt and not isinstance(receipt[field], str):
+            issues.append((label, f"budget receipt field {field} must be a string"))
+
+    integer_fields = (
+        "changed_generated_bytes",
+        "changed_generated_files",
+        "default_limit_bytes",
+        "allowed_bytes",
+        "tracked_bytes",
+        "tracked_bytes_max",
+        "allowed_tracked_bytes",
+    )
+    for field in integer_fields:
+        if field in receipt and not _is_integer(receipt[field]):
+            issues.append((label, f"budget receipt field {field} must be an integer"))
+        elif field in receipt and receipt[field] < 0:
+            issues.append((label, f"budget receipt field {field} must not be negative"))
+
+    schema_version = receipt.get("schema_version")
+    if isinstance(schema_version, str) and schema_version != KAG_BUDGET_RECEIPT_SCHEMA_VERSION:
+        issues.append((label, f"budget receipt schema_version must be {KAG_BUDGET_RECEIPT_SCHEMA_VERSION!r}"))
+
+    repo = manifest.get("repo")
+    expected_repo = repo.get("name") if isinstance(repo, dict) else None
+    if isinstance(expected_repo, str) and receipt.get("repo") != expected_repo:
+        issues.append((label, "budget receipt repo must match the family repository"))
+    if isinstance(repo, dict):
+        history_ref = repo.get("git_ref")
+        if not isinstance(history_ref, str) or not history_ref.strip():
+            issues.append((label, "family repository must keep a non-empty history ref"))
+    else:
+        issues.append((label, "family manifest repo must be an object with a history ref"))
+
+    scope = receipt.get("scope")
+    if isinstance(scope, str) and scope not in KAG_BUDGET_RECEIPT_SCOPES:
+        issues.append((label, "budget receipt scope is not recognized by the aoa-kag v1 contract"))
+
+    base_ref = receipt.get("base_ref")
+    if isinstance(base_ref, str) and not re.fullmatch(r"[0-9a-f]{40,64}", base_ref):
+        issues.append((label, "budget receipt base_ref must be a lowercase Git commit ref"))
+    if receipt.get("head_family_digest") != digest:
+        issues.append((label, "budget receipt is not bound to the current family digest"))
+
+    budgets = manifest.get("budgets")
+    summary = manifest.get("summary")
+    expected_values: dict[str, Any] = {}
+    if isinstance(budgets, dict):
+        expected_values["default_limit_bytes"] = budgets.get("changed_generated_bytes_max")
+        expected_values["tracked_bytes_max"] = budgets.get("tracked_bytes_max")
+    if isinstance(summary, dict):
+        expected_values["tracked_bytes"] = summary.get("tracked_bytes")
+    expected_values["decision_ref"] = (
+        KAG_TIERED_DECISION_REF
+        if manifest.get("schema_version") == "aoa-repo-local-kag-distribution-manifest-v1"
+        else KAG_BUDGET_DECISION_REF
+    )
+    for field, expected in expected_values.items():
+        if expected is not None and receipt.get(field) != expected:
+            issues.append((label, f"budget receipt field {field} does not match the family contract"))
+
+    changed_bytes = receipt.get("changed_generated_bytes")
+    allowed_bytes = receipt.get("allowed_bytes")
+    if _is_integer(changed_bytes) and _is_integer(allowed_bytes) and allowed_bytes < changed_bytes:
+        issues.append((label, "budget receipt allowed_bytes must cover changed_generated_bytes"))
+    tracked_bytes = receipt.get("tracked_bytes")
+    allowed_tracked_bytes = receipt.get("allowed_tracked_bytes")
+    if (
+        _is_integer(tracked_bytes)
+        and _is_integer(allowed_tracked_bytes)
+        and allowed_tracked_bytes < tracked_bytes
+    ):
+        issues.append((label, "budget receipt allowed_tracked_bytes must cover tracked_bytes"))
+    for field in ("reason", "approved_by"):
+        if isinstance(receipt.get(field), str) and not receipt[field].strip():
+            issues.append((label, f"budget receipt {field} must not be empty"))
     return issues
 
 
@@ -158,10 +307,9 @@ def generated_family_issues(root: Path, port: dict[str, Any]) -> list[Issue]:
     try:
         receipt = json.loads(receipt_path.read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError):
-        issues.append((receipt_path.relative_to(root).as_posix(), "matching generated KAG budget receipt is invalid"))
+        issues.append((_relative_label(root, receipt_path), "matching generated KAG budget receipt is invalid"))
         return issues
-    if receipt.get("head_family_digest") != digest:
-        issues.append((receipt_path.relative_to(root).as_posix(), "budget receipt is not bound to the current family digest"))
+    issues.extend(budget_receipt_contract_issues(root, manifest, receipt, digest, receipt_path))
     return issues
 
 

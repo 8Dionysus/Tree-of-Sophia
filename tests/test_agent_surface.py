@@ -118,6 +118,16 @@ class AgentSurfaceTests(unittest.TestCase):
                 path=Path("SKILL.md"),
             )
 
+    def test_single_quoted_escape_pairs_do_not_close_a_continuation(self) -> None:
+        self.assertFalse(builder.quoted_scalar_is_open("'Nietzsche''s description'"))
+        self.assertTrue(builder.quoted_scalar_is_open("'Nietzsche''s description"))
+        with self.assertRaisesRegex(ValueError, "multiline description"):
+            builder.frontmatter_scalars(
+                "description: 'The line ends with an escaped apostrophe ''\n"
+                "  and continues physically.\n",
+                path=Path("SKILL.md"),
+            )
+
         with self.assertRaisesRegex(ValueError, "multiline description"):
             builder.frontmatter_scalars(
                 "name: example\n"
@@ -133,6 +143,71 @@ class AgentSurfaceTests(unittest.TestCase):
         self.assertEqual(
             validator.generated_family_issues(ROOT, manifest["owner_ports"]["kag_provider"]),
             [],
+        )
+
+    def test_generated_kag_family_rejects_a_digest_only_receipt(self) -> None:
+        manifest = json.loads(
+            (ROOT / ".agents/agent-surface.manifest.json").read_text(encoding="utf-8")
+        )
+        port = manifest["owner_ports"]["kag_provider"]
+        family = port["generated_family"]
+        family_manifest = json.loads(
+            (ROOT / family["manifest"]).read_text(encoding="utf-8")
+        )
+        digest = family_manifest["family_identity"]["content_digest"]
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            manifest_path = root / family["manifest"]
+            manifest_path.parent.mkdir(parents=True)
+            manifest_path.write_text(json.dumps(family_manifest), encoding="utf-8")
+            (root / family["shards"]).mkdir(parents=True)
+            receipt_path = root / family["receipt_root"] / f"{digest}.json"
+            receipt_path.parent.mkdir(parents=True)
+            receipt_path.write_text(
+                json.dumps({"head_family_digest": digest}),
+                encoding="utf-8",
+            )
+
+            issues = validator.generated_family_issues(root, port)
+
+        messages = "\n".join(message for _, message in issues)
+        for field in validator.KAG_BUDGET_RECEIPT_REQUIRED_FIELDS - {"head_family_digest"}:
+            self.assertIn(f"missing required field {field}", messages)
+
+    def test_generated_kag_family_rejects_untyped_budget_evidence(self) -> None:
+        manifest = json.loads(
+            (ROOT / ".agents/agent-surface.manifest.json").read_text(encoding="utf-8")
+        )
+        port = manifest["owner_ports"]["kag_provider"]
+        family = port["generated_family"]
+        family_manifest = json.loads(
+            (ROOT / family["manifest"]).read_text(encoding="utf-8")
+        )
+        digest = family_manifest["family_identity"]["content_digest"]
+        receipt = json.loads(
+            (ROOT / family["receipt_root"] / f"{digest}.json").read_text(encoding="utf-8")
+        )
+        receipt["allowed_bytes"] = True
+        receipt["tracked_bytes"] = "not-an-integer"
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            manifest_path = root / family["manifest"]
+            manifest_path.parent.mkdir(parents=True)
+            manifest_path.write_text(json.dumps(family_manifest), encoding="utf-8")
+            (root / family["shards"]).mkdir(parents=True)
+            receipt_path = root / family["receipt_root"] / f"{digest}.json"
+            receipt_path.parent.mkdir(parents=True)
+            receipt_path.write_text(json.dumps(receipt), encoding="utf-8")
+
+            issues = validator.generated_family_issues(root, port)
+
+        self.assertIn(
+            (str(receipt_path.relative_to(root)), "budget receipt field allowed_bytes must be an integer"),
+            issues,
+        )
+        self.assertIn(
+            (str(receipt_path.relative_to(root)), "budget receipt field tracked_bytes must be an integer"),
+            issues,
         )
 
     def test_duplicate_task_probe_ids_are_rejected(self) -> None:
