@@ -933,9 +933,18 @@ def _resolve_subject_store_root(subject_store_root: Path | str | None) -> Path:
     if isinstance(subject_store_root, str) and not subject_store_root.strip():
         raise ValueError("explicit subject_store_root must be a non-empty path")
     candidate = Path(subject_store_root).expanduser()
+    if candidate == Path("."):
+        raise ValueError(
+            "explicit subject_store_root must not resolve to the repository root"
+        )
     if not candidate.is_absolute():
         candidate = REPO_ROOT / candidate
-    return candidate.resolve()
+    resolved = candidate.resolve()
+    if resolved == REPO_ROOT.resolve():
+        raise ValueError(
+            "explicit subject_store_root must not resolve to the repository root"
+        )
+    return resolved
 
 
 def validate_bundle(
@@ -966,7 +975,9 @@ def main() -> int:
     parser.add_argument("--subject", type=Path, default=DEFAULT_SUBJECT)
     parser.add_argument("--bundle-dir", type=Path, default=DEFAULT_BUNDLE_DIR)
     parser.add_argument("--registry-dir", type=Path, default=DEFAULT_REGISTRY_DIR)
-    parser.add_argument("--subject-store-root", type=Path, default=DEFAULT_SUBJECT_STORE_ROOT)
+    # Keep this raw so an empty shell expansion stays distinguishable from
+    # Path('.') before subject-store resolution.
+    parser.add_argument("--subject-store-root", default=None)
     parser.add_argument("--no-clean", action="store_true", help="do not remove the previous generated bundle directory first")
     parser.add_argument("--json", action="store_true", help="print the full validation payload")
     args = parser.parse_args()
@@ -975,7 +986,7 @@ def main() -> int:
     subject = args.subject if args.subject.is_absolute() else REPO_ROOT / args.subject
     bundle_dir = args.bundle_dir if args.bundle_dir.is_absolute() else REPO_ROOT / args.bundle_dir
     registry_dir = args.registry_dir if args.registry_dir.is_absolute() else REPO_ROOT / args.registry_dir
-    subject_store_root = args.subject_store_root if args.subject_store_root.is_absolute() else REPO_ROOT / args.subject_store_root
+    subject_store_root = args.subject_store_root
 
     payload = validate_bundle(
         manifest,

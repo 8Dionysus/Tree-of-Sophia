@@ -73,6 +73,12 @@ class ArtifactSubjectStoreIsolationTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "non-empty path"):
             validator._resolve_subject_store_root("")
 
+    def test_explicit_current_directory_root_is_rejected_before_materialization(self) -> None:
+        validator = load_validator()
+
+        with self.assertRaisesRegex(ValueError, "repository root"):
+            validator._resolve_subject_store_root(Path("."))
+
     def test_explicit_empty_root_suppresses_ambient_default_and_restores_state(self) -> None:
         validator = load_validator()
 

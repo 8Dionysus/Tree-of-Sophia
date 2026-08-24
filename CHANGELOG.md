@@ -29,6 +29,9 @@ Tracking starts with the community-docs baseline for this repository.
 - Keeps the subject-store isolation regression standalone-safe by testing the
   Tree-owned process binding with a local resolver double; the full
   `abyss-machine` owner path remains exercised by the release audit.
+- Preserves the raw subject-store CLI value until owner resolution, rejecting
+  empty or repository-root values before materialization so an empty shell
+  expansion cannot become `Path('.')` and fall through to the checkout.
 
 ### Validation
 
@@ -40,6 +43,8 @@ Tracking starts with the community-docs baseline for this repository.
   is the only store candidate during the rehearsal and that process state is
   restored afterward. This is an Unreleased source/tooling repair only; no
   tag, Release, artifact verdict, runtime, proof, or acceptance claim changes.
+- The CLI regression covers both raw empty input and an explicit current-
+  directory root; both fail closed before any subject-store writes.
 - The hosted workflow validates the exact provider source and separate action
   snapshots before the Tree release audit. These checks prove source-level
   compatibility evidence only; they do not prove artifact admission, runtime,
