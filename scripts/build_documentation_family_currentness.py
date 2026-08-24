@@ -16,8 +16,11 @@ from typing import Any
 REPO_ROOT = Path(__file__).resolve().parents[1]
 MAP_PATH = Path("docs/validation/documentation_family_map.json")
 CURRENTNESS_PATH = Path("docs/validation/documentation-family.current.json")
-TRACKED_SOURCE = "git ls-files -z"
 TRACKED_SOURCE_COMMAND = ("git", "ls-files", "-z")
+
+
+def tracked_source_declaration() -> str:
+    return " ".join(TRACKED_SOURCE_COMMAND)
 
 
 def sha256_bytes(payload: bytes) -> str:
@@ -146,10 +149,11 @@ def build_currentness(repo_root: Path = REPO_ROOT) -> dict[str, Any]:
     families = source_map["families"]
     surface_rules = source_map["surface_rules"]
     atlas_method = source_map["atlas_method"]
-    if atlas_method.get("tracked_source") != TRACKED_SOURCE:
+    tracked_source = tracked_source_declaration()
+    if atlas_method.get("tracked_source") != tracked_source:
         raise ValueError(
             "atlas_method.tracked_source must match the builder operation: "
-            f"{TRACKED_SOURCE}"
+            f"{tracked_source}"
         )
     human_extensions = set(atlas_method["human_extensions"])
     structured_extensions = set(atlas_method["structured_carrier_extensions"])
@@ -225,7 +229,7 @@ def build_currentness(repo_root: Path = REPO_ROOT) -> dict[str, Any]:
         "source_map": relative_path(repo_root, map_path),
         "source_map_sha256": sha256_bytes(map_path.read_bytes()),
         "generated_by": "scripts/build_documentation_family_currentness.py",
-        "tracked_source": TRACKED_SOURCE,
+        "tracked_source": tracked_source,
         "tracked_surface_digest": source_snapshot_digest,
         "atlas_method": source_map["atlas_method"],
         "coverage": coverage,

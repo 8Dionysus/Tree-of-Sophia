@@ -160,8 +160,8 @@ class DocumentationCrossCorpusTests(unittest.TestCase):
         issues: list[tuple[str, str]] = []
         validator.validate_source_map(ROOT, source_map, issues)
         self.assertEqual([], issues)
-        self.assertEqual(builder.TRACKED_SOURCE, source_map["atlas_method"]["tracked_source"])
-        self.assertEqual(builder.TRACKED_SOURCE, builder.build_currentness(ROOT)["tracked_source"])
+        self.assertEqual(builder.tracked_source_declaration(), source_map["atlas_method"]["tracked_source"])
+        self.assertEqual(builder.tracked_source_declaration(), builder.build_currentness(ROOT)["tracked_source"])
 
     def test_tracked_source_binding_rejects_an_unsupported_declaration(self) -> None:
         source_map = json.loads(
@@ -180,6 +180,15 @@ class DocumentationCrossCorpusTests(unittest.TestCase):
         with mock.patch.object(builder, "load_map", return_value=(ROOT / builder.MAP_PATH, source_map)):
             with self.assertRaisesRegex(ValueError, "tracked_source must match the builder operation"):
                 builder.build_currentness(ROOT)
+
+    def test_tracked_source_command_mutation_cannot_produce_a_contradictory_carrier(self) -> None:
+        source_map = json.loads(
+            (ROOT / "docs/validation/documentation_family_map.json").read_text(encoding="utf-8")
+        )
+        with mock.patch.object(builder, "TRACKED_SOURCE_COMMAND", ("git", "ls-files", "-z", "README.md")):
+            with mock.patch.object(builder, "load_map", return_value=(ROOT / builder.MAP_PATH, source_map)):
+                with self.assertRaisesRegex(ValueError, "tracked_source must match the builder operation"):
+                    builder.build_currentness(ROOT)
 
     def test_human_scope_uses_authored_exclusion_glob(self) -> None:
         human_extensions = {".yaml"}

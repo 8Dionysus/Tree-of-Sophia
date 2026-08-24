@@ -13,12 +13,12 @@ from typing import Any
 from build_documentation_family_currentness import (
     CURRENTNESS_PATH,
     MAP_PATH,
-    TRACKED_SOURCE,
     build_currentness,
     family_for,
     included_surface,
     load_map,
     render_currentness,
+    tracked_source_declaration,
     tracked_paths,
 )
 import validate_agent_surface
@@ -191,11 +191,12 @@ def validate_source_map(repo_root: Path, payload: dict[str, Any], issues: list[I
     executable_extensions = atlas_method.get("executable_carrier_extensions") if isinstance(atlas_method, dict) else None
     human_exclusion = atlas_method.get("human_exclusion") if isinstance(atlas_method, dict) else None
     tracked_source = atlas_method.get("tracked_source") if isinstance(atlas_method, dict) else None
-    if tracked_source != TRACKED_SOURCE:
+    expected_tracked_source = tracked_source_declaration()
+    if tracked_source != expected_tracked_source:
         _issue(
             issues,
             f"{MAP_PATH.as_posix()}#atlas_method",
-            f"tracked_source must match the builder operation: {TRACKED_SOURCE}",
+            f"tracked_source must match the builder operation: {expected_tracked_source}",
         )
     extension_groups = {
         "human_extensions": human_extensions,
