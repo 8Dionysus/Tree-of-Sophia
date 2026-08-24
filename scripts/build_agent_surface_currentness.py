@@ -73,7 +73,19 @@ def quoted_scalar_is_open(value: str) -> bool:
         return False
     quote = value[0]
     if quote == "'":
-        return "'" not in value[1:]
+        index = 1
+        while index < len(value):
+            if value[index] != "'":
+                index += 1
+                continue
+            # YAML single-quoted scalars encode an apostrophe as a doubled
+            # quote.  It is not the closing delimiter, including when the
+            # pair is the final content on a physical line.
+            if index + 1 < len(value) and value[index + 1] == "'":
+                index += 2
+                continue
+            return False
+        return True
     escaped = False
     for character in value[1:]:
         if escaped:
