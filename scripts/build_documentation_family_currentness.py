@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+from fnmatch import fnmatchcase
 import hashlib
 import json
 import subprocess
@@ -90,11 +91,8 @@ def surface_kind(path: Path, human_extensions: set[str]) -> str:
     return "other"
 
 
-def in_human_scope(path: Path, human_extensions: set[str]) -> bool:
-    return path.suffix in human_extensions and not (
-        path.as_posix().startswith(".agents/skills/")
-        and path.parts[-2:] == ("agents", "openai.yaml")
-    )
+def in_human_scope(path: Path, human_extensions: set[str], human_exclusion: str) -> bool:
+    return path.suffix in human_extensions and not fnmatchcase(path.as_posix(), human_exclusion)
 
 
 def human_scope(
@@ -102,8 +100,9 @@ def human_scope(
     paths: list[Path],
     families: list[dict[str, Any]],
     human_extensions: set[str],
+    human_exclusion: str,
 ) -> dict[str, Any]:
-    human = [path for path in paths if in_human_scope(path, human_extensions)]
+    human = [path for path in paths if in_human_scope(path, human_extensions, human_exclusion)]
     by_family: Counter[str] = Counter()
     bytes_by_family: Counter[str] = Counter()
     lines_by_family: Counter[str] = Counter()
@@ -127,8 +126,7 @@ def human_scope(
         },
         "excluded_skill_launch_metadata": sum(
             path.suffix in human_extensions
-            and path.as_posix().startswith(".agents/skills/")
-            and path.parts[-2:] == ("agents", "openai.yaml")
+            and fnmatchcase(path.as_posix(), human_exclusion)
             for path in paths
         ),
     }
@@ -138,7 +136,9 @@ def build_currentness(repo_root: Path = REPO_ROOT) -> dict[str, Any]:
     map_path, source_map = load_map(repo_root)
     families = source_map["families"]
     surface_rules = source_map["surface_rules"]
-    human_extensions = set(source_map["atlas_method"]["human_extensions"])
+    atlas_method = source_map["atlas_method"]
+    human_extensions = set(atlas_method["human_extensions"])
+    human_exclusion = atlas_method["human_exclusion"]
     tracked = tracked_paths(repo_root)
     projection_tracked = projection_tracked_paths(tracked, surface_rules)
     surface_paths = [path for path in projection_tracked if included_surface(path, surface_rules)]
@@ -194,7 +194,7 @@ def build_currentness(repo_root: Path = REPO_ROOT) -> dict[str, Any]:
         "unhandled_family_count": len(unhandled),
         "unhandled_paths": sorted(unhandled),
         "surface_kind_counts": dict(sorted(kind_counts.items())),
-        "human_scope": human_scope(repo_root, tracked, families, human_extensions),
+        "human_scope": human_scope(repo_root, tracked, families, human_extensions, human_exclusion),
     }
     context_summary = {
         "metric": "whitespace_tokens_v1",

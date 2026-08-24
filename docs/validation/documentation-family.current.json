@@ -179,7 +179,7 @@
         "human": 49,
         "structured": 6
       },
-      "tracked_surface_bytes": 570867,
+      "tracked_surface_bytes": 570996,
       "tracked_surface_count": 55
     },
     {
@@ -224,7 +224,7 @@
         "executable": 88,
         "human": 1
       },
-      "tracked_surface_bytes": 2669873,
+      "tracked_surface_bytes": 2671440,
       "tracked_surface_count": 89
     },
     {
@@ -234,7 +234,7 @@
         "human": 1,
         "structured": 1
       },
-      "tracked_surface_bytes": 948462,
+      "tracked_surface_bytes": 949626,
       "tracked_surface_count": 48
     },
     {
@@ -269,7 +269,7 @@
   "source_map": "docs/validation/documentation_family_map.json",
   "source_map_sha256": "0408918382d8f04a7bbece60a54b79f31dfd12fdd58e9c2289b520f30eb0401d",
   "tracked_source": "git ls-files -z",
-  "tracked_surface_digest": "96a8fbbb6a53e7384520f4eb881a4c0953c59d3e1d2eecbfd94d7fda2779ba49",
+  "tracked_surface_digest": "21d322243921cbab074e229960060857980a97711df05752256ea147679be6f6",
   "tracked_surfaces": [
     {
       "bytes": 1408,
@@ -12064,11 +12064,11 @@
       "surface_kind": "structured"
     },
     {
-      "bytes": 2884,
+      "bytes": 3013,
       "currentness": "tracked_source_snapshot",
       "family_id": "docs",
       "path": "docs/validation/documentation-family-map.schema.json",
-      "sha256": "057a5c401fad52853f2eef6b9dde3797eeedba1b2514c2007339228b56a74efa",
+      "sha256": "871e00d5a8aa798a2da960aebff76702c11fc026a0d02f6a93ab325b21c745dc",
       "surface_kind": "structured"
     },
     {
@@ -13976,11 +13976,11 @@
       "surface_kind": "executable"
     },
     {
-      "bytes": 9680,
+      "bytes": 9746,
       "currentness": "tracked_source_snapshot",
       "family_id": "scripts",
       "path": "scripts/build_documentation_family_currentness.py",
-      "sha256": "fde2927fb097175c13e8038345bf994e58251b55384759bba1b00c1e8601eab5",
+      "sha256": "4512d006cccb7bf84d14d9fe6328f2dbf6cbc118b50961e10d2df73241974426",
       "surface_kind": "executable"
     },
     {
@@ -14440,11 +14440,11 @@
       "surface_kind": "executable"
     },
     {
-      "bytes": 31510,
+      "bytes": 33011,
       "currentness": "tracked_source_snapshot",
       "family_id": "scripts",
       "path": "scripts/validate_documentation_cross_corpus.py",
-      "sha256": "138f39448b581086ea1e43d001716880310924fea8b70f6cfb1f27ab5f14c484",
+      "sha256": "64426bc9ef8f945980054e9b4b891fc06b9c240e7ec4ba0aeb52a1944110f6c2",
       "surface_kind": "executable"
     },
     {
@@ -14752,11 +14752,11 @@
       "surface_kind": "executable"
     },
     {
-      "bytes": 16178,
+      "bytes": 17342,
       "currentness": "tracked_source_snapshot",
       "family_id": "tests",
       "path": "tests/test_documentation_cross_corpus.py",
-      "sha256": "25e50accde59f4843a1ad878380dee7c622567297d585e279b8536d685caef7a",
+      "sha256": "a2437bb47210cfa4344557d975571faab183a604406a792af58334cac801e041",
       "surface_kind": "executable"
     },
     {

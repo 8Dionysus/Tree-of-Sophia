@@ -28,11 +28,12 @@ class DocumentationCrossCorpusTests(unittest.TestCase):
         )
         current = builder.build_currentness(ROOT)
         human_extensions = set(source_map["atlas_method"]["human_extensions"])
+        human_exclusion = source_map["atlas_method"]["human_exclusion"]
         self.assertEqual(source_map["schema_ref"], "docs/validation/documentation-family-map.schema.json")
         human_records = [
             record
             for record in current["tracked_surfaces"]
-            if builder.in_human_scope(Path(record["path"]), human_extensions)
+            if builder.in_human_scope(Path(record["path"]), human_extensions, human_exclusion)
         ]
         self.assertEqual(current["coverage"]["human_scope"]["count"], len(human_records))
         self.assertEqual(
@@ -102,6 +103,32 @@ class DocumentationCrossCorpusTests(unittest.TestCase):
         issues = []
         validator.validate_family_authority_claims(families, declarations, issues)
         self.assertTrue(any("not referenced by authority_keys" in message for _, message in issues))
+
+    def test_source_map_requires_declared_validation_lane(self) -> None:
+        source_map = json.loads(
+            (ROOT / "docs/validation/documentation_family_map.json").read_text(encoding="utf-8")
+        )
+        source_map["families"][0]["validation_lane"] = "missing-lane"
+        issues: list[tuple[str, str]] = []
+        validator.validate_source_map(ROOT, source_map, issues)
+        self.assertTrue(any("not in command authority" in message for _, message in issues))
+
+    def test_human_scope_uses_authored_exclusion_glob(self) -> None:
+        human_extensions = {".yaml"}
+        self.assertFalse(
+            builder.in_human_scope(
+                Path(".agents/skills/example/agents/openai.yaml"),
+                human_extensions,
+                ".agents/skills/**/agents/openai.yaml",
+            )
+        )
+        self.assertTrue(
+            builder.in_human_scope(
+                Path(".agents/skills/example/agents/openai.yaml"),
+                human_extensions,
+                ".agents/skills/**/agents/other.yaml",
+            )
+        )
 
     def test_source_map_requires_public_safety_lists(self) -> None:
         source_map = json.loads(

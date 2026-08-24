@@ -125,6 +125,7 @@ def validate_source_map(repo_root: Path, payload: dict[str, Any], issues: list[I
 
     atlas_method = payload.get("atlas_method")
     human_extensions = atlas_method.get("human_extensions") if isinstance(atlas_method, dict) else None
+    human_exclusion = atlas_method.get("human_exclusion") if isinstance(atlas_method, dict) else None
     if (
         not isinstance(human_extensions, list)
         or not human_extensions
@@ -137,6 +138,23 @@ def validate_source_map(repo_root: Path, payload: dict[str, Any], issues: list[I
         included_extensions = surface_rules.get("include_extensions") if isinstance(surface_rules, dict) else None
         if isinstance(included_extensions, list) and not set(human_extensions).issubset(included_extensions):
             _issue(issues, f"{MAP_PATH.as_posix()}#atlas_method", "human_extensions must be included by surface_rules.include_extensions")
+    if (
+        not isinstance(human_exclusion, str)
+        or not human_exclusion
+        or human_exclusion.startswith("/")
+        or ".." in Path(human_exclusion).parts
+    ):
+        _issue(issues, f"{MAP_PATH.as_posix()}#atlas_method", "human_exclusion must be a non-empty safe relative glob")
+
+    lane_authority_path = repo_root / "docs/validation/validation_lanes.json"
+    try:
+        lane_authority = json.loads(lane_authority_path.read_text(encoding="utf-8"))
+        declared_lanes = lane_authority.get("lanes") if isinstance(lane_authority, dict) else None
+    except (OSError, TypeError, ValueError, json.JSONDecodeError) as exc:
+        declared_lanes = None
+        _issue(issues, lane_authority_path.as_posix(), f"cannot load validation lane authority: {exc}")
+    if not isinstance(declared_lanes, dict):
+        _issue(issues, lane_authority_path.as_posix(), "validation lane authority must declare a lanes object")
 
     families = payload.get("families")
     if not isinstance(families, list):
@@ -155,6 +173,11 @@ def validate_source_map(repo_root: Path, payload: dict[str, Any], issues: list[I
         for field in ("label", "match", "consumer", "load_moment", "owner", "roles", "currentness_inputs", "next_organ", "context", "public_safety", "validation_lane", "authority_keys"):
             if field not in family:
                 _issue(issues, f"{MAP_PATH.as_posix()}#{family_id}", f"missing family field: {field}")
+        validation_lane = family.get("validation_lane")
+        if not isinstance(validation_lane, str) or not validation_lane:
+            _issue(issues, f"{MAP_PATH.as_posix()}#{family_id}", "validation_lane must be a non-empty string")
+        elif isinstance(declared_lanes, dict) and validation_lane not in declared_lanes:
+            _issue(issues, f"{MAP_PATH.as_posix()}#{family_id}", f"validation_lane is not in command authority: {validation_lane}")
         roles = family.get("roles")
         if not isinstance(roles, dict) or set(roles) != ROLE_KEYS:
             _issue(issues, f"{MAP_PATH.as_posix()}#{family_id}", "roles must name authored/generated/executable/runtime/tool/receipt exactly")
