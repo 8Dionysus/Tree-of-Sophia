@@ -81,12 +81,17 @@ def family_for(path: Path, families: list[dict[str, Any]]) -> str | None:
     return None
 
 
-def surface_kind(path: Path, human_extensions: set[str]) -> str:
+def surface_kind(
+    path: Path,
+    human_extensions: set[str],
+    structured_extensions: set[str],
+    executable_extensions: set[str],
+) -> str:
     if path.suffix in human_extensions:
         return "human"
-    if path.suffix == ".json":
+    if path.suffix in structured_extensions:
         return "structured"
-    if path.suffix in {".py", ".sh"}:
+    if path.suffix in executable_extensions:
         return "executable"
     return "other"
 
@@ -138,6 +143,8 @@ def build_currentness(repo_root: Path = REPO_ROOT) -> dict[str, Any]:
     surface_rules = source_map["surface_rules"]
     atlas_method = source_map["atlas_method"]
     human_extensions = set(atlas_method["human_extensions"])
+    structured_extensions = set(atlas_method["structured_carrier_extensions"])
+    executable_extensions = set(atlas_method["executable_carrier_extensions"])
     human_exclusion = atlas_method["human_exclusion"]
     tracked = tracked_paths(repo_root)
     projection_tracked = projection_tracked_paths(tracked, surface_rules)
@@ -154,7 +161,7 @@ def build_currentness(repo_root: Path = REPO_ROOT) -> dict[str, Any]:
             unhandled.append(relative)
             family_id = "unhandled"
         payload = (repo_root / path).read_bytes()
-        kind = surface_kind(path, human_extensions)
+        kind = surface_kind(path, human_extensions, structured_extensions, executable_extensions)
         kind_counts[kind] += 1
         record = {
             "path": relative,

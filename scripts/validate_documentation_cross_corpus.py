@@ -186,19 +186,36 @@ def validate_source_map(repo_root: Path, payload: dict[str, Any], issues: list[I
 
     atlas_method = payload.get("atlas_method")
     human_extensions = atlas_method.get("human_extensions") if isinstance(atlas_method, dict) else None
+    structured_extensions = atlas_method.get("structured_carrier_extensions") if isinstance(atlas_method, dict) else None
+    executable_extensions = atlas_method.get("executable_carrier_extensions") if isinstance(atlas_method, dict) else None
     human_exclusion = atlas_method.get("human_exclusion") if isinstance(atlas_method, dict) else None
-    if (
-        not isinstance(human_extensions, list)
-        or not human_extensions
-        or not all(isinstance(item, str) and item.startswith(".") for item in human_extensions)
-        or len(human_extensions) != len(set(human_extensions))
-    ):
-        _issue(issues, f"{MAP_PATH.as_posix()}#atlas_method", "human_extensions must be a non-empty unique list of dotted strings")
-    else:
+    extension_groups = {
+        "human_extensions": human_extensions,
+        "structured_carrier_extensions": structured_extensions,
+        "executable_carrier_extensions": executable_extensions,
+    }
+    extension_sets: dict[str, set[str]] = {}
+    for group_name, values in extension_groups.items():
+        if (
+            not isinstance(values, list)
+            or not values
+            or not all(isinstance(item, str) and item.startswith(".") for item in values)
+            or len(values) != len(set(values))
+        ):
+            _issue(issues, f"{MAP_PATH.as_posix()}#atlas_method", f"{group_name} must be a non-empty unique list of dotted strings")
+        else:
+            extension_sets[group_name] = set(values)
+    if len(extension_sets) == len(extension_groups):
+        for left_name, left_values in extension_sets.items():
+            for right_name, right_values in extension_sets.items():
+                if left_name < right_name and left_values & right_values:
+                    _issue(issues, f"{MAP_PATH.as_posix()}#atlas_method", f"carrier extension groups overlap: {left_name}, {right_name}")
         surface_rules = payload.get("surface_rules")
         included_extensions = surface_rules.get("include_extensions") if isinstance(surface_rules, dict) else None
-        if isinstance(included_extensions, list) and not set(human_extensions).issubset(included_extensions):
-            _issue(issues, f"{MAP_PATH.as_posix()}#atlas_method", "human_extensions must be included by surface_rules.include_extensions")
+        if isinstance(included_extensions, list):
+            configured = set().union(*extension_sets.values())
+            if configured != set(included_extensions):
+                _issue(issues, f"{MAP_PATH.as_posix()}#atlas_method", "atlas extension groups must exactly cover surface_rules.include_extensions")
     if (
         not isinstance(human_exclusion, str)
         or not human_exclusion
@@ -555,11 +572,22 @@ def _tracked_markdown_paths(repo_root: Path) -> list[Path]:
     ]
 
 
+def route_visible_markdown(text: str) -> str:
+    """Return Markdown content whose live route syntax is safe to inspect."""
+    rendered = validate_mechanics_topology.rendered_markdown(text)
+    rendered = re.sub(r"(?m)^(?: {4}|\t).*$", "", rendered)
+    return re.sub(
+        r"(?<!`)(?P<ticks>`+)(?P<body>[^\n]*?)(?P=ticks)(?!`)",
+        "",
+        rendered,
+    )
+
+
 def validate_markdown_routes(repo_root: Path, issues: list[Issue]) -> None:
     for path in _tracked_markdown_paths(repo_root):
         relative = path.relative_to(repo_root).as_posix()
         text = path.read_text(encoding="utf-8")
-        rendered = validate_mechanics_topology.rendered_markdown(text)
+        rendered = route_visible_markdown(text)
         definitions = {
             re.sub(r"\s+", " ", label.strip()).casefold(): (angle or bare)
             for label, angle, bare in validate_mechanics_topology.MARKDOWN_REFERENCE_DEFINITION_RE.findall(rendered)

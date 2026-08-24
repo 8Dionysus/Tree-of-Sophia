@@ -145,6 +145,14 @@ class DocumentationCrossCorpusTests(unittest.TestCase):
         validator.validate_context_probe_configuration(source_map["context_probes"], issues)
         self.assertTrue(any("canonical context contract" in message for _, message in issues))
 
+        source_map = json.loads(
+            (ROOT / "docs/validation/documentation_family_map.json").read_text(encoding="utf-8")
+        )
+        source_map["atlas_method"]["structured_carrier_extensions"] = [".toml"]
+        issues = []
+        validator.validate_source_map(ROOT, source_map, issues)
+        self.assertTrue(any("extension groups must exactly cover" in message for _, message in issues))
+
     def test_human_scope_uses_authored_exclusion_glob(self) -> None:
         human_extensions = {".yaml"}
         self.assertFalse(
@@ -210,6 +218,15 @@ class DocumentationCrossCorpusTests(unittest.TestCase):
                 issues: list[tuple[str, str]] = []
                 validator.validate_markdown_routes(root, issues)
         self.assertTrue(any("unresolved reference-style documentation route" in message for _, message in issues))
+
+    def test_markdown_route_scan_ignores_inline_and_indented_code(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            write_text(root / "README.md", "`[inline](missing.md)`\n    [indented](missing.md)\n")
+            with mock.patch.object(validator, "tracked_paths", return_value=[Path("README.md")]):
+                issues: list[tuple[str, str]] = []
+                validator.validate_markdown_routes(root, issues)
+        self.assertEqual([], issues)
 
     def test_active_stale_executable_route_fails_closed(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
