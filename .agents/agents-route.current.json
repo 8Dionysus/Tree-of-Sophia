@@ -760,13 +760,13 @@
       "whitespace_tokens": 3469
     },
     {
-      "bytes": 4783,
+      "bytes": 4859,
       "exists": true,
       "lines": 89,
       "path": "README.md",
       "role": "human entrypoint and links to canonical route surfaces",
-      "sha256": "bb55420c77960242b6ab5050d948d32e2c108de4f514d6447d3b665bb3b50579",
-      "whitespace_tokens": 566
+      "sha256": "708087c9fadd85ac293a9a419c29822fc7ff4efa0ad1f7bf4799358501c26841",
+      "whitespace_tokens": 569
     },
     {
       "bytes": 3002,
@@ -805,13 +805,13 @@
       "whitespace_tokens": 1138
     },
     {
-      "bytes": 7643,
+      "bytes": 7957,
       "exists": true,
-      "lines": 101,
+      "lines": 106,
       "path": ".agents/README.md",
       "role": "model-facing skill and owner-port progressive-disclosure entrypoint",
-      "sha256": "d58001c4b1f84bb839397f77e83ac7adf533b2209b7cc2c70ab2afe0c37e828d",
-      "whitespace_tokens": 1150
+      "sha256": "ffa6b5eb46f84abc317907a52c56ae6d17aa4993f989f7e242f52db74ceb36d1",
+      "whitespace_tokens": 1181
     },
     {
       "bytes": 21261,
@@ -832,13 +832,13 @@
       "whitespace_tokens": 2631
     },
     {
-      "bytes": 30446,
+      "bytes": 31906,
       "exists": true,
-      "lines": 811,
+      "lines": 844,
       "path": "docs/validation/validation_lanes.json",
       "role": "executable validation command authority",
-      "sha256": "7ff482bdba68bc49fc5642dcd20f68ffaa7379bd7ab29d687cbe1c83855e106a",
-      "whitespace_tokens": 2208
+      "sha256": "b7cf926fcbbf2e4c550fede66bee55bca2050b03b5df0255013c66da6d14b756",
+      "whitespace_tokens": 2311
     },
     {
       "bytes": 9588,
@@ -877,22 +877,22 @@
       "whitespace_tokens": 535
     },
     {
-      "bytes": 13467,
+      "bytes": 13936,
       "exists": true,
-      "lines": 236,
+      "lines": 243,
       "path": "docs/validation/SCRIPT_TOPOLOGY.md",
       "role": "script ownership, inventory, and command-plane boundary",
-      "sha256": "b8dae3116de1faa399ddf47196bb05027e18eae56732d80b4332d2f009e6b50e",
-      "whitespace_tokens": 1716
+      "sha256": "2cfeca708f78fb3c049ae4e851481d136a1765d0b7db7d49874a0b24c09abede",
+      "whitespace_tokens": 1763
     },
     {
-      "bytes": 134148,
+      "bytes": 136085,
       "exists": true,
-      "lines": 2497,
+      "lines": 2540,
       "path": "docs/validation/script_inventory.json",
       "role": "deterministic script coverage and side-effect inventory",
-      "sha256": "95de651bfe1a1d312050957c6ff16988748ca1eb707e1b0fbec756cd358cda1d",
-      "whitespace_tokens": 6691
+      "sha256": "4542ca9c39fcc35ee318023e8deb6c752037879937a3c415572f438d11ecfa10",
+      "whitespace_tokens": 6818
     },
     {
       "bytes": 3595,
@@ -1918,7 +1918,7 @@
       ]
     },
     {
-      "additional_context_tokens": 4737,
+      "additional_context_tokens": 4887,
       "completion_evidence": [
         {
           "bytes": 6388,
@@ -1930,13 +1930,13 @@
           "whitespace_tokens": 790
         },
         {
-          "bytes": 30446,
+          "bytes": 31906,
           "exists": true,
-          "lines": 811,
+          "lines": 844,
           "path": "docs/validation/validation_lanes.json",
           "role": "completion",
-          "sha256": "7ff482bdba68bc49fc5642dcd20f68ffaa7379bd7ab29d687cbe1c83855e106a",
-          "whitespace_tokens": 2208
+          "sha256": "b7cf926fcbbf2e4c550fede66bee55bca2050b03b5df0255013c66da6d14b756",
+          "whitespace_tokens": 2311
         },
         {
           "bytes": 944,
@@ -1965,22 +1965,22 @@
       "inherited_context_tokens": 2091,
       "on_demand_surfaces": [
         {
-          "bytes": 30446,
+          "bytes": 31906,
           "exists": true,
-          "lines": 811,
+          "lines": 844,
           "path": "docs/validation/validation_lanes.json",
           "role": "on_demand",
-          "sha256": "7ff482bdba68bc49fc5642dcd20f68ffaa7379bd7ab29d687cbe1c83855e106a",
-          "whitespace_tokens": 2208
+          "sha256": "b7cf926fcbbf2e4c550fede66bee55bca2050b03b5df0255013c66da6d14b756",
+          "whitespace_tokens": 2311
         },
         {
-          "bytes": 13467,
+          "bytes": 13936,
           "exists": true,
-          "lines": 236,
+          "lines": 243,
           "path": "docs/validation/SCRIPT_TOPOLOGY.md",
           "role": "on_demand",
-          "sha256": "b8dae3116de1faa399ddf47196bb05027e18eae56732d80b4332d2f009e6b50e",
-          "whitespace_tokens": 1716
+          "sha256": "2cfeca708f78fb3c049ae4e851481d136a1765d0b7db7d49874a0b24c09abede",
+          "whitespace_tokens": 1763
         },
         {
           "bytes": 4170,
@@ -2047,7 +2047,7 @@
       ]
     },
     {
-      "additional_context_tokens": 1954,
+      "additional_context_tokens": 1985,
       "completion_evidence": [
         {
           "bytes": 1408,
@@ -2094,13 +2094,13 @@
       "inherited_context_tokens": 1491,
       "on_demand_surfaces": [
         {
-          "bytes": 7643,
+          "bytes": 7957,
           "exists": true,
-          "lines": 101,
+          "lines": 106,
           "path": ".agents/README.md",
           "role": "on_demand",
-          "sha256": "d58001c4b1f84bb839397f77e83ac7adf533b2209b7cc2c70ab2afe0c37e828d",
-          "whitespace_tokens": 1150
+          "sha256": "ffa6b5eb46f84abc317907a52c56ae6d17aa4993f989f7e242f52db74ceb36d1",
+          "whitespace_tokens": 1181
         },
         {
           "bytes": 5586,

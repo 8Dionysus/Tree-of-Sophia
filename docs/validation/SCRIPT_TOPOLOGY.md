@@ -19,6 +19,13 @@ descriptive and testable: it proves each active script surface has an owner
 route, source truth, read/write boundary, lane posture, CI inclusion, and test
 target.
 
+The cross-corpus pair is intentionally split. `build_documentation_family_currentness.py`
+projects the authored `documentation_family_map.json` and the tracked Git
+surface into an exact hash/family carrier. `validate_documentation_cross_corpus.py`
+coordinates that projection with the existing link, mechanics, decision,
+AGENTS-route, agent-surface, KAG, and public-entry contracts. Neither script
+creates philosophical meaning, runtime status, or receipt acceptance.
+
 Inventories describe script surfaces. They do not store release command order
 and do not promote advisory helpers into hard gates.
 

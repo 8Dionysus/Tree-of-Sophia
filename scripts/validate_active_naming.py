@@ -26,6 +26,9 @@ EXCLUDED_PARTS = {
 }
 EXCLUDED_FILES = {
     "CHANGELOG.md",
+    # The cross-corpus currentness carrier enumerates exact historical and
+    # generated paths; it is a projection, not an active naming authority.
+    "docs/validation/documentation-family.current.json",
     "kag/indexes/index_family.manifest.json",
     "scripts/validate_active_naming.py",
 }
