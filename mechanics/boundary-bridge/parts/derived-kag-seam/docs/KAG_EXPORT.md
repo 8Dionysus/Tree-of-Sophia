@@ -34,6 +34,7 @@ entry surface remains a compatibility mirror for the current tiny-entry seam.
 - `ToS/derived-exports/kag_export.min.json`
 - `mechanics/boundary-bridge/parts/derived-kag-seam/scripts/generate_kag_export.py`
 - `mechanics/boundary-bridge/parts/derived-kag-seam/scripts/validate_kag_export.py`
+- `mechanics/boundary-bridge/parts/derived-kag-seam/scripts/prepare_tree_kag_owner_pair.py`
 
 If you edit supporting surfaces in `docs/`, `ToS/public-compatibility/`, `ToS/derived-exports/`, `ToS/contracts/`, or `scripts/`, also follow the nested `AGENTS.md` in that directory.
 
@@ -60,3 +61,29 @@ Regeneration is owned by
 `mechanics/boundary-bridge/parts/derived-kag-seam/scripts/generate_kag_export.py`
 after the public-mirror owner has synchronized its inputs. The nearest
 part-local `AGENTS.md` and the validation-lane manifest own the operator route.
+
+## Tree owner-preparation boundary
+
+The Tree owner-preparation adapter is a read-only witness for a future
+cross-owner KAG pair. It records the canonical node, public mirror, supporting
+surfaces, derived exports, local family manifest, source-index rows, producer
+scripts, and execution environment with exact candidate seals. It classifies
+materialized inputs separately from existence-only checks.
+
+The current export builder reads the public compatibility mirror. The adapter
+also requires observed byte/blob parity with the canonical node, but does not
+claim that the current builder depends on canonical bytes. Its confined reads
+reject symlinks, parent-directory escapes, unsupported Git modes, aliases,
+stale index rows, missing `signs.digest`, and candidate/toolchain drift.
+
+Run the bounded read-only fixed-point observation with:
+
+```bash
+python mechanics/boundary-bridge/parts/derived-kag-seam/scripts/prepare_tree_kag_owner_pair.py --index-reuse
+```
+
+An exact sealed preparation uses `--check` with the candidate, producer, and
+environment values shown by the unsealed JSON packet. If the external `aoa-kag`
+procedure/schema is unavailable, the packet remains
+`blocked_external_kag_contract` and the command exits `3`; this route emits no
+receipt, semantic pair, admission, runtime claim, or owner acceptance.

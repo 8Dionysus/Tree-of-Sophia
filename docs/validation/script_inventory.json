@@ -2535,6 +2535,27 @@
       "ci_inclusion": "release",
       "test_target": "tests/test_documentation_cross_corpus.py",
       "disposition": "keep"
+    },
+    {
+      "path": "mechanics/boundary-bridge/parts/derived-kag-seam/scripts/prepare_tree_kag_owner_pair.py",
+      "family": "owner_preparation_adapter",
+      "organ_lane": "mechanics/part-owned",
+      "owner_surface": "mechanics/boundary-bridge/parts/derived-kag-seam/docs/KAG_EXPORT.md",
+      "source_truth": [
+        "ToS/canon/source/friedrich-nietzsche/thus-spoke-zarathustra/prologue-1/node.json",
+        "ToS/public-compatibility/source_node.example.json",
+        "ToS/derived-exports/kag_export.json",
+        "kag/indexes/index_family.manifest.json"
+      ],
+      "reads": [
+        "Tree source/export files, local source-index rows, and exact producer/toolchain inputs"
+      ],
+      "writes": [],
+      "side_effects": "read-only Tree owner-preparation witness; never writes a receipt, admission, or repository artifact",
+      "validation_lane": "public_entry",
+      "ci_inclusion": "focused-tests",
+      "test_target": "tests/test_tree_kag_owner_preparation.py",
+      "disposition": "keep"
     }
   ]
 }

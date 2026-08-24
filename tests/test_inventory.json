@@ -765,6 +765,21 @@
       "focused_target": "tests/test_documentation_cross_corpus.py",
       "failure_route": "Fix the authored family map, generated carrier, coordinator, or named owner validator before changing test expectations.",
       "disposition": "keep"
+    },
+    {
+      "path": "tests/test_tree_kag_owner_preparation.py",
+      "home": "tests",
+      "home_scope": "root",
+      "family": "validator_behavior",
+      "validation_lane": "public_entry",
+      "owner_surface": "mechanics/boundary-bridge/parts/derived-kag-seam/docs/KAG_EXPORT.md",
+      "protects": "Tree owner-preparation candidate, source-index, file-identity, toolchain-seal, and blocked-external CLI boundaries",
+      "coverage_authority": "tests/AGENTS.md root unittest discovery",
+      "mode": "blocking",
+      "runtime_cost": "fast",
+      "focused_target": "tests/test_tree_kag_owner_preparation.py",
+      "failure_route": "Fix the Tree derived-KAG owner-preparation adapter or its external-contract boundary before changing test expectations.",
+      "disposition": "keep"
     }
   ]
 }
