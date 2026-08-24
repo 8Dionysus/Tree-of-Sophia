@@ -1,0 +1,17 @@
+{
+  "allowed_bytes": 4401980,
+  "allowed_tracked_bytes": 27284444,
+  "approved_by": "repository-owner",
+  "base_ref": "e9c542798402f95c44d797ecbd449ecdd0ca9da3",
+  "changed_generated_bytes": 4401980,
+  "changed_generated_files": 62,
+  "decision_ref": "aoa-kag:docs/decisions/AOA-KAG-D-0017-portable-content-addressed-repository-family.md",
+  "default_limit_bytes": 1048576,
+  "head_family_digest": "0fa774a5abba1ba843a663b7dc19263d9604008665f023866534f949ce186bf5",
+  "reason": "Align agent-surface admission with the canonical measured generated-delta and tracked-size scope relation; preserve owner-generated currentness and the explicit pre-v3 migration exception.",
+  "repo": "Tree-of-Sophia",
+  "schema_version": "aoa-repo-local-kag-budget-receipt-v1",
+  "scope": "generated_delta_and_tracked_size",
+  "tracked_bytes": 27284444,
+  "tracked_bytes_max": 11534336
+}
