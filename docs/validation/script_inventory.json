@@ -207,8 +207,10 @@
         "**/AGENTS.md",
         "declared task targets, validation paths, and completion evidence"
       ],
-      "writes": [],
-      "side_effects": "deterministic route-shape JSON or stdout; no source meaning, semantic acceptance, or human behavior claim",
+      "writes": [
+        "caller-selected route result JSON when --output is supplied"
+      ],
+      "side_effects": "deterministic route-shape JSON to stdout or the caller-selected output file; --output creates or overwrites only that evidence file; no source meaning, semantic acceptance, or human behavior claim",
       "validation_lane": "route_docs",
       "ci_inclusion": "release",
       "test_target": "tests/test_nested_agents.py",
