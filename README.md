@@ -13,9 +13,19 @@ and time while preserving uncertainty and competing readings.
 
 ## How ToS works
 
-ToS uses one inspectable path:
+ToS uses inspectable source-to-review paths. For bibliographic works, the
+primary identity path is:
 
 `work -> expression -> edition -> item -> immutable file -> passage or region -> observation -> claim or interpretation -> human review -> canon or explicit deferral -> derived view`
+
+Physical artifacts that do not naturally enter that ladder use the parallel
+[`artifacts/` spine](ToS/source-witnesses/artifacts/README.md), and modern
+documentary, critical, or synoptic reconstructions use the parallel
+[`scholarly-composites/` spine](ToS/source-witnesses/scholarly-composites/README.md).
+Those routes keep the object, its members, representations, readings, and
+interpretations distinct; neither a composite coordinate nor an artifact ID
+turns a reconstruction into an original, fixed reading, semantic fact, or
+canon.
 
 Every stage is identified and versioned. Witnesses ground material; doctrine
 defines node, relation, naming, and evidence law; intake holds observations
