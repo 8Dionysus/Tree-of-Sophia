@@ -20,6 +20,13 @@ Tracking starts with the community-docs baseline for this repository.
   validator process, so the missing-store rehearsal cannot fall through to an
   ambient host default. The host store remains untouched; the deny-before-
   materialization and post-materialization intent states remain separate.
+- Adds an exact-source CI check for the published `aoa-kag` provider body at
+  `f46f146cc79a26fa81ad0f400b9c5774df293e57` and independently fetches the
+  executable action at `6a79e62c7d20b6b11406dee78f409ada4a51bb3f`, proving the
+  two immutable action snapshots remain distinct.
+- Keeps the subject-store isolation regression standalone-safe by testing the
+  Tree-owned process binding with a local resolver double; the full
+  `abyss-machine` owner path remains exercised by the release audit.
 
 ### Validation
 
@@ -31,6 +38,10 @@ Tracking starts with the community-docs baseline for this repository.
   is the only store candidate during the rehearsal and that process state is
   restored afterward. This is an Unreleased source/tooling repair only; no
   tag, Release, artifact verdict, runtime, proof, or acceptance claim changes.
+- The hosted workflow validates the exact provider source and separate action
+  snapshots before the Tree release audit. These checks prove source-level
+  compatibility evidence only; they do not prove artifact admission, runtime,
+  proof, delivery, closure, or owner/human acceptance.
 
 ## [0.5.0] - 2026-08-23
 

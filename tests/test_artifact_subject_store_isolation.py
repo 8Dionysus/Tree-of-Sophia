@@ -31,6 +31,41 @@ def load_validator():
     return module
 
 
+class FakeArtifactBundles:
+    """Small local stand-in for the owner resolver used by the scope test.
+
+    The Tree test owns the process-binding contract. The full owner package is
+    exercised by the release audit; importing it here would make a repo-local
+    unit test depend on an undeclared sibling checkout.
+    """
+
+    def __init__(self, default_root: Path) -> None:
+        self.DEFAULT_ARTIFACT_SUBJECT_STORE_ROOT = default_root
+
+    def _artifact_subject_store_roots(self) -> list[Path]:
+        roots: list[Path] = []
+        for name in validator_subject_store_env_names:
+            raw = os.environ.get(name, "")
+            roots.extend(
+                Path(item).expanduser()
+                for item in raw.split(os.pathsep)
+                if item.strip()
+            )
+        roots.append(self.DEFAULT_ARTIFACT_SUBJECT_STORE_ROOT)
+        unique: list[Path] = []
+        for root in roots:
+            resolved = root.resolve()
+            if resolved not in unique:
+                unique.append(resolved)
+        return unique
+
+
+validator_subject_store_env_names = (
+    "ABYSS_MACHINE_ARTIFACT_SUBJECT_STORE_ROOT",
+    "ABYSS_MACHINE_ARTIFACT_SUBJECT_STORE_ROOTS",
+)
+
+
 class ArtifactSubjectStoreIsolationTests(unittest.TestCase):
     def test_raw_empty_root_is_rejected_before_materialization(self) -> None:
         validator = load_validator()
@@ -40,7 +75,6 @@ class ArtifactSubjectStoreIsolationTests(unittest.TestCase):
 
     def test_explicit_empty_root_suppresses_ambient_default_and_restores_state(self) -> None:
         validator = load_validator()
-        artifact_bundles, _, _ = validator._import_artifact_bundles()
 
         with tempfile.TemporaryDirectory(prefix="tos-subject-store-isolation-") as tmp:
             root = Path(tmp)
@@ -48,6 +82,7 @@ class ArtifactSubjectStoreIsolationTests(unittest.TestCase):
             isolated_root = root / "isolated-empty"
             ambient_root.mkdir()
             isolated_root.mkdir()
+            artifact_bundles = FakeArtifactBundles(ambient_root)
             old_default = artifact_bundles.DEFAULT_ARTIFACT_SUBJECT_STORE_ROOT
             old_env = {
                 name: os.environ.get(name)
