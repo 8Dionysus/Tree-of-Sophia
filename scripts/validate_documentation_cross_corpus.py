@@ -18,6 +18,7 @@ from build_documentation_family_currentness import (
     included_surface,
     load_map,
     render_currentness,
+    tracked_source_declaration,
     tracked_paths,
 )
 import validate_agent_surface
@@ -189,6 +190,14 @@ def validate_source_map(repo_root: Path, payload: dict[str, Any], issues: list[I
     structured_extensions = atlas_method.get("structured_carrier_extensions") if isinstance(atlas_method, dict) else None
     executable_extensions = atlas_method.get("executable_carrier_extensions") if isinstance(atlas_method, dict) else None
     human_exclusion = atlas_method.get("human_exclusion") if isinstance(atlas_method, dict) else None
+    tracked_source = atlas_method.get("tracked_source") if isinstance(atlas_method, dict) else None
+    expected_tracked_source = tracked_source_declaration()
+    if tracked_source != expected_tracked_source:
+        _issue(
+            issues,
+            f"{MAP_PATH.as_posix()}#atlas_method",
+            f"tracked_source must match the builder operation: {expected_tracked_source}",
+        )
     extension_groups = {
         "human_extensions": human_extensions,
         "structured_carrier_extensions": structured_extensions,
