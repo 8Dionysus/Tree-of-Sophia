@@ -73,7 +73,12 @@ def family_for(path: Path, families: list[dict[str, Any]]) -> str | None:
         if match.get("kind") == "root_files" and len(path.parts) == 1:
             return family.get("id")
         prefix = match.get("prefix")
-        if isinstance(prefix, str) and value.startswith(prefix):
+        exclusions = match.get("exclude_prefixes", [])
+        if (
+            isinstance(prefix, str)
+            and value.startswith(prefix)
+            and not any(isinstance(exclusion, str) and value.startswith(exclusion) for exclusion in exclusions)
+        ):
             return family.get("id")
     return None
 

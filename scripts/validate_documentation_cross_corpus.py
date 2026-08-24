@@ -62,7 +62,16 @@ EXTERNAL_OWNER_MARKERS = (
     "stronger owner",
 )
 CONTEXT_MEASURES = {"agents_route_max_inherited", "generated_summary", "sum", "max"}
-COMMAND_CARRIER_SPLIT_RE = re.compile(r"(?:;|&&|\|\||(?<=[.!?])\s+)")
+EXPECTED_SURFACE_EXTENSIONS = {".md", ".txt", ".yaml", ".yml", ".json", ".py", ".sh"}
+EXPECTED_CONTEXT_PROBE_IDS = {
+    "root_entry",
+    "inherited_agents_stacks",
+    "mechanics_entry",
+    "skill_discovery",
+    "public_entry",
+    "machine_projection_summary",
+}
+COMMAND_CARRIER_SPLIT_RE = re.compile(r"(?:;|&&|\|\||,|(?<=[.!?])\s+)")
 
 
 def _issue(issues: list[Issue], location: str, message: str) -> None:
@@ -163,7 +172,7 @@ def validate_source_map(repo_root: Path, payload: dict[str, Any], issues: list[I
         _issue(issues, MAP_PATH.as_posix(), "authority_declarations must be a non-empty list")
     for field in ("public_authored_surfaces", "public_forbidden_markers"):
         value = payload.get(field)
-        if not isinstance(value, list) or not all(isinstance(item, str) and item for item in value):
+        if not isinstance(value, list) or not value or not all(isinstance(item, str) and item for item in value):
             _issue(issues, MAP_PATH.as_posix(), f"{field} must be a non-empty list of strings")
     guard_families = payload.get("guard_families")
     if not isinstance(guard_families, list) or {item.get("id") for item in guard_families if isinstance(item, dict)} != {
@@ -177,6 +186,103 @@ def validate_source_map(repo_root: Path, payload: dict[str, Any], issues: list[I
         value = payload.get(path_key)
         if isinstance(value, str) and not value.startswith("external:") and not (repo_root / value).exists():
             _issue(issues, MAP_PATH.as_posix(), f"source map route is missing: {value}")
+
+
+def validate_surface_rules(surface_rules: Any, issues: list[Issue]) -> None:
+    location = f"{MAP_PATH.as_posix()}#surface_rules"
+    if not isinstance(surface_rules, dict):
+        _issue(issues, location, "surface_rules must be an object")
+        return
+    extensions = surface_rules.get("include_extensions")
+    if (
+        not isinstance(extensions, list)
+        or not extensions
+        or not all(isinstance(item, str) and item.startswith(".") for item in extensions)
+        or len(extensions) != len(set(extensions))
+        or set(extensions) != EXPECTED_SURFACE_EXTENSIONS
+    ):
+        _issue(issues, location, f"include_extensions must be the explicit set {sorted(EXPECTED_SURFACE_EXTENSIONS)}")
+    for field in ("exclude_paths", "exclude_prefixes"):
+        values = surface_rules.get(field)
+        if not isinstance(values, list) or not all(isinstance(item, str) and item for item in values):
+            _issue(issues, location, f"{field} must be a list of non-empty strings")
+            continue
+        for item in values:
+            path = Path(item)
+            if path.is_absolute() or ".." in path.parts or "//" in item:
+                _issue(issues, location, f"{field} contains an unsafe path: {item}")
+            if field == "exclude_prefixes" and not item.endswith("/"):
+                _issue(issues, location, f"exclude prefix must end with '/': {item}")
+
+
+def validate_context_probe_configuration(probes: Any, issues: list[Issue]) -> None:
+    location = f"{MAP_PATH.as_posix()}#context_probes"
+    if not isinstance(probes, list) or not probes:
+        _issue(issues, location, "context_probes must be a non-empty list")
+        return
+    ids: list[str] = []
+    for index, probe in enumerate(probes):
+        if not isinstance(probe, dict):
+            _issue(issues, location, f"probe {index} must be an object")
+            continue
+        probe_id = probe.get("id")
+        if not isinstance(probe_id, str) or not probe_id:
+            _issue(issues, location, f"probe {index} needs a non-empty id")
+        else:
+            ids.append(probe_id)
+        surfaces = probe.get("surfaces")
+        if not isinstance(surfaces, list) or not surfaces or not all(isinstance(item, str) and item for item in surfaces):
+            _issue(issues, f"{location}#{probe_id or index}", "surfaces must be a non-empty list of strings")
+        if probe.get("measure") not in CONTEXT_MEASURES:
+            _issue(issues, f"{location}#{probe_id or index}", f"unsupported context measure: {probe.get('measure')!r}")
+    if len(ids) != len(set(ids)):
+        _issue(issues, location, "context probe ids must be unique")
+    missing = sorted(EXPECTED_CONTEXT_PROBE_IDS - set(ids))
+    if missing:
+        _issue(issues, location, f"missing required context probes: {', '.join(missing)}")
+
+
+def validate_family_match_rules(families: Any, issues: list[Issue]) -> None:
+    location = f"{MAP_PATH.as_posix()}#families"
+    if not isinstance(families, list):
+        return
+    prefix_rules: list[tuple[str, str, dict[str, Any]]] = []
+    root_count = 0
+    for family in families:
+        if not isinstance(family, dict):
+            continue
+        family_id = family.get("id", "<unknown>")
+        match = family.get("match")
+        if not isinstance(match, dict):
+            _issue(issues, f"{location}#{family_id}", "match must be an object")
+            continue
+        if match.get("kind") == "root_files":
+            root_count += 1
+            continue
+        prefix = match.get("prefix")
+        if not isinstance(prefix, str) or not prefix or not prefix.endswith("/") or prefix.startswith("/") or ".." in Path(prefix).parts or "//" in prefix:
+            _issue(issues, f"{location}#{family_id}", "prefix must be a non-empty relative directory boundary")
+            continue
+        exclusions = match.get("exclude_prefixes", [])
+        if not isinstance(exclusions, list) or not all(isinstance(item, str) and item.endswith("/") and not item.startswith("/") and ".." not in Path(item).parts for item in exclusions):
+            _issue(issues, f"{location}#{family_id}", "exclude_prefixes must contain safe directory boundaries")
+        prefix_rules.append((prefix, str(family_id), match))
+    if root_count != 1:
+        _issue(issues, location, "families must declare exactly one root_files match")
+    for index, (left, left_id, left_match) in enumerate(prefix_rules):
+        for right, right_id, right_match in prefix_rules[index + 1 :]:
+            if left == right:
+                _issue(issues, location, f"families have duplicate match prefix: {left_id}, {right_id}")
+                continue
+            if left.startswith(right):
+                broad, broad_id, broad_match, narrow = right, right_id, right_match, left
+            elif right.startswith(left):
+                broad, broad_id, broad_match, narrow = left, left_id, left_match, right
+            else:
+                continue
+            exclusions = broad_match.get("exclude_prefixes", [])
+            if not any(narrow.startswith(exclusion) for exclusion in exclusions):
+                _issue(issues, location, f"overlapping family prefixes require an explicit exclusion: {broad_id} and {left_id if broad_id == right_id else right_id}")
 
 
 def validate_authority_declarations(payload: list[dict[str, Any]], issues: list[Issue], location: str = "authority_declarations") -> None:
@@ -374,6 +480,9 @@ def validate_context_probes(repo_root: Path, payload: dict[str, Any], issues: li
         probe_id = probe.get("id", "<unknown>")
         surfaces = probe.get("surfaces", [])
         measure = probe.get("measure")
+        if not isinstance(surfaces, list) or not surfaces or not all(isinstance(item, str) and item for item in surfaces):
+            _issue(issues, f"context_probes#{probe_id}", "surfaces must be a non-empty list of strings")
+            continue
         if measure not in CONTEXT_MEASURES:
             _issue(issues, f"context_probes#{probe_id}", f"unsupported context measure: {measure!r}")
             continue
@@ -456,6 +565,9 @@ def run_validation(repo_root: Path = REPO_ROOT, *, reuse_existing: bool = True) 
     if payload is None:
         return [(MAP_PATH.as_posix(), "source family map is missing or invalid JSON")]
     validate_source_map(repo_root, payload, issues)
+    validate_surface_rules(payload.get("surface_rules"), issues)
+    validate_context_probe_configuration(payload.get("context_probes"), issues)
+    validate_family_match_rules(payload.get("families"), issues)
     validate_authority_declarations(payload.get("authority_declarations", []), issues)
     validate_family_authority_claims(
         payload.get("families", []),

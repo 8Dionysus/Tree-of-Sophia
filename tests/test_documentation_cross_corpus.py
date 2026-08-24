@@ -90,6 +90,17 @@ class DocumentationCrossCorpusTests(unittest.TestCase):
         validator.validate_family_authority_claims(families, declarations, issues)
         self.assertTrue(any("has no declaration" in message for _, message in issues))
 
+    def test_source_map_requires_public_safety_lists(self) -> None:
+        source_map = json.loads(
+            (ROOT / "docs/validation/documentation_family_map.json").read_text(encoding="utf-8")
+        )
+        source_map["public_authored_surfaces"] = []
+        source_map["public_forbidden_markers"] = []
+        issues: list[tuple[str, str]] = []
+        validator.validate_source_map(ROOT, source_map, issues)
+        self.assertTrue(any("public_authored_surfaces" in message for _, message in issues))
+        self.assertTrue(any("public_forbidden_markers" in message for _, message in issues))
+
     def test_markdown_file_and_fragment_routes_fail_closed(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
@@ -158,6 +169,18 @@ class DocumentationCrossCorpusTests(unittest.TestCase):
             validator.validate_context_probes(root, payload, issues)
         self.assertTrue(any("unsupported context measure" in message for _, message in issues))
 
+    def test_external_marker_does_not_cross_a_comma_clause(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            write_text(
+                root / "README.md",
+                "Run scripts/not-present.py locally, while the aoa-kag external owner handles deployment.\\n",
+            )
+            with mock.patch.object(validator, "tracked_paths", return_value=[Path("README.md")]):
+                issues: list[tuple[str, str]] = []
+                validator.validate_executable_routes(root, issues)
+        self.assertTrue(any("stale executable reference: scripts/not-present.py" in message for _, message in issues))
+
     def test_generated_projection_mismatch_is_detected(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
@@ -198,6 +221,49 @@ class DocumentationCrossCorpusTests(unittest.TestCase):
             validator.validate_public_safety(root, safe_payload, unsafe_issues)
         self.assertEqual([], safe_issues)
         self.assertEqual(2, len(unsafe_issues))
+
+    def test_context_configuration_requires_non_empty_probe_set_and_surfaces(self) -> None:
+        issues: list[tuple[str, str]] = []
+        validator.validate_context_probe_configuration([], issues)
+        self.assertTrue(any("non-empty list" in message for _, message in issues))
+
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            payload = {
+                "context_probes": [
+                    {"id": "entry", "surfaces": [], "measure": "sum", "max_tokens": 2}
+                ]
+            }
+            validator.validate_context_probe_configuration(payload["context_probes"], issues)
+            validator.validate_context_probes(root, payload, issues)
+        self.assertTrue(any("surfaces must be a non-empty list" in message for _, message in issues))
+
+    def test_surface_rules_reject_empty_or_unsafe_atlas_configuration(self) -> None:
+        issues: list[tuple[str, str]] = []
+        validator.validate_surface_rules({"include_extensions": [], "exclude_paths": [], "exclude_prefixes": []}, issues)
+        self.assertTrue(any("include_extensions" in message for _, message in issues))
+
+        issues = []
+        validator.validate_surface_rules(
+            {
+                "include_extensions": sorted(validator.EXPECTED_SURFACE_EXTENSIONS),
+                "exclude_paths": ["../outside"],
+                "exclude_prefixes": ["kag/indexes"],
+            },
+            issues,
+        )
+        self.assertTrue(any("unsafe path" in message for _, message in issues))
+        self.assertTrue(any("must end with '/'" in message for _, message in issues))
+
+    def test_family_match_rules_reject_unresolved_overlap(self) -> None:
+        source_map = json.loads(
+            (ROOT / "docs/validation/documentation_family_map.json").read_text(encoding="utf-8")
+        )
+        families = deepcopy(source_map["families"])
+        families[1]["match"]["prefix"] = ".agents/skills-extra/"
+        issues: list[tuple[str, str]] = []
+        validator.validate_family_match_rules(families, issues)
+        self.assertTrue(any("overlapping family prefixes" in message for _, message in issues))
 
     def test_context_probe_overflow_is_detected(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:

@@ -70,7 +70,7 @@
     {
       "id": "agents-other",
       "label": "agent support",
-      "match": {"prefix": ".agents/"},
+      "match": {"prefix": ".agents/", "exclude_prefixes": [".agents/skills/"]},
       "consumer": ["agent route reader", "local package maintainer"],
       "load_moment": "route-specific or package-local on demand",
       "owner": ".agents/AGENTS.md and the nearest package route",
