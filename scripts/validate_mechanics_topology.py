@@ -94,7 +94,14 @@ def normalized_destination(reference: str) -> str:
     return reference_parts(reference)[0]
 
 
-def markdown_destinations(text: str) -> tuple[str, ...]:
+def rendered_markdown(text: str) -> str:
+    text = re.sub(r"(?s)<!--.*?-->", "", text)
+    return re.sub(r"(?ms)^[ \t]*(`{3,}|~{3,}).*?^[ \t]*\1[ \t]*$", "", text)
+
+
+def markdown_destinations(text: str, *, rendered_only: bool = False) -> tuple[str, ...]:
+    if rendered_only:
+        text = rendered_markdown(text)
     destinations = list(MARKDOWN_LINK_RE.findall(text))
     definitions = {
         re.sub(r"\s+", " ", label.strip()).casefold(): (angle or bare)
@@ -199,7 +206,10 @@ def validate_route_map(
         package_text = read_text_if_file(repo_root, package_path)
         if package_text is None:
             continue
-        package_links = {normalized_destination(reference) for reference in markdown_destinations(package_text)}
+        package_links = {
+            normalized_destination(reference)
+            for reference in markdown_destinations(package_text, rendered_only=True)
+        }
         for companion in ("PARTS.md", "PROVENANCE.md", "ROADMAP.md"):
             if companion not in package_links:
                 issues.append((package_path, f"package route does not link to {companion}"))
@@ -207,7 +217,10 @@ def validate_route_map(
         parts_text = read_text_if_file(repo_root, f"mechanics/{slug}/PARTS.md")
         if parts_text is None:
             continue
-        part_links = {normalized_destination(reference) for reference in markdown_destinations(parts_text)}
+        part_links = {
+            normalized_destination(reference)
+            for reference in markdown_destinations(parts_text, rendered_only=True)
+        }
         for part in sorted(package_parts.get(slug, set())):
             part_ref = f"parts/{part}/README.md"
             if part_ref not in part_links:

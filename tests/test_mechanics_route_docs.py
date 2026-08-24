@@ -39,7 +39,8 @@ class MechanicsRouteDocsTests(unittest.TestCase):
             )
             write_text(
                 repo_root / "mechanics" / "agon" / "PARTS.md",
-                "# Parts\nSee `parts/threshold-intake/README.md` for the route.\n",
+                "# Parts\n<!-- [hidden](parts/threshold-intake/README.md) -->\n"
+                "```md\n[example](parts/threshold-intake/README.md)\n```\n",
             )
 
             issues: list[tuple[str, str]] = []
