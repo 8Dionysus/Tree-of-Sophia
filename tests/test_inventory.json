@@ -720,6 +720,21 @@
       "focused_target": "tests/test_golden_kernel_transfer_source_visible_review.py",
       "failure_route": "Fix the private review contract, recorder, tracked receipt, or authority boundary before changing test expectations.",
       "disposition": "keep"
+    },
+    {
+      "path": "tests/test_artifact_subject_store_isolation.py",
+      "home": "tests",
+      "home_scope": "root",
+      "family": "validator_behavior",
+      "validation_lane": "artifact_bundles",
+      "owner_surface": "mechanics/release-support/parts/artifact-bundles/scripts/validate_abyss_machine_generated_readmodel_bundle.py",
+      "protects": "explicit Tree subject-store roots suppress ambient host defaults and restore process state after the missing-store rehearsal",
+      "coverage_authority": "tests/AGENTS.md root unittest discovery",
+      "mode": "blocking",
+      "runtime_cost": "fast",
+      "focused_target": "tests/test_artifact_subject_store_isolation.py",
+      "failure_route": "Fix the Tree artifact-bundle validator isolation boundary before changing test expectations.",
+      "disposition": "keep"
     }
   ]
 }

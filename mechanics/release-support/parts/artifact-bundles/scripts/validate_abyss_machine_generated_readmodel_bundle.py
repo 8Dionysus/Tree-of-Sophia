@@ -8,6 +8,8 @@ import os
 import shutil
 import sys
 import tempfile
+from collections.abc import Iterator
+from contextlib import contextmanager
 from pathlib import Path
 from typing import Any
 
@@ -42,6 +44,47 @@ TRUST_ROOT_MODE = "host_managed"
 PRODUCER = "Tree-of-Sophia generated readmodel builder"
 EXPECTED_REQUIRED_CONTROLS = ["abi_signature"]
 REQUIRED_SUBJECT_STORE_BLOCKER = "required_artifact_subject_store_not_verified"
+SUBJECT_STORE_ENV_NAMES = (
+    "ABYSS_MACHINE_ARTIFACT_SUBJECT_STORE_ROOT",
+    "ABYSS_MACHINE_ARTIFACT_SUBJECT_STORE_ROOTS",
+)
+
+
+@contextmanager
+def _subject_store_scope(artifact_bundles: Any, store_root: Path) -> Iterator[None]:
+    """Bind every artifact-store lookup in this validator to one explicit root.
+
+    The OS Abyss resolver intentionally appends its host default after reading
+    environment roots.  A Tree rehearsal that only supplies an environment
+    root can therefore see an unrelated host store and turn the required
+    missing-store denial into an allow.  This process-local binding keeps the
+    owner validator's explicit root authoritative while restoring both the
+    imported module and environment state on exit.
+    """
+
+    target = Path(store_root).expanduser().resolve()
+    missing = object()
+    previous_default = getattr(
+        artifact_bundles,
+        "DEFAULT_ARTIFACT_SUBJECT_STORE_ROOT",
+        missing,
+    )
+    previous_env = {name: os.environ.get(name) for name in SUBJECT_STORE_ENV_NAMES}
+    try:
+        artifact_bundles.DEFAULT_ARTIFACT_SUBJECT_STORE_ROOT = target
+        for name in SUBJECT_STORE_ENV_NAMES:
+            os.environ[name] = str(target)
+        yield
+    finally:
+        if previous_default is missing:
+            delattr(artifact_bundles, "DEFAULT_ARTIFACT_SUBJECT_STORE_ROOT")
+        else:
+            artifact_bundles.DEFAULT_ARTIFACT_SUBJECT_STORE_ROOT = previous_default
+        for name, value in previous_env.items():
+            if value is None:
+                os.environ.pop(name, None)
+            else:
+                os.environ[name] = value
 
 
 def _candidate_abyss_machine_roots() -> list[Path]:
@@ -728,6 +771,32 @@ def _validate_in_bundle_dir(
     clean: bool,
 ) -> dict[str, Any]:
     artifact_bundles, abyss_machine_root, package_root = _import_artifact_bundles()
+    with _subject_store_scope(artifact_bundles, subject_store_root):
+        return _validate_in_bundle_dir_impl(
+            manifest,
+            subject,
+            bundle_dir,
+            registry_dir,
+            subject_store_root,
+            artifact_bundles=artifact_bundles,
+            abyss_machine_root=abyss_machine_root,
+            package_root=package_root,
+            clean=clean,
+        )
+
+
+def _validate_in_bundle_dir_impl(
+    manifest: Path,
+    subject: Path,
+    bundle_dir: Path,
+    registry_dir: Path,
+    subject_store_root: Path,
+    *,
+    artifact_bundles: Any,
+    abyss_machine_root: Path | None,
+    package_root: str | None,
+    clean: bool,
+) -> dict[str, Any]:
     _assert_manifest_contract_shape(manifest)
     _assert_public_safe_subjects(manifest, subject)
     if clean:
@@ -858,18 +927,29 @@ def _validate_in_bundle_dir(
     return _sanitize_public_payload(payload, abyss_machine_root)
 
 
+def _resolve_subject_store_root(subject_store_root: Path | str | None) -> Path:
+    if subject_store_root is None:
+        return DEFAULT_SUBJECT_STORE_ROOT.resolve()
+    if isinstance(subject_store_root, str) and not subject_store_root.strip():
+        raise ValueError("explicit subject_store_root must be a non-empty path")
+    candidate = Path(subject_store_root).expanduser()
+    if not candidate.is_absolute():
+        candidate = REPO_ROOT / candidate
+    return candidate.resolve()
+
+
 def validate_bundle(
     manifest: Path,
     subject: Path,
     bundle_dir: Path | None,
     registry_dir: Path | None,
-    subject_store_root: Path | None = None,
+    subject_store_root: Path | str | None = None,
     *,
     clean: bool,
 ) -> dict[str, Any]:
     target = bundle_dir or DEFAULT_BUNDLE_DIR
     target_registry = registry_dir or DEFAULT_REGISTRY_DIR
-    target_subject_store = subject_store_root or DEFAULT_SUBJECT_STORE_ROOT
+    target_subject_store = _resolve_subject_store_root(subject_store_root)
     return _validate_in_bundle_dir(
         manifest,
         subject,

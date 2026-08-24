@@ -16,6 +16,10 @@ Tracking starts with the community-docs baseline for this repository.
 - Adds an executable parity guard and owner decision so neither identity is
   misreported as the other. This is a current-source compatibility repair
   only; it does not create or rewrite a tag or Release.
+- Makes an explicitly supplied Tree subject-store root authoritative for the
+  validator process, so the missing-store rehearsal cannot fall through to an
+  ambient host default. The host store remains untouched; the deny-before-
+  materialization and post-materialization intent states remain separate.
 
 ### Validation
 
@@ -23,6 +27,10 @@ Tracking starts with the community-docs baseline for this repository.
   and action refs and assert their intentional inequality. Action execution,
   provider source identity, artifact admission, runtime, proof, delivery,
   closure, and acceptance remain separate claims.
+- The artifact-bundle isolation regression proves that an empty explicit root
+  is the only store candidate during the rehearsal and that process state is
+  restored afterward. This is an Unreleased source/tooling repair only; no
+  tag, Release, artifact verdict, runtime, proof, or acceptance claim changes.
 
 ## [0.5.0] - 2026-08-23
 
