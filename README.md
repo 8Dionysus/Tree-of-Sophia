@@ -41,7 +41,7 @@ grow.
 
 ## Current posture
 
-Current release: `v0.5.3`.
+> Current release: `v0.5.0`. See [CHANGELOG](CHANGELOG.md) for release notes.
 
 Foundation work exercises the evidence chain across heterogeneous witnesses,
 text representations, segmentation, translation alignment, provenance,
@@ -49,8 +49,7 @@ bibliographic and semantic claims, and derived projections. Synthetic,
 private, model-made, or unreviewed exercises prove only their declared
 mechanics: they establish no accepted text, identity, translation,
 interpretation, rights posture, graph truth, publication authority, or canon.
-See [CHANGELOG](CHANGELOG.md) and [ROADMAP](ROADMAP.md) for progress and current
-direction.
+See [ROADMAP](ROADMAP.md) for progress and current direction.
 
 ## Start here
 

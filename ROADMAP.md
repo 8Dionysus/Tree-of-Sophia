@@ -65,7 +65,7 @@ The current repository move is:
 
 ## Current release contour
 
-The live `v0.5.3` corrective release contour grows the bounded root-entry and
+The consolidated `v0.5.0` release contour grows the bounded root-entry and
 owner-local-statistics line into a source-first corpus foundation, portable KAG
 family, and graph-review tree without widening canon:
 
