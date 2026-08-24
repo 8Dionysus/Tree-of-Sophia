@@ -4,6 +4,7 @@ import json
 import sys
 import tempfile
 import unittest
+from copy import deepcopy
 from pathlib import Path
 from unittest import mock
 
@@ -72,6 +73,23 @@ class DocumentationCrossCorpusTests(unittest.TestCase):
         )
         self.assertEqual([], harmless)
 
+    def test_family_authority_guard_binds_owner_and_keys_to_declarations(self) -> None:
+        source_map = json.loads(
+            (ROOT / "docs/validation/documentation_family_map.json").read_text(encoding="utf-8")
+        )
+        families = deepcopy(source_map["families"])
+        declarations = deepcopy(source_map["authority_declarations"])
+        families[0]["owner"] = "wrong-owner"
+        issues: list[tuple[str, str]] = []
+        validator.validate_family_authority_claims(families, declarations, issues)
+        self.assertTrue(any("family owner conflicts" in message for _, message in issues))
+
+        families = deepcopy(source_map["families"])
+        families[0]["authority_keys"] = ["missing_claim"]
+        issues = []
+        validator.validate_family_authority_claims(families, declarations, issues)
+        self.assertTrue(any("has no declaration" in message for _, message in issues))
+
     def test_markdown_file_and_fragment_routes_fail_closed(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
@@ -114,6 +132,31 @@ class DocumentationCrossCorpusTests(unittest.TestCase):
                 issues: list[tuple[str, str]] = []
                 validator.validate_executable_routes(root, issues)
         self.assertTrue(any("stale executable reference: scripts/not-present.py" in message for _, message in issues))
+
+    def test_external_marker_is_command_local_when_commands_share_a_line(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            write_text(
+                root / "README.md",
+                "`scripts/not-present.py` locally; aoa-kag external owner runs `scripts/external.py`.\n",
+            )
+            with mock.patch.object(validator, "tracked_paths", return_value=[Path("README.md")]):
+                issues: list[tuple[str, str]] = []
+                validator.validate_executable_routes(root, issues)
+        self.assertTrue(any("stale executable reference: scripts/not-present.py" in message for _, message in issues))
+
+    def test_context_probe_rejects_unknown_measure(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            write_text(root / "entry.md", "one two\n")
+            payload = {
+                "context_probes": [
+                    {"id": "entry", "surfaces": ["entry.md"], "measure": "typo", "max_tokens": 2}
+                ]
+            }
+            issues: list[tuple[str, str]] = []
+            validator.validate_context_probes(root, payload, issues)
+        self.assertTrue(any("unsupported context measure" in message for _, message in issues))
 
     def test_generated_projection_mismatch_is_detected(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:

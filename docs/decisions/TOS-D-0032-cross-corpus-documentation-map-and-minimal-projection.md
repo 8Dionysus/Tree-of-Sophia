@@ -63,6 +63,13 @@ host/session/provider markers, and selected context budgets. Repeated words in
 prose are not treated as authority conflicts; only duplicate or conflicting
 structured declarations are admitted to that guard.
 
+The coordinator fails closed on its own configuration: public authored surfaces
+and forbidden markers are required typed fields, context measures are an
+explicit finite set, and every family authority key binds to a declaration with
+the same stable family ID and owner claim. External executable exceptions are
+command-local carriers; a nearby stronger-owner mention cannot exempt a
+separate local command on the same line.
+
 Do not add `llms.txt` or another public projection until a real consumer and
 owner contract exists. The minimal added projection is the internal currentness
 carrier because its validator and machine readers have a concrete route need;

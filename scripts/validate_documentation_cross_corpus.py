@@ -61,6 +61,8 @@ EXTERNAL_OWNER_MARKERS = (
     "external owner",
     "stronger owner",
 )
+CONTEXT_MEASURES = {"agents_route_max_inherited", "generated_summary", "sum", "max"}
+COMMAND_CARRIER_SPLIT_RE = re.compile(r"(?:;|&&|\|\||(?<=[.!?])\s+)")
 
 
 def _issue(issues: list[Issue], location: str, message: str) -> None:
@@ -89,6 +91,8 @@ def validate_source_map(repo_root: Path, payload: dict[str, Any], issues: list[I
         "surface_rules",
         "families",
         "authority_declarations",
+        "public_authored_surfaces",
+        "public_forbidden_markers",
         "context_probes",
         "guard_families",
         "projection_decision",
@@ -157,6 +161,10 @@ def validate_source_map(repo_root: Path, payload: dict[str, Any], issues: list[I
     authority = payload.get("authority_declarations")
     if not isinstance(authority, list) or not authority:
         _issue(issues, MAP_PATH.as_posix(), "authority_declarations must be a non-empty list")
+    for field in ("public_authored_surfaces", "public_forbidden_markers"):
+        value = payload.get(field)
+        if not isinstance(value, list) or not all(isinstance(item, str) and item for item in value):
+            _issue(issues, MAP_PATH.as_posix(), f"{field} must be a non-empty list of strings")
     guard_families = payload.get("guard_families")
     if not isinstance(guard_families, list) or {item.get("id") for item in guard_families if isinstance(item, dict)} != {
         "broken_markdown_route", "stale_executable_route", "authority_conflict", "generated_projection_mismatch", "missing_family_coverage", "public_safety", "context_budget"
@@ -183,6 +191,13 @@ def validate_authority_declarations(payload: list[dict[str, Any]], issues: list[
         if not all(isinstance(value, str) and value for value in (claim_id, owner, strength)):
             _issue(issues, location, f"declaration {index} needs id, owner, and strength")
             continue
+        family_id = declaration.get("family_id")
+        family_owner = declaration.get("family_owner")
+        if (family_id is None) != (family_owner is None) or (
+            family_id is not None
+            and (not isinstance(family_id, str) or not family_id or not isinstance(family_owner, str) or not family_owner)
+        ):
+            _issue(issues, location, f"declaration {claim_id} needs a complete family_id/family_owner binding")
         current = (owner, strength)
         if claim_id in seen:
             if seen[claim_id] == current:
@@ -191,6 +206,37 @@ def validate_authority_declarations(payload: list[dict[str, Any]], issues: list[
                 _issue(issues, location, f"conflicting authority declaration: {claim_id}")
         else:
             seen[claim_id] = current
+
+
+def validate_family_authority_claims(
+    families: list[dict[str, Any]],
+    declarations: list[dict[str, Any]],
+    issues: list[Issue],
+) -> None:
+    declarations_by_id = {
+        declaration.get("id"): declaration
+        for declaration in declarations
+        if isinstance(declaration, dict) and isinstance(declaration.get("id"), str)
+    }
+    for family in families:
+        if not isinstance(family, dict):
+            continue
+        family_id = family.get("id", "<unknown>")
+        family_owner = family.get("owner")
+        authority_keys = family.get("authority_keys")
+        if not isinstance(authority_keys, list):
+            _issue(issues, f"{MAP_PATH.as_posix()}#{family_id}", "authority_keys must be a list")
+            continue
+        for authority_key in authority_keys:
+            declaration = declarations_by_id.get(authority_key)
+            location = f"{MAP_PATH.as_posix()}#{family_id}"
+            if declaration is None:
+                _issue(issues, location, f"authority key has no declaration: {authority_key}")
+                continue
+            if declaration.get("family_id") != family_id:
+                _issue(issues, location, f"authority key {authority_key} is bound to family {declaration.get('family_id')!r}, not {family_id!r}")
+            if declaration.get("family_owner") != family_owner:
+                _issue(issues, location, f"family owner conflicts with declaration {authority_key}")
 
 
 def _tracked_markdown_paths(repo_root: Path) -> list[Path]:
@@ -230,18 +276,22 @@ def _script_inventory_paths(repo_root: Path) -> set[str]:
     }
 
 
-def _external_reference_allowed(text: str, reference: str) -> bool:
-    """Allow only a command locally scoped to an external-owner carrier."""
-    for line in text.splitlines():
-        start = 0
-        while True:
-            position = line.find(reference, start)
-            if position < 0:
-                break
-            window = line[max(0, position - 96) : position + len(reference) + 96].lower()
-            if any(marker in window for marker in EXTERNAL_OWNER_MARKERS):
-                return True
-            start = position + len(reference)
+def _external_reference_allowed(line: str, start: int, end: int) -> bool:
+    """Allow only a command in a single-marker, command-local carrier."""
+    offset = 0
+    for carrier in COMMAND_CARRIER_SPLIT_RE.split(line):
+        carrier_start = line.find(carrier, offset)
+        offset = carrier_start + len(carrier)
+        if start < 0 or carrier_start < 0:
+            continue
+        carrier_end = carrier_start + len(carrier)
+        if not carrier_start <= start < carrier_end:
+            continue
+        references = list(COMMAND_REFERENCE_RE.finditer(carrier))
+        if len(references) != 1:
+            return False
+        marker_text = carrier.lower()
+        return any(marker in marker_text for marker in EXTERNAL_OWNER_MARKERS)
     return False
 
 
@@ -267,16 +317,18 @@ def validate_executable_routes(repo_root: Path, issues: list[Issue]) -> None:
         ):
             continue
         text = path.read_text(encoding="utf-8")
-        for reference in COMMAND_REFERENCE_RE.findall(text):
-            resolved = validate_mechanics_topology.resolve_doc_reference(repo_root, path, reference)
-            if resolved is None or not resolved.is_file():
-                if _external_reference_allowed(text, reference):
+        for line in text.splitlines():
+            for match in COMMAND_REFERENCE_RE.finditer(line):
+                reference = match.group(1)
+                resolved = validate_mechanics_topology.resolve_doc_reference(repo_root, path, reference)
+                if resolved is None or not resolved.is_file():
+                    if _external_reference_allowed(line, match.start(1), match.end(1)):
+                        continue
+                    _issue(issues, relative, f"stale executable reference: {reference}")
                     continue
-                _issue(issues, relative, f"stale executable reference: {reference}")
-                continue
-            resolved_relative = resolved.relative_to(repo_root).as_posix()
-            if (resolved_relative.startswith("scripts/") or "/scripts/" in resolved_relative) and resolved_relative not in inventory:
-                _issue(issues, relative, f"executable reference is absent from script inventory: {resolved_relative}")
+                resolved_relative = resolved.relative_to(repo_root).as_posix()
+                if (resolved_relative.startswith("scripts/") or "/scripts/" in resolved_relative) and resolved_relative not in inventory:
+                    _issue(issues, relative, f"executable reference is absent from script inventory: {resolved_relative}")
     cards = validate_nested_agents.discover_route_cards(repo_root)
     validate_nested_agents.validate_local_script_references(repo_root, cards, issues)
 
@@ -321,8 +373,12 @@ def validate_context_probes(repo_root: Path, payload: dict[str, Any], issues: li
             continue
         probe_id = probe.get("id", "<unknown>")
         surfaces = probe.get("surfaces", [])
+        measure = probe.get("measure")
+        if measure not in CONTEXT_MEASURES:
+            _issue(issues, f"context_probes#{probe_id}", f"unsupported context measure: {measure!r}")
+            continue
         try:
-            if probe.get("measure") == "agents_route_max_inherited":
+            if measure == "agents_route_max_inherited":
                 route_payload = json.loads((repo_root / surfaces[0]).read_text(encoding="utf-8"))
                 values = [
                     route.get("inherited_context_tokens")
@@ -330,13 +386,13 @@ def validate_context_probes(repo_root: Path, payload: dict[str, Any], issues: li
                     if isinstance(route, dict) and isinstance(route.get("inherited_context_tokens"), int)
                 ]
                 value = max(values, default=0)
-            elif probe.get("measure") == "generated_summary":
+            elif measure == "generated_summary":
                 if generated is None:
                     generated = json.loads((repo_root / CURRENTNESS_PATH).read_text(encoding="utf-8"))
                 value = _context_tokens(json.dumps(generated.get("context_summary", {}), ensure_ascii=False, sort_keys=True))
             else:
                 values = [_context_tokens((repo_root / surface).read_text(encoding="utf-8")) for surface in surfaces]
-                value = sum(values) if probe.get("measure") == "sum" else max(values, default=0)
+                value = sum(values) if measure == "sum" else max(values, default=0)
         except (IndexError, OSError, TypeError, ValueError, json.JSONDecodeError) as exc:
             _issue(issues, f"context_probes#{probe_id}", f"cannot measure probe: {exc}")
             continue
@@ -401,6 +457,11 @@ def run_validation(repo_root: Path = REPO_ROOT, *, reuse_existing: bool = True) 
         return [(MAP_PATH.as_posix(), "source family map is missing or invalid JSON")]
     validate_source_map(repo_root, payload, issues)
     validate_authority_declarations(payload.get("authority_declarations", []), issues)
+    validate_family_authority_claims(
+        payload.get("families", []),
+        payload.get("authority_declarations", []),
+        issues,
+    )
     validate_markdown_routes(repo_root, issues)
     validate_executable_routes(repo_root, issues)
     validate_family_coverage(repo_root, payload, issues)
