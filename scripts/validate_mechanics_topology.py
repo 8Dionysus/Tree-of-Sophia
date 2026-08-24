@@ -18,7 +18,13 @@ ALLOWED_CLASSES = {"head-fed/local", "local"}
 ALLOWED_STATUSES = {"active", "planted"}
 IGNORED_MECHANICS_DIRS = {"__pycache__", "legacy"}
 MARKDOWN_LINK_RE = re.compile(r"(?<!!)\[[^\]]+\]\(([^)\s]+)")
-SCRIPT_REFERENCE_RE = re.compile(r"(?<![A-Za-z0-9_.-])((?:scripts|mechanics)/[A-Za-z0-9_./-]+\.(?:py|sh))")
+MARKDOWN_REFERENCE_USE_RE = re.compile(r"(?<!!)\[([^\]]+)\]\[([^\]]*)\]")
+MARKDOWN_REFERENCE_DEFINITION_RE = re.compile(
+    r"(?m)^[ \t]{0,3}\[([^\]]+)\]:\s*(?:<([^>\n]+)>|(\S+))"
+)
+SCRIPT_REFERENCE_RE = re.compile(
+    r"(?<![A-Za-z0-9_.-])((?:\.\./)*(?:scripts|mechanics)/[A-Za-z0-9_./-]+\.(?:py|sh))"
+)
 SCRIPT_INVENTORY_PATH = Path("docs/validation/script_inventory.json")
 ROUTE_MAP_MARKERS = (
     "## Task-to-owner map",
@@ -80,10 +86,16 @@ def resolve_doc_reference(repo_root: Path, source_path: Path, reference: str) ->
     if not target or target.startswith(("#", "/")) or "://" in target or target.startswith("mailto:"):
         return None
 
+    resolved_root = repo_root.resolve()
     candidates = (source_path.parent / target, repo_root / target)
     for candidate in candidates:
-        if candidate.exists():
-            return candidate
+        try:
+            resolved = candidate.resolve()
+            resolved.relative_to(resolved_root)
+        except (OSError, ValueError):
+            continue
+        if resolved.exists():
+            return resolved
     return None
 
 
@@ -139,9 +151,13 @@ def validate_route_map(
         parts_text = read_text_if_file(repo_root, f"mechanics/{slug}/PARTS.md")
         if parts_text is None:
             continue
+        part_links = {
+            reference.strip("<>").split("#", 1)[0].split("?", 1)[0]
+            for reference in MARKDOWN_LINK_RE.findall(parts_text)
+        }
         for part in sorted(package_parts.get(slug, set())):
             part_ref = f"parts/{part}/README.md"
-            if part_ref not in parts_text:
+            if part_ref not in part_links:
                 issues.append(
                     (
                         f"mechanics/{slug}/PARTS.md",
@@ -155,7 +171,20 @@ def validate_documentation_references(repo_root: Path, issues: list[Issue]) -> N
     for path in current_mechanics_markdown(repo_root):
         relative = path.relative_to(repo_root).as_posix()
         text = path.read_text(encoding="utf-8")
-        for reference in MARKDOWN_LINK_RE.findall(text):
+        references = list(MARKDOWN_LINK_RE.findall(text))
+        definitions = {
+            re.sub(r"\s+", " ", label.strip()).casefold(): (angle or bare)
+            for label, angle, bare in MARKDOWN_REFERENCE_DEFINITION_RE.findall(text)
+        }
+        references.extend(definitions.values())
+        for label, explicit_label in MARKDOWN_REFERENCE_USE_RE.findall(text):
+            key = re.sub(r"\s+", " ", (explicit_label or label).strip()).casefold()
+            if key not in definitions:
+                issues.append((relative, f"unresolved reference-style documentation route: {explicit_label or label}"))
+            else:
+                references.append(definitions[key])
+
+        for reference in references:
             if reference.startswith(("#", "http:", "https:", "mailto:")):
                 continue
             if resolve_doc_reference(repo_root, path, reference) is None:

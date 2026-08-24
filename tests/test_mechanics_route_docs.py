@@ -37,7 +37,10 @@ class MechanicsRouteDocsTests(unittest.TestCase):
                 repo_root / "mechanics" / "agon" / "README.md",
                 "PARTS.md PROVENANCE.md ROADMAP.md",
             )
-            write_text(repo_root / "mechanics" / "agon" / "PARTS.md", "# Parts\n")
+            write_text(
+                repo_root / "mechanics" / "agon" / "PARTS.md",
+                "# Parts\nSee `parts/threshold-intake/README.md` for the route.\n",
+            )
 
             issues: list[tuple[str, str]] = []
             validate_mechanics_topology.validate_route_map(
@@ -65,6 +68,53 @@ class MechanicsRouteDocsTests(unittest.TestCase):
             validate_mechanics_topology.validate_documentation_references(repo_root, issues)
 
         self.assertTrue(any("stale executable reference" in message for _, message in issues))
+
+    def test_parent_relative_executable_reference_preserves_prefix(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            repo_root = Path(tmpdir) / "Tree-of-Sophia"
+            write_text(repo_root / "mechanics" / "agon" / "scripts" / "run.py", "print('package')\n")
+            write_text(
+                repo_root / "docs" / "validation" / "script_inventory.json",
+                json.dumps({"script_surfaces": [{"path": "mechanics/agon/scripts/run.py"}]}) + "\n",
+            )
+            write_text(
+                repo_root / "mechanics" / "agon" / "parts" / "threshold-intake" / "README.md",
+                "Run `python ../../scripts/run.py`.\n",
+            )
+
+            issues: list[tuple[str, str]] = []
+            validate_mechanics_topology.validate_documentation_references(repo_root, issues)
+
+        self.assertEqual([], issues)
+
+    def test_reference_style_route_fails_closed(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            repo_root = Path(tmpdir) / "Tree-of-Sophia"
+            write_text(
+                repo_root / "mechanics" / "agon" / "parts" / "threshold-intake" / "README.md",
+                "[guide][route]\n\n[route]: missing.md\n",
+            )
+
+            issues: list[tuple[str, str]] = []
+            validate_mechanics_topology.validate_documentation_references(repo_root, issues)
+
+        self.assertTrue(any("broken local documentation route" in message for _, message in issues))
+
+    def test_external_route_is_rejected(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            tmp_root = Path(tmpdir)
+            repo_root = tmp_root / "Tree-of-Sophia"
+            write_text(tmp_root / "outside.md", "outside\n")
+            write_text(
+                repo_root / "mechanics" / "agon" / "README.md",
+                "[outside](../../outside.md)\n",
+            )
+            write_text(repo_root / "docs" / "validation" / "script_inventory.json", '{"script_surfaces": []}\n')
+
+            issues: list[tuple[str, str]] = []
+            validate_mechanics_topology.validate_documentation_references(repo_root, issues)
+
+        self.assertTrue(any("broken local documentation route" in message for _, message in issues))
 
     def test_always_on_context_budget_is_enforced(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
