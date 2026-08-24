@@ -36,6 +36,11 @@ and currentness admission, and `scripts/agents_route_harness.py` owns the
 route-shape probe. These three surfaces do not claim model behavior, semantic
 acceptance, human time-to-owner, or owner acceptance.
 
+The harness reports inherited target-stack tokens, declared on-demand tokens,
+and owner-handoff tokens separately. A handoff outside the target stack is
+bounded by `owner_handoff_max_tokens` rather than silently escaping the context
+budget.
+
 ## Inventory Fields
 
 Each entry records:

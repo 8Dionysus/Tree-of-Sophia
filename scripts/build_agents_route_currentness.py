@@ -162,6 +162,11 @@ def build_currentness(repo_root: Path = REPO_ROOT) -> dict[str, Any]:
                 "inherited_context_tokens": inherited_tokens,
                 "owner_in_inheritance_stack": task["owner_route"] in stack,
                 "owner_handoff": owner_handoff,
+                "owner_handoff_context_tokens": (
+                    owner_handoff.get("whitespace_tokens", 0)
+                    if task["owner_route"] not in stack
+                    else 0
+                ),
                 "additional_context_tokens": sum(
                     item.get("whitespace_tokens", 0) for item in additional
                 ),

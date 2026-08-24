@@ -107,6 +107,11 @@ def evaluate_task(
         for path in task["on_demand_surfaces"]
         if path_exists(repo_root, path)
     )
+    owner_handoff_tokens = (
+        whitespace_tokens(owner_path.read_text(encoding="utf-8"))
+        if owner_path.is_file() and owner_path not in stack
+        else 0
+    )
     max_inherited = budget.get("task_overrides", {}).get(
         task["id"], budget["inherited_stack_max_tokens"]
     )
@@ -122,6 +127,10 @@ def evaluate_task(
     if additional_tokens > budget["additional_context_max_tokens"]:
         budget_violations.append(
             f"additional_context_tokens>{budget['additional_context_max_tokens']}"
+        )
+    if owner_handoff_tokens > budget["owner_handoff_max_tokens"]:
+        budget_violations.append(
+            f"owner_handoff_context_tokens>{budget['owner_handoff_max_tokens']}"
         )
     if len(stack) - 1 > budget["owner_hops_max"]:
         budget_violations.append(f"owner_hops>{budget['owner_hops_max']}")
@@ -155,6 +164,7 @@ def evaluate_task(
         "route_success": route_success,
         "inherited_context_tokens": inherited_tokens,
         "additional_context_tokens": additional_tokens,
+        "owner_handoff_context_tokens": owner_handoff_tokens,
         "owner_hops": max(len(stack) - 1, 0),
         "time_to_owner_ms": elapsed_ms,
         "route_resolution_measurement": (
@@ -167,9 +177,7 @@ def evaluate_task(
             "path": task["owner_route"],
             "exists": owner_path.is_file(),
             "in_inheritance_stack": owner_path in stack,
-            "whitespace_tokens": whitespace_tokens(owner_path.read_text(encoding="utf-8"))
-            if owner_path.is_file() and owner_path not in stack
-            else 0,
+            "whitespace_tokens": owner_handoff_tokens,
         },
         "declared_extra_reads": {
             "count": len(task["on_demand_surfaces"]),
@@ -198,7 +206,12 @@ def evaluate_task(
         "target_exists": target_path.is_file(),
         "owner_exists": owner_path.is_file(),
         "owner_in_inheritance_stack": owner_in_stack,
-        "budget": {"inherited_stack_max_tokens": max_inherited, "violations": budget_violations},
+        "budget": {
+            "inherited_stack_max_tokens": max_inherited,
+            "additional_context_max_tokens": budget["additional_context_max_tokens"],
+            "owner_handoff_max_tokens": budget["owner_handoff_max_tokens"],
+            "violations": budget_violations,
+        },
         "handoff_routes": task["handoff_routes"],
     }
 

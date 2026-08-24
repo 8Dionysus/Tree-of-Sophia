@@ -724,6 +724,7 @@
     "interpretation": "Deterministic route-shape and disclosure guard; it does not claim model behavior, semantic correctness, owner acceptance, or human time-to-owner.",
     "metric": "whitespace_tokens_v1",
     "missing_task_law_max": 0,
+    "owner_handoff_max_tokens": 1200,
     "owner_hops_max": 8,
     "task_overrides": {
       "release_validation": 7000
@@ -840,13 +841,13 @@
       "whitespace_tokens": 2208
     },
     {
-      "bytes": 9374,
+      "bytes": 9588,
       "exists": true,
-      "lines": 248,
+      "lines": 253,
       "path": "scripts/build_agents_route_currentness.py",
       "role": "deterministic generated currentness builder for route-card hashes and stacks",
-      "sha256": "b34c829af5d4b3d8fad04960c4517bb3b09708a250a738bb32cb5dbb8c22e52c",
-      "whitespace_tokens": 737
+      "sha256": "a21ca9a8feffa14a96af92a5261286f860650f032d550beaa2c02548c48ab7d7",
+      "whitespace_tokens": 749
     },
     {
       "bytes": 15349,
@@ -858,31 +859,31 @@
       "whitespace_tokens": 1291
     },
     {
-      "bytes": 10865,
+      "bytes": 11371,
       "exists": true,
-      "lines": 272,
+      "lines": 285,
       "path": "scripts/agents_route_harness.py",
       "role": "deterministic representative task-route and context-budget harness",
-      "sha256": "5ccacdf18395d87d39ecf02ce6896f5d2b65fc596c22fa3fd9f5e923db0e433e",
-      "whitespace_tokens": 810
+      "sha256": "0532b945775ca152decd10fb97066e3abeae190c6c73f3ffffe76aa8f80bb058",
+      "whitespace_tokens": 830
     },
     {
-      "bytes": 9175,
+      "bytes": 9860,
       "exists": true,
-      "lines": 182,
+      "lines": 196,
       "path": "tests/test_nested_agents.py",
       "role": "focused positive and negative controls for route-card guard families",
-      "sha256": "ff84cd51e12b2bc258a83a9d78c31eabf8d58ffe0a68bd40bcc4d2bef5bd2d95",
-      "whitespace_tokens": 485
+      "sha256": "51868634bbf11c9383f080beb9e4eaf58587bd914b938a7c111acdd785d556b6",
+      "whitespace_tokens": 516
     },
     {
-      "bytes": 13225,
+      "bytes": 13467,
       "exists": true,
-      "lines": 231,
+      "lines": 236,
       "path": "docs/validation/SCRIPT_TOPOLOGY.md",
       "role": "script ownership, inventory, and command-plane boundary",
-      "sha256": "1db1127498d9c3e78c7b43707700bb3a829d24c6ea047f183655ab06fbcf98f6",
-      "whitespace_tokens": 1686
+      "sha256": "b8dae3116de1faa399ddf47196bb05027e18eae56732d80b4332d2f009e6b50e",
+      "whitespace_tokens": 1716
     },
     {
       "bytes": 133980,
@@ -977,7 +978,7 @@
     "near_duplicate_cards": "manual review"
   },
   "source_inventory": "docs/validation/agents_route_inventory.json",
-  "source_inventory_sha256": "e5fbb844e4c833b89baa3d0ac4627cb5111b20c1310b372922d993f879634ecb",
+  "source_inventory_sha256": "02ed7d11c99d41368e86d463f6ea6976fda1e53ef83a23af2ca370542e994a7f",
   "task_routes": [
     {
       "additional_context_tokens": 13791,
@@ -1047,6 +1048,7 @@
         "sha256": "4f6386d40cf9662c3a20cb7ebfbcbf051c0bc6ea3f12a2639fdcd6ad290b1bd3",
         "whitespace_tokens": 774
       },
+      "owner_handoff_context_tokens": 0,
       "owner_in_inheritance_stack": true,
       "owner_route": "ToS/source-witnesses/AGENTS.md",
       "target": "ToS/source-witnesses/README.md",
@@ -1140,6 +1142,7 @@
         "sha256": "4f6386d40cf9662c3a20cb7ebfbcbf051c0bc6ea3f12a2639fdcd6ad290b1bd3",
         "whitespace_tokens": 774
       },
+      "owner_handoff_context_tokens": 774,
       "owner_in_inheritance_stack": false,
       "owner_route": "ToS/source-witnesses/AGENTS.md",
       "target": "ToS/doctrine/CORPUS_FOUNDATION.md",
@@ -1233,6 +1236,7 @@
         "sha256": "f75f88aedc0fc280c4aab1bf95715f7c81cd6acf32bafe18a9342af1204fabea",
         "whitespace_tokens": 273
       },
+      "owner_handoff_context_tokens": 0,
       "owner_in_inheritance_stack": true,
       "owner_route": "ToS/contracts/AGENTS.md",
       "target": "ToS/contracts/source-text-unit-packet-v1.schema.json",
@@ -1326,6 +1330,7 @@
         "sha256": "f75f88aedc0fc280c4aab1bf95715f7c81cd6acf32bafe18a9342af1204fabea",
         "whitespace_tokens": 273
       },
+      "owner_handoff_context_tokens": 0,
       "owner_in_inheritance_stack": true,
       "owner_route": "ToS/contracts/AGENTS.md",
       "target": "ToS/contracts/translation-alignment-packet-v1.schema.json",
@@ -1446,6 +1451,7 @@
         "sha256": "275b3b5f0f6fc04405db480cdd3e577576f18dec86439d4a0f67fb2ece57e7fa",
         "whitespace_tokens": 231
       },
+      "owner_handoff_context_tokens": 0,
       "owner_in_inheritance_stack": true,
       "owner_route": "ToS/candidate-intake/AGENTS.md",
       "target": "ToS/candidate-intake/AGENTS.md",
@@ -1558,6 +1564,7 @@
         "sha256": "7489c8c2e7355dfddf2e140594e97e6776df7f21b29dd75475a825571c7a2513",
         "whitespace_tokens": 326
       },
+      "owner_handoff_context_tokens": 0,
       "owner_in_inheritance_stack": true,
       "owner_route": "ToS/philosophy/graph-workbench/AGENTS.md",
       "target": "ToS/philosophy/graph-workbench/AGENTS.md",
@@ -1669,6 +1676,7 @@
         "sha256": "81a691a76e620e76a32e272fad7899c6a2137116e813f2428cbfb1db640ce360",
         "whitespace_tokens": 472
       },
+      "owner_handoff_context_tokens": 0,
       "owner_in_inheritance_stack": true,
       "owner_route": "ToS/zarathustra/AGENTS.md",
       "target": "ToS/zarathustra/public-entry/TINY_ENTRY_ROUTE.md",
@@ -1780,6 +1788,7 @@
         "sha256": "75f9f81616bdda5792eb3300df6813275c42531831234fd8572faec3b7e833b3",
         "whitespace_tokens": 60
       },
+      "owner_handoff_context_tokens": 0,
       "owner_in_inheritance_stack": true,
       "owner_route": "mechanics/boundary-bridge/AGENTS.md",
       "target": "mechanics/boundary-bridge/README.md",
@@ -1882,6 +1891,7 @@
         "sha256": "55cc2f35e4066e0567b5fed3085afbdd6444c1a83a2d92eeaf4d5a3eff9f7e33",
         "whitespace_tokens": 425
       },
+      "owner_handoff_context_tokens": 0,
       "owner_in_inheritance_stack": true,
       "owner_route": "docs/decisions/AGENTS.md",
       "target": "docs/decisions/README.md",
@@ -1908,7 +1918,7 @@
       ]
     },
     {
-      "additional_context_tokens": 4707,
+      "additional_context_tokens": 4737,
       "completion_evidence": [
         {
           "bytes": 6388,
@@ -1964,13 +1974,13 @@
           "whitespace_tokens": 2208
         },
         {
-          "bytes": 13225,
+          "bytes": 13467,
           "exists": true,
-          "lines": 231,
+          "lines": 236,
           "path": "docs/validation/SCRIPT_TOPOLOGY.md",
           "role": "on_demand",
-          "sha256": "1db1127498d9c3e78c7b43707700bb3a829d24c6ea047f183655ab06fbcf98f6",
-          "whitespace_tokens": 1686
+          "sha256": "b8dae3116de1faa399ddf47196bb05027e18eae56732d80b4332d2f009e6b50e",
+          "whitespace_tokens": 1716
         },
         {
           "bytes": 4170,
@@ -2001,6 +2011,7 @@
         "sha256": "0dfedfc4f733249be84105c015bd54e114fa319ce1468bd078a78d8e4cd7f167",
         "whitespace_tokens": 790
       },
+      "owner_handoff_context_tokens": 0,
       "owner_in_inheritance_stack": true,
       "owner_route": "scripts/AGENTS.md",
       "target": "scripts/release_check.py",
@@ -2120,6 +2131,7 @@
         "sha256": "3903b7cd4edcd471796c39d1aadbadf0256f182c7fc52d81b3d1fd7825963607",
         "whitespace_tokens": 190
       },
+      "owner_handoff_context_tokens": 0,
       "owner_in_inheritance_stack": true,
       "owner_route": ".agents/AGENTS.md",
       "target": ".agents/skills/aoa-change-protocol/SKILL.md",
@@ -2230,6 +2242,7 @@
         "sha256": "242dc973b2e4fc502f695504ff259bf7def71c798ab0951641863d8b899085da",
         "whitespace_tokens": 178
       },
+      "owner_handoff_context_tokens": 0,
       "owner_in_inheritance_stack": true,
       "owner_route": "evals/AGENTS.md",
       "target": "evals/PORT.yaml",
@@ -2331,6 +2344,7 @@
         "sha256": "cbc29cf364095427ecee4b2363c987b4623d90c9f304bb0020b30bcc3e13da7e",
         "whitespace_tokens": 277
       },
+      "owner_handoff_context_tokens": 0,
       "owner_in_inheritance_stack": true,
       "owner_route": "stats/AGENTS.md",
       "target": "stats/port.manifest.json",
@@ -2432,6 +2446,7 @@
         "sha256": "a3b7c62fa90be68fe72b1dd57aded2cbd3ea8ae4a9552fd2a9b5d6ba533dc625",
         "whitespace_tokens": 210
       },
+      "owner_handoff_context_tokens": 0,
       "owner_in_inheritance_stack": true,
       "owner_route": "kag/AGENTS.md",
       "target": "kag/manifest.json",
@@ -2533,6 +2548,7 @@
         "sha256": "6b2093b9f3d9c909d500f8cac75f30d2537f9a4abb8d6a56cf1ee58a68b05078",
         "whitespace_tokens": 280
       },
+      "owner_handoff_context_tokens": 0,
       "owner_in_inheritance_stack": true,
       "owner_route": "memo/AGENTS.md",
       "target": "memo/PORT.yaml",

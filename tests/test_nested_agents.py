@@ -52,6 +52,8 @@ class NestedAgentsRouteTests(unittest.TestCase):
         )
         self.assertFalse(corpus_task["owner_handoff"]["in_inheritance_stack"])
         self.assertTrue(corpus_task["owner_handoff"]["exists"])
+        self.assertEqual(774, corpus_task["owner_handoff_context_tokens"])
+        self.assertEqual(1200, corpus_task["budget"]["owner_handoff_max_tokens"])
         self.assertEqual(
             ["AGENTS.md", "ToS/AGENTS.md", "ToS/doctrine/AGENTS.md"],
             next(
@@ -115,6 +117,18 @@ class NestedAgentsRouteTests(unittest.TestCase):
         self.assertFalse(result["route_success"])
         self.assertEqual(1, result["missing_task_specific_law"]["count"])
         self.assertIn("inherited_context_tokens>1", result["budget"]["violations"])
+
+        corpus_task = copy.deepcopy(
+            next(
+                task
+                for task in inventory["task_routes"]
+                if task["id"] == "corpus_identity_provenance_rights"
+            )
+        )
+        inventory["context_budget"]["owner_handoff_max_tokens"] = 1
+        result = agents_route_harness.evaluate_task(REPO_ROOT, inventory, corpus_task, discovered)
+        self.assertFalse(result["route_success"])
+        self.assertIn("owner_handoff_context_tokens>1", result["budget"]["violations"])
 
     def test_unknown_validation_lane_is_a_negative_control(self) -> None:
         inventory_path, inventory = build_agents_route_currentness.load_inventory(REPO_ROOT)
