@@ -6,6 +6,7 @@ import re
 import sys
 from pathlib import Path
 from typing import TypeAlias
+from urllib.parse import unquote
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
@@ -81,13 +82,67 @@ def current_mechanics_markdown(repo_root: Path) -> tuple[Path, ...]:
     )
 
 
+def reference_parts(reference: str) -> tuple[str, str]:
+    value = reference.strip("<>")
+    target_fragment = value.split("#", 1)
+    target = target_fragment[0].split("?", 1)[0]
+    fragment = target_fragment[1] if len(target_fragment) == 2 else ""
+    return target, fragment
+
+
+def normalized_destination(reference: str) -> str:
+    return reference_parts(reference)[0]
+
+
+def markdown_destinations(text: str) -> tuple[str, ...]:
+    destinations = list(MARKDOWN_LINK_RE.findall(text))
+    definitions = {
+        re.sub(r"\s+", " ", label.strip()).casefold(): (angle or bare)
+        for label, angle, bare in MARKDOWN_REFERENCE_DEFINITION_RE.findall(text)
+    }
+    destinations.extend(definitions.values())
+    return tuple(destinations)
+
+
+def heading_anchor(value: str) -> str:
+    value = re.sub(r"\{#([^}]+)\}", "", value)
+    value = re.sub(r"<[^>]+>", "", value)
+    value = re.sub(r"\[([^\]]+)\]\([^)]+\)", r"\1", value)
+    value = re.sub(r"[^\w\s-]", "", value.casefold())
+    return re.sub(r"[\s-]+", "-", value).strip("-")
+
+
+def document_anchor_ids(path: Path) -> set[str]:
+    text = path.read_text(encoding="utf-8")
+    anchors = {
+        unquote(value).casefold()
+        for value in re.findall(r"(?:id|name)\s*=\s*[\"']([^\"']+)[\"']", text)
+    }
+    anchors.update(value.casefold() for value in re.findall(r"\{#([A-Za-z0-9][A-Za-z0-9_-]*)\}", text))
+    counts: dict[str, int] = {}
+    for heading in re.findall(r"(?m)^[ \t]{0,3}#{1,6}\s+(.+?)\s*#*\s*$", text):
+        anchor = heading_anchor(heading)
+        if not anchor:
+            continue
+        occurrence = counts.get(anchor, 0)
+        anchors.add(anchor if occurrence == 0 else f"{anchor}-{occurrence}")
+        counts[anchor] = occurrence + 1
+    return anchors
+
+
+def document_has_fragment(path: Path, fragment: str) -> bool:
+    return not fragment or unquote(fragment).casefold() in document_anchor_ids(path)
+
+
 def resolve_doc_reference(repo_root: Path, source_path: Path, reference: str) -> Path | None:
-    target = reference.strip("<>").split("#", 1)[0].split("?", 1)[0]
-    if not target or target.startswith(("#", "/")) or "://" in target or target.startswith("mailto:"):
+    target, fragment = reference_parts(reference)
+    if not target and not fragment:
+        return None
+    if target.startswith("/") or "://" in target or target.startswith("mailto:"):
         return None
 
     resolved_root = repo_root.resolve()
-    candidates = (source_path.parent / target, repo_root / target)
+    candidates = (source_path,) if not target else (source_path.parent / target, repo_root / target)
     for candidate in candidates:
         try:
             resolved = candidate.resolve()
@@ -144,17 +199,15 @@ def validate_route_map(
         package_text = read_text_if_file(repo_root, package_path)
         if package_text is None:
             continue
+        package_links = {normalized_destination(reference) for reference in markdown_destinations(package_text)}
         for companion in ("PARTS.md", "PROVENANCE.md", "ROADMAP.md"):
-            if companion not in package_text:
+            if companion not in package_links:
                 issues.append((package_path, f"package route does not link to {companion}"))
 
         parts_text = read_text_if_file(repo_root, f"mechanics/{slug}/PARTS.md")
         if parts_text is None:
             continue
-        part_links = {
-            reference.strip("<>").split("#", 1)[0].split("?", 1)[0]
-            for reference in MARKDOWN_LINK_RE.findall(parts_text)
-        }
+        part_links = {normalized_destination(reference) for reference in markdown_destinations(parts_text)}
         for part in sorted(package_parts.get(slug, set())):
             part_ref = f"parts/{part}/README.md"
             if part_ref not in part_links:
@@ -171,12 +224,11 @@ def validate_documentation_references(repo_root: Path, issues: list[Issue]) -> N
     for path in current_mechanics_markdown(repo_root):
         relative = path.relative_to(repo_root).as_posix()
         text = path.read_text(encoding="utf-8")
-        references = list(MARKDOWN_LINK_RE.findall(text))
+        references = list(markdown_destinations(text))
         definitions = {
             re.sub(r"\s+", " ", label.strip()).casefold(): (angle or bare)
             for label, angle, bare in MARKDOWN_REFERENCE_DEFINITION_RE.findall(text)
         }
-        references.extend(definitions.values())
         for label, explicit_label in MARKDOWN_REFERENCE_USE_RE.findall(text):
             key = re.sub(r"\s+", " ", (explicit_label or label).strip()).casefold()
             if key not in definitions:
@@ -185,10 +237,13 @@ def validate_documentation_references(repo_root: Path, issues: list[Issue]) -> N
                 references.append(definitions[key])
 
         for reference in references:
-            if reference.startswith(("#", "http:", "https:", "mailto:")):
+            if reference.startswith(("http:", "https:", "mailto:")):
                 continue
-            if resolve_doc_reference(repo_root, path, reference) is None:
+            resolved = resolve_doc_reference(repo_root, path, reference)
+            if resolved is None:
                 issues.append((relative, f"broken local documentation route: {reference}"))
+            elif reference_parts(reference)[1] and not document_has_fragment(resolved, reference_parts(reference)[1]):
+                issues.append((relative, f"broken local documentation fragment: {reference}"))
 
         for reference in SCRIPT_REFERENCE_RE.findall(text):
             resolved = resolve_doc_reference(repo_root, path, reference)

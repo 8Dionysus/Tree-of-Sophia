@@ -116,6 +116,17 @@ class MechanicsRouteDocsTests(unittest.TestCase):
 
         self.assertTrue(any("broken local documentation route" in message for _, message in issues))
 
+    def test_missing_documentation_fragment_fails_closed(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            repo_root = Path(tmpdir) / "Tree-of-Sophia"
+            write_text(repo_root / "mechanics" / "agon" / "README.md", "[details](README.md#missing)\n")
+            write_text(repo_root / "docs" / "validation" / "script_inventory.json", '{"script_surfaces": []}\n')
+
+            issues: list[tuple[str, str]] = []
+            validate_mechanics_topology.validate_documentation_references(repo_root, issues)
+
+        self.assertTrue(any("broken local documentation fragment" in message for _, message in issues))
+
     def test_always_on_context_budget_is_enforced(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
             repo_root = Path(tmpdir) / "Tree-of-Sophia"
