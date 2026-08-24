@@ -84,6 +84,9 @@ or future-only documents. A package or part route can still expand through its
 own authored contract, schema, executable, validator, test, provenance, or
 decision record. A changed route link, missing inventoried script, or entrypoint
 budget regression fails in the mechanics topology lane close to the owner.
+When a changed validation or documentation source is indexed by the local KAG
+provider, refresh its generated family through the pinned `aoa-kag` builder and
+retain the digest-bound budget receipt; do not hand-edit generated records.
 
 The separate `AGENTS.md` documentation line remains unchanged and retains its
 own route-card contract, review, and landing evidence.
@@ -101,6 +104,11 @@ own route-card contract, review, and landing evidence.
 - `docs/testing/TEST_TOPOLOGY.md`
 - `tests/test_mechanics_route_docs.py`
 - `tests/test_test_topology.py`
+- `kag/AGENTS.md`
+- `kag/indexes/index_family.manifest.json`
+- `kag/indexes/shards/**`
+- `kag/receipts/index_family_budget/<family-digest>.json`
+- pinned `aoa-kag` repo-local family builder and validator
 - `TOS-D-0005-mechanics-operation-topology.md`
 - `TOS-D-0008-root-validation-route-unloading.md`
 - `TOS-D-0009-validation-lane-command-authority.md`
