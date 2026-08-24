@@ -32,6 +32,15 @@ def path_exists(repo_root: Path, value: str) -> bool:
 
 def current_ref(repo_root: Path) -> str:
     try:
+        status = subprocess.run(
+            ("git", "status", "--porcelain=v1", "--untracked-files=all"),
+            cwd=repo_root,
+            check=True,
+            capture_output=True,
+            text=True,
+        ).stdout
+        if status.strip():
+            return "working-tree"
         return subprocess.run(
             ("git", "rev-parse", "HEAD"),
             cwd=repo_root,
@@ -64,6 +73,7 @@ def evaluate_task(
     task: dict[str, Any],
     discovered: set[Path],
     validation_lane_names: set[str] | None = None,
+    include_timing: bool = False,
 ) -> dict[str, Any]:
     if validation_lane_names is None:
         validation_lane_names = load_validation_lane_names(repo_root)
@@ -116,7 +126,11 @@ def evaluate_task(
         budget_violations.append("boundary_deviation")
     if completion_coverage < budget["completion_coverage_min"]:
         budget_violations.append("completion_coverage")
-    elapsed_ms = round((time.perf_counter_ns() - started) / 1_000_000, 3)
+    elapsed_ms = (
+        round((time.perf_counter_ns() - started) / 1_000_000, 3)
+        if include_timing
+        else None
+    )
     route_success = not (
         missing_required_markers
         or missing_boundary_markers
@@ -139,7 +153,11 @@ def evaluate_task(
         "additional_context_tokens": additional_tokens,
         "owner_hops": max(len(stack) - 1, 0),
         "time_to_owner_ms": elapsed_ms,
-        "route_resolution_measurement": "harness wall-clock route lookup; not model or human behavior",
+        "route_resolution_measurement": (
+            "volatile harness wall-clock route lookup; not model or human behavior"
+            if include_timing
+            else "deterministic route lookup; timing omitted from canonical result"
+        ),
         "inheritance_stack": [path.relative_to(repo_root).as_posix() for path in stack],
         "declared_extra_reads": {
             "count": len(task["on_demand_surfaces"]),
@@ -173,14 +191,21 @@ def evaluate_task(
     }
 
 
-def build_result(repo_root: Path = REPO_ROOT) -> dict[str, Any]:
+def build_result(repo_root: Path = REPO_ROOT, *, include_timing: bool = False) -> dict[str, Any]:
     inventory_path, inventory = load_inventory(repo_root)
     from build_agents_route_currentness import discover_route_cards
 
     discovered = set(discover_route_cards(repo_root, inventory))
     validation_lane_names = load_validation_lane_names(repo_root)
     tasks = [
-        evaluate_task(repo_root, inventory, task, discovered, validation_lane_names)
+        evaluate_task(
+            repo_root,
+            inventory,
+            task,
+            discovered,
+            validation_lane_names,
+            include_timing,
+        )
         for task in inventory["task_routes"]
     ]
     successful = sum(1 for task in tasks if task["route_success"])
@@ -205,8 +230,13 @@ def main() -> int:
     parser.add_argument("--check", action="store_true", help="return non-zero when a route or budget guard fails")
     parser.add_argument("--output", type=Path, default=None, help="write the result JSON to this path")
     parser.add_argument("--source-ref", default=None, help="record an immutable source ref instead of resolving HEAD")
+    parser.add_argument(
+        "--volatile-timing",
+        action="store_true",
+        help="include non-reproducible wall-clock route timings in the result",
+    )
     args = parser.parse_args()
-    result = build_result(REPO_ROOT)
+    result = build_result(REPO_ROOT, include_timing=args.volatile_timing)
     if args.source_ref:
         result["source_ref"] = args.source_ref
     rendered = json.dumps(result, ensure_ascii=False, indent=2, sort_keys=True) + "\n"

@@ -139,6 +139,27 @@ class NestedAgentsRouteTests(unittest.TestCase):
             self.assertEqual(0, external_run.returncode, external_run.stderr)
             self.assertTrue(external_output.is_file())
 
+    def test_harness_canonical_result_is_deterministic_without_timing(self) -> None:
+        first = agents_route_harness.build_result(REPO_ROOT)
+        second = agents_route_harness.build_result(REPO_ROOT)
+        self.assertEqual(first, second)
+        self.assertTrue(all(task["time_to_owner_ms"] is None for task in first["tasks"]))
+        volatile = agents_route_harness.build_result(REPO_ROOT, include_timing=True)
+        self.assertTrue(all(task["time_to_owner_ms"] is not None for task in volatile["tasks"]))
+
+    def test_harness_marks_dirty_tree_as_working_tree(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            subprocess.run(["git", "init", "--quiet"], cwd=root, check=True)
+            subprocess.run(["git", "config", "user.email", "test@example.invalid"], cwd=root, check=True)
+            subprocess.run(["git", "config", "user.name", "Route Test"], cwd=root, check=True)
+            (root / "tracked.txt").write_text("tracked\n", encoding="utf-8")
+            subprocess.run(["git", "add", "tracked.txt"], cwd=root, check=True)
+            subprocess.run(["git", "commit", "--quiet", "-m", "initial"], cwd=root, check=True)
+            self.assertNotEqual("working-tree", agents_route_harness.current_ref(root))
+            (root / "dirty.txt").write_text("dirty\n", encoding="utf-8")
+            self.assertEqual("working-tree", agents_route_harness.current_ref(root))
+
 
 if __name__ == "__main__":
     unittest.main()
