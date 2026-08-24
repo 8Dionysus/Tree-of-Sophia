@@ -1,10 +1,15 @@
 {
   "builder": "scripts/build_agent_surface_currentness.py",
-  "manifest_sha256": "972928312f0e05a88a1e33515c03c9ba8f53228f6e93acdb514d8800a0506cf5",
+  "manifest_sha256": "6bcfd39698d98c1070c17b92d855c9f31523167c31ab1988f736191c5acc2dec",
   "owner_ports": [
     {
       "id": "eval_port",
       "inputs": [
+        {
+          "bytes": 1336,
+          "path": "evals/AGENTS.md",
+          "sha256": "242dc973b2e4fc502f695504ff259bf7def71c798ab0951641863d8b899085da"
+        },
         {
           "bytes": 290,
           "path": "evals/PORT.yaml",
@@ -36,6 +41,11 @@
     {
       "id": "kag_provider",
       "inputs": [
+        {
+          "bytes": 1700,
+          "path": "kag/AGENTS.md",
+          "sha256": "a3b7c62fa90be68fe72b1dd57aded2cbd3ea8ae4a9552fd2a9b5d6ba533dc625"
+        },
         {
           "bytes": 1735,
           "path": "kag/manifest.json",
@@ -93,6 +103,11 @@
       "id": "memo_port",
       "inputs": [
         {
+          "bytes": 2747,
+          "path": "memo/AGENTS.md",
+          "sha256": "6b2093b9f3d9c909d500f8cac75f30d2537f9a4abb8d6a56cf1ee58a68b05078"
+        },
+        {
           "bytes": 567,
           "path": "memo/PORT.yaml",
           "sha256": "a87eb2295df65ca74a2e77577acc1ec821bf37a44a90e5359a5dc01ae8dbbf3a"
@@ -118,6 +133,11 @@
     {
       "id": "stats_port",
       "inputs": [
+        {
+          "bytes": 2096,
+          "path": "stats/AGENTS.md",
+          "sha256": "cbc29cf364095427ecee4b2363c987b4623d90c9f304bb0020b30bcc3e13da7e"
+        },
         {
           "bytes": 4062,
           "path": "stats/port.manifest.json",

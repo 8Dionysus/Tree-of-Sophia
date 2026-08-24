@@ -349,6 +349,9 @@ def validate_manifest(root: Path = REPO_ROOT) -> list[Issue]:
         for relative in port.get("currentness_inputs", []):
             if not isinstance(relative, str) or not (root / relative).is_file():
                 issues.append((str(relative), f"{port_id} currentness input is missing"))
+        local_owner = port.get("local_owner")
+        if isinstance(local_owner, str) and local_owner not in port.get("currentness_inputs", []):
+            issues.append((MANIFEST_PATH.as_posix(), f"{port_id} local_owner must be a currentness input"))
         if port_id == "kag_provider":
             issues.extend(generated_family_issues(root, port))
 

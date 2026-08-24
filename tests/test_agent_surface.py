@@ -86,6 +86,15 @@ class AgentSurfaceTests(unittest.TestCase):
             [],
         )
 
+    def test_owner_cards_are_currentness_inputs(self) -> None:
+        current = builder.build_currentness(ROOT)
+        manifest = json.loads(
+            (ROOT / ".agents/agent-surface.manifest.json").read_text(encoding="utf-8")
+        )
+        for port in current["owner_ports"]:
+            owner = manifest["owner_ports"][port["id"]]["local_owner"]
+            self.assertIn(owner, {item["path"] for item in port["inputs"]})
+
     def test_stale_currentness_is_rejected(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)

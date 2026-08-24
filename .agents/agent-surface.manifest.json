@@ -182,7 +182,7 @@
       "canonical_owner": "8Dionysus/aoa-evals",
       "freshness": "local route and PORT.yaml; central validator/source checkout determines shared protocol compatibility",
       "next_organ": "aoa-evals local port validator, then central selection/proof/verdict owner",
-      "currentness_inputs": ["evals/PORT.yaml", "evals/README.md", "evals/intake/README.md", "evals/suites/README.md", "evals/reports/README.md"],
+      "currentness_inputs": ["evals/AGENTS.md", "evals/PORT.yaml", "evals/README.md", "evals/intake/README.md", "evals/suites/README.md", "evals/reports/README.md"],
       "carrier_classes": ["local_intake_port", "route_card"]
     },
     "stats_port": {
@@ -193,7 +193,7 @@
       "canonical_owner": "8Dionysus/aoa-stats for shared grammar; Tree-of-Sophia for the question and source population",
       "freshness": "manifest, source population, route map, and evidence-linked reference packet at a named revision; reference-only, not live",
       "next_organ": "atlas/source owner -> aoa-stats protocol validator and cross-owner composition",
-      "currentness_inputs": ["stats/port.manifest.json", "stats/README.md", "stats/packets/table-i-prepared-dossier-route-ratio.reference.json", "ToS/philosophy/atlas/master-tables/table-i/rows.jsonl", "ToS/philosophy/atlas/dossiers/prepared-dossier-routes.json"],
+      "currentness_inputs": ["stats/AGENTS.md", "stats/port.manifest.json", "stats/README.md", "stats/packets/table-i-prepared-dossier-route-ratio.reference.json", "ToS/philosophy/atlas/master-tables/table-i/rows.jsonl", "ToS/philosophy/atlas/dossiers/prepared-dossier-routes.json"],
       "carrier_classes": ["local_intake_port", "machine_manifest", "reference_packet"]
     },
     "kag_provider": {
@@ -204,7 +204,7 @@
       "canonical_owner": "8Dionysus/aoa-kag for registry/composition; ToS derived exports own meaning",
       "freshness": "source export, derived seam, local manifest/index family, and compact provider records; runtime graph status remains downstream",
       "next_organ": "ToS derived-export owner -> local KAG validator -> aoa-kag registry/MCP consumer",
-      "currentness_inputs": ["kag/manifest.json", "kag/README.md", "kag/indexes/provider_readiness_index.json", "kag/nodes/kag_export_capsule.json", "kag/nodes/derived_export_route.json", "kag/edges/kag_export_returns_to_route.json", "kag/projections/mcp_source_return.json", "ToS/derived-exports/kag_export.min.json", "ToS/derived-exports/philosophy_graph_projection.min.json", "mechanics/boundary-bridge/parts/derived-kag-seam/docs/KAG_EXPORT.md"],
+      "currentness_inputs": ["kag/AGENTS.md", "kag/manifest.json", "kag/README.md", "kag/indexes/provider_readiness_index.json", "kag/nodes/kag_export_capsule.json", "kag/nodes/derived_export_route.json", "kag/edges/kag_export_returns_to_route.json", "kag/projections/mcp_source_return.json", "ToS/derived-exports/kag_export.min.json", "ToS/derived-exports/philosophy_graph_projection.min.json", "mechanics/boundary-bridge/parts/derived-kag-seam/docs/KAG_EXPORT.md"],
       "generated_family": {
         "manifest": "kag/indexes/index_family.manifest.json",
         "shards": "kag/indexes/shards/",
@@ -224,7 +224,7 @@
       "canonical_owner": "8Dionysus/aoa-memo",
       "freshness": "PORT.yaml, local route docs, candidate/receipt/export posture, and generated index; no claim of durable or live memory",
       "next_organ": "candidate-only helper -> local validator -> reviewed aoa-memo intake/decision",
-      "currentness_inputs": ["memo/PORT.yaml", "memo/README.md", "memo/INDEX.md", "memo/index.min.json"],
+      "currentness_inputs": ["memo/AGENTS.md", "memo/PORT.yaml", "memo/README.md", "memo/INDEX.md", "memo/index.min.json"],
       "carrier_classes": ["local_intake_port", "generated_read_model", "receipt"]
     }
   },

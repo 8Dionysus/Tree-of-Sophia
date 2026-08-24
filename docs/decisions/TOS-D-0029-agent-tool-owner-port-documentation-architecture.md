@@ -49,6 +49,8 @@ map at .agents/agent-surface.manifest.json. The machine map records:
   families, with consumer, load moment, canonical owner, freshness, next organ,
   and negative controls;
 - eval, stats, KAG, and memo local-port consumer/owner/currentness routes;
+- each port's local owner card is a currentness input, so owner-law drift is
+  visible before a handoff is consumed;
 - nine representative task probes for authority, context mapping, repo change,
   session diagnosis/repair, approval/dry-run, eval, stats, KAG, and memo;
 - a bounded context budget and public-safety boundary;
