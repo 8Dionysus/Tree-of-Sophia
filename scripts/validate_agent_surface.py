@@ -369,6 +369,8 @@ def validate_manifest(root: Path = REPO_ROOT) -> list[Issue]:
         if not isinstance(probe_id, str) or not probe_id:
             issues.append((MANIFEST_PATH.as_posix(), "task probe needs an id"))
             continue
+        if probe_id in probe_ids:
+            issues.append((MANIFEST_PATH.as_posix(), f"duplicate task probe {probe_id}"))
         probe_ids.add(probe_id)
         if not probe.get("first_route") or not probe.get("required_chain"):
             issues.append((MANIFEST_PATH.as_posix(), f"{probe_id} needs first_route and required_chain"))

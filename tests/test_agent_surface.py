@@ -118,6 +118,21 @@ class AgentSurfaceTests(unittest.TestCase):
             [],
         )
 
+    def test_duplicate_task_probe_ids_are_rejected(self) -> None:
+        manifest = json.loads(
+            (ROOT / ".agents/agent-surface.manifest.json").read_text(encoding="utf-8")
+        )
+        manifest["task_probes"].append(dict(manifest["task_probes"][0]))
+        with tempfile.TemporaryDirectory() as temporary:
+            manifest_path = Path(temporary) / "manifest.json"
+            manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
+            with mock.patch.object(validator, "MANIFEST_PATH", manifest_path):
+                issues = validator.validate_manifest(ROOT)
+        self.assertIn(
+            (str(manifest_path), "duplicate task probe source_authority"),
+            issues,
+        )
+
     def test_owner_cards_are_currentness_inputs(self) -> None:
         current = builder.build_currentness(ROOT)
         manifest = json.loads(
