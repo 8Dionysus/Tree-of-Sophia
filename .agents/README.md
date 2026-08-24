@@ -68,11 +68,13 @@ Use the task probe matrix in the machine map for the smallest chain below.
 ## Context and safety
 
 The map records a soft context budget: discovery descriptions stay under 100
-words, triggered bodies under 2,000 words, and mandatory task-probe reading at
-most five local route hops. Those are drift signals, not a claim that a task is
-semantically complete. The generated companion records measured package bytes,
-digests, word counts, companion counts, activation metadata, and the declared
-owner-port input set.
+words and use one-line scalars, triggered bodies stay under 2,000 words, and
+mandatory task-probe reading reaches at most five local route hops. Folded and
+literal multiline descriptions are rejected until their full YAML scalar can be
+counted. These are drift signals, not a claim that a task is semantically
+complete. The generated companion records measured package bytes, digests, word
+counts, companion counts, activation metadata, and the declared owner-port input
+set.
 
 Public authored model-facing docs do not carry host-local paths, secrets,
 session snapshots, provider internals, transient runtime claims, or operator

@@ -109,6 +109,15 @@ class AgentSurfaceTests(unittest.TestCase):
                 path=Path("SKILL.md"),
             )
 
+    def test_multiline_descriptions_are_rejected_before_budget_counting(self) -> None:
+        with self.assertRaisesRegex(ValueError, "multiline description"):
+            builder.frontmatter_scalars(
+                "name: example\n"
+                "description: >\n"
+                "  This description is folded by YAML.\n",
+                path=Path("SKILL.md"),
+            )
+
     def test_generated_kag_family_has_a_matching_receipt(self) -> None:
         manifest = json.loads(
             (ROOT / ".agents/agent-surface.manifest.json").read_text(encoding="utf-8")

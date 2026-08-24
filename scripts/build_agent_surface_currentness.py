@@ -94,6 +94,10 @@ def frontmatter_scalars(block: str, *, path: Path) -> dict[str, str | None]:
                     raise ValueError(f"{path}:{line_number}: duplicate frontmatter field {key}")
                 if not separator or not value.strip():
                     raise ValueError(f"{path}:{line_number}: frontmatter field {key} needs a scalar")
+                if key == "description" and re.fullmatch(r"[>|][0-9+-]*", value.strip()):
+                    raise ValueError(
+                        f"{path}:{line_number}: multiline description scalars are not supported"
+                    )
                 values[key] = value.strip()
                 continue
             if key in METADATA_FRONTMATTER_KEYS:
