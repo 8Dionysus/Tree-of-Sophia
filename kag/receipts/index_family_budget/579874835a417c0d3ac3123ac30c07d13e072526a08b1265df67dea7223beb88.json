@@ -1,17 +1,17 @@
 {
-  "allowed_bytes": 0,
+  "allowed_bytes": 4931409,
   "allowed_tracked_bytes": 26901978,
   "approved_by": "repository-owner",
-  "base_ref": "6999d3ee840fd92fa97b0e9c6ca9a4152691d9cd",
-  "changed_generated_bytes": 0,
-  "changed_generated_files": 0,
+  "base_ref": "547ad88d770e4967fa2ff0bd6c391d0154a7726e",
+  "changed_generated_bytes": 4931409,
+  "changed_generated_files": 66,
   "decision_ref": "aoa-kag:docs/decisions/AOA-KAG-D-0017-portable-content-addressed-repository-family.md",
   "default_limit_bytes": 1048576,
   "head_family_digest": "579874835a417c0d3ac3123ac30c07d13e072526a08b1265df67dea7223beb88",
-  "reason": "Consolidate the same-day Tree-of-Sophia release churn into one dated v0.5.0 section while preserving historical source, provider, validation, limitation, and non-claim evidence.",
+  "reason": "Regenerate the exact measured ToS portable KAG family for the compact public README with owner-routed validation links on v0.5.3; preserve source ownership and standing budgets.",
   "repo": "Tree-of-Sophia",
   "schema_version": "aoa-repo-local-kag-budget-receipt-v1",
-  "scope": "tracked_size",
+  "scope": "generated_delta_and_tracked_size",
   "tracked_bytes": 26901978,
   "tracked_bytes_max": 11534336
 }
