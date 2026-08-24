@@ -667,7 +667,29 @@ def _verify_materialized_subject_store(
     abyss_repo_root: Path,
     store_root: Path | None = None,
 ) -> dict[str, Any]:
-    target_store_root = store_root or tmp_root / "subject-store"
+    target_store_root = (store_root or tmp_root / "subject-store").resolve()
+    with _subject_store_scope(artifact_bundles, target_store_root):
+        return _verify_materialized_subject_store_impl(
+            artifact_bundles=artifact_bundles,
+            manifest=manifest,
+            bundle_dir=bundle_dir,
+            registry_dir=registry_dir,
+            tmp_root=tmp_root,
+            abyss_repo_root=abyss_repo_root,
+            target_store_root=target_store_root,
+        )
+
+
+def _verify_materialized_subject_store_impl(
+    *,
+    artifact_bundles: Any,
+    manifest: Path,
+    bundle_dir: Path,
+    registry_dir: Path,
+    tmp_root: Path,
+    abyss_repo_root: Path,
+    target_store_root: Path,
+) -> dict[str, Any]:
     pre_registry = _registry_roundtrip(
         artifact_bundles,
         bundle_dir,

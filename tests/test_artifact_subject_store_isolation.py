@@ -113,6 +113,42 @@ class ArtifactSubjectStoreIsolationTests(unittest.TestCase):
             self.assertEqual(old_default, artifact_bundles.DEFAULT_ARTIFACT_SUBJECT_STORE_ROOT)
             self.assertEqual([], list(isolated_root.iterdir()))
 
+    def test_nested_rehearsal_scope_rebinds_default_and_restores_outer_scope(self) -> None:
+        validator = load_validator()
+
+        with tempfile.TemporaryDirectory(prefix="tos-subject-store-nested-") as tmp:
+            root = Path(tmp)
+            ambient_root = root / "ambient"
+            outer_root = root / "outer"
+            inner_root = root / "inner"
+            for path in (ambient_root, outer_root, inner_root):
+                path.mkdir()
+            artifact_bundles = FakeArtifactBundles(ambient_root)
+
+            with validator._subject_store_scope(artifact_bundles, outer_root):
+                self.assertEqual(
+                    outer_root.resolve(),
+                    artifact_bundles.DEFAULT_ARTIFACT_SUBJECT_STORE_ROOT.resolve(),
+                )
+                with validator._subject_store_scope(artifact_bundles, inner_root):
+                    self.assertEqual(
+                        inner_root.resolve(),
+                        artifact_bundles.DEFAULT_ARTIFACT_SUBJECT_STORE_ROOT.resolve(),
+                    )
+                    self.assertEqual(
+                        [inner_root.resolve()],
+                        [path.resolve() for path in artifact_bundles._artifact_subject_store_roots()],
+                    )
+                self.assertEqual(
+                    outer_root.resolve(),
+                    artifact_bundles.DEFAULT_ARTIFACT_SUBJECT_STORE_ROOT.resolve(),
+                )
+
+            self.assertEqual(
+                ambient_root.resolve(),
+                artifact_bundles.DEFAULT_ARTIFACT_SUBJECT_STORE_ROOT.resolve(),
+            )
+
 
 if __name__ == "__main__":
     unittest.main()

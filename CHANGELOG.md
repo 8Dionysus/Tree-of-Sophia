@@ -32,6 +32,9 @@ Tracking starts with the community-docs baseline for this repository.
 - Preserves the raw subject-store CLI value until owner resolution, rejecting
   empty or repository-root values before materialization so an empty shell
   expansion cannot become `Path('.')` and fall through to the checkout.
+- Rebinds the module default as well as environment roots during the nested
+  materialized-store rehearsal, so its trust gate inspects the temporary store
+  rather than the already-populated primary store.
 
 ### Validation
 
@@ -45,6 +48,8 @@ Tracking starts with the community-docs baseline for this repository.
   tag, Release, artifact verdict, runtime, proof, or acceptance claim changes.
 - The CLI regression covers both raw empty input and an explicit current-
   directory root; both fail closed before any subject-store writes.
+- The nested-scope regression proves temporary-store binding and restoration of
+  the outer and ambient defaults around the adversarial trust gate.
 - The hosted workflow validates the exact provider source and separate action
   snapshots before the Tree release audit. These checks prove source-level
   compatibility evidence only; they do not prove artifact admission, runtime,
