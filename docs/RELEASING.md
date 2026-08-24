@@ -51,20 +51,20 @@ incremental, and family-contract parity before the final PR commit.
 
 ## Federated dependency identities
 
-The v0.5.3 corrective release records the direct provider edges here so that
-release evidence cannot silently fall back to an ancestor or a moving branch.
-The prior v0.5.2 release remains immutable history; its published provider
-identities are preserved in that release's changelog and are not rewritten by
-this revalidation:
+The consolidated `v0.5.0` release records the final direct provider edges here
+so release evidence cannot silently fall back to an ancestor or a moving
+branch. The superseded same-day provider identities remain immutable historical
+evidence in `CHANGELOG.md` and the task-local reconciliation ledger; they are
+not current source pins:
 
 | Edge | Published provider identity | Tree consumer identity | Exactness rule |
 | --- | --- | --- | --- |
-| `aoa-stats` → `Tree-of-Sophia` | `aoa-stats@v0.2.2`, commit `f119805cda69b3edeb2a4c5e407368d70e68650d` | `.github/workflows/repo-validation.yml` `AOA_STATS_REVISION` | The fetched provider `HEAD` must equal the published commit; an ancestor is not sufficient. |
-| `aoa-kag` → `Tree-of-Sophia` | `aoa-kag@v0.5.2`, commit `8136d3eb629da28cea1206d13a8f1df52ee14739` | `8Dionysus/aoa-kag/.github/actions/repo-local-kag-index@6a79e62c7d20b6b11406dee78f409ada4a51bb3f` | Keep the published provider release commit distinct from the workflow action commit; both are immutable identities. |
+| `aoa-stats` → `Tree-of-Sophia` | `aoa-stats@v0.2.0`, commit `88ff38b1b38eef939f2c5b4541cbe8363a05fc8d` | `.github/workflows/repo-validation.yml` `AOA_STATS_REVISION` | The fetched provider `HEAD` must equal the published commit; an ancestor is not sufficient. |
+| `aoa-kag` → `Tree-of-Sophia` | `aoa-kag@v0.5.0`, commit `f46f146cc79a26fa81ad0f400b9c5774df293e57` | `8Dionysus/aoa-kag/.github/actions/repo-local-kag-index@6a79e62c7d20b6b11406dee78f409ada4a51bb3f` | Keep the published provider release commit distinct from the workflow action commit; both are immutable identities. |
 
 These are source and CI release identities, not claims about runtime health,
 KAG freshness, semantic acceptance, or artifact trust. A production consumer
 artifact remains `manual_review_required` until the OS Abyss owner trust gate
 independently admits it; no release helper may infer `allow` from these pins.
-Any v0.5.3 generated-readmodel artifact must bind its own exact landed Tree
+Any v0.5.0 generated-readmodel artifact must bind its own exact landed Tree
 source ref and retain each artifact-consumer verdict separately.

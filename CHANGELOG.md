@@ -9,7 +9,52 @@ Tracking starts with the community-docs baseline for this repository.
 
 No unreleased changes.
 
-## [0.5.3] - 2026-08-23
+## [0.5.0] - 2026-08-23
+
+### Summary
+
+- Consolidates the four same-day campaign Releases and tag snapshots into one dated, human-readable `v0.5.0` source release.
+- The canonical source is the exact landed `main` selected by the owner PR/CI route; its final commit, tag object, and GitHub Release identity are recorded only after landing and postpublish verification.
+- The direct provider edges are bound to the verified final provider identities: `aoa-stats@v0.2.0` at `88ff38b1b38eef939f2c5b4541cbe8363a05fc8d` and `aoa-kag@v0.5.0` at `f46f146cc79a26fa81ad0f400b9c5774df293e57`.
+- This is a source release. It does not imply artifact admission, package or runtime deployment, runtime health, semantic proof, transport delivery, owner acceptance, or human acceptance.
+
+### Highlights
+
+- Tree-of-Sophia retains its source-first corpus, witness, provenance, rights, review, and bounded public-entry architecture.
+- The portable content-addressed KAG family, generated readmodels, owner-local statistics boundary, and exact provider/action identities remain explicit derived or validation surfaces rather than new ToS authority.
+- Historical provider corrections and release-only/generated churn are reconciled into this section without rewriting their evidence or promoting a historical pin to the current source contract.
+- The full first-parent range, same-day Release bodies, tag-scoped changelog snapshots, validation results, limitations, and non-claims are accounted for in the task-local ledger.
+
+### Changed
+
+- All active version-bearing source surfaces name `v0.5.0`; historical `v0.5.1`, `v0.5.2`, and `v0.5.3` identities remain labeled as superseded campaign evidence.
+- The release contract and Repo Validation workflow require exact final `aoa-stats` and `aoa-kag` commits; the immutable KAG workflow action commit remains a distinct identity.
+- The single dated section below retains the prior release material as historical snapshots and adds the full 11/11 first-parent reconciliation.
+
+### Validation
+
+- Source, owner validators, CI, PR/merge, strict preflight, tag creation, GitHub Release publication, postpublish, artifact admission, runtime, proof, delivery, closure, and acceptance are separate claims.
+- A green validator proves only its declared lane. Provider release identity proves source/CI dependency order, not runtime health or semantic acceptance.
+- The final report must bind the exact landed source, canonical body digest, content ledger, pretruth corpus, preserved pre-campaign refs, and postpublish identity.
+
+### Security, privacy, operator, generated, limitation, and non-claim boundaries
+
+- Authored ToS meaning remains owner-local; generated KAG/index/export surfaces remain subordinate, reproducible, and source-returning.
+- No secret, private session body, sibling repository, active dirty worktree, or protected GitHub repository is part of this cleanup effect.
+- Security and privacy notes retain their historical limits: no public attestation, runtime activation, semantic proof, or human acceptance is inferred from source, CI, provider, artifact, or release evidence.
+- Operator recovery, rollback, artifact, delivery, closure, and acceptance evidence remains named separately; unknown, warning, and manual-review states are not upgraded to green.
+
+### Canonical delivery markers
+
+Released: 2026-08-23
+Canonical changelog: [CHANGELOG.md](https://github.com/8Dionysus/Tree-of-Sophia/blob/main/CHANGELOG.md)
+
+### Historical campaign snapshots
+
+The following four bodies are preserved as source material under one active dated section. Their old `## [version]` headings were version-bearing churn and are mapped to this canonical heading; their body lines remain verbatim except for this container heading.
+
+#### Historical snapshot: `## [0.5.3] - 2026-08-23`
+
 
 ### Summary
 
@@ -67,7 +112,8 @@ No unreleased changes.
 - This correction changes provider/currentness and derived release evidence,
   not philosophical source meaning or canon.
 
-## [0.5.2] - 2026-08-23
+#### Historical snapshot: `## [0.5.2] - 2026-08-23`
+
 
 ### Summary
 
@@ -123,7 +169,8 @@ No unreleased changes.
 - A new successor source commit does not inherit the old artifact identity;
   any future v0.5.2 artifact admission must bind its own exact source ref.
 
-## [0.5.1] - 2026-08-23
+#### Historical snapshot: `## [0.5.1] - 2026-08-23`
+
 
 ### Summary
 
@@ -180,7 +227,8 @@ No unreleased changes.
   identities above are evidence for this corrective source release, not moving
   sibling branches or unpublished candidates.
 
-## [0.5.0] - 2026-08-22
+#### Historical snapshot: `## [0.5.0] - 2026-08-22`
+
 
 ### Summary
 
@@ -891,6 +939,99 @@ sixth product capability.
   this release does not claim one.
 - ToS/canon remains unchanged by the completion range; generated exports and
   KAG indexes remain downstream readmodels, not source authority.
+
+### Superseded release-body lines retained and mapped
+
+The tag-scoped snapshots are cumulative and preserve the release-body lines that already occur in the canonical changelog. The source-only lines below are retained verbatim in fenced evidence blocks; structural/date lines are explicitly mapped to the single canonical delivery markers or to the merged snapshots above.
+
+#### `v0.5.0` body-only source lines
+
+~~~text
+Released: 2026-08-22
+Canonical changelog: [CHANGELOG.md](https://github.com/8Dionysus/Tree-of-Sophia/blob/main/CHANGELOG.md)
+## Highlights
+- Tree-of-Sophia grows from the v0.4.0 root-entry/statistics contour into a source-first corpus foundation with stable witness identity, provenance, rights, review, and bounded derivation routes.
+- The repository adopts a portable content-addressed KAG index family with deterministic compatibility views and explicit generated-size/family receipts.
+- The active ToS routing consumer now targets the `aoa-sdk` control plane while preserving the `aoa-routing` compatibility namespace.
+- The exact v0.4.0-to-current-main range contains five first-parent commits; each is reconciled below rather than inferred from the former `[Unreleased]` prose alone.
+## Full Release Notes
+~~~
+
+#### `v0.5.1` body-only source lines
+
+~~~text
+Released: 2026-08-23
+Canonical changelog: [CHANGELOG.md](https://github.com/8Dionysus/Tree-of-Sophia/blob/main/CHANGELOG.md)
+## Highlights
+- Corrected the direct `aoa-stats` consumer pin from an ancestor revision to the exact published `aoa-stats@v0.2.0` commit `dc608fd5de3fcaf0301f356c9efd52e2bdd350ce`.
+- Made the direct `aoa-stats` and `aoa-kag` provider edges explicit in the release contract, including the distinction between the published KAG provider commit and the immutable KAG workflow action commit.
+- Corrected the release evidence identity for the KAG action and preserved the production artifact disposition as `manual_review_required`.
+## Full Release Notes
+~~~
+
+#### `v0.5.2` body-only source lines
+
+~~~text
+Released: 2026-08-23
+Canonical changelog: [CHANGELOG.md](https://github.com/8Dionysus/Tree-of-Sophia/blob/main/CHANGELOG.md)
+## Highlights
+- Revalidated the direct `aoa-stats` consumer edge against the exact published `aoa-stats@v0.2.1` commit `339ecb2db22ac4552fa88756b650896ebbff5b56`.
+- Published the compatible successor needed to make the current provider identity truthful without rewriting the immutable `v0.5.1` release.
+## Full Release Notes
+~~~
+
+#### `v0.5.3` body-only source lines
+
+~~~text
+Released: 2026-08-23
+Canonical changelog: [CHANGELOG.md](https://github.com/8Dionysus/Tree-of-Sophia/blob/main/CHANGELOG.md)
+## Highlights
+- Revalidated the Tree consumer against the exact published `aoa-kag@v0.5.2` commit `8136d3eb629da28cea1206d13a8f1df52ee14739` after the exact published `aoa-stats@v0.2.2` commit `f119805cda69b3edeb2a4c5e407368d70e68650d`.
+- Published the required immutable successor for the corrected provider and generated-family identities without rewriting the immutable `v0.5.2` release.
+## Full Release Notes
+~~~
+
+### Historical source-heading mapping
+
+- `## [0.5.3] - 2026-08-23` from the captured `0.5.3` source maps to `## [0.5.0] - 2026-08-23` plus `#### Historical snapshot: `## [0.5.3] - 2026-08-23``; it is retained as historical version metadata, not an active release surface.
+- `## [0.5.2] - 2026-08-23` from the captured `0.5.2` source maps to `## [0.5.0] - 2026-08-23` plus `#### Historical snapshot: `## [0.5.2] - 2026-08-23``; it is retained as historical version metadata, not an active release surface.
+- `## [0.5.1] - 2026-08-23` from the captured `0.5.1` source maps to `## [0.5.0] - 2026-08-23` plus `#### Historical snapshot: `## [0.5.1] - 2026-08-23``; it is retained as historical version metadata, not an active release surface.
+- `## [0.5.0] - 2026-08-22` from the captured `0.5.0` source maps to `## [0.5.0] - 2026-08-23` plus `#### Historical snapshot: `## [0.5.0] - 2026-08-22``; it is retained as historical version metadata, not an active release surface.
+
+### First-Parent Reconciliation (11/11)
+
+Every first-parent commit from peeled `v0.4.0` through the observed pre-consolidation `origin/main` is listed below. A classification records whether its material is human-facing capability, owner/provider contract, generated/internal churn, or release-only metadata; no commit is silently omitted.
+
+1. `8126cc37` (`8126cc379a759990358728bbcedadbd3b24a7b6d`) — PR #138; Adopt portable KAG index family (#138) — **capability: portable content-addressed KAG index family**.
+2. `54be6f25` (`54be6f25a2272d02f119a16b1c75e8756decf900`) — PR #139; Build the Tree of Sophia corpus foundation (#139) — **capability: source-first corpus foundation**.
+3. `d95a5832` (`d95a583272acb84dcb5b7e6896801f0364c7b234`) — PR #140; Retarget ToS routing consumer to aoa-sdk (#140) — **owner/routing: aoa-sdk consumer boundary**.
+4. `77f0cef4` (`77f0cef4dfc64183ab6bdc76121c5242ca1472f0`) — PR #141; Pin accepted aoa-kag owner-family DAG (#141) — **provider contract: accepted aoa-kag owner-family DAG pin**.
+5. `afc87a39` (`afc87a39cd2398738c56f72dcb21509661dd2832`) — PR #142; Land source-first corpus foundation completion — **capability: source/evidence and generated-family completion**.
+6. `5c96b0a4` (`5c96b0a4a65d739c81614893d5c83129049d9285`) — PR #143; chore(release): prepare Tree-of-Sophia v0.5.0 (#143) — **release-only/merged: prior v0.5.0 preparation and landing metadata**.
+7. `6d000a8d` (`6d000a8de8f3873033c7e711c509cbfc77381e91`) — PR #144; fix(release): pin exact federated providers for v0.5.1 — **provider-currentness: historical v0.5.1 exact provider correction**.
+8. `6737f2cd` (`6737f2cd80ef12bc409ceb276099bac15d8e3a50`) — PR #145; fix(release): revalidate exact aoa-stats v0.2.1 for v0.5.2 — **provider-currentness: historical v0.5.2 aoa-stats correction**.
+9. `0c6284f7` (`0c6284f7890c27932d8d8b406f0b1d1d0a5b13e7`) — PR #146; fix(release): preserve immutable v0.5.1 budget receipt — **generated/internal: historical immutable budget-receipt preservation**.
+10. `547ad88d` (`547ad88d770e4967fa2ff0bd6c391d0154a7726e`) — PR #148; fix(release): revalidate exact-current KAG provider for v0.5.3 — **provider-currentness/generated: historical v0.5.3 KAG correction**.
+11. `6999d3ee` (`6999d3ee840fd92fa97b0e9c6ca9a4152691d9cd`) — PR #147; docs: sanitize and compress public README (#147) — **owner/public route: README sanitization and compression**.
+
+### Material coverage and claim ledger
+
+- Capability: corpus foundation, portable KAG family, public entry, graph-review, multilingual planting, and source-returning projections remain represented in the merged snapshots.
+- Schema/ABI: versioned node, relation, evidence, provider, generated-family, compatibility, and consumer-boundary statements remain represented; unsupported versions must be rejected rather than inferred.
+- Owner/routing: ToS authored meaning, `aoa-sdk` consumer routing, `aoa-kag` provider edges, and `aoa-stats` validation ownership remain distinct.
+- Security/privacy: provenance, rights, trust-root, attestation, local-vs-public evidence, privacy, and no-secret/non-claim limits remain represented.
+- Operator/generated/validation: generated KAG/index receipts, owner builders, release checks, CI lanes, strict preflight/postpublish, recovery/rollback, and clean-source requirements remain represented.
+- Limitation/non-claim: artifact admission, deployment, runtime health, semantic proof, transport delivery, closure, downstream acceptance, owner acceptance, and human acceptance are not inferred.
+- Historical report inventory and raw release/tag snapshots remain preserved outside this authored source in the immutable pretruth corpus and task-local ledger; the report inventory is not promoted to source authority.
+
+### Campaign evidence references
+
+- Historical report retained: `/srv/abyss-machine/tmp/ai/release-campaign-goal-01a008db-20260821/reports/closure-repair-tree-stats-v021-release-exec-report.md` (`sha256:70311db733aadde3124a0f7471b8973c707a43e374f46e869319e3791e37646d`, 12809 bytes); its declared source/CI/artifact/runtime/proof/delivery/closure/acceptance boundaries remain evidence-only.
+- Historical report retained: `/srv/abyss-machine/tmp/ai/release-campaign-goal-01a008db-20260821/reports/postaudit-repair-tree-v0-5-1-release-exec-report.md` (`sha256:73abbc54bba476717d8641aa8e477d032c012fb405c590b6a5e12035613abb81`, 9059 bytes); its declared source/CI/artifact/runtime/proof/delivery/closure/acceptance boundaries remain evidence-only.
+- Historical report retained: `/srv/abyss-machine/tmp/ai/release-campaign-goal-01a008db-20260821/reports/provider-consumer-repair-tree-after-kag-release-exec-report.md` (`sha256:54c66404aaafd27927c6c37503190142ee4763b978d0d9db2fcbfc987fc2463d`, 12036 bytes); its declared source/CI/artifact/runtime/proof/delivery/closure/acceptance boundaries remain evidence-only.
+- Historical report retained: `/srv/abyss-machine/tmp/ai/release-campaign-goal-01a008db-20260821/reports/terminal-repair-tree-artifact-registry-release-exec-report.md` (`sha256:9a42b2b6c96349f9b3ebf855eb63effb9b067e145e87359f8eaeed349b0cd571`, 14531 bytes); its declared source/CI/artifact/runtime/proof/delivery/closure/acceptance boundaries remain evidence-only.
+- Historical report retained: `/srv/abyss-machine/tmp/ai/release-campaign-goal-01a008db-20260821/reports/tree-of-sophia-release-exec-report.md` (`sha256:cbd629e662f24680bd746d0edee3beaf93bfad0d80270490f36a3680c9464008`, 16966 bytes); its declared source/CI/artifact/runtime/proof/delivery/closure/acceptance boundaries remain evidence-only.
+- Historical report retained: `/srv/abyss-machine/tmp/ai/release-campaign-goal-01a008db-20260821/reports/tree-of-sophia-release-recon-report.md` (`sha256:aa624112739a83cd927c3a47c623df927b3a09aaecbabbc5111226fbedd968d2`, 48184 bytes); its declared source/CI/artifact/runtime/proof/delivery/closure/acceptance boundaries remain evidence-only.
 
 ## [0.4.0] - 2026-07-14
 

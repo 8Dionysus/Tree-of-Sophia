@@ -32,7 +32,7 @@ class RoadmapParityTestCase(unittest.TestCase):
         payload = load_json("ToS/derived-exports/root_entry_map.min.json")
         release = current_release(readme)
 
-        self.assertEqual("v0.5.3", release)
+        self.assertEqual("v0.5.0", release)
         self.assertIn(f"## [{release.removeprefix('v')}]", changelog)
         self.assertIn(f"`{release}`", roadmap)
         self.assertIn("Current release contour", roadmap)
@@ -88,11 +88,11 @@ class RoadmapParityTestCase(unittest.TestCase):
         workflow = read_text(".github/workflows/repo-validation.yml")
 
         self.assertIn(
-            "`aoa-stats@v0.2.2`, commit `f119805cda69b3edeb2a4c5e407368d70e68650d`",
+            "`aoa-stats@v0.2.0`, commit `88ff38b1b38eef939f2c5b4541cbe8363a05fc8d`",
             release_contract,
         )
         self.assertIn(
-            "`aoa-kag@v0.5.2`, commit `8136d3eb629da28cea1206d13a8f1df52ee14739`",
+            "`aoa-kag@v0.5.0`, commit `f46f146cc79a26fa81ad0f400b9c5774df293e57`",
             release_contract,
         )
         self.assertIn(
@@ -101,7 +101,7 @@ class RoadmapParityTestCase(unittest.TestCase):
             release_contract,
         )
         self.assertIn(
-            "AOA_STATS_REVISION: f119805cda69b3edeb2a4c5e407368d70e68650d",
+            "AOA_STATS_REVISION: 88ff38b1b38eef939f2c5b4541cbe8363a05fc8d",
             workflow,
         )
         self.assertIn(
