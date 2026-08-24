@@ -204,7 +204,15 @@
       "canonical_owner": "8Dionysus/aoa-kag for registry/composition; ToS derived exports own meaning",
       "freshness": "source export, derived seam, local manifest/index family, and compact provider records; runtime graph status remains downstream",
       "next_organ": "ToS derived-export owner -> local KAG validator -> aoa-kag registry/MCP consumer",
-      "currentness_inputs": ["kag/manifest.json", "kag/README.md", "kag/indexes/index_family.manifest.json", "kag/indexes/provider_readiness_index.json", "kag/nodes/kag_export_capsule.json", "kag/nodes/derived_export_route.json", "kag/edges/kag_export_returns_to_route.json", "kag/projections/mcp_source_return.json", "ToS/derived-exports/kag_export.min.json", "ToS/derived-exports/philosophy_graph_projection.min.json", "mechanics/boundary-bridge/parts/derived-kag-seam/docs/KAG_EXPORT.md"],
+      "currentness_inputs": ["kag/manifest.json", "kag/README.md", "kag/indexes/provider_readiness_index.json", "kag/nodes/kag_export_capsule.json", "kag/nodes/derived_export_route.json", "kag/edges/kag_export_returns_to_route.json", "kag/projections/mcp_source_return.json", "ToS/derived-exports/kag_export.min.json", "ToS/derived-exports/philosophy_graph_projection.min.json", "mechanics/boundary-bridge/parts/derived-kag-seam/docs/KAG_EXPORT.md"],
+      "generated_family": {
+        "manifest": "kag/indexes/index_family.manifest.json",
+        "shards": "kag/indexes/shards/",
+        "receipt_root": "kag/receipts/index_family_budget/",
+        "freshness": "family digest, canonical generator check, family validator, and budget receipt",
+        "builder": "aoa-kag:scripts/generate_repo_local_kag_index.py",
+        "validator": "aoa-kag:scripts/validate_repo_local_kag_family.py"
+      },
       "carrier_classes": ["machine_manifest", "generated_read_model", "mcp_resource", "receipt"]
     },
     "memo_port": {

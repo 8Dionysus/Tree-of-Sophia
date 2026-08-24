@@ -117,6 +117,12 @@ return to aoa-skills and then refresh this local export. Changes to ToS
 philosophical meaning, KAG source exports, eval verdicts, stats questions,
 runtime state, or durable memory remain with their named owners.
 
+The KAG generated read model follows the same boundary. Its portable family
+manifest and shards are rebuilt by the canonical aoa-kag generator from the
+current repository snapshot; a tracked budget receipt carries any exceptional
+delta approval. The family digest and receipt are currentness/provenance
+carriers, not a second source of agent-route meaning.
+
 The AGENTS.md documentation line remains a separate later direction. No
 AGENTS.md source was changed by this decision.
 
@@ -137,6 +143,9 @@ AGENTS.md source was changed by this decision.
 - evals/PORT.yaml
 - stats/port.manifest.json
 - kag/manifest.json
+- kag/indexes/index_family.manifest.json
+- kag/indexes/shards/
+- kag/receipts/index_family_budget/<family-digest>.json
 - memo/PORT.yaml
 - scripts/build_agent_surface_currentness.py
 - scripts/validate_agent_surface.py
