@@ -121,6 +121,30 @@ class DocumentationCrossCorpusTests(unittest.TestCase):
         validator.validate_source_map(ROOT, source_map, issues)
         self.assertTrue(any("canonical route" in message for _, message in issues))
 
+        source_map = json.loads(
+            (ROOT / "docs/validation/documentation_family_map.json").read_text(encoding="utf-8")
+        )
+        source_map["surface_rules"]["generated_carrier_prefixes"] = ["ToS/"]
+        issues = []
+        validator.validate_surface_rules(source_map["surface_rules"], issues)
+        self.assertTrue(any("canonical generated carriers" in message for _, message in issues))
+
+        source_map = json.loads(
+            (ROOT / "docs/validation/documentation_family_map.json").read_text(encoding="utf-8")
+        )
+        source_map["public_authored_surfaces"].remove("README.md")
+        issues = []
+        validator.validate_source_map(ROOT, source_map, issues)
+        self.assertTrue(any("missing required entries" in message for _, message in issues))
+
+        source_map = json.loads(
+            (ROOT / "docs/validation/documentation_family_map.json").read_text(encoding="utf-8")
+        )
+        source_map["context_probes"][0]["max_tokens"] = 9999
+        issues = []
+        validator.validate_context_probe_configuration(source_map["context_probes"], issues)
+        self.assertTrue(any("canonical context contract" in message for _, message in issues))
+
     def test_human_scope_uses_authored_exclusion_glob(self) -> None:
         human_extensions = {".yaml"}
         self.assertFalse(
@@ -223,6 +247,18 @@ class DocumentationCrossCorpusTests(unittest.TestCase):
             write_text(
                 root / "README.md",
                 "Run scripts/not-present.py locally, while the aoa-kag external owner handles deployment.\\n",
+            )
+            with mock.patch.object(validator, "tracked_paths", return_value=[Path("README.md")]):
+                issues: list[tuple[str, str]] = []
+                validator.validate_executable_routes(root, issues)
+        self.assertTrue(any("stale executable reference: scripts/not-present.py" in message for _, message in issues))
+
+    def test_external_marker_does_not_cross_a_markdown_table_cell(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            write_text(
+                root / "README.md",
+                "| local | scripts/not-present.py | owner | aoa-kag external owner |\n",
             )
             with mock.patch.object(validator, "tracked_paths", return_value=[Path("README.md")]):
                 issues: list[tuple[str, str]] = []

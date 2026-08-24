@@ -71,6 +71,24 @@ EXPECTED_CONTEXT_PROBE_IDS = {
     "public_entry",
     "machine_projection_summary",
 }
+EXPECTED_CONTEXT_PROBES = {
+    "root_entry": {"surfaces": ("README.md",), "measure": "sum", "max_tokens": 700},
+    "inherited_agents_stacks": {"surfaces": (".agents/agents-route.current.json",), "measure": "agents_route_max_inherited", "max_tokens": 2800},
+    "mechanics_entry": {"surfaces": ("mechanics/README.md",), "measure": "sum", "max_tokens": 1400},
+    "skill_discovery": {"surfaces": (".agents/README.md", ".agents/agent-surface.manifest.json"), "measure": "max", "max_tokens": 1800},
+    "public_entry": {"surfaces": ("ToS/zarathustra/public-entry/TINY_ENTRY_ROUTE.md", "ToS/derived-exports/root_entry_map.min.json"), "measure": "sum", "max_tokens": 1200},
+    "machine_projection_summary": {"surfaces": ("docs/validation/documentation-family.current.json",), "measure": "generated_summary", "max_tokens": 1600},
+}
+EXPECTED_PUBLIC_AUTHORED_SURFACES = {
+    "README.md",
+    "AGENTS.md",
+    ".agents/README.md",
+    "ToS/README.md",
+    "ToS/zarathustra/public-entry/TINY_ENTRY_ROUTE.md",
+    "docs/validation/README.md",
+}
+EXPECTED_GENERATED_CARRIER_PATHS = {"docs/validation/documentation-family.current.json"}
+EXPECTED_GENERATED_CARRIER_PREFIXES = {"kag/indexes/", "kag/receipts/index_family_budget/"}
 CANONICAL_SOURCE_MAP_ROUTES = {
     "owner_surface": "docs/validation/README.md",
     "schema_ref": "docs/validation/documentation-family-map.schema.json",
@@ -79,7 +97,7 @@ CANONICAL_SOURCE_MAP_ROUTES = {
     "builder": "scripts/build_documentation_family_currentness.py",
     "validator": "scripts/validate_documentation_cross_corpus.py",
 }
-COMMAND_CARRIER_SPLIT_RE = re.compile(r"(?:;|&&|\|\||,|(?<=[.!?])\s+)")
+COMMAND_CARRIER_SPLIT_RE = re.compile(r"(?:;|&&|\|\||\||,|(?<=[.!?])\s+)")
 
 
 def _issue(issues: list[Issue], location: str, message: str) -> None:
@@ -223,6 +241,11 @@ def validate_source_map(repo_root: Path, payload: dict[str, Any], issues: list[I
         value = payload.get(field)
         if not isinstance(value, list) or not value or not all(isinstance(item, str) and item for item in value):
             _issue(issues, MAP_PATH.as_posix(), f"{field} must be a non-empty list of strings")
+    public_surfaces = payload.get("public_authored_surfaces")
+    if isinstance(public_surfaces, list) and all(isinstance(item, str) for item in public_surfaces):
+        missing_public_surfaces = sorted(EXPECTED_PUBLIC_AUTHORED_SURFACES - set(public_surfaces))
+        if missing_public_surfaces:
+            _issue(issues, MAP_PATH.as_posix(), f"public_authored_surfaces is missing required entries: {', '.join(missing_public_surfaces)}")
     guard_families = payload.get("guard_families")
     if not isinstance(guard_families, list) or {item.get("id") for item in guard_families if isinstance(item, dict)} != {
         "broken_markdown_route", "stale_executable_route", "authority_conflict", "generated_projection_mismatch", "missing_family_coverage", "public_safety", "context_budget"
@@ -278,6 +301,30 @@ def validate_surface_rules(surface_rules: Any, issues: list[Issue]) -> None:
         unexpected_prefixes = sorted(set(exclude_prefixes) - set(generated_carrier_prefixes))
         if unexpected_prefixes:
             _issue(issues, location, f"exclude_prefixes must stay within generated_carrier_prefixes: {', '.join(unexpected_prefixes)}")
+    if (
+        isinstance(generated_carrier_paths, list)
+        and all(isinstance(item, str) for item in generated_carrier_paths)
+        and set(generated_carrier_paths) != EXPECTED_GENERATED_CARRIER_PATHS
+    ):
+        _issue(issues, location, "generated_carrier_paths must name the canonical generated carriers")
+    if (
+        isinstance(generated_carrier_prefixes, list)
+        and all(isinstance(item, str) for item in generated_carrier_prefixes)
+        and set(generated_carrier_prefixes) != EXPECTED_GENERATED_CARRIER_PREFIXES
+    ):
+        _issue(issues, location, "generated_carrier_prefixes must name the canonical generated carriers")
+    if (
+        isinstance(exclude_paths, list)
+        and all(isinstance(item, str) for item in exclude_paths)
+        and set(exclude_paths) != EXPECTED_GENERATED_CARRIER_PATHS
+    ):
+        _issue(issues, location, "exclude_paths must retain the canonical generated carriers")
+    if (
+        isinstance(exclude_prefixes, list)
+        and all(isinstance(item, str) for item in exclude_prefixes)
+        and set(exclude_prefixes) != EXPECTED_GENERATED_CARRIER_PREFIXES
+    ):
+        _issue(issues, location, "exclude_prefixes must retain the canonical generated carriers")
 
 
 def validate_context_probe_configuration(probes: Any, issues: list[Issue]) -> None:
@@ -305,6 +352,24 @@ def validate_context_probe_configuration(probes: Any, issues: list[Issue]) -> No
     missing = sorted(EXPECTED_CONTEXT_PROBE_IDS - set(ids))
     if missing:
         _issue(issues, location, f"missing required context probes: {', '.join(missing)}")
+    probes_by_id = {
+        probe.get("id"): probe
+        for probe in probes
+        if isinstance(probe, dict) and isinstance(probe.get("id"), str)
+    }
+    for probe_id, expected in EXPECTED_CONTEXT_PROBES.items():
+        probe = probes_by_id.get(probe_id)
+        if probe is None:
+            continue
+        probe_location = f"{location}#{probe_id}"
+        actual_surfaces = probe.get("surfaces")
+        normalized_surfaces = tuple(actual_surfaces) if isinstance(actual_surfaces, list) else ()
+        if normalized_surfaces != expected["surfaces"]:
+            _issue(issues, probe_location, "surfaces do not match the canonical context contract")
+        if probe.get("measure") != expected["measure"]:
+            _issue(issues, probe_location, f"measure does not match the canonical context contract: {expected['measure']}")
+        if probe.get("max_tokens") != expected["max_tokens"]:
+            _issue(issues, probe_location, f"max_tokens does not match the canonical context contract: {expected['max_tokens']}")
 
 
 def validate_family_match_rules(families: Any, issues: list[Issue]) -> None:
