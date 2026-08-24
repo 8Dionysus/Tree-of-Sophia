@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import copy
 import json
+import subprocess
 import sys
 import tempfile
 import unittest
@@ -88,6 +89,33 @@ class NestedAgentsRouteTests(unittest.TestCase):
             ["lane-that-is-not-in-the-command-authority-manifest"],
             result["selected_validation"]["unknown_lanes"],
         )
+
+    def test_currentness_output_overrides_normalize_relative_and_external_paths(self) -> None:
+        builder = SCRIPTS / "build_agents_route_currentness.py"
+        with tempfile.TemporaryDirectory(dir=REPO_ROOT) as relative_dir:
+            relative_root = Path(relative_dir)
+            relative_output = relative_root.relative_to(REPO_ROOT) / "route.json"
+            relative_run = subprocess.run(
+                [sys.executable, str(builder), "--output", str(relative_output)],
+                cwd=REPO_ROOT,
+                check=False,
+                capture_output=True,
+                text=True,
+            )
+            self.assertEqual(0, relative_run.returncode, relative_run.stderr)
+            self.assertTrue((REPO_ROOT / relative_output).is_file())
+
+        with tempfile.TemporaryDirectory() as external_dir:
+            external_output = Path(external_dir) / "route.json"
+            external_run = subprocess.run(
+                [sys.executable, str(builder), "--output", str(external_output)],
+                cwd=REPO_ROOT,
+                check=False,
+                capture_output=True,
+                text=True,
+            )
+            self.assertEqual(0, external_run.returncode, external_run.stderr)
+            self.assertTrue(external_output.is_file())
 
 
 if __name__ == "__main__":

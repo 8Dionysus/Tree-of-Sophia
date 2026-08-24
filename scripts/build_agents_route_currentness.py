@@ -188,22 +188,36 @@ def render_currentness(data: dict[str, Any]) -> str:
     return json.dumps(data, ensure_ascii=False, indent=2, sort_keys=True) + "\n"
 
 
+def resolve_output_path(repo_root: Path, output: Path | None) -> Path:
+    if output is None:
+        inventory = json.loads(INVENTORY_PATH.read_text(encoding="utf-8"))
+        return repo_root / inventory["currentness"]
+    return output if output.is_absolute() else repo_root / output
+
+
+def display_output_path(repo_root: Path, output: Path) -> str:
+    try:
+        return output.relative_to(repo_root).as_posix()
+    except ValueError:
+        return output.as_posix()
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--check", action="store_true", help="check generated currentness without writing")
     parser.add_argument("--output", type=Path, default=None, help="override the generated output path")
     args = parser.parse_args()
-    output = args.output or (REPO_ROOT / json.loads(INVENTORY_PATH.read_text()) ["currentness"])
+    output = resolve_output_path(REPO_ROOT, args.output)
     rendered = render_currentness(build_currentness(REPO_ROOT))
     if args.check:
         if not output.is_file() or output.read_text(encoding="utf-8") != rendered:
-            print(f"AGENTS route currentness is stale or missing: {output.relative_to(REPO_ROOT)}")
+            print(f"AGENTS route currentness is stale or missing: {display_output_path(REPO_ROOT, output)}")
             return 1
-        print(f"AGENTS route currentness is current: {output.relative_to(REPO_ROOT)}")
+        print(f"AGENTS route currentness is current: {display_output_path(REPO_ROOT, output)}")
         return 0
     output.parent.mkdir(parents=True, exist_ok=True)
     output.write_text(rendered, encoding="utf-8")
-    print(f"wrote {output.relative_to(REPO_ROOT)}")
+    print(f"wrote {display_output_path(REPO_ROOT, output)}")
     return 0
 
 
