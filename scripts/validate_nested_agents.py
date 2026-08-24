@@ -198,6 +198,11 @@ def duplicate_inherited_card_issues(repo_root: Path, route_cards: list[Path]) ->
 def validate_route_inventory(repo_root: Path, route_cards: list[Path], issues: list[Issue]) -> None:
     inventory = load_route_inventory(repo_root)
     if inventory is None:
+        path = repo_root / INVENTORY_RELATIVE
+        if path.is_file():
+            issues.append((INVENTORY_RELATIVE.as_posix(), "route inventory is unreadable or malformed"))
+        else:
+            issues.append((INVENTORY_RELATIVE.as_posix(), "route inventory is missing"))
         return
     required_top_level = {
         "schema_version",

@@ -65,6 +65,28 @@ class NestedAgentsRouteTests(unittest.TestCase):
             self.assertEqual(1, len(issues))
             self.assertIn("not-present.py", issues[0][1])
 
+    def test_route_inventory_is_required_for_validator_admission(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            root_card = root / "AGENTS.md"
+            root_card.write_text("# AGENTS.md\n", encoding="utf-8")
+            issues: list[tuple[str, str]] = []
+            validate_nested_agents.validate_route_inventory(root, [root_card], issues)
+            self.assertEqual(
+                [("docs/validation/agents_route_inventory.json", "route inventory is missing")],
+                issues,
+            )
+
+            inventory = root / "docs/validation/agents_route_inventory.json"
+            inventory.parent.mkdir(parents=True)
+            inventory.write_text("{not-json", encoding="utf-8")
+            issues = []
+            validate_nested_agents.validate_route_inventory(root, [root_card], issues)
+            self.assertEqual(
+                [("docs/validation/agents_route_inventory.json", "route inventory is unreadable or malformed")],
+                issues,
+            )
+
     def test_missing_task_law_and_budget_are_negative_controls(self) -> None:
         inventory_path, inventory = build_agents_route_currentness.load_inventory(REPO_ROOT)
         del inventory_path

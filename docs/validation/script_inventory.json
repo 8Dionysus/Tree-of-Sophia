@@ -198,10 +198,12 @@
       "owner_surface": "DESIGN.AGENTS.md",
       "source_truth": [
         "docs/validation/agents_route_inventory.json",
+        "docs/validation/validation_lanes.json",
         "DESIGN.AGENTS.md"
       ],
       "reads": [
         "docs/validation/agents_route_inventory.json",
+        "docs/validation/validation_lanes.json",
         "**/AGENTS.md",
         "declared task targets, validation paths, and completion evidence"
       ],
