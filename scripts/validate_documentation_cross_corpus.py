@@ -51,6 +51,16 @@ MARKDOWN_SUFFIXES = {".md", ".txt", ".yaml", ".yml"}
 COMMAND_REFERENCE_RE = re.compile(
     r"(?<![A-Za-z0-9_.-])((?:\.\./)*(?:scripts|mechanics)/[A-Za-z0-9_./-]+\.(?:py|sh))"
 )
+EXTERNAL_OWNER_MARKERS = (
+    "aoa-kag",
+    "aoa-evals",
+    "aoa-memo",
+    "aoa_kag_root",
+    "aoa_evals_root",
+    "aoa_memo_root",
+    "external owner",
+    "stronger owner",
+)
 
 
 def _issue(issues: list[Issue], location: str, message: str) -> None:
@@ -220,6 +230,21 @@ def _script_inventory_paths(repo_root: Path) -> set[str]:
     }
 
 
+def _external_reference_allowed(text: str, reference: str) -> bool:
+    """Allow only a command locally scoped to an external-owner carrier."""
+    for line in text.splitlines():
+        start = 0
+        while True:
+            position = line.find(reference, start)
+            if position < 0:
+                break
+            window = line[max(0, position - 96) : position + len(reference) + 96].lower()
+            if any(marker in window for marker in EXTERNAL_OWNER_MARKERS):
+                return True
+            start = position + len(reference)
+    return False
+
+
 def validate_executable_routes(repo_root: Path, issues: list[Issue]) -> None:
     inventory = _script_inventory_paths(repo_root)
     source_paths = [
@@ -245,10 +270,7 @@ def validate_executable_routes(repo_root: Path, issues: list[Issue]) -> None:
         for reference in COMMAND_REFERENCE_RE.findall(text):
             resolved = validate_mechanics_topology.resolve_doc_reference(repo_root, path, reference)
             if resolved is None or not resolved.is_file():
-                if any(
-                    marker in text
-                    for marker in ("aoa-kag", "aoa-evals", "aoa-memo", "external owner", "stronger owner")
-                ):
+                if _external_reference_allowed(text, reference):
                     continue
                 _issue(issues, relative, f"stale executable reference: {reference}")
                 continue

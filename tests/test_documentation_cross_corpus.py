@@ -27,7 +27,16 @@ class DocumentationCrossCorpusTests(unittest.TestCase):
         )
         current = builder.build_currentness(ROOT)
         self.assertEqual(source_map["schema_ref"], "docs/validation/documentation-family-map.schema.json")
-        self.assertEqual(current["coverage"]["human_scope"]["count"], 699)
+        human_records = [
+            record
+            for record in current["tracked_surfaces"]
+            if builder.in_human_scope(Path(record["path"]))
+        ]
+        self.assertEqual(current["coverage"]["human_scope"]["count"], len(human_records))
+        self.assertEqual(
+            current["coverage"]["human_scope"]["bytes"],
+            sum(record["bytes"] for record in human_records),
+        )
         self.assertEqual(current["coverage"]["unhandled_family_count"], 0)
         self.assertEqual(
             {family["id"] for family in source_map["families"]},
@@ -87,11 +96,24 @@ class DocumentationCrossCorpusTests(unittest.TestCase):
     def test_external_or_historical_executable_carrier_is_not_local_stale_route(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
-            write_text(root / "kag/manifest.json", "run scripts/validate_kag.py through aoa-kag\n")
-            with mock.patch.object(validator, "tracked_paths", return_value=[Path("kag/manifest.json")]):
+            write_text(root / "README.md", "Run `scripts/external.py` through the aoa-kag external owner.\n")
+            with mock.patch.object(validator, "tracked_paths", return_value=[Path("README.md")]):
                 issues: list[tuple[str, str]] = []
                 validator.validate_executable_routes(root, issues)
         self.assertEqual([], issues)
+
+    def test_external_marker_does_not_exempt_an_unrelated_local_reference(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            write_text(
+                root / "README.md",
+                "Run `scripts/not-present.py` locally.\n"
+                "The separate aoa-kag command is an external owner.\n",
+            )
+            with mock.patch.object(validator, "tracked_paths", return_value=[Path("README.md")]):
+                issues: list[tuple[str, str]] = []
+                validator.validate_executable_routes(root, issues)
+        self.assertTrue(any("stale executable reference: scripts/not-present.py" in message for _, message in issues))
 
     def test_generated_projection_mismatch_is_detected(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:

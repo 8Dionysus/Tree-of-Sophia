@@ -24,9 +24,11 @@ source owner.
 At the fresh post-#159 head, the same atlas method counted 698 human-readable
 surfaces: five net additions, with route-card and script-card compaction
 offsetting growth elsewhere. After this bounded change the head counts 699
-human-readable surfaces. The new carrier covers 2,114 tracked textual,
-structured, and executable route surfaces; binary and non-route payloads remain
-outside the machine projection by explicit extension rule.
+human-readable surfaces. The final carrier covers 1,849 tracked textual,
+structured, and executable route surfaces. It considers 2,141 tracked paths
+after the three explicit generated carrier exclusions; 292 paths outside the
+declared extension set remain outside the machine projection by explicit
+extension rule.
 
 The repository was also checked for `llms.txt`, `llms.md`, loader references,
 workflow references, and manifest consumers. No real loader exists. README,

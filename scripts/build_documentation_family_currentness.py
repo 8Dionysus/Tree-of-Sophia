@@ -88,16 +88,15 @@ def surface_kind(path: Path) -> str:
     return "other"
 
 
+def in_human_scope(path: Path) -> bool:
+    return path.suffix in HUMAN_EXTENSIONS and not (
+        path.as_posix().startswith(".agents/skills/")
+        and path.parts[-2:] == ("agents", "openai.yaml")
+    )
+
+
 def human_scope(repo_root: Path, paths: list[Path], families: list[dict[str, Any]]) -> dict[str, Any]:
-    human = [
-        path
-        for path in paths
-        if path.suffix in HUMAN_EXTENSIONS
-        and not (
-            path.as_posix().startswith(".agents/skills/")
-            and path.parts[-2:] == ("agents", "openai.yaml")
-        )
-    ]
+    human = [path for path in paths if in_human_scope(path)]
     by_family: Counter[str] = Counter()
     bytes_by_family: Counter[str] = Counter()
     lines_by_family: Counter[str] = Counter()
