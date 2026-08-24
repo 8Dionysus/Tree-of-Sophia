@@ -5,6 +5,7 @@ import argparse
 import hashlib
 import json
 import re
+import subprocess
 import sys
 from pathlib import Path
 from typing import Any
@@ -30,6 +31,16 @@ FRONTMATTER_KEYS = (
     "aoa_portable_profile",
 )
 OPENAI_KEYS = ("implicit_activation_policy", "allow_implicit_invocation")
+IGNORED_PACKAGE_PARTS = {
+    ".deps",
+    ".git",
+    ".mypy_cache",
+    ".pytest_cache",
+    ".ruff_cache",
+    "__pycache__",
+    "htmlcov",
+}
+IGNORED_PACKAGE_SUFFIXES = {".pyc", ".pyo"}
 
 
 def read_text(root: Path, relative: str) -> str:
@@ -58,6 +69,47 @@ def scalar_from_block(block: str, key: str) -> str | None:
     return match.group(1).strip() if match else None
 
 
+def boolean_scalar(value: str | None, *, key: str, path: Path) -> bool | None:
+    if value is None:
+        return None
+    if value == "true":
+        return True
+    if value == "false":
+        return False
+    raise ValueError(f"{path}: {key} must be the YAML boolean literal true or false")
+
+
+def _fallback_package_files(package_root: Path) -> list[Path]:
+    return [
+        child
+        for child in sorted(package_root.rglob("*"))
+        if child.is_file()
+        and not IGNORED_PACKAGE_PARTS.intersection(child.relative_to(package_root).parts)
+        and child.suffix not in IGNORED_PACKAGE_SUFFIXES
+    ]
+
+
+def package_files(root: Path, package_root: Path) -> list[Path]:
+    """Read only tracked package files; use a filtered fallback outside Git."""
+    try:
+        relative_root = package_root.relative_to(root).as_posix()
+        result = subprocess.run(
+            ("git", "ls-files", "--cached", "--", relative_root),
+            cwd=root,
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+    except (OSError, subprocess.CalledProcessError, ValueError):
+        return _fallback_package_files(package_root)
+    tracked = [
+        root / line
+        for line in result.stdout.splitlines()
+        if line and (root / line).is_file()
+    ]
+    return tracked or _fallback_package_files(package_root)
+
+
 def parse_skill(skill_path: Path) -> dict[str, Any]:
     text = skill_path.read_text(encoding="utf-8")
     match = FRONTMATTER_RE.match(text)
@@ -74,16 +126,12 @@ def parse_skill(skill_path: Path) -> dict[str, Any]:
         key: scalar_from_block(openai_text, key)
         for key in OPENAI_KEYS
     }
-    activation["allow_implicit_invocation"] = (
-        activation["allow_implicit_invocation"] == "true"
-        if activation["allow_implicit_invocation"] is not None
-        else None
+    activation["allow_implicit_invocation"] = boolean_scalar(
+        activation["allow_implicit_invocation"],
+        key="allow_implicit_invocation",
+        path=openai_path,
     )
-    files = [
-        child
-        for child in sorted(skill_path.parent.rglob("*"))
-        if child.is_file()
-    ]
+    files = package_files(REPO_ROOT, skill_path.parent)
     companion_counts = {
         family: sum(
             1

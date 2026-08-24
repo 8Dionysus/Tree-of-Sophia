@@ -65,9 +65,10 @@ Add scripts/build_agent_surface_currentness.py as the deterministic builder
 and scripts/validate_agent_surface.py as the narrow source/topology validator.
 The new blocking agent_surface lane checks discovery parity, metadata policy,
 on-demand route closure, owner-port input closure, task-probe negative
-controls, public-safe authored surfaces, inventory counts, and generated
-parity. Release invokes this lane. Skill-local executable helpers remain
-advisory and do not become release authority by being listed in the map.
+controls, public-safe authored surfaces, inventory counts, generated parity,
+and the KAG family digest/receipt binding. Release invokes this lane.
+Skill-local executable helpers remain advisory and do not become release
+authority by being listed in the map.
 
 ## Options Considered
 
@@ -121,7 +122,12 @@ The KAG generated read model follows the same boundary. Its portable family
 manifest and shards are rebuilt by the canonical aoa-kag generator from the
 current repository snapshot; a tracked budget receipt carries any exceptional
 delta approval. The family digest and receipt are currentness/provenance
-carriers, not a second source of agent-route meaning.
+carriers, not a second source of agent-route meaning. They are checked in the
+KAG lane rather than copied into the agent currentness input set: the portable
+family indexes the agent currentness read model itself, so hashing the raw
+family from that read model would create an unresolvable self-index cycle.
+The agent map therefore declares the generated-family carrier and its exact
+canonical builder/validator route alongside authored KAG inputs.
 
 The AGENTS.md documentation line remains a separate later direction. No
 AGENTS.md source was changed by this decision.

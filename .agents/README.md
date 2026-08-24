@@ -87,9 +87,10 @@ map does not make a copied packet a second source owner.
 ## Validation
 
 The focused command is the agent_surface lane in
-docs/validation/validation_lanes.json: python scripts/validate_agent_surface.py.
+docs/validation/validation_lanes.json: python scripts/validate_agent_surface.py
+--check.
 It checks manifest/package parity, metadata activation parity, on-demand route
 resolution, owner-port inputs, task-probe negative controls, public-safe
 authored surfaces, and generated currentness. Release checks call the same
-lane; skill-local helper scripts remain advisory unless their own owner
-explicitly promotes them.
+lane, including the KAG family digest/receipt binding; skill-local helper
+scripts remain advisory unless their own owner explicitly promotes them.

@@ -3,6 +3,7 @@ from __future__ import annotations
 import sys
 import tempfile
 import unittest
+import json
 from pathlib import Path
 from unittest import mock
 
@@ -55,6 +56,35 @@ class AgentSurfaceTests(unittest.TestCase):
     def test_external_owner_reference_is_not_a_local_companion_route(self) -> None:
         package = ROOT / ".agents/skills/aoa-summon"
         self.assertEqual(validator._check_local_reference_routes(ROOT, package), [])
+
+    def test_ignored_package_artifacts_are_not_currentness_inputs(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            package = root / ".agents/skills/example"
+            (package / "__pycache__").mkdir(parents=True)
+            tracked = package / "SKILL.md"
+            ignored = package / "__pycache__/SKILL.cpython-314.pyc"
+            tracked.write_text("tracked", encoding="utf-8")
+            ignored.write_bytes(b"machine-local")
+            files = builder.package_files(root, package)
+            self.assertEqual(files, [tracked])
+
+    def test_activation_metadata_rejects_non_boolean_scalars(self) -> None:
+        with self.assertRaisesRegex(ValueError, "boolean literal"):
+            builder.boolean_scalar(
+                "definitely-not-a-boolean",
+                key="allow_implicit_invocation",
+                path=Path("agents/openai.yaml"),
+            )
+
+    def test_generated_kag_family_has_a_matching_receipt(self) -> None:
+        manifest = json.loads(
+            (ROOT / ".agents/agent-surface.manifest.json").read_text(encoding="utf-8")
+        )
+        self.assertEqual(
+            validator.generated_family_issues(ROOT, manifest["owner_ports"]["kag_provider"]),
+            [],
+        )
 
     def test_stale_currentness_is_rejected(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:

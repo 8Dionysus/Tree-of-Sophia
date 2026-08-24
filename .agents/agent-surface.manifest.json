@@ -210,6 +210,7 @@
         "shards": "kag/indexes/shards/",
         "receipt_root": "kag/receipts/index_family_budget/",
         "freshness": "family digest, canonical generator check, family validator, and budget receipt",
+        "currentness_boundary": "separate generated-family carrier; the KAG family indexes this currentness read model, so hashing the raw family here would create a self-index cycle",
         "builder": "aoa-kag:scripts/generate_repo_local_kag_index.py",
         "validator": "aoa-kag:scripts/validate_repo_local_kag_family.py"
       },

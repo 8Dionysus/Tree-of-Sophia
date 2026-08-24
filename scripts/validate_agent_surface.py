@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import argparse
+import json
 import re
 import sys
 from pathlib import Path
@@ -105,6 +106,62 @@ def public_safety_issues(root: Path = REPO_ROOT) -> list[Issue]:
         for forbidden in PUBLIC_FORBIDDEN:
             if forbidden in text:
                 issues.append((relative, f"contains forbidden public-safety marker {forbidden!r}"))
+    return issues
+
+
+def generated_family_issues(root: Path, port: dict[str, Any]) -> list[Issue]:
+    """Check the KAG generated carrier without coupling it into currentness."""
+    issues: list[Issue] = []
+    family = port.get("generated_family")
+    if not isinstance(family, dict):
+        return [("kag_provider", "generated_family carrier declaration is required")]
+    manifest_text = family.get("manifest")
+    shards_text = family.get("shards")
+    receipt_root_text = family.get("receipt_root")
+    for label, relative in (
+        ("manifest", manifest_text),
+        ("shards", shards_text),
+        ("receipt_root", receipt_root_text),
+    ):
+        if not isinstance(relative, str) or not relative:
+            issues.append(("kag_provider", f"generated_family.{label} is required"))
+            continue
+        path = root / relative
+        if label == "manifest" and not path.is_file():
+            issues.append((relative, "generated KAG family manifest is missing"))
+        if label != "manifest" and not path.is_dir():
+            issues.append((relative, f"generated KAG family {label} route is missing"))
+    builder = family.get("builder")
+    validator = family.get("validator")
+    if not isinstance(builder, str) or not builder.startswith("aoa-kag:"):
+        issues.append(("kag_provider", "generated_family.builder must keep the aoa-kag owner handle"))
+    if not isinstance(validator, str) or not validator.startswith("aoa-kag:"):
+        issues.append(("kag_provider", "generated_family.validator must keep the aoa-kag owner handle"))
+    if not isinstance(manifest_text, str) or not isinstance(receipt_root_text, str):
+        return issues
+    manifest_path = root / manifest_text
+    if not manifest_path.is_file():
+        return issues
+    try:
+        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+        digest = manifest["family_identity"]["content_digest"]
+    except (OSError, json.JSONDecodeError, KeyError, TypeError):
+        issues.append((manifest_text, "generated KAG family manifest lacks family_identity.content_digest"))
+        return issues
+    if not isinstance(digest, str) or not re.fullmatch(r"[0-9a-f]{64}", digest):
+        issues.append((manifest_text, "generated KAG family digest must be 64 lowercase hex characters"))
+        return issues
+    receipt_path = root / receipt_root_text / f"{digest}.json"
+    if not receipt_path.is_file():
+        issues.append((receipt_path.relative_to(root).as_posix(), "matching generated KAG budget receipt is missing"))
+        return issues
+    try:
+        receipt = json.loads(receipt_path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        issues.append((receipt_path.relative_to(root).as_posix(), "matching generated KAG budget receipt is invalid"))
+        return issues
+    if receipt.get("head_family_digest") != digest:
+        issues.append((receipt_path.relative_to(root).as_posix(), "budget receipt is not bound to the current family digest"))
     return issues
 
 
@@ -292,6 +349,8 @@ def validate_manifest(root: Path = REPO_ROOT) -> list[Issue]:
         for relative in port.get("currentness_inputs", []):
             if not isinstance(relative, str) or not (root / relative).is_file():
                 issues.append((str(relative), f"{port_id} currentness input is missing"))
+        if port_id == "kag_provider":
+            issues.extend(generated_family_issues(root, port))
 
     probes = manifest.get("task_probes")
     if not isinstance(probes, list):
