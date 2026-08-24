@@ -35,6 +35,10 @@ Tracking starts with the community-docs baseline for this repository.
 - Rebinds the module default as well as environment roots during the nested
   materialized-store rehearsal, so its trust gate inspects the temporary store
   rather than the already-populated primary store.
+- Isolates the negative precondition gate on every invocation, including
+  `--no-clean` reruns, so retained materialized subjects cannot turn the
+  required deny-before-materialization state into an allow. The rehearsal uses
+  both a fresh registry and an empty temporary store.
 
 ### Validation
 
@@ -50,6 +54,9 @@ Tracking starts with the community-docs baseline for this repository.
   directory root; both fail closed before any subject-store writes.
 - The nested-scope regression proves temporary-store binding and restoration of
   the outer and ambient defaults around the adversarial trust gate.
+- The owner validator keeps its deny-before-materialization rehearsal on an
+  empty temporary root and fresh registry even when a prior materialized store
+  is retained.
 - The hosted workflow validates the exact provider source and separate action
   snapshots before the Tree release audit. These checks prove source-level
   compatibility evidence only; they do not prove artifact admission, runtime,

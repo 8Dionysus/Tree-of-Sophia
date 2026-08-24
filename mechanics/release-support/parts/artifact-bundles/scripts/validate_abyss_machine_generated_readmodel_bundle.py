@@ -854,11 +854,30 @@ def _validate_in_bundle_dir_impl(
         manifest=manifest,
         abyss_repo_root=abyss_repo_root,
     )
-    pre_materialization_gate = _trust_gate_denies_without_subject_store(
-        artifact_bundles,
-        registry_dir,
-        registry,
-    )
+    # A --no-clean rerun may retain a valid materialized store. Keep the
+    # negative precondition independent from that retained state so it still
+    # proves deny-before-materialization on every invocation.
+    with tempfile.TemporaryDirectory(
+        prefix="tos-generated-readmodel-precondition-",
+        dir=_default_tmp_root(),
+    ) as precondition_tmp:
+        precondition_root = Path(precondition_tmp)
+        precondition_registry_dir = precondition_root / "registry"
+        with _subject_store_scope(artifact_bundles, precondition_root):
+            precondition_registry = _registry_roundtrip(
+                artifact_bundles,
+                bundle_dir,
+                precondition_registry_dir,
+                lifecycle_state="release-ready",
+                evidence_ref="materialized-subject-store-negative-precondition",
+                manifest=manifest,
+                abyss_repo_root=abyss_repo_root,
+            )
+            pre_materialization_gate = _trust_gate_denies_without_subject_store(
+                artifact_bundles,
+                precondition_registry_dir,
+                precondition_registry,
+            )
     materialized = artifact_bundles.materialize_artifact_subjects(
         bundle_dir,
         store_root=subject_store_root,
