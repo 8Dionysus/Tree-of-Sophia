@@ -767,10 +767,11 @@ def _dependency_seal(
     )
 
 
-def _tool_identity(command: str) -> dict[str, Any]:
-    executable = shutil.which(command)
-    if not executable:
-        raise PreparationError(f"required tool is not on PATH: {command}")
+def _tool_identity(command: str, *, executable: str | Path | None = None) -> dict[str, Any]:
+    if executable is None:
+        executable = shutil.which(command)
+        if not executable:
+            raise PreparationError(f"required tool is not on PATH: {command}")
     path = Path(executable).resolve(strict=True)
     try:
         tool_stat = path.stat()
@@ -832,7 +833,7 @@ def _environment_identity() -> dict[str, Any]:
         },
         "tools": {
             "git": _tool_identity("git"),
-            "python": _tool_identity("python"),
+            "python": _tool_identity("python", executable=sys.executable),
         },
     }
     return {
@@ -915,9 +916,7 @@ def _revalidation_projection(observation: dict[str, Any]) -> dict[str, Any]:
     return {**observation, "family": family}
 
 
-def build_index_fixed_point_reuse(repo_root: Path = REPO_ROOT) -> dict[str, Any]:
-    """Validate the bounded selected-index fixed point without regenerating outputs."""
-
+def _capture_index_reuse_observation(repo_root: Path) -> dict[str, Any]:
     repo_root = repo_root.resolve()
     candidate = _repo_identity(repo_root)
     selected_paths = set(
@@ -936,12 +935,23 @@ def build_index_fixed_point_reuse(repo_root: Path = REPO_ROOT) -> dict[str, Any]
     records_by_path = {record["path"]: record for record in records}
     rows = _source_index_rows(repo_root, selected_paths, records_by_path)
     return {
-        "method": "validated_index_fixed_point_reuse",
-        "proof_class": "structural/source-index-currentness",
-        "side_effect": "read_only",
         "candidate": candidate,
         "family": family,
         "rows": rows,
+    }
+
+
+def build_index_fixed_point_reuse(repo_root: Path = REPO_ROOT) -> dict[str, Any]:
+    """Validate the bounded selected-index fixed point without regenerating outputs."""
+
+    before = _capture_index_reuse_observation(repo_root)
+    after = _capture_index_reuse_observation(repo_root)
+    _assert_revalidated(before, after)
+    return {
+        "method": "validated_index_fixed_point_reuse",
+        "proof_class": "structural/source-index-currentness",
+        "side_effect": "read_only",
+        **after,
         "claim_limit": "selected source-index currentness only; no producer regeneration or semantic admission",
     }
 

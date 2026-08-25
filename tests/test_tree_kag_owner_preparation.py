@@ -1,11 +1,18 @@
 from __future__ import annotations
 
+import contextlib
 import importlib.util
 import hashlib
+import inspect
+import io
 import json
 import os
+import shutil
 import subprocess
+import tempfile
+import unittest
 from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
 
@@ -577,6 +584,38 @@ def test_build_owner_preparation_rejects_observation_replacement(
         preparer.build_owner_preparation(repo)
 
 
+def test_index_reuse_revalidates_before_return(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    preparer = load_preparer()
+    configure_preparer_fixture(preparer)
+    repo = make_preparation_repo(tmp_path, preparer)
+    original_capture = preparer._capture_index_reuse_observation
+    calls = 0
+
+    def racing_capture(root: Path):
+        nonlocal calls
+        calls += 1
+        observation = original_capture(root)
+        if calls == 2:
+            observation["candidate"] = {
+                **observation["candidate"],
+                "head": "replacement-observed-at-index-reuse-boundary",
+            }
+        return observation
+
+    monkeypatch.setattr(
+        preparer,
+        "_capture_index_reuse_observation",
+        racing_capture,
+    )
+    with pytest.raises(preparer.PreparationError, match="TOCTOU"):
+        preparer.build_index_fixed_point_reuse(repo)
+
+    assert calls == 2
+
+
 def test_build_owner_preparation_rejects_file_replacement_race(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
@@ -612,6 +651,32 @@ def test_final_revalidation_rejects_replacement() -> None:
         )
 
 
+def test_environment_seal_binds_validation_executable(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    preparer = load_preparer()
+    actual_executable = tmp_path / "actual-python"
+    shutil.copyfile(preparer.sys.executable, actual_executable)
+    shutil.copymode(preparer.sys.executable, actual_executable)
+    original_which = preparer.shutil.which
+
+    def reject_python_path_lookup(command: str):
+        if command == "python":
+            raise AssertionError("validation identity must not resolve python from PATH")
+        return original_which(command)
+
+    monkeypatch.setattr(preparer.sys, "executable", str(actual_executable))
+    monkeypatch.setattr(preparer.shutil, "which", reject_python_path_lookup)
+
+    identity = preparer._environment_identity()
+
+    assert identity["tools"]["python"]["path"] == str(actual_executable.resolve())
+    assert identity["tools"]["python"]["sha256"] == hashlib.sha256(
+        actual_executable.read_bytes()
+    ).hexdigest()
+
+
 def test_blocked_external_contract_is_non_success_for_cli(monkeypatch: pytest.MonkeyPatch) -> None:
     preparer = load_preparer()
     monkeypatch.setattr(
@@ -637,3 +702,61 @@ def test_blocked_external_contract_is_non_success_for_cli(monkeypatch: pytest.Mo
         "environment",
     ]
     assert preparer.main(expected_args) == preparer.BLOCKED_EXTERNAL_EXIT
+
+
+class TreeKagOwnerPreparationTests(unittest.TestCase):
+    """Expose the owner-preparation regressions to the repository unittest lane."""
+
+    def setUp(self) -> None:
+        self._temporary_directory = tempfile.TemporaryDirectory()
+        self.tmp_path = Path(self._temporary_directory.name)
+
+    def tearDown(self) -> None:
+        self._temporary_directory.cleanup()
+
+    def _run_top_level_test(self, function) -> None:
+        parameters = inspect.signature(function).parameters
+        kwargs = {}
+        if "tmp_path" in parameters:
+            kwargs["tmp_path"] = self.tmp_path
+        patcher = pytest.MonkeyPatch() if "monkeypatch" in parameters else None
+        if patcher is not None:
+            kwargs["monkeypatch"] = patcher
+        capture = _UnittestCapture() if "capsys" in parameters else None
+        if capture is not None:
+            kwargs["capsys"] = capture
+        try:
+            if capture is None:
+                function(**kwargs)
+            else:
+                with contextlib.redirect_stdout(capture.stdout), contextlib.redirect_stderr(
+                    capture.stderr
+                ):
+                    function(**kwargs)
+        finally:
+            if patcher is not None:
+                patcher.undo()
+
+
+class _UnittestCapture:
+    def __init__(self) -> None:
+        self.stdout = io.StringIO()
+        self.stderr = io.StringIO()
+
+    def readouterr(self) -> SimpleNamespace:
+        return SimpleNamespace(out=self.stdout.getvalue(), err=self.stderr.getvalue())
+
+
+def _make_unittest_method(function):
+    def method(self: TreeKagOwnerPreparationTests) -> None:
+        self._run_top_level_test(function)
+
+    method.__name__ = function.__name__
+    method.__qualname__ = f"TreeKagOwnerPreparationTests.{function.__name__}"
+    return method
+
+
+for _test_name, _test_function in tuple(globals().items()):
+    if _test_name.startswith("test_") and callable(_test_function):
+        _test_function.__test__ = False
+        setattr(TreeKagOwnerPreparationTests, _test_name, _make_unittest_method(_test_function))
