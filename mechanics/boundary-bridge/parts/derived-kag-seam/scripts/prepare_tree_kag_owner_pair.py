@@ -176,6 +176,46 @@ def _validate_relative_path(relative_path: Path, role: str) -> None:
         raise PreparationError(f"{role} path must name a file")
 
 
+def _same_directory_identity(left: os.stat_result, right: os.stat_result) -> bool:
+    return (
+        stat.S_ISDIR(left.st_mode)
+        and stat.S_ISDIR(right.st_mode)
+        and left.st_dev == right.st_dev
+        and left.st_ino == right.st_ino
+    )
+
+
+def _revalidate_opened_parent_paths(
+    root: Path,
+    root_fd: int,
+    parent_bindings: Iterable[tuple[int, str, os.stat_result]],
+    role: str,
+) -> None:
+    try:
+        current_root = root.lstat()
+        opened_root = os.fstat(root_fd)
+    except (OSError, ValueError) as exc:
+        raise PreparationError(
+            f"cannot revalidate parent path for {role}: {root}"
+        ) from exc
+    if not _same_directory_identity(opened_root, current_root):
+        raise PreparationError(
+            f"{role} parent path changed during missing-final check: {root}"
+        )
+
+    for parent_fd, component, opened_directory in parent_bindings:
+        try:
+            current_directory = os.lstat(component, dir_fd=parent_fd)
+        except (OSError, ValueError) as exc:
+            raise PreparationError(
+                f"cannot revalidate parent path for {role}: {component}"
+            ) from exc
+        if not _same_directory_identity(opened_directory, current_directory):
+            raise PreparationError(
+                f"{role} parent path changed during missing-final check: {component}"
+            )
+
+
 def _confined_optional_file_stat(
     repo_root: Path, relative_path: Path, role: str
 ) -> os.stat_result | None:
@@ -199,8 +239,11 @@ def _confined_optional_file_stat(
     except (OSError, ValueError) as exc:
         raise PreparationError(f"cannot open candidate root for {role}: {root}") from exc
     current_fd = root_fd
+    opened_fds = [root_fd]
+    parent_bindings: list[tuple[int, str, os.stat_result]] = []
     try:
         for component in relative_path.parts[:-1]:
+            parent_fd = current_fd
             try:
                 next_fd = os.open(
                     component,
@@ -211,14 +254,39 @@ def _confined_optional_file_stat(
                 raise PreparationError(
                     f"cannot inspect confined parent for {role}: {relative_path}"
                 ) from exc
-            if current_fd != root_fd:
-                os.close(current_fd)
+            try:
+                opened_directory = os.fstat(next_fd)
+            except (OSError, ValueError) as exc:
+                os.close(next_fd)
+                raise PreparationError(
+                    f"cannot bind confined parent for {role}: {relative_path}"
+                ) from exc
+            opened_fds.append(next_fd)
+            parent_bindings.append((parent_fd, component, opened_directory))
             current_fd = next_fd
 
         try:
             final_stat = os.lstat(relative_path.parts[-1], dir_fd=current_fd)
         except FileNotFoundError:
-            return None
+            try:
+                os.lstat(relative_path.parts[-1], dir_fd=current_fd)
+            except FileNotFoundError:
+                _revalidate_opened_parent_paths(
+                    root,
+                    root_fd,
+                    parent_bindings,
+                    role,
+                )
+                return None
+            except (OSError, ValueError) as exc:
+                raise PreparationError(
+                    f"cannot recheck missing confined final component for {role}: "
+                    f"{relative_path}"
+                ) from exc
+            raise PreparationError(
+                f"confined final component changed while checking missing {role}: "
+                f"{relative_path}"
+            )
         except (OSError, ValueError) as exc:
             raise PreparationError(
                 f"cannot inspect confined final component for {role}: {relative_path}"
@@ -226,9 +294,8 @@ def _confined_optional_file_stat(
         _assert_regular_file(repo_root / relative_path, final_stat, role)
         return final_stat
     finally:
-        if current_fd != root_fd:
-            os.close(current_fd)
-        os.close(root_fd)
+        for file_descriptor in reversed(opened_fds):
+            os.close(file_descriptor)
 
 
 def _open_confined(repo_root: Path, relative_path: Path, role: str) -> int:

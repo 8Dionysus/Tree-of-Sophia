@@ -400,6 +400,54 @@ def test_build_owner_preparation_rejects_missing_compatibility_under_parent_syml
         preparer.build_owner_preparation(repo)
 
 
+def test_build_owner_preparation_rejects_parent_replacement_during_missing_final_window(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    preparer = load_preparer()
+    configure_preparer_fixture(preparer)
+    repo = make_preparation_repo(tmp_path, preparer)
+    alias = repo / "kag/indexes/alias"
+    alias.mkdir()
+    (alias / "anchor.txt").write_text("anchor\n", encoding="utf-8")
+    commit_fixture(repo, "alias fixture")
+    rewrite_family_manifest(
+        repo,
+        [{"kind": "artifact", "path": "kag/indexes/alias/missing.json"}],
+    )
+    outside = tmp_path / "outside"
+    outside.mkdir()
+    original_lstat = preparer.os.lstat
+    missing_lstat_hits = 0
+    swapped = False
+
+    def racing_lstat(path, *, dir_fd=None):
+        nonlocal missing_lstat_hits, swapped
+        try:
+            return original_lstat(path, dir_fd=dir_fd)
+        except FileNotFoundError:
+            if path == "missing.json" and dir_fd is not None:
+                missing_lstat_hits += 1
+                if missing_lstat_hits == 2:
+                    alias.rename(repo / "kag/indexes/alias.old")
+                    alias.symlink_to(outside, target_is_directory=True)
+                    swapped = True
+            raise
+
+    monkeypatch.setattr(preparer.os, "lstat", racing_lstat)
+    monkeypatch.setattr(
+        preparer.os,
+        "supports_dir_fd",
+        set(preparer.os.supports_dir_fd) | {racing_lstat},
+    )
+
+    with pytest.raises(preparer.PreparationError, match="parent path changed"):
+        preparer.build_owner_preparation(repo)
+
+    assert swapped is True
+    assert missing_lstat_hits >= 2
+
+
 def test_build_owner_preparation_rejects_embedded_nul_manifest_path(
     tmp_path: Path,
 ) -> None:
