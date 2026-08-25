@@ -2548,7 +2548,7 @@
         "kag/indexes/index_family.manifest.json"
       ],
       "reads": [
-        "Tree source/export files, local source-index rows, and exact producer/toolchain inputs"
+        "Tree source/export files, local source-index rows, manifest-declared compatibility files, and exact producer/toolchain inputs"
       ],
       "writes": [],
       "side_effects": "read-only Tree owner-preparation witness; never writes a receipt, admission, or repository artifact",

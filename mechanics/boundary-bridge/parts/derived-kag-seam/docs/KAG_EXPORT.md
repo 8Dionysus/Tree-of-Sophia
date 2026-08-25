@@ -74,16 +74,30 @@ The current export builder reads the public compatibility mirror. The adapter
 also requires observed byte/blob parity with the canonical node, but does not
 claim that the current builder depends on canonical bytes. Its confined reads
 reject symlinks, parent-directory escapes, unsupported Git modes, aliases,
-stale index rows, missing `signs.digest`, and candidate/toolchain drift.
+stale index rows, missing `signs.digest`, and candidate/toolchain drift. Every
+compatibility path declared by the local family manifest uses that same typed
+relative-path, root-confined, regular-file, non-symlink reader; malformed
+compatibility structures fail closed before classification.
 
-Run the bounded read-only fixed-point observation with:
+The preparation packet keeps reproducibility evidence publication-safe. A small
+allowlist preserves deterministic locale/interpreter controls, path-like
+environment values are hash-only, and every `GIT_*` value is represented only
+by presence, length, and a digest. Raw Git configuration or command values are
+never written to the packet.
 
-```bash
-python mechanics/boundary-bridge/parts/derived-kag-seam/scripts/prepare_tree_kag_owner_pair.py --index-reuse
-```
+Run the bounded read-only fixed-point observation with `python mechanics/boundary-bridge/parts/derived-kag-seam/scripts/prepare_tree_kag_owner_pair.py --index-reuse`.
 
 An exact sealed preparation uses `--check` with the candidate, producer, and
 environment values shown by the unsealed JSON packet. If the external `aoa-kag`
 procedure/schema is unavailable, the packet remains
 `blocked_external_kag_contract` and the command exits `3`; this route emits no
 receipt, semantic pair, admission, runtime claim, or owner acceptance.
+
+The complete local family is regenerated through the accepted `aoa-kag`
+provider-owned portable-family route before a Tree checkpoint is considered
+current. That route refreshes the full portable family; `--index-reuse` remains
+a bounded selected-row observation and is not a substitute for regeneration.
+The provider-owned compatibility assembly route may materialize the declared
+seven-file v2 view into a caller-selected directory. The Tree packet validates
+each declared path when present and records an absent on-demand view as a
+partial snapshot; these generated views never become authored source authority.

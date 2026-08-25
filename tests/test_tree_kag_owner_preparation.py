@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import importlib.util
+import hashlib
 import json
 import os
 import subprocess
@@ -38,6 +39,85 @@ def make_git_repo(tmp_path: Path, files: dict[str, str]) -> Path:
     subprocess.run(["git", "add", "."], cwd=repo, check=True)
     subprocess.run(["git", "commit", "-qm", "fixture"], cwd=repo, check=True)
     return repo
+
+
+def commit_fixture(repo: Path, message: str) -> None:
+    subprocess.run(["git", "add", "-A"], cwd=repo, check=True)
+    subprocess.run(["git", "commit", "-qm", message], cwd=repo, check=True)
+
+
+def configure_preparer_fixture(preparer) -> None:
+    preparer.AUTHORITATIVE_SOURCE_PATHS = (Path("canonical.json"),)
+    preparer.MATERIALIZED_SOURCE_PATHS = (Path("mirror.json"),)
+    preparer.EXISTENCE_ONLY_SOURCE_PATHS = (Path("support.md"),)
+    preparer.DERIVED_EXPORT_PATHS = (Path("export.json"), Path("export.min.json"))
+    preparer.BUILDER_PATH = Path("builder.py")
+    preparer.VALIDATOR_PATH = Path("validator.py")
+    preparer.FAMILY_VALIDATOR_PATH = Path("family_validator.py")
+    preparer.FAMILY_MANIFEST_PATH = Path("kag/indexes/index_family.manifest.json")
+
+
+def make_preparation_repo(tmp_path: Path, preparer) -> Path:
+    manifest = {
+        "schema_version": "aoa-repo-local-kag-family-manifest-v3",
+        "family_identity": {
+            "content_digest": "fixture-content",
+            "source_snapshot": "fixture-source",
+        },
+        "summary": {"source_records": 5},
+        "compatibility": {
+            "files": [
+                {
+                    "kind": "artifact",
+                    "path": "kag/indexes/compatibility.json",
+                }
+            ]
+        },
+    }
+    files = {
+        "canonical.json": "{\"node\":\"fixture\"}\n",
+        "mirror.json": "{\"node\":\"fixture\"}\n",
+        "support.md": "# fixture support\n",
+        "export.json": "{\"export\":true}\n",
+        "export.min.json": "{\"export\":true}\n",
+        "builder.py": "# fixture builder\n",
+        "validator.py": "# fixture validator\n",
+        "family_validator.py": "import sys\nsys.exit(0)\n",
+        "kag/indexes/compatibility.json": "fixture compatibility\n",
+        "kag/indexes/index_family.manifest.json": json.dumps(manifest, sort_keys=True) + "\n",
+        "kag/indexes/shards/source/00.jsonl": "placeholder\n",
+    }
+    repo = make_git_repo(tmp_path, files)
+    selected = ["canonical.json", "mirror.json", "support.md", "export.json", "export.min.json"]
+    rows = []
+    for path_text in selected:
+        identity = preparer._file_identity(repo, Path(path_text), "fixture source")
+        rows.append(
+            {
+                "_kind": "source",
+                "_key": f"source:{path_text}",
+                "identity": {
+                    "path": path_text,
+                    "content_hash": identity["sha256"],
+                    "git_blob_id": identity["head_blob"],
+                    "repo": "Tree-of-Sophia",
+                },
+                "freshness": {"state": "current"},
+                "signs": {"digest": identity["sha256"]},
+            }
+        )
+    shard = repo / "kag/indexes/shards/source/00.jsonl"
+    shard.write_text("".join(json.dumps(row, sort_keys=True) + "\n" for row in rows), encoding="utf-8")
+    commit_fixture(repo, "index fixture")
+    return repo
+
+
+def rewrite_family_manifest(repo: Path, files: object) -> None:
+    manifest_path = repo / "kag/indexes/index_family.manifest.json"
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    manifest["compatibility"]["files"] = files
+    manifest_path.write_text(json.dumps(manifest, sort_keys=True) + "\n", encoding="utf-8")
+    commit_fixture(repo, "manifest fixture")
 
 
 def test_dependency_classes_preserve_materialized_and_existence_only_layers() -> None:
@@ -242,6 +322,152 @@ def test_environment_seal_binds_path_and_git_configuration(monkeypatch: pytest.M
     monkeypatch.setenv("GIT_CONFIG_NOSYSTEM", "1")
     after = preparer._environment_identity()["sha256"]
     assert before != after
+
+
+def test_environment_packet_redacts_secret_like_and_unknown_git_values(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    preparer = load_preparer()
+    monkeypatch.setenv("GIT_SSH_COMMAND", "secret-placeholder")
+    monkeypatch.setenv("GIT_UNKNOWN_OWNER_VALUE", "another-secret")
+
+    identity = preparer._environment_identity()
+    serialized = json.dumps(identity, sort_keys=True)
+
+    assert "secret-placeholder" not in serialized
+    assert "another-secret" not in serialized
+    assert "GIT_SSH_COMMAND" not in identity["variables"]
+    assert identity["git_variables"]["GIT_SSH_COMMAND"] == {
+        "present": True,
+        "length": len("secret-placeholder"),
+        "sha256": hashlib.sha256(b"secret-placeholder").hexdigest(),
+        "redacted": True,
+    }
+    assert identity["git_variables"]["GIT_UNKNOWN_OWNER_VALUE"]["redacted"] is True
+    assert identity["redaction_policy"]["raw_git_values_recorded"] is False
+
+
+def test_build_owner_preparation_runs_real_packet_boundary(tmp_path: Path) -> None:
+    preparer = load_preparer()
+    configure_preparer_fixture(preparer)
+    repo = make_preparation_repo(tmp_path, preparer)
+
+    packet = preparer.build_owner_preparation(repo)
+
+    assert packet["status"] == "blocked_external_kag_contract"
+    assert packet["candidate"]["status"] == "clean"
+    assert packet["candidate"]["final_revalidation"] == "passed"
+    assert packet["tree_source"]["family"]["local_validator"]["exit_code"] == 0
+    assert packet["tree_currentness"]["family"] == "validated_current"
+    assert packet["tree_source"]["family"]["compatibility_records"][0]["identity"]["is_symlink"] is False
+    assert packet["claim_boundary"]["semantic_pair_emitted"] is False
+
+
+def test_build_owner_preparation_preserves_missing_compatibility_snapshot(
+    tmp_path: Path,
+) -> None:
+    preparer = load_preparer()
+    configure_preparer_fixture(preparer)
+    repo = make_preparation_repo(tmp_path, preparer)
+    rewrite_family_manifest(repo, [{"path": "kag/indexes/on-demand.json"}])
+
+    packet = preparer.build_owner_preparation(repo)
+
+    family = packet["tree_source"]["family"]
+    assert family["identity_binding"]["state"] == "partial_snapshot"
+    assert family["identity_binding"]["missing_compatibility_files"] == [
+        "kag/indexes/on-demand.json"
+    ]
+    assert family["compatibility_records"][0]["identity"] is None
+    assert family["compatibility_records"][0]["state"] == "missing"
+
+
+def test_build_owner_preparation_preserves_stale_family_negative(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    preparer = load_preparer()
+    configure_preparer_fixture(preparer)
+    repo = make_preparation_repo(tmp_path, preparer)
+    monkeypatch.setattr(
+        preparer,
+        "_run_local_family_validator",
+        lambda _repo: {
+            "command": ["fixture-validator"],
+            "exit_code": 1,
+            "state": "stale_or_invalid",
+            "stdout_tail": [],
+            "stderr_tail": ["stale family"],
+            "claim_limit": "fixture",
+        },
+    )
+
+    packet = preparer.build_owner_preparation(repo)
+
+    assert packet["tree_currentness"]["family"] == "blocked_stale_or_invalid"
+    assert packet["dependency_witness"]["complete_for_external_semantic_pair"] is False
+
+
+def test_build_owner_preparation_rejects_manifest_traversal_target(
+    tmp_path: Path,
+) -> None:
+    preparer = load_preparer()
+    configure_preparer_fixture(preparer)
+    repo = make_preparation_repo(tmp_path, preparer)
+    (repo.parent / "outside.txt").write_text("outside\n", encoding="utf-8")
+    rewrite_family_manifest(repo, [{"path": "../outside.txt"}])
+
+    with pytest.raises(preparer.PreparationError, match="must stay inside the candidate"):
+        preparer.build_owner_preparation(repo)
+
+
+def test_build_owner_preparation_rejects_manifest_symlink_target(tmp_path: Path) -> None:
+    preparer = load_preparer()
+    configure_preparer_fixture(preparer)
+    repo = make_preparation_repo(tmp_path, preparer)
+    (repo / "kag/indexes/compatibility-link.json").symlink_to("compatibility.json")
+    rewrite_family_manifest(repo, [{"path": "kag/indexes/compatibility-link.json"}])
+
+    with pytest.raises(preparer.PreparationError, match="symlink"):
+        preparer.build_owner_preparation(repo)
+
+
+def test_build_owner_preparation_rejects_malformed_manifest_compatibility(
+    tmp_path: Path,
+) -> None:
+    preparer = load_preparer()
+    configure_preparer_fixture(preparer)
+    repo = make_preparation_repo(tmp_path, preparer)
+    rewrite_family_manifest(repo, ["not-an-object"])
+
+    with pytest.raises(preparer.PreparationError, match=r"compatibility.files\[0\] must be an object"):
+        preparer.build_owner_preparation(repo)
+
+
+def test_build_owner_preparation_rejects_observation_replacement(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    preparer = load_preparer()
+    configure_preparer_fixture(preparer)
+    repo = make_preparation_repo(tmp_path, preparer)
+    original_capture = preparer._capture_observation
+    calls = 0
+
+    def racing_capture(root: Path, *, run_family_validator: bool = True):
+        nonlocal calls
+        calls += 1
+        observation = original_capture(root, run_family_validator=run_family_validator)
+        if calls == 2:
+            observation["candidate"] = {
+                **observation["candidate"],
+                "head": "replacement-observed-at-boundary",
+            }
+        return observation
+
+    monkeypatch.setattr(preparer, "_capture_observation", racing_capture)
+    with pytest.raises(preparer.PreparationError, match="TOCTOU"):
+        preparer.build_owner_preparation(repo)
 
 
 def test_final_revalidation_rejects_replacement() -> None:

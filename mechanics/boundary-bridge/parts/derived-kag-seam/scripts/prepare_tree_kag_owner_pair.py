@@ -50,17 +50,17 @@ DERIVED_EXPORT_PATHS = (
     Path("ToS/derived-exports/kag_export.min.json"),
 )
 
-RELEVANT_ENVIRONMENT_KEYS = (
+REPRODUCIBILITY_ENVIRONMENT_KEYS = (
     "LANG",
     "LC_ALL",
     "LC_CTYPE",
     "PYTHONHASHSEED",
     "PYTHONDONTWRITEBYTECODE",
-    "PYTHONPATH",
     "PYTHONWARNINGS",
     "SOURCE_DATE_EPOCH",
     "TZ",
 )
+HASHED_ENVIRONMENT_KEYS = ("PATH", "PYTHONPATH")
 EXPECTED_SEAL_KEYS = (
     "head",
     "tree",
@@ -392,6 +392,62 @@ def _repo_identity(repo_root: Path) -> dict[str, Any]:
     }
 
 
+def _compatibility_file_records(
+    repo_root: Path, manifest: Mapping[str, Any]
+) -> list[dict[str, Any]]:
+    compatibility = manifest.get("compatibility")
+    if not isinstance(compatibility, dict):
+        raise PreparationError(
+            "local KAG family manifest compatibility must be an object"
+        )
+    files = compatibility.get("files")
+    if not isinstance(files, list) or not files:
+        raise PreparationError(
+            "local KAG family manifest compatibility.files must be a non-empty list"
+        )
+
+    records: list[dict[str, Any]] = []
+    seen_paths: set[str] = set()
+    for index, item in enumerate(files):
+        location = f"compatibility.files[{index}]"
+        if not isinstance(item, dict):
+            raise PreparationError(f"{location} must be an object")
+        path_text = item.get("path")
+        if not isinstance(path_text, str) or not path_text.strip():
+            raise PreparationError(f"{location}.path must be a non-empty string")
+        relative_path = Path(path_text)
+        _validate_relative_path(relative_path, f"{location}.path")
+        normalized_path = relative_path.as_posix()
+        if normalized_path in seen_paths:
+            raise PreparationError(f"duplicate {location}.path: {normalized_path}")
+        seen_paths.add(normalized_path)
+        candidate_path = repo_root.resolve() / relative_path
+        try:
+            candidate_path.lstat()
+        except FileNotFoundError:
+            identity = None
+            state = "missing"
+        except OSError as exc:
+            raise PreparationError(
+                f"cannot inspect manifest compatibility file {location}: {normalized_path}"
+            ) from exc
+        else:
+            identity = _file_identity(
+                repo_root,
+                relative_path,
+                f"manifest compatibility file {location}",
+            )
+            state = "validated_current"
+        records.append(
+            {
+                "declared": dict(item),
+                "identity": identity,
+                "state": state,
+            }
+        )
+    return records
+
+
 def _family_identity(repo_root: Path) -> dict[str, Any]:
     manifest = _json(repo_root, FAMILY_MANIFEST_PATH)
     if manifest.get("schema_version") != "aoa-repo-local-kag-family-manifest-v3":
@@ -403,15 +459,12 @@ def _family_identity(repo_root: Path) -> dict[str, Any]:
     missing = [key for key in required if not identity.get(key)]
     if missing:
         raise PreparationError("local KAG family identity is incomplete: " + ", ".join(missing))
-    compatibility_files = manifest.get("compatibility", {}).get("files", [])
+    compatibility_records = _compatibility_file_records(repo_root, manifest)
     missing_compatibility_files = [
-        item.get("path")
-        for item in compatibility_files
-        if isinstance(item, dict)
-        and isinstance(item.get("path"), str)
-        and not (repo_root / item["path"]).is_file()
+        record["declared"]["path"]
+        for record in compatibility_records
+        if record["identity"] is None
     ]
-    binding_state = "snapshot_only" if not missing_compatibility_files else "partial_snapshot"
     return {
         "manifest": _file_identity(repo_root, FAMILY_MANIFEST_PATH, "local_family_manifest"),
         "schema_version": manifest["schema_version"],
@@ -419,8 +472,9 @@ def _family_identity(repo_root: Path) -> dict[str, Any]:
         "source_snapshot": identity["source_snapshot"],
         "summary": manifest.get("summary", {}),
         "compatibility": manifest.get("compatibility", {}),
+        "compatibility_records": compatibility_records,
         "identity_binding": {
-            "state": binding_state,
+            "state": "snapshot_only" if not missing_compatibility_files else "partial_snapshot",
             "missing_compatibility_files": missing_compatibility_files,
             "producer_dependency_fields_present": all(
                 key in manifest for key in ("producer_identity", "source_dependency")
@@ -609,6 +663,18 @@ def _tool_identity(command: str) -> dict[str, Any]:
     }
 
 
+def _redacted_environment_value(value: str | None) -> dict[str, Any]:
+    if value is None:
+        return {"present": False}
+    encoded = value.encode("utf-8", errors="surrogateescape")
+    return {
+        "present": True,
+        "length": len(value),
+        "sha256": hashlib.sha256(encoded).hexdigest(),
+        "redacted": True,
+    }
+
+
 def _environment_identity() -> dict[str, Any]:
     binding = {
         "python": sys.version,
@@ -616,21 +682,22 @@ def _environment_identity() -> dict[str, Any]:
         "executable": str(Path(sys.executable).resolve()),
         "variables": {
             key: os.environ.get(key)
-            for key in (
-                *RELEVANT_ENVIRONMENT_KEYS,
-                "PATH",
-                "GIT_CONFIG_NOSYSTEM",
-                "GIT_CONFIG_GLOBAL",
-                "GIT_CONFIG_SYSTEM",
-                "GIT_SSH_COMMAND",
-                "GIT_SSH",
-                "GIT_EXEC_PATH",
-            )
+            for key in REPRODUCIBILITY_ENVIRONMENT_KEYS
+        },
+        "hashed_variables": {
+            key: _redacted_environment_value(os.environ.get(key))
+            for key in HASHED_ENVIRONMENT_KEYS
         },
         "git_variables": {
-            key: value
+            key: _redacted_environment_value(value)
             for key, value in sorted(os.environ.items())
             if key.startswith("GIT_")
+        },
+        "redaction_policy": {
+            "allowlisted_variables": list(REPRODUCIBILITY_ENVIRONMENT_KEYS),
+            "hashed_variables": list(HASHED_ENVIRONMENT_KEYS),
+            "git_variables": "hash_only",
+            "raw_git_values_recorded": False,
         },
         "tools": {
             "git": _tool_identity("git"),
@@ -638,7 +705,7 @@ def _environment_identity() -> dict[str, Any]:
         },
     }
     return {
-        "binding_status": "sealed_local_toolchain_environment_observation",
+        "binding_status": "sealed_publication_safe_toolchain_environment_observation",
         **binding,
         "sha256": _digest_object(binding),
     }

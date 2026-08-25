@@ -36,7 +36,7 @@
     "excluded_generated_carrier_rules": 3,
     "excluded_tracked_path_count": 292,
     "human_scope": {
-      "bytes": 4008301,
+      "bytes": 4009464,
       "count": 699,
       "excluded_skill_launch_metadata": 25,
       "family_counts": {
@@ -76,9 +76,9 @@
           "lines": 41
         },
         "mechanics": {
-          "bytes": 150912,
+          "bytes": 152075,
           "count": 154,
-          "lines": 3915
+          "lines": 3929
         },
         "memo": {
           "bytes": 4457,
@@ -116,7 +116,7 @@
           "lines": 50613
         }
       },
-      "lines": 71302
+      "lines": 71316
     },
     "surface_kind_counts": {
       "executable": 157,
@@ -153,7 +153,7 @@
         "human": 4,
         "structured": 3
       },
-      "tracked_surface_bytes": 160129,
+      "tracked_surface_bytes": 160131,
       "tracked_surface_count": 7
     },
     {
@@ -179,7 +179,7 @@
         "human": 49,
         "structured": 6
       },
-      "tracked_surface_bytes": 572691,
+      "tracked_surface_bytes": 572730,
       "tracked_surface_count": 55
     },
     {
@@ -215,7 +215,7 @@
         "human": 154,
         "structured": 33
       },
-      "tracked_surface_bytes": 433628,
+      "tracked_surface_bytes": 437434,
       "tracked_surface_count": 203
     },
     {
@@ -234,7 +234,7 @@
         "human": 1,
         "structured": 1
       },
-      "tracked_surface_bytes": 973827,
+      "tracked_surface_bytes": 982876,
       "tracked_surface_count": 49
     },
     {
@@ -269,7 +269,7 @@
   "source_map": "docs/validation/documentation_family_map.json",
   "source_map_sha256": "9140a03a48109e6a9f35f3ca7dbf82058d96c3961e9e77bc31a743fb8814b13b",
   "tracked_source": "git ls-files -z",
-  "tracked_surface_digest": "bdee31768a6c9dd9bd29c0e4c97155ce211eefe71358216571bddcd90b6c8066",
+  "tracked_surface_digest": "338ead4abaf632e19c603658d97b164225939b291d88736071eead2ad1702230",
   "tracked_surfaces": [
     {
       "bytes": 1408,
@@ -292,7 +292,7 @@
       "currentness": "tracked_source_snapshot",
       "family_id": "agents-other",
       "path": ".agents/agent-surface.current.json",
-      "sha256": "2d82f2c739114dd0e740f9be1bb607a3636bde32073c3b9fdc2516642b4d6342",
+      "sha256": "92021f0117f87dc2699953b255bfcfc5ad1c21c206b560bb022ccfd76bc950e4",
       "surface_kind": "structured"
     },
     {
@@ -304,11 +304,11 @@
       "surface_kind": "structured"
     },
     {
-      "bytes": 80909,
+      "bytes": 80911,
       "currentness": "tracked_source_snapshot",
       "family_id": "agents-other",
       "path": ".agents/agents-route.current.json",
-      "sha256": "6c46a84bd20279fa79837447536142fb0bbe320fd2db46680564d6e85edbe4a7",
+      "sha256": "e1246f7810cd699c7794d650e6ece54db6216437810d3d8575b1cc4dc21b2fe6",
       "surface_kind": "structured"
     },
     {
@@ -12080,11 +12080,11 @@
       "surface_kind": "structured"
     },
     {
-      "bytes": 137109,
+      "bytes": 137148,
       "currentness": "tracked_source_snapshot",
       "family_id": "docs",
       "path": "docs/validation/script_inventory.json",
-      "sha256": "0292ad5afdfefa663881b3753c06dbcd19465cde7bdf7b2e6f1885849555039c",
+      "sha256": "14a7da61f0da845182a908d60e1f31ad7641192ebe3510815bdcc49bdbba5b86",
       "surface_kind": "structured"
     },
     {
@@ -12624,11 +12624,11 @@
       "surface_kind": "human"
     },
     {
-      "bytes": 4132,
+      "bytes": 5295,
       "currentness": "tracked_source_snapshot",
       "family_id": "mechanics",
       "path": "mechanics/boundary-bridge/parts/derived-kag-seam/docs/KAG_EXPORT.md",
-      "sha256": "f5aaaf254e5e41dfd94b87be65dd3ad0e1df01165c295a5dac25dae7525963ed",
+      "sha256": "0b79fc0df661a4815121f94008780ba1e40a40bb3938be8ed1739f29c76aa2ee",
       "surface_kind": "human"
     },
     {
@@ -12640,11 +12640,11 @@
       "surface_kind": "executable"
     },
     {
-      "bytes": 39207,
+      "bytes": 41850,
       "currentness": "tracked_source_snapshot",
       "family_id": "mechanics",
       "path": "mechanics/boundary-bridge/parts/derived-kag-seam/scripts/prepare_tree_kag_owner_pair.py",
-      "sha256": "4bd9763fb4b73da4995f1cf25e87ab9fc2d3aae042a31777721b70e93797cc3a",
+      "sha256": "605990b02ad1ad2e08a5a088386c355751151de8909b56bdd78d2899c89e0811",
       "surface_kind": "executable"
     },
     {
@@ -14808,11 +14808,11 @@
       "surface_kind": "executable"
     },
     {
-      "bytes": 42859,
+      "bytes": 42913,
       "currentness": "tracked_source_snapshot",
       "family_id": "tests",
       "path": "tests/test_inventory.json",
-      "sha256": "0bea077accabe41d5b2f767fbb28ad8518880ffffe6a3bf130f0be035b634f19",
+      "sha256": "b8e57496cc278c62bf222460bebd58daefec9be89412d2ed1e5b044181b8432c",
       "surface_kind": "structured"
     },
     {
@@ -14992,11 +14992,11 @@
       "surface_kind": "executable"
     },
     {
-      "bytes": 10888,
+      "bytes": 19883,
       "currentness": "tracked_source_snapshot",
       "family_id": "tests",
       "path": "tests/test_tree_kag_owner_preparation.py",
-      "sha256": "a5b12ca007aa261d8049ce2b93900b1b9ba8d8c8a0ea1bed91a06f1f1cae54f5",
+      "sha256": "f5597009b2e6103687ebbfcfd3ced9ab5e47ff793a2487adbd9ba6e9bb6c7430",
       "surface_kind": "executable"
     },
     {
