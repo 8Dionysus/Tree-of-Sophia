@@ -154,10 +154,81 @@ def _assert_regular_file(path: Path, file_stat: os.stat_result, role: str) -> No
 
 
 def _validate_relative_path(relative_path: Path, role: str) -> None:
-    if relative_path.is_absolute() or ".." in relative_path.parts:
+    try:
+        path_text = os.fspath(relative_path)
+        path_parts = relative_path.parts
+    except (TypeError, ValueError) as exc:
+        raise PreparationError(f"{role} path is not a supported OS path: {relative_path!r}") from exc
+    if not isinstance(path_text, str):
+        raise PreparationError(f"{role} path is not a supported text path: {relative_path!r}")
+    if "\x00" in path_text:
+        raise PreparationError(f"{role} path contains embedded NUL: {relative_path!r}")
+    try:
+        for component in path_parts:
+            os.fsencode(component)
+    except (TypeError, UnicodeError, ValueError) as exc:
+        raise PreparationError(
+            f"{role} path contains unsupported OS-invalid input: {relative_path!r}"
+        ) from exc
+    if relative_path.is_absolute() or ".." in path_parts:
         raise PreparationError(f"{role} path must stay inside the candidate: {relative_path}")
-    if not relative_path.parts:
+    if not path_parts:
         raise PreparationError(f"{role} path must name a file")
+
+
+def _confined_optional_file_stat(
+    repo_root: Path, relative_path: Path, role: str
+) -> os.stat_result | None:
+    """Classify an optional file only after a no-follow parent walk."""
+
+    _validate_relative_path(relative_path, role)
+    nofollow = getattr(os, "O_NOFOLLOW", 0)
+    directory = getattr(os, "O_DIRECTORY", 0)
+    supported_dir_fd = getattr(os, "supports_dir_fd", ())
+    if (
+        not nofollow
+        or not directory
+        or os.open not in supported_dir_fd
+        or os.lstat not in supported_dir_fd
+    ):
+        raise PreparationError(f"{role} requires no-follow directory-descriptor support")
+
+    root = repo_root.resolve()
+    try:
+        root_fd = os.open(root, os.O_RDONLY | nofollow | directory)
+    except (OSError, ValueError) as exc:
+        raise PreparationError(f"cannot open candidate root for {role}: {root}") from exc
+    current_fd = root_fd
+    try:
+        for component in relative_path.parts[:-1]:
+            try:
+                next_fd = os.open(
+                    component,
+                    os.O_RDONLY | nofollow | directory,
+                    dir_fd=current_fd,
+                )
+            except (OSError, ValueError) as exc:
+                raise PreparationError(
+                    f"cannot inspect confined parent for {role}: {relative_path}"
+                ) from exc
+            if current_fd != root_fd:
+                os.close(current_fd)
+            current_fd = next_fd
+
+        try:
+            final_stat = os.lstat(relative_path.parts[-1], dir_fd=current_fd)
+        except FileNotFoundError:
+            return None
+        except (OSError, ValueError) as exc:
+            raise PreparationError(
+                f"cannot inspect confined final component for {role}: {relative_path}"
+            ) from exc
+        _assert_regular_file(repo_root / relative_path, final_stat, role)
+        return final_stat
+    finally:
+        if current_fd != root_fd:
+            os.close(current_fd)
+        os.close(root_fd)
 
 
 def _open_confined(repo_root: Path, relative_path: Path, role: str) -> int:
@@ -171,7 +242,7 @@ def _open_confined(repo_root: Path, relative_path: Path, role: str) -> int:
     root = repo_root.resolve()
     try:
         root_fd = os.open(root, os.O_RDONLY | nofollow | directory)
-    except OSError as exc:
+    except (OSError, ValueError) as exc:
         raise PreparationError(f"cannot open candidate root for {role}: {root}") from exc
     current_fd = root_fd
     try:
@@ -189,7 +260,7 @@ def _open_confined(repo_root: Path, relative_path: Path, role: str) -> int:
             os.O_RDONLY | nofollow,
             dir_fd=current_fd,
         )
-    except OSError as exc:
+    except (OSError, ValueError) as exc:
         raise PreparationError(f"cannot open confined {role}: {relative_path}") from exc
     finally:
         if current_fd != root_fd:
@@ -218,7 +289,7 @@ def _read_confined_file(
     absolute_path = repo_root.resolve() / relative_path
     try:
         initial_stat = absolute_path.lstat()
-    except OSError as exc:
+    except (OSError, ValueError) as exc:
         raise PreparationError(f"required {role} is missing: {relative_path.as_posix()}") from exc
     _assert_regular_file(absolute_path, initial_stat, role)
 
@@ -421,16 +492,9 @@ def _compatibility_file_records(
         if normalized_path in seen_paths:
             raise PreparationError(f"duplicate {location}.path: {normalized_path}")
         seen_paths.add(normalized_path)
-        candidate_path = repo_root.resolve() / relative_path
-        try:
-            candidate_path.lstat()
-        except FileNotFoundError:
+        if _confined_optional_file_stat(repo_root, relative_path, location) is None:
             identity = None
             state = "missing"
-        except OSError as exc:
-            raise PreparationError(
-                f"cannot inspect manifest compatibility file {location}: {normalized_path}"
-            ) from exc
         else:
             identity = _file_identity(
                 repo_root,

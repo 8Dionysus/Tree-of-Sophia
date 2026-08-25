@@ -382,6 +382,65 @@ def test_build_owner_preparation_preserves_missing_compatibility_snapshot(
     assert family["compatibility_records"][0]["state"] == "missing"
 
 
+def test_build_owner_preparation_rejects_missing_compatibility_under_parent_symlink(
+    tmp_path: Path,
+) -> None:
+    preparer = load_preparer()
+    configure_preparer_fixture(preparer)
+    repo = make_preparation_repo(tmp_path, preparer)
+    outside = tmp_path / "outside"
+    outside.mkdir()
+    (repo / "kag/indexes/alias").symlink_to(outside, target_is_directory=True)
+    rewrite_family_manifest(
+        repo,
+        [{"kind": "artifact", "path": "kag/indexes/alias/missing.json"}],
+    )
+
+    with pytest.raises(preparer.PreparationError, match="confined"):
+        preparer.build_owner_preparation(repo)
+
+
+def test_build_owner_preparation_rejects_embedded_nul_manifest_path(
+    tmp_path: Path,
+) -> None:
+    preparer = load_preparer()
+    configure_preparer_fixture(preparer)
+    repo = make_preparation_repo(tmp_path, preparer)
+    rewrite_family_manifest(repo, [{"kind": "artifact", "path": "\x00"}])
+
+    with pytest.raises(preparer.PreparationError, match="embedded NUL"):
+        preparer.build_owner_preparation(repo)
+
+
+def test_build_owner_preparation_rejects_unencodable_manifest_path(
+    tmp_path: Path,
+) -> None:
+    preparer = load_preparer()
+    configure_preparer_fixture(preparer)
+    repo = make_preparation_repo(tmp_path, preparer)
+    rewrite_family_manifest(repo, [{"kind": "artifact", "path": "\ud800"}])
+
+    with pytest.raises(preparer.PreparationError, match="unsupported OS-invalid input"):
+        preparer.build_owner_preparation(repo)
+
+
+def test_cli_rejects_embedded_nul_as_controlled_exit(
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    preparer = load_preparer()
+    configure_preparer_fixture(preparer)
+    repo = make_preparation_repo(tmp_path, preparer)
+    rewrite_family_manifest(repo, [{"kind": "artifact", "path": "\x00"}])
+
+    result = preparer.main(["--repo-root", str(repo), "--json"])
+
+    captured = capsys.readouterr()
+    assert result == 2
+    assert "embedded NUL" in captured.err
+    assert "Traceback" not in captured.err
+
+
 def test_build_owner_preparation_preserves_stale_family_negative(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
@@ -467,6 +526,32 @@ def test_build_owner_preparation_rejects_observation_replacement(
 
     monkeypatch.setattr(preparer, "_capture_observation", racing_capture)
     with pytest.raises(preparer.PreparationError, match="TOCTOU"):
+        preparer.build_owner_preparation(repo)
+
+
+def test_build_owner_preparation_rejects_file_replacement_race(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    preparer = load_preparer()
+    configure_preparer_fixture(preparer)
+    repo = make_preparation_repo(tmp_path, preparer)
+    original_open = preparer.os.open
+    replaced = False
+
+    def racing_open(path, flags, mode=0o777, *, dir_fd=None):
+        nonlocal replaced
+        file_descriptor = original_open(path, flags, mode, dir_fd=dir_fd)
+        if not replaced and path == "canonical.json" and dir_fd is not None:
+            replacement = repo / "canonical.replacement"
+            replacement.write_text("replacement\n", encoding="utf-8")
+            (repo / "canonical.json").unlink()
+            replacement.rename(repo / "canonical.json")
+            replaced = True
+        return file_descriptor
+
+    monkeypatch.setattr(preparer.os, "open", racing_open)
+    with pytest.raises(preparer.PreparationError, match="replaced while"):
         preparer.build_owner_preparation(repo)
 
 
