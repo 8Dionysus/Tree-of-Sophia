@@ -36,7 +36,7 @@
     "excluded_generated_carrier_rules": 3,
     "excluded_tracked_path_count": 292,
     "human_scope": {
-      "bytes": 4009464,
+      "bytes": 4006986,
       "count": 699,
       "excluded_skill_launch_metadata": 25,
       "family_counts": {
@@ -61,9 +61,9 @@
           "lines": 96
         },
         "github": {
-          "bytes": 7345,
+          "bytes": 7536,
           "count": 4,
-          "lines": 175
+          "lines": 179
         },
         "kag": {
           "bytes": 2854,
@@ -116,7 +116,7 @@
           "lines": 50613
         }
       },
-      "lines": 71316
+      "lines": 71279
     },
     "surface_kind_counts": {
       "executable": 157,
@@ -161,7 +161,7 @@
       "surface_kind_counts": {
         "human": 4
       },
-      "tracked_surface_bytes": 7345,
+      "tracked_surface_bytes": 7536,
       "tracked_surface_count": 4
     },
     {
@@ -269,7 +269,7 @@
   "source_map": "docs/validation/documentation_family_map.json",
   "source_map_sha256": "9140a03a48109e6a9f35f3ca7dbf82058d96c3961e9e77bc31a743fb8814b13b",
   "tracked_source": "git ls-files -z",
-  "tracked_surface_digest": "338ead4abaf632e19c603658d97b164225939b291d88736071eead2ad1702230",
+  "tracked_surface_digest": "d513901e47479534abdc2f1f739cc022a8b5f07e8df1d77b3f13c238c57045f3",
   "tracked_surfaces": [
     {
       "bytes": 1408,
@@ -1640,11 +1640,11 @@
       "surface_kind": "human"
     },
     {
-      "bytes": 1254,
+      "bytes": 1445,
       "currentness": "tracked_source_snapshot",
       "family_id": "github",
       "path": ".github/workflows/source-side-smoke.yml",
-      "sha256": "1d93e0e324b770fbe20ed49f22fdbbafcaac2578a429118e51554ca1ccbdc065",
+      "sha256": "d54a4950df0efcd374a755967dfa0e47627b546f3861cfb51ad5f21b266efa78",
       "surface_kind": "human"
     },
     {
