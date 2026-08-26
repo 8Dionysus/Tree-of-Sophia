@@ -1,0 +1,146 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/scholarly-composite-witness.schema.json",
+  "schema_version": "tos_scholarly_composite_witness_v1",
+  "composite_id": "tos.composite.sumerian.laws-of-lipit-ishtar",
+  "composite_kind": "critical_reconstruction",
+  "preferred_label": "Laws of Lipit-Ištar",
+  "identity_status": "verified",
+  "path_identity": {
+    "basis": "scholarly_composition_identity",
+    "provider_independent": true,
+    "note": "The route follows the modern scholarly reconstruction of the Sumerian composition; CDLI Q000613, P464355, revision 2269336, museum records, member records, and modern editions remain representations or witnesses."
+  },
+  "identifiers": [
+    {
+      "scheme": "CDLI composite",
+      "value": "Q000613",
+      "source_ref": "https://cdli.earth/artifacts/464355"
+    },
+    {
+      "scheme": "CDLI composite artifact",
+      "value": "P464355",
+      "source_ref": "https://cdli.earth/artifacts/464355"
+    },
+    {
+      "scheme": "CDLI current inscription revision",
+      "value": "2269336",
+      "source_ref": "https://cdli.earth/inscriptions/2269336"
+    }
+  ],
+  "editorial_object": {
+    "title": "Laws of Lipit-Ištar",
+    "tradition": "Sumerian royal and scribal law-collection transmission",
+    "genre": "law collection; modern legal-normative and royal-inscription classification",
+    "period_label": "Early Old Babylonian witness tradition",
+    "description": "A modern critical reconstruction coordinating fragmentary Early Old Babylonian witnesses, prologue and legal provisions, lacunae, variants, and editorial sequences.",
+    "modern_reconstruction": true,
+    "ancient_original": false,
+    "physical_artifact": false
+  },
+  "provider_representations": [
+    {
+      "provider": "Musée du Louvre Collections",
+      "representation_role": "member_context",
+      "record_id": "AO 05473 / cl010166109",
+      "record_url": "https://collections.louvre.fr/en/ark:/53355/cl010166109",
+      "api_url": "https://collections.louvre.fr/ark:/53355/cl010166109.json",
+      "checked_at": "2026-08-22T22:30:00-06:00",
+      "mutable": true,
+      "response_fingerprints": [
+        {
+          "surface": "https://collections.louvre.fr/en/ark:/53355/cl010166109",
+          "byte_size": 70225,
+          "sha256": "93c6d6b0fca73c6873beb546f28fd88a392872af75db2ecdc3492a9a7210f39a",
+          "captured": false
+        },
+        {
+          "surface": "https://collections.louvre.fr/ark:/53355/cl010166109.json",
+          "byte_size": 9536,
+          "sha256": "caa5b5a9acc95d0edd8f658fadd796fee96a857ba1ca7d4d35f691c3f5c17311",
+          "captured": false
+        }
+      ]
+    }
+  ],
+  "member_observations": [
+    {
+      "observation_id": "tos.observation.composite.q000613.member.p345378.2026-08-22",
+      "member_artifact_id": "tos.artifact.sumerian.uncertain.louvre-ao-05473",
+      "relationship": "reported_witness_of",
+      "provider_relation_ids": [
+        "CDLI composite relation 365423",
+        "RIME 4.01.05.add10, ex. 01"
+      ],
+      "source_refs": [
+        "https://cdli.earth/artifacts/345378/json",
+        "https://cdli.earth/artifacts/464355/json",
+        "https://collections.louvre.fr/en/ark:/53355/cl010166109"
+      ],
+      "member_text_stored": false,
+      "review_status": "unreviewed"
+    }
+  ],
+  "coverage_observations": [
+    {
+      "provider": "Cuneiform Digital Library Initiative",
+      "surface": "https://cdli.earth/artifacts/464355/json",
+      "observed_member_count": 13,
+      "observed_tagged_count": null,
+      "named_member_present": true,
+      "coverage_posture": "full_api_list",
+      "checked_at": "2026-08-22T22:30:00-06:00",
+      "note": "The live witness array reported 13 Early Old Babylonian members: ten labeled Nippur, one Kish, and two uncertain, including P345378. Counts are dated mutable provider observations; a later retry timed out and no composite body was retained."
+    }
+  ],
+  "content_layer": {
+    "role": "modern_scholarly_composite",
+    "formats": [
+      "CDLI composite HTML",
+      "CDLI ATF revision",
+      "CDLI JSON witness array",
+      "critical-edition metadata"
+    ],
+    "availability": "open_view",
+    "content_stored": false,
+    "source_text_admitted": false,
+    "source_refs": [
+      "https://cdli.earth/artifacts/464355",
+      "https://cdli.earth/artifacts/464355/json",
+      "https://cdli.earth/inscriptions/2269336"
+    ],
+    "scope_note": "The current digital representation and critical-edition lineage remain modern editorial layers. This packet records identity, version, one exact member, and dated coverage only; no reconstructed text or translation is admitted."
+  },
+  "layer_separation": {
+    "composite_is_physical_artifact": false,
+    "composite_is_ancient_original": false,
+    "provider_page_is_composite_identity": false,
+    "member_is_composite": false,
+    "editorial_line_is_artifact_line": false,
+    "sign_has_fixed_translation": false,
+    "composite_is_philosophy": false
+  },
+  "rights_ref": "ToS/source-witnesses/scholarly-composites/critical/sumerian/laws-of-lipit-ishtar/rights.json",
+  "discovery_ref": "ToS/source-witnesses/discovery/runs/mesopotamian-law-collections.2026-08-22.v1.json",
+  "provenance_event_ref": "tos.event.discovery.mesopotamian-law-collections.2026-08-22",
+  "research_ref": "ToS/research-packets/foundation-laboratory-2026-07/A02_MESOPOTAMIAN_LAW_COLLECTIONS_SOURCE_PLANTING_RESEARCH_2026-08-22.md",
+  "philosophy_planting_refs": [
+    "ToS/philosophy/eras/bronze-age/regions/west-asia/traditions/old-babylonian-scribal-wisdom-law/sources/plantings/laws-of-lipit-ishtar-composite/source-planting.json"
+  ],
+  "authority": {
+    "evidence_status": "metadata_witness",
+    "review_status": "unreviewed",
+    "visibility": "public_metadata_only",
+    "source_text_admitted": false,
+    "semantic_authority": false,
+    "graph_authority": false,
+    "canon_authority": false,
+    "publication_authority": false
+  },
+  "maker": {
+    "maker_type": "model",
+    "agent_ref": "model:codex",
+    "human_review_performed": false
+  },
+  "created_at": "2026-08-22T22:43:00-06:00",
+  "record_version": 1
+}

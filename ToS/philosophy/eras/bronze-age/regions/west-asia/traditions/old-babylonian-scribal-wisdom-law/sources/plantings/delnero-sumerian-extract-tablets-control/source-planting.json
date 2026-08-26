@@ -1,0 +1,61 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/philosophy-source-planting.schema.json",
+  "schema_version": "tos_philosophy_source_planting_v1",
+  "planting_id": "tos.planting.a02.delnero-sumerian-extract-tablets-control",
+  "atlas_row_id": "A02",
+  "dossier_id": "A02",
+  "branch_path": "ToS/philosophy/eras/bronze-age/regions/west-asia/traditions/old-babylonian-scribal-wisdom-law",
+  "source_backlog_anchor": {
+    "path": "ToS/philosophy/eras/bronze-age/regions/west-asia/traditions/old-babylonian-scribal-wisdom-law/sources/source-anchor-backlog.jsonl",
+    "line": 23,
+    "source_table_index": 14,
+    "source_row_index": 5,
+    "source_label": "Paul Delnero, Sumerian Extract Tablets and Scribal Education"
+  },
+  "source_witness": {
+    "work_id": "tos.work.old-babylonian-scholarship.sumerian-extract-tablets-and-scribal-education",
+    "record_ref": "ToS/source-witnesses/works/old-babylonian-scholarship/sumerian-extract-tablets-and-scribal-education/work.json",
+    "relationship": "grounds_source_backlog_anchor"
+  },
+  "discovery_ref": "ToS/source-witnesses/discovery/runs/old-babylonian-nippur-ur-school-tablets.2026-08-13.v1.json",
+  "provenance_event_ref": "tos.event.annotation.old-babylonian-delnero-extract-tablets-control.2026-08-23",
+  "research_ref": "ToS/research-packets/foundation-laboratory-2026-07/A02_DELNERO_SUMERIAN_EXTRACT_TABLETS_SOURCE_PLANTING_RESEARCH_2026-08-23.md",
+  "fulfilled_source_needs": [
+    "the exact Delnero 2010 journal-article Work behind the compact backlog label receives a stable provider-independent bibliographic identity",
+    "the provisional Paul Delnero Agent from the immediately preceding textual-criticism route is reused rather than duplicated",
+    "ancient imgida terminology, modern Type III typology, physical artifact, copied passage, composition mapping, material planning, copying-process hypothesis, and pedagogical-stage hypothesis remain separate",
+    "absence of a model on the same extract tablet is retained as evidence but not treated as proof that the passage was copied from memory or without any external source",
+    "tablet frequencies, passage lengths, catch lines, handwriting, provenance, and diagnostic error patterns remain evidence-bearing supports whose exact scope and alternatives must be explicit",
+    "the 2023 ISAC chapter and catalog return the argument to visible objects and the material skill of sizing a tablet for an intended passage",
+    "Delnero's 2024 chapter and Scribal Worlds 2026 supply corpus-relative variation, locality, temporality, and standardization controls without silently superseding the 2010 article",
+    "only public bibliographic metadata and links are admitted; no article, manuscript, tablet image, text, transliteration, or translation payload is stored"
+  ],
+  "remaining_controls": [
+    "the 2010 Work does not replace exact artifact records, manuscript collation, composition-specific critical editions, the 2023 contained chapter and catalog, or later source criticism",
+    "extract format, passage length, unused space, error type, and source frequency do not individually prove student identity, memorization, progressive sequence, curriculum, institution, or ideology",
+    "the subscription article body remains unavailable to this slice; future full-text inspection must use lawful access, an authorized author or repository copy, or a written access request before any redistribution decision",
+    "no ancient Collection, tablet membership, curriculum entity, source payload, Expression, Edition, Item, pedagogical claim, semantic claim, graph relation, canon state, external request, server transfer, human task, or human review is created"
+  ],
+  "research_order": [
+    "official_and_classical_documentation",
+    "established_top_scholarship",
+    "fresh_current_relevance_check"
+  ],
+  "authority": {
+    "source_status": "metadata_witness_planted",
+    "review_status": "unreviewed",
+    "source_text_admitted": false,
+    "semantic_status": "not_started",
+    "graph_status": "not_promoted",
+    "canon_status": "not_canon",
+    "human_task_created": false
+  },
+  "status": "source_witness_planted",
+  "maker": {
+    "maker_type": "model",
+    "agent_ref": "model:codex",
+    "human_review_performed": false
+  },
+  "created_at": "2026-08-23T03:24:30-06:00",
+  "record_version": 1
+}

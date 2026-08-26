@@ -1,0 +1,126 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/artifact-source-witness.schema.json",
+  "schema_version": "tos_artifact_source_witness_v1",
+  "artifact_id": "tos.artifact.sumerian.adab.oim-a00645-plus-a00649a-i",
+  "artifact_kind": "clay_tablet",
+  "path_identity": {
+    "basis": "repository_identity",
+    "provider_independent": true,
+    "note": "The route follows the reported ISAC Museum inventory ensemble OIM A00645 + OIM A00649a–i rather than the mutable CDLI provider identifier."
+  },
+  "identifiers": [
+    {"scheme": "CDLI", "value": "P222243", "source_ref": "https://cdli.earth/artifacts/222243"},
+    {"scheme": "museum inventory", "value": "OIM A00645 + OIM A00649a–i", "source_ref": "https://cdli.earth/artifacts/222243"}
+  ],
+  "physical_description": {
+    "material": "clay",
+    "height_mm": null,
+    "width_mm": null,
+    "thickness_mm": null,
+    "source_ref": "https://cdli.earth/artifacts/222243"
+  },
+  "dating": {
+    "period_label": "Early Dynastic IIIa",
+    "display_date": "ca. 2600-2500 BC",
+    "certainty": "reported",
+    "period_stage_separation_required": true,
+    "source_ref": "https://cdli.earth/artifacts/222243"
+  },
+  "find_context": {
+    "site": "Adab (modern Bismaya)",
+    "findspot": null,
+    "excavation_numbers": [],
+    "source_note": "CDLI reports the provenience as Adab (mod. Bismaya); no excavation number or exact findspot is exposed in the checked JSON record.",
+    "documentation_limit": "Reported provenience does not establish a precise findspot, stratigraphic context, ancient institutional setting, original completeness, or composition date. The joined inventory ensemble remains a fragmentary physical witness.",
+    "source_ref": "https://cdli.earth/artifacts/222243"
+  },
+  "custody": {
+    "current_repository": "Institute for the Study of Ancient Cultures West Asia & North Africa Museum, Chicago, Illinois, USA",
+    "inventory_numbers": ["OIM A00645 + OIM A00649a–i"],
+    "source_ref": "https://cdli.earth/artifacts/222243"
+  },
+  "digital_catalog_record": {
+    "provider": "Cuneiform Digital Library Initiative",
+    "record_id": "P222243",
+    "record_url": "https://cdli.earth/artifacts/222243",
+    "api_url": "https://cdli.earth/artifacts/222243/json",
+    "checked_at": "2026-08-22T21:49:45-06:00",
+    "mutable": true,
+    "response_fingerprints": [
+      {"surface": "https://cdli.earth/artifacts/222243", "byte_size": 84247, "sha256": "f6569e4e3939043c801a010b0566c3bcb09909d5a1c2ff5526f8c169fd70c2ab", "captured": false},
+      {"surface": "https://cdli.earth/artifacts/222243/json", "byte_size": 9119, "sha256": "d65ea682c976dd6c9cf8661423927d8cb723052105b93f1ece85cbb1dc487e0e", "captured": false}
+    ]
+  },
+  "inscription_layer": {
+    "availability": "catalog_linked",
+    "language_status": "reported",
+    "provider_language_code": "sux-x-emegir",
+    "normalized_language_code": "sux",
+    "script": "cuneiform",
+    "transliteration_stored": false,
+    "translation_stored": false,
+    "source_refs": ["https://cdli.earth/artifacts/222243", "https://cdli.earth/artifacts/222243/json"]
+  },
+  "composite_layer": {
+    "status": "linked",
+    "external_refs": [
+      {"scheme": "CDLI composite", "value": "Q000782", "source_ref": "https://cdli.earth/artifacts/222243/json"},
+      {"scheme": "CDLI composite relation", "value": "141941", "source_ref": "https://cdli.earth/artifacts/478969/json"}
+    ],
+    "relationship": "CDLI reports this physical witness as ex. 003 of modern composite Q000782. The relation does not make the tablet identical to the composite, ancient Work, or current editorial line sequence.",
+    "is_physical_artifact_identity": false
+  },
+  "visual_layers": [
+    {
+      "layer_kind": "photograph",
+      "availability": "visible",
+      "content_stored": false,
+      "source_ref": "https://cdli.earth/artifacts/222243",
+      "rights_note": "The photograph is a separately governed ISAC or contributor layer; no image was acquired and publication permission was not inferred."
+    },
+    {
+      "layer_kind": "line_art",
+      "availability": "visible",
+      "content_stored": false,
+      "source_ref": "https://cdli.earth/artifacts/222243",
+      "rights_note": "Line art is a separate authored publication layer; no drawing was acquired or authorized for ToS publication."
+    }
+  ],
+  "scholarly_classification": {
+    "genre": "Literary",
+    "corpus_labels": ["ETCSL 5.06.01 Instructions of Shuruppak (witness)", "CDLI Literary 000782, ex. 003"],
+    "classification_is_interpretive": true,
+    "source_refs": ["https://cdli.earth/artifacts/222243", "https://cdli.earth/artifacts/222243/json"]
+  },
+  "bibliography": [
+    {"citation": "Daniel D. Luckenbill, Inscriptions from Adab, OIP 14 (1930), nos. 55 and 56.", "role": "primary_publication", "source_ref": "https://cdli.earth/publications/30632"},
+    {"citation": "Karen L. Wilson and Jacob Lauinger, Bismaya: Recovering the Lost City of Adab, OIP 138 (2012), p. 134.", "role": "current_control", "source_ref": "https://cdli.earth/publications/1750640"},
+    {"citation": "Bendt Alster, The Instructions of Šurruppak: A Sumerian Proverb Collection (1974).", "role": "established_control", "source_ref": "https://cdli.earth/publications/1685524"}
+  ],
+  "layer_separation": {
+    "physical_artifact_is_catalog_record": false,
+    "catalog_record_is_inscription": false,
+    "inscription_is_composite": false,
+    "visual_is_artifact": false,
+    "sign_has_fixed_translation": false,
+    "artifact_is_philosophy": false
+  },
+  "rights_ref": "ToS/source-witnesses/artifacts/sumerian/adab/oim-a00645-plus-a00649a-i/rights.json",
+  "discovery_ref": "ToS/source-witnesses/discovery/runs/instructions-of-shuruppag-early-physical-witnesses.2026-08-22.v1.json",
+  "provenance_event_ref": "tos.event.discovery.old-babylonian-instructions-of-shuruppag.2026-08-22",
+  "research_ref": "ToS/research-packets/foundation-laboratory-2026-07/A02_INSTRUCTIONS_OF_SHURUPPAG_SOURCE_PLANTING_RESEARCH_2026-08-22.md",
+  "philosophy_planting_refs": ["ToS/philosophy/eras/bronze-age/regions/west-asia/traditions/old-babylonian-scribal-wisdom-law/sources/plantings/instructions-of-shuruppag-composite/source-planting.json"],
+  "authority": {
+    "evidence_status": "metadata_witness",
+    "review_status": "unreviewed",
+    "visibility": "public_metadata_only",
+    "source_text_admitted": false,
+    "semantic_authority": false,
+    "graph_authority": false,
+    "canon_authority": false,
+    "publication_authority": false
+  },
+  "maker": {"maker_type": "model", "agent_ref": "model:codex", "human_review_performed": false},
+  "created_at": "2026-08-22T21:55:00-06:00",
+  "record_version": 1
+}

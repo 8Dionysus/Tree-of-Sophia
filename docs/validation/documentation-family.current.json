@@ -29,15 +29,15 @@
     "metric": "whitespace_tokens_v1",
     "posture": "summary_first_records_on_demand",
     "record_loading": "machine readers may select records by family_id or path; do not load the full carrier into an always-on prompt",
-    "tracked_surface_count": 1849,
+    "tracked_surface_count": 1938,
     "unhandled_family_count": 0
   },
   "coverage": {
     "excluded_generated_carrier_rules": 3,
-    "excluded_tracked_path_count": 292,
+    "excluded_tracked_path_count": 303,
     "human_scope": {
-      "bytes": 4006986,
-      "count": 699,
+      "bytes": 4151289,
+      "count": 710,
       "excluded_skill_launch_metadata": 25,
       "family_counts": {
         "agents-other": {
@@ -111,20 +111,20 @@
           "lines": 47
         },
         "tos": {
-          "bytes": 2946851,
-          "count": 331,
-          "lines": 50613
+          "bytes": 3091154,
+          "count": 342,
+          "lines": 53159
         }
       },
-      "lines": 71279
+      "lines": 73825
     },
     "surface_kind_counts": {
       "executable": 155,
-      "human": 724,
-      "structured": 970
+      "human": 735,
+      "structured": 1048
     },
-    "tracked_path_count": 2141,
-    "tracked_surface_count": 1849,
+    "tracked_path_count": 2241,
+    "tracked_surface_count": 1938,
     "unhandled_family_count": 0,
     "unhandled_paths": []
   },
@@ -167,11 +167,11 @@
     {
       "family_id": "tos",
       "surface_kind_counts": {
-        "human": 331,
-        "structured": 908
+        "human": 342,
+        "structured": 986
       },
-      "tracked_surface_bytes": 57138342,
-      "tracked_surface_count": 1239
+      "tracked_surface_bytes": 58019773,
+      "tracked_surface_count": 1328
     },
     {
       "family_id": "docs",
@@ -269,7 +269,7 @@
   "source_map": "docs/validation/documentation_family_map.json",
   "source_map_sha256": "9140a03a48109e6a9f35f3ca7dbf82058d96c3961e9e77bc31a743fb8814b13b",
   "tracked_source": "git ls-files -z",
-  "tracked_surface_digest": "d513901e47479534abdc2f1f739cc022a8b5f07e8df1d77b3f13c238c57045f3",
+  "tracked_surface_digest": "6dcec5a685574e82c3549a36ea6819a7bfa1942c82d38212d6a4c5815be3709a",
   "tracked_surfaces": [
     {
       "bytes": 1408,
@@ -3424,11 +3424,11 @@
       "surface_kind": "human"
     },
     {
-      "bytes": 2255691,
+      "bytes": 2459427,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/derived-exports/graph/source-witness-bibliographic-claims.min.json",
-      "sha256": "15e49f58a80f67d3a045bfd0f51f9abd834388cc88a5e90a70eaed394a7cbf02",
+      "sha256": "14e69b83dd34f7e355582e167f3da14b9814f7bdaf7938c3b08e24ef09b6dfe3",
       "surface_kind": "structured"
     },
     {
@@ -3504,11 +3504,11 @@
       "surface_kind": "structured"
     },
     {
-      "bytes": 714346,
+      "bytes": 746449,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/derived-exports/tos_corpus_index.min.json",
-      "sha256": "e058fab0245f9fc630d8452e2c14aa5b9d5a02716c237f4ab16081d40db98036",
+      "sha256": "0a66c738a0bf2bdfdff4188d4c2d7f4f6a3affd094fa2130b279e592b064a288",
       "surface_kind": "structured"
     },
     {
@@ -4632,19 +4632,19 @@
       "surface_kind": "structured"
     },
     {
-      "bytes": 1463,
+      "bytes": 1555,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/philosophy/eras/bronze-age/regions/west-asia/traditions/old-babylonian-scribal-wisdom-law/README.md",
-      "sha256": "7069991951ca8c5dcefe00ea911942ccf5387a8d8718f0403d6e5a1dd20e57f6",
+      "sha256": "8501474b2c1f6495af2d1f1bbbad6bda21c380d7c7cf792167f3e36b698ad8d3",
       "surface_kind": "human"
     },
     {
-      "bytes": 2073,
+      "bytes": 5197,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/philosophy/eras/bronze-age/regions/west-asia/traditions/old-babylonian-scribal-wisdom-law/branch.manifest.json",
-      "sha256": "2889823b5534ecfabd5aad5e2d5efa51a2c82294a843cf9591bc0be0501225c6",
+      "sha256": "ae310dc0a354d573eddfabd35fb01a96decadcf15d820578d8543e23d8516220",
       "surface_kind": "structured"
     },
     {
@@ -4664,11 +4664,19 @@
       "surface_kind": "structured"
     },
     {
-      "bytes": 1565,
+      "bytes": 4689,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/philosophy/eras/bronze-age/regions/west-asia/traditions/old-babylonian-scribal-wisdom-law/sources/branch.manifest.json",
-      "sha256": "6862a1ddca7f458b19959d28caf4e142972bd1a925ecdfa33348e10c187c4654",
+      "sha256": "9c0a7543c23db63f94fd0c1a173bc7654057fd06d0a449cd7e4042d2c26c6ed4",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3471,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/bronze-age/regions/west-asia/traditions/old-babylonian-scribal-wisdom-law/sources/plantings/alster-instructions-of-shurruppak-control/source-planting.json",
+      "sha256": "7bcf7671045756920dd10cd9bec27e44ba39c2caad4d66d0d6dec01397e92940",
       "surface_kind": "structured"
     },
     {
@@ -4696,6 +4704,22 @@
       "surface_kind": "structured"
     },
     {
+      "bytes": 4344,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/bronze-age/regions/west-asia/traditions/old-babylonian-scribal-wisdom-law/sources/plantings/delnero-sumerian-extract-tablets-control/source-planting.json",
+      "sha256": "1ba1e8e5a087a02ed13105bd94e4b3bd76f6ccda9d58483043d9e00b56854856",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 4337,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/bronze-age/regions/west-asia/traditions/old-babylonian-scribal-wisdom-law/sources/plantings/delnero-textual-criticism-of-sumerian-literature-control/source-planting.json",
+      "sha256": "5cb9f3c4cce3cd5ab655d3fe896de0f02aaa5ede76d4506721ebb16710134f80",
+      "surface_kind": "structured"
+    },
+    {
       "bytes": 5116,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
@@ -4712,6 +4736,54 @@
       "surface_kind": "structured"
     },
     {
+      "bytes": 4446,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/bronze-age/regions/west-asia/traditions/old-babylonian-scribal-wisdom-law/sources/plantings/george-babylonian-gilgamesh-epic-critical-control/source-planting.json",
+      "sha256": "d27f5015fe835f30e5b72371c0918a547f4ad2b6a3dc323739718ea6f1b33978",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 4310,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/bronze-age/regions/west-asia/traditions/old-babylonian-scribal-wisdom-law/sources/plantings/george-epic-of-gilgamesh-translation-control/source-planting.json",
+      "sha256": "746c6e7563632f8924fc02d0384a41e7b660aa37267deefa84303e7e2a8ddbf8",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 4678,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/bronze-age/regions/west-asia/traditions/old-babylonian-scribal-wisdom-law/sources/plantings/instructions-of-shuruppag-composite/source-planting.json",
+      "sha256": "11c36f98938b85b283db19db7eb715e25f4155cb54079af484af0bac31675ca2",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3679,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/bronze-age/regions/west-asia/traditions/old-babylonian-scribal-wisdom-law/sources/plantings/laws-of-hammurapi-composite/source-planting.json",
+      "sha256": "7e38b2f32f1fb32a88dc1c7e6a41b2459791eeae9ec8f5540780a7c50fe2a00e",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3557,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/bronze-age/regions/west-asia/traditions/old-babylonian-scribal-wisdom-law/sources/plantings/laws-of-lipit-ishtar-composite/source-planting.json",
+      "sha256": "c92fa4dc8484eb487618f74ed0a2269b61ceff4278757c7d46b912a32767210f",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3638,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/bronze-age/regions/west-asia/traditions/old-babylonian-scribal-wisdom-law/sources/plantings/laws-of-ur-namma-composite/source-planting.json",
+      "sha256": "39512333ad0d4c311aea7b3d7ae87942c2f85388cd5e0f668b53dd625361c7c1",
+      "surface_kind": "structured"
+    },
+    {
       "bytes": 4838,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
@@ -4720,11 +4792,75 @@
       "surface_kind": "structured"
     },
     {
+      "bytes": 4289,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/bronze-age/regions/west-asia/traditions/old-babylonian-scribal-wisdom-law/sources/plantings/old-babylonian-gilgamesh-fragments/source-planting.json",
+      "sha256": "eabdbcd64de0d37cff70ff7c9ab8d079a05a95b2b73d2b0caee633d84fb85bf6",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 5006,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/bronze-age/regions/west-asia/traditions/old-babylonian-scribal-wisdom-law/sources/plantings/old-babylonian-sumerian-literary-catalogues/source-planting.json",
+      "sha256": "1be9294ea98a3a49cdfd16de1a48ae23de593475e13a690c3fde3b29aa6736b5",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3933,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/bronze-age/regions/west-asia/traditions/old-babylonian-scribal-wisdom-law/sources/plantings/robson-the-tablet-house-control/source-planting.json",
+      "sha256": "f6bb81a248f362e9559e756db021db10f28ae7625d859c66f0ea8751ce73ece7",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 4523,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/bronze-age/regions/west-asia/traditions/old-babylonian-scribal-wisdom-law/sources/plantings/roth-law-collections-from-mesopotamia-and-asia-minor-control/source-planting.json",
+      "sha256": "ee2d41d60034fc4e0e47844f71524898cd3f070816786d628e07d5ac57f5f0d9",
+      "surface_kind": "structured"
+    },
+    {
       "bytes": 3297,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/philosophy/eras/bronze-age/regions/west-asia/traditions/old-babylonian-scribal-wisdom-law/sources/plantings/tinney-texts-tablets-teaching-control/source-planting.json",
       "sha256": "c5c9f32ff1d914c0fe408789c932330b51844cd4c87542cf97aafbd34a249a06",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 4237,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/bronze-age/regions/west-asia/traditions/old-babylonian-scribal-wisdom-law/sources/plantings/veldhuis-elementary-education-at-nippur-control/source-planting.json",
+      "sha256": "1248831fa23419d39756bf6f4ba7f30dc74a4d40ef82d93358824865250a5951",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 4332,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/bronze-age/regions/west-asia/traditions/old-babylonian-scribal-wisdom-law/sources/plantings/wilcke-gesetze-in-sumerischer-sprache-critical-control/source-planting.json",
+      "sha256": "ae5d1307bdaa9caa661d9fd55f04bd10ee29492c5b03eb5a6cf63fe68f1272bb",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 4121,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/bronze-age/regions/west-asia/traditions/old-babylonian-scribal-wisdom-law/sources/plantings/wilcke-laws-of-lipit-ishtar-encyclopedia-control/source-planting.json",
+      "sha256": "e1fd84b3e4c98f34c2a14c0434fc8cb90381112bdd19718b89b58e3127d5640c",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 4772,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/bronze-age/regions/west-asia/traditions/old-babylonian-scribal-wisdom-law/sources/plantings/yale-babylonian-collection-ancient-mesopotamia-speaks-control/source-planting.json",
+      "sha256": "4aece7c832975130b2c9ca1dc41c119ca5b61cffdc1042ed30e297bfc36685d7",
       "surface_kind": "structured"
     },
     {
@@ -6440,6 +6576,22 @@
       "surface_kind": "human"
     },
     {
+      "bytes": 11643,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/research-packets/foundation-laboratory-2026-07/A02_DELNERO_SUMERIAN_EXTRACT_TABLETS_SOURCE_PLANTING_RESEARCH_2026-08-23.md",
+      "sha256": "ead1cb125fa00df135d1f3d1a840e608cf32f7b95eb3eeb445924b364d659a09",
+      "surface_kind": "human"
+    },
+    {
+      "bytes": 12300,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/research-packets/foundation-laboratory-2026-07/A02_DELNERO_TEXTUAL_CRITICISM_OF_SUMERIAN_LITERATURE_SOURCE_PLANTING_RESEARCH_2026-08-23.md",
+      "sha256": "bd92ec3845781d8a8cc24659f111f949294ba966b316bf9da614615d4a9edbb1",
+      "surface_kind": "human"
+    },
+    {
       "bytes": 20919,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
@@ -6448,11 +6600,83 @@
       "surface_kind": "human"
     },
     {
+      "bytes": 15587,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/research-packets/foundation-laboratory-2026-07/A02_GEORGE_BABYLONIAN_GILGAMESH_EPIC_AND_TRANSLATIONS_SOURCE_PLANTING_RESEARCH_2026-08-23.md",
+      "sha256": "3604790005e7d74e8fead8c377ac03820bf4d94dfc6ee64384ecafc435503bb8",
+      "surface_kind": "human"
+    },
+    {
+      "bytes": 15316,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/research-packets/foundation-laboratory-2026-07/A02_INSTRUCTIONS_OF_SHURUPPAG_SOURCE_PLANTING_RESEARCH_2026-08-22.md",
+      "sha256": "eb503a06c9298d088c259e506351ad08d32ffa020f661589cc24929b508dc0e8",
+      "surface_kind": "human"
+    },
+    {
+      "bytes": 11624,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/research-packets/foundation-laboratory-2026-07/A02_MESOPOTAMIAN_LAW_COLLECTIONS_SOURCE_PLANTING_RESEARCH_2026-08-22.md",
+      "sha256": "0ec85a5676a371367433e1f2babc8ba921e0b1230b0da9b0ab9d5ed72ead18b6",
+      "surface_kind": "human"
+    },
+    {
       "bytes": 15391,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/research-packets/foundation-laboratory-2026-07/A02_NIPPUR_UR_SCHOOL_TABLETS_SOURCE_PLANTING_RESEARCH_2026-08-13.md",
       "sha256": "dc729fbfc4109a03d16afcd40d25c6271f077fe7181016e18def1af79e321d3c",
+      "surface_kind": "human"
+    },
+    {
+      "bytes": 10323,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/research-packets/foundation-laboratory-2026-07/A02_OLD_BABYLONIAN_GILGAMESH_FRAGMENTS_SOURCE_PLANTING_RESEARCH_2026-08-22.md",
+      "sha256": "1bd88008fb77d9f62e44af88953047096adb892b8a1dbe6be5d8e1f131b79de9",
+      "surface_kind": "human"
+    },
+    {
+      "bytes": 14467,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/research-packets/foundation-laboratory-2026-07/A02_OLD_BABYLONIAN_SUMERIAN_LITERARY_CATALOGUES_SOURCE_PLANTING_RESEARCH_2026-08-23.md",
+      "sha256": "3db9b4c6ef74ad223b76169642490ccb2a6876bf4485a191c7f21273c4588f95",
+      "surface_kind": "human"
+    },
+    {
+      "bytes": 12773,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/research-packets/foundation-laboratory-2026-07/A02_ROTH_LAW_COLLECTIONS_SOURCE_PLANTING_RESEARCH_2026-08-23.md",
+      "sha256": "298752b68b2cd881d1b96ca989e4262a811e3ccaa9b25d9a403f46bf6a0893a2",
+      "surface_kind": "human"
+    },
+    {
+      "bytes": 10673,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/research-packets/foundation-laboratory-2026-07/A02_VELDHUIS_ELEMENTARY_EDUCATION_AT_NIPPUR_SOURCE_PLANTING_RESEARCH_2026-08-23.md",
+      "sha256": "64b55a9ee30be89205838df42c3cc18504523af6d16de7daba4b44b0f92f4549",
+      "surface_kind": "human"
+    },
+    {
+      "bytes": 12528,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/research-packets/foundation-laboratory-2026-07/A02_WILCKE_LAWS_OF_LIPIT_ISHTAR_SOURCE_PLANTING_RESEARCH_2026-08-23.md",
+      "sha256": "87a693257bbe3008cb52c0413b9e412fbd12930986ea143bd6a1a6f15d8ead2b",
+      "surface_kind": "human"
+    },
+    {
+      "bytes": 16977,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/research-packets/foundation-laboratory-2026-07/A02_YALE_BABYLONIAN_COLLECTION_ANCIENT_MESOPOTAMIA_SPEAKS_SOURCE_PLANTING_RESEARCH_2026-08-23.md",
+      "sha256": "9bd1918457e05374954d5678c3e8a982d7e7906592587630ce390277a3a722a1",
       "surface_kind": "human"
     },
     {
@@ -8096,11 +8320,51 @@
       "surface_kind": "human"
     },
     {
+      "bytes": 1217,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/agents/agnete-wisti-lassen/agent.json",
+      "sha256": "f3f92d3199eeb708d5c04e657e2591f3059eeb076db4e1b1d1d071b75c30ffe8",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1407,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/agents/andrew-r-george/agent.json",
+      "sha256": "08b8a3f0320af52bb450c4c6f64e6b99dffe7f65447721b299c91200bcc033e1",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1059,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/agents/bendt-alster/agent.json",
+      "sha256": "9e4dad6bb8ac448c46171dd72308432d952792328ca5b9095986190a1b78d254",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1195,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/agents/claus-wilcke/agent.json",
+      "sha256": "6091376b403362d241722c386f1529094a6b7a31e7381f01c235caecb2647126",
+      "surface_kind": "structured"
+    },
+    {
       "bytes": 1039,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/source-witnesses/agents/denise-schmandt-besserat/agent.json",
       "sha256": "994a13037abd8df03fc35179edff9335f07dc4e47285d1b7d6f7304669872951",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 901,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/agents/eckart-frahm/agent.json",
+      "sha256": "77c900173043b8c86a751100ce84a50ef159afc8c2dab7367a4e2e87ee856ad9",
       "surface_kind": "structured"
     },
     {
@@ -8149,6 +8413,14 @@
       "family_id": "tos",
       "path": "ToS/source-witnesses/agents/hans-j-nissen/agent.json",
       "sha256": "a840a412ebf107247d602bc46a7fbbeb998b9e5bb77dd44935329a028847ef2d",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1106,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/agents/harry-a-hoffner-jr/agent.json",
+      "sha256": "99d24e9a56b2df9cd6f51cfa40c19c457dfeb9317f59b3efa5ab89a08e48b9ae",
       "surface_kind": "structured"
     },
     {
@@ -8208,6 +8480,14 @@
       "surface_kind": "structured"
     },
     {
+      "bytes": 1026,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/agents/klaus-wagensonner/agent.json",
+      "sha256": "b6f295a86eb368487d8d69df8384d696586024b84c0477e5cdc696359065c739",
+      "surface_kind": "structured"
+    },
+    {
       "bytes": 950,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
@@ -8232,6 +8512,14 @@
       "surface_kind": "structured"
     },
     {
+      "bytes": 1245,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/agents/martha-t-roth/agent.json",
+      "sha256": "105f3810d562cc978f2cbeae3c8526a6d2db5b212aa4f7bd68e61f3e4466540f",
+      "surface_kind": "structured"
+    },
+    {
       "bytes": 1874,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
@@ -8240,11 +8528,35 @@
       "surface_kind": "structured"
     },
     {
+      "bytes": 1666,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/agents/niek-veldhuis/agent.json",
+      "sha256": "7291e980f11cec2ed30b4a5845dd61b249cef088099e27543c9ebdb81fc403fe",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1275,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/agents/paul-delnero/agent.json",
+      "sha256": "456788adcf64c8b0ea9a7a66a6c1a15608ce772c166f8c511540f1cb5760be8a",
+      "surface_kind": "structured"
+    },
+    {
       "bytes": 1005,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/source-witnesses/agents/peter-damerow/agent.json",
       "sha256": "741c4f0ed9aed10b5213bd965f4ed8903c99242f60fcb2bab3b38fb24406ea33",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 870,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/agents/piotr-michalowski/agent.json",
+      "sha256": "3f6089fc36d45941ea28fb1deecce1ef16479d3402d598142ba083018dd3291d",
       "surface_kind": "structured"
     },
     {
@@ -8336,6 +8648,22 @@
       "surface_kind": "structured"
     },
     {
+      "bytes": 7780,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/artifacts/old-babylonian/uncertain/penn-cbs-07771/artifact-witness.json",
+      "sha256": "60c5c31c846c1e38eeb6e571dc15c85aa4f3cbb26a31edeaa8fd70bc47a2b6ef",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 8984,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/artifacts/old-babylonian/uncertain/penn-cbs-07771/rights.json",
+      "sha256": "54fa2f4f269da92007d5f403b16871f5f22ac3ca77e8d31c3c497d003a8355e7",
+      "surface_kind": "structured"
+    },
+    {
       "bytes": 748,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
@@ -8360,6 +8688,86 @@
       "surface_kind": "structured"
     },
     {
+      "bytes": 6852,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/artifacts/sumerian/abu-salabikh/im-070204-plus/artifact-witness.json",
+      "sha256": "7223ca9e3073fb23c029f33469b8a6bd3bde0454e9e4ecf486137cbae217bba9",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 6259,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/artifacts/sumerian/abu-salabikh/im-070204-plus/rights.json",
+      "sha256": "5175f0c0c75a3309d2cb06368b6e68084f58b919a59d6a852e8f0d5ac2cc93d6",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 6675,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/artifacts/sumerian/adab/oim-a00645-plus-a00649a-i/artifact-witness.json",
+      "sha256": "96ae061281e7997e89856ceb91e46eaeaa4c241e114c6e4532797c74aa51de89",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 6302,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/artifacts/sumerian/adab/oim-a00645-plus-a00649a-i/rights.json",
+      "sha256": "8c790574ee0e6e28cfa042fefc18259da5e6beca3a207e4309a62b5f417254ba",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 6650,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/artifacts/sumerian/nippur/istanbul-ist-ni-03191/artifact-witness.json",
+      "sha256": "56859494794e2f9159003a9e445f52ad258cbafa4d70645f2712fcd379b14cc0",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 7361,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/artifacts/sumerian/nippur/istanbul-ist-ni-03191/rights.json",
+      "sha256": "f1dfc05633baa5273bd4bd18d7795c187d9d66f3834f6a98a829b6f7872ada7f",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 7286,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/artifacts/sumerian/uncertain/louvre-ao-05393/artifact-witness.json",
+      "sha256": "01b84d3da60504b2830c16b15dfc250db57d4b696baeca71a688822c049cab7c",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 8430,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/artifacts/sumerian/uncertain/louvre-ao-05393/rights.json",
+      "sha256": "a6e4c41522c9cb56ae473fa172bb513a5dc9914baa47e8fe5a8b0ca4fda72f4c",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 7364,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/artifacts/sumerian/uncertain/louvre-ao-05473/artifact-witness.json",
+      "sha256": "58caa50da8c0aef45e190b07c8c5efad2493290b52ff7f65bf983010eb3e322d",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 7596,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/artifacts/sumerian/uncertain/louvre-ao-05473/rights.json",
+      "sha256": "2ab6f5aa9bc80faf13d592839da6747d7d1df16cfc85b89159ddf8a43b4ed1af",
+      "surface_kind": "structured"
+    },
+    {
       "bytes": 6709,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
@@ -8372,7 +8780,7 @@
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/source-witnesses/catalog/catalog.manifest.json",
-      "sha256": "d9974aa79ad7c06ec4a1e7c215ddafa6baf9714cd24becd8aa1f328c9ad93fc1",
+      "sha256": "e253774a1a435a9593a0c0dd0aab72b7dbe1ea60ca9e1c77fd689a202bba2a2e",
       "surface_kind": "structured"
     },
     {
@@ -8896,6 +9304,14 @@
       "surface_kind": "structured"
     },
     {
+      "bytes": 15395,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/runs/instructions-of-shuruppag-early-physical-witnesses.2026-08-22.v1.json",
+      "sha256": "869dbcbb748a92e749396b04841e3fabe5144770727bb4a116d3b56dd2c2e254",
+      "surface_kind": "structured"
+    },
+    {
       "bytes": 24343,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
@@ -8917,6 +9333,22 @@
       "family_id": "tos",
       "path": "ToS/source-witnesses/discovery/runs/jenseits-naumann-1886-open-scan-witness.2026-07-28.v1.json",
       "sha256": "f7f2e410966097e6b6db3a1f198e667686909a2e98a1ec0e1bcff597c3e162de",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 14201,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/runs/mesopotamian-law-collection-physical-witnesses.2026-08-22.v1.json",
+      "sha256": "1b0dfdb7ff0d97b3a2e2a92840f340183b02c55a3f0bd7563bffb19653fb4247",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 21043,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/runs/mesopotamian-law-collections.2026-08-22.v1.json",
+      "sha256": "eb23720cb7359ccef24c077814fd16be3ec61621875ac5c820e6404c48c6ec3b",
       "surface_kind": "structured"
     },
     {
@@ -8976,6 +9408,22 @@
       "surface_kind": "structured"
     },
     {
+      "bytes": 16195,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/runs/old-babylonian-gilgamesh-cbs7771.2026-08-22.v1.json",
+      "sha256": "a8d60d93050581dae67654f152f5d07ea1677414426be0fa9fbe604e3306e9d3",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 24125,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/runs/old-babylonian-gilgamesh-fragments.2026-08-22.v1.json",
+      "sha256": "314b168b25f873bdd43b5f1face5f246053ffb28d3dacb17c0809163ff4675d3",
+      "surface_kind": "structured"
+    },
+    {
       "bytes": 25075,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
@@ -8984,11 +9432,43 @@
       "surface_kind": "structured"
     },
     {
+      "bytes": 24843,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/runs/old-babylonian-instructions-of-shuruppag.2026-08-22.v1.json",
+      "sha256": "08ead28cd96a855e6afac3f76da49bbe90724c3c9017293fdbcdc41705897fbe",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 23553,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/runs/old-babylonian-louvre-ao-05393.2026-08-23.v1.json",
+      "sha256": "56f2e77f3761aa23d11f53064c55e717ac509609d5c62e47b066899e7f461339",
+      "surface_kind": "structured"
+    },
+    {
       "bytes": 31938,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/source-witnesses/discovery/runs/old-babylonian-nippur-ur-school-tablets.2026-08-13.v1.json",
       "sha256": "9de4eb0ebe6495df9cf415ce5894754f5eabe308294ecef14c6c271d8c41b844",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 23687,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/runs/old-babylonian-sumerian-literary-catalogues.2026-08-23.v1.json",
+      "sha256": "b576100ca421a6435c1e140a02033934dba310af62ec25b6226cbd7b0d6c6f97",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 25229,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/runs/old-babylonian-yale-babylonian-collection-ancient-mesopotamia-speaks.2026-08-23.v1.json",
+      "sha256": "79ce517e556747cf697c6a6a2ff1d1c2c9d2408b666af48177b319843c547b11",
       "surface_kind": "structured"
     },
     {
@@ -9240,6 +9720,14 @@
       "surface_kind": "structured"
     },
     {
+      "bytes": 1658,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/organizations/yale-babylonian-collection/organization.json",
+      "sha256": "fd19cb426df8c7d3886fbadd3693ebf0afe390606def809b41b0277f8f18f90d",
+      "surface_kind": "structured"
+    },
+    {
       "bytes": 1364,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
@@ -9304,6 +9792,70 @@
       "surface_kind": "human"
     },
     {
+      "bytes": 6185,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/scholarly-composites/critical/akkadian/laws-of-hammurapi/composite-witness.json",
+      "sha256": "c57cfe88e3298f73b44056efee941f1944e4d1e35a5bcd4a87a52c1eac72cece",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 7671,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/scholarly-composites/critical/akkadian/laws-of-hammurapi/rights.json",
+      "sha256": "62258d6931cd44127ef328d79768341fce55f7bd26356747aa9321f57c4b2288",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 9403,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/scholarly-composites/critical/sumerian/instructions-of-shuruppag/composite-witness.json",
+      "sha256": "3886f8f2bdcadccf4f6d6451a09f7893c3e81f05ee1b06f9f2f2540c233fe4fc",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 8636,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/scholarly-composites/critical/sumerian/instructions-of-shuruppag/rights.json",
+      "sha256": "86d15c122f73bcf0b494891da9c02dfb645042e82a5dcf5913ce2f0358830d3d",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 6138,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/scholarly-composites/critical/sumerian/laws-of-lipit-ishtar/composite-witness.json",
+      "sha256": "400923786510e71858fc23f7ee025142a3d6c68da643036c0c049f3f36840c9f",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 7577,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/scholarly-composites/critical/sumerian/laws-of-lipit-ishtar/rights.json",
+      "sha256": "b929af980493db0b9688f439d7a34c74e15db0fe16f5cff530281cc06ee440ba",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 5873,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/scholarly-composites/critical/sumerian/laws-of-ur-namma/composite-witness.json",
+      "sha256": "76c813b6038742070b1a77fe874fb353431b63ddd08acbada33dda1f96f1af8d",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 7438,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/scholarly-composites/critical/sumerian/laws-of-ur-namma/rights.json",
+      "sha256": "6f355870ada8d4c828cb770c3b96dd290306b567d8111350c07cb181721e7bd0",
+      "surface_kind": "structured"
+    },
+    {
       "bytes": 802,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
@@ -9325,6 +9877,38 @@
       "family_id": "tos",
       "path": "ToS/source-witnesses/scholarly-composites/lexical/proto-cuneiform/archaic-vessels-and-garments/rights.json",
       "sha256": "b6c0458bf4f53f4af58a0c272565c4c2a03de9d75dc32e2457ed8f903c22b182",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 7900,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/scholarly-composites/synoptic/akkadian/old-babylonian-gilgamesh-fragments/composite-witness.json",
+      "sha256": "82314934a920d9c80d7b4d645f7d8d85c764dfaba8b731adfdeab3e4adf4e84a",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 9153,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/scholarly-composites/synoptic/akkadian/old-babylonian-gilgamesh-fragments/rights.json",
+      "sha256": "1e362892d199b1b9b2d0aed0db4ec6ffaf8c0a6ba4d0aea312c073cf0cd84a91",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 8944,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/scholarly-composites/synoptic/sumerian/old-babylonian-literary-catalogue-witnesses/composite-witness.json",
+      "sha256": "c5b4e4d0902be42766d63580d447b70af1ddaf617163963c7410d2be5ee74043",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 8917,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/scholarly-composites/synoptic/sumerian/old-babylonian-literary-catalogue-witnesses/rights.json",
+      "sha256": "33b0f2ef0e2c44f77c23be0ee40d2ad624ae2b84fe6a63a1e003032c26c4ddc3",
       "surface_kind": "structured"
     },
     {
@@ -9501,6 +10085,22 @@
       "family_id": "tos",
       "path": "ToS/source-witnesses/server-import/plans/reader-1899-rnl-rusneb-fragment-pdf-parts.server-import.json",
       "sha256": "dd0bacd8b4188665d5ee95505855ab7b09f2ce534adad35d004b2e51d17efd5a",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1697,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/akkadian-law/laws-of-hammurapi/work.json",
+      "sha256": "a901441bd1604131777b38f4381dd2d23e530af69d7d84c78951e957adb9d629",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 2147,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/akkadian-literature/old-babylonian-gilgamesh-tradition/work.json",
+      "sha256": "c6928b55eb13a8ca3ad8c47e5bf0a2c9651eff78305d6c1f409eae6ce75a0e12",
       "surface_kind": "structured"
     },
     {
@@ -11464,6 +12064,14 @@
       "surface_kind": "structured"
     },
     {
+      "bytes": 3430,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/mesopotamian-scholarship/ancient-mesopotamia-speaks-highlights-of-the-yale-babylonian-collection/work.json",
+      "sha256": "b8fd7553ce6ca8c122f6f3388e554e549b1535cd85fcd12af1853ab475b9fe2a",
+      "surface_kind": "structured"
+    },
+    {
       "bytes": 1661,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
@@ -11472,11 +12080,83 @@
       "surface_kind": "structured"
     },
     {
+      "bytes": 2669,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/old-babylonian-scholarship/elementary-education-at-nippur/work.json",
+      "sha256": "d659af36a738286c9b188ef101d6ab1de8a0eaef906bc7776198c2962fd2b6a6",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 2503,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/old-babylonian-scholarship/gesetze-in-sumerischer-sprache/work.json",
+      "sha256": "83b54a9da7c744feb661a39487e30aae39dc3dc85b21cd1ad3305f597f6c05fb",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 2722,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/old-babylonian-scholarship/law-collections-from-mesopotamia-and-asia-minor/work.json",
+      "sha256": "3a470a3d263f03706008007c97891d175dea0d909348b0a8b80595e0bc9c4f27",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 2419,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/old-babylonian-scholarship/laws-of-lipit-ishtar-wilcke-encyclopedia-entry/work.json",
+      "sha256": "4e045443728ca518dcdc3a91fb04dc5f45a491ef141915dc090b61c67c8d81cb",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 2412,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/old-babylonian-scholarship/sumerian-extract-tablets-and-scribal-education/work.json",
+      "sha256": "b4677710e2e7dfe75022690ae039240accd2637483c711736fb9718b4a67a29d",
+      "surface_kind": "structured"
+    },
+    {
       "bytes": 2080,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/source-witnesses/works/old-babylonian-scholarship/texts-tablets-and-teaching/work.json",
       "sha256": "71eca51a47ffed4e45e9515fc98b4ad64bb836e6cc8e1973d88c242e1b095124",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 2979,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/old-babylonian-scholarship/the-babylonian-gilgamesh-epic-critical-edition/work.json",
+      "sha256": "e596cd91ab366027b2fb8a1cdf0c531245a89c2ccda9ceecf732fb0544cba0a0",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3488,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/old-babylonian-scholarship/the-epic-of-gilgamesh-george-translation/work.json",
+      "sha256": "3a0d124cb0a20bad54d8e2a99684d4aa0c988bd2e6193ed930a0cf7cbdf21d75",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 2140,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/old-babylonian-scholarship/the-tablet-house/work.json",
+      "sha256": "77d8e4018092c1f745ed34b683513b3e5ca102093ee4abc3671e222b28d6ca74",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 2539,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/old-babylonian-scholarship/the-textual-criticism-of-sumerian-literature/work.json",
+      "sha256": "517db8dc58bb0cb1f13f32d79475133652dc19e280420a41c43d3d83c20ca078",
       "surface_kind": "structured"
     },
     {
@@ -11565,6 +12245,38 @@
       "family_id": "tos",
       "path": "ToS/source-witnesses/works/proto-cuneiform-scholarship/uruk-and-i/work.json",
       "sha256": "30cb9f66d686332fbdcf57ac5fae16802ad3d030e9f4a762e72a29f9aa712378",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1698,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/sumerian-law/laws-of-lipit-ishtar/work.json",
+      "sha256": "6fba191cba9445357437cb653e9d594a8d13231febe09273bafebde53b681747",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1653,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/sumerian-law/laws-of-ur-namma/work.json",
+      "sha256": "b2eda14814cb632f6d400745218c81d104dfd01411beebd60c5733ff7f363471",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 2131,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/sumerian-literature/instructions-of-shuruppag/work.json",
+      "sha256": "e43921f85e69fb07406fdfcfea1dabd0ef2a4dab3482e3533f3dadfc792d831e",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 2471,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/sumerian-scholarship/the-instructions-of-shurruppak-a-sumerian-proverb-collection/work.json",
+      "sha256": "299405a2dbd323c9df181fdaccc918eaab42edc684001e3df1449177d301f6ee",
       "surface_kind": "structured"
     },
     {
@@ -14940,7 +15652,7 @@
       "currentness": "tracked_source_snapshot",
       "family_id": "tests",
       "path": "tests/test_source_witness_bibliographic_graph.py",
-      "sha256": "f1857890e43425df63c65cad1cb7fe1ffbef565c2b9be5b5d69536f2892bc688",
+      "sha256": "f541268bebad233e1da64c5184ee2589288b0ec7d8f26320c3303f483b7919a2",
       "surface_kind": "executable"
     },
     {
@@ -14948,7 +15660,7 @@
       "currentness": "tracked_source_snapshot",
       "family_id": "tests",
       "path": "tests/test_source_witness_foundation.py",
-      "sha256": "7298f4b83b7fea16f6b019b24660484bcab6716532c8100ef740aa54fca54272",
+      "sha256": "750ab47f761d663e9bdb67adb1d4bad70a74ba31c0f2ee681b5f03342d0874ab",
       "surface_kind": "executable"
     },
     {

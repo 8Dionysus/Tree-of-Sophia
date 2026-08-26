@@ -1,0 +1,172 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/scholarly-composite-witness.schema.json",
+  "schema_version": "tos_scholarly_composite_witness_v1",
+  "composite_id": "tos.composite.akkadian.old-babylonian-gilgamesh-fragments",
+  "composite_kind": "synoptic_composite",
+  "preferred_label": "Old Babylonian Gilgamesh fragments",
+  "identity_status": "provisional",
+  "path_identity": {
+    "basis": "scholarly_composition_identity",
+    "provider_independent": true,
+    "note": "The route follows a modern synoptic object for the Old Babylonian Akkadian Gilgamesh evidence, not eBL as provider, one chapter label, one tablet, one critical edition, or a claim that the ancient tradition had a fixed recension."
+  },
+  "identifiers": [
+    {
+      "scheme": "eBL text and stage coordinate",
+      "value": "L/1/4 / Old Babylonian",
+      "source_ref": "https://www.ebl.lmu.de/api/texts/L/1/4"
+    },
+    {
+      "scheme": "Penn-reported CDLI composite",
+      "value": "Q002873.nn",
+      "source_ref": "https://www.penn.museum/collections/object/245958"
+    }
+  ],
+  "editorial_object": {
+    "title": "Old Babylonian Gilgamesh fragments",
+    "tradition": "Old Babylonian Akkadian Gilgamesh transmission",
+    "genre": "epic narrative and literary-tablet tradition",
+    "period_label": "Old Babylonian",
+    "description": "A provisional modern synoptic object coordinating currently identified Old Babylonian Gilgamesh tablets, fragment groups, editorial units, overlapping passages, and variant narrative arrangements without asserting one complete ancient recension.",
+    "modern_reconstruction": true,
+    "ancient_original": false,
+    "physical_artifact": false
+  },
+  "provider_representations": [
+    {
+      "provider": "Electronic Babylonian Literature",
+      "representation_role": "composite_edition",
+      "record_id": "L/1/4 / Old Babylonian",
+      "record_url": "https://www.ebl.lmu.de/api/texts/L/1/4",
+      "api_url": "https://www.ebl.lmu.de/api/texts/L/1/4",
+      "checked_at": "2026-08-22T23:30:25-06:00",
+      "mutable": true,
+      "response_fingerprints": [
+        {
+          "surface": "https://www.ebl.lmu.de/api/texts/L/1/4",
+          "byte_size": 16116,
+          "sha256": "7bfac097aa0abe1b175b6ef93ccc97f4917997d18e50cd9b378c951694786fdc",
+          "captured": false
+        }
+      ]
+    },
+    {
+      "provider": "Electronic Babylonian Literature",
+      "representation_role": "member_context",
+      "record_id": "L/1/4 / Old Babylonian II / manuscripts",
+      "record_url": "https://www.ebl.lmu.de/api/texts/L/1/4/chapters/Old%20Babylonian/II/manuscripts",
+      "api_url": "https://www.ebl.lmu.de/api/texts/L/1/4/chapters/Old%20Babylonian/II/manuscripts",
+      "checked_at": "2026-08-22T23:30:25-06:00",
+      "mutable": true,
+      "response_fingerprints": [
+        {
+          "surface": "https://www.ebl.lmu.de/api/texts/L/1/4/chapters/Old%20Babylonian/II/manuscripts",
+          "byte_size": 5057,
+          "sha256": "22c044024445f16affa2de33071194c4483c7631284b54010d19202a9f2c614c",
+          "captured": false
+        }
+      ]
+    },
+    {
+      "provider": "Cuneiform Digital Library Initiative",
+      "representation_role": "member_context",
+      "record_id": "P262784 / CBS 07771",
+      "record_url": "https://cdli.earth/artifacts/262784",
+      "api_url": "https://cdli.earth/artifacts/262784/json",
+      "checked_at": "2026-08-22T23:30:25-06:00",
+      "mutable": true,
+      "response_fingerprints": [
+        {
+          "surface": "https://cdli.earth/artifacts/262784/json",
+          "byte_size": 12753,
+          "sha256": "c6f3388f9023e082d9dbd3d9dbc25d38fc94ede218654c9c34330fde9df6bb91",
+          "captured": false
+        },
+        {
+          "surface": "https://cdli.earth/artifacts/262784",
+          "byte_size": 80375,
+          "sha256": "ce3261d978198dccbecebf343e5ab42938c40d746a55a60a26004f64d85e8bf0",
+          "captured": false
+        }
+      ]
+    }
+  ],
+  "member_observations": [
+    {
+      "observation_id": "tos.observation.composite.old-babylonian-gilgamesh.member.p262784.2026-08-22",
+      "member_artifact_id": "tos.artifact.old-babylonian.uncertain.penn-cbs-07771",
+      "relationship": "reported_witness_of",
+      "provider_relation_ids": [
+        "eBL L/1/4 Old Babylonian II manuscript CBS.7771",
+        "Penn-reported CDLI composite Q002873.nn"
+      ],
+      "source_refs": [
+        "https://www.penn.museum/collections/object/245958",
+        "https://cdli.earth/artifacts/262784/json",
+        "https://www.ebl.lmu.de/api/texts/L/1/4/chapters/Old%20Babylonian/II/manuscripts"
+      ],
+      "member_text_stored": false,
+      "review_status": "unreviewed"
+    }
+  ],
+  "coverage_observations": [
+    {
+      "provider": "Electronic Babylonian Literature",
+      "surface": "https://www.ebl.lmu.de/api/texts/L/1/4",
+      "observed_member_count": 21,
+      "observed_tagged_count": 14,
+      "named_member_present": true,
+      "coverage_posture": "full_api_list",
+      "checked_at": "2026-08-22T23:30:25-06:00",
+      "note": "All fourteen current Old Babylonian chapter manuscript endpoints were queried: II, III, UM, Schøyen₁, Schøyen₂, Schøyen₃, Nippur, Harmal₁, Harmal₂, Ishchali, IM, VA+BM, CUNES, and SM. They returned 21 manuscript records in total; Schøyen₃ returned eight and each other unit one. This is mutable dated provider coverage, not an exhaustive ancient membership set, fixed recension, or equivalence claim."
+    }
+  ],
+  "content_layer": {
+    "role": "modern_scholarly_composite",
+    "formats": [
+      "eBL corpus JSON metadata",
+      "eBL chapter and manuscript JSON",
+      "CDLI member metadata",
+      "critical-edition metadata"
+    ],
+    "availability": "open_view",
+    "content_stored": false,
+    "source_text_admitted": false,
+    "source_refs": [
+      "https://www.ebl.lmu.de/api/texts/L/1/4",
+      "https://www.ebl.lmu.de/api/texts/L/1/4/chapters/Old%20Babylonian/II/manuscripts",
+      "https://cdli.earth/artifacts/262784",
+      "https://soas-repository.worktribe.com/output/446254/the-babylonian-gilgamesh-epic-introduction-critical-edition-and-cuneiform-texts"
+    ],
+    "scope_note": "The composite can coordinate fragment identities, overlap, and editorial units, but no cuneiform signs, transliteration, reconstruction, translation, normalized text, section sequence, or accepted reading is stored or admitted."
+  },
+  "layer_separation": {
+    "composite_is_physical_artifact": false,
+    "composite_is_ancient_original": false,
+    "provider_page_is_composite_identity": false,
+    "member_is_composite": false,
+    "editorial_line_is_artifact_line": false,
+    "sign_has_fixed_translation": false,
+    "composite_is_philosophy": false
+  },
+  "rights_ref": "ToS/source-witnesses/scholarly-composites/synoptic/akkadian/old-babylonian-gilgamesh-fragments/rights.json",
+  "discovery_ref": "ToS/source-witnesses/discovery/runs/old-babylonian-gilgamesh-fragments.2026-08-22.v1.json",
+  "provenance_event_ref": "tos.event.discovery.old-babylonian-gilgamesh-fragments.2026-08-22",
+  "research_ref": "ToS/research-packets/foundation-laboratory-2026-07/A02_OLD_BABYLONIAN_GILGAMESH_FRAGMENTS_SOURCE_PLANTING_RESEARCH_2026-08-22.md",
+  "philosophy_planting_refs": [
+    "ToS/philosophy/eras/bronze-age/regions/west-asia/traditions/old-babylonian-scribal-wisdom-law/sources/plantings/old-babylonian-gilgamesh-fragments/source-planting.json"
+  ],
+  "authority": {
+    "evidence_status": "metadata_witness",
+    "review_status": "unreviewed",
+    "visibility": "public_metadata_only",
+    "source_text_admitted": false,
+    "semantic_authority": false,
+    "graph_authority": false,
+    "canon_authority": false,
+    "publication_authority": false
+  },
+  "maker": {"maker_type": "model", "agent_ref": "model:codex", "human_review_performed": false},
+  "created_at": "2026-08-23T00:07:00-06:00",
+  "record_version": 1
+}

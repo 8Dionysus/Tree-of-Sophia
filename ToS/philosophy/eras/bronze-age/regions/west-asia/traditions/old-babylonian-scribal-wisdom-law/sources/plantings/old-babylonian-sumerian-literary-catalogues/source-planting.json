@@ -1,0 +1,66 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/philosophy-source-planting.schema.json",
+  "schema_version": "tos_philosophy_source_planting_v1",
+  "planting_id": "tos.planting.a02.old-babylonian-sumerian-literary-catalogues",
+  "atlas_row_id": "A02",
+  "dossier_id": "A02",
+  "branch_path": "ToS/philosophy/eras/bronze-age/regions/west-asia/traditions/old-babylonian-scribal-wisdom-law",
+  "source_backlog_anchor": {
+    "path": "ToS/philosophy/eras/bronze-age/regions/west-asia/traditions/old-babylonian-scribal-wisdom-law/sources/source-anchor-backlog.jsonl",
+    "line": 18,
+    "source_table_index": 13,
+    "source_row_index": 8,
+    "source_label": "curricular catalogues of Sumerian literature"
+  },
+  "source_witness": {
+    "composite_id": "tos.composite.sumerian.old-babylonian-literary-catalogue-witnesses",
+    "record_ref": "ToS/source-witnesses/scholarly-composites/synoptic/sumerian/old-babylonian-literary-catalogue-witnesses/composite-witness.json",
+    "relationship": "grounds_source_backlog_anchor"
+  },
+  "discovery_ref": "ToS/source-witnesses/discovery/runs/old-babylonian-sumerian-literary-catalogues.2026-08-23.v1.json",
+  "provenance_event_ref": "tos.event.discovery.old-babylonian-sumerian-literary-catalogues.2026-08-23",
+  "research_ref": "ToS/research-packets/foundation-laboratory-2026-07/A02_OLD_BABYLONIAN_SUMERIAN_LITERARY_CATALOGUES_SOURCE_PLANTING_RESEARCH_2026-08-23.md",
+  "fulfilled_source_needs": [
+    "the backlog label is corrected from one curricular catalogue object to a provisional provider-independent scholarly composite over materially distinct inventory witnesses",
+    "Louvre AO 05393 / CDLI P345372 is admitted as one exact clay-tablet witness with stable inventory identity, Old Babylonian dating, Sumerian language, Louvre custody, uncertain provenience, and unknown dimensions",
+    "Nippur N2 / P255993 remains named provider coverage because Penn, CDLI, and eBL do not yet yield a clean original-versus-cast representation chain",
+    "ETCSL's 2002 ancient-catalogues page names eleven Old Babylonian entries while its 2006 complete catalogue names thirteen; both counts remain exact surface-specific project coverage rather than a closed ancient set, complete library, curriculum, or canon",
+    "ETCSL thematic placement and numbers are retained as mutable modern project assertions rather than stable ancient Work identities, genres, or relations",
+    "incipit occurrences remain tablet-local strings whose composition mappings are versioned and potentially ambiguous editorial claims",
+    "Delnero 2010 establishes that the Nippur and Louvre catalogues are inventories rather than curricular lists",
+    "Delnero 2023 supports a bounded Decad grouping and order only where the common first ten entries are corroborated by ruled separation, multi-composition tablets, and catch-lines",
+    "classical documentation precedes established correction and the fresh 2023 House F synthesis, while 2024-2026 calendar freshness is rejected when it does not supersede the exact question",
+    "layered rights keep bounded metadata public-safe while catalogue text, transliteration, translation, images, line art, scans, PDFs, and publication bodies remain absent",
+    "a future A/B/C route is prepared for physical layout, provider representation, and comparative scholarly interpretation with manual source-visible review"
+  ],
+  "remaining_controls": [
+    "the composite is provisional and does not claim that its witnesses copy one ancient original or exhaust the ancient inventory family",
+    "only AO 05393 receives a physical ToS artifact identity in this slice; N2 and the other ETCSL entries remain coverage until individually reconciled",
+    "the first-ten Decad sequence is a context-bounded hypothesis supported by multiple evidence types and must not be extended to the rest of either catalogue",
+    "catalogue position is not chronology, authorship, influence, importance, philosophy, canon rank, or universal pedagogical order",
+    "the Delnero 2010 article body remains subscription-controlled; its publisher abstract supports only the stated inventory-not-curriculum thesis",
+    "no Sumerian reading, cuneiform collation, source text, Work, Expression, Edition, Item, semantic claim, graph relation, canon state, server transfer, human task, or human review is created"
+  ],
+  "research_order": [
+    "official_and_classical_documentation",
+    "established_top_scholarship",
+    "fresh_current_relevance_check"
+  ],
+  "authority": {
+    "source_status": "metadata_witness_planted",
+    "review_status": "unreviewed",
+    "source_text_admitted": false,
+    "semantic_status": "not_started",
+    "graph_status": "not_promoted",
+    "canon_status": "not_canon",
+    "human_task_created": false
+  },
+  "status": "source_witness_planted",
+  "maker": {
+    "maker_type": "model",
+    "agent_ref": "model:codex",
+    "human_review_performed": false
+  },
+  "created_at": "2026-08-23T02:18:25-06:00",
+  "record_version": 1
+}

@@ -1,0 +1,62 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/philosophy-source-planting.schema.json",
+  "schema_version": "tos_philosophy_source_planting_v1",
+  "planting_id": "tos.planting.a02.george-babylonian-gilgamesh-epic-critical-control",
+  "atlas_row_id": "A02",
+  "dossier_id": "A02",
+  "branch_path": "ToS/philosophy/eras/bronze-age/regions/west-asia/traditions/old-babylonian-scribal-wisdom-law",
+  "source_backlog_anchor": {
+    "path": "ToS/philosophy/eras/bronze-age/regions/west-asia/traditions/old-babylonian-scribal-wisdom-law/sources/source-anchor-backlog.jsonl",
+    "line": 25,
+    "source_table_index": 14,
+    "source_row_index": 7,
+    "source_label": "Andrew R. George, The Babylonian Gilgamesh Epic и переводы"
+  },
+  "source_witness": {
+    "work_id": "tos.work.old-babylonian-scholarship.the-babylonian-gilgamesh-epic-critical-edition",
+    "record_ref": "ToS/source-witnesses/works/old-babylonian-scholarship/the-babylonian-gilgamesh-epic-critical-edition/work.json",
+    "relationship": "grounds_source_backlog_anchor"
+  },
+  "discovery_ref": "ToS/source-witnesses/discovery/runs/old-babylonian-gilgamesh-fragments.2026-08-22.v1.json",
+  "provenance_event_ref": "tos.event.annotation.old-babylonian-george-gilgamesh-controls.2026-08-23",
+  "research_ref": "ToS/research-packets/foundation-laboratory-2026-07/A02_GEORGE_BABYLONIAN_GILGAMESH_EPIC_AND_TRANSLATIONS_SOURCE_PLANTING_RESEARCH_2026-08-23.md",
+  "fulfilled_source_needs": [
+    "the exact 2003 modern scholarly Work behind the critical-edition half of backlog line 25 receives a stable provider-independent bibliographic identity",
+    "Andrew R. George receives a separate provisional Agent identity and an evidence-bearing unreviewed authored-by claim",
+    "the 2003 two-volume critical Work remains distinct from the Old Babylonian tradition, Standard Babylonian poem, every physical tablet, manuscript, recension, scholarly composite, and live eBL representation",
+    "the critical Work's introductions, composite texts, transliterations, restorations, divisions, line numbering, specialist translations, notes, plates, and indexes remain separate editorial or derivative layers",
+    "set and volume ISBNs remain bibliographic or manifestation controls and do not create an exact Edition, Manifestation, volume Item, repository file, or byte identity",
+    "the one-day-old eBL control preserves current mutable coverage without silently replacing George's stable 2003 Work identity",
+    "the inspected 2025 KASKAL article supplies a concrete later manuscript join and line restoration, proving that post-2003 revisions require explicit witness and claim provenance",
+    "only public bibliographic metadata, links, and one task-local research-input fingerprint are admitted; no critical-edition body, cuneiform plate, transliteration, reconstruction, translation, scan, or image payload is stored"
+  ],
+  "remaining_controls": [
+    "the Work-level record does not yet create or equate the two-volume set, volume I, volume II, any SOAS repository file, library copy, or local research copy",
+    "a future quotation or alignment must bind exact volume, page, tablet, line, manuscript siglum, restoration state, language layer, and responsible scholar",
+    "later source criticism must return to exact ancient witnesses and current editions rather than treating George 2003 as immutable ground truth",
+    "the KASKAL article-level CC BY 4.0 statement does not by itself settle every third-party tablet image or museum permission",
+    "no ancient Work, source payload, Expression, Edition, Manifestation, Item, page, passage, translation alignment, semantic claim, graph relation, canon state, access request, external message, payment, server transfer, human task, or human review is created"
+  ],
+  "research_order": [
+    "official_and_classical_documentation",
+    "established_top_scholarship",
+    "fresh_current_relevance_check"
+  ],
+  "authority": {
+    "source_status": "metadata_witness_planted",
+    "review_status": "unreviewed",
+    "source_text_admitted": false,
+    "semantic_status": "not_started",
+    "graph_status": "not_promoted",
+    "canon_status": "not_canon",
+    "human_task_created": false
+  },
+  "status": "source_witness_planted",
+  "maker": {
+    "maker_type": "model",
+    "agent_ref": "model:codex",
+    "human_review_performed": false
+  },
+  "created_at": "2026-08-23T03:55:40-06:00",
+  "record_version": 1
+}

@@ -1,0 +1,184 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/artifact-source-witness.schema.json",
+  "schema_version": "tos_artifact_source_witness_v1",
+  "artifact_id": "tos.artifact.sumerian.uncertain.louvre-ao-05393",
+  "artifact_kind": "clay_tablet",
+  "path_identity": {
+    "basis": "repository_identity",
+    "provider_independent": true,
+    "note": "The speaking route preserves the Louvre inventory AO 05393 while leaving provenience uncertain. CDLI P345372, ETCSL L, Q000322, modern catalogue labels, and changing readings remain representations of or relations to the physical tablet."
+  },
+  "identifiers": [
+    {
+      "scheme": "Louvre inventory",
+      "value": "AO 05393",
+      "source_ref": "https://cdli.earth/artifacts/345372"
+    },
+    {
+      "scheme": "CDLI",
+      "value": "P345372",
+      "source_ref": "https://cdli.earth/artifacts/345372"
+    },
+    {
+      "scheme": "ETCSL catalogue witness",
+      "value": "0.02.02 OB Catalogue in the Louvre (L)",
+      "source_ref": "https://etcsl.orinst.ox.ac.uk/catalogue/catalogue0.htm"
+    }
+  ],
+  "physical_description": {
+    "material": "clay",
+    "height_mm": null,
+    "width_mm": null,
+    "thickness_mm": null,
+    "source_ref": "https://cdli.earth/artifacts/345372"
+  },
+  "dating": {
+    "period_label": "Old Babylonian",
+    "display_date": "ca. 1900-1600 BCE",
+    "certainty": "reported",
+    "period_stage_separation_required": true,
+    "source_ref": "https://cdli.earth/artifacts/345372"
+  },
+  "find_context": {
+    "site": null,
+    "findspot": null,
+    "excavation_numbers": [],
+    "source_note": "CDLI reports uncertain provenience. No exact official Louvre collection record or excavation documentation for AO 05393 was found in the checked search.",
+    "documentation_limit": "The Louvre holding, Old Babylonian classification, catalogue grouping, or comparison with Nippur N2 may not be promoted into an excavated findspot, writing place, school, library, or circulation route.",
+    "source_ref": "https://cdli.earth/artifacts/345372"
+  },
+  "custody": {
+    "current_repository": "Musée du Louvre, Département des Antiquités orientales",
+    "inventory_numbers": ["AO 05393"],
+    "source_ref": "https://cdli.earth/artifacts/345372"
+  },
+  "digital_catalog_record": {
+    "provider": "Cuneiform Digital Library Initiative",
+    "record_id": "P345372",
+    "record_url": "https://cdli.earth/artifacts/345372",
+    "api_url": "https://cdli.earth/artifacts/345372/json",
+    "checked_at": "2026-08-23T02:18:25-06:00",
+    "mutable": true,
+    "response_fingerprints": [
+      {
+        "surface": "https://cdli.earth/artifacts/345372",
+        "byte_size": 82067,
+        "sha256": "dd838a8be22cb7bbe8b9b5a9d679d01558e7a88a468a86280ff840b9057c54b7",
+        "captured": false
+      },
+      {
+        "surface": "https://cdli.earth/artifacts/345372/json",
+        "byte_size": 8995,
+        "sha256": "1cfbe27d949c67ef251de7d5be8af2fc9dad2489827c189001ca4766528ba5e8",
+        "captured": false
+      }
+    ]
+  },
+  "inscription_layer": {
+    "availability": "available_not_acquired",
+    "language_status": "reported",
+    "provider_language_code": "sux",
+    "normalized_language_code": "sux",
+    "script": "cuneiform",
+    "transliteration_stored": false,
+    "translation_stored": false,
+    "source_refs": [
+      "https://cdli.earth/artifacts/345372",
+      "https://etcsl.orinst.ox.ac.uk/catalogue/catalogue0.htm"
+    ]
+  },
+  "composite_layer": {
+    "status": "linked",
+    "external_refs": [
+      {
+        "scheme": "CDLI composite",
+        "value": "Q000322",
+        "source_ref": "https://cdli.earth/artifacts/345372"
+      },
+      {
+        "scheme": "CDLI composite artifact",
+        "value": "P603482",
+        "source_ref": "https://cdli.earth/artifacts/345372"
+      }
+    ],
+    "relationship": "CDLI reports AO 05393/P345372 as a witness of Q000322/P603482. The clay tablet is not the provider record, the reconstructed catalogue, a complete curriculum, a literary corpus, or a canon.",
+    "is_physical_artifact_identity": false
+  },
+  "visual_layers": [
+    {
+      "layer_kind": "line_art",
+      "availability": "visible",
+      "content_stored": false,
+      "source_ref": "https://cdli.earth/artifacts/345372",
+      "rights_note": "CDLI exposes publication-linked line art and the 2023 ISAC volume reproduces a museum photograph under credited rights. No visual payload or publication authority was acquired."
+    }
+  ],
+  "scholarly_classification": {
+    "genre": "Sumerian literary catalogue; probable tablet inventory",
+    "corpus_labels": [
+      "Old Babylonian Catalogue in the Louvre (L)",
+      "ETCSL 0.02.02",
+      "CDLI Literary 000322"
+    ],
+    "classification_is_interpretive": true,
+    "source_refs": [
+      "https://cdli.earth/artifacts/345372",
+      "https://doi.org/10.1515/za.2010.003",
+      "https://isac.uchicago.edu/research/publications/ISACMP/isacmp1"
+    ]
+  },
+  "bibliography": [
+    {
+      "citation": "Henri de Genouillac, Textes religieux sumériens du Louvre, TCL 15, 28 (1930).",
+      "role": "primary_publication",
+      "source_ref": "https://cdli.earth/artifacts/345372"
+    },
+    {
+      "citation": "Samuel N. Kramer, The Oldest Literary Catalogue, BASOR 88 (1942), pp. 10-19.",
+      "role": "catalog_publication",
+      "source_ref": "https://doi.org/10.2307/1355474"
+    },
+    {
+      "citation": "Paul Delnero, Sumerian Literary Catalogues and the Scribal Curriculum, ZA 100.1 (2010), pp. 32-55.",
+      "role": "established_control",
+      "source_ref": "https://doi.org/10.1515/za.2010.003"
+    },
+    {
+      "citation": "Paul Delnero, The Decad and Scribal Errors, in Back to School in Babylonia (2023), pp. 143-152.",
+      "role": "current_control",
+      "source_ref": "https://isac.uchicago.edu/research/publications/ISACMP/isacmp1"
+    }
+  ],
+  "layer_separation": {
+    "physical_artifact_is_catalog_record": false,
+    "catalog_record_is_inscription": false,
+    "inscription_is_composite": false,
+    "visual_is_artifact": false,
+    "sign_has_fixed_translation": false,
+    "artifact_is_philosophy": false
+  },
+  "rights_ref": "ToS/source-witnesses/artifacts/sumerian/uncertain/louvre-ao-05393/rights.json",
+  "discovery_ref": "ToS/source-witnesses/discovery/runs/old-babylonian-louvre-ao-05393.2026-08-23.v1.json",
+  "provenance_event_ref": "tos.event.discovery.old-babylonian-sumerian-literary-catalogues.2026-08-23",
+  "research_ref": "ToS/research-packets/foundation-laboratory-2026-07/A02_OLD_BABYLONIAN_SUMERIAN_LITERARY_CATALOGUES_SOURCE_PLANTING_RESEARCH_2026-08-23.md",
+  "philosophy_planting_refs": [
+    "ToS/philosophy/eras/bronze-age/regions/west-asia/traditions/old-babylonian-scribal-wisdom-law/sources/plantings/old-babylonian-sumerian-literary-catalogues/source-planting.json"
+  ],
+  "authority": {
+    "evidence_status": "metadata_witness",
+    "review_status": "unreviewed",
+    "visibility": "public_metadata_only",
+    "source_text_admitted": false,
+    "semantic_authority": false,
+    "graph_authority": false,
+    "canon_authority": false,
+    "publication_authority": false
+  },
+  "maker": {
+    "maker_type": "model",
+    "agent_ref": "model:codex",
+    "human_review_performed": false
+  },
+  "created_at": "2026-08-23T02:18:25-06:00",
+  "record_version": 1
+}

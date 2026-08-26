@@ -1,0 +1,196 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/scholarly-composite-witness.schema.json",
+  "schema_version": "tos_scholarly_composite_witness_v1",
+  "composite_id": "tos.composite.sumerian.old-babylonian-literary-catalogue-witnesses",
+  "composite_kind": "synoptic_composite",
+  "preferred_label": "Old Babylonian Sumerian literary catalogue witnesses",
+  "identity_status": "provisional",
+  "path_identity": {
+    "basis": "scholarly_composition_identity",
+    "provider_independent": true,
+    "note": "The speaking route coordinates materially distinct Old Babylonian Sumerian literary catalogue or inventory witnesses. It does not assert one ancient original, one copied Work, a closed corpus, a universal curriculum, or a canon."
+  },
+  "identifiers": [
+    {
+      "scheme": "ETCSL catalogue section",
+      "value": "Ancient literary catalogues, Isin-Larsa/Old Babylonian entries",
+      "source_ref": "https://etcsl.orinst.ox.ac.uk/catalogue/catalogue0.htm"
+    },
+    {
+      "scheme": "CDLI compared composites",
+      "value": "Q000321 and Q000322",
+      "source_ref": "https://cdli.earth/publications/1776907"
+    }
+  ],
+  "editorial_object": {
+    "title": "Old Babylonian Sumerian literary catalogue witnesses",
+    "tradition": "Old Babylonian Sumerian scribal, archival, and educational practice",
+    "genre": "literary incipit lists and probable tablet inventories",
+    "period_label": "Old Babylonian, ca. 1900-1600 BCE",
+    "description": "A provisional modern synoptic object coordinating distinct catalogue tablets, their local incipit positions, ruled sections, modern composition mappings, and bounded grouping evidence without reconstructing a single ancient catalogue or complete curricular sequence.",
+    "modern_reconstruction": true,
+    "ancient_original": false,
+    "physical_artifact": false
+  },
+  "provider_representations": [
+    {
+      "provider": "Electronic Text Corpus of Sumerian Literature",
+      "representation_role": "composite_catalog",
+      "record_id": "ancient literary catalogues",
+      "record_url": "https://etcsl.orinst.ox.ac.uk/catalogue/catalogue0.htm",
+      "api_url": null,
+      "checked_at": "2026-08-23T02:18:25-06:00",
+      "mutable": true,
+      "response_fingerprints": [
+        {
+          "surface": "https://etcsl.orinst.ox.ac.uk/catalogue/catalogue0.htm",
+          "byte_size": 3420,
+          "sha256": "a02e00f675f113a199231c23deff4568c7ccc7033ffce95d3af4f70e495e7b55",
+          "captured": false
+        }
+      ]
+    },
+    {
+      "provider": "Cuneiform Digital Library Initiative",
+      "representation_role": "member_context",
+      "record_id": "P345372 / Q000322",
+      "record_url": "https://cdli.earth/artifacts/345372",
+      "api_url": "https://cdli.earth/artifacts/345372/json",
+      "checked_at": "2026-08-23T02:18:25-06:00",
+      "mutable": true,
+      "response_fingerprints": [
+        {
+          "surface": "https://cdli.earth/artifacts/345372",
+          "byte_size": 82067,
+          "sha256": "dd838a8be22cb7bbe8b9b5a9d679d01558e7a88a468a86280ff840b9057c54b7",
+          "captured": false
+        },
+        {
+          "surface": "https://cdli.earth/artifacts/345372/json",
+          "byte_size": 8995,
+          "sha256": "1cfbe27d949c67ef251de7d5be8af2fc9dad2489827c189001ca4766528ba5e8",
+          "captured": false
+        }
+      ]
+    },
+    {
+      "provider": "Cuneiform Digital Library Initiative",
+      "representation_role": "member_context",
+      "record_id": "P255993 / Q000321",
+      "record_url": "https://cdli.earth/artifacts/255993",
+      "api_url": "https://cdli.earth/artifacts/255993/json",
+      "checked_at": "2026-08-23T02:18:25-06:00",
+      "mutable": true,
+      "response_fingerprints": [
+        {
+          "surface": "https://cdli.earth/artifacts/255993",
+          "byte_size": 91361,
+          "sha256": "eee6642533a9f481e914aa969db3f7af8b75a8f628a492a985715280efdf4c2a",
+          "captured": false
+        },
+        {
+          "surface": "https://cdli.earth/artifacts/255993/json",
+          "byte_size": 12639,
+          "sha256": "4757d3c5758b683b4d223bdbf6f4b733dfcb755aa8ac774ae1b87068fecf1c21",
+          "captured": false
+        }
+      ]
+    }
+  ],
+  "member_observations": [
+    {
+      "observation_id": "tos.observation.composite.old-babylonian-literary-catalogues.member.p345372.2026-08-23",
+      "member_artifact_id": "tos.artifact.sumerian.uncertain.louvre-ao-05393",
+      "relationship": "reported_witness_of",
+      "provider_relation_ids": [
+        "CDLI P345372",
+        "CDLI Q000322 relation 365410",
+        "ETCSL 0.02.02 Louvre catalogue L"
+      ],
+      "source_refs": [
+        "https://cdli.earth/artifacts/345372",
+        "https://cdli.earth/artifacts/345372/json",
+        "https://etcsl.orinst.ox.ac.uk/catalogue/catalogue0.htm"
+      ],
+      "member_text_stored": false,
+      "review_status": "unreviewed"
+    }
+  ],
+  "coverage_observations": [
+    {
+      "provider": "Electronic Text Corpus of Sumerian Literature",
+      "surface": "https://etcsl.orinst.ox.ac.uk/catalogue/catalogue0.htm",
+      "observed_member_count": 11,
+      "observed_tagged_count": 11,
+      "named_member_present": true,
+      "coverage_posture": "provider_reported",
+      "checked_at": "2026-08-23T02:18:25-06:00",
+      "note": "The 2002 ETCSL catalogue page names eleven Isin-Larsa/Old Babylonian entries: N2, L, U1, U2, U3, N3, B1, N4, B4, Y2, and N6. This is dated project coverage, not a closed ancient set, current edition, complete library, uniform curriculum, or canon."
+    },
+    {
+      "provider": "Electronic Text Corpus of Sumerian Literature via Oxford Text Archive",
+      "surface": "https://ota.bodleian.ox.ac.uk/repository/xmlui/bitstream/handle/20.500.12024/2518/etcslfullcat.html?isAllowed=y&sequence=7",
+      "observed_member_count": 13,
+      "observed_tagged_count": 13,
+      "named_member_present": true,
+      "coverage_posture": "provider_reported",
+      "checked_at": "2026-08-23T02:45:00-06:00",
+      "note": "The complete ETCSL catalogue updated in 2006 adds 0.2.17 W 17259 an and 0.2.18 Si 331 to the eleven entries exposed by the 2002 ancient-catalogues page. The discrepancy remains revision- and surface-specific coverage; the larger list is not promoted into a closed or complete ancient set."
+    }
+  ],
+  "content_layer": {
+    "role": "modern_scholarly_composite",
+    "formats": [
+      "ETCSL catalogue HTML",
+      "ETCSL composite transliteration HTML",
+      "CDLI artifact HTML and JSON",
+      "CDLI ATF revision",
+      "modern scholarly comparison"
+    ],
+    "availability": "open_view",
+    "content_stored": false,
+    "source_text_admitted": false,
+    "source_refs": [
+      "https://etcsl.orinst.ox.ac.uk/catalogue/catalogue0.htm",
+      "https://ota.bodleian.ox.ac.uk/repository/xmlui/bitstream/handle/20.500.12024/2518/etcslfullcat.html?isAllowed=y&sequence=7",
+      "https://cdli.earth/artifacts/345372",
+      "https://cdli.earth/artifacts/255993",
+      "https://doi.org/10.1515/za.2010.003",
+      "https://isac.uchicago.edu/research/publications/ISACMP/isacmp1"
+    ],
+    "scope_note": "Provider and publication routes expose incipit readings, composition mappings, sequence, layout, images, and interpretation. The tracked layer retains identities, fingerprints, coverage, one exact member relation, and explicit epistemic boundaries only."
+  },
+  "layer_separation": {
+    "composite_is_physical_artifact": false,
+    "composite_is_ancient_original": false,
+    "provider_page_is_composite_identity": false,
+    "member_is_composite": false,
+    "editorial_line_is_artifact_line": false,
+    "sign_has_fixed_translation": false,
+    "composite_is_philosophy": false
+  },
+  "rights_ref": "ToS/source-witnesses/scholarly-composites/synoptic/sumerian/old-babylonian-literary-catalogue-witnesses/rights.json",
+  "discovery_ref": "ToS/source-witnesses/discovery/runs/old-babylonian-sumerian-literary-catalogues.2026-08-23.v1.json",
+  "provenance_event_ref": "tos.event.discovery.old-babylonian-sumerian-literary-catalogues.2026-08-23",
+  "research_ref": "ToS/research-packets/foundation-laboratory-2026-07/A02_OLD_BABYLONIAN_SUMERIAN_LITERARY_CATALOGUES_SOURCE_PLANTING_RESEARCH_2026-08-23.md",
+  "philosophy_planting_refs": [
+    "ToS/philosophy/eras/bronze-age/regions/west-asia/traditions/old-babylonian-scribal-wisdom-law/sources/plantings/old-babylonian-sumerian-literary-catalogues/source-planting.json"
+  ],
+  "authority": {
+    "evidence_status": "metadata_witness",
+    "review_status": "unreviewed",
+    "visibility": "public_metadata_only",
+    "source_text_admitted": false,
+    "semantic_authority": false,
+    "graph_authority": false,
+    "canon_authority": false,
+    "publication_authority": false
+  },
+  "maker": {
+    "maker_type": "model",
+    "agent_ref": "model:codex",
+    "human_review_performed": false
+  },
+  "created_at": "2026-08-23T02:18:25-06:00",
+  "record_version": 1
+}

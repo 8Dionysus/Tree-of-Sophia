@@ -1,0 +1,61 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/philosophy-source-planting.schema.json",
+  "schema_version": "tos_philosophy_source_planting_v1",
+  "planting_id": "tos.planting.a02.delnero-textual-criticism-of-sumerian-literature-control",
+  "atlas_row_id": "A02",
+  "dossier_id": "A02",
+  "branch_path": "ToS/philosophy/eras/bronze-age/regions/west-asia/traditions/old-babylonian-scribal-wisdom-law",
+  "source_backlog_anchor": {
+    "path": "ToS/philosophy/eras/bronze-age/regions/west-asia/traditions/old-babylonian-scribal-wisdom-law/sources/source-anchor-backlog.jsonl",
+    "line": 22,
+    "source_table_index": 14,
+    "source_row_index": 4,
+    "source_label": "Paul Delnero, The Textual Criticism of Sumerian Literature"
+  },
+  "source_witness": {
+    "work_id": "tos.work.old-babylonian-scholarship.the-textual-criticism-of-sumerian-literature",
+    "record_ref": "ToS/source-witnesses/works/old-babylonian-scholarship/the-textual-criticism-of-sumerian-literature/work.json",
+    "relationship": "grounds_source_backlog_anchor"
+  },
+  "discovery_ref": "ToS/source-witnesses/discovery/runs/old-babylonian-etcsl-digital-corpus.2026-08-12.v1.json",
+  "provenance_event_ref": "tos.event.annotation.old-babylonian-delnero-textual-criticism-control.2026-08-23",
+  "research_ref": "ToS/research-packets/foundation-laboratory-2026-07/A02_DELNERO_TEXTUAL_CRITICISM_OF_SUMERIAN_LITERATURE_SOURCE_PLANTING_RESEARCH_2026-08-23.md",
+  "fulfilled_source_needs": [
+    "the exact Delnero 2012 monograph behind the compact backlog label receives a stable provider-independent bibliographic identity",
+    "Paul Delnero and Paul A. Delnero are coordinated as source-reported forms of one provisional Agent without an authority-file or personal-biography same-as claim",
+    "physical artifact, source-anchored reading, observed difference, variant classification, proposed cause, editorial reconstruction, translation, and semantic interpretation remain separate evidence layers",
+    "a composite or score is retained as an argued editorial representation that must preserve its individual exemplar witnesses rather than becoming an ancient original",
+    "mechanical, local or regional, diachronic, scribal, idiosyncratic, and interpretive variation remain scholarly classifications whose causal and distributional evidence must be explicit",
+    "Delnero's 2024 direct return controls the corpus-relative continuum of textual stability and the distinction between erasure, accepted variance, and possible creative innovation",
+    "Oracc's composite-line and exemplar-line distinction supplies a current implementation control without deciding the historical cause or semantic weight of a difference",
+    "only public bibliographic metadata and links are admitted; no monograph, chapter, manuscript, score, text, transliteration, translation, or image payload is stored"
+  ],
+  "remaining_controls": [
+    "the 2012 Work does not replace artifact records, manuscript-level collation, composition-specific critical editions, Delnero's 2024 contained chapter, or later source criticism",
+    "a different string, sign, order, omission, or addition is an observation before it is an error, recension, innovation, authorial reading, original text, or semantic difference",
+    "machine alignment, edit distance, majority readings, embeddings, and LLM explanations may propose candidates but cannot own variant cause, editorial reconstruction, or philosophical meaning",
+    "no ancient Work, original text, variant entity, source payload, Expression, Edition, Item, semantic claim, graph relation, canon state, external request, server transfer, human task, or human review is created"
+  ],
+  "research_order": [
+    "official_and_classical_documentation",
+    "established_top_scholarship",
+    "fresh_current_relevance_check"
+  ],
+  "authority": {
+    "source_status": "metadata_witness_planted",
+    "review_status": "unreviewed",
+    "source_text_admitted": false,
+    "semantic_status": "not_started",
+    "graph_status": "not_promoted",
+    "canon_status": "not_canon",
+    "human_task_created": false
+  },
+  "status": "source_witness_planted",
+  "maker": {
+    "maker_type": "model",
+    "agent_ref": "model:codex",
+    "human_review_performed": false
+  },
+  "created_at": "2026-08-23T03:18:00-06:00",
+  "record_version": 1
+}

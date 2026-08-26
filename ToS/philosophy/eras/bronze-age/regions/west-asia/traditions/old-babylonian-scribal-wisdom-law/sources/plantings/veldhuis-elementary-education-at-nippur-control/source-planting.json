@@ -1,0 +1,61 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/philosophy-source-planting.schema.json",
+  "schema_version": "tos_philosophy_source_planting_v1",
+  "planting_id": "tos.planting.a02.veldhuis-elementary-education-at-nippur-control",
+  "atlas_row_id": "A02",
+  "dossier_id": "A02",
+  "branch_path": "ToS/philosophy/eras/bronze-age/regions/west-asia/traditions/old-babylonian-scribal-wisdom-law",
+  "source_backlog_anchor": {
+    "path": "ToS/philosophy/eras/bronze-age/regions/west-asia/traditions/old-babylonian-scribal-wisdom-law/sources/source-anchor-backlog.jsonl",
+    "line": 21,
+    "source_table_index": 14,
+    "source_row_index": 3,
+    "source_label": "Niek Veldhuis, Elementary Education at Nippur"
+  },
+  "source_witness": {
+    "work_id": "tos.work.old-babylonian-scholarship.elementary-education-at-nippur",
+    "record_ref": "ToS/source-witnesses/works/old-babylonian-scholarship/elementary-education-at-nippur/work.json",
+    "relationship": "grounds_source_backlog_anchor"
+  },
+  "discovery_ref": "ToS/source-witnesses/discovery/runs/old-babylonian-nippur-ur-school-tablets.2026-08-13.v1.json",
+  "provenance_event_ref": "tos.event.annotation.old-babylonian-veldhuis-elementary-education-control.2026-08-23",
+  "research_ref": "ToS/research-packets/foundation-laboratory-2026-07/A02_VELDHUIS_ELEMENTARY_EDUCATION_AT_NIPPUR_SOURCE_PLANTING_RESEARCH_2026-08-23.md",
+  "fulfilled_source_needs": [
+    "the exact Veldhuis 1997 doctoral-thesis Work behind the compact backlog label receives a stable provider-independent bibliographic identity",
+    "Niek Veldhuis and Nicolaas Christiaan Veldhuis are coordinated as source-reported forms of one provisional Agent without an authority-file or biographical same-as claim",
+    "the elementary Nippur sequence is retained as a versioned scholarly reconstruction over exercise-tablet forms, obverse-reverse relations, repeated list combinations, and local frequency",
+    "physical tablet, archaeological context, modern tablet type, current exercise, older reverse exercise, relative sequence, and cross-site comparison remain distinct evidence layers",
+    "the reconstruction remains local to Nippur and does not erase different ordering at Uruk and other centers",
+    "Veldhuis's 2023 return explicitly controls the misleading administrative implication of curriculum: private teaching and relative uniformity do not prove one school board or centralized syllabus",
+    "Scribal Worlds 2026 supplies the newest relevant classification, ontology, material-context, and knowledge-transmission control without pretending to supersede the exact sequence study",
+    "only public bibliographic metadata and links are admitted; no thesis, chapter, volume, plate, image, tablet, text, transliteration, or translation payload is stored"
+  ],
+  "remaining_controls": [
+    "the 1997 Work does not replace exact artifact records, excavation history, source collation, the 2023 contained chapter, or later cross-site scholarship",
+    "the labels curriculum, elementary stage, Type II, teacher-student exercise, list identity, and sequence remain scholarly constructs whose evidence and versions must stay explicit",
+    "the 2023 chapter is a separate contained Work in an aggregate volume and is retained here only as a current control until modeled independently",
+    "no ancient organization, curriculum entity, archaeological Collection, artifact membership, source payload, Expression, Edition, Item, semantic claim, graph relation, canon state, external request, server transfer, human task, or human review is created"
+  ],
+  "research_order": [
+    "official_and_classical_documentation",
+    "established_top_scholarship",
+    "fresh_current_relevance_check"
+  ],
+  "authority": {
+    "source_status": "metadata_witness_planted",
+    "review_status": "unreviewed",
+    "source_text_admitted": false,
+    "semantic_status": "not_started",
+    "graph_status": "not_promoted",
+    "canon_status": "not_canon",
+    "human_task_created": false
+  },
+  "status": "source_witness_planted",
+  "maker": {
+    "maker_type": "model",
+    "agent_ref": "model:codex",
+    "human_review_performed": false
+  },
+  "created_at": "2026-08-23T03:17:00-06:00",
+  "record_version": 1
+}

@@ -1,0 +1,402 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/material-discovery-record.schema.json",
+  "schema_version": "tos_material_discovery_record_v1",
+  "discovery_id": "tos.discovery.old-babylonian-yale-babylonian-collection-ancient-mesopotamia-speaks.2026-08-23",
+  "protocol_ref": "ToS/source-witnesses/discovery/DISCOVERY_PROTOCOL.md",
+  "target": {
+    "target_kind": "research-publication",
+    "known_tos_refs": [
+      "tos.work.mesopotamian-scholarship.ancient-mesopotamia-speaks-highlights-of-the-yale-babylonian-collection"
+    ],
+    "description": "Resolve A02 backlog line 30 into a stable Yale Babylonian Collection institutional route and an exact 2019 Ancient Mesopotamia Speaks catalog Work while separating collection groups, catalog identifiers, exhibition state, virtual and live provider states, physical objects, ancient Works, current editions, and rights.",
+    "required_properties": [
+      "official collection identity, affiliation, holdings scope, and research-access route",
+      "literal internal collection-prefix distinctions and object-returnability",
+      "exact 2019 catalog title, editors, date, ISBN, OCLC, and publication roles",
+      "established scholarly assessment of catalog utility and limits",
+      "fresh 2026 portal, digitization, publication, and currentness evidence",
+      "item-specific rights boundary and future permission channel without acquisition"
+    ],
+    "acceptable_substitutions": [
+      "current Yale institutional pages where the legacy collection portal is migrating",
+      "scholarly reviews for catalog scope and manifestation-level conflict",
+      "WorldCat identifier metadata after publisher and institutional identity are established"
+    ],
+    "languages": [
+      "en",
+      "und"
+    ],
+    "formats": [
+      "official institutional HTML",
+      "official publication metadata",
+      "scholarly chapter",
+      "peer-reviewed review",
+      "current collection infrastructure metadata",
+      "library aggregate metadata"
+    ],
+    "purpose_ref": "ToS/research-packets/foundation-laboratory-2026-07/A02_YALE_BABYLONIAN_COLLECTION_ANCIENT_MESOPOTAMIA_SPEAKS_SOURCE_PLANTING_RESEARCH_2026-08-23.md"
+  },
+  "channels": [
+    {
+      "channel_id": "channel-yale-official-classical",
+      "sequence": 1,
+      "channel_type": "specialized-scholarly-project",
+      "role": "originating-record",
+      "source_name": "Yale Peabody Museum and Yale Babylonian Collection official documentation",
+      "endpoint_url": "https://peabody.yale.edu/explore/collections/yale-babylonian-collection",
+      "interface_type": "web",
+      "interface_version": "live Yale institutional pages checked 2026-08-23",
+      "exact_query": "Resolve collection identity, internal holdings groups, 2019 catalog Work, exhibition state, object access, and digital-asset rights from Yale owner surfaces before consulting scholarship or general search.",
+      "queried_at": "2026-08-23T04:21:00-06:00",
+      "elapsed_seconds": 4.1,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.ybc-peabody-collection",
+          "rank": 1,
+          "title_as_displayed": "Babylonian Collection | Yale Peabody Museum",
+          "result_url": "https://peabody.yale.edu/explore/collections/yale-babylonian-collection",
+          "originating_record_url": "https://peabody.yale.edu/explore/collections/yale-babylonian-collection",
+          "identifiers": [],
+          "available_formats": ["official institutional HTML"],
+          "declared_rights": {
+            "statement": "Collection access is available for scholarly use under Peabody collections policies; digital-asset rights are record-specific.",
+            "scope": "metadata",
+            "evidence_url": "https://peabody.yale.edu/explore/collections/yale-babylonian-collection",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-view",
+          "machine_interface": "html",
+          "decision": "select",
+          "rationale": "Current owner record for institutional identity, 1911 founding label, 2017 Peabody affiliation, broad holdings scope, and research-access channel.",
+          "acquisition": {"downloaded": false, "acquired_at": null, "byte_size": null, "sha256": null, "event_ref": null},
+          "snapshot": {"state": "not-captured", "format": null, "sha256": null, "reason": "Source-returnable owner metadata is sufficient; no page or image payload enters ToS."}
+        },
+        {
+          "result_id": "tos-discovery-result.ybc-official-holdings",
+          "rank": 2,
+          "title_as_displayed": "Holdings | Babylonian Collection",
+          "result_url": "https://babylonian-collection.yale.edu/about/holdings",
+          "originating_record_url": "https://babylonian-collection.yale.edu/about/holdings",
+          "identifiers": [],
+          "available_formats": ["official collection HTML"],
+          "declared_rights": {"statement": null, "scope": "metadata", "evidence_url": null, "tos_conclusion": "evidence-only-not-a-rights-conclusion"},
+          "availability": "open-view",
+          "machine_interface": "html",
+          "decision": "select",
+          "rationale": "Exact owner distinction among YBC, NBC, MLC, GCBC, NCBT, NCBS, RBC, and smaller groups; prevents false identifier normalization.",
+          "acquisition": {"downloaded": false, "acquired_at": null, "byte_size": null, "sha256": null, "event_ref": null},
+          "snapshot": {"state": "not-captured", "format": null, "sha256": null, "reason": "Only institutional holdings metadata is cited."}
+        },
+        {
+          "result_id": "tos-discovery-result.ams-peabody-publication",
+          "rank": 3,
+          "title_as_displayed": "Ancient Mesopotamia Speaks | Exhibition Catalogs & More",
+          "result_url": "https://peabody.yale.edu/explore/publications/exhibitions-catalogs-more",
+          "originating_record_url": "https://peabody.yale.edu/explore/publications/exhibitions-catalogs-more",
+          "identifiers": [
+            {"scheme": "ISBN-13", "value": "9781933789378"}
+          ],
+          "available_formats": ["official publication metadata"],
+          "declared_rights": {
+            "statement": "Requests to reproduce material from Peabody-published titles are directed to the publications manager.",
+            "scope": "content",
+            "evidence_url": "https://peabody.yale.edu/explore/publications/exhibitions-catalogs-more",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-view",
+          "machine_interface": "html",
+          "decision": "select",
+          "rationale": "Originating publication record for exact title, three editors, ISBN, catalog purpose, and distribution by Yale University Press.",
+          "acquisition": {"downloaded": false, "acquired_at": null, "byte_size": null, "sha256": null, "event_ref": null},
+          "snapshot": {"state": "not-permitted", "format": null, "sha256": null, "reason": "No catalog body, cover, image, or downloadable publication payload is captured."}
+        },
+        {
+          "result_id": "tos-discovery-result.peabody-digital-assets-terms",
+          "rank": 4,
+          "title_as_displayed": "Terms of Use | Yale Peabody Museum",
+          "result_url": "https://peabody.yale.edu/about/terms-of-use",
+          "originating_record_url": "https://peabody.yale.edu/about/terms-of-use",
+          "identifiers": [],
+          "available_formats": ["official rights and permissions HTML"],
+          "declared_rights": {
+            "statement": "Rights vary by item; fair use and personal or educational downloads remain subject to additional terms, and reproduction may require permission.",
+            "scope": "digital-object",
+            "evidence_url": "https://peabody.yale.edu/about/terms-of-use",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-view",
+          "machine_interface": "html",
+          "decision": "select",
+          "rationale": "Current owner policy prevents public visibility from becoming a blanket redistribution or publication licence and supplies the future permission route.",
+          "acquisition": {"downloaded": false, "acquired_at": null, "byte_size": null, "sha256": null, "event_ref": null},
+          "snapshot": {"state": "not-captured", "format": null, "sha256": null, "reason": "The live rights source is cited without copying assets."}
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-yale-established-scholarship",
+      "sequence": 2,
+      "channel_type": "publisher-catalog",
+      "role": "scholarly-index",
+      "source_name": "Lockwood Press, The Historian, and Journal of the American Oriental Society records",
+      "endpoint_url": "https://doi.org/10.1080/00182370.2020.1778940",
+      "interface_type": "web",
+      "interface_version": "publisher and institutional repository records checked 2026-08-23",
+      "exact_query": "Identify established collection history and peer-reviewed assessments that clarify catalog utility, object detail, collecting-history bias, and manifestation metadata.",
+      "queried_at": "2026-08-23T04:24:00-06:00",
+      "elapsed_seconds": 3.9,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.foster-2013-albert-clay-babylonian-collection",
+          "rank": 1,
+          "title_as_displayed": "Albert T. Clay and His Babylonian Collection",
+          "result_url": "https://babylonian-collection.yale.edu/sites/default/files/files/Clay%20%26%20Babylonian%20Collection.pdf",
+          "originating_record_url": "https://babylonian-collection.yale.edu/sites/default/files/files/Clay%20%26%20Babylonian%20Collection.pdf",
+          "identifiers": [],
+          "available_formats": ["scholarly chapter PDF"],
+          "declared_rights": {"statement": null, "scope": "content", "evidence_url": null, "tos_conclusion": "evidence-only-not-a-rights-conclusion"},
+          "availability": "open-view",
+          "machine_interface": "manual-only",
+          "decision": "select",
+          "rationale": "Established scholarly history of Clay, Morgan, acquisitions, and the publication program; selected as provenance pressure, not a blanket validation of historic collecting practices.",
+          "acquisition": {"downloaded": false, "acquired_at": null, "byte_size": null, "sha256": null, "event_ref": null},
+          "snapshot": {"state": "not-captured", "format": null, "sha256": null, "reason": "The current research needs the source-returnable chapter route, not a local copy."}
+        },
+        {
+          "result_id": "tos-discovery-result.geller-2020-ams-review",
+          "rank": 2,
+          "title_as_displayed": "Ancient Mesopotamia Speaks: highlights of the Yale Babylonian collection",
+          "result_url": "https://discovery.ucl.ac.uk/id/eprint/10107639/",
+          "originating_record_url": "https://doi.org/10.1080/00182370.2020.1778940",
+          "identifiers": [
+            {"scheme": "DOI", "value": "10.1080/00182370.2020.1778940"}
+          ],
+          "available_formats": ["repository metadata", "author accepted manuscript"],
+          "declared_rights": {
+            "statement": "UCL marks the accepted manuscript open access and directs reuse questions to publisher terms.",
+            "scope": "content",
+            "evidence_url": "https://discovery.ucl.ac.uk/id/eprint/10107639/",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-view",
+          "machine_interface": "html",
+          "decision": "select",
+          "rationale": "Peer-reviewed assessment of the catalog's detailed object descriptions, thematic synthesis, broad accessibility, and nostalgic collecting-history limitation.",
+          "acquisition": {"downloaded": false, "acquired_at": null, "byte_size": null, "sha256": null, "event_ref": null},
+          "snapshot": {"state": "not-captured", "format": null, "sha256": null, "reason": "The review was inspected through the repository and no local payload is retained."}
+        },
+        {
+          "result_id": "tos-discovery-result.beckman-2023-ams-review",
+          "rank": 3,
+          "title_as_displayed": "Review of Ancient Mesopotamia Speaks: Highlights from the Yale Babylonian Collection",
+          "result_url": "https://lockwoodonlinejournals.com/index.php/jaos/article/view/2355",
+          "originating_record_url": "https://doi.org/10.7817/jaos.143.3.2023.br010",
+          "identifiers": [
+            {"scheme": "DOI", "value": "10.7817/jaos.143.3.2023.br010"}
+          ],
+          "available_formats": ["publisher metadata", "subscription review"],
+          "declared_rights": {"statement": "Review PDF requires subscription or fee on the publisher surface.", "scope": "content", "evidence_url": "https://lockwoodonlinejournals.com/index.php/jaos/article/view/2355", "tos_conclusion": "evidence-only-not-a-rights-conclusion"},
+          "availability": "subscription",
+          "machine_interface": "html",
+          "decision": "select",
+          "rationale": "Independent 2023 bibliographic and scholarly review route that stabilizes the Work while preserving a physical-extent conflict for later Item inspection.",
+          "acquisition": {"downloaded": false, "acquired_at": null, "byte_size": null, "sha256": null, "event_ref": null},
+          "snapshot": {"state": "not-permitted", "format": null, "sha256": null, "reason": "No fee, bypass, or review-body acquisition is authorized or required."}
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-yale-fresh-current",
+      "sequence": 3,
+      "channel_type": "specialized-scholarly-project",
+      "role": "mixed",
+      "source_name": "Current Yale digitization, LUX migration, and publication surfaces",
+      "endpoint_url": "https://babylonian-collection.yale.edu/digitizing-yale-babylonian-collection-1",
+      "interface_type": "web",
+      "interface_version": "live Yale surfaces checked 2026-08-23 after announced 2026-06-30 legacy portal retirement",
+      "exact_query": "Determine whether the collection and 2019 catalog remain current routes, how provider migration affects identifiers, and which recent publications show new object-level scholarship without implying blanket updates.",
+      "queried_at": "2026-08-23T04:28:00-06:00",
+      "elapsed_seconds": 3.4,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.ybc-current-digitization",
+          "rank": 1,
+          "title_as_displayed": "Digitizing the Yale Babylonian Collection",
+          "result_url": "https://babylonian-collection.yale.edu/digitizing-yale-babylonian-collection-1",
+          "originating_record_url": "https://babylonian-collection.yale.edu/digitizing-yale-babylonian-collection-1",
+          "identifiers": [],
+          "available_formats": ["current project HTML"],
+          "declared_rights": {"statement": "Data are described as freely shared with CDLI and other projects; item and image rights remain governed separately.", "scope": "metadata", "evidence_url": "https://babylonian-collection.yale.edu/digitizing-yale-babylonian-collection-1", "tos_conclusion": "evidence-only-not-a-rights-conclusion"},
+          "availability": "open-view",
+          "machine_interface": "html",
+          "decision": "select",
+          "rationale": "Current transformation history from local catalog to Peabody system, cross-provider sharing, and explicit statement that portions remain unpublished or need better documentation.",
+          "acquisition": {"downloaded": false, "acquired_at": null, "byte_size": null, "sha256": null, "event_ref": null},
+          "snapshot": {"state": "not-captured", "format": null, "sha256": null, "reason": "No image or database export is acquired."}
+        },
+        {
+          "result_id": "tos-discovery-result.peabody-lux-current-route",
+          "rank": 2,
+          "title_as_displayed": "The Collections | Yale Peabody Museum",
+          "result_url": "https://peabody.yale.edu/explore/collections",
+          "originating_record_url": "https://peabody.yale.edu/explore/collections",
+          "identifiers": [],
+          "available_formats": ["current institutional HTML", "LUX discovery link"],
+          "declared_rights": {"statement": "Peabody digital assets remain subject to item-level terms and Museum policies.", "scope": "metadata", "evidence_url": "https://peabody.yale.edu/explore/collections", "tos_conclusion": "evidence-only-not-a-rights-conclusion"},
+          "availability": "open-view",
+          "machine_interface": "html",
+          "decision": "select",
+          "rationale": "Current Yale statement that cataloged Peabody records are represented in LUX; provider migration is kept separate from physical-object identity and metadata acceptance.",
+          "acquisition": {"downloaded": false, "acquired_at": null, "byte_size": null, "sha256": null, "event_ref": null},
+          "snapshot": {"state": "not-captured", "format": null, "sha256": null, "reason": "The dynamic LUX application and collection records are not exported in this planting."}
+        },
+        {
+          "result_id": "tos-discovery-result.ybc-2024-2025-publication-currentness",
+          "rank": 3,
+          "title_as_displayed": "Welcome | Babylonian Collection",
+          "result_url": "https://babylonian-collection.yale.edu/",
+          "originating_record_url": "https://babylonian-collection.yale.edu/",
+          "identifiers": [],
+          "available_formats": ["current collection HTML", "recent publication metadata"],
+          "declared_rights": {"statement": "Copyright Yale University; linked publications and object assets retain their own terms.", "scope": "metadata", "evidence_url": "https://babylonian-collection.yale.edu/", "tos_conclusion": "evidence-only-not-a-rights-conclusion"},
+          "availability": "open-view",
+          "machine_interface": "html",
+          "decision": "select",
+          "rationale": "Current owner page exposes 2024 and 2025 object-specific publications, demonstrating active scholarship while not updating every A02 object or the 2019 catalog by default.",
+          "acquisition": {"downloaded": false, "acquired_at": null, "byte_size": null, "sha256": null, "event_ref": null},
+          "snapshot": {"state": "not-captured", "format": null, "sha256": null, "reason": "Only current bibliographic and lifecycle metadata is cited."}
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-yale-general-web-last",
+      "sequence": 4,
+      "channel_type": "general-web-search",
+      "role": "lead-only",
+      "source_name": "General web and library aggregate results after owner and scholarly resolution",
+      "endpoint_url": "https://www.google.com/search",
+      "interface_type": "web",
+      "interface_version": "general web checked last on 2026-08-23",
+      "exact_query": "9781933789378 Ancient Mesopotamia Speaks OCLC pagination",
+      "queried_at": "2026-08-23T04:31:00-06:00",
+      "elapsed_seconds": 1.2,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.worldcat-ams-1099939906",
+          "rank": 1,
+          "title_as_displayed": "Ancient Mesopotamia speaks highlights of the Yale Babylonian collection",
+          "result_url": "https://search.worldcat.org/title/Ancient-Mesopotamia-speaks-highlights-of-the-Yale-Babylonian-collection/oclc/1099939906",
+          "originating_record_url": "https://search.worldcat.org/title/Ancient-Mesopotamia-speaks-highlights-of-the-Yale-Babylonian-collection/oclc/1099939906",
+          "identifiers": [
+            {"scheme": "OCLC", "value": "1099939906"},
+            {"scheme": "ISBN-13", "value": "9781933789378"},
+            {"scheme": "ISBN-10", "value": "1933789379"}
+          ],
+          "available_formats": ["library aggregate metadata"],
+          "declared_rights": {"statement": null, "scope": "metadata", "evidence_url": null, "tos_conclusion": "evidence-only-not-a-rights-conclusion"},
+          "availability": "metadata-only",
+          "machine_interface": "html",
+          "decision": "select",
+          "rationale": "Selected only after Yale owner resolution for OCLC, ISBN-10, and issuing-body metadata; it does not outrank Yale for roles, rights, or content.",
+          "acquisition": {"downloaded": false, "acquired_at": null, "byte_size": null, "sha256": null, "event_ref": null},
+          "snapshot": {"state": "not-captured", "format": null, "sha256": null, "reason": "Aggregate metadata remains source-returnable and no record export is needed."}
+        },
+        {
+          "result_id": "tos-discovery-result.openlibrary-ams-import-record",
+          "rank": 2,
+          "title_as_displayed": "Ancient Mesopotamia Speaks",
+          "result_url": "https://openlibrary.org/books/OL27343663M/Ancient_Mesopotamia_Speaks",
+          "originating_record_url": "https://openlibrary.org/books/OL27343663M/Ancient_Mesopotamia_Speaks",
+          "identifiers": [
+            {"scheme": "Open Library", "value": "OL27343663M"}
+          ],
+          "available_formats": ["community-maintained imported metadata"],
+          "declared_rights": {"statement": null, "scope": "metadata", "evidence_url": null, "tos_conclusion": "evidence-only-not-a-rights-conclusion"},
+          "availability": "open-view",
+          "machine_interface": "html",
+          "decision": "reject",
+          "rationale": "Derivative ImportBot record misstates bibliographic responsibility and adds no authority beyond Yale and WorldCat; retained only as evidence of a common flattening failure.",
+          "acquisition": {"downloaded": false, "acquired_at": null, "byte_size": null, "sha256": null, "event_ref": null},
+          "snapshot": {"state": "not-needed", "format": null, "sha256": null, "reason": "Rejected derivative metadata is not preserved locally."}
+        }
+      ]
+    }
+  ],
+  "channel_comparison": [
+    {
+      "channel_id": "channel-yale-official-classical",
+      "completeness": "strong",
+      "metadata_precision": "strong",
+      "rights_clarity": "strong",
+      "machine_interface_quality": "adequate",
+      "human_minutes": 8,
+      "machine_seconds": 4.1,
+      "notes": "Best identity, holdings-group, publication-role, access, and rights evidence; dynamic object interfaces still require per-record reconciliation."
+    },
+    {
+      "channel_id": "channel-yale-established-scholarship",
+      "completeness": "adequate",
+      "metadata_precision": "strong",
+      "rights_clarity": "adequate",
+      "machine_interface_quality": "adequate",
+      "human_minutes": 7,
+      "machine_seconds": 3.9,
+      "notes": "Best control for catalog utility, collecting-history pressure, object-description scope, and bibliographic conflict; it cannot replace current object records."
+    },
+    {
+      "channel_id": "channel-yale-fresh-current",
+      "completeness": "adequate",
+      "metadata_precision": "adequate",
+      "rights_clarity": "limited",
+      "machine_interface_quality": "limited",
+      "human_minutes": 7,
+      "machine_seconds": 3.4,
+      "notes": "Shows active digitization, publication, and 2026 provider migration; exact inventory and LUX automation remain outside this planting."
+    },
+    {
+      "channel_id": "channel-yale-general-web-last",
+      "completeness": "limited",
+      "metadata_precision": "adequate",
+      "rights_clarity": "poor",
+      "machine_interface_quality": "limited",
+      "human_minutes": 3,
+      "machine_seconds": 1.2,
+      "notes": "WorldCat contributes bounded identifiers; community and retailer surfaces flatten responsibility or repeat stale metadata and are not authority."
+    }
+  ],
+  "selected_result_ids": [
+    "tos-discovery-result.ybc-peabody-collection",
+    "tos-discovery-result.ybc-official-holdings",
+    "tos-discovery-result.ams-peabody-publication",
+    "tos-discovery-result.peabody-digital-assets-terms",
+    "tos-discovery-result.foster-2013-albert-clay-babylonian-collection",
+    "tos-discovery-result.geller-2020-ams-review",
+    "tos-discovery-result.beckman-2023-ams-review",
+    "tos-discovery-result.ybc-current-digitization",
+    "tos-discovery-result.peabody-lux-current-route",
+    "tos-discovery-result.ybc-2024-2025-publication-currentness",
+    "tos-discovery-result.worldcat-ams-1099939906"
+  ],
+  "rejected_result_ids": [
+    "tos-discovery-result.openlibrary-ams-import-record"
+  ],
+  "rights_inference_from_availability_prohibited": true,
+  "general_web_search_is_last_resort": true,
+  "technical_access_bypass_used": false,
+  "maker": {
+    "maker_type": "model",
+    "agent_ref": "model:codex"
+  },
+  "started_at": "2026-08-23T04:20:00-06:00",
+  "ended_at": "2026-08-23T04:32:00-06:00",
+  "status": "reconciled",
+  "provenance_event_refs": [
+    "tos.event.discovery.old-babylonian-yale-babylonian-collection-ancient-mesopotamia-speaks.2026-08-23"
+  ],
+  "record_version": 1,
+  "supersedes_discovery_ref": null
+}
