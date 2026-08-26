@@ -1,12 +1,12 @@
 {
   "$schema": "https://tree-of-sophia.local/ToS/contracts/artifact-source-witness.schema.json",
   "schema_version": "tos_artifact_source_witness_v1",
-  "artifact_id": "tos.artifact.sumerian.abu-salabikh.im-070204-plus",
+  "artifact_id": "tos.artifact.sumerian.uncertain.im-070204-plus",
   "artifact_kind": "clay_tablet",
   "path_identity": {
     "basis": "repository_identity",
     "provider_independent": true,
-    "note": "The route follows the reported National Museum of Iraq inventory ensemble IM 070204 + and excavation joins, not the mutable CDLI provider identifier."
+    "note": "The route uses the reported National Museum of Iraq inventory ensemble IM 070204 + and excavation joins under the provider-independent uncertain site route; the Abu Salabikh association remains explicitly uncertain and is not promoted into the path identity."
   },
   "identifiers": [
     {"scheme": "CDLI", "value": "P010233", "source_ref": "https://cdli.earth/artifacts/10233"},
@@ -107,7 +107,7 @@
     "sign_has_fixed_translation": false,
     "artifact_is_philosophy": false
   },
-  "rights_ref": "ToS/source-witnesses/artifacts/sumerian/abu-salabikh/im-070204-plus/rights.json",
+  "rights_ref": "ToS/source-witnesses/artifacts/sumerian/uncertain/im-070204-plus/rights.json",
   "discovery_ref": "ToS/source-witnesses/discovery/runs/instructions-of-shuruppag-early-physical-witnesses.2026-08-22.v1.json",
   "provenance_event_ref": "tos.event.discovery.old-babylonian-instructions-of-shuruppag.2026-08-22",
   "research_ref": "ToS/research-packets/foundation-laboratory-2026-07/A02_INSTRUCTIONS_OF_SHURUPPAG_SOURCE_PLANTING_RESEARCH_2026-08-22.md",

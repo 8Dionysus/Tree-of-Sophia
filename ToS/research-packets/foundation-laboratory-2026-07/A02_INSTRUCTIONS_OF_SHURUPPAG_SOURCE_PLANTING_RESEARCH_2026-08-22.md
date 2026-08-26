@@ -136,7 +136,7 @@ Compare Alster 1974, Civil 1984, later Alster corrections, ETCSL, and the curren
 Plant:
 
 1. `tos.work.sumerian-literature.instructions-of-shuruppag` as the ancient composition identity with no ancient authorship or exact composition date asserted;
-2. `tos.artifact.sumerian.abu-salabikh.im-070204-plus` and `tos.artifact.sumerian.adab.oim-a00645-plus-a00649a-i` as exact physical witnesses;
+2. `tos.artifact.sumerian.uncertain.im-070204-plus` and `tos.artifact.sumerian.adab.oim-a00645-plus-a00649a-i` as exact physical witnesses;
 3. `tos.composite.sumerian.instructions-of-shuruppag` as a provider-independent modern critical reconstruction with current CDLI and classical ETCSL representations;
 4. `tos.work.sumerian-scholarship.the-instructions-of-shurruppak-a-sumerian-proverb-collection` and Bendt Alster's source-reported authorship claim;
 5. separate A02 plantings for backlog lines 15 and 27.

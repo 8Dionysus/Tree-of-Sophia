@@ -36,7 +36,7 @@
     "excluded_generated_carrier_rules": 3,
     "excluded_tracked_path_count": 303,
     "human_scope": {
-      "bytes": 4151289,
+      "bytes": 4151286,
       "count": 710,
       "excluded_skill_launch_metadata": 25,
       "family_counts": {
@@ -111,7 +111,7 @@
           "lines": 47
         },
         "tos": {
-          "bytes": 3091154,
+          "bytes": 3091151,
           "count": 342,
           "lines": 53159
         }
@@ -170,7 +170,7 @@
         "human": 342,
         "structured": 986
       },
-      "tracked_surface_bytes": 58019773,
+      "tracked_surface_bytes": 58019846,
       "tracked_surface_count": 1328
     },
     {
@@ -269,7 +269,7 @@
   "source_map": "docs/validation/documentation_family_map.json",
   "source_map_sha256": "9140a03a48109e6a9f35f3ca7dbf82058d96c3961e9e77bc31a743fb8814b13b",
   "tracked_source": "git ls-files -z",
-  "tracked_surface_digest": "6dcec5a685574e82c3549a36ea6819a7bfa1942c82d38212d6a4c5815be3709a",
+  "tracked_surface_digest": "3923b6c7350a43b1f6c35d55331c494c5e47d92d9af883b9a41bf188e0336343",
   "tracked_surfaces": [
     {
       "bytes": 1408,
@@ -3428,7 +3428,7 @@
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/derived-exports/graph/source-witness-bibliographic-claims.min.json",
-      "sha256": "14e69b83dd34f7e355582e167f3da14b9814f7bdaf7938c3b08e24ef09b6dfe3",
+      "sha256": "d4341b9e34221ad96567d936dace312f575bee07d6d973c18c5f34f984abc87d",
       "surface_kind": "structured"
     },
     {
@@ -3504,11 +3504,11 @@
       "surface_kind": "structured"
     },
     {
-      "bytes": 746449,
+      "bytes": 746443,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/derived-exports/tos_corpus_index.min.json",
-      "sha256": "0a66c738a0bf2bdfdff4188d4c2d7f4f6a3affd094fa2130b279e592b064a288",
+      "sha256": "5bcbbed328b2a28cbf9858ccc0383e00aeeddd48019937d76c916f2cf35d81b9",
       "surface_kind": "structured"
     },
     {
@@ -6608,11 +6608,11 @@
       "surface_kind": "human"
     },
     {
-      "bytes": 15316,
+      "bytes": 15313,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/research-packets/foundation-laboratory-2026-07/A02_INSTRUCTIONS_OF_SHURUPPAG_SOURCE_PLANTING_RESEARCH_2026-08-22.md",
-      "sha256": "eb503a06c9298d088c259e506351ad08d32ffa020f661589cc24929b508dc0e8",
+      "sha256": "f556ca49fb559721ee1683ecaeebe00e4024a2acb682458b1ec52b6b5c12183c",
       "surface_kind": "human"
     },
     {
@@ -8688,22 +8688,6 @@
       "surface_kind": "structured"
     },
     {
-      "bytes": 6852,
-      "currentness": "tracked_source_snapshot",
-      "family_id": "tos",
-      "path": "ToS/source-witnesses/artifacts/sumerian/abu-salabikh/im-070204-plus/artifact-witness.json",
-      "sha256": "7223ca9e3073fb23c029f33469b8a6bd3bde0454e9e4ecf486137cbae217bba9",
-      "surface_kind": "structured"
-    },
-    {
-      "bytes": 6259,
-      "currentness": "tracked_source_snapshot",
-      "family_id": "tos",
-      "path": "ToS/source-witnesses/artifacts/sumerian/abu-salabikh/im-070204-plus/rights.json",
-      "sha256": "5175f0c0c75a3309d2cb06368b6e68084f58b919a59d6a852e8f0d5ac2cc93d6",
-      "surface_kind": "structured"
-    },
-    {
       "bytes": 6675,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
@@ -8733,6 +8717,22 @@
       "family_id": "tos",
       "path": "ToS/source-witnesses/artifacts/sumerian/nippur/istanbul-ist-ni-03191/rights.json",
       "sha256": "f1dfc05633baa5273bd4bd18d7795c187d9d66f3834f6a98a829b6f7872ada7f",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 6955,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/artifacts/sumerian/uncertain/im-070204-plus/artifact-witness.json",
+      "sha256": "3bb5c190d36ce3cd42968642bf3be775315b11d9a10d18e7ebe81cb1ab20d8f4",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 6247,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/artifacts/sumerian/uncertain/im-070204-plus/rights.json",
+      "sha256": "8d255ed6e644bfea744dfce1b477a75dd49bca22d2b286ab71a38ddeec7f520a",
       "surface_kind": "structured"
     },
     {
@@ -9304,11 +9304,11 @@
       "surface_kind": "structured"
     },
     {
-      "bytes": 15395,
+      "bytes": 15392,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/source-witnesses/discovery/runs/instructions-of-shuruppag-early-physical-witnesses.2026-08-22.v1.json",
-      "sha256": "869dbcbb748a92e749396b04841e3fabe5144770727bb4a116d3b56dd2c2e254",
+      "sha256": "0f5357468c6d8d4c31733927dce63174810beaa1c13129242c4f90025353f296",
       "surface_kind": "structured"
     },
     {
@@ -9432,11 +9432,11 @@
       "surface_kind": "structured"
     },
     {
-      "bytes": 24843,
+      "bytes": 24840,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/source-witnesses/discovery/runs/old-babylonian-instructions-of-shuruppag.2026-08-22.v1.json",
-      "sha256": "08ead28cd96a855e6afac3f76da49bbe90724c3c9017293fdbcdc41705897fbe",
+      "sha256": "732d38948c01f0a914cfb4c5c92befc6d1e98acb4c5faac037968a5b8c184e17",
       "surface_kind": "structured"
     },
     {
@@ -9808,11 +9808,11 @@
       "surface_kind": "structured"
     },
     {
-      "bytes": 9403,
+      "bytes": 9400,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/source-witnesses/scholarly-composites/critical/sumerian/instructions-of-shuruppag/composite-witness.json",
-      "sha256": "3886f8f2bdcadccf4f6d6451a09f7893c3e81f05ee1b06f9f2f2540c233fe4fc",
+      "sha256": "cbb2e8f82c55e4e3c0620ca89bcb777e438a6daaea7249498e24600fd06e864c",
       "surface_kind": "structured"
     },
     {
