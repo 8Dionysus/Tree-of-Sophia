@@ -1,0 +1,225 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/material-discovery-record.schema.json",
+  "schema_version": "tos_material_discovery_record_v1",
+  "discovery_id": "tos.discovery.instructions-of-shuruppag-early-physical-witnesses.2026-08-22",
+  "protocol_ref": "ToS/source-witnesses/discovery/DISCOVERY_PROTOCOL.md",
+  "target": {
+    "target_kind": "artifact",
+    "known_tos_refs": [
+      "tos.artifact.sumerian.uncertain.im-070204-plus",
+      "tos.artifact.sumerian.adab.oim-a00645-plus-a00649a-i"
+    ],
+    "description": "Resolve two exact Early Dynastic physical witnesses of Instructions of Šuruppag without merging them with the ancient Work, modern composite, provider catalog, inscription, or visual representations.",
+    "required_properties": [
+      "provider-independent physical identities",
+      "exact inventory and excavation labels where reported",
+      "period, provenience, custody, fragmentation, and documentation limits",
+      "direct Q000782 membership evidence",
+      "classical publication and current catalog routes",
+      "layer-specific rights with no acquired content"
+    ],
+    "acceptable_substitutions": [
+      "a current holding-institution object record resolving the same inventory ensemble",
+      "a later CDLI artifact record with explicit identity continuity and supersession evidence",
+      "an official excavation catalog that corrects a reported field while preserving the physical object identity"
+    ],
+    "languages": ["sux", "en", "de"],
+    "formats": ["artifact HTML", "JSON API", "museum catalog", "excavation publication", "photograph route", "line-art route", "provider terms"],
+    "purpose_ref": "ToS/research-packets/foundation-laboratory-2026-07/A02_INSTRUCTIONS_OF_SHURUPPAG_SOURCE_PLANTING_RESEARCH_2026-08-22.md"
+  },
+  "channels": [
+    {
+      "channel_id": "channel-shuruppag-artifacts-official",
+      "sequence": 1,
+      "channel_type": "specialized-scholarly-project",
+      "role": "originating-record",
+      "source_name": "CDLI exact P010233 and P222243 artifact records",
+      "endpoint_url": "https://cdli.earth/artifacts/10233",
+      "interface_type": "api",
+      "interface_version": "live HTML and JSON checked 2026-08-22",
+      "exact_query": "Resolve P010233 and P222243 through exact HTML and JSON; retain physical identity, reported period, provenience, custody, inventory, excavation labels, language, genre, Q000782 relation, and absent fields.",
+      "queried_at": "2026-08-22T21:22:00-06:00",
+      "elapsed_seconds": 4.9,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.artifact-p010233-exact",
+          "rank": 1,
+          "title_as_displayed": "CDLI Literary 000782, ex. 023",
+          "result_url": "https://cdli.earth/artifacts/10233",
+          "originating_record_url": "https://cdli.earth/artifacts/10233/json",
+          "identifiers": [
+            {"scheme": "CDLI", "value": "P010233"},
+            {"scheme": "museum inventory", "value": "IM 070204 +"},
+            {"scheme": "excavation", "value": "AbS-T 0393 + AbS-T 0305"},
+            {"scheme": "CDLI composite relation", "value": "15492"}
+          ],
+          "available_formats": ["artifact HTML", "JSON API", "photograph", "line art", "bibliography"],
+          "declared_rights": {"statement": "CDLI terms are layer-specific; holding-institution and publication rights remain separate.", "scope": "digital-object", "evidence_url": "https://cdli.earth/terms-of-use", "tos_conclusion": "evidence-only-not-a-rights-conclusion"},
+          "availability": "open-view",
+          "machine_interface": "api",
+          "decision": "select",
+          "rationale": "Exact ED IIIa clay witness held by the National Museum of Iraq; the provider explicitly reports uncertain Abu Salabikh provenience and direct Q000782 membership.",
+          "acquisition": {"downloaded": false, "acquired_at": null, "byte_size": null, "sha256": null, "event_ref": null},
+          "snapshot": {"state": "not-captured", "format": null, "sha256": null, "reason": "Responses were streamed and fingerprinted; no content or visual was retained."}
+        },
+        {
+          "result_id": "tos-discovery-result.artifact-p222243-exact",
+          "rank": 2,
+          "title_as_displayed": "CDLI Literary 000782, ex. 003",
+          "result_url": "https://cdli.earth/artifacts/222243",
+          "originating_record_url": "https://cdli.earth/artifacts/222243/json",
+          "identifiers": [
+            {"scheme": "CDLI", "value": "P222243"},
+            {"scheme": "museum inventory", "value": "OIM A00645 + OIM A00649a–i"},
+            {"scheme": "CDLI composite relation", "value": "141941"}
+          ],
+          "available_formats": ["artifact HTML", "JSON API", "photograph", "line art", "bibliography"],
+          "declared_rights": {"statement": "CDLI terms are layer-specific; ISAC and publication rights remain separate.", "scope": "digital-object", "evidence_url": "https://cdli.earth/terms-of-use", "tos_conclusion": "evidence-only-not-a-rights-conclusion"},
+          "availability": "open-view",
+          "machine_interface": "api",
+          "decision": "select",
+          "rationale": "Exact fragmentary ED IIIa clay witness held by ISAC, reported from Adab, with direct Q000782 membership and no checked exact findspot.",
+          "acquisition": {"downloaded": false, "acquired_at": null, "byte_size": null, "sha256": null, "event_ref": null},
+          "snapshot": {"state": "not-captured", "format": null, "sha256": null, "reason": "Responses were streamed and fingerprinted; no content or visual was retained."}
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-shuruppag-artifacts-classical",
+      "sequence": 2,
+      "channel_type": "publisher-catalog",
+      "role": "scholarly-index",
+      "source_name": "OIP 99, OIP 14, and OIP 138 publication routes",
+      "endpoint_url": "https://isac.uchicago.edu/sites/default/files/uploads/shared/docs/oip99.pdf",
+      "interface_type": "web",
+      "interface_version": "official ISAC publication routes checked 2026-08-22",
+      "exact_query": "Resolve the Abu Salabikh publication nos. 256 + 323 and the Adab publication nos. 55 and 56 with later archaeological control; retain publication coordinates without copying plates or text.",
+      "queried_at": "2026-08-22T21:25:00-06:00",
+      "elapsed_seconds": 3.2,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.artifact-oip99-abu-salabikh",
+          "rank": 1,
+          "title_as_displayed": "Inscriptions from Tell Abū Ṣalābīkh",
+          "result_url": "https://isac.uchicago.edu/sites/default/files/uploads/shared/docs/oip99.pdf",
+          "originating_record_url": "https://cdli.earth/publications/6239",
+          "identifiers": [{"scheme": "OIP", "value": "99"}],
+          "available_formats": ["official PDF", "publication metadata", "photographs", "transliteration"],
+          "declared_rights": {"statement": null, "scope": "content", "evidence_url": null, "tos_conclusion": "evidence-only-not-a-rights-conclusion"},
+          "availability": "open-view",
+          "machine_interface": "html",
+          "decision": "select",
+          "rationale": "Classical primary publication for the P010233 ensemble and the Abu Salabikh version, with exact source coordinates.",
+          "acquisition": {"downloaded": false, "acquired_at": null, "byte_size": null, "sha256": null, "event_ref": null},
+          "snapshot": {"state": "not-captured", "format": null, "sha256": null, "reason": "Official PDF read remotely; no PDF, plate, photograph, or text retained."}
+        },
+        {
+          "result_id": "tos-discovery-result.artifact-oip14-oip138-adab",
+          "rank": 2,
+          "title_as_displayed": "Inscriptions from Adab / Bismaya: Recovering the Lost City of Adab",
+          "result_url": "https://cdli.earth/publications/30632",
+          "originating_record_url": "https://cdli.earth/publications/1750640",
+          "identifiers": [{"scheme": "OIP", "value": "14"}, {"scheme": "OIP", "value": "138"}],
+          "available_formats": ["bibliographic metadata", "official publication route", "archaeological control"],
+          "declared_rights": {"statement": null, "scope": "content", "evidence_url": null, "tos_conclusion": "evidence-only-not-a-rights-conclusion"},
+          "availability": "open-view",
+          "machine_interface": "html",
+          "decision": "select",
+          "rationale": "Classical publication coordinates for P222243 and later archaeological context without turning publication identity into artifact identity.",
+          "acquisition": {"downloaded": false, "acquired_at": null, "byte_size": null, "sha256": null, "event_ref": null},
+          "snapshot": {"state": "not-captured", "format": null, "sha256": null, "reason": "Only exact bibliographic and catalog facts were retained."}
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-shuruppag-artifacts-current",
+      "sequence": 3,
+      "channel_type": "specialized-scholarly-project",
+      "role": "digital-object-record",
+      "source_name": "Current CDLI composite score and ePSD2 early-literature index",
+      "endpoint_url": "https://cdli.earth/artifacts/composites-score/Q000782",
+      "interface_type": "web",
+      "interface_version": "CDLI score cited 2026-08-21; ePSD2 index crawled current to 2026-08-22",
+      "exact_query": "Confirm the two named early witnesses remain visible in the current composition and in an independent current early-literature query route; do not infer completeness from either interface.",
+      "queried_at": "2026-08-22T21:32:00-06:00",
+      "elapsed_seconds": 2.8,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.artifact-current-score-epsd2",
+          "rank": 1,
+          "title_as_displayed": "Q000782 current score / ePSD2 early literature",
+          "result_url": "https://cdli.earth/artifacts/composites-score/Q000782",
+          "originating_record_url": "https://oracc.museum.upenn.edu/epsd2/earlylit/withatf",
+          "identifiers": [{"scheme": "CDLI composite", "value": "Q000782"}, {"scheme": "CDLI member", "value": "P222243"}],
+          "available_formats": ["current score HTML", "queryable early-literature index", "artifact links"],
+          "declared_rights": {"statement": "Provider and linked-object terms remain separate.", "scope": "metadata", "evidence_url": "https://cdli.earth/terms-of-use", "tos_conclusion": "evidence-only-not-a-rights-conclusion"},
+          "availability": "open-view",
+          "machine_interface": "html",
+          "decision": "select",
+          "rationale": "Fresh exact cross-check that the physical members remain linked through current scholarly infrastructure; interface visibility is not completeness or acceptance.",
+          "acquisition": {"downloaded": false, "acquired_at": null, "byte_size": null, "sha256": null, "event_ref": null},
+          "snapshot": {"state": "not-captured", "format": null, "sha256": null, "reason": "Current pages were inspected without retaining text or media."}
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-shuruppag-artifacts-general-web-last",
+      "sequence": 4,
+      "channel_type": "general-web-search",
+      "role": "lead-only",
+      "source_name": "Final general-web object search",
+      "endpoint_url": "https://www.google.com/search?q=P010233+P222243+Instructions+of+Shuruppak",
+      "interface_type": "web",
+      "interface_version": "general web checked 2026-08-22 after exact records",
+      "exact_query": "P010233 P222243 Instructions of Shuruppak; screen mirrors, popular summaries, and unattributed images only after exact catalog and publication routes",
+      "queried_at": "2026-08-22T21:38:00-06:00",
+      "elapsed_seconds": 1.4,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.artifact-general-image-mirrors",
+          "rank": 1,
+          "title_as_displayed": "Unattributed tablet images and popular Instructions of Shuruppak pages",
+          "result_url": "https://en.wikipedia.org/wiki/Instructions_of_Shuruppak",
+          "originating_record_url": null,
+          "identifiers": [],
+          "available_formats": ["popular HTML", "image mirrors"],
+          "declared_rights": {"statement": null, "scope": "unknown", "evidence_url": null, "tos_conclusion": "evidence-only-not-a-rights-conclusion"},
+          "availability": "open-view",
+          "machine_interface": "html",
+          "decision": "reject",
+          "rationale": "Adds no stronger inventory, excavation, custody, composite-relation, publication, or rights evidence than the exact selected routes.",
+          "acquisition": {"downloaded": false, "acquired_at": null, "byte_size": null, "sha256": null, "event_ref": null},
+          "snapshot": {"state": "not-needed", "format": null, "sha256": null, "reason": "Rejected as object authority; no image or page was retained."}
+        }
+      ]
+    }
+  ],
+  "channel_comparison": [
+    {"channel_id": "channel-shuruppag-artifacts-official", "completeness": "strong", "metadata_precision": "strong", "rights_clarity": "adequate", "machine_interface_quality": "strong", "human_minutes": 18, "machine_seconds": 4.9, "notes": "Exact physical identity, provider uncertainty, custody, and reciprocal composite evidence."},
+    {"channel_id": "channel-shuruppag-artifacts-classical", "completeness": "strong", "metadata_precision": "strong", "rights_clarity": "limited", "machine_interface_quality": "adequate", "human_minutes": 12, "machine_seconds": 3.2, "notes": "Classical publication coordinates and later archaeological control without payload acquisition."},
+    {"channel_id": "channel-shuruppag-artifacts-current", "completeness": "adequate", "metadata_precision": "strong", "rights_clarity": "adequate", "machine_interface_quality": "adequate", "human_minutes": 7, "machine_seconds": 2.8, "notes": "Fresh cross-provider visibility check, retained as mutable representation evidence only."},
+    {"channel_id": "channel-shuruppag-artifacts-general-web-last", "completeness": "poor", "metadata_precision": "poor", "rights_clarity": "poor", "machine_interface_quality": "adequate", "human_minutes": 2, "machine_seconds": 1.4, "notes": "No authority added; unattributed mirrors and popular pages were rejected."}
+  ],
+  "selected_result_ids": [
+    "tos-discovery-result.artifact-p010233-exact",
+    "tos-discovery-result.artifact-p222243-exact",
+    "tos-discovery-result.artifact-oip99-abu-salabikh",
+    "tos-discovery-result.artifact-oip14-oip138-adab",
+    "tos-discovery-result.artifact-current-score-epsd2"
+  ],
+  "rejected_result_ids": ["tos-discovery-result.artifact-general-image-mirrors"],
+  "rights_inference_from_availability_prohibited": true,
+  "general_web_search_is_last_resort": true,
+  "technical_access_bypass_used": false,
+  "maker": {"maker_type": "model", "agent_ref": "model:codex"},
+  "started_at": "2026-08-22T21:22:00-06:00",
+  "ended_at": "2026-08-22T21:39:30-06:00",
+  "status": "reconciled",
+  "provenance_event_refs": ["tos.event.discovery.old-babylonian-instructions-of-shuruppag.2026-08-22"],
+  "record_version": 1,
+  "supersedes_discovery_ref": null
+}

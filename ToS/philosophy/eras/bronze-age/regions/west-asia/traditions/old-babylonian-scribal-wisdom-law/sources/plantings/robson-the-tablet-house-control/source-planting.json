@@ -1,0 +1,61 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/philosophy-source-planting.schema.json",
+  "schema_version": "tos_philosophy_source_planting_v1",
+  "planting_id": "tos.planting.a02.robson-the-tablet-house-control",
+  "atlas_row_id": "A02",
+  "dossier_id": "A02",
+  "branch_path": "ToS/philosophy/eras/bronze-age/regions/west-asia/traditions/old-babylonian-scribal-wisdom-law",
+  "source_backlog_anchor": {
+    "path": "ToS/philosophy/eras/bronze-age/regions/west-asia/traditions/old-babylonian-scribal-wisdom-law/sources/source-anchor-backlog.jsonl",
+    "line": 20,
+    "source_table_index": 14,
+    "source_row_index": 2,
+    "source_label": "Eleanor Robson, The Tablet House"
+  },
+  "source_witness": {
+    "work_id": "tos.work.old-babylonian-scholarship.the-tablet-house",
+    "record_ref": "ToS/source-witnesses/works/old-babylonian-scholarship/the-tablet-house/work.json",
+    "relationship": "grounds_source_backlog_anchor"
+  },
+  "discovery_ref": "ToS/source-witnesses/discovery/runs/old-babylonian-nippur-ur-school-tablets.2026-08-13.v1.json",
+  "provenance_event_ref": "tos.event.annotation.old-babylonian-robson-tablet-house-control.2026-08-23",
+  "research_ref": "ToS/research-packets/foundation-laboratory-2026-07/A02_NIPPUR_UR_SCHOOL_TABLETS_SOURCE_PLANTING_RESEARCH_2026-08-13.md",
+  "fulfilled_source_needs": [
+    "the exact Robson 2001 article Work behind the compact backlog label receives a stable provider-independent bibliographic identity",
+    "House F is approached through architecture, archaeological formation, tablet assemblage, and typology rather than through literary school narratives alone",
+    "the article's Nippur focus remains explicit and is not generalized to Ur, every Old Babylonian locality, or one Mesopotamian school system",
+    "the phrase 'A Scribal School' remains a versioned scholarly interpretation rather than the immutable identity of an ancient organization",
+    "ISAC 2023 supplies an object-returnable current synthesis and preserves the qualified status of House F as widely believed to have been a scribal school",
+    "Robson's 2026 return to House F adds direct current controls on community, temporality, locality, informal practice, and reified school models",
+    "the existing Eleanor Robson Agent identity is reused; the bibliographic Work is not duplicated with her ETCSL contributor role",
+    "only public bibliographic metadata and links are admitted; no article, book, chapter, image, scan, transcription, or translation payload is stored"
+  ],
+  "remaining_controls": [
+    "the 2001 Work does not replace excavation publications, exact object records, assemblage reconstruction, or later critical scholarship",
+    "House F, its rooms, deposits, tablets, occupants, activities, curriculum, and institutional character require distinct evidence-bearing identities and claims",
+    "the 2026 chapter is a separate contained Work in an aggregate volume and is retained here only as a current control until its own bibliographic planting is modeled",
+    "no ancient organization, archaeological Collection, membership list, curriculum claim, article body, Expression, Edition, Item, semantic claim, graph relation, canon state, external request, server transfer, human task, or human review is created"
+  ],
+  "research_order": [
+    "official_and_classical_documentation",
+    "established_top_scholarship",
+    "fresh_current_relevance_check"
+  ],
+  "authority": {
+    "source_status": "metadata_witness_planted",
+    "review_status": "unreviewed",
+    "source_text_admitted": false,
+    "semantic_status": "not_started",
+    "graph_status": "not_promoted",
+    "canon_status": "not_canon",
+    "human_task_created": false
+  },
+  "status": "source_witness_planted",
+  "maker": {
+    "maker_type": "model",
+    "agent_ref": "model:codex",
+    "human_review_performed": false
+  },
+  "created_at": "2026-08-23T02:34:59-06:00",
+  "record_version": 1
+}

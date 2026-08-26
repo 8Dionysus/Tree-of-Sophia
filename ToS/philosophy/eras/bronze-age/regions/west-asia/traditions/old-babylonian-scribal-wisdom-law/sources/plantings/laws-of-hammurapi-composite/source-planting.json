@@ -1,0 +1,46 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/philosophy-source-planting.schema.json",
+  "schema_version": "tos_philosophy_source_planting_v1",
+  "planting_id": "tos.planting.a02.laws-of-hammurapi-composite",
+  "atlas_row_id": "A02",
+  "dossier_id": "A02",
+  "branch_path": "ToS/philosophy/eras/bronze-age/regions/west-asia/traditions/old-babylonian-scribal-wisdom-law",
+  "source_backlog_anchor": {
+    "path": "ToS/philosophy/eras/bronze-age/regions/west-asia/traditions/old-babylonian-scribal-wisdom-law/sources/source-anchor-backlog.jsonl",
+    "line": 16,
+    "source_table_index": 13,
+    "source_row_index": 6,
+    "source_label": "law collections Ur-Namma / Lipit-Ishtar / Hammurapi"
+  },
+  "source_witness": {
+    "composite_id": "tos.composite.akkadian.laws-of-hammurapi",
+    "record_ref": "ToS/source-witnesses/scholarly-composites/critical/akkadian/laws-of-hammurapi/composite-witness.json",
+    "relationship": "grounds_source_backlog_anchor"
+  },
+  "discovery_ref": "ToS/source-witnesses/discovery/runs/mesopotamian-law-collections.2026-08-22.v1.json",
+  "provenance_event_ref": "tos.event.discovery.mesopotamian-law-collections.2026-08-22",
+  "research_ref": "ToS/research-packets/foundation-laboratory-2026-07/A02_MESOPOTAMIAN_LAW_COLLECTIONS_SOURCE_PLANTING_RESEARCH_2026-08-22.md",
+  "fulfilled_source_needs": [
+    "the ancient Laws of Hammurapi Work is separated from the king, royal speaker, physical stela, later tablets, modern title, composite, editions, translations, legislation theories, and interpretation",
+    "the existing Louvre SB 8 / P249253 identity is reused rather than duplicated and linked through current relation 198588",
+    "the provider-independent composite reconciles Q006387, P464358, and current revision 2337705 without making a provider URL or the stela the composite identity",
+    "the current witness array is a dated mutable observation of 27 members across Old Babylonian, Middle Assyrian, and Neo-Assyrian transmission",
+    "Scheil and the existing artifact packet precede Roth, Westbrook, Barmash, and current 2026 provider and genre controls",
+    "layer-specific rights keep metadata public-safe while text, transliteration, translation, photographs, line art, 3D models, scans, and editions remain absent",
+    "an A/B/C route is prepared for stela, composite, and critical-edition comparison with manual verification"
+  ],
+  "remaining_controls": [
+    "law collection and code remain attributed scholarly labels and do not establish modern positive-law force",
+    "Hammurapi in the modern label and royal framing is not an authored_by claim",
+    "Susa is the stela's reported discovery site and is not silently made the composition or original-display place",
+    "the stela lacuna, later witnesses, reconstructed sequence, and conventional 282-section numbering remain distinct",
+    "the 27-member provider count is mutable and later copies are not equivalent to the Old Babylonian monument",
+    "no source text, translation, semantic claim, graph relation, canon state, server transfer, or human task is created"
+  ],
+  "research_order": ["official_and_classical_documentation", "established_top_scholarship", "fresh_current_relevance_check"],
+  "authority": {"source_status": "metadata_witness_planted", "review_status": "unreviewed", "source_text_admitted": false, "semantic_status": "not_started", "graph_status": "not_promoted", "canon_status": "not_canon", "human_task_created": false},
+  "status": "source_witness_planted",
+  "maker": {"maker_type": "model", "agent_ref": "model:codex", "human_review_performed": false},
+  "created_at": "2026-08-22T22:46:00-06:00",
+  "record_version": 1
+}

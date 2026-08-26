@@ -1,0 +1,63 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/philosophy-source-planting.schema.json",
+  "schema_version": "tos_philosophy_source_planting_v1",
+  "planting_id": "tos.planting.a02.wilcke-gesetze-in-sumerischer-sprache-critical-control",
+  "atlas_row_id": "A02",
+  "dossier_id": "A02",
+  "branch_path": "ToS/philosophy/eras/bronze-age/regions/west-asia/traditions/old-babylonian-scribal-wisdom-law",
+  "source_backlog_anchor": {
+    "path": "ToS/philosophy/eras/bronze-age/regions/west-asia/traditions/old-babylonian-scribal-wisdom-law/sources/source-anchor-backlog.jsonl",
+    "line": 26,
+    "source_table_index": 14,
+    "source_row_index": 8,
+    "source_label": "Claus Wilcke, Laws of Lipit-Ishtar"
+  },
+  "source_witness": {
+    "work_id": "tos.work.old-babylonian-scholarship.gesetze-in-sumerischer-sprache",
+    "record_ref": "ToS/source-witnesses/works/old-babylonian-scholarship/gesetze-in-sumerischer-sprache/work.json",
+    "relationship": "grounds_source_backlog_anchor"
+  },
+  "discovery_ref": "ToS/source-witnesses/discovery/runs/mesopotamian-law-collections.2026-08-22.v1.json",
+  "provenance_event_ref": "tos.event.annotation.old-babylonian-wilcke-laws-of-lipit-ishtar-controls.2026-08-23",
+  "research_ref": "ToS/research-packets/foundation-laboratory-2026-07/A02_WILCKE_LAWS_OF_LIPIT_ISHTAR_SOURCE_PLANTING_RESEARCH_2026-08-23.md",
+  "fulfilled_source_needs": [
+    "the direct critical-control half of compressed backlog line 26 receives a stable modern Work identity for Gesetze in sumerischer Sprache",
+    "Claus Wilcke receives a separate provisional Agent identity and an evidence-bearing unreviewed authored-by claim",
+    "the chapter's DOI and CDLI publication route are preserved without collapsing the Work into a provider page, volume, printing, or exact Item",
+    "the chapter's Lipit-Ištar pages 573-602 remain an editorial coordinate in Wilcke's Work rather than an intrinsic address of the ancient composition or every tablet",
+    "the Work remains distinct from the ancient Laws of Lipit-Ištar, AO 05473, other physical witnesses, the Q000613/P464355 composite, the Oxford encyclopedia entry, corrigenda, and translations",
+    "conflicting year and page reports remain source-scoped instead of being silently normalized into an uninspected Edition",
+    "Wilcke's 2015 corrigenda prove that the critical control is versioned and repairable rather than immutable ground truth",
+    "current CDLI and Oracc coordinates are retained as mutable provider evidence and do not silently supersede Wilcke or the physical witness tradition",
+    "only public bibliographic metadata and links are admitted; no chapter body, transliteration, reconstruction, translation, plate, scan, or image payload is stored"
+  ],
+  "remaining_controls": [
+    "the Work-level record does not yet create or equate the 2014 or 2015 publication state, volume, printing, JSTOR object, library copy, or any local research copy",
+    "a future quotation, collation, or translation experiment must inspect an exact Item and bind page, line, witness, restoration state, language layer, responsible scholar, and correction state",
+    "Steele, Falkenstein and San Nicolò, Roth, current providers, and later translations remain separate controls rather than hidden inputs to one final text",
+    "the open NABU PDF route does not establish blanket redistribution rights for the issue or third-party material",
+    "no ancient Work, source payload, Expression, Edition, Manifestation, Item, passage, translation alignment, semantic claim, graph relation, canon state, access request, external message, payment, server transfer, human task, or human review is created"
+  ],
+  "research_order": [
+    "official_and_classical_documentation",
+    "established_top_scholarship",
+    "fresh_current_relevance_check"
+  ],
+  "authority": {
+    "source_status": "metadata_witness_planted",
+    "review_status": "unreviewed",
+    "source_text_admitted": false,
+    "semantic_status": "not_started",
+    "graph_status": "not_promoted",
+    "canon_status": "not_canon",
+    "human_task_created": false
+  },
+  "status": "source_witness_planted",
+  "maker": {
+    "maker_type": "model",
+    "agent_ref": "model:codex",
+    "human_review_performed": false
+  },
+  "created_at": "2026-08-23T04:07:13-06:00",
+  "record_version": 1
+}

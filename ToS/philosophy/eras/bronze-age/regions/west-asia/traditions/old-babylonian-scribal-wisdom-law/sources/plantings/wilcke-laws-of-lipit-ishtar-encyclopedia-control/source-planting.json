@@ -1,0 +1,61 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/philosophy-source-planting.schema.json",
+  "schema_version": "tos_philosophy_source_planting_v1",
+  "planting_id": "tos.planting.a02.wilcke-laws-of-lipit-ishtar-encyclopedia-control",
+  "atlas_row_id": "A02",
+  "dossier_id": "A02",
+  "branch_path": "ToS/philosophy/eras/bronze-age/regions/west-asia/traditions/old-babylonian-scribal-wisdom-law",
+  "source_backlog_anchor": {
+    "path": "ToS/philosophy/eras/bronze-age/regions/west-asia/traditions/old-babylonian-scribal-wisdom-law/sources/source-anchor-backlog.jsonl",
+    "line": 26,
+    "source_table_index": 14,
+    "source_row_index": 8,
+    "source_label": "Claus Wilcke, Laws of Lipit-Ishtar"
+  },
+  "source_witness": {
+    "work_id": "tos.work.old-babylonian-scholarship.laws-of-lipit-ishtar-wilcke-encyclopedia-entry",
+    "record_ref": "ToS/source-witnesses/works/old-babylonian-scholarship/laws-of-lipit-ishtar-wilcke-encyclopedia-entry/work.json",
+    "relationship": "grounds_source_backlog_anchor"
+  },
+  "discovery_ref": "ToS/source-witnesses/discovery/runs/mesopotamian-law-collections.2026-08-22.v1.json",
+  "provenance_event_ref": "tos.event.annotation.old-babylonian-wilcke-laws-of-lipit-ishtar-controls.2026-08-23",
+  "research_ref": "ToS/research-packets/foundation-laboratory-2026-07/A02_WILCKE_LAWS_OF_LIPIT_ISHTAR_SOURCE_PLANTING_RESEARCH_2026-08-23.md",
+  "fulfilled_source_needs": [
+    "the literal Laws of Lipit-Ishtar Work named by compressed backlog line 26 receives a stable modern encyclopedia-entry identity distinct from Wilcke's critical chapter",
+    "Claus Wilcke receives a separate evidence-bearing unreviewed authored-by claim for the reference entry",
+    "the University of Oregon Libraries citation preserves the exact Oxford Reference entry route while Emory independently verifies the encyclopedia, publisher, ISBN, and publication date",
+    "the stale or inaccessible old provider route is retained as bibliographic evidence without inventing a current content URL, DOI, or inspected body",
+    "the encyclopedia entry remains a concise reference Work rather than the critical edition, ancient composition, one physical witness, Q000613/P464355 composite, or accepted translation",
+    "the encyclopedia volume ISBN remains container or manifestation evidence and does not create an entry Edition, Manifestation, Item, or byte identity",
+    "only public bibliographic metadata and links are admitted; no Oxford entry body, translation, sample, scan, cover, or image payload is stored"
+  ],
+  "remaining_controls": [
+    "the Work-level record does not yet create or equate a print volume, Oxford Reference state, library copy, page range, exact entry Item, or local research copy",
+    "the entry body must be obtained through ordinary authorized access if future content analysis requires it; current metadata suffices for this planting and creates no access request",
+    "the reference entry cannot supply exact Sumerian readings, witness variants, editorial corrections, or translation ground truth without returning to the critical and physical layers",
+    "the volume ISBN and public citation do not authorize redistribution of the encyclopedia entry",
+    "no ancient Work, source payload, Expression, Edition, Manifestation, Item, passage, translation alignment, semantic claim, graph relation, canon state, access request, external message, payment, server transfer, human task, or human review is created"
+  ],
+  "research_order": [
+    "official_and_classical_documentation",
+    "established_top_scholarship",
+    "fresh_current_relevance_check"
+  ],
+  "authority": {
+    "source_status": "metadata_witness_planted",
+    "review_status": "unreviewed",
+    "source_text_admitted": false,
+    "semantic_status": "not_started",
+    "graph_status": "not_promoted",
+    "canon_status": "not_canon",
+    "human_task_created": false
+  },
+  "status": "source_witness_planted",
+  "maker": {
+    "maker_type": "model",
+    "agent_ref": "model:codex",
+    "human_review_performed": false
+  },
+  "created_at": "2026-08-23T04:07:13-06:00",
+  "record_version": 1
+}

@@ -1,0 +1,127 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/artifact-source-witness.schema.json",
+  "schema_version": "tos_artifact_source_witness_v1",
+  "artifact_id": "tos.artifact.old-babylonian.uncertain.penn-cbs-07771",
+  "artifact_kind": "clay_tablet",
+  "path_identity": {
+    "basis": "repository_identity",
+    "provider_independent": true,
+    "note": "The path follows the stable Penn Museum CBS 07771 repository identity and intentionally uses uncertain because Penn, the CBS register note, CDLI, and eBL do not report one reconciled locality."
+  },
+  "identifiers": [
+    {"scheme": "Penn Museum object number", "value": "CBS7771", "source_ref": "https://www.penn.museum/collections/object/245958"},
+    {"scheme": "Penn Museum other number", "value": "CBS 07771", "source_ref": "https://www.penn.museum/collections/object/245958"},
+    {"scheme": "Penn Museum old museum number", "value": "B7771", "source_ref": "https://www.penn.museum/collections/object/245958"},
+    {"scheme": "CDLI", "value": "P262784", "source_ref": "https://cdli.earth/artifacts/262784"},
+    {"scheme": "eBL museum number", "value": "CBS.7771", "source_ref": "https://www.ebl.lmu.de/api/fragments/CBS.7771"}
+  ],
+  "physical_description": {
+    "material": "clay",
+    "height_mm": 185,
+    "width_mm": 165,
+    "thickness_mm": 24,
+    "source_ref": "https://www.penn.museum/collections/object/245958"
+  },
+  "dating": {
+    "period_label": "Old Babylonian",
+    "display_date": "ca. 1650 BCE",
+    "certainty": "reported",
+    "period_stage_separation_required": true,
+    "source_ref": "https://www.penn.museum/collections/object/245958"
+  },
+  "find_context": {
+    "site": null,
+    "findspot": null,
+    "excavation_numbers": [],
+    "source_note": "Penn reports Iraq, Warka (uncertain), while its description preserves a CBS Register note naming Sippar. CDLI reports Nippur; eBL reports the broader Babylonia label.",
+    "documentation_limit": "The conflicting provider statements were not reconciled by excavation documentation. None is promoted to an exact findspot, composition place, scribal school, or ancient circulation route.",
+    "source_ref": "https://www.penn.museum/collections/object/245958"
+  },
+  "custody": {
+    "current_repository": "Penn Museum, Babylonian Section",
+    "inventory_numbers": ["CBS7771", "CBS 07771", "B7771"],
+    "source_ref": "https://www.penn.museum/collections/object/245958"
+  },
+  "digital_catalog_record": {
+    "provider": "Cuneiform Digital Library Initiative",
+    "record_id": "P262784",
+    "record_url": "https://cdli.earth/artifacts/262784",
+    "api_url": "https://cdli.earth/artifacts/262784/json",
+    "checked_at": "2026-08-22T23:30:25-06:00",
+    "mutable": true,
+    "response_fingerprints": [
+      {"surface": "https://cdli.earth/artifacts/262784/json", "byte_size": 12753, "sha256": "c6f3388f9023e082d9dbd3d9dbc25d38fc94ede218654c9c34330fde9df6bb91", "captured": false},
+      {"surface": "https://cdli.earth/artifacts/262784", "byte_size": 80375, "sha256": "ce3261d978198dccbecebf343e5ab42938c40d746a55a60a26004f64d85e8bf0", "captured": false}
+    ]
+  },
+  "inscription_layer": {
+    "availability": "available_not_acquired",
+    "language_status": "reported",
+    "provider_language_code": "akk",
+    "normalized_language_code": "akk",
+    "script": "cuneiform",
+    "transliteration_stored": false,
+    "translation_stored": false,
+    "source_refs": [
+      "https://cdli.earth/artifacts/262784",
+      "https://www.ebl.lmu.de/api/fragments/CBS.7771"
+    ]
+  },
+  "composite_layer": {
+    "status": "linked",
+    "external_refs": [
+      {"scheme": "Penn-reported CDLI composite", "value": "Q002873.nn", "source_ref": "https://www.penn.museum/collections/object/245958"},
+      {"scheme": "eBL text and chapter", "value": "L/1/4 / Old Babylonian II", "source_ref": "https://www.ebl.lmu.de/api/texts/L/1/4/chapters/Old%20Babylonian/II/manuscripts"}
+    ],
+    "relationship": "The tablet is one physical witness represented in modern composite and synoptic routes. Neither the Penn/CDLI Q-label nor the eBL chapter makes the tablet identical to a reconstructed composition, fixed reading, translation, or complete Old Babylonian poem.",
+    "is_physical_artifact_identity": false
+  },
+  "visual_layers": [
+    {"layer_kind": "photograph", "availability": "visible", "content_stored": false, "source_ref": "https://www.penn.museum/collections/object/245958", "rights_note": "Penn excludes images from its CC BY 4.0 metadata dataset and provides a separate publication-permission route; no photograph was acquired."},
+    {"layer_kind": "line_art", "availability": "visible", "content_stored": false, "source_ref": "https://cdli.earth/artifacts/262784", "rights_note": "CDLI links or renders scholarly line art under source-specific contributor terms; no drawing was acquired or authorized for publication."}
+  ],
+  "scholarly_classification": {
+    "genre": "Akkadian literary tablet; Old Babylonian Gilgamesh witness",
+    "corpus_labels": ["Gilgamesh II", "Pennsylvania tablet", "Old Babylonian unit II"],
+    "classification_is_interpretive": true,
+    "source_refs": [
+      "https://www.penn.museum/collections/object/245958",
+      "https://cdli.earth/artifacts/262784",
+      "https://www.ebl.lmu.de/api/texts/L/1/4/chapters/Old%20Babylonian/II/manuscripts"
+    ]
+  },
+  "bibliography": [
+    {"citation": "Langdon, Stephen H. The Epic of Gilgamish, PBS 10/3 (1917).", "role": "primary_publication", "source_ref": "https://etana.org/sites/default/files/coretexts/14909.pdf"},
+    {"citation": "Jastrow, Morris Jr., and Albert T. Clay. An Old Babylonian Version of the Gilgamesh Epic (1920).", "role": "catalog_publication", "source_ref": "https://www.gutenberg.org/ebooks/11000"},
+    {"citation": "George, Andrew R. The Babylonian Gilgamesh Epic: Introduction, Critical Edition and Cuneiform Texts (2003), pp. 172-192 and pls. 1-3 as reported by eBL.", "role": "established_control", "source_ref": "https://soas-repository.worktribe.com/output/446254/the-babylonian-gilgamesh-epic-introduction-critical-edition-and-cuneiform-texts"},
+    {"citation": "Electronic Babylonian Literature, Poem of Gilgameš, Old Babylonian II manuscript record, live state checked 2026-08-22.", "role": "current_control", "source_ref": "https://www.ebl.lmu.de/api/texts/L/1/4/chapters/Old%20Babylonian/II/manuscripts"}
+  ],
+  "layer_separation": {
+    "physical_artifact_is_catalog_record": false,
+    "catalog_record_is_inscription": false,
+    "inscription_is_composite": false,
+    "visual_is_artifact": false,
+    "sign_has_fixed_translation": false,
+    "artifact_is_philosophy": false
+  },
+  "rights_ref": "ToS/source-witnesses/artifacts/old-babylonian/uncertain/penn-cbs-07771/rights.json",
+  "discovery_ref": "ToS/source-witnesses/discovery/runs/old-babylonian-gilgamesh-cbs7771.2026-08-22.v1.json",
+  "provenance_event_ref": "tos.event.discovery.old-babylonian-gilgamesh-fragments.2026-08-22",
+  "research_ref": "ToS/research-packets/foundation-laboratory-2026-07/A02_OLD_BABYLONIAN_GILGAMESH_FRAGMENTS_SOURCE_PLANTING_RESEARCH_2026-08-22.md",
+  "philosophy_planting_refs": [
+    "ToS/philosophy/eras/bronze-age/regions/west-asia/traditions/old-babylonian-scribal-wisdom-law/sources/plantings/old-babylonian-gilgamesh-fragments/source-planting.json"
+  ],
+  "authority": {
+    "evidence_status": "metadata_witness",
+    "review_status": "unreviewed",
+    "visibility": "public_metadata_only",
+    "source_text_admitted": false,
+    "semantic_authority": false,
+    "graph_authority": false,
+    "canon_authority": false,
+    "publication_authority": false
+  },
+  "maker": {"maker_type": "model", "agent_ref": "model:codex", "human_review_performed": false},
+  "created_at": "2026-08-23T00:05:00-06:00",
+  "record_version": 1
+}

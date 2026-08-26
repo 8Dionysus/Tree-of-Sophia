@@ -1,0 +1,43 @@
+{
+  "schema_version": "tos_corpus_record_v1",
+  "record_type": "work",
+  "record_id": "tos.work.akkadian-literature.old-babylonian-gilgamesh-tradition",
+  "preferred_label": "Old Babylonian Gilgamesh tradition",
+  "variant_labels": [
+    {
+      "value": "Old Babylonian Gilgamesh fragments",
+      "language": "en",
+      "source_ref": "https://www.ebl.lmu.de/api/texts/L/1/4",
+      "status": "verified"
+    },
+    {
+      "value": "An Old Babylonian Version of the Gilgamesh Epic",
+      "language": "en",
+      "source_ref": "https://www.gutenberg.org/ebooks/11000",
+      "status": "verified"
+    }
+  ],
+  "identity_status": "provisional",
+  "source_refs": [
+    "ToS/research-packets/foundation-laboratory-2026-07/A02_OLD_BABYLONIAN_GILGAMESH_FRAGMENTS_SOURCE_PLANTING_RESEARCH_2026-08-22.md",
+    "ToS/source-witnesses/discovery/runs/old-babylonian-gilgamesh-fragments.2026-08-22.v1.json",
+    "https://www.ebl.lmu.de/api/texts/L/1/4",
+    "https://www.penn.museum/collections/object/245958",
+    "https://babylonian-collection.yale.edu/highlights",
+    "https://soas-repository.worktribe.com/output/446254/the-babylonian-gilgamesh-epic-introduction-critical-edition-and-cuneiform-texts"
+  ],
+  "external_identifiers": [
+    {
+      "scheme": "eBL stage coordinate",
+      "value": "L/1/4 / Old Babylonian",
+      "source_ref": "https://www.ebl.lmu.de/api/texts/L/1/4",
+      "status": "verified"
+    }
+  ],
+  "same_as_posture": "no_equivalence_claim",
+  "responsibility_claim_refs": [],
+  "expression_claim_refs": [],
+  "notes": "Provider-independent provisional identity for the Old Babylonian Akkadian Gilgamesh transmission cluster. It is not asserted to be one complete, fixed, author-final, or uniquely titled ancient text. The five Sumerian Gilgamesh compositions, the Standard Babylonian poem, individual clay tablets, eBL editorial units, modern composites, critical editions, transliterations, translations, and interpretations remain distinct. No named ancient author, copyist, exact composition date, Expression, Edition, Item, semantic relation, or canon status is inferred.",
+  "record_version": 1,
+  "supersedes_ref": null
+}

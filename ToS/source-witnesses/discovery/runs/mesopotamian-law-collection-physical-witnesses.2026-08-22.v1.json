@@ -1,0 +1,192 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/material-discovery-record.schema.json",
+  "schema_version": "tos_material_discovery_record_v1",
+  "discovery_id": "tos.discovery.mesopotamian-law-collection-physical-witnesses.2026-08-22",
+  "protocol_ref": "ToS/source-witnesses/discovery/DISCOVERY_PROTOCOL.md",
+  "target": {
+    "target_kind": "artifact",
+    "known_tos_refs": [
+      "tos.artifact.sumerian.nippur.istanbul-ist-ni-03191",
+      "tos.artifact.sumerian.uncertain.louvre-ao-05473",
+      "tos.artifact.old-babylonian.susa.hammurabi-stele-sb-8"
+    ],
+    "description": "Select exact representative physical witnesses for the three A02 law-collection routes while preserving custody, period, provenience, composite relation, rights, and reuse of existing ToS identity.",
+    "required_properties": [
+      "physical identity independent of provider URL and scholarly composite",
+      "exact inventory and custody",
+      "honest provenience and findspot uncertainty",
+      "direct composite relation with dated provider state",
+      "content-free public metadata boundary"
+    ],
+    "acceptable_substitutions": [
+      "another exact institutional witness with stronger custody and provenance evidence",
+      "a later provider record with explicit supersession and unchanged physical identity"
+    ],
+    "languages": ["sux", "akk"],
+    "formats": ["museum catalog", "artifact HTML", "JSON API", "physical-object metadata", "bibliography"],
+    "purpose_ref": "ToS/research-packets/foundation-laboratory-2026-07/A02_MESOPOTAMIAN_LAW_COLLECTIONS_SOURCE_PLANTING_RESEARCH_2026-08-22.md"
+  },
+  "channels": [
+    {
+      "channel_id": "channel-law-witness-official",
+      "sequence": 1,
+      "channel_type": "specialized-scholarly-project",
+      "role": "digital-object-record",
+      "source_name": "CDLI exact artifacts and institutional collection records",
+      "endpoint_url": "https://cdli.earth/artifacts/226580",
+      "interface_type": "api",
+      "interface_version": "live exact records checked 2026-08-22; existing SB 8 packet checked 2026-08-13",
+      "exact_query": "Resolve P226580/Ist Ni 03191, P345378/AO 05473, and existing P249253/SB 8; verify physical identifiers, periods, provenience, custody, composite relations, and rights without acquiring content.",
+      "queried_at": "2026-08-22T22:12:00-06:00",
+      "elapsed_seconds": 0,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.p226580-ist-ni-03191",
+          "rank": 1,
+          "title_as_displayed": "P226580 / Ist Ni 03191 / RIME 3/2.01.01.20 ex. 01",
+          "result_url": "https://cdli.earth/artifacts/226580",
+          "originating_record_url": "https://cdli.earth/artifacts/226580/json",
+          "identifiers": [{"scheme": "CDLI", "value": "P226580"}, {"scheme": "museum inventory", "value": "Ist Ni 03191"}, {"scheme": "CDLI composite relation", "value": "150014"}],
+          "available_formats": ["artifact HTML", "JSON API", "bibliography"],
+          "declared_rights": {"statement": "CDLI text reuse language does not automatically govern museum visuals.", "scope": "digital-object", "evidence_url": "https://cdli.earth/terms-of-use", "tos_conclusion": "evidence-only-not-a-rights-conclusion"},
+          "availability": "open-view",
+          "machine_interface": "api",
+          "decision": "select",
+          "rationale": "Exact institutional Old Babylonian Nippur witness tied to Kramer's classical publication and direct Q000947 relation.",
+          "acquisition": {"downloaded": false, "acquired_at": null, "byte_size": null, "sha256": null, "event_ref": null},
+          "snapshot": {"state": "not-captured", "format": null, "sha256": null, "reason": "The JSON was streamed and fingerprinted without retaining the body."}
+        },
+        {
+          "result_id": "tos-discovery-result.p345378-louvre-ao05473",
+          "rank": 2,
+          "title_as_displayed": "Louvre AO 05473 / P345378 / RIME 4.01.05.add10 ex. 01",
+          "result_url": "https://collections.louvre.fr/en/ark:/53355/cl010166109",
+          "originating_record_url": "https://collections.louvre.fr/ark:/53355/cl010166109.json",
+          "identifiers": [{"scheme": "Louvre inventory", "value": "AO 05473"}, {"scheme": "Louvre ARK", "value": "cl010166109"}, {"scheme": "CDLI", "value": "P345378"}, {"scheme": "CDLI composite relation", "value": "365423"}],
+          "available_formats": ["museum catalog HTML", "museum JSON", "artifact HTML", "JSON API"],
+          "declared_rights": {"statement": "No image or collection-content license is inferred from public catalog access.", "scope": "digital-object", "evidence_url": "https://collections.louvre.fr/en/ark:/53355/cl010166109", "tos_conclusion": "evidence-only-not-a-rights-conclusion"},
+          "availability": "open-view",
+          "machine_interface": "api",
+          "decision": "select",
+          "rationale": "Exact Louvre fragment with measurements and custody; uncertain provenience is explicit and preserved in the topology.",
+          "acquisition": {"downloaded": false, "acquired_at": null, "byte_size": null, "sha256": null, "event_ref": null},
+          "snapshot": {"state": "not-captured", "format": null, "sha256": null, "reason": "The page and JSON were streamed and fingerprinted without retaining the bodies or images."}
+        },
+        {
+          "result_id": "tos-discovery-result.p249253-louvre-sb8-reuse",
+          "rank": 3,
+          "title_as_displayed": "Louvre SB 8 / P249253 Hammurapi stela",
+          "result_url": "https://collections.louvre.fr/ark:/53355/cl010174436",
+          "originating_record_url": "https://cdli.earth/artifacts/249253",
+          "identifiers": [{"scheme": "Louvre inventory", "value": "SB 8"}, {"scheme": "CDLI", "value": "P249253"}, {"scheme": "CDLI composite relation", "value": "198588"}],
+          "available_formats": ["museum catalog", "artifact HTML", "JSON API", "photographs", "3D link"],
+          "declared_rights": {"statement": "CDLI and Louvre content layers remain separately governed.", "scope": "digital-object", "evidence_url": "https://cdli.earth/terms-of-use", "tos_conclusion": "evidence-only-not-a-rights-conclusion"},
+          "availability": "open-view",
+          "machine_interface": "api",
+          "decision": "select",
+          "rationale": "The exact physical monument is already tracked in ToS; reuse prevents duplicate identity and retains the earlier rights packet.",
+          "acquisition": {"downloaded": false, "acquired_at": null, "byte_size": null, "sha256": null, "event_ref": null},
+          "snapshot": {"state": "not-needed", "format": null, "sha256": null, "reason": "Existing tracked artifact research and fingerprints are reused; no content was reacquired."}
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-law-witness-alternatives",
+      "sequence": 2,
+      "channel_type": "university-catalog",
+      "role": "mixed",
+      "source_name": "Institutional and collection alternatives for transfer and provenance controls",
+      "endpoint_url": "https://www.penn.museum/collections/object/347489",
+      "interface_type": "web",
+      "interface_version": "records checked 2026-08-22",
+      "exact_query": "Compare Penn P256663 and Schøyen MS 2064 against the selected witnesses for physical specificity, chronological value, custody, provenience, rights clarity, and bounded implementation cost.",
+      "queried_at": "2026-08-22T22:20:00-06:00",
+      "elapsed_seconds": 0,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.p256663-penn-lipit-ishtar",
+          "rank": 1,
+          "title_as_displayed": "Penn Museum joined Lipit-Ištar tablet P256663",
+          "result_url": "https://www.penn.museum/collections/object/347489",
+          "originating_record_url": "https://cdli.earth/artifacts/256663",
+          "identifiers": [{"scheme": "CDLI", "value": "P256663"}, {"scheme": "CDLI composite relation", "value": "212789"}],
+          "available_formats": ["museum catalog", "artifact metadata", "joined-fragment inventory"],
+          "declared_rights": {"statement": null, "scope": "digital-object", "evidence_url": null, "tos_conclusion": "evidence-only-not-a-rights-conclusion"},
+          "availability": "open-view",
+          "machine_interface": "html",
+          "decision": "defer",
+          "rationale": "Strong Nippur institutional control and useful later transfer witness, but not needed in the first bounded planting.",
+          "acquisition": {"downloaded": false, "acquired_at": null, "byte_size": null, "sha256": null, "event_ref": null},
+          "snapshot": {"state": "not-needed", "format": null, "sha256": null, "reason": "Metadata route retained as a future lead only."}
+        },
+        {
+          "result_id": "tos-discovery-result.p250820-schoyen-ms2064",
+          "rank": 2,
+          "title_as_displayed": "Schøyen MS 2064 Ur-Namma cylinder / P250820",
+          "result_url": "https://www.schoyencollection.com/law/sumerian/ur-nammu-ms-2064",
+          "originating_record_url": "https://cdli.earth/artifacts/250820",
+          "identifiers": [{"scheme": "Schøyen", "value": "MS 2064"}, {"scheme": "CDLI", "value": "P250820"}, {"scheme": "CDLI composite relation", "value": "201606"}],
+          "available_formats": ["collection page", "artifact metadata", "photographs", "publication route"],
+          "declared_rights": {"statement": null, "scope": "digital-object", "evidence_url": null, "tos_conclusion": "evidence-only-not-a-rights-conclusion"},
+          "availability": "open-view",
+          "machine_interface": "html",
+          "decision": "defer",
+          "rationale": "Chronologically important Ur III witness, but private custody and uncertain provenience require a dedicated provenance and rights review before planting.",
+          "acquisition": {"downloaded": false, "acquired_at": null, "byte_size": null, "sha256": null, "event_ref": null},
+          "snapshot": {"state": "not-needed", "format": null, "sha256": null, "reason": "Metadata route retained as a future provenance investigation lead only."}
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-law-witness-currentness",
+      "sequence": 3,
+      "channel_type": "specialized-scholarly-project",
+      "role": "mixed",
+      "source_name": "Fresh provider and holding-record state",
+      "endpoint_url": "https://collections.louvre.fr/en/ark:/53355/cl010166109",
+      "interface_type": "api",
+      "interface_version": "Louvre record update 2025-01-10; live CDLI relations checked 2026-08-22",
+      "exact_query": "Recheck selected holdings, provider relations, record versions, and provenience labels immediately before planting; do not treat record update as ancient dating or editorial authority.",
+      "queried_at": "2026-08-22T22:26:00-06:00",
+      "elapsed_seconds": 0,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.selected-witness-currentness-2026-08-22",
+          "rank": 1,
+          "title_as_displayed": "Selected witness and composite relation currentness check",
+          "result_url": "https://collections.louvre.fr/en/ark:/53355/cl010166109",
+          "originating_record_url": "https://cdli.earth/genres/history/30",
+          "identifiers": [{"scheme": "access date", "value": "2026-08-22"}],
+          "available_formats": ["museum HTML", "museum JSON", "CDLI JSON API", "approved genre history"],
+          "declared_rights": {"statement": "Availability and currentness do not create redistribution authority.", "scope": "metadata", "evidence_url": "https://cdli.earth/terms-of-use", "tos_conclusion": "evidence-only-not-a-rights-conclusion"},
+          "availability": "open-view",
+          "machine_interface": "api",
+          "decision": "select",
+          "rationale": "Confirms the current operational route while preserving all provider fields and counts as mutable dated observations.",
+          "acquisition": {"downloaded": false, "acquired_at": null, "byte_size": null, "sha256": null, "event_ref": null},
+          "snapshot": {"state": "not-captured", "format": null, "sha256": null, "reason": "Selected member responses were fingerprinted where available; no source-bearing body or image was retained."}
+        }
+      ]
+    }
+  ],
+  "channel_comparison": [
+    {"channel_id": "channel-law-witness-official", "completeness": "strong", "metadata_precision": "strong", "rights_clarity": "adequate", "machine_interface_quality": "strong", "human_minutes": 0, "machine_seconds": 0, "notes": "Selected exact institutional objects and reused one existing identity; provider records remain mutable."},
+    {"channel_id": "channel-law-witness-alternatives", "completeness": "adequate", "metadata_precision": "strong", "rights_clarity": "limited", "machine_interface_quality": "adequate", "human_minutes": 0, "machine_seconds": 0, "notes": "Useful future transfer and provenance controls; deferred to keep the first slice bounded."},
+    {"channel_id": "channel-law-witness-currentness", "completeness": "adequate", "metadata_precision": "strong", "rights_clarity": "adequate", "machine_interface_quality": "strong", "human_minutes": 0, "machine_seconds": 0, "notes": "Currentness check governs provider coordinates only and cannot repair missing archaeological or rights evidence."}
+  ],
+  "selected_result_ids": ["tos-discovery-result.p226580-ist-ni-03191", "tos-discovery-result.p345378-louvre-ao05473", "tos-discovery-result.p249253-louvre-sb8-reuse", "tos-discovery-result.selected-witness-currentness-2026-08-22"],
+  "rejected_result_ids": [],
+  "rights_inference_from_availability_prohibited": true,
+  "general_web_search_is_last_resort": true,
+  "technical_access_bypass_used": false,
+  "maker": {"maker_type": "model", "agent_ref": "model:codex"},
+  "started_at": "2026-08-22T22:12:00-06:00",
+  "ended_at": "2026-08-22T22:30:00-06:00",
+  "status": "reconciled",
+  "provenance_event_refs": ["tos.event.discovery.mesopotamian-law-collections.2026-08-22"],
+  "record_version": 1,
+  "supersedes_discovery_ref": null
+}

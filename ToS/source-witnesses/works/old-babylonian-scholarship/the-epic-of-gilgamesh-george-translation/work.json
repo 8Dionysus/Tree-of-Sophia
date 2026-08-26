@@ -1,0 +1,48 @@
+{
+  "schema_version": "tos_corpus_record_v1",
+  "record_type": "work",
+  "record_id": "tos.work.old-babylonian-scholarship.the-epic-of-gilgamesh-george-translation",
+  "preferred_label": "The Epic of Gilgamesh: The Babylonian Epic Poem and Other Texts in Akkadian and Sumerian",
+  "variant_labels": [
+    {
+      "value": "The Epic of Gilgamesh. A New Translation",
+      "language": "en",
+      "source_ref": "https://eprints.soas.ac.uk/3316/1/GilgameshGenre.pdf",
+      "status": "verified"
+    }
+  ],
+  "identity_status": "verified",
+  "source_refs": [
+    "ToS/research-packets/foundation-laboratory-2026-07/A02_GEORGE_BABYLONIAN_GILGAMESH_EPIC_AND_TRANSLATIONS_SOURCE_PLANTING_RESEARCH_2026-08-23.md",
+    "ToS/research-packets/foundation-laboratory-2026-07/A02_OLD_BABYLONIAN_GILGAMESH_FRAGMENTS_SOURCE_PLANTING_RESEARCH_2026-08-22.md",
+    "ToS/source-witnesses/discovery/runs/old-babylonian-gilgamesh-fragments.2026-08-22.v1.json",
+    "https://soas-repository.worktribe.com/output/446272/the-epic-of-gilgamesh-the-babylonian-epic-poem-and-other-texts-in-akkadian-and-sumerian",
+    "https://eprints.soas.ac.uk/3316/1/GilgameshGenre.pdf",
+    "https://www.penguin.co.uk/books/34757/the-epic-of-gilgamesh-by-trans-andrew-george-intro-andrew-george/9780241289907",
+    "https://www.penguin.co.uk/books/34757/the-epic-of-gilgamesh-by-trans-andrew-george-intro-andrew-george/9780140449198",
+    "https://www.soas.ac.uk/about/andrew-george"
+  ],
+  "external_identifiers": [
+    {
+      "scheme": "ISBN-13",
+      "value": "9780140449198",
+      "source_ref": "https://www.penguin.co.uk/books/34757/the-epic-of-gilgamesh-by-trans-andrew-george-intro-andrew-george/9780140449198",
+      "status": "verified"
+    },
+    {
+      "scheme": "eISBN",
+      "value": "9780241289907",
+      "source_ref": "https://www.penguin.co.uk/books/34757/the-epic-of-gilgamesh-by-trans-andrew-george-intro-andrew-george/9780241289907",
+      "status": "verified"
+    }
+  ],
+  "same_as_posture": "no_equivalence_claim",
+  "responsibility_claim_refs": [
+    "tos.claim.work.old-babylonian-scholarship.the-epic-of-gilgamesh-george-translation.translation-contribution-by-andrew-r-george",
+    "tos.claim.work.old-babylonian-scholarship.the-epic-of-gilgamesh-george-translation.introduction-contribution-by-andrew-r-george"
+  ],
+  "expression_claim_refs": [],
+  "notes": "Verified modern reader-facing English translation Work, first published by Allen Lane / Penguin Press in 1999 and represented by a 2000 Penguin Classics route. Andrew George's source-reported translator and introduction-author credits are retained as two role-qualified Work-level contributed_by claims because no exact Expression or Edition is created in this slice; no false expression-level translated_by or edition-level responsibility relation is asserted. Current Penguin catalog states include a 2016 eBook and an extensively revised 2020 second-edition paperback. Those states are not collapsed into one exact Edition, Manifestation, Item, pagination, source selection, or byte identity. Publisher language such as fluid or definitive is not source authority. This Work remains distinct from George's 2003 specialist critical edition and from the specialist English translations inside that edition. No publisher sample, translation passage, cover, source payload, Expression, Edition, Manifestation, Item, alignment, semantic claim, graph relation, or canon state is created.",
+  "record_version": 1,
+  "supersedes_ref": null
+}

@@ -1,0 +1,62 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/philosophy-source-planting.schema.json",
+  "schema_version": "tos_philosophy_source_planting_v1",
+  "planting_id": "tos.planting.a02.instructions-of-shuruppag-composite",
+  "atlas_row_id": "A02",
+  "dossier_id": "A02",
+  "branch_path": "ToS/philosophy/eras/bronze-age/regions/west-asia/traditions/old-babylonian-scribal-wisdom-law",
+  "source_backlog_anchor": {
+    "path": "ToS/philosophy/eras/bronze-age/regions/west-asia/traditions/old-babylonian-scribal-wisdom-law/sources/source-anchor-backlog.jsonl",
+    "line": 15,
+    "source_table_index": 13,
+    "source_row_index": 5,
+    "source_label": "Instructions of Šuruppag"
+  },
+  "source_witness": {
+    "composite_id": "tos.composite.sumerian.instructions-of-shuruppag",
+    "record_ref": "ToS/source-witnesses/scholarly-composites/critical/sumerian/instructions-of-shuruppag/composite-witness.json",
+    "relationship": "grounds_source_backlog_anchor"
+  },
+  "discovery_ref": "ToS/source-witnesses/discovery/runs/old-babylonian-instructions-of-shuruppag.2026-08-22.v1.json",
+  "provenance_event_ref": "tos.event.discovery.old-babylonian-instructions-of-shuruppag.2026-08-22",
+  "research_ref": "ToS/research-packets/foundation-laboratory-2026-07/A02_INSTRUCTIONS_OF_SHURUPPAG_SOURCE_PLANTING_RESEARCH_2026-08-22.md",
+  "fulfilled_source_needs": [
+    "the ancient composition Work is separated from the modern title, edition Works, physical tablets, composite, provider pages, transliteration, translation, and interpretation",
+    "the exact Early Dynastic physical witnesses P010233 and P222243 preserve material, period, provenience, custody, fragmentation, bibliography, and uncertainty before composite use",
+    "the provider-independent modern composite reconciles CDLI Q000782, P478969, revision 2252483, and ETCSL 5.6.1 without making any provider URL the source identity",
+    "the current CDLI JSON witness array records 88 dated members, including two ED IIIa witnesses, while provider counts remain mutable observations",
+    "ETCSL composite, translation, variants, lacunae, bibliography, and modern wisdom-literature classification remain visible as distinct editorial layers",
+    "classical documentation and Alster/Civil critical scholarship precede Samet 2021/2023, Albayrak 2025, and the exact August 2026 CDLI revision state",
+    "layer-specific rights keep metadata public-safe while source text, translation, photographs, line art, scans, and modern editions remain absent",
+    "an A/B/C route is prepared for representation comparison, early-witness stratification, and critical-edition/current-revision comparison with manual verification"
+  ],
+  "remaining_controls": [
+    "the backlog contribution ‘ethics, social norm, ancient didactic tradition’ remains a research description and is not admitted as an unqualified ancient genre or semantic fact",
+    "Instructions of Šuruppag is a modern title label; no original-language title string is invented from an incipit or transliteration",
+    "speaker, king, father, persona, redactor, copyist, and modern editor must not be merged into one author",
+    "artifact date, manuscript stratum, redaction stage, tradition age, and composition date remain separate and the last is not fixed here",
+    "P010233 has uncertain Abu Salabikh provenience; P222243 lacks an exact checked findspot; neither gap may be silently filled",
+    "the Old Babylonian-heavy composite does not erase the ED IIIa witnesses or prove a uniform text across periods and sites",
+    "a provider line, ATF token, variant, reconstruction, or fluent translation is not automatically an accepted reading, etymology, sign identity, or semantic claim",
+    "‘world's oldest’ and similar superlatives remain attributed scholarly or popular claims and are not promoted into ToS authority",
+    "no source text, translation, image, line art, scan, Expression, Edition, Item, semantic node, graph relation, canon state, external request, server transfer, or human task is created"
+  ],
+  "research_order": [
+    "official_and_classical_documentation",
+    "established_top_scholarship",
+    "fresh_current_relevance_check"
+  ],
+  "authority": {
+    "source_status": "metadata_witness_planted",
+    "review_status": "unreviewed",
+    "source_text_admitted": false,
+    "semantic_status": "not_started",
+    "graph_status": "not_promoted",
+    "canon_status": "not_canon",
+    "human_task_created": false
+  },
+  "status": "source_witness_planted",
+  "maker": {"maker_type": "model", "agent_ref": "model:codex", "human_review_performed": false},
+  "created_at": "2026-08-22T22:01:00-06:00",
+  "record_version": 1
+}

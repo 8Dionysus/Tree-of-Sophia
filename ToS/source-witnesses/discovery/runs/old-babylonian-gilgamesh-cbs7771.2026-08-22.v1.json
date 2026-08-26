@@ -1,0 +1,233 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/material-discovery-record.schema.json",
+  "schema_version": "tos_material_discovery_record_v1",
+  "discovery_id": "tos.discovery.old-babylonian-gilgamesh-cbs7771.2026-08-22",
+  "protocol_ref": "ToS/source-witnesses/discovery/DISCOVERY_PROTOCOL.md",
+  "target": {
+    "target_kind": "artifact",
+    "known_tos_refs": [
+      "tos.artifact.old-babylonian.uncertain.penn-cbs-07771",
+      "tos.work.akkadian-literature.old-babylonian-gilgamesh-tradition",
+      "tos.composite.akkadian.old-babylonian-gilgamesh-fragments"
+    ],
+    "description": "Resolve Penn CBS 07771 / CDLI P262784 as one physical Old Babylonian Gilgamesh tablet while retaining conflicting institutional provenience statements and separate content layers.",
+    "required_properties": [
+      "stable repository and CDLI identifiers",
+      "physical dimensions, material, period, language, and custody",
+      "source-attributed Warka, Sippar, Nippur, and Babylonia locality statements",
+      "classical publication and current eBL context",
+      "metadata, transliteration, translation, and visual rights separation"
+    ],
+    "acceptable_substitutions": [
+      "a later Penn object record with the same CBS identity and explicit supersession",
+      "a later CDLI or eBL record with a response fingerprint and preserved disagreement",
+      "an authorized Penn catalog export row for CBS7771"
+    ],
+    "languages": ["akk", "en"],
+    "formats": ["museum object metadata", "JSON API", "manuscript-list metadata", "classical publication metadata", "rights statement"],
+    "purpose_ref": "ToS/research-packets/foundation-laboratory-2026-07/A02_OLD_BABYLONIAN_GILGAMESH_FRAGMENTS_SOURCE_PLANTING_RESEARCH_2026-08-22.md"
+  },
+  "channels": [
+    {
+      "channel_id": "channel-cbs7771-official-classical",
+      "sequence": 1,
+      "channel_type": "university-catalog",
+      "role": "originating-record",
+      "source_name": "Penn Museum object record and exact CDLI crosswalk",
+      "endpoint_url": "https://www.penn.museum/collections/object/245958",
+      "interface_type": "web",
+      "interface_version": "records checked 2026-08-22",
+      "exact_query": "Resolve CBS7771, CBS 07771, B7771, and P262784; compare all reported locality statements and preserve rather than resolve the conflict.",
+      "queried_at": "2026-08-22T22:48:00-06:00",
+      "elapsed_seconds": 0,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.cbs7771-penn-object-record",
+          "rank": 1,
+          "title_as_displayed": "Tablet CBS7771",
+          "result_url": "https://www.penn.museum/collections/object/245958",
+          "originating_record_url": null,
+          "identifiers": [{"scheme": "Penn Museum", "value": "CBS7771"}, {"scheme": "Penn other number", "value": "CBS 07771"}, {"scheme": "Penn old museum number", "value": "B7771"}, {"scheme": "CDLI", "value": "P262784"}],
+          "available_formats": ["museum object metadata", "linked object images"],
+          "declared_rights": {"statement": "Penn's downloadable object metadata datasets are CC BY 4.0 and exclude images; image publication has a separate request route.", "scope": "metadata", "evidence_url": "https://collections.penn.museum/collections/objects/data.php", "tos_conclusion": "evidence-only-not-a-rights-conclusion"},
+          "availability": "open-view",
+          "machine_interface": "html",
+          "decision": "select",
+          "rationale": "Owning repository record for dimensions, custody, period, language, purchase, object identity, and the Warka-uncertain/Sippar statements.",
+          "acquisition": {"downloaded": false, "acquired_at": null, "byte_size": null, "sha256": null, "event_ref": null},
+          "snapshot": {"state": "not-captured", "format": null, "sha256": null, "reason": "The object page was inspected through public search and no image or page body was retained."}
+        },
+        {
+          "result_id": "tos-discovery-result.cbs7771-cdli-p262784",
+          "rank": 2,
+          "title_as_displayed": "Gilgamesh II 001-003 CBS 07771",
+          "result_url": "https://cdli.earth/artifacts/262784",
+          "originating_record_url": "https://cdli.earth/artifacts/262784/json",
+          "identifiers": [{"scheme": "CDLI", "value": "P262784"}, {"scheme": "museum number", "value": "CBS 07771"}],
+          "available_formats": ["artifact HTML", "JSON API", "linked inscription", "bibliography"],
+          "declared_rights": {"statement": "CDLI terms describe conditional scholarly reuse and retain third-party visual rights.", "scope": "content", "evidence_url": "https://cdli.earth/terms-of-use", "tos_conclusion": "evidence-only-not-a-rights-conclusion"},
+          "availability": "open-view",
+          "machine_interface": "api",
+          "decision": "select",
+          "rationale": "Exact current crosswalk and independent Nippur statement; it does not override Penn or become the physical identity.",
+          "acquisition": {"downloaded": false, "acquired_at": null, "byte_size": null, "sha256": null, "event_ref": null},
+          "snapshot": {"state": "not-captured", "format": null, "sha256": null, "reason": "The exact HTML and JSON responses were transiently fingerprinted; no source-bearing body was retained."}
+        },
+        {
+          "result_id": "tos-discovery-result.cbs7771-langdon-1917",
+          "rank": 3,
+          "title_as_displayed": "The Epic of Gilgamish, PBS 10/3",
+          "result_url": "https://etana.org/sites/default/files/coretexts/14909.pdf",
+          "originating_record_url": null,
+          "identifiers": [{"scheme": "series", "value": "PBS 10/3"}],
+          "available_formats": ["classical edition PDF"],
+          "declared_rights": {"statement": "Public access does not by itself determine every scan or edition reuse right.", "scope": "digital-object", "evidence_url": "https://etana.org/", "tos_conclusion": "evidence-only-not-a-rights-conclusion"},
+          "availability": "open-download",
+          "machine_interface": "html",
+          "decision": "select",
+          "rationale": "Initial publication route explicitly cited by eBL for CBS 7771; no edition content was acquired.",
+          "acquisition": {"downloaded": false, "acquired_at": null, "byte_size": null, "sha256": null, "event_ref": null},
+          "snapshot": {"state": "not-needed", "format": null, "sha256": null, "reason": "The publication identity is sufficient for this metadata slice."}
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-cbs7771-established",
+      "sequence": 2,
+      "channel_type": "publisher-catalog",
+      "role": "scholarly-index",
+      "source_name": "Andrew R. George 2003 critical edition",
+      "endpoint_url": "https://soas-repository.worktribe.com/output/446254/the-babylonian-gilgamesh-epic-introduction-critical-edition-and-cuneiform-texts",
+      "interface_type": "web",
+      "interface_version": "repository and eBL bibliography checked 2026-08-22",
+      "exact_query": "Confirm the established modern edition used by current eBL for CBS 7771 without importing its edition text or translation.",
+      "queried_at": "2026-08-22T23:04:00-06:00",
+      "elapsed_seconds": 0,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.cbs7771-george-2003",
+          "rank": 1,
+          "title_as_displayed": "The Babylonian Gilgamesh Epic: Introduction, Critical Edition and Cuneiform Texts",
+          "result_url": "https://soas-repository.worktribe.com/output/446254/the-babylonian-gilgamesh-epic-introduction-critical-edition-and-cuneiform-texts",
+          "originating_record_url": "https://www.ebl.lmu.de/api/texts/L/1/4/chapters/Old%20Babylonian/II/manuscripts",
+          "identifiers": [{"scheme": "eBL bibliography", "value": "RN117"}, {"scheme": "publication year", "value": "2003"}],
+          "available_formats": ["repository metadata", "critical-edition metadata"],
+          "declared_rights": {"statement": null, "scope": "content", "evidence_url": null, "tos_conclusion": "evidence-only-not-a-rights-conclusion"},
+          "availability": "open-view",
+          "machine_interface": "html",
+          "decision": "select",
+          "rationale": "Current established edition control; it remains distinct from the clay tablet and its inscription.",
+          "acquisition": {"downloaded": false, "acquired_at": null, "byte_size": null, "sha256": null, "event_ref": null},
+          "snapshot": {"state": "not-permitted", "format": null, "sha256": null, "reason": "No critical-edition or translation body was acquired."}
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-cbs7771-fresh-current",
+      "sequence": 3,
+      "channel_type": "specialized-scholarly-project",
+      "role": "mixed",
+      "source_name": "Current eBL manuscript and fragment routes plus current Penn rights pages",
+      "endpoint_url": "https://www.ebl.lmu.de/api/fragments/CBS.7771",
+      "interface_type": "api",
+      "interface_version": "live responses and rights pages checked 2026-08-22",
+      "exact_query": "Verify current eBL binding for CBS.7771 and current Penn metadata/image rights without retaining source text or media.",
+      "queried_at": "2026-08-22T23:20:00-06:00",
+      "elapsed_seconds": 0.4,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.cbs7771-ebl-live-2026",
+          "rank": 1,
+          "title_as_displayed": "eBL fragment CBS.7771 and Old Babylonian II manuscript record",
+          "result_url": "https://www.ebl.lmu.de/api/fragments/CBS.7771",
+          "originating_record_url": "https://www.ebl.lmu.de/api/texts/L/1/4/chapters/Old%20Babylonian/II/manuscripts",
+          "identifiers": [{"scheme": "eBL museum number", "value": "CBS.7771"}, {"scheme": "eBL text unit", "value": "L/1/4 Old Babylonian II"}],
+          "available_formats": ["fragment JSON", "manuscript-list JSON"],
+          "declared_rights": {"statement": "MIT covers eBL software, not automatically corpus editions, translations, or images.", "scope": "content", "evidence_url": "https://github.com/ElectronicBabylonianLiterature/ebl-api/blob/master/LICENSE", "tos_conclusion": "evidence-only-not-a-rights-conclusion"},
+          "availability": "open-view",
+          "machine_interface": "api",
+          "decision": "select",
+          "rationale": "Fresh exact provider binding and bibliography, retained only as a mutable metadata fingerprint.",
+          "acquisition": {"downloaded": false, "acquired_at": null, "byte_size": null, "sha256": null, "event_ref": null},
+          "snapshot": {"state": "not-captured", "format": null, "sha256": null, "reason": "Exact responses were transiently fingerprinted; no source text or API body was retained."}
+        },
+        {
+          "result_id": "tos-discovery-result.cbs7771-penn-rights-2026",
+          "rank": 2,
+          "title_as_displayed": "Penn Museum metadata dataset and rights/permissions",
+          "result_url": "https://collections.penn.museum/collections/objects/data.php",
+          "originating_record_url": "https://www.penn.museum/about-collections/rights-and-permissions",
+          "identifiers": [{"scheme": "license", "value": "CC BY 4.0"}, {"scheme": "dataset update", "value": "2026-08-12"}],
+          "available_formats": ["bulk object metadata", "image publication request route"],
+          "declared_rights": {"statement": "Downloaded metadata datasets are CC BY 4.0; images are excluded and publication images require a separate route.", "scope": "metadata", "evidence_url": "https://collections.penn.museum/collections/objects/data.php", "tos_conclusion": "evidence-only-not-a-rights-conclusion"},
+          "availability": "open-download",
+          "machine_interface": "bulk-data",
+          "decision": "select",
+          "rationale": "Fresh exact rights boundary supporting attributed metadata and prohibiting image-right inference.",
+          "acquisition": {"downloaded": false, "acquired_at": null, "byte_size": null, "sha256": null, "event_ref": null},
+          "snapshot": {"state": "not-needed", "format": null, "sha256": null, "reason": "No 144.20 MB bulk dataset or image was needed for one exact object."}
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-cbs7771-general-web-last",
+      "sequence": 4,
+      "channel_type": "general-web-search",
+      "role": "lead-only",
+      "source_name": "Popular tablet and epic summaries",
+      "endpoint_url": "https://en.wikipedia.org/wiki/Epic_of_Gilgamesh",
+      "interface_type": "web",
+      "interface_version": "checked last on 2026-08-22",
+      "exact_query": "Test popular summaries for exact CBS 7771 identity, locality conflict, rights, and layer separation.",
+      "queried_at": "2026-08-22T23:24:00-06:00",
+      "elapsed_seconds": 0,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.cbs7771-general-web-summary",
+          "rank": 1,
+          "title_as_displayed": "Popular Gilgamesh tablet summaries",
+          "result_url": "https://en.wikipedia.org/wiki/Epic_of_Gilgamesh",
+          "originating_record_url": null,
+          "identifiers": [],
+          "available_formats": ["general web article"],
+          "declared_rights": {"statement": null, "scope": "unknown", "evidence_url": null, "tos_conclusion": "evidence-only-not-a-rights-conclusion"},
+          "availability": "open-view",
+          "machine_interface": "html",
+          "decision": "reject",
+          "rationale": "Cannot settle physical identity, provenience disagreement, exact current metadata, source text, or rights.",
+          "acquisition": {"downloaded": false, "acquired_at": null, "byte_size": null, "sha256": null, "event_ref": null},
+          "snapshot": {"state": "not-needed", "format": null, "sha256": null, "reason": "No general-web content was retained."}
+        }
+      ]
+    }
+  ],
+  "channel_comparison": [
+    {"channel_id": "channel-cbs7771-official-classical", "completeness": "strong", "metadata_precision": "strong", "rights_clarity": "adequate", "machine_interface_quality": "adequate", "human_minutes": 0, "machine_seconds": 0, "notes": "Best physical identity and historical publication route; locality disagreement remains unresolved."},
+    {"channel_id": "channel-cbs7771-established", "completeness": "adequate", "metadata_precision": "strong", "rights_clarity": "limited", "machine_interface_quality": "adequate", "human_minutes": 0, "machine_seconds": 0, "notes": "Best critical control, but no content or translation rights are inferred."},
+    {"channel_id": "channel-cbs7771-fresh-current", "completeness": "strong", "metadata_precision": "strong", "rights_clarity": "adequate", "machine_interface_quality": "strong", "human_minutes": 0, "machine_seconds": 0.4, "notes": "Best current binding and rights state; API and catalog records remain mutable."},
+    {"channel_id": "channel-cbs7771-general-web-last", "completeness": "limited", "metadata_precision": "poor", "rights_clarity": "poor", "machine_interface_quality": "adequate", "human_minutes": 0, "machine_seconds": 0, "notes": "Rejected as authority."}
+  ],
+  "selected_result_ids": [
+    "tos-discovery-result.cbs7771-penn-object-record",
+    "tos-discovery-result.cbs7771-cdli-p262784",
+    "tos-discovery-result.cbs7771-langdon-1917",
+    "tos-discovery-result.cbs7771-george-2003",
+    "tos-discovery-result.cbs7771-ebl-live-2026",
+    "tos-discovery-result.cbs7771-penn-rights-2026"
+  ],
+  "rejected_result_ids": ["tos-discovery-result.cbs7771-general-web-summary"],
+  "rights_inference_from_availability_prohibited": true,
+  "general_web_search_is_last_resort": true,
+  "technical_access_bypass_used": false,
+  "maker": {"maker_type": "model", "agent_ref": "model:codex"},
+  "started_at": "2026-08-22T22:48:00-06:00",
+  "ended_at": "2026-08-22T23:30:25-06:00",
+  "status": "reconciled",
+  "provenance_event_refs": ["tos.event.discovery.old-babylonian-gilgamesh-fragments.2026-08-22"],
+  "record_version": 1,
+  "supersedes_discovery_ref": null
+}

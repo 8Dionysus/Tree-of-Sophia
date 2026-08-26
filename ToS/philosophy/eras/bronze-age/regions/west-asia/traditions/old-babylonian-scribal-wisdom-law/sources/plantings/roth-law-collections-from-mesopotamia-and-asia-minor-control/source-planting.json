@@ -1,0 +1,62 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/philosophy-source-planting.schema.json",
+  "schema_version": "tos_philosophy_source_planting_v1",
+  "planting_id": "tos.planting.a02.roth-law-collections-from-mesopotamia-and-asia-minor-control",
+  "atlas_row_id": "A02",
+  "dossier_id": "A02",
+  "branch_path": "ToS/philosophy/eras/bronze-age/regions/west-asia/traditions/old-babylonian-scribal-wisdom-law",
+  "source_backlog_anchor": {
+    "path": "ToS/philosophy/eras/bronze-age/regions/west-asia/traditions/old-babylonian-scribal-wisdom-law/sources/source-anchor-backlog.jsonl",
+    "line": 24,
+    "source_table_index": 14,
+    "source_row_index": 6,
+    "source_label": "Martha T. Roth, Law Collections from Mesopotamia and Asia Minor"
+  },
+  "source_witness": {
+    "work_id": "tos.work.old-babylonian-scholarship.law-collections-from-mesopotamia-and-asia-minor",
+    "record_ref": "ToS/source-witnesses/works/old-babylonian-scholarship/law-collections-from-mesopotamia-and-asia-minor/work.json",
+    "relationship": "grounds_source_backlog_anchor"
+  },
+  "discovery_ref": "ToS/source-witnesses/discovery/runs/mesopotamian-law-collections.2026-08-22.v1.json",
+  "provenance_event_ref": "tos.event.annotation.old-babylonian-roth-law-collections-control.2026-08-23",
+  "research_ref": "ToS/research-packets/foundation-laboratory-2026-07/A02_ROTH_LAW_COLLECTIONS_SOURCE_PLANTING_RESEARCH_2026-08-23.md",
+  "fulfilled_source_needs": [
+    "the exact modern scholarly Work behind backlog line 24 receives a stable provider-independent bibliographic identity anchored to its 1997 second-edition state",
+    "Martha T. Roth, Harry A. Hoffner Jr., and Piotr Michalowski receive separate provisional Agent identities and separate source-reported author, contributor, and volume-editor claims",
+    "the modern reference Work remains distinct from every ancient composition, physical witness, scholarly composite, first or second Edition, Item, normalized language presentation, English translation, restoration, division, numbering, commentary, glossary, and index",
+    "Roth's normalized language presentations are recognized as editorial interpretation rather than diplomatic sign-level transcriptions or ancient original text",
+    "the 2023 Judicial Decisions companion preserves the distinction between law collections and records of practical judicial decisions and demonstrates complementarity rather than silent replacement",
+    "the 2026 Roth review essay supplies current author-level metadata only because its body is access-controlled and no substantive conclusion is attributed to it",
+    "current CDLI terminology preserves law collection as a source label without promoting it into modern positive legislation, one historical function, moral doctrine, or philosophical concept",
+    "only public bibliographic metadata and links are admitted; no book, page, normalized text, transliteration, translation, scan, or image payload is stored"
+  ],
+  "remaining_controls": [
+    "the Work-level record does not yet create or equate the 1995 first Edition, 1997 second Edition, current eBook manifestation, library copy, or JSTOR access state",
+    "ISBN, eISBN, and JSTOR identifiers name bibliographic or manifestation states and cannot establish one exact source Item or content fingerprint",
+    "a future translation or quotation must bind exact Edition, collection, page or section, language presentation, source witness, restoration state, and responsible scholar",
+    "later source criticism must return to ancient witnesses and current composition-specific editions rather than treating Roth as ground truth",
+    "no ancient Work, source payload, Expression, Edition, Item, page, passage, translation, semantic claim, graph relation, canon state, access request, external message, payment, server transfer, human task, or human review is created"
+  ],
+  "research_order": [
+    "official_and_classical_documentation",
+    "established_top_scholarship",
+    "fresh_current_relevance_check"
+  ],
+  "authority": {
+    "source_status": "metadata_witness_planted",
+    "review_status": "unreviewed",
+    "source_text_admitted": false,
+    "semantic_status": "not_started",
+    "graph_status": "not_promoted",
+    "canon_status": "not_canon",
+    "human_task_created": false
+  },
+  "status": "source_witness_planted",
+  "maker": {
+    "maker_type": "model",
+    "agent_ref": "model:codex",
+    "human_review_performed": false
+  },
+  "created_at": "2026-08-23T03:38:42-06:00",
+  "record_version": 1
+}

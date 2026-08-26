@@ -1,0 +1,400 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/material-discovery-record.schema.json",
+  "schema_version": "tos_material_discovery_record_v1",
+  "discovery_id": "tos.discovery.old-babylonian-instructions-of-shuruppag.2026-08-22",
+  "protocol_ref": "ToS/source-witnesses/discovery/DISCOVERY_PROTOCOL.md",
+  "target": {
+    "target_kind": "scholarly-composite",
+    "known_tos_refs": [
+      "tos.work.sumerian-literature.instructions-of-shuruppag",
+      "tos.artifact.sumerian.uncertain.im-070204-plus",
+      "tos.artifact.sumerian.adab.oim-a00645-plus-a00649a-i",
+      "tos.composite.sumerian.instructions-of-shuruppag",
+      "tos.work.sumerian-scholarship.the-instructions-of-shurruppak-a-sumerian-proverb-collection"
+    ],
+    "description": "Resolve the Instructions of Šuruppag as an ancient Work known through exact physical witnesses, modern scholarly reconstruction, mutable digital representations, critical editions, and current interpretation without acquiring source text.",
+    "required_properties": [
+      "ancient composition identity separate from modern title and edition identities",
+      "exact Early Dynastic physical witnesses with provenience, custody, and uncertainty",
+      "provider-independent scholarly composite identity with versioned provider representations",
+      "ordered official and classical, established, freshest-current, and general-web-last research",
+      "layer-specific rights and publication boundary",
+      "source route that keeps translation, transliteration, composite, artifact, and interpretation distinct"
+    ],
+    "acceptable_substitutions": [
+      "a later CDLI Q000782 score or revision carrying an explicit supersession route",
+      "a critical edition that independently resolves the same composition and witnesses without merging its Work identity",
+      "an authorized versioned ETCSL or ePSD2 export preserving exact source and license evidence"
+    ],
+    "languages": ["sux", "en", "de", "tr"],
+    "formats": [
+      "physical artifact catalog",
+      "scholarly composite HTML",
+      "transliteration",
+      "translation",
+      "JSON API",
+      "critical edition metadata",
+      "peer-reviewed research",
+      "provider terms"
+    ],
+    "purpose_ref": "ToS/research-packets/foundation-laboratory-2026-07/A02_INSTRUCTIONS_OF_SHURUPPAG_SOURCE_PLANTING_RESEARCH_2026-08-22.md"
+  },
+  "channels": [
+    {
+      "channel_id": "channel-shuruppag-official-classical",
+      "sequence": 1,
+      "channel_type": "specialized-scholarly-project",
+      "role": "originating-record",
+      "source_name": "ETCSL, CDLI, ePSD2, and ISAC exact source and publication routes",
+      "endpoint_url": "https://cdli.earth/artifacts/composites-score/Q000782",
+      "interface_type": "api",
+      "interface_version": "live CDLI and ETCSL state checked 2026-08-22; CDLI score cited 2026-08-21",
+      "exact_query": "Resolve Q000782, revision 2252483, P478969, P010233, P222243, ETCSL 5.6.1, OIP 99, and ePSD2 early-literature routes; compare identity, membership, period, provenience, custody, representations, and rights without retaining content.",
+      "queried_at": "2026-08-22T21:20:00-06:00",
+      "elapsed_seconds": 18.7,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.cdli-q000782-current-composite",
+          "rank": 1,
+          "title_as_displayed": "Q000782 CDLI Literary 000782 (Instructions of Shuruppak) composite",
+          "result_url": "https://cdli.earth/artifacts/composites-score/Q000782",
+          "originating_record_url": "https://cdli.earth/artifacts/478969",
+          "identifiers": [
+            {"scheme": "CDLI composite", "value": "Q000782"},
+            {"scheme": "CDLI composite artifact", "value": "P478969"},
+            {"scheme": "CDLI inscription revision", "value": "2252483"},
+            {"scheme": "ETCSL", "value": "5.6.1"}
+          ],
+          "available_formats": ["score HTML", "revision HTML", "composite artifact HTML", "JSON API", "ATF"],
+          "declared_rights": {
+            "statement": "CDLI permits conditional academic reuse of text, transliterations, and translations; photographs and line art remain separately governed.",
+            "scope": "content",
+            "evidence_url": "https://cdli.earth/terms-of-use",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-view",
+          "machine_interface": "api",
+          "decision": "select",
+          "rationale": "The new score and current revision are the freshest exact provider representations; P478969 JSON supplies the 88-member witness array. Their differing coordinates prove the need for a provider-independent composite identity.",
+          "acquisition": {"downloaded": false, "acquired_at": null, "byte_size": null, "sha256": null, "event_ref": null},
+          "snapshot": {"state": "not-captured", "format": null, "sha256": null, "reason": "Responses were streamed and fingerprinted; content-bearing bodies were not retained."}
+        },
+        {
+          "result_id": "tos-discovery-result.cdli-p010233-abu-salabikh",
+          "rank": 2,
+          "title_as_displayed": "CDLI Literary 000782, ex. 023 (P010233)",
+          "result_url": "https://cdli.earth/artifacts/10233",
+          "originating_record_url": "https://cdli.earth/artifacts/10233/json",
+          "identifiers": [
+            {"scheme": "CDLI", "value": "P010233"},
+            {"scheme": "museum inventory", "value": "IM 070204 +"},
+            {"scheme": "excavation", "value": "AbS-T 0393 + AbS-T 0305"},
+            {"scheme": "CDLI composite relation", "value": "15492"}
+          ],
+          "available_formats": ["artifact HTML", "JSON API", "photograph", "line art", "bibliography"],
+          "declared_rights": {
+            "statement": "CDLI metadata and text routes are distinct from holding-institution image and publication rights.",
+            "scope": "digital-object",
+            "evidence_url": "https://cdli.earth/terms-of-use",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-view",
+          "machine_interface": "api",
+          "decision": "select",
+          "rationale": "Exact Early Dynastic Abu Salabikh witness with reported uncertainty, custody, excavation ensemble, and direct Q000782 relation.",
+          "acquisition": {"downloaded": false, "acquired_at": null, "byte_size": null, "sha256": null, "event_ref": null},
+          "snapshot": {"state": "not-captured", "format": null, "sha256": null, "reason": "Only bounded public metadata and fingerprints were retained."}
+        },
+        {
+          "result_id": "tos-discovery-result.cdli-p222243-adab",
+          "rank": 3,
+          "title_as_displayed": "CDLI Literary 000782, ex. 003 (P222243)",
+          "result_url": "https://cdli.earth/artifacts/222243",
+          "originating_record_url": "https://cdli.earth/artifacts/222243/json",
+          "identifiers": [
+            {"scheme": "CDLI", "value": "P222243"},
+            {"scheme": "museum inventory", "value": "OIM A00645 + OIM A00649a–i"},
+            {"scheme": "CDLI composite relation", "value": "141941"}
+          ],
+          "available_formats": ["artifact HTML", "JSON API", "photograph", "line art", "bibliography"],
+          "declared_rights": {
+            "statement": "CDLI metadata and text routes are distinct from ISAC image and publication rights.",
+            "scope": "digital-object",
+            "evidence_url": "https://cdli.earth/terms-of-use",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-view",
+          "machine_interface": "api",
+          "decision": "select",
+          "rationale": "Exact fragmentary Early Dynastic Adab witness with custody, provenience, OIP publication route, and direct Q000782 relation.",
+          "acquisition": {"downloaded": false, "acquired_at": null, "byte_size": null, "sha256": null, "event_ref": null},
+          "snapshot": {"state": "not-captured", "format": null, "sha256": null, "reason": "Only bounded public metadata and fingerprints were retained."}
+        },
+        {
+          "result_id": "tos-discovery-result.etcsl-561-composite-translation",
+          "rank": 4,
+          "title_as_displayed": "The instructions of Šuruppag: composite text, translation and bibliography",
+          "result_url": "https://etcsl.orinst.ox.ac.uk/section5/c561.htm",
+          "originating_record_url": "https://etcsl.orinst.ox.ac.uk/section5/tr561.htm",
+          "identifiers": [{"scheme": "ETCSL", "value": "5.6.1"}],
+          "available_formats": ["composite transliteration HTML", "translation HTML", "bibliography HTML", "catalogue HTML"],
+          "declared_rights": {
+            "statement": "ETCSL supplies citation and copyright information but no open-content license was established for republication.",
+            "scope": "content",
+            "evidence_url": "https://etcsl.orinst.ox.ac.uk/credits.htm",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-view",
+          "machine_interface": "html",
+          "decision": "select",
+          "rationale": "Classical digital composite, translation, variants, lacunae, and bibliography for the exact composition; title and genre remain modern editorial labels.",
+          "acquisition": {"downloaded": false, "acquired_at": null, "byte_size": null, "sha256": null, "event_ref": null},
+          "snapshot": {"state": "not-captured", "format": null, "sha256": null, "reason": "Pages were inspected and fingerprinted without retaining transliteration or translation."}
+        },
+        {
+          "result_id": "tos-discovery-result.biggs-oip99-shuruppak",
+          "rank": 5,
+          "title_as_displayed": "Inscriptions from Tell Abū Ṣalābīkh — The Instructions of Shuruppak",
+          "result_url": "https://isac.uchicago.edu/sites/default/files/uploads/shared/docs/oip99.pdf",
+          "originating_record_url": "https://isac.uchicago.edu/research/publications/oip/oip-99-inscriptions-tell-abu-salabikh",
+          "identifiers": [{"scheme": "OIP", "value": "99"}],
+          "available_formats": ["official PDF", "publication metadata", "photographs", "transliteration"],
+          "declared_rights": {"statement": null, "scope": "content", "evidence_url": null, "tos_conclusion": "evidence-only-not-a-rights-conclusion"},
+          "availability": "open-view",
+          "machine_interface": "html",
+          "decision": "select",
+          "rationale": "Classical primary publication of the Abu Salabikh version, pp. 57–62, with Adab and Old Babylonian reconstruction context.",
+          "acquisition": {"downloaded": false, "acquired_at": null, "byte_size": null, "sha256": null, "event_ref": null},
+          "snapshot": {"state": "not-captured", "format": null, "sha256": null, "reason": "The official PDF was read remotely; no PDF, image, transliteration, or plate was retained."}
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-shuruppag-established",
+      "sequence": 2,
+      "channel_type": "publisher-catalog",
+      "role": "scholarly-index",
+      "source_name": "Alster, Civil, and established critical-edition lineage",
+      "endpoint_url": "https://cdli.earth/publications/1685524",
+      "interface_type": "web",
+      "interface_version": "CDLI, DOI, CiNii, and ETCSL bibliography checked 2026-08-22",
+      "exact_query": "Resolve the foundational 1974 edition and the major 1984, 1990, and 1991/92 corrections as distinct modern scholarly Works and controls.",
+      "queried_at": "2026-08-22T21:28:00-06:00",
+      "elapsed_seconds": 6.8,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.alster-1974-instructions-shurruppak",
+          "rank": 1,
+          "title_as_displayed": "The instructions of Šurruppak : a Sumerian proverb collection",
+          "result_url": "https://cdli.earth/publications/1685524",
+          "originating_record_url": "https://cir.nii.ac.jp/crid/1971149384813357314",
+          "identifiers": [
+            {"scheme": "ISBN", "value": "8750015001"},
+            {"scheme": "CDLI publication", "value": "1685524"},
+            {"scheme": "NII Book ID", "value": "BB06553852"}
+          ],
+          "available_formats": ["bibliographic metadata", "restricted book route", "reconstruction and translation description"],
+          "declared_rights": {"statement": null, "scope": "content", "evidence_url": null, "tos_conclusion": "evidence-only-not-a-rights-conclusion"},
+          "availability": "metadata-only",
+          "machine_interface": "html",
+          "decision": "select",
+          "rationale": "Foundational modern edition Work and exact center of the broader Alster control anchor; distinct from the ancient composition and current digital composite.",
+          "acquisition": {"downloaded": false, "acquired_at": null, "byte_size": null, "sha256": null, "event_ref": null},
+          "snapshot": {"state": "not-permitted", "format": null, "sha256": null, "reason": "No book body was acquired or presumed openly licensed."}
+        },
+        {
+          "result_id": "tos-discovery-result.civil-alster-critical-corrections",
+          "rank": 2,
+          "title_as_displayed": "Notes on the ‘Instructions of Šuruppak’ and later Alster corrections",
+          "result_url": "https://doi.org/10.1086/373090",
+          "originating_record_url": "https://doi.org/10.1515/zava.1990.80.1-2.15",
+          "identifiers": [
+            {"scheme": "DOI", "value": "10.1086/373090"},
+            {"scheme": "DOI", "value": "10.1515/zava.1990.80.1-2.15"}
+          ],
+          "available_formats": ["publisher metadata", "subscription article route", "ETCSL bibliography"],
+          "declared_rights": {"statement": null, "scope": "content", "evidence_url": null, "tos_conclusion": "evidence-only-not-a-rights-conclusion"},
+          "availability": "subscription",
+          "machine_interface": "html",
+          "decision": "select",
+          "rationale": "Field-shaping critical corrections demonstrate that the reconstruction is incremental, versioned, and disputed in details rather than a fixed recovered original.",
+          "acquisition": {"downloaded": false, "acquired_at": null, "byte_size": null, "sha256": null, "event_ref": null},
+          "snapshot": {"state": "not-permitted", "format": null, "sha256": null, "reason": "Exact metadata and bibliography were retained; article bodies were not acquired."}
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-shuruppag-fresh-current",
+      "sequence": 3,
+      "channel_type": "specialized-scholarly-project",
+      "role": "mixed",
+      "source_name": "Current redaction, social interpretation, and live CDLI representation state",
+      "endpoint_url": "https://cris.biu.ac.il/en/publications/redaction-patterns-in-biblical-wisdom-literature-in-light-of-the-/",
+      "interface_type": "web",
+      "interface_version": "peer-reviewed and provider records checked 2026-08-22",
+      "exact_query": "Find the freshest directly relevant peer-reviewed work and exact provider revisions; distinguish interpretive recency from source-state recency and reject calendar-new but weak material.",
+      "queried_at": "2026-08-22T21:34:00-06:00",
+      "elapsed_seconds": 5.4,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.samet-2021-2023-shuruppak",
+          "rank": 1,
+          "title_as_displayed": "Redaction Patterns … / Instructions of Shruppak: The World's Oldest Instruction Collection",
+          "result_url": "https://doi.org/10.1515/zaw-2021-2005",
+          "originating_record_url": "https://cris.biu.ac.il/en/publications/instructions-of-shruppak-the-worlds-oldest-instruction-collection/",
+          "identifiers": [{"scheme": "DOI", "value": "10.1515/zaw-2021-2005"}],
+          "available_formats": ["peer-reviewed article metadata", "peer-reviewed chapter metadata", "institutional abstract"],
+          "declared_rights": {"statement": null, "scope": "content", "evidence_url": null, "tos_conclusion": "evidence-only-not-a-rights-conclusion"},
+          "availability": "metadata-only",
+          "machine_interface": "html",
+          "decision": "select",
+          "rationale": "Current direct controls on collection growth, editorial framing, religious redaction, and instruction-collection comparison; ‘world's oldest’ remains an attributed title claim.",
+          "acquisition": {"downloaded": false, "acquired_at": null, "byte_size": null, "sha256": null, "event_ref": null},
+          "snapshot": {"state": "not-needed", "format": null, "sha256": null, "reason": "Institutional metadata and bounded conclusions suffice for this source-only planting."}
+        },
+        {
+          "result_id": "tos-discovery-result.albayrak-2025-ideal-masculinity",
+          "rank": 2,
+          "title_as_displayed": "Eski Mezopotamya Bilgelik Edebiyatında İdeal Erkeklik: Šuruppak’ın Talimatları Üzerine Bir İnceleme",
+          "result_url": "https://dergipark.org.tr/tr/pub/aran/article/1742808",
+          "originating_record_url": "https://doi.org/10.46931/aran.1742808",
+          "identifiers": [
+            {"scheme": "DOI", "value": "10.46931/aran.1742808"},
+            {"scheme": "ORCID", "value": "0000-0002-0481-0890"}
+          ],
+          "available_formats": ["peer-reviewed article HTML", "PDF route", "bibliographic exports"],
+          "declared_rights": {"statement": null, "scope": "content", "evidence_url": null, "tos_conclusion": "evidence-only-not-a-rights-conclusion"},
+          "availability": "open-view",
+          "machine_interface": "html",
+          "decision": "select",
+          "rationale": "Freshest directly relevant peer-reviewed interpretive article found, published 17 December 2025; its social and gender conclusions remain interpretation outside the source witness.",
+          "acquisition": {"downloaded": false, "acquired_at": null, "byte_size": null, "sha256": null, "event_ref": null},
+          "snapshot": {"state": "not-captured", "format": null, "sha256": null, "reason": "The article route was inspected; no PDF or body was retained."}
+        },
+        {
+          "result_id": "tos-discovery-result.cdli-2026-08-21-score-revision",
+          "rank": 3,
+          "title_as_displayed": "Q000782 current score and revision 2252483",
+          "result_url": "https://cdli.earth/artifacts/composites-score/Q000782",
+          "originating_record_url": "https://cdli.earth/inscriptions/2252483",
+          "identifiers": [
+            {"scheme": "CDLI composite", "value": "Q000782"},
+            {"scheme": "CDLI revision", "value": "2252483"}
+          ],
+          "available_formats": ["current score HTML", "current revision HTML", "citation exports"],
+          "declared_rights": {"statement": "CDLI layer-specific terms apply.", "scope": "content", "evidence_url": "https://cdli.earth/terms-of-use", "tos_conclusion": "evidence-only-not-a-rights-conclusion"},
+          "availability": "open-view",
+          "machine_interface": "html",
+          "decision": "select",
+          "rationale": "Updates dated 21 and 20 August 2026 are the freshest exact source-state evidence and supersede the earlier February citation state without changing provider-independent identity.",
+          "acquisition": {"downloaded": false, "acquired_at": null, "byte_size": null, "sha256": null, "event_ref": null},
+          "snapshot": {"state": "not-captured", "format": null, "sha256": null, "reason": "Current surfaces were streamed and fingerprinted; source text was not retained."}
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-shuruppag-general-web-last",
+      "sequence": 4,
+      "channel_type": "general-web-search",
+      "role": "lead-only",
+      "source_name": "Final general-web freshness and noise check",
+      "endpoint_url": "https://www.google.com/search?q=2026+Instructions+of+Shuruppak",
+      "interface_type": "web",
+      "interface_version": "general web checked 2026-08-22 after exact and scholarly routes",
+      "exact_query": "2026 Instructions of Shuruppak; screen popular translations, Reddit, Wikipedia, generic PDFs, and recent summaries only after source and scholarship routes",
+      "queried_at": "2026-08-22T21:39:00-06:00",
+      "elapsed_seconds": 2.1,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.tianmu-2026-shuruppak-popular-translation",
+          "rank": 1,
+          "title_as_displayed": "The Instructions of Shuruppak",
+          "result_url": "https://tianmu.org/good-work-library/sumerian/wisdom/the-instructions-of-shuruppak",
+          "originating_record_url": null,
+          "identifiers": [{"scheme": "publication year", "value": "2026"}],
+          "available_formats": ["popular translation HTML"],
+          "declared_rights": {"statement": null, "scope": "content", "evidence_url": null, "tos_conclusion": "evidence-only-not-a-rights-conclusion"},
+          "availability": "open-view",
+          "machine_interface": "html",
+          "decision": "reject",
+          "rationale": "Calendar-new popular translation and absolute ‘oldest’ claims add no critical apparatus, exact witness provenance, edition identity, or stronger rights evidence than the selected routes.",
+          "acquisition": {"downloaded": false, "acquired_at": null, "byte_size": null, "sha256": null, "event_ref": null},
+          "snapshot": {"state": "not-needed", "format": null, "sha256": null, "reason": "Rejected as authority; URL and rejection reason are sufficient."}
+        }
+      ]
+    }
+  ],
+  "channel_comparison": [
+    {
+      "channel_id": "channel-shuruppag-official-classical",
+      "completeness": "strong",
+      "metadata_precision": "strong",
+      "rights_clarity": "adequate",
+      "machine_interface_quality": "strong",
+      "human_minutes": 34,
+      "machine_seconds": 18.7,
+      "notes": "Best exact identities, physical witness evidence, current composite state, classical digital edition, publication lineage, and layer-specific source controls."
+    },
+    {
+      "channel_id": "channel-shuruppag-established",
+      "completeness": "strong",
+      "metadata_precision": "strong",
+      "rights_clarity": "limited",
+      "machine_interface_quality": "adequate",
+      "human_minutes": 18,
+      "machine_seconds": 6.8,
+      "notes": "Resolves the foundational edition Work and critical correction line while keeping restricted bodies absent."
+    },
+    {
+      "channel_id": "channel-shuruppag-fresh-current",
+      "completeness": "strong",
+      "metadata_precision": "strong",
+      "rights_clarity": "adequate",
+      "machine_interface_quality": "strong",
+      "human_minutes": 16,
+      "machine_seconds": 5.4,
+      "notes": "Separates current interpretive scholarship from the exact August 2026 provider revision state; recency does not create authority outside each layer."
+    },
+    {
+      "channel_id": "channel-shuruppag-general-web-last",
+      "completeness": "poor",
+      "metadata_precision": "limited",
+      "rights_clarity": "poor",
+      "machine_interface_quality": "adequate",
+      "human_minutes": 3,
+      "machine_seconds": 2.1,
+      "notes": "Added no authority; the newest popular translation was rejected after exact sources and scholarship were resolved."
+    }
+  ],
+  "selected_result_ids": [
+    "tos-discovery-result.cdli-q000782-current-composite",
+    "tos-discovery-result.cdli-p010233-abu-salabikh",
+    "tos-discovery-result.cdli-p222243-adab",
+    "tos-discovery-result.etcsl-561-composite-translation",
+    "tos-discovery-result.biggs-oip99-shuruppak",
+    "tos-discovery-result.alster-1974-instructions-shurruppak",
+    "tos-discovery-result.civil-alster-critical-corrections",
+    "tos-discovery-result.samet-2021-2023-shuruppak",
+    "tos-discovery-result.albayrak-2025-ideal-masculinity",
+    "tos-discovery-result.cdli-2026-08-21-score-revision"
+  ],
+  "rejected_result_ids": [
+    "tos-discovery-result.tianmu-2026-shuruppak-popular-translation"
+  ],
+  "rights_inference_from_availability_prohibited": true,
+  "general_web_search_is_last_resort": true,
+  "technical_access_bypass_used": false,
+  "maker": {"maker_type": "model", "agent_ref": "model:codex"},
+  "started_at": "2026-08-22T21:20:00-06:00",
+  "ended_at": "2026-08-22T21:49:45-06:00",
+  "status": "reconciled",
+  "provenance_event_refs": [
+    "tos.event.discovery.old-babylonian-instructions-of-shuruppag.2026-08-22"
+  ],
+  "record_version": 1,
+  "supersedes_discovery_ref": null
+}
