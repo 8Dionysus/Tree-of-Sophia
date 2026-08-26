@@ -1,0 +1,139 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/scholarly-composite-witness.schema.json",
+  "schema_version": "tos_scholarly_composite_witness_v1",
+  "composite_id": "tos.composite.sumerian.laws-of-ur-namma",
+  "composite_kind": "critical_reconstruction",
+  "preferred_label": "Laws of Ur-Namma",
+  "identity_status": "verified",
+  "path_identity": {
+    "basis": "scholarly_composition_identity",
+    "provider_independent": true,
+    "note": "The route follows the modern scholarly reconstruction of the Sumerian composition; CDLI Q000947, P432130, revision 2269337, member records, line coordinates, and later editions remain mutable representations or witnesses."
+  },
+  "identifiers": [
+    {
+      "scheme": "CDLI composite",
+      "value": "Q000947",
+      "source_ref": "https://cdli.earth/artifacts/432130"
+    },
+    {
+      "scheme": "CDLI composite artifact",
+      "value": "P432130",
+      "source_ref": "https://cdli.earth/artifacts/432130"
+    },
+    {
+      "scheme": "CDLI current inscription revision",
+      "value": "2269337",
+      "source_ref": "https://cdli.earth/inscriptions/2269337"
+    }
+  ],
+  "editorial_object": {
+    "title": "Laws of Ur-Namma",
+    "tradition": "Sumerian royal and scribal law-collection transmission",
+    "genre": "law collection; modern legal-normative and royal-inscription classification",
+    "period_label": "Ur III framing with Ur III and Old Babylonian physical witnesses",
+    "description": "A modern critical reconstruction that coordinates fragmentary witnesses, variants, lacunae, and editorial line sequences associated with the conventional Laws of Ur-Namma label.",
+    "modern_reconstruction": true,
+    "ancient_original": false,
+    "physical_artifact": false
+  },
+  "provider_representations": [
+    {
+      "provider": "Cuneiform Digital Library Initiative",
+      "representation_role": "member_context",
+      "record_id": "P226580 / Ist Ni 03191",
+      "record_url": "https://cdli.earth/artifacts/226580",
+      "api_url": "https://cdli.earth/artifacts/226580/json",
+      "checked_at": "2026-08-22T22:30:00-06:00",
+      "mutable": true,
+      "response_fingerprints": [
+        {
+          "surface": "https://cdli.earth/artifacts/226580/json",
+          "byte_size": 18305,
+          "sha256": "a319dbcc365284f2b019e63fbe101c51e806609cc771cf92a5794e85a81f864f",
+          "captured": false
+        }
+      ]
+    }
+  ],
+  "member_observations": [
+    {
+      "observation_id": "tos.observation.composite.q000947.member.p226580.2026-08-22",
+      "member_artifact_id": "tos.artifact.sumerian.nippur.istanbul-ist-ni-03191",
+      "relationship": "reported_witness_of",
+      "provider_relation_ids": [
+        "CDLI composite relation 150014",
+        "RIME 3/2.01.01.20, ex. 01"
+      ],
+      "source_refs": [
+        "https://cdli.earth/artifacts/226580/json",
+        "https://cdli.earth/artifacts/432130/json"
+      ],
+      "member_text_stored": false,
+      "review_status": "unreviewed"
+    }
+  ],
+  "coverage_observations": [
+    {
+      "provider": "Cuneiform Digital Library Initiative",
+      "surface": "https://cdli.earth/artifacts/432130/json",
+      "observed_member_count": 9,
+      "observed_tagged_count": null,
+      "named_member_present": true,
+      "coverage_posture": "full_api_list",
+      "checked_at": "2026-08-22T22:30:00-06:00",
+      "note": "The live witness array reported nine members: eight Old Babylonian and one Ur III; provenience labels included two Nippur, two Sippar-Yahrurum, and one each Kish, Susa, Ur, Uruk, and uncertain. P226580 was a direct member. Counts are dated mutable observations; a later retry timed out and no composite body was retained."
+    }
+  ],
+  "content_layer": {
+    "role": "modern_scholarly_composite",
+    "formats": [
+      "CDLI composite HTML",
+      "CDLI ATF revision",
+      "CDLI JSON witness array",
+      "critical-edition metadata"
+    ],
+    "availability": "open_view",
+    "content_stored": false,
+    "source_text_admitted": false,
+    "source_refs": [
+      "https://cdli.earth/artifacts/432130",
+      "https://cdli.earth/artifacts/432130/json",
+      "https://cdli.earth/inscriptions/2269337"
+    ],
+    "scope_note": "Current providers expose modern editorial text and witness coordination. This packet records identity, version, one exact member, and dated coverage only; it neither freezes nor publishes the reconstructed text."
+  },
+  "layer_separation": {
+    "composite_is_physical_artifact": false,
+    "composite_is_ancient_original": false,
+    "provider_page_is_composite_identity": false,
+    "member_is_composite": false,
+    "editorial_line_is_artifact_line": false,
+    "sign_has_fixed_translation": false,
+    "composite_is_philosophy": false
+  },
+  "rights_ref": "ToS/source-witnesses/scholarly-composites/critical/sumerian/laws-of-ur-namma/rights.json",
+  "discovery_ref": "ToS/source-witnesses/discovery/runs/mesopotamian-law-collections.2026-08-22.v1.json",
+  "provenance_event_ref": "tos.event.discovery.mesopotamian-law-collections.2026-08-22",
+  "research_ref": "ToS/research-packets/foundation-laboratory-2026-07/A02_MESOPOTAMIAN_LAW_COLLECTIONS_SOURCE_PLANTING_RESEARCH_2026-08-22.md",
+  "philosophy_planting_refs": [
+    "ToS/philosophy/eras/bronze-age/regions/west-asia/traditions/old-babylonian-scribal-wisdom-law/sources/plantings/laws-of-ur-namma-composite/source-planting.json"
+  ],
+  "authority": {
+    "evidence_status": "metadata_witness",
+    "review_status": "unreviewed",
+    "visibility": "public_metadata_only",
+    "source_text_admitted": false,
+    "semantic_authority": false,
+    "graph_authority": false,
+    "canon_authority": false,
+    "publication_authority": false
+  },
+  "maker": {
+    "maker_type": "model",
+    "agent_ref": "model:codex",
+    "human_review_performed": false
+  },
+  "created_at": "2026-08-22T22:43:00-06:00",
+  "record_version": 1
+}

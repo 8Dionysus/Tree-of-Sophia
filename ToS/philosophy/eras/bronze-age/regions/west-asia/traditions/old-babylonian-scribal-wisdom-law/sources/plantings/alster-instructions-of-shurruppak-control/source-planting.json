@@ -1,0 +1,54 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/philosophy-source-planting.schema.json",
+  "schema_version": "tos_philosophy_source_planting_v1",
+  "planting_id": "tos.planting.a02.alster-instructions-of-shurruppak-control",
+  "atlas_row_id": "A02",
+  "dossier_id": "A02",
+  "branch_path": "ToS/philosophy/eras/bronze-age/regions/west-asia/traditions/old-babylonian-scribal-wisdom-law",
+  "source_backlog_anchor": {
+    "path": "ToS/philosophy/eras/bronze-age/regions/west-asia/traditions/old-babylonian-scribal-wisdom-law/sources/source-anchor-backlog.jsonl",
+    "line": 27,
+    "source_table_index": 14,
+    "source_row_index": 9,
+    "source_label": "Bendt Alster, исследования по Šuruppag"
+  },
+  "source_witness": {
+    "work_id": "tos.work.sumerian-scholarship.the-instructions-of-shurruppak-a-sumerian-proverb-collection",
+    "record_ref": "ToS/source-witnesses/works/sumerian-scholarship/the-instructions-of-shurruppak-a-sumerian-proverb-collection/work.json",
+    "relationship": "grounds_source_backlog_anchor"
+  },
+  "discovery_ref": "ToS/source-witnesses/discovery/runs/old-babylonian-instructions-of-shuruppag.2026-08-22.v1.json",
+  "provenance_event_ref": "tos.event.discovery.old-babylonian-instructions-of-shuruppag.2026-08-22",
+  "research_ref": "ToS/research-packets/foundation-laboratory-2026-07/A02_INSTRUCTIONS_OF_SHURUPPAG_SOURCE_PLANTING_RESEARCH_2026-08-22.md",
+  "fulfilled_source_needs": [
+    "Alster's 1974 book is resolved as the exact central modern edition Work behind the broader compact control label",
+    "CDLI and CiNii reconcile title, source-reported authorship, publication year, publisher, series, ISBN, and book identity",
+    "the edition's reconstruction and translation of multiple versions remain distinct from the ancient Work, physical witnesses, and current digital composite",
+    "Civil 1984, Alster 1990 and 1991/92, ETCSL, and the August 2026 CDLI score remain later correction and representation controls rather than duplicates of the 1974 Work",
+    "restricted book content was not acquired; bibliographic identity and an unreviewed source-reported authorship claim are sufficient for this control role"
+  ],
+  "remaining_controls": [
+    "the backlog label refers to a body of Alster research, while this planting admits one exact central Work and keeps later publications separately citable",
+    "Alster 1974 is not the ancient composition, a physical tablet, the complete witness set, ETCSL, CDLI, or final current philological authority",
+    "book availability, reconstruction, translation, edition authority, and present scholarly acceptance are separate questions",
+    "no book payload, Expression, Edition, Item, transcription, translation, semantic claim, graph relation, canon state, external request, server transfer, or human task is created"
+  ],
+  "research_order": [
+    "official_and_classical_documentation",
+    "established_top_scholarship",
+    "fresh_current_relevance_check"
+  ],
+  "authority": {
+    "source_status": "metadata_witness_planted",
+    "review_status": "unreviewed",
+    "source_text_admitted": false,
+    "semantic_status": "not_started",
+    "graph_status": "not_promoted",
+    "canon_status": "not_canon",
+    "human_task_created": false
+  },
+  "status": "source_witness_planted",
+  "maker": {"maker_type": "model", "agent_ref": "model:codex", "human_review_performed": false},
+  "created_at": "2026-08-22T22:01:00-06:00",
+  "record_version": 1
+}

@@ -1,0 +1,146 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/scholarly-composite-witness.schema.json",
+  "schema_version": "tos_scholarly_composite_witness_v1",
+  "composite_id": "tos.composite.akkadian.laws-of-hammurapi",
+  "composite_kind": "critical_reconstruction",
+  "preferred_label": "Laws of Hammurapi",
+  "identity_status": "verified",
+  "path_identity": {
+    "basis": "scholarly_composition_identity",
+    "provider_independent": true,
+    "note": "The route follows the modern scholarly reconstruction of the Akkadian composition; Louvre SB 8, other physical witnesses, CDLI Q006387, P464358, revision 2337705, editorial sectioning, and translations remain distinct."
+  },
+  "identifiers": [
+    {
+      "scheme": "CDLI composite",
+      "value": "Q006387",
+      "source_ref": "https://cdli.earth/artifacts/464358"
+    },
+    {
+      "scheme": "CDLI composite artifact",
+      "value": "P464358",
+      "source_ref": "https://cdli.earth/artifacts/464358"
+    },
+    {
+      "scheme": "CDLI current inscription revision",
+      "value": "2337705",
+      "source_ref": "https://cdli.earth/inscriptions/2337705"
+    }
+  ],
+  "editorial_object": {
+    "title": "Laws of Hammurapi",
+    "tradition": "Akkadian royal and scribal law-collection transmission",
+    "genre": "law collection; royal/display inscription and scholarly transmission",
+    "period_label": "Old Babylonian royal inscription with later Middle Assyrian and Neo-Assyrian transmission witnesses",
+    "description": "A modern critical reconstruction coordinating the monumental stela and tablet witnesses, the stela lacuna, later copies, variants, prologue, provisions, epilogue, and editorial numbering.",
+    "modern_reconstruction": true,
+    "ancient_original": false,
+    "physical_artifact": false
+  },
+  "provider_representations": [
+    {
+      "provider": "Cuneiform Digital Library Initiative",
+      "representation_role": "member_context",
+      "record_id": "P249253 / Louvre SB 8",
+      "record_url": "https://cdli.earth/artifacts/249253",
+      "api_url": "https://cdli.earth/artifacts/249253/json",
+      "checked_at": "2026-08-13T00:21:01-06:00",
+      "mutable": true,
+      "response_fingerprints": [
+        {
+          "surface": "https://cdli.earth/artifacts/249253/json",
+          "byte_size": 97830,
+          "sha256": "43527b5684b7f6f746f627d76bc24f97cc89c43996ef7a203b405b5ed4da9e33",
+          "captured": false
+        },
+        {
+          "surface": "https://cdli.earth/artifacts/249253",
+          "byte_size": 206264,
+          "sha256": "e23a3f46fc96760f8d6036e2da3506f273b50a0032c1f75ba85e533829efc2f8",
+          "captured": false
+        }
+      ]
+    }
+  ],
+  "member_observations": [
+    {
+      "observation_id": "tos.observation.composite.q006387.member.p249253.2026-08-22",
+      "member_artifact_id": "tos.artifact.old-babylonian.susa.hammurabi-stele-sb-8",
+      "relationship": "reported_witness_of",
+      "provider_relation_ids": [
+        "CDLI composite relation 198588",
+        "RIME 4.03.06.add21, ex. 01"
+      ],
+      "source_refs": [
+        "https://cdli.earth/artifacts/249253/json",
+        "https://cdli.earth/artifacts/464358/json",
+        "https://collections.louvre.fr/ark:/53355/cl010174436"
+      ],
+      "member_text_stored": false,
+      "review_status": "unreviewed"
+    }
+  ],
+  "coverage_observations": [
+    {
+      "provider": "Cuneiform Digital Library Initiative",
+      "surface": "https://cdli.earth/artifacts/464358/json",
+      "observed_member_count": 27,
+      "observed_tagged_count": null,
+      "named_member_present": true,
+      "coverage_posture": "full_api_list",
+      "checked_at": "2026-08-22T22:30:00-06:00",
+      "note": "The live witness array reported 27 members: four Old Babylonian, two Middle Assyrian, and 21 Neo-Assyrian; Louvre SB 8/P249253 was a direct member. Counts are dated mutable observations and do not make later copies equivalent to the stela or original royal inscription. A later retry timed out and no composite body was retained."
+    }
+  ],
+  "content_layer": {
+    "role": "modern_scholarly_composite",
+    "formats": [
+      "CDLI composite HTML",
+      "CDLI ATF revision",
+      "CDLI JSON witness array",
+      "critical-edition metadata"
+    ],
+    "availability": "open_view",
+    "content_stored": false,
+    "source_text_admitted": false,
+    "source_refs": [
+      "https://cdli.earth/artifacts/464358",
+      "https://cdli.earth/artifacts/464358/json",
+      "https://cdli.earth/inscriptions/2337705"
+    ],
+    "scope_note": "The modern composite can coordinate the stela lacuna and later copies, but no reconstruction, transliteration, sectioning, or translation is accepted by this metadata-only packet."
+  },
+  "layer_separation": {
+    "composite_is_physical_artifact": false,
+    "composite_is_ancient_original": false,
+    "provider_page_is_composite_identity": false,
+    "member_is_composite": false,
+    "editorial_line_is_artifact_line": false,
+    "sign_has_fixed_translation": false,
+    "composite_is_philosophy": false
+  },
+  "rights_ref": "ToS/source-witnesses/scholarly-composites/critical/akkadian/laws-of-hammurapi/rights.json",
+  "discovery_ref": "ToS/source-witnesses/discovery/runs/mesopotamian-law-collections.2026-08-22.v1.json",
+  "provenance_event_ref": "tos.event.discovery.mesopotamian-law-collections.2026-08-22",
+  "research_ref": "ToS/research-packets/foundation-laboratory-2026-07/A02_MESOPOTAMIAN_LAW_COLLECTIONS_SOURCE_PLANTING_RESEARCH_2026-08-22.md",
+  "philosophy_planting_refs": [
+    "ToS/philosophy/eras/bronze-age/regions/west-asia/traditions/old-babylonian-scribal-wisdom-law/sources/plantings/laws-of-hammurapi-composite/source-planting.json"
+  ],
+  "authority": {
+    "evidence_status": "metadata_witness",
+    "review_status": "unreviewed",
+    "visibility": "public_metadata_only",
+    "source_text_admitted": false,
+    "semantic_authority": false,
+    "graph_authority": false,
+    "canon_authority": false,
+    "publication_authority": false
+  },
+  "maker": {
+    "maker_type": "model",
+    "agent_ref": "model:codex",
+    "human_review_performed": false
+  },
+  "created_at": "2026-08-22T22:43:00-06:00",
+  "record_version": 1
+}

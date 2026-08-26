@@ -1,0 +1,190 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/artifact-source-witness.schema.json",
+  "schema_version": "tos_artifact_source_witness_v1",
+  "artifact_id": "tos.artifact.sumerian.uncertain.louvre-ao-05473",
+  "artifact_kind": "clay_tablet",
+  "path_identity": {
+    "basis": "repository_identity",
+    "provider_independent": true,
+    "note": "The speaking route preserves the Louvre inventory AO 05473 and explicit uncertain provenience; it does not turn a conventional Nippur association or mutable CDLI P345378 record into physical provenance."
+  },
+  "identifiers": [
+    {
+      "scheme": "Louvre inventory",
+      "value": "AO 05473",
+      "source_ref": "https://collections.louvre.fr/en/ark:/53355/cl010166109"
+    },
+    {
+      "scheme": "Louvre collection ARK",
+      "value": "cl010166109",
+      "source_ref": "https://collections.louvre.fr/en/ark:/53355/cl010166109"
+    },
+    {
+      "scheme": "CDLI",
+      "value": "P345378",
+      "source_ref": "https://cdli.earth/artifacts/345378"
+    },
+    {
+      "scheme": "RIME",
+      "value": "4.01.05.add10, ex. 01",
+      "source_ref": "https://cdli.earth/artifacts/345378"
+    }
+  ],
+  "physical_description": {
+    "material": "clay",
+    "height_mm": 114,
+    "width_mm": 64,
+    "thickness_mm": 32,
+    "source_ref": "https://collections.louvre.fr/en/ark:/53355/cl010166109"
+  },
+  "dating": {
+    "period_label": "Early Old Babylonian",
+    "display_date": "Early Old Babylonian period",
+    "certainty": "reported",
+    "period_stage_separation_required": true,
+    "source_ref": "https://cdli.earth/artifacts/345378"
+  },
+  "find_context": {
+    "site": null,
+    "findspot": null,
+    "excavation_numbers": [],
+    "source_note": "CDLI reports uncertain provenience; the Louvre identifies the object and acquisition but does not establish an excavated findspot in the checked record.",
+    "documentation_limit": "Neither the composition's transmission through Nippur manuscripts nor a catalog association may be promoted into an exact provenience, findspot, composition place, or archaeological context for AO 05473.",
+    "source_ref": "https://cdli.earth/artifacts/345378"
+  },
+  "custody": {
+    "current_repository": "Musée du Louvre, Département des Antiquités orientales",
+    "inventory_numbers": [
+      "AO 05473"
+    ],
+    "source_ref": "https://collections.louvre.fr/en/ark:/53355/cl010166109"
+  },
+  "digital_catalog_record": {
+    "provider": "Musée du Louvre Collections",
+    "record_id": "cl010166109",
+    "record_url": "https://collections.louvre.fr/en/ark:/53355/cl010166109",
+    "api_url": "https://collections.louvre.fr/ark:/53355/cl010166109.json",
+    "checked_at": "2026-08-22T22:30:00-06:00",
+    "mutable": true,
+    "response_fingerprints": [
+      {
+        "surface": "https://collections.louvre.fr/en/ark:/53355/cl010166109",
+        "byte_size": 70225,
+        "sha256": "93c6d6b0fca73c6873beb546f28fd88a392872af75db2ecdc3492a9a7210f39a",
+        "captured": false
+      },
+      {
+        "surface": "https://collections.louvre.fr/ark:/53355/cl010166109.json",
+        "byte_size": 9536,
+        "sha256": "caa5b5a9acc95d0edd8f658fadd796fee96a857ba1ca7d4d35f691c3f5c17311",
+        "captured": false
+      }
+    ]
+  },
+  "inscription_layer": {
+    "availability": "catalog_linked",
+    "language_status": "reported",
+    "provider_language_code": "sux",
+    "normalized_language_code": "sux",
+    "script": "cuneiform",
+    "transliteration_stored": false,
+    "translation_stored": false,
+    "source_refs": [
+      "https://cdli.earth/artifacts/345378",
+      "https://collections.louvre.fr/en/ark:/53355/cl010166109"
+    ]
+  },
+  "composite_layer": {
+    "status": "linked",
+    "external_refs": [
+      {
+        "scheme": "CDLI composite",
+        "value": "Q000613",
+        "source_ref": "https://cdli.earth/artifacts/464355"
+      },
+      {
+        "scheme": "CDLI composite artifact",
+        "value": "P464355",
+        "source_ref": "https://cdli.earth/artifacts/464355"
+      },
+      {
+        "scheme": "CDLI composite relation",
+        "value": "365423",
+        "source_ref": "https://cdli.earth/artifacts/464355/json"
+      }
+    ],
+    "relationship": "CDLI reports AO 05473/P345378 as a witness of Q000613/P464355. The fragmentary physical tablet is not the ancient Work, a complete text, the modern composite, or any accepted translation.",
+    "is_physical_artifact_identity": false
+  },
+  "visual_layers": [
+    {
+      "layer_kind": "photograph",
+      "availability": "visible",
+      "content_stored": false,
+      "source_ref": "https://collections.louvre.fr/en/ark:/53355/cl010166109",
+      "rights_note": "The Louvre record displays collection imagery; no image payload, image license, or publication authority was acquired or inferred."
+    }
+  ],
+  "scholarly_classification": {
+    "genre": "Law collection witness; prologue fragment",
+    "corpus_labels": [
+      "Laws of Lipit-Ištar",
+      "RIME 4.01.05.add10, ex. 01"
+    ],
+    "classification_is_interpretive": true,
+    "source_refs": [
+      "https://cdli.earth/artifacts/345378",
+      "https://collections.louvre.fr/en/ark:/53355/cl010166109",
+      "https://cdli.earth/genres/history/30"
+    ]
+  },
+  "bibliography": [
+    {
+      "citation": "Francis Rue Steele, ‘The Code of Lipit-Ishtar,’ American Journal of Archaeology 52.3 (1948): 425–450.",
+      "role": "primary_publication",
+      "source_ref": "https://www.journals.uchicago.edu/doi/10.2307/500438"
+    },
+    {
+      "citation": "Claus Wilcke, ‘Gesetze in sumerischer Sprache’ (2014), discussion of P464355 at pp. 573–602.",
+      "role": "established_control",
+      "source_ref": "https://cdli.earth/publications/1749485"
+    },
+    {
+      "citation": "Musée du Louvre, AO 5473 collection record, updated 10 January 2025.",
+      "role": "current_control",
+      "source_ref": "https://collections.louvre.fr/en/ark:/53355/cl010166109"
+    }
+  ],
+  "layer_separation": {
+    "physical_artifact_is_catalog_record": false,
+    "catalog_record_is_inscription": false,
+    "inscription_is_composite": false,
+    "visual_is_artifact": false,
+    "sign_has_fixed_translation": false,
+    "artifact_is_philosophy": false
+  },
+  "rights_ref": "ToS/source-witnesses/artifacts/sumerian/uncertain/louvre-ao-05473/rights.json",
+  "discovery_ref": "ToS/source-witnesses/discovery/runs/mesopotamian-law-collection-physical-witnesses.2026-08-22.v1.json",
+  "provenance_event_ref": "tos.event.discovery.mesopotamian-law-collections.2026-08-22",
+  "research_ref": "ToS/research-packets/foundation-laboratory-2026-07/A02_MESOPOTAMIAN_LAW_COLLECTIONS_SOURCE_PLANTING_RESEARCH_2026-08-22.md",
+  "philosophy_planting_refs": [
+    "ToS/philosophy/eras/bronze-age/regions/west-asia/traditions/old-babylonian-scribal-wisdom-law/sources/plantings/laws-of-lipit-ishtar-composite/source-planting.json"
+  ],
+  "authority": {
+    "evidence_status": "metadata_witness",
+    "review_status": "unreviewed",
+    "visibility": "public_metadata_only",
+    "source_text_admitted": false,
+    "semantic_authority": false,
+    "graph_authority": false,
+    "canon_authority": false,
+    "publication_authority": false
+  },
+  "maker": {
+    "maker_type": "model",
+    "agent_ref": "model:codex",
+    "human_review_performed": false
+  },
+  "created_at": "2026-08-22T22:42:00-06:00",
+  "record_version": 1
+}

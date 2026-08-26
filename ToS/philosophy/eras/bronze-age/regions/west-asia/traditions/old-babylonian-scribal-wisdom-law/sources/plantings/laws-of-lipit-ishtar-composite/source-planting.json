@@ -1,0 +1,46 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/philosophy-source-planting.schema.json",
+  "schema_version": "tos_philosophy_source_planting_v1",
+  "planting_id": "tos.planting.a02.laws-of-lipit-ishtar-composite",
+  "atlas_row_id": "A02",
+  "dossier_id": "A02",
+  "branch_path": "ToS/philosophy/eras/bronze-age/regions/west-asia/traditions/old-babylonian-scribal-wisdom-law",
+  "source_backlog_anchor": {
+    "path": "ToS/philosophy/eras/bronze-age/regions/west-asia/traditions/old-babylonian-scribal-wisdom-law/sources/source-anchor-backlog.jsonl",
+    "line": 16,
+    "source_table_index": 13,
+    "source_row_index": 6,
+    "source_label": "law collections Ur-Namma / Lipit-Ishtar / Hammurapi"
+  },
+  "source_witness": {
+    "composite_id": "tos.composite.sumerian.laws-of-lipit-ishtar",
+    "record_ref": "ToS/source-witnesses/scholarly-composites/critical/sumerian/laws-of-lipit-ishtar/composite-witness.json",
+    "relationship": "grounds_source_backlog_anchor"
+  },
+  "discovery_ref": "ToS/source-witnesses/discovery/runs/mesopotamian-law-collections.2026-08-22.v1.json",
+  "provenance_event_ref": "tos.event.discovery.mesopotamian-law-collections.2026-08-22",
+  "research_ref": "ToS/research-packets/foundation-laboratory-2026-07/A02_MESOPOTAMIAN_LAW_COLLECTIONS_SOURCE_PLANTING_RESEARCH_2026-08-22.md",
+  "fulfilled_source_needs": [
+    "the ancient Laws of Lipit-Ištar Work is separated from king, speaker, physical witnesses, modern title, composite, editions, translations, legislation theories, and interpretation",
+    "the exact Louvre AO 05473 / P345378 witness preserves measurements, custody, relation 365423, and uncertain provenience before composite use",
+    "the provider-independent composite reconciles Q000613, P464355, and current revision 2269336 without making a provider URL the source identity",
+    "the current witness array is a dated mutable observation of 13 Early Old Babylonian members",
+    "classical Steele 1948 precedes Wilcke, Roth, Westbrook, and current 2025-2026 museum, provider, and genre controls",
+    "layer-specific rights keep metadata public-safe while text, transliteration, translation, images, scans, and modern editions remain absent",
+    "an A/B/C route is prepared for physical-witness, composite, and critical-edition comparison with manual verification"
+  ],
+  "remaining_controls": [
+    "law collection and code remain attributed scholarly labels and do not establish modern positive-law force",
+    "Lipit-Ištar in the modern label and royal framing is not an authored_by claim",
+    "AO 05473 has uncertain provenience and is therefore not silently placed at Nippur",
+    "fragment, prologue, provisions, composite sequence, and complete ancient text remain distinct",
+    "the 13-member provider count is mutable and does not prove completeness or uniform transmission",
+    "no source text, translation, semantic claim, graph relation, canon state, server transfer, or human task is created"
+  ],
+  "research_order": ["official_and_classical_documentation", "established_top_scholarship", "fresh_current_relevance_check"],
+  "authority": {"source_status": "metadata_witness_planted", "review_status": "unreviewed", "source_text_admitted": false, "semantic_status": "not_started", "graph_status": "not_promoted", "canon_status": "not_canon", "human_task_created": false},
+  "status": "source_witness_planted",
+  "maker": {"maker_type": "model", "agent_ref": "model:codex", "human_review_performed": false},
+  "created_at": "2026-08-22T22:46:00-06:00",
+  "record_version": 1
+}

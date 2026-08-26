@@ -1,0 +1,64 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/philosophy-source-planting.schema.json",
+  "schema_version": "tos_philosophy_source_planting_v1",
+  "planting_id": "tos.planting.a02.yale-babylonian-collection-ancient-mesopotamia-speaks-control",
+  "atlas_row_id": "A02",
+  "dossier_id": "A02",
+  "branch_path": "ToS/philosophy/eras/bronze-age/regions/west-asia/traditions/old-babylonian-scribal-wisdom-law",
+  "source_backlog_anchor": {
+    "path": "ToS/philosophy/eras/bronze-age/regions/west-asia/traditions/old-babylonian-scribal-wisdom-law/sources/source-anchor-backlog.jsonl",
+    "line": 30,
+    "source_table_index": 14,
+    "source_row_index": 12,
+    "source_label": "Yale Babylonian Collection / Ancient Mesopotamia Speaks"
+  },
+  "source_witness": {
+    "work_id": "tos.work.mesopotamian-scholarship.ancient-mesopotamia-speaks-highlights-of-the-yale-babylonian-collection",
+    "record_ref": "ToS/source-witnesses/works/mesopotamian-scholarship/ancient-mesopotamia-speaks-highlights-of-the-yale-babylonian-collection/work.json",
+    "relationship": "grounds_source_backlog_anchor"
+  },
+  "discovery_ref": "ToS/source-witnesses/discovery/runs/old-babylonian-yale-babylonian-collection-ancient-mesopotamia-speaks.2026-08-23.v1.json",
+  "provenance_event_ref": "tos.event.discovery.old-babylonian-yale-babylonian-collection-ancient-mesopotamia-speaks.2026-08-23",
+  "research_ref": "ToS/research-packets/foundation-laboratory-2026-07/A02_YALE_BABYLONIAN_COLLECTION_ANCIENT_MESOPOTAMIA_SPEAKS_SOURCE_PLANTING_RESEARCH_2026-08-23.md",
+  "fulfilled_source_needs": [
+    "the compressed backlog label is resolved into a stable Yale Babylonian Collection institutional route and a distinct 2019 exhibition-catalog Work",
+    "the catalog Work receives one verified identity with ISBN and OCLC metadata while its three editors receive separate evidence-bearing unreviewed claims",
+    "YBC, NBC, MLC, GCBC, NCBT, NCBS, and RBC catalog prefixes are preserved as distinct future object routes rather than normalized into one fabricated identifier system",
+    "the catalog's more than one hundred entries, the exhibition's more than 150 objects, and the institution's live holdings counts remain separate dated scopes",
+    "official Yale documentation, Foster's collection history, Geller and Beckman reviews, and current digitization and publication evidence are ordered and source-returnable",
+    "the June 2026 legacy-portal retirement and LUX migration are represented as provider-state change rather than object succession or automatic metadata reverification",
+    "the 2019 guide is retained as a high-value discovery and interpretation route while every exact object reading must return to its current catalog record, dedicated publication, image, and physical witness",
+    "Yale terms and permission contacts are preserved as a future rights channel without sending a request or acquiring any payload"
+  ],
+  "remaining_controls": [
+    "the institutional Organization is not one bibliographic Collection of every held object and no tens-of-thousands membership import is admitted",
+    "Yale custody and catalog membership do not establish ancient provenience, acquisition history, authenticity, textual identity, composition membership, or preferred reading",
+    "provider metadata disagrees on the catalog's physical extent and no Edition or Item is created without an exact acquired copy",
+    "the physical exhibition, catalog Work, virtual exhibition, legacy Peabody portal, and LUX representation remain distinct states",
+    "current collection counts differ by date and scope and cannot serve as exact inventory totals without a fixed provider export",
+    "the Museum's broad access posture does not grant blanket redistribution, publication, model-training, image, or catalog-body rights",
+    "no source body, image, ancient Work, object Item, Collection membership, Expression, Edition, transcription, translation, passage, semantic claim, graph relation, canon state, access request, permission request, external message, payment, server transfer, human task, or human review is created"
+  ],
+  "research_order": [
+    "official_and_classical_documentation",
+    "established_top_scholarship",
+    "fresh_current_relevance_check"
+  ],
+  "authority": {
+    "source_status": "metadata_witness_planted",
+    "review_status": "unreviewed",
+    "source_text_admitted": false,
+    "semantic_status": "not_started",
+    "graph_status": "not_promoted",
+    "canon_status": "not_canon",
+    "human_task_created": false
+  },
+  "status": "source_witness_planted",
+  "maker": {
+    "maker_type": "model",
+    "agent_ref": "model:codex",
+    "human_review_performed": false
+  },
+  "created_at": "2026-08-23T04:33:30-06:00",
+  "record_version": 1
+}

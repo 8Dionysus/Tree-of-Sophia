@@ -1,0 +1,128 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/artifact-source-witness.schema.json",
+  "schema_version": "tos_artifact_source_witness_v1",
+  "artifact_id": "tos.artifact.sumerian.abu-salabikh.im-070204-plus",
+  "artifact_kind": "clay_tablet",
+  "path_identity": {
+    "basis": "repository_identity",
+    "provider_independent": true,
+    "note": "The route follows the reported National Museum of Iraq inventory ensemble IM 070204 + and excavation joins, not the mutable CDLI provider identifier."
+  },
+  "identifiers": [
+    {"scheme": "CDLI", "value": "P010233", "source_ref": "https://cdli.earth/artifacts/10233"},
+    {"scheme": "museum inventory", "value": "IM 070204 +", "source_ref": "https://cdli.earth/artifacts/10233"},
+    {"scheme": "excavation", "value": "AbS-T 0393 + AbS-T 0305", "source_ref": "https://cdli.earth/artifacts/10233"}
+  ],
+  "physical_description": {
+    "material": "clay",
+    "height_mm": null,
+    "width_mm": null,
+    "thickness_mm": null,
+    "source_ref": "https://cdli.earth/artifacts/10233"
+  },
+  "dating": {
+    "period_label": "Early Dynastic IIIa",
+    "display_date": "ca. 2600-2500 BC",
+    "certainty": "reported",
+    "period_stage_separation_required": true,
+    "source_ref": "https://cdli.earth/artifacts/10233"
+  },
+  "find_context": {
+    "site": "uncertain (modern Abu Salabikh)",
+    "findspot": null,
+    "excavation_numbers": ["AbS-T 0393", "AbS-T 0305"],
+    "source_note": "CDLI reports the provenience as uncertain (mod. Abu Salabikh) and the joined excavation ensemble as AbS-T 0393 + AbS-T 0305.",
+    "documentation_limit": "The provider's Abu Salabikh association is explicitly uncertain. The excavation labels and later join do not establish a precise findspot, stratigraphic unit, original completeness, or composition date.",
+    "source_ref": "https://cdli.earth/artifacts/10233"
+  },
+  "custody": {
+    "current_repository": "National Museum of Iraq, Baghdad, Iraq",
+    "inventory_numbers": ["IM 070204 +"],
+    "source_ref": "https://cdli.earth/artifacts/10233"
+  },
+  "digital_catalog_record": {
+    "provider": "Cuneiform Digital Library Initiative",
+    "record_id": "P010233",
+    "record_url": "https://cdli.earth/artifacts/10233",
+    "api_url": "https://cdli.earth/artifacts/10233/json",
+    "checked_at": "2026-08-22T21:49:45-06:00",
+    "mutable": true,
+    "response_fingerprints": [
+      {"surface": "https://cdli.earth/artifacts/10233", "byte_size": 92173, "sha256": "ca0a0e0607c2296659eede3544c20b01ec7b7aca19659c144e8e472ddc69875c", "captured": false},
+      {"surface": "https://cdli.earth/artifacts/10233/json", "byte_size": 34000, "sha256": "392111f91be36a3c4ae508f32521fd9088abf9abd3502ca17924a63585519507", "captured": false}
+    ]
+  },
+  "inscription_layer": {
+    "availability": "catalog_linked",
+    "language_status": "reported",
+    "provider_language_code": "sux-x-emegir",
+    "normalized_language_code": "sux",
+    "script": "cuneiform",
+    "transliteration_stored": false,
+    "translation_stored": false,
+    "source_refs": ["https://cdli.earth/artifacts/10233", "https://cdli.earth/artifacts/10233/json"]
+  },
+  "composite_layer": {
+    "status": "linked",
+    "external_refs": [
+      {"scheme": "CDLI composite", "value": "Q000782", "source_ref": "https://cdli.earth/artifacts/10233/json"},
+      {"scheme": "CDLI composite relation", "value": "15492", "source_ref": "https://cdli.earth/artifacts/478969/json"}
+    ],
+    "relationship": "CDLI reports this physical witness as ex. 023 of modern composite Q000782. The relation does not make the tablet identical to the composite, ancient Work, or current editorial line sequence.",
+    "is_physical_artifact_identity": false
+  },
+  "visual_layers": [
+    {
+      "layer_kind": "photograph",
+      "availability": "visible",
+      "content_stored": false,
+      "source_ref": "https://cdli.earth/artifacts/10233",
+      "rights_note": "CDLI terms treat photographs as holding-institution material; no image was acquired and publication permission was not inferred."
+    },
+    {
+      "layer_kind": "line_art",
+      "availability": "visible",
+      "content_stored": false,
+      "source_ref": "https://cdli.earth/artifacts/10233",
+      "rights_note": "Line art is a separate authored publication layer; no drawing was acquired or authorized for ToS publication."
+    }
+  ],
+  "scholarly_classification": {
+    "genre": "Literary",
+    "corpus_labels": ["ETCSL 5.06.01 Instructions of Shuruppak (witness)", "CDLI Literary 000782, ex. 023"],
+    "classification_is_interpretive": true,
+    "source_refs": ["https://cdli.earth/artifacts/10233", "https://cdli.earth/artifacts/10233/json"]
+  },
+  "bibliography": [
+    {"citation": "Robert D. Biggs, Inscriptions from Tell Abū Ṣalābīkh, OIP 99 (1974), nos. 256 + 323.", "role": "primary_publication", "source_ref": "https://cdli.earth/publications/6239"},
+    {"citation": "Bendt Alster, The Instructions of Šurruppak: A Sumerian Proverb Collection (1974).", "role": "established_control", "source_ref": "https://cdli.earth/publications/1685524"},
+    {"citation": "Miguel Civil, Notes on the Instructions of Šuruppak, JNES 43 (1984): 281-298.", "role": "established_control", "source_ref": "https://cdli.earth/publications/1640854"},
+    {"citation": "Bendt Alster, Early Dynastic Proverbs, AfO 38/39 (1991/92): 1-51, pp. 32-34.", "role": "current_control", "source_ref": "https://cdli.earth/publications/7"}
+  ],
+  "layer_separation": {
+    "physical_artifact_is_catalog_record": false,
+    "catalog_record_is_inscription": false,
+    "inscription_is_composite": false,
+    "visual_is_artifact": false,
+    "sign_has_fixed_translation": false,
+    "artifact_is_philosophy": false
+  },
+  "rights_ref": "ToS/source-witnesses/artifacts/sumerian/abu-salabikh/im-070204-plus/rights.json",
+  "discovery_ref": "ToS/source-witnesses/discovery/runs/instructions-of-shuruppag-early-physical-witnesses.2026-08-22.v1.json",
+  "provenance_event_ref": "tos.event.discovery.old-babylonian-instructions-of-shuruppag.2026-08-22",
+  "research_ref": "ToS/research-packets/foundation-laboratory-2026-07/A02_INSTRUCTIONS_OF_SHURUPPAG_SOURCE_PLANTING_RESEARCH_2026-08-22.md",
+  "philosophy_planting_refs": ["ToS/philosophy/eras/bronze-age/regions/west-asia/traditions/old-babylonian-scribal-wisdom-law/sources/plantings/instructions-of-shuruppag-composite/source-planting.json"],
+  "authority": {
+    "evidence_status": "metadata_witness",
+    "review_status": "unreviewed",
+    "visibility": "public_metadata_only",
+    "source_text_admitted": false,
+    "semantic_authority": false,
+    "graph_authority": false,
+    "canon_authority": false,
+    "publication_authority": false
+  },
+  "maker": {"maker_type": "model", "agent_ref": "model:codex", "human_review_performed": false},
+  "created_at": "2026-08-22T21:55:00-06:00",
+  "record_version": 1
+}

@@ -1,0 +1,47 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/philosophy-source-planting.schema.json",
+  "schema_version": "tos_philosophy_source_planting_v1",
+  "planting_id": "tos.planting.a02.old-babylonian-gilgamesh-fragments",
+  "atlas_row_id": "A02",
+  "dossier_id": "A02",
+  "branch_path": "ToS/philosophy/eras/bronze-age/regions/west-asia/traditions/old-babylonian-scribal-wisdom-law",
+  "source_backlog_anchor": {
+    "path": "ToS/philosophy/eras/bronze-age/regions/west-asia/traditions/old-babylonian-scribal-wisdom-law/sources/source-anchor-backlog.jsonl",
+    "line": 17,
+    "source_table_index": 13,
+    "source_row_index": 7,
+    "source_label": "Old Babylonian Gilgamesh fragments"
+  },
+  "source_witness": {
+    "composite_id": "tos.composite.akkadian.old-babylonian-gilgamesh-fragments",
+    "record_ref": "ToS/source-witnesses/scholarly-composites/synoptic/akkadian/old-babylonian-gilgamesh-fragments/composite-witness.json",
+    "relationship": "grounds_source_backlog_anchor"
+  },
+  "discovery_ref": "ToS/source-witnesses/discovery/runs/old-babylonian-gilgamesh-fragments.2026-08-22.v1.json",
+  "provenance_event_ref": "tos.event.discovery.old-babylonian-gilgamesh-fragments.2026-08-22",
+  "research_ref": "ToS/research-packets/foundation-laboratory-2026-07/A02_OLD_BABYLONIAN_GILGAMESH_FRAGMENTS_SOURCE_PLANTING_RESEARCH_2026-08-22.md",
+  "fulfilled_source_needs": [
+    "the Old Babylonian Gilgamesh tradition is represented by a provisional provider-independent Work rather than one complete fixed text",
+    "the five Sumerian Gilgamesh compositions, Old Babylonian transmission cluster, later Standard Babylonian poem, physical tablets, composites, editions, and translations remain distinct",
+    "Penn CBS 07771 / CDLI P262784 is admitted as one exact physical witness with dimensions, material, period, language, custody, and identifiers",
+    "Penn's Warka-uncertain statement, its CBS Register Sippar note, CDLI's Nippur value, and eBL's Babylonia label remain unresolved source-attributed observations under an uncertain-site path",
+    "the current eBL representation is retained as a dated synoptic coverage observation of 14 editorial units and 21 manuscript records rather than an exhaustive ancient membership claim",
+    "Langdon 1917 and Jastrow-Clay 1920 precede George 2003, later exact fragment scholarship, and the fresh 2026 eBL and Penn state",
+    "layer-specific rights keep bounded attributed metadata public-safe while source text, reconstruction, translations, photographs, line art, scans, and publication bodies remain absent",
+    "a future A/B/C route is prepared for exact physical witness, live synoptic provider state, and critical-edition or later-fragment comparison with manual source-visible review"
+  ],
+  "remaining_controls": [
+    "the Work identity is provisional because the surviving Old Babylonian evidence is miscellaneous and does not establish one fixed recension or author-final text",
+    "the 14-unit and 21-manuscript counts are mutable 2026-08-22 eBL coverage and do not prove completeness",
+    "only CBS 07771 receives a physical ToS artifact identity in this slice; the other 20 eBL records remain coverage observations until individually researched",
+    "the preferred and variant labels are modern scholarly navigation and do not establish an exact ancient title or incipit for every witness",
+    "the 2019 SM T-7544 article body remains unacquired; a future exact need should use the rights-aware access-request channel",
+    "no Akkadian reading, cuneiform collation, source text, Expression, Edition, Item, translation, semantic claim, graph relation, canon state, server transfer, human task, or human review is created"
+  ],
+  "research_order": ["official_and_classical_documentation", "established_top_scholarship", "fresh_current_relevance_check"],
+  "authority": {"source_status": "metadata_witness_planted", "review_status": "unreviewed", "source_text_admitted": false, "semantic_status": "not_started", "graph_status": "not_promoted", "canon_status": "not_canon", "human_task_created": false},
+  "status": "source_witness_planted",
+  "maker": {"maker_type": "model", "agent_ref": "model:codex", "human_review_performed": false},
+  "created_at": "2026-08-23T00:09:00-06:00",
+  "record_version": 1
+}

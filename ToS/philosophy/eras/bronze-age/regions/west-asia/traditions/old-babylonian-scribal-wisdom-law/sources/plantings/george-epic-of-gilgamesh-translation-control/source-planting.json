@@ -1,0 +1,62 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/philosophy-source-planting.schema.json",
+  "schema_version": "tos_philosophy_source_planting_v1",
+  "planting_id": "tos.planting.a02.george-epic-of-gilgamesh-translation-control",
+  "atlas_row_id": "A02",
+  "dossier_id": "A02",
+  "branch_path": "ToS/philosophy/eras/bronze-age/regions/west-asia/traditions/old-babylonian-scribal-wisdom-law",
+  "source_backlog_anchor": {
+    "path": "ToS/philosophy/eras/bronze-age/regions/west-asia/traditions/old-babylonian-scribal-wisdom-law/sources/source-anchor-backlog.jsonl",
+    "line": 25,
+    "source_table_index": 14,
+    "source_row_index": 7,
+    "source_label": "Andrew R. George, The Babylonian Gilgamesh Epic и переводы"
+  },
+  "source_witness": {
+    "work_id": "tos.work.old-babylonian-scholarship.the-epic-of-gilgamesh-george-translation",
+    "record_ref": "ToS/source-witnesses/works/old-babylonian-scholarship/the-epic-of-gilgamesh-george-translation/work.json",
+    "relationship": "grounds_source_backlog_anchor"
+  },
+  "discovery_ref": "ToS/source-witnesses/discovery/runs/old-babylonian-gilgamesh-fragments.2026-08-22.v1.json",
+  "provenance_event_ref": "tos.event.annotation.old-babylonian-george-gilgamesh-controls.2026-08-23",
+  "research_ref": "ToS/research-packets/foundation-laboratory-2026-07/A02_GEORGE_BABYLONIAN_GILGAMESH_EPIC_AND_TRANSLATIONS_SOURCE_PLANTING_RESEARCH_2026-08-23.md",
+  "fulfilled_source_needs": [
+    "the reader-facing 1999/2000 Andrew R. George English translation receives a separate stable modern Work identity instead of being collapsed into the 2003 critical edition",
+    "Andrew R. George receives separate evidence-bearing unreviewed translated-by and introduced-by claims",
+    "the 1999 A New Translation title and 2000 Penguin Classics title are reconciled at Work level through George's own bibliography while exact Edition and Item equivalence remains unasserted",
+    "current 2016 eBook and 2020 extensively revised second-edition paperback states remain distinct uninspected product or manifestation controls",
+    "the readable Penguin translation remains a recognized translation witness rather than source text, critical apparatus, universal ground truth, or an authority to erase gaps and variants",
+    "the specialist English translations embedded in George 2003 remain distinct from this reader-facing translation Work",
+    "publisher words such as fluid and definitive are retained only as marketing metadata and do not create a ToS authority claim",
+    "only public bibliographic metadata and links are admitted; no Penguin sample, translation passage, source selection, cover, scan, or image payload is stored"
+  ],
+  "remaining_controls": [
+    "the Work-level record does not yet create or equate the 1999 Allen Lane state, 2000 Penguin Classics state, 2016 eBook, 2020 second-edition paperback, SOAS sample, or any private copy",
+    "the repeated ISBN 9780140449198 across catalog states does not prove unchanged translation wording, pagination, source selection, or bytes",
+    "a later translation comparison must inspect exact Items and preserve source anchors, omissions, additions, restorations, variants, George's introduction, and changes after newly discovered fragments",
+    "the publisher sample is copyrighted material and its public visibility does not authorize ToS publication or redistribution",
+    "no ancient Work, source payload, Expression, Edition, Manifestation, Item, page, passage, translation alignment, semantic claim, graph relation, canon state, access request, external message, payment, server transfer, human task, or human review is created"
+  ],
+  "research_order": [
+    "official_and_classical_documentation",
+    "established_top_scholarship",
+    "fresh_current_relevance_check"
+  ],
+  "authority": {
+    "source_status": "metadata_witness_planted",
+    "review_status": "unreviewed",
+    "source_text_admitted": false,
+    "semantic_status": "not_started",
+    "graph_status": "not_promoted",
+    "canon_status": "not_canon",
+    "human_task_created": false
+  },
+  "status": "source_witness_planted",
+  "maker": {
+    "maker_type": "model",
+    "agent_ref": "model:codex",
+    "human_review_performed": false
+  },
+  "created_at": "2026-08-23T03:55:40-06:00",
+  "record_version": 1
+}
