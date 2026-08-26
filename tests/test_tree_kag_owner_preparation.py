@@ -370,6 +370,59 @@ def test_build_owner_preparation_runs_real_packet_boundary(tmp_path: Path) -> No
     assert packet["claim_boundary"]["semantic_pair_emitted"] is False
 
 
+def test_build_owner_preparation_accepts_stat_no_follow_without_lstat_advertisement(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    preparer = load_preparer()
+    configure_preparer_fixture(preparer)
+    repo = make_preparation_repo(tmp_path, preparer)
+    supported_dir_fd = set(preparer.os.supports_dir_fd)
+    supported_dir_fd.discard(preparer.os.lstat)
+    monkeypatch.setattr(preparer.os, "supports_dir_fd", supported_dir_fd)
+
+    packet = preparer.build_owner_preparation(repo)
+
+    assert packet["status"] == "blocked_external_kag_contract"
+    assert packet["tree_source"]["family"]["compatibility_records"][0]["state"] == (
+        "validated_current"
+    )
+
+
+def test_build_owner_preparation_fails_closed_without_stat_no_follow_capability(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    preparer = load_preparer()
+    configure_preparer_fixture(preparer)
+    repo = make_preparation_repo(tmp_path, preparer)
+    supported_dir_fd = set(preparer.os.supports_dir_fd)
+    supported_dir_fd.discard(preparer.os.stat)
+    monkeypatch.setattr(preparer.os, "supports_dir_fd", supported_dir_fd)
+
+    with pytest.raises(preparer.PreparationError, match="requires no-follow"):
+        preparer.build_owner_preparation(repo)
+
+
+def test_build_owner_preparation_fails_closed_without_stat_follow_symlinks_capability(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    preparer = load_preparer()
+    configure_preparer_fixture(preparer)
+    repo = make_preparation_repo(tmp_path, preparer)
+    supported_follow_symlinks = set(preparer.os.supports_follow_symlinks)
+    supported_follow_symlinks.discard(preparer.os.stat)
+    monkeypatch.setattr(
+        preparer.os,
+        "supports_follow_symlinks",
+        supported_follow_symlinks,
+    )
+
+    with pytest.raises(preparer.PreparationError, match="requires no-follow"):
+        preparer.build_owner_preparation(repo)
+
+
 def test_build_owner_preparation_preserves_missing_compatibility_snapshot(
     tmp_path: Path,
 ) -> None:
@@ -424,35 +477,44 @@ def test_build_owner_preparation_rejects_parent_replacement_during_missing_final
     )
     outside = tmp_path / "outside"
     outside.mkdir()
-    original_lstat = preparer.os.lstat
-    missing_lstat_hits = 0
+    original_stat = preparer.os.stat
+    missing_stat_hits = 0
     swapped = False
 
-    def racing_lstat(path, *, dir_fd=None):
-        nonlocal missing_lstat_hits, swapped
+    def racing_stat(path, *, dir_fd=None, follow_symlinks=True):
+        nonlocal missing_stat_hits, swapped
         try:
-            return original_lstat(path, dir_fd=dir_fd)
+            return original_stat(
+                path,
+                dir_fd=dir_fd,
+                follow_symlinks=follow_symlinks,
+            )
         except FileNotFoundError:
-            if path == "missing.json" and dir_fd is not None:
-                missing_lstat_hits += 1
-                if missing_lstat_hits == 2:
+            if path == "missing.json" and dir_fd is not None and not follow_symlinks:
+                missing_stat_hits += 1
+                if missing_stat_hits == 2:
                     alias.rename(repo / "kag/indexes/alias.old")
                     alias.symlink_to(outside, target_is_directory=True)
                     swapped = True
             raise
 
-    monkeypatch.setattr(preparer.os, "lstat", racing_lstat)
+    monkeypatch.setattr(preparer.os, "stat", racing_stat)
     monkeypatch.setattr(
         preparer.os,
         "supports_dir_fd",
-        set(preparer.os.supports_dir_fd) | {racing_lstat},
+        set(preparer.os.supports_dir_fd) | {racing_stat},
+    )
+    monkeypatch.setattr(
+        preparer.os,
+        "supports_follow_symlinks",
+        set(preparer.os.supports_follow_symlinks) | {racing_stat},
     )
 
     with pytest.raises(preparer.PreparationError, match="parent path changed"):
         preparer.build_owner_preparation(repo)
 
     assert swapped is True
-    assert missing_lstat_hits >= 2
+    assert missing_stat_hits >= 2
 
 
 def test_build_owner_preparation_rejects_embedded_nul_manifest_path(

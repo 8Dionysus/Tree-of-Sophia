@@ -185,6 +185,27 @@ def _same_directory_identity(left: os.stat_result, right: os.stat_result) -> boo
     )
 
 
+def _supports_no_follow_directory_descriptors() -> bool:
+    """Check capabilities for ``os.stat(dir_fd=..., follow_symlinks=False)``.
+
+    ``os.lstat`` can accept ``dir_fd`` without appearing in
+    ``os.supports_dir_fd`` on Python 3.12, so its advertised membership is not
+    the contract used by the descriptor-relative no-follow operation below.
+    """
+
+    nofollow = getattr(os, "O_NOFOLLOW", 0)
+    directory = getattr(os, "O_DIRECTORY", 0)
+    supported_dir_fd = getattr(os, "supports_dir_fd", ())
+    supported_follow_symlinks = getattr(os, "supports_follow_symlinks", ())
+    return (
+        bool(nofollow)
+        and bool(directory)
+        and os.open in supported_dir_fd
+        and os.stat in supported_dir_fd
+        and os.stat in supported_follow_symlinks
+    )
+
+
 def _revalidate_opened_parent_paths(
     root: Path,
     root_fd: int,
@@ -205,8 +226,12 @@ def _revalidate_opened_parent_paths(
 
     for parent_fd, component, opened_directory in parent_bindings:
         try:
-            current_directory = os.lstat(component, dir_fd=parent_fd)
-        except (OSError, ValueError) as exc:
+            current_directory = os.stat(
+                component,
+                dir_fd=parent_fd,
+                follow_symlinks=False,
+            )
+        except (OSError, TypeError, ValueError) as exc:
             raise PreparationError(
                 f"cannot revalidate parent path for {role}: {component}"
             ) from exc
@@ -222,17 +247,11 @@ def _confined_optional_file_stat(
     """Classify an optional file only after a no-follow parent walk."""
 
     _validate_relative_path(relative_path, role)
-    nofollow = getattr(os, "O_NOFOLLOW", 0)
-    directory = getattr(os, "O_DIRECTORY", 0)
-    supported_dir_fd = getattr(os, "supports_dir_fd", ())
-    if (
-        not nofollow
-        or not directory
-        or os.open not in supported_dir_fd
-        or os.lstat not in supported_dir_fd
-    ):
+    if not _supports_no_follow_directory_descriptors():
         raise PreparationError(f"{role} requires no-follow directory-descriptor support")
 
+    nofollow = os.O_NOFOLLOW
+    directory = os.O_DIRECTORY
     root = repo_root.resolve()
     try:
         root_fd = os.open(root, os.O_RDONLY | nofollow | directory)
@@ -266,10 +285,18 @@ def _confined_optional_file_stat(
             current_fd = next_fd
 
         try:
-            final_stat = os.lstat(relative_path.parts[-1], dir_fd=current_fd)
+            final_stat = os.stat(
+                relative_path.parts[-1],
+                dir_fd=current_fd,
+                follow_symlinks=False,
+            )
         except FileNotFoundError:
             try:
-                os.lstat(relative_path.parts[-1], dir_fd=current_fd)
+                os.stat(
+                    relative_path.parts[-1],
+                    dir_fd=current_fd,
+                    follow_symlinks=False,
+                )
             except FileNotFoundError:
                 _revalidate_opened_parent_paths(
                     root,
@@ -278,7 +305,7 @@ def _confined_optional_file_stat(
                     role,
                 )
                 return None
-            except (OSError, ValueError) as exc:
+            except (OSError, TypeError, ValueError) as exc:
                 raise PreparationError(
                     f"cannot recheck missing confined final component for {role}: "
                     f"{relative_path}"
@@ -287,7 +314,7 @@ def _confined_optional_file_stat(
                 f"confined final component changed while checking missing {role}: "
                 f"{relative_path}"
             )
-        except (OSError, ValueError) as exc:
+        except (OSError, TypeError, ValueError) as exc:
             raise PreparationError(
                 f"cannot inspect confined final component for {role}: {relative_path}"
             ) from exc
