@@ -568,7 +568,7 @@ def test_build_owner_preparation_preserves_stale_family_negative(
     monkeypatch.setattr(
         preparer,
         "_run_local_family_validator",
-        lambda _repo: {
+        lambda _repo, **_kwargs: {
             "command": ["fixture-validator"],
             "exit_code": 1,
             "state": "stale_or_invalid",
@@ -737,6 +737,79 @@ def test_environment_seal_binds_validation_executable(
     assert identity["tools"]["python"]["sha256"] == hashlib.sha256(
         actual_executable.read_bytes()
     ).hexdigest()
+
+
+def test_tool_identity_pins_open_file_and_rejects_path_replacement(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    preparer = load_preparer()
+    tool = tmp_path / "version-tool"
+    replacement = tmp_path / "version-tool.replacement"
+    tool.write_text("#!/bin/sh\nprintf 'same-version\\n'\n", encoding="utf-8")
+    replacement.write_text("#!/bin/sh\nprintf 'same-version\\n'\n", encoding="utf-8")
+    tool.chmod(0o755)
+    replacement.chmod(0o755)
+    original_run = preparer.subprocess.run
+    observed = {}
+
+    def racing_run(command, *args, **kwargs):
+        if command[-1] == "--version":
+            observed["command"] = command
+            observed["pass_fds"] = kwargs.get("pass_fds")
+            replacement.replace(tool)
+        return original_run(command, *args, **kwargs)
+
+    monkeypatch.setattr(preparer.subprocess, "run", racing_run)
+
+    with pytest.raises(preparer.PreparationError, match="tool path changed"):
+        preparer._tool_identity("version-tool", executable=tool)
+
+    assert observed["command"][0].startswith("/proc/self/fd/")
+    fd = int(observed["command"][0].rsplit("/", maxsplit=1)[-1])
+    assert observed["pass_fds"] == (fd,)
+
+
+def test_validator_receives_the_effective_environment_in_the_seal(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    preparer = load_preparer()
+    configure_preparer_fixture(preparer)
+    repo = make_preparation_repo(tmp_path, preparer)
+    monkeypatch.setenv("PYTHONDONTWRITEBYTECODE", "0")
+    captured = {}
+
+    def fake_validator(root: Path, *, environment=None):
+        captured["root"] = root
+        captured["environment"] = dict(environment or {})
+        return {
+            "command": ["fixture-validator"],
+            "exit_code": 0,
+            "state": "current_validated",
+            "stdout_tail": [],
+            "stderr_tail": [],
+            "claim_limit": "fixture",
+        }
+
+    monkeypatch.setattr(preparer, "_run_local_family_validator", fake_validator)
+
+    observation = preparer._capture_observation(repo)
+    effective = captured["environment"]
+    identity = observation["environment"]
+
+    assert captured["root"] == repo
+    assert effective["PYTHONDONTWRITEBYTECODE"] == "1"
+    assert identity["variables"]["PYTHONDONTWRITEBYTECODE"] == "1"
+    for key in preparer.REPRODUCIBILITY_ENVIRONMENT_KEYS:
+        assert identity["variables"][key] == effective.get(key)
+    for key in preparer.HASHED_ENVIRONMENT_KEYS:
+        assert identity["hashed_variables"][key] == preparer._redacted_environment_value(
+            effective.get(key)
+        )
+    for key, value in effective.items():
+        if key.startswith("GIT_"):
+            assert identity["git_variables"][key] == preparer._redacted_environment_value(value)
 
 
 def test_blocked_external_contract_is_non_success_for_cli(monkeypatch: pytest.MonkeyPatch) -> None:

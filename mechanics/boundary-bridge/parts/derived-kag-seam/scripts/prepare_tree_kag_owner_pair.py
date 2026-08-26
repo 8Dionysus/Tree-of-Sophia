@@ -648,14 +648,22 @@ def _family_identity(repo_root: Path) -> dict[str, Any]:
     }
 
 
-def _run_local_family_validator(repo_root: Path) -> dict[str, Any]:
+def _run_local_family_validator(
+    repo_root: Path,
+    *,
+    environment: Mapping[str, str] | None = None,
+) -> dict[str, Any]:
     command = (sys.executable, str(repo_root / FAMILY_VALIDATOR_PATH))
-    environment = dict(os.environ)
-    environment["PYTHONDONTWRITEBYTECODE"] = "1"
+    effective_environment = (
+        _effective_child_environment()
+        if environment is None
+        else dict(environment)
+    )
+    effective_environment["PYTHONDONTWRITEBYTECODE"] = "1"
     result = subprocess.run(
         command,
         cwd=repo_root,
-        env=environment,
+        env=effective_environment,
         check=False,
         capture_output=True,
         text=True,
@@ -800,25 +808,47 @@ def _tool_identity(command: str, *, executable: str | Path | None = None) -> dic
         if not executable:
             raise PreparationError(f"required tool is not on PATH: {command}")
     path = Path(executable).resolve(strict=True)
+    flags = os.O_RDONLY | getattr(os, "O_CLOEXEC", 0)
     try:
-        tool_stat = path.stat()
-        if not stat.S_ISREG(tool_stat.st_mode):
-            raise PreparationError(f"required tool is not a regular file: {path}")
-        content = path.read_bytes()
-    except OSError as exc:
+        file_descriptor = os.open(path, flags)
+    except (OSError, ValueError) as exc:
         raise PreparationError(f"cannot bind required tool {command}: {path}") from exc
+    try:
+        try:
+            tool_stat = os.fstat(file_descriptor)
+            if not stat.S_ISREG(tool_stat.st_mode):
+                raise PreparationError(f"required tool is not a regular file: {path}")
+            with os.fdopen(os.dup(file_descriptor), "rb") as handle:
+                content = handle.read()
+            after_read_stat = os.fstat(file_descriptor)
+            if not _same_stat(tool_stat, after_read_stat):
+                raise PreparationError(f"required tool changed while being hashed: {path}")
+            version = subprocess.run(
+                (f"/proc/self/fd/{file_descriptor}", "--version"),
+                capture_output=True,
+                check=False,
+                pass_fds=(file_descriptor,),
+                text=True,
+            )
+            final_path_stat = path.stat()
+            if (tool_stat.st_dev, tool_stat.st_ino) != (
+                final_path_stat.st_dev,
+                final_path_stat.st_ino,
+            ):
+                raise PreparationError(f"required tool path changed during --version: {path}")
+        except PreparationError:
+            raise
+        except (OSError, ValueError) as exc:
+            raise PreparationError(f"cannot bind required tool {command}: {path}") from exc
+    finally:
+        os.close(file_descriptor)
     return {
         "command": command,
         "path": str(path),
         "bytes": len(content),
         "sha256": hashlib.sha256(content).hexdigest(),
         "mode": stat.S_IMODE(tool_stat.st_mode),
-        "version": subprocess.run(
-            (str(path), "--version"),
-            capture_output=True,
-            check=False,
-            text=True,
-        ).stdout.splitlines()[:1],
+        "version": version.stdout.splitlines()[:1],
     }
 
 
@@ -834,22 +864,36 @@ def _redacted_environment_value(value: str | None) -> dict[str, Any]:
     }
 
 
-def _environment_identity() -> dict[str, Any]:
+def _effective_child_environment() -> dict[str, str]:
+    environment = dict(os.environ)
+    environment["PYTHONDONTWRITEBYTECODE"] = "1"
+    return environment
+
+
+def _environment_identity(
+    effective_environment: Mapping[str, str] | None = None,
+) -> dict[str, Any]:
+    environment = (
+        _effective_child_environment()
+        if effective_environment is None
+        else dict(effective_environment)
+    )
+    environment["PYTHONDONTWRITEBYTECODE"] = "1"
     binding = {
         "python": sys.version,
         "platform": platform.platform(),
         "executable": str(Path(sys.executable).resolve()),
         "variables": {
-            key: os.environ.get(key)
+            key: environment.get(key)
             for key in REPRODUCIBILITY_ENVIRONMENT_KEYS
         },
         "hashed_variables": {
-            key: _redacted_environment_value(os.environ.get(key))
+            key: _redacted_environment_value(environment.get(key))
             for key in HASHED_ENVIRONMENT_KEYS
         },
         "git_variables": {
             key: _redacted_environment_value(value)
-            for key, value in sorted(os.environ.items())
+            for key, value in sorted(environment.items())
             if key.startswith("GIT_")
         },
         "redaction_policy": {
@@ -869,9 +913,11 @@ def _environment_identity() -> dict[str, Any]:
         "sha256": _digest_object(binding),
     }
 
+
 def _capture_observation(repo_root: Path, *, run_family_validator: bool = True) -> dict[str, Any]:
     repo = _repo_identity(repo_root)
-    environment = _environment_identity()
+    effective_environment = _effective_child_environment()
+    environment = _environment_identity(effective_environment)
     authoritative_records = [
         _file_identity(repo_root, path, "authored_source_authority")
         for path in AUTHORITATIVE_SOURCE_PATHS
@@ -911,7 +957,10 @@ def _capture_observation(repo_root: Path, *, run_family_validator: bool = True) 
     )
     parity = _canonical_mirror_parity(authoritative_records[0], materialized_records[0])
     if run_family_validator:
-        family["local_validator"] = _run_local_family_validator(repo_root)
+        family["local_validator"] = _run_local_family_validator(
+            repo_root,
+            environment=effective_environment,
+        )
     producer_dependency_seal = _dependency_seal(
         dependency_classes,
         authoritative_records,
