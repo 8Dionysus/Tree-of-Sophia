@@ -11,6 +11,10 @@ ROWS_PATH = REPO_ROOT / "ToS/philosophy/atlas/master-tables/table-i/rows.jsonl"
 ROUTES_PATH = REPO_ROOT / "ToS/philosophy/atlas/dossiers/prepared-dossier-routes.json"
 PORT_PATH = REPO_ROOT / "stats/port.manifest.json"
 PACKET_PATH = REPO_ROOT / "stats/packets/table-i-prepared-dossier-route-ratio.reference.json"
+SUPPORTED_ROUTE_MAP_SCHEMAS = {
+    "tos_prepared_dossier_routes_v1",
+    "tos_prepared_dossier_routes_v2",
+}
 
 
 def load_rows() -> list[dict[str, object]]:
@@ -45,7 +49,7 @@ def derive_route_ratio(
     if len(row_ids) != len(set(row_ids)):
         return {"status": "unknown", "reason": "duplicate_row_identity"}
 
-    if not isinstance(route_map, dict) or route_map.get("schema_version") != "tos_prepared_dossier_routes_v1":
+    if not isinstance(route_map, dict) or route_map.get("schema_version") not in SUPPORTED_ROUTE_MAP_SCHEMAS:
         return {"status": "unknown", "reason": "unsupported_route_map"}
     packages = route_map.get("packages")
     package = packages.get("table-i") if isinstance(packages, dict) else None
@@ -116,6 +120,16 @@ class LocalStatsPortTests(unittest.TestCase):
             },
         )
 
+    def test_route_map_v2_preserves_v1_measurement_compatibility(self) -> None:
+        route_map_v2 = load_json(ROUTES_PATH)
+        route_map_v1 = deepcopy(route_map_v2)
+        route_map_v1["schema_version"] = "tos_prepared_dossier_routes_v1"
+
+        self.assertEqual(
+            derive_route_ratio(load_rows(), route_map_v1),
+            derive_route_ratio(load_rows(), route_map_v2),
+        )
+
     def test_other_tables_and_dossier_payloads_do_not_enter_population(self) -> None:
         rows = load_rows()
         route_map = load_json(ROUTES_PATH)
@@ -154,7 +168,7 @@ class LocalStatsPortTests(unittest.TestCase):
         missing_branch = deepcopy(route_map)
         missing_branch["packages"]["table-i"]["routes"][0]["branch_path"] = "ToS/philosophy/does-not-exist"
         unsupported = deepcopy(route_map)
-        unsupported["schema_version"] = "tos_prepared_dossier_routes_v2"
+        unsupported["schema_version"] = "tos_prepared_dossier_routes_v999"
 
         cases = (
             derive_route_ratio(duplicate_rows, route_map),

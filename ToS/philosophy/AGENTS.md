@@ -15,7 +15,7 @@ branch-shaped topology.
 | Field | Route |
 | --- | --- |
 | role | growing domain branch for philosophy |
-| input | master-table row, dossier index, era, region, tradition, corpus, archive, inscription, work, figure, concept, institution, medium, script, transmission, controversy, source-corpus, research packet, or branch-graph material |
+| input | master-table row, dossier index, era, explicit non-era frontier, region, tradition, corpus, archive, inscription, work, figure, concept, institution, medium, script, transmission, controversy, source-corpus, research packet, or branch-graph material |
 | output | tree-shaped philosophical branch surface with evidence posture and local graph route |
 | owner | `ToS/philosophy/AGENTS.md`, `ToS/philosophy/README.md`, and `ToS/philosophy/philosophy.manifest.json` |
 | next route | atlas row or source witness -> branch growth -> local graph workbench -> proposed nodes -> proposed relations -> relation pack -> canon promotion -> derived graph/export |
@@ -30,6 +30,10 @@ branch-shaped topology.
 - Keep the main shape tree-first: atlas -> trunk -> eras -> regions -> traditions ->
   corpora, archives, inscriptions, works, figures, concepts, institutions,
   media, scripts, transmissions, controversies, sources, graph fragments.
+- Use `frontiers/` only for an explicit non-era guardrail whose chronology,
+  geography, readability, or evidence posture cannot be represented honestly
+  as one era/region/tradition branch. A frontier remains pre-canon and must
+  state its unresolved boundary; it is not a shortcut around branch review.
 - Treat corpora, archives, inscriptions, institutions, media, scripts,
   transmissions, and controversies as first-class infrastructure for
   philosophical growth.

@@ -83,6 +83,8 @@
 - [TOS-D-0030 - Explicit separate KAG action ABI and provider identity](../TOS-D-0030-exact-kag-action-provider-alignment.md) (`docs/decisions/TOS-D-0030-exact-kag-action-provider-alignment.md`)
 - [TOS-D-0031 - TOS-D-0031 AGENTS route topology and progressive disclosure](../TOS-D-0031-agents-route-topology-and-progressive-disclosure.md) (`docs/decisions/TOS-D-0031-agents-route-topology-and-progressive-disclosure.md`)
 - [TOS-D-0032 - TOS-D-0032 cross-corpus documentation map and minimal projection](../TOS-D-0032-cross-corpus-documentation-map-and-minimal-projection.md) (`docs/decisions/TOS-D-0032-cross-corpus-documentation-map-and-minimal-projection.md`)
+- [TOS-D-0033 - Non-Era Philosophy Frontier Route](../TOS-D-0033-non-era-philosophy-frontier-route.md) (`docs/decisions/TOS-D-0033-non-era-philosophy-frontier-route.md`)
+- [TOS-D-0034 - Exact External Artifact Identity Is Provenance](../TOS-D-0034-exact-external-artifact-identity-is-provenance.md) (`docs/decisions/TOS-D-0034-exact-external-artifact-identity-is-provenance.md`)
 
 ## doctrine
 
@@ -130,6 +132,7 @@
 - [TOS-D-0019 - Zarathustra Golden Growth Kernel](../TOS-D-0019-zarathustra-golden-growth-kernel.md) (`docs/decisions/TOS-D-0019-zarathustra-golden-growth-kernel.md`)
 - [TOS-D-0024 - Artifact Witness Spine](../TOS-D-0024-artifact-witness-spine.md) (`docs/decisions/TOS-D-0024-artifact-witness-spine.md`)
 - [TOS-D-0025 - Scholarly Composite Witness Spine](../TOS-D-0025-scholarly-composite-witness-spine.md) (`docs/decisions/TOS-D-0025-scholarly-composite-witness-spine.md`)
+- [TOS-D-0033 - Non-Era Philosophy Frontier Route](../TOS-D-0033-non-era-philosophy-frontier-route.md) (`docs/decisions/TOS-D-0033-non-era-philosophy-frontier-route.md`)
 
 ## ports
 
@@ -153,6 +156,8 @@
 - [TOS-D-0023 - Participant-Scoped Translation Exposure](../TOS-D-0023-participant-scoped-translation-exposure.md) (`docs/decisions/TOS-D-0023-participant-scoped-translation-exposure.md`)
 - [TOS-D-0024 - Artifact Witness Spine](../TOS-D-0024-artifact-witness-spine.md) (`docs/decisions/TOS-D-0024-artifact-witness-spine.md`)
 - [TOS-D-0025 - Scholarly Composite Witness Spine](../TOS-D-0025-scholarly-composite-witness-spine.md) (`docs/decisions/TOS-D-0025-scholarly-composite-witness-spine.md`)
+- [TOS-D-0033 - Non-Era Philosophy Frontier Route](../TOS-D-0033-non-era-philosophy-frontier-route.md) (`docs/decisions/TOS-D-0033-non-era-philosophy-frontier-route.md`)
+- [TOS-D-0034 - Exact External Artifact Identity Is Provenance](../TOS-D-0034-exact-external-artifact-identity-is-provenance.md) (`docs/decisions/TOS-D-0034-exact-external-artifact-identity-is-provenance.md`)
 
 ## review-ledger
 
@@ -192,6 +197,8 @@
 - [TOS-D-0021 - Domain Vocabulary And Active Route Naming](../TOS-D-0021-domain-vocabulary-and-active-route-naming.md) (`docs/decisions/TOS-D-0021-domain-vocabulary-and-active-route-naming.md`)
 - [TOS-D-0022 - Expression Derivation Is Not Equivalence](../TOS-D-0022-expression-derivation-is-not-equivalence.md) (`docs/decisions/TOS-D-0022-expression-derivation-is-not-equivalence.md`)
 - [TOS-D-0028 - Mechanics Executable Route Map](../TOS-D-0028-mechanics-executable-route-map.md) (`docs/decisions/TOS-D-0028-mechanics-executable-route-map.md`)
+- [TOS-D-0033 - Non-Era Philosophy Frontier Route](../TOS-D-0033-non-era-philosophy-frontier-route.md) (`docs/decisions/TOS-D-0033-non-era-philosophy-frontier-route.md`)
+- [TOS-D-0034 - Exact External Artifact Identity Is Provenance](../TOS-D-0034-exact-external-artifact-identity-is-provenance.md) (`docs/decisions/TOS-D-0034-exact-external-artifact-identity-is-provenance.md`)
 
 ## source-home
 

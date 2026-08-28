@@ -4,15 +4,15 @@
   "contract_version": "1.0.0",
   "measurement_id": "Tree-of-Sophia/table-i-prepared-dossier-route-ratio",
   "writer_repo": "Tree-of-Sophia",
-  "observation_id": "Tree-of-Sophia:table-i-prepared-dossier-route-ratio:66a1b9d6bbc05b4f",
-  "observed_at": "2026-07-14T02:37:56Z",
+  "observation_id": "Tree-of-Sophia:table-i-prepared-dossier-route-ratio:159d57402dcfc79c",
+  "observed_at": "2026-08-28T05:25:30Z",
   "object_ref": {
     "kind": "table-i-atlas-row",
-    "id": "table-i:66a1b9d6bbc05b4f",
-    "version": "66a1b9d6bbc05b4fec696946730d173102ad0301"
+    "id": "table-i:159d57402dcfc79c",
+    "version": "159d57402dcfc79c65af93fae7ce1346798dc392"
   },
   "population": {
-    "id": "tree-of-sophia-table-i:66a1b9d6bbc05b4f",
+    "id": "tree-of-sophia-table-i:159d57402dcfc79c",
     "definition_ref": "stats/port.manifest.json#/measurements/0/population",
     "size": 48
   },
@@ -22,9 +22,9 @@
   },
   "cohort": null,
   "window": {
-    "id": "source-revision:66a1b9d6bbc05b4fec696946730d173102ad0301",
-    "start": "2026-07-14T02:37:56Z",
-    "end": "2026-07-14T02:37:56Z",
+    "id": "source-revision:159d57402dcfc79c65af93fae7ce1346798dc392",
+    "start": "2026-08-28T05:25:30Z",
+    "end": "2026-08-28T05:25:30Z",
     "temporality": "instant"
   },
   "dimensions": {},
@@ -32,8 +32,8 @@
     "status": "observed",
     "kind": "ratio",
     "unit": "1",
-    "number": 0.625,
-    "numerator": 30,
+    "number": 1.0,
+    "numerator": 48,
     "denominator": 48
   },
   "uncertainty": {
@@ -62,7 +62,7 @@
       }
     ],
     "derivation_ref": "stats/README.md#current-reference-measurement",
-    "source_revision": "66a1b9d6bbc05b4fec696946730d173102ad0301"
+    "source_revision": "159d57402dcfc79c65af93fae7ce1346798dc392"
   },
   "reporting_rule": {
     "id": "Tree-of-Sophia/table-i-prepared-dossier-route-ratio/reference-census",

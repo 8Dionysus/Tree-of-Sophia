@@ -29,15 +29,15 @@
     "metric": "whitespace_tokens_v1",
     "posture": "summary_first_records_on_demand",
     "record_loading": "machine readers may select records by family_id or path; do not load the full carrier into an always-on prompt",
-    "tracked_surface_count": 1938,
+    "tracked_surface_count": 2057,
     "unhandled_family_count": 0
   },
   "coverage": {
     "excluded_generated_carrier_rules": 3,
-    "excluded_tracked_path_count": 303,
+    "excluded_tracked_path_count": 321,
     "human_scope": {
-      "bytes": 4151286,
-      "count": 710,
+      "bytes": 4197333,
+      "count": 730,
       "excluded_skill_launch_metadata": 25,
       "family_counts": {
         "agents-other": {
@@ -51,9 +51,9 @@
           "lines": 6530
         },
         "docs": {
-          "bytes": 347258,
-          "count": 49,
-          "lines": 5938
+          "bytes": 361895,
+          "count": 51,
+          "lines": 6168
         },
         "evals": {
           "bytes": 3486,
@@ -91,9 +91,9 @@
           "lines": 202
         },
         "root": {
-          "bytes": 168301,
+          "bytes": 169170,
           "count": 13,
-          "lines": 2923
+          "lines": 2935
         },
         "scripts": {
           "bytes": 6388,
@@ -111,20 +111,20 @@
           "lines": 47
         },
         "tos": {
-          "bytes": 3091151,
-          "count": 342,
-          "lines": 53159
+          "bytes": 3121692,
+          "count": 360,
+          "lines": 53666
         }
       },
-      "lines": 73825
+      "lines": 74574
     },
     "surface_kind_counts": {
       "executable": 155,
-      "human": 735,
-      "structured": 1048
+      "human": 755,
+      "structured": 1147
     },
-    "tracked_path_count": 2241,
-    "tracked_surface_count": 1938,
+    "tracked_path_count": 2378,
+    "tracked_surface_count": 2057,
     "unhandled_family_count": 0,
     "unhandled_paths": []
   },
@@ -134,7 +134,7 @@
       "surface_kind_counts": {
         "human": 13
       },
-      "tracked_surface_bytes": 168301,
+      "tracked_surface_bytes": 169170,
       "tracked_surface_count": 13
     },
     {
@@ -153,7 +153,7 @@
         "human": 4,
         "structured": 3
       },
-      "tracked_surface_bytes": 160129,
+      "tracked_surface_bytes": 160130,
       "tracked_surface_count": 7
     },
     {
@@ -167,20 +167,20 @@
     {
       "family_id": "tos",
       "surface_kind_counts": {
-        "human": 342,
-        "structured": 986
+        "human": 360,
+        "structured": 1085
       },
-      "tracked_surface_bytes": 58019846,
-      "tracked_surface_count": 1328
+      "tracked_surface_bytes": 70145729,
+      "tracked_surface_count": 1445
     },
     {
       "family_id": "docs",
       "surface_kind_counts": {
-        "human": 49,
+        "human": 51,
         "structured": 6
       },
-      "tracked_surface_bytes": 571667,
-      "tracked_surface_count": 55
+      "tracked_surface_bytes": 586738,
+      "tracked_surface_count": 57
     },
     {
       "family_id": "evals",
@@ -196,7 +196,7 @@
         "human": 2,
         "structured": 2
       },
-      "tracked_surface_bytes": 10723,
+      "tracked_surface_bytes": 10721,
       "tracked_surface_count": 4
     },
     {
@@ -224,7 +224,7 @@
         "executable": 88,
         "human": 1
       },
-      "tracked_surface_bytes": 2682741,
+      "tracked_surface_bytes": 2706611,
       "tracked_surface_count": 89
     },
     {
@@ -234,7 +234,7 @@
         "human": 1,
         "structured": 1
       },
-      "tracked_surface_bytes": 962139,
+      "tracked_surface_bytes": 968051,
       "tracked_surface_count": 48
     },
     {
@@ -269,7 +269,7 @@
   "source_map": "docs/validation/documentation_family_map.json",
   "source_map_sha256": "9140a03a48109e6a9f35f3ca7dbf82058d96c3961e9e77bc31a743fb8814b13b",
   "tracked_source": "git ls-files -z",
-  "tracked_surface_digest": "3923b6c7350a43b1f6c35d55331c494c5e47d92d9af883b9a41bf188e0336343",
+  "tracked_surface_digest": "0638401a56f2e2644f529f0dcbd3931b0b3ba54f16e11caa97cb773c8c00e830",
   "tracked_surfaces": [
     {
       "bytes": 1408,
@@ -288,11 +288,11 @@
       "surface_kind": "human"
     },
     {
-      "bytes": 40778,
+      "bytes": 40779,
       "currentness": "tracked_source_snapshot",
       "family_id": "agents-other",
       "path": ".agents/agent-surface.current.json",
-      "sha256": "b5e4a2f8a5ae07789c414b367d70a4b72639732f5b8361fef18217957d72f870",
+      "sha256": "122d86e4e7ef68f5fc678a43f06d4d683328a97633d35cb36ccff56dbb1d780a",
       "surface_kind": "structured"
     },
     {
@@ -308,7 +308,7 @@
       "currentness": "tracked_source_snapshot",
       "family_id": "agents-other",
       "path": ".agents/agents-route.current.json",
-      "sha256": "b4b78e2cca1137ec1c0a8c17210e688baf392c4329fd31deb3c71bf073e8c152",
+      "sha256": "b012061e7b99ac26141febdc5efe06861fcc4d99914af16d3fdb270c59e7b445",
       "surface_kind": "structured"
     },
     {
@@ -1664,11 +1664,11 @@
       "surface_kind": "human"
     },
     {
-      "bytes": 95758,
+      "bytes": 96627,
       "currentness": "tracked_source_snapshot",
       "family_id": "root",
       "path": "CHANGELOG.md",
-      "sha256": "06517f1ea6207b3988a889a6e1313d645d25414cccd72562e8842a47c63c3334",
+      "sha256": "ce15c0db0727d3edb9bc42699dc5b359e941c54160d51b39efcbdf8821d07597",
       "surface_kind": "human"
     },
     {
@@ -1752,11 +1752,11 @@
       "surface_kind": "human"
     },
     {
-      "bytes": 10138,
+      "bytes": 10166,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/README.md",
-      "sha256": "2a9e82817fcb7b3c9ac8488e9eacf12c5c5f06df11c66c5c5cfb8843811e271b",
+      "sha256": "42f6d520e6b9b789af8b0a4840bf92d0fa2a977dffe47ac5c770aae778bb376e",
       "surface_kind": "human"
     },
     {
@@ -3472,19 +3472,19 @@
       "surface_kind": "structured"
     },
     {
-      "bytes": 2835370,
+      "bytes": 4455264,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/derived-exports/philosophy_atlas_projection.min.json",
-      "sha256": "00cd0dd2ab564c3228e3c667244a7915ec2af2f0ddb213739bb6d3cf7e53cf82",
+      "sha256": "f1232e156381a262ac7deb135fbe4af8a004b4f983919202ce3f618633e8f1bd",
       "surface_kind": "structured"
     },
     {
-      "bytes": 19330698,
+      "bytes": 29313779,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/derived-exports/philosophy_graph_projection.min.json",
-      "sha256": "ac3312df24a101ceb0c750825610d3389a23ee62c293ad95d79c392fe984188e",
+      "sha256": "c41668376690ad8c26fe70e277ea2c6df63202460c8e3246098a26a13607209f",
       "surface_kind": "structured"
     },
     {
@@ -3504,11 +3504,11 @@
       "surface_kind": "structured"
     },
     {
-      "bytes": 746443,
+      "bytes": 832122,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/derived-exports/tos_corpus_index.min.json",
-      "sha256": "5bcbbed328b2a28cbf9858ccc0383e00aeeddd48019937d76c916f2cf35d81b9",
+      "sha256": "a99cd08039cbfcd1e1f1fa2625b3d5d5426ba127fd3512254a0f78fb90a0c6c4",
       "surface_kind": "structured"
     },
     {
@@ -3680,35 +3680,35 @@
       "surface_kind": "human"
     },
     {
-      "bytes": 2476,
+      "bytes": 2808,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/philosophy/AGENTS.md",
-      "sha256": "dad9d10e1b7656850afba080c132789a28f09fc39feeafd6db1405de46ef1c0f",
+      "sha256": "81477421b6ea4d3fd1b0d7f6e1b37bce3af91291f95ddc9c5b31b91c2195c3c9",
       "surface_kind": "human"
     },
     {
-      "bytes": 3156,
+      "bytes": 3535,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/philosophy/README.md",
-      "sha256": "9a496f42199c728eb761c7e2c114d8f8f0d59e9f2d008772a4138ce8fd0b5e45",
+      "sha256": "1dac5606b29d5aa2d555ab24cacaf810958b6c5501fa9d17792f1864b26382e1",
       "surface_kind": "human"
     },
     {
-      "bytes": 1449,
+      "bytes": 1510,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/philosophy/atlas/README.md",
-      "sha256": "a90404b7d5e32c3ba722fb5295383d500e721b249220087bda797b56778743db",
+      "sha256": "10b71e1ad405ff3e5396776f9e861cb1a6c3cd7c044639789662f100ca6ad582",
       "surface_kind": "human"
     },
     {
-      "bytes": 1986,
+      "bytes": 2224,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/philosophy/atlas/atlas.manifest.json",
-      "sha256": "f122d237cd3b2080957a10d083f054168d39b75f1819c07d6468f580ffd7306f",
+      "sha256": "cfc26730e51f028b96801660848f432bf199a349a460c1818e53c0fda082eabc",
       "surface_kind": "structured"
     },
     {
@@ -3720,35 +3720,35 @@
       "surface_kind": "structured"
     },
     {
-      "bytes": 1201,
+      "bytes": 1591,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/philosophy/atlas/dossiers/README.md",
-      "sha256": "8a69e2fb893f8b307e69c958d2bb42dbe165cf5c597c2578a8acdb6c43a54bc4",
+      "sha256": "0d1e2175cd5ee0022768300b13d3c820d7427f35cd3547c9c621c2343cefa5d0",
       "surface_kind": "human"
     },
     {
-      "bytes": 536,
+      "bytes": 770,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/philosophy/atlas/dossiers/branch.manifest.json",
-      "sha256": "7f61744c0ba4cf230a05e7898bc2fe03e79fc68abfe326966422e9627afbcc67",
+      "sha256": "69e52ec88b8cee22cb069509aab2f5a99f7fa0c7d205d42756d8b71cf532dccd",
       "surface_kind": "structured"
     },
     {
-      "bytes": 1291,
+      "bytes": 1652,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/philosophy/atlas/dossiers/graph-shape-summary.json",
-      "sha256": "a9d2e50d39afb58e11260e1c6589bc28f637bc81c38acc72811561e726df291a",
+      "sha256": "5cee0ad028e9d6e1d0a02c27daa87863af81f7d2b57854e25fe77b70eb631732",
       "surface_kind": "structured"
     },
     {
-      "bytes": 8972,
+      "bytes": 16316,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/philosophy/atlas/dossiers/prepared-dossier-routes.json",
-      "sha256": "182030af917d01d3296bf03e4737cd99087e3886523f832fb477765b6ed16faf",
+      "sha256": "83e5891e7774242fa950cbd30a1c34188268ce9896fb0ab7641d3b3aaa16fc52",
       "surface_kind": "structured"
     },
     {
@@ -3776,11 +3776,11 @@
       "surface_kind": "structured"
     },
     {
-      "bytes": 1402,
+      "bytes": 1600,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/philosophy/atlas/master-tables/table-i/table.manifest.json",
-      "sha256": "f1b0cb85311c70e09cc728ec57311c5c4e3581419c43d793e7701dad8ba69afb",
+      "sha256": "3b904ddf13ea9f68dc706bcc9262a58b6aa40eeed4738510d430fb1f81af0db0",
       "surface_kind": "structured"
     },
     {
@@ -3832,11 +3832,11 @@
       "surface_kind": "structured"
     },
     {
-      "bytes": 20164,
+      "bytes": 33401,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/philosophy/atlas/multilingual/content-labels.json",
-      "sha256": "550aeab2f45f65dc7936f6491c4d07272be7d780120c0fff7361ab72650533db",
+      "sha256": "4431f522b7cd4c816b0754af409c43da4b79b0fffacdaf5bf4970a67b1920c8a",
       "surface_kind": "structured"
     },
     {
@@ -3864,19 +3864,107 @@
       "surface_kind": "structured"
     },
     {
-      "bytes": 234,
+      "bytes": 272,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/philosophy/eras/axial-age/regions/aegean-world/branch.manifest.json",
-      "sha256": "81200d53d379e13404fb00faf6eb12ef9800833cb08551726e9a3ca9aadca57b",
+      "sha256": "c4ac03637fe0480051b312297c882f48750f5e333c05e0639ab4f14203b4733f",
       "surface_kind": "structured"
     },
     {
-      "bytes": 235,
+      "bytes": 283,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/branch.manifest.json",
+      "sha256": "3bd2ac73d0d0e56d05056671d656fbbae2b6b9640e8d9fb00105331e89e13b3f",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1399,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/classical-athenian-philosophy/README.md",
+      "sha256": "c38c1817852a60b25e4a93fa62c26625ef47132eff061e3f5d86dcf1c81941ee",
+      "surface_kind": "human"
+    },
+    {
+      "bytes": 823,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/classical-athenian-philosophy/branch.manifest.json",
+      "sha256": "8a3bd3f045e98a6081d1f646165eb3c487af0ad337c72709cbf1daf82b5189a5",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 359,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/classical-athenian-philosophy/graph-workbench/branch.manifest.json",
+      "sha256": "bdfd8bbdb3cae5943039a20ee7094224995bad6f3d39337e8ac885ee239200f1",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1434,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/classical-athenian-philosophy/graph-workbench/pre-canon-summary.json",
+      "sha256": "5b2cf37fdd944c1c904e05a47bf283efbb34b862490085bd541cc0e3f0488b99",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 295,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/classical-athenian-philosophy/sources/branch.manifest.json",
+      "sha256": "dd0b8e4a640fd2d30b230285199a8936aff9efb1793571fc1f99be73e0a4ac2f",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1437,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/early-greek-philosophy/README.md",
+      "sha256": "04f0ec848dd61d33713b68aa15cfc3f910a62967664d575dfc99fa055416e239",
+      "surface_kind": "human"
+    },
+    {
+      "bytes": 798,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/early-greek-philosophy/branch.manifest.json",
+      "sha256": "d2cfe319412cca8f9c44ad83daddaf1cef00c234d832ea9fe272e2052fbbc581",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 345,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/early-greek-philosophy/graph-workbench/branch.manifest.json",
+      "sha256": "9c6b0b079e36caff1994eb9c3cd1b161ceb03055d75bcdac32955b87fb0063cf",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1331,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/early-greek-philosophy/graph-workbench/pre-canon-summary.json",
+      "sha256": "3dd2d9ff8536231607fb82e4fc3667bda91a869976ed98425abdd2a111e02916",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 281,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/early-greek-philosophy/sources/branch.manifest.json",
+      "sha256": "c9e8a806516bf78389fc8591702635b1401c39abb4d4d6c4fcb68c5312c4d47a",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 274,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/philosophy/eras/axial-age/regions/branch.manifest.json",
-      "sha256": "0a5b85e76dc504aec5c5911727411b6567187251941d0a551f28a21cb753eceb",
+      "sha256": "445d3415a8106f25df1f07dad7cbf0824bce6572c97cdbbf43435e89f2562f20",
       "surface_kind": "structured"
     },
     {
@@ -4088,6 +4176,102 @@
       "surface_kind": "structured"
     },
     {
+      "bytes": 211,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/axial-age/regions/mesoamerica/branch.manifest.json",
+      "sha256": "c95822a20e5d91b17702b62d30d5587d81feb61f99ff8289fa4fbbeb7445649a",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 293,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/axial-age/regions/mesoamerica/traditions/branch.manifest.json",
+      "sha256": "97145349249ec917b5f36c2e165b3fa869749485e76e34ad34a1b7fba27212e1",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1560,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/axial-age/regions/mesoamerica/traditions/epi-olmec-cascajal-writing-frontier/README.md",
+      "sha256": "616d09399b8ad1ada4aacd9cfa3e0a2e35eec5f1e581a31040ec5764fab71acd",
+      "surface_kind": "human"
+    },
+    {
+      "bytes": 1105,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/axial-age/regions/mesoamerica/traditions/epi-olmec-cascajal-writing-frontier/branch.manifest.json",
+      "sha256": "01c38d9c0fdccb617ebdf51e9fd5a82666cfc2cc919980f42e0649867d88caf8",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 624,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/axial-age/regions/mesoamerica/traditions/epi-olmec-cascajal-writing-frontier/graph-workbench/branch.manifest.json",
+      "sha256": "821ecdb19158124cb522a29c722d0d5951211285a1673f012cf5850eaaba0de5",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1499,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/axial-age/regions/mesoamerica/traditions/epi-olmec-cascajal-writing-frontier/graph-workbench/pre-canon-summary.json",
+      "sha256": "8e924b893846b0852a40410a37b2a2268828ca52dca95d2e8df7db3ec4381803",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 560,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/axial-age/regions/mesoamerica/traditions/epi-olmec-cascajal-writing-frontier/sources/branch.manifest.json",
+      "sha256": "7c46f4ae87ad4cfebd91479c93d098e664724702f8c4641ac902ce07fdbdab7f",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1699,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/axial-age/regions/mesoamerica/traditions/zapotec-oaxaca-early-writing/README.md",
+      "sha256": "c3286dd5956ec4b097f4286c5f464e65c437ba42e8ff224d9b260100f0b970ac",
+      "surface_kind": "human"
+    },
+    {
+      "bytes": 1057,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/axial-age/regions/mesoamerica/traditions/zapotec-oaxaca-early-writing/branch.manifest.json",
+      "sha256": "159b11d0a6d09833491a07e3d2492f7112b25c207ac86dcb0c2a25a38e22d942",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 595,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/axial-age/regions/mesoamerica/traditions/zapotec-oaxaca-early-writing/graph-workbench/branch.manifest.json",
+      "sha256": "4c6383d68b0d313f8c24ad959ed9b8e64d3ed086ecf5a387d1b8810935126de0",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1519,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/axial-age/regions/mesoamerica/traditions/zapotec-oaxaca-early-writing/graph-workbench/pre-canon-summary.json",
+      "sha256": "4e16a795041e9c1a0332e9461cd48e4b8d1597f515b66f115e786a2b678771b4",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 531,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/axial-age/regions/mesoamerica/traditions/zapotec-oaxaca-early-writing/sources/branch.manifest.json",
+      "sha256": "f773b9f60d1b1fd1f6157efdc88d7d2b1c7caa4f9a8da67e43270cdbfd5ae875",
+      "surface_kind": "structured"
+    },
+    {
       "bytes": 274,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
@@ -4184,11 +4368,11 @@
       "surface_kind": "structured"
     },
     {
-      "bytes": 260,
+      "bytes": 302,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/philosophy/eras/branch.manifest.json",
-      "sha256": "25f744cef4fdc7154fd180d3bc4b8088072f27806b6747dab67bbc1552bc3523",
+      "sha256": "b329d97e593339475ef4237b43ab93ac371b39b69a31c66d437bdea42d66b1c0",
       "surface_kind": "structured"
     },
     {
@@ -4876,7 +5060,7 @@
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/philosophy/eras/bronze-age/regions/west-asia/traditions/proto-cuneiform-accounting-ontologies/branch.manifest.json",
-      "sha256": "9b9b6cc8a4c9adb6f769ed922a02e76d3d94394b9c4e14771cfa3776adcff55b",
+      "sha256": "2aad1588831918106df9d55bcb13b1b3af79b3c19fafbe461fc5366ade6bb052",
       "surface_kind": "structured"
     },
     {
@@ -4900,7 +5084,7 @@
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/philosophy/eras/bronze-age/regions/west-asia/traditions/proto-cuneiform-accounting-ontologies/sources/branch.manifest.json",
-      "sha256": "5fe0799b2c0caf91fc051d92347d29d93bb80d11b7ee371aa8ab2604e007f457",
+      "sha256": "e8191a46cf2aaddd933ce884f062f973c99ef402bf8d4978cd7dd6087335cfcf",
       "surface_kind": "structured"
     },
     {
@@ -5312,11 +5496,187 @@
       "surface_kind": "structured"
     },
     {
-      "bytes": 206,
+      "bytes": 241,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/philosophy/eras/hellenistic-age/branch.manifest.json",
-      "sha256": "29305fcda6d7095a3462fd661a787307684d7d766a3b926380fc14f4ad1fad1f",
+      "sha256": "81f2edb48d6ee98e45637022d512919b68c584e23f97e286e961b047d0cd334d",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 247,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/hellenistic-age/regions/branch.manifest.json",
+      "sha256": "342546a4a2373cbd0796e0ac22f3507a979bf53eaeb8f21650e0895b60b5dace",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 253,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/hellenistic-age/regions/eastern-mediterranean/branch.manifest.json",
+      "sha256": "f7a5f04017ad1a1a7ae79ea6177d2404480d2439a2808dbe82769c628c503bd7",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 295,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/hellenistic-age/regions/eastern-mediterranean/traditions/branch.manifest.json",
+      "sha256": "9646cb9a742a53ac779675a09a1809fef65f3d29d16fc3308e67a63986444dfe",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1476,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/hellenistic-age/regions/eastern-mediterranean/traditions/second-temple-jewish-hellenistic-theology/README.md",
+      "sha256": "01d65ab1f7009543bd9f142c271564589f9eb9d3ca182f04d2b401b4686fe4ef",
+      "surface_kind": "human"
+    },
+    {
+      "bytes": 939,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/hellenistic-age/regions/eastern-mediterranean/traditions/second-temple-jewish-hellenistic-theology/branch.manifest.json",
+      "sha256": "baeaaaf27846308a035b785bd593752d8df1a8d5707df2b63c9243a6052095a7",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 413,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/hellenistic-age/regions/eastern-mediterranean/traditions/second-temple-jewish-hellenistic-theology/graph-workbench/branch.manifest.json",
+      "sha256": "ab8de0cb7835ac667c2cb44ce835be1640842429ce2beae816a8a155cc37a721",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1362,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/hellenistic-age/regions/eastern-mediterranean/traditions/second-temple-jewish-hellenistic-theology/graph-workbench/pre-canon-summary.json",
+      "sha256": "2e8959786e5feb48a8803612f40a64fcebe551f9c85367b928700ddb51419a0d",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 349,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/hellenistic-age/regions/eastern-mediterranean/traditions/second-temple-jewish-hellenistic-theology/sources/branch.manifest.json",
+      "sha256": "bb828a599c9d59f7da93b964bb1abbee43b88e39727f93dd358fd77938f36d5b",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 229,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/hellenistic-age/regions/mediterranean/branch.manifest.json",
+      "sha256": "9901bc1fade999b49aa131e720413bdaf24a6c7020334a5fba6bd83cbcfe87dd",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 273,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/hellenistic-age/regions/mediterranean/traditions/branch.manifest.json",
+      "sha256": "d3873f8ef1e73f1b0c18e549c4d46e2e804ddca11a492e0dd3a7538a5787ff16",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1483,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/hellenistic-age/regions/mediterranean/traditions/hellenistic-schools-library-ecology/README.md",
+      "sha256": "c40900b38cb9049a18b8e4e334e09e085aaf85f6fbe2d64732d8686346fd440c",
+      "surface_kind": "human"
+    },
+    {
+      "bytes": 876,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/hellenistic-age/regions/mediterranean/traditions/hellenistic-schools-library-ecology/branch.manifest.json",
+      "sha256": "a6682e3e5361f4109e8ed758f1be417543e1f5ed9812f44258ee17db98a6ffe2",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 385,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/hellenistic-age/regions/mediterranean/traditions/hellenistic-schools-library-ecology/graph-workbench/branch.manifest.json",
+      "sha256": "d0a8b8d262e789cefda9a1682e3c33a8bac790ba6f1f32c97d9c2705a4cbba59",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1444,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/hellenistic-age/regions/mediterranean/traditions/hellenistic-schools-library-ecology/graph-workbench/pre-canon-summary.json",
+      "sha256": "22ff2177bb8d7e8917be94c2435273422991263a89451d152357d0d631695810",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 321,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/hellenistic-age/regions/mediterranean/traditions/hellenistic-schools-library-ecology/sources/branch.manifest.json",
+      "sha256": "5e019ae625a92a106e00bc3de1ffb56fc7cdc2acc170e0ebdd6d17c7a07fc72a",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 226,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/hellenistic-age/regions/north-africa/branch.manifest.json",
+      "sha256": "ba73c2cd46c56e9785ddc2b7d447fdb717c872ba510e1755caefa9a932e63f9e",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1489,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/hellenistic-age/regions/north-africa/traditions/alexandrian-philology-textual-criticism/README.md",
+      "sha256": "a1363e01789734aa3d984277d0ef33af5a1c5f7e8c4bc951d8f102f92bb04c43",
+      "surface_kind": "human"
+    },
+    {
+      "bytes": 893,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/hellenistic-age/regions/north-africa/traditions/alexandrian-philology-textual-criticism/branch.manifest.json",
+      "sha256": "feec5a4412168ae927654cfe3da1ed6f53e5ad297697dabf9fbad9367064dcea",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 391,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/hellenistic-age/regions/north-africa/traditions/alexandrian-philology-textual-criticism/graph-workbench/branch.manifest.json",
+      "sha256": "44a006044e1d7983636060e9c3af475bfaddb7ec063dee57eefb6ed537d023ea",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1322,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/hellenistic-age/regions/north-africa/traditions/alexandrian-philology-textual-criticism/graph-workbench/pre-canon-summary.json",
+      "sha256": "4451f7a06c01c844225fcf8d1ae1bc699bdfde5081ca1b4b1f92c3e73756956f",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 327,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/hellenistic-age/regions/north-africa/traditions/alexandrian-philology-textual-criticism/sources/branch.manifest.json",
+      "sha256": "dd2f7913b15b7f4da709f1597f936e2796440b6e59b8e4f4abd9f2871c69016d",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 275,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/hellenistic-age/regions/north-africa/traditions/branch.manifest.json",
+      "sha256": "490410ed603466eea7dfc55a7b9ecacdc2007b2764326e344ec6ed187504aa7e",
       "surface_kind": "structured"
     },
     {
@@ -5384,11 +5744,67 @@
       "surface_kind": "structured"
     },
     {
-      "bytes": 369,
+      "bytes": 466,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/philosophy/eras/late-antiquity/regions/branch.manifest.json",
-      "sha256": "f4aa68489da9241cb6ec36d7328c1bdf39196459edb7171103deac6685dda6b9",
+      "sha256": "97ab474d31c0ee798884c350f5ffba51f1fabf24b6b1d586d2c67f42c9a8aafe",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 212,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/late-antiquity/regions/caucasus/branch.manifest.json",
+      "sha256": "93c6c542d4d4c5bbcaf3892566570d4f850a01cd262250dcd98e240b532e34a8",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1519,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/late-antiquity/regions/caucasus/traditions/armenian-georgian-translation-literatures/README.md",
+      "sha256": "5c959851a546176709dcbda1aa5a78770af0b420e09d3be30eaad86964fb9f9b",
+      "surface_kind": "human"
+    },
+    {
+      "bytes": 873,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/late-antiquity/regions/caucasus/traditions/armenian-georgian-translation-literatures/branch.manifest.json",
+      "sha256": "a42e132762434f72951655d1f22866a245a4dc7fd36e2a8499e8c49b77575ac8",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 385,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/late-antiquity/regions/caucasus/traditions/armenian-georgian-translation-literatures/graph-workbench/branch.manifest.json",
+      "sha256": "89c69eb8c91081d37e182ea61b15c0a2c5346e6bd5e5708e1635d48b5a5b72da",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1417,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/late-antiquity/regions/caucasus/traditions/armenian-georgian-translation-literatures/graph-workbench/pre-canon-summary.json",
+      "sha256": "dbc100906f0996ce07523bb91a92a1ae5e2b598078d8fd066824f034724a96d6",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 321,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/late-antiquity/regions/caucasus/traditions/armenian-georgian-translation-literatures/sources/branch.manifest.json",
+      "sha256": "f616ba9b3d73cfbc09005071f46cd8e457cf98f37bf95f82dc5d602feefed6e0",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 267,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/late-antiquity/regions/caucasus/traditions/branch.manifest.json",
+      "sha256": "3b35424d15bf534665c5c2e7e36f93f13c6b22150b6d84626d88c8d3820fc086",
       "surface_kind": "structured"
     },
     {
@@ -5616,6 +6032,158 @@
       "surface_kind": "structured"
     },
     {
+      "bytes": 227,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/late-antiquity/regions/mediterranean/branch.manifest.json",
+      "sha256": "fdd4cfd1edcc0bc0afa281ed254f3b2143e9e1a8f59505464db3169ba5268275",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 278,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/late-antiquity/regions/mediterranean/traditions/branch.manifest.json",
+      "sha256": "ceb7e9e2568c618fae06cd7b41a9ad6bbd8eb2d2221d7252df9f30929f1d0f19",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1450,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/late-antiquity/regions/mediterranean/traditions/greek-latin-patristics/README.md",
+      "sha256": "d72ee4473e1b5ec5ece5c5ec93cbaf7fab3126e27263b76bf5cb073e1ce8845c",
+      "surface_kind": "human"
+    },
+    {
+      "bytes": 828,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/late-antiquity/regions/mediterranean/traditions/greek-latin-patristics/branch.manifest.json",
+      "sha256": "c564289fe10a2b55e8fbe405db6d85f4d20b62747f36884547500fa44febe175",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 357,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/late-antiquity/regions/mediterranean/traditions/greek-latin-patristics/graph-workbench/branch.manifest.json",
+      "sha256": "1d999053059aef86f9998acfb4a3c7be95532cd9773f55f12ceabd197e1f29a4",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1330,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/late-antiquity/regions/mediterranean/traditions/greek-latin-patristics/graph-workbench/pre-canon-summary.json",
+      "sha256": "f18b115d3f37c878db22c9513d63109146beb6df67ddd4cfa2a9e45782333e50",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 293,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/late-antiquity/regions/mediterranean/traditions/greek-latin-patristics/sources/branch.manifest.json",
+      "sha256": "5d549926765c7022bfb04829d57b0c658feddd91699aa46a6326d8957801ce45",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1392,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/late-antiquity/regions/mediterranean/traditions/neoplatonism/README.md",
+      "sha256": "59de2ea1849267b898592bde2ea791f26c331c7f14fb90aa3d32a0f44420973a",
+      "surface_kind": "human"
+    },
+    {
+      "bytes": 784,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/late-antiquity/regions/mediterranean/traditions/neoplatonism/branch.manifest.json",
+      "sha256": "91eb91749ddf3970a061d9b6ea5b4a5accf8234adc8d853f1b7855d78a8281d9",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 337,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/late-antiquity/regions/mediterranean/traditions/neoplatonism/graph-workbench/branch.manifest.json",
+      "sha256": "de26610b118a3613872bb0d4f0e3f8802e61553fbcc625961862e5e78f612bfc",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1331,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/late-antiquity/regions/mediterranean/traditions/neoplatonism/graph-workbench/pre-canon-summary.json",
+      "sha256": "14c3bf2b5d9a1732994e3a959bfdb462c5cdc875d8b1bb948285dc4f34c34708",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 273,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/late-antiquity/regions/mediterranean/traditions/neoplatonism/sources/branch.manifest.json",
+      "sha256": "33cc8a93dcb9cf8a722ce71df8a50ae00e029d26a455e015eb8ae0ee7d4b5de4",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 221,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/late-antiquity/regions/mesoamerica/branch.manifest.json",
+      "sha256": "838b7fbf1ed6a3b52f1601f5dab3f39084e65bdf8eb824841b6ae4b633fcd07e",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 250,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/late-antiquity/regions/mesoamerica/traditions/branch.manifest.json",
+      "sha256": "45e8c156d5dd903d23b24fc571b5eb74b7f51cdf3fbbb98db56e4cb2145e2973",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1520,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/late-antiquity/regions/mesoamerica/traditions/early-maya-writing/README.md",
+      "sha256": "dcd43d2b8463cf0e02a553a8dcb1b772ca99f1e9572e792a9a9457b89eb1337f",
+      "surface_kind": "human"
+    },
+    {
+      "bytes": 1057,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/late-antiquity/regions/mesoamerica/traditions/early-maya-writing/branch.manifest.json",
+      "sha256": "ecf21bd7474c20dfd058d8366be59eeb0de296015ab5ab78165ce5a25d630b1d",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 614,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/late-antiquity/regions/mesoamerica/traditions/early-maya-writing/graph-workbench/branch.manifest.json",
+      "sha256": "99eeec5e1b6a574072227aa208d3000cbbd17c6ee2ed7faefd5afb4286bf1eb3",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1513,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/late-antiquity/regions/mesoamerica/traditions/early-maya-writing/graph-workbench/pre-canon-summary.json",
+      "sha256": "fe64237bb634ff4ac19cc271e3bf2710d314b63ca7d32cee7e63ee14aff9ec9d",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 550,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/late-antiquity/regions/mesoamerica/traditions/early-maya-writing/sources/branch.manifest.json",
+      "sha256": "70eea32acb32b4144387b9514f8fa5c7e697c851607a1e565e9bc4b7ad3823a0",
+      "surface_kind": "structured"
+    },
+    {
       "bytes": 224,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
@@ -5669,6 +6237,102 @@
       "family_id": "tos",
       "path": "ToS/philosophy/eras/late-antiquity/regions/north-africa/traditions/coptic-egypt/sources/branch.manifest.json",
       "sha256": "57b3d43845d73bea132d1ea6b974023005ab4e30a5bb38c7d5d61f7ced588aa2",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 236,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/late-antiquity/regions/northeast-africa/branch.manifest.json",
+      "sha256": "ad627dbe83b66a88902f5b2f8666f5b954eb8340762550d72c01abce6e847401",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1411,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/late-antiquity/regions/northeast-africa/traditions/aksum-geez-early-christian-writing/README.md",
+      "sha256": "865d3a5c5a1cb4bc63c8e5bb538d8a55b7285bc049ca6b5ca38460120ea7dfb1",
+      "surface_kind": "human"
+    },
+    {
+      "bytes": 874,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/late-antiquity/regions/northeast-africa/traditions/aksum-geez-early-christian-writing/branch.manifest.json",
+      "sha256": "d9cffeebb7658e395d7b218ee3333f14b1c05b70a4ec38f1c3caa6101416ff1a",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 387,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/late-antiquity/regions/northeast-africa/traditions/aksum-geez-early-christian-writing/graph-workbench/branch.manifest.json",
+      "sha256": "8d30af962bfcea68e2126cb3ab5a7c4eda7e44d6975f5b9bb6c2c48e7245e0f6",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1407,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/late-antiquity/regions/northeast-africa/traditions/aksum-geez-early-christian-writing/graph-workbench/pre-canon-summary.json",
+      "sha256": "b1e1f13084ace1c415495b646f461a5d2e9b224b5897f66e3e4b94c927804c1f",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 323,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/late-antiquity/regions/northeast-africa/traditions/aksum-geez-early-christian-writing/sources/branch.manifest.json",
+      "sha256": "391017e3c3c3fb45b95f1f52a5628e85320318a89fb8f3a90daef9126ddb74b9",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 311,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/late-antiquity/regions/northeast-africa/traditions/branch.manifest.json",
+      "sha256": "d5f70857031572611165f4b8e75c035b5cb937250c027926b239e84538616a0c",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1597,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/late-antiquity/regions/northeast-africa/traditions/kush-meroe-writing-frontier/README.md",
+      "sha256": "2ae5fa0886c63af094db2aea7f794ca725a6a985da3b80e92a0f05ba8c15b51e",
+      "surface_kind": "human"
+    },
+    {
+      "bytes": 1115,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/late-antiquity/regions/northeast-africa/traditions/kush-meroe-writing-frontier/branch.manifest.json",
+      "sha256": "a37e2180f80cfa9f0296b819288e985f3ef78ee7dc62b170200e99b93d4b2522",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 629,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/late-antiquity/regions/northeast-africa/traditions/kush-meroe-writing-frontier/graph-workbench/branch.manifest.json",
+      "sha256": "81b43b6ce1552cd5dcbf68cdcfa6456b8409ced300c82e4b9040f97cd4303b41",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1600,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/late-antiquity/regions/northeast-africa/traditions/kush-meroe-writing-frontier/graph-workbench/pre-canon-summary.json",
+      "sha256": "31fe0828279d3a6a2709485a69d2ea65ea9ed4f9b7bd3acdd13b67f60ebe5f33",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 565,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/late-antiquity/regions/northeast-africa/traditions/kush-meroe-writing-frontier/sources/branch.manifest.json",
+      "sha256": "2b664512795e83667aa2ae4f6c8561105680ddfc1d292a1531a5141c5c985c80",
       "surface_kind": "structured"
     },
     {
@@ -5784,11 +6448,267 @@
       "surface_kind": "structured"
     },
     {
-      "bytes": 205,
+      "bytes": 215,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/late-antiquity/regions/west-asia/branch.manifest.json",
+      "sha256": "a49255b6c6924e2dce625d4a1ed287eb27ddb0b2c8645618561f2e86f40cfc62",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 308,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/late-antiquity/regions/west-asia/traditions/branch.manifest.json",
+      "sha256": "5f26dedd4db33afc5c62797346d33a905e187c88497f6364310e1170f9b793ad",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1503,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/late-antiquity/regions/west-asia/traditions/rabbinic-judaism-talmudic-civilization/README.md",
+      "sha256": "27100b1589fa87d729bc218fb3029cdfd33e24c4df738e706ab5e45467bda2d7",
+      "surface_kind": "human"
+    },
+    {
+      "bytes": 865,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/late-antiquity/regions/west-asia/traditions/rabbinic-judaism-talmudic-civilization/branch.manifest.json",
+      "sha256": "612eec81fe99fc106c8518bf9d6e91eae023244029b614c2f7f5cd250534e749",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 381,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/late-antiquity/regions/west-asia/traditions/rabbinic-judaism-talmudic-civilization/graph-workbench/branch.manifest.json",
+      "sha256": "37ef786c07fc9336779cf263ee177e0d808f1affaef62385e7852d575beb50df",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1295,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/late-antiquity/regions/west-asia/traditions/rabbinic-judaism-talmudic-civilization/graph-workbench/pre-canon-summary.json",
+      "sha256": "ca182de9a42348f457de4aeab3f02e856bafd03b58dbc88ce14e48dfb99d3015",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 317,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/late-antiquity/regions/west-asia/traditions/rabbinic-judaism-talmudic-civilization/sources/branch.manifest.json",
+      "sha256": "ec76e319655bfa0cd8ecd659e637d39bf8c3080b4415211297dd182f3d55939d",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1538,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/late-antiquity/regions/west-asia/traditions/syriac-christian-literary-republic/README.md",
+      "sha256": "18d117813aa6e545807a7fc262c8dae2ef49e6d52f4f619d6ee37cde50a95bd1",
+      "surface_kind": "human"
+    },
+    {
+      "bytes": 861,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/late-antiquity/regions/west-asia/traditions/syriac-christian-literary-republic/branch.manifest.json",
+      "sha256": "fe9962d7277474b60094fc0e330e07956065c652d692c62863b7983d2e0eeb03",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 373,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/late-antiquity/regions/west-asia/traditions/syriac-christian-literary-republic/graph-workbench/branch.manifest.json",
+      "sha256": "f424fbfe94d8ac429901c44a1a7b6916c402fa798ed077bda2a1c66f2146fe52",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1398,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/late-antiquity/regions/west-asia/traditions/syriac-christian-literary-republic/graph-workbench/pre-canon-summary.json",
+      "sha256": "43e54f28f5b979abb76cb13e5de6bbdbc94bad20e17c2832f40bac2eca5926d4",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 309,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/late-antiquity/regions/west-asia/traditions/syriac-christian-literary-republic/sources/branch.manifest.json",
+      "sha256": "827fd185fc27c6688630aa44a513266cccf780d32e8d701a8e6dec50cdab6462",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 240,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/philosophy/eras/roman-world/branch.manifest.json",
-      "sha256": "fcfb5c67176c7b29e4e016eba858015307c44e227710b2c5a905ec12631a65cf",
+      "sha256": "011a4e81aa3c880e611dcaff50b23d8b9dce5a0cb3bc7ef32c82392fd46a36a5",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 190,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/roman-world/regions/branch.manifest.json",
+      "sha256": "a8faca343eb7bc3e4e527be55dc4f642d99e825d35591247bbe0e0d02f657fea",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 221,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/roman-world/regions/mediterranean/branch.manifest.json",
+      "sha256": "ea582cfe214cae2e1bee91b16c243b244993d85b48e609ff16a0fe364a8ea05f",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 305,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/branch.manifest.json",
+      "sha256": "fc5dd0cfc693d43249ae355b69e5a1fd76fa4bf741e9638c6a5e65d72da75649",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1456,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene/README.md",
+      "sha256": "cea7ac79769be96ab876f3468311a38b6f2ea0c4b5a214e4f7e6e871363f67ab",
+      "surface_kind": "human"
+    },
+    {
+      "bytes": 850,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene/branch.manifest.json",
+      "sha256": "e26f3ffca83b694f71e4aa2f2617fc3eb06e3aa0eea5b86d152bf89c713fb322",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 373,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene/graph-workbench/branch.manifest.json",
+      "sha256": "cdb0c5295612520305de8cbe81d511431fda650b7951b1156b2c30af3c4005af",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1252,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene/graph-workbench/pre-canon-summary.json",
+      "sha256": "c7d61cd4f15f2282546451f28d4e66abc8221503d7347a2f0dd555f28dc9b692",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 309,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene/sources/branch.manifest.json",
+      "sha256": "0faad606397dd99775d644ce5843bc830c9570e71ae857f549b2f97e7a133f21",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1417,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-roman-philosophical-medicine/README.md",
+      "sha256": "0c17248af9a48fc51249567ce9ada146c35f64cd267710ab9d31ec4172de496a",
+      "surface_kind": "human"
+    },
+    {
+      "bytes": 863,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-roman-philosophical-medicine/branch.manifest.json",
+      "sha256": "5e730b249cdcabcbc4e4e7dbf79abf4ca1e8dd995aaa11aea80d33e0a7d8dd87",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 375,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-roman-philosophical-medicine/graph-workbench/branch.manifest.json",
+      "sha256": "be7665e6b9b02b60302b1d1b91c705400fda59d6a52aaa00780aaa544bf0a61d",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1389,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-roman-philosophical-medicine/graph-workbench/pre-canon-summary.json",
+      "sha256": "41c37acb3fc627cf59f93b9f5fc3fd4fe3e07f09de629a0a8ee5338f925cbbd4",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 311,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-roman-philosophical-medicine/sources/branch.manifest.json",
+      "sha256": "41cd6b2fac080424be58c381248c62377347822ef124fb91ade35aabe4475235",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 308,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/frontiers/branch.manifest.json",
+      "sha256": "5c444edec463a4867ae6dac60571ba7231c0decfed865555b7f58e08c4122fdf",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 302,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/frontiers/writing-and-information-thresholds/branch.manifest.json",
+      "sha256": "e82f3473fff9704cd6efe40276ffa92afe738214197ff03f5f9d58b22e14a910",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1827,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/frontiers/writing-and-information-thresholds/khipu-rongorongo-comparative-boundary/README.md",
+      "sha256": "fd3afe35fe6cc10cb097df82a5be3ceab31208737f386eaa6b680555ba687cbf",
+      "surface_kind": "human"
+    },
+    {
+      "bytes": 1385,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/frontiers/writing-and-information-thresholds/khipu-rongorongo-comparative-boundary/branch.manifest.json",
+      "sha256": "9d8c834dfb9d33bc9acb23c97f2f93b321662b226230b7ac8867b1d44d3cf2f1",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 893,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/frontiers/writing-and-information-thresholds/khipu-rongorongo-comparative-boundary/graph-workbench/branch.manifest.json",
+      "sha256": "677da4dbfb0becca704a039de83764bf4574de0ce22f5a5c1de9b97c2f0492d6",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1799,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/frontiers/writing-and-information-thresholds/khipu-rongorongo-comparative-boundary/graph-workbench/pre-canon-summary.json",
+      "sha256": "fa7b49c07ae93271ba0dbe3fb5b00f421b1c50692df5eca3d463a1c362a77c88",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 829,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/frontiers/writing-and-information-thresholds/khipu-rongorongo-comparative-boundary/sources/branch.manifest.json",
+      "sha256": "beb760f1c7107afa3d25a392e2a33bf5a094038926ddf59acd43d36949b64e45",
       "surface_kind": "structured"
     },
     {
@@ -5800,11 +6720,11 @@
       "surface_kind": "human"
     },
     {
-      "bytes": 5354,
+      "bytes": 5901,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/philosophy/graph-workbench/PLANTING_INTERFACE.md",
-      "sha256": "b5a7fae10a533741ce3d308f1bfe80c229a77ee90248529b0220e2508406348b",
+      "sha256": "fe695a3bf5d551082f3ad8082a787a163d90391d231fbd517bb423893de4d7c5",
       "surface_kind": "human"
     },
     {
@@ -5824,11 +6744,11 @@
       "surface_kind": "structured"
     },
     {
-      "bytes": 13985,
+      "bytes": 27247,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/philosophy/graph-workbench/branch-fragments/table-i-prepared-dossier-branches.json",
-      "sha256": "d56dbf3c5c32bb45481e42033cf51b81b9e716488117b1f97539f34288de4c9b",
+      "sha256": "546c9798a606a0f1f9c2f1d411585baa2e3f11836ee295ffdb201d3d130673f0",
       "surface_kind": "structured"
     },
     {
@@ -5876,7 +6796,7 @@
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/philosophy/graph-workbench/language-packets/branch.manifest.json",
-      "sha256": "c17715352d00e0cbd2d57a55c7f117b9d07199b33a2efe26e280796780ff6e7c",
+      "sha256": "1647fea987426bdce379ff89487e17bd3b2d3d44b293e6be8bef0447e71623ef",
       "surface_kind": "structured"
     },
     {
@@ -5888,11 +6808,11 @@
       "surface_kind": "structured"
     },
     {
-      "bytes": 526,
+      "bytes": 548,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/philosophy/graph-workbench/promotion-ledger/table-i-prepared-dossiers.md",
-      "sha256": "f753bcd7e50051a3256b69c0dbf3da50cee98ab713652a5b6164bf6075b5d690",
+      "sha256": "77c3e8910fa92fb083517012b3089c72c50b8f51aab80f98fb5a4a7920b1ad4b",
       "surface_kind": "human"
     },
     {
@@ -5936,19 +6856,19 @@
       "surface_kind": "structured"
     },
     {
-      "bytes": 12624,
+      "bytes": 14920,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/philosophy/graph-workbench/review-packets/table-i-post-planting-audit.json",
-      "sha256": "8561ddd6da213dd1e02539b1eea29622f3f247cfbe83113f41494d8149d67183",
+      "sha256": "7f5936e3449129b03624f232067d8e2fd0fb1aa6e090ccbd4dfdd66a32d94cd5",
       "surface_kind": "structured"
     },
     {
-      "bytes": 870,
+      "bytes": 872,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/philosophy/graph-workbench/review-packets/table-i-post-planting-audit.md",
-      "sha256": "5797b447cc57408031cdbffd2925aabb766911e7e3b8c81b0a311d1cbe3ad8e8",
+      "sha256": "ab6e96149e8e8704b3cb9355cf4105a65d1acc46b1f205a965dcce319f9d8067",
       "surface_kind": "human"
     },
     {
@@ -6072,11 +6992,11 @@
       "surface_kind": "structured"
     },
     {
-      "bytes": 23825,
+      "bytes": 33725,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/philosophy/philosophy.manifest.json",
-      "sha256": "e2673a5bc12ffccb6e90bec5df968bae2201083589ce78112054d1d45fd732d4",
+      "sha256": "c5a2fbb7477f8ae761c9a6edfd800a73a2b1e56be83dad9738149cfb3899c222",
       "surface_kind": "structured"
     },
     {
@@ -6408,19 +7328,35 @@
       "surface_kind": "human"
     },
     {
-      "bytes": 258,
+      "bytes": 837,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/research-packets/deep-research/philosophy/dossiers/README.md",
-      "sha256": "47c5af3676001b63dfced05ed9d860ef07eda337e08b7d73147f32412f769e62",
+      "sha256": "4f47ebf9774da5d45e8313c0c399ac48198dba436f3e7e12f76aa8830873c00b",
       "surface_kind": "human"
     },
     {
-      "bytes": 1597,
+      "bytes": 270318,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/research-packets/deep-research/philosophy/dossiers/table-i-docx-extraction-coverage.json",
+      "sha256": "5aee631d5077ba1987f494183d7f21e626b4bb75066f7d2d264ad8a321348cc6",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 24119,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/research-packets/deep-research/philosophy/dossiers/table-i-docx-intake.manifest.json",
+      "sha256": "25e2f2c97c943a8d337fdb2b20ddf387dde1f6b2c92635a6350c8c902a268b17",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 2274,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/research-packets/deep-research/philosophy/extraction-map.md",
-      "sha256": "edf34f68eb6d8f0eeb91f33ae2dfff179534d81a368c63c37ea01bad8e35fc7c",
+      "sha256": "8c27449cb423ecd5750e244c2fd48aed8218b79656101d317a405141ab123767",
       "surface_kind": "human"
     },
     {
@@ -6432,11 +7368,11 @@
       "surface_kind": "human"
     },
     {
-      "bytes": 1765,
+      "bytes": 2116,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/research-packets/deep-research/philosophy/packet-contract.md",
-      "sha256": "17081149fe06e65778b8e220c0ff451e60ca7f53b1f21da06d989563d778604d",
+      "sha256": "821644ec20803fabe3f98cf4e1ecb8ebaee15dade57db5315c4bbaa1b55dd843",
       "surface_kind": "human"
     },
     {
@@ -6448,11 +7384,11 @@
       "surface_kind": "structured"
     },
     {
-      "bytes": 2815,
+      "bytes": 3468,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/research-packets/deep-research/philosophy/research.manifest.json",
-      "sha256": "7a01f8126673d67612f457cac37c87f82f61b0c8535401ef403c2b3f5955da3a",
+      "sha256": "149e1fbefc4e8e345731cb95f292d3d56091d4fd49c82a6cd6814115a7fb7c75",
       "surface_kind": "structured"
     },
     {
@@ -12280,11 +13216,11 @@
       "surface_kind": "structured"
     },
     {
-      "bytes": 5645,
+      "bytes": 5683,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/source_home.manifest.json",
-      "sha256": "5976a42e8ba4aa25280b6d35b29f21c5f8fa10c9d12df464b26ed55dbb679aea",
+      "sha256": "89d243df361586d2435748ec5d32b5929ddfa2a0742d6776f1e661319635126c",
       "surface_kind": "structured"
     },
     {
@@ -12672,6 +13608,22 @@
       "surface_kind": "human"
     },
     {
+      "bytes": 4507,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "docs",
+      "path": "docs/decisions/TOS-D-0033-non-era-philosophy-frontier-route.md",
+      "sha256": "ba8c7c73d770491da31ac5416f03d9a092aaf7d0a5d63970c986de231a64d1a5",
+      "surface_kind": "human"
+    },
+    {
+      "bytes": 3535,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "docs",
+      "path": "docs/decisions/TOS-D-0034-exact-external-artifact-identity-is-provenance.md",
+      "sha256": "c50eb7a68b39481d081e6611f4bd5cc2c5403799845806ab9ec67ad26fe66f6d",
+      "surface_kind": "human"
+    },
+    {
       "bytes": 483,
       "currentness": "tracked_source_snapshot",
       "family_id": "docs",
@@ -12680,51 +13632,51 @@
       "surface_kind": "human"
     },
     {
-      "bytes": 5940,
+      "bytes": 6335,
       "currentness": "tracked_source_snapshot",
       "family_id": "docs",
       "path": "docs/decisions/indexes/by-date.md",
-      "sha256": "850d605652d52a5c0ffc461baa8779fad9cf45836816b37ece82976e224be755",
+      "sha256": "4f98e363991c3312e54b580ed8a04a2df679d6bb822a1ab86b180423efe35334",
       "surface_kind": "human"
     },
     {
-      "bytes": 30452,
+      "bytes": 31803,
       "currentness": "tracked_source_snapshot",
       "family_id": "docs",
       "path": "docs/decisions/indexes/by-guard.md",
-      "sha256": "c2bf6d48b78036359880777a6c83aeb097f6c171f8e99be0f47931a4d8201443",
+      "sha256": "1aee127967df9e96f8b6e2f0e37278fe39e73c6a17f5cf5a2bbf5093445ea1b2",
       "surface_kind": "human"
     },
     {
-      "bytes": 16244,
+      "bytes": 17123,
       "currentness": "tracked_source_snapshot",
       "family_id": "docs",
       "path": "docs/decisions/indexes/by-number.md",
-      "sha256": "a013fa1bd38ae0b6bf1028319e38b9caec7ffecccb53fc1e3304ccdf1edfc650",
+      "sha256": "af30b486815f98943338d0a1f6fcccc7499112170f12f035af2967c8729cf21c",
       "surface_kind": "human"
     },
     {
-      "bytes": 25062,
+      "bytes": 26603,
       "currentness": "tracked_source_snapshot",
       "family_id": "docs",
       "path": "docs/decisions/indexes/by-surface.md",
-      "sha256": "6180c7d537c180efbb9d50392b8f26f1a361085f980c29187a8604b506b01599",
+      "sha256": "8a3e0d5bbbf03cff0c1ed081f5a3d88ca0e1cbb5baa66411f285524aa0cd3e8e",
       "surface_kind": "human"
     },
     {
-      "bytes": 28883,
+      "bytes": 30190,
       "currentness": "tracked_source_snapshot",
       "family_id": "docs",
       "path": "docs/decisions/indexes/by-tos-layer.md",
-      "sha256": "8499ef2e24dd4487662f4fbb75578d5fe96ad9307c96872df79fe454991a7c5c",
+      "sha256": "805ce927157bf9bde3ac0a7c57856d2fe6fca235f924b9646535b18559fd2f96",
       "surface_kind": "human"
     },
     {
-      "bytes": 25156,
+      "bytes": 26278,
       "currentness": "tracked_source_snapshot",
       "family_id": "docs",
       "path": "docs/decisions/indexes/by-tree-class.md",
-      "sha256": "ffbd3c182a490c22d0b73c61269dc1c3d8c7aa0da50d8701002956dadaec3c62",
+      "sha256": "499baa046c650119cb67f39d02e16ddd082b097b0df8f10c6c4e249dd1a6581c",
       "surface_kind": "human"
     },
     {
@@ -12792,11 +13744,11 @@
       "surface_kind": "structured"
     },
     {
-      "bytes": 136085,
+      "bytes": 136519,
       "currentness": "tracked_source_snapshot",
       "family_id": "docs",
       "path": "docs/validation/script_inventory.json",
-      "sha256": "4542ca9c39fcc35ee318023e8deb6c752037879937a3c415572f438d11ecfa10",
+      "sha256": "f2a3e5d2f95a28f49beb8cdb8c35046d776a9c114505594ba121aecff65dff3d",
       "surface_kind": "structured"
     },
     {
@@ -15024,27 +15976,27 @@
       "surface_kind": "executable"
     },
     {
-      "bytes": 14049,
+      "bytes": 14104,
       "currentness": "tracked_source_snapshot",
       "family_id": "scripts",
       "path": "scripts/philosophy_post_planting_audit_common.py",
-      "sha256": "99c586f3fc6303abea961fa8914e04203eb68e2ba14da5fc0c9ec9a53405f8d2",
+      "sha256": "faaa01c9c431091c6e23d6b0bc4de61ea81fc83bf74a9198cdd692bf8220f4bd",
       "surface_kind": "executable"
     },
     {
-      "bytes": 4160,
+      "bytes": 4383,
       "currentness": "tracked_source_snapshot",
       "family_id": "scripts",
       "path": "scripts/plant_prepared_dossiers.py",
-      "sha256": "4a9a5191ee13e69e862bb6928cba7c0cfcaa6599aaffde0ab94f252244821281",
+      "sha256": "c919c513d155d2a36f03d5aade7a56f732d75869813f2e622df3a16b260ff369",
       "surface_kind": "executable"
     },
     {
-      "bytes": 45886,
+      "bytes": 68886,
       "currentness": "tracked_source_snapshot",
       "family_id": "scripts",
       "path": "scripts/plant_table_i_prepared_dossiers.py",
-      "sha256": "b3d5a4c800f2d91c635ee3000d79036e99596d1bb97e99aac4287608ec8fcd4d",
+      "sha256": "dd2b2334a3eb801f0fcf004d9dd20af0a0e6b7b9a0344ae80a0dcc6cf3e5acb4",
       "surface_kind": "executable"
     },
     {
@@ -15128,11 +16080,11 @@
       "surface_kind": "executable"
     },
     {
-      "bytes": 7655,
+      "bytes": 8245,
       "currentness": "tracked_source_snapshot",
       "family_id": "scripts",
       "path": "scripts/validate_active_naming.py",
-      "sha256": "bd850a685629c63bf5806ef4d5eef041ef08b6d4e1759466d564665d01c12f18",
+      "sha256": "48a729578b55cb1939db61d840265123d38f080785f6fd34972c03168e15acd5",
       "surface_kind": "executable"
     },
     {
@@ -15240,11 +16192,11 @@
       "surface_kind": "executable"
     },
     {
-      "bytes": 2223,
+      "bytes": 2225,
       "currentness": "tracked_source_snapshot",
       "family_id": "scripts",
       "path": "scripts/validate_philosophy_atlas_projection.py",
-      "sha256": "10cb8a98a24363da17ad862f2062da819778989646b29e4ea5dd560428cb314b",
+      "sha256": "a6f906b64a03d443406cdb3d583b4acefd684b0392076ba61f2cd5f9e722852a",
       "surface_kind": "executable"
     },
     {
@@ -15268,7 +16220,7 @@
       "currentness": "tracked_source_snapshot",
       "family_id": "scripts",
       "path": "scripts/validate_philosophy_post_planting_audit.py",
-      "sha256": "5e1717935da76a7363e1791a4599a5054f001701e62732ca8f85f2172b5ca8db",
+      "sha256": "7fbc857f4b1ae8c6b80b376d810ee0a52be60d8c7f9c76460f25d08d5e7cb586",
       "surface_kind": "executable"
     },
     {
@@ -15372,15 +16324,15 @@
       "currentness": "tracked_source_snapshot",
       "family_id": "stats",
       "path": "stats/README.md",
-      "sha256": "78217eb936b7cef49f97c92e4132d00ef9ba8abfb80ab69f103408c5d6fc4aba",
+      "sha256": "4a534fa6395da31527177020dedeb2de4ea04d84b7eb76ec0166c42efc31370f",
       "surface_kind": "human"
     },
     {
-      "bytes": 2506,
+      "bytes": 2504,
       "currentness": "tracked_source_snapshot",
       "family_id": "stats",
       "path": "stats/packets/table-i-prepared-dossier-route-ratio.reference.json",
-      "sha256": "ce95e5abeaa8db959315ab92d464651734c932c0ade3f18b0dfb3d0c0da9872d",
+      "sha256": "dac59301912b4c455d0ac3596b46dc021f5e3235f678f12decc53e5a9f0128bb",
       "surface_kind": "structured"
     },
     {
@@ -15528,11 +16480,11 @@
       "surface_kind": "executable"
     },
     {
-      "bytes": 7165,
+      "bytes": 7678,
       "currentness": "tracked_source_snapshot",
       "family_id": "tests",
       "path": "tests/test_local_stats_port.py",
-      "sha256": "2acd6091fa2fe255b8e304d1147d513ba9df8aae588dfb9957f478935dfe4584",
+      "sha256": "2bbcad4645b6b65541dede41b787415dd158a00530de140ff4417b4e3e98829c",
       "surface_kind": "executable"
     },
     {
@@ -15560,11 +16512,11 @@
       "surface_kind": "executable"
     },
     {
-      "bytes": 4924,
+      "bytes": 5090,
       "currentness": "tracked_source_snapshot",
       "family_id": "tests",
       "path": "tests/test_philosophy_atlas_projection.py",
-      "sha256": "c29ac984cebbf7e88e2462a4e0ce7b516edc2d11ccb9f2d4e0bded64f6a1a7ca",
+      "sha256": "77b3f48dd623e72ffd4ea8ff8fe80e1085347438bcd8a3d7141464356758908e",
       "surface_kind": "executable"
     },
     {
@@ -15588,7 +16540,7 @@
       "currentness": "tracked_source_snapshot",
       "family_id": "tests",
       "path": "tests/test_philosophy_language_packets.py",
-      "sha256": "22b89c32279c56f3167d75a3517851e2f3a6e7901d860c94b0ce87c0a84b01e2",
+      "sha256": "33ad139b6305555ba6ab71a61d3ff066065c5db801972c8761b9bbffb1d54c3e",
       "surface_kind": "executable"
     },
     {
@@ -15600,19 +16552,19 @@
       "surface_kind": "executable"
     },
     {
-      "bytes": 2887,
+      "bytes": 2888,
       "currentness": "tracked_source_snapshot",
       "family_id": "tests",
       "path": "tests/test_philosophy_post_planting_audit.py",
-      "sha256": "c0bc72d845807a28230d192c40659197dbf77f34db2ac5d7f148faa8cf37c726",
+      "sha256": "281f31596f6eb5cb40dbfde9859a259aaec9dd9d548fd03bb49824a6d66a1f3f",
       "surface_kind": "executable"
     },
     {
-      "bytes": 1517,
+      "bytes": 5714,
       "currentness": "tracked_source_snapshot",
       "family_id": "tests",
       "path": "tests/test_prepared_dossier_pipeline.py",
-      "sha256": "f726b634075cb5d76a6e0a5b82f82c7846a53b11b5be0abdbdc8c519fedc80be",
+      "sha256": "181264cbcb621f2f536d243acf4e0f2dbe962aaea8b3a54b6522968b7985cbfd",
       "surface_kind": "executable"
     },
     {
@@ -15696,11 +16648,11 @@
       "surface_kind": "executable"
     },
     {
-      "bytes": 6569,
+      "bytes": 7604,
       "currentness": "tracked_source_snapshot",
       "family_id": "tests",
       "path": "tests/test_validate_active_naming.py",
-      "sha256": "57f582f2f74b6c4993fedc2b30292bf8d2be398a6477024d682beda8cac83cb4",
+      "sha256": "825d216f77bcc2ef706cc7e0d8e0ada48610f355fa8de603fc33832fcd8a4c78",
       "surface_kind": "executable"
     },
     {

@@ -24,11 +24,11 @@ class PhilosophyAtlasProjectionTest(unittest.TestCase):
         payload = json.loads(PROJECTION_PATH.read_text(encoding="utf-8"))
         self.assertEqual(payload["counts"]["master_tables"], 3)
         self.assertEqual(payload["counts"]["master_rows"], 190)
-        self.assertEqual(payload["counts"]["dossiers"], 30)
-        self.assertEqual(payload["counts"]["dossier_node_rows"], 1040)
-        self.assertEqual(payload["counts"]["dossier_relation_rows"], 986)
-        self.assertEqual(payload["counts"]["candidate_nodes"], 1040)
-        self.assertEqual(payload["counts"]["candidate_relations"], 986)
+        self.assertEqual(payload["counts"]["dossiers"], 48)
+        self.assertEqual(payload["counts"]["dossier_node_rows"], 1725)
+        self.assertEqual(payload["counts"]["dossier_relation_rows"], 1588)
+        self.assertEqual(payload["counts"]["candidate_nodes"], 1725)
+        self.assertEqual(payload["counts"]["candidate_relations"], 1588)
 
     def test_projection_keeps_runtime_owner_downstream(self) -> None:
         payload = json.loads(PROJECTION_PATH.read_text(encoding="utf-8"))
@@ -57,6 +57,7 @@ class PhilosophyAtlasProjectionTest(unittest.TestCase):
         self.assertIn(("atlas-row:A01", "has_prepared_dossier", "atlas-dossier:A01"), edges)
         self.assertIn(("atlas-row:A11", "has_prepared_dossier", "atlas-dossier:A11"), edges)
         self.assertIn(("atlas-row:A43", "has_prepared_dossier", "atlas-dossier:A43"), edges)
+        self.assertIn(("atlas-row:A48", "has_prepared_dossier", "atlas-dossier:A48"), edges)
 
     def test_projection_exposes_pre_canon_candidate_graph_material(self) -> None:
         payload = json.loads(PROJECTION_PATH.read_text(encoding="utf-8"))
@@ -64,6 +65,7 @@ class PhilosophyAtlasProjectionTest(unittest.TestCase):
         edge_predicates = {edge["predicate_id"] for edge in payload["edges"]}
         self.assertIn("candidate-node:table-i-a01-node-001", node_ids)
         self.assertIn("candidate-node:table-i-a43-node-001", node_ids)
+        self.assertIn("candidate-node:table-i-a48-node-001", node_ids)
         self.assertIn("uses_script", edge_predicates)
         self.assertIn("develops_concept", edge_predicates)
 

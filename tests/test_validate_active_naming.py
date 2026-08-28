@@ -19,6 +19,14 @@ def retired_w_token() -> str:
     return "w" + "ave"
 
 
+def quoted_a48_artifact_identity() -> str:
+    return (
+        "ToS Deep Research_ A48 — Океания _ khipu _ rongorongo as frontier "
+        + retired_s_token()
+        + ".docx"
+    )
+
+
 def active_reference(text: str) -> str | None:
     match = validate_active_naming.ACTIVE_REFERENCE_PATTERN.search(text)
     return match.group(0) if match else None
@@ -103,6 +111,22 @@ class ValidateActiveNamingTests(unittest.TestCase):
         ):
             with self.subTest(relative_path=relative_path):
                 self.assertIsNotNone(validate_active_naming.retired_path_issue(relative_path))
+
+    def test_exact_external_artifact_identity_is_quoted_provenance(self) -> None:
+        reference = quoted_a48_artifact_identity()
+        self.assertIsNotNone(active_reference(reference))
+        self.assertIsNone(validate_active_naming.retired_content_issue(reference))
+        self.assertIsNotNone(validate_active_naming.retired_path_issue(reference))
+
+    def test_external_artifact_identity_exception_rejects_near_misses(self) -> None:
+        reference = quoted_a48_artifact_identity()
+        for near_miss in (
+            reference.removesuffix(".docx") + "-copy.docx",
+            reference.replace("A48", "A49"),
+            "frontier " + retired_s_token() + ".docx",
+        ):
+            with self.subTest(near_miss=near_miss):
+                self.assertIsNotNone(validate_active_naming.retired_content_issue(near_miss))
 
     def test_route_labels_and_experience_pass_markers_are_retired(self) -> None:
         cases = (

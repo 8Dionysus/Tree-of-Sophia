@@ -11,6 +11,7 @@ from typing import Any
 
 from plant_table_i_prepared_dossiers import BRANCHES as TABLE_I_BRANCHES
 from plant_table_i_prepared_dossiers import DOC_ROOT, main as plant_table_i
+from plant_table_i_prepared_dossiers import TABLE_I_DOCX_SECTIONS
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 TABLE_ROOT = REPO_ROOT / "ToS/philosophy/atlas/master-tables"
@@ -20,15 +21,16 @@ def load_jsonl(path: Path) -> list[dict[str, Any]]:
     return [json.loads(line) for line in path.read_text(encoding="utf-8").splitlines() if line.strip()]
 
 
-def discover_local_docx_ids() -> dict[str, list[str]]:
+def discover_local_docx_ids(sections: tuple[str, ...] = TABLE_I_DOCX_SECTIONS) -> dict[str, list[str]]:
     ids_by_section: dict[str, list[str]] = {}
     if not DOC_ROOT.exists():
         return ids_by_section
-    for path in sorted(DOC_ROOT.glob("*/*.docx")):
-        match = re.search(r"\bA\d{2}\b", path.name)
-        if not match:
-            continue
-        ids_by_section.setdefault(path.parent.name, []).append(match.group(0))
+    for section in sections:
+        for path in sorted((DOC_ROOT / section).glob("*.docx")):
+            match = re.search(r"\bA\d{2}\b", path.name)
+            if not match:
+                continue
+            ids_by_section.setdefault(section, []).append(match.group(0))
     return {section: sorted(ids) for section, ids in sorted(ids_by_section.items())}
 
 
@@ -44,6 +46,7 @@ def table_readiness(table_id: str) -> dict[str, Any]:
             "planting_entrypoint": "scripts/plant_prepared_dossiers.py --table table-i --plant",
             "package_implementation": "scripts/plant_table_i_prepared_dossiers.py",
             "route_map_ref": "ToS/philosophy/atlas/dossiers/prepared-dossier-routes.json",
+            "docx_sections": list(TABLE_I_DOCX_SECTIONS),
             "expected_dossier_ids": expected,
             "local_docx_ids": local_docx_ids,
             "matched_local_docx_ids": sorted(set(expected) & set(local_docx_ids)),

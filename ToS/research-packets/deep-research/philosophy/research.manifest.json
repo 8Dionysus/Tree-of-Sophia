@@ -2,7 +2,7 @@
   "schema_version": "tos_research_packet_v1",
   "packet_id": "research.deep-research.philosophy.branch-skeleton",
   "path": "ToS/research-packets/deep-research/philosophy",
-  "role": "non-authoritative AI-generated research packet metadata for the philosophy branch skeleton",
+  "role": "non-authoritative AI-generated research packet metadata and bounded operator-local DOCX intake context for the philosophy branch skeleton",
   "authority": {
     "source_status": "not_source_witness",
     "canon_status": "not_canon",
@@ -21,6 +21,12 @@
     "class": "deep-research-gpt-result",
     "asserted_source_authority": "none"
   },
+  "operator_local_docx_intake": {
+    "capture_posture": "unverified operator-local export; payload bytes remain untracked",
+    "extraction_coverage_ref": "ToS/research-packets/deep-research/philosophy/dossiers/table-i-docx-extraction-coverage.json",
+    "intake_manifest_ref": "ToS/research-packets/deep-research/philosophy/dossiers/table-i-docx-intake.manifest.json",
+    "claim_limit": "fixity and parser coverage only; no authorship, origin, source, rights, review, doctrine, or canon claim"
+  },
   "domain_branch": "ToS/philosophy",
   "next_route": "research packet -> branch review -> local branch skeleton -> proposed nodes -> proposed relations -> relation pack -> canon promotion -> derived graph/export",
   "packet_surfaces": [
@@ -28,6 +34,8 @@
     "extraction-map.md",
     "master-tables/",
     "dossiers/",
+    "dossiers/table-i-docx-intake.manifest.json",
+    "dossiers/table-i-docx-extraction-coverage.json",
     "pages/"
   ],
   "empty_skeleton_policy": "contract and route surfaces may exist before corpus data import",

@@ -18,6 +18,7 @@ philosophy/
   atlas/
   trunk/
   eras/
+  frontiers/
   threads/
   graph-workbench/
 ```
@@ -65,6 +66,12 @@ eras/<era>/
 Corpora, archives, inscriptions, institutions, media, scripts, transmissions,
 and controversies are first-class philosophical infrastructure. They are not
 secondary notes beneath authors and works.
+
+`frontiers/` is a narrow non-era guardrail for prepared cases that would be
+misrepresented by a single chronological or regional tradition path. It keeps
+chronology, geography, readability, and evidence conflicts explicit. Frontier
+branches remain research/pre-canon surfaces and do not establish a tradition,
+source witness, philosophical corpus, or canon object.
 
 `threads/` holds cross-branch navigation for figures, works, concepts, source
 corpora, and transmissions. Threads are navigational organs, not the home of
