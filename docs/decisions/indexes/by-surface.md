@@ -70,6 +70,7 @@
 - [TOS-D-0028 - Mechanics Executable Route Map](../TOS-D-0028-mechanics-executable-route-map.md) (`docs/decisions/TOS-D-0028-mechanics-executable-route-map.md`)
 - [TOS-D-0029 - Model-facing skill and owner-port route architecture](../TOS-D-0029-agent-tool-owner-port-documentation-architecture.md) (`docs/decisions/TOS-D-0029-agent-tool-owner-port-documentation-architecture.md`)
 - [TOS-D-0033 - Non-Era Philosophy Frontier Route](../TOS-D-0033-non-era-philosophy-frontier-route.md) (`docs/decisions/TOS-D-0033-non-era-philosophy-frontier-route.md`)
+- [TOS-D-0034 - Exact External Artifact Identity Is Provenance](../TOS-D-0034-exact-external-artifact-identity-is-provenance.md) (`docs/decisions/TOS-D-0034-exact-external-artifact-identity-is-provenance.md`)
 
 ## docs/testing
 
@@ -165,6 +166,7 @@
 ## provenance
 
 - [TOS-D-0027 - Same-Day Campaign Release Consolidation](../TOS-D-0027-same-day-campaign-release-consolidation.md) (`docs/decisions/TOS-D-0027-same-day-campaign-release-consolidation.md`)
+- [TOS-D-0034 - Exact External Artifact Identity Is Provenance](../TOS-D-0034-exact-external-artifact-identity-is-provenance.md) (`docs/decisions/TOS-D-0034-exact-external-artifact-identity-is-provenance.md`)
 
 ## release
 
@@ -187,6 +189,7 @@
 - [TOS-D-0006 - Research Packet Authority Correction](../TOS-D-0006-research-packet-authority-correction.md) (`docs/decisions/TOS-D-0006-research-packet-authority-correction.md`)
 - [TOS-D-0021 - Domain Vocabulary And Active Route Naming](../TOS-D-0021-domain-vocabulary-and-active-route-naming.md) (`docs/decisions/TOS-D-0021-domain-vocabulary-and-active-route-naming.md`)
 - [TOS-D-0033 - Non-Era Philosophy Frontier Route](../TOS-D-0033-non-era-philosophy-frontier-route.md) (`docs/decisions/TOS-D-0033-non-era-philosophy-frontier-route.md`)
+- [TOS-D-0034 - Exact External Artifact Identity Is Provenance](../TOS-D-0034-exact-external-artifact-identity-is-provenance.md) (`docs/decisions/TOS-D-0034-exact-external-artifact-identity-is-provenance.md`)
 
 ## roadmap
 
@@ -222,6 +225,7 @@
 - [TOS-D-0028 - Mechanics Executable Route Map](../TOS-D-0028-mechanics-executable-route-map.md) (`docs/decisions/TOS-D-0028-mechanics-executable-route-map.md`)
 - [TOS-D-0031 - TOS-D-0031 AGENTS route topology and progressive disclosure](../TOS-D-0031-agents-route-topology-and-progressive-disclosure.md) (`docs/decisions/TOS-D-0031-agents-route-topology-and-progressive-disclosure.md`)
 - [TOS-D-0033 - Non-Era Philosophy Frontier Route](../TOS-D-0033-non-era-philosophy-frontier-route.md) (`docs/decisions/TOS-D-0033-non-era-philosophy-frontier-route.md`)
+- [TOS-D-0034 - Exact External Artifact Identity Is Provenance](../TOS-D-0034-exact-external-artifact-identity-is-provenance.md) (`docs/decisions/TOS-D-0034-exact-external-artifact-identity-is-provenance.md`)
 
 ## source-home
 

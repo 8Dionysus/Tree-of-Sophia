@@ -76,6 +76,15 @@ ALLOWED_ACTIVE_CONTENT_REFERENCES = frozenset(
         "seed_claim_ref",
     }
 )
+# Exact names of external artifacts may contain retired route vocabulary even
+# though the repository only quotes them as immutable provenance.  Keep these
+# exceptions content-only and exact: they do not authorize a repository path,
+# a shortened token, or a renamed near miss.
+QUOTED_EXTERNAL_ARTIFACT_IDENTITIES = frozenset(
+    {
+        "ToS Deep Research_ A48 — Океания _ khipu _ rongorongo as frontier seed.docx",
+    }
+)
 OLD_ROUTE_PREFIX = "z" + "v"
 RETIRED_ROUTE_LABEL_PATTERN = re.compile(
     r"(?<![A-Za-z0-9])" + OLD_ROUTE_PREFIX + r"\d+(?:[-_][A-Za-z0-9]+)+",
@@ -138,6 +147,8 @@ def retired_path_issue(value: str) -> str | None:
 
 
 def retired_content_issue(text: str) -> str | None:
+    for artifact_identity in QUOTED_EXTERNAL_ARTIFACT_IDENTITIES:
+        text = text.replace(artifact_identity, "[quoted-external-artifact-identity]")
     for match in ACTIVE_REFERENCE_PATTERN.finditer(text):
         reference = match.group(0)
         if reference.lower() not in ALLOWED_ACTIVE_CONTENT_REFERENCES:

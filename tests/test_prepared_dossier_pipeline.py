@@ -98,6 +98,13 @@ class PreparedDossierPipelineTest(unittest.TestCase):
         self.assertTrue(all(labels[dossier_id]["ru"] for dossier_id in new_ids))
         self.assertTrue(all(labels[dossier_id]["en"] for dossier_id in new_ids))
         self.assertFalse(any(re.search(r"[А-Яа-яЁё]", labels[dossier_id]["en"]) for dossier_id in new_ids))
+        self.assertEqual(
+            labels["A48"],
+            {
+                "ru": "Анды и Рапа-Нуи: кипу и ронго-ронго как сравнительные пограничные случаи",
+                "en": "Andes and Rapa Nui: Khipu and Rongorongo as Comparative Frontier Cases",
+            },
+        )
 
 
 if __name__ == "__main__":

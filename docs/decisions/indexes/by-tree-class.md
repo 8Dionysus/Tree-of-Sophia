@@ -234,6 +234,7 @@
 - [TOS-D-0023 - Participant-Scoped Translation Exposure](../TOS-D-0023-participant-scoped-translation-exposure.md) (`docs/decisions/TOS-D-0023-participant-scoped-translation-exposure.md`)
 - [TOS-D-0024 - Artifact Witness Spine](../TOS-D-0024-artifact-witness-spine.md) (`docs/decisions/TOS-D-0024-artifact-witness-spine.md`)
 - [TOS-D-0025 - Scholarly Composite Witness Spine](../TOS-D-0025-scholarly-composite-witness-spine.md) (`docs/decisions/TOS-D-0025-scholarly-composite-witness-spine.md`)
+- [TOS-D-0034 - Exact External Artifact Identity Is Provenance](../TOS-D-0034-exact-external-artifact-identity-is-provenance.md) (`docs/decisions/TOS-D-0034-exact-external-artifact-identity-is-provenance.md`)
 
 ## source release
 
