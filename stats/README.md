@@ -9,7 +9,7 @@ the central stats organ.
 
 | Measurement | Question | Reference value |
 | --- | --- | --- |
-| `Tree-of-Sophia/table-i-prepared-dossier-route-ratio` | What fraction of current validated Table I atlas rows have an explicit unique prepared-dossier route into an existing philosophy branch? | `30 / 48` at evidence revision `66a1b9d6bbc05b4fec696946730d173102ad0301` |
+| `Tree-of-Sophia/table-i-prepared-dossier-route-ratio` | What fraction of current validated Table I atlas rows have an explicit unique prepared-dossier route into an existing philosophy branch? | `48 / 48` at evidence revision `159d57402dcfc79c65af93fae7ce1346798dc392` |
 
 The population is a census of unique rows in the Table I atlas. The numerator
 contains unique route-map entries that name a row in that population and an
