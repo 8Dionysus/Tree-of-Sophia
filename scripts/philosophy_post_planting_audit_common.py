@@ -137,7 +137,8 @@ def _branch_audit(dossier_rows: list[dict[str, Any]]) -> dict[str, Any]:
 
     local_summaries = {
         repo_ref(path)
-        for path in PHILOSOPHY_ROOT.glob("eras/**/graph-workbench/pre-canon-summary.json")
+        for root_name in ("eras", "frontiers")
+        for path in PHILOSOPHY_ROOT.glob(f"{root_name}/**/graph-workbench/pre-canon-summary.json")
     }
     expected_summaries = {f"{branch}/graph-workbench/pre-canon-summary.json" for branch in branch_paths}
     return {

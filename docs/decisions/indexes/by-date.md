@@ -75,3 +75,7 @@
 - [TOS-D-0030 - Explicit separate KAG action ABI and provider identity](../TOS-D-0030-exact-kag-action-provider-alignment.md) (`docs/decisions/TOS-D-0030-exact-kag-action-provider-alignment.md`)
 - [TOS-D-0031 - TOS-D-0031 AGENTS route topology and progressive disclosure](../TOS-D-0031-agents-route-topology-and-progressive-disclosure.md) (`docs/decisions/TOS-D-0031-agents-route-topology-and-progressive-disclosure.md`)
 - [TOS-D-0032 - TOS-D-0032 cross-corpus documentation map and minimal projection](../TOS-D-0032-cross-corpus-documentation-map-and-minimal-projection.md) (`docs/decisions/TOS-D-0032-cross-corpus-documentation-map-and-minimal-projection.md`)
+
+## 2026-08-27
+
+- [TOS-D-0033 - Non-Era Philosophy Frontier Route](../TOS-D-0033-non-era-philosophy-frontier-route.md) (`docs/decisions/TOS-D-0033-non-era-philosophy-frontier-route.md`)

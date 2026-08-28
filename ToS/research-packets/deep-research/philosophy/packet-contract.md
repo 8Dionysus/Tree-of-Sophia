@@ -2,7 +2,7 @@
 
 ## Role
 
-This contract defines the empty route for future philosophy research packets.
+This contract defines the route for current and future philosophy research packets.
 
 A packet may carry capture metadata, table structure, dossier structure,
 source leads, unresolved questions, and extraction notes. It does not carry
@@ -31,12 +31,15 @@ Future packets may be split into:
 | --- | --- |
 | `master-tables/` | table-level dispatch scaffolds, launch order, status fields, and row-shape notes |
 | `dossiers/` | per-topic or per-branch research dossiers awaiting branch review |
+| `dossiers/table-i-docx-intake.manifest.json` | fixity and capture-posture record for operator-local, untracked Table I DOCX bytes |
+| `dossiers/table-i-docx-extraction-coverage.json` | explicit accounting of extracted, metadata-only, and deferred table rows |
 | `pages/` | capture metadata from external workspaces or UI containers |
 | `packet-contract.md` | this route contract |
 | `extraction-map.md` | the route from packet fields into future branch and graph objects |
 
-These surfaces are allowed to describe structure. They should not import the
-prepared corpus data until an explicit intake pass is requested.
+These surfaces are allowed to describe structure. Prepared corpus data moves
+only through an explicit intake pass. A tracked digest or coverage record does
+not turn the local DOCX bytes or their claims into source witnesses.
 
 ## Boundary
 

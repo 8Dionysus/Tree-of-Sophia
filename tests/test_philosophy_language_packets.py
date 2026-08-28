@@ -41,7 +41,7 @@ class PhilosophyLanguagePacketsTest(unittest.TestCase):
             if row.get("node_kind") == "text_corpus"
         }
         packets = self.load_packets()
-        self.assertEqual(len(packets), 225)
+        self.assertEqual(len(packets), 347)
         self.assertEqual({str(row["node_ref"]["id"]) for row in packets}, text_corpus_ids)
         self.assertEqual({str(row["node_ref"]["id_kind"]) for row in packets}, {"candidate_id"})
 

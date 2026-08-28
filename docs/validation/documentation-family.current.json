@@ -36,7 +36,7 @@
     "excluded_generated_carrier_rules": 3,
     "excluded_tracked_path_count": 303,
     "human_scope": {
-      "bytes": 4151286,
+      "bytes": 4159172,
       "count": 710,
       "excluded_skill_launch_metadata": 25,
       "family_counts": {
@@ -51,9 +51,9 @@
           "lines": 6530
         },
         "docs": {
-          "bytes": 347258,
+          "bytes": 350907,
           "count": 49,
-          "lines": 5938
+          "lines": 5981
         },
         "evals": {
           "bytes": 3486,
@@ -91,9 +91,9 @@
           "lines": 202
         },
         "root": {
-          "bytes": 168301,
+          "bytes": 169170,
           "count": 13,
-          "lines": 2923
+          "lines": 2935
         },
         "scripts": {
           "bytes": 6388,
@@ -111,12 +111,12 @@
           "lines": 47
         },
         "tos": {
-          "bytes": 3091151,
+          "bytes": 3094519,
           "count": 342,
-          "lines": 53159
+          "lines": 53197
         }
       },
-      "lines": 73825
+      "lines": 73918
     },
     "surface_kind_counts": {
       "executable": 155,
@@ -134,7 +134,7 @@
       "surface_kind_counts": {
         "human": 13
       },
-      "tracked_surface_bytes": 168301,
+      "tracked_surface_bytes": 169170,
       "tracked_surface_count": 13
     },
     {
@@ -153,7 +153,7 @@
         "human": 4,
         "structured": 3
       },
-      "tracked_surface_bytes": 160129,
+      "tracked_surface_bytes": 160130,
       "tracked_surface_count": 7
     },
     {
@@ -170,7 +170,7 @@
         "human": 342,
         "structured": 986
       },
-      "tracked_surface_bytes": 58019846,
+      "tracked_surface_bytes": 69673438,
       "tracked_surface_count": 1328
     },
     {
@@ -179,7 +179,7 @@
         "human": 49,
         "structured": 6
       },
-      "tracked_surface_bytes": 571667,
+      "tracked_surface_bytes": 575750,
       "tracked_surface_count": 55
     },
     {
@@ -224,7 +224,7 @@
         "executable": 88,
         "human": 1
       },
-      "tracked_surface_bytes": 2682741,
+      "tracked_surface_bytes": 2706021,
       "tracked_surface_count": 89
     },
     {
@@ -234,7 +234,7 @@
         "human": 1,
         "structured": 1
       },
-      "tracked_surface_bytes": 962139,
+      "tracked_surface_bytes": 966670,
       "tracked_surface_count": 48
     },
     {
@@ -269,7 +269,7 @@
   "source_map": "docs/validation/documentation_family_map.json",
   "source_map_sha256": "9140a03a48109e6a9f35f3ca7dbf82058d96c3961e9e77bc31a743fb8814b13b",
   "tracked_source": "git ls-files -z",
-  "tracked_surface_digest": "3923b6c7350a43b1f6c35d55331c494c5e47d92d9af883b9a41bf188e0336343",
+  "tracked_surface_digest": "ee86577c0be2c3ddf30fdb05d419f8cc435e0b9c0bd5065e3f6ebeecfec5cfb2",
   "tracked_surfaces": [
     {
       "bytes": 1408,
@@ -288,11 +288,11 @@
       "surface_kind": "human"
     },
     {
-      "bytes": 40778,
+      "bytes": 40779,
       "currentness": "tracked_source_snapshot",
       "family_id": "agents-other",
       "path": ".agents/agent-surface.current.json",
-      "sha256": "b5e4a2f8a5ae07789c414b367d70a4b72639732f5b8361fef18217957d72f870",
+      "sha256": "f4978d635c8f341aa30e24cb485a1fa6b98f519a9719c569583ea80c1fc62818",
       "surface_kind": "structured"
     },
     {
@@ -308,7 +308,7 @@
       "currentness": "tracked_source_snapshot",
       "family_id": "agents-other",
       "path": ".agents/agents-route.current.json",
-      "sha256": "b4b78e2cca1137ec1c0a8c17210e688baf392c4329fd31deb3c71bf073e8c152",
+      "sha256": "11feadf6ccc882c538e0b02678e41e3674a53ea178d9e2c3925452211abc024f",
       "surface_kind": "structured"
     },
     {
@@ -1664,11 +1664,11 @@
       "surface_kind": "human"
     },
     {
-      "bytes": 95758,
+      "bytes": 96627,
       "currentness": "tracked_source_snapshot",
       "family_id": "root",
       "path": "CHANGELOG.md",
-      "sha256": "06517f1ea6207b3988a889a6e1313d645d25414cccd72562e8842a47c63c3334",
+      "sha256": "ce15c0db0727d3edb9bc42699dc5b359e941c54160d51b39efcbdf8821d07597",
       "surface_kind": "human"
     },
     {
@@ -1752,11 +1752,11 @@
       "surface_kind": "human"
     },
     {
-      "bytes": 10138,
+      "bytes": 10166,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/README.md",
-      "sha256": "2a9e82817fcb7b3c9ac8488e9eacf12c5c5f06df11c66c5c5cfb8843811e271b",
+      "sha256": "42f6d520e6b9b789af8b0a4840bf92d0fa2a977dffe47ac5c770aae778bb376e",
       "surface_kind": "human"
     },
     {
@@ -3472,19 +3472,19 @@
       "surface_kind": "structured"
     },
     {
-      "bytes": 2835370,
+      "bytes": 4455204,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/derived-exports/philosophy_atlas_projection.min.json",
-      "sha256": "00cd0dd2ab564c3228e3c667244a7915ec2af2f0ddb213739bb6d3cf7e53cf82",
+      "sha256": "5a77ddef1bfada111f05ad30802e6749976aee625a22f5e59af198814255eeca",
       "surface_kind": "structured"
     },
     {
-      "bytes": 19330698,
+      "bytes": 29313029,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/derived-exports/philosophy_graph_projection.min.json",
-      "sha256": "ac3312df24a101ceb0c750825610d3389a23ee62c293ad95d79c392fe984188e",
+      "sha256": "b77adce9ec8bc771e9c343bcf8482fa468bbccfffce70a51583433009e7390e9",
       "surface_kind": "structured"
     },
     {
@@ -3504,11 +3504,11 @@
       "surface_kind": "structured"
     },
     {
-      "bytes": 746443,
+      "bytes": 746485,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/derived-exports/tos_corpus_index.min.json",
-      "sha256": "5bcbbed328b2a28cbf9858ccc0383e00aeeddd48019937d76c916f2cf35d81b9",
+      "sha256": "7dbec9fa00477d4bad4e6c1dbe431050006a82d5319e72defd4d417da2ef210b",
       "surface_kind": "structured"
     },
     {
@@ -3680,35 +3680,35 @@
       "surface_kind": "human"
     },
     {
-      "bytes": 2476,
+      "bytes": 2808,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/philosophy/AGENTS.md",
-      "sha256": "dad9d10e1b7656850afba080c132789a28f09fc39feeafd6db1405de46ef1c0f",
+      "sha256": "81477421b6ea4d3fd1b0d7f6e1b37bce3af91291f95ddc9c5b31b91c2195c3c9",
       "surface_kind": "human"
     },
     {
-      "bytes": 3156,
+      "bytes": 3535,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/philosophy/README.md",
-      "sha256": "9a496f42199c728eb761c7e2c114d8f8f0d59e9f2d008772a4138ce8fd0b5e45",
+      "sha256": "1dac5606b29d5aa2d555ab24cacaf810958b6c5501fa9d17792f1864b26382e1",
       "surface_kind": "human"
     },
     {
-      "bytes": 1449,
+      "bytes": 1510,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/philosophy/atlas/README.md",
-      "sha256": "a90404b7d5e32c3ba722fb5295383d500e721b249220087bda797b56778743db",
+      "sha256": "10b71e1ad405ff3e5396776f9e861cb1a6c3cd7c044639789662f100ca6ad582",
       "surface_kind": "human"
     },
     {
-      "bytes": 1986,
+      "bytes": 2224,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/philosophy/atlas/atlas.manifest.json",
-      "sha256": "f122d237cd3b2080957a10d083f054168d39b75f1819c07d6468f580ffd7306f",
+      "sha256": "cfc26730e51f028b96801660848f432bf199a349a460c1818e53c0fda082eabc",
       "surface_kind": "structured"
     },
     {
@@ -3720,35 +3720,35 @@
       "surface_kind": "structured"
     },
     {
-      "bytes": 1201,
+      "bytes": 1591,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/philosophy/atlas/dossiers/README.md",
-      "sha256": "8a69e2fb893f8b307e69c958d2bb42dbe165cf5c597c2578a8acdb6c43a54bc4",
+      "sha256": "0d1e2175cd5ee0022768300b13d3c820d7427f35cd3547c9c621c2343cefa5d0",
       "surface_kind": "human"
     },
     {
-      "bytes": 536,
+      "bytes": 770,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/philosophy/atlas/dossiers/branch.manifest.json",
-      "sha256": "7f61744c0ba4cf230a05e7898bc2fe03e79fc68abfe326966422e9627afbcc67",
+      "sha256": "69e52ec88b8cee22cb069509aab2f5a99f7fa0c7d205d42756d8b71cf532dccd",
       "surface_kind": "structured"
     },
     {
-      "bytes": 1291,
+      "bytes": 1652,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/philosophy/atlas/dossiers/graph-shape-summary.json",
-      "sha256": "a9d2e50d39afb58e11260e1c6589bc28f637bc81c38acc72811561e726df291a",
+      "sha256": "5cee0ad028e9d6e1d0a02c27daa87863af81f7d2b57854e25fe77b70eb631732",
       "surface_kind": "structured"
     },
     {
-      "bytes": 8972,
+      "bytes": 16316,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/philosophy/atlas/dossiers/prepared-dossier-routes.json",
-      "sha256": "182030af917d01d3296bf03e4737cd99087e3886523f832fb477765b6ed16faf",
+      "sha256": "83e5891e7774242fa950cbd30a1c34188268ce9896fb0ab7641d3b3aaa16fc52",
       "surface_kind": "structured"
     },
     {
@@ -3776,11 +3776,11 @@
       "surface_kind": "structured"
     },
     {
-      "bytes": 1402,
+      "bytes": 1600,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/philosophy/atlas/master-tables/table-i/table.manifest.json",
-      "sha256": "f1b0cb85311c70e09cc728ec57311c5c4e3581419c43d793e7701dad8ba69afb",
+      "sha256": "3b904ddf13ea9f68dc706bcc9262a58b6aa40eeed4738510d430fb1f81af0db0",
       "surface_kind": "structured"
     },
     {
@@ -3832,11 +3832,11 @@
       "surface_kind": "structured"
     },
     {
-      "bytes": 20164,
+      "bytes": 33371,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/philosophy/atlas/multilingual/content-labels.json",
-      "sha256": "550aeab2f45f65dc7936f6491c4d07272be7d780120c0fff7361ab72650533db",
+      "sha256": "24559c6b8d2bd3828863c4637503c55244024d2e881b8a1b3989afcdb643d9cc",
       "surface_kind": "structured"
     },
     {
@@ -3864,19 +3864,19 @@
       "surface_kind": "structured"
     },
     {
-      "bytes": 234,
+      "bytes": 272,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/philosophy/eras/axial-age/regions/aegean-world/branch.manifest.json",
-      "sha256": "81200d53d379e13404fb00faf6eb12ef9800833cb08551726e9a3ca9aadca57b",
+      "sha256": "c4ac03637fe0480051b312297c882f48750f5e333c05e0639ab4f14203b4733f",
       "surface_kind": "structured"
     },
     {
-      "bytes": 235,
+      "bytes": 274,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/philosophy/eras/axial-age/regions/branch.manifest.json",
-      "sha256": "0a5b85e76dc504aec5c5911727411b6567187251941d0a551f28a21cb753eceb",
+      "sha256": "445d3415a8106f25df1f07dad7cbf0824bce6572c97cdbbf43435e89f2562f20",
       "surface_kind": "structured"
     },
     {
@@ -4184,11 +4184,11 @@
       "surface_kind": "structured"
     },
     {
-      "bytes": 260,
+      "bytes": 302,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/philosophy/eras/branch.manifest.json",
-      "sha256": "25f744cef4fdc7154fd180d3bc4b8088072f27806b6747dab67bbc1552bc3523",
+      "sha256": "b329d97e593339475ef4237b43ab93ac371b39b69a31c66d437bdea42d66b1c0",
       "surface_kind": "structured"
     },
     {
@@ -4876,7 +4876,7 @@
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/philosophy/eras/bronze-age/regions/west-asia/traditions/proto-cuneiform-accounting-ontologies/branch.manifest.json",
-      "sha256": "9b9b6cc8a4c9adb6f769ed922a02e76d3d94394b9c4e14771cfa3776adcff55b",
+      "sha256": "2aad1588831918106df9d55bcb13b1b3af79b3c19fafbe461fc5366ade6bb052",
       "surface_kind": "structured"
     },
     {
@@ -4900,7 +4900,7 @@
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/philosophy/eras/bronze-age/regions/west-asia/traditions/proto-cuneiform-accounting-ontologies/sources/branch.manifest.json",
-      "sha256": "5fe0799b2c0caf91fc051d92347d29d93bb80d11b7ee371aa8ab2604e007f457",
+      "sha256": "e8191a46cf2aaddd933ce884f062f973c99ef402bf8d4978cd7dd6087335cfcf",
       "surface_kind": "structured"
     },
     {
@@ -5312,11 +5312,11 @@
       "surface_kind": "structured"
     },
     {
-      "bytes": 206,
+      "bytes": 241,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/philosophy/eras/hellenistic-age/branch.manifest.json",
-      "sha256": "29305fcda6d7095a3462fd661a787307684d7d766a3b926380fc14f4ad1fad1f",
+      "sha256": "81f2edb48d6ee98e45637022d512919b68c584e23f97e286e961b047d0cd334d",
       "surface_kind": "structured"
     },
     {
@@ -5384,11 +5384,11 @@
       "surface_kind": "structured"
     },
     {
-      "bytes": 369,
+      "bytes": 466,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/philosophy/eras/late-antiquity/regions/branch.manifest.json",
-      "sha256": "f4aa68489da9241cb6ec36d7328c1bdf39196459edb7171103deac6685dda6b9",
+      "sha256": "97ab474d31c0ee798884c350f5ffba51f1fabf24b6b1d586d2c67f42c9a8aafe",
       "surface_kind": "structured"
     },
     {
@@ -5784,11 +5784,11 @@
       "surface_kind": "structured"
     },
     {
-      "bytes": 205,
+      "bytes": 240,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/philosophy/eras/roman-world/branch.manifest.json",
-      "sha256": "fcfb5c67176c7b29e4e016eba858015307c44e227710b2c5a905ec12631a65cf",
+      "sha256": "011a4e81aa3c880e611dcaff50b23d8b9dce5a0cb3bc7ef32c82392fd46a36a5",
       "surface_kind": "structured"
     },
     {
@@ -5800,11 +5800,11 @@
       "surface_kind": "human"
     },
     {
-      "bytes": 5354,
+      "bytes": 5901,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/philosophy/graph-workbench/PLANTING_INTERFACE.md",
-      "sha256": "b5a7fae10a533741ce3d308f1bfe80c229a77ee90248529b0220e2508406348b",
+      "sha256": "fe695a3bf5d551082f3ad8082a787a163d90391d231fbd517bb423893de4d7c5",
       "surface_kind": "human"
     },
     {
@@ -5824,11 +5824,11 @@
       "surface_kind": "structured"
     },
     {
-      "bytes": 13985,
+      "bytes": 27247,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/philosophy/graph-workbench/branch-fragments/table-i-prepared-dossier-branches.json",
-      "sha256": "d56dbf3c5c32bb45481e42033cf51b81b9e716488117b1f97539f34288de4c9b",
+      "sha256": "546c9798a606a0f1f9c2f1d411585baa2e3f11836ee295ffdb201d3d130673f0",
       "surface_kind": "structured"
     },
     {
@@ -5876,7 +5876,7 @@
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/philosophy/graph-workbench/language-packets/branch.manifest.json",
-      "sha256": "c17715352d00e0cbd2d57a55c7f117b9d07199b33a2efe26e280796780ff6e7c",
+      "sha256": "1647fea987426bdce379ff89487e17bd3b2d3d44b293e6be8bef0447e71623ef",
       "surface_kind": "structured"
     },
     {
@@ -5888,11 +5888,11 @@
       "surface_kind": "structured"
     },
     {
-      "bytes": 526,
+      "bytes": 548,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/philosophy/graph-workbench/promotion-ledger/table-i-prepared-dossiers.md",
-      "sha256": "f753bcd7e50051a3256b69c0dbf3da50cee98ab713652a5b6164bf6075b5d690",
+      "sha256": "77c3e8910fa92fb083517012b3089c72c50b8f51aab80f98fb5a4a7920b1ad4b",
       "surface_kind": "human"
     },
     {
@@ -5936,19 +5936,19 @@
       "surface_kind": "structured"
     },
     {
-      "bytes": 12624,
+      "bytes": 14920,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/philosophy/graph-workbench/review-packets/table-i-post-planting-audit.json",
-      "sha256": "8561ddd6da213dd1e02539b1eea29622f3f247cfbe83113f41494d8149d67183",
+      "sha256": "7f5936e3449129b03624f232067d8e2fd0fb1aa6e090ccbd4dfdd66a32d94cd5",
       "surface_kind": "structured"
     },
     {
-      "bytes": 870,
+      "bytes": 872,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/philosophy/graph-workbench/review-packets/table-i-post-planting-audit.md",
-      "sha256": "5797b447cc57408031cdbffd2925aabb766911e7e3b8c81b0a311d1cbe3ad8e8",
+      "sha256": "ab6e96149e8e8704b3cb9355cf4105a65d1acc46b1f205a965dcce319f9d8067",
       "surface_kind": "human"
     },
     {
@@ -6072,11 +6072,11 @@
       "surface_kind": "structured"
     },
     {
-      "bytes": 23825,
+      "bytes": 33725,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/philosophy/philosophy.manifest.json",
-      "sha256": "e2673a5bc12ffccb6e90bec5df968bae2201083589ce78112054d1d45fd732d4",
+      "sha256": "c5a2fbb7477f8ae761c9a6edfd800a73a2b1e56be83dad9738149cfb3899c222",
       "surface_kind": "structured"
     },
     {
@@ -6408,19 +6408,19 @@
       "surface_kind": "human"
     },
     {
-      "bytes": 258,
+      "bytes": 837,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/research-packets/deep-research/philosophy/dossiers/README.md",
-      "sha256": "47c5af3676001b63dfced05ed9d860ef07eda337e08b7d73147f32412f769e62",
+      "sha256": "4f47ebf9774da5d45e8313c0c399ac48198dba436f3e7e12f76aa8830873c00b",
       "surface_kind": "human"
     },
     {
-      "bytes": 1597,
+      "bytes": 2274,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/research-packets/deep-research/philosophy/extraction-map.md",
-      "sha256": "edf34f68eb6d8f0eeb91f33ae2dfff179534d81a368c63c37ea01bad8e35fc7c",
+      "sha256": "8c27449cb423ecd5750e244c2fd48aed8218b79656101d317a405141ab123767",
       "surface_kind": "human"
     },
     {
@@ -6432,11 +6432,11 @@
       "surface_kind": "human"
     },
     {
-      "bytes": 1765,
+      "bytes": 2116,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/research-packets/deep-research/philosophy/packet-contract.md",
-      "sha256": "17081149fe06e65778b8e220c0ff451e60ca7f53b1f21da06d989563d778604d",
+      "sha256": "821644ec20803fabe3f98cf4e1ecb8ebaee15dade57db5315c4bbaa1b55dd843",
       "surface_kind": "human"
     },
     {
@@ -6448,11 +6448,11 @@
       "surface_kind": "structured"
     },
     {
-      "bytes": 2815,
+      "bytes": 3468,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/research-packets/deep-research/philosophy/research.manifest.json",
-      "sha256": "7a01f8126673d67612f457cac37c87f82f61b0c8535401ef403c2b3f5955da3a",
+      "sha256": "149e1fbefc4e8e345731cb95f292d3d56091d4fd49c82a6cd6814115a7fb7c75",
       "surface_kind": "structured"
     },
     {
@@ -12280,11 +12280,11 @@
       "surface_kind": "structured"
     },
     {
-      "bytes": 5645,
+      "bytes": 5683,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/source_home.manifest.json",
-      "sha256": "5976a42e8ba4aa25280b6d35b29f21c5f8fa10c9d12df464b26ed55dbb679aea",
+      "sha256": "89d243df361586d2435748ec5d32b5929ddfa2a0742d6776f1e661319635126c",
       "surface_kind": "structured"
     },
     {
@@ -12680,51 +12680,51 @@
       "surface_kind": "human"
     },
     {
-      "bytes": 5940,
+      "bytes": 6126,
       "currentness": "tracked_source_snapshot",
       "family_id": "docs",
       "path": "docs/decisions/indexes/by-date.md",
-      "sha256": "850d605652d52a5c0ffc461baa8779fad9cf45836816b37ece82976e224be755",
+      "sha256": "48bcec4673dd6cc753772d8a9fa6e1694de84640cdb5eb60fa18f5e5a69f32b2",
       "surface_kind": "human"
     },
     {
-      "bytes": 30452,
+      "bytes": 31157,
       "currentness": "tracked_source_snapshot",
       "family_id": "docs",
       "path": "docs/decisions/indexes/by-guard.md",
-      "sha256": "c2bf6d48b78036359880777a6c83aeb097f6c171f8e99be0f47931a4d8201443",
+      "sha256": "c1d8ea306912330f95562e4247213281405d776cb0c68579102569e427eaada5",
       "surface_kind": "human"
     },
     {
-      "bytes": 16244,
+      "bytes": 16704,
       "currentness": "tracked_source_snapshot",
       "family_id": "docs",
       "path": "docs/decisions/indexes/by-number.md",
-      "sha256": "a013fa1bd38ae0b6bf1028319e38b9caec7ffecccb53fc1e3304ccdf1edfc650",
+      "sha256": "ceb12dfed338303a350be6c09f57bdd4cdc340210e3de5f1ee68f51351f345ff",
       "surface_kind": "human"
     },
     {
-      "bytes": 25062,
+      "bytes": 25767,
       "currentness": "tracked_source_snapshot",
       "family_id": "docs",
       "path": "docs/decisions/indexes/by-surface.md",
-      "sha256": "6180c7d537c180efbb9d50392b8f26f1a361085f980c29187a8604b506b01599",
+      "sha256": "5394fe14b77f5777c495679b666e8be39d7c91dd5459abc8b2e687e760d08f6c",
       "surface_kind": "human"
     },
     {
-      "bytes": 28883,
+      "bytes": 29563,
       "currentness": "tracked_source_snapshot",
       "family_id": "docs",
       "path": "docs/decisions/indexes/by-tos-layer.md",
-      "sha256": "8499ef2e24dd4487662f4fbb75578d5fe96ad9307c96872df79fe454991a7c5c",
+      "sha256": "0fec49600c52e8fcb5030f45e756e640720ebeca51b963775d5ad7c2a611b18f",
       "surface_kind": "human"
     },
     {
-      "bytes": 25156,
+      "bytes": 26069,
       "currentness": "tracked_source_snapshot",
       "family_id": "docs",
       "path": "docs/decisions/indexes/by-tree-class.md",
-      "sha256": "ffbd3c182a490c22d0b73c61269dc1c3d8c7aa0da50d8701002956dadaec3c62",
+      "sha256": "c19b1f28d9e16ae22d5e9b1804571f3372a0219ea92834cf76668ecc3bdcbfb5",
       "surface_kind": "human"
     },
     {
@@ -12792,11 +12792,11 @@
       "surface_kind": "structured"
     },
     {
-      "bytes": 136085,
+      "bytes": 136519,
       "currentness": "tracked_source_snapshot",
       "family_id": "docs",
       "path": "docs/validation/script_inventory.json",
-      "sha256": "4542ca9c39fcc35ee318023e8deb6c752037879937a3c415572f438d11ecfa10",
+      "sha256": "f2a3e5d2f95a28f49beb8cdb8c35046d776a9c114505594ba121aecff65dff3d",
       "surface_kind": "structured"
     },
     {
@@ -15024,27 +15024,27 @@
       "surface_kind": "executable"
     },
     {
-      "bytes": 14049,
+      "bytes": 14104,
       "currentness": "tracked_source_snapshot",
       "family_id": "scripts",
       "path": "scripts/philosophy_post_planting_audit_common.py",
-      "sha256": "99c586f3fc6303abea961fa8914e04203eb68e2ba14da5fc0c9ec9a53405f8d2",
+      "sha256": "faaa01c9c431091c6e23d6b0bc4de61ea81fc83bf74a9198cdd692bf8220f4bd",
       "surface_kind": "executable"
     },
     {
-      "bytes": 4160,
+      "bytes": 4383,
       "currentness": "tracked_source_snapshot",
       "family_id": "scripts",
       "path": "scripts/plant_prepared_dossiers.py",
-      "sha256": "4a9a5191ee13e69e862bb6928cba7c0cfcaa6599aaffde0ab94f252244821281",
+      "sha256": "c919c513d155d2a36f03d5aade7a56f732d75869813f2e622df3a16b260ff369",
       "surface_kind": "executable"
     },
     {
-      "bytes": 45886,
+      "bytes": 68886,
       "currentness": "tracked_source_snapshot",
       "family_id": "scripts",
       "path": "scripts/plant_table_i_prepared_dossiers.py",
-      "sha256": "b3d5a4c800f2d91c635ee3000d79036e99596d1bb97e99aac4287608ec8fcd4d",
+      "sha256": "dd2b2334a3eb801f0fcf004d9dd20af0a0e6b7b9a0344ae80a0dcc6cf3e5acb4",
       "surface_kind": "executable"
     },
     {
@@ -15240,11 +15240,11 @@
       "surface_kind": "executable"
     },
     {
-      "bytes": 2223,
+      "bytes": 2225,
       "currentness": "tracked_source_snapshot",
       "family_id": "scripts",
       "path": "scripts/validate_philosophy_atlas_projection.py",
-      "sha256": "10cb8a98a24363da17ad862f2062da819778989646b29e4ea5dd560428cb314b",
+      "sha256": "a6f906b64a03d443406cdb3d583b4acefd684b0392076ba61f2cd5f9e722852a",
       "surface_kind": "executable"
     },
     {
@@ -15268,7 +15268,7 @@
       "currentness": "tracked_source_snapshot",
       "family_id": "scripts",
       "path": "scripts/validate_philosophy_post_planting_audit.py",
-      "sha256": "5e1717935da76a7363e1791a4599a5054f001701e62732ca8f85f2172b5ca8db",
+      "sha256": "7fbc857f4b1ae8c6b80b376d810ee0a52be60d8c7f9c76460f25d08d5e7cb586",
       "surface_kind": "executable"
     },
     {
@@ -15528,11 +15528,11 @@
       "surface_kind": "executable"
     },
     {
-      "bytes": 7165,
+      "bytes": 7678,
       "currentness": "tracked_source_snapshot",
       "family_id": "tests",
       "path": "tests/test_local_stats_port.py",
-      "sha256": "2acd6091fa2fe255b8e304d1147d513ba9df8aae588dfb9957f478935dfe4584",
+      "sha256": "2bbcad4645b6b65541dede41b787415dd158a00530de140ff4417b4e3e98829c",
       "surface_kind": "executable"
     },
     {
@@ -15560,11 +15560,11 @@
       "surface_kind": "executable"
     },
     {
-      "bytes": 4924,
+      "bytes": 5090,
       "currentness": "tracked_source_snapshot",
       "family_id": "tests",
       "path": "tests/test_philosophy_atlas_projection.py",
-      "sha256": "c29ac984cebbf7e88e2462a4e0ce7b516edc2d11ccb9f2d4e0bded64f6a1a7ca",
+      "sha256": "77b3f48dd623e72ffd4ea8ff8fe80e1085347438bcd8a3d7141464356758908e",
       "surface_kind": "executable"
     },
     {
@@ -15588,7 +15588,7 @@
       "currentness": "tracked_source_snapshot",
       "family_id": "tests",
       "path": "tests/test_philosophy_language_packets.py",
-      "sha256": "22b89c32279c56f3167d75a3517851e2f3a6e7901d860c94b0ce87c0a84b01e2",
+      "sha256": "33ad139b6305555ba6ab71a61d3ff066065c5db801972c8761b9bbffb1d54c3e",
       "surface_kind": "executable"
     },
     {
@@ -15600,19 +15600,19 @@
       "surface_kind": "executable"
     },
     {
-      "bytes": 2887,
+      "bytes": 2888,
       "currentness": "tracked_source_snapshot",
       "family_id": "tests",
       "path": "tests/test_philosophy_post_planting_audit.py",
-      "sha256": "c0bc72d845807a28230d192c40659197dbf77f34db2ac5d7f148faa8cf37c726",
+      "sha256": "281f31596f6eb5cb40dbfde9859a259aaec9dd9d548fd03bb49824a6d66a1f3f",
       "surface_kind": "executable"
     },
     {
-      "bytes": 1517,
+      "bytes": 5368,
       "currentness": "tracked_source_snapshot",
       "family_id": "tests",
       "path": "tests/test_prepared_dossier_pipeline.py",
-      "sha256": "f726b634075cb5d76a6e0a5b82f82c7846a53b11b5be0abdbdc8c519fedc80be",
+      "sha256": "adf80428bb12cab7954aec8894779d2cad5b27c98d3b81134ec6199bf9509dd2",
       "surface_kind": "executable"
     },
     {

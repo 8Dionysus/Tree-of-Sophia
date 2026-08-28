@@ -9,6 +9,13 @@ Tracking starts with the community-docs baseline for this repository.
 
 ### Changed
 
+- Completes the Table I prepared A-series planting from 30 to 48 dossiers,
+  with owner-declared DOCX sections, tracked fixity/capture posture, explicit
+  extraction coverage, and reviewed Russian/English dossier labels.
+- Adds one bounded non-era philosophy frontier for A48 instead of forcing the
+  cross-geography, cross-chronology khipu/rongorongo guardrail into an era or
+  tradition. A44–A48 retain explicit manual-review posture, and all planted
+  material remains research-derived and pre-canon.
 - Makes the separate KAG action ABI explicit in current source: the executable
   `repo-local-kag-index` workflow action remains pinned to immutable
   `6a79e62c7d20b6b11406dee78f409ada4a51bb3f`, while the provider body remains
@@ -42,6 +49,11 @@ Tracking starts with the community-docs baseline for this repository.
 
 ### Validation
 
+- Prepared-dossier, multilingual, topology, atlas/graph projection, and
+  post-planting checks account for all 48 dossiers, 1,725 proposed nodes,
+  1,588 proposed relations, and 347 text-bearing language packets. Structural
+  green status does not verify DOCX origin, citations, historical claims,
+  source-witness identity, semantic review, or canon acceptance.
 - The workflow and release-contract parity tests require the exact provider
   and action refs and assert their intentional inequality. Action execution,
   provider source identity, artifact admission, runtime, proof, delivery,

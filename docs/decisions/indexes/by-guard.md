@@ -19,6 +19,10 @@
 - [TOS-D-0003 - Philosophy Domain Tree](../TOS-D-0003-philosophy-domain-tree.md) (`docs/decisions/TOS-D-0003-philosophy-domain-tree.md`)
 - [TOS-D-0017 - Relation Pack Graph Promotion Validator](../TOS-D-0017-relation-pack-graph-promotion-validator.md) (`docs/decisions/TOS-D-0017-relation-pack-graph-promotion-validator.md`)
 
+## chronology boundary
+
+- [TOS-D-0033 - Non-Era Philosophy Frontier Route](../TOS-D-0033-non-era-philosophy-frontier-route.md) (`docs/decisions/TOS-D-0033-non-era-philosophy-frontier-route.md`)
+
 ## claim separation
 
 - [TOS-D-0030 - Explicit separate KAG action ABI and provider identity](../TOS-D-0030-exact-kag-action-provider-alignment.md) (`docs/decisions/TOS-D-0030-exact-kag-action-provider-alignment.md`)
@@ -143,6 +147,7 @@
 
 - [TOS-D-0020 - Corpus Evidence Spine And Witness Storage](../TOS-D-0020-corpus-evidence-spine-and-witness-storage.md) (`docs/decisions/TOS-D-0020-corpus-evidence-spine-and-witness-storage.md`)
 - [TOS-D-0022 - Expression Derivation Is Not Equivalence](../TOS-D-0022-expression-derivation-is-not-equivalence.md) (`docs/decisions/TOS-D-0022-expression-derivation-is-not-equivalence.md`)
+- [TOS-D-0033 - Non-Era Philosophy Frontier Route](../TOS-D-0033-non-era-philosophy-frontier-route.md) (`docs/decisions/TOS-D-0033-non-era-philosophy-frontier-route.md`)
 
 ## mechanics placement
 
@@ -230,6 +235,7 @@
 ## provenance preservation
 
 - [TOS-D-0021 - Domain Vocabulary And Active Route Naming](../TOS-D-0021-domain-vocabulary-and-active-route-naming.md) (`docs/decisions/TOS-D-0021-domain-vocabulary-and-active-route-naming.md`)
+- [TOS-D-0033 - Non-Era Philosophy Frontier Route](../TOS-D-0033-non-era-philosophy-frontier-route.md) (`docs/decisions/TOS-D-0033-non-era-philosophy-frontier-route.md`)
 
 ## public compatibility
 
@@ -310,6 +316,7 @@
 - [TOS-D-0025 - Scholarly Composite Witness Spine](../TOS-D-0025-scholarly-composite-witness-spine.md) (`docs/decisions/TOS-D-0025-scholarly-composite-witness-spine.md`)
 - [TOS-D-0026 - Exact-Current Federated Provider Identities](../TOS-D-0026-exact-current-federated-provider-identities.md) (`docs/decisions/TOS-D-0026-exact-current-federated-provider-identities.md`)
 - [TOS-D-0027 - Same-Day Campaign Release Consolidation](../TOS-D-0027-same-day-campaign-release-consolidation.md) (`docs/decisions/TOS-D-0027-same-day-campaign-release-consolidation.md`)
+- [TOS-D-0033 - Non-Era Philosophy Frontier Route](../TOS-D-0033-non-era-philosophy-frontier-route.md) (`docs/decisions/TOS-D-0033-non-era-philosophy-frontier-route.md`)
 
 ## source-home symmetry
 

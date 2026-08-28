@@ -61,6 +61,14 @@
 - [TOS-D-0031 - TOS-D-0031 AGENTS route topology and progressive disclosure](../TOS-D-0031-agents-route-topology-and-progressive-disclosure.md) (`docs/decisions/TOS-D-0031-agents-route-topology-and-progressive-disclosure.md`)
 - [TOS-D-0032 - TOS-D-0032 cross-corpus documentation map and minimal projection](../TOS-D-0032-cross-corpus-documentation-map-and-minimal-projection.md) (`docs/decisions/TOS-D-0032-cross-corpus-documentation-map-and-minimal-projection.md`)
 
+## dossier
+
+- [TOS-D-0033 - Non-Era Philosophy Frontier Route](../TOS-D-0033-non-era-philosophy-frontier-route.md) (`docs/decisions/TOS-D-0033-non-era-philosophy-frontier-route.md`)
+
+## era
+
+- [TOS-D-0033 - Non-Era Philosophy Frontier Route](../TOS-D-0033-non-era-philosophy-frontier-route.md) (`docs/decisions/TOS-D-0033-non-era-philosophy-frontier-route.md`)
+
 ## event
 
 - [TOS-D-0002 - ToS Source-Home Topology](../TOS-D-0002-tos-source-home-topology.md) (`docs/decisions/TOS-D-0002-tos-source-home-topology.md`)
@@ -75,6 +83,10 @@
 ## external handoff
 
 - [TOS-D-0032 - TOS-D-0032 cross-corpus documentation map and minimal projection](../TOS-D-0032-cross-corpus-documentation-map-and-minimal-projection.md) (`docs/decisions/TOS-D-0032-cross-corpus-documentation-map-and-minimal-projection.md`)
+
+## frontier
+
+- [TOS-D-0033 - Non-Era Philosophy Frontier Route](../TOS-D-0033-non-era-philosophy-frontier-route.md) (`docs/decisions/TOS-D-0033-non-era-philosophy-frontier-route.md`)
 
 ## generated companion
 
@@ -161,6 +173,10 @@
 ## public obligation record
 
 - [TOS-D-0015 - Questbook Package Local Validator](../TOS-D-0015-questbook-package-local-validator.md) (`docs/decisions/TOS-D-0015-questbook-package-local-validator.md`)
+
+## region
+
+- [TOS-D-0033 - Non-Era Philosophy Frontier Route](../TOS-D-0033-non-era-philosophy-frontier-route.md) (`docs/decisions/TOS-D-0033-non-era-philosophy-frontier-route.md`)
 
 ## relation
 
@@ -256,6 +272,10 @@
 - [TOS-D-0012 - Agon Threshold Registry Part-Local Route](../TOS-D-0012-agon-threshold-registry-part-local-route.md) (`docs/decisions/TOS-D-0012-agon-threshold-registry-part-local-route.md`)
 - [TOS-D-0013 - Mechanics Local Test Homes](../TOS-D-0013-mechanics-local-test-homes.md) (`docs/decisions/TOS-D-0013-mechanics-local-test-homes.md`)
 - [TOS-D-0015 - Questbook Package Local Validator](../TOS-D-0015-questbook-package-local-validator.md) (`docs/decisions/TOS-D-0015-questbook-package-local-validator.md`)
+
+## tradition
+
+- [TOS-D-0033 - Non-Era Philosophy Frontier Route](../TOS-D-0033-non-era-philosophy-frontier-route.md) (`docs/decisions/TOS-D-0033-non-era-philosophy-frontier-route.md`)
 
 ## validation lanes
 

@@ -21,6 +21,8 @@ Prepared planting starts from source-owned atlas material:
 | `ToS/philosophy/atlas/master-tables/*/rows.jsonl` | master row spine for planned philosophy growth |
 | `ToS/philosophy/atlas/dossiers/prepared-dossier-routes.json` | dossier-to-branch route map |
 | operator-local prepared DOCX corpus | temporary extraction input for supported planting scripts |
+| `ToS/research-packets/deep-research/philosophy/dossiers/table-i-docx-intake.manifest.json` | tracked fixity and capture-posture record for the untracked DOCX bytes |
+| `ToS/research-packets/deep-research/philosophy/dossiers/table-i-docx-extraction-coverage.json` | explicit extracted/metadata/deferred row accounting and prose-only diagnostics |
 | `ToS/philosophy/atlas/dossiers/index.jsonl` | dossier identity and graph pressure index |
 | `ToS/philosophy/atlas/dossiers/source-anchor-backlog.jsonl` | future real witness, edition, corpus, and risk-control anchors |
 | `ToS/philosophy/atlas/dossiers/term-index.jsonl` | prepared term rows |
@@ -29,6 +31,10 @@ Prepared planting starts from source-owned atlas material:
 Prepared research files are extraction input. Historical authority still routes
 to witnesses, editions, translations, corpora, branch review, and canon
 surfaces.
+
+Planting is bounded, not a full dossier transfer. Context rows that lack an
+owned structured destination remain counted as deferred, and prose is not
+silently converted into structured risk claims.
 
 ## Planting Packet
 

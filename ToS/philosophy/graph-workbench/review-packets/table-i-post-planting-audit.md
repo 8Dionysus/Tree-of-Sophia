@@ -5,11 +5,11 @@ This generated review packet checks the first prepared Table I planting against 
 ## Readiness
 
 - Status: `ready_for_first_graph_review`
-- Prepared dossiers: 30 / 48
-- Prepared branches: 30
-- Proposed nodes: 1040
-- Proposed relations: 986
-- Text-bearing language packets: 225
+- Prepared dossiers: 48 / 48
+- Prepared branches: 48
+- Proposed nodes: 1725
+- Proposed relations: 1588
+- Text-bearing language packets: 347
 - Graph views: 11
 - Review packets: 11
 
@@ -18,13 +18,13 @@ This generated review packet checks the first prepared Table I planting against 
 | Surface | Count |
 | --- | ---: |
 | master rows | 190 |
-| dossier rows | 30 |
-| source anchors | 800 |
-| terms | 564 |
-| transmissions | 353 |
-| projection nodes | 1305 |
-| projection edges | 1929 |
-| clusters | 265 |
+| dossier rows | 48 |
+| source anchors | 1311 |
+| terms | 909 |
+| transmissions | 575 |
+| projection nodes | 1989 |
+| projection edges | 2973 |
+| clusters | 283 |
 
 ## Diagnostics
 

@@ -6,9 +6,16 @@
       "dossier_series": "A-series",
       "docx_sections": [
         "1.1",
-        "1.2"
+        "1.2",
+        "1.3"
       ],
+      "extraction_coverage_ref": "ToS/research-packets/deep-research/philosophy/dossiers/table-i-docx-extraction-coverage.json",
+      "intake_manifest_ref": "ToS/research-packets/deep-research/philosophy/dossiers/table-i-docx-intake.manifest.json",
       "master_table_ref": "ToS/philosophy/atlas/master-tables/table-i/rows.jsonl",
+      "route_defaults": {
+        "review_posture": "pre_canon_review",
+        "route_kind": "era_tradition"
+      },
       "routes": [
         {
           "branch_path": "ToS/philosophy/eras/bronze-age/regions/west-asia/traditions/proto-cuneiform-accounting-ontologies",
@@ -159,6 +166,117 @@
           "branch_path": "ToS/philosophy/eras/late-antiquity/regions/southeast-asia/traditions/sanskrit-pali-inscriptions",
           "branch_role": "early Southeast Asian Sanskrit and Pali inscriptional branch",
           "dossier_id": "A43"
+        },
+        {
+          "branch_path": "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/early-greek-philosophy",
+          "branch_role": "early Greek philosophy, fragment, testimony, poem, prose, and material-philology branch",
+          "dossier_id": "A24"
+        },
+        {
+          "branch_path": "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/classical-athenian-philosophy",
+          "branch_role": "classical Athenian dialogue, corpus, school, logic, and institutional-writing branch",
+          "dossier_id": "A25"
+        },
+        {
+          "branch_path": "ToS/philosophy/eras/hellenistic-age/regions/mediterranean/traditions/hellenistic-schools-library-ecology",
+          "branch_role": "Hellenistic schools, libraries, catalogues, doxography, and commentary ecology branch",
+          "dossier_id": "A26"
+        },
+        {
+          "branch_path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-roman-philosophical-medicine",
+          "branch_role": "Greco-Roman philosophical medicine, method, regimen, causality, and Galenic synthesis branch",
+          "dossier_id": "A27"
+        },
+        {
+          "branch_path": "ToS/philosophy/eras/hellenistic-age/regions/north-africa/traditions/alexandrian-philology-textual-criticism",
+          "branch_role": "Alexandrian philology, grammar, library cataloguing, textual criticism, and scholia branch",
+          "dossier_id": "A28"
+        },
+        {
+          "branch_path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene",
+          "branch_role": "Roman Greco-Latin philosophical ecumene, school, translation, and commentary branch",
+          "dossier_id": "A29"
+        },
+        {
+          "branch_path": "ToS/philosophy/eras/hellenistic-age/regions/eastern-mediterranean/traditions/second-temple-jewish-hellenistic-theology",
+          "branch_role": "Second Temple Jewish-Hellenistic philosophical theology and scriptural interpretation branch",
+          "dossier_id": "A30"
+        },
+        {
+          "branch_path": "ToS/philosophy/eras/late-antiquity/regions/west-asia/traditions/rabbinic-judaism-talmudic-civilization",
+          "branch_role": "rabbinic Judaism, Mishnah, Talmud, legal argument, and textual-civilization branch",
+          "dossier_id": "A31"
+        },
+        {
+          "branch_path": "ToS/philosophy/eras/late-antiquity/regions/mediterranean/traditions/greek-latin-patristics",
+          "branch_role": "Greek and Latin patristic theology, exegesis, institution, and philosophical reception branch",
+          "dossier_id": "A32"
+        },
+        {
+          "branch_path": "ToS/philosophy/eras/late-antiquity/regions/west-asia/traditions/syriac-christian-literary-republic",
+          "branch_role": "Syriac Christian literary, translation, school, theological, and philosophical republic branch",
+          "dossier_id": "A33"
+        },
+        {
+          "branch_path": "ToS/philosophy/eras/late-antiquity/regions/mediterranean/traditions/neoplatonism",
+          "branch_role": "late-antique Neoplatonic school, commentary, metaphysics, ritual, and transmission branch",
+          "dossier_id": "A34"
+        },
+        {
+          "branch_path": "ToS/philosophy/eras/late-antiquity/regions/caucasus/traditions/armenian-georgian-translation-literatures",
+          "branch_role": "Armenian and Georgian early Christian translation, manuscript, and literary branch",
+          "dossier_id": "A38"
+        },
+        {
+          "branch_path": "ToS/philosophy/eras/late-antiquity/regions/northeast-africa/traditions/aksum-geez-early-christian-writing",
+          "branch_role": "Aksumite, Ge'ez, inscriptional, translation, and early Christian writing branch",
+          "dossier_id": "A39"
+        },
+        {
+          "branch_path": "ToS/philosophy/eras/late-antiquity/regions/northeast-africa/traditions/kush-meroe-writing-frontier",
+          "branch_role": "Kush-Meroe script, royal-cultic epigraphy, partial-legibility, and decipherment-limit branch",
+          "dossier_id": "A44",
+          "review_posture": "manual_review_required",
+          "review_reason": "Table I status C and confidence 3; partial script legibility does not establish a philosophical corpus"
+        },
+        {
+          "branch_path": "ToS/philosophy/eras/axial-age/regions/mesoamerica/traditions/zapotec-oaxaca-early-writing",
+          "branch_role": "Zapotec Oaxaca and Monte Alban calendrical, territorial, and monumental writing branch",
+          "dossier_id": "A45",
+          "review_posture": "manual_review_required",
+          "review_reason": "Table I status C and confidence 3; decipherment and genre boundaries remain unresolved"
+        },
+        {
+          "branch_path": "ToS/philosophy/eras/late-antiquity/regions/mesoamerica/traditions/early-maya-writing",
+          "branch_role": "early Maya calendrical, dynastic, cosmological, and text-image writing branch",
+          "dossier_id": "A46",
+          "review_posture": "manual_review_required",
+          "review_reason": "Table I status B and confidence 3; readable glyphs do not by themselves establish treatise, school, or canon status"
+        },
+        {
+          "branch_path": "ToS/philosophy/eras/axial-age/regions/mesoamerica/traditions/epi-olmec-cascajal-writing-frontier",
+          "branch_role": "Epi-Olmec, Isthmian, and Cascajal authenticity, sign-order, and interpretation-limit branch",
+          "dossier_id": "A47",
+          "review_posture": "manual_review_required",
+          "review_reason": "Table I status C and confidence 2; isolated and contested objects cannot carry broad doctrinal claims"
+        },
+        {
+          "branch_path": "ToS/philosophy/frontiers/writing-and-information-thresholds/khipu-rongorongo-comparative-boundary",
+          "branch_role": "cross-geography guardrail for khipu information systems and the later undeciphered rongorongo corpus",
+          "dossier_id": "A48",
+          "ancestor_roles": {
+            "ToS/philosophy/frontiers": "non-era philosophy routes for cases whose chronology, geography, readability, or evidence posture cannot be represented honestly as one tradition branch",
+            "ToS/philosophy/frontiers/writing-and-information-thresholds": "writing, record-system, decipherment, and readable-corpus boundary routes"
+          },
+          "review_posture": "manual_review_required",
+          "review_reason": "Table I status C and confidence 2; the dossier combines Andes and Rapa Nui and rongorongo lies outside Table I chronology",
+          "route_constraints": [
+            "not_an_era_or_tradition_claim",
+            "khipu_and_rongorongo_remain_distinct_cases",
+            "rongorongo_outside_table_i_chronology",
+            "information_system_not_equivalent_to_readable_philosophical_corpus"
+          ],
+          "route_kind": "cross_chronology_frontier"
         }
       ]
     },
@@ -177,5 +295,5 @@
       "routes": []
     }
   },
-  "schema_version": "tos_prepared_dossier_routes_v1"
+  "schema_version": "tos_prepared_dossier_routes_v2"
 }

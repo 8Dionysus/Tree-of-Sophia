@@ -29,12 +29,12 @@ class PhilosophyPostPlantingAuditTest(unittest.TestCase):
     def test_audit_accounts_for_planted_table_i(self) -> None:
         payload = self.load_audit()
         self.assertEqual(payload["master_tables"]["table-i"]["row_count"], 48)
-        self.assertEqual(payload["master_tables"]["table-i"]["dossier_available_count"], 30)
-        self.assertEqual(payload["counts"]["prepared_dossiers"], 30)
-        self.assertEqual(payload["branch_audit"]["prepared_branch_count"], 30)
-        self.assertEqual(payload["graph_workbench_audit"]["proposed_node_count"], 1040)
-        self.assertEqual(payload["graph_workbench_audit"]["proposed_relation_count"], 986)
-        self.assertEqual(payload["graph_workbench_audit"]["language_packet_count"], 225)
+        self.assertEqual(payload["master_tables"]["table-i"]["dossier_available_count"], 48)
+        self.assertEqual(payload["counts"]["prepared_dossiers"], 48)
+        self.assertEqual(payload["branch_audit"]["prepared_branch_count"], 48)
+        self.assertEqual(payload["graph_workbench_audit"]["proposed_node_count"], 1725)
+        self.assertEqual(payload["graph_workbench_audit"]["proposed_relation_count"], 1588)
+        self.assertEqual(payload["graph_workbench_audit"]["language_packet_count"], 347)
         self.assertEqual(
             payload["graph_workbench_audit"]["language_packet_count"],
             payload["graph_workbench_audit"]["text_bearing_node_count"],
