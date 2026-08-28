@@ -29,15 +29,15 @@
     "metric": "whitespace_tokens_v1",
     "posture": "summary_first_records_on_demand",
     "record_loading": "machine readers may select records by family_id or path; do not load the full carrier into an always-on prompt",
-    "tracked_surface_count": 2056,
+    "tracked_surface_count": 2057,
     "unhandled_family_count": 0
   },
   "coverage": {
     "excluded_generated_carrier_rules": 3,
     "excluded_tracked_path_count": 321,
     "human_scope": {
-      "bytes": 4193798,
-      "count": 729,
+      "bytes": 4197333,
+      "count": 730,
       "excluded_skill_launch_metadata": 25,
       "family_counts": {
         "agents-other": {
@@ -51,9 +51,9 @@
           "lines": 6530
         },
         "docs": {
-          "bytes": 358360,
-          "count": 50,
-          "lines": 6093
+          "bytes": 361895,
+          "count": 51,
+          "lines": 6168
         },
         "evals": {
           "bytes": 3486,
@@ -116,15 +116,15 @@
           "lines": 53666
         }
       },
-      "lines": 74499
+      "lines": 74574
     },
     "surface_kind_counts": {
       "executable": 155,
-      "human": 754,
+      "human": 755,
       "structured": 1147
     },
-    "tracked_path_count": 2377,
-    "tracked_surface_count": 2056,
+    "tracked_path_count": 2378,
+    "tracked_surface_count": 2057,
     "unhandled_family_count": 0,
     "unhandled_paths": []
   },
@@ -170,17 +170,17 @@
         "human": 360,
         "structured": 1085
       },
-      "tracked_surface_bytes": 70060092,
+      "tracked_surface_bytes": 70145729,
       "tracked_surface_count": 1445
     },
     {
       "family_id": "docs",
       "surface_kind_counts": {
-        "human": 50,
+        "human": 51,
         "structured": 6
       },
-      "tracked_surface_bytes": 583203,
-      "tracked_surface_count": 56
+      "tracked_surface_bytes": 586738,
+      "tracked_surface_count": 57
     },
     {
       "family_id": "evals",
@@ -269,7 +269,7 @@
   "source_map": "docs/validation/documentation_family_map.json",
   "source_map_sha256": "9140a03a48109e6a9f35f3ca7dbf82058d96c3961e9e77bc31a743fb8814b13b",
   "tracked_source": "git ls-files -z",
-  "tracked_surface_digest": "8eb344e05e16a6c8afba8d286d2675a10283408986e3b2f2ac049d66f98a101b",
+  "tracked_surface_digest": "0638401a56f2e2644f529f0dcbd3931b0b3ba54f16e11caa97cb773c8c00e830",
   "tracked_surfaces": [
     {
       "bytes": 1408,
@@ -3504,11 +3504,11 @@
       "surface_kind": "structured"
     },
     {
-      "bytes": 746485,
+      "bytes": 832122,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/derived-exports/tos_corpus_index.min.json",
-      "sha256": "7dbec9fa00477d4bad4e6c1dbe431050006a82d5319e72defd4d417da2ef210b",
+      "sha256": "a99cd08039cbfcd1e1f1fa2625b3d5d5426ba127fd3512254a0f78fb90a0c6c4",
       "surface_kind": "structured"
     },
     {
@@ -13613,6 +13613,14 @@
       "family_id": "docs",
       "path": "docs/decisions/TOS-D-0033-non-era-philosophy-frontier-route.md",
       "sha256": "ba8c7c73d770491da31ac5416f03d9a092aaf7d0a5d63970c986de231a64d1a5",
+      "surface_kind": "human"
+    },
+    {
+      "bytes": 3535,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "docs",
+      "path": "docs/decisions/TOS-D-0034-exact-external-artifact-identity-is-provenance.md",
+      "sha256": "c50eb7a68b39481d081e6611f4bd5cc2c5403799845806ab9ec67ad26fe66f6d",
       "surface_kind": "human"
     },
     {
