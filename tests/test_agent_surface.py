@@ -880,6 +880,30 @@ class AgentSurfaceTests(unittest.TestCase):
 
                 self.assertIn((receipt_path.relative_to(ROOT).as_posix(), expected), issues)
 
+    def test_current_receipt_rejects_malformed_dependency_names_without_aborting(self) -> None:
+        for bad_name in (None, ""):
+            with self.subTest(bad_name=bad_name):
+                family_manifest, receipt, digest, receipt_path = self._current_receipt_case()
+                receipt["producer_identity"]["execution_inputs"]["dependencies"][0]["name"] = bad_name
+
+                issues = validator.budget_receipt_contract_issues(
+                    ROOT,
+                    family_manifest,
+                    receipt,
+                    digest,
+                    receipt_path,
+                    base_has_v3=True,
+                )
+
+                self.assertIn(
+                    (
+                        receipt_path.relative_to(ROOT).as_posix(),
+                        "budget receipt field producer_identity.execution_inputs.dependencies[0].name "
+                        "must be a non-empty string",
+                    ),
+                    issues,
+                )
+
     def test_current_receipt_rejects_unavailable_required_dependency(self) -> None:
         family_manifest, receipt, digest, receipt_path = self._current_receipt_case()
         dependency = receipt["producer_identity"]["execution_inputs"]["dependencies"][0]

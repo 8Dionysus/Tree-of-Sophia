@@ -620,6 +620,7 @@ def _v2_runtime_dependency_issues(
         if not isinstance(item, Mapping):
             continue
         name = item.get("name")
+        declaration = None
         if not isinstance(name, str) or not name:
             issues.append((label, f"budget receipt field {field}.name must be a non-empty string"))
         else:
