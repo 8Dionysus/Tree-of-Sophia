@@ -171,6 +171,7 @@ KAG_BUDGET_PRODUCER_PROFILES = {
     },
 }
 KAG_BUDGET_CANDIDATE_ZERO_DIGEST = "0" * 64
+KAG_BUDGET_SOURCE_EPOCH_VERSION = "aoa-kag:budget-receipt-source-epoch-v1"
 
 
 def activation_policy_issues(
@@ -377,6 +378,46 @@ def _v2_action_ref_issues(
     return issues
 
 
+def _v2_relative_path_input_issues(
+    label: str,
+    value: object,
+    field: str,
+    expected_path: str,
+) -> list[Issue]:
+    """Bind a producer's relative-path input to the generated family output."""
+    expected_fields = {"state", "kind", "value_digest", "bytes"}
+    issues = _v2_object_shape_issues(label, value, expected_fields, field)
+    if not isinstance(value, dict):
+        return issues
+    short_field = field.rsplit(".", 1)[-1]
+    if value.get("state") != "set":
+        issues.append((label, f"budget receipt producer action input {short_field} state must be 'set'"))
+    if value.get("kind") != "relative-path":
+        issues.append(
+            (label, f"budget receipt producer action input {short_field} kind must be 'relative-path'"),
+        )
+    digest_issue = _v2_digest_issue(label, f"{field}.value_digest", value.get("value_digest"))
+    if digest_issue:
+        issues.append(digest_issue)
+    expected_digest = hashlib.sha256(expected_path.encode("utf-8")).hexdigest()
+    if value.get("value_digest") != expected_digest:
+        issues.append(
+            (
+                label,
+                f"budget receipt producer action input {short_field} value_digest does not match canonical family output",
+            )
+        )
+    expected_bytes = len(expected_path.encode("utf-8"))
+    if value.get("bytes") != expected_bytes:
+        issues.append(
+            (
+                label,
+                f"budget receipt producer action input {short_field} bytes does not match canonical family output",
+            )
+        )
+    return issues
+
+
 def _v2_canonical_digest(value: object) -> str:
     """Match aoa-kag's canonical JSON digest for identity material."""
     return hashlib.sha256(
@@ -510,6 +551,155 @@ def _v2_candidate_seal(root: Path, digest: str) -> tuple[str, int]:
     return hashlib.sha256(encoded).hexdigest(), len(inventory)
 
 
+def _v2_source_epoch_control_path(relative: Path) -> bool:
+    """Match aoa-kag's generated/index and receipt exclusions for source epochs."""
+    return (
+        Path("kag/indexes") in (relative, *relative.parents)
+        or Path("kag/receipts/index_family_budget") in (relative, *relative.parents)
+    )
+
+
+def _v2_git_nul_paths(root: Path, *arguments: str) -> set[Path]:
+    result = subprocess.run(
+        ("git", *arguments, "-z"),
+        cwd=root,
+        check=False,
+        capture_output=True,
+    )
+    if result.returncode != 0:
+        raise ValueError("source epoch requires a readable Git worktree")
+    paths: set[Path] = set()
+    for raw in result.stdout.split(b"\0"):
+        if not raw:
+            continue
+        try:
+            relative = Path(raw.decode("utf-8", errors="strict"))
+        except UnicodeDecodeError as exc:
+            raise ValueError("source epoch encountered a non-UTF-8 path") from exc
+        if relative.is_absolute() or not relative.parts or ".." in relative.parts:
+            raise ValueError("source epoch encountered an unsafe path")
+        paths.add(relative)
+    return paths
+
+
+def _v2_source_epoch(root: Path) -> str:
+    """Recompute aoa-kag's source epoch from the current clean Git index."""
+    head = subprocess.run(
+        ("git", "rev-parse", "HEAD"),
+        cwd=root,
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+    if head.returncode != 0:
+        raise ValueError("source epoch requires a readable Git worktree")
+
+    staged = _v2_git_nul_paths(root, "diff", "--name-only", "--cached")
+    unstaged = _v2_git_nul_paths(root, "diff", "--name-only")
+    untracked = _v2_git_nul_paths(root, "ls-files", "--others", "--exclude-standard")
+    dirty = {
+        path
+        for path in staged | unstaged | untracked
+        if not _v2_source_epoch_control_path(path)
+    }
+    if dirty:
+        raise ValueError(
+            "source epoch is not clean; source drift is present at: "
+            + ", ".join(path.as_posix() for path in sorted(dirty))
+        )
+
+    result = subprocess.run(
+        ("git", "ls-files", "-s", "--cached", "-z"),
+        cwd=root,
+        check=False,
+        capture_output=True,
+    )
+    if result.returncode != 0:
+        raise ValueError("source epoch cannot inspect the Git worktree")
+    entries: list[dict[str, Any]] = []
+    for item in result.stdout.split(b"\0"):
+        if not item:
+            continue
+        metadata, separator, path_bytes = item.partition(b"\t")
+        fields = metadata.split(b" ")
+        if not separator or len(fields) != 3:
+            raise ValueError("source epoch found a malformed Git index entry")
+        mode, blob_id, stage = (field.decode("ascii") for field in fields)
+        try:
+            relative = Path(path_bytes.decode("utf-8", errors="strict"))
+        except UnicodeDecodeError as exc:
+            raise ValueError("source epoch encountered a non-UTF-8 path") from exc
+        if stage != "0" or relative.is_absolute() or ".." in relative.parts:
+            raise ValueError("source epoch found an unstable Git index entry")
+        if _v2_source_epoch_control_path(relative):
+            continue
+        path = root / relative
+        try:
+            metadata = path.lstat()
+        except FileNotFoundError as exc:
+            raise ValueError(f"source epoch source path is missing: {relative.as_posix()}") from exc
+        if mode == "160000":
+            entries.append(
+                {
+                    "path": relative.as_posix(),
+                    "mode": mode,
+                    "blob_id": blob_id,
+                    "kind": "gitlink",
+                }
+            )
+            continue
+        if stat.S_ISREG(metadata.st_mode):
+            content = path.read_bytes()
+            kind = "file"
+        elif stat.S_ISLNK(metadata.st_mode):
+            content = os.readlink(path).encode("utf-8", errors="surrogateescape")
+            kind = "symlink"
+        else:
+            raise ValueError(f"source epoch found a non-file source path: {relative.as_posix()}")
+        expected_kind = "symlink" if mode == "120000" else "file"
+        if kind != expected_kind:
+            raise ValueError(f"source epoch mode changed for {relative.as_posix()}")
+        entries.append(
+            {
+                "path": relative.as_posix(),
+                "mode": mode,
+                "kind": kind,
+                "bytes": len(content),
+                "content_digest": hashlib.sha256(content).hexdigest(),
+            }
+        )
+    material = {
+        "contract_version": KAG_BUDGET_SOURCE_EPOCH_VERSION,
+        "files": sorted(entries, key=lambda item: item["path"]),
+    }
+    encoded = json.dumps(
+        material,
+        ensure_ascii=False,
+        sort_keys=True,
+        separators=(",", ":"),
+    ).encode("utf-8")
+    return "sha256:" + hashlib.sha256(encoded).hexdigest()
+
+
+def _v2_canonical_family_output_path(manifest: Mapping[str, Any]) -> str | None:
+    compatibility = manifest.get("compatibility")
+    files = compatibility.get("files") if isinstance(compatibility, Mapping) else None
+    if not isinstance(files, list):
+        return None
+    source_paths: list[str] = []
+    for item in files:
+        if not isinstance(item, Mapping) or item.get("kind") != "source":
+            continue
+        path = item.get("path")
+        if not isinstance(path, str) or not path:
+            return None
+        relative = Path(path)
+        if relative.is_absolute() or not relative.parts or ".." in relative.parts:
+            return None
+        source_paths.append(relative.as_posix())
+    return source_paths[0] if len(source_paths) == 1 else None
+
+
 def v2_budget_receipt_identity_issues(
     root: Path,
     manifest: Mapping[str, Any],
@@ -585,6 +775,20 @@ def v2_budget_receipt_identity_issues(
                         "budget receipt candidate identity file_count does not match the current candidate",
                     )
                 )
+        source_epoch = candidate.get("source_epoch")
+        if isinstance(source_epoch, str) and re.fullmatch(r"sha256:[0-9a-f]{64}", source_epoch):
+            try:
+                actual_source_epoch = _v2_source_epoch(root)
+            except (OSError, ValueError) as exc:
+                issues.append((label, f"budget receipt candidate source epoch cannot be recomputed: {exc}"))
+            else:
+                if source_epoch != actual_source_epoch:
+                    issues.append(
+                        (
+                            label,
+                            "budget receipt candidate identity source epoch does not match the current source",
+                        )
+                    )
 
     family_identity = manifest.get("family_identity")
     if not isinstance(family_identity, Mapping):
@@ -782,10 +986,22 @@ def v2_budget_receipt_identity_issues(
                 _v2_object_shape_issues(
                     label,
                     action_inputs,
-                    {"repo-root", "output", "history-ref", "event-history-ref", "jobs"},
+                    {"repo-root", "output", "history-ref", "event-history-ref"},
                     "producer_identity.execution_inputs.action_inputs",
                 )
             )
+            canonical_output_path = _v2_canonical_family_output_path(manifest)
+            if canonical_output_path is None:
+                issues.append((label, "budget receipt canonical family output path is missing"))
+            elif isinstance(action_inputs, dict):
+                issues.extend(
+                    _v2_relative_path_input_issues(
+                        label,
+                        action_inputs.get("output"),
+                        "producer_identity.execution_inputs.action_inputs.output",
+                        canonical_output_path,
+                    )
+                )
             if isinstance(receipt_base_ref, str) and isinstance(action_inputs, dict):
                 for field in ("history-ref", "event-history-ref"):
                     issues.extend(
@@ -810,7 +1026,6 @@ def v2_budget_receipt_identity_issues(
                         "family_mode",
                         "artifact_root",
                         "externalized",
-                        "jobs",
                     },
                     "producer_identity.execution_inputs.command_targets",
                 )
@@ -824,6 +1039,14 @@ def v2_budget_receipt_identity_issues(
                                 f"budget receipt producer command target {field} does not match receipt base_ref",
                             )
                         )
+            if isinstance(command_targets, dict) and canonical_output_path is not None:
+                if command_targets.get("output") != canonical_output_path:
+                    issues.append(
+                        (
+                            label,
+                            "budget receipt producer command target output does not match canonical family output",
+                        )
+                    )
             if (
                 isinstance(procedure_manifest, dict)
                 and isinstance(execution.get("manifest_digest"), str)

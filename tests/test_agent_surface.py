@@ -635,6 +635,73 @@ class AgentSurfaceTests(unittest.TestCase):
                     issues,
                 )
 
+    def test_current_receipt_binds_candidate_source_epoch_to_current_source(self) -> None:
+        family_manifest, receipt, digest, receipt_path = self._current_receipt_case()
+        current_source_epoch = receipt["candidate_identity"]["source_epoch"]
+        receipt["candidate_identity"]["source_epoch"] = "sha256:" + "0" * 64
+
+        with mock.patch.object(validator, "_v2_source_epoch", return_value=current_source_epoch):
+            issues = validator.budget_receipt_contract_issues(
+                ROOT,
+                family_manifest,
+                receipt,
+                digest,
+                receipt_path,
+                base_has_v3=True,
+            )
+
+        self.assertIn(
+            (
+                receipt_path.relative_to(ROOT).as_posix(),
+                "budget receipt candidate identity source epoch does not match the current source",
+            ),
+            issues,
+        )
+
+    def test_current_receipt_binds_producer_output_to_generated_family(self) -> None:
+        family_manifest, receipt, digest, receipt_path = self._current_receipt_case()
+        execution = receipt["producer_identity"]["execution_inputs"]
+        execution["action_inputs"]["output"]["value_digest"] = "0" * 64
+        execution["command_targets"]["output"] = "kag/indexes/unrelated-output.json"
+
+        producer = receipt["producer_identity"]
+        identity_material_fields = (
+            "contract_version",
+            "owner",
+            "revision_binding",
+            "source_digest",
+            "procedure_manifest",
+            "action",
+            "execution_inputs",
+        )
+        producer["identity_digest"] = validator._v2_canonical_digest(
+            {field: producer[field] for field in identity_material_fields}
+        )
+
+        issues = validator.budget_receipt_contract_issues(
+            ROOT,
+            family_manifest,
+            receipt,
+            digest,
+            receipt_path,
+            base_has_v3=True,
+        )
+
+        self.assertIn(
+            (
+                receipt_path.relative_to(ROOT).as_posix(),
+                "budget receipt producer action input output value_digest does not match canonical family output",
+            ),
+            issues,
+        )
+        self.assertIn(
+            (
+                receipt_path.relative_to(ROOT).as_posix(),
+                "budget receipt producer command target output does not match canonical family output",
+            ),
+            issues,
+        )
+
     def test_current_receipt_requires_identity_bound_v2_schema(self) -> None:
         family_manifest, receipt, digest, receipt_path = self._current_receipt_case()
         receipt["schema_version"] = validator.KAG_BUDGET_RECEIPT_SCHEMA_VERSION
