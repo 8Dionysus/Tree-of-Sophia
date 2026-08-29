@@ -879,6 +879,59 @@ class AgentSurfaceTests(unittest.TestCase):
 
                 self.assertIn((receipt_path.relative_to(ROOT).as_posix(), expected), issues)
 
+    def test_current_receipt_rejects_unavailable_required_dependency(self) -> None:
+        family_manifest, receipt, digest, receipt_path = self._current_receipt_case()
+        dependency = receipt["producer_identity"]["execution_inputs"]["dependencies"][0]
+        dependency["state"] = "unavailable"
+        dependency["resolved_version"] = None
+        dependency["path_digest"] = None
+        dependency["artifact_digest"] = None
+
+        issues = validator.budget_receipt_contract_issues(
+            ROOT,
+            family_manifest,
+            receipt,
+            digest,
+            receipt_path,
+            base_has_v3=True,
+        )
+
+        label = receipt_path.relative_to(ROOT).as_posix()
+        self.assertIn(
+            (label, "budget receipt required runtime dependency python must be available"),
+            issues,
+        )
+
+    def test_current_receipt_requires_resolved_evidence_for_available_dependency(self) -> None:
+        family_manifest, receipt, digest, receipt_path = self._current_receipt_case()
+        dependency = receipt["producer_identity"]["execution_inputs"]["dependencies"][0]
+        dependency["resolved_version"] = None
+        dependency["path_digest"] = None
+        dependency["artifact_digest"] = None
+
+        issues = validator.budget_receipt_contract_issues(
+            ROOT,
+            family_manifest,
+            receipt,
+            digest,
+            receipt_path,
+            base_has_v3=True,
+        )
+
+        label = receipt_path.relative_to(ROOT).as_posix()
+        self.assertIn(
+            (label, "budget receipt available runtime dependency python must keep resolved_version"),
+            issues,
+        )
+        self.assertIn(
+            (label, "budget receipt available runtime dependency python must keep path_digest"),
+            issues,
+        )
+        self.assertIn(
+            (label, "budget receipt available runtime dependency python must keep artifact_digest"),
+            issues,
+        )
+
     def test_current_receipt_binds_jobs_input_to_command_target(self) -> None:
         family_manifest, receipt, digest, receipt_path = self._current_receipt_case()
         receipt["producer_identity"]["execution_inputs"]["command_targets"]["jobs"] = "3"

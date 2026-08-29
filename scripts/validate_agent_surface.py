@@ -586,19 +586,27 @@ def _v2_runtime_dependency_issues(
                     issues.append((label, f"budget receipt runtime dependency {name} required flag does not match the producer procedure"))
         if not isinstance(item.get("declared_version"), str) or not item["declared_version"]:
             issues.append((label, f"budget receipt field {field}.declared_version must be a non-empty string"))
-        if not isinstance(item.get("required"), bool):
+        required = item.get("required")
+        if not isinstance(required, bool):
             issues.append((label, f"budget receipt field {field}.required must be a boolean"))
         state = item.get("state")
         if not isinstance(state, str) or state not in {"available", "unavailable", "declared"}:
             issues.append((label, f"budget receipt field {field}.state is unsupported"))
-        if item.get("resolved_version") is not None and not isinstance(item.get("resolved_version"), str):
+        if required is True and state != "available":
+            issues.append((label, f"budget receipt required runtime dependency {name} must be available"))
+        resolved_version = item.get("resolved_version")
+        if resolved_version is not None and not isinstance(resolved_version, str):
             issues.append((label, f"budget receipt field {field}.resolved_version must be a string or null"))
+        if state == "available" and (not isinstance(resolved_version, str) or not resolved_version):
+            issues.append((label, f"budget receipt available runtime dependency {name} must keep resolved_version"))
         for name_field in ("path_digest", "artifact_digest"):
             digest = item.get(name_field)
             if digest is not None:
                 digest_issue = _v2_digest_issue(label, f"{field}.{name_field}", digest)
                 if digest_issue:
                     issues.append(digest_issue)
+            elif state == "available":
+                issues.append((label, f"budget receipt available runtime dependency {name} must keep {name_field}"))
         for name_field in ("artifact_bytes", "artifact_files"):
             if not _is_integer(item.get(name_field)) or item[name_field] < 0:
                 issues.append((label, f"budget receipt field {field}.{name_field} must be a non-negative integer"))
