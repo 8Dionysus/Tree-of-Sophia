@@ -181,7 +181,14 @@ class PreparedDossierPipelineTest(unittest.TestCase):
             payload["tables"]["table-ii"]["planting_entrypoint"],
             "scripts/plant_prepared_dossiers.py --plant",
         )
-        with patch("plant_prepared_dossiers.plant_supported_packages", return_value=0) as plant:
+        ready = {
+            "ready_to_plant": True,
+            "required_supported_package_readiness": {"table-i": True, "table-ii": True},
+        }
+        with (
+            patch("plant_prepared_dossiers.readiness_payload", return_value=ready),
+            patch("plant_prepared_dossiers.plant_supported_packages", return_value=0) as plant,
+        ):
             with self.assertRaisesRegex(SystemExit, "aggregate-only"):
                 planting_main(["--table", "table-ii", "--plant"])
             plant.assert_not_called()
