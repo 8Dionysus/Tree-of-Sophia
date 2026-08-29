@@ -6,6 +6,7 @@ from __future__ import annotations
 import argparse
 import json
 import re
+from collections import Counter
 from pathlib import Path
 from typing import Any
 
@@ -39,13 +40,19 @@ def table_readiness(table_id: str) -> dict[str, Any]:
     package = PACKAGES[table_id]
     sections = tuple(str(value) for value in package.get("docx_sections", []))
     local_sections = discover_local_docx_ids(sections)
-    local_docx_ids = sorted({item for ids in local_sections.values() for item in ids})
+    local_docx_ids = sorted(item for ids in local_sections.values() for item in ids)
+    local_docx_id_counts = Counter(local_docx_ids)
+    local_docx_ids_unique = all(count == 1 for count in local_docx_id_counts.values())
+    duplicate_local_docx_ids = sorted(
+        dossier_id for dossier_id, count in local_docx_id_counts.items() if count > 1
+    )
+    unique_local_docx_ids = sorted(local_docx_id_counts)
     if table_id in SUPPORTED_TABLES:
         routed_ids = sorted(PACKAGE_ROUTES[table_id])
         blocked_ids = sorted(blocked_dossiers(table_id))
         expected = sorted(set(routed_ids) | set(blocked_ids))
         missing_master_ids = [str(value) for value in package.get("missing_master_dossier_ids", [])]
-        package_ready = sorted(local_docx_ids) == expected
+        package_ready = local_docx_ids_unique and unique_local_docx_ids == expected
         return {
             "table_id": table_id,
             "row_count": len(rows),
@@ -60,9 +67,11 @@ def table_readiness(table_id: str) -> dict[str, Any]:
             "blocked_dossier_ids": blocked_ids,
             "missing_master_dossier_ids": missing_master_ids,
             "local_docx_ids": local_docx_ids,
-            "matched_local_docx_ids": sorted(set(expected) & set(local_docx_ids)),
-            "missing_expected_docx_ids": sorted(set(expected) - set(local_docx_ids)),
-            "extra_local_docx_ids": sorted(set(local_docx_ids) - set(expected)),
+            "local_docx_ids_unique": local_docx_ids_unique,
+            "duplicate_local_docx_ids": duplicate_local_docx_ids,
+            "matched_local_docx_ids": sorted(set(expected) & set(unique_local_docx_ids)),
+            "missing_expected_docx_ids": sorted(set(expected) - set(unique_local_docx_ids)),
+            "extra_local_docx_ids": sorted(set(unique_local_docx_ids) - set(expected)),
             "readiness_scope": "package_local",
             "package_ready_to_plant": package_ready,
             "planting_mode": str(package.get("planting_mode") or "complete"),
@@ -78,6 +87,8 @@ def table_readiness(table_id: str) -> dict[str, Any]:
         "route_map_ref": "ToS/philosophy/atlas/dossiers/prepared-dossier-routes.json",
         "expected_dossier_ids": [],
         "local_docx_ids": [],
+        "local_docx_ids_unique": True,
+        "duplicate_local_docx_ids": [],
         "matched_local_docx_ids": [],
         "missing_expected_docx_ids": [],
         "extra_local_docx_ids": [],

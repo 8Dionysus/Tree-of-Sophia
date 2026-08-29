@@ -25,6 +25,7 @@ if str(SCRIPTS) not in sys.path:
 
 from plant_prepared_dossiers import main as planting_main  # noqa: E402
 from plant_prepared_dossiers import readiness_payload  # noqa: E402
+from plant_prepared_dossiers import table_readiness  # noqa: E402
 import plant_table_i_prepared_dossiers as planting_pipeline  # noqa: E402
 from plant_table_i_prepared_dossiers import (  # noqa: E402
     dossier_local_node_alias,
@@ -79,6 +80,22 @@ class PreparedDossierPipelineTest(unittest.TestCase):
         )
         self.assertEqual(payload["tables"], {"table-ii": package_readiness["table-ii"]})
         self.assertEqual(readiness.call_count, 2)
+
+    def test_readiness_rejects_duplicate_local_dossier_ids(self) -> None:
+        expected = table_readiness("table-i")["expected_dossier_ids"]
+        with patch(
+            "plant_prepared_dossiers.discover_local_docx_ids",
+            return_value={"1.1": [*expected, "A01"]},
+        ):
+            table_i = table_readiness("table-i")
+
+        self.assertFalse(table_i["local_docx_ids_unique"])
+        self.assertEqual(table_i["duplicate_local_docx_ids"], ["A01"])
+        self.assertEqual(len(table_i["local_docx_ids"]), len(expected) + 1)
+        self.assertEqual(table_i["matched_local_docx_ids"], expected)
+        self.assertEqual(table_i["missing_expected_docx_ids"], [])
+        self.assertEqual(table_i["extra_local_docx_ids"], [])
+        self.assertFalse(table_i["package_ready_to_plant"])
 
     def test_readiness_exposes_partial_table_ii_and_keeps_table_iii_unplanted(self) -> None:
         payload = readiness_payload()
@@ -237,6 +254,19 @@ class PreparedDossierPipelineTest(unittest.TestCase):
             ),
             "corpora_texts_artifacts",
         )
+        self.assertEqual(
+            table_family(
+                (
+                    "Корпус/текст/артефакт",
+                    "Дата/слой",
+                    "Язык",
+                    "Жанр/жанры",
+                    "Сохранность",
+                    "Почему важен для ToS",
+                )
+            ),
+            "corpora_texts_artifacts",
+        )
         for author_header, linked_texts_header in (
             ("Фигура / тип авторства", "Связанные тексты / линии"),
             ("Фигура / тип авторства", "Связанные тексты / практики"),
@@ -262,6 +292,15 @@ class PreparedDossierPipelineTest(unittest.TestCase):
         self.assertEqual(family_counts["corpora_texts_artifacts"], 693)
         self.assertEqual(family_counts["figures_authorship"], 579)
         self.assertEqual(family_counts["other_context"], 365)
+        self.assertEqual(
+            coverage["summary"]["underlying_family_row_counts"]["corpora_texts_artifacts"],
+            11,
+        )
+        quarantined = next(row for row in coverage["dossiers"] if row["dossier_id"] == "T2-26")
+        self.assertEqual(
+            quarantined["coverage"]["underlying_family_row_counts"]["corpora_texts_artifacts"],
+            11,
+        )
 
     def test_table_ii_quarantine_emits_no_semantic_output_and_b_rows_need_review(self) -> None:
         index_rows = [json.loads(line) for line in DOSSIER_INDEX_PATH.read_text(encoding="utf-8").splitlines() if line]

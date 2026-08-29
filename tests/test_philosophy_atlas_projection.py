@@ -29,6 +29,7 @@ class PhilosophyAtlasProjectionTest(unittest.TestCase):
         self.assertEqual(payload["counts"]["dossier_relation_rows"], 3536)
         self.assertEqual(payload["counts"]["candidate_nodes"], 3551)
         self.assertEqual(payload["counts"]["candidate_relations"], 3536)
+        self.assertEqual(payload["counts"]["candidate_endpoint_placeholders"], 304)
 
     def test_projection_keeps_runtime_owner_downstream(self) -> None:
         payload = json.loads(PROJECTION_PATH.read_text(encoding="utf-8"))
@@ -68,6 +69,43 @@ class PhilosophyAtlasProjectionTest(unittest.TestCase):
         self.assertEqual(
             nodes["atlas-row:T2-51"]["properties"]["dossier_intake_status"],
             "input_not_supplied",
+        )
+
+    def test_exact_admitted_dossier_endpoints_use_existing_dossier_nodes(self) -> None:
+        payload = json.loads(PROJECTION_PATH.read_text(encoding="utf-8"))
+        edges = {edge["edge_id"]: edge for edge in payload["edges"]}
+        nodes = {node["node_id"]: node for node in payload["nodes"]}
+
+        self.assertEqual(
+            edges["edge:candidate-relation:table-ii-t2-11-relation-035"]["to_id"],
+            "atlas-dossier:T2-16",
+        )
+        self.assertEqual(
+            edges["edge:candidate-relation:table-ii-t2-31-relation-039"]["to_id"],
+            "atlas-dossier:T2-35",
+        )
+        self.assertEqual(
+            edges["edge:candidate-relation:table-i-a18-relation-030"]["to_id"],
+            "atlas-dossier:A41",
+        )
+        self.assertEqual(
+            sum(
+                edge["edge_id"].startswith("edge:candidate-relation:table-ii-")
+                and edge["to_id"].startswith("atlas-dossier:T2-")
+                for edge in payload["edges"]
+            ),
+            13,
+        )
+        admitted_ids = {
+            node_id.removeprefix("atlas-dossier:")
+            for node_id in nodes
+            if node_id.startswith("atlas-dossier:")
+        }
+        self.assertFalse(
+            any(
+                node["node_type"] == "candidate-endpoint" and node["label"] in admitted_ids
+                for node in payload["nodes"]
+            )
         )
 
     def test_projection_exposes_pre_canon_candidate_graph_material(self) -> None:

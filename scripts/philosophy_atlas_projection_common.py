@@ -441,6 +441,11 @@ def build_payload() -> dict[str, Any]:
                 candidate_source_ref,
             )
 
+    admitted_dossier_ids = {
+        str(dossier.get("dossier_id"))
+        for dossier in dossier_rows
+        if isinstance(dossier.get("dossier_id"), str) and dossier.get("dossier_id")
+    }
     endpoint_nodes: set[str] = set()
     for relation in candidate_relations:
         candidate_id = str(relation.get("candidate_id") or "")
@@ -462,6 +467,8 @@ def build_payload() -> dict[str, Any]:
             continue
         if isinstance(source_candidate_id, str) and source_candidate_id:
             from_id = candidate_node_ref(source_candidate_id)
+        elif source_label in admitted_dossier_ids:
+            from_id = f"atlas-dossier:{source_label}"
         else:
             from_id = endpoint_ref(dossier_id, source_label)
             if from_id not in endpoint_nodes:
@@ -485,6 +492,8 @@ def build_payload() -> dict[str, Any]:
                 )
         if isinstance(target_candidate_id, str) and target_candidate_id:
             to_id = candidate_node_ref(target_candidate_id)
+        elif target_label in admitted_dossier_ids:
+            to_id = f"atlas-dossier:{target_label}"
         else:
             to_id = endpoint_ref(dossier_id, target_label)
             if to_id not in endpoint_nodes:

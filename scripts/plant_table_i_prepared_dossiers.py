@@ -274,13 +274,12 @@ def table_family(header: tuple[str, ...]) -> str:
         "идентификация",
     }:
         return "dossier_identity_metadata" if normalized[0] == "поле" else "dossier_identity_metadata_alias"
-    if len(normalized) == 6 and normalized == (
-        "корпус / текст",
-        "дата / слой",
-        "язык",
-        "жанр",
-        "сохранность",
-        "почему важен для tos",
+    if (
+        len(normalized) == 6
+        and normalized[0] in {"корпус / текст", "корпус / текст / артефакт"}
+        and normalized[1:3] == ("дата / слой", "язык")
+        and normalized[3] in {"жанр", "жанр / жанры"}
+        and normalized[4:] == ("сохранность", "почему важен для tos")
     ):
         return "corpora_texts_artifacts"
     if (
@@ -1036,18 +1035,26 @@ def build_intake_manifest(dossiers: list[Dossier]) -> dict[str, Any]:
 def coverage_summary(dossiers: list[Dossier]) -> dict[str, Any]:
     class_counts: Counter[str] = Counter()
     family_counts: Counter[str] = Counter()
+    underlying_family_counts: Counter[str] = Counter()
     header_counts: Counter[tuple[str, ...]] = Counter()
     for dossier in dossiers:
         for table in dossier.coverage_tables:
             row_count = int(table["row_count"])
             class_counts[str(table["coverage_class"])] += row_count
             family_counts[str(table["family"])] += row_count
+            if table.get("underlying_family"):
+                underlying_family_counts[str(table["underlying_family"])] += row_count
             header_counts[tuple(str(value) for value in table["header"])] += row_count
     return {
         "dossier_count": len(dossiers),
         "table_body_row_count": sum(class_counts.values()),
         "coverage_class_counts": dict(sorted(class_counts.items())),
         "family_row_counts": dict(sorted(family_counts.items())),
+        **(
+            {"underlying_family_row_counts": dict(sorted(underlying_family_counts.items()))}
+            if underlying_family_counts
+            else {}
+        ),
         "headers": [
             {"header": list(header), "row_count": count}
             for header, count in sorted(header_counts.items(), key=lambda item: (item[0], item[1]))
