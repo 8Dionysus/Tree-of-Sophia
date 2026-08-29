@@ -13,9 +13,9 @@
 ## Context
 
 Tree-of-Sophia consumes the published `aoa-kag@v0.5.0` provider body at
-`f46f146cc79a26fa81ad0f400b9c5774df293e57`. Its workflow uses the older,
+`9150326d7a7ea1cb54714064979affc7d42c7dbd`. Its workflow uses the separate,
 immutable repo-local KAG action identity
-`6a79e62c7d20b6b11406dee78f409ada4a51bb3f`. Those commits contain different
+`25cd6263ae2c860c58f86cf3a0747f2070eb45ff`. Those commits contain different
 executable action snapshots. Treating them as interchangeable would falsify
 action provenance, while changing the workflow ref would change a separate
 CI dependency rather than merely correcting the provider body.
@@ -25,9 +25,9 @@ CI dependency rather than merely correcting the provider body.
 For the current source route, retain two explicit immutable identities:
 
 - provider body: `aoa-kag@v0.5.0` at
-  `f46f146cc79a26fa81ad0f400b9c5774df293e57`;
+  `9150326d7a7ea1cb54714064979affc7d42c7dbd`;
 - executable workflow action: `repo-local-kag-index` at
-  `6a79e62c7d20b6b11406dee78f409ada4a51bb3f`.
+  `25cd6263ae2c860c58f86cf3a0747f2070eb45ff`.
 
 The consumer workflow, release contract, and parity test must carry both refs,
 assert their intentional inequality, and keep the role labels visible. This
@@ -41,15 +41,15 @@ proof, delivery, closure, owner acceptance, or human acceptance.
 
 ## Evidence
 
-- `git show 6a79e62c7d20b6b11406dee78f409ada4a51bb3f:.github/actions/repo-local-kag-index/action.yml`
+- `git show 25cd6263ae2c860c58f86cf3a0747f2070eb45ff:.github/actions/repo-local-kag-index/action.yml`
   is the executable action source used by the workflow.
-- `git show f46f146cc79a26fa81ad0f400b9c5774df293e57:.github/actions/repo-local-kag-index/action.yml`
-  is the provider-era action source; its bytes differ from the `6a79` action
+- `git show 9150326d7a7ea1cb54714064979affc7d42c7dbd:.github/actions/repo-local-kag-index/action.yml`
+  is the provider-era action source; its bytes differ from the `25cd6263` action
   and it is not substituted silently.
 - `.github/workflows/repo-validation.yml`, `docs/RELEASING.md`, and
   `tests/test_roadmap_parity.py` bind both refs and assert their inequality.
 - The owner action gate is executed against the current Tree source and the
-  provider source is independently validated at `f46`; those are executable
+  provider source is independently validated at `9150326d`; those are executable
   compatibility evidence, not an artifact or runtime admission claim.
 
 ## Consequences
@@ -69,6 +69,6 @@ record for the other role.
 ## Validation
 
 Run the focused release-contract parity test, decision-record/index validators,
-the executable `6a79` owner-family gate against current source, the provider
-validation route at `f46`, the Tree release gate, and the required GitHub Repo
+the executable `25cd6263` owner-family gate against current source, the provider
+validation route at `9150326d`, the Tree release gate, and the required GitHub Repo
 Validation check.
