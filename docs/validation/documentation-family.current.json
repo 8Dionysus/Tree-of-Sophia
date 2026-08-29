@@ -170,7 +170,7 @@
         "human": 410,
         "structured": 1324
       },
-      "tracked_surface_bytes": 106770752,
+      "tracked_surface_bytes": 106794892,
       "tracked_surface_count": 1734
     },
     {
@@ -224,7 +224,7 @@
         "executable": 88,
         "human": 1
       },
-      "tracked_surface_bytes": 2827553,
+      "tracked_surface_bytes": 2828975,
       "tracked_surface_count": 89
     },
     {
@@ -234,7 +234,7 @@
         "human": 1,
         "structured": 1
       },
-      "tracked_surface_bytes": 1041676,
+      "tracked_surface_bytes": 1043184,
       "tracked_surface_count": 48
     },
     {
@@ -269,7 +269,7 @@
   "source_map": "docs/validation/documentation_family_map.json",
   "source_map_sha256": "9140a03a48109e6a9f35f3ca7dbf82058d96c3961e9e77bc31a743fb8814b13b",
   "tracked_source": "git ls-files -z",
-  "tracked_surface_digest": "d09db83a001e108c65fce0a3eabdb60fda6ce88c4851e28c980e643059a8b1b6",
+  "tracked_surface_digest": "455842492bb373428a372bf1ea17480879879572cc7cdaf97a6d5ef7ed4e6c85",
   "tracked_surfaces": [
     {
       "bytes": 1408,
@@ -292,7 +292,7 @@
       "currentness": "tracked_source_snapshot",
       "family_id": "agents-other",
       "path": ".agents/agent-surface.current.json",
-      "sha256": "33cc745d21ee45ec2d3024bd7dcea073a47b4c5ccf2b72b0f858c77d29e2059d",
+      "sha256": "df4a551a3ee5a7128b548d4ec71dcaa2b03168092ccbfb8048e59fdf8efa13fe",
       "surface_kind": "structured"
     },
     {
@@ -308,7 +308,7 @@
       "currentness": "tracked_source_snapshot",
       "family_id": "agents-other",
       "path": ".agents/agents-route.current.json",
-      "sha256": "ce11e923cfd75d4cd1b157e363eb2c4b6503d1dea6aaf82c3a3f5bb0c3c59656",
+      "sha256": "34f6ac4e7fb5004ce58970bdec8bc7d9aa8141be3c60a8715d707da1931785b5",
       "surface_kind": "structured"
     },
     {
@@ -3472,19 +3472,19 @@
       "surface_kind": "structured"
     },
     {
-      "bytes": 9835721,
+      "bytes": 9844253,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/derived-exports/philosophy_atlas_projection.min.json",
-      "sha256": "32d7941fff806190ac5b66d70f1e800c46c7a5c67f6fc09c83dfda80bd9c9476",
+      "sha256": "7446584ec836e1edfabe192e8f9f7e5f2c0206e4882361de89e850a2ae9bbcfb",
       "surface_kind": "structured"
     },
     {
-      "bytes": 59648514,
+      "bytes": 59664122,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/derived-exports/philosophy_graph_projection.min.json",
-      "sha256": "f437ae408401ae6d235c1a6d2026ccc4ffce2eb518c96d6029b8ff4a11443065",
+      "sha256": "777c431b88df884bd533e3cd283fd5782ffb71e823f98651a78a88c7a1c5a65f",
       "surface_kind": "structured"
     },
     {
@@ -3508,7 +3508,7 @@
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/derived-exports/tos_corpus_index.min.json",
-      "sha256": "249baac0ed59fae81399a6a923e12ad32817f70cd65407a66f561a051287fad9",
+      "sha256": "9fa74ebe3aba3b929ac7cc11000e02e46dc96bbe70ec3b8e3c4f255965bb6825",
       "surface_kind": "structured"
     },
     {
@@ -18264,11 +18264,11 @@
       "surface_kind": "executable"
     },
     {
-      "bytes": 22771,
+      "bytes": 24193,
       "currentness": "tracked_source_snapshot",
       "family_id": "scripts",
       "path": "scripts/philosophy_atlas_projection_common.py",
-      "sha256": "8b02281f3398a2809e0bf22b4b7fdc6b0db5c27410ccac9dcf88c6e64c09cab4",
+      "sha256": "1ace1aebd2c299d34a60a85a00c5426efed0a5e08bbae1c44e5dd31bdcb1a061",
       "surface_kind": "executable"
     },
     {
@@ -18832,11 +18832,11 @@
       "surface_kind": "executable"
     },
     {
-      "bytes": 11268,
+      "bytes": 12776,
       "currentness": "tracked_source_snapshot",
       "family_id": "tests",
       "path": "tests/test_philosophy_atlas_projection.py",
-      "sha256": "eb3935ce19b62d527d4117e9e52f457bda2b768584f28a67de2ed32f99109129",
+      "sha256": "c2b51cbae66f2fde360648aa5eebeb623f2c92be7faa3395f9db22a1941f8fb4",
       "surface_kind": "executable"
     },
     {
