@@ -22,9 +22,9 @@
   "head_source_snapshot": "sha256:ea3edd8e44c85bbb2d966b0d92b68ebaf611abeee4e0285cde2d850b264142b5",
   "producer_identity": {
     "action": {
-      "bytes": 4962,
-      "content_digest": "1713e3ff0e1b7a272692e640456f15d49a1ab80fb1855e4719944129c01d4220",
-      "git_blob": "sha1:f4b3b9b3a89e29c6ce74e0b6dea1574e642164fc",
+      "bytes": 4995,
+      "content_digest": "8cf5a902b2cf5f3fa9be83c15d3092de8b3f8c764ade2867334621ddb2be46e0",
+      "git_blob": "sha1:bb7fd7aca67b721bb21801a2c01b95df4a00166d",
       "path": ".github/actions/repo-local-kag-index/action.yml",
       "state": "present"
     },
@@ -42,12 +42,6 @@
           "kind": "git-ref",
           "state": "set",
           "value_digest": "65a6d60245a6ccc5f68b238030772f43f0fcc2bed86c0e7a90a6dd85411ba3f1"
-        },
-        "jobs": {
-          "bytes": 1,
-          "kind": "bounded-integer",
-          "state": "set",
-          "value_digest": "d4735e3a265e16eee03f59718b9b5d03019c07d8b6c51f90da3a666eec13ab35"
         },
         "output": {
           "bytes": 37,
@@ -69,7 +63,6 @@
         "externalized": false,
         "family_mode": "portable",
         "history_ref": "7f8d7febcf8d889951f71d050aef6046e6631a36",
-        "jobs": "2",
         "output": "kag/indexes/source_surface_index.json",
         "repo_root": {
           "path_digest": "21dba821671dd5da139d85927c06f360ae3bcc5751db42dae6d309553c903d79",
@@ -148,16 +141,16 @@
         "resolved_path_digest": "d2c68400f17d98c00601a6731293f7f8c7abd735a42c07a4e1c119493e9d66aa",
         "version": ">=3.11"
       },
-      "manifest_digest": "660af47713a8992909f4707af7d1b94b08fec17b2844698e2ede1f59bc33645a",
+      "manifest_digest": "c6ae6f1768a96e165ec9b5f84a15fe33aef6fdd9e33048c51ca5d368d2b37a5b",
       "non_python_inputs": [
         {
-          "bytes": 4962,
-          "content_digest": "1713e3ff0e1b7a272692e640456f15d49a1ab80fb1855e4719944129c01d4220",
+          "bytes": 4995,
+          "content_digest": "8cf5a902b2cf5f3fa9be83c15d3092de8b3f8c764ade2867334621ddb2be46e0",
           "path": ".github/actions/repo-local-kag-index/action.yml"
         },
         {
-          "bytes": 4546,
-          "content_digest": "660af47713a8992909f4707af7d1b94b08fec17b2844698e2ede1f59bc33645a",
+          "bytes": 4534,
+          "content_digest": "c6ae6f1768a96e165ec9b5f84a15fe33aef6fdd9e33048c51ca5d368d2b37a5b",
           "path": "config/repo-local-kag-budget-producer.json"
         },
         {
@@ -186,8 +179,8 @@
           "path": "schemas/repo-local-kag-budget-producer-manifest.schema.json"
         },
         {
-          "bytes": 15180,
-          "content_digest": "0b80daaf8eb1ce1c7c2a376a74aae108c67f1daef4a027f62cf213cb8e37bc62",
+          "bytes": 15030,
+          "content_digest": "71ca007795e8e9912746e264dfadc9360921b6d7f4598fbb6118b0203c6b39be",
           "path": "schemas/repo-local-kag-budget-receipt.schema.json"
         },
         {
@@ -250,16 +243,16 @@
     },
     "files": [
       {
-        "bytes": 4962,
-        "content_digest": "1713e3ff0e1b7a272692e640456f15d49a1ab80fb1855e4719944129c01d4220",
-        "git_blob": "sha1:f4b3b9b3a89e29c6ce74e0b6dea1574e642164fc",
+        "bytes": 4995,
+        "content_digest": "8cf5a902b2cf5f3fa9be83c15d3092de8b3f8c764ade2867334621ddb2be46e0",
+        "git_blob": "sha1:bb7fd7aca67b721bb21801a2c01b95df4a00166d",
         "path": ".github/actions/repo-local-kag-index/action.yml",
         "state": "present"
       },
       {
-        "bytes": 4546,
-        "content_digest": "660af47713a8992909f4707af7d1b94b08fec17b2844698e2ede1f59bc33645a",
-        "git_blob": "sha1:5ec8a3f305fe9575de20d205d1df2b07ec12b2e1",
+        "bytes": 4534,
+        "content_digest": "c6ae6f1768a96e165ec9b5f84a15fe33aef6fdd9e33048c51ca5d368d2b37a5b",
+        "git_blob": "sha1:bb26368ddb5c68c56f5c914d953b48a09552c155",
         "path": "config/repo-local-kag-budget-producer.json",
         "state": "present"
       },
@@ -299,9 +292,9 @@
         "state": "present"
       },
       {
-        "bytes": 15180,
-        "content_digest": "0b80daaf8eb1ce1c7c2a376a74aae108c67f1daef4a027f62cf213cb8e37bc62",
-        "git_blob": "sha1:cf82a88958aeb181af17ae64d9559fb5b6244e50",
+        "bytes": 15030,
+        "content_digest": "71ca007795e8e9912746e264dfadc9360921b6d7f4598fbb6118b0203c6b39be",
+        "git_blob": "sha1:7bc5507e6262fa14a7c998e4a018341ed0cc9d00",
         "path": "schemas/repo-local-kag-budget-receipt.schema.json",
         "state": "present"
       },
@@ -551,9 +544,9 @@
         "state": "present"
       },
       {
-        "bytes": 124134,
-        "content_digest": "fb2f3481dda62b62af51f3889781b0ceea98efea6e8d1b9a3c9aff99e44a2058",
-        "git_blob": "sha1:bfef580205b42bff0094c0f90fc29c732ae70a73",
+        "bytes": 125977,
+        "content_digest": "5d835e2d488ed13ae53a9023217e0aab8ac8f169aafb644fe34fc3864cdd014f",
+        "git_blob": "sha1:f9b79955b7a2ae0dfa853af5cec6b68fd40b82b2",
         "path": "scripts/repo_local/portable_family.py",
         "state": "present"
       },
@@ -733,15 +726,14 @@
         "state": "present"
       }
     ],
-    "identity_digest": "9411437c9695f897f217d9415a69a67ec54ef3d7cd00fa5e1ba17b98f5a2ec7f",
+    "identity_digest": "be9ec2f111ee7ceb3114b5a0d00a020fd869088b0305599d4eaedad79bc55406",
     "owner": "aoa-kag",
     "procedure_manifest": {
       "action_inputs": [
         "repo-root",
         "output",
         "history-ref",
-        "event-history-ref",
-        "jobs"
+        "event-history-ref"
       ],
       "action_path": ".github/actions/repo-local-kag-index/action.yml",
       "closure_mode": "ast-import-closure-portable-runtime-contract-v1",
@@ -775,7 +767,7 @@
           "role": "validator engine rollback"
         }
       ],
-      "manifest_digest": "660af47713a8992909f4707af7d1b94b08fec17b2844698e2ede1f59bc33645a",
+      "manifest_digest": "c6ae6f1768a96e165ec9b5f84a15fe33aef6fdd9e33048c51ca5d368d2b37a5b",
       "manifest_path": "config/repo-local-kag-budget-producer.json",
       "python_entrypoints": [
         "scripts/generate_repo_local_kag_index.py",
@@ -859,9 +851,9 @@
       "schema_path": "schemas/repo-local-kag-budget-producer-manifest.schema.json"
     },
     "revision_binding": "content-addressed-procedure-import-closure-portable-runtime-contract-and-descriptor-io-v1",
-    "source_digest": "2887a4716be81b9b1411ede7c4fed3653f6e4d2660402d1d6275598a4d409553"
+    "source_digest": "b6ab389723d813c22d82206c098e85621be70436937e3f36188761b6edd7a98b"
   },
-  "reason": "reconcile generated KAG contract on current main",
+  "reason": "rebind reconciled Table II family to current pinned provider and action",
   "repo": "Tree-of-Sophia",
   "schema_version": "aoa-repo-local-kag-budget-receipt-v2",
   "scope": "generated_delta_and_tracked_size",
