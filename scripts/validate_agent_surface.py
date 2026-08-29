@@ -642,6 +642,27 @@ def v2_budget_receipt_identity_issues(
             )
             if digest_issue:
                 issues.append(digest_issue)
+            if isinstance(files, list):
+                manifest_path = procedure_manifest.get("manifest_path")
+                manifest_files = [
+                    item
+                    for item in files
+                    if isinstance(item, dict) and item.get("path") == manifest_path
+                ]
+                if len(manifest_files) != 1:
+                    issues.append(
+                        (
+                            label,
+                            "budget receipt producer procedure manifest path must identify exactly one producer file",
+                        )
+                    )
+                elif manifest_files[0].get("content_digest") != procedure_manifest.get("manifest_digest"):
+                    issues.append(
+                        (
+                            label,
+                            "budget receipt producer procedure manifest digest does not match its file record",
+                        )
+                    )
             for field in (
                 "python_entrypoints",
                 "python_import_closure",
