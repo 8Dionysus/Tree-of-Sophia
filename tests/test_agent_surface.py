@@ -1001,6 +1001,44 @@ class AgentSurfaceTests(unittest.TestCase):
             issues,
         )
 
+    def test_current_receipt_recomputes_interpreter_digests(self) -> None:
+        family_manifest, receipt, digest, receipt_path = self._current_receipt_case()
+        interpreter = receipt["producer_identity"]["execution_inputs"]["interpreter"]
+        for field in ("invoked_path_digest", "resolved_path_digest", "artifact_digest"):
+            interpreter[field] = "0" * 64
+
+        issues = validator.budget_receipt_contract_issues(
+            ROOT,
+            family_manifest,
+            receipt,
+            digest,
+            receipt_path,
+            base_has_v3=True,
+        )
+
+        label = receipt_path.relative_to(ROOT).as_posix()
+        self.assertIn(
+            (
+                label,
+                "budget receipt interpreter invoked_path_digest does not match the approved Python interpreter",
+            ),
+            issues,
+        )
+        self.assertIn(
+            (
+                label,
+                "budget receipt interpreter resolved_path_digest does not match the approved Python interpreter",
+            ),
+            issues,
+        )
+        self.assertIn(
+            (
+                label,
+                "budget receipt interpreter artifact_digest does not match the captured Python runtime contract",
+            ),
+            issues,
+        )
+
     def test_current_receipt_binds_jobs_input_to_command_target(self) -> None:
         family_manifest, receipt, digest, receipt_path = self._current_receipt_case()
         receipt["producer_identity"]["execution_inputs"]["command_targets"]["jobs"] = "3"

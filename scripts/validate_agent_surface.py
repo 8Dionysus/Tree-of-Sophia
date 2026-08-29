@@ -174,6 +174,8 @@ KAG_BUDGET_CANDIDATE_ZERO_DIGEST = "0" * 64
 KAG_BUDGET_SOURCE_EPOCH_VERSION = "aoa-kag:budget-receipt-source-epoch-v1"
 KAG_BUDGET_OWNER_ROOT_VALUE = "<owner-root>"
 KAG_BUDGET_UNSET_ENVIRONMENT_VALUE = "<unset>"
+KAG_BUDGET_APPROVED_PYTHON_INTERPRETER_PATH = "<approved-python-interpreter>"
+KAG_BUDGET_RUNTIME_CONTRACT_PREFIX = "aoa-kag:budget-producer-runtime-contract:"
 KAG_BUDGET_PROCEDURE_MANIFEST_PATH = "config/repo-local-kag-budget-producer.json"
 KAG_BUDGET_PROCEDURE_SCHEMA_PATH = "schemas/repo-local-kag-budget-producer-manifest.schema.json"
 KAG_BUDGET_PROCEDURE_ACTION_PATH = ".github/actions/repo-local-kag-index/action.yml"
@@ -685,9 +687,13 @@ def _v2_runtime_interpreter_issues(
     if not isinstance(value, Mapping):
         return issues
     field = "producer_identity.execution_inputs.interpreter"
-    for name in ("implementation", "version"):
-        if not isinstance(value.get(name), str) or not value[name]:
+    implementation = value.get("implementation")
+    version = value.get("version")
+    for name, current in (("implementation", implementation), ("version", version)):
+        if not isinstance(current, str) or not current:
             issues.append((label, f"budget receipt field {field}.{name} must be a non-empty string"))
+    if isinstance(implementation, str) and implementation != sys.implementation.name:
+        issues.append((label, "budget receipt interpreter implementation does not match the current Python runtime"))
     for name in ("invoked_path_digest", "resolved_path_digest", "artifact_digest"):
         digest_issue = _v2_digest_issue(label, f"{field}.{name}", value.get(name))
         if digest_issue:
@@ -705,6 +711,34 @@ def _v2_runtime_interpreter_issues(
                 break
     if isinstance(python_version, str) and value.get("version") != python_version:
         issues.append((label, "budget receipt interpreter version does not match the declared python dependency"))
+    if isinstance(implementation, str) and isinstance(version, str):
+        expected_path_digest = hashlib.sha256(
+            KAG_BUDGET_APPROVED_PYTHON_INTERPRETER_PATH.encode("utf-8")
+        ).hexdigest()
+        for name in ("invoked_path_digest", "resolved_path_digest"):
+            if value.get(name) != expected_path_digest:
+                issues.append(
+                    (
+                        label,
+                        f"budget receipt interpreter {name} does not match the approved Python interpreter",
+                    )
+                )
+        expected_artifact_digest = hashlib.sha256(
+            (
+                KAG_BUDGET_RUNTIME_CONTRACT_PREFIX
+                + "python:"
+                + sys.implementation.name
+                + ":"
+                + version
+            ).encode("utf-8")
+        ).hexdigest()
+        if value.get("artifact_digest") != expected_artifact_digest:
+            issues.append(
+                (
+                    label,
+                    "budget receipt interpreter artifact_digest does not match the captured Python runtime contract",
+                )
+            )
     return issues
 
 
