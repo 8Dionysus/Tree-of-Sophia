@@ -99,6 +99,35 @@ class PhilosophyGraphProjectionTest(unittest.TestCase):
         self.assertIn("edge:candidate-relation:table-i-a01-relation-001", edges)
         self.assertIn("script-decipherment", edges["edge:candidate-relation:table-i-a01-relation-001"]["view_ids"])
 
+    def test_graph_projection_retains_table_ii_review_gates_and_resolved_endpoints(self) -> None:
+        payload = self.load_projection()
+        nodes = {node["node_id"]: node for node in payload["nodes"]}
+        edges = {edge["edge_id"]: edge for edge in payload["edges"]}
+
+        candidate = nodes["candidate-node:table-ii-t2-49-node-001"]["properties"]
+        self.assertEqual(candidate["review_posture"], "manual_review_required")
+        self.assertEqual(candidate["master_status"], "B")
+        self.assertEqual(candidate["master_confidence"], "3")
+
+        relation = edges["edge:candidate-relation:table-ii-t2-49-relation-001"]["properties"]
+        self.assertEqual(relation["review_posture"], "manual_review_required")
+        self.assertEqual(relation["master_status"], "B")
+        self.assertEqual(relation["master_confidence"], "3")
+
+        first = edges["edge:candidate-relation:table-ii-t2-01-relation-001"]
+        self.assertEqual(first["from_id"], "candidate-node:table-ii-t2-01-node-001")
+        self.assertEqual(first["to_id"], "candidate-node:table-ii-t2-01-node-002")
+        self.assertEqual(first["properties"]["endpoint_resolution"], "matched_nodes")
+
+        self.assertEqual(
+            nodes["atlas-row:T2-26"]["properties"]["dossier_intake_status"],
+            "blocked_master_identity_mismatch",
+        )
+        self.assertEqual(
+            nodes["atlas-row:T2-51"]["properties"]["dossier_intake_status"],
+            "input_not_supplied",
+        )
+
     def test_layer_counts_are_semantic_not_view_wide(self) -> None:
         payload = self.load_projection()
         layer_counts = {row["layer_id"]: row for row in payload["layer_counts"]}
@@ -200,6 +229,21 @@ class PhilosophyGraphProjectionTest(unittest.TestCase):
             "Corpus Or Prepared Source Document: ToS Deep Research: A01 — Proto-Cuneiform and Accounting Ontologies.docx",
         )
 
+    def test_table_ii_prepared_dossiers_keep_reviewed_titles_in_graph_projection(self) -> None:
+        payload = self.load_projection()
+        nodes = {node["node_id"]: node for node in payload["nodes"]}
+        expected_en = {
+            "T2-09": "Early and Classical Kalam",
+            "T2-10": "Falsafa and the Avicennian Synthesis",
+            "T2-16": "The Post-Mongol Persianate Scholastic Corridor",
+            "T2-41": "Sanskrit Cosmopolitan Literature in Southeast Asia",
+        }
+        for dossier_id, title in expected_en.items():
+            multilingual = nodes[f"atlas-dossier:{dossier_id}"]["multilingual"]
+            self.assertEqual(multilingual["label"]["en"], f"ToS Deep Research: {dossier_id} — {title}")
+            self.assertNotRegex(multilingual["label"]["en"], r"[А-Яа-яЁё]")
+            self.assertEqual(multilingual["translation_status"]["en"], "reviewed")
+
     def test_draft_english_labels_preserve_russian_word_boundaries(self) -> None:
         self.assertEqual(english_label("ритуал"), ("ritual", "draft"))
         self.assertEqual(english_label("ритуальный"), ("ritual", "draft"))
@@ -207,6 +251,27 @@ class PhilosophyGraphProjectionTest(unittest.TestCase):
         self.assertEqual(
             english_label("Хеттское государственно-ритуальное письмо"),
             ("Hittite state-ritual writing", "draft"),
+        )
+
+    def test_table_ii_dossier_labels_use_reviewed_english_ledger_entries(self) -> None:
+        self.assertEqual(
+            english_label(
+                "ToS Deep Research: T2-01 — Сирийские переводческие и богословско-философские школы"
+            ),
+            (
+                "ToS Deep Research: T2-01 — Syriac Translation and Theological-Philosophical Schools",
+                "reviewed",
+            ),
+        )
+
+    def test_table_ii_mentions_do_not_become_dossier_titles(self) -> None:
+        candidate = "Каббалистическая смежность без поглощения T2-20"
+        self.assertEqual(english_label(candidate), (candidate, "draft"))
+        linked = "T2-21 → logica vetus / XII-century schools"
+        self.assertEqual(english_label(linked), (linked, "source"))
+        self.assertEqual(
+            english_label("T2-20 — Каббала как метафизико-мистический письменный узел"),
+            ("T2-20 — Kabbalah as a Metaphysical-Mystical Written Node", "reviewed"),
         )
 
     def test_review_packets_are_compact_view_packets(self) -> None:

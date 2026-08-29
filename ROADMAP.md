@@ -127,8 +127,8 @@ review the tree before canon promotion.
 
 | Field | Direction |
 | --- | --- |
-| Current posture | Master tables and prepared dossier indexes now give the tree a navigable row spine. Table I has first planted branches and graph-workbench fragments. |
-| Next honest move | Review Table I as a graph-ready pre-canon slice, then prepare Table II and Table III only through the same atlas and branch route discipline. |
+| Current posture | Master tables and prepared dossier indexes now give the tree a navigable row spine. Table I is complete at 48 dossiers; Table II has a bounded partial planting of 49 admitted dossiers, one identity-mismatch quarantine, and eight absent packets. |
+| Next honest move | Review the Table I and admitted Table II graph-ready pre-canon slices, repair T2-26 at its source identity, and add T2-51–T2-58 only through the same atlas and branch route discipline before preparing Table III. |
 | Guardrail | Atlas rows are prepared navigation and growth pressure; historical source claims still need source witnesses, branch review, and canon review. |
 
 ## Horizon: Graph Review And Projection

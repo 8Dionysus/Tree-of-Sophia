@@ -17,6 +17,8 @@ from plant_table_i_prepared_dossiers import build_language_packets, load_jsonl  
 
 PACKETS_PATH = REPO_ROOT / "ToS/philosophy/graph-workbench/language-packets/table-i-text-bearing-nodes.jsonl"
 PROPOSED_NODES_PATH = REPO_ROOT / "ToS/philosophy/graph-workbench/proposed-nodes/table-i-prepared-dossiers.jsonl"
+TABLE_II_PACKETS_PATH = REPO_ROOT / "ToS/philosophy/graph-workbench/language-packets/table-ii-text-bearing-nodes.jsonl"
+TABLE_II_PROPOSED_NODES_PATH = REPO_ROOT / "ToS/philosophy/graph-workbench/proposed-nodes/table-ii-prepared-dossiers.jsonl"
 CONTRACT_REF = "ToS/philosophy/atlas/multilingual/text-bearing-nodes.contract.json"
 REGISTRY_REF = "ToS/philosophy/atlas/multilingual/language-registry.json"
 
@@ -70,6 +72,39 @@ class PhilosophyLanguagePacketsTest(unittest.TestCase):
             if re.search(r"[А-Яа-яЁё]", str(row["title_block"]["en"]["value"]))
         ]
         self.assertEqual(cyrillic_english, [])
+
+    def test_table_ii_packets_are_deterministic_complete_and_exclude_quarantine(self) -> None:
+        nodes = load_jsonl(TABLE_II_PROPOSED_NODES_PATH)
+        expected_rows = build_language_packets(nodes)
+        expected = "".join(
+            json.dumps(row, ensure_ascii=False, sort_keys=True) + "\n"
+            for row in expected_rows
+        )
+        self.assertEqual(TABLE_II_PACKETS_PATH.read_text(encoding="utf-8"), expected)
+        self.assertEqual(len(expected_rows), 331)
+        self.assertFalse(any(row["dossier_id"] == "T2-26" for row in expected_rows))
+        self.assertFalse(
+            any(re.search(r"[А-Яа-яЁё]", str(row["title_block"]["en"]["value"])) for row in expected_rows)
+        )
+
+    def test_table_ii_packets_preserve_manual_review_gates_from_candidate_nodes(self) -> None:
+        nodes = load_jsonl(TABLE_II_PROPOSED_NODES_PATH)
+        source_by_id = {str(row["candidate_id"]): row for row in nodes}
+        packets = build_language_packets(nodes)
+        manual_packets = [
+            row for row in packets if row.get("review_posture") == "manual_review_required"
+        ]
+
+        self.assertEqual(len(manual_packets), 119)
+        for packet in manual_packets:
+            source = source_by_id[str(packet["node_ref"]["id"])]
+            for field in (
+                "review_posture",
+                "review_reason",
+                "master_status",
+                "master_confidence",
+            ):
+                self.assertEqual(packet[field], source[field])
 
 
 if __name__ == "__main__":

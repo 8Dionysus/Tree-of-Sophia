@@ -23,10 +23,15 @@ philosophy/
   graph-workbench/
 ```
 
-`atlas/` holds the prepared master-table row spine and A-series dossier index
+`atlas/` holds the prepared master-table row spine and admitted dossier index
 for the whole philosophy tree. It is the navigation body for ToS growth.
 Master-table patches should update the atlas directly and then route branch
 work through the owning era, region, or tradition.
+
+`eras/medieval-worlds/` is the bounded Table II navigation window across
+plural medieval and post-classical histories. Its region and tradition routes
+are useful topology; the container is not a claim of one synchronized global
+chronology or shared civilizational essence.
 
 `trunk/` holds branch-wide law: evidence status, chronology posture, and naming
 rules. Its current vocabulary homes are:

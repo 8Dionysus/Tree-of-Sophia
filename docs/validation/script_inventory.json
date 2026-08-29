@@ -1560,9 +1560,23 @@
       "source_truth": [
         "scripts/philosophy_post_planting_audit_common.py",
         "ToS/philosophy/atlas/master-tables/table-i/rows.jsonl",
+        "ToS/philosophy/atlas/master-tables/table-ii/rows.jsonl",
+        "ToS/philosophy/atlas/master-tables/table-iii/rows.jsonl",
         "ToS/philosophy/atlas/dossiers/index.jsonl",
+        "ToS/philosophy/atlas/dossiers/graph-shape-summary.json",
+        "ToS/philosophy/atlas/dossiers/source-anchor-backlog.jsonl",
+        "ToS/philosophy/atlas/dossiers/term-index.jsonl",
+        "ToS/philosophy/atlas/dossiers/transmission-backlog.jsonl",
         "ToS/philosophy/graph-workbench/proposed-nodes/table-i-prepared-dossiers.jsonl",
+        "ToS/philosophy/graph-workbench/proposed-nodes/table-ii-prepared-dossiers.jsonl",
         "ToS/philosophy/graph-workbench/proposed-relations/table-i-prepared-dossiers.jsonl",
+        "ToS/philosophy/graph-workbench/proposed-relations/table-ii-prepared-dossiers.jsonl",
+        "ToS/philosophy/graph-workbench/language-packets/table-i-text-bearing-nodes.jsonl",
+        "ToS/philosophy/graph-workbench/language-packets/table-ii-text-bearing-nodes.jsonl",
+        "ToS/philosophy/graph-workbench/branch-fragments/table-i-prepared-dossier-branches.json",
+        "ToS/philosophy/graph-workbench/branch-fragments/table-ii-prepared-dossier-branches.json",
+        "ToS/derived-exports/philosophy_atlas_projection.min.json",
+        "ToS/derived-exports/philosophy_graph_views.min.json",
         "ToS/derived-exports/philosophy_graph_projection.min.json"
       ],
       "reads": [
@@ -1576,7 +1590,7 @@
         "ToS/philosophy/graph-workbench/review-packets/table-i-post-planting-audit.json unless --check is used",
         "ToS/philosophy/graph-workbench/review-packets/table-i-post-planting-audit.md unless --check is used"
       ],
-      "side_effects": "tracked source-side review packet for planted Table I graph readiness",
+      "side_effects": "tracked source-side review packet for aggregate supported prepared-dossier graph readiness",
       "validation_lane": "graph_exports",
       "ci_inclusion": "release",
       "test_target": "tests/test_philosophy_post_planting_audit.py",
@@ -1626,9 +1640,9 @@
         "ToS/philosophy/atlas/master-tables/*/rows.jsonl"
       ],
       "writes": [
-        "delegates to scripts/plant_table_i_prepared_dossiers.py only when --table table-i --plant is used"
+        "delegates the aggregate write of all supported prepared-dossier packages to scripts/plant_table_i_prepared_dossiers.py only when --plant is used without --table"
       ],
-      "side_effects": "readiness output by default; optional Table I planting through the package implementation",
+      "side_effects": "readiness output by default, optionally limited by --table; --plant is explicitly aggregate-only and writes all supported Table I and partial Table II package surfaces through the package implementation",
       "validation_lane": "graph_exports",
       "ci_inclusion": "focused-tests",
       "test_target": "tests/test_prepared_dossier_pipeline.py",
@@ -1640,32 +1654,42 @@
       "organ_lane": "source/topology",
       "owner_surface": "ToS/philosophy/AGENTS.md",
       "source_truth": [
-        "operator-local prepared Table I DOCX corpus",
+        "operator-local prepared Table I and Table II DOCX corpora",
         "ToS/philosophy/atlas/dossiers/prepared-dossier-routes.json",
         "ToS/philosophy/philosophy.manifest.json",
-        "ToS/philosophy/atlas/master-tables/table-i/rows.jsonl"
+        "ToS/philosophy/atlas/master-tables/table-i/rows.jsonl",
+        "ToS/philosophy/atlas/master-tables/table-ii/rows.jsonl"
       ],
       "reads": [
-        "operator-local Table I DOCX sections declared by ToS/philosophy/atlas/dossiers/prepared-dossier-routes.json",
+        "operator-local Table I and Table II DOCX sections declared by ToS/philosophy/atlas/dossiers/prepared-dossier-routes.json",
         "ToS/philosophy/atlas/dossiers/prepared-dossier-routes.json",
         "ToS/philosophy/atlas/master-tables/table-i/rows.jsonl",
+        "ToS/philosophy/atlas/master-tables/table-ii/rows.jsonl",
         "ToS/philosophy/philosophy.manifest.json"
       ],
       "writes": [
         "ToS/philosophy/atlas/dossiers/*.jsonl",
         "ToS/philosophy/atlas/dossiers/*.json",
         "ToS/philosophy/atlas/master-tables/table-i/*.json*",
+        "ToS/philosophy/atlas/master-tables/table-ii/*.json*",
         "ToS/philosophy/eras/**",
         "ToS/philosophy/frontiers/**",
         "ToS/research-packets/deep-research/philosophy/dossiers/table-i-docx-intake.manifest.json",
         "ToS/research-packets/deep-research/philosophy/dossiers/table-i-docx-extraction-coverage.json",
+        "ToS/research-packets/deep-research/philosophy/dossiers/table-ii-docx-intake.manifest.json",
+        "ToS/research-packets/deep-research/philosophy/dossiers/table-ii-docx-extraction-coverage.json",
         "ToS/philosophy/graph-workbench/proposed-nodes/table-i-prepared-dossiers.jsonl",
+        "ToS/philosophy/graph-workbench/proposed-nodes/table-ii-prepared-dossiers.jsonl",
         "ToS/philosophy/graph-workbench/proposed-relations/table-i-prepared-dossiers.jsonl",
+        "ToS/philosophy/graph-workbench/proposed-relations/table-ii-prepared-dossiers.jsonl",
         "ToS/philosophy/graph-workbench/branch-fragments/table-i-prepared-dossier-branches.json",
+        "ToS/philosophy/graph-workbench/branch-fragments/table-ii-prepared-dossier-branches.json",
         "ToS/philosophy/graph-workbench/promotion-ledger/table-i-prepared-dossiers.md",
+        "ToS/philosophy/graph-workbench/promotion-ledger/table-ii-prepared-dossiers.md",
+        "ToS/philosophy/graph-workbench/language-packets/*.jsonl",
         "ToS/philosophy/philosophy.manifest.json"
       ],
-      "side_effects": "tracked Table I intake/coverage, atlas, branch, source-anchor, and pre-canon graph source surfaces; package implementation for scripts/plant_prepared_dossiers.py",
+      "side_effects": "tracked Table I and partial Table II intake/coverage, atlas, branch, source-anchor, language-packet, and pre-canon graph source surfaces; aggregate package implementation for scripts/plant_prepared_dossiers.py",
       "validation_lane": "graph_exports",
       "ci_inclusion": "focused-tests",
       "test_target": "tests/test_philosophy_atlas_projection.py",

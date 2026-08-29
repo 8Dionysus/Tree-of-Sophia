@@ -23,6 +23,22 @@ PROPOSED_NODES_PATH = PHILOSOPHY_ROOT / "graph-workbench/proposed-nodes/table-i-
 PROPOSED_RELATIONS_PATH = PHILOSOPHY_ROOT / "graph-workbench/proposed-relations/table-i-prepared-dossiers.jsonl"
 LANGUAGE_PACKETS_PATH = PHILOSOPHY_ROOT / "graph-workbench/language-packets/table-i-text-bearing-nodes.jsonl"
 BRANCH_FRAGMENTS_PATH = PHILOSOPHY_ROOT / "graph-workbench/branch-fragments/table-i-prepared-dossier-branches.json"
+PROPOSED_NODES_PATHS = (
+    PROPOSED_NODES_PATH,
+    PHILOSOPHY_ROOT / "graph-workbench/proposed-nodes/table-ii-prepared-dossiers.jsonl",
+)
+PROPOSED_RELATIONS_PATHS = (
+    PROPOSED_RELATIONS_PATH,
+    PHILOSOPHY_ROOT / "graph-workbench/proposed-relations/table-ii-prepared-dossiers.jsonl",
+)
+LANGUAGE_PACKETS_PATHS = (
+    LANGUAGE_PACKETS_PATH,
+    PHILOSOPHY_ROOT / "graph-workbench/language-packets/table-ii-text-bearing-nodes.jsonl",
+)
+BRANCH_FRAGMENTS_PATHS = (
+    BRANCH_FRAGMENTS_PATH,
+    PHILOSOPHY_ROOT / "graph-workbench/branch-fragments/table-ii-prepared-dossier-branches.json",
+)
 GRAPH_PROJECTION_PATH = TOS_ROOT / "derived-exports/philosophy_graph_projection.min.json"
 GRAPH_VIEWS_PATH = TOS_ROOT / "derived-exports/philosophy_graph_views.min.json"
 ATLAS_PROJECTION_PATH = TOS_ROOT / "derived-exports/philosophy_atlas_projection.min.json"
@@ -56,21 +72,29 @@ def render_payload(payload: dict[str, Any]) -> str:
 def render_markdown(payload: dict[str, Any]) -> str:
     counts = payload["counts"]
     table_i = payload["master_tables"]["table-i"]
+    table_ii = payload["master_tables"]["table-ii"]
     branch = payload["branch_audit"]
     graph = payload["graph_workbench_audit"]
     projection = payload["graph_projection_audit"]
     readiness = payload["review_readiness"]
     diagnostics = payload["diagnostics"]
+    table_ii_intake_lines = "\n".join(
+        f"- Table II unavailable ({status}): "
+        + ", ".join(f"`{row_id}`" for row_id in row_ids)
+        for status, row_ids in table_ii["unavailable_row_ids_by_intake_status"].items()
+    )
     diagnostic_lines = "\n".join(
         f"- {item['level']}: `{item['path']}` - {item['message']}" for item in diagnostics
     ) or "- clear"
     return (
-        "# Table I Post-Planting Audit\n\n"
-        "This generated review packet checks the first prepared Table I planting "
+        "# Prepared-Dossier Post-Planting Audit\n\n"
+        "This generated review packet checks the supported prepared-dossier plantings "
         "against the ToS philosophy topology before runtime graph review.\n\n"
         "## Readiness\n\n"
         f"- Status: `{readiness['status']}`\n"
         f"- Prepared dossiers: {table_i['dossier_available_count']} / {table_i['row_count']}\n"
+        f"- Partial Table II dossiers: {table_ii['dossier_available_count']} / {table_ii['row_count']}\n"
+        f"{table_ii_intake_lines}\n"
         f"- Prepared branches: {branch['prepared_branch_count']}\n"
         f"- Proposed nodes: {graph['proposed_node_count']}\n"
         f"- Proposed relations: {graph['proposed_relation_count']}\n"
@@ -99,13 +123,25 @@ def render_markdown(payload: dict[str, Any]) -> str:
 def _table_audit(table_id: str) -> dict[str, Any]:
     rows = load_jsonl(TABLE_ROOT / table_id / "rows.jsonl")
     available = [row for row in rows if row.get("dossier_available") is True]
-    missing = [str(row.get("row_id") or "") for row in rows if row.get("dossier_available") is not True]
+    unavailable = [row for row in rows if row.get("dossier_available") is not True]
+    unavailable_by_status: dict[str, list[str]] = {}
+    for row in unavailable:
+        normalized = row.get("normalized")
+        status = (
+            str(normalized.get("dossier_intake_status") or "status_not_declared")
+            if isinstance(normalized, dict)
+            else "status_not_declared"
+        )
+        unavailable_by_status.setdefault(status, []).append(str(row.get("row_id") or ""))
     return {
         "row_count": len(rows),
         "dossier_available_count": len(available),
-        "dossier_missing_count": len(missing),
+        "dossier_unavailable_count": len(unavailable),
         "available_row_ids": [str(row.get("row_id") or "") for row in available],
-        "missing_row_ids": missing,
+        "unavailable_row_ids": [str(row.get("row_id") or "") for row in unavailable],
+        "unavailable_row_ids_by_intake_status": {
+            status: sorted(row_ids) for status, row_ids in sorted(unavailable_by_status.items())
+        },
         "source_ref": repo_ref(TABLE_ROOT / table_id / "rows.jsonl"),
     }
 
@@ -160,7 +196,7 @@ def _graph_workbench_audit(
     )
     node_kind_counts = Counter(str(row.get("node_kind") or "unspecified") for row in proposed_nodes)
     relation_kind_counts = Counter(str(row.get("relation_kind") or "related_to") for row in proposed_relations)
-    branch_fragments = load_json(BRANCH_FRAGMENTS_PATH)
+    branch_fragments = [load_json(path) for path in BRANCH_FRAGMENTS_PATHS]
     return {
         "proposed_node_count": len(proposed_nodes),
         "proposed_relation_count": len(proposed_relations),
@@ -169,14 +205,14 @@ def _graph_workbench_audit(
         "endpoint_resolution_counts": dict(sorted(endpoint_resolution_counts.items())),
         "node_kind_top": dict(node_kind_counts.most_common(12)),
         "relation_kind_top": dict(relation_kind_counts.most_common(12)),
-        "branch_fragment_count": int(branch_fragments.get("branch_count") or 0),
-        "canon_status": str(branch_fragments.get("canon_status") or ""),
-        "source_refs": [
-            repo_ref(PROPOSED_NODES_PATH),
-            repo_ref(PROPOSED_RELATIONS_PATH),
-            repo_ref(LANGUAGE_PACKETS_PATH),
-            repo_ref(BRANCH_FRAGMENTS_PATH),
-        ],
+        "branch_fragment_count": sum(int(payload.get("branch_count") or 0) for payload in branch_fragments),
+        "canon_status": "pre-canon" if all(payload.get("canon_status") == "pre-canon" for payload in branch_fragments) else "mixed",
+        "source_refs": [repo_ref(path) for path in (
+            *PROPOSED_NODES_PATHS,
+            *PROPOSED_RELATIONS_PATHS,
+            *LANGUAGE_PACKETS_PATHS,
+            *BRANCH_FRAGMENTS_PATHS,
+        )],
     }
 
 
@@ -207,20 +243,20 @@ def build_payload() -> dict[str, Any]:
     source_anchor_rows = load_jsonl(SOURCE_ANCHOR_BACKLOG_PATH)
     term_rows = load_jsonl(TERM_INDEX_PATH)
     transmission_rows = load_jsonl(TRANSMISSION_BACKLOG_PATH)
-    proposed_nodes = load_jsonl(PROPOSED_NODES_PATH)
-    proposed_relations = load_jsonl(PROPOSED_RELATIONS_PATH)
-    language_packets = load_jsonl(LANGUAGE_PACKETS_PATH)
+    proposed_nodes = [row for path in PROPOSED_NODES_PATHS for row in load_jsonl(path)]
+    proposed_relations = [row for path in PROPOSED_RELATIONS_PATHS for row in load_jsonl(path)]
+    language_packets = [row for path in LANGUAGE_PACKETS_PATHS for row in load_jsonl(path)]
     branch_audit = _branch_audit(dossier_rows)
     graph_audit = _graph_workbench_audit(proposed_nodes, proposed_relations, language_packets)
     projection_audit = _projection_audit()
 
     diagnostics: list[dict[str, str]] = []
-    if table_audits["table-i"]["dossier_available_count"] != len(dossier_rows):
+    if sum(table["dossier_available_count"] for table in table_audits.values()) != len(dossier_rows):
         diagnostics.append(
             {
                 "level": "error",
                 "path": repo_ref(DOSSIER_INDEX_PATH),
-                "message": "Table I available dossier rows do not match the dossier index",
+                "message": "available master-table dossier rows do not match the dossier index",
             }
         )
     for path in branch_audit["missing_branch_paths"]:
@@ -265,10 +301,10 @@ def build_payload() -> dict[str, Any]:
             "graph_projection": repo_ref(GRAPH_PROJECTION_PATH),
             "dossier_index": repo_ref(DOSSIER_INDEX_PATH),
             "dossier_summary": repo_ref(DOSSIER_SUMMARY_PATH),
-            "proposed_nodes": repo_ref(PROPOSED_NODES_PATH),
-            "proposed_relations": repo_ref(PROPOSED_RELATIONS_PATH),
-            "language_packets": repo_ref(LANGUAGE_PACKETS_PATH),
-            "branch_fragments": repo_ref(BRANCH_FRAGMENTS_PATH),
+            "proposed_nodes": [repo_ref(path) for path in PROPOSED_NODES_PATHS],
+            "proposed_relations": [repo_ref(path) for path in PROPOSED_RELATIONS_PATHS],
+            "language_packets": [repo_ref(path) for path in LANGUAGE_PACKETS_PATHS],
+            "branch_fragments": [repo_ref(path) for path in BRANCH_FRAGMENTS_PATHS],
         },
         "runtime_projection_boundary": {
             "runtime_owner": "abyss-stack",

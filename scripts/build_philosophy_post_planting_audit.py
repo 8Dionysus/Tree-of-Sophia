@@ -9,7 +9,7 @@ from philosophy_post_planting_audit_common import AUDIT_JSON_PATH, AUDIT_MD_PATH
 
 
 def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="Build the Table I post-planting audit packet.")
+    parser = argparse.ArgumentParser(description="Build the aggregate prepared-dossier post-planting audit packet.")
     parser.add_argument(
         "--check",
         action="store_true",

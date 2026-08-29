@@ -281,11 +281,299 @@
       ]
     },
     "table-ii": {
-      "dossier_series": null,
-      "docx_sections": [],
+      "ancestor_roles": {
+        "ToS/philosophy/eras/medieval-worlds": "Table II chronological navigation window across plural medieval and post-classical worlds; not a claim of one synchronized chronology or civilizational essence",
+        "ToS/philosophy/eras/medieval-worlds/regions": "explicit regional homes for Table II prepared dossiers before tradition-local source and canon review"
+      },
+      "blocked_dossiers": [
+        {
+          "dossier_id": "T2-26",
+          "expected_master_title": "Номинализм, логический анализ и четырнадцатый век",
+          "observed_input_title": "Эфиопская (геэзская) церковная письменность",
+          "posture": "blocked_master_identity_mismatch",
+          "reason": "The supplied DOCX title and contents do not identify the Table II T2-26 master row; no branch or structured candidate output may be created under this id."
+        }
+      ],
+      "dossier_series": "T2-series",
+      "docx_sections": [
+        "2.1"
+      ],
+      "extraction_coverage_ref": "ToS/research-packets/deep-research/philosophy/dossiers/table-ii-docx-extraction-coverage.json",
+      "intake_manifest_ref": "ToS/research-packets/deep-research/philosophy/dossiers/table-ii-docx-intake.manifest.json",
       "master_table_ref": "ToS/philosophy/atlas/master-tables/table-ii/rows.jsonl",
-      "next_route": "add dossier ids and branch routes when prepared Table II dossiers exist",
-      "routes": []
+      "missing_master_dossier_ids": [
+        "T2-51",
+        "T2-52",
+        "T2-53",
+        "T2-54",
+        "T2-55",
+        "T2-56",
+        "T2-57",
+        "T2-58"
+      ],
+      "planting_mode": "partial_with_explicit_missing_and_quarantine",
+      "review_policy": {
+        "default": "pre_canon_review",
+        "manual_review_max_confidence": 3,
+        "manual_review_statuses": [
+          "B",
+          "C"
+        ]
+      },
+      "route_defaults": {
+        "review_posture": "pre_canon_review",
+        "route_kind": "era_tradition"
+      },
+      "routes": [
+        {
+          "branch_path": "ToS/philosophy/eras/medieval-worlds/regions/west-asia/traditions/syriac-translation-theological-philosophical-schools",
+          "branch_role": "Syriac translation, school, theological, logical, and medical-philosophical branch",
+          "dossier_id": "T2-01"
+        },
+        {
+          "branch_path": "ToS/philosophy/eras/medieval-worlds/regions/eastern-mediterranean/traditions/early-middle-byzantine-philosophy-commentary",
+          "branch_role": "early and middle Byzantine philosophy and commentary-culture branch",
+          "dossier_id": "T2-02"
+        },
+        {
+          "branch_path": "ToS/philosophy/eras/medieval-worlds/regions/eastern-mediterranean/traditions/late-byzantine-philosophy-palamite-humanist-transitions",
+          "branch_role": "late Byzantine philosophical, Palamite, and humanist-transition branch",
+          "dossier_id": "T2-03"
+        },
+        {
+          "branch_path": "ToS/philosophy/eras/medieval-worlds/regions/caucasus/traditions/armenian-translation-philosophical-theological-lexicon",
+          "branch_role": "Armenian translation literature and philosophical-theological lexicon branch",
+          "dossier_id": "T2-04"
+        },
+        {
+          "branch_path": "ToS/philosophy/eras/medieval-worlds/regions/caucasus/traditions/georgian-monastic-translation-republic",
+          "branch_role": "Georgian monastic translation and manuscript-network branch",
+          "dossier_id": "T2-05"
+        },
+        {
+          "branch_path": "ToS/philosophy/eras/medieval-worlds/regions/north-africa/traditions/coptic-egypt-monastic-translation-continuities",
+          "branch_role": "Coptic Egyptian monastic, translation, and late-antique continuity branch",
+          "dossier_id": "T2-06"
+        },
+        {
+          "branch_path": "ToS/philosophy/eras/medieval-worlds/regions/northeast-africa/traditions/geez-medieval-literature-royal-ethical-theology",
+          "branch_role": "Ge'ez medieval literature, royal ideology, and philosophical-ethical writing branch",
+          "dossier_id": "T2-07"
+        },
+        {
+          "branch_path": "ToS/philosophy/eras/medieval-worlds/regions/west-asia/traditions/baghdad-translation-movement-bayt-al-hikma-boundary",
+          "branch_role": "Baghdad translation movement and Bayt al-Hikma institutional-boundary branch",
+          "dossier_id": "T2-08"
+        },
+        {
+          "accepted_input_title": "ранний и классический kalām",
+          "branch_path": "ToS/philosophy/eras/medieval-worlds/regions/west-asia/traditions/early-classical-kalam",
+          "branch_role": "early and classical kalam rational-theology branch",
+          "dossier_id": "T2-09"
+        },
+        {
+          "branch_path": "ToS/philosophy/eras/medieval-worlds/regions/west-asia/traditions/falsafa-avicennian-synthesis",
+          "branch_role": "falsafa and Avicennian philosophical-system branch",
+          "dossier_id": "T2-10"
+        },
+        {
+          "branch_path": "ToS/philosophy/eras/medieval-worlds/regions/west-asia/traditions/post-avicennian-philosophy-late-kalam",
+          "branch_role": "post-Avicennian philosophy and late kalam branch",
+          "dossier_id": "T2-11"
+        },
+        {
+          "branch_path": "ToS/philosophy/eras/medieval-worlds/regions/western-mediterranean/traditions/andalusi-maghrebi-philosophy-medicine",
+          "branch_role": "Andalusi and Maghrebi philosophy and medicine branch",
+          "dossier_id": "T2-12"
+        },
+        {
+          "branch_path": "ToS/philosophy/eras/medieval-worlds/regions/iranian-world/traditions/ishraqi-illumination-philosophy",
+          "branch_role": "Ishraqi philosophy of illumination branch",
+          "dossier_id": "T2-13"
+        },
+        {
+          "branch_path": "ToS/philosophy/eras/medieval-worlds/regions/west-asia-mediterranean/traditions/sufi-metaphysics-philosophical-anthropology",
+          "branch_role": "Sufi metaphysics and philosophical-anthropology branch",
+          "dossier_id": "T2-14"
+        },
+        {
+          "branch_path": "ToS/philosophy/eras/medieval-worlds/regions/west-asia/traditions/islamic-law-ethics-adab-philosophy",
+          "branch_role": "Islamic jurisprudential rationality, ethics, and adab branch",
+          "dossier_id": "T2-15"
+        },
+        {
+          "branch_path": "ToS/philosophy/eras/medieval-worlds/regions/persianate-world/traditions/post-mongol-persianate-scholastic-corridor",
+          "branch_role": "post-Mongol Persianate scholastic corridor branch",
+          "dossier_id": "T2-16"
+        },
+        {
+          "branch_path": "ToS/philosophy/eras/medieval-worlds/regions/west-asia-jewish-world/traditions/gaonic-early-judeo-arabic-philosophy",
+          "branch_role": "Gaonic and early Judeo-Arabic philosophy branch",
+          "dossier_id": "T2-17"
+        },
+        {
+          "branch_path": "ToS/philosophy/eras/medieval-worlds/regions/west-asia-iberia/traditions/hebrew-arabic-bilingual-jewish-philosophy",
+          "branch_role": "Hebrew-Arabic bilingual Jewish philosophy branch",
+          "dossier_id": "T2-18"
+        },
+        {
+          "branch_path": "ToS/philosophy/eras/medieval-worlds/regions/mediterranean-europe/traditions/late-medieval-jewish-philosophy",
+          "branch_role": "late medieval Jewish philosophy from Gersonides to Crescas branch",
+          "dossier_id": "T2-19"
+        },
+        {
+          "branch_path": "ToS/philosophy/eras/medieval-worlds/regions/mediterranean-europe/traditions/kabbalah-written-metaphysical-mystical-node",
+          "branch_role": "Kabbalistic written metaphysical-mystical branch",
+          "dossier_id": "T2-20"
+        },
+        {
+          "branch_path": "ToS/philosophy/eras/medieval-worlds/regions/latin-europe/traditions/early-medieval-carolingian-ottonian-schools",
+          "branch_role": "early medieval Latin, Carolingian, and Ottonian school branch",
+          "dossier_id": "T2-21"
+        },
+        {
+          "branch_path": "ToS/philosophy/eras/medieval-worlds/regions/latin-europe/traditions/twelfth-century-schools-logical-revival",
+          "branch_role": "twelfth-century schools and logical-revival branch",
+          "dossier_id": "T2-22"
+        },
+        {
+          "branch_path": "ToS/philosophy/eras/medieval-worlds/regions/mediterranean-europe/traditions/toledo-sicily-southern-italy-translation-corridors",
+          "branch_role": "Toledo, Sicily, and southern Italian translation-corridor branch",
+          "dossier_id": "T2-23"
+        },
+        {
+          "branch_path": "ToS/philosophy/eras/medieval-worlds/regions/latin-europe/traditions/university-scholasticism-sentences-summa",
+          "branch_role": "university scholasticism from Sentences to summa branch",
+          "dossier_id": "T2-24"
+        },
+        {
+          "branch_path": "ToS/philosophy/eras/medieval-worlds/regions/latin-europe/traditions/dominican-franciscan-late-scholastic-polyphony",
+          "branch_role": "Dominican and Franciscan late-scholastic polyphony branch",
+          "dossier_id": "T2-25"
+        },
+        {
+          "branch_path": "ToS/philosophy/eras/medieval-worlds/regions/latin-europe/traditions/latin-mysticism-philosophical-theology",
+          "branch_role": "Latin mysticism and philosophical-theology branch",
+          "dossier_id": "T2-27"
+        },
+        {
+          "branch_path": "ToS/philosophy/eras/medieval-worlds/regions/latin-europe/traditions/medieval-political-philosophy-papacy-empire-city",
+          "branch_role": "medieval political philosophy of papacy, empire, and city branch",
+          "dossier_id": "T2-28"
+        },
+        {
+          "branch_path": "ToS/philosophy/eras/medieval-worlds/regions/latin-europe/traditions/canon-roman-law-intellectual-rationality",
+          "branch_role": "canon and Roman law as intellectual-rationality branch",
+          "dossier_id": "T2-29"
+        },
+        {
+          "branch_path": "ToS/philosophy/eras/medieval-worlds/regions/latin-europe/traditions/late-medieval-humanist-aristotelian-transition",
+          "branch_role": "late medieval humanist-Aristotelian transition branch",
+          "dossier_id": "T2-30"
+        },
+        {
+          "branch_path": "ToS/philosophy/eras/medieval-worlds/regions/south-asia/traditions/darshana-commentarial-ecologies",
+          "branch_role": "darshana commentarial-ecology branch",
+          "dossier_id": "T2-31"
+        },
+        {
+          "branch_path": "ToS/philosophy/eras/medieval-worlds/regions/south-asia/traditions/advaita-vedanta-post-shankara-lines",
+          "branch_role": "Advaita Vedanta and post-Shankara lineages branch",
+          "dossier_id": "T2-32"
+        },
+        {
+          "branch_path": "ToS/philosophy/eras/medieval-worlds/regions/south-asia/traditions/vishishtadvaita-dvaita-theistic-vedantas",
+          "branch_role": "Vishishtadvaita, Dvaita, and theistic Vedanta branch",
+          "dossier_id": "T2-33"
+        },
+        {
+          "branch_path": "ToS/philosophy/eras/medieval-worlds/regions/south-asia/traditions/navya-nyaya-analytic-turn",
+          "branch_role": "Navya-Nyaya analytic-turn branch",
+          "dossier_id": "T2-34"
+        },
+        {
+          "branch_path": "ToS/philosophy/eras/medieval-worlds/regions/south-asia/traditions/buddhist-logic-epistemology",
+          "branch_role": "Buddhist logic and epistemology branch",
+          "dossier_id": "T2-35"
+        },
+        {
+          "branch_path": "ToS/philosophy/eras/medieval-worlds/regions/south-asia/traditions/late-indian-buddhist-scholastic-monastic-universities",
+          "branch_role": "late Indian Buddhist scholastic and monastic-university branch",
+          "dossier_id": "T2-36"
+        },
+        {
+          "branch_path": "ToS/philosophy/eras/medieval-worlds/regions/south-asia/traditions/kashmir-shaivism-tantric-philosophy-aesthetics",
+          "branch_role": "Kashmir Shaivism, tantric philosophy, and aesthetics branch",
+          "dossier_id": "T2-37"
+        },
+        {
+          "branch_path": "ToS/philosophy/eras/medieval-worlds/regions/south-asia/traditions/jain-medieval-philosophy-many-sided-logic",
+          "branch_role": "Jain medieval philosophy and many-sided logic branch",
+          "dossier_id": "T2-38"
+        },
+        {
+          "branch_path": "ToS/philosophy/eras/medieval-worlds/regions/sri-lanka/traditions/pali-scholastic-commentarial-handoff",
+          "branch_role": "Sri Lankan Pali scholastic and commentarial-handoff branch",
+          "dossier_id": "T2-39"
+        },
+        {
+          "branch_path": "ToS/philosophy/eras/medieval-worlds/regions/southeast-asia/traditions/theravada-sri-lanka-mainland-corridor",
+          "branch_role": "Theravada Sri Lanka-to-mainland transmission-corridor branch",
+          "dossier_id": "T2-40"
+        },
+        {
+          "accepted_input_title": "Санскритская космопольная книжность Юго-Восточной Азии",
+          "branch_path": "ToS/philosophy/eras/medieval-worlds/regions/southeast-asia/traditions/sanskrit-cosmopolitan-literary-world",
+          "branch_role": "Southeast Asian Sanskrit cosmopolitan literary-world branch",
+          "dossier_id": "T2-41"
+        },
+        {
+          "branch_path": "ToS/philosophy/eras/medieval-worlds/regions/tibetan-world/traditions/imperial-tibetan-translation-canon-formation",
+          "branch_role": "imperial Tibetan translation project and canon-formation branch",
+          "dossier_id": "T2-42"
+        },
+        {
+          "branch_path": "ToS/philosophy/eras/medieval-worlds/regions/tibetan-world/traditions/tibetan-schools-debate-culture",
+          "branch_role": "Tibetan philosophical schools and debate-culture branch",
+          "dossier_id": "T2-43"
+        },
+        {
+          "branch_path": "ToS/philosophy/eras/medieval-worlds/regions/east-asia/traditions/chinese-buddhism-mature-doctrinal-systems",
+          "branch_role": "mature Chinese Buddhist doctrinal-systems branch",
+          "dossier_id": "T2-44"
+        },
+        {
+          "branch_path": "ToS/philosophy/eras/medieval-worlds/regions/east-asia/traditions/daoist-canon-ritual-cosmology-inner-alchemy",
+          "branch_role": "Daoist canonization, ritual cosmology, and inner-alchemy branch",
+          "dossier_id": "T2-45"
+        },
+        {
+          "branch_path": "ToS/philosophy/eras/medieval-worlds/regions/east-asia/traditions/song-yuan-ming-neo-confucianism",
+          "branch_role": "Song-Yuan-Ming Neo-Confucian branch",
+          "dossier_id": "T2-46"
+        },
+        {
+          "branch_path": "ToS/philosophy/eras/medieval-worlds/regions/east-asia/traditions/korean-buddhist-confucian-written-philosophy",
+          "branch_role": "Korean Buddhist and Confucian written-philosophy branch",
+          "dossier_id": "T2-47"
+        },
+        {
+          "branch_path": "ToS/philosophy/eras/medieval-worlds/regions/east-asia/traditions/japanese-buddhist-schools-kanbun-culture",
+          "branch_role": "Japanese Buddhist schools and kanbun-culture branch",
+          "dossier_id": "T2-48"
+        },
+        {
+          "branch_path": "ToS/philosophy/eras/medieval-worlds/regions/east-asia/traditions/vietnamese-confucian-buddhist-state-literature",
+          "branch_role": "Vietnamese Confucian-Buddhist state-literature branch",
+          "dossier_id": "T2-49"
+        },
+        {
+          "branch_path": "ToS/philosophy/eras/medieval-worlds/regions/central-asian-steppe/traditions/central-asian-old-turkic-textual-worlds",
+          "branch_role": "Central Asian and Old Turkic textual-worlds branch",
+          "dossier_id": "T2-50"
+        }
+      ],
+      "support_posture": "49 master-aligned dossiers are plantable from 50 supplied DOCX files; T2-26 is quarantined and T2-51 through T2-58 are absent"
     },
     "table-iii": {
       "dossier_series": null,
@@ -295,5 +583,5 @@
       "routes": []
     }
   },
-  "schema_version": "tos_prepared_dossier_routes_v2"
+  "schema_version": "tos_prepared_dossier_routes_v3"
 }

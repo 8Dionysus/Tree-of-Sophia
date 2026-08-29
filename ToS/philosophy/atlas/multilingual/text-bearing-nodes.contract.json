@@ -41,9 +41,14 @@
     "optional_route_fields": [
       "atlas_row_id",
       "dossier_id",
+      "table_id",
       "source_document",
       "source_row_index",
-      "source_table_index"
+      "source_table_index",
+      "review_posture",
+      "review_reason",
+      "master_status",
+      "master_confidence"
     ]
   },
   "title_block": {
@@ -179,5 +184,8 @@
     "multilingual.translation_status.en",
     "source_ref"
   ],
-  "current_generated_packet_surface": "ToS/philosophy/graph-workbench/language-packets/table-i-text-bearing-nodes.jsonl"
+  "current_generated_packet_surfaces": [
+    "ToS/philosophy/graph-workbench/language-packets/table-i-text-bearing-nodes.jsonl",
+    "ToS/philosophy/graph-workbench/language-packets/table-ii-text-bearing-nodes.jsonl"
+  ]
 }

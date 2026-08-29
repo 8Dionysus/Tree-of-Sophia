@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
-"""Plant the prepared Table I dossier corpus into the ToS philosophy tree.
+"""Plant supported prepared-dossier packages into the ToS philosophy tree.
 
 This script reads the operator-local DOCX corpus and writes only structured
 ToS surfaces: atlas indexes, branch bodies, source-anchor backlogs, and
-pre-canon graph workbench rows.
+pre-canon graph workbench rows.  The historical filename remains as a
+compatibility entrypoint for the first Table I package.
 """
 
 from __future__ import annotations
@@ -23,55 +24,49 @@ from philosophy_multilingual_common import english_label, russian_label
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 DOC_ROOT = Path("/home/dionysus/Загрузки/ToS")
-TABLE_I_ROWS = REPO_ROOT / "ToS/philosophy/atlas/master-tables/table-i/rows.jsonl"
-TABLE_I_MANIFEST = REPO_ROOT / "ToS/philosophy/atlas/master-tables/table-i/table.manifest.json"
 ATLAS_MANIFEST = REPO_ROOT / "ToS/philosophy/atlas/atlas.manifest.json"
 PHILOSOPHY_MANIFEST = REPO_ROOT / "ToS/philosophy/philosophy.manifest.json"
 DOSSIER_INDEX = REPO_ROOT / "ToS/philosophy/atlas/dossiers/index.jsonl"
 DOSSIER_SUMMARY = REPO_ROOT / "ToS/philosophy/atlas/dossiers/graph-shape-summary.json"
 DOSSIER_BRANCH_MANIFEST = REPO_ROOT / "ToS/philosophy/atlas/dossiers/branch.manifest.json"
 PREPARED_DOSSIER_ROUTES = REPO_ROOT / "ToS/philosophy/atlas/dossiers/prepared-dossier-routes.json"
-INTAKE_MANIFEST = REPO_ROOT / "ToS/research-packets/deep-research/philosophy/dossiers/table-i-docx-intake.manifest.json"
-EXTRACTION_COVERAGE = REPO_ROOT / "ToS/research-packets/deep-research/philosophy/dossiers/table-i-docx-extraction-coverage.json"
 SOURCE_ANCHOR_BACKLOG = REPO_ROOT / "ToS/philosophy/atlas/dossiers/source-anchor-backlog.jsonl"
 TERM_INDEX = REPO_ROOT / "ToS/philosophy/atlas/dossiers/term-index.jsonl"
 TRANSMISSION_BACKLOG = REPO_ROOT / "ToS/philosophy/atlas/dossiers/transmission-backlog.jsonl"
-PROPOSED_NODES = REPO_ROOT / "ToS/philosophy/graph-workbench/proposed-nodes/table-i-prepared-dossiers.jsonl"
-PROPOSED_RELATIONS = REPO_ROOT / "ToS/philosophy/graph-workbench/proposed-relations/table-i-prepared-dossiers.jsonl"
-LANGUAGE_PACKETS = REPO_ROOT / "ToS/philosophy/graph-workbench/language-packets/table-i-text-bearing-nodes.jsonl"
 LANGUAGE_PACKETS_MANIFEST = REPO_ROOT / "ToS/philosophy/graph-workbench/language-packets/branch.manifest.json"
 LANGUAGE_PACKETS_README = REPO_ROOT / "ToS/philosophy/graph-workbench/language-packets/README.md"
 LANGUAGE_PACKET_CONTRACT_REF = "ToS/philosophy/atlas/multilingual/text-bearing-nodes.contract.json"
 LANGUAGE_REGISTRY_REF = "ToS/philosophy/atlas/multilingual/language-registry.json"
-BRANCH_FRAGMENTS = REPO_ROOT / "ToS/philosophy/graph-workbench/branch-fragments/table-i-prepared-dossier-branches.json"
-PROMOTION_LEDGER = REPO_ROOT / "ToS/philosophy/graph-workbench/promotion-ledger/table-i-prepared-dossiers.md"
 OBSOLETE_GENERATED_BRANCH = REPO_ROOT / "ToS/philosophy/eras/bronze-age/regions/ancient-near-east"
 TEXT_BEARING_NODE_KINDS = {"text_corpus"}
-INTAKE_RECORDED_ON = "2026-08-27"
+INTAKE_RECORDED_ON = {"table-i": "2026-08-27", "table-ii": "2026-08-29"}
 
 
-def load_table_i_package() -> dict[str, Any]:
+def load_packages() -> dict[str, dict[str, Any]]:
     payload = json.loads(PREPARED_DOSSIER_ROUTES.read_text(encoding="utf-8"))
     packages = payload.get("packages")
     if not isinstance(packages, dict):
         raise ValueError("prepared-dossier-routes.json must expose packages")
-    table_i = packages.get("table-i")
-    if not isinstance(table_i, dict):
-        raise ValueError("prepared-dossier-routes.json must expose a table-i package")
-    return table_i
+    if not all(isinstance(package, dict) for package in packages.values()):
+        raise ValueError("prepared-dossier-routes.json packages must be objects")
+    return packages
 
 
-TABLE_I_PACKAGE = load_table_i_package()
+PACKAGES = load_packages()
 
 
-def load_table_i_routes() -> dict[str, dict[str, Any]]:
-    table_i = TABLE_I_PACKAGE
-    routes = table_i.get("routes")
+def load_package_routes(table_id: str) -> dict[str, dict[str, Any]]:
+    package = PACKAGES.get(table_id)
+    if not isinstance(package, dict):
+        raise ValueError(f"prepared-dossier-routes.json must expose a {table_id} package")
+    routes = package.get("routes")
     if not isinstance(routes, list):
-        raise ValueError("prepared-dossier-routes.json table-i.routes must be a list")
-    defaults = table_i.get("route_defaults")
+        raise ValueError(f"prepared-dossier-routes.json {table_id}.routes must be a list")
+    defaults = package.get("route_defaults")
+    if not routes:
+        return {}
     if not isinstance(defaults, dict):
-        raise ValueError("prepared-dossier-routes.json table-i.route_defaults must be an object")
+        raise ValueError(f"prepared-dossier-routes.json {table_id}.route_defaults must be an object")
     prepared_routes: dict[str, dict[str, Any]] = {}
     for route in routes:
         if not isinstance(route, dict):
@@ -88,18 +83,89 @@ def load_table_i_routes() -> dict[str, dict[str, Any]]:
         route_kind = str(merged.get("route_kind") or "")
         if not review_posture or not route_kind:
             raise ValueError("prepared dossier routes must resolve review_posture and route_kind")
+        merged["table_id"] = table_id
         prepared_routes[dossier_id] = merged
     return prepared_routes
 
 
-ROUTES = load_table_i_routes()
+PACKAGE_ROUTES = {table_id: load_package_routes(table_id) for table_id in PACKAGES}
+SUPPORTED_TABLES = tuple(table_id for table_id, routes in PACKAGE_ROUTES.items() if routes)
+if "table-i" not in SUPPORTED_TABLES:
+    raise ValueError("Table I compatibility package must remain supported")
+ROUTES = {
+    dossier_id: route
+    for routes in PACKAGE_ROUTES.values()
+    for dossier_id, route in routes.items()
+}
+if len(ROUTES) != sum(len(routes) for routes in PACKAGE_ROUTES.values()):
+    raise ValueError("prepared dossier ids must be unique across supported packages")
+TABLE_I_PACKAGE = PACKAGES["table-i"]
+TABLE_II_PACKAGE = PACKAGES["table-ii"]
+TABLE_I_ROUTES = PACKAGE_ROUTES["table-i"]
+TABLE_II_ROUTES = PACKAGE_ROUTES["table-ii"]
 BRANCHES = {
+    dossier_id: (str(route["branch_path"]), str(route["branch_role"]))
+    for dossier_id, route in TABLE_I_ROUTES.items()
+}
+TABLE_II_BRANCHES = {
+    dossier_id: (str(route["branch_path"]), str(route["branch_role"]))
+    for dossier_id, route in TABLE_II_ROUTES.items()
+}
+ALL_BRANCHES = {
     dossier_id: (str(route["branch_path"]), str(route["branch_role"]))
     for dossier_id, route in ROUTES.items()
 }
 TABLE_I_DOCX_SECTIONS = tuple(str(value) for value in TABLE_I_PACKAGE.get("docx_sections", []))
+TABLE_II_DOCX_SECTIONS = tuple(str(value) for value in TABLE_II_PACKAGE.get("docx_sections", []))
 if not TABLE_I_DOCX_SECTIONS:
     raise ValueError("prepared-dossier-routes.json table-i.docx_sections must be non-empty")
+
+
+def master_rows_path(table_id: str) -> Path:
+    return REPO_ROOT / f"ToS/philosophy/atlas/master-tables/{table_id}/rows.jsonl"
+
+
+def master_manifest_path(table_id: str) -> Path:
+    return REPO_ROOT / f"ToS/philosophy/atlas/master-tables/{table_id}/table.manifest.json"
+
+
+def package_path(table_id: str, field: str) -> Path:
+    value = PACKAGES[table_id].get(field)
+    if not isinstance(value, str) or not value:
+        raise ValueError(f"{table_id}.{field} must be a repo-relative path")
+    return REPO_ROOT / value
+
+
+def proposed_nodes_path(table_id: str) -> Path:
+    return REPO_ROOT / f"ToS/philosophy/graph-workbench/proposed-nodes/{table_id}-prepared-dossiers.jsonl"
+
+
+def proposed_relations_path(table_id: str) -> Path:
+    return REPO_ROOT / f"ToS/philosophy/graph-workbench/proposed-relations/{table_id}-prepared-dossiers.jsonl"
+
+
+def language_packets_path(table_id: str) -> Path:
+    return REPO_ROOT / f"ToS/philosophy/graph-workbench/language-packets/{table_id}-text-bearing-nodes.jsonl"
+
+
+def branch_fragments_path(table_id: str) -> Path:
+    return REPO_ROOT / f"ToS/philosophy/graph-workbench/branch-fragments/{table_id}-prepared-dossier-branches.json"
+
+
+def promotion_ledger_path(table_id: str) -> Path:
+    return REPO_ROOT / f"ToS/philosophy/graph-workbench/promotion-ledger/{table_id}-prepared-dossiers.md"
+
+
+# Historical names stay import-compatible for existing Table I tests and tools.
+TABLE_I_ROWS = master_rows_path("table-i")
+TABLE_I_MANIFEST = master_manifest_path("table-i")
+INTAKE_MANIFEST = package_path("table-i", "intake_manifest_ref")
+EXTRACTION_COVERAGE = package_path("table-i", "extraction_coverage_ref")
+PROPOSED_NODES = proposed_nodes_path("table-i")
+PROPOSED_RELATIONS = proposed_relations_path("table-i")
+LANGUAGE_PACKETS = language_packets_path("table-i")
+BRANCH_FRAGMENTS = branch_fragments_path("table-i")
+PROMOTION_LEDGER = promotion_ledger_path("table-i")
 
 NODE_TABLE = ("Node ID", "Тип узла", "Название", "Период", "Связи", "Приоритет")
 RELATION_TABLE = ("Source node", "Relation", "Target node", "Комментарий", "Уверенность")
@@ -108,6 +174,7 @@ CONTROL_SOURCE_TABLE = ("Источник", "Тип", "Зачем нужен", "
 RISK_TABLES = {
     ("Проблема", "В чём риск", "Как контролировать в ToS", "Какие источники нужны"),
     ("Проблема", "Риск", "Как контролировать в ToS", "Какие источники нужны"),
+    ("Риск", "Почему существенен", "Контроль ToS"),
 }
 TERM_TABLE = ("Термин", "Язык", "Транслитерация", "Краткое значение", "Роль в ToS")
 INCOMING_TRANSMISSION_TABLE = (
@@ -124,7 +191,7 @@ OUTGOING_TRANSMISSION_TABLE = (
     "Уверенность",
     "Что проверить дальше",
 )
-IDENTITY_METADATA_TABLES = {("Поле", "Значение")}
+IDENTITY_METADATA_TABLES = {("Поле", "Значение"), ("Поле", "Идентификация")}
 METADATA_TABLES = IDENTITY_METADATA_TABLES | {("Параметр", "Значение")}
 EXTRACTED_TABLE_FAMILIES = {
     NODE_TABLE: "proposed_nodes",
@@ -148,8 +215,95 @@ DEFERRED_CONTEXT_FAMILIES = {
 }
 
 
+def normalized_header_cell(value: str) -> str:
+    value = scrub(value).lower().replace("ё", "е")
+    value = re.sub(r"\s*/\s*", " / ", value)
+    return re.sub(r"\s+", " ", value).strip()
+
+
+def table_family(header: tuple[str, ...]) -> str:
+    normalized = tuple(normalized_header_cell(value) for value in header)
+    if len(normalized) == 6 and normalized[:4] == (
+        "node id",
+        "тип узла",
+        "название",
+        "период",
+    ) and normalized[4] in {"связи", "основные связи", "ключевые связи"} and normalized[5] == "приоритет":
+        return "proposed_nodes"
+    if normalized == tuple(normalized_header_cell(value) for value in RELATION_TABLE):
+        return "proposed_relations"
+    if len(normalized) == 5 and normalized[0:2] == ("источник / корпус", "тип") and normalized[2] in {
+        "что дает",
+        "что даёт",
+    } and normalized[3] == "доступ / где искать" and normalized[4] in {"надежность", "надёжность"}:
+        return "corpus_or_edition_anchors"
+    if normalized == tuple(normalized_header_cell(value) for value in CONTROL_SOURCE_TABLE):
+        return "control_or_review_anchors"
+    if len(normalized) in {2, 3, 4} and normalized[0] in {"проблема", "риск"}:
+        if len(normalized) == 2 and normalized[1] == "что контролировать":
+            return "risk_control_source_needs"
+        if len(normalized) == 3 and normalized[1] == "почему существенен" and normalized[2] in {
+            "контроль",
+            "контроль tos",
+            "контроль в tos",
+        }:
+            return "risk_control_source_needs"
+        if len(normalized) == 4 and normalized[1] in {"в чем риск", "риск"} and normalized[2] in {
+            "как контролировать в tos",
+            "контроль в tos",
+        } and normalized[3] in {"какие источники нужны", "нужные источники", "что требуется"}:
+            return "risk_control_source_needs"
+    if len(normalized) == 5 and normalized[:3] == ("термин", "язык", "транслитерация") and normalized[3] in {
+        "краткое значение",
+        "значение",
+    } and normalized[4] == "роль в tos":
+        return "terms"
+    if len(normalized) == 5 and normalized[0] == "источник / предыдущий узел" and normalized[1] == "что передано" and normalized[2] in {
+        "канал передачи",
+        "канал",
+    } and normalized[3:] == ("уверенность", "примечание"):
+        return "incoming_transmissions"
+    if len(normalized) == 5 and normalized[0] == "следующий узел / эпоха" and normalized[1] == "что передается" and normalized[2:] == (
+        "канал",
+        "уверенность",
+        "что проверить дальше",
+    ):
+        return "outgoing_transmissions"
+    if len(normalized) == 2 and normalized[0] in {"поле", "параметр"} and normalized[1] in {
+        "значение",
+        "идентификация",
+    }:
+        return "dossier_identity_metadata" if normalized[0] == "поле" else "dossier_identity_metadata_alias"
+    for deferred_header, family in DEFERRED_CONTEXT_FAMILIES.items():
+        if normalized == tuple(normalized_header_cell(value) for value in deferred_header):
+            return family
+    return "other_context"
+
+
+STRUCTURED_FAMILIES = {
+    "proposed_nodes",
+    "proposed_relations",
+    "corpus_or_edition_anchors",
+    "control_or_review_anchors",
+    "risk_control_source_needs",
+    "terms",
+    "incoming_transmissions",
+    "outgoing_transmissions",
+}
+
+
+def row_value(row: dict[str, str], *aliases: str) -> str:
+    normalized = {normalized_header_cell(key): value for key, value in row.items()}
+    for alias in aliases:
+        value = normalized.get(normalized_header_cell(alias))
+        if value:
+            return value
+    return ""
+
+
 @dataclass
 class Dossier:
+    table_id: str
     dossier_id: str
     title: str
     source_document: str
@@ -161,6 +315,10 @@ class Dossier:
     master_table: str
     master_status: str
     master_confidence: str
+    branch_path: str | None
+    branch_role: str | None
+    admission_status: str
+    identity_diagnostics: list[str]
     node_rows: list[dict[str, Any]]
     relation_rows: list[dict[str, Any]]
     source_rows: list[dict[str, Any]]
@@ -238,26 +396,45 @@ def table_body(table: Any) -> list[list[str]]:
     return body
 
 
+DOSSIER_ID_PATTERN = re.compile(r"\b(?:A\d{2}|T2-\d{2})\b")
+
+
 def extract_dossier_id(path: Path) -> str:
-    match = re.search(r"\bA\d{2}\b", path.name)
+    match = DOSSIER_ID_PATTERN.search(path.name)
     if not match:
         raise ValueError(f"Cannot find dossier id in {path}")
     return match.group(0)
 
 
-def discover_docx() -> list[Path]:
+def blocked_dossiers(table_id: str) -> dict[str, dict[str, Any]]:
+    values = PACKAGES[table_id].get("blocked_dossiers", [])
+    if not isinstance(values, list):
+        raise ValueError(f"{table_id}.blocked_dossiers must be a list")
+    result: dict[str, dict[str, Any]] = {}
+    for value in values:
+        if not isinstance(value, dict) or not value.get("dossier_id"):
+            raise ValueError(f"{table_id}.blocked_dossiers entries must carry dossier_id")
+        dossier_id = str(value["dossier_id"])
+        if dossier_id in result or dossier_id in PACKAGE_ROUTES[table_id]:
+            raise ValueError(f"duplicate or routed blocked dossier id: {dossier_id}")
+        result[dossier_id] = value
+    return result
+
+
+def discover_docx(table_id: str = "table-i") -> list[Path]:
+    sections = tuple(str(value) for value in PACKAGES[table_id].get("docx_sections", []))
     paths = sorted(
         path
-        for section in TABLE_I_DOCX_SECTIONS
+        for section in sections
         for path in (DOC_ROOT / section).glob("*.docx")
-        if re.search(r"\bA\d{2}\b", path.name)
+        if DOSSIER_ID_PATTERN.search(path.name)
     )
     ids = [extract_dossier_id(path) for path in paths]
-    expected = sorted(BRANCHES)
+    expected = sorted(set(PACKAGE_ROUTES[table_id]) | set(blocked_dossiers(table_id)))
     if len(ids) != len(set(ids)):
         raise SystemExit(f"Prepared dossier ids must be unique, found {sorted(ids)}")
     if sorted(ids) != expected:
-        raise SystemExit(f"Expected prepared dossier ids {expected}, found {sorted(ids)}")
+        raise SystemExit(f"Expected {table_id} prepared dossier ids {expected}, found {sorted(ids)}")
     return paths
 
 
@@ -269,10 +446,29 @@ def load_docx_document(path: Path) -> Any:
     return Document(path)
 
 
-def parse_dossier(path: Path, master_row: dict[str, Any]) -> Dossier:
+def clean_dossier_title(title: str, dossier_id: str) -> str:
+    value = re.sub(r"^ToS Deep Research\s*[:_—-]*\s*", "", scrub(title), flags=re.IGNORECASE)
+    value = re.sub(rf"^{re.escape(dossier_id)}\s*[:—-]*\s*", "", value, flags=re.IGNORECASE)
+    return value.strip()
+
+
+def normalized_title(value: str) -> str:
+    value = value.lower().replace("ё", "е").replace("ā", "a")
+    value = re.sub(r"[^0-9a-zа-я]+", " ", value)
+    return re.sub(r"\s+", " ", value).strip()
+
+
+def parse_dossier(path: Path, master_row: dict[str, Any], table_id: str = "table-i") -> Dossier:
     dossier_id = extract_dossier_id(path)
-    if master_row.get("row_id") != dossier_id or master_row.get("table_id") != "table-i":
-        raise ValueError(f"{dossier_id} does not match its Table I master row")
+    if master_row.get("row_id") != dossier_id or master_row.get("table_id") != table_id:
+        raise ValueError(f"{dossier_id} does not match its {table_id} master row")
+    route = PACKAGE_ROUTES[table_id].get(dossier_id)
+    blocked = blocked_dossiers(table_id).get(dossier_id)
+    if (route is None) == (blocked is None):
+        raise ValueError(f"{dossier_id} must be either routed or explicitly blocked")
+    branch_path = str(route["branch_path"]) if route else None
+    branch_role = str(route["branch_role"]) if route else None
+    admission_status = "admitted" if route else str(blocked.get("posture") or "blocked")
     document = load_docx_document(path)
     paragraphs = [scrub(paragraph.text) for paragraph in document.paragraphs if scrub(paragraph.text)]
     title = paragraphs[0] if paragraphs else f"ToS Deep Research: {dossier_id}"
@@ -286,219 +482,255 @@ def parse_dossier(path: Path, master_row: dict[str, Any]) -> Dossier:
     observed_table_value: str | None = None
     observed_row_value: str | None = None
     table_row = dossier_id
-    master_table = "I"
+    master_table = {"table-i": "I", "table-ii": "II"}.get(table_id, table_id)
+    identity_diagnostics: list[str] = []
 
     for table_index, table in enumerate(document.tables, 1):
         header = table_header(table)
         rows = table_body(table)
-        if header in EXTRACTED_TABLE_FAMILIES:
+        family = table_family(header)
+        if blocked:
+            coverage_class = "quarantined_identity_mismatch"
+            coverage_family = "blocked_master_identity_mismatch"
+        elif family in STRUCTURED_FAMILIES:
             coverage_class = "structured_primary_extracted"
-            coverage_family = EXTRACTED_TABLE_FAMILIES[header]
-        elif header in IDENTITY_METADATA_TABLES:
+            coverage_family = family
+        elif family == "dossier_identity_metadata":
             coverage_class = "identity_metadata_examined"
             coverage_family = "dossier_identity_metadata"
         else:
             coverage_class = "deferred_context"
-            coverage_family = DEFERRED_CONTEXT_FAMILIES.get(header, "other_context")
+            coverage_family = "other_context" if family == "dossier_identity_metadata_alias" else family
         coverage_tables.append(
             {
                 "coverage_class": coverage_class,
                 "family": coverage_family,
                 "header": list(header),
+                **({"underlying_family": family} if blocked else {}),
                 "row_count": len(rows),
                 "source_table_index": table_index,
             }
         )
-        if header in METADATA_TABLES:
+        if family in {"dossier_identity_metadata", "dossier_identity_metadata_alias"}:
             metadata_headers.append(list(header))
             for cells in rows:
                 row = row_dict(header, cells)
-                field_name = row.get(header[0])
+                field_name = row_value(row, "Поле", "Параметр")
+                field_value = row_value(row, "Значение", "Идентификация")
                 if field_name == "ROW_TO_EXPAND":
-                    observed_row_value = row.get("Значение") or observed_row_value
+                    observed_row_value = field_value or observed_row_value
                 if field_name == "Таблица":
-                    observed_table_value = row.get("Значение") or observed_table_value
-        if header == NODE_TABLE:
+                    observed_table_value = field_value or observed_table_value
+        if blocked:
+            continue
+        if family == "proposed_nodes":
             for row_index, cells in enumerate(rows, 1):
                 row = row_dict(header, cells)
-                original_id = row.get("Node ID") or f"{dossier_id}-node-{row_index:03d}"
-                candidate_id = f"table-i-{dossier_id.lower()}-node-{row_index:03d}"
+                original_id = row_value(row, "Node ID") or f"{dossier_id}-node-{row_index:03d}"
+                candidate_id = f"{table_id}-{dossier_id.lower()}-node-{row_index:03d}"
                 node_rows.append(
                     {
                         "atlas_row_id": dossier_id,
                         "authority_posture": "prepared_research_candidate",
-                        "branch_path": BRANCHES[dossier_id][0],
+                        "branch_path": branch_path,
                         "candidate_id": candidate_id,
                         "canon_status": "pre-canon",
-                        "connections": row.get("Связи", ""),
+                        "connections": row_value(row, "Связи", "Основные связи", "Ключевые связи"),
                         "dossier_id": dossier_id,
-                        "label": row.get("Название") or original_id,
-                        "node_kind": row.get("Тип узла") or "unspecified",
+                        "label": row_value(row, "Название") or original_id,
+                        "node_kind": row_value(row, "Тип узла") or "unspecified",
                         "original_node_id": original_id,
-                        "period": row.get("Период", ""),
-                        "priority": row.get("Приоритет", ""),
+                        "period": row_value(row, "Период"),
+                        "priority": row_value(row, "Приоритет"),
                         "source_document": path.name,
                         "source_row_index": row_index,
                         "source_table_index": table_index,
-                        "source_ref": repo_ref(PROPOSED_NODES),
+                        "source_ref": repo_ref(proposed_nodes_path(table_id)),
+                        **({"table_id": table_id} if table_id != "table-i" else {}),
                     }
                 )
-        elif header == RELATION_TABLE:
+        elif family == "proposed_relations":
             for row_index, cells in enumerate(rows, 1):
                 row = row_dict(header, cells)
-                relation_kind = slugify(row.get("Relation", "")).replace("-", "_")
-                candidate_id = f"table-i-{dossier_id.lower()}-relation-{len(relation_rows) + 1:03d}"
+                relation_label = row_value(row, "Relation")
+                relation_kind = slugify(relation_label).replace("-", "_")
+                candidate_id = f"{table_id}-{dossier_id.lower()}-relation-{len(relation_rows) + 1:03d}"
                 relation_rows.append(
                     {
                         "atlas_row_id": dossier_id,
                         "authority_posture": "prepared_research_candidate",
-                        "branch_path": BRANCHES[dossier_id][0],
+                        "branch_path": branch_path,
                         "candidate_id": candidate_id,
                         "canon_status": "pre-canon",
-                        "comment": row.get("Комментарий", ""),
-                        "confidence": row.get("Уверенность", ""),
+                        "comment": row_value(row, "Комментарий"),
+                        "confidence": row_value(row, "Уверенность"),
                         "dossier_id": dossier_id,
                         "relation_kind": relation_kind or "related_to",
-                        "relation_label": row.get("Relation", ""),
+                        "relation_label": relation_label,
                         "source_document": path.name,
-                        "source_endpoint_label": row.get("Source node", ""),
-                        "source_ref": repo_ref(PROPOSED_RELATIONS),
+                        "source_endpoint_label": row_value(row, "Source node"),
+                        "source_ref": repo_ref(proposed_relations_path(table_id)),
                         "source_row_index": row_index,
                         "source_table_index": table_index,
-                        "target_endpoint_label": row.get("Target node", ""),
+                        **({"table_id": table_id} if table_id != "table-i" else {}),
+                        "target_endpoint_label": row_value(row, "Target node"),
                     }
                 )
-        elif header == CORPUS_SOURCE_TABLE:
+        elif family == "corpus_or_edition_anchors":
             for row_index, cells in enumerate(rows, 1):
                 row = row_dict(header, cells)
                 source_rows.append(
                     {
                         "anchor_kind": "corpus_or_edition_anchor",
                         "atlas_row_id": dossier_id,
-                        "branch_path": BRANCHES[dossier_id][0],
-                        "contribution": row.get("Что даёт", ""),
+                        "branch_path": branch_path,
+                        "contribution": row_value(row, "Что даёт", "Что дает"),
                         "dossier_id": dossier_id,
-                        "reliability": row.get("Надёжность", ""),
+                        "reliability": row_value(row, "Надёжность", "Надежность"),
                         "route_status": "source_anchor_backlog",
-                        "source_access": row.get("Доступ / где искать", ""),
+                        "source_access": row_value(row, "Доступ / где искать"),
                         "source_document": path.name,
-                        "source_label": row.get("Источник / корпус", ""),
+                        "source_label": row_value(row, "Источник / корпус"),
                         "source_ref": repo_ref(SOURCE_ANCHOR_BACKLOG),
                         "source_row_index": row_index,
                         "source_table_index": table_index,
-                        "source_type": row.get("Тип", ""),
+                        "source_type": row_value(row, "Тип"),
+                        **({"table_id": table_id} if table_id != "table-i" else {}),
                     }
                 )
-        elif header == CONTROL_SOURCE_TABLE:
+        elif family == "control_or_review_anchors":
             for row_index, cells in enumerate(rows, 1):
                 row = row_dict(header, cells)
                 source_rows.append(
                     {
                         "anchor_kind": "control_or_review_anchor",
                         "atlas_row_id": dossier_id,
-                        "branch_path": BRANCHES[dossier_id][0],
-                        "contribution": row.get("Зачем нужен", ""),
+                        "branch_path": branch_path,
+                        "contribution": row_value(row, "Зачем нужен"),
                         "dossier_id": dossier_id,
-                        "limitations": row.get("Ограничения", ""),
+                        "limitations": row_value(row, "Ограничения"),
                         "route_status": "source_anchor_backlog",
                         "source_document": path.name,
-                        "source_label": row.get("Источник", ""),
+                        "source_label": row_value(row, "Источник"),
                         "source_ref": repo_ref(SOURCE_ANCHOR_BACKLOG),
                         "source_row_index": row_index,
                         "source_table_index": table_index,
-                        "source_type": row.get("Тип", ""),
+                        "source_type": row_value(row, "Тип"),
+                        **({"table_id": table_id} if table_id != "table-i" else {}),
                     }
                 )
-        elif header in RISK_TABLES:
+        elif family == "risk_control_source_needs":
             for row_index, cells in enumerate(rows, 1):
                 row = row_dict(header, cells)
+                first_header = normalized_header_cell(header[0]) if header else ""
+                problem = row_value(row, "Проблема")
+                risk = row_value(row, "В чём риск", "Почему существенен")
+                if first_header == "риск":
+                    problem = ""
+                    risk = risk or row_value(row, "Риск")
+                else:
+                    risk = risk or row_value(row, "Риск")
                 source_rows.append(
                     {
                         "anchor_kind": "risk_control_source_need",
                         "atlas_row_id": dossier_id,
-                        "branch_path": BRANCHES[dossier_id][0],
-                        "control": row.get("Как контролировать в ToS", ""),
+                        "branch_path": branch_path,
+                        "control": row_value(
+                            row,
+                            "Как контролировать в ToS",
+                            "Контроль в ToS",
+                            "Контроль ToS",
+                            "Контроль",
+                            "Что контролировать",
+                        ),
                         "dossier_id": dossier_id,
-                        "needed_sources": row.get("Какие источники нужны", ""),
-                        "problem": row.get("Проблема", ""),
-                        "risk": row.get("В чём риск", "") or row.get("Риск", ""),
+                        "needed_sources": row_value(row, "Какие источники нужны", "Нужные источники", "Что требуется"),
+                        "problem": problem,
+                        "risk": risk,
                         "route_status": "source_anchor_backlog",
                         "source_document": path.name,
                         "source_ref": repo_ref(SOURCE_ANCHOR_BACKLOG),
                         "source_row_index": row_index,
                         "source_table_index": table_index,
+                        **({"table_id": table_id} if table_id != "table-i" else {}),
                     }
                 )
-        elif header == TERM_TABLE:
+        elif family == "terms":
             for row_index, cells in enumerate(rows, 1):
                 row = row_dict(header, cells)
                 term_rows.append(
                     {
                         "atlas_row_id": dossier_id,
-                        "branch_path": BRANCHES[dossier_id][0],
+                        "branch_path": branch_path,
                         "dossier_id": dossier_id,
-                        "language": row.get("Язык", ""),
-                        "meaning": row.get("Краткое значение", ""),
-                        "role_in_tos": row.get("Роль в ToS", ""),
+                        "language": row_value(row, "Язык"),
+                        "meaning": row_value(row, "Краткое значение", "Значение"),
+                        "role_in_tos": row_value(row, "Роль в ToS"),
                         "source_document": path.name,
                         "source_ref": repo_ref(TERM_INDEX),
                         "source_row_index": row_index,
                         "source_table_index": table_index,
-                        "term": row.get("Термин", ""),
-                        "transliteration": row.get("Транслитерация", ""),
+                        **({"table_id": table_id} if table_id != "table-i" else {}),
+                        "term": row_value(row, "Термин"),
+                        "transliteration": row_value(row, "Транслитерация"),
                     }
                 )
-        elif header == INCOMING_TRANSMISSION_TABLE:
+        elif family == "incoming_transmissions":
             for row_index, cells in enumerate(rows, 1):
                 row = row_dict(header, cells)
                 transmission_rows.append(
                     {
                         "atlas_row_id": dossier_id,
-                        "branch_path": BRANCHES[dossier_id][0],
-                        "confidence": row.get("Уверенность", ""),
+                        "branch_path": branch_path,
+                        "confidence": row_value(row, "Уверенность"),
                         "dossier_id": dossier_id,
                         "direction": "incoming",
-                        "from_or_to": row.get("Источник / предыдущий узел", ""),
-                        "note": row.get("Примечание", ""),
+                        "from_or_to": row_value(row, "Источник / предыдущий узел"),
+                        "note": row_value(row, "Примечание"),
                         "source_document": path.name,
                         "source_ref": repo_ref(TRANSMISSION_BACKLOG),
                         "source_row_index": row_index,
                         "source_table_index": table_index,
-                        "transmission_channel": row.get("Канал передачи", ""),
-                        "transmitted": row.get("Что передано", ""),
+                        **({"table_id": table_id} if table_id != "table-i" else {}),
+                        "transmission_channel": row_value(row, "Канал передачи", "Канал"),
+                        "transmitted": row_value(row, "Что передано"),
                     }
                 )
-        elif header == OUTGOING_TRANSMISSION_TABLE:
+        elif family == "outgoing_transmissions":
             for row_index, cells in enumerate(rows, 1):
                 row = row_dict(header, cells)
                 transmission_rows.append(
                     {
                         "atlas_row_id": dossier_id,
-                        "branch_path": BRANCHES[dossier_id][0],
-                        "confidence": row.get("Уверенность", ""),
+                        "branch_path": branch_path,
+                        "confidence": row_value(row, "Уверенность"),
                         "dossier_id": dossier_id,
                         "direction": "outgoing",
-                        "from_or_to": row.get("Следующий узел / эпоха", ""),
+                        "from_or_to": row_value(row, "Следующий узел / эпоха"),
                         "source_document": path.name,
                         "source_ref": repo_ref(TRANSMISSION_BACKLOG),
                         "source_row_index": row_index,
                         "source_table_index": table_index,
-                        "transmission_channel": row.get("Канал", ""),
-                        "transmitted": row.get("Что передаётся", ""),
-                        "verify_next": row.get("Что проверить дальше", ""),
+                        **({"table_id": table_id} if table_id != "table-i" else {}),
+                        "transmission_channel": row_value(row, "Канал"),
+                        "transmitted": row_value(row, "Что передаётся", "Что передается"),
+                        "verify_next": row_value(row, "Что проверить дальше"),
                     }
                 )
 
     if observed_row_value:
-        observed_id = re.search(r"\bA\d{2}\b", observed_row_value)
+        observed_id = DOSSIER_ID_PATTERN.search(observed_row_value)
         if not observed_id or observed_id.group(0) != dossier_id:
             raise ValueError(f"{dossier_id} DOCX ROW_TO_EXPAND does not match its master-table identity")
         table_row = observed_row_value
     if observed_table_value:
         normalized_table = scrub(observed_table_value)
-        if normalized_table not in {"I", "Table I", "Таблица I"}:
-            raise ValueError(f"{dossier_id} DOCX table identity is not Table I: {normalized_table}")
-        master_table = "I"
+        accepted_tables = {
+            "table-i": {"I", "Table I", "Таблица I"},
+            "table-ii": {"II", "Table II", "Таблица II"},
+        }.get(table_id, {table_id})
+        if normalized_table not in accepted_tables:
+            raise ValueError(f"{dossier_id} DOCX table identity is not {table_id}: {normalized_table}")
     if observed_row_value and observed_table_value:
         metadata_identity_posture = "docx_metadata_cross_checked"
     elif observed_row_value or observed_table_value:
@@ -509,16 +741,36 @@ def parse_dossier(path: Path, master_row: dict[str, Any]) -> Dossier:
     normalized_master = master_row.get("normalized")
     if not isinstance(normalized_master, dict):
         raise ValueError(f"{dossier_id} master row must expose normalized metadata")
-    route_projection = explicit_route_fields(
-        dossier_id,
-        master_status=str(normalized_master.get("status") or ""),
-        master_confidence=str(normalized_master.get("confidence") or ""),
-    )
-    for rows in (node_rows, relation_rows, source_rows, term_rows, transmission_rows):
-        for row in rows:
-            row.update(route_projection)
+    if table_id == "table-ii":
+        observed_clean_title = clean_dossier_title(title, dossier_id)
+        if blocked:
+            expected_input_title = str(blocked.get("observed_input_title") or "")
+            if normalized_title(observed_clean_title) != normalized_title(expected_input_title):
+                raise ValueError(f"{dossier_id} blocked artifact title changed; review quarantine before planting")
+            identity_diagnostics.append("master_identity_mismatch_quarantined")
+            metadata_identity_posture = "filename_and_artifact_title_recorded_master_mismatch"
+        else:
+            expected_title = str(route.get("accepted_input_title") or normalized_master.get("research_node") or "")
+            if normalized_title(observed_clean_title) != normalized_title(expected_title):
+                raise ValueError(
+                    f"{dossier_id} DOCX title does not match its reviewed Table II route: "
+                    f"{observed_clean_title!r} != {expected_title!r}"
+                )
+            if not observed_row_value and not observed_table_value:
+                metadata_identity_posture = "filename_title_master_cross_checked"
+
+    if route:
+        route_projection = explicit_route_fields(
+            dossier_id,
+            master_status=str(normalized_master.get("status") or ""),
+            master_confidence=str(normalized_master.get("confidence") or ""),
+        )
+        for extracted_rows in (node_rows, relation_rows, source_rows, term_rows, transmission_rows):
+            for row in extracted_rows:
+                row.update(route_projection)
 
     return Dossier(
+        table_id=table_id,
         dossier_id=dossier_id,
         title=title,
         source_document=path.name,
@@ -530,6 +782,10 @@ def parse_dossier(path: Path, master_row: dict[str, Any]) -> Dossier:
         master_table=master_table,
         master_status=str(normalized_master.get("status") or ""),
         master_confidence=str(normalized_master.get("confidence") or ""),
+        branch_path=branch_path,
+        branch_role=branch_role,
+        admission_status=admission_status,
+        identity_diagnostics=identity_diagnostics,
         node_rows=node_rows,
         relation_rows=relation_rows,
         source_rows=source_rows,
@@ -556,14 +812,30 @@ def explicit_route_fields(
 ) -> dict[str, Any]:
     """Return only route metadata that changes the default planting contract."""
     route = route_metadata(dossier_id)
-    defaults = TABLE_I_PACKAGE["route_defaults"]
-    manual_review = route["review_posture"] == "manual_review_required"
+    table_id = str(route["table_id"])
+    package = PACKAGES[table_id]
+    defaults = package["route_defaults"]
+    review_policy = package.get("review_policy")
+    if not isinstance(review_policy, dict):
+        review_policy = {}
+    manual_statuses = {str(value) for value in review_policy.get("manual_review_statuses", [])}
+    max_confidence = review_policy.get("manual_review_max_confidence")
+    try:
+        confidence_value = int(master_confidence)
+    except (TypeError, ValueError):
+        confidence_value = None
+    manual_by_policy = master_status in manual_statuses or (
+        isinstance(max_confidence, int)
+        and confidence_value is not None
+        and confidence_value <= max_confidence
+    )
+    manual_review = route["review_posture"] == "manual_review_required" or manual_by_policy
     non_default_route = route["route_kind"] != defaults["route_kind"]
     if not manual_review and not non_default_route:
         return {}
 
     payload: dict[str, Any] = {
-        "review_posture": str(route["review_posture"]),
+        "review_posture": "manual_review_required" if manual_review else str(route["review_posture"]),
         "route_kind": str(route["route_kind"]),
     }
     if manual_review:
@@ -575,9 +847,19 @@ def explicit_route_fields(
         )
     if route.get("review_reason"):
         payload["review_reason"] = str(route["review_reason"])
+    elif manual_by_policy:
+        payload["review_reason"] = (
+            f"{table_id} master status {master_status or 'unknown'} and confidence "
+            f"{master_confidence or 'unknown'} require manual review under the package review policy"
+        )
     if isinstance(route.get("route_constraints"), list):
         payload["route_constraints"] = [str(value) for value in route["route_constraints"]]
     return payload
+
+
+def dossier_sort_key(dossier: Dossier) -> tuple[str, int]:
+    match = re.search(r"(\d+)$", dossier.dossier_id)
+    return dossier.table_id, int(match.group(1)) if match else 0
 
 
 def file_sha256(path: Path) -> str:
@@ -638,14 +920,20 @@ def intake_fingerprint(records: list[dict[str, Any]]) -> str:
 
 
 def build_intake_manifest(dossiers: list[Dossier]) -> dict[str, Any]:
+    table_ids = {dossier.table_id for dossier in dossiers}
+    if len(table_ids) != 1:
+        raise ValueError("intake manifest must be built for exactly one table package")
+    table_id = next(iter(table_ids))
+    intake_manifest = package_path(table_id, "intake_manifest_ref")
     records: list[dict[str, Any]] = []
-    for dossier in sorted(dossiers, key=lambda item: int(item.dossier_id[1:])):
+    for dossier in sorted(dossiers, key=dossier_sort_key):
         package_metadata = docx_package_metadata(dossier.docx_path)
         records.append(
             {
                 "creator": package_metadata["creator"],
                 "custom_generator": package_metadata["custom_generator"],
                 "dossier_id": dossier.dossier_id,
+                **({"admission_status": dossier.admission_status} if table_id != "table-i" else {}),
                 "last_modified_by": package_metadata["last_modified_by"],
                 "relative_path": f"{dossier.docx_section}/{dossier.source_document}",
                 "section": dossier.docx_section,
@@ -656,15 +944,20 @@ def build_intake_manifest(dossiers: list[Dossier]) -> dict[str, Any]:
         )
     by_section = {
         section: [row for row in records if row["section"] == section]
-        for section in TABLE_I_DOCX_SECTIONS
+        for section in PACKAGES[table_id].get("docx_sections", [])
     }
     return {
         "schema_version": "tos_philosophy_docx_intake_manifest_v1",
-        "path": repo_ref(INTAKE_MANIFEST),
+        "path": repo_ref(intake_manifest),
         "owner_repo": "Tree-of-Sophia",
         "owner_surface": "ToS/research-packets/deep-research/philosophy/packet-contract.md",
-        "recorded_on": INTAKE_RECORDED_ON,
-        "artifact_role": "operator-local prepared Table I dossier extraction input",
+        "recorded_on": INTAKE_RECORDED_ON[table_id],
+        **({"table_id": table_id} if table_id != "table-i" else {}),
+        "artifact_role": (
+            "operator-local prepared Table I dossier extraction input"
+            if table_id == "table-i"
+            else f"operator-local prepared {table_id} dossier extraction input"
+        ),
         "capture_posture": {
             "custody": "operator_local_untracked_payload",
             "origin_verification": "unverified",
@@ -679,6 +972,18 @@ def build_intake_manifest(dossiers: list[Dossier]) -> dict[str, Any]:
                 else "no_ooxml_signature_parts_observed"
             ),
         },
+        **(
+            {
+                "artifact_trust_posture": {
+                    "artifact_class": "operator_local_research_docx_bundle",
+                    "registered_trust_class": False,
+                    "verdict": "unknown",
+                    "reason": "No registered research-DOCX trust class, authenticated producer, signature, or verified origin is available; exact local research intake remains claim-limited.",
+                }
+            }
+            if table_id != "table-i"
+            else {}
+        ),
         "fingerprint_contract": {
             "algorithm": "sha256",
             "record_format": "relative_path<TAB>size_bytes<TAB>sha256<LF>",
@@ -691,6 +996,14 @@ def build_intake_manifest(dossiers: list[Dossier]) -> dict[str, Any]:
         },
         "section_counts": {section: len(section_records) for section, section_records in by_section.items()},
         "file_count": len(records),
+        **(
+            {
+                "admitted_file_count": sum(1 for dossier in dossiers if dossier.admission_status == "admitted"),
+                "quarantined_file_count": sum(1 for dossier in dossiers if dossier.admission_status != "admitted"),
+            }
+            if table_id != "table-i"
+            else {}
+        ),
         "files": records,
         "claim_limit": (
             "This manifest proves only the bytes, sizes, logical section paths, and OOXML metadata observed in the "
@@ -723,13 +1036,28 @@ def coverage_summary(dossiers: list[Dossier]) -> dict[str, Any]:
 
 
 def build_extraction_coverage(dossiers: list[Dossier]) -> dict[str, Any]:
+    table_ids = {dossier.table_id for dossier in dossiers}
+    if len(table_ids) != 1:
+        raise ValueError("extraction coverage must be built for exactly one table package")
+    table_id = next(iter(table_ids))
+    intake_manifest = package_path(table_id, "intake_manifest_ref")
+    extraction_coverage = package_path(table_id, "extraction_coverage_ref")
     diagnostics: list[dict[str, Any]] = []
     dossier_rows: list[dict[str, Any]] = []
-    for dossier in sorted(dossiers, key=lambda item: int(item.dossier_id[1:])):
+    for dossier in sorted(dossiers, key=dossier_sort_key):
         summary = coverage_summary([dossier])
         risk_rows = int(summary["family_row_counts"].get("risk_control_source_needs", 0))
-        dossier_diagnostics: list[str] = []
-        if risk_rows == 0:
+        dossier_diagnostics: list[str] = list(dossier.identity_diagnostics)
+        if dossier.admission_status != "admitted":
+            diagnostics.append(
+                {
+                    "code": dossier.admission_status,
+                    "dossier_id": dossier.dossier_id,
+                    "posture": "artifact_accounted_but_no_structured_semantic_output",
+                    "message": "The supplied artifact conflicts with its master identity and is quarantined from planting.",
+                }
+            )
+        elif risk_rows == 0:
             dossier_diagnostics.append("structured_risk_table_absent")
             diagnostics.append(
                 {
@@ -741,14 +1069,25 @@ def build_extraction_coverage(dossiers: list[Dossier]) -> dict[str, Any]:
             )
         if dossier.metadata_identity_posture != "docx_metadata_cross_checked":
             dossier_diagnostics.append(dossier.metadata_identity_posture)
+        route = PACKAGE_ROUTES[table_id].get(dossier.dossier_id)
+        route_fields = (
+            explicit_route_fields(
+                dossier.dossier_id,
+                master_status=dossier.master_status,
+                master_confidence=dossier.master_confidence,
+            )
+            if route
+            else {}
+        )
         dossier_rows.append(
             {
+                **({"admission_status": dossier.admission_status} if table_id != "table-i" else {}),
                 "dossier_id": dossier.dossier_id,
                 "docx_section": dossier.docx_section,
                 "metadata_headers": dossier.metadata_headers,
                 "metadata_identity_posture": dossier.metadata_identity_posture,
-                "review_posture": str(route_metadata(dossier.dossier_id)["review_posture"]),
-                "route_kind": str(route_metadata(dossier.dossier_id)["route_kind"]),
+                "review_posture": route_fields.get("review_posture", str(route["review_posture"])) if route else "not_applicable_quarantined",
+                "route_kind": str(route["route_kind"]) if route else "blocked_identity_mismatch",
                 "structured_risk_row_count": risk_rows,
                 "coverage": summary,
                 "diagnostics": dossier_diagnostics,
@@ -756,21 +1095,25 @@ def build_extraction_coverage(dossiers: list[Dossier]) -> dict[str, Any]:
         )
     by_section = {
         section: coverage_summary([dossier for dossier in dossiers if dossier.docx_section == section])
-        for section in TABLE_I_DOCX_SECTIONS
+        for section in PACKAGES[table_id].get("docx_sections", [])
     }
     return {
         "schema_version": "tos_philosophy_docx_extraction_coverage_v1",
-        "path": repo_ref(EXTRACTION_COVERAGE),
+        "path": repo_ref(extraction_coverage),
         "owner_repo": "Tree-of-Sophia",
         "owner_surface": "ToS/philosophy/graph-workbench/PLANTING_INTERFACE.md",
-        "intake_manifest_ref": repo_ref(INTAKE_MANIFEST),
+        **({"table_id": table_id} if table_id != "table-i" else {}),
+        "intake_manifest_ref": repo_ref(intake_manifest),
         "route_map_ref": repo_ref(PREPARED_DOSSIER_ROUTES),
         "coverage_posture": "bounded_structured_planting_not_full_dossier_transfer",
-        "structured_primary_families": sorted(set(EXTRACTED_TABLE_FAMILIES.values())),
+        "structured_primary_families": sorted(STRUCTURED_FAMILIES),
         "identity_metadata_rule": (
             "Поле|Значение rows are examined only to cross-check Table I and ROW_TO_EXPAND; other metadata values "
             "are not represented as full dossier transfer. The A44 Параметр|Значение alias is also inspected for "
             "those two identity fields, but the table remains counted as deferred context."
+            if table_id == "table-i"
+            else "Поле|Значение, Поле|Идентификация, and Параметр|Значение rows are examined only to cross-check "
+            "the package table and ROW_TO_EXPAND identity; other metadata values are not represented as full dossier transfer."
         ),
         "deferred_context_rule": (
             "Context table rows remain in the operator-local DOCX and are counted here; they are not silently "
@@ -788,49 +1131,100 @@ def build_extraction_coverage(dossiers: list[Dossier]) -> dict[str, Any]:
 
 
 def write_intake_and_coverage_surfaces(dossiers: list[Dossier]) -> None:
-    write_json(INTAKE_MANIFEST, build_intake_manifest(dossiers))
-    write_json(EXTRACTION_COVERAGE, build_extraction_coverage(dossiers))
+    table_id = dossiers[0].table_id
+    write_json(package_path(table_id, "intake_manifest_ref"), build_intake_manifest(dossiers))
+    write_json(package_path(table_id, "extraction_coverage_ref"), build_extraction_coverage(dossiers))
 
 
 def update_atlas(dossiers: list[Dossier]) -> None:
-    by_id = {dossier.dossier_id: dossier for dossier in dossiers}
-    rows = load_jsonl(TABLE_I_ROWS)
-    for row in rows:
-        row_id = str(row.get("row_id") or "")
-        if row_id in by_id:
-            row["dossier_available"] = True
-            row["dossier_id"] = row_id
-            row.setdefault("normalized", {})["prepared_branch_path"] = BRANCHES[row_id][0]
-        else:
-            row["dossier_available"] = False
-            row["dossier_id"] = None
-            if isinstance(row.get("normalized"), dict):
-                row["normalized"].pop("prepared_branch_path", None)
-    write_jsonl(TABLE_I_ROWS, rows)
+    admitted = [dossier for dossier in dossiers if dossier.admission_status == "admitted"]
+    by_table = {table_id: [dossier for dossier in dossiers if dossier.table_id == table_id] for table_id in SUPPORTED_TABLES}
+    for table_id, package_dossiers in by_table.items():
+        admitted_by_id = {
+            dossier.dossier_id: dossier
+            for dossier in package_dossiers
+            if dossier.admission_status == "admitted"
+        }
+        blocked_by_id = {
+            dossier.dossier_id: dossier
+            for dossier in package_dossiers
+            if dossier.admission_status != "admitted"
+        }
+        rows = load_jsonl(master_rows_path(table_id))
+        for row in rows:
+            row_id = str(row.get("row_id") or "")
+            normalized = row.setdefault("normalized", {})
+            if row_id in admitted_by_id:
+                row["dossier_available"] = True
+                row["dossier_id"] = row_id
+                normalized["prepared_branch_path"] = str(admitted_by_id[row_id].branch_path)
+                if table_id != "table-i":
+                    normalized["dossier_intake_status"] = "admitted"
+                else:
+                    normalized.pop("dossier_intake_status", None)
+            else:
+                row["dossier_available"] = False
+                row["dossier_id"] = None
+                normalized.pop("prepared_branch_path", None)
+                if row_id in blocked_by_id:
+                    normalized["dossier_intake_status"] = blocked_by_id[row_id].admission_status
+                elif row_id in PACKAGES[table_id].get("missing_master_dossier_ids", []):
+                    normalized["dossier_intake_status"] = "input_not_supplied"
+                else:
+                    normalized.pop("dossier_intake_status", None)
+        write_jsonl(master_rows_path(table_id), rows)
 
-    table_manifest = load_json(TABLE_I_MANIFEST)
-    table_manifest["available_dossiers"] = sorted(by_id, key=lambda value: int(value[1:]))
-    write_json(TABLE_I_MANIFEST, table_manifest)
+        table_manifest = load_json(master_manifest_path(table_id))
+        table_manifest["available_dossiers"] = sorted(admitted_by_id)
+        if table_id != "table-i":
+            table_manifest["available_dossier_count"] = len(admitted_by_id)
+            table_manifest["observed_input_count"] = len(package_dossiers)
+            table_manifest["quarantined_dossiers"] = sorted(blocked_by_id)
+            table_manifest["missing_master_dossier_ids"] = list(PACKAGES[table_id].get("missing_master_dossier_ids", []))
+        else:
+            for key in (
+                "available_dossier_count",
+                "observed_input_count",
+                "quarantined_dossiers",
+                "missing_master_dossier_ids",
+            ):
+                table_manifest.pop(key, None)
+        write_json(master_manifest_path(table_id), table_manifest)
 
     atlas_manifest = load_json(ATLAS_MANIFEST)
-    atlas_manifest["dossiers"]["available_count"] = len(dossiers)
+    atlas_manifest["dossiers"]["available_count"] = len(admitted)
     atlas_manifest["dossiers"]["route_map"] = repo_ref(PREPARED_DOSSIER_ROUTES)
+    atlas_manifest["dossiers"]["intake_manifests"] = [
+        repo_ref(package_path(table_id, "intake_manifest_ref")) for table_id in SUPPORTED_TABLES
+    ]
+    atlas_manifest["dossiers"]["extraction_coverages"] = [
+        repo_ref(package_path(table_id, "extraction_coverage_ref")) for table_id in SUPPORTED_TABLES
+    ]
     atlas_manifest["dossiers"]["intake_manifest"] = repo_ref(INTAKE_MANIFEST)
     atlas_manifest["dossiers"]["extraction_coverage"] = repo_ref(EXTRACTION_COVERAGE)
+    atlas_manifest["role"] = (
+        "prepared atlas for ToS philosophy growth from master tables and admitted prepared dossiers"
+    )
     write_json(ATLAS_MANIFEST, atlas_manifest)
 
     dossier_branch = load_json(DOSSIER_BRANCH_MANIFEST)
-    dossier_branch["dossier_count"] = len(dossiers)
+    dossier_branch["dossier_count"] = len(admitted)
     dossier_branch["source_anchor_backlog"] = repo_ref(SOURCE_ANCHOR_BACKLOG)
     dossier_branch["term_index"] = repo_ref(TERM_INDEX)
     dossier_branch["transmission_backlog"] = repo_ref(TRANSMISSION_BACKLOG)
     dossier_branch["prepared_dossier_routes"] = repo_ref(PREPARED_DOSSIER_ROUTES)
+    dossier_branch["intake_manifests"] = atlas_manifest["dossiers"]["intake_manifests"]
+    dossier_branch["extraction_coverages"] = atlas_manifest["dossiers"]["extraction_coverages"]
     dossier_branch["intake_manifest"] = repo_ref(INTAKE_MANIFEST)
     dossier_branch["extraction_coverage"] = repo_ref(EXTRACTION_COVERAGE)
+    dossier_branch["role"] = (
+        "index of admitted prepared Deep Research dossiers and their graph-shape tables"
+    )
     write_json(DOSSIER_BRANCH_MANIFEST, dossier_branch)
 
 
 def write_dossier_indexes(dossiers: list[Dossier]) -> None:
+    dossiers = [dossier for dossier in dossiers if dossier.admission_status == "admitted"]
     node_counter: Counter[str] = Counter()
     relation_counter: Counter[str] = Counter()
     index_rows: list[dict[str, Any]] = []
@@ -839,6 +1233,11 @@ def write_dossier_indexes(dossiers: list[Dossier]) -> None:
     all_transmissions: list[dict[str, Any]] = []
     for dossier in dossiers:
         route = route_metadata(dossier.dossier_id)
+        route_fields = explicit_route_fields(
+            dossier.dossier_id,
+            master_status=dossier.master_status,
+            master_confidence=dossier.master_confidence,
+        )
         node_type_counts = Counter(str(row.get("node_kind") or "unspecified") for row in dossier.node_rows)
         relation_counts = Counter(str(row.get("relation_kind") or "related_to") for row in dossier.relation_rows)
         node_counter.update(node_type_counts)
@@ -846,12 +1245,13 @@ def write_dossier_indexes(dossiers: list[Dossier]) -> None:
         index_rows.append(
             {
                 "atlas_status": "prepared_dossier_indexed",
-                "branch_path": BRANCHES[dossier.dossier_id][0],
+                "branch_path": dossier.branch_path,
                 "dossier_id": dossier.dossier_id,
                 "docx_section": dossier.docx_section,
-                "extraction_coverage_ref": repo_ref(EXTRACTION_COVERAGE),
-                "intake_manifest_ref": repo_ref(INTAKE_MANIFEST),
+                "extraction_coverage_ref": repo_ref(package_path(dossier.table_id, "extraction_coverage_ref")),
+                "intake_manifest_ref": repo_ref(package_path(dossier.table_id, "intake_manifest_ref")),
                 "master_table": dossier.master_table,
+                "table_id": dossier.table_id,
                 "master_confidence": dossier.master_confidence,
                 "master_status": dossier.master_status,
                 "metadata_identity_posture": dossier.metadata_identity_posture,
@@ -867,8 +1267,12 @@ def write_dossier_indexes(dossiers: list[Dossier]) -> None:
                 "term_count": len(dossier.term_rows),
                 "title": dossier.title,
                 "transmission_count": len(dossier.transmission_rows),
-                "review_posture": str(route["review_posture"]),
-                **({"review_reason": str(route["review_reason"])} if route.get("review_reason") else {}),
+                "review_posture": str(route_fields.get("review_posture") or route["review_posture"]),
+                **(
+                    {"review_reason": str(route_fields.get("review_reason") or route.get("review_reason"))}
+                    if route_fields.get("review_reason") or route.get("review_reason")
+                    else {}
+                ),
                 "route_kind": str(route["route_kind"]),
                 **(
                     {"route_constraints": [str(value) for value in route["route_constraints"]]}
@@ -881,16 +1285,18 @@ def write_dossier_indexes(dossiers: list[Dossier]) -> None:
         all_terms.extend(dossier.term_rows)
         all_transmissions.extend(dossier.transmission_rows)
 
-    write_jsonl(DOSSIER_INDEX, sorted(index_rows, key=lambda row: int(row["dossier_id"][1:])))
+    write_jsonl(DOSSIER_INDEX, sorted(index_rows, key=lambda row: (str(row["table_id"]), str(row["dossier_id"]))))
     write_json(
         DOSSIER_SUMMARY,
         {
             "schema_version": "tos_philosophy_atlas_dossier_graph_shape_v1",
             "path": repo_ref(DOSSIER_SUMMARY),
-            "source": "prepared A-series Deep Research dossier DOCX files",
+            "source": "supported prepared Deep Research dossier DOCX packages",
             "source_posture": "bounded structured extraction from operator-local non-authoritative research packets",
             "intake_manifest_ref": repo_ref(INTAKE_MANIFEST),
+            "intake_manifest_refs": [repo_ref(package_path(table_id, "intake_manifest_ref")) for table_id in SUPPORTED_TABLES],
             "extraction_coverage_ref": repo_ref(EXTRACTION_COVERAGE),
+            "extraction_coverage_refs": [repo_ref(package_path(table_id, "extraction_coverage_ref")) for table_id in SUPPORTED_TABLES],
             "dossier_count": len(dossiers),
             "node_row_count": sum(len(dossier.node_rows) for dossier in dossiers),
             "relation_row_count": sum(len(dossier.relation_rows) for dossier in dossiers),
@@ -906,26 +1312,82 @@ def write_dossier_indexes(dossiers: list[Dossier]) -> None:
     write_jsonl(TRANSMISSION_BACKLOG, all_transmissions)
 
 
+def dossier_local_node_alias(dossier_id: str, original_node_id: str) -> str | None:
+    value = original_node_id.strip()
+    prefixes = (dossier_id, dossier_id.replace("-", ""))
+    for prefix in prefixes:
+        if value.startswith(prefix) and len(value) > len(prefix) and value[len(prefix)] in ".-:":
+            alias = value[len(prefix) + 1 :].strip()
+            return alias or None
+    return None
+
+
+def resolve_dossier_endpoint(
+    label: str,
+    exact_lookup: dict[str, str],
+    casefold_lookup: dict[str, str],
+    local_alias_lookup: dict[str, str],
+) -> str | None:
+    value = label.strip()
+    exact_candidate = exact_lookup.get(value)
+    if exact_candidate:
+        return exact_candidate
+    casefold_candidate = casefold_lookup.get(value.casefold())
+    if casefold_candidate:
+        return casefold_candidate
+    for alias in sorted(local_alias_lookup, key=lambda item: (-len(item), item)):
+        if not value.startswith(alias) or len(value) == len(alias):
+            continue
+        boundary = value[len(alias)]
+        if boundary.isspace() or boundary in ":;,.—–-":
+            return local_alias_lookup[alias]
+    return None
+
+
 def resolve_relation_endpoints(dossiers: list[Dossier]) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
     all_nodes: list[dict[str, Any]] = []
     all_relations: list[dict[str, Any]] = []
     nodes_by_dossier: dict[str, dict[str, str]] = {}
+    casefold_nodes_by_dossier: dict[str, dict[str, str]] = {}
+    local_aliases_by_dossier: dict[str, dict[str, str]] = {}
     for dossier in dossiers:
         lookup: dict[str, str] = {}
+        casefold_claims: dict[str, set[str]] = {}
+        local_alias_claims: dict[str, set[str]] = {}
         for row in dossier.node_rows:
             all_nodes.append(row)
             for key in ("original_node_id", "label"):
                 value = str(row.get(key) or "").strip()
                 if value:
                     lookup[value] = str(row["candidate_id"])
+                    casefold_claims.setdefault(value.casefold(), set()).add(str(row["candidate_id"]))
+                if key == "original_node_id":
+                    local_alias = dossier_local_node_alias(dossier.dossier_id, value)
+                    if local_alias:
+                        local_alias_claims.setdefault(local_alias, set()).add(str(row["candidate_id"]))
+        for local_alias, candidate_ids in local_alias_claims.items():
+            if len(candidate_ids) == 1 and local_alias not in lookup:
+                lookup[local_alias] = next(iter(candidate_ids))
         nodes_by_dossier[dossier.dossier_id] = lookup
+        casefold_nodes_by_dossier[dossier.dossier_id] = {
+            value: next(iter(candidate_ids))
+            for value, candidate_ids in casefold_claims.items()
+            if len(candidate_ids) == 1
+        }
+        local_aliases_by_dossier[dossier.dossier_id] = {
+            local_alias: next(iter(candidate_ids))
+            for local_alias, candidate_ids in local_alias_claims.items()
+            if len(candidate_ids) == 1
+        }
     for dossier in dossiers:
         lookup = nodes_by_dossier[dossier.dossier_id]
+        casefold_lookup = casefold_nodes_by_dossier[dossier.dossier_id]
+        local_alias_lookup = local_aliases_by_dossier[dossier.dossier_id]
         for row in dossier.relation_rows:
             source = str(row.get("source_endpoint_label") or "")
             target = str(row.get("target_endpoint_label") or "")
-            row["source_candidate_id"] = lookup.get(source)
-            row["target_candidate_id"] = lookup.get(target)
+            row["source_candidate_id"] = resolve_dossier_endpoint(source, lookup, casefold_lookup, local_alias_lookup)
+            row["target_candidate_id"] = resolve_dossier_endpoint(target, lookup, casefold_lookup, local_alias_lookup)
             row["endpoint_resolution"] = (
                 "matched_nodes" if row["source_candidate_id"] and row["target_candidate_id"] else "label_endpoint"
             )
@@ -949,13 +1411,26 @@ def _text_status_for_en(label: str) -> tuple[str, str]:
     return translated, status if translated != label or status != "source" else "source"
 
 
+def extracted_row_table_id(row: dict[str, Any]) -> str:
+    value = row.get("table_id")
+    if isinstance(value, str) and value:
+        return value
+    return "table-ii" if str(row.get("dossier_id") or "").startswith("T2-") else "table-i"
+
+
 def text_bearing_language_packet(row: dict[str, Any]) -> dict[str, Any]:
     label = str(row.get("label") or "").strip()
     ru, ru_status = _text_status_for_ru(label)
     en, en_status = _text_status_for_en(label)
-    source_ref = repo_ref(LANGUAGE_PACKETS)
-    source_node_ref = str(row.get("source_ref") or repo_ref(PROPOSED_NODES))
+    table_id = extracted_row_table_id(row)
+    source_ref = repo_ref(language_packets_path(table_id))
+    source_node_ref = str(row.get("source_ref") or repo_ref(proposed_nodes_path(table_id)))
     source_refs = sorted({source_ref, source_node_ref, LANGUAGE_PACKET_CONTRACT_REF, LANGUAGE_REGISTRY_REF})
+    review_metadata = {
+        field: row[field]
+        for field in ("review_posture", "review_reason", "master_status", "master_confidence")
+        if row.get(field) is not None
+    }
     return {
         "schema_version": "tos_philosophy_text_bearing_language_packet_v1",
         "packet_id": f"language-packet:{row['candidate_id']}",
@@ -970,6 +1445,8 @@ def text_bearing_language_packet(row: dict[str, Any]) -> dict[str, Any]:
         "canon_status": row.get("canon_status"),
         "atlas_row_id": row.get("atlas_row_id"),
         "dossier_id": row.get("dossier_id"),
+        **({"table_id": table_id} if table_id != "table-i" else {}),
+        **review_metadata,
         "source_document": row.get("source_document"),
         "source_row_index": row.get("source_row_index"),
         "source_table_index": row.get("source_table_index"),
@@ -1041,7 +1518,12 @@ def build_language_packets(nodes: list[dict[str, Any]]) -> list[dict[str, Any]]:
 
 def write_language_packet_surfaces(nodes: list[dict[str, Any]]) -> list[dict[str, Any]]:
     packets = build_language_packets(nodes)
-    write_jsonl(LANGUAGE_PACKETS, packets)
+    packet_refs: list[str] = []
+    for table_id in SUPPORTED_TABLES:
+        table_packets = [packet for packet in packets if extracted_row_table_id(packet) == table_id]
+        path = language_packets_path(table_id)
+        write_jsonl(path, table_packets)
+        packet_refs.append(repo_ref(path))
     write_json(
         LANGUAGE_PACKETS_MANIFEST,
         {
@@ -1052,17 +1534,19 @@ def write_language_packet_surfaces(nodes: list[dict[str, Any]]) -> list[dict[str
             "language_registry_ref": LANGUAGE_REGISTRY_REF,
             "packet_count": len(packets),
             "source_ref": repo_ref(LANGUAGE_PACKETS),
+            "source_refs": packet_refs,
         },
     )
     LANGUAGE_PACKETS_README.write_text(
         "# Language Packets\n\n"
         "`language-packets/` contains pre-canon language packets for text-bearing philosophy nodes.\n\n"
-        "The current Table I packet file is generated from prepared dossier proposed nodes. "
+        "The package files are generated from supported prepared-dossier proposed nodes. "
         "It records original-language uncertainty, Russian and English display slots, witness posture, "
         "and language/script relation pressure without promoting any source claim to canon.\n\n"
         "| Surface | Role |\n"
         "| --- | --- |\n"
         "| `table-i-text-bearing-nodes.jsonl` | generated packets for Table I text-corpus candidates |\n"
+        "| `table-ii-text-bearing-nodes.jsonl` | generated packets for admitted Table II text-corpus candidates |\n"
         f"| `{LANGUAGE_PACKET_CONTRACT_REF}` | packet contract |\n"
         f"| `{LANGUAGE_REGISTRY_REF}` | language and script registry |\n",
         encoding="utf-8",
@@ -1071,23 +1555,31 @@ def write_language_packet_surfaces(nodes: list[dict[str, Any]]) -> list[dict[str
 
 
 def write_graph_workbench(dossiers: list[Dossier]) -> None:
+    dossiers = [dossier for dossier in dossiers if dossier.admission_status == "admitted"]
     nodes, relations = resolve_relation_endpoints(dossiers)
     language_packets = write_language_packet_surfaces(nodes)
-    write_jsonl(PROPOSED_NODES, nodes)
-    write_jsonl(PROPOSED_RELATIONS, relations)
-    write_json(
-        BRANCH_FRAGMENTS,
-        {
-            "schema_version": "tos_philosophy_branch_fragments_v1",
-            "path": repo_ref(BRANCH_FRAGMENTS),
-            "source_ref": repo_ref(DOSSIER_INDEX),
-            "canon_status": "pre-canon",
-            "branch_count": len(dossiers),
-            "language_packet_count": len(language_packets),
-            "language_packets_ref": repo_ref(LANGUAGE_PACKETS),
-            "branches": [
+    for table_id in SUPPORTED_TABLES:
+        table_dossiers = [dossier for dossier in dossiers if dossier.table_id == table_id]
+        table_nodes = [row for row in nodes if extracted_row_table_id(row) == table_id]
+        table_relations = [row for row in relations if extracted_row_table_id(row) == table_id]
+        table_packets = [packet for packet in language_packets if extracted_row_table_id(packet) == table_id]
+        nodes_path = proposed_nodes_path(table_id)
+        relations_path = proposed_relations_path(table_id)
+        fragments_path = branch_fragments_path(table_id)
+        ledger_path = promotion_ledger_path(table_id)
+        write_jsonl(nodes_path, table_nodes)
+        write_jsonl(relations_path, table_relations)
+        branches: list[dict[str, Any]] = []
+        for dossier in sorted(table_dossiers, key=dossier_sort_key):
+            route = route_metadata(dossier.dossier_id)
+            route_fields = explicit_route_fields(
+                dossier.dossier_id,
+                master_status=dossier.master_status,
+                master_confidence=dossier.master_confidence,
+            )
+            branches.append(
                 {
-                    "branch_path": BRANCHES[dossier.dossier_id][0],
+                    "branch_path": dossier.branch_path,
                     "dossier_id": dossier.dossier_id,
                     "docx_section": dossier.docx_section,
                     "title": dossier.title,
@@ -1096,31 +1588,50 @@ def write_graph_workbench(dossiers: list[Dossier]) -> None:
                     "source_anchor_count": len(dossier.source_rows),
                     "term_count": len(dossier.term_rows),
                     "transmission_count": len(dossier.transmission_rows),
-                    "review_posture": str(route_metadata(dossier.dossier_id)["review_posture"]),
-                    "route_kind": str(route_metadata(dossier.dossier_id)["route_kind"]),
+                    "review_posture": str(route_fields.get("review_posture") or route["review_posture"]),
+                    "route_kind": str(route["route_kind"]),
                 }
-                for dossier in sorted(dossiers, key=lambda item: int(item.dossier_id[1:]))
-            ],
-        },
-    )
-    PROMOTION_LEDGER.parent.mkdir(parents=True, exist_ok=True)
-    PROMOTION_LEDGER.write_text(
-        "# Table I Prepared Dossiers\n\n"
-        "This ledger records the first living planting of the prepared Table I corpus.\n\n"
-        "| Surface | Count | Status |\n"
-        "| --- | ---: | --- |\n"
-        f"| prepared dossiers | {len(dossiers)} | atlas indexed |\n"
-        f"| proposed nodes | {len(nodes)} | pre-canon graph workbench |\n"
-        f"| proposed relations | {len(relations)} | pre-canon graph workbench |\n"
-        f"| text-bearing language packets | {len(language_packets)} | pre-canon multilingual review |\n"
-        f"| branch fragments | {len(dossiers)} | era/region/tradition or explicit frontier branch bodies |\n\n"
-        "Promotion remains a later authored review step through ToS canon route cards.\n",
-        encoding="utf-8",
-    )
+            )
+        write_json(
+            fragments_path,
+            {
+                "schema_version": "tos_philosophy_branch_fragments_v1",
+                "path": repo_ref(fragments_path),
+                "source_ref": repo_ref(DOSSIER_INDEX),
+                **({"table_id": table_id} if table_id != "table-i" else {}),
+                "canon_status": "pre-canon",
+                "branch_count": len(table_dossiers),
+                "language_packet_count": len(table_packets),
+                "language_packets_ref": repo_ref(language_packets_path(table_id)),
+                "branches": branches,
+            },
+        )
+        ledger_path.parent.mkdir(parents=True, exist_ok=True)
+        table_title = "Table I" if table_id == "table-i" else "Table II"
+        intro = (
+            "This ledger records the first living planting of the prepared Table I corpus."
+            if table_id == "table-i"
+            else "This ledger records the bounded planting of the admitted Table II dossier package."
+        )
+        ledger_path.write_text(
+            f"# {table_title} Prepared Dossiers\n\n"
+            f"{intro}\n\n"
+            "| Surface | Count | Status |\n"
+            "| --- | ---: | --- |\n"
+            f"| prepared dossiers | {len(table_dossiers)} | atlas indexed |\n"
+            f"| proposed nodes | {len(table_nodes)} | pre-canon graph workbench |\n"
+            f"| proposed relations | {len(table_relations)} | pre-canon graph workbench |\n"
+            f"| text-bearing language packets | {len(table_packets)} | pre-canon multilingual review |\n"
+            f"| branch fragments | {len(table_dossiers)} | era/region/tradition or explicit frontier branch bodies |\n\n"
+            "Promotion remains a later authored review step through ToS canon route cards.\n",
+            encoding="utf-8",
+        )
 
 
 def branch_title(dossier: Dossier) -> str:
-    return dossier.title.replace("ToS Deep Research:", "").strip()
+    if dossier.table_id == "table-i":
+        return dossier.title.replace("ToS Deep Research:", "").strip()
+    return clean_dossier_title(dossier.title, dossier.dossier_id)
 
 
 def top_counts(rows: list[dict[str, Any]], key: str, limit: int = 8) -> list[str]:
@@ -1132,8 +1643,13 @@ def render_branch_readme(dossier: Dossier) -> str:
     title = branch_title(dossier)
     node_pressure = ", ".join(top_counts(dossier.node_rows, "node_kind")) or "none"
     relation_pressure = ", ".join(top_counts(dossier.relation_rows, "relation_kind")) or "none"
-    path_ref, _role = BRANCHES[dossier.dossier_id]
+    path_ref = str(dossier.branch_path)
     route = route_metadata(dossier.dossier_id)
+    route_fields = explicit_route_fields(
+        dossier.dossier_id,
+        master_status=dossier.master_status,
+        master_confidence=dossier.master_confidence,
+    )
     planting_paths = sorted(
         (REPO_ROOT / path_ref / "sources/plantings").glob(
             "*/source-planting.json"
@@ -1144,14 +1660,15 @@ def render_branch_readme(dossier: Dossier) -> str:
         if planting_paths
         else ""
     )
-    review_reason = str(route.get("review_reason") or "")
+    review_posture = str(route_fields.get("review_posture") or route["review_posture"])
+    review_reason = str(route_fields.get("review_reason") or route.get("review_reason") or "")
     route_constraints = route.get("route_constraints")
     review_block = (
         "## Manual Review Gate\n\n"
-        f"- Posture: `{route['review_posture']}`\n"
+        f"- Posture: `{review_posture}`\n"
         f"- Master-table status/confidence: `{dossier.master_status}/{dossier.master_confidence}`\n"
         f"- Reason: {review_reason}\n\n"
-        if route["review_posture"] == "manual_review_required"
+        if review_posture == "manual_review_required"
         else ""
     )
     constraint_block = (
@@ -1183,8 +1700,8 @@ def render_branch_readme(dossier: Dossier) -> str:
         f"{planting_row}"
         "| `graph-workbench/pre-canon-summary.json` | local summary of proposed graph rows before canon review |\n\n"
         "Global proposed node and relation rows for this branch are aggregated in "
-        "`ToS/philosophy/graph-workbench/proposed-nodes/table-i-prepared-dossiers.jsonl` and "
-        "`ToS/philosophy/graph-workbench/proposed-relations/table-i-prepared-dossiers.jsonl`.\n"
+        f"`{repo_ref(proposed_nodes_path(dossier.table_id))}` and "
+        f"`{repo_ref(proposed_relations_path(dossier.table_id))}`.\n"
     )
 
 
@@ -1198,10 +1715,16 @@ def remove_obsolete_generated_branch() -> None:
 
 
 def write_branch_surfaces(dossiers: list[Dossier]) -> None:
+    dossiers = [dossier for dossier in dossiers if dossier.admission_status == "admitted"]
     remove_obsolete_generated_branch()
     parent_children: dict[str, set[str]] = defaultdict(set)
     parent_roles: dict[str, str] = {}
-    for dossier_id, (path_ref, _role) in BRANCHES.items():
+    for package in PACKAGES.values():
+        ancestor_roles = package.get("ancestor_roles")
+        if isinstance(ancestor_roles, dict):
+            for ancestor_path, ancestor_role in ancestor_roles.items():
+                parent_roles[str(ancestor_path)] = str(ancestor_role)
+    for dossier_id, (path_ref, _role) in ALL_BRANCHES.items():
         ancestor_roles = route_metadata(dossier_id).get("ancestor_roles")
         if isinstance(ancestor_roles, dict):
             for ancestor_path, ancestor_role in ancestor_roles.items():
@@ -1236,7 +1759,8 @@ def write_branch_surfaces(dossiers: list[Dossier]) -> None:
         write_json(path / "branch.manifest.json", payload)
 
     for dossier in dossiers:
-        path_ref, role = BRANCHES[dossier.dossier_id]
+        path_ref = str(dossier.branch_path)
+        role = str(dossier.branch_role)
         path = REPO_ROOT / path_ref
         path.mkdir(parents=True, exist_ok=True)
         planting_refs = sorted(
@@ -1334,8 +1858,8 @@ def write_branch_surfaces(dossiers: list[Dossier]) -> None:
                     master_status=dossier.master_status,
                     master_confidence=dossier.master_confidence,
                 ),
-                "proposed_nodes_ref": repo_ref(PROPOSED_NODES),
-                "proposed_relations_ref": repo_ref(PROPOSED_RELATIONS),
+                "proposed_nodes_ref": repo_ref(proposed_nodes_path(dossier.table_id)),
+                "proposed_relations_ref": repo_ref(proposed_relations_path(dossier.table_id)),
                 "node_row_count": len(dossier.node_rows),
                 "relation_row_count": len(dossier.relation_rows),
                 "node_type_counts": dict(sorted(Counter(str(row.get("node_kind")) for row in dossier.node_rows).items())),
@@ -1363,7 +1887,11 @@ def refresh_philosophy_manifest() -> None:
     )
     manifest["atlas_routes"] = sorted(atlas_routes)
     research_packet_contracts = set(manifest.get("research_packet_contracts", []))
-    research_packet_contracts.update({repo_ref(INTAKE_MANIFEST), repo_ref(EXTRACTION_COVERAGE)})
+    research_packet_contracts.update(
+        repo_ref(package_path(table_id, field))
+        for table_id in SUPPORTED_TABLES
+        for field in ("intake_manifest_ref", "extraction_coverage_ref")
+    )
     manifest["research_packet_contracts"] = sorted(research_packet_contracts)
     write_json(PHILOSOPHY_MANIFEST, manifest)
 
@@ -1371,16 +1899,18 @@ def refresh_philosophy_manifest() -> None:
 def write_readmes() -> None:
     (REPO_ROOT / "ToS/philosophy/atlas/dossiers/README.md").write_text(
         "# Dossiers\n\n"
-        "`dossiers/` indexes the prepared A-series Deep Research documents for the philosophy atlas.\n\n"
-        "The first Table I planting records dossier identity, branch route, graph-row pressure, "
+        "`dossiers/` indexes admitted prepared Deep Research documents for the philosophy atlas.\n\n"
+        "The supported Table I and partial Table II plantings record dossier identity, branch route, graph-row pressure, "
         "source-anchor backlog, terms, and transmission rows while keeping canon promotion separate.\n\n"
         "| Surface | Role |\n"
         "| --- | --- |\n"
-        "| `index.jsonl` | one entry per prepared A-series dossier |\n"
+        "| `index.jsonl` | one entry per admitted prepared dossier |\n"
         "| `graph-shape-summary.json` | aggregate node, relation, source-anchor, term, and transmission pressure |\n"
         "| `prepared-dossier-routes.json` | source-owned route map from prepared dossier ids to philosophy branch homes |\n"
         f"| `{repo_ref(INTAKE_MANIFEST)}` | tracked fixity and capture-posture manifest for the untracked local DOCX bytes |\n"
         f"| `{repo_ref(EXTRACTION_COVERAGE)}` | explicit structured extraction and deferred-context coverage |\n"
+        f"| `{repo_ref(package_path('table-ii', 'intake_manifest_ref'))}` | Table II fixity, admission, and quarantine record |\n"
+        f"| `{repo_ref(package_path('table-ii', 'extraction_coverage_ref'))}` | Table II structured, deferred, and quarantined row accounting |\n"
         "| `source-anchor-backlog.jsonl` | future source witness, edition, corpus, and risk-control anchors |\n"
         "| `term-index.jsonl` | prepared term rows extracted from dossier terminology tables |\n"
         "| `transmission-backlog.jsonl` | incoming and outgoing transmission rows extracted from dossier tables |\n\n"
@@ -1395,7 +1925,7 @@ def write_readmes() -> None:
     (REPO_ROOT / "ToS/philosophy/atlas/README.md").write_text(
         "# Philosophy Atlas\n\n"
         "`atlas/` is the prepared navigation body for the whole ToS philosophy tree.\n\n"
-        "It holds the master-table row spine, prepared A-series dossier index, and aggregate "
+        "It holds the master-table row spine, admitted prepared-dossier index, and aggregate "
         "pressure maps that tell the philosophy tree what must grow next.\n\n"
         "## Shape\n\n"
         "```text\n"
@@ -1432,10 +1962,24 @@ def write_readmes() -> None:
 
 
 def main() -> int:
-    master_rows = {str(row.get("row_id")): row for row in load_jsonl(TABLE_I_ROWS)}
-    dossiers = [parse_dossier(path, master_rows[extract_dossier_id(path)]) for path in discover_docx()]
-    dossiers.sort(key=lambda dossier: int(dossier.dossier_id[1:]))
-    write_intake_and_coverage_surfaces(dossiers)
+    dossiers: list[Dossier] = []
+    dossiers_by_table: dict[str, list[Dossier]] = {}
+    for table_id in SUPPORTED_TABLES:
+        master_rows = {
+            str(row.get("row_id")): row
+            for row in load_jsonl(master_rows_path(table_id))
+        }
+        package_dossiers = [
+            parse_dossier(path, master_rows[extract_dossier_id(path)], table_id)
+            for path in discover_docx(table_id)
+        ]
+        package_dossiers.sort(key=dossier_sort_key)
+        dossiers_by_table[table_id] = package_dossiers
+        dossiers.extend(package_dossiers)
+
+    for table_id in SUPPORTED_TABLES:
+        write_intake_and_coverage_surfaces(dossiers_by_table[table_id])
+    dossiers.sort(key=dossier_sort_key)
     update_atlas(dossiers)
     write_dossier_indexes(dossiers)
     write_graph_workbench(dossiers)
@@ -1443,8 +1987,8 @@ def main() -> int:
     refresh_philosophy_manifest()
     write_readmes()
     print(
-        "[ok] planted Table I prepared dossiers: "
-        f"{len(dossiers)} dossiers, "
+        "[ok] planted supported prepared dossiers: "
+        f"{sum(dossier.admission_status == 'admitted' for dossier in dossiers)} admitted from {len(dossiers)} artifacts, "
         f"{sum(len(dossier.node_rows) for dossier in dossiers)} proposed nodes, "
         f"{sum(len(dossier.relation_rows) for dossier in dossiers)} proposed relations"
     )

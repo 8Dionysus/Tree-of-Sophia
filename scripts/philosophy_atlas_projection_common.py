@@ -20,6 +20,14 @@ SCHEMA_REF = "ToS/contracts/philosophy-atlas-projection.schema.json"
 SOURCE_ATLAS_REF = "ToS/philosophy/atlas/atlas.manifest.json"
 CANDIDATE_NODES_REF = "ToS/philosophy/graph-workbench/proposed-nodes/table-i-prepared-dossiers.jsonl"
 CANDIDATE_RELATIONS_REF = "ToS/philosophy/graph-workbench/proposed-relations/table-i-prepared-dossiers.jsonl"
+CANDIDATE_NODES_REFS = (
+    CANDIDATE_NODES_REF,
+    "ToS/philosophy/graph-workbench/proposed-nodes/table-ii-prepared-dossiers.jsonl",
+)
+CANDIDATE_RELATIONS_REFS = (
+    CANDIDATE_RELATIONS_REF,
+    "ToS/philosophy/graph-workbench/proposed-relations/table-ii-prepared-dossiers.jsonl",
+)
 VALIDATION_REFS = (
     "scripts/build_philosophy_atlas_projection.py",
     "scripts/validate_philosophy_atlas_projection.py",
@@ -131,6 +139,7 @@ def row_projection_fields(row: dict[str, Any]) -> dict[str, Any]:
         "research_node": research_node,
         "dossier_id": row.get("dossier_id"),
         "dossier_available": row.get("dossier_available"),
+        "dossier_intake_status": normalized.get("dossier_intake_status"),
     }
 
 
@@ -163,8 +172,16 @@ def build_payload() -> dict[str, Any]:
     graph_shape_path = REPO_ROOT / "ToS/philosophy/atlas/dossiers/graph-shape-summary.json"
     dossier_rows = load_jsonl(dossier_index_path)
     graph_shape = load_json(graph_shape_path)
-    candidate_nodes = load_optional_jsonl(REPO_ROOT / CANDIDATE_NODES_REF)
-    candidate_relations = load_optional_jsonl(REPO_ROOT / CANDIDATE_RELATIONS_REF)
+    candidate_nodes = [
+        row
+        for source_ref in CANDIDATE_NODES_REFS
+        for row in load_optional_jsonl(REPO_ROOT / source_ref)
+    ]
+    candidate_relations = [
+        row
+        for source_ref in CANDIDATE_RELATIONS_REFS
+        for row in load_optional_jsonl(REPO_ROOT / source_ref)
+    ]
 
     nodes: list[dict[str, Any]] = []
     edges: list[dict[str, Any]] = []
@@ -296,6 +313,12 @@ def build_payload() -> dict[str, Any]:
             node_row_count=dossier.get("node_row_count"),
             relation_row_count=dossier.get("relation_row_count"),
             table_count=dossier.get("table_count"),
+            table_id=dossier.get("table_id"),
+            route_kind=dossier.get("route_kind"),
+            review_posture=dossier.get("review_posture"),
+            review_reason=dossier.get("review_reason"),
+            master_status=dossier.get("master_status"),
+            master_confidence=dossier.get("master_confidence"),
         )
         add_edge(
             edges,
@@ -373,11 +396,12 @@ def build_payload() -> dict[str, Any]:
     for candidate in candidate_nodes:
         candidate_id = str(candidate.get("candidate_id") or "")
         dossier_id = str(candidate.get("dossier_id") or "")
+        candidate_source_ref = str(candidate.get("source_ref") or CANDIDATE_NODES_REF)
         if not candidate_id:
             diagnostics.append(
                 {
                     "level": "warning",
-                    "path": CANDIDATE_NODES_REF,
+                    "path": candidate_source_ref,
                     "message": "candidate node row without candidate_id was skipped",
                 }
             )
@@ -388,7 +412,7 @@ def build_payload() -> dict[str, Any]:
             node_id,
             "candidate-node",
             str(candidate.get("label") or candidate_id),
-            CANDIDATE_NODES_REF,
+            candidate_source_ref,
             candidate_id=candidate_id,
             dossier_id=dossier_id,
             atlas_row_id=candidate.get("atlas_row_id"),
@@ -400,6 +424,12 @@ def build_payload() -> dict[str, Any]:
             canon_status=candidate.get("canon_status"),
             authority_posture=candidate.get("authority_posture"),
             source_document=candidate.get("source_document"),
+            table_id=candidate.get("table_id"),
+            route_kind=candidate.get("route_kind"),
+            review_posture=candidate.get("review_posture"),
+            review_reason=candidate.get("review_reason"),
+            master_status=candidate.get("master_status"),
+            master_confidence=candidate.get("master_confidence"),
         )
         if dossier_id:
             add_edge(
@@ -408,7 +438,7 @@ def build_payload() -> dict[str, Any]:
                 f"atlas-dossier:{dossier_id}",
                 "has_candidate_node",
                 node_id,
-                CANDIDATE_NODES_REF,
+                candidate_source_ref,
             )
 
     endpoint_nodes: set[str] = set()
@@ -420,11 +450,12 @@ def build_payload() -> dict[str, Any]:
         target_candidate_id = relation.get("target_candidate_id")
         source_label = str(relation.get("source_endpoint_label") or "source endpoint")
         target_label = str(relation.get("target_endpoint_label") or "target endpoint")
+        relation_source_ref = str(relation.get("source_ref") or CANDIDATE_RELATIONS_REF)
         if not candidate_id:
             diagnostics.append(
                 {
                     "level": "warning",
-                    "path": CANDIDATE_RELATIONS_REF,
+                    "path": relation_source_ref,
                     "message": "candidate relation row without candidate_id was skipped",
                 }
             )
@@ -440,7 +471,7 @@ def build_payload() -> dict[str, Any]:
                     from_id,
                     "candidate-endpoint",
                     source_label,
-                    CANDIDATE_RELATIONS_REF,
+                    relation_source_ref,
                     dossier_id=dossier_id,
                     branch_path=relation.get("branch_path"),
                     endpoint_role="source",
@@ -457,7 +488,7 @@ def build_payload() -> dict[str, Any]:
                     to_id,
                     "candidate-endpoint",
                     target_label,
-                    CANDIDATE_RELATIONS_REF,
+                    relation_source_ref,
                     dossier_id=dossier_id,
                     branch_path=relation.get("branch_path"),
                     endpoint_role="target",
@@ -469,7 +500,7 @@ def build_payload() -> dict[str, Any]:
             from_id,
             relation_kind,
             to_id,
-            CANDIDATE_RELATIONS_REF,
+            relation_source_ref,
             candidate_id=candidate_id,
             dossier_id=dossier_id,
             atlas_row_id=relation.get("atlas_row_id"),
@@ -480,6 +511,12 @@ def build_payload() -> dict[str, Any]:
             authority_posture=relation.get("authority_posture"),
             endpoint_resolution=relation.get("endpoint_resolution"),
             comment=relation.get("comment"),
+            table_id=relation.get("table_id"),
+            route_kind=relation.get("route_kind"),
+            review_posture=relation.get("review_posture"),
+            review_reason=relation.get("review_reason"),
+            master_status=relation.get("master_status"),
+            master_confidence=relation.get("master_confidence"),
         )
 
     views_root = REPO_ROOT / "ToS/philosophy/graph-workbench/views"

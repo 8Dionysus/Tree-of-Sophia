@@ -1,12 +1,18 @@
 from __future__ import annotations
 
 import json
+import sys
 import unittest
 from pathlib import Path
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 MULTILINGUAL_ROOT = REPO_ROOT / "ToS/philosophy/atlas/multilingual"
+SCRIPTS = REPO_ROOT / "scripts"
+if str(SCRIPTS) not in sys.path:
+    sys.path.insert(0, str(SCRIPTS))
+
+from philosophy_multilingual_common import multilingual_label  # noqa: E402
 
 
 def load_json(name: str) -> dict[str, object]:
@@ -17,6 +23,35 @@ def load_json(name: str) -> dict[str, object]:
 
 
 class PhilosophyMultilingualContractTest(unittest.TestCase):
+    def test_prepared_dossier_context_uses_reviewed_ledger_title_only_for_dossier_node(self) -> None:
+        label = "ToS Deep Research: ранний и классический kalām"
+
+        dossier = multilingual_label(
+            label,
+            "ToS/philosophy/atlas/dossiers/index.jsonl",
+            {"node_type": "prepared-dossier", "dossier_id": "T2-09"},
+        )
+
+        self.assertEqual(
+            dossier["label"]["ru"],
+            "ToS Deep Research: T2-09 — Калām ранний и классический",
+        )
+        self.assertEqual(
+            dossier["label"]["en"],
+            "ToS Deep Research: T2-09 — Early and Classical Kalam",
+        )
+        self.assertNotRegex(dossier["label"]["en"], r"[А-Яа-яЁё]")
+        self.assertEqual(dossier["translation_status"]["ru"], "reviewed")
+        self.assertEqual(dossier["translation_status"]["en"], "reviewed")
+
+        candidate = multilingual_label(
+            label,
+            "ToS/philosophy/graph-workbench/proposed-nodes/table-ii-prepared-dossiers.jsonl",
+            {"node_type": "candidate-node", "dossier_id": "T2-09"},
+        )
+        self.assertNotEqual(candidate["label"]["en"], dossier["label"]["en"])
+        self.assertEqual(candidate["translation_status"]["en"], "draft")
+
     def test_branch_manifest_names_language_contract_surfaces(self) -> None:
         manifest = load_json("branch.manifest.json")
         self.assertEqual(
@@ -59,6 +94,13 @@ class PhilosophyMultilingualContractTest(unittest.TestCase):
                 "is_version_of",
             }
             <= predicates
+        )
+        self.assertEqual(
+            contract["current_generated_packet_surfaces"],
+            [
+                "ToS/philosophy/graph-workbench/language-packets/table-i-text-bearing-nodes.jsonl",
+                "ToS/philosophy/graph-workbench/language-packets/table-ii-text-bearing-nodes.jsonl",
+            ],
         )
 
     def test_label_ledger_points_to_contracts(self) -> None:

@@ -26,6 +26,6 @@ Use `views/` to name graph lenses and maintain their switching contract. Use
 readers.
 
 Use [PLANTING_INTERFACE](PLANTING_INTERFACE.md) when prepared master-table or
-A-series dossier material is ready to become graph-workbench matter. The
+admitted prepared-dossier material is ready to become graph-workbench matter. The
 interface keeps atlas rows, branch homes, proposed graph rows, source anchors,
 review packets, and derived projection handoff on one ToS-owned route.

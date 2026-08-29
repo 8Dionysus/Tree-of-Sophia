@@ -23,6 +23,8 @@ Prepared planting starts from source-owned atlas material:
 | operator-local prepared DOCX corpus | temporary extraction input for supported planting scripts |
 | `ToS/research-packets/deep-research/philosophy/dossiers/table-i-docx-intake.manifest.json` | tracked fixity and capture-posture record for the untracked DOCX bytes |
 | `ToS/research-packets/deep-research/philosophy/dossiers/table-i-docx-extraction-coverage.json` | explicit extracted/metadata/deferred row accounting and prose-only diagnostics |
+| `ToS/research-packets/deep-research/philosophy/dossiers/table-ii-docx-intake.manifest.json` | tracked Table II fixity plus admitted/quarantined artifact posture |
+| `ToS/research-packets/deep-research/philosophy/dossiers/table-ii-docx-extraction-coverage.json` | Table II structured/deferred/quarantined row accounting |
 | `ToS/philosophy/atlas/dossiers/index.jsonl` | dossier identity and graph pressure index |
 | `ToS/philosophy/atlas/dossiers/source-anchor-backlog.jsonl` | future real witness, edition, corpus, and risk-control anchors |
 | `ToS/philosophy/atlas/dossiers/term-index.jsonl` | prepared term rows |
@@ -86,13 +88,18 @@ master table row
 Current supported entrypoint:
 
 `scripts/plant_prepared_dossiers.py` owns readiness and planting orchestration.
+Readiness may be limited with `--table`; planting is explicitly aggregate-only
+and runs as `python scripts/plant_prepared_dossiers.py --plant` because the
+atlas indexes, graph workbench, language packets, and branch manifests combine
+all supported packages.
 The projection, corpus-index, and post-planting builders own their generated
 outputs; `docs/validation/validation_lanes.json` owns checked verification
 order. Use `scripts/AGENTS.md` for the operator route.
 
-Future Table II and Table III planting should extend this route by adding their
-source-owned dossier route maps and packet extraction support, then publishing
-the same graph-workbench surfaces.
+Table I and the partial Table II package use this route now. Table II keeps
+T2-26 quarantined for master-identity mismatch and T2-51 through T2-58
+explicitly absent. Future Table III planting should extend the same route only
+after adding its source-owned dossier route map and packet extraction support.
 
 ## Review Handoff
 
