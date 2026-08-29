@@ -9,49 +9,49 @@
     "assembly": "deterministic-on-demand",
     "files": [
       {
-        "content_digest": "60e3af6fcb1d83c7b7308287cff5028241f1e6733e214afd31f5fc2561795a7c",
+        "content_digest": "63a2a4dc991daa85629d3b780d5cce87194e725a8cb715d31537c345ec6f6503",
         "kind": "source",
         "path": "kag/indexes/source_surface_index.json",
         "records": 2380,
         "schema_version": "aoa-repo-local-kag-index-v2"
       },
       {
-        "content_digest": "93619e82d8040e38b9a18ba891b09743fddcdf092841768801677ce7ee0ea001",
+        "content_digest": "a1e9104e54959fbdba55e4c988041f31729ac8c68a6cc15a404fd63c794fd926",
         "kind": "artifact",
         "path": "kag/indexes/repo_artifact_index.json",
         "records": 2380,
         "schema_version": "aoa-repo-local-kag-repository-index-v2"
       },
       {
-        "content_digest": "30dde39a415cf5e0e6fd1f097879c2de5b27f76206304c79efceceb91ba0fe4a",
+        "content_digest": "9c8c3b18f972c29b51856ff9ab1ea71b251688971ccabd5a21c5c062768205ec",
         "kind": "anchor",
         "path": "kag/indexes/repo_anchor_index.json",
         "records": 27650,
         "schema_version": "aoa-repo-local-kag-repository-index-v2"
       },
       {
-        "content_digest": "5a094598faf57edb6f09f868614323053bd2c388ef445f91bb0d1b5a0346168e",
+        "content_digest": "3f6d0b74c7086c8594179ebc70d2347b64784abcb577957d1435ef1f0f388c7c",
         "kind": "entity",
         "path": "kag/indexes/repo_entity_index.json",
         "records": 5349,
         "schema_version": "aoa-repo-local-kag-repository-index-v2"
       },
       {
-        "content_digest": "2056d09f6296e361d10b745216c8d2df0a55304a934758ace652cfb85d0ae829",
+        "content_digest": "51ae5eae873bd81e42f235a6bf72557f248ef4f6d96bd2eaec5d51ed2da9f945",
         "kind": "event",
         "path": "kag/indexes/repo_event_index.json",
         "records": 391,
         "schema_version": "aoa-repo-local-kag-repository-index-v2"
       },
       {
-        "content_digest": "f2edcc819021b296fb55044622fa471cf3816654a02342a9d5bec8597197bc8f",
+        "content_digest": "680fb1609a4aaa3f40da17348a43ef5ccad075f5c9085c409ff9c9f51f9bb9d0",
         "kind": "assertion",
         "path": "kag/indexes/repo_assertion_index.json",
         "records": 4331,
         "schema_version": "aoa-repo-local-kag-repository-index-v2"
       },
       {
-        "content_digest": "2d10161884642f74cd85bc762433bd9b049538c66994e0e59a3a369a1720d4e8",
+        "content_digest": "3732cf696284713ee24e902f40e602b4d9ffc3474d2375768b691496523e2514",
         "kind": "relation",
         "path": "kag/indexes/repo_relation_index.json",
         "records": 10267,
@@ -62,10 +62,10 @@
   },
   "family_identity": {
     "artifact_kind": "repo_local_kag_portable_family",
-    "content_digest": "b2c82914e25a7d1a21d6e50df1d018a098383a2f2be927d6cebd94375833bddf",
+    "content_digest": "64300e9f6887fce0118c4c801e5614e5a12ff3eee661c071b86ba893fee1416d",
     "local_id": "family:repo-local:portable-record-corpus",
     "schema_ref": "aoa-kag:schemas/repo-local-kag-family-manifest.schema.json",
-    "source_snapshot": "sha256:60e3af6fcb1d83c7b7308287cff5028241f1e6733e214afd31f5fc2561795a7c"
+    "source_snapshot": "sha256:63a2a4dc991daa85629d3b780d5cce87194e725a8cb715d31537c345ec6f6503"
   },
   "normalization": {
     "anchor_defaults": {
@@ -3768,7 +3768,7 @@
     },
     {
       "bytes": 15578,
-      "digest": "sha256:16182d97e52684ca2d414bdc1440e7506451d09f101d7296ddd3df85264995cf",
+      "digest": "sha256:b33cdedabfc3d3adbebf80194924663c4ea2c978399f8805f3d003d8d0fab43c",
       "kind": "source",
       "path": "kag/indexes/shards/source/37.jsonl",
       "range": "37",
@@ -4008,7 +4008,7 @@
     },
     {
       "bytes": 34119,
-      "digest": "sha256:b6e378238c668601650141d01af9b926f5e2948dc7a5d3c05985eb054497780f",
+      "digest": "sha256:5df6ac721bc37c0d0dceaced95cdf679d3442ccd1336b153684b1407ed74cf5d",
       "kind": "source",
       "path": "kag/indexes/shards/source/55.jsonl",
       "range": "55",
@@ -5468,7 +5468,7 @@
     },
     "index_identity": {
       "artifact_kind": "source_surface_index",
-      "content_digest": "60e3af6fcb1d83c7b7308287cff5028241f1e6733e214afd31f5fc2561795a7c",
+      "content_digest": "63a2a4dc991daa85629d3b780d5cce87194e725a8cb715d31537c345ec6f6503",
       "local_id": "index:repo-local:source-surfaces",
       "schema_ref": "aoa-kag:schemas/repo-local-kag-index.schema.json"
     },
