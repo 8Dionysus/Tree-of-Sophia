@@ -775,6 +775,65 @@ def _v2_runtime_dependency_issues(
     return issues
 
 
+_PYTHON_VERSION_CONSTRAINT_RE = re.compile(
+    r"^(?P<operator>===|==|!=|>=|<=|>|<|~=)?\s*(?P<version>\d+(?:\.\d+)*)$"
+)
+
+
+def _numeric_version(value: str) -> tuple[int, ...] | None:
+    if not isinstance(value, str) or not value:
+        return None
+    try:
+        parts = tuple(int(part) for part in value.split("."))
+    except ValueError:
+        return None
+    return parts if parts and all(part >= 0 for part in parts) else None
+
+
+def _python_runtime_satisfies_constraint(
+    constraint: str,
+    runtime_version: tuple[int, ...] | None = None,
+) -> bool | None:
+    """Evaluate the numeric Python dependency constraints used by the receipt contract."""
+    if not isinstance(constraint, str) or not constraint.strip():
+        return None
+    actual = runtime_version or tuple(sys.version_info[:3])
+    if not actual or not all(isinstance(part, int) and part >= 0 for part in actual):
+        return None
+    for raw_term in constraint.split(","):
+        match = _PYTHON_VERSION_CONSTRAINT_RE.fullmatch(raw_term.strip())
+        if match is None:
+            return None
+        operator = match.group("operator") or "=="
+        expected = _numeric_version(match.group("version"))
+        if expected is None:
+            return None
+        width = max(len(actual), len(expected), 3)
+        left = actual + (0,) * (width - len(actual))
+        right = expected + (0,) * (width - len(expected))
+        if operator == ">=" and not left >= right:
+            return False
+        if operator == ">" and not left > right:
+            return False
+        if operator == "<=" and not left <= right:
+            return False
+        if operator == "<" and not left < right:
+            return False
+        if operator == "==" and not left == right:
+            return False
+        if operator == "!=" and not left != right:
+            return False
+        if operator == "~=":
+            upper_index = max(0, len(expected) - 2)
+            upper = expected[:upper_index] + (expected[upper_index] + 1,)
+            upper += (0,) * (width - len(upper))
+            if not left >= right or not left < upper:
+                return False
+        if operator == "===":
+            return None
+    return True
+
+
 def _v2_runtime_interpreter_issues(
     label: str,
     value: object,
@@ -821,6 +880,22 @@ def _v2_runtime_interpreter_issues(
                 break
     if isinstance(python_version, str) and value.get("version") != python_version:
         issues.append((label, "budget receipt interpreter version does not match the declared python dependency"))
+    if isinstance(python_version, str):
+        runtime_satisfies = _python_runtime_satisfies_constraint(python_version)
+        if runtime_satisfies is False:
+            issues.append(
+                (
+                    label,
+                    "budget receipt interpreter runtime does not satisfy the declared python dependency",
+                )
+            )
+        elif runtime_satisfies is None:
+            issues.append(
+                (
+                    label,
+                    "budget receipt declared python dependency constraint is unsupported",
+                )
+            )
     if isinstance(implementation, str) and isinstance(version, str):
         expected_path_digest = hashlib.sha256(
             KAG_BUDGET_APPROVED_PYTHON_INTERPRETER_PATH.encode("utf-8")

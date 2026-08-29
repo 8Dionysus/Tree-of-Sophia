@@ -1058,6 +1058,26 @@ class AgentSurfaceTests(unittest.TestCase):
             issues,
         )
 
+    def test_current_receipt_rejects_runtime_outside_declared_python_constraint(self) -> None:
+        family_manifest, receipt, digest, receipt_path = self._current_receipt_case()
+        with mock.patch.object(validator.sys, "version_info", (3, 10, 9)):
+            issues = validator.budget_receipt_contract_issues(
+                ROOT,
+                family_manifest,
+                receipt,
+                digest,
+                receipt_path,
+                base_has_v3=True,
+            )
+
+        self.assertIn(
+            (
+                receipt_path.relative_to(ROOT).as_posix(),
+                "budget receipt interpreter runtime does not satisfy the declared python dependency",
+            ),
+            issues,
+        )
+
     def test_current_receipt_binds_dependency_artifact_measurements(self) -> None:
         for field, invalid in (("artifact_bytes", 0), ("artifact_files", 0)):
             with self.subTest(field=field):
