@@ -29,15 +29,15 @@
     "metric": "whitespace_tokens_v1",
     "posture": "summary_first_records_on_demand",
     "record_loading": "machine readers may select records by family_id or path; do not load the full carrier into an always-on prompt",
-    "tracked_surface_count": 2058,
+    "tracked_surface_count": 2349,
     "unhandled_family_count": 0
   },
   "coverage": {
     "excluded_generated_carrier_rules": 3,
-    "excluded_tracked_path_count": 321,
+    "excluded_tracked_path_count": 373,
     "human_scope": {
-      "bytes": 4205863,
-      "count": 731,
+      "bytes": 4293157,
+      "count": 782,
       "excluded_skill_launch_metadata": 25,
       "family_counts": {
         "agents-other": {
@@ -51,9 +51,9 @@
           "lines": 6530
         },
         "docs": {
-          "bytes": 370181,
-          "count": 52,
-          "lines": 6277
+          "bytes": 377534,
+          "count": 53,
+          "lines": 6401
         },
         "evals": {
           "bytes": 3486,
@@ -91,9 +91,9 @@
           "lines": 202
         },
         "root": {
-          "bytes": 169414,
+          "bytes": 170283,
           "count": 13,
-          "lines": 2939
+          "lines": 2949
         },
         "scripts": {
           "bytes": 6388,
@@ -111,20 +111,20 @@
           "lines": 47
         },
         "tos": {
-          "bytes": 3121692,
-          "count": 360,
-          "lines": 53666
+          "bytes": 3200764,
+          "count": 410,
+          "lines": 54992
         }
       },
-      "lines": 74687
+      "lines": 76147
     },
     "surface_kind_counts": {
       "executable": 155,
-      "human": 756,
-      "structured": 1147
+      "human": 807,
+      "structured": 1387
     },
-    "tracked_path_count": 2379,
-    "tracked_surface_count": 2058,
+    "tracked_path_count": 2722,
+    "tracked_surface_count": 2349,
     "unhandled_family_count": 0,
     "unhandled_paths": []
   },
@@ -134,7 +134,7 @@
       "surface_kind_counts": {
         "human": 13
       },
-      "tracked_surface_bytes": 169414,
+      "tracked_surface_bytes": 170283,
       "tracked_surface_count": 13
     },
     {
@@ -167,20 +167,20 @@
     {
       "family_id": "tos",
       "surface_kind_counts": {
-        "human": 360,
-        "structured": 1085
+        "human": 410,
+        "structured": 1325
       },
-      "tracked_surface_bytes": 70145729,
-      "tracked_surface_count": 1445
+      "tracked_surface_bytes": 106786229,
+      "tracked_surface_count": 1735
     },
     {
       "family_id": "docs",
       "surface_kind_counts": {
-        "human": 52,
+        "human": 53,
         "structured": 6
       },
-      "tracked_surface_bytes": 595024,
-      "tracked_surface_count": 58
+      "tracked_surface_bytes": 605032,
+      "tracked_surface_count": 59
     },
     {
       "family_id": "evals",
@@ -224,7 +224,7 @@
         "executable": 88,
         "human": 1
       },
-      "tracked_surface_bytes": 2790211,
+      "tracked_surface_bytes": 2840536,
       "tracked_surface_count": 89
     },
     {
@@ -234,7 +234,7 @@
         "human": 1,
         "structured": 1
       },
-      "tracked_surface_bytes": 1010689,
+      "tracked_surface_bytes": 1054702,
       "tracked_surface_count": 48
     },
     {
@@ -269,7 +269,7 @@
   "source_map": "docs/validation/documentation_family_map.json",
   "source_map_sha256": "9140a03a48109e6a9f35f3ca7dbf82058d96c3961e9e77bc31a743fb8814b13b",
   "tracked_source": "git ls-files -z",
-  "tracked_surface_digest": "9a2707bf0b1d0e15c9f18e573c2cdb67cea399f18cfb45c92a02e9d50c3d500f",
+  "tracked_surface_digest": "b48045e88b01164dc2bcfd4b0dfa2a1db0e6051bc05ce6c7b63f8066698f3c1a",
   "tracked_surfaces": [
     {
       "bytes": 1408,
@@ -292,7 +292,7 @@
       "currentness": "tracked_source_snapshot",
       "family_id": "agents-other",
       "path": ".agents/agent-surface.current.json",
-      "sha256": "122d86e4e7ef68f5fc678a43f06d4d683328a97633d35cb36ccff56dbb1d780a",
+      "sha256": "647ef292a6f77f9e65803c0371efa78ce7dc085aaa6d3e75e2074a2d26262793",
       "surface_kind": "structured"
     },
     {
@@ -308,7 +308,7 @@
       "currentness": "tracked_source_snapshot",
       "family_id": "agents-other",
       "path": ".agents/agents-route.current.json",
-      "sha256": "cf9f3d3a16eac9e5b19e240eb57cd7729097f17de2d6d3675b182ce36e2ffcb2",
+      "sha256": "251a7af4cfeffebda6f2ec12a094146c19249438cd48b1db0660ddf38e160fe6",
       "surface_kind": "structured"
     },
     {
@@ -1664,11 +1664,11 @@
       "surface_kind": "human"
     },
     {
-      "bytes": 96856,
+      "bytes": 97558,
       "currentness": "tracked_source_snapshot",
       "family_id": "root",
       "path": "CHANGELOG.md",
-      "sha256": "92e92539b4168311863aabd9e9c50ffea2e08ad2ea9cc7c85bf6cedae7d6333c",
+      "sha256": "c077985df4631bf372114ecbeb942d877133627400dd9019feeea192daad868b",
       "surface_kind": "human"
     },
     {
@@ -1728,11 +1728,11 @@
       "surface_kind": "human"
     },
     {
-      "bytes": 13220,
+      "bytes": 13387,
       "currentness": "tracked_source_snapshot",
       "family_id": "root",
       "path": "ROADMAP.md",
-      "sha256": "1edd77036b72828c01cec298e46ad6b5fc9e8eef30663a9a04dc91092139abec",
+      "sha256": "fd297b7a4dece39c1f3328b4f7b52c739aa81790f1c3707e66418fa216796429",
       "surface_kind": "human"
     },
     {
@@ -3472,19 +3472,19 @@
       "surface_kind": "structured"
     },
     {
-      "bytes": 4455264,
+      "bytes": 9840211,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/derived-exports/philosophy_atlas_projection.min.json",
-      "sha256": "f1232e156381a262ac7deb135fbe4af8a004b4f983919202ce3f618633e8f1bd",
+      "sha256": "152de5fe0561a6232a47d0ba1ca4cb12a5201ba92bfd4078cbd91470eb9bdfac",
       "surface_kind": "structured"
     },
     {
-      "bytes": 29313779,
+      "bytes": 59656328,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/derived-exports/philosophy_graph_projection.min.json",
-      "sha256": "c41668376690ad8c26fe70e277ea2c6df63202460c8e3246098a26a13607209f",
+      "sha256": "a7c59b73281b0a6d69cf4455a6ae2d6d2671b2388dedf41d7f91fe2a3d8a4a0f",
       "surface_kind": "structured"
     },
     {
@@ -3504,11 +3504,11 @@
       "surface_kind": "structured"
     },
     {
-      "bytes": 832122,
+      "bytes": 1054590,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/derived-exports/tos_corpus_index.min.json",
-      "sha256": "a99cd08039cbfcd1e1f1fa2625b3d5d5426ba127fd3512254a0f78fb90a0c6c4",
+      "sha256": "93af58273d07ac827e409f7a1d78454219515dea55e85da79b382abd23d36faa",
       "surface_kind": "structured"
     },
     {
@@ -3688,11 +3688,11 @@
       "surface_kind": "human"
     },
     {
-      "bytes": 3535,
+      "bytes": 3809,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/philosophy/README.md",
-      "sha256": "1dac5606b29d5aa2d555ab24cacaf810958b6c5501fa9d17792f1864b26382e1",
+      "sha256": "f510d4846ea329fd5249bad05a8929b59d55ff98b05311e88f632a43d64b09ee",
       "surface_kind": "human"
     },
     {
@@ -3700,15 +3700,15 @@
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/philosophy/atlas/README.md",
-      "sha256": "10b71e1ad405ff3e5396776f9e861cb1a6c3cd7c044639789662f100ca6ad582",
+      "sha256": "78b68959d45a02bea1442a8b13a89617b1d83546bf05ee6f4fe96056105b6559",
       "surface_kind": "human"
     },
     {
-      "bytes": 2224,
+      "bytes": 2703,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/philosophy/atlas/atlas.manifest.json",
-      "sha256": "cfc26730e51f028b96801660848f432bf199a349a460c1818e53c0fda082eabc",
+      "sha256": "7690a8ab6100aeb857fc93def7f808bed79b888754cfd8a55c1d2f91b7ef56ca",
       "surface_kind": "structured"
     },
     {
@@ -3720,35 +3720,35 @@
       "surface_kind": "structured"
     },
     {
-      "bytes": 1591,
+      "bytes": 1924,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/philosophy/atlas/dossiers/README.md",
-      "sha256": "0d1e2175cd5ee0022768300b13d3c820d7427f35cd3547c9c621c2343cefa5d0",
+      "sha256": "4cee9a9cf1e1b16dd420b94ec2d06b5c6c9ede7db949cbf05d87ae19c45730bc",
       "surface_kind": "human"
     },
     {
-      "bytes": 770,
+      "bytes": 1224,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/philosophy/atlas/dossiers/branch.manifest.json",
-      "sha256": "69e52ec88b8cee22cb069509aab2f5a99f7fa0c7d205d42756d8b71cf532dccd",
+      "sha256": "fd8674b8c45d35c77e078ed3ebe62e43f0c12f1a261a49442d563a252f26f50d",
       "surface_kind": "structured"
     },
     {
-      "bytes": 1652,
+      "bytes": 2159,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/philosophy/atlas/dossiers/graph-shape-summary.json",
-      "sha256": "5cee0ad028e9d6e1d0a02c27daa87863af81f7d2b57854e25fe77b70eb631732",
+      "sha256": "2c688561edeba8e1e6da791327b011ba78e3f40418de52f24d318538c5638a17",
       "surface_kind": "structured"
     },
     {
-      "bytes": 16316,
+      "bytes": 31936,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/philosophy/atlas/dossiers/prepared-dossier-routes.json",
-      "sha256": "83e5891e7774242fa950cbd30a1c34188268ce9896fb0ab7641d3b3aaa16fc52",
+      "sha256": "f05ada05a586f0facee36818ecc4b4b2c16261c550ee5c6c24a31d64b7df8b72",
       "surface_kind": "structured"
     },
     {
@@ -3792,11 +3792,11 @@
       "surface_kind": "structured"
     },
     {
-      "bytes": 1302,
+      "bytes": 2191,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/philosophy/atlas/master-tables/table-ii/table.manifest.json",
-      "sha256": "be7c8991608619e8ca895162c507ee63df56d14fb624b54a9c2593a67ef63c2c",
+      "sha256": "66ece251431ae691c9dbc26160c323613c2e1dd22c78421425b25ac4c9faeffd",
       "surface_kind": "structured"
     },
     {
@@ -3832,11 +3832,11 @@
       "surface_kind": "structured"
     },
     {
-      "bytes": 33401,
+      "bytes": 47961,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/philosophy/atlas/multilingual/content-labels.json",
-      "sha256": "4431f522b7cd4c816b0754af409c43da4b79b0fffacdaf5bf4970a67b1920c8a",
+      "sha256": "98ac7bd49d51750134905c785d05e6494320cc5878d172b7c2356ea439a7e694",
       "surface_kind": "structured"
     },
     {
@@ -3848,11 +3848,11 @@
       "surface_kind": "structured"
     },
     {
-      "bytes": 5634,
+      "bytes": 5849,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/philosophy/atlas/multilingual/text-bearing-nodes.contract.json",
-      "sha256": "fb29d2050920c4cfe4637ee67abe482cbdec91c0eeb5135c4fd641350a5a99fe",
+      "sha256": "8a101ffecccce975c0ba04205c2057020a787b2857c49a4ce2a98ddef8155ee3",
       "surface_kind": "structured"
     },
     {
@@ -4368,11 +4368,11 @@
       "surface_kind": "structured"
     },
     {
-      "bytes": 302,
+      "bytes": 325,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/philosophy/eras/branch.manifest.json",
-      "sha256": "b329d97e593339475ef4237b43ab93ac371b39b69a31c66d437bdea42d66b1c0",
+      "sha256": "e11e88c50acf5dcf67b32fd8840ade7a7804b34350b4c1c67ff27800ad26fb3a",
       "surface_kind": "structured"
     },
     {
@@ -6544,6 +6544,2286 @@
       "surface_kind": "structured"
     },
     {
+      "bytes": 310,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/medieval-worlds/branch.manifest.json",
+      "sha256": "bdd458b906e59a155b434a943801c9b9a88c15b2232576139bd9c3c06578a922",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 689,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/medieval-worlds/regions/branch.manifest.json",
+      "sha256": "0640e67992a9e24ea748755acf2ec0719f0fc204190b12bde4abb5433d5de54c",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 214,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/medieval-worlds/regions/caucasus/branch.manifest.json",
+      "sha256": "96fc62a2dfd8cde9c98d09a050649da4ad3067ec2fe4317f4a340cad097f9ab4",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1732,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/medieval-worlds/regions/caucasus/traditions/armenian-translation-philosophical-theological-lexicon/README.md",
+      "sha256": "8ed0318d3c996e673dc20edb7291c49bce2834afe224d7ee61c02d1d3b7fe20e",
+      "surface_kind": "human"
+    },
+    {
+      "bytes": 1176,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/medieval-worlds/regions/caucasus/traditions/armenian-translation-philosophical-theological-lexicon/branch.manifest.json",
+      "sha256": "505f61a14b032b77aeccb301e3f466a7528f5e2f9f0982b351218543439621e8",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 664,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/medieval-worlds/regions/caucasus/traditions/armenian-translation-philosophical-theological-lexicon/graph-workbench/branch.manifest.json",
+      "sha256": "6b7e9750d3c1feb1d36f527e5705a8ccef47f2a02c8b91137c31c7f298d10fe9",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1739,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/medieval-worlds/regions/caucasus/traditions/armenian-translation-philosophical-theological-lexicon/graph-workbench/pre-canon-summary.json",
+      "sha256": "af664c43a2d7b5e8a6e68b64861a378ebd43c4debf445e9d5053e4451317089b",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 600,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/medieval-worlds/regions/caucasus/traditions/armenian-translation-philosophical-theological-lexicon/sources/branch.manifest.json",
+      "sha256": "abbc55022713d0cc8f7d4e211297d151ec8d75496afaaa594cca276c461b3b65",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 328,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/medieval-worlds/regions/caucasus/traditions/branch.manifest.json",
+      "sha256": "5acd44d156c11ad76b5ae98cdf18a4a362e5bb69e6057fe49166d0547f1beccb",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1636,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/medieval-worlds/regions/caucasus/traditions/georgian-monastic-translation-republic/README.md",
+      "sha256": "9307d8369fbddc9e379c772339060c08eedbc50bd0da653bae2d9060c5b37bf4",
+      "surface_kind": "human"
+    },
+    {
+      "bytes": 1095,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/medieval-worlds/regions/caucasus/traditions/georgian-monastic-translation-republic/branch.manifest.json",
+      "sha256": "baa3795ffad383df448b3d5e6dc9d7b993f507d3c456afaa23175fef70bbaa93",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 632,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/medieval-worlds/regions/caucasus/traditions/georgian-monastic-translation-republic/graph-workbench/branch.manifest.json",
+      "sha256": "fdb6b747cdd4b1fe38b00b45056431ad477e07eafd74c1ed8285d92b93583146",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1728,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/medieval-worlds/regions/caucasus/traditions/georgian-monastic-translation-republic/graph-workbench/pre-canon-summary.json",
+      "sha256": "d46795a5b03feaa6209361540acf954a68c6df442a696b5a2b9c03d729f09644",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 568,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/medieval-worlds/regions/caucasus/traditions/georgian-monastic-translation-republic/sources/branch.manifest.json",
+      "sha256": "2ad5bb611aa1cd455d1b55aa54fe9badd206bbeaae3210705a9ee5edcfdb4502",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 250,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/medieval-worlds/regions/central-asian-steppe/branch.manifest.json",
+      "sha256": "d09008a6a28e4b26960ab2064b06e527dc0ccb4c981b849e7684225f3cc0f5d3",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 291,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/medieval-worlds/regions/central-asian-steppe/traditions/branch.manifest.json",
+      "sha256": "4264fc887c8c1f2b51bd184e2195a268ca848c51a2b418fedc345f85f16a97ae",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1690,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/medieval-worlds/regions/central-asian-steppe/traditions/central-asian-old-turkic-textual-worlds/README.md",
+      "sha256": "7fc24275fea79915443e78e588e7f63dc2364ed6e3f5db986296bdec613a048e",
+      "surface_kind": "human"
+    },
+    {
+      "bytes": 1138,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/medieval-worlds/regions/central-asian-steppe/traditions/central-asian-old-turkic-textual-worlds/branch.manifest.json",
+      "sha256": "fa7e38a89df0599d13445e2c9157a136e8b5f0beea178923c0901dd0bc4a7a13",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 658,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/medieval-worlds/regions/central-asian-steppe/traditions/central-asian-old-turkic-textual-worlds/graph-workbench/branch.manifest.json",
+      "sha256": "2cd9f34ddb121b646bf951f6799f1ef74cbc5b6ce7a9d294b2f69e94b6bdd2c0",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1601,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/medieval-worlds/regions/central-asian-steppe/traditions/central-asian-old-turkic-textual-worlds/graph-workbench/pre-canon-summary.json",
+      "sha256": "7f98a72d731a50f5931ded6040707a5ba7497d6de789f46dbe84de1185031cf3",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 594,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/medieval-worlds/regions/central-asian-steppe/traditions/central-asian-old-turkic-textual-worlds/sources/branch.manifest.json",
+      "sha256": "9dad93a1eda641c98e3126751b3de6157449b2ec85753a2d69d78a8f0e0a5d8f",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 217,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/medieval-worlds/regions/east-asia/branch.manifest.json",
+      "sha256": "b9e77055ec5f22908b2d5fd577f557193884dfc57ecee753cfce2d96cd66f962",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 515,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/medieval-worlds/regions/east-asia/traditions/branch.manifest.json",
+      "sha256": "7f897fac963064a8ef1490f0181a658ae1d0e512dfd50fdb7ca1601e9eb3db8b",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1428,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/medieval-worlds/regions/east-asia/traditions/chinese-buddhism-mature-doctrinal-systems/README.md",
+      "sha256": "2ce152728b527abbaea682b0c42f469ca73b657fe37dcb01f550a66fcc7323fd",
+      "surface_kind": "human"
+    },
+    {
+      "bytes": 851,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/medieval-worlds/regions/east-asia/traditions/chinese-buddhism-mature-doctrinal-systems/branch.manifest.json",
+      "sha256": "3230efc7a86ad4634bdcdb7e64e06b67dcd2f8ecd3469f620400b1e15ca7fd11",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 391,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/medieval-worlds/regions/east-asia/traditions/chinese-buddhism-mature-doctrinal-systems/graph-workbench/branch.manifest.json",
+      "sha256": "e9c9f37ef85cdcf8136150dbf6d190916de5617d836eaba0807910d87122c410",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1392,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/medieval-worlds/regions/east-asia/traditions/chinese-buddhism-mature-doctrinal-systems/graph-workbench/pre-canon-summary.json",
+      "sha256": "1c4a090bdd5407b80b3bb9cf2c46a825045e789ba31813e02142d7d63215a2f7",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 327,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/medieval-worlds/regions/east-asia/traditions/chinese-buddhism-mature-doctrinal-systems/sources/branch.manifest.json",
+      "sha256": "207596dae742931e6b51d83731f92a38c906bae6b8752bfa4af49083b3670a49",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1695,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/medieval-worlds/regions/east-asia/traditions/daoist-canon-ritual-cosmology-inner-alchemy/README.md",
+      "sha256": "a2b0781b5eeff638f3dcdd997718ca314a98d212fbafbc05c8ca5157c858b446",
+      "surface_kind": "human"
+    },
+    {
+      "bytes": 1123,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/medieval-worlds/regions/east-asia/traditions/daoist-canon-ritual-cosmology-inner-alchemy/branch.manifest.json",
+      "sha256": "e5d43d045439be1fb8296de9e44ad44e422263925b8440631022d27b1565d052",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 644,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/medieval-worlds/regions/east-asia/traditions/daoist-canon-ritual-cosmology-inner-alchemy/graph-workbench/branch.manifest.json",
+      "sha256": "73794da60c9d1bf1f90347de2509bc7ca90877c3e6560f7960858be7a5c757f0",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1731,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/medieval-worlds/regions/east-asia/traditions/daoist-canon-ritual-cosmology-inner-alchemy/graph-workbench/pre-canon-summary.json",
+      "sha256": "bfdf6a14994a97089f2a9e2e567b7695e7d4c5a19a75f3fe80f0b9a7cf81c501",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 580,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/medieval-worlds/regions/east-asia/traditions/daoist-canon-ritual-cosmology-inner-alchemy/sources/branch.manifest.json",
+      "sha256": "d443d2c90a0f02915fcbcbd5f8bc6118a328ab749003195e8573ef7941a249d5",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1625,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/medieval-worlds/regions/east-asia/traditions/japanese-buddhist-schools-kanbun-culture/README.md",
+      "sha256": "870a93a3fb402a67b2f406c8ab380f5b3f48cd60a529de1d8f3e1af335e144a5",
+      "surface_kind": "human"
+    },
+    {
+      "bytes": 1099,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/medieval-worlds/regions/east-asia/traditions/japanese-buddhist-schools-kanbun-culture/branch.manifest.json",
+      "sha256": "53bfe68ab4ddcd0145620fdd8052e4043b45fa104ef7623d69981c7dd8618caa",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 638,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/medieval-worlds/regions/east-asia/traditions/japanese-buddhist-schools-kanbun-culture/graph-workbench/branch.manifest.json",
+      "sha256": "8fced3c16929e77aab66dcf72b9d069480fa41277a2ba431d0c6fd0a07661cc8",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1699,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/medieval-worlds/regions/east-asia/traditions/japanese-buddhist-schools-kanbun-culture/graph-workbench/pre-canon-summary.json",
+      "sha256": "6c078534df05a650ca7885d59523f669d6e22c3ff4608b446f7040627d944772",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 574,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/medieval-worlds/regions/east-asia/traditions/japanese-buddhist-schools-kanbun-culture/sources/branch.manifest.json",
+      "sha256": "84416e74954326ae24b9c604c35d22f779939ce13b969ab75401e904a5b63c20",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1480,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/medieval-worlds/regions/east-asia/traditions/korean-buddhist-confucian-written-philosophy/README.md",
+      "sha256": "2858ad9ac90f8351ce44ee802923e9de3b3a162d4bf138574b2ea8b7cce631ed",
+      "surface_kind": "human"
+    },
+    {
+      "bytes": 870,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/medieval-worlds/regions/east-asia/traditions/korean-buddhist-confucian-written-philosophy/branch.manifest.json",
+      "sha256": "942ce8957824551bf6cbec1e3b5e7237a6bd0c9d4997ddd5cd76463bf4de98b3",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 397,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/medieval-worlds/regions/east-asia/traditions/korean-buddhist-confucian-written-philosophy/graph-workbench/branch.manifest.json",
+      "sha256": "db6eed83631a427724db5fce73102e09d9572e6b5e23316b1460fe2656d5012b",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1321,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/medieval-worlds/regions/east-asia/traditions/korean-buddhist-confucian-written-philosophy/graph-workbench/pre-canon-summary.json",
+      "sha256": "9094770faea8a60b73d7ee2c15881386575cbc358abe7d15482d1f54e7067e70",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 333,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/medieval-worlds/regions/east-asia/traditions/korean-buddhist-confucian-written-philosophy/sources/branch.manifest.json",
+      "sha256": "ef3c9cff1eedc0372eca38c9d0d1f279ad09aa93029e592877d939069a3a3fe2",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1374,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/medieval-worlds/regions/east-asia/traditions/song-yuan-ming-neo-confucianism/README.md",
+      "sha256": "ea3e23ce2932b9cb01f256f99ccd06e7ea1f433d85571a972ee8de3dd8723eac",
+      "surface_kind": "human"
+    },
+    {
+      "bytes": 798,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/medieval-worlds/regions/east-asia/traditions/song-yuan-ming-neo-confucianism/branch.manifest.json",
+      "sha256": "4466fc6bfeaa4a242f9676941438ffe66388adf02d91dfa16386f68303a6adee",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 371,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/medieval-worlds/regions/east-asia/traditions/song-yuan-ming-neo-confucianism/graph-workbench/branch.manifest.json",
+      "sha256": "0cc543c7051b9d512588852ec3dc208a64e5809c93caeb82fd5cd9d77f4caaaa",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1399,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/medieval-worlds/regions/east-asia/traditions/song-yuan-ming-neo-confucianism/graph-workbench/pre-canon-summary.json",
+      "sha256": "a9f4bf008a34b7c01400ba4b0ef3154a2987e452da7ded91465e919957ef241a",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 307,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/medieval-worlds/regions/east-asia/traditions/song-yuan-ming-neo-confucianism/sources/branch.manifest.json",
+      "sha256": "a4f7fdfeb87c51ee2cefca299e46a2690dcf9e06661217bf43a7b3a1220e69d7",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1682,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/medieval-worlds/regions/east-asia/traditions/vietnamese-confucian-buddhist-state-literature/README.md",
+      "sha256": "62104c461533de78e391faa75e640df78480204e22a84a721eac8858861baac9",
+      "surface_kind": "human"
+    },
+    {
+      "bytes": 1125,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/medieval-worlds/regions/east-asia/traditions/vietnamese-confucian-buddhist-state-literature/branch.manifest.json",
+      "sha256": "5340d6b7c1e510b67c1a440480bc205f037ddd03d329c22135dcc0e977ef4e02",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 650,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/medieval-worlds/regions/east-asia/traditions/vietnamese-confucian-buddhist-state-literature/graph-workbench/branch.manifest.json",
+      "sha256": "3e34065eae4755f51c47054bff82fbb87bba9e5881dbadcd811d1afb6ffb5186",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1586,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/medieval-worlds/regions/east-asia/traditions/vietnamese-confucian-buddhist-state-literature/graph-workbench/pre-canon-summary.json",
+      "sha256": "6c89461574ee45347ede521066c13acddc7b0c7b7dff6f80bb2e50de84688926",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 586,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/medieval-worlds/regions/east-asia/traditions/vietnamese-confucian-buddhist-state-literature/sources/branch.manifest.json",
+      "sha256": "0d5435dd659fcdb48058c87d79e5d49f37387a9ca3ef3a653535ee4b5dbcb759",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 253,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/medieval-worlds/regions/eastern-mediterranean/branch.manifest.json",
+      "sha256": "2fd39fd452ccd7bca108ba43bcf9f4cca03e1ee7485fd5b8c80140e84df7f63e",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 361,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/medieval-worlds/regions/eastern-mediterranean/traditions/branch.manifest.json",
+      "sha256": "709722ddd19c9df95790821a695ba978a29ca985da835f30b673f3f8602cf722",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1514,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/medieval-worlds/regions/eastern-mediterranean/traditions/early-middle-byzantine-philosophy-commentary/README.md",
+      "sha256": "27b3f7c45a8decdfa35f7eb88c27acdb64b47fa9c9016e968208e72353618325",
+      "surface_kind": "human"
+    },
+    {
+      "bytes": 930,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/medieval-worlds/regions/eastern-mediterranean/traditions/early-middle-byzantine-philosophy-commentary/branch.manifest.json",
+      "sha256": "b7156dec31970baa1737b8fb0adec43eda47c64dd2acb2e9a453026ec90a908e",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 421,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/medieval-worlds/regions/eastern-mediterranean/traditions/early-middle-byzantine-philosophy-commentary/graph-workbench/branch.manifest.json",
+      "sha256": "3ef8146ce340be249db7895b85a59122ad1e76dfa96aca27d5ef51cebc04bfdc",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1502,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/medieval-worlds/regions/eastern-mediterranean/traditions/early-middle-byzantine-philosophy-commentary/graph-workbench/pre-canon-summary.json",
+      "sha256": "7d5db15e96cab362bcf9dea20628d5ef0fb3db90314c3e31892cd5b7948ca76e",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 357,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/medieval-worlds/regions/eastern-mediterranean/traditions/early-middle-byzantine-philosophy-commentary/sources/branch.manifest.json",
+      "sha256": "bfe38ccc338a8042d4f45711567dc356aaa0cd10ff2d1f7fe516f9e0a2e42491",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1553,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/medieval-worlds/regions/eastern-mediterranean/traditions/late-byzantine-philosophy-palamite-humanist-transitions/README.md",
+      "sha256": "7c32c75f09586f345968baf6a227beaf84a9e1a787ac95182425191e5304f3e3",
+      "surface_kind": "human"
+    },
+    {
+      "bytes": 977,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/medieval-worlds/regions/eastern-mediterranean/traditions/late-byzantine-philosophy-palamite-humanist-transitions/branch.manifest.json",
+      "sha256": "39697014fa7f4469fed9dbd3623fe0398df05faa962074977fcc01dc9086d757",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 443,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/medieval-worlds/regions/eastern-mediterranean/traditions/late-byzantine-philosophy-palamite-humanist-transitions/graph-workbench/branch.manifest.json",
+      "sha256": "43195581f82e6cc33d07acde77c02fec434ad34da72f04948087f79ad9995532",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1512,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/medieval-worlds/regions/eastern-mediterranean/traditions/late-byzantine-philosophy-palamite-humanist-transitions/graph-workbench/pre-canon-summary.json",
+      "sha256": "c2532c01a0a6c376f1e90a6c8b18b47b7b6e4cedf852246e9879b82ffc3d3648",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 379,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/medieval-worlds/regions/eastern-mediterranean/traditions/late-byzantine-philosophy-palamite-humanist-transitions/sources/branch.manifest.json",
+      "sha256": "a19689fd713e3129e6a1ebc265d69648103feccd10ea01b292d3ac1b25fed04c",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 229,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/medieval-worlds/regions/iranian-world/branch.manifest.json",
+      "sha256": "1e97e8f040e281744741165e4c972b94f652531ffed6ca40d449542326d36b2c",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 269,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/medieval-worlds/regions/iranian-world/traditions/branch.manifest.json",
+      "sha256": "4dbe1310d78d138502b1be1d63d638aa1502f4941a1c6051dc20fa75c895b8dc",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1364,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/medieval-worlds/regions/iranian-world/traditions/ishraqi-illumination-philosophy/README.md",
+      "sha256": "90ae3c5adc832dd9e1d60a1e6407265b6a501e8bf51bc4953995e7411e475917",
+      "surface_kind": "human"
+    },
+    {
+      "bytes": 820,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/medieval-worlds/regions/iranian-world/traditions/ishraqi-illumination-philosophy/branch.manifest.json",
+      "sha256": "99e950d3d521b7089311ee2c4e4c6403501a661aed5fa66f7a14ce1fd9274812",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 379,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/medieval-worlds/regions/iranian-world/traditions/ishraqi-illumination-philosophy/graph-workbench/branch.manifest.json",
+      "sha256": "cdd4fcf56aec21f2f3b23f81018d1da2b14f1e65d79783c014830affab502100",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1409,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/medieval-worlds/regions/iranian-world/traditions/ishraqi-illumination-philosophy/graph-workbench/pre-canon-summary.json",
+      "sha256": "4d66154de848bdd9f9b600d8930801469ccbad8a67d0ff73e6722f1c0c96693b",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 315,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/medieval-worlds/regions/iranian-world/traditions/ishraqi-illumination-philosophy/sources/branch.manifest.json",
+      "sha256": "e207bef5a33c4ce72083466f4b557e65b8a37ca0c7ca953f11bf2c9ed50ac86c",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 226,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/medieval-worlds/regions/latin-europe/branch.manifest.json",
+      "sha256": "2ef8dfbcb6a7cf8f1d32ce85e5eddbc09bd8a5f49190f6fd73268d0b517fc0f0",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 632,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/medieval-worlds/regions/latin-europe/traditions/branch.manifest.json",
+      "sha256": "f8e94adebb4ad3f8010f40d6059c9d783ee0494f38fcf790fd8a606c27371325",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1707,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/medieval-worlds/regions/latin-europe/traditions/canon-roman-law-intellectual-rationality/README.md",
+      "sha256": "ae6ad305d712509dcfe72e1a8f43aeab48cf20345590fe16561ea9176293ecd3",
+      "surface_kind": "human"
+    },
+    {
+      "bytes": 1114,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/medieval-worlds/regions/latin-europe/traditions/canon-roman-law-intellectual-rationality/branch.manifest.json",
+      "sha256": "3929932c45789865798d642574af9ab1b6d250b8de49e619ad0e373650885ec3",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 644,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/medieval-worlds/regions/latin-europe/traditions/canon-roman-law-intellectual-rationality/graph-workbench/branch.manifest.json",
+      "sha256": "2fdd26404b260d0b4e7048b7760c1a087245839f994adc5ff8bb195ee30cb007",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1675,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/medieval-worlds/regions/latin-europe/traditions/canon-roman-law-intellectual-rationality/graph-workbench/pre-canon-summary.json",
+      "sha256": "368be3c024482662bb86e07f3fc3516875be9c2a9805eab23ce04ca83ae33375",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 580,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/medieval-worlds/regions/latin-europe/traditions/canon-roman-law-intellectual-rationality/sources/branch.manifest.json",
+      "sha256": "31ac992d8cd9d714efd8574006d68f67936b159a220209092c034998194b00ff",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1461,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/medieval-worlds/regions/latin-europe/traditions/dominican-franciscan-late-scholastic-polyphony/README.md",
+      "sha256": "5dd45e79d610add970d6a7ce8a67358a4d871b22a6816b2fc420ef1beb6d2bc0",
+      "surface_kind": "human"
+    },
+    {
+      "bytes": 892,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/medieval-worlds/regions/latin-europe/traditions/dominican-franciscan-late-scholastic-polyphony/branch.manifest.json",
+      "sha256": "c36f295371f8989d860c5b478b8ee56ecf745bf8d8ac23f96b9e7e940d1ee8c7",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 407,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/medieval-worlds/regions/latin-europe/traditions/dominican-franciscan-late-scholastic-polyphony/graph-workbench/branch.manifest.json",
+      "sha256": "32b3fcc6a9b0852e52bafc41bd3c0aa48dcbd46e71342db93e59736e2475e973",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1343,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/medieval-worlds/regions/latin-europe/traditions/dominican-franciscan-late-scholastic-polyphony/graph-workbench/pre-canon-summary.json",
+      "sha256": "1f560ce9fdec3e6852027e0f63a6e4f42dbb0ff2db72c1a30668960aa58b32ee",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 343,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/medieval-worlds/regions/latin-europe/traditions/dominican-franciscan-late-scholastic-polyphony/sources/branch.manifest.json",
+      "sha256": "93ff6ad5ad583332894e83ab9464431fe91efc3d7bf56c40f5df844e0f897854",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1755,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/medieval-worlds/regions/latin-europe/traditions/early-medieval-carolingian-ottonian-schools/README.md",
+      "sha256": "f7599286d08e0b9fac23a60aa5b76fce283a76c33736f3fb6928e50600d427c8",
+      "surface_kind": "human"
+    },
+    {
+      "bytes": 1133,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/medieval-worlds/regions/latin-europe/traditions/early-medieval-carolingian-ottonian-schools/branch.manifest.json",
+      "sha256": "92e227d072e224699f4772fc737f330e34113006481ad8a9fe337334a2e51abd",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 650,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/medieval-worlds/regions/latin-europe/traditions/early-medieval-carolingian-ottonian-schools/graph-workbench/branch.manifest.json",
+      "sha256": "af05b878e14bcc604b47ccb06c737d359c6366a9b754f7c61118201ce8c65590",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1678,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/medieval-worlds/regions/latin-europe/traditions/early-medieval-carolingian-ottonian-schools/graph-workbench/pre-canon-summary.json",
+      "sha256": "05fa155f6f8ae50f49c9555db3dbbc18fbf078428a889c9059201f3ff4a5091c",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 586,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/medieval-worlds/regions/latin-europe/traditions/early-medieval-carolingian-ottonian-schools/sources/branch.manifest.json",
+      "sha256": "8136220bb8cba696af1399efcc700d36606141d5a4842e58b6d13d87cd96b74b",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1471,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/medieval-worlds/regions/latin-europe/traditions/late-medieval-humanist-aristotelian-transition/README.md",
+      "sha256": "f18f1e78994b5d0a3c9c9e8ce007c6eea8e870ccedb2b2e9616304c84561f5c0",
+      "surface_kind": "human"
+    },
+    {
+      "bytes": 888,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/medieval-worlds/regions/latin-europe/traditions/late-medieval-humanist-aristotelian-transition/branch.manifest.json",
+      "sha256": "005d702252b633ca130ea45e80ca176159a74b0f1bbfa71856947ff5d5114a63",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 407,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/medieval-worlds/regions/latin-europe/traditions/late-medieval-humanist-aristotelian-transition/graph-workbench/branch.manifest.json",
+      "sha256": "069480e32dfef0ce4b8a25962e7abc43c3b93aa391c0a541cab5dcfef6fbeb6a",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1421,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/medieval-worlds/regions/latin-europe/traditions/late-medieval-humanist-aristotelian-transition/graph-workbench/pre-canon-summary.json",
+      "sha256": "803037f56e3d39073f3b1944ed0fffb791e2ae586cc0813239c7d03bb054427f",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 343,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/medieval-worlds/regions/latin-europe/traditions/late-medieval-humanist-aristotelian-transition/sources/branch.manifest.json",
+      "sha256": "96438baa4cf4770aa468d7af34a4f3b1245765a4b583f6d2a0ee97d60df7357b",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1641,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/medieval-worlds/regions/latin-europe/traditions/latin-mysticism-philosophical-theology/README.md",
+      "sha256": "6c6e8d6bab93c801573d76d89ee83d2937476ab2557647fdf3f848300ec81ce2",
+      "surface_kind": "human"
+    },
+    {
+      "bytes": 1101,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/medieval-worlds/regions/latin-europe/traditions/latin-mysticism-philosophical-theology/branch.manifest.json",
+      "sha256": "f5dfdcfcab900a542eeef9b275aec5ac7ef795af84bfbd2d792365a65f74f8ea",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 640,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/medieval-worlds/regions/latin-europe/traditions/latin-mysticism-philosophical-theology/graph-workbench/branch.manifest.json",
+      "sha256": "fdef83fab714944549abe2e781770936686a719379e68a5eb41fca86b7f2460d",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1647,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/medieval-worlds/regions/latin-europe/traditions/latin-mysticism-philosophical-theology/graph-workbench/pre-canon-summary.json",
+      "sha256": "7247dc781677477117a32162ce9106f0009aab3496f145901bef003508543771",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 576,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/medieval-worlds/regions/latin-europe/traditions/latin-mysticism-philosophical-theology/sources/branch.manifest.json",
+      "sha256": "6d7e43a4d47546c6a88372ee84d0dffc7689c88f8ff7b54221dc4f36a46ef0e1",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1519,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/medieval-worlds/regions/latin-europe/traditions/medieval-political-philosophy-papacy-empire-city/README.md",
+      "sha256": "641622437b2899ea641ebc58184c950f1a85625e96aec299b5fac219bf98210a",
+      "surface_kind": "human"
+    },
+    {
+      "bytes": 907,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/medieval-worlds/regions/latin-europe/traditions/medieval-political-philosophy-papacy-empire-city/branch.manifest.json",
+      "sha256": "6f57a942a41a9d9e4463542425948b4ddbb66ca5d32fc39fe25a6ab446f8cdb9",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 411,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/medieval-worlds/regions/latin-europe/traditions/medieval-political-philosophy-papacy-empire-city/graph-workbench/branch.manifest.json",
+      "sha256": "0737c4abeb52d2bef2aab3d3042cbbff5c4ca02f678065366e850ced9fc23a35",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1447,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/medieval-worlds/regions/latin-europe/traditions/medieval-political-philosophy-papacy-empire-city/graph-workbench/pre-canon-summary.json",
+      "sha256": "1b5c2cd24dc98b8ee8c63b7b75a6c2451417c32dca47fba7bd7007124254d1ce",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 347,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/medieval-worlds/regions/latin-europe/traditions/medieval-political-philosophy-papacy-empire-city/sources/branch.manifest.json",
+      "sha256": "35623a9fc529fd7b0084c38843c27e0810f854087d45062cc06c20c412b6a6ba",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1391,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/medieval-worlds/regions/latin-europe/traditions/twelfth-century-schools-logical-revival/README.md",
+      "sha256": "a31d64470cd1e25cc9eae8fae423ab547d262abc84be9b744c0eff7eb3a4d834",
+      "surface_kind": "human"
+    },
+    {
+      "bytes": 857,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/medieval-worlds/regions/latin-europe/traditions/twelfth-century-schools-logical-revival/branch.manifest.json",
+      "sha256": "9d9173d748f7237b4f40d4fcb2524702b7e9c20c3e89feb15334f495a67e184d",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 393,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/medieval-worlds/regions/latin-europe/traditions/twelfth-century-schools-logical-revival/graph-workbench/branch.manifest.json",
+      "sha256": "516a1120a5b1d339a2d75f05ebf4a8adb5928ff3ec4501ade05291095c216356",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1421,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/medieval-worlds/regions/latin-europe/traditions/twelfth-century-schools-logical-revival/graph-workbench/pre-canon-summary.json",
+      "sha256": "0a80abb7aa5987f406c4349e1dd450cdead8eb6183d32530e80b214fd1479135",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 329,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/medieval-worlds/regions/latin-europe/traditions/twelfth-century-schools-logical-revival/sources/branch.manifest.json",
+      "sha256": "94da8f875451e8a6d60723f321d25f3c0431e0cc94bf13dd09f1fae26ac8a5db",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1412,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/medieval-worlds/regions/latin-europe/traditions/university-scholasticism-sentences-summa/README.md",
+      "sha256": "3ddaf1dbb133b97eb42166b967f05bfd4317ae74aa86e53804d3c9264596ab62",
+      "surface_kind": "human"
+    },
+    {
+      "bytes": 866,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/medieval-worlds/regions/latin-europe/traditions/university-scholasticism-sentences-summa/branch.manifest.json",
+      "sha256": "2a382fda667ecdc8ccf328d6691b22f0df41080122109433ddc5fafd7fd00c88",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 395,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/medieval-worlds/regions/latin-europe/traditions/university-scholasticism-sentences-summa/graph-workbench/branch.manifest.json",
+      "sha256": "95112bdebff59711ae206c490cba6e9c76453bbf9e608bccdb197630c6e5b2c4",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1431,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/medieval-worlds/regions/latin-europe/traditions/university-scholasticism-sentences-summa/graph-workbench/pre-canon-summary.json",
+      "sha256": "215dc7fd6438f261275124fbb0b10bc6e4990953ec3242ccd9468123c0762e4f",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 331,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/medieval-worlds/regions/latin-europe/traditions/university-scholasticism-sentences-summa/sources/branch.manifest.json",
+      "sha256": "b6910a78cf58a0baf8542a1c3cb4b13fb6c9a116e5a631aec7f7fb9e96bba997",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 250,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/medieval-worlds/regions/mediterranean-europe/branch.manifest.json",
+      "sha256": "7869e1b553509dc9ac3c5ae776bd4a6209fa7fd6fb58d868a8e5a628182484e4",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 392,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/medieval-worlds/regions/mediterranean-europe/traditions/branch.manifest.json",
+      "sha256": "475bc547da97508817febde235db6fc331429583714c7d369d2f2994df736c54",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1642,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/medieval-worlds/regions/mediterranean-europe/traditions/kabbalah-written-metaphysical-mystical-node/README.md",
+      "sha256": "aa91f494b76df08ef885edf3417d11a88d2fd80177e04cbe4b0e3349b9bed8fa",
+      "surface_kind": "human"
+    },
+    {
+      "bytes": 1152,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/medieval-worlds/regions/mediterranean-europe/traditions/kabbalah-written-metaphysical-mystical-node/branch.manifest.json",
+      "sha256": "3c8f6001dfcdada656c846531d77faa4ebc7fd915bf806a20419b73f7dbd3dac",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 666,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/medieval-worlds/regions/mediterranean-europe/traditions/kabbalah-written-metaphysical-mystical-node/graph-workbench/branch.manifest.json",
+      "sha256": "17a5395af49422323a8e567549f143ae2447fbdba2ad06a0b18b038a091723cf",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1681,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/medieval-worlds/regions/mediterranean-europe/traditions/kabbalah-written-metaphysical-mystical-node/graph-workbench/pre-canon-summary.json",
+      "sha256": "182fc073f3fcfa6d14bc0c5f8bedc82dcfd1ede35c8e84b92b47361d945bd4b9",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 602,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/medieval-worlds/regions/mediterranean-europe/traditions/kabbalah-written-metaphysical-mystical-node/sources/branch.manifest.json",
+      "sha256": "29cc8c08f54a550722107aff5f6636774f4cd24f414eb3b1f233253dea187b37",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1525,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/medieval-worlds/regions/mediterranean-europe/traditions/late-medieval-jewish-philosophy/README.md",
+      "sha256": "2d1f648c2aa0c5f85b50dc51914ed687886e6ab24ed0e0b83a5f247c4541d6cf",
+      "surface_kind": "human"
+    },
+    {
+      "bytes": 872,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/medieval-worlds/regions/mediterranean-europe/traditions/late-medieval-jewish-philosophy/branch.manifest.json",
+      "sha256": "1c977f2afbfdb16605741c58331b8e69764a5933315795195649cea06b8e14d9",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 393,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/medieval-worlds/regions/mediterranean-europe/traditions/late-medieval-jewish-philosophy/graph-workbench/branch.manifest.json",
+      "sha256": "45c5931e85b7e468a66f303e8c183650bad86176d130d2602d40f71ce500ad95",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1432,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/medieval-worlds/regions/mediterranean-europe/traditions/late-medieval-jewish-philosophy/graph-workbench/pre-canon-summary.json",
+      "sha256": "08efaed2d5df26ce56eeffa2b7e003787d98653c5d6a832a3e4dac0fcee2515a",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 329,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/medieval-worlds/regions/mediterranean-europe/traditions/late-medieval-jewish-philosophy/sources/branch.manifest.json",
+      "sha256": "f4791be31b5287cf84142f27a9b8d9eb2e710722b52113f561760880f7b64273",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1504,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/medieval-worlds/regions/mediterranean-europe/traditions/toledo-sicily-southern-italy-translation-corridors/README.md",
+      "sha256": "b485704b722d124497c448fe6169d4c6a445650b414ed926d1887a7e0fc4b5ce",
+      "surface_kind": "human"
+    },
+    {
+      "bytes": 947,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/medieval-worlds/regions/mediterranean-europe/traditions/toledo-sicily-southern-italy-translation-corridors/branch.manifest.json",
+      "sha256": "43227b6f25e2ea6647f0a2a64e57a80a2255adcdfc5c6aa6d2de9776a449afad",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 431,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/medieval-worlds/regions/mediterranean-europe/traditions/toledo-sicily-southern-italy-translation-corridors/graph-workbench/branch.manifest.json",
+      "sha256": "aa72e5b3d104053276b670959e5b414d93cdd41ded4d5643e405dea379ac5a05",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1460,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/medieval-worlds/regions/mediterranean-europe/traditions/toledo-sicily-southern-italy-translation-corridors/graph-workbench/pre-canon-summary.json",
+      "sha256": "1990036986521e03e38cf2a722979836f64d5a669e6bafcf9f57dc4de73cd260",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 367,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/medieval-worlds/regions/mediterranean-europe/traditions/toledo-sicily-southern-italy-translation-corridors/sources/branch.manifest.json",
+      "sha256": "0086ceda84ba02bc0a1db82b6155f077c846de96257f109afc9de1be35ca9246",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 226,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/medieval-worlds/regions/north-africa/branch.manifest.json",
+      "sha256": "92ffa0349d3c45feb37fb11469658358f805ac678f7eb09c6eaad0cb930b3c4f",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 282,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/medieval-worlds/regions/north-africa/traditions/branch.manifest.json",
+      "sha256": "809119a5c7a28bbc8849eec08cda43ae6fc6d6a0a16d99894fb1756a4ed726c7",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1753,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/medieval-worlds/regions/north-africa/traditions/coptic-egypt-monastic-translation-continuities/README.md",
+      "sha256": "fbb758a0ff317d9ab1ce3969ecbb89b98f608c523aeb2c2a41639e43c0f784c1",
+      "surface_kind": "human"
+    },
+    {
+      "bytes": 1157,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/medieval-worlds/regions/north-africa/traditions/coptic-egypt-monastic-translation-continuities/branch.manifest.json",
+      "sha256": "7046e10abee40a32059fc7ebd8f9f15d990e68ee95b07f74442d72babf39165e",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 656,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/medieval-worlds/regions/north-africa/traditions/coptic-egypt-monastic-translation-continuities/graph-workbench/branch.manifest.json",
+      "sha256": "fa3d3ea1fc1e198c4200a3bd4ec74a4cc2ce7011ba5303af18bd573152c23204",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1712,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/medieval-worlds/regions/north-africa/traditions/coptic-egypt-monastic-translation-continuities/graph-workbench/pre-canon-summary.json",
+      "sha256": "2d0297f160afc70d981f07ff33ecb4b4e83644688a0672676257733cd1537e79",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 592,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/medieval-worlds/regions/north-africa/traditions/coptic-egypt-monastic-translation-continuities/sources/branch.manifest.json",
+      "sha256": "6ef39174b260121965b19dac976587e067305e379e07bcd9588a85320316f183",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 238,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/medieval-worlds/regions/northeast-africa/branch.manifest.json",
+      "sha256": "0a9d58793756b57196ad2e731e787830dffc5b94ce1065097fbb8c4938446e6a",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 291,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/medieval-worlds/regions/northeast-africa/traditions/branch.manifest.json",
+      "sha256": "c03c8a086ea1119e995c21fe98fcf7d3a61211fd9ef6d06d17d7dba54991420b",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1769,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/medieval-worlds/regions/northeast-africa/traditions/geez-medieval-literature-royal-ethical-theology/README.md",
+      "sha256": "c5b781a9704fbe20c9b591e3ba0e873168702e822d68de1fd5725ecea7f4ff46",
+      "surface_kind": "human"
+    },
+    {
+      "bytes": 1187,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/medieval-worlds/regions/northeast-africa/traditions/geez-medieval-literature-royal-ethical-theology/branch.manifest.json",
+      "sha256": "d15db3295746a1efe143e61183c463ffb96c6acf6d6bce91019136503c8061ee",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 666,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/medieval-worlds/regions/northeast-africa/traditions/geez-medieval-literature-royal-ethical-theology/graph-workbench/branch.manifest.json",
+      "sha256": "e74802a2be52874afd529010aad01dae75d6c62c7db8c91867d2b425bffc1581",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1691,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/medieval-worlds/regions/northeast-africa/traditions/geez-medieval-literature-royal-ethical-theology/graph-workbench/pre-canon-summary.json",
+      "sha256": "44729bb6662193bbf20ca6b7891497d982fa4ecc8b936cb4835b8f67dc86e194",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 602,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/medieval-worlds/regions/northeast-africa/traditions/geez-medieval-literature-royal-ethical-theology/sources/branch.manifest.json",
+      "sha256": "60d73c816574b367023bdc1964069fac086f042335ea204549fa551e8de635ce",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 238,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/medieval-worlds/regions/persianate-world/branch.manifest.json",
+      "sha256": "0079f08e3cde3c46c7e510f9a7fdab800e14e0c1079b1e8f22b528b940341482",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 286,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/medieval-worlds/regions/persianate-world/traditions/branch.manifest.json",
+      "sha256": "21045fb3eaa3989996929c59722471242f621d10dfc0faad05c47812955bc731",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1441,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/medieval-worlds/regions/persianate-world/traditions/post-mongol-persianate-scholastic-corridor/README.md",
+      "sha256": "c0a16196447138f6c99b0a9d8e7b1e20dada54289a2aeba41a55e95f6af855ad",
+      "surface_kind": "human"
+    },
+    {
+      "bytes": 884,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/medieval-worlds/regions/persianate-world/traditions/post-mongol-persianate-scholastic-corridor/branch.manifest.json",
+      "sha256": "8e0ce26a9861cc9cf8a871612c7512b52f0d8366763ac6323a4b8d4e3255dbbd",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 407,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/medieval-worlds/regions/persianate-world/traditions/post-mongol-persianate-scholastic-corridor/graph-workbench/branch.manifest.json",
+      "sha256": "5b5f1c8d25dd1062e3d6ac82b8ccd2d23a511e28aab87098d90c2b0b0efa7f47",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1406,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/medieval-worlds/regions/persianate-world/traditions/post-mongol-persianate-scholastic-corridor/graph-workbench/pre-canon-summary.json",
+      "sha256": "09cb02fc1e9dd40ccc296035b62173d455f333617654763b0227a9a7419967ba",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 343,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/medieval-worlds/regions/persianate-world/traditions/post-mongol-persianate-scholastic-corridor/sources/branch.manifest.json",
+      "sha256": "cd6075cf73114f77f117a73df5c95cace6c8704c8e7e61e750b67d4210957849",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 220,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/medieval-worlds/regions/south-asia/branch.manifest.json",
+      "sha256": "c57d64c4e50ed0e2a7e3e5762517d906b2d06d2030ef706ba6b77f4555d349f4",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1422,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/medieval-worlds/regions/south-asia/traditions/advaita-vedanta-post-shankara-lines/README.md",
+      "sha256": "a9f68042f287e3d36678792c40f5aa048f578dd0379cedb5ae703e6f3d8834dd",
+      "surface_kind": "human"
+    },
+    {
+      "bytes": 832,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/medieval-worlds/regions/south-asia/traditions/advaita-vedanta-post-shankara-lines/branch.manifest.json",
+      "sha256": "abfc2597d5938b28d57afbe0ce699f9401e2a64e6df9679c0972f4ac2f8a6ec8",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 381,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/medieval-worlds/regions/south-asia/traditions/advaita-vedanta-post-shankara-lines/graph-workbench/branch.manifest.json",
+      "sha256": "3c477e76fb3157496528b0b54d93e1b91f53c4c63bd8f113266352ba145e2168",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1385,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/medieval-worlds/regions/south-asia/traditions/advaita-vedanta-post-shankara-lines/graph-workbench/pre-canon-summary.json",
+      "sha256": "7fff7ad45daf8d72859f3f79f88eb10c19fe8087548108d9ab5ef399bd34cb40",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 317,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/medieval-worlds/regions/south-asia/traditions/advaita-vedanta-post-shankara-lines/sources/branch.manifest.json",
+      "sha256": "15b95060e1ef77467a8301921b844bb02de70e61a7b4c52bf869fd05796d83ac",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 586,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/medieval-worlds/regions/south-asia/traditions/branch.manifest.json",
+      "sha256": "df4422adfad9139ef801e84aab86a7c5db6230f102b51e4fe6484f300b2a202e",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1376,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/medieval-worlds/regions/south-asia/traditions/buddhist-logic-epistemology/README.md",
+      "sha256": "0760503ccacf904cc354b8b805447fb080892d4da117ddbb201ad3dad9dfea5c",
+      "surface_kind": "human"
+    },
+    {
+      "bytes": 789,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/medieval-worlds/regions/south-asia/traditions/buddhist-logic-epistemology/branch.manifest.json",
+      "sha256": "38396399475a20adbe83fbadf87c57c3e925e9eed1020e96ab39f3312de467bb",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 365,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/medieval-worlds/regions/south-asia/traditions/buddhist-logic-epistemology/graph-workbench/branch.manifest.json",
+      "sha256": "894fb33cefb426d4aa2130a255325e2e1960b99aa03a2e0aaffaa89c4d28c092",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1425,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/medieval-worlds/regions/south-asia/traditions/buddhist-logic-epistemology/graph-workbench/pre-canon-summary.json",
+      "sha256": "98ad8036014eecc4cd4ed465827ee6da1673c9782e98a6badfb0ca151ca51197",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 301,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/medieval-worlds/regions/south-asia/traditions/buddhist-logic-epistemology/sources/branch.manifest.json",
+      "sha256": "41ff047c77a55340ddfe4973c47660aefa67585f8e819c3870acd26cf96d4801",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1412,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/medieval-worlds/regions/south-asia/traditions/darshana-commentarial-ecologies/README.md",
+      "sha256": "a8f6992f145411033a329ae0eb1cc339be18ced14bbc1f747fb2e990e654e031",
+      "surface_kind": "human"
+    },
+    {
+      "bytes": 803,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/medieval-worlds/regions/south-asia/traditions/darshana-commentarial-ecologies/branch.manifest.json",
+      "sha256": "12e9b457c7f539e48ada9afd2af384d5e908f4a1332c6c1abb622dd5522ca0ef",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 373,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/medieval-worlds/regions/south-asia/traditions/darshana-commentarial-ecologies/graph-workbench/branch.manifest.json",
+      "sha256": "82f9b8927660b64adc7fc35dd850a7ca4632c5afade57df792da1bca76c39567",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1380,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/medieval-worlds/regions/south-asia/traditions/darshana-commentarial-ecologies/graph-workbench/pre-canon-summary.json",
+      "sha256": "b7008f6736c051a111110bb824322c3208eee612dd2e77b080e772141b75bb82",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 309,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/medieval-worlds/regions/south-asia/traditions/darshana-commentarial-ecologies/sources/branch.manifest.json",
+      "sha256": "3f3d9e505cb5385edd9f7c3848b85248c4885a6f9a7f0181aaff23897829ebca",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1525,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/medieval-worlds/regions/south-asia/traditions/jain-medieval-philosophy-many-sided-logic/README.md",
+      "sha256": "4ba818a70a2b8903f793bb1664c33a7c51f12af651bd66099ab7a1fadc240002",
+      "surface_kind": "human"
+    },
+    {
+      "bytes": 859,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/medieval-worlds/regions/south-asia/traditions/jain-medieval-philosophy-many-sided-logic/branch.manifest.json",
+      "sha256": "03804173e16d6386afec81f6b621e5b4b5e6ea05bd25749e55c70c4d3cc4af8a",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 393,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/medieval-worlds/regions/south-asia/traditions/jain-medieval-philosophy-many-sided-logic/graph-workbench/branch.manifest.json",
+      "sha256": "a389338be7c8227515b31301f1878b3fb2d229f5c98bb88bccdd34b73a292ea1",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1386,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/medieval-worlds/regions/south-asia/traditions/jain-medieval-philosophy-many-sided-logic/graph-workbench/pre-canon-summary.json",
+      "sha256": "7bef108b7608fb6155b6fab27b709ec606b47091414eac182f00bff0948f9baa",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 329,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/medieval-worlds/regions/south-asia/traditions/jain-medieval-philosophy-many-sided-logic/sources/branch.manifest.json",
+      "sha256": "c6c5f65d419086cdd2ce9c8e7dae6c30880896e2dfb5ef8081b005f03fdeecab",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1492,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/medieval-worlds/regions/south-asia/traditions/kashmir-shaivism-tantric-philosophy-aesthetics/README.md",
+      "sha256": "564686f8262abd8b690cbad630cef1d568139b581e298bd97aff7d292c5ea033",
+      "surface_kind": "human"
+    },
+    {
+      "bytes": 886,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/medieval-worlds/regions/south-asia/traditions/kashmir-shaivism-tantric-philosophy-aesthetics/branch.manifest.json",
+      "sha256": "bb47ae9e53c8da9498f3b7f0b0b8d5da524aae3cf961d8beb72fb649a16b2eba",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 403,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/medieval-worlds/regions/south-asia/traditions/kashmir-shaivism-tantric-philosophy-aesthetics/graph-workbench/branch.manifest.json",
+      "sha256": "80a41c78f3dfff9cf25e8ed206c48c1300baaab7c56d678214ddba19f84b515f",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1394,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/medieval-worlds/regions/south-asia/traditions/kashmir-shaivism-tantric-philosophy-aesthetics/graph-workbench/pre-canon-summary.json",
+      "sha256": "218fd7b94c8dd94868a1c36921bab2963b4afc856a899d9c7fb3bd3ed1b72748",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 339,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/medieval-worlds/regions/south-asia/traditions/kashmir-shaivism-tantric-philosophy-aesthetics/sources/branch.manifest.json",
+      "sha256": "5b571350ebe5e082ed717473d6c0c93be2b86dbbd931c2215a7ab40d998a21aa",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1565,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/medieval-worlds/regions/south-asia/traditions/late-indian-buddhist-scholastic-monastic-universities/README.md",
+      "sha256": "e94b7b86d80cca4938ff81b79673843efea0697ace10a9ebd3628f0273abe2c3",
+      "surface_kind": "human"
+    },
+    {
+      "bytes": 917,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/medieval-worlds/regions/south-asia/traditions/late-indian-buddhist-scholastic-monastic-universities/branch.manifest.json",
+      "sha256": "9ba5768b72daed4dff7eec8a6b382f9bd89a7bdebd9eb7b6ea54adafe46e4849",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 417,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/medieval-worlds/regions/south-asia/traditions/late-indian-buddhist-scholastic-monastic-universities/graph-workbench/branch.manifest.json",
+      "sha256": "fdea3b728621aa53c4138dd332154759da09791137365a3b12e1a1c016656436",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1501,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/medieval-worlds/regions/south-asia/traditions/late-indian-buddhist-scholastic-monastic-universities/graph-workbench/pre-canon-summary.json",
+      "sha256": "653b27c90716282e701814d0bf420232f2dcb10f2e96aa634a1269ffd80c76a4",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 353,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/medieval-worlds/regions/south-asia/traditions/late-indian-buddhist-scholastic-monastic-universities/sources/branch.manifest.json",
+      "sha256": "2da6de0bb9befd0eae5c7abee7aa41b6a98e286b3681623ece2bea28752f5334",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1405,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/medieval-worlds/regions/south-asia/traditions/navya-nyaya-analytic-turn/README.md",
+      "sha256": "98e39e8a05de2c2ec257fe75ef2b8d164d4d8d7ccdf6b4a540a6f97570e9ee47",
+      "surface_kind": "human"
+    },
+    {
+      "bytes": 775,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/medieval-worlds/regions/south-asia/traditions/navya-nyaya-analytic-turn/branch.manifest.json",
+      "sha256": "2ce19900bc6aea728802389bc1fe41eb79ee57280697fa9eb287a34cc8851f2e",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 361,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/medieval-worlds/regions/south-asia/traditions/navya-nyaya-analytic-turn/graph-workbench/branch.manifest.json",
+      "sha256": "dfd67b56c54b112ea0148de38d6a60138bd777d7105222b6c3c2944257ec1190",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1384,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/medieval-worlds/regions/south-asia/traditions/navya-nyaya-analytic-turn/graph-workbench/pre-canon-summary.json",
+      "sha256": "4cc0ae5259f2fc2bcb3fac4dc61922ad2e7a1ee8db338720093f041f111ef2e2",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 297,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/medieval-worlds/regions/south-asia/traditions/navya-nyaya-analytic-turn/sources/branch.manifest.json",
+      "sha256": "c79549e10c5e934deb27284a387fbb6606f0b18dc6a61970f937e408c9b4a2b4",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1427,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/medieval-worlds/regions/south-asia/traditions/vishishtadvaita-dvaita-theistic-vedantas/README.md",
+      "sha256": "fd37708f0eae652b5fca9d504b5eead03a1ebeaf4098721fb2fb2959e92c263c",
+      "surface_kind": "human"
+    },
+    {
+      "bytes": 855,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/medieval-worlds/regions/south-asia/traditions/vishishtadvaita-dvaita-theistic-vedantas/branch.manifest.json",
+      "sha256": "47a1693cc496b3a4bbef4300b5bcf89e7530633f1e811b480206d912cb653414",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 391,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/medieval-worlds/regions/south-asia/traditions/vishishtadvaita-dvaita-theistic-vedantas/graph-workbench/branch.manifest.json",
+      "sha256": "f41efb7ff9c4b083171a36a253363974c1476d787f9cff90fcc58b0489df1b98",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1507,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/medieval-worlds/regions/south-asia/traditions/vishishtadvaita-dvaita-theistic-vedantas/graph-workbench/pre-canon-summary.json",
+      "sha256": "960c449ceaefa755b08800ae5ca00580763a94159a4d80855d23e275452e7be3",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 327,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/medieval-worlds/regions/south-asia/traditions/vishishtadvaita-dvaita-theistic-vedantas/sources/branch.manifest.json",
+      "sha256": "bac913a2920c01e2f8ab0760b28892faeed5c5a95c444c6576248a53c6793a33",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 232,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/medieval-worlds/regions/southeast-asia/branch.manifest.json",
+      "sha256": "f19a6e41a2ad06b0f088283e9ca2554862777bf5a3a4ffa0054b534d914763cf",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 321,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/medieval-worlds/regions/southeast-asia/traditions/branch.manifest.json",
+      "sha256": "62b8349e71a4633a2860d88f8bf10f35255c20abe2d0ac532a884f11a8037e3a",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1685,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/medieval-worlds/regions/southeast-asia/traditions/sanskrit-cosmopolitan-literary-world/README.md",
+      "sha256": "952b29f03eedf11cd6337aa5d0b0ba86ae99aaefe740fde26ca0671d9827fec9",
+      "surface_kind": "human"
+    },
+    {
+      "bytes": 1111,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/medieval-worlds/regions/southeast-asia/traditions/sanskrit-cosmopolitan-literary-world/branch.manifest.json",
+      "sha256": "38df0a8a8a9f8441349f489a77f79114e43b8b8d83f708cd6a5c85fe89efbddf",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 640,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/medieval-worlds/regions/southeast-asia/traditions/sanskrit-cosmopolitan-literary-world/graph-workbench/branch.manifest.json",
+      "sha256": "84e934d4030c39e7c3ea2f0c3a2e1f70e609dc72b75fdf06fa8b5cb88a3f4c08",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1609,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/medieval-worlds/regions/southeast-asia/traditions/sanskrit-cosmopolitan-literary-world/graph-workbench/pre-canon-summary.json",
+      "sha256": "21c66879bb49c96f6870f0e5ce75a366a9705f12975ec60b3cae4187069850b1",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 576,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/medieval-worlds/regions/southeast-asia/traditions/sanskrit-cosmopolitan-literary-world/sources/branch.manifest.json",
+      "sha256": "8a4d954d21cf6efa2eceb56a15eff58f67b4d6272a6a1d5aba78beaa7cd7491c",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1741,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/medieval-worlds/regions/southeast-asia/traditions/theravada-sri-lanka-mainland-corridor/README.md",
+      "sha256": "ec5dfdc994061a10b3df288feb301f7e90e5a71d101085dddb492c1d58c6f619",
+      "surface_kind": "human"
+    },
+    {
+      "bytes": 1116,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/medieval-worlds/regions/southeast-asia/traditions/theravada-sri-lanka-mainland-corridor/branch.manifest.json",
+      "sha256": "edc63af1219e684a8891564c0acea15b8fd2a18e3d5cd74b77490c7937bfd055",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 642,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/medieval-worlds/regions/southeast-asia/traditions/theravada-sri-lanka-mainland-corridor/graph-workbench/branch.manifest.json",
+      "sha256": "4ec1ae62409056ad1ae3d3a1de55d3dff2d6be3aaf236af13d0adb508212dd5c",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1533,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/medieval-worlds/regions/southeast-asia/traditions/theravada-sri-lanka-mainland-corridor/graph-workbench/pre-canon-summary.json",
+      "sha256": "3ead4173d11698aecf40583a39f1c3f2e6bcb749d2578491e1c13a017dae17c3",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 578,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/medieval-worlds/regions/southeast-asia/traditions/theravada-sri-lanka-mainland-corridor/sources/branch.manifest.json",
+      "sha256": "a0daa9f929e0c7be67aab789987c68c280c18728d4c9f580c8c6e49e4d7cb60e",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 217,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/medieval-worlds/regions/sri-lanka/branch.manifest.json",
+      "sha256": "f0a74080c14f9e8bd525e1d01ae3bd1cb2b4ac588c36c5b0e4098d6ec7369cbb",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 266,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/medieval-worlds/regions/sri-lanka/traditions/branch.manifest.json",
+      "sha256": "e5cbad8030305aebe8e02711cba715acf6c2646a610d755d48697bfa65933418",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1469,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/medieval-worlds/regions/sri-lanka/traditions/pali-scholastic-commentarial-handoff/README.md",
+      "sha256": "89d0bcd595cf1b0bc2d242f82f4af9d648823ad7f289421085221de7cd1c052d",
+      "surface_kind": "human"
+    },
+    {
+      "bytes": 841,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/medieval-worlds/regions/sri-lanka/traditions/pali-scholastic-commentarial-handoff/branch.manifest.json",
+      "sha256": "04eee76b5596cfbad458ae4c554b2ef54d45537af75af0b08b2751138d15c033",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 381,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/medieval-worlds/regions/sri-lanka/traditions/pali-scholastic-commentarial-handoff/graph-workbench/branch.manifest.json",
+      "sha256": "32e08d149dc4e5a0f2cf637cef215e57382aba700fe51f3d23c196fea8df06d6",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1417,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/medieval-worlds/regions/sri-lanka/traditions/pali-scholastic-commentarial-handoff/graph-workbench/pre-canon-summary.json",
+      "sha256": "9d1604f58cf5e48afa5ff786476339c20c279c8b333a6485220747583df208a1",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 317,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/medieval-worlds/regions/sri-lanka/traditions/pali-scholastic-commentarial-handoff/sources/branch.manifest.json",
+      "sha256": "7e1882079885046bf548134376fccf044c810ecbbc974eb33c3f385eb5622c61",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 229,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/medieval-worlds/regions/tibetan-world/branch.manifest.json",
+      "sha256": "f9dbd52ff148bfcbaa32266edc4bf80ad5921cc92b5d2d4eaf9a50df78f9fafe",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 320,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/medieval-worlds/regions/tibetan-world/traditions/branch.manifest.json",
+      "sha256": "f005532fa28ec167dfecf1f03e824b00c651ed39130e89d1a14cacc47f9761b1",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1729,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/medieval-worlds/regions/tibetan-world/traditions/imperial-tibetan-translation-canon-formation/README.md",
+      "sha256": "2f5a5ca83c05d00d223917bdf17f4c3e39827d782a32e9f64ca5106c16130932",
+      "surface_kind": "human"
+    },
+    {
+      "bytes": 1143,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/medieval-worlds/regions/tibetan-world/traditions/imperial-tibetan-translation-canon-formation/branch.manifest.json",
+      "sha256": "cc181ba158bd4a4fe70cd58a4f9f3264eee2d48c2d444518d45cf41d36adf70a",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 654,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/medieval-worlds/regions/tibetan-world/traditions/imperial-tibetan-translation-canon-formation/graph-workbench/branch.manifest.json",
+      "sha256": "6194a4f53432f5193c514bf521f8d536ad69cacebb2c0551d08f52f522a34c59",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1575,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/medieval-worlds/regions/tibetan-world/traditions/imperial-tibetan-translation-canon-formation/graph-workbench/pre-canon-summary.json",
+      "sha256": "ce56ccf1fcaf7b58981e6a73eec97fa53a4cb3c4233de78095f70ebdfe05756e",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 590,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/medieval-worlds/regions/tibetan-world/traditions/imperial-tibetan-translation-canon-formation/sources/branch.manifest.json",
+      "sha256": "ef923f1df210541504d9d1edae79232ce2ac9f9f2ae22515bd3a7894d6d23cde",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1410,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/medieval-worlds/regions/tibetan-world/traditions/tibetan-schools-debate-culture/README.md",
+      "sha256": "9f1f15a5572e5d90ae68647c0713204919f15ba1b368703f558091fe5970d501",
+      "surface_kind": "human"
+    },
+    {
+      "bytes": 830,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/medieval-worlds/regions/tibetan-world/traditions/tibetan-schools-debate-culture/branch.manifest.json",
+      "sha256": "e7f9951d73345ed76877bc24185dd60f2666b4c2aedd238a650f2ae7bc80eaef",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 377,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/medieval-worlds/regions/tibetan-world/traditions/tibetan-schools-debate-culture/graph-workbench/branch.manifest.json",
+      "sha256": "d68e205b65628d97ab688e406c4c0105165100d42d664f2a0f8b6ce7ec06e793",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1331,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/medieval-worlds/regions/tibetan-world/traditions/tibetan-schools-debate-culture/graph-workbench/pre-canon-summary.json",
+      "sha256": "d70e3e6cd92211bffee55be8c47643331d9a9a7656a4049011639ec5c38c8e1f",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 313,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/medieval-worlds/regions/tibetan-world/traditions/tibetan-schools-debate-culture/sources/branch.manifest.json",
+      "sha256": "83678d40780f17e8109dcced2291d9e3702698b2d5cb3f28bc1e1bff60c7de30",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 238,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/medieval-worlds/regions/west-asia-iberia/branch.manifest.json",
+      "sha256": "a862506292a1b854d9d52a649f24087885ad890673cd3afe78066cd2d0bc07f5",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 285,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/medieval-worlds/regions/west-asia-iberia/traditions/branch.manifest.json",
+      "sha256": "b5f869c022dc6942ef06ebb7927f45caea02e5839649ee09978d65c7af253e09",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1465,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/medieval-worlds/regions/west-asia-iberia/traditions/hebrew-arabic-bilingual-jewish-philosophy/README.md",
+      "sha256": "d1a952427b1182ced0508dabbdf6a033adf76ef2d32c5dd40566029f35631eb2",
+      "surface_kind": "human"
+    },
+    {
+      "bytes": 879,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/medieval-worlds/regions/west-asia-iberia/traditions/hebrew-arabic-bilingual-jewish-philosophy/branch.manifest.json",
+      "sha256": "255ab3fb2097ee0b52c8435b84a034871b2f1d85f859a9f3c9fab7e5b9d38764",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 405,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/medieval-worlds/regions/west-asia-iberia/traditions/hebrew-arabic-bilingual-jewish-philosophy/graph-workbench/branch.manifest.json",
+      "sha256": "f194bc2ebd4b4f027cdfd42351f1f5162f9842761fc77418fcfe0ee35da6a973",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1442,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/medieval-worlds/regions/west-asia-iberia/traditions/hebrew-arabic-bilingual-jewish-philosophy/graph-workbench/pre-canon-summary.json",
+      "sha256": "ab67299fcd57f8096b18936d0e1a1edf4e934c5b333d9a75fff018366a0999f2",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 341,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/medieval-worlds/regions/west-asia-iberia/traditions/hebrew-arabic-bilingual-jewish-philosophy/sources/branch.manifest.json",
+      "sha256": "5db30c121626c79478908a9968c6959dfc2b55f903e1a34d16938e80c4773201",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 256,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/medieval-worlds/regions/west-asia-jewish-world/branch.manifest.json",
+      "sha256": "2d5917cb4786e28c025b6ecaacca424ffc04f430e07fa18a5f1b40c3e453eb4e",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 292,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/medieval-worlds/regions/west-asia-jewish-world/traditions/branch.manifest.json",
+      "sha256": "b2338543784660415afc0c5502d0fc7617d997ec290a8d0dd41bc873eeaede9b",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1435,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/medieval-worlds/regions/west-asia-jewish-world/traditions/gaonic-early-judeo-arabic-philosophy/README.md",
+      "sha256": "113f61ecc333a9395ffc557552985034d7ba8870f0809a729d00c1793dbe630f",
+      "surface_kind": "human"
+    },
+    {
+      "bytes": 882,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/medieval-worlds/regions/west-asia-jewish-world/traditions/gaonic-early-judeo-arabic-philosophy/branch.manifest.json",
+      "sha256": "64b459e6efaeeaf8e78ffe0c6a0d46ec3dec584ce94be161d0054a3750a2b814",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 407,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/medieval-worlds/regions/west-asia-jewish-world/traditions/gaonic-early-judeo-arabic-philosophy/graph-workbench/branch.manifest.json",
+      "sha256": "bb41963c2485fd6916b60d0fdb12c068fbf9fc17e9d96207ce4ca005105e8e1c",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1350,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/medieval-worlds/regions/west-asia-jewish-world/traditions/gaonic-early-judeo-arabic-philosophy/graph-workbench/pre-canon-summary.json",
+      "sha256": "58fdb42a557f28f3d529ed6460de097aba8b948cca4af7259dab5cb6f3f82e88",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 343,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/medieval-worlds/regions/west-asia-jewish-world/traditions/gaonic-early-judeo-arabic-philosophy/sources/branch.manifest.json",
+      "sha256": "4676cd2120e08cf1f8bd26a8d1ba1ac7c3886de21153df0f8da8c09794b72414",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 259,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/medieval-worlds/regions/west-asia-mediterranean/branch.manifest.json",
+      "sha256": "69b0769e552805d131e41a50b0ee5b92fa722c8f4ca639d5074ba0aa10f5f33c",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 301,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/medieval-worlds/regions/west-asia-mediterranean/traditions/branch.manifest.json",
+      "sha256": "a641a5bcba3741558feec9ccaf5f30576dfcb9d1cabed689fb1baa9828262b7c",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1428,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/medieval-worlds/regions/west-asia-mediterranean/traditions/sufi-metaphysics-philosophical-anthropology/README.md",
+      "sha256": "9f4d2206c7eed8ab09c0ac455a54eda3aaa21b1177f9b063c180cef06ad47fd4",
+      "surface_kind": "human"
+    },
+    {
+      "bytes": 921,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/medieval-worlds/regions/west-asia-mediterranean/traditions/sufi-metaphysics-philosophical-anthropology/branch.manifest.json",
+      "sha256": "7426d7c59f8e29b144d49bf2604023a44839997345d06511c0cb3ecbc6e54df0",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 423,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/medieval-worlds/regions/west-asia-mediterranean/traditions/sufi-metaphysics-philosophical-anthropology/graph-workbench/branch.manifest.json",
+      "sha256": "895dd206062bd3f1755db38fc72e4b081191c7c7a4a56862397dbf55c26df74f",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1380,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/medieval-worlds/regions/west-asia-mediterranean/traditions/sufi-metaphysics-philosophical-anthropology/graph-workbench/pre-canon-summary.json",
+      "sha256": "7ffb8d97915fe91475525ddd4a6a35aea75e102fe4a7ee920da1a4f9d4dc4a1c",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 359,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/medieval-worlds/regions/west-asia-mediterranean/traditions/sufi-metaphysics-philosophical-anthropology/sources/branch.manifest.json",
+      "sha256": "07a746b4798990be64d72563e7f26d597b3b3fe0b2da954b850140ff7aa8761f",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 217,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/medieval-worlds/regions/west-asia/branch.manifest.json",
+      "sha256": "37c6ef55d45d986d22b333a98550abcb6b1c7491ffc802d1fe7f56b2e2c854b9",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1470,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/medieval-worlds/regions/west-asia/traditions/baghdad-translation-movement-bayt-al-hikma-boundary/README.md",
+      "sha256": "c1a1781cda1af890a8dba0d49b48a4b7cb2a086ac22167f19371b63ed5e98d52",
+      "surface_kind": "human"
+    },
+    {
+      "bytes": 919,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/medieval-worlds/regions/west-asia/traditions/baghdad-translation-movement-bayt-al-hikma-boundary/branch.manifest.json",
+      "sha256": "e3d13972690ede2b187519ff7f238c6f0a8e37094f5d2d964a4ac10d01ed4a5f",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 411,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/medieval-worlds/regions/west-asia/traditions/baghdad-translation-movement-bayt-al-hikma-boundary/graph-workbench/branch.manifest.json",
+      "sha256": "0767971786da3254bb5e01e0b9d6e6ea4ae1bcdc8aca28a3572495c8d9e2cfde",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1436,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/medieval-worlds/regions/west-asia/traditions/baghdad-translation-movement-bayt-al-hikma-boundary/graph-workbench/pre-canon-summary.json",
+      "sha256": "f33698e88afc6af5e06d5205dde2847ba4410ced6c2578822996a25671afe23d",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 347,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/medieval-worlds/regions/west-asia/traditions/baghdad-translation-movement-bayt-al-hikma-boundary/sources/branch.manifest.json",
+      "sha256": "faa4c9d81b9b19cac57a2256c3f0a95fb2f1d5f3c1aefd77ec3dc339fafe7eb3",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 493,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/medieval-worlds/regions/west-asia/traditions/branch.manifest.json",
+      "sha256": "16f25f75b5154a956d4eb84471c02a729f2b09db9b4c9cc055aa8533708a6ea6",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1368,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/medieval-worlds/regions/west-asia/traditions/early-classical-kalam/README.md",
+      "sha256": "9575c21817cf9265a6544727e38bc45ca76ffa5fd9431a43247286d4a891e23d",
+      "surface_kind": "human"
+    },
+    {
+      "bytes": 773,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/medieval-worlds/regions/west-asia/traditions/early-classical-kalam/branch.manifest.json",
+      "sha256": "a1de2103a2fa16e28ee62b4d2c0c3de06e08b35a19427049a4edc22173b7da15",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 351,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/medieval-worlds/regions/west-asia/traditions/early-classical-kalam/graph-workbench/branch.manifest.json",
+      "sha256": "5cd46a21f6751923180a0081069cc0629319ecab59d651ca747ed958f8cef629",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1383,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/medieval-worlds/regions/west-asia/traditions/early-classical-kalam/graph-workbench/pre-canon-summary.json",
+      "sha256": "a62c860a83d8ad731da955f7901868735e004fca16736cb16fc8c07e557363eb",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 287,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/medieval-worlds/regions/west-asia/traditions/early-classical-kalam/sources/branch.manifest.json",
+      "sha256": "62f8c07670a6439c0406c875d29670f5437adedee1f973859e98186e45ad2395",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1385,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/medieval-worlds/regions/west-asia/traditions/falsafa-avicennian-synthesis/README.md",
+      "sha256": "32dc4da98b752a15fa3ee2b1ab52f2f173e38492ba653f626da1ad77e4c1b9a3",
+      "surface_kind": "human"
+    },
+    {
+      "bytes": 801,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/medieval-worlds/regions/west-asia/traditions/falsafa-avicennian-synthesis/branch.manifest.json",
+      "sha256": "3129b5820eb62a43b3453b892b7b71193414bf5f66ee1d55d5f7ae28aa5d1b84",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 365,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/medieval-worlds/regions/west-asia/traditions/falsafa-avicennian-synthesis/graph-workbench/branch.manifest.json",
+      "sha256": "c0ec534b405b4b5e276ea00dc5f94f9da9282385efd4f635b54ac60ff735563d",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1319,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/medieval-worlds/regions/west-asia/traditions/falsafa-avicennian-synthesis/graph-workbench/pre-canon-summary.json",
+      "sha256": "f790a163a2e95e8d510ed398be2bf018440437ab3e0585ff7baf838a617b7582",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 301,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/medieval-worlds/regions/west-asia/traditions/falsafa-avicennian-synthesis/sources/branch.manifest.json",
+      "sha256": "fa11c5110c92218888f32dd00c6b81ee07d2a9ab573f1bb711cdfee45cd721d1",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1616,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/medieval-worlds/regions/west-asia/traditions/islamic-law-ethics-adab-philosophy/README.md",
+      "sha256": "c34ae42ad57637f0dc7d674a76580eb32bc8611af913457dc3650706da38ab8f",
+      "surface_kind": "human"
+    },
+    {
+      "bytes": 1084,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/medieval-worlds/regions/west-asia/traditions/islamic-law-ethics-adab-philosophy/branch.manifest.json",
+      "sha256": "6c0b94dd42f449085a7fafd33f65d644be384d6519634893c7be64d2b8156d4d",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 626,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/medieval-worlds/regions/west-asia/traditions/islamic-law-ethics-adab-philosophy/graph-workbench/branch.manifest.json",
+      "sha256": "ad7841575555d5783baeb32298339dfff972e207cf3e2ebfe14bc666171117aa",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1551,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/medieval-worlds/regions/west-asia/traditions/islamic-law-ethics-adab-philosophy/graph-workbench/pre-canon-summary.json",
+      "sha256": "6ce5e0ed309cec21fac2223c09175891bfe1f93e595e951897b05c211ec67434",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 562,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/medieval-worlds/regions/west-asia/traditions/islamic-law-ethics-adab-philosophy/sources/branch.manifest.json",
+      "sha256": "e53032fc1ebdb084af8864744633213452566039a5c9d3dcb9c9eb9f6e127cb9",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1426,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/medieval-worlds/regions/west-asia/traditions/post-avicennian-philosophy-late-kalam/README.md",
+      "sha256": "abb9ccc7247b6e1169830d72fa90e9ac4ec4a7500e7e550f0c8b003b6879ecea",
+      "surface_kind": "human"
+    },
+    {
+      "bytes": 835,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/medieval-worlds/regions/west-asia/traditions/post-avicennian-philosophy-late-kalam/branch.manifest.json",
+      "sha256": "9dc97fbc065cedbe065667648cdbb2f332934076c26e49715b72cf18e771b220",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 383,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/medieval-worlds/regions/west-asia/traditions/post-avicennian-philosophy-late-kalam/graph-workbench/branch.manifest.json",
+      "sha256": "8095cee29135767fb37dcf7977cdda57563cb0087501663ec18a76795e22674f",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1375,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/medieval-worlds/regions/west-asia/traditions/post-avicennian-philosophy-late-kalam/graph-workbench/pre-canon-summary.json",
+      "sha256": "af25008becaa115f9370879a30c253f6c9775876f4244a51bda18bd1f46c1665",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 319,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/medieval-worlds/regions/west-asia/traditions/post-avicennian-philosophy-late-kalam/sources/branch.manifest.json",
+      "sha256": "468d849e13fc1aeb0c656fca384a47a2ae89dfd15546d78d7c78eecc0074ada1",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1476,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/medieval-worlds/regions/west-asia/traditions/syriac-translation-theological-philosophical-schools/README.md",
+      "sha256": "d9c7fc4d5f9f4c530a402966f142f44ad3999f068fcba0af7a3adbc74982cfb5",
+      "surface_kind": "human"
+    },
+    {
+      "bytes": 929,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/medieval-worlds/regions/west-asia/traditions/syriac-translation-theological-philosophical-schools/branch.manifest.json",
+      "sha256": "f5351d685497ed186fc00965141b9d38d712fdd4cfd385867c5dfefbfda51011",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 413,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/medieval-worlds/regions/west-asia/traditions/syriac-translation-theological-philosophical-schools/graph-workbench/branch.manifest.json",
+      "sha256": "98fb0a1fe2d4707a507767974ea3a435127753c23d4609ea3d5ae06555ab6135",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1398,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/medieval-worlds/regions/west-asia/traditions/syriac-translation-theological-philosophical-schools/graph-workbench/pre-canon-summary.json",
+      "sha256": "31037c873e70cbce5ed79a7495d0a05d966c796b44061a5620c562e08a95aec5",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 349,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/medieval-worlds/regions/west-asia/traditions/syriac-translation-theological-philosophical-schools/sources/branch.manifest.json",
+      "sha256": "3b22b4dbf52ce6a63ef6f00f695f970dba53ff6794df920876553d6bc726f56f",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 253,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/medieval-worlds/regions/western-mediterranean/branch.manifest.json",
+      "sha256": "3c545c9e5f623a81e30ae88cc8d183dd1aaa085af6aa9bbb8d927d5421cc5bef",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1418,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/medieval-worlds/regions/western-mediterranean/traditions/andalusi-maghrebi-philosophy-medicine/README.md",
+      "sha256": "82d85caf8c365f06c245f7898eca22a561192b617e11a265d739c3924f810cd0",
+      "surface_kind": "human"
+    },
+    {
+      "bytes": 887,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/medieval-worlds/regions/western-mediterranean/traditions/andalusi-maghrebi-philosophy-medicine/branch.manifest.json",
+      "sha256": "52f99ae7b47f3e1f33d9e15c923f05e3d000241911cda596f5b5a3db62d43599",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 407,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/medieval-worlds/regions/western-mediterranean/traditions/andalusi-maghrebi-philosophy-medicine/graph-workbench/branch.manifest.json",
+      "sha256": "ffc84a012e4d1ca09e7b65d96d14a5da6b99b616297bbd60cd2b5fc8713f2f19",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1360,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/medieval-worlds/regions/western-mediterranean/traditions/andalusi-maghrebi-philosophy-medicine/graph-workbench/pre-canon-summary.json",
+      "sha256": "c8a0920acebb8c7600ce063480ef0f2c5cbab1acaeb762bd7e055998eb225804",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 343,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/medieval-worlds/regions/western-mediterranean/traditions/andalusi-maghrebi-philosophy-medicine/sources/branch.manifest.json",
+      "sha256": "feec24d9b663ea07445ea857e5a7e6bab370fd831e2a7a92f2531d69e37f63a0",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 291,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/medieval-worlds/regions/western-mediterranean/traditions/branch.manifest.json",
+      "sha256": "e883349205e33cfd82f90dd2546af420f0be36926f16752a9618b9efbf3eaadb",
+      "surface_kind": "structured"
+    },
+    {
       "bytes": 240,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
@@ -6720,19 +9000,19 @@
       "surface_kind": "human"
     },
     {
-      "bytes": 5901,
+      "bytes": 7656,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/philosophy/graph-workbench/PLANTING_INTERFACE.md",
-      "sha256": "fe695a3bf5d551082f3ad8082a787a163d90391d231fbd517bb423893de4d7c5",
+      "sha256": "d2ef442449ee4864f13670a6c3665135bbfa170155dfe53dea6ec91c1c7461c3",
       "surface_kind": "human"
     },
     {
-      "bytes": 1047,
+      "bytes": 1056,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/philosophy/graph-workbench/README.md",
-      "sha256": "324e4854fd2b31d3dbd9fbee70ed838bab07a80dd72d4b40a9dcf1b044cfb303",
+      "sha256": "eb2eebcd26061d225be46b34cbe41eb94cc11d8ff33309fda1b446568ae8bc3f",
       "surface_kind": "human"
     },
     {
@@ -6749,6 +9029,14 @@
       "family_id": "tos",
       "path": "ToS/philosophy/graph-workbench/branch-fragments/table-i-prepared-dossier-branches.json",
       "sha256": "546c9798a606a0f1f9c2f1d411585baa2e3f11836ee295ffdb201d3d130673f0",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 28978,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/graph-workbench/branch-fragments/table-ii-prepared-dossier-branches.json",
+      "sha256": "a4ebd3446fa63c8d3d7702d7cd9524af1a772835d34dd940c4a527351a6414f8",
       "surface_kind": "structured"
     },
     {
@@ -6784,19 +9072,19 @@
       "surface_kind": "structured"
     },
     {
-      "bytes": 685,
+      "bytes": 787,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/philosophy/graph-workbench/language-packets/README.md",
-      "sha256": "a8bc41ff5456a77717885d4db1b5165a5d4179c4d623d43eaea5ea5cc5bc4a3b",
+      "sha256": "4ff02bd1871ea14e7032933dd504517bec2f4c2ca6234ea0d0e851793f9930be",
       "surface_kind": "human"
     },
     {
-      "bytes": 527,
+      "bytes": 727,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/philosophy/graph-workbench/language-packets/branch.manifest.json",
-      "sha256": "1647fea987426bdce379ff89487e17bd3b2d3d44b293e6be8bef0447e71623ef",
+      "sha256": "84774da8df7da78d7000b7184e38d1d007f67c53272cf4265005313bda9ea6fb",
       "surface_kind": "structured"
     },
     {
@@ -6816,6 +9104,14 @@
       "surface_kind": "human"
     },
     {
+      "bytes": 554,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/graph-workbench/promotion-ledger/table-ii-prepared-dossiers.md",
+      "sha256": "9d8267ead39c4a52d04cc2d7d7577e2a814082268f4c4f0f0ba6edca167040a8",
+      "surface_kind": "human"
+    },
+    {
       "bytes": 201,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
@@ -6829,6 +9125,14 @@
       "family_id": "tos",
       "path": "ToS/philosophy/graph-workbench/proposed-relations/branch.manifest.json",
       "sha256": "f074e63c13b4db1e8e466d3b1f5e48fe040fdb8fc93a46ca3552d4a51d5b7a77",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1833,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/graph-workbench/proposed-relations/reviewed-endpoint-aliases.json",
+      "sha256": "6ac0d826175f306c0c47248799dc53d342cf7ed3813c4384d3133bfbb41f683f",
       "surface_kind": "structured"
     },
     {
@@ -6856,19 +9160,19 @@
       "surface_kind": "structured"
     },
     {
-      "bytes": 14920,
+      "bytes": 24171,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/philosophy/graph-workbench/review-packets/table-i-post-planting-audit.json",
-      "sha256": "7f5936e3449129b03624f232067d8e2fd0fb1aa6e090ccbd4dfdd66a32d94cd5",
+      "sha256": "0b6ec8824131eefc05c703e578e7ad7130c46a56ac79171c61f2c3319cc928ae",
       "surface_kind": "structured"
     },
     {
-      "bytes": 872,
+      "bytes": 1108,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/philosophy/graph-workbench/review-packets/table-i-post-planting-audit.md",
-      "sha256": "ab6e96149e8e8704b3cb9355cf4105a65d1acc46b1f205a965dcce319f9d8067",
+      "sha256": "846c32b0dab272afb4be9d87cbcfef839e052d70a2d4aeee9aca1a22eebbd1f5",
       "surface_kind": "human"
     },
     {
@@ -6992,11 +9296,11 @@
       "surface_kind": "structured"
     },
     {
-      "bytes": 33725,
+      "bytes": 59051,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/philosophy/philosophy.manifest.json",
-      "sha256": "c5a2fbb7477f8ae761c9a6edfd800a73a2b1e56be83dad9738149cfb3899c222",
+      "sha256": "b0e771e3a82bc42aff605b225019d8aefd46ed3a74406f4d726ea787cd7caf81",
       "surface_kind": "structured"
     },
     {
@@ -7328,11 +9632,11 @@
       "surface_kind": "human"
     },
     {
-      "bytes": 837,
+      "bytes": 1121,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/research-packets/deep-research/philosophy/dossiers/README.md",
-      "sha256": "4f47ebf9774da5d45e8313c0c399ac48198dba436f3e7e12f76aa8830873c00b",
+      "sha256": "4be3086e63677e30256fd1166db2c4bbf4dba337411847c8ee61c0c35df880b0",
       "surface_kind": "human"
     },
     {
@@ -7352,6 +9656,22 @@
       "surface_kind": "structured"
     },
     {
+      "bytes": 309176,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/research-packets/deep-research/philosophy/dossiers/table-ii-docx-extraction-coverage.json",
+      "sha256": "cd418de5a412916eef6da91825423d99e568e7007f46bbc25c7a75567581c6b1",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 27722,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/research-packets/deep-research/philosophy/dossiers/table-ii-docx-intake.manifest.json",
+      "sha256": "ce1edcc010a9eb7004a01e125739ea61b312d2716d15bc2945cfeffbfa1f36e1",
+      "surface_kind": "structured"
+    },
+    {
       "bytes": 2274,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
@@ -7368,11 +9688,11 @@
       "surface_kind": "human"
     },
     {
-      "bytes": 2116,
+      "bytes": 2732,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/research-packets/deep-research/philosophy/packet-contract.md",
-      "sha256": "821644ec20803fabe3f98cf4e1ecb8ebaee15dade57db5315c4bbaa1b55dd843",
+      "sha256": "a903c0550a1ba8af60e3eba294f85c5f88edc115fd2956449920edc731925d5a",
       "surface_kind": "human"
     },
     {
@@ -7384,11 +9704,11 @@
       "surface_kind": "structured"
     },
     {
-      "bytes": 3468,
+      "bytes": 4215,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/research-packets/deep-research/philosophy/research.manifest.json",
-      "sha256": "149e1fbefc4e8e345731cb95f292d3d56091d4fd49c82a6cd6814115a7fb7c75",
+      "sha256": "19b0733014a7314b0def5c4106f2d115260ebc4cfb98b18515c7d802edd3ebf3",
       "surface_kind": "structured"
     },
     {
@@ -13632,6 +15952,14 @@
       "surface_kind": "human"
     },
     {
+      "bytes": 5458,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "docs",
+      "path": "docs/decisions/TOS-D-0035-partial-table-ii-medieval-worlds-route.md",
+      "sha256": "d5b14d7e23e8444e579726ac8a8cda41b480a7e5eb82be6eb95827461ae7449e",
+      "surface_kind": "human"
+    },
+    {
       "bytes": 483,
       "currentness": "tracked_source_snapshot",
       "family_id": "docs",
@@ -13648,11 +15976,11 @@
       "surface_kind": "human"
     },
     {
-      "bytes": 32603,
+      "bytes": 33758,
       "currentness": "tracked_source_snapshot",
       "family_id": "docs",
       "path": "docs/decisions/indexes/by-guard.md",
-      "sha256": "6b683e16f1403c03ed6bb2ba3a8ed5d52a09a14e5b7faadbba034f5c47b6415f",
+      "sha256": "86ddc7044105e82fb7de72997ff9aaa75479c5aad9753807cb7eeac8a38bc71c",
       "surface_kind": "human"
     },
     {
@@ -13680,11 +16008,11 @@
       "surface_kind": "human"
     },
     {
-      "bytes": 27078,
+      "bytes": 27818,
       "currentness": "tracked_source_snapshot",
       "family_id": "docs",
       "path": "docs/decisions/indexes/by-tree-class.md",
-      "sha256": "364efa6842bde95a2d5c4938f6007dd3cc7d70d060666b615f4cde0af960130f",
+      "sha256": "db24b5692cb972378ea801d6c8fe84ac2cb3d586279f0bab4c01be9720a71a3e",
       "surface_kind": "human"
     },
     {
@@ -13752,11 +16080,11 @@
       "surface_kind": "structured"
     },
     {
-      "bytes": 136519,
+      "bytes": 139174,
       "currentness": "tracked_source_snapshot",
       "family_id": "docs",
       "path": "docs/validation/script_inventory.json",
-      "sha256": "f2a3e5d2f95a28f49beb8cdb8c35046d776a9c114505594ba121aecff65dff3d",
+      "sha256": "d2d2bd0cc4c6850a417d4da65545d87207e47fb300cd0f661828729538934e40",
       "surface_kind": "structured"
     },
     {
@@ -15760,11 +18088,11 @@
       "surface_kind": "executable"
     },
     {
-      "bytes": 1487,
+      "bytes": 1506,
       "currentness": "tracked_source_snapshot",
       "family_id": "scripts",
       "path": "scripts/build_philosophy_post_planting_audit.py",
-      "sha256": "45c2363745f96630fac6975b3e9e19ea4bbb6f44c8ce67c0c8313d8cbde19cda",
+      "sha256": "147c9c2e2d7ce99f55d43fa825709e51afe1049058b40eb9926a92be0f469e3d",
       "surface_kind": "executable"
     },
     {
@@ -15952,11 +18280,11 @@
       "surface_kind": "executable"
     },
     {
-      "bytes": 19914,
+      "bytes": 30740,
       "currentness": "tracked_source_snapshot",
       "family_id": "scripts",
       "path": "scripts/philosophy_atlas_projection_common.py",
-      "sha256": "226779f405d05a19fc67b89a69e2d79fd29ac55f13fb33d2eac63f44c5475c98",
+      "sha256": "3188c824276d61bc47fdd62c17541a87d900990ddf2c3a1bc0582c8e8bd2dcb1",
       "surface_kind": "executable"
     },
     {
@@ -15976,35 +18304,35 @@
       "surface_kind": "executable"
     },
     {
-      "bytes": 13013,
+      "bytes": 14809,
       "currentness": "tracked_source_snapshot",
       "family_id": "scripts",
       "path": "scripts/philosophy_multilingual_common.py",
-      "sha256": "71fb4f60333b0d318e45fa859ba44f342428c2e6226f65442bbd4317e3090110",
+      "sha256": "5cf39174c117631318bddeee0590d0f965c1dc74b5248f8a5ac4acc2f69f29c3",
       "surface_kind": "executable"
     },
     {
-      "bytes": 14104,
+      "bytes": 16066,
       "currentness": "tracked_source_snapshot",
       "family_id": "scripts",
       "path": "scripts/philosophy_post_planting_audit_common.py",
-      "sha256": "faaa01c9c431091c6e23d6b0bc4de61ea81fc83bf74a9198cdd692bf8220f4bd",
+      "sha256": "306032054cfbbf8c0c7e10e543c7e4e3e4c23340a367f990b58894b089714595",
       "surface_kind": "executable"
     },
     {
-      "bytes": 4383,
+      "bytes": 11383,
       "currentness": "tracked_source_snapshot",
       "family_id": "scripts",
       "path": "scripts/plant_prepared_dossiers.py",
-      "sha256": "c919c513d155d2a36f03d5aade7a56f732d75869813f2e622df3a16b260ff369",
+      "sha256": "2fe3c9f8ae9656b57c46144bb27ca232455c207bcbec80f3fd3fb0eeb7c81766",
       "surface_kind": "executable"
     },
     {
-      "bytes": 68886,
+      "bytes": 97596,
       "currentness": "tracked_source_snapshot",
       "family_id": "scripts",
       "path": "scripts/plant_table_i_prepared_dossiers.py",
-      "sha256": "dd2b2334a3eb801f0fcf004d9dd20af0a0e6b7b9a0344ae80a0dcc6cf3e5acb4",
+      "sha256": "4fe15fa87d59f0b131e771a2fdcbff92d8d0ec66230dbf2500be432f244a5642",
       "surface_kind": "executable"
     },
     {
@@ -16204,7 +18532,7 @@
       "currentness": "tracked_source_snapshot",
       "family_id": "scripts",
       "path": "scripts/validate_philosophy_atlas_projection.py",
-      "sha256": "a6f906b64a03d443406cdb3d583b4acefd684b0392076ba61f2cd5f9e722852a",
+      "sha256": "e7c1517b069768427a4fc8e9fc2b7fa6e8acee0307052e4dd71cb88a2d176f87",
       "surface_kind": "executable"
     },
     {
@@ -16224,11 +18552,11 @@
       "surface_kind": "executable"
     },
     {
-      "bytes": 2100,
+      "bytes": 2112,
       "currentness": "tracked_source_snapshot",
       "family_id": "scripts",
       "path": "scripts/validate_philosophy_post_planting_audit.py",
-      "sha256": "7fbc857f4b1ae8c6b80b376d810ee0a52be60d8c7f9c76460f25d08d5e7cb586",
+      "sha256": "c9739975114f4572e542d94b06c2272439eb8a83a9b7287f4a20ff6454cd6578",
       "surface_kind": "executable"
     },
     {
@@ -16488,11 +18816,11 @@
       "surface_kind": "executable"
     },
     {
-      "bytes": 7678,
+      "bytes": 7716,
       "currentness": "tracked_source_snapshot",
       "family_id": "tests",
       "path": "tests/test_local_stats_port.py",
-      "sha256": "2bbcad4645b6b65541dede41b787415dd158a00530de140ff4417b4e3e98829c",
+      "sha256": "92b0d4c9582ad048789bc5917162a93d46c1a61e9a2f97aecfbb8995cd4a6be8",
       "surface_kind": "executable"
     },
     {
@@ -16520,19 +18848,19 @@
       "surface_kind": "executable"
     },
     {
-      "bytes": 5090,
+      "bytes": 14904,
       "currentness": "tracked_source_snapshot",
       "family_id": "tests",
       "path": "tests/test_philosophy_atlas_projection.py",
-      "sha256": "77b3f48dd623e72ffd4ea8ff8fe80e1085347438bcd8a3d7141464356758908e",
+      "sha256": "d11d50daa8acc0bb42112feda3a58a8d58c9ae1ad71dac7e4fc151bdc9cb59f3",
       "surface_kind": "executable"
     },
     {
-      "bytes": 12819,
+      "bytes": 16347,
       "currentness": "tracked_source_snapshot",
       "family_id": "tests",
       "path": "tests/test_philosophy_graph_projection.py",
-      "sha256": "de673cfc76c1ec7b1fe1d0ead57201267d087749452c20c945a051541b17ea22",
+      "sha256": "df5bbca5f6eaea4075b2ec4236cf6972b8aa36cdfa741302c35546cd425a5f84",
       "surface_kind": "executable"
     },
     {
@@ -16544,35 +18872,35 @@
       "surface_kind": "executable"
     },
     {
-      "bytes": 3532,
+      "bytes": 5298,
       "currentness": "tracked_source_snapshot",
       "family_id": "tests",
       "path": "tests/test_philosophy_language_packets.py",
-      "sha256": "33ad139b6305555ba6ab71a61d3ff066065c5db801972c8761b9bbffb1d54c3e",
+      "sha256": "103c81150fa889ed810af50c3e86fb458f0de2151fe62a3d4f0d7b4f9b24b0b6",
       "surface_kind": "executable"
     },
     {
-      "bytes": 3171,
+      "bytes": 4983,
       "currentness": "tracked_source_snapshot",
       "family_id": "tests",
       "path": "tests/test_philosophy_multilingual_contract.py",
-      "sha256": "69dd02a92932f5aa60f5a79ed47303bb130e89aff50268d17f7b19b027d4dbe2",
+      "sha256": "790f34ac10b407c56004a661f4e1c94c80408bba2b562a8d362cd969c374e0b3",
       "surface_kind": "executable"
     },
     {
-      "bytes": 2888,
+      "bytes": 5380,
       "currentness": "tracked_source_snapshot",
       "family_id": "tests",
       "path": "tests/test_philosophy_post_planting_audit.py",
-      "sha256": "281f31596f6eb5cb40dbfde9859a259aaec9dd9d548fd03bb49824a6d66a1f3f",
+      "sha256": "dfb5cbf85445334274e08d6dc436de48f96b888d228591948d292e8ffa8399c7",
       "surface_kind": "executable"
     },
     {
-      "bytes": 5714,
+      "bytes": 30277,
       "currentness": "tracked_source_snapshot",
       "family_id": "tests",
       "path": "tests/test_prepared_dossier_pipeline.py",
-      "sha256": "181264cbcb621f2f536d243acf4e0f2dbe962aaea8b3a54b6522968b7985cbfd",
+      "sha256": "4d7a6895cf8a3b2aac792c6f5bdc7e41222924a1c9c9524e592a1c5d110df33a",
       "surface_kind": "executable"
     },
     {
