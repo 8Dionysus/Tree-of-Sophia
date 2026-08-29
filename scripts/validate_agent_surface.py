@@ -457,6 +457,230 @@ def _v2_repo_root_target_issues(label: str, value: object, field: str) -> list[I
     return issues
 
 
+def _v2_runtime_environment_issues(
+    label: str,
+    value: object,
+    procedure_manifest: object,
+) -> list[Issue]:
+    """Bind captured environment records to the declared producer inputs."""
+    if not isinstance(value, list) or not value:
+        return [
+            (
+                label,
+                "budget receipt producer runtime environment must be a non-empty array",
+            )
+        ]
+    declarations = (
+        procedure_manifest.get("environment")
+        if isinstance(procedure_manifest, Mapping)
+        else None
+    )
+    expected: dict[str, str] = {}
+    if isinstance(declarations, list):
+        for item in declarations:
+            if isinstance(item, Mapping):
+                name = item.get("name")
+                role = item.get("role")
+                if isinstance(name, str) and isinstance(role, str):
+                    expected[name] = role
+
+    issues: list[Issue] = []
+    actual_names: list[str] = []
+    expected_fields = {"name", "role", "state", "kind", "value_digest", "bytes"}
+    for index, item in enumerate(value):
+        field = f"producer_identity.execution_inputs.environment[{index}]"
+        issues.extend(_v2_object_shape_issues(label, item, expected_fields, field))
+        if not isinstance(item, Mapping):
+            continue
+        name = item.get("name")
+        role = item.get("role")
+        if not isinstance(name, str) or not name:
+            issues.append((label, f"budget receipt field {field}.name must be a non-empty string"))
+        else:
+            actual_names.append(name)
+            if name not in expected:
+                issues.append((label, f"budget receipt runtime environment {name} is not declared by the producer procedure"))
+            elif role != expected[name]:
+                issues.append((label, f"budget receipt runtime environment {name} role does not match the producer procedure"))
+        if not isinstance(role, str) or not role:
+            issues.append((label, f"budget receipt field {field}.role must be a non-empty string"))
+        if item.get("state") not in {"set", "unset"}:
+            issues.append((label, f"budget receipt field {field}.state must be 'set' or 'unset'"))
+        if item.get("kind") != "environment":
+            issues.append((label, f"budget receipt field {field}.kind must be 'environment'"))
+        digest_issue = _v2_digest_issue(label, f"{field}.value_digest", item.get("value_digest"))
+        if digest_issue:
+            issues.append(digest_issue)
+        if not _is_integer(item.get("bytes")) or item["bytes"] < 0:
+            issues.append((label, f"budget receipt field {field}.bytes must be a non-negative integer"))
+    if (
+        sorted(actual_names) != sorted(expected)
+        or len(actual_names) != len(set(actual_names))
+    ):
+        issues.append((label, "budget receipt runtime environment does not match the producer procedure"))
+    return issues
+
+
+def _v2_runtime_dependency_issues(
+    label: str,
+    value: object,
+    procedure_manifest: object,
+) -> list[Issue]:
+    """Bind captured dependency records to the declared producer inputs."""
+    if not isinstance(value, list) or not value:
+        return [
+            (
+                label,
+                "budget receipt producer runtime dependencies must be a non-empty array",
+            )
+        ]
+    declarations = (
+        procedure_manifest.get("dependencies")
+        if isinstance(procedure_manifest, Mapping)
+        else None
+    )
+    expected: dict[str, tuple[object, object]] = {}
+    if isinstance(declarations, list):
+        for item in declarations:
+            if isinstance(item, Mapping):
+                name = item.get("name")
+                version = item.get("version")
+                if isinstance(name, str) and isinstance(version, str):
+                    expected[name] = (version, item.get("required", True))
+
+    issues: list[Issue] = []
+    actual_names: list[str] = []
+    expected_fields = {
+        "name",
+        "declared_version",
+        "required",
+        "state",
+        "resolved_version",
+        "path_digest",
+        "artifact_digest",
+        "artifact_bytes",
+        "artifact_files",
+    }
+    for index, item in enumerate(value):
+        field = f"producer_identity.execution_inputs.dependencies[{index}]"
+        issues.extend(_v2_object_shape_issues(label, item, expected_fields, field))
+        if not isinstance(item, Mapping):
+            continue
+        name = item.get("name")
+        if not isinstance(name, str) or not name:
+            issues.append((label, f"budget receipt field {field}.name must be a non-empty string"))
+        else:
+            actual_names.append(name)
+            declaration = expected.get(name)
+            if declaration is None:
+                issues.append((label, f"budget receipt runtime dependency {name} is not declared by the producer procedure"))
+            else:
+                declared_version, required = declaration
+                if item.get("declared_version") != declared_version:
+                    issues.append((label, f"budget receipt runtime dependency {name} version does not match the producer procedure"))
+                if item.get("required") != required:
+                    issues.append((label, f"budget receipt runtime dependency {name} required flag does not match the producer procedure"))
+        if not isinstance(item.get("declared_version"), str) or not item["declared_version"]:
+            issues.append((label, f"budget receipt field {field}.declared_version must be a non-empty string"))
+        if not isinstance(item.get("required"), bool):
+            issues.append((label, f"budget receipt field {field}.required must be a boolean"))
+        if item.get("state") not in {"available", "unavailable", "declared"}:
+            issues.append((label, f"budget receipt field {field}.state is unsupported"))
+        if item.get("resolved_version") is not None and not isinstance(item.get("resolved_version"), str):
+            issues.append((label, f"budget receipt field {field}.resolved_version must be a string or null"))
+        for name_field in ("path_digest", "artifact_digest"):
+            digest = item.get(name_field)
+            if digest is not None:
+                digest_issue = _v2_digest_issue(label, f"{field}.{name_field}", digest)
+                if digest_issue:
+                    issues.append(digest_issue)
+        for name_field in ("artifact_bytes", "artifact_files"):
+            if not _is_integer(item.get(name_field)) or item[name_field] < 0:
+                issues.append((label, f"budget receipt field {field}.{name_field} must be a non-negative integer"))
+    if (
+        sorted(actual_names) != sorted(expected)
+        or len(actual_names) != len(set(actual_names))
+    ):
+        issues.append((label, "budget receipt runtime dependencies do not match the producer procedure"))
+    return issues
+
+
+def _v2_runtime_interpreter_issues(
+    label: str,
+    value: object,
+    procedure_manifest: object,
+) -> list[Issue]:
+    """Validate the interpreter record and bind its version to Python input."""
+    expected_fields = {
+        "implementation",
+        "version",
+        "invoked_path_digest",
+        "resolved_path_digest",
+        "artifact_digest",
+    }
+    issues = _v2_object_shape_issues(
+        label,
+        value,
+        expected_fields,
+        "producer_identity.execution_inputs.interpreter",
+    )
+    if not isinstance(value, Mapping):
+        return issues
+    field = "producer_identity.execution_inputs.interpreter"
+    for name in ("implementation", "version"):
+        if not isinstance(value.get(name), str) or not value[name]:
+            issues.append((label, f"budget receipt field {field}.{name} must be a non-empty string"))
+    for name in ("invoked_path_digest", "resolved_path_digest", "artifact_digest"):
+        digest_issue = _v2_digest_issue(label, f"{field}.{name}", value.get(name))
+        if digest_issue:
+            issues.append(digest_issue)
+    declarations = (
+        procedure_manifest.get("dependencies")
+        if isinstance(procedure_manifest, Mapping)
+        else None
+    )
+    python_version = None
+    if isinstance(declarations, list):
+        for item in declarations:
+            if isinstance(item, Mapping) and item.get("name") == "python":
+                python_version = item.get("version")
+                break
+    if isinstance(python_version, str) and value.get("version") != python_version:
+        issues.append((label, "budget receipt interpreter version does not match the declared python dependency"))
+    return issues
+
+
+def _v2_jobs_input_issues(
+    label: str,
+    value: object,
+    field: str,
+    expected_jobs: object,
+) -> list[Issue]:
+    """Bind the hashed jobs input to the bounded command target."""
+    expected_fields = {"state", "kind", "value_digest", "bytes"}
+    issues = _v2_object_shape_issues(label, value, expected_fields, field)
+    if not isinstance(value, Mapping):
+        return issues
+    if value.get("state") != "set":
+        issues.append((label, f"budget receipt producer action input jobs state must be 'set'"))
+    if value.get("kind") != "bounded-integer":
+        issues.append((label, "budget receipt producer action input jobs kind must be 'bounded-integer'"))
+    digest_issue = _v2_digest_issue(label, f"{field}.value_digest", value.get("value_digest"))
+    if digest_issue:
+        issues.append(digest_issue)
+    if not isinstance(expected_jobs, str) or not re.fullmatch(r"[1-3]", expected_jobs):
+        issues.append((label, "budget receipt producer command target jobs must be a bounded integer in [1, 3]"))
+    else:
+        expected_digest = hashlib.sha256(expected_jobs.encode("utf-8")).hexdigest()
+        if value.get("value_digest") != expected_digest:
+            issues.append((label, "budget receipt producer action input jobs value_digest does not match command target jobs"))
+        if value.get("bytes") != len(expected_jobs.encode("utf-8")):
+            issues.append((label, "budget receipt producer action input jobs bytes do not match command target jobs"))
+    if not _is_integer(value.get("bytes")) or value["bytes"] < 0:
+        issues.append((label, f"budget receipt field {field}.bytes must be a non-negative integer"))
+    return issues
+
+
 def _v2_canonical_digest(value: object) -> str:
     """Match aoa-kag's canonical JSON digest for identity material."""
     return hashlib.sha256(
@@ -1221,6 +1445,17 @@ def v2_budget_receipt_identity_issues(
                     "producer_identity.execution_inputs.command_targets",
                 )
             )
+            if isinstance(action_inputs, dict):
+                issues.extend(
+                    _v2_jobs_input_issues(
+                        label,
+                        action_inputs.get("jobs"),
+                        "producer_identity.execution_inputs.action_inputs.jobs",
+                        command_targets.get("jobs")
+                        if isinstance(command_targets, dict)
+                        else None,
+                    )
+                )
             if isinstance(command_targets, dict):
                 issues.extend(
                     _v2_repo_root_target_issues(
@@ -1235,6 +1470,15 @@ def v2_budget_receipt_identity_issues(
                     issues.append((label, "budget receipt producer command target artifact_root must be null for portable family"))
                 if command_targets.get("externalized") is not False:
                     issues.append((label, "budget receipt producer command target externalized must be false for portable family"))
+                if not isinstance(command_targets.get("jobs"), str) or not re.fullmatch(
+                    r"[1-3]", command_targets["jobs"]
+                ):
+                    issues.append(
+                        (
+                            label,
+                            "budget receipt producer command target jobs must be a bounded integer in [1, 3]",
+                        )
+                    )
                 if isinstance(action_inputs, dict):
                     repo_root_input = action_inputs.get("repo-root")
                     repo_root_target = command_targets.get("repo_root")
@@ -1276,12 +1520,27 @@ def v2_budget_receipt_identity_issues(
                         "budget receipt producer procedure manifest digest does not match execution inputs",
                     )
                 )
-            if not isinstance(execution.get("environment"), list):
-                issues.append((label, "budget receipt producer runtime environment must be an array"))
-            if not isinstance(execution.get("dependencies"), list):
-                issues.append((label, "budget receipt producer runtime dependencies must be an array"))
-            if not isinstance(execution.get("interpreter"), dict):
-                issues.append((label, "budget receipt producer runtime interpreter must be an object"))
+            issues.extend(
+                _v2_runtime_environment_issues(
+                    label,
+                    execution.get("environment"),
+                    procedure_manifest,
+                )
+            )
+            issues.extend(
+                _v2_runtime_dependency_issues(
+                    label,
+                    execution.get("dependencies"),
+                    procedure_manifest,
+                )
+            )
+            issues.extend(
+                _v2_runtime_interpreter_issues(
+                    label,
+                    execution.get("interpreter"),
+                    procedure_manifest,
+                )
+            )
             issues.extend(
                 _v2_non_python_input_issues(
                     label,
