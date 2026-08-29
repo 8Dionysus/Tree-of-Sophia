@@ -17,8 +17,8 @@ Tracking starts with the community-docs baseline for this repository.
   tradition. A44–A48 retain explicit manual-review posture, and all planted
   material remains research-derived and pre-canon.
 - Makes the separate KAG action ABI explicit in current source: the executable
-  `repo-local-kag-index` workflow action remains pinned to immutable
-  `6a79e62c7d20b6b11406dee78f409ada4a51bb3f`, while the provider body remains
+  `repo-local-kag-index` workflow action is pinned to the repaired immutable
+  `1402c366d2fd01201549b31c23e1a9697f711c0b`, while the provider body remains
   pinned to immutable `f46f146cc79a26fa81ad0f400b9c5774df293e57`.
 - Adds an executable parity guard and owner decision so neither identity is
   misreported as the other. This is a current-source compatibility repair
@@ -29,7 +29,7 @@ Tracking starts with the community-docs baseline for this repository.
   materialization and post-materialization intent states remain separate.
 - Adds an exact-source CI check for the published `aoa-kag` provider body at
   `f46f146cc79a26fa81ad0f400b9c5774df293e57` and independently fetches the
-  executable action at `6a79e62c7d20b6b11406dee78f409ada4a51bb3f`, proving the
+  executable repaired action at `1402c366d2fd01201549b31c23e1a9697f711c0b`, proving the
   two immutable action snapshots remain distinct. The provider checkout is
   completed to full history before its history-dependent owner validator runs,
   so a shallow CI fetch cannot manufacture a generated-index drift verdict.

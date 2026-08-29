@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 import sys
 import tempfile
 import unittest
@@ -537,6 +538,1093 @@ class AgentSurfaceTests(unittest.TestCase):
                     if relation is not None
                     else "budget receipt scope cannot authorize a family with no exceeded budget dimension"
                 ),
+            ),
+            issues,
+        )
+
+    @staticmethod
+    def _current_receipt_case() -> tuple[dict, dict, str, Path]:
+        manifest = json.loads(
+            (ROOT / ".agents/agent-surface.manifest.json").read_text(encoding="utf-8")
+        )
+        family = manifest["owner_ports"]["kag_provider"]["generated_family"]
+        family_manifest = json.loads((ROOT / family["manifest"]).read_text(encoding="utf-8"))
+        digest = family_manifest["family_identity"]["content_digest"]
+        receipt_path = ROOT / family["receipt_root"] / f"{digest}.json"
+        receipt = json.loads(receipt_path.read_text(encoding="utf-8"))
+        return family_manifest, receipt, digest, receipt_path
+
+    def test_current_receipt_binds_source_snapshot_to_family_manifest(self) -> None:
+        family_manifest, receipt, digest, receipt_path = self._current_receipt_case()
+        snapshot = "sha256:" + "0" * 64
+        receipt["head_source_snapshot"] = snapshot
+        receipt["candidate_identity"]["source_snapshot"] = snapshot
+
+        issues = validator.budget_receipt_contract_issues(
+            ROOT,
+            family_manifest,
+            receipt,
+            digest,
+            receipt_path,
+            base_has_v3=True,
+        )
+
+        self.assertIn(
+            (
+                receipt_path.relative_to(ROOT).as_posix(),
+                "budget receipt source snapshot does not match the family manifest",
+            ),
+            issues,
+        )
+
+    def test_current_receipt_binds_producer_history_to_receipt_base(self) -> None:
+        family_manifest, receipt, digest, receipt_path = self._current_receipt_case()
+        receipt["producer_identity"]["execution_inputs"]["command_targets"]["base_ref"] = "a" * 40
+
+        issues = validator.budget_receipt_contract_issues(
+            ROOT,
+            family_manifest,
+            receipt,
+            digest,
+            receipt_path,
+            base_has_v3=True,
+        )
+
+        self.assertIn(
+            (
+                receipt_path.relative_to(ROOT).as_posix(),
+                "budget receipt producer command target base_ref does not match receipt base_ref",
+            ),
+            issues,
+        )
+
+    def test_current_receipt_binds_producer_action_refs_to_receipt_base(self) -> None:
+        for field in ("history-ref", "event-history-ref"):
+            with self.subTest(field=field):
+                family_manifest, receipt, digest, receipt_path = self._current_receipt_case()
+                action_inputs = receipt["producer_identity"]["execution_inputs"]["action_inputs"]
+                action_inputs[field]["value_digest"] = "0" * 64
+
+                producer = receipt["producer_identity"]
+                identity_material_fields = (
+                    "contract_version",
+                    "owner",
+                    "revision_binding",
+                    "source_digest",
+                    "procedure_manifest",
+                    "action",
+                    "execution_inputs",
+                )
+                producer["identity_digest"] = validator._v2_canonical_digest(
+                    {field: producer[field] for field in identity_material_fields}
+                )
+
+                issues = validator.budget_receipt_contract_issues(
+                    ROOT,
+                    family_manifest,
+                    receipt,
+                    digest,
+                    receipt_path,
+                    base_has_v3=True,
+                )
+
+                self.assertIn(
+                    (
+                        receipt_path.relative_to(ROOT).as_posix(),
+                        f"budget receipt producer action input {field} value_digest does not match receipt base_ref",
+                    ),
+                    issues,
+                )
+
+    def test_current_receipt_binds_candidate_source_epoch_to_current_source(self) -> None:
+        family_manifest, receipt, digest, receipt_path = self._current_receipt_case()
+        current_source_epoch = receipt["candidate_identity"]["source_epoch"]
+        receipt["candidate_identity"]["source_epoch"] = "sha256:" + "0" * 64
+
+        with mock.patch.object(validator, "_v2_source_epoch", return_value=current_source_epoch):
+            issues = validator.budget_receipt_contract_issues(
+                ROOT,
+                family_manifest,
+                receipt,
+                digest,
+                receipt_path,
+                base_has_v3=True,
+            )
+
+        self.assertIn(
+            (
+                receipt_path.relative_to(ROOT).as_posix(),
+                "budget receipt candidate identity source epoch does not match the current source",
+            ),
+            issues,
+        )
+
+    def test_current_receipt_binds_producer_output_to_generated_family(self) -> None:
+        family_manifest, receipt, digest, receipt_path = self._current_receipt_case()
+        execution = receipt["producer_identity"]["execution_inputs"]
+        execution["action_inputs"]["output"]["value_digest"] = "0" * 64
+        execution["command_targets"]["output"] = "kag/indexes/unrelated-output.json"
+
+        producer = receipt["producer_identity"]
+        identity_material_fields = (
+            "contract_version",
+            "owner",
+            "revision_binding",
+            "source_digest",
+            "procedure_manifest",
+            "action",
+            "execution_inputs",
+        )
+        producer["identity_digest"] = validator._v2_canonical_digest(
+            {field: producer[field] for field in identity_material_fields}
+        )
+
+        issues = validator.budget_receipt_contract_issues(
+            ROOT,
+            family_manifest,
+            receipt,
+            digest,
+            receipt_path,
+            base_has_v3=True,
+        )
+
+        self.assertIn(
+            (
+                receipt_path.relative_to(ROOT).as_posix(),
+                "budget receipt producer action input output value_digest does not match canonical family output",
+            ),
+            issues,
+        )
+        self.assertIn(
+            (
+                receipt_path.relative_to(ROOT).as_posix(),
+                "budget receipt producer command target output does not match canonical family output",
+            ),
+            issues,
+        )
+
+    def test_current_receipt_binds_producer_repo_root_to_command_target(self) -> None:
+        family_manifest, receipt, digest, receipt_path = self._current_receipt_case()
+        execution = receipt["producer_identity"]["execution_inputs"]
+        execution["action_inputs"]["repo-root"]["value_digest"] = "0" * 64
+        execution["command_targets"]["repo_root"]["path_digest"] = "f" * 64
+
+        producer = receipt["producer_identity"]
+        identity_material_fields = (
+            "contract_version",
+            "owner",
+            "revision_binding",
+            "source_digest",
+            "procedure_manifest",
+            "action",
+            "execution_inputs",
+        )
+        producer["identity_digest"] = validator._v2_canonical_digest(
+            {field: producer[field] for field in identity_material_fields}
+        )
+
+        issues = validator.budget_receipt_contract_issues(
+            ROOT,
+            family_manifest,
+            receipt,
+            digest,
+            receipt_path,
+            base_has_v3=True,
+        )
+        messages = "\n".join(message for _, message in issues)
+        self.assertIn("action input repo-root value_digest does not match canonical owner root", messages)
+        self.assertIn("command target repo_root path_digest does not match canonical owner root", messages)
+        self.assertIn("command target repo_root path_digest does not match action input repo-root", messages)
+
+    def test_current_receipt_requires_portable_command_targets(self) -> None:
+        for field, value, expected in (
+            ("family_mode", "tiered", "budget receipt producer command target family_mode must be 'portable'"),
+            ("artifact_root", {"path": "unrelated"}, "budget receipt producer command target artifact_root must be null for portable family"),
+            ("externalized", True, "budget receipt producer command target externalized must be false for portable family"),
+        ):
+            with self.subTest(field=field):
+                family_manifest, receipt, digest, receipt_path = self._current_receipt_case()
+                execution = receipt["producer_identity"]["execution_inputs"]
+                execution["command_targets"][field] = value
+
+                producer = receipt["producer_identity"]
+                identity_material_fields = (
+                    "contract_version",
+                    "owner",
+                    "revision_binding",
+                    "source_digest",
+                    "procedure_manifest",
+                    "action",
+                    "execution_inputs",
+                )
+                producer["identity_digest"] = validator._v2_canonical_digest(
+                    {field: producer[field] for field in identity_material_fields}
+                )
+
+                issues = validator.budget_receipt_contract_issues(
+                    ROOT,
+                    family_manifest,
+                    receipt,
+                    digest,
+                    receipt_path,
+                    base_has_v3=True,
+                )
+                self.assertIn((receipt_path.relative_to(ROOT).as_posix(), expected), issues)
+
+    def test_current_receipt_binds_non_python_inputs_to_producer_files(self) -> None:
+        family_manifest, receipt, digest, receipt_path = self._current_receipt_case()
+        receipt["producer_identity"]["execution_inputs"]["non_python_inputs"] = ["junk"]
+
+        producer = receipt["producer_identity"]
+        identity_material_fields = (
+            "contract_version",
+            "owner",
+            "revision_binding",
+            "source_digest",
+            "procedure_manifest",
+            "action",
+            "execution_inputs",
+        )
+        producer["identity_digest"] = validator._v2_canonical_digest(
+            {field: producer[field] for field in identity_material_fields}
+        )
+
+        issues = validator.budget_receipt_contract_issues(
+            ROOT,
+            family_manifest,
+            receipt,
+            digest,
+            receipt_path,
+            base_has_v3=True,
+        )
+
+        self.assertIn(
+            (
+                receipt_path.relative_to(ROOT).as_posix(),
+                "budget receipt field producer_identity.execution_inputs.non_python_inputs[0] must be an object",
+            ),
+            issues,
+        )
+
+    def test_current_receipt_binds_runtime_inputs_to_procedure(self) -> None:
+        for field, replacement, expected in (
+            (
+                "environment",
+                [],
+                "budget receipt producer runtime environment must be a non-empty array",
+            ),
+            (
+                "dependencies",
+                [],
+                "budget receipt producer runtime dependencies must be a non-empty array",
+            ),
+            (
+                "interpreter",
+                {},
+                "budget receipt field producer_identity.execution_inputs.interpreter missing implementation",
+            ),
+        ):
+            with self.subTest(field=field):
+                family_manifest, receipt, digest, receipt_path = self._current_receipt_case()
+                receipt["producer_identity"]["execution_inputs"][field] = replacement
+
+                producer = receipt["producer_identity"]
+                identity_material_fields = (
+                    "contract_version",
+                    "owner",
+                    "revision_binding",
+                    "source_digest",
+                    "procedure_manifest",
+                    "action",
+                    "execution_inputs",
+                )
+                producer["identity_digest"] = validator._v2_canonical_digest(
+                    {field: producer[field] for field in identity_material_fields}
+                )
+
+                issues = validator.budget_receipt_contract_issues(
+                    ROOT,
+                    family_manifest,
+                    receipt,
+                    digest,
+                    receipt_path,
+                    base_has_v3=True,
+                )
+                self.assertIn((receipt_path.relative_to(ROOT).as_posix(), expected), issues)
+
+    def test_current_receipt_rejects_unhashable_runtime_states_without_aborting(self) -> None:
+        for field, bad_state, expected in (
+            (
+                "environment",
+                {},
+                "budget receipt field producer_identity.execution_inputs.environment[0].state must be 'set' or 'unset'",
+            ),
+            (
+                "dependencies",
+                [],
+                "budget receipt field producer_identity.execution_inputs.dependencies[0].state is unsupported",
+            ),
+        ):
+            with self.subTest(field=field):
+                family_manifest, receipt, digest, receipt_path = self._current_receipt_case()
+                receipt["producer_identity"]["execution_inputs"][field][0]["state"] = bad_state
+
+                issues = validator.budget_receipt_contract_issues(
+                    ROOT,
+                    family_manifest,
+                    receipt,
+                    digest,
+                    receipt_path,
+                    base_has_v3=True,
+                )
+
+                self.assertIn((receipt_path.relative_to(ROOT).as_posix(), expected), issues)
+
+    def test_current_receipt_rejects_malformed_dependency_names_without_aborting(self) -> None:
+        for bad_name in (None, ""):
+            with self.subTest(bad_name=bad_name):
+                family_manifest, receipt, digest, receipt_path = self._current_receipt_case()
+                receipt["producer_identity"]["execution_inputs"]["dependencies"][0]["name"] = bad_name
+
+                issues = validator.budget_receipt_contract_issues(
+                    ROOT,
+                    family_manifest,
+                    receipt,
+                    digest,
+                    receipt_path,
+                    base_has_v3=True,
+                )
+
+                self.assertIn(
+                    (
+                        receipt_path.relative_to(ROOT).as_posix(),
+                        "budget receipt field producer_identity.execution_inputs.dependencies[0].name "
+                        "must be a non-empty string",
+                    ),
+                    issues,
+                )
+
+    def test_current_receipt_rejects_unavailable_required_dependency(self) -> None:
+        family_manifest, receipt, digest, receipt_path = self._current_receipt_case()
+        dependency = receipt["producer_identity"]["execution_inputs"]["dependencies"][0]
+        dependency["state"] = "unavailable"
+        dependency["resolved_version"] = None
+        dependency["path_digest"] = None
+        dependency["artifact_digest"] = None
+
+        issues = validator.budget_receipt_contract_issues(
+            ROOT,
+            family_manifest,
+            receipt,
+            digest,
+            receipt_path,
+            base_has_v3=True,
+        )
+
+        label = receipt_path.relative_to(ROOT).as_posix()
+        self.assertIn(
+            (label, "budget receipt required runtime dependency python must be available"),
+            issues,
+        )
+
+    def test_current_receipt_requires_resolved_evidence_for_available_dependency(self) -> None:
+        family_manifest, receipt, digest, receipt_path = self._current_receipt_case()
+        dependency = receipt["producer_identity"]["execution_inputs"]["dependencies"][0]
+        dependency["resolved_version"] = None
+        dependency["path_digest"] = None
+        dependency["artifact_digest"] = None
+
+        issues = validator.budget_receipt_contract_issues(
+            ROOT,
+            family_manifest,
+            receipt,
+            digest,
+            receipt_path,
+            base_has_v3=True,
+        )
+
+        label = receipt_path.relative_to(ROOT).as_posix()
+        self.assertIn(
+            (label, "budget receipt available runtime dependency python must keep resolved_version"),
+            issues,
+        )
+        self.assertIn(
+            (label, "budget receipt available runtime dependency python must keep path_digest"),
+            issues,
+        )
+        self.assertIn(
+            (label, "budget receipt available runtime dependency python must keep artifact_digest"),
+            issues,
+        )
+
+    def test_current_receipt_recomputes_runtime_dependency_digests(self) -> None:
+        family_manifest, receipt, digest, receipt_path = self._current_receipt_case()
+        dependency = receipt["producer_identity"]["execution_inputs"]["dependencies"][1]
+        dependency["path_digest"] = "0" * 64
+        dependency["artifact_digest"] = "f" * 64
+
+        issues = validator.budget_receipt_contract_issues(
+            ROOT,
+            family_manifest,
+            receipt,
+            digest,
+            receipt_path,
+            base_has_v3=True,
+        )
+
+        label = receipt_path.relative_to(ROOT).as_posix()
+        self.assertIn(
+            (
+                label,
+                "budget receipt runtime dependency PyYAML path_digest does not match the approved dependency contract",
+            ),
+            issues,
+        )
+        self.assertIn(
+            (
+                label,
+                "budget receipt runtime dependency PyYAML artifact_digest does not match the approved dependency contract",
+            ),
+            issues,
+        )
+
+    def test_current_receipt_binds_resolved_dependency_version_to_runtime(self) -> None:
+        family_manifest, receipt, digest, receipt_path = self._current_receipt_case()
+        dependency = receipt["producer_identity"]["execution_inputs"]["dependencies"][1]
+        dependency["resolved_version"] = "999.0"
+        producer = receipt["producer_identity"]
+        identity_material_fields = (
+            "contract_version",
+            "owner",
+            "revision_binding",
+            "source_digest",
+            "procedure_manifest",
+            "action",
+            "execution_inputs",
+        )
+        producer["identity_digest"] = validator._v2_canonical_digest(
+            {field: producer[field] for field in identity_material_fields}
+        )
+
+        issues = validator.budget_receipt_contract_issues(
+            ROOT,
+            family_manifest,
+            receipt,
+            digest,
+            receipt_path,
+            base_has_v3=True,
+        )
+
+        self.assertIn(
+            (
+                receipt_path.relative_to(ROOT).as_posix(),
+                "budget receipt runtime dependency PyYAML resolved_version does not match the current runtime",
+            ),
+            issues,
+        )
+
+    def test_current_receipt_binds_python_resolution_to_captured_interpreter(self) -> None:
+        family_manifest, receipt, digest, receipt_path = self._current_receipt_case()
+        dependency = receipt["producer_identity"]["execution_inputs"]["dependencies"][0]
+        dependency["resolved_version"] = "2.7"
+        producer = receipt["producer_identity"]
+        identity_material_fields = (
+            "contract_version",
+            "owner",
+            "revision_binding",
+            "source_digest",
+            "procedure_manifest",
+            "action",
+            "execution_inputs",
+        )
+        producer["identity_digest"] = validator._v2_canonical_digest(
+            {name: producer[name] for name in identity_material_fields}
+        )
+
+        issues = validator.budget_receipt_contract_issues(
+            ROOT,
+            family_manifest,
+            receipt,
+            digest,
+            receipt_path,
+            base_has_v3=True,
+        )
+
+        self.assertIn(
+            (
+                receipt_path.relative_to(ROOT).as_posix(),
+                "budget receipt runtime dependency python resolved_version does not match the captured interpreter",
+            ),
+            issues,
+        )
+
+    def test_current_receipt_rejects_runtime_outside_declared_python_constraint(self) -> None:
+        family_manifest, receipt, digest, receipt_path = self._current_receipt_case()
+        with mock.patch.object(validator.sys, "version_info", (3, 10, 9)):
+            issues = validator.budget_receipt_contract_issues(
+                ROOT,
+                family_manifest,
+                receipt,
+                digest,
+                receipt_path,
+                base_has_v3=True,
+            )
+
+        self.assertIn(
+            (
+                receipt_path.relative_to(ROOT).as_posix(),
+                "budget receipt interpreter runtime does not satisfy the declared python dependency",
+            ),
+            issues,
+        )
+
+    def test_current_receipt_binds_dependency_artifact_measurements(self) -> None:
+        for field, invalid in (("artifact_bytes", 0), ("artifact_files", 0)):
+            with self.subTest(field=field):
+                family_manifest, receipt, digest, receipt_path = self._current_receipt_case()
+                dependency = receipt["producer_identity"]["execution_inputs"]["dependencies"][1]
+                dependency[field] = invalid
+                producer = receipt["producer_identity"]
+                identity_material_fields = (
+                    "contract_version",
+                    "owner",
+                    "revision_binding",
+                    "source_digest",
+                    "procedure_manifest",
+                    "action",
+                    "execution_inputs",
+                )
+                producer["identity_digest"] = validator._v2_canonical_digest(
+                    {name: producer[name] for name in identity_material_fields}
+                )
+
+                issues = validator.budget_receipt_contract_issues(
+                    ROOT,
+                    family_manifest,
+                    receipt,
+                    digest,
+                    receipt_path,
+                    base_has_v3=True,
+                )
+
+                self.assertIn(
+                    (
+                        receipt_path.relative_to(ROOT).as_posix(),
+                        f"budget receipt runtime dependency PyYAML {field} does not match the approved dependency contract",
+                    ),
+                    issues,
+                )
+
+    def test_current_receipt_rejects_resolved_version_for_declared_dependency(self) -> None:
+        family_manifest, receipt, digest, receipt_path = self._current_receipt_case()
+        dependency = receipt["producer_identity"]["execution_inputs"]["dependencies"][3]
+        dependency["resolved_version"] = "fabricated"
+        producer = receipt["producer_identity"]
+        identity_material_fields = (
+            "contract_version",
+            "owner",
+            "revision_binding",
+            "source_digest",
+            "procedure_manifest",
+            "action",
+            "execution_inputs",
+        )
+        producer["identity_digest"] = validator._v2_canonical_digest(
+            {name: producer[name] for name in identity_material_fields}
+        )
+
+        issues = validator.budget_receipt_contract_issues(
+            ROOT,
+            family_manifest,
+            receipt,
+            digest,
+            receipt_path,
+            base_has_v3=True,
+        )
+
+        self.assertIn(
+            (
+                receipt_path.relative_to(ROOT).as_posix(),
+                "budget receipt declared runtime dependency jsonschema-rs must keep resolved_version null",
+            ),
+            issues,
+        )
+
+    def test_current_receipt_binds_unset_environment_to_sentinel(self) -> None:
+        family_manifest, receipt, digest, receipt_path = self._current_receipt_case()
+        environment = receipt["producer_identity"]["execution_inputs"]["environment"][0]
+        environment["value_digest"] = "0" * 64
+        environment["bytes"] = 999
+
+        issues = validator.budget_receipt_contract_issues(
+            ROOT,
+            family_manifest,
+            receipt,
+            digest,
+            receipt_path,
+            base_has_v3=True,
+        )
+
+        label = receipt_path.relative_to(ROOT).as_posix()
+        self.assertIn(
+            (
+                label,
+                "budget receipt unset runtime environment AOA_KAG_FORCE_COLD_SCHEMA_COMPILATION value_digest does not match the unset sentinel",
+            ),
+            issues,
+        )
+        self.assertIn(
+            (
+                label,
+                "budget receipt unset runtime environment AOA_KAG_FORCE_COLD_SCHEMA_COMPILATION bytes must be zero",
+            ),
+            issues,
+        )
+
+    def test_current_receipt_binds_set_environment_to_action_environment(self) -> None:
+        family_manifest, receipt, digest, receipt_path = self._current_receipt_case()
+        environment = receipt["producer_identity"]["execution_inputs"]["environment"][0]
+        environment["state"] = "set"
+        environment["value_digest"] = "0" * 64
+        environment["bytes"] = 999
+
+        with mock.patch.dict(
+            os.environ,
+            {"AOA_KAG_FORCE_COLD_SCHEMA_COMPILATION": "actual-value"},
+            clear=False,
+        ):
+            issues = validator.budget_receipt_contract_issues(
+                ROOT,
+                family_manifest,
+                receipt,
+                digest,
+                receipt_path,
+                base_has_v3=True,
+            )
+
+        label = receipt_path.relative_to(ROOT).as_posix()
+        self.assertIn(
+            (
+                label,
+                "budget receipt set runtime environment AOA_KAG_FORCE_COLD_SCHEMA_COMPILATION value_digest does not match the current action environment",
+            ),
+            issues,
+        )
+        self.assertIn(
+            (
+                label,
+                "budget receipt set runtime environment AOA_KAG_FORCE_COLD_SCHEMA_COMPILATION bytes do not match the current action environment",
+            ),
+            issues,
+        )
+
+    def test_current_receipt_recomputes_interpreter_digests(self) -> None:
+        family_manifest, receipt, digest, receipt_path = self._current_receipt_case()
+        interpreter = receipt["producer_identity"]["execution_inputs"]["interpreter"]
+        for field in ("invoked_path_digest", "resolved_path_digest", "artifact_digest"):
+            interpreter[field] = "0" * 64
+
+        issues = validator.budget_receipt_contract_issues(
+            ROOT,
+            family_manifest,
+            receipt,
+            digest,
+            receipt_path,
+            base_has_v3=True,
+        )
+
+        label = receipt_path.relative_to(ROOT).as_posix()
+        self.assertIn(
+            (
+                label,
+                "budget receipt interpreter invoked_path_digest does not match the approved Python interpreter",
+            ),
+            issues,
+        )
+        self.assertIn(
+            (
+                label,
+                "budget receipt interpreter resolved_path_digest does not match the approved Python interpreter",
+            ),
+            issues,
+        )
+        self.assertIn(
+            (
+                label,
+                "budget receipt interpreter artifact_digest does not match the captured Python runtime contract",
+            ),
+            issues,
+        )
+
+    def test_current_receipt_binds_jobs_input_to_command_target(self) -> None:
+        family_manifest, receipt, digest, receipt_path = self._current_receipt_case()
+        receipt["producer_identity"]["execution_inputs"]["command_targets"]["jobs"] = "3"
+
+        producer = receipt["producer_identity"]
+        identity_material_fields = (
+            "contract_version",
+            "owner",
+            "revision_binding",
+            "source_digest",
+            "procedure_manifest",
+            "action",
+            "execution_inputs",
+        )
+        producer["identity_digest"] = validator._v2_canonical_digest(
+            {field: producer[field] for field in identity_material_fields}
+        )
+
+        issues = validator.budget_receipt_contract_issues(
+            ROOT,
+            family_manifest,
+            receipt,
+            digest,
+            receipt_path,
+            base_has_v3=True,
+        )
+        self.assertIn(
+            (
+                receipt_path.relative_to(ROOT).as_posix(),
+                "budget receipt producer action input jobs value_digest does not match command target jobs",
+            ),
+            issues,
+        )
+
+    def test_current_receipt_recomputes_generated_delta_measurements(self) -> None:
+        family_manifest, receipt, digest, receipt_path = self._current_receipt_case()
+        receipt["changed_generated_bytes"] = 0
+        receipt["changed_generated_files"] = 0
+        receipt["allowed_bytes"] = 0
+        receipt["scope"] = "tracked_size"
+
+        issues = validator.budget_receipt_contract_issues(
+            ROOT,
+            family_manifest,
+            receipt,
+            digest,
+            receipt_path,
+            base_has_v3=True,
+        )
+        label = receipt_path.relative_to(ROOT).as_posix()
+        for field in ("changed_generated_bytes", "changed_generated_files", "allowed_bytes"):
+            self.assertIn(
+                (label, f"budget receipt field {field} does not match current generated delta"),
+                issues,
+            )
+
+    def test_current_receipt_rejects_generated_shard_outside_repository(self) -> None:
+        family_manifest, receipt, digest, receipt_path = self._current_receipt_case()
+        family_manifest["shards"][0]["path"] = "/dev/zero"
+
+        issues = validator.budget_receipt_contract_issues(
+            ROOT,
+            family_manifest,
+            receipt,
+            digest,
+            receipt_path,
+            base_has_v3=True,
+        )
+
+        self.assertIn(
+            (
+                receipt_path.relative_to(ROOT).as_posix(),
+                "budget receipt generated delta cannot be recomputed: current family manifest shard path must be a safe repository-relative KAG path",
+            ),
+            issues,
+        )
+
+    def test_current_receipt_requires_declared_procedure_files_in_inventory(self) -> None:
+        family_manifest, receipt, digest, receipt_path = self._current_receipt_case()
+        producer = receipt["producer_identity"]
+        producer["files"] = [
+            item
+            for item in producer["files"]
+            if item["path"] != "scripts/generation/common.py"
+        ]
+        producer["source_digest"] = validator._v2_canonical_digest(producer["files"])
+        identity_material_fields = (
+            "contract_version",
+            "owner",
+            "revision_binding",
+            "source_digest",
+            "procedure_manifest",
+            "action",
+            "execution_inputs",
+        )
+        producer["identity_digest"] = validator._v2_canonical_digest(
+            {field: producer[field] for field in identity_material_fields}
+        )
+
+        issues = validator.budget_receipt_contract_issues(
+            ROOT,
+            family_manifest,
+            receipt,
+            digest,
+            receipt_path,
+            base_has_v3=True,
+        )
+        label = receipt_path.relative_to(ROOT).as_posix()
+        self.assertTrue(
+            any(
+                issue_label == label
+                and message.startswith(
+                    "budget receipt producer file inventory does not cover the declared procedure exactly"
+                )
+                for issue_label, message in issues
+            )
+        )
+
+    def test_current_receipt_rejects_control_characters_in_producer_paths(self) -> None:
+        family_manifest, receipt, digest, receipt_path = self._current_receipt_case()
+        receipt["producer_identity"]["files"][0]["path"] = "bad\x00path"
+
+        issues = validator.budget_receipt_contract_issues(
+            ROOT,
+            family_manifest,
+            receipt,
+            digest,
+            receipt_path,
+            base_has_v3=True,
+        )
+        self.assertIn(
+            (
+                receipt_path.relative_to(ROOT).as_posix(),
+                "budget receipt field producer_identity.files[0].path must not contain control characters",
+            ),
+            issues,
+        )
+
+    def test_current_receipt_requires_canonical_procedure_manifest_path(self) -> None:
+        family_manifest, receipt, digest, receipt_path = self._current_receipt_case()
+        receipt["producer_identity"]["procedure_manifest"]["manifest_path"] = (
+            "schemas/domain-index-catalog.schema.json"
+        )
+
+        issues = validator.budget_receipt_contract_issues(
+            ROOT,
+            family_manifest,
+            receipt,
+            digest,
+            receipt_path,
+            base_has_v3=True,
+        )
+        self.assertIn(
+            (
+                receipt_path.relative_to(ROOT).as_posix(),
+                "budget receipt producer procedure manifest manifest_path must be config/repo-local-kag-budget-producer.json",
+            ),
+            issues,
+        )
+
+    def test_current_receipt_requires_identity_bound_v2_schema(self) -> None:
+        family_manifest, receipt, digest, receipt_path = self._current_receipt_case()
+        receipt["schema_version"] = validator.KAG_BUDGET_RECEIPT_SCHEMA_VERSION
+
+        issues = validator.budget_receipt_contract_issues(
+            ROOT,
+            family_manifest,
+            receipt,
+            digest,
+            receipt_path,
+            base_has_v3=True,
+            require_v2=True,
+        )
+
+        self.assertIn(
+            (
+                receipt_path.relative_to(ROOT).as_posix(),
+                "current generated KAG budget receipt must use the identity-bound v2 schema",
+            ),
+            issues,
+        )
+
+    def test_current_receipt_recomputes_candidate_seal(self) -> None:
+        family_manifest, receipt, digest, receipt_path = self._current_receipt_case()
+        receipt["candidate_identity"]["seal"] = "0" * 64
+
+        issues = validator.budget_receipt_contract_issues(
+            ROOT,
+            family_manifest,
+            receipt,
+            digest,
+            receipt_path,
+            base_has_v3=True,
+        )
+
+        self.assertIn(
+            (
+                receipt_path.relative_to(ROOT).as_posix(),
+                "budget receipt candidate identity seal does not match the current candidate",
+            ),
+            issues,
+        )
+
+    def test_current_receipt_requires_procedure_manifest_contents(self) -> None:
+        family_manifest, receipt, digest, receipt_path = self._current_receipt_case()
+        receipt["producer_identity"]["procedure_manifest"] = {}
+
+        issues = validator.budget_receipt_contract_issues(
+            ROOT,
+            family_manifest,
+            receipt,
+            digest,
+            receipt_path,
+            base_has_v3=True,
+        )
+
+        messages = "\n".join(message for _, message in issues)
+        self.assertIn("procedure_manifest missing action_path", messages)
+        self.assertIn("procedure manifest digest does not match execution inputs", messages)
+
+    def test_current_receipt_requires_coherent_producer_contract_tuple(self) -> None:
+        family_manifest, receipt, digest, receipt_path = self._current_receipt_case()
+        receipt["producer_identity"]["contract_version"] = (
+            "aoa-kag:budget-receipt-producer-identity-v3"
+        )
+
+        issues = validator.budget_receipt_contract_issues(
+            ROOT,
+            family_manifest,
+            receipt,
+            digest,
+            receipt_path,
+            base_has_v3=True,
+        )
+
+        messages = "\n".join(message for _, message in issues)
+        self.assertIn("revision binding does not match its contract version", messages)
+        self.assertIn("runtime-input schema does not match its contract version", messages)
+
+    def test_current_receipt_rejects_malformed_candidate_without_aborting(self) -> None:
+        family_manifest, receipt, digest, receipt_path = self._current_receipt_case()
+        receipt["candidate_identity"] = None
+
+        issues = validator.budget_receipt_contract_issues(
+            ROOT,
+            family_manifest,
+            receipt,
+            digest,
+            receipt_path,
+            base_has_v3=True,
+        )
+
+        self.assertIn(
+            (
+                receipt_path.relative_to(ROOT).as_posix(),
+                "budget receipt field candidate_identity must be an object",
+            ),
+            issues,
+        )
+
+    def test_current_receipt_rejects_non_string_producer_contract_version(self) -> None:
+        family_manifest, receipt, digest, receipt_path = self._current_receipt_case()
+        receipt["producer_identity"]["contract_version"] = []
+
+        issues = validator.budget_receipt_contract_issues(
+            ROOT,
+            family_manifest,
+            receipt,
+            digest,
+            receipt_path,
+            base_has_v3=True,
+        )
+
+        self.assertIn(
+            (
+                receipt_path.relative_to(ROOT).as_posix(),
+                "budget receipt producer identity contract is unsupported",
+            ),
+            issues,
+        )
+
+    def test_current_receipt_recomputes_producer_identity_digest(self) -> None:
+        family_manifest, receipt, digest, receipt_path = self._current_receipt_case()
+        receipt["producer_identity"]["identity_digest"] = "0" * 64
+
+        issues = validator.budget_receipt_contract_issues(
+            ROOT,
+            family_manifest,
+            receipt,
+            digest,
+            receipt_path,
+            base_has_v3=True,
+        )
+
+        self.assertIn(
+            (
+                receipt_path.relative_to(ROOT).as_posix(),
+                "budget receipt producer identity digest does not match its identity material",
+            ),
+            issues,
+        )
+
+    def test_current_receipt_binds_procedure_manifest_to_file_record(self) -> None:
+        family_manifest, receipt, digest, receipt_path = self._current_receipt_case()
+        producer = receipt["producer_identity"]
+        procedure_manifest = producer["procedure_manifest"]
+        procedure_manifest["manifest_path"] = "config/unrelated-producer-manifest.json"
+        procedure_manifest["manifest_digest"] = "f" * 64
+        producer["execution_inputs"]["manifest_digest"] = "f" * 64
+        identity_material_fields = (
+            "contract_version",
+            "owner",
+            "revision_binding",
+            "source_digest",
+            "procedure_manifest",
+            "action",
+            "execution_inputs",
+        )
+        producer["identity_digest"] = validator._v2_canonical_digest(
+            {field: producer[field] for field in identity_material_fields}
+        )
+
+        issues = validator.budget_receipt_contract_issues(
+            ROOT,
+            family_manifest,
+            receipt,
+            digest,
+            receipt_path,
+            base_has_v3=True,
+        )
+
+        self.assertIn(
+            (
+                receipt_path.relative_to(ROOT).as_posix(),
+                "budget receipt producer procedure manifest path must identify exactly one producer file",
+            ),
+            issues,
+        )
+
+    def test_current_receipt_binds_action_to_file_record(self) -> None:
+        family_manifest, receipt, digest, receipt_path = self._current_receipt_case()
+        producer = receipt["producer_identity"]
+        producer["action"]["content_digest"] = "0" * 64
+        identity_material_fields = (
+            "contract_version",
+            "owner",
+            "revision_binding",
+            "source_digest",
+            "procedure_manifest",
+            "action",
+            "execution_inputs",
+        )
+        producer["identity_digest"] = validator._v2_canonical_digest(
+            {field: producer[field] for field in identity_material_fields}
+        )
+
+        issues = validator.budget_receipt_contract_issues(
+            ROOT,
+            family_manifest,
+            receipt,
+            digest,
+            receipt_path,
+            base_has_v3=True,
+        )
+
+        self.assertIn(
+            (
+                receipt_path.relative_to(ROOT).as_posix(),
+                "budget receipt producer action does not match its file record",
             ),
             issues,
         )
