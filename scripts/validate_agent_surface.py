@@ -2,12 +2,15 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
+import os
 import re
+import stat
 import subprocess
 import sys
 from pathlib import Path
-from typing import Any
+from typing import Any, Mapping
 
 from build_agent_surface_currentness import (
     COMPANION_FAMILIES,
@@ -143,6 +146,31 @@ KAG_BUDGET_PRODUCER_IDENTITY_FIELDS = {
     "execution_inputs",
     "identity_digest",
 }
+KAG_BUDGET_PROCEDURE_MANIFEST_FIELDS = {
+    "manifest_path",
+    "manifest_digest",
+    "schema_path",
+    "closure_mode",
+    "dynamic_import_policy",
+    "python_entrypoints",
+    "python_import_closure",
+    "schema_inputs",
+    "action_path",
+    "action_inputs",
+    "environment",
+    "dependencies",
+}
+KAG_BUDGET_PRODUCER_PROFILES = {
+    "aoa-kag:budget-receipt-producer-identity-v3": {
+        "revision_binding": "content-addressed-procedure-import-closure-runtime-inputs-and-descriptor-io-v1",
+        "runtime_inputs": "aoa-kag:budget-receipt-producer-runtime-inputs-v1",
+    },
+    "aoa-kag:budget-receipt-producer-identity-v4": {
+        "revision_binding": "content-addressed-procedure-import-closure-portable-runtime-contract-and-descriptor-io-v1",
+        "runtime_inputs": "aoa-kag:budget-receipt-producer-runtime-inputs-v2",
+    },
+}
+KAG_BUDGET_CANDIDATE_ZERO_DIGEST = "0" * 64
 
 
 def activation_policy_issues(
@@ -350,8 +378,91 @@ def _v2_producer_file_issues(label: str, value: object, field: str) -> list[Issu
     return issues
 
 
+def _v2_candidate_inventory(root: Path, excluded_path: Path) -> list[dict[str, Any]]:
+    """Rebuild the v2 candidate inventory used by aoa-kag's portable receipt."""
+    result = subprocess.run(
+        ("git", "ls-files", "--cached", "--others", "--exclude-standard", "-z"),
+        cwd=root,
+        check=False,
+        capture_output=True,
+    )
+    if result.returncode != 0:
+        raise ValueError("candidate identity requires a readable Git worktree")
+
+    relative_paths: set[Path] = set()
+    for raw in result.stdout.split(b"\0"):
+        if not raw:
+            continue
+        try:
+            relative = Path(raw.decode("utf-8", errors="strict"))
+        except UnicodeDecodeError as exc:
+            raise ValueError("candidate identity encountered a non-UTF-8 Git path") from exc
+        if relative.is_absolute() or not relative.parts or ".." in relative.parts:
+            raise ValueError("candidate identity encountered an unsafe path")
+        if relative != excluded_path:
+            relative_paths.add(relative)
+
+    inventory: list[dict[str, Any]] = []
+    for relative in sorted(relative_paths, key=lambda path: path.as_posix()):
+        path = root / relative
+        try:
+            metadata = path.lstat()
+        except FileNotFoundError:
+            inventory.append(
+                {
+                    "path": relative.as_posix(),
+                    "state": "missing",
+                    "kind": "missing",
+                    "mode": "missing",
+                    "bytes": 0,
+                    "content_digest": KAG_BUDGET_CANDIDATE_ZERO_DIGEST,
+                }
+            )
+            continue
+        if stat.S_ISREG(metadata.st_mode):
+            content = path.read_bytes()
+            kind = "file"
+            mode = "0755" if metadata.st_mode & stat.S_IXUSR else "0644"
+        elif stat.S_ISLNK(metadata.st_mode):
+            content = os.readlink(path).encode("utf-8", errors="surrogateescape")
+            kind = "symlink"
+            mode = "0777"
+        else:
+            raise ValueError(f"candidate identity cannot inventory non-file path {relative}")
+        inventory.append(
+            {
+                "path": relative.as_posix(),
+                "state": "present",
+                "kind": kind,
+                "mode": mode,
+                "bytes": len(content),
+                "content_digest": hashlib.sha256(content).hexdigest(),
+            }
+        )
+    return inventory
+
+
+def _v2_candidate_seal(root: Path, digest: str) -> tuple[str, int]:
+    excluded_path = Path("kag/receipts/index_family_budget") / f"{digest}.json"
+    inventory = _v2_candidate_inventory(root, excluded_path)
+    material = {
+        "contract_version": "aoa-kag:budget-receipt-candidate-identity-v2",
+        "algorithm": "sha256:canonical-json-file-inventory-v2",
+        "excluded_path": excluded_path.as_posix(),
+        "files": inventory,
+    }
+    encoded = json.dumps(
+        material,
+        ensure_ascii=False,
+        sort_keys=True,
+        separators=(",", ":"),
+    ).encode("utf-8")
+    return hashlib.sha256(encoded).hexdigest(), len(inventory)
+
+
 def v2_budget_receipt_identity_issues(
     root: Path,
+    manifest: Mapping[str, Any],
     receipt: dict[str, Any],
     digest: str,
     receipt_path: Path,
@@ -408,6 +519,31 @@ def v2_budget_receipt_identity_issues(
         if not isinstance(base_ref, str) or not re.fullmatch(r"[0-9a-f]{40,64}", base_ref):
             issues.append((label, "budget receipt candidate identity base_ref must be lowercase Git commit ref"))
 
+        try:
+            actual_seal, actual_file_count = _v2_candidate_seal(root, digest)
+        except (OSError, ValueError) as exc:
+            issues.append((label, f"budget receipt candidate seal cannot be recomputed: {exc}"))
+        else:
+            if candidate.get("seal") != actual_seal:
+                issues.append((label, "budget receipt candidate identity seal does not match the current candidate"))
+            if candidate.get("file_count") != actual_file_count:
+                issues.append(
+                    (
+                        label,
+                        "budget receipt candidate identity file_count does not match the current candidate",
+                    )
+                )
+
+    family_identity = manifest.get("family_identity")
+    if not isinstance(family_identity, Mapping):
+        issues.append((label, "family manifest family_identity must be an object"))
+    else:
+        manifest_source_snapshot = family_identity.get("source_snapshot")
+        if not isinstance(manifest_source_snapshot, str):
+            issues.append((label, "family manifest source snapshot must be a string"))
+        elif receipt.get("head_source_snapshot") != manifest_source_snapshot:
+            issues.append((label, "budget receipt source snapshot does not match the family manifest"))
+
     producer = receipt.get("producer_identity")
     issues.extend(
         _v2_object_shape_issues(
@@ -420,16 +556,11 @@ def v2_budget_receipt_identity_issues(
     if isinstance(producer, dict):
         if producer.get("owner") != "aoa-kag":
             issues.append((label, "budget receipt producer identity owner must be aoa-kag"))
-        if producer.get("contract_version") not in {
-            "aoa-kag:budget-receipt-producer-identity-v3",
-            "aoa-kag:budget-receipt-producer-identity-v4",
-        }:
+        producer_profile = KAG_BUDGET_PRODUCER_PROFILES.get(producer.get("contract_version"))
+        if producer_profile is None:
             issues.append((label, "budget receipt producer identity contract is unsupported"))
-        if producer.get("revision_binding") not in {
-            "content-addressed-procedure-import-closure-runtime-inputs-and-descriptor-io-v1",
-            "content-addressed-procedure-import-closure-portable-runtime-contract-and-descriptor-io-v1",
-        }:
-            issues.append((label, "budget receipt producer identity revision binding is unsupported"))
+        elif producer.get("revision_binding") != producer_profile["revision_binding"]:
+            issues.append((label, "budget receipt producer identity revision binding does not match its contract version"))
         for field in ("source_digest", "identity_digest"):
             digest_issue = _v2_digest_issue(label, f"producer_identity.{field}", producer.get(field))
             if digest_issue:
@@ -441,8 +572,54 @@ def v2_budget_receipt_identity_issues(
         else:
             for index, item in enumerate(files):
                 issues.extend(_v2_producer_file_issues(label, item, f"producer_identity.files[{index}]"))
-        if not isinstance(producer.get("procedure_manifest"), dict):
+        procedure_manifest = producer.get("procedure_manifest")
+        if not isinstance(procedure_manifest, dict):
             issues.append((label, "budget receipt producer identity procedure_manifest must be an object"))
+        else:
+            issues.extend(
+                _v2_object_shape_issues(
+                    label,
+                    procedure_manifest,
+                    KAG_BUDGET_PROCEDURE_MANIFEST_FIELDS,
+                    "producer_identity.procedure_manifest",
+                )
+            )
+            for field in (
+                "manifest_path",
+                "schema_path",
+                "closure_mode",
+                "dynamic_import_policy",
+                "action_path",
+            ):
+                if not isinstance(procedure_manifest.get(field), str) or not procedure_manifest[field]:
+                    issues.append(
+                        (
+                            label,
+                            f"budget receipt producer procedure manifest field {field} must be a non-empty string",
+                        )
+                    )
+            digest_issue = _v2_digest_issue(
+                label,
+                "producer_identity.procedure_manifest.manifest_digest",
+                procedure_manifest.get("manifest_digest"),
+            )
+            if digest_issue:
+                issues.append(digest_issue)
+            for field in (
+                "python_entrypoints",
+                "python_import_closure",
+                "schema_inputs",
+                "action_inputs",
+                "environment",
+                "dependencies",
+            ):
+                if not isinstance(procedure_manifest.get(field), list) or not procedure_manifest[field]:
+                    issues.append(
+                        (
+                            label,
+                            f"budget receipt producer procedure manifest field {field} must be a non-empty array",
+                        )
+                    )
 
         execution = producer.get("execution_inputs")
         execution_fields = {
@@ -458,11 +635,13 @@ def v2_budget_receipt_identity_issues(
         }
         issues.extend(_v2_object_shape_issues(label, execution, execution_fields, "producer_identity.execution_inputs"))
         if isinstance(execution, dict):
-            if execution.get("schema_version") not in {
-                "aoa-kag:budget-receipt-producer-runtime-inputs-v1",
-                "aoa-kag:budget-receipt-producer-runtime-inputs-v2",
-            }:
-                issues.append((label, "budget receipt producer runtime-input schema is unsupported"))
+            expected_runtime_inputs = (
+                producer_profile["runtime_inputs"]
+                if producer_profile is not None
+                else None
+            )
+            if execution.get("schema_version") != expected_runtime_inputs:
+                issues.append((label, "budget receipt producer runtime-input schema does not match its contract version"))
             digest_issue = _v2_digest_issue(
                 label,
                 "producer_identity.execution_inputs.manifest_digest",
@@ -500,6 +679,26 @@ def v2_budget_receipt_identity_issues(
                     "producer_identity.execution_inputs.command_targets",
                 )
             )
+            if isinstance(command_targets, dict) and isinstance(base_ref, str):
+                for field in ("base_ref", "history_ref", "event_history_ref"):
+                    if command_targets.get(field) != base_ref:
+                        issues.append(
+                            (
+                                label,
+                                f"budget receipt producer command target {field} does not match receipt base_ref",
+                            )
+                        )
+            if (
+                isinstance(procedure_manifest, dict)
+                and isinstance(execution.get("manifest_digest"), str)
+                and procedure_manifest.get("manifest_digest") != execution.get("manifest_digest")
+            ):
+                issues.append(
+                    (
+                        label,
+                        "budget receipt producer procedure manifest digest does not match execution inputs",
+                    )
+                )
             if not isinstance(execution.get("environment"), list):
                 issues.append((label, "budget receipt producer runtime environment must be an array"))
             if not isinstance(execution.get("dependencies"), list):
@@ -520,6 +719,7 @@ def budget_receipt_contract_issues(
     *,
     base_has_v3: bool | None = None,
     fetch_missing_base: bool = False,
+    require_v2: bool = False,
 ) -> list[Issue]:
     """Admit historical v1 and current identity-bound v2 receipt shapes."""
     label = _relative_label(root, receipt_path)
@@ -528,6 +728,8 @@ def budget_receipt_contract_issues(
 
     issues: list[Issue] = []
     schema_version = receipt.get("schema_version")
+    if require_v2 and schema_version != KAG_BUDGET_RECEIPT_SCHEMA_V2_VERSION:
+        issues.append((label, "current generated KAG budget receipt must use the identity-bound v2 schema"))
     required_fields = (
         KAG_BUDGET_RECEIPT_V2_REQUIRED_FIELDS
         if schema_version == KAG_BUDGET_RECEIPT_SCHEMA_V2_VERSION
@@ -588,7 +790,7 @@ def budget_receipt_contract_issues(
         digest_issue = _v2_digest_issue(label, "head_source_snapshot", receipt.get("head_source_snapshot"), prefixed=True)
         if digest_issue:
             issues.append(digest_issue)
-        issues.extend(v2_budget_receipt_identity_issues(root, receipt, digest, receipt_path))
+        issues.extend(v2_budget_receipt_identity_issues(root, manifest, receipt, digest, receipt_path))
 
     repo = manifest.get("repo")
     expected_repo = repo.get("name") if isinstance(repo, dict) else None
@@ -773,6 +975,7 @@ def generated_family_issues(
             digest,
             receipt_path,
             fetch_missing_base=fetch_missing_base,
+            require_v2=True,
         )
     )
     return issues

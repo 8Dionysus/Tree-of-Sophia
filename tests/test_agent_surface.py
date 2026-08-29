@@ -541,6 +541,141 @@ class AgentSurfaceTests(unittest.TestCase):
             issues,
         )
 
+    @staticmethod
+    def _current_receipt_case() -> tuple[dict, dict, str, Path]:
+        manifest = json.loads(
+            (ROOT / ".agents/agent-surface.manifest.json").read_text(encoding="utf-8")
+        )
+        family = manifest["owner_ports"]["kag_provider"]["generated_family"]
+        family_manifest = json.loads((ROOT / family["manifest"]).read_text(encoding="utf-8"))
+        digest = family_manifest["family_identity"]["content_digest"]
+        receipt_path = ROOT / family["receipt_root"] / f"{digest}.json"
+        receipt = json.loads(receipt_path.read_text(encoding="utf-8"))
+        return family_manifest, receipt, digest, receipt_path
+
+    def test_current_receipt_binds_source_snapshot_to_family_manifest(self) -> None:
+        family_manifest, receipt, digest, receipt_path = self._current_receipt_case()
+        snapshot = "sha256:" + "0" * 64
+        receipt["head_source_snapshot"] = snapshot
+        receipt["candidate_identity"]["source_snapshot"] = snapshot
+
+        issues = validator.budget_receipt_contract_issues(
+            ROOT,
+            family_manifest,
+            receipt,
+            digest,
+            receipt_path,
+            base_has_v3=True,
+        )
+
+        self.assertIn(
+            (
+                receipt_path.relative_to(ROOT).as_posix(),
+                "budget receipt source snapshot does not match the family manifest",
+            ),
+            issues,
+        )
+
+    def test_current_receipt_binds_producer_history_to_receipt_base(self) -> None:
+        family_manifest, receipt, digest, receipt_path = self._current_receipt_case()
+        receipt["producer_identity"]["execution_inputs"]["command_targets"]["base_ref"] = "a" * 40
+
+        issues = validator.budget_receipt_contract_issues(
+            ROOT,
+            family_manifest,
+            receipt,
+            digest,
+            receipt_path,
+            base_has_v3=True,
+        )
+
+        self.assertIn(
+            (
+                receipt_path.relative_to(ROOT).as_posix(),
+                "budget receipt producer command target base_ref does not match receipt base_ref",
+            ),
+            issues,
+        )
+
+    def test_current_receipt_requires_identity_bound_v2_schema(self) -> None:
+        family_manifest, receipt, digest, receipt_path = self._current_receipt_case()
+        receipt["schema_version"] = validator.KAG_BUDGET_RECEIPT_SCHEMA_VERSION
+
+        issues = validator.budget_receipt_contract_issues(
+            ROOT,
+            family_manifest,
+            receipt,
+            digest,
+            receipt_path,
+            base_has_v3=True,
+            require_v2=True,
+        )
+
+        self.assertIn(
+            (
+                receipt_path.relative_to(ROOT).as_posix(),
+                "current generated KAG budget receipt must use the identity-bound v2 schema",
+            ),
+            issues,
+        )
+
+    def test_current_receipt_recomputes_candidate_seal(self) -> None:
+        family_manifest, receipt, digest, receipt_path = self._current_receipt_case()
+        receipt["candidate_identity"]["seal"] = "0" * 64
+
+        issues = validator.budget_receipt_contract_issues(
+            ROOT,
+            family_manifest,
+            receipt,
+            digest,
+            receipt_path,
+            base_has_v3=True,
+        )
+
+        self.assertIn(
+            (
+                receipt_path.relative_to(ROOT).as_posix(),
+                "budget receipt candidate identity seal does not match the current candidate",
+            ),
+            issues,
+        )
+
+    def test_current_receipt_requires_procedure_manifest_contents(self) -> None:
+        family_manifest, receipt, digest, receipt_path = self._current_receipt_case()
+        receipt["producer_identity"]["procedure_manifest"] = {}
+
+        issues = validator.budget_receipt_contract_issues(
+            ROOT,
+            family_manifest,
+            receipt,
+            digest,
+            receipt_path,
+            base_has_v3=True,
+        )
+
+        messages = "\n".join(message for _, message in issues)
+        self.assertIn("procedure_manifest missing action_path", messages)
+        self.assertIn("procedure manifest digest does not match execution inputs", messages)
+
+    def test_current_receipt_requires_coherent_producer_contract_tuple(self) -> None:
+        family_manifest, receipt, digest, receipt_path = self._current_receipt_case()
+        receipt["producer_identity"]["contract_version"] = (
+            "aoa-kag:budget-receipt-producer-identity-v3"
+        )
+
+        issues = validator.budget_receipt_contract_issues(
+            ROOT,
+            family_manifest,
+            receipt,
+            digest,
+            receipt_path,
+            base_has_v3=True,
+        )
+
+        messages = "\n".join(message for _, message in issues)
+        self.assertIn("revision binding does not match its contract version", messages)
+        self.assertIn("runtime-input schema does not match its contract version", messages)
+
     def test_generated_kag_family_rejects_a_digest_only_receipt(self) -> None:
         manifest = json.loads(
             (ROOT / ".agents/agent-surface.manifest.json").read_text(encoding="utf-8")
