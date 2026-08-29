@@ -676,6 +676,69 @@ class AgentSurfaceTests(unittest.TestCase):
         self.assertIn("revision binding does not match its contract version", messages)
         self.assertIn("runtime-input schema does not match its contract version", messages)
 
+    def test_current_receipt_rejects_malformed_candidate_without_aborting(self) -> None:
+        family_manifest, receipt, digest, receipt_path = self._current_receipt_case()
+        receipt["candidate_identity"] = None
+
+        issues = validator.budget_receipt_contract_issues(
+            ROOT,
+            family_manifest,
+            receipt,
+            digest,
+            receipt_path,
+            base_has_v3=True,
+        )
+
+        self.assertIn(
+            (
+                receipt_path.relative_to(ROOT).as_posix(),
+                "budget receipt field candidate_identity must be an object",
+            ),
+            issues,
+        )
+
+    def test_current_receipt_rejects_non_string_producer_contract_version(self) -> None:
+        family_manifest, receipt, digest, receipt_path = self._current_receipt_case()
+        receipt["producer_identity"]["contract_version"] = []
+
+        issues = validator.budget_receipt_contract_issues(
+            ROOT,
+            family_manifest,
+            receipt,
+            digest,
+            receipt_path,
+            base_has_v3=True,
+        )
+
+        self.assertIn(
+            (
+                receipt_path.relative_to(ROOT).as_posix(),
+                "budget receipt producer identity contract is unsupported",
+            ),
+            issues,
+        )
+
+    def test_current_receipt_recomputes_producer_identity_digest(self) -> None:
+        family_manifest, receipt, digest, receipt_path = self._current_receipt_case()
+        receipt["producer_identity"]["identity_digest"] = "0" * 64
+
+        issues = validator.budget_receipt_contract_issues(
+            ROOT,
+            family_manifest,
+            receipt,
+            digest,
+            receipt_path,
+            base_has_v3=True,
+        )
+
+        self.assertIn(
+            (
+                receipt_path.relative_to(ROOT).as_posix(),
+                "budget receipt producer identity digest does not match its identity material",
+            ),
+            issues,
+        )
+
     def test_generated_kag_family_rejects_a_digest_only_receipt(self) -> None:
         manifest = json.loads(
             (ROOT / ".agents/agent-surface.manifest.json").read_text(encoding="utf-8")

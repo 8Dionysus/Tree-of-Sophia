@@ -339,6 +339,18 @@ def _v2_digest_issue(label: str, field: str, value: object, *, prefixed: bool = 
     return None
 
 
+def _v2_canonical_digest(value: object) -> str:
+    """Match aoa-kag's canonical JSON digest for identity material."""
+    return hashlib.sha256(
+        json.dumps(
+            value,
+            ensure_ascii=False,
+            sort_keys=True,
+            separators=(",", ":"),
+        ).encode("utf-8")
+    ).hexdigest()
+
+
 def _v2_object_shape_issues(
     label: str,
     value: object,
@@ -477,6 +489,7 @@ def v2_budget_receipt_identity_issues(
 
     label = _relative_label(root, receipt_path)
     issues: list[Issue] = []
+    base_ref = receipt.get("base_ref")
     candidate = receipt.get("candidate_identity")
     issues.extend(
         _v2_object_shape_issues(
@@ -556,7 +569,12 @@ def v2_budget_receipt_identity_issues(
     if isinstance(producer, dict):
         if producer.get("owner") != "aoa-kag":
             issues.append((label, "budget receipt producer identity owner must be aoa-kag"))
-        producer_profile = KAG_BUDGET_PRODUCER_PROFILES.get(producer.get("contract_version"))
+        contract_version = producer.get("contract_version")
+        producer_profile = (
+            KAG_BUDGET_PRODUCER_PROFILES.get(contract_version)
+            if isinstance(contract_version, str)
+            else None
+        )
         if producer_profile is None:
             issues.append((label, "budget receipt producer identity contract is unsupported"))
         elif producer.get("revision_binding") != producer_profile["revision_binding"]:
@@ -572,6 +590,25 @@ def v2_budget_receipt_identity_issues(
         else:
             for index, item in enumerate(files):
                 issues.extend(_v2_producer_file_issues(label, item, f"producer_identity.files[{index}]"))
+            expected_source_digest = _v2_canonical_digest(files)
+            if producer.get("source_digest") != expected_source_digest:
+                issues.append((label, "budget receipt producer source digest does not match its files"))
+
+        identity_material_fields = (
+            "contract_version",
+            "owner",
+            "revision_binding",
+            "source_digest",
+            "procedure_manifest",
+            "action",
+            "execution_inputs",
+        )
+        if all(field in producer for field in identity_material_fields):
+            expected_identity_digest = _v2_canonical_digest(
+                {field: producer[field] for field in identity_material_fields}
+            )
+            if producer.get("identity_digest") != expected_identity_digest:
+                issues.append((label, "budget receipt producer identity digest does not match its identity material"))
         procedure_manifest = producer.get("procedure_manifest")
         if not isinstance(procedure_manifest, dict):
             issues.append((label, "budget receipt producer identity procedure_manifest must be an object"))
