@@ -120,6 +120,23 @@ class PhilosophyAtlasProjectionTest(unittest.TestCase):
             649,
         )
 
+        gated_endpoints = [
+            node
+            for node in payload["nodes"]
+            if node["node_type"] == "candidate-endpoint"
+            and node["properties"].get("table_id") == "table-ii"
+            and node["properties"].get("review_posture") == "manual_review_required"
+        ]
+        self.assertEqual(len(gated_endpoints), 112)
+        self.assertTrue(
+            all(
+                node["properties"].get("review_reason")
+                and node["properties"].get("master_status")
+                and node["properties"].get("master_confidence")
+                for node in gated_endpoints
+            )
+        )
+
     def test_projection_exposes_graph_view_routes(self) -> None:
         payload = json.loads(PROJECTION_PATH.read_text(encoding="utf-8"))
         node_ids = {node["node_id"] for node in payload["nodes"]}

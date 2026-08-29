@@ -274,6 +274,26 @@ def table_family(header: tuple[str, ...]) -> str:
         "идентификация",
     }:
         return "dossier_identity_metadata" if normalized[0] == "поле" else "dossier_identity_metadata_alias"
+    if len(normalized) == 6 and normalized == (
+        "корпус / текст",
+        "дата / слой",
+        "язык",
+        "жанр",
+        "сохранность",
+        "почему важен для tos",
+    ):
+        return "corpora_texts_artifacts"
+    if (
+        len(normalized) == 5
+        and normalized[0] in {"фигура / тип авторства", "фигура / тип"}
+        and normalized[1:3] == ("период", "роль")
+        and (
+            normalized[3] == "связанные тексты"
+            or normalized[3].startswith("связанные тексты / ")
+        )
+        and normalized[4] == "уверенность"
+    ):
+        return "figures_authorship"
     for deferred_header, family in DEFERRED_CONTEXT_FAMILIES.items():
         if normalized == tuple(normalized_header_cell(value) for value in deferred_header):
             return family

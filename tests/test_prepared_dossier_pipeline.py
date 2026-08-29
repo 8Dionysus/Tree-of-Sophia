@@ -223,6 +223,46 @@ class PreparedDossierPipelineTest(unittest.TestCase):
             "risk_control_source_needs",
         )
 
+    def test_table_ii_observed_deferred_headers_keep_known_families(self) -> None:
+        self.assertEqual(
+            table_family(
+                (
+                    "Корпус / текст",
+                    "Дата / слой",
+                    "Язык",
+                    "Жанр",
+                    "Сохранность",
+                    "Почему важен для ToS",
+                )
+            ),
+            "corpora_texts_artifacts",
+        )
+        for author_header, linked_texts_header in (
+            ("Фигура / тип авторства", "Связанные тексты / линии"),
+            ("Фигура / тип авторства", "Связанные тексты / практики"),
+            ("Фигура / тип авторства", "Связанные тексты / процессы"),
+            ("Фигура / тип", "Связанные тексты / режимы"),
+            ("Фигура / тип", "Связанные тексты/проекты"),
+        ):
+            self.assertEqual(
+                table_family(
+                    (
+                        author_header,
+                        "Период",
+                        "Роль",
+                        linked_texts_header,
+                        "Уверенность",
+                    )
+                ),
+                "figures_authorship",
+            )
+
+        coverage = json.loads(TABLE_II_COVERAGE_PATH.read_text(encoding="utf-8"))
+        family_counts = coverage["summary"]["family_row_counts"]
+        self.assertEqual(family_counts["corpora_texts_artifacts"], 693)
+        self.assertEqual(family_counts["figures_authorship"], 579)
+        self.assertEqual(family_counts["other_context"], 365)
+
     def test_table_ii_quarantine_emits_no_semantic_output_and_b_rows_need_review(self) -> None:
         index_rows = [json.loads(line) for line in DOSSIER_INDEX_PATH.read_text(encoding="utf-8").splitlines() if line]
         node_rows = [json.loads(line) for line in TABLE_II_NODES_PATH.read_text(encoding="utf-8").splitlines() if line]

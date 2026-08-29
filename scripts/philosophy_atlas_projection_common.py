@@ -476,6 +476,12 @@ def build_payload() -> dict[str, Any]:
                     branch_path=relation.get("branch_path"),
                     endpoint_role="source",
                     canon_status="pre-canon",
+                    table_id=relation.get("table_id"),
+                    route_kind=relation.get("route_kind"),
+                    review_posture=relation.get("review_posture"),
+                    review_reason=relation.get("review_reason"),
+                    master_status=relation.get("master_status"),
+                    master_confidence=relation.get("master_confidence"),
                 )
         if isinstance(target_candidate_id, str) and target_candidate_id:
             to_id = candidate_node_ref(target_candidate_id)
@@ -493,6 +499,12 @@ def build_payload() -> dict[str, Any]:
                     branch_path=relation.get("branch_path"),
                     endpoint_role="target",
                     canon_status="pre-canon",
+                    table_id=relation.get("table_id"),
+                    route_kind=relation.get("route_kind"),
+                    review_posture=relation.get("review_posture"),
+                    review_reason=relation.get("review_reason"),
+                    master_status=relation.get("master_status"),
+                    master_confidence=relation.get("master_confidence"),
                 )
         add_edge(
             edges,
