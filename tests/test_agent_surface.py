@@ -907,6 +907,89 @@ class AgentSurfaceTests(unittest.TestCase):
                 issues,
             )
 
+    def test_current_receipt_requires_declared_procedure_files_in_inventory(self) -> None:
+        family_manifest, receipt, digest, receipt_path = self._current_receipt_case()
+        producer = receipt["producer_identity"]
+        producer["files"] = [
+            item
+            for item in producer["files"]
+            if item["path"] != "scripts/generation/common.py"
+        ]
+        producer["source_digest"] = validator._v2_canonical_digest(producer["files"])
+        identity_material_fields = (
+            "contract_version",
+            "owner",
+            "revision_binding",
+            "source_digest",
+            "procedure_manifest",
+            "action",
+            "execution_inputs",
+        )
+        producer["identity_digest"] = validator._v2_canonical_digest(
+            {field: producer[field] for field in identity_material_fields}
+        )
+
+        issues = validator.budget_receipt_contract_issues(
+            ROOT,
+            family_manifest,
+            receipt,
+            digest,
+            receipt_path,
+            base_has_v3=True,
+        )
+        label = receipt_path.relative_to(ROOT).as_posix()
+        self.assertTrue(
+            any(
+                issue_label == label
+                and message.startswith(
+                    "budget receipt producer file inventory does not cover the declared procedure exactly"
+                )
+                for issue_label, message in issues
+            )
+        )
+
+    def test_current_receipt_rejects_control_characters_in_producer_paths(self) -> None:
+        family_manifest, receipt, digest, receipt_path = self._current_receipt_case()
+        receipt["producer_identity"]["files"][0]["path"] = "bad\x00path"
+
+        issues = validator.budget_receipt_contract_issues(
+            ROOT,
+            family_manifest,
+            receipt,
+            digest,
+            receipt_path,
+            base_has_v3=True,
+        )
+        self.assertIn(
+            (
+                receipt_path.relative_to(ROOT).as_posix(),
+                "budget receipt field producer_identity.files[0].path must not contain control characters",
+            ),
+            issues,
+        )
+
+    def test_current_receipt_requires_canonical_procedure_manifest_path(self) -> None:
+        family_manifest, receipt, digest, receipt_path = self._current_receipt_case()
+        receipt["producer_identity"]["procedure_manifest"]["manifest_path"] = (
+            "schemas/domain-index-catalog.schema.json"
+        )
+
+        issues = validator.budget_receipt_contract_issues(
+            ROOT,
+            family_manifest,
+            receipt,
+            digest,
+            receipt_path,
+            base_has_v3=True,
+        )
+        self.assertIn(
+            (
+                receipt_path.relative_to(ROOT).as_posix(),
+                "budget receipt producer procedure manifest manifest_path must be config/repo-local-kag-budget-producer.json",
+            ),
+            issues,
+        )
+
     def test_current_receipt_requires_identity_bound_v2_schema(self) -> None:
         family_manifest, receipt, digest, receipt_path = self._current_receipt_case()
         receipt["schema_version"] = validator.KAG_BUDGET_RECEIPT_SCHEMA_VERSION

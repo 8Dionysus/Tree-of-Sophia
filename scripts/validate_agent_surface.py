@@ -173,6 +173,9 @@ KAG_BUDGET_PRODUCER_PROFILES = {
 KAG_BUDGET_CANDIDATE_ZERO_DIGEST = "0" * 64
 KAG_BUDGET_SOURCE_EPOCH_VERSION = "aoa-kag:budget-receipt-source-epoch-v1"
 KAG_BUDGET_OWNER_ROOT_VALUE = "<owner-root>"
+KAG_BUDGET_PROCEDURE_MANIFEST_PATH = "config/repo-local-kag-budget-producer.json"
+KAG_BUDGET_PROCEDURE_SCHEMA_PATH = "schemas/repo-local-kag-budget-producer-manifest.schema.json"
+KAG_BUDGET_PROCEDURE_ACTION_PATH = ".github/actions/repo-local-kag-index/action.yml"
 
 
 def activation_policy_issues(
@@ -721,6 +724,8 @@ def _v2_producer_file_issues(label: str, value: object, field: str) -> list[Issu
     path = value.get("path")
     if not isinstance(path, str) or not path or Path(path).is_absolute() or ".." in Path(path).parts:
         issues.append((label, f"budget receipt field {field}.path must be a relative path"))
+    elif any(ord(character) < 32 or ord(character) == 127 for character in path):
+        issues.append((label, f"budget receipt field {field}.path must not contain control characters"))
     digest_issue = _v2_digest_issue(label, f"{field}.content_digest", value.get("content_digest"))
     if digest_issue:
         issues.append(digest_issue)
@@ -1179,6 +1184,14 @@ def _v2_pinned_owner_file_issues(label: str, producer_files: object) -> list[Iss
         path_text = item.get("path")
         if not isinstance(path_text, str) or not path_text:
             continue
+        if any(ord(character) < 32 or ord(character) == 127 for character in path_text):
+            issues.append(
+                (
+                    label,
+                    f"budget receipt producer file {path_text!r} path contains control characters",
+                )
+            )
+            continue
         relative = Path(path_text)
         if relative.is_absolute() or ".." in relative.parts:
             continue
@@ -1230,6 +1243,117 @@ def _v2_pinned_owner_file_issues(label: str, producer_files: object) -> list[Iss
                 )
             )
     return issues
+
+
+def _v2_procedure_manifest_issues(
+    label: str,
+    procedure_manifest: object,
+) -> list[Issue]:
+    """Bind the projected procedure manifest to its canonical owner payload."""
+    if not isinstance(procedure_manifest, Mapping):
+        return []
+    issues: list[Issue] = []
+    for field, expected in (
+        ("manifest_path", KAG_BUDGET_PROCEDURE_MANIFEST_PATH),
+        ("schema_path", KAG_BUDGET_PROCEDURE_SCHEMA_PATH),
+        ("action_path", KAG_BUDGET_PROCEDURE_ACTION_PATH),
+    ):
+        if procedure_manifest.get(field) != expected:
+            issues.append(
+                (
+                    label,
+                    f"budget receipt producer procedure manifest {field} must be {expected}",
+                )
+            )
+
+    owner_root_text = os.environ.get("AOA_KAG_ROOT")
+    revision = os.environ.get("AOA_KAG_ACTION_REVISION") or os.environ.get("AOA_KAG_REVISION")
+    if not owner_root_text or not isinstance(revision, str) or not re.fullmatch(r"[0-9a-f]{40,64}", revision):
+        return issues
+    owner_root = Path(owner_root_text)
+    if not owner_root.is_dir():
+        issues.append((label, "budget receipt procedure manifest cannot access the pinned aoa-kag checkout"))
+        return issues
+    source = subprocess.run(
+        ("git", "show", f"{revision}:{KAG_BUDGET_PROCEDURE_MANIFEST_PATH}"),
+        cwd=owner_root,
+        check=False,
+        capture_output=True,
+    )
+    if source.returncode != 0:
+        issues.append((label, "budget receipt procedure manifest is missing from the pinned aoa-kag revision"))
+        return issues
+    raw = source.stdout
+    try:
+        payload = json.loads(raw.decode("utf-8"))
+    except (UnicodeDecodeError, json.JSONDecodeError):
+        issues.append((label, "budget receipt procedure manifest cannot be decoded from the pinned aoa-kag revision"))
+        return issues
+    if not isinstance(payload, Mapping):
+        issues.append((label, "budget receipt procedure manifest payload must be an object"))
+        return issues
+    if procedure_manifest.get("manifest_digest") != hashlib.sha256(raw).hexdigest():
+        issues.append((label, "budget receipt producer procedure manifest digest does not match pinned owner payload"))
+    for field in (
+        "closure_mode",
+        "dynamic_import_policy",
+        "python_entrypoints",
+        "python_import_closure",
+        "schema_inputs",
+        "action_inputs",
+        "environment",
+        "dependencies",
+    ):
+        if procedure_manifest.get(field) != payload.get(field):
+            issues.append((label, f"budget receipt producer procedure manifest {field} does not match pinned owner payload"))
+    return issues
+
+
+def _v2_producer_file_inventory_issues(
+    label: str,
+    producer_files: object,
+    procedure_manifest: object,
+) -> list[Issue]:
+    """Require the producer inventory to cover the declared procedure exactly."""
+    if not isinstance(producer_files, list) or not isinstance(procedure_manifest, Mapping):
+        return []
+    declared_paths: set[str] = set()
+    for field in (
+        "python_entrypoints",
+        "python_import_closure",
+        "schema_inputs",
+    ):
+        values = procedure_manifest.get(field)
+        if isinstance(values, list):
+            declared_paths.update(value for value in values if isinstance(value, str))
+    for field in ("manifest_path", "schema_path", "action_path"):
+        value = procedure_manifest.get(field)
+        if isinstance(value, str):
+            declared_paths.add(value)
+    actual_paths = [
+        item.get("path")
+        for item in producer_files
+        if isinstance(item, Mapping) and isinstance(item.get("path"), str)
+    ]
+    actual_set = set(actual_paths)
+    missing = sorted(declared_paths - actual_set)
+    extra = sorted(actual_set - declared_paths)
+    if missing or extra or len(actual_paths) != len(actual_set):
+        details: list[str] = []
+        if missing:
+            details.append("missing=" + ",".join(missing))
+        if extra:
+            details.append("extra=" + ",".join(extra))
+        if len(actual_paths) != len(actual_set):
+            details.append("duplicate=present")
+        return [
+            (
+                label,
+                "budget receipt producer file inventory does not cover the declared procedure exactly"
+                + (f" ({'; '.join(details)})" if details else ""),
+            )
+        ]
+    return []
 
 
 def v2_budget_receipt_identity_issues(
@@ -1484,6 +1608,8 @@ def v2_budget_receipt_identity_issues(
                         )
                     )
 
+        issues.extend(_v2_procedure_manifest_issues(label, procedure_manifest))
+        issues.extend(_v2_producer_file_inventory_issues(label, files, procedure_manifest))
         execution = producer.get("execution_inputs")
         execution_fields = {
             "schema_version",
