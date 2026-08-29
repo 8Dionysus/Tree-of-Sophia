@@ -1256,7 +1256,7 @@ class AgentSurfaceTests(unittest.TestCase):
             issues,
         )
 
-    def test_current_receipt_binds_jobs_input_to_command_target(self) -> None:
+    def test_current_receipt_rejects_scheduler_jobs_in_producer_identity(self) -> None:
         family_manifest, receipt, digest, receipt_path = self._current_receipt_case()
         receipt["producer_identity"]["execution_inputs"]["command_targets"]["jobs"] = "3"
 
@@ -1285,7 +1285,7 @@ class AgentSurfaceTests(unittest.TestCase):
         self.assertIn(
             (
                 receipt_path.relative_to(ROOT).as_posix(),
-                "budget receipt producer action input jobs value_digest does not match command target jobs",
+                "budget receipt field producer_identity.execution_inputs.command_targets has unexpected jobs",
             ),
             issues,
         )

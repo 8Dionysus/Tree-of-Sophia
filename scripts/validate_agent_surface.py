@@ -927,37 +927,6 @@ def _v2_runtime_interpreter_issues(
     return issues
 
 
-def _v2_jobs_input_issues(
-    label: str,
-    value: object,
-    field: str,
-    expected_jobs: object,
-) -> list[Issue]:
-    """Bind the hashed jobs input to the bounded command target."""
-    expected_fields = {"state", "kind", "value_digest", "bytes"}
-    issues = _v2_object_shape_issues(label, value, expected_fields, field)
-    if not isinstance(value, Mapping):
-        return issues
-    if value.get("state") != "set":
-        issues.append((label, f"budget receipt producer action input jobs state must be 'set'"))
-    if value.get("kind") != "bounded-integer":
-        issues.append((label, "budget receipt producer action input jobs kind must be 'bounded-integer'"))
-    digest_issue = _v2_digest_issue(label, f"{field}.value_digest", value.get("value_digest"))
-    if digest_issue:
-        issues.append(digest_issue)
-    if not isinstance(expected_jobs, str) or not re.fullmatch(r"[1-3]", expected_jobs):
-        issues.append((label, "budget receipt producer command target jobs must be a bounded integer in [1, 3]"))
-    else:
-        expected_digest = hashlib.sha256(expected_jobs.encode("utf-8")).hexdigest()
-        if value.get("value_digest") != expected_digest:
-            issues.append((label, "budget receipt producer action input jobs value_digest does not match command target jobs"))
-        if value.get("bytes") != len(expected_jobs.encode("utf-8")):
-            issues.append((label, "budget receipt producer action input jobs bytes do not match command target jobs"))
-    if not _is_integer(value.get("bytes")) or value["bytes"] < 0:
-        issues.append((label, f"budget receipt field {field}.bytes must be a non-negative integer"))
-    return issues
-
-
 def _v2_canonical_digest(value: object) -> str:
     """Match aoa-kag's canonical JSON digest for identity material."""
     return hashlib.sha256(
@@ -1965,7 +1934,7 @@ def v2_budget_receipt_identity_issues(
                 _v2_object_shape_issues(
                     label,
                     action_inputs,
-                    {"repo-root", "output", "history-ref", "event-history-ref", "jobs"},
+                    {"repo-root", "output", "history-ref", "event-history-ref"},
                     "producer_identity.execution_inputs.action_inputs",
                 )
             )
@@ -2013,22 +1982,10 @@ def v2_budget_receipt_identity_issues(
                         "family_mode",
                         "artifact_root",
                         "externalized",
-                        "jobs",
                     },
                     "producer_identity.execution_inputs.command_targets",
                 )
             )
-            if isinstance(action_inputs, dict):
-                issues.extend(
-                    _v2_jobs_input_issues(
-                        label,
-                        action_inputs.get("jobs"),
-                        "producer_identity.execution_inputs.action_inputs.jobs",
-                        command_targets.get("jobs")
-                        if isinstance(command_targets, dict)
-                        else None,
-                    )
-                )
             if isinstance(command_targets, dict):
                 issues.extend(
                     _v2_repo_root_target_issues(
@@ -2043,15 +2000,6 @@ def v2_budget_receipt_identity_issues(
                     issues.append((label, "budget receipt producer command target artifact_root must be null for portable family"))
                 if command_targets.get("externalized") is not False:
                     issues.append((label, "budget receipt producer command target externalized must be false for portable family"))
-                if not isinstance(command_targets.get("jobs"), str) or not re.fullmatch(
-                    r"[1-3]", command_targets["jobs"]
-                ):
-                    issues.append(
-                        (
-                            label,
-                            "budget receipt producer command target jobs must be a bounded integer in [1, 3]",
-                        )
-                    )
                 if isinstance(action_inputs, dict):
                     repo_root_input = action_inputs.get("repo-root")
                     repo_root_target = command_targets.get("repo_root")
