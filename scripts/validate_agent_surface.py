@@ -649,6 +649,17 @@ def _v2_runtime_dependency_issues(
         if state == "available" and (not isinstance(resolved_version, str) or not resolved_version):
             issues.append((label, f"budget receipt available runtime dependency {name} must keep resolved_version"))
         if (
+            isinstance(state, str)
+            and state in {"declared", "unavailable"}
+            and resolved_version is not None
+        ):
+            issues.append(
+                (
+                    label,
+                    f"budget receipt {state} runtime dependency {name} must keep resolved_version null",
+                )
+            )
+        if (
             isinstance(name, str)
             and name != "python"
             and declaration is not None
