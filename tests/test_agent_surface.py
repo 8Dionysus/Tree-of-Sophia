@@ -933,6 +933,37 @@ class AgentSurfaceTests(unittest.TestCase):
             issues,
         )
 
+    def test_current_receipt_recomputes_runtime_dependency_digests(self) -> None:
+        family_manifest, receipt, digest, receipt_path = self._current_receipt_case()
+        dependency = receipt["producer_identity"]["execution_inputs"]["dependencies"][1]
+        dependency["path_digest"] = "0" * 64
+        dependency["artifact_digest"] = "f" * 64
+
+        issues = validator.budget_receipt_contract_issues(
+            ROOT,
+            family_manifest,
+            receipt,
+            digest,
+            receipt_path,
+            base_has_v3=True,
+        )
+
+        label = receipt_path.relative_to(ROOT).as_posix()
+        self.assertIn(
+            (
+                label,
+                "budget receipt runtime dependency PyYAML path_digest does not match the approved dependency contract",
+            ),
+            issues,
+        )
+        self.assertIn(
+            (
+                label,
+                "budget receipt runtime dependency PyYAML artifact_digest does not match the approved dependency contract",
+            ),
+            issues,
+        )
+
     def test_current_receipt_binds_unset_environment_to_sentinel(self) -> None:
         family_manifest, receipt, digest, receipt_path = self._current_receipt_case()
         environment = receipt["producer_identity"]["execution_inputs"]["environment"][0]

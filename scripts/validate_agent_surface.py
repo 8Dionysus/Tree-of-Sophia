@@ -175,6 +175,7 @@ KAG_BUDGET_SOURCE_EPOCH_VERSION = "aoa-kag:budget-receipt-source-epoch-v1"
 KAG_BUDGET_OWNER_ROOT_VALUE = "<owner-root>"
 KAG_BUDGET_UNSET_ENVIRONMENT_VALUE = "<unset>"
 KAG_BUDGET_APPROVED_PYTHON_INTERPRETER_PATH = "<approved-python-interpreter>"
+KAG_BUDGET_APPROVED_DEPENDENCY_ROOT = "<approved-dependency-root>"
 KAG_BUDGET_RUNTIME_CONTRACT_PREFIX = "aoa-kag:budget-producer-runtime-contract:"
 KAG_BUDGET_PROCEDURE_MANIFEST_PATH = "config/repo-local-kag-budget-producer.json"
 KAG_BUDGET_PROCEDURE_SCHEMA_PATH = "schemas/repo-local-kag-budget-producer-manifest.schema.json"
@@ -654,6 +655,38 @@ def _v2_runtime_dependency_issues(
                     issues.append(digest_issue)
             elif state == "available":
                 issues.append((label, f"budget receipt available runtime dependency {name} must keep {name_field}"))
+        if (
+            isinstance(name, str)
+            and isinstance(item.get("declared_version"), str)
+            and isinstance(state, str)
+            and state in {"available", "declared"}
+        ):
+            expected_path_digest = hashlib.sha256(
+                f"{KAG_BUDGET_APPROVED_DEPENDENCY_ROOT}/{name}".encode("utf-8")
+            ).hexdigest()
+            if item.get("path_digest") != expected_path_digest:
+                issues.append(
+                    (
+                        label,
+                        f"budget receipt runtime dependency {name} path_digest does not match the approved dependency contract",
+                    )
+                )
+            expected_artifact_digest = hashlib.sha256(
+                (
+                    KAG_BUDGET_RUNTIME_CONTRACT_PREFIX
+                    + "dependency:"
+                    + name
+                    + ":"
+                    + item["declared_version"]
+                ).encode("utf-8")
+            ).hexdigest()
+            if item.get("artifact_digest") != expected_artifact_digest:
+                issues.append(
+                    (
+                        label,
+                        f"budget receipt runtime dependency {name} artifact_digest does not match the approved dependency contract",
+                    )
+                )
         for name_field in ("artifact_bytes", "artifact_files"):
             if not _is_integer(item.get(name_field)) or item[name_field] < 0:
                 issues.append((label, f"budget receipt field {field}.{name_field} must be a non-negative integer"))
