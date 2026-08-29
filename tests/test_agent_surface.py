@@ -932,6 +932,37 @@ class AgentSurfaceTests(unittest.TestCase):
             issues,
         )
 
+    def test_current_receipt_binds_unset_environment_to_sentinel(self) -> None:
+        family_manifest, receipt, digest, receipt_path = self._current_receipt_case()
+        environment = receipt["producer_identity"]["execution_inputs"]["environment"][0]
+        environment["value_digest"] = "0" * 64
+        environment["bytes"] = 999
+
+        issues = validator.budget_receipt_contract_issues(
+            ROOT,
+            family_manifest,
+            receipt,
+            digest,
+            receipt_path,
+            base_has_v3=True,
+        )
+
+        label = receipt_path.relative_to(ROOT).as_posix()
+        self.assertIn(
+            (
+                label,
+                "budget receipt unset runtime environment AOA_KAG_FORCE_COLD_SCHEMA_COMPILATION value_digest does not match the unset sentinel",
+            ),
+            issues,
+        )
+        self.assertIn(
+            (
+                label,
+                "budget receipt unset runtime environment AOA_KAG_FORCE_COLD_SCHEMA_COMPILATION bytes must be zero",
+            ),
+            issues,
+        )
+
     def test_current_receipt_binds_jobs_input_to_command_target(self) -> None:
         family_manifest, receipt, digest, receipt_path = self._current_receipt_case()
         receipt["producer_identity"]["execution_inputs"]["command_targets"]["jobs"] = "3"

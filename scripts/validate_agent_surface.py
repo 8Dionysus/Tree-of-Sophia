@@ -173,6 +173,7 @@ KAG_BUDGET_PRODUCER_PROFILES = {
 KAG_BUDGET_CANDIDATE_ZERO_DIGEST = "0" * 64
 KAG_BUDGET_SOURCE_EPOCH_VERSION = "aoa-kag:budget-receipt-source-epoch-v1"
 KAG_BUDGET_OWNER_ROOT_VALUE = "<owner-root>"
+KAG_BUDGET_UNSET_ENVIRONMENT_VALUE = "<unset>"
 KAG_BUDGET_PROCEDURE_MANIFEST_PATH = "config/repo-local-kag-budget-producer.json"
 KAG_BUDGET_PROCEDURE_SCHEMA_PATH = "schemas/repo-local-kag-budget-producer-manifest.schema.json"
 KAG_BUDGET_PROCEDURE_ACTION_PATH = ".github/actions/repo-local-kag-index/action.yml"
@@ -515,6 +516,24 @@ def _v2_runtime_environment_issues(
         digest_issue = _v2_digest_issue(label, f"{field}.value_digest", item.get("value_digest"))
         if digest_issue:
             issues.append(digest_issue)
+        if state == "unset":
+            expected_digest = hashlib.sha256(
+                KAG_BUDGET_UNSET_ENVIRONMENT_VALUE.encode("utf-8")
+            ).hexdigest()
+            if item.get("value_digest") != expected_digest:
+                issues.append(
+                    (
+                        label,
+                        f"budget receipt unset runtime environment {name} value_digest does not match the unset sentinel",
+                    )
+                )
+            if item.get("bytes") != 0:
+                issues.append(
+                    (
+                        label,
+                        f"budget receipt unset runtime environment {name} bytes must be zero",
+                    )
+                )
         if not _is_integer(item.get("bytes")) or item["bytes"] < 0:
             issues.append((label, f"budget receipt field {field}.bytes must be a non-negative integer"))
     if (
