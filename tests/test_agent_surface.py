@@ -999,6 +999,43 @@ class AgentSurfaceTests(unittest.TestCase):
             issues,
         )
 
+    def test_current_receipt_binds_dependency_artifact_measurements(self) -> None:
+        for field, invalid in (("artifact_bytes", 0), ("artifact_files", 0)):
+            with self.subTest(field=field):
+                family_manifest, receipt, digest, receipt_path = self._current_receipt_case()
+                dependency = receipt["producer_identity"]["execution_inputs"]["dependencies"][1]
+                dependency[field] = invalid
+                producer = receipt["producer_identity"]
+                identity_material_fields = (
+                    "contract_version",
+                    "owner",
+                    "revision_binding",
+                    "source_digest",
+                    "procedure_manifest",
+                    "action",
+                    "execution_inputs",
+                )
+                producer["identity_digest"] = validator._v2_canonical_digest(
+                    {name: producer[name] for name in identity_material_fields}
+                )
+
+                issues = validator.budget_receipt_contract_issues(
+                    ROOT,
+                    family_manifest,
+                    receipt,
+                    digest,
+                    receipt_path,
+                    base_has_v3=True,
+                )
+
+                self.assertIn(
+                    (
+                        receipt_path.relative_to(ROOT).as_posix(),
+                        f"budget receipt runtime dependency PyYAML {field} does not match the approved dependency contract",
+                    ),
+                    issues,
+                )
+
     def test_current_receipt_binds_unset_environment_to_sentinel(self) -> None:
         family_manifest, receipt, digest, receipt_path = self._current_receipt_case()
         environment = receipt["producer_identity"]["execution_inputs"]["environment"][0]

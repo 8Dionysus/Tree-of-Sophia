@@ -720,6 +720,20 @@ def _v2_runtime_dependency_issues(
                         f"budget receipt runtime dependency {name} artifact_digest does not match the approved dependency contract",
                     )
                 )
+            if item.get("artifact_bytes") != len(expected_artifact_digest):
+                issues.append(
+                    (
+                        label,
+                        f"budget receipt runtime dependency {name} artifact_bytes does not match the approved dependency contract",
+                    )
+                )
+            if item.get("artifact_files") != 1:
+                issues.append(
+                    (
+                        label,
+                        f"budget receipt runtime dependency {name} artifact_files does not match the approved dependency contract",
+                    )
+                )
         for name_field in ("artifact_bytes", "artifact_files"):
             if not _is_integer(item.get(name_field)) or item[name_field] < 0:
                 issues.append((label, f"budget receipt field {field}.{name_field} must be a non-negative integer"))
