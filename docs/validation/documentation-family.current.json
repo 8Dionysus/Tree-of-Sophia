@@ -36,7 +36,7 @@
     "excluded_generated_carrier_rules": 3,
     "excluded_tracked_path_count": 373,
     "human_scope": {
-      "bytes": 4286275,
+      "bytes": 4287039,
       "count": 781,
       "excluded_skill_launch_metadata": 25,
       "family_counts": {
@@ -111,12 +111,12 @@
           "lines": 47
         },
         "tos": {
-          "bytes": 3200000,
+          "bytes": 3200764,
           "count": 410,
-          "lines": 54981
+          "lines": 54992
         }
       },
-      "lines": 76037
+      "lines": 76048
     },
     "surface_kind_counts": {
       "executable": 155,
@@ -170,7 +170,7 @@
         "human": 410,
         "structured": 1325
       },
-      "tracked_surface_bytes": 106790305,
+      "tracked_surface_bytes": 106786229,
       "tracked_surface_count": 1735
     },
     {
@@ -224,7 +224,7 @@
         "executable": 88,
         "human": 1
       },
-      "tracked_surface_bytes": 2835613,
+      "tracked_surface_bytes": 2839841,
       "tracked_surface_count": 89
     },
     {
@@ -234,7 +234,7 @@
         "human": 1,
         "structured": 1
       },
-      "tracked_surface_bytes": 1048102,
+      "tracked_surface_bytes": 1052550,
       "tracked_surface_count": 48
     },
     {
@@ -269,7 +269,7 @@
   "source_map": "docs/validation/documentation_family_map.json",
   "source_map_sha256": "9140a03a48109e6a9f35f3ca7dbf82058d96c3961e9e77bc31a743fb8814b13b",
   "tracked_source": "git ls-files -z",
-  "tracked_surface_digest": "4bc63291b92e518d21336ec152559eccbe610d0cd28862f44b1d00266a9b5c74",
+  "tracked_surface_digest": "f8eb8d2f1bb610118a7a53d52e9c4240498a43183d6dc25a900adbf40076e0eb",
   "tracked_surfaces": [
     {
       "bytes": 1408,
@@ -292,7 +292,7 @@
       "currentness": "tracked_source_snapshot",
       "family_id": "agents-other",
       "path": ".agents/agent-surface.current.json",
-      "sha256": "c4cd1c963e2e3a9a6424997b7259f8b99f10480cea35ae2fb430a379533c8bca",
+      "sha256": "647ef292a6f77f9e65803c0371efa78ce7dc085aaa6d3e75e2074a2d26262793",
       "surface_kind": "structured"
     },
     {
@@ -308,7 +308,7 @@
       "currentness": "tracked_source_snapshot",
       "family_id": "agents-other",
       "path": ".agents/agents-route.current.json",
-      "sha256": "037186a7b0059584fed9a91ee987a9d3f89e4c7ee8d9bcfe03943a076fa59425",
+      "sha256": "28a2610345b8b44215edf7746adee492899f3524f66cb5d9ff807b8b2fb237f1",
       "surface_kind": "structured"
     },
     {
@@ -3472,19 +3472,19 @@
       "surface_kind": "structured"
     },
     {
-      "bytes": 9841328,
+      "bytes": 9840211,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/derived-exports/philosophy_atlas_projection.min.json",
-      "sha256": "06e4a0a1942136d6f79942292fdce366446a3ef3423c8a02c0dacdd7d4f20b8e",
+      "sha256": "152de5fe0561a6232a47d0ba1ca4cb12a5201ba92bfd4078cbd91470eb9bdfac",
       "surface_kind": "structured"
     },
     {
-      "bytes": 59660051,
+      "bytes": 59656328,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/derived-exports/philosophy_graph_projection.min.json",
-      "sha256": "574e5cc8100b99267d9a6413d533e3260cfb20a13e9106d20d80799449555b19",
+      "sha256": "a7c59b73281b0a6d69cf4455a6ae2d6d2671b2388dedf41d7f91fe2a3d8a4a0f",
       "surface_kind": "structured"
     },
     {
@@ -9000,11 +9000,11 @@
       "surface_kind": "human"
     },
     {
-      "bytes": 6892,
+      "bytes": 7656,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/philosophy/graph-workbench/PLANTING_INTERFACE.md",
-      "sha256": "26025372312f36b230743a0a1beeb91a85815953ea73f9bc88136d365997b94a",
+      "sha256": "d2ef442449ee4864f13670a6c3665135bbfa170155dfe53dea6ec91c1c7461c3",
       "surface_kind": "human"
     },
     {
@@ -9164,7 +9164,7 @@
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/philosophy/graph-workbench/review-packets/table-i-post-planting-audit.json",
-      "sha256": "93cbbeb5d92e48462ff7badec335c745a0d13f4a4d0c6d8f4828760a993af53c",
+      "sha256": "0b6ec8824131eefc05c703e578e7ad7130c46a56ac79171c61f2c3319cc928ae",
       "surface_kind": "structured"
     },
     {
@@ -9172,7 +9172,7 @@
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/philosophy/graph-workbench/review-packets/table-i-post-planting-audit.md",
-      "sha256": "104fe24e19a7dc9c179e801e523ae5ddf65c09a11306e3a25e2d3205b4940c09",
+      "sha256": "846c32b0dab272afb4be9d87cbcfef839e052d70a2d4aeee9aca1a22eebbd1f5",
       "surface_kind": "human"
     },
     {
@@ -18272,11 +18272,11 @@
       "surface_kind": "executable"
     },
     {
-      "bytes": 29002,
+      "bytes": 30740,
       "currentness": "tracked_source_snapshot",
       "family_id": "scripts",
       "path": "scripts/philosophy_atlas_projection_common.py",
-      "sha256": "5555d3b0110c1b83b3ebbf83c6b273fb4aa49815fee7ab5a52d388ff8e6efb46",
+      "sha256": "3188c824276d61bc47fdd62c17541a87d900990ddf2c3a1bc0582c8e8bd2dcb1",
       "surface_kind": "executable"
     },
     {
@@ -18312,11 +18312,11 @@
       "surface_kind": "executable"
     },
     {
-      "bytes": 8893,
+      "bytes": 11383,
       "currentness": "tracked_source_snapshot",
       "family_id": "scripts",
       "path": "scripts/plant_prepared_dossiers.py",
-      "sha256": "c6d576e671ac73416e171a28cb3a27ad400258391d525ac1983ab111d75b9684",
+      "sha256": "2fe3c9f8ae9656b57c46144bb27ca232455c207bcbec80f3fd3fb0eeb7c81766",
       "surface_kind": "executable"
     },
     {
@@ -18840,11 +18840,11 @@
       "surface_kind": "executable"
     },
     {
-      "bytes": 13996,
+      "bytes": 14904,
       "currentness": "tracked_source_snapshot",
       "family_id": "tests",
       "path": "tests/test_philosophy_atlas_projection.py",
-      "sha256": "16294b9716a4c9e74352b44ce05437e3109e5930715becdaaf552b66458a53ad",
+      "sha256": "d11d50daa8acc0bb42112feda3a58a8d58c9ae1ad71dac7e4fc151bdc9cb59f3",
       "surface_kind": "executable"
     },
     {
@@ -18888,11 +18888,11 @@
       "surface_kind": "executable"
     },
     {
-      "bytes": 26737,
+      "bytes": 30277,
       "currentness": "tracked_source_snapshot",
       "family_id": "tests",
       "path": "tests/test_prepared_dossier_pipeline.py",
-      "sha256": "6c0a647b142605638f27528da1911a378494e19b5448fb94bda4e165a81e4508",
+      "sha256": "4d7a6895cf8a3b2aac792c6f5bdc7e41222924a1c9c9524e592a1c5d110df33a",
       "surface_kind": "executable"
     },
     {
