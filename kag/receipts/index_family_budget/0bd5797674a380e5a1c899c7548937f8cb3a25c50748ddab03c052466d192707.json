@@ -9,8 +9,8 @@
     "contract_version": "aoa-kag:budget-receipt-candidate-identity-v2",
     "excluded_path": "kag/receipts/index_family_budget/0bd5797674a380e5a1c899c7548937f8cb3a25c50748ddab03c052466d192707.json",
     "family_digest": "0bd5797674a380e5a1c899c7548937f8cb3a25c50748ddab03c052466d192707",
-    "file_count": 3619,
-    "seal": "cbad9646a10e18ebf67ab9682cb7385fb3bb545a6520b8c517c9fe7851863305",
+    "file_count": 3616,
+    "seal": "03c701d09e1407be9b53593650d20d51c3273b35eb60957b3a8a6f8fa723720c",
     "source_epoch": "sha256:69932fa959731c665fd0cd29f65109bcc9bcd156199223f3d59d209a6a702158",
     "source_snapshot": "sha256:ed579a1377024425c8530fea84b70b050c5add66dc4e8efea76bd70e92d0501c"
   },
@@ -853,7 +853,7 @@
     "revision_binding": "content-addressed-procedure-import-closure-portable-runtime-contract-and-descriptor-io-v1",
     "source_digest": "b6ab389723d813c22d82206c098e85621be70436937e3f36188761b6edd7a98b"
   },
-  "reason": "rebind decision identity closure to current pinned KAG action",
+  "reason": "rebind current decision identity candidate",
   "repo": "Tree-of-Sophia",
   "schema_version": "aoa-repo-local-kag-budget-receipt-v2",
   "scope": "generated_delta_and_tracked_size",
