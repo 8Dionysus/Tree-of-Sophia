@@ -339,6 +339,44 @@ def _v2_digest_issue(label: str, field: str, value: object, *, prefixed: bool = 
     return None
 
 
+def _v2_action_ref_issues(
+    label: str,
+    value: object,
+    field: str,
+    base_ref: str,
+) -> list[Issue]:
+    """Bind a producer action's hashed Git ref input to the receipt base."""
+    expected_fields = {"state", "kind", "value_digest", "bytes"}
+    issues = _v2_object_shape_issues(label, value, expected_fields, field)
+    if not isinstance(value, dict):
+        return issues
+    short_field = field.rsplit(".", 1)[-1]
+    if value.get("state") != "set":
+        issues.append((label, f"budget receipt producer action input {short_field} state must be 'set'"))
+    if value.get("kind") != "git-ref":
+        issues.append((label, f"budget receipt producer action input {short_field} kind must be 'git-ref'"))
+    digest_issue = _v2_digest_issue(label, f"{field}.value_digest", value.get("value_digest"))
+    if digest_issue:
+        issues.append(digest_issue)
+    expected_digest = hashlib.sha256(base_ref.encode("utf-8")).hexdigest()
+    if value.get("value_digest") != expected_digest:
+        issues.append(
+            (
+                label,
+                f"budget receipt producer action input {short_field} value_digest does not match receipt base_ref",
+            )
+        )
+    expected_bytes = len(base_ref.encode("utf-8"))
+    if value.get("bytes") != expected_bytes:
+        issues.append(
+            (
+                label,
+                f"budget receipt producer action input {short_field} bytes does not match receipt base_ref",
+            )
+        )
+    return issues
+
+
 def _v2_canonical_digest(value: object) -> str:
     """Match aoa-kag's canonical JSON digest for identity material."""
     return hashlib.sha256(
@@ -489,7 +527,8 @@ def v2_budget_receipt_identity_issues(
 
     label = _relative_label(root, receipt_path)
     issues: list[Issue] = []
-    base_ref = receipt.get("base_ref")
+    receipt_base_ref = receipt.get("base_ref")
+    base_ref = receipt_base_ref
     candidate = receipt.get("candidate_identity")
     issues.extend(
         _v2_object_shape_issues(
@@ -747,6 +786,16 @@ def v2_budget_receipt_identity_issues(
                     "producer_identity.execution_inputs.action_inputs",
                 )
             )
+            if isinstance(receipt_base_ref, str) and isinstance(action_inputs, dict):
+                for field in ("history-ref", "event-history-ref"):
+                    issues.extend(
+                        _v2_action_ref_issues(
+                            label,
+                            action_inputs.get(field),
+                            f"producer_identity.execution_inputs.action_inputs.{field}",
+                            receipt_base_ref,
+                        )
+                    )
             command_targets = execution.get("command_targets")
             issues.extend(
                 _v2_object_shape_issues(
@@ -766,9 +815,9 @@ def v2_budget_receipt_identity_issues(
                     "producer_identity.execution_inputs.command_targets",
                 )
             )
-            if isinstance(command_targets, dict) and isinstance(base_ref, str):
+            if isinstance(command_targets, dict) and isinstance(receipt_base_ref, str):
                 for field in ("base_ref", "history_ref", "event_history_ref"):
-                    if command_targets.get(field) != base_ref:
+                    if command_targets.get(field) != receipt_base_ref:
                         issues.append(
                             (
                                 label,
