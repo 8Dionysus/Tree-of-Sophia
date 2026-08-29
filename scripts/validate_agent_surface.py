@@ -578,6 +578,7 @@ def _v2_runtime_dependency_issues(
     label: str,
     value: object,
     procedure_manifest: object,
+    interpreter: object = None,
 ) -> list[Issue]:
     """Bind captured dependency records to the declared producer inputs."""
     if not isinstance(value, list) or not value:
@@ -692,6 +693,23 @@ def _v2_runtime_dependency_issues(
                             f"budget receipt runtime dependency {name} resolved_version does not match the current runtime",
                         )
                     )
+        if (
+            name == "python"
+            and declaration is not None
+            and state == "available"
+            and isinstance(resolved_version, str)
+            and resolved_version
+            and isinstance(interpreter, Mapping)
+            and isinstance(interpreter.get("version"), str)
+            and interpreter.get("version")
+            and resolved_version != interpreter.get("version")
+        ):
+            issues.append(
+                (
+                    label,
+                    "budget receipt runtime dependency python resolved_version does not match the captured interpreter",
+                )
+            )
         for name_field in ("path_digest", "artifact_digest"):
             digest = item.get(name_field)
             if digest is not None:
@@ -2012,6 +2030,7 @@ def v2_budget_receipt_identity_issues(
                     label,
                     execution.get("dependencies"),
                     procedure_manifest,
+                    execution.get("interpreter"),
                 )
             )
             issues.extend(

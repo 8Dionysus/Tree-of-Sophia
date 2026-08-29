@@ -1023,6 +1023,41 @@ class AgentSurfaceTests(unittest.TestCase):
             issues,
         )
 
+    def test_current_receipt_binds_python_resolution_to_captured_interpreter(self) -> None:
+        family_manifest, receipt, digest, receipt_path = self._current_receipt_case()
+        dependency = receipt["producer_identity"]["execution_inputs"]["dependencies"][0]
+        dependency["resolved_version"] = "2.7"
+        producer = receipt["producer_identity"]
+        identity_material_fields = (
+            "contract_version",
+            "owner",
+            "revision_binding",
+            "source_digest",
+            "procedure_manifest",
+            "action",
+            "execution_inputs",
+        )
+        producer["identity_digest"] = validator._v2_canonical_digest(
+            {name: producer[name] for name in identity_material_fields}
+        )
+
+        issues = validator.budget_receipt_contract_issues(
+            ROOT,
+            family_manifest,
+            receipt,
+            digest,
+            receipt_path,
+            base_has_v3=True,
+        )
+
+        self.assertIn(
+            (
+                receipt_path.relative_to(ROOT).as_posix(),
+                "budget receipt runtime dependency python resolved_version does not match the captured interpreter",
+            ),
+            issues,
+        )
+
     def test_current_receipt_binds_dependency_artifact_measurements(self) -> None:
         for field, invalid in (("artifact_bytes", 0), ("artifact_files", 0)):
             with self.subTest(field=field):
