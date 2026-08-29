@@ -60,7 +60,7 @@ not current source pins:
 | Edge | Published provider identity | Tree consumer identity | Exactness rule |
 | --- | --- | --- | --- |
 | `aoa-stats` → `Tree-of-Sophia` | `aoa-stats@v0.2.0`, commit `88ff38b1b38eef939f2c5b4541cbe8363a05fc8d` | `.github/workflows/repo-validation.yml` `AOA_STATS_REVISION` | The fetched provider `HEAD` must equal the published commit; an ancestor is not sufficient. |
-| `aoa-kag` → `Tree-of-Sophia` | `aoa-kag@v0.5.0`, commit `9150326d7a7ea1cb54714064979affc7d42c7dbd` | `8Dionysus/aoa-kag/.github/actions/repo-local-kag-index@25cd6263ae2c860c58f86cf3a0747f2070eb45ff` | Keep the published provider body and workflow action as distinct immutable identities; the current compatibility guard proves their separate ABI roles. |
+| `aoa-kag` → `Tree-of-Sophia` | `aoa-kag@v0.5.0`, commit `adb4232711aeb029cdef54efe0cc00ba35274794` | `8Dionysus/aoa-kag/.github/actions/repo-local-kag-index@25cd6263ae2c860c58f86cf3a0747f2070eb45ff` | Keep the published provider body and workflow action as distinct immutable identities; the current compatibility guard proves their separate ABI roles. |
 
 These are source and CI release identities, not claims about runtime health,
 KAG freshness, semantic acceptance, or artifact trust. A production consumer

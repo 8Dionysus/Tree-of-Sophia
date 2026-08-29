@@ -12,7 +12,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       AOA_STATS_REVISION: 88ff38b1b38eef939f2c5b4541cbe8363a05fc8d
-      AOA_KAG_REVISION: 9150326d7a7ea1cb54714064979affc7d42c7dbd
+      AOA_KAG_REVISION: adb4232711aeb029cdef54efe0cc00ba35274794
       AOA_KAG_ACTION_REVISION: 25cd6263ae2c860c58f86cf3a0747f2070eb45ff
     steps:
       - name: Checkout

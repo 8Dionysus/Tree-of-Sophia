@@ -13,7 +13,7 @@
 ## Context
 
 Tree-of-Sophia consumes the published `aoa-kag@v0.5.0` provider body at
-`9150326d7a7ea1cb54714064979affc7d42c7dbd`. Its workflow uses the separate,
+`adb4232711aeb029cdef54efe0cc00ba35274794`. Its workflow uses the separate,
 immutable repo-local KAG action identity
 `25cd6263ae2c860c58f86cf3a0747f2070eb45ff`. Those commits contain different
 executable action snapshots. Treating them as interchangeable would falsify
@@ -25,7 +25,7 @@ CI dependency rather than merely correcting the provider body.
 For the current source route, retain two explicit immutable identities:
 
 - provider body: `aoa-kag@v0.5.0` at
-  `9150326d7a7ea1cb54714064979affc7d42c7dbd`;
+  `adb4232711aeb029cdef54efe0cc00ba35274794`;
 - executable workflow action: `repo-local-kag-index` at
   `25cd6263ae2c860c58f86cf3a0747f2070eb45ff`.
 
@@ -43,7 +43,7 @@ proof, delivery, closure, owner acceptance, or human acceptance.
 
 - `git show 25cd6263ae2c860c58f86cf3a0747f2070eb45ff:.github/actions/repo-local-kag-index/action.yml`
   is the executable action source used by the workflow.
-- `git show 9150326d7a7ea1cb54714064979affc7d42c7dbd:.github/actions/repo-local-kag-index/action.yml`
+- `git show adb4232711aeb029cdef54efe0cc00ba35274794:.github/actions/repo-local-kag-index/action.yml`
   is the provider-era action source; its bytes differ from the `25cd6263` action
   and it is not substituted silently.
 - `.github/workflows/repo-validation.yml`, `docs/RELEASING.md`, and
