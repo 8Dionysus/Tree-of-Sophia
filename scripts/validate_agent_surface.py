@@ -534,6 +534,32 @@ def _v2_runtime_environment_issues(
                         f"budget receipt unset runtime environment {name} bytes must be zero",
                     )
                 )
+        elif state == "set":
+            actual_value = os.environ.get(name) if isinstance(name, str) else None
+            if actual_value is None:
+                issues.append(
+                    (
+                        label,
+                        f"budget receipt set runtime environment {name} cannot be verified against the current action environment",
+                    )
+                )
+            else:
+                actual_bytes = actual_value.encode("utf-8", errors="surrogateescape")
+                actual_digest = hashlib.sha256(actual_bytes).hexdigest()
+                if item.get("value_digest") != actual_digest:
+                    issues.append(
+                        (
+                            label,
+                            f"budget receipt set runtime environment {name} value_digest does not match the current action environment",
+                        )
+                    )
+                if item.get("bytes") != len(actual_bytes):
+                    issues.append(
+                        (
+                            label,
+                            f"budget receipt set runtime environment {name} bytes do not match the current action environment",
+                        )
+                    )
         if not _is_integer(item.get("bytes")) or item["bytes"] < 0:
             issues.append((label, f"budget receipt field {field}.bytes must be a non-negative integer"))
     if (

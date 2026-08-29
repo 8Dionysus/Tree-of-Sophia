@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 import sys
 import tempfile
 import unittest
@@ -959,6 +960,43 @@ class AgentSurfaceTests(unittest.TestCase):
             (
                 label,
                 "budget receipt unset runtime environment AOA_KAG_FORCE_COLD_SCHEMA_COMPILATION bytes must be zero",
+            ),
+            issues,
+        )
+
+    def test_current_receipt_binds_set_environment_to_action_environment(self) -> None:
+        family_manifest, receipt, digest, receipt_path = self._current_receipt_case()
+        environment = receipt["producer_identity"]["execution_inputs"]["environment"][0]
+        environment["state"] = "set"
+        environment["value_digest"] = "0" * 64
+        environment["bytes"] = 999
+
+        with mock.patch.dict(
+            os.environ,
+            {"AOA_KAG_FORCE_COLD_SCHEMA_COMPILATION": "actual-value"},
+            clear=False,
+        ):
+            issues = validator.budget_receipt_contract_issues(
+                ROOT,
+                family_manifest,
+                receipt,
+                digest,
+                receipt_path,
+                base_has_v3=True,
+            )
+
+        label = receipt_path.relative_to(ROOT).as_posix()
+        self.assertIn(
+            (
+                label,
+                "budget receipt set runtime environment AOA_KAG_FORCE_COLD_SCHEMA_COMPILATION value_digest does not match the current action environment",
+            ),
+            issues,
+        )
+        self.assertIn(
+            (
+                label,
+                "budget receipt set runtime environment AOA_KAG_FORCE_COLD_SCHEMA_COMPILATION bytes do not match the current action environment",
             ),
             issues,
         )
