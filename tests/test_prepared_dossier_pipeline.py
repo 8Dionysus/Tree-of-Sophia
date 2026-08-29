@@ -7,6 +7,7 @@ import unittest
 from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import patch
+from zipfile import BadZipFile
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
@@ -26,6 +27,7 @@ if str(SCRIPTS) not in sys.path:
 from plant_prepared_dossiers import main as planting_main  # noqa: E402
 from plant_prepared_dossiers import readiness_payload  # noqa: E402
 from plant_prepared_dossiers import table_readiness  # noqa: E402
+from plant_prepared_dossiers import validate_local_docx_contents  # noqa: E402
 import plant_table_i_prepared_dossiers as planting_pipeline  # noqa: E402
 from plant_table_i_prepared_dossiers import (  # noqa: E402
     dossier_local_node_alias,
@@ -157,6 +159,82 @@ class PreparedDossierPipelineTest(unittest.TestCase):
                 self.assertEqual(table_ii["missing_expected_master_ids"], missing)
                 self.assertEqual(table_ii["duplicate_expected_master_ids"], duplicates)
                 self.assertFalse(table_ii["package_ready_to_plant"])
+
+    def test_readiness_rejects_unexpected_master_rows(self) -> None:
+        rows = [
+            json.loads(line)
+            for line in (
+                REPO_ROOT / "ToS/philosophy/atlas/master-tables/table-i/rows.jsonl"
+            ).read_text(encoding="utf-8").splitlines()
+            if line.strip()
+        ]
+        unexpected = {**rows[-1], "row_id": "A49"}
+        expected_docx = table_readiness("table-i")["expected_dossier_ids"]
+        with (
+            patch("plant_prepared_dossiers.load_jsonl", return_value=[*rows, unexpected]),
+            patch(
+                "plant_prepared_dossiers.discover_local_docx_ids",
+                return_value={"1.1": expected_docx},
+            ),
+        ):
+            table_i = table_readiness("table-i")
+
+        self.assertEqual(table_i["unexpected_master_ids"], ["A49"])
+        self.assertFalse(table_i["master_expected_ids_unique"])
+        self.assertFalse(table_i["package_ready_to_plant"])
+
+    def test_readiness_rejects_docx_content_or_identity_validation_errors(self) -> None:
+        expected_docx = table_readiness("table-ii")["expected_dossier_ids"]
+        validation_error = {
+            "dossier_id": "T2-10",
+            "path": "2.1/T2-10_corrupt.docx",
+            "error_type": "BadZipFile",
+            "message": "File is not a zip file",
+        }
+        with (
+            patch(
+                "plant_prepared_dossiers.discover_local_docx_ids",
+                return_value={"2.1": expected_docx},
+            ),
+            patch(
+                "plant_prepared_dossiers.validate_local_docx_contents",
+                return_value=(validation_error,),
+            ),
+        ):
+            table_ii = table_readiness("table-ii")
+
+        self.assertTrue(table_ii["docx_content_validation_performed"])
+        self.assertFalse(table_ii["docx_contents_valid"])
+        self.assertEqual(table_ii["docx_validation_errors"], [validation_error])
+        self.assertFalse(table_ii["package_ready_to_plant"])
+
+    def test_docx_content_validation_reports_parser_failures(self) -> None:
+        path = planting_pipeline.DOC_ROOT / "2.1" / "ToS Deep Research_ T2-10 — corrupt.docx"
+        master_row = {"row_id": "T2-10", "table_id": "table-ii"}
+        failures = (
+            BadZipFile("File is not a zip file"),
+            ValueError("T2-10 DOCX ROW_TO_EXPAND does not match its master-table identity"),
+        )
+
+        for failure in failures:
+            with self.subTest(error_type=type(failure).__name__):
+                validate_local_docx_contents.cache_clear()
+                with (
+                    patch("plant_prepared_dossiers.discover_docx", return_value=[path]),
+                    patch("plant_prepared_dossiers.load_pipeline_jsonl", return_value=[master_row]),
+                    patch("plant_prepared_dossiers.parse_dossier", side_effect=failure),
+                ):
+                    errors = validate_local_docx_contents("table-ii")
+
+                self.assertEqual(len(errors), 1)
+                self.assertEqual(errors[0]["dossier_id"], "T2-10")
+                self.assertEqual(
+                    errors[0]["path"],
+                    "2.1/ToS Deep Research_ T2-10 — corrupt.docx",
+                )
+                self.assertEqual(errors[0]["error_type"], type(failure).__name__)
+                self.assertIn(str(failure), errors[0]["message"])
+        validate_local_docx_contents.cache_clear()
 
     def test_readiness_exposes_partial_table_ii_and_keeps_table_iii_unplanted(self) -> None:
         payload = readiness_payload()

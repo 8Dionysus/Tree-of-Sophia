@@ -232,6 +232,26 @@ def reviewed_endpoint_alias_candidate_id(
     return aliases.get(label)
 
 
+def unavailable_master_row_endpoint_id(
+    label: str,
+    unavailable_master_row_ids: set[str],
+) -> str | None:
+    for row_id in sorted(unavailable_master_row_ids, key=len, reverse=True):
+        if label == row_id:
+            return row_id
+        if label.startswith(row_id) and label[len(row_id) : len(row_id) + 1] in {
+            " ",
+            "/",
+            ":",
+            "—",
+            "–",
+            "-",
+            "(",
+        }:
+            return row_id
+    return None
+
+
 def load_schema() -> dict[str, Any]:
     return load_json(REPO_ROOT / SCHEMA_REF)
 
@@ -266,6 +286,7 @@ def build_payload() -> dict[str, Any]:
     nodes: list[dict[str, Any]] = []
     edges: list[dict[str, Any]] = []
     row_count = 0
+    master_row_ids: set[str] = set()
 
     add_node(nodes, "philosophy", "domain-root", "Philosophy", "ToS/philosophy/philosophy.manifest.json")
     add_node(nodes, "philosophy.atlas", "atlas", "Philosophy Atlas", SOURCE_ATLAS_REF)
@@ -356,6 +377,8 @@ def build_payload() -> dict[str, Any]:
         )
         for row in rows:
             row_id = str(row.get("row_id") or "")
+            if row_id:
+                master_row_ids.add(row_id)
             node_id = f"atlas-row:{row_id}"
             fields = row_projection_fields(row)
             add_node(nodes, node_id, "master-table-row", row_id, rows_ref, **fields)
@@ -526,6 +549,7 @@ def build_payload() -> dict[str, Any]:
         for dossier in dossier_rows
         if isinstance(dossier.get("dossier_id"), str) and dossier.get("dossier_id")
     }
+    unavailable_master_row_ids = master_row_ids - admitted_dossier_ids
     endpoint_aliases = load_reviewed_endpoint_aliases(candidate_nodes, admitted_dossier_ids)
     endpoint_roles_by_id: dict[str, set[str]] = {}
     for relation in candidate_relations:
@@ -544,16 +568,26 @@ def build_payload() -> dict[str, Any]:
             admitted_dossier_ids,
             endpoint_aliases,
         )
+        source_master_row_id = unavailable_master_row_endpoint_id(
+            source_label,
+            unavailable_master_row_ids,
+        )
+        target_master_row_id = unavailable_master_row_endpoint_id(
+            target_label,
+            unavailable_master_row_ids,
+        )
         if (
             not (isinstance(source_candidate_id, str) and source_candidate_id)
             and source_label not in admitted_dossier_ids
             and source_alias_candidate_id is None
+            and source_master_row_id is None
         ):
             endpoint_roles_by_id.setdefault(endpoint_ref(dossier_id, source_label), set()).add("source")
         if (
             not (isinstance(target_candidate_id, str) and target_candidate_id)
             and target_label not in admitted_dossier_ids
             and target_alias_candidate_id is None
+            and target_master_row_id is None
         ):
             endpoint_roles_by_id.setdefault(endpoint_ref(dossier_id, target_label), set()).add("target")
 
@@ -577,6 +611,14 @@ def build_payload() -> dict[str, Any]:
             admitted_dossier_ids,
             endpoint_aliases,
         )
+        source_master_row_id = unavailable_master_row_endpoint_id(
+            source_label,
+            unavailable_master_row_ids,
+        )
+        target_master_row_id = unavailable_master_row_endpoint_id(
+            target_label,
+            unavailable_master_row_ids,
+        )
         if not candidate_id:
             diagnostics.append(
                 {
@@ -592,6 +634,8 @@ def build_payload() -> dict[str, Any]:
             from_id = f"atlas-dossier:{source_label}"
         elif source_alias_candidate_id is not None:
             from_id = candidate_node_ref(source_alias_candidate_id)
+        elif source_master_row_id is not None:
+            from_id = f"atlas-row:{source_master_row_id}"
         else:
             from_id = endpoint_ref(dossier_id, source_label)
             if from_id not in endpoint_nodes:
@@ -619,6 +663,8 @@ def build_payload() -> dict[str, Any]:
             to_id = f"atlas-dossier:{target_label}"
         elif target_alias_candidate_id is not None:
             to_id = candidate_node_ref(target_alias_candidate_id)
+        elif target_master_row_id is not None:
+            to_id = f"atlas-row:{target_master_row_id}"
         else:
             to_id = endpoint_ref(dossier_id, target_label)
             if to_id not in endpoint_nodes:
@@ -666,7 +712,11 @@ def build_payload() -> dict[str, Any]:
             projection_endpoint_resolution=(
                 "reviewed_qualified_alias"
                 if source_alias_candidate_id is not None or target_alias_candidate_id is not None
-                else None
+                else (
+                    "known_unavailable_master_row"
+                    if source_master_row_id is not None or target_master_row_id is not None
+                    else None
+                )
             ),
             endpoint_alias_ref=(
                 ENDPOINT_ALIASES_REF

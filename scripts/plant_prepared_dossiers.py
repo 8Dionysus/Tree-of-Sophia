@@ -7,12 +7,16 @@ import argparse
 import json
 import re
 from collections import Counter
+from functools import cache
 from pathlib import Path
 from typing import Any
 
 from plant_table_i_prepared_dossiers import DOC_ROOT, DOSSIER_ID_PATTERN
 from plant_table_i_prepared_dossiers import PACKAGES, PACKAGE_ROUTES, SUPPORTED_TABLES
-from plant_table_i_prepared_dossiers import blocked_dossiers, main as plant_supported_packages
+from plant_table_i_prepared_dossiers import blocked_dossiers, discover_docx, extract_dossier_id
+from plant_table_i_prepared_dossiers import load_jsonl as load_pipeline_jsonl
+from plant_table_i_prepared_dossiers import main as plant_supported_packages
+from plant_table_i_prepared_dossiers import parse_dossier
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 TABLE_ROOT = REPO_ROOT / "ToS/philosophy/atlas/master-tables"
@@ -35,6 +39,45 @@ def discover_local_docx_ids(sections: tuple[str, ...]) -> dict[str, list[str]]:
     return {section: sorted(ids) for section, ids in sorted(ids_by_section.items())}
 
 
+@cache
+def validate_local_docx_contents(table_id: str) -> tuple[dict[str, str], ...]:
+    """Read and identity-check every package DOCX without writing planting outputs."""
+
+    master_rows = load_pipeline_jsonl(TABLE_ROOT / table_id / "rows.jsonl")
+    master_rows_by_id = {
+        str(row.get("row_id") or ""): row
+        for row in master_rows
+        if isinstance(row, dict) and row.get("row_id")
+    }
+    errors: list[dict[str, str]] = []
+    try:
+        paths = discover_docx(table_id)
+    except (Exception, SystemExit) as exc:
+        return (
+            {
+                "dossier_id": "",
+                "path": table_id,
+                "error_type": type(exc).__name__,
+                "message": str(exc),
+            },
+        )
+    for path in paths:
+        dossier_id = extract_dossier_id(path)
+        try:
+            master_row = master_rows_by_id[dossier_id]
+            parse_dossier(path, master_row, table_id)
+        except (Exception, SystemExit) as exc:
+            errors.append(
+                {
+                    "dossier_id": dossier_id,
+                    "path": path.relative_to(DOC_ROOT).as_posix(),
+                    "error_type": type(exc).__name__,
+                    "message": str(exc),
+                }
+            )
+    return tuple(errors)
+
+
 def table_readiness(table_id: str) -> dict[str, Any]:
     rows = load_jsonl(TABLE_ROOT / table_id / "rows.jsonl")
     package = PACKAGES[table_id]
@@ -55,6 +98,11 @@ def table_readiness(table_id: str) -> dict[str, Any]:
         expected_master_ids = sorted(set(expected) | set(missing_master_ids))
         master_row_ids = [str(row.get("row_id") or "") for row in rows]
         master_row_id_counts = Counter(master_row_ids)
+        unexpected_master_ids = sorted(
+            dossier_id
+            for dossier_id in master_row_id_counts
+            if dossier_id not in set(expected_master_ids)
+        )
         missing_expected_master_ids = [
             dossier_id for dossier_id in expected_master_ids if master_row_id_counts[dossier_id] == 0
         ]
@@ -65,13 +113,25 @@ def table_readiness(table_id: str) -> dict[str, Any]:
             dossier_id for dossier_id in expected_master_ids if master_row_id_counts[dossier_id] == 1
         ]
         master_expected_ids_unique = (
-            not missing_expected_master_ids and not duplicate_expected_master_ids
+            not missing_expected_master_ids
+            and not duplicate_expected_master_ids
+            and not unexpected_master_ids
         )
-        package_ready = (
+        structural_preflight_ready = (
             local_docx_ids_unique
             and unique_local_docx_ids == expected
             and master_expected_ids_unique
         )
+        docx_content_validation_performed = structural_preflight_ready
+        docx_validation_errors = (
+            list(validate_local_docx_contents(table_id))
+            if docx_content_validation_performed
+            else []
+        )
+        docx_contents_valid = (
+            docx_content_validation_performed and not docx_validation_errors
+        )
+        package_ready = structural_preflight_ready and docx_contents_valid
         return {
             "table_id": table_id,
             "row_count": len(rows),
@@ -91,12 +151,16 @@ def table_readiness(table_id: str) -> dict[str, Any]:
             "matched_expected_master_ids": matched_expected_master_ids,
             "missing_expected_master_ids": missing_expected_master_ids,
             "duplicate_expected_master_ids": duplicate_expected_master_ids,
+            "unexpected_master_ids": unexpected_master_ids,
             "local_docx_ids": local_docx_ids,
             "local_docx_ids_unique": local_docx_ids_unique,
             "duplicate_local_docx_ids": duplicate_local_docx_ids,
             "matched_local_docx_ids": sorted(set(expected) & set(unique_local_docx_ids)),
             "missing_expected_docx_ids": sorted(set(expected) - set(unique_local_docx_ids)),
             "extra_local_docx_ids": sorted(set(unique_local_docx_ids) - set(expected)),
+            "docx_content_validation_performed": docx_content_validation_performed,
+            "docx_contents_valid": docx_contents_valid,
+            "docx_validation_errors": docx_validation_errors,
             "readiness_scope": "package_local",
             "package_ready_to_plant": package_ready,
             "planting_mode": str(package.get("planting_mode") or "complete"),

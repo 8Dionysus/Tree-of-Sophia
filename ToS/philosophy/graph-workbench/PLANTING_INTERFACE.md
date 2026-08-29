@@ -61,6 +61,13 @@ The packet is complete enough for graph review when every proposed node and
 relation can point back to a ToS source ref and every unresolved endpoint is
 visible as unresolved, not silently upgraded.
 
+Projection reuses tracked identity before creating a placeholder. An exact
+admitted dossier id resolves to its `atlas-dossier:*` node; a leading known
+master-row id whose dossier is quarantined or not supplied resolves to the
+existing `atlas-row:*` node; only an otherwise unresolved label becomes an
+origin-scoped `candidate-endpoint:*`. Reviewed qualified aliases remain the
+explicit route to a candidate inside another admitted dossier.
+
 Text-bearing packets are governed by
 `ToS/philosophy/atlas/multilingual/text-bearing-nodes.contract.json`. They are
 used for works, corpora, inscriptions, source witnesses, translations, versions,
@@ -92,7 +99,11 @@ Current supported entrypoint:
 Readiness may be limited with `--table`; planting is explicitly aggregate-only
 and runs as `python scripts/plant_prepared_dossiers.py --plant` because the
 atlas indexes, graph workbench, language packets, and branch manifests combine
-all supported packages.
+all supported packages. Readiness requires an exact unique master-row spine,
+an exact unique filename inventory, and a read-only parse of every supplied
+DOCX through the same content and identity checks used by planting. Missing,
+duplicate, or unexpected master ids and corrupt or identity-drifted documents
+fail closed before any planting write.
 The projection, corpus-index, and post-planting builders own their generated
 outputs; `docs/validation/validation_lanes.json` owns checked verification
 order. Use `scripts/AGENTS.md` for the operator route.

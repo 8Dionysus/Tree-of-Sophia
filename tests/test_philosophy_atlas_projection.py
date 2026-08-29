@@ -35,7 +35,7 @@ class PhilosophyAtlasProjectionTest(unittest.TestCase):
         self.assertEqual(payload["counts"]["dossier_relation_rows"], 3536)
         self.assertEqual(payload["counts"]["candidate_nodes"], 3551)
         self.assertEqual(payload["counts"]["candidate_relations"], 3536)
-        self.assertEqual(payload["counts"]["candidate_endpoint_placeholders"], 300)
+        self.assertEqual(payload["counts"]["candidate_endpoint_placeholders"], 299)
 
     def test_projection_keeps_runtime_owner_downstream(self) -> None:
         payload = json.loads(PROJECTION_PATH.read_text(encoding="utf-8"))
@@ -110,6 +110,29 @@ class PhilosophyAtlasProjectionTest(unittest.TestCase):
         self.assertFalse(
             any(
                 node["node_type"] == "candidate-endpoint" and node["label"] in admitted_ids
+                for node in payload["nodes"]
+            )
+        )
+
+    def test_unavailable_dossier_endpoints_use_tracked_master_rows(self) -> None:
+        payload = build_payload()
+        edges = {edge["edge_id"]: edge for edge in payload["edges"]}
+        nodes = {node["node_id"]: node for node in payload["nodes"]}
+        edge = edges["edge:candidate-relation:table-ii-t2-50-relation-033"]
+
+        self.assertEqual(edge["to_id"], "atlas-row:T2-51")
+        self.assertEqual(
+            edge["properties"]["projection_endpoint_resolution"],
+            "known_unavailable_master_row",
+        )
+        self.assertEqual(
+            nodes["atlas-row:T2-51"]["properties"]["dossier_intake_status"],
+            "input_not_supplied",
+        )
+        self.assertFalse(
+            any(
+                node["node_type"] == "candidate-endpoint"
+                and node["label"].startswith("T2-51")
                 for node in payload["nodes"]
             )
         )
@@ -222,7 +245,7 @@ class PhilosophyAtlasProjectionTest(unittest.TestCase):
             and node["properties"].get("table_id") == "table-ii"
             and node["properties"].get("review_posture") == "manual_review_required"
         ]
-        self.assertEqual(len(gated_endpoints), 112)
+        self.assertEqual(len(gated_endpoints), 111)
         self.assertTrue(
             all(
                 node["properties"].get("review_reason")
