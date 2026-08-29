@@ -1,25 +1,25 @@
 {
-  "allowed_bytes": 6652582,
-  "allowed_tracked_bytes": 30496688,
+  "allowed_bytes": 6655282,
+  "allowed_tracked_bytes": 30499388,
   "approved_by": "repository-owner",
   "base_ref": "ee27ebf52ae5a743a5d2d066e357d8b56d4cbe33",
   "candidate_identity": {
     "algorithm": "sha256:canonical-json-file-inventory-v2",
     "base_ref": "ee27ebf52ae5a743a5d2d066e357d8b56d4cbe33",
     "contract_version": "aoa-kag:budget-receipt-candidate-identity-v2",
-    "excluded_path": "kag/receipts/index_family_budget/1b48c5807cc2e4b9a7cde70fa85763e5c364a2fff01d8e9e6249df608f1f57dd.json",
-    "family_digest": "1b48c5807cc2e4b9a7cde70fa85763e5c364a2fff01d8e9e6249df608f1f57dd",
+    "excluded_path": "kag/receipts/index_family_budget/ceb550095b54d85f3bbe5fac314ef7c7288ebe6920777006f628d9a874f0893e.json",
+    "family_digest": "ceb550095b54d85f3bbe5fac314ef7c7288ebe6920777006f628d9a874f0893e",
     "file_count": 3241,
-    "seal": "85ee68c7e88de87345021b6ee6645b910236c4c22f27cd7921b383bca4b1c325",
-    "source_epoch": "sha256:f5deaf43bf52d3366b7aa9d2a5ce14a3565eaf5791a7866725c555cb5b3ac461",
-    "source_snapshot": "sha256:f1cfbf029ebf9e3486a28c9ac5e643ea062da3043538b2a010ae36beaa0c0b30"
+    "seal": "5b5e0dea4f5f8bf41c061f6b80fe3931c7cff7b2b598680a6eb718898c0cb44f",
+    "source_epoch": "sha256:38f7383d369f6946cb4fcfdf5984f1073f392181b01fa9d74e4c308e37f3d54a",
+    "source_snapshot": "sha256:c04e93ee02c00e867ed3b1af4c28f29406488ce3bcdad67956e94db0c792fa72"
   },
-  "changed_generated_bytes": 6652582,
+  "changed_generated_bytes": 6655282,
   "changed_generated_files": 83,
   "decision_ref": "aoa-kag:docs/decisions/AOA-KAG-D-0017-portable-content-addressed-repository-family.md",
   "default_limit_bytes": 1048576,
-  "head_family_digest": "1b48c5807cc2e4b9a7cde70fa85763e5c364a2fff01d8e9e6249df608f1f57dd",
-  "head_source_snapshot": "sha256:f1cfbf029ebf9e3486a28c9ac5e643ea062da3043538b2a010ae36beaa0c0b30",
+  "head_family_digest": "ceb550095b54d85f3bbe5fac314ef7c7288ebe6920777006f628d9a874f0893e",
+  "head_source_snapshot": "sha256:c04e93ee02c00e867ed3b1af4c28f29406488ce3bcdad67956e94db0c792fa72",
   "producer_identity": {
     "action": {
       "bytes": 4962,
@@ -861,10 +861,10 @@
     "revision_binding": "content-addressed-procedure-import-closure-portable-runtime-contract-and-descriptor-io-v1",
     "source_digest": "2887a4716be81b9b1411ede7c4fed3653f6e4d2660402d1d6275598a4d409553"
   },
-  "reason": "Refresh identity-bound Tree-of-Sophia KAG receipt after required-dependency admission guard",
+  "reason": "Refresh identity-bound Tree-of-Sophia KAG receipt after unset-environment guard",
   "repo": "Tree-of-Sophia",
   "schema_version": "aoa-repo-local-kag-budget-receipt-v2",
   "scope": "generated_delta_and_tracked_size",
-  "tracked_bytes": 30496688,
+  "tracked_bytes": 30499388,
   "tracked_bytes_max": 11534336
 }
