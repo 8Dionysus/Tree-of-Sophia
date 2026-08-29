@@ -51,16 +51,17 @@ incremental, and family-contract parity before the final PR commit.
 
 ## Federated dependency identities
 
-The consolidated `v0.5.0` release records the final direct provider edges here
-so release evidence cannot silently fall back to an ancestor or a moving
-branch. The superseded same-day provider identities remain immutable historical
-evidence in `CHANGELOG.md` and the task-local reconciliation ledger; they are
-not current source pins:
+The consolidated `v0.5.0` release records the published direct provider edges
+here so release evidence cannot silently fall back to an ancestor or a moving
+branch. Current source and CI pins are named separately and must not be
+presented as published release identities. The superseded same-day provider
+identities remain immutable historical evidence in `CHANGELOG.md` and the
+task-local reconciliation ledger.
 
-| Edge | Published provider identity | Tree consumer identity | Exactness rule |
+| Edge | Published provider identity | Current source/CI identity | Exactness rule |
 | --- | --- | --- | --- |
 | `aoa-stats` → `Tree-of-Sophia` | `aoa-stats@v0.2.0`, commit `88ff38b1b38eef939f2c5b4541cbe8363a05fc8d` | `.github/workflows/repo-validation.yml` `AOA_STATS_REVISION` | The fetched provider `HEAD` must equal the published commit; an ancestor is not sufficient. |
-| `aoa-kag` → `Tree-of-Sophia` | `aoa-kag@v0.5.0`, commit `f46f146cc79a26fa81ad0f400b9c5774df293e57` | `8Dionysus/aoa-kag/.github/actions/repo-local-kag-index@1402c366d2fd01201549b31c23e1a9697f711c0b` | Keep the published provider body and workflow action as distinct immutable identities; the current compatibility guard proves their separate ABI roles. |
+| `aoa-kag` → `Tree-of-Sophia` | `aoa-kag@v0.5.0`, commit `f46f146cc79a26fa81ad0f400b9c5774df293e57` | current provider source snapshot `47598411fba56f126a8530cb1e7e91bed57f5fef`; workflow action `8Dionysus/aoa-kag/.github/actions/repo-local-kag-index@25cd6263ae2c860c58f86cf3a0747f2070eb45ff` | Keep the published provider body, current source snapshot, and workflow action explicit and distinct; `47598411` is an unreleased/current source pin, not a retagged `v0.5.0`. |
 
 These are source and CI release identities, not claims about runtime health,
 KAG freshness, semantic acceptance, or artifact trust. A production consumer
