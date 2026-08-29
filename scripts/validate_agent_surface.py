@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import argparse
 import hashlib
+import importlib.metadata
 import json
 import os
 import re
@@ -647,6 +648,38 @@ def _v2_runtime_dependency_issues(
             issues.append((label, f"budget receipt field {field}.resolved_version must be a string or null"))
         if state == "available" and (not isinstance(resolved_version, str) or not resolved_version):
             issues.append((label, f"budget receipt available runtime dependency {name} must keep resolved_version"))
+        if (
+            isinstance(name, str)
+            and name != "python"
+            and declaration is not None
+            and state == "available"
+            and isinstance(resolved_version, str)
+            and resolved_version
+        ):
+            try:
+                installed_version = importlib.metadata.version(name)
+            except importlib.metadata.PackageNotFoundError:
+                issues.append(
+                    (
+                        label,
+                        f"budget receipt available runtime dependency {name} is not installed in the current runtime",
+                    )
+                )
+            except (TypeError, ValueError) as exc:
+                issues.append(
+                    (
+                        label,
+                        f"budget receipt available runtime dependency {name} cannot be resolved in the current runtime: {exc}",
+                    )
+                )
+            else:
+                if resolved_version != installed_version:
+                    issues.append(
+                        (
+                            label,
+                            f"budget receipt runtime dependency {name} resolved_version does not match the current runtime",
+                        )
+                    )
         for name_field in ("path_digest", "artifact_digest"):
             digest = item.get(name_field)
             if digest is not None:
@@ -1112,6 +1145,29 @@ def _v2_git_bytes(root: Path, ref: str, path: Path) -> bytes | None:
     return result.stdout if result.returncode == 0 else None
 
 
+def _v2_safe_generated_path(root: Path, value: object, field: str) -> Path:
+    """Return a generated KAG path that cannot escape the repository."""
+    if not isinstance(value, str) or not value:
+        raise ValueError(f"{field} must be a non-empty string")
+    if any(ord(char) < 32 for char in value):
+        raise ValueError(f"{field} must be a safe repository-relative KAG path")
+    relative = Path(value)
+    if (
+        relative.is_absolute()
+        or not relative.parts
+        or ".." in relative.parts
+        or relative.parts[:2] != ("kag", "indexes")
+    ):
+        raise ValueError(f"{field} must be a safe repository-relative KAG path")
+    try:
+        root_resolved = root.resolve(strict=False)
+        resolved = (root / relative).resolve(strict=False)
+        resolved.relative_to(root_resolved)
+    except (OSError, RuntimeError, ValueError) as exc:
+        raise ValueError(f"{field} must remain inside the repository") from exc
+    return relative
+
+
 def _v2_expected_generated_paths(
     root: Path,
     manifest: Mapping[str, Any],
@@ -1125,7 +1181,13 @@ def _v2_expected_generated_paths(
     for descriptor in descriptors:
         if not isinstance(descriptor, Mapping) or not isinstance(descriptor.get("path"), str):
             raise ValueError("current family manifest contains a malformed shard descriptor")
-        head_paths.add(Path(descriptor["path"]))
+        head_paths.add(
+            _v2_safe_generated_path(
+                root,
+                descriptor["path"],
+                "current family manifest shard path",
+            )
+        )
 
     base_manifest_bytes = _v2_git_bytes(root, base_ref, _V2_MANIFEST_PATH)
     if base_manifest_bytes is None:
@@ -1177,7 +1239,13 @@ def _v2_expected_generated_paths(
             if not isinstance(kind, str) or not isinstance(range_value, str):
                 raise ValueError("base tiered object path is malformed")
             if placement_state == "shadow" or kind in hot_kinds:
-                base_paths.add(Path("kag/indexes/shards") / kind / f"{range_value}.jsonl")
+                base_paths.add(
+                    _v2_safe_generated_path(
+                        root,
+                        (Path("kag/indexes/shards") / kind / f"{range_value}.jsonl").as_posix(),
+                        "base tiered object shard path",
+                    )
+                )
         return head_paths, base_paths
     base_paths = {_V2_MANIFEST_PATH}
     base_shards = base_manifest.get("shards")
@@ -1186,7 +1254,13 @@ def _v2_expected_generated_paths(
     for descriptor in base_shards:
         if not isinstance(descriptor, Mapping) or not isinstance(descriptor.get("path"), str):
             raise ValueError("base family manifest contains a malformed shard descriptor")
-        base_paths.add(Path(descriptor["path"]))
+        base_paths.add(
+            _v2_safe_generated_path(
+                root,
+                descriptor["path"],
+                "base family manifest shard path",
+            )
+        )
     return head_paths, base_paths
 
 

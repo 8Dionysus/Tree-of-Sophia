@@ -964,6 +964,41 @@ class AgentSurfaceTests(unittest.TestCase):
             issues,
         )
 
+    def test_current_receipt_binds_resolved_dependency_version_to_runtime(self) -> None:
+        family_manifest, receipt, digest, receipt_path = self._current_receipt_case()
+        dependency = receipt["producer_identity"]["execution_inputs"]["dependencies"][1]
+        dependency["resolved_version"] = "999.0"
+        producer = receipt["producer_identity"]
+        identity_material_fields = (
+            "contract_version",
+            "owner",
+            "revision_binding",
+            "source_digest",
+            "procedure_manifest",
+            "action",
+            "execution_inputs",
+        )
+        producer["identity_digest"] = validator._v2_canonical_digest(
+            {field: producer[field] for field in identity_material_fields}
+        )
+
+        issues = validator.budget_receipt_contract_issues(
+            ROOT,
+            family_manifest,
+            receipt,
+            digest,
+            receipt_path,
+            base_has_v3=True,
+        )
+
+        self.assertIn(
+            (
+                receipt_path.relative_to(ROOT).as_posix(),
+                "budget receipt runtime dependency PyYAML resolved_version does not match the current runtime",
+            ),
+            issues,
+        )
+
     def test_current_receipt_binds_unset_environment_to_sentinel(self) -> None:
         family_manifest, receipt, digest, receipt_path = self._current_receipt_case()
         environment = receipt["producer_identity"]["execution_inputs"]["environment"][0]
@@ -1125,6 +1160,27 @@ class AgentSurfaceTests(unittest.TestCase):
                 (label, f"budget receipt field {field} does not match current generated delta"),
                 issues,
             )
+
+    def test_current_receipt_rejects_generated_shard_outside_repository(self) -> None:
+        family_manifest, receipt, digest, receipt_path = self._current_receipt_case()
+        family_manifest["shards"][0]["path"] = "/dev/zero"
+
+        issues = validator.budget_receipt_contract_issues(
+            ROOT,
+            family_manifest,
+            receipt,
+            digest,
+            receipt_path,
+            base_has_v3=True,
+        )
+
+        self.assertIn(
+            (
+                receipt_path.relative_to(ROOT).as_posix(),
+                "budget receipt generated delta cannot be recomputed: current family manifest shard path must be a safe repository-relative KAG path",
+            ),
+            issues,
+        )
 
     def test_current_receipt_requires_declared_procedure_files_in_inventory(self) -> None:
         family_manifest, receipt, digest, receipt_path = self._current_receipt_case()
