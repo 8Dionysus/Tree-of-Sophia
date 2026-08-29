@@ -52,16 +52,17 @@ def table_readiness(table_id: str) -> dict[str, Any]:
         blocked_ids = sorted(blocked_dossiers(table_id))
         expected = sorted(set(routed_ids) | set(blocked_ids))
         missing_master_ids = [str(value) for value in package.get("missing_master_dossier_ids", [])]
+        expected_master_ids = sorted(set(expected) | set(missing_master_ids))
         master_row_ids = [str(row.get("row_id") or "") for row in rows]
         master_row_id_counts = Counter(master_row_ids)
         missing_expected_master_ids = [
-            dossier_id for dossier_id in expected if master_row_id_counts[dossier_id] == 0
+            dossier_id for dossier_id in expected_master_ids if master_row_id_counts[dossier_id] == 0
         ]
         duplicate_expected_master_ids = [
-            dossier_id for dossier_id in expected if master_row_id_counts[dossier_id] > 1
+            dossier_id for dossier_id in expected_master_ids if master_row_id_counts[dossier_id] > 1
         ]
         matched_expected_master_ids = [
-            dossier_id for dossier_id in expected if master_row_id_counts[dossier_id] == 1
+            dossier_id for dossier_id in expected_master_ids if master_row_id_counts[dossier_id] == 1
         ]
         master_expected_ids_unique = (
             not missing_expected_master_ids and not duplicate_expected_master_ids
@@ -84,6 +85,7 @@ def table_readiness(table_id: str) -> dict[str, Any]:
             "routed_dossier_ids": routed_ids,
             "blocked_dossier_ids": blocked_ids,
             "missing_master_dossier_ids": missing_master_ids,
+            "expected_master_dossier_ids": expected_master_ids,
             "master_row_ids": master_row_ids,
             "master_expected_ids_unique": master_expected_ids_unique,
             "matched_expected_master_ids": matched_expected_master_ids,
@@ -99,7 +101,7 @@ def table_readiness(table_id: str) -> dict[str, Any]:
             "package_ready_to_plant": package_ready,
             "planting_mode": str(package.get("planting_mode") or "complete"),
             "master_alignment": f"{len(routed_ids)}/{len(rows)}",
-            "master_expected_alignment": f"{len(matched_expected_master_ids)}/{len(expected)}",
+            "master_expected_alignment": f"{len(matched_expected_master_ids)}/{len(expected_master_ids)}",
             "input_admission": f"{len(routed_ids)}/{len(expected)}",
         }
     return {
@@ -173,6 +175,17 @@ def main(argv: list[str] | None = None) -> int:
         raise SystemExit(
             "prepared-dossier planting is aggregate-only because shared atlas and graph outputs cover all supported "
             "packages; use --plant without --table"
+        )
+    readiness = readiness_payload()
+    if not readiness["ready_to_plant"]:
+        failed_packages = sorted(
+            table_id
+            for table_id, ready in readiness["required_supported_package_readiness"].items()
+            if not ready
+        )
+        raise SystemExit(
+            "prepared dossier planting not ready for supported packages: "
+            f"{', '.join(failed_packages)}; run --readiness for exact blockers"
         )
     return plant_supported_packages()
 

@@ -127,6 +127,37 @@ class PreparedDossierPipelineTest(unittest.TestCase):
                 self.assertEqual(table_i["duplicate_expected_master_ids"], duplicates)
                 self.assertFalse(table_i["package_ready_to_plant"])
 
+    def test_readiness_rejects_missing_or_duplicate_declared_missing_master_rows(self) -> None:
+        rows = [
+            json.loads(line)
+            for line in (
+                REPO_ROOT / "ToS/philosophy/atlas/master-tables/table-ii/rows.jsonl"
+            ).read_text(encoding="utf-8").splitlines()
+            if line.strip()
+        ]
+        expected_docx = table_readiness("table-ii")["expected_dossier_ids"]
+        missing_row = next(row for row in rows if row["row_id"] == "T2-51")
+        cases = (
+            ("missing", [row for row in rows if row["row_id"] != "T2-51"], ["T2-51"], []),
+            ("duplicate", [*rows, missing_row], [], ["T2-51"]),
+        )
+
+        for name, master_rows, missing, duplicates in cases:
+            with self.subTest(name=name):
+                with (
+                    patch("plant_prepared_dossiers.load_jsonl", return_value=master_rows),
+                    patch(
+                        "plant_prepared_dossiers.discover_local_docx_ids",
+                        return_value={"2.1": expected_docx},
+                    ),
+                ):
+                    table_ii = table_readiness("table-ii")
+
+                self.assertFalse(table_ii["master_expected_ids_unique"])
+                self.assertEqual(table_ii["missing_expected_master_ids"], missing)
+                self.assertEqual(table_ii["duplicate_expected_master_ids"], duplicates)
+                self.assertFalse(table_ii["package_ready_to_plant"])
+
     def test_readiness_exposes_partial_table_ii_and_keeps_table_iii_unplanted(self) -> None:
         payload = readiness_payload()
         table_ii = payload["tables"]["table-ii"]
@@ -156,6 +187,19 @@ class PreparedDossierPipelineTest(unittest.TestCase):
             plant.assert_not_called()
             self.assertEqual(planting_main(["--plant"]), 0)
             plant.assert_called_once_with()
+
+    def test_planting_cli_rejects_failed_aggregate_readiness_before_writes(self) -> None:
+        failed_readiness = {
+            "ready_to_plant": False,
+            "required_supported_package_readiness": {"table-i": True, "table-ii": False},
+        }
+        with (
+            patch("plant_prepared_dossiers.readiness_payload", return_value=failed_readiness),
+            patch("plant_prepared_dossiers.plant_supported_packages", return_value=0) as plant,
+        ):
+            with self.assertRaisesRegex(SystemExit, "not ready.*table-ii"):
+                planting_main(["--plant"])
+            plant.assert_not_called()
 
     def test_route_map_keeps_frontier_and_manual_review_explicit(self) -> None:
         payload = json.loads(ROUTES_PATH.read_text(encoding="utf-8"))
