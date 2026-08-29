@@ -1,0 +1,38 @@
+{
+  "schema_version": "tos_reviewed_endpoint_aliases_v1",
+  "owner_repo": "Tree-of-Sophia",
+  "owner_branch": "ToS/philosophy/graph-workbench/proposed-relations",
+  "authority_posture": "pre_canon_projection_routing_only",
+  "review_posture": "manual_review_required_before_canon",
+  "claim_limit": "An exact prepared-relation endpoint label may route to the named pre-canon candidate node for graph continuity. This does not accept the relation, candidate, dossier, or historical claim into canon.",
+  "aliases": [
+    {
+      "endpoint_label": "T2-02 / ранняя византийская комментаторская культура",
+      "target_dossier_id": "T2-02",
+      "target_candidate_id": "table-ii-t2-02-node-001",
+      "target_label": "Ранне-средневизантийская грекоязычная философско-комментарийная экосистема",
+      "projection_review_status": "reviewed_for_pre_canon_routing"
+    },
+    {
+      "endpoint_label": "T2-09/classical-kalām",
+      "target_dossier_id": "T2-09",
+      "target_candidate_id": "table-ii-t2-09-node-001",
+      "target_label": "Classical kalām written ecosystem",
+      "projection_review_status": "reviewed_for_pre_canon_routing"
+    },
+    {
+      "endpoint_label": "T2-10/Avicennan-falsafa",
+      "target_dossier_id": "T2-10",
+      "target_candidate_id": "table-ii-t2-10-node-010",
+      "target_label": "Авиценновский синтез",
+      "projection_review_status": "reviewed_for_pre_canon_routing"
+    },
+    {
+      "endpoint_label": "T2-10/Ibn-Sīnā-Ishārāt",
+      "target_dossier_id": "T2-10",
+      "target_candidate_id": "table-ii-t2-10-node-019",
+      "target_label": "al-Ishārāt wa-l-tanbīhāt",
+      "projection_review_status": "reviewed_for_pre_canon_routing"
+    }
+  ]
+}

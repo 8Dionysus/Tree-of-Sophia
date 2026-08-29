@@ -49,6 +49,7 @@ A plantable packet carries these records as one route:
 | dossier index row | title, source document, master table, branch path, node/relation/source/term/transmission counts |
 | proposed node row | `candidate_id`, node kind, label, period, priority, branch path, `canon_status: pre-canon`, source row/table indexes, source ref |
 | proposed relation row | `candidate_id`, relation kind/label, source and target endpoint labels, resolved candidate ids when available, confidence, endpoint resolution, source ref |
+| reviewed endpoint alias | exact dossier-qualified endpoint label, admitted target dossier, target candidate id and label, pre-canon projection review status, explicit claim limit |
 | source anchor row | witness, corpus, edition, access, reliability, limitation, or source need |
 | term row | term, language, transliteration, meaning, ToS role |
 | transmission row | direction, transmitted matter, channel, confidence, next check |
@@ -109,6 +110,7 @@ The first human review pass reads:
 | --- | --- |
 | branch placement | `ToS/philosophy/atlas/dossiers/prepared-dossier-routes.json` |
 | graph row pressure | `ToS/philosophy/graph-workbench/proposed-nodes/` and `proposed-relations/` |
+| qualified endpoint routing | `ToS/philosophy/graph-workbench/proposed-relations/reviewed-endpoint-aliases.json` |
 | source pressure | `ToS/philosophy/atlas/dossiers/source-anchor-backlog.jsonl` |
 | transmission pressure | `ToS/philosophy/atlas/dossiers/transmission-backlog.jsonl` |
 | view switching | `ToS/philosophy/graph-workbench/views/view-contracts.json` |

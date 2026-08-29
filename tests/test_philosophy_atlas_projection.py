@@ -12,7 +12,12 @@ SCRIPTS = REPO_ROOT / "scripts"
 if str(SCRIPTS) not in sys.path:
     sys.path.insert(0, str(SCRIPTS))
 
-from philosophy_atlas_projection_common import PROJECTION_PATH, build_payload, render_payload  # noqa: E402
+from philosophy_atlas_projection_common import (  # noqa: E402
+    ENDPOINT_ALIASES_REF,
+    PROJECTION_PATH,
+    build_payload,
+    render_payload,
+)
 
 
 class PhilosophyAtlasProjectionTest(unittest.TestCase):
@@ -30,7 +35,7 @@ class PhilosophyAtlasProjectionTest(unittest.TestCase):
         self.assertEqual(payload["counts"]["dossier_relation_rows"], 3536)
         self.assertEqual(payload["counts"]["candidate_nodes"], 3551)
         self.assertEqual(payload["counts"]["candidate_relations"], 3536)
-        self.assertEqual(payload["counts"]["candidate_endpoint_placeholders"], 304)
+        self.assertEqual(payload["counts"]["candidate_endpoint_placeholders"], 300)
 
     def test_projection_keeps_runtime_owner_downstream(self) -> None:
         payload = json.loads(PROJECTION_PATH.read_text(encoding="utf-8"))
@@ -139,6 +144,26 @@ class PhilosophyAtlasProjectionTest(unittest.TestCase):
         shared = next(node for node in payload["nodes"] if node["node_id"] == shared_id)
         self.assertEqual(shared["properties"]["endpoint_roles"], ["source", "target"])
         self.assertEqual(shared["properties"]["endpoint_role"], "source_and_target")
+
+    def test_reviewed_qualified_endpoints_resolve_inside_target_dossiers(self) -> None:
+        payload = build_payload()
+        edges = {edge["edge_id"]: edge for edge in payload["edges"]}
+        expected_targets = {
+            "edge:candidate-relation:table-ii-t2-03-relation-038": "candidate-node:table-ii-t2-02-node-001",
+            "edge:candidate-relation:table-ii-t2-11-relation-008": "candidate-node:table-ii-t2-09-node-001",
+            "edge:candidate-relation:table-ii-t2-11-relation-009": "candidate-node:table-ii-t2-10-node-010",
+            "edge:candidate-relation:table-ii-t2-11-relation-017": "candidate-node:table-ii-t2-10-node-019",
+            "edge:candidate-relation:table-ii-t2-11-relation-019": "candidate-node:table-ii-t2-10-node-019",
+        }
+
+        for edge_id, target_id in expected_targets.items():
+            edge = edges[edge_id]
+            self.assertEqual(edge["to_id"], target_id)
+            self.assertEqual(
+                edge["properties"]["projection_endpoint_resolution"],
+                "reviewed_qualified_alias",
+            )
+            self.assertEqual(edge["properties"]["endpoint_alias_ref"], ENDPOINT_ALIASES_REF)
 
     def test_projection_exposes_pre_canon_candidate_graph_material(self) -> None:
         payload = json.loads(PROJECTION_PATH.read_text(encoding="utf-8"))
