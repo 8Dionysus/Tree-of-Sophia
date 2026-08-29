@@ -851,6 +851,34 @@ class AgentSurfaceTests(unittest.TestCase):
                 )
                 self.assertIn((receipt_path.relative_to(ROOT).as_posix(), expected), issues)
 
+    def test_current_receipt_rejects_unhashable_runtime_states_without_aborting(self) -> None:
+        for field, bad_state, expected in (
+            (
+                "environment",
+                {},
+                "budget receipt field producer_identity.execution_inputs.environment[0].state must be 'set' or 'unset'",
+            ),
+            (
+                "dependencies",
+                [],
+                "budget receipt field producer_identity.execution_inputs.dependencies[0].state is unsupported",
+            ),
+        ):
+            with self.subTest(field=field):
+                family_manifest, receipt, digest, receipt_path = self._current_receipt_case()
+                receipt["producer_identity"]["execution_inputs"][field][0]["state"] = bad_state
+
+                issues = validator.budget_receipt_contract_issues(
+                    ROOT,
+                    family_manifest,
+                    receipt,
+                    digest,
+                    receipt_path,
+                    base_has_v3=True,
+                )
+
+                self.assertIn((receipt_path.relative_to(ROOT).as_posix(), expected), issues)
+
     def test_current_receipt_binds_jobs_input_to_command_target(self) -> None:
         family_manifest, receipt, digest, receipt_path = self._current_receipt_case()
         receipt["producer_identity"]["execution_inputs"]["command_targets"]["jobs"] = "3"

@@ -507,7 +507,8 @@ def _v2_runtime_environment_issues(
                 issues.append((label, f"budget receipt runtime environment {name} role does not match the producer procedure"))
         if not isinstance(role, str) or not role:
             issues.append((label, f"budget receipt field {field}.role must be a non-empty string"))
-        if item.get("state") not in {"set", "unset"}:
+        state = item.get("state")
+        if not isinstance(state, str) or state not in {"set", "unset"}:
             issues.append((label, f"budget receipt field {field}.state must be 'set' or 'unset'"))
         if item.get("kind") != "environment":
             issues.append((label, f"budget receipt field {field}.kind must be 'environment'"))
@@ -587,7 +588,8 @@ def _v2_runtime_dependency_issues(
             issues.append((label, f"budget receipt field {field}.declared_version must be a non-empty string"))
         if not isinstance(item.get("required"), bool):
             issues.append((label, f"budget receipt field {field}.required must be a boolean"))
-        if item.get("state") not in {"available", "unavailable", "declared"}:
+        state = item.get("state")
+        if not isinstance(state, str) or state not in {"available", "unavailable", "declared"}:
             issues.append((label, f"budget receipt field {field}.state is unsupported"))
         if item.get("resolved_version") is not None and not isinstance(item.get("resolved_version"), str):
             issues.append((label, f"budget receipt field {field}.resolved_version must be a string or null"))
@@ -1034,7 +1036,12 @@ def _v2_expected_generated_paths(
         hot_kinds = selection.get("include_record_kinds") if isinstance(selection, Mapping) else None
         placement = base_manifest.get("placement")
         placement_state = placement.get("state") if isinstance(placement, Mapping) else None
-        if not isinstance(objects, list) or not isinstance(hot_kinds, list) or placement_state not in {"shadow", "externalized"}:
+        if (
+            not isinstance(objects, list)
+            or not isinstance(hot_kinds, list)
+            or not isinstance(placement_state, str)
+            or placement_state not in {"shadow", "externalized"}
+        ):
             raise ValueError("base tiered family placement is malformed")
         base_paths = {
             _V2_MANIFEST_PATH,
