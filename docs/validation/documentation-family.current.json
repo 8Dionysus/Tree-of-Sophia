@@ -153,7 +153,7 @@
         "human": 4,
         "structured": 3
       },
-      "tracked_surface_bytes": 160132,
+      "tracked_surface_bytes": 160134,
       "tracked_surface_count": 7
     },
     {
@@ -224,7 +224,7 @@
         "executable": 88,
         "human": 1
       },
-      "tracked_surface_bytes": 2770919,
+      "tracked_surface_bytes": 2776273,
       "tracked_surface_count": 89
     },
     {
@@ -234,7 +234,7 @@
         "human": 1,
         "structured": 1
       },
-      "tracked_surface_bytes": 989789,
+      "tracked_surface_bytes": 992770,
       "tracked_surface_count": 48
     },
     {
@@ -269,7 +269,7 @@
   "source_map": "docs/validation/documentation_family_map.json",
   "source_map_sha256": "9140a03a48109e6a9f35f3ca7dbf82058d96c3961e9e77bc31a743fb8814b13b",
   "tracked_source": "git ls-files -z",
-  "tracked_surface_digest": "fbfb871a683c1fe281cde9d6b18174a928d76933cda11dc89d0bca910177c693",
+  "tracked_surface_digest": "3767eb076ed1afcd9607709cc53c87fa46665a77a624e352376aa8f43064a553",
   "tracked_surfaces": [
     {
       "bytes": 1408,
@@ -304,11 +304,11 @@
       "surface_kind": "structured"
     },
     {
-      "bytes": 80911,
+      "bytes": 80913,
       "currentness": "tracked_source_snapshot",
       "family_id": "agents-other",
       "path": ".agents/agents-route.current.json",
-      "sha256": "eb4405c471eca98193441c5db66a248b71e53cbb2ab340e666daecf8c952300d",
+      "sha256": "0b840e1b5fb90017ed39ac2dac6e34611110a3d2956cd9b76a77d1e0962e1807",
       "surface_kind": "structured"
     },
     {
@@ -16088,11 +16088,11 @@
       "surface_kind": "executable"
     },
     {
-      "bytes": 97503,
+      "bytes": 102857,
       "currentness": "tracked_source_snapshot",
       "family_id": "scripts",
       "path": "scripts/validate_agent_surface.py",
-      "sha256": "1329a6e4832104320adfe2ae6c6d037c2f50865ac6274068c9a7fb906d0e4894",
+      "sha256": "21513f69c3eb819358395237a7700b95142546c89ff2f03fece2d9cd74c584de",
       "surface_kind": "executable"
     },
     {
@@ -16368,11 +16368,11 @@
       "surface_kind": "executable"
     },
     {
-      "bytes": 50148,
+      "bytes": 53129,
       "currentness": "tracked_source_snapshot",
       "family_id": "tests",
       "path": "tests/test_agent_surface.py",
-      "sha256": "64ef831e27a8a02b8231d031f68107c17f187175f1f1fcdbded1f061a789a128",
+      "sha256": "cf6843e007ced4f541fb446c64ee6fa46b7d7188538ab8405491affd2d2756cb",
       "surface_kind": "executable"
     },
     {
