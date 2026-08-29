@@ -7,19 +7,19 @@
     "algorithm": "sha256:canonical-json-file-inventory-v2",
     "base_ref": "ee27ebf52ae5a743a5d2d066e357d8b56d4cbe33",
     "contract_version": "aoa-kag:budget-receipt-candidate-identity-v2",
-    "excluded_path": "kag/receipts/index_family_budget/c86142276dce02b250a6627122a1e9e72b911d8c08c0686d2369d3c01af53564.json",
-    "family_digest": "c86142276dce02b250a6627122a1e9e72b911d8c08c0686d2369d3c01af53564",
+    "excluded_path": "kag/receipts/index_family_budget/e2cb71d65c110ac6035a822aeac0a87fa6969aaa1743a7660b6df02988943911.json",
+    "family_digest": "e2cb71d65c110ac6035a822aeac0a87fa6969aaa1743a7660b6df02988943911",
     "file_count": 3236,
-    "seal": "d9a6809a99be0da4c1916824cc9b9d2eab67421f2f2a2c7d8ae5642a8bd86904",
-    "source_epoch": "sha256:b50fb460200b8a96b873506df8baea58b358c8ff40f025d0a38a67851509a572",
-    "source_snapshot": "sha256:f4f020ac9f8a358ee80f0396efaf6eafd3b5b25105699994764fa84748368615"
+    "seal": "acb36981b6597a76c8b76bee8c5ff1ce10c796577c6a1bc8c1924ffe7ae17727",
+    "source_epoch": "sha256:f1fe96d8d49a3f7b2aa0d730603854864157571505d931882263476a017f4da2",
+    "source_snapshot": "sha256:000710757255579a53602363859f3b48692ab7d342f9b1b4310a6c23b788a5b0"
   },
   "changed_generated_bytes": 4671036,
   "changed_generated_files": 61,
   "decision_ref": "aoa-kag:docs/decisions/AOA-KAG-D-0017-portable-content-addressed-repository-family.md",
   "default_limit_bytes": 1048576,
-  "head_family_digest": "c86142276dce02b250a6627122a1e9e72b911d8c08c0686d2369d3c01af53564",
-  "head_source_snapshot": "sha256:f4f020ac9f8a358ee80f0396efaf6eafd3b5b25105699994764fa84748368615",
+  "head_family_digest": "e2cb71d65c110ac6035a822aeac0a87fa6969aaa1743a7660b6df02988943911",
+  "head_source_snapshot": "sha256:000710757255579a53602363859f3b48692ab7d342f9b1b4310a6c23b788a5b0",
   "producer_identity": {
     "action": {
       "bytes": 4962,
@@ -43,6 +43,12 @@
           "state": "set",
           "value_digest": "b062921f6f51c4bd4c34abc28811c0582bb881d6bce641ebc97123e747c458da"
         },
+        "jobs": {
+          "bytes": 1,
+          "kind": "bounded-integer",
+          "state": "set",
+          "value_digest": "d4735e3a265e16eee03f59718b9b5d03019c07d8b6c51f90da3a666eec13ab35"
+        },
         "output": {
           "bytes": 37,
           "kind": "relative-path",
@@ -63,6 +69,7 @@
         "externalized": false,
         "family_mode": "portable",
         "history_ref": "ee27ebf52ae5a743a5d2d066e357d8b56d4cbe33",
+        "jobs": "2",
         "output": "kag/indexes/source_surface_index.json",
         "repo_root": {
           "path_digest": "21dba821671dd5da139d85927c06f360ae3bcc5751db42dae6d309553c903d79",
@@ -141,7 +148,7 @@
         "resolved_path_digest": "d2c68400f17d98c00601a6731293f7f8c7abd735a42c07a4e1c119493e9d66aa",
         "version": ">=3.11"
       },
-      "manifest_digest": "c6ae6f1768a96e165ec9b5f84a15fe33aef6fdd9e33048c51ca5d368d2b37a5b",
+      "manifest_digest": "660af47713a8992909f4707af7d1b94b08fec17b2844698e2ede1f59bc33645a",
       "non_python_inputs": [
         {
           "bytes": 4962,
@@ -149,8 +156,8 @@
           "path": ".github/actions/repo-local-kag-index/action.yml"
         },
         {
-          "bytes": 4534,
-          "content_digest": "c6ae6f1768a96e165ec9b5f84a15fe33aef6fdd9e33048c51ca5d368d2b37a5b",
+          "bytes": 4546,
+          "content_digest": "660af47713a8992909f4707af7d1b94b08fec17b2844698e2ede1f59bc33645a",
           "path": "config/repo-local-kag-budget-producer.json"
         },
         {
@@ -179,8 +186,8 @@
           "path": "schemas/repo-local-kag-budget-producer-manifest.schema.json"
         },
         {
-          "bytes": 15030,
-          "content_digest": "71ca007795e8e9912746e264dfadc9360921b6d7f4598fbb6118b0203c6b39be",
+          "bytes": 15180,
+          "content_digest": "0b80daaf8eb1ce1c7c2a376a74aae108c67f1daef4a027f62cf213cb8e37bc62",
           "path": "schemas/repo-local-kag-budget-receipt.schema.json"
         },
         {
@@ -250,9 +257,9 @@
         "state": "present"
       },
       {
-        "bytes": 4534,
-        "content_digest": "c6ae6f1768a96e165ec9b5f84a15fe33aef6fdd9e33048c51ca5d368d2b37a5b",
-        "git_blob": "sha1:bb26368ddb5c68c56f5c914d953b48a09552c155",
+        "bytes": 4546,
+        "content_digest": "660af47713a8992909f4707af7d1b94b08fec17b2844698e2ede1f59bc33645a",
+        "git_blob": "sha1:5ec8a3f305fe9575de20d205d1df2b07ec12b2e1",
         "path": "config/repo-local-kag-budget-producer.json",
         "state": "present"
       },
@@ -292,9 +299,9 @@
         "state": "present"
       },
       {
-        "bytes": 15030,
-        "content_digest": "71ca007795e8e9912746e264dfadc9360921b6d7f4598fbb6118b0203c6b39be",
-        "git_blob": "sha1:7bc5507e6262fa14a7c998e4a018341ed0cc9d00",
+        "bytes": 15180,
+        "content_digest": "0b80daaf8eb1ce1c7c2a376a74aae108c67f1daef4a027f62cf213cb8e37bc62",
+        "git_blob": "sha1:cf82a88958aeb181af17ae64d9559fb5b6244e50",
         "path": "schemas/repo-local-kag-budget-receipt.schema.json",
         "state": "present"
       },
@@ -544,9 +551,9 @@
         "state": "present"
       },
       {
-        "bytes": 125977,
-        "content_digest": "5d835e2d488ed13ae53a9023217e0aab8ac8f169aafb644fe34fc3864cdd014f",
-        "git_blob": "sha1:f9b79955b7a2ae0dfa853af5cec6b68fd40b82b2",
+        "bytes": 124134,
+        "content_digest": "fb2f3481dda62b62af51f3889781b0ceea98efea6e8d1b9a3c9aff99e44a2058",
+        "git_blob": "sha1:bfef580205b42bff0094c0f90fc29c732ae70a73",
         "path": "scripts/repo_local/portable_family.py",
         "state": "present"
       },
@@ -726,14 +733,15 @@
         "state": "present"
       }
     ],
-    "identity_digest": "eff15ddb69e60bc756052a27c7fbffc2fcc0ef55555c64d935f5bcbc68cd2157",
+    "identity_digest": "d003413d3a627a3a2d52acedd9966aa810f9392aea75510f3e4c6349486e90ec",
     "owner": "aoa-kag",
     "procedure_manifest": {
       "action_inputs": [
         "repo-root",
         "output",
         "history-ref",
-        "event-history-ref"
+        "event-history-ref",
+        "jobs"
       ],
       "action_path": ".github/actions/repo-local-kag-index/action.yml",
       "closure_mode": "ast-import-closure-portable-runtime-contract-v1",
@@ -767,7 +775,7 @@
           "role": "validator engine rollback"
         }
       ],
-      "manifest_digest": "c6ae6f1768a96e165ec9b5f84a15fe33aef6fdd9e33048c51ca5d368d2b37a5b",
+      "manifest_digest": "660af47713a8992909f4707af7d1b94b08fec17b2844698e2ede1f59bc33645a",
       "manifest_path": "config/repo-local-kag-budget-producer.json",
       "python_entrypoints": [
         "scripts/generate_repo_local_kag_index.py",
@@ -851,9 +859,9 @@
       "schema_path": "schemas/repo-local-kag-budget-producer-manifest.schema.json"
     },
     "revision_binding": "content-addressed-procedure-import-closure-portable-runtime-contract-and-descriptor-io-v1",
-    "source_digest": "11938b9388d58034bfca37259b7493a7c51a5fea9b7b1659ab41418f0c67ab61"
+    "source_digest": "2887a4716be81b9b1411ede7c4fed3653f6e4d2660402d1d6275598a4d409553"
   },
-  "reason": "Refresh identity-bound Tree-of-Sophia KAG receipt after producer and admission hardening",
+  "reason": "Refresh identity-bound Tree-of-Sophia KAG receipt after producer identity hardening",
   "repo": "Tree-of-Sophia",
   "schema_version": "aoa-repo-local-kag-budget-receipt-v2",
   "scope": "generated_delta_and_tracked_size",
