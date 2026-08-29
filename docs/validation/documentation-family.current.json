@@ -153,7 +153,7 @@
         "human": 4,
         "structured": 3
       },
-      "tracked_surface_bytes": 160130,
+      "tracked_surface_bytes": 160132,
       "tracked_surface_count": 7
     },
     {
@@ -224,7 +224,7 @@
         "executable": 88,
         "human": 1
       },
-      "tracked_surface_bytes": 2706611,
+      "tracked_surface_bytes": 2718874,
       "tracked_surface_count": 89
     },
     {
@@ -269,7 +269,7 @@
   "source_map": "docs/validation/documentation_family_map.json",
   "source_map_sha256": "9140a03a48109e6a9f35f3ca7dbf82058d96c3961e9e77bc31a743fb8814b13b",
   "tracked_source": "git ls-files -z",
-  "tracked_surface_digest": "0638401a56f2e2644f529f0dcbd3931b0b3ba54f16e11caa97cb773c8c00e830",
+  "tracked_surface_digest": "9fd2f9e19aaa3271af5de51897f8daccc31a5adcad3d9779ad9b14fe3e0d8bb3",
   "tracked_surfaces": [
     {
       "bytes": 1408,
@@ -304,11 +304,11 @@
       "surface_kind": "structured"
     },
     {
-      "bytes": 80909,
+      "bytes": 80911,
       "currentness": "tracked_source_snapshot",
       "family_id": "agents-other",
       "path": ".agents/agents-route.current.json",
-      "sha256": "b012061e7b99ac26141febdc5efe06861fcc4d99914af16d3fdb270c59e7b445",
+      "sha256": "fb665cf0cbb6fc478494aa5e896d807a937c663111768948b5388f0894ded95f",
       "surface_kind": "structured"
     },
     {
@@ -16088,11 +16088,11 @@
       "surface_kind": "executable"
     },
     {
-      "bytes": 33195,
+      "bytes": 45458,
       "currentness": "tracked_source_snapshot",
       "family_id": "scripts",
       "path": "scripts/validate_agent_surface.py",
-      "sha256": "b10bea83055bf7fd5c77273c81971f1cac652a2476c1c754f13edb8d6a9ab213",
+      "sha256": "3dadad0bbd82960af2d31bfcd28d107746138686d690a2fa7b306b481b934401",
       "surface_kind": "executable"
     },
     {
