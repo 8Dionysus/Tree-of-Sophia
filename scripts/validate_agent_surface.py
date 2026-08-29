@@ -986,7 +986,7 @@ def v2_budget_receipt_identity_issues(
                 _v2_object_shape_issues(
                     label,
                     action_inputs,
-                    {"repo-root", "output", "history-ref", "event-history-ref"},
+                    {"repo-root", "output", "history-ref", "event-history-ref", "jobs"},
                     "producer_identity.execution_inputs.action_inputs",
                 )
             )
@@ -1026,6 +1026,7 @@ def v2_budget_receipt_identity_issues(
                         "family_mode",
                         "artifact_root",
                         "externalized",
+                        "jobs",
                     },
                     "producer_identity.execution_inputs.command_targets",
                 )
