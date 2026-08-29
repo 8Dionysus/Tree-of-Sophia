@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import sys
 import unittest
+from collections import defaultdict
 from pathlib import Path
 
 
@@ -107,6 +108,37 @@ class PhilosophyAtlasProjectionTest(unittest.TestCase):
                 for node in payload["nodes"]
             )
         )
+
+    def test_endpoint_placeholders_preserve_all_observed_roles(self) -> None:
+        payload = build_payload()
+        endpoint_ids = {
+            node["node_id"]
+            for node in payload["nodes"]
+            if node["node_type"] == "candidate-endpoint"
+        }
+        observed_roles: dict[str, set[str]] = defaultdict(set)
+        for edge in payload["edges"]:
+            if not edge["edge_id"].startswith("edge:candidate-relation:"):
+                continue
+            if edge["from_id"] in endpoint_ids:
+                observed_roles[edge["from_id"]].add("source")
+            if edge["to_id"] in endpoint_ids:
+                observed_roles[edge["to_id"]].add("target")
+
+        for node in payload["nodes"]:
+            if node["node_type"] != "candidate-endpoint":
+                continue
+            expected_roles = sorted(observed_roles[node["node_id"]])
+            self.assertEqual(node["properties"]["endpoint_roles"], expected_roles)
+            self.assertEqual(
+                node["properties"]["endpoint_role"],
+                expected_roles[0] if len(expected_roles) == 1 else "source_and_target",
+            )
+
+        shared_id = "candidate-endpoint:T2-16:e1d923d12c45"
+        shared = next(node for node in payload["nodes"] if node["node_id"] == shared_id)
+        self.assertEqual(shared["properties"]["endpoint_roles"], ["source", "target"])
+        self.assertEqual(shared["properties"]["endpoint_role"], "source_and_target")
 
     def test_projection_exposes_pre_canon_candidate_graph_material(self) -> None:
         payload = json.loads(PROJECTION_PATH.read_text(encoding="utf-8"))

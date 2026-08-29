@@ -152,6 +152,16 @@ def endpoint_ref(dossier_id: str, label: str) -> str:
     return f"candidate-endpoint:{dossier_id}:{digest}"
 
 
+def endpoint_role_properties(roles: set[str]) -> dict[str, Any]:
+    ordered_roles = sorted(roles)
+    if not ordered_roles:
+        raise ValueError("candidate endpoint must have at least one observed role")
+    return {
+        "endpoint_role": ordered_roles[0] if len(ordered_roles) == 1 else "source_and_target",
+        "endpoint_roles": ordered_roles,
+    }
+
+
 def load_schema() -> dict[str, Any]:
     return load_json(REPO_ROOT / SCHEMA_REF)
 
@@ -446,6 +456,24 @@ def build_payload() -> dict[str, Any]:
         for dossier in dossier_rows
         if isinstance(dossier.get("dossier_id"), str) and dossier.get("dossier_id")
     }
+    endpoint_roles_by_id: dict[str, set[str]] = {}
+    for relation in candidate_relations:
+        dossier_id = str(relation.get("dossier_id") or "")
+        source_candidate_id = relation.get("source_candidate_id")
+        target_candidate_id = relation.get("target_candidate_id")
+        source_label = str(relation.get("source_endpoint_label") or "source endpoint")
+        target_label = str(relation.get("target_endpoint_label") or "target endpoint")
+        if (
+            not (isinstance(source_candidate_id, str) and source_candidate_id)
+            and source_label not in admitted_dossier_ids
+        ):
+            endpoint_roles_by_id.setdefault(endpoint_ref(dossier_id, source_label), set()).add("source")
+        if (
+            not (isinstance(target_candidate_id, str) and target_candidate_id)
+            and target_label not in admitted_dossier_ids
+        ):
+            endpoint_roles_by_id.setdefault(endpoint_ref(dossier_id, target_label), set()).add("target")
+
     endpoint_nodes: set[str] = set()
     for relation in candidate_relations:
         candidate_id = str(relation.get("candidate_id") or "")
@@ -481,7 +509,6 @@ def build_payload() -> dict[str, Any]:
                     relation_source_ref,
                     dossier_id=dossier_id,
                     branch_path=relation.get("branch_path"),
-                    endpoint_role="source",
                     canon_status="pre-canon",
                     table_id=relation.get("table_id"),
                     route_kind=relation.get("route_kind"),
@@ -489,6 +516,7 @@ def build_payload() -> dict[str, Any]:
                     review_reason=relation.get("review_reason"),
                     master_status=relation.get("master_status"),
                     master_confidence=relation.get("master_confidence"),
+                    **endpoint_role_properties(endpoint_roles_by_id[from_id]),
                 )
         if isinstance(target_candidate_id, str) and target_candidate_id:
             to_id = candidate_node_ref(target_candidate_id)
@@ -506,7 +534,6 @@ def build_payload() -> dict[str, Any]:
                     relation_source_ref,
                     dossier_id=dossier_id,
                     branch_path=relation.get("branch_path"),
-                    endpoint_role="target",
                     canon_status="pre-canon",
                     table_id=relation.get("table_id"),
                     route_kind=relation.get("route_kind"),
@@ -514,6 +541,7 @@ def build_payload() -> dict[str, Any]:
                     review_reason=relation.get("review_reason"),
                     master_status=relation.get("master_status"),
                     master_confidence=relation.get("master_confidence"),
+                    **endpoint_role_properties(endpoint_roles_by_id[to_id]),
                 )
         add_edge(
             edges,
