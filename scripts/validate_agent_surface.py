@@ -172,6 +172,7 @@ KAG_BUDGET_PRODUCER_PROFILES = {
 }
 KAG_BUDGET_CANDIDATE_ZERO_DIGEST = "0" * 64
 KAG_BUDGET_SOURCE_EPOCH_VERSION = "aoa-kag:budget-receipt-source-epoch-v1"
+KAG_BUDGET_OWNER_ROOT_VALUE = "<owner-root>"
 
 
 def activation_policy_issues(
@@ -415,6 +416,44 @@ def _v2_relative_path_input_issues(
                 f"budget receipt producer action input {short_field} bytes does not match canonical family output",
             )
         )
+    return issues
+
+
+def _v2_owner_root_input_issues(label: str, value: object, field: str) -> list[Issue]:
+    """Bind the producer's stable owner-root input to its canonical value."""
+    expected_fields = {"state", "kind", "value_digest", "bytes"}
+    issues = _v2_object_shape_issues(label, value, expected_fields, field)
+    if not isinstance(value, dict):
+        return issues
+    if value.get("state") != "set":
+        issues.append((label, "budget receipt producer action input repo-root state must be 'set'"))
+    if value.get("kind") != "path":
+        issues.append((label, "budget receipt producer action input repo-root kind must be 'path'"))
+    digest_issue = _v2_digest_issue(label, f"{field}.value_digest", value.get("value_digest"))
+    if digest_issue:
+        issues.append(digest_issue)
+    expected_digest = hashlib.sha256(KAG_BUDGET_OWNER_ROOT_VALUE.encode("utf-8")).hexdigest()
+    if value.get("value_digest") != expected_digest:
+        issues.append((label, "budget receipt producer action input repo-root value_digest does not match canonical owner root"))
+    expected_bytes = len(KAG_BUDGET_OWNER_ROOT_VALUE.encode("utf-8"))
+    if value.get("bytes") != expected_bytes:
+        issues.append((label, "budget receipt producer action input repo-root bytes does not match canonical owner root"))
+    return issues
+
+
+def _v2_repo_root_target_issues(label: str, value: object, field: str) -> list[Issue]:
+    """Validate the command target's stable owner-root path digests."""
+    expected_fields = {"path_digest", "resolved_path_digest"}
+    issues = _v2_object_shape_issues(label, value, expected_fields, field)
+    if not isinstance(value, dict):
+        return issues
+    expected_digest = hashlib.sha256(KAG_BUDGET_OWNER_ROOT_VALUE.encode("utf-8")).hexdigest()
+    for name in expected_fields:
+        digest_issue = _v2_digest_issue(label, f"{field}.{name}", value.get(name))
+        if digest_issue:
+            issues.append(digest_issue)
+        if value.get(name) != expected_digest:
+            issues.append((label, f"budget receipt producer command target repo_root {name} does not match canonical owner root"))
     return issues
 
 
@@ -698,6 +737,66 @@ def _v2_canonical_family_output_path(manifest: Mapping[str, Any]) -> str | None:
             return None
         source_paths.append(relative.as_posix())
     return source_paths[0] if len(source_paths) == 1 else None
+
+
+def _v2_non_python_input_issues(
+    label: str,
+    value: object,
+    procedure_manifest: object,
+    producer_files: object,
+) -> list[Issue]:
+    """Validate and bind non-Python runtime files to producer source records."""
+    if not isinstance(value, list) or not value:
+        return [(label, "budget receipt producer non-Python inputs must be a non-empty array")]
+    issues: list[Issue] = []
+    expected_paths: set[str] = set()
+    if isinstance(procedure_manifest, Mapping):
+        for field in ("action_path", "manifest_path", "schema_path"):
+            path = procedure_manifest.get(field)
+            if isinstance(path, str) and path:
+                expected_paths.add(path)
+        schema_inputs = procedure_manifest.get("schema_inputs")
+        if isinstance(schema_inputs, list):
+            expected_paths.update(path for path in schema_inputs if isinstance(path, str) and path)
+
+    producer_paths: dict[str, list[Mapping[str, Any]]] = {}
+    if isinstance(producer_files, list):
+        for item in producer_files:
+            if isinstance(item, Mapping) and isinstance(item.get("path"), str):
+                producer_paths.setdefault(item["path"], []).append(item)
+
+    actual_paths: list[str] = []
+    for index, item in enumerate(value):
+        field = f"producer_identity.execution_inputs.non_python_inputs[{index}]"
+        issues.extend(_v2_object_shape_issues(label, item, {"path", "content_digest", "bytes"}, field))
+        if not isinstance(item, Mapping):
+            continue
+        path = item.get("path")
+        if not isinstance(path, str) or not path or Path(path).is_absolute() or ".." in Path(path).parts:
+            issues.append((label, f"budget receipt field {field}.path must be a relative path"))
+            continue
+        actual_paths.append(path)
+        if path not in expected_paths:
+            issues.append((label, f"budget receipt non-Python input path {path} is not declared by the producer procedure"))
+        digest_issue = _v2_digest_issue(label, f"{field}.content_digest", item.get("content_digest"))
+        if digest_issue:
+            issues.append(digest_issue)
+        if not _is_integer(item.get("bytes")) or item["bytes"] < 0:
+            issues.append((label, f"budget receipt field {field}.bytes must be a non-negative integer"))
+        records = producer_paths.get(path, [])
+        if len(records) != 1:
+            issues.append((label, f"budget receipt non-Python input path {path} must identify exactly one producer file"))
+        else:
+            producer_file = records[0]
+            if item.get("content_digest") != producer_file.get("content_digest"):
+                issues.append((label, f"budget receipt non-Python input {path} digest does not match producer file"))
+            if item.get("bytes") != producer_file.get("bytes"):
+                issues.append((label, f"budget receipt non-Python input {path} bytes do not match producer file"))
+
+    canonical_paths = sorted(expected_paths)
+    if sorted(actual_paths) != canonical_paths or len(actual_paths) != len(set(actual_paths)):
+        issues.append((label, "budget receipt non-Python inputs do not match the producer procedure and file inventory"))
+    return issues
 
 
 def v2_budget_receipt_identity_issues(
@@ -990,6 +1089,14 @@ def v2_budget_receipt_identity_issues(
                     "producer_identity.execution_inputs.action_inputs",
                 )
             )
+            if isinstance(action_inputs, dict):
+                issues.extend(
+                    _v2_owner_root_input_issues(
+                        label,
+                        action_inputs.get("repo-root"),
+                        "producer_identity.execution_inputs.action_inputs.repo-root",
+                    )
+                )
             canonical_output_path = _v2_canonical_family_output_path(manifest)
             if canonical_output_path is None:
                 issues.append((label, "budget receipt canonical family output path is missing"))
@@ -1031,6 +1138,33 @@ def v2_budget_receipt_identity_issues(
                     "producer_identity.execution_inputs.command_targets",
                 )
             )
+            if isinstance(command_targets, dict):
+                issues.extend(
+                    _v2_repo_root_target_issues(
+                        label,
+                        command_targets.get("repo_root"),
+                        "producer_identity.execution_inputs.command_targets.repo_root",
+                    )
+                )
+                if command_targets.get("family_mode") != "portable":
+                    issues.append((label, "budget receipt producer command target family_mode must be 'portable'"))
+                if command_targets.get("artifact_root") is not None:
+                    issues.append((label, "budget receipt producer command target artifact_root must be null for portable family"))
+                if command_targets.get("externalized") is not False:
+                    issues.append((label, "budget receipt producer command target externalized must be false for portable family"))
+                if isinstance(action_inputs, dict):
+                    repo_root_input = action_inputs.get("repo-root")
+                    repo_root_target = command_targets.get("repo_root")
+                    if isinstance(repo_root_input, dict) and isinstance(repo_root_target, dict):
+                        input_digest = repo_root_input.get("value_digest")
+                        for field in ("path_digest", "resolved_path_digest"):
+                            if repo_root_target.get(field) != input_digest:
+                                issues.append(
+                                    (
+                                        label,
+                                        f"budget receipt producer command target repo_root {field} does not match action input repo-root",
+                                    )
+                                )
             if isinstance(command_targets, dict) and isinstance(receipt_base_ref, str):
                 for field in ("base_ref", "history_ref", "event_history_ref"):
                     if command_targets.get(field) != receipt_base_ref:
@@ -1065,8 +1199,14 @@ def v2_budget_receipt_identity_issues(
                 issues.append((label, "budget receipt producer runtime dependencies must be an array"))
             if not isinstance(execution.get("interpreter"), dict):
                 issues.append((label, "budget receipt producer runtime interpreter must be an object"))
-            if not isinstance(execution.get("non_python_inputs"), list) or not execution["non_python_inputs"]:
-                issues.append((label, "budget receipt producer non-Python inputs must be a non-empty array"))
+            issues.extend(
+                _v2_non_python_input_issues(
+                    label,
+                    execution.get("non_python_inputs"),
+                    procedure_manifest,
+                    files,
+                )
+            )
     return issues
 
 

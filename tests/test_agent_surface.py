@@ -702,6 +702,109 @@ class AgentSurfaceTests(unittest.TestCase):
             issues,
         )
 
+    def test_current_receipt_binds_producer_repo_root_to_command_target(self) -> None:
+        family_manifest, receipt, digest, receipt_path = self._current_receipt_case()
+        execution = receipt["producer_identity"]["execution_inputs"]
+        execution["action_inputs"]["repo-root"]["value_digest"] = "0" * 64
+        execution["command_targets"]["repo_root"]["path_digest"] = "f" * 64
+
+        producer = receipt["producer_identity"]
+        identity_material_fields = (
+            "contract_version",
+            "owner",
+            "revision_binding",
+            "source_digest",
+            "procedure_manifest",
+            "action",
+            "execution_inputs",
+        )
+        producer["identity_digest"] = validator._v2_canonical_digest(
+            {field: producer[field] for field in identity_material_fields}
+        )
+
+        issues = validator.budget_receipt_contract_issues(
+            ROOT,
+            family_manifest,
+            receipt,
+            digest,
+            receipt_path,
+            base_has_v3=True,
+        )
+        messages = "\n".join(message for _, message in issues)
+        self.assertIn("action input repo-root value_digest does not match canonical owner root", messages)
+        self.assertIn("command target repo_root path_digest does not match canonical owner root", messages)
+        self.assertIn("command target repo_root path_digest does not match action input repo-root", messages)
+
+    def test_current_receipt_requires_portable_command_targets(self) -> None:
+        for field, value, expected in (
+            ("family_mode", "tiered", "budget receipt producer command target family_mode must be 'portable'"),
+            ("artifact_root", {"path": "unrelated"}, "budget receipt producer command target artifact_root must be null for portable family"),
+            ("externalized", True, "budget receipt producer command target externalized must be false for portable family"),
+        ):
+            with self.subTest(field=field):
+                family_manifest, receipt, digest, receipt_path = self._current_receipt_case()
+                execution = receipt["producer_identity"]["execution_inputs"]
+                execution["command_targets"][field] = value
+
+                producer = receipt["producer_identity"]
+                identity_material_fields = (
+                    "contract_version",
+                    "owner",
+                    "revision_binding",
+                    "source_digest",
+                    "procedure_manifest",
+                    "action",
+                    "execution_inputs",
+                )
+                producer["identity_digest"] = validator._v2_canonical_digest(
+                    {field: producer[field] for field in identity_material_fields}
+                )
+
+                issues = validator.budget_receipt_contract_issues(
+                    ROOT,
+                    family_manifest,
+                    receipt,
+                    digest,
+                    receipt_path,
+                    base_has_v3=True,
+                )
+                self.assertIn((receipt_path.relative_to(ROOT).as_posix(), expected), issues)
+
+    def test_current_receipt_binds_non_python_inputs_to_producer_files(self) -> None:
+        family_manifest, receipt, digest, receipt_path = self._current_receipt_case()
+        receipt["producer_identity"]["execution_inputs"]["non_python_inputs"] = ["junk"]
+
+        producer = receipt["producer_identity"]
+        identity_material_fields = (
+            "contract_version",
+            "owner",
+            "revision_binding",
+            "source_digest",
+            "procedure_manifest",
+            "action",
+            "execution_inputs",
+        )
+        producer["identity_digest"] = validator._v2_canonical_digest(
+            {field: producer[field] for field in identity_material_fields}
+        )
+
+        issues = validator.budget_receipt_contract_issues(
+            ROOT,
+            family_manifest,
+            receipt,
+            digest,
+            receipt_path,
+            base_has_v3=True,
+        )
+
+        self.assertIn(
+            (
+                receipt_path.relative_to(ROOT).as_posix(),
+                "budget receipt field producer_identity.execution_inputs.non_python_inputs[0] must be an object",
+            ),
+            issues,
+        )
+
     def test_current_receipt_requires_identity_bound_v2_schema(self) -> None:
         family_manifest, receipt, digest, receipt_path = self._current_receipt_case()
         receipt["schema_version"] = validator.KAG_BUDGET_RECEIPT_SCHEMA_VERSION
