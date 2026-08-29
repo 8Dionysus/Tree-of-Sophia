@@ -92,11 +92,15 @@ class RoadmapParityTestCase(unittest.TestCase):
             release_contract,
         )
         self.assertIn(
-            "`aoa-kag@v0.5.0`, commit `47598411fba56f126a8530cb1e7e91bed57f5fef`",
+            "`aoa-kag@v0.5.0`, commit `f46f146cc79a26fa81ad0f400b9c5774df293e57`",
             release_contract,
         )
         provider_ref = "47598411fba56f126a8530cb1e7e91bed57f5fef"
         action_ref = "25cd6263ae2c860c58f86cf3a0747f2070eb45ff"
+        self.assertIn(
+            "current provider source snapshot `" + provider_ref + "`",
+            release_contract,
+        )
         self.assertIn(
             "8Dionysus/aoa-kag/.github/actions/repo-local-kag-index@"
             + action_ref,

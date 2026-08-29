@@ -24,7 +24,7 @@ immutable pins.
 For the current Tree-of-Sophia source route, supersede TOS-D-0030's active pin
 only with these exact identities:
 
-- provider body: `aoa-kag@v0.5.0` at
+- current provider source snapshot (not a published release tag) at
   `47598411fba56f126a8530cb1e7e91bed57f5fef`;
 - executable workflow action: `repo-local-kag-index` at
   `25cd6263ae2c860c58f86cf3a0747f2070eb45ff`.
@@ -34,8 +34,9 @@ payloads change. The workflow, release contract, parity test, generated
 receipt, and owner validation route must bind the current refs explicitly and
 assert the intentional distinction. TOS-D-0030 remains unchanged as the
 historical rationale for the earlier pair; this record is its auditable
-supersession for the current route and does not alter any tag or GitHub
-Release.
+supersession for the current route. The published `aoa-kag@v0.5.0` identity
+remains `f46f146cc79a26fa81ad0f400b9c5774df293e57`; no tag or GitHub Release
+is altered by this current-source pin.
 
 ## Evidence
 
