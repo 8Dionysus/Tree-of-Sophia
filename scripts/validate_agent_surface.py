@@ -927,6 +927,42 @@ def _v2_runtime_interpreter_issues(
     return issues
 
 
+def _v2_jobs_input_issues(
+    label: str,
+    value: object,
+    field: str,
+    expected_jobs: object,
+) -> list[Issue]:
+    """Bind a legacy hashed jobs input to its bounded command target."""
+    expected_fields = {"state", "kind", "value_digest", "bytes"}
+    issues = _v2_object_shape_issues(label, value, expected_fields, field)
+    if not isinstance(value, Mapping):
+        return issues
+    if value.get("state") != "set":
+        issues.append((label, "budget receipt producer action input jobs state must be 'set'"))
+    if value.get("kind") != "bounded-integer":
+        issues.append((label, "budget receipt producer action input jobs kind must be 'bounded-integer'"))
+    digest_issue = _v2_digest_issue(label, f"{field}.value_digest", value.get("value_digest"))
+    if digest_issue:
+        issues.append(digest_issue)
+    if not isinstance(expected_jobs, str) or not re.fullmatch(r"[1-3]", expected_jobs):
+        issues.append((label, "budget receipt producer command target jobs must be a bounded integer in [1, 3]"))
+    else:
+        expected_digest = hashlib.sha256(expected_jobs.encode("utf-8")).hexdigest()
+        if value.get("value_digest") != expected_digest:
+            issues.append(
+                (
+                    label,
+                    "budget receipt producer action input jobs value_digest does not match command target jobs",
+                )
+            )
+        if value.get("bytes") != len(expected_jobs.encode("utf-8")):
+            issues.append((label, "budget receipt producer action input jobs bytes do not match command target jobs"))
+    if not _is_integer(value.get("bytes")) or value["bytes"] < 0:
+        issues.append((label, f"budget receipt field {field}.bytes must be a non-negative integer"))
+    return issues
+
+
 def _v2_canonical_digest(value: object) -> str:
     """Match aoa-kag's canonical JSON digest for identity material."""
     return hashlib.sha256(
@@ -1930,11 +1966,23 @@ def v2_budget_receipt_identity_issues(
             if execution.get("dynamic_imports") != []:
                 issues.append((label, "budget receipt producer runtime-input dynamic_imports must be empty"))
             action_inputs = execution.get("action_inputs")
+            procedure_action_inputs = (
+                procedure_manifest.get("action_inputs")
+                if isinstance(procedure_manifest, Mapping)
+                else None
+            )
+            legacy_jobs_contract = (
+                isinstance(procedure_action_inputs, list)
+                and "jobs" in procedure_action_inputs
+            )
+            action_input_fields = {"repo-root", "output", "history-ref", "event-history-ref"}
+            if legacy_jobs_contract:
+                action_input_fields.add("jobs")
             issues.extend(
                 _v2_object_shape_issues(
                     label,
                     action_inputs,
-                    {"repo-root", "output", "history-ref", "event-history-ref"},
+                    action_input_fields,
                     "producer_identity.execution_inputs.action_inputs",
                 )
             )
@@ -1969,23 +2017,37 @@ def v2_budget_receipt_identity_issues(
                         )
                     )
             command_targets = execution.get("command_targets")
+            command_target_fields = {
+                "repo_root",
+                "base_ref",
+                "history_ref",
+                "event_history_ref",
+                "output",
+                "family_mode",
+                "artifact_root",
+                "externalized",
+            }
+            if legacy_jobs_contract:
+                command_target_fields.add("jobs")
             issues.extend(
                 _v2_object_shape_issues(
                     label,
                     command_targets,
-                    {
-                        "repo_root",
-                        "base_ref",
-                        "history_ref",
-                        "event_history_ref",
-                        "output",
-                        "family_mode",
-                        "artifact_root",
-                        "externalized",
-                    },
+                    command_target_fields,
                     "producer_identity.execution_inputs.command_targets",
                 )
             )
+            if legacy_jobs_contract and isinstance(action_inputs, dict):
+                issues.extend(
+                    _v2_jobs_input_issues(
+                        label,
+                        action_inputs.get("jobs"),
+                        "producer_identity.execution_inputs.action_inputs.jobs",
+                        command_targets.get("jobs")
+                        if isinstance(command_targets, dict)
+                        else None,
+                    )
+                )
             if isinstance(command_targets, dict):
                 issues.extend(
                     _v2_repo_root_target_issues(
@@ -2000,6 +2062,16 @@ def v2_budget_receipt_identity_issues(
                     issues.append((label, "budget receipt producer command target artifact_root must be null for portable family"))
                 if command_targets.get("externalized") is not False:
                     issues.append((label, "budget receipt producer command target externalized must be false for portable family"))
+                if legacy_jobs_contract and (
+                    not isinstance(command_targets.get("jobs"), str)
+                    or not re.fullmatch(r"[1-3]", command_targets["jobs"])
+                ):
+                    issues.append(
+                        (
+                            label,
+                            "budget receipt producer command target jobs must be a bounded integer in [1, 3]",
+                        )
+                    )
                 if isinstance(action_inputs, dict):
                     repo_root_input = action_inputs.get("repo-root")
                     repo_root_target = command_targets.get("repo_root")
