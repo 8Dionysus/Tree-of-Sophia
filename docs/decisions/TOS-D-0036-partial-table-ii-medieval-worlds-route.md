@@ -2,7 +2,7 @@
 
 ## Index Metadata
 
-- Decision ID: TOS-D-0035
+- Decision ID: TOS-D-0036
 - Original date: 2026-08-29
 - Surface classes: philosophy/topology, research-packet, provenance, scripts/validation, docs/route-law
 - ToS layers: philosophy, research-packets, scripts, docs
