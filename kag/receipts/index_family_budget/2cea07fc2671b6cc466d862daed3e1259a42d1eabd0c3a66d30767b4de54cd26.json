@@ -7,24 +7,24 @@
     "algorithm": "sha256:canonical-json-file-inventory-v2",
     "base_ref": "ee27ebf52ae5a743a5d2d066e357d8b56d4cbe33",
     "contract_version": "aoa-kag:budget-receipt-candidate-identity-v2",
-    "excluded_path": "kag/receipts/index_family_budget/3e24f982bad54cbeffc92750176ccda2db0196aeddc5e8ae0d398636fed65d4d.json",
-    "family_digest": "3e24f982bad54cbeffc92750176ccda2db0196aeddc5e8ae0d398636fed65d4d",
+    "excluded_path": "kag/receipts/index_family_budget/2cea07fc2671b6cc466d862daed3e1259a42d1eabd0c3a66d30767b4de54cd26.json",
+    "family_digest": "2cea07fc2671b6cc466d862daed3e1259a42d1eabd0c3a66d30767b4de54cd26",
     "file_count": 3235,
-    "seal": "8c155a55ebef360a60a21e83380a1a81ebdfe70028f99354caf34ec1be68fbc0",
-    "source_epoch": "sha256:d340f04fbfe6952db5b999268452a88ab58941ee9599224bf90f6fddfb5f9047",
-    "source_snapshot": "sha256:25d24d9bed61c8fac2190e0ffbfc498c4d4fe13717499a6ddf3ee09cacdb8d7d"
+    "seal": "a34588c242085c7d28570add107706c4c373ec2183637332bc0d5c7935645ecd",
+    "source_epoch": "sha256:249eda3b238ec85952e26b02b05591141a22e9289a0dddc74cf222a4c55a32aa",
+    "source_snapshot": "sha256:20a2dbf1711e3f130106d69b948fe5d4b7a24a13aeeef2de758a02d9b9c1722a"
   },
   "changed_generated_bytes": 2260840,
   "changed_generated_files": 28,
   "decision_ref": "aoa-kag:docs/decisions/AOA-KAG-D-0017-portable-content-addressed-repository-family.md",
   "default_limit_bytes": 1048576,
-  "head_family_digest": "3e24f982bad54cbeffc92750176ccda2db0196aeddc5e8ae0d398636fed65d4d",
-  "head_source_snapshot": "sha256:25d24d9bed61c8fac2190e0ffbfc498c4d4fe13717499a6ddf3ee09cacdb8d7d",
+  "head_family_digest": "2cea07fc2671b6cc466d862daed3e1259a42d1eabd0c3a66d30767b4de54cd26",
+  "head_source_snapshot": "sha256:20a2dbf1711e3f130106d69b948fe5d4b7a24a13aeeef2de758a02d9b9c1722a",
   "producer_identity": {
     "action": {
       "bytes": 4962,
-      "content_digest": "087f22a29e38eeed653d38812410dfacb11730dd661bda022a6ad1599e961c1f",
-      "git_blob": "sha1:a1e27f85ef715295b6a3b4f65065466aafe4d67d",
+      "content_digest": "1713e3ff0e1b7a272692e640456f15d49a1ab80fb1855e4719944129c01d4220",
+      "git_blob": "sha1:f4b3b9b3a89e29c6ce74e0b6dea1574e642164fc",
       "path": ".github/actions/repo-local-kag-index/action.yml",
       "state": "present"
     },
@@ -152,7 +152,7 @@
       "non_python_inputs": [
         {
           "bytes": 4962,
-          "content_digest": "087f22a29e38eeed653d38812410dfacb11730dd661bda022a6ad1599e961c1f",
+          "content_digest": "1713e3ff0e1b7a272692e640456f15d49a1ab80fb1855e4719944129c01d4220",
           "path": ".github/actions/repo-local-kag-index/action.yml"
         },
         {
@@ -251,8 +251,8 @@
     "files": [
       {
         "bytes": 4962,
-        "content_digest": "087f22a29e38eeed653d38812410dfacb11730dd661bda022a6ad1599e961c1f",
-        "git_blob": "sha1:a1e27f85ef715295b6a3b4f65065466aafe4d67d",
+        "content_digest": "1713e3ff0e1b7a272692e640456f15d49a1ab80fb1855e4719944129c01d4220",
+        "git_blob": "sha1:f4b3b9b3a89e29c6ce74e0b6dea1574e642164fc",
         "path": ".github/actions/repo-local-kag-index/action.yml",
         "state": "present"
       },
@@ -733,7 +733,7 @@
         "state": "present"
       }
     ],
-    "identity_digest": "4804261d7ce894239f0bde2a0b1d01d71853d84ef7fa42238f7d9f9529ee9635",
+    "identity_digest": "d003413d3a627a3a2d52acedd9966aa810f9392aea75510f3e4c6349486e90ec",
     "owner": "aoa-kag",
     "procedure_manifest": {
       "action_inputs": [
@@ -859,9 +859,9 @@
       "schema_path": "schemas/repo-local-kag-budget-producer-manifest.schema.json"
     },
     "revision_binding": "content-addressed-procedure-import-closure-portable-runtime-contract-and-descriptor-io-v1",
-    "source_digest": "9bbe1e873d6de31cb7ba20c2e8d715625ff0614bfdc39be78b0db5b403bc3750"
+    "source_digest": "2887a4716be81b9b1411ede7c4fed3653f6e4d2660402d1d6275598a4d409553"
   },
-  "reason": "Rebuild the Tree-of-Sophia portable provider family with candidate, source-snapshot, and producer identity bound to the exact PR validation history boundary.",
+  "reason": "Rebuild the Tree-of-Sophia portable provider family with candidate, source-snapshot, and producer identity bound to the exact PR validation history boundary and repaired aoa-kag action.",
   "repo": "Tree-of-Sophia",
   "schema_version": "aoa-repo-local-kag-budget-receipt-v2",
   "scope": "generated_delta_and_tracked_size",
