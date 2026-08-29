@@ -1487,6 +1487,9 @@
       ],
       "reads": [
         "ToS/philosophy/atlas/**",
+        "ToS/philosophy/graph-workbench/proposed-nodes/*.jsonl",
+        "ToS/philosophy/graph-workbench/proposed-relations/*.jsonl",
+        "ToS/philosophy/graph-workbench/proposed-relations/reviewed-endpoint-aliases.json",
         "ToS/philosophy/graph-workbench/views",
         "ToS/contracts/philosophy-atlas-projection.schema.json"
       ],
@@ -1876,6 +1879,9 @@
       "reads": [
         "ToS/philosophy/atlas/**",
         "ToS/philosophy/atlas/multilingual/content-labels.json",
+        "ToS/philosophy/graph-workbench/proposed-nodes/*.jsonl",
+        "ToS/philosophy/graph-workbench/proposed-relations/*.jsonl",
+        "ToS/philosophy/graph-workbench/proposed-relations/reviewed-endpoint-aliases.json",
         "ToS/philosophy/graph-workbench/views"
       ],
       "writes": [],

@@ -52,7 +52,25 @@ def table_readiness(table_id: str) -> dict[str, Any]:
         blocked_ids = sorted(blocked_dossiers(table_id))
         expected = sorted(set(routed_ids) | set(blocked_ids))
         missing_master_ids = [str(value) for value in package.get("missing_master_dossier_ids", [])]
-        package_ready = local_docx_ids_unique and unique_local_docx_ids == expected
+        master_row_ids = [str(row.get("row_id") or "") for row in rows]
+        master_row_id_counts = Counter(master_row_ids)
+        missing_expected_master_ids = [
+            dossier_id for dossier_id in expected if master_row_id_counts[dossier_id] == 0
+        ]
+        duplicate_expected_master_ids = [
+            dossier_id for dossier_id in expected if master_row_id_counts[dossier_id] > 1
+        ]
+        matched_expected_master_ids = [
+            dossier_id for dossier_id in expected if master_row_id_counts[dossier_id] == 1
+        ]
+        master_expected_ids_unique = (
+            not missing_expected_master_ids and not duplicate_expected_master_ids
+        )
+        package_ready = (
+            local_docx_ids_unique
+            and unique_local_docx_ids == expected
+            and master_expected_ids_unique
+        )
         return {
             "table_id": table_id,
             "row_count": len(rows),
@@ -66,6 +84,11 @@ def table_readiness(table_id: str) -> dict[str, Any]:
             "routed_dossier_ids": routed_ids,
             "blocked_dossier_ids": blocked_ids,
             "missing_master_dossier_ids": missing_master_ids,
+            "master_row_ids": master_row_ids,
+            "master_expected_ids_unique": master_expected_ids_unique,
+            "matched_expected_master_ids": matched_expected_master_ids,
+            "missing_expected_master_ids": missing_expected_master_ids,
+            "duplicate_expected_master_ids": duplicate_expected_master_ids,
             "local_docx_ids": local_docx_ids,
             "local_docx_ids_unique": local_docx_ids_unique,
             "duplicate_local_docx_ids": duplicate_local_docx_ids,
@@ -76,6 +99,7 @@ def table_readiness(table_id: str) -> dict[str, Any]:
             "package_ready_to_plant": package_ready,
             "planting_mode": str(package.get("planting_mode") or "complete"),
             "master_alignment": f"{len(routed_ids)}/{len(rows)}",
+            "master_expected_alignment": f"{len(matched_expected_master_ids)}/{len(expected)}",
             "input_admission": f"{len(routed_ids)}/{len(expected)}",
         }
     return {

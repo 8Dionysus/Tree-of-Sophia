@@ -97,6 +97,36 @@ class PreparedDossierPipelineTest(unittest.TestCase):
         self.assertEqual(table_i["extra_local_docx_ids"], [])
         self.assertFalse(table_i["package_ready_to_plant"])
 
+    def test_readiness_rejects_missing_or_duplicate_expected_master_rows(self) -> None:
+        rows = [
+            json.loads(line)
+            for line in (
+                REPO_ROOT / "ToS/philosophy/atlas/master-tables/table-i/rows.jsonl"
+            ).read_text(encoding="utf-8").splitlines()
+            if line.strip()
+        ]
+        expected = table_readiness("table-i")["expected_dossier_ids"]
+        cases = (
+            ("missing", rows[1:], ["A01"], []),
+            ("duplicate", [*rows, rows[0]], [], ["A01"]),
+        )
+
+        for name, master_rows, missing, duplicates in cases:
+            with self.subTest(name=name):
+                with (
+                    patch("plant_prepared_dossiers.load_jsonl", return_value=master_rows),
+                    patch(
+                        "plant_prepared_dossiers.discover_local_docx_ids",
+                        return_value={"1.1": expected},
+                    ),
+                ):
+                    table_i = table_readiness("table-i")
+
+                self.assertFalse(table_i["master_expected_ids_unique"])
+                self.assertEqual(table_i["missing_expected_master_ids"], missing)
+                self.assertEqual(table_i["duplicate_expected_master_ids"], duplicates)
+                self.assertFalse(table_i["package_ready_to_plant"])
+
     def test_readiness_exposes_partial_table_ii_and_keeps_table_iii_unplanted(self) -> None:
         payload = readiness_payload()
         table_ii = payload["tables"]["table-ii"]
