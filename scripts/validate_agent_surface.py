@@ -963,6 +963,133 @@ def _v2_canonical_family_output_path(manifest: Mapping[str, Any]) -> str | None:
     return source_paths[0] if len(source_paths) == 1 else None
 
 
+_V2_MANIFEST_PATH = Path("kag/indexes/index_family.manifest.json")
+_V2_LEGACY_INDEX_FILENAMES = (
+    "source_surface_index.json",
+    "repo_artifact_index.json",
+    "repo_anchor_index.json",
+    "repo_entity_index.json",
+    "repo_event_index.json",
+    "repo_assertion_index.json",
+    "repo_relation_index.json",
+)
+
+
+def _v2_git_bytes(root: Path, ref: str, path: Path) -> bytes | None:
+    result = subprocess.run(
+        ("git", "show", f"{ref}:{path.as_posix()}"),
+        cwd=root,
+        check=False,
+        capture_output=True,
+    )
+    return result.stdout if result.returncode == 0 else None
+
+
+def _v2_expected_generated_paths(
+    root: Path,
+    manifest: Mapping[str, Any],
+    base_ref: str,
+) -> tuple[set[Path], set[Path]]:
+    """Mirror aoa-kag's portable generated path set for delta recomputation."""
+    head_paths = {_V2_MANIFEST_PATH}
+    descriptors = manifest.get("shards")
+    if not isinstance(descriptors, list):
+        raise ValueError("current family manifest shards must be an array")
+    for descriptor in descriptors:
+        if not isinstance(descriptor, Mapping) or not isinstance(descriptor.get("path"), str):
+            raise ValueError("current family manifest contains a malformed shard descriptor")
+        head_paths.add(Path(descriptor["path"]))
+
+    base_manifest_bytes = _v2_git_bytes(root, base_ref, _V2_MANIFEST_PATH)
+    if base_manifest_bytes is None:
+        base_paths = {
+            Path("kag/indexes") / filename
+            for filename in _V2_LEGACY_INDEX_FILENAMES
+            if _v2_git_bytes(root, base_ref, Path("kag/indexes") / filename) is not None
+        }
+        return head_paths, base_paths
+    try:
+        base_manifest = json.loads(base_manifest_bytes)
+    except json.JSONDecodeError as exc:
+        raise ValueError("base family manifest is invalid") from exc
+    if not isinstance(base_manifest, Mapping):
+        raise ValueError("base family manifest must be an object")
+    if base_manifest.get("schema_version") == "aoa-repo-local-kag-distribution-manifest-v1":
+        corpus = _v2_git_bytes(root, base_ref, Path("kag/indexes/corpus.manifest.json"))
+        hot_profile = _v2_git_bytes(root, base_ref, Path("kag/indexes/hot_profile.json"))
+        if corpus is None or hot_profile is None:
+            raise ValueError("base tiered family control manifests are incomplete")
+        try:
+            corpus_payload = json.loads(corpus)
+            hot_payload = json.loads(hot_profile)
+        except json.JSONDecodeError as exc:
+            raise ValueError("base tiered family control manifest is invalid") from exc
+        objects = corpus_payload.get("objects") if isinstance(corpus_payload, Mapping) else None
+        selection = hot_payload.get("selection") if isinstance(hot_payload, Mapping) else None
+        hot_kinds = selection.get("include_record_kinds") if isinstance(selection, Mapping) else None
+        placement = base_manifest.get("placement")
+        placement_state = placement.get("state") if isinstance(placement, Mapping) else None
+        if not isinstance(objects, list) or not isinstance(hot_kinds, list) or placement_state not in {"shadow", "externalized"}:
+            raise ValueError("base tiered family placement is malformed")
+        base_paths = {
+            _V2_MANIFEST_PATH,
+            Path("kag/indexes/corpus.manifest.json"),
+            Path("kag/indexes/hot_profile.json"),
+            Path("kag/indexes/artifact_locators.json"),
+        }
+        for descriptor in objects:
+            if not isinstance(descriptor, Mapping):
+                raise ValueError("base tiered object descriptor is malformed")
+            kind = descriptor.get("kind")
+            range_value = descriptor.get("range")
+            if not isinstance(kind, str) or not isinstance(range_value, str):
+                raise ValueError("base tiered object path is malformed")
+            if placement_state == "shadow" or kind in hot_kinds:
+                base_paths.add(Path("kag/indexes/shards") / kind / f"{range_value}.jsonl")
+        return head_paths, base_paths
+    base_paths = {_V2_MANIFEST_PATH}
+    base_shards = base_manifest.get("shards")
+    if not isinstance(base_shards, list):
+        raise ValueError("base family manifest shards must be an array")
+    for descriptor in base_shards:
+        if not isinstance(descriptor, Mapping) or not isinstance(descriptor.get("path"), str):
+            raise ValueError("base family manifest contains a malformed shard descriptor")
+        base_paths.add(Path(descriptor["path"]))
+    return head_paths, base_paths
+
+
+def _v2_changed_generated_measurements(
+    root: Path,
+    manifest: Mapping[str, Any],
+    base_ref: str,
+) -> tuple[int, int]:
+    """Recompute the generated delta from the bound base and current family."""
+    resolved = subprocess.run(
+        ("git", "rev-parse", "--verify", f"{base_ref}^{{commit}}"),
+        cwd=root,
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+    if resolved.returncode != 0:
+        raise ValueError("budget receipt base_ref cannot be resolved")
+    resolved_ref = resolved.stdout.strip()
+    if resolved_ref != base_ref:
+        raise ValueError("budget receipt base_ref must be the resolved commit identity")
+    head_paths, base_paths = _v2_expected_generated_paths(root, manifest, resolved_ref)
+    changed_bytes = 0
+    changed_files = 0
+    for path in sorted(head_paths | base_paths):
+        old = _v2_git_bytes(root, resolved_ref, path)
+        current = root / path
+        new = current.read_bytes() if current.is_file() else None
+        if old == new:
+            continue
+        changed_files += 1
+        changed_bytes += max(len(old or b""), len(new or b""))
+    return changed_bytes, changed_files
+
+
 def _v2_non_python_input_issues(
     label: str,
     value: object,
@@ -1671,6 +1798,28 @@ def budget_receipt_contract_issues(
     for field, expected in expected_values.items():
         if expected is not None and receipt.get(field) != expected:
             issues.append((label, f"budget receipt field {field} does not match the family contract"))
+
+    if (
+        schema_version == KAG_BUDGET_RECEIPT_SCHEMA_V2_VERSION
+        and isinstance(base_ref, str)
+        and re.fullmatch(r"[0-9a-f]{40,64}", base_ref)
+    ):
+        try:
+            actual_changed_bytes, actual_changed_files = _v2_changed_generated_measurements(
+                root,
+                manifest,
+                base_ref,
+            )
+        except (OSError, ValueError) as exc:
+            issues.append((label, f"budget receipt generated delta cannot be recomputed: {exc}"))
+        else:
+            for field, actual in (
+                ("changed_generated_bytes", actual_changed_bytes),
+                ("changed_generated_files", actual_changed_files),
+                ("allowed_bytes", actual_changed_bytes),
+            ):
+                if receipt.get(field) != actual:
+                    issues.append((label, f"budget receipt field {field} does not match current generated delta"))
 
     relation: str | None = None
     relation_inputs = (

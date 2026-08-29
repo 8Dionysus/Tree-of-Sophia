@@ -885,6 +885,28 @@ class AgentSurfaceTests(unittest.TestCase):
             issues,
         )
 
+    def test_current_receipt_recomputes_generated_delta_measurements(self) -> None:
+        family_manifest, receipt, digest, receipt_path = self._current_receipt_case()
+        receipt["changed_generated_bytes"] = 0
+        receipt["changed_generated_files"] = 0
+        receipt["allowed_bytes"] = 0
+        receipt["scope"] = "tracked_size"
+
+        issues = validator.budget_receipt_contract_issues(
+            ROOT,
+            family_manifest,
+            receipt,
+            digest,
+            receipt_path,
+            base_has_v3=True,
+        )
+        label = receipt_path.relative_to(ROOT).as_posix()
+        for field in ("changed_generated_bytes", "changed_generated_files", "allowed_bytes"):
+            self.assertIn(
+                (label, f"budget receipt field {field} does not match current generated delta"),
+                issues,
+            )
+
     def test_current_receipt_requires_identity_bound_v2_schema(self) -> None:
         family_manifest, receipt, digest, receipt_path = self._current_receipt_case()
         receipt["schema_version"] = validator.KAG_BUDGET_RECEIPT_SCHEMA_VERSION
