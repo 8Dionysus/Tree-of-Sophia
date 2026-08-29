@@ -799,6 +799,88 @@ def _v2_non_python_input_issues(
     return issues
 
 
+def _v2_pinned_owner_file_issues(label: str, producer_files: object) -> list[Issue]:
+    """Resolve producer file records against the pinned aoa-kag action source."""
+    owner_root_text = os.environ.get("AOA_KAG_ROOT")
+    if not owner_root_text:
+        return []
+    owner_root = Path(owner_root_text)
+    revision = os.environ.get("AOA_KAG_ACTION_REVISION") or os.environ.get("AOA_KAG_REVISION")
+    if not isinstance(revision, str) or not re.fullmatch(r"[0-9a-f]{40,64}", revision):
+        return [(label, "budget receipt producer files require a pinned aoa-kag revision")]
+    if not owner_root.is_dir():
+        return [(label, "budget receipt producer files cannot access the pinned aoa-kag checkout")]
+    git_check = subprocess.run(
+        ("git", "rev-parse", "--git-dir"),
+        cwd=owner_root,
+        check=False,
+        capture_output=True,
+    )
+    if git_check.returncode != 0:
+        return [(label, "budget receipt producer files cannot read the pinned aoa-kag checkout")]
+    if not isinstance(producer_files, list):
+        return []
+
+    issues: list[Issue] = []
+    for index, item in enumerate(producer_files):
+        if not isinstance(item, Mapping):
+            continue
+        path_text = item.get("path")
+        if not isinstance(path_text, str) or not path_text:
+            continue
+        relative = Path(path_text)
+        if relative.is_absolute() or ".." in relative.parts:
+            continue
+        spec = f"{revision}:{relative.as_posix()}"
+        blob_result = subprocess.run(
+            ("git", "rev-parse", "--verify", spec),
+            cwd=owner_root,
+            check=False,
+            capture_output=True,
+            text=True,
+        )
+        source_result = subprocess.run(
+            ("git", "show", spec),
+            cwd=owner_root,
+            check=False,
+            capture_output=True,
+        )
+        if blob_result.returncode != 0 or source_result.returncode != 0:
+            issues.append(
+                (
+                    label,
+                    f"budget receipt producer file {path_text} is missing from pinned aoa-kag revision",
+                )
+            )
+            continue
+        source_bytes = source_result.stdout
+        expected_blob = blob_result.stdout.strip()
+        expected_digest = hashlib.sha256(source_bytes).hexdigest()
+        expected_bytes = len(source_bytes)
+        if item.get("content_digest") != expected_digest:
+            issues.append(
+                (
+                    label,
+                    f"budget receipt producer file {path_text} content does not match pinned aoa-kag source",
+                )
+            )
+        if item.get("bytes") != expected_bytes:
+            issues.append(
+                (
+                    label,
+                    f"budget receipt producer file {path_text} bytes do not match pinned aoa-kag source",
+                )
+            )
+        if item.get("git_blob") != f"sha1:{expected_blob}":
+            issues.append(
+                (
+                    label,
+                    f"budget receipt producer file {path_text} git_blob does not match pinned aoa-kag source",
+                )
+            )
+    return issues
+
+
 def v2_budget_receipt_identity_issues(
     root: Path,
     manifest: Mapping[str, Any],
@@ -936,6 +1018,7 @@ def v2_budget_receipt_identity_issues(
             expected_source_digest = _v2_canonical_digest(files)
             if producer.get("source_digest") != expected_source_digest:
                 issues.append((label, "budget receipt producer source digest does not match its files"))
+            issues.extend(_v2_pinned_owner_file_issues(label, files))
             if isinstance(action, dict):
                 action_files = [
                     item
