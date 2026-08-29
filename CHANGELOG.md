@@ -26,10 +26,12 @@ Tracking starts with the community-docs baseline for this repository.
   cross-geography, cross-chronology khipu/rongorongo guardrail into an era or
   tradition. A44–A48 retain explicit manual-review posture, and all planted
   material remains research-derived and pre-canon.
-- Makes the separate KAG action ABI explicit in current source: the executable
-  `repo-local-kag-index` workflow action is pinned to the repaired immutable
-  `1402c366d2fd01201549b31c23e1a9697f711c0b`, while the provider body remains
-  pinned to immutable `f46f146cc79a26fa81ad0f400b9c5774df293e57`.
+- Makes the separate KAG action ABI explicit in current source: the published
+  `aoa-kag@v0.5.0` provider remains pinned to immutable
+  `f46f146cc79a26fa81ad0f400b9c5774df293e57`, while the current provider
+  source snapshot is `47598411fba56f126a8530cb1e7e91bed57f5fef` and the
+  executable `repo-local-kag-index` workflow action is pinned to
+  `25cd6263ae2c860c58f86cf3a0747f2070eb45ff`.
 - Adds an executable parity guard and owner decision so neither identity is
   misreported as the other. This is a current-source compatibility repair
   only; it does not create or rewrite a tag or Release.
@@ -37,12 +39,14 @@ Tracking starts with the community-docs baseline for this repository.
   validator process, so the missing-store rehearsal cannot fall through to an
   ambient host default. The host store remains untouched; the deny-before-
   materialization and post-materialization intent states remain separate.
-- Adds an exact-source CI check for the published `aoa-kag` provider body at
-  `f46f146cc79a26fa81ad0f400b9c5774df293e57` and independently fetches the
-  executable repaired action at `1402c366d2fd01201549b31c23e1a9697f711c0b`, proving the
-  two immutable action snapshots remain distinct. The provider checkout is
-  completed to full history before its history-dependent owner validator runs,
-  so a shallow CI fetch cannot manufacture a generated-index drift verdict.
+- Adds an exact-source CI check for the current `aoa-kag` provider snapshot at
+  `47598411fba56f126a8530cb1e7e91bed57f5fef` and independently fetches the
+  executable action at `25cd6263ae2c860c58f86cf3a0747f2070eb45ff`, proving the
+  two immutable action snapshots remain distinct. The published `v0.5.0`
+  provider identity remains `f46f146cc79a26fa81ad0f400b9c5774df293e57`; no
+  tag or Release is rewritten. The provider checkout is completed to full
+  history before its history-dependent owner validator runs, so a shallow CI
+  fetch cannot manufacture a generated-index drift verdict.
 - Keeps the subject-store isolation regression standalone-safe by testing the
   Tree-owned process binding with a local resolver double; the full
   `abyss-machine` owner path remains exercised by the release audit.

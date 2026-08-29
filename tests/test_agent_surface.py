@@ -1256,7 +1256,7 @@ class AgentSurfaceTests(unittest.TestCase):
             issues,
         )
 
-    def test_current_receipt_binds_jobs_input_to_command_target(self) -> None:
+    def test_current_receipt_rejects_scheduler_jobs_in_producer_identity(self) -> None:
         family_manifest, receipt, digest, receipt_path = self._current_receipt_case()
         receipt["producer_identity"]["execution_inputs"]["command_targets"]["jobs"] = "3"
 
@@ -1285,8 +1285,58 @@ class AgentSurfaceTests(unittest.TestCase):
         self.assertIn(
             (
                 receipt_path.relative_to(ROOT).as_posix(),
-                "budget receipt producer action input jobs value_digest does not match command target jobs",
+                "budget receipt field producer_identity.execution_inputs.command_targets has unexpected jobs",
             ),
+            issues,
+        )
+
+    def test_historical_v4_receipt_accepts_manifest_declared_jobs(self) -> None:
+        family_manifest, receipt, digest, receipt_path = self._current_receipt_case()
+        procedure_manifest = receipt["producer_identity"]["procedure_manifest"]
+        procedure_manifest["action_inputs"].append("jobs")
+        execution = receipt["producer_identity"]["execution_inputs"]
+        jobs = "3"
+        execution["action_inputs"]["jobs"] = {
+            "bytes": len(jobs.encode("utf-8")),
+            "kind": "bounded-integer",
+            "state": "set",
+            "value_digest": validator.hashlib.sha256(jobs.encode("utf-8")).hexdigest(),
+        }
+        execution["command_targets"]["jobs"] = jobs
+
+        producer = receipt["producer_identity"]
+        identity_material_fields = (
+            "contract_version",
+            "owner",
+            "revision_binding",
+            "source_digest",
+            "procedure_manifest",
+            "action",
+            "execution_inputs",
+        )
+        producer["identity_digest"] = validator._v2_canonical_digest(
+            {field: producer[field] for field in identity_material_fields}
+        )
+
+        with mock.patch.object(validator, "_v2_procedure_manifest_issues", return_value=[]), mock.patch.object(
+            validator, "_v2_producer_file_inventory_issues", return_value=[]
+        ):
+            issues = validator.budget_receipt_contract_issues(
+                ROOT,
+                family_manifest,
+                receipt,
+                digest,
+                receipt_path,
+                base_has_v3=True,
+            )
+
+        label = receipt_path.relative_to(ROOT).as_posix()
+        self.assertNotIn(
+            (label, "budget receipt field producer_identity.execution_inputs.command_targets has unexpected jobs"),
+            issues,
+        )
+        self.assertNotIn(
+            (label, "budget receipt producer action input jobs value_digest does not match command target jobs"),
             issues,
         )
 

@@ -12,8 +12,8 @@ jobs:
     runs-on: ubuntu-latest
     env:
       AOA_STATS_REVISION: 88ff38b1b38eef939f2c5b4541cbe8363a05fc8d
-      AOA_KAG_REVISION: f46f146cc79a26fa81ad0f400b9c5774df293e57
-      AOA_KAG_ACTION_REVISION: 1402c366d2fd01201549b31c23e1a9697f711c0b
+      AOA_KAG_REVISION: 47598411fba56f126a8530cb1e7e91bed57f5fef
+      AOA_KAG_ACTION_REVISION: 25cd6263ae2c860c58f86cf3a0747f2070eb45ff
     steps:
       - name: Checkout
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
@@ -23,7 +23,7 @@ jobs:
           fetch-depth: 0
 
       - name: Check repo-local KAG index family
-        uses: 8Dionysus/aoa-kag/.github/actions/repo-local-kag-index@1402c366d2fd01201549b31c23e1a9697f711c0b
+        uses: 8Dionysus/aoa-kag/.github/actions/repo-local-kag-index@25cd6263ae2c860c58f86cf3a0747f2070eb45ff
         with:
           history-ref: ${{ github.event.pull_request.base.sha || github.event.before || format('{0}^', github.sha) }}
           event-history-ref: ${{ github.event.pull_request.base.sha || github.event.before || format('{0}^', github.sha) }}
