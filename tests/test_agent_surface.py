@@ -776,6 +776,40 @@ class AgentSurfaceTests(unittest.TestCase):
             issues,
         )
 
+    def test_current_receipt_binds_action_to_file_record(self) -> None:
+        family_manifest, receipt, digest, receipt_path = self._current_receipt_case()
+        producer = receipt["producer_identity"]
+        producer["action"]["content_digest"] = "0" * 64
+        identity_material_fields = (
+            "contract_version",
+            "owner",
+            "revision_binding",
+            "source_digest",
+            "procedure_manifest",
+            "action",
+            "execution_inputs",
+        )
+        producer["identity_digest"] = validator._v2_canonical_digest(
+            {field: producer[field] for field in identity_material_fields}
+        )
+
+        issues = validator.budget_receipt_contract_issues(
+            ROOT,
+            family_manifest,
+            receipt,
+            digest,
+            receipt_path,
+            base_has_v3=True,
+        )
+
+        self.assertIn(
+            (
+                receipt_path.relative_to(ROOT).as_posix(),
+                "budget receipt producer action does not match its file record",
+            ),
+            issues,
+        )
+
     def test_generated_kag_family_rejects_a_digest_only_receipt(self) -> None:
         manifest = json.loads(
             (ROOT / ".agents/agent-surface.manifest.json").read_text(encoding="utf-8")

@@ -583,7 +583,8 @@ def v2_budget_receipt_identity_issues(
             digest_issue = _v2_digest_issue(label, f"producer_identity.{field}", producer.get(field))
             if digest_issue:
                 issues.append(digest_issue)
-        issues.extend(_v2_producer_file_issues(label, producer.get("action"), "producer_identity.action"))
+        action = producer.get("action")
+        issues.extend(_v2_producer_file_issues(label, action, "producer_identity.action"))
         files = producer.get("files")
         if not isinstance(files, list) or not files:
             issues.append((label, "budget receipt producer identity files must be a non-empty array"))
@@ -593,6 +594,26 @@ def v2_budget_receipt_identity_issues(
             expected_source_digest = _v2_canonical_digest(files)
             if producer.get("source_digest") != expected_source_digest:
                 issues.append((label, "budget receipt producer source digest does not match its files"))
+            if isinstance(action, dict):
+                action_files = [
+                    item
+                    for item in files
+                    if isinstance(item, dict) and item.get("path") == action.get("path")
+                ]
+                if len(action_files) != 1:
+                    issues.append(
+                        (
+                            label,
+                            "budget receipt producer action path must identify exactly one producer file",
+                        )
+                    )
+                elif action_files[0] != action:
+                    issues.append(
+                        (
+                            label,
+                            "budget receipt producer action does not match its file record",
+                        )
+                    )
 
         identity_material_fields = (
             "contract_version",
@@ -661,6 +682,14 @@ def v2_budget_receipt_identity_issues(
                         (
                             label,
                             "budget receipt producer procedure manifest digest does not match its file record",
+                        )
+                    )
+                action_path = procedure_manifest.get("action_path")
+                if isinstance(action, dict) and action.get("path") != action_path:
+                    issues.append(
+                        (
+                            label,
+                            "budget receipt producer action path does not match procedure manifest",
                         )
                     )
             for field in (
