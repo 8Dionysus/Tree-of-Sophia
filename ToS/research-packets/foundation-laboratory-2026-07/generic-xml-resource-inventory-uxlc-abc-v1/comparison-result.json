@@ -1,0 +1,409 @@
+{
+  "all_hard_gates_pass": true,
+  "authority_boundary": "mechanical candidate comparison after manual source/output review; no public contract, source-text, language, translation, semantic, graph, canon, rights or publication authority",
+  "comparison_groups": {
+    "attribute-order": {
+      "exact_file_equal": false,
+      "ordered_topology_equal": true,
+      "unordered_shape_equal": true
+    },
+    "attribute-value-mutation": {
+      "exact_file_equal": false,
+      "ordered_topology_equal": true,
+      "unordered_shape_equal": true
+    },
+    "comment-pi-variation": {
+      "exact_file_equal": false,
+      "ordered_topology_equal": true,
+      "unordered_shape_equal": true
+    },
+    "dynamic-envelope": {
+      "exact_file_equal": false,
+      "ordered_topology_equal": true,
+      "unordered_shape_equal": true
+    },
+    "empty-serialization": {
+      "exact_file_equal": false,
+      "ordered_topology_equal": true,
+      "unordered_shape_equal": true
+    },
+    "prefix-alias": {
+      "exact_file_equal": false,
+      "ordered_topology_equal": true,
+      "unordered_shape_equal": true
+    },
+    "sibling-reorder": {
+      "exact_file_equal": false,
+      "ordered_topology_equal": false,
+      "unordered_shape_equal": true
+    },
+    "text-mutation": {
+      "exact_file_equal": false,
+      "ordered_topology_equal": true,
+      "unordered_shape_equal": true
+    }
+  },
+  "correction_replay": {
+    "acceptance_inferred": false,
+    "exact_file_equal": false,
+    "generic_ordered_topology_equal": true,
+    "live_replay_available": true,
+    "private_c14n_change_summary": {
+      "changed_element_count": 4,
+      "changed_preorders": [
+        1,
+        2,
+        47,
+        49
+      ],
+      "comparable_element_count": true,
+      "content_hashes_published": false,
+      "provider_content_subtree_equal": true
+    },
+    "provider_projection_shape_equal": true
+  },
+  "gate_count": 25,
+  "gates": [
+    {
+      "evidence": {
+        "candidate_output_freeze_sha256": "039cfda1d5c966325fda5e5caa2d25ef00d987ea871d7c0d06fa6bf67de34eec",
+        "evaluation_revision_freeze_sha256": "fce2ff78d1f44ab5726e57a058fa78e7c0a0b241d5b5de911e5e9e558eed3a90",
+        "public_output_count": 100
+      },
+      "gate_id": "G1-freeze-before-output",
+      "passed": true
+    },
+    {
+      "evidence": {
+        "frozen_file_count": 15,
+        "mismatches": []
+      },
+      "gate_id": "G2-input-digests-match",
+      "passed": true
+    },
+    {
+      "evidence": {
+        "hebrew_codepoints_present": false,
+        "source_value_matches": []
+      },
+      "gate_id": "G3-synthetic-fixtures-source-free",
+      "passed": true
+    },
+    {
+      "evidence": {
+        "byte_size_match": true,
+        "gitignored": true,
+        "mode": "0600",
+        "sha256_match": true
+      },
+      "gate_id": "G4-local-source-fixity-mode-ignore",
+      "passed": true
+    },
+    {
+      "evidence": {
+        "dtd_validation": false,
+        "huge_tree": false,
+        "load_dtd": false,
+        "mode": "strict_xml",
+        "no_network": true,
+        "parser": "lxml.etree.XMLParser",
+        "recover": false,
+        "reject_doctype": true,
+        "resolve_entities": false,
+        "xinclude": false
+      },
+      "gate_id": "G5-parser-posture-explicit",
+      "passed": true
+    },
+    {
+      "evidence": {
+        "failed_closed_count": 16,
+        "process_count": 16
+      },
+      "gate_id": "G6-security-negatives-no-output",
+      "passed": true
+    },
+    {
+      "evidence": {
+        "failures": [],
+        "pair_count": 58
+      },
+      "gate_id": "G7-independent-build-byte-equality",
+      "passed": true
+    },
+    {
+      "evidence": {
+        "check_count": 58,
+        "error_count": 0
+      },
+      "gate_id": "G8-b-paths-resolve-exactly",
+      "passed": true
+    },
+    {
+      "evidence": {
+        "exact_file_equal": false,
+        "ordered_topology_equal": true
+      },
+      "gate_id": "G9-prefix-independent-expanded-names",
+      "passed": true
+    },
+    {
+      "evidence": {
+        "p4_same_name": [
+          1,
+          2,
+          3
+        ],
+        "p5_all_child": [
+          1,
+          2,
+          3
+        ],
+        "p5_item_same_name": [
+          1,
+          2
+        ]
+      },
+      "gate_id": "G10-duplicate-and-interleaved-order",
+      "passed": true
+    },
+    {
+      "evidence": {
+        "attribute-order": {
+          "exact_file_equal": false,
+          "ordered_topology_equal": true,
+          "unordered_shape_equal": true
+        },
+        "attribute-value-mutation": {
+          "exact_file_equal": false,
+          "ordered_topology_equal": true,
+          "unordered_shape_equal": true
+        },
+        "comment-pi-variation": {
+          "exact_file_equal": false,
+          "ordered_topology_equal": true,
+          "unordered_shape_equal": true
+        },
+        "dynamic-envelope": {
+          "exact_file_equal": false,
+          "ordered_topology_equal": true,
+          "unordered_shape_equal": true
+        },
+        "empty-serialization": {
+          "exact_file_equal": false,
+          "ordered_topology_equal": true,
+          "unordered_shape_equal": true
+        },
+        "prefix-alias": {
+          "exact_file_equal": false,
+          "ordered_topology_equal": true,
+          "unordered_shape_equal": true
+        },
+        "sibling-reorder": {
+          "exact_file_equal": false,
+          "ordered_topology_equal": false,
+          "unordered_shape_equal": true
+        },
+        "text-mutation": {
+          "exact_file_equal": false,
+          "ordered_topology_equal": true,
+          "unordered_shape_equal": true
+        }
+      },
+      "gate_id": "G11-exact-file-change-preserved",
+      "passed": true
+    },
+    {
+      "evidence": {
+        "comparison_groups": {
+          "attribute-order": {
+            "exact_file_equal": false,
+            "ordered_topology_equal": true,
+            "unordered_shape_equal": true
+          },
+          "attribute-value-mutation": {
+            "exact_file_equal": false,
+            "ordered_topology_equal": true,
+            "unordered_shape_equal": true
+          },
+          "comment-pi-variation": {
+            "exact_file_equal": false,
+            "ordered_topology_equal": true,
+            "unordered_shape_equal": true
+          },
+          "dynamic-envelope": {
+            "exact_file_equal": false,
+            "ordered_topology_equal": true,
+            "unordered_shape_equal": true
+          },
+          "empty-serialization": {
+            "exact_file_equal": false,
+            "ordered_topology_equal": true,
+            "unordered_shape_equal": true
+          },
+          "prefix-alias": {
+            "exact_file_equal": false,
+            "ordered_topology_equal": true,
+            "unordered_shape_equal": true
+          },
+          "sibling-reorder": {
+            "exact_file_equal": false,
+            "ordered_topology_equal": false,
+            "unordered_shape_equal": true
+          },
+          "text-mutation": {
+            "exact_file_equal": false,
+            "ordered_topology_equal": true,
+            "unordered_shape_equal": true
+          }
+        },
+        "content_equality_claimed": false
+      },
+      "gate_id": "G12-no-topology-content-equivalence",
+      "passed": true
+    },
+    {
+      "evidence": {
+        "cited_count": 7,
+        "projection_count": 7
+      },
+      "gate_id": "G13-projection-cites-b",
+      "passed": true
+    },
+    {
+      "evidence": {
+        "generic_owner_claimed": false,
+        "genericity_negative_count": 1,
+        "provider_shape_resources": 7
+      },
+      "gate_id": "G14-c-derived-pass-primary-generic-fail",
+      "passed": true
+    },
+    {
+      "evidence": {
+        "element_return_supported": false,
+        "resource_count": 1
+      },
+      "gate_id": "G15-a-capture-pass-element-return-fail",
+      "passed": true
+    },
+    {
+      "evidence": {
+        "leaks": [],
+        "source_value_control_count": 62
+      },
+      "gate_id": "G16-no-source-values-in-tracked-output",
+      "passed": true
+    },
+    {
+      "evidence": {
+        "declared_included": false,
+        "forbidden_keys_found": []
+      },
+      "gate_id": "G17-no-source-element-content-fingerprints",
+      "passed": true
+    },
+    {
+      "evidence": {
+        "generic_owner_claims_tei": false,
+        "lookalike_namespace_is_null": true,
+        "true_tei_namespace_observed": true
+      },
+      "gate_id": "G18-no-tei-lookalike-classification",
+      "passed": true
+    },
+    {
+      "evidence": {
+        "accepted_structure_claimed": false,
+        "intrinsic_or_cross_corpus_word_ids_claimed": false
+      },
+      "gate_id": "G19-no-intrinsic-or-accepted-word-id",
+      "passed": true
+    },
+    {
+      "evidence": {
+        "builder_hash_match": true,
+        "contract_hash_match": true,
+        "forbidden_admission_files_present": []
+      },
+      "gate_id": "G20-no-public-or-downstream-admission",
+      "passed": true
+    },
+    {
+      "evidence": {
+        "checks": 58,
+        "consumer_imports_builder": false,
+        "consumer_reads_sealed_manifest": false,
+        "errors": 0
+      },
+      "gate_id": "G21-independent-source-return",
+      "passed": true
+    },
+    {
+      "evidence": {
+        "acceptance_inferred": false,
+        "exact_file_equal": false,
+        "generic_ordered_topology_equal": true,
+        "live_replay_available": true,
+        "private_c14n_change_summary": {
+          "changed_element_count": 4,
+          "changed_preorders": [
+            1,
+            2,
+            47,
+            49
+          ],
+          "comparable_element_count": true,
+          "content_hashes_published": false,
+          "provider_content_subtree_equal": true
+        },
+        "provider_projection_shape_equal": true
+      },
+      "gate_id": "G22-correction-layers-distinguished",
+      "passed": true
+    },
+    {
+      "evidence": {
+        "manual_review_sha256": "79ec149dc2379313e6f02856d128e56d83ffcd8b4e9e422e29420fef8ab573b0",
+        "missing_markers": []
+      },
+      "gate_id": "G23-manual-review-before-evaluator",
+      "passed": true
+    },
+    {
+      "evidence": {
+        "direct_monetary_cost": 0,
+        "human_burden_in_manual_review": true,
+        "output_bytes_separate": true,
+        "process_count": 133,
+        "wall_and_rss_measured": true
+      },
+      "gate_id": "G24-separated-quality-cost-speed-metrics",
+      "passed": true
+    },
+    {
+      "evidence": {
+        "authority_boundaries_present": true,
+        "machine_result_is_acceptance": false
+      },
+      "gate_id": "G25-machine-green-no-authority",
+      "passed": true
+    }
+  ],
+  "lab_id": "tos.lab.generic-xml-resource-inventory-uxlc-abc.v1",
+  "language_or_translation_reviewed": false,
+  "mechanical_preference": {
+    "candidate_c_as_generic_owner": "reject",
+    "capture_view": "A",
+    "generic_owner": "B",
+    "provider_projection": "C over B"
+  },
+  "passed_gate_count": 25,
+  "public_contract_promoted": false,
+  "publication_authorized": false,
+  "registered_gate_order_match": true,
+  "schema_version": "tos_generic_xml_resource_inventory_lab_comparison_result_v1",
+  "semantic_or_graph_state_created": false,
+  "source_text_accepted": false,
+  "uxlc_item_admitted": false
+}

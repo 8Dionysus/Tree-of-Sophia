@@ -1,0 +1,184 @@
+{
+  "authority_boundary": "generic exact-file element topology and source return only; no provider passage, accepted structure, source-text, linguistic, semantic, graph, canon, rights or publication authority",
+  "candidate": "B",
+  "cross_file_identity_claimed": false,
+  "element_content_fingerprints_included": false,
+  "file_binding": {
+    "byte_size": 34,
+    "file_id": "tos.file.sha256.a2aa21120aaff391daa03ba8ec3b16cd4aaffa73295edf36dd18cb6f6327cf82",
+    "input_id": "P4-duplicate-siblings",
+    "media_type": "application/xml",
+    "sha256": "a2aa21120aaff391daa03ba8ec3b16cd4aaffa73295edf36dd18cb6f6327cf82"
+  },
+  "intrinsic_ids_claimed": false,
+  "lab_id": "tos.lab.generic-xml-resource-inventory-uxlc-abc.v1",
+  "parser_posture": {
+    "dtd_validation": false,
+    "huge_tree": false,
+    "load_dtd": false,
+    "mode": "strict_xml",
+    "no_network": true,
+    "parser": "lxml.etree.XMLParser",
+    "recover": false,
+    "reject_doctype": true,
+    "resolve_entities": false,
+    "xinclude": false
+  },
+  "resources": [
+    {
+      "attribute_count": 0,
+      "attribute_expanded_names": [],
+      "element_child_count": 3,
+      "expanded_name": {
+        "local_name": "root",
+        "namespace_uri": null
+      },
+      "locator": {
+        "depth": 0,
+        "element_child_position": 1,
+        "parent_resource_id": null,
+        "path": [
+          {
+            "expanded_name": {
+              "local_name": "root",
+              "namespace_uri": null
+            },
+            "same_name_sibling_position": 1
+          }
+        ],
+        "preorder": 1,
+        "same_name_sibling_position": 1
+      },
+      "resource_id": "xml-element-000001",
+      "resource_kind": "xml_element"
+    },
+    {
+      "attribute_count": 0,
+      "attribute_expanded_names": [],
+      "element_child_count": 0,
+      "expanded_name": {
+        "local_name": "item",
+        "namespace_uri": null
+      },
+      "locator": {
+        "depth": 1,
+        "element_child_position": 1,
+        "parent_resource_id": "xml-element-000001",
+        "path": [
+          {
+            "expanded_name": {
+              "local_name": "root",
+              "namespace_uri": null
+            },
+            "same_name_sibling_position": 1
+          },
+          {
+            "expanded_name": {
+              "local_name": "item",
+              "namespace_uri": null
+            },
+            "same_name_sibling_position": 1
+          }
+        ],
+        "preorder": 2,
+        "same_name_sibling_position": 1
+      },
+      "resource_id": "xml-element-000002",
+      "resource_kind": "xml_element"
+    },
+    {
+      "attribute_count": 0,
+      "attribute_expanded_names": [],
+      "element_child_count": 0,
+      "expanded_name": {
+        "local_name": "item",
+        "namespace_uri": null
+      },
+      "locator": {
+        "depth": 1,
+        "element_child_position": 2,
+        "parent_resource_id": "xml-element-000001",
+        "path": [
+          {
+            "expanded_name": {
+              "local_name": "root",
+              "namespace_uri": null
+            },
+            "same_name_sibling_position": 1
+          },
+          {
+            "expanded_name": {
+              "local_name": "item",
+              "namespace_uri": null
+            },
+            "same_name_sibling_position": 2
+          }
+        ],
+        "preorder": 3,
+        "same_name_sibling_position": 2
+      },
+      "resource_id": "xml-element-000003",
+      "resource_kind": "xml_element"
+    },
+    {
+      "attribute_count": 0,
+      "attribute_expanded_names": [],
+      "element_child_count": 0,
+      "expanded_name": {
+        "local_name": "item",
+        "namespace_uri": null
+      },
+      "locator": {
+        "depth": 1,
+        "element_child_position": 3,
+        "parent_resource_id": "xml-element-000001",
+        "path": [
+          {
+            "expanded_name": {
+              "local_name": "root",
+              "namespace_uri": null
+            },
+            "same_name_sibling_position": 1
+          },
+          {
+            "expanded_name": {
+              "local_name": "item",
+              "namespace_uri": null
+            },
+            "same_name_sibling_position": 3
+          }
+        ],
+        "preorder": 4,
+        "same_name_sibling_position": 3
+      },
+      "resource_id": "xml-element-000004",
+      "resource_kind": "xml_element"
+    }
+  ],
+  "schema_version": "tos_lab_generic_xml_candidate_b_v1",
+  "scope": {
+    "excluded": [
+      "text",
+      "tail",
+      "attribute_values",
+      "comments",
+      "processing_instructions",
+      "dtd",
+      "entity_expansions"
+    ],
+    "node_kinds": [
+      "element"
+    ],
+    "path_identity": "expanded-name plus one-based same-name sibling position under exact file binding"
+  },
+  "source_text_included": false,
+  "summary": {
+    "attribute_count": 0,
+    "max_depth": 1,
+    "namespace_uris": [],
+    "ordered_topology_sha256": "881377702610c60d65c14932f70f5b03e400bb289e0d325408aa1f9d2b0d8ade",
+    "resource_count": 4,
+    "unordered_element_shape_sha256": "27a2696c41e7f68fa2ca6f7a049889e028849954896e16d9dbdb47802fa13dbd"
+  },
+  "tei_classification_claimed": false
+}

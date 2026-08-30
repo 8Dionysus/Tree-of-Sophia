@@ -1,0 +1,307 @@
+#!/usr/bin/env python3
+"""Independent consumer for candidate source return.
+
+This program deliberately does not import the candidate builder and does not
+read the sealed evaluation manifest.
+"""
+
+from __future__ import annotations
+
+import hashlib
+import json
+import os
+import re
+from pathlib import Path
+from typing import Any
+
+from lxml import etree
+
+
+LAB_DIR = Path(__file__).resolve().parent
+MANIFEST_PATH = LAB_DIR / "input-manifest.json"
+PUBLIC_ROOT = LAB_DIR / "public-synthetic" / "run-1"
+RECEIPT_PATH = LAB_DIR / "independent-consumer-receipt.json"
+DOCTYPE_PATTERN = re.compile(br"<!DOCTYPE\s", re.IGNORECASE)
+
+
+def canonical_bytes(value: Any) -> bytes:
+    return (
+        json.dumps(value, ensure_ascii=False, indent=2, sort_keys=True) + "\n"
+    ).encode("utf-8")
+
+
+def sha256_bytes(value: bytes) -> str:
+    return hashlib.sha256(value).hexdigest()
+
+
+def expanded_name(raw_name: str) -> dict[str, str | None]:
+    if raw_name.startswith("{"):
+        namespace_uri, local_name = raw_name[1:].split("}", 1)
+        return {"namespace_uri": namespace_uri, "local_name": local_name}
+    return {"namespace_uri": None, "local_name": raw_name}
+
+
+def strict_parse(payload: bytes) -> etree._Element:
+    if DOCTYPE_PATTERN.search(payload):
+        raise ValueError("DOCTYPE forbidden")
+    parser = etree.XMLParser(
+        recover=False,
+        load_dtd=False,
+        dtd_validation=False,
+        resolve_entities=False,
+        no_network=True,
+        huge_tree=False,
+        remove_comments=False,
+        remove_pis=False,
+        strip_cdata=False,
+        collect_ids=False,
+    )
+    return etree.fromstring(payload, parser=parser)
+
+
+def element_children(element: etree._Element) -> list[etree._Element]:
+    return [child for child in element if isinstance(child.tag, str)]
+
+
+def resolve_path(root: etree._Element, path: list[dict[str, Any]]) -> etree._Element:
+    if not path:
+        raise ValueError("empty path")
+    first = path[0]
+    if first["expanded_name"] != expanded_name(root.tag):
+        raise ValueError("root expanded name mismatch")
+    if first["same_name_sibling_position"] != 1:
+        raise ValueError("root sibling position mismatch")
+    current = root
+    for step in path[1:]:
+        matching = [
+            child
+            for child in element_children(current)
+            if expanded_name(child.tag) == step["expanded_name"]
+        ]
+        ordinal = step["same_name_sibling_position"]
+        if ordinal < 1 or ordinal > len(matching):
+            raise ValueError("path ordinal out of range")
+        current = matching[ordinal - 1]
+    return current
+
+
+def validate_b(owner: dict[str, Any], root: etree._Element) -> dict[str, Any]:
+    resources = owner["resources"]
+    elements = [element for element in root.iter() if isinstance(element.tag, str)]
+    if len(resources) != len(elements):
+        raise ValueError("resource/element count mismatch")
+    element_to_resource = {element: resource for element, resource in zip(elements, resources)}
+    for expected_preorder, resource in enumerate(resources, start=1):
+        element = resolve_path(root, resource["locator"]["path"])
+        if element is not elements[expected_preorder - 1]:
+            raise ValueError("path does not return registered preorder element")
+        if resource["expanded_name"] != expanded_name(element.tag):
+            raise ValueError("expanded name mismatch")
+        if resource["locator"]["preorder"] != expected_preorder:
+            raise ValueError("preorder mismatch")
+        depth = len(list(element.iterancestors()))
+        if resource["locator"]["depth"] != depth:
+            raise ValueError("depth mismatch")
+        parent = element.getparent()
+        if parent is None:
+            expected_parent_ref = None
+            expected_child_position = 1
+            expected_same_name_position = 1
+        else:
+            siblings = element_children(parent)
+            expected_parent_ref = element_to_resource[parent]["resource_id"]
+            expected_child_position = siblings.index(element) + 1
+            matching = [
+                sibling
+                for sibling in siblings
+                if expanded_name(sibling.tag) == expanded_name(element.tag)
+            ]
+            expected_same_name_position = matching.index(element) + 1
+        if resource["locator"]["parent_resource_id"] != expected_parent_ref:
+            raise ValueError("parent ref mismatch")
+        if resource["locator"]["element_child_position"] != expected_child_position:
+            raise ValueError("element child position mismatch")
+        if resource["locator"]["same_name_sibling_position"] != expected_same_name_position:
+            raise ValueError("same-name sibling position mismatch")
+        if resource["element_child_count"] != len(element_children(element)):
+            raise ValueError("element child count mismatch")
+        if resource["attribute_count"] != len(element.attrib):
+            raise ValueError("attribute count mismatch")
+        expected_attributes = sorted(
+            (expanded_name(name) for name in element.attrib.keys()),
+            key=lambda item: ((item["namespace_uri"] or ""), item["local_name"]),
+        )
+        if resource["attribute_expanded_names"] != expected_attributes:
+            raise ValueError("attribute expanded names mismatch")
+    return {
+        "resource_count": len(resources),
+        "resolved_exactly_once": len(resources),
+        "path_failures": 0,
+        "metadata_mismatches": 0,
+    }
+
+
+def validate_projection(
+    projection: dict[str, Any],
+    root: etree._Element,
+    owner: dict[str, Any] | None,
+) -> dict[str, Any]:
+    owner_by_id = (
+        {resource["resource_id"]: resource for resource in owner["resources"]}
+        if owner is not None
+        else {}
+    )
+    expected_local_names = {
+        "provider_book": "book",
+        "provider_chapter": "c",
+        "provider_verse": "v",
+        "provider_word": "w",
+    }
+    cited_generic = 0
+    for record in projection["resources"]:
+        element = resolve_path(root, record["source_element_path"])
+        if expanded_name(element.tag) != {
+            "namespace_uri": None,
+            "local_name": expected_local_names[record["resource_kind"]],
+        }:
+            raise ValueError("provider record resolves to wrong source element")
+        generic_ref = record["generic_resource_ref"]
+        if owner is None:
+            if generic_ref is not None:
+                raise ValueError("primary C unexpectedly cites absent B")
+        else:
+            if generic_ref not in owner_by_id:
+                raise ValueError("projection generic ref missing from B")
+            if owner_by_id[generic_ref]["locator"]["path"] != record["source_element_path"]:
+                raise ValueError("projection path differs from cited B path")
+            cited_generic += 1
+    return {
+        "resource_count": len(projection["resources"]),
+        "resolved_exactly_once": len(projection["resources"]),
+        "generic_refs_verified": cited_generic,
+        "path_failures": 0,
+    }
+
+
+def validate_candidate(payload: dict[str, Any], source: bytes) -> dict[str, Any]:
+    root = strict_parse(source)
+    candidate = payload["candidate"]
+    if candidate == "A":
+        if payload["file_binding"]["sha256"] != sha256_bytes(source):
+            raise ValueError("A file binding mismatch")
+        if payload["element_return_supported"] is not False:
+            raise ValueError("A overclaims element return")
+        return {
+            "document_fixity_match": True,
+            "resource_count": len(payload["resources"]),
+            "element_return_supported": False,
+        }
+    if candidate == "B":
+        return validate_b(payload, root)
+    if candidate == "C":
+        result = validate_projection(payload, root, None)
+        result["generic_owner_supported"] = False
+        return result
+    if candidate == "BC":
+        owner_result = validate_b(payload["owner"], root)
+        projection_result = validate_projection(payload["projection"], root, payload["owner"])
+        return {"owner": owner_result, "projection": projection_result}
+    raise ValueError("unknown candidate")
+
+
+def fixture_bytes(manifest: dict[str, Any], fixture_id: str) -> bytes:
+    matches = [fixture for fixture in manifest["fixtures"] if fixture["id"] == fixture_id]
+    if len(matches) != 1:
+        raise ValueError("fixture lookup failed")
+    return matches[0]["xml"].encode("utf-8")
+
+
+def write_receipt(value: Any) -> None:
+    temporary = RECEIPT_PATH.with_name(RECEIPT_PATH.name + ".tmp")
+    temporary.write_bytes(canonical_bytes(value))
+    os.chmod(temporary, 0o644)
+    temporary.replace(RECEIPT_PATH)
+
+
+def main() -> int:
+    manifest = json.loads(MANIFEST_PATH.read_text(encoding="utf-8"))
+    checks: list[dict[str, Any]] = []
+    errors: list[dict[str, str]] = []
+
+    for fixture in manifest["fixtures"]:
+        fixture_id = fixture["id"]
+        candidates = ["A", "B"]
+        if fixture_id == "PC1-uxlc-shape":
+            candidates.extend(["C", "BC"])
+        source = fixture_bytes(manifest, fixture_id)
+        for candidate in candidates:
+            path = PUBLIC_ROOT / candidate.lower() / f"{fixture_id}.json"
+            try:
+                payload = json.loads(path.read_text(encoding="utf-8"))
+                checks.append(
+                    {
+                        "selection_kind": "fixture",
+                        "selection_id": fixture_id,
+                        "candidate": candidate,
+                        "output_sha256": sha256_bytes(path.read_bytes()),
+                        "result": validate_candidate(payload, source),
+                    }
+                )
+            except (OSError, json.JSONDecodeError, KeyError, TypeError, ValueError) as exc:
+                errors.append(
+                    {
+                        "selection_kind": "fixture",
+                        "selection_id": fixture_id,
+                        "candidate": candidate,
+                        "error_class": type(exc).__name__,
+                    }
+                )
+
+    private_root = Path(manifest["private_output_root"])
+    for source_id, source_record in manifest["exact_sources"].items():
+        source_path = Path(source_record["path"])
+        if not source_path.is_file():
+            continue
+        source = source_path.read_bytes()
+        for candidate in ("A", "B", "C", "BC"):
+            path = private_root / "outputs" / source_id / "run-1" / f"{candidate.lower()}.json"
+            try:
+                payload = json.loads(path.read_text(encoding="utf-8"))
+                checks.append(
+                    {
+                        "selection_kind": "source",
+                        "selection_id": source_id,
+                        "candidate": candidate,
+                        "output_sha256": sha256_bytes(path.read_bytes()),
+                        "result": validate_candidate(payload, source),
+                    }
+                )
+            except (OSError, json.JSONDecodeError, KeyError, TypeError, ValueError) as exc:
+                errors.append(
+                    {
+                        "selection_kind": "source",
+                        "selection_id": source_id,
+                        "candidate": candidate,
+                        "error_class": type(exc).__name__,
+                    }
+                )
+
+    receipt = {
+        "schema_version": "tos_generic_xml_resource_inventory_independent_consumer_receipt_v1",
+        "lab_id": manifest["lab_id"],
+        "consumer_imports_builder": False,
+        "consumer_reads_sealed_manifest": False,
+        "check_count": len(checks),
+        "error_count": len(errors),
+        "checks": checks,
+        "errors": errors,
+        "all_paths_and_metadata_return": len(errors) == 0,
+        "source_text_included": False,
+        "authority_boundary": "independent source-return mechanics only; no source-text, linguistic, translation, semantic, graph, canon, rights or publication authority",
+    }
+    write_receipt(receipt)
+    return 0 if not errors else 1
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

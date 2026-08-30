@@ -1,0 +1,502 @@
+#!/usr/bin/env python3
+"""Evaluate frozen gates after direct manual source/output review.
+
+The evaluator is intentionally last. A green result is a mechanical receipt,
+not a substitute for the preceding source-visible review.
+"""
+
+from __future__ import annotations
+
+import hashlib
+import json
+import os
+import re
+import subprocess
+from pathlib import Path
+from typing import Any
+
+from lxml import etree
+
+
+LAB_DIR = Path(__file__).resolve().parent
+REPO_ROOT = LAB_DIR.parents[3]
+INPUT_PATH = LAB_DIR / "input-manifest.json"
+SEALED_PATH = LAB_DIR / "sealed-evaluation-manifest-v2.json"
+FREEZE_PATH = LAB_DIR / "freeze-receipt-v3.json"
+OBSERVATIONS_PATH = LAB_DIR / "run-observations.json"
+SOURCE_RECEIPT_PATH = LAB_DIR / "source-run-receipt.json"
+CONSUMER_PATH = LAB_DIR / "independent-consumer-receipt.json"
+MANUAL_PATH = LAB_DIR / "MANUAL_SOURCE_AND_OUTPUT_REVIEW.md"
+RESULT_PATH = LAB_DIR / "comparison-result.json"
+DOCTYPE_PATTERN = re.compile(br"<!DOCTYPE\s", re.IGNORECASE)
+HEBREW_PATTERN = re.compile(r"[\u0590-\u05ff]")
+
+
+def canonical_bytes(value: Any) -> bytes:
+    return (
+        json.dumps(value, ensure_ascii=False, indent=2, sort_keys=True) + "\n"
+    ).encode("utf-8")
+
+
+def sha256_bytes(value: bytes) -> str:
+    return hashlib.sha256(value).hexdigest()
+
+
+def sha256_path(path: Path) -> str:
+    return sha256_bytes(path.read_bytes())
+
+
+def load_json(path: Path) -> dict[str, Any]:
+    return json.loads(path.read_text(encoding="utf-8"))
+
+
+def strict_parse(payload: bytes) -> etree._Element:
+    if DOCTYPE_PATTERN.search(payload):
+        raise ValueError("DOCTYPE forbidden")
+    parser = etree.XMLParser(
+        recover=False,
+        load_dtd=False,
+        dtd_validation=False,
+        resolve_entities=False,
+        no_network=True,
+        huge_tree=False,
+        remove_comments=False,
+        remove_pis=False,
+        strip_cdata=False,
+        collect_ids=False,
+    )
+    return etree.fromstring(payload, parser=parser)
+
+
+def b_output(fixture_id: str, run_number: int = 1) -> dict[str, Any]:
+    return load_json(
+        LAB_DIR
+        / "public-synthetic"
+        / f"run-{run_number}"
+        / "b"
+        / f"{fixture_id}.json"
+    )
+
+
+def candidate_output(candidate: str, fixture_id: str, run_number: int = 1) -> dict[str, Any]:
+    return load_json(
+        LAB_DIR
+        / "public-synthetic"
+        / f"run-{run_number}"
+        / candidate.lower()
+        / f"{fixture_id}.json"
+    )
+
+
+def source_output(manifest: dict[str, Any], source_id: str, candidate: str, run_number: int = 1) -> dict[str, Any]:
+    return load_json(
+        Path(manifest["private_output_root"])
+        / "outputs"
+        / source_id
+        / f"run-{run_number}"
+        / f"{candidate.lower()}.json"
+    )
+
+
+def gate(gate_id: str, passed: bool, evidence: Any) -> dict[str, Any]:
+    return {"gate_id": gate_id, "passed": bool(passed), "evidence": evidence}
+
+
+def verify_frozen_files(freeze: dict[str, Any]) -> tuple[bool, list[str]]:
+    mismatches: list[str] = []
+    for record in freeze["frozen_files"]:
+        path = REPO_ROOT / record["ref"]
+        if not path.is_file() or sha256_path(path) != record["sha256"]:
+            mismatches.append(record["ref"])
+    return not mismatches, mismatches
+
+
+def exact_source_values(source_path: Path) -> list[str]:
+    root = strict_parse(source_path.read_bytes())
+    values: set[str] = set()
+    for element in root.iter():
+        if not isinstance(element.tag, str):
+            continue
+        for value in (element.text, element.tail):
+            if value:
+                stripped = value.strip()
+                if stripped and (HEBREW_PATTERN.search(stripped) or len(stripped) >= 16):
+                    values.add(stripped)
+        for value in element.attrib.values():
+            stripped = value.strip()
+            if stripped and (HEBREW_PATTERN.search(stripped) or len(stripped) >= 16):
+                values.add(stripped)
+    return sorted(values, key=len, reverse=True)
+
+
+def scan_tracked_generated_for_source_values(source_values: list[str]) -> list[str]:
+    scan_paths = list((LAB_DIR / "public-synthetic").rglob("*.json")) + [
+        OBSERVATIONS_PATH,
+        SOURCE_RECEIPT_PATH,
+        CONSUMER_PATH,
+    ]
+    leaks: list[str] = []
+    for path in scan_paths:
+        text = path.read_text(encoding="utf-8")
+        for index, value in enumerate(source_values):
+            if value in text:
+                leaks.append(f"{path.relative_to(LAB_DIR)}:source-value-{index + 1}")
+    return sorted(set(leaks))
+
+
+def gitignored(path: Path) -> bool:
+    completed = subprocess.run(
+        ["git", "-C", "/srv/AbyssOS/Tree-of-Sophia", "check-ignore", "-q", str(path)],
+        check=False,
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+    )
+    return completed.returncode == 0
+
+
+def collect_recursive_keys(value: Any) -> list[str]:
+    keys: list[str] = []
+    if isinstance(value, dict):
+        for key, nested in value.items():
+            keys.append(key)
+            keys.extend(collect_recursive_keys(nested))
+    elif isinstance(value, list):
+        for nested in value:
+            keys.extend(collect_recursive_keys(nested))
+    return keys
+
+
+def c14n_change_summary(left_path: Path, right_path: Path) -> dict[str, Any]:
+    left_root = strict_parse(left_path.read_bytes())
+    right_root = strict_parse(right_path.read_bytes())
+    left_elements = [element for element in left_root.iter() if isinstance(element.tag, str)]
+    right_elements = [element for element in right_root.iter() if isinstance(element.tag, str)]
+    if len(left_elements) != len(right_elements):
+        return {
+            "comparable_element_count": False,
+            "changed_element_count": None,
+            "changed_preorders": [],
+            "provider_content_subtree_equal": False,
+        }
+    changed: list[int] = []
+    for position, (left, right) in enumerate(zip(left_elements, right_elements), start=1):
+        left_bytes = etree.tostring(left, method="c14n", exclusive=False, with_comments=False)
+        right_bytes = etree.tostring(right, method="c14n", exclusive=False, with_comments=False)
+        if left_bytes != right_bytes:
+            changed.append(position)
+    left_content = [
+        element
+        for element in left_root
+        if isinstance(element.tag, str) and element.tag == "tanach"
+    ]
+    right_content = [
+        element
+        for element in right_root
+        if isinstance(element.tag, str) and element.tag == "tanach"
+    ]
+    content_equal = False
+    if len(left_content) == len(right_content) == 1:
+        content_equal = etree.tostring(
+            left_content[0], method="c14n", exclusive=False, with_comments=False
+        ) == etree.tostring(
+            right_content[0], method="c14n", exclusive=False, with_comments=False
+        )
+    return {
+        "comparable_element_count": True,
+        "changed_element_count": len(changed),
+        "changed_preorders": changed,
+        "provider_content_subtree_equal": content_equal,
+        "content_hashes_published": False,
+    }
+
+
+def main() -> int:
+    manifest = load_json(INPUT_PATH)
+    sealed = load_json(SEALED_PATH)
+    freeze = load_json(FREEZE_PATH)
+    observations = load_json(OBSERVATIONS_PATH)
+    source_receipt = load_json(SOURCE_RECEIPT_PATH)
+    consumer = load_json(CONSUMER_PATH)
+    gates: list[dict[str, Any]] = []
+
+    outputs = list((LAB_DIR / "public-synthetic").rglob("*.json"))
+    earliest_output_mtime_ns = min(path.stat().st_mtime_ns for path in outputs)
+    candidate_freeze_path = REPO_ROOT / freeze["candidate_output_freeze_ref"]
+    gates.append(
+        gate(
+            "G1-freeze-before-output",
+            candidate_freeze_path.stat().st_mtime_ns < earliest_output_mtime_ns,
+            {
+                "candidate_output_freeze_sha256": sha256_path(candidate_freeze_path),
+                "evaluation_revision_freeze_sha256": sha256_path(FREEZE_PATH),
+                "public_output_count": len(outputs),
+            },
+        )
+    )
+
+    frozen_ok, frozen_mismatches = verify_frozen_files(freeze)
+    gates.append(
+        gate(
+            "G2-input-digests-match",
+            frozen_ok,
+            {"mismatches": frozen_mismatches, "frozen_file_count": len(freeze["frozen_files"])},
+        )
+    )
+
+    selected_path = Path(manifest["exact_sources"]["selected"]["path"])
+    source_values = exact_source_values(selected_path)
+    fixture_text = json.dumps(manifest["fixtures"], ensure_ascii=False)
+    fixture_leaks = [
+        f"source-value-{index + 1}"
+        for index, value in enumerate(source_values)
+        if value in fixture_text
+    ]
+    gates.append(
+        gate(
+            "G3-synthetic-fixtures-source-free",
+            not fixture_leaks and HEBREW_PATTERN.search(fixture_text) is None,
+            {"source_value_matches": fixture_leaks, "hebrew_codepoints_present": HEBREW_PATTERN.search(fixture_text) is not None},
+        )
+    )
+
+    selected_record = manifest["exact_sources"]["selected"]
+    g4 = (
+        sha256_path(selected_path) == selected_record["sha256"]
+        and selected_path.stat().st_size == selected_record["byte_size"]
+        and f"{selected_path.stat().st_mode & 0o777:04o}" == selected_record["expected_mode"]
+        and gitignored(selected_path)
+    )
+    gates.append(
+        gate(
+            "G4-local-source-fixity-mode-ignore",
+            g4,
+            {
+                "sha256_match": sha256_path(selected_path) == selected_record["sha256"],
+                "byte_size_match": selected_path.stat().st_size == selected_record["byte_size"],
+                "mode": f"{selected_path.stat().st_mode & 0o777:04o}",
+                "gitignored": gitignored(selected_path),
+            },
+        )
+    )
+
+    b_p1 = b_output("P1-no-namespace")
+    gates.append(
+        gate(
+            "G5-parser-posture-explicit",
+            all(b_p1["parser_posture"].get(key) == value for key, value in manifest["parser_posture"].items()),
+            b_p1["parser_posture"],
+        )
+    )
+
+    security_ids = {fixture["id"] for fixture in manifest["security_fixtures"]}
+    security_processes = [
+        process
+        for process in observations["processes"]
+        if process["selection_id"] in security_ids
+    ]
+    g6 = len(security_processes) == 16 and all(
+        process["exit_code"] == 2 and process["output_created"] is False
+        for process in security_processes
+    )
+    gates.append(
+        gate(
+            "G6-security-negatives-no-output",
+            g6,
+            {
+                "process_count": len(security_processes),
+                "failed_closed_count": sum(
+                    1
+                    for process in security_processes
+                    if process["exit_code"] == 2 and process["output_created"] is False
+                ),
+            },
+        )
+    )
+
+    positive_processes = [
+        process
+        for process in observations["processes"]
+        if process["exit_code"] == 0
+    ]
+    deterministic_pairs: dict[tuple[str, str, str], list[str]] = {}
+    for process in positive_processes:
+        key = (process["candidate"], process["selection_kind"], process["selection_id"])
+        deterministic_pairs.setdefault(key, []).append(process["output_sha256"])
+    pair_failures = [
+        ":".join(key)
+        for key, digests in deterministic_pairs.items()
+        if len(digests) != 2 or len(set(digests)) != 1
+    ]
+    gates.append(
+        gate(
+            "G7-independent-build-byte-equality",
+            not pair_failures,
+            {"pair_count": len(deterministic_pairs), "failures": sorted(pair_failures)},
+        )
+    )
+
+    gates.append(
+        gate(
+            "G8-b-paths-resolve-exactly",
+            consumer["all_paths_and_metadata_return"] and consumer["error_count"] == 0,
+            {"check_count": consumer["check_count"], "error_count": consumer["error_count"]},
+        )
+    )
+
+    p2a = b_output("P2-prefix-a")
+    p2b = b_output("P2-prefix-b")
+    g9 = (
+        p2a["summary"]["ordered_topology_sha256"] == p2b["summary"]["ordered_topology_sha256"]
+        and p2a["file_binding"]["sha256"] != p2b["file_binding"]["sha256"]
+    )
+    gates.append(
+        gate(
+            "G9-prefix-independent-expanded-names",
+            g9,
+            {"ordered_topology_equal": p2a["summary"]["ordered_topology_sha256"] == p2b["summary"]["ordered_topology_sha256"], "exact_file_equal": False},
+        )
+    )
+
+    p4 = b_output("P4-duplicate-siblings")
+    p4_items = [resource for resource in p4["resources"] if resource["expanded_name"]["local_name"] == "item"]
+    p5 = b_output("P5-interleaved-siblings")
+    p5_children = [resource for resource in p5["resources"] if resource["locator"]["depth"] == 1]
+    p5_items = [resource for resource in p5_children if resource["expanded_name"]["local_name"] == "item"]
+    g10 = (
+        [resource["locator"]["same_name_sibling_position"] for resource in p4_items] == [1, 2, 3]
+        and [resource["locator"]["element_child_position"] for resource in p5_children] == [1, 2, 3]
+        and [resource["locator"]["same_name_sibling_position"] for resource in p5_items] == [1, 2]
+    )
+    gates.append(gate("G10-duplicate-and-interleaved-order", g10, {"p4_same_name": [resource["locator"]["same_name_sibling_position"] for resource in p4_items], "p5_all_child": [resource["locator"]["element_child_position"] for resource in p5_children], "p5_item_same_name": [resource["locator"]["same_name_sibling_position"] for resource in p5_items]}))
+
+    comparison_results: dict[str, Any] = {}
+    g11 = True
+    g12 = True
+    for group in manifest["comparison_groups"]:
+        left = b_output(group["left"])
+        right = b_output(group["right"])
+        exact_equal = left["file_binding"]["sha256"] == right["file_binding"]["sha256"]
+        unordered_equal = left["summary"]["unordered_element_shape_sha256"] == right["summary"]["unordered_element_shape_sha256"]
+        ordered_equal = left["summary"]["ordered_topology_sha256"] == right["summary"]["ordered_topology_sha256"]
+        comparison_results[group["id"]] = {"exact_file_equal": exact_equal, "unordered_shape_equal": unordered_equal, "ordered_topology_equal": ordered_equal}
+        g11 = g11 and not exact_equal
+        g12 = g12 and unordered_equal
+    g12 = g12 and comparison_results["sibling-reorder"]["ordered_topology_equal"] is False
+    gates.append(gate("G11-exact-file-change-preserved", g11, comparison_results))
+    gates.append(gate("G12-no-topology-content-equivalence", g12, {"comparison_groups": comparison_results, "content_equality_claimed": False}))
+
+    bc = candidate_output("BC", "PC1-uxlc-shape")
+    all_projection_refs = all(record["generic_resource_ref"] for record in bc["projection"]["resources"])
+    gates.append(gate("G13-projection-cites-b", all_projection_refs, {"projection_count": len(bc["projection"]["resources"]), "cited_count": sum(1 for record in bc["projection"]["resources"] if record["generic_resource_ref"])}))
+
+    c_positive = candidate_output("C", "PC1-uxlc-shape")
+    c_generic_negative = [process for process in observations["processes"] if process["candidate"] == "C" and process["selection_id"] == "P1-no-namespace" and process["selection_kind"] == "fixture" and process["exit_code"] != 0]
+    expected_pc1_count = sealed["positive_expectations"]["PC1-uxlc-shape"]["candidate_c_resource_count"]
+    g14 = c_positive["summary"]["resource_count"] == expected_pc1_count and c_positive["generic_xml_owner_claimed"] is False and len(c_generic_negative) == 1 and c_generic_negative[0]["output_created"] is False
+    gates.append(gate("G14-c-derived-pass-primary-generic-fail", g14, {"provider_shape_resources": c_positive["summary"]["resource_count"], "genericity_negative_count": len(c_generic_negative), "generic_owner_claimed": c_positive["generic_xml_owner_claimed"]}))
+
+    a_p1 = candidate_output("A", "P1-no-namespace")
+    gates.append(gate("G15-a-capture-pass-element-return-fail", len(a_p1["resources"]) == 1 and a_p1["element_return_supported"] is False, {"resource_count": len(a_p1["resources"]), "element_return_supported": a_p1["element_return_supported"]}))
+
+    leaks = scan_tracked_generated_for_source_values(source_values)
+    gates.append(gate("G16-no-source-values-in-tracked-output", not leaks, {"source_value_control_count": len(source_values), "leaks": leaks}))
+
+    source_b = source_output(manifest, "selected", "B")
+    source_bc = source_output(manifest, "selected", "BC")
+    forbidden_resource_keys = {"content_fingerprint", "label_fingerprint", "content_sha256", "text_sha256"}
+    resource_keys = set(collect_recursive_keys(source_b["resources"])) | set(collect_recursive_keys(source_bc["owner"]["resources"]))
+    g17 = not (forbidden_resource_keys & resource_keys) and source_b["element_content_fingerprints_included"] is False
+    gates.append(gate("G17-no-source-element-content-fingerprints", g17, {"forbidden_keys_found": sorted(forbidden_resource_keys & resource_keys), "declared_included": source_b["element_content_fingerprints_included"]}))
+
+    true_tei = b_output("P10-true-tei")
+    lookalike = b_output("P11-tei-lookalike")
+    g18 = true_tei["resources"][0]["expanded_name"]["namespace_uri"] == "http://www.tei-c.org/ns/1.0" and lookalike["resources"][1]["expanded_name"]["namespace_uri"] is None and not true_tei["tei_classification_claimed"] and not lookalike["tei_classification_claimed"]
+    gates.append(gate("G18-no-tei-lookalike-classification", g18, {"true_tei_namespace_observed": True, "lookalike_namespace_is_null": True, "generic_owner_claims_tei": False}))
+
+    source_c = source_output(manifest, "selected", "C")
+    gates.append(gate("G19-no-intrinsic-or-accepted-word-id", source_c["intrinsic_or_cross_corpus_word_ids_claimed"] is False and source_c["accepted_structure_claimed"] is False, {"intrinsic_or_cross_corpus_word_ids_claimed": source_c["intrinsic_or_cross_corpus_word_ids_claimed"], "accepted_structure_claimed": source_c["accepted_structure_claimed"]}))
+
+    control = manifest["public_contract_control"]
+    item_dir = REPO_ROOT / "ToS/source-witnesses/works/digital-biblical-corpora/unicode-xml-leningrad-codex/expressions/he-uxlc-2-5-full-accents/editions/uxlc-2-5-build-27-6/items/tanach-us-server-xml-prov23-1-3-20260830t160419z"
+    forbidden_admissions = [item_dir / name for name in ("item.json", "item.manifest.json", "resource-inventory.json")]
+    g20 = sha256_path(REPO_ROOT / control["schema_ref"]) == control["schema_sha256"] and sha256_path(REPO_ROOT / control["builder_ref"]) == control["builder_sha256"] and not any(path.exists() for path in forbidden_admissions)
+    gates.append(gate("G20-no-public-or-downstream-admission", g20, {"contract_hash_match": sha256_path(REPO_ROOT / control["schema_ref"]) == control["schema_sha256"], "builder_hash_match": sha256_path(REPO_ROOT / control["builder_ref"]) == control["builder_sha256"], "forbidden_admission_files_present": [path.name for path in forbidden_admissions if path.exists()]}))
+
+    gates.append(gate("G21-independent-source-return", consumer["consumer_imports_builder"] is False and consumer["consumer_reads_sealed_manifest"] is False and consumer["all_paths_and_metadata_return"], {"consumer_imports_builder": consumer["consumer_imports_builder"], "consumer_reads_sealed_manifest": consumer["consumer_reads_sealed_manifest"], "checks": consumer["check_count"], "errors": consumer["error_count"]}))
+
+    correction: dict[str, Any]
+    if "replay" in source_receipt["sources"]:
+        selected = source_receipt["sources"]["selected"]
+        replay = source_receipt["sources"]["replay"]
+        exact_equal = selected["source_sha256"] == replay["source_sha256"]
+        topology_equal = selected["candidates"]["B"]["ordered_topology_sha256"] == replay["candidates"]["B"]["ordered_topology_sha256"]
+        provider_projection_equal = all(selected["candidates"]["C"].get(key) == replay["candidates"]["C"].get(key) for key in ("resource_count", "verse_count", "word_count", "word_counts_by_verse"))
+        correction = {
+            "live_replay_available": True,
+            "exact_file_equal": exact_equal,
+            "generic_ordered_topology_equal": topology_equal,
+            "provider_projection_shape_equal": provider_projection_equal,
+            "private_c14n_change_summary": c14n_change_summary(Path(manifest["exact_sources"]["selected"]["path"]), Path(manifest["exact_sources"]["replay"]["path"])),
+            "acceptance_inferred": False,
+        }
+        g22 = topology_equal and provider_projection_equal and correction["private_c14n_change_summary"]["provider_content_subtree_equal"]
+    else:
+        correction = {
+            "live_replay_available": False,
+            "live_replay_inconclusive": True,
+            "synthetic_dynamic_envelope_exact_equal": comparison_results["dynamic-envelope"]["exact_file_equal"],
+            "synthetic_dynamic_envelope_topology_equal": comparison_results["dynamic-envelope"]["ordered_topology_equal"],
+            "prior_real_dynamic_capture_evidence_ref": "A04_UXLC_PROVERBS_23_1_3_EXACT_RESPONSE_AND_GENERIC_XML_NO_FIT_2026-08-30.md",
+            "acceptance_inferred": False,
+        }
+        g22 = comparison_results["dynamic-envelope"]["exact_file_equal"] is False and comparison_results["dynamic-envelope"]["ordered_topology_equal"] is True
+    gates.append(gate("G22-correction-layers-distinguished", g22, correction))
+
+    manual_text = MANUAL_PATH.read_text(encoding="utf-8") if MANUAL_PATH.is_file() else ""
+    manual_required_markers = ["Direct source reopen", "Representative B return", "Tracked-output source-value inspection", "Manual verdict before evaluator"]
+    missing_manual_markers = [marker for marker in manual_required_markers if marker not in manual_text]
+    gates.append(gate("G23-manual-review-before-evaluator", MANUAL_PATH.is_file() and not missing_manual_markers, {"manual_review_sha256": sha256_path(MANUAL_PATH) if MANUAL_PATH.is_file() else None, "missing_markers": missing_manual_markers}))
+
+    metrics_present = all(process["wall_seconds"] is not None and process["max_rss_kib"] is not None and (process["output_created"] is False or ("output_bytes" in process and "output_sha256" in process)) for process in observations["processes"])
+    gates.append(gate("G24-separated-quality-cost-speed-metrics", metrics_present and source_receipt["direct_monetary_cost"] == 0, {"process_count": observations["process_count"], "wall_and_rss_measured": metrics_present, "output_bytes_separate": True, "direct_monetary_cost": source_receipt["direct_monetary_cost"], "human_burden_in_manual_review": True}))
+
+    authority_boundaries_present = all("authority_boundary" in payload for payload in (a_p1, b_p1, c_positive, bc, source_receipt, consumer))
+    gates.append(gate("G25-machine-green-no-authority", authority_boundaries_present, {"authority_boundaries_present": authority_boundaries_present, "machine_result_is_acceptance": False}))
+
+    gate_ids = [item["gate_id"] for item in gates]
+    registered_gate_ids = sealed["hard_gates"]
+    all_registered = gate_ids == registered_gate_ids
+    all_pass = all(item["passed"] for item in gates) and all_registered
+    result = {
+        "schema_version": "tos_generic_xml_resource_inventory_lab_comparison_result_v1",
+        "lab_id": manifest["lab_id"],
+        "registered_gate_order_match": all_registered,
+        "gate_count": len(gates),
+        "passed_gate_count": sum(1 for item in gates if item["passed"]),
+        "all_hard_gates_pass": all_pass,
+        "gates": gates,
+        "comparison_groups": comparison_results,
+        "correction_replay": correction,
+        "mechanical_preference": {
+            "generic_owner": "B" if all_pass else None,
+            "capture_view": "A" if all_pass else None,
+            "provider_projection": "C over B" if all_pass else None,
+            "candidate_c_as_generic_owner": "reject" if all_pass else "unresolved",
+        },
+        "public_contract_promoted": False,
+        "uxlc_item_admitted": False,
+        "source_text_accepted": False,
+        "language_or_translation_reviewed": False,
+        "semantic_or_graph_state_created": False,
+        "publication_authorized": False,
+        "authority_boundary": "mechanical candidate comparison after manual source/output review; no public contract, source-text, language, translation, semantic, graph, canon, rights or publication authority",
+    }
+    temporary = RESULT_PATH.with_name(RESULT_PATH.name + ".tmp")
+    temporary.write_bytes(canonical_bytes(result))
+    os.chmod(temporary, 0o644)
+    temporary.replace(RESULT_PATH)
+    return 0 if all_pass else 1
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

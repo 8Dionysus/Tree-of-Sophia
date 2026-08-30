@@ -1,0 +1,59 @@
+{
+  "schema_version": "tos_generic_xml_resource_inventory_lab_freeze_receipt_v2",
+  "lab_id": "tos.lab.generic-xml-resource-inventory-uxlc-abc.v1",
+  "frozen_at": "2026-08-30T16:44:50Z",
+  "supersedes_freeze_ref": "ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/freeze-receipt.json",
+  "supersedes_freeze_sha256": "cade0d7dc97974b2bd3812db9e9366e1ef8cafd1e22503f038ee707da16345e3",
+  "revision_reason_ref": "ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/RUNNER_AND_BC_PROXY_PREFLIGHT_FAILURE_V1.md",
+  "revision_reason_sha256": "1d073a6141f08dbfefebb0d538c9688ebe7740449cb320c9d1a32a0cb75f7166",
+  "candidate_outputs_existed_at_revision_freeze": true,
+  "candidate_outputs_status": "partial_v1_outputs_rejected_and_to_be_rebuilt_twice",
+  "source_candidate_outputs_existed_at_revision_freeze": false,
+  "manual_review_existed_at_revision_freeze": false,
+  "comparison_result_existed_at_revision_freeze": false,
+  "syntax_preflight_only_after_revision": true,
+  "frozen_files": [
+    {
+      "ref": "ToS/research-packets/foundation-laboratory-2026-07/GENERIC_XML_RESOURCE_IDENTITY_AND_PROVIDER_PROJECTION_RESEARCH_2026-08-30.md",
+      "sha256": "0c85289990cebd01c696ee44ff19c1bdbd5a31d61d449bafe0fd7c762c8185aa"
+    },
+    {
+      "ref": "ToS/research-packets/foundation-laboratory-2026-07/GENERIC_XML_RESOURCE_INVENTORY_UXLC_ABC_PREREGISTRATION_2026-08-30.md",
+      "sha256": "7634cb25aa1cd41b46e155d3482135d34d87de1f11ca17a3afd9a52976a8d3b7"
+    },
+    {
+      "ref": "ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/input-manifest.json",
+      "sha256": "c8d896285997447c99274e7f6f34f0bb85fbe7e3da3bf6b3230a0c7294b349db"
+    },
+    {
+      "ref": "ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/sealed-evaluation-manifest.json",
+      "sha256": "e7f440aef36ae913aff1bf356f5c140211447beb8682fa273c4023fca1e84ed7"
+    },
+    {
+      "ref": "ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/build_candidate.py",
+      "sha256": "b6ea68011029a12c5753a9229cbaab6350f135a86b22f7192d5021f4c7b8b8c0"
+    },
+    {
+      "ref": "ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/run_experiment.py",
+      "sha256": "8e6dc523b3aadacd1e72a658aa65055128a8766a14b5e8f235a576dfdfde8ec9"
+    },
+    {
+      "ref": "ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/consume_owner.py",
+      "sha256": "55209921c5a5bf9972836f74c079043d69ba141721e83bddb4eece22ef86140b"
+    },
+    {
+      "ref": "ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/evaluate_lab.py",
+      "sha256": "000e350edcac8632e37cb6f3dcc084d8b17c9faefefda7f3e23e4692d4bfdc67"
+    },
+    {
+      "ref": "ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/RUNNER_AND_BC_PROXY_PREFLIGHT_FAILURE_V1.md",
+      "sha256": "1d073a6141f08dbfefebb0d538c9688ebe7740449cb320c9d1a32a0cb75f7166"
+    },
+    {
+      "ref": "ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/freeze-receipt.json",
+      "sha256": "cade0d7dc97974b2bd3812db9e9366e1ef8cafd1e22503f038ee707da16345e3"
+    }
+  ],
+  "authority_boundary": "revisioned pre-output method freeze after preserved v1 failure; no candidate verdict, source-text, public contract, linguistic, semantic, graph, canon, rights or publication authority",
+  "record_version": 2
+}
