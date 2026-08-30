@@ -298,6 +298,23 @@ class PreparedDossierPipelineTest(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, "title.*master-table identity"):
                 planting_pipeline.parse_dossier(Path("A03.docx"), master_row, "table-i")
 
+    def test_table_i_idless_title_requires_reviewed_route_identity(self) -> None:
+        master_row = next(
+            row
+            for row in planting_pipeline.load_jsonl(
+                REPO_ROOT / "ToS/philosophy/atlas/master-tables/table-i/rows.jsonl"
+            )
+            if row["row_id"] == "A23"
+        )
+        document = SimpleNamespace(
+            paragraphs=[SimpleNamespace(text="Unreviewed replacement dossier without an id")],
+            tables=[],
+        )
+
+        with patch.object(planting_pipeline, "load_docx_document", return_value=document):
+            with self.assertRaisesRegex(ValueError, "reviewed Table I route"):
+                planting_pipeline.parse_dossier(Path("A23.docx"), master_row, "table-i")
+
     def test_readiness_exposes_partial_table_ii_and_keeps_table_iii_unplanted(self) -> None:
         payload = readiness_payload()
         table_ii = payload["tables"]["table-ii"]

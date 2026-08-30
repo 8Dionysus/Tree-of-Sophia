@@ -767,6 +767,14 @@ def parse_dossier(path: Path, master_row: dict[str, Any], table_id: str = "table
                 f"{dossier_id} DOCX title does not match its master-table identity: "
                 f"{observed_title_id.group(0)}"
             )
+        if observed_title_id is None:
+            expected_title = str(route.get("accepted_input_title") or "")
+            if not expected_title or normalized_title(title) != normalized_title(expected_title):
+                raise ValueError(
+                    f"{dossier_id} DOCX title does not match its reviewed Table I route: "
+                    f"{title!r} != {expected_title!r}"
+                )
+            metadata_identity_posture = "filename_title_reviewed_route_cross_checked"
     if table_id == "table-ii":
         observed_clean_title = clean_dossier_title(title, dossier_id)
         if blocked:

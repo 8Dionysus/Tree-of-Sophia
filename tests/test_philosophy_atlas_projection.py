@@ -35,7 +35,7 @@ class PhilosophyAtlasProjectionTest(unittest.TestCase):
         self.assertEqual(payload["counts"]["dossier_relation_rows"], 3536)
         self.assertEqual(payload["counts"]["candidate_nodes"], 3551)
         self.assertEqual(payload["counts"]["candidate_relations"], 3536)
-        self.assertEqual(payload["counts"]["candidate_endpoint_placeholders"], 299)
+        self.assertEqual(payload["counts"]["candidate_endpoint_placeholders"], 294)
 
     def test_projection_keeps_runtime_owner_downstream(self) -> None:
         payload = json.loads(PROJECTION_PATH.read_text(encoding="utf-8"))
@@ -208,6 +208,45 @@ class PhilosophyAtlasProjectionTest(unittest.TestCase):
             )
             self.assertEqual(edge["properties"]["endpoint_alias_ref"], ENDPOINT_ALIASES_REF)
 
+    def test_reviewed_origin_role_aliases_resolve_unqualified_cross_dossier_endpoints(self) -> None:
+        payload = build_payload()
+        edges = {edge["edge_id"]: edge for edge in payload["edges"]}
+        expected = {
+            "edge:candidate-relation:table-ii-t2-06-relation-008": (
+                "from_id",
+                "candidate-node:table-i-a37-node-030",
+            ),
+            "edge:candidate-relation:table-ii-t2-06-relation-015": (
+                "from_id",
+                "candidate-node:table-i-a37-node-029",
+            ),
+            "edge:candidate-relation:table-ii-t2-06-relation-016": (
+                "from_id",
+                "candidate-node:table-i-a37-node-029",
+            ),
+            "edge:candidate-relation:table-ii-t2-06-relation-018": (
+                "from_id",
+                "candidate-node:table-i-a37-node-033",
+            ),
+            "edge:candidate-relation:table-ii-t2-32-relation-033": (
+                "to_id",
+                "candidate-node:table-i-a19-node-006",
+            ),
+            "edge:candidate-relation:table-ii-t2-33-relation-030": (
+                "to_id",
+                "candidate-node:table-i-a19-node-006",
+            ),
+        }
+
+        for edge_id, (endpoint_field, candidate_id) in expected.items():
+            edge = edges[edge_id]
+            self.assertEqual(edge[endpoint_field], candidate_id)
+            self.assertEqual(
+                edge["properties"]["projection_endpoint_resolution"],
+                "reviewed_origin_role_alias",
+            )
+            self.assertEqual(edge["properties"]["endpoint_alias_ref"], ENDPOINT_ALIASES_REF)
+
     def test_projection_exposes_pre_canon_candidate_graph_material(self) -> None:
         payload = json.loads(PROJECTION_PATH.read_text(encoding="utf-8"))
         node_ids = {node["node_id"] for node in payload["nodes"]}
@@ -265,7 +304,7 @@ class PhilosophyAtlasProjectionTest(unittest.TestCase):
             and node["properties"].get("table_id") == "table-ii"
             and node["properties"].get("review_posture") == "manual_review_required"
         ]
-        self.assertEqual(len(gated_endpoints), 111)
+        self.assertEqual(len(gated_endpoints), 108)
         self.assertTrue(
             all(
                 node["properties"].get("review_reason")

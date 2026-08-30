@@ -49,7 +49,7 @@ A plantable packet carries these records as one route:
 | dossier index row | title, source document, master table, branch path, node/relation/source/term/transmission counts |
 | proposed node row | `candidate_id`, node kind, label, period, priority, branch path, `canon_status: pre-canon`, source row/table indexes, source ref |
 | proposed relation row | `candidate_id`, relation kind/label, source and target endpoint labels, resolved candidate ids when available, confidence, endpoint resolution, source ref |
-| reviewed endpoint alias | exact dossier-qualified endpoint label, admitted target dossier, target candidate id and label, pre-canon projection review status, explicit claim limit |
+| reviewed endpoint alias | exact origin dossier, endpoint role, endpoint label, admitted target dossier, target candidate id and label, pre-canon projection review status, explicit claim limit |
 | source anchor row | witness, corpus, edition, access, reliability, limitation, or source need |
 | term row | term, language, transliteration, meaning, ToS role |
 | transmission row | direction, transmitted matter, channel, confidence, next check |
@@ -66,8 +66,10 @@ admitted dossier id resolves to its `atlas-dossier:*` node with
 `projection_endpoint_resolution: exact_admitted_dossier`; a leading known
 master-row id whose dossier is quarantined or not supplied resolves to the
 existing `atlas-row:*` node; only an otherwise unresolved label becomes an
-origin-scoped `candidate-endpoint:*`. Reviewed qualified aliases remain the
-explicit route to a candidate inside another admitted dossier.
+origin-scoped `candidate-endpoint:*`. Reviewed aliases remain the explicit
+route to a candidate inside another admitted dossier: a qualified label is
+still bound to its exact origin and endpoint role, while an unqualified label
+must use that origin-role key and is never resolved by a global label match.
 
 Text-bearing packets are governed by
 `ToS/philosophy/atlas/multilingual/text-bearing-nodes.contract.json`. They are
@@ -126,7 +128,7 @@ The first human review pass reads:
 | --- | --- |
 | branch placement | `ToS/philosophy/atlas/dossiers/prepared-dossier-routes.json` |
 | graph row pressure | `ToS/philosophy/graph-workbench/proposed-nodes/` and `proposed-relations/` |
-| qualified endpoint routing | `ToS/philosophy/graph-workbench/proposed-relations/reviewed-endpoint-aliases.json` |
+| reviewed cross-dossier endpoint routing | `ToS/philosophy/graph-workbench/proposed-relations/reviewed-endpoint-aliases.json` |
 | source pressure | `ToS/philosophy/atlas/dossiers/source-anchor-backlog.jsonl` |
 | transmission pressure | `ToS/philosophy/atlas/dossiers/transmission-backlog.jsonl` |
 | view switching | `ToS/philosophy/graph-workbench/views/view-contracts.json` |
