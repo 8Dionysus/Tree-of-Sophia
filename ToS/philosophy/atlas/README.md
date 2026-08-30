@@ -2,7 +2,7 @@
 
 `atlas/` is the prepared navigation body for the whole ToS philosophy tree.
 
-It holds the master-table row spine, prepared A-series dossier index, and aggregate pressure maps that tell the philosophy tree what must grow next.
+It holds the master-table row spine, admitted prepared-dossier index, and aggregate pressure maps that tell the philosophy tree what must grow next.
 
 ## Shape
 

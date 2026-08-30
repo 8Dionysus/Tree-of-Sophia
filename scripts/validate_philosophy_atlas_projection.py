@@ -19,11 +19,11 @@ def main() -> int:
     required_counts = {
         "master_tables": 3,
         "master_rows": 190,
-        "dossiers": 48,
-        "dossier_node_rows": 1725,
-        "dossier_relation_rows": 1588,
-        "candidate_nodes": 1725,
-        "candidate_relations": 1588,
+        "dossiers": 97,
+        "dossier_node_rows": 3551,
+        "dossier_relation_rows": 3536,
+        "candidate_nodes": 3551,
+        "candidate_relations": 3536,
     }
     for key, expected in required_counts.items():
         if counts.get(key) != expected:

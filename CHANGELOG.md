@@ -9,6 +9,16 @@ Tracking starts with the community-docs baseline for this repository.
 
 ### Changed
 
+- Adds a bounded partial Table II planting: 49 of 58 master rows now have
+  admitted prepared dossiers, generated medieval-worlds branches, graph
+  workbench candidates, language packets, and explicit extraction coverage.
+  The supplied T2-26 file is quarantined because its Ethiopian/Ge'ez contents
+  contradict the nominalism master-row identity; T2-51–T2-58 remain explicit
+  missing inputs rather than inferred or fabricated dossiers.
+- Generalizes prepared-dossier planting from one hard-coded Table I package to
+  owner-declared package sections and route maps while preserving Table I byte
+  parity, legacy manifest links, pre-canon posture, and manual review for weak
+  status or confidence.
 - Completes the Table I prepared A-series planting from 30 to 48 dossiers,
   with owner-declared DOCX sections, tracked fixity/capture posture, explicit
   extraction coverage, and reviewed Russian/English dossier labels.

@@ -23,6 +23,8 @@ Prepared planting starts from source-owned atlas material:
 | operator-local prepared DOCX corpus | temporary extraction input for supported planting scripts |
 | `ToS/research-packets/deep-research/philosophy/dossiers/table-i-docx-intake.manifest.json` | tracked fixity and capture-posture record for the untracked DOCX bytes |
 | `ToS/research-packets/deep-research/philosophy/dossiers/table-i-docx-extraction-coverage.json` | explicit extracted/metadata/deferred row accounting and prose-only diagnostics |
+| `ToS/research-packets/deep-research/philosophy/dossiers/table-ii-docx-intake.manifest.json` | tracked Table II fixity plus admitted/quarantined artifact posture |
+| `ToS/research-packets/deep-research/philosophy/dossiers/table-ii-docx-extraction-coverage.json` | Table II structured/deferred/quarantined row accounting |
 | `ToS/philosophy/atlas/dossiers/index.jsonl` | dossier identity and graph pressure index |
 | `ToS/philosophy/atlas/dossiers/source-anchor-backlog.jsonl` | future real witness, edition, corpus, and risk-control anchors |
 | `ToS/philosophy/atlas/dossiers/term-index.jsonl` | prepared term rows |
@@ -47,6 +49,7 @@ A plantable packet carries these records as one route:
 | dossier index row | title, source document, master table, branch path, node/relation/source/term/transmission counts |
 | proposed node row | `candidate_id`, node kind, label, period, priority, branch path, `canon_status: pre-canon`, source row/table indexes, source ref |
 | proposed relation row | `candidate_id`, relation kind/label, source and target endpoint labels, resolved candidate ids when available, confidence, endpoint resolution, source ref |
+| reviewed endpoint alias | exact origin dossier, endpoint role, endpoint label, admitted target dossier, target candidate id and label, pre-canon projection review status, explicit claim limit |
 | source anchor row | witness, corpus, edition, access, reliability, limitation, or source need |
 | term row | term, language, transliteration, meaning, ToS role |
 | transmission row | direction, transmitted matter, channel, confidence, next check |
@@ -57,6 +60,16 @@ A plantable packet carries these records as one route:
 The packet is complete enough for graph review when every proposed node and
 relation can point back to a ToS source ref and every unresolved endpoint is
 visible as unresolved, not silently upgraded.
+
+Projection reuses tracked identity before creating a placeholder. An exact
+admitted dossier id resolves to its `atlas-dossier:*` node with
+`projection_endpoint_resolution: exact_admitted_dossier`; a leading known
+master-row id whose dossier is quarantined or not supplied resolves to the
+existing `atlas-row:*` node; only an otherwise unresolved label becomes an
+origin-scoped `candidate-endpoint:*`. Reviewed aliases remain the explicit
+route to a candidate inside another admitted dossier: a qualified label is
+still bound to its exact origin and endpoint role, while an unqualified label
+must use that origin-role key and is never resolved by a global label match.
 
 Text-bearing packets are governed by
 `ToS/philosophy/atlas/multilingual/text-bearing-nodes.contract.json`. They are
@@ -86,13 +99,26 @@ master table row
 Current supported entrypoint:
 
 `scripts/plant_prepared_dossiers.py` owns readiness and planting orchestration.
+Readiness may be limited with `--table`; planting is explicitly aggregate-only
+and runs as `python scripts/plant_prepared_dossiers.py --plant` because the
+atlas indexes, graph workbench, language packets, and branch manifests combine
+all supported packages. The compatibility implementation entrypoint invokes
+the same aggregate gate and cannot bypass it. Readiness requires an exact
+unique master-row spine whose `row_id`, `table_id`, and normalized row identity
+agree, an exact unique filename inventory, and a read-only parse of every
+supplied DOCX through the same content and identity checks used by planting.
+It also checks a Table I title id when row metadata is absent and reads package
+provenance metadata, including optional custom-property XML, before any write.
+Missing, duplicate, unexpected, corrupt, or identity-drifted inputs fail
+closed before planting changes a companion.
 The projection, corpus-index, and post-planting builders own their generated
 outputs; `docs/validation/validation_lanes.json` owns checked verification
 order. Use `scripts/AGENTS.md` for the operator route.
 
-Future Table II and Table III planting should extend this route by adding their
-source-owned dossier route maps and packet extraction support, then publishing
-the same graph-workbench surfaces.
+Table I and the partial Table II package use this route now. Table II keeps
+T2-26 quarantined for master-identity mismatch and T2-51 through T2-58
+explicitly absent. Future Table III planting should extend the same route only
+after adding its source-owned dossier route map and packet extraction support.
 
 ## Review Handoff
 
@@ -102,6 +128,7 @@ The first human review pass reads:
 | --- | --- |
 | branch placement | `ToS/philosophy/atlas/dossiers/prepared-dossier-routes.json` |
 | graph row pressure | `ToS/philosophy/graph-workbench/proposed-nodes/` and `proposed-relations/` |
+| reviewed cross-dossier endpoint routing | `ToS/philosophy/graph-workbench/proposed-relations/reviewed-endpoint-aliases.json` |
 | source pressure | `ToS/philosophy/atlas/dossiers/source-anchor-backlog.jsonl` |
 | transmission pressure | `ToS/philosophy/atlas/dossiers/transmission-backlog.jsonl` |
 | view switching | `ToS/philosophy/graph-workbench/views/view-contracts.json` |

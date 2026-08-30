@@ -14,6 +14,7 @@ PACKET_PATH = REPO_ROOT / "stats/packets/table-i-prepared-dossier-route-ratio.re
 SUPPORTED_ROUTE_MAP_SCHEMAS = {
     "tos_prepared_dossier_routes_v1",
     "tos_prepared_dossier_routes_v2",
+    "tos_prepared_dossier_routes_v3",
 }
 
 

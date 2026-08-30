@@ -24,7 +24,16 @@
   "operator_local_docx_intake": {
     "capture_posture": "unverified operator-local export; payload bytes remain untracked",
     "extraction_coverage_ref": "ToS/research-packets/deep-research/philosophy/dossiers/table-i-docx-extraction-coverage.json",
+    "extraction_coverage_refs": [
+      "ToS/research-packets/deep-research/philosophy/dossiers/table-i-docx-extraction-coverage.json",
+      "ToS/research-packets/deep-research/philosophy/dossiers/table-ii-docx-extraction-coverage.json"
+    ],
     "intake_manifest_ref": "ToS/research-packets/deep-research/philosophy/dossiers/table-i-docx-intake.manifest.json",
+    "intake_manifest_refs": [
+      "ToS/research-packets/deep-research/philosophy/dossiers/table-i-docx-intake.manifest.json",
+      "ToS/research-packets/deep-research/philosophy/dossiers/table-ii-docx-intake.manifest.json"
+    ],
+    "table_ii_posture": "50 supplied artifacts; 49 master-aligned and admitted, T2-26 quarantined for master identity mismatch, T2-51 through T2-58 not supplied",
     "claim_limit": "fixity and parser coverage only; no authorship, origin, source, rights, review, doctrine, or canon claim"
   },
   "domain_branch": "ToS/philosophy",
@@ -36,6 +45,8 @@
     "dossiers/",
     "dossiers/table-i-docx-intake.manifest.json",
     "dossiers/table-i-docx-extraction-coverage.json",
+    "dossiers/table-ii-docx-intake.manifest.json",
+    "dossiers/table-ii-docx-extraction-coverage.json",
     "pages/"
   ],
   "empty_skeleton_policy": "contract and route surfaces may exist before corpus data import",

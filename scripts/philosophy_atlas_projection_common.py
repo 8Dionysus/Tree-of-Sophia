@@ -20,6 +20,17 @@ SCHEMA_REF = "ToS/contracts/philosophy-atlas-projection.schema.json"
 SOURCE_ATLAS_REF = "ToS/philosophy/atlas/atlas.manifest.json"
 CANDIDATE_NODES_REF = "ToS/philosophy/graph-workbench/proposed-nodes/table-i-prepared-dossiers.jsonl"
 CANDIDATE_RELATIONS_REF = "ToS/philosophy/graph-workbench/proposed-relations/table-i-prepared-dossiers.jsonl"
+CANDIDATE_NODES_REFS = (
+    CANDIDATE_NODES_REF,
+    "ToS/philosophy/graph-workbench/proposed-nodes/table-ii-prepared-dossiers.jsonl",
+)
+CANDIDATE_RELATIONS_REFS = (
+    CANDIDATE_RELATIONS_REF,
+    "ToS/philosophy/graph-workbench/proposed-relations/table-ii-prepared-dossiers.jsonl",
+)
+ENDPOINT_ALIASES_REF = (
+    "ToS/philosophy/graph-workbench/proposed-relations/reviewed-endpoint-aliases.json"
+)
 VALIDATION_REFS = (
     "scripts/build_philosophy_atlas_projection.py",
     "scripts/validate_philosophy_atlas_projection.py",
@@ -131,6 +142,7 @@ def row_projection_fields(row: dict[str, Any]) -> dict[str, Any]:
         "research_node": research_node,
         "dossier_id": row.get("dossier_id"),
         "dossier_available": row.get("dossier_available"),
+        "dossier_intake_status": normalized.get("dossier_intake_status"),
     }
 
 
@@ -141,6 +153,128 @@ def candidate_node_ref(candidate_id: str) -> str:
 def endpoint_ref(dossier_id: str, label: str) -> str:
     digest = hashlib.sha1(f"{dossier_id}|{label}".encode("utf-8")).hexdigest()[:12]
     return f"candidate-endpoint:{dossier_id}:{digest}"
+
+
+def endpoint_role_properties(roles: set[str]) -> dict[str, Any]:
+    ordered_roles = sorted(roles)
+    if not ordered_roles:
+        raise ValueError("candidate endpoint must have at least one observed role")
+    return {
+        "endpoint_role": ordered_roles[0] if len(ordered_roles) == 1 else "source_and_target",
+        "endpoint_roles": ordered_roles,
+    }
+
+
+def qualified_endpoint_dossier_id(label: str) -> str | None:
+    dossier_id, separator, qualifier = label.partition("/")
+    if not separator or not dossier_id.strip() or not qualifier.strip():
+        return None
+    return dossier_id.strip()
+
+
+def load_reviewed_endpoint_aliases(
+    candidate_nodes: list[dict[str, Any]],
+    candidate_relations: list[dict[str, Any]],
+    admitted_dossier_ids: set[str],
+) -> dict[tuple[str, str, str], str]:
+    payload = load_json(REPO_ROOT / ENDPOINT_ALIASES_REF)
+    if payload.get("schema_version") != "tos_reviewed_endpoint_aliases_v2":
+        raise ValueError(f"{ENDPOINT_ALIASES_REF} has unsupported schema_version")
+    rows = payload.get("aliases")
+    if not isinstance(rows, list):
+        raise ValueError(f"{ENDPOINT_ALIASES_REF}.aliases must be an array")
+
+    candidates_by_id = {
+        str(candidate.get("candidate_id")): candidate
+        for candidate in candidate_nodes
+        if isinstance(candidate.get("candidate_id"), str) and candidate.get("candidate_id")
+    }
+    observed_endpoints = {
+        (str(relation.get("dossier_id") or ""), role, str(relation.get(label_field) or ""))
+        for relation in candidate_relations
+        for role, label_field in (
+            ("source", "source_endpoint_label"),
+            ("target", "target_endpoint_label"),
+        )
+    }
+    aliases: dict[tuple[str, str, str], str] = {}
+    for index, row in enumerate(rows):
+        if not isinstance(row, dict):
+            raise ValueError(f"{ENDPOINT_ALIASES_REF}.aliases[{index}] must be an object")
+        endpoint_label = row.get("endpoint_label")
+        origin_dossier_id = row.get("origin_dossier_id")
+        endpoint_role = row.get("endpoint_role")
+        target_dossier_id = row.get("target_dossier_id")
+        target_candidate_id = row.get("target_candidate_id")
+        target_label = row.get("target_label")
+        identity_fields = (
+            endpoint_label,
+            origin_dossier_id,
+            endpoint_role,
+            target_dossier_id,
+            target_candidate_id,
+            target_label,
+        )
+        if not all(isinstance(value, str) and value for value in identity_fields):
+            raise ValueError(f"{ENDPOINT_ALIASES_REF}.aliases[{index}] has incomplete identity")
+        if row.get("projection_review_status") != "reviewed_for_pre_canon_routing":
+            raise ValueError(f"{ENDPOINT_ALIASES_REF}.aliases[{index}] is not reviewed for routing")
+        if endpoint_role not in {"source", "target"}:
+            raise ValueError(f"{ENDPOINT_ALIASES_REF}.aliases[{index}] has invalid endpoint role")
+        if origin_dossier_id not in admitted_dossier_ids:
+            raise ValueError(f"{ENDPOINT_ALIASES_REF}.aliases[{index}] has an unadmitted origin dossier")
+        alias_key = (origin_dossier_id, endpoint_role, endpoint_label)
+        if alias_key not in observed_endpoints:
+            raise ValueError(f"{ENDPOINT_ALIASES_REF}.aliases[{index}] is not an observed endpoint")
+        qualified_dossier_id = qualified_endpoint_dossier_id(endpoint_label)
+        if qualified_dossier_id is not None and qualified_dossier_id != target_dossier_id:
+            raise ValueError(f"{ENDPOINT_ALIASES_REF}.aliases[{index}] dossier qualifier mismatch")
+        if target_dossier_id not in admitted_dossier_ids:
+            raise ValueError(f"{ENDPOINT_ALIASES_REF}.aliases[{index}] targets an unadmitted dossier")
+        candidate = candidates_by_id.get(target_candidate_id)
+        if candidate is None or candidate.get("dossier_id") != target_dossier_id:
+            raise ValueError(f"{ENDPOINT_ALIASES_REF}.aliases[{index}] target candidate mismatch")
+        if candidate.get("label") != target_label:
+            raise ValueError(f"{ENDPOINT_ALIASES_REF}.aliases[{index}] target label drift")
+        if alias_key in aliases:
+            raise ValueError(f"{ENDPOINT_ALIASES_REF} repeats endpoint key {alias_key!r}")
+        aliases[alias_key] = target_candidate_id
+    return aliases
+
+
+def reviewed_endpoint_alias_candidate_id(
+    label: str,
+    origin_dossier_id: str,
+    endpoint_role: str,
+    admitted_dossier_ids: set[str],
+    aliases: dict[tuple[str, str, str], str],
+) -> str | None:
+    if origin_dossier_id not in admitted_dossier_ids or endpoint_role not in {"source", "target"}:
+        return None
+    target_dossier_id = qualified_endpoint_dossier_id(label)
+    if target_dossier_id is not None and target_dossier_id not in admitted_dossier_ids:
+        return None
+    return aliases.get((origin_dossier_id, endpoint_role, label))
+
+
+def unavailable_master_row_endpoint_id(
+    label: str,
+    unavailable_master_row_ids: set[str],
+) -> str | None:
+    for row_id in sorted(unavailable_master_row_ids, key=len, reverse=True):
+        if label == row_id:
+            return row_id
+        if label.startswith(row_id) and label[len(row_id) : len(row_id) + 1] in {
+            " ",
+            "/",
+            ":",
+            "—",
+            "–",
+            "-",
+            "(",
+        }:
+            return row_id
+    return None
 
 
 def load_schema() -> dict[str, Any]:
@@ -163,12 +297,21 @@ def build_payload() -> dict[str, Any]:
     graph_shape_path = REPO_ROOT / "ToS/philosophy/atlas/dossiers/graph-shape-summary.json"
     dossier_rows = load_jsonl(dossier_index_path)
     graph_shape = load_json(graph_shape_path)
-    candidate_nodes = load_optional_jsonl(REPO_ROOT / CANDIDATE_NODES_REF)
-    candidate_relations = load_optional_jsonl(REPO_ROOT / CANDIDATE_RELATIONS_REF)
+    candidate_nodes = [
+        row
+        for source_ref in CANDIDATE_NODES_REFS
+        for row in load_optional_jsonl(REPO_ROOT / source_ref)
+    ]
+    candidate_relations = [
+        row
+        for source_ref in CANDIDATE_RELATIONS_REFS
+        for row in load_optional_jsonl(REPO_ROOT / source_ref)
+    ]
 
     nodes: list[dict[str, Any]] = []
     edges: list[dict[str, Any]] = []
     row_count = 0
+    master_row_ids: set[str] = set()
 
     add_node(nodes, "philosophy", "domain-root", "Philosophy", "ToS/philosophy/philosophy.manifest.json")
     add_node(nodes, "philosophy.atlas", "atlas", "Philosophy Atlas", SOURCE_ATLAS_REF)
@@ -259,6 +402,8 @@ def build_payload() -> dict[str, Any]:
         )
         for row in rows:
             row_id = str(row.get("row_id") or "")
+            if row_id:
+                master_row_ids.add(row_id)
             node_id = f"atlas-row:{row_id}"
             fields = row_projection_fields(row)
             add_node(nodes, node_id, "master-table-row", row_id, rows_ref, **fields)
@@ -296,6 +441,12 @@ def build_payload() -> dict[str, Any]:
             node_row_count=dossier.get("node_row_count"),
             relation_row_count=dossier.get("relation_row_count"),
             table_count=dossier.get("table_count"),
+            table_id=dossier.get("table_id"),
+            route_kind=dossier.get("route_kind"),
+            review_posture=dossier.get("review_posture"),
+            review_reason=dossier.get("review_reason"),
+            master_status=dossier.get("master_status"),
+            master_confidence=dossier.get("master_confidence"),
         )
         add_edge(
             edges,
@@ -373,11 +524,12 @@ def build_payload() -> dict[str, Any]:
     for candidate in candidate_nodes:
         candidate_id = str(candidate.get("candidate_id") or "")
         dossier_id = str(candidate.get("dossier_id") or "")
+        candidate_source_ref = str(candidate.get("source_ref") or CANDIDATE_NODES_REF)
         if not candidate_id:
             diagnostics.append(
                 {
                     "level": "warning",
-                    "path": CANDIDATE_NODES_REF,
+                    "path": candidate_source_ref,
                     "message": "candidate node row without candidate_id was skipped",
                 }
             )
@@ -388,7 +540,7 @@ def build_payload() -> dict[str, Any]:
             node_id,
             "candidate-node",
             str(candidate.get("label") or candidate_id),
-            CANDIDATE_NODES_REF,
+            candidate_source_ref,
             candidate_id=candidate_id,
             dossier_id=dossier_id,
             atlas_row_id=candidate.get("atlas_row_id"),
@@ -400,6 +552,12 @@ def build_payload() -> dict[str, Any]:
             canon_status=candidate.get("canon_status"),
             authority_posture=candidate.get("authority_posture"),
             source_document=candidate.get("source_document"),
+            table_id=candidate.get("table_id"),
+            route_kind=candidate.get("route_kind"),
+            review_posture=candidate.get("review_posture"),
+            review_reason=candidate.get("review_reason"),
+            master_status=candidate.get("master_status"),
+            master_confidence=candidate.get("master_confidence"),
         )
         if dossier_id:
             add_edge(
@@ -408,8 +566,63 @@ def build_payload() -> dict[str, Any]:
                 f"atlas-dossier:{dossier_id}",
                 "has_candidate_node",
                 node_id,
-                CANDIDATE_NODES_REF,
+                candidate_source_ref,
             )
+
+    admitted_dossier_ids = {
+        str(dossier.get("dossier_id"))
+        for dossier in dossier_rows
+        if isinstance(dossier.get("dossier_id"), str) and dossier.get("dossier_id")
+    }
+    unavailable_master_row_ids = master_row_ids - admitted_dossier_ids
+    endpoint_aliases = load_reviewed_endpoint_aliases(
+        candidate_nodes,
+        candidate_relations,
+        admitted_dossier_ids,
+    )
+    endpoint_roles_by_id: dict[str, set[str]] = {}
+    for relation in candidate_relations:
+        dossier_id = str(relation.get("dossier_id") or "")
+        source_candidate_id = relation.get("source_candidate_id")
+        target_candidate_id = relation.get("target_candidate_id")
+        source_label = str(relation.get("source_endpoint_label") or "source endpoint")
+        target_label = str(relation.get("target_endpoint_label") or "target endpoint")
+        source_alias_candidate_id = reviewed_endpoint_alias_candidate_id(
+            source_label,
+            dossier_id,
+            "source",
+            admitted_dossier_ids,
+            endpoint_aliases,
+        )
+        target_alias_candidate_id = reviewed_endpoint_alias_candidate_id(
+            target_label,
+            dossier_id,
+            "target",
+            admitted_dossier_ids,
+            endpoint_aliases,
+        )
+        source_master_row_id = unavailable_master_row_endpoint_id(
+            source_label,
+            unavailable_master_row_ids,
+        )
+        target_master_row_id = unavailable_master_row_endpoint_id(
+            target_label,
+            unavailable_master_row_ids,
+        )
+        if (
+            not (isinstance(source_candidate_id, str) and source_candidate_id)
+            and source_label not in admitted_dossier_ids
+            and source_alias_candidate_id is None
+            and source_master_row_id is None
+        ):
+            endpoint_roles_by_id.setdefault(endpoint_ref(dossier_id, source_label), set()).add("source")
+        if (
+            not (isinstance(target_candidate_id, str) and target_candidate_id)
+            and target_label not in admitted_dossier_ids
+            and target_alias_candidate_id is None
+            and target_master_row_id is None
+        ):
+            endpoint_roles_by_id.setdefault(endpoint_ref(dossier_id, target_label), set()).add("target")
 
     endpoint_nodes: set[str] = set()
     for relation in candidate_relations:
@@ -420,17 +633,46 @@ def build_payload() -> dict[str, Any]:
         target_candidate_id = relation.get("target_candidate_id")
         source_label = str(relation.get("source_endpoint_label") or "source endpoint")
         target_label = str(relation.get("target_endpoint_label") or "target endpoint")
+        relation_source_ref = str(relation.get("source_ref") or CANDIDATE_RELATIONS_REF)
+        source_alias_candidate_id = reviewed_endpoint_alias_candidate_id(
+            source_label,
+            dossier_id,
+            "source",
+            admitted_dossier_ids,
+            endpoint_aliases,
+        )
+        target_alias_candidate_id = reviewed_endpoint_alias_candidate_id(
+            target_label,
+            dossier_id,
+            "target",
+            admitted_dossier_ids,
+            endpoint_aliases,
+        )
+        source_master_row_id = unavailable_master_row_endpoint_id(
+            source_label,
+            unavailable_master_row_ids,
+        )
+        target_master_row_id = unavailable_master_row_endpoint_id(
+            target_label,
+            unavailable_master_row_ids,
+        )
         if not candidate_id:
             diagnostics.append(
                 {
                     "level": "warning",
-                    "path": CANDIDATE_RELATIONS_REF,
+                    "path": relation_source_ref,
                     "message": "candidate relation row without candidate_id was skipped",
                 }
             )
             continue
         if isinstance(source_candidate_id, str) and source_candidate_id:
             from_id = candidate_node_ref(source_candidate_id)
+        elif source_label in admitted_dossier_ids:
+            from_id = f"atlas-dossier:{source_label}"
+        elif source_alias_candidate_id is not None:
+            from_id = candidate_node_ref(source_alias_candidate_id)
+        elif source_master_row_id is not None:
+            from_id = f"atlas-row:{source_master_row_id}"
         else:
             from_id = endpoint_ref(dossier_id, source_label)
             if from_id not in endpoint_nodes:
@@ -440,14 +682,26 @@ def build_payload() -> dict[str, Any]:
                     from_id,
                     "candidate-endpoint",
                     source_label,
-                    CANDIDATE_RELATIONS_REF,
+                    relation_source_ref,
                     dossier_id=dossier_id,
                     branch_path=relation.get("branch_path"),
-                    endpoint_role="source",
                     canon_status="pre-canon",
+                    table_id=relation.get("table_id"),
+                    route_kind=relation.get("route_kind"),
+                    review_posture=relation.get("review_posture"),
+                    review_reason=relation.get("review_reason"),
+                    master_status=relation.get("master_status"),
+                    master_confidence=relation.get("master_confidence"),
+                    **endpoint_role_properties(endpoint_roles_by_id[from_id]),
                 )
         if isinstance(target_candidate_id, str) and target_candidate_id:
             to_id = candidate_node_ref(target_candidate_id)
+        elif target_label in admitted_dossier_ids:
+            to_id = f"atlas-dossier:{target_label}"
+        elif target_alias_candidate_id is not None:
+            to_id = candidate_node_ref(target_alias_candidate_id)
+        elif target_master_row_id is not None:
+            to_id = f"atlas-row:{target_master_row_id}"
         else:
             to_id = endpoint_ref(dossier_id, target_label)
             if to_id not in endpoint_nodes:
@@ -457,11 +711,17 @@ def build_payload() -> dict[str, Any]:
                     to_id,
                     "candidate-endpoint",
                     target_label,
-                    CANDIDATE_RELATIONS_REF,
+                    relation_source_ref,
                     dossier_id=dossier_id,
                     branch_path=relation.get("branch_path"),
-                    endpoint_role="target",
                     canon_status="pre-canon",
+                    table_id=relation.get("table_id"),
+                    route_kind=relation.get("route_kind"),
+                    review_posture=relation.get("review_posture"),
+                    review_reason=relation.get("review_reason"),
+                    master_status=relation.get("master_status"),
+                    master_confidence=relation.get("master_confidence"),
+                    **endpoint_role_properties(endpoint_roles_by_id[to_id]),
                 )
         add_edge(
             edges,
@@ -469,7 +729,7 @@ def build_payload() -> dict[str, Any]:
             from_id,
             relation_kind,
             to_id,
-            CANDIDATE_RELATIONS_REF,
+            relation_source_ref,
             candidate_id=candidate_id,
             dossier_id=dossier_id,
             atlas_row_id=relation.get("atlas_row_id"),
@@ -480,6 +740,41 @@ def build_payload() -> dict[str, Any]:
             authority_posture=relation.get("authority_posture"),
             endpoint_resolution=relation.get("endpoint_resolution"),
             comment=relation.get("comment"),
+            table_id=relation.get("table_id"),
+            route_kind=relation.get("route_kind"),
+            review_posture=relation.get("review_posture"),
+            review_reason=relation.get("review_reason"),
+            master_status=relation.get("master_status"),
+            master_confidence=relation.get("master_confidence"),
+            projection_endpoint_resolution=(
+                (
+                    "reviewed_origin_role_alias"
+                    if (
+                        source_alias_candidate_id is not None
+                        and qualified_endpoint_dossier_id(source_label) is None
+                    )
+                    or (
+                        target_alias_candidate_id is not None
+                        and qualified_endpoint_dossier_id(target_label) is None
+                    )
+                    else "reviewed_qualified_alias"
+                )
+                if source_alias_candidate_id is not None or target_alias_candidate_id is not None
+                else (
+                    "known_unavailable_master_row"
+                    if source_master_row_id is not None or target_master_row_id is not None
+                    else (
+                        "exact_admitted_dossier"
+                        if source_label in admitted_dossier_ids or target_label in admitted_dossier_ids
+                        else None
+                    )
+                )
+            ),
+            endpoint_alias_ref=(
+                ENDPOINT_ALIASES_REF
+                if source_alias_candidate_id is not None or target_alias_candidate_id is not None
+                else None
+            ),
         )
 
     views_root = REPO_ROOT / "ToS/philosophy/graph-workbench/views"

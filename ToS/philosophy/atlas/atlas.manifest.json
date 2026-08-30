@@ -2,10 +2,18 @@
   "atlas_id": "philosophy.atlas",
   "authority_posture": "project-prepared philosophy atlas; historical source witnesses are anchored inside future branch work",
   "dossiers": {
-    "available_count": 48,
+    "available_count": 97,
     "extraction_coverage": "ToS/research-packets/deep-research/philosophy/dossiers/table-i-docx-extraction-coverage.json",
+    "extraction_coverages": [
+      "ToS/research-packets/deep-research/philosophy/dossiers/table-i-docx-extraction-coverage.json",
+      "ToS/research-packets/deep-research/philosophy/dossiers/table-ii-docx-extraction-coverage.json"
+    ],
     "graph_shape_summary": "ToS/philosophy/atlas/dossiers/graph-shape-summary.json",
     "intake_manifest": "ToS/research-packets/deep-research/philosophy/dossiers/table-i-docx-intake.manifest.json",
+    "intake_manifests": [
+      "ToS/research-packets/deep-research/philosophy/dossiers/table-i-docx-intake.manifest.json",
+      "ToS/research-packets/deep-research/philosophy/dossiers/table-ii-docx-intake.manifest.json"
+    ],
     "path": "ToS/philosophy/atlas/dossiers/index.jsonl",
     "route_map": "ToS/philosophy/atlas/dossiers/prepared-dossier-routes.json"
   },
@@ -46,7 +54,7 @@
   },
   "next_growth": "row spine -> era/region/tradition branches -> local graph workbench -> authored canon relation packs",
   "path": "ToS/philosophy/atlas",
-  "role": "prepared atlas for ToS philosophy growth from master tables and A-series dossiers",
+  "role": "prepared atlas for ToS philosophy growth from master tables and admitted prepared dossiers",
   "schema_version": "tos_philosophy_atlas_v1",
   "total_master_rows": 190
 }

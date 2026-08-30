@@ -66,7 +66,7 @@ def _dossier_titles() -> dict[str, dict[str, str]]:
 
 
 def _dossier_id(value: str) -> str | None:
-    match = re.search(r"\b(A\d{2})\b", value)
+    match = re.match(r"^(A\d{2}|T2-\d{2})(?=$|\s)", value)
     return match.group(1) if match else None
 
 
@@ -76,7 +76,12 @@ def _clean_dossier_prefix(value: str) -> tuple[str, bool, str | None]:
     if docx:
         text = re.sub(r"\.docx$", "", text, flags=re.IGNORECASE)
     prefix = None
-    for candidate in ("ToS Deep Research:", "ToS Deep Research_", "Corpus Or Prepared Source Document:"):
+    for candidate in (
+        "ToS Deep Research:",
+        "ToS Deep Research_",
+        "ToS Deep Research —",
+        "Corpus Or Prepared Source Document:",
+    ):
         if text.startswith(candidate):
             prefix = candidate
             text = text[len(candidate) :].strip()
@@ -85,16 +90,44 @@ def _clean_dossier_prefix(value: str) -> tuple[str, bool, str | None]:
 
 
 def _dossier_title(value: str, language: str) -> tuple[str | None, str | None]:
-    dossier_id = _dossier_id(value)
+    cleaned, docx, prefix = _clean_dossier_prefix(value)
+    dossier_id = _dossier_id(cleaned)
     if not dossier_id:
         return None, None
     title = _dossier_titles().get(dossier_id)
     if not isinstance(title, dict) or not title.get(language):
         return None, None
-    cleaned, docx, prefix = _clean_dossier_prefix(value)
-    del cleaned
+    suffix = cleaned[len(dossier_id) :].strip()
+    reviewed_titles = {str(candidate).strip() for candidate in title.values() if candidate}
+    is_bare_id = not suffix
+    is_prefixed_document_label = prefix is not None and bool(re.fullmatch(r"[—:-]\s*.+", suffix))
+    is_reviewed_title = any(suffix == f"— {candidate}" for candidate in reviewed_titles)
+    if not (is_bare_id or is_prefixed_document_label or is_reviewed_title):
+        return None, None
     translated_prefix = ""
-    if prefix == "ToS Deep Research:" or prefix == "ToS Deep Research_":
+    if prefix in {"ToS Deep Research:", "ToS Deep Research_", "ToS Deep Research —"}:
+        translated_prefix = "ToS Deep Research: "
+    elif prefix == "Corpus Or Prepared Source Document:":
+        translated_prefix = "Corpus Or Prepared Source Document: "
+    return f"{translated_prefix}{dossier_id} — {title[language]}{'.docx' if docx else ''}", "reviewed"
+
+
+def _dossier_title_from_context(
+    value: str,
+    language: str,
+    dossier_id: object,
+) -> tuple[str | None, str | None]:
+    if not isinstance(dossier_id, str) or not re.fullmatch(r"A\d{2}|T2-\d{2}", dossier_id):
+        return None, None
+    cleaned, docx, prefix = _clean_dossier_prefix(value)
+    explicit_dossier_id = _dossier_id(cleaned)
+    if explicit_dossier_id and explicit_dossier_id != dossier_id:
+        return None, None
+    title = _dossier_titles().get(dossier_id)
+    if not isinstance(title, dict) or not title.get(language):
+        return None, None
+    translated_prefix = ""
+    if prefix in {"ToS Deep Research:", "ToS Deep Research_", "ToS Deep Research —"}:
         translated_prefix = "ToS Deep Research: "
     elif prefix == "Corpus Or Prepared Source Document:":
         translated_prefix = "Corpus Or Prepared Source Document: "
@@ -280,8 +313,13 @@ def multilingual_label(label: str, source_ref: str, properties: dict[str, Any] |
         original_language = None
     if not isinstance(original_script, str) or not original_script.strip():
         original_script = None
-    ru, ru_status = russian_label(label)
-    en, en_status = english_label(label)
+    dossier_id = props.get("dossier_id") if props.get("node_type") == "prepared-dossier" else None
+    ru, ru_status = _dossier_title_from_context(label, "ru", dossier_id)
+    if not ru:
+        ru, ru_status = russian_label(label)
+    en, en_status = _dossier_title_from_context(label, "en", dossier_id)
+    if not en:
+        en, en_status = english_label(label)
     original_status = "source" if original else "pending"
     if props.get("node_type") in {"domain-root", "atlas", "atlas-section", "view-section"}:
         original_status = "not_applicable"
