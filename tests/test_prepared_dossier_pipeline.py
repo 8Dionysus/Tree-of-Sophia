@@ -236,6 +236,68 @@ class PreparedDossierPipelineTest(unittest.TestCase):
                 self.assertIn(str(failure), errors[0]["message"])
         validate_local_docx_contents.cache_clear()
 
+    def test_docx_content_validation_preflights_intake_package_metadata(self) -> None:
+        path = planting_pipeline.DOC_ROOT / "2.1" / "ToS Deep Research_ T2-10 — malformed-metadata.docx"
+        master_row = {"row_id": "T2-10", "table_id": "table-ii"}
+        parsed = SimpleNamespace(dossier_id="T2-10")
+
+        validate_local_docx_contents.cache_clear()
+        with (
+            patch("plant_prepared_dossiers.discover_docx", return_value=[path]),
+            patch("plant_prepared_dossiers.load_pipeline_jsonl", return_value=[master_row]),
+            patch("plant_prepared_dossiers.parse_dossier", return_value=parsed),
+            patch(
+                "plant_prepared_dossiers.docx_package_metadata",
+                create=True,
+                side_effect=ValueError("malformed docProps/custom.xml"),
+            ),
+        ):
+            errors = validate_local_docx_contents("table-ii")
+
+        self.assertEqual(len(errors), 1)
+        self.assertEqual(errors[0]["dossier_id"], "T2-10")
+        self.assertEqual(errors[0]["error_type"], "ValueError")
+        self.assertIn("malformed docProps/custom.xml", errors[0]["message"])
+        validate_local_docx_contents.cache_clear()
+
+    def test_compatibility_entrypoint_rejects_failed_aggregate_readiness_before_reads_or_writes(self) -> None:
+        failed_readiness = {
+            "ready_to_plant": False,
+            "required_supported_package_readiness": {"table-i": True, "table-ii": False},
+        }
+        with (
+            patch("plant_prepared_dossiers.readiness_payload", return_value=failed_readiness),
+            patch.object(
+                planting_pipeline,
+                "discover_docx",
+                side_effect=AssertionError("DOCX discovery must follow aggregate readiness"),
+            ),
+            patch.object(planting_pipeline, "write_intake_and_coverage_surfaces") as write_package,
+            patch.object(planting_pipeline, "update_atlas") as update_atlas,
+        ):
+            with self.assertRaisesRegex(SystemExit, "not ready.*table-ii"):
+                planting_pipeline.main()
+
+        write_package.assert_not_called()
+        update_atlas.assert_not_called()
+
+    def test_table_i_fallback_rejects_a_different_dossier_id_in_the_title(self) -> None:
+        master_row = next(
+            row
+            for row in planting_pipeline.load_jsonl(
+                REPO_ROOT / "ToS/philosophy/atlas/master-tables/table-i/rows.jsonl"
+            )
+            if row["row_id"] == "A03"
+        )
+        document = SimpleNamespace(
+            paragraphs=[SimpleNamespace(text="ToS Deep Research: A05 — swapped dossier")],
+            tables=[],
+        )
+
+        with patch.object(planting_pipeline, "load_docx_document", return_value=document):
+            with self.assertRaisesRegex(ValueError, "title.*master-table identity"):
+                planting_pipeline.parse_dossier(Path("A03.docx"), master_row, "table-i")
+
     def test_readiness_exposes_partial_table_ii_and_keeps_table_iii_unplanted(self) -> None:
         payload = readiness_payload()
         table_ii = payload["tables"]["table-ii"]
@@ -248,6 +310,45 @@ class PreparedDossierPipelineTest(unittest.TestCase):
         self.assertEqual(table_ii["missing_master_dossier_ids"], [f"T2-{value:02d}" for value in range(51, 59)])
         self.assertFalse(payload["tables"]["table-iii"]["supported"])
         self.assertIn("branch route map", payload["tables"]["table-iii"]["next_route"])
+
+    def test_readiness_rejects_drifted_identity_on_declared_missing_master_rows(self) -> None:
+        rows = [
+            json.loads(line)
+            for line in (
+                REPO_ROOT / "ToS/philosophy/atlas/master-tables/table-ii/rows.jsonl"
+            ).read_text(encoding="utf-8").splitlines()
+            if line.strip()
+        ]
+        expected_docx = table_readiness("table-ii")["expected_dossier_ids"]
+        cases = (
+            ("table_id", {"table_id": "table-i"}, ["table_id_mismatch"]),
+            ("normalized_row_id", {"normalized": {**next(row for row in rows if row["row_id"] == "T2-51")["normalized"], "row_id": "T2-99"}}, ["normalized_row_id_mismatch"]),
+        )
+
+        for name, replacement, expected_errors in cases:
+            with self.subTest(name=name):
+                drifted_rows = [
+                    {**row, **replacement} if row["row_id"] == "T2-51" else row
+                    for row in rows
+                ]
+                with (
+                    patch("plant_prepared_dossiers.load_jsonl", return_value=drifted_rows),
+                    patch(
+                        "plant_prepared_dossiers.discover_local_docx_ids",
+                        return_value={"2.1": expected_docx},
+                    ),
+                    patch("plant_prepared_dossiers.validate_local_docx_contents", return_value=()),
+                ):
+                    table_ii = table_readiness("table-ii")
+
+                self.assertFalse(table_ii["master_expected_rows_valid"])
+                invalid = next(
+                    item
+                    for item in table_ii["invalid_expected_master_rows"]
+                    if item["dossier_id"] == "T2-51"
+                )
+                self.assertEqual(invalid["errors"], expected_errors)
+                self.assertFalse(table_ii["package_ready_to_plant"])
 
     def test_planting_cli_is_explicitly_aggregate_only(self) -> None:
         payload = readiness_payload()

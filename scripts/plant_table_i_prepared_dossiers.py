@@ -760,6 +760,13 @@ def parse_dossier(path: Path, master_row: dict[str, Any], table_id: str = "table
     normalized_master = master_row.get("normalized")
     if not isinstance(normalized_master, dict):
         raise ValueError(f"{dossier_id} master row must expose normalized metadata")
+    if table_id == "table-i" and not observed_row_value:
+        observed_title_id = DOSSIER_ID_PATTERN.search(title)
+        if observed_title_id and observed_title_id.group(0) != dossier_id:
+            raise ValueError(
+                f"{dossier_id} DOCX title does not match its master-table identity: "
+                f"{observed_title_id.group(0)}"
+            )
     if table_id == "table-ii":
         observed_clean_title = clean_dossier_title(title, dossier_id)
         if blocked:
@@ -1988,7 +1995,7 @@ def write_readmes() -> None:
     )
 
 
-def main() -> int:
+def plant_supported_packages() -> int:
     dossiers: list[Dossier] = []
     dossiers_by_table: dict[str, list[Dossier]] = {}
     for table_id in SUPPORTED_TABLES:
@@ -2020,6 +2027,13 @@ def main() -> int:
         f"{sum(len(dossier.relation_rows) for dossier in dossiers)} proposed relations"
     )
     return 0
+
+
+def main() -> int:
+    from plant_prepared_dossiers import require_aggregate_readiness
+
+    require_aggregate_readiness()
+    return plant_supported_packages()
 
 
 if __name__ == "__main__":

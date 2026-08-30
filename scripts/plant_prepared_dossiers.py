@@ -14,8 +14,9 @@ from typing import Any
 from plant_table_i_prepared_dossiers import DOC_ROOT, DOSSIER_ID_PATTERN
 from plant_table_i_prepared_dossiers import PACKAGES, PACKAGE_ROUTES, SUPPORTED_TABLES
 from plant_table_i_prepared_dossiers import blocked_dossiers, discover_docx, extract_dossier_id
+from plant_table_i_prepared_dossiers import docx_package_metadata
 from plant_table_i_prepared_dossiers import load_jsonl as load_pipeline_jsonl
-from plant_table_i_prepared_dossiers import main as plant_supported_packages
+from plant_table_i_prepared_dossiers import plant_supported_packages
 from plant_table_i_prepared_dossiers import parse_dossier
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
@@ -66,6 +67,7 @@ def validate_local_docx_contents(table_id: str) -> tuple[dict[str, str], ...]:
         try:
             master_row = master_rows_by_id[dossier_id]
             parse_dossier(path, master_row, table_id)
+            docx_package_metadata(path)
         except (Exception, SystemExit) as exc:
             errors.append(
                 {
@@ -112,6 +114,27 @@ def table_readiness(table_id: str) -> dict[str, Any]:
         matched_expected_master_ids = [
             dossier_id for dossier_id in expected_master_ids if master_row_id_counts[dossier_id] == 1
         ]
+        master_rows_by_id = {
+            str(row.get("row_id") or ""): row
+            for row in rows
+            if isinstance(row, dict) and master_row_id_counts[str(row.get("row_id") or "")] == 1
+        }
+        invalid_expected_master_rows: list[dict[str, Any]] = []
+        for dossier_id in matched_expected_master_ids:
+            row = master_rows_by_id[dossier_id]
+            errors: list[str] = []
+            if row.get("table_id") != table_id:
+                errors.append("table_id_mismatch")
+            normalized = row.get("normalized")
+            if not isinstance(normalized, dict):
+                errors.append("normalized_metadata_missing")
+            elif normalized.get("row_id") != dossier_id:
+                errors.append("normalized_row_id_mismatch")
+            if errors:
+                invalid_expected_master_rows.append(
+                    {"dossier_id": dossier_id, "errors": errors}
+                )
+        master_expected_rows_valid = not invalid_expected_master_rows
         master_expected_ids_unique = (
             not missing_expected_master_ids
             and not duplicate_expected_master_ids
@@ -121,6 +144,7 @@ def table_readiness(table_id: str) -> dict[str, Any]:
             local_docx_ids_unique
             and unique_local_docx_ids == expected
             and master_expected_ids_unique
+            and master_expected_rows_valid
         )
         docx_content_validation_performed = structural_preflight_ready
         docx_validation_errors = (
@@ -148,6 +172,8 @@ def table_readiness(table_id: str) -> dict[str, Any]:
             "expected_master_dossier_ids": expected_master_ids,
             "master_row_ids": master_row_ids,
             "master_expected_ids_unique": master_expected_ids_unique,
+            "master_expected_rows_valid": master_expected_rows_valid,
+            "invalid_expected_master_rows": invalid_expected_master_rows,
             "matched_expected_master_ids": matched_expected_master_ids,
             "missing_expected_master_ids": missing_expected_master_ids,
             "duplicate_expected_master_ids": duplicate_expected_master_ids,
@@ -218,6 +244,21 @@ def readiness_payload(table_id: str | None = None) -> dict[str, Any]:
     }
 
 
+def require_aggregate_readiness() -> dict[str, Any]:
+    readiness = readiness_payload()
+    if readiness["ready_to_plant"]:
+        return readiness
+    failed_packages = sorted(
+        table_id
+        for table_id, ready in readiness["required_supported_package_readiness"].items()
+        if not ready
+    )
+    raise SystemExit(
+        "prepared dossier planting not ready for supported packages: "
+        f"{', '.join(failed_packages)}; run --readiness for exact blockers"
+    )
+
+
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Inspect or run prepared philosophy dossier planting.")
     parser.add_argument(
@@ -240,17 +281,7 @@ def main(argv: list[str] | None = None) -> int:
             "prepared-dossier planting is aggregate-only because shared atlas and graph outputs cover all supported "
             "packages; use --plant without --table"
         )
-    readiness = readiness_payload()
-    if not readiness["ready_to_plant"]:
-        failed_packages = sorted(
-            table_id
-            for table_id, ready in readiness["required_supported_package_readiness"].items()
-            if not ready
-        )
-        raise SystemExit(
-            "prepared dossier planting not ready for supported packages: "
-            f"{', '.join(failed_packages)}; run --readiness for exact blockers"
-        )
+    require_aggregate_readiness()
     return plant_supported_packages()
 
 

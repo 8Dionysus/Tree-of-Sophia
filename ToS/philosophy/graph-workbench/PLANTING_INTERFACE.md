@@ -62,7 +62,8 @@ relation can point back to a ToS source ref and every unresolved endpoint is
 visible as unresolved, not silently upgraded.
 
 Projection reuses tracked identity before creating a placeholder. An exact
-admitted dossier id resolves to its `atlas-dossier:*` node; a leading known
+admitted dossier id resolves to its `atlas-dossier:*` node with
+`projection_endpoint_resolution: exact_admitted_dossier`; a leading known
 master-row id whose dossier is quarantined or not supplied resolves to the
 existing `atlas-row:*` node; only an otherwise unresolved label becomes an
 origin-scoped `candidate-endpoint:*`. Reviewed qualified aliases remain the
@@ -99,11 +100,15 @@ Current supported entrypoint:
 Readiness may be limited with `--table`; planting is explicitly aggregate-only
 and runs as `python scripts/plant_prepared_dossiers.py --plant` because the
 atlas indexes, graph workbench, language packets, and branch manifests combine
-all supported packages. Readiness requires an exact unique master-row spine,
-an exact unique filename inventory, and a read-only parse of every supplied
-DOCX through the same content and identity checks used by planting. Missing,
-duplicate, or unexpected master ids and corrupt or identity-drifted documents
-fail closed before any planting write.
+all supported packages. The compatibility implementation entrypoint invokes
+the same aggregate gate and cannot bypass it. Readiness requires an exact
+unique master-row spine whose `row_id`, `table_id`, and normalized row identity
+agree, an exact unique filename inventory, and a read-only parse of every
+supplied DOCX through the same content and identity checks used by planting.
+It also checks a Table I title id when row metadata is absent and reads package
+provenance metadata, including optional custom-property XML, before any write.
+Missing, duplicate, unexpected, corrupt, or identity-drifted inputs fail
+closed before planting changes a companion.
 The projection, corpus-index, and post-planting builders own their generated
 outputs; `docs/validation/validation_lanes.json` owns checked verification
 order. Use `scripts/AGENTS.md` for the operator route.

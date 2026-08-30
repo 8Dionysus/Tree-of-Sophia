@@ -87,12 +87,24 @@ class PhilosophyAtlasProjectionTest(unittest.TestCase):
             "atlas-dossier:T2-16",
         )
         self.assertEqual(
+            edges["edge:candidate-relation:table-ii-t2-11-relation-035"]["properties"][
+                "projection_endpoint_resolution"
+            ],
+            "exact_admitted_dossier",
+        )
+        self.assertEqual(
             edges["edge:candidate-relation:table-ii-t2-31-relation-039"]["to_id"],
             "atlas-dossier:T2-35",
         )
         self.assertEqual(
             edges["edge:candidate-relation:table-i-a18-relation-030"]["to_id"],
             "atlas-dossier:A41",
+        )
+        self.assertEqual(
+            edges["edge:candidate-relation:table-i-a18-relation-030"]["properties"][
+                "projection_endpoint_resolution"
+            ],
+            "exact_admitted_dossier",
         )
         self.assertEqual(
             sum(
@@ -112,6 +124,14 @@ class PhilosophyAtlasProjectionTest(unittest.TestCase):
                 node["node_type"] == "candidate-endpoint" and node["label"] in admitted_ids
                 for node in payload["nodes"]
             )
+        )
+        self.assertEqual(
+            sum(
+                edge["properties"].get("projection_endpoint_resolution")
+                == "exact_admitted_dossier"
+                for edge in payload["edges"]
+            ),
+            17,
         )
 
     def test_unavailable_dossier_endpoints_use_tracked_master_rows(self) -> None:

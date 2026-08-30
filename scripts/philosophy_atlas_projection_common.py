@@ -715,7 +715,11 @@ def build_payload() -> dict[str, Any]:
                 else (
                     "known_unavailable_master_row"
                     if source_master_row_id is not None or target_master_row_id is not None
-                    else None
+                    else (
+                        "exact_admitted_dossier"
+                        if source_label in admitted_dossier_ids or target_label in admitted_dossier_ids
+                        else None
+                    )
                 )
             ),
             endpoint_alias_ref=(
