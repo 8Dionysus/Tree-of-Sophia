@@ -82,9 +82,16 @@ def strict_parse(payload: bytes) -> etree._Element:
         collect_ids=False,
     )
     try:
-        return etree.fromstring(payload, parser=parser)
+        root = etree.fromstring(payload, parser=parser)
     except etree.XMLSyntaxError as exc:
         raise CandidateBuildError("strict XML parse failed") from exc
+    # The byte-level guard above is only a fast path for UTF-8.  libxml2 has
+    # already decoded the document at this point, so docinfo also catches
+    # UTF-16/UTF-32 declarations whose bytes contain interleaved NULs.
+    docinfo = root.getroottree().docinfo
+    if docinfo.doctype or docinfo.internalDTD is not None or docinfo.externalDTD is not None:
+        raise CandidateBuildError("DOCTYPE declarations are forbidden")
+    return root
 
 
 def parser_posture() -> dict[str, bool | str]:
@@ -405,7 +412,9 @@ def c_context(base: dict[str, Any], input_kind: str) -> dict[str, Any]:
             "provider": "synthetic UXLC-shape control",
             "expression": "synthetic",
             "edition": "synthetic",
-            "book_code": base["book_code"],
+            # Do not copy the exact-source provider code into tracked
+            # synthetic fixtures; synthetic output must remain source-free.
+            "book_code": "SYNTH",
             "selector": "synthetic",
             "projection_authority": "provider_shape_test_only",
         }

@@ -557,7 +557,7 @@
     },
     {
       "candidate": "C",
-      "output_sha256": "5df1f52ef459d6cabb1005c4dacc47bbe8507801af60e7a9fd73fca19552ab49",
+      "output_sha256": "1899397f9f700040c287d8ec8dddccf033b00a04ed9b8f59b69005fafb850088",
       "result": {
         "generic_owner_supported": false,
         "generic_refs_verified": 0,
@@ -570,7 +570,7 @@
     },
     {
       "candidate": "BC",
-      "output_sha256": "e6cec58826936482603e6c04762f5f4547a80e36422e0234020818b90729291c",
+      "output_sha256": "c6c643010e7c71739b48cb3ad4cc70cc464328fae9c903abf3f6040cdc64682c",
       "result": {
         "owner": {
           "metadata_mismatches": 0,
@@ -706,6 +706,9 @@
   "error_count": 0,
   "errors": [],
   "lab_id": "tos.lab.generic-xml-resource-inventory-uxlc-abc.v1",
+  "max_rss_kib": 24300,
   "schema_version": "tos_generic_xml_resource_inventory_independent_consumer_receipt_v1",
-  "source_text_included": false
+  "source_text_included": false,
+  "timing_scope": "independent consumer checks and receipt assembly",
+  "wall_seconds": 0.01832387899958121
 }

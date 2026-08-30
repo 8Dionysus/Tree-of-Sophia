@@ -11,6 +11,8 @@ import hashlib
 import json
 import os
 import re
+import resource
+import time
 from pathlib import Path
 from typing import Any
 
@@ -56,7 +58,11 @@ def strict_parse(payload: bytes) -> etree._Element:
         strip_cdata=False,
         collect_ids=False,
     )
-    return etree.fromstring(payload, parser=parser)
+    root = etree.fromstring(payload, parser=parser)
+    docinfo = root.getroottree().docinfo
+    if docinfo.doctype or docinfo.internalDTD is not None or docinfo.externalDTD is not None:
+        raise ValueError("DOCTYPE forbidden")
+    return root
 
 
 def element_children(element: etree._Element) -> list[etree._Element]:
@@ -311,6 +317,7 @@ def write_receipt(value: Any) -> None:
 
 def main() -> int:
     manifest = json.loads(MANIFEST_PATH.read_text(encoding="utf-8"))
+    started = time.perf_counter()
     checks: list[dict[str, Any]] = []
     errors: list[dict[str, str]] = []
 
@@ -382,6 +389,9 @@ def main() -> int:
         "checks": checks,
         "errors": errors,
         "all_paths_and_metadata_return": len(errors) == 0,
+        "wall_seconds": time.perf_counter() - started,
+        "max_rss_kib": resource.getrusage(resource.RUSAGE_SELF).ru_maxrss,
+        "timing_scope": "independent consumer checks and receipt assembly",
         "source_text_included": False,
         "authority_boundary": "independent source-return mechanics only; no source-text, linguistic, translation, semantic, graph, canon, rights or publication authority",
     }

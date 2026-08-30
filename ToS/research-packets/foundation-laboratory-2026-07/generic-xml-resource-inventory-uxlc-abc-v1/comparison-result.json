@@ -70,17 +70,17 @@
         "candidate_output_freeze_sha256": "039cfda1d5c966325fda5e5caa2d25ef00d987ea871d7c0d06fa6bf67de34eec",
         "durable_order": true,
         "method_freeze_digest_match": true,
-        "method_freeze_ref": "ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/freeze-receipt-v4.json",
-        "method_freeze_sha256": "673df52d8eebac3f39f77c081daad4a5a3376b020a5d5bb397a905af95cf5713",
-        "method_frozen_at": "2026-08-30T17:58:25.639895Z",
-        "output_run_started_at": "2026-08-30T17:58:25.693500Z"
+        "method_freeze_ref": "ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/freeze-receipt-v6.json",
+        "method_freeze_sha256": "6df612744cb5091e78dacaee1e592975930d6b4b0ae7a6506716709085b96e95",
+        "method_frozen_at": "2026-08-30T18:39:03.827218Z",
+        "output_run_started_at": "2026-08-30T18:39:03.870303Z"
       },
       "gate_id": "G1-freeze-before-output",
       "passed": true
     },
     {
       "evidence": {
-        "frozen_file_count": 17,
+        "frozen_file_count": 19,
         "mismatches": []
       },
       "gate_id": "G2-input-digests-match",
@@ -130,6 +130,12 @@
     },
     {
       "evidence": {
+        "consumer_output_binding": {
+          "consumer_check_count": 58,
+          "failures": [],
+          "matched_check_count": 58,
+          "ok": true
+        },
         "failures": [],
         "observed_output_binding": {
           "checked_process_count": 133,
@@ -144,7 +150,13 @@
     {
       "evidence": {
         "check_count": 58,
-        "error_count": 0
+        "error_count": 0,
+        "output_binding": {
+          "consumer_check_count": 58,
+          "failures": [],
+          "matched_check_count": 58,
+          "ok": true
+        }
       },
       "gate_id": "G8-b-paths-resolve-exactly",
       "passed": true
@@ -300,7 +312,12 @@
     {
       "evidence": {
         "leaks": [],
-        "source_value_control_count": 62
+        "manifest_control_collisions": [
+          "Prov",
+          "Unicode/XML Leningrad Codex"
+        ],
+        "scanned_manifest": true,
+        "source_value_control_count": 74
       },
       "gate_id": "G16-no-source-values-in-tracked-output",
       "passed": true
@@ -344,7 +361,13 @@
         "checks": 58,
         "consumer_imports_builder": false,
         "consumer_reads_sealed_manifest": false,
-        "errors": 0
+        "errors": 0,
+        "output_binding": {
+          "consumer_check_count": 58,
+          "failures": [],
+          "matched_check_count": 58,
+          "ok": true
+        }
       },
       "gate_id": "G21-independent-source-return",
       "passed": true
@@ -374,7 +397,7 @@
     },
     {
       "evidence": {
-        "manual_review_sha256": "471c1c112b63d21e10be0991b9df1fb8c9421174643787561cd44a13225ff7ef",
+        "manual_review_sha256": "fa8e154f439d0f14c82aed3d5070a99719ed0861a1d12d64a2b2c33aaf668666",
         "missing_markers": []
       },
       "gate_id": "G23-manual-review-before-evaluator",
@@ -382,8 +405,11 @@
     },
     {
       "evidence": {
+        "consumer_max_rss_kib": 24300,
+        "consumer_wall_seconds": 0.01832387899958121,
         "direct_monetary_cost": 0,
         "human_burden_in_manual_review": true,
+        "independent_consumer_wall_and_rss_measured": true,
         "output_bytes_separate": true,
         "process_count": 133,
         "wall_and_rss_measured": true

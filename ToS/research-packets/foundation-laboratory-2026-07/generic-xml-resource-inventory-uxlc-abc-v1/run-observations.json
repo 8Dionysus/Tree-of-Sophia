@@ -23,15 +23,15 @@
     "timezone": "UTC"
   },
   "lab_id": "tos.lab.generic-xml-resource-inventory-uxlc-abc.v1",
-  "method_freeze_ref": "ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/freeze-receipt-v4.json",
-  "method_freeze_sha256": "673df52d8eebac3f39f77c081daad4a5a3376b020a5d5bb397a905af95cf5713",
-  "output_run_started_at": "2026-08-30T17:58:25.693500Z",
+  "method_freeze_ref": "ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/freeze-receipt-v6.json",
+  "method_freeze_sha256": "6df612744cb5091e78dacaee1e592975930d6b4b0ae7a6506716709085b96e95",
+  "output_run_started_at": "2026-08-30T18:39:03.870303Z",
   "process_count": 133,
   "processes": [
     {
       "candidate": "A",
       "exit_code": 0,
-      "max_rss_kib": 25468,
+      "max_rss_kib": 25496,
       "output_bytes": 1215,
       "output_created": true,
       "output_ref": "public-synthetic/run-1/a/P1-no-namespace.json",
@@ -46,7 +46,7 @@
     {
       "candidate": "B",
       "exit_code": 0,
-      "max_rss_kib": 25564,
+      "max_rss_kib": 25488,
       "output_bytes": 4471,
       "output_created": true,
       "output_ref": "public-synthetic/run-1/b/P1-no-namespace.json",
@@ -61,7 +61,7 @@
     {
       "candidate": "A",
       "exit_code": 0,
-      "max_rss_kib": 25548,
+      "max_rss_kib": 25488,
       "output_bytes": 1211,
       "output_created": true,
       "output_ref": "public-synthetic/run-1/a/P2-prefix-a.json",
@@ -71,12 +71,12 @@
       "selection_kind": "fixture",
       "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
       "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-      "wall_seconds": 0.05
+      "wall_seconds": 0.04
     },
     {
       "candidate": "B",
       "exit_code": 0,
-      "max_rss_kib": 25552,
+      "max_rss_kib": 25520,
       "output_bytes": 3475,
       "output_created": true,
       "output_ref": "public-synthetic/run-1/b/P2-prefix-a.json",
@@ -86,12 +86,12 @@
       "selection_kind": "fixture",
       "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
       "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-      "wall_seconds": 0.06
+      "wall_seconds": 0.05
     },
     {
       "candidate": "A",
       "exit_code": 0,
-      "max_rss_kib": 25532,
+      "max_rss_kib": 25556,
       "output_bytes": 1211,
       "output_created": true,
       "output_ref": "public-synthetic/run-1/a/P2-prefix-b.json",
@@ -101,12 +101,12 @@
       "selection_kind": "fixture",
       "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
       "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-      "wall_seconds": 0.06
+      "wall_seconds": 0.05
     },
     {
       "candidate": "B",
       "exit_code": 0,
-      "max_rss_kib": 25552,
+      "max_rss_kib": 25520,
       "output_bytes": 3475,
       "output_created": true,
       "output_ref": "public-synthetic/run-1/b/P2-prefix-b.json",
@@ -116,12 +116,12 @@
       "selection_kind": "fixture",
       "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
       "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-      "wall_seconds": 0.05
+      "wall_seconds": 0.04
     },
     {
       "candidate": "A",
       "exit_code": 0,
-      "max_rss_kib": 25756,
+      "max_rss_kib": 25588,
       "output_bytes": 1220,
       "output_created": true,
       "output_ref": "public-synthetic/run-1/a/P3-default-namespace.json",
@@ -136,7 +136,7 @@
     {
       "candidate": "B",
       "exit_code": 0,
-      "max_rss_kib": 25480,
+      "max_rss_kib": 25504,
       "output_bytes": 3675,
       "output_created": true,
       "output_ref": "public-synthetic/run-1/b/P3-default-namespace.json",
@@ -151,7 +151,7 @@
     {
       "candidate": "A",
       "exit_code": 0,
-      "max_rss_kib": 25568,
+      "max_rss_kib": 25572,
       "output_bytes": 1221,
       "output_created": true,
       "output_ref": "public-synthetic/run-1/a/P4-duplicate-siblings.json",
@@ -166,7 +166,7 @@
     {
       "candidate": "B",
       "exit_code": 0,
-      "max_rss_kib": 25772,
+      "max_rss_kib": 25556,
       "output_bytes": 5171,
       "output_created": true,
       "output_ref": "public-synthetic/run-1/b/P4-duplicate-siblings.json",
@@ -181,7 +181,7 @@
     {
       "candidate": "A",
       "exit_code": 0,
-      "max_rss_kib": 25484,
+      "max_rss_kib": 25556,
       "output_bytes": 1223,
       "output_created": true,
       "output_ref": "public-synthetic/run-1/a/P5-interleaved-siblings.json",
@@ -196,7 +196,7 @@
     {
       "candidate": "B",
       "exit_code": 0,
-      "max_rss_kib": 25588,
+      "max_rss_kib": 25504,
       "output_bytes": 5173,
       "output_created": true,
       "output_ref": "public-synthetic/run-1/b/P5-interleaved-siblings.json",
@@ -211,7 +211,7 @@
     {
       "candidate": "A",
       "exit_code": 0,
-      "max_rss_kib": 25536,
+      "max_rss_kib": 25688,
       "output_bytes": 1214,
       "output_created": true,
       "output_ref": "public-synthetic/run-1/a/P6-empty-short.json",
@@ -221,12 +221,12 @@
       "selection_kind": "fixture",
       "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
       "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-      "wall_seconds": 0.06
+      "wall_seconds": 0.05
     },
     {
       "candidate": "B",
       "exit_code": 0,
-      "max_rss_kib": 25524,
+      "max_rss_kib": 25556,
       "output_bytes": 3392,
       "output_created": true,
       "output_ref": "public-synthetic/run-1/b/P6-empty-short.json",
@@ -236,12 +236,12 @@
       "selection_kind": "fixture",
       "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
       "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-      "wall_seconds": 0.06
+      "wall_seconds": 0.05
     },
     {
       "candidate": "A",
       "exit_code": 0,
-      "max_rss_kib": 25520,
+      "max_rss_kib": 25536,
       "output_bytes": 1213,
       "output_created": true,
       "output_ref": "public-synthetic/run-1/a/P6-empty-long.json",
@@ -251,12 +251,12 @@
       "selection_kind": "fixture",
       "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
       "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-      "wall_seconds": 0.06
+      "wall_seconds": 0.05
     },
     {
       "candidate": "B",
       "exit_code": 0,
-      "max_rss_kib": 25616,
+      "max_rss_kib": 25656,
       "output_bytes": 3391,
       "output_created": true,
       "output_ref": "public-synthetic/run-1/b/P6-empty-long.json",
@@ -266,12 +266,12 @@
       "selection_kind": "fixture",
       "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
       "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-      "wall_seconds": 0.06
+      "wall_seconds": 0.05
     },
     {
       "candidate": "A",
       "exit_code": 0,
-      "max_rss_kib": 25488,
+      "max_rss_kib": 25408,
       "output_bytes": 1215,
       "output_created": true,
       "output_ref": "public-synthetic/run-1/a/P7-attributes-a.json",
@@ -281,12 +281,12 @@
       "selection_kind": "fixture",
       "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
       "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-      "wall_seconds": 0.06
+      "wall_seconds": 0.05
     },
     {
       "candidate": "B",
       "exit_code": 0,
-      "max_rss_kib": 25552,
+      "max_rss_kib": 25492,
       "output_bytes": 3568,
       "output_created": true,
       "output_ref": "public-synthetic/run-1/b/P7-attributes-a.json",
@@ -296,12 +296,12 @@
       "selection_kind": "fixture",
       "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
       "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-      "wall_seconds": 0.06
+      "wall_seconds": 0.05
     },
     {
       "candidate": "A",
       "exit_code": 0,
-      "max_rss_kib": 25576,
+      "max_rss_kib": 25484,
       "output_bytes": 1215,
       "output_created": true,
       "output_ref": "public-synthetic/run-1/a/P7-attributes-b.json",
@@ -311,12 +311,12 @@
       "selection_kind": "fixture",
       "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
       "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-      "wall_seconds": 0.06
+      "wall_seconds": 0.05
     },
     {
       "candidate": "B",
       "exit_code": 0,
-      "max_rss_kib": 25560,
+      "max_rss_kib": 25480,
       "output_bytes": 3568,
       "output_created": true,
       "output_ref": "public-synthetic/run-1/b/P7-attributes-b.json",
@@ -326,7 +326,7 @@
       "selection_kind": "fixture",
       "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
       "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-      "wall_seconds": 0.06
+      "wall_seconds": 0.05
     },
     {
       "candidate": "A",
@@ -341,12 +341,12 @@
       "selection_kind": "fixture",
       "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
       "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-      "wall_seconds": 0.06
+      "wall_seconds": 0.05
     },
     {
       "candidate": "B",
       "exit_code": 0,
-      "max_rss_kib": 25572,
+      "max_rss_kib": 25496,
       "output_bytes": 3392,
       "output_created": true,
       "output_ref": "public-synthetic/run-1/b/P8-comments-pi-a.json",
@@ -361,7 +361,7 @@
     {
       "candidate": "A",
       "exit_code": 0,
-      "max_rss_kib": 25524,
+      "max_rss_kib": 25496,
       "output_bytes": 1216,
       "output_created": true,
       "output_ref": "public-synthetic/run-1/a/P8-comments-pi-b.json",
@@ -371,12 +371,12 @@
       "selection_kind": "fixture",
       "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
       "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-      "wall_seconds": 0.06
+      "wall_seconds": 0.05
     },
     {
       "candidate": "B",
       "exit_code": 0,
-      "max_rss_kib": 25516,
+      "max_rss_kib": 25532,
       "output_bytes": 3392,
       "output_created": true,
       "output_ref": "public-synthetic/run-1/b/P8-comments-pi-b.json",
@@ -386,12 +386,12 @@
       "selection_kind": "fixture",
       "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
       "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-      "wall_seconds": 0.06
+      "wall_seconds": 0.05
     },
     {
       "candidate": "A",
       "exit_code": 0,
-      "max_rss_kib": 25524,
+      "max_rss_kib": 25460,
       "output_bytes": 1219,
       "output_created": true,
       "output_ref": "public-synthetic/run-1/a/P9-mixed-namespaces.json",
@@ -401,12 +401,12 @@
       "selection_kind": "fixture",
       "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
       "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-      "wall_seconds": 0.06
+      "wall_seconds": 0.05
     },
     {
       "candidate": "B",
       "exit_code": 0,
-      "max_rss_kib": 25488,
+      "max_rss_kib": 25568,
       "output_bytes": 4574,
       "output_created": true,
       "output_ref": "public-synthetic/run-1/b/P9-mixed-namespaces.json",
@@ -416,12 +416,12 @@
       "selection_kind": "fixture",
       "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
       "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-      "wall_seconds": 0.06
+      "wall_seconds": 0.05
     },
     {
       "candidate": "A",
       "exit_code": 0,
-      "max_rss_kib": 25560,
+      "max_rss_kib": 25480,
       "output_bytes": 1213,
       "output_created": true,
       "output_ref": "public-synthetic/run-1/a/P10-true-tei.json",
@@ -431,12 +431,12 @@
       "selection_kind": "fixture",
       "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
       "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-      "wall_seconds": 0.06
+      "wall_seconds": 0.05
     },
     {
       "candidate": "B",
       "exit_code": 0,
-      "max_rss_kib": 25552,
+      "max_rss_kib": 25492,
       "output_bytes": 7075,
       "output_created": true,
       "output_ref": "public-synthetic/run-1/b/P10-true-tei.json",
@@ -446,12 +446,12 @@
       "selection_kind": "fixture",
       "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
       "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-      "wall_seconds": 0.06
+      "wall_seconds": 0.05
     },
     {
       "candidate": "A",
       "exit_code": 0,
-      "max_rss_kib": 25480,
+      "max_rss_kib": 25460,
       "output_bytes": 1217,
       "output_created": true,
       "output_ref": "public-synthetic/run-1/a/P11-tei-lookalike.json",
@@ -466,7 +466,7 @@
     {
       "candidate": "B",
       "exit_code": 0,
-      "max_rss_kib": 25488,
+      "max_rss_kib": 25552,
       "output_bytes": 5379,
       "output_created": true,
       "output_ref": "public-synthetic/run-1/b/P11-tei-lookalike.json",
@@ -481,7 +481,7 @@
     {
       "candidate": "A",
       "exit_code": 0,
-      "max_rss_kib": 25548,
+      "max_rss_kib": 25508,
       "output_bytes": 1214,
       "output_created": true,
       "output_ref": "public-synthetic/run-1/a/P12-dynamic-a.json",
@@ -496,7 +496,7 @@
     {
       "candidate": "B",
       "exit_code": 0,
-      "max_rss_kib": 25548,
+      "max_rss_kib": 25568,
       "output_bytes": 5482,
       "output_created": true,
       "output_ref": "public-synthetic/run-1/b/P12-dynamic-a.json",
@@ -506,12 +506,12 @@
       "selection_kind": "fixture",
       "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
       "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-      "wall_seconds": 0.06
+      "wall_seconds": 0.05
     },
     {
       "candidate": "A",
       "exit_code": 0,
-      "max_rss_kib": 25544,
+      "max_rss_kib": 25552,
       "output_bytes": 1214,
       "output_created": true,
       "output_ref": "public-synthetic/run-1/a/P12-dynamic-b.json",
@@ -521,12 +521,12 @@
       "selection_kind": "fixture",
       "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
       "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-      "wall_seconds": 0.06
+      "wall_seconds": 0.05
     },
     {
       "candidate": "B",
       "exit_code": 0,
-      "max_rss_kib": 25520,
+      "max_rss_kib": 25508,
       "output_bytes": 5482,
       "output_created": true,
       "output_ref": "public-synthetic/run-1/b/P12-dynamic-b.json",
@@ -541,7 +541,7 @@
     {
       "candidate": "A",
       "exit_code": 0,
-      "max_rss_kib": 25576,
+      "max_rss_kib": 25524,
       "output_bytes": 1213,
       "output_created": true,
       "output_ref": "public-synthetic/run-1/a/P13-reorder-a.json",
@@ -556,7 +556,7 @@
     {
       "candidate": "B",
       "exit_code": 0,
-      "max_rss_kib": 25588,
+      "max_rss_kib": 25544,
       "output_bytes": 5343,
       "output_created": true,
       "output_ref": "public-synthetic/run-1/b/P13-reorder-a.json",
@@ -566,12 +566,12 @@
       "selection_kind": "fixture",
       "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
       "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-      "wall_seconds": 0.06
+      "wall_seconds": 0.05
     },
     {
       "candidate": "A",
       "exit_code": 0,
-      "max_rss_kib": 25492,
+      "max_rss_kib": 25456,
       "output_bytes": 1213,
       "output_created": true,
       "output_ref": "public-synthetic/run-1/a/P13-reorder-b.json",
@@ -586,7 +586,7 @@
     {
       "candidate": "B",
       "exit_code": 0,
-      "max_rss_kib": 25524,
+      "max_rss_kib": 25500,
       "output_bytes": 5343,
       "output_created": true,
       "output_ref": "public-synthetic/run-1/b/P13-reorder-b.json",
@@ -601,7 +601,7 @@
     {
       "candidate": "A",
       "exit_code": 0,
-      "max_rss_kib": 25480,
+      "max_rss_kib": 25544,
       "output_bytes": 1210,
       "output_created": true,
       "output_ref": "public-synthetic/run-1/a/P14-text-a.json",
@@ -611,12 +611,12 @@
       "selection_kind": "fixture",
       "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
       "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-      "wall_seconds": 0.06
+      "wall_seconds": 0.05
     },
     {
       "candidate": "B",
       "exit_code": 0,
-      "max_rss_kib": 25544,
+      "max_rss_kib": 25428,
       "output_bytes": 3386,
       "output_created": true,
       "output_ref": "public-synthetic/run-1/b/P14-text-a.json",
@@ -626,12 +626,12 @@
       "selection_kind": "fixture",
       "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
       "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-      "wall_seconds": 0.06
+      "wall_seconds": 0.05
     },
     {
       "candidate": "A",
       "exit_code": 0,
-      "max_rss_kib": 25584,
+      "max_rss_kib": 25544,
       "output_bytes": 1210,
       "output_created": true,
       "output_ref": "public-synthetic/run-1/a/P14-text-b.json",
@@ -646,7 +646,7 @@
     {
       "candidate": "B",
       "exit_code": 0,
-      "max_rss_kib": 25536,
+      "max_rss_kib": 25556,
       "output_bytes": 3386,
       "output_created": true,
       "output_ref": "public-synthetic/run-1/b/P14-text-b.json",
@@ -656,12 +656,12 @@
       "selection_kind": "fixture",
       "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
       "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-      "wall_seconds": 0.06
+      "wall_seconds": 0.05
     },
     {
       "candidate": "A",
       "exit_code": 0,
-      "max_rss_kib": 25544,
+      "max_rss_kib": 25600,
       "output_bytes": 1221,
       "output_created": true,
       "output_ref": "public-synthetic/run-1/a/P15-attribute-value-a.json",
@@ -676,7 +676,7 @@
     {
       "candidate": "B",
       "exit_code": 0,
-      "max_rss_kib": 25532,
+      "max_rss_kib": 25460,
       "output_bytes": 3489,
       "output_created": true,
       "output_ref": "public-synthetic/run-1/b/P15-attribute-value-a.json",
@@ -686,12 +686,12 @@
       "selection_kind": "fixture",
       "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
       "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-      "wall_seconds": 0.06
+      "wall_seconds": 0.05
     },
     {
       "candidate": "A",
       "exit_code": 0,
-      "max_rss_kib": 25560,
+      "max_rss_kib": 25472,
       "output_bytes": 1221,
       "output_created": true,
       "output_ref": "public-synthetic/run-1/a/P15-attribute-value-b.json",
@@ -706,7 +706,7 @@
     {
       "candidate": "B",
       "exit_code": 0,
-      "max_rss_kib": 25468,
+      "max_rss_kib": 25568,
       "output_bytes": 3489,
       "output_created": true,
       "output_ref": "public-synthetic/run-1/b/P15-attribute-value-b.json",
@@ -716,12 +716,12 @@
       "selection_kind": "fixture",
       "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
       "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-      "wall_seconds": 0.06
+      "wall_seconds": 0.05
     },
     {
       "candidate": "A",
       "exit_code": 0,
-      "max_rss_kib": 25524,
+      "max_rss_kib": 25500,
       "output_bytes": 1215,
       "output_created": true,
       "output_ref": "public-synthetic/run-1/a/PC1-uxlc-shape.json",
@@ -731,12 +731,12 @@
       "selection_kind": "fixture",
       "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
       "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-      "wall_seconds": 0.06
+      "wall_seconds": 0.05
     },
     {
       "candidate": "B",
       "exit_code": 0,
-      "max_rss_kib": 25500,
+      "max_rss_kib": 25552,
       "output_bytes": 19202,
       "output_created": true,
       "output_ref": "public-synthetic/run-1/b/PC1-uxlc-shape.json",
@@ -746,42 +746,42 @@
       "selection_kind": "fixture",
       "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
       "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-      "wall_seconds": 0.06
+      "wall_seconds": 0.05
     },
     {
       "candidate": "C",
       "exit_code": 0,
-      "max_rss_kib": 25556,
-      "output_bytes": 9546,
+      "max_rss_kib": 25488,
+      "output_bytes": 9554,
       "output_created": true,
       "output_ref": "public-synthetic/run-1/c/PC1-uxlc-shape.json",
       "output_scope": "lab",
-      "output_sha256": "5df1f52ef459d6cabb1005c4dacc47bbe8507801af60e7a9fd73fca19552ab49",
+      "output_sha256": "1899397f9f700040c287d8ec8dddccf033b00a04ed9b8f59b69005fafb850088",
       "selection_id": "PC1-uxlc-shape",
       "selection_kind": "fixture",
       "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
       "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-      "wall_seconds": 0.06
+      "wall_seconds": 0.05
     },
     {
       "candidate": "BC",
       "exit_code": 0,
-      "max_rss_kib": 25544,
-      "output_bytes": 30609,
+      "max_rss_kib": 25492,
+      "output_bytes": 30617,
       "output_created": true,
       "output_ref": "public-synthetic/run-1/bc/PC1-uxlc-shape.json",
       "output_scope": "lab",
-      "output_sha256": "e6cec58826936482603e6c04762f5f4547a80e36422e0234020818b90729291c",
+      "output_sha256": "c6c643010e7c71739b48cb3ad4cc70cc464328fae9c903abf3f6040cdc64682c",
       "selection_id": "PC1-uxlc-shape",
       "selection_kind": "fixture",
       "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
       "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-      "wall_seconds": 0.06
+      "wall_seconds": 0.05
     },
     {
       "candidate": "A",
       "exit_code": 0,
-      "max_rss_kib": 25556,
+      "max_rss_kib": 25464,
       "output_bytes": 1215,
       "output_created": true,
       "output_ref": "public-synthetic/run-2/a/P1-no-namespace.json",
@@ -791,12 +791,12 @@
       "selection_kind": "fixture",
       "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
       "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-      "wall_seconds": 0.06
+      "wall_seconds": 0.05
     },
     {
       "candidate": "B",
       "exit_code": 0,
-      "max_rss_kib": 25552,
+      "max_rss_kib": 25464,
       "output_bytes": 4471,
       "output_created": true,
       "output_ref": "public-synthetic/run-2/b/P1-no-namespace.json",
@@ -806,12 +806,12 @@
       "selection_kind": "fixture",
       "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
       "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-      "wall_seconds": 0.06
+      "wall_seconds": 0.05
     },
     {
       "candidate": "A",
       "exit_code": 0,
-      "max_rss_kib": 25524,
+      "max_rss_kib": 25460,
       "output_bytes": 1211,
       "output_created": true,
       "output_ref": "public-synthetic/run-2/a/P2-prefix-a.json",
@@ -821,12 +821,12 @@
       "selection_kind": "fixture",
       "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
       "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-      "wall_seconds": 0.06
+      "wall_seconds": 0.05
     },
     {
       "candidate": "B",
       "exit_code": 0,
-      "max_rss_kib": 25492,
+      "max_rss_kib": 25536,
       "output_bytes": 3475,
       "output_created": true,
       "output_ref": "public-synthetic/run-2/b/P2-prefix-a.json",
@@ -836,12 +836,12 @@
       "selection_kind": "fixture",
       "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
       "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-      "wall_seconds": 0.06
+      "wall_seconds": 0.05
     },
     {
       "candidate": "A",
       "exit_code": 0,
-      "max_rss_kib": 25576,
+      "max_rss_kib": 25624,
       "output_bytes": 1211,
       "output_created": true,
       "output_ref": "public-synthetic/run-2/a/P2-prefix-b.json",
@@ -856,7 +856,7 @@
     {
       "candidate": "B",
       "exit_code": 0,
-      "max_rss_kib": 25524,
+      "max_rss_kib": 25528,
       "output_bytes": 3475,
       "output_created": true,
       "output_ref": "public-synthetic/run-2/b/P2-prefix-b.json",
@@ -866,7 +866,7 @@
       "selection_kind": "fixture",
       "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
       "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-      "wall_seconds": 0.06
+      "wall_seconds": 0.05
     },
     {
       "candidate": "A",
@@ -886,7 +886,7 @@
     {
       "candidate": "B",
       "exit_code": 0,
-      "max_rss_kib": 25568,
+      "max_rss_kib": 25548,
       "output_bytes": 3675,
       "output_created": true,
       "output_ref": "public-synthetic/run-2/b/P3-default-namespace.json",
@@ -896,12 +896,12 @@
       "selection_kind": "fixture",
       "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
       "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-      "wall_seconds": 0.06
+      "wall_seconds": 0.05
     },
     {
       "candidate": "A",
       "exit_code": 0,
-      "max_rss_kib": 25488,
+      "max_rss_kib": 25544,
       "output_bytes": 1221,
       "output_created": true,
       "output_ref": "public-synthetic/run-2/a/P4-duplicate-siblings.json",
@@ -911,12 +911,12 @@
       "selection_kind": "fixture",
       "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
       "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-      "wall_seconds": 0.06
+      "wall_seconds": 0.05
     },
     {
       "candidate": "B",
       "exit_code": 0,
-      "max_rss_kib": 25564,
+      "max_rss_kib": 25480,
       "output_bytes": 5171,
       "output_created": true,
       "output_ref": "public-synthetic/run-2/b/P4-duplicate-siblings.json",
@@ -926,12 +926,12 @@
       "selection_kind": "fixture",
       "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
       "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-      "wall_seconds": 0.06
+      "wall_seconds": 0.05
     },
     {
       "candidate": "A",
       "exit_code": 0,
-      "max_rss_kib": 25588,
+      "max_rss_kib": 25544,
       "output_bytes": 1223,
       "output_created": true,
       "output_ref": "public-synthetic/run-2/a/P5-interleaved-siblings.json",
@@ -941,12 +941,12 @@
       "selection_kind": "fixture",
       "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
       "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-      "wall_seconds": 0.06
+      "wall_seconds": 0.05
     },
     {
       "candidate": "B",
       "exit_code": 0,
-      "max_rss_kib": 25424,
+      "max_rss_kib": 25480,
       "output_bytes": 5173,
       "output_created": true,
       "output_ref": "public-synthetic/run-2/b/P5-interleaved-siblings.json",
@@ -956,12 +956,12 @@
       "selection_kind": "fixture",
       "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
       "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-      "wall_seconds": 0.06
+      "wall_seconds": 0.05
     },
     {
       "candidate": "A",
       "exit_code": 0,
-      "max_rss_kib": 25488,
+      "max_rss_kib": 25528,
       "output_bytes": 1214,
       "output_created": true,
       "output_ref": "public-synthetic/run-2/a/P6-empty-short.json",
@@ -971,12 +971,12 @@
       "selection_kind": "fixture",
       "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
       "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-      "wall_seconds": 0.06
+      "wall_seconds": 0.05
     },
     {
       "candidate": "B",
       "exit_code": 0,
-      "max_rss_kib": 25552,
+      "max_rss_kib": 25488,
       "output_bytes": 3392,
       "output_created": true,
       "output_ref": "public-synthetic/run-2/b/P6-empty-short.json",
@@ -986,12 +986,12 @@
       "selection_kind": "fixture",
       "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
       "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-      "wall_seconds": 0.06
+      "wall_seconds": 0.05
     },
     {
       "candidate": "A",
       "exit_code": 0,
-      "max_rss_kib": 25480,
+      "max_rss_kib": 25472,
       "output_bytes": 1213,
       "output_created": true,
       "output_ref": "public-synthetic/run-2/a/P6-empty-long.json",
@@ -1006,7 +1006,7 @@
     {
       "candidate": "B",
       "exit_code": 0,
-      "max_rss_kib": 25520,
+      "max_rss_kib": 25584,
       "output_bytes": 3391,
       "output_created": true,
       "output_ref": "public-synthetic/run-2/b/P6-empty-long.json",
@@ -1016,12 +1016,12 @@
       "selection_kind": "fixture",
       "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
       "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-      "wall_seconds": 0.06
+      "wall_seconds": 0.05
     },
     {
       "candidate": "A",
       "exit_code": 0,
-      "max_rss_kib": 25532,
+      "max_rss_kib": 25496,
       "output_bytes": 1215,
       "output_created": true,
       "output_ref": "public-synthetic/run-2/a/P7-attributes-a.json",
@@ -1031,12 +1031,12 @@
       "selection_kind": "fixture",
       "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
       "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-      "wall_seconds": 0.06
+      "wall_seconds": 0.05
     },
     {
       "candidate": "B",
       "exit_code": 0,
-      "max_rss_kib": 25580,
+      "max_rss_kib": 25556,
       "output_bytes": 3568,
       "output_created": true,
       "output_ref": "public-synthetic/run-2/b/P7-attributes-a.json",
@@ -1046,12 +1046,12 @@
       "selection_kind": "fixture",
       "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
       "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-      "wall_seconds": 0.06
+      "wall_seconds": 0.05
     },
     {
       "candidate": "A",
       "exit_code": 0,
-      "max_rss_kib": 25524,
+      "max_rss_kib": 25556,
       "output_bytes": 1215,
       "output_created": true,
       "output_ref": "public-synthetic/run-2/a/P7-attributes-b.json",
@@ -1061,12 +1061,12 @@
       "selection_kind": "fixture",
       "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
       "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-      "wall_seconds": 0.06
+      "wall_seconds": 0.05
     },
     {
       "candidate": "B",
       "exit_code": 0,
-      "max_rss_kib": 25480,
+      "max_rss_kib": 25608,
       "output_bytes": 3568,
       "output_created": true,
       "output_ref": "public-synthetic/run-2/b/P7-attributes-b.json",
@@ -1076,12 +1076,12 @@
       "selection_kind": "fixture",
       "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
       "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-      "wall_seconds": 0.06
+      "wall_seconds": 0.05
     },
     {
       "candidate": "A",
       "exit_code": 0,
-      "max_rss_kib": 25540,
+      "max_rss_kib": 25564,
       "output_bytes": 1216,
       "output_created": true,
       "output_ref": "public-synthetic/run-2/a/P8-comments-pi-a.json",
@@ -1091,12 +1091,12 @@
       "selection_kind": "fixture",
       "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
       "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-      "wall_seconds": 0.06
+      "wall_seconds": 0.05
     },
     {
       "candidate": "B",
       "exit_code": 0,
-      "max_rss_kib": 25488,
+      "max_rss_kib": 25524,
       "output_bytes": 3392,
       "output_created": true,
       "output_ref": "public-synthetic/run-2/b/P8-comments-pi-a.json",
@@ -1106,12 +1106,12 @@
       "selection_kind": "fixture",
       "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
       "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-      "wall_seconds": 0.06
+      "wall_seconds": 0.05
     },
     {
       "candidate": "A",
       "exit_code": 0,
-      "max_rss_kib": 25488,
+      "max_rss_kib": 25496,
       "output_bytes": 1216,
       "output_created": true,
       "output_ref": "public-synthetic/run-2/a/P8-comments-pi-b.json",
@@ -1126,7 +1126,7 @@
     {
       "candidate": "B",
       "exit_code": 0,
-      "max_rss_kib": 25500,
+      "max_rss_kib": 25536,
       "output_bytes": 3392,
       "output_created": true,
       "output_ref": "public-synthetic/run-2/b/P8-comments-pi-b.json",
@@ -1136,12 +1136,12 @@
       "selection_kind": "fixture",
       "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
       "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-      "wall_seconds": 0.06
+      "wall_seconds": 0.05
     },
     {
       "candidate": "A",
       "exit_code": 0,
-      "max_rss_kib": 25468,
+      "max_rss_kib": 25544,
       "output_bytes": 1219,
       "output_created": true,
       "output_ref": "public-synthetic/run-2/a/P9-mixed-namespaces.json",
@@ -1156,7 +1156,7 @@
     {
       "candidate": "B",
       "exit_code": 0,
-      "max_rss_kib": 25344,
+      "max_rss_kib": 25596,
       "output_bytes": 4574,
       "output_created": true,
       "output_ref": "public-synthetic/run-2/b/P9-mixed-namespaces.json",
@@ -1171,7 +1171,7 @@
     {
       "candidate": "A",
       "exit_code": 0,
-      "max_rss_kib": 25576,
+      "max_rss_kib": 25552,
       "output_bytes": 1213,
       "output_created": true,
       "output_ref": "public-synthetic/run-2/a/P10-true-tei.json",
@@ -1186,7 +1186,7 @@
     {
       "candidate": "B",
       "exit_code": 0,
-      "max_rss_kib": 25488,
+      "max_rss_kib": 25564,
       "output_bytes": 7075,
       "output_created": true,
       "output_ref": "public-synthetic/run-2/b/P10-true-tei.json",
@@ -1201,7 +1201,7 @@
     {
       "candidate": "A",
       "exit_code": 0,
-      "max_rss_kib": 25480,
+      "max_rss_kib": 25536,
       "output_bytes": 1217,
       "output_created": true,
       "output_ref": "public-synthetic/run-2/a/P11-tei-lookalike.json",
@@ -1216,7 +1216,7 @@
     {
       "candidate": "B",
       "exit_code": 0,
-      "max_rss_kib": 25636,
+      "max_rss_kib": 25460,
       "output_bytes": 5379,
       "output_created": true,
       "output_ref": "public-synthetic/run-2/b/P11-tei-lookalike.json",
@@ -1231,7 +1231,7 @@
     {
       "candidate": "A",
       "exit_code": 0,
-      "max_rss_kib": 25588,
+      "max_rss_kib": 25544,
       "output_bytes": 1214,
       "output_created": true,
       "output_ref": "public-synthetic/run-2/a/P12-dynamic-a.json",
@@ -1246,7 +1246,7 @@
     {
       "candidate": "B",
       "exit_code": 0,
-      "max_rss_kib": 25484,
+      "max_rss_kib": 25460,
       "output_bytes": 5482,
       "output_created": true,
       "output_ref": "public-synthetic/run-2/b/P12-dynamic-a.json",
@@ -1256,12 +1256,12 @@
       "selection_kind": "fixture",
       "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
       "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-      "wall_seconds": 0.06
+      "wall_seconds": 0.05
     },
     {
       "candidate": "A",
       "exit_code": 0,
-      "max_rss_kib": 25552,
+      "max_rss_kib": 25556,
       "output_bytes": 1214,
       "output_created": true,
       "output_ref": "public-synthetic/run-2/a/P12-dynamic-b.json",
@@ -1276,7 +1276,7 @@
     {
       "candidate": "B",
       "exit_code": 0,
-      "max_rss_kib": 25568,
+      "max_rss_kib": 25452,
       "output_bytes": 5482,
       "output_created": true,
       "output_ref": "public-synthetic/run-2/b/P12-dynamic-b.json",
@@ -1291,7 +1291,7 @@
     {
       "candidate": "A",
       "exit_code": 0,
-      "max_rss_kib": 25488,
+      "max_rss_kib": 25492,
       "output_bytes": 1213,
       "output_created": true,
       "output_ref": "public-synthetic/run-2/a/P13-reorder-a.json",
@@ -1306,7 +1306,7 @@
     {
       "candidate": "B",
       "exit_code": 0,
-      "max_rss_kib": 25484,
+      "max_rss_kib": 25488,
       "output_bytes": 5343,
       "output_created": true,
       "output_ref": "public-synthetic/run-2/b/P13-reorder-a.json",
@@ -1321,7 +1321,7 @@
     {
       "candidate": "A",
       "exit_code": 0,
-      "max_rss_kib": 25488,
+      "max_rss_kib": 25552,
       "output_bytes": 1213,
       "output_created": true,
       "output_ref": "public-synthetic/run-2/a/P13-reorder-b.json",
@@ -1336,7 +1336,7 @@
     {
       "candidate": "B",
       "exit_code": 0,
-      "max_rss_kib": 25468,
+      "max_rss_kib": 25548,
       "output_bytes": 5343,
       "output_created": true,
       "output_ref": "public-synthetic/run-2/b/P13-reorder-b.json",
@@ -1351,7 +1351,7 @@
     {
       "candidate": "A",
       "exit_code": 0,
-      "max_rss_kib": 25568,
+      "max_rss_kib": 25480,
       "output_bytes": 1210,
       "output_created": true,
       "output_ref": "public-synthetic/run-2/a/P14-text-a.json",
@@ -1366,7 +1366,7 @@
     {
       "candidate": "B",
       "exit_code": 0,
-      "max_rss_kib": 25548,
+      "max_rss_kib": 25464,
       "output_bytes": 3386,
       "output_created": true,
       "output_ref": "public-synthetic/run-2/b/P14-text-a.json",
@@ -1381,7 +1381,7 @@
     {
       "candidate": "A",
       "exit_code": 0,
-      "max_rss_kib": 25588,
+      "max_rss_kib": 25484,
       "output_bytes": 1210,
       "output_created": true,
       "output_ref": "public-synthetic/run-2/a/P14-text-b.json",
@@ -1396,7 +1396,7 @@
     {
       "candidate": "B",
       "exit_code": 0,
-      "max_rss_kib": 25552,
+      "max_rss_kib": 25480,
       "output_bytes": 3386,
       "output_created": true,
       "output_ref": "public-synthetic/run-2/b/P14-text-b.json",
@@ -1411,7 +1411,7 @@
     {
       "candidate": "A",
       "exit_code": 0,
-      "max_rss_kib": 25588,
+      "max_rss_kib": 25600,
       "output_bytes": 1221,
       "output_created": true,
       "output_ref": "public-synthetic/run-2/a/P15-attribute-value-a.json",
@@ -1426,7 +1426,7 @@
     {
       "candidate": "B",
       "exit_code": 0,
-      "max_rss_kib": 25488,
+      "max_rss_kib": 25536,
       "output_bytes": 3489,
       "output_created": true,
       "output_ref": "public-synthetic/run-2/b/P15-attribute-value-a.json",
@@ -1441,7 +1441,7 @@
     {
       "candidate": "A",
       "exit_code": 0,
-      "max_rss_kib": 25552,
+      "max_rss_kib": 25600,
       "output_bytes": 1221,
       "output_created": true,
       "output_ref": "public-synthetic/run-2/a/P15-attribute-value-b.json",
@@ -1456,7 +1456,7 @@
     {
       "candidate": "B",
       "exit_code": 0,
-      "max_rss_kib": 25492,
+      "max_rss_kib": 25460,
       "output_bytes": 3489,
       "output_created": true,
       "output_ref": "public-synthetic/run-2/b/P15-attribute-value-b.json",
@@ -1471,7 +1471,7 @@
     {
       "candidate": "A",
       "exit_code": 0,
-      "max_rss_kib": 25488,
+      "max_rss_kib": 25548,
       "output_bytes": 1215,
       "output_created": true,
       "output_ref": "public-synthetic/run-2/a/PC1-uxlc-shape.json",
@@ -1486,7 +1486,7 @@
     {
       "candidate": "B",
       "exit_code": 0,
-      "max_rss_kib": 25464,
+      "max_rss_kib": 25552,
       "output_bytes": 19202,
       "output_created": true,
       "output_ref": "public-synthetic/run-2/b/PC1-uxlc-shape.json",
@@ -1501,12 +1501,12 @@
     {
       "candidate": "C",
       "exit_code": 0,
-      "max_rss_kib": 25552,
-      "output_bytes": 9546,
+      "max_rss_kib": 25480,
+      "output_bytes": 9554,
       "output_created": true,
       "output_ref": "public-synthetic/run-2/c/PC1-uxlc-shape.json",
       "output_scope": "lab",
-      "output_sha256": "5df1f52ef459d6cabb1005c4dacc47bbe8507801af60e7a9fd73fca19552ab49",
+      "output_sha256": "1899397f9f700040c287d8ec8dddccf033b00a04ed9b8f59b69005fafb850088",
       "selection_id": "PC1-uxlc-shape",
       "selection_kind": "fixture",
       "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
@@ -1516,12 +1516,12 @@
     {
       "candidate": "BC",
       "exit_code": 0,
-      "max_rss_kib": 25772,
-      "output_bytes": 30609,
+      "max_rss_kib": 25608,
+      "output_bytes": 30617,
       "output_created": true,
       "output_ref": "public-synthetic/run-2/bc/PC1-uxlc-shape.json",
       "output_scope": "lab",
-      "output_sha256": "e6cec58826936482603e6c04762f5f4547a80e36422e0234020818b90729291c",
+      "output_sha256": "c6c643010e7c71739b48cb3ad4cc70cc464328fae9c903abf3f6040cdc64682c",
       "selection_id": "PC1-uxlc-shape",
       "selection_kind": "fixture",
       "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
@@ -1531,7 +1531,7 @@
     {
       "candidate": "A",
       "exit_code": 2,
-      "max_rss_kib": 24976,
+      "max_rss_kib": 24984,
       "output_created": false,
       "output_ref": "public-synthetic/negative/a/N1-external-entity.json",
       "output_scope": "lab",
@@ -1544,7 +1544,7 @@
     {
       "candidate": "A",
       "exit_code": 2,
-      "max_rss_kib": 24956,
+      "max_rss_kib": 24996,
       "output_created": false,
       "output_ref": "public-synthetic/negative/a/N2-internal-entity.json",
       "output_scope": "lab",
@@ -1557,7 +1557,7 @@
     {
       "candidate": "A",
       "exit_code": 2,
-      "max_rss_kib": 24980,
+      "max_rss_kib": 25040,
       "output_created": false,
       "output_ref": "public-synthetic/negative/a/N3-entity-chain.json",
       "output_scope": "lab",
@@ -1570,7 +1570,7 @@
     {
       "candidate": "A",
       "exit_code": 2,
-      "max_rss_kib": 25204,
+      "max_rss_kib": 25068,
       "output_created": false,
       "output_ref": "public-synthetic/negative/a/N4-malformed.json",
       "output_scope": "lab",
@@ -1583,7 +1583,7 @@
     {
       "candidate": "B",
       "exit_code": 2,
-      "max_rss_kib": 24976,
+      "max_rss_kib": 24992,
       "output_created": false,
       "output_ref": "public-synthetic/negative/b/N1-external-entity.json",
       "output_scope": "lab",
@@ -1596,7 +1596,7 @@
     {
       "candidate": "B",
       "exit_code": 2,
-      "max_rss_kib": 25004,
+      "max_rss_kib": 25032,
       "output_created": false,
       "output_ref": "public-synthetic/negative/b/N2-internal-entity.json",
       "output_scope": "lab",
@@ -1609,7 +1609,7 @@
     {
       "candidate": "B",
       "exit_code": 2,
-      "max_rss_kib": 24968,
+      "max_rss_kib": 25044,
       "output_created": false,
       "output_ref": "public-synthetic/negative/b/N3-entity-chain.json",
       "output_scope": "lab",
@@ -1622,7 +1622,7 @@
     {
       "candidate": "B",
       "exit_code": 2,
-      "max_rss_kib": 25100,
+      "max_rss_kib": 25164,
       "output_created": false,
       "output_ref": "public-synthetic/negative/b/N4-malformed.json",
       "output_scope": "lab",
@@ -1635,7 +1635,7 @@
     {
       "candidate": "C",
       "exit_code": 2,
-      "max_rss_kib": 25020,
+      "max_rss_kib": 25032,
       "output_created": false,
       "output_ref": "public-synthetic/negative/c/N1-external-entity.json",
       "output_scope": "lab",
@@ -1648,7 +1648,7 @@
     {
       "candidate": "C",
       "exit_code": 2,
-      "max_rss_kib": 25036,
+      "max_rss_kib": 24952,
       "output_created": false,
       "output_ref": "public-synthetic/negative/c/N2-internal-entity.json",
       "output_scope": "lab",
@@ -1661,7 +1661,7 @@
     {
       "candidate": "C",
       "exit_code": 2,
-      "max_rss_kib": 25128,
+      "max_rss_kib": 24996,
       "output_created": false,
       "output_ref": "public-synthetic/negative/c/N3-entity-chain.json",
       "output_scope": "lab",
@@ -1674,7 +1674,7 @@
     {
       "candidate": "C",
       "exit_code": 2,
-      "max_rss_kib": 25132,
+      "max_rss_kib": 25032,
       "output_created": false,
       "output_ref": "public-synthetic/negative/c/N4-malformed.json",
       "output_scope": "lab",
@@ -1687,7 +1687,7 @@
     {
       "candidate": "BC",
       "exit_code": 2,
-      "max_rss_kib": 25000,
+      "max_rss_kib": 24888,
       "output_created": false,
       "output_ref": "public-synthetic/negative/bc/N1-external-entity.json",
       "output_scope": "lab",
@@ -1700,7 +1700,7 @@
     {
       "candidate": "BC",
       "exit_code": 2,
-      "max_rss_kib": 25128,
+      "max_rss_kib": 25036,
       "output_created": false,
       "output_ref": "public-synthetic/negative/bc/N2-internal-entity.json",
       "output_scope": "lab",
@@ -1713,7 +1713,7 @@
     {
       "candidate": "BC",
       "exit_code": 2,
-      "max_rss_kib": 25056,
+      "max_rss_kib": 24960,
       "output_created": false,
       "output_ref": "public-synthetic/negative/bc/N3-entity-chain.json",
       "output_scope": "lab",
@@ -1726,7 +1726,7 @@
     {
       "candidate": "BC",
       "exit_code": 2,
-      "max_rss_kib": 25180,
+      "max_rss_kib": 25108,
       "output_created": false,
       "output_ref": "public-synthetic/negative/bc/N4-malformed.json",
       "output_scope": "lab",
@@ -1739,7 +1739,7 @@
     {
       "candidate": "C",
       "exit_code": 2,
-      "max_rss_kib": 25276,
+      "max_rss_kib": 25376,
       "output_created": false,
       "output_ref": "public-synthetic/negative/c/N5-genericity-P1.json",
       "output_scope": "lab",
@@ -1752,7 +1752,7 @@
     {
       "candidate": "A",
       "exit_code": 0,
-      "max_rss_kib": 25484,
+      "max_rss_kib": 25408,
       "output_bytes": 1210,
       "output_created": true,
       "output_ref": "/srv/AbyssOS/Tree-of-Sophia/ToS/source-witnesses/works/digital-biblical-corpora/unicode-xml-leningrad-codex/expressions/he-uxlc-2-5-full-accents/editions/uxlc-2-5-build-27-6/items/tanach-us-server-xml-prov23-1-3-20260830t160419z/payload/laboratory/generic-xml-resource-inventory-uxlc-abc-v1/outputs/selected/run-1/a.json",
@@ -1767,7 +1767,7 @@
     {
       "candidate": "B",
       "exit_code": 0,
-      "max_rss_kib": 26352,
+      "max_rss_kib": 26256,
       "output_bytes": 190972,
       "output_created": true,
       "output_ref": "/srv/AbyssOS/Tree-of-Sophia/ToS/source-witnesses/works/digital-biblical-corpora/unicode-xml-leningrad-codex/expressions/he-uxlc-2-5-full-accents/editions/uxlc-2-5-build-27-6/items/tanach-us-server-xml-prov23-1-3-20260830t160419z/payload/laboratory/generic-xml-resource-inventory-uxlc-abc-v1/outputs/selected/run-1/b.json",
@@ -1782,7 +1782,7 @@
     {
       "candidate": "C",
       "exit_code": 0,
-      "max_rss_kib": 25488,
+      "max_rss_kib": 25636,
       "output_bytes": 37670,
       "output_created": true,
       "output_ref": "/srv/AbyssOS/Tree-of-Sophia/ToS/source-witnesses/works/digital-biblical-corpora/unicode-xml-leningrad-codex/expressions/he-uxlc-2-5-full-accents/editions/uxlc-2-5-build-27-6/items/tanach-us-server-xml-prov23-1-3-20260830t160419z/payload/laboratory/generic-xml-resource-inventory-uxlc-abc-v1/outputs/selected/run-1/c.json",
@@ -1797,7 +1797,7 @@
     {
       "candidate": "BC",
       "exit_code": 0,
-      "max_rss_kib": 26412,
+      "max_rss_kib": 26352,
       "output_bytes": 246154,
       "output_created": true,
       "output_ref": "/srv/AbyssOS/Tree-of-Sophia/ToS/source-witnesses/works/digital-biblical-corpora/unicode-xml-leningrad-codex/expressions/he-uxlc-2-5-full-accents/editions/uxlc-2-5-build-27-6/items/tanach-us-server-xml-prov23-1-3-20260830t160419z/payload/laboratory/generic-xml-resource-inventory-uxlc-abc-v1/outputs/selected/run-1/bc.json",
@@ -1812,7 +1812,7 @@
     {
       "candidate": "A",
       "exit_code": 0,
-      "max_rss_kib": 25524,
+      "max_rss_kib": 25496,
       "output_bytes": 1210,
       "output_created": true,
       "output_ref": "/srv/AbyssOS/Tree-of-Sophia/ToS/source-witnesses/works/digital-biblical-corpora/unicode-xml-leningrad-codex/expressions/he-uxlc-2-5-full-accents/editions/uxlc-2-5-build-27-6/items/tanach-us-server-xml-prov23-1-3-20260830t160419z/payload/laboratory/generic-xml-resource-inventory-uxlc-abc-v1/outputs/selected/run-2/a.json",
@@ -1827,7 +1827,7 @@
     {
       "candidate": "B",
       "exit_code": 0,
-      "max_rss_kib": 26312,
+      "max_rss_kib": 26248,
       "output_bytes": 190972,
       "output_created": true,
       "output_ref": "/srv/AbyssOS/Tree-of-Sophia/ToS/source-witnesses/works/digital-biblical-corpora/unicode-xml-leningrad-codex/expressions/he-uxlc-2-5-full-accents/editions/uxlc-2-5-build-27-6/items/tanach-us-server-xml-prov23-1-3-20260830t160419z/payload/laboratory/generic-xml-resource-inventory-uxlc-abc-v1/outputs/selected/run-2/b.json",
@@ -1842,7 +1842,7 @@
     {
       "candidate": "C",
       "exit_code": 0,
-      "max_rss_kib": 25524,
+      "max_rss_kib": 25480,
       "output_bytes": 37670,
       "output_created": true,
       "output_ref": "/srv/AbyssOS/Tree-of-Sophia/ToS/source-witnesses/works/digital-biblical-corpora/unicode-xml-leningrad-codex/expressions/he-uxlc-2-5-full-accents/editions/uxlc-2-5-build-27-6/items/tanach-us-server-xml-prov23-1-3-20260830t160419z/payload/laboratory/generic-xml-resource-inventory-uxlc-abc-v1/outputs/selected/run-2/c.json",
@@ -1857,7 +1857,7 @@
     {
       "candidate": "BC",
       "exit_code": 0,
-      "max_rss_kib": 26564,
+      "max_rss_kib": 26296,
       "output_bytes": 246154,
       "output_created": true,
       "output_ref": "/srv/AbyssOS/Tree-of-Sophia/ToS/source-witnesses/works/digital-biblical-corpora/unicode-xml-leningrad-codex/expressions/he-uxlc-2-5-full-accents/editions/uxlc-2-5-build-27-6/items/tanach-us-server-xml-prov23-1-3-20260830t160419z/payload/laboratory/generic-xml-resource-inventory-uxlc-abc-v1/outputs/selected/run-2/bc.json",
@@ -1872,7 +1872,7 @@
     {
       "candidate": "A",
       "exit_code": 0,
-      "max_rss_kib": 25492,
+      "max_rss_kib": 25496,
       "output_bytes": 1208,
       "output_created": true,
       "output_ref": "/srv/AbyssOS/Tree-of-Sophia/ToS/source-witnesses/works/digital-biblical-corpora/unicode-xml-leningrad-codex/expressions/he-uxlc-2-5-full-accents/editions/uxlc-2-5-build-27-6/items/tanach-us-server-xml-prov23-1-3-20260830t160419z/payload/laboratory/generic-xml-resource-inventory-uxlc-abc-v1/outputs/replay/run-1/a.json",
@@ -1882,12 +1882,12 @@
       "selection_kind": "source",
       "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
       "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-      "wall_seconds": 0.06
+      "wall_seconds": 0.05
     },
     {
       "candidate": "B",
       "exit_code": 0,
-      "max_rss_kib": 26288,
+      "max_rss_kib": 26312,
       "output_bytes": 190970,
       "output_created": true,
       "output_ref": "/srv/AbyssOS/Tree-of-Sophia/ToS/source-witnesses/works/digital-biblical-corpora/unicode-xml-leningrad-codex/expressions/he-uxlc-2-5-full-accents/editions/uxlc-2-5-build-27-6/items/tanach-us-server-xml-prov23-1-3-20260830t160419z/payload/laboratory/generic-xml-resource-inventory-uxlc-abc-v1/outputs/replay/run-1/b.json",
@@ -1897,12 +1897,12 @@
       "selection_kind": "source",
       "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
       "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-      "wall_seconds": 0.07
+      "wall_seconds": 0.06
     },
     {
       "candidate": "C",
       "exit_code": 0,
-      "max_rss_kib": 25772,
+      "max_rss_kib": 25668,
       "output_bytes": 37668,
       "output_created": true,
       "output_ref": "/srv/AbyssOS/Tree-of-Sophia/ToS/source-witnesses/works/digital-biblical-corpora/unicode-xml-leningrad-codex/expressions/he-uxlc-2-5-full-accents/editions/uxlc-2-5-build-27-6/items/tanach-us-server-xml-prov23-1-3-20260830t160419z/payload/laboratory/generic-xml-resource-inventory-uxlc-abc-v1/outputs/replay/run-1/c.json",
@@ -1917,7 +1917,7 @@
     {
       "candidate": "BC",
       "exit_code": 0,
-      "max_rss_kib": 26436,
+      "max_rss_kib": 26600,
       "output_bytes": 246152,
       "output_created": true,
       "output_ref": "/srv/AbyssOS/Tree-of-Sophia/ToS/source-witnesses/works/digital-biblical-corpora/unicode-xml-leningrad-codex/expressions/he-uxlc-2-5-full-accents/editions/uxlc-2-5-build-27-6/items/tanach-us-server-xml-prov23-1-3-20260830t160419z/payload/laboratory/generic-xml-resource-inventory-uxlc-abc-v1/outputs/replay/run-1/bc.json",
@@ -1932,7 +1932,7 @@
     {
       "candidate": "A",
       "exit_code": 0,
-      "max_rss_kib": 25572,
+      "max_rss_kib": 25484,
       "output_bytes": 1208,
       "output_created": true,
       "output_ref": "/srv/AbyssOS/Tree-of-Sophia/ToS/source-witnesses/works/digital-biblical-corpora/unicode-xml-leningrad-codex/expressions/he-uxlc-2-5-full-accents/editions/uxlc-2-5-build-27-6/items/tanach-us-server-xml-prov23-1-3-20260830t160419z/payload/laboratory/generic-xml-resource-inventory-uxlc-abc-v1/outputs/replay/run-2/a.json",
@@ -1942,12 +1942,12 @@
       "selection_kind": "source",
       "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
       "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-      "wall_seconds": 0.06
+      "wall_seconds": 0.05
     },
     {
       "candidate": "B",
       "exit_code": 0,
-      "max_rss_kib": 26316,
+      "max_rss_kib": 26260,
       "output_bytes": 190970,
       "output_created": true,
       "output_ref": "/srv/AbyssOS/Tree-of-Sophia/ToS/source-witnesses/works/digital-biblical-corpora/unicode-xml-leningrad-codex/expressions/he-uxlc-2-5-full-accents/editions/uxlc-2-5-build-27-6/items/tanach-us-server-xml-prov23-1-3-20260830t160419z/payload/laboratory/generic-xml-resource-inventory-uxlc-abc-v1/outputs/replay/run-2/b.json",
@@ -1962,7 +1962,7 @@
     {
       "candidate": "C",
       "exit_code": 0,
-      "max_rss_kib": 25628,
+      "max_rss_kib": 25572,
       "output_bytes": 37668,
       "output_created": true,
       "output_ref": "/srv/AbyssOS/Tree-of-Sophia/ToS/source-witnesses/works/digital-biblical-corpora/unicode-xml-leningrad-codex/expressions/he-uxlc-2-5-full-accents/editions/uxlc-2-5-build-27-6/items/tanach-us-server-xml-prov23-1-3-20260830t160419z/payload/laboratory/generic-xml-resource-inventory-uxlc-abc-v1/outputs/replay/run-2/c.json",
@@ -1977,7 +1977,7 @@
     {
       "candidate": "BC",
       "exit_code": 0,
-      "max_rss_kib": 26428,
+      "max_rss_kib": 26392,
       "output_bytes": 246152,
       "output_created": true,
       "output_ref": "/srv/AbyssOS/Tree-of-Sophia/ToS/source-witnesses/works/digital-biblical-corpora/unicode-xml-leningrad-codex/expressions/he-uxlc-2-5-full-accents/editions/uxlc-2-5-build-27-6/items/tanach-us-server-xml-prov23-1-3-20260830t160419z/payload/laboratory/generic-xml-resource-inventory-uxlc-abc-v1/outputs/replay/run-2/bc.json",

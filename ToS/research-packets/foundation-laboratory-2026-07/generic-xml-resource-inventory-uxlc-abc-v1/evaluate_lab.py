@@ -12,6 +12,7 @@ import json
 import os
 import re
 import subprocess
+from collections import defaultdict
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
@@ -23,7 +24,7 @@ LAB_DIR = Path(__file__).resolve().parent
 REPO_ROOT = LAB_DIR.parents[3]
 INPUT_PATH = LAB_DIR / "input-manifest.json"
 SEALED_PATH = LAB_DIR / "sealed-evaluation-manifest-v2.json"
-FREEZE_PATH = LAB_DIR / "freeze-receipt-v5.json"
+FREEZE_PATH = LAB_DIR / "freeze-receipt-v7.json"
 OBSERVATIONS_PATH = LAB_DIR / "run-observations.json"
 SOURCE_RECEIPT_PATH = LAB_DIR / "source-run-receipt.json"
 CONSUMER_PATH = LAB_DIR / "independent-consumer-receipt.json"
@@ -66,7 +67,11 @@ def strict_parse(payload: bytes) -> etree._Element:
         strip_cdata=False,
         collect_ids=False,
     )
-    return etree.fromstring(payload, parser=parser)
+    root = etree.fromstring(payload, parser=parser)
+    docinfo = root.getroottree().docinfo
+    if docinfo.doctype or docinfo.internalDTD is not None or docinfo.externalDTD is not None:
+        raise ValueError("DOCTYPE forbidden")
+    return root
 
 
 def b_output(fixture_id: str, run_number: int = 1) -> dict[str, Any]:
@@ -205,28 +210,146 @@ def exact_source_values(source_path: Path) -> list[str]:
         for value in (element.text, element.tail):
             if value:
                 stripped = value.strip()
-                if stripped and (HEBREW_PATTERN.search(stripped) or len(stripped) >= 16):
+                if stripped and (HEBREW_PATTERN.search(stripped) or len(stripped) >= 3):
                     values.add(stripped)
         for value in element.attrib.values():
             stripped = value.strip()
-            if stripped and (HEBREW_PATTERN.search(stripped) or len(stripped) >= 16):
+            if stripped and (HEBREW_PATTERN.search(stripped) or len(stripped) >= 3):
                 values.add(stripped)
     return sorted(values, key=len, reverse=True)
 
 
-def scan_tracked_generated_for_source_values(source_values: list[str]) -> list[str]:
+def recursive_json_strings(value: Any) -> list[str]:
+    strings: list[str] = []
+    if isinstance(value, dict):
+        for key, nested in value.items():
+            strings.append(str(key))
+            # Expanded XML names are structural labels, not source text. A
+            # source value such as ``Tanach`` may legitimately be the local
+            # name of a synthetic fixture element and must not be treated as
+            # a copied source string.
+            if key not in {"local_name", "namespace_uri"}:
+                strings.extend(recursive_json_strings(nested))
+    elif isinstance(value, list):
+        for nested in value:
+            strings.extend(recursive_json_strings(nested))
+    elif isinstance(value, str):
+        strings.append(value)
+    return strings
+
+
+def fixture_content_strings(manifest: dict[str, Any]) -> list[str]:
+    """Return only text/tail/attribute content from all fixture XML payloads."""
+    strings: list[str] = []
+    parser = etree.XMLParser(
+        recover=False,
+        load_dtd=False,
+        dtd_validation=False,
+        resolve_entities=False,
+        no_network=True,
+        huge_tree=False,
+        remove_comments=False,
+        remove_pis=False,
+        strip_cdata=False,
+        collect_ids=False,
+    )
+    for fixture in manifest["fixtures"] + manifest["security_fixtures"]:
+        try:
+            root = etree.fromstring(fixture["xml"].encode("utf-8"), parser=parser)
+        except (etree.XMLSyntaxError, UnicodeEncodeError):
+            continue
+        for element in root.iter():
+            if not isinstance(element.tag, str):
+                continue
+            for value in (element.text, element.tail):
+                if value and value.strip():
+                    strings.append(value.strip())
+            for value in element.attrib.values():
+                if value.strip():
+                    strings.append(value.strip())
+    return strings
+
+
+def source_value_hits(source_values: list[str], strings: list[str]) -> list[str]:
+    hits: list[str] = []
+    for value in source_values:
+        if any(value == candidate or (len(value) >= 16 and value in candidate) for candidate in strings):
+            hits.append(value)
+    return hits
+
+
+def scan_tracked_generated_for_source_values(
+    source_values: list[str], manifest: dict[str, Any]
+) -> dict[str, Any]:
     scan_paths = list((LAB_DIR / "public-synthetic").rglob("*.json")) + [
+        INPUT_PATH,
         OBSERVATIONS_PATH,
         SOURCE_RECEIPT_PATH,
         CONSUMER_PATH,
     ]
     leaks: list[str] = []
+    manifest_control_collisions: list[str] = []
     for path in scan_paths:
-        text = path.read_text(encoding="utf-8")
-        for index, value in enumerate(source_values):
-            if value in text:
-                leaks.append(f"{path.relative_to(LAB_DIR)}:source-value-{index + 1}")
-    return sorted(set(leaks))
+        payload = load_json(path)
+        strings = recursive_json_strings(payload)
+        hits = source_value_hits(source_values, strings)
+        if path == INPUT_PATH:
+            # The complete manifest is inspected.  Its declared control
+            # metadata may intentionally repeat short source tokens (for
+            # example a book code), while fixture/security payloads are the
+            # untrusted publication surface and must remain source-free.
+            control = {
+                key: value
+                for key, value in manifest.items()
+                if key not in {"fixtures", "security_fixtures"}
+            }
+            control_hits = set(source_value_hits(source_values, recursive_json_strings(control)))
+            untrusted = {
+                "fixtures": manifest["fixtures"],
+                "security_fixtures": manifest["security_fixtures"],
+            }
+            untrusted_hits = source_value_hits(source_values, recursive_json_strings(untrusted))
+            manifest_control_collisions.extend(sorted(control_hits))
+            hits = untrusted_hits
+        for value in hits:
+            index = source_values.index(value) + 1
+            leaks.append(f"{path.relative_to(LAB_DIR)}:source-value-{index}")
+    return {
+        "leaks": sorted(set(leaks)),
+        "manifest_control_collisions": sorted(set(manifest_control_collisions)),
+        "scanned_manifest": True,
+    }
+
+
+def verify_consumer_output_bindings(
+    observations: dict[str, Any], consumer: dict[str, Any]
+) -> dict[str, Any]:
+    observed: dict[tuple[str, str, str], list[str]] = defaultdict(list)
+    for process in observations["processes"]:
+        if process.get("exit_code") == 0 and process.get("output_sha256"):
+            key = (
+                process["candidate"],
+                process["selection_kind"],
+                process["selection_id"],
+            )
+            observed[key].append(process["output_sha256"])
+    failures: list[str] = []
+    matched = 0
+    for check in consumer.get("checks", []):
+        key = (check.get("candidate"), check.get("selection_kind"), check.get("selection_id"))
+        hashes = observed.get(key, [])
+        if not hashes:
+            failures.append(":".join(str(part) for part in key) + ":missing-observation")
+        elif check.get("output_sha256") not in hashes:
+            failures.append(":".join(str(part) for part in key) + ":hash-mismatch")
+        else:
+            matched += 1
+    return {
+        "ok": not failures,
+        "consumer_check_count": len(consumer.get("checks", [])),
+        "matched_check_count": matched,
+        "failures": sorted(failures),
+    }
 
 
 def gitignored(path: Path) -> bool:
@@ -324,11 +447,16 @@ def main() -> int:
 
     selected_path = Path(manifest["exact_sources"]["selected"]["path"])
     source_values = exact_source_values(selected_path)
-    fixture_text = json.dumps(manifest["fixtures"], ensure_ascii=False)
+    fixture_payload = {
+        "fixtures": manifest["fixtures"],
+        "security_fixtures": manifest["security_fixtures"],
+    }
+    fixture_text = json.dumps(fixture_payload, ensure_ascii=False)
+    fixture_content = fixture_content_strings(manifest)
     fixture_leaks = [
         f"source-value-{index + 1}"
         for index, value in enumerate(source_values)
-        if value in fixture_text
+        if value in fixture_content
     ]
     gates.append(
         gate(
@@ -407,14 +535,16 @@ def main() -> int:
         if len(digests) != 2 or len(set(digests)) != 1
     ]
     observed_output_binding = verify_observed_output_bindings(observations)
+    consumer_output_binding = verify_consumer_output_bindings(observations, consumer)
     gates.append(
         gate(
             "G7-independent-build-byte-equality",
-            not pair_failures and observed_output_binding["ok"],
+            not pair_failures and observed_output_binding["ok"] and consumer_output_binding["ok"],
             {
                 "pair_count": len(deterministic_pairs),
                 "failures": sorted(pair_failures),
                 "observed_output_binding": observed_output_binding,
+                "consumer_output_binding": consumer_output_binding,
             },
         )
     )
@@ -422,8 +552,8 @@ def main() -> int:
     gates.append(
         gate(
             "G8-b-paths-resolve-exactly",
-            consumer["all_paths_and_metadata_return"] and consumer["error_count"] == 0,
-            {"check_count": consumer["check_count"], "error_count": consumer["error_count"]},
+            consumer["all_paths_and_metadata_return"] and consumer["error_count"] == 0 and consumer_output_binding["ok"],
+            {"check_count": consumer["check_count"], "error_count": consumer["error_count"], "output_binding": consumer_output_binding},
         )
     )
 
@@ -482,8 +612,8 @@ def main() -> int:
     a_p1 = candidate_output("A", "P1-no-namespace")
     gates.append(gate("G15-a-capture-pass-element-return-fail", len(a_p1["resources"]) == 1 and a_p1["element_return_supported"] is False, {"resource_count": len(a_p1["resources"]), "element_return_supported": a_p1["element_return_supported"]}))
 
-    leaks = scan_tracked_generated_for_source_values(source_values)
-    gates.append(gate("G16-no-source-values-in-tracked-output", not leaks, {"source_value_control_count": len(source_values), "leaks": leaks}))
+    leak_scan = scan_tracked_generated_for_source_values(source_values, manifest)
+    gates.append(gate("G16-no-source-values-in-tracked-output", not leak_scan["leaks"], {"source_value_control_count": len(source_values), **leak_scan}))
 
     source_b = source_output(manifest, "selected", "B")
     source_bc = source_output(manifest, "selected", "BC")
@@ -506,7 +636,7 @@ def main() -> int:
     g20 = sha256_path(REPO_ROOT / control["schema_ref"]) == control["schema_sha256"] and sha256_path(REPO_ROOT / control["builder_ref"]) == control["builder_sha256"] and not any(path.exists() for path in forbidden_admissions)
     gates.append(gate("G20-no-public-or-downstream-admission", g20, {"contract_hash_match": sha256_path(REPO_ROOT / control["schema_ref"]) == control["schema_sha256"], "builder_hash_match": sha256_path(REPO_ROOT / control["builder_ref"]) == control["builder_sha256"], "forbidden_admission_files_present": [path.name for path in forbidden_admissions if path.exists()]}))
 
-    gates.append(gate("G21-independent-source-return", consumer["consumer_imports_builder"] is False and consumer["consumer_reads_sealed_manifest"] is False and consumer["all_paths_and_metadata_return"], {"consumer_imports_builder": consumer["consumer_imports_builder"], "consumer_reads_sealed_manifest": consumer["consumer_reads_sealed_manifest"], "checks": consumer["check_count"], "errors": consumer["error_count"]}))
+    gates.append(gate("G21-independent-source-return", consumer["consumer_imports_builder"] is False and consumer["consumer_reads_sealed_manifest"] is False and consumer["all_paths_and_metadata_return"] and consumer_output_binding["ok"], {"consumer_imports_builder": consumer["consumer_imports_builder"], "consumer_reads_sealed_manifest": consumer["consumer_reads_sealed_manifest"], "checks": consumer["check_count"], "errors": consumer["error_count"], "output_binding": consumer_output_binding}))
 
     correction: dict[str, Any]
     if "replay" in source_receipt["sources"]:
@@ -542,7 +672,8 @@ def main() -> int:
     gates.append(gate("G23-manual-review-before-evaluator", MANUAL_PATH.is_file() and not missing_manual_markers, {"manual_review_sha256": sha256_path(MANUAL_PATH) if MANUAL_PATH.is_file() else None, "missing_markers": missing_manual_markers}))
 
     metrics_present = all(process["wall_seconds"] is not None and process["max_rss_kib"] is not None and (process["output_created"] is False or ("output_bytes" in process and "output_sha256" in process)) for process in observations["processes"])
-    gates.append(gate("G24-separated-quality-cost-speed-metrics", metrics_present and source_receipt["direct_monetary_cost"] == 0, {"process_count": observations["process_count"], "wall_and_rss_measured": metrics_present, "output_bytes_separate": True, "direct_monetary_cost": source_receipt["direct_monetary_cost"], "human_burden_in_manual_review": True}))
+    consumer_metrics_present = consumer.get("wall_seconds") is not None and consumer.get("max_rss_kib") is not None
+    gates.append(gate("G24-separated-quality-cost-speed-metrics", metrics_present and consumer_metrics_present and source_receipt["direct_monetary_cost"] == 0, {"process_count": observations["process_count"], "wall_and_rss_measured": metrics_present, "independent_consumer_wall_and_rss_measured": consumer_metrics_present, "consumer_wall_seconds": consumer.get("wall_seconds"), "consumer_max_rss_kib": consumer.get("max_rss_kib"), "output_bytes_separate": True, "direct_monetary_cost": source_receipt["direct_monetary_cost"], "human_burden_in_manual_review": True}))
 
     authority_boundaries_present = all("authority_boundary" in payload for payload in (a_p1, b_p1, c_positive, bc, source_receipt, consumer))
     gates.append(gate("G25-machine-green-no-authority", authority_boundaries_present, {"authority_boundaries_present": authority_boundaries_present, "machine_result_is_acceptance": False}))

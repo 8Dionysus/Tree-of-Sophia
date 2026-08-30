@@ -29,14 +29,14 @@
     "metric": "whitespace_tokens_v1",
     "posture": "summary_first_records_on_demand",
     "record_loading": "machine readers may select records by family_id or path; do not load the full carrier into an always-on prompt",
-    "tracked_surface_count": 3078,
+    "tracked_surface_count": 3082,
     "unhandled_family_count": 0
   },
   "coverage": {
     "excluded_generated_carrier_rules": 3,
     "excluded_tracked_path_count": 469,
     "human_scope": {
-      "bytes": 4494499,
+      "bytes": 4495891,
       "count": 884,
       "excluded_skill_launch_metadata": 25,
       "family_counts": {
@@ -111,20 +111,20 @@
           "lines": 47
         },
         "tos": {
-          "bytes": 3390412,
+          "bytes": 3391804,
           "count": 511,
-          "lines": 58644
+          "lines": 58666
         }
       },
-      "lines": 79962
+      "lines": 79984
     },
     "surface_kind_counts": {
       "executable": 159,
       "human": 909,
-      "structured": 2010
+      "structured": 2014
     },
-    "tracked_path_count": 3547,
-    "tracked_surface_count": 3078,
+    "tracked_path_count": 3551,
+    "tracked_surface_count": 3082,
     "unhandled_family_count": 0,
     "unhandled_paths": []
   },
@@ -169,10 +169,10 @@
       "surface_kind_counts": {
         "executable": 4,
         "human": 511,
-        "structured": 1948
+        "structured": 1952
       },
-      "tracked_surface_bytes": 96231952,
-      "tracked_surface_count": 2463
+      "tracked_surface_bytes": 96293771,
+      "tracked_surface_count": 2467
     },
     {
       "family_id": "docs",
@@ -270,7 +270,7 @@
   "source_map": "docs/validation/documentation_family_map.json",
   "source_map_sha256": "9140a03a48109e6a9f35f3ca7dbf82058d96c3961e9e77bc31a743fb8814b13b",
   "tracked_source": "git ls-files -z",
-  "tracked_surface_digest": "4fd8fb3b2b1e4521d7eb867af4f6fb7247cb484d5ed4f9b45a88fd07792d91c7",
+  "tracked_surface_digest": "192756885fc91fc4bacf87227c3543cae796923b3bbeaf0f6dbee7f2b1640ab6",
   "tracked_surfaces": [
     {
       "bytes": 1408,
@@ -3505,27 +3505,27 @@
       "surface_kind": "structured"
     },
     {
-      "bytes": 1601391,
+      "bytes": 1602712,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/derived-exports/tos_corpus_index.min.json",
-      "sha256": "0aa6dee4990a9d2cec2d2300ebba3ca31284226e4474d3d5730ed8957aab2b5f",
+      "sha256": "4632cb2d25ce321966cab167227a9e952e069e67da608c505edd814c5ed3448d",
       "surface_kind": "structured"
     },
     {
-      "bytes": 1601391,
+      "bytes": 1602712,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/derived-exports/tos_corpus_index.min.json",
-      "sha256": "0aa6dee4990a9d2cec2d2300ebba3ca31284226e4474d3d5730ed8957aab2b5f",
+      "sha256": "4632cb2d25ce321966cab167227a9e952e069e67da608c505edd814c5ed3448d",
       "surface_kind": "structured"
     },
     {
-      "bytes": 1601391,
+      "bytes": 1602712,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/derived-exports/tos_corpus_index.min.json",
-      "sha256": "0aa6dee4990a9d2cec2d2300ebba3ca31284226e4474d3d5730ed8957aab2b5f",
+      "sha256": "4632cb2d25ce321966cab167227a9e952e069e67da608c505edd814c5ed3448d",
       "surface_kind": "structured"
     },
     {
@@ -15649,11 +15649,11 @@
       "surface_kind": "human"
     },
     {
-      "bytes": 7518,
+      "bytes": 8910,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/MANUAL_SOURCE_AND_OUTPUT_REVIEW.md",
-      "sha256": "79ec149dc2379313e6f02856d128e56d83ffcd8b4e9e422e29420fef8ab573b0",
+      "sha256": "fa8e154f439d0f14c82aed3d5070a99719ed0861a1d12d64a2b2c33aaf668666",
       "surface_kind": "human"
     },
     {
@@ -15681,35 +15681,35 @@
       "surface_kind": "human"
     },
     {
-      "bytes": 20753,
+      "bytes": 21334,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/build_candidate.py",
-      "sha256": "b6ea68011029a12c5753a9229cbaab6350f135a86b22f7192d5021f4c7b8b8c0",
+      "sha256": "84a8ad953099877d4f4ae6cb785ef6c5a1fcc6b757c2768f4c5a9a4c298df0ec",
       "surface_kind": "executable"
     },
     {
-      "bytes": 11298,
+      "bytes": 12574,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/comparison-result.json",
-      "sha256": "a7356ba0f0785e5db804eca5d58bc034c20636f3e424eb4e90ce1a91867bdfb5",
+      "sha256": "79dcf80e7233a7eed50e669135fa98c4507cc4fe248f406b29fdc817c0ea9430",
       "surface_kind": "structured"
     },
     {
-      "bytes": 12170,
+      "bytes": 16603,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/consume_owner.py",
-      "sha256": "55209921c5a5bf9972836f74c079043d69ba141721e83bddb4eece22ef86140b",
+      "sha256": "1f10f4749434940b247d5e6116ec570f37efbc809680fe69f93a984fbc070d5a",
       "surface_kind": "executable"
     },
     {
-      "bytes": 24689,
+      "bytes": 34137,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/evaluate_lab.py",
-      "sha256": "66684a8f24a5638cd1b4efba45568d0212aee3594fb06ff5ee19f122709bd981",
+      "sha256": "5b75700561dba455ce61a1151ab705b260b17b00d64a3e3711c751ec0fa1f1d5",
       "surface_kind": "executable"
     },
     {
@@ -15729,6 +15729,38 @@
       "surface_kind": "structured"
     },
     {
+      "bytes": 4592,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/freeze-receipt-v4.json",
+      "sha256": "673df52d8eebac3f39f77c081daad4a5a3376b020a5d5bb397a905af95cf5713",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 5491,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/freeze-receipt-v5.json",
+      "sha256": "85f3e854d5df3fe6521c439e2de3ad9e96145954d28be39ce9ff274d73ea125f",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 5496,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/freeze-receipt-v6.json",
+      "sha256": "6df612744cb5091e78dacaee1e592975930d6b4b0ae7a6506716709085b96e95",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 5949,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/freeze-receipt-v7.json",
+      "sha256": "b08894ac48d2cb9ef3008ea60ea7f1cb92f6415c895669948eebe4c987f587db",
+      "surface_kind": "structured"
+    },
+    {
       "bytes": 2416,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
@@ -15737,11 +15769,11 @@
       "surface_kind": "structured"
     },
     {
-      "bytes": 21513,
+      "bytes": 21646,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/independent-consumer-receipt.json",
-      "sha256": "19d9b61925bd91d05205ce25ac1ccf0ac28bb5366ab315c2ee01ccd9843705ef",
+      "sha256": "ffb3480b042f8e203fc35698f277cc9cc9e5ef76ad9d297016f3bfb73868d529",
       "surface_kind": "structured"
     },
     {
@@ -15749,7 +15781,7 @@
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/input-manifest.json",
-      "sha256": "c8d896285997447c99274e7f6f34f0bb85fbe7e3da3bf6b3230a0c7294b349db",
+      "sha256": "3e937d805a70cbd409ef3208b6e6d0db16be83e26f28c6b7b742f8eaff02972b",
       "surface_kind": "structured"
     },
     {
@@ -16137,19 +16169,19 @@
       "surface_kind": "structured"
     },
     {
-      "bytes": 30609,
+      "bytes": 30617,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/public-synthetic/run-1/bc/PC1-uxlc-shape.json",
-      "sha256": "e6cec58826936482603e6c04762f5f4547a80e36422e0234020818b90729291c",
+      "sha256": "c6c643010e7c71739b48cb3ad4cc70cc464328fae9c903abf3f6040cdc64682c",
       "surface_kind": "structured"
     },
     {
-      "bytes": 9546,
+      "bytes": 9554,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/public-synthetic/run-1/c/PC1-uxlc-shape.json",
-      "sha256": "5df1f52ef459d6cabb1005c4dacc47bbe8507801af60e7a9fd73fca19552ab49",
+      "sha256": "1899397f9f700040c287d8ec8dddccf033b00a04ed9b8f59b69005fafb850088",
       "surface_kind": "structured"
     },
     {
@@ -16537,35 +16569,35 @@
       "surface_kind": "structured"
     },
     {
-      "bytes": 30609,
+      "bytes": 30617,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/public-synthetic/run-2/bc/PC1-uxlc-shape.json",
-      "sha256": "e6cec58826936482603e6c04762f5f4547a80e36422e0234020818b90729291c",
+      "sha256": "c6c643010e7c71739b48cb3ad4cc70cc464328fae9c903abf3f6040cdc64682c",
       "surface_kind": "structured"
     },
     {
-      "bytes": 9546,
+      "bytes": 9554,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/public-synthetic/run-2/c/PC1-uxlc-shape.json",
-      "sha256": "5df1f52ef459d6cabb1005c4dacc47bbe8507801af60e7a9fd73fca19552ab49",
+      "sha256": "1899397f9f700040c287d8ec8dddccf033b00a04ed9b8f59b69005fafb850088",
       "surface_kind": "structured"
     },
     {
-      "bytes": 67867,
+      "bytes": 85754,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/run-observations.json",
-      "sha256": "773dbe34d72abff3f5264b1c9dca9398af6beda50d4821ee2162553c43b456ab",
+      "sha256": "0930a262e15123b5e1fe7c313de3861d6db20fe45848b344f0312ffbca9abcad",
       "surface_kind": "structured"
     },
     {
-      "bytes": 9991,
+      "bytes": 11137,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/run_experiment.py",
-      "sha256": "8e6dc523b3aadacd1e72a658aa65055128a8766a14b5e8f235a576dfdfde8ec9",
+      "sha256": "fe5507274eecacc59d533e62ca9babe150ffd7587aa5de147785ad1883102aab",
       "surface_kind": "executable"
     },
     {

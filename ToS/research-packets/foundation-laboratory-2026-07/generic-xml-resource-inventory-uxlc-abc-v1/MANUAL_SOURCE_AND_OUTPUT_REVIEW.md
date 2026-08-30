@@ -76,17 +76,22 @@ neutral owner or a linguistic judgment.
 
 ## Tracked-output source-value inspection
 
-I derived 62 private comparison controls from non-empty source text/tail or
-attribute values that either contained a Hebrew code point or had at least 16
-characters. I scanned:
+I derived 74 private comparison controls from non-empty source text/tail or
+attribute values that either contained a Hebrew code point or had at least
+three characters. This keeps short meaningful source values in scope while
+excluding one- and two-character structural tokens such as numeric ordinals.
+I scanned:
 
 - 100 public-synthetic candidate JSON files;
+- the complete tracked `input-manifest.json` (with its declared control
+  metadata separated from fixture and security payloads);
 - `run-observations.json`;
 - `source-run-receipt.json`;
 - `independent-consumer-receipt.json`.
 
-Across 103 tracked generated files there were zero controlled source-value
-matches and zero Hebrew code points.
+Across 104 tracked files there were zero controlled source-value matches in
+the untrusted publication surfaces and zero Hebrew code points. Any intentional
+control-metadata collisions in the manifest are reported separately.
 
 The private B owner also had zero matches. Private C and B+C each had one long
 match, but it was exactly the separately declared provider identity already
@@ -113,7 +118,12 @@ binding for A, B, C, and the B owner inside B+C. Provider chapter and verse
 `n` attributes, plus each word's one-based sibling position, are checked
 against the resolved XML element rather than only its tag. The evaluator's
 freeze-order gate uses the durable UTC timestamp and digest of a pre-output
-method freeze, never filesystem checkout mtimes.
+method freeze, never filesystem checkout mtimes. The parser also rejects a
+decoded `docinfo.doctype`/DTD after parsing, covering UTF-16 and UTF-32 input
+where a raw ASCII byte scan cannot see the declaration. The consumer receipt
+records its own wall time and peak RSS, and the evaluator joins every consumer
+output hash to the corresponding observed candidate pair before G7/G8/G21 can
+pass.
 
 ## Same-selector correction replay
 
@@ -169,7 +179,7 @@ These are process observations, not benchmark claims:
 Direct monetary cost was zero; electricity and fully loaded cost were not
 measured. Human time was zero because no human participant was asked to work.
 Manual burden is recorded instead as two exact-source reopens, seven explicit
-source XPath returns, representative owner/projection inspection, 103 tracked
+source XPath returns, representative owner/projection inspection, 104 tracked
 file leak checks and one correction comparison. A future human review of
 Hebrew content is outside this laboratory and remains unperformed.
 
