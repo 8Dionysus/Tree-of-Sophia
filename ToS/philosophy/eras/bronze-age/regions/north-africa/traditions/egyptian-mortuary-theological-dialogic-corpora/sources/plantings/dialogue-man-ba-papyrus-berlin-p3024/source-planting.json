@@ -1,0 +1,59 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/philosophy-source-planting.schema.json",
+  "schema_version": "tos_philosophy_source_planting_v1",
+  "planting_id": "tos.planting.a05.dialogue-man-ba-papyrus-berlin-p3024",
+  "atlas_row_id": "A05",
+  "dossier_id": "A05",
+  "branch_path": "ToS/philosophy/eras/bronze-age/regions/north-africa/traditions/egyptian-mortuary-theological-dialogic-corpora",
+  "source_backlog_anchor": {
+    "path": "ToS/philosophy/eras/bronze-age/regions/north-africa/traditions/egyptian-mortuary-theological-dialogic-corpora/sources/source-anchor-backlog.jsonl",
+    "line": 17,
+    "source_table_index": 12,
+    "source_row_index": 7,
+    "source_label": "P. Berlin 3024 + Mallorca II"
+  },
+  "source_witness": {
+    "artifact_id": "tos.artifact.egyptian.unknown.papyrus-berlin-p3024",
+    "record_ref": "ToS/source-witnesses/artifacts/egyptian/unknown/papyrus-berlin-p3024/artifact-witness.json",
+    "relationship": "grounds_source_backlog_anchor"
+  },
+  "discovery_ref": "ToS/source-witnesses/discovery/runs/dialogue-between-a-man-and-his-ba-open-work-route.2026-08-30.v1.json",
+  "provenance_event_ref": "tos.event.discovery.dialogue-between-a-man-and-his-ba-open-work-route.2026-08-30",
+  "research_ref": "ToS/research-packets/foundation-laboratory-2026-07/A05_DIALOGUE_BETWEEN_A_MAN_AND_HIS_BA_OPEN_WORK_ACQUISITION_2026-08-30.md",
+  "fulfilled_source_needs": [
+    "Staatliche Museen zu Berlin fixes the present P 3024/C component as papyrus, Amenemhat III-period in its current label, with inventory, dimensions, stable object ID, and unknown provenance retained without extrapolating to the complete manuscript",
+    "TLA independently separates its pAmherst 3 plus pBerlin P 3024 aggregate, subordinate composition, collective caption, bibliography, and reported Mallorca relationship",
+    "two exact University of Tokyo CC BY 4.0 maximum-resolution JPEGs retain Lepsius plates 111 and 112 for P. Berlin 3024 with immutable fixity and per-File rights",
+    "the Morgan, publisher, repository, Crossref, OpenAlex, BHL, Internet Archive, and legal evidence preserve useful identifiers, negative rights conclusions, and rejected payload routes",
+    "twelve ordered discovery channels preserve exact queries, all useful URLs, zero results, failures, selection and rejection reasons, and positive monotonic timings"
+  ],
+  "remaining_controls": [
+    "the ancient Dialogue remains a provisional Work boundary; no automatic identity is minted from modern English or German titles",
+    "P. Amherst III, Mallorca I and II, P. Berlin 3024, and current P 3024/C mounting remain separate physical or reconstructed layers until human source-visible review",
+    "the two historical plates do not establish current physical layout, completeness, accepted transcription, or the reconstructed beginning",
+    "TLA text and the Liverpool article were not acquired under a standard open license",
+    "no ancient source text, translation, semantic relation, graph fact, canon state, or publication authorization is admitted"
+  ],
+  "research_order": [
+    "official_and_classical_documentation",
+    "established_top_scholarship",
+    "fresh_current_relevance_check"
+  ],
+  "authority": {
+    "source_status": "metadata_witness_planted",
+    "review_status": "unreviewed",
+    "source_text_admitted": false,
+    "semantic_status": "not_started",
+    "graph_status": "not_promoted",
+    "canon_status": "not_canon",
+    "human_task_created": false
+  },
+  "status": "source_witness_planted",
+  "maker": {
+    "maker_type": "model",
+    "agent_ref": "model:codex",
+    "human_review_performed": false
+  },
+  "created_at": "2026-08-30T10:05:00-06:00",
+  "record_version": 1
+}

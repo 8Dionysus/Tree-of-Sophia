@@ -9,6 +9,8 @@
   "source_refs": [
     "https://cdli.earth/terms-of-use",
     "https://etcsl.orinst.ox.ac.uk/credits.htm",
+    "https://ota.bodleian.ox.ac.uk/repository/xmlui/handle/20.500.12024/2518?show=full",
+    "https://creativecommons.org/licenses/by-nc-sa/3.0/",
     "https://isac.uchicago.edu/research/electronic-publications-initiative-institute-study-ancient-cultures",
     "ToS/research-packets/foundation-laboratory-2026-07/A02_OLD_BABYLONIAN_SUMERIAN_LITERARY_CATALOGUES_SOURCE_PLANTING_RESEARCH_2026-08-23.md"
   ],
@@ -39,23 +41,23 @@
       "layer_id": "tos.rights.sumerian.old-babylonian-literary-catalogue-synoptic-metadata.layer.transliteration",
       "layer_role": "transliteration",
       "scope_refs": ["tos.composite.sumerian.old-babylonian-literary-catalogue-witnesses"],
-      "assessment_status": "copyright_undetermined",
+      "assessment_status": "conflicting_evidence",
       "assessment_basis": "mixed",
       "rights_statement_uri": "https://cdli.earth/terms-of-use",
       "license_uri": null,
       "jurisdictions_reviewed": [],
-      "source_refs": ["https://cdli.earth/terms-of-use", "https://etcsl.orinst.ox.ac.uk/credits.htm", "https://cdli.earth/artifacts/345372", "https://cdli.earth/artifacts/255993"],
+      "source_refs": ["https://cdli.earth/terms-of-use", "https://etcsl.orinst.ox.ac.uk/credits.htm", "https://ota.bodleian.ox.ac.uk/repository/xmlui/handle/20.500.12024/2518?show=full", "https://creativecommons.org/licenses/by-nc-sa/3.0/", "https://cdli.earth/artifacts/345372", "https://cdli.earth/artifacts/255993"],
       "rights_holder_refs": ["CDLI, ETCSL, editors, and named scholarly contributors"],
-      "permissions": [],
-      "restrictions": ["no incipit reading, ATF, transcription, reconstruction, or composition mapping was acquired or stored", "future use requires exact artifact, revision, editor, provider terms, and philological review"],
-      "redistribution_posture": "not_authorized",
-      "derivative_posture": "permission_required",
-      "server_processing_posture": "local_research_only",
+      "permissions": ["the exact OTA 2518 c.0.2.02.xml representation is licensed under CC BY-NC-SA 3.0 with attribution, non-commercial, and ShareAlike conditions"],
+      "restrictions": ["the live ETCSL HTML, CDLI records, other catalogue members, and museum representations are not automatically covered by the exact File record", "the licensed File is stored only in its separate representation packet and remains unreviewed", "future use requires exact artifact, revision, editor, provider terms, and philological review"],
+      "redistribution_posture": "unknown",
+      "derivative_posture": "local_research_only",
+      "server_processing_posture": "unknown",
       "term": {"calculation_status": "unknown", "basis": "modern scholarly contributions and provider terms vary", "starts_on": null, "ends_on": null, "uncertainty": "Public visibility and scholarly reuse language are not a blanket content license."},
       "uncertainty": "Even an authorized reading would remain versioned and potentially ambiguous rather than immutable Work identity.",
       "assessed_at": "2026-08-23T02:18:25-06:00",
       "review_status": "unreviewed",
-      "rationale": "The central semantic risk lies precisely in collapsing a modern reading or mapping into a stable ancient identifier."
+      "rationale": "The composite spine keeps provider scope separate: one exact OTA File is licensed and frozen, while the central semantic risk still lies in collapsing a modern reading or mapping into a stable ancient identifier."
     },
     {
       "layer_id": "tos.rights.sumerian.old-babylonian-literary-catalogue-synoptic-metadata.layer.translation-commentary",
@@ -102,17 +104,17 @@
       "rationale": "The composite needs no visual payload to preserve the epistemic boundary."
     }
   ],
-  "permissions": ["track and publish the bounded attributed metadata record", "prepare local content-free A/B/C comparison plans"],
-  "restrictions": ["no catalogue text, incipit list, translation, image, line art, scan, facsimile, article body, or PDF is stored or published", "future content use requires source-specific fresh rights and quality review", "model assessment is not legal advice or human publication approval"],
+  "permissions": ["track and publish the bounded attributed metadata record", "prepare local content-free A/B/C comparison plans", "retain the exact OTA 2518 c.0.2.02.xml representation under its per-File CC BY-NC-SA 3.0 rights record"],
+  "restrictions": ["the tracked composite packet publishes no catalogue text, incipit list, translation, image, line art, scan, facsimile, article body, or PDF", "the exact representation payload remains local-only and must carry attribution, NonCommercial, and ShareAlike conditions", "future content use requires source-specific fresh rights and quality review", "model assessment is not legal advice or human publication approval"],
   "visibility": "public_metadata_only",
   "redistribution_posture": "metadata_only",
   "derivative_posture": "local_research_only",
   "assessed_by": {"maker_type": "model", "agent_ref": "model:codex"},
-  "assessed_at": "2026-08-23T02:18:25-06:00",
-  "rationale": "The ancient artifacts, their inscription layers, modern catalogue mappings, scholarship, and visual representations have independent rights and provenance. Only bounded metadata is admitted.",
+  "assessed_at": "2026-08-30T04:04:00-06:00",
+  "rationale": "The ancient artifacts, their inscription layers, modern catalogue mappings, scholarship, and visual representations have independent rights and provenance. The composite record remains metadata-only; one exact OTA File has a separate positive license and fixity record without source-text, semantic, or canon admission.",
   "review_status": "unreviewed",
   "review_refs": [],
   "access_request_ref": null,
-  "record_version": 1,
+  "record_version": 2,
   "supersedes_rights_ref": null
 }

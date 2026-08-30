@@ -1,0 +1,59 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/philosophy-source-planting.schema.json",
+  "schema_version": "tos_philosophy_source_planting_v1",
+  "planting_id": "tos.planting.a04.papyrus-prisse-metadata-witness",
+  "atlas_row_id": "A04",
+  "dossier_id": "A04",
+  "branch_path": "ToS/philosophy/eras/bronze-age/regions/north-africa/traditions/egyptian-sebayt-scribal-ethics",
+  "source_backlog_anchor": {
+    "path": "ToS/philosophy/eras/bronze-age/regions/north-africa/traditions/egyptian-sebayt-scribal-ethics/sources/source-anchor-backlog.jsonl",
+    "line": 10,
+    "source_table_index": 13,
+    "source_row_index": 1,
+    "source_label": "Prisse Papyrus"
+  },
+  "source_witness": {
+    "artifact_id": "tos.artifact.egyptian.thebes.bnf-papyrus-prisse-egyptien-183-194",
+    "record_ref": "ToS/source-witnesses/artifacts/egyptian/thebes/bnf-papyrus-prisse-egyptien-183-194/artifact-witness.json",
+    "relationship": "grounds_source_backlog_anchor"
+  },
+  "discovery_ref": "ToS/source-witnesses/discovery/runs/instruction-of-ptahhotep-open-work-route.2026-08-29.v1.json",
+  "provenance_event_ref": "tos.event.discovery.instruction-of-ptahhotep-open-work-route.2026-08-29",
+  "research_ref": "ToS/research-packets/foundation-laboratory-2026-07/A04_PTAHHOTEP_OPEN_WORK_DISCOVERY_AND_RIGHTS_ROUTE_2026-08-29.md",
+  "fulfilled_source_needs": [
+    "exact BnF physical repository identity for Egyptien 183-194",
+    "Papyrus Prisse unit structure separating Kagemni, erased leaves, and Ptahhotep 1 through end",
+    "reported material, dimensions, dynasty, probable find context, custody, and 1842 donation route",
+    "BnF, TLA, and Trismegistos source-returnable identifiers",
+    "separation of physical witness, digital representation, scholarly composite, translation, and attributed Work",
+    "layered metadata, scan, TLA content, and Gunn translation rights evidence"
+  ],
+  "remaining_controls": [
+    "no Work, Expression, Edition, Item, File, source-text, transliteration, translation, or image payload has been admitted",
+    "Ptahhotep remains an attributed ancient Work candidate; author-mask, composition date, and exact recension boundary are unresolved",
+    "Papyrus Prisse is a later material witness and does not become the original composition or the whole transmission tradition",
+    "Gallica and Commons evidence for Prisse digital representations remains unreconciled across FR, MX, and US",
+    "Project Gutenberg's USA public-domain posture does not clear Gunn's translation for MX or FR redistribution",
+    "TLA identity and bibliography are useful, but its content is not provided under a free license",
+    "the exact CC0 CGT 54014 image is a distinct witness lead and was not acquired after project storage preflight denied the target path",
+    "no semantic claim, graph fact, canon state, publication authority, legal conclusion, or human acceptance follows from this planting"
+  ],
+  "research_order": [
+    "official_and_classical_documentation",
+    "established_top_scholarship",
+    "fresh_current_relevance_check"
+  ],
+  "authority": {
+    "source_status": "metadata_witness_planted",
+    "review_status": "unreviewed",
+    "source_text_admitted": false,
+    "semantic_status": "not_started",
+    "graph_status": "not_promoted",
+    "canon_status": "not_canon",
+    "human_task_created": false
+  },
+  "status": "source_witness_planted",
+  "maker": {"maker_type": "model", "agent_ref": "model:codex", "human_review_performed": false},
+  "created_at": "2026-08-29T23:08:00-06:00",
+  "record_version": 1
+}

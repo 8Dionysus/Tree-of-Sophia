@@ -1,0 +1,55 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/open-work-candidate-receipt.schema.json",
+  "schema_version": "tos_open_work_candidate_receipt_v1",
+  "receipt_id": "open-work-candidate-receipt.old-babylonian-sumerian-literary-catalogue-witnesses.2026-08-30.v1",
+  "candidate_id": "open-work-candidate.old-babylonian-sumerian-literary-catalogue-witnesses",
+  "candidate_record_sha256": "fd995f4f0b8581587db6addfb8c58ddb48c735dbd26bcac8e39fa7669c44e003",
+  "queue_snapshot_sha256": "1b3ae4b943bad65d113e24e945da0bd626cd831b7046c64dc8446fe0fcd92ba3",
+  "discovery_ref": "ToS/source-witnesses/discovery/runs/old-babylonian-sumerian-literary-catalogues-open-work-route.2026-08-30.v1.json",
+  "discovery_id": "tos.discovery.old-babylonian-sumerian-literary-catalogues-open-work-route.2026-08-30.v1",
+  "timing_ref": "ToS/source-witnesses/discovery/timings/old-babylonian-sumerian-literary-catalogues-open-work-route.2026-08-30.v1.json",
+  "terminal_status": "held_source_witness",
+  "target_resolution": {
+    "identity_status": "unresolved",
+    "work_ref": null,
+    "expression_ref": null,
+    "edition_ref": null,
+    "item_ref": null,
+    "summary": "The candidate remains a work-like pressure over materially distinct catalogue or inventory tablets rather than one ancient Work or closed corpus. One exact licensed ETCSL composite-transliteration File for AO 5393 is now held as a separate representation of the existing provider-independent synoptic composite and physical artifact route."
+  },
+  "rights_result": {
+    "status": "positive-for-acquisition",
+    "reviewed_jurisdictions": ["GB", "MX", "US"],
+    "reviewed_layers": ["provider-independent metadata", "exact OTA XML transliteration", "embedded editorial commentary", "live provider pages", "physical artifact", "photographs and line art", "subscription scholarship"],
+    "evidence_refs": [
+      "ToS/source-witnesses/scholarly-composites/synoptic/sumerian/old-babylonian-literary-catalogue-witnesses/representations/ota-2518-etcsl-0-2-02-transliteration/rights.json",
+      "ToS/research-packets/foundation-laboratory-2026-07/A02_OLD_BABYLONIAN_SUMERIAN_LITERARY_CATALOGUES_OPEN_WORK_ACQUISITION_2026-08-30.md",
+      "https://ota.bodleian.ox.ac.uk/repository/xmlui/handle/20.500.12024/2518?show=full",
+      "https://creativecommons.org/licenses/by-nc-sa/3.0/"
+    ],
+    "summary": "The exact OTA 2518 c.0.2.02.xml File is positively licensed under CC BY-NC-SA 3.0. That license does not extend by similarity to live ETCSL HTML, CDLI layers, museum images, subscription scholarship, the physical tablet, or the unresolved ancient corpus boundary; human legal and publication review remain separate."
+  },
+  "acquisition": {
+    "downloaded": true,
+    "item_ref": null,
+    "artifact_ref": null,
+    "composite_ref": "tos.composite.sumerian.old-babylonian-literary-catalogue-witnesses",
+    "representation_ref": "ToS/source-witnesses/scholarly-composites/synoptic/sumerian/old-babylonian-literary-catalogue-witnesses/representations/ota-2518-etcsl-0-2-02-transliteration/representation.json",
+    "file_ref": "tos.file.sha256.2979f2e86cc8a869c252fd84c81a28c0d8786780f51f02e36063835d3177410d",
+    "provenance_event_ref": "tos.event.acquisition.old-babylonian-literary-catalogue-ota-etcsl-0-2-02.2026-08-30"
+  },
+  "planting_refs": ["ToS/philosophy/eras/bronze-age/regions/west-asia/traditions/old-babylonian-scribal-wisdom-law/sources/plantings/old-babylonian-sumerian-literary-catalogues/source-planting.json"],
+  "operational_relation_refs": [
+    "tos.composite.sumerian.old-babylonian-literary-catalogue-witnesses",
+    "tos.artifact.sumerian.uncertain.louvre-ao-05393",
+    "tos.composite-representation.sumerian.old-babylonian-literary-catalogue-ota-2518-c0202",
+    "tos.file.sha256.2979f2e86cc8a869c252fd84c81a28c0d8786780f51f02e36063835d3177410d",
+    "tos.rights.sumerian.old-babylonian-literary-catalogue-ota-2518-c0202-cc-by-nc-sa-3.0",
+    "tos.event.acquisition.old-babylonian-literary-catalogue-ota-etcsl-0-2-02.2026-08-30",
+    "tos.event.discovery.old-babylonian-sumerian-literary-catalogues-open-work-route.2026-08-30"
+  ],
+  "next_trigger": "Rebuild and validate the reviewed queue, then freeze exactly the next earliest unresolved Work or work-like candidate; this unresolved corpus boundary must not mechanically create thirteen Works from the ETCSL member list.",
+  "issued_at": "2026-08-30T04:08:00-06:00",
+  "maker": {"maker_type": "model", "agent_ref": "model:codex"},
+  "record_version": 1
+}

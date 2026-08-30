@@ -375,6 +375,14 @@
     ],
     "source_witness_foundation": [
       {
+        "label": "check reviewed open-work candidate queue parity",
+        "command": ["python", "scripts/build_open_work_candidate_queue.py", "--check"]
+      },
+      {
+        "label": "validate reviewed open-work candidate queue",
+        "command": ["python", "scripts/validate_open_work_candidate_queue.py"]
+      },
+      {
         "label": "check source-witness catalog parity",
         "command": ["python", "scripts/build_source_witness_catalog.py", "--check"]
       },

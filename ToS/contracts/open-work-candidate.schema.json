@@ -1,0 +1,145 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://tree-of-sophia.local/ToS/contracts/open-work-candidate.schema.json",
+  "title": "Tree of Sophia reviewed open-work candidate",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "$schema",
+    "schema_version",
+    "candidate_id",
+    "candidate_kind",
+    "preferred_label",
+    "identity_posture",
+    "queue_status",
+    "source_refs",
+    "selection",
+    "target",
+    "rights_review_scope",
+    "dedupe_keys",
+    "review",
+    "record_version"
+  ],
+  "properties": {
+    "$schema": {"const": "https://tree-of-sophia.local/ToS/contracts/open-work-candidate.schema.json"},
+    "schema_version": {"const": "tos_open_work_candidate_v1"},
+    "candidate_id": {"type": "string", "pattern": "^open-work-candidate\\.[a-z0-9]+(?:[.-][a-z0-9]+)*$"},
+    "candidate_kind": {"enum": ["work", "work-like-corpus", "non-work-exclusion"]},
+    "preferred_label": {"type": "string", "minLength": 1},
+    "identity_posture": {"enum": ["resolved-work-identity", "unresolved-work-identity", "unresolved-corpus-boundary", "not-a-work-candidate"]},
+    "queue_status": {"enum": ["ready-for-discovery", "deferred-human-review", "excluded-non-work", "covered-existing"]},
+    "source_refs": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {"$ref": "#/$defs/sourceRef"}
+    },
+    "selection": {"$ref": "#/$defs/selection"},
+    "target": {
+      "oneOf": [
+        {"$ref": "#/$defs/target"},
+        {"type": "null"}
+      ]
+    },
+    "rights_review_scope": {"$ref": "#/$defs/rightsReviewScope"},
+    "dedupe_keys": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {"type": "string", "minLength": 1}
+    },
+    "review": {"$ref": "#/$defs/review"},
+    "record_version": {"type": "integer", "minimum": 1}
+  },
+  "allOf": [
+    {
+      "if": {"properties": {"candidate_kind": {"const": "non-work-exclusion"}}, "required": ["candidate_kind"]},
+      "then": {
+        "properties": {
+          "identity_posture": {"const": "not-a-work-candidate"},
+          "queue_status": {"const": "excluded-non-work"},
+          "target": {"type": "null"}
+        }
+      },
+      "else": {"properties": {"target": {"$ref": "#/$defs/target"}}}
+    },
+    {
+      "if": {"properties": {"queue_status": {"const": "ready-for-discovery"}}, "required": ["queue_status"]},
+      "then": {"properties": {"candidate_kind": {"enum": ["work", "work-like-corpus"]}}}
+    }
+  ],
+  "$defs": {
+    "tosId": {
+      "type": "string",
+      "pattern": "^tos\\.(agent|work|expression|edition|collection|item|artifact|composite|file|passage|region|anchor|occurrence|annotation|claim|rights|review|event)\\.[a-z0-9]+(?:[.-][a-z0-9]+)*$"
+    },
+    "sourceRef": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["source_path", "selector", "role", "evidence_ceiling"],
+      "properties": {
+        "source_path": {"type": "string", "pattern": "^ToS/.+\\.(json|jsonl)$"},
+        "selector": {"type": "object", "minProperties": 1},
+        "role": {"enum": ["chronology-and-work-lead", "admitted-dossier", "material-witness-lead", "open-translation-lead", "corpus-boundary", "non-work-exclusion"]},
+        "evidence_ceiling": {"enum": ["queue-ordering-only", "candidate-identity-lead-only", "source-route-lead-only", "non-work-exclusion-only"]}
+      }
+    },
+    "selection": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["chronology_sort_year", "chronology_basis", "atlas_row_id", "atlas_row_order", "confidence"],
+      "properties": {
+        "chronology_sort_year": {"type": "integer"},
+        "chronology_basis": {"type": "string", "minLength": 1},
+        "atlas_row_id": {"type": "string", "pattern": "^(A[0-9]{2}|T2-[0-9]{2}|T3-[0-9]{2})$"},
+        "atlas_row_order": {"type": "integer", "minimum": 1},
+        "confidence": {"enum": ["reviewed-for-queue-order-only"]}
+      }
+    },
+    "target": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["target_kind", "known_tos_refs", "description", "required_properties", "acceptable_substitutions", "languages", "formats", "purpose_ref"],
+      "properties": {
+        "target_kind": {"enum": ["work", "scholarly-composite"]},
+        "known_tos_refs": {"type": "array", "uniqueItems": true, "items": {"$ref": "#/$defs/tosId"}},
+        "description": {"type": "string", "minLength": 1},
+        "required_properties": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"type": "string", "minLength": 1}},
+        "acceptable_substitutions": {"type": "array", "uniqueItems": true, "items": {"type": "string", "minLength": 1}},
+        "languages": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"type": "string", "minLength": 2}},
+        "formats": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"type": "string", "minLength": 1}},
+        "purpose_ref": {"const": "ToS/source-witnesses/discovery/candidates/README.md"}
+      }
+    },
+    "rightsReviewScope": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["jurisdictions", "intended_uses", "layers"],
+      "properties": {
+        "jurisdictions": {"type": "array", "uniqueItems": true, "items": {"type": "string", "pattern": "^[A-Z]{2,3}$"}},
+        "intended_uses": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"enum": ["local-preservation", "research-analysis", "indexing", "derivative-preparation", "redistribution"]}},
+        "layers": {"type": "array", "uniqueItems": true, "items": {"enum": ["work", "expression", "translation", "edition", "item", "scan", "photograph", "three-dimensional-model", "digital-object", "metadata", "transcription"]}}
+      }
+    },
+    "review": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["review_status", "reviewed_at", "maker", "rationale", "limits"],
+      "properties": {
+        "review_status": {"const": "reviewed"},
+        "reviewed_at": {"type": "string", "format": "date"},
+        "maker": {"$ref": "#/$defs/maker"},
+        "rationale": {"type": "string", "minLength": 1},
+        "limits": {"type": "string", "minLength": 1}
+      }
+    },
+    "maker": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["maker_type", "agent_ref"],
+      "properties": {
+        "maker_type": {"enum": ["human", "model", "mixed", "software"]},
+        "agent_ref": {"type": "string", "minLength": 1}
+      }
+    }
+  }
+}

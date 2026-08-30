@@ -1,0 +1,236 @@
+{
+  "schema_version": "tos_rights_record_v1",
+  "rights_id": "tos.rights.egyptian.bnf-papyrus-prisse-public-metadata",
+  "scope_refs": [
+    "tos.artifact.egyptian.thebes.bnf-papyrus-prisse-egyptien-183-194",
+    "open-work-candidate.instruction-of-ptahhotep"
+  ],
+  "assessment_status": "conflicting_evidence",
+  "rights_statement_uri": null,
+  "license_uri": null,
+  "jurisdictions_reviewed": ["FR", "MX", "US"],
+  "source_refs": [
+    "https://www.bnf.fr/fr/reutiliser-les-donnees-de-la-bnf",
+    "https://gallica.bnf.fr/edit/und/conditions-dutilisation-des-contenus-de-gallica",
+    "https://commons.wikimedia.org/wiki/File:Papyrus_Prisse._Egyptien_186._Enseignement_de_Ptahhotep_(1-73)_-_btv1b8304609v.jpg",
+    "https://thesaurus-linguae-aegyptiae.de/info/tla-development?lang=fr",
+    "https://www.gutenberg.org/policy/license",
+    "https://www.gutenberg.org/policy/permission",
+    "https://www.diputados.gob.mx/LeyesBiblio/pdf/LFDA.pdf",
+    "ToS/research-packets/foundation-laboratory-2026-07/A04_PTAHHOTEP_OPEN_WORK_DISCOVERY_AND_RIGHTS_ROUTE_2026-08-29.md"
+  ],
+  "layer_assessments": [
+    {
+      "layer_id": "tos.rights.egyptian.bnf-papyrus-prisse-public-metadata.layer.bnf-metadata",
+      "layer_role": "metadata",
+      "scope_refs": ["tos.artifact.egyptian.thebes.bnf-papyrus-prisse-egyptien-183-194"],
+      "assessment_status": "licensed",
+      "assessment_basis": "license",
+      "rights_statement_uri": "https://www.bnf.fr/fr/reutiliser-les-donnees-de-la-bnf",
+      "license_uri": "https://www.etalab.gouv.fr/licence-ouverte-open-licence/",
+      "jurisdictions_reviewed": ["FR", "MX", "US"],
+      "source_refs": [
+        "https://www.bnf.fr/fr/reutiliser-les-donnees-de-la-bnf",
+        "https://api.bnf.fr/fr/oai-num",
+        "https://archivesetmanuscrits.bnf.fr/ark:/12148/cc12921q"
+      ],
+      "rights_holder_refs": ["Bibliothèque nationale de France"],
+      "permissions": [
+        "reuse a bounded attributed derivative of BnF descriptive metadata",
+        "publish source-returnable identifiers and catalog facts with source and current access date"
+      ],
+      "restrictions": [
+        "retain BnF attribution and data extraction or update date",
+        "the metadata license does not cover Gallica image bytes, manuscript text, facsimiles, translations, TLA content, or third-party contributions"
+      ],
+      "redistribution_posture": "authorized_with_conditions",
+      "derivative_posture": "allowed_with_conditions",
+      "server_processing_posture": "authorized_with_conditions",
+      "term": {
+        "calculation_status": "not_applicable",
+        "basis": "current Etat Open Licence metadata reuse statement rather than a copyright-term calculation",
+        "starts_on": null,
+        "ends_on": null,
+        "uncertainty": "Database and third-party layers remain limited to the exact provider statement and attributed derivative used here."
+      },
+      "uncertainty": "The positive metadata route does not resolve the rights of any content-bearing layer.",
+      "assessed_at": "2026-08-29T23:08:00-06:00",
+      "review_status": "unreviewed",
+      "rationale": "The metadata-only artifact and planting need exact repository identity and unit facts, not a copied catalog or manuscript body."
+    },
+    {
+      "layer_id": "tos.rights.egyptian.bnf-papyrus-prisse-public-metadata.layer.ancient-work-and-embedded-text",
+      "layer_role": "embedded_text",
+      "scope_refs": [
+        "tos.artifact.egyptian.thebes.bnf-papyrus-prisse-egyptien-183-194",
+        "open-work-candidate.instruction-of-ptahhotep"
+      ],
+      "assessment_status": "copyright_undetermined",
+      "assessment_basis": "law",
+      "rights_statement_uri": "https://www.diputados.gob.mx/LeyesBiblio/pdf/LFDA.pdf",
+      "license_uri": null,
+      "jurisdictions_reviewed": ["FR", "MX", "US"],
+      "source_refs": [
+        "https://archivesetmanuscrits.bnf.fr/ark:/12148/cc12921q",
+        "https://www.diputados.gob.mx/LeyesBiblio/pdf/LFDA.pdf"
+      ],
+      "rights_holder_refs": [],
+      "permissions": ["retain the existence, attributed title, and physical-witness relationship as metadata evidence"],
+      "restrictions": [
+        "no ancient source text was acquired, transcribed, normalized, translated, or published",
+        "the Work boundary, attributed author-mask, recension, and exact expression represented by the manuscript remain unresolved",
+        "moral-rights and jurisdictional application were not adjudicated"
+      ],
+      "redistribution_posture": "metadata_only",
+      "derivative_posture": "local_research_only",
+      "server_processing_posture": "local_research_only",
+      "term": {
+        "calculation_status": "not_calculated",
+        "basis": "ancient age is strong public-domain evidence, but no exact Work/Expression payload or cross-jurisdiction moral-rights application was adjudicated",
+        "starts_on": null,
+        "ends_on": null,
+        "uncertainty": "Rights posture is held at metadata only because identity and payload boundaries are not yet frozen."
+      },
+      "uncertainty": "This caution does not assert that the ancient text is in copyright; it prevents age from silently clearing a modern representation, edition, transcription, or translation.",
+      "assessed_at": "2026-08-29T23:08:00-06:00",
+      "review_status": "unreviewed",
+      "rationale": "An ancient Work layer and a modern source-bearing object require separate identities before a reusable source-text conclusion."
+    },
+    {
+      "layer_id": "tos.rights.egyptian.bnf-papyrus-prisse-public-metadata.layer.gallica-scan",
+      "layer_role": "digital_scan",
+      "scope_refs": [
+        "https://gallica.bnf.fr/ark:/12148/btv1b108924968",
+        "https://gallica.bnf.fr/ark:/12148/btv1b8304609v"
+      ],
+      "assessment_status": "conflicting_evidence",
+      "assessment_basis": "mixed",
+      "rights_statement_uri": "https://gallica.bnf.fr/edit/und/conditions-dutilisation-des-contenus-de-gallica",
+      "license_uri": null,
+      "jurisdictions_reviewed": ["FR", "MX", "US"],
+      "source_refs": [
+        "https://gallica.bnf.fr/edit/und/conditions-dutilisation-des-contenus-de-gallica",
+        "https://commons.wikimedia.org/wiki/File:Papyrus_Prisse._Egyptien_186._Enseignement_de_Ptahhotep_(1-73)_-_btv1b8304609v.jpg",
+        "https://archivesetmanuscrits.bnf.fr/ark:/12148/cc12921q/ca103"
+      ],
+      "rights_holder_refs": ["Bibliothèque nationale de France", "applicable Wikimedia Commons contributors"],
+      "permissions": ["link to the exact Gallica and Commons digital-object records as evidence"],
+      "restrictions": [
+        "no scan or image bytes were acquired or stored",
+        "non-commercial Gallica reuse language does not satisfy the intended unrestricted redistribution scope",
+        "Commons public-domain fields and France-specific moral-rights language require reconciliation with the originating provider conditions"
+      ],
+      "redistribution_posture": "not_authorized",
+      "derivative_posture": "permission_required",
+      "server_processing_posture": "not_authorized",
+      "term": {
+        "calculation_status": "unknown",
+        "basis": "conflicting provider and aggregator statements for one digital representation",
+        "starts_on": null,
+        "ends_on": null,
+        "uncertainty": "Exact institutional, database, photograph, moral-rights, and cross-border effects were not adjudicated."
+      },
+      "uncertainty": "The most permissive badge is not selected over the originating provider's separate reuse terms.",
+      "assessed_at": "2026-08-29T23:08:00-06:00",
+      "review_status": "legal_review_requested",
+      "rationale": "The exact image route is valuable, but the evidence does not currently support ToS acquisition or redistribution across the three reviewed jurisdictions."
+    },
+    {
+      "layer_id": "tos.rights.egyptian.bnf-papyrus-prisse-public-metadata.layer.tla-transliteration-and-translation",
+      "layer_role": "transliteration",
+      "scope_refs": ["https://thesaurus-linguae-aegyptiae.de/text/3W45TQYQ3RCX5DXZ7DIZ43JWNQ"],
+      "assessment_status": "copyright_undetermined",
+      "assessment_basis": "operator_statement",
+      "rights_statement_uri": "https://thesaurus-linguae-aegyptiae.de/info/tla-development?lang=fr",
+      "license_uri": null,
+      "jurisdictions_reviewed": ["FR", "MX", "US"],
+      "source_refs": [
+        "https://thesaurus-linguae-aegyptiae.de/text/3W45TQYQ3RCX5DXZ7DIZ43JWNQ",
+        "https://thesaurus-linguae-aegyptiae.de/info/tla-development?lang=fr"
+      ],
+      "rights_holder_refs": ["Thesaurus Linguae Aegyptiae and named scholarly contributors"],
+      "permissions": ["retain persistent IDs, bibliographic leads, and bounded source-returnable metadata"],
+      "restrictions": [
+        "TLA states that content is not provided under a free license",
+        "no transliteration, translation, annotation, or corpus body was acquired or stored",
+        "future use needs exact contributor, version, source, and permission review"
+      ],
+      "redistribution_posture": "not_authorized",
+      "derivative_posture": "permission_required",
+      "server_processing_posture": "not_authorized",
+      "term": {
+        "calculation_status": "unknown",
+        "basis": "provider reports no free content license; contributor-specific terms were not calculated",
+        "starts_on": null,
+        "ends_on": null,
+        "uncertainty": "Metadata and content scopes are not assumed to share one license."
+      },
+      "uncertainty": "The provider statement is clear enough to block open-content inference but not to assign every underlying right.",
+      "assessed_at": "2026-08-29T23:08:00-06:00",
+      "review_status": "unreviewed",
+      "rationale": "TLA is selected for identity and bibliography while its content-bearing scholarly layers remain unacquired."
+    },
+    {
+      "layer_id": "tos.rights.egyptian.bnf-papyrus-prisse-public-metadata.layer.gunn-translation",
+      "layer_role": "translation",
+      "scope_refs": [
+        "https://www.gutenberg.org/ebooks/30508",
+        "https://search.worldcat.org/title/The-instruction-of-Ptah-hotep-and-the-instruction-of-Ke%27gemni-%3A-the-oldest-books-in-the-world./oclc/787861218"
+      ],
+      "assessment_status": "copyright_undetermined",
+      "assessment_basis": "mixed",
+      "rights_statement_uri": "https://www.gutenberg.org/policy/license",
+      "license_uri": null,
+      "jurisdictions_reviewed": ["FR", "MX", "US"],
+      "source_refs": [
+        "https://www.gutenberg.org/ebooks/30508",
+        "https://www.gutenberg.org/policy/license",
+        "https://www.gutenberg.org/policy/permission",
+        "https://www.diputados.gob.mx/LeyesBiblio/pdf/LFDA.pdf",
+        "https://search.worldcat.org/title/The-instruction-of-Ptah-hotep-and-the-instruction-of-Ke%27gemni-%3A-the-oldest-books-in-the-world./oclc/787861218"
+      ],
+      "rights_holder_refs": ["Battiscombe G. Gunn and any applicable successors or edition rights holders"],
+      "permissions": ["Project Gutenberg reports the exact ebook as public domain in the United States"],
+      "restrictions": [
+        "Project Gutenberg's determination is explicitly United States-specific",
+        "Mexico and France term, transition, moral-rights, edition-presentation, and redistribution questions were not legally adjudicated",
+        "no translation text or ebook bytes were acquired or stored"
+      ],
+      "redistribution_posture": "not_authorized",
+      "derivative_posture": "permission_required",
+      "server_processing_posture": "local_research_only",
+      "term": {
+        "calculation_status": "not_calculated",
+        "basis": "Gunn is reported as 1883-1950; provider gives a US-only public-domain conclusion while MX and FR application remains unresolved",
+        "starts_on": null,
+        "ends_on": null,
+        "uncertainty": "No expert calculation of Mexican transition rules, French applicability, edition presentation, or cross-border distribution was performed."
+      },
+      "uncertainty": "The US result is positive evidence for one jurisdiction, not a global translation license.",
+      "assessed_at": "2026-08-29T23:08:00-06:00",
+      "review_status": "legal_review_requested",
+      "rationale": "The Gunn route remains a strong future source candidate but does not satisfy the frozen FR/MX/US redistribution scope."
+    }
+  ],
+  "permissions": [
+    "publish the bounded attributed Papyrus Prisse metadata witness and source-returnable links",
+    "retain the exact CC0 CGT 54014 image as a positive but unacquired candidate in the discovery receipt"
+  ],
+  "restrictions": [
+    "no Prisse scan, ancient source text, TLA content, Gunn translation, facsimile, transcription, or other content-bearing payload may be published from this record",
+    "no blanket public-domain, open-license, server-processing, or redistribution conclusion crosses layers or jurisdictions",
+    "future acquisition requires exact object identity, project storage approval, an artifact-representation payload contract, and any necessary human or legal review",
+    "this model assessment is evidence routing, not legal advice or human publication approval"
+  ],
+  "visibility": "public_metadata_only",
+  "redistribution_posture": "metadata_only",
+  "derivative_posture": "local_research_only",
+  "assessed_by": {"maker_type": "model", "agent_ref": "model:codex"},
+  "assessed_at": "2026-08-29T23:08:00-06:00",
+  "rationale": "Only BnF metadata has a positive reusable license route for the current artifact. The Prisse scan, TLA content, and Gunn translation remain separate and unresolved; the distinct CGT 54014 image is exact CC0 but was not acquired after owner storage and artifact-representation gates failed closed.",
+  "review_status": "legal_review_requested",
+  "review_refs": [],
+  "access_request_ref": null,
+  "record_version": 1,
+  "supersedes_rights_ref": null
+}

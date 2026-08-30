@@ -1,0 +1,81 @@
+{
+  "schema_version": "tos_rights_record_v1",
+  "rights_id": "tos.rights.sumerian.laws-of-lipit-ishtar-mikolajczak-pl-2022-cc-by-sa-4.0",
+  "scope_refs": [
+    "tos.composite.sumerian.laws-of-lipit-ishtar",
+    "tos.composite-representation.sumerian.laws-of-lipit-ishtar-mikolajczak-pl-2022",
+    "tos.file.sha256.61c2539463b95c791d0a41d004c5b901f6d145f15d25355041f73b364e47aadc"
+  ],
+  "assessment_status": "licensed",
+  "rights_statement_uri": "https://pressto.amu.edu.pl/index.php/cph/article/view/36386",
+  "license_uri": "https://creativecommons.org/licenses/by-sa/4.0/",
+  "jurisdictions_reviewed": ["MX", "PL", "US"],
+  "source_refs": [
+    "https://pressto.amu.edu.pl/index.php/cph/article/view/36386",
+    "https://pressto.amu.edu.pl/index.php/cph/article/download/36386/31112",
+    "https://creativecommons.org/licenses/by-sa/4.0/"
+  ],
+  "layer_assessments": [
+    {
+      "layer_id": "tos.rights.sumerian.laws-of-lipit-ishtar-mikolajczak-pl-2022-cc-by-sa-4.0.layer.translation",
+      "layer_role": "translation",
+      "scope_refs": ["tos.file.sha256.61c2539463b95c791d0a41d004c5b901f6d145f15d25355041f73b364e47aadc"],
+      "assessment_status": "licensed",
+      "assessment_basis": "license",
+      "rights_statement_uri": "https://pressto.amu.edu.pl/index.php/cph/article/view/36386",
+      "license_uri": "https://creativecommons.org/licenses/by-sa/4.0/",
+      "jurisdictions_reviewed": ["MX", "PL", "US"],
+      "source_refs": [
+        "https://pressto.amu.edu.pl/index.php/cph/article/view/36386",
+        "https://pressto.amu.edu.pl/index.php/cph/article/download/36386/31112",
+        "https://creativecommons.org/licenses/by-sa/4.0/"
+      ],
+      "rights_holder_refs": ["Tytus Mikołajczak", "Adam Mickiewicz University Faculty of Law and Administration"],
+      "permissions": [
+        "copy and retain the exact article PDF",
+        "redistribute with attribution under CC BY-SA 4.0",
+        "prepare adaptations under the same or a compatible license"
+      ],
+      "restrictions": [
+        "attribution required",
+        "ShareAlike required for adaptations",
+        "third-party quotations or images require their own review where applicable",
+        "license does not establish translation quality or source-text authority"
+      ],
+      "redistribution_posture": "authorized_with_conditions",
+      "derivative_posture": "allowed_with_conditions",
+      "server_processing_posture": "authorized_with_conditions",
+      "term": {
+        "calculation_status": "not_applicable",
+        "basis": "exact Creative Commons license rather than a copyright-term calculation",
+        "starts_on": null,
+        "ends_on": null,
+        "uncertainty": "The provider and first page both declare CC BY-SA 4.0; independently reproduced third-party material, if any, remains separately governed."
+      },
+      "uncertainty": "The File contains a modern Polish translation and scholarly study. Its license permits reuse, but neither the translation nor its interpretations have been accepted into ToS source-text, semantic, legal-historical, graph, or canon layers.",
+      "assessed_at": "2026-08-30T02:30:00-06:00",
+      "review_status": "unreviewed",
+      "rationale": "The originating journal record and the PDF's first page both state CC BY-SA 4.0, binding the exact selected File to a standard open license."
+    }
+  ],
+  "permissions": [
+    "retain and process the exact local PDF",
+    "redistribute it under CC BY-SA 4.0 conditions"
+  ],
+  "restrictions": [
+    "repository policy keeps the payload local-only",
+    "attribution and ShareAlike conditions remain attached",
+    "translation content remains unreviewed and unadmitted"
+  ],
+  "visibility": "local_only",
+  "redistribution_posture": "authorized_with_conditions",
+  "derivative_posture": "allowed_with_conditions",
+  "assessed_by": {"maker_type": "model", "agent_ref": "model:codex"},
+  "assessed_at": "2026-08-30T02:30:00-06:00",
+  "rationale": "The exact Mikołajczak article PDF is positively licensed under CC BY-SA 4.0 while ToS retains a stricter local-only source-witness posture pending human review.",
+  "review_status": "unreviewed",
+  "review_refs": [],
+  "access_request_ref": null,
+  "record_version": 1,
+  "supersedes_rights_ref": null
+}

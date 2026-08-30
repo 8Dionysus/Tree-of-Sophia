@@ -1,0 +1,97 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/artifact-source-witness-v2.schema.json",
+  "schema_version": "tos_artifact_source_witness_v2",
+  "artifact_id": "tos.artifact.egyptian.lisht-south.met-khety-32-1-133",
+  "artifact_kind": "archaeological_object",
+  "path_identity": {
+    "basis": "excavation_identity",
+    "provider_independent": true,
+    "note": "The path follows the physical Met object 32.1.133a-k and reported Lisht South Tomb A / Shaft 5301 excavation identity, not a JPEG basename, image-service ID, corpus label, or accepted spell sequence."
+  },
+  "identifiers": [
+    {"scheme": "Met object number", "value": "32.1.133a-k", "source_ref": "https://www.metmuseum.org/art/collection/search/555675"},
+    {"scheme": "Met object ID", "value": "555675", "source_ref": "https://collectionapi.metmuseum.org/public/collection/v1/objects/555675"}
+  ],
+  "physical_description": {
+    "material": "coniferous wood, paint",
+    "height_mm": 580,
+    "width_mm": 580,
+    "thickness_mm": null,
+    "source_ref": "https://www.metmuseum.org/art/collection/search/555675"
+  },
+  "dating": {
+    "period_label": "Middle Kingdom, mid to late Dynasty 12, Amenemhat II and later",
+    "display_date": "ca. 1919-1800 BCE",
+    "certainty": "reported",
+    "period_stage_separation_required": true,
+    "source_ref": "https://www.metmuseum.org/art/collection/search/555675"
+  },
+  "find_context": {
+    "site": "Lisht South, Memphite Region, Egypt",
+    "findspot": "South Khor, Tomb A, Shaft 5301, burial of Khety",
+    "excavation_numbers": ["Tomb A", "Shaft 5301"],
+    "source_note": "The Met reports MMA excavations in 1931-1932 and assigns the object to the burial of Khety.",
+    "documentation_limit": "The museum record does not by itself establish original workshop, complete spell inventory, de Buck sigla, inscription sequence, composition date, or one fixed Coffin Texts recension.",
+    "source_ref": "https://www.metmuseum.org/art/collection/search/555675"
+  },
+  "custody": {
+    "current_repository": "The Metropolitan Museum of Art, New York",
+    "inventory_numbers": ["32.1.133a-k"],
+    "source_ref": "https://www.metmuseum.org/art/collection/search/555675"
+  },
+  "digital_catalog_record": {
+    "provider": "The Metropolitan Museum of Art collection and public API",
+    "record_id": "555675",
+    "record_url": "https://www.metmuseum.org/art/collection/search/555675",
+    "api_url": "https://collectionapi.metmuseum.org/public/collection/v1/objects/555675",
+    "checked_at": "2026-08-30T04:22:03-06:00",
+    "mutable": true,
+    "response_fingerprints": [
+      {"surface": "https://collectionapi.metmuseum.org/public/collection/v1/objects/555675", "byte_size": 3345, "sha256": "212dff7ea55d05103acf2e2fd9a44621133692213c94eb43143872b594503c78", "captured": false}
+    ]
+  },
+  "inscription_layer": {
+    "availability": "available_not_acquired",
+    "language_status": "reported",
+    "provider_language_code": "egy",
+    "normalized_language_code": "egy",
+    "script": "cursive Egyptian",
+    "transliteration_stored": false,
+    "translation_stored": false,
+    "source_refs": ["https://www.metmuseum.org/art/collection/search/555675"]
+  },
+  "composite_layer": {
+    "status": "absent",
+    "external_refs": [],
+    "relationship": "The Met's Coffin Texts label is evidence for a candidate physical-member relation; no critical composite, accepted spell sequence, transcription, or translation is admitted by this record.",
+    "is_physical_artifact_identity": false
+  },
+  "visual_layers": [
+    {"layer_kind": "photograph", "availability": "visible", "content_stored": false, "source_ref": "https://images.metmuseum.org/CRDImages/eg/original/DP-15316-001.jpg", "rights_note": "The exact 4000x1118 CC0 original is retained as its own visual-representation record and File."},
+    {"layer_kind": "photograph", "availability": "visible", "content_stored": false, "source_ref": "https://collectionapi.metmuseum.org/api/collection/v1/iiif/555675/1836133/main-image", "rights_note": "The encountered 1200x335 IIIF derivative is byte-distinct and retained under a separate File identity."}
+  ],
+  "scholarly_classification": {
+    "genre": "Middle Kingdom inscribed coffin; exact Coffin Texts physical-member witness",
+    "corpus_labels": ["Coffin Texts physical-member candidate", "Khety coffin", "Met 32.1.133a-k"],
+    "classification_is_interpretive": true,
+    "source_refs": ["https://www.metmuseum.org/art/collection/search/555675", "https://www.ucl.ac.uk/museums-static/digitalegypt/literature/religious/coffin.html"]
+  },
+  "bibliography": [],
+  "layer_separation": {
+    "physical_artifact_is_catalog_record": false,
+    "catalog_record_is_inscription": false,
+    "inscription_is_composite": false,
+    "visual_is_artifact": false,
+    "sign_has_fixed_translation": false,
+    "artifact_is_philosophy": false
+  },
+  "rights_ref": "ToS/source-witnesses/artifacts/egyptian/lisht-south/met-khety-32-1-133/rights.json",
+  "discovery_ref": "ToS/source-witnesses/discovery/runs/coffin-texts-met-artifacts.2026-08-30.v1.json",
+  "provenance_event_ref": "tos.event.acquisition.coffin-texts-met-open-access-images.2026-08-30",
+  "research_ref": "ToS/research-packets/foundation-laboratory-2026-07/A05_COFFIN_TEXTS_OPEN_WORK_ACQUISITION_2026-08-30.md",
+  "philosophy_planting_refs": ["ToS/philosophy/eras/bronze-age/regions/north-africa/traditions/egyptian-mortuary-theological-dialogic-corpora/sources/plantings/coffin-texts-met-khety/source-planting.json"],
+  "authority": {"evidence_status": "metadata_witness", "review_status": "unreviewed", "visibility": "public_metadata_only", "source_text_admitted": false, "semantic_authority": false, "graph_authority": false, "canon_authority": false, "publication_authority": false},
+  "maker": {"maker_type": "model", "agent_ref": "model:codex", "human_review_performed": false},
+  "created_at": "2026-08-30T04:25:00-06:00",
+  "record_version": 1
+}

@@ -1,0 +1,99 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/open-work-candidate-receipt.schema.json",
+  "schema_version": "tos_open_work_candidate_receipt_v1",
+  "receipt_id": "open-work-candidate-receipt.dialogue-between-a-man-and-his-ba.2026-08-30.v1",
+  "candidate_id": "open-work-candidate.dialogue-between-a-man-and-his-ba",
+  "candidate_record_sha256": "6ed989583f23f77cce0fb4014ad2d9e934f324bf32dad10f36a6d2fedd91b2fd",
+  "queue_snapshot_sha256": "100af450588dac32f1cfecf07fea86cc91d9301cfcd3836a80770a5560ca4d07",
+  "discovery_ref": "ToS/source-witnesses/discovery/runs/dialogue-between-a-man-and-his-ba-open-work-route.2026-08-30.v1.json",
+  "discovery_id": "tos.discovery.dialogue-between-a-man-and-his-ba-open-work-route.2026-08-30.v1",
+  "timing_ref": "ToS/source-witnesses/discovery/timings/dialogue-between-a-man-and-his-ba-open-work-route.2026-08-30.v1.timing.json",
+  "terminal_status": "held_source_witness",
+  "target_resolution": {
+    "identity_status": "provisional",
+    "work_ref": null,
+    "expression_ref": null,
+    "edition_ref": null,
+    "item_ref": null,
+    "summary": "Dialogue between a Man and His Ba remains a provisional ancient Work boundary rather than an admitted Work. One provider-independent P. Berlin 3024 artifact packet and two exact CC BY 4.0 historical line-art Files are held. P. Amherst III, Mallorca I and II, current P 3024/C mounting, the TLA aggregate, the reconstructed beginning, ancient source text, transcription, translation, semantics, graph, and canon remain separate and unaccepted."
+  },
+  "rights_result": {
+    "status": "positive-for-acquisition",
+    "reviewed_jurisdictions": [
+      "DE",
+      "ES",
+      "JP",
+      "MX",
+      "US"
+    ],
+    "reviewed_layers": [
+      "provider-independent physical-object metadata",
+      "SMB P 3024/C collection metadata",
+      "Morgan P. Amherst III holding metadata and image lead",
+      "TLA object, text-hierarchy, bibliography, and database content",
+      "Lepsius historical plates 111 and 112",
+      "two exact University of Tokyo JPEGs",
+      "University of Tokyo IIIF manifest and repository record",
+      "Erman 1896 scholarly article and multi-work proceedings scan",
+      "Escolano-Poveda 2017 reconstruction article and repository PDF",
+      "ancient papyrus inscription, transcription, translation, and reconstruction",
+      "provider metadata and rights statements"
+    ],
+    "evidence_refs": [
+      "ToS/source-witnesses/artifacts/egyptian/unknown/papyrus-berlin-p3024/representations/utokyo-lepsius-plate-111/rights.json",
+      "ToS/source-witnesses/artifacts/egyptian/unknown/papyrus-berlin-p3024/representations/utokyo-lepsius-plate-112/rights.json",
+      "https://da.dl.itc.u-tokyo.ac.jp/portal/en/assets/11e8e95e-93a7-8803-2093-7ad447b26ce7",
+      "https://da.dl.itc.u-tokyo.ac.jp/portal/repo/iiif/11e8e95e-93a7-8803-2093-7ad447b26ce7/manifest",
+      "https://creativecommons.org/licenses/by/4.0/",
+      "https://www.lib.u-tokyo.ac.jp/en/library/contents/archives-top/terms-of-use",
+      "https://tla.digital/info/licenses",
+      "https://www.themorgan.org/manuscript/351017",
+      "https://livrepository.liverpool.ac.uk/3029891/",
+      "https://livrepository.liverpool.ac.uk/terms.html",
+      "https://www.gesetze-im-internet.de/urhg/__64.html",
+      "https://www.diputados.gob.mx/LeyesBiblio/pdf/LFDA.pdf",
+      "https://www.copyright.gov/circs/circ15a.pdf"
+    ],
+    "summary": "The two exact University of Tokyo maximum-resolution JPEGs are explicitly licensed CC BY 4.0, including reuse and modification for commercial and non-commercial purposes subject to attribution, license-link, and change notice. No positive File result licenses SMB or Morgan imagery, TLA scientific text, the Liverpool repository article, modern reconstruction, transcription, translation, semantics, graph, canon, or publication. The complete 1896 multi-work volume was rejected because a US public-domain provider posture does not clear the reviewed Mexican life-plus-100 term before 2038 and because the container topology is broader than this candidate."
+  },
+  "acquisition": {
+    "downloaded": true,
+    "item_ref": null,
+    "artifact_ref": "tos.artifact.egyptian.unknown.papyrus-berlin-p3024",
+    "representation_ref": "ToS/source-witnesses/artifacts/egyptian/unknown/papyrus-berlin-p3024/representations/utokyo-lepsius-plate-111/representation.json",
+    "file_ref": "tos.file.sha256.b68b6ffa4a40015834f98748ed408288546cee47373d802276df2179d5dca2bc",
+    "provenance_event_ref": "tos.event.acquisition.dialogue-man-ba-lepsius-plates.2026-08-30"
+  },
+  "additional_acquisitions": [
+    {
+      "downloaded": true,
+      "item_ref": null,
+      "artifact_ref": "tos.artifact.egyptian.unknown.papyrus-berlin-p3024",
+      "representation_ref": "ToS/source-witnesses/artifacts/egyptian/unknown/papyrus-berlin-p3024/representations/utokyo-lepsius-plate-112/representation.json",
+      "file_ref": "tos.file.sha256.b7d8ad123d378d1611d20fb3ea7661c5f044dea5807bc10cdf907986b50e0f9b",
+      "provenance_event_ref": "tos.event.acquisition.dialogue-man-ba-lepsius-plates.2026-08-30"
+    }
+  ],
+  "planting_refs": [
+    "ToS/philosophy/eras/bronze-age/regions/north-africa/traditions/egyptian-mortuary-theological-dialogic-corpora/sources/plantings/dialogue-man-ba-papyrus-berlin-p3024/source-planting.json"
+  ],
+  "operational_relation_refs": [
+    "ToS/source-witnesses/discovery/candidates/reviewed-candidates.jsonl:16",
+    "ToS/source-witnesses/discovery/timings/dialogue-between-a-man-and-his-ba-open-work-route.2026-08-30.v1.timing.json",
+    "ToS/source-witnesses/discovery/timings/dialogue-man-ba-papyrus-berlin-p3024-artifact.2026-08-30.v1.json",
+    "tos.artifact.egyptian.unknown.papyrus-berlin-p3024",
+    "tos.discovery.dialogue-between-a-man-and-his-ba-open-work-route.2026-08-30.v1",
+    "tos.discovery.dialogue-man-ba-papyrus-berlin-p3024-artifact.2026-08-30.v1",
+    "tos.event.acquisition.dialogue-man-ba-lepsius-plates.2026-08-30",
+    "tos.event.discovery.dialogue-between-a-man-and-his-ba-open-work-route.2026-08-30",
+    "tos.file.sha256.b68b6ffa4a40015834f98748ed408288546cee47373d802276df2179d5dca2bc",
+    "tos.file.sha256.b7d8ad123d378d1611d20fb3ea7661c5f044dea5807bc10cdf907986b50e0f9b"
+  ],
+  "next_trigger": "Rebuild and validate the reviewed queue. If it is empty, expand the reviewed frontier by exactly one earliest unresolved Work or work-like candidate from canonical ToS evidence, freeze that candidate, and begin the next ordered discovery iteration without promoting the Dialogue, its physical witnesses, or reconstructed joins into accepted text or canon.",
+  "issued_at": "2026-08-30T10:15:00-06:00",
+  "maker": {
+    "maker_type": "model",
+    "agent_ref": "model:codex"
+  },
+  "record_version": 1
+}

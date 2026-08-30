@@ -1,0 +1,70 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/open-work-candidate-receipt.schema.json",
+  "schema_version": "tos_open_work_candidate_receipt_v1",
+  "receipt_id": "open-work-candidate-receipt.laws-of-ur-namma.2026-08-30.v1",
+  "candidate_id": "open-work-candidate.laws-of-ur-namma",
+  "candidate_record_sha256": "26081da9908e2ceadeec7bb7ddafc327282634d431d60d969c2d1f4d800d06b2",
+  "queue_snapshot_sha256": "b89f7e81cb60e969be6d9d7a1769b31c8dc360fe7a3240c6a6f1fada039cfb16",
+  "discovery_ref": "ToS/source-witnesses/discovery/runs/laws-of-ur-namma-open-work-route.2026-08-30.v1.json",
+  "discovery_id": "tos.discovery.laws-of-ur-namma-open-work-route.2026-08-30.v1",
+  "timing_ref": "ToS/source-witnesses/discovery/timings/laws-of-ur-namma-open-work-route.2026-08-30.v1.json",
+  "terminal_status": "held_source_witness",
+  "target_resolution": {
+    "identity_status": "reconciled",
+    "work_ref": "tos.work.sumerian-law.laws-of-ur-namma",
+    "expression_ref": null,
+    "edition_ref": null,
+    "item_ref": null,
+    "summary": "The existing ancient Work, provider-independent modern scholarly composite, and physical artifact identity were reused. The acquired object is one exact ETCSRI/Oracc static annotated Sumerian HTML representation of the composite, not a newly minted Work, Expression, Edition, Item, ancient original, physical tablet, or accepted source text."
+  },
+  "rights_result": {
+    "status": "positive-for-acquisition",
+    "reviewed_jurisdictions": [
+      "HU",
+      "MX",
+      "US"
+    ],
+    "reviewed_layers": [
+      "exact ETCSRI Q000947 static annotated HTML",
+      "ETCSRI project content license and Oracc attribution/ShareAlike conditions",
+      "separately governed CDLI composite, ETCSL catalogue, modern publications, translations, images, scans, drawings, and third-party downloads"
+    ],
+    "evidence_refs": [
+      "ToS/source-witnesses/scholarly-composites/critical/sumerian/laws-of-ur-namma/representations/oracc-etcsri-q000947-static-html/rights.json",
+      "https://oracc.museum.upenn.edu/etcsri/accesskeys/",
+      "https://oracc.museum.upenn.edu/doc/about/",
+      "https://oracc.museum.upenn.edu/doc/help/visitingoracc/reusingoracc/index.html",
+      "https://creativecommons.org/licenses/by-sa/3.0/"
+    ],
+    "summary": "The ETCSRI project's own footer explicitly releases project content under CC BY-SA 3.0. The exact static HTML response is File-fixity-bound. Conditional reuse with attribution and ShareAlike is permitted; repository policy keeps the payload local-only. No CDLI representation, ETCSL catalogue title, translation, third-party media, legal interpretation, or semantic layer is silently cleared."
+  },
+  "acquisition": {
+    "downloaded": true,
+    "item_ref": null,
+    "artifact_ref": null,
+    "composite_ref": "tos.composite.sumerian.laws-of-ur-namma",
+    "representation_ref": "ToS/source-witnesses/scholarly-composites/critical/sumerian/laws-of-ur-namma/representations/oracc-etcsri-q000947-static-html/representation.json",
+    "file_ref": "tos.file.sha256.5f6bf53de619a0de93469044b7275944cfb8d14bc19647c694274dea3bc0620d",
+    "provenance_event_ref": "tos.event.acquisition.laws-of-ur-namma-oracc-etcsri-q000947.2026-08-30"
+  },
+  "planting_refs": [
+    "ToS/philosophy/eras/bronze-age/regions/west-asia/traditions/old-babylonian-scribal-wisdom-law/sources/plantings/laws-of-ur-namma-composite/source-planting.json"
+  ],
+  "operational_relation_refs": [
+    "ToS/source-witnesses/discovery/candidates/reviewed-candidates.jsonl:6",
+    "ToS/source-witnesses/discovery/runs/laws-of-ur-namma-open-work-route.2026-08-30.v1.json",
+    "ToS/source-witnesses/discovery/timings/laws-of-ur-namma-open-work-route.2026-08-30.v1.json",
+    "ToS/research-packets/foundation-laboratory-2026-07/A02_LAWS_OF_UR_NAMMA_OPEN_WORK_ACQUISITION_2026-08-30.md",
+    "ToS/source-witnesses/scholarly-composites/critical/sumerian/laws-of-ur-namma/composite-witness.json",
+    "ToS/source-witnesses/scholarly-composites/critical/sumerian/laws-of-ur-namma/representations/oracc-etcsri-q000947-static-html/representation.json",
+    "tos.event.discovery.laws-of-ur-namma-open-work-route.2026-08-30",
+    "tos.event.acquisition.laws-of-ur-namma-oracc-etcsri-q000947.2026-08-30"
+  ],
+  "next_trigger": "Rebuild queue.current.json. If no reviewed ready candidate remains, review exactly one next earliest source-backed Work or work-like corpus from the visible frontier, append it to reviewed-candidates.jsonl, rebuild, freeze it, and continue the loop.",
+  "issued_at": "2026-08-30T02:20:00-06:00",
+  "maker": {
+    "maker_type": "model",
+    "agent_ref": "model:codex"
+  },
+  "record_version": 1
+}

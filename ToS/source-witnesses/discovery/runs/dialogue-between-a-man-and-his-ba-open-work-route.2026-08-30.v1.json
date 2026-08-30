@@ -1,0 +1,959 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/material-discovery-record.schema.json",
+  "schema_version": "tos_material_discovery_record_v1",
+  "discovery_id": "tos.discovery.dialogue-between-a-man-and-his-ba-open-work-route.2026-08-30.v1",
+  "protocol_ref": "ToS/source-witnesses/discovery/DISCOVERY_PROTOCOL.md",
+  "target": {
+    "target_kind": "work",
+    "known_tos_refs": [
+      "tos.artifact.egyptian.unknown.papyrus-berlin-p3024"
+    ],
+    "description": "Resolve the ancient Dialogue between a Man and His Ba only to a provisional Work boundary while separating pBerlin P 3024, P. Amherst III, Mallorca I/II, present museum mountings, historical facsimiles, scholarly joins, editions, transcriptions, translations, repository permissions, and exact Files.",
+    "required_properties": [
+      "provider-independent pBerlin P 3024 identity",
+      "exact open-license digital object",
+      "reported fragment joins retained as unreviewed reconstruction",
+      "ba and soul kept as non-equivalent title variants",
+      "layer-specific rights and immutable fixity",
+      "no accepted source-text, semantic, graph, canon, or publication effect"
+    ],
+    "acceptable_substitutions": [
+      "an exact openly licensed historical facsimile of pBerlin P 3024",
+      "an originating museum or holding record",
+      "an exact openly licensed article documenting Mallorca fragments",
+      "a rights-insufficient receipt preserving all exact URLs and identifiers"
+    ],
+    "languages": [
+      "egy",
+      "de",
+      "en",
+      "es"
+    ],
+    "formats": [
+      "national-catalog metadata",
+      "museum object metadata",
+      "papyrus holding record",
+      "scholarly corpus record",
+      "historical facsimile",
+      "IIIF manifest",
+      "JPEG",
+      "repository article",
+      "provider rights statement"
+    ],
+    "purpose_ref": "ToS/research-packets/foundation-laboratory-2026-07/A05_DIALOGUE_BETWEEN_A_MAN_AND_HIS_BA_OPEN_WORK_ACQUISITION_2026-08-30.md"
+  },
+  "channels": [
+    {
+      "channel_id": "channel-k10plus-erman-originating-bibliography",
+      "sequence": 1,
+      "channel_type": "national-catalog",
+      "role": "originating-record",
+      "source_name": "K10plus SRU",
+      "endpoint_url": "https://sru.k10plus.de/opac-de-627?version=1.1&operation=searchRetrieve&query=pica.tit%3D%22Gespr%C3%A4ch%20eines%20Lebensm%C3%BCden%20mit%20seiner%20Seele%22%20and%20pica.per%3D%22Erman%22&maximumRecords=10&recordSchema=picaxml",
+      "interface_type": "api",
+      "interface_version": "SRU 1.1 with PICA XML checked 2026-08-30",
+      "exact_query": "pica.tit=\"Gespräch eines Lebensmüden mit seiner Seele\" and pica.per=\"Erman\"; maximumRecords=10; recordSchema=picaxml",
+      "queried_at": "2026-08-30T15:56:39.820005Z",
+      "elapsed_seconds": 1.047534,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.k10plus-erman-1896-ppn-1187984728",
+          "rank": 1,
+          "title_as_displayed": "Gespräch eines Lebensmüden mit seiner Seele: aus dem Papyrus 3024 der Königlichen Museen",
+          "result_url": "https://opac.k10plus.de/DB=2.299/PPNSET?PPN=1187984728",
+          "originating_record_url": "https://sru.k10plus.de/opac-de-627?version=1.1&operation=searchRetrieve&query=pica.tit%3D%22Gespr%C3%A4ch%20eines%20Lebensm%C3%BCden%20mit%20seiner%20Seele%22%20and%20pica.per%3D%22Erman%22&maximumRecords=10&recordSchema=picaxml",
+          "identifiers": [
+            {
+              "scheme": "K10plus PPN",
+              "value": "1187984728"
+            },
+            {
+              "scheme": "GND agent",
+              "value": "118530852"
+            },
+            {
+              "scheme": "OCLC",
+              "value": "247532267"
+            }
+          ],
+          "available_formats": [
+            "SRU PICA XML",
+            "77 pages and 10 plates metadata"
+          ],
+          "declared_rights": {
+            "statement": null,
+            "scope": "metadata",
+            "evidence_url": null,
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "metadata-only",
+          "machine_interface": "api",
+          "decision": "select",
+          "rationale": "The first ordered exact record fixes Adolf Erman, 1854-1937, Berlin, 1896, the 77-page article with ten plates, Papyrus 3024, and its proceedings container. It is bibliographic evidence only and does not clear the 1896 content in every reviewed jurisdiction.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-captured",
+            "format": null,
+            "sha256": null,
+            "reason": "The exact reproducible SRU query and stable PPN are retained; no catalog prose is required."
+          }
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-smb-p3024c-holding",
+      "sequence": 2,
+      "channel_type": "university-catalog",
+      "role": "originating-record",
+      "source_name": "Staatliche Museen zu Berlin Collection Online",
+      "endpoint_url": "https://search.smb.museum/object/obj-1388678",
+      "interface_type": "web",
+      "interface_version": "object page updated 2026-08-04 and checked 2026-08-30",
+      "exact_query": "Open stable object obj:1388678 / P 3024/C and inspect identity, date, material, dimensions, provenance, permalink, and image availability.",
+      "queried_at": "2026-08-30T15:56:40.867668Z",
+      "elapsed_seconds": 0.951716,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.smb-p3024c-obj-1388678",
+          "rank": 1,
+          "title_as_displayed": "Hieratischer Papyrus, Streitgespräch eines Lebensmüden mit seiner Seele — P 3024/C",
+          "result_url": "https://search.smb.museum/object/obj-1388678",
+          "originating_record_url": "https://id.smb.museum/object/1388678",
+          "identifiers": [
+            {
+              "scheme": "SMB inventory",
+              "value": "P 3024/C"
+            },
+            {
+              "scheme": "SMB object ID",
+              "value": "obj:1388678"
+            }
+          ],
+          "available_formats": [
+            "museum object HTML",
+            "stable object permalink",
+            "no object images exposed in the checked record"
+          ],
+          "declared_rights": {
+            "statement": null,
+            "scope": "metadata",
+            "evidence_url": null,
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "metadata-only",
+          "machine_interface": "html",
+          "decision": "select",
+          "rationale": "The museum fixes one current mounted component, Amenemhat III dating label, unknown provenance, papyrus material, and 16.4 x 47.6 x 0.02 cm dimensions. It does not prove the complete P 3024 extent, image rights, or equivalence to a Lepsius plate.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-captured",
+            "format": null,
+            "sha256": null,
+            "reason": "Mutable museum HTML is represented by bounded facts, fingerprint, and exact permalink."
+          }
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-morgan-amherst-three-holding",
+      "sequence": 3,
+      "channel_type": "university-catalog",
+      "role": "originating-record",
+      "source_name": "The Morgan Library & Museum",
+      "endpoint_url": "https://www.themorgan.org/manuscript/351017",
+      "interface_type": "web",
+      "interface_version": "public search-index record checked 2026-08-30; direct automated request returned 403",
+      "exact_query": "Amherst Egyptian Papyrus 3 / Amh. Egy. Pap. 3; inspect fragment count, material, dimensions, provenance, script, language, and download-rights evidence.",
+      "queried_at": "2026-08-30T15:56:41.819506Z",
+      "elapsed_seconds": 0.228464,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.morgan-amh-egy-pap-3",
+          "rank": 1,
+          "title_as_displayed": "Amherst Egyptian Papyrus 3 — Amh. Egy. Pap. 3",
+          "result_url": "https://www.themorgan.org/manuscript/351017",
+          "originating_record_url": "https://www.themorgan.org/manuscript/351017",
+          "identifiers": [
+            {
+              "scheme": "Morgan accession",
+              "value": "Amh. Egy. Pap. 3"
+            }
+          ],
+          "available_formats": [
+            "holding metadata",
+            "one displayed downloadable image reported as 551.59 KB"
+          ],
+          "declared_rights": {
+            "statement": null,
+            "scope": "digital-object",
+            "evidence_url": null,
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-view",
+          "machine_interface": "html",
+          "decision": "select",
+          "rationale": "The originating holding record fixes four papyrus fragments, custody and Amherst-to-Morgan provenance. No exact open license for its downloadable image was observed, and the record itself describes a probably destroyed literary work without establishing the later scholarly join; no bytes were acquired.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-captured",
+            "format": null,
+            "sha256": null,
+            "reason": "Direct automated access returned 403; the public indexed record was retained as a lead without bypass or image acquisition."
+          }
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-degruyter-escolano-publisher",
+      "sequence": 4,
+      "channel_type": "publisher-catalog",
+      "role": "originating-record",
+      "source_name": "De Gruyter Brill",
+      "endpoint_url": "https://www.degruyterbrill.com/document/doi/10.1515/zaes-2017-0002/html",
+      "interface_type": "web",
+      "interface_version": "publisher DOI route checked 2026-08-30",
+      "exact_query": "DOI 10.1515/zaes-2017-0002; inspect title, author, publication container, access state, and exact license.",
+      "queried_at": "2026-08-30T15:56:42.048064Z",
+      "elapsed_seconds": 0.264447,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.degruyter-new-fragments-p3024",
+          "rank": 1,
+          "title_as_displayed": "New Fragments of Papyrus Berlin 3024",
+          "result_url": "https://www.degruyterbrill.com/document/doi/10.1515/zaes-2017-0002/html",
+          "originating_record_url": "https://doi.org/10.1515/zaes-2017-0002",
+          "identifiers": [
+            {
+              "scheme": "DOI",
+              "value": "10.1515/zaes-2017-0002"
+            }
+          ],
+          "available_formats": [
+            "publisher HTML",
+            "publisher XML and PDF routes reported by Crossref"
+          ],
+          "declared_rights": {
+            "statement": null,
+            "scope": "content",
+            "evidence_url": null,
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "subscription",
+          "machine_interface": "html",
+          "decision": "select",
+          "rationale": "The publisher route identifies the modern article but exposed no standard open license; its reconstruction remains scholarly evidence, not ancient Work identity or acquisition permission.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-captured",
+            "format": null,
+            "sha256": null,
+            "reason": "Publisher response was asynchronous and supplied no exact open-license evidence to preserve."
+          }
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-tla-dialogue-object-and-text",
+      "sequence": 5,
+      "channel_type": "specialized-scholarly-project",
+      "role": "scholarly-index",
+      "source_name": "Thesaurus Linguae Aegyptiae",
+      "endpoint_url": "https://tla.digital/object/N3YSOH4QK5EINPHSB5F2WSDRXI",
+      "interface_type": "web",
+      "interface_version": "Corpus edition 20; Web app 2.5.1; checked 2026-08-30",
+      "exact_query": "Open object N3YSOH4QK5EINPHSB5F2WSDRXI and subordinate text XZIG534KFVGODK6N7G5RP7SSDE; inspect hierarchy, locations, dating, bibliography, authoring protocol, and licenses.",
+      "queried_at": "2026-08-30T15:56:42.312603Z",
+      "elapsed_seconds": 20.020955,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.tla-pamherst3-pberlin3024",
+          "rank": 1,
+          "title_as_displayed": "pAmherst 3 + pBerlin P 3024",
+          "result_url": "https://tla.digital/object/N3YSOH4QK5EINPHSB5F2WSDRXI",
+          "originating_record_url": "https://tla.digital/object/N3YSOH4QK5EINPHSB5F2WSDRXI",
+          "identifiers": [
+            {
+              "scheme": "TLA object ID",
+              "value": "N3YSOH4QK5EINPHSB5F2WSDRXI"
+            },
+            {
+              "scheme": "TLA text ID",
+              "value": "XZIG534KFVGODK6N7G5RP7SSDE"
+            },
+            {
+              "scheme": "TLA collective caption ID",
+              "value": "S6UTHJ6U3BHVNKYPVKWR2J4BNM"
+            }
+          ],
+          "available_formats": [
+            "versioned scholarly HTML",
+            "bibliography",
+            "sentence hierarchy"
+          ],
+          "declared_rights": {
+            "statement": "Individual data sets may be quoted for academic research, but entire subcorpora or larger sets above ten pages may not be copied; broader free-license raw-data publication is still being prepared.",
+            "scope": "content",
+            "evidence_url": "https://tla.digital/info/licenses",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-view",
+          "machine_interface": "html",
+          "decision": "select",
+          "rationale": "TLA provides the strongest current object/text separation, custody and dating evidence, names Lepsius plates 111-112 for pBerlin P 3024, and records modern bibliography. Its aggregate pAmherst-plus-pBerlin object is not silently adopted as physical identity, and no TLA text bytes were stored.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-permitted",
+            "format": null,
+            "sha256": null,
+            "reason": "Current scientific-data terms do not support reusable bulk corpus acquisition; bounded facts and links only."
+          }
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-utokyo-lepsius-iiif",
+      "sequence": 6,
+      "channel_type": "collection-aggregator",
+      "role": "digital-object-record",
+      "source_name": "University of Tokyo Digital Archive / U-PARL IIIF",
+      "endpoint_url": "https://da.dl.itc.u-tokyo.ac.jp/portal/repo/iiif/11e8e95e-93a7-8803-2093-7ad447b26ce7/manifest",
+      "interface_type": "iiif",
+      "interface_version": "IIIF Presentation API 2 and Image API 2 level 2 checked 2026-08-30",
+      "exact_query": "Open UTokyo object 11e8e95e-93a7-8803-2093-7ad447b26ce7; inspect all 63 canvases; map filenames 0045 and 0046 to source-visible Lepsius plates 111 and 112; verify manifest license, JSON-LD dcterms:license, Image info dimensions, and full/max JPEG endpoints.",
+      "queried_at": "2026-08-30T15:57:02.333679Z",
+      "elapsed_seconds": 0.944629,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.utokyo-lepsius-band-12",
+          "rank": 1,
+          "title_as_displayed": "Denkmaeler aus Aegypten und Aethiopien. Band 12",
+          "result_url": "https://da.dl.itc.u-tokyo.ac.jp/portal/en/assets/11e8e95e-93a7-8803-2093-7ad447b26ce7",
+          "originating_record_url": "https://iiif.dl.itc.u-tokyo.ac.jp/repo/s/asia/document/11e8e95e-93a7-8803-2093-7ad447b26ce7",
+          "identifiers": [
+            {
+              "scheme": "UTokyo digital object",
+              "value": "11e8e95e-93a7-8803-2093-7ad447b26ce7"
+            }
+          ],
+          "available_formats": [
+            "JSON-LD metadata",
+            "63-canvas IIIF manifest",
+            "level-2 IIIF images"
+          ],
+          "declared_rights": {
+            "statement": "The object JSON-LD declares CC BY 4.0; the institutional reuse page permits download, reproduction, modification, non-commercial and commercial reuse with attribution and change notice.",
+            "scope": "digital-object",
+            "evidence_url": "https://www.lib.u-tokyo.ac.jp/ja/library/contents/archives-top/reuse",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-download",
+          "machine_interface": "iiif",
+          "decision": "select",
+          "rationale": "This is the originating digital object and exact standard-open rights route for the two selected historical facsimile plates.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-captured",
+            "format": null,
+            "sha256": null,
+            "reason": "Mutable metadata is fingerprinted; exact selected JPEG Files are retained instead."
+          }
+        },
+        {
+          "result_id": "tos-discovery-result.utokyo-lepsius-plate-111-jpeg",
+          "rank": 2,
+          "title_as_displayed": "Abtheilung VI, Blatt 111 — Hieratischer Papyrus No. III, lines 1-107",
+          "result_url": "https://iiif.dl.itc.u-tokyo.ac.jp/iiif/asia2022/Lepsius/12_222_6_12/BG_222_6_12-0045.tif/full/max/0/default.jpg",
+          "originating_record_url": "https://da.dl.itc.u-tokyo.ac.jp/portal/repo/iiif/11e8e95e-93a7-8803-2093-7ad447b26ce7/manifest",
+          "identifiers": [
+            {
+              "scheme": "IIIF source filename",
+              "value": "BG_222_6_12-0045.tif"
+            },
+            {
+              "scheme": "Lepsius plate",
+              "value": "Abth. VI, Bl. 111"
+            }
+          ],
+          "available_formats": [
+            "JPEG 6132x8176",
+            "IIIF TIFF, PNG, GIF derivatives"
+          ],
+          "declared_rights": {
+            "statement": "CC BY 4.0 with University of Tokyo holding-library attribution and change notice.",
+            "scope": "digital-object",
+            "evidence_url": "https://da.dl.itc.u-tokyo.ac.jp/portal/assets/11e8e95e-93a7-8803-2093-7ad447b26ce7?_format=json",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-download",
+          "machine_interface": "iiif",
+          "decision": "select",
+          "rationale": "TLA independently cites Lepsius plates 111-112 for pBerlin P 3024. This exact full-resolution JPEG is retained as historical line-art evidence, not a current photograph or accepted transcription.",
+          "acquisition": {
+            "downloaded": true,
+            "acquired_at": "2026-08-30T09:40:00-06:00",
+            "byte_size": 4036600,
+            "sha256": "b68b6ffa4a40015834f98748ed408288546cee47373d802276df2179d5dca2bc",
+            "event_ref": "tos.event.acquisition.dialogue-man-ba-lepsius-plates.2026-08-30"
+          },
+          "snapshot": {
+            "state": "not-needed",
+            "format": null,
+            "sha256": null,
+            "reason": "The exact acquired JPEG is the immutable retained source entity."
+          }
+        },
+        {
+          "result_id": "tos-discovery-result.utokyo-lepsius-plate-112-jpeg",
+          "rank": 3,
+          "title_as_displayed": "Abtheilung VI, Blatt 112 — Hieratischer Papyrus No. III, lines 108-180",
+          "result_url": "https://iiif.dl.itc.u-tokyo.ac.jp/iiif/asia2022/Lepsius/12_222_6_12/BG_222_6_12-0046.tif/full/max/0/default.jpg",
+          "originating_record_url": "https://da.dl.itc.u-tokyo.ac.jp/portal/repo/iiif/11e8e95e-93a7-8803-2093-7ad447b26ce7/manifest",
+          "identifiers": [
+            {
+              "scheme": "IIIF source filename",
+              "value": "BG_222_6_12-0046.tif"
+            },
+            {
+              "scheme": "Lepsius plate",
+              "value": "Abth. VI, Bl. 112"
+            }
+          ],
+          "available_formats": [
+            "JPEG 6132x8176",
+            "IIIF TIFF, PNG, GIF derivatives"
+          ],
+          "declared_rights": {
+            "statement": "CC BY 4.0 with University of Tokyo holding-library attribution and change notice.",
+            "scope": "digital-object",
+            "evidence_url": "https://da.dl.itc.u-tokyo.ac.jp/portal/assets/11e8e95e-93a7-8803-2093-7ad447b26ce7?_format=json",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-download",
+          "machine_interface": "iiif",
+          "decision": "select",
+          "rationale": "This exact companion JPEG closes the two-plate historical facsimile sequence without asserting modern mounting boundaries or text correctness.",
+          "acquisition": {
+            "downloaded": true,
+            "acquired_at": "2026-08-30T09:41:00-06:00",
+            "byte_size": 3720252,
+            "sha256": "b7d8ad123d378d1611d20fb3ea7661c5f044dea5807bc10cdf907986b50e0f9b",
+            "event_ref": "tos.event.acquisition.dialogue-man-ba-lepsius-plates.2026-08-30"
+          },
+          "snapshot": {
+            "state": "not-needed",
+            "format": null,
+            "sha256": null,
+            "reason": "The exact acquired JPEG is the immutable retained source entity."
+          }
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-liverpool-escolano-repository",
+      "sequence": 7,
+      "channel_type": "university-catalog",
+      "role": "digital-object-record",
+      "source_name": "University of Liverpool Repository",
+      "endpoint_url": "https://livrepository.liverpool.ac.uk/3029891/",
+      "interface_type": "web",
+      "interface_version": "EPrints record, JSON export, PDF, and repository policy checked 2026-08-30",
+      "exact_query": "EPrint 3029891; inspect published-version PDF, DOI, date, pagination, file size, provider MD5, embargo metadata, full-text status, item-specific rights, and repository reuse policy.",
+      "queried_at": "2026-08-30T15:57:03.278422Z",
+      "elapsed_seconds": 0.906117,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.liverpool-escolano-published-pdf",
+          "rank": 1,
+          "title_as_displayed": "New Fragments of Papyrus Berlin 3024 — published version",
+          "result_url": "https://livrepository.liverpool.ac.uk/3029891/1/Escolano-Poveda%20-%20New%20Fragments%20of%20Papyrus%20Berlin%203024.pdf",
+          "originating_record_url": "https://livrepository.liverpool.ac.uk/3029891/",
+          "identifiers": [
+            {
+              "scheme": "Liverpool EPrint",
+              "value": "3029891"
+            },
+            {
+              "scheme": "DOI",
+              "value": "10.1515/zaes-2017-0002"
+            },
+            {
+              "scheme": "provider MD5",
+              "value": "0d0430a1eed32443175c761dc96ec28b"
+            }
+          ],
+          "available_formats": [
+            "published-version PDF, 5,060,237 bytes",
+            "EPrints JSON metadata"
+          ],
+          "declared_rights": {
+            "statement": "Repository full items generally permit reproduction and sharing for personal research, education, or not-for-profit purposes, unchanged and attributed; commercial sale requires formal permission, and item-specific terms override.",
+            "scope": "digital-object",
+            "evidence_url": "https://livrepository.liverpool.ac.uk/policies.html",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-download",
+          "machine_interface": "html",
+          "decision": "reject",
+          "rationale": "The article is a highly useful reconstruction source, but neither Crossref nor the inspected repository record supplies a named standard open license, and the general repository policy is purpose-limited. It is not admitted as the goal's reusable public payload; DOI, exact PDF URL, size, MD5, and policy remain preserved.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-permitted",
+            "format": null,
+            "sha256": null,
+            "reason": "Purpose-limited repository permission is not treated as a standard open license for unrestricted downstream ToS reuse."
+          }
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-europeana-exact-gap-search",
+      "sequence": 8,
+      "channel_type": "collection-aggregator",
+      "role": "lead-only",
+      "source_name": "Europeana",
+      "endpoint_url": "https://www.europeana.eu/en/search?query=%22Papyrus%20Berlin%203024%22",
+      "interface_type": "web",
+      "interface_version": "exact web queries checked 2026-08-30",
+      "exact_query": "\"Papyrus Berlin 3024\"; then \"Dialogue between a Man and His Ba\"; then \"Gespräch eines Lebensmüden\"; inspect exact object, IIIF, and rights-bearing results only.",
+      "queried_at": "2026-08-30T15:57:04.184653Z",
+      "elapsed_seconds": 0.56945,
+      "result_order_preserved": true,
+      "results": []
+    },
+    {
+      "channel_id": "channel-crossref-openalex-identifiers",
+      "sequence": 9,
+      "channel_type": "identifier-registry",
+      "role": "scholarly-index",
+      "source_name": "Crossref and OpenAlex",
+      "endpoint_url": "https://api.crossref.org/works/10.1515/zaes-2017-0002",
+      "interface_type": "api",
+      "interface_version": "Crossref REST and OpenAlex work APIs checked 2026-08-30",
+      "exact_query": "DOI 10.1515/zaes-2017-0002 in Crossref; exact DOI URL in OpenAlex; compare license, publisher links, OA status, repositories, and version.",
+      "queried_at": "2026-08-30T15:57:04.754188Z",
+      "elapsed_seconds": 0.389705,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.crossref-openalex-escolano-2017",
+          "rank": 1,
+          "title_as_displayed": "New Fragments of Papyrus Berlin 3024",
+          "result_url": "https://api.crossref.org/works/10.1515/zaes-2017-0002",
+          "originating_record_url": "https://doi.org/10.1515/zaes-2017-0002",
+          "identifiers": [
+            {
+              "scheme": "DOI",
+              "value": "10.1515/zaes-2017-0002"
+            },
+            {
+              "scheme": "OpenAlex",
+              "value": "W2767369153"
+            }
+          ],
+          "available_formats": [
+            "Crossref JSON",
+            "OpenAlex JSON",
+            "publisher XML/PDF links"
+          ],
+          "declared_rights": {
+            "statement": "Crossref license is null; OpenAlex classifies a repository route as green OA / other-oa rather than a named license.",
+            "scope": "metadata",
+            "evidence_url": "https://api.crossref.org/works/10.1515/zaes-2017-0002",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "metadata-only",
+          "machine_interface": "api",
+          "decision": "select",
+          "rationale": "The APIs independently fix author, title, DOI, 2017 date, and repository discovery while confirming that open access visibility is not a named open license.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-captured",
+            "format": null,
+            "sha256": null,
+            "reason": "Reproducible identifier APIs and fingerprints are sufficient for bounded metadata evidence."
+          }
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-bhl-internet-archive-erman-volume",
+      "sequence": 10,
+      "channel_type": "open-library",
+      "role": "digital-object-record",
+      "source_name": "Biodiversity Heritage Library and Internet Archive",
+      "endpoint_url": "https://archive.org/metadata/abhandlungenderk1896deut",
+      "interface_type": "api",
+      "interface_version": "Internet Archive metadata and BHL item 93391 reuse policy checked 2026-08-30",
+      "exact_query": "Internet Archive identifier abhandlungenderk1896deut; BHL item 93391; inspect full proceedings-volume identity, PDF files, provider checksums, BHL copyright status, and non-US term conflict for Erman 1854-1937.",
+      "queried_at": "2026-08-30T15:57:05.143987Z",
+      "elapsed_seconds": 0.495678,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.bhl-ia-erman-1896-proceedings-volume",
+          "rank": 1,
+          "title_as_displayed": "Abhandlungen der Königlichen Akademie der Wissenschaften in Berlin, 1896 — containing Erman's Gespräch",
+          "result_url": "https://www.biodiversitylibrary.org/item/93391",
+          "originating_record_url": "https://archive.org/metadata/abhandlungenderk1896deut",
+          "identifiers": [
+            {
+              "scheme": "BHL item",
+              "value": "93391"
+            },
+            {
+              "scheme": "Internet Archive",
+              "value": "abhandlungenderk1896deut"
+            },
+            {
+              "scheme": "PDF SHA-1",
+              "value": "a0cde013c1f533172b022de74ffb156105783293"
+            }
+          ],
+          "available_formats": [
+            "full proceedings Text PDF, 30,167,513 bytes",
+            "grayscale PDF",
+            "JP2",
+            "OCR"
+          ],
+          "declared_rights": {
+            "statement": "BHL labels the item public domain and does not claim copyright in digitized public-domain works; the label is US-focused and warns that laws differ by country.",
+            "scope": "digital-object",
+            "evidence_url": "https://about.biodiversitylibrary.org/help/copyright-and-reuse/",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-download",
+          "machine_interface": "api",
+          "decision": "reject",
+          "rationale": "The volume is a multi-work container and Erman died in 1937. BHL's positive US public-domain posture does not resolve the reviewed Mexican life-plus-100 route through 2037, so the exact PDF is not acquired as a problem-free public ToS object. The provider URL, size, SHA-1, and conflict remain preserved.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-permitted",
+            "format": null,
+            "sha256": null,
+            "reason": "Jurisdictionally conflicting Work-layer term and multi-work topology block public acquisition in this iteration."
+          }
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-google-books-erman-aggregator",
+      "sequence": 11,
+      "channel_type": "meta-search",
+      "role": "lead-only",
+      "source_name": "Google Books",
+      "endpoint_url": "https://books.google.com/books?id=7CxIAQAAMAAJ",
+      "interface_type": "web",
+      "interface_version": "book record checked 2026-08-30",
+      "exact_query": "exact title Gespräch eines Lebensmüden mit seiner Seele; identifier 7CxIAQAAMAAJ; inspect digitization source and full-view/download lead without treating Google as originating bibliography.",
+      "queried_at": "2026-08-30T15:57:05.639798Z",
+      "elapsed_seconds": 0.484383,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.google-books-erman-7cxiaqaaamaaj",
+          "rank": 1,
+          "title_as_displayed": "Gespräch eines Lebensmüden mit seiner Seele",
+          "result_url": "https://books.google.com/books/about/Gespr%C3%A4ch_eines_lebensm%C3%BCden_mit_seiner.html?id=7CxIAQAAMAAJ",
+          "originating_record_url": "https://sru.k10plus.de/opac-de-627?version=1.1&operation=searchRetrieve&query=pica.tit%3D%22Gespr%C3%A4ch%20eines%20Lebensm%C3%BCden%20mit%20seiner%20Seele%22%20and%20pica.per%3D%22Erman%22&maximumRecords=10&recordSchema=picaxml",
+          "identifiers": [
+            {
+              "scheme": "Google Books",
+              "value": "7CxIAQAAMAAJ"
+            }
+          ],
+          "available_formats": [
+            "full-view book record",
+            "University of Chicago digitization lead"
+          ],
+          "declared_rights": {
+            "statement": null,
+            "scope": "digital-object",
+            "evidence_url": null,
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-view",
+          "machine_interface": "html",
+          "decision": "defer",
+          "rationale": "The aggregator confirms a scan lead but adds no stronger exact license or jurisdictional clearance than the K10plus and BHL routes; no bytes were acquired.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-captured",
+            "format": null,
+            "sha256": null,
+            "reason": "Aggregator lead only; originating and rights-bearing records are retained instead."
+          }
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-general-web-final-gap-check",
+      "sequence": 12,
+      "channel_type": "general-web-search",
+      "role": "lead-only",
+      "source_name": "Google Search",
+      "endpoint_url": "https://www.google.com/search?q=%22Papyrus+Berlin+3024%22+Mallorca+II+open+license+IIIF",
+      "interface_type": "web",
+      "interface_version": "ordinary web search used last on 2026-08-30",
+      "exact_query": "\"Papyrus Berlin 3024\" \"Mallorca II\" open license IIIF; inspect only exact holding, publisher, repository, or rights-bearing leads not already covered.",
+      "queried_at": "2026-08-30T15:57:06.124487Z",
+      "elapsed_seconds": 0.246866,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.general-web-duplicate-dialogue-routes",
+          "rank": 1,
+          "title_as_displayed": "Duplicate leads to SMB, TLA, UTokyo, Liverpool, De Gruyter, Morgan, BHL, and Google Books",
+          "result_url": "https://www.google.com/search?q=%22Papyrus+Berlin+3024%22+Mallorca+II+open+license+IIIF",
+          "originating_record_url": "https://tla.digital/object/N3YSOH4QK5EINPHSB5F2WSDRXI",
+          "identifiers": [],
+          "available_formats": [
+            "lead-only web results"
+          ],
+          "declared_rights": {
+            "statement": "Search snippets are not identity or rights evidence.",
+            "scope": "unknown",
+            "evidence_url": null,
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-view",
+          "machine_interface": "html",
+          "decision": "defer",
+          "rationale": "The final gap check repeated already inspected originating and rights-bearing routes. It found no additional exact open-license Mallorca fragment image, article, transcription, or critical edition.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-needed",
+            "format": null,
+            "sha256": null,
+            "reason": "Search-engine output is a lead only; stronger source URLs and exact payloads are retained."
+          }
+        }
+      ]
+    }
+  ],
+  "channel_comparison": [
+    {
+      "channel_id": "channel-k10plus-erman-originating-bibliography",
+      "completeness": "strong",
+      "metadata_precision": "strong",
+      "rights_clarity": "limited",
+      "machine_interface_quality": "strong",
+      "human_minutes": 0,
+      "machine_seconds": 1.047534,
+      "notes": "Best exact historical-edition bibliography and author life-date evidence; no File-rights conclusion. Machine time is the automatic monotonic HTTP measurement; human_minutes=0 means no real-human review was performed."
+    },
+    {
+      "channel_id": "channel-smb-p3024c-holding",
+      "completeness": "adequate",
+      "metadata_precision": "strong",
+      "rights_clarity": "poor",
+      "machine_interface_quality": "adequate",
+      "human_minutes": 0,
+      "machine_seconds": 0.951716,
+      "notes": "Best exact current P 3024/C mounted-component record; no complete-manuscript or image-rights closure. Machine time is the automatic monotonic HTTP measurement; human_minutes=0 means no real-human review was performed."
+    },
+    {
+      "channel_id": "channel-morgan-amherst-three-holding",
+      "completeness": "adequate",
+      "metadata_precision": "strong",
+      "rights_clarity": "unknown",
+      "machine_interface_quality": "limited",
+      "human_minutes": 0,
+      "machine_seconds": 0.228464,
+      "notes": "Exact P. Amherst III holding evidence; direct transport blocked and no exact open image license observed. Machine time is the automatic monotonic HTTP measurement; human_minutes=0 means no real-human review was performed."
+    },
+    {
+      "channel_id": "channel-degruyter-escolano-publisher",
+      "completeness": "adequate",
+      "metadata_precision": "strong",
+      "rights_clarity": "poor",
+      "machine_interface_quality": "limited",
+      "human_minutes": 0,
+      "machine_seconds": 0.264447,
+      "notes": "Originating publisher route for the 2017 reconstruction article; no named open license. Machine time is the automatic monotonic HTTP measurement; human_minutes=0 means no real-human review was performed."
+    },
+    {
+      "channel_id": "channel-tla-dialogue-object-and-text",
+      "completeness": "strong",
+      "metadata_precision": "strong",
+      "rights_clarity": "strong",
+      "machine_interface_quality": "adequate",
+      "human_minutes": 0,
+      "machine_seconds": 20.020955,
+      "notes": "Strongest scholarly object/text/bibliography separation; content acquisition remains license-limited. Machine time is the automatic monotonic HTTP measurement; human_minutes=0 means no real-human review was performed."
+    },
+    {
+      "channel_id": "channel-utokyo-lepsius-iiif",
+      "completeness": "strong",
+      "metadata_precision": "strong",
+      "rights_clarity": "strong",
+      "machine_interface_quality": "strong",
+      "human_minutes": 0,
+      "machine_seconds": 0.944629,
+      "notes": "Best exact CC BY 4.0 digital-object route; two full-resolution facsimile JPEGs acquired with fixity. Machine time is the automatic monotonic HTTP measurement; human_minutes=0 means no real-human review was performed."
+    },
+    {
+      "channel_id": "channel-liverpool-escolano-repository",
+      "completeness": "strong",
+      "metadata_precision": "strong",
+      "rights_clarity": "adequate",
+      "machine_interface_quality": "adequate",
+      "human_minutes": 0,
+      "machine_seconds": 0.906117,
+      "notes": "Exact published-version repository PDF and policy, but purpose-limited permission rather than a named standard open license. Machine time is the automatic monotonic HTTP measurement; human_minutes=0 means no real-human review was performed."
+    },
+    {
+      "channel_id": "channel-europeana-exact-gap-search",
+      "completeness": "poor",
+      "metadata_precision": "poor",
+      "rights_clarity": "unknown",
+      "machine_interface_quality": "limited",
+      "human_minutes": 0,
+      "machine_seconds": 0.56945,
+      "notes": "Three exact queries produced no retained exact result. Machine time is the automatic monotonic HTTP measurement; human_minutes=0 means no real-human review was performed."
+    },
+    {
+      "channel_id": "channel-crossref-openalex-identifiers",
+      "completeness": "adequate",
+      "metadata_precision": "strong",
+      "rights_clarity": "strong",
+      "machine_interface_quality": "strong",
+      "human_minutes": 0,
+      "machine_seconds": 0.389705,
+      "notes": "Exact DOI and OA discovery; null or other-oa licensing confirms that visibility is not a named open license. Machine time is the automatic monotonic HTTP measurement; human_minutes=0 means no real-human review was performed."
+    },
+    {
+      "channel_id": "channel-bhl-internet-archive-erman-volume",
+      "completeness": "strong",
+      "metadata_precision": "strong",
+      "rights_clarity": "adequate",
+      "machine_interface_quality": "strong",
+      "human_minutes": 0,
+      "machine_seconds": 0.495678,
+      "notes": "Exact PDF fixity and positive US provider posture, but reviewed MX term conflict and multi-work topology block public acquisition. Machine time is the automatic monotonic HTTP measurement; human_minutes=0 means no real-human review was performed."
+    },
+    {
+      "channel_id": "channel-google-books-erman-aggregator",
+      "completeness": "limited",
+      "metadata_precision": "adequate",
+      "rights_clarity": "poor",
+      "machine_interface_quality": "adequate",
+      "human_minutes": 0,
+      "machine_seconds": 0.484383,
+      "notes": "Useful duplicate scan lead only; originating bibliography and rights routes are stronger. Machine time is the automatic monotonic HTTP measurement; human_minutes=0 means no real-human review was performed."
+    },
+    {
+      "channel_id": "channel-general-web-final-gap-check",
+      "completeness": "limited",
+      "metadata_precision": "limited",
+      "rights_clarity": "poor",
+      "machine_interface_quality": "limited",
+      "human_minutes": 0,
+      "machine_seconds": 0.246866,
+      "notes": "Final lead-only check repeated stronger sources and found no additional exact open object. Machine time is the automatic monotonic HTTP measurement; human_minutes=0 means no real-human review was performed."
+    }
+  ],
+  "selected_result_ids": [
+    "tos-discovery-result.k10plus-erman-1896-ppn-1187984728",
+    "tos-discovery-result.smb-p3024c-obj-1388678",
+    "tos-discovery-result.morgan-amh-egy-pap-3",
+    "tos-discovery-result.degruyter-new-fragments-p3024",
+    "tos-discovery-result.tla-pamherst3-pberlin3024",
+    "tos-discovery-result.utokyo-lepsius-band-12",
+    "tos-discovery-result.utokyo-lepsius-plate-111-jpeg",
+    "tos-discovery-result.utokyo-lepsius-plate-112-jpeg",
+    "tos-discovery-result.crossref-openalex-escolano-2017"
+  ],
+  "rejected_result_ids": [
+    "tos-discovery-result.liverpool-escolano-published-pdf",
+    "tos-discovery-result.bhl-ia-erman-1896-proceedings-volume"
+  ],
+  "rights_inference_from_availability_prohibited": true,
+  "general_web_search_is_last_resort": true,
+  "technical_access_bypass_used": false,
+  "maker": {
+    "maker_type": "mixed",
+    "agent_ref": "model:codex + software:python"
+  },
+  "started_at": "2026-08-30T15:56:39.820005Z",
+  "ended_at": "2026-08-30T15:57:06.371372Z",
+  "status": "reconciled",
+  "provenance_event_refs": [
+    "tos.event.acquisition.dialogue-man-ba-lepsius-plates.2026-08-30",
+    "tos.event.discovery.dialogue-between-a-man-and-his-ba-open-work-route.2026-08-30"
+  ],
+  "record_version": 1,
+  "supersedes_discovery_ref": null
+}

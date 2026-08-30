@@ -1,0 +1,162 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/open-work-channel-timing-receipt.schema.json",
+  "claim_limit": "monotonic transport timing through the first 16384 response bytes only; not research, interpretation, rights-review, or human elapsed time",
+  "discovery_id": "tos.discovery.coffin-texts-open-work-route.2026-08-30.v1",
+  "discovery_ref": "ToS/source-witnesses/discovery/runs/coffin-texts-open-work-route.2026-08-30.v1.json",
+  "measured_at": "2026-08-30T10:28:41.440116Z",
+  "measurements": [
+    {
+      "channel_id": "channel-loc-lccn",
+      "measurement": {
+        "clock": "python.time.perf_counter_ns",
+        "elapsed_seconds": 0.888686,
+        "ended_at": "2026-08-30T10:28:35.856865Z",
+        "http_status": 200,
+        "method": "monotonic-http-request-v1",
+        "outcome": "success",
+        "probe_url": "https://lccn.loc.gov/36008779",
+        "response_bytes_observed": 724,
+        "started_at": "2026-08-30T10:28:34.968149Z",
+        "timing_scope": "request-through-first-16384-response-bytes"
+      }
+    },
+    {
+      "channel_id": "channel-met-holdings-open-access",
+      "measurement": {
+        "clock": "python.time.perf_counter_ns",
+        "elapsed_seconds": 0.289342,
+        "ended_at": "2026-08-30T10:28:36.146318Z",
+        "http_status": 429,
+        "method": "monotonic-http-request-v1",
+        "outcome": "http-error",
+        "probe_url": "https://www.metmuseum.org/art/collection/search/555675",
+        "response_bytes_observed": 16384,
+        "started_at": "2026-08-30T10:28:35.856966Z",
+        "timing_scope": "request-through-first-16384-response-bytes"
+      }
+    },
+    {
+      "channel_id": "channel-isac-oip",
+      "measurement": {
+        "clock": "python.time.perf_counter_ns",
+        "elapsed_seconds": 0.344999,
+        "ended_at": "2026-08-30T10:28:36.491425Z",
+        "http_status": 200,
+        "method": "monotonic-http-request-v1",
+        "outcome": "success",
+        "probe_url": "https://isac.uchicago.edu/research/publications/oip/oip-87-egyptian-coffin-texts-7-texts-spells-787%E2%80%931185",
+        "response_bytes_observed": 16384,
+        "started_at": "2026-08-30T10:28:36.146416Z",
+        "timing_scope": "request-through-first-16384-response-bytes"
+      }
+    },
+    {
+      "channel_id": "channel-tla-status",
+      "measurement": {
+        "clock": "python.time.perf_counter_ns",
+        "elapsed_seconds": 1.402276,
+        "ended_at": "2026-08-30T10:28:37.893837Z",
+        "http_status": 200,
+        "method": "monotonic-http-request-v1",
+        "outcome": "success",
+        "probe_url": "https://thesaurus-linguae-aegyptiae.de/info/text-corpus?lang=en",
+        "response_bytes_observed": 16384,
+        "started_at": "2026-08-30T10:28:36.491551Z",
+        "timing_scope": "request-through-first-16384-response-bytes"
+      }
+    },
+    {
+      "channel_id": "channel-ucl-digital-egypt",
+      "measurement": {
+        "clock": "python.time.perf_counter_ns",
+        "elapsed_seconds": 1.858521,
+        "ended_at": "2026-08-30T10:28:39.752474Z",
+        "http_status": 200,
+        "method": "monotonic-http-request-v1",
+        "outcome": "success",
+        "probe_url": "https://www.ucl.ac.uk/museums-static/digitalegypt/literature/religious/coffin.html",
+        "response_bytes_observed": 3265,
+        "started_at": "2026-08-30T10:28:37.893944Z",
+        "timing_scope": "request-through-first-16384-response-bytes"
+      }
+    },
+    {
+      "channel_id": "channel-europeana-search",
+      "measurement": {
+        "clock": "python.time.perf_counter_ns",
+        "elapsed_seconds": 0.247883,
+        "ended_at": "2026-08-30T10:28:40.000481Z",
+        "http_status": 403,
+        "method": "monotonic-http-request-v1",
+        "outcome": "http-error",
+        "probe_url": "https://www.europeana.eu/en/search?query=%22Egyptian%20Coffin%20Texts%22",
+        "response_bytes_observed": 5785,
+        "started_at": "2026-08-30T10:28:39.752588Z",
+        "timing_scope": "request-through-first-16384-response-bytes"
+      }
+    },
+    {
+      "channel_id": "channel-crossref-title",
+      "measurement": {
+        "clock": "python.time.perf_counter_ns",
+        "elapsed_seconds": 0.364177,
+        "ended_at": "2026-08-30T10:28:40.364777Z",
+        "http_status": 200,
+        "method": "monotonic-http-request-v1",
+        "outcome": "success",
+        "probe_url": "https://api.crossref.org/works?query.title=The%20Egyptian%20Coffin%20Texts&rows=5",
+        "response_bytes_observed": 10136,
+        "started_at": "2026-08-30T10:28:40.000589Z",
+        "timing_scope": "request-through-first-16384-response-bytes"
+      }
+    },
+    {
+      "channel_id": "channel-internet-archive",
+      "measurement": {
+        "clock": "python.time.perf_counter_ns",
+        "elapsed_seconds": 0.385992,
+        "ended_at": "2026-08-30T10:28:40.750887Z",
+        "http_status": 200,
+        "method": "monotonic-http-request-v1",
+        "outcome": "success",
+        "probe_url": "https://archive.org/advancedsearch.php?q=title%3A%28%22The%20Egyptian%20Coffin%20Texts%22%29&fl%5B%5D=identifier&fl%5B%5D=title&fl%5B%5D=creator&fl%5B%5D=date&fl%5B%5D=rights&rows=20&page=1&output=json",
+        "response_bytes_observed": 3743,
+        "started_at": "2026-08-30T10:28:40.364885Z",
+        "timing_scope": "request-through-first-16384-response-bytes"
+      }
+    },
+    {
+      "channel_id": "channel-open-library",
+      "measurement": {
+        "clock": "python.time.perf_counter_ns",
+        "elapsed_seconds": 0.485952,
+        "ended_at": "2026-08-30T10:28:41.236945Z",
+        "http_status": 200,
+        "method": "monotonic-http-request-v1",
+        "outcome": "success",
+        "probe_url": "https://openlibrary.org/search.json?title=The%20Egyptian%20Coffin%20Texts&author=Adriaan%20de%20Buck&limit=10",
+        "response_bytes_observed": 947,
+        "started_at": "2026-08-30T10:28:40.750984Z",
+        "timing_scope": "request-through-first-16384-response-bytes"
+      }
+    },
+    {
+      "channel_id": "channel-google-books",
+      "measurement": {
+        "clock": "python.time.perf_counter_ns",
+        "elapsed_seconds": 0.203016,
+        "ended_at": "2026-08-30T10:28:41.440071Z",
+        "http_status": 429,
+        "method": "monotonic-http-request-v1",
+        "outcome": "http-error",
+        "probe_url": "https://www.googleapis.com/books/v1/volumes?q=intitle%3A%22The%20Egyptian%20Coffin%20Texts%22%20inauthor%3A%22Adriaan%20de%20Buck%22&maxResults=10",
+        "response_bytes_observed": 1306,
+        "started_at": "2026-08-30T10:28:41.237047Z",
+        "timing_scope": "request-through-first-16384-response-bytes"
+      }
+    }
+  ],
+  "record_version": 1,
+  "schema_version": "tos_open_work_channel_timing_receipt_v1",
+  "timing_id": "open-work-channel-timing.coffin-texts-open-work-route.2026-08-30.v1"
+}

@@ -1,0 +1,94 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/scholarly-composite-file-representation.schema.json",
+  "schema_version": "tos_scholarly_composite_file_representation_v1",
+  "representation_id": "tos.composite-representation.sumerian.old-babylonian-literary-catalogue-ota-2518-c0202",
+  "file_id": "tos.file.sha256.2979f2e86cc8a869c252fd84c81a28c0d8786780f51f02e36063835d3177410d",
+  "composite_id": "tos.composite.sumerian.old-babylonian-literary-catalogue-witnesses",
+  "composite_ref": "ToS/source-witnesses/scholarly-composites/synoptic/sumerian/old-babylonian-literary-catalogue-witnesses/composite-witness.json",
+  "representation_role": "provider_export",
+  "part_label": "ETCSL 0.2.02 OB catalogue in the Louvre (L) composite transliteration XML",
+  "bibliographic_part": {
+    "title": "OB catalogue in the Louvre (L) -- a composite transliteration",
+    "responsibility": "Jeremy Black, project director and editor; Gábor Zólyomi and Graham Cunningham, editors; Eleanor Robson and Jarle Ebeling, technical developers",
+    "volume": "ETCSL composition 0.2.02, composite member c.0.2.02",
+    "publication": "Oxford: Electronic Text Corpus of Sumerian Literature, first web publication 2000; revised corpus deposit issued October 2006",
+    "identifiers": [
+      {"scheme": "OTA", "value": "ota:2518", "source_ref": "https://ota.bodleian.ox.ac.uk/repository/xmlui/handle/20.500.12024/2518"},
+      {"scheme": "ETCSL", "value": "0.2.02", "source_ref": "https://etcsl.orinst.ox.ac.uk/catalogue/catalogue0.htm"},
+      {"scheme": "OTA container member", "value": "etcsl/transliterations/c.0.2.02.xml", "source_ref": "https://ota.bodleian.ox.ac.uk/repository/xmlui/handle/20.500.12024/2518?show=full"},
+      {"scheme": "Louvre", "value": "AO 5393 (TCL 15 28)", "source_ref": "https://cdli.earth/artifacts/345372"}
+    ]
+  },
+  "provider_records": [
+    {
+      "provider": "Oxford Text Archive",
+      "role": "originating-record",
+      "record_url": "https://ota.bodleian.ox.ac.uk/repository/xmlui/handle/20.500.12024/2518?show=full",
+      "api_url": null,
+      "checked_at": "2026-08-30T03:58:00-06:00",
+      "response_fingerprint": {"byte_size": 115927, "sha256": "c8da4e7eec49b883b5fe9617f71e23e846cf4911d4afdc6bf575e2944f111519", "captured": false}
+    },
+    {
+      "provider": "Cuneiform Digital Library Initiative",
+      "role": "holding-record",
+      "record_url": "https://cdli.earth/artifacts/345372",
+      "api_url": "https://cdli.earth/artifacts/345372/json",
+      "checked_at": "2026-08-23T02:18:25-06:00",
+      "response_fingerprint": {"byte_size": 82067, "sha256": "dd838a8be22cb7bbe8b9b5a9d679d01558e7a88a468a86280ff840b9057c54b7", "captured": false}
+    }
+  ],
+  "acquisition": {
+    "source_url": "https://ota.bodleian.ox.ac.uk/repository/xmlui/bitstream/handle/20.500.12024/2518/etcsl.zip?sequence=11&isAllowed=y",
+    "acquired_at": "2026-08-30T03:59:00-06:00",
+    "transport": "https",
+    "technical_access_bypass_used": false,
+    "operator_authorization_ref": "operator-directive:2026-08-30-open-work-download-priority",
+    "license_acceptance_recorded": true,
+    "host_preflight_decision": "deny-protected-project-root",
+    "host_preflight_scope": "machine-owned-storage-automation-only"
+  },
+  "payload": {
+    "relative_path": "payload/c.0.2.02.xml",
+    "original_basename": "c.0.2.02.xml",
+    "media_type": "application/xml",
+    "byte_size": 25199,
+    "sha256": "2979f2e86cc8a869c252fd84c81a28c0d8786780f51f02e36063835d3177410d",
+    "page_count": null,
+    "container": {
+      "source_url": "https://ota.bodleian.ox.ac.uk/repository/xmlui/bitstream/handle/20.500.12024/2518/etcsl.zip?sequence=11&isAllowed=y",
+      "media_type": "application/zip",
+      "byte_size": 4910212,
+      "sha256": "d1a35b396399216deaeb483d5954ae603662e73c4e77f23e39f2e7b58466962b",
+      "member_path": "etcsl/transliterations/c.0.2.02.xml",
+      "retained": false
+    },
+    "storage_posture": "local_only_payload",
+    "git_tracked": false,
+    "fixity_verified_at": "2026-08-30T04:03:00-06:00"
+  },
+  "rights_ref": "ToS/source-witnesses/scholarly-composites/synoptic/sumerian/old-babylonian-literary-catalogue-witnesses/representations/ota-2518-etcsl-0-2-02-transliteration/rights.json",
+  "discovery_ref": "ToS/source-witnesses/discovery/runs/old-babylonian-sumerian-literary-catalogues-open-work-route.2026-08-30.v1.json",
+  "provenance_event_ref": "tos.event.acquisition.old-babylonian-literary-catalogue-ota-etcsl-0-2-02.2026-08-30",
+  "layer_separation": {
+    "file_is_composite_identity": false,
+    "file_is_physical_artifact": false,
+    "file_is_ancient_original": false,
+    "provider_record_is_file_identity": false,
+    "embedded_text_admitted": false,
+    "ocr_admitted": false,
+    "translation_admitted": false
+  },
+  "authority": {
+    "evidence_status": "file_source_witness",
+    "review_status": "unreviewed",
+    "visibility": "local_only",
+    "source_text_admitted": false,
+    "semantic_authority": false,
+    "graph_authority": false,
+    "canon_authority": false,
+    "publication_authority": false
+  },
+  "maker": {"maker_type": "model", "agent_ref": "model:codex", "human_review_performed": false},
+  "created_at": "2026-08-30T04:04:00-06:00",
+  "record_version": 1
+}

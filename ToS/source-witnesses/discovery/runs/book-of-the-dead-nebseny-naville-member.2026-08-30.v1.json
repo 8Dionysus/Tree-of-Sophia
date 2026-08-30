@@ -1,0 +1,280 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/material-discovery-record.schema.json",
+  "schema_version": "tos_material_discovery_record_v1",
+  "discovery_id": "tos.discovery.book-of-the-dead-nebseny-naville-member.2026-08-30.v1",
+  "protocol_ref": "ToS/source-witnesses/discovery/DISCOVERY_PROTOCOL.md",
+  "target": {
+    "target_kind": "artifact",
+    "known_tos_refs": [
+      "tos.artifact.egyptian.saqqara.papyrus-of-nebseny-ea9900-frame-1"
+    ],
+    "description": "Resolve the exact physical artifact behind Naville's British Museum Papyrus 9900 lead while keeping mounted frame, whole manuscript, Naville siglum, modern critical reconstruction, text, image, and corpus identity separate.",
+    "required_properties": [
+      "exact museum and registration identity",
+      "exact specialist cross-identifier",
+      "evidence-bearing relation to Naville 1886",
+      "no source-text, image, semantic, or canon admission"
+    ],
+    "acceptable_substitutions": [
+      "official museum record plus Naville primary publication",
+      "metadata-only artifact packet with unresolved content rights"
+    ],
+    "languages": [
+      "egy",
+      "en",
+      "de"
+    ],
+    "formats": [
+      "museum object metadata",
+      "specialized witness metadata",
+      "historical critical-edition PDF"
+    ],
+    "purpose_ref": "ToS/research-packets/foundation-laboratory-2026-07/A05_BOOK_OF_THE_DEAD_OPEN_WORK_ACQUISITION_2026-08-30.md"
+  },
+  "channels": [
+    {
+      "channel_id": "channel-british-museum-nebseny-frame-1",
+      "sequence": 1,
+      "channel_type": "collection-aggregator",
+      "role": "digital-object-record",
+      "source_name": "British Museum Collection Online",
+      "endpoint_url": "https://www.britishmuseum.org/collection/object/Y_EA9900-1",
+      "interface_type": "web",
+      "interface_version": "rendered object page checked 2026-08-30",
+      "exact_query": "Object Y_EA9900-1 / EA9900,1 / .9900.1 / Naville Aa",
+      "queried_at": "2026-08-30T11:43:10.025234Z",
+      "elapsed_seconds": 0.600342,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.bm-papyrus-nebseny-ea9900-frame-1",
+          "rank": 1,
+          "title_as_displayed": "Papyrus of Nebseny frame 1 — Osiris before offerings",
+          "result_url": "https://www.britishmuseum.org/collection/object/Y_EA9900-1",
+          "originating_record_url": "https://www.britishmuseum.org/collection/object/Y_EA9900-1",
+          "identifiers": [
+            {
+              "scheme": "British Museum number",
+              "value": "EA9900,1"
+            },
+            {
+              "scheme": "registration number",
+              "value": ".9900.1"
+            },
+            {
+              "scheme": "British Museum codex id",
+              "value": "140231"
+            },
+            {
+              "scheme": "Trismegistos Text",
+              "value": "134286"
+            },
+            {
+              "scheme": "Naville witness siglum",
+              "value": "Aa"
+            }
+          ],
+          "available_formats": [
+            "object HTML",
+            "linked photograph not acquired"
+          ],
+          "declared_rights": {
+            "statement": null,
+            "scope": "metadata",
+            "evidence_url": null,
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "metadata-only",
+          "machine_interface": "html",
+          "decision": "select",
+          "rationale": "The rendered official object page fixes the physical frame and reports that the manuscript is Aa in Naville's Todtenbuch; image and inscription rights remain unresolved and no bytes were acquired.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-captured",
+            "format": null,
+            "sha256": null,
+            "reason": "Only bounded factual metadata and the exact official link are retained; the direct probe encounters managed transport rather than the rendered record."
+          }
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-bonn-tm134286",
+      "sequence": 2,
+      "channel_type": "specialized-scholarly-project",
+      "role": "scholarly-index",
+      "source_name": "Totenbuchprojekt Bonn",
+      "endpoint_url": "https://totenbuch.awk.nrw.de/objekt/tm134286",
+      "interface_type": "web",
+      "interface_version": "digital text-witness archive checked 2026-08-30",
+      "exact_query": "TM 134286 / P. London BM EA 9900",
+      "queried_at": "2026-08-30T11:43:10.625802Z",
+      "elapsed_seconds": 3.22116,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.bonn-papyrus-nebseny-tm134286",
+          "rank": 1,
+          "title_as_displayed": "TM 134286, Papyrus, London — P. London BM EA 9900",
+          "result_url": "https://totenbuch.awk.nrw.de/objekt/tm134286",
+          "originating_record_url": "https://totenbuch.awk.nrw.de/objekt/tm134286",
+          "identifiers": [
+            {
+              "scheme": "Trismegistos Text",
+              "value": "134286"
+            },
+            {
+              "scheme": "object name",
+              "value": "P. London BM EA 9900"
+            }
+          ],
+          "available_formats": [
+            "scholarly HTML"
+          ],
+          "declared_rights": {
+            "statement": null,
+            "scope": "unknown",
+            "evidence_url": null,
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-view",
+          "machine_interface": "html",
+          "decision": "select",
+          "rationale": "The specialist project independently resolves EA 9900 to TM 134286 and keeps the whole papyrus control distinct from mounted frame 1.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-captured",
+            "format": null,
+            "sha256": null,
+            "reason": "No project content was copied; only bounded metadata and the exact link are retained."
+          }
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-naville-einleitung-papyrus-9900",
+      "sequence": 3,
+      "channel_type": "open-library",
+      "role": "originating-record",
+      "source_name": "Wikimedia Commons mirror of Internet Archive scan",
+      "endpoint_url": "https://commons.wikimedia.org/wiki/File%3ADas_aegyptische_Todtenbuch_der_XVIII._bis_XX._Dynastie%3B_%28IA_dasaegyptischeto00naviuoft%29.pdf",
+      "interface_type": "web",
+      "interface_version": "Commons file page and acquired PDF checked 2026-08-30",
+      "exact_query": "Naville Einleitung / British Museum Papyrus 9900 / photographic and variant basis",
+      "queried_at": "2026-08-30T11:43:13.847140Z",
+      "elapsed_seconds": 0.27094,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.naville-einleitung-bm-papyrus-9900",
+          "rank": 1,
+          "title_as_displayed": "Das aegyptische Todtenbuch — Einleitung",
+          "result_url": "https://commons.wikimedia.org/wiki/File%3ADas_aegyptische_Todtenbuch_der_XVIII._bis_XX._Dynastie%3B_%28IA_dasaegyptischeto00naviuoft%29.pdf",
+          "originating_record_url": "https://archive.org/details/dasaegyptischeto00naviuoft",
+          "identifiers": [
+            {
+              "scheme": "Internet Archive",
+              "value": "dasaegyptischeto00naviuoft"
+            },
+            {
+              "scheme": "named manuscript",
+              "value": "British Museum Papyrus 9900"
+            }
+          ],
+          "available_formats": [
+            "PDF 220 pages",
+            "Commons file metadata"
+          ],
+          "declared_rights": {
+            "statement": "Commons marks the 1886 work public domain and free of known restrictions; ToS retains the exact File local-only because the current Mexican term assessment conflicts.",
+            "scope": "content",
+            "evidence_url": "https://commons.wikimedia.org/wiki/File%3ADas_aegyptische_Todtenbuch_der_XVIII._bis_XX._Dynastie%3B_%28IA_dasaegyptischeto00naviuoft%29.pdf",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-download",
+          "machine_interface": "html",
+          "decision": "select",
+          "rationale": "The already acquired introduction is the primary publication evidence that names British Museum Papyrus 9900 as a photographed and collated source; this member-link pass stores no additional bytes and changes no File rights posture.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-needed",
+            "format": null,
+            "sha256": null,
+            "reason": "The exact PDF already exists as a separate content-addressed local-only File under the parent candidate acquisition event."
+          }
+        }
+      ]
+    }
+  ],
+  "channel_comparison": [
+    {
+      "channel_id": "channel-british-museum-nebseny-frame-1",
+      "completeness": "strong",
+      "metadata_precision": "strong",
+      "rights_clarity": "limited",
+      "machine_interface_quality": "adequate",
+      "human_minutes": 0,
+      "machine_seconds": 0.600342,
+      "notes": "Exact physical-frame and Naville-siglum control without reusable image or inscription rights. Machine time is the automatic monotonic HTTP measurement; human_minutes=0 means no real-human review was performed."
+    },
+    {
+      "channel_id": "channel-bonn-tm134286",
+      "completeness": "strong",
+      "metadata_precision": "strong",
+      "rights_clarity": "limited",
+      "machine_interface_quality": "adequate",
+      "human_minutes": 0,
+      "machine_seconds": 3.22116,
+      "notes": "Independent whole-papyrus identity control without reusable content rights. Machine time is the automatic monotonic HTTP measurement; human_minutes=0 means no real-human review was performed."
+    },
+    {
+      "channel_id": "channel-naville-einleitung-papyrus-9900",
+      "completeness": "adequate",
+      "metadata_precision": "strong",
+      "rights_clarity": "limited",
+      "machine_interface_quality": "adequate",
+      "human_minutes": 0,
+      "machine_seconds": 0.27094,
+      "notes": "Primary historical evidence for the member relation; the exact File retains its stricter local-only rights posture. Machine time is the automatic monotonic HTTP measurement; human_minutes=0 means no real-human review was performed."
+    }
+  ],
+  "selected_result_ids": [
+    "tos-discovery-result.bm-papyrus-nebseny-ea9900-frame-1",
+    "tos-discovery-result.bonn-papyrus-nebseny-tm134286",
+    "tos-discovery-result.naville-einleitung-bm-papyrus-9900"
+  ],
+  "rejected_result_ids": [],
+  "rights_inference_from_availability_prohibited": true,
+  "general_web_search_is_last_resort": true,
+  "technical_access_bypass_used": false,
+  "maker": {
+    "maker_type": "mixed",
+    "agent_ref": "model:codex + software:python-3.14.6"
+  },
+  "started_at": "2026-08-30T11:43:10.025234Z",
+  "ended_at": "2026-08-30T11:43:14.118093Z",
+  "status": "reconciled",
+  "provenance_event_refs": [
+    "tos.event.discovery.book-of-the-dead-nebseny-naville-member.2026-08-30"
+  ],
+  "record_version": 1,
+  "supersedes_discovery_ref": null
+}

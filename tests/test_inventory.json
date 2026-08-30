@@ -318,6 +318,21 @@
       "disposition": "keep"
     },
     {
+      "path": "tests/test_open_work_candidate_queue.py",
+      "home": "tests",
+      "home_scope": "root",
+      "family": "validator_behavior",
+      "validation_lane": "source_witness_foundation",
+      "owner_surface": "ToS/source-witnesses/discovery/candidates/README.md",
+      "protects": "reviewed open-Work candidate selector closure, candidate digest binding, immutable terminal receipts, positive external per-channel timing, deterministic queue advancement, and generated parity without bibliographic, rights, semantic, or canon promotion",
+      "coverage_authority": "tests/AGENTS.md root unittest discovery",
+      "mode": "blocking",
+      "runtime_cost": "fast",
+      "focused_target": "tests/test_open_work_candidate_queue.py",
+      "failure_route": "Fix the reviewed candidate owner, timing and terminal receipt contracts, queue builder, or validator before changing test expectations.",
+      "disposition": "keep"
+    },
+    {
       "path": "tests/test_source_witness_foundation.py",
       "home": "tests",
       "home_scope": "root",

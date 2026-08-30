@@ -1,0 +1,42 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/open-work-channel-timing-receipt.schema.json",
+  "schema_version": "tos_open_work_channel_timing_receipt_v1",
+  "timing_id": "open-work-channel-timing.museo-egizio-cgt-54014-artifact-route.2026-08-29",
+  "discovery_ref": "ToS/source-witnesses/discovery/runs/museo-egizio-cgt-54014-artifact-route.2026-08-29.v1.json",
+  "discovery_id": "tos.discovery.museo-egizio-cgt-54014-artifact-route.2026-08-29",
+  "measured_at": "2026-08-30T06:00:16.575688Z",
+  "measurements": [
+    {
+      "channel_id": "channel-cgt-54014-museo-egizio-owner",
+      "measurement": {
+        "method": "monotonic-http-request-v1",
+        "clock": "python.time.perf_counter_ns",
+        "timing_scope": "request-through-first-16384-response-bytes",
+        "probe_url": "https://collezioni.museoegizio.it/en-GB/material/CGT_54014/",
+        "started_at": "2026-08-30T06:00:06.059842Z",
+        "ended_at": "2026-08-30T06:00:16.138509Z",
+        "elapsed_seconds": 10.078643,
+        "outcome": "success",
+        "http_status": 200,
+        "response_bytes_observed": 16384
+      }
+    },
+    {
+      "channel_id": "channel-cgt-54014-commons-file",
+      "measurement": {
+        "method": "monotonic-http-request-v1",
+        "clock": "python.time.perf_counter_ns",
+        "timing_scope": "request-through-first-16384-response-bytes",
+        "probe_url": "https://commons.wikimedia.org/wiki/File:Papyrus_fragments_with_a_section_of_the_%27Instruction_of_Ptahhotep%27_on_the_recto_-_Museo_Egizio,_Turin_CGT_54014_p01.jpg",
+        "started_at": "2026-08-30T06:00:16.138621Z",
+        "ended_at": "2026-08-30T06:00:16.575688Z",
+        "elapsed_seconds": 0.437059,
+        "outcome": "success",
+        "http_status": 200,
+        "response_bytes_observed": 16384
+      }
+    }
+  ],
+  "claim_limit": "monotonic transport timing through the first 16384 response bytes only; not research, interpretation, rights-review, or human elapsed time",
+  "record_version": 1
+}

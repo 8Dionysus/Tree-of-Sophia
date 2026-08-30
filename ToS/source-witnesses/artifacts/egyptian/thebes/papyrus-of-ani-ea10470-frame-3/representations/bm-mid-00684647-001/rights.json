@@ -1,0 +1,65 @@
+{
+  "schema_version": "tos_rights_record_v1",
+  "rights_id": "tos.rights.egyptian.bm-mid-00684647-001-cc-by-nc-sa-4.0",
+  "scope_refs": [
+    "tos.artifact.egyptian.thebes.papyrus-of-ani-ea10470-frame-3",
+    "tos.file.sha256.adcde14cf16796396daf0513c5b25785c2b9d9ea1261561086702ae45523a6b4"
+  ],
+  "assessment_status": "licensed",
+  "rights_statement_uri": "https://www.britishmuseum.org/collection/image/684647001",
+  "license_uri": "https://creativecommons.org/licenses/by-nc-sa/4.0/",
+  "jurisdictions_reviewed": ["GB", "MX", "US"],
+  "source_refs": [
+    "https://www.britishmuseum.org/collection/object/Y_EA10470-3",
+    "https://www.britishmuseum.org/collection/image/684647001",
+    "https://www.britishmuseum.org/terms-use/copyright-and-permissions",
+    "https://media.britishmuseum.org/media/Repository/Documents/2014_10/11_18/cc803582_af31_4b82_98bf_a3c1012a7429/mid_00684647_001.jpg",
+    "https://creativecommons.org/licenses/by-nc-sa/4.0/"
+  ],
+  "layer_assessments": [
+    {
+      "layer_id": "tos.rights.egyptian.bm-mid-00684647-001-cc-by-nc-sa-4.0.layer.photograph",
+      "layer_role": "photograph",
+      "scope_refs": ["tos.file.sha256.adcde14cf16796396daf0513c5b25785c2b9d9ea1261561086702ae45523a6b4"],
+      "assessment_status": "licensed",
+      "assessment_basis": "license",
+      "rights_statement_uri": "https://www.britishmuseum.org/collection/image/684647001",
+      "license_uri": "https://creativecommons.org/licenses/by-nc-sa/4.0/",
+      "jurisdictions_reviewed": ["GB", "MX", "US"],
+      "source_refs": ["https://www.britishmuseum.org/collection/image/684647001", "https://media.britishmuseum.org/media/Repository/Documents/2014_10/11_18/cc803582_af31_4b82_98bf_a3c1012a7429/mid_00684647_001.jpg", "https://creativecommons.org/licenses/by-nc-sa/4.0/"],
+      "rights_holder_refs": ["© The Trustees of the British Museum"],
+      "permissions": ["copy, retain, share, process, and adapt the exact JPEG for non-commercial purposes under CC BY-NC-SA 4.0"],
+      "restrictions": [
+        "credit © The Trustees of the British Museum and identify CC BY-NC-SA 4.0",
+        "commercial use is not authorized by this route",
+        "adaptations must be distributed under the same or a compatible ShareAlike license",
+        "the license does not admit embedded inscriptions as source text or license museum prose, transcription, translation, scholarly interpretation, or another byte-distinct file"
+      ],
+      "redistribution_posture": "authorized_with_conditions",
+      "derivative_posture": "allowed_with_conditions",
+      "server_processing_posture": "authorized_with_conditions",
+      "term": {"calculation_status": "not_applicable", "basis": "Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International license on the exact British Museum image-use page", "starts_on": null, "ends_on": null, "uncertainty": "The positive finding is bound to the exact SHA-256 JPEG and its non-commercial, attribution, and ShareAlike conditions."},
+      "uncertainty": "No philological, semantic, corpus-membership, publication, or human legal acceptance is supplied by the image license.",
+      "assessed_at": "2026-08-30T05:20:00-06:00",
+      "review_status": "unreviewed",
+      "rationale": "The exact image-use page identifies asset 684647001 and explicitly licenses non-commercial sharing under CC BY-NC-SA 4.0 with the stated credit."
+    }
+  ],
+  "permissions": ["retain the exact JPEG as a tracked public source payload", "redistribute, process, and prepare derivatives of the exact JPEG for non-commercial use under CC BY-NC-SA 4.0"],
+  "restrictions": [
+    "attribution, NonCommercial, and ShareAlike conditions remain attached",
+    "no source text, transcription, translation, spell identity, vignette interpretation, semantic relation, graph fact, canon status, or publication acceptance follows",
+    "byte-distinct images retain separate File identities and require their own rights evidence"
+  ],
+  "visibility": "public_payload",
+  "redistribution_posture": "authorized_with_conditions",
+  "derivative_posture": "allowed_with_conditions",
+  "assessed_by": {"maker_type": "model", "agent_ref": "model:codex"},
+  "assessed_at": "2026-08-30T05:20:00-06:00",
+  "rationale": "The exact browser-acquired JPEG is bound to the object-specific British Museum CC BY-NC-SA 4.0 statement and requested attribution.",
+  "review_status": "unreviewed",
+  "review_refs": [],
+  "access_request_ref": null,
+  "record_version": 1,
+  "supersedes_rights_ref": null
+}

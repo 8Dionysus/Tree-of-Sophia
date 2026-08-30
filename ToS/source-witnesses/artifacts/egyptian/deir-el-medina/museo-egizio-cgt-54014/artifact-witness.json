@@ -1,0 +1,141 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/artifact-source-witness-v2.schema.json",
+  "schema_version": "tos_artifact_source_witness_v2",
+  "artifact_id": "tos.artifact.egyptian.deir-el-medina.museo-egizio-cgt-54014",
+  "artifact_kind": "manuscript_object",
+  "path_identity": {
+    "basis": "repository_identity",
+    "provider_independent": true,
+    "note": "The path follows the physical Museo Egizio repository identity CGT 54014 and its reported Deir el-Medina provenance, not a Commons page, JPEG filename, translated title, or attributed Work identity."
+  },
+  "identifiers": [
+    {
+      "scheme": "Museo Egizio inventory",
+      "value": "CGT. 54014",
+      "source_ref": "https://collezioni.museoegizio.it/en-GB/material/CGT_54014/"
+    },
+    {
+      "scheme": "Wikidata",
+      "value": "Q117424719",
+      "source_ref": "https://www.wikidata.org/wiki/Q117424719"
+    }
+  ],
+  "physical_description": {
+    "material": "plant fiber / papyrus",
+    "height_mm": 95,
+    "width_mm": 155,
+    "thickness_mm": null,
+    "source_ref": "https://collezioni.museoegizio.it/en-GB/material/CGT_54014/"
+  },
+  "dating": {
+    "period_label": "New Kingdom, Twentieth Dynasty",
+    "display_date": "1190-1077 BCE",
+    "certainty": "reported",
+    "period_stage_separation_required": true,
+    "source_ref": "https://collezioni.museoegizio.it/en-GB/material/CGT_54014/"
+  },
+  "find_context": {
+    "site": "Deir el-Medina, Luxor / Thebes, Egypt",
+    "findspot": null,
+    "excavation_numbers": [],
+    "source_note": "Museo Egizio reports Deir el-Medina as provenance and acquisition through the Bernardino Drovetti purchase in 1824; no exact excavation context is asserted here.",
+    "documentation_limit": "Reported provenance does not establish excavation coordinates, place of composition, copyist identity, original school context, or Work date.",
+    "source_ref": "https://collezioni.museoegizio.it/en-GB/material/CGT_54014/"
+  },
+  "custody": {
+    "current_repository": "Museo Egizio, Turin",
+    "inventory_numbers": ["CGT. 54014"],
+    "source_ref": "https://collezioni.museoegizio.it/en-GB/material/CGT_54014/"
+  },
+  "digital_catalog_record": {
+    "provider": "Museo Egizio collection online",
+    "record_id": "CGT_54014",
+    "record_url": "https://collezioni.museoegizio.it/en-GB/material/CGT_54014/",
+    "api_url": null,
+    "checked_at": "2026-08-29T23:54:36-06:00",
+    "mutable": true,
+    "response_fingerprints": [
+      {
+        "surface": "https://collezioni.museoegizio.it/en-GB/material/CGT_54014/",
+        "byte_size": 37389,
+        "sha256": "ef3090f9921c10dc66deb453a3d677d60386fc6b4756ef89c6add3b719833bae",
+        "captured": false
+      }
+    ]
+  },
+  "inscription_layer": {
+    "availability": "available_not_acquired",
+    "language_status": "reported",
+    "provider_language_code": "egy",
+    "normalized_language_code": "egy",
+    "script": "Hieratic",
+    "transliteration_stored": false,
+    "translation_stored": false,
+    "source_refs": [
+      "https://collezioni.museoegizio.it/en-GB/material/CGT_54014/",
+      "https://commons.wikimedia.org/wiki/File:Papyrus_fragments_with_a_section_of_the_%27Instruction_of_Ptahhotep%27_on_the_recto_-_Museo_Egizio,_Turin_CGT_54014_p01.jpg"
+    ]
+  },
+  "composite_layer": {
+    "status": "absent",
+    "external_refs": [],
+    "relationship": "No scholarly composite, transcription, translation, or fixed Work reconstruction is admitted by this physical-artifact record.",
+    "is_physical_artifact_identity": false
+  },
+  "visual_layers": [
+    {
+      "layer_kind": "photograph",
+      "availability": "visible",
+      "content_stored": false,
+      "source_ref": "https://commons.wikimedia.org/wiki/File:Papyrus_fragments_with_a_section_of_the_%27Instruction_of_Ptahhotep%27_on_the_recto_-_Museo_Egizio,_Turin_CGT_54014_p01.jpg",
+      "rights_note": "The artifact metadata packet embeds no visual bytes. The exact CC0 JPEG is retained as a separate content-addressed visual-representation record and File, so the photograph does not become the physical artifact or a transcription."
+    }
+  ],
+  "scholarly_classification": {
+    "genre": "Egyptian instructional-literature manuscript fragment witness",
+    "corpus_labels": ["Instruction of Ptahhotep witness", "Deir el-Medina papyrus fragment", "CGT 54014"],
+    "classification_is_interpretive": true,
+    "source_refs": [
+      "https://collezioni.museoegizio.it/en-GB/material/CGT_54014/",
+      "https://commons.wikimedia.org/wiki/File:Papyrus_fragments_with_a_section_of_the_%27Instruction_of_Ptahhotep%27_on_the_recto_-_Museo_Egizio,_Turin_CGT_54014_p01.jpg"
+    ]
+  },
+  "bibliography": [
+    {
+      "citation": "Andreu, Guillemette, ed. Gli artisti del faraone: Deir el-Medina e le Valli dei Re e delle Regine (2003), p. 199.",
+      "role": "catalog_publication",
+      "source_ref": "https://collezioni.museoegizio.it/en-GB/material/CGT_54014/"
+    },
+    {
+      "citation": "Hagen, Fredrik. An Ancient Egyptian Literary Text in Context: The Instruction of Ptahhotep (2012), pp. 103, 182-184, 221-222.",
+      "role": "current_control",
+      "source_ref": "https://collezioni.museoegizio.it/en-GB/material/CGT_54014/"
+    }
+  ],
+  "layer_separation": {
+    "physical_artifact_is_catalog_record": false,
+    "catalog_record_is_inscription": false,
+    "inscription_is_composite": false,
+    "visual_is_artifact": false,
+    "sign_has_fixed_translation": false,
+    "artifact_is_philosophy": false
+  },
+  "rights_ref": "ToS/source-witnesses/artifacts/egyptian/deir-el-medina/museo-egizio-cgt-54014/rights.json",
+  "discovery_ref": "ToS/source-witnesses/discovery/runs/museo-egizio-cgt-54014-artifact-route.2026-08-29.v1.json",
+  "provenance_event_ref": "tos.event.acquisition.museo-egizio-cgt-54014-commons-p01.2026-08-29",
+  "research_ref": "ToS/research-packets/foundation-laboratory-2026-07/A04_PTAHHOTEP_OPEN_WORK_DISCOVERY_AND_RIGHTS_ROUTE_2026-08-29.md",
+  "philosophy_planting_refs": [],
+  "authority": {
+    "evidence_status": "metadata_witness",
+    "review_status": "unreviewed",
+    "visibility": "public_metadata_only",
+    "source_text_admitted": false,
+    "semantic_authority": false,
+    "graph_authority": false,
+    "canon_authority": false,
+    "publication_authority": false
+  },
+  "maker": {"maker_type": "model", "agent_ref": "model:codex", "human_review_performed": false},
+  "created_at": "2026-08-29T23:56:00-06:00",
+  "record_version": 1
+}

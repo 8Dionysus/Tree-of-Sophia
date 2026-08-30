@@ -1,0 +1,116 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/artifact-source-witness-v2.schema.json",
+  "schema_version": "tos_artifact_source_witness_v2",
+  "artifact_id": "tos.artifact.egyptian.deir-el-bersha.sen-inner-coffin-b3l-ea30842",
+  "artifact_kind": "archaeological_object",
+  "path_identity": {
+    "basis": "repository_identity",
+    "provider_independent": true,
+    "note": "The path follows the physical inner coffin BM EA30842 / registration 1899,0610.12 / de Buck B3L. It is not keyed to image asset 18648001, a JPEG basename, the Book of Two Ways subcorpus label, an accepted spell sequence, or a modern edition."
+  },
+  "identifiers": [
+    {"scheme": "British Museum number", "value": "EA30842", "source_ref": "https://www.britishmuseum.org/collection/object/Y_EA30842"},
+    {"scheme": "British Museum registration number", "value": "1899,0610.12", "source_ref": "https://www.britishmuseum.org/collection/object/Y_EA30842"},
+    {"scheme": "de Buck coffin siglum", "value": "B3L", "source_ref": "https://www.britishmuseum.org/collection/object/Y_EA30842"}
+  ],
+  "physical_description": {
+    "material": "wood, painted",
+    "height_mm": 730,
+    "width_mm": 620,
+    "thickness_mm": null,
+    "source_ref": "https://www.britishmuseum.org/collection/object/Y_EA30842"
+  },
+  "dating": {
+    "period_label": "Middle Kingdom, 12th Dynasty",
+    "display_date": "ca. 1850 BCE",
+    "certainty": "reported",
+    "period_stage_separation_required": true,
+    "source_ref": "https://www.britishmuseum.org/collection/object/Y_EA30842"
+  },
+  "find_context": {
+    "site": "Deir el-Bersha, Minya Governorate, Egypt",
+    "findspot": "Deir el-Bersha",
+    "excavation_numbers": [],
+    "source_note": "The British Museum reports Deir el-Bersha as the excavated/findspot and identifies this as the inner coffin of Sen/Seni belonging to outer coffin EA30841 (B4L).",
+    "documentation_limit": "The current museum page does not by itself establish exact tomb, excavation campaign, workshop, full inscription inventory, map region boundaries, route order, spell membership, composition history, or one fixed Book of Two Ways recension.",
+    "source_ref": "https://www.britishmuseum.org/collection/object/Y_EA30842"
+  },
+  "custody": {
+    "current_repository": "The British Museum, London",
+    "inventory_numbers": ["EA30842", "1899,0610.12"],
+    "source_ref": "https://www.britishmuseum.org/collection/object/Y_EA30842"
+  },
+  "digital_catalog_record": {
+    "provider": "British Museum Collection Online",
+    "record_id": "Y_EA30842",
+    "record_url": "https://www.britishmuseum.org/collection/object/Y_EA30842",
+    "api_url": "https://www.britishmuseum.org/api/_object?id=Y_EA30842",
+    "checked_at": "2026-08-30T04:59:18-06:00",
+    "mutable": true,
+    "response_fingerprints": [
+      {"surface": "https://www.britishmuseum.org/api/_object?id=Y_EA30842", "byte_size": 3052, "sha256": "3ce0a415582764f745a2997800f54ceb3e9f61e422f010af8331ea3ddfcc2720", "captured": false}
+    ]
+  },
+  "inscription_layer": {
+    "availability": "available_not_acquired",
+    "language_status": "reported",
+    "provider_language_code": "egy",
+    "normalized_language_code": "egy",
+    "script": "Egyptian hieroglyphic",
+    "transliteration_stored": false,
+    "translation_stored": false,
+    "source_refs": ["https://www.britishmuseum.org/collection/object/Y_EA30842"]
+  },
+  "composite_layer": {
+    "status": "linked",
+    "external_refs": [
+      {"scheme": "British Museum associated title", "value": "Book of Two Ways", "source_ref": "https://www.britishmuseum.org/collection/object/Y_EA30842"},
+      {"scheme": "British Museum associated title", "value": "Coffin Texts", "source_ref": "https://www.britishmuseum.org/collection/object/Y_EA30842"}
+    ],
+    "relationship": "The museum's associated-title fields are evidence for a candidate physical-member relationship. No one ancient Work, closed subcorpus, accepted map, route sequence, spell membership, modern composite, transcription, or translation is admitted by this artifact record.",
+    "is_physical_artifact_identity": false
+  },
+  "visual_layers": [
+    {
+      "layer_kind": "photograph",
+      "availability": "visible",
+      "content_stored": false,
+      "source_ref": "https://media.britishmuseum.org/media/Repository/Documents/2014_9/30_15/ccbfe01f_4652_40df_b271_a3b600fe23b2/mid_00018648_001.jpg",
+      "rights_note": "The exact 1000x1000 CC BY-NC-SA 4.0 JPEG is retained as its own visual-representation record and File; the artifact packet itself stores no image bytes."
+    }
+  ],
+  "scholarly_classification": {
+    "genre": "Middle Kingdom inscribed inner coffin; exact Book of Two Ways physical-member candidate",
+    "corpus_labels": ["Book of Two Ways physical-member candidate", "Coffin Texts", "Sen/Seni coffin B3L", "BM EA30842"],
+    "classification_is_interpretive": true,
+    "source_refs": [
+      "https://www.britishmuseum.org/collection/object/Y_EA30842",
+      "https://www.ucl.ac.uk/museums-static/digitalegypt/literature/religious/bd136.html",
+      "https://www.arts.kuleuven.be/dayr-al-barsha/An-early-Book-of-Two-Ways"
+    ]
+  },
+  "bibliography": [
+    {
+      "citation": "British Museum Collection Online, EA30842 / 1899,0610.12, rectangular wooden inner-coffin of Sen (B3L).",
+      "role": "current_control",
+      "source_ref": "https://www.britishmuseum.org/collection/object/Y_EA30842"
+    }
+  ],
+  "layer_separation": {
+    "physical_artifact_is_catalog_record": false,
+    "catalog_record_is_inscription": false,
+    "inscription_is_composite": false,
+    "visual_is_artifact": false,
+    "sign_has_fixed_translation": false,
+    "artifact_is_philosophy": false
+  },
+  "rights_ref": "ToS/source-witnesses/artifacts/egyptian/deir-el-bersha/sen-inner-coffin-b3l-ea30842/rights.json",
+  "discovery_ref": "ToS/source-witnesses/discovery/runs/book-of-two-ways-bm-sen-artifact.2026-08-30.v1.json",
+  "provenance_event_ref": "tos.event.acquisition.book-of-two-ways-bm-sen-image.2026-08-30",
+  "research_ref": "ToS/research-packets/foundation-laboratory-2026-07/A05_BOOK_OF_TWO_WAYS_OPEN_WORK_ACQUISITION_2026-08-30.md",
+  "philosophy_planting_refs": ["ToS/philosophy/eras/bronze-age/regions/north-africa/traditions/egyptian-mortuary-theological-dialogic-corpora/sources/plantings/book-of-two-ways-bm-sen/source-planting.json"],
+  "authority": {"evidence_status": "metadata_witness", "review_status": "unreviewed", "visibility": "public_metadata_only", "source_text_admitted": false, "semantic_authority": false, "graph_authority": false, "canon_authority": false, "publication_authority": false},
+  "maker": {"maker_type": "model", "agent_ref": "model:codex", "human_review_performed": false},
+  "created_at": "2026-08-30T05:05:00-06:00",
+  "record_version": 1
+}

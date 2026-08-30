@@ -1,0 +1,85 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/open-work-candidate-receipt.schema.json",
+  "schema_version": "tos_open_work_candidate_receipt_v1",
+  "receipt_id": "open-work-candidate-receipt.laws-of-hammurapi.2026-08-30.v1",
+  "candidate_id": "open-work-candidate.laws-of-hammurapi",
+  "candidate_record_sha256": "d59a8c13aa74b069480a154ea9c48d9fe940464f17088f7eb2c6f6dfb7f7bc18",
+  "queue_snapshot_sha256": "800afddd7a210cc400e809f761b5033991926e41ebbc39f1dcd0dc9ceb6cbb76",
+  "discovery_ref": "ToS/source-witnesses/discovery/runs/laws-of-hammurapi-open-work-route.2026-08-30.v1.json",
+  "discovery_id": "tos.discovery.laws-of-hammurapi-open-work-route.2026-08-30.v1",
+  "timing_ref": "ToS/source-witnesses/discovery/timings/laws-of-hammurapi-open-work-route.2026-08-30.v1.json",
+  "terminal_status": "held_source_witness",
+  "target_resolution": {
+    "identity_status": "reconciled",
+    "work_ref": "tos.work.akkadian-law.laws-of-hammurapi",
+    "expression_ref": null,
+    "edition_ref": null,
+    "item_ref": null,
+    "summary": "The existing ancient Work, provider-independent critical composite, and physical Louvre SB 8 artifact identity were reused. The acquisitions are one exact Roth 2026 revised English translation PDF and one exact Mbzt 2011 photograph of the artifact. The PDF has bibliographic identity but is not formally admitted as a ToS Expression, Edition, or Item. The photograph is a separate visual representation rather than the physical stela, transcription, accepted source text, accepted translation, or semantic fact."
+  },
+  "rights_result": {
+    "status": "positive-for-acquisition",
+    "reviewed_jurisdictions": ["FR", "MX", "US"],
+    "reviewed_layers": [
+      "exact Roth 2026 revised English translation PDF",
+      "originating UCF STARS CC BY-NC 4.0 statement",
+      "exact Mbzt 2011 rear-face Commons JPEG",
+      "Wikimedia Commons CC BY 3.0 File statement",
+      "Louvre SB 8 metadata and 105 separately credited collection photographs",
+      "official Rmn-GrandPalais light web 3D representation",
+      "CDLI current composite and physical-witness routes",
+      "Scheil and Johns historical digital-object leads"
+    ],
+    "evidence_refs": [
+      "ToS/source-witnesses/scholarly-composites/critical/akkadian/laws-of-hammurapi/representations/roth-laws-of-hammurabi-revised-2026-pdf/rights.json",
+      "ToS/source-witnesses/artifacts/old-babylonian/susa/hammurabi-stele-sb-8/representations/commons-mbzt-rear-photograph-2011/rights.json",
+      "https://stars.library.ucf.edu/ancientneareast/134/",
+      "https://creativecommons.org/licenses/by-nc/4.0/",
+      "https://commons.wikimedia.org/wiki/File:P1050551_Louvre_code_d%27Hammurabi_recto_rwk.JPG",
+      "https://creativecommons.org/licenses/by/3.0/",
+      "https://collections.louvre.fr/en/page/cgu",
+      "https://sketchfab.com/3d-models/stele-du-code-de-lois-de-hammurabi-44584936406a4879b8e054420dac7e07"
+    ],
+    "summary": "Two exact Files have positive standard open licenses: the Roth PDF under CC BY-NC 4.0 and the Mbzt JPEG under CC BY 3.0. Each is fixity-bound and retains its own attribution and license conditions. Louvre-originating photographs were rejected because custom enumerated-use terms are not a standard open license for the Goal. The official 3D representation, CDLI text body, Internet Archive Scheil scan, Project Gutenberg Johns translation, other editions, translations, images, scans, models, and semantic layers are not silently cleared."
+  },
+  "acquisition": {
+    "downloaded": true,
+    "item_ref": null,
+    "artifact_ref": null,
+    "composite_ref": "tos.composite.akkadian.laws-of-hammurapi",
+    "representation_ref": "ToS/source-witnesses/scholarly-composites/critical/akkadian/laws-of-hammurapi/representations/roth-laws-of-hammurabi-revised-2026-pdf/representation.json",
+    "file_ref": "tos.file.sha256.ddc38f90b258f47acd4bb42fa5e9319288bf7930f82e6e222c53ebed91947980",
+    "provenance_event_ref": "tos.event.acquisition.laws-of-hammurapi-roth-en-2026.2026-08-30"
+  },
+  "additional_acquisitions": [
+    {
+      "downloaded": true,
+      "item_ref": null,
+      "artifact_ref": "tos.artifact.old-babylonian.susa.hammurabi-stele-sb-8",
+      "representation_ref": "ToS/source-witnesses/artifacts/old-babylonian/susa/hammurabi-stele-sb-8/representations/commons-mbzt-rear-photograph-2011/representation.json",
+      "file_ref": "tos.file.sha256.e357d0faad60c5fb5b8b6c4ba6282a34fdd2d6c48e81d8d8ae3a837bc831f8b1",
+      "provenance_event_ref": "tos.event.acquisition.hammurabi-stele-sb8-commons-mbzt-rear-2011.2026-08-30.v3"
+    }
+  ],
+  "planting_refs": [
+    "ToS/philosophy/eras/bronze-age/regions/west-asia/traditions/old-babylonian-scribal-wisdom-law/sources/plantings/laws-of-hammurapi-composite/source-planting.json",
+    "ToS/philosophy/eras/bronze-age/regions/west-asia/traditions/old-babylonian-scribal-wisdom-law/sources/plantings/cdli-codex-hammurapi-stele-profile/source-planting.json"
+  ],
+  "operational_relation_refs": [
+    "ToS/source-witnesses/discovery/candidates/reviewed-candidates.jsonl:8",
+    "ToS/source-witnesses/discovery/runs/laws-of-hammurapi-open-work-route.2026-08-30.v1.json",
+    "ToS/source-witnesses/discovery/timings/laws-of-hammurapi-open-work-route.2026-08-30.v1.json",
+    "ToS/research-packets/foundation-laboratory-2026-07/A02_LAWS_OF_HAMMURAPI_OPEN_WORK_ACQUISITION_2026-08-30.md",
+    "ToS/source-witnesses/scholarly-composites/critical/akkadian/laws-of-hammurapi/composite-witness.json",
+    "ToS/source-witnesses/scholarly-composites/critical/akkadian/laws-of-hammurapi/representations/roth-laws-of-hammurabi-revised-2026-pdf/representation.json",
+    "ToS/source-witnesses/artifacts/old-babylonian/susa/hammurabi-stele-sb-8/artifact-witness.json",
+    "ToS/source-witnesses/artifacts/old-babylonian/susa/hammurabi-stele-sb-8/representations/commons-mbzt-rear-photograph-2011/representation.json",
+    "tos.event.discovery.laws-of-hammurapi-open-work-route.2026-08-30",
+    "tos.event.acquisition.laws-of-hammurapi-roth-en-2026.2026-08-30",
+    "tos.event.acquisition.hammurabi-stele-sb8-commons-mbzt-rear-2011.2026-08-30.v3"
+  ],
+  "next_trigger": "Rebuild queue.current.json. If no reviewed ready candidate remains, review exactly one next earliest source-backed Work or work-like corpus from the visible frontier, append it to reviewed-candidates.jsonl, rebuild, freeze it, and continue the loop.",
+  "issued_at": "2026-08-30T03:10:00-06:00",
+  "maker": {"maker_type": "model", "agent_ref": "model:codex"},
+  "record_version": 1
+}

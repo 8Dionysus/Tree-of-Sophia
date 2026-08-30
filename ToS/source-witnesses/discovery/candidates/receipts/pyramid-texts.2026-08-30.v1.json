@@ -1,0 +1,76 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/open-work-candidate-receipt.schema.json",
+  "schema_version": "tos_open_work_candidate_receipt_v1",
+  "receipt_id": "open-work-candidate-receipt.pyramid-texts.2026-08-30.v1",
+  "candidate_id": "open-work-candidate.pyramid-texts",
+  "candidate_record_sha256": "ad3dd29b041ba869fd47d2706187ebdd847fcd747d8ac645af686a1aec6991bc",
+  "queue_snapshot_sha256": "a7455b28ef0aa6e69237a5b4551b5ee1eb5e20619bb7336da6f1083815f5d2c6",
+  "discovery_ref": "ToS/source-witnesses/discovery/runs/pyramid-texts-open-work-route.2026-08-30.v1.json",
+  "discovery_id": "tos.discovery.pyramid-texts-open-work-route.2026-08-30.v1",
+  "timing_ref": "ToS/source-witnesses/discovery/timings/pyramid-texts-open-work-route.2026-08-30.v1.json",
+  "terminal_status": "held_source_witness",
+  "target_resolution": {
+    "identity_status": "provisional",
+    "work_ref": null,
+    "expression_ref": null,
+    "edition_ref": null,
+    "item_ref": null,
+    "summary": "Pyramid Texts remains an unresolved work-like corpus rather than one minted ancient Work. The iteration resolved one physical Unas witness, Sethe's provider-independent 1908-1910 scholarly composite, and two exact BSB File representations without collapsing those identities."
+  },
+  "rights_result": {
+    "status": "positive-for-acquisition",
+    "reviewed_jurisdictions": ["DE", "MX", "US"],
+    "reviewed_layers": [
+      "exact BSB PDF bsb00068075",
+      "exact BSB PDF bsb00068079",
+      "composite and artifact factual metadata boundaries",
+      "excluded UCL, TLA, Chicago, Internet Archive, Open Library, Google Books, and general-web content"
+    ],
+    "evidence_refs": [
+      "ToS/source-witnesses/scholarly-composites/critical/egyptian/pyramid-texts-sethe-1908-1910/representations/bsb-volume-1/rights.json",
+      "ToS/source-witnesses/scholarly-composites/critical/egyptian/pyramid-texts-sethe-1908-1910/representations/bsb-volume-2/rights.json",
+      "https://api.digitale-sammlungen.de/iiif/presentation/v2/bsb00068075/manifest",
+      "https://api.digitale-sammlungen.de/iiif/presentation/v2/bsb00068079/manifest",
+      "https://creativecommons.org/licenses/by-nc-sa/4.0/"
+    ],
+    "summary": "Both SHA-256-bound BSB PDFs carry explicit CC BY-NC-SA 4.0 declarations corroborated by DDB and were downloaded after recorded license acceptance. Conditional non-commercial reuse with attribution and ShareAlike is permitted; repository policy keeps payloads local-only. No other provider content or derived layer is cleared."
+  },
+  "acquisition": {
+    "downloaded": true,
+    "item_ref": null,
+    "artifact_ref": null,
+    "composite_ref": "tos.composite.egyptian.pyramid-texts-sethe-1908-1910",
+    "representation_ref": "ToS/source-witnesses/scholarly-composites/critical/egyptian/pyramid-texts-sethe-1908-1910/representations/bsb-volume-1/representation.json",
+    "file_ref": "tos.file.sha256.a67fd170e8cff617d34f5c03759a394f083f312ac25f81e33c5ca96faeccac84",
+    "provenance_event_ref": "tos.event.acquisition.pyramid-texts-sethe-bsb-volumes.2026-08-30"
+  },
+  "additional_acquisitions": [
+    {
+      "downloaded": true,
+      "item_ref": null,
+      "artifact_ref": null,
+      "composite_ref": "tos.composite.egyptian.pyramid-texts-sethe-1908-1910",
+      "representation_ref": "ToS/source-witnesses/scholarly-composites/critical/egyptian/pyramid-texts-sethe-1908-1910/representations/bsb-volume-2/representation.json",
+      "file_ref": "tos.file.sha256.6bfa1cefa25c388c5b3ca3daf55265abad809f18804af8e1ab0725be435269ca",
+      "provenance_event_ref": "tos.event.acquisition.pyramid-texts-sethe-bsb-volumes.2026-08-30"
+    }
+  ],
+  "planting_refs": [
+    "ToS/philosophy/eras/bronze-age/regions/north-africa/traditions/egyptian-mortuary-theological-dialogic-corpora/sources/plantings/pyramid-texts-sethe-composite/source-planting.json"
+  ],
+  "operational_relation_refs": [
+    "ToS/source-witnesses/discovery/candidates/reviewed-candidates.jsonl:4",
+    "ToS/source-witnesses/discovery/runs/pyramid-texts-open-work-route.2026-08-30.v1.json",
+    "ToS/source-witnesses/discovery/timings/pyramid-texts-open-work-route.2026-08-30.v1.json",
+    "ToS/source-witnesses/artifacts/egyptian/saqqara/pyramid-of-unas/artifact-witness.json",
+    "ToS/source-witnesses/scholarly-composites/critical/egyptian/pyramid-texts-sethe-1908-1910/composite-witness.json",
+    "ToS/source-witnesses/scholarly-composites/critical/egyptian/pyramid-texts-sethe-1908-1910/representations/bsb-volume-1/representation.json",
+    "ToS/source-witnesses/scholarly-composites/critical/egyptian/pyramid-texts-sethe-1908-1910/representations/bsb-volume-2/representation.json",
+    "tos.event.discovery.pyramid-texts-open-work-route.2026-08-30",
+    "tos.event.acquisition.pyramid-texts-sethe-bsb-volumes.2026-08-30"
+  ],
+  "next_trigger": "Rebuild queue.current.json. If no reviewed ready candidate remains, review exactly one next earliest source-backed Work or work-like corpus from the visible frontier, append it to reviewed-candidates.jsonl, rebuild, freeze it, and continue the loop.",
+  "issued_at": "2026-08-30T01:30:00-06:00",
+  "maker": {"maker_type": "model", "agent_ref": "model:codex"},
+  "record_version": 1
+}

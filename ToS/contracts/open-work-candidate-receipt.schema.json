@@ -1,0 +1,131 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://tree-of-sophia.local/ToS/contracts/open-work-candidate-receipt.schema.json",
+  "title": "Tree of Sophia open-work candidate terminal receipt",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "$schema",
+    "schema_version",
+    "receipt_id",
+    "candidate_id",
+    "candidate_record_sha256",
+    "queue_snapshot_sha256",
+    "discovery_ref",
+    "discovery_id",
+    "terminal_status",
+    "target_resolution",
+    "rights_result",
+    "acquisition",
+    "planting_refs",
+    "operational_relation_refs",
+    "next_trigger",
+    "issued_at",
+    "maker",
+    "record_version"
+  ],
+  "properties": {
+    "$schema": {"const": "https://tree-of-sophia.local/ToS/contracts/open-work-candidate-receipt.schema.json"},
+    "schema_version": {"const": "tos_open_work_candidate_receipt_v1"},
+    "receipt_id": {"type": "string", "pattern": "^open-work-candidate-receipt\\.[a-z0-9]+(?:[.-][a-z0-9]+)*$"},
+    "candidate_id": {"type": "string", "pattern": "^open-work-candidate\\.[a-z0-9]+(?:[.-][a-z0-9]+)*$"},
+    "candidate_record_sha256": {"$ref": "#/$defs/sha256"},
+    "queue_snapshot_sha256": {"$ref": "#/$defs/sha256"},
+    "discovery_ref": {"type": "string", "pattern": "^ToS/source-witnesses/discovery/runs/.+\\.json$"},
+    "discovery_id": {"type": "string", "pattern": "^tos\\.discovery\\.[a-z0-9]+(?:[.-][a-z0-9]+)*$"},
+    "timing_ref": {"type": "string", "pattern": "^ToS/source-witnesses/discovery/timings/.+\\.json$"},
+    "terminal_status": {"enum": ["held_source_witness", "metadata_only", "publication_candidate", "deferred", "blocked", "exhausted_for_now", "duplicate", "rejected", "superseded"]},
+    "target_resolution": {"$ref": "#/$defs/targetResolution"},
+    "rights_result": {"$ref": "#/$defs/rightsResult"},
+    "acquisition": {"$ref": "#/$defs/acquisition"},
+    "additional_acquisitions": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {"$ref": "#/$defs/acquisition"}
+    },
+    "planting_refs": {"type": "array", "uniqueItems": true, "items": {"type": "string", "minLength": 1}},
+    "operational_relation_refs": {"type": "array", "uniqueItems": true, "items": {"type": "string", "minLength": 1}},
+    "next_trigger": {"type": "string", "minLength": 1},
+    "issued_at": {"type": "string", "format": "date-time"},
+    "maker": {"$ref": "#/$defs/maker"},
+    "record_version": {"type": "integer", "minimum": 1}
+  },
+  "$defs": {
+    "sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "targetResolution": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["identity_status", "work_ref", "expression_ref", "edition_ref", "item_ref", "summary"],
+      "properties": {
+        "identity_status": {"enum": ["unresolved", "provisional", "reconciled"]},
+        "work_ref": {"type": ["string", "null"], "pattern": "^tos\\.work\\."},
+        "expression_ref": {"type": ["string", "null"], "pattern": "^tos\\.expression\\."},
+        "edition_ref": {"type": ["string", "null"], "pattern": "^tos\\.edition\\."},
+        "item_ref": {"type": ["string", "null"], "pattern": "^tos\\.item\\."},
+        "summary": {"type": "string", "minLength": 1}
+      }
+    },
+    "rightsResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["status", "reviewed_jurisdictions", "reviewed_layers", "evidence_refs", "summary"],
+      "properties": {
+        "status": {"enum": ["positive-for-acquisition", "insufficient-for-acquisition", "blocked-human-legal-review", "not-applicable"]},
+        "reviewed_jurisdictions": {"type": "array", "uniqueItems": true, "items": {"type": "string", "pattern": "^[A-Z]{2,3}$"}},
+        "reviewed_layers": {"type": "array", "uniqueItems": true, "items": {"type": "string", "minLength": 1}},
+        "evidence_refs": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"type": "string", "minLength": 1}},
+        "summary": {"type": "string", "minLength": 1}
+      }
+    },
+    "acquisition": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["downloaded", "item_ref", "artifact_ref", "representation_ref", "file_ref", "provenance_event_ref"],
+      "properties": {
+        "downloaded": {"type": "boolean"},
+        "item_ref": {"type": ["string", "null"], "pattern": "^tos\\.item\\."},
+        "artifact_ref": {"type": ["string", "null"], "pattern": "^tos\\.artifact\\."},
+        "composite_ref": {"type": ["string", "null"], "pattern": "^tos\\.composite\\."},
+        "representation_ref": {
+          "type": ["string", "null"],
+          "pattern": "^ToS/source-witnesses/(?:artifacts|scholarly-composites)/.+/representation\\.json$"
+        },
+        "file_ref": {"type": ["string", "null"], "pattern": "^tos\\.file\\."},
+        "provenance_event_ref": {"type": ["string", "null"], "pattern": "^tos\\.event\\."}
+      },
+      "allOf": [
+        {
+          "if": {"properties": {"downloaded": {"const": true}}, "required": ["downloaded"]},
+          "then": {
+            "oneOf": [
+              {"properties": {"item_ref": {"type": "string"}, "artifact_ref": {"type": "null"}, "representation_ref": {"type": "null"}, "file_ref": {"type": "string"}, "provenance_event_ref": {"type": "string"}}},
+              {"properties": {"item_ref": {"type": "null"}, "artifact_ref": {"type": "string"}, "representation_ref": {"type": "string"}, "file_ref": {"type": "string"}, "provenance_event_ref": {"type": "string"}}},
+              {
+                "required": ["composite_ref"],
+                "properties": {
+                  "item_ref": {"type": "null"},
+                  "artifact_ref": {"type": "null"},
+                  "composite_ref": {"type": "string"},
+                  "representation_ref": {"type": "string", "pattern": "^ToS/source-witnesses/scholarly-composites/.+/representation\\.json$"},
+                  "file_ref": {"type": "string"},
+                  "provenance_event_ref": {"type": "string"}
+                }
+              }
+            ]
+          },
+          "else": {"properties": {"item_ref": {"type": "null"}, "artifact_ref": {"type": "null"}, "representation_ref": {"type": "null"}, "file_ref": {"type": "null"}, "provenance_event_ref": {"type": "null"}}}
+        }
+      ]
+    },
+    "maker": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["maker_type", "agent_ref"],
+      "properties": {
+        "maker_type": {"enum": ["human", "model", "mixed", "software"]},
+        "agent_ref": {"type": "string", "minLength": 1}
+      }
+    }
+  }
+}

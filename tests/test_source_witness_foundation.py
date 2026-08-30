@@ -3196,10 +3196,10 @@ class SourceWitnessFoundationTests(unittest.TestCase):
             "ToS/source-witnesses/catalog/claims.jsonl",
             manifest["claim_file"],
         )
-        self.assertEqual(160, manifest["counts"]["object_total"])
-        self.assertEqual(181, manifest["counts"]["claim"])
-        self.assertEqual(341, manifest["counts"]["total"])
-        self.assertEqual(181, len(claim_entries))
+        self.assertEqual(171, manifest["counts"]["object_total"])
+        self.assertEqual(193, manifest["counts"]["claim"])
+        self.assertEqual(364, manifest["counts"]["total"])
+        self.assertEqual(193, len(claim_entries))
         self.assertEqual(set(source_claims), {entry["claim_id"] for entry in claim_entries})
 
         for entry in claim_entries:
@@ -3237,7 +3237,7 @@ class SourceWitnessFoundationTests(unittest.TestCase):
 
         self.assertEqual(
             {
-                "bibliographic_assertion": 164,
+                "bibliographic_assertion": 176,
                 "scholarly_report": 17,
             },
             {
@@ -3267,9 +3267,9 @@ class SourceWitnessFoundationTests(unittest.TestCase):
         )
         self.assertEqual(
             {
-                "has_expression": 26,
-                "embodied_by": 26,
-                "exemplified_by": 19,
+                "has_expression": 28,
+                "embodied_by": 28,
+                "exemplified_by": 21,
                 "is_derivative_of": 2,
             },
             {
@@ -3308,7 +3308,7 @@ class SourceWitnessFoundationTests(unittest.TestCase):
         authorship_claims = [
             entry for entry in claim_entries if entry["predicate"] == "authored_by"
         ]
-        self.assertEqual(30, len(authorship_claims))
+        self.assertEqual(33, len(authorship_claims))
         nietzsche_authorship_claims = [
             entry
             for entry in authorship_claims
@@ -7506,6 +7506,74 @@ class SourceWitnessFoundationTests(unittest.TestCase):
         embedded_transliteration["inscription_layer"]["transliteration"] = "synthetic"
         self.assertTrue(list(artifact_validator.iter_errors(embedded_transliteration)))
 
+    def test_artifact_visual_representation_binds_exact_public_payload_without_text_authority(self) -> None:
+        artifact_validator, _ = foundation._schema_validator(
+            foundation.ARTIFACT_SOURCE_WITNESS_V2_SCHEMA,
+            REPO_ROOT,
+        )
+        representation_validator, _ = foundation._schema_validator(
+            foundation.ARTIFACT_VISUAL_REPRESENTATION_SCHEMA,
+            REPO_ROOT,
+        )
+        artifact_root = (
+            REPO_ROOT
+            / "ToS/source-witnesses/artifacts/egyptian/deir-el-medina/"
+            "museo-egizio-cgt-54014"
+        )
+        artifact = json.loads(
+            (artifact_root / "artifact-witness.json").read_text(encoding="utf-8")
+        )
+        representation_path = (
+            artifact_root
+            / "representations/recto-photograph-p01/representation.json"
+        )
+        representation = json.loads(representation_path.read_text(encoding="utf-8"))
+        payload_path = representation_path.parent / representation["payload"]["relative_path"]
+
+        self.assertEqual([], list(artifact_validator.iter_errors(artifact)))
+        self.assertEqual([], artifact["philosophy_planting_refs"])
+        self.assertEqual([], list(representation_validator.iter_errors(representation)))
+        self.assertEqual(487283, payload_path.stat().st_size)
+        self.assertEqual(
+            representation["payload"]["sha256"],
+            hashlib.sha256(payload_path.read_bytes()).hexdigest(),
+        )
+        self.assertFalse(representation["layer_separation"]["visual_is_physical_artifact"])
+        self.assertFalse(representation["layer_separation"]["embedded_text_admitted"])
+        self.assertFalse(representation["authority"]["publication_authority"])
+
+        false_text_admission = copy.deepcopy(representation)
+        false_text_admission["layer_separation"]["embedded_text_admitted"] = True
+        self.assertTrue(list(representation_validator.iter_errors(false_text_admission)))
+
+        conditional_rights_path = (
+            REPO_ROOT
+            / "ToS/source-witnesses/artifacts/egyptian/deir-el-bersha/"
+            "sen-inner-coffin-b3l-ea30842/representations/"
+            "bm-mid-00018648-001/rights.json"
+        )
+        conditional_rights = json.loads(
+            conditional_rights_path.read_text(encoding="utf-8")
+        )
+        rights_validator, _ = foundation._schema_validator(
+            foundation.RIGHTS_SCHEMA,
+            REPO_ROOT,
+        )
+        self.assertEqual([], list(rights_validator.iter_errors(conditional_rights)))
+        self.assertEqual("public_payload", conditional_rights["visibility"])
+        self.assertEqual(
+            "authorized_with_conditions",
+            conditional_rights["redistribution_posture"],
+        )
+        self.assertIn(
+            conditional_rights["redistribution_posture"],
+            foundation.PUBLIC_PAYLOAD_REDISTRIBUTION_POSTURES,
+        )
+        self.assertIn(
+            "https://creativecommons.org/licenses/by-nc-sa/4.0/",
+            conditional_rights["license_uri"],
+        )
+
     def test_scholarly_composite_keeps_members_and_editorial_layers_separate(self) -> None:
         composite_validator, _ = foundation._schema_validator(
             foundation.SCHOLARLY_COMPOSITE_WITNESS_SCHEMA,
@@ -7544,6 +7612,30 @@ class SourceWitnessFoundationTests(unittest.TestCase):
         embedded_composite_text = copy.deepcopy(composite)
         embedded_composite_text["content_layer"]["text"] = "synthetic"
         self.assertTrue(list(composite_validator.iter_errors(embedded_composite_text)))
+
+    def test_local_composite_file_rights_do_not_invent_a_cc_license(self) -> None:
+        rights_validator, _ = foundation._schema_validator(
+            foundation.RIGHTS_SCHEMA,
+            REPO_ROOT,
+        )
+        rights_path = (
+            REPO_ROOT
+            / "ToS/source-witnesses/scholarly-composites/critical/egyptian/"
+            "book-of-the-dead-naville-1886/representations/"
+            "commons-ia-dasaegyptischeto00naviuoft/rights.json"
+        )
+        rights = json.loads(rights_path.read_text(encoding="utf-8"))
+
+        self.assertEqual([], list(rights_validator.iter_errors(rights)))
+        self.assertEqual("local_only", rights["visibility"])
+        self.assertEqual("not_authorized", rights["redistribution_posture"])
+        self.assertEqual("local_research_only", rights["derivative_posture"])
+        self.assertIsNone(rights["license_uri"])
+        self.assertIn(
+            rights["redistribution_posture"],
+            foundation.LOCAL_COMPOSITE_PAYLOAD_REDISTRIBUTION_POSTURES,
+        )
+        self.assertEqual("conflicting_evidence", rights["assessment_status"])
 
     def test_dta_open_license_remains_separate_from_local_transfer(self) -> None:
         rights_validator, _ = foundation._schema_validator(
@@ -12358,7 +12450,11 @@ class SourceWitnessFoundationTests(unittest.TestCase):
         missing_local_content = [
             issue
             for issue in issues
-            if issue[1].startswith("required local ") and issue[1].endswith(" is missing")
+            if (
+                issue[1].startswith("required local ")
+                and issue[1].endswith(" is missing")
+            )
+            or issue[1] == "scholarly-composite representation payload is missing"
         ]
         other_issues = [issue for issue in issues if issue not in missing_local_content]
 

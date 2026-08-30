@@ -1,0 +1,111 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/scholarly-composite-witness.schema.json",
+  "schema_version": "tos_scholarly_composite_witness_v1",
+  "composite_id": "tos.composite.egyptian.harpers-songs-witnesses",
+  "composite_kind": "synoptic_composite",
+  "preferred_label": "Harper's Songs — provisional witness and publication synopsis",
+  "identity_status": "provisional",
+  "path_identity": {
+    "basis": "scholarly_composition_identity",
+    "provider_independent": true,
+    "note": "The path follows a provisional scholarly synopsis of reported Harper's Songs witnesses and publications. It is not one ancient Work, Papyrus Harris 500, the Recto 6-7 passage, the alleged mansion-of-Intef exemplar, Goodwin's article, TLA, or a mutable provider page."
+  },
+  "identifiers": [
+    {"scheme": "TLA collective caption ID", "value": "WLWU7O2UDBGZHDGMUIC3ZIUR74", "source_ref": "https://tla.digital/text/CRNQNNDNPNBYNNLJCWIBBH3PNY"},
+    {"scheme": "TLA text ID", "value": "CRNQNNDNPNBYNNLJCWIBBH3PNY", "source_ref": "https://tla.digital/text/CRNQNNDNPNBYNNLJCWIBBH3PNY"}
+  ],
+  "editorial_object": {
+    "title": "Harper's Songs witness synopsis",
+    "tradition": "ancient Egyptian harpist-song and funerary literary witnesses",
+    "genre": "provisional synoptic corpus boundary",
+    "period_label": "reported Middle Kingdom exemplars through New Kingdom manuscript witnesses; exact composition and transmission stages unresolved",
+    "description": "A modern provisional layer that keeps genre, separately transmitted songs, attributed earlier sources, physical manuscripts, exact passages, historical publications, and modern scholarship distinguishable while future review determines whether any bounded ancient Work identities can be admitted.",
+    "modern_reconstruction": true,
+    "ancient_original": false,
+    "physical_artifact": false
+  },
+  "provider_representations": [
+    {
+      "provider": "Thesaurus Linguae Aegyptiae",
+      "representation_role": "composite_catalog",
+      "record_id": "CRNQNNDNPNBYNNLJCWIBBH3PNY",
+      "record_url": "https://tla.digital/text/CRNQNNDNPNBYNNLJCWIBBH3PNY",
+      "api_url": null,
+      "checked_at": "2026-08-30T06:24:00-06:00",
+      "mutable": true,
+      "response_fingerprints": [{"surface": "https://tla.digital/text/CRNQNNDNPNBYNNLJCWIBBH3PNY", "byte_size": 39549, "sha256": "8affcdc7b1499a58ec98940d15c08f85694505e80b0f971e32d79e5edd13a17f", "captured": false}]
+    },
+    {
+      "provider": "Thesaurus Linguae Aegyptiae",
+      "representation_role": "member_context",
+      "record_id": "AZQUE622ZRHIXAC4J4KQSR42QQ",
+      "record_url": "https://tla.digital/object/AZQUE622ZRHIXAC4J4KQSR42QQ",
+      "api_url": null,
+      "checked_at": "2026-08-30T06:24:00-06:00",
+      "mutable": true,
+      "response_fingerprints": [{"surface": "https://tla.digital/object/AZQUE622ZRHIXAC4J4KQSR42QQ", "byte_size": 41501, "sha256": "89b2f9c1c795855e11b3d55de84505c7e15c5972bd067424d914b81b8077c7e6", "captured": false}]
+    },
+    {
+      "provider": "British Museum Collection Online",
+      "representation_role": "member_context",
+      "record_id": "Y_EA10060",
+      "record_url": "https://www.britishmuseum.org/collection/object/Y_EA10060",
+      "api_url": null,
+      "checked_at": "2026-08-30T06:24:00-06:00",
+      "mutable": true,
+      "response_fingerprints": [{"surface": "https://www.britishmuseum.org/collection/object/Y_EA10060", "byte_size": 200106, "sha256": "b26f2bdfc5b903d4c8f3cc38a4142b3edc20e99fa15f214047225926482a6479", "captured": false}]
+    },
+    {
+      "provider": "Internet Archive",
+      "representation_role": "composite_edition",
+      "record_id": "onfoursongsconta00good",
+      "record_url": "https://archive.org/details/onfoursongsconta00good",
+      "api_url": "https://archive.org/metadata/onfoursongsconta00good",
+      "checked_at": "2026-08-30T06:30:00-06:00",
+      "mutable": true,
+      "response_fingerprints": [{"surface": "https://archive.org/metadata/onfoursongsconta00good", "byte_size": 13998, "sha256": "d5d75d37dc2d5d54094f8fad69ffaef0371ee3cb35fae94a6625daf8ea785ba8", "captured": false}]
+    }
+  ],
+  "member_observations": [
+    {
+      "observation_id": "tos.observation.composite.harpers-songs.member.papyrus-harris-500-ea10060.2026-08-30",
+      "member_artifact_id": "tos.artifact.egyptian.unknown.papyrus-harris-500-ea10060",
+      "relationship": "reported_witness_of",
+      "provider_relation_ids": ["British Museum: Harpist's Song from mansion of Intef, recto 6.2-7.3", "TLA: Recto 6-7 Anteflied, Harfnerlieder Text A, CRNQNNDNPNBYNNLJCWIBBH3PNY"],
+      "source_refs": ["https://www.britishmuseum.org/collection/object/Y_EA10060", "https://tla.digital/text/CRNQNNDNPNBYNNLJCWIBBH3PNY"],
+      "member_text_stored": false,
+      "review_status": "unreviewed"
+    }
+  ],
+  "coverage_observations": [
+    {
+      "provider": "British Museum and TLA exact Papyrus Harris 500 records",
+      "surface": "https://tla.digital/text/CRNQNNDNPNBYNNLJCWIBBH3PNY",
+      "observed_member_count": 1,
+      "observed_tagged_count": 1,
+      "named_member_present": true,
+      "coverage_posture": "page_exposed_unknown",
+      "checked_at": "2026-08-30T06:30:00-06:00",
+      "note": "One exact physical witness and one subordinate Recto 6-7 text record are resolved. This is not a complete roster of tomb, stela, papyrus, or later-copy witnesses and does not close the corpus boundary."
+    }
+  ],
+  "content_layer": {
+    "role": "modern_scholarly_composite",
+    "formats": ["scholarly web hierarchy", "museum catalog record", "historical article PDF", "provisional ToS synopsis"],
+    "availability": "open_download",
+    "content_stored": false,
+    "source_text_admitted": false,
+    "source_refs": ["https://tla.digital/text/CRNQNNDNPNBYNNLJCWIBBH3PNY", "https://www.britishmuseum.org/collection/object/Y_EA10060", "https://archive.org/details/onfoursongsconta00good"],
+    "scope_note": "The composite packet stores no corpus content. Four exact museum photographs and one historical-article PDF are retained as separate content-addressed Files under their own licenses. TLA text bytes were not acquired."
+  },
+  "layer_separation": {"composite_is_physical_artifact": false, "composite_is_ancient_original": false, "provider_page_is_composite_identity": false, "member_is_composite": false, "editorial_line_is_artifact_line": false, "sign_has_fixed_translation": false, "composite_is_philosophy": false},
+  "rights_ref": "ToS/source-witnesses/scholarly-composites/synoptic/egyptian/harpers-songs-witnesses/rights.json",
+  "discovery_ref": "ToS/source-witnesses/discovery/runs/harpers-songs-open-work-route.2026-08-30.v1.json",
+  "provenance_event_ref": "tos.event.discovery.harpers-songs-open-work-route.2026-08-30",
+  "research_ref": "ToS/research-packets/foundation-laboratory-2026-07/A05_HARPERS_SONGS_OPEN_WORK_ACQUISITION_2026-08-30.md",
+  "philosophy_planting_refs": ["ToS/philosophy/eras/bronze-age/regions/north-africa/traditions/egyptian-mortuary-theological-dialogic-corpora/sources/plantings/harpers-songs-papyrus-harris-500/source-planting.json"],
+  "authority": {"evidence_status": "metadata_witness", "review_status": "unreviewed", "visibility": "public_metadata_only", "source_text_admitted": false, "semantic_authority": false, "graph_authority": false, "canon_authority": false, "publication_authority": false},
+  "maker": {"maker_type": "model", "agent_ref": "model:codex", "human_review_performed": false},
+  "created_at": "2026-08-30T06:30:00-06:00",
+  "record_version": 1
+}

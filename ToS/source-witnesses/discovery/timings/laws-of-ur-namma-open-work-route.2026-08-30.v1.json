@@ -1,0 +1,147 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/open-work-channel-timing-receipt.schema.json",
+  "claim_limit": "monotonic transport timing through the first 16384 response bytes only; not research, interpretation, rights-review, or human elapsed time",
+  "discovery_id": "tos.discovery.laws-of-ur-namma-open-work-route.2026-08-30.v1",
+  "discovery_ref": "ToS/source-witnesses/discovery/runs/laws-of-ur-namma-open-work-route.2026-08-30.v1.json",
+  "measured_at": "2026-08-30T08:04:17.379508Z",
+  "measurements": [
+    {
+      "channel_id": "channel-loc-national-authority",
+      "measurement": {
+        "clock": "python.time.perf_counter_ns",
+        "elapsed_seconds": 0.134131,
+        "ended_at": "2026-08-30T08:04:10.987528Z",
+        "http_status": 403,
+        "method": "monotonic-http-request-v1",
+        "outcome": "http-error",
+        "probe_url": "https://www.loc.gov/books/",
+        "response_bytes_observed": 5552,
+        "started_at": "2026-08-30T08:04:10.853372Z",
+        "timing_scope": "request-through-first-16384-response-bytes"
+      }
+    },
+    {
+      "channel_id": "channel-oxford-text-archive",
+      "measurement": {
+        "clock": "python.time.perf_counter_ns",
+        "elapsed_seconds": 2.106373,
+        "ended_at": "2026-08-30T08:04:13.094014Z",
+        "http_status": 200,
+        "method": "monotonic-http-request-v1",
+        "outcome": "success",
+        "probe_url": "https://ota.bodleian.ox.ac.uk/repository/xmlui/handle/20.500.12024/2518",
+        "response_bytes_observed": 16384,
+        "started_at": "2026-08-30T08:04:10.987632Z",
+        "timing_scope": "request-through-first-16384-response-bytes"
+      }
+    },
+    {
+      "channel_id": "channel-etcsl-catalog",
+      "measurement": {
+        "clock": "python.time.perf_counter_ns",
+        "elapsed_seconds": 0.742012,
+        "ended_at": "2026-08-30T08:04:13.836139Z",
+        "http_status": 200,
+        "method": "monotonic-http-request-v1",
+        "outcome": "success",
+        "probe_url": "https://etcsl.orinst.ox.ac.uk/catalogue/catalogue3.htm",
+        "response_bytes_observed": 11873,
+        "started_at": "2026-08-30T08:04:13.094118Z",
+        "timing_scope": "request-through-first-16384-response-bytes"
+      }
+    },
+    {
+      "channel_id": "channel-oracc-etcsri-exact-text",
+      "measurement": {
+        "clock": "python.time.perf_counter_ns",
+        "elapsed_seconds": 0.16282,
+        "ended_at": "2026-08-30T08:04:13.999055Z",
+        "http_status": null,
+        "method": "monotonic-http-request-v1",
+        "outcome": "transport-error",
+        "probe_url": "https://oracc.museum.upenn.edu/etcsri/Q000947",
+        "response_bytes_observed": 0,
+        "started_at": "2026-08-30T08:04:13.836227Z",
+        "timing_scope": "request-through-first-16384-response-bytes"
+      }
+    },
+    {
+      "channel_id": "channel-cdli-current-composite",
+      "measurement": {
+        "clock": "python.time.perf_counter_ns",
+        "elapsed_seconds": 1.634432,
+        "ended_at": "2026-08-30T08:04:15.633583Z",
+        "http_status": 200,
+        "method": "monotonic-http-request-v1",
+        "outcome": "success",
+        "probe_url": "https://cdli.earth/artifacts/432130",
+        "response_bytes_observed": 16384,
+        "started_at": "2026-08-30T08:04:13.999143Z",
+        "timing_scope": "request-through-first-16384-response-bytes"
+      }
+    },
+    {
+      "channel_id": "channel-europeana-aggregator",
+      "measurement": {
+        "clock": "python.time.perf_counter_ns",
+        "elapsed_seconds": 0.210951,
+        "ended_at": "2026-08-30T08:04:15.844626Z",
+        "http_status": 403,
+        "method": "monotonic-http-request-v1",
+        "outcome": "http-error",
+        "probe_url": "https://www.europeana.eu/en/search",
+        "response_bytes_observed": 5604,
+        "started_at": "2026-08-30T08:04:15.633667Z",
+        "timing_scope": "request-through-first-16384-response-bytes"
+      }
+    },
+    {
+      "channel_id": "channel-crossref-identifiers",
+      "measurement": {
+        "clock": "python.time.perf_counter_ns",
+        "elapsed_seconds": 0.765576,
+        "ended_at": "2026-08-30T08:04:16.610306Z",
+        "http_status": 200,
+        "method": "monotonic-http-request-v1",
+        "outcome": "success",
+        "probe_url": "https://api.crossref.org/works",
+        "response_bytes_observed": 16384,
+        "started_at": "2026-08-30T08:04:15.844720Z",
+        "timing_scope": "request-through-first-16384-response-bytes"
+      }
+    },
+    {
+      "channel_id": "channel-open-library-catalogs",
+      "measurement": {
+        "clock": "python.time.perf_counter_ns",
+        "elapsed_seconds": 0.390132,
+        "ended_at": "2026-08-30T08:04:17.000552Z",
+        "http_status": 200,
+        "method": "monotonic-http-request-v1",
+        "outcome": "success",
+        "probe_url": "https://archive.org/advancedsearch.php",
+        "response_bytes_observed": 16384,
+        "started_at": "2026-08-30T08:04:16.610411Z",
+        "timing_scope": "request-through-first-16384-response-bytes"
+      }
+    },
+    {
+      "channel_id": "channel-general-web-last",
+      "measurement": {
+        "clock": "python.time.perf_counter_ns",
+        "elapsed_seconds": 0.378729,
+        "ended_at": "2026-08-30T08:04:17.379397Z",
+        "http_status": 200,
+        "method": "monotonic-http-request-v1",
+        "outcome": "success",
+        "probe_url": "https://www.google.com/search",
+        "response_bytes_observed": 16384,
+        "started_at": "2026-08-30T08:04:17.000658Z",
+        "timing_scope": "request-through-first-16384-response-bytes"
+      }
+    }
+  ],
+  "record_version": 1,
+  "schema_version": "tos_open_work_channel_timing_receipt_v1",
+  "timing_id": "open-work-channel-timing.laws-of-ur-namma-open-work-route.2026-08-30.v1"
+}

@@ -1,0 +1,21 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/philosophy-source-planting.schema.json",
+  "schema_version": "tos_philosophy_source_planting_v1",
+  "planting_id": "tos.planting.a05.coffin-texts-met-khety",
+  "atlas_row_id": "A05",
+  "dossier_id": "A05",
+  "branch_path": "ToS/philosophy/eras/bronze-age/regions/north-africa/traditions/egyptian-mortuary-theological-dialogic-corpora",
+  "source_backlog_anchor": {"path": "ToS/philosophy/eras/bronze-age/regions/north-africa/traditions/egyptian-mortuary-theological-dialogic-corpora/sources/source-anchor-backlog.jsonl", "line": 12, "source_table_index": 12, "source_row_index": 2, "source_label": "Coffin Texts"},
+  "source_witness": {"artifact_id": "tos.artifact.egyptian.lisht-south.met-khety-32-1-133", "record_ref": "ToS/source-witnesses/artifacts/egyptian/lisht-south/met-khety-32-1-133/artifact-witness.json", "relationship": "grounds_source_backlog_anchor"},
+  "discovery_ref": "ToS/source-witnesses/discovery/runs/coffin-texts-met-artifacts.2026-08-30.v1.json",
+  "provenance_event_ref": "tos.event.acquisition.coffin-texts-met-open-access-images.2026-08-30",
+  "research_ref": "ToS/research-packets/foundation-laboratory-2026-07/A05_COFFIN_TEXTS_OPEN_WORK_ACQUISITION_2026-08-30.md",
+  "fulfilled_source_needs": ["the exact Met holding record fixes one physical coffin, inventory 32.1.133a-k, excavation context, dimensions, date and custody", "the object record explicitly identifies religious spells on the lid and sides as Coffin Texts", "two exact public-domain image byte sequences are content-addressed and bound to CC0 evidence"],
+  "remaining_controls": ["the artifact is not the entire Coffin Texts corpus, one ancient Work, or a fixed recension", "spell regions, de Buck sigla, transcription, translation and critical readings remain unreviewed and unadmitted", "the images promote no semantic, graph, canon, publication or philosophical claim"],
+  "research_order": ["official_and_classical_documentation", "established_top_scholarship", "fresh_current_relevance_check"],
+  "authority": {"source_status": "metadata_witness_planted", "review_status": "unreviewed", "source_text_admitted": false, "semantic_status": "not_started", "graph_status": "not_promoted", "canon_status": "not_canon", "human_task_created": false},
+  "status": "source_witness_planted",
+  "maker": {"maker_type": "model", "agent_ref": "model:codex", "human_review_performed": false},
+  "created_at": "2026-08-30T04:25:00-06:00",
+  "record_version": 1
+}

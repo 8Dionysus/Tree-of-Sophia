@@ -1,0 +1,147 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/open-work-channel-timing-receipt.schema.json",
+  "claim_limit": "monotonic transport timing through the first 16384 response bytes only; not research, interpretation, rights-review, or human elapsed time",
+  "discovery_id": "tos.discovery.instructions-of-shuruppag-open-work-route.2026-08-30.v1",
+  "discovery_ref": "ToS/source-witnesses/discovery/runs/instructions-of-shuruppag-open-work-route.2026-08-30.v1.json",
+  "measured_at": "2026-08-30T07:42:41.100724Z",
+  "measurements": [
+    {
+      "channel_id": "channel-loc-national-authority",
+      "measurement": {
+        "clock": "python.time.perf_counter_ns",
+        "elapsed_seconds": 0.191363,
+        "ended_at": "2026-08-30T07:42:34.691192Z",
+        "http_status": 403,
+        "method": "monotonic-http-request-v1",
+        "outcome": "http-error",
+        "probe_url": "https://www.loc.gov/books/",
+        "response_bytes_observed": 5552,
+        "started_at": "2026-08-30T07:42:34.499779Z",
+        "timing_scope": "request-through-first-16384-response-bytes"
+      }
+    },
+    {
+      "channel_id": "channel-oxford-text-archive",
+      "measurement": {
+        "clock": "python.time.perf_counter_ns",
+        "elapsed_seconds": 2.459346,
+        "ended_at": "2026-08-30T07:42:37.150704Z",
+        "http_status": 200,
+        "method": "monotonic-http-request-v1",
+        "outcome": "success",
+        "probe_url": "https://ota.bodleian.ox.ac.uk/repository/xmlui/handle/20.500.12024/2518",
+        "response_bytes_observed": 16384,
+        "started_at": "2026-08-30T07:42:34.691344Z",
+        "timing_scope": "request-through-first-16384-response-bytes"
+      }
+    },
+    {
+      "channel_id": "channel-etcsl-exact-composition",
+      "measurement": {
+        "clock": "python.time.perf_counter_ns",
+        "elapsed_seconds": 0.645058,
+        "ended_at": "2026-08-30T07:42:37.795941Z",
+        "http_status": 200,
+        "method": "monotonic-http-request-v1",
+        "outcome": "success",
+        "probe_url": "https://etcsl.orinst.ox.ac.uk/section5/c561.htm",
+        "response_bytes_observed": 16384,
+        "started_at": "2026-08-30T07:42:37.150866Z",
+        "timing_scope": "request-through-first-16384-response-bytes"
+      }
+    },
+    {
+      "channel_id": "channel-cdli-current-composite",
+      "measurement": {
+        "clock": "python.time.perf_counter_ns",
+        "elapsed_seconds": 1.169184,
+        "ended_at": "2026-08-30T07:42:38.965338Z",
+        "http_status": 200,
+        "method": "monotonic-http-request-v1",
+        "outcome": "success",
+        "probe_url": "https://cdli.earth/artifacts/composites-score/Q000782",
+        "response_bytes_observed": 16384,
+        "started_at": "2026-08-30T07:42:37.796139Z",
+        "timing_scope": "request-through-first-16384-response-bytes"
+      }
+    },
+    {
+      "channel_id": "channel-oracc-license-corroboration",
+      "measurement": {
+        "clock": "python.time.perf_counter_ns",
+        "elapsed_seconds": 0.175616,
+        "ended_at": "2026-08-30T07:42:39.141169Z",
+        "http_status": null,
+        "method": "monotonic-http-request-v1",
+        "outcome": "transport-error",
+        "probe_url": "https://oracc.museum.upenn.edu/compass/downloads/2_4_Data_Acquisition_ETCSL.html",
+        "response_bytes_observed": 0,
+        "started_at": "2026-08-30T07:42:38.965536Z",
+        "timing_scope": "request-through-first-16384-response-bytes"
+      }
+    },
+    {
+      "channel_id": "channel-isac-oip99",
+      "measurement": {
+        "clock": "python.time.perf_counter_ns",
+        "elapsed_seconds": 0.327207,
+        "ended_at": "2026-08-30T07:42:39.468541Z",
+        "http_status": 200,
+        "method": "monotonic-http-request-v1",
+        "outcome": "success",
+        "probe_url": "https://isac.uchicago.edu/research/publications/oip/inscriptions-tell-abu-salabikh",
+        "response_bytes_observed": 16384,
+        "started_at": "2026-08-30T07:42:39.141321Z",
+        "timing_scope": "request-through-first-16384-response-bytes"
+      }
+    },
+    {
+      "channel_id": "channel-established-edition-identifiers",
+      "measurement": {
+        "clock": "python.time.perf_counter_ns",
+        "elapsed_seconds": 1.063184,
+        "ended_at": "2026-08-30T07:42:40.531903Z",
+        "http_status": 200,
+        "method": "monotonic-http-request-v1",
+        "outcome": "success",
+        "probe_url": "https://doi.org/10.1086/373090",
+        "response_bytes_observed": 16384,
+        "started_at": "2026-08-30T07:42:39.468703Z",
+        "timing_scope": "request-through-first-16384-response-bytes"
+      }
+    },
+    {
+      "channel_id": "channel-open-library-catalogs",
+      "measurement": {
+        "clock": "python.time.perf_counter_ns",
+        "elapsed_seconds": 0.31945,
+        "ended_at": "2026-08-30T07:42:40.851550Z",
+        "http_status": 200,
+        "method": "monotonic-http-request-v1",
+        "outcome": "success",
+        "probe_url": "https://archive.org/metadata/instructions-of-shuruppak",
+        "response_bytes_observed": 9008,
+        "started_at": "2026-08-30T07:42:40.532084Z",
+        "timing_scope": "request-through-first-16384-response-bytes"
+      }
+    },
+    {
+      "channel_id": "channel-general-web-last",
+      "measurement": {
+        "clock": "python.time.perf_counter_ns",
+        "elapsed_seconds": 0.248897,
+        "ended_at": "2026-08-30T07:42:41.100627Z",
+        "http_status": 200,
+        "method": "monotonic-http-request-v1",
+        "outcome": "success",
+        "probe_url": "https://www.google.com/search?q=%22Instructions+of+Shuruppag%22+%22Creative+Commons%22+XML",
+        "response_bytes_observed": 16384,
+        "started_at": "2026-08-30T07:42:40.851716Z",
+        "timing_scope": "request-through-first-16384-response-bytes"
+      }
+    }
+  ],
+  "record_version": 1,
+  "schema_version": "tos_open_work_channel_timing_receipt_v1",
+  "timing_id": "open-work-channel-timing.instructions-of-shuruppag-open-work-route.2026-08-30.v1"
+}

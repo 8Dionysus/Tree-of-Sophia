@@ -1,0 +1,81 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://tree-of-sophia.local/ToS/contracts/open-work-candidate-queue.schema.json",
+  "title": "Tree of Sophia generated open-work candidate queue",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["$schema", "schema_version", "owner_surface", "receipt_root", "timing_root", "generated_by", "source_snapshot", "counts", "next_candidate_id", "candidates", "authority_boundary", "queue_sha256"],
+  "properties": {
+    "$schema": {"const": "https://tree-of-sophia.local/ToS/contracts/open-work-candidate-queue.schema.json"},
+    "schema_version": {"const": "tos_open_work_candidate_queue_v1"},
+    "owner_surface": {"const": "ToS/source-witnesses/discovery/candidates/reviewed-candidates.jsonl"},
+    "receipt_root": {"const": "ToS/source-witnesses/discovery/candidates/receipts"},
+    "timing_root": {"const": "ToS/source-witnesses/discovery/timings"},
+    "generated_by": {"const": "scripts/build_open_work_candidate_queue.py"},
+    "source_snapshot": {"$ref": "#/$defs/sourceSnapshot"},
+    "counts": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["candidates", "by_effective_status"],
+      "properties": {
+        "candidates": {"type": "integer", "minimum": 0},
+        "by_effective_status": {"type": "object", "additionalProperties": {"type": "integer", "minimum": 0}}
+      }
+    },
+    "next_candidate_id": {"oneOf": [{"type": "string", "pattern": "^open-work-candidate\\."}, {"type": "null"}]},
+    "candidates": {"type": "array", "items": {"$ref": "#/$defs/candidateEntry"}},
+    "authority_boundary": {"const": "generated queue navigation over reviewed candidate records and terminal receipts; not identity, rights, semantic, or canon authority"},
+    "queue_sha256": {"$ref": "#/$defs/sha256"}
+  },
+  "$defs": {
+    "sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "sourceSnapshot": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["input_sha256", "inputs", "counts"],
+      "properties": {
+        "input_sha256": {"$ref": "#/$defs/sha256"},
+        "inputs": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["path", "sha256"],
+            "properties": {"path": {"type": "string", "minLength": 1}, "sha256": {"$ref": "#/$defs/sha256"}}
+          }
+        },
+        "counts": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["master_rows", "accepted_dossiers", "source_anchor_backlog_rows", "catalog_works", "discovery_runs", "reviewed_candidates", "terminal_receipts"],
+          "properties": {
+            "master_rows": {"type": "integer", "minimum": 0},
+            "accepted_dossiers": {"type": "integer", "minimum": 0},
+            "source_anchor_backlog_rows": {"type": "integer", "minimum": 0},
+            "catalog_works": {"type": "integer", "minimum": 0},
+            "discovery_runs": {"type": "integer", "minimum": 0},
+            "reviewed_candidates": {"type": "integer", "minimum": 0},
+            "terminal_receipts": {"type": "integer", "minimum": 0}
+          }
+        }
+      }
+    },
+    "candidateEntry": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["candidate_id", "candidate_kind", "preferred_label", "selection", "effective_status", "candidate_source_ref", "candidate_sha256", "terminal_receipt_id", "discovery_id"],
+      "properties": {
+        "candidate_id": {"type": "string", "pattern": "^open-work-candidate\\."},
+        "candidate_kind": {"enum": ["work", "work-like-corpus", "non-work-exclusion"]},
+        "preferred_label": {"type": "string", "minLength": 1},
+        "selection": {"type": "object"},
+        "effective_status": {"type": "string", "minLength": 1},
+        "candidate_source_ref": {"type": "string", "pattern": "^ToS/source-witnesses/discovery/candidates/reviewed-candidates\\.jsonl:[0-9]+$"},
+        "candidate_sha256": {"$ref": "#/$defs/sha256"},
+        "terminal_receipt_id": {"type": ["string", "null"]},
+        "discovery_id": {"type": ["string", "null"]}
+      }
+    }
+  }
+}

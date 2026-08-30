@@ -1,0 +1,82 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/open-work-candidate-receipt.schema.json",
+  "schema_version": "tos_open_work_candidate_receipt_v1",
+  "receipt_id": "open-work-candidate-receipt.old-babylonian-gilgamesh-tradition.2026-08-30.v1",
+  "candidate_id": "open-work-candidate.old-babylonian-gilgamesh-tradition",
+  "candidate_record_sha256": "7a8e78964f747af6199cabfd9dc3c5afa18ad9596c1dc572f9cb4aa0234e4ec2",
+  "queue_snapshot_sha256": "c42b98386861ea37ebdd062b00400c972a3adfd33e2b9381b946776c0673f2e3",
+  "discovery_ref": "ToS/source-witnesses/discovery/runs/old-babylonian-gilgamesh-open-work-route.2026-08-30.v1.json",
+  "discovery_id": "tos.discovery.old-babylonian-gilgamesh-open-work-route.2026-08-30.v1",
+  "timing_ref": "ToS/source-witnesses/discovery/timings/old-babylonian-gilgamesh-open-work-route.2026-08-30.v1.json",
+  "terminal_status": "held_source_witness",
+  "target_resolution": {
+    "identity_status": "provisional",
+    "work_ref": "tos.work.akkadian-literature.old-babylonian-gilgamesh-tradition",
+    "expression_ref": null,
+    "edition_ref": null,
+    "item_ref": null,
+    "summary": "The candidate retains its unresolved ancient Work-like corpus boundary. A separate verified 1920 modern scholarly Work, Expression, Edition, and exact public-domain scan Item now provide one source-returnable historical route without resolving the ancient recension or collapsing Penn CBS 07771, Yale YBC 2178, the eBL composite, or the Standard Babylonian poem."
+  },
+  "rights_result": {
+    "status": "positive-for-acquisition",
+    "reviewed_jurisdictions": [
+      "DE",
+      "MX",
+      "US"
+    ],
+    "reviewed_layers": [
+      "1920 scholarly work",
+      "historical translation and transliteration",
+      "introduction, commentary, and appendix",
+      "edition presentation",
+      "exact digital scan",
+      "provider metadata"
+    ],
+    "evidence_refs": [
+      "ToS/source-witnesses/works/old-babylonian-scholarship/an-old-babylonian-version-of-the-gilgamesh-epic/expressions/en-jastrow-clay-1920/editions/new-haven-yale-university-press-1920/items/commons-internet-archive-robarts-scan-djvu/rights.json",
+      "ToS/research-packets/foundation-laboratory-2026-07/A02_OLD_BABYLONIAN_GILGAMESH_OPEN_WORK_ACQUISITION_2026-08-30.md",
+      "https://commons.wikimedia.org/wiki/File:An_Old_Babylonian_Version_of_the_Gilgamesh_Epic_-_Morris_-_1920.djvu",
+      "https://www.gesetze-im-internet.de/englisch_urhg/englisch_urhg.html",
+      "https://www.diputados.gob.mx/LeyesBiblio/pdf/LFDA.pdf",
+      "https://www.copyright.gov/circs/circ15a.pdf"
+    ],
+    "summary": "The identified authors died in 1921 and 1925; the reviewed DE life-plus-70, MX life-plus-100, and US pre-1931 publication routes are expired. Commons marks the exact File public domain and PD-scan, and the local SHA-1 matches the provider record. The model assessment authorizes Goal-local acquisition with provenance and jurisdiction caveats but is not human legal or publication approval."
+  },
+  "acquisition": {
+    "downloaded": true,
+    "item_ref": "tos.item.old-babylonian-scholarship.an-old-babylonian-version-of-the-gilgamesh-epic.en-jastrow-clay-1920.commons-internet-archive-robarts-scan-djvu",
+    "artifact_ref": null,
+    "representation_ref": null,
+    "file_ref": "tos.file.sha256.b3affda48ef0d57008d4153c04da3797074ece4296473e7c874b4e5252932023",
+    "provenance_event_ref": "tos.event.acquisition.old-babylonian-gilgamesh-jastrow-clay-1920.commons-djvu.2026-08-30"
+  },
+  "planting_refs": [
+    "ToS/philosophy/eras/bronze-age/regions/west-asia/traditions/old-babylonian-scribal-wisdom-law/sources/plantings/old-babylonian-gilgamesh-fragments/source-planting.json"
+  ],
+  "operational_relation_refs": [
+    "ToS/source-witnesses/discovery/candidates/reviewed-candidates.jsonl:9",
+    "ToS/source-witnesses/discovery/runs/old-babylonian-gilgamesh-open-work-route.2026-08-30.v1.json",
+    "ToS/source-witnesses/discovery/timings/old-babylonian-gilgamesh-open-work-route.2026-08-30.v1.json",
+    "ToS/research-packets/foundation-laboratory-2026-07/A02_OLD_BABYLONIAN_GILGAMESH_OPEN_WORK_ACQUISITION_2026-08-30.md",
+    "ToS/source-witnesses/works/akkadian-literature/old-babylonian-gilgamesh-tradition/work.json",
+    "ToS/source-witnesses/scholarly-composites/synoptic/akkadian/old-babylonian-gilgamesh-fragments/composite-witness.json",
+    "ToS/source-witnesses/artifacts/old-babylonian/uncertain/penn-cbs-07771/artifact-witness.json",
+    "ToS/source-witnesses/works/old-babylonian-scholarship/an-old-babylonian-version-of-the-gilgamesh-epic/work.json",
+    "ToS/source-witnesses/works/old-babylonian-scholarship/an-old-babylonian-version-of-the-gilgamesh-epic/expressions/en-jastrow-clay-1920/editions/new-haven-yale-university-press-1920/items/commons-internet-archive-robarts-scan-djvu/item.json",
+    "ToS/source-witnesses/works/old-babylonian-scholarship/an-old-babylonian-version-of-the-gilgamesh-epic/expressions/en-jastrow-clay-1920/editions/new-haven-yale-university-press-1920/items/commons-internet-archive-robarts-scan-djvu/item.manifest.json",
+    "ToS/source-witnesses/works/old-babylonian-scholarship/an-old-babylonian-version-of-the-gilgamesh-epic/expressions/en-jastrow-clay-1920/editions/new-haven-yale-university-press-1920/items/commons-internet-archive-robarts-scan-djvu/rights.json",
+    "ToS/source-witnesses/works/old-babylonian-scholarship/an-old-babylonian-version-of-the-gilgamesh-epic/expressions/en-jastrow-clay-1920/editions/new-haven-yale-university-press-1920/items/commons-internet-archive-robarts-scan-djvu/provenance.jsonl",
+    "ToS/source-witnesses/relations/work-expression/work-expression-claims.jsonl",
+    "ToS/source-witnesses/relations/expression-edition/expression-edition-claims.jsonl",
+    "ToS/source-witnesses/relations/edition-item/edition-item-claims.jsonl",
+    "tos.event.discovery.old-babylonian-gilgamesh-open-work-route.2026-08-30",
+    "tos.event.acquisition.old-babylonian-gilgamesh-jastrow-clay-1920.commons-djvu.2026-08-30"
+  ],
+  "next_trigger": "Rebuild queue.current.json. If no reviewed ready candidate remains, review exactly one next earliest source-backed Work or work-like corpus from the visible frontier, append it to reviewed-candidates.jsonl, rebuild, freeze it, and continue the loop.",
+  "issued_at": "2026-08-30T03:58:00-06:00",
+  "maker": {
+    "maker_type": "model",
+    "agent_ref": "model:codex"
+  },
+  "record_version": 1
+}

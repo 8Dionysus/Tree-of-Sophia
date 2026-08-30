@@ -1,0 +1,930 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/material-discovery-record.schema.json",
+  "schema_version": "tos_material_discovery_record_v1",
+  "discovery_id": "tos.discovery.old-babylonian-gilgamesh-open-work-route.2026-08-30.v1",
+  "protocol_ref": "ToS/source-witnesses/discovery/DISCOVERY_PROTOCOL.md",
+  "target": {
+    "target_kind": "scholarly-composite",
+    "known_tos_refs": [
+      "tos.work.akkadian-literature.old-babylonian-gilgamesh-tradition",
+      "tos.composite.akkadian.old-babylonian-gilgamesh-fragments",
+      "tos.artifact.old-babylonian.uncertain.penn-cbs-07771"
+    ],
+    "description": "Resolve the provisional Old Babylonian Gilgamesh tradition, synoptic composite, and Penn CBS 07771 / Yale YBC 2178 physical-witness pressure to exact openly reusable digital objects while keeping ancient Work-like cluster, tablets, current composite, historical scholarship, translations, scans, and Files distinct.",
+    "required_properties": [
+      "reuse existing provisional ancient Work, composite, and artifact identities",
+      "exact downloadable object identity and fixity",
+      "originating-provider or exact File-level rights evidence",
+      "Old Babylonian fragment cluster and Standard Babylonian poem kept separate",
+      "no source-text, translation, semantic, graph, canon, or publication admission"
+    ],
+    "acceptable_substitutions": [
+      "an exact current scholarly export under a standard open license",
+      "an exact holding-institution photograph under a standard open license",
+      "an exact historical critical-edition or translation scan with reviewed public-domain and digital-object rights",
+      "a rights-insufficient terminal receipt preserving all useful routes"
+    ],
+    "languages": [
+      "akk",
+      "en",
+      "de"
+    ],
+    "formats": [
+      "authority record",
+      "institutional artifact record",
+      "scholarly composite JSON",
+      "open dataset",
+      "historical edition scan",
+      "historical translation",
+      "object-level rights statement"
+    ],
+    "purpose_ref": "ToS/source-witnesses/discovery/candidates/README.md"
+  },
+  "channels": [
+    {
+      "channel_id": "channel-dnb-authorities",
+      "sequence": 1,
+      "channel_type": "national-catalog",
+      "role": "originating-record",
+      "source_name": "Deutsche Nationalbibliothek / Gemeinsame Normdatei",
+      "endpoint_url": "https://d-nb.info/gnd/117085626",
+      "interface_type": "web",
+      "interface_version": "GND authority records checked 2026-08-30",
+      "exact_query": "Resolve GND 117085626 for Morris Jastrow and GND 116541733 for Albert Tobias Clay; preserve exact life dates and identifiers without asserting ancient authorship.",
+      "queried_at": "2026-08-30T09:48:55.623555Z",
+      "elapsed_seconds": 4.313165,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.gnd-morris-jastrow-117085626",
+          "rank": 1,
+          "title_as_displayed": "Jastrow, Morris",
+          "result_url": "https://d-nb.info/gnd/117085626",
+          "originating_record_url": "https://d-nb.info/gnd/117085626",
+          "identifiers": [
+            {
+              "scheme": "GND",
+              "value": "117085626"
+            }
+          ],
+          "available_formats": [
+            "authority HTML",
+            "linked data"
+          ],
+          "declared_rights": {
+            "statement": "The authority record supplies bibliographic identity and life dates; it does not license a publication payload.",
+            "scope": "metadata",
+            "evidence_url": "https://d-nb.info/gnd/117085626",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "metadata-only",
+          "machine_interface": "html",
+          "decision": "select",
+          "rationale": "Exact authority control for Morris Jastrow, Jr. (1861–1921).",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-needed",
+            "format": null,
+            "sha256": null,
+            "reason": "The live originating route and tracked relation preserve the useful evidence; no page snapshot substitutes for it."
+          }
+        },
+        {
+          "result_id": "tos-discovery-result.gnd-albert-tobias-clay-116541733",
+          "rank": 2,
+          "title_as_displayed": "Clay, Albert Tobias",
+          "result_url": "https://d-nb.info/gnd/116541733",
+          "originating_record_url": "https://d-nb.info/gnd/116541733",
+          "identifiers": [
+            {
+              "scheme": "GND",
+              "value": "116541733"
+            }
+          ],
+          "available_formats": [
+            "authority HTML",
+            "linked data"
+          ],
+          "declared_rights": {
+            "statement": "The authority record supplies bibliographic identity and the author route; it does not license a publication payload.",
+            "scope": "metadata",
+            "evidence_url": "https://d-nb.info/gnd/116541733",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "metadata-only",
+          "machine_interface": "html",
+          "decision": "select",
+          "rationale": "Exact authority control for Albert Tobias Clay (1866–1925).",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-needed",
+            "format": null,
+            "sha256": null,
+            "reason": "The live originating route and tracked relation preserve the useful evidence; no page snapshot substitutes for it."
+          }
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-penn-yale-holdings",
+      "sequence": 2,
+      "channel_type": "university-catalog",
+      "role": "originating-record",
+      "source_name": "Penn Museum and Yale Babylonian Collection",
+      "endpoint_url": "https://www.penn.museum/collections/object/245958",
+      "interface_type": "web",
+      "interface_version": "object, highlights, rights, and CDLI cross-records checked 2026-08-30",
+      "exact_query": "Resolve Penn object 245958 / CBS 07771 and Yale YBC 2178; compare institutional identity, CDLI coordinates, image availability, and exact media terms.",
+      "queried_at": "2026-08-30T09:48:59.936890Z",
+      "elapsed_seconds": 8.655087,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.penn-cbs-07771-object-245958",
+          "rank": 1,
+          "title_as_displayed": "Tablet — CBS 07771",
+          "result_url": "https://www.penn.museum/collections/object/245958",
+          "originating_record_url": "https://www.penn.museum/collections/object/245958",
+          "identifiers": [
+            {
+              "scheme": "Penn object",
+              "value": "245958"
+            },
+            {
+              "scheme": "museum number",
+              "value": "CBS 07771"
+            },
+            {
+              "scheme": "CDLI",
+              "value": "P262784"
+            }
+          ],
+          "available_formats": [
+            "museum HTML",
+            "collection images"
+          ],
+          "declared_rights": {
+            "statement": "The object record is exact holding evidence; Penn's current media terms do not supply a standard open license for the exact photograph.",
+            "scope": "digital-object",
+            "evidence_url": "https://www.penn.museum/about-collections/rights-and-permissions",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "permission-required",
+          "machine_interface": "html",
+          "decision": "select",
+          "rationale": "Selected as exact physical-witness metadata and rejected as an image acquisition route.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-permitted",
+            "format": null,
+            "sha256": null,
+            "reason": "No Penn photograph is retained because the exact media route did not satisfy the Goal's standard-open threshold."
+          }
+        },
+        {
+          "result_id": "tos-discovery-result.yale-ybc-2178-old-babylonian-gilgamesh",
+          "rank": 2,
+          "title_as_displayed": "YBC 2178 — Old Babylonian Gilgamesh",
+          "result_url": "https://babylonian-collection.yale.edu/highlights",
+          "originating_record_url": "https://babylonian-collection.yale.edu/highlights",
+          "identifiers": [
+            {
+              "scheme": "Yale Babylonian Collection",
+              "value": "YBC 2178"
+            },
+            {
+              "scheme": "CDLI",
+              "value": "P273176"
+            }
+          ],
+          "available_formats": [
+            "institutional highlights HTML",
+            "CDLI artifact metadata"
+          ],
+          "declared_rights": {
+            "statement": "The institutional and CDLI pages identify the tablet; no exact Yale image under a standard open license was established.",
+            "scope": "metadata",
+            "evidence_url": "https://babylonian-collection.yale.edu/highlights",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "metadata-only",
+          "machine_interface": "html",
+          "decision": "select",
+          "rationale": "Exact second physical-witness route for the two-fragment scope of the 1920 publication.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-needed",
+            "format": null,
+            "sha256": null,
+            "reason": "The live originating route and tracked relation preserve the useful evidence; no page snapshot substitutes for it."
+          }
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-ebl-current-composite",
+      "sequence": 3,
+      "channel_type": "specialized-scholarly-project",
+      "role": "mixed",
+      "source_name": "Electronic Babylonian Literature",
+      "endpoint_url": "https://www.ebl.lmu.de/api/texts/L/1/4",
+      "interface_type": "api",
+      "interface_version": "current public API checked 2026-08-30",
+      "exact_query": "GET eBL L/1/4 and Old Babylonian II manuscript endpoint; verify current Old Babylonian composite context and CBS.7771 membership; do not project the ebl-api MIT software license onto corpus content.",
+      "queried_at": "2026-08-30T09:49:08.592075Z",
+      "elapsed_seconds": 1.600291,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.ebl-l1-4-old-babylonian-composite",
+          "rank": 1,
+          "title_as_displayed": "Gilgamesh Epic — Old Babylonian composite context",
+          "result_url": "https://www.ebl.lmu.de/api/texts/L/1/4",
+          "originating_record_url": "https://www.ebl.lmu.de/api/texts/L/1/4",
+          "identifiers": [
+            {
+              "scheme": "eBL text",
+              "value": "L/1/4"
+            }
+          ],
+          "available_formats": [
+            "composite JSON",
+            "chapter/manuscript JSON"
+          ],
+          "declared_rights": {
+            "statement": "Public API access and the software repository's MIT license do not establish a blanket license for the mutable corpus body.",
+            "scope": "content",
+            "evidence_url": "https://github.com/ElectronicBabylonianLiterature/ebl-api/blob/master/LICENSE",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-view",
+          "machine_interface": "api",
+          "decision": "select",
+          "rationale": "Strong current mutable composite control; no corpus payload or text layer was acquired.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-needed",
+            "format": null,
+            "sha256": null,
+            "reason": "The live originating route and tracked relation preserve the useful evidence; no page snapshot substitutes for it."
+          }
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-zenodo-ebl-dataset",
+      "sequence": 4,
+      "channel_type": "collection-aggregator",
+      "role": "digital-object-record",
+      "source_name": "Zenodo",
+      "endpoint_url": "https://zenodo.org/records/10018951",
+      "interface_type": "api",
+      "interface_version": "record API and file inventory checked 2026-08-30",
+      "exact_query": "Inspect Zenodo record 10018951 and stream-search the 73,854,507-byte fragments.json for CBS.7771 and P262784; preserve the CC BY 4.0 dataset route and exact zero match.",
+      "queried_at": "2026-08-30T09:49:10.192498Z",
+      "elapsed_seconds": 1.061359,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.zenodo-ebl-transliterated-fragments-10018951",
+          "rank": 1,
+          "title_as_displayed": "Transliterated Fragments from the Electronic Babylonian Literature Project",
+          "result_url": "https://zenodo.org/records/10018951",
+          "originating_record_url": "https://zenodo.org/api/records/10018951",
+          "identifiers": [
+            {
+              "scheme": "Zenodo record",
+              "value": "10018951"
+            }
+          ],
+          "available_formats": [
+            "JSON dataset",
+            "ZIP archive",
+            "README"
+          ],
+          "declared_rights": {
+            "statement": "Zenodo declares CC BY 4.0 for the dataset record.",
+            "scope": "content",
+            "evidence_url": "https://creativecommons.org/licenses/by/4.0/",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-download",
+          "machine_interface": "api",
+          "decision": "defer",
+          "rationale": "Useful openly licensed broad corpus, but the exact bounded search returned no CBS.7771 or P262784 match; it was not downloaded as the candidate object.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-captured",
+            "format": null,
+            "sha256": null,
+            "reason": "No broad corpus payload was retained because the exact candidate identifiers were absent."
+          }
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-cdli-identifiers",
+      "sequence": 5,
+      "channel_type": "identifier-registry",
+      "role": "scholarly-index",
+      "source_name": "Cuneiform Digital Library Initiative",
+      "endpoint_url": "https://cdli.earth/artifacts/273176",
+      "interface_type": "web",
+      "interface_version": "artifact records checked 2026-08-30",
+      "exact_query": "Resolve CDLI P273176 / YBC 2178 and P262784 / CBS 07771; preserve physical identifiers and reported composite coordinate Q002873.nn without treating the coordinate as one ancient Work or open content license.",
+      "queried_at": "2026-08-30T09:49:11.254010Z",
+      "elapsed_seconds": 1.114331,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.cdli-p273176-ybc-2178",
+          "rank": 1,
+          "title_as_displayed": "P273176 / YBC 2178",
+          "result_url": "https://cdli.earth/artifacts/273176",
+          "originating_record_url": "https://cdli.earth/artifacts/273176",
+          "identifiers": [
+            {
+              "scheme": "CDLI",
+              "value": "P273176"
+            },
+            {
+              "scheme": "museum number",
+              "value": "YBC 2178"
+            },
+            {
+              "scheme": "composite",
+              "value": "Q002873.nn"
+            }
+          ],
+          "available_formats": [
+            "artifact HTML",
+            "metadata"
+          ],
+          "declared_rights": {
+            "statement": "The record is identifier and membership evidence; availability does not clear images, transliteration, or composite text.",
+            "scope": "metadata",
+            "evidence_url": "https://cdli.earth/artifacts/273176",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "metadata-only",
+          "machine_interface": "html",
+          "decision": "select",
+          "rationale": "Exact identifier control for the Yale tablet.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-needed",
+            "format": null,
+            "sha256": null,
+            "reason": "The live originating route and tracked relation preserve the useful evidence; no page snapshot substitutes for it."
+          }
+        },
+        {
+          "result_id": "tos-discovery-result.cdli-p262784-cbs-07771",
+          "rank": 2,
+          "title_as_displayed": "P262784 / CBS 07771",
+          "result_url": "https://cdli.earth/artifacts/262784",
+          "originating_record_url": "https://cdli.earth/artifacts/262784",
+          "identifiers": [
+            {
+              "scheme": "CDLI",
+              "value": "P262784"
+            },
+            {
+              "scheme": "museum number",
+              "value": "CBS 07771"
+            },
+            {
+              "scheme": "composite",
+              "value": "Q002873.nn"
+            }
+          ],
+          "available_formats": [
+            "artifact HTML",
+            "metadata"
+          ],
+          "declared_rights": {
+            "statement": "The record is identifier and membership evidence; availability does not clear images, transliteration, or composite text.",
+            "scope": "metadata",
+            "evidence_url": "https://cdli.earth/artifacts/262784",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "metadata-only",
+          "machine_interface": "html",
+          "decision": "select",
+          "rationale": "Exact identifier control for the Penn tablet.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-needed",
+            "format": null,
+            "sha256": null,
+            "reason": "The live originating route and tracked relation preserve the useful evidence; no page snapshot substitutes for it."
+          }
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-oll-historical-edition",
+      "sequence": 6,
+      "channel_type": "open-library",
+      "role": "digital-object-record",
+      "source_name": "Online Library of Liberty",
+      "endpoint_url": "https://oll.libertyfund.org/titles/clay-an-old-babylonian-version-of-the-gilgamesh-epic",
+      "interface_type": "web",
+      "interface_version": "title record and facsimile route checked 2026-08-30",
+      "exact_query": "Open the OLL title record; verify Jastrow and Clay, Yale University Press 1920, two-fragment scope, public-domain statement, and exact facsimile PDF route.",
+      "queried_at": "2026-08-30T09:49:12.368458Z",
+      "elapsed_seconds": 0.341876,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.oll-jastrow-clay-old-babylonian-version-1920",
+          "rank": 1,
+          "title_as_displayed": "An Old Babylonian Version of the Gilgamesh Epic",
+          "result_url": "https://oll.libertyfund.org/titles/clay-an-old-babylonian-version-of-the-gilgamesh-epic",
+          "originating_record_url": "https://oll.libertyfund.org/titles/clay-an-old-babylonian-version-of-the-gilgamesh-epic",
+          "identifiers": [
+            {
+              "scheme": "OLL title",
+              "value": "2281"
+            }
+          ],
+          "available_formats": [
+            "bibliographic HTML",
+            "facsimile PDF"
+          ],
+          "declared_rights": {
+            "statement": "OLL states that the text is in the public domain.",
+            "scope": "content",
+            "evidence_url": "https://oll.libertyfund.org/titles/clay-an-old-babylonian-version-of-the-gilgamesh-epic",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-download",
+          "machine_interface": "html",
+          "decision": "select",
+          "rationale": "Exact historical-edition and public-domain lead; the separate OLL PDF was not redundantly acquired after the Commons scan was fixed.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-needed",
+            "format": null,
+            "sha256": null,
+            "reason": "The live originating route and tracked relation preserve the useful evidence; no page snapshot substitutes for it."
+          }
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-commons-exact-scan",
+      "sequence": 7,
+      "channel_type": "collection-aggregator",
+      "role": "digital-object-record",
+      "source_name": "Wikimedia Commons",
+      "endpoint_url": "https://commons.wikimedia.org/wiki/File:An_Old_Babylonian_Version_of_the_Gilgamesh_Epic_-_Morris_-_1920.djvu",
+      "interface_type": "web",
+      "interface_version": "file page and original-file route checked 2026-08-30",
+      "exact_query": "Open the exact Commons File page; verify 1920 edition, IA source identifier, Robarts provenance, 138 pages, 4,493,186 bytes, SHA-1 46e4e6..., public-domain and PD-scan markers; download Original file.",
+      "queried_at": "2026-08-30T09:49:12.710428Z",
+      "elapsed_seconds": 0.264682,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.commons-jastrow-clay-1920-djvu",
+          "rank": 1,
+          "title_as_displayed": "An Old Babylonian Version of the Gilgamesh Epic - Morris - 1920.djvu",
+          "result_url": "https://commons.wikimedia.org/wiki/File:An_Old_Babylonian_Version_of_the_Gilgamesh_Epic_-_Morris_-_1920.djvu",
+          "originating_record_url": "https://commons.wikimedia.org/wiki/File:An_Old_Babylonian_Version_of_the_Gilgamesh_Epic_-_Morris_-_1920.djvu",
+          "identifiers": [
+            {
+              "scheme": "Internet Archive identifier",
+              "value": "anoldbabylonianv00jastuoft"
+            },
+            {
+              "scheme": "SHA-1",
+              "value": "46e4e6edc4c8d5daab99f1d7e8cb4dd45b33f46e"
+            }
+          ],
+          "available_formats": [
+            "multipage DjVu",
+            "138 page images"
+          ],
+          "declared_rights": {
+            "statement": "The exact File is marked public domain and PD-scan; Commons also states that no known copyright restrictions, including related and neighbouring rights, apply.",
+            "scope": "digital-object",
+            "evidence_url": "https://commons.wikimedia.org/wiki/File:An_Old_Babylonian_Version_of_the_Gilgamesh_Epic_-_Morris_-_1920.djvu",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-download",
+          "machine_interface": "html",
+          "decision": "select",
+          "rationale": "Selected exact historical page-image object with provider SHA-1 and standard public-domain evidence.",
+          "acquisition": {
+            "downloaded": true,
+            "acquired_at": "2026-08-30T03:35:29-06:00",
+            "byte_size": 4493186,
+            "sha256": "b3affda48ef0d57008d4153c04da3797074ece4296473e7c874b4e5252932023",
+            "event_ref": "tos.event.acquisition.old-babylonian-gilgamesh-jastrow-clay-1920.commons-djvu.2026-08-30"
+          },
+          "snapshot": {
+            "state": "not-needed",
+            "format": null,
+            "sha256": null,
+            "reason": "The exact provider record, local File, matching provider SHA-1, and tracked metadata/fixity preserve the acquisition evidence."
+          }
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-internet-archive-provenance",
+      "sequence": 8,
+      "channel_type": "open-library",
+      "role": "originating-record",
+      "source_name": "Internet Archive",
+      "endpoint_url": "https://archive.org/metadata/anoldbabylonianv00jastuoft",
+      "interface_type": "api",
+      "interface_version": "metadata and file inventory checked 2026-08-30",
+      "exact_query": "GET Internet Archive metadata for anoldbabylonianv00jastuoft; verify title, authors, Yale University Press 1920, Robarts contributor, scanner, and derivative inventory; preserve absence of licenseurl/rights.",
+      "queried_at": "2026-08-30T09:49:12.975269Z",
+      "elapsed_seconds": 1.093589,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.internet-archive-anoldbabylonianv00jastuoft",
+          "rank": 1,
+          "title_as_displayed": "An old Babylonian version of the Gilgamesh epic",
+          "result_url": "https://archive.org/metadata/anoldbabylonianv00jastuoft",
+          "originating_record_url": "https://archive.org/details/anoldbabylonianv00jastuoft",
+          "identifiers": [
+            {
+              "scheme": "Internet Archive identifier",
+              "value": "anoldbabylonianv00jastuoft"
+            }
+          ],
+          "available_formats": [
+            "metadata JSON",
+            "DjVu",
+            "PDF",
+            "OCR derivatives"
+          ],
+          "declared_rights": {
+            "statement": "The record carries no independent licenseurl or rights field; it is used for provenance and file inventory, not as the rights basis.",
+            "scope": "unknown",
+            "evidence_url": "https://archive.org/metadata/anoldbabylonianv00jastuoft",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-download",
+          "machine_interface": "api",
+          "decision": "select",
+          "rationale": "Exact source-provenance control for the Commons scan and derivative family.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-needed",
+            "format": null,
+            "sha256": null,
+            "reason": "The live originating route and tracked relation preserve the useful evidence; no page snapshot substitutes for it."
+          }
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-project-gutenberg-derived-text",
+      "sequence": 9,
+      "channel_type": "open-library",
+      "role": "digital-object-record",
+      "source_name": "Project Gutenberg",
+      "endpoint_url": "https://gutenberg.org/cache/epub/11000/pg11000-images.html",
+      "interface_type": "web",
+      "interface_version": "release metadata, title page, prefatory note, and jurisdiction caveat checked 2026-08-30",
+      "exact_query": "Open Project Gutenberg ebook 11000; verify title page, 1920 copyright leaf, 2006 release / 2024 update, author responsibility note, and United States plus other-jurisdiction caveat.",
+      "queried_at": "2026-08-30T09:49:14.068977Z",
+      "elapsed_seconds": 0.725433,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.project-gutenberg-ebook-11000",
+          "rank": 1,
+          "title_as_displayed": "An Old Babylonian Version of the Gilgamesh Epic",
+          "result_url": "https://gutenberg.org/cache/epub/11000/pg11000-images.html",
+          "originating_record_url": "https://www.gutenberg.org/ebooks/11000",
+          "identifiers": [
+            {
+              "scheme": "Project Gutenberg ebook",
+              "value": "11000"
+            }
+          ],
+          "available_formats": [
+            "HTML with images",
+            "plain text",
+            "EPUB"
+          ],
+          "declared_rights": {
+            "statement": "Project Gutenberg treats the ebook as unrestricted in the United States and instructs readers outside the United States to check local law.",
+            "scope": "content",
+            "evidence_url": "https://www.gutenberg.org/policy/license.html",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-download",
+          "machine_interface": "html",
+          "decision": "select",
+          "rationale": "Useful derived digital Expression and source-visible responsibility evidence; not selected over the exact historical page scan.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-needed",
+            "format": null,
+            "sha256": null,
+            "reason": "The live originating route and tracked relation preserve the useful evidence; no page snapshot substitutes for it."
+          }
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-general-web-last",
+      "sequence": 10,
+      "channel_type": "general-web-search",
+      "role": "lead-only",
+      "source_name": "General web search",
+      "endpoint_url": "https://www.google.com/search",
+      "interface_type": "web",
+      "interface_version": "last-resort query checked 2026-08-30",
+      "exact_query": "\"Old Babylonian Gilgamesh\" open license PDF OR dataset; inspect SOAS Andrew George and KASKAL 2025 leads after institutional and open-library routes.",
+      "queried_at": "2026-08-30T09:49:14.794533Z",
+      "elapsed_seconds": 0.641673,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.soas-andrew-george-babylonian-gilgamesh-epic",
+          "rank": 1,
+          "title_as_displayed": "The Babylonian Gilgamesh Epic: Introduction, Critical Edition and Cuneiform Texts",
+          "result_url": "https://soas-repository.worktribe.com/output/446254/the-babylonian-gilgamesh-epic-introduction-critical-edition-and-cuneiform-texts",
+          "originating_record_url": "https://soas-repository.worktribe.com/output/446254/the-babylonian-gilgamesh-epic-introduction-critical-edition-and-cuneiform-texts",
+          "identifiers": [],
+          "available_formats": [
+            "repository metadata",
+            "publisher-linked publication"
+          ],
+          "declared_rights": {
+            "statement": "The repository metadata route did not establish an exact reusable content payload license.",
+            "scope": "unknown",
+            "evidence_url": "https://soas-repository.worktribe.com/output/446254/the-babylonian-gilgamesh-epic-introduction-critical-edition-and-cuneiform-texts",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "metadata-only",
+          "machine_interface": "html",
+          "decision": "defer",
+          "rationale": "Important current critical-edition control; no exact open payload was acquired.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-needed",
+            "format": null,
+            "sha256": null,
+            "reason": "The live originating route and tracked relation preserve the useful evidence; no page snapshot substitutes for it."
+          }
+        },
+        {
+          "result_id": "tos-discovery-result.kaskal-2025-more-gilgamesh-fragments",
+          "rank": 2,
+          "title_as_displayed": "More Gilgameš Fragments",
+          "result_url": "https://edizionicafoscari.unive.it/en/edizioni4/riviste/kaskal/2025/1/from-the-electronic-babylonian-literature-lab-48-5/",
+          "originating_record_url": "https://doi.org/10.30687/KASKAL/2036-5845/2025/01/002",
+          "identifiers": [
+            {
+              "scheme": "DOI",
+              "value": "10.30687/KASKAL/2036-5845/2025/01/002"
+            }
+          ],
+          "available_formats": [
+            "article HTML",
+            "18-page PDF"
+          ],
+          "declared_rights": {
+            "statement": "The article is licensed CC BY 4.0.",
+            "scope": "content",
+            "evidence_url": "https://creativecommons.org/licenses/by/4.0/",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-download",
+          "machine_interface": "html",
+          "decision": "reject",
+          "rationale": "Useful current control, but the newly discussed fragments are Standard Babylonian rather than the exact Old Babylonian candidate object; no payload was downloaded for this iteration.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-needed",
+            "format": null,
+            "sha256": null,
+            "reason": "The live originating route and tracked relation preserve the useful evidence; no page snapshot substitutes for it."
+          }
+        }
+      ]
+    }
+  ],
+  "channel_comparison": [
+    {
+      "channel_id": "channel-dnb-authorities",
+      "completeness": "limited",
+      "metadata_precision": "strong",
+      "rights_clarity": "limited",
+      "machine_interface_quality": "adequate",
+      "human_minutes": 0,
+      "machine_seconds": 4.313165,
+      "notes": "Exact author authority and life dates; no object rights. Machine time is the automatic monotonic HTTP measurement; human_minutes=0 means no real-human review was performed."
+    },
+    {
+      "channel_id": "channel-penn-yale-holdings",
+      "completeness": "adequate",
+      "metadata_precision": "strong",
+      "rights_clarity": "limited",
+      "machine_interface_quality": "adequate",
+      "human_minutes": 0,
+      "machine_seconds": 8.655087,
+      "notes": "Exact physical witnesses; media rights remain custom or unresolved. Machine time is the automatic monotonic HTTP measurement; human_minutes=0 means no real-human review was performed."
+    },
+    {
+      "channel_id": "channel-ebl-current-composite",
+      "completeness": "strong",
+      "metadata_precision": "strong",
+      "rights_clarity": "poor",
+      "machine_interface_quality": "strong",
+      "human_minutes": 0,
+      "machine_seconds": 1.600291,
+      "notes": "Best current composite structure; software license is not corpus license. Machine time is the automatic monotonic HTTP measurement; human_minutes=0 means no real-human review was performed."
+    },
+    {
+      "channel_id": "channel-zenodo-ebl-dataset",
+      "completeness": "adequate",
+      "metadata_precision": "strong",
+      "rights_clarity": "strong",
+      "machine_interface_quality": "strong",
+      "human_minutes": 0,
+      "machine_seconds": 1.061359,
+      "notes": "Open broad dataset, but exact candidate identifiers returned zero matches. Machine time is the automatic monotonic HTTP measurement; human_minutes=0 means no real-human review was performed."
+    },
+    {
+      "channel_id": "channel-cdli-identifiers",
+      "completeness": "adequate",
+      "metadata_precision": "strong",
+      "rights_clarity": "limited",
+      "machine_interface_quality": "adequate",
+      "human_minutes": 0,
+      "machine_seconds": 1.114331,
+      "notes": "Stable tablet and composite coordinates; no blanket content clearance. Machine time is the automatic monotonic HTTP measurement; human_minutes=0 means no real-human review was performed."
+    },
+    {
+      "channel_id": "channel-oll-historical-edition",
+      "completeness": "adequate",
+      "metadata_precision": "strong",
+      "rights_clarity": "strong",
+      "machine_interface_quality": "adequate",
+      "human_minutes": 0,
+      "machine_seconds": 0.341876,
+      "notes": "Exact 1920 edition, public-domain statement, and facsimile route. Machine time is the automatic monotonic HTTP measurement; human_minutes=0 means no real-human review was performed."
+    },
+    {
+      "channel_id": "channel-commons-exact-scan",
+      "completeness": "strong",
+      "metadata_precision": "strong",
+      "rights_clarity": "strong",
+      "machine_interface_quality": "adequate",
+      "human_minutes": 0,
+      "machine_seconds": 0.264682,
+      "notes": "Exact selected File with page count, byte size, SHA-1, provenance, and PD-scan evidence. Machine time is the automatic monotonic HTTP measurement; human_minutes=0 means no real-human review was performed."
+    },
+    {
+      "channel_id": "channel-internet-archive-provenance",
+      "completeness": "strong",
+      "metadata_precision": "strong",
+      "rights_clarity": "poor",
+      "machine_interface_quality": "strong",
+      "human_minutes": 0,
+      "machine_seconds": 1.093589,
+      "notes": "Excellent provenance and derivative inventory; no independent rights field. Machine time is the automatic monotonic HTTP measurement; human_minutes=0 means no real-human review was performed."
+    },
+    {
+      "channel_id": "channel-project-gutenberg-derived-text",
+      "completeness": "adequate",
+      "metadata_precision": "strong",
+      "rights_clarity": "adequate",
+      "machine_interface_quality": "adequate",
+      "human_minutes": 0,
+      "machine_seconds": 0.725433,
+      "notes": "Useful responsibility and derived-text route with jurisdiction caveat. Machine time is the automatic monotonic HTTP measurement; human_minutes=0 means no real-human review was performed."
+    },
+    {
+      "channel_id": "channel-general-web-last",
+      "completeness": "limited",
+      "metadata_precision": "adequate",
+      "rights_clarity": "adequate",
+      "machine_interface_quality": "limited",
+      "human_minutes": 0,
+      "machine_seconds": 0.641673,
+      "notes": "Preserved SOAS and CC BY KASKAL leads; neither is the exact acquired Old Babylonian object. Machine time is the automatic monotonic HTTP measurement; human_minutes=0 means no real-human review was performed."
+    }
+  ],
+  "selected_result_ids": [
+    "tos-discovery-result.gnd-morris-jastrow-117085626",
+    "tos-discovery-result.gnd-albert-tobias-clay-116541733",
+    "tos-discovery-result.penn-cbs-07771-object-245958",
+    "tos-discovery-result.yale-ybc-2178-old-babylonian-gilgamesh",
+    "tos-discovery-result.ebl-l1-4-old-babylonian-composite",
+    "tos-discovery-result.cdli-p273176-ybc-2178",
+    "tos-discovery-result.cdli-p262784-cbs-07771",
+    "tos-discovery-result.oll-jastrow-clay-old-babylonian-version-1920",
+    "tos-discovery-result.commons-jastrow-clay-1920-djvu",
+    "tos-discovery-result.internet-archive-anoldbabylonianv00jastuoft",
+    "tos-discovery-result.project-gutenberg-ebook-11000"
+  ],
+  "rejected_result_ids": [
+    "tos-discovery-result.kaskal-2025-more-gilgamesh-fragments"
+  ],
+  "rights_inference_from_availability_prohibited": true,
+  "general_web_search_is_last_resort": true,
+  "technical_access_bypass_used": false,
+  "maker": {
+    "maker_type": "model",
+    "agent_ref": "model:codex"
+  },
+  "started_at": "2026-08-30T09:48:55.623555Z",
+  "ended_at": "2026-08-30T09:49:15.436216Z",
+  "status": "reconciled",
+  "provenance_event_refs": [
+    "tos.event.discovery.old-babylonian-gilgamesh-open-work-route.2026-08-30",
+    "tos.event.acquisition.old-babylonian-gilgamesh-jastrow-clay-1920.commons-djvu.2026-08-30"
+  ],
+  "record_version": 1,
+  "supersedes_discovery_ref": null
+}

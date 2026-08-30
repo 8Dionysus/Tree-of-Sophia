@@ -1,0 +1,127 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/open-work-candidate-receipt.schema.json",
+  "schema_version": "tos_open_work_candidate_receipt_v1",
+  "receipt_id": "open-work-candidate-receipt.harpers-songs.2026-08-30.v1",
+  "candidate_id": "open-work-candidate.harpers-songs",
+  "candidate_record_sha256": "e229f3fff8c580172d738372b30e078ff080d03e5bbebc5384845e138eee637f",
+  "queue_snapshot_sha256": "98ac67b765aa837aea47c796b27519d307175f2be1fc983f895a3d385e2554be",
+  "discovery_ref": "ToS/source-witnesses/discovery/runs/harpers-songs-open-work-route.2026-08-30.v1.json",
+  "discovery_id": "tos.discovery.harpers-songs-open-work-route.2026-08-30.v1",
+  "timing_ref": "ToS/source-witnesses/discovery/timings/harpers-songs-open-work-route.2026-08-30.v1.json",
+  "terminal_status": "held_source_witness",
+  "target_resolution": {
+    "identity_status": "provisional",
+    "work_ref": null,
+    "expression_ref": null,
+    "edition_ref": null,
+    "item_ref": null,
+    "summary": "Harper's Songs remains an open-ended genre or work-like corpus rather than one automatically admitted ancient Work. One provider-independent Papyrus Harris 500 packet, four exact CC BY-NC-SA 4.0 British Museum photographic Files, one provisional witness synopsis, and Goodwin's distinct 1874 historical scholarly Work with one exact licensed PDF File are now held. No mansion-of-Intef original, fixed corpus boundary, source text, accepted transcription, translation, passage segmentation, semantic relation, graph edge, or canon state was minted."
+  },
+  "rights_result": {
+    "status": "positive-for-acquisition",
+    "reviewed_jurisdictions": [
+      "GB",
+      "MX",
+      "US"
+    ],
+    "reviewed_layers": [
+      "provider-independent physical-object metadata",
+      "British Museum collection metadata",
+      "four exact British Museum photographs",
+      "embedded Papyrus Harris 500 inscription",
+      "TLA object and text data",
+      "Goodwin 1874 scholarly Work",
+      "Goodwin historical translation and commentary",
+      "1874 edition presentation",
+      "exact National Library of Scotland and Internet Archive PDF",
+      "provider metadata and rights statements"
+    ],
+    "evidence_refs": [
+      "ToS/source-witnesses/artifacts/egyptian/unknown/papyrus-harris-500-ea10060/representations/bm-mid-00020450-001/rights.json",
+      "ToS/source-witnesses/artifacts/egyptian/unknown/papyrus-harris-500-ea10060/representations/bm-mid-00020451-001/rights.json",
+      "ToS/source-witnesses/artifacts/egyptian/unknown/papyrus-harris-500-ea10060/representations/bm-mid-00020452-001/rights.json",
+      "ToS/source-witnesses/artifacts/egyptian/unknown/papyrus-harris-500-ea10060/representations/bm-mid-00020453-001/rights.json",
+      "ToS/source-witnesses/works/egyptian-scholarship/on-four-songs-contained-in-an-egyptian-papyrus-in-the-british-museum/expressions/en-goodwin-1874/editions/london-society-of-biblical-archaeology-1874/items/internet-archive-nls-scan-pdf/rights.json",
+      "https://www.britishmuseum.org/collection/image/20452001",
+      "https://creativecommons.org/licenses/by-nc-sa/4.0/",
+      "https://archive.org/metadata/onfoursongsconta00good",
+      "https://creativecommons.org/licenses/by-nc-sa/2.5/scotland/",
+      "https://www.nls.uk/tools-for-research/copyright/",
+      "https://tla.digital/info/licenses"
+    ],
+    "summary": "Each of the four exact British Museum JPEGs is licensed CC BY-NC-SA 4.0 with credit © The Trustees of the British Museum. The exact NLS/Internet Archive PDF is conservatively governed by CC BY-NC-SA 2.5 Scotland and matches the provider SHA-1; the identified 1874 historical layers are separately outside the reviewed GB, MX, and US terms. TLA scientific text data were not acquired under the current limited academic-use terms. No positive File result licenses museum prose, TLA content, ancient inscription text, current translations, semantics, graph, canon, or publication."
+  },
+  "acquisition": {
+    "downloaded": true,
+    "item_ref": null,
+    "artifact_ref": "tos.artifact.egyptian.unknown.papyrus-harris-500-ea10060",
+    "representation_ref": "ToS/source-witnesses/artifacts/egyptian/unknown/papyrus-harris-500-ea10060/representations/bm-mid-00020452-001/representation.json",
+    "file_ref": "tos.file.sha256.25319705c549e625151159102045465976f8cc5f69ee9b72eecf21ad9cdd73e5",
+    "provenance_event_ref": "tos.event.acquisition.harpers-songs-papyrus-harris-500-bm-images.2026-08-30"
+  },
+  "additional_acquisitions": [
+    {
+      "downloaded": true,
+      "item_ref": null,
+      "artifact_ref": "tos.artifact.egyptian.unknown.papyrus-harris-500-ea10060",
+      "representation_ref": "ToS/source-witnesses/artifacts/egyptian/unknown/papyrus-harris-500-ea10060/representations/bm-mid-00020453-001/representation.json",
+      "file_ref": "tos.file.sha256.646f4c505dcbc43691f81c5551cc6793be537579a0407b9c1da0bafa3ff278ba",
+      "provenance_event_ref": "tos.event.acquisition.harpers-songs-papyrus-harris-500-bm-images.2026-08-30"
+    },
+    {
+      "downloaded": true,
+      "item_ref": null,
+      "artifact_ref": "tos.artifact.egyptian.unknown.papyrus-harris-500-ea10060",
+      "representation_ref": "ToS/source-witnesses/artifacts/egyptian/unknown/papyrus-harris-500-ea10060/representations/bm-mid-00020450-001/representation.json",
+      "file_ref": "tos.file.sha256.73c05fb29c3491d5fccac36f2fb2c5b2cb403f4591a394aa49b2cd148ccb3a56",
+      "provenance_event_ref": "tos.event.acquisition.harpers-songs-papyrus-harris-500-bm-images.2026-08-30"
+    },
+    {
+      "downloaded": true,
+      "item_ref": null,
+      "artifact_ref": "tos.artifact.egyptian.unknown.papyrus-harris-500-ea10060",
+      "representation_ref": "ToS/source-witnesses/artifacts/egyptian/unknown/papyrus-harris-500-ea10060/representations/bm-mid-00020451-001/representation.json",
+      "file_ref": "tos.file.sha256.a93fc3da7e1778f9d170b2e918f7d863e6be8b0ef7920433841abd5f69eba9ad",
+      "provenance_event_ref": "tos.event.acquisition.harpers-songs-papyrus-harris-500-bm-images.2026-08-30"
+    },
+    {
+      "downloaded": true,
+      "item_ref": "tos.item.egyptian-scholarship.on-four-songs-contained-in-an-egyptian-papyrus-in-the-british-museum.en-goodwin-1874.internet-archive-nls-scan-pdf",
+      "artifact_ref": null,
+      "representation_ref": null,
+      "file_ref": "tos.file.sha256.71ca30507a61a791b503102b43c034aad08b45c5d78bbedf16043632add33675",
+      "provenance_event_ref": "tos.event.acquisition.goodwin-four-songs-1874-ia-nls-pdf.2026-08-30"
+    }
+  ],
+  "planting_refs": [
+    "ToS/philosophy/eras/bronze-age/regions/north-africa/traditions/egyptian-mortuary-theological-dialogic-corpora/sources/plantings/harpers-songs-papyrus-harris-500/source-planting.json"
+  ],
+  "operational_relation_refs": [
+    "ToS/source-witnesses/discovery/candidates/reviewed-candidates.jsonl:15",
+    "ToS/source-witnesses/discovery/timings/harpers-songs-open-work-route.2026-08-30.v1.json",
+    "ToS/source-witnesses/discovery/timings/harpers-songs-papyrus-harris-500-artifact.2026-08-30.v1.json",
+    "tos.artifact.egyptian.unknown.papyrus-harris-500-ea10060",
+    "tos.composite.egyptian.harpers-songs-witnesses",
+    "tos.discovery.harpers-songs-open-work-route.2026-08-30.v1",
+    "tos.discovery.harpers-songs-papyrus-harris-500-artifact.2026-08-30.v1",
+    "tos.edition.egyptian-scholarship.on-four-songs-contained-in-an-egyptian-papyrus-in-the-british-museum.london-society-of-biblical-archaeology-1874",
+    "tos.event.acquisition.goodwin-four-songs-1874-ia-nls-pdf.2026-08-30",
+    "tos.event.acquisition.harpers-songs-papyrus-harris-500-bm-images.2026-08-30",
+    "tos.event.discovery.harpers-songs-open-work-route.2026-08-30",
+    "tos.expression.egyptian-scholarship.on-four-songs-contained-in-an-egyptian-papyrus-in-the-british-museum.en-goodwin-1874",
+    "tos.file.sha256.25319705c549e625151159102045465976f8cc5f69ee9b72eecf21ad9cdd73e5",
+    "tos.file.sha256.646f4c505dcbc43691f81c5551cc6793be537579a0407b9c1da0bafa3ff278ba",
+    "tos.file.sha256.71ca30507a61a791b503102b43c034aad08b45c5d78bbedf16043632add33675",
+    "tos.file.sha256.73c05fb29c3491d5fccac36f2fb2c5b2cb403f4591a394aa49b2cd148ccb3a56",
+    "tos.file.sha256.a93fc3da7e1778f9d170b2e918f7d863e6be8b0ef7920433841abd5f69eba9ad",
+    "tos.item.egyptian-scholarship.on-four-songs-contained-in-an-egyptian-papyrus-in-the-british-museum.en-goodwin-1874.internet-archive-nls-scan-pdf",
+    "tos.work.egyptian-scholarship.on-four-songs-contained-in-an-egyptian-papyrus-in-the-british-museum"
+  ],
+  "next_trigger": "Rebuild and validate the reviewed queue, then freeze exactly the next earliest unresolved Work or work-like candidate. Treat P. Berlin 3024 + Mallorca II as a material and composition lead requiring identity review rather than mechanically promoting two artifacts into one Work.",
+  "issued_at": "2026-08-30T06:40:00-06:00",
+  "maker": {
+    "maker_type": "model",
+    "agent_ref": "model:codex"
+  },
+  "record_version": 1
+}

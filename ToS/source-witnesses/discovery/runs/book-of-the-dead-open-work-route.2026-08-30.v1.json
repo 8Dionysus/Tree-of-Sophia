@@ -1,0 +1,723 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/material-discovery-record.schema.json",
+  "schema_version": "tos_material_discovery_record_v1",
+  "discovery_id": "tos.discovery.book-of-the-dead-open-work-route.2026-08-30.v1",
+  "protocol_ref": "ToS/source-witnesses/discovery/DISCOVERY_PROTOCOL.md",
+  "target": {
+    "target_kind": "scholarly-composite",
+    "known_tos_refs": [
+      "tos.artifact.egyptian.thebes.papyrus-of-ani-ea10470-frame-3",
+      "tos.composite.egyptian.book-of-the-dead-naville-1886"
+    ],
+    "description": "Resolve the Book of the Dead as a variable work-like funerary corpus while retaining one exact Papyrus of Ani visual File and one exact public-domain Naville 1886 historical-edition File without collapsing the corpus, papyrus, frame, local spell order, vignette, edition, provider record, scan, photograph, or File.",
+    "required_properties": [
+      "corpus boundary without one fixed ancient original or universal title",
+      "exact physical witness, frame, inventory, and holding identity",
+      "papyrus, local spell order, vignette, edition, transcription, translation, scan, photograph, and File remain separate",
+      "layer-specific rights evidence bound to each exact acquired byte sequence",
+      "no source-text, semantic, graph, canon, or publication effect"
+    ],
+    "acceptable_substitutions": [
+      "an exact public-domain historical critical-edition or facsimile scan with reviewed digital-object rights",
+      "an exact open-licensed institutional visual representation preserving physical-witness identity",
+      "an exact scholarly-project record preserving witness and version identity",
+      "a rights-insufficient terminal outcome preserving the unresolved corpus boundary"
+    ],
+    "languages": [
+      "egy",
+      "en",
+      "de",
+      "fr"
+    ],
+    "formats": [
+      "national-catalog metadata",
+      "museum object metadata",
+      "specialized corpus metadata",
+      "historical-edition PDF",
+      "papyrus photograph",
+      "object-level rights statement"
+    ],
+    "purpose_ref": "ToS/research-packets/foundation-laboratory-2026-07/A05_BOOK_OF_THE_DEAD_OPEN_WORK_ACQUISITION_2026-08-30.md"
+  },
+  "channels": [
+    {
+      "channel_id": "channel-k10plus-originating-bibliography",
+      "sequence": 1,
+      "channel_type": "national-catalog",
+      "role": "originating-record",
+      "source_name": "K10plus SRU",
+      "endpoint_url": "https://sru.k10plus.de/opac-de-627?version=1.1&operation=searchRetrieve&query=pica.tit%3D%22Das%20aegyptische%20Todtenbuch%20der%20XVIII.%20bis%20XX.%20Dynastie%22%20and%20pica.per%3D%22Naville%22&maximumRecords=10&recordSchema=picaxml",
+      "interface_type": "api",
+      "interface_version": "SRU 1.1 with PICA XML checked 2026-08-30",
+      "exact_query": "pica.tit=\"Das aegyptische Todtenbuch der XVIII. bis XX. Dynastie\" and pica.per=\"Naville\"; maximumRecords=10; recordSchema=picaxml",
+      "queried_at": "2026-08-30T11:23:14.708704Z",
+      "elapsed_seconds": 0.726884,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.k10plus-naville-1886-einleitung-ppn-156524015",
+          "rank": 1,
+          "title_as_displayed": "Einleitung — Das Aegyptische Todtenbuch der XVIII. bis XX. Dynastie",
+          "result_url": "https://opac.k10plus.de/DB=2.299/PPNSET?PPN=156524015",
+          "originating_record_url": "https://sru.k10plus.de/opac-de-627?version=1.1&operation=searchRetrieve&query=pica.tit%3D%22Das%20aegyptische%20Todtenbuch%20der%20XVIII.%20bis%20XX.%20Dynastie%22%20and%20pica.per%3D%22Naville%22&maximumRecords=10&recordSchema=picaxml",
+          "identifiers": [
+            {
+              "scheme": "K10plus PPN part",
+              "value": "156524015"
+            },
+            {
+              "scheme": "K10plus PPN parent",
+              "value": "142464422"
+            },
+            {
+              "scheme": "OCLC",
+              "value": "257494052"
+            }
+          ],
+          "available_formats": [
+            "SRU PICA XML",
+            "printed volume metadata"
+          ],
+          "declared_rights": {
+            "statement": null,
+            "scope": "metadata",
+            "evidence_url": null,
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "metadata-only",
+          "machine_interface": "api",
+          "decision": "select",
+          "rationale": "The exact part record identifies Naville's Einleitung, Berlin: Asher, 1886, V + 204 printed pages, and links it to parent PPN 142464422; it fixes bibliographic identity without making a digital-rights conclusion.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-captured",
+            "format": null,
+            "sha256": null,
+            "reason": "The mutable SRU response was queried and transiently fingerprinted; the exact URL and identifiers make the result reproducible."
+          }
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-british-museum-papyrus-ani",
+      "sequence": 2,
+      "channel_type": "collection-aggregator",
+      "role": "digital-object-record",
+      "source_name": "British Museum Collection Online",
+      "endpoint_url": "https://www.britishmuseum.org/collection/object/Y_EA10470-3",
+      "interface_type": "web",
+      "interface_version": "object and image-use pages checked 2026-08-30",
+      "exact_query": "Open exact object Y_EA10470-3; follow its Use this image route to asset 684647001; acquire only the exact licensed media asset.",
+      "queried_at": "2026-08-30T11:23:15.435791Z",
+      "elapsed_seconds": 0.644417,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.british-museum-papyrus-ani-ea10470-frame-3",
+          "rank": 1,
+          "title_as_displayed": "Papyrus — Book of the Dead, Papyrus of Ani (frame 3)",
+          "result_url": "https://www.britishmuseum.org/collection/object/Y_EA10470-3",
+          "originating_record_url": "https://www.britishmuseum.org/collection/object/Y_EA10470-3",
+          "identifiers": [
+            {
+              "scheme": "British Museum number",
+              "value": "EA10470,3"
+            },
+            {
+              "scheme": "British Museum registration number",
+              "value": "1888,0515.1.3"
+            },
+            {
+              "scheme": "Trismegistos Text",
+              "value": "134357"
+            },
+            {
+              "scheme": "British Museum asset",
+              "value": "684647001"
+            }
+          ],
+          "available_formats": [
+            "museum object HTML",
+            "image-use HTML",
+            "JPEG 1000x721"
+          ],
+          "declared_rights": {
+            "statement": "The exact image may be shared non-commercially under CC BY-NC-SA 4.0 with credit © The Trustees of the British Museum.",
+            "scope": "digital-object",
+            "evidence_url": "https://www.britishmuseum.org/collection/image/684647001",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-download",
+          "machine_interface": "html",
+          "decision": "select",
+          "rationale": "The object page fixes the physical frame identity and the image-use page binds a standard license to asset 684647001. The rendered page exposed the exact media URL and the normal browser asset route supplied the JPEG without access-control bypass.",
+          "acquisition": {
+            "downloaded": true,
+            "acquired_at": "2026-08-30T05:14:04-06:00",
+            "byte_size": 181097,
+            "sha256": "adcde14cf16796396daf0513c5b25785c2b9d9ea1261561086702ae45523a6b4",
+            "event_ref": "tos.event.acquisition.book-of-the-dead-papyrus-ani-and-naville.2026-08-30"
+          },
+          "snapshot": {
+            "state": "not-needed",
+            "format": null,
+            "sha256": null,
+            "reason": "The exact acquired JPEG is the retained immutable source entity."
+          }
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-bonn-totenbuch-project",
+      "sequence": 3,
+      "channel_type": "specialized-scholarly-project",
+      "role": "scholarly-index",
+      "source_name": "Totenbuchprojekt Bonn",
+      "endpoint_url": "https://totenbuch.awk.nrw.de/objekt/tm134357",
+      "interface_type": "web",
+      "interface_version": "digital text-witness archive object page checked 2026-08-30",
+      "exact_query": "TM 134357; inspect object group, material, repository, origin, dating, owner, script, measurements, object name, and bibliography without acquiring project content.",
+      "queried_at": "2026-08-30T11:23:16.080384Z",
+      "elapsed_seconds": 4.085067,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.bonn-totenbuch-tm134357-papyrus-ani",
+          "rank": 1,
+          "title_as_displayed": "TM 134357, Papyrus, London — P. London BM EA 10470",
+          "result_url": "https://totenbuch.awk.nrw.de/objekt/tm134357",
+          "originating_record_url": "https://totenbuch.awk.nrw.de/objekt/tm134357",
+          "identifiers": [
+            {
+              "scheme": "Trismegistos Text",
+              "value": "134357"
+            },
+            {
+              "scheme": "object name",
+              "value": "P. London BM EA 10470"
+            }
+          ],
+          "available_formats": [
+            "scholarly HTML",
+            "spell and bibliography links"
+          ],
+          "declared_rights": {
+            "statement": null,
+            "scope": "unknown",
+            "evidence_url": null,
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-view",
+          "machine_interface": "html",
+          "decision": "select",
+          "rationale": "The specialist project corroborates Papyrus Ani as TM 134357, papyrus in the British Museum from Thebes, New Kingdom 19th Dynasty, owner Ani, hieroglyphic and coloured, and preserves a member-level bibliography. No open content license was established.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-captured",
+            "format": null,
+            "sha256": null,
+            "reason": "Useful scholarly metadata only; no exact standard open license for the project page, database content, or images was established."
+          }
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-ucl-digital-egypt-boundary",
+      "sequence": 4,
+      "channel_type": "specialized-scholarly-project",
+      "role": "scholarly-index",
+      "source_name": "UCL Digital Egypt",
+      "endpoint_url": "https://www.ucl.ac.uk/museums-static/digitalegypt/literature/religious/bdquestions.html",
+      "interface_type": "web",
+      "interface_version": "static Digital Egypt page checked 2026-08-30",
+      "exact_query": "Inspect the project's definition, modern title history, variable selection, numbering, supports, and page-level copyright boundary.",
+      "queried_at": "2026-08-30T11:23:20.165604Z",
+      "elapsed_seconds": 1.226544,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.ucl-book-of-the-dead-boundary",
+          "rank": 1,
+          "title_as_displayed": "Book of the Dead — background questions",
+          "result_url": "https://www.ucl.ac.uk/museums-static/digitalegypt/literature/religious/bdquestions.html",
+          "originating_record_url": "https://www.ucl.ac.uk/museums-static/digitalegypt/literature/religious/bdquestions.html",
+          "identifiers": [],
+          "available_formats": [
+            "scholarly HTML"
+          ],
+          "declared_rights": {
+            "statement": "Copyright © 2002 University College London. All rights reserved.",
+            "scope": "content",
+            "evidence_url": "https://www.ucl.ac.uk/museums-static/digitalegypt/literature/religious/bdquestions.html",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-view",
+          "machine_interface": "html",
+          "decision": "select",
+          "rationale": "The page is useful boundary evidence for a modern corpus name and variable witness selection, but its all-rights-reserved statement excludes its prose and presentation from open-payload acquisition.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-permitted",
+            "format": null,
+            "sha256": null,
+            "reason": "Only bounded factual metadata and the source URL are retained from an explicitly all-rights-reserved page."
+          }
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-europeana-exact-search",
+      "sequence": 5,
+      "channel_type": "collection-aggregator",
+      "role": "lead-only",
+      "source_name": "Europeana",
+      "endpoint_url": "https://www.europeana.eu/en/search?query=%22Das%20aegyptische%20Todtenbuch%22%20Naville",
+      "interface_type": "web",
+      "interface_version": "public search surface checked 2026-08-30",
+      "exact_query": "\"Das aegyptische Todtenbuch\" Naville",
+      "queried_at": "2026-08-30T11:23:21.392324Z",
+      "elapsed_seconds": 0.223124,
+      "result_order_preserved": true,
+      "results": []
+    },
+    {
+      "channel_id": "channel-trismegistos-identifier",
+      "sequence": 6,
+      "channel_type": "identifier-registry",
+      "role": "scholarly-index",
+      "source_name": "Trismegistos",
+      "endpoint_url": "https://www.trismegistos.org/text/134357",
+      "interface_type": "web",
+      "interface_version": "identifier route referenced by the British Museum and Bonn records, checked 2026-08-30",
+      "exact_query": "TM Text 134357",
+      "queried_at": "2026-08-30T11:23:21.615599Z",
+      "elapsed_seconds": 0.331099,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.trismegistos-text-134357",
+          "rank": 1,
+          "title_as_displayed": "Trismegistos Text 134357",
+          "result_url": "https://www.trismegistos.org/text/134357",
+          "originating_record_url": "https://totenbuch.awk.nrw.de/objekt/tm134357",
+          "identifiers": [
+            {
+              "scheme": "Trismegistos Text",
+              "value": "134357"
+            }
+          ],
+          "available_formats": [
+            "identifier route"
+          ],
+          "declared_rights": {
+            "statement": null,
+            "scope": "metadata",
+            "evidence_url": null,
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "metadata-only",
+          "machine_interface": "html",
+          "decision": "select",
+          "rationale": "The identifier is independently reported by the British Museum and Bonn witness records. Direct TLS verification failed in this environment, so the live page contributes no unobserved metadata or rights claim.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-captured",
+            "format": null,
+            "sha256": null,
+            "reason": "No access-control or TLS bypass was used; the identifier remains corroborated through the two originating records."
+          }
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-open-library-edition",
+      "sequence": 7,
+      "channel_type": "open-library",
+      "role": "digital-object-record",
+      "source_name": "Open Library",
+      "endpoint_url": "https://openlibrary.org/books/OL23292830M.json",
+      "interface_type": "api",
+      "interface_version": "edition JSON checked 2026-08-30",
+      "exact_query": "GET /books/OL23292830M.json",
+      "queried_at": "2026-08-30T11:23:21.946834Z",
+      "elapsed_seconds": 0.330847,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.open-library-naville-ol23292830m",
+          "rank": 1,
+          "title_as_displayed": "Das aegyptische Todtenbuch der XVIII. bis XX. Dynastie",
+          "result_url": "https://openlibrary.org/books/OL23292830M/Das_aegyptische_Todtenbuch_der_XVIII._bis_XX._Dynastie",
+          "originating_record_url": "https://openlibrary.org/books/OL23292830M.json",
+          "identifiers": [
+            {
+              "scheme": "Open Library edition",
+              "value": "OL23292830M"
+            },
+            {
+              "scheme": "Internet Archive",
+              "value": "dasaegyptischeto00naviuoft"
+            }
+          ],
+          "available_formats": [
+            "edition JSON",
+            "Internet Archive link"
+          ],
+          "declared_rights": {
+            "statement": null,
+            "scope": "metadata",
+            "evidence_url": null,
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "metadata-only",
+          "machine_interface": "api",
+          "decision": "select",
+          "rationale": "The edition record corroborates title, Asher, 1886, and the exact Internet Archive identifier, but supplies no independent rights statement.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-needed",
+            "format": null,
+            "sha256": null,
+            "reason": "Small structured metadata is reproducible from the exact API route; no payload identity follows from it."
+          }
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-internet-archive-digital-object",
+      "sequence": 8,
+      "channel_type": "open-library",
+      "role": "digital-object-record",
+      "source_name": "Internet Archive Metadata API",
+      "endpoint_url": "https://archive.org/metadata/dasaegyptischeto00naviuoft",
+      "interface_type": "api",
+      "interface_version": "metadata API checked 2026-08-30",
+      "exact_query": "GET /metadata/dasaegyptischeto00naviuoft; inspect exact PDF file entry",
+      "queried_at": "2026-08-30T11:23:22.277788Z",
+      "elapsed_seconds": 1.287235,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.internet-archive-dasaegyptischeto00naviuoft",
+          "rank": 1,
+          "title_as_displayed": "Das aegyptische Todtenbuch der XVIII. bis XX. Dynastie",
+          "result_url": "https://archive.org/details/dasaegyptischeto00naviuoft",
+          "originating_record_url": "https://archive.org/metadata/dasaegyptischeto00naviuoft",
+          "identifiers": [
+            {
+              "scheme": "Internet Archive",
+              "value": "dasaegyptischeto00naviuoft"
+            },
+            {
+              "scheme": "source PDF SHA-1",
+              "value": "9639aba1dc6938e252d425ff5f1a6fab2ba60885"
+            },
+            {
+              "scheme": "source PDF MD5",
+              "value": "14fc825e92198bc99093e974b84f1729"
+            }
+          ],
+          "available_formats": [
+            "metadata JSON",
+            "Text PDF"
+          ],
+          "declared_rights": {
+            "statement": null,
+            "scope": "digital-object",
+            "evidence_url": null,
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-download",
+          "machine_interface": "api",
+          "decision": "select",
+          "rationale": "The API fixes the exact PDF filename, 12,119,099-byte size, SHA-1, MD5, Toronto contributor, and 1886 bibliographic lead. It does not itself supply a rights statement, so Commons remains the rights-bearing acquisition route.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-needed",
+            "format": null,
+            "sha256": null,
+            "reason": "The byte-identical PDF is acquired from the exact Commons public-domain route; this API is retained as provider provenance."
+          }
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-wikimedia-commons-public-domain-file",
+      "sequence": 9,
+      "channel_type": "collection-aggregator",
+      "role": "digital-object-record",
+      "source_name": "Wikimedia Commons",
+      "endpoint_url": "https://commons.wikimedia.org/wiki/File%3ADas_aegyptische_Todtenbuch_der_XVIII._bis_XX._Dynastie%3B_%28IA_dasaegyptischeto00naviuoft%29.pdf",
+      "interface_type": "web",
+      "interface_version": "file-description page and original-file redirect checked 2026-08-30",
+      "exact_query": "Inspect the exact File page, Public Domain statement, source identifiers, file history, dimensions, page count, and original-file link before transfer.",
+      "queried_at": "2026-08-30T11:23:23.565195Z",
+      "elapsed_seconds": 0.462041,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.commons-naville-1886-einleitung-pdf",
+          "rank": 1,
+          "title_as_displayed": "File:Das aegyptische Todtenbuch der XVIII. bis XX. Dynastie; (IA dasaegyptischeto00naviuoft).pdf",
+          "result_url": "https://commons.wikimedia.org/wiki/File%3ADas_aegyptische_Todtenbuch_der_XVIII._bis_XX._Dynastie%3B_%28IA_dasaegyptischeto00naviuoft%29.pdf",
+          "originating_record_url": "https://archive.org/details/dasaegyptischeto00naviuoft",
+          "identifiers": [
+            {
+              "scheme": "Internet Archive",
+              "value": "dasaegyptischeto00naviuoft"
+            },
+            {
+              "scheme": "OCLC",
+              "value": "812134292"
+            },
+            {
+              "scheme": "SHA-256",
+              "value": "06c78744f35f34fb7b7d87fd32f73a1eb230d4ea49272e0eeb5a17286ae7574a"
+            }
+          ],
+          "available_formats": [
+            "PDF 220 pages, 1297x1862 maximum page pixels"
+          ],
+          "declared_rights": {
+            "statement": "Public domain in the country of origin and jurisdictions with life plus 100 years or fewer; public domain in the United States as published before 1931; identified as free of known copyright restrictions including related and neighboring rights.",
+            "scope": "digital-object",
+            "evidence_url": "https://commons.wikimedia.org/wiki/File%3ADas_aegyptische_Todtenbuch_der_XVIII._bis_XX._Dynastie%3B_%28IA_dasaegyptischeto00naviuoft%29.pdf",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-download",
+          "machine_interface": "html",
+          "decision": "select",
+          "rationale": "The exact File page supplies positive public-domain evidence and a normal original-file route. Transfer yielded a 12,119,099-byte, 220-page PDF whose internal title page identifies the Einleitung part and whose SHA-1 matches the Internet Archive metadata.",
+          "acquisition": {
+            "downloaded": true,
+            "acquired_at": "2026-08-30T05:17:05-06:00",
+            "byte_size": 12119099,
+            "sha256": "06c78744f35f34fb7b7d87fd32f73a1eb230d4ea49272e0eeb5a17286ae7574a",
+            "event_ref": "tos.event.acquisition.book-of-the-dead-papyrus-ani-and-naville.2026-08-30"
+          },
+          "snapshot": {
+            "state": "not-needed",
+            "format": null,
+            "sha256": null,
+            "reason": "The exact acquired PDF is the retained immutable source entity; the File page remains the rights evidence surface."
+          }
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-general-web-final-gap-check",
+      "sequence": 10,
+      "channel_type": "general-web-search",
+      "role": "lead-only",
+      "source_name": "Google Search",
+      "endpoint_url": "https://www.google.com/search?q=%22Book+of+the+Dead%22+Papyrus+Ani+Naville+1886+public+domain",
+      "interface_type": "web",
+      "interface_version": "ordinary web search used last on 2026-08-30",
+      "exact_query": "\"Book of the Dead\" Papyrus Ani Naville 1886 public domain",
+      "queried_at": "2026-08-30T11:23:24.027395Z",
+      "elapsed_seconds": 0.224575,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.general-web-duplicate-book-of-dead-routes",
+          "rank": 1,
+          "title_as_displayed": "Duplicate leads to British Museum, UCL, Open Library, Internet Archive, and Wikimedia Commons",
+          "result_url": "https://www.google.com/search?q=%22Book+of+the+Dead%22+Papyrus+Ani+Naville+1886+public+domain",
+          "originating_record_url": "https://commons.wikimedia.org/wiki/File%3ADas_aegyptische_Todtenbuch_der_XVIII._bis_XX._Dynastie%3B_%28IA_dasaegyptischeto00naviuoft%29.pdf",
+          "identifiers": [],
+          "available_formats": [
+            "lead-only web results"
+          ],
+          "declared_rights": {
+            "statement": "Search snippets are not rights evidence.",
+            "scope": "unknown",
+            "evidence_url": null,
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-view",
+          "machine_interface": "html",
+          "decision": "defer",
+          "rationale": "The final gap check repeated already inspected originating and rights-bearing routes and supplied no stronger identity, license, or exact byte object.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-needed",
+            "format": null,
+            "sha256": null,
+            "reason": "Search-engine output is a lead only; the originating sources and exact payloads are retained instead."
+          }
+        }
+      ]
+    }
+  ],
+  "channel_comparison": [
+    {
+      "channel_id": "channel-k10plus-originating-bibliography",
+      "completeness": "strong",
+      "metadata_precision": "strong",
+      "rights_clarity": "limited",
+      "machine_interface_quality": "strong",
+      "human_minutes": 0,
+      "machine_seconds": 0.726884,
+      "notes": "Best exact bibliographic part and parent identity; no digital-object rights conclusion. Machine time is the automatic monotonic HTTP measurement; human_minutes=0 means no real-human review was performed."
+    },
+    {
+      "channel_id": "channel-british-museum-papyrus-ani",
+      "completeness": "strong",
+      "metadata_precision": "strong",
+      "rights_clarity": "strong",
+      "machine_interface_quality": "adequate",
+      "human_minutes": 0,
+      "machine_seconds": 0.644417,
+      "notes": "Best exact physical-frame and acquired visual-File route with object-specific CC BY-NC-SA 4.0 evidence. Machine time is the automatic monotonic HTTP measurement; human_minutes=0 means no real-human review was performed."
+    },
+    {
+      "channel_id": "channel-bonn-totenbuch-project",
+      "completeness": "strong",
+      "metadata_precision": "strong",
+      "rights_clarity": "limited",
+      "machine_interface_quality": "adequate",
+      "human_minutes": 0,
+      "machine_seconds": 4.085067,
+      "notes": "Strong specialist Papyrus Ani identity and bibliography; no reusable content license established. Machine time is the automatic monotonic HTTP measurement; human_minutes=0 means no real-human review was performed."
+    },
+    {
+      "channel_id": "channel-ucl-digital-egypt-boundary",
+      "completeness": "adequate",
+      "metadata_precision": "adequate",
+      "rights_clarity": "strong",
+      "machine_interface_quality": "adequate",
+      "human_minutes": 0,
+      "machine_seconds": 1.226544,
+      "notes": "Useful work-like corpus boundary; explicit all-rights-reserved content fence. Machine time is the automatic monotonic HTTP measurement; human_minutes=0 means no real-human review was performed."
+    },
+    {
+      "channel_id": "channel-europeana-exact-search",
+      "completeness": "poor",
+      "metadata_precision": "poor",
+      "rights_clarity": "unknown",
+      "machine_interface_quality": "limited",
+      "human_minutes": 0,
+      "machine_seconds": 0.223124,
+      "notes": "No exact result was preserved; automated access returned a challenge envelope. Machine time is the automatic monotonic HTTP measurement; human_minutes=0 means no real-human review was performed."
+    },
+    {
+      "channel_id": "channel-trismegistos-identifier",
+      "completeness": "limited",
+      "metadata_precision": "strong",
+      "rights_clarity": "unknown",
+      "machine_interface_quality": "limited",
+      "human_minutes": 0,
+      "machine_seconds": 0.331099,
+      "notes": "Stable identifier corroborated by BM and Bonn; no TLS bypass and no direct content claim. Machine time is the automatic monotonic HTTP measurement; human_minutes=0 means no real-human review was performed."
+    },
+    {
+      "channel_id": "channel-open-library-edition",
+      "completeness": "adequate",
+      "metadata_precision": "strong",
+      "rights_clarity": "poor",
+      "machine_interface_quality": "strong",
+      "human_minutes": 0,
+      "machine_seconds": 0.330847,
+      "notes": "Exact edition-to-Internet-Archive identity; no independent rights statement. Machine time is the automatic monotonic HTTP measurement; human_minutes=0 means no real-human review was performed."
+    },
+    {
+      "channel_id": "channel-internet-archive-digital-object",
+      "completeness": "strong",
+      "metadata_precision": "strong",
+      "rights_clarity": "poor",
+      "machine_interface_quality": "strong",
+      "human_minutes": 0,
+      "machine_seconds": 1.287235,
+      "notes": "Exact provider filename and source fixity; Commons supplies the positive digital-object rights evidence. Machine time is the automatic monotonic HTTP measurement; human_minutes=0 means no real-human review was performed."
+    },
+    {
+      "channel_id": "channel-wikimedia-commons-public-domain-file",
+      "completeness": "strong",
+      "metadata_precision": "strong",
+      "rights_clarity": "strong",
+      "machine_interface_quality": "strong",
+      "human_minutes": 0,
+      "machine_seconds": 0.462041,
+      "notes": "Best exact public-domain PDF acquisition route and immutable File identity. Machine time is the automatic monotonic HTTP measurement; human_minutes=0 means no real-human review was performed."
+    },
+    {
+      "channel_id": "channel-general-web-final-gap-check",
+      "completeness": "limited",
+      "metadata_precision": "limited",
+      "rights_clarity": "poor",
+      "machine_interface_quality": "limited",
+      "human_minutes": 0,
+      "machine_seconds": 0.224575,
+      "notes": "Final lead-only check repeated stronger sources and added no new reusable object. Machine time is the automatic monotonic HTTP measurement; human_minutes=0 means no real-human review was performed."
+    }
+  ],
+  "selected_result_ids": [
+    "tos-discovery-result.k10plus-naville-1886-einleitung-ppn-156524015",
+    "tos-discovery-result.british-museum-papyrus-ani-ea10470-frame-3",
+    "tos-discovery-result.bonn-totenbuch-tm134357-papyrus-ani",
+    "tos-discovery-result.ucl-book-of-the-dead-boundary",
+    "tos-discovery-result.trismegistos-text-134357",
+    "tos-discovery-result.open-library-naville-ol23292830m",
+    "tos-discovery-result.internet-archive-dasaegyptischeto00naviuoft",
+    "tos-discovery-result.commons-naville-1886-einleitung-pdf"
+  ],
+  "rejected_result_ids": [],
+  "rights_inference_from_availability_prohibited": true,
+  "general_web_search_is_last_resort": true,
+  "technical_access_bypass_used": false,
+  "maker": {
+    "maker_type": "mixed",
+    "agent_ref": "model:codex + software:python-3.14.6"
+  },
+  "started_at": "2026-08-30T11:23:14.708704Z",
+  "ended_at": "2026-08-30T11:23:24.251983Z",
+  "status": "reconciled",
+  "provenance_event_refs": [
+    "tos.event.acquisition.book-of-the-dead-papyrus-ani-and-naville.2026-08-30",
+    "tos.event.discovery.book-of-the-dead-open-work-route.2026-08-30"
+  ],
+  "record_version": 1,
+  "supersedes_discovery_ref": null
+}

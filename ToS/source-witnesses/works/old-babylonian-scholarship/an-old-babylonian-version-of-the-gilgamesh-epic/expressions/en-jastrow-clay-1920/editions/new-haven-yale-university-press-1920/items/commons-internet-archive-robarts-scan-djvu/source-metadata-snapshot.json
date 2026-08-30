@@ -1,0 +1,72 @@
+{
+  "schema_version": "tos_source_metadata_snapshot_v1",
+  "captured_at": "2026-08-30T03:36:00-06:00",
+  "capture_method": {
+    "maker_type": "mixed",
+    "name": "ordered institutional, authority, open-library, source-visible, and exact-file capture",
+    "version": "Codex in-app browser; sha256sum; sha1sum; file"
+  },
+  "target": "Exact public-domain scan of the 1920 Jastrow–Clay edition relevant to the provisional Old Babylonian Gilgamesh tradition",
+  "bibliographic_identity": {
+    "title": "An Old Babylonian Version of the Gilgamesh Epic, on the Basis of Recently Discovered Texts",
+    "authors": [
+      "Morris Jastrow, Jr.",
+      "Albert T. Clay"
+    ],
+    "series": "Yale Oriental Series, Researches, Volume IV, Part III",
+    "place": "New Haven",
+    "publisher": "Yale University Press",
+    "date": "1920",
+    "pages_reported": 138
+  },
+  "commons_record": {
+    "record_url": "https://commons.wikimedia.org/wiki/File:An_Old_Babylonian_Version_of_the_Gilgamesh_Epic_-_Morris_-_1920.djvu",
+    "download_url": "https://upload.wikimedia.org/wikipedia/commons/2/25/An_Old_Babylonian_Version_of_the_Gilgamesh_Epic_-_Morris_-_1920.djvu",
+    "source_identifier": "anoldbabylonianv00jastuoft",
+    "source_institution": "Robarts Library, University of Toronto",
+    "rights_markers": [
+      "public domain",
+      "PD-scan",
+      "United States publication before 1931",
+      "author lifetimes compatible with life-plus-70"
+    ],
+    "reported_byte_size": 4493186,
+    "reported_sha1": "46e4e6edc4c8d5daab99f1d7e8cb4dd45b33f46e"
+  },
+  "internet_archive_record": {
+    "metadata_url": "https://archive.org/metadata/anoldbabylonianv00jastuoft",
+    "identifier": "anoldbabylonianv00jastuoft",
+    "contributor": "Robarts - University of Toronto",
+    "scanner": "Internet Archive",
+    "licenseurl": null,
+    "rights": null,
+    "note": "Internet Archive metadata supplies provenance and derivatives but no independent rights statement; Commons supplies the exact-file public-domain evidence."
+  },
+  "local_file": {
+    "basename": "an-old-babylonian-version-gilgamesh-jastrow-clay-1920.djvu",
+    "media_type": "image/vnd.djvu",
+    "byte_size": 4493186,
+    "sha256": "b3affda48ef0d57008d4153c04da3797074ece4296473e7c874b4e5252932023",
+    "sha1": "46e4e6edc4c8d5daab99f1d7e8cb4dd45b33f46e",
+    "page_count_reported_by_provider": 138,
+    "acquired_at": "2026-08-30T03:35:29-06:00",
+    "sha1_matches_commons": true
+  },
+  "responsibility_evidence": {
+    "prefatory_note_source": "https://gutenberg.org/cache/epub/11000/pg11000-images.html",
+    "bounded_findings": [
+      "Jastrow is credited with the introduction, commentary, and appendix.",
+      "Clay is credited with Yale-tablet text work.",
+      "The transliteration and translation are described as joint work."
+    ],
+    "source_text_admitted": false
+  },
+  "negative_and_deferred_channels": {
+    "penn_images": "Exact Penn CBS 07771 object metadata is useful, but the institution's custom media terms did not provide the required standard-open object license.",
+    "yale_images": "YBC 2178 was exactly identified through Yale and CDLI; no exact image with a standard open license was established.",
+    "ebl_current_corpus": "The eBL corpus API is open to view, while the repository MIT license applies to software rather than the corpus body.",
+    "zenodo_dataset": "The eBL fragments dataset is CC BY 4.0, but a bounded exact-identifier search did not return CBS.7771 or P262784, so it was not acquired as the candidate object.",
+    "project_gutenberg": "The derived HTML transcription is a useful US route but was not selected over the exact historical page scan."
+  },
+  "snapshot_boundary": "The tracked snapshot preserves identity, provenance, rights evidence, and fixity. It contains no source-bearing ancient text, OCR, transliteration, translation, semantic assertion, graph fact, canon promotion, or publication authorization."
+}

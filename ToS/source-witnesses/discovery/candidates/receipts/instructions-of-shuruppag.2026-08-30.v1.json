@@ -1,0 +1,75 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/open-work-candidate-receipt.schema.json",
+  "schema_version": "tos_open_work_candidate_receipt_v1",
+  "receipt_id": "open-work-candidate-receipt.instructions-of-shuruppag.2026-08-30.v1",
+  "candidate_id": "open-work-candidate.instructions-of-shuruppag",
+  "candidate_record_sha256": "03a0f136076b572e210e9f0f9c201ae22e244127cbb89676dc6611201be0a145",
+  "queue_snapshot_sha256": "d53662a84e54e389cc6bdb224985ab059399a277d4e0e53e0993743e2fb6794b",
+  "discovery_ref": "ToS/source-witnesses/discovery/runs/instructions-of-shuruppag-open-work-route.2026-08-30.v1.json",
+  "discovery_id": "tos.discovery.instructions-of-shuruppag-open-work-route.2026-08-30.v1",
+  "timing_ref": "ToS/source-witnesses/discovery/timings/instructions-of-shuruppag-open-work-route.2026-08-30.v1.json",
+  "terminal_status": "held_source_witness",
+  "target_resolution": {
+    "identity_status": "reconciled",
+    "work_ref": "tos.work.sumerian-literature.instructions-of-shuruppag",
+    "expression_ref": null,
+    "edition_ref": null,
+    "item_ref": null,
+    "summary": "The existing ancient Work and provider-independent modern scholarly composite were reused. The acquired objects are two exact OTA 2518 XML representations of that composite—one modern composite transliteration and one modern English translation—not a newly minted Work, Expression, Edition, Item, ancient original, or physical artifact."
+  },
+  "rights_result": {
+    "status": "positive-for-acquisition",
+    "reviewed_jurisdictions": ["GB", "MX", "US"],
+    "reviewed_layers": [
+      "exact OTA 2518 composite-transliteration member c.5.6.1.xml",
+      "exact OTA 2518 English-translation member t.5.6.1.xml",
+      "temporary OTA ZIP container and exact member paths",
+      "excluded live ETCSL HTML, CDLI surfaces and images, ISAC OIP 99, publication bodies, and unlicensed Internet Archive upload"
+    ],
+    "evidence_refs": [
+      "ToS/source-witnesses/scholarly-composites/critical/sumerian/instructions-of-shuruppag/representations/ota-2518-etcsl-5-6-1-transliteration/rights.json",
+      "ToS/source-witnesses/scholarly-composites/critical/sumerian/instructions-of-shuruppag/representations/ota-2518-etcsl-5-6-1-translation/rights.json",
+      "https://ota.bodleian.ox.ac.uk/repository/xmlui/handle/20.500.12024/2518?show=full",
+      "https://oracc.museum.upenn.edu/compass/downloads/2_4_Data_Acquisition_ETCSL.html",
+      "https://creativecommons.org/licenses/by-nc-sa/3.0/"
+    ],
+    "summary": "The University of Oxford distributes the exact OTA 2518 corpus deposit under CC BY-NC-SA 3.0. Both extracted members are container- and File-fixity-bound. Conditional non-commercial reuse with attribution and ShareAlike is permitted; repository policy keeps payloads local-only. No other provider, publication, text, translation, or semantic layer is silently cleared."
+  },
+  "acquisition": {
+    "downloaded": true,
+    "item_ref": null,
+    "artifact_ref": null,
+    "composite_ref": "tos.composite.sumerian.instructions-of-shuruppag",
+    "representation_ref": "ToS/source-witnesses/scholarly-composites/critical/sumerian/instructions-of-shuruppag/representations/ota-2518-etcsl-5-6-1-transliteration/representation.json",
+    "file_ref": "tos.file.sha256.b412b8eb37035049b6b64ff3a06a6f2a09856af5c3b1793021fd3c32d56a701d",
+    "provenance_event_ref": "tos.event.acquisition.instructions-of-shuruppag-ota-etcsl-5-6-1.2026-08-30"
+  },
+  "additional_acquisitions": [
+    {
+      "downloaded": true,
+      "item_ref": null,
+      "artifact_ref": null,
+      "composite_ref": "tos.composite.sumerian.instructions-of-shuruppag",
+      "representation_ref": "ToS/source-witnesses/scholarly-composites/critical/sumerian/instructions-of-shuruppag/representations/ota-2518-etcsl-5-6-1-translation/representation.json",
+      "file_ref": "tos.file.sha256.546b7498864b4c798964a44f7eec69c98dc776766606bc248e49226a7a20bea8",
+      "provenance_event_ref": "tos.event.acquisition.instructions-of-shuruppag-ota-etcsl-5-6-1.2026-08-30"
+    }
+  ],
+  "planting_refs": [
+    "ToS/philosophy/eras/bronze-age/regions/west-asia/traditions/old-babylonian-scribal-wisdom-law/sources/plantings/instructions-of-shuruppag-composite/source-planting.json"
+  ],
+  "operational_relation_refs": [
+    "ToS/source-witnesses/discovery/candidates/reviewed-candidates.jsonl:5",
+    "ToS/source-witnesses/discovery/runs/instructions-of-shuruppag-open-work-route.2026-08-30.v1.json",
+    "ToS/source-witnesses/discovery/timings/instructions-of-shuruppag-open-work-route.2026-08-30.v1.json",
+    "ToS/source-witnesses/scholarly-composites/critical/sumerian/instructions-of-shuruppag/composite-witness.json",
+    "ToS/source-witnesses/scholarly-composites/critical/sumerian/instructions-of-shuruppag/representations/ota-2518-etcsl-5-6-1-transliteration/representation.json",
+    "ToS/source-witnesses/scholarly-composites/critical/sumerian/instructions-of-shuruppag/representations/ota-2518-etcsl-5-6-1-translation/representation.json",
+    "tos.event.discovery.instructions-of-shuruppag-open-work-route.2026-08-30",
+    "tos.event.acquisition.instructions-of-shuruppag-ota-etcsl-5-6-1.2026-08-30"
+  ],
+  "next_trigger": "Rebuild queue.current.json. If no reviewed ready candidate remains, review exactly one next earliest source-backed Work or work-like corpus from the visible frontier, append it to reviewed-candidates.jsonl, rebuild, freeze it, and continue the loop.",
+  "issued_at": "2026-08-30T01:50:54-06:00",
+  "maker": {"maker_type": "model", "agent_ref": "model:codex"},
+  "record_version": 1
+}

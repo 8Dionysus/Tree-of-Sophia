@@ -1,0 +1,40 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/philosophy-source-planting.schema.json",
+  "schema_version": "tos_philosophy_source_planting_v1",
+  "planting_id": "tos.planting.a05.book-of-the-dead-papyrus-nebseny",
+  "atlas_row_id": "A05",
+  "dossier_id": "A05",
+  "branch_path": "ToS/philosophy/eras/bronze-age/regions/north-africa/traditions/egyptian-mortuary-theological-dialogic-corpora",
+  "source_backlog_anchor": {
+    "path": "ToS/philosophy/eras/bronze-age/regions/north-africa/traditions/egyptian-mortuary-theological-dialogic-corpora/sources/source-anchor-backlog.jsonl",
+    "line": 14,
+    "source_table_index": 12,
+    "source_row_index": 4,
+    "source_label": "Book of the Dead"
+  },
+  "source_witness": {
+    "artifact_id": "tos.artifact.egyptian.saqqara.papyrus-of-nebseny-ea9900-frame-1",
+    "record_ref": "ToS/source-witnesses/artifacts/egyptian/saqqara/papyrus-of-nebseny-ea9900-frame-1/artifact-witness.json",
+    "relationship": "grounds_source_backlog_anchor"
+  },
+  "discovery_ref": "ToS/source-witnesses/discovery/runs/book-of-the-dead-nebseny-naville-member.2026-08-30.v1.json",
+  "provenance_event_ref": "tos.event.discovery.book-of-the-dead-nebseny-naville-member.2026-08-30",
+  "research_ref": "ToS/research-packets/foundation-laboratory-2026-07/A05_BOOK_OF_THE_DEAD_OPEN_WORK_ACQUISITION_2026-08-30.md",
+  "fulfilled_source_needs": [
+    "the British Museum fixes physical Papyrus of Nebseny frame 1, EA9900,1 / .9900.1 / TM 134286, with reported period, dimensions, findspot, custody, owner, and Book of the Dead association",
+    "the museum explicitly identifies the manuscript as Aa in Naville's Todtenbuch",
+    "Naville's acquired Einleitung independently names British Museum Papyrus 9900 as a photographed and collated source",
+    "the physical artifact now exists as a provider-independent node that the modern scholarly composite can reference without collapsing their identities"
+  ],
+  "remaining_controls": [
+    "frame 1 is not the whole Papyrus of Nebseny, Naville's siglum Aa, Naville's critical reconstruction, or the whole Book of the Dead corpus",
+    "spell identity, local sequence, joins, inscription segmentation, transcription, transliteration, translation, vignette interpretation, and exact variant use remain unreviewed and unadmitted",
+    "no photograph or inscription bytes were acquired and no source, image, or publication license is inferred from catalog visibility"
+  ],
+  "research_order": ["official_and_classical_documentation", "established_top_scholarship", "fresh_current_relevance_check"],
+  "authority": {"source_status": "metadata_witness_planted", "review_status": "unreviewed", "source_text_admitted": false, "semantic_status": "not_started", "graph_status": "not_promoted", "canon_status": "not_canon", "human_task_created": false},
+  "status": "source_witness_planted",
+  "maker": {"maker_type": "model", "agent_ref": "model:codex", "human_review_performed": false},
+  "created_at": "2026-08-30T05:40:03-06:00",
+  "record_version": 1
+}

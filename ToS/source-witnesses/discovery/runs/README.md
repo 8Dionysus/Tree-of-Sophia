@@ -4,6 +4,21 @@ Schema-valid query/result records live here. The July 2026 foundation research
 is not backfilled because its earliest exact query order was not captured under
 the new protocol; that gap is stated in `../DISCOVERY_PROTOCOL.md`.
 
+`instruction-of-ptahhotep-open-work-route.2026-08-29.v1.json` is the first
+historical pass from the reviewed open-Work candidate queue. It keeps the
+attributed Work, Papyrus Prisse physical witness, BnF/Gallica representations,
+TLA scholarly layers, Gunn translation, historical editions, and alternate
+witnesses separate. Its zero per-channel times remain explicit unknown
+sentinels and its blocked outcome is not rewritten.
+
+`instruction-of-ptahhotep-open-work-route.2026-08-29.v2.json` supersedes that
+active route with 12 external monotonic transport measurements. It records the
+operator-authorized acquisition of the exact CC0 Museo Egizio CGT 54014
+Commons JPEG as a File-backed artifact representation. No Work/Expression/
+Edition/Item, source text, translation, semantic claim, graph fact, canon, or
+publication authority was created; the candidate terminates as
+`held_source_witness`, and the generated queue advances to Pyramid Texts.
+
 `ekgwb-za-i-vorrede-1.2026-07-28.v1.json` is the first protocol-native run. It
 preserves a stable GND work record, repeated direct Nietzsche Source failures,
 an operator hostname error, and the bounded noisy general-web result order.

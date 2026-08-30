@@ -1,0 +1,162 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/open-work-channel-timing-receipt.schema.json",
+  "claim_limit": "monotonic transport timing through the first 16384 response bytes only; not research, interpretation, rights-review, or human elapsed time",
+  "discovery_id": "tos.discovery.old-babylonian-gilgamesh-open-work-route.2026-08-30.v1",
+  "discovery_ref": "ToS/source-witnesses/discovery/runs/old-babylonian-gilgamesh-open-work-route.2026-08-30.v1.json",
+  "measured_at": "2026-08-30T09:49:15.436284Z",
+  "measurements": [
+    {
+      "channel_id": "channel-dnb-authorities",
+      "measurement": {
+        "clock": "python.time.perf_counter_ns",
+        "elapsed_seconds": 4.313165,
+        "ended_at": "2026-08-30T09:48:59.936748Z",
+        "http_status": 200,
+        "method": "monotonic-http-request-v1",
+        "outcome": "success",
+        "probe_url": "https://d-nb.info/gnd/117085626",
+        "response_bytes_observed": 16384,
+        "started_at": "2026-08-30T09:48:55.623555Z",
+        "timing_scope": "request-through-first-16384-response-bytes"
+      }
+    },
+    {
+      "channel_id": "channel-penn-yale-holdings",
+      "measurement": {
+        "clock": "python.time.perf_counter_ns",
+        "elapsed_seconds": 8.655087,
+        "ended_at": "2026-08-30T09:49:08.591987Z",
+        "http_status": 403,
+        "method": "monotonic-http-request-v1",
+        "outcome": "http-error",
+        "probe_url": "https://www.penn.museum/collections/object/245958",
+        "response_bytes_observed": 961,
+        "started_at": "2026-08-30T09:48:59.936890Z",
+        "timing_scope": "request-through-first-16384-response-bytes"
+      }
+    },
+    {
+      "channel_id": "channel-ebl-current-composite",
+      "measurement": {
+        "clock": "python.time.perf_counter_ns",
+        "elapsed_seconds": 1.600291,
+        "ended_at": "2026-08-30T09:49:10.192375Z",
+        "http_status": 200,
+        "method": "monotonic-http-request-v1",
+        "outcome": "success",
+        "probe_url": "https://www.ebl.lmu.de/api/texts/L/1/4",
+        "response_bytes_observed": 16116,
+        "started_at": "2026-08-30T09:49:08.592075Z",
+        "timing_scope": "request-through-first-16384-response-bytes"
+      }
+    },
+    {
+      "channel_id": "channel-zenodo-ebl-dataset",
+      "measurement": {
+        "clock": "python.time.perf_counter_ns",
+        "elapsed_seconds": 1.061359,
+        "ended_at": "2026-08-30T09:49:11.253865Z",
+        "http_status": 200,
+        "method": "monotonic-http-request-v1",
+        "outcome": "success",
+        "probe_url": "https://zenodo.org/records/10018951",
+        "response_bytes_observed": 16384,
+        "started_at": "2026-08-30T09:49:10.192498Z",
+        "timing_scope": "request-through-first-16384-response-bytes"
+      }
+    },
+    {
+      "channel_id": "channel-cdli-identifiers",
+      "measurement": {
+        "clock": "python.time.perf_counter_ns",
+        "elapsed_seconds": 1.114331,
+        "ended_at": "2026-08-30T09:49:12.368352Z",
+        "http_status": 200,
+        "method": "monotonic-http-request-v1",
+        "outcome": "success",
+        "probe_url": "https://cdli.earth/artifacts/273176",
+        "response_bytes_observed": 16384,
+        "started_at": "2026-08-30T09:49:11.254010Z",
+        "timing_scope": "request-through-first-16384-response-bytes"
+      }
+    },
+    {
+      "channel_id": "channel-oll-historical-edition",
+      "measurement": {
+        "clock": "python.time.perf_counter_ns",
+        "elapsed_seconds": 0.341876,
+        "ended_at": "2026-08-30T09:49:12.710342Z",
+        "http_status": 403,
+        "method": "monotonic-http-request-v1",
+        "outcome": "http-error",
+        "probe_url": "https://oll.libertyfund.org/titles/clay-an-old-babylonian-version-of-the-gilgamesh-epic",
+        "response_bytes_observed": 919,
+        "started_at": "2026-08-30T09:49:12.368458Z",
+        "timing_scope": "request-through-first-16384-response-bytes"
+      }
+    },
+    {
+      "channel_id": "channel-commons-exact-scan",
+      "measurement": {
+        "clock": "python.time.perf_counter_ns",
+        "elapsed_seconds": 0.264682,
+        "ended_at": "2026-08-30T09:49:12.975120Z",
+        "http_status": 200,
+        "method": "monotonic-http-request-v1",
+        "outcome": "success",
+        "probe_url": "https://commons.wikimedia.org/wiki/File:An_Old_Babylonian_Version_of_the_Gilgamesh_Epic_-_Morris_-_1920.djvu",
+        "response_bytes_observed": 16384,
+        "started_at": "2026-08-30T09:49:12.710428Z",
+        "timing_scope": "request-through-first-16384-response-bytes"
+      }
+    },
+    {
+      "channel_id": "channel-internet-archive-provenance",
+      "measurement": {
+        "clock": "python.time.perf_counter_ns",
+        "elapsed_seconds": 1.093589,
+        "ended_at": "2026-08-30T09:49:14.068867Z",
+        "http_status": 200,
+        "method": "monotonic-http-request-v1",
+        "outcome": "success",
+        "probe_url": "https://archive.org/metadata/anoldbabylonianv00jastuoft",
+        "response_bytes_observed": 16384,
+        "started_at": "2026-08-30T09:49:12.975269Z",
+        "timing_scope": "request-through-first-16384-response-bytes"
+      }
+    },
+    {
+      "channel_id": "channel-project-gutenberg-derived-text",
+      "measurement": {
+        "clock": "python.time.perf_counter_ns",
+        "elapsed_seconds": 0.725433,
+        "ended_at": "2026-08-30T09:49:14.794420Z",
+        "http_status": 200,
+        "method": "monotonic-http-request-v1",
+        "outcome": "success",
+        "probe_url": "https://gutenberg.org/cache/epub/11000/pg11000-images.html",
+        "response_bytes_observed": 16384,
+        "started_at": "2026-08-30T09:49:14.068977Z",
+        "timing_scope": "request-through-first-16384-response-bytes"
+      }
+    },
+    {
+      "channel_id": "channel-general-web-last",
+      "measurement": {
+        "clock": "python.time.perf_counter_ns",
+        "elapsed_seconds": 0.641673,
+        "ended_at": "2026-08-30T09:49:15.436216Z",
+        "http_status": 200,
+        "method": "monotonic-http-request-v1",
+        "outcome": "success",
+        "probe_url": "https://www.google.com/search",
+        "response_bytes_observed": 16384,
+        "started_at": "2026-08-30T09:49:14.794533Z",
+        "timing_scope": "request-through-first-16384-response-bytes"
+      }
+    }
+  ],
+  "record_version": 1,
+  "schema_version": "tos_open_work_channel_timing_receipt_v1",
+  "timing_id": "open-work-channel-timing.old-babylonian-gilgamesh-open-work-route.2026-08-30.v1"
+}

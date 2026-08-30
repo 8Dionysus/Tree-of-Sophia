@@ -1,0 +1,124 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/artifact-source-witness.schema.json",
+  "schema_version": "tos_artifact_source_witness_v1",
+  "artifact_id": "tos.artifact.egyptian.thebes.bnf-papyrus-prisse-egyptien-183-194",
+  "artifact_kind": "manuscript_object",
+  "path_identity": {
+    "basis": "repository_identity",
+    "provider_independent": true,
+    "note": "The path follows the BnF repository identity Egyptien 183-194 for the physical Papyrus Prisse, not a Gallica image, Commons file, modern facsimile, TLA version, or attributed Work title."
+  },
+  "identifiers": [
+    {"scheme": "BnF inventory", "value": "Egyptien 183-194", "source_ref": "https://archivesetmanuscrits.bnf.fr/ark:/12148/cc12921q"},
+    {"scheme": "BnF EAD", "value": "FRBNFEAD000012921", "source_ref": "https://archivesetmanuscrits.bnf.fr/ark:/12148/cc12921q"},
+    {"scheme": "BnF Archives ARK", "value": "cc12921q", "source_ref": "https://archivesetmanuscrits.bnf.fr/ark:/12148/cc12921q"},
+    {"scheme": "Trismegistos", "value": "755250", "source_ref": "https://www.trismegistos.org/collection/270"}
+  ],
+  "physical_description": {
+    "material": "papyrus palimpsest",
+    "height_mm": 150,
+    "width_mm": 7010,
+    "thickness_mm": null,
+    "source_ref": "https://archivesetmanuscrits.bnf.fr/ark:/12148/cc12921q"
+  },
+  "dating": {
+    "period_label": "Egyptian Twelfth Dynasty",
+    "display_date": "reported 1991-1785 BCE",
+    "certainty": "reported",
+    "period_stage_separation_required": true,
+    "source_ref": "https://archivesetmanuscrits.bnf.fr/ark:/12148/cc12921q"
+  },
+  "find_context": {
+    "site": "Thebes",
+    "findspot": "reported probable Dra Abu el-Nagga",
+    "excavation_numbers": [],
+    "source_note": "The BnF record reports a probable origin at Dra Abu el-Nagga in the Theban region; this is not treated as a documented excavation context.",
+    "documentation_limit": "The reported probable findspot does not establish place of composition, authorial provenance, original school context, or the date of the attributed Work.",
+    "source_ref": "https://archivesetmanuscrits.bnf.fr/ark:/12148/cc12921q"
+  },
+  "custody": {
+    "current_repository": "Bibliothèque nationale de France, Département des Manuscrits",
+    "inventory_numbers": ["Egyptien 183", "Egyptien 184", "Egyptien 185", "Egyptien 186", "Egyptien 187", "Egyptien 188", "Egyptien 189", "Egyptien 190", "Egyptien 191", "Egyptien 192", "Egyptien 193", "Egyptien 194"],
+    "source_ref": "https://archivesetmanuscrits.bnf.fr/ark:/12148/cc12921q"
+  },
+  "digital_catalog_record": {
+    "provider": "Bibliothèque nationale de France — Archives et manuscrits",
+    "record_id": "FRBNFEAD000012921",
+    "record_url": "https://archivesetmanuscrits.bnf.fr/ark:/12148/cc12921q",
+    "api_url": null,
+    "checked_at": "2026-08-29T22:53:00-06:00",
+    "mutable": true,
+    "response_fingerprints": [
+      {"surface": "https://archivesetmanuscrits.bnf.fr/ark:/12148/cc12921q", "byte_size": 27348, "sha256": "4816f2976d9b496585a7518b2305f79a39d231a99986426181c3ab131f8064dc", "captured": false}
+    ]
+  },
+  "inscription_layer": {
+    "availability": "available_not_acquired",
+    "language_status": "reported",
+    "provider_language_code": "egy",
+    "normalized_language_code": "egy",
+    "script": "Middle Hieratic",
+    "transliteration_stored": false,
+    "translation_stored": false,
+    "source_refs": [
+      "https://archivesetmanuscrits.bnf.fr/ark:/12148/cc12921q",
+      "https://thesaurus-linguae-aegyptiae.de/text/3W45TQYQ3RCX5DXZ7DIZ43JWNQ"
+    ]
+  },
+  "composite_layer": {
+    "status": "linked",
+    "external_refs": [
+      {"scheme": "TLA text version", "value": "3W45TQYQ3RCX5DXZ7DIZ43JWNQ", "source_ref": "https://thesaurus-linguae-aegyptiae.de/text/3W45TQYQ3RCX5DXZ7DIZ43JWNQ"}
+    ],
+    "relationship": "Modern facsimiles, editions, transliterations, translations, and TLA version records may reconstruct or index the Ptahhotep tradition, but none is the physical Papyrus Prisse and none is admitted here as source text or as one fixed ancient Work.",
+    "is_physical_artifact_identity": false
+  },
+  "visual_layers": [
+    {"layer_kind": "photograph", "availability": "linked", "content_stored": false, "source_ref": "https://gallica.bnf.fr/ark:/12148/btv1b108924968", "rights_note": "The full Gallica digital representation is linked only. Gallica reuse conditions and cross-jurisdiction scope were not reconciled for redistribution, so no payload was acquired."},
+    {"layer_kind": "photograph", "availability": "visible", "content_stored": false, "source_ref": "https://gallica.bnf.fr/ark:/12148/btv1b8304609v", "rights_note": "The exact Egyptien 186 representation is visible and separately addressable. Visibility does not make it the physical artifact or establish unrestricted reuse."},
+    {"layer_kind": "photograph", "availability": "visible", "content_stored": false, "source_ref": "https://commons.wikimedia.org/wiki/File:Papyrus_Prisse._Egyptien_186._Enseignement_de_Ptahhotep_(1-73)_-_btv1b8304609v.jpg", "rights_note": "Commons presents the exact BnF-derived file as public domain, while the description preserves France-specific moral-rights language and Gallica has separate reuse conditions. The conflict is unresolved and no bytes are stored."}
+  ],
+  "scholarly_classification": {
+    "genre": "Egyptian wisdom instruction manuscript witness",
+    "corpus_labels": ["Papyrus Prisse", "Instruction of Ptahhotep witness", "Instruction of Kagemni terminal witness", "palimpsest"],
+    "classification_is_interpretive": true,
+    "source_refs": [
+      "https://archivesetmanuscrits.bnf.fr/ark:/12148/cc12921q",
+      "https://thesaurus-linguae-aegyptiae.de/text/3W45TQYQ3RCX5DXZ7DIZ43JWNQ",
+      "https://www.trismegistos.org/collection/270"
+    ]
+  },
+  "bibliography": [
+    {"citation": "Jéquier, Gustave. Le Papyrus Prisse et ses variantes (1911).", "role": "primary_publication", "source_ref": "https://gallica.bnf.fr/ark:/12148/bpt6k55445891"},
+    {"citation": "Dévaud, Eugène. Les Maximes de Ptahhotep (1916).", "role": "catalog_publication", "source_ref": "https://thesaurus-linguae-aegyptiae.de/text/3W45TQYQ3RCX5DXZ7DIZ43JWNQ"},
+    {"citation": "Žába, Zbyněk. Les Maximes de Ptahhotep (1956).", "role": "established_control", "source_ref": "https://thesaurus-linguae-aegyptiae.de/text/3W45TQYQ3RCX5DXZ7DIZ43JWNQ"},
+    {"citation": "Hagen, Fredrik. An Ancient Egyptian Literary Text in Context: The Instruction of Ptahhotep (2012).", "role": "current_control", "source_ref": "https://thesaurus-linguae-aegyptiae.de/text/3W45TQYQ3RCX5DXZ7DIZ43JWNQ"},
+    {"citation": "Gunn, Battiscombe G., trans. The Instruction of Ptah-Hotep and the Instruction of Ke'Gemni, second impression (1908).", "role": "catalog_publication", "source_ref": "https://search.worldcat.org/title/The-instruction-of-Ptah-hotep-and-the-instruction-of-Ke%27gemni-%3A-the-oldest-books-in-the-world./oclc/787861218"}
+  ],
+  "layer_separation": {
+    "physical_artifact_is_catalog_record": false,
+    "catalog_record_is_inscription": false,
+    "inscription_is_composite": false,
+    "visual_is_artifact": false,
+    "sign_has_fixed_translation": false,
+    "artifact_is_philosophy": false
+  },
+  "rights_ref": "ToS/source-witnesses/artifacts/egyptian/thebes/bnf-papyrus-prisse-egyptien-183-194/rights.json",
+  "discovery_ref": "ToS/source-witnesses/discovery/runs/papyrus-prisse-artifact-route.2026-08-29.v1.json",
+  "provenance_event_ref": "tos.event.discovery.instruction-of-ptahhotep-open-work-route.2026-08-29",
+  "research_ref": "ToS/research-packets/foundation-laboratory-2026-07/A04_PTAHHOTEP_OPEN_WORK_DISCOVERY_AND_RIGHTS_ROUTE_2026-08-29.md",
+  "philosophy_planting_refs": ["ToS/philosophy/eras/bronze-age/regions/north-africa/traditions/egyptian-sebayt-scribal-ethics/sources/plantings/papyrus-prisse-metadata-witness/source-planting.json"],
+  "authority": {
+    "evidence_status": "metadata_witness",
+    "review_status": "unreviewed",
+    "visibility": "public_metadata_only",
+    "source_text_admitted": false,
+    "semantic_authority": false,
+    "graph_authority": false,
+    "canon_authority": false,
+    "publication_authority": false
+  },
+  "maker": {"maker_type": "model", "agent_ref": "model:codex", "human_review_performed": false},
+  "created_at": "2026-08-29T23:08:00-06:00",
+  "record_version": 1
+}

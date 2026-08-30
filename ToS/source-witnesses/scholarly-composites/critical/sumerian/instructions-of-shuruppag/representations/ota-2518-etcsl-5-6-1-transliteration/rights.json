@@ -1,0 +1,55 @@
+{
+  "schema_version": "tos_rights_record_v1",
+  "rights_id": "tos.rights.sumerian.instructions-of-shuruppag-ota-2518-c561-cc-by-nc-sa-3.0",
+  "scope_refs": [
+    "tos.composite.sumerian.instructions-of-shuruppag",
+    "tos.composite-representation.sumerian.instructions-of-shuruppag-ota-2518-c561",
+    "tos.file.sha256.b412b8eb37035049b6b64ff3a06a6f2a09856af5c3b1793021fd3c32d56a701d"
+  ],
+  "assessment_status": "licensed",
+  "rights_statement_uri": "https://ota.bodleian.ox.ac.uk/repository/xmlui/handle/20.500.12024/2518?show=full",
+  "license_uri": "https://creativecommons.org/licenses/by-nc-sa/3.0/",
+  "jurisdictions_reviewed": ["GB", "MX", "US"],
+  "source_refs": [
+    "https://ota.bodleian.ox.ac.uk/repository/xmlui/handle/20.500.12024/2518?show=full",
+    "https://oracc.museum.upenn.edu/compass/downloads/2_4_Data_Acquisition_ETCSL.html",
+    "https://creativecommons.org/licenses/by-nc-sa/3.0/"
+  ],
+  "layer_assessments": [
+    {
+      "layer_id": "tos.rights.sumerian.instructions-of-shuruppag-ota-2518-c561-cc-by-nc-sa-3.0.layer.transliteration",
+      "layer_role": "transliteration",
+      "scope_refs": ["tos.file.sha256.b412b8eb37035049b6b64ff3a06a6f2a09856af5c3b1793021fd3c32d56a701d"],
+      "assessment_status": "licensed",
+      "assessment_basis": "license",
+      "rights_statement_uri": "https://ota.bodleian.ox.ac.uk/repository/xmlui/handle/20.500.12024/2518?show=full",
+      "license_uri": "https://creativecommons.org/licenses/by-nc-sa/3.0/",
+      "jurisdictions_reviewed": ["GB", "MX", "US"],
+      "source_refs": ["https://ota.bodleian.ox.ac.uk/repository/xmlui/handle/20.500.12024/2518?show=full", "https://creativecommons.org/licenses/by-nc-sa/3.0/"],
+      "rights_holder_refs": ["ETCSL editors and contributors; distributed by the University of Oxford"],
+      "permissions": ["copy and retain the exact XML", "redistribute non-commercially with attribution", "prepare derivatives non-commercially under the same license"],
+      "restrictions": ["attribution required", "commercial use not licensed", "ShareAlike required for adaptations", "editor and contributor moral rights remain asserted"],
+      "redistribution_posture": "authorized_with_conditions",
+      "derivative_posture": "allowed_with_conditions",
+      "server_processing_posture": "authorized_with_conditions",
+      "term": {"calculation_status": "not_applicable", "basis": "exact Creative Commons license rather than a copyright-term calculation", "starts_on": null, "ends_on": null, "uncertainty": "The license applies to the exact OTA 2518 deposit member, not every live ETCSL or CDLI representation."},
+      "uncertainty": "Licensed reuse does not accept the editorial reconstruction, line segmentation, readings, lemmata, source equivalence, or philosophical meaning.",
+      "assessed_at": "2026-08-30T01:45:00-06:00",
+      "review_status": "unreviewed",
+      "rationale": "The originating OTA record explicitly distributes the corpus XML under CC BY-NC-SA 3.0, and the exact member and container are both fixity-bound."
+    }
+  ],
+  "permissions": ["retain and process the exact local XML", "redistribute it only under CC BY-NC-SA 3.0 conditions"],
+  "restrictions": ["repository policy keeps the payload local-only", "attribution, NonCommercial, and ShareAlike conditions remain attached", "no source-text, semantic, graph, canon, or publication authority follows"],
+  "visibility": "local_only",
+  "redistribution_posture": "authorized_with_conditions",
+  "derivative_posture": "allowed_with_conditions",
+  "assessed_by": {"maker_type": "model", "agent_ref": "model:codex"},
+  "assessed_at": "2026-08-30T01:45:00-06:00",
+  "rationale": "The exact c.5.6.1 XML File is positively licensed while ToS applies a stricter local-only storage posture.",
+  "review_status": "unreviewed",
+  "review_refs": [],
+  "access_request_ref": null,
+  "record_version": 1,
+  "supersedes_rights_ref": null
+}

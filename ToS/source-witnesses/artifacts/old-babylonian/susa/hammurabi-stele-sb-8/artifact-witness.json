@@ -1,6 +1,6 @@
 {
-  "$schema": "https://tree-of-sophia.local/ToS/contracts/artifact-source-witness.schema.json",
-  "schema_version": "tos_artifact_source_witness_v1",
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/artifact-source-witness-v2.schema.json",
+  "schema_version": "tos_artifact_source_witness_v2",
   "artifact_id": "tos.artifact.old-babylonian.susa.hammurabi-stele-sb-8",
   "artifact_kind": "inscription",
   "path_identity": {
@@ -74,9 +74,10 @@
     "is_physical_artifact_identity": false
   },
   "visual_layers": [
-    {"layer_kind": "photograph", "availability": "visible", "content_stored": false, "source_ref": "https://cdli.earth/artifacts/249253", "rights_note": "CDLI states that artifact photographs generally belong to holding institutions; no photograph was acquired and no publication authority is inferred."},
+    {"layer_kind": "photograph", "availability": "visible", "content_stored": false, "source_ref": "https://commons.wikimedia.org/wiki/File:P1050551_Louvre_code_d%27Hammurabi_recto_rwk.JPG", "rights_note": "The artifact metadata packet embeds no visual bytes. The exact Mbzt 2011 rear-face JPEG is retained as a separate content-addressed visual-representation File under CC BY 3.0; the Commons filename says recto while its description says face arrière, so orientation remains source-attributed."},
+    {"layer_kind": "photograph", "availability": "visible", "content_stored": false, "source_ref": "https://collections.louvre.fr/en/ark:/53355/cl010174436", "rights_note": "The Louvre collection photographs remain separate digital objects under custom enumerated-use terms and were not acquired; the independent Commons license is not projected onto them."},
     {"layer_kind": "line_art", "availability": "visible", "content_stored": false, "source_ref": "https://cdli.earth/artifacts/249253", "rights_note": "CDLI attributes line art to named authors and publications; no drawing was acquired and later reuse requires exact source and permission review."},
-    {"layer_kind": "three_dimensional_model", "availability": "linked", "content_stored": false, "source_ref": "https://collections.louvre.fr/ark:/53355/cl010174436", "rights_note": "The Louvre collection notice links a separate 3D representation, but its payload and license were not acquired or evaluated for redistribution."}
+    {"layer_kind": "three_dimensional_model", "availability": "linked", "content_stored": false, "source_ref": "https://sketchfab.com/3d-models/stele-du-code-de-lois-de-hammurabi-44584936406a4879b8e054420dac7e07", "rights_note": "The exact RMN-Grand Palais web-display model credits © Rmn-GrandPalais - Musée du Louvre/Reproduction 3D Rmn-GP, carries NoAI, supplies no Creative Commons license or anonymous download, and routes high-quality use through agence.photo@rmngp.fr; no model payload was acquired."}
   ],
   "scholarly_classification": {
     "genre": "Law collection; royal/display inscription",
@@ -103,8 +104,8 @@
   },
   "rights_ref": "ToS/source-witnesses/artifacts/old-babylonian/susa/hammurabi-stele-sb-8/rights.json",
   "discovery_ref": "ToS/source-witnesses/discovery/runs/old-babylonian-hammurabi-stele-sb8.2026-08-13.v1.json",
-  "provenance_event_ref": "tos.event.discovery.old-babylonian-hammurabi-stele-sb8.2026-08-13",
-  "research_ref": "ToS/research-packets/foundation-laboratory-2026-07/A02_CDLI_CODEX_HAMMURAPI_STELE_SOURCE_PLANTING_RESEARCH_2026-08-13.md",
+  "provenance_event_ref": "tos.event.acquisition.hammurabi-stele-sb8-commons-mbzt-rear-2011.2026-08-30.v3",
+  "research_ref": "ToS/research-packets/foundation-laboratory-2026-07/A02_LAWS_OF_HAMMURAPI_OPEN_WORK_ACQUISITION_2026-08-30.md",
   "philosophy_planting_refs": ["ToS/philosophy/eras/bronze-age/regions/west-asia/traditions/old-babylonian-scribal-wisdom-law/sources/plantings/cdli-codex-hammurapi-stele-profile/source-planting.json"],
   "authority": {
     "evidence_status": "metadata_witness",
@@ -118,5 +119,5 @@
   },
   "maker": {"maker_type": "model", "agent_ref": "model:codex", "human_review_performed": false},
   "created_at": "2026-08-13T00:32:00-06:00",
-  "record_version": 1
+  "record_version": 2
 }

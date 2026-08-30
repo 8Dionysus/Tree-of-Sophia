@@ -1,0 +1,52 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/philosophy-source-planting.schema.json",
+  "schema_version": "tos_philosophy_source_planting_v1",
+  "planting_id": "tos.planting.a05.pyramid-texts-sethe-composite",
+  "atlas_row_id": "A05",
+  "dossier_id": "A05",
+  "branch_path": "ToS/philosophy/eras/bronze-age/regions/north-africa/traditions/egyptian-mortuary-theological-dialogic-corpora",
+  "source_backlog_anchor": {
+    "path": "ToS/philosophy/eras/bronze-age/regions/north-africa/traditions/egyptian-mortuary-theological-dialogic-corpora/sources/source-anchor-backlog.jsonl",
+    "line": 11,
+    "source_table_index": 12,
+    "source_row_index": 1,
+    "source_label": "Pyramid Texts"
+  },
+  "source_witness": {
+    "composite_id": "tos.composite.egyptian.pyramid-texts-sethe-1908-1910",
+    "record_ref": "ToS/source-witnesses/scholarly-composites/critical/egyptian/pyramid-texts-sethe-1908-1910/composite-witness.json",
+    "relationship": "grounds_source_backlog_anchor"
+  },
+  "discovery_ref": "ToS/source-witnesses/discovery/runs/pyramid-texts-open-work-route.2026-08-30.v1.json",
+  "provenance_event_ref": "tos.event.discovery.pyramid-texts-open-work-route.2026-08-30",
+  "research_ref": "ToS/research-packets/foundation-laboratory-2026-07/A05_PYRAMID_TEXTS_OPEN_WORK_DISCOVERY_AND_RIGHTS_ROUTE_2026-08-30.md",
+  "fulfilled_source_needs": [
+    "UCL and TLA anchor the modern Pyramid Texts corpus label and one exact Unas witness without making the corpus one ancient book",
+    "the physical Pyramid of Unas is separate from TLA PT 217, Sethe's modern reconstruction, BSB records, and downloaded files",
+    "Sethe volumes 1 and 2 have exact BSB, DDB, B3Kat, WorldCat, URN, year, page-count, byte-size, and SHA-256 evidence",
+    "each BSB PDF has explicit CC BY-NC-SA 4.0 evidence and an independent local-only File representation",
+    "the loop preserves ten ordered discovery channels, exact queries, URLs, a zero-result channel, deferrals, rejection, and positive monotonic timings"
+  ],
+  "remaining_controls": [
+    "Pyramid Texts remains a modern work-like corpus label; no unitary ancient Work, author, composition date, or original title is minted",
+    "Unas is one physical witness and does not prove complete membership, recension, order, or uniform wording across other pyramids",
+    "Sethe editorial lines, signs, handcopies, reconstructions, commentary, and pagination are not physical artifact coordinates or accepted readings",
+    "the acquired PDFs admit no source text, OCR, correction, transliteration, translation, annotation, semantic claim, graph fact, or canon status",
+    "CC BY-NC-SA conditions remain attached to each exact scan and do not silently license UCL, TLA, Chicago, Internet Archive, or other provider content",
+    "the pre-canon dossier's philosophical contribution remains unreviewed and is not promoted by source acquisition"
+  ],
+  "research_order": ["official_and_classical_documentation", "established_top_scholarship", "fresh_current_relevance_check"],
+  "authority": {
+    "source_status": "metadata_witness_planted",
+    "review_status": "unreviewed",
+    "source_text_admitted": false,
+    "semantic_status": "not_started",
+    "graph_status": "not_promoted",
+    "canon_status": "not_canon",
+    "human_task_created": false
+  },
+  "status": "source_witness_planted",
+  "maker": {"maker_type": "model", "agent_ref": "model:codex", "human_review_performed": false},
+  "created_at": "2026-08-30T01:22:00-06:00",
+  "record_version": 1
+}

@@ -142,23 +142,25 @@
     "role": "modern_scholarly_composite",
     "formats": [
       "ETCSL catalogue HTML",
+      "OTA ETCSL 0.2.02 composite transliteration XML",
       "ETCSL composite transliteration HTML",
       "CDLI artifact HTML and JSON",
       "CDLI ATF revision",
       "modern scholarly comparison"
     ],
-    "availability": "open_view",
+    "availability": "open_download",
     "content_stored": false,
     "source_text_admitted": false,
     "source_refs": [
       "https://etcsl.orinst.ox.ac.uk/catalogue/catalogue0.htm",
+      "https://ota.bodleian.ox.ac.uk/repository/xmlui/handle/20.500.12024/2518",
       "https://ota.bodleian.ox.ac.uk/repository/xmlui/bitstream/handle/20.500.12024/2518/etcslfullcat.html?isAllowed=y&sequence=7",
       "https://cdli.earth/artifacts/345372",
       "https://cdli.earth/artifacts/255993",
       "https://doi.org/10.1515/za.2010.003",
       "https://isac.uchicago.edu/research/publications/ISACMP/isacmp1"
     ],
-    "scope_note": "Provider and publication routes expose incipit readings, composition mappings, sequence, layout, images, and interpretation. The tracked layer retains identities, fingerprints, coverage, one exact member relation, and explicit epistemic boundaries only."
+    "scope_note": "Provider and publication routes expose incipit readings, composition mappings, sequence, layout, images, and interpretation. The tracked composite packet remains metadata-only; one exact OTA 2518 c.0.2.02.xml File is now frozen separately under representations/, with its own fixity and CC BY-NC-SA 3.0 rights record, and is not accepted as source text, physical artifact, closed corpus, curriculum, or canon."
   },
   "layer_separation": {
     "composite_is_physical_artifact": false,
@@ -170,9 +172,9 @@
     "composite_is_philosophy": false
   },
   "rights_ref": "ToS/source-witnesses/scholarly-composites/synoptic/sumerian/old-babylonian-literary-catalogue-witnesses/rights.json",
-  "discovery_ref": "ToS/source-witnesses/discovery/runs/old-babylonian-sumerian-literary-catalogues.2026-08-23.v1.json",
-  "provenance_event_ref": "tos.event.discovery.old-babylonian-sumerian-literary-catalogues.2026-08-23",
-  "research_ref": "ToS/research-packets/foundation-laboratory-2026-07/A02_OLD_BABYLONIAN_SUMERIAN_LITERARY_CATALOGUES_SOURCE_PLANTING_RESEARCH_2026-08-23.md",
+  "discovery_ref": "ToS/source-witnesses/discovery/runs/old-babylonian-sumerian-literary-catalogues-open-work-route.2026-08-30.v1.json",
+  "provenance_event_ref": "tos.event.discovery.old-babylonian-sumerian-literary-catalogues-open-work-route.2026-08-30",
+  "research_ref": "ToS/research-packets/foundation-laboratory-2026-07/A02_OLD_BABYLONIAN_SUMERIAN_LITERARY_CATALOGUES_OPEN_WORK_ACQUISITION_2026-08-30.md",
   "philosophy_planting_refs": [
     "ToS/philosophy/eras/bronze-age/regions/west-asia/traditions/old-babylonian-scribal-wisdom-law/sources/plantings/old-babylonian-sumerian-literary-catalogues/source-planting.json"
   ],
@@ -192,5 +194,5 @@
     "human_review_performed": false
   },
   "created_at": "2026-08-23T02:18:25-06:00",
-  "record_version": 1
+  "record_version": 2
 }

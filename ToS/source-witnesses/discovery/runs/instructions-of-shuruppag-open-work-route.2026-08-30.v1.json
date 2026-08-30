@@ -1,0 +1,702 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/material-discovery-record.schema.json",
+  "schema_version": "tos_material_discovery_record_v1",
+  "discovery_id": "tos.discovery.instructions-of-shuruppag-open-work-route.2026-08-30.v1",
+  "protocol_ref": "ToS/source-witnesses/discovery/DISCOVERY_PROTOCOL.md",
+  "target": {
+    "target_kind": "scholarly-composite",
+    "known_tos_refs": [
+      "tos.work.sumerian-literature.instructions-of-shuruppag",
+      "tos.composite.sumerian.instructions-of-shuruppag",
+      "tos.artifact.sumerian.uncertain.im-070204-plus",
+      "tos.artifact.sumerian.adab.oim-a00645-plus-a00649a-i"
+    ],
+    "description": "Resolve the existing Instructions of Šuruppag Work and provider-independent scholarly composite to exact reusable digital objects, preserving the ancient Work, physical witnesses, modern composite transliteration, modern English translation, provider container, and exact Files as distinct layers.",
+    "required_properties": [
+      "existing Work identity retained rather than reminted",
+      "exact ETCSL 5.6.1 transliteration and translation members",
+      "originating Oxford Text Archive record and object-level license",
+      "container and member fixity",
+      "layered rights and attribution conditions",
+      "no source-text, translation, semantic, graph, canon, or publication admission"
+    ],
+    "acceptable_substitutions": [
+      "an exact versioned ETCSL deposit carrying an equally explicit open license",
+      "an exact CDLI export whose content license is explicit and object-scoped",
+      "a public-domain critical edition with resolved bibliographic and file identity"
+    ],
+    "languages": [
+      "sux",
+      "en"
+    ],
+    "formats": [
+      "authority metadata",
+      "scholarly composite",
+      "TEI-like XML",
+      "ZIP container",
+      "rights statement"
+    ],
+    "purpose_ref": "ToS/source-witnesses/discovery/candidates/README.md"
+  },
+  "channels": [
+    {
+      "channel_id": "channel-loc-national-authority",
+      "sequence": 1,
+      "channel_type": "national-catalog",
+      "role": "lead-only",
+      "source_name": "Library of Congress books API",
+      "endpoint_url": "https://www.loc.gov/books/",
+      "interface_type": "api",
+      "interface_version": "current public endpoint checked 2026-08-30",
+      "exact_query": "https://www.loc.gov/books/?fo=json&q=%22The%20Instructions%20of%20Shuruppak%22",
+      "queried_at": "2026-08-30T07:42:34.499779Z",
+      "elapsed_seconds": 0.191363,
+      "result_order_preserved": true,
+      "results": []
+    },
+    {
+      "channel_id": "channel-oxford-text-archive",
+      "sequence": 2,
+      "channel_type": "university-catalog",
+      "role": "originating-record",
+      "source_name": "Oxford Text Archive",
+      "endpoint_url": "https://ota.bodleian.ox.ac.uk/repository/xmlui/handle/20.500.12024/2518",
+      "interface_type": "web",
+      "interface_version": "OTA record ota:2518 and exact 2026-08-30 bitstream checked 2026-08-30",
+      "exact_query": "Open OTA 2518 full record; verify corpus identity, contributors, 2006 revision, 394 compositions, XML member semantics, CC BY-NC-SA 3.0 declaration, exact etcsl.zip route, and the c.5.6.1.xml and t.5.6.1.xml members; download the official ZIP and extract only those exact members.",
+      "queried_at": "2026-08-30T07:42:34.691344Z",
+      "elapsed_seconds": 2.459346,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.ota-2518-etcsl-revised-archive",
+          "rank": 1,
+          "title_as_displayed": "The Electronic Text Corpus of Sumerian Literature. Revised edition.",
+          "result_url": "https://ota.bodleian.ox.ac.uk/repository/xmlui/bitstream/handle/20.500.12024/2518/etcsl.zip?isAllowed=y&sequence=11",
+          "originating_record_url": "https://ota.bodleian.ox.ac.uk/repository/xmlui/handle/20.500.12024/2518?show=full",
+          "identifiers": [
+            {
+              "scheme": "OTA",
+              "value": "ota:2518"
+            },
+            {
+              "scheme": "Handle",
+              "value": "20.500.12024/2518"
+            }
+          ],
+          "available_formats": [
+            "application/zip",
+            "XML corpus",
+            "directory manifest"
+          ],
+          "declared_rights": {
+            "statement": "Distributed by the University of Oxford under a Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported License.",
+            "scope": "digital-object",
+            "evidence_url": "https://ota.bodleian.ox.ac.uk/repository/xmlui/handle/20.500.12024/2518?show=full",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-download",
+          "machine_interface": "html",
+          "decision": "select",
+          "rationale": "This is the originating deposit record and exact licensed container. The temporary ZIP is fixed as a provenance input but not retained because the candidate needs only two exact composition members.",
+          "acquisition": {
+            "downloaded": true,
+            "acquired_at": "2026-08-30T01:36:30-06:00",
+            "byte_size": 4910212,
+            "sha256": "d1a35b396399216deaeb483d5954ae603662e73c4e77f23e39f2e7b58466962b",
+            "event_ref": "tos.event.acquisition.instructions-of-shuruppag-ota-etcsl-5-6-1.2026-08-30"
+          },
+          "snapshot": {
+            "state": "not-needed",
+            "format": null,
+            "sha256": null,
+            "reason": "The exact acquired container digest, member digests, and live originating record provide the bounded receipt."
+          }
+        },
+        {
+          "result_id": "tos-discovery-result.ota-2518-etcsl-c561-xml",
+          "rank": 2,
+          "title_as_displayed": "c.5.6.1.xml — The instructions of Šuruppag, composite transliteration",
+          "result_url": "https://ota.bodleian.ox.ac.uk/repository/xmlui/bitstream/handle/20.500.12024/2518/etcsl.zip?isAllowed=y&sequence=11",
+          "originating_record_url": "https://ota.bodleian.ox.ac.uk/repository/xmlui/handle/20.500.12024/2518?show=full",
+          "identifiers": [
+            {
+              "scheme": "ETCSL",
+              "value": "5.6.1"
+            },
+            {
+              "scheme": "OTA container member",
+              "value": "etcsl/transliterations/c.5.6.1.xml"
+            }
+          ],
+          "available_formats": [
+            "application/xml",
+            "composite transliteration",
+            "TEI P4-derived encoding"
+          ],
+          "declared_rights": {
+            "statement": "The OTA 2518 corpus container and its XML files are distributed under CC BY-NC-SA 3.0 Unported.",
+            "scope": "content",
+            "evidence_url": "https://ota.bodleian.ox.ac.uk/repository/xmlui/handle/20.500.12024/2518?show=full",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-download",
+          "machine_interface": "bulk-data",
+          "decision": "select",
+          "rationale": "The exact licensed composite-transliteration member is separately content-addressed and kept distinct from the Work, physical artifacts, provider-independent composite, and translation member.",
+          "acquisition": {
+            "downloaded": true,
+            "acquired_at": "2026-08-30T01:36:31-06:00",
+            "byte_size": 131437,
+            "sha256": "b412b8eb37035049b6b64ff3a06a6f2a09856af5c3b1793021fd3c32d56a701d",
+            "event_ref": "tos.event.acquisition.instructions-of-shuruppag-ota-etcsl-5-6-1.2026-08-30"
+          },
+          "snapshot": {
+            "state": "not-needed",
+            "format": null,
+            "sha256": null,
+            "reason": "The exact local File is the preserved source witness; no HTML snapshot substitutes for it."
+          }
+        },
+        {
+          "result_id": "tos-discovery-result.ota-2518-etcsl-t561-xml",
+          "rank": 3,
+          "title_as_displayed": "t.5.6.1.xml — The instructions of Šuruppag, English prose translation",
+          "result_url": "https://ota.bodleian.ox.ac.uk/repository/xmlui/bitstream/handle/20.500.12024/2518/etcsl.zip?isAllowed=y&sequence=11",
+          "originating_record_url": "https://ota.bodleian.ox.ac.uk/repository/xmlui/handle/20.500.12024/2518?show=full",
+          "identifiers": [
+            {
+              "scheme": "ETCSL",
+              "value": "5.6.1"
+            },
+            {
+              "scheme": "OTA container member",
+              "value": "etcsl/translations/t.5.6.1.xml"
+            }
+          ],
+          "available_formats": [
+            "application/xml",
+            "English prose translation",
+            "TEI P4-derived encoding"
+          ],
+          "declared_rights": {
+            "statement": "The OTA 2518 corpus container and its XML files are distributed under CC BY-NC-SA 3.0 Unported.",
+            "scope": "content",
+            "evidence_url": "https://ota.bodleian.ox.ac.uk/repository/xmlui/handle/20.500.12024/2518?show=full",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-download",
+          "machine_interface": "bulk-data",
+          "decision": "select",
+          "rationale": "The exact licensed English-translation member receives its own File and rights record; its presence does not constitute translation review or acceptance.",
+          "acquisition": {
+            "downloaded": true,
+            "acquired_at": "2026-08-30T01:36:31-06:00",
+            "byte_size": 24878,
+            "sha256": "546b7498864b4c798964a44f7eec69c98dc776766606bc248e49226a7a20bea8",
+            "event_ref": "tos.event.acquisition.instructions-of-shuruppag-ota-etcsl-5-6-1.2026-08-30"
+          },
+          "snapshot": {
+            "state": "not-needed",
+            "format": null,
+            "sha256": null,
+            "reason": "The exact local File is the preserved source witness; no HTML snapshot substitutes for it."
+          }
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-etcsl-exact-composition",
+      "sequence": 3,
+      "channel_type": "specialized-scholarly-project",
+      "role": "originating-record",
+      "source_name": "Electronic Text Corpus of Sumerian Literature",
+      "endpoint_url": "https://etcsl.orinst.ox.ac.uk/section5/c561.htm",
+      "interface_type": "web",
+      "interface_version": "archived ETCSL site checked 2026-08-30",
+      "exact_query": "Open exact ETCSL 5.6.1 composite transliteration, English prose translation, bibliography, manual, help, and credits; reconcile visible titles and editor responsibility with the OTA XML members without copying the live HTML as the licensed object.",
+      "queried_at": "2026-08-30T07:42:37.150866Z",
+      "elapsed_seconds": 0.645058,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.etcsl-561-live-composite",
+          "rank": 1,
+          "title_as_displayed": "The instructions of Šuruppag: composite text, translation and bibliography",
+          "result_url": "https://etcsl.orinst.ox.ac.uk/section5/c561.htm",
+          "originating_record_url": "https://etcsl.orinst.ox.ac.uk/section5/tr561.htm",
+          "identifiers": [
+            {
+              "scheme": "ETCSL",
+              "value": "5.6.1"
+            }
+          ],
+          "available_formats": [
+            "composite transliteration HTML",
+            "English translation HTML",
+            "bibliography HTML"
+          ],
+          "declared_rights": {
+            "statement": "The live site credits named editors and asserts copyright and moral rights; the exact reusable objects selected by this run are the separately licensed OTA deposit members.",
+            "scope": "content",
+            "evidence_url": "https://etcsl.orinst.ox.ac.uk/credits.htm",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-view",
+          "machine_interface": "html",
+          "decision": "select",
+          "rationale": "The exact composition pages anchor title and editorial responsibility; the live HTML is not conflated with the byte-distinct OTA XML Files.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-captured",
+            "format": null,
+            "sha256": null,
+            "reason": "Live pages were fingerprinted only; the licensed OTA XML members are the retained content objects."
+          }
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-cdli-current-composite",
+      "sequence": 4,
+      "channel_type": "specialized-scholarly-project",
+      "role": "digital-object-record",
+      "source_name": "Cuneiform Digital Library Initiative",
+      "endpoint_url": "https://cdli.earth/artifacts/composites-score/Q000782",
+      "interface_type": "api",
+      "interface_version": "current score, revision, bulk repositories, and terms checked 2026-08-30",
+      "exact_query": "Resolve Q000782, P478969, revision 2252483, current ATF/bulk repositories, and CDLI terms; search for an exact standard open license covering the composition payload rather than software alone.",
+      "queried_at": "2026-08-30T07:42:37.796139Z",
+      "elapsed_seconds": 1.169184,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.cdli-q000782-custom-reuse-terms",
+          "rank": 1,
+          "title_as_displayed": "Q000782 CDLI Literary 000782 (Instructions of Shuruppak)",
+          "result_url": "https://cdli.earth/artifacts/composites-score/Q000782",
+          "originating_record_url": "https://cdli.earth/terms-of-use",
+          "identifiers": [
+            {
+              "scheme": "CDLI composite",
+              "value": "Q000782"
+            },
+            {
+              "scheme": "CDLI revision",
+              "value": "2252483"
+            }
+          ],
+          "available_formats": [
+            "score HTML",
+            "ATF",
+            "JSON API",
+            "bulk data repository"
+          ],
+          "declared_rights": {
+            "statement": "CDLI says transliterations and translations may be freely copied, aggregated, and reused according to common and fair academic practice, while images have separate restrictions; its data and CTS repositories expose no repository-level license file.",
+            "scope": "content",
+            "evidence_url": "https://cdli.earth/terms-of-use",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-download",
+          "machine_interface": "api",
+          "decision": "defer",
+          "rationale": "The custom academic-practice statement is useful but is not promoted to the goal's exact open-license threshold. CDLI remains the freshest representation and witness-roster source, not the selected acquired payload.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-captured",
+            "format": null,
+            "sha256": null,
+            "reason": "No CDLI body was retained because the selected OTA object has clearer exact licensing."
+          }
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-oracc-license-corroboration",
+      "sequence": 5,
+      "channel_type": "specialized-scholarly-project",
+      "role": "scholarly-index",
+      "source_name": "ORACC Computational Assyriology course",
+      "endpoint_url": "https://oracc.museum.upenn.edu/compass/downloads/2_4_Data_Acquisition_ETCSL.html",
+      "interface_type": "web",
+      "interface_version": "course page indexed and checked 2026-08-30",
+      "exact_query": "Inspect the ETCSL data-acquisition lesson for the original OTA deposit route, XML format, copyright holders, and CC BY-NC-SA 3.0 statement; use it only as independent corroboration of the originating OTA record.",
+      "queried_at": "2026-08-30T07:42:38.965536Z",
+      "elapsed_seconds": 0.175616,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.oracc-etcsl-ota-license-corroboration",
+          "rank": 1,
+          "title_as_displayed": "Data Acquisition: ETCSL",
+          "result_url": "https://oracc.museum.upenn.edu/compass/downloads/2_4_Data_Acquisition_ETCSL.html",
+          "originating_record_url": "https://ota.bodleian.ox.ac.uk/repository/xmlui/handle/20.500.12024/2518",
+          "identifiers": [
+            {
+              "scheme": "OTA",
+              "value": "2518"
+            }
+          ],
+          "available_formats": [
+            "scholarly workflow description",
+            "license attribution"
+          ],
+          "declared_rights": {
+            "statement": "The original ETCSL XML files in the Oxford Text Archive are available as a ZIP under CC BY-NC-SA 3.0 Unported.",
+            "scope": "content",
+            "evidence_url": "https://oracc.museum.upenn.edu/compass/downloads/2_4_Data_Acquisition_ETCSL.html",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-view",
+          "machine_interface": "html",
+          "decision": "select",
+          "rationale": "This independently corroborates the exact OTA license route but remains secondary to the OTA deposit record.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-captured",
+            "format": null,
+            "sha256": null,
+            "reason": "The volatile page was not retained; its URL and bounded attributed finding remain in the discovery receipt."
+          }
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-isac-oip99",
+      "sequence": 6,
+      "channel_type": "university-catalog",
+      "role": "digital-object-record",
+      "source_name": "Institute for the Study of Ancient Cultures",
+      "endpoint_url": "https://isac.uchicago.edu/research/publications/oip/inscriptions-tell-abu-salabikh",
+      "interface_type": "web",
+      "interface_version": "OIP 99 and Electronic Publications Initiative terms checked 2026-08-30",
+      "exact_query": "Inspect OIP 99 bibliographic record, official PDF route, Instructions of Shuruppak section, and ISAC Electronic Publications Initiative terms; test redistribution permission separately from complimentary personal download.",
+      "queried_at": "2026-08-30T07:42:39.141321Z",
+      "elapsed_seconds": 0.327207,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.isac-oip99-restricted-electronic-copy",
+          "rank": 1,
+          "title_as_displayed": "OIP 99. Inscriptions from Tell Abu Salabikh",
+          "result_url": "https://isac.uchicago.edu/research/publications/oip/inscriptions-tell-abu-salabikh",
+          "originating_record_url": "https://isac.uchicago.edu/research/electronic-publications-initiative-institute-study-ancient-cultures",
+          "identifiers": [
+            {
+              "scheme": "OIP",
+              "value": "99"
+            },
+            {
+              "scheme": "ISBN",
+              "value": "0-226-62202-9"
+            }
+          ],
+          "available_formats": [
+            "publication metadata",
+            "official PDF",
+            "tablet copies and photographs"
+          ],
+          "declared_rights": {
+            "statement": "ISAC permits one complimentary copy for personal use, requires electronic files to be distributed only from ISAC's website, prohibits commercial use, and retains University of Chicago copyright.",
+            "scope": "digital-object",
+            "evidence_url": "https://isac.uchicago.edu/research/electronic-publications-initiative-institute-study-ancient-cultures",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-download",
+          "machine_interface": "html",
+          "decision": "reject",
+          "rationale": "Personal availability is not an open license and forbids ToS redistribution; the bibliographic and artifact evidence remains useful without acquiring this PDF.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-permitted",
+            "format": null,
+            "sha256": null,
+            "reason": "The official terms prohibit redistributing the electronic file outside ISAC's website."
+          }
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-established-edition-identifiers",
+      "sequence": 7,
+      "channel_type": "identifier-registry",
+      "role": "scholarly-index",
+      "source_name": "DOI and bibliographic indexes for Alster and Civil",
+      "endpoint_url": "https://doi.org/10.1086/373090",
+      "interface_type": "web",
+      "interface_version": "DOI, CDLI publication, CiNii, and ETCSL bibliography routes checked 2026-08-30",
+      "exact_query": "Resolve Alster 1974, Civil 1984, later critical corrections, ISBN 8750015001, CDLI publication 1685524, and DOI 10.1086/373090; look for an exact open edition or repository copy with explicit license.",
+      "queried_at": "2026-08-30T07:42:39.468703Z",
+      "elapsed_seconds": 1.063184,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.alster-civil-metadata-no-open-object",
+          "rank": 1,
+          "title_as_displayed": "The Instructions of Šurruppak / Notes on the ‘Instructions of Šuruppak’",
+          "result_url": "https://cdli.earth/publications/1685524",
+          "originating_record_url": "https://doi.org/10.1086/373090",
+          "identifiers": [
+            {
+              "scheme": "ISBN",
+              "value": "8750015001"
+            },
+            {
+              "scheme": "CDLI publication",
+              "value": "1685524"
+            },
+            {
+              "scheme": "DOI",
+              "value": "10.1086/373090"
+            }
+          ],
+          "available_formats": [
+            "bibliographic metadata",
+            "publisher article route",
+            "restricted book route"
+          ],
+          "declared_rights": {
+            "statement": null,
+            "scope": "content",
+            "evidence_url": null,
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "metadata-only",
+          "machine_interface": "html",
+          "decision": "defer",
+          "rationale": "The edition lineage is essential to reconstruction history, but no exact openly licensed body was established on these routes.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-permitted",
+            "format": null,
+            "sha256": null,
+            "reason": "Only metadata was retained; no book or article body was presumed open."
+          }
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-open-library-catalogs",
+      "sequence": 8,
+      "channel_type": "open-library",
+      "role": "lead-only",
+      "source_name": "Internet Archive and Open Library",
+      "endpoint_url": "https://archive.org/metadata/instructions-of-shuruppak",
+      "interface_type": "api",
+      "interface_version": "Internet Archive metadata API and Open Library search checked 2026-08-30",
+      "exact_query": "Search exact title Instructions of Shuruppak; inspect IA item instructions-of-shuruppak, creator, uploader provenance, files, rights, licenseurl, possible_copyright_status, and Open Library exact-title results.",
+      "queried_at": "2026-08-30T07:42:40.532084Z",
+      "elapsed_seconds": 0.31945,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.ia-instructions-of-shuruppak-unlicensed-upload",
+          "rank": 1,
+          "title_as_displayed": "Instructions of Shuruppak",
+          "result_url": "https://archive.org/details/instructions-of-shuruppak",
+          "originating_record_url": "https://archive.org/metadata/instructions-of-shuruppak",
+          "identifiers": [
+            {
+              "scheme": "Internet Archive item",
+              "value": "instructions-of-shuruppak"
+            }
+          ],
+          "available_formats": [
+            "user-uploaded PDF",
+            "OCR text",
+            "DjVu XML",
+            "metadata JSON"
+          ],
+          "declared_rights": {
+            "statement": "The metadata API exposes no licenseurl, rights, or possible_copyright_status and names only Multiple authors; the item is an HTML5 user upload.",
+            "scope": "digital-object",
+            "evidence_url": "https://archive.org/metadata/instructions-of-shuruppak",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-download",
+          "machine_interface": "api",
+          "decision": "reject",
+          "rationale": "The opaque upload has weaker provenance and no exact license; open availability is not a rights conclusion.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-permitted",
+            "format": null,
+            "sha256": null,
+            "reason": "Rights and source lineage are insufficient for acquisition."
+          }
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-general-web-last",
+      "sequence": 9,
+      "channel_type": "general-web-search",
+      "role": "lead-only",
+      "source_name": "General web search",
+      "endpoint_url": "https://www.google.com/search?q=%22Instructions+of+Shuruppag%22+%22Creative+Commons%22+XML",
+      "interface_type": "web",
+      "interface_version": "general web checked last 2026-08-30",
+      "exact_query": "Exact-title search for Instructions of Shuruppag/Shuruppak plus Creative Commons, open license, public domain, XML, PDF, scan, and download after all authority, holding, scholarly, identifier, and open-library channels.",
+      "queried_at": "2026-08-30T07:42:40.851716Z",
+      "elapsed_seconds": 0.248897,
+      "result_order_preserved": true,
+      "results": []
+    }
+  ],
+  "channel_comparison": [
+    {
+      "channel_id": "channel-loc-national-authority",
+      "completeness": "poor",
+      "metadata_precision": "unknown",
+      "rights_clarity": "unknown",
+      "machine_interface_quality": "limited",
+      "human_minutes": 0,
+      "machine_seconds": 0.191363,
+      "notes": "The exact API query returned HTTP 403 and no retained results. Machine time is the automatic monotonic HTTP measurement; human_minutes=0 means no real-human review was performed."
+    },
+    {
+      "channel_id": "channel-oxford-text-archive",
+      "completeness": "strong",
+      "metadata_precision": "strong",
+      "rights_clarity": "strong",
+      "machine_interface_quality": "strong",
+      "human_minutes": 0,
+      "machine_seconds": 2.459346,
+      "notes": "Originating deposit, exact licensed container, member paths, contributor data, and selected Files. Machine time is the automatic monotonic HTTP measurement; human_minutes=0 means no real-human review was performed."
+    },
+    {
+      "channel_id": "channel-etcsl-exact-composition",
+      "completeness": "strong",
+      "metadata_precision": "strong",
+      "rights_clarity": "adequate",
+      "machine_interface_quality": "adequate",
+      "human_minutes": 0,
+      "machine_seconds": 0.645058,
+      "notes": "Exact composition and editor identity; the live HTML is byte-distinct from the licensed OTA deposit. Machine time is the automatic monotonic HTTP measurement; human_minutes=0 means no real-human review was performed."
+    },
+    {
+      "channel_id": "channel-cdli-current-composite",
+      "completeness": "strong",
+      "metadata_precision": "strong",
+      "rights_clarity": "limited",
+      "machine_interface_quality": "strong",
+      "human_minutes": 0,
+      "machine_seconds": 1.169184,
+      "notes": "Freshest composite and witness route with custom academic-reuse terms but no standard exact-object license selected. Machine time is the automatic monotonic HTTP measurement; human_minutes=0 means no real-human review was performed."
+    },
+    {
+      "channel_id": "channel-oracc-license-corroboration",
+      "completeness": "adequate",
+      "metadata_precision": "adequate",
+      "rights_clarity": "strong",
+      "machine_interface_quality": "limited",
+      "human_minutes": 0,
+      "machine_seconds": 0.175616,
+      "notes": "Independent scholarly corroboration of the OTA XML license route. Machine time is the automatic monotonic HTTP measurement; human_minutes=0 means no real-human review was performed."
+    },
+    {
+      "channel_id": "channel-isac-oip99",
+      "completeness": "strong",
+      "metadata_precision": "strong",
+      "rights_clarity": "strong",
+      "machine_interface_quality": "adequate",
+      "human_minutes": 0,
+      "machine_seconds": 0.327207,
+      "notes": "Exact primary publication, but its complimentary-download terms forbid ToS redistribution. Machine time is the automatic monotonic HTTP measurement; human_minutes=0 means no real-human review was performed."
+    },
+    {
+      "channel_id": "channel-established-edition-identifiers",
+      "completeness": "adequate",
+      "metadata_precision": "strong",
+      "rights_clarity": "poor",
+      "machine_interface_quality": "adequate",
+      "human_minutes": 0,
+      "machine_seconds": 1.063184,
+      "notes": "Edition and correction lineage only; no eligible exact body. Machine time is the automatic monotonic HTTP measurement; human_minutes=0 means no real-human review was performed."
+    },
+    {
+      "channel_id": "channel-open-library-catalogs",
+      "completeness": "limited",
+      "metadata_precision": "poor",
+      "rights_clarity": "poor",
+      "machine_interface_quality": "strong",
+      "human_minutes": 0,
+      "machine_seconds": 0.31945,
+      "notes": "One opaque user upload without rights fields; Open Library returned no exact scholarly edition. Machine time is the automatic monotonic HTTP measurement; human_minutes=0 means no real-human review was performed."
+    },
+    {
+      "channel_id": "channel-general-web-last",
+      "completeness": "limited",
+      "metadata_precision": "limited",
+      "rights_clarity": "limited",
+      "machine_interface_quality": "limited",
+      "human_minutes": 0,
+      "machine_seconds": 0.248897,
+      "notes": "General web was searched last and produced no source stronger than the OTA deposit and ORACC corroboration. Machine time is the automatic monotonic HTTP measurement; human_minutes=0 means no real-human review was performed."
+    }
+  ],
+  "selected_result_ids": [
+    "tos-discovery-result.ota-2518-etcsl-revised-archive",
+    "tos-discovery-result.ota-2518-etcsl-c561-xml",
+    "tos-discovery-result.ota-2518-etcsl-t561-xml",
+    "tos-discovery-result.etcsl-561-live-composite",
+    "tos-discovery-result.oracc-etcsl-ota-license-corroboration"
+  ],
+  "rejected_result_ids": [
+    "tos-discovery-result.isac-oip99-restricted-electronic-copy",
+    "tos-discovery-result.ia-instructions-of-shuruppak-unlicensed-upload"
+  ],
+  "rights_inference_from_availability_prohibited": true,
+  "general_web_search_is_last_resort": true,
+  "technical_access_bypass_used": false,
+  "maker": {
+    "maker_type": "model",
+    "agent_ref": "model:codex"
+  },
+  "started_at": "2026-08-30T07:42:34.499779Z",
+  "ended_at": "2026-08-30T07:42:41.100627Z",
+  "status": "reconciled",
+  "provenance_event_refs": [
+    "tos.event.discovery.instructions-of-shuruppag-open-work-route.2026-08-30",
+    "tos.event.acquisition.instructions-of-shuruppag-ota-etcsl-5-6-1.2026-08-30"
+  ],
+  "record_version": 1,
+  "supersedes_discovery_ref": null
+}

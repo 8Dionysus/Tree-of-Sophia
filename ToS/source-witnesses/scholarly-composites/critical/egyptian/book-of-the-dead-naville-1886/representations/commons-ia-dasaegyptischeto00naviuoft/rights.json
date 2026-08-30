@@ -1,0 +1,72 @@
+{
+  "schema_version": "tos_rights_record_v1",
+  "rights_id": "tos.rights.egyptian.book-of-the-dead-naville-1886-einleitung-commons-ia-jurisdiction-conflict",
+  "scope_refs": [
+    "tos.composite.egyptian.book-of-the-dead-naville-1886",
+    "tos.composite-representation.egyptian.book-of-the-dead-naville-1886-einleitung-commons-ia",
+    "tos.file.sha256.06c78744f35f34fb7b7d87fd32f73a1eb230d4ea49272e0eeb5a17286ae7574a"
+  ],
+  "assessment_status": "conflicting_evidence",
+  "rights_statement_uri": "https://commons.wikimedia.org/wiki/File%3ADas_aegyptische_Todtenbuch_der_XVIII._bis_XX._Dynastie%3B_%28IA_dasaegyptischeto00naviuoft%29.pdf",
+  "license_uri": null,
+  "jurisdictions_reviewed": ["CH", "MX", "US"],
+  "source_refs": [
+    "https://commons.wikimedia.org/wiki/File%3ADas_aegyptische_Todtenbuch_der_XVIII._bis_XX._Dynastie%3B_%28IA_dasaegyptischeto00naviuoft%29.pdf",
+    "https://archive.org/metadata/dasaegyptischeto00naviuoft",
+    "https://www.fedlex.admin.ch/eli/cc/1993/1798_1798_1798/en?version=20250701",
+    "https://www.diputados.gob.mx/LeyesBiblio/pdf/LFDA.pdf",
+    "https://relbib.de/AuthorityRecord/079864481"
+  ],
+  "layer_assessments": [
+    {
+      "layer_id": "tos.rights.egyptian.book-of-the-dead-naville-1886-einleitung-commons-ia-jurisdiction-conflict.layer.digital-scan",
+      "layer_role": "digital_scan",
+      "scope_refs": ["tos.file.sha256.06c78744f35f34fb7b7d87fd32f73a1eb230d4ea49272e0eeb5a17286ae7574a"],
+      "assessment_status": "conflicting_evidence",
+      "assessment_basis": "mixed",
+      "rights_statement_uri": "https://commons.wikimedia.org/wiki/File%3ADas_aegyptische_Todtenbuch_der_XVIII._bis_XX._Dynastie%3B_%28IA_dasaegyptischeto00naviuoft%29.pdf",
+      "license_uri": null,
+      "jurisdictions_reviewed": ["CH", "MX", "US"],
+      "source_refs": [
+        "https://commons.wikimedia.org/wiki/File%3ADas_aegyptische_Todtenbuch_der_XVIII._bis_XX._Dynastie%3B_%28IA_dasaegyptischeto00naviuoft%29.pdf",
+        "https://www.fedlex.admin.ch/eli/cc/1993/1798_1798_1798/en?version=20250701",
+        "https://www.diputados.gob.mx/LeyesBiblio/pdf/LFDA.pdf",
+        "https://relbib.de/AuthorityRecord/079864481"
+      ],
+      "rights_holder_refs": [],
+      "permissions": ["retain and inspect the exact PDF locally under the operator-authorized research intake while preserving the stricter jurisdictional fence"],
+      "restrictions": [
+        "do not publish or redistribute this PDF from ToS while the Mexico term remains active or unresolved",
+        "do not treat the Commons Public Domain marker as a license or as overriding jurisdiction-specific law",
+        "the file admits no embedded source text, OCR, correction, translation, semantic claim, graph fact, canon status, or publication authority"
+      ],
+      "redistribution_posture": "not_authorized",
+      "derivative_posture": "local_research_only",
+      "server_processing_posture": "local_research_only",
+      "term": {
+        "calculation_status": "active",
+        "basis": "Naville died 1926-10-17; current Mexican Article 29 states life plus 100 years. Swiss law is life plus 70 calculated from year-end, and the United States pre-1931 publication rule is separately satisfied. The strict cross-jurisdiction posture therefore remains active through at least the apparent Mexican boundary.",
+        "starts_on": null,
+        "ends_on": "2026-10-17",
+        "uncertainty": "A human legal review must confirm Mexican transitional rules, the exact expiry convention, and any digital-scan or related-right layer before the posture can be relaxed."
+      },
+      "uncertainty": "Commons labels the file public domain and free of known restrictions, but on 2026-08-30 the author's exact death date is still less than 100 years ago. This is a jurisdictional conflict, not a basis for public payload admission.",
+      "assessed_at": "2026-08-30T05:22:00-06:00",
+      "review_status": "legal_review_requested",
+      "rationale": "Switzerland and the United States support public-domain use, while the current Mexican life-plus-100 term and Naville's 1926-10-17 death date require the stricter local-only posture today."
+    }
+  ],
+  "permissions": ["retain and process the exact PDF locally for source-witness research with fixity and provenance"],
+  "restrictions": ["no public redistribution or derivative release from ToS pending a fresh post-2026-10-17 jurisdiction review", "no source-text, semantic, graph, canon, or publication authority follows"],
+  "visibility": "local_only",
+  "redistribution_posture": "not_authorized",
+  "derivative_posture": "local_research_only",
+  "assessed_by": {"maker_type": "model", "agent_ref": "model:codex"},
+  "assessed_at": "2026-08-30T05:22:00-06:00",
+  "rationale": "The exact PDF is public-domain positive in some jurisdictions but not safely public in every jurisdiction named by the candidate today; ToS therefore keeps it local-only.",
+  "review_status": "legal_review_requested",
+  "review_refs": [],
+  "access_request_ref": null,
+  "record_version": 1,
+  "supersedes_rights_ref": null
+}

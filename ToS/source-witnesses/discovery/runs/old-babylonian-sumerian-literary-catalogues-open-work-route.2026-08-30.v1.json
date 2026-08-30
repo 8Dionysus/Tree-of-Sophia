@@ -1,0 +1,675 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/material-discovery-record.schema.json",
+  "schema_version": "tos_material_discovery_record_v1",
+  "discovery_id": "tos.discovery.old-babylonian-sumerian-literary-catalogues-open-work-route.2026-08-30.v1",
+  "protocol_ref": "ToS/source-witnesses/discovery/DISCOVERY_PROTOCOL.md",
+  "target": {
+    "target_kind": "scholarly-composite",
+    "known_tos_refs": [
+      "tos.composite.sumerian.old-babylonian-literary-catalogue-witnesses",
+      "tos.artifact.sumerian.uncertain.louvre-ao-05393"
+    ],
+    "description": "Resolve the reviewed work-like pressure around Old Babylonian Sumerian literary-catalogue witnesses to an exact reusable open object while preserving materially distinct tablets, modern composite transliterations, catalogue revision states, and the unresolved corpus boundary.",
+    "required_properties": [
+      "no promotion of the candidate into one ancient Work or closed corpus",
+      "exact provider deposit and object-scoped license",
+      "exact member and container fixity",
+      "physical AO 5393 identity kept separate from editorial XML",
+      "transliteration and embedded commentary rights separated from metadata and visual media",
+      "positive monotonic timing for every active discovery channel"
+    ],
+    "acceptable_substitutions": [
+      "another exact ETCSL catalogue-witness member from the same licensed deposit",
+      "a later provider export carrying an equally explicit standard open license",
+      "a public-domain edition with resolved bibliographic and file identity"
+    ],
+    "languages": [
+      "sux",
+      "en"
+    ],
+    "formats": [
+      "authority metadata",
+      "museum metadata",
+      "scholarly composite",
+      "TEI-like XML",
+      "ZIP container",
+      "rights statement"
+    ],
+    "purpose_ref": "ToS/source-witnesses/discovery/candidates/README.md"
+  },
+  "channels": [
+    {
+      "channel_id": "channel-loc-bibliographic-authority",
+      "sequence": 1,
+      "channel_type": "national-catalog",
+      "role": "lead-only",
+      "source_name": "Library of Congress books API",
+      "endpoint_url": "https://www.loc.gov/books/",
+      "interface_type": "api",
+      "interface_version": "current public endpoint checked 2026-08-30",
+      "exact_query": "https://www.loc.gov/books/?fo=json&q=%22Old%20Babylonian%22%20%22literary%20catalogue%22",
+      "queried_at": "2026-08-30T10:09:06.100889Z",
+      "elapsed_seconds": 0.125675,
+      "result_order_preserved": true,
+      "results": []
+    },
+    {
+      "channel_id": "channel-penn-museum-holdings",
+      "sequence": 2,
+      "channel_type": "university-catalog",
+      "role": "digital-object-record",
+      "source_name": "Penn Museum Collections",
+      "endpoint_url": "https://collections.penn.museum/collections/object/521562",
+      "interface_type": "web",
+      "interface_version": "museum object record checked 2026-08-30",
+      "exact_query": "Open object 521562; resolve museum number 29-15-155, original-versus-cast ambiguity, material, excavation, and downloadable-metadata posture without acquiring image media.",
+      "queried_at": "2026-08-30T10:09:06.226695Z",
+      "elapsed_seconds": 0.851116,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.penn-nippur-n2-object-521562",
+          "rank": 1,
+          "title_as_displayed": "Old Babylonian Catalogue from Nippur N2",
+          "result_url": "https://collections.penn.museum/collections/object/521562",
+          "originating_record_url": "https://collections.penn.museum/collections/objects/data.php",
+          "identifiers": [
+            {
+              "scheme": "Penn Museum",
+              "value": "29-15-155"
+            },
+            {
+              "scheme": "CDLI",
+              "value": "P255993"
+            }
+          ],
+          "available_formats": [
+            "museum object metadata",
+            "downloadable metadata dataset",
+            "linked visual media"
+          ],
+          "declared_rights": {
+            "statement": "Penn licenses its downloadable object metadata datasets under CC BY 4.0 and excludes images from that dataset license.",
+            "scope": "metadata",
+            "evidence_url": "https://collections.penn.museum/collections/objects/data.php",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "metadata-only",
+          "machine_interface": "html",
+          "decision": "select",
+          "rationale": "The holding record constrains material and custody but does not resolve the original-versus-cast identity well enough to mint another physical artifact or acquire an image.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-needed",
+            "format": null,
+            "sha256": null,
+            "reason": "The existing source planting already retains bounded object metadata and the current acquisition targets a different exact licensed XML File."
+          }
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-degruyter-catalogue-scholarship",
+      "sequence": 3,
+      "channel_type": "publisher-catalog",
+      "role": "scholarly-index",
+      "source_name": "De Gruyter Brill",
+      "endpoint_url": "https://doi.org/10.1515/za.2010.003",
+      "interface_type": "web",
+      "interface_version": "publisher DOI route checked 2026-08-30",
+      "exact_query": "Resolve Delnero, Sumerian Literary Catalogues and the Scribal Curriculum, DOI 10.1515/za.2010.003; retain the publisher abstract's inventory correction without bypassing subscription access or copying article body.",
+      "queried_at": "2026-08-30T10:09:07.077926Z",
+      "elapsed_seconds": 2.065707,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.delnero-literary-catalogues-2010-open-work-refresh",
+          "rank": 1,
+          "title_as_displayed": "Sumerian Literary Catalogues and the Scribal Curriculum",
+          "result_url": "https://doi.org/10.1515/za.2010.003",
+          "originating_record_url": "https://www.degruyter.com/document/doi/10.1515/za.2010.003/html",
+          "identifiers": [
+            {
+              "scheme": "DOI",
+              "value": "10.1515/za.2010.003"
+            }
+          ],
+          "available_formats": [
+            "publisher metadata",
+            "abstract",
+            "subscription article"
+          ],
+          "declared_rights": {
+            "statement": "No standard open license was found for the article body on the publisher route.",
+            "scope": "content",
+            "evidence_url": "https://www.degruyter.com/document/doi/10.1515/za.2010.003/html",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "subscription",
+          "machine_interface": "html",
+          "decision": "defer",
+          "rationale": "The article remains an identity and interpretation control; no paywall or access control was bypassed and no article body was acquired.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-permitted",
+            "format": null,
+            "sha256": null,
+            "reason": "No article body was acquired."
+          }
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-etcsl-ancient-catalogues",
+      "sequence": 4,
+      "channel_type": "specialized-scholarly-project",
+      "role": "originating-record",
+      "source_name": "Electronic Text Corpus of Sumerian Literature",
+      "endpoint_url": "https://etcsl.orinst.ox.ac.uk/catalogue/catalogue0.htm",
+      "interface_type": "web",
+      "interface_version": "archived ETCSL catalogue surface checked 2026-08-30",
+      "exact_query": "Open Ancient literary catalogues, distinguish dated 2002 coverage from the revised 2006 deposit, resolve ETCSL 0.2.02 and AO 5393, and preserve the catalogue as a modern editorial representation rather than one ancient Work.",
+      "queried_at": "2026-08-30T10:09:09.143774Z",
+      "elapsed_seconds": 0.847301,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.etcsl-ancient-literary-catalogues-open-work-refresh",
+          "rank": 1,
+          "title_as_displayed": "Ancient literary catalogues",
+          "result_url": "https://etcsl.orinst.ox.ac.uk/catalogue/catalogue0.htm",
+          "originating_record_url": "https://etcsl.orinst.ox.ac.uk/credits.htm",
+          "identifiers": [
+            {
+              "scheme": "ETCSL section",
+              "value": "0 Ancient literary catalogues"
+            },
+            {
+              "scheme": "ETCSL",
+              "value": "0.2.02"
+            }
+          ],
+          "available_formats": [
+            "dated catalogue index HTML",
+            "composite transliteration HTML",
+            "translation HTML"
+          ],
+          "declared_rights": {
+            "statement": "The live site credits University of Oxford and named contributors; the selected reusable object is the separately licensed OTA deposit member.",
+            "scope": "content",
+            "evidence_url": "https://etcsl.orinst.ox.ac.uk/credits.htm",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-view",
+          "machine_interface": "html",
+          "decision": "select",
+          "rationale": "The historical project surface anchors the composition number and revision context; its live HTML is not conflated with the byte-distinct OTA XML File.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-captured",
+            "format": null,
+            "sha256": null,
+            "reason": "The exact licensed OTA XML member is retained instead of a live-page snapshot."
+          }
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-cdli-louvre-ao-05393",
+      "sequence": 5,
+      "channel_type": "specialized-scholarly-project",
+      "role": "digital-object-record",
+      "source_name": "Cuneiform Digital Library Initiative",
+      "endpoint_url": "https://cdli.earth/artifacts/345372",
+      "interface_type": "api",
+      "interface_version": "current artifact HTML and JSON route checked 2026-08-30",
+      "exact_query": "Resolve P345372, Louvre AO 05393, Q000322, artifact material and current transliteration routes; assess text, metadata, image, and line-art terms separately.",
+      "queried_at": "2026-08-30T10:09:09.991177Z",
+      "elapsed_seconds": 1.04219,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.cdli-p345372-louvre-ao-05393-open-work-refresh",
+          "rank": 1,
+          "title_as_displayed": "CDLI Literary 000322 OB Catalogue in the Louvre",
+          "result_url": "https://cdli.earth/artifacts/345372",
+          "originating_record_url": "https://cdli.earth/artifacts/345372/json",
+          "identifiers": [
+            {
+              "scheme": "Louvre",
+              "value": "AO 05393"
+            },
+            {
+              "scheme": "CDLI",
+              "value": "P345372"
+            },
+            {
+              "scheme": "CDLI composite",
+              "value": "Q000322"
+            }
+          ],
+          "available_formats": [
+            "artifact metadata HTML",
+            "artifact JSON",
+            "ATF",
+            "linked line art",
+            "linked images"
+          ],
+          "declared_rights": {
+            "statement": "CDLI exposes custom academic-practice reuse terms for text while images and external media remain separately governed; no single standard open license covers every layer.",
+            "scope": "content",
+            "evidence_url": "https://cdli.earth/terms-of-use",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-view",
+          "machine_interface": "api",
+          "decision": "defer",
+          "rationale": "CDLI is the current artifact and representation control, but its custom mixed-layer terms are not used as the positive object-level license in this acquisition.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-captured",
+            "format": null,
+            "sha256": null,
+            "reason": "No CDLI response body or media was retained; the exact OTA File has clearer standard licensing."
+          }
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-oxford-text-archive",
+      "sequence": 6,
+      "channel_type": "university-catalog",
+      "role": "originating-record",
+      "source_name": "Oxford Text Archive",
+      "endpoint_url": "https://ota.bodleian.ox.ac.uk/repository/xmlui/handle/20.500.12024/2518?show=full",
+      "interface_type": "web",
+      "interface_version": "OTA full record and official ZIP checked 2026-08-30",
+      "exact_query": "Open OTA 2518 full record; verify corpus identity, contributors, October 2006 issue, CC BY-NC-SA 3.0 declaration and exact etcsl.zip route; download the official ZIP and extract only etcsl/transliterations/c.0.2.02.xml.",
+      "queried_at": "2026-08-30T10:09:11.033515Z",
+      "elapsed_seconds": 2.107129,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.ota-2518-etcsl-revised-catalogue-container",
+          "rank": 1,
+          "title_as_displayed": "The Electronic Text Corpus of Sumerian Literature. Revised edition.",
+          "result_url": "https://ota.bodleian.ox.ac.uk/repository/xmlui/bitstream/handle/20.500.12024/2518/etcsl.zip?sequence=11&isAllowed=y",
+          "originating_record_url": "https://ota.bodleian.ox.ac.uk/repository/xmlui/handle/20.500.12024/2518?show=full",
+          "identifiers": [
+            {
+              "scheme": "OTA",
+              "value": "ota:2518"
+            },
+            {
+              "scheme": "Handle",
+              "value": "20.500.12024/2518"
+            }
+          ],
+          "available_formats": [
+            "application/zip",
+            "XML corpus",
+            "directory manifest"
+          ],
+          "declared_rights": {
+            "statement": "Distributed by the University of Oxford under a Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported License.",
+            "scope": "digital-object",
+            "evidence_url": "https://ota.bodleian.ox.ac.uk/repository/xmlui/handle/20.500.12024/2518?show=full",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-download",
+          "machine_interface": "html",
+          "decision": "select",
+          "rationale": "This is the originating deposit record and exact licensed container. The temporary ZIP is fixity-bound as a provenance input but not retained because only one exact catalogue member is selected.",
+          "acquisition": {
+            "downloaded": true,
+            "acquired_at": "2026-08-30T03:59:00-06:00",
+            "byte_size": 4910212,
+            "sha256": "d1a35b396399216deaeb483d5954ae603662e73c4e77f23e39f2e7b58466962b",
+            "event_ref": "tos.event.acquisition.old-babylonian-literary-catalogue-ota-etcsl-0-2-02.2026-08-30"
+          },
+          "snapshot": {
+            "state": "not-needed",
+            "format": null,
+            "sha256": null,
+            "reason": "Container and member digests plus the originating record provide the bounded receipt."
+          }
+        },
+        {
+          "result_id": "tos-discovery-result.ota-2518-etcsl-c0202-xml",
+          "rank": 2,
+          "title_as_displayed": "c.0.2.02.xml — OB catalogue in the Louvre (L), composite transliteration",
+          "result_url": "https://ota.bodleian.ox.ac.uk/repository/xmlui/bitstream/handle/20.500.12024/2518/etcsl.zip?sequence=11&isAllowed=y",
+          "originating_record_url": "https://ota.bodleian.ox.ac.uk/repository/xmlui/handle/20.500.12024/2518?show=full",
+          "identifiers": [
+            {
+              "scheme": "ETCSL",
+              "value": "0.2.02"
+            },
+            {
+              "scheme": "OTA container member",
+              "value": "etcsl/transliterations/c.0.2.02.xml"
+            },
+            {
+              "scheme": "Louvre",
+              "value": "AO 5393 (TCL 15 28)"
+            }
+          ],
+          "available_formats": [
+            "application/xml",
+            "composite transliteration",
+            "TEI P4-derived encoding"
+          ],
+          "declared_rights": {
+            "statement": "The OTA 2518 corpus container and its XML files are distributed under CC BY-NC-SA 3.0 Unported.",
+            "scope": "content",
+            "evidence_url": "https://ota.bodleian.ox.ac.uk/repository/xmlui/handle/20.500.12024/2518?show=full",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-download",
+          "machine_interface": "bulk-data",
+          "decision": "select",
+          "rationale": "The exact licensed composite-transliteration member is content-addressed and kept distinct from the physical tablet, the work-like candidate, the provider-independent composite, and every visual representation.",
+          "acquisition": {
+            "downloaded": true,
+            "acquired_at": "2026-08-30T03:59:00-06:00",
+            "byte_size": 25199,
+            "sha256": "2979f2e86cc8a869c252fd84c81a28c0d8786780f51f02e36063835d3177410d",
+            "event_ref": "tos.event.acquisition.old-babylonian-literary-catalogue-ota-etcsl-0-2-02.2026-08-30"
+          },
+          "snapshot": {
+            "state": "not-needed",
+            "format": null,
+            "sha256": null,
+            "reason": "The exact local File is the preserved source witness; no HTML snapshot substitutes for it."
+          }
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-europeana-aggregation",
+      "sequence": 7,
+      "channel_type": "collection-aggregator",
+      "role": "lead-only",
+      "source_name": "Europeana",
+      "endpoint_url": "https://www.europeana.eu/en/search?query=AO%205393",
+      "interface_type": "web",
+      "interface_version": "public search checked 2026-08-30",
+      "exact_query": "AO 5393 Louvre literary catalogue cuneiform",
+      "queried_at": "2026-08-30T10:09:13.140757Z",
+      "elapsed_seconds": 0.258545,
+      "result_order_preserved": true,
+      "results": []
+    },
+    {
+      "channel_id": "channel-crossref-identifier",
+      "sequence": 8,
+      "channel_type": "identifier-registry",
+      "role": "scholarly-index",
+      "source_name": "Crossref",
+      "endpoint_url": "https://api.crossref.org/works/10.1515%2Fza.2010.003",
+      "interface_type": "api",
+      "interface_version": "Crossref REST API checked 2026-08-30",
+      "exact_query": "Resolve DOI 10.1515/za.2010.003 to title, author, container, date, and publisher; do not infer content license from identifier metadata.",
+      "queried_at": "2026-08-30T10:09:13.399388Z",
+      "elapsed_seconds": 0.525966,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.crossref-delnero-2010",
+          "rank": 1,
+          "title_as_displayed": "Sumerian Literary Catalogues and the Scribal Curriculum",
+          "result_url": "https://api.crossref.org/works/10.1515%2Fza.2010.003",
+          "originating_record_url": "https://doi.org/10.1515/za.2010.003",
+          "identifiers": [
+            {
+              "scheme": "DOI",
+              "value": "10.1515/za.2010.003"
+            }
+          ],
+          "available_formats": [
+            "identifier metadata JSON"
+          ],
+          "declared_rights": {
+            "statement": null,
+            "scope": "metadata",
+            "evidence_url": null,
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "metadata-only",
+          "machine_interface": "api",
+          "decision": "select",
+          "rationale": "The identifier registry confirms bibliographic identity only; it is not a content-rights source.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-needed",
+            "format": null,
+            "sha256": null,
+            "reason": "The DOI and bounded bibliographic facts are sufficient; no API response body is retained."
+          }
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-open-library",
+      "sequence": 9,
+      "channel_type": "open-library",
+      "role": "lead-only",
+      "source_name": "Open Library",
+      "endpoint_url": "https://openlibrary.org/search.json?q=%22Sumerian%20Literary%20Catalogues%22",
+      "interface_type": "api",
+      "interface_version": "public search API checked 2026-08-30",
+      "exact_query": "title:\"Sumerian Literary Catalogues\" OR title:\"Oldest Literary Catalogue\"",
+      "queried_at": "2026-08-30T10:09:13.925463Z",
+      "elapsed_seconds": 0.941009,
+      "result_order_preserved": true,
+      "results": []
+    },
+    {
+      "channel_id": "channel-general-web-last",
+      "sequence": 10,
+      "channel_type": "general-web-search",
+      "role": "lead-only",
+      "source_name": "General web last",
+      "endpoint_url": "https://www.google.com/search",
+      "interface_type": "web",
+      "interface_version": "general discovery only, checked 2026-08-30",
+      "exact_query": "\"Old Babylonian\" \"literary catalogue\" AO 5393 ETCSL 0.2.02 open license",
+      "queried_at": "2026-08-30T10:09:14.866580Z",
+      "elapsed_seconds": 0.708186,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.general-web-old-babylonian-literary-catalogues",
+          "rank": 1,
+          "title_as_displayed": "General summaries, mirrors, uploads, and derivative pages",
+          "result_url": "https://www.google.com/search?q=%22Old+Babylonian%22+%22literary+catalogue%22+AO+5393+ETCSL+0.2.02+open+license",
+          "originating_record_url": null,
+          "identifiers": [],
+          "available_formats": [
+            "search-result leads"
+          ],
+          "declared_rights": {
+            "statement": null,
+            "scope": "unknown",
+            "evidence_url": null,
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "unknown",
+          "machine_interface": "html",
+          "decision": "reject",
+          "rationale": "No derivative result improved on the exact OTA, ETCSL, CDLI, museum, publisher, or identifier records, and no mirror was used for acquisition.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-captured",
+            "format": null,
+            "sha256": null,
+            "reason": "General web search was used only as the last completeness check."
+          }
+        }
+      ]
+    }
+  ],
+  "channel_comparison": [
+    {
+      "channel_id": "channel-loc-bibliographic-authority",
+      "completeness": "poor",
+      "metadata_precision": "limited",
+      "rights_clarity": "unknown",
+      "machine_interface_quality": "strong",
+      "human_minutes": 0,
+      "machine_seconds": 0.125675,
+      "notes": "No useful exact object surfaced. Machine time is the automatic monotonic HTTP measurement; human_minutes=0 means no real-human review was performed."
+    },
+    {
+      "channel_id": "channel-penn-museum-holdings",
+      "completeness": "adequate",
+      "metadata_precision": "strong",
+      "rights_clarity": "adequate",
+      "machine_interface_quality": "adequate",
+      "human_minutes": 0,
+      "machine_seconds": 0.851116,
+      "notes": "Strong physical-holding metadata; images remain excluded and original-versus-cast identity unresolved. Machine time is the automatic monotonic HTTP measurement; human_minutes=0 means no real-human review was performed."
+    },
+    {
+      "channel_id": "channel-degruyter-catalogue-scholarship",
+      "completeness": "adequate",
+      "metadata_precision": "strong",
+      "rights_clarity": "limited",
+      "machine_interface_quality": "adequate",
+      "human_minutes": 0,
+      "machine_seconds": 2.065707,
+      "notes": "High scholarly relevance but no open article-body license. Machine time is the automatic monotonic HTTP measurement; human_minutes=0 means no real-human review was performed."
+    },
+    {
+      "channel_id": "channel-etcsl-ancient-catalogues",
+      "completeness": "strong",
+      "metadata_precision": "strong",
+      "rights_clarity": "limited",
+      "machine_interface_quality": "adequate",
+      "human_minutes": 0,
+      "machine_seconds": 0.847301,
+      "notes": "Best historical project route for catalogue numbering and revision context. Machine time is the automatic monotonic HTTP measurement; human_minutes=0 means no real-human review was performed."
+    },
+    {
+      "channel_id": "channel-cdli-louvre-ao-05393",
+      "completeness": "strong",
+      "metadata_precision": "strong",
+      "rights_clarity": "limited",
+      "machine_interface_quality": "strong",
+      "human_minutes": 0,
+      "machine_seconds": 1.04219,
+      "notes": "Best current artifact and composite relation route; mixed custom terms do not supply the selected standard license. Machine time is the automatic monotonic HTTP measurement; human_minutes=0 means no real-human review was performed."
+    },
+    {
+      "channel_id": "channel-oxford-text-archive",
+      "completeness": "strong",
+      "metadata_precision": "strong",
+      "rights_clarity": "strong",
+      "machine_interface_quality": "strong",
+      "human_minutes": 0,
+      "machine_seconds": 2.107129,
+      "notes": "Originating deposit, exact container and member, and explicit CC BY-NC-SA 3.0. Machine time is the automatic monotonic HTTP measurement; human_minutes=0 means no real-human review was performed."
+    },
+    {
+      "channel_id": "channel-europeana-aggregation",
+      "completeness": "poor",
+      "metadata_precision": "limited",
+      "rights_clarity": "unknown",
+      "machine_interface_quality": "adequate",
+      "human_minutes": 0,
+      "machine_seconds": 0.258545,
+      "notes": "No exact useful result improved the holding or scholarly records. Machine time is the automatic monotonic HTTP measurement; human_minutes=0 means no real-human review was performed."
+    },
+    {
+      "channel_id": "channel-crossref-identifier",
+      "completeness": "adequate",
+      "metadata_precision": "strong",
+      "rights_clarity": "poor",
+      "machine_interface_quality": "strong",
+      "human_minutes": 0,
+      "machine_seconds": 0.525966,
+      "notes": "Precise DOI identity only; no content-rights conclusion. Machine time is the automatic monotonic HTTP measurement; human_minutes=0 means no real-human review was performed."
+    },
+    {
+      "channel_id": "channel-open-library",
+      "completeness": "poor",
+      "metadata_precision": "limited",
+      "rights_clarity": "unknown",
+      "machine_interface_quality": "strong",
+      "human_minutes": 0,
+      "machine_seconds": 0.941009,
+      "notes": "No exact reusable catalogue-witness object surfaced. Machine time is the automatic monotonic HTTP measurement; human_minutes=0 means no real-human review was performed."
+    },
+    {
+      "channel_id": "channel-general-web-last",
+      "completeness": "limited",
+      "metadata_precision": "poor",
+      "rights_clarity": "poor",
+      "machine_interface_quality": "limited",
+      "human_minutes": 0,
+      "machine_seconds": 0.708186,
+      "notes": "Last-resort completeness check only. Machine time is the automatic monotonic HTTP measurement; human_minutes=0 means no real-human review was performed."
+    }
+  ],
+  "selected_result_ids": [
+    "tos-discovery-result.penn-nippur-n2-object-521562",
+    "tos-discovery-result.etcsl-ancient-literary-catalogues-open-work-refresh",
+    "tos-discovery-result.ota-2518-etcsl-revised-catalogue-container",
+    "tos-discovery-result.ota-2518-etcsl-c0202-xml",
+    "tos-discovery-result.crossref-delnero-2010"
+  ],
+  "rejected_result_ids": [
+    "tos-discovery-result.general-web-old-babylonian-literary-catalogues"
+  ],
+  "rights_inference_from_availability_prohibited": true,
+  "general_web_search_is_last_resort": true,
+  "technical_access_bypass_used": false,
+  "maker": {
+    "maker_type": "mixed",
+    "agent_ref": "model:codex+software:python-3"
+  },
+  "started_at": "2026-08-30T10:09:06.100889Z",
+  "ended_at": "2026-08-30T10:09:15.574774Z",
+  "status": "reconciled",
+  "provenance_event_refs": [
+    "tos.event.discovery.old-babylonian-sumerian-literary-catalogues-open-work-route.2026-08-30"
+  ],
+  "record_version": 1,
+  "supersedes_discovery_ref": "tos.discovery.old-babylonian-sumerian-literary-catalogues.2026-08-23.v1"
+}

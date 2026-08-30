@@ -1,0 +1,108 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/artifact-source-witness-v2.schema.json",
+  "schema_version": "tos_artifact_source_witness_v2",
+  "artifact_id": "tos.artifact.egyptian.unknown.papyrus-harris-500-ea10060",
+  "artifact_kind": "manuscript_object",
+  "path_identity": {
+    "basis": "repository_identity",
+    "provider_independent": true,
+    "note": "The path follows the physical Papyrus Harris 500 / British Museum EA10060 manuscript. The findspot remains unknown because the proposed Theban, Ramesseum, and Deir el-Medina provenances are not resolved by the reviewed records."
+  },
+  "identifiers": [
+    {"scheme": "British Museum number", "value": "EA10060", "source_ref": "https://www.britishmuseum.org/collection/object/Y_EA10060"},
+    {"scheme": "British Museum registration number", "value": "1872,1101.2", "source_ref": "https://www.britishmuseum.org/collection/object/Y_EA10060"},
+    {"scheme": "British Museum additional ID", "value": "Harris 500", "source_ref": "https://www.britishmuseum.org/collection/object/Y_EA10060"},
+    {"scheme": "Trismegistos Text", "value": "380901", "source_ref": "https://www.trismegistos.org/text/380901"},
+    {"scheme": "TLA object ID", "value": "AZQUE622ZRHIXAC4J4KQSR42QQ", "source_ref": "https://tla.digital/object/AZQUE622ZRHIXAC4J4KQSR42QQ"}
+  ],
+  "physical_description": {
+    "material": "papyrus",
+    "height_mm": 199,
+    "width_mm": 1435,
+    "thickness_mm": null,
+    "source_ref": "https://www.britishmuseum.org/collection/object/Y_EA10060"
+  },
+  "dating": {
+    "period_label": "New Kingdom, Eighteenth Dynasty in the British Museum record; late Seti I or early Ramesses II palaeographic dating for the recto in TLA",
+    "display_date": "Eighteenth Dynasty / early Ramesside boundary",
+    "certainty": "disputed",
+    "period_stage_separation_required": true,
+    "source_ref": "https://tla.digital/object/AZQUE622ZRHIXAC4J4KQSR42QQ"
+  },
+  "find_context": {
+    "site": null,
+    "findspot": null,
+    "excavation_numbers": [],
+    "source_note": "The British Museum records Egypt only. TLA preserves competing Theban, Ramesseum, and Deir el-Medina proposals without establishing an exact findspot.",
+    "documentation_limit": "Neither reviewed record proves the original findspot, a single ancient compilation event, the alleged mansion-of-Intef exemplar, or the boundaries of a closed Harper's Songs corpus.",
+    "source_ref": "https://tla.digital/object/AZQUE622ZRHIXAC4J4KQSR42QQ"
+  },
+  "custody": {
+    "current_repository": "The British Museum, London",
+    "inventory_numbers": ["EA10060", "1872,1101.2", "Harris 500"],
+    "source_ref": "https://www.britishmuseum.org/collection/object/Y_EA10060"
+  },
+  "digital_catalog_record": {
+    "provider": "British Museum Collection Online",
+    "record_id": "Y_EA10060",
+    "record_url": "https://www.britishmuseum.org/collection/object/Y_EA10060",
+    "api_url": null,
+    "checked_at": "2026-08-30T06:24:00-06:00",
+    "mutable": true,
+    "response_fingerprints": [
+      {"surface": "https://www.britishmuseum.org/collection/object/Y_EA10060", "byte_size": 200106, "sha256": "b26f2bdfc5b903d4c8f3cc38a4142b3edc20e99fa15f214047225926482a6479", "captured": false}
+    ]
+  },
+  "inscription_layer": {
+    "availability": "available_not_acquired",
+    "language_status": "reported",
+    "provider_language_code": "egy",
+    "normalized_language_code": "egy",
+    "script": "hieratic",
+    "transliteration_stored": false,
+    "translation_stored": false,
+    "source_refs": ["https://tla.digital/text/CRNQNNDNPNBYNNLJCWIBBH3PNY", "https://www.britishmuseum.org/collection/object/Y_EA10060"]
+  },
+  "composite_layer": {
+    "status": "linked",
+    "external_refs": [
+      {"scheme": "TLA text ID", "value": "CRNQNNDNPNBYNNLJCWIBBH3PNY", "source_ref": "https://tla.digital/text/CRNQNNDNPNBYNNLJCWIBBH3PNY"},
+      {"scheme": "TLA collective caption ID", "value": "WLWU7O2UDBGZHDGMUIC3ZIUR74", "source_ref": "https://tla.digital/text/CRNQNNDNPNBYNNLJCWIBBH3PNY"}
+    ],
+    "relationship": "The papyrus is reported as the witness for the Recto 6-7 Antef Song text within the provisional Harper's Songs synoptic composite; membership and passage boundaries remain evidence-bearing observations, not accepted text or canon.",
+    "is_physical_artifact_identity": false
+  },
+  "visual_layers": [
+    {"layer_kind": "photograph", "availability": "visible", "content_stored": false, "source_ref": "https://www.britishmuseum.org/collection/image/20450001", "rights_note": "The exact CC BY-NC-SA 4.0 JPEG is retained as a separate visual representation and File."},
+    {"layer_kind": "photograph", "availability": "visible", "content_stored": false, "source_ref": "https://www.britishmuseum.org/collection/image/20451001", "rights_note": "The exact CC BY-NC-SA 4.0 JPEG is retained as a separate visual representation and File."},
+    {"layer_kind": "photograph", "availability": "visible", "content_stored": false, "source_ref": "https://www.britishmuseum.org/collection/image/20452001", "rights_note": "The exact CC BY-NC-SA 4.0 JPEG is retained as a separate visual representation and File; its embedded passage segmentation is not admitted."},
+    {"layer_kind": "photograph", "availability": "visible", "content_stored": false, "source_ref": "https://www.britishmuseum.org/collection/image/20453001", "rights_note": "The exact CC BY-NC-SA 4.0 JPEG is retained as a separate visual representation and File; its embedded passage segmentation is not admitted."}
+  ],
+  "scholarly_classification": {
+    "genre": "New Kingdom literary anthology manuscript with love songs, the reported Harpist's Song from the mansion of Intef, and narrative tales",
+    "corpus_labels": ["Papyrus Harris 500", "Harpist's Song witness", "Anteflied text A", "literary anthology"],
+    "classification_is_interpretive": true,
+    "source_refs": ["https://www.britishmuseum.org/collection/object/Y_EA10060", "https://tla.digital/object/AZQUE622ZRHIXAC4J4KQSR42QQ", "https://tla.digital/text/CRNQNNDNPNBYNNLJCWIBBH3PNY"]
+  },
+  "bibliography": [
+    {"citation": "C. W. Goodwin, On four songs contained in an Egyptian papyrus in the British Museum, 1874", "role": "primary_publication", "source_ref": "https://opac.k10plus.de/DB=2.299/PPNSET?PPN=1894019164"},
+    {"citation": "Thesaurus Linguae Aegyptiae, pHarris 500, Recto 6-7: Anteflied (Harfnerlieder Text A), Corpus edition 20", "role": "current_control", "source_ref": "https://tla.digital/text/CRNQNNDNPNBYNNLJCWIBBH3PNY"}
+  ],
+  "layer_separation": {
+    "physical_artifact_is_catalog_record": false,
+    "catalog_record_is_inscription": false,
+    "inscription_is_composite": false,
+    "visual_is_artifact": false,
+    "sign_has_fixed_translation": false,
+    "artifact_is_philosophy": false
+  },
+  "rights_ref": "ToS/source-witnesses/artifacts/egyptian/unknown/papyrus-harris-500-ea10060/rights.json",
+  "discovery_ref": "ToS/source-witnesses/discovery/runs/harpers-songs-papyrus-harris-500-artifact.2026-08-30.v1.json",
+  "provenance_event_ref": "tos.event.acquisition.harpers-songs-papyrus-harris-500-bm-images.2026-08-30",
+  "research_ref": "ToS/research-packets/foundation-laboratory-2026-07/A05_HARPERS_SONGS_OPEN_WORK_ACQUISITION_2026-08-30.md",
+  "philosophy_planting_refs": ["ToS/philosophy/eras/bronze-age/regions/north-africa/traditions/egyptian-mortuary-theological-dialogic-corpora/sources/plantings/harpers-songs-papyrus-harris-500/source-planting.json"],
+  "authority": {"evidence_status": "metadata_witness", "review_status": "unreviewed", "visibility": "public_metadata_only", "source_text_admitted": false, "semantic_authority": false, "graph_authority": false, "canon_authority": false, "publication_authority": false},
+  "maker": {"maker_type": "model", "agent_ref": "model:codex", "human_review_performed": false},
+  "created_at": "2026-08-30T06:24:00-06:00",
+  "record_version": 1
+}
