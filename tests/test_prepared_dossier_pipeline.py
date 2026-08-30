@@ -691,6 +691,7 @@ class PreparedDossierPipelineTest(unittest.TestCase):
                 side_effect=[[Path("A01.docx")], RuntimeError("table-ii malformed")],
             ),
             patch.object(planting_pipeline, "parse_dossier", return_value=first),
+            patch("plant_prepared_dossiers.require_aggregate_readiness", return_value={"ready_to_plant": True}),
             patch.object(planting_pipeline, "write_intake_and_coverage_surfaces") as write_package,
             patch.object(planting_pipeline, "update_atlas") as update_atlas,
         ):
