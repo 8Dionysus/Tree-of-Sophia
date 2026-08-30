@@ -66,16 +66,21 @@
   "gates": [
     {
       "evidence": {
+        "candidate_output_freeze_digest_match": true,
         "candidate_output_freeze_sha256": "039cfda1d5c966325fda5e5caa2d25ef00d987ea871d7c0d06fa6bf67de34eec",
-        "evaluation_revision_freeze_sha256": "fce2ff78d1f44ab5726e57a058fa78e7c0a0b241d5b5de911e5e9e558eed3a90",
-        "public_output_count": 100
+        "durable_order": true,
+        "method_freeze_digest_match": true,
+        "method_freeze_ref": "ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/freeze-receipt-v4.json",
+        "method_freeze_sha256": "673df52d8eebac3f39f77c081daad4a5a3376b020a5d5bb397a905af95cf5713",
+        "method_frozen_at": "2026-08-30T17:58:25.639895Z",
+        "output_run_started_at": "2026-08-30T17:58:25.693500Z"
       },
       "gate_id": "G1-freeze-before-output",
       "passed": true
     },
     {
       "evidence": {
-        "frozen_file_count": 15,
+        "frozen_file_count": 17,
         "mismatches": []
       },
       "gate_id": "G2-input-digests-match",
@@ -126,6 +131,11 @@
     {
       "evidence": {
         "failures": [],
+        "observed_output_binding": {
+          "checked_process_count": 133,
+          "failures": [],
+          "ok": true
+        },
         "pair_count": 58
       },
       "gate_id": "G7-independent-build-byte-equality",
@@ -364,7 +374,7 @@
     },
     {
       "evidence": {
-        "manual_review_sha256": "79ec149dc2379313e6f02856d128e56d83ffcd8b4e9e422e29420fef8ab573b0",
+        "manual_review_sha256": "471c1c112b63d21e10be0991b9df1fb8c9421174643787561cd44a13225ff7ef",
         "missing_markers": []
       },
       "gate_id": "G23-manual-review-before-evaluator",

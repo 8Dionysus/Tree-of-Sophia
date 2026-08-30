@@ -12,6 +12,7 @@ import json
 import os
 import re
 import subprocess
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
@@ -22,7 +23,7 @@ LAB_DIR = Path(__file__).resolve().parent
 REPO_ROOT = LAB_DIR.parents[3]
 INPUT_PATH = LAB_DIR / "input-manifest.json"
 SEALED_PATH = LAB_DIR / "sealed-evaluation-manifest-v2.json"
-FREEZE_PATH = LAB_DIR / "freeze-receipt-v3.json"
+FREEZE_PATH = LAB_DIR / "freeze-receipt-v5.json"
 OBSERVATIONS_PATH = LAB_DIR / "run-observations.json"
 SOURCE_RECEIPT_PATH = LAB_DIR / "source-run-receipt.json"
 CONSUMER_PATH = LAB_DIR / "independent-consumer-receipt.json"
@@ -109,6 +110,90 @@ def verify_frozen_files(freeze: dict[str, Any]) -> tuple[bool, list[str]]:
         if not path.is_file() or sha256_path(path) != record["sha256"]:
             mismatches.append(record["ref"])
     return not mismatches, mismatches
+
+
+def parse_utc_timestamp(value: Any) -> datetime:
+    if not isinstance(value, str):
+        raise ValueError("timestamp is not a string")
+    parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
+    if parsed.tzinfo is None:
+        raise ValueError("timestamp has no timezone")
+    return parsed.astimezone(timezone.utc)
+
+
+def verify_observed_output_bindings(
+    observations: dict[str, Any],
+) -> dict[str, Any]:
+    failures: list[str] = []
+    seen: set[str] = set()
+    for index, process in enumerate(observations["processes"]):
+        scope = process.get("output_scope")
+        ref = process.get("output_ref")
+        if scope == "lab" and isinstance(ref, str):
+            path = LAB_DIR / ref
+        elif scope == "absolute" and isinstance(ref, str):
+            path = Path(ref)
+        else:
+            failures.append(f"process-{index + 1}:invalid-output-reference")
+            continue
+        resolved = path.resolve()
+        key = str(resolved)
+        if key in seen:
+            failures.append(f"process-{index + 1}:duplicate-output-reference")
+        seen.add(key)
+        if process.get("output_created") is True:
+            if not path.is_file():
+                failures.append(f"process-{index + 1}:missing-output")
+                continue
+            if process.get("output_sha256") != sha256_path(path):
+                failures.append(f"process-{index + 1}:output-digest-mismatch")
+            if process.get("output_bytes") != path.stat().st_size:
+                failures.append(f"process-{index + 1}:output-size-mismatch")
+        elif path.exists():
+            failures.append(f"process-{index + 1}:unexpected-output")
+    return {
+        "ok": not failures,
+        "checked_process_count": len(observations["processes"]),
+        "failures": failures,
+    }
+
+
+def verify_durable_freeze_order(
+    freeze: dict[str, Any], observations: dict[str, Any]
+) -> tuple[bool, dict[str, Any]]:
+    method_ref = freeze.get("method_freeze_ref")
+    method_path = REPO_ROOT / method_ref if isinstance(method_ref, str) else Path("/")
+    method_digest = sha256_path(method_path) if method_path.is_file() else None
+    candidate_ref = freeze.get("candidate_output_freeze_ref")
+    candidate_path = REPO_ROOT / candidate_ref if isinstance(candidate_ref, str) else Path("/")
+    candidate_digest = sha256_path(candidate_path) if candidate_path.is_file() else None
+    try:
+        method_time = parse_utc_timestamp(
+            load_json(method_path)["frozen_at"]
+        )
+        output_time = parse_utc_timestamp(observations["output_run_started_at"])
+        order_ok = method_time < output_time
+    except (OSError, KeyError, TypeError, ValueError):
+        method_time = None
+        output_time = None
+        order_ok = False
+    digest_ok = (
+        method_digest == freeze.get("method_freeze_sha256")
+        and observations.get("method_freeze_ref") == method_ref
+        and observations.get("method_freeze_sha256") == method_digest
+    )
+    candidate_digest_ok = candidate_digest == freeze.get("candidate_output_freeze_sha256")
+    evidence = {
+        "method_freeze_ref": method_ref,
+        "method_freeze_sha256": method_digest,
+        "method_freeze_digest_match": digest_ok,
+        "method_frozen_at": method_time.isoformat().replace("+00:00", "Z") if method_time else None,
+        "output_run_started_at": output_time.isoformat().replace("+00:00", "Z") if output_time else observations.get("output_run_started_at"),
+        "durable_order": order_ok,
+        "candidate_output_freeze_sha256": candidate_digest,
+        "candidate_output_freeze_digest_match": candidate_digest_ok,
+    }
+    return order_ok and digest_ok and candidate_digest_ok, evidence
 
 
 def exact_source_values(source_path: Path) -> list[str]:
@@ -219,18 +304,12 @@ def main() -> int:
     consumer = load_json(CONSUMER_PATH)
     gates: list[dict[str, Any]] = []
 
-    outputs = list((LAB_DIR / "public-synthetic").rglob("*.json"))
-    earliest_output_mtime_ns = min(path.stat().st_mtime_ns for path in outputs)
-    candidate_freeze_path = REPO_ROOT / freeze["candidate_output_freeze_ref"]
+    durable_freeze_ok, durable_freeze_evidence = verify_durable_freeze_order(freeze, observations)
     gates.append(
         gate(
             "G1-freeze-before-output",
-            candidate_freeze_path.stat().st_mtime_ns < earliest_output_mtime_ns,
-            {
-                "candidate_output_freeze_sha256": sha256_path(candidate_freeze_path),
-                "evaluation_revision_freeze_sha256": sha256_path(FREEZE_PATH),
-                "public_output_count": len(outputs),
-            },
+            durable_freeze_ok,
+            durable_freeze_evidence,
         )
     )
 
@@ -327,11 +406,16 @@ def main() -> int:
         for key, digests in deterministic_pairs.items()
         if len(digests) != 2 or len(set(digests)) != 1
     ]
+    observed_output_binding = verify_observed_output_bindings(observations)
     gates.append(
         gate(
             "G7-independent-build-byte-equality",
-            not pair_failures,
-            {"pair_count": len(deterministic_pairs), "failures": sorted(pair_failures)},
+            not pair_failures and observed_output_binding["ok"],
+            {
+                "pair_count": len(deterministic_pairs),
+                "failures": sorted(pair_failures),
+                "observed_output_binding": observed_output_binding,
+            },
         )
     )
 

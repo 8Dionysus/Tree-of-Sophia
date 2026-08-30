@@ -63,6 +63,18 @@ def element_children(element: etree._Element) -> list[etree._Element]:
     return [child for child in element if isinstance(child.tag, str)]
 
 
+def validate_file_binding(
+    payload: dict[str, Any], source: bytes, label: str
+) -> None:
+    binding = payload.get("file_binding")
+    if not isinstance(binding, dict):
+        raise ValueError(f"{label} file binding missing")
+    if binding.get("sha256") != sha256_bytes(source):
+        raise ValueError(f"{label} file binding mismatch")
+    if binding.get("byte_size") != len(source):
+        raise ValueError(f"{label} byte-size binding mismatch")
+
+
 def resolve_path(root: etree._Element, path: list[dict[str, Any]]) -> etree._Element:
     if not path:
         raise ValueError("empty path")
@@ -141,6 +153,77 @@ def validate_b(owner: dict[str, Any], root: etree._Element) -> dict[str, Any]:
     }
 
 
+def validate_provider_coordinate(
+    record: dict[str, Any],
+    element: etree._Element,
+    projection: dict[str, Any],
+) -> None:
+    coordinate = record.get("provider_coordinate")
+    context = projection.get("provider_context")
+    if not isinstance(coordinate, dict) or not isinstance(context, dict):
+        raise ValueError("provider coordinate/context missing")
+    if coordinate.get("book") != context.get("book_code"):
+        raise ValueError("provider book coordinate mismatch")
+
+    resource_kind = record.get("resource_kind")
+    if resource_kind == "provider_book":
+        if set(coordinate) != {"book"}:
+            raise ValueError("provider book coordinate shape mismatch")
+        return
+
+    parent = element.getparent()
+    if parent is None:
+        raise ValueError("provider coordinate parent missing")
+    if resource_kind == "provider_chapter":
+        if expanded_name(parent.tag) != {"namespace_uri": None, "local_name": "book"}:
+            raise ValueError("provider chapter parent mismatch")
+        if set(coordinate) != {"book", "chapter"}:
+            raise ValueError("provider chapter coordinate shape mismatch")
+        if coordinate.get("chapter") != element.get("n"):
+            raise ValueError("provider chapter coordinate does not match n")
+        return
+
+    if resource_kind == "provider_verse":
+        if expanded_name(parent.tag) != {"namespace_uri": None, "local_name": "c"}:
+            raise ValueError("provider verse parent mismatch")
+        if set(coordinate) != {"book", "chapter", "verse"}:
+            raise ValueError("provider verse coordinate shape mismatch")
+        if coordinate.get("chapter") != parent.get("n"):
+            raise ValueError("provider verse chapter coordinate does not match parent n")
+        if coordinate.get("verse") != element.get("n"):
+            raise ValueError("provider verse coordinate does not match n")
+        return
+
+    if resource_kind == "provider_word":
+        if expanded_name(parent.tag) != {"namespace_uri": None, "local_name": "v"}:
+            raise ValueError("provider word parent mismatch")
+        if set(coordinate) != {
+            "book",
+            "chapter",
+            "verse",
+            "provider_word_position",
+        }:
+            raise ValueError("provider word coordinate shape mismatch")
+        chapter = parent.getparent()
+        if chapter is None or expanded_name(chapter.tag) != {"namespace_uri": None, "local_name": "c"}:
+            raise ValueError("provider word chapter parent mismatch")
+        if coordinate.get("chapter") != chapter.get("n"):
+            raise ValueError("provider word chapter coordinate does not match parent n")
+        if coordinate.get("verse") != parent.get("n"):
+            raise ValueError("provider word verse coordinate does not match parent n")
+        word_siblings = [
+            child
+            for child in element_children(parent)
+            if expanded_name(child.tag) == {"namespace_uri": None, "local_name": "w"}
+        ]
+        expected_position = word_siblings.index(element) + 1 if element in word_siblings else None
+        if coordinate.get("provider_word_position") != expected_position:
+            raise ValueError("provider word position does not match sibling position")
+        return
+
+    raise ValueError("unknown provider resource kind")
+
+
 def validate_projection(
     projection: dict[str, Any],
     root: etree._Element,
@@ -165,6 +248,7 @@ def validate_projection(
             "local_name": expected_local_names[record["resource_kind"]],
         }:
             raise ValueError("provider record resolves to wrong source element")
+        validate_provider_coordinate(record, element, projection)
         generic_ref = record["generic_resource_ref"]
         if owner is None:
             if generic_ref is not None:
@@ -187,8 +271,7 @@ def validate_candidate(payload: dict[str, Any], source: bytes) -> dict[str, Any]
     root = strict_parse(source)
     candidate = payload["candidate"]
     if candidate == "A":
-        if payload["file_binding"]["sha256"] != sha256_bytes(source):
-            raise ValueError("A file binding mismatch")
+        validate_file_binding(payload, source, "A")
         if payload["element_return_supported"] is not False:
             raise ValueError("A overclaims element return")
         return {
@@ -197,12 +280,15 @@ def validate_candidate(payload: dict[str, Any], source: bytes) -> dict[str, Any]
             "element_return_supported": False,
         }
     if candidate == "B":
+        validate_file_binding(payload, source, "B")
         return validate_b(payload, root)
     if candidate == "C":
+        validate_file_binding(payload, source, "C")
         result = validate_projection(payload, root, None)
         result["generic_owner_supported"] = False
         return result
     if candidate == "BC":
+        validate_file_binding(payload["owner"], source, "BC owner")
         owner_result = validate_b(payload["owner"], root)
         projection_result = validate_projection(payload["projection"], root, payload["owner"])
         return {"owner": owner_result, "projection": projection_result}

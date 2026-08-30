@@ -10,6 +10,7 @@ import platform
 import subprocess
 import sys
 import tempfile
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
@@ -23,6 +24,7 @@ BUILDER_PATH = LAB_DIR / "build_candidate.py"
 PUBLIC_ROOT = LAB_DIR / "public-synthetic"
 OBSERVATIONS_PATH = LAB_DIR / "run-observations.json"
 SOURCE_RECEIPT_PATH = LAB_DIR / "source-run-receipt.json"
+METHOD_FREEZE_PATH = LAB_DIR / "freeze-receipt-v4.json"
 
 
 def canonical_bytes(value: Any) -> bytes:
@@ -37,6 +39,18 @@ def sha256_bytes(value: bytes) -> str:
 
 def sha256_path(path: Path) -> str:
     return sha256_bytes(path.read_bytes())
+
+
+def utc_timestamp() -> str:
+    return datetime.now(timezone.utc).isoformat(timespec="microseconds").replace("+00:00", "Z")
+
+
+def output_binding(output: Path) -> tuple[str, str]:
+    resolved = output.resolve()
+    try:
+        return "lab", resolved.relative_to(LAB_DIR.resolve()).as_posix()
+    except ValueError:
+        return "absolute", str(resolved)
 
 
 def write_json(path: Path, value: Any, mode: int = 0o600) -> None:
@@ -92,6 +106,8 @@ def measured_build(
             wall_seconds = float(wall_raw)
             max_rss_kib = int(rss_raw)
 
+    output_scope, output_ref = output_binding(output)
+
     observation: dict[str, Any] = {
         "candidate": candidate,
         "selection_kind": selection_kind,
@@ -102,6 +118,8 @@ def measured_build(
         "stdout_sha256": sha256_bytes(completed.stdout),
         "stderr_sha256": sha256_bytes(completed.stderr),
         "output_created": output.is_file(),
+        "output_scope": output_scope,
+        "output_ref": output_ref,
     }
     if output.is_file():
         observation.update(
@@ -158,6 +176,12 @@ def output_summary(path: Path) -> dict[str, Any]:
 
 def main() -> int:
     manifest = json.loads(MANIFEST_PATH.read_text(encoding="utf-8"))
+    method_freeze = json.loads(METHOD_FREEZE_PATH.read_text(encoding="utf-8"))
+    method_freeze_sha256 = sha256_path(METHOD_FREEZE_PATH)
+    method_freeze_ref = METHOD_FREEZE_PATH.relative_to(REPO_ROOT).as_posix()
+    if method_freeze.get("self_sha256") not in (None, method_freeze_sha256):
+        raise RuntimeError("method freeze self digest is not stable")
+    output_run_started_at = utc_timestamp()
     fixture_ids = [fixture["id"] for fixture in manifest["fixtures"]]
     security_ids = [fixture["id"] for fixture in manifest["security_fixtures"]]
     observations: list[dict[str, Any]] = []
@@ -253,6 +277,9 @@ def main() -> int:
             "timezone": "UTC",
         },
         "process_count": len(observations),
+        "output_run_started_at": output_run_started_at,
+        "method_freeze_ref": method_freeze_ref,
+        "method_freeze_sha256": method_freeze_sha256,
         "processes": observations,
         "authority_boundary": "timing, memory, exit and output-fixity observations only; no content or acceptance authority",
     }

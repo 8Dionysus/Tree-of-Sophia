@@ -103,6 +103,18 @@ public text-free mechanics and receipts
   ≠ source content
 ```
 
+## Review-correction controls
+
+The post-review rerun binds every measured output path and digest in
+`run-observations.json`; the evaluator reopens those paths and rejects any
+changed, missing, duplicate, or unexpected output before accepting the
+determinism gate. The independent consumer checks the exact source-file
+binding for A, B, C, and the B owner inside B+C. Provider chapter and verse
+`n` attributes, plus each word's one-based sibling position, are checked
+against the resolved XML element rather than only its tag. The evaluator's
+freeze-order gate uses the durable UTC timestamp and digest of a pre-output
+method freeze, never filesystem checkout mtimes.
+
 ## Same-selector correction replay
 
 The two real HTTP responses differ exactly at File level:
