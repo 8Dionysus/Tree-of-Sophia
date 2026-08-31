@@ -1,0 +1,13 @@
+# Script validation
+
+Select the source or generated consumer before the script. Internal sequences
+are loaded from `docs/validation/validation_lanes.json`.
+
+```bash
+python scripts/validation_lanes.py --run validation_authority
+python scripts/validation_lanes.py --run route_docs
+python scripts/release_check.py
+```
+
+Run the narrowest affected lane first. A builder may mutate only its declared
+generated outputs; validator success does not create source or runtime truth.

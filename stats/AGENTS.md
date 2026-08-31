@@ -13,6 +13,8 @@ This directory owns statistical questions over Tree of Sophia objects whose
 meaning remains with the authored tree. Shared measurement grammar and
 cross-owner composition remain owned by `aoa-stats`.
 
+This port measures declared populations; it does not own philosophical meaning.
+
 ## Read Before Editing
 
 1. Root `AGENTS.md`, `CHARTER.md`, `BOUNDARIES.md`, and `ROADMAP.md`.

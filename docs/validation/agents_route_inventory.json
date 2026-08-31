@@ -39,7 +39,7 @@
   "influencing_surfaces": [
     {
       "path": "AGENTS.md",
-      "role": "active universal repository identity, topology, owner routes, boundaries, verification, and completion"
+      "role": "active prompt-light repository identity, owner routes, semantic boundaries, validation selection, and completion"
     },
     {
       "path": "DESIGN.AGENTS.md",
@@ -52,6 +52,10 @@
     {
       "path": "README.md",
       "role": "human entrypoint and links to canonical route surfaces"
+    },
+    {
+      "path": "VALIDATION.md",
+      "role": "on-demand human selector for named validation lanes and district procedures"
     },
     {
       "path": "CHARTER.md",
@@ -272,7 +276,7 @@
       "required_scopes": ["why", "options", "consequences", "source owner", "generated index"],
       "required_markers": ["durable decision rationale", "Index Metadata", "current source", "generated indexes"],
       "boundary_markers": ["weaker", "source authority", "generated"],
-      "on_demand_surfaces": ["docs/decisions/README.md", "docs/decisions/TEMPLATE.md", "docs/decisions/indexes/index_contract.yaml"],
+      "on_demand_surfaces": ["docs/decisions/README.md", "docs/decisions/TEMPLATE.md", "docs/VALIDATION.md", "docs/decisions/indexes/index_contract.yaml"],
       "validation_lanes": ["generated_parity", "route_docs"],
       "validation_paths": ["scripts/generate_decision_indexes.py", "scripts/validate_decision_records.py"],
       "completion_evidence": ["docs/decisions/AGENTS.md", "docs/decisions/indexes/index_contract.yaml", "scripts/validate_decision_records.py"],
@@ -286,7 +290,7 @@
       "required_scopes": ["lane authority", "ordered command sequence", "generated parity", "CI/PR evidence"],
       "required_markers": ["release_check", "validation_lanes.json", "script_inventory.json", "generated"],
       "boundary_markers": ["source-owned", "release", "runtime"],
-      "on_demand_surfaces": ["docs/validation/validation_lanes.json", "docs/validation/SCRIPT_TOPOLOGY.md", "docs/RELEASING.md", ".github/workflows/repo-validation.yml"],
+      "on_demand_surfaces": ["VALIDATION.md", "docs/validation/validation_lanes.json", "docs/validation/SCRIPT_TOPOLOGY.md", "docs/RELEASING.md", ".github/workflows/repo-validation.yml"],
       "validation_lanes": ["validation_authority", "release", "route_docs"],
       "validation_paths": ["scripts/validation_lanes.py", "scripts/release_check.py", "scripts/validate_nested_agents.py"],
       "completion_evidence": ["scripts/AGENTS.md", "docs/validation/validation_lanes.json", "scripts/release_check.py", ".github/workflows/repo-validation.yml"],
@@ -314,7 +318,7 @@
       "required_scopes": ["local intake", "source refs", "central owner", "verdict boundary"],
       "required_markers": ["aoa-evals", "local", "verdict", "intake"],
       "boundary_markers": ["proof doctrine", "central", "source witnesses"],
-      "on_demand_surfaces": ["evals/README.md", "evals/PORT.yaml", "evals/intake/README.md"],
+      "on_demand_surfaces": ["evals/README.md", "evals/PORT.yaml", "evals/VALIDATION.md", "evals/intake/README.md"],
       "validation_lanes": ["eval_port", "route_docs"],
       "validation_paths": ["evals/PORT.yaml", "evals/AGENTS.md"],
       "completion_evidence": ["evals/AGENTS.md", "evals/PORT.yaml", "evals/README.md"],
@@ -328,7 +332,7 @@
       "required_scopes": ["authored population", "measurement declaration", "evidence packet", "shared grammar"],
       "required_markers": ["aoa-stats", "measurement", "reference", "population"],
       "boundary_markers": ["cross-owner composition", "philosophical meaning", "canon status"],
-      "on_demand_surfaces": ["stats/README.md", "stats/port.manifest.json", "ToS/philosophy/atlas/README.md"],
+      "on_demand_surfaces": ["stats/README.md", "stats/port.manifest.json", "stats/VALIDATION.md", "ToS/philosophy/atlas/README.md"],
       "validation_lanes": ["local_stats_port", "route_docs"],
       "validation_paths": ["scripts/validate_local_stats_port.py", "stats/port.manifest.json"],
       "completion_evidence": ["stats/AGENTS.md", "stats/port.manifest.json", "scripts/validate_local_stats_port.py"],
@@ -342,7 +346,7 @@
       "required_scopes": ["derived export", "local provider", "source return", "runtime boundary"],
       "required_markers": ["KAG provider", "derived-exports", "MCP", "runtime"],
       "boundary_markers": ["source-linked", "derived", "MCP"],
-      "on_demand_surfaces": ["kag/README.md", "kag/manifest.json", "mechanics/boundary-bridge/parts/derived-kag-seam/docs/KAG_EXPORT.md"],
+      "on_demand_surfaces": ["kag/README.md", "kag/manifest.json", "kag/VALIDATION.md", "mechanics/boundary-bridge/parts/derived-kag-seam/docs/KAG_EXPORT.md"],
       "validation_lanes": ["local_kag_provider", "public_entry", "route_docs"],
       "validation_paths": ["scripts/validate_local_kag_provider.py", "mechanics/boundary-bridge/parts/derived-kag-seam/scripts/validate_kag_export.py"],
       "completion_evidence": ["kag/AGENTS.md", "kag/manifest.json", "scripts/validate_local_kag_provider.py"],
@@ -356,7 +360,7 @@
       "required_scopes": ["candidate-only", "evidence refs", "local validation", "reviewed landing"],
       "required_markers": ["candidate", "aoa-memo", "reviewed", "receipt"],
       "boundary_markers": ["durable memory", "source-linked", "runtime"],
-      "on_demand_surfaces": ["memo/README.md", "memo/PORT.yaml", "memo/INDEX.md"],
+      "on_demand_surfaces": ["memo/README.md", "memo/PORT.yaml", "memo/INDEX.md", "memo/VALIDATION.md"],
       "validation_lanes": ["route_docs"],
       "validation_paths": ["memo/PORT.yaml", "memo/AGENTS.md"],
       "completion_evidence": ["memo/AGENTS.md", "memo/PORT.yaml", "memo/INDEX.md"],

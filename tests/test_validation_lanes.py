@@ -4,6 +4,7 @@ import importlib.util
 import json
 from pathlib import Path
 import unittest
+from unittest import mock
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
@@ -68,6 +69,29 @@ class ValidationLanesTestCase(unittest.TestCase):
             for lane_id in branch["validation_lanes"]:
                 self.assertIn(lane_id, lanes)
                 self.assertNotIn("python ", lane_id)
+
+    def test_run_sequence_executes_manifest_order_from_repo_root(self) -> None:
+        steps = validation_lanes.command_sequence("route_docs", REPO_ROOT)
+        completed = mock.Mock(returncode=0)
+
+        with mock.patch.object(validation_lanes.subprocess, "run", return_value=completed) as run:
+            result = validation_lanes.run_sequence("route_docs", REPO_ROOT)
+
+        self.assertEqual(result, 0)
+        self.assertEqual([call.args[0] for call in run.call_args_list], [command for _, command in steps])
+        self.assertTrue(all(call.kwargs["cwd"] == REPO_ROOT for call in run.call_args_list))
+        self.assertTrue(all(call.kwargs["check"] is False for call in run.call_args_list))
+
+    def test_run_sequence_stops_at_first_failure(self) -> None:
+        steps = validation_lanes.command_sequence("route_docs", REPO_ROOT)
+        outcomes = [mock.Mock(returncode=7), mock.Mock(returncode=0)]
+
+        with mock.patch.object(validation_lanes.subprocess, "run", side_effect=outcomes) as run:
+            result = validation_lanes.run_sequence("route_docs", REPO_ROOT)
+
+        self.assertEqual(result, 7)
+        self.assertEqual(run.call_count, 1)
+        self.assertEqual(run.call_args.args[0], steps[0][1])
 
 
 if __name__ == "__main__":

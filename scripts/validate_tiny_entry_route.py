@@ -35,7 +35,7 @@ README_ROUTE_REFS = (
     CAPSULE_PATH.as_posix(),
     "ToS/derived-exports/root_entry_map.min.json",
     "mechanics/boundary-bridge/parts/derived-kag-seam/docs/KAG_EXPORT.md",
-    "AGENTS.md#verify",
+    "VALIDATION.md",
 )
 README_BANNED_COMMANDS = (
     "python scripts/",

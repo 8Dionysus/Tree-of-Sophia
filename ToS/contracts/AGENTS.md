@@ -35,6 +35,12 @@ validators.
   owning runtime or downstream surfaces.
 - For translation alignment, bind both exact text layers and anchor sets;
   keep competing maps and review outcomes separate from the interchange form.
+- For a source-text-unit contract, bind exact frozen text and keep physical
+  layout, orthographic units, linguistic analysis, and tokenizer/model pieces
+  as distinct layers with explicit coverage and gaps.
+- A tokenizer or aligner may propose a reproducible projection; it cannot
+  accept a linguistic unit, translation correspondence, semantic claim, or
+  review outcome.
 
 ## Validation
 

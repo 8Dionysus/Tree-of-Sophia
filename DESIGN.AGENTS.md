@@ -5,8 +5,9 @@
 This document names how agent-facing guidance should look inside
 `Tree-of-Sophia`.
 
-An agent card is a local route surface: role, input, output, owner, next route,
-and verification.
+An agent card is inherited prompt-visible route law: role, input, output,
+owner, next route, semantic stop-lines, and the name of an on-demand
+verification route. It does not carry the procedure body.
 
 ## Thesis
 
@@ -25,7 +26,7 @@ Use this shape when a substantial local `AGENTS.md` is needed:
 | output | what this surface may produce |
 | owner | the source, branch, mechanic, or route that keeps authority |
 | next route | where the agent goes after reading this card |
-| verification | the smallest useful check or review surface |
+| verification | the smallest useful `VALIDATION.md`, lane, or review owner, named without copying commands |
 
 Add local details only where they change action.
 
@@ -40,6 +41,12 @@ Add local details only where they change action.
 | scripts/tests cards | deterministic check ownership |
 | docs cards | decision and documentation route law |
 
+Executable procedure is loaded only after route selection. Root and district
+`VALIDATION.md` files are human on-demand maps;
+`docs/validation/validation_lanes.json` owns exact internal command membership
+and order. README files remain human/public explanation and are loaded only
+when that function is relevant.
+
 The package-level model-facing route and owner-port map lives in
 [.agents/README](.agents/README.md), with its authored machine companion at
 [.agents/agent-surface.manifest.json](.agents/agent-surface.manifest.json).
@@ -52,10 +59,11 @@ route back to stronger owners.
 ## Progressive disclosure and currentness
 
 The root `AGENTS.md` is the universal map of repository identity, topology,
-owner routes, cross-surface boundaries, verification, and completion. A nested
-card adds only action-changing local owner, source authority, invariant,
-nearest check, and escalation/return route. Specialized reference knowledge
-stays on demand in the owning source, contract, decision, skill, or validator.
+owner routes, cross-surface boundaries, verification selection, and
+completion. A nested card adds only action-changing local owner, source
+authority, invariant, nearest validation owner, and escalation/return route.
+Specialized reference knowledge and executable procedure stay on demand in the
+owning source, contract, decision, skill, README, `VALIDATION.md`, or validator.
 
 The machine-readable route map is
 [`docs/validation/agents_route_inventory.json`](docs/validation/agents_route_inventory.json).
@@ -76,7 +84,7 @@ Good agent movement in ToS:
 3. distinguish authored source, doctrine, canon, review, mechanic, generated,
    and export surfaces;
 4. make the smallest coherent change;
-5. run the narrowest relevant check or manual review route;
+5. open and run the narrowest relevant on-demand validation or manual review route;
 6. report changed surfaces, validation, skipped checks, residual risk, and the
    next route.
 
@@ -104,7 +112,8 @@ engineering route.
 
 - prefer route cards over essays;
 - name owners with concrete paths;
-- keep commands in route-law or validation surfaces, not everywhere;
+- keep executable commands out of active cards and in on-demand validation or stronger operation owners;
+- treat README as human/public navigation, never an unconditional agent preload;
 - avoid old session labels as durable topology;
 - write what to do and where to go next;
 - keep negative rules only when a real boundary cannot be expressed as a
@@ -114,7 +123,8 @@ engineering route.
 
 - long inherited prohibition lists;
 - generic wisdom without owner paths;
-- validation commands copied into every surface;
+- validation commands copied into inherited cards;
+- README inventories loaded before the touched owner is known;
 - route names from temporary UI or session labels;
 - generated files, scripts, or validators made stronger than source-owned
   meaning.

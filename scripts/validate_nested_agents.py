@@ -76,6 +76,7 @@ OPERATING_CARD_CHECK_FIELDS = (
 REQUIRED_REFERENCES: dict[str, tuple[str, ...]] = {
     "AGENTS.md": (
         "README.md",
+        "VALIDATION.md",
         "ROADMAP.md",
         "BOUNDARIES.md",
         "ToS/",
