@@ -153,6 +153,26 @@ class NestedAgentsRouteTests(unittest.TestCase):
             )
             self.assertEqual([], validate_nested_agents.validate_active_agent_structure(root))
 
+    def test_prompt_light_structure_allows_inherited_validation_route(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            (root / "VALIDATION.md").write_text("# Validation\n", encoding="utf-8")
+            (root / "AGENTS.md").write_text(
+                "# AGENTS.md\n"
+                "## Validation\n"
+                "Select the nearest VALIDATION.md route.\n",
+                encoding="utf-8",
+            )
+            child = root / "canon" / "AGENTS.md"
+            child.parent.mkdir()
+            child.write_text(
+                "# AGENTS.md\n"
+                "## What lives here\n"
+                "This child retains only its class-local semantic delta.\n",
+                encoding="utf-8",
+            )
+            self.assertEqual([], validate_nested_agents.validate_active_agent_structure(root))
+
     def test_stale_executable_reference_is_a_negative_control(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)

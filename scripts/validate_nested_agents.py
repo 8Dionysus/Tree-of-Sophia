@@ -470,12 +470,22 @@ def _unconditional_readme_inventory_issues(relative_path: str, text: str) -> lis
     return issues
 
 
-def _procedural_structure_issues(relative_path: str, text: str) -> list[Issue]:
+def _procedural_structure_issues(
+    relative_path: str,
+    text: str,
+    *,
+    has_validation_route: bool | None = None,
+) -> list[Issue]:
     """Reject executable and extraction residue in active cards only."""
 
     issues: list[Issue] = []
     lines = text.splitlines()
     seen_headings: set[tuple[int, str]] = set()
+    validation_route_present = (
+        "VALIDATION.md" in text
+        if has_validation_route is None
+        else has_validation_route or "VALIDATION.md" in text
+    )
 
     for line_number, line in enumerate(lines, start=1):
         if SHELL_FENCE_PATTERN.match(line):
@@ -528,7 +538,7 @@ def _procedural_structure_issues(relative_path: str, text: str) -> list[Issue]:
                 issues.append((relative_path, f"line {index + 1}: same-level bullet lead-in has no body"))
 
     issues.extend(_unconditional_readme_inventory_issues(relative_path, text))
-    if "VALIDATION.md" not in text:
+    if not validation_route_present:
         issues.append((relative_path, "missing nearest validation route"))
     return issues
 
@@ -537,9 +547,22 @@ def validate_active_agent_structure(repo_root: Path) -> list[Issue]:
     """Validate prompt-light structure for every active route card."""
 
     issues: list[Issue] = []
-    for path in discover_route_cards(repo_root):
+    route_cards = discover_route_cards(repo_root)
+    discovered = set(route_cards)
+    for path in route_cards:
         relative_path = path.relative_to(repo_root).as_posix()
-        issues.extend(_procedural_structure_issues(relative_path, path.read_text(encoding="utf-8")))
+        stack = inheritance_stack(repo_root, path, discovered)
+        inherited_route = any(
+            "VALIDATION.md" in ancestor.read_text(encoding="utf-8")
+            for ancestor in stack
+        )
+        issues.extend(
+            _procedural_structure_issues(
+                relative_path,
+                path.read_text(encoding="utf-8"),
+                has_validation_route=inherited_route,
+            )
+        )
     return issues
 
 

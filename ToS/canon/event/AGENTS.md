@@ -22,10 +22,3 @@ Keep event nodes source-linked, route-local, and dynamic; distilled claims
 route to principle nodes after review.
 Keep `ToS/public-compatibility/event_node.example.json` aligned with the worked canonical
 mirror as a compatibility surface.
-
-## Validation
-
-Select the `canon_contracts` route from [`ToS/VALIDATION.md`](../../VALIDATION.md)
-after the authored node class and affected companion are known. If a public
-mirror or derived export is touched, select the corresponding `public_entry` or
-`generated_parity` route; their owner docs retain procedure.

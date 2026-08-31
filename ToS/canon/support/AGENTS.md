@@ -23,10 +23,3 @@ Keep support nodes route-local and bounded; wider semantic families route to a
 reviewed philosophy or canon pass.
 Keep `ToS/public-compatibility/support_node.example.json` aligned with the worked canonical
 mirror as a compatibility surface.
-
-## Validation
-
-Select the `canon_contracts` route from [`ToS/VALIDATION.md`](../../VALIDATION.md)
-after the authored node class and affected companion are known. If a public
-mirror or derived export is touched, select the corresponding `public_entry` or
-`generated_parity` route; their owner docs retain procedure.
