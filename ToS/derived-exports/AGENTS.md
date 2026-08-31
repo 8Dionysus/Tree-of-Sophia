@@ -59,3 +59,5 @@ projection, philosophy graph-view catalog, philosophy graph projection, public
 mirror sync, source-witness bibliographic graph, or tiny-entry route.
 For release-facing generated readmodels, also run the OS Abyss artifact bundle
 validator under `mechanics/release-support/parts/artifact-bundles/scripts/`.
+Select the matching generated-parity or public-entry route in
+[`ToS/VALIDATION.md`](../VALIDATION.md) after the export is known.

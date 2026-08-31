@@ -14,7 +14,6 @@ branch and graph expansion routes through the graph-promotion path.
 
 ## Validation
 
-```bash
-python scripts/validate_mechanics_topology.py
-python scripts/validate_philosophy_topology.py
-```
+Select the `mechanics_local` or `philosophy_topology` route from
+[`mechanics/VALIDATION.md`](../VALIDATION.md) after the growth surface is known.
+The route owners retain the procedure.

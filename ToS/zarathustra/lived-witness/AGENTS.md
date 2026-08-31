@@ -48,4 +48,6 @@ semantic truth, and canon.
 Structural validation proves schema shape, required route files, private-path
 ignore behavior, and the non-promotion constants. It cannot confirm the
 author's memory, voice, context, consent, or philosophical meaning. Those
-remain direct human decisions.
+remain direct human decisions. Select the lived-witness route in
+[`ToS/VALIDATION.md`](../../VALIDATION.md) after the packet or capture surface
+is known.

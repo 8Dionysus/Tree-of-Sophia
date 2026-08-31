@@ -24,4 +24,7 @@ When workflow or repository-policy files change, report:
 
 ## Verify
 
-Use the root `AGENTS.md` verification path for the changed surface. For GitHub-only edits, inspect the workflow YAML and run the nearest repo-local static, release, or validation check when available.
+Use the root `AGENTS.md` verification path for the changed surface. For
+GitHub-only edits, inspect the workflow YAML and select the nearest route in
+[`docs/VALIDATION.md`](../docs/VALIDATION.md) when a repo-local static, release,
+or documentation check is needed.

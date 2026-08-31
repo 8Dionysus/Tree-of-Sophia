@@ -26,7 +26,8 @@ keeps durable rationale.
 
 ## Read First
 
-Use `ToS/README.md`, `ToS/source_home.manifest.json`,
+When branch orientation or public navigation is relevant, open `ToS/README.md`.
+For a source-home change, use `ToS/source_home.manifest.json`,
 `ToS/doctrine/KNOWLEDGE_MODEL.md`, `ToS/doctrine/NODE_CONTRACT.md`, and the
 nearest nested `AGENTS.md` for the branch being touched.
 
@@ -69,9 +70,10 @@ are reproducible; rejected and unresolved decisions must remain inspectable.
 
 ## Corpus-Foundation Engineering Route
 
-For corpus intake and addressing, read
-`ToS/doctrine/CORPUS_FOUNDATION.md`, then
-`ToS/source-witnesses/README.md` and its `AGENTS.md`.
+For corpus intake and addressing, use
+`ToS/doctrine/CORPUS_FOUNDATION.md` and the source-witness route. Open
+`ToS/source-witnesses/README.md` when its human provenance or usage
+explanation is relevant, followed by its `AGENTS.md`.
 
 Keep these boundaries visible:
 
@@ -99,7 +101,5 @@ transformation event. Graph and retrieval stores remain disposable readers.
 
 ## Validation
 
-Run the branch-local validator first. For source-home topology changes, use
-`scripts/validate_tos_source_home.py`, `scripts/validate_lived_witness_route.py`,
-`scripts/validate_philosophy_topology.py`, and
-`scripts/validate_nested_agents.py`.
+Select the source-home, lived-witness, philosophy-topology, or route-docs lane
+from [`ToS/VALIDATION.md`](VALIDATION.md) after the changed branch is known.

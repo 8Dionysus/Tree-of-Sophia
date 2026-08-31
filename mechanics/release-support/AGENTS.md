@@ -14,7 +14,6 @@ transition support.
 
 ## Validation
 
-```bash
-python scripts/validate_mechanics_topology.py
-python scripts/release_check.py
-```
+Select the `mechanics_local` or `release_check` route from
+[`mechanics/VALIDATION.md`](../VALIDATION.md) after the release-facing surface
+is known. The release owner retains the procedure.

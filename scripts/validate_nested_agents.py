@@ -62,6 +62,86 @@ ROUTE_HEADINGS = (
     "## Validation",
     "## Verify",
 )
+
+# Active AGENTS cards are prompt-light semantic deltas. Executable procedure
+# belongs to VALIDATION.md, the lane manifest, or the named owner document.
+# Keep these guards syntax-focused so ordinary source paths and prose remain
+# valid guidance.
+COMMAND_TOKEN_PATTERN = (
+    r"(?:python(?:\d+(?:\.\d+)*)?|pytest|uv(?:[ \t]+run)?|pip(?:\d+)?|"
+    r"npm|npx|node|cargo|go|git|make|bash|sh|zsh|fish|powershell|pwsh|"
+    r"systemctl|journalctl|curl|wget|jq|rg|grep|sed|awk|find|chmod|mkdir|"
+    r"cp|mv|rm|docker|podman|env|source(?=[ \t]+[./~$\"']))"
+)
+ENV_ASSIGNMENT_PATTERN = (
+    r"(?:[A-Z_][A-Z0-9_]*=(?:\"[^\"]*\"|'[^']*'|[^\s]+)[ \t]+)"
+)
+SHELL_FENCE_PATTERN = re.compile(r"^ {0,3}```")
+COMMAND_START_PATTERN = re.compile(
+    r"^[ \t]*(?:(?:[-*+][ \t]+|\d+[.)][ \t]+))?(?:`)?(?:\$[ \t]+)?"
+    + ENV_ASSIGNMENT_PATTERN
+    + r"*"
+    + COMMAND_TOKEN_PATTERN
+    + r"(?=[ \t]|$|`)",
+    re.IGNORECASE,
+)
+ENV_ASSIGNMENT_COMMAND_PATTERN = re.compile(
+    r"^[ \t]*(?:(?:[-*+][ \t]+|\d+[.)][ \t]+))?(?:`)?"
+    + ENV_ASSIGNMENT_PATTERN
+    + r"+"
+    + COMMAND_TOKEN_PATTERN
+    + r"(?=[ \t]|$|`)",
+    re.IGNORECASE,
+)
+INLINE_COMMAND_PATTERN = re.compile(
+    r"`(?:\$[ \t]+)?"
+    + ENV_ASSIGNMENT_PATTERN
+    + r"*"
+    + COMMAND_TOKEN_PATTERN
+    + r"(?=[ \t]|$|`)[^`]*`",
+    re.IGNORECASE,
+)
+README_ROUTE_PATTERN = re.compile(
+    r"\b(?:read|open|review|start\s+with|use)\b.*\bREADME(?:\.md)?\b",
+    re.IGNORECASE,
+)
+README_CONDITIONAL_MARKERS = (
+    "when ",
+    "if ",
+    "only ",
+    "where ",
+    "as needed",
+    "needed",
+    "relevant",
+    "selected",
+    "known",
+    "target",
+    "named",
+    "for ",
+    "after ",
+    "touched",
+)
+PROCEDURAL_HEADING_PATTERN = re.compile(
+    r"^#{1,6}\s+(?:validation|verify|verification|checks?|testing|"
+    r"procedure|smoke)(?:\s|$)",
+    re.IGNORECASE,
+)
+HEADING_PATTERN = re.compile(r"^(#{1,6})\s+(.+?)\s*$")
+BULLET_PATTERN = re.compile(r"^(?P<indent>\s*)(?P<marker>[-*+]|\d+[.)])\s+")
+README_INVENTORY_HEADINGS = {
+    "start here",
+    "read first",
+    "read before editing",
+    "reading order",
+    "route stack",
+    "route inventory",
+    "required reading",
+}
+
+
+def _has_readme_condition(text: str) -> bool:
+    normalized = normalize(text)
+    return any(marker.strip() in normalized for marker in README_CONDITIONAL_MARKERS)
 OPERATING_CARD_FIELDS = (
     "input",
     "output",
@@ -115,7 +195,7 @@ REQUIRED_REFERENCES: dict[str, tuple[str, ...]] = {
     ),
     "tests/AGENTS.md": (
         "tests/test_inventory.json",
-        "python -m unittest discover -s tests",
+        "tests/VALIDATION.md",
     ),
     "evals/AGENTS.md": ("aoa-evals",),
     "stats/AGENTS.md": (
@@ -359,6 +439,110 @@ def is_compact_stub(text: str) -> bool:
     return not headings and ("This file applies" in text or "This card applies" in text)
 
 
+def _next_nonblank_index(lines: list[str], index: int) -> int:
+    next_index = index + 1
+    while next_index < len(lines) and not lines[next_index].strip():
+        next_index += 1
+    return next_index
+
+
+def _unconditional_readme_inventory_issues(relative_path: str, text: str) -> list[Issue]:
+    issues: list[Issue] = []
+    lines = text.splitlines()
+    for line_number, line in enumerate(lines, start=1):
+        if not README_ROUTE_PATTERN.search(line):
+            continue
+        if not _has_readme_condition(line):
+            issues.append((relative_path, f"line {line_number}: unconditional README inventory"))
+
+    for index, line in enumerate(lines):
+        match = HEADING_PATTERN.match(line)
+        if not match or match.group(2).strip().lower() not in README_INVENTORY_HEADINGS:
+            continue
+        end = index + 1
+        while end < len(lines) and not HEADING_PATTERN.match(lines[end]):
+            end += 1
+        section = lines[index + 1 : end]
+        if any("readme" in item.lower() for item in section) and not any(
+            _has_readme_condition(item) for item in section
+        ):
+            issues.append((relative_path, f"line {index + 1}: unconditional README inventory section"))
+    return issues
+
+
+def _procedural_structure_issues(relative_path: str, text: str) -> list[Issue]:
+    """Reject executable and extraction residue in active cards only."""
+
+    issues: list[Issue] = []
+    lines = text.splitlines()
+    seen_headings: set[tuple[int, str]] = set()
+
+    for line_number, line in enumerate(lines, start=1):
+        if SHELL_FENCE_PATTERN.match(line):
+            issues.append((relative_path, f"line {line_number}: fenced procedure/example is not allowed"))
+        if ENV_ASSIGNMENT_COMMAND_PATTERN.match(line):
+            issues.append((relative_path, f"line {line_number}: environment-assignment command is not allowed"))
+        elif COMMAND_START_PATTERN.match(line):
+            issues.append((relative_path, f"line {line_number}: runnable command line is not allowed"))
+        if INLINE_COMMAND_PATTERN.search(line):
+            issues.append((relative_path, f"line {line_number}: inline runnable command is not allowed"))
+
+        heading = HEADING_PATTERN.match(line)
+        if heading:
+            key = (len(heading.group(1)), normalize(heading.group(2)))
+            if key in seen_headings:
+                issues.append((relative_path, f"line {line_number}: repeated heading {heading.group(2)!r}"))
+            seen_headings.add(key)
+
+    for index, line in enumerate(lines):
+        if not PROCEDURAL_HEADING_PATTERN.match(line):
+            continue
+        end = index + 1
+        while end < len(lines) and not HEADING_PATTERN.match(lines[end]):
+            end += 1
+        if not any(item.strip() for item in lines[index + 1 : end]):
+            title = line.lstrip("#").strip()
+            issues.append((relative_path, f"line {index + 1}: empty procedural section {title!r}"))
+
+    for index, line in enumerate(lines):
+        stripped = line.strip()
+        if not stripped.endswith(":"):
+            continue
+        next_index = _next_nonblank_index(lines, index)
+        if next_index == len(lines):
+            issues.append((relative_path, f"line {index + 1}: orphan extraction lead-in before EOF"))
+            continue
+
+        next_line = lines[next_index]
+        if HEADING_PATTERN.match(next_line) or SHELL_FENCE_PATTERN.match(next_line):
+            issues.append((relative_path, f"line {index + 1}: orphan extraction lead-in before structure"))
+        if next_line.strip().endswith(":"):
+            issues.append((relative_path, f"line {index + 1}: stacked colon lead-ins are not allowed"))
+
+        current_bullet = BULLET_PATTERN.match(line)
+        next_bullet = BULLET_PATTERN.match(next_line)
+        if current_bullet and next_bullet:
+            current_indent = len(current_bullet.group("indent"))
+            next_indent = len(next_bullet.group("indent"))
+            if current_indent == next_indent:
+                issues.append((relative_path, f"line {index + 1}: same-level bullet lead-in has no body"))
+
+    issues.extend(_unconditional_readme_inventory_issues(relative_path, text))
+    if "VALIDATION.md" not in text:
+        issues.append((relative_path, "missing nearest validation route"))
+    return issues
+
+
+def validate_active_agent_structure(repo_root: Path) -> list[Issue]:
+    """Validate prompt-light structure for every active route card."""
+
+    issues: list[Issue] = []
+    for path in discover_route_cards(repo_root):
+        relative_path = path.relative_to(repo_root).as_posix()
+        issues.extend(_procedural_structure_issues(relative_path, path.read_text(encoding="utf-8")))
+    return issues
+
+
 def run_validation(repo_root: Path | None = None) -> list[Issue]:
     repo_root = repo_root or REPO_ROOT
     issues: list[Issue] = []
@@ -389,6 +573,7 @@ def run_validation(repo_root: Path | None = None) -> list[Issue]:
 
     validate_route_inventory(repo_root, route_cards, issues)
     validate_local_script_references(repo_root, route_cards, issues)
+    issues.extend(validate_active_agent_structure(repo_root))
     return issues
 
 

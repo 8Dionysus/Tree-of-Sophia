@@ -2,14 +2,14 @@
 
 This file applies to repository-level documentation surfaces under `docs/`.
 
-## Read first
+## Conditional route
 
-Before changing anything here, read:
-1. the repository root `AGENTS.md`
-2. `README.md`
-3. `CHARTER.md` and `BOUNDARIES.md`
-4. `ToS/AGENTS.md` when the change routes into the ToS source home
-5. the exact decision, release, reference, or index surface you are touching
+Start with the repository root `AGENTS.md` and this card. Open `README.md` only
+when its human orientation changes the documentation task; `CHARTER.md` or
+`BOUNDARIES.md` follow the same condition. Open `ToS/AGENTS.md` when the change
+enters the source home.
+Then use the exact decision, release, reference, or index surface being
+touched.
 
 ## Local role
 
@@ -62,19 +62,7 @@ repo-relative paths:
 
 ## Validation
 
-For decision metadata changes, run:
-
-```bash
-python scripts/generate_decision_indexes.py
-python scripts/generate_decision_indexes.py --check
-python scripts/validate_decision_records.py
-```
-
-For source-home topology changes, run:
-
-```bash
-python scripts/validate_tos_source_home.py
-python scripts/validate_philosophy_topology.py
-python scripts/validate_mechanics_topology.py
-python scripts/validate_nested_agents.py
-```
+Select `route_docs`, `cross_corpus_documentation`, or the affected source-home
+route from [`docs/VALIDATION.md`](VALIDATION.md). Decision index mutation stays
+with the owner builder named there; source-home and route-card checks remain
+separate lanes.

@@ -32,10 +32,7 @@ execution stays with the owning stack or OS layer.
 
 ## Validation
 
-Run the validator for the named owner surface. For the current Agon threshold
-intake component:
-
-```bash
-python mechanics/agon/parts/threshold-registry/scripts/validate_tos_agon_threshold_intake_registry.py
-python scripts/validate_mechanics_topology.py
-```
+Select the `mechanics_local` or topology route in
+[`manifests/VALIDATION.md`](VALIDATION.md) after the named owner surface is
+known. The owner validator retains the procedure for the current Agon threshold
+intake component.

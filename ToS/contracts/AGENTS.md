@@ -46,4 +46,6 @@ validators.
 
 Use the validator for the schema consumer: source-home, node contract,
 tiny-entry, corpus index, public mirror, or export seam. Use the review
-checklist for boundary-sensitive contract changes.
+checklist for boundary-sensitive contract changes. Select the nearest contract
+route in [`ToS/VALIDATION.md`](../VALIDATION.md) after the schema consumer is
+known.

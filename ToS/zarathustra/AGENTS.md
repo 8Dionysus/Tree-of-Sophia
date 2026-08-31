@@ -65,4 +65,6 @@ Use `scripts/validate_tos_source_home.py`, `scripts/validate_lived_witness_route
 `mechanics/boundary-bridge/parts/derived-kag-seam/scripts/validate_kag_export.py`,
 and `scripts/validate_nested_agents.py` when this branch changes. Use the ToS
 review checklist for source/interpretation, lived-witness, method-transfer, and
-human-review boundaries that structural checks cannot decide.
+human-review boundaries that structural checks cannot decide. Select the
+`source_home`, `public_entry`, or relevant Zarathustra route in
+[`ToS/VALIDATION.md`](../VALIDATION.md) after the branch surface is known.

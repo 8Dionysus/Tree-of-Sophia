@@ -28,10 +28,6 @@ aliases.
 
 ## Validation
 
-Run:
-
-```bash
-python mechanics/relation-weaving/parts/graph-promotion/scripts/validate_tree_relation_pack.py
-python scripts/validate_intake_pack.py
-python mechanics/boundary-bridge/parts/derived-kag-seam/scripts/validate_kag_export.py
-```
+Select the `canon_contracts` route from [`ToS/VALIDATION.md`](../../VALIDATION.md)
+after the relation pack is known. The relation-weaving and derived-export owner
+docs retain their procedure and review boundaries.

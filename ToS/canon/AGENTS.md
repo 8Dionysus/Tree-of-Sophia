@@ -34,3 +34,5 @@ packs, and vocabulary registries.
 Use `scripts/validate_tree_node_contracts.py`,
 `mechanics/relation-weaving/parts/graph-promotion/scripts/validate_tree_relation_pack.py`,
 and the public mirror or export validator when those surfaces are affected.
+Select the `canon_contracts` route in [`ToS/VALIDATION.md`](../VALIDATION.md)
+after the authored class or relation surface is known.

@@ -15,13 +15,14 @@ cross-owner composition remain owned by `aoa-stats`.
 
 This port measures declared populations; it does not own philosophical meaning.
 
-## Read Before Editing
+## Conditional route
 
-1. Root `AGENTS.md`, `CHARTER.md`, `BOUNDARIES.md`, and `ROADMAP.md`.
-2. `ToS/philosophy/AGENTS.md` and `ToS/philosophy/atlas/README.md`.
-3. The Table I manifest, rows, and prepared-dossier route map.
-4. `stats/README.md` and `stats/port.manifest.json`.
-5. The central measurement and packet contracts under `aoa-stats/stats/`.
+Start with root `AGENTS.md` and this card. Open `CHARTER.md`, `BOUNDARIES.md`,
+or `ROADMAP.md` only when repository orientation changes the measurement task.
+For a Table I question, open the philosophy atlas route and its README when
+human explanation is relevant, then open `stats/port.manifest.json`, rows, and
+the dossier map. Open `stats/README.md` for local port usage and `aoa-stats`
+contracts only when the selected measurement requires them.
 
 ## Boundaries
 
@@ -38,18 +39,10 @@ This port measures declared populations; it does not own philosophical meaning.
 
 ## Validation
 
-Inspect the atlas population, route map, branch paths, and packet first. The
-port validator requires a compatible `aoa-stats` checkout through
-`AOA_STATS_ROOT`, `.deps/aoa-stats`, or the sibling `../aoa-stats` path; CI
-supplies its pinned checkout explicitly, and an unavailable central validator
-is a failed check. Then run:
-
-```bash
-python scripts/validate_local_stats_port.py
-python -m unittest tests.test_local_stats_port
-```
-
-Use the root route for repository-wide validation.
+Inspect the atlas population, route map, branch paths, and packet first. Then
+select [`stats/VALIDATION.md`](VALIDATION.md), which retains the compatible
+`aoa-stats` owner procedure and local test route. Use the root route for
+repository-wide validation.
 
 ## Closeout
 

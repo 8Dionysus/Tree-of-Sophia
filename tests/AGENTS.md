@@ -21,7 +21,7 @@ replace eval/proof authority.
 | owner | `docs/testing/TEST_TOPOLOGY.md`, `tests/AGENTS.md`, and `tests/test_inventory.json` |
 | next route | failing test -> owner surface -> validator or builder -> focused test -> release lane when needed |
 | tools | `unittest`, local fixtures, schema validators, temporary repos |
-| check | focused test module first, then `python -m unittest discover -s tests` for broad changes |
+| check | focused test module first, then the broad test route in `tests/VALIDATION.md` |
 
 ## Boundaries
 
@@ -39,9 +39,5 @@ replace eval/proof authority.
 
 ## Validation
 
-Run the focused module for the touched surface first. For release-facing
-changes run:
-
-```bash
-python -m unittest discover -s tests
-```
+Run the focused module for the touched surface first, then select the broad
+test or release route in [`tests/VALIDATION.md`](VALIDATION.md).

@@ -21,7 +21,7 @@ witnesses, canon, Zarathustra, and the philosophy domain tree route through
 | input | repeatable ToS operation pressure, package route change, part contract, provenance bridge, or validation movement |
 | output | mechanics package, part-local contract, provenance bridge, generated companion, or validator route |
 | owner | `mechanics/AGENTS.md`, `mechanics/README.md`, `mechanics/topology.json`, and the nearest package or part route |
-| next route | package `AGENTS.md` -> `README.md` -> `PARTS.md` -> `PROVENANCE.md` -> active part `README.md` |
+| next route | package `AGENTS.md` -> `PARTS.md` -> `PROVENANCE.md` -> active part route; open package README only for human orientation |
 | validation | mechanics topology, nested route-card check, package validator, or part validator |
 
 ## Boundary Routes
@@ -49,12 +49,9 @@ witnesses, canon, Zarathustra, and the philosophy domain tree route through
 
 ## Validation
 
-For mechanics topology changes, run:
-
-```bash
-python scripts/validate_mechanics_topology.py
-python scripts/validate_nested_agents.py
-```
+For mechanics topology changes, select the `mechanics_local` or topology route
+from [`mechanics/VALIDATION.md`](VALIDATION.md) after the affected package or
+part is known. The lane manifest retains the command order.
 
 For package-local payload changes, run the package or part validator named by
 the nearest route card, then the repository release gate when the change is

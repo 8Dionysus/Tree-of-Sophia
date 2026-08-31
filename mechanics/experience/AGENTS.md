@@ -28,10 +28,7 @@ candidate, and write-guard boundary packets reviewable and owner-routed.
 
 ## Validation
 
-Focused lane: `experience_contracts` in `docs/validation/validation_lanes.json`.
-
-```bash
-python scripts/validate_mechanics_topology.py
-python -m unittest discover -s mechanics/experience/tests -p 'test*.py'
-python scripts/validate_nested_agents.py
-```
+Focused lane: `experience_contracts` in
+`docs/validation/validation_lanes.json`. Select that route from
+[`mechanics/VALIDATION.md`](../VALIDATION.md) after the boundary packet or
+active part is known; package tests and route-card checks remain there.

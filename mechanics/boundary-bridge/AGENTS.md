@@ -14,8 +14,6 @@ owner surfaces.
 
 ## Validation
 
-```bash
-python scripts/validate_mechanics_topology.py
-python mechanics/boundary-bridge/parts/public-mirror-sync/scripts/validate_tree_example_sync.py
-python mechanics/boundary-bridge/parts/derived-kag-seam/scripts/validate_kag_export.py
-```
+Select the `mechanics_local`, `public_entry`, or generated-export route from
+[`mechanics/VALIDATION.md`](../VALIDATION.md) after the affected seam is known.
+The public-mirror and derived-KAG owner docs retain the procedure.

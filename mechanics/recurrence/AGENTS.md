@@ -13,7 +13,6 @@ calibration return operation after route drift.
 
 ## Validation
 
-```bash
-python scripts/validate_mechanics_topology.py
-python scripts/validate_tiny_entry_route.py
-```
+Select the `mechanics_local` or `public_entry` route from
+[`mechanics/VALIDATION.md`](../VALIDATION.md) after the recurrence surface is
+known. The tiny-entry owner retains its procedure.

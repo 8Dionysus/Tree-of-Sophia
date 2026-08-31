@@ -36,3 +36,5 @@ subordinate to canon and contracts.
 
 Use public mirror sync for current examples. Use KAG export and tiny-entry
 validators when the current public/export route depends on the changed surface.
+Select the matching `public_entry` route in [`ToS/VALIDATION.md`](../VALIDATION.md)
+after the compatibility surface is known.
