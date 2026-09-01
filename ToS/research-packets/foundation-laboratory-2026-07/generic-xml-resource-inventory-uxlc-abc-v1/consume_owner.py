@@ -13,6 +13,7 @@ import os
 import re
 import resource
 import time
+from collections import Counter
 from pathlib import Path
 from typing import Any
 
@@ -67,6 +68,80 @@ def strict_parse(payload: bytes) -> etree._Element:
 
 def element_children(element: etree._Element) -> list[etree._Element]:
     return [child for child in element if isinstance(child.tag, str)]
+
+
+def direct_children_named(element: etree._Element, local_name: str) -> list[etree._Element]:
+    return [
+        child
+        for child in element_children(element)
+        if expanded_name(child.tag) == {"namespace_uri": None, "local_name": local_name}
+    ]
+
+
+def exactly_one_direct_child(element: etree._Element, local_name: str) -> etree._Element:
+    children = direct_children_named(element, local_name)
+    if len(children) != 1:
+        raise ValueError(f"provider shape requires one {local_name} subtree")
+    return children[0]
+
+
+def path_for(element: etree._Element) -> list[dict[str, Any]]:
+    chain = list(reversed(list(element.iterancestors()))) + [element]
+    path: list[dict[str, Any]] = []
+    for current in chain:
+        parent = current.getparent()
+        if parent is None:
+            same_name_sibling_position = 1
+        else:
+            matching = [
+                child
+                for child in element_children(parent)
+                if expanded_name(child.tag) == expanded_name(current.tag)
+            ]
+            if current not in matching:
+                raise ValueError("provider path element is not a child of its parent")
+            same_name_sibling_position = matching.index(current) + 1
+        path.append(
+            {
+                "expanded_name": expanded_name(current.tag),
+                "same_name_sibling_position": same_name_sibling_position,
+            }
+        )
+    return path
+
+
+def expected_provider_records(
+    root: etree._Element,
+) -> list[tuple[str, list[dict[str, Any]]]]:
+    if expanded_name(root.tag) != {"namespace_uri": None, "local_name": "Tanach"}:
+        raise ValueError("source is not the registered UXLC provider shape")
+    tanach = exactly_one_direct_child(root, "tanach")
+    book = exactly_one_direct_child(tanach, "book")
+    chapter = exactly_one_direct_child(book, "c")
+    verses = direct_children_named(chapter, "v")
+    if not verses:
+        raise ValueError("provider shape requires verses")
+
+    expected: list[tuple[str, list[dict[str, Any]]]] = [
+        ("provider_book", path_for(book)),
+        ("provider_chapter", path_for(chapter)),
+    ]
+    for verse in verses:
+        expected.append(("provider_verse", path_for(verse)))
+        expected.extend(
+            ("provider_word", path_for(word))
+            for word in direct_children_named(verse, "w")
+        )
+    return expected
+
+
+def provider_path_key(resource_kind: str, path: list[dict[str, Any]]) -> str:
+    return json.dumps(
+        [resource_kind, path],
+        ensure_ascii=False,
+        sort_keys=True,
+        separators=(",", ":"),
+    )
 
 
 def validate_file_binding(
@@ -235,6 +310,28 @@ def validate_projection(
     root: etree._Element,
     owner: dict[str, Any] | None,
 ) -> dict[str, Any]:
+    expected = expected_provider_records(root)
+    expected_keys = {
+        provider_path_key(resource_kind, path)
+        for resource_kind, path in expected
+    }
+    actual_keys = [
+        provider_path_key(record["resource_kind"], record["source_element_path"])
+        for record in projection["resources"]
+    ]
+    actual_key_set = set(actual_keys)
+    duplicate_keys = {
+        key for key, count in Counter(actual_keys).items() if count > 1
+    }
+    missing_keys = expected_keys - actual_key_set
+    unexpected_keys = actual_key_set - expected_keys
+    if duplicate_keys or missing_keys or unexpected_keys:
+        raise ValueError(
+            "provider projection is incomplete or duplicated: "
+            f"duplicates={len(duplicate_keys)} "
+            f"missing={len(missing_keys)} unexpected={len(unexpected_keys)}"
+        )
+
     owner_by_id = (
         {resource["resource_id"]: resource for resource in owner["resources"]}
         if owner is not None
@@ -267,7 +364,9 @@ def validate_projection(
             cited_generic += 1
     return {
         "resource_count": len(projection["resources"]),
-        "resolved_exactly_once": len(projection["resources"]),
+        "resolved_exactly_once": len(actual_key_set),
+        "expected_resource_count": len(expected_keys),
+        "unique_resource_count": len(actual_key_set),
         "generic_refs_verified": cited_generic,
         "path_failures": 0,
     }

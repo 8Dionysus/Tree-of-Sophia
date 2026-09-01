@@ -132,9 +132,14 @@
       "evidence": {
         "consumer_output_binding": {
           "consumer_check_count": 58,
+          "consumer_unique_selection_count": 58,
+          "duplicate_consumer_selection_keys": [],
           "failures": [],
           "matched_check_count": 58,
-          "ok": true
+          "missing_selection_keys": [],
+          "observed_unique_selection_count": 58,
+          "ok": true,
+          "unexpected_selection_keys": []
         },
         "failures": [],
         "observed_output_binding": {
@@ -153,9 +158,14 @@
         "error_count": 0,
         "output_binding": {
           "consumer_check_count": 58,
+          "consumer_unique_selection_count": 58,
+          "duplicate_consumer_selection_keys": [],
           "failures": [],
           "matched_check_count": 58,
-          "ok": true
+          "missing_selection_keys": [],
+          "observed_unique_selection_count": 58,
+          "ok": true,
+          "unexpected_selection_keys": []
         }
       },
       "gate_id": "G8-b-paths-resolve-exactly",
@@ -364,9 +374,14 @@
         "errors": 0,
         "output_binding": {
           "consumer_check_count": 58,
+          "consumer_unique_selection_count": 58,
+          "duplicate_consumer_selection_keys": [],
           "failures": [],
           "matched_check_count": 58,
-          "ok": true
+          "missing_selection_keys": [],
+          "observed_unique_selection_count": 58,
+          "ok": true,
+          "unexpected_selection_keys": []
         }
       },
       "gate_id": "G21-independent-source-return",
@@ -405,8 +420,8 @@
     },
     {
       "evidence": {
-        "consumer_max_rss_kib": 24300,
-        "consumer_wall_seconds": 0.01832387899958121,
+        "consumer_max_rss_kib": 2313508,
+        "consumer_wall_seconds": 0.02927473300951533,
         "direct_monetary_cost": 0,
         "human_burden_in_manual_review": true,
         "independent_consumer_wall_and_rss_measured": true,

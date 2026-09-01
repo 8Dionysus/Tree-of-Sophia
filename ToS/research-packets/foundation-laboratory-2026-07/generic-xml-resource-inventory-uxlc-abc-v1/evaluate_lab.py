@@ -12,7 +12,7 @@ import json
 import os
 import re
 import subprocess
-from collections import defaultdict
+from collections import Counter, defaultdict
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
@@ -24,7 +24,7 @@ LAB_DIR = Path(__file__).resolve().parent
 REPO_ROOT = LAB_DIR.parents[3]
 INPUT_PATH = LAB_DIR / "input-manifest.json"
 SEALED_PATH = LAB_DIR / "sealed-evaluation-manifest-v2.json"
-FREEZE_PATH = LAB_DIR / "freeze-receipt-v7.json"
+FREEZE_PATH = LAB_DIR / "freeze-receipt-v8.json"
 OBSERVATIONS_PATH = LAB_DIR / "run-observations.json"
 SOURCE_RECEIPT_PATH = LAB_DIR / "source-run-receipt.json"
 CONSUMER_PATH = LAB_DIR / "independent-consumer-receipt.json"
@@ -333,22 +333,56 @@ def verify_consumer_output_bindings(
                 process["selection_id"],
             )
             observed[key].append(process["output_sha256"])
+    observed_keys = set(observed)
+    checks = consumer.get("checks", [])
+    consumer_keys = [
+        (check.get("candidate"), check.get("selection_kind"), check.get("selection_id"))
+        for check in checks
+    ]
+    consumer_key_set = set(consumer_keys)
+    duplicate_consumer_keys = {
+        key for key, count in Counter(consumer_keys).items() if count > 1
+    }
+
+    def key_label(key: tuple[str, str, str]) -> str:
+        return ":".join("" if part is None else str(part) for part in key)
+
+    missing_keys = observed_keys - consumer_key_set
+    unexpected_keys = consumer_key_set - observed_keys
     failures: list[str] = []
     matched = 0
-    for check in consumer.get("checks", []):
-        key = (check.get("candidate"), check.get("selection_kind"), check.get("selection_id"))
+    failures.extend(
+        f"{key_label(key)}:missing-consumer-check"
+        for key in missing_keys
+    )
+    failures.extend(
+        f"{key_label(key)}:unexpected-consumer-check"
+        for key in unexpected_keys
+    )
+    failures.extend(
+        f"{key_label(key)}:duplicate-consumer-check"
+        for key in duplicate_consumer_keys
+    )
+    for check, key in zip(checks, consumer_keys):
         hashes = observed.get(key, [])
         if not hashes:
-            failures.append(":".join(str(part) for part in key) + ":missing-observation")
+            failures.append(f"{key_label(key)}:missing-observation")
         elif check.get("output_sha256") not in hashes:
-            failures.append(":".join(str(part) for part in key) + ":hash-mismatch")
+            failures.append(f"{key_label(key)}:hash-mismatch")
         else:
             matched += 1
     return {
         "ok": not failures,
-        "consumer_check_count": len(consumer.get("checks", [])),
+        "observed_unique_selection_count": len(observed_keys),
+        "consumer_check_count": len(checks),
+        "consumer_unique_selection_count": len(consumer_key_set),
+        "missing_selection_keys": sorted(key_label(key) for key in missing_keys),
+        "unexpected_selection_keys": sorted(key_label(key) for key in unexpected_keys),
+        "duplicate_consumer_selection_keys": sorted(
+            key_label(key) for key in duplicate_consumer_keys
+        ),
         "matched_check_count": matched,
-        "failures": sorted(failures),
+        "failures": sorted(set(failures)),
     }
 
 

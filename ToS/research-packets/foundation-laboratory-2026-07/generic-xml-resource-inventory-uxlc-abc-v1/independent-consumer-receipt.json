@@ -559,11 +559,13 @@
       "candidate": "C",
       "output_sha256": "1899397f9f700040c287d8ec8dddccf033b00a04ed9b8f59b69005fafb850088",
       "result": {
+        "expected_resource_count": 7,
         "generic_owner_supported": false,
         "generic_refs_verified": 0,
         "path_failures": 0,
         "resolved_exactly_once": 7,
-        "resource_count": 7
+        "resource_count": 7,
+        "unique_resource_count": 7
       },
       "selection_id": "PC1-uxlc-shape",
       "selection_kind": "fixture"
@@ -579,10 +581,12 @@
           "resource_count": 14
         },
         "projection": {
+          "expected_resource_count": 7,
           "generic_refs_verified": 7,
           "path_failures": 0,
           "resolved_exactly_once": 7,
-          "resource_count": 7
+          "resource_count": 7,
+          "unique_resource_count": 7
         }
       },
       "selection_id": "PC1-uxlc-shape",
@@ -615,11 +619,13 @@
       "candidate": "C",
       "output_sha256": "9610bc86581b2619b29fa26e081a68f8cc44bc01e048e89c3cb0282944a07e46",
       "result": {
+        "expected_resource_count": 28,
         "generic_owner_supported": false,
         "generic_refs_verified": 0,
         "path_failures": 0,
         "resolved_exactly_once": 28,
-        "resource_count": 28
+        "resource_count": 28,
+        "unique_resource_count": 28
       },
       "selection_id": "selected",
       "selection_kind": "source"
@@ -635,10 +641,12 @@
           "resource_count": 133
         },
         "projection": {
+          "expected_resource_count": 28,
           "generic_refs_verified": 28,
           "path_failures": 0,
           "resolved_exactly_once": 28,
-          "resource_count": 28
+          "resource_count": 28,
+          "unique_resource_count": 28
         }
       },
       "selection_id": "selected",
@@ -671,11 +679,13 @@
       "candidate": "C",
       "output_sha256": "fcb69364b6fd9692aaf6ef8cb6cbb9ca23872fd30f811c4d791968c9c3c81501",
       "result": {
+        "expected_resource_count": 28,
         "generic_owner_supported": false,
         "generic_refs_verified": 0,
         "path_failures": 0,
         "resolved_exactly_once": 28,
-        "resource_count": 28
+        "resource_count": 28,
+        "unique_resource_count": 28
       },
       "selection_id": "replay",
       "selection_kind": "source"
@@ -691,10 +701,12 @@
           "resource_count": 133
         },
         "projection": {
+          "expected_resource_count": 28,
           "generic_refs_verified": 28,
           "path_failures": 0,
           "resolved_exactly_once": 28,
-          "resource_count": 28
+          "resource_count": 28,
+          "unique_resource_count": 28
         }
       },
       "selection_id": "replay",
@@ -706,9 +718,9 @@
   "error_count": 0,
   "errors": [],
   "lab_id": "tos.lab.generic-xml-resource-inventory-uxlc-abc.v1",
-  "max_rss_kib": 24300,
+  "max_rss_kib": 2313508,
   "schema_version": "tos_generic_xml_resource_inventory_independent_consumer_receipt_v1",
   "source_text_included": false,
   "timing_scope": "independent consumer checks and receipt assembly",
-  "wall_seconds": 0.01832387899958121
+  "wall_seconds": 0.02927473300951533
 }
