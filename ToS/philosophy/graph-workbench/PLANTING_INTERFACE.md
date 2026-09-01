@@ -25,8 +25,8 @@ Prepared planting starts from source-owned atlas material:
 | `ToS/research-packets/deep-research/philosophy/dossiers/table-i-docx-extraction-coverage.json` | explicit extracted/metadata/deferred row accounting and prose-only diagnostics |
 | `ToS/research-packets/deep-research/philosophy/dossiers/table-ii-docx-intake.manifest.json` | tracked Table II fixity plus admitted/quarantined artifact posture |
 | `ToS/research-packets/deep-research/philosophy/dossiers/table-ii-docx-extraction-coverage.json` | Table II structured/deferred/quarantined row accounting |
-| `ToS/research-packets/deep-research/philosophy/dossiers/table-iii-docx-intake.manifest.json` | tracked fixity for the supplied partial Table III packet |
-| `ToS/research-packets/deep-research/philosophy/dossiers/table-iii-docx-extraction-coverage.json` | Table III structured/deferred row accounting with unsupplied master rows kept explicit |
+| `ToS/research-packets/deep-research/philosophy/dossiers/table-iii-docx-intake.manifest.json` | tracked fixity and admission posture for all 84 Table III artifacts |
+| `ToS/research-packets/deep-research/philosophy/dossiers/table-iii-docx-extraction-coverage.json` | Table III structured/deferred row accounting with prose-only and missing-risk-table diagnostics kept explicit |
 | `ToS/philosophy/atlas/dossiers/index.jsonl` | dossier identity and graph pressure index |
 | `ToS/philosophy/atlas/dossiers/source-anchor-backlog.jsonl` | future real witness, edition, corpus, and risk-control anchors |
 | `ToS/philosophy/atlas/dossiers/term-index.jsonl` | prepared term rows |
@@ -117,11 +117,13 @@ The projection, corpus-index, and post-planting builders own their generated
 outputs; `docs/validation/validation_lanes.json` owns checked verification
 order. Use `scripts/AGENTS.md` for the operator route.
 
-Table I, the complete Table II package, and the partial Table III package use
-this route now. Table III admits T3-01 through T3-45 and keeps T3-46 through
-T3-84 explicit as `input_not_supplied`. T2-56 is routed through an
-information-system frontier so khipu evidence is not projected as a readable
-philosophical corpus.
+The complete Table I, Table II, and Table III packages use this route now.
+Table III admits all 84 master-aligned artifacts; `T3-57` produces no
+structured semantic candidates because its supplied artifact is prose-only
+and explicitly insufficient, while `T3-76` remains an undeciphered-script
+frontier rather than an era or deciphered tradition claim. T2-56 is routed
+through an information-system frontier so khipu evidence is not projected as
+a readable philosophical corpus.
 
 ## Review Handoff
 

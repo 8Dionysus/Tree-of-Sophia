@@ -1,25 +1,25 @@
 {
-  "allowed_bytes": 32993459,
-  "allowed_tracked_bytes": 36317764,
+  "allowed_bytes": 35013638,
+  "allowed_tracked_bytes": 38561045,
   "approved_by": "repository-owner",
-  "base_ref": "f93a1a6220adb7e0c882b32870668cec39ca1d29",
+  "base_ref": "4ebf649552909ad56ddd713b277ee8d9843d5439",
   "candidate_identity": {
     "algorithm": "sha256:canonical-json-file-inventory-v2",
-    "base_ref": "f93a1a6220adb7e0c882b32870668cec39ca1d29",
+    "base_ref": "4ebf649552909ad56ddd713b277ee8d9843d5439",
     "contract_version": "aoa-kag:budget-receipt-candidate-identity-v2",
-    "excluded_path": "kag/receipts/index_family_budget/0aaa69c35ee5bc960d4263173809c2599a10cb24ec4d42b2c3ff91e99bb0ad1e.json",
-    "family_digest": "0aaa69c35ee5bc960d4263173809c2599a10cb24ec4d42b2c3ff91e99bb0ad1e",
-    "file_count": 4034,
-    "seal": "c3e3b7fa291039255c567ba3563c9e2a9e383e305f4fb31d872ecc7c20868ec5",
-    "source_epoch": "sha256:f36339a4fca0f30702ff99c9ab65a81f1e90c723b556aab6245adb7da3ddca7a",
-    "source_snapshot": "sha256:ff99485d9a90808ca217ffc44bf8eaa8550310500c327f7fda84f46b85d86c08"
+    "excluded_path": "kag/receipts/index_family_budget/a147085b383fa87c304ba872bd5a1d88b7984854b8fd0b72ef56dfe3cb0fde93.json",
+    "family_digest": "a147085b383fa87c304ba872bd5a1d88b7984854b8fd0b72ef56dfe3cb0fde93",
+    "file_count": 4330,
+    "seal": "569e2cfe22775291e70cb61d33a30370282e6d9aac740f4969a4f8e626a11ecb",
+    "source_epoch": "sha256:e1c47e89867fe0edccae4a03df980b58dda107ee7d84e1600cccccf04b2e6bcf",
+    "source_snapshot": "sha256:694b45a05c9f1f377b959d9d9aaf8c9f27048368d4b5655584cbccdc9de15b60"
   },
-  "changed_generated_bytes": 32993459,
-  "changed_generated_files": 484,
+  "changed_generated_bytes": 35013638,
+  "changed_generated_files": 478,
   "decision_ref": "aoa-kag:docs/decisions/AOA-KAG-D-0017-portable-content-addressed-repository-family.md",
   "default_limit_bytes": 1048576,
-  "head_family_digest": "0aaa69c35ee5bc960d4263173809c2599a10cb24ec4d42b2c3ff91e99bb0ad1e",
-  "head_source_snapshot": "sha256:ff99485d9a90808ca217ffc44bf8eaa8550310500c327f7fda84f46b85d86c08",
+  "head_family_digest": "a147085b383fa87c304ba872bd5a1d88b7984854b8fd0b72ef56dfe3cb0fde93",
+  "head_source_snapshot": "sha256:694b45a05c9f1f377b959d9d9aaf8c9f27048368d4b5655584cbccdc9de15b60",
   "producer_identity": {
     "action": {
       "bytes": 4995,
@@ -35,13 +35,13 @@
           "bytes": 40,
           "kind": "git-ref",
           "state": "set",
-          "value_digest": "70f7c99a994b20a8c5e3b7effd0a443f01dce330a77cf08828ce0e7787bbf925"
+          "value_digest": "94cd27fff7a791b72e6992401779435515276b4f7558bd0fda37141d00d4f025"
         },
         "history-ref": {
           "bytes": 40,
           "kind": "git-ref",
           "state": "set",
-          "value_digest": "70f7c99a994b20a8c5e3b7effd0a443f01dce330a77cf08828ce0e7787bbf925"
+          "value_digest": "94cd27fff7a791b72e6992401779435515276b4f7558bd0fda37141d00d4f025"
         },
         "output": {
           "bytes": 37,
@@ -58,11 +58,11 @@
       },
       "command_targets": {
         "artifact_root": null,
-        "base_ref": "f93a1a6220adb7e0c882b32870668cec39ca1d29",
-        "event_history_ref": "f93a1a6220adb7e0c882b32870668cec39ca1d29",
+        "base_ref": "4ebf649552909ad56ddd713b277ee8d9843d5439",
+        "event_history_ref": "4ebf649552909ad56ddd713b277ee8d9843d5439",
         "externalized": false,
         "family_mode": "portable",
-        "history_ref": "f93a1a6220adb7e0c882b32870668cec39ca1d29",
+        "history_ref": "4ebf649552909ad56ddd713b277ee8d9843d5439",
         "output": "kag/indexes/source_surface_index.json",
         "repo_root": {
           "path_digest": "21dba821671dd5da139d85927c06f360ae3bcc5751db42dae6d309553c903d79",
@@ -726,7 +726,7 @@
         "state": "present"
       }
     ],
-    "identity_digest": "2db255dd69ce7b593e004360947fbd5d06180ca636ce1a7583149b8fbfed422d",
+    "identity_digest": "004ce60453ad114fe8d0ef5e1dcb2c3d69cef101bd8a9edc1552fbfea911bf42",
     "owner": "aoa-kag",
     "procedure_manifest": {
       "action_inputs": [
@@ -853,10 +853,10 @@
     "revision_binding": "content-addressed-procedure-import-closure-portable-runtime-contract-and-descriptor-io-v1",
     "source_digest": "b6ab389723d813c22d82206c098e85621be70436937e3f36188761b6edd7a98b"
   },
-  "reason": "Refresh repo-local KAG family after complete Table II and partial Table III source planting",
+  "reason": "Complete Table III planting adds 39 master-aligned dossier routes and regenerates the repo-local KAG family.",
   "repo": "Tree-of-Sophia",
   "schema_version": "aoa-repo-local-kag-budget-receipt-v2",
   "scope": "generated_delta_and_tracked_size",
-  "tracked_bytes": 36317764,
+  "tracked_bytes": 38561045,
   "tracked_bytes_max": 11534336
 }

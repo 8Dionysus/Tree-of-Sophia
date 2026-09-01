@@ -28,6 +28,8 @@ def main() -> int:
         raise SystemExit("philosophy graph projection must expose source-owned clusters")
     if counts.get("review_packets") != 11:
         raise SystemExit("philosophy graph projection must expose one review packet per graph view")
+    if int(counts.get("view_node_references") or 0) == 0 or int(counts.get("view_edge_references") or 0) == 0:
+        raise SystemExit("philosophy graph projection must expose view membership references")
     if counts.get("diagnostics") != 0:
         raise SystemExit("philosophy graph projection must not contain diagnostics in the current atlas slice")
 
@@ -73,8 +75,8 @@ def main() -> int:
     chronology = views.get("chronology", {})
     if chronology.get("layout_hint") != "timeline-lanes":
         raise SystemExit("chronology view must preserve the timeline-lanes layout hint")
-    if not chronology.get("nodes") or not chronology.get("edges"):
-        raise SystemExit("chronology view must contain materialized nodes and edges")
+    if not chronology.get("node_ids") or not chronology.get("edge_ids"):
+        raise SystemExit("chronology view must reference materialized nodes and edges")
     source_evidence_layers = set(views.get("source-evidence", {}).get("graph_layers", []))
     if "evidence-relation" not in source_evidence_layers:
         raise SystemExit("source-evidence view must include the evidence-relation layer")
@@ -83,6 +85,10 @@ def main() -> int:
             raise SystemExit(f"{view_id} view must expose source_refs")
         if not view.get("review_intent"):
             raise SystemExit(f"{view_id} view must expose review_intent")
+        if set(view.get("node_ids", [])) - node_ids:
+            raise SystemExit(f"{view_id} references nodes outside the global materialized set")
+        if set(view.get("edge_ids", [])) - edge_ids:
+            raise SystemExit(f"{view_id} references edges outside the global materialized set")
 
     packets = {
         packet.get("view_id"): packet

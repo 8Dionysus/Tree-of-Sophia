@@ -796,9 +796,13 @@ def _validate_cross_references(payload: dict[str, Any]) -> None:
         if not isinstance(view, dict):
             continue
         unknown_layers = set(view.get("graph_layers", [])) - graph_layer_ids
+        unknown_nodes = set(view.get("node_ids", [])) - node_ids
+        unknown_edges = set(view.get("edge_ids", [])) - edge_ids
         if unknown_layers:
             raise ValueError(f"{view.get('view_id')}: view references unknown graph layers: {sorted(unknown_layers)}")
-        if not view.get("nodes") and not view.get("diagnostics"):
+        if unknown_nodes or unknown_edges:
+            raise ValueError(f"{view.get('view_id')}: view references unknown graph material")
+        if not view.get("node_ids") and not view.get("diagnostics"):
             raise ValueError(f"{view.get('view_id')}: empty view must carry a diagnostic")
     for cluster in payload.get("clusters", []):
         if not isinstance(cluster, dict):
@@ -954,12 +958,20 @@ def build_payload() -> dict[str, Any]:
         review_packet_contract=review_packet_contract,
     )
     snapshot_review = _build_snapshot_review(views=views, nodes=nodes, edges=edges, clusters=clusters)
+    view_node_reference_count = sum(len(view.get("nodes", [])) for view in views)
+    view_edge_reference_count = sum(len(view.get("edges", [])) for view in views)
+    exported_views = []
+    for view in views:
+        exported_view = {key: value for key, value in view.items() if key not in {"nodes", "edges"}}
+        exported_view["node_ids"] = [str(node["node_id"]) for node in view.get("nodes", [])]
+        exported_view["edge_ids"] = [str(edge["edge_id"]) for edge in view.get("edges", [])]
+        exported_views.append(exported_view)
     cluster_contract_rules = cluster_contract.get("collapse_rules")
     if not isinstance(cluster_contract_rules, dict):
         raise ValueError("cluster-contracts.json collapse_rules must be an object")
 
     payload: dict[str, Any] = {
-        "schema_version": "tos_philosophy_graph_projection_v1",
+        "schema_version": "tos_philosophy_graph_projection_v2",
         "schema_ref": SCHEMA_REF,
         "owner_repo": "Tree-of-Sophia",
         "surface_kind": "derived_philosophy_graph_projection",
@@ -996,6 +1008,8 @@ def build_payload() -> dict[str, Any]:
             "clusters": len(clusters),
             "review_packets": len(review_packets),
             "unresolved_review_surfaces": len(unresolved_review_surfaces),
+            "view_node_references": view_node_reference_count,
+            "view_edge_references": view_edge_reference_count,
         },
         "visibility_model": {
             "default_payload_mode": "cluster-first",
@@ -1010,7 +1024,7 @@ def build_payload() -> dict[str, Any]:
         "snapshot_review": snapshot_review,
         "graph_layers": graph_layers,
         "layer_counts": layer_counts,
-        "views": views,
+        "views": exported_views,
         "nodes": nodes,
         "edges": edges,
         "clusters": clusters,

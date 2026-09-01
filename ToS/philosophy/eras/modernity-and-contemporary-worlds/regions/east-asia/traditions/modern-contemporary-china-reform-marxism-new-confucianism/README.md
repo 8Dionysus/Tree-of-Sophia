@@ -8,7 +8,7 @@ This branch is the ToS philosophy home for the prepared dossier's first tree-sha
 
 - Candidate node rows: 40
 - Candidate relation rows: 58
-- Source-anchor backlog rows: 40
+- Source-anchor backlog rows: 79
 - Term rows: 30
 - Transmission rows: 24
 - Node pressure: institution: 7, text_corpus: 6, school_tradition: 5, concept: 5, language_script: 4, medium: 4, genre: 4, transmission_channel: 2

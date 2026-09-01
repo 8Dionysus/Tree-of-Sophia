@@ -28,7 +28,7 @@
   ],
   "properties": {
     "schema_version": {
-      "const": "tos_philosophy_graph_projection_v1"
+      "const": "tos_philosophy_graph_projection_v2"
     },
     "schema_ref": {
       "const": "ToS/contracts/philosophy-graph-projection.schema.json"
@@ -496,8 +496,8 @@
         "collapse_rule",
         "ordering_hints",
         "agent_packet_hint",
-        "nodes",
-        "edges",
+        "node_ids",
+        "edge_ids",
         "source_refs",
         "diagnostics"
       ],
@@ -557,17 +557,11 @@
           "type": "string",
           "minLength": 1
         },
-        "nodes": {
-          "type": "array",
-          "items": {
-            "$ref": "#/$defs/projected_node"
-          }
+        "node_ids": {
+          "$ref": "#/$defs/string_array"
         },
-        "edges": {
-          "type": "array",
-          "items": {
-            "$ref": "#/$defs/projected_edge"
-          }
+        "edge_ids": {
+          "$ref": "#/$defs/string_array"
         },
         "source_refs": {
           "$ref": "#/$defs/string_array"

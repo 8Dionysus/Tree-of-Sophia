@@ -223,49 +223,75 @@ def normalized_header_cell(value: str) -> str:
 
 def table_family(header: tuple[str, ...]) -> str:
     normalized = tuple(normalized_header_cell(value) for value in header)
-    if len(normalized) == 6 and normalized[:4] == (
-        "node id",
-        "тип узла",
-        "название",
-        "период",
-    ) and normalized[4] in {
-        "связи",
-        "связи / функция",
-        "основные связи",
-        "ключевые связи",
-    } and normalized[5] in {"приоритет", "приор."}:
+    if (
+        len(normalized) == 6
+        and normalized[0] == "node id"
+        and normalized[1] in {"тип узла", "тип"}
+        and normalized[2:4] == ("название", "период")
+        and normalized[4]
+        in {
+            "связи",
+            "связи / функция",
+            "основные связи",
+            "ключевые связи",
+        }
+        and normalized[5] in {"приоритет", "приор."}
+    ):
         return "proposed_nodes"
     if (
         len(normalized) == 5
-        and normalized[:4] == ("source node", "relation", "target node", "комментарий")
-        and normalized[4] in {"уверенность", "увер."}
+        and normalized[:3]
+        in {
+            ("source node", "relation", "target node"),
+            ("исходный узел", "отношение", "целевой узел"),
+        }
+        and normalized[3] == "комментарий"
+        and normalized[4] in {"уверенность", "увер.", "ув."}
     ) or (
         len(normalized) == 6
         and normalized[:5] == ("edge id", "source", "relation", "target", "комментарий")
         and normalized[5] in {"уверенность", "увер."}
     ):
         return "proposed_relations"
-    source_core = normalized[1:] if normalized and normalized[0] in {"id", "код"} else normalized
-    if len(source_core) == 5 and source_core[0] in {"источник / корпус", "источник"} and source_core[1] == "тип" and source_core[2] in {
-        "что дает",
-        "что даёт",
-    } and source_core[3] in {"доступ", "доступ / где искать"} and source_core[4] in {
-        "надежность",
-        "надёжность",
-        "надежность / ограничение",
-        "надёжность / ограничение",
-        "надежность / ограничения",
-        "надёжность / ограничения",
-    }:
+    source_core = (
+        normalized[1:]
+        if normalized and normalized[0] in {"id", "код", "маркер"}
+        else normalized
+    )
+    source_labels = {
+        "источник / корпус",
+        "источник",
+        "корпус / архив",
+        "корпус / портал",
+        "корпус",
+        "id / источник",
+    }
+    if (
+        len(source_core) in {4, 5, 6}
+        and source_core[0] in source_labels
+        and (
+            any(value.startswith("что дает") for value in source_core[1:])
+            or (
+                "дата / слой" in source_core
+                and any(value.startswith("тип") for value in source_core[1:])
+            )
+        )
+    ):
         return "corpus_or_edition_anchors"
     if (
         len(source_core) in {4, 5}
-        and source_core[0] == "источник"
-        and source_core[1] == "тип"
-        and source_core[2] == "зачем нужен"
-        and source_core[-1] in {"ограничение", "ограничения"}
+        and source_core[0] in {"источник", "id / источник"}
+        and any(value.startswith("тип") for value in source_core[1:])
+        and "зачем нужен" in source_core
+        and any("ограничен" in value for value in source_core[1:])
     ):
         return "control_or_review_anchors"
+    if (
+        len(normalized) in {2, 3, 4}
+        and normalized[0] in {"риск", "главный риск"}
+        and any("контрол" in value for value in normalized[1:])
+    ):
+        return "risk_control_source_needs"
     if len(normalized) in {2, 3, 4} and normalized[0] in {"проблема", "риск"}:
         if len(normalized) == 2 and normalized[1] == "что контролировать":
             return "risk_control_source_needs"
@@ -286,15 +312,19 @@ def table_family(header: tuple[str, ...]) -> str:
         "значение",
     } and normalized[4] == "роль в tos":
         return "terms"
-    if len(normalized) == 5 and normalized[0] == "источник / предыдущий узел" and normalized[1] == "что передано" and normalized[2] in {
+    if len(normalized) == 5 and normalized[0] in {
+        "источник / предыдущий узел",
+        "источник / previous node",
+    } and normalized[1] == "что передано" and normalized[2] in {
         "канал передачи",
         "канал",
     } and normalized[3:] == ("уверенность", "примечание"):
         return "incoming_transmissions"
-    if len(normalized) == 5 and normalized[0] == "следующий узел / эпоха" and normalized[1] == "что передается" and normalized[2:] == (
-        "канал",
-        "уверенность",
-        "что проверить дальше",
+    if (
+        len(normalized) == 5
+        and normalized[:4]
+        == ("следующий узел / эпоха", "что передается", "канал", "уверенность")
+        and normalized[4] in {"что проверить дальше", "проверить дальше"}
     ):
         return "outgoing_transmissions"
     if len(normalized) == 2 and normalized[0] in {"поле", "параметр"} and normalized[1] in {
@@ -304,10 +334,16 @@ def table_family(header: tuple[str, ...]) -> str:
         return "dossier_identity_metadata" if normalized[0] == "поле" else "dossier_identity_metadata_alias"
     if (
         len(normalized) == 6
-        and normalized[0] in {"корпус / текст", "корпус / текст / артефакт"}
-        and normalized[1:3] == ("дата / слой", "язык")
+        and normalized[0] in {
+            "корпус / текст",
+            "корпус / текст / артефакт",
+            "корпус / артефакт",
+        }
+        and normalized[1] in {"дата / слой", "дата"}
+        and normalized[2] == "язык"
         and normalized[3] in {"жанр", "жанр / жанры"}
-        and normalized[4:] == ("сохранность", "почему важен для tos")
+        and normalized[4] == "сохранность"
+        and normalized[5] in {"почему важен для tos", "значение tos", "tos-функция"}
     ):
         return "corpora_texts_artifacts"
     if (
@@ -321,6 +357,18 @@ def table_family(header: tuple[str, ...]) -> str:
         and normalized[4] == "уверенность"
     ):
         return "figures_authorship"
+    if (
+        len(normalized) == 5
+        and normalized[0] in {"язык / письменность / медиум", "язык / письмо / медиум"}
+        and normalized[1] in {"роль в строке", "роль"}
+        and normalized[2:] == ("период", "что сохранилось", "риск")
+    ):
+        return "language_script_medium"
+    if len(normalized) == 2 and normalized[0] in {"уровень", "уровень оценки"} and normalized[1] in {
+        "оценка",
+        "вывод",
+    }:
+        return "audit_levels"
     for deferred_header, family in DEFERRED_CONTEXT_FAMILIES.items():
         if normalized == tuple(normalized_header_cell(value) for value in deferred_header):
             return family
@@ -538,6 +586,10 @@ def parse_dossier(path: Path, master_row: dict[str, Any], table_id: str = "table
     transmission_rows: list[dict[str, Any]] = []
     metadata_headers: list[list[str]] = []
     coverage_tables: list[dict[str, Any]] = []
+    node_label_overrides = route.get("reviewed_node_label_overrides", {}) if route else {}
+    if not isinstance(node_label_overrides, dict):
+        raise ValueError(f"{dossier_id} reviewed_node_label_overrides must be an object")
+    applied_node_label_overrides: set[str] = set()
     observed_table_value: str | None = None
     observed_row_value: str | None = None
     table_row = dossier_id
@@ -587,6 +639,30 @@ def parse_dossier(path: Path, master_row: dict[str, Any], table_id: str = "table
                 row = row_dict(header, cells)
                 original_id = row_value(row, "Node ID") or f"{dossier_id}-node-{row_index:03d}"
                 candidate_id = f"{table_id}-{dossier_id.lower()}-node-{row_index:03d}"
+                node_kind_label = row_value(row, "Тип узла", "Тип")
+                node_kind = (
+                    slugify(node_kind_label).replace("-", "_")
+                    if node_kind_label
+                    else "unspecified"
+                )
+                label = row_value(row, "Название") or original_id
+                label_override = node_label_overrides.get(original_id)
+                override_projection: dict[str, str] = {}
+                if label_override is not None:
+                    if not isinstance(label_override, dict):
+                        raise ValueError(f"{dossier_id} node label override for {original_id} must be an object")
+                    reviewed_label = scrub(str(label_override.get("label") or ""))
+                    review_reason = scrub(str(label_override.get("reason") or ""))
+                    if not reviewed_label or not review_reason:
+                        raise ValueError(
+                            f"{dossier_id} node label override for {original_id} requires label and reason"
+                        )
+                    label = reviewed_label
+                    applied_node_label_overrides.add(original_id)
+                    override_projection = {
+                        "label_normalization": "reviewed_source_punctuation_normalization",
+                        "label_override_reason": review_reason,
+                    }
                 node_rows.append(
                     {
                         "atlas_row_id": dossier_id,
@@ -602,8 +678,9 @@ def parse_dossier(path: Path, master_row: dict[str, Any], table_id: str = "table
                             "Ключевые связи",
                         ),
                         "dossier_id": dossier_id,
-                        "label": row_value(row, "Название") or original_id,
-                        "node_kind": row_value(row, "Тип узла") or "unspecified",
+                        "label": label,
+                        **override_projection,
+                        "node_kind": node_kind,
                         "original_node_id": original_id,
                         "period": row_value(row, "Период"),
                         "priority": row_value(row, "Приоритет", "Приор."),
@@ -617,7 +694,7 @@ def parse_dossier(path: Path, master_row: dict[str, Any], table_id: str = "table
         elif family == "proposed_relations":
             for row_index, cells in enumerate(rows, 1):
                 row = row_dict(header, cells)
-                relation_label = row_value(row, "Relation")
+                relation_label = row_value(row, "Relation", "Отношение")
                 relation_kind = slugify(relation_label).replace("-", "_")
                 candidate_id = f"{table_id}-{dossier_id.lower()}-relation-{len(relation_rows) + 1:03d}"
                 relation_rows.append(
@@ -628,17 +705,27 @@ def parse_dossier(path: Path, master_row: dict[str, Any], table_id: str = "table
                         "candidate_id": candidate_id,
                         "canon_status": "pre-canon",
                         "comment": row_value(row, "Комментарий"),
-                        "confidence": row_value(row, "Уверенность", "Увер."),
+                        "confidence": row_value(row, "Уверенность", "Увер.", "Ув."),
                         "dossier_id": dossier_id,
                         "relation_kind": relation_kind or "related_to",
                         "relation_label": relation_label,
                         "source_document": path.name,
-                        "source_endpoint_label": row_value(row, "Source node", "Source"),
+                        "source_endpoint_label": row_value(
+                            row,
+                            "Source node",
+                            "Source",
+                            "Исходный узел",
+                        ),
                         "source_ref": repo_ref(proposed_relations_path(table_id)),
                         "source_row_index": row_index,
                         "source_table_index": table_index,
                         **({"table_id": table_id} if table_id != "table-i" else {}),
-                        "target_endpoint_label": row_value(row, "Target node", "Target"),
+                        "target_endpoint_label": row_value(
+                            row,
+                            "Target node",
+                            "Target",
+                            "Целевой узел",
+                        ),
                     }
                 )
         elif family == "corpus_or_edition_anchors":
@@ -649,7 +736,15 @@ def parse_dossier(path: Path, master_row: dict[str, Any], table_id: str = "table
                         "anchor_kind": "corpus_or_edition_anchor",
                         "atlas_row_id": dossier_id,
                         "branch_path": branch_path,
-                        "contribution": row_value(row, "Что даёт", "Что дает"),
+                        "contribution": row_value(
+                            row,
+                            "Что даёт",
+                            "Что дает",
+                            "Что даёт ToS",
+                            "Что дает ToS",
+                            "Что даёт / где искать",
+                            "Что дает / где искать",
+                        ),
                         "dossier_id": dossier_id,
                         "reliability": row_value(
                             row,
@@ -659,21 +754,52 @@ def parse_dossier(path: Path, master_row: dict[str, Any], table_id: str = "table
                             "Надежность / ограничение",
                             "Надёжность / ограничения",
                             "Надежность / ограничения",
+                            "Надёжность / caveat",
+                            "Надежность / caveat",
+                            "Ограничения",
+                            "Доступ / надёжность",
+                            "Доступ / надежность",
                         ),
                         "route_status": "source_anchor_backlog",
-                        "source_access": row_value(row, "Доступ / где искать", "Доступ"),
+                        "source_access": row_value(
+                            row,
+                            "Доступ / где искать",
+                            "Доступ",
+                            "Ссылка",
+                            "URL / DOI",
+                            "Доступ / stable URL",
+                            "Доступ / надёжность",
+                            "Доступ / надежность",
+                        ),
                         "source_document": path.name,
-                        "source_label": row_value(row, "Источник / корпус"),
+                        "source_label": row_value(
+                            row,
+                            "Источник / корпус",
+                            "Источник",
+                            "Корпус / архив",
+                            "Корпус / портал",
+                            "Корпус",
+                            "ID / источник",
+                        ),
                         "source_ref": repo_ref(SOURCE_ANCHOR_BACKLOG),
                         "source_row_index": row_index,
                         "source_table_index": table_index,
-                        "source_type": row_value(row, "Тип"),
+                        "source_type": row_value(row, "Тип", "Тип / дата", "Тип / содержание"),
                         **({"table_id": table_id} if table_id != "table-i" else {}),
                     }
                 )
         elif family == "control_or_review_anchors":
             for row_index, cells in enumerate(rows, 1):
                 row = row_dict(header, cells)
+                source_access = row_value(
+                    row,
+                    "Доступ / где искать",
+                    "Доступ",
+                    "Ссылка",
+                    "URL / DOI",
+                    "Доступ / stable URL",
+                    "Ограничения / доступ",
+                )
                 source_rows.append(
                     {
                         "anchor_kind": "control_or_review_anchor",
@@ -681,14 +807,21 @@ def parse_dossier(path: Path, master_row: dict[str, Any], table_id: str = "table
                         "branch_path": branch_path,
                         "contribution": row_value(row, "Зачем нужен"),
                         "dossier_id": dossier_id,
-                        "limitations": row_value(row, "Ограничения", "Ограничение"),
+                        "limitations": row_value(
+                            row,
+                            "Ограничения",
+                            "Ограничение",
+                            "Ограничения / контроль",
+                            "Ограничения / доступ",
+                        ),
                         "route_status": "source_anchor_backlog",
                         "source_document": path.name,
-                        "source_label": row_value(row, "Источник"),
+                        "source_label": row_value(row, "Источник", "ID / источник"),
                         "source_ref": repo_ref(SOURCE_ANCHOR_BACKLOG),
                         "source_row_index": row_index,
                         "source_table_index": table_index,
-                        "source_type": row_value(row, "Тип"),
+                        "source_type": row_value(row, "Тип", "Тип / дата", "Тип / содержание"),
+                        **({"source_access": source_access} if source_access else {}),
                         **({"table_id": table_id} if table_id != "table-i" else {}),
                     }
                 )
@@ -698,9 +831,9 @@ def parse_dossier(path: Path, master_row: dict[str, Any], table_id: str = "table
                 first_header = normalized_header_cell(header[0]) if header else ""
                 problem = row_value(row, "Проблема")
                 risk = row_value(row, "В чём риск", "Почему существенен", "В чём ловушка")
-                if first_header == "риск":
+                if first_header in {"риск", "главный риск"}:
                     problem = ""
-                    risk = risk or row_value(row, "Риск")
+                    risk = risk or row_value(row, "Риск", "Главный риск")
                 else:
                     risk = risk or row_value(row, "Риск")
                 source_rows.append(
@@ -763,7 +896,11 @@ def parse_dossier(path: Path, master_row: dict[str, Any], table_id: str = "table
                         "confidence": row_value(row, "Уверенность"),
                         "dossier_id": dossier_id,
                         "direction": "incoming",
-                        "from_or_to": row_value(row, "Источник / предыдущий узел"),
+                        "from_or_to": row_value(
+                            row,
+                            "Источник / предыдущий узел",
+                            "Источник / previous node",
+                        ),
                         "note": row_value(row, "Примечание"),
                         "source_document": path.name,
                         "source_ref": repo_ref(TRANSMISSION_BACKLOG),
@@ -792,9 +929,16 @@ def parse_dossier(path: Path, master_row: dict[str, Any], table_id: str = "table
                         **({"table_id": table_id} if table_id != "table-i" else {}),
                         "transmission_channel": row_value(row, "Канал"),
                         "transmitted": row_value(row, "Что передаётся", "Что передается"),
-                        "verify_next": row_value(row, "Что проверить дальше"),
+                        "verify_next": row_value(row, "Что проверить дальше", "Проверить дальше"),
                     }
                 )
+
+    unapplied_node_label_overrides = set(node_label_overrides) - applied_node_label_overrides
+    if unapplied_node_label_overrides:
+        raise ValueError(
+            f"{dossier_id} node label overrides did not match extracted node ids: "
+            f"{sorted(unapplied_node_label_overrides)}"
+        )
 
     if observed_row_value:
         observed_id = normalize_row_to_expand(observed_row_value, dossier_id)
@@ -811,6 +955,7 @@ def parse_dossier(path: Path, master_row: dict[str, Any], table_id: str = "table
                 "Table III",
                 "Таблица III",
                 "III — модерность и современность",
+                "III — модерность и современность как сеть письменных инфраструктур",
                 "Таблица III — модерность и современность",
             },
         }.get(table_id, {table_id})
@@ -850,7 +995,11 @@ def parse_dossier(path: Path, master_row: dict[str, Any], table_id: str = "table
             identity_diagnostics.append("master_identity_mismatch_quarantined")
             metadata_identity_posture = "filename_and_artifact_title_recorded_master_mismatch"
         else:
-            expected_title = str(route.get("accepted_input_title") or normalized_master.get("research_node") or "")
+            expected_title = (
+                str(route["accepted_input_title"])
+                if "accepted_input_title" in route
+                else str(normalized_master.get("research_node") or "")
+            )
             body_text = normalized_title(" ".join(paragraphs[1:]))
             title_matches = normalized_title(observed_clean_title) == normalized_title(expected_title)
             title_matches = title_matches or normalized_title(expected_title) in body_text
@@ -1166,6 +1315,16 @@ def build_extraction_coverage(dossiers: list[Dossier]) -> dict[str, Any]:
                     "dossier_id": dossier.dossier_id,
                     "posture": "artifact_accounted_but_no_structured_semantic_output",
                     "message": "The supplied artifact conflicts with its master identity and is quarantined from planting.",
+                }
+            )
+        elif dossier.table_count == 0:
+            dossier_diagnostics.extend(["structured_tables_absent", "structured_risk_table_absent"])
+            diagnostics.append(
+                {
+                    "code": "structured_tables_absent",
+                    "dossier_id": dossier.dossier_id,
+                    "posture": "prose_only_artifact_no_structured_semantic_projection",
+                    "message": "The admitted DOCX contains no tables; its bytes and paragraph count are captured, but no nodes, relations, source anchors, terms, or transmissions are synthesized from prose.",
                 }
             )
         elif risk_rows == 0:
@@ -2012,7 +2171,7 @@ def write_readmes() -> None:
     (REPO_ROOT / "ToS/philosophy/atlas/dossiers/README.md").write_text(
         "# Dossiers\n\n"
         "`dossiers/` indexes admitted prepared Deep Research documents for the philosophy atlas.\n\n"
-        "The supported Table I, complete Table II, and partial Table III plantings record dossier identity, branch route, graph-row pressure, "
+        "The complete Table I, Table II, and Table III plantings record dossier identity, branch route, graph-row pressure, "
         "source-anchor backlog, terms, and transmission rows while keeping canon promotion separate.\n\n"
         "| Surface | Role |\n"
         "| --- | --- |\n"
@@ -2023,7 +2182,7 @@ def write_readmes() -> None:
         f"| `{repo_ref(EXTRACTION_COVERAGE)}` | explicit structured extraction and deferred-context coverage |\n"
         f"| `{repo_ref(package_path('table-ii', 'intake_manifest_ref'))}` | Table II fixity and admission record |\n"
         f"| `{repo_ref(package_path('table-ii', 'extraction_coverage_ref'))}` | Table II structured and deferred row accounting |\n"
-        f"| `{repo_ref(package_path('table-iii', 'intake_manifest_ref'))}` | Table III fixity and partial-admission record |\n"
+        f"| `{repo_ref(package_path('table-iii', 'intake_manifest_ref'))}` | Table III fixity and admission record |\n"
         f"| `{repo_ref(package_path('table-iii', 'extraction_coverage_ref'))}` | Table III structured and deferred row accounting |\n"
         "| `source-anchor-backlog.jsonl` | future source witness, edition, corpus, and risk-control anchors |\n"
         "| `term-index.jsonl` | prepared term rows extracted from dossier terminology tables |\n"

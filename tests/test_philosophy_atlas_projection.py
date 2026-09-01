@@ -30,12 +30,12 @@ class PhilosophyAtlasProjectionTest(unittest.TestCase):
         payload = json.loads(PROJECTION_PATH.read_text(encoding="utf-8"))
         self.assertEqual(payload["counts"]["master_tables"], 3)
         self.assertEqual(payload["counts"]["master_rows"], 190)
-        self.assertEqual(payload["counts"]["dossiers"], 151)
-        self.assertEqual(payload["counts"]["dossier_node_rows"], 5677)
-        self.assertEqual(payload["counts"]["dossier_relation_rows"], 6399)
-        self.assertEqual(payload["counts"]["candidate_nodes"], 5677)
-        self.assertEqual(payload["counts"]["candidate_relations"], 6399)
-        self.assertEqual(payload["counts"]["candidate_endpoint_placeholders"], 412)
+        self.assertEqual(payload["counts"]["dossiers"], 190)
+        self.assertEqual(payload["counts"]["dossier_node_rows"], 7193)
+        self.assertEqual(payload["counts"]["dossier_relation_rows"], 8564)
+        self.assertEqual(payload["counts"]["candidate_nodes"], 7193)
+        self.assertEqual(payload["counts"]["candidate_relations"], 8564)
+        self.assertEqual(payload["counts"]["candidate_endpoint_placeholders"], 458)
 
     def test_projection_keeps_runtime_owner_downstream(self) -> None:
         payload = json.loads(PROJECTION_PATH.read_text(encoding="utf-8"))
@@ -74,7 +74,7 @@ class PhilosophyAtlasProjectionTest(unittest.TestCase):
             "admitted",
         )
         self.assertEqual(nodes["atlas-row:T3-45"]["properties"]["dossier_intake_status"], "admitted")
-        self.assertEqual(nodes["atlas-row:T3-46"]["properties"]["dossier_intake_status"], "input_not_supplied")
+        self.assertEqual(nodes["atlas-row:T3-46"]["properties"]["dossier_intake_status"], "admitted")
 
     def test_exact_admitted_dossier_endpoints_use_existing_dossier_nodes(self) -> None:
         payload = json.loads(PROJECTION_PATH.read_text(encoding="utf-8"))
@@ -130,30 +130,21 @@ class PhilosophyAtlasProjectionTest(unittest.TestCase):
                 == "exact_admitted_dossier"
                 for edge in payload["edges"]
             ),
-            63,
+            85,
         )
 
-    def test_unavailable_dossier_endpoints_use_tracked_master_rows(self) -> None:
+    def test_unresolved_dossier_endpoints_keep_candidate_endpoint(self) -> None:
         payload = build_payload()
         edges = {edge["edge_id"]: edge for edge in payload["edges"]}
         nodes = {node["node_id"]: node for node in payload["nodes"]}
         edge = edges["edge:candidate-relation:table-iii-t3-45-relation-046"]
 
-        self.assertEqual(edge["to_id"], "atlas-row:T3-46")
+        endpoint = nodes[edge["to_id"]]
+        self.assertEqual(endpoint["node_type"], "candidate-endpoint")
+        self.assertTrue(endpoint["label"].startswith("T3-46"))
         self.assertEqual(
-            edge["properties"]["projection_endpoint_resolution"],
-            "known_unavailable_master_row",
-        )
-        self.assertEqual(
-            nodes["atlas-row:T3-46"]["properties"]["dossier_intake_status"],
-            "input_not_supplied",
-        )
-        self.assertFalse(
-            any(
-                node["node_type"] == "candidate-endpoint"
-                and node["label"].startswith("T3-46")
-                for node in payload["nodes"]
-            )
+            edge["properties"]["endpoint_resolution"],
+            "label_endpoint",
         )
 
     def test_endpoint_placeholders_preserve_all_observed_roles(self) -> None:

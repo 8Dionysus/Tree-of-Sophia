@@ -36,8 +36,9 @@ ToS authority.
   pressure, and graph-view routes as a derived read model for review.
 - Let the philosophy graph-view catalog expose source-owned lens filters for
   downstream switching while keeping runtime behavior in `abyss-stack`.
-- Let the philosophy graph projection materialize those atlas and view surfaces
-  into source-ref-preserving node, edge, and view packets for downstream access.
+- Let the philosophy graph projection materialize one source-ref-preserving
+  node/edge set and publish each view as stable node/edge ID membership. Do not
+  duplicate the same materialized records inside every view packet.
 - Let `graph/source-witness-bibliographic-claims.min.json` read the generated
   public-safe source-witness catalog without merging it into the atlas graph.
   Keep the claim as the relation center, retain literal objects as literals,

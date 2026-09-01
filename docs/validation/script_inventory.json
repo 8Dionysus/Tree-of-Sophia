@@ -1649,7 +1649,7 @@
       "writes": [
         "delegates the aggregate write of all supported prepared-dossier packages to scripts/plant_table_i_prepared_dossiers.py only when --plant is used without --table"
       ],
-      "side_effects": "readiness output by default, optionally limited by --table; --plant is explicitly aggregate-only and writes all supported Table I, complete Table II, and partial Table III package surfaces through the package implementation",
+      "side_effects": "readiness output by default, optionally limited by --table; --plant is explicitly aggregate-only and writes the complete Table I, Table II, and Table III package surfaces through the package implementation",
       "validation_lane": "graph_exports",
       "ci_inclusion": "focused-tests",
       "test_target": "tests/test_prepared_dossier_pipeline.py",
@@ -1705,7 +1705,7 @@
         "ToS/philosophy/graph-workbench/language-packets/*.jsonl",
         "ToS/philosophy/philosophy.manifest.json"
       ],
-      "side_effects": "tracked Table I, complete Table II, and partial Table III intake/coverage, atlas, branch, source-anchor, language-packet, and pre-canon graph source surfaces; aggregate package implementation for scripts/plant_prepared_dossiers.py",
+      "side_effects": "tracked complete Table I, Table II, and Table III intake/coverage, atlas, branch, source-anchor, language-packet, and pre-canon graph source surfaces; aggregate package implementation for scripts/plant_prepared_dossiers.py",
       "validation_lane": "graph_exports",
       "ci_inclusion": "focused-tests",
       "test_target": "tests/test_philosophy_atlas_projection.py",

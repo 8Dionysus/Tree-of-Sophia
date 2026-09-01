@@ -34,6 +34,7 @@ class PhilosophyGraphProjectionTest(unittest.TestCase):
 
     def test_projection_has_expected_counts_and_boundary(self) -> None:
         payload = self.load_projection()
+        self.assertEqual(payload["schema_version"], "tos_philosophy_graph_projection_v2")
         counts = payload["counts"]
         self.assertEqual(counts["views"], 11)
         self.assertEqual(counts["graph_layers"], 7)
@@ -69,19 +70,25 @@ class PhilosophyGraphProjectionTest(unittest.TestCase):
             self.assertIn(edge["from_id"], node_ids)
             self.assertIn(edge["to_id"], node_ids)
 
-    def test_views_are_materialized_with_source_refs(self) -> None:
+    def test_views_reference_materialized_graph_with_source_refs(self) -> None:
         payload = self.load_projection()
         views = {view["view_id"]: view for view in payload["views"]}
         chronology = views["chronology"]
         self.assertEqual(chronology["layout_hint"], "timeline-lanes")
-        self.assertGreater(len(chronology["nodes"]), 0)
-        self.assertGreater(len(chronology["edges"]), 0)
+        self.assertGreater(len(chronology["node_ids"]), 0)
+        self.assertGreater(len(chronology["edge_ids"]), 0)
         self.assertIn("ToS/philosophy/atlas/master-tables/table-i/rows.jsonl", chronology["source_refs"])
         source_evidence = views["source-evidence"]
         self.assertIn("evidence-relation", source_evidence["graph_layers"])
         self.assertGreater(len(source_evidence["source_refs"]), 0)
         self.assertIn("research packets remain preparation", source_evidence["source_posture"])
         self.assertIn("source-witness", source_evidence["collapse_rule"]["default_cluster_kinds"])
+
+        node_ids = {node["node_id"] for node in payload["nodes"]}
+        edge_ids = {edge["edge_id"] for edge in payload["edges"]}
+        for view in views.values():
+            self.assertTrue(set(view["node_ids"]) <= node_ids)
+            self.assertTrue(set(view["edge_ids"]) <= edge_ids)
 
     def test_global_nodes_and_edges_carry_view_and_layer_membership(self) -> None:
         payload = self.load_projection()
@@ -125,7 +132,7 @@ class PhilosophyGraphProjectionTest(unittest.TestCase):
             "admitted",
         )
         self.assertEqual(nodes["atlas-row:T3-45"]["properties"]["dossier_intake_status"], "admitted")
-        self.assertEqual(nodes["atlas-row:T3-46"]["properties"]["dossier_intake_status"], "input_not_supplied")
+        self.assertEqual(nodes["atlas-row:T3-46"]["properties"]["dossier_intake_status"], "admitted")
 
     def test_layer_counts_are_semantic_not_view_wide(self) -> None:
         payload = self.load_projection()

@@ -95,6 +95,7 @@
 
 - [TOS-D-0030 - Explicit separate KAG action ABI and provider identity](../TOS-D-0030-exact-kag-action-provider-alignment.md) (`docs/decisions/TOS-D-0030-exact-kag-action-provider-alignment.md`)
 - [TOS-D-0035 - Current KAG provider and action pin supersedes the historical route](../TOS-D-0035-current-kag-provider-action-pin.md) (`docs/decisions/TOS-D-0035-current-kag-provider-action-pin.md`)
+- [TOS-D-0037 - Deduplicated Philosophy Graph View Membership](../TOS-D-0037-deduplicated-philosophy-graph-view-membership.md) (`docs/decisions/TOS-D-0037-deduplicated-philosophy-graph-view-membership.md`)
 
 ## generated export
 
@@ -105,6 +106,10 @@
 - [TOS-D-0029 - Model-facing skill and owner-port route architecture](../TOS-D-0029-agent-tool-owner-port-documentation-architecture.md) (`docs/decisions/TOS-D-0029-agent-tool-owner-port-documentation-architecture.md`)
 - [TOS-D-0031 - TOS-D-0031 AGENTS route topology and progressive disclosure](../TOS-D-0031-agents-route-topology-and-progressive-disclosure.md) (`docs/decisions/TOS-D-0031-agents-route-topology-and-progressive-disclosure.md`)
 - [TOS-D-0032 - TOS-D-0032 cross-corpus documentation map and minimal projection](../TOS-D-0032-cross-corpus-documentation-map-and-minimal-projection.md) (`docs/decisions/TOS-D-0032-cross-corpus-documentation-map-and-minimal-projection.md`)
+
+## graph projection
+
+- [TOS-D-0037 - Deduplicated Philosophy Graph View Membership](../TOS-D-0037-deduplicated-philosophy-graph-view-membership.md) (`docs/decisions/TOS-D-0037-deduplicated-philosophy-graph-view-membership.md`)
 
 ## growth route
 
@@ -296,6 +301,10 @@
 - [TOS-D-0015 - Questbook Package Local Validator](../TOS-D-0015-questbook-package-local-validator.md) (`docs/decisions/TOS-D-0015-questbook-package-local-validator.md`)
 - [TOS-D-0016 - Public Mirror Sync Bridge Part](../TOS-D-0016-public-mirror-sync-bridge-part.md) (`docs/decisions/TOS-D-0016-public-mirror-sync-bridge-part.md`)
 - [TOS-D-0017 - Relation Pack Graph Promotion Validator](../TOS-D-0017-relation-pack-graph-promotion-validator.md) (`docs/decisions/TOS-D-0017-relation-pack-graph-promotion-validator.md`)
+
+## view lens
+
+- [TOS-D-0037 - Deduplicated Philosophy Graph View Membership](../TOS-D-0037-deduplicated-philosophy-graph-view-membership.md) (`docs/decisions/TOS-D-0037-deduplicated-philosophy-graph-view-membership.md`)
 
 ## witness
 

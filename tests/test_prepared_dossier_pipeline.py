@@ -33,6 +33,7 @@ from plant_table_i_prepared_dossiers import (  # noqa: E402
     dossier_local_node_alias,
     normalize_row_to_expand,
     resolve_relation_endpoints,
+    row_value,
     table_family,
 )
 
@@ -329,7 +330,7 @@ class PreparedDossierPipelineTest(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, "reviewed Table I route"):
                 planting_pipeline.parse_dossier(Path("A23.docx"), master_row, "table-i")
 
-    def test_readiness_exposes_partial_table_ii_and_keeps_table_iii_unplanted(self) -> None:
+    def test_readiness_exposes_complete_table_ii_and_table_iii_packages(self) -> None:
         payload = readiness_payload()
         table_ii = payload["tables"]["table-ii"]
         self.assertTrue(table_ii["supported"])
@@ -341,8 +342,10 @@ class PreparedDossierPipelineTest(unittest.TestCase):
         self.assertEqual(table_ii["missing_master_dossier_ids"], [])
         table_iii = payload["tables"]["table-iii"]
         self.assertTrue(table_iii["supported"])
-        self.assertEqual(table_iii["master_alignment"], "45/84")
-        self.assertEqual(table_iii["missing_master_dossier_ids"], [f"T3-{value:02d}" for value in range(46, 85)])
+        self.assertEqual(table_iii["master_alignment"], "84/84")
+        self.assertEqual(table_iii["input_admission"], "84/84")
+        self.assertEqual(table_iii["blocked_dossier_ids"], [])
+        self.assertEqual(table_iii["missing_master_dossier_ids"], [])
 
     def test_readiness_rejects_drifted_identity_on_declared_missing_master_rows(self) -> None:
         rows = [
@@ -514,14 +517,14 @@ class PreparedDossierPipelineTest(unittest.TestCase):
         self.assertEqual(
             coverage["summary"]["coverage_class_counts"],
             {
-                "deferred_context": 4226,
+                "deferred_context": 4218,
                 "identity_metadata_examined": 766,
-                "structured_primary_extracted": 9279,
+                "structured_primary_extracted": 9287,
             },
         )
         self.assertEqual(coverage["summary"]["family_row_counts"]["proposed_nodes"], 2152)
         self.assertEqual(coverage["summary"]["family_row_counts"]["proposed_relations"], 2311)
-        self.assertEqual(coverage["summary"]["family_row_counts"]["risk_control_source_needs"], 783)
+        self.assertEqual(coverage["summary"]["family_row_counts"]["risk_control_source_needs"], 791)
 
     def test_table_ii_control_tos_risk_header_is_structured(self) -> None:
         self.assertEqual(
@@ -580,7 +583,41 @@ class PreparedDossierPipelineTest(unittest.TestCase):
         family_counts = coverage["summary"]["family_row_counts"]
         self.assertEqual(family_counts["corpora_texts_artifacts"], 780)
         self.assertEqual(family_counts["figures_authorship"], 651)
-        self.assertEqual(family_counts["other_context"], 511)
+        self.assertEqual(family_counts["other_context"], 503)
+
+    def test_table_iii_header_aliases_keep_structured_families(self) -> None:
+        self.assertEqual(
+            table_family(("Node ID", "Тип", "Название", "Период", "Связи", "Приоритет")),
+            "proposed_nodes",
+        )
+        self.assertEqual(
+            table_family(("Исходный узел", "Отношение", "Целевой узел", "Комментарий", "Ув.")),
+            "proposed_relations",
+        )
+        self.assertEqual(
+            table_family(("Источник / previous node", "Что передано", "Канал", "Уверенность", "Примечание")),
+            "incoming_transmissions",
+        )
+        self.assertEqual(
+            table_family(("Следующий узел / эпоха", "Что передаётся", "Канал", "Уверенность", "Проверить дальше")),
+            "outgoing_transmissions",
+        )
+
+    def test_row_value_reads_table_iii_aliases(self) -> None:
+        row = {
+            "Node ID": "T3-84-N01",
+            "Тип": "concept",
+            "Исходный узел": "T3-84-N01",
+            "Отношение": "uses_language",
+            "Целевой узел": "T3-84-N05",
+            "Ув.": "high",
+        }
+        self.assertEqual(row_value(row, "Node ID"), "T3-84-N01")
+        self.assertEqual(row_value(row, "Тип узла", "Тип"), "concept")
+        self.assertEqual(row_value(row, "Source node", "Исходный узел"), "T3-84-N01")
+        self.assertEqual(row_value(row, "Relation", "Отношение"), "uses_language")
+        self.assertEqual(row_value(row, "Target node", "Целевой узел"), "T3-84-N05")
+        self.assertEqual(row_value(row, "Уверенность", "Увер.", "Ув."), "high")
 
     def test_table_ii_quarantine_emits_no_semantic_output_and_b_rows_need_review(self) -> None:
         index_rows = [json.loads(line) for line in DOSSIER_INDEX_PATH.read_text(encoding="utf-8").splitlines() if line]
