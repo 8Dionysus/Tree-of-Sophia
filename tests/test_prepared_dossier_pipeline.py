@@ -575,6 +575,7 @@ class PreparedDossierPipelineTest(unittest.TestCase):
         ]
         self.assertEqual(len(t3_44), 39)
         self.assertTrue(all(row["contribution"] for row in t3_44))
+        self.assertTrue(all(row["source_local_id"] for row in t3_44))
 
         for dossier_id, table_indexes, field in (
             ("T3-17", {29, 30}, "source_access"),
@@ -598,6 +599,57 @@ class PreparedDossierPipelineTest(unittest.TestCase):
         ]
         self.assertEqual(len(t3_82), 30)
         self.assertTrue(all(row["transliteration"] for row in t3_82))
+
+        date_or_layer_rows = [
+            row
+            for row in source_rows
+            if (row["dossier_id"], row["source_table_index"])
+            in {("T3-18", 27), ("T3-48", 22)}
+        ]
+        self.assertEqual(len(date_or_layer_rows), 55)
+        self.assertTrue(all(row["source_date_or_layer"] for row in date_or_layer_rows))
+
+        explanation_tables = {
+            ("T3-13", 6),
+            ("T3-14", 6),
+            ("T3-23", 7),
+            ("T3-47", 8),
+            ("T3-65", 6),
+            ("T3-66", 8),
+            ("T3-67", 8),
+            ("T3-73", 9),
+        }
+        risk_explanations = [
+            row
+            for row in source_rows
+            if (row["dossier_id"], row["source_table_index"]) in explanation_tables
+        ]
+        self.assertEqual(len(risk_explanations), 58)
+        self.assertTrue(all(row["risk_explanation"] for row in risk_explanations))
+
+        t3_66_locators = [
+            row
+            for row in source_rows
+            if row["dossier_id"] == "T3-66" and row["source_table_index"] == 26
+        ]
+        self.assertTrue(t3_66_locators)
+        self.assertTrue(all(row["source_locator"] for row in t3_66_locators))
+
+    def test_every_tracked_structured_header_has_an_output_field(self) -> None:
+        for table_id in planting_pipeline.SUPPORTED_TABLES:
+            coverage_path = planting_pipeline.package_path(table_id, "extraction_coverage_ref")
+            payload = json.loads(coverage_path.read_text(encoding="utf-8"))
+            for dossier in payload["dossiers"]:
+                for header_record in dossier["coverage"]["headers"]:
+                    header = tuple(header_record["header"])
+                    family = table_family(header)
+                    if family not in planting_pipeline.STRUCTURED_FAMILIES:
+                        continue
+                    field_map = planting_pipeline.structured_header_field_map(family, header)
+                    self.assertFalse(
+                        [cell for cell, fields in field_map.items() if not fields],
+                        msg=f"{dossier['dossier_id']} {family}: {header}",
+                    )
 
     def test_table_ii_observed_deferred_headers_keep_known_families(self) -> None:
         self.assertEqual(

@@ -221,6 +221,158 @@ def normalized_header_cell(value: str) -> str:
     return re.sub(r"\s+", " ", value).strip()
 
 
+STRUCTURED_FIELD_ALIASES: dict[str, dict[str, tuple[str, ...]]] = {
+    "proposed_nodes": {
+        "original_node_id": ("Node ID",),
+        "node_kind_label": ("Тип узла", "Тип"),
+        "label": ("Название",),
+        "period": ("Период",),
+        "connections": ("Связи", "Связи / функция", "Основные связи", "Ключевые связи"),
+        "priority": ("Приоритет", "Приор."),
+    },
+    "proposed_relations": {
+        "original_relation_id": ("Edge ID",),
+        "source_endpoint_label": ("Source node", "Source", "Исходный узел"),
+        "relation_label": ("Relation", "Отношение"),
+        "target_endpoint_label": ("Target node", "Target", "Целевой узел"),
+        "comment": ("Комментарий",),
+        "confidence": ("Уверенность", "Увер.", "Ув."),
+    },
+    "corpus_or_edition_anchors": {
+        "source_local_id": ("ID", "Код", "Маркер"),
+        "source_label": (
+            "Источник / корпус",
+            "Источник",
+            "Корпус / архив",
+            "Корпус / портал",
+            "Корпус",
+            "ID / источник",
+        ),
+        "source_type": ("Тип", "Тип / дата", "Тип / содержание"),
+        "source_date_or_layer": ("Дата / слой",),
+        "contribution": (
+            "Что даёт",
+            "Что даёт ToS",
+            "Что даёт / где искать",
+            "Что даёт / доступ",
+        ),
+        "source_access": (
+            "Доступ / где искать",
+            "Доступ",
+            "Доступ / stable URL",
+            "Доступ / надёжность",
+            "Доступ / замечание",
+        ),
+        "source_locator": ("Ссылка", "URL / DOI"),
+        "reliability": (
+            "Надёжность",
+            "Надёжность / ограничение",
+            "Надёжность / ограничения",
+            "Надёжность и ограничения",
+            "Надёжность / caveat",
+            "Ограничения",
+            "Доступ / надёжность",
+        ),
+    },
+    "control_or_review_anchors": {
+        "source_local_id": ("ID", "Код", "Маркер"),
+        "source_label": ("Источник", "ID / источник"),
+        "source_type": ("Тип", "Тип / дата", "Тип / содержание"),
+        "contribution": ("Зачем нужен",),
+        "limitations": (
+            "Ограничения",
+            "Ограничение",
+            "Ограничения / контроль",
+            "Ограничения / доступ",
+        ),
+        "source_access": (
+            "Доступ / где искать",
+            "Доступ",
+            "Доступ / stable URL",
+            "Ограничения / доступ",
+        ),
+        "source_locator": ("Ссылка", "URL / DOI"),
+    },
+    "risk_control_source_needs": {
+        "problem": ("Проблема",),
+        "risk": ("Риск", "Главный риск", "В чём риск"),
+        "risk_explanation": (
+            "В чём опасность",
+            "Почему критичен",
+            "Почему опасен",
+            "В чём искажение",
+            "Как искажает строку",
+            "Почему возникает",
+            "Почему критичен для T2-51",
+            "Почему существенен",
+            "Проявление",
+            "В чём ловушка",
+        ),
+        "control": (
+            "Как контролировать в ToS",
+            "Контроль в ToS",
+            "Контроль ToS",
+            "Контроль",
+            "Что контролировать",
+            "Что именно контролировать",
+            "Контрольный принцип",
+        ),
+        "needed_sources": ("Какие источники нужны", "Нужные источники", "Что требуется"),
+    },
+    "terms": {
+        "term": ("Термин",),
+        "language": ("Язык",),
+        "transliteration": (
+            "Транслитерация",
+            "Транслитерация / форма",
+            "Транслитерация / перевод",
+            "Транслитерация / аббр.",
+        ),
+        "meaning": ("Краткое значение", "Значение"),
+        "role_in_tos": ("Роль в ToS",),
+    },
+    "incoming_transmissions": {
+        "from_or_to": ("Источник / предыдущий узел", "Источник / previous node"),
+        "transmitted": ("Что передано",),
+        "transmission_channel": ("Канал передачи", "Канал"),
+        "confidence": ("Уверенность",),
+        "note": ("Примечание",),
+    },
+    "outgoing_transmissions": {
+        "from_or_to": ("Следующий узел / эпоха",),
+        "transmitted": ("Что передаётся",),
+        "transmission_channel": ("Канал",),
+        "confidence": ("Уверенность",),
+        "verify_next": ("Что проверить дальше", "Проверить дальше"),
+    },
+}
+
+def structured_header_field_map(family: str, header: tuple[str, ...]) -> dict[str, list[str]]:
+    fields = STRUCTURED_FIELD_ALIASES.get(family, {})
+    return {
+        cell: [
+            field
+            for field, aliases in fields.items()
+            if normalized_header_cell(cell)
+            in {normalized_header_cell(alias) for alias in aliases}
+        ]
+        for cell in header
+    }
+
+
+def structured_row_value(row: dict[str, str], family: str, field: str) -> str:
+    aliases = {
+        normalized_header_cell(alias)
+        for alias in STRUCTURED_FIELD_ALIASES[family][field]
+    }
+    for header, value in row.items():
+        if normalized_header_cell(header) in aliases:
+            cleaned = scrub(value)
+            if cleaned:
+                return cleaned
+    return ""
+
+
 def table_family(header: tuple[str, ...]) -> str:
     normalized = tuple(normalized_header_cell(value) for value in header)
     if (
@@ -600,6 +752,14 @@ def parse_dossier(path: Path, master_row: dict[str, Any], table_id: str = "table
         header = table_header(table)
         rows = table_body(table)
         family = table_family(header)
+        if not blocked and family in STRUCTURED_FAMILIES:
+            field_map = structured_header_field_map(family, header)
+            unmapped_headers = [cell for cell, fields in field_map.items() if not fields]
+            if unmapped_headers:
+                raise ValueError(
+                    f"{dossier_id} structured {family} table {table_index} has unmapped headers: "
+                    f"{unmapped_headers}"
+                )
         if blocked:
             coverage_class = "quarantined_identity_mismatch"
             coverage_family = "blocked_master_identity_mismatch"
@@ -637,15 +797,18 @@ def parse_dossier(path: Path, master_row: dict[str, Any], table_id: str = "table
         if family == "proposed_nodes":
             for row_index, cells in enumerate(rows, 1):
                 row = row_dict(header, cells)
-                original_id = row_value(row, "Node ID") or f"{dossier_id}-node-{row_index:03d}"
+                original_id = (
+                    structured_row_value(row, family, "original_node_id")
+                    or f"{dossier_id}-node-{row_index:03d}"
+                )
                 candidate_id = f"{table_id}-{dossier_id.lower()}-node-{row_index:03d}"
-                node_kind_label = row_value(row, "Тип узла", "Тип")
+                node_kind_label = structured_row_value(row, family, "node_kind_label")
                 node_kind = (
                     slugify(node_kind_label).replace("-", "_")
                     if node_kind_label
                     else "unspecified"
                 )
-                label = row_value(row, "Название") or original_id
+                label = structured_row_value(row, family, "label") or original_id
                 label_override = node_label_overrides.get(original_id)
                 override_projection: dict[str, str] = {}
                 if label_override is not None:
@@ -670,20 +833,15 @@ def parse_dossier(path: Path, master_row: dict[str, Any], table_id: str = "table
                         "branch_path": branch_path,
                         "candidate_id": candidate_id,
                         "canon_status": "pre-canon",
-                        "connections": row_value(
-                            row,
-                            "Связи",
-                            "Связи / функция",
-                            "Основные связи",
-                            "Ключевые связи",
-                        ),
+                        "connections": structured_row_value(row, family, "connections"),
                         "dossier_id": dossier_id,
                         "label": label,
                         **override_projection,
                         "node_kind": node_kind,
+                        "node_kind_label": node_kind_label,
                         "original_node_id": original_id,
-                        "period": row_value(row, "Период"),
-                        "priority": row_value(row, "Приоритет", "Приор."),
+                        "period": structured_row_value(row, family, "period"),
+                        "priority": structured_row_value(row, family, "priority"),
                         "source_document": path.name,
                         "source_row_index": row_index,
                         "source_table_index": table_index,
@@ -694,9 +852,10 @@ def parse_dossier(path: Path, master_row: dict[str, Any], table_id: str = "table
         elif family == "proposed_relations":
             for row_index, cells in enumerate(rows, 1):
                 row = row_dict(header, cells)
-                relation_label = row_value(row, "Relation", "Отношение")
+                relation_label = structured_row_value(row, family, "relation_label")
                 relation_kind = slugify(relation_label).replace("-", "_")
                 candidate_id = f"{table_id}-{dossier_id.lower()}-relation-{len(relation_rows) + 1:03d}"
+                original_relation_id = structured_row_value(row, family, "original_relation_id")
                 relation_rows.append(
                     {
                         "atlas_row_id": dossier_id,
@@ -704,128 +863,80 @@ def parse_dossier(path: Path, master_row: dict[str, Any], table_id: str = "table
                         "branch_path": branch_path,
                         "candidate_id": candidate_id,
                         "canon_status": "pre-canon",
-                        "comment": row_value(row, "Комментарий"),
-                        "confidence": row_value(row, "Уверенность", "Увер.", "Ув."),
+                        "comment": structured_row_value(row, family, "comment"),
+                        "confidence": structured_row_value(row, family, "confidence"),
                         "dossier_id": dossier_id,
+                        **({"original_relation_id": original_relation_id} if original_relation_id else {}),
                         "relation_kind": relation_kind or "related_to",
                         "relation_label": relation_label,
                         "source_document": path.name,
-                        "source_endpoint_label": row_value(
-                            row,
-                            "Source node",
-                            "Source",
-                            "Исходный узел",
+                        "source_endpoint_label": structured_row_value(
+                            row, family, "source_endpoint_label"
                         ),
                         "source_ref": repo_ref(proposed_relations_path(table_id)),
                         "source_row_index": row_index,
                         "source_table_index": table_index,
                         **({"table_id": table_id} if table_id != "table-i" else {}),
-                        "target_endpoint_label": row_value(
-                            row,
-                            "Target node",
-                            "Target",
-                            "Целевой узел",
+                        "target_endpoint_label": structured_row_value(
+                            row, family, "target_endpoint_label"
                         ),
                     }
                 )
         elif family == "corpus_or_edition_anchors":
             for row_index, cells in enumerate(rows, 1):
                 row = row_dict(header, cells)
+                source_local_id = structured_row_value(row, family, "source_local_id")
+                source_date_or_layer = structured_row_value(row, family, "source_date_or_layer")
+                source_locator = structured_row_value(row, family, "source_locator")
                 source_rows.append(
                     {
                         "anchor_kind": "corpus_or_edition_anchor",
                         "atlas_row_id": dossier_id,
                         "branch_path": branch_path,
-                        "contribution": row_value(
-                            row,
-                            "Что даёт",
-                            "Что дает",
-                            "Что даёт ToS",
-                            "Что дает ToS",
-                            "Что даёт / где искать",
-                            "Что дает / где искать",
-                            "Что даёт / доступ",
-                            "Что дает / доступ",
-                        ),
+                        "contribution": structured_row_value(row, family, "contribution"),
                         "dossier_id": dossier_id,
-                        "reliability": row_value(
-                            row,
-                            "Надёжность",
-                            "Надежность",
-                            "Надёжность / ограничение",
-                            "Надежность / ограничение",
-                            "Надёжность / ограничения",
-                            "Надежность / ограничения",
-                            "Надёжность и ограничения",
-                            "Надежность и ограничения",
-                            "Надёжность / caveat",
-                            "Надежность / caveat",
-                            "Ограничения",
-                            "Доступ / надёжность",
-                            "Доступ / надежность",
-                        ),
+                        "reliability": structured_row_value(row, family, "reliability"),
                         "route_status": "source_anchor_backlog",
-                        "source_access": row_value(
-                            row,
-                            "Доступ / где искать",
-                            "Доступ",
-                            "Ссылка",
-                            "URL / DOI",
-                            "Доступ / stable URL",
-                            "Доступ / надёжность",
-                            "Доступ / надежность",
-                            "Доступ / замечание",
+                        "source_access": structured_row_value(row, family, "source_access"),
+                        **(
+                            {"source_date_or_layer": source_date_or_layer}
+                            if source_date_or_layer
+                            else {}
                         ),
                         "source_document": path.name,
-                        "source_label": row_value(
-                            row,
-                            "Источник / корпус",
-                            "Источник",
-                            "Корпус / архив",
-                            "Корпус / портал",
-                            "Корпус",
-                            "ID / источник",
-                        ),
+                        "source_label": structured_row_value(row, family, "source_label"),
+                        **({"source_local_id": source_local_id} if source_local_id else {}),
+                        **({"source_locator": source_locator} if source_locator else {}),
                         "source_ref": repo_ref(SOURCE_ANCHOR_BACKLOG),
                         "source_row_index": row_index,
                         "source_table_index": table_index,
-                        "source_type": row_value(row, "Тип", "Тип / дата", "Тип / содержание"),
+                        "source_type": structured_row_value(row, family, "source_type"),
                         **({"table_id": table_id} if table_id != "table-i" else {}),
                     }
                 )
         elif family == "control_or_review_anchors":
             for row_index, cells in enumerate(rows, 1):
                 row = row_dict(header, cells)
-                source_access = row_value(
-                    row,
-                    "Доступ / где искать",
-                    "Доступ",
-                    "Ссылка",
-                    "URL / DOI",
-                    "Доступ / stable URL",
-                    "Ограничения / доступ",
-                )
+                source_access = structured_row_value(row, family, "source_access")
+                source_local_id = structured_row_value(row, family, "source_local_id")
+                source_locator = structured_row_value(row, family, "source_locator")
                 source_rows.append(
                     {
                         "anchor_kind": "control_or_review_anchor",
                         "atlas_row_id": dossier_id,
                         "branch_path": branch_path,
-                        "contribution": row_value(row, "Зачем нужен"),
+                        "contribution": structured_row_value(row, family, "contribution"),
                         "dossier_id": dossier_id,
-                        "limitations": row_value(
-                            row,
-                            "Ограничения",
-                            "Ограничение",
-                            "Ограничения / контроль",
-                            "Ограничения / доступ",
-                        ),
+                        "limitations": structured_row_value(row, family, "limitations"),
                         "route_status": "source_anchor_backlog",
                         "source_document": path.name,
-                        "source_label": row_value(row, "Источник", "ID / источник"),
+                        "source_label": structured_row_value(row, family, "source_label"),
+                        **({"source_local_id": source_local_id} if source_local_id else {}),
+                        **({"source_locator": source_locator} if source_locator else {}),
                         "source_ref": repo_ref(SOURCE_ANCHOR_BACKLOG),
                         "source_row_index": row_index,
                         "source_table_index": table_index,
-                        "source_type": row_value(row, "Тип", "Тип / дата", "Тип / содержание"),
+                        "source_type": structured_row_value(row, family, "source_type"),
                         **({"source_access": source_access} if source_access else {}),
                         **({"table_id": table_id} if table_id != "table-i" else {}),
                     }
@@ -833,33 +944,20 @@ def parse_dossier(path: Path, master_row: dict[str, Any], table_id: str = "table
         elif family == "risk_control_source_needs":
             for row_index, cells in enumerate(rows, 1):
                 row = row_dict(header, cells)
-                first_header = normalized_header_cell(header[0]) if header else ""
-                problem = row_value(row, "Проблема")
-                risk = row_value(row, "В чём риск", "Почему существенен", "В чём ловушка")
-                if first_header in {"риск", "главный риск"}:
-                    problem = ""
-                    risk = risk or row_value(row, "Риск", "Главный риск")
-                else:
-                    risk = risk or row_value(row, "Риск")
+                problem = structured_row_value(row, family, "problem")
+                risk = structured_row_value(row, family, "risk")
+                risk_explanation = structured_row_value(row, family, "risk_explanation")
                 source_rows.append(
                     {
                         "anchor_kind": "risk_control_source_need",
                         "atlas_row_id": dossier_id,
                         "branch_path": branch_path,
-                        "control": row_value(
-                            row,
-                            "Как контролировать в ToS",
-                            "Контроль в ToS",
-                            "Контроль ToS",
-                            "Контроль",
-                            "Что контролировать",
-                            "Что именно контролировать",
-                            "Контрольный принцип",
-                        ),
+                        "control": structured_row_value(row, family, "control"),
                         "dossier_id": dossier_id,
-                        "needed_sources": row_value(row, "Какие источники нужны", "Нужные источники", "Что требуется"),
+                        "needed_sources": structured_row_value(row, family, "needed_sources"),
                         "problem": problem,
                         "risk": risk,
+                        **({"risk_explanation": risk_explanation} if risk_explanation else {}),
                         "route_status": "source_anchor_backlog",
                         "source_document": path.name,
                         "source_ref": repo_ref(SOURCE_ANCHOR_BACKLOG),
@@ -876,22 +974,16 @@ def parse_dossier(path: Path, master_row: dict[str, Any], table_id: str = "table
                         "atlas_row_id": dossier_id,
                         "branch_path": branch_path,
                         "dossier_id": dossier_id,
-                        "language": row_value(row, "Язык"),
-                        "meaning": row_value(row, "Краткое значение", "Значение"),
-                        "role_in_tos": row_value(row, "Роль в ToS"),
+                        "language": structured_row_value(row, family, "language"),
+                        "meaning": structured_row_value(row, family, "meaning"),
+                        "role_in_tos": structured_row_value(row, family, "role_in_tos"),
                         "source_document": path.name,
                         "source_ref": repo_ref(TERM_INDEX),
                         "source_row_index": row_index,
                         "source_table_index": table_index,
                         **({"table_id": table_id} if table_id != "table-i" else {}),
-                        "term": row_value(row, "Термин"),
-                        "transliteration": row_value(
-                            row,
-                            "Транслитерация",
-                            "Транслитерация / форма",
-                            "Транслитерация / перевод",
-                            "Транслитерация / аббр.",
-                        ),
+                        "term": structured_row_value(row, family, "term"),
+                        "transliteration": structured_row_value(row, family, "transliteration"),
                     }
                 )
         elif family == "incoming_transmissions":
@@ -901,22 +993,20 @@ def parse_dossier(path: Path, master_row: dict[str, Any], table_id: str = "table
                     {
                         "atlas_row_id": dossier_id,
                         "branch_path": branch_path,
-                        "confidence": row_value(row, "Уверенность"),
+                        "confidence": structured_row_value(row, family, "confidence"),
                         "dossier_id": dossier_id,
                         "direction": "incoming",
-                        "from_or_to": row_value(
-                            row,
-                            "Источник / предыдущий узел",
-                            "Источник / previous node",
-                        ),
-                        "note": row_value(row, "Примечание"),
+                        "from_or_to": structured_row_value(row, family, "from_or_to"),
+                        "note": structured_row_value(row, family, "note"),
                         "source_document": path.name,
                         "source_ref": repo_ref(TRANSMISSION_BACKLOG),
                         "source_row_index": row_index,
                         "source_table_index": table_index,
                         **({"table_id": table_id} if table_id != "table-i" else {}),
-                        "transmission_channel": row_value(row, "Канал передачи", "Канал"),
-                        "transmitted": row_value(row, "Что передано"),
+                        "transmission_channel": structured_row_value(
+                            row, family, "transmission_channel"
+                        ),
+                        "transmitted": structured_row_value(row, family, "transmitted"),
                     }
                 )
         elif family == "outgoing_transmissions":
@@ -926,18 +1016,20 @@ def parse_dossier(path: Path, master_row: dict[str, Any], table_id: str = "table
                     {
                         "atlas_row_id": dossier_id,
                         "branch_path": branch_path,
-                        "confidence": row_value(row, "Уверенность"),
+                        "confidence": structured_row_value(row, family, "confidence"),
                         "dossier_id": dossier_id,
                         "direction": "outgoing",
-                        "from_or_to": row_value(row, "Следующий узел / эпоха"),
+                        "from_or_to": structured_row_value(row, family, "from_or_to"),
                         "source_document": path.name,
                         "source_ref": repo_ref(TRANSMISSION_BACKLOG),
                         "source_row_index": row_index,
                         "source_table_index": table_index,
                         **({"table_id": table_id} if table_id != "table-i" else {}),
-                        "transmission_channel": row_value(row, "Канал"),
-                        "transmitted": row_value(row, "Что передаётся", "Что передается"),
-                        "verify_next": row_value(row, "Что проверить дальше", "Проверить дальше"),
+                        "transmission_channel": structured_row_value(
+                            row, family, "transmission_channel"
+                        ),
+                        "transmitted": structured_row_value(row, family, "transmitted"),
+                        "verify_next": structured_row_value(row, family, "verify_next"),
                     }
                 )
 
