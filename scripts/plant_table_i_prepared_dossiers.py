@@ -744,6 +744,8 @@ def parse_dossier(path: Path, master_row: dict[str, Any], table_id: str = "table
                             "Что дает ToS",
                             "Что даёт / где искать",
                             "Что дает / где искать",
+                            "Что даёт / доступ",
+                            "Что дает / доступ",
                         ),
                         "dossier_id": dossier_id,
                         "reliability": row_value(
@@ -754,6 +756,8 @@ def parse_dossier(path: Path, master_row: dict[str, Any], table_id: str = "table
                             "Надежность / ограничение",
                             "Надёжность / ограничения",
                             "Надежность / ограничения",
+                            "Надёжность и ограничения",
+                            "Надежность и ограничения",
                             "Надёжность / caveat",
                             "Надежность / caveat",
                             "Ограничения",
@@ -770,6 +774,7 @@ def parse_dossier(path: Path, master_row: dict[str, Any], table_id: str = "table
                             "Доступ / stable URL",
                             "Доступ / надёжность",
                             "Доступ / надежность",
+                            "Доступ / замечание",
                         ),
                         "source_document": path.name,
                         "source_label": row_value(
@@ -848,6 +853,8 @@ def parse_dossier(path: Path, master_row: dict[str, Any], table_id: str = "table
                             "Контроль ToS",
                             "Контроль",
                             "Что контролировать",
+                            "Что именно контролировать",
+                            "Контрольный принцип",
                         ),
                         "dossier_id": dossier_id,
                         "needed_sources": row_value(row, "Какие источники нужны", "Нужные источники", "Что требуется"),
@@ -883,6 +890,7 @@ def parse_dossier(path: Path, master_row: dict[str, Any], table_id: str = "table
                             "Транслитерация",
                             "Транслитерация / форма",
                             "Транслитерация / перевод",
+                            "Транслитерация / аббр.",
                         ),
                     }
                 )

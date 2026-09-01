@@ -559,6 +559,46 @@ class PreparedDossierPipelineTest(unittest.TestCase):
             "risk_control_source_needs",
         )
 
+    def test_table_iii_accepted_structured_headers_preserve_payloads(self) -> None:
+        source_rows = planting_pipeline.load_jsonl(
+            REPO_ROOT / "ToS/philosophy/atlas/dossiers/source-anchor-backlog.jsonl"
+        )
+        term_rows = planting_pipeline.load_jsonl(
+            REPO_ROOT / "ToS/philosophy/atlas/dossiers/term-index.jsonl"
+        )
+
+        t3_44 = [
+            row
+            for row in source_rows
+            if row["dossier_id"] == "T3-44"
+            and row["anchor_kind"] == "corpus_or_edition_anchor"
+        ]
+        self.assertEqual(len(t3_44), 39)
+        self.assertTrue(all(row["contribution"] for row in t3_44))
+
+        for dossier_id, table_indexes, field in (
+            ("T3-17", {29, 30}, "source_access"),
+            ("T3-19", {27, 28}, "reliability"),
+            ("T3-15", {5}, "control"),
+            ("T3-19", {6}, "control"),
+        ):
+            affected = [
+                row
+                for row in source_rows
+                if row["dossier_id"] == dossier_id
+                and row["source_table_index"] in table_indexes
+            ]
+            self.assertTrue(affected)
+            self.assertTrue(all(row[field] for row in affected))
+
+        t3_82 = [
+            row
+            for row in term_rows
+            if row["dossier_id"] == "T3-82" and row["source_table_index"] == 25
+        ]
+        self.assertEqual(len(t3_82), 30)
+        self.assertTrue(all(row["transliteration"] for row in t3_82))
+
     def test_table_ii_observed_deferred_headers_keep_known_families(self) -> None:
         self.assertEqual(
             table_family(
