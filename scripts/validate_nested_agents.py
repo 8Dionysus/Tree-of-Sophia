@@ -105,21 +105,11 @@ README_ROUTE_PATTERN = re.compile(
     r"\b(?:read|open|review|start\s+with|use)\b.*\bREADME(?:\.md)?\b",
     re.IGNORECASE,
 )
-README_CONDITIONAL_MARKERS = (
-    "when ",
-    "if ",
-    "only ",
-    "where ",
-    "as needed",
-    "needed",
-    "relevant",
-    "selected",
-    "known",
-    "target",
-    "named",
-    "for ",
-    "after ",
-    "touched",
+README_TASK_CONDITION_PATTERN = re.compile(
+    r"(?:\b(?:when|if|where|after|only|touched)\b|"
+    r"\b(?:as|when|if)\s+needed\b|"
+    r"\b(?:relevant|selected|known|target|named)\b)",
+    re.IGNORECASE,
 )
 PROCEDURAL_HEADING_PATTERN = re.compile(
     r"^#{1,6}\s+(?:validation|verify|verification|checks?|testing|"
@@ -140,8 +130,7 @@ README_INVENTORY_HEADINGS = {
 
 
 def _has_readme_condition(text: str) -> bool:
-    normalized = normalize(text)
-    return any(marker.strip() in normalized for marker in README_CONDITIONAL_MARKERS)
+    return README_TASK_CONDITION_PATTERN.search(text) is not None
 OPERATING_CARD_FIELDS = (
     "input",
     "output",

@@ -102,6 +102,34 @@ class NestedAgentsRouteTests(unittest.TestCase):
             self.assertTrue(any("runnable command" in message for message in messages))
             self.assertTrue(any("unconditional README" in message for message in messages))
 
+    def test_prompt_light_structure_rejects_unbounded_for_and_before_routes(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            (root / "VALIDATION.md").write_text("# Validation\n", encoding="utf-8")
+            (root / "AGENTS.md").write_text(
+                "# AGENTS.md\n"
+                "Read README.md for setup.\n"
+                "Review README.md before editing.\n",
+                encoding="utf-8",
+            )
+            messages = [
+                message
+                for _, message in validate_nested_agents.validate_active_agent_structure(root)
+                if "unconditional README" in message
+            ]
+            self.assertEqual(2, len(messages))
+
+    def test_prompt_light_structure_accepts_explicit_task_condition(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            (root / "VALIDATION.md").write_text("# Validation\n", encoding="utf-8")
+            (root / "AGENTS.md").write_text(
+                "# AGENTS.md\nOpen README.md when public navigation changes.\n",
+                encoding="utf-8",
+            )
+            messages = validate_nested_agents.validate_active_agent_structure(root)
+            self.assertFalse(any("unconditional README" in message for _, message in messages))
+
     def test_prompt_light_structure_rejects_inline_env_and_empty_sections(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)

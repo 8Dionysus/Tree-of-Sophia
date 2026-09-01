@@ -21,8 +21,9 @@ Start with root `AGENTS.md` and this card. Open `CHARTER.md`, `BOUNDARIES.md`,
 or `ROADMAP.md` only when repository orientation changes the measurement task.
 For a Table I question, open the philosophy atlas route and its README when
 human explanation is relevant, then open `stats/port.manifest.json`, rows, and
-the dossier map. Open `stats/README.md` for local port usage and `aoa-stats`
-contracts only when the selected measurement requires them.
+the dossier map. When local port usage is part of the selected measurement,
+open `stats/README.md`; open the `aoa-stats` contracts only when that
+measurement requires them.
 
 ## Boundaries
 
