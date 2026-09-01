@@ -143,6 +143,45 @@ def main() -> int:
     for view_id, packet in packets.items():
         if packet.get("changed_subgraph", {}).get("current_view_fingerprint") != expected_fingerprints[view_id]:
             raise SystemExit(f"{view_id} review-packet fingerprint does not match exported membership")
+        view = views[view_id]
+        view_nodes = [nodes_by_id[node_id] for node_id in view.get("node_ids", [])]
+        view_edges = [edges_by_id[edge_id] for edge_id in view.get("edge_ids", [])]
+        view_clusters = [
+            cluster
+            for cluster in current_payload.get("clusters", [])
+            if isinstance(cluster, dict) and view_id in cluster.get("view_ids", [])
+        ]
+        expected_layer_counts = []
+        for layer in current_payload.get("graph_layers", []):
+            layer_id = layer.get("layer_id")
+            layer_nodes = [node for node in view_nodes if layer_id in node.get("graph_layers", [])]
+            layer_edges = [edge for edge in view_edges if layer_id in edge.get("graph_layers", [])]
+            layer_clusters = [
+                cluster for cluster in view_clusters if layer_id in cluster.get("graph_layers", [])
+            ]
+            layer_items = [*layer_nodes, *layer_edges, *layer_clusters]
+            source_refs = {
+                item.get("source_ref")
+                for item in layer_items
+                if item.get("source_ref")
+            }
+            source_refs.update(
+                ref
+                for item in layer_items
+                for ref in item.get("source_refs", [])
+                if ref
+            )
+            expected_layer_counts.append(
+                {
+                    "layer_id": layer_id,
+                    "node_count": len(layer_nodes),
+                    "edge_count": len(layer_edges),
+                    "cluster_count": len(layer_clusters),
+                    "source_ref_count": len(source_refs),
+                }
+            )
+        if packet.get("layer_counts") != expected_layer_counts:
+            raise SystemExit(f"{view_id} review-packet layer counts do not match exported membership")
     canon_packet = packets.get("canon-promotion", {})
     if "candidate_to_canon_pressure" not in canon_packet:
         raise SystemExit("canon-promotion packet must expose candidate_to_canon_pressure")

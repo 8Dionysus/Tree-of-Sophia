@@ -608,6 +608,12 @@ def _build_review_packets(
         view_id = str(view["view_id"])
         view_nodes = view.get("nodes", [])
         view_edges = view.get("edges", [])
+        exported_view_nodes = [
+            global_nodes_by_id[str(node["node_id"])] for node in view_nodes
+        ]
+        exported_view_edges = [
+            global_edges_by_id[str(edge["edge_id"])] for edge in view_edges
+        ]
         view_clusters = clusters_by_view.get(view_id, [])
         degrees = _degree_counts(view_edges)
         node_by_id = {str(node["node_id"]): node for node in view_nodes}
@@ -663,8 +669,8 @@ def _build_review_packets(
         current_view_fingerprint = _stable_digest(
             _view_fingerprint_material(
                 view_id=view_id,
-                view_nodes=[global_nodes_by_id[str(node["node_id"])] for node in view_nodes],
-                view_edges=[global_edges_by_id[str(edge["edge_id"])] for edge in view_edges],
+                view_nodes=exported_view_nodes,
+                view_edges=exported_view_edges,
                 view_clusters=view_clusters,
                 graph_layers=view.get("graph_layers", []),
                 source_refs=view.get("source_refs", []),
@@ -693,7 +699,11 @@ def _build_review_packets(
                     "suspicious_dense_hubs": len(dense_hubs),
                     "isolated_nodes": len(isolated_nodes),
                 },
-                "layer_counts": _view_layer_counts(view, graph_layers, view_clusters),
+                "layer_counts": _view_layer_counts(
+                    {**view, "nodes": exported_view_nodes, "edges": exported_view_edges},
+                    graph_layers,
+                    view_clusters,
+                ),
                 "cluster_summaries": cluster_summaries,
                 "weak_source_refs": weak_source_refs,
                 "unresolved_diagnostics": unresolved_for_view,

@@ -119,6 +119,35 @@ class PhilosophyGraphProjectionTest(unittest.TestCase):
                 packets[view_id]["changed_subgraph"]["current_view_fingerprint"],
                 expected,
             )
+            expected_layer_counts = []
+            for layer in payload["graph_layers"]:
+                layer_id = layer["layer_id"]
+                layer_nodes = [node for node in material["nodes"] if layer_id in node["graph_layers"]]
+                layer_edges = [edge for edge in material["edges"] if layer_id in edge["graph_layers"]]
+                layer_clusters = [
+                    cluster for cluster in clusters if layer_id in cluster["graph_layers"]
+                ]
+                layer_items = [*layer_nodes, *layer_edges, *layer_clusters]
+                source_refs = {
+                    item["source_ref"]
+                    for item in layer_items
+                    if item.get("source_ref")
+                }
+                source_refs.update(
+                    ref
+                    for item in layer_items
+                    for ref in item.get("source_refs", [])
+                )
+                expected_layer_counts.append(
+                    {
+                        "layer_id": layer_id,
+                        "node_count": len(layer_nodes),
+                        "edge_count": len(layer_edges),
+                        "cluster_count": len(layer_clusters),
+                        "source_ref_count": len(source_refs),
+                    }
+                )
+            self.assertEqual(packets[view_id]["layer_counts"], expected_layer_counts)
 
     def test_global_nodes_and_edges_carry_view_and_layer_membership(self) -> None:
         payload = self.load_projection()
