@@ -27,12 +27,12 @@ def load_jsonl(path: Path) -> list[dict[str, Any]]:
     return [json.loads(line) for line in path.read_text(encoding="utf-8").splitlines() if line.strip()]
 
 
-def discover_local_docx_ids(sections: tuple[str, ...]) -> dict[str, list[str]]:
+def discover_local_docx_ids(sections: tuple[str, ...], docx_root: str = "") -> dict[str, list[str]]:
     ids_by_section: dict[str, list[str]] = {}
     if not DOC_ROOT.exists():
         return ids_by_section
     for section in sections:
-        for path in sorted((DOC_ROOT / section).glob("*.docx")):
+        for path in sorted((DOC_ROOT / docx_root / section).glob("*.docx")):
             match = DOSSIER_ID_PATTERN.search(path.name)
             if not match:
                 continue
@@ -84,7 +84,7 @@ def table_readiness(table_id: str) -> dict[str, Any]:
     rows = load_jsonl(TABLE_ROOT / table_id / "rows.jsonl")
     package = PACKAGES[table_id]
     sections = tuple(str(value) for value in package.get("docx_sections", []))
-    local_sections = discover_local_docx_ids(sections)
+    local_sections = discover_local_docx_ids(sections, str(package.get("docx_root") or ""))
     local_docx_ids = sorted(item for ids in local_sections.values() for item in ids)
     local_docx_id_counts = Counter(local_docx_ids)
     local_docx_ids_unique = all(count == 1 for count in local_docx_id_counts.values())
@@ -236,7 +236,8 @@ def readiness_payload(table_id: str | None = None) -> dict[str, Any]:
         "ready_to_plant": all(required_supported_package_readiness.values()),
         "local_docx_sections": {
             candidate: discover_local_docx_ids(
-                tuple(str(value) for value in PACKAGES[candidate].get("docx_sections", []))
+                tuple(str(value) for value in PACKAGES[candidate].get("docx_sections", [])),
+                str(PACKAGES[candidate].get("docx_root") or ""),
             )
             for candidate in table_ids
         },

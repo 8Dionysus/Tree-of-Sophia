@@ -1,6 +1,6 @@
 # Table I Prepared Dossiers
 
-This ledger records the first living planting of the prepared Table I corpus.
+This ledger records the bounded planting of the admitted Table I dossier package.
 
 | Surface | Count | Status |
 | --- | ---: | --- |

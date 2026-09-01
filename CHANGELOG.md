@@ -9,12 +9,17 @@ Tracking starts with the community-docs baseline for this repository.
 
 ### Changed
 
-- Adds a bounded partial Table II planting: 49 of 58 master rows now have
-  admitted prepared dossiers, generated medieval-worlds branches, graph
-  workbench candidates, language packets, and explicit extraction coverage.
-  The supplied T2-26 file is quarantined because its Ethiopian/Ge'ez contents
-  contradict the nominalism master-row identity; T2-51–T2-58 remain explicit
-  missing inputs rather than inferred or fabricated dossiers.
+- Completes Table II at 58 of 58 master-aligned prepared dossiers, including
+  the corrected T2-26 nominalism packet and T2-51–T2-58, with generated
+  medieval-worlds branches, graph-workbench candidates, language packets,
+  fixity manifests, and explicit extraction coverage.
+- Adds a bounded partial Table III planting for all 45 supplied dossiers
+  (`T3-01`–`T3-45`) under a non-universalizing modernity-and-contemporary-worlds
+  navigation window. The master table remains 84 rows; `T3-46`–`T3-84` stay
+  explicit unsupplied inputs rather than inferred or fabricated dossiers.
+- Routes T2-56 to an Andean information-system frontier distinct from A48's
+  cross-chronology khipu/rongorongo boundary, preserving the limits between an
+  information system, a readable text corpus, and a philosophical canon.
 - Generalizes prepared-dossier planting from one hard-coded Table I package to
   owner-declared package sections and route maps while preserving Table I byte
   parity, legacy manifest links, pre-canon posture, and manual review for weak
@@ -64,10 +69,11 @@ Tracking starts with the community-docs baseline for this repository.
 ### Validation
 
 - Prepared-dossier, multilingual, topology, atlas/graph projection, and
-  post-planting checks account for all 48 dossiers, 1,725 proposed nodes,
-  1,588 proposed relations, and 347 text-bearing language packets. Structural
-  green status does not verify DOCX origin, citations, historical claims,
-  source-witness identity, semantic review, or canon acceptance.
+  post-planting checks account for 151 admitted dossiers across Tables I–III,
+  5,677 proposed nodes, 6,399 proposed relations, and 1,014 text-bearing
+  language packets. Structural green status does not verify DOCX origin,
+  citations, historical claims, source-witness identity, semantic review, or
+  canon acceptance.
 - The workflow and release-contract parity tests require the exact provider
   and action refs and assert their intentional inequality. Action execution,
   provider source identity, artifact admission, runtime, proof, delivery,

@@ -23,10 +23,12 @@ CANDIDATE_RELATIONS_REF = "ToS/philosophy/graph-workbench/proposed-relations/tab
 CANDIDATE_NODES_REFS = (
     CANDIDATE_NODES_REF,
     "ToS/philosophy/graph-workbench/proposed-nodes/table-ii-prepared-dossiers.jsonl",
+    "ToS/philosophy/graph-workbench/proposed-nodes/table-iii-prepared-dossiers.jsonl",
 )
 CANDIDATE_RELATIONS_REFS = (
     CANDIDATE_RELATIONS_REF,
     "ToS/philosophy/graph-workbench/proposed-relations/table-ii-prepared-dossiers.jsonl",
+    "ToS/philosophy/graph-workbench/proposed-relations/table-iii-prepared-dossiers.jsonl",
 )
 ENDPOINT_ALIASES_REF = (
     "ToS/philosophy/graph-workbench/proposed-relations/reviewed-endpoint-aliases.json"

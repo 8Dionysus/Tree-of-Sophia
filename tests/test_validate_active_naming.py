@@ -27,6 +27,10 @@ def quoted_a48_artifact_identity() -> str:
     )
 
 
+def quoted_capture_provenance_fragment() -> str:
+    return next(iter(validate_active_naming.QUOTED_CAPTURE_PROVENANCE_FRAGMENTS))
+
+
 def active_reference(text: str) -> str | None:
     match = validate_active_naming.ACTIVE_REFERENCE_PATTERN.search(text)
     return match.group(0) if match else None
@@ -127,6 +131,27 @@ class ValidateActiveNamingTests(unittest.TestCase):
         ):
             with self.subTest(near_miss=near_miss):
                 self.assertIsNotNone(validate_active_naming.retired_content_issue(near_miss))
+
+    def test_exact_capture_provenance_fragment_is_content_only(self) -> None:
+        reference = quoted_capture_provenance_fragment()
+        self.assertIsNotNone(active_reference(reference))
+        self.assertIsNone(validate_active_naming.retired_content_issue(reference))
+        self.assertIsNotNone(validate_active_naming.retired_path_issue(reference))
+
+    def test_capture_provenance_exception_rejects_near_misses_and_paths(self) -> None:
+        reference = quoted_capture_provenance_fragment()
+        for near_miss in (
+            reference.replace("master-" + retired_s_token(), "master-" + retired_s_token() + "s"),
+            reference.replace("Bentham", "Bentham's"),
+            reference.removesuffix("."),
+        ):
+            with self.subTest(near_miss=near_miss):
+                self.assertIsNotNone(validate_active_naming.retired_content_issue(near_miss))
+        self.assertIsNotNone(
+            validate_active_naming.retired_path_issue(
+                "docs/" + reference.replace(" ", "-") + ".md"
+            )
+        )
 
     def test_route_labels_and_experience_pass_markers_are_retired(self) -> None:
         cases = (

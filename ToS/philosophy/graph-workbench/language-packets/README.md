@@ -6,7 +6,8 @@ The package files are generated from supported prepared-dossier proposed nodes. 
 
 | Surface | Role |
 | --- | --- |
-| `table-i-text-bearing-nodes.jsonl` | generated packets for Table I text-corpus candidates |
-| `table-ii-text-bearing-nodes.jsonl` | generated packets for admitted Table II text-corpus candidates |
+| `table-i-text-bearing-nodes.jsonl` | generated packets for admitted table-i text-corpus candidates |
+| `table-ii-text-bearing-nodes.jsonl` | generated packets for admitted table-ii text-corpus candidates |
+| `table-iii-text-bearing-nodes.jsonl` | generated packets for admitted table-iii text-corpus candidates |
 | `ToS/philosophy/atlas/multilingual/text-bearing-nodes.contract.json` | packet contract |
 | `ToS/philosophy/atlas/multilingual/language-registry.json` | language and script registry |

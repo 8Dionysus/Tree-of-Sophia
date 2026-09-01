@@ -85,6 +85,14 @@ QUOTED_EXTERNAL_ARTIFACT_IDENTITIES = frozenset(
         "ToS Deep Research_ A48 — Океания _ khipu _ rongorongo as frontier seed.docx",
     }
 )
+# This exact sentence is captured DOCX provenance prose.  It is retained as a
+# content-only quote in generated coverage; it does not authorize the retired
+# token in an active path or in any altered/shortened wording.
+QUOTED_CAPTURE_PROVENANCE_FRAGMENTS = frozenset(
+    {
+        "Bentham включён как заданный master-seed и как пороговая фигура: его ранние тексты до 1820 года учитываются только как генеалогический вход, тогда как ядро документа остаётся в пределах 1820–1900."
+    }
+)
 OLD_ROUTE_PREFIX = "z" + "v"
 RETIRED_ROUTE_LABEL_PATTERN = re.compile(
     r"(?<![A-Za-z0-9])" + OLD_ROUTE_PREFIX + r"\d+(?:[-_][A-Za-z0-9]+)+",
@@ -149,6 +157,8 @@ def retired_path_issue(value: str) -> str | None:
 def retired_content_issue(text: str) -> str | None:
     for artifact_identity in QUOTED_EXTERNAL_ARTIFACT_IDENTITIES:
         text = text.replace(artifact_identity, "[quoted-external-artifact-identity]")
+    for capture_fragment in QUOTED_CAPTURE_PROVENANCE_FRAGMENTS:
+        text = text.replace(capture_fragment, "[quoted-capture-provenance-fragment]")
     for match in ACTIVE_REFERENCE_PATTERN.finditer(text):
         reference = match.group(0)
         if reference.lower() not in ALLOWED_ACTIVE_CONTENT_REFERENCES:

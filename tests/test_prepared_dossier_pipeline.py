@@ -31,12 +31,21 @@ from plant_prepared_dossiers import validate_local_docx_contents  # noqa: E402
 import plant_table_i_prepared_dossiers as planting_pipeline  # noqa: E402
 from plant_table_i_prepared_dossiers import (  # noqa: E402
     dossier_local_node_alias,
+    normalize_row_to_expand,
     resolve_relation_endpoints,
     table_family,
 )
 
 
 class PreparedDossierPipelineTest(unittest.TestCase):
+    def test_row_to_expand_normalizes_numeric_and_annotated_values(self) -> None:
+        self.assertEqual(normalize_row_to_expand("51", "T2-51"), "T2-51")
+        self.assertEqual(normalize_row_to_expand("T3-09 (порядок запуска 9)", "T3-09"), "T3-09")
+        self.assertNotEqual(normalize_row_to_expand("T3-09", "T2-09"), "T2-09")
+
+    def test_dossier_pattern_supports_table_three_ids(self) -> None:
+        self.assertEqual(planting_pipeline.extract_dossier_id(Path("T3-09 dossier.docx")), "T3-09")
+
     def test_readiness_exposes_table_i_package(self) -> None:
         payload = readiness_payload()
         table_i = payload["tables"]["table-i"]
@@ -66,6 +75,11 @@ class PreparedDossierPipelineTest(unittest.TestCase):
                 "supported": True,
                 "package_ready_to_plant": True,
             },
+            "table-iii": {
+                "table_id": "table-iii",
+                "supported": True,
+                "package_ready_to_plant": False,
+            },
         }
 
         with patch(
@@ -78,10 +92,10 @@ class PreparedDossierPipelineTest(unittest.TestCase):
         self.assertFalse(payload["ready_to_plant"])
         self.assertEqual(
             payload["required_supported_package_readiness"],
-            {"table-i": False, "table-ii": True},
+            {"table-i": False, "table-ii": True, "table-iii": False},
         )
         self.assertEqual(payload["tables"], {"table-ii": package_readiness["table-ii"]})
-        self.assertEqual(readiness.call_count, 2)
+        self.assertEqual(readiness.call_count, 3)
 
     def test_readiness_rejects_duplicate_local_dossier_ids(self) -> None:
         expected = table_readiness("table-i")["expected_dossier_ids"]
@@ -320,13 +334,15 @@ class PreparedDossierPipelineTest(unittest.TestCase):
         table_ii = payload["tables"]["table-ii"]
         self.assertTrue(table_ii["supported"])
         self.assertEqual(table_ii["row_count"], 58)
-        self.assertEqual(table_ii["docx_sections"], ["2.1"])
-        self.assertEqual(table_ii["master_alignment"], "49/58")
-        self.assertEqual(table_ii["input_admission"], "49/50")
-        self.assertEqual(table_ii["blocked_dossier_ids"], ["T2-26"])
-        self.assertEqual(table_ii["missing_master_dossier_ids"], [f"T2-{value:02d}" for value in range(51, 59)])
-        self.assertFalse(payload["tables"]["table-iii"]["supported"])
-        self.assertIn("branch route map", payload["tables"]["table-iii"]["next_route"])
+        self.assertEqual(table_ii["docx_sections"], ["2"])
+        self.assertEqual(table_ii["master_alignment"], "58/58")
+        self.assertEqual(table_ii["input_admission"], "58/58")
+        self.assertEqual(table_ii["blocked_dossier_ids"], [])
+        self.assertEqual(table_ii["missing_master_dossier_ids"], [])
+        table_iii = payload["tables"]["table-iii"]
+        self.assertTrue(table_iii["supported"])
+        self.assertEqual(table_iii["master_alignment"], "45/84")
+        self.assertEqual(table_iii["missing_master_dossier_ids"], [f"T3-{value:02d}" for value in range(46, 85)])
 
     def test_readiness_rejects_drifted_identity_on_declared_missing_master_rows(self) -> None:
         rows = [
@@ -407,7 +423,7 @@ class PreparedDossierPipelineTest(unittest.TestCase):
     def test_route_map_keeps_frontier_and_manual_review_explicit(self) -> None:
         payload = json.loads(ROUTES_PATH.read_text(encoding="utf-8"))
         package = payload["packages"]["table-i"]
-        self.assertEqual(payload["schema_version"], "tos_prepared_dossier_routes_v3")
+        self.assertEqual(payload["schema_version"], "tos_prepared_dossier_routes_v4")
         self.assertEqual(package["docx_sections"], ["1.1", "1.2", "1.3"])
         routes = {row["dossier_id"]: {**package["route_defaults"], **row} for row in package["routes"]}
         self.assertEqual(len(routes), 48)
@@ -419,16 +435,16 @@ class PreparedDossierPipelineTest(unittest.TestCase):
 
         table_ii = payload["packages"]["table-ii"]
         table_ii_routes = {row["dossier_id"]: {**table_ii["route_defaults"], **row} for row in table_ii["routes"]}
-        self.assertEqual(len(table_ii_routes), 49)
-        self.assertNotIn("T2-26", table_ii_routes)
-        self.assertEqual(table_ii["blocked_dossiers"][0]["posture"], "blocked_master_identity_mismatch")
-        self.assertEqual(table_ii["missing_master_dossier_ids"], [f"T2-{value:02d}" for value in range(51, 59)])
-        self.assertTrue(
-            all(
-                row["branch_path"].startswith("ToS/philosophy/eras/medieval-worlds/")
-                for row in table_ii["routes"]
-            )
-        )
+        self.assertEqual(len(table_ii_routes), 58)
+        self.assertIn("T2-26", table_ii_routes)
+        self.assertEqual(table_ii["missing_master_dossier_ids"], [])
+        self.assertTrue(all(
+            row["branch_path"].startswith("ToS/philosophy/eras/medieval-worlds/")
+            for row in table_ii["routes"] if row["dossier_id"] != "T2-56"
+        ))
+        t2_56 = table_ii_routes["T2-56"]
+        self.assertTrue(t2_56["branch_path"].startswith("ToS/philosophy/frontiers/"))
+        self.assertIn("not_a_readable_text_corpus_claim", t2_56["route_constraints"])
 
     def test_tracked_intake_manifest_preserves_fixity_and_claim_limit(self) -> None:
         payload = json.loads(INTAKE_PATH.read_text(encoding="utf-8"))
@@ -482,34 +498,30 @@ class PreparedDossierPipelineTest(unittest.TestCase):
 
     def test_table_ii_fixity_coverage_and_quarantine_are_exact(self) -> None:
         intake = json.loads(TABLE_II_INTAKE_PATH.read_text(encoding="utf-8"))
-        self.assertEqual(intake["file_count"], 50)
-        self.assertEqual(intake["admitted_file_count"], 49)
-        self.assertEqual(intake["quarantined_file_count"], 1)
+        self.assertEqual(intake["file_count"], 58)
+        self.assertEqual(intake["admitted_file_count"], 58)
+        self.assertEqual(intake["quarantined_file_count"], 0)
         self.assertEqual(intake["artifact_trust_posture"]["verdict"], "unknown")
         self.assertFalse(intake["artifact_trust_posture"]["registered_trust_class"])
-        self.assertEqual(intake["section_counts"], {"2.1": 50})
+        self.assertEqual(intake["section_counts"], {"2": 58})
         self.assertEqual(
-            intake["section_fingerprints"]["2.1"],
-            "ba05e070cbdad0a8af246ad2989a17874fdd1cde5843eff872b495e657598228",
+            intake["section_fingerprints"]["2"],
+            "abd44eaedd9f77ea5f15c5ef66b87440422af49a79a9139308dcc71b7f08ed5a",
         )
 
         coverage = json.loads(TABLE_II_COVERAGE_PATH.read_text(encoding="utf-8"))
-        self.assertEqual(coverage["summary"]["table_body_row_count"], 12269)
+        self.assertEqual(coverage["summary"]["table_body_row_count"], 14271)
         self.assertEqual(
             coverage["summary"]["coverage_class_counts"],
             {
-                "deferred_context": 3558,
-                "identity_metadata_examined": 657,
-                "quarantined_identity_mismatch": 157,
-                "structured_primary_extracted": 7897,
+                "deferred_context": 4226,
+                "identity_metadata_examined": 766,
+                "structured_primary_extracted": 9279,
             },
         )
-        self.assertEqual(coverage["summary"]["family_row_counts"]["proposed_nodes"], 1826)
-        self.assertEqual(coverage["summary"]["family_row_counts"]["proposed_relations"], 1948)
-        self.assertEqual(coverage["summary"]["family_row_counts"]["risk_control_source_needs"], 666)
-        quarantined = next(row for row in coverage["dossiers"] if row["dossier_id"] == "T2-26")
-        self.assertEqual(quarantined["admission_status"], "blocked_master_identity_mismatch")
-        self.assertEqual(quarantined["coverage"]["coverage_class_counts"], {"quarantined_identity_mismatch": 157})
+        self.assertEqual(coverage["summary"]["family_row_counts"]["proposed_nodes"], 2152)
+        self.assertEqual(coverage["summary"]["family_row_counts"]["proposed_relations"], 2311)
+        self.assertEqual(coverage["summary"]["family_row_counts"]["risk_control_source_needs"], 783)
 
     def test_table_ii_control_tos_risk_header_is_structured(self) -> None:
         self.assertEqual(
@@ -566,26 +578,16 @@ class PreparedDossierPipelineTest(unittest.TestCase):
 
         coverage = json.loads(TABLE_II_COVERAGE_PATH.read_text(encoding="utf-8"))
         family_counts = coverage["summary"]["family_row_counts"]
-        self.assertEqual(family_counts["corpora_texts_artifacts"], 693)
-        self.assertEqual(family_counts["figures_authorship"], 579)
-        self.assertEqual(family_counts["other_context"], 365)
-        self.assertEqual(
-            coverage["summary"]["underlying_family_row_counts"]["corpora_texts_artifacts"],
-            11,
-        )
-        quarantined = next(row for row in coverage["dossiers"] if row["dossier_id"] == "T2-26")
-        self.assertEqual(
-            quarantined["coverage"]["underlying_family_row_counts"]["corpora_texts_artifacts"],
-            11,
-        )
+        self.assertEqual(family_counts["corpora_texts_artifacts"], 780)
+        self.assertEqual(family_counts["figures_authorship"], 651)
+        self.assertEqual(family_counts["other_context"], 511)
 
     def test_table_ii_quarantine_emits_no_semantic_output_and_b_rows_need_review(self) -> None:
         index_rows = [json.loads(line) for line in DOSSIER_INDEX_PATH.read_text(encoding="utf-8").splitlines() if line]
         node_rows = [json.loads(line) for line in TABLE_II_NODES_PATH.read_text(encoding="utf-8").splitlines() if line]
         relation_rows = [json.loads(line) for line in TABLE_II_RELATIONS_PATH.read_text(encoding="utf-8").splitlines() if line]
-        self.assertEqual(sum(row.get("table_id") == "table-ii" for row in index_rows), 49)
-        self.assertFalse(any(row["dossier_id"] == "T2-26" for row in index_rows + node_rows + relation_rows))
-        self.assertFalse(any("Эфиопская (геэзская)" in json.dumps(row, ensure_ascii=False) for row in index_rows + node_rows + relation_rows))
+        self.assertEqual(sum(row.get("table_id") == "table-ii" for row in index_rows), 58)
+        self.assertTrue(any(row["dossier_id"] == "T2-26" for row in index_rows + node_rows + relation_rows))
 
         master_rows = [
             json.loads(line)
@@ -618,7 +620,7 @@ class PreparedDossierPipelineTest(unittest.TestCase):
         self.assertEqual(hyphenated["source_candidate_id"], "table-ii-t2-02-node-001")
         self.assertEqual(hyphenated["target_candidate_id"], "table-ii-t2-02-node-002")
         self.assertEqual(hyphenated["endpoint_resolution"], "matched_nodes")
-        self.assertEqual(sum(row["endpoint_resolution"] == "matched_nodes" for row in relation_rows), 1679)
+        self.assertEqual(sum(row["endpoint_resolution"] == "matched_nodes" for row in relation_rows), 2012)
 
     def test_dossier_local_node_alias_accepts_observed_qualified_forms(self) -> None:
         self.assertEqual(dossier_local_node_alias("T2-02", "T2-02-CLC-01"), "CLC-01")
@@ -720,7 +722,7 @@ class PreparedDossierPipelineTest(unittest.TestCase):
     def test_table_ii_titles_have_reviewed_ru_en_labels_without_false_t2_26(self) -> None:
         payload = json.loads(LABELS_PATH.read_text(encoding="utf-8"))
         labels = payload["label_sets"]["dossier_titles"]
-        table_ii_ids = {f"T2-{value:02d}" for value in range(1, 51)} - {"T2-26"}
+        table_ii_ids = {f"T2-{value:02d}" for value in range(1, 59)}
         self.assertEqual({key for key in labels if key.startswith("T2-")}, table_ii_ids)
         self.assertTrue(all(labels[dossier_id]["ru"] and labels[dossier_id]["en"] for dossier_id in table_ii_ids))
         self.assertFalse(any(re.search(r"[А-Яа-яЁё]", labels[dossier_id]["en"]) for dossier_id in table_ii_ids))

@@ -1,4 +1,4 @@
-# ранний и классический kalām
+# Калām ранний и классический
 
 Atlas row: `T2-09`. Prepared dossier: `ToS Deep Research_ T2-09 — ранний и классический kalām.docx`.
 
