@@ -29,6 +29,10 @@
 - [TOS-D-0017 - Relation Pack Graph Promotion Validator](../TOS-D-0017-relation-pack-graph-promotion-validator.md) (`docs/decisions/TOS-D-0017-relation-pack-graph-promotion-validator.md`)
 - [TOS-D-0019 - Zarathustra Golden Growth Kernel](../TOS-D-0019-zarathustra-golden-growth-kernel.md) (`docs/decisions/TOS-D-0019-zarathustra-golden-growth-kernel.md`)
 
+## contract
+
+- [TOS-D-0037 - Deduplicated Philosophy Graph View Membership](../TOS-D-0037-deduplicated-philosophy-graph-view-membership.md) (`docs/decisions/TOS-D-0037-deduplicated-philosophy-graph-view-membership.md`)
+
 ## contracts
 
 - [TOS-D-0004 - Operational Route Cards](../TOS-D-0004-operational-route-cards.md) (`docs/decisions/TOS-D-0004-operational-route-cards.md`)
@@ -48,6 +52,7 @@
 
 - [TOS-D-0030 - Explicit separate KAG action ABI and provider identity](../TOS-D-0030-exact-kag-action-provider-alignment.md) (`docs/decisions/TOS-D-0030-exact-kag-action-provider-alignment.md`)
 - [TOS-D-0035 - Current KAG provider and action pin supersedes the historical route](../TOS-D-0035-current-kag-provider-action-pin.md) (`docs/decisions/TOS-D-0035-current-kag-provider-action-pin.md`)
+- [TOS-D-0037 - Deduplicated Philosophy Graph View Membership](../TOS-D-0037-deduplicated-philosophy-graph-view-membership.md) (`docs/decisions/TOS-D-0037-deduplicated-philosophy-graph-view-membership.md`)
 
 ## derived-exports
 
@@ -88,6 +93,7 @@
 - [TOS-D-0034 - Exact External Artifact Identity Is Provenance](../TOS-D-0034-exact-external-artifact-identity-is-provenance.md) (`docs/decisions/TOS-D-0034-exact-external-artifact-identity-is-provenance.md`)
 - [TOS-D-0035 - Current KAG provider and action pin supersedes the historical route](../TOS-D-0035-current-kag-provider-action-pin.md) (`docs/decisions/TOS-D-0035-current-kag-provider-action-pin.md`)
 - [TOS-D-0036 - Partial Table II Medieval-Worlds Route](../TOS-D-0036-partial-table-ii-medieval-worlds-route.md) (`docs/decisions/TOS-D-0036-partial-table-ii-medieval-worlds-route.md`)
+- [TOS-D-0037 - Deduplicated Philosophy Graph View Membership](../TOS-D-0037-deduplicated-philosophy-graph-view-membership.md) (`docs/decisions/TOS-D-0037-deduplicated-philosophy-graph-view-membership.md`)
 
 ## doctrine
 
@@ -254,6 +260,7 @@
 - [TOS-D-0031 - TOS-D-0031 AGENTS route topology and progressive disclosure](../TOS-D-0031-agents-route-topology-and-progressive-disclosure.md) (`docs/decisions/TOS-D-0031-agents-route-topology-and-progressive-disclosure.md`)
 - [TOS-D-0032 - TOS-D-0032 cross-corpus documentation map and minimal projection](../TOS-D-0032-cross-corpus-documentation-map-and-minimal-projection.md) (`docs/decisions/TOS-D-0032-cross-corpus-documentation-map-and-minimal-projection.md`)
 - [TOS-D-0035 - Current KAG provider and action pin supersedes the historical route](../TOS-D-0035-current-kag-provider-action-pin.md) (`docs/decisions/TOS-D-0035-current-kag-provider-action-pin.md`)
+- [TOS-D-0037 - Deduplicated Philosophy Graph View Membership](../TOS-D-0037-deduplicated-philosophy-graph-view-membership.md) (`docs/decisions/TOS-D-0037-deduplicated-philosophy-graph-view-membership.md`)
 
 ## zarathustra
 

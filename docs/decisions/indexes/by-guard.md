@@ -78,6 +78,10 @@
 
 - [TOS-D-0022 - Expression Derivation Is Not Equivalence](../TOS-D-0022-expression-derivation-is-not-equivalence.md) (`docs/decisions/TOS-D-0022-expression-derivation-is-not-equivalence.md`)
 
+## deterministic generation
+
+- [TOS-D-0037 - Deduplicated Philosophy Graph View Membership](../TOS-D-0037-deduplicated-philosophy-graph-view-membership.md) (`docs/decisions/TOS-D-0037-deduplicated-philosophy-graph-view-membership.md`)
+
 ## domain topology
 
 - [TOS-D-0003 - Philosophy Domain Tree](../TOS-D-0003-philosophy-domain-tree.md) (`docs/decisions/TOS-D-0003-philosophy-domain-tree.md`)
@@ -275,6 +279,10 @@
 - [TOS-D-0026 - Exact-Current Federated Provider Identities](../TOS-D-0026-exact-current-federated-provider-identities.md) (`docs/decisions/TOS-D-0026-exact-current-federated-provider-identities.md`)
 - [TOS-D-0027 - Same-Day Campaign Release Consolidation](../TOS-D-0027-same-day-campaign-release-consolidation.md) (`docs/decisions/TOS-D-0027-same-day-campaign-release-consolidation.md`)
 
+## repository portability
+
+- [TOS-D-0037 - Deduplicated Philosophy Graph View Membership](../TOS-D-0037-deduplicated-philosophy-graph-view-membership.md) (`docs/decisions/TOS-D-0037-deduplicated-philosophy-graph-view-membership.md`)
+
 ## rights
 
 - [TOS-D-0020 - Corpus Evidence Spine And Witness Storage](../TOS-D-0020-corpus-evidence-spine-and-witness-storage.md) (`docs/decisions/TOS-D-0020-corpus-evidence-spine-and-witness-storage.md`)
@@ -294,6 +302,10 @@
 - [TOS-D-0008 - Root Validation Route Unloading](../TOS-D-0008-root-validation-route-unloading.md) (`docs/decisions/TOS-D-0008-root-validation-route-unloading.md`)
 - [TOS-D-0021 - Domain Vocabulary And Active Route Naming](../TOS-D-0021-domain-vocabulary-and-active-route-naming.md) (`docs/decisions/TOS-D-0021-domain-vocabulary-and-active-route-naming.md`)
 - [TOS-D-0028 - Mechanics Executable Route Map](../TOS-D-0028-mechanics-executable-route-map.md) (`docs/decisions/TOS-D-0028-mechanics-executable-route-map.md`)
+
+## runtime boundary
+
+- [TOS-D-0037 - Deduplicated Philosophy Graph View Membership](../TOS-D-0037-deduplicated-philosophy-graph-view-membership.md) (`docs/decisions/TOS-D-0037-deduplicated-philosophy-graph-view-membership.md`)
 
 ## script topology
 
@@ -342,6 +354,10 @@
 ## source-home symmetry
 
 - [TOS-D-0002 - ToS Source-Home Topology](../TOS-D-0002-tos-source-home-topology.md) (`docs/decisions/TOS-D-0002-tos-source-home-topology.md`)
+
+## source-returning projection
+
+- [TOS-D-0037 - Deduplicated Philosophy Graph View Membership](../TOS-D-0037-deduplicated-philosophy-graph-view-membership.md) (`docs/decisions/TOS-D-0037-deduplicated-philosophy-graph-view-membership.md`)
 
 ## storage boundary
 

@@ -11,7 +11,7 @@ This branch is the ToS philosophy home for the prepared dossier's first tree-sha
 - Source-anchor backlog rows: 73
 - Term rows: 30
 - Transmission rows: 25
-- Node pressure: school_ tradition: 8, text_ corpus: 8, language_ script: 5, institution: 4, figure_ anchor: 4, genre: 3, concept: 3, civilization_ literary_complex: 1
+- Node pressure: school_tradition: 8, text_corpus: 8, language_script: 5, institution: 4, figure_anchor: 4, genre: 3, concept: 3, civilization_literary_complex: 1
 - Relation pressure: uses_language: 10, develops_concept: 9, institutionalized_in: 8, receives_from: 8, belongs_to_genre: 7, transforms_concept: 6, preserved_in: 4, influences: 4
 
 ## Local Surfaces

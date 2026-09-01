@@ -2,7 +2,7 @@
 
 `dossiers/` indexes admitted prepared Deep Research documents for the philosophy atlas.
 
-The supported Table I, complete Table II, and partial Table III plantings record dossier identity, branch route, graph-row pressure, source-anchor backlog, terms, and transmission rows while keeping canon promotion separate.
+The complete Table I, Table II, and Table III plantings record dossier identity, branch route, graph-row pressure, source-anchor backlog, terms, and transmission rows while keeping canon promotion separate.
 
 | Surface | Role |
 | --- | --- |
@@ -13,7 +13,7 @@ The supported Table I, complete Table II, and partial Table III plantings record
 | `ToS/research-packets/deep-research/philosophy/dossiers/table-i-docx-extraction-coverage.json` | explicit structured extraction and deferred-context coverage |
 | `ToS/research-packets/deep-research/philosophy/dossiers/table-ii-docx-intake.manifest.json` | Table II fixity and admission record |
 | `ToS/research-packets/deep-research/philosophy/dossiers/table-ii-docx-extraction-coverage.json` | Table II structured and deferred row accounting |
-| `ToS/research-packets/deep-research/philosophy/dossiers/table-iii-docx-intake.manifest.json` | Table III fixity and partial-admission record |
+| `ToS/research-packets/deep-research/philosophy/dossiers/table-iii-docx-intake.manifest.json` | Table III fixity and admission record |
 | `ToS/research-packets/deep-research/philosophy/dossiers/table-iii-docx-extraction-coverage.json` | Table III structured and deferred row accounting |
 | `source-anchor-backlog.jsonl` | future source witness, edition, corpus, and risk-control anchors |
 | `term-index.jsonl` | prepared term rows extracted from dossier terminology tables |

@@ -34,6 +34,7 @@ class PhilosophyGraphProjectionTest(unittest.TestCase):
 
     def test_projection_has_expected_counts_and_boundary(self) -> None:
         payload = self.load_projection()
+        self.assertEqual(payload["schema_version"], "tos_philosophy_graph_projection_v2")
         counts = payload["counts"]
         self.assertEqual(counts["views"], 11)
         self.assertEqual(counts["graph_layers"], 7)
@@ -69,19 +70,84 @@ class PhilosophyGraphProjectionTest(unittest.TestCase):
             self.assertIn(edge["from_id"], node_ids)
             self.assertIn(edge["to_id"], node_ids)
 
-    def test_views_are_materialized_with_source_refs(self) -> None:
+    def test_views_reference_materialized_graph_with_source_refs(self) -> None:
         payload = self.load_projection()
         views = {view["view_id"]: view for view in payload["views"]}
         chronology = views["chronology"]
         self.assertEqual(chronology["layout_hint"], "timeline-lanes")
-        self.assertGreater(len(chronology["nodes"]), 0)
-        self.assertGreater(len(chronology["edges"]), 0)
+        self.assertGreater(len(chronology["node_ids"]), 0)
+        self.assertGreater(len(chronology["edge_ids"]), 0)
         self.assertIn("ToS/philosophy/atlas/master-tables/table-i/rows.jsonl", chronology["source_refs"])
         source_evidence = views["source-evidence"]
         self.assertIn("evidence-relation", source_evidence["graph_layers"])
         self.assertGreater(len(source_evidence["source_refs"]), 0)
         self.assertIn("research packets remain preparation", source_evidence["source_posture"])
         self.assertIn("source-witness", source_evidence["collapse_rule"]["default_cluster_kinds"])
+
+        node_ids = {node["node_id"] for node in payload["nodes"]}
+        edge_ids = {edge["edge_id"] for edge in payload["edges"]}
+        for view in views.values():
+            self.assertTrue(set(view["node_ids"]) <= node_ids)
+            self.assertTrue(set(view["edge_ids"]) <= edge_ids)
+
+    def test_view_fingerprints_reproduce_from_exported_membership(self) -> None:
+        payload = self.load_projection()
+        nodes = {node["node_id"]: node for node in payload["nodes"]}
+        edges = {edge["edge_id"]: edge for edge in payload["edges"]}
+        fingerprints = {
+            row["view_id"]: row["fingerprint"]
+            for row in payload["snapshot_review"]["current_snapshot"]["view_fingerprints"]
+        }
+        packets = {row["view_id"]: row for row in payload["review_packets"]}
+
+        for view in payload["views"]:
+            view_id = view["view_id"]
+            clusters = [
+                cluster for cluster in payload["clusters"] if view_id in cluster["view_ids"]
+            ]
+            material = _view_fingerprint_material(
+                view_id=view_id,
+                view_nodes=[nodes[node_id] for node_id in view["node_ids"]],
+                view_edges=[edges[edge_id] for edge_id in view["edge_ids"]],
+                view_clusters=clusters,
+                graph_layers=view["graph_layers"],
+                source_refs=view["source_refs"],
+            )
+            expected = _stable_digest(material)
+            self.assertEqual(fingerprints[view_id], expected)
+            self.assertEqual(
+                packets[view_id]["changed_subgraph"]["current_view_fingerprint"],
+                expected,
+            )
+            expected_layer_counts = []
+            for layer in payload["graph_layers"]:
+                layer_id = layer["layer_id"]
+                layer_nodes = [node for node in material["nodes"] if layer_id in node["graph_layers"]]
+                layer_edges = [edge for edge in material["edges"] if layer_id in edge["graph_layers"]]
+                layer_clusters = [
+                    cluster for cluster in clusters if layer_id in cluster["graph_layers"]
+                ]
+                layer_items = [*layer_nodes, *layer_edges, *layer_clusters]
+                source_refs = {
+                    item["source_ref"]
+                    for item in layer_items
+                    if item.get("source_ref")
+                }
+                source_refs.update(
+                    ref
+                    for item in layer_items
+                    for ref in item.get("source_refs", [])
+                )
+                expected_layer_counts.append(
+                    {
+                        "layer_id": layer_id,
+                        "node_count": len(layer_nodes),
+                        "edge_count": len(layer_edges),
+                        "cluster_count": len(layer_clusters),
+                        "source_ref_count": len(source_refs),
+                    }
+                )
+            self.assertEqual(packets[view_id]["layer_counts"], expected_layer_counts)
 
     def test_global_nodes_and_edges_carry_view_and_layer_membership(self) -> None:
         payload = self.load_projection()
@@ -125,7 +191,7 @@ class PhilosophyGraphProjectionTest(unittest.TestCase):
             "admitted",
         )
         self.assertEqual(nodes["atlas-row:T3-45"]["properties"]["dossier_intake_status"], "admitted")
-        self.assertEqual(nodes["atlas-row:T3-46"]["properties"]["dossier_intake_status"], "input_not_supplied")
+        self.assertEqual(nodes["atlas-row:T3-46"]["properties"]["dossier_intake_status"], "admitted")
 
     def test_layer_counts_are_semantic_not_view_wide(self) -> None:
         payload = self.load_projection()

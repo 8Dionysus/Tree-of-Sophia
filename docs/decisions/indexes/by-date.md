@@ -85,3 +85,7 @@
 
 - [TOS-D-0035 - Current KAG provider and action pin supersedes the historical route](../TOS-D-0035-current-kag-provider-action-pin.md) (`docs/decisions/TOS-D-0035-current-kag-provider-action-pin.md`)
 - [TOS-D-0036 - Partial Table II Medieval-Worlds Route](../TOS-D-0036-partial-table-ii-medieval-worlds-route.md) (`docs/decisions/TOS-D-0036-partial-table-ii-medieval-worlds-route.md`)
+
+## 2026-09-01
+
+- [TOS-D-0037 - Deduplicated Philosophy Graph View Membership](../TOS-D-0037-deduplicated-philosophy-graph-view-membership.md) (`docs/decisions/TOS-D-0037-deduplicated-philosophy-graph-view-membership.md`)

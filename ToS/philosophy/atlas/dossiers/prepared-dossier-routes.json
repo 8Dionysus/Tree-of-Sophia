@@ -631,48 +631,8 @@
       "extraction_coverage_ref": "ToS/research-packets/deep-research/philosophy/dossiers/table-iii-docx-extraction-coverage.json",
       "intake_manifest_ref": "ToS/research-packets/deep-research/philosophy/dossiers/table-iii-docx-intake.manifest.json",
       "master_table_ref": "ToS/philosophy/atlas/master-tables/table-iii/rows.jsonl",
-      "missing_master_dossier_ids": [
-        "T3-46",
-        "T3-47",
-        "T3-48",
-        "T3-49",
-        "T3-50",
-        "T3-51",
-        "T3-52",
-        "T3-53",
-        "T3-54",
-        "T3-55",
-        "T3-56",
-        "T3-57",
-        "T3-58",
-        "T3-59",
-        "T3-60",
-        "T3-61",
-        "T3-62",
-        "T3-63",
-        "T3-64",
-        "T3-65",
-        "T3-66",
-        "T3-67",
-        "T3-68",
-        "T3-69",
-        "T3-70",
-        "T3-71",
-        "T3-72",
-        "T3-73",
-        "T3-74",
-        "T3-75",
-        "T3-76",
-        "T3-77",
-        "T3-78",
-        "T3-79",
-        "T3-80",
-        "T3-81",
-        "T3-82",
-        "T3-83",
-        "T3-84"
-      ],
-      "planting_mode": "partial_with_explicit_missing",
+      "missing_master_dossier_ids": [],
+      "planting_mode": "complete",
       "review_policy": {
         "default": "pre_canon_review",
         "manual_review_max_confidence": 3,
@@ -912,9 +872,240 @@
           "branch_path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/east-asia/traditions/chinese-buddhist-modernities-academic-canons",
           "branch_role": "Chinese Buddhist modernities and academic-canons branch",
           "dossier_id": "T3-45"
+        },
+        {
+          "branch_path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/east-asia-diaspora/traditions/transnational-new-confucianism",
+          "branch_role": "transnational New Confucianism across China, Hong Kong, Taiwan, and diaspora branch",
+          "dossier_id": "T3-46"
+        },
+        {
+          "accepted_input_title": "Япония Токугава: неоконфуцианство, kokugaku, rangaku и буддийские реформы",
+          "branch_path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/japan/traditions/tokugawa-confucian-kokugaku-rangaku-buddhist-reforms",
+          "branch_role": "Tokugawa Confucian, kokugaku, rangaku, and Buddhist-reform branch",
+          "dossier_id": "T3-47"
+        },
+        {
+          "branch_path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/japan/traditions/kyoto-school-modernity-religion-war",
+          "branch_role": "Kyoto School, modernity, religion, and wartime-controversy branch",
+          "dossier_id": "T3-48"
+        },
+        {
+          "branch_path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/japan/traditions/postwar-contemporary-japanese-philosophy",
+          "branch_role": "postwar and contemporary Japanese philosophy branch beyond the Kyoto School",
+          "dossier_id": "T3-49"
+        },
+        {
+          "branch_path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/korea/traditions/joseon-confucian-buddhist-modern-academy",
+          "branch_role": "Joseon Confucian, Buddhist, and modern Korean academic-philosophy branch",
+          "dossier_id": "T3-50"
+        },
+        {
+          "branch_path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/vietnam/traditions/multiscript-anti-colonial-philosophical-writing",
+          "branch_role": "Vietnamese multiscript philosophical-writing and anti-colonial-thought branch",
+          "dossier_id": "T3-51"
+        },
+        {
+          "branch_path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/southeast-asian-theravada-worlds/traditions/buddhist-monarchical-theravada-modernities",
+          "branch_role": "Southeast Asian Buddhist-monarchical and Theravada-modernities branch",
+          "dossier_id": "T3-52"
+        },
+        {
+          "branch_path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/malay-world/traditions/islamic-malay-philosophical-writing",
+          "branch_role": "Islamic-Malay philosophical-writing across Jawi, Rumi, court, pesantren, and reformist-print layers",
+          "dossier_id": "T3-53"
+        },
+        {
+          "branch_path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/philippines/traditions/colonial-catholic-national-philosophical-writing",
+          "branch_role": "Philippine colonial-Catholic and national philosophical-writing branch",
+          "dossier_id": "T3-54"
+        },
+        {
+        "branch_path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/southeast-asia/traditions/manuscript-afterlives-philological-recovery",
+        "branch_role": "cross-mainland-and-maritime Southeast Asian manuscript-afterlives and philological-recovery branch",
+        "dossier_id": "T3-55",
+        "route_constraints": [
+          "cross_mainland_and_maritime_scope",
+          "not_a_single_insular_geography_claim"
+        ]
+        },
+        {
+          "branch_path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/ethiopia/traditions/zera-yacob-geez-rational-philosophy-afterlives",
+          "branch_role": "Ethiopian rational-philosophy and Geez manuscript-afterlives branch",
+          "dossier_id": "T3-56"
+        },
+        {
+          "accepted_input_title": "ToS Deep Research: T3-57 — исследовательский узел",
+          "branch_path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/sahel-west-africa/traditions/islamic-manuscript-scholarly-worlds",
+          "branch_role": "Sahelian and West African Islamic manuscript-scholarly-worlds branch",
+          "dossier_id": "T3-57",
+          "review_posture": "manual_review_required",
+          "review_reason": "The supplied artifact explicitly reports insufficient evidence and contains prose only, so it may be captured but must project no structured semantic rows",
+          "route_constraints": [
+            "prose_only_artifact",
+            "insufficient_evidence_declared",
+            "zero_structured_claim_projection",
+            "requires_source_completed_successor_before_semantic_promotion"
+          ]
+        },
+        {
+          "branch_path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/transregional-africa/traditions/ajami-publics-african-language-thought",
+          "branch_role": "Ajami publics and African-language written-thought branch",
+          "dossier_id": "T3-58"
+        },
+        {
+          "branch_path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/africa-global-academy/traditions/african-philosophy-academic-field",
+          "branch_role": "African philosophy as a twentieth- and twenty-first-century academic-field branch",
+          "dossier_id": "T3-59"
+        },
+        {
+          "branch_path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/africa-diaspora/traditions/negritude-pan-africanism-anticolonial-philosophy",
+          "branch_role": "Negritude, Pan-African, and anticolonial-philosophy branch",
+          "dossier_id": "T3-60"
+        },
+        {
+          "branch_path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/southern-africa-global-field/traditions/ubuntu-communitarianism-reconciliation-law",
+          "branch_role": "Ubuntu, communitarianism, reconciliation, law, and critical-ethics branch",
+          "dossier_id": "T3-61"
+        },
+        {
+          "branch_path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/black-atlantic/traditions/africana-philosophy-diasporic-thought",
+          "branch_role": "Africana philosophy and Black Atlantic diasporic-thought branch",
+          "dossier_id": "T3-62"
+        },
+        {
+          "branch_path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/african-writing-frontiers/traditions/new-african-scripts-philosophical-modernities",
+          "branch_role": "new African scripts and evidence-bounded philosophical-modernities branch",
+          "dossier_id": "T3-63"
+        },
+        {
+          "branch_path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/colonial-latin-america/traditions/university-scholasticism-conquest",
+          "branch_role": "colonial Latin American university-scholasticism and conquest-dispute branch",
+          "dossier_id": "T3-64"
+        },
+        {
+          "accepted_input_title": "Латинская Америка XIX века: независимость, позитивизм, национальная философия",
+          "branch_path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/latin-america/traditions/nineteenth-century-independence-positivism-national-philosophies",
+          "branch_role": "nineteenth-century Latin American independence, positivism, and national-philosophies branch",
+          "dossier_id": "T3-65"
+        },
+        {
+          "branch_path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/latin-america-global-south/traditions/liberation-theology-decoloniality",
+          "branch_role": "Latin American liberation-philosophy, liberation-theology, and decoloniality branch",
+          "dossier_id": "T3-66"
+        },
+        {
+          "branch_path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/caribbean-black-atlantic/traditions/anticolonial-creolizing-philosophy",
+          "branch_role": "Caribbean anticolonial and creolizing-philosophy branch",
+          "dossier_id": "T3-67"
+        },
+        {
+          "accepted_input_title": "Колониально-медийный handoff / Nahua и K'iche' / рукопись, кодекс, печать, цифровой корпус",
+          "branch_path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/colonized-mesoamerica/traditions/post-conquest-written-corpora",
+          "branch_role": "post-conquest Mesoamerican written-corpora and mediated indigenous-coauthorship branch",
+          "dossier_id": "T3-68"
+        },
+        {
+          "branch_path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/united-states/traditions/transcendentalism-pragmatism-democratic-philosophy",
+          "branch_role": "United States transcendentalist, pragmatist, and democratic-philosophy branch",
+          "dossier_id": "T3-69"
+        },
+        {
+          "branch_path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/anglophone-academy/traditions/professional-philosophy-twentieth-twenty-first-centuries",
+          "branch_role": "Anglo-American professional-philosophy and disciplinary-institution branch",
+          "dossier_id": "T3-70"
+        },
+        {
+          "branch_path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/united-states-black-thought/traditions/african-american-philosophy",
+          "branch_role": "African American philosophy and Black-thought branch across academic and non-departmental media",
+          "dossier_id": "T3-71"
+        },
+        {
+          "branch_path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/indigenous-north-america/traditions/modern-writing-treaty-thought-sovereignty",
+          "branch_role": "Indigenous North American modern-writing, treaty-thought, and sovereignty branch",
+          "dossier_id": "T3-72"
+        },
+        {
+          "branch_path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/settler-colonial-worlds/traditions/indigenous-rights-theory",
+          "branch_role": "settler-colonial political philosophy and indigenous-rights-theory branch",
+          "dossier_id": "T3-73"
+        },
+        {
+          "branch_path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/pacific-islands/traditions/maori-hawaiian-samoan-written-academic-philosophy",
+          "branch_role": "Maori, Hawaiian, Samoan, and plural Pacific written and academic-philosophy branch",
+          "dossier_id": "T3-74"
+        },
+        {
+          "branch_path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/australia/traditions/aboriginal-torres-strait-islander-written-academic-philosophies",
+          "branch_role": "Aboriginal and Torres Strait Islander written and academic-philosophies branch",
+          "dossier_id": "T3-75"
+        },
+        {
+          "ancestor_roles": {
+            "ToS/philosophy/frontiers": "non-era philosophy routes for cases whose chronology, geography, readability, or evidence posture cannot be represented honestly as one tradition branch",
+            "ToS/philosophy/frontiers/writing-and-information-thresholds": "writing, record-system, decipherment, and readable-corpus boundary routes"
+          },
+          "branch_path": "ToS/philosophy/frontiers/writing-and-information-thresholds/rapa-nui-rongorongo-contact-modern-reception",
+          "branch_role": "Rapa Nui rongorongo undeciphered-script, contact-layer, and modern-reception boundary",
+          "dossier_id": "T3-76",
+          "review_posture": "manual_review_required",
+          "review_reason": "Table III status C and confidence 2; museum-held tablets and modern reception do not establish a deciphered ancient philosophical corpus",
+          "route_constraints": [
+            "not_an_era_or_deciphered_tradition_claim",
+            "museum_tablet_records_not_semantic_decipherment",
+            "colonial_contact_and_modern_reception_are_later_witness_layers",
+            "keep_distinct_from_table_i_a48_comparative_frontier"
+          ],
+          "route_kind": "undeciphered_script_frontier"
+        },
+        {
+        "branch_path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/global-field/traditions/feminist-philosophy-intersectional-theory",
+        "branch_role": "transnational feminist-philosophy and intersectional-theory branch",
+        "dossier_id": "T3-77",
+        "reviewed_node_label_overrides": {
+          "T3-77-N40": {
+            "label": "Wave, canon, translation, category, and institution controversy cluster",
+            "reason": "The DOCX uses a slash-delimited enumeration that active naming law reads as a retired path or id; punctuation is normalized without changing the five named controversy dimensions"
+          }
+        }
+        },
+        {
+          "branch_path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/global-south-global-field/traditions/postcolonial-decolonial-philosophy",
+          "branch_role": "postcolonial and decolonial-philosophy branch with distinct genealogies",
+          "dossier_id": "T3-78"
+        },
+        {
+          "branch_path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/global-field/traditions/race-diaspora-migration-philosophy",
+          "branch_role": "philosophy of race, diaspora, and migration branch",
+          "dossier_id": "T3-79"
+        },
+        {
+          "branch_path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/global-field/traditions/environmental-philosophy-climate-ethics",
+          "branch_role": "environmental-philosophy and climate-ethics branch",
+          "dossier_id": "T3-80"
+        },
+        {
+          "branch_path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/global-field/traditions/technology-media-cybernetics-digital-culture",
+          "branch_role": "philosophy of technology, media, cybernetics, and digital-culture branch",
+          "dossier_id": "T3-81"
+        },
+        {
+          "branch_path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/global-field/traditions/ai-data-ethics-philosophy-computation",
+          "branch_role": "AI ethics, data ethics, and philosophy-of-computation branch",
+          "dossier_id": "T3-82"
+        },
+        {
+          "branch_path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/global-field/traditions/comparative-world-philosophy",
+          "branch_role": "comparative-philosophy and world-philosophy methodology branch",
+          "dossier_id": "T3-83"
+        },
+        {
+          "accepted_input_title": "Философия вне университета",
+          "branch_path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/public-digital-field/traditions/public-philosophy-open-access-media",
+          "branch_role": "public philosophy, open-access archives, online journals, podcasts, and digital-humanities branch",
+          "dossier_id": "T3-84"
         }
       ],
-      "support_posture": "45 master-aligned dossier DOCX files are available for bounded pre-canon planting; T3-46 through T3-84 remain explicitly unsupplied"
+      "support_posture": "all 84 Table III master-aligned dossier DOCX files are available for bounded pre-canon planting"
     }
   },
   "schema_version": "tos_prepared_dossier_routes_v4"

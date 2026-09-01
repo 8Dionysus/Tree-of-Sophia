@@ -127,8 +127,8 @@ review the tree before canon promotion.
 
 | Field | Direction |
 | --- | --- |
-| Current posture | Master tables and prepared dossier indexes give the tree a navigable row spine. Tables I and II are complete at 48 and 58 dossiers; Table III has a bounded partial planting of the 45 supplied dossiers, while `T3-46`–`T3-84` remain explicit unsupplied inputs. |
-| Next honest move | Review the three graph-ready pre-canon slices, especially manual-review and frontier routes, and add the remaining Table III dossiers only through the same atlas, provenance, coverage, multilingual, and branch-route discipline. |
+| Current posture | Master tables and prepared dossier indexes give the tree a navigable row spine. Tables I, II, and III are complete at 48, 58, and 84 admitted dossiers respectively; their graph rows remain pre-canon candidates, with weak, frontier, and structurally incomplete inputs kept explicit. |
+| Next honest move | Review the three graph-ready pre-canon slices, especially manual-review and frontier routes, complete missing source-witness anchors, and replace the structurally incomplete `T3-57` artifact before any semantic promotion. |
 | Guardrail | Atlas rows are prepared navigation and growth pressure; historical source claims still need source witnesses, branch review, and canon review. |
 
 ## Horizon: Graph Review And Projection

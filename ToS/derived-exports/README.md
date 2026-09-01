@@ -46,9 +46,10 @@ The philosophy atlas projection turns `ToS/philosophy/atlas/` into a first
 reviewable tree/graph read model for visualization and graph switching.
 The philosophy graph view catalog turns source-owned view cards and
 `view-contracts.json` into downstream-readable lens filters for `abyss-stack`.
-The philosophy graph projection materializes the atlas projection and graph
-view catalog into source-ref-preserving node, edge, and view packets for
-runtime access planes without moving source authority out of ToS.
+The philosophy graph projection materializes the atlas projection once as a
+source-ref-preserving node/edge set. Each graph view carries stable node/edge
+ID membership over that set, avoiding a second full copy of the same records
+inside every lens while keeping runtime access subordinate to ToS authority.
 The source-witness bibliographic graph separately projects the public-safe
 object/claim catalog into a claim-reified graph. Every edge returns to the
 claim packet, evidence, maker, provenance event, review posture, exact source

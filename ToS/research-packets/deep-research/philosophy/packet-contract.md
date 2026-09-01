@@ -35,8 +35,8 @@ Future packets may be split into:
 | `dossiers/table-i-docx-extraction-coverage.json` | explicit accounting of extracted, metadata-only, and deferred table rows |
 | `dossiers/table-ii-docx-intake.manifest.json` | exact fixity and admission record for the complete supplied Table II packet |
 | `dossiers/table-ii-docx-extraction-coverage.json` | explicit accounting of extracted, metadata-only, and deferred Table II rows |
-| `dossiers/table-iii-docx-intake.manifest.json` | exact fixity and admission record for the supplied partial Table III packet |
-| `dossiers/table-iii-docx-extraction-coverage.json` | explicit accounting of extracted, metadata-only, and deferred Table III rows |
+| `dossiers/table-iii-docx-intake.manifest.json` | exact fixity and admission record for the complete supplied Table III packet |
+| `dossiers/table-iii-docx-extraction-coverage.json` | explicit accounting of extracted, metadata-only, and deferred Table III rows, including the zero-structured-row posture of `T3-57` |
 | `pages/` | capture metadata from external workspaces or UI containers |
 | `packet-contract.md` | this route contract |
 | `extraction-map.md` | the route from packet fields into future branch and graph objects |

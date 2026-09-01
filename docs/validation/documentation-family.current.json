@@ -29,15 +29,15 @@
     "metric": "whitespace_tokens_v1",
     "posture": "summary_first_records_on_demand",
     "record_loading": "machine readers may select records by family_id or path; do not load the full carrier into an always-on prompt",
-    "tracked_surface_count": 2699,
+    "tracked_surface_count": 2955,
     "unhandled_family_count": 0
   },
   "coverage": {
     "excluded_generated_carrier_rules": 3,
-    "excluded_tracked_path_count": 430,
+    "excluded_tracked_path_count": 469,
     "human_scope": {
-      "bytes": 4376566,
-      "count": 837,
+      "bytes": 4443343,
+      "count": 877,
       "excluded_skill_launch_metadata": 25,
       "family_counts": {
         "agents-other": {
@@ -51,9 +51,9 @@
           "lines": 6530
         },
         "docs": {
-          "bytes": 379898,
-          "count": 53,
-          "lines": 6412
+          "bytes": 388073,
+          "count": 54,
+          "lines": 6548
         },
         "evals": {
           "bytes": 3486,
@@ -91,9 +91,9 @@
           "lines": 202
         },
         "root": {
-          "bytes": 170705,
+          "bytes": 171438,
           "count": 13,
-          "lines": 2955
+          "lines": 2965
         },
         "scripts": {
           "bytes": 6388,
@@ -111,20 +111,20 @@
           "lines": 47
         },
         "tos": {
-          "bytes": 3281387,
-          "count": 465,
-          "lines": 56397
+          "bytes": 3339256,
+          "count": 504,
+          "lines": 57440
         }
       },
-      "lines": 77569
+      "lines": 78758
     },
     "surface_kind_counts": {
       "executable": 155,
-      "human": 862,
-      "structured": 1682
+      "human": 902,
+      "structured": 1898
     },
-    "tracked_path_count": 3129,
-    "tracked_surface_count": 2699,
+    "tracked_path_count": 3424,
+    "tracked_surface_count": 2955,
     "unhandled_family_count": 0,
     "unhandled_paths": []
   },
@@ -134,7 +134,7 @@
       "surface_kind_counts": {
         "human": 13
       },
-      "tracked_surface_bytes": 170705,
+      "tracked_surface_bytes": 171438,
       "tracked_surface_count": 13
     },
     {
@@ -153,7 +153,7 @@
         "human": 4,
         "structured": 3
       },
-      "tracked_surface_bytes": 160135,
+      "tracked_surface_bytes": 160138,
       "tracked_surface_count": 7
     },
     {
@@ -167,20 +167,20 @@
     {
       "family_id": "tos",
       "surface_kind_counts": {
-        "human": 465,
-        "structured": 1620
+        "human": 504,
+        "structured": 1836
       },
-      "tracked_surface_bytes": 152346872,
-      "tracked_surface_count": 2085
+      "tracked_surface_bytes": 92359944,
+      "tracked_surface_count": 2340
     },
     {
       "family_id": "docs",
       "surface_kind_counts": {
-        "human": 53,
+        "human": 54,
         "structured": 6
       },
-      "tracked_surface_bytes": 608624,
-      "tracked_surface_count": 59
+      "tracked_surface_bytes": 616773,
+      "tracked_surface_count": 60
     },
     {
       "family_id": "evals",
@@ -224,7 +224,7 @@
         "executable": 88,
         "human": 1
       },
-      "tracked_surface_bytes": 2850601,
+      "tracked_surface_bytes": 2868260,
       "tracked_surface_count": 89
     },
     {
@@ -234,7 +234,7 @@
         "human": 1,
         "structured": 1
       },
-      "tracked_surface_bytes": 1064794,
+      "tracked_surface_bytes": 1078270,
       "tracked_surface_count": 48
     },
     {
@@ -269,7 +269,7 @@
   "source_map": "docs/validation/documentation_family_map.json",
   "source_map_sha256": "9140a03a48109e6a9f35f3ca7dbf82058d96c3961e9e77bc31a743fb8814b13b",
   "tracked_source": "git ls-files -z",
-  "tracked_surface_digest": "b016ab0df5fd6153e67832fcb84ad2871a5f0f93392c5c4a73f9214e82e6e882",
+  "tracked_surface_digest": "4e77e2b8620c341a8b0d877a8e95036a126eb7c2342389433d726dcebd1216a3",
   "tracked_surfaces": [
     {
       "bytes": 1408,
@@ -292,7 +292,7 @@
       "currentness": "tracked_source_snapshot",
       "family_id": "agents-other",
       "path": ".agents/agent-surface.current.json",
-      "sha256": "df24800c1b55311046cced7857cbdc34b77eaf5f7049a1a2a49ff29420a625b1",
+      "sha256": "d113016497c4f0a89daf2e1742355de43676166d9bb183ec52ba48f65a17400c",
       "surface_kind": "structured"
     },
     {
@@ -304,11 +304,11 @@
       "surface_kind": "structured"
     },
     {
-      "bytes": 80914,
+      "bytes": 80917,
       "currentness": "tracked_source_snapshot",
       "family_id": "agents-other",
       "path": ".agents/agents-route.current.json",
-      "sha256": "2b8ff92b02fde83b801196de394350ce2d45f564944517842eb5de56cd7d0af2",
+      "sha256": "51c1d562bbae6e518885af93c36791d2aa0a8dad53157776473e06187cee1d20",
       "surface_kind": "structured"
     },
     {
@@ -1664,11 +1664,11 @@
       "surface_kind": "human"
     },
     {
-      "bytes": 97964,
+      "bytes": 98682,
       "currentness": "tracked_source_snapshot",
       "family_id": "root",
       "path": "CHANGELOG.md",
-      "sha256": "a504c9eb5425bb461c1a6389b43414d3a9bcc86a436011885fb85c91de28a5d0",
+      "sha256": "f34199b37d782fda7c3bf78d72b936bea8faac1761fedbcf7d738e34bdec011e",
       "surface_kind": "human"
     },
     {
@@ -1728,11 +1728,11 @@
       "surface_kind": "human"
     },
     {
-      "bytes": 13403,
+      "bytes": 13418,
       "currentness": "tracked_source_snapshot",
       "family_id": "root",
       "path": "ROADMAP.md",
-      "sha256": "ed2a1429dd921fd98e7afb4c7e0a80204adf6ed2b7869bccbf1305d5d7f952b5",
+      "sha256": "fc68fee45670c9893a3ab2a99f4278192317b385162ab29261004463dec14c5e",
       "surface_kind": "human"
     },
     {
@@ -2976,11 +2976,11 @@
       "surface_kind": "structured"
     },
     {
-      "bytes": 24482,
+      "bytes": 24366,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/contracts/philosophy-graph-projection.schema.json",
-      "sha256": "11212cb02eba30cd89a5666e64166204056056263dd95117271ee774a82a94f5",
+      "sha256": "cb092195846e29b8aeb687b937c877be3160ff4ae4e98b59f1dce1f64c360307",
       "surface_kind": "structured"
     },
     {
@@ -3400,19 +3400,19 @@
       "surface_kind": "structured"
     },
     {
-      "bytes": 3451,
+      "bytes": 3514,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/derived-exports/AGENTS.md",
-      "sha256": "d4f6f2717bd6adbeb5239e08e2ff7104973b26035093869b376955ccf0a2e296",
+      "sha256": "5d83fe9078cbe2c63db2a09599d2ed31fa127884ff78efd00c0472da368a1b1f",
       "surface_kind": "human"
     },
     {
-      "bytes": 5263,
+      "bytes": 5356,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/derived-exports/README.md",
-      "sha256": "388348bd682c8326b28e88b652f5a62b21e569ce48533cb5c8cc53248b411b63",
+      "sha256": "bf15c5bf5b6e657eda1e007b184da8c975a46819c45f8bb7a993967699b460d5",
       "surface_kind": "human"
     },
     {
@@ -3472,19 +3472,19 @@
       "surface_kind": "structured"
     },
     {
-      "bytes": 16255487,
+      "bytes": 21000648,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/derived-exports/philosophy_atlas_projection.min.json",
-      "sha256": "06f457ecf4dda98dab5edfa0cc1c3c6ae3dd698a0ceb475836a753e7e3250199",
+      "sha256": "74cd1f4d89f3990d58e69930204f89856311e9323afd0f98659f41a06d2d64c6",
       "surface_kind": "structured"
     },
     {
-      "bytes": 96627462,
+      "bytes": 30023039,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/derived-exports/philosophy_graph_projection.min.json",
-      "sha256": "c9d0dcdc75dadce031cbf0b3715f55b8df74ce8f21186a19150d93175acc5910",
+      "sha256": "dece31afca3c60df28a780f1ea5f969625e6cc7272d3cbfa526da9c714ea61d7",
       "surface_kind": "structured"
     },
     {
@@ -3504,11 +3504,11 @@
       "surface_kind": "structured"
     },
     {
-      "bytes": 1345807,
+      "bytes": 1559067,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/derived-exports/tos_corpus_index.min.json",
-      "sha256": "cc854b5d93179bc88b9b591b37fb47aa8dadf45e5d4951c8b9d233fda50b9044",
+      "sha256": "f5c18846731639ecc90796eeea863c978a09671e16a04dc95fe390b1f8e88fb5",
       "surface_kind": "structured"
     },
     {
@@ -3708,7 +3708,7 @@
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/philosophy/atlas/atlas.manifest.json",
-      "sha256": "6a9a0f6f7a43d403d88228e33af6c75af11054e443acc2e10bacbeebcae01c19",
+      "sha256": "3b05c0929187d0a9d4e8860070bc0cdafcbb7315e0f74fa19f5cc1f676e1a3af",
       "surface_kind": "structured"
     },
     {
@@ -3720,11 +3720,11 @@
       "surface_kind": "structured"
     },
     {
-      "bytes": 2215,
+      "bytes": 2189,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/philosophy/atlas/dossiers/README.md",
-      "sha256": "70231c269e3fe0a4a86cd50270f62a6c811509da7c69b47da038ed4ab615d929",
+      "sha256": "eb59f31be8e3a7b3261b2ef9180632a421bd3ca6be23c1845fa9961640721829",
       "surface_kind": "human"
     },
     {
@@ -3732,23 +3732,23 @@
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/philosophy/atlas/dossiers/branch.manifest.json",
-      "sha256": "a456a1474c86a89c6751bef13caa216934304dfcd1e1a3134b80155c6e14f5be",
+      "sha256": "b39ff127e303b54bc7fcadd199536b19faa2e8f7a15f78ed56de212d6983cd26",
       "surface_kind": "structured"
     },
     {
-      "bytes": 2662,
+      "bytes": 2417,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/philosophy/atlas/dossiers/graph-shape-summary.json",
-      "sha256": "b3b8a62e8057aeb98d64b6df798c0f3e4e953f22070a04bcaff2292146e5ee17",
+      "sha256": "6f26cf9c726e7b8b08399ef0c2bf28786b4561031d7b0408d4e50b5344aff127",
       "surface_kind": "structured"
     },
     {
-      "bytes": 50775,
+      "bytes": 65015,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/philosophy/atlas/dossiers/prepared-dossier-routes.json",
-      "sha256": "aada68f15e36baf49ec5c8c5bd6863813df9c5e747cf00c6de0fbd2c246ad1df",
+      "sha256": "1cf9e3be8fd47b3b3c9d38d0b4189feb86a0879c05f5e61551cacc4e43952707",
       "surface_kind": "structured"
     },
     {
@@ -3808,11 +3808,11 @@
       "surface_kind": "structured"
     },
     {
-      "bytes": 2857,
+      "bytes": 2855,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/philosophy/atlas/master-tables/table-iii/table.manifest.json",
-      "sha256": "8ace14f6c125f68d7639b25f99933c0a13e33570a063295a7a88ce9ff4a2ff2d",
+      "sha256": "65d2e7fade7706d20462108ecd3fa9396a1507e3048528aaa78f7e721b9e140d",
       "surface_kind": "structured"
     },
     {
@@ -3832,11 +3832,11 @@
       "surface_kind": "structured"
     },
     {
-      "bytes": 59136,
+      "bytes": 67734,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/philosophy/atlas/multilingual/content-labels.json",
-      "sha256": "f842fa88ee0c2de363c7e2d82bdae150bc25089458ecc9738cadcca6939f9d48",
+      "sha256": "d23c406be4dc49c26f4ba9d7f69aa82c752e591b42f1329fe8da9747d7d48a09",
       "surface_kind": "structured"
     },
     {
@@ -8724,7 +8724,7 @@
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/philosophy/eras/medieval-worlds/regions/west-asia-central-asia/traditions/manichaean-multilingual-transmission-corpus/README.md",
-      "sha256": "9ff8a808763e13bd75dcb5415d9a82ad61392a44c9a583f25e5de6f38930aa9e",
+      "sha256": "ffd846d390aa4d22f804558b6e23046124b3b19a8d6da8d21a71d91de9541f4d",
       "surface_kind": "human"
     },
     {
@@ -8756,7 +8756,7 @@
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/philosophy/eras/medieval-worlds/regions/west-asia-central-asia/traditions/manichaean-multilingual-transmission-corpus/sources/branch.manifest.json",
-      "sha256": "81866eea8324286cd2442e4038d4a2d5db1b07c6637458791fb470c6d4fec81b",
+      "sha256": "7bae32d630181cdd7b778923e938866530e32ad6da760a6262199c27398b7a6e",
       "surface_kind": "structured"
     },
     {
@@ -9248,6 +9248,230 @@
       "surface_kind": "structured"
     },
     {
+      "bytes": 271,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/africa-diaspora/branch.manifest.json",
+      "sha256": "6813acf1b5e306ce129eb4139ad05775bfd96bc7527aa2724fecb624aefdc321",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 326,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/africa-diaspora/traditions/branch.manifest.json",
+      "sha256": "7b650e16fa8eb2afeaf5c13d48d498b4d2428922f7b2087f475ac0d5869a80f2",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1425,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/africa-diaspora/traditions/negritude-pan-africanism-anticolonial-philosophy/README.md",
+      "sha256": "bc0f8e01f9ad6402eb57cf47a7f790aed12103c841cdcfdd14dd4aabc21341d0",
+      "surface_kind": "human"
+    },
+    {
+      "bytes": 985,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/africa-diaspora/traditions/negritude-pan-africanism-anticolonial-philosophy/branch.manifest.json",
+      "sha256": "9b2cf5789504f2283385f8766b8cb344e48ce8f906e5d5381ae036d2366c5072",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 453,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/africa-diaspora/traditions/negritude-pan-africanism-anticolonial-philosophy/graph-workbench/branch.manifest.json",
+      "sha256": "53be0509b7aa4ada0b4292eb62e521a9f1b15c2286722cbd251f3aab11a7e2b3",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1331,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/africa-diaspora/traditions/negritude-pan-africanism-anticolonial-philosophy/graph-workbench/pre-canon-summary.json",
+      "sha256": "f621ae3738353fb079ab784e60371327d39091fdb3f7d1704d2b265e590f6065",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 389,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/africa-diaspora/traditions/negritude-pan-africanism-anticolonial-philosophy/sources/branch.manifest.json",
+      "sha256": "0d27c0697035972d10a5d58c3fa41dd817e029ca9ea09eb4285f25ba7d440cbb",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 289,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/africa-global-academy/branch.manifest.json",
+      "sha256": "b0f897bb132933952a641f2571d64579993ebf95836207cbf1b89431340f7ee8",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1403,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/africa-global-academy/traditions/african-philosophy-academic-field/README.md",
+      "sha256": "55d6428ba740dca3c2288bc5f0b93c17638f9d8a6185f0cf350c8fd81d6d9853",
+      "surface_kind": "human"
+    },
+    {
+      "bytes": 972,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/africa-global-academy/traditions/african-philosophy-academic-field/branch.manifest.json",
+      "sha256": "fdb01db1f3589818e37df02158e72b24eb9b71db7c9a96191eb9f7a081b33263",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 435,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/africa-global-academy/traditions/african-philosophy-academic-field/graph-workbench/branch.manifest.json",
+      "sha256": "d04d1d89ac1cefbbd7bf68dcb70909bd5a3fc2aae83f2bff2e67831e35dce01b",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1471,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/africa-global-academy/traditions/african-philosophy-academic-field/graph-workbench/pre-canon-summary.json",
+      "sha256": "22d9cc664c7dac7d91b9cabf782202e26569136aa154f78b43daa26249082d35",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 371,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/africa-global-academy/traditions/african-philosophy-academic-field/sources/branch.manifest.json",
+      "sha256": "506387494b1840a0ffeaecea50dc6b29bc29b0ee0b2587afbb1c4a7b3471b611",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 323,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/africa-global-academy/traditions/branch.manifest.json",
+      "sha256": "84c783a8e25f91ca89f086fe6da3609c4cc332960f1626032bba38a5dabd6516",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 301,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/african-writing-frontiers/branch.manifest.json",
+      "sha256": "9da3c43d7697606a49683a0359dbe24f5a8abf8dbd3c6404d154f4f2f5fb0c47",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 343,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/african-writing-frontiers/traditions/branch.manifest.json",
+      "sha256": "05068214dc8b9a6d7ef19008e425105ed30ecffc8cd2abfbc35ccb9351448e11",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1587,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/african-writing-frontiers/traditions/new-african-scripts-philosophical-modernities/README.md",
+      "sha256": "7dc95ce64989a3e2f68abb468e5b4d4fd1cec7e5f35f3d4eaf692bd9cb8d42c8",
+      "surface_kind": "human"
+    },
+    {
+      "bytes": 1278,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/african-writing-frontiers/traditions/new-african-scripts-philosophical-modernities/branch.manifest.json",
+      "sha256": "119b8d5392449437d08c5c9e05f7a0a270b42af3437b95a00bb9fec7a6fc6d31",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 717,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/african-writing-frontiers/traditions/new-african-scripts-philosophical-modernities/graph-workbench/branch.manifest.json",
+      "sha256": "a695e4227a97580f0c5596d1f87d85dd9a29e76d90c246a187d22a252b5d1acc",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1592,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/african-writing-frontiers/traditions/new-african-scripts-philosophical-modernities/graph-workbench/pre-canon-summary.json",
+      "sha256": "5802d92ed36a56902ea893f76a68579e896541000a20a017d67dd09e83f18bc1",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 653,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/african-writing-frontiers/traditions/new-african-scripts-philosophical-modernities/sources/branch.manifest.json",
+      "sha256": "0e44e88a60e307ab3824af38a46e18f8c86a5a27b1f867b3a26f3e22d2b0061d",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 280,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/anglophone-academy/branch.manifest.json",
+      "sha256": "0a73519e4a9031c9c8550b0f4a3c2b479e0b395769838a3c028cbc7fa8742e03",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 340,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/anglophone-academy/traditions/branch.manifest.json",
+      "sha256": "5aea6189ba1848b2a021ed76dda4770cb621f1e3703177b03cdeff567726b7b4",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1395,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/anglophone-academy/traditions/professional-philosophy-twentieth-twenty-first-centuries/README.md",
+      "sha256": "b155b9838d34911b047960bd18d3bd848bceb790266c19ff12addf916040c28c",
+      "surface_kind": "human"
+    },
+    {
+      "bytes": 1045,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/anglophone-academy/traditions/professional-philosophy-twentieth-twenty-first-centuries/branch.manifest.json",
+      "sha256": "0948919c362d4303a6f3b9e2dea23228eef3a31a0507e980fe2a9f5b5c0c51b2",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 475,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/anglophone-academy/traditions/professional-philosophy-twentieth-twenty-first-centuries/graph-workbench/branch.manifest.json",
+      "sha256": "ed77dceb0b042c6f962fe8d12fccd7749c689bba4087697ddeb6fd9a0274e197",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1474,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/anglophone-academy/traditions/professional-philosophy-twentieth-twenty-first-centuries/graph-workbench/pre-canon-summary.json",
+      "sha256": "acdacf8b4b3287db110dcb517a1e335654d4264437c1747a64bfe4d3851788be",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 411,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/anglophone-academy/traditions/professional-philosophy-twentieth-twenty-first-centuries/sources/branch.manifest.json",
+      "sha256": "241bcd670bd5dc4e409775ba3e96223045e093b1685fa3b115b03b0321cef6a3",
+      "surface_kind": "structured"
+    },
+    {
       "bytes": 256,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
@@ -9260,7 +9484,7 @@
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/arab-world/traditions/arab-nahda-philosophical-press-translation-modernity/README.md",
-      "sha256": "63b334ee9792ec6bb6cbc69e0c04cdfaf24ba59c4a7e2430c7d6fc2dc6792d61",
+      "sha256": "abf80855f77eaca4d3540ec722fdd99e1fb8ccfef3f33cdb87fd3861d66c71ce",
       "surface_kind": "human"
     },
     {
@@ -9292,7 +9516,7 @@
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/arab-world/traditions/arab-nahda-philosophical-press-translation-modernity/sources/branch.manifest.json",
-      "sha256": "0c4df35d7c602e055fb994929fda1d0c0842e7429bfb7f656e08f7d703c3d4d5",
+      "sha256": "de5c6d43e5afa15163fe018068b92b2449640aa20280ee01b2e3c6e6d8420bbd",
       "surface_kind": "structured"
     },
     {
@@ -9400,6 +9624,62 @@
       "surface_kind": "structured"
     },
     {
+      "bytes": 253,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/australia/branch.manifest.json",
+      "sha256": "fedefe644213442f1fde319aeee1adf8d685800a764b918757416b8fbea6b8d4",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1650,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/australia/traditions/aboriginal-torres-strait-islander-written-academic-philosophies/README.md",
+      "sha256": "aadbb0cb74df2edd86ebc6442a042794f36708dd696f198f4ee58c4645886cf5",
+      "surface_kind": "human"
+    },
+    {
+      "bytes": 1291,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/australia/traditions/aboriginal-torres-strait-islander-written-academic-philosophies/branch.manifest.json",
+      "sha256": "3a7c2cb97157e098e414735e3ff6fd2019f7314446e5ddf934296b0e72ad51e6",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 721,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/australia/traditions/aboriginal-torres-strait-islander-written-academic-philosophies/graph-workbench/branch.manifest.json",
+      "sha256": "e9f25d474cf026b75cc0858f4cde9e513ff8da34d19ae23b837a374e130f3f79",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1657,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/australia/traditions/aboriginal-torres-strait-islander-written-academic-philosophies/graph-workbench/pre-canon-summary.json",
+      "sha256": "732d1ca1d77e73cc2d2c79f3321b187c6aa71b1e3cb1fd5a9ac95744d0e16e58",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 657,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/australia/traditions/aboriginal-torres-strait-islander-written-academic-philosophies/sources/branch.manifest.json",
+      "sha256": "d08a2e3a818190882389bd8453f28d034b83300ce647c2ff31bdecff3d9c2c87",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 329,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/australia/traditions/branch.manifest.json",
+      "sha256": "5cc4f7ae5ff8f7c37ee66c6ad9e621a116079259e3141202a46b1c779e9a7fac",
+      "surface_kind": "structured"
+    },
+    {
       "bytes": 292,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
@@ -9456,11 +9736,67 @@
       "surface_kind": "structured"
     },
     {
-      "bytes": 1113,
+      "bytes": 268,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/black-atlantic/branch.manifest.json",
+      "sha256": "df68d546dc8621dfacba15a88dc0f0944e81327fe36dfe0ff40eaaab0cbcde35",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1334,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/black-atlantic/traditions/africana-philosophy-diasporic-thought/README.md",
+      "sha256": "bc7d9790c651faaa7ca31ef2f68eba3a289192485ab96b4603d792208c214e1b",
+      "surface_kind": "human"
+    },
+    {
+      "bytes": 942,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/black-atlantic/traditions/africana-philosophy-diasporic-thought/branch.manifest.json",
+      "sha256": "aed80c5b1ffffe6eaa1ec988a201de8da9085ed2c51437193a093e2d0978d6a3",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 429,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/black-atlantic/traditions/africana-philosophy-diasporic-thought/graph-workbench/branch.manifest.json",
+      "sha256": "7b8753e9b782a618b484e15e97cf8fe07cfe1cc106164cbd9821e7829e41f367",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1375,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/black-atlantic/traditions/africana-philosophy-diasporic-thought/graph-workbench/pre-canon-summary.json",
+      "sha256": "60744fa533b51e7da95f2ed7e7b25217ef0cba1b90ea877d19db541b8ae7aab1",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 365,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/black-atlantic/traditions/africana-philosophy-diasporic-thought/sources/branch.manifest.json",
+      "sha256": "c02f57e9152d49f31a3ad16bf245ee146c84474c778c180dbf1abbdecfa0ecdd",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 313,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/black-atlantic/traditions/branch.manifest.json",
+      "sha256": "3df9d8f4dbe68e44302cc7efc2f57548ae5f8023dfde8bd65a6ae25a66b31e23",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1915,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/branch.manifest.json",
-      "sha256": "58b04a28da7c6ec27c53ae4f3d42079f04379f2c8aae29cc2ec54eb594298ef6",
+      "sha256": "cc8547a0214712258d6aef520ba9bb3737117b72c7850ccb1bef24cfe96f8fcf",
       "surface_kind": "structured"
     },
     {
@@ -9520,6 +9856,62 @@
       "surface_kind": "structured"
     },
     {
+      "bytes": 298,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/caribbean-black-atlantic/branch.manifest.json",
+      "sha256": "f97de4fab427b3b770f9dce79b20a93a9827f3f2624f711eb2808fd2cb22e183",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1464,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/caribbean-black-atlantic/traditions/anticolonial-creolizing-philosophy/README.md",
+      "sha256": "30702cc46b211fe9f1aa641d6a13d7d9957cefd76187d983f1f9ac96178c3f11",
+      "surface_kind": "human"
+    },
+    {
+      "bytes": 962,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/caribbean-black-atlantic/traditions/anticolonial-creolizing-philosophy/branch.manifest.json",
+      "sha256": "80f4facfb6cc3848258870ad706350bc943cde13d2283b342d78ceb112f1165f",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 443,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/caribbean-black-atlantic/traditions/anticolonial-creolizing-philosophy/graph-workbench/branch.manifest.json",
+      "sha256": "f5a4dab95dbf1c6017d2a712131fe8afe4e719831a33280466a878be57ef0157",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1458,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/caribbean-black-atlantic/traditions/anticolonial-creolizing-philosophy/graph-workbench/pre-canon-summary.json",
+      "sha256": "8641c80ac2497d6ab42d92975638be2fd12a75e21b61d17b7f4beffef0754a45",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 380,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/caribbean-black-atlantic/traditions/anticolonial-creolizing-philosophy/sources/branch.manifest.json",
+      "sha256": "11fd432abc282455b118cbd60120573a79abfaff033ffdc2ec0806b4071a092b",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 330,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/caribbean-black-atlantic/traditions/branch.manifest.json",
+      "sha256": "1ca782ed4132b5f11cc69e527d91b1fccc2efff71a1d8d69b67e6df75c558942",
+      "surface_kind": "structured"
+    },
+    {
       "bytes": 268,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
@@ -9540,7 +9932,7 @@
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/central-europe/traditions/lvov-warsaw-central-european-logical-schools/README.md",
-      "sha256": "143518014994744e8789d50a1329f55acbb6d7e2ecc508dc91a2c791d9414770",
+      "sha256": "5b7d6a13e18b0ee82d20f337e5271a828956f2dc44dd252698334a225d0a8442",
       "surface_kind": "human"
     },
     {
@@ -9572,7 +9964,63 @@
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/central-europe/traditions/lvov-warsaw-central-european-logical-schools/sources/branch.manifest.json",
-      "sha256": "62e2bea0171940ab7ddf5d073ffa571ecc3ca9f045dc704ff50123b6af44ce0e",
+      "sha256": "b3bf95880d50f13563b913c12bf9d3a4e634f8a9d53fa2ffd99187d58f2689e6",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 292,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/colonial-latin-america/branch.manifest.json",
+      "sha256": "f77abf105b95d2d47faed967fb288b6dc736054c0fa533cacd0dbf120852d7ed",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 325,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/colonial-latin-america/traditions/branch.manifest.json",
+      "sha256": "d047a400c2b04f5ffa91be79db602c446b25948198ca1a687b6c0fba4411f4f9",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1413,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/colonial-latin-america/traditions/university-scholasticism-conquest/README.md",
+      "sha256": "3778d2ac632368a641c8912cdd666f835cd9eb796fcb2a574f20331912ccd4ea",
+      "surface_kind": "human"
+    },
+    {
+      "bytes": 971,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/colonial-latin-america/traditions/university-scholasticism-conquest/branch.manifest.json",
+      "sha256": "099e053d51757d11bbfed63f4f494e32fdcfc96a938fd9d3dd2ebd8aec3914d9",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 437,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/colonial-latin-america/traditions/university-scholasticism-conquest/graph-workbench/branch.manifest.json",
+      "sha256": "21e45b5afd98d1ac6fd18c24462b9c801f024385457a4d53b75345e585271dc6",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1414,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/colonial-latin-america/traditions/university-scholasticism-conquest/graph-workbench/pre-canon-summary.json",
+      "sha256": "c855c1fd28ebd7dd5ca65535143bdd14d49c5712f3bbe7d7387bfbd0019851fa",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 373,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/colonial-latin-america/traditions/university-scholasticism-conquest/sources/branch.manifest.json",
+      "sha256": "681742d9787952c6228f2ab813d1de3a7c5a48fafe5450caf5b0a763233a5439",
       "surface_kind": "structured"
     },
     {
@@ -9632,6 +10080,62 @@
       "surface_kind": "structured"
     },
     {
+      "bytes": 289,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/colonized-mesoamerica/branch.manifest.json",
+      "sha256": "3c8129c071e73db02fc03866f26efac387f003d3076db9383aa88019de149023",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 319,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/colonized-mesoamerica/traditions/branch.manifest.json",
+      "sha256": "0658112acd4943e32d1dbf1e8f85137cb1efe204e2c055d6793a9f137514446c",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1659,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/colonized-mesoamerica/traditions/post-conquest-written-corpora/README.md",
+      "sha256": "0062336aca5e8d88db2cabfa922e3784c1a92c261a334f008a357ab98bb42ee1",
+      "surface_kind": "human"
+    },
+    {
+      "bytes": 1211,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/colonized-mesoamerica/traditions/post-conquest-written-corpora/branch.manifest.json",
+      "sha256": "44ee533115169557c2e5b6b7c2db5e881a81edd7c4c874d7a4c436e005d7bd64",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 677,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/colonized-mesoamerica/traditions/post-conquest-written-corpora/graph-workbench/branch.manifest.json",
+      "sha256": "85375c1abc21199fb535e8f532e2c53d2f8df1c37779e250ccd83b8a4da42f36",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1618,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/colonized-mesoamerica/traditions/post-conquest-written-corpora/graph-workbench/pre-canon-summary.json",
+      "sha256": "ef40b82c1fe687419de5178cfe9cac6b822ff0e6a1e034bc04bbfbb44fa56efe",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 613,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/colonized-mesoamerica/traditions/post-conquest-written-corpora/sources/branch.manifest.json",
+      "sha256": "a6be2da76006002112f600cf4113b5ae7cc251f8ec66dbce51f4cd3913cf0a10",
+      "surface_kind": "structured"
+    },
+    {
       "bytes": 280,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
@@ -9652,7 +10156,7 @@
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/continental-europe/traditions/hermeneutics-existentialism-modern-philosophical-theology/README.md",
-      "sha256": "e33ec80d7ca7df116e2ef4332bd2590ec264b946874fe9426892f2c53c7b9169",
+      "sha256": "8c3f2c242de4711cfca7c118c1c1aac864933c8ce9aea54de702d5184781f47c",
       "surface_kind": "human"
     },
     {
@@ -9684,7 +10188,7 @@
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/continental-europe/traditions/hermeneutics-existentialism-modern-philosophical-theology/sources/branch.manifest.json",
-      "sha256": "e0df9f470cf9edb8922c3f72ae6977387353738faa6d244751393068f7a2ffba",
+      "sha256": "41cb11e8d75e6c9e3098ae46c56ca20aade5a348d6022f4c29e56210dcd2ff6c",
       "surface_kind": "structured"
     },
     {
@@ -9692,7 +10196,7 @@
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/continental-europe/traditions/phenomenology-archival-worlds/README.md",
-      "sha256": "3a74596b785186ff61b6fbb0ecc0f5720b1085ba655cacb8d6aa5b6bd0eeded4",
+      "sha256": "7b14205d543d799416574b6f9e32d09ba715e51a817e81e7190011e0653bd192",
       "surface_kind": "human"
     },
     {
@@ -9724,7 +10228,63 @@
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/continental-europe/traditions/phenomenology-archival-worlds/sources/branch.manifest.json",
-      "sha256": "1667c61a93e6b48a92c331ddad7ee2e7471b9159555b13e6daae0f1d8f3e17ff",
+      "sha256": "1233c30c856577577c80eec3626e15c7d9deac7fef147cdf6d000158ba429471",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 280,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/east-asia-diaspora/branch.manifest.json",
+      "sha256": "00d345d88440be9a79fec7eaf405e3cb50d6af3ceac432deb85ef8935384bcdf",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 314,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/east-asia-diaspora/traditions/branch.manifest.json",
+      "sha256": "600aea90ddcb3e303d1d496e852938f01f42a21b1ded47cc71c286d51b16973d",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1358,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/east-asia-diaspora/traditions/transnational-new-confucianism/README.md",
+      "sha256": "7170290d139411dc391efc7099cb364835c0d6eab67cb7ea1fe6ffbd5c0dfd72",
+      "surface_kind": "human"
+    },
+    {
+      "bytes": 950,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/east-asia-diaspora/traditions/transnational-new-confucianism/branch.manifest.json",
+      "sha256": "909f2739e92a3ffb307338aa2715a1c51b93e2cb2f9ec5d3c02f06e22cf02af3",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 423,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/east-asia-diaspora/traditions/transnational-new-confucianism/graph-workbench/branch.manifest.json",
+      "sha256": "fa44d718f2dc8d1b55898cf96c97b42e217c87c13fcfbf9832e35396d91acf35",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1382,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/east-asia-diaspora/traditions/transnational-new-confucianism/graph-workbench/pre-canon-summary.json",
+      "sha256": "1eb7cfddb9b31984577f6f37eba31f2a1cca7de7e4c040492858f28a47b34ae3",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 359,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/east-asia-diaspora/traditions/transnational-new-confucianism/sources/branch.manifest.json",
+      "sha256": "a644ecefe25dd0e5ff0a24527e452376b52201e07be6d4bc8c3dc8692e1ff89e",
       "surface_kind": "structured"
     },
     {
@@ -9828,7 +10388,7 @@
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/east-asia/traditions/modern-contemporary-china-reform-marxism-new-confucianism/README.md",
-      "sha256": "cd56a40935fa6d8a5afb1a8dbb2295d2a625b7c905c120e1256ac3ea0e41db02",
+      "sha256": "046a46f2d4096ff579d535d330de95bc5b8ba73bd28aeaca097cfaf69635572f",
       "surface_kind": "human"
     },
     {
@@ -9860,7 +10420,63 @@
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/east-asia/traditions/modern-contemporary-china-reform-marxism-new-confucianism/sources/branch.manifest.json",
-      "sha256": "7b72d6fd75054cb0ac0c6fb596dbe8dffd92956ebe61addf0a5714b279af8828",
+      "sha256": "858e0d7895fa20abe345e83f9cea70ce62571ff3a71ca030138d88a41fb1161e",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 250,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/ethiopia/branch.manifest.json",
+      "sha256": "062064bd546ffc47b0886bf4c0f2b7f64f25f5d351f6b4354ac5d4aa9f1c0a77",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 310,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/ethiopia/traditions/branch.manifest.json",
+      "sha256": "7bd8d14d19af87d985df7ca458aa825b98b5d5ed70f07c50e07b29d0ad05240a",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1640,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/ethiopia/traditions/zera-yacob-geez-rational-philosophy-afterlives/README.md",
+      "sha256": "be3cbb854a51e26591e85dbdfa272af1da74a39df9591eb66ce7e9b96fa6cc35",
+      "surface_kind": "human"
+    },
+    {
+      "bytes": 1208,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/ethiopia/traditions/zera-yacob-geez-rational-philosophy-afterlives/branch.manifest.json",
+      "sha256": "11172e4720a62213f4d89bec48e5f275a4ff0fcb9f4ce32cfb48c16a4c8fb928",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 685,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/ethiopia/traditions/zera-yacob-geez-rational-philosophy-afterlives/graph-workbench/branch.manifest.json",
+      "sha256": "e1f5253adabeee5bcbd4164a7b107b6d480acc479462dbc0a049e658b1268ded",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1725,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/ethiopia/traditions/zera-yacob-geez-rational-philosophy-afterlives/graph-workbench/pre-canon-summary.json",
+      "sha256": "5ab892633b3b0bdd5fd8698155ccdb7b0d8938aa5392a2e31de3521aba2f2647",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 621,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/ethiopia/traditions/zera-yacob-geez-rational-philosophy-afterlives/sources/branch.manifest.json",
+      "sha256": "5b98a28a4ad1405b57858c7c568b6da3fb5bda557839872618da879b1e357e1c",
       "surface_kind": "structured"
     },
     {
@@ -9876,7 +10492,7 @@
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/european-anglophone-field/traditions/analytic-philosophy-disciplinary-field/README.md",
-      "sha256": "86490f638cea33bc060831240729c563dc7dce84378e39debbb4a1159b6ee1e5",
+      "sha256": "472c9f4577d3e8044a5b487f25c1bd07dbb187f8f963213ccc0871186117deec",
       "surface_kind": "human"
     },
     {
@@ -9908,7 +10524,7 @@
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/european-anglophone-field/traditions/analytic-philosophy-disciplinary-field/sources/branch.manifest.json",
-      "sha256": "5a41b90bba7f07f460b797d7daa537b2e49bc5a84168d64eb49b79a042b95062",
+      "sha256": "71712922d145a15c8d78bbd21163f0659a769502fdd1993babeb35b62f0594bd",
       "surface_kind": "structured"
     },
     {
@@ -9940,7 +10556,7 @@
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/european-global-field/traditions/frankfurt-school-critical-theory/README.md",
-      "sha256": "38a056784e938e8231ef34f8976d3d15fafb484e0891a9d96192d459a97c5dc4",
+      "sha256": "68dce60b3ad91eea97a21d0f330f62f1301e72ad293f38cc78261cbdec47b4b6",
       "surface_kind": "human"
     },
     {
@@ -9972,7 +10588,7 @@
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/european-global-field/traditions/frankfurt-school-critical-theory/sources/branch.manifest.json",
-      "sha256": "1474e2c0be6d0f66a257366d0f3343add4ddb69480f5e0768087ce87ac79fce0",
+      "sha256": "8c1c94063da378b6acff6d0a4e6b6bae71a139f6df98e6a2c08f0c4ba3138727",
       "surface_kind": "structured"
     },
     {
@@ -10092,7 +10708,7 @@
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/france-transnational/traditions/structuralism-poststructuralism-theory-fields/README.md",
-      "sha256": "76b58940d36fbde73452b734d71bdc08ad25732d4b96a787a953c71773d6dca0",
+      "sha256": "d17e6d51beba2374d7e760ebeb77a9b9532c3c50ecb96559fae6da574cbabc6a",
       "surface_kind": "human"
     },
     {
@@ -10124,7 +10740,7 @@
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/france-transnational/traditions/structuralism-poststructuralism-theory-fields/sources/branch.manifest.json",
-      "sha256": "104dee3bd46c6f4a543cde6dafd5f5288ed46f023c220af6b90691f03b373040",
+      "sha256": "5f5b21f1e2d0f2e0a552615c1b1eac3c04c808b6a5b0d0bd2482f61f3e2afaf4",
       "surface_kind": "structured"
     },
     {
@@ -10192,6 +10808,46 @@
       "surface_kind": "structured"
     },
     {
+      "bytes": 1375,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/global-field/traditions/ai-data-ethics-philosophy-computation/README.md",
+      "sha256": "116082fcc1a8fcce6e752c97981810aecd3142e0f026f4ceda0326bb7f4fc090",
+      "surface_kind": "human"
+    },
+    {
+      "bytes": 931,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/global-field/traditions/ai-data-ethics-philosophy-computation/branch.manifest.json",
+      "sha256": "87d440cb9e5157a947cad4d2429b437c36de79f6f5c4f973416850dda1349df4",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 425,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/global-field/traditions/ai-data-ethics-philosophy-computation/graph-workbench/branch.manifest.json",
+      "sha256": "8b7b25416ea9946b7bffc0820d48816480214c5100bb3f338554965236a19a5c",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1380,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/global-field/traditions/ai-data-ethics-philosophy-computation/graph-workbench/pre-canon-summary.json",
+      "sha256": "c45f359f42e8ffd9c2b07e44a1261212e2aa0bcff4e4c7e2d647924265ad5c21",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 361,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/global-field/traditions/ai-data-ethics-philosophy-computation/sources/branch.manifest.json",
+      "sha256": "98c9457373e8d3846b01760921e1acc008e9b3ccbe0b048e4b17a51dcc33aa4a",
+      "surface_kind": "structured"
+    },
+    {
       "bytes": 1432,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
@@ -10232,11 +10888,51 @@
       "surface_kind": "structured"
     },
     {
-      "bytes": 343,
+      "bytes": 614,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/global-field/traditions/branch.manifest.json",
-      "sha256": "d972039d7638fc3a47933cb292816421d3de4a7dacf5ec35e7bd5ce4ce842e71",
+      "sha256": "44a0b1d38f002705cecfb84e14f85a0781f6f13f82006a03878ac1336ac1b78e",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1323,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/global-field/traditions/comparative-world-philosophy/README.md",
+      "sha256": "62ca7d59c4b5774775104afa4e56b56da72520569c7d55bb9455eca9e725b0c9",
+      "surface_kind": "human"
+    },
+    {
+      "bytes": 897,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/global-field/traditions/comparative-world-philosophy/branch.manifest.json",
+      "sha256": "c620581b846f90eeebc976c06102b315c72dd7316aea1e581fd773822e30ee9d",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 407,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/global-field/traditions/comparative-world-philosophy/graph-workbench/branch.manifest.json",
+      "sha256": "e97f0b9fd63c30e9f48ec14cdcc54445d73468138e7cdd633e4a50c15ecbc731",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1404,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/global-field/traditions/comparative-world-philosophy/graph-workbench/pre-canon-summary.json",
+      "sha256": "2dde5129bd870cf990ef61270c4a478a5ed3942091245b0116d97344ccc5d033",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 343,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/global-field/traditions/comparative-world-philosophy/sources/branch.manifest.json",
+      "sha256": "5dab5e33d27d029dfc7ac5e555a4a72314d025808244676dd2e3f0d877f7d19d",
       "surface_kind": "structured"
     },
     {
@@ -10244,7 +10940,7 @@
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/global-field/traditions/continental-philosophy-after-1980/README.md",
-      "sha256": "81217855bbe5ba02db5f1ea495b4f2b98f13c77f644a5b64b6056a8ae8967621",
+      "sha256": "21979c3ca96bdfa46fedf8c6be1f035b03743e4995fb6e1806faabc3d7d705ed",
       "surface_kind": "human"
     },
     {
@@ -10276,7 +10972,167 @@
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/global-field/traditions/continental-philosophy-after-1980/sources/branch.manifest.json",
-      "sha256": "cacf81de118dda5de292aaa4d4538b2a3faf8f06bab8aa9a86046234c2ac5b82",
+      "sha256": "4a5585cc9fdbbde10e3637170bb9e61a26b55e3ed605b76b13c6adf1c62b3510",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1369,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/global-field/traditions/environmental-philosophy-climate-ethics/README.md",
+      "sha256": "050988679d6a63ac1f04f3d1f64902f671bf2b778fd4ff603e39708437f6f256",
+      "surface_kind": "human"
+    },
+    {
+      "bytes": 929,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/global-field/traditions/environmental-philosophy-climate-ethics/branch.manifest.json",
+      "sha256": "ad4434e40379996352ade2e12acbe2493d0fd62a47688d38c5305c8887315e9d",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 429,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/global-field/traditions/environmental-philosophy-climate-ethics/graph-workbench/branch.manifest.json",
+      "sha256": "71677f90128f7c155c97b8463c839d637068cba7e96b283eb6319b0c5c20b243",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1371,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/global-field/traditions/environmental-philosophy-climate-ethics/graph-workbench/pre-canon-summary.json",
+      "sha256": "82afc95acab367feae60e6cb1a36019472ddebd428d6d0ffe357734cd0dee0b6",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 365,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/global-field/traditions/environmental-philosophy-climate-ethics/sources/branch.manifest.json",
+      "sha256": "aa7567c95b5beb495004431bcc220cb56ceafba30625f65229d7ec15852a3738",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1389,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/global-field/traditions/feminist-philosophy-intersectional-theory/README.md",
+      "sha256": "5a10b16b8c16a1b249243819eed10cfb4c251a1feb25e36e555871f58164ed54",
+      "surface_kind": "human"
+    },
+    {
+      "bytes": 953,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/global-field/traditions/feminist-philosophy-intersectional-theory/branch.manifest.json",
+      "sha256": "e3ebd6a3e4fc523d21ee43734c419cc44c0ade898de4a1cc044e9a92affaff64",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 433,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/global-field/traditions/feminist-philosophy-intersectional-theory/graph-workbench/branch.manifest.json",
+      "sha256": "d4f4e11000d1192c2f3daa8ee4c672381be854d60a63e17fec1aad80873373e2",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1358,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/global-field/traditions/feminist-philosophy-intersectional-theory/graph-workbench/pre-canon-summary.json",
+      "sha256": "746aa077cf53164743fa7116261feb9b1f96aae9cc45ac4fa57fd7a2a302c757",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 369,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/global-field/traditions/feminist-philosophy-intersectional-theory/sources/branch.manifest.json",
+      "sha256": "2c6dbb7b8587d6b254ae7ab2251d9a163209595a361876c222eb036592de80bc",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1407,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/global-field/traditions/race-diaspora-migration-philosophy/README.md",
+      "sha256": "34a61103cc869d8ec99fdae8674c19940d7600173a1860c7771ead758555909c",
+      "surface_kind": "human"
+    },
+    {
+      "bytes": 909,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/global-field/traditions/race-diaspora-migration-philosophy/branch.manifest.json",
+      "sha256": "b460eb31d9a3c83813373358c87d339247f39a52d5c81b4aa72779bed60ca6ba",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 419,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/global-field/traditions/race-diaspora-migration-philosophy/graph-workbench/branch.manifest.json",
+      "sha256": "c09d2fbbe52f2999b5cd9059a196e61b0e2dfc03d44e5c20a7a5046a41217021",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1308,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/global-field/traditions/race-diaspora-migration-philosophy/graph-workbench/pre-canon-summary.json",
+      "sha256": "9e452827fad127e6e2042e4ecee75e941c990b508ddf66d1335b1c16b83b9759",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 355,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/global-field/traditions/race-diaspora-migration-philosophy/sources/branch.manifest.json",
+      "sha256": "0bff089f5d98bd9a560f3e9b6764aafe360232b4ffe79db3e1c5521b553ccdd7",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1481,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/global-field/traditions/technology-media-cybernetics-digital-culture/README.md",
+      "sha256": "0365067b0f62b656f57f9cd697b46466e8ecdd75cccec6a28b1a9aaf3cf647a5",
+      "surface_kind": "human"
+    },
+    {
+      "bytes": 971,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/global-field/traditions/technology-media-cybernetics-digital-culture/branch.manifest.json",
+      "sha256": "fd2181be4ce596e487220c7da3080fd4de13cb67e9bedd319d4f992a565fd663",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 439,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/global-field/traditions/technology-media-cybernetics-digital-culture/graph-workbench/branch.manifest.json",
+      "sha256": "0e6a237a8cc9be61af52c6d9479aa226e81fb20e7864d26b6a4b804c28e223b1",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1405,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/global-field/traditions/technology-media-cybernetics-digital-culture/graph-workbench/pre-canon-summary.json",
+      "sha256": "a75d827b5c19d7d962b9760e142e859f9f838bf6c07b28ffd2dd69166043de55",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 375,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/global-field/traditions/technology-media-cybernetics-digital-culture/sources/branch.manifest.json",
+      "sha256": "c4d0ea8807a31c8a860a45471027471ce05e0e8f0edbdadfbed200e1b002460b",
       "surface_kind": "structured"
     },
     {
@@ -10296,11 +11152,11 @@
       "surface_kind": "structured"
     },
     {
-      "bytes": 1397,
+      "bytes": 1392,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/global-islamic-field/traditions/contemporary-islamic-philosophy-ethics-political-thought/README.md",
-      "sha256": "fd0e777479f1653278572b9e922531b9f2b5d0841ef6a92727bb9c82a692f53f",
+      "sha256": "77bb4eb7f25fa8724f718b2e1a96c2bd70c90c13755ea10221e5ab4e5d652df9",
       "surface_kind": "human"
     },
     {
@@ -10320,11 +11176,11 @@
       "surface_kind": "structured"
     },
     {
-      "bytes": 1424,
+      "bytes": 1417,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/global-islamic-field/traditions/contemporary-islamic-philosophy-ethics-political-thought/graph-workbench/pre-canon-summary.json",
-      "sha256": "bda1ff6a4394f26f08b8dd6fee39e730e334bb4a5f504e29983d02fea017a545",
+      "sha256": "9b2dd8b4a8100182a283ba52dbee7e121c44ef588bffb133676f5948b19ea243",
       "surface_kind": "structured"
     },
     {
@@ -10356,7 +11212,7 @@
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/global-jewish-field/traditions/jewish-philosophy-twentieth-twenty-first-centuries/README.md",
-      "sha256": "4f1fc87b06fb39a71830290d9b6a1e0d4e53e74d1b0ad89ed55fc8aff92dcebb",
+      "sha256": "63f26a7f2e462abfaf061b27bcd1ac9ee20b3fc07f045cee0e0c25d2b5c83592",
       "surface_kind": "human"
     },
     {
@@ -10388,7 +11244,119 @@
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/global-jewish-field/traditions/jewish-philosophy-twentieth-twenty-first-centuries/sources/branch.manifest.json",
-      "sha256": "95381d381d83489757d3491dffa932c77925616030ff7af23aa2f3b5129e6f43",
+      "sha256": "407d5777eff7115007c83d93ddee173a2f2571238d306a11b699b516513b17cc",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 301,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/global-south-global-field/branch.manifest.json",
+      "sha256": "d62d5d90b76418f97685f069b4f88b7c22d8e7be016c5c221b465b6b3b7e322a",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 332,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/global-south-global-field/traditions/branch.manifest.json",
+      "sha256": "2e31fa850b2a753389c9171e104d6a0d07dcc3b6cc38bb968ce25b2aa9b92df3",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1386,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/global-south-global-field/traditions/postcolonial-decolonial-philosophy/README.md",
+      "sha256": "ff4a714bfd1349d5bb34dfe3bac0623246356f9edee9200fb706c5b87a44c817",
+      "surface_kind": "human"
+    },
+    {
+      "bytes": 982,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/global-south-global-field/traditions/postcolonial-decolonial-philosophy/branch.manifest.json",
+      "sha256": "7393c33590ff329cde6befbed97928e890dc471606a34095e218b3ba193cdf51",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 445,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/global-south-global-field/traditions/postcolonial-decolonial-philosophy/graph-workbench/branch.manifest.json",
+      "sha256": "c5adf2790e32efa87b14fa796291b72319564ad989f9cf39b57ce12dbc049866",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1368,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/global-south-global-field/traditions/postcolonial-decolonial-philosophy/graph-workbench/pre-canon-summary.json",
+      "sha256": "94f8af669fb69208ed6d6c4dfc2d6b1b71f81ae003655a46dede53fce73db192",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 381,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/global-south-global-field/traditions/postcolonial-decolonial-philosophy/sources/branch.manifest.json",
+      "sha256": "f07e9e7ff4550e80941866b5734e94b47b2b3c949a48ea4c74385e61d68d5ee6",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 298,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/indigenous-north-america/branch.manifest.json",
+      "sha256": "f3c7a5832ee4ddf3c34b5d09b52d047061bbecdc31cd3c96db90e2b93a626083",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 337,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/indigenous-north-america/traditions/branch.manifest.json",
+      "sha256": "1edca1fa411d0999968ff84713754e6257ddfcc63db610fe05603fbbc8e967aa",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1581,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/indigenous-north-america/traditions/modern-writing-treaty-thought-sovereignty/README.md",
+      "sha256": "78bbe8117c6f3dee1f3bc108862db83ded191e9e3e3290cd79c364826db2f062",
+      "surface_kind": "human"
+    },
+    {
+      "bytes": 1265,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/indigenous-north-america/traditions/modern-writing-treaty-thought-sovereignty/branch.manifest.json",
+      "sha256": "0053f018a5abd8c6b6bba6f06a34d6dd33200470ab46ebc763322202db58275a",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 707,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/indigenous-north-america/traditions/modern-writing-treaty-thought-sovereignty/graph-workbench/branch.manifest.json",
+      "sha256": "12176ed82793a3db6fdc527488ffdca37de7f4e3c7359491c0a6f72e1a29e5c1",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1613,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/indigenous-north-america/traditions/modern-writing-treaty-thought-sovereignty/graph-workbench/pre-canon-summary.json",
+      "sha256": "ee37432d1bf86ee6a1c95f3f329b06e5a2b3a8cfe60c8b39f6043c47553201f5",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 643,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/indigenous-north-america/traditions/modern-writing-treaty-thought-sovereignty/sources/branch.manifest.json",
+      "sha256": "e50e92d97e8094aed00d8cbdefc4314d32710a0a0ae52c9669abb0eb8d38e35e",
       "surface_kind": "structured"
     },
     {
@@ -10504,6 +11472,142 @@
       "surface_kind": "structured"
     },
     {
+      "bytes": 241,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/japan/branch.manifest.json",
+      "sha256": "956ed5debd36562de73735ddbab63146942dd7ccc36c0925971134928d4fab4f",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 401,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/japan/traditions/branch.manifest.json",
+      "sha256": "ebd712588cb0e3fccb6e2c0fad56fd58156c310a9917683406d8277d4cf28b5b",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1368,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/japan/traditions/kyoto-school-modernity-religion-war/README.md",
+      "sha256": "ba3537584f3a77261cb2dde53a01ec4d9a07876238b664d243b709bc5c7cd54d",
+      "surface_kind": "human"
+    },
+    {
+      "bytes": 900,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/japan/traditions/kyoto-school-modernity-religion-war/branch.manifest.json",
+      "sha256": "9ac180987c3c9d7a711d31a830a2b1aa006a8c7700bed8efa0d1a2f5d21967d2",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 407,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/japan/traditions/kyoto-school-modernity-religion-war/graph-workbench/branch.manifest.json",
+      "sha256": "ff76263c03ce871af01f14d633d7b44d6bffadcb3849a37aa2dbabd0c17de189",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1379,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/japan/traditions/kyoto-school-modernity-religion-war/graph-workbench/pre-canon-summary.json",
+      "sha256": "c668bace95c8913235747520148cc2c65e0cd34c69f3627dca86d4bd2bccdded",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 343,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/japan/traditions/kyoto-school-modernity-religion-war/sources/branch.manifest.json",
+      "sha256": "ee2e99a924007e9c559520597bf412557736398ed83916a1f67ce90adb513460",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1403,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/japan/traditions/postwar-contemporary-japanese-philosophy/README.md",
+      "sha256": "f7d28117fe51005f9b8bad2f7b9185ed4a37dee7fd8a2a0f2b0672c3a461f0b8",
+      "surface_kind": "human"
+    },
+    {
+      "bytes": 930,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/japan/traditions/postwar-contemporary-japanese-philosophy/branch.manifest.json",
+      "sha256": "73041a77f4b4432fbf2fa063fbd737bde7a2fb6780d994a9944f589cffa5ee82",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 417,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/japan/traditions/postwar-contemporary-japanese-philosophy/graph-workbench/branch.manifest.json",
+      "sha256": "0718399746b774a49a2ca57774748e08cee806105de0eb94e7ad781249b28c17",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1364,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/japan/traditions/postwar-contemporary-japanese-philosophy/graph-workbench/pre-canon-summary.json",
+      "sha256": "5f27af29426714106acdcb8fe27eed620924642becf6922f107ad52c4b7ebb4c",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 353,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/japan/traditions/postwar-contemporary-japanese-philosophy/sources/branch.manifest.json",
+      "sha256": "5786e4ff3f4151c81d1891212993b75aa97ba27b810c70496505c87f508781f4",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1399,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/japan/traditions/tokugawa-confucian-kokugaku-rangaku-buddhist-reforms/README.md",
+      "sha256": "31d2f600711fd8654e7fae20f6f7c7e598d7f050d46a791e6b23ff02406cae1e",
+      "surface_kind": "human"
+    },
+    {
+      "bytes": 968,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/japan/traditions/tokugawa-confucian-kokugaku-rangaku-buddhist-reforms/branch.manifest.json",
+      "sha256": "0ffb2893339441295efbfacc88286a991f769a18b4add337d85bd0b634db29f0",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 441,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/japan/traditions/tokugawa-confucian-kokugaku-rangaku-buddhist-reforms/graph-workbench/branch.manifest.json",
+      "sha256": "149b336ae3a40fef3e026be42da0bbe02b16b137097411dba4ba4634a4158de7",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1390,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/japan/traditions/tokugawa-confucian-kokugaku-rangaku-buddhist-reforms/graph-workbench/pre-canon-summary.json",
+      "sha256": "3cb1aaf4c3fb57f927097fa86756ba6e0c9f363584941ff32c637243521655c5",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 377,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/japan/traditions/tokugawa-confucian-kokugaku-rangaku-buddhist-reforms/sources/branch.manifest.json",
+      "sha256": "d44ebc3698e58a7974b3736d86b0b787ae2bd6a7c57ae8dddc8b8a506eb851c2",
+      "surface_kind": "structured"
+    },
+    {
       "bytes": 271,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
@@ -10560,6 +11664,230 @@
       "surface_kind": "structured"
     },
     {
+      "bytes": 241,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/korea/branch.manifest.json",
+      "sha256": "2d54af9d18645364fc8e2e5b3f3675054a91aff6716b6a68d07e695862e30a98",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 298,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/korea/traditions/branch.manifest.json",
+      "sha256": "972128c0e62779f51146fca3d951809deca5aac635add5230b76a6a0755e6d6a",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1355,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/korea/traditions/joseon-confucian-buddhist-modern-academy/README.md",
+      "sha256": "b3d91688acf6b5f829a0504825d3f7cae34430acac426ac400429ecf6121fd91",
+      "surface_kind": "human"
+    },
+    {
+      "bytes": 927,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/korea/traditions/joseon-confucian-buddhist-modern-academy/branch.manifest.json",
+      "sha256": "f37fa88126af8598e487ecc04ccf43998521fb2bbaae2361b4ce286754ecb8ce",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 417,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/korea/traditions/joseon-confucian-buddhist-modern-academy/graph-workbench/branch.manifest.json",
+      "sha256": "2fdf0a0547653f52753a36eec1da30da12d2eadf56eee73000d362765ac7f052",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1411,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/korea/traditions/joseon-confucian-buddhist-modern-academy/graph-workbench/pre-canon-summary.json",
+      "sha256": "506db11a97d6429c2caf64e20ec7e437a79486b0d2bff65f0bb0aee76b8e32f0",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 353,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/korea/traditions/joseon-confucian-buddhist-modern-academy/sources/branch.manifest.json",
+      "sha256": "9bdd3f8657ec506ec117f137a647da88fbbb55cc0001b2cfa4499175cc9d7901",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 304,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/latin-america-global-south/branch.manifest.json",
+      "sha256": "95410bd6fa7bc8b671fef66a90dfb0076175d458ef5aec43a85cd35fb22312ce",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 333,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/latin-america-global-south/traditions/branch.manifest.json",
+      "sha256": "e6c3285c8e963f9781b9403d51e9e8909c5f85cd90b8ea11a39f02461d73a682",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1484,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/latin-america-global-south/traditions/liberation-theology-decoloniality/README.md",
+      "sha256": "fff58ed7fe7eae52b6bb286d974467f425d855ab46a2f4ed9760f327ff9699f5",
+      "surface_kind": "human"
+    },
+    {
+      "bytes": 994,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/latin-america-global-south/traditions/liberation-theology-decoloniality/branch.manifest.json",
+      "sha256": "78a6f9a89be230718960e397e204fcd3e9e8f3f4bff302780863c6382a6a91c0",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 445,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/latin-america-global-south/traditions/liberation-theology-decoloniality/graph-workbench/branch.manifest.json",
+      "sha256": "e5156d6b6dbc6a8c2281db324dd4a763746e4b0126518b13b088f9ab705780ca",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1482,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/latin-america-global-south/traditions/liberation-theology-decoloniality/graph-workbench/pre-canon-summary.json",
+      "sha256": "ce78326ff2d391314a96097450cd6879373634cb4a24bbae12221bee9eac81af",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 381,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/latin-america-global-south/traditions/liberation-theology-decoloniality/sources/branch.manifest.json",
+      "sha256": "2922f6bc20dbd0b592e0bc00d373c16b6e4429370daeb7f883797e559d83cd38",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 265,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/latin-america/branch.manifest.json",
+      "sha256": "eec4e15ec36f04a278534a59e31d020b259c55338ab81cefe765a78b473fe28a",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 338,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/latin-america/traditions/branch.manifest.json",
+      "sha256": "345f2b39086ae7e9b131ca3c64aba3f35e8eebbe4725fbc40df443fb38f09ca0",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1400,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/latin-america/traditions/nineteenth-century-independence-positivism-national-philosophies/README.md",
+      "sha256": "11d398a05e2fd94cf3904bf79da8a5399139786492bcd454de971064b538a4e8",
+      "surface_kind": "human"
+    },
+    {
+      "bytes": 1075,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/latin-america/traditions/nineteenth-century-independence-positivism-national-philosophies/branch.manifest.json",
+      "sha256": "4577a5d71da228ab52277445eb0d712c392abe965f2a2c0371805671b69516f3",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 481,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/latin-america/traditions/nineteenth-century-independence-positivism-national-philosophies/graph-workbench/branch.manifest.json",
+      "sha256": "025ec8c53e7f75dc19ad5a27e45298d96824f7bdb93a82149d328a83c8a62f11",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1435,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/latin-america/traditions/nineteenth-century-independence-positivism-national-philosophies/graph-workbench/pre-canon-summary.json",
+      "sha256": "bcfb4fa4d81fb0c32dc17e8da4295803ec5b51a9135827ee063188700f521b12",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 417,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/latin-america/traditions/nineteenth-century-independence-positivism-national-philosophies/sources/branch.manifest.json",
+      "sha256": "32335d1ad2d28a564f50013d2075f321749cf88111d94f9238eb37c7b7428583",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 259,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/malay-world/branch.manifest.json",
+      "sha256": "857e5ebb3f8778665a249bfa04e05c2d5d73d04d3ffd9bdae61144fe77234c0d",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 305,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/malay-world/traditions/branch.manifest.json",
+      "sha256": "47fbd59111c42f74a1819488ee860cd94de90bd55b1fb29a43f216f3c0b3d232",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1598,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/malay-world/traditions/islamic-malay-philosophical-writing/README.md",
+      "sha256": "b3c4b3dca1d57b9cb5985cbf4e1645c1f861064d30ce868828dc272bbe0d840c",
+      "surface_kind": "human"
+    },
+    {
+      "bytes": 1208,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/malay-world/traditions/islamic-malay-philosophical-writing/branch.manifest.json",
+      "sha256": "245c78586ab1d50dd65ca18d1a59e0eb561954968ee04894348f258b21ad6cd6",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 669,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/malay-world/traditions/islamic-malay-philosophical-writing/graph-workbench/branch.manifest.json",
+      "sha256": "e42cf0932968799b483efb11db3ce4307802a919b8dfc15ee739bd1489d76b8a",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1602,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/malay-world/traditions/islamic-malay-philosophical-writing/graph-workbench/pre-canon-summary.json",
+      "sha256": "7f38ea6e0207e37e881788245b701890401d63daa43fb704813d3ec880ad4fbe",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 605,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/malay-world/traditions/islamic-malay-philosophical-writing/sources/branch.manifest.json",
+      "sha256": "00b1b69e66c6ec6047b95895beaa929a02fe08f0779737aa502d4ba4d6f5a656",
+      "surface_kind": "structured"
+    },
+    {
       "bytes": 265,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
@@ -10613,6 +11941,174 @@
       "family_id": "tos",
       "path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/ottoman-world/traditions/ottoman-philosophical-theological-logical-tradition/sources/branch.manifest.json",
       "sha256": "aa2d2d97c5caea2d752ec149a20785e39a52c3151fd37c6d2254035be1d68e23",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 271,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/pacific-islands/branch.manifest.json",
+      "sha256": "487a3cdb53766260cbb27dd89ff1fad117826b3832eb787fb983588761dae004",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 327,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/pacific-islands/traditions/branch.manifest.json",
+      "sha256": "3548d8a3050a8e11b6b13a85299b57ee76af2f2e0149650c49622dec03b0ae3e",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1722,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/pacific-islands/traditions/maori-hawaiian-samoan-written-academic-philosophy/README.md",
+      "sha256": "fa13083151f0f8d365598908b8af74c120411b302efe2e3d6d1f9b324d4ad1a6",
+      "surface_kind": "human"
+    },
+    {
+      "bytes": 1263,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/pacific-islands/traditions/maori-hawaiian-samoan-written-academic-philosophy/branch.manifest.json",
+      "sha256": "bb4b5ca7f49857971b52ae1bd7883bb248e3d063a7e824d3d6359ca1b30d4d80",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 705,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/pacific-islands/traditions/maori-hawaiian-samoan-written-academic-philosophy/graph-workbench/branch.manifest.json",
+      "sha256": "ff5f6619946ae0ed9e6a113b2dd3a0a2e541dad395542edda934096e8f65b3fb",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1641,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/pacific-islands/traditions/maori-hawaiian-samoan-written-academic-philosophy/graph-workbench/pre-canon-summary.json",
+      "sha256": "10952026dd0d582efa20c732b2f753386742b04bd3c71d7616eff419a668c12d",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 641,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/pacific-islands/traditions/maori-hawaiian-samoan-written-academic-philosophy/sources/branch.manifest.json",
+      "sha256": "b628ba63437cf43b9a98867dbb3c7adc955bdd7c89c4aa0bdc2efd567eb7d5b3",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 259,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/philippines/branch.manifest.json",
+      "sha256": "93f1a911be02feb574df55fa5b2336d76af095d7445c9a756a103d28cd2806b6",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 318,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/philippines/traditions/branch.manifest.json",
+      "sha256": "409b44a72f4d986a0d9a4c0e2cbf911a8bb8550a8f0815c1334dca72c0d858ff",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1634,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/philippines/traditions/colonial-catholic-national-philosophical-writing/README.md",
+      "sha256": "ea9d904f20cf35446ed6ca07530dd2a9c2df0ba99c329205c8d6708b310f51cc",
+      "surface_kind": "human"
+    },
+    {
+      "bytes": 1231,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/philippines/traditions/colonial-catholic-national-philosophical-writing/branch.manifest.json",
+      "sha256": "d2cd9788453d56454c261d5a94281a5afc00e4a051d17e939506df529b920c5a",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 695,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/philippines/traditions/colonial-catholic-national-philosophical-writing/graph-workbench/branch.manifest.json",
+      "sha256": "a5f57746731ed58974c0a1c915ea973517d94994559a994ba3f2975c8e780827",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1782,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/philippines/traditions/colonial-catholic-national-philosophical-writing/graph-workbench/pre-canon-summary.json",
+      "sha256": "586616e9fe72fe7c4fe74a76d26ec75cea7b688a0ac375bb959c0a97176c9df2",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 631,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/philippines/traditions/colonial-catholic-national-philosophical-writing/sources/branch.manifest.json",
+      "sha256": "40eaffc4e7d17017f3471da627b47991549ea574496e4c60ae2a422061bfcb8a",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 286,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/public-digital-field/branch.manifest.json",
+      "sha256": "d6a329fe54b85aae98cee9e705f22fdfe551398cdfe15354ada4fe66831009e4",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 323,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/public-digital-field/traditions/branch.manifest.json",
+      "sha256": "d1de3ba5769cff81677b203778369d3133d8f2d75b639ac4a8a4fcaea1bacec9",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1616,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/public-digital-field/traditions/public-philosophy-open-access-media/README.md",
+      "sha256": "c6505d4d3c741eb49897174b32b8b8eb4af87e84b53b78b0d12db0d890b6e8b1",
+      "surface_kind": "human"
+    },
+    {
+      "bytes": 1242,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/public-digital-field/traditions/public-philosophy-open-access-media/branch.manifest.json",
+      "sha256": "a49f0f6328b3e3ce3a7c3c5a70644fc4a27669982050cf976be2dc0981f42f8b",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 687,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/public-digital-field/traditions/public-philosophy-open-access-media/graph-workbench/branch.manifest.json",
+      "sha256": "131dc8f168c6a94f3442759dff2aae15e67d184ed02cd18e87f5d59a6519f08f",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1695,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/public-digital-field/traditions/public-philosophy-open-access-media/graph-workbench/pre-canon-summary.json",
+      "sha256": "a6898c6905d612eb3582c1679b712b918d21c50d72a185c70a609528c805f42b",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 623,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/public-digital-field/traditions/public-philosophy-open-access-media/sources/branch.manifest.json",
+      "sha256": "aca68f51cb831252550df93f5104ad7c4507f62e3f8b04942cc80fa68f560584",
       "surface_kind": "structured"
     },
     {
@@ -10728,6 +12224,118 @@
       "surface_kind": "structured"
     },
     {
+      "bytes": 277,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/sahel-west-africa/branch.manifest.json",
+      "sha256": "5353e3ec19abdcfab2766e289a4d249cd03aad20c3e2d25916cc3e77ac5c25f6",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 317,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/sahel-west-africa/traditions/branch.manifest.json",
+      "sha256": "e4ebe862959151afb4ecd7c1291e0d5d6ae1b7ac2931d71b95e72b3e7d8e1c2c",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1542,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/sahel-west-africa/traditions/islamic-manuscript-scholarly-worlds/README.md",
+      "sha256": "96c4fe203a02a051e5c8dd4d95542c36bc9f5fc49f1a4535424db0e194976117",
+      "surface_kind": "human"
+    },
+    {
+      "bytes": 1462,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/sahel-west-africa/traditions/islamic-manuscript-scholarly-worlds/branch.manifest.json",
+      "sha256": "c9ff5e33aa57b2aac5fd1a1d0ba98a602ecce6252b2b64bf49461a49d3f2ca63",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 940,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/sahel-west-africa/traditions/islamic-manuscript-scholarly-worlds/graph-workbench/branch.manifest.json",
+      "sha256": "1e9d7547ca352214ce477051450fed8aafe6c5191964c0021475f0514228e562",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1307,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/sahel-west-africa/traditions/islamic-manuscript-scholarly-worlds/graph-workbench/pre-canon-summary.json",
+      "sha256": "88cc0b475e62a7c47a05d04c3f89b0224c2d51532af9ae562cda859f03ee44be",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 877,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/sahel-west-africa/traditions/islamic-manuscript-scholarly-worlds/sources/branch.manifest.json",
+      "sha256": "d036a682efceb74290cb817ecd9d9b5ffe19b61f78b97c4fc269e1029270bef5",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 295,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/settler-colonial-worlds/branch.manifest.json",
+      "sha256": "c58f41eea771e9ce8f21e92644e20263ad3a98a7ac78f7a45a91027b15e77dd6",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 318,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/settler-colonial-worlds/traditions/branch.manifest.json",
+      "sha256": "7f1b95f31db5c71010305cba60691ad8c50c6d28c03a53d625dd1e4ccfa0ad3a",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1372,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/settler-colonial-worlds/traditions/indigenous-rights-theory/README.md",
+      "sha256": "cf6d02cd0d3639919dc04a64729e5bd48d1d4cdece92e67b774545dba5e7b140",
+      "surface_kind": "human"
+    },
+    {
+      "bytes": 936,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/settler-colonial-worlds/traditions/indigenous-rights-theory/branch.manifest.json",
+      "sha256": "5e4087620015ee1ea5c433d2dff23c3d68f2a3407ff7e8f535e7050b8ebe4ecf",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 421,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/settler-colonial-worlds/traditions/indigenous-rights-theory/graph-workbench/branch.manifest.json",
+      "sha256": "65d80e0395deb6af05fe2e656c82b7672a4f3a287fe1369146853acb1613bf91",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1356,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/settler-colonial-worlds/traditions/indigenous-rights-theory/graph-workbench/pre-canon-summary.json",
+      "sha256": "2dd236fe8972d400703bb3b4936a0119d981053961e5c5cd1814af73bc7994f3",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 357,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/settler-colonial-worlds/traditions/indigenous-rights-theory/sources/branch.manifest.json",
+      "sha256": "1b3bac000b22990472ed4f414130f85c5372dd153252d562c1654037943f30bb",
+      "surface_kind": "structured"
+    },
+    {
       "bytes": 295,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
@@ -10804,7 +12412,7 @@
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/south-asia-islamicate/traditions/mughal-south-asian-islamic-literature/README.md",
-      "sha256": "e739db9787f50f838b5519816a37cee30380e3cc142f24126e82e4654ab4fe1c",
+      "sha256": "53c15186bf074ca6ecc036afab714bbb88c10add1117f391d17dfac30eb7b063",
       "surface_kind": "human"
     },
     {
@@ -10836,7 +12444,7 @@
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/south-asia-islamicate/traditions/mughal-south-asian-islamic-literature/sources/branch.manifest.json",
-      "sha256": "38b122367e0c66b9d887b329300f963bbada95aacd611cc565bab17196b1a49a",
+      "sha256": "3e71981be0f50c327e31cf8e7c6e355f99acb826d826a5135dd42a4d9716ae07",
       "surface_kind": "structured"
     },
     {
@@ -10900,7 +12508,7 @@
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/south-asia/traditions/late-sanskrit-scholarship-navya-nyaya-after-1500/README.md",
-      "sha256": "d1a9e07373641f634a51afde0976c5521550db5a1f01f15018c6fb0c15d65bb8",
+      "sha256": "e9ddf2999de1f44c847ae302be0b621e48c125747e356607384b28c3c9427750",
       "surface_kind": "human"
     },
     {
@@ -10932,7 +12540,7 @@
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/south-asia/traditions/late-sanskrit-scholarship-navya-nyaya-after-1500/sources/branch.manifest.json",
-      "sha256": "d610e51072d1ac29b01fd73536cdf26108374963da484ef3813b10b5c687268f",
+      "sha256": "5f4b1811163bb56459d4f63074f42385c1becbfe03c8f4f2c7b874f2dcaa821d",
       "surface_kind": "structured"
     },
     {
@@ -11088,6 +12696,174 @@
       "surface_kind": "structured"
     },
     {
+      "bytes": 268,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/southeast-asia/branch.manifest.json",
+      "sha256": "f21873707f3d7d4858b0f6a3804c54748e36da9d6a5c5825487322c8b147c952",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 319,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/southeast-asia/traditions/branch.manifest.json",
+      "sha256": "4032e374cc01cda8847ef0ebb550fe648a38d95136dc02b87c2254d5fb7ce1e1",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1767,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/southeast-asia/traditions/manuscript-afterlives-philological-recovery/README.md",
+      "sha256": "f4b14414b622cd3789f50e91e38955af14c7ee6712570f4bf67778262f73e4fa",
+      "surface_kind": "human"
+    },
+    {
+      "bytes": 1365,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/southeast-asia/traditions/manuscript-afterlives-philological-recovery/branch.manifest.json",
+      "sha256": "ee17b4af2eaae9e9fe0acc57cacd6d141b083e466cfbc438a94bf50a8cf46e17",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 805,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/southeast-asia/traditions/manuscript-afterlives-philological-recovery/graph-workbench/branch.manifest.json",
+      "sha256": "e69ec0dfe51fed9e3bc76a8680a0ba92a4e9eadda56d09f2873a324b37520a66",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1734,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/southeast-asia/traditions/manuscript-afterlives-philological-recovery/graph-workbench/pre-canon-summary.json",
+      "sha256": "6c448ea95213e6b4b2f89de8fceb562580d135f9c8e3407f085f79b0e8df5d0b",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 741,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/southeast-asia/traditions/manuscript-afterlives-philological-recovery/sources/branch.manifest.json",
+      "sha256": "73bf1adb21e8ba7bd4377942cb712912af008c0debd0cb7500247782e3e95b31",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 322,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/southeast-asian-theravada-worlds/branch.manifest.json",
+      "sha256": "e5323682a6a61d778bc6e1d520e0776a641f22a7a0f4cffb461004829abbe925",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 354,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/southeast-asian-theravada-worlds/traditions/branch.manifest.json",
+      "sha256": "5a8b166708cb124d0b2c8d2326acafb604e602a48e0d4872f6bca56bb1f717cd",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1375,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/southeast-asian-theravada-worlds/traditions/buddhist-monarchical-theravada-modernities/README.md",
+      "sha256": "2d5c5f3a7603d039f62a49b89360bfa08233c281e7158344d9855e1a1e6058cf",
+      "surface_kind": "human"
+    },
+    {
+      "bytes": 1040,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/southeast-asian-theravada-worlds/traditions/buddhist-monarchical-theravada-modernities/branch.manifest.json",
+      "sha256": "5ffc9c25971a426eea65c8e9049067fd53a3d01443f53b671d64c779b71be0ce",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 475,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/southeast-asian-theravada-worlds/traditions/buddhist-monarchical-theravada-modernities/graph-workbench/branch.manifest.json",
+      "sha256": "69aedc2693fd1db1e79e1ad7fee2b34bda81269303f6f10e86f1503732ecf981",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1435,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/southeast-asian-theravada-worlds/traditions/buddhist-monarchical-theravada-modernities/graph-workbench/pre-canon-summary.json",
+      "sha256": "84f581229aa88ae6aec8bc8ae2f527582fc7831990bc14194188bb63e5db1d6c",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 411,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/southeast-asian-theravada-worlds/traditions/buddhist-monarchical-theravada-modernities/sources/branch.manifest.json",
+      "sha256": "2f11b31061e094cbf5c1bf0b2b36ebad64c8cffe51cbf90d74329476e0eb9dee",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 310,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/southern-africa-global-field/branch.manifest.json",
+      "sha256": "11e80cebfdc236bffe6de4e6d1c1270293d93d7c5ccf1ee7d0d745b6489c8706",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 346,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/southern-africa-global-field/traditions/branch.manifest.json",
+      "sha256": "2808315fa3a1c1e614b9be4e5038481d98765c222b16b4a7c25b039c781d0ee1",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1376,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/southern-africa-global-field/traditions/ubuntu-communitarianism-reconciliation-law/README.md",
+      "sha256": "0a85c18597bbeaaeb3fe66ba6e85a8bd8cf46319cadcfe2f08c5c59a603a479f",
+      "surface_kind": "human"
+    },
+    {
+      "bytes": 1028,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/southern-africa-global-field/traditions/ubuntu-communitarianism-reconciliation-law/branch.manifest.json",
+      "sha256": "545431f81dab932f406cb995a1cae2957a95dea861f4791d13acd6570404c598",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 467,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/southern-africa-global-field/traditions/ubuntu-communitarianism-reconciliation-law/graph-workbench/branch.manifest.json",
+      "sha256": "14585ce68530a1751476d4d18778d730fb8fd481b7363238d1a7f3be3e55952f",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1456,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/southern-africa-global-field/traditions/ubuntu-communitarianism-reconciliation-law/graph-workbench/pre-canon-summary.json",
+      "sha256": "fa3f2af3a4ab465d2170e9915e28cb511237321c19fe972b582c6dbc0aa953bd",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 403,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/southern-africa-global-field/traditions/ubuntu-communitarianism-reconciliation-law/sources/branch.manifest.json",
+      "sha256": "6c68c4531782d838b2a1c9b2bd4357f50535beaf3edf617c60ffadab48c1d03c",
+      "surface_kind": "structured"
+    },
+    {
       "bytes": 298,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
@@ -11224,11 +13000,11 @@
       "surface_kind": "structured"
     },
     {
-      "bytes": 1721,
+      "bytes": 1720,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/transnational-europe/traditions/republic-of-letters-scientific-societies-philosophical-journals/graph-workbench/pre-canon-summary.json",
-      "sha256": "ffd5ce693d6311d26b1df6f0d759249a0684725e3124cb4616f4158562fdd865",
+      "sha256": "d626d4775f0582088f4b8bd16147bdfa7ee20a3bbafdc3be497fd6ce2ede1f30",
       "surface_kind": "structured"
     },
     {
@@ -11237,6 +13013,230 @@
       "family_id": "tos",
       "path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/transnational-europe/traditions/republic-of-letters-scientific-societies-philosophical-journals/sources/branch.manifest.json",
       "sha256": "2566103f2664ecd4d23fa4b0dc72fb94f3ffdce1dc1b437a065d45416172eb0e",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 286,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/transregional-africa/branch.manifest.json",
+      "sha256": "b31875a2823e45d466d41dd812da5204eb314ecb8da8f29d797d90132301817f",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1555,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/transregional-africa/traditions/ajami-publics-african-language-thought/README.md",
+      "sha256": "250cd5f8afda6a5d264d8f819f4606874acf0db02fda11b1ebd0132073128b69",
+      "surface_kind": "human"
+    },
+    {
+      "bytes": 1214,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/transregional-africa/traditions/ajami-publics-african-language-thought/branch.manifest.json",
+      "sha256": "f49b539798f1c067fe768c99708fff4504b8e89a58ac6a27af6110842b90f2c0",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 693,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/transregional-africa/traditions/ajami-publics-african-language-thought/graph-workbench/branch.manifest.json",
+      "sha256": "e3699310cc27b0077ddedb67bd1fbf89a7681157ab6803da5b84992bd3b76416",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1545,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/transregional-africa/traditions/ajami-publics-african-language-thought/graph-workbench/pre-canon-summary.json",
+      "sha256": "a2edfe8f5f7fc9ff55430d0d9b5eef0fc03eae0a19233f5a0bd8bd54fe64c8b5",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 629,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/transregional-africa/traditions/ajami-publics-african-language-thought/sources/branch.manifest.json",
+      "sha256": "8f91e4e760896d678222e6c1873fcdac3350a3710a8d255d1f04fec464efeccb",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 326,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/transregional-africa/traditions/branch.manifest.json",
+      "sha256": "a898b7fe3b17b4f7c568e48f4fce643de57886fa0cefb484e6e9b54c2d557d24",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 307,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/united-states-black-thought/branch.manifest.json",
+      "sha256": "924333163963f8b90cdd3aded29823e47b5b0c19c82cfae15aeefbb881bcec18",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1390,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/united-states-black-thought/traditions/african-american-philosophy/README.md",
+      "sha256": "b9bc6ee4b16f29f7946ec633d1edea52f4e201900c7a5c1deb0cd26eb64b7826",
+      "surface_kind": "human"
+    },
+    {
+      "bytes": 986,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/united-states-black-thought/traditions/african-american-philosophy/branch.manifest.json",
+      "sha256": "93371b3f89c6f5bcbfdc342f431888a508b4590206ef16b05d4a98ac4c8d36bf",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 435,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/united-states-black-thought/traditions/african-american-philosophy/graph-workbench/branch.manifest.json",
+      "sha256": "c13e5bebc1dd78b04e7f7847ed6f4b52e71ee21d291b1250eb3fdfafcfe5fe07",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1279,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/united-states-black-thought/traditions/african-american-philosophy/graph-workbench/pre-canon-summary.json",
+      "sha256": "d67465932e08006801c9f095da89ace92c3ef75b2c4e7a42c571093338f1298d",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 371,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/united-states-black-thought/traditions/african-american-philosophy/sources/branch.manifest.json",
+      "sha256": "0570f61c8da5d06748fd4f1f6e87cf943555478c115af467afa941c36cbf759b",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 329,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/united-states-black-thought/traditions/branch.manifest.json",
+      "sha256": "d43ae3acf2edc695c1bfcc9f3f2208c149eae090b53e99a82e7e057febb5cf24",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 265,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/united-states/branch.manifest.json",
+      "sha256": "61c09cfa11b873f2258b58352c75abf989037294910015c8d8005f789e757ef6",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 324,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/united-states/traditions/branch.manifest.json",
+      "sha256": "3c75acb97882dced3d5393af319223897f123527e4ddab91a7630faf3c701e71",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1489,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/united-states/traditions/transcendentalism-pragmatism-democratic-philosophy/README.md",
+      "sha256": "fdee80492db18d19a19d2bb41c1149481790cbdca4c1eaa7998b47d2f38da978",
+      "surface_kind": "human"
+    },
+    {
+      "bytes": 1004,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/united-states/traditions/transcendentalism-pragmatism-democratic-philosophy/branch.manifest.json",
+      "sha256": "315b6e7e50bdcd6bdb818e1c5f38c97d076cf08103c579ea825dcf52dbbb2271",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 453,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/united-states/traditions/transcendentalism-pragmatism-democratic-philosophy/graph-workbench/branch.manifest.json",
+      "sha256": "59b82f2aa74cc6b0881eadebcdb4be6505d13daa56f5015557aa8bc865dfc1ee",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1468,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/united-states/traditions/transcendentalism-pragmatism-democratic-philosophy/graph-workbench/pre-canon-summary.json",
+      "sha256": "dfbd188a2de769d6e44cbc1724f0df6911a33bc1fe3ff7655cd866eac7bb3460",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 389,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/united-states/traditions/transcendentalism-pragmatism-democratic-philosophy/sources/branch.manifest.json",
+      "sha256": "8cb2db03b1da58624c826bae7c9a382352b71b3c2dd09499aea33339bdc9731d",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 247,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/vietnam/branch.manifest.json",
+      "sha256": "ae2140f65e6b75510cb6654d1147fba3bef88b6f9c238c217a59e05c9d2e1120",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 309,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/vietnam/traditions/branch.manifest.json",
+      "sha256": "6c8aba6d9d8f63e6d63e5aa96a9fd2c81193c501f0672bd8c74105e010351b4c",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1577,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/vietnam/traditions/multiscript-anti-colonial-philosophical-writing/README.md",
+      "sha256": "2e46d14b105d19fdc72677cb33dca9ca66cad324cd06f68b36f58e35774d6f83",
+      "surface_kind": "human"
+    },
+    {
+      "bytes": 1218,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/vietnam/traditions/multiscript-anti-colonial-philosophical-writing/branch.manifest.json",
+      "sha256": "531e3c735a53a4dfcc32f6efe187d2caa0b61383d53f99208fef09edaae84997",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 685,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/vietnam/traditions/multiscript-anti-colonial-philosophical-writing/graph-workbench/branch.manifest.json",
+      "sha256": "d52ac1e3a297e0f3b8eaf53a9ad5d1b81736fdc5bae6d670c78c24cb41f454d0",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1662,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/vietnam/traditions/multiscript-anti-colonial-philosophical-writing/graph-workbench/pre-canon-summary.json",
+      "sha256": "aa760e887bbe19217c4d05100cc997203b049710fd79cc96f1648095eb2542f0",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 621,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/vietnam/traditions/multiscript-anti-colonial-philosophical-writing/sources/branch.manifest.json",
+      "sha256": "63b692410370dfa21a0eaad3a3bac82ea8ef9e5eb5a2422ab38456a2f1072dd1",
       "surface_kind": "structured"
     },
     {
@@ -11436,7 +13436,7 @@
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/western-europe/traditions/romanticism-historicism-language-culture/README.md",
-      "sha256": "40fd8c5573e26ddce0d1cdb23b9080975b07fa78dee682dac638f0195c49de0a",
+      "sha256": "a2584bbd734c595d98c6dea338442103267d907cf31ad2971521442389eb88f8",
       "surface_kind": "human"
     },
     {
@@ -11468,7 +13468,7 @@
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/western-europe/traditions/romanticism-historicism-language-culture/sources/branch.manifest.json",
-      "sha256": "2fe3ceab5dafa5a231b1844617ac17b5ecf6ab92fdc72def5ae5b4835e65b20e",
+      "sha256": "f8ff29f747bd822c413b56046bd065cfb5ec672084d9a0461d8bce20afd86b42",
       "surface_kind": "structured"
     },
     {
@@ -11712,11 +13712,11 @@
       "surface_kind": "structured"
     },
     {
-      "bytes": 338,
+      "bytes": 390,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/philosophy/frontiers/writing-and-information-thresholds/branch.manifest.json",
-      "sha256": "16808fd64fd7fc558c95ea17c7a37585348c5f21772ecf2ea5be2ef69ef4e863",
+      "sha256": "eb42d9bfe3bdfb9089285192111a44728ac12ee7472f6956898834c4a0e4285f",
       "surface_kind": "structured"
     },
     {
@@ -11760,6 +13760,46 @@
       "surface_kind": "structured"
     },
     {
+      "bytes": 1805,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/frontiers/writing-and-information-thresholds/rapa-nui-rongorongo-contact-modern-reception/README.md",
+      "sha256": "7bf92ef65a1cdb0a6b2fa44f2d4e03898cf07c80bf2ff6b5fd2b4750baf3cee5",
+      "surface_kind": "human"
+    },
+    {
+      "bytes": 1446,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/frontiers/writing-and-information-thresholds/rapa-nui-rongorongo-contact-modern-reception/branch.manifest.json",
+      "sha256": "5a2b93d05b3837cd8dadb1742d23c2280652ae3008b9e53d4d661b7aa987d3cf",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 953,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/frontiers/writing-and-information-thresholds/rapa-nui-rongorongo-contact-modern-reception/graph-workbench/branch.manifest.json",
+      "sha256": "a240ff13e7d4f07a7176f6879554d1ed05ac6478149b1f7f11e6b597d45ad919",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1978,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/frontiers/writing-and-information-thresholds/rapa-nui-rongorongo-contact-modern-reception/graph-workbench/pre-canon-summary.json",
+      "sha256": "07523e55228afaac11aa54709aef91aeb0455ea5689ce09da6b9ee2709d58c36",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 889,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/frontiers/writing-and-information-thresholds/rapa-nui-rongorongo-contact-modern-reception/sources/branch.manifest.json",
+      "sha256": "34f9656619e6638fabb629715cf98cb40fcf59e040109a2e23072e2440e945b5",
+      "surface_kind": "structured"
+    },
+    {
       "bytes": 2481,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
@@ -11768,11 +13808,11 @@
       "surface_kind": "human"
     },
     {
-      "bytes": 8582,
+      "bytes": 8774,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/philosophy/graph-workbench/PLANTING_INTERFACE.md",
-      "sha256": "1b2d00f7ac85c736f8341209e12774175335bde7ae547ba04867826658dc3a9b",
+      "sha256": "4c74c3192e4bfb55c8137111ed3d47abd191a515d1adcc5559f058987d185b56",
       "surface_kind": "human"
     },
     {
@@ -11804,15 +13844,15 @@
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/philosophy/graph-workbench/branch-fragments/table-ii-prepared-dossier-branches.json",
-      "sha256": "8ac7f4963e83e427fcede866feca7a608e29b51c0d7223047864daf9bc4798f5",
+      "sha256": "8cd98237d58ae5d2e1bb7ce74c273f5e8c258045ca97893459f2dd6d65f96c2b",
       "surface_kind": "structured"
     },
     {
-      "bytes": 23602,
+      "bytes": 43347,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/philosophy/graph-workbench/branch-fragments/table-iii-prepared-dossier-branches.json",
-      "sha256": "bfa27ff20e31dc3145321406ff1e25dd4880d306066547c17c32515d17aef924",
+      "sha256": "29e65227d1f2ac1d10b34db7d3ee03b053aa75b535a9bdcda7d34b3e8f333c10",
       "surface_kind": "structured"
     },
     {
@@ -11860,7 +13900,7 @@
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/philosophy/graph-workbench/language-packets/branch.manifest.json",
-      "sha256": "2549900740c4837a678ca9cce569a4e590e717a2aef1f8cf1257ca6e7b571b6d",
+      "sha256": "075b69b7e2d2f1d12d0c5625ec520cb7cd48b4790332e449d291ca06eb5acfcc",
       "surface_kind": "structured"
     },
     {
@@ -11892,7 +13932,7 @@
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/philosophy/graph-workbench/promotion-ledger/table-iii-prepared-dossiers.md",
-      "sha256": "60defc6c09d63485b4cda6fd8d16c4f273d86503bed134533ea411a65c586779",
+      "sha256": "f031c9556901dbe85b98f2424b87fbdf73551972bf032a8a3ee1b14020be867c",
       "surface_kind": "human"
     },
     {
@@ -11944,19 +13984,19 @@
       "surface_kind": "structured"
     },
     {
-      "bytes": 31889,
+      "bytes": 36284,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/philosophy/graph-workbench/review-packets/table-i-post-planting-audit.json",
-      "sha256": "2d3b50388cdc0d045a4122ec6b59ffc68cdcb30b3cf5e5eaf6b52337d6aac45b",
+      "sha256": "142f97d7f458db9dabfb33d92d4ccfb17a7bf759f129a46814c3d56fba8f1486",
       "surface_kind": "structured"
     },
     {
-      "bytes": 1364,
+      "bytes": 953,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/philosophy/graph-workbench/review-packets/table-i-post-planting-audit.md",
-      "sha256": "305791a7065a6ce4b4a71343b491b99e39282e342c2745d7f621aaa4271f9f0f",
+      "sha256": "6861c7f16e35cf685a507b0aebff291681bdcc797ba383fc187421415ae29774",
       "surface_kind": "human"
     },
     {
@@ -12080,11 +14120,11 @@
       "surface_kind": "structured"
     },
     {
-      "bytes": 94743,
+      "bytes": 121104,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/philosophy/philosophy.manifest.json",
-      "sha256": "ab72edea8666c4599595807d27b934d289b5ed075c5db64b1ad35fdd8d4e0046",
+      "sha256": "6a1a4c852966c46a60405c8089623bbc22cd273ebe2ccf178223ba0bad453197",
       "surface_kind": "structured"
     },
     {
@@ -12416,11 +14456,11 @@
       "surface_kind": "human"
     },
     {
-      "bytes": 1367,
+      "bytes": 1409,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/research-packets/deep-research/philosophy/dossiers/README.md",
-      "sha256": "80972cc76be614faa681bb70433d402a55aa396c1b0946b395e42d7384694de2",
+      "sha256": "9255b5ca02d336697c2b710bf67e22a1ad64225d199ea2eff23aef2e8b58aea2",
       "surface_kind": "human"
     },
     {
@@ -12440,11 +14480,11 @@
       "surface_kind": "structured"
     },
     {
-      "bytes": 354260,
+      "bytes": 354230,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/research-packets/deep-research/philosophy/dossiers/table-ii-docx-extraction-coverage.json",
-      "sha256": "6014accf0c6570885f1e8ef35c1a37dfa64cb7d365fb08aa94b00c3262159aff",
+      "sha256": "5ae8ec5e494595100b5861a6a3288ce64431a54ecee5f0ce492defbf6688fd8a",
       "surface_kind": "structured"
     },
     {
@@ -12456,19 +14496,19 @@
       "surface_kind": "structured"
     },
     {
-      "bytes": 1415859,
+      "bytes": 2766924,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/research-packets/deep-research/philosophy/dossiers/table-iii-docx-extraction-coverage.json",
-      "sha256": "b07778ef19078c150ae82089eaf586f0c9430302f16bc4edb37a28881a144b92",
+      "sha256": "52c8c72b81c83576ea10576c93f44aa6496e050006f72703c80e3160065126d6",
       "surface_kind": "structured"
     },
     {
-      "bytes": 21670,
+      "bytes": 39247,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/research-packets/deep-research/philosophy/dossiers/table-iii-docx-intake.manifest.json",
-      "sha256": "6aa8a8c74efd711fbd647b7250c04321e77556657501d0c6497678d60d69f6e9",
+      "sha256": "0d9a5e38693c7e5b28682a22769e82ade7a6a32bbef889c1aab60c5e87864f8c",
       "surface_kind": "structured"
     },
     {
@@ -12488,11 +14528,11 @@
       "surface_kind": "human"
     },
     {
-      "bytes": 2961,
+      "bytes": 3016,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/research-packets/deep-research/philosophy/packet-contract.md",
-      "sha256": "096a9ff7b37609a237cc637275a03509baa5015d9939f7c92078e060ba5455b5",
+      "sha256": "776c976fe11090f4078783ee94bb4a8ed3d4f5e2d3648892c2ca8d74d442326c",
       "surface_kind": "human"
     },
     {
@@ -12504,11 +14544,11 @@
       "surface_kind": "structured"
     },
     {
-      "bytes": 4582,
+      "bytes": 4603,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/research-packets/deep-research/philosophy/research.manifest.json",
-      "sha256": "c3bb91843cad84abcd8742c5babab1dedb87025d4a0b867e4c00ee494b4704c4",
+      "sha256": "a255147dbd0197ba692149d1cf07443b036cdbc5f0065cc188eda8fdc048cf06",
       "surface_kind": "structured"
     },
     {
@@ -18760,6 +20800,14 @@
       "surface_kind": "human"
     },
     {
+      "bytes": 4163,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "docs",
+      "path": "docs/decisions/TOS-D-0037-deduplicated-philosophy-graph-view-membership.md",
+      "sha256": "8189a16680b73857c18c144df353ddf2a72ef806328866aa5e7cd0a4823fd512",
+      "surface_kind": "human"
+    },
+    {
       "bytes": 483,
       "currentness": "tracked_source_snapshot",
       "family_id": "docs",
@@ -18768,51 +20816,51 @@
       "surface_kind": "human"
     },
     {
-      "bytes": 6736,
+      "bytes": 6958,
       "currentness": "tracked_source_snapshot",
       "family_id": "docs",
       "path": "docs/decisions/indexes/by-date.md",
-      "sha256": "503d87db8c70f18b606383c6b01f28e96f987e1c8cd91e51e5380adc4b329242",
+      "sha256": "14063167537dd178c724e15b5cdb11d874b137d521421442051ec9e1cbd0d175",
       "surface_kind": "human"
     },
     {
-      "bytes": 33758,
+      "bytes": 34695,
       "currentness": "tracked_source_snapshot",
       "family_id": "docs",
       "path": "docs/decisions/indexes/by-guard.md",
-      "sha256": "c51a48a8cc3667f46e5ef7e2297b8cb2fe76e6c778cd2592505a5d149d4ba9a6",
+      "sha256": "b83317da228783bd65710cb9e5d473bdb6e64933bf162ce798e486e510200fe0",
       "surface_kind": "human"
     },
     {
-      "bytes": 18157,
+      "bytes": 18659,
       "currentness": "tracked_source_snapshot",
       "family_id": "docs",
       "path": "docs/decisions/indexes/by-number.md",
-      "sha256": "eca629a8ca59202892f910d4bb6122d82abe43f63c6b9c0f4c1fd1e297021254",
+      "sha256": "52977bb2efc615c39503a3a4156a36462f447af83ad7b9da561a6b70c8180dbe",
       "surface_kind": "human"
     },
     {
-      "bytes": 28528,
+      "bytes": 29386,
       "currentness": "tracked_source_snapshot",
       "family_id": "docs",
       "path": "docs/decisions/indexes/by-surface.md",
-      "sha256": "556be835b0b7b97abb9a4df43566ddf0a28772e4d568d1c5c237aa9855a9ba41",
+      "sha256": "65a3d332583eba1a98dcaa86194180225a3c09aefab98f69d43c26b56a7162d1",
       "surface_kind": "human"
     },
     {
-      "bytes": 31730,
+      "bytes": 32568,
       "currentness": "tracked_source_snapshot",
       "family_id": "docs",
       "path": "docs/decisions/indexes/by-tos-layer.md",
-      "sha256": "de66de1f2eedc06cab1eec96f678448468d75c57e4e95c0731ffd6ebb7d2265e",
+      "sha256": "be3236900a480f107782808e717cb56728c128fd906c9e5bc26d2f8a88a1f520",
       "surface_kind": "human"
     },
     {
-      "bytes": 27818,
+      "bytes": 28473,
       "currentness": "tracked_source_snapshot",
       "family_id": "docs",
       "path": "docs/decisions/indexes/by-tree-class.md",
-      "sha256": "16b2e72bfb3e02c06b468efd7b02b1cde10839b2fd34ddcf1f277b577de64382",
+      "sha256": "9346e6a19274ba99a6c55e5d2057e6e41177a09fdfce25668b19cef59fe60e58",
       "surface_kind": "human"
     },
     {
@@ -18880,11 +20928,11 @@
       "surface_kind": "structured"
     },
     {
-      "bytes": 140402,
+      "bytes": 140376,
       "currentness": "tracked_source_snapshot",
       "family_id": "docs",
       "path": "docs/validation/script_inventory.json",
-      "sha256": "535a416e0cd5958c0ba7c312da178d0b3813e93c5440a6e2676031f02a48e6fb",
+      "sha256": "7eb452c5e0bf6df3808425a29c3258e861c0c7ca63d7c78c27714d44ebaafffc",
       "surface_kind": "structured"
     },
     {
@@ -21088,11 +23136,11 @@
       "surface_kind": "executable"
     },
     {
-      "bytes": 46399,
+      "bytes": 48319,
       "currentness": "tracked_source_snapshot",
       "family_id": "scripts",
       "path": "scripts/philosophy_graph_projection_common.py",
-      "sha256": "00886fda231434a12df77032a2887f13d8b2b5eb2ca9190c2b4baf9e46781d5d",
+      "sha256": "69f5edb61800485b7339c3a2964a69f1abf1a6cfcfec7630c66867888de3da8a",
       "surface_kind": "executable"
     },
     {
@@ -21112,11 +23160,11 @@
       "surface_kind": "executable"
     },
     {
-      "bytes": 16883,
+      "bytes": 16867,
       "currentness": "tracked_source_snapshot",
       "family_id": "scripts",
       "path": "scripts/philosophy_post_planting_audit_common.py",
-      "sha256": "3b03f719b15d49716f67e5d83f84a631024ae36f2b8ea38aa2980d226bc0afbf",
+      "sha256": "9a3243ae4b5addea901c3e5393ef516ee8303c7f5abc523c2ffcdc0c8a1a361e",
       "surface_kind": "executable"
     },
     {
@@ -21128,11 +23176,11 @@
       "surface_kind": "executable"
     },
     {
-      "bytes": 102013,
+      "bytes": 113663,
       "currentness": "tracked_source_snapshot",
       "family_id": "scripts",
       "path": "scripts/plant_table_i_prepared_dossiers.py",
-      "sha256": "b85ee565217463edba230845a2b0419c12a8b352f46ff9d02741dfec125ea93e",
+      "sha256": "89b3a3bcf001223518761e1ac564f0448b4e08f53eba6252dc0b24c7c9cf0016",
       "surface_kind": "executable"
     },
     {
@@ -21332,15 +23380,15 @@
       "currentness": "tracked_source_snapshot",
       "family_id": "scripts",
       "path": "scripts/validate_philosophy_atlas_projection.py",
-      "sha256": "08230ec7bea00a313eb5dfa624ae1bc4cdef2d5badb0e57f81dbfe5e2b63008f",
+      "sha256": "541b87c59fe5756f2ff5c44dbc2b08a746d65c9b94cd029bd279dcde70b6c851",
       "surface_kind": "executable"
     },
     {
-      "bytes": 6224,
+      "bytes": 10329,
       "currentness": "tracked_source_snapshot",
       "family_id": "scripts",
       "path": "scripts/validate_philosophy_graph_projection.py",
-      "sha256": "4ed91cd3919f9078e093d9c669e6b20fe6d37ad406fe7a3925e9cc9bc2058ea8",
+      "sha256": "3b090cc0136d20aee7e55b580c097a35042b54bb47c9ac39582c337cfa4e9671",
       "surface_kind": "executable"
     },
     {
@@ -21356,7 +23404,7 @@
       "currentness": "tracked_source_snapshot",
       "family_id": "scripts",
       "path": "scripts/validate_philosophy_post_planting_audit.py",
-      "sha256": "8b4508c96c2195a88544727a9ea0a61528c9a548cffea4aa6cd82d440199f1b7",
+      "sha256": "25f1877811fc2c3b2f37408869ed017d5e3d1b9e8d14690a28b3b615274fe234",
       "surface_kind": "executable"
     },
     {
@@ -21648,19 +23696,19 @@
       "surface_kind": "executable"
     },
     {
-      "bytes": 17504,
+      "bytes": 17211,
       "currentness": "tracked_source_snapshot",
       "family_id": "tests",
       "path": "tests/test_philosophy_atlas_projection.py",
-      "sha256": "693306abce308bc38e0bc8469b7b0cd66beeb0081e686f460846b17b2fe855a9",
+      "sha256": "97acb53da65d50d8d46347fb3a825902605bc18fe487da2b4369f7998da88240",
       "surface_kind": "executable"
     },
     {
-      "bytes": 16492,
+      "bytes": 19655,
       "currentness": "tracked_source_snapshot",
       "family_id": "tests",
       "path": "tests/test_philosophy_graph_projection.py",
-      "sha256": "bd7727cdf95cae3740c566670c184630acd3600bd14e25a58b829c42a792f45f",
+      "sha256": "1c0ce7bfa4a76f93c36a013a25a19a027f77f5c1e9c9852bc89c5e20d68698a4",
       "surface_kind": "executable"
     },
     {
@@ -21688,19 +23736,19 @@
       "surface_kind": "executable"
     },
     {
-      "bytes": 5646,
+      "bytes": 7826,
       "currentness": "tracked_source_snapshot",
       "family_id": "tests",
       "path": "tests/test_philosophy_post_planting_audit.py",
-      "sha256": "bc85884497e208f099723e9f2803ffc9ebfa5015a10fb9d46e7ee4d7204dd5eb",
+      "sha256": "a5863f7f1f88931755aa2d3f517694627f397d17124202ee197cba9b773450ec",
       "surface_kind": "executable"
     },
     {
-      "bytes": 35875,
+      "bytes": 44301,
       "currentness": "tracked_source_snapshot",
       "family_id": "tests",
       "path": "tests/test_prepared_dossier_pipeline.py",
-      "sha256": "974533266b4e76e380a89e255b86150acbeba47431f7d7d47589b022dcfcc77d",
+      "sha256": "31b8cc6fbdffab7421e40f30a386759893e19ffd614ca222cbd8dff3f13ba494",
       "surface_kind": "executable"
     },
     {

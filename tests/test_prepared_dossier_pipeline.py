@@ -33,6 +33,7 @@ from plant_table_i_prepared_dossiers import (  # noqa: E402
     dossier_local_node_alias,
     normalize_row_to_expand,
     resolve_relation_endpoints,
+    row_value,
     table_family,
 )
 
@@ -329,7 +330,54 @@ class PreparedDossierPipelineTest(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, "reviewed Table I route"):
                 planting_pipeline.parse_dossier(Path("A23.docx"), master_row, "table-i")
 
-    def test_readiness_exposes_partial_table_ii_and_keeps_table_iii_unplanted(self) -> None:
+    def test_table_three_rejects_empty_accepted_input_title_override(self) -> None:
+        master_row = next(
+            row
+            for row in planting_pipeline.load_jsonl(
+                REPO_ROOT / "ToS/philosophy/atlas/master-tables/table-iii/rows.jsonl"
+            )
+            if row["row_id"] == "T3-65"
+        )
+        route = dict(planting_pipeline.PACKAGE_ROUTES["table-iii"]["T3-65"])
+        route["accepted_input_title"] = ""
+        document = SimpleNamespace(
+            paragraphs=[SimpleNamespace(text="Unrelated dossier without identity metadata")],
+            tables=[],
+        )
+
+        with (
+            patch.dict(planting_pipeline.PACKAGE_ROUTES["table-iii"], {"T3-65": route}),
+            patch.object(planting_pipeline, "load_docx_document", return_value=document),
+        ):
+            with self.assertRaisesRegex(ValueError, "accepted_input_title must be non-empty"):
+                planting_pipeline.parse_dossier(Path("T3-65.docx"), master_row, "table-iii")
+
+    def test_table_three_generic_headings_do_not_replace_dossier_identity(self) -> None:
+        master_rows = {
+            row["row_id"]: row
+            for row in planting_pipeline.load_jsonl(
+                REPO_ROOT / "ToS/philosophy/atlas/master-tables/table-iii/rows.jsonl"
+            )
+        }
+        for dossier_id, heading in (
+            ("T3-47", "TREE OF SOPHIA · DEEP RESEARCH"),
+            ("T3-57", "TREE OF SOPHIA"),
+            ("T3-84", "TREE OF SOPHIA"),
+        ):
+            document = SimpleNamespace(
+                paragraphs=[
+                    SimpleNamespace(text=heading),
+                    SimpleNamespace(text="Unrelated ToS dossier without a dossier-specific marker"),
+                ],
+                tables=[],
+            )
+            with patch.object(planting_pipeline, "load_docx_document", return_value=document):
+                with self.assertRaisesRegex(ValueError, "reviewed table-iii route"):
+                    planting_pipeline.parse_dossier(
+                        Path(f"{dossier_id}.docx"), master_rows[dossier_id], "table-iii"
+                    )
+
+    def test_readiness_exposes_complete_table_ii_and_table_iii_packages(self) -> None:
         payload = readiness_payload()
         table_ii = payload["tables"]["table-ii"]
         self.assertTrue(table_ii["supported"])
@@ -341,8 +389,10 @@ class PreparedDossierPipelineTest(unittest.TestCase):
         self.assertEqual(table_ii["missing_master_dossier_ids"], [])
         table_iii = payload["tables"]["table-iii"]
         self.assertTrue(table_iii["supported"])
-        self.assertEqual(table_iii["master_alignment"], "45/84")
-        self.assertEqual(table_iii["missing_master_dossier_ids"], [f"T3-{value:02d}" for value in range(46, 85)])
+        self.assertEqual(table_iii["master_alignment"], "84/84")
+        self.assertEqual(table_iii["input_admission"], "84/84")
+        self.assertEqual(table_iii["blocked_dossier_ids"], [])
+        self.assertEqual(table_iii["missing_master_dossier_ids"], [])
 
     def test_readiness_rejects_drifted_identity_on_declared_missing_master_rows(self) -> None:
         rows = [
@@ -446,6 +496,20 @@ class PreparedDossierPipelineTest(unittest.TestCase):
         self.assertTrue(t2_56["branch_path"].startswith("ToS/philosophy/frontiers/"))
         self.assertIn("not_a_readable_text_corpus_claim", t2_56["route_constraints"])
 
+        table_iii = payload["packages"]["table-iii"]
+        table_iii_routes = {
+            row["dossier_id"]: {**table_iii["route_defaults"], **row}
+            for row in table_iii["routes"]
+        }
+
+        for package in payload["packages"].values():
+            for route in package["routes"]:
+                if "accepted_input_title" in route:
+                    self.assertTrue(route["accepted_input_title"].strip())
+        for dossier_id in ("T3-47", "T3-57", "T3-84"):
+            accepted_title = table_iii_routes[dossier_id]["accepted_input_title"]
+            self.assertNotIn(accepted_title, {"TREE OF SOPHIA", "TREE OF SOPHIA · DEEP RESEARCH"})
+
     def test_tracked_intake_manifest_preserves_fixity_and_claim_limit(self) -> None:
         payload = json.loads(INTAKE_PATH.read_text(encoding="utf-8"))
         self.assertEqual(payload["file_count"], 48)
@@ -514,20 +578,112 @@ class PreparedDossierPipelineTest(unittest.TestCase):
         self.assertEqual(
             coverage["summary"]["coverage_class_counts"],
             {
-                "deferred_context": 4226,
+                "deferred_context": 4218,
                 "identity_metadata_examined": 766,
-                "structured_primary_extracted": 9279,
+                "structured_primary_extracted": 9287,
             },
         )
         self.assertEqual(coverage["summary"]["family_row_counts"]["proposed_nodes"], 2152)
         self.assertEqual(coverage["summary"]["family_row_counts"]["proposed_relations"], 2311)
-        self.assertEqual(coverage["summary"]["family_row_counts"]["risk_control_source_needs"], 783)
+        self.assertEqual(coverage["summary"]["family_row_counts"]["risk_control_source_needs"], 791)
 
     def test_table_ii_control_tos_risk_header_is_structured(self) -> None:
         self.assertEqual(
             table_family(("Риск", "Почему существенен", "Контроль ToS")),
             "risk_control_source_needs",
         )
+
+    def test_table_iii_accepted_structured_headers_preserve_payloads(self) -> None:
+        source_rows = planting_pipeline.load_jsonl(
+            REPO_ROOT / "ToS/philosophy/atlas/dossiers/source-anchor-backlog.jsonl"
+        )
+        term_rows = planting_pipeline.load_jsonl(
+            REPO_ROOT / "ToS/philosophy/atlas/dossiers/term-index.jsonl"
+        )
+
+        t3_44 = [
+            row
+            for row in source_rows
+            if row["dossier_id"] == "T3-44"
+            and row["anchor_kind"] == "corpus_or_edition_anchor"
+        ]
+        self.assertEqual(len(t3_44), 39)
+        self.assertTrue(all(row["contribution"] for row in t3_44))
+        self.assertTrue(all(row["source_local_id"] for row in t3_44))
+
+        for dossier_id, table_indexes, field in (
+            ("T3-17", {29, 30}, "source_access"),
+            ("T3-19", {27, 28}, "reliability"),
+            ("T3-15", {5}, "control"),
+            ("T3-19", {6}, "control"),
+        ):
+            affected = [
+                row
+                for row in source_rows
+                if row["dossier_id"] == dossier_id
+                and row["source_table_index"] in table_indexes
+            ]
+            self.assertTrue(affected)
+            self.assertTrue(all(row[field] for row in affected))
+
+        t3_82 = [
+            row
+            for row in term_rows
+            if row["dossier_id"] == "T3-82" and row["source_table_index"] == 25
+        ]
+        self.assertEqual(len(t3_82), 30)
+        self.assertTrue(all(row["transliteration"] for row in t3_82))
+
+        date_or_layer_rows = [
+            row
+            for row in source_rows
+            if (row["dossier_id"], row["source_table_index"])
+            in {("T3-18", 27), ("T3-48", 22)}
+        ]
+        self.assertEqual(len(date_or_layer_rows), 55)
+        self.assertTrue(all(row["source_date_or_layer"] for row in date_or_layer_rows))
+
+        explanation_tables = {
+            ("T3-13", 6),
+            ("T3-14", 6),
+            ("T3-23", 7),
+            ("T3-47", 8),
+            ("T3-65", 6),
+            ("T3-66", 8),
+            ("T3-67", 8),
+            ("T3-73", 9),
+        }
+        risk_explanations = [
+            row
+            for row in source_rows
+            if (row["dossier_id"], row["source_table_index"]) in explanation_tables
+        ]
+        self.assertEqual(len(risk_explanations), 58)
+        self.assertTrue(all(row["risk_explanation"] for row in risk_explanations))
+
+        t3_66_locators = [
+            row
+            for row in source_rows
+            if row["dossier_id"] == "T3-66" and row["source_table_index"] == 26
+        ]
+        self.assertTrue(t3_66_locators)
+        self.assertTrue(all(row["source_locator"] for row in t3_66_locators))
+
+    def test_every_tracked_structured_header_has_an_output_field(self) -> None:
+        for table_id in planting_pipeline.SUPPORTED_TABLES:
+            coverage_path = planting_pipeline.package_path(table_id, "extraction_coverage_ref")
+            payload = json.loads(coverage_path.read_text(encoding="utf-8"))
+            for dossier in payload["dossiers"]:
+                for header_record in dossier["coverage"]["headers"]:
+                    header = tuple(header_record["header"])
+                    family = table_family(header)
+                    if family not in planting_pipeline.STRUCTURED_FAMILIES:
+                        continue
+                    field_map = planting_pipeline.structured_header_field_map(family, header)
+                    self.assertFalse(
+                        [cell for cell, fields in field_map.items() if not fields],
+                        msg=f"{dossier['dossier_id']} {family}: {header}",
+                    )
 
     def test_table_ii_observed_deferred_headers_keep_known_families(self) -> None:
         self.assertEqual(
@@ -580,7 +736,41 @@ class PreparedDossierPipelineTest(unittest.TestCase):
         family_counts = coverage["summary"]["family_row_counts"]
         self.assertEqual(family_counts["corpora_texts_artifacts"], 780)
         self.assertEqual(family_counts["figures_authorship"], 651)
-        self.assertEqual(family_counts["other_context"], 511)
+        self.assertEqual(family_counts["other_context"], 503)
+
+    def test_table_iii_header_aliases_keep_structured_families(self) -> None:
+        self.assertEqual(
+            table_family(("Node ID", "Тип", "Название", "Период", "Связи", "Приоритет")),
+            "proposed_nodes",
+        )
+        self.assertEqual(
+            table_family(("Исходный узел", "Отношение", "Целевой узел", "Комментарий", "Ув.")),
+            "proposed_relations",
+        )
+        self.assertEqual(
+            table_family(("Источник / previous node", "Что передано", "Канал", "Уверенность", "Примечание")),
+            "incoming_transmissions",
+        )
+        self.assertEqual(
+            table_family(("Следующий узел / эпоха", "Что передаётся", "Канал", "Уверенность", "Проверить дальше")),
+            "outgoing_transmissions",
+        )
+
+    def test_row_value_reads_table_iii_aliases(self) -> None:
+        row = {
+            "Node ID": "T3-84-N01",
+            "Тип": "concept",
+            "Исходный узел": "T3-84-N01",
+            "Отношение": "uses_language",
+            "Целевой узел": "T3-84-N05",
+            "Ув.": "high",
+        }
+        self.assertEqual(row_value(row, "Node ID"), "T3-84-N01")
+        self.assertEqual(row_value(row, "Тип узла", "Тип"), "concept")
+        self.assertEqual(row_value(row, "Source node", "Исходный узел"), "T3-84-N01")
+        self.assertEqual(row_value(row, "Relation", "Отношение"), "uses_language")
+        self.assertEqual(row_value(row, "Target node", "Целевой узел"), "T3-84-N05")
+        self.assertEqual(row_value(row, "Уверенность", "Увер.", "Ув."), "high")
 
     def test_table_ii_quarantine_emits_no_semantic_output_and_b_rows_need_review(self) -> None:
         index_rows = [json.loads(line) for line in DOSSIER_INDEX_PATH.read_text(encoding="utf-8").splitlines() if line]

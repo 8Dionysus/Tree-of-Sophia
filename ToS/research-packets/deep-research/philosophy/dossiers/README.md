@@ -12,8 +12,8 @@ duplicate the atlas dossier index or pretend to be the philosophy tree itself.
 | `table-i-docx-extraction-coverage.json` | row-level coverage accounting for structured extraction, identity metadata, deferred context, and prose-only risk gaps |
 | `table-ii-docx-intake.manifest.json` | exact fixity for all 58 supplied and master-aligned Table II artifacts |
 | `table-ii-docx-extraction-coverage.json` | structured, deferred, and identity row accounting for the complete Table II package |
-| `table-iii-docx-intake.manifest.json` | exact fixity for 45 supplied Table III artifacts while the remaining master rows stay explicit as unsupplied |
-| `table-iii-docx-extraction-coverage.json` | structured, deferred, and identity row accounting for the partial Table III package |
+| `table-iii-docx-intake.manifest.json` | exact fixity for all 84 supplied and master-aligned Table III artifacts |
+| `table-iii-docx-extraction-coverage.json` | structured, deferred, and identity row accounting for the complete Table III package, including the explicit zero-structured-row diagnostic for prose-only `T3-57` |
 
 The manifest proves observed fixity, not authorship or origin. The coverage
 files prove parser accounting, not full dossier transfer, citation quality,

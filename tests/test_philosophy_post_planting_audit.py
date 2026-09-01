@@ -42,16 +42,16 @@ class PhilosophyPostPlantingAuditTest(unittest.TestCase):
         self.assertEqual(table_ii["unavailable_row_ids_by_intake_status"], {})
         table_iii = payload["master_tables"]["table-iii"]
         self.assertEqual(table_iii["row_count"], 84)
-        self.assertEqual(table_iii["dossier_available_count"], 45)
-        self.assertEqual(table_iii["dossier_unavailable_count"], 39)
-        self.assertEqual(table_iii["unavailable_row_ids_by_intake_status"]["input_not_supplied"], [f"T3-{n:02d}" for n in range(46, 85)])
+        self.assertEqual(table_iii["dossier_available_count"], 84)
+        self.assertEqual(table_iii["dossier_unavailable_count"], 0)
+        self.assertEqual(table_iii["unavailable_row_ids_by_intake_status"], {})
         markdown = render_markdown(payload)
-        self.assertIn("input_not_supplied): `T3-46`, `T3-47`", markdown)
-        self.assertEqual(payload["counts"]["prepared_dossiers"], 151)
-        self.assertEqual(payload["branch_audit"]["prepared_branch_count"], 151)
-        self.assertEqual(payload["graph_workbench_audit"]["proposed_node_count"], 5677)
-        self.assertEqual(payload["graph_workbench_audit"]["proposed_relation_count"], 6399)
-        self.assertEqual(payload["graph_workbench_audit"]["language_packet_count"], 1014)
+        self.assertNotIn("input_not_supplied", markdown)
+        self.assertEqual(payload["counts"]["prepared_dossiers"], 190)
+        self.assertEqual(payload["branch_audit"]["prepared_branch_count"], 190)
+        self.assertEqual(payload["graph_workbench_audit"]["proposed_node_count"], 7193)
+        self.assertEqual(payload["graph_workbench_audit"]["proposed_relation_count"], 8564)
+        self.assertEqual(payload["graph_workbench_audit"]["language_packet_count"], 1278)
         self.assertEqual(
             payload["graph_workbench_audit"]["language_packet_count"],
             payload["graph_workbench_audit"]["text_bearing_node_count"],
@@ -64,6 +64,62 @@ class PhilosophyPostPlantingAuditTest(unittest.TestCase):
         self.assertEqual(payload["graph_projection_audit"]["views"], 11)
         self.assertEqual(payload["graph_projection_audit"]["review_packets"], 11)
         self.assertTrue(payload["graph_projection_audit"]["snapshot_ready"])
+
+    def test_complete_table_iii_retains_special_dossier_postures(self) -> None:
+        rows = [
+            json.loads(line)
+            for line in (
+                REPO_ROOT / "ToS/philosophy/atlas/dossiers/index.jsonl"
+            ).read_text(encoding="utf-8").splitlines()
+            if line.strip()
+        ]
+        by_id = {row["dossier_id"]: row for row in rows}
+        self.assertEqual(by_id["T3-57"]["node_row_count"], 0)
+        self.assertEqual(by_id["T3-57"]["relation_row_count"], 0)
+        self.assertEqual(by_id["T3-57"]["review_posture"], "manual_review_required")
+        self.assertIn("prose_only_artifact", by_id["T3-57"]["route_constraints"])
+        self.assertEqual(by_id["T3-76"]["route_kind"], "undeciphered_script_frontier")
+        self.assertEqual(by_id["T3-76"]["review_posture"], "manual_review_required")
+
+        table_iii_nodes = [
+            json.loads(line)
+            for line in (
+                REPO_ROOT
+                / "ToS/philosophy/graph-workbench/proposed-nodes/table-iii-prepared-dossiers.jsonl"
+            ).read_text(encoding="utf-8").splitlines()
+            if line.strip()
+        ]
+        self.assertTrue(all(" " not in row["node_kind"] for row in table_iii_nodes))
+        self.assertEqual(
+            {row["node_kind"] for row in table_iii_nodes if row["dossier_id"] == "T3-31"},
+            {
+                "civilization_literary_complex",
+                "concept",
+                "figure_anchor",
+                "genre",
+                "institution",
+                "language_script",
+                "medium",
+                "method",
+                "preservation_state",
+                "school_tradition",
+                "text_corpus",
+                "transmission_channel",
+            },
+        )
+        t3_77_n40 = next(
+            row
+            for row in table_iii_nodes
+            if row["dossier_id"] == "T3-77" and row["original_node_id"] == "T3-77-N40"
+        )
+        self.assertEqual(
+            t3_77_n40["label"],
+            "Wave, canon, translation, category, and institution controversy cluster",
+        )
+        self.assertEqual(
+            t3_77_n40["label_normalization"],
+            "reviewed_source_punctuation_normalization",
+        )
 
     def test_audit_builder_inventory_names_every_supported_package_surface(self) -> None:
         inventory = json.loads(

@@ -13,10 +13,20 @@ Tracking starts with the community-docs baseline for this repository.
   the corrected T2-26 nominalism packet and T2-51–T2-58, with generated
   medieval-worlds branches, graph-workbench candidates, language packets,
   fixity manifests, and explicit extraction coverage.
-- Adds a bounded partial Table III planting for all 45 supplied dossiers
-  (`T3-01`–`T3-45`) under a non-universalizing modernity-and-contemporary-worlds
-  navigation window. The master table remains 84 rows; `T3-46`–`T3-84` stay
-  explicit unsupplied inputs rather than inferred or fabricated dossiers.
+- Completes Table III at 84 of 84 master-aligned prepared dossiers under a
+  non-universalizing modernity-and-contemporary-worlds navigation window.
+  `T3-76` remains an explicit undeciphered-script frontier rather than an era
+  or deciphered tradition claim; the prose-only `T3-57` artifact is admitted
+  for fixity and coverage while producing no structured semantic candidates.
+- Recognizes semantically equivalent prepared-dossier table headers across
+  Russian and English variants, recovering the T3-66/T3-69 relation tables and
+  the T3-84 node and transmission tables while normalizing node-kind ids; a
+  reviewed T3-77 punctuation override keeps an analytic enumeration distinct
+  from an active repository path or id.
+- Moves the philosophy graph projection to contract v2: nodes and edges are
+  materialized once, while each of the eleven lenses carries stable node/edge
+  ID membership. This preserves the complete source-returning projection and
+  reduces the generated file from 125,123,899 to 30,023,000 bytes.
 - Routes T2-56 to an Andean information-system frontier distinct from A48's
   cross-chronology khipu/rongorongo boundary, preserving the limits between an
   information system, a readable text corpus, and a philosophical canon.
@@ -69,8 +79,8 @@ Tracking starts with the community-docs baseline for this repository.
 ### Validation
 
 - Prepared-dossier, multilingual, topology, atlas/graph projection, and
-  post-planting checks account for 151 admitted dossiers across Tables I–III,
-  5,677 proposed nodes, 6,399 proposed relations, and 1,014 text-bearing
+  post-planting checks account for 190 admitted dossiers across Tables I–III,
+  7,193 proposed nodes, 8,564 proposed relations, and 1,278 text-bearing
   language packets. Structural green status does not verify DOCX origin,
   citations, historical claims, source-witness identity, semantic review, or
   canon acceptance.
