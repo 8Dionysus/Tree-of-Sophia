@@ -995,14 +995,16 @@ def parse_dossier(path: Path, master_row: dict[str, Any], table_id: str = "table
             identity_diagnostics.append("master_identity_mismatch_quarantined")
             metadata_identity_posture = "filename_and_artifact_title_recorded_master_mismatch"
         else:
-            expected_title = (
-                str(route["accepted_input_title"])
-                if "accepted_input_title" in route
-                else str(normalized_master.get("research_node") or "")
-            )
+            if "accepted_input_title" in route:
+                expected_title = scrub(str(route["accepted_input_title"]))
+                if not normalized_title(expected_title):
+                    raise ValueError(f"{dossier_id} accepted_input_title must be non-empty")
+            else:
+                expected_title = str(normalized_master.get("research_node") or "")
+            normalized_expected_title = normalized_title(expected_title)
             body_text = normalized_title(" ".join(paragraphs[1:]))
-            title_matches = normalized_title(observed_clean_title) == normalized_title(expected_title)
-            title_matches = title_matches or normalized_title(expected_title) in body_text
+            title_matches = normalized_title(observed_clean_title) == normalized_expected_title
+            title_matches = title_matches or normalized_expected_title in body_text
             if not title_matches:
                 raise ValueError(
                     f"{dossier_id} DOCX title does not match its reviewed {table_id} route: "

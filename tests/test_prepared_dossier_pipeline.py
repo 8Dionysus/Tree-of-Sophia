@@ -330,6 +330,28 @@ class PreparedDossierPipelineTest(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, "reviewed Table I route"):
                 planting_pipeline.parse_dossier(Path("A23.docx"), master_row, "table-i")
 
+    def test_table_three_rejects_empty_accepted_input_title_override(self) -> None:
+        master_row = next(
+            row
+            for row in planting_pipeline.load_jsonl(
+                REPO_ROOT / "ToS/philosophy/atlas/master-tables/table-iii/rows.jsonl"
+            )
+            if row["row_id"] == "T3-65"
+        )
+        route = dict(planting_pipeline.PACKAGE_ROUTES["table-iii"]["T3-65"])
+        route["accepted_input_title"] = ""
+        document = SimpleNamespace(
+            paragraphs=[SimpleNamespace(text="Unrelated dossier without identity metadata")],
+            tables=[],
+        )
+
+        with (
+            patch.dict(planting_pipeline.PACKAGE_ROUTES["table-iii"], {"T3-65": route}),
+            patch.object(planting_pipeline, "load_docx_document", return_value=document),
+        ):
+            with self.assertRaisesRegex(ValueError, "accepted_input_title must be non-empty"):
+                planting_pipeline.parse_dossier(Path("T3-65.docx"), master_row, "table-iii")
+
     def test_readiness_exposes_complete_table_ii_and_table_iii_packages(self) -> None:
         payload = readiness_payload()
         table_ii = payload["tables"]["table-ii"]
@@ -448,6 +470,11 @@ class PreparedDossierPipelineTest(unittest.TestCase):
         t2_56 = table_ii_routes["T2-56"]
         self.assertTrue(t2_56["branch_path"].startswith("ToS/philosophy/frontiers/"))
         self.assertIn("not_a_readable_text_corpus_claim", t2_56["route_constraints"])
+
+        for package in payload["packages"].values():
+            for route in package["routes"]:
+                if "accepted_input_title" in route:
+                    self.assertTrue(route["accepted_input_title"].strip())
 
     def test_tracked_intake_manifest_preserves_fixity_and_claim_limit(self) -> None:
         payload = json.loads(INTAKE_PATH.read_text(encoding="utf-8"))
