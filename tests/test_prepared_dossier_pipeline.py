@@ -352,6 +352,31 @@ class PreparedDossierPipelineTest(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, "accepted_input_title must be non-empty"):
                 planting_pipeline.parse_dossier(Path("T3-65.docx"), master_row, "table-iii")
 
+    def test_table_three_generic_headings_do_not_replace_dossier_identity(self) -> None:
+        master_rows = {
+            row["row_id"]: row
+            for row in planting_pipeline.load_jsonl(
+                REPO_ROOT / "ToS/philosophy/atlas/master-tables/table-iii/rows.jsonl"
+            )
+        }
+        for dossier_id, heading in (
+            ("T3-47", "TREE OF SOPHIA · DEEP RESEARCH"),
+            ("T3-57", "TREE OF SOPHIA"),
+            ("T3-84", "TREE OF SOPHIA"),
+        ):
+            document = SimpleNamespace(
+                paragraphs=[
+                    SimpleNamespace(text=heading),
+                    SimpleNamespace(text="Unrelated ToS dossier without a dossier-specific marker"),
+                ],
+                tables=[],
+            )
+            with patch.object(planting_pipeline, "load_docx_document", return_value=document):
+                with self.assertRaisesRegex(ValueError, "reviewed table-iii route"):
+                    planting_pipeline.parse_dossier(
+                        Path(f"{dossier_id}.docx"), master_rows[dossier_id], "table-iii"
+                    )
+
     def test_readiness_exposes_complete_table_ii_and_table_iii_packages(self) -> None:
         payload = readiness_payload()
         table_ii = payload["tables"]["table-ii"]
@@ -471,10 +496,19 @@ class PreparedDossierPipelineTest(unittest.TestCase):
         self.assertTrue(t2_56["branch_path"].startswith("ToS/philosophy/frontiers/"))
         self.assertIn("not_a_readable_text_corpus_claim", t2_56["route_constraints"])
 
+        table_iii = payload["packages"]["table-iii"]
+        table_iii_routes = {
+            row["dossier_id"]: {**table_iii["route_defaults"], **row}
+            for row in table_iii["routes"]
+        }
+
         for package in payload["packages"].values():
             for route in package["routes"]:
                 if "accepted_input_title" in route:
                     self.assertTrue(route["accepted_input_title"].strip())
+        for dossier_id in ("T3-47", "T3-57", "T3-84"):
+            accepted_title = table_iii_routes[dossier_id]["accepted_input_title"]
+            self.assertNotIn(accepted_title, {"TREE OF SOPHIA", "TREE OF SOPHIA · DEEP RESEARCH"})
 
     def test_tracked_intake_manifest_preserves_fixity_and_claim_limit(self) -> None:
         payload = json.loads(INTAKE_PATH.read_text(encoding="utf-8"))

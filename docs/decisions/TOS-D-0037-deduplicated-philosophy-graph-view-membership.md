@@ -31,11 +31,13 @@ ordered `node_ids` and `edge_ids` membership over those global arrays instead
 of embedding duplicate full records.
 
 The builder still computes each view from the same source-owned filters and
-uses the full in-memory view material for layer counts, review packets, and
-snapshot fingerprints before emitting ID membership. Validators require every
-view reference to resolve inside the global materialized set. `abyss-stack`
-remains the runtime owner and must dereference view membership without writing
-runtime state back into ToS.
+uses the full in-memory view material for layer counts and review diagnostics.
+Snapshot and review-packet fingerprints are computed from the exact global
+records reached through the exported `node_ids` and `edge_ids`, so a consumer
+can reproduce them from the v2 payload. Validators require every view reference
+to resolve inside the global materialized set and independently recompute every
+view fingerprint. `abyss-stack` remains the runtime owner and must dereference
+view membership without writing runtime state back into ToS.
 
 ## Options Considered
 

@@ -574,6 +574,8 @@ def _degree_counts(edges: list[dict[str, Any]]) -> Counter[str]:
 def _build_review_packets(
     *,
     views: list[dict[str, Any]],
+    nodes: list[dict[str, Any]],
+    edges: list[dict[str, Any]],
     graph_layers: list[dict[str, Any]],
     clusters: list[dict[str, Any]],
     unresolved_review_surfaces: list[dict[str, Any]],
@@ -595,6 +597,8 @@ def _build_review_packets(
         changed_subgraph = {"available": False, "reason": "not declared"}
 
     packets: list[dict[str, Any]] = []
+    global_nodes_by_id = {str(node["node_id"]): node for node in nodes}
+    global_edges_by_id = {str(edge["edge_id"]): edge for edge in edges}
     clusters_by_view: dict[str, list[dict[str, Any]]] = {}
     for cluster in clusters:
         for view_id in cluster.get("view_ids", []):
@@ -659,8 +663,8 @@ def _build_review_packets(
         current_view_fingerprint = _stable_digest(
             _view_fingerprint_material(
                 view_id=view_id,
-                view_nodes=view_nodes,
-                view_edges=view_edges,
+                view_nodes=[global_nodes_by_id[str(node["node_id"])] for node in view_nodes],
+                view_edges=[global_edges_by_id[str(edge["edge_id"])] for edge in view_edges],
                 view_clusters=view_clusters,
                 graph_layers=view.get("graph_layers", []),
                 source_refs=view.get("source_refs", []),
@@ -711,6 +715,8 @@ def _build_snapshot_review(
     edges: list[dict[str, Any]],
     clusters: list[dict[str, Any]],
 ) -> dict[str, Any]:
+    global_nodes_by_id = {str(node["node_id"]): node for node in nodes}
+    global_edges_by_id = {str(edge["edge_id"]): edge for edge in edges}
     clusters_by_view: dict[str, list[dict[str, Any]]] = {}
     for cluster in clusters:
         for view_id in cluster.get("view_ids", []):
@@ -719,8 +725,14 @@ def _build_snapshot_review(
     view_fingerprints: list[dict[str, Any]] = []
     for view in views:
         view_id = str(view.get("view_id") or "")
-        view_nodes = view.get("nodes", [])
-        view_edges = view.get("edges", [])
+        view_nodes = [
+            global_nodes_by_id[str(node["node_id"])]
+            for node in view.get("nodes", [])
+        ]
+        view_edges = [
+            global_edges_by_id[str(edge["edge_id"])]
+            for edge in view.get("edges", [])
+        ]
         view_clusters = clusters_by_view.get(view_id, [])
         view_fingerprint_material = _view_fingerprint_material(
             view_id=view_id,
@@ -952,6 +964,8 @@ def build_payload() -> dict[str, Any]:
     layer_counts = _layer_counts(graph_layers, views=views, nodes=nodes, edges=edges, clusters=clusters)
     review_packets = _build_review_packets(
         views=views,
+        nodes=nodes,
+        edges=edges,
         graph_layers=graph_layers,
         clusters=clusters,
         unresolved_review_surfaces=unresolved_review_surfaces,

@@ -90,6 +90,36 @@ class PhilosophyGraphProjectionTest(unittest.TestCase):
             self.assertTrue(set(view["node_ids"]) <= node_ids)
             self.assertTrue(set(view["edge_ids"]) <= edge_ids)
 
+    def test_view_fingerprints_reproduce_from_exported_membership(self) -> None:
+        payload = self.load_projection()
+        nodes = {node["node_id"]: node for node in payload["nodes"]}
+        edges = {edge["edge_id"]: edge for edge in payload["edges"]}
+        fingerprints = {
+            row["view_id"]: row["fingerprint"]
+            for row in payload["snapshot_review"]["current_snapshot"]["view_fingerprints"]
+        }
+        packets = {row["view_id"]: row for row in payload["review_packets"]}
+
+        for view in payload["views"]:
+            view_id = view["view_id"]
+            clusters = [
+                cluster for cluster in payload["clusters"] if view_id in cluster["view_ids"]
+            ]
+            material = _view_fingerprint_material(
+                view_id=view_id,
+                view_nodes=[nodes[node_id] for node_id in view["node_ids"]],
+                view_edges=[edges[edge_id] for edge_id in view["edge_ids"]],
+                view_clusters=clusters,
+                graph_layers=view["graph_layers"],
+                source_refs=view["source_refs"],
+            )
+            expected = _stable_digest(material)
+            self.assertEqual(fingerprints[view_id], expected)
+            self.assertEqual(
+                packets[view_id]["changed_subgraph"]["current_view_fingerprint"],
+                expected,
+            )
+
     def test_global_nodes_and_edges_carry_view_and_layer_membership(self) -> None:
         payload = self.load_projection()
         nodes = {node["node_id"]: node for node in payload["nodes"]}
