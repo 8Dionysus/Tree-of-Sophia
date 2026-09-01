@@ -26,18 +26,22 @@ BRANCH_FRAGMENTS_PATH = PHILOSOPHY_ROOT / "graph-workbench/branch-fragments/tabl
 PROPOSED_NODES_PATHS = (
     PROPOSED_NODES_PATH,
     PHILOSOPHY_ROOT / "graph-workbench/proposed-nodes/table-ii-prepared-dossiers.jsonl",
+    PHILOSOPHY_ROOT / "graph-workbench/proposed-nodes/table-iii-prepared-dossiers.jsonl",
 )
 PROPOSED_RELATIONS_PATHS = (
     PROPOSED_RELATIONS_PATH,
     PHILOSOPHY_ROOT / "graph-workbench/proposed-relations/table-ii-prepared-dossiers.jsonl",
+    PHILOSOPHY_ROOT / "graph-workbench/proposed-relations/table-iii-prepared-dossiers.jsonl",
 )
 LANGUAGE_PACKETS_PATHS = (
     LANGUAGE_PACKETS_PATH,
     PHILOSOPHY_ROOT / "graph-workbench/language-packets/table-ii-text-bearing-nodes.jsonl",
+    PHILOSOPHY_ROOT / "graph-workbench/language-packets/table-iii-text-bearing-nodes.jsonl",
 )
 BRANCH_FRAGMENTS_PATHS = (
     BRANCH_FRAGMENTS_PATH,
     PHILOSOPHY_ROOT / "graph-workbench/branch-fragments/table-ii-prepared-dossier-branches.json",
+    PHILOSOPHY_ROOT / "graph-workbench/branch-fragments/table-iii-prepared-dossier-branches.json",
 )
 GRAPH_PROJECTION_PATH = TOS_ROOT / "derived-exports/philosophy_graph_projection.min.json"
 GRAPH_VIEWS_PATH = TOS_ROOT / "derived-exports/philosophy_graph_views.min.json"
@@ -73,6 +77,7 @@ def render_markdown(payload: dict[str, Any]) -> str:
     counts = payload["counts"]
     table_i = payload["master_tables"]["table-i"]
     table_ii = payload["master_tables"]["table-ii"]
+    table_iii = payload["master_tables"]["table-iii"]
     branch = payload["branch_audit"]
     graph = payload["graph_workbench_audit"]
     projection = payload["graph_projection_audit"]
@@ -82,6 +87,11 @@ def render_markdown(payload: dict[str, Any]) -> str:
         f"- Table II unavailable ({status}): "
         + ", ".join(f"`{row_id}`" for row_id in row_ids)
         for status, row_ids in table_ii["unavailable_row_ids_by_intake_status"].items()
+    )
+    table_iii_intake_lines = "\n".join(
+        f"- Table III unavailable ({status}): "
+        + ", ".join(f"`{row_id}`" for row_id in row_ids)
+        for status, row_ids in table_iii["unavailable_row_ids_by_intake_status"].items()
     )
     diagnostic_lines = "\n".join(
         f"- {item['level']}: `{item['path']}` - {item['message']}" for item in diagnostics
@@ -95,6 +105,8 @@ def render_markdown(payload: dict[str, Any]) -> str:
         f"- Prepared dossiers: {table_i['dossier_available_count']} / {table_i['row_count']}\n"
         f"- Partial Table II dossiers: {table_ii['dossier_available_count']} / {table_ii['row_count']}\n"
         f"{table_ii_intake_lines}\n"
+        f"- Partial Table III dossiers: {table_iii['dossier_available_count']} / {table_iii['row_count']}\n"
+        f"{table_iii_intake_lines}\n"
         f"- Prepared branches: {branch['prepared_branch_count']}\n"
         f"- Proposed nodes: {graph['proposed_node_count']}\n"
         f"- Proposed relations: {graph['proposed_relation_count']}\n"

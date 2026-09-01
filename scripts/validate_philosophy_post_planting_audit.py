@@ -21,8 +21,8 @@ def main() -> int:
     if current.get("runtime_projection_boundary", {}).get("runtime_owner") != "abyss-stack":
         raise SystemExit("post-planting audit must keep runtime ownership in abyss-stack")
     counts = current.get("counts", {})
-    if counts.get("prepared_dossiers") != 97:
-        raise SystemExit("post-planting audit must account for 48 Table I and 49 admitted Table II dossiers")
+    if counts.get("prepared_dossiers") != 151:
+        raise SystemExit("post-planting audit must account for 48 Table I, 58 Table II, and 45 Table III dossiers")
     if counts.get("errors") != 0:
         raise SystemExit("post-planting audit must not contain error diagnostics")
     if current.get("review_readiness", {}).get("status") != "ready_for_first_graph_review":

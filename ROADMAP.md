@@ -96,7 +96,7 @@ contour without promoting that material to canon.
 | source home | `ToS/README.md`, `ToS/AGENTS.md`, `ToS/philosophy/README.md` |
 | philosophy atlas | `ToS/philosophy/atlas/`, `ToS/philosophy/atlas/master-tables/`, `ToS/derived-exports/philosophy_atlas_projection.min.json` |
 | trunk law | `ToS/philosophy/trunk/branch-law/`, `chronology/`, `evidence-status/`, `graph-layers/`, `node-kinds/`, `relation-kinds/`, `source-posture/` |
-| Table I planting | `ToS/philosophy/atlas/master-tables/table-i/`, `ToS/philosophy/eras/`, `ToS/philosophy/graph-workbench/proposed-nodes/`, `proposed-relations/`, `branch-fragments/` |
+| prepared-dossier planting | complete Tables I–II and the supplied `T3-01`–`T3-45` slice under `ToS/philosophy/atlas/`, `eras/`, `frontiers/`, and `graph-workbench/` |
 | graph review | `ToS/philosophy/graph-workbench/views/`, `clusters/`, `review-packets/`, `promotion-ledger/` |
 | owner-local measurement | `stats/port.manifest.json`, `stats/packets/table-i-prepared-dossier-route-ratio.reference.json` |
 | downstream read models | `ToS/derived-exports/philosophy_graph_views.min.json`, `ToS/derived-exports/philosophy_graph_projection.min.json` |
@@ -127,8 +127,8 @@ review the tree before canon promotion.
 
 | Field | Direction |
 | --- | --- |
-| Current posture | Master tables and prepared dossier indexes now give the tree a navigable row spine. Table I is complete at 48 dossiers; Table II has a bounded partial planting of 49 admitted dossiers, one identity-mismatch quarantine, and eight absent packets. |
-| Next honest move | Review the Table I and admitted Table II graph-ready pre-canon slices, repair T2-26 at its source identity, and add T2-51–T2-58 only through the same atlas and branch route discipline before preparing Table III. |
+| Current posture | Master tables and prepared dossier indexes give the tree a navigable row spine. Tables I and II are complete at 48 and 58 dossiers; Table III has a bounded partial planting of the 45 supplied dossiers, while `T3-46`–`T3-84` remain explicit unsupplied inputs. |
+| Next honest move | Review the three graph-ready pre-canon slices, especially manual-review and frontier routes, and add the remaining Table III dossiers only through the same atlas, provenance, coverage, multilingual, and branch-route discipline. |
 | Guardrail | Atlas rows are prepared navigation and growth pressure; historical source claims still need source witnesses, branch review, and canon review. |
 
 ## Horizon: Graph Review And Projection

@@ -39,7 +39,7 @@ LANGUAGE_PACKET_CONTRACT_REF = "ToS/philosophy/atlas/multilingual/text-bearing-n
 LANGUAGE_REGISTRY_REF = "ToS/philosophy/atlas/multilingual/language-registry.json"
 OBSOLETE_GENERATED_BRANCH = REPO_ROOT / "ToS/philosophy/eras/bronze-age/regions/ancient-near-east"
 TEXT_BEARING_NODE_KINDS = {"text_corpus"}
-INTAKE_RECORDED_ON = {"table-i": "2026-08-27", "table-ii": "2026-08-29"}
+INTAKE_RECORDED_ON = {"table-i": "2026-08-27", "table-ii": "2026-09-01", "table-iii": "2026-09-01"}
 
 
 def load_packages() -> dict[str, dict[str, Any]]:
@@ -228,21 +228,48 @@ def table_family(header: tuple[str, ...]) -> str:
         "тип узла",
         "название",
         "период",
-    ) and normalized[4] in {"связи", "основные связи", "ключевые связи"} and normalized[5] == "приоритет":
+    ) and normalized[4] in {
+        "связи",
+        "связи / функция",
+        "основные связи",
+        "ключевые связи",
+    } and normalized[5] in {"приоритет", "приор."}:
         return "proposed_nodes"
-    if normalized == tuple(normalized_header_cell(value) for value in RELATION_TABLE):
+    if (
+        len(normalized) == 5
+        and normalized[:4] == ("source node", "relation", "target node", "комментарий")
+        and normalized[4] in {"уверенность", "увер."}
+    ) or (
+        len(normalized) == 6
+        and normalized[:5] == ("edge id", "source", "relation", "target", "комментарий")
+        and normalized[5] in {"уверенность", "увер."}
+    ):
         return "proposed_relations"
-    if len(normalized) == 5 and normalized[0:2] == ("источник / корпус", "тип") and normalized[2] in {
+    source_core = normalized[1:] if normalized and normalized[0] in {"id", "код"} else normalized
+    if len(source_core) == 5 and source_core[0] in {"источник / корпус", "источник"} and source_core[1] == "тип" and source_core[2] in {
         "что дает",
         "что даёт",
-    } and normalized[3] == "доступ / где искать" and normalized[4] in {"надежность", "надёжность"}:
+    } and source_core[3] in {"доступ", "доступ / где искать"} and source_core[4] in {
+        "надежность",
+        "надёжность",
+        "надежность / ограничение",
+        "надёжность / ограничение",
+        "надежность / ограничения",
+        "надёжность / ограничения",
+    }:
         return "corpus_or_edition_anchors"
-    if normalized == tuple(normalized_header_cell(value) for value in CONTROL_SOURCE_TABLE):
+    if (
+        len(source_core) in {4, 5}
+        and source_core[0] == "источник"
+        and source_core[1] == "тип"
+        and source_core[2] == "зачем нужен"
+        and source_core[-1] in {"ограничение", "ограничения"}
+    ):
         return "control_or_review_anchors"
     if len(normalized) in {2, 3, 4} and normalized[0] in {"проблема", "риск"}:
         if len(normalized) == 2 and normalized[1] == "что контролировать":
             return "risk_control_source_needs"
-        if len(normalized) == 3 and normalized[1] == "почему существенен" and normalized[2] in {
+        if len(normalized) == 3 and normalized[1] in {"почему существенен", "в чем ловушка"} and normalized[2] in {
             "контроль",
             "контроль tos",
             "контроль в tos",
@@ -251,9 +278,10 @@ def table_family(header: tuple[str, ...]) -> str:
         if len(normalized) == 4 and normalized[1] in {"в чем риск", "риск"} and normalized[2] in {
             "как контролировать в tos",
             "контроль в tos",
+            "контроль tos",
         } and normalized[3] in {"какие источники нужны", "нужные источники", "что требуется"}:
             return "risk_control_source_needs"
-    if len(normalized) == 5 and normalized[:3] == ("термин", "язык", "транслитерация") and normalized[3] in {
+    if len(normalized) == 5 and normalized[:2] == ("термин", "язык") and normalized[2].startswith("транслитерация") and normalized[3] in {
         "краткое значение",
         "значение",
     } and normalized[4] == "роль в tos":
@@ -415,7 +443,19 @@ def table_body(table: Any) -> list[list[str]]:
     return body
 
 
-DOSSIER_ID_PATTERN = re.compile(r"\b(?:A\d{2}|T2-\d{2})\b")
+DOSSIER_ID_PATTERN = re.compile(r"(?<![A-Za-z0-9])(?:A\d{2}|T[23]-\d{2})(?!\d)")
+
+
+def normalize_row_to_expand(value: str, dossier_id: str) -> str | None:
+    """Resolve a ROW_TO_EXPAND value without accepting a different full id."""
+    match = DOSSIER_ID_PATTERN.search(scrub(value))
+    if match:
+        return match.group(0)
+    number = re.fullmatch(r"\s*(\d{1,2})(?:\s*\([^)]*\))?\s*", scrub(value))
+    if number:
+        prefix = dossier_id.split("-", 1)[0]
+        return f"{prefix}-{int(number.group(1)):02d}"
+    return None
 
 
 def extract_dossier_id(path: Path) -> str:
@@ -445,7 +485,7 @@ def discover_docx(table_id: str = "table-i") -> list[Path]:
     paths = sorted(
         path
         for section in sections
-        for path in (DOC_ROOT / section).glob("*.docx")
+        for path in (DOC_ROOT / str(PACKAGES[table_id].get("docx_root") or "") / section).glob("*.docx")
         if DOSSIER_ID_PATTERN.search(path.name)
     )
     ids = [extract_dossier_id(path) for path in paths]
@@ -501,7 +541,7 @@ def parse_dossier(path: Path, master_row: dict[str, Any], table_id: str = "table
     observed_table_value: str | None = None
     observed_row_value: str | None = None
     table_row = dossier_id
-    master_table = {"table-i": "I", "table-ii": "II"}.get(table_id, table_id)
+    master_table = {"table-i": "I", "table-ii": "II", "table-iii": "III"}.get(table_id, table_id)
     identity_diagnostics: list[str] = []
 
     for table_index, table in enumerate(document.tables, 1):
@@ -554,13 +594,19 @@ def parse_dossier(path: Path, master_row: dict[str, Any], table_id: str = "table
                         "branch_path": branch_path,
                         "candidate_id": candidate_id,
                         "canon_status": "pre-canon",
-                        "connections": row_value(row, "Связи", "Основные связи", "Ключевые связи"),
+                        "connections": row_value(
+                            row,
+                            "Связи",
+                            "Связи / функция",
+                            "Основные связи",
+                            "Ключевые связи",
+                        ),
                         "dossier_id": dossier_id,
                         "label": row_value(row, "Название") or original_id,
                         "node_kind": row_value(row, "Тип узла") or "unspecified",
                         "original_node_id": original_id,
                         "period": row_value(row, "Период"),
-                        "priority": row_value(row, "Приоритет"),
+                        "priority": row_value(row, "Приоритет", "Приор."),
                         "source_document": path.name,
                         "source_row_index": row_index,
                         "source_table_index": table_index,
@@ -582,17 +628,17 @@ def parse_dossier(path: Path, master_row: dict[str, Any], table_id: str = "table
                         "candidate_id": candidate_id,
                         "canon_status": "pre-canon",
                         "comment": row_value(row, "Комментарий"),
-                        "confidence": row_value(row, "Уверенность"),
+                        "confidence": row_value(row, "Уверенность", "Увер."),
                         "dossier_id": dossier_id,
                         "relation_kind": relation_kind or "related_to",
                         "relation_label": relation_label,
                         "source_document": path.name,
-                        "source_endpoint_label": row_value(row, "Source node"),
+                        "source_endpoint_label": row_value(row, "Source node", "Source"),
                         "source_ref": repo_ref(proposed_relations_path(table_id)),
                         "source_row_index": row_index,
                         "source_table_index": table_index,
                         **({"table_id": table_id} if table_id != "table-i" else {}),
-                        "target_endpoint_label": row_value(row, "Target node"),
+                        "target_endpoint_label": row_value(row, "Target node", "Target"),
                     }
                 )
         elif family == "corpus_or_edition_anchors":
@@ -605,9 +651,17 @@ def parse_dossier(path: Path, master_row: dict[str, Any], table_id: str = "table
                         "branch_path": branch_path,
                         "contribution": row_value(row, "Что даёт", "Что дает"),
                         "dossier_id": dossier_id,
-                        "reliability": row_value(row, "Надёжность", "Надежность"),
+                        "reliability": row_value(
+                            row,
+                            "Надёжность",
+                            "Надежность",
+                            "Надёжность / ограничение",
+                            "Надежность / ограничение",
+                            "Надёжность / ограничения",
+                            "Надежность / ограничения",
+                        ),
                         "route_status": "source_anchor_backlog",
-                        "source_access": row_value(row, "Доступ / где искать"),
+                        "source_access": row_value(row, "Доступ / где искать", "Доступ"),
                         "source_document": path.name,
                         "source_label": row_value(row, "Источник / корпус"),
                         "source_ref": repo_ref(SOURCE_ANCHOR_BACKLOG),
@@ -627,7 +681,7 @@ def parse_dossier(path: Path, master_row: dict[str, Any], table_id: str = "table
                         "branch_path": branch_path,
                         "contribution": row_value(row, "Зачем нужен"),
                         "dossier_id": dossier_id,
-                        "limitations": row_value(row, "Ограничения"),
+                        "limitations": row_value(row, "Ограничения", "Ограничение"),
                         "route_status": "source_anchor_backlog",
                         "source_document": path.name,
                         "source_label": row_value(row, "Источник"),
@@ -643,7 +697,7 @@ def parse_dossier(path: Path, master_row: dict[str, Any], table_id: str = "table
                 row = row_dict(header, cells)
                 first_header = normalized_header_cell(header[0]) if header else ""
                 problem = row_value(row, "Проблема")
-                risk = row_value(row, "В чём риск", "Почему существенен")
+                risk = row_value(row, "В чём риск", "Почему существенен", "В чём ловушка")
                 if first_header == "риск":
                     problem = ""
                     risk = risk or row_value(row, "Риск")
@@ -691,7 +745,12 @@ def parse_dossier(path: Path, master_row: dict[str, Any], table_id: str = "table
                         "source_table_index": table_index,
                         **({"table_id": table_id} if table_id != "table-i" else {}),
                         "term": row_value(row, "Термин"),
-                        "transliteration": row_value(row, "Транслитерация"),
+                        "transliteration": row_value(
+                            row,
+                            "Транслитерация",
+                            "Транслитерация / форма",
+                            "Транслитерация / перевод",
+                        ),
                     }
                 )
         elif family == "incoming_transmissions":
@@ -738,8 +797,8 @@ def parse_dossier(path: Path, master_row: dict[str, Any], table_id: str = "table
                 )
 
     if observed_row_value:
-        observed_id = DOSSIER_ID_PATTERN.search(observed_row_value)
-        if not observed_id or observed_id.group(0) != dossier_id:
+        observed_id = normalize_row_to_expand(observed_row_value, dossier_id)
+        if observed_id != dossier_id:
             raise ValueError(f"{dossier_id} DOCX ROW_TO_EXPAND does not match its master-table identity")
         table_row = observed_row_value
     if observed_table_value:
@@ -747,6 +806,13 @@ def parse_dossier(path: Path, master_row: dict[str, Any], table_id: str = "table
         accepted_tables = {
             "table-i": {"I", "Table I", "Таблица I"},
             "table-ii": {"II", "Table II", "Таблица II"},
+            "table-iii": {
+                "III",
+                "Table III",
+                "Таблица III",
+                "III — модерность и современность",
+                "Таблица III — модерность и современность",
+            },
         }.get(table_id, {table_id})
         if normalized_table not in accepted_tables:
             raise ValueError(f"{dossier_id} DOCX table identity is not {table_id}: {normalized_table}")
@@ -775,7 +841,7 @@ def parse_dossier(path: Path, master_row: dict[str, Any], table_id: str = "table
                     f"{title!r} != {expected_title!r}"
                 )
             metadata_identity_posture = "filename_title_reviewed_route_cross_checked"
-    if table_id == "table-ii":
+    if table_id in {"table-ii", "table-iii"}:
         observed_clean_title = clean_dossier_title(title, dossier_id)
         if blocked:
             expected_input_title = str(blocked.get("observed_input_title") or "")
@@ -785,9 +851,12 @@ def parse_dossier(path: Path, master_row: dict[str, Any], table_id: str = "table
             metadata_identity_posture = "filename_and_artifact_title_recorded_master_mismatch"
         else:
             expected_title = str(route.get("accepted_input_title") or normalized_master.get("research_node") or "")
-            if normalized_title(observed_clean_title) != normalized_title(expected_title):
+            body_text = normalized_title(" ".join(paragraphs[1:]))
+            title_matches = normalized_title(observed_clean_title) == normalized_title(expected_title)
+            title_matches = title_matches or normalized_title(expected_title) in body_text
+            if not title_matches:
                 raise ValueError(
-                    f"{dossier_id} DOCX title does not match its reviewed Table II route: "
+                    f"{dossier_id} DOCX title does not match its reviewed {table_id} route: "
                     f"{observed_clean_title!r} != {expected_title!r}"
                 )
             if not observed_row_value and not observed_table_value:
@@ -1579,6 +1648,10 @@ def write_language_packet_surfaces(nodes: list[dict[str, Any]]) -> list[dict[str
             "source_refs": packet_refs,
         },
     )
+    table_rows = "".join(
+        f"| `{table_id}-text-bearing-nodes.jsonl` | generated packets for admitted {table_id} text-corpus candidates |\n"
+        for table_id in SUPPORTED_TABLES
+    )
     LANGUAGE_PACKETS_README.write_text(
         "# Language Packets\n\n"
         "`language-packets/` contains pre-canon language packets for text-bearing philosophy nodes.\n\n"
@@ -1587,8 +1660,7 @@ def write_language_packet_surfaces(nodes: list[dict[str, Any]]) -> list[dict[str
         "and language/script relation pressure without promoting any source claim to canon.\n\n"
         "| Surface | Role |\n"
         "| --- | --- |\n"
-        "| `table-i-text-bearing-nodes.jsonl` | generated packets for Table I text-corpus candidates |\n"
-        "| `table-ii-text-bearing-nodes.jsonl` | generated packets for admitted Table II text-corpus candidates |\n"
+        f"{table_rows}"
         f"| `{LANGUAGE_PACKET_CONTRACT_REF}` | packet contract |\n"
         f"| `{LANGUAGE_REGISTRY_REF}` | language and script registry |\n",
         encoding="utf-8",
@@ -1649,12 +1721,8 @@ def write_graph_workbench(dossiers: list[Dossier]) -> None:
             },
         )
         ledger_path.parent.mkdir(parents=True, exist_ok=True)
-        table_title = "Table I" if table_id == "table-i" else "Table II"
-        intro = (
-            "This ledger records the first living planting of the prepared Table I corpus."
-            if table_id == "table-i"
-            else "This ledger records the bounded planting of the admitted Table II dossier package."
-        )
+        table_title = {"table-i": "Table I", "table-ii": "Table II", "table-iii": "Table III"}[table_id]
+        intro = f"This ledger records the bounded planting of the admitted {table_title} dossier package."
         ledger_path.write_text(
             f"# {table_title} Prepared Dossiers\n\n"
             f"{intro}\n\n"
@@ -1673,7 +1741,9 @@ def write_graph_workbench(dossiers: list[Dossier]) -> None:
 def branch_title(dossier: Dossier) -> str:
     if dossier.table_id == "table-i":
         return dossier.title.replace("ToS Deep Research:", "").strip()
-    return clean_dossier_title(dossier.title, dossier.dossier_id)
+    reviewed, _status = russian_label(dossier.dossier_id)
+    prefix = f"{dossier.dossier_id} — "
+    return reviewed.removeprefix(prefix)
 
 
 def top_counts(rows: list[dict[str, Any]], key: str, limit: int = 8) -> list[str]:
@@ -1942,7 +2012,7 @@ def write_readmes() -> None:
     (REPO_ROOT / "ToS/philosophy/atlas/dossiers/README.md").write_text(
         "# Dossiers\n\n"
         "`dossiers/` indexes admitted prepared Deep Research documents for the philosophy atlas.\n\n"
-        "The supported Table I and partial Table II plantings record dossier identity, branch route, graph-row pressure, "
+        "The supported Table I, complete Table II, and partial Table III plantings record dossier identity, branch route, graph-row pressure, "
         "source-anchor backlog, terms, and transmission rows while keeping canon promotion separate.\n\n"
         "| Surface | Role |\n"
         "| --- | --- |\n"
@@ -1951,8 +2021,10 @@ def write_readmes() -> None:
         "| `prepared-dossier-routes.json` | source-owned route map from prepared dossier ids to philosophy branch homes |\n"
         f"| `{repo_ref(INTAKE_MANIFEST)}` | tracked fixity and capture-posture manifest for the untracked local DOCX bytes |\n"
         f"| `{repo_ref(EXTRACTION_COVERAGE)}` | explicit structured extraction and deferred-context coverage |\n"
-        f"| `{repo_ref(package_path('table-ii', 'intake_manifest_ref'))}` | Table II fixity, admission, and quarantine record |\n"
-        f"| `{repo_ref(package_path('table-ii', 'extraction_coverage_ref'))}` | Table II structured, deferred, and quarantined row accounting |\n"
+        f"| `{repo_ref(package_path('table-ii', 'intake_manifest_ref'))}` | Table II fixity and admission record |\n"
+        f"| `{repo_ref(package_path('table-ii', 'extraction_coverage_ref'))}` | Table II structured and deferred row accounting |\n"
+        f"| `{repo_ref(package_path('table-iii', 'intake_manifest_ref'))}` | Table III fixity and partial-admission record |\n"
+        f"| `{repo_ref(package_path('table-iii', 'extraction_coverage_ref'))}` | Table III structured and deferred row accounting |\n"
         "| `source-anchor-backlog.jsonl` | future source witness, edition, corpus, and risk-control anchors |\n"
         "| `term-index.jsonl` | prepared term rows extracted from dossier terminology tables |\n"
         "| `transmission-backlog.jsonl` | incoming and outgoing transmission rows extracted from dossier tables |\n\n"

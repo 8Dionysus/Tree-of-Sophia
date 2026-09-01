@@ -119,14 +119,13 @@ class PhilosophyGraphProjectionTest(unittest.TestCase):
         self.assertEqual(first["to_id"], "candidate-node:table-ii-t2-01-node-002")
         self.assertEqual(first["properties"]["endpoint_resolution"], "matched_nodes")
 
-        self.assertEqual(
-            nodes["atlas-row:T2-26"]["properties"]["dossier_intake_status"],
-            "blocked_master_identity_mismatch",
-        )
+        self.assertEqual(nodes["atlas-row:T2-26"]["properties"]["dossier_intake_status"], "admitted")
         self.assertEqual(
             nodes["atlas-row:T2-51"]["properties"]["dossier_intake_status"],
-            "input_not_supplied",
+            "admitted",
         )
+        self.assertEqual(nodes["atlas-row:T3-45"]["properties"]["dossier_intake_status"], "admitted")
+        self.assertEqual(nodes["atlas-row:T3-46"]["properties"]["dossier_intake_status"], "input_not_supplied")
 
     def test_layer_counts_are_semantic_not_view_wide(self) -> None:
         payload = self.load_projection()

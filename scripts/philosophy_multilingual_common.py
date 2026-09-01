@@ -66,7 +66,7 @@ def _dossier_titles() -> dict[str, dict[str, str]]:
 
 
 def _dossier_id(value: str) -> str | None:
-    match = re.match(r"^(A\d{2}|T2-\d{2})(?=$|\s)", value)
+    match = re.match(r"^(A\d{2}|T[23]-\d{2})(?=$|\s)", value)
     return match.group(1) if match else None
 
 
@@ -117,7 +117,7 @@ def _dossier_title_from_context(
     language: str,
     dossier_id: object,
 ) -> tuple[str | None, str | None]:
-    if not isinstance(dossier_id, str) or not re.fullmatch(r"A\d{2}|T2-\d{2}", dossier_id):
+    if not isinstance(dossier_id, str) or not re.fullmatch(r"A\d{2}|T[23]-\d{2}", dossier_id):
         return None, None
     cleaned, docx, prefix = _clean_dossier_prefix(value)
     explicit_dossier_id = _dossier_id(cleaned)

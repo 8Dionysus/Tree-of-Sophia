@@ -15,6 +15,7 @@ SUPPORTED_ROUTE_MAP_SCHEMAS = {
     "tos_prepared_dossier_routes_v1",
     "tos_prepared_dossier_routes_v2",
     "tos_prepared_dossier_routes_v3",
+    "tos_prepared_dossier_routes_v4",
 }
 
 
@@ -121,15 +122,18 @@ class LocalStatsPortTests(unittest.TestCase):
             },
         )
 
-    def test_route_map_v2_preserves_v1_measurement_compatibility(self) -> None:
-        route_map_v2 = load_json(ROUTES_PATH)
-        route_map_v1 = deepcopy(route_map_v2)
-        route_map_v1["schema_version"] = "tos_prepared_dossier_routes_v1"
+    def test_supported_route_map_versions_preserve_table_i_measurement_compatibility(self) -> None:
+        current_route_map = load_json(ROUTES_PATH)
+        current_result = derive_route_ratio(load_rows(), current_route_map)
 
-        self.assertEqual(
-            derive_route_ratio(load_rows(), route_map_v1),
-            derive_route_ratio(load_rows(), route_map_v2),
-        )
+        for schema_version in sorted(SUPPORTED_ROUTE_MAP_SCHEMAS):
+            with self.subTest(schema_version=schema_version):
+                compatible_route_map = deepcopy(current_route_map)
+                compatible_route_map["schema_version"] = schema_version
+                self.assertEqual(
+                    derive_route_ratio(load_rows(), compatible_route_map),
+                    current_result,
+                )
 
     def test_other_tables_and_dossier_payloads_do_not_enter_population(self) -> None:
         rows = load_rows()

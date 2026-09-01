@@ -33,6 +33,11 @@ plural medieval and post-classical histories. Its region and tradition routes
 are useful topology; the container is not a claim of one synchronized global
 chronology or shared civilizational essence.
 
+`eras/modernity-and-contemporary-worlds/` is the bounded Table III navigation
+window across early-modern, modern, and contemporary fields. Its regional and
+transregional homes do not assert one global modernization sequence, a shared
+period boundary, or one synchronized intellectual present.
+
 `trunk/` holds branch-wide law: evidence status, chronology posture, and naming
 rules. Its current vocabulary homes are:
 

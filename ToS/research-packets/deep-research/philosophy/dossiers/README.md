@@ -10,8 +10,10 @@ duplicate the atlas dossier index or pretend to be the philosophy tree itself.
 | --- | --- |
 | `table-i-docx-intake.manifest.json` | SHA-256, byte size, logical section path, OOXML metadata posture, and explicit claim limit for the untracked operator-local dossier bytes |
 | `table-i-docx-extraction-coverage.json` | row-level coverage accounting for structured extraction, identity metadata, deferred context, and prose-only risk gaps |
-| `table-ii-docx-intake.manifest.json` | exact fixity for 50 supplied Table II artifacts, including the explicit T2-26 identity quarantine |
-| `table-ii-docx-extraction-coverage.json` | structured, deferred, identity, and quarantined row accounting for the partial Table II package |
+| `table-ii-docx-intake.manifest.json` | exact fixity for all 58 supplied and master-aligned Table II artifacts |
+| `table-ii-docx-extraction-coverage.json` | structured, deferred, and identity row accounting for the complete Table II package |
+| `table-iii-docx-intake.manifest.json` | exact fixity for 45 supplied Table III artifacts while the remaining master rows stay explicit as unsupplied |
+| `table-iii-docx-extraction-coverage.json` | structured, deferred, and identity row accounting for the partial Table III package |
 
 The manifest proves observed fixity, not authorship or origin. The coverage
 files prove parser accounting, not full dossier transfer, citation quality,

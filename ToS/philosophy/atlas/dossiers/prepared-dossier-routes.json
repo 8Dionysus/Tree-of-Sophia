@@ -4,6 +4,7 @@
   "packages": {
     "table-i": {
       "dossier_series": "A-series",
+      "docx_root": "1",
       "docx_sections": [
         "1.1",
         "1.2",
@@ -286,33 +287,16 @@
         "ToS/philosophy/eras/medieval-worlds": "Table II chronological navigation window across plural medieval and post-classical worlds; not a claim of one synchronized chronology or civilizational essence",
         "ToS/philosophy/eras/medieval-worlds/regions": "explicit regional homes for Table II prepared dossiers before tradition-local source and canon review"
       },
-      "blocked_dossiers": [
-        {
-          "dossier_id": "T2-26",
-          "expected_master_title": "Номинализм, логический анализ и четырнадцатый век",
-          "observed_input_title": "Эфиопская (геэзская) церковная письменность",
-          "posture": "blocked_master_identity_mismatch",
-          "reason": "The supplied DOCX title and contents do not identify the Table II T2-26 master row; no branch or structured candidate output may be created under this id."
-        }
-      ],
       "dossier_series": "T2-series",
+      "docx_root": ".",
       "docx_sections": [
-        "2.1"
+        "2"
       ],
       "extraction_coverage_ref": "ToS/research-packets/deep-research/philosophy/dossiers/table-ii-docx-extraction-coverage.json",
       "intake_manifest_ref": "ToS/research-packets/deep-research/philosophy/dossiers/table-ii-docx-intake.manifest.json",
       "master_table_ref": "ToS/philosophy/atlas/master-tables/table-ii/rows.jsonl",
-      "missing_master_dossier_ids": [
-        "T2-51",
-        "T2-52",
-        "T2-53",
-        "T2-54",
-        "T2-55",
-        "T2-56",
-        "T2-57",
-        "T2-58"
-      ],
-      "planting_mode": "partial_with_explicit_missing_and_quarantine",
+      "missing_master_dossier_ids": [],
+      "planting_mode": "complete",
       "review_policy": {
         "default": "pre_canon_review",
         "manual_review_max_confidence": 3,
@@ -453,6 +437,11 @@
           "dossier_id": "T2-25"
         },
         {
+          "branch_path": "ToS/philosophy/eras/medieval-worlds/regions/latin-europe/traditions/fourteenth-century-nominalism-logical-analysis",
+          "branch_role": "fourteenth-century nominalism, terminist logic, and logical-analysis branch",
+          "dossier_id": "T2-26"
+        },
+        {
           "branch_path": "ToS/philosophy/eras/medieval-worlds/regions/latin-europe/traditions/latin-mysticism-philosophical-theology",
           "branch_role": "Latin mysticism and philosophical-theology branch",
           "dossier_id": "T2-27"
@@ -572,17 +561,361 @@
           "branch_path": "ToS/philosophy/eras/medieval-worlds/regions/central-asian-steppe/traditions/central-asian-old-turkic-textual-worlds",
           "branch_role": "Central Asian and Old Turkic textual-worlds branch",
           "dossier_id": "T2-50"
+        },
+        {
+          "branch_path": "ToS/philosophy/eras/medieval-worlds/regions/west-asia-central-asia/traditions/manichaean-multilingual-transmission-corpus",
+          "branch_role": "Manichaean multilingual corpus and west-to-central-to-east Asian transmission branch",
+          "dossier_id": "T2-51"
+        },
+        {
+          "branch_path": "ToS/philosophy/eras/medieval-worlds/regions/sub-saharan-africa/traditions/timbuktu-sahel-arabic-manuscript-city",
+          "branch_role": "Timbuktu and Sahel Arabic manuscript-city branch",
+          "dossier_id": "T2-52"
+        },
+        {
+          "branch_path": "ToS/philosophy/eras/medieval-worlds/regions/west-africa/traditions/ajami-written-knowledge-zones",
+          "branch_role": "West African Ajami written-knowledge and script-bridge branch",
+          "dossier_id": "T2-53"
+        },
+        {
+          "branch_path": "ToS/philosophy/eras/medieval-worlds/regions/mesoamerica/traditions/postclassic-maya-codices-written-cosmology",
+          "branch_role": "Postclassic Maya codices and written-cosmology branch",
+          "dossier_id": "T2-54"
+        },
+        {
+          "branch_path": "ToS/philosophy/eras/medieval-worlds/regions/mesoamerica/traditions/central-mexican-pictorial-codical-knowledge-systems",
+          "branch_role": "Central Mexican pictorial-codical knowledge-systems branch",
+          "dossier_id": "T2-55"
+        },
+        {
+          "ancestor_roles": {
+            "ToS/philosophy/frontiers": "non-era philosophy routes for cases whose chronology, geography, readability, or evidence posture cannot be represented honestly as one tradition branch",
+            "ToS/philosophy/frontiers/writing-and-information-thresholds": "writing, record-system, decipherment, and readable-corpus boundary routes"
+          },
+          "branch_path": "ToS/philosophy/frontiers/writing-and-information-thresholds/andean-khipu-medieval-window",
+          "branch_role": "Andean khipu information-system boundary in the Table II chronological window",
+          "dossier_id": "T2-56",
+          "review_posture": "manual_review_required",
+          "review_reason": "Table II status C: information-system evidence must not be projected as a readable philosophical corpus",
+          "route_constraints": [
+            "not_a_readable_text_corpus_claim",
+            "information_system_not_equivalent_to_philosophical_canon",
+            "colonial_descriptions_are_later_witness_layers",
+            "keep_distinct_from_table_i_a48_comparative_frontier"
+          ],
+          "route_kind": "information_system_frontier"
+        },
+        {
+          "branch_path": "ToS/philosophy/eras/medieval-worlds/regions/north-atlantic/traditions/old-norse-icelandic-manuscript-wisdom",
+          "branch_role": "Old Norse and Icelandic manuscript-wisdom branch",
+          "dossier_id": "T2-57"
+        },
+        {
+          "branch_path": "ToS/philosophy/eras/medieval-worlds/regions/slavic-world/traditions/slavic-christian-literature-byzantine-handoff",
+          "branch_role": "Slavic Christian literature and Byzantine translation-handoff branch",
+          "dossier_id": "T2-58"
         }
       ],
-      "support_posture": "49 master-aligned dossiers are plantable from 50 supplied DOCX files; T2-26 is quarantined and T2-51 through T2-58 are absent"
+      "support_posture": "all 58 Table II master-aligned dossier DOCX files are available for bounded pre-canon planting"
     },
     "table-iii": {
-      "dossier_series": null,
-      "docx_sections": [],
+      "ancestor_roles": {
+        "ToS/philosophy/eras/modernity-and-contemporary-worlds": "Table III navigation window across early-modern, modern, and contemporary fields; not a claim of one synchronized chronology, geography, or universal modernization sequence",
+        "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions": "explicit regional and transregional field homes for Table III prepared dossiers before tradition-local source and canon review"
+      },
+      "dossier_series": "T3-series",
+      "docx_root": ".",
+      "docx_sections": [
+        "3"
+      ],
+      "extraction_coverage_ref": "ToS/research-packets/deep-research/philosophy/dossiers/table-iii-docx-extraction-coverage.json",
+      "intake_manifest_ref": "ToS/research-packets/deep-research/philosophy/dossiers/table-iii-docx-intake.manifest.json",
       "master_table_ref": "ToS/philosophy/atlas/master-tables/table-iii/rows.jsonl",
-      "next_route": "add dossier ids and branch routes when prepared Table III dossiers exist",
-      "routes": []
+      "missing_master_dossier_ids": [
+        "T3-46",
+        "T3-47",
+        "T3-48",
+        "T3-49",
+        "T3-50",
+        "T3-51",
+        "T3-52",
+        "T3-53",
+        "T3-54",
+        "T3-55",
+        "T3-56",
+        "T3-57",
+        "T3-58",
+        "T3-59",
+        "T3-60",
+        "T3-61",
+        "T3-62",
+        "T3-63",
+        "T3-64",
+        "T3-65",
+        "T3-66",
+        "T3-67",
+        "T3-68",
+        "T3-69",
+        "T3-70",
+        "T3-71",
+        "T3-72",
+        "T3-73",
+        "T3-74",
+        "T3-75",
+        "T3-76",
+        "T3-77",
+        "T3-78",
+        "T3-79",
+        "T3-80",
+        "T3-81",
+        "T3-82",
+        "T3-83",
+        "T3-84"
+      ],
+      "planting_mode": "partial_with_explicit_missing",
+      "review_policy": {
+        "default": "pre_canon_review",
+        "manual_review_max_confidence": 3,
+        "manual_review_statuses": [
+          "B",
+          "C"
+        ]
+      },
+      "route_defaults": {
+        "review_posture": "pre_canon_review",
+        "route_kind": "era_tradition"
+      },
+      "routes": [
+        {
+          "branch_path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/western-europe/traditions/renaissance-humanism-early-modern-philology",
+          "branch_role": "Renaissance humanism and early-modern philology branch",
+          "dossier_id": "T3-01"
+        },
+        {
+          "branch_path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/western-europe/traditions/reformation-counter-reformation-philosophical-theology",
+          "branch_role": "Reformation, Counter-Reformation, and confessional philosophical-theology branch",
+          "dossier_id": "T3-02"
+        },
+        {
+          "branch_path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/atlantic-world/traditions/salamanca-natural-law-colonial-dispute",
+          "branch_role": "Salamanca, natural-law, and colonial-dispute branch",
+          "dossier_id": "T3-03"
+        },
+        {
+          "branch_path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/western-europe/traditions/scientific-revolution-early-modern-natural-philosophy",
+          "branch_role": "Scientific Revolution and early-modern natural-philosophy branch",
+          "dossier_id": "T3-04"
+        },
+        {
+          "branch_path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/transnational-europe/traditions/republic-of-letters-scientific-societies-philosophical-journals",
+          "branch_role": "Republic of Letters, scientific-society, and early philosophical-journal branch",
+          "dossier_id": "T3-05"
+        },
+        {
+          "branch_path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/western-europe/traditions/seventeenth-century-rationalism",
+          "branch_role": "seventeenth-century rationalist-philosophy branch",
+          "dossier_id": "T3-06"
+        },
+        {
+          "branch_path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/britain-europe/traditions/empiricism-scottish-moral-philosophy-political-economy",
+          "branch_role": "empiricism, Scottish moral philosophy, and political-economy branch",
+          "dossier_id": "T3-07"
+        },
+        {
+          "branch_path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/western-europe/traditions/enlightenment-print-public-sphere",
+          "branch_role": "Enlightenment and print-public-sphere branch",
+          "dossier_id": "T3-08"
+        },
+        {
+          "branch_path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/german-speaking-europe/traditions/german-idealism-research-university",
+          "branch_role": "German idealism and research-university branch",
+          "dossier_id": "T3-09"
+        },
+        {
+          "branch_path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/western-europe/traditions/romanticism-historicism-language-culture",
+          "branch_role": "Romanticism, historicism, and philosophy-of-language-and-culture branch",
+          "dossier_id": "T3-10"
+        },
+        {
+          "branch_path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/atlantic-world/traditions/nineteenth-century-positivism-utilitarianism-liberalism-social-philosophy",
+          "branch_role": "nineteenth-century positivism, utilitarianism, liberalism, and social-philosophy branch",
+          "dossier_id": "T3-11"
+        },
+        {
+          "branch_path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/european-global-field/traditions/marxism-socialist-theoretical-traditions",
+          "branch_role": "Marxist and socialist theoretical-traditions branch",
+          "dossier_id": "T3-12"
+        },
+        {
+          "branch_path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/continental-europe/traditions/phenomenology-archival-worlds",
+          "branch_role": "phenomenology and its archival-worlds branch",
+          "dossier_id": "T3-13"
+        },
+        {
+          "branch_path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/continental-europe/traditions/hermeneutics-existentialism-modern-philosophical-theology",
+          "branch_role": "hermeneutics, existentialism, and modern philosophical-theology branch",
+          "dossier_id": "T3-14"
+        },
+        {
+          "branch_path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/european-anglophone-field/traditions/analytic-philosophy-disciplinary-field",
+          "branch_role": "analytic philosophy as a disciplinary-field branch",
+          "dossier_id": "T3-15"
+        },
+        {
+          "branch_path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/transnational-europe/traditions/philosophy-science-mathematics-logic",
+          "branch_role": "philosophy of science, mathematics, and logic branch",
+          "dossier_id": "T3-16"
+        },
+        {
+          "branch_path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/european-global-field/traditions/frankfurt-school-critical-theory",
+          "branch_role": "Frankfurt School and critical-theory branch",
+          "dossier_id": "T3-17"
+        },
+        {
+          "branch_path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/france-transnational/traditions/structuralism-poststructuralism-theory-fields",
+          "branch_role": "structuralism, poststructuralism, and transnational theory-fields branch",
+          "dossier_id": "T3-18"
+        },
+        {
+          "branch_path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/global-field/traditions/continental-philosophy-after-1980",
+          "branch_role": "continental-philosophy field after 1980 branch",
+          "dossier_id": "T3-19"
+        },
+        {
+          "branch_path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/global-field/traditions/analytic-philosophy-after-1980",
+          "branch_role": "analytic-philosophy field after 1980 branch",
+          "dossier_id": "T3-20"
+        },
+        {
+          "branch_path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/russian-world/traditions/nineteenth-early-twentieth-century-russian-philosophy",
+          "branch_role": "Russian philosophy of the nineteenth and early twentieth centuries branch",
+          "dossier_id": "T3-21"
+        },
+        {
+          "branch_path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/soviet-post-soviet-world/traditions/soviet-post-soviet-philosophy",
+          "branch_role": "Soviet and post-Soviet philosophy branch",
+          "dossier_id": "T3-22"
+        },
+        {
+          "accepted_input_title": "Львовско-Варшавская школа и центрально-европейские логические школы",
+          "branch_path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/central-europe/traditions/lvov-warsaw-central-european-logical-schools",
+          "branch_role": "Lvov-Warsaw School and central-European logical-schools branch",
+          "dossier_id": "T3-23"
+        },
+        {
+          "branch_path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/balkans-eastern-europe/traditions/national-philosophical-fields",
+          "branch_role": "Balkan and eastern-European national philosophical-fields branch",
+          "dossier_id": "T3-24"
+        },
+        {
+          "branch_path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/ottoman-world/traditions/ottoman-philosophical-theological-logical-tradition",
+          "branch_role": "Ottoman philosophical-theological and logical-tradition branch",
+          "dossier_id": "T3-25"
+        },
+        {
+          "branch_path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/iranian-world/traditions/safavid-post-safavid-isfahan-school",
+          "branch_role": "Safavid and post-Safavid philosophy and Isfahan-school branch",
+          "dossier_id": "T3-26"
+        },
+        {
+          "branch_path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/south-asia-islamicate/traditions/mughal-south-asian-islamic-literature",
+          "branch_role": "Mughal and South Asian Islamicate literature branch",
+          "dossier_id": "T3-27"
+        },
+        {
+          "branch_path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/west-asia-transregional/traditions/post-ibn-arabi-sufi-metaphysics-commentary-print",
+          "branch_role": "post-Ibn Arabi Sufi metaphysics across commentary and print branch",
+          "dossier_id": "T3-28"
+        },
+        {
+          "branch_path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/arab-world/traditions/arab-nahda-philosophical-press-translation-modernity",
+          "branch_role": "Arab Nahda, philosophical-press, and translation-modernity branch",
+          "dossier_id": "T3-29"
+        },
+        {
+          "branch_path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/islamic-world/traditions/islamic-modernism-nineteenth-twentieth-centuries",
+          "branch_role": "Islamic modernism of the nineteenth and twentieth centuries branch",
+          "dossier_id": "T3-30"
+        },
+        {
+          "branch_path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/global-islamic-field/traditions/contemporary-islamic-philosophy-ethics-political-thought",
+          "branch_role": "contemporary Islamic philosophy, ethics, and political-thought branch",
+          "dossier_id": "T3-31"
+        },
+        {
+          "branch_path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/jewish-diaspora/traditions/early-modern-jewish-print-kabbalah-book-republic",
+          "branch_role": "early-modern Jewish print, Kabbalah, and diasporic book-republic branch",
+          "dossier_id": "T3-32"
+        },
+        {
+          "branch_path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/european-jewish-worlds/traditions/haskalah-modern-jewish-philosophy",
+          "branch_role": "Haskalah and modern Jewish-philosophy branch",
+          "dossier_id": "T3-33"
+        },
+        {
+          "branch_path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/global-jewish-field/traditions/jewish-philosophy-twentieth-twenty-first-centuries",
+          "branch_role": "Jewish philosophy of the twentieth and twenty-first centuries branch",
+          "dossier_id": "T3-34"
+        },
+        {
+          "branch_path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/south-asia/traditions/late-sanskrit-scholarship-navya-nyaya-after-1500",
+          "branch_role": "late Sanskrit scholarship and Navya-Nyaya after 1500 branch",
+          "dossier_id": "T3-35"
+        },
+        {
+          "branch_path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/south-asia/traditions/late-vedanta-bhakti-regional-philosophical-literatures",
+          "branch_role": "late Vedanta, bhakti, and regional philosophical-literatures branch",
+          "dossier_id": "T3-36"
+        },
+        {
+          "branch_path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/punjab-global-diaspora/traditions/sikh-scriptural-philosophical-tradition-modern-exegesis",
+          "branch_role": "Sikh scriptural-philosophical tradition and modern-exegesis branch",
+          "dossier_id": "T3-37"
+        },
+        {
+          "branch_path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/colonial-south-asia/traditions/colonial-india-bengal-renaissance",
+          "branch_role": "colonial India and Bengal Renaissance branch",
+          "dossier_id": "T3-38"
+        },
+        {
+          "branch_path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/south-asia-global-field/traditions/neo-vedanta-national-spiritual-philosophy",
+          "branch_role": "Neo-Vedanta and national-spiritual philosophy of India branch",
+          "dossier_id": "T3-39"
+        },
+        {
+          "branch_path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/south-asia/traditions/gandhi-ambedkar-anti-caste-constitutional-philosophy",
+          "branch_role": "Gandhi, Ambedkar, anti-caste, and constitutional-philosophy branch",
+          "dossier_id": "T3-40"
+        },
+        {
+          "branch_path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/south-asian-buddhist-worlds/traditions/buddhist-reforms-print-publics-modernities",
+          "branch_role": "Buddhist reforms, print publics, and modern South Asian Buddhisms branch",
+          "dossier_id": "T3-41"
+        },
+        {
+          "branch_path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/south-asian-academy/traditions/contemporary-indian-academic-philosophy",
+          "branch_role": "contemporary Indian academic-philosophy branch",
+          "dossier_id": "T3-42"
+        },
+        {
+          "branch_path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/east-asia/traditions/late-imperial-china-neo-confucian-evidential-statecraft",
+          "branch_role": "late-imperial Chinese Neo-Confucian, evidential-learning, and statecraft branch",
+          "dossier_id": "T3-43"
+        },
+        {
+          "accepted_input_title": "Китай XIX–XXI вв.: реформа, May Fourth, марксизм и New Confucianism",
+          "branch_path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/east-asia/traditions/modern-contemporary-china-reform-marxism-new-confucianism",
+          "branch_role": "modern and contemporary Chinese reform, Marxist, and New-Confucian branch",
+          "dossier_id": "T3-44"
+        },
+        {
+          "branch_path": "ToS/philosophy/eras/modernity-and-contemporary-worlds/regions/east-asia/traditions/chinese-buddhist-modernities-academic-canons",
+          "branch_role": "Chinese Buddhist modernities and academic-canons branch",
+          "dossier_id": "T3-45"
+        }
+      ],
+      "support_posture": "45 master-aligned dossier DOCX files are available for bounded pre-canon planting; T3-46 through T3-84 remain explicitly unsupplied"
     }
   },
-  "schema_version": "tos_prepared_dossier_routes_v3"
+  "schema_version": "tos_prepared_dossier_routes_v4"
 }

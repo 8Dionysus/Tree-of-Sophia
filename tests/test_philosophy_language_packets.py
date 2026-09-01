@@ -81,8 +81,8 @@ class PhilosophyLanguagePacketsTest(unittest.TestCase):
             for row in expected_rows
         )
         self.assertEqual(TABLE_II_PACKETS_PATH.read_text(encoding="utf-8"), expected)
-        self.assertEqual(len(expected_rows), 331)
-        self.assertFalse(any(row["dossier_id"] == "T2-26" for row in expected_rows))
+        self.assertEqual(len(expected_rows), 388)
+        self.assertTrue(any(row["dossier_id"] == "T2-26" for row in expected_rows))
         self.assertFalse(
             any(re.search(r"[А-Яа-яЁё]", str(row["title_block"]["en"]["value"])) for row in expected_rows)
         )
@@ -95,7 +95,7 @@ class PhilosophyLanguagePacketsTest(unittest.TestCase):
             row for row in packets if row.get("review_posture") == "manual_review_required"
         ]
 
-        self.assertEqual(len(manual_packets), 119)
+        self.assertEqual(len(manual_packets), 173)
         for packet in manual_packets:
             source = source_by_id[str(packet["node_ref"]["id"])]
             for field in (

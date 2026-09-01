@@ -25,6 +25,8 @@ Prepared planting starts from source-owned atlas material:
 | `ToS/research-packets/deep-research/philosophy/dossiers/table-i-docx-extraction-coverage.json` | explicit extracted/metadata/deferred row accounting and prose-only diagnostics |
 | `ToS/research-packets/deep-research/philosophy/dossiers/table-ii-docx-intake.manifest.json` | tracked Table II fixity plus admitted/quarantined artifact posture |
 | `ToS/research-packets/deep-research/philosophy/dossiers/table-ii-docx-extraction-coverage.json` | Table II structured/deferred/quarantined row accounting |
+| `ToS/research-packets/deep-research/philosophy/dossiers/table-iii-docx-intake.manifest.json` | tracked fixity for the supplied partial Table III packet |
+| `ToS/research-packets/deep-research/philosophy/dossiers/table-iii-docx-extraction-coverage.json` | Table III structured/deferred row accounting with unsupplied master rows kept explicit |
 | `ToS/philosophy/atlas/dossiers/index.jsonl` | dossier identity and graph pressure index |
 | `ToS/philosophy/atlas/dossiers/source-anchor-backlog.jsonl` | future real witness, edition, corpus, and risk-control anchors |
 | `ToS/philosophy/atlas/dossiers/term-index.jsonl` | prepared term rows |
@@ -115,10 +117,11 @@ The projection, corpus-index, and post-planting builders own their generated
 outputs; `docs/validation/validation_lanes.json` owns checked verification
 order. Use `scripts/AGENTS.md` for the operator route.
 
-Table I and the partial Table II package use this route now. Table II keeps
-T2-26 quarantined for master-identity mismatch and T2-51 through T2-58
-explicitly absent. Future Table III planting should extend the same route only
-after adding its source-owned dossier route map and packet extraction support.
+Table I, the complete Table II package, and the partial Table III package use
+this route now. Table III admits T3-01 through T3-45 and keeps T3-46 through
+T3-84 explicit as `input_not_supplied`. T2-56 is routed through an
+information-system frontier so khipu evidence is not projected as a readable
+philosophical corpus.
 
 ## Review Handoff
 

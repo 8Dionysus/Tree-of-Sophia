@@ -1,0 +1,53 @@
+{
+  "atlas_row_id": "T2-56",
+  "branch_path": "ToS/philosophy/frontiers/writing-and-information-thresholds/andean-khipu-medieval-window",
+  "canon_status": "pre-canon",
+  "dossier_id": "T2-56",
+  "master_confidence": "4",
+  "master_status": "C",
+  "node_row_count": 32,
+  "node_type_counts": {
+    "civilization_literary_complex": 1,
+    "concept": 5,
+    "controversy": 2,
+    "figure_anchor": 1,
+    "frontier_case": 2,
+    "genre": 4,
+    "institution": 3,
+    "language_script": 3,
+    "medium": 3,
+    "method": 3,
+    "preservation_state": 3,
+    "text_corpus": 1,
+    "transmission_channel": 1
+  },
+  "path": "ToS/philosophy/frontiers/writing-and-information-thresholds/andean-khipu-medieval-window/graph-workbench/pre-canon-summary.json",
+  "proposed_nodes_ref": "ToS/philosophy/graph-workbench/proposed-nodes/table-ii-prepared-dossiers.jsonl",
+  "proposed_relations_ref": "ToS/philosophy/graph-workbench/proposed-relations/table-ii-prepared-dossiers.jsonl",
+  "relation_counts": {
+    "contested_by": 3,
+    "develops_concept": 7,
+    "influences": 1,
+    "institutionalized_in": 3,
+    "preserved_in": 3,
+    "receives_from": 1,
+    "survives_as": 1,
+    "translated_into": 1,
+    "transmits_to": 2,
+    "uncertain_relation": 3,
+    "uses_language": 2,
+    "uses_medium": 1,
+    "uses_script": 2
+  },
+  "relation_row_count": 30,
+  "review_posture": "manual_review_required",
+  "review_reason": "Table II status C: information-system evidence must not be projected as a readable philosophical corpus",
+  "route_constraints": [
+    "not_a_readable_text_corpus_claim",
+    "information_system_not_equivalent_to_philosophical_canon",
+    "colonial_descriptions_are_later_witness_layers",
+    "keep_distinct_from_table_i_a48_comparative_frontier"
+  ],
+  "route_kind": "information_system_frontier",
+  "schema_version": "tos_philosophy_local_graph_summary_v1"
+}
