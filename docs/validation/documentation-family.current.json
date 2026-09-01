@@ -29,7 +29,7 @@
     "metric": "whitespace_tokens_v1",
     "posture": "summary_first_records_on_demand",
     "record_loading": "machine readers may select records by family_id or path; do not load the full carrier into an always-on prompt",
-    "tracked_surface_count": 3080,
+    "tracked_surface_count": 3082,
     "unhandled_family_count": 0
   },
   "coverage": {
@@ -119,12 +119,12 @@
       "lines": 79984
     },
     "surface_kind_counts": {
-      "executable": 159,
+      "executable": 160,
       "human": 909,
-      "structured": 2012
+      "structured": 2013
     },
-    "tracked_path_count": 3549,
-    "tracked_surface_count": 3080,
+    "tracked_path_count": 3551,
+    "tracked_surface_count": 3082,
     "unhandled_family_count": 0,
     "unhandled_paths": []
   },
@@ -169,10 +169,10 @@
       "surface_kind_counts": {
         "executable": 4,
         "human": 511,
-        "structured": 1950
+        "structured": 1951
       },
-      "tracked_surface_bytes": 93094362,
-      "tracked_surface_count": 2465
+      "tracked_surface_bytes": 93100945,
+      "tracked_surface_count": 2466
     },
     {
       "family_id": "docs",
@@ -231,12 +231,12 @@
     {
       "family_id": "tests",
       "surface_kind_counts": {
-        "executable": 46,
+        "executable": 47,
         "human": 1,
         "structured": 1
       },
-      "tracked_surface_bytes": 1078270,
-      "tracked_surface_count": 48
+      "tracked_surface_bytes": 1082921,
+      "tracked_surface_count": 49
     },
     {
       "family_id": "manifests",
@@ -270,7 +270,7 @@
   "source_map": "docs/validation/documentation_family_map.json",
   "source_map_sha256": "9140a03a48109e6a9f35f3ca7dbf82058d96c3961e9e77bc31a743fb8814b13b",
   "tracked_source": "git ls-files -z",
-  "tracked_surface_digest": "67eec21b587960f27d3a93ea4a572b153de137fb2f2ef90798691ce15fe467f3",
+  "tracked_surface_digest": "082bb1441fd8961aefc7f5c81aa55c6f3d1dbd5b65e995e005b4dea81ceb3f85",
   "tracked_surfaces": [
     {
       "bytes": 1408,
@@ -3505,11 +3505,11 @@
       "surface_kind": "structured"
     },
     {
-      "bytes": 1602712,
+      "bytes": 1603042,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/derived-exports/tos_corpus_index.min.json",
-      "sha256": "1e396f91d05ced066e09a1cf462537a4792eec08a791908131c32b1daad62ebf",
+      "sha256": "83225ebb95536ac3ccc9afc406d58a4af98dc17f88754ff65a12d4cb821cb9f2",
       "surface_kind": "structured"
     },
     {
@@ -15745,6 +15745,14 @@
       "surface_kind": "structured"
     },
     {
+      "bytes": 6253,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/freeze-receipt-v8.json",
+      "sha256": "5e07c08f4395defd3c888a3c8d6d89453a80bb2d08385e4e5dd9228c2527a90f",
+      "surface_kind": "structured"
+    },
+    {
       "bytes": 2416,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
@@ -24606,6 +24614,14 @@
       "family_id": "tests",
       "path": "tests/test_documentation_cross_corpus.py",
       "sha256": "ac6ddd5b6fd118f22189eae012b4423df22446f6f4471e613b59f09d05238746",
+      "surface_kind": "executable"
+    },
+    {
+      "bytes": 4651,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tests",
+      "path": "tests/test_generic_xml_uxlc_lab.py",
+      "sha256": "dfcce65653c94521c68cbc7e5e829b64db5100671c1f7d7f24fb49df939724ac",
       "surface_kind": "executable"
     },
     {
