@@ -3189,8 +3189,9 @@ async function showEpistemic(
   const selectedItem = state.selected && itemId(state.selected) === itemIdValue
     ? state.selected
     : selectableItem(itemIdValue);
-  const declaredViewIds = Array.isArray(selectedItem?.view_ids)
-    ? stringList(selectedItem?.view_ids)
+  const selectedProjectionItem = selectedItem ? unwrapItem(selectedItem) : null;
+  const declaredViewIds = Array.isArray(selectedProjectionItem?.view_ids)
+    ? stringList(selectedProjectionItem?.view_ids)
     : null;
   const selectionBelongsToActiveView = declaredViewIds
     ? declaredViewIds.includes(requestActiveViewId)
