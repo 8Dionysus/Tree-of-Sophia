@@ -773,6 +773,13 @@ def _validate_receipt_acquisition_closure(
         provenance_events=provenance_events,
         location=location,
     )
+    if receipt.get("terminal_status") == "held_source_witness" and not downloaded and not receipt.get(
+        "planting_refs"
+    ):
+        raise QueueBuildError(
+            f"{location}: held_source_witness requires a resolved downloaded acquisition "
+            "or an explicitly resolved pre-existing witness planting"
+        )
 
 
 def _selector_matches(payload: dict[str, Any], selector: dict[str, Any]) -> bool:

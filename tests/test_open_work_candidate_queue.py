@@ -518,6 +518,42 @@ class OpenWorkCandidateQueueTest(unittest.TestCase):
                 location="synthetic-receipt",
             )
 
+    def test_held_source_witness_requires_resolved_witness(self) -> None:
+        repo = self.make_repo()
+        with self.assertRaisesRegex(QueueBuildError, "held_source_witness requires a resolved"):
+            _validate_receipt_acquisition_closure(
+                repo,
+                {
+                    "candidate_id": "open-work-candidate.earliest",
+                    "terminal_status": "held_source_witness",
+                    "rights_result": {
+                        "status": "insufficient-for-acquisition",
+                        "evidence_refs": ["ToS/source-witnesses/discovery/runs/earliest.v1.json"],
+                    },
+                    "operational_relation_refs": [],
+                    "acquisition": {
+                        "downloaded": False,
+                        "item_ref": None,
+                        "artifact_ref": None,
+                        "composite_ref": None,
+                        "representation_ref": None,
+                        "file_ref": None,
+                        "provenance_event_ref": None,
+                    },
+                    "planting_refs": [],
+                },
+                candidate=_candidate(
+                    "open-work-candidate.earliest",
+                    year=-2400,
+                    row_id="A04",
+                    row_order=4,
+                ),
+                discovery=_timed_discovery("tos.discovery.earliest"),
+                discoveries={},
+                provenance_events={},
+                location="synthetic-receipt",
+            )
+
     def test_downloaded_representation_must_bind_receipt_route(self) -> None:
         repo = self.make_repo()
         candidate_id = "open-work-candidate.earliest"

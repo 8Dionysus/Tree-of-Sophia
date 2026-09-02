@@ -67,11 +67,13 @@ interpretation, rights-review, or human elapsed time.
 Historical runs and receipts remain immutable and may retain explicit unknown
 sentinels when a measured superseding run becomes active.
 
-An acquired terminal outcome is closed only when its representation, File,
-artifact/composite/Item identity, acquisition provenance event, and planting
-records resolve and agree. A representation must also bind the receipt's
-discovery route and the acquisition provenance event. The validator checks this
-closure on every receipt;
+An outcome with `terminal_status: held_source_witness` is admitted only when it
+has at least one resolved downloaded acquisition or an explicitly resolved
+pre-existing witness planting. An acquired terminal outcome is then closed only
+when its representation, File, artifact/composite/Item identity, acquisition
+provenance event, and planting records resolve and agree. A representation must
+also bind the receipt's discovery route and the acquisition provenance event.
+The validator checks this closure on every receipt;
 the active timing check remains scoped to the latest receipt for each
 candidate. These are mechanical record checks, not identity, rights, textual,
 semantic, or canon acceptance.

@@ -60,9 +60,11 @@ packet can preserve that historical receipt; a receipt cannot attest to its
 own snapshot. A superseding receipt keeps the same frozen snapshot and cannot
 change the selected candidate's target.
 
-Before an acquired terminal outcome is accepted, its representation, File,
-artifact/composite/Item identity, acquisition event, and planting records must
-resolve and agree. A planting is additionally bound to the candidate's atlas
+Before a `held_source_witness` terminal outcome is accepted, it must carry at
+least one resolved downloaded acquisition or an explicitly resolved
+pre-existing witness planting. For an acquired terminal outcome, its
+representation, File, artifact/composite/Item identity, acquisition event, and
+planting records must resolve and agree. A planting is additionally bound to the candidate's atlas
 row, its exact source-witness record, and receipt-visible discovery and
 provenance closure: the source identity, discovery target, planting output, and
 provenance input/output must all agree with the receipt's route. A source
