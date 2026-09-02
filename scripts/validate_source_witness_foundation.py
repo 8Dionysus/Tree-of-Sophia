@@ -13090,8 +13090,18 @@ def validate_foundation(repo_root: Path, *, require_local_payloads: bool = False
             issues.append((representation_ref, "scholarly-composite representation rights_ref is missing"))
         else:
             _validate_payload(rights, rights_validator, str(rights_ref), issues)
-            if not {composite_id, representation_id, file_id} <= set(rights.get("scope_refs", [])):
-                issues.append((str(rights_ref), "composite representation rights must cover composite_id, representation_id, and file_id"))
+            scope_refs = rights.get("scope_refs")
+            if isinstance(scope_refs, list) and not {
+                composite_id,
+                representation_id,
+                file_id,
+            } <= set(scope_refs):
+                issues.append(
+                    (
+                        str(rights_ref),
+                        "composite representation rights must cover composite_id, representation_id, and file_id",
+                    )
+                )
             if (
                 rights.get("visibility") != "local_only"
                 or rights.get("redistribution_posture")

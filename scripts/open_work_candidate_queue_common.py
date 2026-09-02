@@ -126,6 +126,13 @@ def _required_string(payload: dict[str, Any], key: str, location: str) -> str:
     return value
 
 
+def _required_sha256(payload: dict[str, Any], key: str, location: str) -> str:
+    value = payload.get(key)
+    if not isinstance(value, str) or re.fullmatch(r"[a-f0-9]{64}", value) is None:
+        raise QueueBuildError(f"{location}: {key} must be a lowercase SHA-256 digest")
+    return value
+
+
 def _parse_timestamp(value: Any, *, location: str, field: str) -> datetime:
     if not isinstance(value, str) or not value:
         raise QueueBuildError(f"{location}: {field} must be a non-empty date-time")
@@ -1179,6 +1186,7 @@ def _validate_active_discovery_timings(
     *,
     discovery_ref: str,
     location: str,
+    receipt_issued_at: datetime | None = None,
 ) -> None:
     channels = discovery.get("channels")
     comparisons = discovery.get("channel_comparison")
@@ -1208,6 +1216,10 @@ def _validate_active_discovery_timings(
         location=location,
         field="timing.measured_at",
     )
+    if receipt_issued_at is not None and timing_measured_at > receipt_issued_at:
+        raise QueueBuildError(
+            f"{location}: timing.measured_at cannot be later than terminal receipt issued_at"
+        )
     measurement_rows = timing.get("measurements")
     if not isinstance(measurement_rows, list) or not measurement_rows:
         raise QueueBuildError(f"{location}: timing receipt must contain measurements")
@@ -1355,6 +1367,7 @@ def _load_receipts(
             raise QueueBuildError(
                 f"{location}: candidate_record_sha256 does not bind current candidate {candidate_id!r}"
             )
+        _required_sha256(receipt, "candidate_ledger_sha256", location)
         terminal_status = receipt.get("terminal_status")
         if terminal_status not in TERMINAL_STATUSES:
             raise QueueBuildError(f"{location}: unsupported terminal_status {terminal_status!r}")
@@ -1421,12 +1434,29 @@ def _load_receipts(
             "timing_ref",
             f"latest receipt for {candidate_id}",
         )
-        timing = _load_json(repo_root / _safe_relative_path(timing_ref), repo_root)
+        timing_path = repo_root / _safe_relative_path(timing_ref)
+        timing = _load_json(timing_path, repo_root)
+        timing_sha256 = _required_sha256(
+            receipt,
+            "timing_sha256",
+            f"latest receipt for {candidate_id}",
+        )
+        actual_timing_sha256 = _sha256_file(timing_path)
+        if timing_sha256 != actual_timing_sha256:
+            raise QueueBuildError(
+                f"latest receipt for {candidate_id}: timing_sha256 does not bind {timing_ref!r}"
+            )
+        issued_at = _parse_timestamp(
+            receipt.get("issued_at"),
+            location=f"latest receipt for {candidate_id}",
+            field="issued_at",
+        )
         _validate_active_discovery_timings(
             discovery,
             timing,
             discovery_ref=receipt["discovery_ref"],
             location=f"{discovery_location} (latest receipt for {candidate_id})",
+            receipt_issued_at=issued_at,
         )
     return receipts, latest_by_candidate
 
@@ -1641,6 +1671,7 @@ def _snapshot(
     provenance_events: dict[str, tuple[dict[str, Any], str]] | None = None,
     provenance_cutoff: datetime | None = None,
     excluded_paths: set[Path] | None = None,
+    input_hash_overrides: dict[Path, str] | None = None,
 ) -> dict[str, Any]:
     master_rows = sum(len(_load_jsonl(repo_root / path, repo_root)) for path in MASTER_ROW_PATHS)
     dossiers = _load_jsonl(repo_root / DOSSIER_INDEX_PATH, repo_root)
@@ -1691,7 +1722,11 @@ def _snapshot(
     inputs = [
         {
             "path": path.as_posix(),
-            "sha256": provenance_hashes.get(path, _sha256_file(repo_root / path)),
+            "sha256": (
+                input_hash_overrides.get(path)
+                if input_hash_overrides and path in input_hash_overrides
+                else provenance_hashes.get(path, _sha256_file(repo_root / path))
+            ),
         }
         for path in unique_paths
     ]
@@ -1717,6 +1752,59 @@ def _candidate_source_line(location: str) -> int:
         return int(location.rsplit(":", 1)[1])
     except (IndexError, ValueError) as exc:
         raise QueueBuildError(f"candidate source location has no physical line number: {location!r}") from exc
+
+
+def _candidate_ledger_state_at_receipt_boundary(
+    repo_root: Path,
+    *,
+    receipt: dict[str, Any],
+    candidates_with_locations: list[tuple[dict[str, Any], str]],
+) -> tuple[list[tuple[dict[str, Any], str]], dict[Path, str]]:
+    """Resolve an append-only candidate ledger prefix bound by a receipt.
+
+    Candidate discovery is allowed to expand after a terminal receipt.  The
+    receipt therefore binds the exact ledger bytes that were visible when its
+    queue snapshot was frozen.  A later append can be replayed from the
+    current checkout by locating that digest among physical line prefixes;
+    edits or insertions do not resolve and remain fail-closed unless an
+    independent snapshot witness validates the receipt.
+    """
+    expected_digest = receipt.get("candidate_ledger_sha256")
+    if expected_digest is None:
+        # Preserve direct callers of the legacy replay helper.  Authored
+        # receipts are required to carry the binding by the receipt schema and
+        # loader before transition validation reaches this fallback.
+        return candidates_with_locations, {}
+    receipt_id = receipt.get("receipt_id", "receipt")
+    if not isinstance(expected_digest, str) or re.fullmatch(r"[a-f0-9]{64}", expected_digest) is None:
+        raise QueueBuildError(
+            f"{receipt_id}: candidate_ledger_sha256 must be a lowercase SHA-256 digest"
+        )
+
+    ledger_path = repo_root / LEDGER_PATH
+    try:
+        raw_lines = ledger_path.read_bytes().splitlines(keepends=True)
+    except (FileNotFoundError, OSError) as exc:
+        raise QueueBuildError(
+            f"{LEDGER_PATH.as_posix()}: cannot read candidate ledger bytes"
+        ) from exc
+
+    prefix = bytearray()
+    for line_count, raw_line in enumerate(raw_lines, start=1):
+        prefix.extend(raw_line)
+        if hashlib.sha256(prefix).hexdigest() != expected_digest:
+            continue
+        historical_candidates = [
+            (candidate, location)
+            for candidate, location in candidates_with_locations
+            if _candidate_source_line(location) <= line_count
+        ]
+        return historical_candidates, {LEDGER_PATH: expected_digest}
+
+    # The current ledger was rewritten, rather than extended from the frozen
+    # bytes.  Do not invent a historical record set; the transition validator
+    # may still accept an independently witnessed frozen queue.
+    return candidates_with_locations, {}
 
 
 def _candidate_sort_key(
@@ -1794,6 +1882,7 @@ def _build_queue_payload(
     provenance_events: dict[str, tuple[dict[str, Any], str]] | None = None,
     provenance_cutoff: datetime | None = None,
     excluded_paths: set[Path] | None = None,
+    input_hash_overrides: dict[Path, str] | None = None,
 ) -> dict[str, Any]:
     latest_receipts: dict[str, dict[str, Any]] = {}
     for receipt in receipts:
@@ -1810,6 +1899,7 @@ def _build_queue_payload(
         provenance_events=provenance_events,
         provenance_cutoff=provenance_cutoff,
         excluded_paths=excluded_paths,
+        input_hash_overrides=input_hash_overrides,
     )
     queue_entries: list[dict[str, Any]] = []
     for candidate, location in sorted(
@@ -1961,14 +2051,20 @@ def _reconstruct_pre_run_queue_sha256(
             )
             if measured_at > current_key[0]:
                 excluded_paths.add(relative)
+    historical_candidates, input_hash_overrides = _candidate_ledger_state_at_receipt_boundary(
+        repo_root,
+        receipt=current_receipt,
+        candidates_with_locations=candidates_with_locations,
+    )
     payload = _build_queue_payload(
         repo_root,
-        candidates_with_locations=candidates_with_locations,
+        candidates_with_locations=historical_candidates,
         receipts=prior_receipts,
         discoveries=pre_run_discoveries,
         provenance_events=provenance_events,
         provenance_cutoff=current_key[0],
         excluded_paths=excluded_paths,
+        input_hash_overrides=input_hash_overrides,
     )
     return payload["queue_sha256"]
 
@@ -2131,15 +2227,16 @@ def _validate_receipt_transition_history(
     if provenance_events is None:
         provenance_events = _load_provenance_events(repo_root)
     validated_snapshot_ids: set[str] = set()
-    first_receipt_key_by_candidate: dict[str, tuple[datetime, int, str]] = {}
-    for receipt in ordered_receipts:
-        candidate_id = _required_string(receipt, "candidate_id", "receipt")
-        first_receipt_key_by_candidate.setdefault(candidate_id, _receipt_sort_key(receipt))
 
     for receipt in ordered_receipts:
         receipt_id = _required_string(receipt, "receipt_id", "receipt")
         candidate_id = _required_string(receipt, "candidate_id", receipt_id)
         candidate = candidates_by_id[candidate_id]
+        historical_candidates, _ = _candidate_ledger_state_at_receipt_boundary(
+            repo_root,
+            receipt=receipt,
+            candidates_with_locations=candidates_with_locations,
+        )
         snapshot_hash = receipt.get("queue_snapshot_sha256")
         if not isinstance(snapshot_hash, str) or len(snapshot_hash) != 64 or any(
             character not in "0123456789abcdef" for character in snapshot_hash
@@ -2150,26 +2247,9 @@ def _validate_receipt_transition_history(
         if previous is None:
             if candidate["candidate_kind"] not in QUEUEABLE_KINDS:
                 raise QueueBuildError(f"{receipt_id}: terminal receipt cannot advance a non-queueable candidate")
-            # When the exact queue hash cannot be reconstructed and the receipt
-            # uses an independently witnessed snapshot, the candidate ledger
-            # may contain later rows whose sort key is earlier than the row
-            # being processed.  Ledger position is not a temporal boundary.
-            # Use the dated terminal provenance instead: a ready candidate is
-            # in this historical frontier only once its first receipt exists;
-            # non-ready authored candidates are always part of the queue state
-            # but cannot become the next executable candidate.
-            latest_boundary = datetime.max.replace(tzinfo=timezone.utc)
-            historical_candidate_ids = {
-                item["candidate_id"]
-                for item, _ in candidates_with_locations
-                if item.get("queue_status") != READY_STATUS
-                or first_receipt_key_by_candidate.get(item["candidate_id"], (latest_boundary, 0, ""))
-                <= _receipt_sort_key(receipt)
-            }
             historical_frontier = [
                 (item, location)
-                for item, location in candidates_with_locations
-                if item["candidate_id"] in historical_candidate_ids
+                for item, location in historical_candidates
             ]
             expected = next(
                 (

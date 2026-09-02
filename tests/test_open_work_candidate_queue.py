@@ -1,11 +1,13 @@
 from __future__ import annotations
 
 import copy
+import hashlib
 import json
 import subprocess
 import sys
 import tempfile
 import unittest
+from datetime import datetime
 from pathlib import Path
 
 
@@ -291,6 +293,9 @@ class OpenWorkCandidateQueueTest(unittest.TestCase):
             "receipt_id": "open-work-candidate-receipt.earliest.2026-08-29.v1",
             "candidate_id": earliest["candidate_id"],
             "candidate_record_sha256": earliest["candidate_sha256"],
+            "candidate_ledger_sha256": hashlib.sha256(
+                (repo / "ToS/source-witnesses/discovery/candidates/reviewed-candidates.jsonl").read_bytes()
+            ).hexdigest(),
             "queue_snapshot_sha256": before["queue_sha256"],
             "discovery_ref": "ToS/source-witnesses/discovery/runs/earliest.v1.json",
             "discovery_id": "tos.discovery.earliest",
@@ -331,13 +336,15 @@ class OpenWorkCandidateQueueTest(unittest.TestCase):
             repo / "ToS/source-witnesses/discovery/runs/earliest.v1.json",
             _timed_discovery("tos.discovery.earliest"),
         )
+        timing_path = repo / "ToS/source-witnesses/discovery/timings/earliest.v1.json"
         _write_json(
-            repo / "ToS/source-witnesses/discovery/timings/earliest.v1.json",
+            timing_path,
             _timing_receipt(
                 "tos.discovery.earliest",
                 "ToS/source-witnesses/discovery/runs/earliest.v1.json",
             ),
         )
+        receipt["timing_sha256"] = hashlib.sha256(timing_path.read_bytes()).hexdigest()
         _write_json(
             repo / "ToS/source-witnesses/discovery/candidates/receipts/earliest.2026-08-29.v1.json",
             receipt,
@@ -355,6 +362,89 @@ class OpenWorkCandidateQueueTest(unittest.TestCase):
             receipt,
         )
         with self.assertRaisesRegex(QueueBuildError, "precedes discovery ended_at"):
+            build_payload(repo)
+
+    def test_receipt_replay_uses_frozen_candidate_ledger_prefix_after_append(self) -> None:
+        repo = self.make_repo()
+        before = build_payload(repo)
+        earliest = before["candidates"][0]
+        discovery_ref = "ToS/source-witnesses/discovery/runs/earliest.v1.json"
+        timing_ref = "ToS/source-witnesses/discovery/timings/earliest.v1.json"
+        discovery = _timed_discovery("tos.discovery.earliest")
+        timing = _timing_receipt("tos.discovery.earliest", discovery_ref)
+        _write_json(repo / discovery_ref, discovery)
+        _write_json(repo / timing_ref, timing)
+        receipt = {
+            "$schema": "https://tree-of-sophia.local/ToS/contracts/open-work-candidate-receipt.schema.json",
+            "schema_version": "tos_open_work_candidate_receipt_v1",
+            "receipt_id": "open-work-candidate-receipt.earliest.2026-08-29.v1",
+            "candidate_id": earliest["candidate_id"],
+            "candidate_record_sha256": earliest["candidate_sha256"],
+            "candidate_ledger_sha256": hashlib.sha256(
+                (repo / "ToS/source-witnesses/discovery/candidates/reviewed-candidates.jsonl").read_bytes()
+            ).hexdigest(),
+            "queue_snapshot_sha256": before["queue_sha256"],
+            "discovery_ref": discovery_ref,
+            "discovery_id": "tos.discovery.earliest",
+            "discovery_target_sha256": target_digest(discovery["target"]),
+            "timing_ref": timing_ref,
+            "timing_sha256": hashlib.sha256((repo / timing_ref).read_bytes()).hexdigest(),
+            "terminal_status": "metadata_only",
+            "target_resolution": {
+                "identity_status": "provisional",
+                "work_ref": None,
+                "expression_ref": None,
+                "edition_ref": None,
+                "item_ref": None,
+                "summary": "Metadata route only.",
+            },
+            "rights_result": {
+                "status": "insufficient-for-acquisition",
+                "reviewed_jurisdictions": ["US"],
+                "reviewed_layers": ["work", "digital-object"],
+                "evidence_refs": [discovery_ref],
+                "summary": "No exact reusable digital object admitted.",
+            },
+            "acquisition": {
+                "downloaded": False,
+                "item_ref": None,
+                "artifact_ref": None,
+                "representation_ref": None,
+                "file_ref": None,
+                "provenance_event_ref": None,
+            },
+            "planting_refs": [],
+            "operational_relation_refs": [],
+            "next_trigger": "A stronger exact rights record.",
+            "issued_at": "2026-08-29T12:00:00.125000Z",
+            "maker": {"maker_type": "model", "agent_ref": "codex:test"},
+            "record_version": 1,
+        }
+        _write_json(
+            repo / "ToS/source-witnesses/discovery/candidates/receipts/earliest.2026-08-29.v1.json",
+            receipt,
+        )
+        self.assertEqual("open-work-candidate.later", build_payload(repo)["next_candidate_id"])
+
+        ledger_path = repo / "ToS/source-witnesses/discovery/candidates/reviewed-candidates.jsonl"
+        candidates = [
+            json.loads(line)
+            for line in ledger_path.read_text(encoding="utf-8").splitlines()
+            if line.strip()
+        ]
+        candidates.append(_candidate("open-work-candidate.appended-later", year=-1900, row_id="A05", row_order=6))
+        _write_jsonl(ledger_path, candidates)
+
+        after_append = build_payload(repo)
+        self.assertEqual("open-work-candidate.later", after_append["next_candidate_id"])
+        self.assertIn(
+            "open-work-candidate.appended-later",
+            {entry["candidate_id"] for entry in after_append["candidates"]},
+        )
+
+        timing["claim_limit"] = "tampered after terminal issuance"
+        _write_json(repo / timing_ref, timing)
+        with self.assertRaisesRegex(QueueBuildError, "timing_sha256 does not bind"):
             build_payload(repo)
 
     def test_missing_review_source_selector_fails_closed(self) -> None:
@@ -635,6 +725,11 @@ class OpenWorkCandidateQueueTest(unittest.TestCase):
                 ],
             },
         )
+        timing_path = repo / "ToS/source-witnesses/discovery/timings/earliest.v1.json"
+        _write_json(
+            timing_path,
+            _timing_receipt("tos.discovery.earliest", discovery_ref, elapsed=0),
+        )
         _write_json(
             repo
             / "ToS/source-witnesses/discovery/candidates/receipts/earliest.2026-08-29.v1.json",
@@ -644,11 +739,17 @@ class OpenWorkCandidateQueueTest(unittest.TestCase):
                 "receipt_id": "open-work-candidate-receipt.earliest.2026-08-29.v1",
                 "candidate_id": earliest["candidate_id"],
                 "candidate_record_sha256": earliest["candidate_sha256"],
+                "candidate_ledger_sha256": hashlib.sha256(
+                    (repo / "ToS/source-witnesses/discovery/candidates/reviewed-candidates.jsonl").read_bytes()
+                ).hexdigest(),
                 "queue_snapshot_sha256": before["queue_sha256"],
                 "discovery_ref": discovery_ref,
                 "discovery_id": "tos.discovery.earliest",
                 "discovery_target_sha256": target_digest(_timed_discovery("tos.discovery.earliest")["target"]),
                 "timing_ref": "ToS/source-witnesses/discovery/timings/earliest.v1.json",
+                "timing_sha256": hashlib.sha256(
+                    (repo / "ToS/source-witnesses/discovery/timings/earliest.v1.json").read_bytes()
+                ).hexdigest(),
                 "terminal_status": "metadata_only",
                 "target_resolution": {
                     "identity_status": "provisional",
@@ -681,11 +782,6 @@ class OpenWorkCandidateQueueTest(unittest.TestCase):
                 "record_version": 1,
             },
         )
-        _write_json(
-            repo / "ToS/source-witnesses/discovery/timings/earliest.v1.json",
-            _timing_receipt("tos.discovery.earliest", discovery_ref, elapsed=0),
-        )
-
         with self.assertRaisesRegex(QueueBuildError, "measured elapsed_seconds"):
             build_payload(repo)
 
@@ -731,6 +827,19 @@ class OpenWorkCandidateQueueTest(unittest.TestCase):
                 timing,
                 discovery_ref="ToS/source-witnesses/discovery/runs/earliest.v1.json",
                 location="synthetic-discovery",
+            )
+
+        timing = _timing_receipt(
+            "tos.discovery.earliest",
+            "ToS/source-witnesses/discovery/runs/earliest.v1.json",
+        )
+        with self.assertRaisesRegex(QueueBuildError, "cannot be later than terminal receipt issued_at"):
+            _validate_active_discovery_timings(
+                discovery,
+                timing,
+                discovery_ref="ToS/source-witnesses/discovery/runs/earliest.v1.json",
+                location="synthetic-discovery",
+                receipt_issued_at=datetime.fromisoformat("2026-08-29T12:00:00.124000+00:00"),
             )
 
     def test_planting_source_witness_must_bind_to_receipt_route(self) -> None:

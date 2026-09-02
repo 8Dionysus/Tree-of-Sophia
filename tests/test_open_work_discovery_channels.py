@@ -11,7 +11,11 @@ SCRIPTS = REPO_ROOT / "scripts"
 if str(SCRIPTS) not in sys.path:
     sys.path.insert(0, str(SCRIPTS))
 
-from measure_open_work_discovery_channels import main, retarget_timing_receipt  # noqa: E402
+from measure_open_work_discovery_channels import (  # noqa: E402
+    build_superseding_discovery,
+    main,
+    retarget_timing_receipt,
+)
 
 
 class OpenWorkDiscoveryChannelsTest(unittest.TestCase):
@@ -62,6 +66,16 @@ class OpenWorkDiscoveryChannelsTest(unittest.TestCase):
         self.assertEqual(retargeted["measurements"], original["measurements"])
         self.assertIsNot(retargeted, original)
         self.assertEqual(retargeted, copy.deepcopy(retargeted))
+
+    def test_superseding_discovery_must_name_the_input_discovery(self) -> None:
+        with self.assertRaisesRegex(ValueError, "supersedes_ref must match"):
+            build_superseding_discovery(
+                {"discovery_id": "tos.discovery.original"},
+                {"measurements": []},
+                discovery_id="tos.discovery.superseding",
+                supersedes_ref="tos.discovery.other",
+                provenance_event_ref="tos.event.discovery.superseding",
+            )
 
 
 if __name__ == "__main__":

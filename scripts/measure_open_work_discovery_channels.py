@@ -155,6 +155,14 @@ def build_superseding_discovery(
     supersedes_ref: str,
     provenance_event_ref: str,
 ) -> dict[str, Any]:
+    source_discovery_id = source.get("discovery_id")
+    if not isinstance(source_discovery_id, str) or not source_discovery_id:
+        raise ValueError("input discovery must contain a non-empty discovery_id")
+    if supersedes_ref != source_discovery_id:
+        raise ValueError(
+            "supersedes_ref must match the input discovery discovery_id "
+            f"{source_discovery_id!r}"
+        )
     output = build_instrumented_discovery(source, receipt)
     output["discovery_id"] = discovery_id
     output["provenance_event_refs"] = [provenance_event_ref]
@@ -198,13 +206,16 @@ def main() -> int:
         args.output.write_text(rendered, encoding="utf-8")
     if args.superseding_output is not None:
         source = json.loads(args.discovery.read_text(encoding="utf-8"))
-        superseding = build_superseding_discovery(
-            source,
-            receipt,
-            discovery_id=args.new_discovery_id,
-            supersedes_ref=args.supersedes_ref,
-            provenance_event_ref=args.provenance_event_ref,
-        )
+        try:
+            superseding = build_superseding_discovery(
+                source,
+                receipt,
+                discovery_id=args.new_discovery_id,
+                supersedes_ref=args.supersedes_ref,
+                provenance_event_ref=args.provenance_event_ref,
+            )
+        except ValueError as exc:
+            parser.error(str(exc))
         args.superseding_output.write_text(
             json.dumps(superseding, ensure_ascii=False, indent=2) + "\n",
             encoding="utf-8",

@@ -10,6 +10,7 @@
     "receipt_id",
     "candidate_id",
     "candidate_record_sha256",
+    "candidate_ledger_sha256",
     "queue_snapshot_sha256",
     "discovery_ref",
     "discovery_id",
@@ -31,12 +32,14 @@
     "receipt_id": {"type": "string", "pattern": "^open-work-candidate-receipt\\.[a-z0-9]+(?:[.-][a-z0-9]+)*$"},
     "candidate_id": {"type": "string", "pattern": "^open-work-candidate\\.[a-z0-9]+(?:[.-][a-z0-9]+)*$"},
     "candidate_record_sha256": {"$ref": "#/$defs/sha256"},
+    "candidate_ledger_sha256": {"$ref": "#/$defs/sha256"},
     "candidate_target_sha256": {"$ref": "#/$defs/sha256"},
     "discovery_target_sha256": {"$ref": "#/$defs/sha256"},
     "queue_snapshot_sha256": {"$ref": "#/$defs/sha256"},
     "discovery_ref": {"type": "string", "pattern": "^ToS/source-witnesses/discovery/runs/.+\\.json$"},
     "discovery_id": {"type": "string", "pattern": "^tos\\.discovery\\.[a-z0-9]+(?:[.-][a-z0-9]+)*$"},
     "timing_ref": {"type": "string", "pattern": "^ToS/source-witnesses/discovery/timings/.+\\.json$"},
+    "timing_sha256": {"$ref": "#/$defs/sha256"},
     "terminal_status": {"enum": ["held_source_witness", "metadata_only", "publication_candidate", "deferred", "blocked", "exhausted_for_now", "duplicate", "rejected", "superseded"]},
     "target_resolution": {"$ref": "#/$defs/targetResolution"},
     "rights_result": {"$ref": "#/$defs/rightsResult"},
@@ -54,6 +57,16 @@
     "maker": {"$ref": "#/$defs/maker"},
     "record_version": {"type": "integer", "minimum": 1}
   },
+  "allOf": [
+    {
+      "if": {"required": ["timing_ref"]},
+      "then": {"required": ["timing_sha256"]}
+    },
+    {
+      "if": {"required": ["timing_sha256"]},
+      "then": {"required": ["timing_ref"]}
+    }
+  ],
   "$defs": {
     "sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
     "targetResolution": {
