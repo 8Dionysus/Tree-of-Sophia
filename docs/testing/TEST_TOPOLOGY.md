@@ -19,15 +19,17 @@ family -> protects -> owner surface -> home scope -> coverage authority -> focus
 
 Test files are not command authority. Blocking command sequences live in
 [`docs/validation/validation_lanes.json`](../validation/validation_lanes.json).
-Current active test homes are root `tests/` and mechanics-local test homes.
-Root tests are covered by `tests/AGENTS.md`; mechanics-local tests are covered
-by their nearest mechanics route cards and `mechanics_local` lane discovery.
+Current active test homes are root `tests/`, the standalone product-local
+`access/tests/`, and mechanics-local test homes. Root tests are covered by
+`tests/AGENTS.md`; product-local and mechanics-local tests are covered by their
+nearest route cards and named validation lanes.
 
 ## Home Scopes
 
 | Home Scope | Current Homes | Protects | Coverage Authority | Failure Route |
 | --- | --- | --- | --- | --- |
 | `root` | `tests/` | Repo-wide route docs, source-home schema, generated parity, validator behavior, validation authority, and release contour. | `tests/AGENTS.md` root unittest discovery | Fix the named owner surface before editing test expectations. |
+| `product-local` | `access/tests/` | Portable root discovery, shared query adapters, native MCP construction, browser action ABI, and standalone installation posture. | `access/AGENTS.md` and the `standalone_access` lane | Fix the access core, adapter, contract, profile, or bundle boundary first. |
 | `mechanic-level` | `mechanics/experience/tests/`; `mechanics/questbook/tests/`; future `mechanics/<slug>/tests/` | One mechanic package's active topology or package-wide contracts. | package lane plus `mechanics_local` discovery | Fix the owning mechanic package, `PARTS.md`, schemas, examples, or local validator first. |
 | `part-local` | `mechanics/agon/parts/threshold-registry/tests/`; future `mechanics/<slug>/parts/<part>/tests/` | One mechanic part, its generated companion, registry, or handoff packet. | `mechanics_local` lane discovery | Fix the part-local source, builder, validator, and schema before widening to release. |
 | `agent-lane` | future `.agents/*/tests/` | Agent-surface operating guidance and local scenario contracts. | release or advisory lane, depending on owner decision | Fix the owning agent surface before treating the repo gate as clean. |
@@ -55,6 +57,7 @@ mechanic package or part should carry the regression with its own source.
 | `command_authority` | Lane manifest shape, release coverage, and command delegation. | `docs/validation/validation_lanes.json`. |
 | `owner_local_measurement` | Owner-bounded population, evidence parity, missingness, and authority ceiling. | `stats/port.manifest.json` and its owner evidence. |
 | `test_topology` | Test inventory completeness and boundary posture. | This document and `tests/test_inventory.json`. |
+| `standalone_access_contract` | Portable query core, adapter parity, native MCP construction, browser action ABI, and no-AbyssOS profile. | `access/AGENTS.md`, contracts, profiles, and package implementation. |
 
 ## Inventory Rules
 
@@ -62,8 +65,9 @@ mechanic package or part should carry the regression with its own source.
   protected boundary, home scope, coverage authority, focused target, failure
   route, runtime cost, and disposition.
 - `focused_target` and `coverage_authority` name surfaces, not shell commands.
-- All active `test*.py` files under root `tests/`, mechanics test homes, and
-  future agent test homes must have exactly one inventory entry.
+- All active `test*.py` files under root `tests/`, product-local `access/tests/`,
+  mechanics test homes, and future agent test homes must have exactly one
+  inventory entry.
 - Root tests may protect mechanics-owned contracts only while the local mechanic
   home is not ready; the owner surface and validation lane must make that route
   explicit.

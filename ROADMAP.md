@@ -28,7 +28,8 @@ Use the stronger surface when the change is narrower:
 - reviewed canon: `ToS/canon/`;
 - graph review preparation: `ToS/philosophy/graph-workbench/`;
 - generated read models: `ToS/derived-exports/`;
-- runtime and visualization stack: `abyss-stack`.
+- standalone projection access product: `access/`;
+- ecosystem deployment and visualization orchestration: `abyss-stack`.
 
 ## Update Rule
 
@@ -60,6 +61,8 @@ The current repository move is:
 - keep graph-workbench material pre-canon until review promotes relation packs;
 - keep generated graph, KAG, and public exports downstream of authored ToS
   surfaces;
+- make the site, native MCP, and future WebMCP installable from ToS itself,
+  with AbyssOS capabilities remaining optional integrations;
 - let mechanics carry repeatable movement around the source home without
   becoming the source home.
 
@@ -159,8 +162,8 @@ review the tree before canon promotion.
 
 | Field | Direction |
 | --- | --- |
-| Current posture | Root-entry, tiny-entry, KAG export, public compatibility, graph-view catalog, and graph projection are bounded downstream companions. |
-| Next honest move | Feed `abyss-stack`, `aoa-kag`, and future visualization/runtime consumers through stable read models and explicit owner boundaries. |
+| Current posture | Root-entry, tiny-entry, KAG export, public compatibility, graph-view catalog, and graph projection are bounded downstream companions; `access/` supplies a standalone read-only product over an explicit data allowlist. |
+| Next honest move | Register WebMCP against the shared `web-actions.v1` ABI, then let `abyss-stack` consume the standalone release through its optional adapter profile. |
 | Guardrail | Runtime can display or operate projections; ToS owns philosophical source and structural truth. |
 
 ## Phase Path
@@ -196,9 +199,9 @@ trigger is real.
 - Add stronger source-witness routes when a prepared branch needs published
   editions, translations, inscription corpora, or source-corpus anchors before
   canon movement.
-- Add downstream runtime integration only after the source-owned graph
-  projection and view contracts remain stable enough for `abyss-stack` to
-  consume without becoming ToS authority.
+- Add each downstream runtime integration only through the optional adapter
+  profile after its exact consumer contract is stable; do not make it a
+  standalone installation dependency or ToS authority.
 - Add shared review receipt schemas only after repeated graph or canon review
   passes prove that prose packets are no longer enough.
 - Cut the next release contour when source-home growth, roadmap direction,

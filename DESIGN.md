@@ -29,6 +29,7 @@ source-rooted growth.
 | review ledger | accountable inspection before stronger movement |
 | mechanics | repeatable organs of operation |
 | `stats/` | owner-local measurements over declared ToS populations and evidence refs |
+| `access/` | installable read-only core and CLI/HTTP/MCP/web adapters over allowlisted derived exports |
 | generated/exported companions | compact readers, public seams, graph/KAG handoffs, downstream views |
 
 The layers can touch. They should not collapse.
@@ -59,6 +60,7 @@ Nietzsche's ontology on the rest of the tree.
 | review | `ToS/review-ledger/` through review mechanics | acceptance, rejection, ambiguity, counter-reading, and reviewer rationale remain visible |
 | authored promotion | `ToS/canon/` | humans own the stronger judgment and every object returns to source |
 | derived learning surfaces | `ToS/derived-exports/`, bounded local evals, and stronger downstream owners | graph, retrieval, training, and evaluation views remain projections rather than ToS authority |
+| standalone delivery | `access/core` with CLI, HTTP, native MCP, web, and WebMCP adapters | every adapter shares projection semantics, preserves source refs, and remains read-only |
 
 No new gold-packet schema should be treated as settled until one real bounded
 packet exercises this entire route and exposes its missing distinctions.

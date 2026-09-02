@@ -2,6 +2,9 @@ __pycache__/
 .pytest_cache/
 *.pyc
 dist/
+/access/web/node_modules/
+!/access/web/dist/
+!/access/web/dist/**
 
 # Local immutable corpus bytes. Catalogs, manifests, fixity, provenance,
 # rights, forensic reports, review state, and rights-safe alignments remain

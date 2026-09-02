@@ -1,0 +1,10 @@
+{
+  "schema_version": "tos_access_profile_v1",
+  "profile_id": "standalone",
+  "requires_abyssos": false,
+  "required_components": ["query-core", "cli", "http-reader", "native-mcp", "web-app"],
+  "optional_components": ["webmcp"],
+  "data_contract": "access/contracts/runtime-data.v1.json",
+  "network_default": "loopback-only",
+  "write_posture": "read-only"
+}

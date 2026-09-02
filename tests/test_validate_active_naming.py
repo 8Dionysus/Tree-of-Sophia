@@ -70,6 +70,23 @@ class ValidateActiveNamingTests(unittest.TestCase):
             )
         )
 
+    def test_web_dependency_install_and_lock_are_not_authored_naming_authority(self) -> None:
+        for relative_path in (
+            "access/web/node_modules/example/package.json",
+            "access/web/package-lock.json",
+        ):
+            with self.subTest(relative_path=relative_path):
+                self.assertTrue(
+                    validate_active_naming.is_excluded(
+                        validate_active_naming.REPO_ROOT / relative_path
+                    )
+                )
+        self.assertFalse(
+            validate_active_naming.is_excluded(
+                validate_active_naming.REPO_ROOT / "access/web/package.json"
+            )
+        )
+
     def test_terminal_sentence_period_is_not_path_or_id_marker(self) -> None:
         self.assertIsNone(active_reference(f"This was a {retired_s_token()}."))
         self.assertIsNone(active_reference(f"the next {retired_w_token()}."))

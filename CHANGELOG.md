@@ -9,6 +9,11 @@ Tracking starts with the community-docs baseline for this repository.
 
 ### Changed
 
+- Adds the self-contained `access/` product: a portable v1/v2 query core,
+  `tos doctor/verify/serve/mcp`, native MCP, loopback JSON runtime, the
+  constellation web app, a WebMCP-ready read-only action ABI, optional
+  AbyssOS adapters, and an allowlist-only fingerprinted standalone bundle.
+
 - Completes Table II at 58 of 58 master-aligned prepared dossiers, including
   the corrected T2-26 nominalism packet and T2-51–T2-58, with generated
   medieval-worlds branches, graph-workbench candidates, language packets,

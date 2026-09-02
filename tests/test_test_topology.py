@@ -29,7 +29,7 @@ REQUIRED_FIELDS = {
     "failure_route",
     "disposition",
 }
-HOME_SCOPES = {"root", "mechanic-level", "part-local", "agent-lane"}
+HOME_SCOPES = {"root", "product-local", "mechanic-level", "part-local", "agent-lane"}
 MODES = {"blocking", "release-only", "advisory"}
 RUNTIME_COSTS = {"fast", "medium", "slow"}
 
@@ -46,6 +46,7 @@ class TestTopologyTests(unittest.TestCase):
             "## Inventory Rules",
             "docs/validation/validation_lanes.json",
             "root",
+            "product-local",
             "mechanic-level",
             "part-local",
             "agent-lane",
