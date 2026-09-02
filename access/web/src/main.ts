@@ -242,6 +242,7 @@ const uiText: Record<Language, Record<string, string>> = {
     "relation.refs": "refs",
     "relation.memberEdges": "member edges",
     "export.allLayers": "all layers",
+    "export.noLayers": "no layers selected",
     "export.nodes": "Nodes",
     "export.edges": "Edges",
     "export.clusters": "Clusters",
@@ -346,6 +347,7 @@ const uiText: Record<Language, Record<string, string>> = {
     "relation.refs": "ссылок",
     "relation.memberEdges": "вложенных связей",
     "export.allLayers": "все слои",
+    "export.noLayers": "слои не выбраны",
     "export.nodes": "Узлы",
     "export.edges": "Связи",
     "export.clusters": "Кластеры",
@@ -1544,7 +1546,7 @@ function renderScaleExportControls(): void {
   root.innerHTML = `
     <div class="export-summary">
       <strong>${escapeHtml(state.currentViewId || "view")}</strong>
-      <span>${escapeHtml(layers.length ? layers.map(humanKind).join(", ") : t("export.allLayers"))}</span>
+      <span>${escapeHtml(layers.length ? layers.map(humanKind).join(", ") : t("export.noLayers"))}</span>
     </div>
     <div class="export-actions">
       <a class="export-link" data-export-link="contracts" href="/api/philosophy/contracts" target="_blank" rel="noreferrer">${t("button.contracts")}</a>

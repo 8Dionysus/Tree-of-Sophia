@@ -478,6 +478,7 @@ class AuthoredContractTests(unittest.TestCase):
         self.assertIn('id="scale-export-controls" class="scale-export-controls"', page)
         self.assertNotIn('id="scale-export-controls" hidden', page)
         self.assertIn('"__tos_none__"', page)
+        self.assertIn('t("export.noLayers")', page)
         self.assertIn("state.relationItems = relations", page)
         self.assertIn("addGraphEdge(text(item.edge_id", page)
 
