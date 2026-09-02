@@ -118,6 +118,36 @@ def _bounded_graph(
     return selected_nodes, selected_edges
 
 
+def _bounded_clusters(
+    clusters: list[dict[str, Any]],
+    nodes: list[dict[str, Any]],
+    edges: list[dict[str, Any]],
+) -> list[dict[str, Any]]:
+    node_ids = {str(node.get("node_id") or "") for node in nodes}
+    edge_ids = {str(edge.get("edge_id") or "") for edge in edges}
+    bounded: list[dict[str, Any]] = []
+    for cluster in clusters:
+        original_node_ids = _string_list(cluster.get("member_node_ids"))
+        original_edge_ids = _string_list(cluster.get("member_edge_ids"))
+        member_node_ids = [node_id for node_id in original_node_ids if node_id in node_ids]
+        member_edge_ids = [edge_id for edge_id in original_edge_ids if edge_id in edge_ids]
+        if not member_node_ids and not member_edge_ids:
+            continue
+        item = dict(cluster)
+        item["member_node_ids"] = member_node_ids
+        item["member_edge_ids"] = member_edge_ids
+        item["available_member_node_count"] = len(original_node_ids)
+        item["available_member_edge_count"] = len(original_edge_ids)
+        properties = dict(item.get("properties") or {})
+        if "member_count" in properties:
+            properties["member_count"] = len(member_node_ids)
+        if "edge_count" in properties:
+            properties["edge_count"] = len(member_edge_ids)
+        item["properties"] = properties
+        bounded.append(item)
+    return bounded
+
+
 def _discover_root(explicit: str | Path | None = None) -> Path:
     if explicit:
         return Path(explicit).expanduser().resolve()
@@ -565,6 +595,11 @@ class ToSAccessCore:
             raise KeyError(f"unknown ToS philosophy graph view: {view_id}")
         all_nodes, all_edges = _view_nodes_edges(payload, view)
         nodes, edges = _bounded_graph(all_nodes, all_edges, limit)
+        clusters = _bounded_clusters(
+            self._philosophy_clusters_for_payload(payload, view_id=view_id, limit=limit),
+            nodes,
+            edges,
+        )
         return {
             "schema": "tos_philosophy_mcp_view_v1",
             "view": view,
@@ -575,7 +610,7 @@ class ToSAccessCore:
             "limit": limit,
             "nodes": nodes,
             "edges": edges,
-            "clusters": self._philosophy_clusters_for_payload(payload, view_id=view_id, limit=limit),
+            "clusters": clusters,
             "review_packet": self.philosophy_review_packet(view_id),
             "source_refs": view.get("source_refs", []),
             "runtime_projection_boundary": payload.get("runtime_projection_boundary", {}),

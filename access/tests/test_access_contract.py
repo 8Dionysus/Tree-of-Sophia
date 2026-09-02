@@ -172,6 +172,10 @@ class CoreContractTests(unittest.TestCase):
                     for edge in connected_view["edges"]
                 )
             )
+            self.assertEqual(connected_view["clusters"][0]["member_node_ids"], ["a", "c"])
+            self.assertEqual(connected_view["clusters"][0]["member_edge_ids"], ["e2"])
+            self.assertEqual(connected_view["clusters"][0]["available_member_node_count"], 4)
+            self.assertEqual(connected_view["clusters"][0]["available_member_edge_count"], 3)
             packet = core.philosophy_packet(view_id="chronology", limit=-1)
             self.assertEqual(len(packet["view"]["nodes"]), 1)
             self.assertEqual(packet["view"]["edges"], [])
