@@ -22,6 +22,7 @@ from open_work_candidate_queue_common import (  # noqa: E402
     _has_independent_snapshot_witness,
     _load_candidates,
     _reconstruct_pre_run_queue_sha256,
+    _validate_acquisition_closure,
     _validate_active_discovery_timings,
     _validate_receipt_acquisition_closure,
     _validate_receipt_version_timestamp_order,
@@ -1057,6 +1058,148 @@ class OpenWorkCandidateQueueTest(unittest.TestCase):
                 provenance_events={},
                 location="synthetic-receipt",
             )
+
+    def test_planting_provenance_event_must_end_before_receipt(self) -> None:
+        repo = self.make_repo()
+        discovery_id = "tos.discovery.earliest"
+        discovery_ref = "ToS/source-witnesses/discovery/runs/earliest.v1.json"
+        discovery = _timed_discovery(discovery_id)
+        source_id = "tos.artifact.synthetic.earliest"
+        source_ref = "ToS/source-witnesses/artifacts/synthetic/earliest/artifact-witness.json"
+        planting_ref = "ToS/source-witnesses/discovery/candidates/earliest-planting.json"
+        event_ref = "tos.event.acquisition.synthetic-planting"
+        _write_json(repo / source_ref, {"artifact_id": source_id})
+        _write_json(
+            repo / planting_ref,
+            {
+                "planting_id": "tos.planting.synthetic.earliest",
+                "atlas_row_id": "A04",
+                "dossier_id": "A04",
+                "source_witness": {"artifact_id": source_id, "record_ref": source_ref},
+                "discovery_ref": discovery_ref,
+                "provenance_event_ref": event_ref,
+            },
+        )
+        provenance_event = {
+            "event_type": "acquisition",
+            "started_at": "2026-08-29T11:59:00Z",
+            "ended_at": "2026-08-29T12:01:00Z",
+            "inputs": [{"ref": source_id}],
+            "outputs": [
+                {
+                    "ref": planting_ref,
+                    "sha256": hashlib.sha256((repo / planting_ref).read_bytes()).hexdigest(),
+                }
+            ],
+        }
+
+        with self.assertRaisesRegex(
+            QueueBuildError,
+            "planting provenance event .*ended_at .*later than receipt issued_at",
+        ):
+            _validate_planting_refs(
+                repo,
+                [planting_ref],
+                candidate=_candidate(
+                    "open-work-candidate.earliest",
+                    year=-2400,
+                    row_id="A04",
+                    row_order=4,
+                ),
+                receipt={
+                    "discovery_ref": discovery_ref,
+                    "discovery_id": discovery_id,
+                    "operational_relation_refs": [
+                        discovery_ref,
+                        discovery_id,
+                        source_id,
+                        event_ref,
+                    ],
+                },
+                discovery=discovery,
+                discoveries={discovery_id: (discovery, discovery_ref)},
+                acquisitions=[
+                    {
+                        "downloaded": True,
+                        "artifact_ref": source_id,
+                        "item_ref": None,
+                        "composite_ref": None,
+                        "representation_ref": None,
+                        "file_ref": "tos.file.sha256." + ("a" * 64),
+                        "provenance_event_ref": event_ref,
+                    }
+                ],
+                provenance_events={event_ref: (provenance_event, "synthetic-event")},
+                receipt_issued_at=datetime.fromisoformat("2026-08-29T12:00:00+00:00"),
+                location="synthetic-receipt",
+            )
+
+    def test_artifact_acquisition_must_output_content_addressed_file(self) -> None:
+        repo = self.make_repo()
+        candidate_id = "open-work-candidate.earliest"
+        discovery_id = "tos.discovery.earliest"
+        discovery_ref = "ToS/source-witnesses/discovery/runs/earliest.v1.json"
+        artifact_id = "tos.artifact.synthetic.earliest"
+        artifact_ref = "ToS/source-witnesses/artifacts/synthetic/earliest/artifact-witness.json"
+        representation_ref = (
+            "ToS/source-witnesses/artifacts/synthetic/earliest/representations/test/representation.json"
+        )
+        file_digest = "a" * 64
+        file_ref = "tos.file.sha256." + file_digest
+        event_ref = "tos.event.acquisition.synthetic-artifact"
+        _write_json(repo / discovery_ref, _timed_discovery(discovery_id))
+        _write_json(repo / artifact_ref, {"artifact_id": artifact_id})
+        _write_json(
+            repo / representation_ref,
+            {
+                "artifact_id": artifact_id,
+                "artifact_ref": artifact_ref,
+                "file_id": file_ref,
+                "payload": {"sha256": file_digest},
+                "discovery_ref": discovery_ref,
+                "provenance_event_ref": event_ref,
+            },
+        )
+        representation_digest = hashlib.sha256(
+            (repo / representation_ref).read_bytes()
+        ).hexdigest()
+        provenance_event = {
+            "event_type": "acquisition",
+            "method": {"configuration": {}},
+            "inputs": [{"ref": discovery_ref}],
+            "outputs": [{"ref": representation_ref, "sha256": representation_digest}],
+        }
+        kwargs = {
+            "candidate_id": candidate_id,
+            "candidate": _candidate(candidate_id, year=-2400, row_id="A04", row_order=4),
+            "discovery": _timed_discovery(discovery_id),
+            "discoveries": {
+                discovery_id: (_timed_discovery(discovery_id), discovery_ref),
+            },
+            "receipt_context_refs": {discovery_id, discovery_ref},
+            "receipt_discovery_id": discovery_id,
+            "receipt_discovery_ref": discovery_ref,
+            "provenance_events": {event_ref: (provenance_event, "synthetic-event")},
+            "location": "synthetic-acquisition",
+        }
+        acquisition = {
+            "downloaded": True,
+            "item_ref": None,
+            "artifact_ref": artifact_id,
+            "composite_ref": None,
+            "representation_ref": representation_ref,
+            "file_ref": file_ref,
+            "provenance_event_ref": event_ref,
+        }
+
+        with self.assertRaisesRegex(
+            QueueBuildError,
+            "acquisition event must contain exactly one output for .*tos.file.sha256",
+        ):
+            _validate_acquisition_closure(repo, acquisition, **kwargs)
+
+        provenance_event["outputs"].append({"ref": file_ref, "sha256": file_digest})
+        _validate_acquisition_closure(repo, acquisition, **kwargs)
 
     def test_downloaded_acquisition_requires_positive_rights_result(self) -> None:
         repo = self.make_repo()

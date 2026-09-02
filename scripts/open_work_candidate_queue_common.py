@@ -981,6 +981,7 @@ def _validate_planting_refs(
     discoveries: dict[str, tuple[dict[str, Any], str]],
     acquisitions: list[Any],
     provenance_events: dict[str, tuple[dict[str, Any], str]],
+    receipt_issued_at: datetime | None = None,
     location: str,
 ) -> None:
     if not isinstance(refs, list):
@@ -1160,7 +1161,19 @@ def _validate_planting_refs(
             raise QueueBuildError(
                 f"{ref_location}: planting provenance event {planting_event_ref!r} does not resolve"
             )
-        event = event_entry[0]
+        event, event_location = event_entry
+        if receipt_issued_at is not None:
+            event_ended_at = _parse_timestamp(
+                event.get("ended_at"),
+                location=event_location,
+                field="ended_at",
+            )
+            if event_ended_at > receipt_issued_at:
+                raise QueueBuildError(
+                    f"{ref_location}: planting provenance event {planting_event_ref!r} "
+                    f"ended_at {event_ended_at.isoformat()} is later than receipt issued_at "
+                    f"{receipt_issued_at.isoformat()}"
+                )
         event_inputs = event.get("inputs", [])
         event_outputs = event.get("outputs", [])
         if not isinstance(event_inputs, list) or not isinstance(event_outputs, list):
@@ -1491,6 +1504,12 @@ def _validate_acquisition_closure(
         expected_digest=_sha256_file(representation_path),
         location=location,
     )
+    _validate_event_output_digest(
+        outputs,
+        reference=file_ref,
+        expected_digest=file_digest,
+        location=location,
+    )
 
 
 def _validate_receipt_acquisition_closure(
@@ -1502,6 +1521,7 @@ def _validate_receipt_acquisition_closure(
     discoveries: dict[str, tuple[dict[str, Any], str]],
     provenance_events: dict[str, tuple[dict[str, Any], str]],
     location: str,
+    validate_planting_chronology: bool = True,
 ) -> None:
     candidate_id = _required_string(receipt, "candidate_id", location)
     receipt_issued_at = None
@@ -1575,6 +1595,7 @@ def _validate_receipt_acquisition_closure(
         discoveries=discoveries,
         acquisitions=acquisitions,
         provenance_events=provenance_events,
+        receipt_issued_at=receipt_issued_at if validate_planting_chronology else None,
         location=location,
     )
     if receipt.get("terminal_status") == "held_source_witness" and not downloaded and not receipt.get(
@@ -1881,6 +1902,7 @@ def _load_receipts(
     latest_by_candidate: dict[str, dict[str, Any]] = {}
     seen_receipt_ids: set[str] = set()
     seen_versions: dict[str, set[int]] = {}
+    receipt_locations: dict[str, str] = {}
 
     for path in receipt_paths:
         receipt = _load_json(path, repo_root)
@@ -1889,6 +1911,7 @@ def _load_receipts(
         if receipt_id in seen_receipt_ids:
             raise QueueBuildError(f"{location}: duplicate receipt_id {receipt_id!r}")
         seen_receipt_ids.add(receipt_id)
+        receipt_locations[receipt_id] = location
         candidate_id = _required_string(receipt, "candidate_id", location)
         candidate = candidates_by_id.get(candidate_id)
         if candidate is None:
@@ -1940,15 +1963,6 @@ def _load_receipts(
             discovery=discovery[0],
             location=location,
         )
-        _validate_receipt_acquisition_closure(
-            repo_root,
-            receipt,
-            candidate=candidate,
-            discovery=discovery[0],
-            discoveries=discoveries,
-            provenance_events=provenance_events,
-            location=location,
-        )
         version = receipt.get("record_version")
         if not isinstance(version, int) or version < 1:
             raise QueueBuildError(f"{location}: record_version must be a positive integer")
@@ -1961,6 +1975,27 @@ def _load_receipts(
         if previous is None or version > previous["record_version"]:
             latest_by_candidate[candidate_id] = receipt
         receipts.append(receipt)
+
+    for receipt in receipts:
+        receipt_id = receipt["receipt_id"]
+        candidate_id = receipt["candidate_id"]
+        candidate = candidates_by_id[candidate_id]
+        discovery = discoveries[receipt["discovery_id"]][0]
+        _validate_receipt_acquisition_closure(
+            repo_root,
+            receipt,
+            candidate=candidate,
+            discovery=discovery,
+            discoveries=discoveries,
+            provenance_events=provenance_events,
+            location=receipt_locations[receipt_id],
+            # A superseded receipt is retained as historical evidence.  A
+            # later planting correction is admitted only through the latest
+            # receipt version, whose issuance must follow that correction.
+            validate_planting_chronology=(
+                latest_by_candidate[candidate_id]["receipt_id"] == receipt_id
+            ),
+        )
 
     for candidate_id, receipt in latest_by_candidate.items():
         discovery_id = receipt["discovery_id"]

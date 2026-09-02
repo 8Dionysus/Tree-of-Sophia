@@ -68,7 +68,7 @@
         "chronology_sort_year": -2400,
         "confidence": "reviewed-for-queue-order-only"
       },
-      "terminal_receipt_id": "open-work-candidate-receipt.pyramid-texts.2026-08-30.v1"
+      "terminal_receipt_id": "open-work-candidate-receipt.pyramid-texts.2026-09-02.v2"
     },
     {
       "candidate_id": "open-work-candidate.coffin-texts",
@@ -85,7 +85,7 @@
         "chronology_sort_year": -2400,
         "confidence": "reviewed-for-queue-order-only"
       },
-      "terminal_receipt_id": "open-work-candidate-receipt.coffin-texts.2026-08-30.v1"
+      "terminal_receipt_id": "open-work-candidate-receipt.coffin-texts.2026-09-02.v2"
     },
     {
       "candidate_id": "open-work-candidate.book-of-two-ways",
@@ -102,7 +102,7 @@
         "chronology_sort_year": -2400,
         "confidence": "reviewed-for-queue-order-only"
       },
-      "terminal_receipt_id": "open-work-candidate-receipt.book-of-two-ways.2026-08-30.v1"
+      "terminal_receipt_id": "open-work-candidate-receipt.book-of-two-ways.2026-09-02.v2"
     },
     {
       "candidate_id": "open-work-candidate.instructions-of-shuruppag",
@@ -255,7 +255,7 @@
         "chronology_sort_year": -1550,
         "confidence": "reviewed-for-queue-order-only"
       },
-      "terminal_receipt_id": "open-work-candidate-receipt.book-of-the-dead.2026-08-30.v1"
+      "terminal_receipt_id": "open-work-candidate-receipt.book-of-the-dead.2026-09-02.v2"
     },
     {
       "candidate_id": "open-work-candidate.harpers-songs",
@@ -304,7 +304,7 @@
   "generated_by": "scripts/build_open_work_candidate_queue.py",
   "next_candidate_id": "open-work-candidate.teaching-for-king-merykara",
   "owner_surface": "ToS/source-witnesses/discovery/candidates/reviewed-candidates.jsonl",
-  "queue_sha256": "6947ed85f7646a3ae2e461eadc46742eaa78b4137b9dc5c884f3a09f3e94bda4",
+  "queue_sha256": "5f5f6da97d1dbdbd85adcc6f1be2e5f05c9009a16a0e383479c121ef69637a1b",
   "receipt_root": "ToS/source-witnesses/discovery/candidates/receipts",
   "schema_version": "tos_open_work_candidate_queue_v1",
   "source_snapshot": {
@@ -315,9 +315,9 @@
       "master_rows": 190,
       "reviewed_candidates": 17,
       "source_anchor_backlog_rows": 9530,
-      "terminal_receipts": 14
+      "terminal_receipts": 18
     },
-    "input_sha256": "d82a1c061095b39069636aa020c91a3084b8832403a2c4f64db8ca00b290faa1",
+    "input_sha256": "d29f2cb9cbdb78f877757619b8128c370f44a178170c1918342bf1fa8eabf49e",
     "inputs": [
       {
         "path": "ToS/philosophy/atlas/dossiers/index.jsonl",
@@ -856,12 +856,24 @@
         "sha256": "e0a9998e207cb7c222f963a3fc3937161d67ab055e1dd274acba3fcd4ad1abcc"
       },
       {
+        "path": "ToS/source-witnesses/discovery/candidates/receipts/book-of-the-dead.2026-09-02.v2.json",
+        "sha256": "28790ceb72947697a63adf306bba80c946e450224f79565a7773fb44451c685b"
+      },
+      {
         "path": "ToS/source-witnesses/discovery/candidates/receipts/book-of-two-ways.2026-08-30.v1.json",
         "sha256": "6b433ae1aa13e629a019110d990f07503b377e3a29a49d61ec2664ef528febdf"
       },
       {
+        "path": "ToS/source-witnesses/discovery/candidates/receipts/book-of-two-ways.2026-09-02.v2.json",
+        "sha256": "058751f6fe2aa11585d0b95e8faeb00f65b0c836834212d4970ab43aac157e07"
+      },
+      {
         "path": "ToS/source-witnesses/discovery/candidates/receipts/coffin-texts.2026-08-30.v1.json",
         "sha256": "98b224b5419b50ea5db62f2bf8e65c6454c9f8737c0d0d6c67d4d083ec90bbe8"
+      },
+      {
+        "path": "ToS/source-witnesses/discovery/candidates/receipts/coffin-texts.2026-09-02.v2.json",
+        "sha256": "552ff8177fc5bf00d153d1d2f7e5ace607a1106ed2bb4a742679bdb2cd677595"
       },
       {
         "path": "ToS/source-witnesses/discovery/candidates/receipts/dialogue-between-a-man-and-his-ba.2026-08-30.v1.json",
@@ -908,12 +920,16 @@
         "sha256": "32b9087a5f3b047e50aea550b0e23672837e3d58e03247b3671c1dace83ec500"
       },
       {
+        "path": "ToS/source-witnesses/discovery/candidates/receipts/pyramid-texts.2026-09-02.v2.json",
+        "sha256": "7126231e78edd5b5a342677be7de62ab458c99211ac0234d4d250c9e05dcab81"
+      },
+      {
         "path": "ToS/source-witnesses/discovery/candidates/reviewed-candidates.jsonl",
         "sha256": "6bea94c4b430e938df8e55ad91ed2b4324715b18b6e11c0be7bfc7f840487583"
       },
       {
         "path": "ToS/source-witnesses/discovery/provenance.jsonl",
-        "sha256": "5796df8b3e6ec0ad476f5ab37a96d871b6f97a931e763f2a2baad7c2afed5130"
+        "sha256": "0979ef8f5ffa2b9c8950f24c2f5ceac795997db2968f9deccf81630ace178234"
       },
       {
         "path": "ToS/source-witnesses/discovery/runs/antichrist-authorial-witness-route.2026-07-30.v1.json",
