@@ -22,9 +22,9 @@
   "head_source_snapshot": "sha256:cdd36a36a01cdb5e601d15a08ff677d214cfb65b53305cc0b47785b73678c734",
   "producer_identity": {
     "action": {
-      "bytes": 5069,
-      "content_digest": "aeb1379c5b94b23194bbab302eb64d213bcfd6009fe41eec18c61fb5213d6970",
-      "git_blob": "sha1:130040990962922a84740fafce6c487c7b2d6048",
+      "bytes": 4995,
+      "content_digest": "8cf5a902b2cf5f3fa9be83c15d3092de8b3f8c764ade2867334621ddb2be46e0",
+      "git_blob": "sha1:bb7fd7aca67b721bb21801a2c01b95df4a00166d",
       "path": ".github/actions/repo-local-kag-index/action.yml",
       "state": "present"
     },
@@ -144,8 +144,8 @@
       "manifest_digest": "c6ae6f1768a96e165ec9b5f84a15fe33aef6fdd9e33048c51ca5d368d2b37a5b",
       "non_python_inputs": [
         {
-          "bytes": 5069,
-          "content_digest": "aeb1379c5b94b23194bbab302eb64d213bcfd6009fe41eec18c61fb5213d6970",
+          "bytes": 4995,
+          "content_digest": "8cf5a902b2cf5f3fa9be83c15d3092de8b3f8c764ade2867334621ddb2be46e0",
           "path": ".github/actions/repo-local-kag-index/action.yml"
         },
         {
@@ -243,9 +243,9 @@
     },
     "files": [
       {
-        "bytes": 5069,
-        "content_digest": "aeb1379c5b94b23194bbab302eb64d213bcfd6009fe41eec18c61fb5213d6970",
-        "git_blob": "sha1:130040990962922a84740fafce6c487c7b2d6048",
+        "bytes": 4995,
+        "content_digest": "8cf5a902b2cf5f3fa9be83c15d3092de8b3f8c764ade2867334621ddb2be46e0",
+        "git_blob": "sha1:bb7fd7aca67b721bb21801a2c01b95df4a00166d",
         "path": ".github/actions/repo-local-kag-index/action.yml",
         "state": "present"
       },
@@ -726,7 +726,7 @@
         "state": "present"
       }
     ],
-    "identity_digest": "609e78fe0e8dac093799ee6cb269965d713b1d3f17c2320174742168fc299525",
+    "identity_digest": "3b6ea0dbde13bebf4e57c0d74325a5d74aca595b9f58f111011a02cf4b246aa3",
     "owner": "aoa-kag",
     "procedure_manifest": {
       "action_inputs": [
@@ -851,9 +851,9 @@
       "schema_path": "schemas/repo-local-kag-budget-producer-manifest.schema.json"
     },
     "revision_binding": "content-addressed-procedure-import-closure-portable-runtime-contract-and-descriptor-io-v1",
-    "source_digest": "2248818e917d86451f15c4f2778a2657884e897af1b65ff931bc7dfc17ca3eca"
+    "source_digest": "b6ab389723d813c22d82206c098e85621be70436937e3f36188761b6edd7a98b"
   },
-  "reason": "Refresh the repo-local KAG family after documentation currentness was reconciled with the registered open-work discovery regression.",
+  "reason": "Refresh the repo-local KAG family after registering the open-work discovery channel regression in the test topology inventory.",
   "repo": "Tree-of-Sophia",
   "schema_version": "aoa-repo-local-kag-budget-receipt-v2",
   "scope": "generated_delta_and_tracked_size",
