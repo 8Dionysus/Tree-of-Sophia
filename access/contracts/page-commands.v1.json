@@ -15,7 +15,7 @@
     {"command_id": "tos.page.show-neighborhood", "availability": "selected node", "effect": "show the selected node neighborhood"},
     {"command_id": "tos.page.start-path", "availability": "selected node", "effect": "set the deictic path start"},
     {"command_id": "tos.page.find-path", "availability": "path start and distinct selected node", "effect": "show deterministic constrained paths"},
-    {"command_id": "tos.page.reroute-without-selection", "availability": "selected edge", "effect": "show alternative paths while excluding that edge"},
+    {"command_id": "tos.page.reroute-without-selection", "availability": "selected projection edge; aggregate cluster relations are excluded", "effect": "show alternative paths while excluding that edge"},
     {"command_id": "tos.page.clear-focus", "availability": "always", "effect": "clear local focus packets"},
     {"command_id": "tos.page.cancel", "availability": "always", "effect": "abort active page command execution"}
   ],

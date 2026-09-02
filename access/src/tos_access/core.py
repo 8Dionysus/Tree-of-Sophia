@@ -17,6 +17,8 @@ SUPPORTED_CORPUS_VIEW_IDS = {
     "route-graph",
     "promotion-flow",
 }
+PHILOSOPHY_PATH_STATE_LIMIT = 50_000
+PHILOSOPHY_PATH_FRONTIER_LIMIT = 5_000
 
 
 @lru_cache(maxsize=8)
@@ -1260,8 +1262,13 @@ class ToSAccessCore:
         queue = deque([(from_id, [from_id], [], [])])
         paths: list[dict[str, Any]] = []
         explored_states = 0
-        exploration_limit = 50_000
-        while queue and len(paths) < path_limit and explored_states < exploration_limit:
+        enqueued_states = 1
+        max_frontier_size = 1
+        exploration_truncated = False
+        while queue and len(paths) < path_limit:
+            if explored_states >= PHILOSOPHY_PATH_STATE_LIMIT:
+                exploration_truncated = True
+                break
             current, path_node_ids, path_edges, traversal = queue.popleft()
             explored_states += 1
             if current == to_id:
@@ -1283,6 +1290,12 @@ class ToSAccessCore:
             for neighbor, edge, traversal_direction in adjacency.get(current, []):
                 if neighbor in path_node_ids:
                     continue
+                if (
+                    enqueued_states >= PHILOSOPHY_PATH_STATE_LIMIT
+                    or len(queue) >= PHILOSOPHY_PATH_FRONTIER_LIMIT
+                ):
+                    exploration_truncated = True
+                    break
                 queue.append(
                     (
                         neighbor,
@@ -1299,6 +1312,8 @@ class ToSAccessCore:
                         ],
                     )
                 )
+                enqueued_states += 1
+                max_frontier_size = max(max_frontier_size, len(queue))
 
         primary = paths[0] if paths else {"nodes": [], "edges": []}
         source_items = [
@@ -1321,7 +1336,11 @@ class ToSAccessCore:
             "view_id": view_id,
             "excluded_edge_ids": sorted(excluded_edges),
             "alternative_limit": path_limit,
-            "exploration_truncated": bool(queue) and explored_states >= exploration_limit,
+            "exploration_truncated": exploration_truncated,
+            "explored_state_count": explored_states,
+            "enqueued_state_count": enqueued_states,
+            "frontier_limit": PHILOSOPHY_PATH_FRONTIER_LIMIT,
+            "max_frontier_size": max_frontier_size,
             "layers": sorted(layer_filter),
             "predicates": sorted(predicate_filter),
             "source_refs": _source_refs(source_items),

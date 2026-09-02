@@ -150,7 +150,12 @@ function dynamicTools(registry: PageCommandRegistry, context: PageContext): WebM
       );
     }
   }
-  if (selected.kind === "edge" && selected.from_id && selected.to_id) {
+  if (
+    selected.kind === "edge" &&
+    selected.reroutable !== false &&
+    selected.from_id &&
+    selected.to_id
+  ) {
     tools.push(
       commandTool(registry, "tos.page.reroute-without-selection", {
         name: "tos.page.reroute-without-selection",

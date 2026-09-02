@@ -1674,7 +1674,8 @@ function renderInspector(): void {
       state.activePredicates.size > 0 &&
       source.from_id &&
       source.to_id &&
-      source.edge_id
+      source.edge_id &&
+      !isAggregateRelation(source)
     ) {
       cards.push(`<div class="route-actions"><button id="reroute-without-edge-button" type="button">${t("route.rerouteWithoutEdge")}</button></div>`);
     }
@@ -2976,6 +2977,26 @@ function selectableItem(itemIdValue: string): AnyItem | null {
   return null;
 }
 
+function currentViewItem(itemIdValue: string): AnyItem | null {
+  const current = state.currentView as AnyItem | null;
+  if (!current) return null;
+  const collections = [
+    (current.nodes as AnyItem[] | undefined) || [],
+    (current.edges as AnyItem[] | undefined) || [],
+    (current.clusters as AnyItem[] | undefined) || [],
+    (current.items as AnyItem[] | undefined) || [],
+  ];
+  for (const collection of collections) {
+    const match = collection.find((item) => itemId(item) === itemIdValue);
+    if (match) return match;
+  }
+  return null;
+}
+
+function isAggregateRelation(item: AnyItem): boolean {
+  return text(item.edge_id).startsWith("cluster-relation:") || stringList(item.member_edge_ids).length > 0;
+}
+
 function selectItem(item: AnyItem): void {
   invokePageCommandFromUi("tos.page.select", { item_id: itemId(item) });
 }
@@ -3338,7 +3359,7 @@ async function loadView(
     state.results = (payload.items || []).filter(isPublicAtlasItem);
   }
   if (requestedFocusId) {
-    const focusItem = selectableItem(requestedFocusId);
+    const focusItem = currentViewItem(requestedFocusId);
     if (focusItem) setSelectedItemState(focusItem);
   }
   renderAll();
@@ -3392,6 +3413,7 @@ function pageSelection(): PageSelection | null {
     label: displayTitle(item),
     ...(item.from_id ? { from_id: text(item.from_id) } : {}),
     ...(item.to_id ? { to_id: text(item.to_id) } : {}),
+    ...(kind === "edge" ? { reroutable: !isAggregateRelation(item) } : {}),
   };
 }
 
@@ -3476,8 +3498,14 @@ const pageCommands = createPageCommandRegistry(pageContextSnapshot, {
   },
   "tos.page.reroute-without-selection": async (input, execution) => {
     const selected = pageSelection();
-    if (!selected || selected.kind !== "edge" || !selected.from_id || !selected.to_id) {
-      throw new Error("select an edge before requesting a reroute");
+    if (
+      !selected ||
+      selected.kind !== "edge" ||
+      selected.reroutable === false ||
+      !selected.from_id ||
+      !selected.to_id
+    ) {
+      throw new Error("select a projection edge before requesting a reroute");
     }
     const constrainToView = input.constrain_to_view !== false;
     return showPath(selected.from_id, selected.to_id, {

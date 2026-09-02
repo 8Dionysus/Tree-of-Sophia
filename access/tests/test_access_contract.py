@@ -361,6 +361,25 @@ class CoreContractTests(unittest.TestCase):
             self.assertFalse(constrained["found"])
             self.assertEqual(constrained["view_id"], "direct-only")
 
+    def test_path_query_bounds_enqueued_frontier_states(self) -> None:
+        with tempfile.TemporaryDirectory() as raw:
+            root = Path(raw)
+            write_fixture(root)
+            core = ToSAccessCore.discover(tos_root=root)
+
+            with patch("tos_access.core.PHILOSOPHY_PATH_FRONTIER_LIMIT", 1):
+                bounded = core.philosophy_path_between(
+                    "a",
+                    "b",
+                    direction="outgoing",
+                    alternative_limit=2,
+                )
+
+            self.assertTrue(bounded["found"])
+            self.assertTrue(bounded["exploration_truncated"])
+            self.assertEqual(bounded["frontier_limit"], 1)
+            self.assertLessEqual(bounded["max_frontier_size"], 1)
+
     def test_scale_memberships_reference_only_selected_rows(self) -> None:
         with tempfile.TemporaryDirectory() as raw:
             root = Path(raw)

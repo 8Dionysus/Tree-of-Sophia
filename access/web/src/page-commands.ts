@@ -4,6 +4,7 @@ export type PageSelection = {
   label?: string;
   from_id?: string;
   to_id?: string;
+  reroutable?: boolean;
 };
 
 export type PageContextSnapshot = {

@@ -100,4 +100,47 @@ describe("WebMCP page-command binding", () => {
     expect(tools.has("tos.page.start-path")).toBe(false);
     adapter.stop();
   });
+
+  it("does not offer projection rerouting for an aggregate cluster edge", async () => {
+    const current: PageContextSnapshot = {
+      mode: "philosophy",
+      view_id: "chronology",
+      graph_mode: "clusters",
+      selected: {
+        id: "cluster-relation:0",
+        kind: "edge",
+        from_id: "cluster:a",
+        to_id: "cluster:b",
+        reroutable: false,
+      },
+      path_start_node_id: null,
+      active_layers: ["source-relation"],
+      active_predicates: ["relates"],
+      deep_link: "http://tos.local/?view=chronology&graph=clusters",
+    };
+    const noop = vi.fn();
+    const registry = createPageCommandRegistry(() => current, {
+      "tos.page.open-view": noop,
+      "tos.page.search": noop,
+      "tos.page.select": noop,
+      "tos.page.show-neighborhood": noop,
+      "tos.page.start-path": noop,
+      "tos.page.find-path": noop,
+      "tos.page.reroute-without-selection": noop,
+      "tos.page.clear-focus": noop,
+    });
+    const tools = new Map<string, RegisteredTool>();
+    const modelContext = {
+      registerTool: vi.fn(async (tool: RegisteredTool, options?: { signal?: AbortSignal }) => {
+        tools.set(tool.name, tool);
+        options?.signal?.addEventListener("abort", () => tools.delete(tool.name), { once: true });
+      }),
+    };
+    const adapter = createWebMCPAdapter(registry, { modelContext } as unknown as WebMCPDocument);
+
+    await adapter.start();
+
+    expect(tools.has("tos.page.reroute-without-selection")).toBe(false);
+    adapter.stop();
+  });
 });
