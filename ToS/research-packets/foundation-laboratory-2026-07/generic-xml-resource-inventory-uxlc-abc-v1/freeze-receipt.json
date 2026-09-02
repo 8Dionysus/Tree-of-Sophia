@@ -1,0 +1,45 @@
+{
+  "schema_version": "tos_generic_xml_resource_inventory_lab_freeze_receipt_v1",
+  "lab_id": "tos.lab.generic-xml-resource-inventory-uxlc-abc.v1",
+  "frozen_at": "2026-08-30T16:42:46Z",
+  "candidate_outputs_existed_at_freeze": false,
+  "manual_review_existed_at_freeze": false,
+  "comparison_result_existed_at_freeze": false,
+  "syntax_preflight_only": true,
+  "frozen_files": [
+    {
+      "ref": "ToS/research-packets/foundation-laboratory-2026-07/GENERIC_XML_RESOURCE_IDENTITY_AND_PROVIDER_PROJECTION_RESEARCH_2026-08-30.md",
+      "sha256": "0c85289990cebd01c696ee44ff19c1bdbd5a31d61d449bafe0fd7c762c8185aa"
+    },
+    {
+      "ref": "ToS/research-packets/foundation-laboratory-2026-07/GENERIC_XML_RESOURCE_INVENTORY_UXLC_ABC_PREREGISTRATION_2026-08-30.md",
+      "sha256": "7634cb25aa1cd41b46e155d3482135d34d87de1f11ca17a3afd9a52976a8d3b7"
+    },
+    {
+      "ref": "ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/input-manifest.json",
+      "sha256": "c8d896285997447c99274e7f6f34f0bb85fbe7e3da3bf6b3230a0c7294b349db"
+    },
+    {
+      "ref": "ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/sealed-evaluation-manifest.json",
+      "sha256": "e7f440aef36ae913aff1bf356f5c140211447beb8682fa273c4023fca1e84ed7"
+    },
+    {
+      "ref": "ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/build_candidate.py",
+      "sha256": "fe8e34080ae7b042efb5897098c16d6e19093c52becb32e8b821f2d4314e592c"
+    },
+    {
+      "ref": "ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/run_experiment.py",
+      "sha256": "56e744b074432d52e9c397eb21c0c672f56afbabe86d2e74f136f4f9daf1ad75"
+    },
+    {
+      "ref": "ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/consume_owner.py",
+      "sha256": "e8d9f2b01d8c5204a92cfc5098c2e7d2e3f246c30e6358fe0dc3631c2fd4f46d"
+    },
+    {
+      "ref": "ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/evaluate_lab.py",
+      "sha256": "47fa0a00689a7f238933acf7107ff59f8e4975b9598a0ad377796c3d6c892d18"
+    }
+  ],
+  "authority_boundary": "pre-output method freeze only; no candidate result, source-text, public contract, linguistic, semantic, graph, canon, rights or publication authority",
+  "record_version": 1
+}

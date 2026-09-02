@@ -1,0 +1,247 @@
+{
+  "schema_version": "tos_generic_xml_resource_inventory_lab_input_v1",
+  "lab_id": "tos.lab.generic-xml-resource-inventory-uxlc-abc.v1",
+  "frozen_at": "2026-08-30T16:27:21Z",
+  "research": {
+    "ref": "ToS/research-packets/foundation-laboratory-2026-07/GENERIC_XML_RESOURCE_IDENTITY_AND_PROVIDER_PROJECTION_RESEARCH_2026-08-30.md",
+    "sha256": "0c85289990cebd01c696ee44ff19c1bdbd5a31d61d449bafe0fd7c762c8185aa"
+  },
+  "preregistration": {
+    "ref": "ToS/research-packets/foundation-laboratory-2026-07/GENERIC_XML_RESOURCE_INVENTORY_UXLC_ABC_PREREGISTRATION_2026-08-30.md",
+    "sha256": "7634cb25aa1cd41b46e155d3482135d34d87de1f11ca17a3afd9a52976a8d3b7"
+  },
+  "public_contract_control": {
+    "schema_ref": "ToS/contracts/source-resource-inventory.schema.json",
+    "schema_sha256": "609461ce122ee527b349bb60632147e88ffc7fa9c428788a992d024195509e35",
+    "builder_ref": "scripts/build_source_resource_inventories.py",
+    "builder_sha256": "1f87e27c0829fc2d4a42b9d0645f5abb5f01ac590eb0480d1b5a6ab09da12e5c",
+    "admission_boundary": {
+      "baseline_ref": "83c75277dc11f8c0c2adfc2e52ab4a5117b8fce0",
+      "roots": [
+        "ToS/source-witnesses",
+        "ToS/candidate-intake",
+        "ToS/review-ledger",
+        "ToS/canon",
+        "ToS/derived-exports",
+        "ToS/philosophy/graph-workbench",
+        "ToS/philosophy/trunk/graph-layers",
+        "ToS/source-witnesses/relations",
+        "ToS/research-packets/foundation-laboratory-2026-07/source-anchor-v2-abc",
+        "ToS/research-packets/foundation-laboratory-2026-07/source-text-layer-abc"
+      ],
+      "baseline_tree_ids": {
+        "ToS/source-witnesses": "e451db74515d079dac78c69baa312cb5118cb7c4",
+        "ToS/candidate-intake": "e75c4dede9a4a8013968e43c59857bbf97eeaac1",
+        "ToS/review-ledger": "a02560f949f086803ded32787ca05431229d886c",
+        "ToS/canon": "03a9a6a3da7e72542bd4fb1cf7885d5b478d4770",
+        "ToS/derived-exports": "e5f6978062fa92818d201fc55b8c95ab8e3b015f",
+        "ToS/philosophy/graph-workbench": "0b937bb5933e85ffd9977f0d9dc91fc0758a4885",
+        "ToS/philosophy/trunk/graph-layers": "e19eed8ecf6fbd72b67d78882625d30ca04053ea",
+        "ToS/source-witnesses/relations": "bf4db20d3e486c9c6875c0a588d63151d9b0d1ea",
+        "ToS/research-packets/foundation-laboratory-2026-07/source-anchor-v2-abc": "725ba722803d0eb6230302986f7dc597d5efb4f9",
+        "ToS/research-packets/foundation-laboratory-2026-07/source-text-layer-abc": "bc843bbd03f84ca0205f30270b538d9f2602a203"
+      },
+      "allowed_changed_paths": [
+        "ToS/derived-exports/tos_corpus_index.min.json"
+      ]
+    }
+  },
+  "parser_posture": {
+    "recover": false,
+    "load_dtd": false,
+    "dtd_validation": false,
+    "resolve_entities": false,
+    "no_network": true,
+    "huge_tree": false,
+    "xinclude": false,
+    "reject_doctype": true
+  },
+  "exact_sources": {
+    "selected": {
+      "source_ref": "tos.file.sha256.98fdc24c4f4543769b8cf5d0fc1131fee77d42739f2b4333a90b56981972303c",
+      "path": "/srv/AbyssOS/Tree-of-Sophia/ToS/source-witnesses/works/digital-biblical-corpora/unicode-xml-leningrad-codex/expressions/he-uxlc-2-5-full-accents/editions/uxlc-2-5-build-27-6/items/tanach-us-server-xml-prov23-1-3-20260830t160419z/payload/prov23-1-3.xml",
+      "sha256": "98fdc24c4f4543769b8cf5d0fc1131fee77d42739f2b4333a90b56981972303c",
+      "byte_size": 8227,
+      "expected_mode": "0600",
+      "expected_gitignored": true
+    },
+    "replay": {
+      "source_ref": "local:uxlc-prov23-1-3-live-replay-after-freeze",
+      "path": "/srv/AbyssOS/Tree-of-Sophia/ToS/source-witnesses/works/digital-biblical-corpora/unicode-xml-leningrad-codex/expressions/he-uxlc-2-5-full-accents/editions/uxlc-2-5-build-27-6/items/tanach-us-server-xml-prov23-1-3-20260830t160419z/payload/laboratory/generic-xml-resource-inventory-uxlc-abc-v1/replay-prov23-1-3.xml",
+      "sha256": null,
+      "byte_size": null,
+      "expected_mode": "0600",
+      "expected_gitignored": true
+    }
+  },
+  "private_output_root": "/srv/AbyssOS/Tree-of-Sophia/ToS/source-witnesses/works/digital-biblical-corpora/unicode-xml-leningrad-codex/expressions/he-uxlc-2-5-full-accents/editions/uxlc-2-5-build-27-6/items/tanach-us-server-xml-prov23-1-3-20260830t160419z/payload/laboratory/generic-xml-resource-inventory-uxlc-abc-v1",
+  "provider_context": {
+    "provider": "Unicode/XML Leningrad Codex",
+    "expression": "UXLC 2.5 full accents",
+    "edition": "build 27.6",
+    "book_code": "Prov",
+    "selector": "Prov23:1-3",
+    "projection_authority": "provider_structure_only"
+  },
+  "fixtures": [
+    {
+      "id": "P1-no-namespace",
+      "xml": "<root><branch><leaf>alpha</leaf></branch></root>"
+    },
+    {
+      "id": "P2-prefix-a",
+      "xml": "<p:root xmlns:p=\"urn:lab:shared\"><p:item/></p:root>"
+    },
+    {
+      "id": "P2-prefix-b",
+      "xml": "<q:root xmlns:q=\"urn:lab:shared\"><q:item/></q:root>"
+    },
+    {
+      "id": "P3-default-namespace",
+      "xml": "<root xmlns=\"urn:lab:default\" plain=\"x\"><child attr=\"v\"/></root>"
+    },
+    {
+      "id": "P4-duplicate-siblings",
+      "xml": "<root><item/><item/><item/></root>"
+    },
+    {
+      "id": "P5-interleaved-siblings",
+      "xml": "<root><item/><note/><item/></root>"
+    },
+    {
+      "id": "P6-empty-short",
+      "xml": "<root><empty/></root>"
+    },
+    {
+      "id": "P6-empty-long",
+      "xml": "<root><empty></empty></root>"
+    },
+    {
+      "id": "P7-attributes-a",
+      "xml": "<root alpha=\"1\" beta=\"2\"><item/></root>"
+    },
+    {
+      "id": "P7-attributes-b",
+      "xml": "<root beta=\"2\" alpha=\"1\"><item/></root>"
+    },
+    {
+      "id": "P8-comments-pi-a",
+      "xml": "<?lab one?><root><!--first--><item/></root>"
+    },
+    {
+      "id": "P8-comments-pi-b",
+      "xml": "<?lab two?><root><!--second--><item/></root>"
+    },
+    {
+      "id": "P9-mixed-namespaces",
+      "xml": "<a:root xmlns:a=\"urn:lab:a\" xmlns:b=\"urn:lab:b\"><b:item><a:item/></b:item></a:root>"
+    },
+    {
+      "id": "P10-true-tei",
+      "xml": "<TEI xmlns=\"http://www.tei-c.org/ns/1.0\"><teiHeader/><text><body><p>invented</p></body></text></TEI>"
+    },
+    {
+      "id": "P11-tei-lookalike",
+      "xml": "<archive><teiHeader/><text><item/></text></archive>"
+    },
+    {
+      "id": "P12-dynamic-a",
+      "xml": "<response><profile generated=\"2026-08-30T00:00:00Z\"/><content><item>steady</item></content></response>"
+    },
+    {
+      "id": "P12-dynamic-b",
+      "xml": "<response><profile generated=\"2026-08-30T00:01:00Z\"/><content><item>steady</item></content></response>"
+    },
+    {
+      "id": "P13-reorder-a",
+      "xml": "<root><item key=\"a\"/><note/><item key=\"b\"/></root>"
+    },
+    {
+      "id": "P13-reorder-b",
+      "xml": "<root><item key=\"a\"/><item key=\"b\"/><note/></root>"
+    },
+    {
+      "id": "P14-text-a",
+      "xml": "<root><item>first</item></root>"
+    },
+    {
+      "id": "P14-text-b",
+      "xml": "<root><item>second</item></root>"
+    },
+    {
+      "id": "P15-attribute-value-a",
+      "xml": "<root><item state=\"one\"/></root>"
+    },
+    {
+      "id": "P15-attribute-value-b",
+      "xml": "<root><item state=\"two\"/></root>"
+    },
+    {
+      "id": "PC1-uxlc-shape",
+      "xml": "<Tanach><teiHeader><profileDesc><date>invented</date></profileDesc></teiHeader><tanach><book><names/><c n=\"23\"><v n=\"1\"><w>alpha</w><w>beta</w></v><v n=\"2\"><w>gamma</w></v></c></book></tanach><notes/></Tanach>"
+    }
+  ],
+  "security_fixtures": [
+    {
+      "id": "N1-external-entity",
+      "xml": "<!DOCTYPE root [<!ENTITY xxe SYSTEM \"file:///nonexistent/tos-lab-forbidden\">]><root>&xxe;</root>"
+    },
+    {
+      "id": "N2-internal-entity",
+      "xml": "<!DOCTYPE root [<!ENTITY harmless \"invented\">]><root>&harmless;</root>"
+    },
+    {
+      "id": "N3-entity-chain",
+      "xml": "<!DOCTYPE root [<!ENTITY a \"x\"><!ENTITY b \"&a;&a;&a;&a;\"><!ENTITY c \"&b;&b;&b;&b;\">]><root>&c;</root>"
+    },
+    {
+      "id": "N4-malformed",
+      "xml": "<root><item></root>"
+    }
+  ],
+  "comparison_groups": [
+    {
+      "id": "prefix-alias",
+      "left": "P2-prefix-a",
+      "right": "P2-prefix-b"
+    },
+    {
+      "id": "empty-serialization",
+      "left": "P6-empty-short",
+      "right": "P6-empty-long"
+    },
+    {
+      "id": "attribute-order",
+      "left": "P7-attributes-a",
+      "right": "P7-attributes-b"
+    },
+    {
+      "id": "comment-pi-variation",
+      "left": "P8-comments-pi-a",
+      "right": "P8-comments-pi-b"
+    },
+    {
+      "id": "dynamic-envelope",
+      "left": "P12-dynamic-a",
+      "right": "P12-dynamic-b"
+    },
+    {
+      "id": "sibling-reorder",
+      "left": "P13-reorder-a",
+      "right": "P13-reorder-b"
+    },
+    {
+      "id": "text-mutation",
+      "left": "P14-text-a",
+      "right": "P14-text-b"
+    },
+    {
+      "id": "attribute-value-mutation",
+      "left": "P15-attribute-value-a",
+      "right": "P15-attribute-value-b"
+    }
+  ],
+  "source_text_included": false,
+  "public_contract_changed": false,
+  "record_version": 1
+}

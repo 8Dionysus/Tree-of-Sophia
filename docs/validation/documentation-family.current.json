@@ -29,15 +29,15 @@
     "metric": "whitespace_tokens_v1",
     "posture": "summary_first_records_on_demand",
     "record_loading": "machine readers may select records by family_id or path; do not load the full carrier into an always-on prompt",
-    "tracked_surface_count": 2955,
+    "tracked_surface_count": 3090,
     "unhandled_family_count": 0
   },
   "coverage": {
     "excluded_generated_carrier_rules": 3,
     "excluded_tracked_path_count": 469,
     "human_scope": {
-      "bytes": 4443343,
-      "count": 877,
+      "bytes": 4497468,
+      "count": 884,
       "excluded_skill_launch_metadata": 25,
       "family_counts": {
         "agents-other": {
@@ -111,20 +111,20 @@
           "lines": 47
         },
         "tos": {
-          "bytes": 3339256,
-          "count": 504,
-          "lines": 57440
+          "bytes": 3393381,
+          "count": 511,
+          "lines": 58689
         }
       },
-      "lines": 78758
+      "lines": 80007
     },
     "surface_kind_counts": {
-      "executable": 155,
-      "human": 902,
-      "structured": 1898
+      "executable": 160,
+      "human": 909,
+      "structured": 2021
     },
-    "tracked_path_count": 3424,
-    "tracked_surface_count": 2955,
+    "tracked_path_count": 3559,
+    "tracked_surface_count": 3090,
     "unhandled_family_count": 0,
     "unhandled_paths": []
   },
@@ -167,11 +167,12 @@
     {
       "family_id": "tos",
       "surface_kind_counts": {
-        "human": 504,
-        "structured": 1836
+        "executable": 4,
+        "human": 511,
+        "structured": 1959
       },
-      "tracked_surface_bytes": 92359944,
-      "tracked_surface_count": 2340
+      "tracked_surface_bytes": 93341891,
+      "tracked_surface_count": 2474
     },
     {
       "family_id": "docs",
@@ -230,12 +231,12 @@
     {
       "family_id": "tests",
       "surface_kind_counts": {
-        "executable": 46,
+        "executable": 47,
         "human": 1,
         "structured": 1
       },
-      "tracked_surface_bytes": 1078270,
-      "tracked_surface_count": 48
+      "tracked_surface_bytes": 1113034,
+      "tracked_surface_count": 49
     },
     {
       "family_id": "manifests",
@@ -269,7 +270,7 @@
   "source_map": "docs/validation/documentation_family_map.json",
   "source_map_sha256": "9140a03a48109e6a9f35f3ca7dbf82058d96c3961e9e77bc31a743fb8814b13b",
   "tracked_source": "git ls-files -z",
-  "tracked_surface_digest": "4e77e2b8620c341a8b0d877a8e95036a126eb7c2342389433d726dcebd1216a3",
+  "tracked_surface_digest": "eff3142624552866706e89720efbf20463315a6e07429335c6d223d427bb1f25",
   "tracked_surfaces": [
     {
       "bytes": 1408,
@@ -3504,11 +3505,11 @@
       "surface_kind": "structured"
     },
     {
-      "bytes": 1559067,
+      "bytes": 1605690,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/derived-exports/tos_corpus_index.min.json",
-      "sha256": "f5c18846731639ecc90796eeea863c978a09671e16a04dc95fe390b1f8e88fb5",
+      "sha256": "03827c2648c8fc371cbe70e398eb5e640a36d9c55222605b01b1a3222300d429",
       "surface_kind": "structured"
     },
     {
@@ -15072,6 +15073,22 @@
       "surface_kind": "human"
     },
     {
+      "bytes": 15545,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/research-packets/foundation-laboratory-2026-07/GENERIC_XML_RESOURCE_IDENTITY_AND_PROVIDER_PROJECTION_RESEARCH_2026-08-30.md",
+      "sha256": "0c85289990cebd01c696ee44ff19c1bdbd5a31d61d449bafe0fd7c762c8185aa",
+      "surface_kind": "human"
+    },
+    {
+      "bytes": 16407,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/research-packets/foundation-laboratory-2026-07/GENERIC_XML_RESOURCE_INVENTORY_UXLC_ABC_PREREGISTRATION_2026-08-30.md",
+      "sha256": "7634cb25aa1cd41b46e155d3482135d34d87de1f11ca17a3afd9a52976a8d3b7",
+      "surface_kind": "human"
+    },
+    {
       "bytes": 16867,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
@@ -15605,6 +15622,1062 @@
       "family_id": "tos",
       "path": "ToS/research-packets/foundation-laboratory-2026-07/direct-visual-retrieval-routing-inspection.v1.json",
       "sha256": "9a1e544063ff9924469f5256e50cc951de2a022251a176dd23b3048469c25c1a",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 7681,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/COMPARATIVE_VERDICT.md",
+      "sha256": "1672f3f6929fc7550bd63e3dd41b6f0341996dfcfcaa59242f8a956531758ce8",
+      "surface_kind": "human"
+    },
+    {
+      "bytes": 9966,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/MANUAL_SOURCE_AND_OUTPUT_REVIEW.md",
+      "sha256": "32addba07ca474d4a8350aab400fb60e719c1ee7b4a0491dd1b96adc92f39765",
+      "surface_kind": "human"
+    },
+    {
+      "bytes": 1547,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/README.md",
+      "sha256": "c1bce8175def333e215f9d257893c9fa3600f55dc4fccc5774b6a294252d9cbe",
+      "surface_kind": "human"
+    },
+    {
+      "bytes": 1838,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/RUNNER_AND_BC_PROXY_PREFLIGHT_FAILURE_V1.md",
+      "sha256": "1d073a6141f08dbfefebb0d538c9688ebe7740449cb320c9d1a32a0cb75f7166",
+      "surface_kind": "human"
+    },
+    {
+      "bytes": 1141,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/SEALED_EXPECTATION_ARITHMETIC_FAILURE_V1.md",
+      "sha256": "209e3f6506e802ed99156eca57ba58c9ff627b98ca86aa7a1318a0623d5e4fb8",
+      "surface_kind": "human"
+    },
+    {
+      "bytes": 21334,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/build_candidate.py",
+      "sha256": "84a8ad953099877d4f4ae6cb785ef6c5a1fcc6b757c2768f4c5a9a4c298df0ec",
+      "surface_kind": "executable"
+    },
+    {
+      "bytes": 101155,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/comparison-result.json",
+      "sha256": "a8818e65c9f233d4085c9b7681ce3ce2938c705ad07fbb140f4af70688ffe56f",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 38617,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/consume_owner.py",
+      "sha256": "7d603e8f11376800eb698e3266c51486ac54a4455823d7fd2a3c37e59ca4045f",
+      "surface_kind": "executable"
+    },
+    {
+      "bytes": 89186,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/evaluate_lab.py",
+      "sha256": "e34afe1518ed78d221d5619d2b1f74071cc2fb1f98522b318d9a86e4504120d1",
+      "surface_kind": "executable"
+    },
+    {
+      "bytes": 7029,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/freeze-receipt-v10.json",
+      "sha256": "87b7d426514eb460869c31382be60e57ed4271fc9478990021423a8cea198f97",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 7388,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/freeze-receipt-v11.json",
+      "sha256": "5922d4aca2b3b42635bf0466d2f66878ca19112b5f5db1e062261ba9e3aea9b4",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 7881,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/freeze-receipt-v12.json",
+      "sha256": "d793dd582e8bb7fc8895c9b9143471afa9575618adc55541c7cec418da180cb6",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 7010,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/freeze-receipt-v13.json",
+      "sha256": "034054df22f243a1ad666d42cd25b47f950e163368d36762bb5929943f49fdc5",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 8374,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/freeze-receipt-v14.json",
+      "sha256": "2397d9ce351908d68297d190e6662cedafe1adb6b6eabfb25c43d0aaceadf777",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 8685,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/freeze-receipt-v15.json",
+      "sha256": "1ef830cd150b42d4a332ac276926b3678a96ff49a8371e897e5c3ec29640db05",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 9766,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/freeze-receipt-v16.json",
+      "sha256": "b0143ef242599ab9fde40d7e6d2fbeaf5e25caaa6f3b1f7ee6225592fd5e7ecf",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3620,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/freeze-receipt-v2.json",
+      "sha256": "039cfda1d5c966325fda5e5caa2d25ef00d987ea871d7c0d06fa6bf67de34eec",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 5110,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/freeze-receipt-v3.json",
+      "sha256": "fce2ff78d1f44ab5726e57a058fa78e7c0a0b241d5b5de911e5e9e558eed3a90",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 4592,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/freeze-receipt-v4.json",
+      "sha256": "673df52d8eebac3f39f77c081daad4a5a3376b020a5d5bb397a905af95cf5713",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 5491,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/freeze-receipt-v5.json",
+      "sha256": "85f3e854d5df3fe6521c439e2de3ad9e96145954d28be39ce9ff274d73ea125f",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 5496,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/freeze-receipt-v6.json",
+      "sha256": "6df612744cb5091e78dacaee1e592975930d6b4b0ae7a6506716709085b96e95",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 5949,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/freeze-receipt-v7.json",
+      "sha256": "b08894ac48d2cb9ef3008ea60ea7f1cb92f6415c895669948eebe4c987f587db",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 6253,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/freeze-receipt-v8.json",
+      "sha256": "5e07c08f4395defd3c888a3c8d6d89453a80bb2d08385e4e5dd9228c2527a90f",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 6715,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/freeze-receipt-v9.json",
+      "sha256": "564ebd9d237ade5886fbed67926a31fb8e9bb1d8a889e54e034deadc2b1f6b9d",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 2416,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/freeze-receipt.json",
+      "sha256": "cade0d7dc97974b2bd3812db9e9366e1ef8cafd1e22503f038ee707da16345e3",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 34651,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/independent-consumer-receipt.json",
+      "sha256": "e2bb505150e1429c44ba3a69e5153d6e05817585540e9d3fb7e89aacbcd40133",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 8991,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/input-manifest.json",
+      "sha256": "73ad0c10acbd7b81fe134c57a3cb4f8c8a2dd497134e1442784adc7f9bd60ca3",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1215,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/public-synthetic/run-1/a/P1-no-namespace.json",
+      "sha256": "0a168c1e4429c340542a99d4e468db5d9b7327cbbfed960f42ef88554accc624",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1213,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/public-synthetic/run-1/a/P10-true-tei.json",
+      "sha256": "f6e80195fc9f74469caca157db7ffc325c807a9660fc40537eebc32d3d4831c1",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1217,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/public-synthetic/run-1/a/P11-tei-lookalike.json",
+      "sha256": "5db445613ad46d13c5dfdf80b01c13511c0befe1195ba32d954afc9f487f94cb",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1214,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/public-synthetic/run-1/a/P12-dynamic-a.json",
+      "sha256": "1b3257c3b956470eee3bc72bc842c085404d304c79096a27567e9ccb5c988019",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1214,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/public-synthetic/run-1/a/P12-dynamic-b.json",
+      "sha256": "301da9c5eb05cc23fcb60dbec196c51b2e0ac03b52c7a0fdd8a3b7da502b9125",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1213,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/public-synthetic/run-1/a/P13-reorder-a.json",
+      "sha256": "beb8f0aa8170adf6d00fa2dd24ab030af3b07f11d993dfa6fe4b202bbe0bf8d7",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1213,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/public-synthetic/run-1/a/P13-reorder-b.json",
+      "sha256": "452a62c5ce2bee226f456c6a08f3ed25ac73dce07ba9445d16c5625579a55174",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1210,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/public-synthetic/run-1/a/P14-text-a.json",
+      "sha256": "fc8fac4d3621921bc6a1f085ae642e4e7d0b35424a4ec315dd756e9eca091c52",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1210,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/public-synthetic/run-1/a/P14-text-b.json",
+      "sha256": "53af1af917105b60025fd984ab8ccb9b689059dadfcf4f525cb2eaa09074b8bf",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1221,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/public-synthetic/run-1/a/P15-attribute-value-a.json",
+      "sha256": "0ae8e81218cdbaadbca75d11a3e94c641a4f7ba6f00a0d8ff48a516c6dbe1a70",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1221,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/public-synthetic/run-1/a/P15-attribute-value-b.json",
+      "sha256": "de058911f632f947e1ebfad133377653ef9cd541c994f77cd0089f98f0157231",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1211,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/public-synthetic/run-1/a/P2-prefix-a.json",
+      "sha256": "8e6dfd8c3fe180063a7fbdb3ba2507d818fd9fec21c8961d6d41d9aaf2172280",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1211,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/public-synthetic/run-1/a/P2-prefix-b.json",
+      "sha256": "1dcfbe5fbc3525ccab1f2eedeeeef311672e1c230824cfd9752204148a301ed2",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1220,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/public-synthetic/run-1/a/P3-default-namespace.json",
+      "sha256": "eb91ff7da50d2ce932c4ea8e491916168b3ef24f551b8309693baeef5eceed86",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1221,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/public-synthetic/run-1/a/P4-duplicate-siblings.json",
+      "sha256": "b34b0e003249c719973d5d0e1888ffac9c6219b2c5a2b2f279b4b06cd97db796",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1223,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/public-synthetic/run-1/a/P5-interleaved-siblings.json",
+      "sha256": "2151e83a373ed48c713c00c9c79bc043391da9ecfd9f6eb5fee578ab0e349947",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1213,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/public-synthetic/run-1/a/P6-empty-long.json",
+      "sha256": "3e79beeaa4fcf5fd9696166eee271ac8a4835b07b2e5749e8c25c062047bbbc4",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1214,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/public-synthetic/run-1/a/P6-empty-short.json",
+      "sha256": "eba8bc84c9dae3bf93471b0d0e9851472ed20dcfd9d72001bf4483c4f9c39d9c",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1215,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/public-synthetic/run-1/a/P7-attributes-a.json",
+      "sha256": "0c47150e6c969e3a7e1d8e485c7336fc83abc9a4d58921b141fd935e133b1bb6",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1215,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/public-synthetic/run-1/a/P7-attributes-b.json",
+      "sha256": "d3e3425a00b15f1b53d73681327c275725051e9c57ee09c216b77574f954028d",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1216,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/public-synthetic/run-1/a/P8-comments-pi-a.json",
+      "sha256": "059906cf589a7d65281366c67a057eacb095f0524a500e845ac477a449335c5d",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1216,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/public-synthetic/run-1/a/P8-comments-pi-b.json",
+      "sha256": "5d1e43b3fe376f9551ae9832cf4fb7a88d05bbfbd1322eff17e0b45d70b879fc",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1219,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/public-synthetic/run-1/a/P9-mixed-namespaces.json",
+      "sha256": "14a6bf2a345a4c2330a99aa73e5ee9428bc58b715539257dcb4306506a69810b",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1215,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/public-synthetic/run-1/a/PC1-uxlc-shape.json",
+      "sha256": "f2900febb502d752e4b1a3563e0d10451cec97f105d5ce5d800df45cb04b9e43",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 4471,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/public-synthetic/run-1/b/P1-no-namespace.json",
+      "sha256": "5638536a50d99da968285798f2b4459674a73e7d828a210079a73a3f687154f4",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 7075,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/public-synthetic/run-1/b/P10-true-tei.json",
+      "sha256": "6db7c00fea09e5fbddb292749e5864a0e2258dd38377e7d957a31f6db6fbba45",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 5379,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/public-synthetic/run-1/b/P11-tei-lookalike.json",
+      "sha256": "3a05e307073523171346b21afb5a1e7f83c0484346373cc82237e17408603ef5",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 5482,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/public-synthetic/run-1/b/P12-dynamic-a.json",
+      "sha256": "7e6ff6db8c8132b8c87eea017373c392737ac8a41f5ee8c22975d95087054a67",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 5482,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/public-synthetic/run-1/b/P12-dynamic-b.json",
+      "sha256": "37eb332df0d43fcda8a6c49267f2ae33aedbc17f9bf85c4a04ec0f69695ee677",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 5343,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/public-synthetic/run-1/b/P13-reorder-a.json",
+      "sha256": "d1913e885b435fe3ea6fcf247fd8c29a776917509b9d6ecac65095652abf48a6",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 5343,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/public-synthetic/run-1/b/P13-reorder-b.json",
+      "sha256": "622979c15358e607bbef902c9920c8079e17073f1030f875cd54f3c36088f0cb",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3386,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/public-synthetic/run-1/b/P14-text-a.json",
+      "sha256": "df47d2c811613315705f29c912049d97bece95dda3191a43d54c39f4dae0e85d",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3386,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/public-synthetic/run-1/b/P14-text-b.json",
+      "sha256": "8c7bafc473e714d51b6ac3cdcd6ca4ef87d23a771a706787ba3f773484bce9d1",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3489,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/public-synthetic/run-1/b/P15-attribute-value-a.json",
+      "sha256": "567ef782ab9225fcbf8cce65cb2e747efc0337a5cf68bf466cc0dc48c7e97c32",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3489,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/public-synthetic/run-1/b/P15-attribute-value-b.json",
+      "sha256": "170ade9a8e127702947785a44ba5d7b1b668604d13373bb94faf5a8b8382d359",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3475,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/public-synthetic/run-1/b/P2-prefix-a.json",
+      "sha256": "a0c2dad224a9b8343a342bc87bb88d38c9b8eba6d6fe88000f76f59fd99ad23c",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3475,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/public-synthetic/run-1/b/P2-prefix-b.json",
+      "sha256": "483da37312ffa1683b77b142acd968f05b5d63a76618a269e95d3f35fc88dbbf",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3675,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/public-synthetic/run-1/b/P3-default-namespace.json",
+      "sha256": "00d22d37049995c58cdd792e8d15496b78a39ece2444f38bdbad91350bf48749",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 5171,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/public-synthetic/run-1/b/P4-duplicate-siblings.json",
+      "sha256": "1e654ab4c5223bc348d96a943450f845733b50c897d1aa8f937df70fe899fa01",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 5173,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/public-synthetic/run-1/b/P5-interleaved-siblings.json",
+      "sha256": "5278bcd83e0e86936f71437323678ec4ec8898b66604a472f15315e254ddc708",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3391,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/public-synthetic/run-1/b/P6-empty-long.json",
+      "sha256": "b5ad4ed03ce6bad19eedcc9f4d4f0780792c5dd19bbd92a2eab593e1a83c0282",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3392,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/public-synthetic/run-1/b/P6-empty-short.json",
+      "sha256": "1bf411b5291a5cceaf6c35a5716e10f3b881f882ad9cb92e438950af6a0d4e89",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3568,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/public-synthetic/run-1/b/P7-attributes-a.json",
+      "sha256": "5ee71a5f072f59e2b5e728bf6ad46e413350c412ad160efafeddf3001ef9ebc3",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3568,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/public-synthetic/run-1/b/P7-attributes-b.json",
+      "sha256": "772811bf608ee7fddce3b15ccdb0a618e0766d3ddcb39bc822529ce46d852a5a",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3392,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/public-synthetic/run-1/b/P8-comments-pi-a.json",
+      "sha256": "753f66c477a3b81f665df1f8bfda6885c8cc1f9fbc4e819a082e8a11bc4bf122",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3392,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/public-synthetic/run-1/b/P8-comments-pi-b.json",
+      "sha256": "c505f8d08f57ccc8ba39e7d76cd0e0a5c7b6e91f2d66fa33619b1ef4fded11cd",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 4574,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/public-synthetic/run-1/b/P9-mixed-namespaces.json",
+      "sha256": "6851da2b702e3ced61db4d0d0e4dad7f1b53d338fba07dee1837bd88eaa51975",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 19202,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/public-synthetic/run-1/b/PC1-uxlc-shape.json",
+      "sha256": "63f72fba11fcb6ecd5dbd8570e45a4ba72409980a16cd34b8a62e5f37f83cc1c",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 30617,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/public-synthetic/run-1/bc/PC1-uxlc-shape.json",
+      "sha256": "c6c643010e7c71739b48cb3ad4cc70cc464328fae9c903abf3f6040cdc64682c",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 9554,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/public-synthetic/run-1/c/PC1-uxlc-shape.json",
+      "sha256": "1899397f9f700040c287d8ec8dddccf033b00a04ed9b8f59b69005fafb850088",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1215,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/public-synthetic/run-2/a/P1-no-namespace.json",
+      "sha256": "0a168c1e4429c340542a99d4e468db5d9b7327cbbfed960f42ef88554accc624",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1213,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/public-synthetic/run-2/a/P10-true-tei.json",
+      "sha256": "f6e80195fc9f74469caca157db7ffc325c807a9660fc40537eebc32d3d4831c1",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1217,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/public-synthetic/run-2/a/P11-tei-lookalike.json",
+      "sha256": "5db445613ad46d13c5dfdf80b01c13511c0befe1195ba32d954afc9f487f94cb",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1214,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/public-synthetic/run-2/a/P12-dynamic-a.json",
+      "sha256": "1b3257c3b956470eee3bc72bc842c085404d304c79096a27567e9ccb5c988019",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1214,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/public-synthetic/run-2/a/P12-dynamic-b.json",
+      "sha256": "301da9c5eb05cc23fcb60dbec196c51b2e0ac03b52c7a0fdd8a3b7da502b9125",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1213,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/public-synthetic/run-2/a/P13-reorder-a.json",
+      "sha256": "beb8f0aa8170adf6d00fa2dd24ab030af3b07f11d993dfa6fe4b202bbe0bf8d7",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1213,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/public-synthetic/run-2/a/P13-reorder-b.json",
+      "sha256": "452a62c5ce2bee226f456c6a08f3ed25ac73dce07ba9445d16c5625579a55174",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1210,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/public-synthetic/run-2/a/P14-text-a.json",
+      "sha256": "fc8fac4d3621921bc6a1f085ae642e4e7d0b35424a4ec315dd756e9eca091c52",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1210,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/public-synthetic/run-2/a/P14-text-b.json",
+      "sha256": "53af1af917105b60025fd984ab8ccb9b689059dadfcf4f525cb2eaa09074b8bf",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1221,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/public-synthetic/run-2/a/P15-attribute-value-a.json",
+      "sha256": "0ae8e81218cdbaadbca75d11a3e94c641a4f7ba6f00a0d8ff48a516c6dbe1a70",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1221,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/public-synthetic/run-2/a/P15-attribute-value-b.json",
+      "sha256": "de058911f632f947e1ebfad133377653ef9cd541c994f77cd0089f98f0157231",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1211,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/public-synthetic/run-2/a/P2-prefix-a.json",
+      "sha256": "8e6dfd8c3fe180063a7fbdb3ba2507d818fd9fec21c8961d6d41d9aaf2172280",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1211,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/public-synthetic/run-2/a/P2-prefix-b.json",
+      "sha256": "1dcfbe5fbc3525ccab1f2eedeeeef311672e1c230824cfd9752204148a301ed2",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1220,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/public-synthetic/run-2/a/P3-default-namespace.json",
+      "sha256": "eb91ff7da50d2ce932c4ea8e491916168b3ef24f551b8309693baeef5eceed86",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1221,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/public-synthetic/run-2/a/P4-duplicate-siblings.json",
+      "sha256": "b34b0e003249c719973d5d0e1888ffac9c6219b2c5a2b2f279b4b06cd97db796",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1223,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/public-synthetic/run-2/a/P5-interleaved-siblings.json",
+      "sha256": "2151e83a373ed48c713c00c9c79bc043391da9ecfd9f6eb5fee578ab0e349947",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1213,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/public-synthetic/run-2/a/P6-empty-long.json",
+      "sha256": "3e79beeaa4fcf5fd9696166eee271ac8a4835b07b2e5749e8c25c062047bbbc4",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1214,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/public-synthetic/run-2/a/P6-empty-short.json",
+      "sha256": "eba8bc84c9dae3bf93471b0d0e9851472ed20dcfd9d72001bf4483c4f9c39d9c",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1215,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/public-synthetic/run-2/a/P7-attributes-a.json",
+      "sha256": "0c47150e6c969e3a7e1d8e485c7336fc83abc9a4d58921b141fd935e133b1bb6",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1215,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/public-synthetic/run-2/a/P7-attributes-b.json",
+      "sha256": "d3e3425a00b15f1b53d73681327c275725051e9c57ee09c216b77574f954028d",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1216,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/public-synthetic/run-2/a/P8-comments-pi-a.json",
+      "sha256": "059906cf589a7d65281366c67a057eacb095f0524a500e845ac477a449335c5d",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1216,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/public-synthetic/run-2/a/P8-comments-pi-b.json",
+      "sha256": "5d1e43b3fe376f9551ae9832cf4fb7a88d05bbfbd1322eff17e0b45d70b879fc",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1219,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/public-synthetic/run-2/a/P9-mixed-namespaces.json",
+      "sha256": "14a6bf2a345a4c2330a99aa73e5ee9428bc58b715539257dcb4306506a69810b",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1215,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/public-synthetic/run-2/a/PC1-uxlc-shape.json",
+      "sha256": "f2900febb502d752e4b1a3563e0d10451cec97f105d5ce5d800df45cb04b9e43",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 4471,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/public-synthetic/run-2/b/P1-no-namespace.json",
+      "sha256": "5638536a50d99da968285798f2b4459674a73e7d828a210079a73a3f687154f4",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 7075,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/public-synthetic/run-2/b/P10-true-tei.json",
+      "sha256": "6db7c00fea09e5fbddb292749e5864a0e2258dd38377e7d957a31f6db6fbba45",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 5379,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/public-synthetic/run-2/b/P11-tei-lookalike.json",
+      "sha256": "3a05e307073523171346b21afb5a1e7f83c0484346373cc82237e17408603ef5",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 5482,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/public-synthetic/run-2/b/P12-dynamic-a.json",
+      "sha256": "7e6ff6db8c8132b8c87eea017373c392737ac8a41f5ee8c22975d95087054a67",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 5482,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/public-synthetic/run-2/b/P12-dynamic-b.json",
+      "sha256": "37eb332df0d43fcda8a6c49267f2ae33aedbc17f9bf85c4a04ec0f69695ee677",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 5343,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/public-synthetic/run-2/b/P13-reorder-a.json",
+      "sha256": "d1913e885b435fe3ea6fcf247fd8c29a776917509b9d6ecac65095652abf48a6",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 5343,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/public-synthetic/run-2/b/P13-reorder-b.json",
+      "sha256": "622979c15358e607bbef902c9920c8079e17073f1030f875cd54f3c36088f0cb",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3386,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/public-synthetic/run-2/b/P14-text-a.json",
+      "sha256": "df47d2c811613315705f29c912049d97bece95dda3191a43d54c39f4dae0e85d",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3386,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/public-synthetic/run-2/b/P14-text-b.json",
+      "sha256": "8c7bafc473e714d51b6ac3cdcd6ca4ef87d23a771a706787ba3f773484bce9d1",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3489,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/public-synthetic/run-2/b/P15-attribute-value-a.json",
+      "sha256": "567ef782ab9225fcbf8cce65cb2e747efc0337a5cf68bf466cc0dc48c7e97c32",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3489,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/public-synthetic/run-2/b/P15-attribute-value-b.json",
+      "sha256": "170ade9a8e127702947785a44ba5d7b1b668604d13373bb94faf5a8b8382d359",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3475,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/public-synthetic/run-2/b/P2-prefix-a.json",
+      "sha256": "a0c2dad224a9b8343a342bc87bb88d38c9b8eba6d6fe88000f76f59fd99ad23c",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3475,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/public-synthetic/run-2/b/P2-prefix-b.json",
+      "sha256": "483da37312ffa1683b77b142acd968f05b5d63a76618a269e95d3f35fc88dbbf",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3675,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/public-synthetic/run-2/b/P3-default-namespace.json",
+      "sha256": "00d22d37049995c58cdd792e8d15496b78a39ece2444f38bdbad91350bf48749",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 5171,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/public-synthetic/run-2/b/P4-duplicate-siblings.json",
+      "sha256": "1e654ab4c5223bc348d96a943450f845733b50c897d1aa8f937df70fe899fa01",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 5173,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/public-synthetic/run-2/b/P5-interleaved-siblings.json",
+      "sha256": "5278bcd83e0e86936f71437323678ec4ec8898b66604a472f15315e254ddc708",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3391,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/public-synthetic/run-2/b/P6-empty-long.json",
+      "sha256": "b5ad4ed03ce6bad19eedcc9f4d4f0780792c5dd19bbd92a2eab593e1a83c0282",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3392,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/public-synthetic/run-2/b/P6-empty-short.json",
+      "sha256": "1bf411b5291a5cceaf6c35a5716e10f3b881f882ad9cb92e438950af6a0d4e89",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3568,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/public-synthetic/run-2/b/P7-attributes-a.json",
+      "sha256": "5ee71a5f072f59e2b5e728bf6ad46e413350c412ad160efafeddf3001ef9ebc3",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3568,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/public-synthetic/run-2/b/P7-attributes-b.json",
+      "sha256": "772811bf608ee7fddce3b15ccdb0a618e0766d3ddcb39bc822529ce46d852a5a",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3392,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/public-synthetic/run-2/b/P8-comments-pi-a.json",
+      "sha256": "753f66c477a3b81f665df1f8bfda6885c8cc1f9fbc4e819a082e8a11bc4bf122",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3392,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/public-synthetic/run-2/b/P8-comments-pi-b.json",
+      "sha256": "c505f8d08f57ccc8ba39e7d76cd0e0a5c7b6e91f2d66fa33619b1ef4fded11cd",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 4574,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/public-synthetic/run-2/b/P9-mixed-namespaces.json",
+      "sha256": "6851da2b702e3ced61db4d0d0e4dad7f1b53d338fba07dee1837bd88eaa51975",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 19202,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/public-synthetic/run-2/b/PC1-uxlc-shape.json",
+      "sha256": "63f72fba11fcb6ecd5dbd8570e45a4ba72409980a16cd34b8a62e5f37f83cc1c",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 30617,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/public-synthetic/run-2/bc/PC1-uxlc-shape.json",
+      "sha256": "c6c643010e7c71739b48cb3ad4cc70cc464328fae9c903abf3f6040cdc64682c",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 9554,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/public-synthetic/run-2/c/PC1-uxlc-shape.json",
+      "sha256": "1899397f9f700040c287d8ec8dddccf033b00a04ed9b8f59b69005fafb850088",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 85755,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/run-observations.json",
+      "sha256": "be4009db267e4f026dff1dc3e07b568261e7272ee1c78681a306a94f5d096d36",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 11138,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/run_experiment.py",
+      "sha256": "e658996765f61b3aca412fe588ef65caac4b338e0ef7147e8c61c4fb896681aa",
+      "surface_kind": "executable"
+    },
+    {
+      "bytes": 4814,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/sealed-evaluation-manifest-v2.json",
+      "sha256": "e571f653a0c8666b978910393cb13db4e63d6d1e9b6a85f86bc0eeeeb3fb3cea",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 4287,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/sealed-evaluation-manifest.json",
+      "sha256": "e7f440aef36ae913aff1bf356f5c140211447beb8682fa273c4023fca1e84ed7",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 5268,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/source-run-receipt.json",
+      "sha256": "19f7f394ced8f4f1d835c573fa21b1a4855df42bc56cdacf0434ac121b92888c",
       "surface_kind": "structured"
     },
     {
@@ -23608,6 +24681,14 @@
       "surface_kind": "executable"
     },
     {
+      "bytes": 33881,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tests",
+      "path": "tests/test_generic_xml_uxlc_lab.py",
+      "sha256": "67d36f428aa295386b3d2063d6d3a5a2a5e2855608c7577edbff362fc94d47be",
+      "surface_kind": "executable"
+    },
+    {
       "bytes": 4659,
       "currentness": "tracked_source_snapshot",
       "family_id": "tests",
@@ -23648,11 +24729,11 @@
       "surface_kind": "executable"
     },
     {
-      "bytes": 42059,
+      "bytes": 42942,
       "currentness": "tracked_source_snapshot",
       "family_id": "tests",
       "path": "tests/test_inventory.json",
-      "sha256": "932822effcac3b5cd6a1cb45361c9779568ef2cc2f7dd80653424a88a22e7776",
+      "sha256": "e4114f8dc8c9f0156e4b5aa7b98779b3cf7071c5f5e259103ab05b3538bba1f0",
       "surface_kind": "structured"
     },
     {

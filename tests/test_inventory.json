@@ -765,6 +765,21 @@
       "focused_target": "tests/test_documentation_cross_corpus.py",
       "failure_route": "Fix the authored family map, generated carrier, coordinator, or named owner validator before changing test expectations.",
       "disposition": "keep"
+    },
+    {
+      "path": "tests/test_generic_xml_uxlc_lab.py",
+      "home": "tests",
+      "home_scope": "root",
+      "family": "validator_behavior",
+      "validation_lane": "source_witness_foundation",
+      "owner_surface": "ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/README.md",
+      "protects": "generic XML laboratory consumer selection-key completeness and exact UXLC provider projection membership, including preserved duplicate and incomplete negatives",
+      "coverage_authority": "tests/AGENTS.md root unittest discovery",
+      "mode": "blocking",
+      "runtime_cost": "fast",
+      "focused_target": "tests/test_generic_xml_uxlc_lab.py",
+      "failure_route": "Fix the generic XML laboratory owner validators or candidate-only authority boundary before changing test expectations.",
+      "disposition": "keep"
     }
   ]
 }

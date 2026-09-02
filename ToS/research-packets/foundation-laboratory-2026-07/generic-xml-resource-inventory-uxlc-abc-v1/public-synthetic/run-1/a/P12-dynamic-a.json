@@ -1,0 +1,38 @@
+{
+  "authority_boundary": "exact capture view only; no element, passage, source-text, linguistic, semantic, graph, canon, rights or publication authority",
+  "candidate": "A",
+  "element_return_supported": false,
+  "file_binding": {
+    "byte_size": 102,
+    "file_id": "tos.file.sha256.43615184fa161f9b634391cadb84f76d7f41e05de231f8c8083e834b7e7a17de",
+    "input_id": "P12-dynamic-a",
+    "media_type": "application/xml",
+    "sha256": "43615184fa161f9b634391cadb84f76d7f41e05de231f8c8083e834b7e7a17de"
+  },
+  "intrinsic_ids_claimed": false,
+  "lab_id": "tos.lab.generic-xml-resource-inventory-uxlc-abc.v1",
+  "parser_posture": {
+    "dtd_validation": false,
+    "huge_tree": false,
+    "load_dtd": false,
+    "mode": "strict_xml",
+    "no_network": true,
+    "parser": "lxml.etree.XMLParser",
+    "recover": false,
+    "reject_doctype": true,
+    "resolve_entities": false,
+    "xinclude": false
+  },
+  "resources": [
+    {
+      "locator": {
+        "whole_file": true
+      },
+      "resource_id": "xml-document-000001",
+      "resource_kind": "xml_document"
+    }
+  ],
+  "schema_version": "tos_lab_generic_xml_candidate_a_v1",
+  "scope": "one opaque XML document resource",
+  "source_text_included": false
+}

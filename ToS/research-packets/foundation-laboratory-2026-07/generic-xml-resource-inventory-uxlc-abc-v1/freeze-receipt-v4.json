@@ -1,0 +1,74 @@
+{
+  "authority_boundary": "pre-output method freeze for review corrections; no candidate verdict, source-text, public contract, linguistic, semantic, graph, canon, rights or publication authority",
+  "candidate_output_freeze_ref": "ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/freeze-receipt-v2.json",
+  "candidate_output_freeze_sha256": "039cfda1d5c966325fda5e5caa2d25ef00d987ea871d7c0d06fa6bf67de34eec",
+  "candidate_outputs_rebuilt_after_candidate_freeze": true,
+  "freeze_role": "pre-output method freeze for review corrections",
+  "frozen_at": "2026-08-30T17:58:25.639895Z",
+  "frozen_files": [
+    {
+      "ref": "ToS/research-packets/foundation-laboratory-2026-07/GENERIC_XML_RESOURCE_IDENTITY_AND_PROVIDER_PROJECTION_RESEARCH_2026-08-30.md",
+      "sha256": "0c85289990cebd01c696ee44ff19c1bdbd5a31d61d449bafe0fd7c762c8185aa"
+    },
+    {
+      "ref": "ToS/research-packets/foundation-laboratory-2026-07/GENERIC_XML_RESOURCE_INVENTORY_UXLC_ABC_PREREGISTRATION_2026-08-30.md",
+      "sha256": "7634cb25aa1cd41b46e155d3482135d34d87de1f11ca17a3afd9a52976a8d3b7"
+    },
+    {
+      "ref": "ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/input-manifest.json",
+      "sha256": "3e937d805a70cbd409ef3208b6e6d0db16be83e26f28c6b7b742f8eaff02972b"
+    },
+    {
+      "ref": "ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/sealed-evaluation-manifest-v2.json",
+      "sha256": "e571f653a0c8666b978910393cb13db4e63d6d1e9b6a85f86bc0eeeeb3fb3cea"
+    },
+    {
+      "ref": "ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/build_candidate.py",
+      "sha256": "b6ea68011029a12c5753a9229cbaab6350f135a86b22f7192d5021f4c7b8b8c0"
+    },
+    {
+      "ref": "ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/run_experiment.py",
+      "sha256": "6469a8f2c706194af6e6c1beb3bf8f9fb8b53d6c5e4a41636af8d7af4b223065"
+    },
+    {
+      "ref": "ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/consume_owner.py",
+      "sha256": "d89e6caf0e341a6f8b0270613cdbaa33879741b519dbdb90e8f62500ba0c053e"
+    },
+    {
+      "ref": "ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/evaluate_lab.py",
+      "sha256": "ee9d0361d8ba6ae68c8ee1477ed235d217f72879e57ebd3e59b796c5c1259767"
+    },
+    {
+      "ref": "ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/RUNNER_AND_BC_PROXY_PREFLIGHT_FAILURE_V1.md",
+      "sha256": "1d073a6141f08dbfefebb0d538c9688ebe7740449cb320c9d1a32a0cb75f7166"
+    },
+    {
+      "ref": "ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/SEALED_EXPECTATION_ARITHMETIC_FAILURE_V1.md",
+      "sha256": "209e3f6506e802ed99156eca57ba58c9ff627b98ca86aa7a1318a0623d5e4fb8"
+    },
+    {
+      "ref": "ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/freeze-receipt-v2.json",
+      "sha256": "039cfda1d5c966325fda5e5caa2d25ef00d987ea871d7c0d06fa6bf67de34eec"
+    },
+    {
+      "ref": "ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/freeze-receipt-v3.json",
+      "sha256": "fce2ff78d1f44ab5726e57a058fa78e7c0a0b241d5b5de911e5e9e558eed3a90"
+    },
+    {
+      "ref": "ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/MANUAL_SOURCE_AND_OUTPUT_REVIEW.md",
+      "sha256": "471c1c112b63d21e10be0991b9df1fb8c9421174643787561cd44a13225ff7ef"
+    }
+  ],
+  "lab_id": "tos.lab.generic-xml-resource-inventory-uxlc-abc.v1",
+  "manual_review_completed_before_method_freeze": true,
+  "record_version": 4,
+  "review_corrections": [
+    "candidate output digests are bound to run observations and independently checked at evaluation",
+    "B, C and BC owner file bindings are checked against the exact source bytes",
+    "provider chapter, verse and word coordinates are checked against resolved XML attributes and sibling positions",
+    "freeze order is checked through durable receipt timestamps and digests, never filesystem mtimes"
+  ],
+  "schema_version": "tos_generic_xml_resource_inventory_lab_freeze_receipt_v4",
+  "supersedes_freeze_ref": "ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/freeze-receipt-v3.json",
+  "supersedes_freeze_sha256": "fce2ff78d1f44ab5726e57a058fa78e7c0a0b241d5b5de911e5e9e558eed3a90"
+}
