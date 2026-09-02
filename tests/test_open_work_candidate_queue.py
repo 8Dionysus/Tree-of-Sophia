@@ -201,6 +201,7 @@ class OpenWorkCandidateQueueTest(unittest.TestCase):
                 "discovery_id": "tos.discovery.existing",
                 "status": "reconciled",
                 "started_at": "2026-08-29T10:00:00Z",
+                "ended_at": "2026-08-29T10:00:30Z",
             },
         )
         _write_jsonl(
@@ -749,8 +750,13 @@ class OpenWorkCandidateQueueTest(unittest.TestCase):
         post_run["ended_at"] = "2026-08-29T13:00:00.125000Z"
         current_ref = "ToS/source-witnesses/discovery/runs/current.v1.json"
         post_run_ref = "ToS/source-witnesses/discovery/runs/post-run.v1.json"
+        overlapping = _timed_discovery("tos.discovery.overlapping")
+        overlapping["started_at"] = "2026-08-29T11:30:00Z"
+        overlapping["ended_at"] = "2026-08-29T12:30:00Z"
+        overlapping_ref = "ToS/source-witnesses/discovery/runs/overlapping.v1.json"
         _write_json(repo / current_ref, current)
         _write_json(repo / post_run_ref, post_run)
+        _write_json(repo / overlapping_ref, overlapping)
         discoveries = {
             "tos.discovery.existing": (
                 json.loads(
@@ -762,6 +768,7 @@ class OpenWorkCandidateQueueTest(unittest.TestCase):
             ),
             "tos.discovery.current": (current, current_ref),
             "tos.discovery.post-run": (post_run, post_run_ref),
+            "tos.discovery.overlapping": (overlapping, overlapping_ref),
         }
         candidates = _load_candidates(repo)
         receipt = {
@@ -792,12 +799,16 @@ class OpenWorkCandidateQueueTest(unittest.TestCase):
             "method": {},
         }
         _write_jsonl(provenance_path, [pre_run_event])
-        without_post_run = _reconstruct_pre_run_queue_sha256(
+        without_late_discoveries = _reconstruct_pre_run_queue_sha256(
             repo,
             current_receipt=receipt,
             ordered_receipts=[receipt],
             candidates_with_locations=candidates,
-            discoveries={key: value for key, value in discoveries.items() if key != "tos.discovery.post-run"},
+            discoveries={
+                key: value
+                for key, value in discoveries.items()
+                if key not in {"tos.discovery.post-run", "tos.discovery.overlapping"}
+            },
         )
         _write_jsonl(provenance_path, [pre_run_event, post_run_event])
         future_timing_ref = "ToS/source-witnesses/discovery/timings/unrelated-post-run.json"
@@ -812,7 +823,7 @@ class OpenWorkCandidateQueueTest(unittest.TestCase):
             candidates_with_locations=candidates,
             discoveries=discoveries,
         )
-        self.assertEqual(without_post_run, with_post_run)
+        self.assertEqual(without_late_discoveries, with_post_run)
 
     def test_candidate_source_ref_preserves_physical_jsonl_line_number(self) -> None:
         repo = self.make_repo()
@@ -1293,19 +1304,20 @@ class OpenWorkCandidateQueueTest(unittest.TestCase):
                 "payload_files": [{"file_id": file_ref, "sha256": "c" * 64}],
             },
         )
+        rights = {
+            "scope_refs": [item_id, file_ref],
+            "jurisdictions_reviewed": ["US"],
+            "layer_assessments": [
+                {
+                    "scope_refs": [file_ref],
+                    "assessment_status": "licensed",
+                    "layer_role": "digital_scan",
+                }
+            ],
+        }
         _write_json(
             repo / "ToS/source-witnesses/works/synthetic/items/rights.json",
-            {
-                "scope_refs": [item_id, file_ref],
-                "jurisdictions_reviewed": ["US"],
-                "layer_assessments": [
-                    {
-                        "scope_refs": [file_ref],
-                        "assessment_status": "licensed",
-                        "layer_role": "digital_scan",
-                    }
-                ],
-            },
+            rights,
         )
         provenance_event = {
             "event_type": "acquisition",
@@ -1383,6 +1395,26 @@ class OpenWorkCandidateQueueTest(unittest.TestCase):
                 location="synthetic-receipt",
             )
         provenance_event["ended_at"] = "2026-08-29T11:59:59Z"
+        rights["layer_assessments"][0]["assessment_status"] = "permission_denied"
+        _write_json(
+            repo / "ToS/source-witnesses/works/synthetic/items/rights.json",
+            rights,
+        )
+        with self.assertRaisesRegex(QueueBuildError, "non-positive layer assessment_status"):
+            _validate_receipt_acquisition_closure(
+                repo,
+                receipt,
+                candidate=candidate,
+                discovery=discovery,
+                discoveries=discoveries,
+                provenance_events=provenance_events,
+                location="synthetic-receipt",
+            )
+        rights["layer_assessments"][0]["assessment_status"] = "licensed"
+        _write_json(
+            repo / "ToS/source-witnesses/works/synthetic/items/rights.json",
+            rights,
+        )
         provenance_event["outputs"][0]["sha256"] = "d" * 64
         with self.assertRaisesRegex(QueueBuildError, "acquisition event output digest"):
             _validate_receipt_acquisition_closure(

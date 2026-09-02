@@ -1,9 +1,12 @@
 from __future__ import annotations
 
 import copy
+import json
 import sys
+import tempfile
 import unittest
 from pathlib import Path
+from unittest import mock
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
@@ -77,6 +80,42 @@ class OpenWorkDiscoveryChannelsTest(unittest.TestCase):
                 supersedes_ref="tos.discovery.other",
                 provenance_event_ref="tos.event.discovery.superseding",
             )
+
+    def test_superseding_ids_are_validated_before_probe_or_write(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            discovery = Path(temporary_directory) / "original.json"
+            discovery.write_text(
+                json.dumps({"discovery_id": "tos.discovery.original"}),
+                encoding="utf-8",
+            )
+            for flag, value in (
+                ("--new-discovery-id", "foo"),
+                ("--provenance-event-ref", "foo"),
+            ):
+                original_argv = sys.argv
+                try:
+                    sys.argv = [
+                        "measure_open_work_discovery_channels.py",
+                        str(discovery),
+                        "--superseding-output",
+                        str(Path(temporary_directory) / "superseding.json"),
+                        "--new-discovery-id",
+                        "tos.discovery.superseding",
+                        "--supersedes-ref",
+                        "tos.discovery.original",
+                        "--provenance-event-ref",
+                        "tos.event.discovery.superseding",
+                    ]
+                    sys.argv[sys.argv.index(flag) + 1] = value
+                    with mock.patch(
+                        "measure_open_work_discovery_channels.build_receipt"
+                    ) as build_receipt:
+                        with self.assertRaises(SystemExit) as raised:
+                            main()
+                    self.assertEqual(2, raised.exception.code)
+                    build_receipt.assert_not_called()
+                finally:
+                    sys.argv = original_argv
 
     def test_outputs_must_not_alias_input_or_each_other(self) -> None:
         discovery = Path("ToS/source-witnesses/discovery/runs/original.json")

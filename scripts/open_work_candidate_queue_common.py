@@ -45,6 +45,9 @@ TERMINAL_STATUSES = {
 QUEUEABLE_KINDS = {"work", "work-like-corpus"}
 TIMING_METHOD = "monotonic-http-request-v1"
 TIMING_CLOCK = "python.time.perf_counter_ns"
+_POSITIVE_ACQUISITION_ASSESSMENTS = frozenset(
+    {"public_domain_reviewed", "licensed", "permission_granted"}
+)
 TARGET_RESOLUTION_CATALOGS = {
     "work_ref": (Path("ToS/source-witnesses/catalog/works.jsonl"), "work"),
     "expression_ref": (Path("ToS/source-witnesses/catalog/expressions.jsonl"), "expression"),
@@ -376,20 +379,41 @@ def _load_acquisition_rights_contexts(
                 f"both {identity_ref!r} and {file_ref!r}"
             )
         layer_assessments = rights.get("layer_assessments")
-        if not isinstance(layer_assessments, list) or not any(
-            isinstance(layer, dict)
+        matching_layers = [
+            layer
+            for layer in layer_assessments
+            if isinstance(layer, dict)
             and file_ref in {
                 reference
                 for reference in layer.get("scope_refs", [])
                 if isinstance(reference, str)
             }
-            and isinstance(layer.get("assessment_status"), str)
-            and layer.get("assessment_status")
-            for layer in layer_assessments
+        ] if isinstance(layer_assessments, list) else []
+        if not matching_layers:
+            raise QueueBuildError(
+                f"{acquisition_location}: canonical rights record {rights_ref!r} lacks an "
+                f"applicable layer assessment for {file_ref!r}"
+            )
+        aggregate_status = rights.get("assessment_status")
+        if aggregate_status is not None and (
+            not isinstance(aggregate_status, str)
+            or aggregate_status not in _POSITIVE_ACQUISITION_ASSESSMENTS
         ):
             raise QueueBuildError(
-                f"{acquisition_location}: canonical rights record {rights_ref!r} lacks a positive "
-                f"layer assessment for {file_ref!r}"
+                f"{acquisition_location}: canonical rights record {rights_ref!r} has "
+                f"non-positive assessment_status {aggregate_status!r} for acquired file {file_ref!r}"
+            )
+        non_positive_layers = [
+            layer.get("assessment_status")
+            for layer in matching_layers
+            if not isinstance(layer.get("assessment_status"), str)
+            or layer.get("assessment_status") not in _POSITIVE_ACQUISITION_ASSESSMENTS
+        ]
+        if non_positive_layers:
+            raise QueueBuildError(
+                f"{acquisition_location}: canonical rights record {rights_ref!r} has "
+                f"non-positive layer assessment_status {non_positive_layers!r} for acquired file "
+                f"{file_ref!r}"
             )
         contexts.append(
             {
@@ -2376,6 +2400,15 @@ def _discovery_started_at(
     return _parse_timestamp(payload.get("started_at"), location=location, field="started_at")
 
 
+def _discovery_ended_at(
+    discovery: tuple[dict[str, Any], str],
+) -> datetime | None:
+    payload, location = discovery
+    if payload.get("ended_at") in (None, ""):
+        return None
+    return _parse_timestamp(payload.get("ended_at"), location=location, field="ended_at")
+
+
 def _validate_receipt_version_timestamp_order(receipts: list[dict[str, Any]]) -> None:
     by_candidate: dict[str, list[tuple[int, datetime, str]]] = {}
     seen_versions: dict[str, set[int]] = {}
@@ -2528,7 +2561,12 @@ def _reconstruct_pre_run_queue_sha256(
     for discovery_id, entry in discoveries.items():
         if discovery_id in future_discovery_ids:
             continue
-        if _discovery_started_at(entry) <= current_key[0]:
+        discovery_ended_at = _discovery_ended_at(entry)
+        if (
+            _discovery_started_at(entry) <= current_key[0]
+            and discovery_ended_at is not None
+            and discovery_ended_at <= current_key[0]
+        ):
             pre_run_discoveries[discovery_id] = entry
     excluded_paths: set[Path] = set()
     future_receipt_ids = {receipt["receipt_id"] for receipt in future_receipts}

@@ -10,6 +10,7 @@ from __future__ import annotations
 import argparse
 import copy
 import json
+import re
 import time
 import urllib.error
 import urllib.request
@@ -23,6 +24,8 @@ CLOCK = "python.time.perf_counter_ns"
 TIMING_SCOPE = "request-through-first-16384-response-bytes"
 READ_LIMIT = 16_384
 USER_AGENT = "Tree-of-Sophia-open-work-discovery/1.0 (+source-research)"
+_DISCOVERY_ID_RE = re.compile(r"tos\.discovery\.[a-z0-9]+(?:[.-][a-z0-9]+)*")
+_EVENT_ID_RE = re.compile(r"tos\.event\.[a-z0-9]+(?:[.-][a-z0-9]+)*")
 
 
 def _utc_now() -> str:
@@ -50,13 +53,33 @@ def validate_output_paths(
 
 def _validate_supersedes_ref(source: dict[str, Any], supersedes_ref: str | None) -> None:
     source_discovery_id = source.get("discovery_id")
-    if not isinstance(source_discovery_id, str) or not source_discovery_id:
-        raise ValueError("input discovery must contain a non-empty discovery_id")
+    _validate_identifier(source_discovery_id, label="input discovery_id", pattern=_DISCOVERY_ID_RE)
     if supersedes_ref != source_discovery_id:
         raise ValueError(
             "supersedes_ref must match the input discovery discovery_id "
             f"{source_discovery_id!r}"
         )
+
+
+def _validate_identifier(value: Any, *, label: str, pattern: re.Pattern[str]) -> None:
+    if not isinstance(value, str) or pattern.fullmatch(value) is None:
+        raise ValueError(f"{label} must match {pattern.pattern}: {value!r}")
+
+
+def _validate_superseding_ids(
+    discovery_id: Any,
+    provenance_event_ref: Any,
+) -> None:
+    _validate_identifier(
+        discovery_id,
+        label="new discovery_id",
+        pattern=_DISCOVERY_ID_RE,
+    )
+    _validate_identifier(
+        provenance_event_ref,
+        label="provenance_event_ref",
+        pattern=_EVENT_ID_RE,
+    )
 
 
 def measure_url(url: str, *, timeout_seconds: float) -> dict[str, Any]:
@@ -115,8 +138,7 @@ def build_receipt(discovery_path: Path, *, timeout_seconds: float) -> dict[str, 
             }
         )
     discovery_id = discovery.get("discovery_id")
-    if not isinstance(discovery_id, str) or not discovery_id.startswith("tos.discovery."):
-        raise ValueError("discovery record must contain a valid discovery_id")
+    _validate_identifier(discovery_id, label="discovery_id", pattern=_DISCOVERY_ID_RE)
     return {
         "$schema": "https://tree-of-sophia.local/ToS/contracts/open-work-channel-timing-receipt.schema.json",
         "schema_version": "tos_open_work_channel_timing_receipt_v1",
@@ -170,6 +192,7 @@ def retarget_timing_receipt(
     discovery_ref: str,
 ) -> dict[str, Any]:
     """Bind a timing receipt to the superseding discovery it instruments."""
+    _validate_identifier(discovery_id, label="discovery_id", pattern=_DISCOVERY_ID_RE)
     output = copy.deepcopy(receipt)
     output["timing_id"] = "open-work-channel-timing." + discovery_id.removeprefix("tos.discovery.")
     output["discovery_id"] = discovery_id
@@ -186,6 +209,7 @@ def build_superseding_discovery(
     provenance_event_ref: str,
 ) -> dict[str, Any]:
     _validate_supersedes_ref(source, supersedes_ref)
+    _validate_superseding_ids(discovery_id, provenance_event_ref)
     output = build_instrumented_discovery(source, receipt)
     output["discovery_id"] = discovery_id
     output["provenance_event_refs"] = [provenance_event_ref]
@@ -227,13 +251,6 @@ def main() -> int:
             parser.error(f"cannot read input discovery before superseding validation: {exc}")
         if not isinstance(source, dict):
             parser.error("input discovery must be a JSON object")
-        try:
-            _validate_supersedes_ref(source, args.supersedes_ref)
-        except ValueError as exc:
-            parser.error(str(exc))
-
-    receipt = build_receipt(args.discovery, timeout_seconds=args.timeout_seconds)
-    if args.superseding_output is not None:
         required = {
             "--new-discovery-id": args.new_discovery_id,
             "--supersedes-ref": args.supersedes_ref,
@@ -242,6 +259,14 @@ def main() -> int:
         missing = [name for name, value in required.items() if not value]
         if missing:
             parser.error(f"{', '.join(missing)} required with --superseding-output")
+        try:
+            _validate_supersedes_ref(source, args.supersedes_ref)
+            _validate_superseding_ids(args.new_discovery_id, args.provenance_event_ref)
+        except ValueError as exc:
+            parser.error(str(exc))
+
+    receipt = build_receipt(args.discovery, timeout_seconds=args.timeout_seconds)
+    if args.superseding_output is not None:
         receipt = retarget_timing_receipt(
             receipt,
             discovery_id=args.new_discovery_id,
