@@ -666,6 +666,7 @@ let ignoreGraphClicksUntil = 0;
 let ignoreInspectorSelectionsUntil = 0;
 let graphRenderVersion = 0;
 let viewLoadRevision = 0;
+let modeLoadRevision = 0;
 const lastPointer = { x: 0, y: 0 };
 
 function text(value: unknown): string {
@@ -2979,6 +2980,7 @@ async function copyScaleExportUrl(table?: ScaleExportTable, format?: "csv" | "js
 }
 
 async function loadMode(mode: Mode, requestedViewId = "", requestedGraphMode?: GraphMode): Promise<void> {
+  const loadRevision = ++modeLoadRevision;
   state.mode = mode;
   state.currentView = null;
   state.selected = null;
@@ -2992,7 +2994,9 @@ async function loadMode(mode: Mode, requestedViewId = "", requestedGraphMode?: G
   state.inspectorOpen = false;
   if (mode === "philosophy") {
     state.status.philosophy = await fetchJson<AnyItem>("/api/philosophy/status");
+    if (loadRevision !== modeLoadRevision || state.mode !== mode) return;
     const views = await fetchJson<{ views: ViewCard[] }>("/api/philosophy/views");
+    if (loadRevision !== modeLoadRevision || state.mode !== mode) return;
     state.philosophyViews = views.views || [];
     const viewId = state.philosophyViews.some((view) => view.view_id === requestedViewId)
       ? requestedViewId
@@ -3000,7 +3004,9 @@ async function loadMode(mode: Mode, requestedViewId = "", requestedGraphMode?: G
     await loadView(viewId, requestedGraphMode);
   } else {
     state.status.corpus = await fetchJson<AnyItem>("/api/corpus/status");
+    if (loadRevision !== modeLoadRevision || state.mode !== mode) return;
     const summary = await fetchJson<{ graph_views?: ViewCard[]; counts?: AnyItem }>("/api/corpus/summary");
+    if (loadRevision !== modeLoadRevision || state.mode !== mode) return;
     state.status.corpus = { ...state.status.corpus, counts: summary.counts || state.status.corpus.counts };
     state.corpusViews = summary.graph_views || [];
     const viewId = state.corpusViews.some((view) => view.view_id === requestedViewId)

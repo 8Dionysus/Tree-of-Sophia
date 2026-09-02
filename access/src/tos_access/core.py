@@ -559,7 +559,7 @@ class ToSAccessCore:
             "limit": limit,
             "nodes": nodes,
             "edges": edges,
-            "clusters": self._philosophy_clusters_for_payload(payload, view_id=view_id, limit=40),
+            "clusters": self._philosophy_clusters_for_payload(payload, view_id=view_id, limit=limit),
             "review_packet": self.philosophy_review_packet(view_id),
             "source_refs": view.get("source_refs", []),
             "runtime_projection_boundary": payload.get("runtime_projection_boundary", {}),
@@ -697,14 +697,24 @@ class ToSAccessCore:
             return clusters
         if table == "cluster-node-memberships":
             return [
-                {"cluster_id": cluster.get("cluster_id"), "node_id": node_id}
+                {
+                    "cluster_id": cluster.get("cluster_id"),
+                    "node_id": node_id,
+                    "source_ref": cluster.get("source_ref"),
+                    "source_refs": cluster.get("source_refs", []),
+                }
                 for cluster in clusters
                 for node_id in _string_list(cluster.get("member_node_ids"))
                 if node_id in node_ids
             ]
         if table == "cluster-edge-memberships":
             return [
-                {"cluster_id": cluster.get("cluster_id"), "edge_id": edge_id}
+                {
+                    "cluster_id": cluster.get("cluster_id"),
+                    "edge_id": edge_id,
+                    "source_ref": cluster.get("source_ref"),
+                    "source_refs": cluster.get("source_refs", []),
+                }
                 for cluster in clusters
                 for edge_id in _string_list(cluster.get("member_edge_ids"))
                 if edge_id in edge_ids
@@ -842,6 +852,7 @@ class ToSAccessCore:
         selected_ids = {node_id}
         frontier = {node_id}
         selected_edges: list[dict[str, Any]] = []
+        selected_edge_ids: set[str] = set()
         for _ in range(depth):
             next_frontier: set[str] = set()
             for edge in all_edges:
@@ -849,7 +860,10 @@ class ToSAccessCore:
                 to_id = str(edge.get("to_id") or "")
                 if from_id not in frontier and to_id not in frontier:
                     continue
-                selected_edges.append(edge)
+                edge_id = str(edge.get("edge_id") or "")
+                if edge_id not in selected_edge_ids:
+                    selected_edges.append(edge)
+                    selected_edge_ids.add(edge_id)
                 if from_id not in selected_ids:
                     next_frontier.add(from_id)
                 if to_id not in selected_ids:

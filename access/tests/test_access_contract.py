@@ -142,6 +142,7 @@ class CoreContractTests(unittest.TestCase):
             view = core.philosophy_view("chronology")
             self.assertEqual(view["node_count"], 3)
             self.assertEqual(view["edge_count"], 2)
+            self.assertEqual(len(view["clusters"]), 1)
             self.assertEqual(core.philosophy_views()["views"][0]["node_count"], 3)
             self.assertTrue(core.philosophy_path_between("a", "b")["found"])
             self.assertEqual(core.philosophy_neighborhood("a")["neighbors"][0]["node_id"], "b")
@@ -166,6 +167,25 @@ class CoreContractTests(unittest.TestCase):
             self.assertEqual(len(packet["view"]["nodes"]), 1)
             self.assertEqual(packet["view"]["edges"], [])
 
+            deep_neighborhood = core.philosophy_neighborhood("a", depth=2)
+            deep_edge_ids = [edge["edge_id"] for edge in deep_neighborhood["edges"]]
+            self.assertEqual(len(deep_edge_ids), len(set(deep_edge_ids)))
+
+    def test_view_packet_does_not_silently_cap_clusters_at_forty(self) -> None:
+        with tempfile.TemporaryDirectory() as raw:
+            root = Path(raw)
+            write_fixture(root)
+            projection_path = root / "ToS/derived-exports/philosophy_graph_projection.min.json"
+            projection = json.loads(projection_path.read_text(encoding="utf-8"))
+            template = projection["clusters"][0]
+            projection["clusters"] = [
+                {**template, "cluster_id": f"cluster-{index}", "label": f"Fixture {index:02d}"}
+                for index in range(45)
+            ]
+            projection_path.write_text(json.dumps(projection), encoding="utf-8")
+            core = ToSAccessCore.discover(tos_root=root)
+            self.assertEqual(len(core.philosophy_view("chronology", limit=1000)["clusters"]), 45)
+
     def test_scale_memberships_reference_only_selected_rows(self) -> None:
         with tempfile.TemporaryDirectory() as raw:
             root = Path(raw)
@@ -179,6 +199,9 @@ class CoreContractTests(unittest.TestCase):
             self.assertTrue(all(row["edge_id"] in edge_ids for row in edge_memberships))
             self.assertNotIn("outside", {row["node_id"] for row in node_memberships})
             self.assertNotIn("outside-edge", {row["edge_id"] for row in edge_memberships})
+            expected_cluster_ref = "ToS/philosophy/graph-workbench/clusters/cluster-contracts.json"
+            self.assertTrue(all(row["source_ref"] == expected_cluster_ref for row in node_memberships))
+            self.assertTrue(all(row["source_ref"] == expected_cluster_ref for row in edge_memberships))
 
     def test_doctor_and_http_use_same_core(self) -> None:
         with tempfile.TemporaryDirectory() as raw:
@@ -294,6 +317,8 @@ class AuthoredContractTests(unittest.TestCase):
         source = (ACCESS_ROOT / "web/src/main.ts").read_text(encoding="utf-8")
         self.assertIn("const loadRevision = ++viewLoadRevision", source)
         self.assertGreaterEqual(source.count("loadRevision !== viewLoadRevision"), 2)
+        self.assertIn("const loadRevision = ++modeLoadRevision", source)
+        self.assertGreaterEqual(source.count("loadRevision !== modeLoadRevision"), 4)
 
     def test_standalone_profile_is_abyssos_independent(self) -> None:
         runtime = json.loads((ACCESS_ROOT / "contracts/runtime-manifest.v1.json").read_text(encoding="utf-8"))
