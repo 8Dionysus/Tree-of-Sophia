@@ -24,7 +24,7 @@ LAB_DIR = Path(__file__).resolve().parent
 REPO_ROOT = LAB_DIR.parents[3]
 INPUT_PATH = LAB_DIR / "input-manifest.json"
 SEALED_PATH = LAB_DIR / "sealed-evaluation-manifest-v2.json"
-FREEZE_PATH = LAB_DIR / "freeze-receipt-v11.json"
+FREEZE_PATH = LAB_DIR / "freeze-receipt-v12.json"
 OBSERVATIONS_PATH = LAB_DIR / "run-observations.json"
 SOURCE_RECEIPT_PATH = LAB_DIR / "source-run-receipt.json"
 CONSUMER_PATH = LAB_DIR / "independent-consumer-receipt.json"
@@ -205,18 +205,17 @@ def verify_durable_freeze_order(
 def exact_source_values(source_path: Path) -> list[str]:
     root = strict_parse(source_path.read_bytes())
     values: set[str] = set()
-    for element in root.iter():
-        if not isinstance(element.tag, str):
-            continue
-        for value in (element.text, element.tail):
+    for node in root.iter():
+        for value in (node.text, node.tail):
             if value:
                 stripped = value.strip()
                 if stripped and (HEBREW_PATTERN.search(stripped) or len(stripped) >= 3):
                     values.add(stripped)
-        for value in element.attrib.values():
-            stripped = value.strip()
-            if stripped and (HEBREW_PATTERN.search(stripped) or len(stripped) >= 3):
-                values.add(stripped)
+        if isinstance(node.tag, str):
+            for value in node.attrib.values():
+                stripped = value.strip()
+                if stripped and (HEBREW_PATTERN.search(stripped) or len(stripped) >= 3):
+                    values.add(stripped)
     return sorted(values, key=lambda value: (-len(value), value))
 
 
@@ -268,22 +267,30 @@ def fixture_content_strings(manifest: dict[str, Any]) -> list[str]:
             root = etree.fromstring(fixture["xml"].encode("utf-8"), parser=parser)
         except (etree.XMLSyntaxError, UnicodeEncodeError):
             continue
-        for element in root.iter():
-            if not isinstance(element.tag, str):
-                continue
-            for value in (element.text, element.tail):
+        for node in root.iter():
+            for value in (node.text, node.tail):
                 if value and value.strip():
                     strings.append(value.strip())
-            for value in element.attrib.values():
-                if value.strip():
-                    strings.append(value.strip())
+            if isinstance(node.tag, str):
+                for value in node.attrib.values():
+                    if value.strip():
+                        strings.append(value.strip())
     return strings
 
 
-def source_value_hits(source_values: list[str], strings: list[str]) -> list[str]:
+def source_value_hits(
+    source_values: list[str],
+    strings: list[str],
+    *,
+    include_short_substrings: bool = True,
+) -> list[str]:
     hits: list[str] = []
     for value in source_values:
-        if any(value == candidate or (len(value) >= 16 and value in candidate) for candidate in strings):
+        if any(
+            value == candidate
+            or (value in candidate and (include_short_substrings or len(value) >= 16))
+            for candidate in strings
+        ):
             hits.append(value)
     return hits
 
@@ -384,7 +391,14 @@ def scan_tracked_generated_for_source_values(
             except OSError:
                 scan_errors.append(f"unreadable-tracked-file:{relative_path}")
                 continue
-            hits = source_value_hits(source_values, [text])
+            # Authored Python/Markdown control surfaces retain the long-value
+            # substring rule. Generated JSON/receipt data above uses
+            # substring matching for every collected control.
+            hits = source_value_hits(
+                source_values,
+                [text],
+                include_short_substrings=False,
+            )
 
         if path == INPUT_PATH:
             # The complete manifest is inspected.  Its declared control
@@ -396,12 +410,22 @@ def scan_tracked_generated_for_source_values(
                 for key, value in manifest.items()
                 if key not in {"fixtures", "security_fixtures"}
             }
-            control_hits = set(source_value_hits(source_values, recursive_json_strings(control)))
+            control_hits = set(
+                source_value_hits(source_values, recursive_json_strings(control))
+            )
             untrusted = {
                 "fixtures": manifest["fixtures"],
                 "security_fixtures": manifest["security_fixtures"],
             }
-            untrusted_hits = source_value_hits(source_values, recursive_json_strings(untrusted))
+            # XML element names are structural labels, not source content.
+            # Parse fixture payloads so a source value such as ``Tanach`` in a
+            # synthetic tag does not become a false privacy hit, while text,
+            # tails, attributes, comments, and processing instructions remain
+            # covered by the content scan.
+            untrusted_hits = source_value_hits(
+                source_values,
+                fixture_content_strings(manifest),
+            )
             manifest_control_collision_indexes.update(
                 source_values.index(value) + 1 for value in control_hits
             )

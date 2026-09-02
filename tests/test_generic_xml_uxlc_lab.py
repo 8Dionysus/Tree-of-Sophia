@@ -150,6 +150,28 @@ class GenericXmlUxLcLabContractTests(unittest.TestCase):
 
         self.assertEqual(["aaa", "bbb"], values)
 
+    def test_source_value_controls_include_non_element_xml_content(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            source = Path(temp_dir) / "source.xml"
+            source.write_text(
+                "<root>before<!--comment-secret-->after<?pi pi-secret?>tail</root>",
+                encoding="utf-8",
+            )
+            values = EVALUATOR.exact_source_values_from_manifest(
+                {"exact_sources": {"selected": {"path": str(source)}}}
+            )
+
+        self.assertIn("comment-secret", values)
+        self.assertIn("pi-secret", values)
+        self.assertIn("after", values)
+        self.assertIn("tail", values)
+
+    def test_short_source_values_match_inside_generated_strings(self) -> None:
+        self.assertEqual(
+            ["alpha"],
+            EVALUATOR.source_value_hits(["alpha"], ["prefix-alpha-suffix"]),
+        )
+
     def test_private_output_posture_requires_0600_and_gitignored_files(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             private_root = Path(temp_dir) / "private"
@@ -206,6 +228,31 @@ class GenericXmlUxLcLabContractTests(unittest.TestCase):
         self.assertTrue(
             any(
                 item.endswith("/tracked-output.md:source-value-1")
+                for item in result["leaks"]
+            )
+        )
+
+    def test_tracked_json_scan_matches_short_source_values_inside_strings(self) -> None:
+        with tempfile.TemporaryDirectory(dir=EVALUATOR.LAB_DIR) as temp_dir:
+            tracked_output = Path(temp_dir) / "tracked-output.json"
+            tracked_output.write_text(
+                '{"value": "prefix-alpha-suffix"}\n',
+                encoding="utf-8",
+            )
+            with mock.patch.object(
+                EVALUATOR,
+                "tracked_lab_files",
+                return_value=[tracked_output],
+            ):
+                result = EVALUATOR.scan_tracked_generated_for_source_values(
+                    ["alpha"],
+                    {},
+                )
+
+        self.assertFalse(result["ok"])
+        self.assertTrue(
+            any(
+                item.endswith("/tracked-output.json:source-value-1")
                 for item in result["leaks"]
             )
         )

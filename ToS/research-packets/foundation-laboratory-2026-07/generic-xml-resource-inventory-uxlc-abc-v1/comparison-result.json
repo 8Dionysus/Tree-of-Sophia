@@ -80,7 +80,7 @@
     },
     {
       "evidence": {
-        "frozen_file_count": 22,
+        "frozen_file_count": 23,
         "mismatches": []
       },
       "gate_id": "G2-input-digests-match",
@@ -425,19 +425,21 @@
       "evidence": {
         "excluded_file_count": 0,
         "leaks": [],
-        "manifest_control_collision_count": 2,
+        "manifest_control_collision_count": 4,
         "manifest_control_collision_indexes": [
           35,
+          53,
+          67,
           68
         ],
         "missing_tracked_files": [],
         "ok": true,
         "scan_errors": [],
         "scan_scope": "all Git-tracked files under the laboratory directory",
-        "scanned_file_count": 127,
+        "scanned_file_count": 128,
         "scanned_manifest": true,
         "source_value_control_count": 75,
-        "tracked_file_count": 127,
+        "tracked_file_count": 128,
         "undecodable_tracked_files": []
       },
       "gate_id": "G16-no-source-values-in-tracked-output",
