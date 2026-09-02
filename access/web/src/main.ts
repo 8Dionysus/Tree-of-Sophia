@@ -4,8 +4,11 @@ import forceAtlas2 from "graphology-layout-forceatlas2";
 import Sigma from "sigma";
 import {
   createPageCommandRegistry,
+  isPageCommandCancellation,
   reloadableFocusId,
   requireKnownViewId,
+  type PageCommandId,
+  type PageCommandInput,
   type PageContextSnapshot,
   type PageSelection,
 } from "./page-commands";
@@ -1333,8 +1336,8 @@ function renderShell(): void {
 function bindShellEvents(): void {
   byId("language-en").addEventListener("click", () => setLanguage("en"));
   byId("language-ru").addEventListener("click", () => setLanguage("ru"));
-  byId("mode-philosophy").addEventListener("click", () => void pageCommands.invoke("tos.page.open-view", { mode: "philosophy" }));
-  byId("mode-corpus").addEventListener("click", () => void pageCommands.invoke("tos.page.open-view", { mode: "corpus" }));
+  byId("mode-philosophy").addEventListener("click", () => invokePageCommandFromUi("tos.page.open-view", { mode: "philosophy" }));
+  byId("mode-corpus").addEventListener("click", () => invokePageCommandFromUi("tos.page.open-view", { mode: "corpus" }));
   byId("clusters-button").addEventListener("click", () => {
     state.expandedCluster = null;
     state.graphMode = "clusters";
@@ -1349,13 +1352,13 @@ function bindShellEvents(): void {
     pageCommands.notifyStateChange();
   });
   byId("fit-button").addEventListener("click", () => fitActiveGraph());
-  byId("focus-clear-button").addEventListener("click", () => void pageCommands.invoke("tos.page.clear-focus"));
+  byId("focus-clear-button").addEventListener("click", () => invokePageCommandFromUi("tos.page.clear-focus"));
   byId("inspector-open").addEventListener("click", () => setInspectorOpen(true));
   byId("inspector-close").addEventListener("click", () => setInspectorOpen(false));
-  byId("search-button").addEventListener("click", () => void pageCommands.invoke("tos.page.search", { query: searchInput.value }));
+  byId("search-button").addEventListener("click", () => invokePageCommandFromUi("tos.page.search", { query: searchInput.value }));
   const searchInput = byId("search") as HTMLInputElement;
   searchInput.addEventListener("keydown", (event) => {
-    if (event.key === "Enter") void pageCommands.invoke("tos.page.search", { query: searchInput.value });
+    if (event.key === "Enter") invokePageCommandFromUi("tos.page.search", { query: searchInput.value });
   });
   graphContainer?.addEventListener("pointermove", (event) => {
     lastPointer.x = event.clientX;
@@ -1370,6 +1373,17 @@ function byId(id: string): HTMLElement {
   const element = document.getElementById(id);
   if (!element) throw new Error(`missing #${id}`);
   return element;
+}
+
+function invokePageCommandFromUi(commandId: PageCommandId, input: PageCommandInput = {}): void {
+  void pageCommands.invoke(commandId, input).catch((error: unknown) => {
+    if (isPageCommandCancellation(error)) return;
+    console.error(`Tree of Sophia page command failed: ${commandId}`, error);
+    const title = document.getElementById("inspector-title");
+    const meta = document.getElementById("inspector-meta");
+    if (title) title.textContent = t("load.failed");
+    if (meta) meta.innerHTML = `<span class="danger">${text(error)}</span>`;
+  });
 }
 
 function setActive(id: string, active: boolean): void {
@@ -1447,7 +1461,7 @@ function renderViews(): void {
     )
     .join("");
   byId("view-list").querySelectorAll<HTMLButtonElement>("[data-view]").forEach((button) => {
-    button.addEventListener("click", () => void pageCommands.invoke("tos.page.open-view", {
+    button.addEventListener("click", () => invokePageCommandFromUi("tos.page.open-view", {
       mode: state.mode,
       view_id: button.dataset.view || "",
       graph_mode: state.graphMode,
@@ -1759,22 +1773,22 @@ function renderInspector(): void {
   document.getElementById("neighborhood-button")?.addEventListener("click", (event) => {
     event.preventDefault();
     event.stopPropagation();
-    void pageCommands.invoke("tos.page.show-neighborhood", { node_id: selectedNodeId });
+    invokePageCommandFromUi("tos.page.show-neighborhood", { node_id: selectedNodeId });
   });
   document.getElementById("path-start-button")?.addEventListener("click", (event) => {
     event.preventDefault();
     event.stopPropagation();
-    void pageCommands.invoke("tos.page.start-path", { node_id: selectedNodeId });
+    invokePageCommandFromUi("tos.page.start-path", { node_id: selectedNodeId });
   });
   document.getElementById("path-to-button")?.addEventListener("click", (event) => {
     event.preventDefault();
     event.stopPropagation();
-    void pageCommands.invoke("tos.page.find-path", { to_id: selectedNodeId });
+    invokePageCommandFromUi("tos.page.find-path", { to_id: selectedNodeId });
   });
   document.getElementById("reroute-without-edge-button")?.addEventListener("click", (event) => {
     event.preventDefault();
     event.stopPropagation();
-    void pageCommands.invoke("tos.page.reroute-without-selection", {
+    invokePageCommandFromUi("tos.page.reroute-without-selection", {
       direction: "outgoing",
       alternative_limit: 3,
       constrain_to_view: true,
@@ -2963,9 +2977,7 @@ function selectableItem(itemIdValue: string): AnyItem | null {
 }
 
 function selectItem(item: AnyItem): void {
-  void pageCommands.invoke("tos.page.select", { item_id: itemId(item) }).catch((error: unknown) => {
-    console.error("Tree of Sophia selection failed", error);
-  });
+  invokePageCommandFromUi("tos.page.select", { item_id: itemId(item) });
 }
 
 function nodeRouteActions(nodeId: string): string {

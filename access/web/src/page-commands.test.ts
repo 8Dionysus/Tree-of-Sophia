@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import {
   createPageCommandRegistry,
+  isPageCommandCancellation,
   reloadableFocusId,
   requireKnownViewId,
   StalePageContextError,
@@ -115,6 +116,12 @@ describe("page command registry", () => {
     expect(
       reloadableFocusId({ id: "node:a", kind: "node" }, "node:a", ["node:a"]),
     ).toBe("node:a");
+  });
+
+  it("distinguishes expected command cancellation from genuine failures", () => {
+    expect(isPageCommandCancellation(new DOMException("superseded", "AbortError"))).toBe(true);
+    expect(isPageCommandCancellation(new Error("request failed"))).toBe(false);
+    expect(isPageCommandCancellation("AbortError")).toBe(false);
   });
 
   it("cancels an active operation through the page cancel command", async () => {

@@ -52,6 +52,10 @@ export class StalePageContextError extends Error {
   }
 }
 
+export function isPageCommandCancellation(error: unknown): boolean {
+  return error instanceof Error && error.name === "AbortError";
+}
+
 export function requireKnownViewId(viewId: string, knownViewIds: Iterable<string>): void {
   if (!viewId || !new Set(knownViewIds).has(viewId)) {
     throw new Error(`unknown Tree of Sophia view: ${viewId || "(empty)"}`);
