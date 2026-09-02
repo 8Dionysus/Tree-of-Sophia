@@ -1268,9 +1268,11 @@ pre {
 .source-note > small { color: #7b8586; font-size: 9px; line-height: 1.45; }
 .source-reference-list { display: grid; gap: 1px; padding-top: 3px; }
 .source-reference-list > small { padding: 5px 0 3px; color: #9aa1a0; font-size: 8px; font-weight: 720; letter-spacing: .1em; text-transform: uppercase; }
-.source-reference-list > a { display: flex; justify-content: space-between; gap: 10px; padding: 7px 0; border-top: 1px solid rgba(22, 58, 66, .07); color: #59676d; font-size: 9px; line-height: 1.35; text-decoration: none; }
+.source-reference-list > a,
+.source-reference-list > .source-reference-text { display: flex; justify-content: space-between; gap: 10px; padding: 7px 0; border-top: 1px solid rgba(22, 58, 66, .07); color: #59676d; font-size: 9px; line-height: 1.35; text-decoration: none; }
 .source-reference-list > a:hover { color: #176f7f; }
-.source-reference-list > a span:first-child { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.source-reference-list > a span:first-child,
+.source-reference-list > .source-reference-text span:first-child { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
 @media (max-width: 900px) {
   .reader-site { grid-template-rows: 76px 58px minmax(0, 1fr); }
@@ -1307,4 +1309,3 @@ pre {
   .sky-atmosphere { animation: none; }
   .reader-inspector { transition: none; }
 }
-

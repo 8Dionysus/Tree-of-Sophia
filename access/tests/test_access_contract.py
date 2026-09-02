@@ -163,6 +163,15 @@ class CoreContractTests(unittest.TestCase):
             view = core.philosophy_view("chronology", limit=1)
             self.assertEqual(view["node_count"], 1)
             self.assertEqual(view["edge_count"], 0)
+            connected_view = core.philosophy_view("chronology", limit=2)
+            connected_node_ids = {node["node_id"] for node in connected_view["nodes"]}
+            self.assertEqual(len(connected_view["edges"]), 1)
+            self.assertTrue(
+                all(
+                    edge["from_id"] in connected_node_ids and edge["to_id"] in connected_node_ids
+                    for edge in connected_view["edges"]
+                )
+            )
             packet = core.philosophy_packet(view_id="chronology", limit=-1)
             self.assertEqual(len(packet["view"]["nodes"]), 1)
             self.assertEqual(packet["view"]["edges"], [])

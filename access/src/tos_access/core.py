@@ -87,18 +87,34 @@ def _bounded_graph(
     edges: list[dict[str, Any]],
     limit: int,
 ) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
-    selected_nodes = nodes[:limit]
-    selected_node_ids = {
-        str(node.get("node_id"))
-        for node in selected_nodes
+    nodes_by_id = {
+        str(node.get("node_id")): node
+        for node in nodes
         if isinstance(node.get("node_id"), str)
     }
-    selected_edges = [
-        edge
-        for edge in edges
-        if str(edge.get("from_id") or "") in selected_node_ids
-        and str(edge.get("to_id") or "") in selected_node_ids
-    ][:limit]
+    selected_node_ids: set[str] = set()
+    selected_edges: list[dict[str, Any]] = []
+    for edge in edges:
+        left = str(edge.get("from_id") or "")
+        right = str(edge.get("to_id") or "")
+        if left not in nodes_by_id or right not in nodes_by_id:
+            continue
+        additions = {left, right} - selected_node_ids
+        if len(selected_node_ids) + len(additions) > limit:
+            continue
+        selected_node_ids.update(additions)
+        selected_edges.append(edge)
+        if len(selected_edges) >= limit:
+            break
+    for node in nodes:
+        node_id = str(node.get("node_id") or "")
+        if len(selected_node_ids) >= limit:
+            break
+        if node_id:
+            selected_node_ids.add(node_id)
+    selected_nodes = [
+        node for node in nodes if str(node.get("node_id") or "") in selected_node_ids
+    ]
     return selected_nodes, selected_edges
 
 

@@ -667,6 +667,9 @@ let ignoreInspectorSelectionsUntil = 0;
 let graphRenderVersion = 0;
 let viewLoadRevision = 0;
 let modeLoadRevision = 0;
+let searchRevision = 0;
+let neighborhoodRevision = 0;
+let pathRevision = 0;
 const lastPointer = { x: 0, y: 0 };
 
 function text(value: unknown): string {
@@ -1747,19 +1750,25 @@ function collectRefs(item: AnyItem): string[] {
   }
   const sourceRefs = source.source_refs;
   if (Array.isArray(sourceRefs)) sourceRefs.forEach((ref) => refs.add(text(ref)));
-  return [...refs].filter((ref) => /^https?:\/\//i.test(ref));
+  return [...refs].filter((ref) => {
+    if (/^https?:\/\//i.test(ref)) return true;
+    if (!ref || ref.startsWith("/") || ref.includes("\\") || /[\u0000-\u001f]/.test(ref)) return false;
+    const segments = ref.split("/");
+    return segments.length > 1 && segments.every((segment) => segment && segment !== "." && segment !== "..");
+  });
 }
 
 function sourceReferenceList(refs: string[]): string {
   if (!refs.length) return "";
   const rows = refs.slice(0, 8).map((ref) => {
+    if (!/^https?:\/\//i.test(ref)) {
+      return `<span class="source-reference-text"><span>${escapeHtml(ref)}</span></span>`;
+    }
     let label = ref;
     try {
       const url = new URL(ref);
       label = `${url.hostname}${url.pathname === "/" ? "" : url.pathname}`;
-    } catch {
-      // collectRefs already limits this surface to public web addresses.
-    }
+    } catch {}
     return `<a href="${escapeHtml(ref)}" target="_blank" rel="noreferrer"><span>${escapeHtml(label)}</span><span aria-hidden="true">↗</span></a>`;
   }).join("");
   return `<div class="source-reference-list"><small>${t("detail.sourceRefs")}</small>${rows}</div>`;
@@ -2892,19 +2901,27 @@ function pathCards(nodeId: string): string[] {
 
 async function showNeighborhood(nodeId: string): Promise<void> {
   if (!nodeId) return;
+  const requestRevision = ++neighborhoodRevision;
+  const requestMode = state.mode;
+  const requestViewId = state.currentViewId;
   const selected = state.selected;
   ignoreGraphClicksUntil = Date.now() + 1500;
   ignoreInspectorSelectionsUntil = Date.now() + 1500;
-  state.graphMode = "nodes";
-  state.expandedCluster = null;
-  state.selectedGraphId = nodeId;
-  state.neighborhood = (await webActions.invoke("tos.neighborhood", {
+  const neighborhood = (await webActions.invoke("tos.neighborhood", {
     node_id: nodeId,
     depth: 1,
     limit: 160,
     layers: [...state.activeLayers],
     predicates: [...state.activePredicates],
   })) as NeighborhoodPayload;
+  if (
+    requestRevision !== neighborhoodRevision ||
+    state.mode !== requestMode ||
+    state.currentViewId !== requestViewId
+  ) return;
+  state.graphMode = "nodes";
+  state.expandedCluster = null;
+  state.neighborhood = neighborhood;
   state.selected = selected;
   state.selectedGraphId = nodeId;
   renderChips();
@@ -2917,6 +2934,7 @@ async function showNeighborhood(nodeId: string): Promise<void> {
 
 function setPathStart(nodeId: string): void {
   if (!nodeId) return;
+  pathRevision += 1;
   state.pathStartNodeId = nodeId;
   state.pathPacket = null;
   renderInspector();
@@ -2924,18 +2942,29 @@ function setPathStart(nodeId: string): void {
 
 async function showPathTo(nodeId: string): Promise<void> {
   if (!nodeId || !state.pathStartNodeId || state.pathStartNodeId === nodeId) return;
+  const requestRevision = ++pathRevision;
+  const requestMode = state.mode;
+  const requestViewId = state.currentViewId;
+  const fromId = state.pathStartNodeId;
   const selected = state.selected;
   ignoreGraphClicksUntil = Date.now() + 1500;
   ignoreInspectorSelectionsUntil = Date.now() + 1500;
-  state.graphMode = "nodes";
-  state.expandedCluster = null;
-  state.pathPacket = (await webActions.invoke("tos.path.find", {
-    from_id: state.pathStartNodeId,
+  const pathPacket = (await webActions.invoke("tos.path.find", {
+    from_id: fromId,
     to_id: nodeId,
     max_depth: 6,
     layers: [...state.activeLayers],
     predicates: [...state.activePredicates],
   })) as PathPayload;
+  if (
+    requestRevision !== pathRevision ||
+    state.mode !== requestMode ||
+    state.currentViewId !== requestViewId ||
+    state.pathStartNodeId !== fromId
+  ) return;
+  state.graphMode = "nodes";
+  state.expandedCluster = null;
+  state.pathPacket = pathPacket;
   state.selected = selected;
   state.selectedGraphId = nodeId;
   renderChips();
@@ -2947,6 +2976,8 @@ async function showPathTo(nodeId: string): Promise<void> {
 }
 
 function clearFocus(): void {
+  neighborhoodRevision += 1;
+  pathRevision += 1;
   state.neighborhood = null;
   state.pathPacket = null;
   state.expandedCluster = null;
@@ -2981,6 +3012,9 @@ async function copyScaleExportUrl(table?: ScaleExportTable, format?: "csv" | "js
 
 async function loadMode(mode: Mode, requestedViewId = "", requestedGraphMode?: GraphMode): Promise<void> {
   const loadRevision = ++modeLoadRevision;
+  searchRevision += 1;
+  neighborhoodRevision += 1;
+  pathRevision += 1;
   state.mode = mode;
   state.currentView = null;
   state.selected = null;
@@ -3019,6 +3053,9 @@ async function loadMode(mode: Mode, requestedViewId = "", requestedGraphMode?: G
 async function loadView(viewId: string, requestedGraphMode?: GraphMode): Promise<void> {
   if (!viewId) return;
   const loadRevision = ++viewLoadRevision;
+  searchRevision += 1;
+  neighborhoodRevision += 1;
+  pathRevision += 1;
   const loadMode = state.mode;
   state.currentViewId = viewId;
   state.currentView = null;
@@ -3071,6 +3108,9 @@ async function loadView(viewId: string, requestedGraphMode?: GraphMode): Promise
 }
 
 async function search(): Promise<void> {
+  const requestRevision = ++searchRevision;
+  const requestMode = state.mode;
+  const requestViewId = state.currentViewId;
   const query = (byId("search") as HTMLInputElement).value.trim();
   state.searchQuery = query;
   const payload = (await webActions.invoke("tos.search", {
@@ -3078,6 +3118,11 @@ async function search(): Promise<void> {
     query,
     limit: 80,
   })) as { results?: AnyItem[] };
+  if (
+    requestRevision !== searchRevision ||
+    state.mode !== requestMode ||
+    state.currentViewId !== requestViewId
+  ) return;
   state.results = mergeLocalizedSearchResults(query, (payload.results || []).filter(isPublicAtlasItem), 80);
   state.selected = { title: query ? `${t("selection.search")}: ${query}` : t("selection.search"), results: state.results.length };
   state.inspectorOpen = true;
