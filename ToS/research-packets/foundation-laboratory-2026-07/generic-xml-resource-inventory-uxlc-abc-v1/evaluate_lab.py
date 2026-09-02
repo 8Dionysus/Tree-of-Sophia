@@ -24,7 +24,7 @@ LAB_DIR = Path(__file__).resolve().parent
 REPO_ROOT = LAB_DIR.parents[3]
 INPUT_PATH = LAB_DIR / "input-manifest.json"
 SEALED_PATH = LAB_DIR / "sealed-evaluation-manifest-v2.json"
-FREEZE_PATH = LAB_DIR / "freeze-receipt-v10.json"
+FREEZE_PATH = LAB_DIR / "freeze-receipt-v11.json"
 OBSERVATIONS_PATH = LAB_DIR / "run-observations.json"
 SOURCE_RECEIPT_PATH = LAB_DIR / "source-run-receipt.json"
 CONSUMER_PATH = LAB_DIR / "independent-consumer-receipt.json"
@@ -217,7 +217,7 @@ def exact_source_values(source_path: Path) -> list[str]:
             stripped = value.strip()
             if stripped and (HEBREW_PATTERN.search(stripped) or len(stripped) >= 3):
                 values.add(stripped)
-    return sorted(values, key=len, reverse=True)
+    return sorted(values, key=lambda value: (-len(value), value))
 
 
 def exact_source_values_from_manifest(manifest: dict[str, Any]) -> list[str]:
@@ -226,7 +226,7 @@ def exact_source_values_from_manifest(manifest: dict[str, Any]) -> list[str]:
         source_path = Path(source["path"])
         if source_path.is_file():
             values.update(exact_source_values(source_path))
-    return sorted(values, key=len, reverse=True)
+    return sorted(values, key=lambda value: (-len(value), value))
 
 
 def recursive_json_strings(value: Any) -> list[str]:

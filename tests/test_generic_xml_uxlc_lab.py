@@ -137,6 +137,19 @@ class GenericXmlUxLcLabContractTests(unittest.TestCase):
         self.assertIn("selected-only", values)
         self.assertIn("replay-only", values)
 
+    def test_source_value_controls_have_deterministic_tie_breaking(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            source = Path(temp_dir) / "source.xml"
+            source.write_text(
+                "<root><value>bbb</value><value>aaa</value></root>",
+                encoding="utf-8",
+            )
+            values = EVALUATOR.exact_source_values_from_manifest(
+                {"exact_sources": {"selected": {"path": str(source)}}}
+            )
+
+        self.assertEqual(["aaa", "bbb"], values)
+
     def test_private_output_posture_requires_0600_and_gitignored_files(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             private_root = Path(temp_dir) / "private"

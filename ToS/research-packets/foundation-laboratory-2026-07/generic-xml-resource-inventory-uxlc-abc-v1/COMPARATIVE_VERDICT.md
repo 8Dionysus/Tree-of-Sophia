@@ -103,7 +103,7 @@ exact capture change
 
 The source files and every source-derived candidate output remain mode `0600`
 and Git-ignored. After final-result materialization, the evaluator enumerates
-all 126 Git-tracked laboratory files and scans them against 75 private
+all 127 Git-tracked laboratory files and scans them against 75 private
 source-value controls; it found zero source-value matches. The fixture privacy
 scan found zero Hebrew code points.
 
@@ -138,7 +138,7 @@ outputs were not changed for the sealed-arithmetic correction.
 Direct monetary cost is zero; electricity and fully loaded cost were not
 measured. No human task or language review was opened. Manual burden consisted
 of two exact-source reopens, seven explicit XPath returns, representative
-owner/projection inspection, 126 tracked-laboratory-file leak checks and one
+owner/projection inspection, 127 tracked-laboratory-file leak checks and one
 correction comparison.
 
 ## Promotion posture
