@@ -1126,12 +1126,166 @@ def _sha256_file(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
+def _snapshot_path_from_ref(
+    repo_root: Path,
+    value: Any,
+    *,
+    location: str,
+) -> Path | None:
+    if not isinstance(value, str) or not value:
+        return None
+    if urlsplit(value).scheme:
+        return None
+    path = _safe_relative_path(value)
+    if not (repo_root / path).is_file():
+        raise QueueBuildError(f"{location}: snapshot input does not resolve: {value!r}")
+    return path
+
+
+def _snapshot_closure_inputs(
+    repo_root: Path,
+    *,
+    receipts: list[dict[str, Any]],
+    discoveries: dict[str, tuple[dict[str, Any], str]],
+    provenance_events: dict[str, tuple[dict[str, Any], str]] | None,
+) -> list[Path]:
+    paths: list[Path] = []
+    source_root = repo_root / "ToS/source-witnesses"
+    if source_root.is_dir():
+        paths.extend(
+            path.relative_to(repo_root)
+            for path in sorted(source_root.rglob("provenance.jsonl"))
+        )
+    if provenance_events is not None:
+        for discovery, _ in discoveries.values():
+            event_refs = discovery.get("provenance_event_refs", [])
+            if not isinstance(event_refs, list):
+                continue
+            for event_ref in event_refs:
+                event_entry = provenance_events.get(event_ref)
+                if event_entry is None:
+                    continue
+                event = event_entry[0]
+                method = event.get("method")
+                if isinstance(method, dict):
+                    prompt_path = _snapshot_path_from_ref(
+                        repo_root,
+                        method.get("prompt_or_instruction_ref"),
+                        location=f"snapshot provenance event {event_ref}:prompt_or_instruction_ref",
+                    )
+                    if prompt_path is not None and prompt_path.as_posix().startswith("ToS/research-packets/"):
+                        paths.append(prompt_path)
+                outputs = event.get("outputs", [])
+                if not isinstance(outputs, list):
+                    continue
+                for output in outputs:
+                    if not isinstance(output, dict):
+                        continue
+                    output_path = output.get("ref")
+                    if not isinstance(output_path, str) or not output_path.startswith("ToS/research-packets/"):
+                        continue
+                    path = _snapshot_path_from_ref(
+                        repo_root,
+                        output_path,
+                        location=f"snapshot provenance event {event_ref}:output",
+                    )
+                    if path is not None:
+                        paths.append(path)
+
+    canonical_records = {
+        "item_ref": (Path("ToS/source-witnesses"), "item.manifest.json", "item_id"),
+        "artifact_ref": (Path("ToS/source-witnesses/artifacts"), "artifact-witness.json", "artifact_id"),
+        "composite_ref": (
+            Path("ToS/source-witnesses/scholarly-composites"),
+            "composite-witness.json",
+            "composite_id",
+        ),
+    }
+
+    for receipt in receipts:
+        receipt_id = receipt.get("receipt_id", "receipt")
+        location = f"snapshot closure {receipt_id}"
+        rights_result = receipt.get("rights_result")
+        evidence_refs = rights_result.get("evidence_refs", []) if isinstance(rights_result, dict) else []
+        if isinstance(evidence_refs, list):
+            for index, reference in enumerate(evidence_refs, start=1):
+                path = _snapshot_path_from_ref(
+                    repo_root,
+                    reference,
+                    location=f"{location}:rights_result.evidence_refs[{index}]",
+                )
+                if path is not None:
+                    paths.append(path)
+
+        planting_refs = receipt.get("planting_refs", [])
+        if isinstance(planting_refs, list):
+            for index, reference in enumerate(planting_refs, start=1):
+                ref_location = f"{location}:planting_refs[{index}]"
+                planting_path = _snapshot_path_from_ref(
+                    repo_root,
+                    reference,
+                    location=ref_location,
+                )
+                if planting_path is None:
+                    continue
+                paths.append(planting_path)
+                planting = _load_json(repo_root / planting_path, repo_root)
+                source_witness = planting.get("source_witness")
+                if isinstance(source_witness, dict):
+                    source_record = _snapshot_path_from_ref(
+                        repo_root,
+                        source_witness.get("record_ref"),
+                        location=f"{ref_location}:source_witness.record_ref",
+                    )
+                    if source_record is not None:
+                        paths.append(source_record)
+                planting_discovery = _snapshot_path_from_ref(
+                    repo_root,
+                    planting.get("discovery_ref"),
+                    location=f"{ref_location}:discovery_ref",
+                )
+                if planting_discovery is not None:
+                    paths.append(planting_discovery)
+
+        acquisitions: list[Any] = [receipt.get("acquisition")]
+        additional_acquisitions = receipt.get("additional_acquisitions", [])
+        if isinstance(additional_acquisitions, list):
+            acquisitions.extend(additional_acquisitions)
+        for index, acquisition in enumerate(acquisitions, start=1):
+            if not isinstance(acquisition, dict) or acquisition.get("downloaded") is not True:
+                continue
+            acquisition_location = f"{location}:acquisition[{index}]"
+            representation = _snapshot_path_from_ref(
+                repo_root,
+                acquisition.get("representation_ref"),
+                location=f"{acquisition_location}:representation_ref",
+            )
+            if representation is not None:
+                paths.append(representation)
+            for field, (record_root, filename, record_key) in canonical_records.items():
+                identity = acquisition.get(field)
+                if not isinstance(identity, str) or not identity:
+                    continue
+                _, record_path = _find_unique_record(
+                    repo_root,
+                    root=record_root,
+                    filename=filename,
+                    key=record_key,
+                    value=identity,
+                    location=acquisition_location,
+                )
+                paths.append(record_path.relative_to(repo_root))
+
+    return paths
+
+
 def _snapshot(
     repo_root: Path,
     *,
     candidates: list[tuple[dict[str, Any], str]],
     receipts: list[dict[str, Any]],
     discoveries: dict[str, tuple[dict[str, Any], str]],
+    provenance_events: dict[str, tuple[dict[str, Any], str]] | None = None,
     excluded_paths: set[Path] | None = None,
 ) -> dict[str, Any]:
     master_rows = sum(len(_load_jsonl(repo_root / path, repo_root)) for path in MASTER_ROW_PATHS)
@@ -1151,6 +1305,14 @@ def _snapshot(
         _safe_relative_path(source_ref["source_path"])
         for candidate, _ in candidates
         for source_ref in candidate["source_refs"]
+    )
+    input_paths.extend(
+        _snapshot_closure_inputs(
+            repo_root,
+            receipts=receipts,
+            discoveries=discoveries,
+            provenance_events=provenance_events,
+        )
     )
     receipt_root = repo_root / RECEIPT_ROOT
     if receipt_root.is_dir():
@@ -1259,6 +1421,7 @@ def _build_queue_payload(
     candidates_with_locations: list[tuple[dict[str, Any], str]],
     receipts: list[dict[str, Any]],
     discoveries: dict[str, tuple[dict[str, Any], str]],
+    provenance_events: dict[str, tuple[dict[str, Any], str]] | None = None,
     excluded_paths: set[Path] | None = None,
 ) -> dict[str, Any]:
     latest_receipts: dict[str, dict[str, Any]] = {}
@@ -1273,6 +1436,7 @@ def _build_queue_payload(
         candidates=candidates_with_locations,
         receipts=receipts,
         discoveries=discoveries,
+        provenance_events=provenance_events,
         excluded_paths=excluded_paths,
     )
     queue_entries: list[dict[str, Any]] = []
@@ -1351,6 +1515,7 @@ def _reconstruct_pre_run_queue_sha256(
     ordered_receipts: list[dict[str, Any]],
     candidates_with_locations: list[tuple[dict[str, Any], str]],
     discoveries: dict[str, tuple[dict[str, Any], str]],
+    provenance_events: dict[str, tuple[dict[str, Any], str]] | None = None,
 ) -> str:
     current_key = _receipt_sort_key(current_receipt)
     prior_receipts = [
@@ -1387,6 +1552,7 @@ def _reconstruct_pre_run_queue_sha256(
         candidates_with_locations=candidates_with_locations,
         receipts=prior_receipts,
         discoveries=pre_run_discoveries,
+        provenance_events=provenance_events,
         excluded_paths=excluded_paths,
     )
     return payload["queue_sha256"]
@@ -1406,6 +1572,11 @@ def _has_independent_snapshot_witness(
     if not isinstance(event_refs, list):
         event_refs = []
     snapshot_hash = receipt.get("queue_snapshot_sha256")
+    receipt_issued_at = _parse_timestamp(
+        receipt.get("issued_at"),
+        location=f"receipt {receipt.get('receipt_id', 'unknown')}",
+        field="issued_at",
+    )
     for event_ref in event_refs:
         event_entry = provenance_events.get(event_ref)
         if event_entry is None:
@@ -1420,16 +1591,76 @@ def _has_independent_snapshot_witness(
         ):
             return True
 
-    # Legacy iterations predate the queue validator but their research packet
-    # records the frozen digest.  Require the digest and the candidate label in
-    # the same independent packet; a receipt cannot satisfy this fallback by
-    # referring to itself.
-    for path in sorted((repo_root / "ToS/research-packets").rglob("*.md")):
+    # Legacy iterations predate the queue validator but their pre-run
+    # provenance event names the research packet and records the reviewed
+    # candidate ledger as an input.  Do not search the repository: an
+    # unrelated packet must never be able to witness a receipt's snapshot.
+    for event_ref in event_refs:
+        event_entry = provenance_events.get(event_ref)
+        if event_entry is None:
+            continue
+        event = event_entry[0]
+        configuration = event.get("method", {}).get("configuration", {})
+        if not isinstance(configuration, dict) or configuration.get("candidate_id") != candidate_id:
+            continue
+        started_at = event.get("started_at")
         try:
-            text = path.read_text(encoding="utf-8")
+            if _parse_timestamp(started_at, location=event_ref, field="started_at") > receipt_issued_at:
+                continue
+        except QueueBuildError:
+            continue
+        event_inputs = event.get("inputs")
+        if not isinstance(event_inputs, list):
+            continue
+        ledger_input = next(
+            (
+                input_ref
+                for input_ref in event_inputs
+                if isinstance(input_ref, dict)
+                and input_ref.get("ref") == LEDGER_PATH.as_posix()
+            ),
+            None,
+        )
+        ledger_digest = ledger_input.get("sha256") if isinstance(ledger_input, dict) else None
+        if not isinstance(ledger_digest, str) or not re.fullmatch(r"[0-9a-f]{64}", ledger_digest):
+            continue
+
+        prompt_ref = event.get("method", {}).get("prompt_or_instruction_ref")
+        try:
+            packet_path = _safe_relative_path(prompt_ref)
+        except (QueueBuildError, TypeError):
+            continue
+        if not packet_path.as_posix().startswith("ToS/research-packets/"):
+            continue
+        packet = repo_root / packet_path
+        if not packet.is_file():
+            continue
+        output = next(
+            (
+                output_ref
+                for output_ref in event.get("outputs", [])
+                if isinstance(output_ref, dict) and output_ref.get("ref") == packet_path.as_posix()
+            ),
+            None,
+        )
+        output_digest = output.get("sha256") if isinstance(output, dict) else None
+        if not isinstance(output_digest, str) or not re.fullmatch(r"[0-9a-f]{64}", output_digest):
+            continue
+        try:
+            packet_text = packet.read_text(encoding="utf-8")
         except OSError:
             continue
-        if snapshot_hash in text and _contains_word_phrase(text, candidate_label):
+        if not re.search(
+            rf"(?im)^\s*Candidate:\s*`{re.escape(candidate_id)}`\s*$",
+            packet_text,
+        ):
+            continue
+        if not re.search(
+            rf"(?im)^\s*(?:Frozen\s+)?Queue snapshot SHA-256:\s*`{re.escape(snapshot_hash)}`\s*$",
+            packet_text,
+        ):
+            continue
+        if _contains_word_phrase(packet_text, candidate_label):
             return True
     return False
 
@@ -1440,6 +1671,7 @@ def _validate_receipt_transition_history(
     candidates_with_locations: list[tuple[dict[str, Any], str]],
     receipts: list[dict[str, Any]],
     discoveries: dict[str, tuple[dict[str, Any], str]],
+    provenance_events: dict[str, tuple[dict[str, Any], str]] | None = None,
 ) -> None:
     candidates_by_id = {candidate["candidate_id"]: candidate for candidate, _ in candidates_with_locations}
     _validate_receipt_version_timestamp_order(receipts)
@@ -1449,7 +1681,8 @@ def _validate_receipt_transition_history(
         for candidate, _ in candidates_with_locations
     }
     previous_by_candidate: dict[str, dict[str, Any]] = {}
-    provenance_events = _load_provenance_events(repo_root)
+    if provenance_events is None:
+        provenance_events = _load_provenance_events(repo_root)
     validated_snapshot_ids: set[str] = set()
 
     for receipt in ordered_receipts:
@@ -1512,6 +1745,7 @@ def _validate_receipt_transition_history(
             ordered_receipts=ordered_receipts,
             candidates_with_locations=candidates_with_locations,
             discoveries=discoveries,
+            provenance_events=provenance_events,
         )
         if reconstructed == snapshot_hash:
             validated_snapshot_ids.add(receipt_id)
@@ -1545,17 +1779,20 @@ def build_payload(repo_root: Path = REPO_ROOT) -> dict[str, Any]:
         candidates_by_id=candidates_by_id,
         discoveries=discoveries,
     )
+    provenance_events = _load_provenance_events(repo_root)
     _validate_receipt_transition_history(
         repo_root,
         candidates_with_locations=candidates_with_locations,
         receipts=receipts,
         discoveries=discoveries,
+        provenance_events=provenance_events,
     )
     return _build_queue_payload(
         repo_root,
         candidates_with_locations=candidates_with_locations,
         receipts=receipts,
         discoveries=discoveries,
+        provenance_events=provenance_events,
     )
 
 

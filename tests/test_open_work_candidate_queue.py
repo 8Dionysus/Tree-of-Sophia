@@ -17,6 +17,7 @@ if str(SCRIPTS) not in sys.path:
 from open_work_candidate_queue_common import (  # noqa: E402
     QUEUE_PATH,
     QueueBuildError,
+    _has_independent_snapshot_witness,
     _validate_active_discovery_timings,
     _validate_receipt_acquisition_closure,
     _validate_receipt_version_timestamp_order,
@@ -333,6 +334,41 @@ class OpenWorkCandidateQueueTest(unittest.TestCase):
                     rf"{selector_key} selector .* does not bind candidate selection atlas_row_id",
                 ):
                     build_payload(repo)
+
+    def test_unreferenced_snapshot_packet_cannot_witness_receipt(self) -> None:
+        repo = self.make_repo()
+        snapshot_hash = "a" * 64
+        packet = repo / "ToS/research-packets/unrelated-snapshot.md"
+        packet.parent.mkdir(parents=True, exist_ok=True)
+        packet.write_text(
+            f"Candidate: `open-work-candidate.earliest`\n"
+            f"Queue snapshot SHA-256: `{snapshot_hash}`\n"
+            "Earliest\n",
+            encoding="utf-8",
+        )
+        discovery = _timed_discovery("tos.discovery.earliest")
+
+        self.assertFalse(
+            _has_independent_snapshot_witness(
+                repo,
+                {
+                    "receipt_id": "open-work-candidate-receipt.earliest.v1",
+                    "candidate_id": "open-work-candidate.earliest",
+                    "discovery_id": "tos.discovery.earliest",
+                    "issued_at": "2026-08-29T12:00:00Z",
+                    "queue_snapshot_sha256": snapshot_hash,
+                },
+                candidate_id="open-work-candidate.earliest",
+                candidate_label="Earliest",
+                discoveries={
+                    "tos.discovery.earliest": (
+                        discovery,
+                        "ToS/source-witnesses/discovery/runs/earliest.v1.json",
+                    )
+                },
+                provenance_events={},
+            )
+        )
 
     def test_candidate_source_ref_preserves_physical_jsonl_line_number(self) -> None:
         repo = self.make_repo()
