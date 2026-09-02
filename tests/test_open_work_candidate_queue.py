@@ -18,6 +18,8 @@ from open_work_candidate_queue_common import (  # noqa: E402
     QUEUE_PATH,
     QueueBuildError,
     _has_independent_snapshot_witness,
+    _load_candidates,
+    _reconstruct_pre_run_queue_sha256,
     _validate_active_discovery_timings,
     _validate_receipt_acquisition_closure,
     _validate_receipt_version_timestamp_order,
@@ -181,7 +183,11 @@ class OpenWorkCandidateQueueTest(unittest.TestCase):
         )
         _write_json(
             root / "ToS/source-witnesses/discovery/runs/existing.v1.json",
-            {"discovery_id": "tos.discovery.existing", "status": "reconciled"},
+            {
+                "discovery_id": "tos.discovery.existing",
+                "status": "reconciled",
+                "started_at": "2026-08-29T10:00:00Z",
+            },
         )
         _write_jsonl(
             root / "ToS/source-witnesses/discovery/candidates/reviewed-candidates.jsonl",
@@ -369,6 +375,55 @@ class OpenWorkCandidateQueueTest(unittest.TestCase):
                 provenance_events={},
             )
         )
+
+    def test_reconstruction_excludes_unreceipted_post_run_discovery(self) -> None:
+        repo = self.make_repo()
+        current = _timed_discovery("tos.discovery.current")
+        current["started_at"] = "2026-08-29T11:00:00Z"
+        current["ended_at"] = "2026-08-29T11:00:00.125000Z"
+        post_run = _timed_discovery("tos.discovery.post-run")
+        post_run["started_at"] = "2026-08-29T13:00:00Z"
+        post_run["ended_at"] = "2026-08-29T13:00:00.125000Z"
+        current_ref = "ToS/source-witnesses/discovery/runs/current.v1.json"
+        post_run_ref = "ToS/source-witnesses/discovery/runs/post-run.v1.json"
+        _write_json(repo / current_ref, current)
+        _write_json(repo / post_run_ref, post_run)
+        discoveries = {
+            "tos.discovery.existing": (
+                json.loads(
+                    (repo / "ToS/source-witnesses/discovery/runs/existing.v1.json").read_text(
+                        encoding="utf-8"
+                    )
+                ),
+                "ToS/source-witnesses/discovery/runs/existing.v1.json",
+            ),
+            "tos.discovery.current": (current, current_ref),
+            "tos.discovery.post-run": (post_run, post_run_ref),
+        }
+        candidates = _load_candidates(repo)
+        receipt = {
+            "receipt_id": "open-work-candidate-receipt.earliest.v1",
+            "candidate_id": "open-work-candidate.earliest",
+            "discovery_id": "tos.discovery.current",
+            "issued_at": "2026-08-29T12:00:00Z",
+            "record_version": 1,
+        }
+
+        without_post_run = _reconstruct_pre_run_queue_sha256(
+            repo,
+            current_receipt=receipt,
+            ordered_receipts=[receipt],
+            candidates_with_locations=candidates,
+            discoveries={key: value for key, value in discoveries.items() if key != "tos.discovery.post-run"},
+        )
+        with_post_run = _reconstruct_pre_run_queue_sha256(
+            repo,
+            current_receipt=receipt,
+            ordered_receipts=[receipt],
+            candidates_with_locations=candidates,
+            discoveries=discoveries,
+        )
+        self.assertEqual(without_post_run, with_post_run)
 
     def test_candidate_source_ref_preserves_physical_jsonl_line_number(self) -> None:
         repo = self.make_repo()
@@ -657,8 +712,8 @@ class OpenWorkCandidateQueueTest(unittest.TestCase):
         )
         provenance_event = {
             "event_type": "acquisition",
-            "method": {"configuration": {"candidate_id": candidate_id}},
-            "inputs": [],
+            "method": {"configuration": {}},
+            "inputs": [{"ref": foreign_discovery_ref}],
             "outputs": [
                 {"ref": representation_ref},
                 {"ref": file_ref},

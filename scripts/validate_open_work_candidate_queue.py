@@ -127,8 +127,8 @@ def main() -> int:
 
     try:
         expected = render_payload(build_payload(REPO_ROOT))
-    except QueueBuildError as exc:
-        issues.append(f"queue build failed closed: {exc}")
+    except (QueueBuildError, KeyError, TypeError, AttributeError, IndexError, ValueError) as exc:
+        issues.append(f"queue build failed closed: {type(exc).__name__}: {exc}")
     else:
         if queue_path.is_file() and queue_path.read_text(encoding="utf-8") != expected:
             issues.append(f"{QUEUE_RELATIVE_PATH.as_posix()}: generated queue is stale")

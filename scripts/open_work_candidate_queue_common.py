@@ -549,6 +549,8 @@ def _validate_acquisition_closure(
     candidate_id: str,
     discoveries: dict[str, tuple[dict[str, Any], str]],
     receipt_context_refs: set[str],
+    receipt_discovery_id: str | None,
+    receipt_discovery_ref: str | None,
     provenance_events: dict[str, tuple[dict[str, Any], str]],
     location: str,
 ) -> None:
@@ -590,6 +592,7 @@ def _validate_acquisition_closure(
     if event.get("event_type") != "acquisition":
         raise QueueBuildError(f"{location}: {event_ref!r} is not an acquisition event")
     configuration = event.get("method", {}).get("configuration", {})
+    configured_candidate = None
     if isinstance(configuration, dict):
         configured_candidate = configuration.get("candidate_id")
         if configured_candidate is not None and configured_candidate != candidate_id:
@@ -700,15 +703,15 @@ def _validate_acquisition_closure(
         raise QueueBuildError(
             f"{location}: representation provenance_event_ref does not bind acquisition event {event_ref!r}"
         )
-    event_context_refs = output_refs | {
-        input_ref.get("ref")
-        for input_ref in event.get("inputs", [])
-        if isinstance(input_ref, dict) and isinstance(input_ref.get("ref"), str)
-    }
-    route_context_refs = receipt_context_refs | event_context_refs
-    if representation_discovery_ref not in route_context_refs and representation_discovery_id not in route_context_refs:
+    route_bound = (
+        representation_discovery_ref == receipt_discovery_ref
+        and representation_discovery_id == receipt_discovery_id
+    )
+    if not route_bound and configured_candidate != candidate_id:
         raise QueueBuildError(
-            f"{location}: representation discovery_ref {representation_discovery_ref!r} is not bound to the receipt route"
+            f"{location}: representation discovery_ref {representation_discovery_ref!r} is not bound "
+            f"to receipt discovery {receipt_discovery_ref!r} ({receipt_discovery_id!r}) "
+            "or an explicit candidate binding"
         )
 
 
@@ -758,6 +761,8 @@ def _validate_receipt_acquisition_closure(
             candidate_id=candidate_id,
             discoveries=discoveries,
             receipt_context_refs=receipt_context_refs,
+            receipt_discovery_id=receipt.get("discovery_id"),
+            receipt_discovery_ref=receipt.get("discovery_ref"),
             provenance_events=provenance_events,
             location=f"{location}:acquisition[{index}]",
         )
@@ -1387,6 +1392,13 @@ def _receipt_sort_key(receipt: dict[str, Any]) -> tuple[datetime, int, str]:
     return parsed, version, receipt_id
 
 
+def _discovery_started_at(
+    discovery: tuple[dict[str, Any], str],
+) -> datetime:
+    payload, location = discovery
+    return _parse_timestamp(payload.get("started_at"), location=location, field="started_at")
+
+
 def _validate_receipt_version_timestamp_order(receipts: list[dict[str, Any]]) -> None:
     by_candidate: dict[str, list[tuple[int, datetime, str]]] = {}
     seen_versions: dict[str, set[int]] = {}
@@ -1529,11 +1541,12 @@ def _reconstruct_pre_run_queue_sha256(
         if _receipt_sort_key(receipt) >= current_key
     ]
     future_discovery_ids = {receipt.get("discovery_id") for receipt in future_receipts}
-    pre_run_discoveries = {
-        discovery_id: entry
-        for discovery_id, entry in discoveries.items()
-        if discovery_id not in future_discovery_ids
-    }
+    pre_run_discoveries = {}
+    for discovery_id, entry in discoveries.items():
+        if discovery_id in future_discovery_ids:
+            continue
+        if _discovery_started_at(entry) <= current_key[0]:
+            pre_run_discoveries[discovery_id] = entry
     excluded_paths: set[Path] = set()
     future_receipt_ids = {receipt["receipt_id"] for receipt in future_receipts}
     receipt_root = repo_root / RECEIPT_ROOT
