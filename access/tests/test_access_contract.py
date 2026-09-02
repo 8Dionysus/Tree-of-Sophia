@@ -258,6 +258,7 @@ class CoreContractTests(unittest.TestCase):
                 [
                     {"view_id": "authority-layers", "title": "Authority layers"},
                     {"view_id": "diff-snapshot", "title": "Snapshot diff"},
+                    {"view_id": "node-neighborhood", "title": "Node neighborhood"},
                 ]
             )
             index_path.write_text(json.dumps(index), encoding="utf-8")
@@ -274,6 +275,8 @@ class CoreContractTests(unittest.TestCase):
             )
             with self.assertRaisesRegex(KeyError, "unsupported standalone"):
                 core.graph_view("authority-layers")
+            with self.assertRaisesRegex(KeyError, "unsupported standalone"):
+                core.graph_view("node-neighborhood")
 
     def test_doctor_and_http_use_same_core(self) -> None:
         with tempfile.TemporaryDirectory() as raw:

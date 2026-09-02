@@ -14,7 +14,6 @@ PHILOSOPHY_AUDIT_RELATIVE_PATH = Path("ToS/philosophy/graph-workbench/review-pac
 SUPPORTED_CORPUS_VIEW_IDS = {
     "corpus-topology",
     "route-graph",
-    "node-neighborhood",
     "provenance-dag",
     "promotion-flow",
 }
@@ -424,8 +423,6 @@ class ToSAccessCore:
             items = payload.get("branches", [])[:limit]
         elif view_id == "route-graph":
             items = payload.get("relation_packs", [])[:limit]
-        elif view_id == "node-neighborhood":
-            items = payload.get("nodes", [])[:limit]
         elif view_id == "provenance-dag":
             items = [
                 resource
