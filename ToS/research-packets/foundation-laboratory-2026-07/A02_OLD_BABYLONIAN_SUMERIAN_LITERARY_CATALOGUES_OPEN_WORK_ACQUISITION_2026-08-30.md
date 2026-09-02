@@ -112,5 +112,5 @@ for human philological and semantic review.
   not mechanically mint thirteen Works from thirteen XML members.
 
 No new architectural decision was required. TOS-D-0039 already owns the
-reviewed candidate loop, and TOS-D-0038 already owns file-backed scholarly
+reviewed candidate loop, and TOS-D-0040 already owns file-backed scholarly
 composite representations.

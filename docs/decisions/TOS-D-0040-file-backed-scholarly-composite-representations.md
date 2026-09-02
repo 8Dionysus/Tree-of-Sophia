@@ -2,7 +2,7 @@
 
 ## Index Metadata
 
-- Decision ID: TOS-D-0038
+- Decision ID: TOS-D-0040
 - Original date: 2026-08-30
 - Surface classes: source-witness, contracts, scripts/validation, docs/route-law
 - ToS layers: source-witnesses, contracts, philosophy, docs
