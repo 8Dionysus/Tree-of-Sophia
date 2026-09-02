@@ -1267,6 +1267,8 @@ function renderShell(): void {
                 <div id="layer-list" class="stack"></div>
                 <div class="section-title">${t("section.relations")}</div>
                 <div id="relation-controls" class="relation-controls"></div>
+                <div class="section-title">${t("section.scaleExport")}</div>
+                <div id="scale-export-controls" class="scale-export-controls"></div>
               </div>
             </details>
           </div>
@@ -1274,7 +1276,6 @@ function renderShell(): void {
           <div id="graph-empty" class="graph-empty" hidden>${t("empty.graph")}</div>
           <div id="graph-caption" class="graph-caption"></div>
           <div id="node-tooltip" class="node-tooltip" hidden></div>
-          <div id="scale-export-controls" hidden></div>
         </section>
       </main>
       <aside class="right-rail reader-inspector" aria-label="${t("inspector.selection")}">

@@ -475,6 +475,8 @@ class AuthoredContractTests(unittest.TestCase):
         self.assertIn('state.mode === "philosophy"', page)
         self.assertGreaterEqual(page.count("state.activeLayers.size === 0"), 2)
         self.assertGreaterEqual(page.count("state.activePredicates.size === 0"), 2)
+        self.assertIn('id="scale-export-controls" class="scale-export-controls"', page)
+        self.assertNotIn('id="scale-export-controls" hidden', page)
 
     def test_standalone_profile_is_abyssos_independent(self) -> None:
         runtime = json.loads((ACCESS_ROOT / "contracts/runtime-manifest.v1.json").read_text(encoding="utf-8"))
