@@ -98,6 +98,8 @@ type PhilosophyViewPayload = {
 type CorpusViewPayload = {
   view: ViewCard;
   items?: AnyItem[];
+  nodes?: GraphNode[];
+  edges?: GraphEdge[];
 };
 
 type NeighborhoodPayload = {
@@ -2563,6 +2565,9 @@ function buildCorpusGraph(): void {
   const items = (payload.items || []).filter(isPublicAtlasItem).slice(0, corpusItemLimit());
   const relations = items.filter((item) => Boolean(item.from_id && item.to_id));
   const resources = items.filter((item) => !(item.from_id && item.to_id));
+  const projectedNodes = new Map(
+    (payload.nodes || []).filter((node) => node.node_id).map((node) => [node.node_id, node]),
+  );
   const rootId = `view:${state.currentViewId}`;
   if (resources.length || relations.length === 0) addGraphNode(rootId, payload.view, 0, 10);
   resources.forEach((item, index) => {
@@ -2580,7 +2585,12 @@ function buildCorpusGraph(): void {
     ]) {
       if (endpointIds.has(id)) continue;
       endpointIds.add(id);
-      addGraphNode(id, { node_id: id, label, owner_branch: item.owner_branch }, resources.length + endpointIds.size, 5);
+      addGraphNode(
+        id,
+        projectedNodes.get(id) || { node_id: id, label, owner_branch: item.owner_branch },
+        resources.length + endpointIds.size,
+        5,
+      );
     }
     addGraphEdge(text(item.edge_id || `corpus-relation:${index}`), fromId, toId, item);
   });

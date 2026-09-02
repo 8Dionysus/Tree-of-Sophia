@@ -295,6 +295,7 @@ class CoreContractTests(unittest.TestCase):
                     {"view_id": "authority-layers", "title": "Authority layers"},
                     {"view_id": "diff-snapshot", "title": "Snapshot diff"},
                     {"view_id": "node-neighborhood", "title": "Node neighborhood"},
+                    {"view_id": "provenance-dag", "title": "Provenance"},
                 ]
             )
             index_path.write_text(json.dumps(index), encoding="utf-8")
@@ -313,8 +314,10 @@ class CoreContractTests(unittest.TestCase):
                 core.graph_view("authority-layers")
             with self.assertRaisesRegex(KeyError, "unsupported standalone"):
                 core.graph_view("node-neighborhood")
+            with self.assertRaisesRegex(KeyError, "unsupported standalone"):
+                core.graph_view("provenance-dag")
 
-    def test_corpus_provenance_and_promotion_views_preserve_terminal_routes(self) -> None:
+    def test_corpus_route_and_promotion_views_preserve_relation_topology(self) -> None:
         with tempfile.TemporaryDirectory() as raw:
             root = Path(raw)
             write_fixture(root)
@@ -322,32 +325,41 @@ class CoreContractTests(unittest.TestCase):
             index = json.loads(index_path.read_text(encoding="utf-8"))
             index["graph_views"].extend(
                 [
-                    {"view_id": "provenance-dag", "title": "Provenance"},
+                    {"view_id": "route-graph", "title": "Routes"},
                     {"view_id": "promotion-flow", "title": "Promotion"},
                 ]
             )
-            index["resources"] = [
-                {"owner_branch": "ToS/source-witnesses", "path": "ToS/source-witnesses/a.json"},
-                {"owner_branch": "ToS/derived-exports", "path": "ToS/derived-exports/a.json"},
+            index["nodes"] = [
+                {"node_id": "a", "label": "Alpha"},
+                {"node_id": "b", "label": "Beta"},
             ]
             index["relation_packs"] = [
-                {"pack_id": "candidate-intake/fixture", "path": "ToS/candidate-intake/fixture/edges.csv"}
+                {"pack_id": "candidate-intake/fixture", "owner_branch": "ToS/candidate-intake", "path": "ToS/candidate-intake/fixture/edges.csv"},
+                {"pack_id": "canon/fixture", "owner_branch": "ToS/canon", "path": "ToS/canon/fixture/edges.csv"},
             ]
             index["relation_edges"] = [
                 {
                     "edge_id": "candidate-edge",
                     "owner_branch": "ToS/candidate-intake",
                     "pack_id": "candidate-intake/fixture",
-                }
+                    "from_id": "candidate-a",
+                    "to_id": "candidate-b",
+                },
+                {
+                    "edge_id": "canon-edge",
+                    "owner_branch": "ToS/canon",
+                    "pack_id": "canon/fixture",
+                    "from_id": "a",
+                    "to_id": "b",
+                },
             ]
             index_path.write_text(json.dumps(index), encoding="utf-8")
             core = ToSAccessCore.discover(tos_root=root)
 
-            provenance = core.graph_view("provenance-dag")
-            self.assertEqual(
-                [item["path"] for item in provenance["items"]],
-                ["ToS/source-witnesses/a.json", "ToS/derived-exports/a.json"],
-            )
+            routes = core.graph_view("route-graph")
+            self.assertEqual([item["edge_id"] for item in routes["items"]], ["canon-edge"])
+            self.assertEqual(routes["edges"][0]["source_ref"], "ToS/canon/fixture/edges.csv")
+            self.assertEqual([node["node_id"] for node in routes["nodes"]], ["a", "b"])
             promotion = core.graph_view("promotion-flow")
             self.assertEqual(promotion["items"][0]["source_ref"], "ToS/candidate-intake/fixture/edges.csv")
 

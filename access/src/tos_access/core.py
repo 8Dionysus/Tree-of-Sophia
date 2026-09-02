@@ -14,7 +14,6 @@ PHILOSOPHY_AUDIT_RELATIVE_PATH = Path("ToS/philosophy/graph-workbench/review-pac
 SUPPORTED_CORPUS_VIEW_IDS = {
     "corpus-topology",
     "route-graph",
-    "provenance-dag",
     "promotion-flow",
 }
 
@@ -419,24 +418,41 @@ class ToSAccessCore:
             raise KeyError(f"unknown ToS graph view: {view_id}")
         if view_id not in SUPPORTED_CORPUS_VIEW_IDS:
             raise KeyError(f"unsupported standalone ToS graph view: {view_id}")
+        graph_nodes: list[dict[str, Any]] = []
+        graph_edges: list[dict[str, Any]] = []
         if view_id == "corpus-topology":
             items = payload.get("branches", [])[:limit]
         elif view_id == "route-graph":
-            items = payload.get("relation_packs", [])[:limit]
-        elif view_id == "provenance-dag":
-            items = [
-                resource
-                for resource in payload.get("resources", [])
-                if isinstance(resource, dict)
-                and resource.get("owner_branch")
-                in {
-                    "ToS/source-witnesses",
-                    "ToS/research-packets",
-                    "ToS/candidate-intake",
-                    "ToS/canon",
-                    "ToS/derived-exports",
-                }
-            ][:limit]
+            packs_by_id = {
+                str(pack.get("pack_id")): pack
+                for pack in payload.get("relation_packs", [])
+                if isinstance(pack, dict)
+                and pack.get("owner_branch") == "ToS/canon"
+                and pack.get("pack_id")
+            }
+            graph_edges = []
+            for edge in payload.get("relation_edges", []):
+                if not isinstance(edge, dict) or str(edge.get("pack_id") or "") not in packs_by_id:
+                    continue
+                item = dict(edge)
+                pack_path = packs_by_id[str(item["pack_id"])].get("path")
+                if not item.get("source_ref") and isinstance(pack_path, str) and pack_path:
+                    item["source_ref"] = pack_path
+                graph_edges.append(item)
+                if len(graph_edges) >= limit:
+                    break
+            endpoint_ids = {
+                str(endpoint)
+                for edge in graph_edges
+                for endpoint in (edge.get("from_id"), edge.get("to_id"))
+                if endpoint
+            }
+            graph_nodes = [
+                node
+                for node in payload.get("nodes", [])
+                if isinstance(node, dict) and str(node.get("node_id") or "") in endpoint_ids
+            ]
+            items = graph_edges
         elif view_id == "promotion-flow":
             packs_by_id = {
                 str(pack.get("pack_id")): pack
@@ -455,11 +471,16 @@ class ToSAccessCore:
                 items.append(item)
                 if len(items) >= limit:
                     break
+            graph_edges = items
         return {
             "schema": "tos_corpus_mcp_graph_view_v1",
             "view": view,
             "item_count": len(items),
             "items": items,
+            "node_count": len(graph_nodes),
+            "edge_count": len(graph_edges),
+            "nodes": graph_nodes,
+            "edges": graph_edges,
             "counts": payload.get("counts", {}),
             "runtime_projection_boundary": payload.get("runtime_projection_boundary", {}),
         }
