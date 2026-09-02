@@ -428,14 +428,33 @@ class ToSAccessCore:
                 resource
                 for resource in payload.get("resources", [])
                 if isinstance(resource, dict)
-                and resource.get("owner_branch") in {"ToS/source-witnesses", "ToS/research-packets", "ToS/candidate-intake", "ToS/canon"}
+                and resource.get("owner_branch")
+                in {
+                    "ToS/source-witnesses",
+                    "ToS/research-packets",
+                    "ToS/candidate-intake",
+                    "ToS/canon",
+                    "ToS/derived-exports",
+                }
             ][:limit]
         elif view_id == "promotion-flow":
-            items = [
-                edge
-                for edge in payload.get("relation_edges", [])
-                if isinstance(edge, dict) and edge.get("owner_branch") == "ToS/candidate-intake"
-            ][:limit]
+            packs_by_id = {
+                str(pack.get("pack_id")): pack
+                for pack in payload.get("relation_packs", [])
+                if isinstance(pack, dict) and pack.get("pack_id")
+            }
+            items = []
+            for edge in payload.get("relation_edges", []):
+                if not isinstance(edge, dict) or edge.get("owner_branch") != "ToS/candidate-intake":
+                    continue
+                item = dict(edge)
+                pack = packs_by_id.get(str(item.get("pack_id") or ""), {})
+                pack_path = pack.get("path") if isinstance(pack, dict) else None
+                if not item.get("source_ref") and isinstance(pack_path, str) and pack_path:
+                    item["source_ref"] = pack_path
+                items.append(item)
+                if len(items) >= limit:
+                    break
         return {
             "schema": "tos_corpus_mcp_graph_view_v1",
             "view": view,
@@ -912,49 +931,67 @@ class ToSAccessCore:
         limit = _bounded_int(limit, 80, 1, 300)
         layer_filter = set(layers or [])
         predicate_filter = set(predicates or [])
+        nodes = [node for node in payload.get("nodes", []) if isinstance(node, dict)]
+        nodes_by_id = {
+            str(node.get("node_id")): node
+            for node in nodes
+            if node.get("node_id")
+        }
+        node_order = {node_id: index for index, node_id in enumerate(nodes_by_id)}
+        allowed_node_ids = {
+            node_key
+            for node_key, candidate in nodes_by_id.items()
+            if node_key == node_id or _layer_allowed(candidate, layer_filter)
+        }
         all_edges = [
             edge
             for edge in payload.get("edges", [])
             if isinstance(edge, dict)
             and _layer_allowed(edge, layer_filter)
             and _predicate_allowed(edge, predicate_filter)
+            and str(edge.get("from_id") or "") in allowed_node_ids
+            and str(edge.get("to_id") or "") in allowed_node_ids
         ]
         selected_ids = {node_id}
-        frontier = {node_id}
-        selected_edges: list[dict[str, Any]] = []
+        discovery_order = [node_id]
+        frontier = [node_id]
+        traversal_edges: list[dict[str, Any]] = []
         selected_edge_ids: set[str] = set()
         for _ in range(depth):
-            next_frontier: set[str] = set()
+            candidates: dict[str, dict[str, Any]] = {}
             for edge in all_edges:
                 from_id = str(edge.get("from_id") or "")
                 to_id = str(edge.get("to_id") or "")
-                if from_id not in frontier and to_id not in frontier:
-                    continue
+                if from_id in frontier and to_id not in selected_ids:
+                    candidates.setdefault(to_id, edge)
+                if to_id in frontier and from_id not in selected_ids:
+                    candidates.setdefault(from_id, edge)
+            next_frontier: list[str] = []
+            for candidate_id in sorted(candidates, key=lambda item: (node_order.get(item, len(node_order)), item)):
+                if len(discovery_order) - 1 >= limit:
+                    break
+                selected_ids.add(candidate_id)
+                discovery_order.append(candidate_id)
+                next_frontier.append(candidate_id)
+                edge = candidates[candidate_id]
                 edge_id = str(edge.get("edge_id") or "")
                 if edge_id not in selected_edge_ids:
-                    selected_edges.append(edge)
+                    traversal_edges.append(edge)
                     selected_edge_ids.add(edge_id)
-                if from_id not in selected_ids:
-                    next_frontier.add(from_id)
-                if to_id not in selected_ids:
-                    next_frontier.add(to_id)
-            selected_ids.update(next_frontier)
             frontier = next_frontier
-            if not frontier or len(selected_ids) >= limit:
+            if not frontier or len(discovery_order) - 1 >= limit:
                 break
-        neighbor_ids = selected_ids - {node_id}
-        neighbors = [
-            node
-            for node in payload.get("nodes", [])
-            if isinstance(node, dict) and node.get("node_id") in neighbor_ids and _layer_allowed(node, layer_filter)
-        ][:limit]
-        retained_ids = {node_id, *(str(node.get("node_id")) for node in neighbors)}
-        retained_edges = [
-            edge
-            for edge in selected_edges
-            if str(edge.get("from_id") or "") in retained_ids
-            and str(edge.get("to_id") or "") in retained_ids
-        ][:limit]
+        neighbors = [nodes_by_id[item] for item in discovery_order[1:] if item in nodes_by_id]
+        retained_edges = list(traversal_edges)
+        for edge in all_edges:
+            if len(retained_edges) >= limit:
+                break
+            edge_id = str(edge.get("edge_id") or "")
+            if edge_id in selected_edge_ids:
+                continue
+            if str(edge.get("from_id") or "") in selected_ids and str(edge.get("to_id") or "") in selected_ids:
+                retained_edges.append(edge)
+                selected_edge_ids.add(edge_id)
         return {
             "schema": "tos_philosophy_mcp_neighborhood_v1",
             "node": node_packet["node"],

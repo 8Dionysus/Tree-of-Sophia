@@ -187,6 +187,42 @@ class CoreContractTests(unittest.TestCase):
             deep_edge_ids = [edge["edge_id"] for edge in deep_neighborhood["edges"]]
             self.assertEqual(len(deep_edge_ids), len(set(deep_edge_ids)))
 
+            projection_path = root / "ToS/derived-exports/philosophy_graph_projection.min.json"
+            projection = json.loads(projection_path.read_text(encoding="utf-8"))
+            projection["nodes"].append(
+                {"node_id": "d", "label": "Delta", "graph_layers": ["source-relation"]}
+            )
+            projection["edges"].insert(
+                0,
+                {
+                    "edge_id": "e3",
+                    "from_id": "c",
+                    "to_id": "d",
+                    "predicate_id": "relates",
+                    "graph_layers": ["source-relation"],
+                },
+            )
+            projection_path.write_text(json.dumps(projection), encoding="utf-8")
+            connected_prefix = ToSAccessCore.discover(tos_root=root).philosophy_neighborhood("a", depth=2, limit=2)
+            connected_ids = {
+                connected_prefix["node"]["node_id"],
+                *(node["node_id"] for node in connected_prefix["neighbors"]),
+            }
+            self.assertEqual(len(connected_ids), 3)
+            self.assertTrue(
+                all(
+                    edge["from_id"] in connected_ids and edge["to_id"] in connected_ids
+                    for edge in connected_prefix["edges"]
+                )
+            )
+            reached = {connected_prefix["node"]["node_id"]}
+            for edge in connected_prefix["edges"]:
+                if edge["from_id"] in reached:
+                    reached.add(edge["to_id"])
+                if edge["to_id"] in reached:
+                    reached.add(edge["from_id"])
+            self.assertEqual(reached, connected_ids)
+
     def test_view_packet_does_not_silently_cap_clusters_at_forty(self) -> None:
         with tempfile.TemporaryDirectory() as raw:
             root = Path(raw)
@@ -277,6 +313,43 @@ class CoreContractTests(unittest.TestCase):
                 core.graph_view("authority-layers")
             with self.assertRaisesRegex(KeyError, "unsupported standalone"):
                 core.graph_view("node-neighborhood")
+
+    def test_corpus_provenance_and_promotion_views_preserve_terminal_routes(self) -> None:
+        with tempfile.TemporaryDirectory() as raw:
+            root = Path(raw)
+            write_fixture(root)
+            index_path = root / "ToS/derived-exports/tos_corpus_index.min.json"
+            index = json.loads(index_path.read_text(encoding="utf-8"))
+            index["graph_views"].extend(
+                [
+                    {"view_id": "provenance-dag", "title": "Provenance"},
+                    {"view_id": "promotion-flow", "title": "Promotion"},
+                ]
+            )
+            index["resources"] = [
+                {"owner_branch": "ToS/source-witnesses", "path": "ToS/source-witnesses/a.json"},
+                {"owner_branch": "ToS/derived-exports", "path": "ToS/derived-exports/a.json"},
+            ]
+            index["relation_packs"] = [
+                {"pack_id": "candidate-intake/fixture", "path": "ToS/candidate-intake/fixture/edges.csv"}
+            ]
+            index["relation_edges"] = [
+                {
+                    "edge_id": "candidate-edge",
+                    "owner_branch": "ToS/candidate-intake",
+                    "pack_id": "candidate-intake/fixture",
+                }
+            ]
+            index_path.write_text(json.dumps(index), encoding="utf-8")
+            core = ToSAccessCore.discover(tos_root=root)
+
+            provenance = core.graph_view("provenance-dag")
+            self.assertEqual(
+                [item["path"] for item in provenance["items"]],
+                ["ToS/source-witnesses/a.json", "ToS/derived-exports/a.json"],
+            )
+            promotion = core.graph_view("promotion-flow")
+            self.assertEqual(promotion["items"][0]["source_ref"], "ToS/candidate-intake/fixture/edges.csv")
 
     def test_doctor_and_http_use_same_core(self) -> None:
         with tempfile.TemporaryDirectory() as raw:
