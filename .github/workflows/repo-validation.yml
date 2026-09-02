@@ -76,3 +76,18 @@ jobs:
           AOA_KAG_ROOT: ${{ runner.temp }}/aoa-kag
           AOA_STATS_ROOT: ${{ runner.temp }}/aoa-stats
         run: python scripts/release_check.py
+
+      - name: Setup Node for the WebMCP browser contract
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: "24"
+          cache: npm
+          cache-dependency-path: access/web/package-lock.json
+
+      - name: Validate the WebMCP browser contract and checked-in build
+        run: |
+          npm ci --prefix access/web
+          npm run test --prefix access/web
+          npm run typecheck --prefix access/web
+          npm run build --prefix access/web
+          git diff --exit-code -- access/web/dist

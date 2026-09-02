@@ -1,9 +1,9 @@
 # Tree of Sophia Access
 
-`access/` is the standalone, read-only product surface for Tree of Sophia.
-It gives native MCP, HTTP, CLI, and the web application one query core and one
-fingerprinted projection set. The next WebMCP implementation belongs here and
-will call the same browser actions already used by the site.
+`access/` is the standalone, source-read-only product surface for Tree of
+Sophia. It gives native MCP, HTTP, CLI, the web application, and WebMCP one
+query core and one fingerprinted projection set. Page commands may change the
+browser presentation, but never ToS source, review, rights, or canon state.
 
 Authored meaning stays under `ToS/`. This package reads allowlisted derived
 exports and always returns their `source_ref` routes; it never promotes canon,
@@ -41,8 +41,10 @@ run `tos verify --profile standalone`, `tos serve`, or `tos mcp`.
 
 - `contracts/runtime-manifest.v1.json` defines dual runtime posture.
 - `contracts/runtime-data.v1.json` is the publication/bundle allowlist.
-- `contracts/web-actions.v1.json` is the browser action ABI for the site and
-  future WebMCP registration.
+- `contracts/query-operations.v1.json` owns transport-neutral read operations.
+- `contracts/page-commands.v1.json` owns revisioned browser context and shared
+  human/WebMCP actuation.
+- `contracts/web-actions.v1.json` is retained only as the v1 migration marker.
 - `profiles/standalone.v1.json` is the required no-AbyssOS profile.
 - `profiles/abyssos.v1.json` declares optional ecosystem adapters.
 
@@ -53,3 +55,19 @@ required by the standalone profile.
 The current `ToS` projection v1/v2 contracts remain source-owned. Their legacy
 `runtime_owner` field describes the existing downstream deployment contract;
 it does not override this product's standalone runtime manifest.
+
+## WebMCP posture
+
+The site feature-detects the experimental `document.modelContext` API and
+remains fully usable when it is absent. Stable tools expose view, search,
+selection, focus, cancellation, and page-context commands. Selection-dependent
+tools are registered only for the current node or edge and bind the captured
+context revision, so a delayed reference to “this edge” fails closed after the
+human changes selection. Tool execution forwards the browser-provided
+`AbortSignal` through page commands to HTTP queries.
+
+The implementation follows the WebMCP Community Group draft shape current at
+`webmachinelearning/webmcp@41d12f057167ccf5954dbcf49d99502cb6c84491`:
+`document.modelContext.registerTool()`, registration lifecycle by
+`AbortSignal`, and execution cancellation through callback options. This is an
+experimental browser surface, not a ToS authority or availability guarantee.

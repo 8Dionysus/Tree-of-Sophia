@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import os
+from collections import deque
 from dataclasses import dataclass
 from functools import lru_cache
 from pathlib import Path
@@ -16,6 +17,8 @@ SUPPORTED_CORPUS_VIEW_IDS = {
     "route-graph",
     "promotion-flow",
 }
+PHILOSOPHY_PATH_STATE_LIMIT = 50_000
+PHILOSOPHY_PATH_FRONTIER_LIMIT = 5_000
 
 
 @lru_cache(maxsize=8)
@@ -1191,22 +1194,56 @@ class ToSAccessCore:
         layers: list[str] | None = None,
         predicates: list[str] | None = None,
         max_depth: int = 6,
+        direction: str = "outgoing",
+        view_id: str | None = None,
+        excluded_edge_ids: list[str] | None = None,
+        alternative_limit: int = 1,
     ) -> dict[str, Any]:
         payload = self.philosophy_projection()
         nodes, edges = _projection_nodes_edges(payload)
-        nodes_by_id = {
+        all_nodes_by_id = {
             str(node.get("node_id")): node
             for node in nodes
             if isinstance(node.get("node_id"), str)
         }
-        if from_id not in nodes_by_id:
+        if from_id not in all_nodes_by_id:
             raise KeyError(f"unknown ToS philosophy node: {from_id}")
-        if to_id not in nodes_by_id:
+        if to_id not in all_nodes_by_id:
             raise KeyError(f"unknown ToS philosophy node: {to_id}")
+        direction = str(direction or "outgoing").strip().lower()
+        if direction not in {"outgoing", "incoming", "either"}:
+            raise ValueError("direction must be outgoing, incoming, or either")
+        depth_limit = _bounded_int(max_depth, 6, 1, 8)
+        path_limit = _bounded_int(alternative_limit, 1, 1, 5)
         layer_filter = set(layers or [])
         predicate_filter = set(predicates or [])
-        adjacency: dict[str, list[tuple[str, dict[str, Any]]]] = {}
-        for edge in edges:
+        excluded_edges = {str(edge_id) for edge_id in (excluded_edge_ids or []) if str(edge_id)}
+
+        available_nodes = nodes
+        available_edges = edges
+        if view_id:
+            view = next(
+                (item for item in payload.get("views", []) if isinstance(item, dict) and item.get("view_id") == view_id),
+                None,
+            )
+            if view is None:
+                raise KeyError(f"unknown ToS philosophy graph view: {view_id}")
+            available_nodes, available_edges = _view_nodes_edges(payload, view)
+        available_node_ids = {
+            str(node.get("node_id"))
+            for node in available_nodes
+            if isinstance(node.get("node_id"), str)
+        }
+
+        adjacency: dict[str, list[tuple[str, dict[str, Any], str]]] = {}
+        for edge in sorted(
+            available_edges,
+            key=lambda item: (
+                str(item.get("edge_id") or ""),
+                str(item.get("from_id") or ""),
+                str(item.get("to_id") or ""),
+            ),
+        ):
             if (
                 not _layer_allowed(edge, layer_filter)
                 or not _predicate_allowed(edge, predicate_filter)
@@ -1214,38 +1251,99 @@ class ToSAccessCore:
                 continue
             left = str(edge.get("from_id") or "")
             right = str(edge.get("to_id") or "")
-            adjacency.setdefault(left, []).append((right, edge))
+            edge_id = str(edge.get("edge_id") or "")
+            if edge_id in excluded_edges or left not in available_node_ids or right not in available_node_ids:
+                continue
+            if direction in {"outgoing", "either"}:
+                adjacency.setdefault(left, []).append((right, edge, "forward"))
+            if direction in {"incoming", "either"} and (left != right or direction == "incoming"):
+                adjacency.setdefault(right, []).append((left, edge, "reverse"))
 
-        queue: list[tuple[str, list[str], list[dict[str, Any]]]] = [(from_id, [from_id], [])]
-        seen = {from_id}
-        found_nodes: list[str] = []
-        found_edges: list[dict[str, Any]] = []
-        depth_limit = max(1, min(8, int(max_depth)))
-        while queue:
-            current, path_nodes, path_edges = queue.pop(0)
-            if current == to_id:
-                found_nodes = path_nodes
-                found_edges = path_edges
+        queue = deque([(from_id, [from_id], [], [])])
+        paths: list[dict[str, Any]] = []
+        explored_states = 0
+        enqueued_states = 1
+        max_frontier_size = 1
+        exploration_truncated = False
+        while queue and len(paths) < path_limit:
+            if explored_states >= PHILOSOPHY_PATH_STATE_LIMIT:
+                exploration_truncated = True
                 break
+            current, path_node_ids, path_edges, traversal = queue.popleft()
+            explored_states += 1
+            if current == to_id:
+                path_nodes = [all_nodes_by_id[node_id] for node_id in path_node_ids]
+                paths.append(
+                    {
+                        "path_index": len(paths),
+                        "node_ids": path_node_ids,
+                        "edge_ids": [str(edge.get("edge_id") or "") for edge in path_edges],
+                        "nodes": path_nodes,
+                        "edges": path_edges,
+                        "traversal": traversal,
+                        "source_refs": _source_refs(path_nodes + path_edges),
+                    }
+                )
+                continue
             if len(path_edges) >= depth_limit:
                 continue
-            for neighbor, edge in adjacency.get(current, []):
-                if neighbor in seen:
+            for neighbor, edge, traversal_direction in adjacency.get(current, []):
+                if neighbor in path_node_ids:
                     continue
-                seen.add(neighbor)
-                queue.append((neighbor, [*path_nodes, neighbor], [*path_edges, edge]))
-        path_nodes_payload = [nodes_by_id[node_id] for node_id in found_nodes]
+                if (
+                    enqueued_states >= PHILOSOPHY_PATH_STATE_LIMIT
+                    or len(queue) >= PHILOSOPHY_PATH_FRONTIER_LIMIT
+                ):
+                    exploration_truncated = True
+                    break
+                queue.append(
+                    (
+                        neighbor,
+                        [*path_node_ids, neighbor],
+                        [*path_edges, edge],
+                        [
+                            *traversal,
+                            {
+                                "edge_id": edge.get("edge_id"),
+                                "from_node_id": current,
+                                "to_node_id": neighbor,
+                                "edge_direction": traversal_direction,
+                            },
+                        ],
+                    )
+                )
+                enqueued_states += 1
+                max_frontier_size = max(max_frontier_size, len(queue))
+
+        primary = paths[0] if paths else {"nodes": [], "edges": []}
+        source_items = [
+            item
+            for path in paths
+            for collection in (path["nodes"], path["edges"])
+            for item in collection
+        ]
         return {
-            "schema": "tos_philosophy_mcp_path_v1",
+            "schema": "tos_philosophy_mcp_path_v2",
             "from_id": from_id,
             "to_id": to_id,
-            "found": bool(found_nodes),
-            "nodes": path_nodes_payload,
-            "edges": found_edges,
+            "found": bool(paths),
+            "path_count": len(paths),
+            "paths": paths,
+            "nodes": primary["nodes"],
+            "edges": primary["edges"],
             "max_depth": depth_limit,
+            "direction": direction,
+            "view_id": view_id,
+            "excluded_edge_ids": sorted(excluded_edges),
+            "alternative_limit": path_limit,
+            "exploration_truncated": exploration_truncated,
+            "explored_state_count": explored_states,
+            "enqueued_state_count": enqueued_states,
+            "frontier_limit": PHILOSOPHY_PATH_FRONTIER_LIMIT,
+            "max_frontier_size": max_frontier_size,
             "layers": sorted(layer_filter),
             "predicates": sorted(predicate_filter),
-            "source_refs": _source_refs(path_nodes_payload + found_edges),
+            "source_refs": _source_refs(source_items),
             "runtime_projection_boundary": payload.get("runtime_projection_boundary", {}),
             "authority_note": "Tree-of-Sophia owns graph meaning; MCP serves a bounded path packet.",
         }

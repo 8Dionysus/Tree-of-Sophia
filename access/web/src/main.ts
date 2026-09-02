@@ -2,7 +2,18 @@ import type { Graph as CosmosGraph, GraphConfig } from "@cosmos.gl/graph";
 import Graphology from "graphology";
 import forceAtlas2 from "graphology-layout-forceatlas2";
 import Sigma from "sigma";
-import { createToSWebActions } from "./actions";
+import {
+  createPageCommandRegistry,
+  isPageCommandCancellation,
+  reloadableFocusId,
+  requireKnownViewId,
+  type PageCommandId,
+  type PageCommandInput,
+  type PageContextSnapshot,
+  type PageSelection,
+} from "./page-commands";
+import { createToSQueryOperations } from "./query-operations";
+import { createWebMCPAdapter, type WebMCPDocument } from "./webmcp";
 import { localizedContentPayload, localizedContentText } from "./content-i18n";
 import StarNodeProgram from "./star-node-program";
 import "./styles.css";
@@ -125,6 +136,18 @@ type PathPayload = {
   max_depth?: number;
   layers?: string[];
   predicates?: string[];
+  direction?: "outgoing" | "incoming" | "either";
+  view_id?: string | null;
+  excluded_edge_ids?: string[];
+  alternative_limit?: number;
+  path_count?: number;
+  paths?: Array<{
+    path_index: number;
+    node_ids: string[];
+    edge_ids: string[];
+    nodes: GraphNode[];
+    edges: GraphEdge[];
+  }>;
   source_refs?: string[];
 };
 
@@ -276,6 +299,7 @@ const uiText: Record<Language, Record<string, string>> = {
     "detail.path": "Path",
     "detail.pathNodes": "Path nodes",
     "detail.pathRelations": "Path relations",
+    "detail.pathAlternatives": "Path alternatives",
     "detail.noRoute": "No route found",
     "detail.maxDepth": "max depth",
     "detail.allActiveLayers": "all active layers",
@@ -286,6 +310,7 @@ const uiText: Record<Language, Record<string, string>> = {
     "route.pathStartSet": "Path start set",
     "route.useAsPathStart": "Use as path start",
     "route.pathFrom": "Path from",
+    "route.rerouteWithoutEdge": "Find alternatives without this edge",
     "state.loading": "loading",
     "state.none": "none",
     "caption.view": "View",
@@ -381,6 +406,7 @@ const uiText: Record<Language, Record<string, string>> = {
     "detail.path": "Путь",
     "detail.pathNodes": "Узлы пути",
     "detail.pathRelations": "Связи пути",
+    "detail.pathAlternatives": "Альтернативы пути",
     "detail.noRoute": "Маршрут не найден",
     "detail.maxDepth": "макс. глубина",
     "detail.allActiveLayers": "все активные слои",
@@ -391,6 +417,7 @@ const uiText: Record<Language, Record<string, string>> = {
     "route.pathStartSet": "Начало пути задано",
     "route.useAsPathStart": "Сделать началом пути",
     "route.pathFrom": "Путь от",
+    "route.rerouteWithoutEdge": "Найти альтернативы без этой связи",
     "state.loading": "загрузка",
     "state.none": "нет",
     "caption.view": "Вид",
@@ -599,6 +626,7 @@ type InitialRoute = {
   viewId: string;
   graphMode: GraphMode;
   language: Language | null;
+  focusId: string;
 };
 
 function readInitialRoute(): InitialRoute {
@@ -611,6 +639,7 @@ function readInitialRoute(): InitialRoute {
     viewId: params.get("view") || "",
     graphMode,
     language: requestedLanguage === "ru" || requestedLanguage === "en" ? requestedLanguage : null,
+    focusId: params.get("focus") || "",
   };
 }
 
@@ -975,7 +1004,7 @@ async function fetchJson<T>(url: string, options?: RequestInit): Promise<T> {
   return (await response.json()) as T;
 }
 
-const webActions = createToSWebActions(fetchJson);
+const queryOperations = createToSQueryOperations(fetchJson);
 
 function isPhilosophyView(payload: PhilosophyViewPayload | CorpusViewPayload | null): payload is PhilosophyViewPayload {
   return Boolean(payload && state.mode === "philosophy");
@@ -1307,27 +1336,29 @@ function renderShell(): void {
 function bindShellEvents(): void {
   byId("language-en").addEventListener("click", () => setLanguage("en"));
   byId("language-ru").addEventListener("click", () => setLanguage("ru"));
-  byId("mode-philosophy").addEventListener("click", () => void loadMode("philosophy"));
-  byId("mode-corpus").addEventListener("click", () => void loadMode("corpus"));
+  byId("mode-philosophy").addEventListener("click", () => invokePageCommandFromUi("tos.page.open-view", { mode: "philosophy" }));
+  byId("mode-corpus").addEventListener("click", () => invokePageCommandFromUi("tos.page.open-view", { mode: "corpus" }));
   byId("clusters-button").addEventListener("click", () => {
     state.expandedCluster = null;
     state.graphMode = "clusters";
     renderAll();
     syncPublicRoute();
+    pageCommands.notifyStateChange();
   });
   byId("nodes-button").addEventListener("click", () => {
     state.graphMode = "nodes";
     renderAll();
     syncPublicRoute();
+    pageCommands.notifyStateChange();
   });
   byId("fit-button").addEventListener("click", () => fitActiveGraph());
-  byId("focus-clear-button").addEventListener("click", clearFocus);
+  byId("focus-clear-button").addEventListener("click", () => invokePageCommandFromUi("tos.page.clear-focus"));
   byId("inspector-open").addEventListener("click", () => setInspectorOpen(true));
   byId("inspector-close").addEventListener("click", () => setInspectorOpen(false));
-  byId("search-button").addEventListener("click", () => void search());
+  byId("search-button").addEventListener("click", () => invokePageCommandFromUi("tos.page.search", { query: searchInput.value }));
   const searchInput = byId("search") as HTMLInputElement;
   searchInput.addEventListener("keydown", (event) => {
-    if (event.key === "Enter") void search();
+    if (event.key === "Enter") invokePageCommandFromUi("tos.page.search", { query: searchInput.value });
   });
   graphContainer?.addEventListener("pointermove", (event) => {
     lastPointer.x = event.clientX;
@@ -1344,6 +1375,17 @@ function byId(id: string): HTMLElement {
   return element;
 }
 
+function invokePageCommandFromUi(commandId: PageCommandId, input: PageCommandInput = {}): void {
+  void pageCommands.invoke(commandId, input).catch((error: unknown) => {
+    if (isPageCommandCancellation(error)) return;
+    console.error(`Tree of Sophia page command failed: ${commandId}`, error);
+    const title = document.getElementById("inspector-title");
+    const meta = document.getElementById("inspector-meta");
+    if (title) title.textContent = t("load.failed");
+    if (meta) meta.innerHTML = `<span class="danger">${text(error)}</span>`;
+  });
+}
+
 function setActive(id: string, active: boolean): void {
   byId(id).classList.toggle("active", active);
 }
@@ -1356,6 +1398,7 @@ function setLanguage(language: Language): void {
   renderShell();
   renderAll();
   syncPublicRoute();
+  pageCommands.notifyStateChange();
 }
 
 function syncPublicRoute(): void {
@@ -1366,6 +1409,18 @@ function syncPublicRoute(): void {
   url.searchParams.set("graph", state.graphMode);
   url.searchParams.set("lang", state.language);
   url.searchParams.set("ui", state.language);
+  const current = state.currentView as AnyItem | null;
+  const reloadableIds = current
+    ? [
+        ...((current.nodes as AnyItem[] | undefined) || []),
+        ...((current.edges as AnyItem[] | undefined) || []),
+        ...((current.clusters as AnyItem[] | undefined) || []),
+        ...((current.items as AnyItem[] | undefined) || []),
+      ].map(itemId)
+    : [];
+  const routeFocusId = reloadableFocusId(pageSelection(), state.selectedGraphId, reloadableIds);
+  if (routeFocusId) url.searchParams.set("focus", routeFocusId);
+  else url.searchParams.delete("focus");
   window.history.replaceState(null, "", `${url.pathname}${url.search}${url.hash}`);
 }
 
@@ -1406,7 +1461,11 @@ function renderViews(): void {
     )
     .join("");
   byId("view-list").querySelectorAll<HTMLButtonElement>("[data-view]").forEach((button) => {
-    button.addEventListener("click", () => void loadView(button.dataset.view || ""));
+    button.addEventListener("click", () => invokePageCommandFromUi("tos.page.open-view", {
+      mode: state.mode,
+      view_id: button.dataset.view || "",
+      graph_mode: state.graphMode,
+    }));
   });
   const current = state.currentView?.view || views.find((view) => view.view_id === state.currentViewId);
   byId("current-view-title").textContent = viewDisplayTitle(current);
@@ -1440,6 +1499,7 @@ function renderLayers(): void {
       else state.activeLayers.delete(layer);
       invalidateFocusedPackets();
       renderAll();
+      pageCommands.notifyStateChange();
     });
   });
 }
@@ -1506,6 +1566,7 @@ function renderRelationControls(): void {
       else state.activePredicates.delete(predicate);
       invalidateFocusedPackets();
       renderAll();
+      pageCommands.notifyStateChange();
     });
   });
   root.querySelector<HTMLButtonElement>("#relation-min-dec")?.addEventListener("click", () => {
@@ -1520,6 +1581,7 @@ function renderRelationControls(): void {
     state.activePredicates = new Set(currentPredicates());
     invalidateFocusedPackets();
     renderAll();
+    pageCommands.notifyStateChange();
   });
 }
 
@@ -1606,6 +1668,17 @@ function renderInspector(): void {
     ) {
       cards.push(nodeRouteActions(selectedNodeId));
     }
+    if (
+      state.mode === "philosophy" &&
+      state.activeLayers.size > 0 &&
+      state.activePredicates.size > 0 &&
+      source.from_id &&
+      source.to_id &&
+      source.edge_id &&
+      !isAggregateRelation(source)
+    ) {
+      cards.push(`<div class="route-actions"><button id="reroute-without-edge-button" type="button">${t("route.rerouteWithoutEdge")}</button></div>`);
+    }
     cards.push(...relationDetailCards(state.selected));
     if (selectedRelationRows.length) {
       cards.push(...relationReadingCards(selectedRelationRows));
@@ -1614,6 +1687,13 @@ function renderInspector(): void {
     if (selectedNodeId) {
       cards.push(...neighborhoodCards(selectedNodeId));
       cards.push(...pathCards(selectedNodeId));
+    } else if (
+      typeof source.from_id === "string" &&
+      typeof source.to_id === "string" &&
+      state.pathPacket?.from_id === source.from_id &&
+      state.pathPacket.to_id === source.to_id
+    ) {
+      cards.push(...pathCards(source.to_id));
     }
     const refs = collectRefs(state.selected);
     const noteList = sourceNoteList(state.selected);
@@ -1694,17 +1774,26 @@ function renderInspector(): void {
   document.getElementById("neighborhood-button")?.addEventListener("click", (event) => {
     event.preventDefault();
     event.stopPropagation();
-    void showNeighborhood(selectedNodeId);
+    invokePageCommandFromUi("tos.page.show-neighborhood", { node_id: selectedNodeId });
   });
   document.getElementById("path-start-button")?.addEventListener("click", (event) => {
     event.preventDefault();
     event.stopPropagation();
-    setPathStart(selectedNodeId);
+    invokePageCommandFromUi("tos.page.start-path", { node_id: selectedNodeId });
   });
   document.getElementById("path-to-button")?.addEventListener("click", (event) => {
     event.preventDefault();
     event.stopPropagation();
-    void showPathTo(selectedNodeId);
+    invokePageCommandFromUi("tos.page.find-path", { to_id: selectedNodeId });
+  });
+  document.getElementById("reroute-without-edge-button")?.addEventListener("click", (event) => {
+    event.preventDefault();
+    event.stopPropagation();
+    invokePageCommandFromUi("tos.page.reroute-without-selection", {
+      direction: "outgoing",
+      alternative_limit: 3,
+      constrain_to_view: true,
+    });
   });
 }
 
@@ -2837,7 +2926,7 @@ function layoutGraph(): void {
   }
 }
 
-function selectItem(item: AnyItem): void {
+function setSelectedItemState(item: AnyItem): void {
   state.selected = item;
   state.inspectorOpen = true;
   state.selectedGraphId = text(item.node_id || item.cluster_id || item.edge_id || "") || null;
@@ -2849,10 +2938,67 @@ function selectItem(item: AnyItem): void {
   if (cluster.cluster_id && cluster.member_node_ids?.length) {
     state.expandedCluster = cluster;
   }
+}
+
+function applySelectedItem(item: AnyItem): void {
+  setSelectedItemState(item);
   renderChips();
   renderGraphPreservingInspectorLists();
   renderInspector();
+  syncPublicRoute();
   scrollInspectorTop();
+}
+
+function selectableItem(itemIdValue: string): AnyItem | null {
+  const current = state.currentView as AnyItem | null;
+  const collections = [
+    state.results,
+    state.relationItems,
+    state.neighborhood?.neighbors || [],
+    state.neighborhood?.edges || [],
+    state.pathPacket?.nodes || [],
+    state.pathPacket?.edges || [],
+    ...(
+      current
+        ? [
+            (current.nodes as AnyItem[] | undefined) || [],
+            (current.edges as AnyItem[] | undefined) || [],
+            (current.clusters as AnyItem[] | undefined) || [],
+            (current.items as AnyItem[] | undefined) || [],
+          ]
+        : []
+    ),
+    [...lastGraphItems.values()],
+  ];
+  for (const collection of collections) {
+    const match = collection.find((item) => itemId(item) === itemIdValue);
+    if (match) return match;
+  }
+  return null;
+}
+
+function viewItem(view: PhilosophyViewPayload | CorpusViewPayload, itemIdValue: string): AnyItem | null {
+  const current = view as AnyItem;
+  if (!current) return null;
+  const collections = [
+    (current.nodes as AnyItem[] | undefined) || [],
+    (current.edges as AnyItem[] | undefined) || [],
+    (current.clusters as AnyItem[] | undefined) || [],
+    (current.items as AnyItem[] | undefined) || [],
+  ];
+  for (const collection of collections) {
+    const match = collection.find((item) => itemId(item) === itemIdValue);
+    if (match) return match;
+  }
+  return null;
+}
+
+function isAggregateRelation(item: AnyItem): boolean {
+  return text(item.edge_id).startsWith("cluster-relation:") || stringList(item.member_edge_ids).length > 0;
+}
+
+function selectItem(item: AnyItem): void {
+  invokePageCommandFromUi("tos.page.select", { item_id: itemId(item) });
 }
 
 function nodeRouteActions(nodeId: string): string {
@@ -2946,34 +3092,46 @@ function pathCards(nodeId: string): string[] {
   if (edges.length) {
     cards.push(relationRowsSection(t("detail.pathRelations"), edges.map((edge) => relationRowFromEdge(edge, "adjacent")), "path"));
   }
+  if ((state.pathPacket.paths?.length || 0) > 1) {
+    cards.push(`<div class="section-title">${t("detail.pathAlternatives")}</div>`);
+    cards.push(
+      ...(state.pathPacket.paths || []).map((path, index) =>
+        detailCard(
+          `${t("detail.path")} ${index + 1}`,
+          path.node_ids.map((pathNodeId) => endpointLabel(pathNodeId) || pathNodeId).join(" → "),
+        ),
+      ),
+    );
+  }
   return cards;
 }
 
-async function showNeighborhood(nodeId: string): Promise<void> {
-  if (
-    !nodeId ||
-    state.mode !== "philosophy" ||
-    state.activeLayers.size === 0 ||
-    state.activePredicates.size === 0
-  ) return;
+async function showNeighborhood(
+  nodeId: string,
+  depth = 1,
+  signal?: AbortSignal,
+): Promise<NeighborhoodPayload> {
+  if (!nodeId) throw new Error("node_id is required");
+  assertPhilosophyRouteAvailable();
   const requestRevision = ++neighborhoodRevision;
   const requestMode = state.mode;
   const requestViewId = state.currentViewId;
   const selected = state.selected;
   ignoreGraphClicksUntil = Date.now() + 1500;
   ignoreInspectorSelectionsUntil = Date.now() + 1500;
-  const neighborhood = (await webActions.invoke("tos.neighborhood", {
+  const neighborhood = (await queryOperations.invoke("tos.neighborhood", {
     node_id: nodeId,
-    depth: 1,
+    depth,
     limit: 160,
     layers: [...state.activeLayers],
     predicates: [...state.activePredicates],
-  })) as NeighborhoodPayload;
+  }, { signal })) as NeighborhoodPayload;
+  signal?.throwIfAborted();
   if (
     requestRevision !== neighborhoodRevision ||
     state.mode !== requestMode ||
     state.currentViewId !== requestViewId
-  ) return;
+  ) throw new DOMException("superseded neighborhood request", "AbortError");
   state.graphMode = "nodes";
   state.expandedCluster = null;
   state.neighborhood = neighborhood;
@@ -2984,7 +3142,9 @@ async function showNeighborhood(nodeId: string): Promise<void> {
   ignoreGraphClicksUntil = Date.now() + 1500;
   ignoreInspectorSelectionsUntil = Date.now() + 1500;
   renderInspector();
+  syncPublicRoute();
   scrollInspectorTop();
+  return neighborhood;
 }
 
 function setPathStart(nodeId: string): void {
@@ -2995,46 +3155,55 @@ function setPathStart(nodeId: string): void {
   renderInspector();
 }
 
-async function showPathTo(nodeId: string): Promise<void> {
-  if (
-    !nodeId ||
-    !state.pathStartNodeId ||
-    state.pathStartNodeId === nodeId ||
-    state.mode !== "philosophy" ||
-    state.activeLayers.size === 0 ||
-    state.activePredicates.size === 0
-  ) return;
+type PathRequest = {
+  direction?: "outgoing" | "incoming" | "either";
+  maxDepth?: number;
+  alternativeLimit?: number;
+  excludedEdgeIds?: string[];
+  viewId?: string;
+  signal?: AbortSignal;
+};
+
+async function showPath(fromId: string, toId: string, request: PathRequest = {}): Promise<PathPayload> {
+  if (!fromId || !toId || fromId === toId) throw new Error("path endpoints must be different nodes");
+  assertPhilosophyRouteAvailable();
   const requestRevision = ++pathRevision;
   const requestMode = state.mode;
   const requestViewId = state.currentViewId;
-  const fromId = state.pathStartNodeId;
   const selected = state.selected;
   ignoreGraphClicksUntil = Date.now() + 1500;
   ignoreInspectorSelectionsUntil = Date.now() + 1500;
-  const pathPacket = (await webActions.invoke("tos.path.find", {
+  const pathPacket = (await queryOperations.invoke("tos.path.find", {
     from_id: fromId,
-    to_id: nodeId,
-    max_depth: 6,
+    to_id: toId,
+    max_depth: request.maxDepth || 6,
+    direction: request.direction || "outgoing",
+    view_id: request.viewId,
+    excluded_edge_ids: request.excludedEdgeIds || [],
+    alternative_limit: request.alternativeLimit || 1,
     layers: [...state.activeLayers],
     predicates: [...state.activePredicates],
-  })) as PathPayload;
+  }, { signal: request.signal })) as PathPayload;
+  request.signal?.throwIfAborted();
   if (
     requestRevision !== pathRevision ||
     state.mode !== requestMode ||
-    state.currentViewId !== requestViewId ||
-    state.pathStartNodeId !== fromId
-  ) return;
+    state.currentViewId !== requestViewId
+  ) throw new DOMException("superseded path request", "AbortError");
   state.graphMode = "nodes";
   state.expandedCluster = null;
+  state.pathStartNodeId = fromId;
   state.pathPacket = pathPacket;
   state.selected = selected;
-  state.selectedGraphId = nodeId;
+  state.selectedGraphId = toId;
   renderChips();
   renderGraph();
   ignoreGraphClicksUntil = Date.now() + 1500;
   ignoreInspectorSelectionsUntil = Date.now() + 1500;
   renderInspector();
+  syncPublicRoute();
   scrollInspectorTop();
+  return pathPacket;
 }
 
 function clearFocus(): void {
@@ -3052,6 +3221,13 @@ function invalidateFocusedPackets(): void {
   state.expandedCluster = null;
 }
 
+function assertPhilosophyRouteAvailable(): void {
+  if (state.mode !== "philosophy") throw new Error("graph route commands require philosophy mode");
+  if (state.activeLayers.size === 0 || state.activePredicates.size === 0) {
+    throw new Error("graph route commands require at least one active layer and predicate");
+  }
+}
+
 function renderAll(): void {
   renderChips();
   renderMetrics();
@@ -3065,140 +3241,345 @@ function renderAll(): void {
 
 async function copyScaleExportUrl(table?: ScaleExportTable, format?: "csv" | "jsonl"): Promise<void> {
   const url = scaleExportAbsoluteUrl(table, format);
+  const expectedRevision = pageCommands.context().revision;
+  let copyError = "";
   try {
     await navigator.clipboard.writeText(url);
-    state.selected = { title: t("selection.scaleExportUrl"), url };
   } catch (error) {
-    state.selected = { title: t("selection.scaleExportUrl"), url, copy_error: text(error) };
+    copyError = text(error);
   }
+  if (pageCommands.context().revision !== expectedRevision) return;
+  state.selected = {
+    title: t("selection.scaleExportUrl"),
+    url,
+    ...(copyError ? { copy_error: copyError } : {}),
+  };
   state.selectedGraphId = null;
   renderInspector();
+  syncPublicRoute();
+  pageCommands.notifyStateChange();
   scrollInspectorTop();
 }
 
-async function loadMode(mode: Mode, requestedViewId = "", requestedGraphMode?: GraphMode): Promise<void> {
-  const loadRevision = ++modeLoadRevision;
-  searchRevision += 1;
-  neighborhoodRevision += 1;
-  pathRevision += 1;
-  state.mode = mode;
-  state.currentView = null;
-  state.selected = null;
-  state.selectedGraphId = null;
-  state.results = [];
-  state.relationItems = [];
-  state.expandedCluster = null;
-  state.neighborhood = null;
-  state.pathStartNodeId = null;
-  state.pathPacket = null;
-  state.inspectorOpen = false;
-  if (mode === "philosophy") {
-    state.status.philosophy = await fetchJson<AnyItem>("/api/philosophy/status");
-    if (loadRevision !== modeLoadRevision || state.mode !== mode) return;
-    const views = await fetchJson<{ views: ViewCard[] }>("/api/philosophy/views");
-    if (loadRevision !== modeLoadRevision || state.mode !== mode) return;
-    state.philosophyViews = views.views || [];
-    const viewId = state.philosophyViews.some((view) => view.view_id === requestedViewId)
-      ? requestedViewId
-      : boot.default_philosophy_view || state.philosophyViews[0]?.view_id || "";
-    await loadView(viewId, requestedGraphMode);
-  } else {
-    state.status.corpus = await fetchJson<AnyItem>("/api/corpus/status");
-    if (loadRevision !== modeLoadRevision || state.mode !== mode) return;
-    const summary = await fetchJson<{ graph_views?: ViewCard[]; counts?: AnyItem }>("/api/corpus/summary");
-    if (loadRevision !== modeLoadRevision || state.mode !== mode) return;
-    state.status.corpus = { ...state.status.corpus, counts: summary.counts || state.status.corpus.counts };
-    state.corpusViews = summary.graph_views || [];
-    const viewId = state.corpusViews.some((view) => view.view_id === requestedViewId)
-      ? requestedViewId
-      : boot.default_view || state.corpusViews[0]?.view_id || "";
-    await loadView(viewId, "nodes");
-  }
-}
+type PreparedView = {
+  mode: Mode;
+  viewId: string;
+  currentView: PhilosophyViewPayload | CorpusViewPayload;
+  sourceNotes: GraphNode[];
+  sourceNoteEdges: GraphEdge[];
+  activeLayers: Set<string>;
+  activePredicates: Set<string>;
+  graphMode: GraphMode;
+  results: AnyItem[];
+};
 
-async function loadView(viewId: string, requestedGraphMode?: GraphMode): Promise<void> {
-  if (!viewId) return;
-  const loadRevision = ++viewLoadRevision;
-  searchRevision += 1;
-  neighborhoodRevision += 1;
-  pathRevision += 1;
-  const loadMode = state.mode;
-  state.currentViewId = viewId;
-  state.currentView = null;
-  state.selected = null;
-  state.selectedGraphId = null;
-  state.results = [];
-  state.relationItems = [];
-  state.expandedCluster = null;
-  state.neighborhood = null;
-  state.pathStartNodeId = null;
-  state.pathPacket = null;
-  state.inspectorOpen = false;
-  if (state.mode === "philosophy") {
-    const sourcePayload = (await webActions.invoke("tos.view.open", {
-      mode: "philosophy",
+async function prepareView(
+  mode: Mode,
+  viewId: string,
+  requestedGraphMode: GraphMode | undefined,
+  signal: AbortSignal | undefined,
+): Promise<PreparedView> {
+  if (mode === "philosophy") {
+    const sourcePayload = (await queryOperations.invoke("tos.view.open", {
+      mode,
       view_id: viewId,
       limit: 1000,
-    })) as PhilosophyViewPayload;
-    if (loadRevision !== viewLoadRevision || state.mode !== loadMode || state.currentViewId !== viewId) return;
-    state.sourceNotes = (sourcePayload.nodes || []).filter(isPublicSourceNote);
-    const sourceNoteIds = new Set(state.sourceNotes.map((node) => node.node_id));
-    state.sourceNoteEdges = (sourcePayload.edges || []).filter(
-      (edge) => sourceNoteIds.has(edge.from_id) || sourceNoteIds.has(edge.to_id),
-    );
+    }, { signal })) as PhilosophyViewPayload;
+    signal?.throwIfAborted();
+    const sourceNotes = (sourcePayload.nodes || []).filter(isPublicSourceNote);
+    const sourceNoteIds = new Set(sourceNotes.map((node) => node.node_id));
     const payload = projectPublicPhilosophyPayload(sourcePayload);
-    state.currentView = payload;
-    state.activeLayers = new Set(payload.view.graph_layers || []);
-    state.activePredicates = new Set((payload.edges || []).filter(isPublicAtlasItem).map(predicateId));
+    return {
+      mode,
+      viewId,
+      currentView: payload,
+      sourceNotes,
+      sourceNoteEdges: (sourcePayload.edges || []).filter(
+        (edge) => sourceNoteIds.has(edge.from_id) || sourceNoteIds.has(edge.to_id),
+      ),
+      activeLayers: new Set(payload.view.graph_layers || []),
+      activePredicates: new Set((payload.edges || []).filter(isPublicAtlasItem).map(predicateId)),
+      graphMode: requestedGraphMode || "clusters",
+      results: (payload.clusters || []).filter(isPublicAtlasItem),
+    };
+  }
+  const payload = (await queryOperations.invoke("tos.view.open", {
+    mode,
+    view_id: viewId,
+    limit: 700,
+  }, { signal })) as CorpusViewPayload;
+  signal?.throwIfAborted();
+  return {
+    mode,
+    viewId,
+    currentView: payload,
+    sourceNotes: [],
+    sourceNoteEdges: [],
+    activeLayers: new Set(),
+    activePredicates: new Set(),
+    graphMode: "nodes",
+    results: (payload.items || []).filter(isPublicAtlasItem),
+  };
+}
+
+function commitPreparedView(prepared: PreparedView, requestedFocusId: string): void {
+  searchRevision += 1;
+  neighborhoodRevision += 1;
+  pathRevision += 1;
+  state.mode = prepared.mode;
+  state.currentViewId = prepared.viewId;
+  state.currentView = prepared.currentView;
+  state.selected = null;
+  state.selectedGraphId = null;
+  state.results = prepared.results;
+  state.relationItems = [];
+  state.expandedCluster = null;
+  state.neighborhood = null;
+  state.pathStartNodeId = null;
+  state.pathPacket = null;
+  state.inspectorOpen = false;
+  state.sourceNotes = prepared.sourceNotes;
+  state.sourceNoteEdges = prepared.sourceNoteEdges;
+  state.activeLayers = prepared.activeLayers;
+  state.activePredicates = prepared.activePredicates;
+  state.graphMode = prepared.graphMode;
+  if (prepared.mode === "philosophy") {
     state.densityMode = "overview";
     state.minRelationCount = 1;
-    state.graphMode = requestedGraphMode || "clusters";
-    state.results = (payload.clusters || []).filter(isPublicAtlasItem);
-  } else {
-    state.sourceNotes = [];
-    state.sourceNoteEdges = [];
-    const payload = (await webActions.invoke("tos.view.open", {
-      mode: "corpus",
-      view_id: viewId,
-      limit: 700,
-    })) as CorpusViewPayload;
-    if (loadRevision !== viewLoadRevision || state.mode !== loadMode || state.currentViewId !== viewId) return;
-    state.currentView = payload;
-    state.activeLayers = new Set();
-    state.activePredicates = new Set();
-    state.graphMode = "nodes";
-    state.results = (payload.items || []).filter(isPublicAtlasItem);
+  }
+  if (requestedFocusId) {
+    const focusItem = viewItem(prepared.currentView, requestedFocusId);
+    if (focusItem) setSelectedItemState(focusItem);
   }
   renderAll();
   syncPublicRoute();
 }
 
-async function search(): Promise<void> {
+async function loadMode(
+  mode: Mode,
+  requestedViewId = "",
+  requestedGraphMode?: GraphMode,
+  requestedFocusId = "",
+  signal?: AbortSignal,
+): Promise<void> {
+  const loadRevision = ++modeLoadRevision;
+  viewLoadRevision += 1;
+  if (mode === "philosophy") {
+    const status = await fetchJson<AnyItem>("/api/philosophy/status", { signal });
+    const views = await fetchJson<{ views: ViewCard[] }>("/api/philosophy/views", { signal });
+    const philosophyViews = views.views || [];
+    const viewId = philosophyViews.some((view) => view.view_id === requestedViewId)
+      ? requestedViewId
+      : boot.default_philosophy_view || philosophyViews[0]?.view_id || "";
+    const prepared = await prepareView(mode, viewId, requestedGraphMode, signal);
+    signal?.throwIfAborted();
+    if (loadRevision !== modeLoadRevision) throw new DOMException("superseded mode request", "AbortError");
+    state.status.philosophy = status;
+    state.philosophyViews = philosophyViews;
+    commitPreparedView(prepared, requestedFocusId);
+  } else {
+    const status = await fetchJson<AnyItem>("/api/corpus/status", { signal });
+    const summary = await fetchJson<{ graph_views?: ViewCard[]; counts?: AnyItem }>("/api/corpus/summary", { signal });
+    const corpusViews = summary.graph_views || [];
+    const viewId = corpusViews.some((view) => view.view_id === requestedViewId)
+      ? requestedViewId
+      : boot.default_view || corpusViews[0]?.view_id || "";
+    const prepared = await prepareView(mode, viewId, "nodes", signal);
+    signal?.throwIfAborted();
+    if (loadRevision !== modeLoadRevision) throw new DOMException("superseded mode request", "AbortError");
+    state.status.corpus = { ...status, counts: summary.counts || status.counts };
+    state.corpusViews = corpusViews;
+    commitPreparedView(prepared, requestedFocusId);
+  }
+}
+
+async function loadView(
+  viewId: string,
+  requestedGraphMode?: GraphMode,
+  requestedFocusId = "",
+  signal?: AbortSignal,
+): Promise<void> {
+  if (!viewId) return;
+  const knownViews = state.mode === "philosophy" ? state.philosophyViews : state.corpusViews;
+  requireKnownViewId(viewId, knownViews.map((view) => view.view_id));
+  const loadRevision = ++viewLoadRevision;
+  const loadMode = state.mode;
+  const prepared = await prepareView(loadMode, viewId, requestedGraphMode, signal);
+  signal?.throwIfAborted();
+  if (loadRevision !== viewLoadRevision || state.mode !== loadMode) {
+    throw new DOMException("superseded view request", "AbortError");
+  }
+  commitPreparedView(prepared, requestedFocusId);
+}
+
+async function search(requestedQuery?: string, signal?: AbortSignal): Promise<{ result_count: number }> {
   const requestRevision = ++searchRevision;
   const requestMode = state.mode;
   const requestViewId = state.currentViewId;
-  const query = (byId("search") as HTMLInputElement).value.trim();
+  const input = byId("search") as HTMLInputElement;
+  const query = (requestedQuery === undefined ? input.value : requestedQuery).trim();
+  input.value = query;
   state.searchQuery = query;
-  const payload = (await webActions.invoke("tos.search", {
+  const payload = (await queryOperations.invoke("tos.search", {
     mode: state.mode,
     query,
     limit: 80,
-  })) as { results?: AnyItem[] };
+  }, { signal })) as { results?: AnyItem[] };
+  signal?.throwIfAborted();
   if (
     requestRevision !== searchRevision ||
     state.mode !== requestMode ||
     state.currentViewId !== requestViewId
-  ) return;
+  ) throw new DOMException("superseded search request", "AbortError");
   state.results = mergeLocalizedSearchResults(query, (payload.results || []).filter(isPublicAtlasItem), 80);
   state.selected = { title: query ? `${t("selection.search")}: ${query}` : t("selection.search"), results: state.results.length };
   state.inspectorOpen = true;
   state.selectedGraphId = null;
   renderInspector();
+  syncPublicRoute();
   scrollInspectorTop();
+  return { result_count: state.results.length };
 }
 
+function pageSelection(): PageSelection | null {
+  if (!state.selected) return null;
+  const item = unwrapItem(state.selected);
+  const id = itemId(item);
+  if (!id || id === "item") return null;
+  const kind: PageSelection["kind"] = item.edge_id || (item.from_id && item.to_id)
+    ? "edge"
+    : item.node_id
+      ? "node"
+      : item.cluster_id
+        ? "cluster"
+        : "item";
+  return {
+    id,
+    kind,
+    label: displayTitle(item),
+    ...(item.from_id ? { from_id: text(item.from_id) } : {}),
+    ...(item.to_id ? { to_id: text(item.to_id) } : {}),
+    ...(kind === "edge" ? { reroutable: !isAggregateRelation(item) } : {}),
+  };
+}
+
+function pageContextSnapshot(): PageContextSnapshot {
+  return {
+    mode: state.mode,
+    view_id: state.currentViewId,
+    graph_mode: state.graphMode,
+    selected: pageSelection(),
+    path_start_node_id: state.pathStartNodeId,
+    active_layers: [...state.activeLayers].sort(),
+    active_predicates: [...state.activePredicates].sort(),
+    deep_link: window.location.href,
+  };
+}
+
+function commandString(input: Record<string, unknown>, key: string, fallback = ""): string {
+  return text(input[key] ?? fallback).trim();
+}
+
+function commandInteger(input: Record<string, unknown>, key: string, fallback: number, low: number, high: number): number {
+  const parsed = Number(input[key]);
+  return Number.isFinite(parsed) ? Math.max(low, Math.min(high, Math.trunc(parsed))) : fallback;
+}
+
+function commandDirection(input: Record<string, unknown>): "outgoing" | "incoming" | "either" {
+  const direction = commandString(input, "direction", "outgoing");
+  if (direction === "outgoing" || direction === "incoming" || direction === "either") return direction;
+  throw new Error("direction must be outgoing, incoming, or either");
+}
+
+function selectedNodeId(): string {
+  return state.selected ? selectedNodeIdFor(state.selected) : "";
+}
+
+const pageCommands = createPageCommandRegistry(pageContextSnapshot, {
+  "tos.page.open-view": async (input, execution) => {
+    const mode = commandString(input, "mode", state.mode) === "corpus" ? "corpus" : "philosophy";
+    const viewId = commandString(input, "view_id");
+    const graphMode = commandString(input, "graph_mode") === "nodes" ? "nodes" : "clusters";
+    const focusId = commandString(input, "focus_id");
+    const knownViews = mode === "philosophy" ? state.philosophyViews : state.corpusViews;
+    if (mode !== state.mode || !viewId || knownViews.length === 0) {
+      await loadMode(mode, viewId, graphMode, focusId, execution.signal);
+    } else {
+      await loadView(viewId, graphMode, focusId, execution.signal);
+    }
+    return { mode: state.mode, view_id: state.currentViewId, focus_id: state.selectedGraphId };
+  },
+  "tos.page.search": async (input, execution) => search(commandString(input, "query"), execution.signal),
+  "tos.page.select": (input) => {
+    const itemIdValue = commandString(input, "item_id");
+    if (!itemIdValue) throw new Error("item_id is required");
+    const item = selectableItem(itemIdValue);
+    if (!item) throw new Error(`item is not present in the active view: ${itemIdValue}`);
+    applySelectedItem(item);
+    return { selected_id: itemIdValue };
+  },
+  "tos.page.show-neighborhood": async (input, execution) => {
+    const nodeId = commandString(input, "node_id", selectedNodeId());
+    return showNeighborhood(nodeId, commandInteger(input, "depth", 1, 1, 3), execution.signal);
+  },
+  "tos.page.start-path": (input) => {
+    assertPhilosophyRouteAvailable();
+    const nodeId = commandString(input, "node_id", selectedNodeId());
+    if (!nodeId) throw new Error("select a node or provide node_id");
+    setPathStart(nodeId);
+    return { path_start_node_id: nodeId };
+  },
+  "tos.page.find-path": async (input, execution) => {
+    const fromId = commandString(input, "from_id", state.pathStartNodeId || "");
+    const toId = commandString(input, "to_id", selectedNodeId());
+    const constrainToView = input.constrain_to_view !== false;
+    return showPath(fromId, toId, {
+      direction: commandDirection(input),
+      maxDepth: commandInteger(input, "max_depth", 6, 1, 8),
+      alternativeLimit: commandInteger(input, "alternative_limit", 1, 1, 5),
+      excludedEdgeIds: stringList(input.excluded_edge_ids),
+      viewId: constrainToView && state.mode === "philosophy" ? state.currentViewId : undefined,
+      signal: execution.signal,
+    });
+  },
+  "tos.page.reroute-without-selection": async (input, execution) => {
+    const selected = pageSelection();
+    if (
+      !selected ||
+      selected.kind !== "edge" ||
+      selected.reroutable === false ||
+      !selected.from_id ||
+      !selected.to_id
+    ) {
+      throw new Error("select a projection edge before requesting a reroute");
+    }
+    const constrainToView = input.constrain_to_view !== false;
+    return showPath(selected.from_id, selected.to_id, {
+      direction: commandDirection(input),
+      maxDepth: commandInteger(input, "max_depth", 6, 1, 8),
+      alternativeLimit: commandInteger(input, "alternative_limit", 3, 1, 5),
+      excludedEdgeIds: [selected.id],
+      viewId: constrainToView && state.mode === "philosophy" ? state.currentViewId : undefined,
+      signal: execution.signal,
+    });
+  },
+  "tos.page.clear-focus": () => {
+    clearFocus();
+    return { cleared: true };
+  },
+});
+
+const webMCP = createWebMCPAdapter(pageCommands, document as WebMCPDocument);
+
 renderShell();
-void loadMode(initialRoute.mode, initialRoute.viewId, initialRoute.graphMode).catch((error: unknown) => {
+void webMCP.start();
+window.addEventListener("beforeunload", () => webMCP.stop(), { once: true });
+void pageCommands.invoke("tos.page.open-view", {
+  mode: initialRoute.mode,
+  view_id: initialRoute.viewId,
+  graph_mode: initialRoute.graphMode,
+  focus_id: initialRoute.focusId,
+}).catch((error: unknown) => {
   byId("inspector-title").textContent = t("load.failed");
   byId("inspector-meta").innerHTML = `<span class="danger">${text(error)}</span>`;
 });

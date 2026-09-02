@@ -64,7 +64,7 @@ def write_fixture(root: Path) -> None:
         "schema_version": "tos_philosophy_graph_projection_v2",
         "owner_repo": "Tree-of-Sophia",
         "surface_kind": "derived",
-        "counts": {"nodes": 3, "edges": 2},
+        "counts": {"nodes": 3, "edges": 3},
         "nodes": [
             {"node_id": "a", "label": "Alpha", "graph_layers": ["source-relation"], "source_ref": "ToS/canon/a.json"},
             {"node_id": "b", "label": "Beta", "graph_layers": ["source-relation"], "source_ref": "ToS/canon/b.json"},
@@ -86,17 +86,33 @@ def write_fixture(root: Path) -> None:
                 "predicate_id": "relates",
                 "graph_layers": ["source-relation"],
                 "source_ref": "ToS/canon/relations.json",
-            }
+            },
+            {
+                "edge_id": "e3",
+                "from_id": "c",
+                "to_id": "b",
+                "predicate_id": "relates",
+                "graph_layers": ["source-relation"],
+                "source_ref": "ToS/canon/relations.json",
+            },
         ],
         "views": [
             {
                 "view_id": "chronology",
                 "title": "Chronology",
                 "node_ids": ["a", "b", "c"],
-                "edge_ids": ["e2", "e"],
+                "edge_ids": ["e2", "e", "e3"],
                 "graph_layers": ["source-relation"],
                 "source_refs": ["ToS/philosophy/graph-workbench/views/chronology.graph.md"],
-            }
+            },
+            {
+                "view_id": "direct-only",
+                "title": "Direct only",
+                "node_ids": ["a", "b"],
+                "edge_ids": ["e"],
+                "graph_layers": ["source-relation"],
+                "source_refs": ["ToS/philosophy/graph-workbench/views/direct-only.graph.md"],
+            },
         ],
         "clusters": [
             {
@@ -135,6 +151,9 @@ def write_fixture(root: Path) -> None:
 
 
 class CoreContractTests(unittest.TestCase):
+    def test_standalone_validator_accepts_split_web_contracts(self) -> None:
+        validate_standalone._validate_contracts(REPO_ROOT)
+
     def test_projection_v2_materializes_global_membership(self) -> None:
         with tempfile.TemporaryDirectory() as raw:
             root = Path(raw)
@@ -142,7 +161,7 @@ class CoreContractTests(unittest.TestCase):
             core = ToSAccessCore.discover(tos_root=root)
             view = core.philosophy_view("chronology")
             self.assertEqual(view["node_count"], 3)
-            self.assertEqual(view["edge_count"], 2)
+            self.assertEqual(view["edge_count"], 3)
             self.assertEqual(len(view["clusters"]), 1)
             self.assertEqual(core.philosophy_views()["views"][0]["node_count"], 3)
             self.assertTrue(core.philosophy_path_between("a", "b")["found"])
@@ -298,7 +317,68 @@ class CoreContractTests(unittest.TestCase):
             self.assertNotIn("node_ids", view_result)
             self.assertNotIn("edge_ids", view_result)
             self.assertEqual(view_result["node_count"], 3)
-            self.assertEqual(view_result["edge_count"], 2)
+            self.assertEqual(view_result["edge_count"], 3)
+
+    def test_path_query_supports_direction_view_exclusion_and_alternatives(self) -> None:
+        with tempfile.TemporaryDirectory() as raw:
+            root = Path(raw)
+            write_fixture(root)
+            core = ToSAccessCore.discover(tos_root=root)
+
+            outgoing = core.philosophy_path_between(
+                "a",
+                "b",
+                direction="outgoing",
+                alternative_limit=2,
+            )
+            self.assertEqual(outgoing["schema"], "tos_philosophy_mcp_path_v2")
+            self.assertEqual(
+                [[edge["edge_id"] for edge in path["edges"]] for path in outgoing["paths"]],
+                [["e"], ["e2", "e3"]],
+            )
+
+            rerouted = core.philosophy_path_between(
+                "a",
+                "b",
+                direction="outgoing",
+                excluded_edge_ids=["e"],
+                alternative_limit=2,
+            )
+            self.assertEqual([edge["edge_id"] for edge in rerouted["edges"]], ["e2", "e3"])
+            self.assertEqual(rerouted["excluded_edge_ids"], ["e"])
+
+            reverse = core.philosophy_path_between("b", "a", direction="incoming")
+            self.assertEqual([edge["edge_id"] for edge in reverse["edges"]], ["e"])
+            self.assertFalse(core.philosophy_path_between("b", "a", direction="outgoing")["found"])
+
+            constrained = core.philosophy_path_between(
+                "a",
+                "b",
+                direction="outgoing",
+                view_id="direct-only",
+                excluded_edge_ids=["e"],
+            )
+            self.assertFalse(constrained["found"])
+            self.assertEqual(constrained["view_id"], "direct-only")
+
+    def test_path_query_bounds_enqueued_frontier_states(self) -> None:
+        with tempfile.TemporaryDirectory() as raw:
+            root = Path(raw)
+            write_fixture(root)
+            core = ToSAccessCore.discover(tos_root=root)
+
+            with patch("tos_access.core.PHILOSOPHY_PATH_FRONTIER_LIMIT", 1):
+                bounded = core.philosophy_path_between(
+                    "a",
+                    "b",
+                    direction="outgoing",
+                    alternative_limit=2,
+                )
+
+            self.assertTrue(bounded["found"])
+            self.assertTrue(bounded["exploration_truncated"])
+            self.assertEqual(bounded["frontier_limit"], 1)
+            self.assertLessEqual(bounded["max_frontier_size"], 1)
 
     def test_scale_memberships_reference_only_selected_rows(self) -> None:
         with tempfile.TemporaryDirectory() as raw:
@@ -512,10 +592,15 @@ class CoreContractTests(unittest.TestCase):
                 health = json.load(urllib.request.urlopen(base + "/health"))
                 view = json.load(urllib.request.urlopen(base + "/api/philosophy/views/chronology"))
                 limited_view = json.load(urllib.request.urlopen(base + "/api/philosophy/views/chronology?limit=1"))
+                rerouted = json.load(urllib.request.urlopen(
+                    base + "/api/philosophy/query/paths?from=a&to=b&direction=outgoing&exclude=e&alternatives=2"
+                ))
                 self.assertTrue(health["ok"])
                 self.assertEqual(view["node_count"], 3)
                 self.assertEqual(limited_view["node_count"], 1)
                 self.assertEqual(limited_view["edge_count"], 0)
+                self.assertEqual([edge["edge_id"] for edge in rerouted["edges"]], ["e2", "e3"])
+                self.assertEqual(rerouted["direction"], "outgoing")
             finally:
                 server.shutdown()
                 server.server_close()
@@ -657,9 +742,11 @@ class AuthoredContractTests(unittest.TestCase):
         self.assertNotIn("-e './access[mcp]'", workflow)
         self.assertNotIn("'./access[mcp]'", workflow)
 
-    def test_web_action_contract_matches_browser_adapter(self) -> None:
-        payload = json.loads((ACCESS_ROOT / "contracts/web-actions.v1.json").read_text(encoding="utf-8"))
-        expected = {
+    def test_query_and_page_contracts_match_browser_adapters(self) -> None:
+        query_contract = json.loads(
+            (ACCESS_ROOT / "contracts/query-operations.v1.json").read_text(encoding="utf-8")
+        )
+        expected_operations = {
             "tos.status",
             "tos.search",
             "tos.view.open",
@@ -667,25 +754,51 @@ class AuthoredContractTests(unittest.TestCase):
             "tos.neighborhood",
             "tos.path.find",
         }
-        self.assertEqual({item["action_id"] for item in payload["actions"]}, expected)
-        source = (ACCESS_ROOT / "web/src/actions.ts").read_text(encoding="utf-8")
-        for action_id in expected:
-            self.assertIn(f'"{action_id}"', source)
+        self.assertEqual(
+            {item["operation_id"] for item in query_contract["operations"]},
+            expected_operations,
+        )
+        query_source = (ACCESS_ROOT / "web/src/query-operations.ts").read_text(encoding="utf-8")
+        for operation_id in expected_operations:
+            self.assertIn(f'"{operation_id}"', query_source)
 
-    def test_browser_drops_superseded_view_loads(self) -> None:
+        page_contract = json.loads(
+            (ACCESS_ROOT / "contracts/page-commands.v1.json").read_text(encoding="utf-8")
+        )
+        expected_commands = {item["command_id"] for item in page_contract["commands"]}
+        page_source = (ACCESS_ROOT / "web/src/page-commands.ts").read_text(encoding="utf-8")
+        main_source = (ACCESS_ROOT / "web/src/main.ts").read_text(encoding="utf-8")
+        for command_id in expected_commands:
+            self.assertIn(f'"{command_id}"', page_source)
+            if command_id not in {"tos.page.context", "tos.page.cancel"}:
+                self.assertIn(f'"{command_id}"', main_source)
+
+        migration = json.loads((ACCESS_ROOT / "contracts/web-actions.v1.json").read_text(encoding="utf-8"))
+        self.assertEqual(migration["status"], "superseded")
+        webmcp_source = (ACCESS_ROOT / "web/src/webmcp.ts").read_text(encoding="utf-8")
+        self.assertIn("document.modelContext", (ACCESS_ROOT / "README.md").read_text(encoding="utf-8"))
+        self.assertIn("registerTool", webmcp_source)
+        self.assertIn("context.revision", webmcp_source)
+
+    def test_browser_commits_only_current_completed_view_loads(self) -> None:
         source = (ACCESS_ROOT / "web/src/main.ts").read_text(encoding="utf-8")
-        self.assertIn("const loadRevision = ++viewLoadRevision", source)
-        self.assertGreaterEqual(source.count("loadRevision !== viewLoadRevision"), 2)
-        self.assertIn("const loadRevision = ++modeLoadRevision", source)
-        self.assertGreaterEqual(source.count("loadRevision !== modeLoadRevision"), 4)
+        load_mode = source.split("async function loadMode(", 1)[1].split("async function loadView(", 1)[0]
+        load_view = source.split("async function loadView(", 1)[1].split("async function search(", 1)[0]
+        self.assertIn("const loadRevision = ++viewLoadRevision", load_view)
+        self.assertIn("loadRevision !== viewLoadRevision", load_view)
+        self.assertLess(load_view.index("await prepareView"), load_view.index("commitPreparedView"))
+        self.assertIn("const loadRevision = ++modeLoadRevision", load_mode)
+        self.assertGreaterEqual(load_mode.count("loadRevision !== modeLoadRevision"), 2)
+        self.assertGreaterEqual(load_mode.count("signal?.throwIfAborted()"), 2)
+        self.assertEqual(load_mode.count("commitPreparedView"), 2)
 
     def test_browser_preserves_empty_filters_and_hides_unsupported_routes(self) -> None:
-        actions = (ACCESS_ROOT / "web/src/actions.ts").read_text(encoding="utf-8")
+        actions = (ACCESS_ROOT / "web/src/query-operations.ts").read_text(encoding="utf-8")
         page = (ACCESS_ROOT / "web/src/main.ts").read_text(encoding="utf-8")
         self.assertIn('["__tos_none__"]', actions)
         self.assertIn('state.mode === "philosophy"', page)
-        self.assertGreaterEqual(page.count("state.activeLayers.size === 0"), 2)
-        self.assertGreaterEqual(page.count("state.activePredicates.size === 0"), 2)
+        self.assertGreaterEqual(page.count("state.activeLayers.size === 0"), 1)
+        self.assertGreaterEqual(page.count("state.activePredicates.size === 0"), 1)
         self.assertIn('id="scale-export-controls" class="scale-export-controls"', page)
         self.assertNotIn('id="scale-export-controls" hidden', page)
         self.assertIn('"__tos_none__"', page)
