@@ -425,13 +425,31 @@ class ToSAccessCore:
             for node in payload.get("nodes", [])
             if isinstance(node, dict) and node.get("node_id") == node_id
         ]
-        if not matches:
-            raise KeyError(f"unknown ToS corpus node: {node_id}")
         related_edges = [
             _relation_edge_with_source_ref(edge, pack_paths)
             for edge in payload.get("relation_edges", [])
             if isinstance(edge, dict) and (edge.get("from_id") == node_id or edge.get("to_id") == node_id)
         ]
+        if not matches and related_edges:
+            owner_branches = sorted(
+                {
+                    str(edge["owner_branch"])
+                    for edge in related_edges
+                    if isinstance(edge.get("owner_branch"), str) and edge.get("owner_branch")
+                }
+            )
+            matches = [
+                {
+                    "node_id": node_id,
+                    "label": node_id,
+                    "node_type": "relation-endpoint",
+                    "owner_branches": owner_branches,
+                    "source_refs": _source_refs(related_edges),
+                    "projection_posture": "identity materialized from indexed relation endpoints",
+                }
+            ]
+        if not matches:
+            raise KeyError(f"unknown ToS corpus node: {node_id}")
         return {
             "schema": "tos_corpus_mcp_node_v1",
             "node_id": node_id,

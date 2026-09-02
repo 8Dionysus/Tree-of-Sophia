@@ -108,16 +108,29 @@ def doctor_report(
             )
             views = [view for view in graph.get("views", []) if isinstance(view, dict) and view.get("view_id")]
             if views:
-                view_packet = core.philosophy_view(str(views[0]["view_id"]))
-                checks.append(
-                    _check(
-                        "graph-view-materialization",
-                        view_packet.get("node_count", 0) > 0 and view_packet.get("edge_count", 0) > 0,
-                        view_id=view_packet.get("view", {}).get("view_id"),
-                        node_count=view_packet.get("node_count"),
-                        edge_count=view_packet.get("edge_count"),
+                try:
+                    view_packet = core.philosophy_view(str(views[0]["view_id"]))
+                except (KeyError, OSError, RuntimeError, ValueError) as exc:
+                    checks.append(
+                        _check(
+                            "graph-view-materialization",
+                            False,
+                            view_id=views[0]["view_id"],
+                            node_count=0,
+                            edge_count=0,
+                            error=str(exc),
+                        )
                     )
-                )
+                else:
+                    checks.append(
+                        _check(
+                            "graph-view-materialization",
+                            view_packet.get("node_count", 0) > 0 and view_packet.get("edge_count", 0) > 0,
+                            view_id=view_packet.get("view", {}).get("view_id"),
+                            node_count=view_packet.get("node_count"),
+                            edge_count=view_packet.get("edge_count"),
+                        )
+                    )
             else:
                 checks.append(
                     _check(

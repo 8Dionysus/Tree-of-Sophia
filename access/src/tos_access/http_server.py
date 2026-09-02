@@ -102,11 +102,26 @@ def build_handler(core: ToSAccessCore, web_root: Path) -> type[BaseHTTPRequestHa
                         index = core.index()
                         if index.get("schema_version") != "tos_corpus_index_v1":
                             errors.append("unsupported corpus index schema")
+                        else:
+                            corpus_views = core.status().get("graph_views", [])
+                            if not corpus_views:
+                                errors.append("corpus index has no supported graph views")
+                            else:
+                                core.graph_view(str(corpus_views[0]), limit=1)
                     except (OSError, RuntimeError, ValueError, json.JSONDecodeError) as exc:
                         errors.append(f"corpus index invalid: {exc}")
                     try:
-                        core.philosophy_projection()
-                    except (OSError, RuntimeError, ValueError, json.JSONDecodeError) as exc:
+                        philosophy = core.philosophy_projection()
+                        views = [
+                            view
+                            for view in philosophy.get("views", [])
+                            if isinstance(view, dict) and view.get("view_id")
+                        ]
+                        if not views:
+                            errors.append("philosophy projection has no graph views")
+                        else:
+                            core.philosophy_view(str(views[0]["view_id"]), limit=1)
+                    except (KeyError, OSError, RuntimeError, ValueError, json.JSONDecodeError) as exc:
                         errors.append(f"philosophy projection invalid: {exc}")
                     health = {
                         "service": "tree-of-sophia-access",

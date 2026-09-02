@@ -436,6 +436,12 @@ class CoreContractTests(unittest.TestCase):
                 ["candidate-a", "candidate-b"],
             )
             self.assertEqual(promotion["node_count"], 2)
+            inspected_endpoint = core.node("candidate-a")
+            self.assertEqual(inspected_endpoint["matches"][0]["node_type"], "relation-endpoint")
+            self.assertEqual(
+                inspected_endpoint["matches"][0]["source_refs"],
+                ["ToS/candidate-intake/fixture/edges.csv"],
+            )
             self.assertTrue(
                 all(
                     edge["from_id"] in {node["node_id"] for node in promotion["nodes"]}
@@ -526,6 +532,34 @@ class CoreContractTests(unittest.TestCase):
             doctor = doctor_report(tos_root=root)
             self.assertFalse(doctor["ok"])
             self.assertIn("philosophy-graph-schema", doctor["required_failures"])
+            server = make_server(ToSAccessCore.discover(tos_root=root), port=0)
+            thread = threading.Thread(target=server.serve_forever, daemon=True)
+            thread.start()
+            try:
+                with self.assertRaises(urllib.error.HTTPError) as caught:
+                    urllib.request.urlopen(f"http://127.0.0.1:{server.server_port}/health")
+                self.assertEqual(caught.exception.code, 503)
+                with caught.exception as response:
+                    health = json.load(response)
+                self.assertFalse(health["ok"])
+                self.assertTrue(any("philosophy projection invalid" in error for error in health["errors"]))
+            finally:
+                server.shutdown()
+                server.server_close()
+                thread.join(timeout=5)
+
+    def test_health_and_doctor_reject_unmaterializable_projection(self) -> None:
+        with tempfile.TemporaryDirectory() as raw:
+            root = Path(raw)
+            write_fixture(root)
+            projection_path = root / "ToS/derived-exports/philosophy_graph_projection.min.json"
+            projection = json.loads(projection_path.read_text(encoding="utf-8"))
+            projection["review_packets"] = []
+            projection_path.write_text(json.dumps(projection), encoding="utf-8")
+
+            doctor = doctor_report(tos_root=root)
+            self.assertFalse(doctor["ok"])
+            self.assertIn("graph-view-materialization", doctor["required_failures"])
             server = make_server(ToSAccessCore.discover(tos_root=root), port=0)
             thread = threading.Thread(target=server.serve_forever, daemon=True)
             thread.start()
