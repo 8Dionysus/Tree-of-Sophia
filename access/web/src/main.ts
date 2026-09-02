@@ -3035,6 +3035,9 @@ function selectableItem(itemIdValue: string): AnyItem | null {
     state.neighborhood?.edges || [],
     state.pathPacket?.nodes || [],
     state.pathPacket?.edges || [],
+    state.epistemicPacket?.challenge_relations || [],
+    state.epistemicPacket?.context_relations || [],
+    state.epistemicPacket?.neighbor_nodes || [],
     ...(
       current
         ? [
