@@ -22,7 +22,8 @@ remains authoritative for ToS meaning.
 | generated reader, compact index, public example, export | source surface -> builder -> generated/exported companion | source remains ToS-authored |
 | statistical question over a ToS population | `stats/` declaration and evidence-linked packet | `aoa-stats` owns shared grammar and cross-owner views, not ToS meaning |
 | KAG substrate, retrieval substrate, downstream graph handoff | bounded export route inside ToS | `aoa-kag` owns downstream substrate behavior |
-| runtime, service stack, visualization runtime | ToS supplies source/export material | `abyss-stack` owns serving and stack execution |
+| standalone CLI, HTTP, native MCP, site, WebMCP, portable bundle | `access/` reads allowlisted ToS exports without authoring meaning | ToS owns the standalone product and read-only runtime |
+| AbyssOS deployment, service composition, Neo4j, ecosystem orchestration | `access/integrations/abyssos/` is an optional adapter seam | `abyss-stack` owns stack execution; sibling owners retain KAG, stats, and artifact policy |
 | memory, proof, evaluation, routing, SDK, playbook, skill, technique | ToS may supply philosophical source or boundary input | owning AoA repository or layer |
 
 ## Layer Boundaries
@@ -36,6 +37,11 @@ not replace ToS-authored authority. A bounded route to `aoa-stats`, `aoa-kag`,
 the `aoa-sdk` routing control plane, its stable `aoa-routing` compatibility
 namespace, or any other derived consumer does not delegate authority to that
 downstream system.
+
+The standalone runtime is a ToS-owned consumer of derived exports, not a new
+meaning layer. Existing projection fields that name `abyss-stack` remain a
+compatibility contract for that deployment profile; the consumer-neutral
+profile split is owned by `access/contracts/runtime-manifest.v1.json`.
 
 ## Growth Boundary
 

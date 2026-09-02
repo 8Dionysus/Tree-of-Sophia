@@ -1,0 +1,30 @@
+[build-system]
+requires = ["setuptools>=69"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "tree-of-sophia-access"
+version = "0.1.0"
+description = "Standalone read-only access platform for Tree of Sophia"
+readme = "README.md"
+requires-python = ">=3.11"
+license = {text = "Apache-2.0"}
+dependencies = []
+
+[project.optional-dependencies]
+mcp = ["mcp>=1.27,<2"]
+dev = ["pytest>=8"]
+all = ["mcp>=1.27,<2", "pytest>=8"]
+
+[project.scripts]
+tos = "tos_access.cli:main"
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+include-package-data = true
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+tos_access = ["runtime_data/**/*", "web_dist/**/*", "bundle.manifest.json"]

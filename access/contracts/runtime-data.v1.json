@@ -1,0 +1,35 @@
+{
+  "schema_version": "tos_access_runtime_data_allowlist_v1",
+  "owner_repo": "Tree-of-Sophia",
+  "publication_posture": "allowlist-only",
+  "subjects": [
+    {
+      "subject_id": "tos-corpus-index",
+      "source_path": "ToS/derived-exports/tos_corpus_index.min.json",
+      "required": true,
+      "consumer_roles": ["query-core", "native-mcp", "http-reader", "web-app"]
+    },
+    {
+      "subject_id": "tos-philosophy-graph",
+      "source_path": "ToS/derived-exports/philosophy_graph_projection.min.json",
+      "required": true,
+      "consumer_roles": ["query-core", "native-mcp", "http-reader", "web-app"]
+    },
+    {
+      "subject_id": "tos-philosophy-post-planting-audit",
+      "source_path": "ToS/philosophy/graph-workbench/review-packets/table-i-post-planting-audit.json",
+      "required": false,
+      "consumer_roles": ["native-mcp", "http-reader"]
+    }
+  ],
+  "explicit_exclusions": [
+    {
+      "path": "ToS/derived-exports/lexical-search/",
+      "reason": "dictionary-recoverable hashes are not cleared for publication"
+    },
+    {
+      "path": "ToS/source-witnesses/**/payload/",
+      "reason": "local or restricted source bytes never enter the standalone runtime bundle"
+    }
+  ]
+}

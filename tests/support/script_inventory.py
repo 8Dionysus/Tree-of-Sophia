@@ -31,18 +31,28 @@ def load_validation_lanes() -> dict[str, Any]:
 
 
 def discovered_script_surfaces(repo_root: Path = REPO_ROOT) -> set[str]:
-    return {
+    discovered = {
         path.relative_to(repo_root).as_posix()
         for path in repo_root.rglob("*")
         if path.is_file()
-        and "/scripts/" in f"/{path.relative_to(repo_root).as_posix()}"
+        and (
+            (
+                "/scripts/" in f"/{path.relative_to(repo_root).as_posix()}"
+                and path.suffix != ".pyc"
+            )
+            or (
+                path.relative_to(repo_root).parts[:2] == ("access", "packaging")
+                and path.suffix == ".py"
+            )
+        )
         and "__pycache__" not in path.parts
-        and path.suffix != ".pyc"
     }
+    return discovered | command_script_paths(repo_root)
 
 
-def command_script_paths() -> set[str]:
-    manifest = json.loads(VALIDATION_LANES_PATH.read_text(encoding="utf-8"))
+def command_script_paths(repo_root: Path = REPO_ROOT) -> set[str]:
+    manifest_path = repo_root / "docs" / "validation" / "validation_lanes.json"
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
     paths: set[str] = set()
     for steps in manifest["command_sequences"].values():
         for step in steps:

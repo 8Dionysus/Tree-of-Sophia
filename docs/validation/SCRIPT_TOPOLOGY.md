@@ -8,8 +8,8 @@ graph service truth.
 
 Machine-readable script coverage lives in
 [`script_inventory.json`](script_inventory.json). It includes every tracked
-non-pyc file under `*/scripts/*`, including local script route cards and
-skill-local helper scripts.
+non-pyc file under `*/scripts/*`, every Python entrypoint named by a validation
+lane, local script route cards, and skill-local helper scripts.
 
 ## Command Authority
 
@@ -78,6 +78,8 @@ Each entry records:
 | `compatibility_helper` | Shared compatibility mirror code. | Library only. |
 | `lane_loader` | Validation lane manifest loading and checking. | Loads command authority; does not own lane meaning by itself. |
 | `release_entrypoint` | Release lane execution. | Runs command sequences from the lane manifest. |
+| `standalone_bundle_builder` | Deterministic assembly of the allowlisted standalone access candidate. | Writes only the requested archive and manifest; does not publish, sign, or admit it. |
+| `standalone_bundle_validator` | Source and extracted-package smoke validation for the standalone access profile. | Uses disposable local state and proves mechanics only. |
 | `mechanics_local_runner` | Discovery of mechanic package-local and part-local tests, builders, and validators. | Runs only source-discovered mechanics homes; does not own mechanic meaning. |
 | `skill_local_contract_tool` | Deterministic helper contracts shipped with local agent skills. | Advisory/local-only; not ToS release authority, runtime policy, or hidden hard gates. |
 

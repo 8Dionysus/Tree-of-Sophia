@@ -21,6 +21,7 @@
   ],
   "home_scopes": [
     "root",
+    "product-local",
     "mechanic-level",
     "part-local",
     "agent-lane"
@@ -31,6 +32,21 @@
     "Command sequences live in docs/validation/validation_lanes.json."
   ],
   "tests": [
+    {
+      "path": "access/tests/test_access_contract.py",
+      "home": "access",
+      "home_scope": "product-local",
+      "family": "standalone_access_contract",
+      "validation_lane": "standalone_access",
+      "owner_surface": "access/AGENTS.md",
+      "protects": "portable root discovery, projection v1 and v2 materialization, shared core adapters, native MCP construction, WebMCP-ready action ABI, and standalone profile independence",
+      "coverage_authority": "access/AGENTS.md standalone access validation",
+      "mode": "blocking",
+      "runtime_cost": "fast",
+      "focused_target": "access/tests/test_access_contract.py",
+      "failure_route": "Fix the access core, adapter, contract, profile, or bundle boundary before changing test expectations.",
+      "disposition": "keep"
+    },
     {
       "path": "mechanics/agon/parts/threshold-registry/tests/test_tos_agon_threshold_intake_registry.py",
       "home": "mechanics/agon/parts/threshold-registry",

@@ -115,6 +115,21 @@
       "authority_keys": ["tos_meaning", "source_witness_identity", "human_review", "canon_acceptance"]
     },
     {
+      "id": "access",
+      "label": "portable standalone access product",
+      "match": {"prefix": "access/"},
+      "consumer": ["standalone installer", "CLI or MCP client", "browser workbench", "integration adapter"],
+      "load_moment": "when installing, serving, querying, or extending the portable ToS access surface",
+      "owner": "access/AGENTS.md and the exact access contract or adapter; ToS/derived-exports remains the data authority",
+      "roles": {"authored": "portable consumer contract and adapter code", "generated": "built web assets and bundle subjects", "executable": "CLI, server, MCP, builder, validator, and tests", "runtime": "local process state only", "tool": "CLI, native MCP, WebMCP, and optional integration adapter", "receipt": "bundle integrity and standalone validation evidence"},
+      "currentness_inputs": ["access/AGENTS.md", "access/README.md", "access/contracts/", "access/profiles/", "access/packaging/"],
+      "next_organ": ["exact access contract or adapter", "ToS/derived-exports/", "optional external integration owner"],
+      "context": {"posture": "tool_on_demand", "metric": "whitespace_tokens_v1", "max_tokens": 1800, "surfaces": ["access/README.md", "access/AGENTS.md", "access/contracts/README.md"]},
+      "public_safety": {"posture": "portable_allowlisted_read_only", "forbidden": ["private payload", "host-local defaults", "secrets", "unreviewed publication widening", "runtime authority claims"], "boundary": "access transports and queries projections; it does not author ToS meaning, review, rights, or canon"},
+      "validation_lane": "standalone_access",
+      "authority_keys": ["portable_access_contract", "standalone_packaging", "consumer_adapter"]
+    },
+    {
       "id": "docs",
       "label": "rationale and validation documentation",
       "match": {"prefix": "docs/"},
@@ -277,6 +292,9 @@
     {"id": "source_witness_identity", "owner": "ToS/source-witnesses/", "strength": "authored", "family_id": "tos", "family_owner": "nearest ToS/AGENTS.md and the exact source, doctrine, review, canon, or export owner"},
     {"id": "human_review", "owner": "ToS/review-ledger/", "strength": "receipt", "family_id": "tos", "family_owner": "nearest ToS/AGENTS.md and the exact source, doctrine, review, canon, or export owner"},
     {"id": "canon_acceptance", "owner": "ToS/canon/", "strength": "authored", "family_id": "tos", "family_owner": "nearest ToS/AGENTS.md and the exact source, doctrine, review, canon, or export owner"},
+    {"id": "portable_access_contract", "owner": "access/contracts/", "strength": "authored", "family_id": "access", "family_owner": "access/AGENTS.md and the exact access contract or adapter; ToS/derived-exports remains the data authority"},
+    {"id": "standalone_packaging", "owner": "access/packaging/", "strength": "executable", "family_id": "access", "family_owner": "access/AGENTS.md and the exact access contract or adapter; ToS/derived-exports remains the data authority"},
+    {"id": "consumer_adapter", "owner": "access/src/ and access/web/", "strength": "tool", "family_id": "access", "family_owner": "access/AGENTS.md and the exact access contract or adapter; ToS/derived-exports remains the data authority"},
     {"id": "decision_rationale", "owner": "docs/decisions/", "strength": "authored", "family_id": "docs", "family_owner": "nearest docs/AGENTS.md; decisions and validation have their own owner surfaces"},
     {"id": "validation_command_authority", "owner": "docs/validation/validation_lanes.json", "strength": "executable", "family_id": "docs", "family_owner": "nearest docs/AGENTS.md; decisions and validation have their own owner surfaces"},
     {"id": "test_topology", "owner": "docs/testing/TEST_TOPOLOGY.md", "strength": "authored", "family_id": "docs", "family_owner": "nearest docs/AGENTS.md; decisions and validation have their own owner surfaces"},

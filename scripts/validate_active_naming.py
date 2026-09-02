@@ -23,6 +23,7 @@ EXCLUDED_PARTS = {
     ".pytest_cache",
     "__pycache__",
     "legacy",
+    "node_modules",
 }
 EXCLUDED_FILES = {
     "CHANGELOG.md",
@@ -30,6 +31,9 @@ EXCLUDED_FILES = {
     # generated paths; it is a projection, not an active naming authority.
     "docs/validation/documentation-family.current.json",
     "kag/indexes/index_family.manifest.json",
+    # The npm lock is exact generated dependency provenance. Authored package
+    # identity remains checked in access/web/package.json and web sources.
+    "access/web/package-lock.json",
     "scripts/validate_active_naming.py",
 }
 GENERATED_KAG_PREFIXES = (

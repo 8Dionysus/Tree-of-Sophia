@@ -289,6 +289,20 @@
         "Neo4j or UI cache truth"
       ]
     },
+    "standalone_access": {
+      "label": "standalone access",
+      "layer": "portable-read-runtime",
+      "mode": "blocking",
+      "owner_surface": "access/AGENTS.md",
+      "purpose": "Verify the installable ToS query core, native MCP, HTTP and browser action contracts, and standalone profile without requiring AbyssOS repositories or runtime services.",
+      "command_sequence": "standalone_access",
+      "failure_route": "access/AGENTS.md",
+      "does_not_own": [
+        "ToS authored meaning or canon",
+        "AbyssOS ecosystem deployment",
+        "artifact consumer admission"
+      ]
+    },
     "artifact_bundles": {
       "label": "artifact bundles",
       "layer": "release-artifact",
@@ -322,6 +336,7 @@
         "active_naming",
         "generated_parity",
         "graph_exports",
+        "standalone_access",
         "artifact_bundles",
         "canon_contracts",
         "intake_contracts",
@@ -622,6 +637,16 @@
         "command": ["python", "scripts/validate_philosophy_post_planting_audit.py"]
       }
     ],
+    "standalone_access": [
+      {
+        "label": "run standalone access contract tests",
+        "command": ["python", "-m", "unittest", "discover", "-s", "access/tests"]
+      },
+      {
+        "label": "validate standalone access source profile",
+        "command": ["python", "access/packaging/validate_standalone.py"]
+      }
+    ],
     "artifact_bundles": [
       {
         "label": "validate OS Abyss generated readmodel artifact bundle",
@@ -744,6 +769,14 @@
       {
         "label": "validate philosophy graph projection",
         "command": ["python", "scripts/validate_philosophy_graph_projection.py"]
+      },
+      {
+        "label": "run standalone access contract tests",
+        "command": ["python", "-m", "unittest", "discover", "-s", "access/tests"]
+      },
+      {
+        "label": "validate standalone access source profile",
+        "command": ["python", "access/packaging/validate_standalone.py"]
       },
       {
         "label": "check philosophy post-planting audit",

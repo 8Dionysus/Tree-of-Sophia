@@ -1,0 +1,10 @@
+{
+  "schema_version": "tos_access_profile_v1",
+  "profile_id": "abyssos",
+  "requires_abyssos": true,
+  "extends": "standalone",
+  "optional_integrations": ["abyss-stack", "aoa-kag", "aoa-stats", "abyss-machine"],
+  "integration_root": "access/integrations/abyssos/",
+  "discovery_environment": "TOS_ABYSSOS_ROOT",
+  "rule": "Missing integrations never invalidate the standalone profile."
+}

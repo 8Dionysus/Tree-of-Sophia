@@ -21,8 +21,8 @@ decision records, validators, or neighboring AoA owners.
 | Field | Route |
 | --- | --- |
 | input | source material, philosophical node pressure, branch growth, route-law change, mechanic pressure, public seam, or graph/export handoff |
-| output | source-owned ToS surface, mechanic-local contract, generated companion, decision record, or stronger-owner handoff |
-| owner | authored surfaces under `ToS/`, repeatable operations under `mechanics/`, owner-local measurements under `stats/`, durable rationale under `docs/decisions/` |
+| output | source-owned ToS surface, standalone access product, mechanic-local contract, generated companion, decision record, or stronger-owner handoff |
+| owner | authored surfaces under `ToS/`, portable read-only delivery under `access/`, repeatable operations under `mechanics/`, owner-local measurements under `stats/`, durable rationale under `docs/decisions/` |
 | next route | nearest nested `AGENTS.md`, source branch, mechanic package, builder, validator, test, or sibling owner |
 | validation | [Verify](#verify), plus the nearest local route card |
 
@@ -35,6 +35,7 @@ For orientation, read only the route you need:
 | overview or repository identity | [README](README.md), [CHARTER](CHARTER.md), [BOUNDARIES](BOUNDARIES.md) |
 | current direction | [ROADMAP](ROADMAP.md) |
 | system shape | [DESIGN](DESIGN.md) |
+| standalone CLI, HTTP, native MCP, site, WebMCP, or bundle | [access/AGENTS](access/AGENTS.md), then the nearest access contract or adapter |
 | agent-surface shape | [DESIGN.AGENTS](DESIGN.AGENTS.md) |
 | ToS source home or branch work | [ToS/AGENTS](ToS/AGENTS.md), then the owning branch card |
 | corpus identity, payload, anchor, provenance, or rights | [CORPUS_FOUNDATION](ToS/doctrine/CORPUS_FOUNDATION.md) -> [source-witness route](ToS/source-witnesses/README.md) -> [source-witness AGENTS](ToS/source-witnesses/AGENTS.md) |
@@ -66,7 +67,8 @@ or manifest, and the narrowest relevant validator before broader gates.
   and negative or unresolved examples where the reading is contested.
 - Cross-work transfer must be able to reject Zarathustra-specific vocabulary;
   schema resistance routes back to doctrine and contract review.
-- Runtime, proof, memory, stack, KAG substrate, federation, playbook, skill,
+- ToS-owned standalone projection access routes to `access/`; ecosystem stack
+  orchestration, proof, memory, KAG substrate, federation, playbook, skill,
   and technique authority route to their owning AoA repositories or layers.
 - Filesystem paths are speaking navigation; tracked ToS IDs own corpus
   identity. A move requires reference migration, not identity replacement.
@@ -141,7 +143,7 @@ blocker instead of guessing.
 
 ## Route Away When
 
-- a ToS node becomes runtime behavior, memory authority, proof doctrine,
+- a ToS node becomes ecosystem runtime behavior, memory authority, proof doctrine,
   routing policy, playbook choreography, or KAG substrate;
 - a public/export seam is treated as stronger than ToS-authored authority;
 - a root doc starts carrying branch inventory, validator sprawl, or generic
@@ -171,6 +173,13 @@ Corpus-foundation mechanics:
 
 ```bash
 python scripts/validate_source_witness_foundation.py
+```
+
+Standalone access product:
+
+```bash
+python -m unittest discover -s access/tests
+python access/packaging/validate_standalone.py
 ```
 
 Use [scripts/AGENTS](scripts/AGENTS.md) for script-local owner routes and

@@ -68,6 +68,7 @@ authority, and canon require matching source evidence and owner review.
 | --- | --- |
 | Understand the architecture | [CHARTER](CHARTER.md) · [DESIGN](DESIGN.md) · [BOUNDARIES](BOUNDARIES.md) |
 | Navigate model-facing tools and owner ports | [.agents/README](.agents/README.md) · [agent-surface map](.agents/agent-surface.manifest.json) · [agent-surface validation](docs/validation/validation_lanes.json) |
+| Install standalone access | [access](access/README.md) · [runtime contract](access/contracts/runtime-manifest.v1.json) · [web actions](access/contracts/web-actions.v1.json) |
 | Enter the philosophical tree | [ToS](ToS/README.md) · [philosophy](ToS/philosophy/) |
 | Inspect the evidence foundation | [doctrine](ToS/doctrine/CORPUS_FOUNDATION.md) · [source witnesses](ToS/source-witnesses/README.md) |
 | Follow the golden kernel | [contract](ToS/zarathustra/GOLDEN_GROWTH_KERNEL.md) · [public route](ToS/zarathustra/public-entry/TINY_ENTRY_ROUTE.md) · [worked capsule](ToS/zarathustra/prologue-1/TRILINGUAL_ENTRY.md) |
@@ -80,9 +81,10 @@ and projections with their named owners.
 
 ## Relationship to AoA
 
-`Agents-of-Abyss` supplies ecosystem law and agent federation, `abyss-stack`
-supplies runtime, and `aoa-kag` consumes bounded knowledge projections. ToS is
-their meaning-bearing philosophical tree.
+`Agents-of-Abyss` supplies ecosystem law and agent federation, `access/`
+supplies the standalone ToS read-only product, `abyss-stack` supplies optional
+ecosystem deployment and orchestration, and `aoa-kag` consumes bounded
+knowledge projections. ToS remains their meaning-bearing philosophical tree.
 
 ## License
 

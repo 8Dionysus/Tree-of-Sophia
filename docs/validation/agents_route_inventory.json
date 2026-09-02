@@ -11,6 +11,7 @@
       ".agents",
       ".github",
       "ToS",
+      "access",
       "docs",
       "mechanics",
       "scripts",
@@ -220,6 +221,20 @@
       "validation_paths": ["scripts/build_philosophy_graph_views.py", "scripts/validate_philosophy_graph_views.py", "scripts/validate_philosophy_topology.py"],
       "completion_evidence": ["ToS/philosophy/AGENTS.md", "ToS/philosophy/graph-workbench/AGENTS.md", "scripts/validate_philosophy_topology.py"],
       "handoff_routes": ["ToS/derived-exports/AGENTS.md", "ToS/canon/AGENTS.md"]
+    },
+    {
+      "id": "standalone_access_product",
+      "prompt": "Build or inspect the portable ToS access product while preserving source authority and optional AbyssOS integration.",
+      "target": "access/README.md",
+      "owner_route": "access/AGENTS.md",
+      "required_scopes": ["portable query core", "consumer adapters", "runtime data allowlist", "standalone verification"],
+      "required_markers": ["standalone profiles", "native MCP adapter", "WebMCP action contract", "derived-export owners"],
+      "boundary_markers": ["read-only delivery", "does not author philosophical meaning", "optional; its absence", "publication"],
+      "on_demand_surfaces": ["access/contracts/README.md", "access/contracts/runtime-data.v1.json", "access/profiles/standalone.v1.json"],
+      "validation_lanes": ["standalone_access", "route_docs"],
+      "validation_paths": ["access/packaging/validate_standalone.py", "access/tests/test_access_contract.py", "scripts/validate_nested_agents.py"],
+      "completion_evidence": ["access/AGENTS.md", "access/README.md", "access/packaging/validate_standalone.py"],
+      "handoff_routes": ["ToS/derived-exports/AGENTS.md", "access/integrations/abyssos/README.md"]
     },
     {
       "id": "zarathustra_public_entry",

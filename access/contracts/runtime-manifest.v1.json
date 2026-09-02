@@ -1,0 +1,25 @@
+{
+  "schema_version": "tos_access_runtime_manifest_v1",
+  "product_id": "tree-of-sophia-access",
+  "authority_owner": "Tree-of-Sophia",
+  "source_authority_root": "ToS/",
+  "derived_input_root": "ToS/derived-exports/",
+  "default_profile": "standalone",
+  "components": [
+    {"component_id": "query-core", "owner": "Tree-of-Sophia", "required": true},
+    {"component_id": "cli", "owner": "Tree-of-Sophia", "required": true},
+    {"component_id": "http-reader", "owner": "Tree-of-Sophia", "required": true},
+    {"component_id": "native-mcp", "owner": "Tree-of-Sophia", "required": true},
+    {"component_id": "web-app", "owner": "Tree-of-Sophia", "required": true},
+    {"component_id": "webmcp", "owner": "Tree-of-Sophia", "required": false, "posture": "next-slice"}
+  ],
+  "runtime_profiles": [
+    {"profile_id": "standalone", "runtime_owner": "Tree-of-Sophia", "requires_abyssos": false},
+    {"profile_id": "abyssos", "runtime_owner": "abyss-stack", "requires_abyssos": true, "adapter_only": true}
+  ],
+  "projection_compatibility": {
+    "tos_corpus_index": ["tos_corpus_index_v1"],
+    "philosophy_graph_projection": ["tos_philosophy_graph_projection_v1", "tos_philosophy_graph_projection_v2"]
+  },
+  "authority_limit": "Access packets and runtime behavior do not author ToS meaning, review, rights, or canon."
+}
