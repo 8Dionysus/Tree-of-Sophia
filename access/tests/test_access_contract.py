@@ -435,6 +435,13 @@ class CoreContractTests(unittest.TestCase):
             self.assertEqual([row["edge_id"] for row in edge_packet["challenge_relations"]], ["e"])
             self.assertEqual(edge_packet["field_posture"]["confidence_values"], [])
 
+            truncated = core.philosophy_epistemic_packet("e3", view_id="chronology", limit=1)
+            self.assertEqual(truncated["challenge_relations"], [])
+            self.assertEqual(truncated["context_relations"][0]["edge_id"], "e3")
+            self.assertEqual(truncated["coverage"]["challenge_state"], "projected_signals_truncated")
+            self.assertEqual(truncated["coverage"]["available_challenge_relations"], 2)
+            self.assertEqual(truncated["coverage"]["returned_challenge_relations"], 0)
+
     def test_scale_memberships_reference_only_selected_rows(self) -> None:
         with tempfile.TemporaryDirectory() as raw:
             root = Path(raw)

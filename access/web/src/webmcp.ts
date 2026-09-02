@@ -110,9 +110,7 @@ function dynamicTools(registry: PageCommandRegistry, context: PageContext): WebM
   const selected = context.selected;
   if (
     !selected ||
-    context.mode !== "philosophy" ||
-    context.active_layers.length === 0 ||
-    context.active_predicates.length === 0
+    context.mode !== "philosophy"
   ) return [];
   const tools: WebMCPTool[] = [];
   if ((selected.kind === "node" || selected.kind === "edge") && selected.reroutable !== false) {
@@ -126,6 +124,7 @@ function dynamicTools(registry: PageCommandRegistry, context: PageContext): WebM
       }, context.revision),
     );
   }
+  if (context.active_layers.length === 0 || context.active_predicates.length === 0) return tools;
   if (selected.kind === "node") {
     tools.push(
       commandTool(registry, "tos.page.show-neighborhood", {

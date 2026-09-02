@@ -176,6 +176,8 @@ type EpistemicPayload = {
   coverage?: {
     posture?: string;
     challenge_state?: string;
+    available_challenge_relations?: number;
+    returned_challenge_relations?: number;
     missing_surfaces?: string[];
   };
   counts?: Record<string, number>;
@@ -3116,6 +3118,9 @@ function epistemicCards(itemIdValue: string): string[] {
   const coverageLines = [
     coverage.posture ? `posture: ${humanKind(coverage.posture)}` : "",
     coverage.challenge_state ? `challenges: ${humanKind(coverage.challenge_state)}` : "",
+    coverage.available_challenge_relations !== undefined
+      ? `challenge relations: ${coverage.returned_challenge_relations || 0}/${coverage.available_challenge_relations}`
+      : "",
     ...(coverage.missing_surfaces || []).map((value) => `missing: ${value}`),
   ].filter(Boolean);
   const challengeRows = (packet.challenge_relations || []).map((edge) => {
@@ -3170,7 +3175,7 @@ async function showEpistemic(
   signal?: AbortSignal,
 ): Promise<EpistemicPayload> {
   if (!itemIdValue) throw new Error("select a philosophy node or edge");
-  assertPhilosophyRouteAvailable();
+  if (state.mode !== "philosophy") throw new Error("epistemic inspection requires philosophy mode");
   const selected = pageSelection();
   if (!selected || selected.id !== itemIdValue || !["node", "edge"].includes(selected.kind)) {
     throw new Error("epistemic inspection requires the current projection node or edge selection");
@@ -3181,9 +3186,16 @@ async function showEpistemic(
   const requestRevision = ++epistemicRevision;
   const requestMode = state.mode;
   const requestActiveViewId = state.currentViewId;
-  const requestConstraintViewId = state.currentView && viewItem(state.currentView, itemIdValue)
-    ? requestActiveViewId
-    : "";
+  const selectedItem = state.selected && itemId(state.selected) === itemIdValue
+    ? state.selected
+    : selectableItem(itemIdValue);
+  const declaredViewIds = Array.isArray(selectedItem?.view_ids)
+    ? stringList(selectedItem?.view_ids)
+    : null;
+  const selectionBelongsToActiveView = declaredViewIds
+    ? declaredViewIds.includes(requestActiveViewId)
+    : Boolean(state.currentView && viewItem(state.currentView, itemIdValue));
+  const requestConstraintViewId = selectionBelongsToActiveView ? requestActiveViewId : "";
   const packet = (await queryOperations.invoke("tos.epistemic.inspect", {
     item_id: itemIdValue,
     view_id: requestConstraintViewId,

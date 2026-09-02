@@ -58,10 +58,18 @@
     },
     "coverage": {
       "type": "object",
-      "required": ["posture", "challenge_state", "missing_surfaces"],
+      "required": [
+        "posture",
+        "challenge_state",
+        "available_challenge_relations",
+        "returned_challenge_relations",
+        "missing_surfaces"
+      ],
       "properties": {
         "posture": {"const": "partial"},
-        "challenge_state": {"enum": ["projected_signals", "none_in_projection_scope"]},
+        "challenge_state": {"enum": ["projected_signals", "projected_signals_truncated", "none_in_projection_scope"]},
+        "available_challenge_relations": {"type": "integer", "minimum": 0},
+        "returned_challenge_relations": {"type": "integer", "minimum": 0},
         "missing_surfaces": {"type": "array", "items": {"type": "string"}, "minItems": 1}
       },
       "additionalProperties": false

@@ -1181,11 +1181,13 @@ class ToSAccessCore:
             and selection.get("predicate_id") not in PHILOSOPHY_CHALLENGE_PREDICATES
         )
         challenge_capacity = bounded_limit - 1 if selected_edge_is_context else bounded_limit
-        challenge_relations = [
+        available_challenge_relations = [
             edge
             for edge in relation_candidates
             if edge.get("predicate_id") in PHILOSOPHY_CHALLENGE_PREDICATES
-        ][:challenge_capacity]
+        ]
+        challenge_relations = available_challenge_relations[:challenge_capacity]
+        challenge_relations_truncated = len(challenge_relations) < len(available_challenge_relations)
         challenge_ids = {str(edge.get("edge_id") or "") for edge in challenge_relations}
         remaining = max(0, bounded_limit - len(challenge_relations))
         context_relations = [
@@ -1274,7 +1276,15 @@ class ToSAccessCore:
             },
             "coverage": {
                 "posture": "partial",
-                "challenge_state": "projected_signals" if challenge_relations else "none_in_projection_scope",
+                "challenge_state": (
+                    "projected_signals_truncated"
+                    if challenge_relations_truncated
+                    else "projected_signals"
+                    if available_challenge_relations
+                    else "none_in_projection_scope"
+                ),
+                "available_challenge_relations": len(available_challenge_relations),
+                "returned_challenge_relations": len(challenge_relations),
                 "missing_surfaces": [
                     "claim-level support and counterevidence",
                     "source-visible review decisions",
@@ -1289,6 +1299,7 @@ class ToSAccessCore:
             },
             "counts": {
                 "challenge_relations": len(challenge_relations),
+                "available_challenge_relations": len(available_challenge_relations),
                 "context_relations": len(context_relations),
                 "neighbor_nodes": len(neighbor_nodes),
                 "source_refs": len(_source_refs(field_items)),
