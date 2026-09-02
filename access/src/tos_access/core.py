@@ -226,6 +226,36 @@ def _view_nodes_edges(
     return nodes, edges
 
 
+def _projection_nodes_edges(payload: dict[str, Any]) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+    nodes: list[dict[str, Any]] = []
+    edges: list[dict[str, Any]] = []
+    seen_node_ids: set[str] = set()
+    seen_edge_ids: set[str] = set()
+
+    def append_unique(items: list[dict[str, Any]], seen: set[str], candidate: dict[str, Any], key: str) -> None:
+        identity = str(candidate.get(key) or "")
+        if not identity or identity in seen:
+            return
+        seen.add(identity)
+        items.append(candidate)
+
+    for node in payload.get("nodes", []):
+        if isinstance(node, dict):
+            append_unique(nodes, seen_node_ids, node, "node_id")
+    for edge in payload.get("edges", []):
+        if isinstance(edge, dict):
+            append_unique(edges, seen_edge_ids, edge, "edge_id")
+    for view in payload.get("views", []):
+        if not isinstance(view, dict):
+            continue
+        view_nodes, view_edges = _view_nodes_edges(payload, view)
+        for node in view_nodes:
+            append_unique(nodes, seen_node_ids, node, "node_id")
+        for edge in view_edges:
+            append_unique(edges, seen_edge_ids, edge, "edge_id")
+    return nodes, edges
+
+
 @dataclass(slots=True)
 class ToSAccessCore:
     tos_root: Path
@@ -638,8 +668,7 @@ class ToSAccessCore:
     def philosophy_contracts(self) -> dict[str, Any]:
         payload = self.philosophy_projection()
         views = [view for view in payload.get("views", []) if isinstance(view, dict)]
-        nodes = [node for node in payload.get("nodes", []) if isinstance(node, dict)]
-        edges = [edge for edge in payload.get("edges", []) if isinstance(edge, dict)]
+        nodes, edges = _projection_nodes_edges(payload)
         clusters = [cluster for cluster in payload.get("clusters", []) if isinstance(cluster, dict)]
         source_refs = payload.get("source_refs", {}) if isinstance(payload.get("source_refs"), dict) else {}
         return {
@@ -697,6 +726,8 @@ class ToSAccessCore:
             edges,
         )[:limit]
         bounded_view = dict(view)
+        bounded_view.pop("nodes", None)
+        bounded_view.pop("edges", None)
         bounded_view["node_ids"] = [str(node.get("node_id")) for node in nodes if node.get("node_id")]
         bounded_view["edge_ids"] = [str(edge.get("edge_id")) for edge in edges if edge.get("edge_id")]
         return {
@@ -824,8 +855,7 @@ class ToSAccessCore:
             nodes, edges = _view_nodes_edges(payload, view)
             clusters = self._philosophy_clusters_for_payload(payload, view_id=view_id, limit=1_000_000)
         else:
-            nodes = [item for item in payload.get("nodes", []) if isinstance(item, dict)]
-            edges = [item for item in payload.get("edges", []) if isinstance(item, dict)]
+            nodes, edges = _projection_nodes_edges(payload)
             clusters = [item for item in payload.get("clusters", []) if isinstance(item, dict)]
 
         nodes = [node for node in nodes if _layer_allowed(node, layer_filter)]
@@ -968,16 +998,17 @@ class ToSAccessCore:
 
     def philosophy_node(self, node_id: str) -> dict[str, Any]:
         payload = self.philosophy_projection()
+        nodes, edges = _projection_nodes_edges(payload)
         node = next(
-            (item for item in payload.get("nodes", []) if isinstance(item, dict) and item.get("node_id") == node_id),
+            (item for item in nodes if item.get("node_id") == node_id),
             None,
         )
         if node is None:
             raise KeyError(f"unknown ToS philosophy node: {node_id}")
         related_edges = [
             edge
-            for edge in payload.get("edges", [])
-            if isinstance(edge, dict) and (edge.get("from_id") == node_id or edge.get("to_id") == node_id)
+            for edge in edges
+            if edge.get("from_id") == node_id or edge.get("to_id") == node_id
         ]
         return {
             "schema": "tos_philosophy_mcp_node_v1",
@@ -990,8 +1021,9 @@ class ToSAccessCore:
 
     def philosophy_edge(self, edge_id: str) -> dict[str, Any]:
         payload = self.philosophy_projection()
+        nodes, edges = _projection_nodes_edges(payload)
         edge = next(
-            (item for item in payload.get("edges", []) if isinstance(item, dict) and item.get("edge_id") == edge_id),
+            (item for item in edges if item.get("edge_id") == edge_id),
             None,
         )
         if edge is None:
@@ -999,8 +1031,8 @@ class ToSAccessCore:
         endpoint_ids = {str(edge.get("from_id") or ""), str(edge.get("to_id") or "")}
         endpoints = [
             node
-            for node in payload.get("nodes", [])
-            if isinstance(node, dict) and str(node.get("node_id") or "") in endpoint_ids
+            for node in nodes
+            if str(node.get("node_id") or "") in endpoint_ids
         ]
         return {
             "schema": "tos_philosophy_mcp_edge_v1",
@@ -1025,7 +1057,7 @@ class ToSAccessCore:
         limit = _bounded_int(limit, 80, 1, 300)
         layer_filter = set(layers or [])
         predicate_filter = set(predicates or [])
-        nodes = [node for node in payload.get("nodes", []) if isinstance(node, dict)]
+        nodes, projection_edges = _projection_nodes_edges(payload)
         nodes_by_id = {
             str(node.get("node_id")): node
             for node in nodes
@@ -1039,9 +1071,8 @@ class ToSAccessCore:
         }
         all_edges = [
             edge
-            for edge in payload.get("edges", [])
-            if isinstance(edge, dict)
-            and _layer_allowed(edge, layer_filter)
+            for edge in projection_edges
+            if _layer_allowed(edge, layer_filter)
             and _predicate_allowed(edge, predicate_filter)
             and str(edge.get("from_id") or "") in allowed_node_ids
             and str(edge.get("to_id") or "") in allowed_node_ids
@@ -1108,10 +1139,11 @@ class ToSAccessCore:
         max_depth: int = 6,
     ) -> dict[str, Any]:
         payload = self.philosophy_projection()
+        nodes, edges = _projection_nodes_edges(payload)
         nodes_by_id = {
             str(node.get("node_id")): node
-            for node in payload.get("nodes", [])
-            if isinstance(node, dict) and isinstance(node.get("node_id"), str)
+            for node in nodes
+            if isinstance(node.get("node_id"), str)
         }
         if from_id not in nodes_by_id:
             raise KeyError(f"unknown ToS philosophy node: {from_id}")
@@ -1120,10 +1152,9 @@ class ToSAccessCore:
         layer_filter = set(layers or [])
         predicate_filter = set(predicates or [])
         adjacency: dict[str, list[tuple[str, dict[str, Any]]]] = {}
-        for edge in payload.get("edges", []):
+        for edge in edges:
             if (
-                not isinstance(edge, dict)
-                or not _layer_allowed(edge, layer_filter)
+                not _layer_allowed(edge, layer_filter)
                 or not _predicate_allowed(edge, predicate_filter)
             ):
                 continue
@@ -1167,11 +1198,20 @@ class ToSAccessCore:
 
     def philosophy_search(self, query: str, limit: int = 20) -> dict[str, Any]:
         payload = self.philosophy_projection()
+        nodes, edges = _projection_nodes_edges(payload)
         needle = query.lower().strip()
         limit = _bounded_int(limit, 20, 1, 100)
         results: list[dict[str, Any]] = []
-        for collection_name in ("views", "nodes", "edges", "clusters", "review_packets", "graph_layers"):
-            for item in payload.get(collection_name, []):
+        collections = {
+            "views": payload.get("views", []),
+            "nodes": nodes,
+            "edges": edges,
+            "clusters": payload.get("clusters", []),
+            "review_packets": payload.get("review_packets", []),
+            "graph_layers": payload.get("graph_layers", []),
+        }
+        for collection_name, collection in collections.items():
+            for item in collection:
                 if not isinstance(item, dict):
                     continue
                 if needle and not _contains(item, needle):

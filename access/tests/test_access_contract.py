@@ -264,6 +264,34 @@ class CoreContractTests(unittest.TestCase):
 
             self.assertEqual([cluster["cluster_id"] for cluster in packet["clusters"]], ["relevant"])
 
+    def test_inline_v1_projection_supports_bounded_and_direct_graph_queries(self) -> None:
+        with tempfile.TemporaryDirectory() as raw:
+            root = Path(raw)
+            write_fixture(root)
+            projection_path = root / "ToS/derived-exports/philosophy_graph_projection.min.json"
+            projection = json.loads(projection_path.read_text(encoding="utf-8"))
+            projection["schema_version"] = "tos_philosophy_graph_projection_v1"
+            projection["views"][0]["nodes"] = projection.pop("nodes")
+            projection["views"][0]["edges"] = projection.pop("edges")
+            projection_path.write_text(json.dumps(projection), encoding="utf-8")
+            core = ToSAccessCore.discover(tos_root=root)
+
+            bounded = core.philosophy_view("chronology", limit=1)
+            self.assertEqual(bounded["node_count"], 1)
+            self.assertEqual(bounded["edge_count"], 0)
+            self.assertNotIn("nodes", bounded["view"])
+            self.assertNotIn("edges", bounded["view"])
+            self.assertEqual(bounded["view"]["node_ids"], ["a"])
+            self.assertEqual(core.philosophy_node("a")["node"]["label"], "Alpha")
+            self.assertEqual(core.philosophy_edge("e")["edge"]["to_id"], "b")
+            self.assertEqual(core.philosophy_neighborhood("a")["neighbors"][0]["node_id"], "b")
+            self.assertTrue(core.philosophy_path_between("a", "b")["found"])
+            self.assertEqual(core.philosophy_scale_packet("nodes")["total_row_count"], 3)
+            self.assertIn(
+                "nodes",
+                {result["collection"] for result in core.philosophy_search("Alpha")["results"]},
+            )
+
     def test_scale_memberships_reference_only_selected_rows(self) -> None:
         with tempfile.TemporaryDirectory() as raw:
             root = Path(raw)
