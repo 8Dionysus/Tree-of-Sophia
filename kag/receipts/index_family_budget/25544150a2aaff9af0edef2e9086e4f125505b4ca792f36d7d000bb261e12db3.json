@@ -22,9 +22,9 @@
   "head_source_snapshot": "sha256:f8d0448ef8c011569204b25c37047c5e72456ec59ec35e09ab5620702018f537",
   "producer_identity": {
     "action": {
-      "bytes": 5200,
-      "content_digest": "31a155aefaaeb638622b9153b5712f2bfac3356c6bd64d921c429ced2c3c7311",
-      "git_blob": "sha1:76741523dfc95fb24ffc1cfbebf5c86a1768380d",
+      "bytes": 4995,
+      "content_digest": "8cf5a902b2cf5f3fa9be83c15d3092de8b3f8c764ade2867334621ddb2be46e0",
+      "git_blob": "sha1:bb7fd7aca67b721bb21801a2c01b95df4a00166d",
       "path": ".github/actions/repo-local-kag-index/action.yml",
       "state": "present"
     },
@@ -141,16 +141,16 @@
         "resolved_path_digest": "d2c68400f17d98c00601a6731293f7f8c7abd735a42c07a4e1c119493e9d66aa",
         "version": ">=3.11"
       },
-      "manifest_digest": "b5b79f703fb2ff851fe51c9cfb6bed07127bb346918c7eeee45ad84c39af730b",
+      "manifest_digest": "c6ae6f1768a96e165ec9b5f84a15fe33aef6fdd9e33048c51ca5d368d2b37a5b",
       "non_python_inputs": [
         {
-          "bytes": 5200,
-          "content_digest": "31a155aefaaeb638622b9153b5712f2bfac3356c6bd64d921c429ced2c3c7311",
+          "bytes": 4995,
+          "content_digest": "8cf5a902b2cf5f3fa9be83c15d3092de8b3f8c764ade2867334621ddb2be46e0",
           "path": ".github/actions/repo-local-kag-index/action.yml"
         },
         {
-          "bytes": 8510,
-          "content_digest": "b5b79f703fb2ff851fe51c9cfb6bed07127bb346918c7eeee45ad84c39af730b",
+          "bytes": 4534,
+          "content_digest": "c6ae6f1768a96e165ec9b5f84a15fe33aef6fdd9e33048c51ca5d368d2b37a5b",
           "path": "config/repo-local-kag-budget-producer.json"
         },
         {
@@ -174,13 +174,13 @@
           "path": "schemas/kag-mcp-result.schema.json"
         },
         {
-          "bytes": 3726,
-          "content_digest": "f435f52f6c179a2d765fdd6c99c25e9ae612fa13814fa722e2a4516033013291",
+          "bytes": 3131,
+          "content_digest": "04d5c0e62909c3ff01135652e0a73c53ca27298d972ce1e1dffc5b175ee8957c",
           "path": "schemas/repo-local-kag-budget-producer-manifest.schema.json"
         },
         {
-          "bytes": 15673,
-          "content_digest": "eb1878afac28e4d4c02a193abdafc22fd677afec5434513d2e38855b73c43979",
+          "bytes": 15030,
+          "content_digest": "71ca007795e8e9912746e264dfadc9360921b6d7f4598fbb6118b0203c6b39be",
           "path": "schemas/repo-local-kag-budget-receipt.schema.json"
         },
         {
@@ -243,24 +243,17 @@
     },
     "files": [
       {
-        "bytes": 5200,
-        "content_digest": "31a155aefaaeb638622b9153b5712f2bfac3356c6bd64d921c429ced2c3c7311",
-        "git_blob": "sha1:76741523dfc95fb24ffc1cfbebf5c86a1768380d",
+        "bytes": 4995,
+        "content_digest": "8cf5a902b2cf5f3fa9be83c15d3092de8b3f8c764ade2867334621ddb2be46e0",
+        "git_blob": "sha1:bb7fd7aca67b721bb21801a2c01b95df4a00166d",
         "path": ".github/actions/repo-local-kag-index/action.yml",
         "state": "present"
       },
       {
-        "bytes": 8510,
-        "content_digest": "b5b79f703fb2ff851fe51c9cfb6bed07127bb346918c7eeee45ad84c39af730b",
-        "git_blob": "sha1:0f63e3a776d6e15c75d992252a66515b8e82fd7b",
+        "bytes": 4534,
+        "content_digest": "c6ae6f1768a96e165ec9b5f84a15fe33aef6fdd9e33048c51ca5d368d2b37a5b",
+        "git_blob": "sha1:bb26368ddb5c68c56f5c914d953b48a09552c155",
         "path": "config/repo-local-kag-budget-producer.json",
-        "state": "present"
-      },
-      {
-        "bytes": 16136,
-        "content_digest": "9e7f42b9975e2a7412543a5d2b29a2c5d1e11051e0593872a14e9e801a4cd076",
-        "git_blob": "sha1:feb3e52079dcd38c42f8aa48dc83964b14ed2606",
-        "path": "mechanics/questbook/parts/quest-store/scripts/validate_quest_store.py",
         "state": "present"
       },
       {
@@ -292,16 +285,16 @@
         "state": "present"
       },
       {
-        "bytes": 3726,
-        "content_digest": "f435f52f6c179a2d765fdd6c99c25e9ae612fa13814fa722e2a4516033013291",
-        "git_blob": "sha1:cf6a71a90e43569a5265b8f77d65dcc60ff80a27",
+        "bytes": 3131,
+        "content_digest": "04d5c0e62909c3ff01135652e0a73c53ca27298d972ce1e1dffc5b175ee8957c",
+        "git_blob": "sha1:788b4fa6ea84b58ecd8bfec6dd621a4d3eeb8948",
         "path": "schemas/repo-local-kag-budget-producer-manifest.schema.json",
         "state": "present"
       },
       {
-        "bytes": 15673,
-        "content_digest": "eb1878afac28e4d4c02a193abdafc22fd677afec5434513d2e38855b73c43979",
-        "git_blob": "sha1:eb61ffc3a108239a0207753a35a22715e015410b",
+        "bytes": 15030,
+        "content_digest": "71ca007795e8e9912746e264dfadc9360921b6d7f4598fbb6118b0203c6b39be",
+        "git_blob": "sha1:7bc5507e6262fa14a7c998e4a018341ed0cc9d00",
         "path": "schemas/repo-local-kag-budget-receipt.schema.json",
         "state": "present"
       },
@@ -383,13 +376,6 @@
         "state": "present"
       },
       {
-        "bytes": 2227,
-        "content_digest": "d67c6d3205c964d8600a214679e9e72b0be0028d9f64c34ee0d48a83e5c808b3",
-        "git_blob": "sha1:b731032d3ac50ae2f1924d434c5102c94e345edc",
-        "path": "scripts/assemble_repo_local_kag_family.py",
-        "state": "present"
-      },
-      {
         "bytes": 23102,
         "content_digest": "fd8e91dd25918f39b04085dac9efc4937e7196bc16983b1958c46d80da24ba9e",
         "git_blob": "sha1:8e2cd91342feaa72c63ff841f4c94e5d2d63dba8",
@@ -397,16 +383,16 @@
         "state": "present"
       },
       {
-        "bytes": 100268,
-        "content_digest": "823c3feb6b0384b03548ca47dd605358b8f440fdc4c8d512b51ca3e64b613dd6",
-        "git_blob": "sha1:c35be1e565ad155ff83b8ba6f6d5ab4ac663d494",
+        "bytes": 99456,
+        "content_digest": "d2ca9a3f97f269699f3b9ef2a1cc1928d95db985ee699447eb6ec0c94afc507b",
+        "git_blob": "sha1:6ebaa0d7894dfe7028cf82bb4df1dbc7ed1f4e4f",
         "path": "scripts/generate_repo_local_kag_coverage.py",
         "state": "present"
       },
       {
-        "bytes": 152814,
-        "content_digest": "2cb5ef8b3c6e7e5f5c5c39a3adf08a93be32a10897514028dfb4e31031a644b3",
-        "git_blob": "sha1:1a38ea65c05ad363e0b240db5b5b201ee69ebc10",
+        "bytes": 143108,
+        "content_digest": "24801e4bd870275bcb5ff1c060fca1093917e72fd7ddab802fa448216fd7c4a1",
+        "git_blob": "sha1:86f427cd6733a1b897a019906506e8f3dd7b9c22",
         "path": "scripts/generate_repo_local_kag_index.py",
         "state": "present"
       },
@@ -537,13 +523,6 @@
         "state": "present"
       },
       {
-        "bytes": 301,
-        "content_digest": "3d21d72d467f252c733fffcde1308fa245b529b39cd55d8c6ac7c7dc1122978d",
-        "git_blob": "sha1:6002430549388b6d647dce3a506ca61f9cee406b",
-        "path": "scripts/repo_local/__init__.py",
-        "state": "present"
-      },
-      {
         "bytes": 7636,
         "content_digest": "de6b29262812a3a4a1438212fa174444f1d38c88b352e099e99eae5001e1e222",
         "git_blob": "sha1:1850431b955fd3c2b932609e2b87f52b6a00bd91",
@@ -565,9 +544,9 @@
         "state": "present"
       },
       {
-        "bytes": 148835,
-        "content_digest": "23765ed0a67a676f3b80607b61a9f58dea1f4d0e926f6ad119d57202cd8cf66e",
-        "git_blob": "sha1:bec8f3e49ef13196cfb3b3903d350c1fad2a582e",
+        "bytes": 125977,
+        "content_digest": "5d835e2d488ed13ae53a9023217e0aab8ac8f169aafb644fe34fc3864cdd014f",
+        "git_blob": "sha1:f9b79955b7a2ae0dfa853af5cec6b68fd40b82b2",
         "path": "scripts/repo_local/portable_family.py",
         "state": "present"
       },
@@ -614,101 +593,10 @@
         "state": "present"
       },
       {
-        "bytes": 373,
-        "content_digest": "6ee56e633cad27e9b8c257452ea37b3d49d1810b9567fde1e945f882549be0b9",
-        "git_blob": "sha1:5ace8b8771150247812342cfea9bbf4332a001c9",
-        "path": "scripts/validators/__init__.py",
-        "state": "present"
-      },
-      {
         "bytes": 3081,
         "content_digest": "4fd6c39399171c86af3331fbf7fa4a5faead4f7d6c188e9f1a467a98992507de",
         "git_blob": "sha1:2682d001cde044c00ac403dbb2457f4cfc2baef7",
         "path": "scripts/validators/common.py",
-        "state": "present"
-      },
-      {
-        "bytes": 60,
-        "content_digest": "388ad98934bc6ca3fdffdecb5b72c7b9feb6153934f883a1ea56f9ed8018ccf3",
-        "git_blob": "sha1:7b69bdd49d74c1f9ad03b75e8c11954db6c017b8",
-        "path": "scripts/validators/example_contracts.py",
-        "state": "present"
-      },
-      {
-        "bytes": 400,
-        "content_digest": "674efddad639d7e3354aaaa0a43a241adbfe78eccc1d43fdba43b82a06348933",
-        "git_blob": "sha1:63d84071fee4b08c20308bf3edc4012b7cb99d17",
-        "path": "scripts/validators/examples/__init__.py",
-        "state": "present"
-      },
-      {
-        "bytes": 5271,
-        "content_digest": "8d7da31751a3a07a13aac1cb199aa71ed6b09526ada1fab077f056a3756d63d7",
-        "git_blob": "sha1:7366bc101ac9ddd6c6340754e875dedeb72f28c1",
-        "path": "scripts/validators/examples/bridge_examples.py",
-        "state": "present"
-      },
-      {
-        "bytes": 8569,
-        "content_digest": "ee914623a396225464c30e87695e67ffa242d40cece7cf0b4cb16f1ab6e4c955",
-        "git_blob": "sha1:bfb04ff2b7f980761c3f1e021651ac90541e2dd1",
-        "path": "scripts/validators/examples/counterpart_examples.py",
-        "state": "present"
-      },
-      {
-        "bytes": 424,
-        "content_digest": "56d963d49474f8bde711591adee057eb948882a9c01cc31edf7d8efb298e6ec7",
-        "git_blob": "sha1:121c48da02d0c8c65b78879f5835b8ff050ad3b5",
-        "path": "scripts/validators/examples/cross_source_examples.py",
-        "state": "present"
-      },
-      {
-        "bytes": 486,
-        "content_digest": "83c1f70e1779f9d23a4cb80478fc7a4417c60d8e7a61595615dbb8241df1a52f",
-        "git_blob": "sha1:c3ba32b7cddff43d78547086536b1168d876453c",
-        "path": "scripts/validators/examples/exposure_review_examples.py",
-        "state": "present"
-      },
-      {
-        "bytes": 6248,
-        "content_digest": "c7a3c7412fc1c0df542f2a068b525e2ee8d94e0010c8299b51ae1e43178785ca",
-        "git_blob": "sha1:00b119807ef6adbeb192d3a7497f18a3a4e6eeb1",
-        "path": "scripts/validators/examples/federation_examples.py",
-        "state": "present"
-      },
-      {
-        "bytes": 3832,
-        "content_digest": "92200e32c72017706138510fe1c42c546aedce6a9886828268321347987f927b",
-        "git_blob": "sha1:71ec55b80bac73190dc34c04b942b85cb5858764",
-        "path": "scripts/validators/examples/governance_examples.py",
-        "state": "present"
-      },
-      {
-        "bytes": 3961,
-        "content_digest": "644eee55dc57c29c3d339b69c74787f4ebad7376fdd4a71c82353e495a44a879",
-        "git_blob": "sha1:770c9a4d717c3d280605e0ceb320abfd1fe2b691",
-        "path": "scripts/validators/examples/reasoning_handoff_examples.py",
-        "state": "present"
-      },
-      {
-        "bytes": 329,
-        "content_digest": "25e4af8dc8c287372edc0207f6fe1f8c7d91b1d12ccec6cb12f2027ecdf5c425",
-        "git_blob": "sha1:61a7f689ca13e7560d475a355547667e3890d576",
-        "path": "scripts/validators/examples/recurrence_examples.py",
-        "state": "present"
-      },
-      {
-        "bytes": 388,
-        "content_digest": "c26e8f352f822dff590eb4518efd2d54edeebdaf027c42f5c9ff0e4165838660",
-        "git_blob": "sha1:9ea64208bcff35c0c501789d6cf738bfaf00a46a",
-        "path": "scripts/validators/examples/tiny_consumer_bundle_examples.py",
-        "state": "present"
-      },
-      {
-        "bytes": 7224,
-        "content_digest": "cdd07f3a5420ab5065d717a089dff234950af07165b3c1bd97661b9d036e32a8",
-        "git_blob": "sha1:0a0a2a22420ee3ee360d53b6c4433c3d45e81439",
-        "path": "scripts/validators/examples/tos_examples.py",
         "state": "present"
       },
       {
@@ -817,324 +705,16 @@
         "state": "present"
       },
       {
-        "bytes": 13222,
-        "content_digest": "0feb082f29cb367bed2d9aad7570d5f9e63fd07c0069ededa6d5a702e169f79b",
-        "git_blob": "sha1:3e34a3c01afdb4ec43f755f3b14c6787b4449ee6",
-        "path": "scripts/validators/local_contracts.py",
-        "state": "present"
-      },
-      {
-        "bytes": 47589,
-        "content_digest": "1f6f563278ff883f0701744f14807a6f1b591b453cd7cf8cd160c6902c04a42a",
-        "git_blob": "sha1:79c38d3ce1c6b62ecf2a9dbd6fd6db215a41cde9",
+        "bytes": 46824,
+        "content_digest": "182c57dabc71105ce1a36ad32dac4e49775ff8e88ed1c94f108eba495fefda8a",
+        "git_blob": "sha1:00552bdb773a2e4b8f7b20b417b7bcbd06685b5d",
         "path": "scripts/validators/local_kag_subtree.py",
         "state": "present"
       },
       {
-        "bytes": 61,
-        "content_digest": "c4b99c327562a2a7d52455ab5f513bdbca5dceaeb1cc323ab9eeb05966850223",
-        "git_blob": "sha1:7856540311d258827e4aff0621fc93d975e594d7",
-        "path": "scripts/validators/manifest_contracts.py",
-        "state": "present"
-      },
-      {
-        "bytes": 554,
-        "content_digest": "e004b5e6522f4e16a595aba3e52b2614829743bff4a94c5fbef6a2f61a01fac6",
-        "git_blob": "sha1:09318a1c0d4cc3e51e80e922e23a1f277fd14883",
-        "path": "scripts/validators/manifests/__init__.py",
-        "state": "present"
-      },
-      {
-        "bytes": 7212,
-        "content_digest": "0b088d07fa15b21b0db81f3bd2ab5a96b42fe1289793f7714a72b02074c83180",
-        "git_blob": "sha1:7b7f7e853b08b0f8676a1b9aaf956864fe34f3c0",
-        "path": "scripts/validators/manifests/counterpart_federation_exposure_review.py",
-        "state": "present"
-      },
-      {
-        "bytes": 8893,
-        "content_digest": "5de6532e864a3cb991735545abb308f03fd0dd96fdad5c76d4889961d7ab805a",
-        "git_blob": "sha1:069ba6ab090f8d594e726669f9d9ab728e31e1bd",
-        "path": "scripts/validators/manifests/cross_source_node_projection.py",
-        "state": "present"
-      },
-      {
-        "bytes": 9356,
-        "content_digest": "be7f539648b013df687a0c2911b18ef64e8768e67ddeba71976699a434bec8f5",
-        "git_blob": "sha1:3e433e1711dc9844b37a10ddaaba2c59e7ddeda3",
-        "path": "scripts/validators/manifests/federation_export_registry.py",
-        "state": "present"
-      },
-      {
-        "bytes": 12327,
-        "content_digest": "1e149f72383c0823ef9a155d478b1f60a09f4726c74c0bbbecc0fb820105ac0d",
-        "git_blob": "sha1:702c6d0364c01b2dc4b1c7445e578aa3e0b50d25",
-        "path": "scripts/validators/manifests/federation_spine.py",
-        "state": "present"
-      },
-      {
-        "bytes": 15775,
-        "content_digest": "c5646374a164f6d96666a4d42654d0a868a63a22b5269a1475b03d325c5cd519",
-        "git_blob": "sha1:fe2b68e21b682e2298399d76748d05d6cdbc140a",
-        "path": "scripts/validators/manifests/governance.py",
-        "state": "present"
-      },
-      {
-        "bytes": 5089,
-        "content_digest": "f9e39541f772aea77ea5dd728cb9adc5eaf822c871a20904cc66d8b8c662417e",
-        "git_blob": "sha1:78d1bfacf6c4473f01a76061974cca028a7442ac",
-        "path": "scripts/validators/manifests/reasoning_handoff.py",
-        "state": "present"
-      },
-      {
-        "bytes": 5022,
-        "content_digest": "73eb46de83bb26740a1c33e76f8f7ad986d3cdd9336b4331e43880bd257a45ad",
-        "git_blob": "sha1:8b5cf0c5c2068c20efedea4b1876669e7a952c38",
-        "path": "scripts/validators/manifests/return_regrounding.py",
-        "state": "present"
-      },
-      {
-        "bytes": 9478,
-        "content_digest": "7333322eecdb9afce3f4c45a6dff4fd030880adffb4dc90a19ca6b01fd1fc4b9",
-        "git_blob": "sha1:31a91c19e785cea61b531f5d4e88c335d6682bb8",
-        "path": "scripts/validators/manifests/source_owned_export.py",
-        "state": "present"
-      },
-      {
-        "bytes": 5010,
-        "content_digest": "6dacf5d21af783722b2a110cf5d07af8c33efd61f5e6e92590f9cd7cee13a9e8",
-        "git_blob": "sha1:f7c55c5ad5a4220c0369785ee3685fa22bbf46b6",
-        "path": "scripts/validators/manifests/technique_lift.py",
-        "state": "present"
-      },
-      {
-        "bytes": 4410,
-        "content_digest": "72ccde2cf5a5b75c090ecdbecfa384b90f8df95e11514fb518a8ebbc8eca8068",
-        "git_blob": "sha1:fd2eb6862b97f294e2d127fe0ca0be491f113aef",
-        "path": "scripts/validators/manifests/tiny_consumer_bundle.py",
-        "state": "present"
-      },
-      {
-        "bytes": 4278,
-        "content_digest": "4d5c0b581fbe781069a2a7be2393a0b1fa3928d87270092dc8ace6eb4f4bb38d",
-        "git_blob": "sha1:8f38940ebb523bb15de05fe04a62a6a6d60daaac",
-        "path": "scripts/validators/manifests/tos_retrieval_axis.py",
-        "state": "present"
-      },
-      {
-        "bytes": 4979,
-        "content_digest": "4519a8fca6318f77a9a26ae299fefbc551b96066809dd286733e554efb2c081e",
-        "git_blob": "sha1:99200730600d6f72a70ebc91419061b01cba8737",
-        "path": "scripts/validators/manifests/tos_text_chunk_map.py",
-        "state": "present"
-      },
-      {
-        "bytes": 5716,
-        "content_digest": "a9c1771c8304c388db0185a7b3b668dcc4fa5045ef7ac29c5a051c5c216a9817",
-        "git_blob": "sha1:54944da78374b55fefc1ce3a9c8ed4fce2959cf1",
-        "path": "scripts/validators/manifests/tos_zarathustra_route.py",
-        "state": "present"
-      },
-      {
-        "bytes": 6348,
-        "content_digest": "894a2dff9235723ad96af880a4f59fa55a7a6a98ecb7a0529e1d0e9f1c885e52",
-        "git_blob": "sha1:775138ae8a8672afa441747ca136ca5320c67109",
-        "path": "scripts/validators/manifests/tos_zarathustra_route_retrieval.py",
-        "state": "present"
-      },
-      {
-        "bytes": 58,
-        "content_digest": "675374983dc8bf983db065b0b67c4fc5cedfb59a3877f997b4882730db79bbe1",
-        "git_blob": "sha1:744bf89a5eebb69244ad534046a3f0647e5b7d47",
-        "path": "scripts/validators/orchestration/__init__.py",
-        "state": "present"
-      },
-      {
-        "bytes": 1476,
-        "content_digest": "6c9b4bfa85ebd379d8c909d4cd33b670a768e638738af5b1e65f9695f4503399",
-        "git_blob": "sha1:00b41e68f81c852e9e5de8234d7d5844ff41c509",
-        "path": "scripts/validators/orchestration/examples.py",
-        "state": "present"
-      },
-      {
-        "bytes": 2020,
-        "content_digest": "c97013ba133bd4e4898af4d997e57aeaae29a14175b017311748205bc85a04cb",
-        "git_blob": "sha1:90fb387cbe7dd6443d467e3769cbcc82b42412dc",
-        "path": "scripts/validators/orchestration/expected_payloads.py",
-        "state": "present"
-      },
-      {
-        "bytes": 3097,
-        "content_digest": "a3ae7e165693eaddb73d1e6bb2ba1a1eaddddea04a917db40faa67144becbe4c",
-        "git_blob": "sha1:8fe5238431dfad39b07ddeb40a89509b2d5617d8",
-        "path": "scripts/validators/orchestration/generated_structures.py",
-        "state": "present"
-      },
-      {
-        "bytes": 3996,
-        "content_digest": "d2728a28d76d9a1bfb296f247521955e6d91c75d96e014061facae833f21e30e",
-        "git_blob": "sha1:9e0a60c3e4463f43be989488a0bcc6d64a961927",
-        "path": "scripts/validators/orchestration/generated_text.py",
-        "state": "present"
-      },
-      {
-        "bytes": 2213,
-        "content_digest": "df9fdde9eba4306fefe9476197672e88c5a3023664643aef64ef3d71b2a63077",
-        "git_blob": "sha1:3fe0422e134531ce5c2e7cd1a8c3b725b925f90a",
-        "path": "scripts/validators/orchestration/manifests.py",
-        "state": "present"
-      },
-      {
-        "bytes": 3887,
-        "content_digest": "beac07edc13ff8fa5303c284e136a009a4dceea2812108dbc53f46d723076992",
-        "git_blob": "sha1:238834d485fe139cf58baa66dd713a3b0da8e740",
-        "path": "scripts/validators/orchestration/runner.py",
-        "state": "present"
-      },
-      {
-        "bytes": 3555,
-        "content_digest": "72497dfb9fc2ca9464c816b1b90ae3ffc034fbb08a1092ea447c9b7a0d5e1956",
-        "git_blob": "sha1:f816497142d33c738b7cabcc1c257529feeacecf",
-        "path": "scripts/validators/orchestration/static_surfaces.py",
-        "state": "present"
-      },
-      {
-        "bytes": 6713,
-        "content_digest": "1d7f4946a4329781460738216cb18ecf8d1141b56ac30f97c5ed9b49d5e23725",
-        "git_blob": "sha1:9eab1263e70f574d1365598f06ddae3424adcb56",
-        "path": "scripts/validators/orchestration/status.py",
-        "state": "present"
-      },
-      {
-        "bytes": 65,
-        "content_digest": "bce6b7417bd7a1347b45f86cc887172149ce1c085b2d071091db9d750271d995",
-        "git_blob": "sha1:2341b92b43fb248ee9ef2316f6e3b1e17de21c50",
-        "path": "scripts/validators/orchestrator.py",
-        "state": "present"
-      },
-      {
-        "bytes": 538,
-        "content_digest": "5ecb299fcf597827bed0d624a778081ec5a20e1a19db7707073df5d0a1107f7e",
-        "git_blob": "sha1:b743a41f777cf42995f28ac6344049153989e12a",
-        "path": "scripts/validators/projection/__init__.py",
-        "state": "present"
-      },
-      {
-        "bytes": 5244,
-        "content_digest": "0432de68f7fb723747fe9a73282f40f1d2555148c70e2374af4b97e99228970b",
-        "git_blob": "sha1:7333a0e3c61d89ccc80655a41ba9d9e4eeae0dba",
-        "path": "scripts/validators/projection/counterpart_federation_exposure_review.py",
-        "state": "present"
-      },
-      {
-        "bytes": 3968,
-        "content_digest": "953a060155f3b107aa29ab355bd58a90bc7eb568f3e3eda99343ed9d80cc8aaf",
-        "git_blob": "sha1:6a6941d8b4dca89b50f7f605c7f0749597241e31",
-        "path": "scripts/validators/projection/cross_source_node_projection.py",
-        "state": "present"
-      },
-      {
-        "bytes": 9639,
-        "content_digest": "5d625cac3504346185a099b1d775db1391cba98038c899e49edbcab1ad27e8f8",
-        "git_blob": "sha1:41ce67726bf8968f6322da4f4f291e40b1aca764",
-        "path": "scripts/validators/projection/federation_export_registry.py",
-        "state": "present"
-      },
-      {
-        "bytes": 11482,
-        "content_digest": "7289402f251913e1f4e1a7a900a7bd4e3334f7ee527f987b3b16796383869200",
-        "git_blob": "sha1:61d28abe04cd27a6b9457f0206db1c4c916c22e6",
-        "path": "scripts/validators/projection/federation_spine.py",
-        "state": "present"
-      },
-      {
-        "bytes": 14239,
-        "content_digest": "a23e176d2a79ab654a2b115e88f5c341c9ac7ea2f3dccb715f109e6d8e09d8f8",
-        "git_blob": "sha1:0f9333a4ae0de06fbc076b2b3c90ebf95f9647a6",
-        "path": "scripts/validators/projection/governance.py",
-        "state": "present"
-      },
-      {
-        "bytes": 17181,
-        "content_digest": "ee45a5fc1ff59f9664e7878fe66fbab19840cfbb4b275b513a037300ac0c102b",
-        "git_blob": "sha1:feeba3b7c8ab94f80496de4573b59bd75291776a",
-        "path": "scripts/validators/projection/reasoning_handoff.py",
-        "state": "present"
-      },
-      {
-        "bytes": 26923,
-        "content_digest": "e2690ce23fda09c097200dca10a51bc4340ac818a4391a2305af07c7a68d6190",
-        "git_blob": "sha1:cdbcbf34a0e0750f60508bdff3c71fedadab1c1c",
-        "path": "scripts/validators/projection/registry.py",
-        "state": "present"
-      },
-      {
-        "bytes": 9927,
-        "content_digest": "150e94b723a77bed1f3a36b49325d20044100c2298b4104d1d5307485116f190",
-        "git_blob": "sha1:fe3ff4868018d271370f07bcf6d176f5855bae1c",
-        "path": "scripts/validators/projection/return_regrounding.py",
-        "state": "present"
-      },
-      {
-        "bytes": 12656,
-        "content_digest": "03a0ad07cc018c2445f522104a7a63635756784953a813e4b6cc9c5d96681aab",
-        "git_blob": "sha1:bac5dfb7ad95fa7b3af951f74bf173e91ea4052d",
-        "path": "scripts/validators/projection/technique.py",
-        "state": "present"
-      },
-      {
-        "bytes": 3466,
-        "content_digest": "6e49fa823cbfe5c9af33a28fd59b83f790dc26b1cf8ed0050c23d22f61c6846e",
-        "git_blob": "sha1:a6bffef15bfdf288a6abb661dd6918d9a40f2656",
-        "path": "scripts/validators/projection/tiny_consumer_bundle.py",
-        "state": "present"
-      },
-      {
-        "bytes": 3236,
-        "content_digest": "d8e8daffff30516b2316e9d16ee99ef3f580e1995d3b0b4cc73f0d2c493cb5ab",
-        "git_blob": "sha1:da8e67dc5ef4c979a4489669f7a7768b2ce19cd1",
-        "path": "scripts/validators/projection/tos_retrieval_axis.py",
-        "state": "present"
-      },
-      {
-        "bytes": 10107,
-        "content_digest": "e67f803aa5ac1075ff7836d4dba5aeca77c8fabefa5af4c69b455cf40bc7899a",
-        "git_blob": "sha1:af6e18ea9b0e1d1bc862b4da291991d846772c43",
-        "path": "scripts/validators/projection/tos_text_chunk_map.py",
-        "state": "present"
-      },
-      {
-        "bytes": 11442,
-        "content_digest": "f29df9d76ffaa7dfea92ecc36d7e6ad1cb37621a48e279d07a200f362c85fb0d",
-        "git_blob": "sha1:b9a269c1f1971924a895f28fc6f48282a3640a50",
-        "path": "scripts/validators/projection/tos_zarathustra_route.py",
-        "state": "present"
-      },
-      {
-        "bytes": 11238,
-        "content_digest": "ac9be2b2f1ac8cf04572a6d2d4b0d4a8c10f70a0ffddf1e8eb688e1b4c84f43e",
-        "git_blob": "sha1:f91c97993aeceb355438147d3d814e0a852c4344",
-        "path": "scripts/validators/projection/tos_zarathustra_route_retrieval.py",
-        "state": "present"
-      },
-      {
-        "bytes": 62,
-        "content_digest": "7f17dee490475866571fd12b79cd48eabea9c6cb1a98f5d2e69bde736fa0329a",
-        "git_blob": "sha1:5bc46d90f6de97fb42e1a7f7cfabe0d931cc6400",
-        "path": "scripts/validators/projection_parity.py",
-        "state": "present"
-      },
-      {
-        "bytes": 7478,
-        "content_digest": "73acc239d2f20a77e1e12fe849ece667d690ba904b58f9974d1969bd061e9a2d",
-        "git_blob": "sha1:e16b72bc0d3759d39188d4a63b824bbe2394b659",
-        "path": "scripts/validators/provider_registry.py",
-        "state": "present"
-      },
-      {
-        "bytes": 68783,
-        "content_digest": "a19f1643c40e617a79eb56ff2ed01909b7ddfc2fd95860b17dae71c51ca49a74",
-        "git_blob": "sha1:7c7255485583220a59e0ec7a85b3be1924ebd903",
+        "bytes": 68265,
+        "content_digest": "f18efc3bc951070c2a3c5e59fea0b869dd33e58ad55b5fb2e634d18cedeacb23",
+        "git_blob": "sha1:c79c5e380e54049c665e75752775c17297ba41c7",
         "path": "scripts/validators/repo_local_kag_index.py",
         "state": "present"
       },
@@ -1144,23 +724,9 @@
         "git_blob": "sha1:072d7824f089e7b76b7260728acfb94289e79aaf",
         "path": "scripts/validators/schema_surfaces.py",
         "state": "present"
-      },
-      {
-        "bytes": 3710,
-        "content_digest": "fd67f283e56ef1a715bb43c7fbe588edfecd5ab73a2cacc3cc41ba12d38158fd",
-        "git_blob": "sha1:01f82b31d2ce2cbf2998c8095f02d6010d331fb9",
-        "path": "scripts/validators/sibling_readiness.py",
-        "state": "present"
-      },
-      {
-        "bytes": 5203,
-        "content_digest": "24e1e26064e8993e9ce73e8450821c9fc673188d7b34041be85d6248566f03da",
-        "git_blob": "sha1:ba133f17b5c68e60088f06102876f824ed326cb7",
-        "path": "scripts/validators/source_refs.py",
-        "state": "present"
       }
     ],
-    "identity_digest": "003839bd98f417fee32f300e8242d9f67ddfe80e24a9bbe949cf2c5adef79bc8",
+    "identity_digest": "bdb6afb7c499f3e78da1a60638d616e0b964d15efa52c34d2b9a810a7b6ca07d",
     "owner": "aoa-kag",
     "procedure_manifest": {
       "action_inputs": [
@@ -1191,18 +757,6 @@
         }
       ],
       "dynamic_import_policy": "fail-closed-unresolved-local-v1",
-      "dynamic_imports": [
-        {
-          "kind": "spec_from_file_location",
-          "source": "scripts/validators/local_contracts.py",
-          "target": "mechanics/questbook/parts/quest-store/scripts/validate_quest_store.py"
-        },
-        {
-          "kind": "module_from_spec",
-          "source": "scripts/validators/local_contracts.py",
-          "target": "mechanics/questbook/parts/quest-store/scripts/validate_quest_store.py"
-        }
-      ],
       "environment": [
         {
           "name": "AOA_KAG_FORCE_COLD_SCHEMA_COMPILATION",
@@ -1213,11 +767,10 @@
           "role": "validator engine rollback"
         }
       ],
-      "manifest_digest": "b5b79f703fb2ff851fe51c9cfb6bed07127bb346918c7eeee45ad84c39af730b",
+      "manifest_digest": "c6ae6f1768a96e165ec9b5f84a15fe33aef6fdd9e33048c51ca5d368d2b37a5b",
       "manifest_path": "config/repo-local-kag-budget-producer.json",
       "python_entrypoints": [
         "scripts/generate_repo_local_kag_index.py",
-        "scripts/assemble_repo_local_kag_family.py",
         "scripts/repo_local/portable_family.py",
         "scripts/repo_local/tiered_family.py",
         "scripts/repo_local_kag_gate.py",
@@ -1225,8 +778,6 @@
         "scripts/validators/repo_local_kag_index.py"
       ],
       "python_import_closure": [
-        "mechanics/questbook/parts/quest-store/scripts/validate_quest_store.py",
-        "scripts/assemble_repo_local_kag_family.py",
         "scripts/coverage_run.py",
         "scripts/generate_repo_local_kag_coverage.py",
         "scripts/generate_repo_local_kag_index.py",
@@ -1248,7 +799,6 @@
         "scripts/kag_generation.py",
         "scripts/prepare_landing.py",
         "scripts/provider_registry.py",
-        "scripts/repo_local/__init__.py",
         "scripts/repo_local/history.py",
         "scripts/repo_local/identity.py",
         "scripts/repo_local/indexes.py",
@@ -1259,20 +809,7 @@
         "scripts/validate_mechanics_skeleton.py",
         "scripts/validate_nested_agents.py",
         "scripts/validate_repo_local_kag_family.py",
-        "scripts/validators/__init__.py",
         "scripts/validators/common.py",
-        "scripts/validators/example_contracts.py",
-        "scripts/validators/examples/__init__.py",
-        "scripts/validators/examples/bridge_examples.py",
-        "scripts/validators/examples/counterpart_examples.py",
-        "scripts/validators/examples/cross_source_examples.py",
-        "scripts/validators/examples/exposure_review_examples.py",
-        "scripts/validators/examples/federation_examples.py",
-        "scripts/validators/examples/governance_examples.py",
-        "scripts/validators/examples/reasoning_handoff_examples.py",
-        "scripts/validators/examples/recurrence_examples.py",
-        "scripts/validators/examples/tiny_consumer_bundle_examples.py",
-        "scripts/validators/examples/tos_examples.py",
         "scripts/validators/expected/__init__.py",
         "scripts/validators/expected/consumer_contracts.py",
         "scripts/validators/expected/core.py",
@@ -1288,55 +825,9 @@
         "scripts/validators/expected/tos_contracts.py",
         "scripts/validators/expected_contracts.py",
         "scripts/validators/generation.py",
-        "scripts/validators/local_contracts.py",
         "scripts/validators/local_kag_subtree.py",
-        "scripts/validators/manifest_contracts.py",
-        "scripts/validators/manifests/__init__.py",
-        "scripts/validators/manifests/counterpart_federation_exposure_review.py",
-        "scripts/validators/manifests/cross_source_node_projection.py",
-        "scripts/validators/manifests/federation_export_registry.py",
-        "scripts/validators/manifests/federation_spine.py",
-        "scripts/validators/manifests/governance.py",
-        "scripts/validators/manifests/reasoning_handoff.py",
-        "scripts/validators/manifests/return_regrounding.py",
-        "scripts/validators/manifests/source_owned_export.py",
-        "scripts/validators/manifests/technique_lift.py",
-        "scripts/validators/manifests/tiny_consumer_bundle.py",
-        "scripts/validators/manifests/tos_retrieval_axis.py",
-        "scripts/validators/manifests/tos_text_chunk_map.py",
-        "scripts/validators/manifests/tos_zarathustra_route.py",
-        "scripts/validators/manifests/tos_zarathustra_route_retrieval.py",
-        "scripts/validators/orchestration/__init__.py",
-        "scripts/validators/orchestration/examples.py",
-        "scripts/validators/orchestration/expected_payloads.py",
-        "scripts/validators/orchestration/generated_structures.py",
-        "scripts/validators/orchestration/generated_text.py",
-        "scripts/validators/orchestration/manifests.py",
-        "scripts/validators/orchestration/runner.py",
-        "scripts/validators/orchestration/static_surfaces.py",
-        "scripts/validators/orchestration/status.py",
-        "scripts/validators/orchestrator.py",
-        "scripts/validators/projection/__init__.py",
-        "scripts/validators/projection/counterpart_federation_exposure_review.py",
-        "scripts/validators/projection/cross_source_node_projection.py",
-        "scripts/validators/projection/federation_export_registry.py",
-        "scripts/validators/projection/federation_spine.py",
-        "scripts/validators/projection/governance.py",
-        "scripts/validators/projection/reasoning_handoff.py",
-        "scripts/validators/projection/registry.py",
-        "scripts/validators/projection/return_regrounding.py",
-        "scripts/validators/projection/technique.py",
-        "scripts/validators/projection/tiny_consumer_bundle.py",
-        "scripts/validators/projection/tos_retrieval_axis.py",
-        "scripts/validators/projection/tos_text_chunk_map.py",
-        "scripts/validators/projection/tos_zarathustra_route.py",
-        "scripts/validators/projection/tos_zarathustra_route_retrieval.py",
-        "scripts/validators/projection_parity.py",
-        "scripts/validators/provider_registry.py",
         "scripts/validators/repo_local_kag_index.py",
-        "scripts/validators/schema_surfaces.py",
-        "scripts/validators/sibling_readiness.py",
-        "scripts/validators/source_refs.py"
+        "scripts/validators/schema_surfaces.py"
       ],
       "schema_inputs": [
         "schemas/domain-index-catalog.schema.json",
@@ -1360,7 +851,7 @@
       "schema_path": "schemas/repo-local-kag-budget-producer-manifest.schema.json"
     },
     "revision_binding": "content-addressed-procedure-import-closure-portable-runtime-contract-and-descriptor-io-v1",
-    "source_digest": "33a045fadeb39fd981761d3ebfaa4312af06e1dc6fb9478f143e9cec272a585c"
+    "source_digest": "b6ab389723d813c22d82206c098e85621be70436937e3f36188761b6edd7a98b"
   },
   "reason": "Refresh owner family after PR #172 review-boundary hardening",
   "repo": "Tree-of-Sophia",
