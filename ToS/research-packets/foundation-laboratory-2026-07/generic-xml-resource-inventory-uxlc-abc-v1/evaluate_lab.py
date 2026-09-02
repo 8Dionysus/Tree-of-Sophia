@@ -24,7 +24,7 @@ LAB_DIR = Path(__file__).resolve().parent
 REPO_ROOT = LAB_DIR.parents[3]
 INPUT_PATH = LAB_DIR / "input-manifest.json"
 SEALED_PATH = LAB_DIR / "sealed-evaluation-manifest-v2.json"
-FREEZE_PATH = LAB_DIR / "freeze-receipt-v14.json"
+FREEZE_PATH = LAB_DIR / "freeze-receipt-v16.json"
 OBSERVATIONS_PATH = LAB_DIR / "run-observations.json"
 SOURCE_RECEIPT_PATH = LAB_DIR / "source-run-receipt.json"
 CONSUMER_PATH = LAB_DIR / "independent-consumer-receipt.json"
@@ -472,32 +472,47 @@ def verify_manual_review_binding(freeze: dict[str, Any]) -> dict[str, Any]:
 def verify_replay_binding(
     manifest: dict[str, Any], source_receipt: dict[str, Any]
 ) -> dict[str, Any]:
-    record = manifest.get("exact_sources", {}).get("replay", {})
-    receipt = source_receipt.get("sources", {}).get("replay", {})
+    return verify_source_receipt_binding(manifest, source_receipt, "replay")
+
+
+def verify_source_receipt_binding(
+    manifest: dict[str, Any], source_receipt: dict[str, Any], source_id: str
+) -> dict[str, Any]:
+    record = manifest.get("exact_sources", {}).get(source_id, {})
+    receipt = source_receipt.get("sources", {}).get(source_id, {})
     path_value = record.get("path")
     path = Path(path_value) if isinstance(path_value, str) else Path("/")
     failures: list[str] = []
     actual_digest = sha256_path(path) if path.is_file() else None
     actual_bytes = path.stat().st_size if path.is_file() else None
-    expected_digest = receipt.get("source_sha256")
-    expected_bytes = receipt.get("source_bytes")
+    receipt_digest = receipt.get("source_sha256")
+    receipt_bytes = receipt.get("source_bytes")
+    manifest_digest = record.get("sha256")
+    manifest_bytes = record.get("byte_size")
     if not path.is_file():
-        failures.append("replay-file-missing")
-    if not isinstance(expected_digest, str):
-        failures.append("replay-receipt-digest-missing")
-    elif actual_digest != expected_digest:
-        failures.append("replay-receipt-digest-mismatch")
-    if not isinstance(expected_bytes, int):
-        failures.append("replay-receipt-size-missing")
-    elif actual_bytes != expected_bytes:
-        failures.append("replay-receipt-size-mismatch")
+        failures.append("source-file-missing")
+    if not isinstance(receipt_digest, str):
+        failures.append("source-receipt-digest-missing")
+    elif actual_digest != receipt_digest:
+        failures.append("source-receipt-digest-mismatch")
+    if not isinstance(receipt_bytes, int):
+        failures.append("source-receipt-size-missing")
+    elif actual_bytes != receipt_bytes:
+        failures.append("source-receipt-size-mismatch")
+    if isinstance(manifest_digest, str) and actual_digest != manifest_digest:
+        failures.append("manifest-digest-mismatch")
+    if isinstance(manifest_bytes, int) and actual_bytes != manifest_bytes:
+        failures.append("manifest-size-mismatch")
     return {
         "ok": not failures,
+        "source_id": source_id,
         "path": path_value,
         "actual_sha256": actual_digest,
-        "receipt_sha256": expected_digest,
+        "receipt_sha256": receipt_digest,
+        "manifest_sha256": manifest_digest,
         "actual_bytes": actual_bytes,
-        "receipt_bytes": expected_bytes,
+        "receipt_bytes": receipt_bytes,
+        "manifest_bytes": manifest_bytes,
         "failures": sorted(set(failures)),
     }
 
@@ -1039,6 +1054,68 @@ def verify_provider_projection_summary(payload: dict[str, Any]) -> dict[str, Any
     }
 
 
+def verify_authority_boundaries(payloads: dict[str, Any]) -> dict[str, Any]:
+    expanded_payloads: dict[str, Any] = {}
+    for label, payload in payloads.items():
+        expanded_payloads[label] = payload
+        if isinstance(payload, dict):
+            for nested_label in ("owner", "projection"):
+                nested = payload.get(nested_label)
+                if isinstance(nested, dict):
+                    expanded_payloads[f"{label}:{nested_label}"] = nested
+    checks = {
+        label: non_authoritative_boundary_is_valid(payload.get("authority_boundary"))
+        if isinstance(payload, dict)
+        else False
+        for label, payload in expanded_payloads.items()
+    }
+    return {
+        "ok": bool(checks) and all(checks.values()),
+        "checks": checks,
+        "invalid_labels": sorted(label for label, passed in checks.items() if not passed),
+    }
+
+
+def observed_candidate_payloads(
+    observations: dict[str, Any],
+) -> tuple[dict[str, Any], list[str]]:
+    payloads: dict[str, Any] = {}
+    failures: list[str] = []
+    for index, process in enumerate(observations.get("processes", []), start=1):
+        if process.get("exit_code") != 0:
+            continue
+        if process.get("output_created") is not True:
+            failures.append(f"process-{index}:successful-build-without-output")
+            continue
+        scope = process.get("output_scope")
+        ref = process.get("output_ref")
+        if scope == "lab" and isinstance(ref, str):
+            path = LAB_DIR / ref
+        elif scope == "absolute" and isinstance(ref, str):
+            path = Path(ref)
+        else:
+            failures.append(f"process-{index}:invalid-output-reference")
+            continue
+        label = ":".join(
+            str(process.get(key, "<missing>"))
+            for key in ("candidate", "selection_kind", "selection_id")
+        ) + f":process-{index}"
+        try:
+            payload = load_json(path)
+        except (OSError, json.JSONDecodeError, TypeError):
+            failures.append(f"{label}:unreadable-output")
+            continue
+        payloads[label] = payload
+        if payload.get("candidate") == "BC":
+            for nested_label in ("owner", "projection"):
+                nested = payload.get(nested_label)
+                if not isinstance(nested, dict):
+                    failures.append(f"{label}:{nested_label}-missing")
+                else:
+                    payloads[f"{label}:{nested_label}"] = nested
+    return payloads, sorted(set(failures))
+
+
 def verify_source_topology_receipt(
     manifest: dict[str, Any], source_receipt: dict[str, Any], source_id: str
 ) -> dict[str, Any]:
@@ -1480,6 +1557,9 @@ def main() -> int:
     if "replay" in source_receipt["sources"]:
         selected = source_receipt["sources"]["selected"]
         replay = source_receipt["sources"]["replay"]
+        selected_source_binding = verify_source_receipt_binding(
+            manifest, source_receipt, "selected"
+        )
         replay_binding = verify_replay_binding(manifest, source_receipt)
         selected_topology_receipt = verify_source_topology_receipt(
             manifest, source_receipt, "selected"
@@ -1514,9 +1594,11 @@ def main() -> int:
             "replay_provider_receipt": replay_provider_receipt,
             "private_c14n_change_summary": c14n_change_summary(Path(manifest["exact_sources"]["selected"]["path"]), Path(manifest["exact_sources"]["replay"]["path"])),
             "acceptance_inferred": False,
+            "selected_source_binding": selected_source_binding,
         }
         g22 = (
-            replay_binding["ok"]
+            selected_source_binding["ok"]
+            and replay_binding["ok"]
             and exact_equal is False
             and selected_topology_receipt["ok"]
             and replay_topology_receipt["ok"]
@@ -1558,14 +1640,26 @@ def main() -> int:
         "source-receipt": source_receipt,
         "consumer": consumer,
     }
-    authority_checks = {
-        label: non_authoritative_boundary_is_valid(payload.get("authority_boundary"))
-        if isinstance(payload, dict)
-        else False
-        for label, payload in authority_payloads.items()
-    }
-    authority_boundaries_present = all(authority_checks.values())
-    gates.append(gate("G25-machine-green-no-authority", authority_boundaries_present, {"authority_boundaries_present": authority_boundaries_present, "authority_boundary_checks": authority_checks, "machine_result_is_acceptance": False}))
+    observed_authority_payloads, observed_authority_failures = observed_candidate_payloads(
+        observations
+    )
+    authority_payloads.update(observed_authority_payloads)
+    authority_evidence = verify_authority_boundaries(authority_payloads)
+    authority_boundaries_present = authority_evidence["ok"] and not observed_authority_failures
+    gates.append(
+        gate(
+            "G25-machine-green-no-authority",
+            authority_boundaries_present,
+            {
+                "authority_boundaries_present": authority_boundaries_present,
+                "authority_boundary_checks": authority_evidence["checks"],
+                "invalid_authority_labels": authority_evidence["invalid_labels"],
+                "observed_authority_failures": observed_authority_failures,
+                "observed_successful_output_count": len(observed_authority_payloads),
+                "machine_result_is_acceptance": False,
+            },
+        )
+    )
 
     gate_ids = [item["gate_id"] for item in gates]
     registered_gate_ids = sealed["hard_gates"]

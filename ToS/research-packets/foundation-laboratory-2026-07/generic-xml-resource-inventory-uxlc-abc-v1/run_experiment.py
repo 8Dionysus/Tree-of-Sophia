@@ -24,7 +24,7 @@ BUILDER_PATH = LAB_DIR / "build_candidate.py"
 PUBLIC_ROOT = LAB_DIR / "public-synthetic"
 OBSERVATIONS_PATH = LAB_DIR / "run-observations.json"
 SOURCE_RECEIPT_PATH = LAB_DIR / "source-run-receipt.json"
-METHOD_FREEZE_PATH = LAB_DIR / "freeze-receipt-v13.json"
+METHOD_FREEZE_PATH = LAB_DIR / "freeze-receipt-v15.json"
 
 
 def canonical_bytes(value: Any) -> bytes:

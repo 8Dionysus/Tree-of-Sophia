@@ -117,6 +117,68 @@ class GenericXmlUxLcLabContractTests(unittest.TestCase):
         self.assertEqual(7, result["expected_resource_count"])
         self.assertEqual(7, result["unique_resource_count"])
 
+    def test_consumer_rejects_duplicate_projection_resource_ids(self) -> None:
+        manifest = json.loads((LAB_ROOT / "input-manifest.json").read_text(encoding="utf-8"))
+        fixture = next(item for item in manifest["fixtures"] if item["id"] == "PC1-uxlc-shape")
+        root = CONSUMER.strict_parse(fixture["xml"].encode("utf-8"))
+        payload = json.loads(
+            (LAB_ROOT / "public-synthetic" / "run-1" / "c" / "PC1-uxlc-shape.json").read_text(
+                encoding="utf-8"
+            )
+        )
+        payload["resources"][1]["resource_id"] = payload["resources"][0]["resource_id"]
+        with self.assertRaisesRegex(ValueError, "resource IDs must be unique"):
+            CONSUMER.validate_projection(payload, root, None)
+
+    def test_consumer_requires_xml_element_resource_kind_for_b(self) -> None:
+        manifest = json.loads((LAB_ROOT / "input-manifest.json").read_text(encoding="utf-8"))
+        fixture = next(item for item in manifest["fixtures"] if item["id"] == "P1-no-namespace")
+        root = CONSUMER.strict_parse(fixture["xml"].encode("utf-8"))
+        payload = json.loads(
+            (LAB_ROOT / "public-synthetic" / "run-1" / "b" / "P1-no-namespace.json").read_text(
+                encoding="utf-8"
+            )
+        )
+        payload["resources"][0]["resource_kind"] = "provider_word"
+        with self.assertRaisesRegex(ValueError, "resource kind mismatch"):
+            CONSUMER.validate_b(payload, root)
+
+    def test_consumer_rejects_payload_candidate_and_file_identity_mismatch(self) -> None:
+        manifest = json.loads((LAB_ROOT / "input-manifest.json").read_text(encoding="utf-8"))
+        fixture = next(item for item in manifest["fixtures"] if item["id"] == "P1-no-namespace")
+        source = fixture["xml"].encode("utf-8")
+        payload = json.loads(
+            (LAB_ROOT / "public-synthetic" / "run-1" / "b" / "P1-no-namespace.json").read_text(
+                encoding="utf-8"
+            )
+        )
+        with self.assertRaisesRegex(ValueError, "requested candidate"):
+            CONSUMER.validate_candidate(
+                payload,
+                source,
+                expected_candidate="A",
+                expected_input_id=fixture["id"],
+            )
+
+        payload["file_binding"]["file_id"] = "tos.file.sha256.wrong"
+        with self.assertRaisesRegex(ValueError, "file ID mismatch"):
+            CONSUMER.validate_candidate(
+                payload,
+                source,
+                expected_candidate="B",
+                expected_input_id=fixture["id"],
+            )
+
+        payload["file_binding"]["file_id"] = f"tos.file.sha256.{payload['file_binding']['sha256']}"
+        payload["file_binding"]["input_id"] = "another-selection"
+        with self.assertRaisesRegex(ValueError, "input ID mismatch"):
+            CONSUMER.validate_candidate(
+                payload,
+                source,
+                expected_candidate="B",
+                expected_input_id=fixture["id"],
+            )
+
     def test_consumer_rejects_duplicate_b_resource_ids(self) -> None:
         manifest = json.loads((LAB_ROOT / "input-manifest.json").read_text(encoding="utf-8"))
         fixture = next(item for item in manifest["fixtures"] if item["id"] == "P1-no-namespace")
@@ -374,6 +436,49 @@ class GenericXmlUxLcLabContractTests(unittest.TestCase):
             self.assertTrue(EVALUATOR.verify_replay_binding(manifest, receipt)["ok"])
             replay.write_bytes(b"<root><changed/></root>")
             self.assertFalse(EVALUATOR.verify_replay_binding(manifest, receipt)["ok"])
+
+    def test_selected_receipt_binding_requires_current_digest_and_size(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            selected = Path(temp_dir) / "selected.xml"
+            selected.write_bytes(b"<root/>")
+            digest = EVALUATOR.sha256_path(selected)
+            manifest = {"exact_sources": {"selected": {"path": str(selected)}}}
+            receipt = {
+                "sources": {
+                    "selected": {
+                        "source_sha256": digest,
+                        "source_bytes": selected.stat().st_size,
+                    }
+                }
+            }
+            self.assertTrue(
+                EVALUATOR.verify_source_receipt_binding(manifest, receipt, "selected")["ok"]
+            )
+            selected.write_bytes(b"<root><changed/></root>")
+            self.assertFalse(
+                EVALUATOR.verify_source_receipt_binding(manifest, receipt, "selected")["ok"]
+            )
+
+    def test_observed_authority_boundary_covers_nested_candidate_payloads(self) -> None:
+        payloads = {
+            "ok": {
+                "authority_boundary": "mechanical output only; no source-text, semantic, graph, canon or publication authority",
+                "owner": {
+                    "authority_boundary": "generic owner only; no source-text, semantic, graph, canon or publication authority"
+                },
+                "projection": {
+                    "authority_boundary": "provider navigation only; no source-text, semantic, graph, canon or publication authority"
+                },
+            },
+            "bad": {
+                "authority_boundary": "mechanical output only; no source-text, semantic, graph, canon or publication authority",
+                "owner": {"authority_boundary": ""},
+            },
+        }
+        result = EVALUATOR.verify_authority_boundaries(payloads)
+        self.assertFalse(result["ok"])
+        self.assertTrue(result["checks"]["ok"])
+        self.assertFalse(result["checks"]["bad:owner"])
 
     def test_old_method_freeze_does_not_bind_current_method_files(self) -> None:
         freeze = json.loads(

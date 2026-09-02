@@ -145,15 +145,25 @@ def provider_path_key(resource_kind: str, path: list[dict[str, Any]]) -> str:
 
 
 def validate_file_binding(
-    payload: dict[str, Any], source: bytes, label: str
+    payload: dict[str, Any],
+    source: bytes,
+    label: str,
+    expected_input_id: str | None = None,
 ) -> None:
     binding = payload.get("file_binding")
     if not isinstance(binding, dict):
         raise ValueError(f"{label} file binding missing")
-    if binding.get("sha256") != sha256_bytes(source):
+    source_digest = sha256_bytes(source)
+    if binding.get("sha256") != source_digest:
         raise ValueError(f"{label} file binding mismatch")
     if binding.get("byte_size") != len(source):
         raise ValueError(f"{label} byte-size binding mismatch")
+    if binding.get("file_id") != f"tos.file.sha256.{source_digest}":
+        raise ValueError(f"{label} file ID mismatch")
+    if expected_input_id is not None and binding.get("input_id") != expected_input_id:
+        raise ValueError(f"{label} input ID mismatch")
+    if binding.get("media_type") != "application/xml":
+        raise ValueError(f"{label} media type mismatch")
 
 
 def resolve_path(root: etree._Element, path: list[dict[str, Any]]) -> etree._Element:
@@ -195,6 +205,8 @@ def validate_b(owner: dict[str, Any], root: etree._Element) -> dict[str, Any]:
         raise ValueError("resource IDs must be unique")
     element_to_resource = {element: resource for element, resource in zip(elements, resources)}
     for expected_preorder, resource in enumerate(resources, start=1):
+        if resource.get("resource_kind") != "xml_element":
+            raise ValueError("resource kind mismatch")
         element = resolve_path(root, resource["locator"]["path"])
         if element is not elements[expected_preorder - 1]:
             raise ValueError("path does not return registered preorder element")
@@ -345,6 +357,17 @@ def validate_projection(
             f"missing={len(missing_keys)} unexpected={len(unexpected_keys)}"
         )
 
+    resource_ids = [record.get("resource_id") for record in projection["resources"]]
+    if any(not isinstance(resource_id, str) or not resource_id for resource_id in resource_ids):
+        raise ValueError("resource IDs are missing")
+    duplicate_resource_ids = {
+        resource_id
+        for resource_id, count in Counter(resource_ids).items()
+        if count > 1
+    }
+    if duplicate_resource_ids:
+        raise ValueError("resource IDs must be unique")
+
     owner_by_id = (
         {resource["resource_id"]: resource for resource in owner["resources"]}
         if owner is not None
@@ -413,6 +436,7 @@ def validate_projection(
         "resolved_exactly_once": len(actual_key_set),
         "expected_resource_count": len(expected_keys),
         "unique_resource_count": len(actual_key_set),
+        "unique_resource_id_count": len(resource_ids),
         "generic_refs_verified": cited_generic,
         "path_failures": 0,
         "summary": expected_summary,
@@ -423,11 +447,15 @@ def validate_candidate(
     payload: dict[str, Any],
     source: bytes,
     registered_context: dict[str, Any] | None = None,
+    expected_candidate: str | None = None,
+    expected_input_id: str | None = None,
 ) -> dict[str, Any]:
     root = strict_parse(source)
     candidate = payload["candidate"]
+    if expected_candidate is not None and candidate != expected_candidate:
+        raise ValueError("payload candidate differs from requested candidate")
     if candidate == "A":
-        validate_file_binding(payload, source, "A")
+        validate_file_binding(payload, source, "A", expected_input_id)
         if payload["element_return_supported"] is not False:
             raise ValueError("A overclaims element return")
         return {
@@ -436,15 +464,17 @@ def validate_candidate(
             "element_return_supported": False,
         }
     if candidate == "B":
-        validate_file_binding(payload, source, "B")
+        validate_file_binding(payload, source, "B", expected_input_id)
         return validate_b(payload, root)
     if candidate == "C":
-        validate_file_binding(payload, source, "C")
+        validate_file_binding(payload, source, "C", expected_input_id)
         result = validate_projection(payload, root, None, registered_context)
         result["generic_owner_supported"] = False
         return result
     if candidate == "BC":
-        validate_file_binding(payload["owner"], source, "BC owner")
+        if payload["owner"].get("candidate") != "B":
+            raise ValueError("BC owner candidate mismatch")
+        validate_file_binding(payload["owner"], source, "BC owner", expected_input_id)
         owner_result = validate_b(payload["owner"], root)
         projection_result = validate_projection(
             payload["projection"],
@@ -492,7 +522,12 @@ def main() -> int:
                         "selection_id": fixture_id,
                         "candidate": candidate,
                         "output_sha256": sha256_bytes(path.read_bytes()),
-                        "result": validate_candidate(payload, source),
+                        "result": validate_candidate(
+                            payload,
+                            source,
+                            expected_candidate=candidate,
+                            expected_input_id=fixture_id,
+                        ),
                     }
                 )
             except (OSError, json.JSONDecodeError, KeyError, TypeError, ValueError) as exc:
@@ -525,6 +560,8 @@ def main() -> int:
                             payload,
                             source,
                             manifest["provider_context"],
+                            expected_candidate=candidate,
+                            expected_input_id=source_id,
                         ),
                     }
                 )

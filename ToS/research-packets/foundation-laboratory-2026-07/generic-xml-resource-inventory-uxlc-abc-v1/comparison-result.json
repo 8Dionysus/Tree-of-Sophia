@@ -1,5 +1,5 @@
 {
-  "all_hard_gates_pass": true,
+  "all_hard_gates_pass": false,
   "authority_boundary": "mechanical candidate comparison after manual source/output review; no public contract, source-text, language, translation, semantic, graph, canon, rights or publication authority",
   "comparison_groups": {
     "attribute-order": {
@@ -241,10 +241,13 @@
       "actual_bytes": 8227,
       "actual_sha256": "d970996cc3c417a2cd360e3b2a4402a6688716e05e231c5f61b784a84abea30e",
       "failures": [],
+      "manifest_bytes": null,
+      "manifest_sha256": null,
       "ok": true,
       "path": "/srv/AbyssOS/Tree-of-Sophia/ToS/source-witnesses/works/digital-biblical-corpora/unicode-xml-leningrad-codex/expressions/he-uxlc-2-5-full-accents/editions/uxlc-2-5-build-27-6/items/tanach-us-server-xml-prov23-1-3-20260830t160419z/payload/laboratory/generic-xml-resource-inventory-uxlc-abc-v1/replay-prov23-1-3.xml",
       "receipt_bytes": 8227,
-      "receipt_sha256": "d970996cc3c417a2cd360e3b2a4402a6688716e05e231c5f61b784a84abea30e"
+      "receipt_sha256": "d970996cc3c417a2cd360e3b2a4402a6688716e05e231c5f61b784a84abea30e",
+      "source_id": "replay"
     },
     "replay_provider_receipt": {
       "BC": {
@@ -407,6 +410,18 @@
         }
       }
     },
+    "selected_source_binding": {
+      "actual_bytes": 8227,
+      "actual_sha256": "98fdc24c4f4543769b8cf5d0fc1131fee77d42739f2b4333a90b56981972303c",
+      "failures": [],
+      "manifest_bytes": 8227,
+      "manifest_sha256": "98fdc24c4f4543769b8cf5d0fc1131fee77d42739f2b4333a90b56981972303c",
+      "ok": true,
+      "path": "/srv/AbyssOS/Tree-of-Sophia/ToS/source-witnesses/works/digital-biblical-corpora/unicode-xml-leningrad-codex/expressions/he-uxlc-2-5-full-accents/editions/uxlc-2-5-build-27-6/items/tanach-us-server-xml-prov23-1-3-20260830t160419z/payload/prov23-1-3.xml",
+      "receipt_bytes": 8227,
+      "receipt_sha256": "98fdc24c4f4543769b8cf5d0fc1131fee77d42739f2b4333a90b56981972303c",
+      "source_id": "selected"
+    },
     "selected_topology_receipt": {
       "B": {
         "actual": {
@@ -463,21 +478,23 @@
           "ok": true
         },
         "method_freeze_digest_match": true,
-        "method_freeze_ref": "ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/freeze-receipt-v13.json",
-        "method_freeze_sha256": "034054df22f243a1ad666d42cd25b47f950e163368d36762bb5929943f49fdc5",
-        "method_frozen_at": "2026-09-02T02:31:16.493517Z",
-        "output_run_started_at": "2026-09-02T02:33:08.985356Z"
+        "method_freeze_ref": "ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/freeze-receipt-v15.json",
+        "method_freeze_sha256": "2a011621ec8439657688fef6356b0dcd61702e672c360adb019dc5eac1dacb1d",
+        "method_frozen_at": "2026-09-02T03:11:04.764163Z",
+        "output_run_started_at": "2026-09-02T03:11:12.137310Z"
       },
       "gate_id": "G1-freeze-before-output",
       "passed": true
     },
     {
       "evidence": {
-        "frozen_file_count": 26,
-        "mismatches": []
+        "frozen_file_count": 27,
+        "mismatches": [
+          "ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/independent-consumer-receipt.json"
+        ]
       },
       "gate_id": "G2-input-digests-match",
-      "passed": true
+      "passed": false
     },
     {
       "evidence": {
@@ -1249,10 +1266,10 @@
         "ok": true,
         "scan_errors": [],
         "scan_scope": "all Git-tracked files under the laboratory directory",
-        "scanned_file_count": 128,
+        "scanned_file_count": 130,
         "scanned_manifest": true,
         "source_value_control_count": 75,
-        "tracked_file_count": 128,
+        "tracked_file_count": 130,
         "undecodable_tracked_files": []
       },
       "gate_id": "G16-no-source-values-in-tracked-output",
@@ -1338,10 +1355,13 @@
           "actual_bytes": 8227,
           "actual_sha256": "d970996cc3c417a2cd360e3b2a4402a6688716e05e231c5f61b784a84abea30e",
           "failures": [],
+          "manifest_bytes": null,
+          "manifest_sha256": null,
           "ok": true,
           "path": "/srv/AbyssOS/Tree-of-Sophia/ToS/source-witnesses/works/digital-biblical-corpora/unicode-xml-leningrad-codex/expressions/he-uxlc-2-5-full-accents/editions/uxlc-2-5-build-27-6/items/tanach-us-server-xml-prov23-1-3-20260830t160419z/payload/laboratory/generic-xml-resource-inventory-uxlc-abc-v1/replay-prov23-1-3.xml",
           "receipt_bytes": 8227,
-          "receipt_sha256": "d970996cc3c417a2cd360e3b2a4402a6688716e05e231c5f61b784a84abea30e"
+          "receipt_sha256": "d970996cc3c417a2cd360e3b2a4402a6688716e05e231c5f61b784a84abea30e",
+          "source_id": "replay"
         },
         "replay_provider_receipt": {
           "BC": {
@@ -1504,6 +1524,18 @@
             }
           }
         },
+        "selected_source_binding": {
+          "actual_bytes": 8227,
+          "actual_sha256": "98fdc24c4f4543769b8cf5d0fc1131fee77d42739f2b4333a90b56981972303c",
+          "failures": [],
+          "manifest_bytes": 8227,
+          "manifest_sha256": "98fdc24c4f4543769b8cf5d0fc1131fee77d42739f2b4333a90b56981972303c",
+          "ok": true,
+          "path": "/srv/AbyssOS/Tree-of-Sophia/ToS/source-witnesses/works/digital-biblical-corpora/unicode-xml-leningrad-codex/expressions/he-uxlc-2-5-full-accents/editions/uxlc-2-5-build-27-6/items/tanach-us-server-xml-prov23-1-3-20260830t160419z/payload/prov23-1-3.xml",
+          "receipt_bytes": 8227,
+          "receipt_sha256": "98fdc24c4f4543769b8cf5d0fc1131fee77d42739f2b4333a90b56981972303c",
+          "source_id": "selected"
+        },
         "selected_topology_receipt": {
           "B": {
             "actual": {
@@ -1562,8 +1594,8 @@
     },
     {
       "evidence": {
-        "consumer_max_rss_kib": 1999512,
-        "consumer_wall_seconds": 0.028516153019154444,
+        "consumer_max_rss_kib": 24816,
+        "consumer_wall_seconds": 0.02270376801607199,
         "direct_monetary_cost": 0,
         "human_burden_in_manual_review": true,
         "independent_consumer_wall_and_rss_measured": true,
@@ -1579,15 +1611,148 @@
         "authority_boundaries_present": true,
         "authority_boundary_checks": {
           "A": true,
+          "A:fixture:P1-no-namespace:process-1": true,
+          "A:fixture:P1-no-namespace:process-51": true,
+          "A:fixture:P10-true-tei:process-27": true,
+          "A:fixture:P10-true-tei:process-77": true,
+          "A:fixture:P11-tei-lookalike:process-29": true,
+          "A:fixture:P11-tei-lookalike:process-79": true,
+          "A:fixture:P12-dynamic-a:process-31": true,
+          "A:fixture:P12-dynamic-a:process-81": true,
+          "A:fixture:P12-dynamic-b:process-33": true,
+          "A:fixture:P12-dynamic-b:process-83": true,
+          "A:fixture:P13-reorder-a:process-35": true,
+          "A:fixture:P13-reorder-a:process-85": true,
+          "A:fixture:P13-reorder-b:process-37": true,
+          "A:fixture:P13-reorder-b:process-87": true,
+          "A:fixture:P14-text-a:process-39": true,
+          "A:fixture:P14-text-a:process-89": true,
+          "A:fixture:P14-text-b:process-41": true,
+          "A:fixture:P14-text-b:process-91": true,
+          "A:fixture:P15-attribute-value-a:process-43": true,
+          "A:fixture:P15-attribute-value-a:process-93": true,
+          "A:fixture:P15-attribute-value-b:process-45": true,
+          "A:fixture:P15-attribute-value-b:process-95": true,
+          "A:fixture:P2-prefix-a:process-3": true,
+          "A:fixture:P2-prefix-a:process-53": true,
+          "A:fixture:P2-prefix-b:process-5": true,
+          "A:fixture:P2-prefix-b:process-55": true,
+          "A:fixture:P3-default-namespace:process-57": true,
+          "A:fixture:P3-default-namespace:process-7": true,
+          "A:fixture:P4-duplicate-siblings:process-59": true,
+          "A:fixture:P4-duplicate-siblings:process-9": true,
+          "A:fixture:P5-interleaved-siblings:process-11": true,
+          "A:fixture:P5-interleaved-siblings:process-61": true,
+          "A:fixture:P6-empty-long:process-15": true,
+          "A:fixture:P6-empty-long:process-65": true,
+          "A:fixture:P6-empty-short:process-13": true,
+          "A:fixture:P6-empty-short:process-63": true,
+          "A:fixture:P7-attributes-a:process-17": true,
+          "A:fixture:P7-attributes-a:process-67": true,
+          "A:fixture:P7-attributes-b:process-19": true,
+          "A:fixture:P7-attributes-b:process-69": true,
+          "A:fixture:P8-comments-pi-a:process-21": true,
+          "A:fixture:P8-comments-pi-a:process-71": true,
+          "A:fixture:P8-comments-pi-b:process-23": true,
+          "A:fixture:P8-comments-pi-b:process-73": true,
+          "A:fixture:P9-mixed-namespaces:process-25": true,
+          "A:fixture:P9-mixed-namespaces:process-75": true,
+          "A:fixture:PC1-uxlc-shape:process-47": true,
+          "A:fixture:PC1-uxlc-shape:process-97": true,
+          "A:source:replay:process-126": true,
+          "A:source:replay:process-130": true,
+          "A:source:selected:process-118": true,
+          "A:source:selected:process-122": true,
           "B": true,
+          "B:fixture:P1-no-namespace:process-2": true,
+          "B:fixture:P1-no-namespace:process-52": true,
+          "B:fixture:P10-true-tei:process-28": true,
+          "B:fixture:P10-true-tei:process-78": true,
+          "B:fixture:P11-tei-lookalike:process-30": true,
+          "B:fixture:P11-tei-lookalike:process-80": true,
+          "B:fixture:P12-dynamic-a:process-32": true,
+          "B:fixture:P12-dynamic-a:process-82": true,
+          "B:fixture:P12-dynamic-b:process-34": true,
+          "B:fixture:P12-dynamic-b:process-84": true,
+          "B:fixture:P13-reorder-a:process-36": true,
+          "B:fixture:P13-reorder-a:process-86": true,
+          "B:fixture:P13-reorder-b:process-38": true,
+          "B:fixture:P13-reorder-b:process-88": true,
+          "B:fixture:P14-text-a:process-40": true,
+          "B:fixture:P14-text-a:process-90": true,
+          "B:fixture:P14-text-b:process-42": true,
+          "B:fixture:P14-text-b:process-92": true,
+          "B:fixture:P15-attribute-value-a:process-44": true,
+          "B:fixture:P15-attribute-value-a:process-94": true,
+          "B:fixture:P15-attribute-value-b:process-46": true,
+          "B:fixture:P15-attribute-value-b:process-96": true,
+          "B:fixture:P2-prefix-a:process-4": true,
+          "B:fixture:P2-prefix-a:process-54": true,
+          "B:fixture:P2-prefix-b:process-56": true,
+          "B:fixture:P2-prefix-b:process-6": true,
+          "B:fixture:P3-default-namespace:process-58": true,
+          "B:fixture:P3-default-namespace:process-8": true,
+          "B:fixture:P4-duplicate-siblings:process-10": true,
+          "B:fixture:P4-duplicate-siblings:process-60": true,
+          "B:fixture:P5-interleaved-siblings:process-12": true,
+          "B:fixture:P5-interleaved-siblings:process-62": true,
+          "B:fixture:P6-empty-long:process-16": true,
+          "B:fixture:P6-empty-long:process-66": true,
+          "B:fixture:P6-empty-short:process-14": true,
+          "B:fixture:P6-empty-short:process-64": true,
+          "B:fixture:P7-attributes-a:process-18": true,
+          "B:fixture:P7-attributes-a:process-68": true,
+          "B:fixture:P7-attributes-b:process-20": true,
+          "B:fixture:P7-attributes-b:process-70": true,
+          "B:fixture:P8-comments-pi-a:process-22": true,
+          "B:fixture:P8-comments-pi-a:process-72": true,
+          "B:fixture:P8-comments-pi-b:process-24": true,
+          "B:fixture:P8-comments-pi-b:process-74": true,
+          "B:fixture:P9-mixed-namespaces:process-26": true,
+          "B:fixture:P9-mixed-namespaces:process-76": true,
+          "B:fixture:PC1-uxlc-shape:process-48": true,
+          "B:fixture:PC1-uxlc-shape:process-98": true,
+          "B:source:replay:process-127": true,
+          "B:source:replay:process-131": true,
+          "B:source:selected:process-119": true,
+          "B:source:selected:process-123": true,
           "BC": true,
           "BC-owner": true,
           "BC-projection": true,
+          "BC:fixture:PC1-uxlc-shape:process-100": true,
+          "BC:fixture:PC1-uxlc-shape:process-100:owner": true,
+          "BC:fixture:PC1-uxlc-shape:process-100:projection": true,
+          "BC:fixture:PC1-uxlc-shape:process-50": true,
+          "BC:fixture:PC1-uxlc-shape:process-50:owner": true,
+          "BC:fixture:PC1-uxlc-shape:process-50:projection": true,
+          "BC:owner": true,
+          "BC:projection": true,
+          "BC:source:replay:process-129": true,
+          "BC:source:replay:process-129:owner": true,
+          "BC:source:replay:process-129:projection": true,
+          "BC:source:replay:process-133": true,
+          "BC:source:replay:process-133:owner": true,
+          "BC:source:replay:process-133:projection": true,
+          "BC:source:selected:process-121": true,
+          "BC:source:selected:process-121:owner": true,
+          "BC:source:selected:process-121:projection": true,
+          "BC:source:selected:process-125": true,
+          "BC:source:selected:process-125:owner": true,
+          "BC:source:selected:process-125:projection": true,
           "C": true,
+          "C:fixture:PC1-uxlc-shape:process-49": true,
+          "C:fixture:PC1-uxlc-shape:process-99": true,
+          "C:source:replay:process-128": true,
+          "C:source:replay:process-132": true,
+          "C:source:selected:process-120": true,
+          "C:source:selected:process-124": true,
           "consumer": true,
           "source-receipt": true
         },
-        "machine_result_is_acceptance": false
+        "invalid_authority_labels": [],
+        "machine_result_is_acceptance": false,
+        "observed_authority_failures": [],
+        "observed_successful_output_count": 128
       },
       "gate_id": "G25-machine-green-no-authority",
       "passed": true
@@ -1596,12 +1761,12 @@
   "lab_id": "tos.lab.generic-xml-resource-inventory-uxlc-abc.v1",
   "language_or_translation_reviewed": false,
   "mechanical_preference": {
-    "candidate_c_as_generic_owner": "reject",
-    "capture_view": "A",
-    "generic_owner": "B",
-    "provider_projection": "C over B"
+    "candidate_c_as_generic_owner": "unresolved",
+    "capture_view": null,
+    "generic_owner": null,
+    "provider_projection": null
   },
-  "passed_gate_count": 25,
+  "passed_gate_count": 24,
   "public_contract_promoted": false,
   "publication_authorized": false,
   "registered_gate_order_match": true,
