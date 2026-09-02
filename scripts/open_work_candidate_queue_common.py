@@ -902,6 +902,51 @@ def _validate_event_output_digest(
         )
 
 
+def _event_lineage(
+    provenance_events: dict[str, tuple[dict[str, Any], str]],
+    *,
+    descendant_ref: str,
+    ancestor_ref: str,
+) -> list[dict[str, Any]]:
+    """Return a descendant-to-ancestor event chain when one is explicit."""
+    if descendant_ref == ancestor_ref:
+        event_entry = provenance_events.get(ancestor_ref)
+        return [event_entry[0]] if event_entry is not None else []
+
+    visited: set[str] = set()
+
+    def visit(event_ref: str) -> list[dict[str, Any]]:
+        if event_ref in visited:
+            return []
+        visited.add(event_ref)
+        event_entry = provenance_events.get(event_ref)
+        if event_entry is None:
+            return []
+        event = event_entry[0]
+        inputs = event.get("inputs")
+        if not isinstance(inputs, list):
+            return []
+        for input_ref in inputs:
+            if not isinstance(input_ref, dict):
+                continue
+            parent_ref = input_ref.get("ref")
+            if not isinstance(parent_ref, str):
+                continue
+            if parent_ref == ancestor_ref:
+                ancestor_entry = provenance_events.get(parent_ref)
+                if ancestor_entry is not None:
+                    return [event, ancestor_entry[0]]
+                continue
+            if parent_ref not in provenance_events:
+                continue
+            parent_chain = visit(parent_ref)
+            if parent_chain:
+                return [event, *parent_chain]
+        return []
+
+    return visit(descendant_ref)
+
+
 def _validate_planting_refs(
     repo_root: Path,
     refs: Any,
@@ -1147,6 +1192,7 @@ def _validate_acquisition_closure(
     receipt_discovery_ref: str | None,
     provenance_events: dict[str, tuple[dict[str, Any], str]],
     location: str,
+    receipt_issued_at: datetime | None = None,
 ) -> None:
     if not isinstance(acquisition, dict):
         raise QueueBuildError(f"{location}: acquisition must be an object")
@@ -1185,6 +1231,18 @@ def _validate_acquisition_closure(
     event, event_location = event_entry
     if event.get("event_type") != "acquisition":
         raise QueueBuildError(f"{location}: {event_ref!r} is not an acquisition event")
+    if receipt_issued_at is not None:
+        event_ended_at = _parse_timestamp(
+            event.get("ended_at"),
+            location=event_location,
+            field="ended_at",
+        )
+        if event_ended_at > receipt_issued_at:
+            raise QueueBuildError(
+                f"{location}: acquisition provenance event {event_ref!r} ended_at "
+                f"{event_ended_at.isoformat()} is later than receipt issued_at "
+                f"{receipt_issued_at.isoformat()}"
+            )
     configuration = event.get("method", {}).get("configuration", {})
     configured_candidate = None
     if isinstance(configuration, dict):
@@ -1227,7 +1285,12 @@ def _validate_acquisition_closure(
             raise QueueBuildError(
                 f"{location}: item manifest must bind acquisition_event_ref"
             )
-        if manifest_event_ref != event_ref:
+        event_lineage = _event_lineage(
+            provenance_events,
+            descendant_ref=manifest_event_ref,
+            ancestor_ref=event_ref,
+        )
+        if manifest_event_ref != event_ref and not event_lineage:
             raise QueueBuildError(
                 f"{location}: item manifest acquisition_event_ref {manifest_event_ref!r} "
                 f"does not bind provenance event {event_ref!r}"
@@ -1238,9 +1301,11 @@ def _validate_acquisition_closure(
             item_path,
             location=location,
         )
+        event_chain = event_lineage or [event]
         event_input_refs = {
             input_ref.get("ref")
-            for input_ref in event.get("inputs", [])
+            for chain_event in event_chain
+            for input_ref in chain_event.get("inputs", [])
             if isinstance(input_ref, dict)
             and isinstance(input_ref.get("ref"), str)
             and input_ref.get("ref")
@@ -1415,6 +1480,13 @@ def _validate_receipt_acquisition_closure(
     location: str,
 ) -> None:
     candidate_id = _required_string(receipt, "candidate_id", location)
+    receipt_issued_at = None
+    if receipt.get("issued_at") is not None:
+        receipt_issued_at = _parse_timestamp(
+            receipt.get("issued_at"),
+            location=location,
+            field="issued_at",
+        )
     relation_refs = receipt.get("operational_relation_refs")
     if not isinstance(relation_refs, list) or not all(
         isinstance(reference, str) and reference for reference in relation_refs
@@ -1455,6 +1527,7 @@ def _validate_receipt_acquisition_closure(
             receipt_discovery_id=receipt.get("discovery_id"),
             receipt_discovery_ref=receipt.get("discovery_ref"),
             provenance_events=provenance_events,
+            receipt_issued_at=receipt_issued_at,
             location=f"{location}:acquisition[{index}]",
         )
     if downloaded and rights_status == "positive-for-acquisition":
@@ -1506,6 +1579,7 @@ def _validate_source_refs(
     expected_atlas_row = selection.get("atlas_row_id") if isinstance(selection, dict) else None
     if not isinstance(expected_atlas_row, str) or not expected_atlas_row:
         raise QueueBuildError(f"{location}: candidate selection must expose atlas_row_id")
+    has_atlas_selector = False
     for index, source_ref in enumerate(refs, start=1):
         ref_location = f"{location}:source_refs[{index}]"
         if not isinstance(source_ref, dict):
@@ -1526,11 +1600,23 @@ def _validate_source_refs(
             )
         for selector_key in ("row_id", "dossier_id"):
             selected_row = selector.get(selector_key)
-            if selected_row is not None and selected_row != expected_atlas_row:
+            if selector_key not in selector:
+                continue
+            if not isinstance(selected_row, str) or not selected_row:
+                raise QueueBuildError(
+                    f"{ref_location}: {selector_key} selector must be a non-empty string"
+                )
+            has_atlas_selector = True
+            if selected_row != expected_atlas_row:
                 raise QueueBuildError(
                     f"{ref_location}: {selector_key} selector {selected_row!r} "
                     f"does not bind candidate selection atlas_row_id {expected_atlas_row!r}"
                 )
+    if not has_atlas_selector:
+        raise QueueBuildError(
+            f"{location}: source_refs must include a resolved row_id or dossier_id selector "
+            f"for atlas_row_id {expected_atlas_row!r}"
+        )
 
 
 def _load_candidates(repo_root: Path) -> list[tuple[dict[str, Any], str]]:

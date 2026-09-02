@@ -507,6 +507,24 @@ class OpenWorkCandidateQueueTest(unittest.TestCase):
             {entry["path"] for entry in payload["source_snapshot"]["inputs"]},
         )
 
+    def test_review_source_refs_require_an_atlas_row_selector(self) -> None:
+        repo = self.make_repo()
+        ledger = repo / "ToS/source-witnesses/discovery/candidates/reviewed-candidates.jsonl"
+        candidates = [json.loads(line) for line in ledger.read_text(encoding="utf-8").splitlines()]
+        candidates[0]["source_refs"][0] = {
+            "source_path": "ToS/source-witnesses/catalog/works.jsonl",
+            "selector": {"record_id": "tos.work.synthetic.existing"},
+            "role": "catalog-only",
+            "evidence_ceiling": "queue-ordering-only",
+        }
+        _write_jsonl(ledger, candidates)
+
+        with self.assertRaisesRegex(
+            QueueBuildError,
+            "must include a resolved row_id or dossier_id selector",
+        ):
+            build_payload(repo)
+
     def test_review_source_selectors_must_bind_candidate_selection(self) -> None:
         for candidate_index, selector_key, wrong_row, source_path in (
             (
@@ -1349,6 +1367,22 @@ class OpenWorkCandidateQueueTest(unittest.TestCase):
             provenance_events=provenance_events,
             location="synthetic-receipt",
         )
+        receipt["issued_at"] = "2026-08-29T12:00:00Z"
+        provenance_event["ended_at"] = "2026-08-29T12:00:01Z"
+        with self.assertRaisesRegex(
+            QueueBuildError,
+            "acquisition provenance event .*ended_at .*later than receipt issued_at",
+        ):
+            _validate_receipt_acquisition_closure(
+                repo,
+                receipt,
+                candidate=candidate,
+                discovery=discovery,
+                discoveries=discoveries,
+                provenance_events=provenance_events,
+                location="synthetic-receipt",
+            )
+        provenance_event["ended_at"] = "2026-08-29T11:59:59Z"
         provenance_event["outputs"][0]["sha256"] = "d" * 64
         with self.assertRaisesRegex(QueueBuildError, "acquisition event output digest"):
             _validate_receipt_acquisition_closure(
