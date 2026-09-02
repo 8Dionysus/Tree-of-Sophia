@@ -17,6 +17,8 @@ if str(SCRIPTS) not in sys.path:
 from open_work_candidate_queue_common import (  # noqa: E402
     QUEUE_PATH,
     QueueBuildError,
+    _validate_receipt_acquisition_closure,
+    _validate_receipt_version_timestamp_order,
     _validate_planting_refs,
     build_payload,
     candidate_digest,
@@ -447,6 +449,49 @@ class OpenWorkCandidateQueueTest(unittest.TestCase):
                 provenance_events={},
                 location="synthetic-receipt",
             )
+
+    def test_downloaded_acquisition_requires_positive_rights_result(self) -> None:
+        repo = self.make_repo()
+        with self.assertRaisesRegex(QueueBuildError, "rights_result.status positive-for-acquisition"):
+            _validate_receipt_acquisition_closure(
+                repo,
+                {
+                    "candidate_id": "open-work-candidate.earliest",
+                    "rights_result": {
+                        "status": "blocked-human-legal-review",
+                    },
+                    "acquisition": {"downloaded": True},
+                    "planting_refs": [],
+                },
+                candidate=_candidate(
+                    "open-work-candidate.earliest",
+                    year=-2400,
+                    row_id="A04",
+                    row_order=4,
+                ),
+                discovery=_timed_discovery("tos.discovery.earliest"),
+                discoveries={},
+                provenance_events={},
+                location="synthetic-receipt",
+            )
+
+    def test_superseding_receipt_cannot_be_backdated(self) -> None:
+        receipts = [
+            {
+                "receipt_id": "open-work-candidate-receipt.earliest.v1",
+                "candidate_id": "open-work-candidate.earliest",
+                "record_version": 1,
+                "issued_at": "2026-08-29T12:00:00Z",
+            },
+            {
+                "receipt_id": "open-work-candidate-receipt.earliest.v2",
+                "candidate_id": "open-work-candidate.earliest",
+                "record_version": 2,
+                "issued_at": "2026-08-29T11:59:00Z",
+            },
+        ]
+        with self.assertRaisesRegex(QueueBuildError, "record_version 2 issued_at .*earlier than predecessor"):
+            _validate_receipt_version_timestamp_order(receipts)
 
     def test_receipt_must_bind_the_exact_candidate_digest(self) -> None:
         repo = self.make_repo()

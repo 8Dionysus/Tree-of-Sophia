@@ -639,6 +639,16 @@ def _validate_receipt_acquisition_closure(
         if not isinstance(additional, list):
             raise QueueBuildError(f"{location}: additional_acquisitions must be an array")
         acquisitions.extend(additional)
+    rights_result = receipt.get("rights_result")
+    rights_status = rights_result.get("status") if isinstance(rights_result, dict) else None
+    if any(
+        isinstance(acquisition, dict) and acquisition.get("downloaded") is True
+        for acquisition in acquisitions
+    ) and rights_status != "positive-for-acquisition":
+        raise QueueBuildError(
+            f"{location}: downloaded acquisition requires rights_result.status "
+            f"positive-for-acquisition, got {rights_status!r}"
+        )
     for index, acquisition in enumerate(acquisitions, start=1):
         _validate_acquisition_closure(
             repo_root,
@@ -1056,6 +1066,34 @@ def _receipt_sort_key(receipt: dict[str, Any]) -> tuple[datetime, int, str]:
     return parsed.astimezone(timezone.utc), version, receipt_id
 
 
+def _validate_receipt_version_timestamp_order(receipts: list[dict[str, Any]]) -> None:
+    by_candidate: dict[str, list[tuple[int, datetime, str]]] = {}
+    seen_versions: dict[str, set[int]] = {}
+    for receipt in receipts:
+        receipt_id = _required_string(receipt, "receipt_id", "receipt")
+        candidate_id = _required_string(receipt, "candidate_id", receipt_id)
+        issued_at, version, _ = _receipt_sort_key(receipt)
+        if version in seen_versions.setdefault(candidate_id, set()):
+            raise QueueBuildError(
+                f"{receipt_id}: duplicate record_version {version} for candidate {candidate_id!r}"
+            )
+        seen_versions[candidate_id].add(version)
+        by_candidate.setdefault(candidate_id, []).append((version, issued_at, receipt_id))
+
+    for candidate_id, entries in by_candidate.items():
+        entries.sort(key=lambda entry: entry[0])
+        previous_version: int | None = None
+        previous_issued_at: datetime | None = None
+        for version, issued_at, receipt_id in entries:
+            if previous_issued_at is not None and issued_at < previous_issued_at:
+                raise QueueBuildError(
+                    f"{receipt_id}: record_version {version} issued_at {issued_at.isoformat()} "
+                    f"is earlier than predecessor record_version {previous_version} for candidate {candidate_id!r}"
+                )
+            previous_version = version
+            previous_issued_at = issued_at
+
+
 def _build_queue_payload(
     repo_root: Path,
     *,
@@ -1245,6 +1283,7 @@ def _validate_receipt_transition_history(
     discoveries: dict[str, tuple[dict[str, Any], str]],
 ) -> None:
     candidates_by_id = {candidate["candidate_id"]: candidate for candidate, _ in candidates_with_locations}
+    _validate_receipt_version_timestamp_order(receipts)
     ordered_receipts = sorted(receipts, key=_receipt_sort_key)
     status_by_candidate = {
         candidate["candidate_id"]: candidate["queue_status"]

@@ -77,6 +77,11 @@ pre-existing planting is admissible only when its identity and route are explici
 in the receipt target or operational acquisition relations; a planting ID alone
 cannot smuggle an unrelated source into a terminal outcome.
 
+Any downloaded acquisition also requires the sibling receipt's explicit
+`rights_result.status: positive-for-acquisition`. Terminal receipt versions are
+ordered by their authored `record_version`, and `issued_at` must not move
+backward when a higher version supersedes a lower one.
+
 Represent an acquired physical-artifact image as a separate content-addressed
 File under `artifacts/.../representations/.../payload/`, governed by
 `artifact-visual-representation.schema.json`. The visual record binds the
