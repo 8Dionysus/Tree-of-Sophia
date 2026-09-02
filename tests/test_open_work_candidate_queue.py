@@ -17,12 +17,15 @@ if str(SCRIPTS) not in sys.path:
 from open_work_candidate_queue_common import (  # noqa: E402
     QUEUE_PATH,
     QueueBuildError,
+    _validate_active_discovery_timings,
     _validate_receipt_acquisition_closure,
     _validate_receipt_version_timestamp_order,
     _validate_planting_refs,
+    _validate_target_binding,
     build_payload,
     candidate_digest,
     render_payload,
+    target_digest,
 )
 
 
@@ -101,10 +104,13 @@ def _timed_discovery(discovery_id: str) -> dict:
             "known_tos_refs": [],
             "description": f"Resolve {label} without manufacturing later source layers.",
         },
+        "started_at": "2026-08-29T12:00:00Z",
+        "ended_at": "2026-08-29T12:00:00.125000Z",
         "channels": [
             {
                 "channel_id": "channel-originating-record",
                 "endpoint_url": "https://example.test/source",
+                "queried_at": "2026-08-29T12:00:00Z",
                 "elapsed_seconds": 0.125,
                 "results": [],
             }
@@ -217,6 +223,7 @@ class OpenWorkCandidateQueueTest(unittest.TestCase):
             "queue_snapshot_sha256": before["queue_sha256"],
             "discovery_ref": "ToS/source-witnesses/discovery/runs/earliest.v1.json",
             "discovery_id": "tos.discovery.earliest",
+            "discovery_target_sha256": target_digest(_timed_discovery("tos.discovery.earliest")["target"]),
             "timing_ref": "ToS/source-witnesses/discovery/timings/earliest.v1.json",
             "terminal_status": "metadata_only",
             "target_resolution": {
@@ -323,10 +330,13 @@ class OpenWorkCandidateQueueTest(unittest.TestCase):
                     "known_tos_refs": [],
                     "description": "Resolve Earliest without manufacturing later source layers.",
                 },
+                "started_at": "2026-08-29T12:00:00Z",
+                "ended_at": "2026-08-29T12:00:00.125000Z",
                 "channels": [
                     {
                         "channel_id": "channel-originating-record",
                         "endpoint_url": "https://example.test/source",
+                        "queried_at": "2026-08-29T12:00:00Z",
                         "elapsed_seconds": 0,
                         "results": [],
                     }
@@ -353,6 +363,7 @@ class OpenWorkCandidateQueueTest(unittest.TestCase):
                 "queue_snapshot_sha256": before["queue_sha256"],
                 "discovery_ref": discovery_ref,
                 "discovery_id": "tos.discovery.earliest",
+                "discovery_target_sha256": target_digest(_timed_discovery("tos.discovery.earliest")["target"]),
                 "timing_ref": "ToS/source-witnesses/discovery/timings/earliest.v1.json",
                 "terminal_status": "metadata_only",
                 "target_resolution": {
@@ -393,6 +404,37 @@ class OpenWorkCandidateQueueTest(unittest.TestCase):
 
         with self.assertRaisesRegex(QueueBuildError, "measured elapsed_seconds"):
             build_payload(repo)
+
+    def test_terminal_receipt_must_freeze_discovery_target_digest(self) -> None:
+        discovery = _timed_discovery("tos.discovery.earliest")
+        with self.assertRaisesRegex(QueueBuildError, "discovery_target_sha256 is required"):
+            _validate_target_binding(
+                _candidate(
+                    "open-work-candidate.earliest",
+                    year=-2400,
+                    row_id="A04",
+                    row_order=4,
+                ),
+                discovery,
+                receipt={},
+                location="synthetic-receipt",
+            )
+
+    def test_timing_measurement_must_match_channel_probe_timestamp(self) -> None:
+        discovery = _timed_discovery("tos.discovery.earliest")
+        timing = _timing_receipt(
+            "tos.discovery.earliest",
+            "ToS/source-witnesses/discovery/runs/earliest.v1.json",
+        )
+        timing["measurements"][0]["measurement"]["started_at"] = "2026-08-29T12:00:00.001000Z"
+
+        with self.assertRaisesRegex(QueueBuildError, "started_at must equal channel queried_at"):
+            _validate_active_discovery_timings(
+                discovery,
+                timing,
+                discovery_ref="ToS/source-witnesses/discovery/runs/earliest.v1.json",
+                location="synthetic-discovery",
+            )
 
     def test_planting_source_witness_must_bind_to_receipt_route(self) -> None:
         repo = self.make_repo()
@@ -460,6 +502,7 @@ class OpenWorkCandidateQueueTest(unittest.TestCase):
                     "rights_result": {
                         "status": "blocked-human-legal-review",
                     },
+                    "operational_relation_refs": [],
                     "acquisition": {"downloaded": True},
                     "planting_refs": [],
                 },
@@ -472,6 +515,81 @@ class OpenWorkCandidateQueueTest(unittest.TestCase):
                 discovery=_timed_discovery("tos.discovery.earliest"),
                 discoveries={},
                 provenance_events={},
+                location="synthetic-receipt",
+            )
+
+    def test_downloaded_representation_must_bind_receipt_route(self) -> None:
+        repo = self.make_repo()
+        candidate_id = "open-work-candidate.earliest"
+        receipt_discovery_id = "tos.discovery.earliest"
+        receipt_discovery_ref = "ToS/source-witnesses/discovery/runs/earliest.v1.json"
+        foreign_discovery_id = "tos.discovery.foreign"
+        foreign_discovery_ref = "ToS/source-witnesses/discovery/runs/foreign.v1.json"
+        _write_json(repo / receipt_discovery_ref, _timed_discovery(receipt_discovery_id))
+        _write_json(repo / foreign_discovery_ref, _timed_discovery(foreign_discovery_id))
+
+        artifact_id = "tos.artifact.synthetic.foreign"
+        artifact_ref = "ToS/source-witnesses/artifacts/synthetic/foreign/artifact-witness.json"
+        _write_json(repo / artifact_ref, {"artifact_id": artifact_id})
+        file_ref = "tos.file.sha256." + ("a" * 64)
+        representation_ref = (
+            "ToS/source-witnesses/artifacts/synthetic/foreign/representations/test/representation.json"
+        )
+        _write_json(
+            repo / representation_ref,
+            {
+                "artifact_id": artifact_id,
+                "artifact_ref": artifact_ref,
+                "file_id": file_ref,
+                "payload": {"sha256": "a" * 64},
+                "discovery_ref": foreign_discovery_ref,
+                "provenance_event_ref": "tos.event.acquisition.synthetic",
+            },
+        )
+        provenance_event = {
+            "event_type": "acquisition",
+            "method": {"configuration": {"candidate_id": candidate_id}},
+            "inputs": [],
+            "outputs": [
+                {"ref": representation_ref},
+                {"ref": file_ref},
+            ],
+        }
+        with self.assertRaisesRegex(QueueBuildError, "representation discovery_ref .*not bound"):
+            _validate_receipt_acquisition_closure(
+                repo,
+                {
+                    "candidate_id": candidate_id,
+                    "rights_result": {"status": "positive-for-acquisition"},
+                    "discovery_ref": receipt_discovery_ref,
+                    "discovery_id": receipt_discovery_id,
+                    "operational_relation_refs": [],
+                    "acquisition": {
+                        "downloaded": True,
+                        "item_ref": None,
+                        "artifact_ref": artifact_id,
+                        "composite_ref": None,
+                        "representation_ref": representation_ref,
+                        "file_ref": file_ref,
+                        "provenance_event_ref": "tos.event.acquisition.synthetic",
+                    },
+                    "planting_refs": [],
+                },
+                candidate=_candidate(candidate_id, year=-2400, row_id="A04", row_order=4),
+                discovery=_timed_discovery(receipt_discovery_id),
+                discoveries={
+                    receipt_discovery_id: (
+                        _timed_discovery(receipt_discovery_id),
+                        receipt_discovery_ref,
+                    ),
+                    foreign_discovery_id: (
+                        _timed_discovery(foreign_discovery_id),
+                        foreign_discovery_ref,
+                    ),
+                },
+                provenance_events={
+                    "tos.event.acquisition.synthetic": (provenance_event, "synthetic-event"),
+                },
                 location="synthetic-receipt",
             )
 

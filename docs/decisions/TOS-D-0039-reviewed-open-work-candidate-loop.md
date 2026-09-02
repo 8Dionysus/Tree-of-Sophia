@@ -54,19 +54,24 @@ replays receipt history, reconstructs the queue immediately before each
 iteration when the current tree permits it, and otherwise requires an
 independent frozen-snapshot witness. A superseding receipt retains the same
 snapshot and selected target binding.
+The discovery target is frozen in every terminal receipt by its SHA-256 digest.
 
 Require the latest terminal receipt for each candidate to bind one external
 per-channel timing receipt under `discovery/timings/`. Every active channel
 must have a positive monotonic `python.time.perf_counter_ns` measurement and
 the discovery's `elapsed_seconds` and comparison `machine_seconds` must match
-it. The measurement owns HTTP transport through the first 16 KiB only; it does
-not claim research, interpretation, rights-review, or human elapsed time.
+it. Each measurement start must equal its channel's `queried_at`, and its
+interval must fit inside the discovery run interval. The measurement owns HTTP
+transport through the first 16 KiB only; it does not claim research,
+interpretation, rights-review, or human elapsed time.
 Historical runs and receipts remain immutable and may retain explicit unknown
 sentinels when a measured superseding run becomes active.
 
 An acquired terminal outcome is closed only when its representation, File,
 artifact/composite/Item identity, acquisition provenance event, and planting
-records resolve and agree. The validator checks this closure on every receipt;
+records resolve and agree. A representation must also bind the receipt's
+discovery route and the acquisition provenance event. The validator checks this
+closure on every receipt;
 the active timing check remains scoped to the latest receipt for each
 candidate. These are mechanical record checks, not identity, rights, textual,
 semantic, or canon acceptance.

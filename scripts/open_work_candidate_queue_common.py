@@ -119,6 +119,18 @@ def _required_string(payload: dict[str, Any], key: str, location: str) -> str:
     return value
 
 
+def _parse_timestamp(value: Any, *, location: str, field: str) -> datetime:
+    if not isinstance(value, str) or not value:
+        raise QueueBuildError(f"{location}: {field} must be a non-empty date-time")
+    try:
+        parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
+    except ValueError as exc:
+        raise QueueBuildError(f"{location}: {field} is not a valid date-time: {value!r}") from exc
+    if parsed.tzinfo is None:
+        parsed = parsed.replace(tzinfo=timezone.utc)
+    return parsed.astimezone(timezone.utc)
+
+
 def _load_repo_json_ref(value: str, *, repo_root: Path, location: str) -> tuple[dict[str, Any], Path]:
     path = repo_root / _safe_relative_path(value)
     try:
@@ -219,6 +231,8 @@ def _validate_target_binding(
         ("discovery_target_sha256", discovery_target),
     ):
         supplied = receipt.get(field)
+        if field == "discovery_target_sha256" and not isinstance(supplied, str):
+            raise QueueBuildError(f"{location}: {field} is required to freeze the executed discovery target")
         if supplied is not None and supplied != target_digest(target):
             raise QueueBuildError(f"{location}: {field} does not bind the referenced target")
 
@@ -500,6 +514,8 @@ def _validate_acquisition_closure(
     acquisition: Any,
     *,
     candidate_id: str,
+    discoveries: dict[str, tuple[dict[str, Any], str]],
+    receipt_context_refs: set[str],
     provenance_events: dict[str, tuple[dict[str, Any], str]],
     location: str,
 ) -> None:
@@ -621,6 +637,37 @@ def _validate_acquisition_closure(
         if representation.get("composite_ref") != composite_path.relative_to(repo_root).as_posix():
             raise QueueBuildError(f"{location}: representation composite_ref path disagrees with canonical composite")
 
+    representation_discovery_ref = representation.get("discovery_ref")
+    if not isinstance(representation_discovery_ref, str) or not representation_discovery_ref:
+        raise QueueBuildError(f"{location}: representation must bind discovery_ref")
+    representation_discovery_id = next(
+        (
+            discovery_id
+            for discovery_id, (_, discovery_location) in discoveries.items()
+            if discovery_location == representation_discovery_ref
+        ),
+        None,
+    )
+    if representation_discovery_id is None:
+        raise QueueBuildError(
+            f"{location}: representation discovery_ref does not resolve: {representation_discovery_ref!r}"
+        )
+    representation_event_ref = representation.get("provenance_event_ref")
+    if representation_event_ref != event_ref:
+        raise QueueBuildError(
+            f"{location}: representation provenance_event_ref does not bind acquisition event {event_ref!r}"
+        )
+    event_context_refs = output_refs | {
+        input_ref.get("ref")
+        for input_ref in event.get("inputs", [])
+        if isinstance(input_ref, dict) and isinstance(input_ref.get("ref"), str)
+    }
+    route_context_refs = receipt_context_refs | event_context_refs
+    if representation_discovery_ref not in route_context_refs and representation_discovery_id not in route_context_refs:
+        raise QueueBuildError(
+            f"{location}: representation discovery_ref {representation_discovery_ref!r} is not bound to the receipt route"
+        )
+
 
 def _validate_receipt_acquisition_closure(
     repo_root: Path,
@@ -633,6 +680,16 @@ def _validate_receipt_acquisition_closure(
     location: str,
 ) -> None:
     candidate_id = _required_string(receipt, "candidate_id", location)
+    relation_refs = receipt.get("operational_relation_refs")
+    if not isinstance(relation_refs, list) or not all(
+        isinstance(reference, str) and reference for reference in relation_refs
+    ):
+        raise QueueBuildError(f"{location}: operational_relation_refs must be non-empty strings")
+    receipt_context_refs = set(relation_refs) | {
+        receipt.get("discovery_ref"),
+        receipt.get("discovery_id"),
+    }
+    receipt_context_refs.discard(None)
     acquisitions = [receipt.get("acquisition")]
     additional = receipt.get("additional_acquisitions", [])
     if additional is not None:
@@ -654,6 +711,8 @@ def _validate_receipt_acquisition_closure(
             repo_root,
             acquisition,
             candidate_id=candidate_id,
+            discoveries=discoveries,
+            receipt_context_refs=receipt_context_refs,
             provenance_events=provenance_events,
             location=f"{location}:acquisition[{index}]",
         )
@@ -789,6 +848,18 @@ def _validate_active_discovery_timings(
         raise QueueBuildError(f"{location}: timing receipt does not bind discovery_id")
     if timing.get("discovery_ref") != discovery_ref:
         raise QueueBuildError(f"{location}: timing receipt does not bind discovery_ref")
+    discovery_started_at = _parse_timestamp(
+        discovery.get("started_at"),
+        location=location,
+        field="discovery.started_at",
+    )
+    discovery_ended_at = _parse_timestamp(
+        discovery.get("ended_at"),
+        location=location,
+        field="discovery.ended_at",
+    )
+    if discovery_ended_at < discovery_started_at:
+        raise QueueBuildError(f"{location}: discovery ended_at precedes started_at")
     measurement_rows = timing.get("measurements")
     if not isinstance(measurement_rows, list) or not measurement_rows:
         raise QueueBuildError(f"{location}: timing receipt must contain measurements")
@@ -834,6 +905,31 @@ def _validate_active_discovery_timings(
         if measurement.get("clock") != TIMING_CLOCK:
             raise QueueBuildError(
                 f"{channel_location}: timing_measurement.clock must be {TIMING_CLOCK!r}"
+            )
+        queried_at = _parse_timestamp(
+            channel.get("queried_at"),
+            location=channel_location,
+            field="queried_at",
+        )
+        measurement_started_at = _parse_timestamp(
+            measurement.get("started_at"),
+            location=channel_location,
+            field="timing_measurement.started_at",
+        )
+        measurement_ended_at = _parse_timestamp(
+            measurement.get("ended_at"),
+            location=channel_location,
+            field="timing_measurement.ended_at",
+        )
+        if measurement_started_at != queried_at:
+            raise QueueBuildError(
+                f"{channel_location}: timing_measurement.started_at must equal channel queried_at"
+            )
+        if measurement_ended_at < measurement_started_at:
+            raise QueueBuildError(f"{channel_location}: timing_measurement ended_at precedes started_at")
+        if measurement_started_at < discovery_started_at or measurement_ended_at > discovery_ended_at:
+            raise QueueBuildError(
+                f"{channel_location}: timing measurement interval must stay within discovery interval"
             )
         measured_elapsed = measurement.get("elapsed_seconds")
         if (
@@ -1053,17 +1149,12 @@ def _receipt_sort_key(receipt: dict[str, Any]) -> tuple[datetime, int, str]:
     issued_at = receipt.get("issued_at")
     if not isinstance(issued_at, str) or not issued_at:
         raise QueueBuildError("receipt issued_at must be a non-empty date-time")
-    try:
-        parsed = datetime.fromisoformat(issued_at.replace("Z", "+00:00"))
-    except ValueError as exc:
-        raise QueueBuildError(f"receipt issued_at is not a valid date-time: {issued_at!r}") from exc
-    if parsed.tzinfo is None:
-        parsed = parsed.replace(tzinfo=timezone.utc)
+    parsed = _parse_timestamp(issued_at, location="receipt", field="issued_at")
     version = receipt.get("record_version")
     if not isinstance(version, int) or version < 1:
         raise QueueBuildError("receipt record_version must be a positive integer")
     receipt_id = _required_string(receipt, "receipt_id", "receipt")
-    return parsed.astimezone(timezone.utc), version, receipt_id
+    return parsed, version, receipt_id
 
 
 def _validate_receipt_version_timestamp_order(receipts: list[dict[str, Any]]) -> None:

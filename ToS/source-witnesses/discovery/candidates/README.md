@@ -51,6 +51,9 @@ but are not silently treated as reviewed candidates.
 
 The queue builder replays the receipt history and checks each
 `queue_snapshot_sha256` against the state immediately before that iteration.
+Every terminal receipt also carries the SHA-256 digest of its exact discovery
+`target`; the executed target cannot be changed behind an otherwise compatible
+discovery reference.
 When an older snapshot cannot be reconstructed from the current tree, only an
 independent frozen-snapshot witness in discovery provenance or a research
 packet can preserve that historical receipt; a receipt cannot attest to its
@@ -66,9 +69,10 @@ provenance input/output must all agree with the receipt's route. A source
 planting may remain a separate pre-existing witness when it is explicitly
 present in the receipt's target or operational relation set; it cannot be
 smuggled in by planting ID alone. Active timing receipts must cover the exact
-discovery channel set and bind each probe URL to its channel endpoint. These
-checks prove record closure and transport measurement only; they do not promote
-source, rights, textual, semantic, or canon authority.
+discovery channel set, bind each probe URL to its channel endpoint, and bind
+each measurement start to the channel's `queried_at` inside the discovery run
+interval. These checks prove record closure and transport measurement only; they
+do not promote source, rights, textual, semantic, or canon authority.
 
 Operational queue relations may return to candidate, query, result,
 acquisition, planting, and provenance evidence. Bibliographic identity remains
