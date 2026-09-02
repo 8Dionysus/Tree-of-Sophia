@@ -74,6 +74,12 @@ each measurement start to the channel's `queried_at` inside the discovery run
 interval. These checks prove record closure and transport measurement only; they
 do not promote source, rights, textual, semantic, or canon authority.
 
+For Item acquisitions, the receipt route must name the Item (or its canonical
+manifest path) and its acquisition event. Local scholarly-composite payloads
+are tracked when present and are checked for fixity; Git-ignore is not a valid
+substitute. The channel-measurement utility accepts either a superseding or an
+instrumented output, not both in one invocation.
+
 Operational queue relations may return to candidate, query, result,
 acquisition, planting, and provenance evidence. Bibliographic identity remains
 claim-bearing; semantic and canon relations require their own review routes.

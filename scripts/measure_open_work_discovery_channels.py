@@ -174,6 +174,8 @@ def main() -> int:
     parser.add_argument("--supersedes-ref")
     parser.add_argument("--provenance-event-ref")
     args = parser.parse_args()
+    if args.superseding_output is not None and args.instrumented_output is not None:
+        parser.error("--superseding-output and --instrumented-output are mutually exclusive")
     receipt = build_receipt(args.discovery, timeout_seconds=args.timeout_seconds)
     if args.superseding_output is not None:
         required = {

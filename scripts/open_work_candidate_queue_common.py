@@ -574,7 +574,12 @@ def _validate_acquisition_closure(
     if identity_field == "item_ref":
         if acquisition.get("representation_ref") is not None:
             raise QueueBuildError(f"{location}: item acquisition must not carry representation_ref")
-        item, _ = _find_unique_record(
+        item_ref = acquisition[identity_field]
+        if event_ref not in receipt_context_refs:
+            raise QueueBuildError(
+                f"{location}: item acquisition provenance_event_ref {event_ref!r} is not bound to the receipt route"
+            )
+        item, item_path = _find_unique_record(
             repo_root,
             root=Path("ToS/source-witnesses"),
             filename="item.manifest.json",
@@ -582,6 +587,11 @@ def _validate_acquisition_closure(
             value=acquisition[identity_field],
             location=location,
         )
+        item_record_ref = item_path.relative_to(repo_root).as_posix()
+        if not {item_ref, item_record_ref} & receipt_context_refs:
+            raise QueueBuildError(
+                f"{location}: item acquisition item_ref {item_ref!r} is not bound to the receipt route"
+            )
         files = item.get("payload_files")
         if not isinstance(files, list) or not any(
             isinstance(payload_file, dict) and payload_file.get("file_id") == file_ref

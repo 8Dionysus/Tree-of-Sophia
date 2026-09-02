@@ -593,6 +593,62 @@ class OpenWorkCandidateQueueTest(unittest.TestCase):
                 location="synthetic-receipt",
             )
 
+    def test_downloaded_item_must_bind_receipt_route(self) -> None:
+        repo = self.make_repo()
+        candidate_id = "open-work-candidate.earliest"
+        item_id = "tos.item.synthetic"
+        item_ref = "ToS/source-witnesses/works/synthetic/items/item.manifest.json"
+        file_ref = "tos.file.sha256." + ("b" * 64)
+        event_ref = "tos.event.acquisition.synthetic-item"
+        _write_json(
+            repo / item_ref,
+            {
+                "item_id": item_id,
+                "payload_files": [{"file_id": file_ref}],
+            },
+        )
+        _write_json(
+            repo / "ToS/source-witnesses/discovery/runs/earliest.v1.json",
+            _timed_discovery("tos.discovery.earliest"),
+        )
+        provenance_event = {
+            "event_type": "acquisition",
+            "method": {"configuration": {}},
+            "inputs": [{"ref": "tos.work.synthetic"}],
+            "outputs": [{"ref": file_ref}],
+        }
+        with self.assertRaisesRegex(QueueBuildError, "item acquisition item_ref .*not bound"):
+            _validate_receipt_acquisition_closure(
+                repo,
+                {
+                    "candidate_id": candidate_id,
+                    "rights_result": {"status": "positive-for-acquisition"},
+                    "discovery_ref": "ToS/source-witnesses/discovery/runs/earliest.v1.json",
+                    "discovery_id": "tos.discovery.earliest",
+                    "operational_relation_refs": ["tos.discovery.earliest", event_ref],
+                    "acquisition": {
+                        "downloaded": True,
+                        "item_ref": item_id,
+                        "artifact_ref": None,
+                        "composite_ref": None,
+                        "representation_ref": None,
+                        "file_ref": file_ref,
+                        "provenance_event_ref": event_ref,
+                    },
+                    "planting_refs": [],
+                },
+                candidate=_candidate(candidate_id, year=-2400, row_id="A04", row_order=4),
+                discovery=_timed_discovery("tos.discovery.earliest"),
+                discoveries={
+                    "tos.discovery.earliest": (
+                        _timed_discovery("tos.discovery.earliest"),
+                        "ToS/source-witnesses/discovery/runs/earliest.v1.json",
+                    )
+                },
+                provenance_events={event_ref: (provenance_event, "synthetic-event")},
+                location="synthetic-receipt",
+            )
+
     def test_superseding_receipt_cannot_be_backdated(self) -> None:
         receipts = [
             {

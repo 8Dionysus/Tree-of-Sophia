@@ -5548,6 +5548,23 @@ def _git_ignored(repo_root: Path, path: Path) -> bool | None:
     return None
 
 
+def _git_tracked(repo_root: Path, path: Path) -> bool | None:
+    if not (repo_root / ".git").exists():
+        return None
+    result = subprocess.run(
+        ("git", "ls-files", "--error-unmatch", "--", _relative(path, repo_root)),
+        cwd=repo_root,
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+    if result.returncode == 0:
+        return True
+    if result.returncode == 1:
+        return False
+    return None
+
+
 def validate_payload_file(
     repo_root: Path,
     item_directory: Path,
@@ -13019,8 +13036,13 @@ def validate_foundation(repo_root: Path, *, require_local_payloads: bool = False
             if require_local_payloads:
                 issues.append((representation_ref, "scholarly-composite representation payload is missing"))
         else:
-            if _git_ignored(repo_root, payload_path) is not True:
-                issues.append((representation_ref, "local scholarly-composite payload must be gitignored"))
+            tracked = _git_tracked(repo_root, payload_path)
+            if tracked is False:
+                issues.append((representation_ref, "local scholarly-composite payload must be tracked"))
+            elif tracked is None and (repo_root / ".git").exists():
+                issues.append((representation_ref, "could not determine scholarly-composite payload tracking posture"))
+            if _git_ignored(repo_root, payload_path) is True:
+                issues.append((representation_ref, "tracked scholarly-composite payload must not be gitignored"))
             if payload_path.stat().st_size != payload.get("byte_size"):
                 issues.append((representation_ref, "scholarly-composite representation byte_size differs from payload"))
             if _sha256(payload_path) != payload.get("sha256"):

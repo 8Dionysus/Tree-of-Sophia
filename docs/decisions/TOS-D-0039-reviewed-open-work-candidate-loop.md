@@ -76,6 +76,14 @@ the active timing check remains scoped to the latest receipt for each
 candidate. These are mechanical record checks, not identity, rights, textual,
 semantic, or canon acceptance.
 
+Item acquisitions additionally require the Item ID or canonical Item manifest
+path and the acquisition event to be present in the receipt's operational
+route. A local
+scholarly-composite payload, when present, must remain tracked and fixity-
+checked; it is not made compliant by Git-ignore. The timing tool accepts one
+instrumented-discovery output mode at a time so a superseding discovery and its
+receipt cannot diverge.
+
 Planting closure additionally binds the candidate atlas row, exact source-witness
 record, receipt-visible discovery target, and provenance event input/output. A
 pre-existing planting is admissible only when its identity and route are explicit
