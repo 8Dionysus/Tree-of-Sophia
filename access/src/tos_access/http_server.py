@@ -156,7 +156,7 @@ def build_handler(core: ToSAccessCore, web_root: Path) -> type[BaseHTTPRequestHa
                         unquote(path.removeprefix("/api/philosophy/query/epistemic/")),
                         _single(query, "view_id") or None,
                         _integer(query, "limit", 80, 1, 200),
-                    ); packet["query_backend"] = "json"; self._json(packet); return
+                    ); self._json(packet); return
                 if path == "/api/philosophy/query/paths":
                     packet = core.philosophy_path_between(
                         _single(query, "from"),

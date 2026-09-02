@@ -433,6 +433,7 @@ class CoreContractTests(unittest.TestCase):
             self.assertEqual(edge_packet["selection"]["edge_id"], "e")
             self.assertEqual([node["node_id"] for node in edge_packet["neighbor_nodes"]], ["a", "b"])
             self.assertEqual([row["edge_id"] for row in edge_packet["challenge_relations"]], ["e"])
+            self.assertEqual(edge_packet["field_posture"]["confidence_values"], [])
 
     def test_scale_memberships_reference_only_selected_rows(self) -> None:
         with tempfile.TemporaryDirectory() as raw:
@@ -660,6 +661,7 @@ class CoreContractTests(unittest.TestCase):
                 self.assertEqual(rerouted["direction"], "outgoing")
                 self.assertEqual(epistemic["selection"]["node_id"], "a")
                 self.assertEqual(epistemic["view_id"], "direct-only")
+                self.assertNotIn("query_backend", epistemic)
             finally:
                 server.shutdown()
                 server.server_close()

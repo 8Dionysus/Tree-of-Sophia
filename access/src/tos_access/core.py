@@ -1209,7 +1209,13 @@ class ToSAccessCore:
             if str(node.get("node_id") or "") in related_node_ids
         ]
 
-        field_items = [selection, *challenge_relations, *context_relations, *neighbor_nodes]
+        surrounding_items = [*challenge_relations, *context_relations, *neighbor_nodes]
+        field_items = [selection, *surrounding_items]
+        field_posture_items = [
+            item
+            for item in surrounding_items
+            if str(item.get("node_id") or item.get("edge_id") or "") != item_id
+        ]
         selection_properties = (
             selection.get("properties")
             if isinstance(selection.get("properties"), dict)
@@ -1217,7 +1223,7 @@ class ToSAccessCore:
         )
         properties = [
             item.get("properties")
-            for item in field_items
+            for item in field_posture_items
             if isinstance(item.get("properties"), dict)
         ]
         authority_postures = sorted({

@@ -3177,17 +3177,20 @@ async function showEpistemic(
   }
   const requestRevision = ++epistemicRevision;
   const requestMode = state.mode;
-  const requestViewId = state.currentViewId;
+  const requestActiveViewId = state.currentViewId;
+  const requestConstraintViewId = state.currentView && viewItem(state.currentView, itemIdValue)
+    ? requestActiveViewId
+    : "";
   const packet = (await queryOperations.invoke("tos.epistemic.inspect", {
     item_id: itemIdValue,
-    view_id: requestViewId,
+    view_id: requestConstraintViewId,
     limit,
   }, { signal })) as EpistemicPayload;
   signal?.throwIfAborted();
   if (
     requestRevision !== epistemicRevision ||
     state.mode !== requestMode ||
-    state.currentViewId !== requestViewId ||
+    state.currentViewId !== requestActiveViewId ||
     pageSelection()?.id !== itemIdValue
   ) throw new DOMException("superseded epistemic request", "AbortError");
   state.epistemicPacket = packet;
