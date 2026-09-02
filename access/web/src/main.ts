@@ -978,7 +978,7 @@ async function fetchJson<T>(url: string, options?: RequestInit): Promise<T> {
 const webActions = createToSWebActions(fetchJson);
 
 function isPhilosophyView(payload: PhilosophyViewPayload | CorpusViewPayload | null): payload is PhilosophyViewPayload {
-  return Boolean(payload && ("nodes" in payload || "clusters" in payload || "edges" in payload));
+  return Boolean(payload && state.mode === "philosophy");
 }
 
 function itemLayers(item: AnyItem): string[] {
@@ -1096,7 +1096,7 @@ function stringList(value: unknown): string[] {
 }
 
 function layerAllowed(item: AnyItem): boolean {
-  if (!isPhilosophyView(state.currentView)) return true;
+  if (state.mode !== "philosophy" || !isPhilosophyView(state.currentView)) return true;
   const layers = itemLayers(item);
   return layers.some((layer) => state.activeLayers.has(layer));
 }
@@ -1106,7 +1106,7 @@ function predicateId(item: AnyItem): string {
 }
 
 function currentPredicates(): string[] {
-  if (!isPhilosophyView(state.currentView)) return [];
+  if (state.mode !== "philosophy" || !isPhilosophyView(state.currentView)) return [];
   const predicates = new Set<string>();
   (state.currentView.edges || []).forEach((edge) => {
     if (isPublicAtlasItem(edge) && layerAllowed(edge)) predicates.add(predicateId(edge));
@@ -1115,15 +1115,17 @@ function currentPredicates(): string[] {
 }
 
 function predicateAllowed(item: AnyItem): boolean {
-  if (!isPhilosophyView(state.currentView) || (state.currentView.edges || []).length === 0) return true;
+  if (state.mode !== "philosophy" || !isPhilosophyView(state.currentView) || (state.currentView.edges || []).length === 0) return true;
   return state.activePredicates.has(predicateId(item));
 }
 
 function currentItemsById(): Map<string, AnyItem> {
   const items = new Map<string, AnyItem>();
-  if (!isPhilosophyView(state.currentView)) return items;
-  (state.currentView.nodes || []).filter(isPublicAtlasItem).forEach((node) => items.set(node.node_id, node));
-  (state.currentView.clusters || []).filter(isPublicAtlasItem).forEach((cluster) => items.set(cluster.cluster_id, cluster));
+  if (!state.currentView) return items;
+  (state.currentView.nodes || []).forEach((node) => items.set(node.node_id, node));
+  if (state.mode === "philosophy" && isPhilosophyView(state.currentView)) {
+    (state.currentView.clusters || []).filter(isPublicAtlasItem).forEach((cluster) => items.set(cluster.cluster_id, cluster));
+  }
   return items;
 }
 
@@ -1134,6 +1136,7 @@ function endpointLabel(id: unknown): string {
 }
 
 function relationAllowed(item: AnyItem): boolean {
+  if (state.mode === "corpus") return true;
   return isPublicAtlasItem(item) && layerAllowed(item) && predicateAllowed(item);
 }
 
@@ -1902,7 +1905,7 @@ function relationRowsByDirection(rows: RelationRow[]): { title: string; rows: { 
 
 function relationRowsForSelection(item: AnyItem): RelationRow[] {
   const source = unwrapItem(item);
-  if (!isPhilosophyView(state.currentView)) return [];
+  if (!state.currentView) return [];
   const edges = (state.currentView.edges || []).filter(relationAllowed);
   const byEdgeId = new Map(edges.map((edge) => [edge.edge_id, edge]));
   if (source.from_id && source.to_id) {
