@@ -80,7 +80,7 @@
     },
     {
       "evidence": {
-        "frozen_file_count": 19,
+        "frozen_file_count": 20,
         "mismatches": []
       },
       "gate_id": "G2-input-digests-match",
@@ -99,6 +99,108 @@
         "byte_size_match": true,
         "gitignored": true,
         "mode": "0600",
+        "private_output_posture": {
+          "applicable": true,
+          "checked_private_file_count": 18,
+          "checked_source_process_count": 16,
+          "failures": [],
+          "files": [
+            {
+              "gitignored": true,
+              "mode": "0600",
+              "path": "/srv/AbyssOS/Tree-of-Sophia/ToS/source-witnesses/works/digital-biblical-corpora/unicode-xml-leningrad-codex/expressions/he-uxlc-2-5-full-accents/editions/uxlc-2-5-build-27-6/items/tanach-us-server-xml-prov23-1-3-20260830t160419z/payload/laboratory/generic-xml-resource-inventory-uxlc-abc-v1/outputs/replay/run-1/a.json"
+            },
+            {
+              "gitignored": true,
+              "mode": "0600",
+              "path": "/srv/AbyssOS/Tree-of-Sophia/ToS/source-witnesses/works/digital-biblical-corpora/unicode-xml-leningrad-codex/expressions/he-uxlc-2-5-full-accents/editions/uxlc-2-5-build-27-6/items/tanach-us-server-xml-prov23-1-3-20260830t160419z/payload/laboratory/generic-xml-resource-inventory-uxlc-abc-v1/outputs/replay/run-1/b.json"
+            },
+            {
+              "gitignored": true,
+              "mode": "0600",
+              "path": "/srv/AbyssOS/Tree-of-Sophia/ToS/source-witnesses/works/digital-biblical-corpora/unicode-xml-leningrad-codex/expressions/he-uxlc-2-5-full-accents/editions/uxlc-2-5-build-27-6/items/tanach-us-server-xml-prov23-1-3-20260830t160419z/payload/laboratory/generic-xml-resource-inventory-uxlc-abc-v1/outputs/replay/run-1/bc.json"
+            },
+            {
+              "gitignored": true,
+              "mode": "0600",
+              "path": "/srv/AbyssOS/Tree-of-Sophia/ToS/source-witnesses/works/digital-biblical-corpora/unicode-xml-leningrad-codex/expressions/he-uxlc-2-5-full-accents/editions/uxlc-2-5-build-27-6/items/tanach-us-server-xml-prov23-1-3-20260830t160419z/payload/laboratory/generic-xml-resource-inventory-uxlc-abc-v1/outputs/replay/run-1/c.json"
+            },
+            {
+              "gitignored": true,
+              "mode": "0600",
+              "path": "/srv/AbyssOS/Tree-of-Sophia/ToS/source-witnesses/works/digital-biblical-corpora/unicode-xml-leningrad-codex/expressions/he-uxlc-2-5-full-accents/editions/uxlc-2-5-build-27-6/items/tanach-us-server-xml-prov23-1-3-20260830t160419z/payload/laboratory/generic-xml-resource-inventory-uxlc-abc-v1/outputs/replay/run-2/a.json"
+            },
+            {
+              "gitignored": true,
+              "mode": "0600",
+              "path": "/srv/AbyssOS/Tree-of-Sophia/ToS/source-witnesses/works/digital-biblical-corpora/unicode-xml-leningrad-codex/expressions/he-uxlc-2-5-full-accents/editions/uxlc-2-5-build-27-6/items/tanach-us-server-xml-prov23-1-3-20260830t160419z/payload/laboratory/generic-xml-resource-inventory-uxlc-abc-v1/outputs/replay/run-2/b.json"
+            },
+            {
+              "gitignored": true,
+              "mode": "0600",
+              "path": "/srv/AbyssOS/Tree-of-Sophia/ToS/source-witnesses/works/digital-biblical-corpora/unicode-xml-leningrad-codex/expressions/he-uxlc-2-5-full-accents/editions/uxlc-2-5-build-27-6/items/tanach-us-server-xml-prov23-1-3-20260830t160419z/payload/laboratory/generic-xml-resource-inventory-uxlc-abc-v1/outputs/replay/run-2/bc.json"
+            },
+            {
+              "gitignored": true,
+              "mode": "0600",
+              "path": "/srv/AbyssOS/Tree-of-Sophia/ToS/source-witnesses/works/digital-biblical-corpora/unicode-xml-leningrad-codex/expressions/he-uxlc-2-5-full-accents/editions/uxlc-2-5-build-27-6/items/tanach-us-server-xml-prov23-1-3-20260830t160419z/payload/laboratory/generic-xml-resource-inventory-uxlc-abc-v1/outputs/replay/run-2/c.json"
+            },
+            {
+              "gitignored": true,
+              "mode": "0600",
+              "path": "/srv/AbyssOS/Tree-of-Sophia/ToS/source-witnesses/works/digital-biblical-corpora/unicode-xml-leningrad-codex/expressions/he-uxlc-2-5-full-accents/editions/uxlc-2-5-build-27-6/items/tanach-us-server-xml-prov23-1-3-20260830t160419z/payload/laboratory/generic-xml-resource-inventory-uxlc-abc-v1/outputs/selected/run-1/a.json"
+            },
+            {
+              "gitignored": true,
+              "mode": "0600",
+              "path": "/srv/AbyssOS/Tree-of-Sophia/ToS/source-witnesses/works/digital-biblical-corpora/unicode-xml-leningrad-codex/expressions/he-uxlc-2-5-full-accents/editions/uxlc-2-5-build-27-6/items/tanach-us-server-xml-prov23-1-3-20260830t160419z/payload/laboratory/generic-xml-resource-inventory-uxlc-abc-v1/outputs/selected/run-1/b.json"
+            },
+            {
+              "gitignored": true,
+              "mode": "0600",
+              "path": "/srv/AbyssOS/Tree-of-Sophia/ToS/source-witnesses/works/digital-biblical-corpora/unicode-xml-leningrad-codex/expressions/he-uxlc-2-5-full-accents/editions/uxlc-2-5-build-27-6/items/tanach-us-server-xml-prov23-1-3-20260830t160419z/payload/laboratory/generic-xml-resource-inventory-uxlc-abc-v1/outputs/selected/run-1/bc.json"
+            },
+            {
+              "gitignored": true,
+              "mode": "0600",
+              "path": "/srv/AbyssOS/Tree-of-Sophia/ToS/source-witnesses/works/digital-biblical-corpora/unicode-xml-leningrad-codex/expressions/he-uxlc-2-5-full-accents/editions/uxlc-2-5-build-27-6/items/tanach-us-server-xml-prov23-1-3-20260830t160419z/payload/laboratory/generic-xml-resource-inventory-uxlc-abc-v1/outputs/selected/run-1/c.json"
+            },
+            {
+              "gitignored": true,
+              "mode": "0600",
+              "path": "/srv/AbyssOS/Tree-of-Sophia/ToS/source-witnesses/works/digital-biblical-corpora/unicode-xml-leningrad-codex/expressions/he-uxlc-2-5-full-accents/editions/uxlc-2-5-build-27-6/items/tanach-us-server-xml-prov23-1-3-20260830t160419z/payload/laboratory/generic-xml-resource-inventory-uxlc-abc-v1/outputs/selected/run-2/a.json"
+            },
+            {
+              "gitignored": true,
+              "mode": "0600",
+              "path": "/srv/AbyssOS/Tree-of-Sophia/ToS/source-witnesses/works/digital-biblical-corpora/unicode-xml-leningrad-codex/expressions/he-uxlc-2-5-full-accents/editions/uxlc-2-5-build-27-6/items/tanach-us-server-xml-prov23-1-3-20260830t160419z/payload/laboratory/generic-xml-resource-inventory-uxlc-abc-v1/outputs/selected/run-2/b.json"
+            },
+            {
+              "gitignored": true,
+              "mode": "0600",
+              "path": "/srv/AbyssOS/Tree-of-Sophia/ToS/source-witnesses/works/digital-biblical-corpora/unicode-xml-leningrad-codex/expressions/he-uxlc-2-5-full-accents/editions/uxlc-2-5-build-27-6/items/tanach-us-server-xml-prov23-1-3-20260830t160419z/payload/laboratory/generic-xml-resource-inventory-uxlc-abc-v1/outputs/selected/run-2/bc.json"
+            },
+            {
+              "gitignored": true,
+              "mode": "0600",
+              "path": "/srv/AbyssOS/Tree-of-Sophia/ToS/source-witnesses/works/digital-biblical-corpora/unicode-xml-leningrad-codex/expressions/he-uxlc-2-5-full-accents/editions/uxlc-2-5-build-27-6/items/tanach-us-server-xml-prov23-1-3-20260830t160419z/payload/laboratory/generic-xml-resource-inventory-uxlc-abc-v1/outputs/selected/run-2/c.json"
+            },
+            {
+              "gitignored": true,
+              "mode": "0600",
+              "path": "/srv/AbyssOS/Tree-of-Sophia/ToS/source-witnesses/works/digital-biblical-corpora/unicode-xml-leningrad-codex/expressions/he-uxlc-2-5-full-accents/editions/uxlc-2-5-build-27-6/items/tanach-us-server-xml-prov23-1-3-20260830t160419z/payload/laboratory/generic-xml-resource-inventory-uxlc-abc-v1/replay-prov23-1-3.xml"
+            },
+            {
+              "gitignored": true,
+              "mode": "0600",
+              "path": "/srv/AbyssOS/Tree-of-Sophia/ToS/source-witnesses/works/digital-biblical-corpora/unicode-xml-leningrad-codex/expressions/he-uxlc-2-5-full-accents/editions/uxlc-2-5-build-27-6/items/tanach-us-server-xml-prov23-1-3-20260830t160419z/payload/laboratory/generic-xml-resource-inventory-uxlc-abc-v1/replay-response.headers"
+            }
+          ],
+          "ok": true,
+          "private_root": "/srv/AbyssOS/Tree-of-Sophia/ToS/source-witnesses/works/digital-biblical-corpora/unicode-xml-leningrad-codex/expressions/he-uxlc-2-5-full-accents/editions/uxlc-2-5-build-27-6/items/tanach-us-server-xml-prov23-1-3-20260830t160419z/payload/laboratory/generic-xml-resource-inventory-uxlc-abc-v1",
+          "private_root_gitignored": true,
+          "private_root_mode": "0755"
+        },
         "sha256_match": true
       },
       "gate_id": "G4-local-source-fixity-mode-ignore",
@@ -327,7 +429,7 @@
           "Unicode/XML Leningrad Codex"
         ],
         "scanned_manifest": true,
-        "source_value_control_count": 74
+        "source_value_control_count": 75
       },
       "gate_id": "G16-no-source-values-in-tracked-output",
       "passed": true

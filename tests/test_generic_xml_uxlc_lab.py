@@ -1,8 +1,11 @@
 import copy
 import importlib.util
 import json
+import os
 from pathlib import Path
+import tempfile
 import unittest
+from unittest import mock
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
@@ -113,6 +116,59 @@ class GenericXmlUxLcLabContractTests(unittest.TestCase):
         result = CONSUMER.validate_projection(bc_payload["projection"], root, bc_payload["owner"])
         self.assertEqual(7, result["expected_resource_count"])
         self.assertEqual(7, result["unique_resource_count"])
+
+    def test_source_value_controls_include_all_available_exact_sources(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            temp_root = Path(temp_dir)
+            selected = temp_root / "selected.xml"
+            replay = temp_root / "replay.xml"
+            selected.write_text("<root><value>selected-only</value></root>", encoding="utf-8")
+            replay.write_text("<root><value>replay-only</value></root>", encoding="utf-8")
+
+            values = EVALUATOR.exact_source_values_from_manifest(
+                {
+                    "exact_sources": {
+                        "selected": {"path": str(selected)},
+                        "replay": {"path": str(replay)},
+                    }
+                }
+            )
+
+        self.assertIn("selected-only", values)
+        self.assertIn("replay-only", values)
+
+    def test_private_output_posture_requires_0600_and_gitignored_files(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            private_root = Path(temp_dir) / "private"
+            output = private_root / "outputs" / "selected" / "run-1" / "a.json"
+            output.parent.mkdir(parents=True)
+            output.write_text("{}", encoding="utf-8")
+            observations = {
+                "processes": [
+                    {
+                        "selection_kind": "source",
+                        "output_scope": "absolute",
+                        "output_ref": str(output),
+                    }
+                ]
+            }
+            manifest = {"private_output_root": str(private_root)}
+
+            os.chmod(output, 0o644)
+            with mock.patch.object(EVALUATOR, "gitignored", return_value=True):
+                result = EVALUATOR.verify_private_output_posture(observations, manifest)
+            self.assertFalse(result["ok"])
+            self.assertTrue(any("file-mode-0644" in failure for failure in result["failures"]))
+
+            os.chmod(output, 0o600)
+            with mock.patch.object(EVALUATOR, "gitignored", return_value=False):
+                result = EVALUATOR.verify_private_output_posture(observations, manifest)
+            self.assertFalse(result["ok"])
+            self.assertTrue(any("not-ignored" in failure for failure in result["failures"]))
+
+            with mock.patch.object(EVALUATOR, "gitignored", return_value=True):
+                result = EVALUATOR.verify_private_output_posture(observations, manifest)
+            self.assertTrue(result["ok"])
 
 
 if __name__ == "__main__":

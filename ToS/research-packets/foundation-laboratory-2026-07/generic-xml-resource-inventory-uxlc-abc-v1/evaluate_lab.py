@@ -24,7 +24,7 @@ LAB_DIR = Path(__file__).resolve().parent
 REPO_ROOT = LAB_DIR.parents[3]
 INPUT_PATH = LAB_DIR / "input-manifest.json"
 SEALED_PATH = LAB_DIR / "sealed-evaluation-manifest-v2.json"
-FREEZE_PATH = LAB_DIR / "freeze-receipt-v8.json"
+FREEZE_PATH = LAB_DIR / "freeze-receipt-v9.json"
 OBSERVATIONS_PATH = LAB_DIR / "run-observations.json"
 SOURCE_RECEIPT_PATH = LAB_DIR / "source-run-receipt.json"
 CONSUMER_PATH = LAB_DIR / "independent-consumer-receipt.json"
@@ -32,6 +32,7 @@ MANUAL_PATH = LAB_DIR / "MANUAL_SOURCE_AND_OUTPUT_REVIEW.md"
 RESULT_PATH = LAB_DIR / "comparison-result.json"
 DOCTYPE_PATTERN = re.compile(br"<!DOCTYPE\s", re.IGNORECASE)
 HEBREW_PATTERN = re.compile(r"[\u0590-\u05ff]")
+PRIVATE_OUTPUT_MODE = 0o600
 
 
 def canonical_bytes(value: Any) -> bytes:
@@ -219,6 +220,15 @@ def exact_source_values(source_path: Path) -> list[str]:
     return sorted(values, key=len, reverse=True)
 
 
+def exact_source_values_from_manifest(manifest: dict[str, Any]) -> list[str]:
+    values: set[str] = set()
+    for source in manifest["exact_sources"].values():
+        source_path = Path(source["path"])
+        if source_path.is_file():
+            values.update(exact_source_values(source_path))
+    return sorted(values, key=len, reverse=True)
+
+
 def recursive_json_strings(value: Any) -> list[str]:
     strings: list[str] = []
     if isinstance(value, dict):
@@ -396,6 +406,96 @@ def gitignored(path: Path) -> bool:
     return completed.returncode == 0
 
 
+def _is_within(path: Path, root: Path) -> bool:
+    try:
+        path.relative_to(root)
+    except ValueError:
+        return False
+    return True
+
+
+def verify_private_output_posture(
+    observations: dict[str, Any], manifest: dict[str, Any]
+) -> dict[str, Any]:
+    private_root = Path(manifest["private_output_root"]).resolve()
+    source_processes = [
+        process
+        for process in observations["processes"]
+        if process.get("selection_kind") == "source"
+    ]
+    private_files: set[Path] = set()
+    if private_root.is_dir():
+        private_files.update(
+            path.resolve()
+            for path in private_root.rglob("*")
+            if path.is_file()
+        )
+
+    failures: list[str] = []
+    root_ignored = gitignored(private_root)
+    if not private_root.is_dir():
+        failures.append("private-root-missing")
+    elif not root_ignored:
+        failures.append("private-root-not-ignored")
+
+    observed_private_files: set[Path] = set()
+    for index, process in enumerate(source_processes, start=1):
+        if process.get("output_scope") != "absolute":
+            failures.append(f"source-process-{index}:not-absolute")
+            continue
+        output_ref = process.get("output_ref")
+        if not isinstance(output_ref, str):
+            failures.append(f"source-process-{index}:missing-output-reference")
+            continue
+        output_path = Path(output_ref).resolve()
+        if not _is_within(output_path, private_root):
+            failures.append(f"source-process-{index}:outside-private-root")
+            continue
+        observed_private_files.add(output_path)
+        if not output_path.is_file():
+            failures.append(f"source-process-{index}:missing-output")
+
+    private_files.update(observed_private_files)
+    file_evidence: list[dict[str, Any]] = []
+    for path in sorted(private_files, key=str):
+        if not _is_within(path, private_root):
+            failures.append(f"file-outside-private-root:{path}")
+            continue
+        if not path.is_file():
+            failures.append(f"file-missing:{path}")
+            continue
+        mode = path.stat().st_mode & 0o777
+        ignored = gitignored(path)
+        file_evidence.append(
+            {
+                "path": str(path),
+                "mode": f"{mode:04o}",
+                "gitignored": ignored,
+            }
+        )
+        if mode != PRIVATE_OUTPUT_MODE:
+            failures.append(f"file-mode-{mode:04o}:{path}")
+        if not ignored:
+            failures.append(f"file-not-ignored:{path}")
+
+    applicable = bool(source_processes or private_files or private_root.exists())
+    return {
+        "ok": applicable and not failures,
+        "applicable": applicable,
+        "private_root": str(private_root),
+        "private_root_mode": (
+            f"{private_root.stat().st_mode & 0o777:04o}"
+            if private_root.is_dir()
+            else None
+        ),
+        "private_root_gitignored": root_ignored,
+        "checked_source_process_count": len(source_processes),
+        "checked_private_file_count": len(file_evidence),
+        "files": file_evidence,
+        "failures": sorted(set(failures)),
+    }
+
+
 def collect_recursive_keys(value: Any) -> list[str]:
     keys: list[str] = []
     if isinstance(value, dict):
@@ -480,7 +580,7 @@ def main() -> int:
     )
 
     selected_path = Path(manifest["exact_sources"]["selected"]["path"])
-    source_values = exact_source_values(selected_path)
+    source_values = exact_source_values_from_manifest(manifest)
     fixture_payload = {
         "fixtures": manifest["fixtures"],
         "security_fixtures": manifest["security_fixtures"],
@@ -501,11 +601,13 @@ def main() -> int:
     )
 
     selected_record = manifest["exact_sources"]["selected"]
+    private_output_posture = verify_private_output_posture(observations, manifest)
     g4 = (
         sha256_path(selected_path) == selected_record["sha256"]
         and selected_path.stat().st_size == selected_record["byte_size"]
         and f"{selected_path.stat().st_mode & 0o777:04o}" == selected_record["expected_mode"]
         and gitignored(selected_path)
+        and private_output_posture["ok"]
     )
     gates.append(
         gate(
@@ -516,6 +618,7 @@ def main() -> int:
                 "byte_size_match": selected_path.stat().st_size == selected_record["byte_size"],
                 "mode": f"{selected_path.stat().st_mode & 0o777:04o}",
                 "gitignored": gitignored(selected_path),
+                "private_output_posture": private_output_posture,
             },
         )
     )
