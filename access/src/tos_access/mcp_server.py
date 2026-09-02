@@ -119,6 +119,23 @@ def build_server(
         return current_state().philosophy_scale_manifest(view_id=view_id, layers=layers)
 
     @mcp.tool()
+    def tos_philosophy_graph_scale_rows(
+        table: str,
+        view_id: str | None = None,
+        layers: list[str] | None = None,
+        offset: int = 0,
+        limit: int = 1000,
+    ) -> dict[str, Any]:
+        """Return a paginated normalized scale table, including cluster membership rows."""
+        return current_state().philosophy_scale_packet(
+            table=table,
+            view_id=view_id,
+            layers=layers,
+            offset=offset,
+            limit=limit,
+        )
+
+    @mcp.tool()
     def tos_philosophy_graph_view(view_id: str, limit: int = 1000) -> dict[str, Any]:
         """Return one ToS philosophy graph view packet with projected nodes, edges, and source refs."""
         return current_state().philosophy_view(view_id=view_id, limit=limit)

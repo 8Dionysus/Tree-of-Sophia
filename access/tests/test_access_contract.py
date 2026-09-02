@@ -362,6 +362,44 @@ class CoreContractTests(unittest.TestCase):
             self.assertEqual([node["node_id"] for node in routes["nodes"]], ["a", "b"])
             promotion = core.graph_view("promotion-flow")
             self.assertEqual(promotion["items"][0]["source_ref"], "ToS/candidate-intake/fixture/edges.csv")
+            self.assertEqual(
+                [node["node_id"] for node in promotion["nodes"]],
+                ["candidate-a", "candidate-b"],
+            )
+            self.assertEqual(promotion["node_count"], 2)
+            self.assertTrue(
+                all(
+                    edge["from_id"] in {node["node_id"] for node in promotion["nodes"]}
+                    and edge["to_id"] in {node["node_id"] for node in promotion["nodes"]}
+                    for edge in promotion["edges"]
+                )
+            )
+
+    def test_scale_manifest_routes_every_table_to_retrievable_rows(self) -> None:
+        with tempfile.TemporaryDirectory() as raw:
+            root = Path(raw)
+            write_fixture(root)
+            core = ToSAccessCore.discover(tos_root=root)
+            manifest = core.philosophy_scale_manifest(view_id="chronology", layers=["source-relation"])
+            for table, descriptor in manifest["tables"].items():
+                self.assertEqual(descriptor["packet_route"], "tos_philosophy_graph_scale_rows")
+                self.assertEqual(descriptor["packet_route_args"], {"table": table})
+                packet = core.philosophy_scale_packet(
+                    table,
+                    view_id="chronology",
+                    layers=["source-relation"],
+                    limit=1,
+                )
+                self.assertEqual(packet["total_row_count"], descriptor["row_count"])
+                self.assertLessEqual(packet["row_count"], 1)
+            membership = core.philosophy_scale_packet(
+                "cluster-node-memberships",
+                view_id="chronology",
+                layers=["source-relation"],
+                limit=1,
+            )
+            self.assertEqual(membership["row_count"], 1)
+            self.assertEqual(membership["next_offset"], 1)
 
     def test_doctor_and_http_use_same_core(self) -> None:
         with tempfile.TemporaryDirectory() as raw:

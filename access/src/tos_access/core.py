@@ -472,6 +472,38 @@ class ToSAccessCore:
                 if len(items) >= limit:
                     break
             graph_edges = items
+            endpoint_ids = {
+                str(endpoint)
+                for edge in graph_edges
+                for endpoint in (edge.get("from_id"), edge.get("to_id"))
+                if endpoint
+            }
+            indexed_nodes = {
+                str(node.get("node_id")): node
+                for node in payload.get("nodes", [])
+                if isinstance(node, dict) and node.get("node_id")
+            }
+            endpoint_source_refs: dict[str, set[str]] = {node_id: set() for node_id in endpoint_ids}
+            for edge in graph_edges:
+                source_ref = edge.get("source_ref")
+                if not isinstance(source_ref, str) or not source_ref:
+                    continue
+                for endpoint in (edge.get("from_id"), edge.get("to_id")):
+                    endpoint_id = str(endpoint or "")
+                    if endpoint_id in endpoint_source_refs:
+                        endpoint_source_refs[endpoint_id].add(source_ref)
+            graph_nodes = [
+                indexed_nodes.get(node_id)
+                or {
+                    "node_id": node_id,
+                    "label": node_id,
+                    "node_type": "candidate-endpoint",
+                    "authority_layer": "candidate_intake",
+                    "owner_branch": "ToS/candidate-intake",
+                    "source_refs": sorted(endpoint_source_refs[node_id]),
+                }
+                for node_id in sorted(endpoint_ids)
+            ]
         return {
             "schema": "tos_corpus_mcp_graph_view_v1",
             "view": view,
@@ -744,16 +776,18 @@ class ToSAccessCore:
             "view_id": view_id,
             "layers": sorted(layer_filter),
             "tables": {
-                "nodes": {"row_count": len(rows["nodes"]), "packet_route": "tos_philosophy_graph_view"},
-                "edges": {"row_count": len(rows["edges"]), "packet_route": "tos_philosophy_graph_view"},
-                "clusters": {"row_count": len(rows["clusters"]), "packet_route": "tos_philosophy_graph_clusters"},
+                "nodes": {"row_count": len(rows["nodes"]), "packet_route": "tos_philosophy_graph_scale_rows", "packet_route_args": {"table": "nodes"}},
+                "edges": {"row_count": len(rows["edges"]), "packet_route": "tos_philosophy_graph_scale_rows", "packet_route_args": {"table": "edges"}},
+                "clusters": {"row_count": len(rows["clusters"]), "packet_route": "tos_philosophy_graph_scale_rows", "packet_route_args": {"table": "clusters"}},
                 "cluster-node-memberships": {
                     "row_count": len(rows["cluster-node-memberships"]),
-                    "packet_route": "tos_philosophy_graph_clusters",
+                    "packet_route": "tos_philosophy_graph_scale_rows",
+                    "packet_route_args": {"table": "cluster-node-memberships"},
                 },
                 "cluster-edge-memberships": {
                     "row_count": len(rows["cluster-edge-memberships"]),
-                    "packet_route": "tos_philosophy_graph_clusters",
+                    "packet_route": "tos_philosophy_graph_scale_rows",
+                    "packet_route_args": {"table": "cluster-edge-memberships"},
                 },
             },
             "source_projection_ref": self.philosophy_graph_projection_path.as_posix(),
@@ -830,6 +864,34 @@ class ToSAccessCore:
                 if edge_id in edge_ids
             ]
         raise KeyError(f"unknown scale export table: {table}")
+
+    def philosophy_scale_packet(
+        self,
+        table: str,
+        view_id: str | None = None,
+        layers: list[str] | None = None,
+        offset: int = 0,
+        limit: int = 1000,
+    ) -> dict[str, Any]:
+        all_rows = self.philosophy_scale_rows(table, view_id=view_id, layers=layers)
+        offset = _bounded_int(offset, 0, 0, 10_000_000)
+        limit = _bounded_int(limit, 1000, 1, 10_000)
+        rows = all_rows[offset : offset + limit]
+        next_offset = offset + len(rows)
+        return {
+            "schema": "tos_philosophy_mcp_scale_rows_v1",
+            "table": table,
+            "view_id": view_id,
+            "layers": sorted(set(layers or [])),
+            "offset": offset,
+            "limit": limit,
+            "row_count": len(rows),
+            "total_row_count": len(all_rows),
+            "next_offset": next_offset if next_offset < len(all_rows) else None,
+            "rows": rows,
+            "source_projection_ref": self.philosophy_graph_projection_path.as_posix(),
+            "authority_note": "Scale rows are MCP navigation packets; ToS derived exports remain authoritative.",
+        }
 
     def philosophy_review_packet(self, view_id: str = "chronology") -> dict[str, Any]:
         payload = self.philosophy_projection()
