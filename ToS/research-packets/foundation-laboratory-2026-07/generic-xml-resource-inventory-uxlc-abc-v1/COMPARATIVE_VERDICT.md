@@ -102,9 +102,10 @@ exact capture change
 ## Privacy and rights result
 
 The source files and every source-derived candidate output remain mode `0600`
-and Git-ignored. Across 103 tracked generated files, a direct scan against 62
-private source-value controls found zero source-value matches and zero Hebrew
-code points.
+and Git-ignored. After final-result materialization, the evaluator enumerates
+all 126 Git-tracked laboratory files and scans them against 75 private
+source-value controls; it found zero source-value matches. The fixture privacy
+scan found zero Hebrew code points.
 
 The private C and B+C outputs carry the already declared provider identity and
 provider coordinates; they carry no Hebrew. The rights question for a future
@@ -137,8 +138,8 @@ outputs were not changed for the sealed-arithmetic correction.
 Direct monetary cost is zero; electricity and fully loaded cost were not
 measured. No human task or language review was opened. Manual burden consisted
 of two exact-source reopens, seven explicit XPath returns, representative
-owner/projection inspection, 103 tracked-file leak checks and one correction
-comparison.
+owner/projection inspection, 126 tracked-laboratory-file leak checks and one
+correction comparison.
 
 ## Promotion posture
 

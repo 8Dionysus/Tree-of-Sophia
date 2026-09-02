@@ -24,7 +24,7 @@ LAB_DIR = Path(__file__).resolve().parent
 REPO_ROOT = LAB_DIR.parents[3]
 INPUT_PATH = LAB_DIR / "input-manifest.json"
 SEALED_PATH = LAB_DIR / "sealed-evaluation-manifest-v2.json"
-FREEZE_PATH = LAB_DIR / "freeze-receipt-v9.json"
+FREEZE_PATH = LAB_DIR / "freeze-receipt-v10.json"
 OBSERVATIONS_PATH = LAB_DIR / "run-observations.json"
 SOURCE_RECEIPT_PATH = LAB_DIR / "source-run-receipt.json"
 CONSUMER_PATH = LAB_DIR / "independent-consumer-receipt.json"
@@ -288,21 +288,104 @@ def source_value_hits(source_values: list[str], strings: list[str]) -> list[str]
     return hits
 
 
+def tracked_lab_files() -> list[Path]:
+    lab_ref = LAB_DIR.relative_to(REPO_ROOT).as_posix()
+    completed = subprocess.run(
+        ["git", "-C", str(REPO_ROOT), "ls-files", "-z", "--", lab_ref],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        check=False,
+    )
+    if completed.returncode != 0:
+        raise RuntimeError("git ls-files failed for the laboratory directory")
+
+    paths: list[Path] = []
+    lab_root = LAB_DIR.resolve()
+    for raw_path in completed.stdout.split(b"\0"):
+        if not raw_path:
+            continue
+        try:
+            relative_path = Path(raw_path.decode("utf-8"))
+        except UnicodeDecodeError as error:
+            raise RuntimeError("git returned a non-UTF-8 laboratory path") from error
+        path = (REPO_ROOT / relative_path).resolve()
+        if not _is_within(path, lab_root):
+            raise RuntimeError("git returned a path outside the laboratory directory")
+        paths.append(path)
+    return sorted(paths, key=str)
+
+
 def scan_tracked_generated_for_source_values(
-    source_values: list[str], manifest: dict[str, Any]
+    source_values: list[str],
+    manifest: dict[str, Any],
+    *,
+    excluded_paths: set[Path] | None = None,
 ) -> dict[str, Any]:
-    scan_paths = list((LAB_DIR / "public-synthetic").rglob("*.json")) + [
-        INPUT_PATH,
-        OBSERVATIONS_PATH,
-        SOURCE_RECEIPT_PATH,
-        CONSUMER_PATH,
-    ]
+    try:
+        tracked_paths = tracked_lab_files()
+    except RuntimeError as error:
+        return {
+            "ok": False,
+            "leaks": [],
+            "scan_errors": [str(error)],
+            "tracked_file_count": 0,
+            "scanned_file_count": 0,
+            "excluded_file_count": 0,
+            "missing_tracked_files": [],
+            "undecodable_tracked_files": [],
+            "manifest_control_collision_count": 0,
+            "manifest_control_collision_indexes": [],
+            "scan_scope": "all Git-tracked files under the laboratory directory",
+        }
+
+    excluded = {
+        path.resolve()
+        for path in (excluded_paths or set())
+    }
     leaks: list[str] = []
-    manifest_control_collisions: list[str] = []
-    for path in scan_paths:
-        payload = load_json(path)
-        strings = recursive_json_strings(payload)
-        hits = source_value_hits(source_values, strings)
+    scan_errors: list[str] = []
+    missing_tracked_files: list[str] = []
+    undecodable_tracked_files: list[str] = []
+    manifest_control_collision_indexes: set[int] = set()
+    scanned_file_count = 0
+    for path in tracked_paths:
+        if path.resolve() in excluded:
+            continue
+        relative_path = path.relative_to(LAB_DIR).as_posix()
+        if not path.is_file():
+            missing_tracked_files.append(relative_path)
+            scan_errors.append(f"missing-tracked-file:{relative_path}")
+            continue
+
+        scanned_file_count += 1
+        if path == INPUT_PATH:
+            try:
+                payload = load_json(path)
+            except (OSError, json.JSONDecodeError):
+                scan_errors.append(f"invalid-json:{relative_path}")
+                continue
+            strings = recursive_json_strings(payload)
+            hits = source_value_hits(source_values, strings)
+        elif path.suffix.lower() == ".json":
+            try:
+                payload = load_json(path)
+            except (OSError, json.JSONDecodeError):
+                scan_errors.append(f"invalid-json:{relative_path}")
+                continue
+            strings = recursive_json_strings(payload)
+            hits = source_value_hits(source_values, strings)
+        else:
+            try:
+                text = path.read_text(encoding="utf-8")
+            except UnicodeDecodeError:
+                undecodable_tracked_files.append(relative_path)
+                scan_errors.append(f"undecodable-tracked-file:{relative_path}")
+                continue
+            except OSError:
+                scan_errors.append(f"unreadable-tracked-file:{relative_path}")
+                continue
+            hits = source_value_hits(source_values, [text])
+
         if path == INPUT_PATH:
             # The complete manifest is inspected.  Its declared control
             # metadata may intentionally repeat short source tokens (for
@@ -319,14 +402,27 @@ def scan_tracked_generated_for_source_values(
                 "security_fixtures": manifest["security_fixtures"],
             }
             untrusted_hits = source_value_hits(source_values, recursive_json_strings(untrusted))
-            manifest_control_collisions.extend(sorted(control_hits))
+            manifest_control_collision_indexes.update(
+                source_values.index(value) + 1 for value in control_hits
+            )
             hits = untrusted_hits
         for value in hits:
             index = source_values.index(value) + 1
-            leaks.append(f"{path.relative_to(LAB_DIR)}:source-value-{index}")
+            leaks.append(f"{relative_path}:source-value-{index}")
+    leaks = sorted(set(leaks))
+    scan_errors = sorted(set(scan_errors))
     return {
-        "leaks": sorted(set(leaks)),
-        "manifest_control_collisions": sorted(set(manifest_control_collisions)),
+        "ok": not leaks and not scan_errors,
+        "leaks": leaks,
+        "scan_errors": scan_errors,
+        "tracked_file_count": len(tracked_paths),
+        "scanned_file_count": scanned_file_count,
+        "excluded_file_count": len(excluded & {path.resolve() for path in tracked_paths}),
+        "missing_tracked_files": sorted(missing_tracked_files),
+        "undecodable_tracked_files": sorted(undecodable_tracked_files),
+        "manifest_control_collision_count": len(manifest_control_collision_indexes),
+        "manifest_control_collision_indexes": sorted(manifest_control_collision_indexes),
+        "scan_scope": "all Git-tracked files under the laboratory directory",
         "scanned_manifest": True,
     }
 
@@ -749,8 +845,18 @@ def main() -> int:
     a_p1 = candidate_output("A", "P1-no-namespace")
     gates.append(gate("G15-a-capture-pass-element-return-fail", len(a_p1["resources"]) == 1 and a_p1["element_return_supported"] is False, {"resource_count": len(a_p1["resources"]), "element_return_supported": a_p1["element_return_supported"]}))
 
-    leak_scan = scan_tracked_generated_for_source_values(source_values, manifest)
-    gates.append(gate("G16-no-source-values-in-tracked-output", not leak_scan["leaks"], {"source_value_control_count": len(source_values), **leak_scan}))
+    leak_scan = scan_tracked_generated_for_source_values(
+        source_values,
+        manifest,
+        excluded_paths={RESULT_PATH},
+    )
+    gates.append(
+        gate(
+            "G16-no-source-values-in-tracked-output",
+            leak_scan["ok"],
+            {"source_value_control_count": len(source_values), **leak_scan},
+        )
+    )
 
     source_b = source_output(manifest, "selected", "B")
     source_bc = source_output(manifest, "selected", "BC")
@@ -844,6 +950,28 @@ def main() -> int:
         "authority_boundary": "mechanical candidate comparison after manual source/output review; no public contract, source-text, language, translation, semantic, graph, canon, rights or publication authority",
     }
     temporary = RESULT_PATH.with_name(RESULT_PATH.name + ".tmp")
+    temporary.write_bytes(canonical_bytes(result))
+    os.chmod(temporary, 0o644)
+    temporary.replace(RESULT_PATH)
+
+    # Materialize the result before the final privacy scan so G16 covers the
+    # complete current tracked laboratory tree, including its own receipt.
+    final_leak_scan = scan_tracked_generated_for_source_values(source_values, manifest)
+    final_g16 = next(item for item in gates if item["gate_id"] == "G16-no-source-values-in-tracked-output")
+    final_g16["passed"] = final_leak_scan["ok"]
+    final_g16["evidence"] = {
+        "source_value_control_count": len(source_values),
+        **final_leak_scan,
+    }
+    all_pass = all(item["passed"] for item in gates) and all_registered
+    result["passed_gate_count"] = sum(1 for item in gates if item["passed"])
+    result["all_hard_gates_pass"] = all_pass
+    result["mechanical_preference"] = {
+        "generic_owner": "B" if all_pass else None,
+        "capture_view": "A" if all_pass else None,
+        "provider_projection": "C over B" if all_pass else None,
+        "candidate_c_as_generic_owner": "reject" if all_pass else "unresolved",
+    }
     temporary.write_bytes(canonical_bytes(result))
     os.chmod(temporary, 0o644)
     temporary.replace(RESULT_PATH)

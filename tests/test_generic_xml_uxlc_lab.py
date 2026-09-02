@@ -170,6 +170,53 @@ class GenericXmlUxLcLabContractTests(unittest.TestCase):
                 result = EVALUATOR.verify_private_output_posture(observations, manifest)
             self.assertTrue(result["ok"])
 
+    def test_tracked_output_scan_covers_the_complete_tracked_lab_scope(self) -> None:
+        with tempfile.TemporaryDirectory(dir=EVALUATOR.LAB_DIR) as temp_dir:
+            tracked_output = Path(temp_dir) / "tracked-output.md"
+            tracked_output.write_text(
+                "replay-only-sensitive-value\n",
+                encoding="utf-8",
+            )
+            with mock.patch.object(
+                EVALUATOR,
+                "tracked_lab_files",
+                return_value=[tracked_output],
+            ):
+                result = EVALUATOR.scan_tracked_generated_for_source_values(
+                    ["replay-only-sensitive-value"],
+                    {},
+                )
+
+        self.assertFalse(result["ok"])
+        self.assertEqual(1, result["tracked_file_count"])
+        self.assertEqual(1, result["scanned_file_count"])
+        self.assertTrue(
+            any(
+                item.endswith("/tracked-output.md:source-value-1")
+                for item in result["leaks"]
+            )
+        )
+
+    def test_tracked_output_scan_does_not_republish_manifest_control_collisions(self) -> None:
+        manifest = json.loads(
+            (LAB_ROOT / "input-manifest.json").read_text(encoding="utf-8")
+        )
+        source_value = "Unicode/XML Leningrad Codex"
+        with mock.patch.object(
+            EVALUATOR,
+            "tracked_lab_files",
+            return_value=[EVALUATOR.INPUT_PATH],
+        ):
+            result = EVALUATOR.scan_tracked_generated_for_source_values(
+                [source_value],
+                manifest,
+            )
+
+        self.assertTrue(result["ok"])
+        self.assertEqual(1, result["manifest_control_collision_count"])
+        self.assertNotIn("manifest_control_collisions", result)
+        self.assertNotIn(source_value, json.dumps(result, ensure_ascii=False))
+
 
 if __name__ == "__main__":
     unittest.main()
