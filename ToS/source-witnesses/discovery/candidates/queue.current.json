@@ -20,23 +20,6 @@
       "terminal_receipt_id": null
     },
     {
-      "candidate_id": "open-work-candidate.instruction-of-kagemni",
-      "candidate_kind": "work",
-      "candidate_sha256": "5213679ec9b0294de5ab6316e7a67dc9d552b6adae9a4b2e4991c027c22923a7",
-      "candidate_source_ref": "ToS/source-witnesses/discovery/candidates/reviewed-candidates.jsonl:3",
-      "discovery_id": null,
-      "effective_status": "deferred-human-review",
-      "preferred_label": "Instruction of Kagemni",
-      "selection": {
-        "atlas_row_id": "A04",
-        "atlas_row_order": 4,
-        "chronology_basis": "A04 master-table written-fixation lower bound; candidate-specific chronology remains unresolved",
-        "chronology_sort_year": -2400,
-        "confidence": "reviewed-for-queue-order-only"
-      },
-      "terminal_receipt_id": null
-    },
-    {
       "candidate_id": "open-work-candidate.instruction-of-ptahhotep",
       "candidate_kind": "work",
       "candidate_sha256": "a57101861669939bdc649c4bfc4f4ad97d4a2216922735409bdd16dc4a8e1012",
@@ -54,38 +37,21 @@
       "terminal_receipt_id": "open-work-candidate-receipt.instruction-of-ptahhotep.2026-08-30.v2"
     },
     {
-      "candidate_id": "open-work-candidate.book-of-two-ways",
-      "candidate_kind": "work-like-corpus",
-      "candidate_sha256": "74387bd03d781430fed018f8303b6c8212b2bff1cb323ffd8a72927bc5ffdfaa",
-      "candidate_source_ref": "ToS/source-witnesses/discovery/candidates/reviewed-candidates.jsonl:12",
-      "discovery_id": "tos.discovery.book-of-two-ways-open-work-route.2026-08-30.v1",
-      "effective_status": "held_source_witness",
-      "preferred_label": "Book of Two Ways",
+      "candidate_id": "open-work-candidate.instruction-of-kagemni",
+      "candidate_kind": "work",
+      "candidate_sha256": "5213679ec9b0294de5ab6316e7a67dc9d552b6adae9a4b2e4991c027c22923a7",
+      "candidate_source_ref": "ToS/source-witnesses/discovery/candidates/reviewed-candidates.jsonl:3",
+      "discovery_id": null,
+      "effective_status": "deferred-human-review",
+      "preferred_label": "Instruction of Kagemni",
       "selection": {
-        "atlas_row_id": "A05",
-        "atlas_row_order": 5,
-        "chronology_basis": "A05 master-table broad written-fixation lower bound and the next named subcorpus anchor after the terminal Coffin Texts iteration; individual coffin dates, regional versions, map arrangements, spell membership, modern reconstruction, and publication chronology remain separate",
+        "atlas_row_id": "A04",
+        "atlas_row_order": 4,
+        "chronology_basis": "A04 master-table written-fixation lower bound; candidate-specific chronology remains unresolved",
         "chronology_sort_year": -2400,
         "confidence": "reviewed-for-queue-order-only"
       },
-      "terminal_receipt_id": "open-work-candidate-receipt.book-of-two-ways.2026-08-30.v1"
-    },
-    {
-      "candidate_id": "open-work-candidate.coffin-texts",
-      "candidate_kind": "work-like-corpus",
-      "candidate_sha256": "cddea10e57f763b64639639eedc83324d6d2cfa19eb444fcc3b78b745a6cb319",
-      "candidate_source_ref": "ToS/source-witnesses/discovery/candidates/reviewed-candidates.jsonl:11",
-      "discovery_id": "tos.discovery.coffin-texts-open-work-route.2026-08-30.v1",
-      "effective_status": "held_source_witness",
-      "preferred_label": "Coffin Texts",
-      "selection": {
-        "atlas_row_id": "A05",
-        "atlas_row_order": 5,
-        "chronology_basis": "A05 master-table broad written-fixation lower bound and the next named primary-corpus anchor after the terminal Pyramid Texts iteration; Coffin Texts member dates, local workshops, spell transmission, Book of Two Ways subcorpus, and modern edition chronology remain separate",
-        "chronology_sort_year": -2400,
-        "confidence": "reviewed-for-queue-order-only"
-      },
-      "terminal_receipt_id": "open-work-candidate-receipt.coffin-texts.2026-08-30.v1"
+      "terminal_receipt_id": null
     },
     {
       "candidate_id": "open-work-candidate.pyramid-texts",
@@ -105,6 +71,40 @@
       "terminal_receipt_id": "open-work-candidate-receipt.pyramid-texts.2026-08-30.v1"
     },
     {
+      "candidate_id": "open-work-candidate.coffin-texts",
+      "candidate_kind": "work-like-corpus",
+      "candidate_sha256": "cddea10e57f763b64639639eedc83324d6d2cfa19eb444fcc3b78b745a6cb319",
+      "candidate_source_ref": "ToS/source-witnesses/discovery/candidates/reviewed-candidates.jsonl:11",
+      "discovery_id": "tos.discovery.coffin-texts-open-work-route.2026-08-30.v1",
+      "effective_status": "held_source_witness",
+      "preferred_label": "Coffin Texts",
+      "selection": {
+        "atlas_row_id": "A05",
+        "atlas_row_order": 5,
+        "chronology_basis": "A05 master-table broad written-fixation lower bound and the next named primary-corpus anchor after the terminal Pyramid Texts iteration; Coffin Texts member dates, local workshops, spell transmission, Book of Two Ways subcorpus, and modern edition chronology remain separate",
+        "chronology_sort_year": -2400,
+        "confidence": "reviewed-for-queue-order-only"
+      },
+      "terminal_receipt_id": "open-work-candidate-receipt.coffin-texts.2026-08-30.v1"
+    },
+    {
+      "candidate_id": "open-work-candidate.book-of-two-ways",
+      "candidate_kind": "work-like-corpus",
+      "candidate_sha256": "74387bd03d781430fed018f8303b6c8212b2bff1cb323ffd8a72927bc5ffdfaa",
+      "candidate_source_ref": "ToS/source-witnesses/discovery/candidates/reviewed-candidates.jsonl:12",
+      "discovery_id": "tos.discovery.book-of-two-ways-open-work-route.2026-08-30.v1",
+      "effective_status": "held_source_witness",
+      "preferred_label": "Book of Two Ways",
+      "selection": {
+        "atlas_row_id": "A05",
+        "atlas_row_order": 5,
+        "chronology_basis": "A05 master-table broad written-fixation lower bound and the next named subcorpus anchor after the terminal Coffin Texts iteration; individual coffin dates, regional versions, map arrangements, spell membership, modern reconstruction, and publication chronology remain separate",
+        "chronology_sort_year": -2400,
+        "confidence": "reviewed-for-queue-order-only"
+      },
+      "terminal_receipt_id": "open-work-candidate-receipt.book-of-two-ways.2026-08-30.v1"
+    },
+    {
       "candidate_id": "open-work-candidate.instructions-of-shuruppag",
       "candidate_kind": "work",
       "candidate_sha256": "03a0f136076b572e210e9f0f9c201ae22e244127cbb89676dc6611201be0a145",
@@ -122,21 +122,21 @@
       "terminal_receipt_id": "open-work-candidate-receipt.instructions-of-shuruppag.2026-08-30.v1"
     },
     {
-      "candidate_id": "open-work-candidate.laws-of-hammurapi",
+      "candidate_id": "open-work-candidate.laws-of-ur-namma",
       "candidate_kind": "work",
-      "candidate_sha256": "d59a8c13aa74b069480a154ea9c48d9fe940464f17088f7eb2c6f6dfb7f7bc18",
-      "candidate_source_ref": "ToS/source-witnesses/discovery/candidates/reviewed-candidates.jsonl:8",
-      "discovery_id": "tos.discovery.laws-of-hammurapi-open-work-route.2026-08-30.v1",
+      "candidate_sha256": "26081da9908e2ceadeec7bb7ddafc327282634d431d60d969c2d1f4d800d06b2",
+      "candidate_source_ref": "ToS/source-witnesses/discovery/candidates/reviewed-candidates.jsonl:6",
+      "discovery_id": "tos.discovery.laws-of-ur-namma-open-work-route.2026-08-30.v1",
       "effective_status": "held_source_witness",
-      "preferred_label": "Laws of Hammurapi",
+      "preferred_label": "Laws of Ur-Namma",
       "selection": {
         "atlas_row_id": "A02",
         "atlas_row_order": 2,
-        "chronology_basis": "A02 master-table written-fixation lower bound and the grouped law-collection anchor; royal framing, stela date, earlier/later witness chronology, composition history, and modern reconstruction remain separate",
+        "chronology_basis": "A02 master-table written-fixation lower bound and the dossier's next named law-collection anchor; royal framing, composition history, surviving witness dates, and modern reconstruction remain separate",
         "chronology_sort_year": -2000,
         "confidence": "reviewed-for-queue-order-only"
       },
-      "terminal_receipt_id": "open-work-candidate-receipt.laws-of-hammurapi.2026-08-30.v1"
+      "terminal_receipt_id": "open-work-candidate-receipt.laws-of-ur-namma.2026-08-30.v1"
     },
     {
       "candidate_id": "open-work-candidate.laws-of-lipit-ishtar",
@@ -156,21 +156,21 @@
       "terminal_receipt_id": "open-work-candidate-receipt.laws-of-lipit-ishtar.2026-08-30.v1"
     },
     {
-      "candidate_id": "open-work-candidate.laws-of-ur-namma",
+      "candidate_id": "open-work-candidate.laws-of-hammurapi",
       "candidate_kind": "work",
-      "candidate_sha256": "26081da9908e2ceadeec7bb7ddafc327282634d431d60d969c2d1f4d800d06b2",
-      "candidate_source_ref": "ToS/source-witnesses/discovery/candidates/reviewed-candidates.jsonl:6",
-      "discovery_id": "tos.discovery.laws-of-ur-namma-open-work-route.2026-08-30.v1",
+      "candidate_sha256": "d59a8c13aa74b069480a154ea9c48d9fe940464f17088f7eb2c6f6dfb7f7bc18",
+      "candidate_source_ref": "ToS/source-witnesses/discovery/candidates/reviewed-candidates.jsonl:8",
+      "discovery_id": "tos.discovery.laws-of-hammurapi-open-work-route.2026-08-30.v1",
       "effective_status": "held_source_witness",
-      "preferred_label": "Laws of Ur-Namma",
+      "preferred_label": "Laws of Hammurapi",
       "selection": {
         "atlas_row_id": "A02",
         "atlas_row_order": 2,
-        "chronology_basis": "A02 master-table written-fixation lower bound and the dossier's next named law-collection anchor; royal framing, composition history, surviving witness dates, and modern reconstruction remain separate",
+        "chronology_basis": "A02 master-table written-fixation lower bound and the grouped law-collection anchor; royal framing, stela date, earlier/later witness chronology, composition history, and modern reconstruction remain separate",
         "chronology_sort_year": -2000,
         "confidence": "reviewed-for-queue-order-only"
       },
-      "terminal_receipt_id": "open-work-candidate-receipt.laws-of-ur-namma.2026-08-30.v1"
+      "terminal_receipt_id": "open-work-candidate-receipt.laws-of-hammurapi.2026-08-30.v1"
     },
     {
       "candidate_id": "open-work-candidate.old-babylonian-gilgamesh-tradition",
@@ -304,28 +304,28 @@
   "generated_by": "scripts/build_open_work_candidate_queue.py",
   "next_candidate_id": "open-work-candidate.teaching-for-king-merykara",
   "owner_surface": "ToS/source-witnesses/discovery/candidates/reviewed-candidates.jsonl",
-  "queue_sha256": "822427f1f70592b67ad04c881b58f8c1cf0b41630aa795b7549a785f861e3872",
+  "queue_sha256": "9024506232dd0acff8db435dbaea6796bf0ab812340605e550005f253c728a5c",
   "receipt_root": "ToS/source-witnesses/discovery/candidates/receipts",
   "schema_version": "tos_open_work_candidate_queue_v1",
   "source_snapshot": {
     "counts": {
-      "accepted_dossiers": 97,
+      "accepted_dossiers": 190,
       "catalog_works": 40,
       "discovery_runs": 98,
       "master_rows": 190,
       "reviewed_candidates": 17,
-      "source_anchor_backlog_rows": 3413,
+      "source_anchor_backlog_rows": 9530,
       "terminal_receipts": 14
     },
-    "input_sha256": "54614bc8e27a0572b0b977ae5feec4cb0b95776ed98229030915d1f56c5a3079",
+    "input_sha256": "f873d7f160c88e143d7dd7705d9aea48ab9c835b2277f0abe4e8bea63bac83db",
     "inputs": [
       {
         "path": "ToS/philosophy/atlas/dossiers/index.jsonl",
-        "sha256": "094ac63ac3c9d8cdec824191047e3c4739e86e3a141b9861afff5a8843dc5eca"
+        "sha256": "f0706c6773939154128974734abefb7149582ae56e547b46a1a3d102bbcbc667"
       },
       {
         "path": "ToS/philosophy/atlas/dossiers/source-anchor-backlog.jsonl",
-        "sha256": "61b3b3eeaaa0f9301b9a49e30537d9c2c3668e6b813ea8d378793962ab7c17be"
+        "sha256": "d7e1a5d558d7073a38378bef5833b368fe39d156f645c073de253a91d847564f"
       },
       {
         "path": "ToS/philosophy/atlas/master-tables/table-i/rows.jsonl",
@@ -333,11 +333,11 @@
       },
       {
         "path": "ToS/philosophy/atlas/master-tables/table-ii/rows.jsonl",
-        "sha256": "83fbd6f78fc8d3cce6116115ca3a91f9c3ee826ce95efc6288ef7b9e8e28ecca"
+        "sha256": "e9469cccc0a89d25e790b4d0058b0b4f5b733b2ba4930795a7f1d09b845b719a"
       },
       {
         "path": "ToS/philosophy/atlas/master-tables/table-iii/rows.jsonl",
-        "sha256": "6abbdf4a71ea6b27fc989fe55bbc3fa56b3c0bb8880c7509558c7fdde31660bf"
+        "sha256": "df717d5b681396241be2c63261f1dc6c60dcd8bd72af6bb2b603807bfc366e83"
       },
       {
         "path": "ToS/source-witnesses/catalog/works.jsonl",
@@ -369,7 +369,7 @@
       },
       {
         "path": "ToS/source-witnesses/discovery/candidates/receipts/instruction-of-ptahhotep.2026-08-30.v2.json",
-        "sha256": "2529fb48fcaf111bd234d4df25f04767c72df76dd7698d65d4dfc7b3f0293a6a"
+        "sha256": "c67568aa9910ebb5e21c1a6ab468653ec37645c81902e21b305a4da99a5ba3bd"
       },
       {
         "path": "ToS/source-witnesses/discovery/candidates/receipts/instructions-of-shuruppag.2026-08-30.v1.json",

@@ -89,12 +89,19 @@ def _candidate(candidate_id: str, *, year: int, row_id: str, row_order: int) -> 
 
 
 def _timed_discovery(discovery_id: str) -> dict:
+    label = discovery_id.removeprefix("tos.discovery.").replace("-", " ").title()
     return {
         "discovery_id": discovery_id,
         "status": "reconciled",
+        "target": {
+            "target_kind": "work",
+            "known_tos_refs": [],
+            "description": f"Resolve {label} without manufacturing later source layers.",
+        },
         "channels": [
             {
                 "channel_id": "channel-originating-record",
+                "endpoint_url": "https://example.test/source",
                 "elapsed_seconds": 0.125,
                 "results": [],
             }
@@ -271,6 +278,33 @@ class OpenWorkCandidateQueueTest(unittest.TestCase):
         with self.assertRaisesRegex(QueueBuildError, "selector does not resolve"):
             build_payload(repo)
 
+    def test_review_source_selector_can_resolve_a_json_object(self) -> None:
+        repo = self.make_repo()
+        source_path = repo / "ToS/philosophy/atlas/master-tables/table-i/selected.json"
+        _write_json(source_path, {"row_id": "A05"})
+        ledger = repo / "ToS/source-witnesses/discovery/candidates/reviewed-candidates.jsonl"
+        candidates = [json.loads(line) for line in ledger.read_text(encoding="utf-8").splitlines()]
+        candidates[0]["source_refs"][0]["source_path"] = (
+            "ToS/philosophy/atlas/master-tables/table-i/selected.json"
+        )
+        _write_jsonl(ledger, candidates)
+
+        self.assertEqual("open-work-candidate.earliest", build_payload(repo)["next_candidate_id"])
+
+    def test_candidate_source_ref_preserves_physical_jsonl_line_number(self) -> None:
+        repo = self.make_repo()
+        ledger = repo / "ToS/source-witnesses/discovery/candidates/reviewed-candidates.jsonl"
+        original = ledger.read_text(encoding="utf-8")
+        ledger.write_text("\n" + original, encoding="utf-8")
+
+        payload = build_payload(repo)
+        source_refs = {
+            entry["candidate_id"]: entry["candidate_source_ref"]
+            for entry in payload["candidates"]
+        }
+        self.assertTrue(source_refs["open-work-candidate.later"].endswith(":2"))
+        self.assertTrue(source_refs["open-work-candidate.earliest"].endswith(":3"))
+
     def test_latest_terminal_receipt_rejects_unknown_timing_sentinels(self) -> None:
         repo = self.make_repo()
         before = build_payload(repo)
@@ -281,9 +315,15 @@ class OpenWorkCandidateQueueTest(unittest.TestCase):
             {
                 "discovery_id": "tos.discovery.earliest",
                 "status": "reconciled",
+                "target": {
+                    "target_kind": "work",
+                    "known_tos_refs": [],
+                    "description": "Resolve Earliest without manufacturing later source layers.",
+                },
                 "channels": [
                     {
                         "channel_id": "channel-originating-record",
+                        "endpoint_url": "https://example.test/source",
                         "elapsed_seconds": 0,
                         "results": [],
                     }

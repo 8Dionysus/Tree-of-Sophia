@@ -30,6 +30,8 @@
     "receipt_id": {"type": "string", "pattern": "^open-work-candidate-receipt\\.[a-z0-9]+(?:[.-][a-z0-9]+)*$"},
     "candidate_id": {"type": "string", "pattern": "^open-work-candidate\\.[a-z0-9]+(?:[.-][a-z0-9]+)*$"},
     "candidate_record_sha256": {"$ref": "#/$defs/sha256"},
+    "candidate_target_sha256": {"$ref": "#/$defs/sha256"},
+    "discovery_target_sha256": {"$ref": "#/$defs/sha256"},
     "queue_snapshot_sha256": {"$ref": "#/$defs/sha256"},
     "discovery_ref": {"type": "string", "pattern": "^ToS/source-witnesses/discovery/runs/.+\\.json$"},
     "discovery_id": {"type": "string", "pattern": "^tos\\.discovery\\.[a-z0-9]+(?:[.-][a-z0-9]+)*$"},
@@ -99,8 +101,8 @@
           "if": {"properties": {"downloaded": {"const": true}}, "required": ["downloaded"]},
           "then": {
             "oneOf": [
-              {"properties": {"item_ref": {"type": "string"}, "artifact_ref": {"type": "null"}, "representation_ref": {"type": "null"}, "file_ref": {"type": "string"}, "provenance_event_ref": {"type": "string"}}},
-              {"properties": {"item_ref": {"type": "null"}, "artifact_ref": {"type": "string"}, "representation_ref": {"type": "string"}, "file_ref": {"type": "string"}, "provenance_event_ref": {"type": "string"}}},
+              {"properties": {"item_ref": {"type": "string"}, "artifact_ref": {"type": "null"}, "composite_ref": {"type": "null"}, "representation_ref": {"type": "null"}, "file_ref": {"type": "string"}, "provenance_event_ref": {"type": "string"}}},
+              {"properties": {"item_ref": {"type": "null"}, "artifact_ref": {"type": "string"}, "composite_ref": {"type": "null"}, "representation_ref": {"type": "string"}, "file_ref": {"type": "string"}, "provenance_event_ref": {"type": "string"}}},
               {
                 "required": ["composite_ref"],
                 "properties": {
@@ -114,7 +116,7 @@
               }
             ]
           },
-          "else": {"properties": {"item_ref": {"type": "null"}, "artifact_ref": {"type": "null"}, "representation_ref": {"type": "null"}, "file_ref": {"type": "null"}, "provenance_event_ref": {"type": "null"}}}
+          "else": {"properties": {"item_ref": {"type": "null"}, "artifact_ref": {"type": "null"}, "composite_ref": {"type": "null"}, "representation_ref": {"type": "null"}, "file_ref": {"type": "null"}, "provenance_event_ref": {"type": "null"}}}
         }
       ]
     },

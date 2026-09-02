@@ -5,8 +5,10 @@ from __future__ import annotations
 
 import hashlib
 import json
+import re
+from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Iterable
+from typing import Any
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
@@ -56,6 +58,10 @@ def candidate_digest(candidate: dict[str, Any]) -> str:
     return hashlib.sha256(canonical_json(candidate).encode("utf-8")).hexdigest()
 
 
+def target_digest(target: dict[str, Any]) -> str:
+    return hashlib.sha256(canonical_json(target).encode("utf-8")).hexdigest()
+
+
 def _safe_relative_path(value: str) -> Path:
     path = Path(value)
     if path.is_absolute() or ".." in path.parts:
@@ -77,6 +83,13 @@ def _load_json(path: Path, repo_root: Path) -> dict[str, Any]:
 
 
 def _load_jsonl(path: Path, repo_root: Path) -> list[dict[str, Any]]:
+    return [payload for payload, _ in _load_jsonl_with_lines(path, repo_root)]
+
+
+def _load_jsonl_with_lines(
+    path: Path,
+    repo_root: Path,
+) -> list[tuple[dict[str, Any], int]]:
     relative = path.relative_to(repo_root).as_posix()
     try:
         lines = path.read_text(encoding="utf-8").splitlines()
@@ -85,7 +98,7 @@ def _load_jsonl(path: Path, repo_root: Path) -> list[dict[str, Any]]:
     except OSError as exc:
         raise QueueBuildError(f"{relative}: cannot read JSONL: {exc}") from exc
 
-    payloads: list[dict[str, Any]] = []
+    payloads: list[tuple[dict[str, Any], int]] = []
     for line_number, raw_line in enumerate(lines, start=1):
         if not raw_line.strip():
             continue
@@ -95,7 +108,7 @@ def _load_jsonl(path: Path, repo_root: Path) -> list[dict[str, Any]]:
             raise QueueBuildError(f"{relative}:{line_number}: cannot parse JSON: {exc}") from exc
         if not isinstance(payload, dict):
             raise QueueBuildError(f"{relative}:{line_number}: JSONL record must be an object")
-        payloads.append(payload)
+        payloads.append((payload, line_number))
     return payloads
 
 
@@ -104,6 +117,329 @@ def _required_string(payload: dict[str, Any], key: str, location: str) -> str:
     if not isinstance(value, str) or not value:
         raise QueueBuildError(f"{location}: {key} must be a non-empty string")
     return value
+
+
+def _load_repo_json_ref(value: str, *, repo_root: Path, location: str) -> tuple[dict[str, Any], Path]:
+    path = repo_root / _safe_relative_path(value)
+    try:
+        payload = _load_json(path, repo_root)
+    except QueueBuildError as exc:
+        raise QueueBuildError(f"{location}: {exc}") from exc
+    return payload, path
+
+
+def _normalised_words(value: str) -> list[str]:
+    value = value.casefold().replace("’", "'")
+    return re.findall(r"[\w]+", value, flags=re.UNICODE)
+
+
+def _contains_word_phrase(haystack: str, needle: str) -> bool:
+    haystack_words = _normalised_words(haystack)
+    needle_words = _normalised_words(needle)
+    if not needle_words:
+        return False
+    width = len(needle_words)
+    return any(
+        haystack_words[index : index + width] == needle_words
+        for index in range(len(haystack_words) - width + 1)
+    )
+
+
+def _validate_target_binding(
+    candidate: dict[str, Any],
+    discovery: dict[str, Any],
+    *,
+    receipt: dict[str, Any],
+    location: str,
+) -> None:
+    candidate_target = candidate.get("target")
+    discovery_target = discovery.get("target")
+    if not isinstance(candidate_target, dict):
+        raise QueueBuildError(f"{location}: candidate target must be an object")
+    if not isinstance(discovery_target, dict):
+        raise QueueBuildError(f"{location}: discovery target must be an object")
+
+    candidate_kind = candidate_target.get("target_kind")
+    discovery_kind = discovery_target.get("target_kind")
+    compatible_kinds = {
+        "work": {
+            "work",
+            "expression",
+            "edition",
+            "item",
+            "artifact",
+            "scholarly-composite",
+            "translation",
+            "critical-edition",
+            "lexical-resource",
+            "research-publication",
+        },
+        "scholarly-composite": {
+            "work",
+            "expression",
+            "edition",
+            "item",
+            "artifact",
+            "scholarly-composite",
+            "translation",
+            "critical-edition",
+            "research-publication",
+        },
+    }
+    if discovery_kind not in compatible_kinds.get(candidate_kind, set()):
+        raise QueueBuildError(
+            f"{location}: discovery target_kind {discovery_kind!r} is not compatible with "
+            f"candidate target_kind {candidate_kind!r}"
+        )
+
+    candidate_refs = candidate_target.get("known_tos_refs")
+    discovery_refs = discovery_target.get("known_tos_refs")
+    if not isinstance(candidate_refs, list) or not isinstance(discovery_refs, list):
+        raise QueueBuildError(f"{location}: candidate and discovery known_tos_refs must be arrays")
+    if not all(isinstance(reference, str) and reference for reference in candidate_refs + discovery_refs):
+        raise QueueBuildError(f"{location}: candidate and discovery known_tos_refs must contain strings")
+    missing_refs = sorted(set(candidate_refs) - set(discovery_refs))
+    if missing_refs:
+        raise QueueBuildError(
+            f"{location}: discovery target drops candidate known_tos_refs: {missing_refs}"
+        )
+
+    if not candidate_refs:
+        label = candidate.get("preferred_label")
+        description = discovery_target.get("description")
+        if not isinstance(label, str) or not isinstance(description, str):
+            raise QueueBuildError(f"{location}: target binding needs candidate label and discovery description")
+        if not _contains_word_phrase(description, label):
+            raise QueueBuildError(
+                f"{location}: discovery target description does not identify candidate {label!r}"
+            )
+
+    for field, target in (
+        ("candidate_target_sha256", candidate_target),
+        ("discovery_target_sha256", discovery_target),
+    ):
+        supplied = receipt.get(field)
+        if supplied is not None and supplied != target_digest(target):
+            raise QueueBuildError(f"{location}: {field} does not bind the referenced target")
+
+
+def _load_provenance_events(repo_root: Path) -> dict[str, tuple[dict[str, Any], str]]:
+    events: dict[str, tuple[dict[str, Any], str]] = {}
+    source_root = repo_root / "ToS/source-witnesses"
+    for path in sorted(source_root.rglob("provenance.jsonl")):
+        relative = path.relative_to(repo_root).as_posix()
+        try:
+            lines = path.read_text(encoding="utf-8").splitlines()
+        except OSError as exc:
+            raise QueueBuildError(f"{relative}: cannot read provenance JSONL: {exc}") from exc
+        for line_number, raw_line in enumerate(lines, start=1):
+            if not raw_line.strip():
+                continue
+            location = f"{relative}:{line_number}"
+            try:
+                event = json.loads(raw_line)
+            except json.JSONDecodeError as exc:
+                raise QueueBuildError(f"{location}: cannot parse provenance JSON: {exc}") from exc
+            if not isinstance(event, dict):
+                raise QueueBuildError(f"{location}: provenance event must be an object")
+            event_id = _required_string(event, "event_id", location)
+            if event_id in events:
+                raise QueueBuildError(
+                    f"{location}: duplicate provenance event {event_id!r}; first seen at {events[event_id][1]}"
+                )
+            events[event_id] = (event, location)
+    return events
+
+
+def _find_unique_record(
+    repo_root: Path,
+    *,
+    root: Path,
+    filename: str,
+    key: str,
+    value: str,
+    location: str,
+) -> tuple[dict[str, Any], Path]:
+    matches: list[tuple[dict[str, Any], Path]] = []
+    for path in sorted((repo_root / root).rglob(filename)):
+        payload = _load_json(path, repo_root)
+        if payload.get(key) == value:
+            matches.append((payload, path))
+    if not matches:
+        raise QueueBuildError(f"{location}: {key} {value!r} has no canonical {filename} record")
+    if len(matches) > 1:
+        locations = ", ".join(path.relative_to(repo_root).as_posix() for _, path in matches)
+        raise QueueBuildError(f"{location}: {key} {value!r} has duplicate canonical records: {locations}")
+    return matches[0]
+
+
+def _validate_planting_refs(
+    repo_root: Path,
+    refs: Any,
+    *,
+    location: str,
+) -> None:
+    if not isinstance(refs, list):
+        raise QueueBuildError(f"{location}: planting_refs must be an array")
+    for index, ref in enumerate(refs, start=1):
+        ref_location = f"{location}:planting_refs[{index}]"
+        if not isinstance(ref, str) or not ref:
+            raise QueueBuildError(f"{ref_location}: planting ref must be a non-empty repository-relative path")
+        payload, _ = _load_repo_json_ref(ref, repo_root=repo_root, location=ref_location)
+        if not isinstance(payload.get("planting_id"), str) or not payload["planting_id"]:
+            raise QueueBuildError(f"{ref_location}: planting record must expose planting_id")
+
+
+def _validate_acquisition_closure(
+    repo_root: Path,
+    acquisition: Any,
+    *,
+    candidate_id: str,
+    provenance_events: dict[str, tuple[dict[str, Any], str]],
+    location: str,
+) -> None:
+    if not isinstance(acquisition, dict):
+        raise QueueBuildError(f"{location}: acquisition must be an object")
+    if acquisition.get("downloaded") is not True:
+        for key in (
+            "item_ref",
+            "artifact_ref",
+            "composite_ref",
+            "representation_ref",
+            "file_ref",
+            "provenance_event_ref",
+        ):
+            if acquisition.get(key) is not None:
+                raise QueueBuildError(f"{location}: non-downloaded acquisition must null {key}")
+        return
+
+    identity_fields = [
+        key
+        for key in ("item_ref", "artifact_ref", "composite_ref")
+        if isinstance(acquisition.get(key), str) and acquisition.get(key)
+    ]
+    if len(identity_fields) != 1:
+        raise QueueBuildError(
+            f"{location}: downloaded acquisition must identify exactly one of item_ref, artifact_ref, composite_ref"
+        )
+    identity_field = identity_fields[0]
+    file_ref = acquisition.get("file_ref")
+    event_ref = acquisition.get("provenance_event_ref")
+    if not isinstance(file_ref, str) or not file_ref:
+        raise QueueBuildError(f"{location}: downloaded acquisition must bind file_ref")
+    if not isinstance(event_ref, str) or not event_ref:
+        raise QueueBuildError(f"{location}: downloaded acquisition must bind provenance_event_ref")
+    event_entry = provenance_events.get(event_ref)
+    if event_entry is None:
+        raise QueueBuildError(f"{location}: provenance event {event_ref!r} does not resolve")
+    event, event_location = event_entry
+    if event.get("event_type") != "acquisition":
+        raise QueueBuildError(f"{location}: {event_ref!r} is not an acquisition event")
+    configuration = event.get("method", {}).get("configuration", {})
+    if isinstance(configuration, dict):
+        configured_candidate = configuration.get("candidate_id")
+        if configured_candidate is not None and configured_candidate != candidate_id:
+            raise QueueBuildError(
+                f"{location}: provenance event {event_ref!r} belongs to {configured_candidate!r}, not {candidate_id!r}"
+            )
+    outputs = event.get("outputs")
+    if not isinstance(outputs, list):
+        raise QueueBuildError(f"{event_location}: acquisition event outputs must be an array")
+    output_refs = {
+        output.get("ref")
+        for output in outputs
+        if isinstance(output, dict) and isinstance(output.get("ref"), str)
+    }
+    if identity_field == "item_ref":
+        if acquisition.get("representation_ref") is not None:
+            raise QueueBuildError(f"{location}: item acquisition must not carry representation_ref")
+        item, _ = _find_unique_record(
+            repo_root,
+            root=Path("ToS/source-witnesses"),
+            filename="item.manifest.json",
+            key="item_id",
+            value=acquisition[identity_field],
+            location=location,
+        )
+        files = item.get("payload_files")
+        if not isinstance(files, list) or not any(
+            isinstance(payload_file, dict) and payload_file.get("file_id") == file_ref
+            for payload_file in files
+        ):
+            raise QueueBuildError(f"{location}: item manifest does not bind file_ref {file_ref!r}")
+        if file_ref not in output_refs:
+            raise QueueBuildError(f"{location}: acquisition event does not output file_ref {file_ref!r}")
+        return
+
+    representation_ref = acquisition.get("representation_ref")
+    if not isinstance(representation_ref, str) or not representation_ref:
+        raise QueueBuildError(f"{location}: artifact/composite acquisition must bind representation_ref")
+    representation, representation_path = _load_repo_json_ref(
+        representation_ref,
+        repo_root=repo_root,
+        location=location,
+    )
+    if representation.get("file_id") != file_ref:
+        raise QueueBuildError(f"{location}: representation does not bind file_ref {file_ref!r}")
+    payload = representation.get("payload")
+    if not isinstance(payload, dict) or payload.get("sha256") != file_ref.removeprefix("tos.file.sha256."):
+        raise QueueBuildError(f"{location}: representation payload fixity does not bind file_ref {file_ref!r}")
+    if representation_ref not in output_refs:
+        raise QueueBuildError(
+            f"{location}: acquisition event does not output representation_ref {representation_ref!r}"
+        )
+
+    if identity_field == "artifact_ref":
+        artifact, artifact_path = _find_unique_record(
+            repo_root,
+            root=Path("ToS/source-witnesses/artifacts"),
+            filename="artifact-witness.json",
+            key="artifact_id",
+            value=acquisition[identity_field],
+            location=location,
+        )
+        if representation.get("artifact_id") != artifact["artifact_id"]:
+            raise QueueBuildError(f"{location}: representation does not bind artifact_ref {acquisition[identity_field]!r}")
+        if representation.get("artifact_ref") != artifact_path.relative_to(repo_root).as_posix():
+            raise QueueBuildError(f"{location}: representation artifact_ref path disagrees with canonical artifact")
+    else:
+        composite, composite_path = _find_unique_record(
+            repo_root,
+            root=Path("ToS/source-witnesses/scholarly-composites"),
+            filename="composite-witness.json",
+            key="composite_id",
+            value=acquisition[identity_field],
+            location=location,
+        )
+        if representation.get("composite_id") != composite["composite_id"]:
+            raise QueueBuildError(f"{location}: representation does not bind composite_ref {acquisition[identity_field]!r}")
+        if representation.get("composite_ref") != composite_path.relative_to(repo_root).as_posix():
+            raise QueueBuildError(f"{location}: representation composite_ref path disagrees with canonical composite")
+
+
+def _validate_receipt_acquisition_closure(
+    repo_root: Path,
+    receipt: dict[str, Any],
+    *,
+    provenance_events: dict[str, tuple[dict[str, Any], str]],
+    location: str,
+) -> None:
+    candidate_id = _required_string(receipt, "candidate_id", location)
+    _validate_planting_refs(repo_root, receipt.get("planting_refs"), location=location)
+    acquisitions = [receipt.get("acquisition")]
+    additional = receipt.get("additional_acquisitions", [])
+    if additional is not None:
+        if not isinstance(additional, list):
+            raise QueueBuildError(f"{location}: additional_acquisitions must be an array")
+        acquisitions.extend(additional)
+    for index, acquisition in enumerate(acquisitions, start=1):
+        _validate_acquisition_closure(
+            repo_root,
+            acquisition,
+            candidate_id=candidate_id,
+            provenance_events=provenance_events,
+            location=f"{location}:acquisition[{index}]",
+        )
 
 
 def _selector_matches(payload: dict[str, Any], selector: dict[str, Any]) -> bool:
@@ -128,7 +464,11 @@ def _validate_source_refs(
         if not isinstance(selector, dict) or not selector:
             raise QueueBuildError(f"{ref_location}: selector must be a non-empty object")
         source_path = repo_root / _safe_relative_path(source_path_value)
-        records = _load_jsonl(source_path, repo_root)
+        records = (
+            [_load_json(source_path, repo_root)]
+            if source_path.suffix == ".json"
+            else _load_jsonl(source_path, repo_root)
+        )
         if not any(_selector_matches(record, selector) for record in records):
             raise QueueBuildError(
                 f"{ref_location}: selector does not resolve in {source_path_value}: {selector}"
@@ -137,10 +477,10 @@ def _validate_source_refs(
 
 def _load_candidates(repo_root: Path) -> list[tuple[dict[str, Any], str]]:
     ledger = repo_root / LEDGER_PATH
-    candidates = _load_jsonl(ledger, repo_root)
+    candidates = _load_jsonl_with_lines(ledger, repo_root)
     seen: dict[str, str] = {}
     loaded: list[tuple[dict[str, Any], str]] = []
-    for line_number, candidate in enumerate(candidates, start=1):
+    for candidate, line_number in candidates:
         location = f"{LEDGER_PATH.as_posix()}:{line_number}"
         candidate_id = _required_string(candidate, "candidate_id", location)
         if candidate_id in seen:
@@ -178,6 +518,31 @@ def _discovery_records(repo_root: Path) -> dict[str, tuple[dict[str, Any], str]]
     return records
 
 
+def _index_unique_channel_rows(
+    rows: list[Any],
+    *,
+    field: str,
+    location: str,
+) -> dict[str, dict[str, Any]]:
+    indexed: dict[str, dict[str, Any]] = {}
+    first_locations: dict[str, str] = {}
+    for index, row in enumerate(rows, start=1):
+        row_location = f"{location}[{index}]"
+        if not isinstance(row, dict):
+            raise QueueBuildError(f"{row_location}: row must be an object")
+        channel_id = row.get(field)
+        if not isinstance(channel_id, str) or not channel_id:
+            raise QueueBuildError(f"{row_location}: {field} must be a non-empty string")
+        if channel_id in indexed:
+            raise QueueBuildError(
+                f"{row_location}: duplicate {field} {channel_id!r}; "
+                f"first seen at {first_locations[channel_id]}"
+            )
+        indexed[channel_id] = row
+        first_locations[channel_id] = row_location
+    return indexed
+
+
 def _validate_active_discovery_timings(
     discovery: dict[str, Any],
     timing: dict[str, Any],
@@ -199,16 +564,16 @@ def _validate_active_discovery_timings(
     measurement_rows = timing.get("measurements")
     if not isinstance(measurement_rows, list) or not measurement_rows:
         raise QueueBuildError(f"{location}: timing receipt must contain measurements")
-    measurement_by_id = {
-        entry.get("channel_id"): entry.get("measurement")
-        for entry in measurement_rows
-        if isinstance(entry, dict) and isinstance(entry.get("channel_id"), str)
-    }
-    comparison_by_id = {
-        comparison.get("channel_id"): comparison
-        for comparison in comparisons
-        if isinstance(comparison, dict) and isinstance(comparison.get("channel_id"), str)
-    }
+    measurement_rows_by_id = _index_unique_channel_rows(
+        measurement_rows,
+        field="channel_id",
+        location=f"{location}:measurements",
+    )
+    comparison_by_id = _index_unique_channel_rows(
+        comparisons,
+        field="channel_id",
+        location=f"{location}:channel_comparison",
+    )
     channel_ids: set[str] = set()
     for index, channel in enumerate(channels, start=1):
         channel_location = f"{location}:channels[{index}]"
@@ -224,10 +589,15 @@ def _validate_active_discovery_timings(
             raise QueueBuildError(
                 f"{channel_location}: active queue discovery requires measured elapsed_seconds > 0"
             )
-        measurement = measurement_by_id.get(channel_id)
+        measurement_row = measurement_rows_by_id.get(channel_id)
+        measurement = measurement_row.get("measurement") if measurement_row else None
         if not isinstance(measurement, dict):
             raise QueueBuildError(
                 f"{channel_location}: active queue discovery requires an external timing measurement"
+            )
+        if measurement.get("probe_url") != channel.get("endpoint_url"):
+            raise QueueBuildError(
+                f"{channel_location}: timing measurement must bind the channel endpoint_url"
             )
         if measurement.get("method") != TIMING_METHOD:
             raise QueueBuildError(
@@ -273,7 +643,7 @@ def _validate_active_discovery_timings(
 
     if set(comparison_by_id) != channel_ids:
         raise QueueBuildError(f"{location}: channel_comparison must cover the exact active channel set")
-    if set(measurement_by_id) != channel_ids:
+    if set(measurement_rows_by_id) != channel_ids:
         raise QueueBuildError(f"{location}: timing receipt must cover the exact active channel set")
 
 
@@ -285,9 +655,11 @@ def _load_receipts(
 ) -> tuple[list[dict[str, Any]], dict[str, dict[str, Any]]]:
     receipt_root = repo_root / RECEIPT_ROOT
     receipt_paths = sorted(receipt_root.glob("*.json")) if receipt_root.is_dir() else []
+    provenance_events = _load_provenance_events(repo_root)
     receipts: list[dict[str, Any]] = []
     latest_by_candidate: dict[str, dict[str, Any]] = {}
     seen_receipt_ids: set[str] = set()
+    seen_versions: dict[str, set[int]] = {}
 
     for path in receipt_paths:
         receipt = _load_json(path, repo_root)
@@ -317,16 +689,29 @@ def _load_receipts(
             raise QueueBuildError(
                 f"{location}: discovery_ref {discovery_ref!r} does not resolve discovery_id {discovery_id!r}"
             )
+        _validate_target_binding(
+            candidate,
+            discovery[0],
+            receipt=receipt,
+            location=location,
+        )
+        _validate_receipt_acquisition_closure(
+            repo_root,
+            receipt,
+            provenance_events=provenance_events,
+            location=location,
+        )
         version = receipt.get("record_version")
         if not isinstance(version, int) or version < 1:
             raise QueueBuildError(f"{location}: record_version must be a positive integer")
-        previous = latest_by_candidate.get(candidate_id)
-        if previous is None or version > previous["record_version"]:
-            latest_by_candidate[candidate_id] = receipt
-        elif version == previous["record_version"]:
+        if version in seen_versions.setdefault(candidate_id, set()):
             raise QueueBuildError(
                 f"{location}: duplicate terminal receipt version {version} for {candidate_id!r}"
             )
+        seen_versions[candidate_id].add(version)
+        previous = latest_by_candidate.get(candidate_id)
+        if previous is None or version > previous["record_version"]:
+            latest_by_candidate[candidate_id] = receipt
         receipts.append(receipt)
 
     for candidate_id, receipt in latest_by_candidate.items():
@@ -357,6 +742,7 @@ def _snapshot(
     candidates: list[tuple[dict[str, Any], str]],
     receipts: list[dict[str, Any]],
     discoveries: dict[str, tuple[dict[str, Any], str]],
+    excluded_paths: set[Path] | None = None,
 ) -> dict[str, Any]:
     master_rows = sum(len(_load_jsonl(repo_root / path, repo_root)) for path in MASTER_ROW_PATHS)
     dossiers = _load_jsonl(repo_root / DOSSIER_INDEX_PATH, repo_root)
@@ -377,7 +763,11 @@ def _snapshot(
     timing_root = repo_root / TIMING_ROOT
     if timing_root.is_dir():
         input_paths.extend(path.relative_to(repo_root) for path in sorted(timing_root.glob("*.json")))
-    unique_paths = sorted(set(input_paths), key=lambda path: path.as_posix())
+    excluded = {path.as_posix() for path in (excluded_paths or set())}
+    unique_paths = sorted(
+        {path for path in input_paths if path.as_posix() not in excluded},
+        key=lambda path: path.as_posix(),
+    )
     inputs = [
         {
             "path": path.as_posix(),
@@ -402,11 +792,23 @@ def _snapshot(
     }
 
 
-def _candidate_sort_key(candidate: dict[str, Any]) -> tuple[int, int, str]:
+def _candidate_source_line(location: str) -> int:
+    try:
+        return int(location.rsplit(":", 1)[1])
+    except (IndexError, ValueError) as exc:
+        raise QueueBuildError(f"candidate source location has no physical line number: {location!r}") from exc
+
+
+def _candidate_sort_key(
+    candidate: dict[str, Any],
+    *,
+    source_line: int | None = None,
+) -> tuple[int, int, int, str]:
     selection = candidate["selection"]
     return (
         selection["chronology_sort_year"],
         selection["atlas_row_order"],
+        source_line if source_line is not None else 0,
         candidate["candidate_id"],
     )
 
@@ -416,28 +818,51 @@ def _queue_sha256(payload: dict[str, Any]) -> str:
     return hashlib.sha256(canonical_json(without_fingerprint).encode("utf-8")).hexdigest()
 
 
-def build_payload(repo_root: Path = REPO_ROOT) -> dict[str, Any]:
-    candidates_with_locations = _load_candidates(repo_root)
-    candidates_by_id = {
-        candidate["candidate_id"]: candidate for candidate, _ in candidates_with_locations
-    }
-    discoveries = _discovery_records(repo_root)
-    receipts, latest_receipts = _load_receipts(
-        repo_root,
-        candidates_by_id=candidates_by_id,
-        discoveries=discoveries,
-    )
+def _receipt_sort_key(receipt: dict[str, Any]) -> tuple[datetime, int, str]:
+    issued_at = receipt.get("issued_at")
+    if not isinstance(issued_at, str) or not issued_at:
+        raise QueueBuildError("receipt issued_at must be a non-empty date-time")
+    try:
+        parsed = datetime.fromisoformat(issued_at.replace("Z", "+00:00"))
+    except ValueError as exc:
+        raise QueueBuildError(f"receipt issued_at is not a valid date-time: {issued_at!r}") from exc
+    if parsed.tzinfo is None:
+        parsed = parsed.replace(tzinfo=timezone.utc)
+    version = receipt.get("record_version")
+    if not isinstance(version, int) or version < 1:
+        raise QueueBuildError("receipt record_version must be a positive integer")
+    receipt_id = _required_string(receipt, "receipt_id", "receipt")
+    return parsed.astimezone(timezone.utc), version, receipt_id
+
+
+def _build_queue_payload(
+    repo_root: Path,
+    *,
+    candidates_with_locations: list[tuple[dict[str, Any], str]],
+    receipts: list[dict[str, Any]],
+    discoveries: dict[str, tuple[dict[str, Any], str]],
+    excluded_paths: set[Path] | None = None,
+) -> dict[str, Any]:
+    latest_receipts: dict[str, dict[str, Any]] = {}
+    for receipt in receipts:
+        candidate_id = _required_string(receipt, "candidate_id", "receipt")
+        previous = latest_receipts.get(candidate_id)
+        if previous is None or receipt["record_version"] > previous["record_version"]:
+            latest_receipts[candidate_id] = receipt
+
     snapshot = _snapshot(
         repo_root,
         candidates=candidates_with_locations,
         receipts=receipts,
         discoveries=discoveries,
+        excluded_paths=excluded_paths,
     )
-
     queue_entries: list[dict[str, Any]] = []
     for candidate, location in sorted(
         candidates_with_locations,
-        key=lambda item: _candidate_sort_key(item[0]),
+        key=lambda item: _candidate_sort_key(
+            item[0], source_line=_candidate_source_line(item[1])
+        ),
     ):
         candidate_id = candidate["candidate_id"]
         latest_receipt = latest_receipts.get(candidate_id)
@@ -499,6 +924,220 @@ def build_payload(repo_root: Path = REPO_ROOT) -> dict[str, Any]:
     }
     payload["queue_sha256"] = _queue_sha256(payload)
     return payload
+
+
+def _reconstruct_pre_run_queue_sha256(
+    repo_root: Path,
+    *,
+    current_receipt: dict[str, Any],
+    ordered_receipts: list[dict[str, Any]],
+    candidates_with_locations: list[tuple[dict[str, Any], str]],
+    discoveries: dict[str, tuple[dict[str, Any], str]],
+) -> str:
+    current_key = _receipt_sort_key(current_receipt)
+    prior_receipts = [
+        receipt
+        for receipt in ordered_receipts
+        if _receipt_sort_key(receipt) < current_key
+    ]
+    future_receipts = [
+        receipt
+        for receipt in ordered_receipts
+        if _receipt_sort_key(receipt) >= current_key
+    ]
+    future_discovery_ids = {receipt.get("discovery_id") for receipt in future_receipts}
+    pre_run_discoveries = {
+        discovery_id: entry
+        for discovery_id, entry in discoveries.items()
+        if discovery_id not in future_discovery_ids
+    }
+    excluded_paths: set[Path] = set()
+    future_receipt_ids = {receipt["receipt_id"] for receipt in future_receipts}
+    receipt_root = repo_root / RECEIPT_ROOT
+    if receipt_root.is_dir():
+        for path in sorted(receipt_root.glob("*.json")):
+            receipt = _load_json(path, repo_root)
+            if receipt.get("receipt_id") in future_receipt_ids:
+                excluded_paths.add(path.relative_to(repo_root))
+    for receipt in future_receipts:
+        for key in ("discovery_ref", "timing_ref"):
+            value = receipt.get(key)
+            if isinstance(value, str) and value:
+                excluded_paths.add(Path(value))
+    payload = _build_queue_payload(
+        repo_root,
+        candidates_with_locations=candidates_with_locations,
+        receipts=prior_receipts,
+        discoveries=pre_run_discoveries,
+        excluded_paths=excluded_paths,
+    )
+    return payload["queue_sha256"]
+
+
+def _has_independent_snapshot_witness(
+    repo_root: Path,
+    receipt: dict[str, Any],
+    *,
+    candidate_id: str,
+    candidate_label: str,
+    discoveries: dict[str, tuple[dict[str, Any], str]],
+    provenance_events: dict[str, tuple[dict[str, Any], str]],
+) -> bool:
+    discovery = discoveries[receipt["discovery_id"]][0]
+    event_refs = discovery.get("provenance_event_refs", [])
+    if not isinstance(event_refs, list):
+        event_refs = []
+    snapshot_hash = receipt.get("queue_snapshot_sha256")
+    for event_ref in event_refs:
+        event_entry = provenance_events.get(event_ref)
+        if event_entry is None:
+            continue
+        event = event_entry[0]
+        configuration = event.get("method", {}).get("configuration", {})
+        if not isinstance(configuration, dict):
+            continue
+        if (
+            configuration.get("candidate_id") == candidate_id
+            and configuration.get("frozen_queue_snapshot_sha256") == snapshot_hash
+        ):
+            return True
+
+    # Legacy iterations predate the queue validator but their research packet
+    # records the frozen digest.  Require the digest and the candidate label in
+    # the same independent packet; a receipt cannot satisfy this fallback by
+    # referring to itself.
+    for path in sorted((repo_root / "ToS/research-packets").rglob("*.md")):
+        try:
+            text = path.read_text(encoding="utf-8")
+        except OSError:
+            continue
+        if snapshot_hash in text and _contains_word_phrase(text, candidate_label):
+            return True
+    return False
+
+
+def _validate_receipt_transition_history(
+    repo_root: Path,
+    *,
+    candidates_with_locations: list[tuple[dict[str, Any], str]],
+    receipts: list[dict[str, Any]],
+    discoveries: dict[str, tuple[dict[str, Any], str]],
+) -> None:
+    candidates_by_id = {candidate["candidate_id"]: candidate for candidate, _ in candidates_with_locations}
+    ordered_receipts = sorted(receipts, key=_receipt_sort_key)
+    status_by_candidate = {
+        candidate["candidate_id"]: candidate["queue_status"]
+        for candidate, _ in candidates_with_locations
+    }
+    previous_by_candidate: dict[str, dict[str, Any]] = {}
+    provenance_events = _load_provenance_events(repo_root)
+    validated_snapshot_ids: set[str] = set()
+
+    for receipt in ordered_receipts:
+        receipt_id = _required_string(receipt, "receipt_id", "receipt")
+        candidate_id = _required_string(receipt, "candidate_id", receipt_id)
+        candidate = candidates_by_id[candidate_id]
+        snapshot_hash = receipt.get("queue_snapshot_sha256")
+        if not isinstance(snapshot_hash, str) or len(snapshot_hash) != 64 or any(
+            character not in "0123456789abcdef" for character in snapshot_hash
+        ):
+            raise QueueBuildError(f"{receipt_id}: queue_snapshot_sha256 must be a lowercase SHA-256 digest")
+
+        previous = previous_by_candidate.get(candidate_id)
+        if previous is None:
+            if candidate["candidate_kind"] not in QUEUEABLE_KINDS:
+                raise QueueBuildError(f"{receipt_id}: terminal receipt cannot advance a non-queueable candidate")
+            candidate_line = next(
+                _candidate_source_line(location)
+                for item, location in candidates_with_locations
+                if item["candidate_id"] == candidate_id
+            )
+            # The reviewed ledger is append-only for this route.  A historical
+            # receipt may predate later candidates that now sort earlier by a
+            # broad chronology year, so the pre-run frontier is bounded by the
+            # candidate's authored ledger line until an exact snapshot is
+            # available for that run.
+            historical_frontier = [
+                (item, location)
+                for item, location in candidates_with_locations
+                if _candidate_source_line(location) <= candidate_line
+            ]
+            expected = next(
+                (
+                    item["candidate_id"]
+                    for item, location in sorted(
+                        historical_frontier,
+                        key=lambda pair: _candidate_sort_key(
+                            pair[0], source_line=_candidate_source_line(pair[1])
+                        ),
+                    )
+                    if item["candidate_kind"] in QUEUEABLE_KINDS
+                    and status_by_candidate[item["candidate_id"]] == READY_STATUS
+                ),
+                None,
+            )
+            if candidate_id != expected:
+                raise QueueBuildError(
+                    f"{receipt_id}: receipt candidate {candidate_id!r} was not the current next_candidate_id {expected!r}"
+                )
+            status_by_candidate[candidate_id] = receipt["terminal_status"]
+        else:
+            if _receipt_sort_key(receipt) < _receipt_sort_key(previous):
+                raise QueueBuildError(f"{receipt_id}: superseding receipt is earlier than its predecessor")
+            if snapshot_hash != previous.get("queue_snapshot_sha256"):
+                raise QueueBuildError(f"{receipt_id}: superseding receipt changed the frozen queue snapshot")
+
+        reconstructed = _reconstruct_pre_run_queue_sha256(
+            repo_root,
+            current_receipt=receipt,
+            ordered_receipts=ordered_receipts,
+            candidates_with_locations=candidates_with_locations,
+            discoveries=discoveries,
+        )
+        if reconstructed == snapshot_hash:
+            validated_snapshot_ids.add(receipt_id)
+        elif previous is not None and previous["receipt_id"] in validated_snapshot_ids:
+            validated_snapshot_ids.add(receipt_id)
+        elif _has_independent_snapshot_witness(
+            repo_root,
+            receipt,
+            candidate_id=candidate_id,
+            candidate_label=candidate["preferred_label"],
+            discoveries=discoveries,
+            provenance_events=provenance_events,
+        ):
+            validated_snapshot_ids.add(receipt_id)
+        else:
+            raise QueueBuildError(
+                f"{receipt_id}: queue_snapshot_sha256 does not resolve to the pre-run queue "
+                "or an independent frozen-snapshot provenance witness"
+            )
+        previous_by_candidate[candidate_id] = receipt
+
+
+def build_payload(repo_root: Path = REPO_ROOT) -> dict[str, Any]:
+    candidates_with_locations = _load_candidates(repo_root)
+    candidates_by_id = {
+        candidate["candidate_id"]: candidate for candidate, _ in candidates_with_locations
+    }
+    discoveries = _discovery_records(repo_root)
+    receipts, latest_receipts = _load_receipts(
+        repo_root,
+        candidates_by_id=candidates_by_id,
+        discoveries=discoveries,
+    )
+    _validate_receipt_transition_history(
+        repo_root,
+        candidates_with_locations=candidates_with_locations,
+        receipts=receipts,
+        discoveries=discoveries,
+    )
+    return _build_queue_payload(
+        repo_root,
+        candidates_with_locations=candidates_with_locations,
+        receipts=receipts,
+        discoveries=discoveries,
+    )
 
 
 def render_payload(payload: dict[str, Any]) -> str:

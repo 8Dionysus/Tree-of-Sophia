@@ -111,6 +111,6 @@ for human philological and semantic review.
   review identifies a distinct useful work-like pressure; this receipt does
   not mechanically mint thirteen Works from thirteen XML members.
 
-No new architectural decision was required. TOS-D-0037 already owns the
+No new architectural decision was required. TOS-D-0039 already owns the
 reviewed candidate loop, and TOS-D-0038 already owns file-backed scholarly
 composite representations.

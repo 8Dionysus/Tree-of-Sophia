@@ -49,6 +49,21 @@ but are not silently treated as reviewed candidates.
 7. Rebuild the queue. The next eligible candidate becomes current without
    rewriting the completed candidate record.
 
+The queue builder replays the receipt history and checks each
+`queue_snapshot_sha256` against the state immediately before that iteration.
+When an older snapshot cannot be reconstructed from the current tree, only an
+independent frozen-snapshot witness in discovery provenance or a research
+packet can preserve that historical receipt; a receipt cannot attest to its
+own snapshot. A superseding receipt keeps the same frozen snapshot and cannot
+change the selected candidate's target.
+
+Before an acquired terminal outcome is accepted, its representation, File,
+artifact/composite/Item identity, acquisition event, and planting records must
+resolve and agree. Active timing receipts must cover the exact discovery
+channel set and bind each probe URL to its channel endpoint. These checks prove
+record closure and transport measurement only; they do not promote source,
+rights, textual, semantic, or canon authority.
+
 Operational queue relations may return to candidate, query, result,
 acquisition, planting, and provenance evidence. Bibliographic identity remains
 claim-bearing; semantic and canon relations require their own review routes.

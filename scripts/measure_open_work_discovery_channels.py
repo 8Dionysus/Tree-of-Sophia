@@ -133,6 +133,20 @@ def build_instrumented_discovery(
     return output
 
 
+def retarget_timing_receipt(
+    receipt: dict[str, Any],
+    *,
+    discovery_id: str,
+    discovery_ref: str,
+) -> dict[str, Any]:
+    """Bind a timing receipt to the superseding discovery it instruments."""
+    output = copy.deepcopy(receipt)
+    output["timing_id"] = "open-work-channel-timing." + discovery_id.removeprefix("tos.discovery.")
+    output["discovery_id"] = discovery_id
+    output["discovery_ref"] = discovery_ref
+    return output
+
+
 def build_superseding_discovery(
     source: dict[str, Any],
     receipt: dict[str, Any],
@@ -161,11 +175,6 @@ def main() -> int:
     parser.add_argument("--provenance-event-ref")
     args = parser.parse_args()
     receipt = build_receipt(args.discovery, timeout_seconds=args.timeout_seconds)
-    rendered = json.dumps(receipt, ensure_ascii=False, indent=2, sort_keys=True) + "\n"
-    if args.output is None:
-        print(rendered, end="")
-    else:
-        args.output.write_text(rendered, encoding="utf-8")
     if args.superseding_output is not None:
         required = {
             "--new-discovery-id": args.new_discovery_id,
@@ -175,6 +184,17 @@ def main() -> int:
         missing = [name for name, value in required.items() if not value]
         if missing:
             parser.error(f"{', '.join(missing)} required with --superseding-output")
+        receipt = retarget_timing_receipt(
+            receipt,
+            discovery_id=args.new_discovery_id,
+            discovery_ref=args.superseding_output.as_posix(),
+        )
+    rendered = json.dumps(receipt, ensure_ascii=False, indent=2, sort_keys=True) + "\n"
+    if args.output is None:
+        print(rendered, end="")
+    else:
+        args.output.write_text(rendered, encoding="utf-8")
+    if args.superseding_output is not None:
         source = json.loads(args.discovery.read_text(encoding="utf-8"))
         superseding = build_superseding_discovery(
             source,

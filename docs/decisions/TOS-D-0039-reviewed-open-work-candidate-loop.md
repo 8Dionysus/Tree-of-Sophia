@@ -2,7 +2,7 @@
 
 ## Index Metadata
 
-- Decision ID: TOS-D-0037
+- Decision ID: TOS-D-0039
 - Original date: 2026-08-29
 - Surface classes: source-witness, contracts, scripts/validation, docs/route-law
 - ToS layers: source-witnesses, contracts, philosophy, docs
@@ -49,7 +49,11 @@ Select only reviewed `work` or `work-like-corpus` candidates. Preserve an
 earlier non-Work scene as an explicit exclusion rather than silently skipping
 it. A terminal receipt binds the exact candidate digest, the queue snapshot,
 and one material-discovery run; rebuilding then advances to the next eligible
-candidate without rewriting the completed candidate.
+candidate without rewriting the completed candidate. The queue validator
+replays receipt history, reconstructs the queue immediately before each
+iteration when the current tree permits it, and otherwise requires an
+independent frozen-snapshot witness. A superseding receipt retains the same
+snapshot and selected target binding.
 
 Require the latest terminal receipt for each candidate to bind one external
 per-channel timing receipt under `discovery/timings/`. Every active channel
@@ -59,6 +63,13 @@ it. The measurement owns HTTP transport through the first 16 KiB only; it does
 not claim research, interpretation, rights-review, or human elapsed time.
 Historical runs and receipts remain immutable and may retain explicit unknown
 sentinels when a measured superseding run becomes active.
+
+An acquired terminal outcome is closed only when its representation, File,
+artifact/composite/Item identity, acquisition provenance event, and planting
+records resolve and agree. The validator checks this closure on every receipt;
+the active timing check remains scoped to the latest receipt for each
+candidate. These are mechanical record checks, not identity, rights, textual,
+semantic, or canon acceptance.
 
 Represent an acquired physical-artifact image as a separate content-addressed
 File under `artifacts/.../representations/.../payload/`, governed by

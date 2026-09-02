@@ -59,7 +59,13 @@
         }
       },
       "contains": {"type": "object", "properties": {"role": {"const": "originating-record"}}, "required": ["role"]},
-      "minContains": 1
+      "minContains": 1,
+      "allOf": [
+        {
+          "contains": {"type": "object", "properties": {"role": {"const": "aggregator-file-record"}}, "required": ["role"]},
+          "minContains": 1
+        }
+      ]
     },
     "acquisition": {
       "type": "object",
