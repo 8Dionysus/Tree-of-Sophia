@@ -97,7 +97,24 @@ def build_handler(core: ToSAccessCore, web_root: Path) -> type[BaseHTTPRequestHa
                     self._static(path.removeprefix("/static/"))
                     return
                 if path == "/health":
-                    self._json({"service": "tree-of-sophia-access", "ok": core.index_exists() and core.philosophy_projection_exists(), "write_enabled": False})
+                    errors: list[str] = []
+                    try:
+                        index = core.index()
+                        if index.get("schema_version") != "tos_corpus_index_v1":
+                            errors.append("unsupported corpus index schema")
+                    except (OSError, RuntimeError, ValueError, json.JSONDecodeError) as exc:
+                        errors.append(f"corpus index invalid: {exc}")
+                    try:
+                        core.philosophy_projection()
+                    except (OSError, RuntimeError, ValueError, json.JSONDecodeError) as exc:
+                        errors.append(f"philosophy projection invalid: {exc}")
+                    health = {
+                        "service": "tree-of-sophia-access",
+                        "ok": not errors,
+                        "write_enabled": False,
+                        "errors": errors,
+                    }
+                    self._json(health, HTTPStatus.OK if not errors else HTTPStatus.SERVICE_UNAVAILABLE)
                     return
                 if path == "/api/corpus/status": self._json(core.status()); return
                 if path == "/api/corpus/summary": self._json(core.summary()); return

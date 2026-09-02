@@ -11,6 +11,7 @@ import threading
 import tomllib
 import unittest
 from unittest.mock import patch
+import urllib.error
 import urllib.request
 from pathlib import Path
 
@@ -513,6 +514,40 @@ class CoreContractTests(unittest.TestCase):
                 server.shutdown()
                 server.server_close()
                 thread.join(timeout=5)
+
+    def test_health_rejects_invalid_projection_content(self) -> None:
+        with tempfile.TemporaryDirectory() as raw:
+            root = Path(raw)
+            write_fixture(root)
+            (root / "ToS/derived-exports/philosophy_graph_projection.min.json").write_text(
+                "{not-json",
+                encoding="utf-8",
+            )
+            server = make_server(ToSAccessCore.discover(tos_root=root), port=0)
+            thread = threading.Thread(target=server.serve_forever, daemon=True)
+            thread.start()
+            try:
+                with self.assertRaises(urllib.error.HTTPError) as caught:
+                    urllib.request.urlopen(f"http://127.0.0.1:{server.server_port}/health")
+                self.assertEqual(caught.exception.code, 503)
+                with caught.exception as response:
+                    health = json.load(response)
+                self.assertFalse(health["ok"])
+                self.assertTrue(any("philosophy projection invalid" in error for error in health["errors"]))
+            finally:
+                server.shutdown()
+                server.server_close()
+                thread.join(timeout=5)
+
+    def test_direct_corpus_lookups_reject_unknown_identities(self) -> None:
+        with tempfile.TemporaryDirectory() as raw:
+            root = Path(raw)
+            write_fixture(root)
+            core = ToSAccessCore.discover(tos_root=root)
+            with self.assertRaisesRegex(KeyError, "unknown ToS corpus node"):
+                core.node("missing")
+            with self.assertRaisesRegex(KeyError, "unknown ToS corpus relation pack"):
+                core.relation_pack("missing")
 
     def test_ipv6_loopback_uses_ipv6_server(self) -> None:
         with tempfile.TemporaryDirectory() as raw:

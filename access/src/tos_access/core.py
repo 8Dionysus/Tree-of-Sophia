@@ -425,6 +425,8 @@ class ToSAccessCore:
             for node in payload.get("nodes", [])
             if isinstance(node, dict) and node.get("node_id") == node_id
         ]
+        if not matches:
+            raise KeyError(f"unknown ToS corpus node: {node_id}")
         related_edges = [
             _relation_edge_with_source_ref(edge, pack_paths)
             for edge in payload.get("relation_edges", [])
@@ -446,6 +448,8 @@ class ToSAccessCore:
             for pack in payload.get("relation_packs", [])
             if isinstance(pack, dict) and pack.get("pack_id") == pack_id
         ]
+        if not packs:
+            raise KeyError(f"unknown ToS corpus relation pack: {pack_id}")
         edges = [
             _relation_edge_with_source_ref(edge, pack_paths)
             for edge in payload.get("relation_edges", [])
