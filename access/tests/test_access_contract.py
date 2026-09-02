@@ -5,6 +5,7 @@ import json
 import sys
 import tempfile
 import threading
+import tomllib
 import unittest
 import urllib.request
 from pathlib import Path
@@ -149,7 +150,12 @@ class CoreContractTests(unittest.TestCase):
 class AuthoredContractTests(unittest.TestCase):
     def test_release_workflow_installs_standalone_mcp_extra(self) -> None:
         workflow = (REPO_ROOT / ".github/workflows/repo-validation.yml").read_text(encoding="utf-8")
-        self.assertIn("-e './access[mcp]'", workflow)
+        package = tomllib.loads((ACCESS_ROOT / "pyproject.toml").read_text(encoding="utf-8"))
+        requirements = package["project"]["optional-dependencies"]["mcp"]
+        self.assertEqual(len(requirements), 1)
+        self.assertIn(f"'{requirements[0]}'", workflow)
+        self.assertNotIn("-e './access[mcp]'", workflow)
+        self.assertNotIn("'./access[mcp]'", workflow)
 
     def test_web_action_contract_matches_browser_adapter(self) -> None:
         payload = json.loads((ACCESS_ROOT / "contracts/web-actions.v1.json").read_text(encoding="utf-8"))
