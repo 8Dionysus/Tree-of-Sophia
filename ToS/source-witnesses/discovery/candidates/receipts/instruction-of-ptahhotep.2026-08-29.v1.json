@@ -5,9 +5,11 @@
   "candidate_id": "open-work-candidate.instruction-of-ptahhotep",
   "candidate_record_sha256": "a57101861669939bdc649c4bfc4f4ad97d4a2216922735409bdd16dc4a8e1012",
   "candidate_ledger_sha256": "f751e3b577054c24bac9b5380c2ff6a5e43dc188b6e97eb05aa8635595ca1258",
+  "candidate_target_sha256": "55e5d3b6fef3cd88ef7ca3f7325e80ca8077660cc6fd0b5f640f10e4fd84797d",
   "queue_snapshot_sha256": "1d75923ff0b1c1351496877ae00f63950d79d64f74dcf2d00993f1362a2be606",
   "discovery_ref": "ToS/source-witnesses/discovery/runs/instruction-of-ptahhotep-open-work-route.2026-08-29.v1.json",
   "discovery_id": "tos.discovery.instruction-of-ptahhotep-open-work-route.2026-08-29",
+  "discovery_sha256": "dee6565b9535d67fc9aaf0f973444ae744f954afee7a751726be7a4f76df868f",
   "discovery_target_sha256": "55e5d3b6fef3cd88ef7ca3f7325e80ca8077660cc6fd0b5f640f10e4fd84797d",
   "terminal_status": "blocked",
   "target_resolution": {
@@ -20,8 +22,19 @@
   },
   "rights_result": {
     "status": "blocked-human-legal-review",
-    "reviewed_jurisdictions": ["FR", "MX", "US"],
-    "reviewed_layers": ["ancient Work and embedded text", "BnF metadata", "Gallica and Commons Prisse scan", "TLA transliteration and translation", "Gunn translation and Gutenberg digital object", "Museo Egizio CGT 54014 Commons image"],
+    "reviewed_jurisdictions": [
+      "FR",
+      "MX",
+      "US"
+    ],
+    "reviewed_layers": [
+      "ancient Work and embedded text",
+      "BnF metadata",
+      "Gallica and Commons Prisse scan",
+      "TLA transliteration and translation",
+      "Gunn translation and Gutenberg digital object",
+      "Museo Egizio CGT 54014 Commons image"
+    ],
     "evidence_refs": [
       "ToS/source-witnesses/artifacts/egyptian/thebes/bnf-papyrus-prisse-egyptien-183-194/rights.json",
       "https://www.bnf.fr/fr/reutiliser-les-donnees-de-la-bnf",
@@ -57,6 +70,9 @@
   ],
   "next_trigger": "Rebuild queue.current.json so Pyramid Texts becomes visible as the next eligible candidate, then stop before executing it. Resume Ptahhotep acquisition only after the ToS project owner establishes a writable preflight-approved source-evidence path and an artifact-representation payload contract; request human/legal review before BnF/Gallica Prisse or Gunn redistribution across FR, MX, and US.",
   "issued_at": "2026-08-29T23:08:00-06:00",
-  "maker": {"maker_type": "model", "agent_ref": "model:codex"},
+  "maker": {
+    "maker_type": "model",
+    "agent_ref": "model:codex"
+  },
   "record_version": 1
 }

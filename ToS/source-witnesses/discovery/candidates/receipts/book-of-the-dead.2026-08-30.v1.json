@@ -5,9 +5,11 @@
   "candidate_id": "open-work-candidate.book-of-the-dead",
   "candidate_record_sha256": "5bbd40b3ab06f0c941e84b511a048f1ab92d92900b22c69c2219ebb1fa5974e8",
   "candidate_ledger_sha256": "54ccf553ef7bf2839b2fecf65b1a2d87384b0dcb29c4883cb20bf4e0212d109e",
+  "candidate_target_sha256": "806c720bb551bffe746c40d3b34482f81310da806c7aea326e9af6b0bc802f64",
   "queue_snapshot_sha256": "b77d4b4c5f8453b77b6fd9d85cdcaed91d5f524c61231bfbaa601d1d86ca8d93",
   "discovery_ref": "ToS/source-witnesses/discovery/runs/book-of-the-dead-open-work-route.2026-08-30.v1.json",
   "discovery_id": "tos.discovery.book-of-the-dead-open-work-route.2026-08-30.v1",
+  "discovery_sha256": "15800eaaa24efe832bbd2fa68f0f51d9227b40648b92752772323c358af7cba1",
   "discovery_target_sha256": "0313a0be3b44805f8188168c839a2a1f1ea0823e2ec46e78c7f065a065ae89ca",
   "timing_ref": "ToS/source-witnesses/discovery/timings/book-of-the-dead-open-work-route.2026-08-30.v1.json",
   "timing_sha256": "a0ef2c554ea4f0af7cda3b6cedbe093f990fb690cf2ada114fbc847ada875c24",
@@ -22,7 +24,13 @@
   },
   "rights_result": {
     "status": "positive-for-acquisition",
-    "reviewed_jurisdictions": ["CH", "DE", "GB", "MX", "US"],
+    "reviewed_jurisdictions": [
+      "CH",
+      "DE",
+      "GB",
+      "MX",
+      "US"
+    ],
     "reviewed_layers": [
       "provider-independent physical-object metadata",
       "British Museum collection metadata",
@@ -85,6 +93,9 @@
   ],
   "next_trigger": "Rebuild and validate the reviewed queue, then freeze exactly the next earliest unresolved Work or work-like candidate. If Papyrus Ani appears as the next source lead, record it as an already-acquired non-Work physical artifact rather than rediscovering or promoting it as one ancient Work.",
   "issued_at": "2026-08-30T05:26:00-06:00",
-  "maker": {"maker_type": "model", "agent_ref": "model:codex"},
+  "maker": {
+    "maker_type": "model",
+    "agent_ref": "model:codex"
+  },
   "record_version": 1
 }

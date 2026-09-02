@@ -5,9 +5,11 @@
   "candidate_id": "open-work-candidate.pyramid-texts",
   "candidate_record_sha256": "ad3dd29b041ba869fd47d2706187ebdd847fcd747d8ac645af686a1aec6991bc",
   "candidate_ledger_sha256": "f751e3b577054c24bac9b5380c2ff6a5e43dc188b6e97eb05aa8635595ca1258",
+  "candidate_target_sha256": "3e9c1fc163a1e88617033f97e5775a7894ee3cdea76560fc8f55688c4615323b",
   "queue_snapshot_sha256": "a7455b28ef0aa6e69237a5b4551b5ee1eb5e20619bb7336da6f1083815f5d2c6",
   "discovery_ref": "ToS/source-witnesses/discovery/runs/pyramid-texts-open-work-route.2026-08-30.v1.json",
   "discovery_id": "tos.discovery.pyramid-texts-open-work-route.2026-08-30.v1",
+  "discovery_sha256": "a3771b885b066b6783e77d03bb9197b5cd0396b6a69afd9821299dd5b255b998",
   "discovery_target_sha256": "14dedb8a3b3532028d5851282a5f2a20ae65aa07fc71ef60217dda431b0e8f7f",
   "timing_ref": "ToS/source-witnesses/discovery/timings/pyramid-texts-open-work-route.2026-08-30.v1.json",
   "timing_sha256": "a160784544e20c1d5697a6bfc435e28526e9bf1e5b1b2d647edf35b4d73fd992",
@@ -22,7 +24,11 @@
   },
   "rights_result": {
     "status": "positive-for-acquisition",
-    "reviewed_jurisdictions": ["DE", "MX", "US"],
+    "reviewed_jurisdictions": [
+      "DE",
+      "MX",
+      "US"
+    ],
     "reviewed_layers": [
       "exact BSB PDF bsb00068075",
       "exact BSB PDF bsb00068079",
@@ -74,6 +80,9 @@
   ],
   "next_trigger": "Rebuild queue.current.json. If no reviewed ready candidate remains, review exactly one next earliest source-backed Work or work-like corpus from the visible frontier, append it to reviewed-candidates.jsonl, rebuild, freeze it, and continue the loop.",
   "issued_at": "2026-08-30T01:30:00-06:00",
-  "maker": {"maker_type": "model", "agent_ref": "model:codex"},
+  "maker": {
+    "maker_type": "model",
+    "agent_ref": "model:codex"
+  },
   "record_version": 1
 }

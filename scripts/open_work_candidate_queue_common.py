@@ -52,6 +52,127 @@ TARGET_RESOLUTION_CATALOGS = {
     "item_ref": (Path("ToS/source-witnesses/catalog/items.jsonl"), "item"),
 }
 
+_CONSTRAINT_STOP_WORDS = frozenset(
+    {
+        "a",
+        "an",
+        "and",
+        "as",
+        "at",
+        "be",
+        "by",
+        "for",
+        "from",
+        "in",
+        "into",
+        "is",
+        "kept",
+        "must",
+        "no",
+        "of",
+        "or",
+        "rather",
+        "same",
+        "the",
+        "this",
+        "to",
+        "with",
+        "without",
+        "one",
+        "all",
+        "any",
+        "only",
+        "remain",
+        "remains",
+        "separate",
+        "separates",
+        "separation",
+        "preserve",
+        "preserves",
+        "retained",
+        "retains",
+    }
+)
+
+# Discovery targets may narrow or operationalize a reviewed candidate in
+# different words.  These aliases keep the mechanical check conservative
+# without pretending to perform semantic or human review.
+_CONSTRAINT_TOKEN_ALIASES: dict[str, tuple[str, ...]] = {
+    "catalog": ("metadata",),
+    "catalogue": ("metadata",),
+    "bibliographic": ("metadata",),
+    "authority": ("metadata",),
+    "institutional": ("metadata",),
+    "holding": ("metadata",),
+    "record": ("metadata",),
+    "records": ("metadata",),
+    "provider": ("metadata",),
+    "scan": ("digital-object",),
+    "facsimile": ("digital-object",),
+    "pdf": ("digital-object",),
+    "jpeg": ("digital-object", "text-layer"),
+    "image": ("digital-object",),
+    "photograph": ("digital-object",),
+    "visual": ("digital-object",),
+    "iiif": ("digital-object",),
+    "html": ("digital-object", "text-layer"),
+    "xml": ("digital-object", "text-layer"),
+    "json": ("digital-object", "text-layer"),
+    "export": ("digital-object",),
+    "file": ("digital-object",),
+    "files": ("digital-object",),
+    "bytes": ("digital-object",),
+    "byte": ("digital-object",),
+    "payload": ("digital-object",),
+    "line_art": ("digital-object",),
+    "plate": ("digital-object",),
+    "plates": ("digital-object",),
+    "downloadable": ("digital-object",),
+    "download": ("digital-object",),
+    "critical": ("scholarship",),
+    "edition": ("scholarship",),
+    "edition_presentation": ("scholarship",),
+    "commentary": ("scholarship",),
+    "study": ("scholarship",),
+    "publication": ("scholarship",),
+    "article": ("scholarship",),
+    "scholarly": ("scholarship",),
+    "project": ("scholarship",),
+    "translation": ("text-layer",),
+    "transcription": ("text-layer",),
+    "transliteration": ("text-layer",),
+    "text": ("text-layer",),
+    "inscription": ("text-layer",),
+    "spell": ("text-layer",),
+    "utterance": ("text-layer",),
+    "transliteration": ("text-layer",),
+    "rights": ("rights",),
+    "license": ("rights",),
+    "licensed": ("rights",),
+    "terms": ("rights",),
+    "permission": ("rights",),
+    "evidence": ("rights",),
+    "physical": ("physical-witness",),
+    "artifact": ("physical-witness",),
+    "monument": ("physical-witness",),
+    "tablet": ("physical-witness",),
+    "coffin": ("physical-witness",),
+    "papyrus": ("physical-witness",),
+    "witness": ("physical-witness",),
+    "witnesses": ("physical-witness",),
+    "work": ("work-identity",),
+    "corpus": ("work-identity",),
+    "subcorpus": ("work-identity",),
+    "composition": ("work-identity",),
+    "original_work": ("work-identity",),
+    "identity": ("identity",),
+    "identities": ("identity",),
+    "fixity": ("identity",),
+    "version": ("identity",),
+    "member": ("identity",),
+    "members": ("identity",),
+}
+
 
 class QueueBuildError(RuntimeError):
     """Raised when authored queue inputs cannot support a deterministic build."""
@@ -186,6 +307,187 @@ def _validate_rights_evidence_refs(
             )
 
 
+def _load_acquisition_rights_contexts(
+    repo_root: Path,
+    acquisitions: list[Any],
+    *,
+    location: str,
+) -> list[dict[str, Any]]:
+    contexts: list[dict[str, Any]] = []
+    for index, acquisition in enumerate(acquisitions, start=1):
+        acquisition_location = f"{location}:acquisition[{index}]"
+        if not isinstance(acquisition, dict) or acquisition.get("downloaded") is not True:
+            continue
+        file_ref = acquisition.get("file_ref")
+        if not isinstance(file_ref, str) or not file_ref:
+            raise QueueBuildError(
+                f"{acquisition_location}: downloaded acquisition must bind file_ref before rights validation"
+            )
+        identity_fields = [
+            key
+            for key in ("item_ref", "artifact_ref", "composite_ref")
+            if isinstance(acquisition.get(key), str) and acquisition.get(key)
+        ]
+        if len(identity_fields) != 1:
+            raise QueueBuildError(
+                f"{acquisition_location}: downloaded acquisition must identify one canonical rights scope"
+            )
+        identity_ref = acquisition[identity_fields[0]]
+
+        if identity_fields[0] == "item_ref":
+            item, _ = _find_unique_record(
+                repo_root,
+                root=Path("ToS/source-witnesses"),
+                filename="item.manifest.json",
+                key="item_id",
+                value=identity_ref,
+                location=acquisition_location,
+            )
+            rights_ref = item.get("rights_ref")
+        else:
+            representation_ref = acquisition.get("representation_ref")
+            if not isinstance(representation_ref, str) or not representation_ref:
+                raise QueueBuildError(
+                    f"{acquisition_location}: downloaded acquisition must bind representation_ref"
+                )
+            representation, _ = _load_repo_json_ref(
+                representation_ref,
+                repo_root=repo_root,
+                location=acquisition_location,
+            )
+            rights_ref = representation.get("rights_ref")
+
+        if not isinstance(rights_ref, str) or not rights_ref or urlsplit(rights_ref).scheme:
+            raise QueueBuildError(
+                f"{acquisition_location}: canonical acquisition rights_ref must be a repository-relative file"
+            )
+        rights, rights_path = _load_repo_json_ref(
+            rights_ref,
+            repo_root=repo_root,
+            location=acquisition_location,
+        )
+        scope_refs = rights.get("scope_refs")
+        expected_scope = {identity_ref, file_ref}
+        if not isinstance(scope_refs, list) or not expected_scope <= {
+            reference for reference in scope_refs if isinstance(reference, str)
+        }:
+            raise QueueBuildError(
+                f"{acquisition_location}: canonical rights record {rights_ref!r} does not scope "
+                f"both {identity_ref!r} and {file_ref!r}"
+            )
+        layer_assessments = rights.get("layer_assessments")
+        if not isinstance(layer_assessments, list) or not any(
+            isinstance(layer, dict)
+            and file_ref in {
+                reference
+                for reference in layer.get("scope_refs", [])
+                if isinstance(reference, str)
+            }
+            and isinstance(layer.get("assessment_status"), str)
+            and layer.get("assessment_status")
+            for layer in layer_assessments
+        ):
+            raise QueueBuildError(
+                f"{acquisition_location}: canonical rights record {rights_ref!r} lacks a positive "
+                f"layer assessment for {file_ref!r}"
+            )
+        contexts.append(
+            {
+                "rights_ref": rights_path.relative_to(repo_root).as_posix(),
+                "rights": rights,
+                "identity_ref": identity_ref,
+                "file_ref": file_ref,
+                "layer_assessments": layer_assessments,
+            }
+        )
+    return contexts
+
+
+def _validate_positive_rights_scope(
+    candidate: dict[str, Any],
+    rights_result: dict[str, Any],
+    contexts: list[dict[str, Any]],
+    *,
+    location: str,
+) -> None:
+    scope = candidate.get("rights_review_scope")
+    requested_jurisdictions = scope.get("jurisdictions") if isinstance(scope, dict) else None
+    requested_layers = scope.get("layers") if isinstance(scope, dict) else None
+    if not isinstance(requested_jurisdictions, list) or not requested_jurisdictions:
+        raise QueueBuildError(
+            f"{location}: positive rights result requires a non-empty candidate jurisdiction scope"
+        )
+    if not isinstance(requested_layers, list) or not requested_layers:
+        raise QueueBuildError(
+            f"{location}: positive rights result requires a non-empty candidate layer scope"
+        )
+
+    reviewed_jurisdictions = rights_result.get("reviewed_jurisdictions")
+    if not isinstance(reviewed_jurisdictions, list) or not reviewed_jurisdictions:
+        raise QueueBuildError(
+            f"{location}: positive rights result requires non-empty reviewed_jurisdictions"
+        )
+    if not all(isinstance(value, str) and value for value in reviewed_jurisdictions):
+        raise QueueBuildError(
+            f"{location}: positive rights result reviewed_jurisdictions must contain strings"
+        )
+    if not set(requested_jurisdictions) & set(reviewed_jurisdictions):
+        raise QueueBuildError(
+            f"{location}: positive rights result jurisdictions do not cover the candidate scope"
+        )
+
+    reviewed_layers = rights_result.get("reviewed_layers")
+    if not isinstance(reviewed_layers, list) or not reviewed_layers or not all(
+        isinstance(value, str) and value for value in reviewed_layers
+    ):
+        raise QueueBuildError(
+            f"{location}: positive rights result requires non-empty reviewed_layers"
+        )
+    requested_layer_tokens = _constraint_tokens(requested_layers)
+    reviewed_layer_tokens = _constraint_tokens(reviewed_layers)
+    if not requested_layer_tokens & reviewed_layer_tokens:
+        raise QueueBuildError(
+            f"{location}: positive rights result reviewed_layers do not cover the candidate scope"
+        )
+
+    evidence_refs = set(rights_result.get("evidence_refs", []))
+    required_rights_refs = {context["rights_ref"] for context in contexts}
+    missing_rights_refs = sorted(required_rights_refs - evidence_refs)
+    if missing_rights_refs:
+        raise QueueBuildError(
+            f"{location}: positive rights result omits canonical acquisition rights refs: "
+            f"{missing_rights_refs}"
+        )
+
+    for context in contexts:
+        rights = context["rights"]
+        rights_jurisdictions = rights.get("jurisdictions_reviewed")
+        if not isinstance(rights_jurisdictions, list) or not set(rights_jurisdictions) & set(
+            reviewed_jurisdictions
+        ):
+            raise QueueBuildError(
+                f"{location}: canonical rights record {context['rights_ref']!r} is outside "
+                "the positive reviewed jurisdiction scope"
+            )
+        layer_tokens = _constraint_tokens(
+            [
+                layer.get("layer_role")
+                for layer in context["layer_assessments"]
+                if isinstance(layer, dict)
+            ]
+        )
+        if not requested_layer_tokens & layer_tokens:
+            raise QueueBuildError(
+                f"{location}: canonical rights record {context['rights_ref']!r} does not bind "
+                f"an acquired layer in the candidate scope"
+            )
+        if not reviewed_layer_tokens & layer_tokens:
+            raise QueueBuildError(
+                f"{location}: reviewed rights layers do not identify acquired layer "
+                f"{context['file_ref']!r}"
+            )
+
+
 def _normalised_words(value: str) -> list[str]:
     value = value.casefold().replace("’", "'")
     return re.findall(r"[\w]+", value, flags=re.UNICODE)
@@ -201,6 +503,80 @@ def _contains_word_phrase(haystack: str, needle: str) -> bool:
         haystack_words[index : index + width] == needle_words
         for index in range(len(haystack_words) - width + 1)
     )
+
+
+def _constraint_tokens(value: Any) -> set[str]:
+    if isinstance(value, str):
+        raw_tokens = set(_normalised_words(value))
+    else:
+        raw_tokens = set(_normalised_words(canonical_json(value)))
+    tokens = raw_tokens - _CONSTRAINT_STOP_WORDS
+    expanded = set(tokens)
+    for token in tokens:
+        parts = {part for part in re.split(r"[-_]", token) if part}
+        expanded.update(parts)
+        expanded.update(_CONSTRAINT_TOKEN_ALIASES.get(token, ()))
+        for part in parts:
+            expanded.update(_CONSTRAINT_TOKEN_ALIASES.get(part, ()))
+    return expanded
+
+
+def _validate_target_constraint_refinement(
+    candidate_target: dict[str, Any],
+    discovery_target: dict[str, Any],
+    *,
+    location: str,
+) -> None:
+    """Require an executed target to retain the reviewed candidate constraints.
+
+    Discovery is allowed to narrow a candidate and to restate it in operational
+    language.  Each candidate property/substitution/format therefore needs a
+    conservative lexical or controlled-category anchor in the executed target;
+    languages need a non-empty retained intersection.  This is a mechanical
+    anti-drop check, not semantic acceptance.
+    """
+    surface_values: list[Any] = [discovery_target.get("description")]
+    for field in ("required_properties", "acceptable_substitutions", "languages", "formats"):
+        values = discovery_target.get(field)
+        if isinstance(values, list):
+            surface_values.append(values)
+    discovery_surface = _constraint_tokens(surface_values)
+
+    for field in ("required_properties", "acceptable_substitutions", "formats"):
+        candidate_values = candidate_target.get(field)
+        discovery_values = discovery_target.get(field)
+        if not isinstance(candidate_values, list) or not all(
+            isinstance(value, str) and value for value in candidate_values
+        ):
+            raise QueueBuildError(f"{location}: candidate target {field} must contain non-empty strings")
+        if not isinstance(discovery_values, list) or not all(
+            isinstance(value, str) and value for value in discovery_values
+        ):
+            raise QueueBuildError(f"{location}: discovery target {field} must contain non-empty strings")
+        if candidate_values and not discovery_values:
+            raise QueueBuildError(
+                f"{location}: discovery target drops all candidate {field} constraints"
+            )
+        for index, value in enumerate(candidate_values, start=1):
+            if _constraint_tokens(value).isdisjoint(discovery_surface):
+                raise QueueBuildError(
+                    f"{location}: discovery target drops candidate {field}[{index}] {value!r}"
+                )
+
+    candidate_languages = candidate_target.get("languages")
+    discovery_languages = discovery_target.get("languages")
+    if not isinstance(candidate_languages, list) or not all(
+        isinstance(value, str) and value for value in candidate_languages
+    ):
+        raise QueueBuildError(f"{location}: candidate target languages must contain non-empty strings")
+    if not isinstance(discovery_languages, list) or not all(
+        isinstance(value, str) and value for value in discovery_languages
+    ):
+        raise QueueBuildError(f"{location}: discovery target languages must contain non-empty strings")
+    if candidate_languages and not set(candidate_languages) & set(discovery_languages):
+        raise QueueBuildError(
+            f"{location}: discovery target drops all candidate languages: {candidate_languages!r}"
+        )
 
 
 def _validate_target_binding(
@@ -277,10 +653,16 @@ def _validate_target_binding(
         ("discovery_target_sha256", discovery_target),
     ):
         supplied = receipt.get(field)
-        if field == "discovery_target_sha256" and not isinstance(supplied, str):
+        if not isinstance(supplied, str):
             raise QueueBuildError(f"{location}: {field} is required to freeze the executed discovery target")
-        if supplied is not None and supplied != target_digest(target):
+        if supplied != target_digest(target):
             raise QueueBuildError(f"{location}: {field} does not bind the referenced target")
+
+    _validate_target_constraint_refinement(
+        candidate_target,
+        discovery_target,
+        location=location,
+    )
 
 
 def _validate_target_resolution(
@@ -609,7 +991,11 @@ def _validate_planting_refs(
         ref_location = f"{location}:planting_refs[{index}]"
         if not isinstance(ref, str) or not ref:
             raise QueueBuildError(f"{ref_location}: planting ref must be a non-empty repository-relative path")
-        payload, _ = _load_repo_json_ref(ref, repo_root=repo_root, location=ref_location)
+        payload, planting_path = _load_repo_json_ref(
+            ref,
+            repo_root=repo_root,
+            location=ref_location,
+        )
         if not isinstance(payload.get("planting_id"), str) or not payload["planting_id"]:
             raise QueueBuildError(f"{ref_location}: planting record must expose planting_id")
 
@@ -726,6 +1112,12 @@ def _validate_planting_refs(
             raise QueueBuildError(
                 f"{ref_location}: planting provenance event does not output the planting record"
             )
+        _validate_event_output_digest(
+            event_outputs,
+            reference=ref,
+            expected_digest=_sha256_file(planting_path),
+            location=ref_location,
+        )
         if source_record_ref not in output_refs | input_refs and source_id not in output_refs | input_refs:
             raise QueueBuildError(
                 f"{ref_location}: planting provenance event does not bind source_witness {source_id!r}"
@@ -880,15 +1272,26 @@ def _validate_acquisition_closure(
             for reference in discovery.get("provenance_event_refs", [])
             if isinstance(reference, str) and reference
         } if isinstance(discovery.get("provenance_event_refs"), list) else set()
-        if not event_input_refs & (
+        candidate_discovery_refs = (
             candidate_target_refs
             | discovery_target_refs
             | discovery_event_refs
-            | item_identity_refs
-        ):
+            | {
+                reference
+                for reference in (receipt_discovery_ref, receipt_discovery_id)
+                if isinstance(reference, str) and reference
+            }
+        )
+        if not event_input_refs & candidate_discovery_refs:
             raise QueueBuildError(
                 f"{location}: item acquisition provenance event {event_ref!r} does not bind "
-                f"candidate {candidate_id!r}, its discovery target, or the canonical item identity ladder"
+                f"candidate {candidate_id!r} or its discovery target "
+                "(the canonical item identity ladder is checked independently)"
+            )
+        if not event_input_refs & item_identity_refs:
+            raise QueueBuildError(
+                f"{location}: item acquisition provenance event {event_ref!r} does not bind "
+                "the canonical item identity ladder"
             )
         file_digest = file_ref.removeprefix("tos.file.sha256.")
         if re.fullmatch(r"[0-9a-f]{64}", file_digest) is None:
@@ -900,11 +1303,17 @@ def _validate_acquisition_closure(
             location=location,
         )
         files = item.get("payload_files")
-        if not isinstance(files, list) or not any(
-            isinstance(payload_file, dict) and payload_file.get("file_id") == file_ref
+        matching_files = [
+            payload_file
             for payload_file in files
-        ):
+            if isinstance(payload_file, dict) and payload_file.get("file_id") == file_ref
+        ] if isinstance(files, list) else []
+        if len(matching_files) != 1:
             raise QueueBuildError(f"{location}: item manifest does not bind file_ref {file_ref!r}")
+        if matching_files[0].get("sha256") != file_digest:
+            raise QueueBuildError(
+                f"{location}: item manifest payload fixity does not bind file_ref {file_ref!r}"
+            )
         if file_ref not in output_refs:
             raise QueueBuildError(f"{location}: acquisition event does not output file_ref {file_ref!r}")
         return
@@ -1047,6 +1456,18 @@ def _validate_receipt_acquisition_closure(
             receipt_discovery_ref=receipt.get("discovery_ref"),
             provenance_events=provenance_events,
             location=f"{location}:acquisition[{index}]",
+        )
+    if downloaded and rights_status == "positive-for-acquisition":
+        rights_contexts = _load_acquisition_rights_contexts(
+            repo_root,
+            acquisitions,
+            location=location,
+        )
+        _validate_positive_rights_scope(
+            candidate,
+            rights_result,
+            rights_contexts,
+            location=location,
         )
     _validate_planting_refs(
         repo_root,
@@ -1380,6 +1801,11 @@ def _load_receipts(
             raise QueueBuildError(
                 f"{location}: discovery_ref {discovery_ref!r} does not resolve discovery_id {discovery_id!r}"
             )
+        discovery_sha256 = _required_sha256(receipt, "discovery_sha256", location)
+        if discovery_sha256 != _sha256_file(repo_root / _safe_relative_path(discovery_ref)):
+            raise QueueBuildError(
+                f"{location}: discovery_sha256 does not bind {discovery_ref!r}"
+            )
         issued_at = _parse_timestamp(receipt.get("issued_at"), location=location, field="issued_at")
         discovery_ended_at = _parse_timestamp(
             discovery[0].get("ended_at"),
@@ -1499,6 +1925,7 @@ def _historical_provenance_hashes(
         relative = path.relative_to(repo_root)
         raw_lines = path.read_bytes().splitlines(keepends=True)
         retained_lines: list[bytes] = []
+        retained_event = False
         for line_number, raw_line in enumerate(raw_lines, start=1):
             if not raw_line.strip():
                 retained_lines.append(raw_line)
@@ -1515,7 +1942,9 @@ def _historical_provenance_hashes(
             )
             if event_ended_at <= cutoff:
                 retained_lines.append(raw_line)
-        hashes[relative] = hashlib.sha256(b"".join(retained_lines)).hexdigest()
+                retained_event = True
+        if retained_event:
+            hashes[relative] = hashlib.sha256(b"".join(retained_lines)).hexdigest()
     return hashes
 
 
@@ -1729,6 +2158,12 @@ def _snapshot(
         if provenance_cutoff is not None and provenance_events is not None
         else {}
     )
+    if provenance_cutoff is not None and provenance_events is not None:
+        unique_paths = [
+            path
+            for path in unique_paths
+            if path.name != "provenance.jsonl" or path in provenance_hashes
+        ]
     inputs = [
         {
             "path": path.as_posix(),

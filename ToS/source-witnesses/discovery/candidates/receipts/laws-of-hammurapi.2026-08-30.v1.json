@@ -5,9 +5,11 @@
   "candidate_id": "open-work-candidate.laws-of-hammurapi",
   "candidate_record_sha256": "d59a8c13aa74b069480a154ea9c48d9fe940464f17088f7eb2c6f6dfb7f7bc18",
   "candidate_ledger_sha256": "7f89f241630c68ef8281e2c6528434734aec43d14a261c74b1b552c07f9b3ecf",
+  "candidate_target_sha256": "e1cc08ff3dab29491724f6bb7d6de0f2e61411ddadd3ab3c54ba8c406219db5b",
   "queue_snapshot_sha256": "800afddd7a210cc400e809f761b5033991926e41ebbc39f1dcd0dc9ceb6cbb76",
   "discovery_ref": "ToS/source-witnesses/discovery/runs/laws-of-hammurapi-open-work-route.2026-08-30.v1.json",
   "discovery_id": "tos.discovery.laws-of-hammurapi-open-work-route.2026-08-30.v1",
+  "discovery_sha256": "67c366a3113524d8e830a0fca49a9d036d6fafdf4138c7066e5981408af1991d",
   "discovery_target_sha256": "a9878b62419e9bac5383fb12b40392a3c79517739af30feac28b8cb900609b80",
   "timing_ref": "ToS/source-witnesses/discovery/timings/laws-of-hammurapi-open-work-route.2026-08-30.v1.json",
   "timing_sha256": "ca4240e5953a8666d338efa4382836b214c888a14fd1ad3ceef1415336d38898",
@@ -22,7 +24,11 @@
   },
   "rights_result": {
     "status": "positive-for-acquisition",
-    "reviewed_jurisdictions": ["FR", "MX", "US"],
+    "reviewed_jurisdictions": [
+      "FR",
+      "MX",
+      "US"
+    ],
     "reviewed_layers": [
       "exact Roth 2026 revised English translation PDF",
       "originating UCF STARS CC BY-NC 4.0 statement",
@@ -83,6 +89,9 @@
   ],
   "next_trigger": "Rebuild queue.current.json. If no reviewed ready candidate remains, review exactly one next earliest source-backed Work or work-like corpus from the visible frontier, append it to reviewed-candidates.jsonl, rebuild, freeze it, and continue the loop.",
   "issued_at": "2026-08-30T03:10:00-06:00",
-  "maker": {"maker_type": "model", "agent_ref": "model:codex"},
+  "maker": {
+    "maker_type": "model",
+    "agent_ref": "model:codex"
+  },
   "record_version": 1
 }

@@ -109,6 +109,11 @@ def _timed_discovery(discovery_id: str) -> dict:
             "target_kind": "work",
             "known_tos_refs": [],
             "description": f"Resolve {label} without manufacturing later source layers.",
+            "required_properties": ["work identity", "earliest exact witness route"],
+            "acceptable_substitutions": [],
+            "languages": ["und"],
+            "formats": ["bibliographic metadata"],
+            "purpose_ref": "ToS/source-witnesses/discovery/candidates/README.md",
         },
         "started_at": "2026-08-29T12:00:00Z",
         "ended_at": "2026-08-29T12:00:00.125000Z",
@@ -299,6 +304,9 @@ class OpenWorkCandidateQueueTest(unittest.TestCase):
             "queue_snapshot_sha256": before["queue_sha256"],
             "discovery_ref": "ToS/source-witnesses/discovery/runs/earliest.v1.json",
             "discovery_id": "tos.discovery.earliest",
+            "candidate_target_sha256": target_digest(
+                _candidate("open-work-candidate.earliest", year=-2400, row_id="A04", row_order=4)["target"]
+            ),
             "discovery_target_sha256": target_digest(_timed_discovery("tos.discovery.earliest")["target"]),
             "timing_ref": "ToS/source-witnesses/discovery/timings/earliest.v1.json",
             "terminal_status": "metadata_only",
@@ -345,6 +353,9 @@ class OpenWorkCandidateQueueTest(unittest.TestCase):
             ),
         )
         receipt["timing_sha256"] = hashlib.sha256(timing_path.read_bytes()).hexdigest()
+        receipt["discovery_sha256"] = hashlib.sha256(
+            (repo / receipt["discovery_ref"]).read_bytes()
+        ).hexdigest()
         _write_json(
             repo / "ToS/source-witnesses/discovery/candidates/receipts/earliest.2026-08-29.v1.json",
             receipt,
@@ -386,6 +397,10 @@ class OpenWorkCandidateQueueTest(unittest.TestCase):
             "queue_snapshot_sha256": before["queue_sha256"],
             "discovery_ref": discovery_ref,
             "discovery_id": "tos.discovery.earliest",
+            "candidate_target_sha256": target_digest(
+                _candidate("open-work-candidate.earliest", year=-2400, row_id="A04", row_order=4)["target"]
+            ),
+            "discovery_sha256": hashlib.sha256((repo / discovery_ref).read_bytes()).hexdigest(),
             "discovery_target_sha256": target_digest(discovery["target"]),
             "timing_ref": timing_ref,
             "timing_sha256": hashlib.sha256((repo / timing_ref).read_bytes()).hexdigest(),
@@ -809,6 +824,11 @@ class OpenWorkCandidateQueueTest(unittest.TestCase):
                     "target_kind": "work",
                     "known_tos_refs": [],
                     "description": "Resolve Earliest without manufacturing later source layers.",
+                    "required_properties": ["work identity", "earliest exact witness route"],
+                    "acceptable_substitutions": [],
+                    "languages": ["und"],
+                    "formats": ["bibliographic metadata"],
+                    "purpose_ref": "ToS/source-witnesses/discovery/candidates/README.md",
                 },
                 "started_at": "2026-08-29T12:00:00Z",
                 "ended_at": "2026-08-29T12:00:00.125000Z",
@@ -851,6 +871,10 @@ class OpenWorkCandidateQueueTest(unittest.TestCase):
                 "queue_snapshot_sha256": before["queue_sha256"],
                 "discovery_ref": discovery_ref,
                 "discovery_id": "tos.discovery.earliest",
+                "candidate_target_sha256": target_digest(
+                    _candidate("open-work-candidate.earliest", year=-2400, row_id="A04", row_order=4)["target"]
+                ),
+                "discovery_sha256": hashlib.sha256((repo / discovery_ref).read_bytes()).hexdigest(),
                 "discovery_target_sha256": target_digest(_timed_discovery("tos.discovery.earliest")["target"]),
                 "timing_ref": "ToS/source-witnesses/discovery/timings/earliest.v1.json",
                 "timing_sha256": hashlib.sha256(
@@ -893,16 +917,17 @@ class OpenWorkCandidateQueueTest(unittest.TestCase):
 
     def test_terminal_receipt_must_freeze_discovery_target_digest(self) -> None:
         discovery = _timed_discovery("tos.discovery.earliest")
+        candidate = _candidate(
+            "open-work-candidate.earliest",
+            year=-2400,
+            row_id="A04",
+            row_order=4,
+        )
         with self.assertRaisesRegex(QueueBuildError, "discovery_target_sha256 is required"):
             _validate_target_binding(
-                _candidate(
-                    "open-work-candidate.earliest",
-                    year=-2400,
-                    row_id="A04",
-                    row_order=4,
-                ),
+                candidate,
                 discovery,
-                receipt={},
+                receipt={"candidate_target_sha256": target_digest(candidate["target"])},
                 location="synthetic-receipt",
             )
 
@@ -1246,7 +1271,22 @@ class OpenWorkCandidateQueueTest(unittest.TestCase):
                 "item_id": item_id,
                 "embodiment_ref": edition_id,
                 "acquisition_event_ref": event_ref,
-                "payload_files": [{"file_id": file_ref}],
+                "rights_ref": "ToS/source-witnesses/works/synthetic/items/rights.json",
+                "payload_files": [{"file_id": file_ref, "sha256": "c" * 64}],
+            },
+        )
+        _write_json(
+            repo / "ToS/source-witnesses/works/synthetic/items/rights.json",
+            {
+                "scope_refs": [item_id, file_ref],
+                "jurisdictions_reviewed": ["US"],
+                "layer_assessments": [
+                    {
+                        "scope_refs": [file_ref],
+                        "assessment_status": "licensed",
+                        "layer_role": "digital_scan",
+                    }
+                ],
             },
         )
         provenance_event = {
@@ -1259,7 +1299,12 @@ class OpenWorkCandidateQueueTest(unittest.TestCase):
             "candidate_id": candidate_id,
             "rights_result": {
                 "status": "positive-for-acquisition",
-                "evidence_refs": [discovery_ref],
+                "reviewed_jurisdictions": ["US"],
+                "reviewed_layers": ["exact digital scan"],
+                "evidence_refs": [
+                    discovery_ref,
+                    "ToS/source-witnesses/works/synthetic/items/rights.json",
+                ],
             },
             "discovery_ref": discovery_ref,
             "discovery_id": discovery_id,
@@ -1294,7 +1339,7 @@ class OpenWorkCandidateQueueTest(unittest.TestCase):
                 location="synthetic-receipt",
             )
 
-        provenance_event["inputs"] = [{"ref": work_id}]
+        provenance_event["inputs"] = [{"ref": work_id}, {"ref": discovery_ref}]
         _validate_receipt_acquisition_closure(
             repo,
             receipt,

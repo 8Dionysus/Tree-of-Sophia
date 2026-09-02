@@ -5,9 +5,11 @@
   "candidate_id": "open-work-candidate.old-babylonian-sumerian-literary-catalogue-witnesses",
   "candidate_record_sha256": "fd995f4f0b8581587db6addfb8c58ddb48c735dbd26bcac8e39fa7669c44e003",
   "candidate_ledger_sha256": "fb4cc46c53b8d26a00c6d0cab9849a9837bc74a13cfd5772d24d2c1125755aef",
+  "candidate_target_sha256": "64404a993391b23201fb1f804219d23f736fa01b22a3d9a7fcd6426a5fb67c91",
   "queue_snapshot_sha256": "1b3ae4b943bad65d113e24e945da0bd626cd831b7046c64dc8446fe0fcd92ba3",
   "discovery_ref": "ToS/source-witnesses/discovery/runs/old-babylonian-sumerian-literary-catalogues-open-work-route.2026-08-30.v1.json",
   "discovery_id": "tos.discovery.old-babylonian-sumerian-literary-catalogues-open-work-route.2026-08-30.v1",
+  "discovery_sha256": "9c5850b7a1c748e1af5b45304638a7cceaa719f180ef7d0d4d496d4a3af20919",
   "discovery_target_sha256": "090122108b0f8d69793c25a11235e50ca10d01f9599fb36d4e3717121f0ea2b5",
   "timing_ref": "ToS/source-witnesses/discovery/timings/old-babylonian-sumerian-literary-catalogues-open-work-route.2026-08-30.v1.json",
   "timing_sha256": "b5a2f693e8fe00866b0f3d415bd6be009786f37a443476018921426e6b3b02df",
@@ -22,8 +24,20 @@
   },
   "rights_result": {
     "status": "positive-for-acquisition",
-    "reviewed_jurisdictions": ["GB", "MX", "US"],
-    "reviewed_layers": ["provider-independent metadata", "exact OTA XML transliteration", "embedded editorial commentary", "live provider pages", "physical artifact", "photographs and line art", "subscription scholarship"],
+    "reviewed_jurisdictions": [
+      "GB",
+      "MX",
+      "US"
+    ],
+    "reviewed_layers": [
+      "provider-independent metadata",
+      "exact OTA XML transliteration",
+      "embedded editorial commentary",
+      "live provider pages",
+      "physical artifact",
+      "photographs and line art",
+      "subscription scholarship"
+    ],
     "evidence_refs": [
       "ToS/source-witnesses/scholarly-composites/synoptic/sumerian/old-babylonian-literary-catalogue-witnesses/representations/ota-2518-etcsl-0-2-02-transliteration/rights.json",
       "ToS/research-packets/foundation-laboratory-2026-07/A02_OLD_BABYLONIAN_SUMERIAN_LITERARY_CATALOGUES_OPEN_WORK_ACQUISITION_2026-08-30.md",
@@ -41,7 +55,9 @@
     "file_ref": "tos.file.sha256.2979f2e86cc8a869c252fd84c81a28c0d8786780f51f02e36063835d3177410d",
     "provenance_event_ref": "tos.event.acquisition.old-babylonian-literary-catalogue-ota-etcsl-0-2-02.2026-08-30"
   },
-  "planting_refs": ["ToS/philosophy/eras/bronze-age/regions/west-asia/traditions/old-babylonian-scribal-wisdom-law/sources/plantings/old-babylonian-sumerian-literary-catalogues/source-planting.json"],
+  "planting_refs": [
+    "ToS/philosophy/eras/bronze-age/regions/west-asia/traditions/old-babylonian-scribal-wisdom-law/sources/plantings/old-babylonian-sumerian-literary-catalogues/source-planting.json"
+  ],
   "operational_relation_refs": [
     "tos.composite.sumerian.old-babylonian-literary-catalogue-witnesses",
     "tos.artifact.sumerian.uncertain.louvre-ao-05393",
@@ -53,6 +69,9 @@
   ],
   "next_trigger": "Rebuild and validate the reviewed queue, then freeze exactly the next earliest unresolved Work or work-like candidate; this unresolved corpus boundary must not mechanically create thirteen Works from the ETCSL member list.",
   "issued_at": "2026-08-30T04:09:16-06:00",
-  "maker": {"maker_type": "model", "agent_ref": "model:codex"},
+  "maker": {
+    "maker_type": "model",
+    "agent_ref": "model:codex"
+  },
   "record_version": 1
 }

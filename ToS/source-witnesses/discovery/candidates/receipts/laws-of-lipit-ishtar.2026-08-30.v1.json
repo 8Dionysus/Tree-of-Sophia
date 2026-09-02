@@ -5,9 +5,11 @@
   "candidate_id": "open-work-candidate.laws-of-lipit-ishtar",
   "candidate_record_sha256": "9bb253a164e6489fbc73722c8f81dfb4f850ed4a4fec3253735452ae88e1e643",
   "candidate_ledger_sha256": "0e73f36c824ae228a169350b7906e2327c5dc85aca6a0fa56c3ccb1c30a6ca7d",
+  "candidate_target_sha256": "048e82b1e7c0776adfe40cecfd6bbddfdf042edee569724990c223d2ce109cb0",
   "queue_snapshot_sha256": "c800e6fb95ef7502fc1f15fb836bdb47cd338ddf521ce4064941b70d74cd49b6",
   "discovery_ref": "ToS/source-witnesses/discovery/runs/laws-of-lipit-ishtar-open-work-route.2026-08-30.v1.json",
   "discovery_id": "tos.discovery.laws-of-lipit-ishtar-open-work-route.2026-08-30.v1",
+  "discovery_sha256": "b21097d9ab60ce24d17c8efc90cff6755ee3ce65ab79345d35dd965cba858b47",
   "discovery_target_sha256": "3f8fee7603bb5923c3780bd1aee0dde2dea125c0e8b854ff2a0cedc68ca29a94",
   "timing_ref": "ToS/source-witnesses/discovery/timings/laws-of-lipit-ishtar-open-work-route.2026-08-30.v1.json",
   "timing_sha256": "5e6b3d156310e097710704502b09f395ae6182cf570ae57fd2e9acd4667778c8",
@@ -22,7 +24,12 @@
   },
   "rights_result": {
     "status": "positive-for-acquisition",
-    "reviewed_jurisdictions": ["HU", "MX", "PL", "US"],
+    "reviewed_jurisdictions": [
+      "HU",
+      "MX",
+      "PL",
+      "US"
+    ],
     "reviewed_layers": [
       "exact ETCSRI Q000613 static annotated HTML",
       "ETCSRI project content license and Oracc attribution/ShareAlike conditions",
@@ -81,6 +88,9 @@
   ],
   "next_trigger": "Rebuild queue.current.json. If no reviewed ready candidate remains, review exactly one next earliest source-backed Work or work-like corpus from the visible frontier, append it to reviewed-candidates.jsonl, rebuild, freeze it, and continue the loop.",
   "issued_at": "2026-08-30T02:40:00-06:00",
-  "maker": {"maker_type": "model", "agent_ref": "model:codex"},
+  "maker": {
+    "maker_type": "model",
+    "agent_ref": "model:codex"
+  },
   "record_version": 1
 }
