@@ -2977,8 +2977,8 @@ function selectableItem(itemIdValue: string): AnyItem | null {
   return null;
 }
 
-function currentViewItem(itemIdValue: string): AnyItem | null {
-  const current = state.currentView as AnyItem | null;
+function viewItem(view: PhilosophyViewPayload | CorpusViewPayload, itemIdValue: string): AnyItem | null {
+  const current = view as AnyItem;
   if (!current) return null;
   const collections = [
     (current.nodes as AnyItem[] | undefined) || [],
@@ -3241,15 +3241,118 @@ function renderAll(): void {
 
 async function copyScaleExportUrl(table?: ScaleExportTable, format?: "csv" | "jsonl"): Promise<void> {
   const url = scaleExportAbsoluteUrl(table, format);
+  const expectedRevision = pageCommands.context().revision;
+  let copyError = "";
   try {
     await navigator.clipboard.writeText(url);
-    state.selected = { title: t("selection.scaleExportUrl"), url };
   } catch (error) {
-    state.selected = { title: t("selection.scaleExportUrl"), url, copy_error: text(error) };
+    copyError = text(error);
   }
+  if (pageCommands.context().revision !== expectedRevision) return;
+  state.selected = {
+    title: t("selection.scaleExportUrl"),
+    url,
+    ...(copyError ? { copy_error: copyError } : {}),
+  };
   state.selectedGraphId = null;
   renderInspector();
+  syncPublicRoute();
+  pageCommands.notifyStateChange();
   scrollInspectorTop();
+}
+
+type PreparedView = {
+  mode: Mode;
+  viewId: string;
+  currentView: PhilosophyViewPayload | CorpusViewPayload;
+  sourceNotes: GraphNode[];
+  sourceNoteEdges: GraphEdge[];
+  activeLayers: Set<string>;
+  activePredicates: Set<string>;
+  graphMode: GraphMode;
+  results: AnyItem[];
+};
+
+async function prepareView(
+  mode: Mode,
+  viewId: string,
+  requestedGraphMode: GraphMode | undefined,
+  signal: AbortSignal | undefined,
+): Promise<PreparedView> {
+  if (mode === "philosophy") {
+    const sourcePayload = (await queryOperations.invoke("tos.view.open", {
+      mode,
+      view_id: viewId,
+      limit: 1000,
+    }, { signal })) as PhilosophyViewPayload;
+    signal?.throwIfAborted();
+    const sourceNotes = (sourcePayload.nodes || []).filter(isPublicSourceNote);
+    const sourceNoteIds = new Set(sourceNotes.map((node) => node.node_id));
+    const payload = projectPublicPhilosophyPayload(sourcePayload);
+    return {
+      mode,
+      viewId,
+      currentView: payload,
+      sourceNotes,
+      sourceNoteEdges: (sourcePayload.edges || []).filter(
+        (edge) => sourceNoteIds.has(edge.from_id) || sourceNoteIds.has(edge.to_id),
+      ),
+      activeLayers: new Set(payload.view.graph_layers || []),
+      activePredicates: new Set((payload.edges || []).filter(isPublicAtlasItem).map(predicateId)),
+      graphMode: requestedGraphMode || "clusters",
+      results: (payload.clusters || []).filter(isPublicAtlasItem),
+    };
+  }
+  const payload = (await queryOperations.invoke("tos.view.open", {
+    mode,
+    view_id: viewId,
+    limit: 700,
+  }, { signal })) as CorpusViewPayload;
+  signal?.throwIfAborted();
+  return {
+    mode,
+    viewId,
+    currentView: payload,
+    sourceNotes: [],
+    sourceNoteEdges: [],
+    activeLayers: new Set(),
+    activePredicates: new Set(),
+    graphMode: "nodes",
+    results: (payload.items || []).filter(isPublicAtlasItem),
+  };
+}
+
+function commitPreparedView(prepared: PreparedView, requestedFocusId: string): void {
+  searchRevision += 1;
+  neighborhoodRevision += 1;
+  pathRevision += 1;
+  state.mode = prepared.mode;
+  state.currentViewId = prepared.viewId;
+  state.currentView = prepared.currentView;
+  state.selected = null;
+  state.selectedGraphId = null;
+  state.results = prepared.results;
+  state.relationItems = [];
+  state.expandedCluster = null;
+  state.neighborhood = null;
+  state.pathStartNodeId = null;
+  state.pathPacket = null;
+  state.inspectorOpen = false;
+  state.sourceNotes = prepared.sourceNotes;
+  state.sourceNoteEdges = prepared.sourceNoteEdges;
+  state.activeLayers = prepared.activeLayers;
+  state.activePredicates = prepared.activePredicates;
+  state.graphMode = prepared.graphMode;
+  if (prepared.mode === "philosophy") {
+    state.densityMode = "overview";
+    state.minRelationCount = 1;
+  }
+  if (requestedFocusId) {
+    const focusItem = viewItem(prepared.currentView, requestedFocusId);
+    if (focusItem) setSelectedItemState(focusItem);
+  }
+  renderAll();
+  syncPublicRoute();
 }
 
 async function loadMode(
@@ -3260,41 +3363,33 @@ async function loadMode(
   signal?: AbortSignal,
 ): Promise<void> {
   const loadRevision = ++modeLoadRevision;
-  searchRevision += 1;
-  neighborhoodRevision += 1;
-  pathRevision += 1;
-  state.mode = mode;
-  state.currentView = null;
-  state.selected = null;
-  state.selectedGraphId = null;
-  state.results = [];
-  state.relationItems = [];
-  state.expandedCluster = null;
-  state.neighborhood = null;
-  state.pathStartNodeId = null;
-  state.pathPacket = null;
-  state.inspectorOpen = false;
+  viewLoadRevision += 1;
   if (mode === "philosophy") {
-    state.status.philosophy = await fetchJson<AnyItem>("/api/philosophy/status", { signal });
-    if (loadRevision !== modeLoadRevision || state.mode !== mode) return;
+    const status = await fetchJson<AnyItem>("/api/philosophy/status", { signal });
     const views = await fetchJson<{ views: ViewCard[] }>("/api/philosophy/views", { signal });
-    if (loadRevision !== modeLoadRevision || state.mode !== mode) return;
-    state.philosophyViews = views.views || [];
-    const viewId = state.philosophyViews.some((view) => view.view_id === requestedViewId)
+    const philosophyViews = views.views || [];
+    const viewId = philosophyViews.some((view) => view.view_id === requestedViewId)
       ? requestedViewId
-      : boot.default_philosophy_view || state.philosophyViews[0]?.view_id || "";
-    await loadView(viewId, requestedGraphMode, requestedFocusId, signal);
+      : boot.default_philosophy_view || philosophyViews[0]?.view_id || "";
+    const prepared = await prepareView(mode, viewId, requestedGraphMode, signal);
+    signal?.throwIfAborted();
+    if (loadRevision !== modeLoadRevision) throw new DOMException("superseded mode request", "AbortError");
+    state.status.philosophy = status;
+    state.philosophyViews = philosophyViews;
+    commitPreparedView(prepared, requestedFocusId);
   } else {
-    state.status.corpus = await fetchJson<AnyItem>("/api/corpus/status", { signal });
-    if (loadRevision !== modeLoadRevision || state.mode !== mode) return;
+    const status = await fetchJson<AnyItem>("/api/corpus/status", { signal });
     const summary = await fetchJson<{ graph_views?: ViewCard[]; counts?: AnyItem }>("/api/corpus/summary", { signal });
-    if (loadRevision !== modeLoadRevision || state.mode !== mode) return;
-    state.status.corpus = { ...state.status.corpus, counts: summary.counts || state.status.corpus.counts };
-    state.corpusViews = summary.graph_views || [];
-    const viewId = state.corpusViews.some((view) => view.view_id === requestedViewId)
+    const corpusViews = summary.graph_views || [];
+    const viewId = corpusViews.some((view) => view.view_id === requestedViewId)
       ? requestedViewId
-      : boot.default_view || state.corpusViews[0]?.view_id || "";
-    await loadView(viewId, "nodes", requestedFocusId, signal);
+      : boot.default_view || corpusViews[0]?.view_id || "";
+    const prepared = await prepareView(mode, viewId, "nodes", signal);
+    signal?.throwIfAborted();
+    if (loadRevision !== modeLoadRevision) throw new DOMException("superseded mode request", "AbortError");
+    state.status.corpus = { ...status, counts: summary.counts || status.counts };
+    state.corpusViews = corpusViews;
+    commitPreparedView(prepared, requestedFocusId);
   }
 }
 
@@ -3308,62 +3403,13 @@ async function loadView(
   const knownViews = state.mode === "philosophy" ? state.philosophyViews : state.corpusViews;
   requireKnownViewId(viewId, knownViews.map((view) => view.view_id));
   const loadRevision = ++viewLoadRevision;
-  searchRevision += 1;
-  neighborhoodRevision += 1;
-  pathRevision += 1;
   const loadMode = state.mode;
-  state.currentViewId = viewId;
-  state.currentView = null;
-  state.selected = null;
-  state.selectedGraphId = null;
-  state.results = [];
-  state.relationItems = [];
-  state.expandedCluster = null;
-  state.neighborhood = null;
-  state.pathStartNodeId = null;
-  state.pathPacket = null;
-  state.inspectorOpen = false;
-  if (state.mode === "philosophy") {
-    const sourcePayload = (await queryOperations.invoke("tos.view.open", {
-      mode: "philosophy",
-      view_id: viewId,
-      limit: 1000,
-    }, { signal })) as PhilosophyViewPayload;
-    if (loadRevision !== viewLoadRevision || state.mode !== loadMode || state.currentViewId !== viewId) return;
-    state.sourceNotes = (sourcePayload.nodes || []).filter(isPublicSourceNote);
-    const sourceNoteIds = new Set(state.sourceNotes.map((node) => node.node_id));
-    state.sourceNoteEdges = (sourcePayload.edges || []).filter(
-      (edge) => sourceNoteIds.has(edge.from_id) || sourceNoteIds.has(edge.to_id),
-    );
-    const payload = projectPublicPhilosophyPayload(sourcePayload);
-    state.currentView = payload;
-    state.activeLayers = new Set(payload.view.graph_layers || []);
-    state.activePredicates = new Set((payload.edges || []).filter(isPublicAtlasItem).map(predicateId));
-    state.densityMode = "overview";
-    state.minRelationCount = 1;
-    state.graphMode = requestedGraphMode || "clusters";
-    state.results = (payload.clusters || []).filter(isPublicAtlasItem);
-  } else {
-    state.sourceNotes = [];
-    state.sourceNoteEdges = [];
-    const payload = (await queryOperations.invoke("tos.view.open", {
-      mode: "corpus",
-      view_id: viewId,
-      limit: 700,
-    }, { signal })) as CorpusViewPayload;
-    if (loadRevision !== viewLoadRevision || state.mode !== loadMode || state.currentViewId !== viewId) return;
-    state.currentView = payload;
-    state.activeLayers = new Set();
-    state.activePredicates = new Set();
-    state.graphMode = "nodes";
-    state.results = (payload.items || []).filter(isPublicAtlasItem);
+  const prepared = await prepareView(loadMode, viewId, requestedGraphMode, signal);
+  signal?.throwIfAborted();
+  if (loadRevision !== viewLoadRevision || state.mode !== loadMode) {
+    throw new DOMException("superseded view request", "AbortError");
   }
-  if (requestedFocusId) {
-    const focusItem = currentViewItem(requestedFocusId);
-    if (focusItem) setSelectedItemState(focusItem);
-  }
-  renderAll();
-  syncPublicRoute();
+  commitPreparedView(prepared, requestedFocusId);
 }
 
 async function search(requestedQuery?: string, signal?: AbortSignal): Promise<{ result_count: number }> {

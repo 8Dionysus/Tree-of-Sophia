@@ -780,12 +780,17 @@ class AuthoredContractTests(unittest.TestCase):
         self.assertIn("registerTool", webmcp_source)
         self.assertIn("context.revision", webmcp_source)
 
-    def test_browser_drops_superseded_view_loads(self) -> None:
+    def test_browser_commits_only_current_completed_view_loads(self) -> None:
         source = (ACCESS_ROOT / "web/src/main.ts").read_text(encoding="utf-8")
-        self.assertIn("const loadRevision = ++viewLoadRevision", source)
-        self.assertGreaterEqual(source.count("loadRevision !== viewLoadRevision"), 2)
-        self.assertIn("const loadRevision = ++modeLoadRevision", source)
-        self.assertGreaterEqual(source.count("loadRevision !== modeLoadRevision"), 4)
+        load_mode = source.split("async function loadMode(", 1)[1].split("async function loadView(", 1)[0]
+        load_view = source.split("async function loadView(", 1)[1].split("async function search(", 1)[0]
+        self.assertIn("const loadRevision = ++viewLoadRevision", load_view)
+        self.assertIn("loadRevision !== viewLoadRevision", load_view)
+        self.assertLess(load_view.index("await prepareView"), load_view.index("commitPreparedView"))
+        self.assertIn("const loadRevision = ++modeLoadRevision", load_mode)
+        self.assertGreaterEqual(load_mode.count("loadRevision !== modeLoadRevision"), 2)
+        self.assertGreaterEqual(load_mode.count("signal?.throwIfAborted()"), 2)
+        self.assertEqual(load_mode.count("commitPreparedView"), 2)
 
     def test_browser_preserves_empty_filters_and_hides_unsupported_routes(self) -> None:
         actions = (ACCESS_ROOT / "web/src/query-operations.ts").read_text(encoding="utf-8")
