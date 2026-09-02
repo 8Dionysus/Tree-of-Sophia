@@ -63,6 +63,26 @@ def _supported_corpus_views(payload: dict[str, Any]) -> list[dict[str, Any]]:
     ]
 
 
+def _relation_pack_paths(payload: dict[str, Any]) -> dict[str, str]:
+    return {
+        str(pack["pack_id"]): str(pack["path"])
+        for pack in payload.get("relation_packs", [])
+        if isinstance(pack, dict)
+        and isinstance(pack.get("pack_id"), str)
+        and isinstance(pack.get("path"), str)
+        and pack.get("path")
+    }
+
+
+def _relation_edge_with_source_ref(edge: dict[str, Any], pack_paths: dict[str, str]) -> dict[str, Any]:
+    item = dict(edge)
+    if not item.get("source_ref"):
+        source_ref = pack_paths.get(str(item.get("pack_id") or ""))
+        if source_ref:
+            item["source_ref"] = source_ref
+    return item
+
+
 def _string_list(value: Any) -> list[str]:
     return [str(item) for item in value] if isinstance(value, list) else []
 
@@ -369,13 +389,14 @@ class ToSAccessCore:
 
     def node(self, node_id: str) -> dict[str, Any]:
         payload = self.index()
+        pack_paths = _relation_pack_paths(payload)
         matches = [
             node
             for node in payload.get("nodes", [])
             if isinstance(node, dict) and node.get("node_id") == node_id
         ]
         related_edges = [
-            edge
+            _relation_edge_with_source_ref(edge, pack_paths)
             for edge in payload.get("relation_edges", [])
             if isinstance(edge, dict) and (edge.get("from_id") == node_id or edge.get("to_id") == node_id)
         ]
@@ -389,13 +410,14 @@ class ToSAccessCore:
 
     def relation_pack(self, pack_id: str) -> dict[str, Any]:
         payload = self.index()
+        pack_paths = _relation_pack_paths(payload)
         packs = [
             pack
             for pack in payload.get("relation_packs", [])
             if isinstance(pack, dict) and pack.get("pack_id") == pack_id
         ]
         edges = [
-            edge
+            _relation_edge_with_source_ref(edge, pack_paths)
             for edge in payload.get("relation_edges", [])
             if isinstance(edge, dict) and edge.get("pack_id") == pack_id
         ]
@@ -431,13 +453,11 @@ class ToSAccessCore:
                 and pack.get("pack_id")
             }
             graph_edges = []
+            pack_paths = _relation_pack_paths(payload)
             for edge in payload.get("relation_edges", []):
                 if not isinstance(edge, dict) or str(edge.get("pack_id") or "") not in packs_by_id:
                     continue
-                item = dict(edge)
-                pack_path = packs_by_id[str(item["pack_id"])].get("path")
-                if not item.get("source_ref") and isinstance(pack_path, str) and pack_path:
-                    item["source_ref"] = pack_path
+                item = _relation_edge_with_source_ref(edge, pack_paths)
                 graph_edges.append(item)
                 if len(graph_edges) >= limit:
                     break
@@ -454,20 +474,12 @@ class ToSAccessCore:
             ]
             items = graph_edges
         elif view_id == "promotion-flow":
-            packs_by_id = {
-                str(pack.get("pack_id")): pack
-                for pack in payload.get("relation_packs", [])
-                if isinstance(pack, dict) and pack.get("pack_id")
-            }
             items = []
+            pack_paths = _relation_pack_paths(payload)
             for edge in payload.get("relation_edges", []):
                 if not isinstance(edge, dict) or edge.get("owner_branch") != "ToS/candidate-intake":
                     continue
-                item = dict(edge)
-                pack = packs_by_id.get(str(item.get("pack_id") or ""), {})
-                pack_path = pack.get("path") if isinstance(pack, dict) else None
-                if not item.get("source_ref") and isinstance(pack_path, str) and pack_path:
-                    item["source_ref"] = pack_path
+                item = _relation_edge_with_source_ref(edge, pack_paths)
                 items.append(item)
                 if len(items) >= limit:
                     break
@@ -771,24 +783,23 @@ class ToSAccessCore:
                 "cluster-edge-memberships",
             )
         }
+        def table_descriptor(table: str) -> dict[str, Any]:
+            return {
+                "row_count": len(rows[table]),
+                "packet_route": "tos_philosophy_graph_scale_rows",
+                "packet_route_args": {
+                    "table": table,
+                    "view_id": view_id,
+                    "layers": sorted(layer_filter),
+                },
+            }
         return {
             "schema": "tos_philosophy_mcp_scale_manifest_v1",
             "view_id": view_id,
             "layers": sorted(layer_filter),
             "tables": {
-                "nodes": {"row_count": len(rows["nodes"]), "packet_route": "tos_philosophy_graph_scale_rows", "packet_route_args": {"table": "nodes"}},
-                "edges": {"row_count": len(rows["edges"]), "packet_route": "tos_philosophy_graph_scale_rows", "packet_route_args": {"table": "edges"}},
-                "clusters": {"row_count": len(rows["clusters"]), "packet_route": "tos_philosophy_graph_scale_rows", "packet_route_args": {"table": "clusters"}},
-                "cluster-node-memberships": {
-                    "row_count": len(rows["cluster-node-memberships"]),
-                    "packet_route": "tos_philosophy_graph_scale_rows",
-                    "packet_route_args": {"table": "cluster-node-memberships"},
-                },
-                "cluster-edge-memberships": {
-                    "row_count": len(rows["cluster-edge-memberships"]),
-                    "packet_route": "tos_philosophy_graph_scale_rows",
-                    "packet_route_args": {"table": "cluster-edge-memberships"},
-                },
+                table: table_descriptor(table)
+                for table in rows
             },
             "source_projection_ref": self.philosophy_graph_projection_path.as_posix(),
             "runtime_projection_boundary": payload.get("runtime_projection_boundary", {}),

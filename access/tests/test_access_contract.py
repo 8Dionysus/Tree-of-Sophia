@@ -383,11 +383,15 @@ class CoreContractTests(unittest.TestCase):
             manifest = core.philosophy_scale_manifest(view_id="chronology", layers=["source-relation"])
             for table, descriptor in manifest["tables"].items():
                 self.assertEqual(descriptor["packet_route"], "tos_philosophy_graph_scale_rows")
-                self.assertEqual(descriptor["packet_route_args"], {"table": table})
+                self.assertEqual(
+                    descriptor["packet_route_args"],
+                    {"table": table, "view_id": "chronology", "layers": ["source-relation"]},
+                )
+                route_args = descriptor["packet_route_args"]
                 packet = core.philosophy_scale_packet(
-                    table,
-                    view_id="chronology",
-                    layers=["source-relation"],
+                    route_args["table"],
+                    view_id=route_args["view_id"],
+                    layers=route_args["layers"],
                     limit=1,
                 )
                 self.assertEqual(packet["total_row_count"], descriptor["row_count"])
@@ -400,6 +404,23 @@ class CoreContractTests(unittest.TestCase):
             )
             self.assertEqual(membership["row_count"], 1)
             self.assertEqual(membership["next_offset"], 1)
+
+    def test_direct_corpus_relation_packets_carry_owner_source_refs(self) -> None:
+        with tempfile.TemporaryDirectory() as raw:
+            root = Path(raw)
+            write_fixture(root)
+            index_path = root / "ToS/derived-exports/tos_corpus_index.min.json"
+            index = json.loads(index_path.read_text(encoding="utf-8"))
+            index["relation_packs"] = [
+                {"pack_id": "canon/fixture", "path": "ToS/canon/fixture/edges.csv"}
+            ]
+            index["relation_edges"] = [
+                {"edge_id": "e", "pack_id": "canon/fixture", "from_id": "a", "to_id": "b"}
+            ]
+            index_path.write_text(json.dumps(index), encoding="utf-8")
+            core = ToSAccessCore.discover(tos_root=root)
+            self.assertEqual(core.node("a")["related_edges"][0]["source_ref"], "ToS/canon/fixture/edges.csv")
+            self.assertEqual(core.relation_pack("canon/fixture")["edges"][0]["source_ref"], "ToS/canon/fixture/edges.csv")
 
     def test_doctor_and_http_use_same_core(self) -> None:
         with tempfile.TemporaryDirectory() as raw:
