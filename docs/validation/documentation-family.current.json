@@ -29,7 +29,7 @@
     "metric": "whitespace_tokens_v1",
     "posture": "summary_first_records_on_demand",
     "record_loading": "machine readers may select records by family_id or path; do not load the full carrier into an always-on prompt",
-    "tracked_surface_count": 3312,
+    "tracked_surface_count": 3316,
     "unhandled_family_count": 0
   },
   "coverage": {
@@ -126,10 +126,10 @@
     "surface_kind_counts": {
       "executable": 176,
       "human": 933,
-      "structured": 2203
+      "structured": 2207
     },
-    "tracked_path_count": 3820,
-    "tracked_surface_count": 3312,
+    "tracked_path_count": 3824,
+    "tracked_surface_count": 3316,
     "unhandled_family_count": 0,
     "unhandled_paths": []
   },
@@ -174,10 +174,10 @@
       "surface_kind_counts": {
         "executable": 4,
         "human": 528,
-        "structured": 2130
+        "structured": 2134
       },
-      "tracked_surface_bytes": 95175029,
-      "tracked_surface_count": 2662
+      "tracked_surface_bytes": 95202407,
+      "tracked_surface_count": 2666
     },
     {
       "family_id": "access",
@@ -240,7 +240,7 @@
         "executable": 92,
         "human": 1
       },
-      "tracked_surface_bytes": 3026778,
+      "tracked_surface_bytes": 3028387,
       "tracked_surface_count": 93
     },
     {
@@ -250,7 +250,7 @@
         "human": 1,
         "structured": 1
       },
-      "tracked_surface_bytes": 1196769,
+      "tracked_surface_bytes": 1202933,
       "tracked_surface_count": 51
     },
     {
@@ -285,7 +285,7 @@
   "source_map": "docs/validation/documentation_family_map.json",
   "source_map_sha256": "a91467671d22738dfeae38004fce5ed6dc54ecaaf2ebb8774fd88c419004dd09",
   "tracked_source": "git ls-files -z",
-  "tracked_surface_digest": "fe56d235b62e4635f8dac322443f8818674c71728f275a4617a835d1d89fefda",
+  "tracked_surface_digest": "07c2bbc0ed54be575b4e772faaa0185aabc4dd01ce8ae9e6905b4139f7bebd3e",
   "tracked_surfaces": [
     {
       "bytes": 1408,
@@ -3576,11 +3576,11 @@
       "surface_kind": "structured"
     },
     {
-      "bytes": 1672526,
+      "bytes": 1673711,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/derived-exports/tos_corpus_index.min.json",
-      "sha256": "433bcf2ca82d380eacb39b0f6ab188ca904b4b35f24a1b54ceb9f7386bf4d85a",
+      "sha256": "f7758ba4c40dbc31ad4e6ead880b9ec0d7e5f8c633328f4ef0cb76ca490d9a9d",
       "surface_kind": "structured"
     },
     {
@@ -18880,11 +18880,11 @@
       "surface_kind": "human"
     },
     {
-      "bytes": 96427,
+      "bytes": 97252,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/source-witnesses/discovery/candidates/queue.current.json",
-      "sha256": "67ac78f14d535cae86218e5a9de6ef6770db8c3e215d76dbe9bccf58dc2959ba",
+      "sha256": "a427beacff438be4562f5c079724b27f159b10e20c311ab4ec4993a9b5f4b847",
       "surface_kind": "structured"
     },
     {
@@ -18904,6 +18904,14 @@
       "surface_kind": "structured"
     },
     {
+      "bytes": 6583,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/candidates/receipts/book-of-the-dead.2026-09-02.v2.json",
+      "sha256": "28790ceb72947697a63adf306bba80c946e450224f79565a7773fb44451c685b",
+      "surface_kind": "structured"
+    },
+    {
       "bytes": 5344,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
@@ -18912,11 +18920,27 @@
       "surface_kind": "structured"
     },
     {
+      "bytes": 5428,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/candidates/receipts/book-of-two-ways.2026-09-02.v2.json",
+      "sha256": "058751f6fe2aa11585d0b95e8faeb00f65b0c836834212d4970ab43aac157e07",
+      "surface_kind": "structured"
+    },
+    {
       "bytes": 7464,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/source-witnesses/discovery/candidates/receipts/coffin-texts.2026-08-30.v1.json",
       "sha256": "98b224b5419b50ea5db62f2bf8e65c6454c9f8737c0d0d6c67d4d083ec90bbe8",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 7547,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/candidates/receipts/coffin-texts.2026-09-02.v2.json",
+      "sha256": "552ff8177fc5bf00d153d1d2f7e5ace607a1106ed2bb4a742679bdb2cd677595",
       "surface_kind": "structured"
     },
     {
@@ -19005,6 +19029,14 @@
       "family_id": "tos",
       "path": "ToS/source-witnesses/discovery/candidates/receipts/pyramid-texts.2026-08-30.v1.json",
       "sha256": "32b9087a5f3b047e50aea550b0e23672837e3d58e03247b3671c1dace83ec500",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 5810,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/candidates/receipts/pyramid-texts.2026-09-02.v2.json",
+      "sha256": "7126231e78edd5b5a342677be7de62ab458c99211ac0234d4d250c9e05dcab81",
       "surface_kind": "structured"
     },
     {
@@ -25960,11 +25992,11 @@
       "surface_kind": "executable"
     },
     {
-      "bytes": 122644,
+      "bytes": 124253,
       "currentness": "tracked_source_snapshot",
       "family_id": "scripts",
       "path": "scripts/open_work_candidate_queue_common.py",
-      "sha256": "7fe8026eef073cd6d36c4e107accd1f30140d342739e25f8a65926bc433fe002",
+      "sha256": "2573ab9b252747c7205f79e3af4097ce2654ebd6094b3d55104b18e99ce71422",
       "surface_kind": "executable"
     },
     {
@@ -26552,11 +26584,11 @@
       "surface_kind": "executable"
     },
     {
-      "bytes": 67842,
+      "bytes": 74006,
       "currentness": "tracked_source_snapshot",
       "family_id": "tests",
       "path": "tests/test_open_work_candidate_queue.py",
-      "sha256": "f1432ac8e500ca03549234b0a6b1c65e5d92e7cf2f5be9ce6b649763a0f5f3bd",
+      "sha256": "a4ec162bd0644f4d727cab00168ae3e8e4b28f63d42428fdeba4a7098039cd60",
       "surface_kind": "executable"
     },
     {
