@@ -25,6 +25,7 @@ from open_work_candidate_queue_common import (  # noqa: E402
     _validate_receipt_version_timestamp_order,
     _validate_planting_refs,
     _validate_target_binding,
+    _validate_target_resolution,
     build_payload,
     candidate_digest,
     render_payload,
@@ -179,7 +180,13 @@ class OpenWorkCandidateQueueTest(unittest.TestCase):
         )
         _write_jsonl(
             root / "ToS/source-witnesses/catalog/works.jsonl",
-            [{"record_id": "tos.work.synthetic.existing", "preferred_label": "Existing"}],
+            [
+                {
+                    "record_id": "tos.work.synthetic.existing",
+                    "record_type": "work",
+                    "preferred_label": "Existing",
+                }
+            ],
         )
         _write_json(
             root / "ToS/source-witnesses/discovery/runs/existing.v1.json",
@@ -216,6 +223,33 @@ class OpenWorkCandidateQueueTest(unittest.TestCase):
             payload["source_snapshot"]["counts"],
         )
         self.assertIn("not identity, rights, semantic, or canon authority", payload["authority_boundary"])
+
+    def test_target_resolution_requires_consistent_status_and_catalog_identity(self) -> None:
+        repo = self.make_repo()
+        target = {
+            "identity_status": "reconciled",
+            "work_ref": "tos.work.synthetic.existing",
+            "expression_ref": None,
+            "edition_ref": None,
+            "item_ref": None,
+            "summary": "Resolved synthetic work.",
+        }
+        _validate_target_resolution(repo, target, location="synthetic receipt")
+
+        missing = copy.deepcopy(target)
+        missing["work_ref"] = "tos.work.synthetic.missing"
+        with self.assertRaisesRegex(QueueBuildError, "does not resolve canonical work"):
+            _validate_target_resolution(repo, missing, location="synthetic receipt")
+
+        empty_reconciled = copy.deepcopy(target)
+        empty_reconciled["work_ref"] = None
+        with self.assertRaisesRegex(QueueBuildError, "reconciled target_resolution must declare"):
+            _validate_target_resolution(repo, empty_reconciled, location="synthetic receipt")
+
+        unresolved = copy.deepcopy(target)
+        unresolved["identity_status"] = "unresolved"
+        with self.assertRaisesRegex(QueueBuildError, "unresolved target_resolution must not"):
+            _validate_target_resolution(repo, unresolved, location="synthetic receipt")
 
     def test_terminal_receipt_advances_queue_without_rewriting_candidate(self) -> None:
         repo = self.make_repo()
@@ -415,6 +449,11 @@ class OpenWorkCandidateQueueTest(unittest.TestCase):
             ordered_receipts=[receipt],
             candidates_with_locations=candidates,
             discoveries={key: value for key, value in discoveries.items() if key != "tos.discovery.post-run"},
+        )
+        future_timing_ref = "ToS/source-witnesses/discovery/timings/unrelated-post-run.json"
+        _write_json(
+            repo / future_timing_ref,
+            {"measured_at": "2026-08-29T13:00:00Z"},
         )
         with_post_run = _reconstruct_pre_run_queue_sha256(
             repo,

@@ -45,6 +45,12 @@ TERMINAL_STATUSES = {
 QUEUEABLE_KINDS = {"work", "work-like-corpus"}
 TIMING_METHOD = "monotonic-http-request-v1"
 TIMING_CLOCK = "python.time.perf_counter_ns"
+TARGET_RESOLUTION_CATALOGS = {
+    "work_ref": (Path("ToS/source-witnesses/catalog/works.jsonl"), "work"),
+    "expression_ref": (Path("ToS/source-witnesses/catalog/expressions.jsonl"), "expression"),
+    "edition_ref": (Path("ToS/source-witnesses/catalog/editions.jsonl"), "edition"),
+    "item_ref": (Path("ToS/source-witnesses/catalog/items.jsonl"), "item"),
+}
 
 
 class QueueBuildError(RuntimeError):
@@ -268,6 +274,56 @@ def _validate_target_binding(
             raise QueueBuildError(f"{location}: {field} is required to freeze the executed discovery target")
         if supplied is not None and supplied != target_digest(target):
             raise QueueBuildError(f"{location}: {field} does not bind the referenced target")
+
+
+def _validate_target_resolution(
+    repo_root: Path,
+    target_resolution: Any,
+    *,
+    location: str,
+) -> None:
+    if not isinstance(target_resolution, dict):
+        raise QueueBuildError(f"{location}: target_resolution must be an object")
+    identity_status = target_resolution.get("identity_status")
+    if identity_status not in {"unresolved", "provisional", "reconciled"}:
+        raise QueueBuildError(
+            f"{location}: target_resolution.identity_status is unsupported: {identity_status!r}"
+        )
+
+    present_refs = [
+        field
+        for field in TARGET_RESOLUTION_CATALOGS
+        if isinstance(target_resolution.get(field), str) and target_resolution.get(field)
+    ]
+    if identity_status == "unresolved" and present_refs:
+        raise QueueBuildError(
+            f"{location}: unresolved target_resolution must not declare identity refs: {present_refs}"
+        )
+    if identity_status == "reconciled" and not present_refs:
+        raise QueueBuildError(
+            f"{location}: reconciled target_resolution must declare at least one identity ref"
+        )
+
+    for field, (catalog_path, record_type) in TARGET_RESOLUTION_CATALOGS.items():
+        reference = target_resolution.get(field)
+        if reference is None:
+            continue
+        if not isinstance(reference, str) or not reference:
+            raise QueueBuildError(f"{location}: target_resolution.{field} must be a string or null")
+        records = _load_jsonl(repo_root / catalog_path, repo_root)
+        matches = [record for record in records if record.get("record_id") == reference]
+        if not matches:
+            raise QueueBuildError(
+                f"{location}: target_resolution.{field} does not resolve canonical {record_type} {reference!r}"
+            )
+        if len(matches) > 1:
+            raise QueueBuildError(
+                f"{location}: target_resolution.{field} resolves duplicate canonical {record_type} {reference!r}"
+            )
+        if matches[0].get("record_type") != record_type:
+            raise QueueBuildError(
+                f"{location}: target_resolution.{field} resolves a non-{record_type} catalog record"
+            )
 
 
 def _load_provenance_events(repo_root: Path) -> dict[str, tuple[dict[str, Any], str]]:
@@ -1087,6 +1143,11 @@ def _load_receipts(
             receipt=receipt,
             location=location,
         )
+        _validate_target_resolution(
+            repo_root,
+            receipt.get("target_resolution"),
+            location=location,
+        )
         _validate_receipt_acquisition_closure(
             repo_root,
             receipt,
@@ -1560,6 +1621,25 @@ def _reconstruct_pre_run_queue_sha256(
             value = receipt.get(key)
             if isinstance(value, str) and value:
                 excluded_paths.add(Path(value))
+    prior_timing_refs = {
+        _safe_relative_path(receipt["timing_ref"])
+        for receipt in prior_receipts
+        if isinstance(receipt.get("timing_ref"), str) and receipt.get("timing_ref")
+    }
+    timing_root = repo_root / TIMING_ROOT
+    if timing_root.is_dir():
+        for path in sorted(timing_root.glob("*.json")):
+            relative = path.relative_to(repo_root)
+            if relative in prior_timing_refs:
+                continue
+            timing = _load_json(path, repo_root)
+            measured_at = _parse_timestamp(
+                timing.get("measured_at"),
+                location=relative.as_posix(),
+                field="measured_at",
+            )
+            if measured_at > current_key[0]:
+                excluded_paths.add(relative)
     payload = _build_queue_payload(
         repo_root,
         candidates_with_locations=candidates_with_locations,

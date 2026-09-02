@@ -67,7 +67,37 @@
         "edition_ref": {"type": ["string", "null"], "pattern": "^tos\\.edition\\."},
         "item_ref": {"type": ["string", "null"], "pattern": "^tos\\.item\\."},
         "summary": {"type": "string", "minLength": 1}
-      }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {"identity_status": {"const": "unresolved"}},
+            "required": ["identity_status"]
+          },
+          "then": {
+            "properties": {
+              "work_ref": {"type": "null"},
+              "expression_ref": {"type": "null"},
+              "edition_ref": {"type": "null"},
+              "item_ref": {"type": "null"}
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {"identity_status": {"const": "reconciled"}},
+            "required": ["identity_status"]
+          },
+          "then": {
+            "anyOf": [
+              {"properties": {"work_ref": {"type": "string"}}},
+              {"properties": {"expression_ref": {"type": "string"}}},
+              {"properties": {"edition_ref": {"type": "string"}}},
+              {"properties": {"item_ref": {"type": "string"}}}
+            ]
+          }
+        }
+      ]
     },
     "rightsResult": {
       "type": "object",
