@@ -1520,7 +1520,7 @@ function scaleExportQuery(): string {
   const params = new URLSearchParams();
   if (state.currentViewId) params.set("view_id", state.currentViewId);
   const layers = [...state.activeLayers].filter(Boolean);
-  if (layers.length) params.set("layers", layers.join(","));
+  params.set("layers", layers.length ? layers.join(",") : "__tos_none__");
   const query = params.toString();
   return query ? `?${query}` : "";
 }
@@ -2559,16 +2559,32 @@ function focusedNodePacket(): { nodes: GraphNode[]; edges: GraphEdge[] } | null 
 function buildCorpusGraph(): void {
   const payload = state.currentView as CorpusViewPayload;
   const items = (payload.items || []).filter(isPublicAtlasItem).slice(0, corpusItemLimit());
+  const relations = items.filter((item) => Boolean(item.from_id && item.to_id));
+  const resources = items.filter((item) => !(item.from_id && item.to_id));
   const rootId = `view:${state.currentViewId}`;
-  addGraphNode(rootId, payload.view, 0, 10);
-  items.forEach((item, index) => {
+  if (resources.length || relations.length === 0) addGraphNode(rootId, payload.view, 0, 10);
+  resources.forEach((item, index) => {
     const id = itemId(item);
     addGraphNode(id, item, index + 1, 5);
     addGraphEdge(`corpus-edge:${rootId}:${id}`, rootId, id, { edge_id: `corpus-edge:${id}`, predicate_id: "contains", ...item });
   });
+  const endpointIds = new Set<string>();
+  relations.forEach((item, index) => {
+    const fromId = text(item.from_id);
+    const toId = text(item.to_id);
+    for (const [id, label] of [
+      [fromId, text(item.from_label || endpointLabel(fromId) || fromId)],
+      [toId, text(item.to_label || endpointLabel(toId) || toId)],
+    ]) {
+      if (endpointIds.has(id)) continue;
+      endpointIds.add(id);
+      addGraphNode(id, { node_id: id, label, owner_branch: item.owner_branch }, resources.length + endpointIds.size, 5);
+    }
+    addGraphEdge(text(item.edge_id || `corpus-relation:${index}`), fromId, toId, item);
+  });
   layoutGraph();
   state.results = items;
-  state.relationItems = [];
+  state.relationItems = relations;
 }
 
 function renderGraphPreservingInspectorLists(): void {
