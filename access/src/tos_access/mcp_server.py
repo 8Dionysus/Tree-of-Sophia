@@ -160,6 +160,15 @@ def build_server(
         return current_state().philosophy_edge(edge_id=edge_id)
 
     @mcp.tool()
+    def tos_philosophy_epistemic_packet(
+        item_id: str,
+        view_id: str | None = None,
+        limit: int = 80,
+    ) -> dict[str, Any]:
+        """Return projected source routes, challenge signals, and authority posture for one selected item."""
+        return current_state().philosophy_epistemic_packet(item_id=item_id, view_id=view_id, limit=limit)
+
+    @mcp.tool()
     def tos_philosophy_graph_neighborhood(
         node_id: str,
         depth: int = 1,

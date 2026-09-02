@@ -42,6 +42,8 @@ run `tos verify --profile standalone`, `tos serve`, or `tos mcp`.
 - `contracts/runtime-manifest.v1.json` defines dual runtime posture.
 - `contracts/runtime-data.v1.json` is the publication/bundle allowlist.
 - `contracts/query-operations.v1.json` owns transport-neutral read operations.
+- `contracts/epistemic-packet.v1.schema.json` defines the projection-bounded
+  epistemic result and its fail-closed authority boundary.
 - `contracts/page-commands.v1.json` owns revisioned browser context and shared
   human/WebMCP actuation.
 - `contracts/web-actions.v1.json` is retained only as the v1 migration marker.
@@ -65,6 +67,12 @@ tools are registered only for the current node or edge and bind the captured
 context revision, so a delayed reference to “this edge” fails closed after the
 human changes selection. Tool execution forwards the browser-provided
 `AbortSignal` through page commands to HTTP queries.
+
+The first epistemic reading command exposes source-return routes, candidate or
+canon posture, and projected `contested_by`, `uncertain_relation`, and
+`polemicizes_with` signals around the current selection. It reports partial
+coverage explicitly: graph challenge signals are review leads, not adjudicated
+counterevidence, rights clearance, or semantic truth.
 
 The implementation follows the WebMCP Community Group draft shape current at
 `webmachinelearning/webmcp@41d12f057167ccf5954dbcf49d99502cb6c84491`:

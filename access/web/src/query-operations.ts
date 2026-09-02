@@ -6,6 +6,7 @@ export type ToSQueryOperationId =
   | "tos.view.open"
   | "tos.node.inspect"
   | "tos.neighborhood"
+  | "tos.epistemic.inspect"
   | "tos.path.find";
 
 export type ToSQueryInput = Record<string, unknown>;
@@ -97,6 +98,16 @@ export function createToSQueryOperations(fetchJson: FetchJson) {
             limit: boundedInt(input.limit, 80, 1, 300),
             layers: filterList(input.layers),
             predicates: filterList(input.predicates),
+          })}`,
+          request,
+        );
+      }
+      case "tos.epistemic.inspect": {
+        const itemId = requiredString(input.item_id, "item_id");
+        return fetchJson<ToSQueryResult>(
+          `/api/philosophy/query/epistemic/${encodeURIComponent(itemId)}${params({
+            view_id: optionalString(input.view_id),
+            limit: boundedInt(input.limit, 80, 1, 200),
           })}`,
           request,
         );

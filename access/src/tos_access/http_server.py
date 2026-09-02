@@ -151,6 +151,12 @@ def build_handler(core: ToSAccessCore, web_root: Path) -> type[BaseHTTPRequestHa
                 if path == "/api/philosophy/packet": self._json(core.philosophy_packet(_single(query, "query"), _single(query, "view_id") or None, _integer(query, "limit", 20, 1, 100))); return
                 if path.startswith("/api/philosophy/query/neighborhood/"):
                     packet = core.philosophy_neighborhood(unquote(path.removeprefix("/api/philosophy/query/neighborhood/")), _integer(query, "depth", 1, 1, 3), _list(query, "layers"), _list(query, "predicates"), _integer(query, "limit", 80, 1, 300)); packet["query_backend"] = "json"; self._json(packet); return
+                if path.startswith("/api/philosophy/query/epistemic/"):
+                    packet = core.philosophy_epistemic_packet(
+                        unquote(path.removeprefix("/api/philosophy/query/epistemic/")),
+                        _single(query, "view_id") or None,
+                        _integer(query, "limit", 80, 1, 200),
+                    ); self._json(packet); return
                 if path == "/api/philosophy/query/paths":
                     packet = core.philosophy_path_between(
                         _single(query, "from"),

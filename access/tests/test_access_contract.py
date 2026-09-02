@@ -380,6 +380,68 @@ class CoreContractTests(unittest.TestCase):
             self.assertEqual(bounded["frontier_limit"], 1)
             self.assertLessEqual(bounded["max_frontier_size"], 1)
 
+    def test_epistemic_packet_separates_challenges_from_adjudicated_evidence(self) -> None:
+        with tempfile.TemporaryDirectory() as raw:
+            root = Path(raw)
+            write_fixture(root)
+            projection_path = root / "ToS/derived-exports/philosophy_graph_projection.min.json"
+            projection = json.loads(projection_path.read_text(encoding="utf-8"))
+            projection["nodes"][0]["properties"] = {
+                "authority_posture": "prepared_research_candidate",
+                "canon_status": "pre-canon",
+                "dossier_id": "A01",
+            }
+            projection["edges"][1]["predicate_id"] = "contested_by"
+            projection["edges"][1]["properties"] = {
+                "authority_posture": "prepared_research_candidate",
+                "canon_status": "pre-canon",
+                "comment": "the proposed reading is disputed",
+                "confidence": "High",
+            }
+            projection["edges"][0]["predicate_id"] = "uncertain_relation"
+            projection["edges"][0]["properties"] = {
+                "authority_posture": "prepared_research_candidate",
+                "canon_status": "pre-canon",
+                "comment": "the chronology remains uncertain",
+            }
+            projection_path.write_text(json.dumps(projection), encoding="utf-8")
+            core = ToSAccessCore.discover(tos_root=root)
+
+            packet = core.philosophy_epistemic_packet("a", view_id="direct-only")
+
+            self.assertEqual(packet["schema"], "tos_philosophy_epistemic_packet_v1")
+            self.assertEqual(packet["selection"]["node_id"], "a")
+            self.assertEqual([row["edge_id"] for row in packet["challenge_relations"]], ["e"])
+            self.assertEqual(packet["context_relations"], [])
+            self.assertEqual(packet["selection_posture"]["authority_posture"], "prepared_research_candidate")
+            self.assertEqual(packet["selection_posture"]["canon_status"], "pre-canon")
+            self.assertIsNone(packet["selection_posture"]["confidence"])
+            self.assertFalse(packet["selection_posture"]["claim_evidence_closed"])
+            self.assertEqual(packet["field_posture"]["authority_postures"], ["prepared_research_candidate"])
+            self.assertEqual(packet["field_posture"]["canon_statuses"], ["pre-canon"])
+            self.assertEqual(packet["field_posture"]["confidence_values"], ["High"])
+            self.assertEqual(packet["coverage"]["posture"], "partial")
+            self.assertEqual(packet["coverage"]["challenge_state"], "projected_signals")
+            self.assertIn("claim-level support and counterevidence", packet["coverage"]["missing_surfaces"])
+            self.assertIn("not adjudicated counterevidence", packet["authority_note"])
+            self.assertEqual(
+                packet["source_refs"],
+                ["ToS/canon/a.json", "ToS/canon/b.json", "ToS/canon/relations.json"],
+            )
+
+            edge_packet = core.philosophy_epistemic_packet("e", view_id="direct-only")
+            self.assertEqual(edge_packet["selection"]["edge_id"], "e")
+            self.assertEqual([node["node_id"] for node in edge_packet["neighbor_nodes"]], ["a", "b"])
+            self.assertEqual([row["edge_id"] for row in edge_packet["challenge_relations"]], ["e"])
+            self.assertEqual(edge_packet["field_posture"]["confidence_values"], [])
+
+            truncated = core.philosophy_epistemic_packet("e3", view_id="chronology", limit=1)
+            self.assertEqual(truncated["challenge_relations"], [])
+            self.assertEqual(truncated["context_relations"][0]["edge_id"], "e3")
+            self.assertEqual(truncated["coverage"]["challenge_state"], "projected_signals_truncated")
+            self.assertEqual(truncated["coverage"]["available_challenge_relations"], 2)
+            self.assertEqual(truncated["coverage"]["returned_challenge_relations"], 0)
+
     def test_scale_memberships_reference_only_selected_rows(self) -> None:
         with tempfile.TemporaryDirectory() as raw:
             root = Path(raw)
@@ -595,12 +657,18 @@ class CoreContractTests(unittest.TestCase):
                 rerouted = json.load(urllib.request.urlopen(
                     base + "/api/philosophy/query/paths?from=a&to=b&direction=outgoing&exclude=e&alternatives=2"
                 ))
+                epistemic = json.load(urllib.request.urlopen(
+                    base + "/api/philosophy/query/epistemic/a?view_id=direct-only"
+                ))
                 self.assertTrue(health["ok"])
                 self.assertEqual(view["node_count"], 3)
                 self.assertEqual(limited_view["node_count"], 1)
                 self.assertEqual(limited_view["edge_count"], 0)
                 self.assertEqual([edge["edge_id"] for edge in rerouted["edges"]], ["e2", "e3"])
                 self.assertEqual(rerouted["direction"], "outgoing")
+                self.assertEqual(epistemic["selection"]["node_id"], "a")
+                self.assertEqual(epistemic["view_id"], "direct-only")
+                self.assertNotIn("query_backend", epistemic)
             finally:
                 server.shutdown()
                 server.server_close()
@@ -753,6 +821,7 @@ class AuthoredContractTests(unittest.TestCase):
             "tos.node.inspect",
             "tos.neighborhood",
             "tos.path.find",
+            "tos.epistemic.inspect",
         }
         self.assertEqual(
             {item["operation_id"] for item in query_contract["operations"]},

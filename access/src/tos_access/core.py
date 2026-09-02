@@ -19,6 +19,11 @@ SUPPORTED_CORPUS_VIEW_IDS = {
 }
 PHILOSOPHY_PATH_STATE_LIMIT = 50_000
 PHILOSOPHY_PATH_FRONTIER_LIMIT = 5_000
+PHILOSOPHY_CHALLENGE_PREDICATES = {
+    "contested_by",
+    "uncertain_relation",
+    "polemicizes_with",
+}
 
 
 @lru_cache(maxsize=8)
@@ -1098,6 +1103,215 @@ class ToSAccessCore:
             "endpoints": endpoints,
             "source_refs": _source_refs([edge] + endpoints),
             "authority_note": "Edge source_ref stays authoritative in Tree-of-Sophia; MCP exposes an access packet only.",
+        }
+
+    def philosophy_epistemic_packet(
+        self,
+        item_id: str,
+        view_id: str | None = None,
+        limit: int = 80,
+    ) -> dict[str, Any]:
+        """Return a projection-bounded evidence and challenge field for one selected item."""
+        payload = self.philosophy_projection()
+        all_nodes, all_edges = _projection_nodes_edges(payload)
+        nodes_by_id = {
+            str(node.get("node_id")): node
+            for node in all_nodes
+            if isinstance(node.get("node_id"), str)
+        }
+        edges_by_id = {
+            str(edge.get("edge_id")): edge
+            for edge in all_edges
+            if isinstance(edge.get("edge_id"), str)
+        }
+        selection = nodes_by_id.get(item_id) or edges_by_id.get(item_id)
+        if selection is None:
+            raise KeyError(f"unknown ToS philosophy projection item: {item_id}")
+
+        available_nodes = all_nodes
+        available_edges = all_edges
+        if view_id:
+            view = next(
+                (
+                    item
+                    for item in payload.get("views", [])
+                    if isinstance(item, dict) and item.get("view_id") == view_id
+                ),
+                None,
+            )
+            if view is None:
+                raise KeyError(f"unknown ToS philosophy graph view: {view_id}")
+            available_nodes, available_edges = _view_nodes_edges(payload, view)
+            available_ids = {
+                str(item.get("node_id") or item.get("edge_id") or "")
+                for item in [*available_nodes, *available_edges]
+            }
+            if item_id not in available_ids:
+                raise KeyError(f"ToS philosophy projection item is not present in view {view_id}: {item_id}")
+
+        bounded_limit = _bounded_int(limit, 80, 1, 200)
+        if item_id in nodes_by_id:
+            selected_node_ids = {item_id}
+            relation_candidates = [
+                edge
+                for edge in available_edges
+                if edge.get("from_id") == item_id or edge.get("to_id") == item_id
+            ]
+        else:
+            selected_node_ids = {
+                str(selection.get("from_id") or ""),
+                str(selection.get("to_id") or ""),
+            }
+            relation_candidates = [
+                edge
+                for edge in available_edges
+                if edge.get("edge_id") == item_id
+                or edge.get("from_id") in selected_node_ids
+                or edge.get("to_id") in selected_node_ids
+            ]
+
+        relation_candidates.sort(
+            key=lambda item: (
+                str(item.get("edge_id") or "") != item_id,
+                str(item.get("edge_id") or ""),
+            )
+        )
+        selected_edge_is_context = (
+            item_id in edges_by_id
+            and selection.get("predicate_id") not in PHILOSOPHY_CHALLENGE_PREDICATES
+        )
+        challenge_capacity = bounded_limit - 1 if selected_edge_is_context else bounded_limit
+        available_challenge_relations = [
+            edge
+            for edge in relation_candidates
+            if edge.get("predicate_id") in PHILOSOPHY_CHALLENGE_PREDICATES
+        ]
+        challenge_relations = available_challenge_relations[:challenge_capacity]
+        challenge_relations_truncated = len(challenge_relations) < len(available_challenge_relations)
+        challenge_ids = {str(edge.get("edge_id") or "") for edge in challenge_relations}
+        remaining = max(0, bounded_limit - len(challenge_relations))
+        context_relations = [
+            edge
+            for edge in relation_candidates
+            if str(edge.get("edge_id") or "") not in challenge_ids
+        ][:remaining]
+        selected_relations = [*challenge_relations, *context_relations]
+
+        related_node_ids = {
+            str(endpoint)
+            for edge in selected_relations
+            for endpoint in (edge.get("from_id"), edge.get("to_id"))
+            if endpoint
+        }
+        if item_id in nodes_by_id:
+            related_node_ids.discard(item_id)
+        neighbor_nodes = [
+            node
+            for node in available_nodes
+            if str(node.get("node_id") or "") in related_node_ids
+        ]
+
+        surrounding_items = [*challenge_relations, *context_relations, *neighbor_nodes]
+        field_items = [selection, *surrounding_items]
+        field_posture_items = [
+            item
+            for item in surrounding_items
+            if str(item.get("node_id") or item.get("edge_id") or "") != item_id
+        ]
+        selection_properties = (
+            selection.get("properties")
+            if isinstance(selection.get("properties"), dict)
+            else {}
+        )
+        properties = [
+            item.get("properties")
+            for item in field_posture_items
+            if isinstance(item.get("properties"), dict)
+        ]
+        authority_postures = sorted({
+            str(item.get("authority_posture"))
+            for item in properties
+            if isinstance(item.get("authority_posture"), str) and item.get("authority_posture")
+        })
+        canon_statuses = sorted({
+            str(item.get("canon_status"))
+            for item in properties
+            if isinstance(item.get("canon_status"), str) and item.get("canon_status")
+        })
+        review_postures = sorted({
+            str(item.get("review_posture"))
+            for item in properties
+            if isinstance(item.get("review_posture"), str) and item.get("review_posture")
+        })
+        confidence_values = sorted({
+            str(item.get("confidence") or item.get("master_confidence"))
+            for item in properties
+            if item.get("confidence") or item.get("master_confidence")
+        })
+        selection_posture = {
+            "authority_posture": selection_properties.get("authority_posture"),
+            "canon_status": selection_properties.get("canon_status"),
+            "review_posture": selection_properties.get("review_posture"),
+            "confidence": selection_properties.get("confidence")
+            or selection_properties.get("master_confidence"),
+            "priority": selection_properties.get("priority"),
+            # Never infer closure from the coincidental presence of IDs or refs.
+            "claim_evidence_closed": selection_properties.get("claim_evidence_closed") is True,
+        }
+
+        return {
+            "schema": "tos_philosophy_epistemic_packet_v1",
+            "item_id": item_id,
+            "view_id": view_id,
+            "selection": selection,
+            "challenge_relations": challenge_relations,
+            "context_relations": context_relations,
+            "neighbor_nodes": neighbor_nodes,
+            "selection_posture": selection_posture,
+            "field_posture": {
+                "authority_postures": authority_postures,
+                "canon_statuses": canon_statuses,
+                "review_postures": review_postures,
+                "confidence_values": confidence_values,
+            },
+            "coverage": {
+                "posture": "partial",
+                "challenge_state": (
+                    "projected_signals_truncated"
+                    if challenge_relations_truncated
+                    else "projected_signals"
+                    if available_challenge_relations
+                    else "none_in_projection_scope"
+                ),
+                "available_challenge_relations": len(available_challenge_relations),
+                "returned_challenge_relations": len(challenge_relations),
+                "missing_surfaces": [
+                    "claim-level support and counterevidence",
+                    "source-visible review decisions",
+                    "rights and publication decisions",
+                ],
+            },
+            "authority_boundary": {
+                "is_source": False,
+                "is_canon": False,
+                "is_semantic_truth": False,
+                "is_rights_clearance": False,
+            },
+            "counts": {
+                "challenge_relations": len(challenge_relations),
+                "available_challenge_relations": len(available_challenge_relations),
+                "context_relations": len(context_relations),
+                "neighbor_nodes": len(neighbor_nodes),
+                "source_refs": len(_source_refs(field_items)),
+            },
+            "source_refs": _source_refs(field_items),
+            "challenge_predicates": sorted(PHILOSOPHY_CHALLENGE_PREDICATES),
+            "runtime_projection_boundary": payload.get("runtime_projection_boundary", {}),
+            "authority_note": (
+                "This packet exposes projected challenge signals and source-return routes. "
+                "A contested_by, uncertain_relation, or polemicizes_with candidate is not adjudicated counterevidence; "
+                "ToS source, claim, review, rights, and canon owners remain authoritative."
+            ),
         }
 
     def philosophy_neighborhood(

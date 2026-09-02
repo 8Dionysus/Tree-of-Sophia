@@ -7,5 +7,7 @@ meaning of the ToS projections they carry.
 `runtime-data.v1.json` is the exact standalone data allowlist;
 `query-operations.v1.json` owns transport-neutral read operations; and
 `page-commands.v1.json` owns revisioned browser context plus shared human and
-WebMCP actuation. `web-actions.v1.json` remains only as a migration marker for
-the former combined ABI.
+WebMCP actuation. `epistemic-packet.v1.schema.json` keeps the selected item's
+posture separate from the surrounding graph field and makes partial coverage
+and non-authority machine-readable. `web-actions.v1.json` remains only as a
+migration marker for the former combined ABI.

@@ -1,0 +1,95 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://tree-of-sophia.local/contracts/epistemic-packet.v1.schema.json",
+  "title": "Tree of Sophia projection-bounded epistemic packet",
+  "type": "object",
+  "required": [
+    "schema",
+    "item_id",
+    "selection",
+    "challenge_relations",
+    "context_relations",
+    "selection_posture",
+    "field_posture",
+    "coverage",
+    "authority_boundary",
+    "source_refs",
+    "authority_note"
+  ],
+  "properties": {
+    "schema": {"const": "tos_philosophy_epistemic_packet_v1"},
+    "item_id": {"type": "string", "minLength": 1},
+    "view_id": {"type": ["string", "null"]},
+    "selection": {"type": "object"},
+    "challenge_relations": {
+      "type": "array",
+      "description": "Projected review leads only; never adjudicated counterevidence.",
+      "items": {"type": "object"}
+    },
+    "context_relations": {"type": "array", "items": {"type": "object"}},
+    "neighbor_nodes": {"type": "array", "items": {"type": "object"}},
+    "selection_posture": {
+      "type": "object",
+      "required": ["claim_evidence_closed"],
+      "properties": {
+        "authority_posture": {"type": ["string", "null"]},
+        "canon_status": {"type": ["string", "null"]},
+        "review_posture": {"type": ["string", "null"]},
+        "confidence": {"type": ["string", "null"]},
+        "priority": {"type": ["string", "null"]},
+        "claim_evidence_closed": {
+          "type": "boolean",
+          "description": "True only when the projection states this explicitly; never inferred from adjacent IDs or references."
+        }
+      },
+      "additionalProperties": false
+    },
+    "field_posture": {
+      "type": "object",
+      "description": "Distinct values visible across the bounded surrounding field, kept separate from the selected item's posture.",
+      "required": ["authority_postures", "canon_statuses", "review_postures", "confidence_values"],
+      "properties": {
+        "authority_postures": {"type": "array", "items": {"type": "string"}, "uniqueItems": true},
+        "canon_statuses": {"type": "array", "items": {"type": "string"}, "uniqueItems": true},
+        "review_postures": {"type": "array", "items": {"type": "string"}, "uniqueItems": true},
+        "confidence_values": {"type": "array", "items": {"type": "string"}, "uniqueItems": true}
+      },
+      "additionalProperties": false
+    },
+    "coverage": {
+      "type": "object",
+      "required": [
+        "posture",
+        "challenge_state",
+        "available_challenge_relations",
+        "returned_challenge_relations",
+        "missing_surfaces"
+      ],
+      "properties": {
+        "posture": {"const": "partial"},
+        "challenge_state": {"enum": ["projected_signals", "projected_signals_truncated", "none_in_projection_scope"]},
+        "available_challenge_relations": {"type": "integer", "minimum": 0},
+        "returned_challenge_relations": {"type": "integer", "minimum": 0},
+        "missing_surfaces": {"type": "array", "items": {"type": "string"}, "minItems": 1}
+      },
+      "additionalProperties": false
+    },
+    "authority_boundary": {
+      "type": "object",
+      "required": ["is_source", "is_canon", "is_semantic_truth", "is_rights_clearance"],
+      "properties": {
+        "is_source": {"const": false},
+        "is_canon": {"const": false},
+        "is_semantic_truth": {"const": false},
+        "is_rights_clearance": {"const": false}
+      },
+      "additionalProperties": false
+    },
+    "counts": {"type": "object"},
+    "source_refs": {"type": "array", "items": {"type": "string"}, "uniqueItems": true},
+    "challenge_predicates": {"type": "array", "items": {"type": "string"}, "uniqueItems": true},
+    "runtime_projection_boundary": {"type": "object"},
+    "authority_note": {"type": "string", "minLength": 1}
+  },
+  "additionalProperties": false
+}

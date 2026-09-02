@@ -9,6 +9,11 @@
     {"operation_id": "tos.node.inspect", "input": {"mode": "philosophy|corpus", "node_id": "string"}, "result": "node packet"},
     {"operation_id": "tos.neighborhood", "input": {"node_id": "string", "depth": "1..3", "limit": "1..300", "layers": "string[]", "predicates": "string[]"}, "result": "neighborhood packet"},
     {
+      "operation_id": "tos.epistemic.inspect",
+      "input": {"item_id": "projection node or edge ID", "view_id": "string|null", "limit": "1..200"},
+      "result": "epistemic-packet.v1.schema.json"
+    },
+    {
       "operation_id": "tos.path.find",
       "input": {
         "from_id": "string",
