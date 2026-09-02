@@ -1092,8 +1092,8 @@ function stringList(value: unknown): string[] {
 }
 
 function layerAllowed(item: AnyItem): boolean {
+  if (!isPhilosophyView(state.currentView)) return true;
   const layers = itemLayers(item);
-  if (state.activeLayers.size === 0 || layers.length === 0) return true;
   return layers.some((layer) => state.activeLayers.has(layer));
 }
 
@@ -1430,6 +1430,7 @@ function renderLayers(): void {
       const layer = input.dataset.layer || "";
       if (input.checked) state.activeLayers.add(layer);
       else state.activeLayers.delete(layer);
+      invalidateFocusedPackets();
       renderAll();
     });
   });
@@ -1495,6 +1496,7 @@ function renderRelationControls(): void {
       const predicate = input.dataset.predicate || "";
       if (input.checked) state.activePredicates.add(predicate);
       else state.activePredicates.delete(predicate);
+      invalidateFocusedPackets();
       renderAll();
     });
   });
@@ -1508,6 +1510,7 @@ function renderRelationControls(): void {
   });
   root.querySelector<HTMLButtonElement>("#predicate-reset")?.addEventListener("click", () => {
     state.activePredicates = new Set(currentPredicates());
+    invalidateFocusedPackets();
     renderAll();
   });
 }
@@ -2976,14 +2979,18 @@ async function showPathTo(nodeId: string): Promise<void> {
 }
 
 function clearFocus(): void {
+  invalidateFocusedPackets();
+  state.graphMode = state.mode === "philosophy" ? "clusters" : "nodes";
+  renderAll();
+  syncPublicRoute();
+}
+
+function invalidateFocusedPackets(): void {
   neighborhoodRevision += 1;
   pathRevision += 1;
   state.neighborhood = null;
   state.pathPacket = null;
   state.expandedCluster = null;
-  state.graphMode = state.mode === "philosophy" ? "clusters" : "nodes";
-  renderAll();
-  syncPublicRoute();
 }
 
 function renderAll(): void {

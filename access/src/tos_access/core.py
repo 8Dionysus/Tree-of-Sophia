@@ -596,10 +596,10 @@ class ToSAccessCore:
         all_nodes, all_edges = _view_nodes_edges(payload, view)
         nodes, edges = _bounded_graph(all_nodes, all_edges, limit)
         clusters = _bounded_clusters(
-            self._philosophy_clusters_for_payload(payload, view_id=view_id, limit=limit),
+            self._philosophy_clusters_for_payload(payload, view_id=view_id, limit=1_000_000),
             nodes,
             edges,
-        )
+        )[:limit]
         return {
             "schema": "tos_philosophy_mcp_view_v1",
             "view": view,
@@ -738,7 +738,11 @@ class ToSAccessCore:
             and str(edge.get("to_id") or "") in node_ids
         ]
         edge_ids = {str(edge.get("edge_id")) for edge in edges if isinstance(edge.get("edge_id"), str)}
-        clusters = [cluster for cluster in clusters if _layer_allowed(cluster, layer_filter)]
+        clusters = _bounded_clusters(
+            [cluster for cluster in clusters if _layer_allowed(cluster, layer_filter)],
+            nodes,
+            edges,
+        )
 
         if table == "nodes":
             return nodes

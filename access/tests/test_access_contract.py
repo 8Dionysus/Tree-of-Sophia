@@ -199,6 +199,32 @@ class CoreContractTests(unittest.TestCase):
             core = ToSAccessCore.discover(tos_root=root)
             self.assertEqual(len(core.philosophy_view("chronology", limit=1000)["clusters"]), 45)
 
+    def test_view_packet_applies_cluster_cap_after_graph_intersection(self) -> None:
+        with tempfile.TemporaryDirectory() as raw:
+            root = Path(raw)
+            write_fixture(root)
+            projection_path = root / "ToS/derived-exports/philosophy_graph_projection.min.json"
+            projection = json.loads(projection_path.read_text(encoding="utf-8"))
+            template = projection["clusters"][0]
+            projection["clusters"] = [
+                {
+                    **template,
+                    "cluster_id": f"irrelevant-{index}",
+                    "label": f"A irrelevant {index:02d}",
+                    "member_node_ids": ["outside"],
+                    "member_edge_ids": ["outside-edge"],
+                }
+                for index in range(20)
+            ] + [
+                {**template, "cluster_id": "relevant", "label": "Z relevant"}
+            ]
+            projection_path.write_text(json.dumps(projection), encoding="utf-8")
+            core = ToSAccessCore.discover(tos_root=root)
+
+            packet = core.philosophy_view("chronology", limit=2)
+
+            self.assertEqual([cluster["cluster_id"] for cluster in packet["clusters"]], ["relevant"])
+
     def test_scale_memberships_reference_only_selected_rows(self) -> None:
         with tempfile.TemporaryDirectory() as raw:
             root = Path(raw)
@@ -208,10 +234,13 @@ class CoreContractTests(unittest.TestCase):
             edge_ids = {row["edge_id"] for row in _scale_rows(core, "edges", "chronology", [])}
             node_memberships = _scale_rows(core, "cluster-node-memberships", "chronology", [])
             edge_memberships = _scale_rows(core, "cluster-edge-memberships", "chronology", [])
+            clusters = _scale_rows(core, "clusters", "chronology", [])
             self.assertTrue(all(row["node_id"] in node_ids for row in node_memberships))
             self.assertTrue(all(row["edge_id"] in edge_ids for row in edge_memberships))
             self.assertNotIn("outside", {row["node_id"] for row in node_memberships})
             self.assertNotIn("outside-edge", {row["edge_id"] for row in edge_memberships})
+            self.assertEqual(clusters[0]["member_node_ids"], ["a", "b", "c"])
+            self.assertEqual(clusters[0]["member_edge_ids"], ["e2", "e"])
             expected_cluster_ref = "ToS/philosophy/graph-workbench/clusters/cluster-contracts.json"
             self.assertTrue(all(row["source_ref"] == expected_cluster_ref for row in node_memberships))
             self.assertTrue(all(row["source_ref"] == expected_cluster_ref for row in edge_memberships))
