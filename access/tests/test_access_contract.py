@@ -523,6 +523,9 @@ class CoreContractTests(unittest.TestCase):
                 "{not-json",
                 encoding="utf-8",
             )
+            doctor = doctor_report(tos_root=root)
+            self.assertFalse(doctor["ok"])
+            self.assertIn("philosophy-graph-schema", doctor["required_failures"])
             server = make_server(ToSAccessCore.discover(tos_root=root), port=0)
             thread = threading.Thread(target=server.serve_forever, daemon=True)
             thread.start()

@@ -57,15 +57,26 @@ def doctor_report(
 
     checks.append(_check("corpus-index-present", core.index_exists(), path=core.index_path.as_posix()))
     if core.index_exists():
-        index = core.index()
-        checks.append(
-            _check(
-                "corpus-index-schema",
-                index.get("schema_version") in SUPPORTED_INDEX_SCHEMAS,
-                schema_version=index.get("schema_version"),
-                sha256=sha256_file(core.index_path),
+        try:
+            index = core.index()
+        except (OSError, RuntimeError, ValueError) as exc:
+            checks.append(
+                _check(
+                    "corpus-index-schema",
+                    False,
+                    schema_version=None,
+                    error=str(exc),
+                )
             )
-        )
+        else:
+            checks.append(
+                _check(
+                    "corpus-index-schema",
+                    index.get("schema_version") in SUPPORTED_INDEX_SCHEMAS,
+                    schema_version=index.get("schema_version"),
+                    sha256=sha256_file(core.index_path),
+                )
+            )
 
     checks.append(
         _check(
@@ -75,25 +86,49 @@ def doctor_report(
         )
     )
     if core.philosophy_projection_exists():
-        graph = core.philosophy_projection()
-        checks.append(
-            _check(
-                "philosophy-graph-schema",
-                graph.get("schema_version") in SUPPORTED_GRAPH_SCHEMAS,
-                schema_version=graph.get("schema_version"),
-                sha256=sha256_file(core.philosophy_graph_projection_path),
+        try:
+            graph = core.philosophy_projection()
+        except (OSError, RuntimeError, ValueError) as exc:
+            checks.append(
+                _check(
+                    "philosophy-graph-schema",
+                    False,
+                    schema_version=None,
+                    error=str(exc),
+                )
             )
-        )
-        view_packet = core.philosophy_view(str(graph.get("views", [{}])[0].get("view_id") or ""))
-        checks.append(
-            _check(
-                "graph-view-materialization",
-                view_packet.get("node_count", 0) > 0 and view_packet.get("edge_count", 0) > 0,
-                view_id=view_packet.get("view", {}).get("view_id"),
-                node_count=view_packet.get("node_count"),
-                edge_count=view_packet.get("edge_count"),
+        else:
+            checks.append(
+                _check(
+                    "philosophy-graph-schema",
+                    graph.get("schema_version") in SUPPORTED_GRAPH_SCHEMAS,
+                    schema_version=graph.get("schema_version"),
+                    sha256=sha256_file(core.philosophy_graph_projection_path),
+                )
             )
-        )
+            views = [view for view in graph.get("views", []) if isinstance(view, dict) and view.get("view_id")]
+            if views:
+                view_packet = core.philosophy_view(str(views[0]["view_id"]))
+                checks.append(
+                    _check(
+                        "graph-view-materialization",
+                        view_packet.get("node_count", 0) > 0 and view_packet.get("edge_count", 0) > 0,
+                        view_id=view_packet.get("view", {}).get("view_id"),
+                        node_count=view_packet.get("node_count"),
+                        edge_count=view_packet.get("edge_count"),
+                    )
+                )
+            else:
+                checks.append(
+                    _check(
+                        "graph-view-materialization",
+                        False,
+                        view_id=None,
+                        node_count=0,
+                        edge_count=0,
+                        error="projection has no graph views",
+                    )
+                )
 
     contract_root = contract_root_for(core)
     checks.append(
