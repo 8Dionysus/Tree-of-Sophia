@@ -36,7 +36,7 @@
     "excluded_generated_carrier_rules": 3,
     "excluded_tracked_path_count": 480,
     "human_scope": {
-      "bytes": 4512388,
+      "bytes": 4512426,
       "count": 889,
       "excluded_skill_launch_metadata": 25,
       "family_counts": {
@@ -66,7 +66,7 @@
           "lines": 96
         },
         "github": {
-          "bytes": 7536,
+          "bytes": 7574,
           "count": 4,
           "lines": 179
         },
@@ -166,7 +166,7 @@
       "surface_kind_counts": {
         "human": 4
       },
-      "tracked_surface_bytes": 7536,
+      "tracked_surface_bytes": 7574,
       "tracked_surface_count": 4
     },
     {
@@ -186,7 +186,7 @@
         "human": 4,
         "structured": 8
       },
-      "tracked_surface_bytes": 165932,
+      "tracked_surface_bytes": 166162,
       "tracked_surface_count": 22
     },
     {
@@ -285,7 +285,7 @@
   "source_map": "docs/validation/documentation_family_map.json",
   "source_map_sha256": "a91467671d22738dfeae38004fce5ed6dc54ecaaf2ebb8774fd88c419004dd09",
   "tracked_source": "git ls-files -z",
-  "tracked_surface_digest": "2e8ffe3b04942144500a5efc7242a466ed350731846f1ed851ad2a9e9db05dec",
+  "tracked_surface_digest": "5274f073203ed352edae74902503b420107ebc4da37470e44d0d4ca90d1eca25",
   "tracked_surfaces": [
     {
       "bytes": 1408,
@@ -324,7 +324,7 @@
       "currentness": "tracked_source_snapshot",
       "family_id": "agents-other",
       "path": ".agents/agents-route.current.json",
-      "sha256": "af65f1840e5ec7a424166710a1bb9e826cba200d0cecc8f50850016b2384cc30",
+      "sha256": "bbbbcc92dc493f3b6778f24736925a8bc307c19e950c9a559991e54b9dc694af",
       "surface_kind": "structured"
     },
     {
@@ -1648,11 +1648,11 @@
       "surface_kind": "human"
     },
     {
-      "bytes": 3595,
+      "bytes": 3633,
       "currentness": "tracked_source_snapshot",
       "family_id": "github",
       "path": ".github/workflows/repo-validation.yml",
-      "sha256": "3a4bc5ef120a7ae7e827911cf93b901ac3ee639c9ff132e7fda86a970fae1dc7",
+      "sha256": "f308e4eb9e9c8f4bbbab773d6aedc7678d3c426b44e7486d97de12643b91f18d",
       "surface_kind": "human"
     },
     {
@@ -21696,11 +21696,11 @@
       "surface_kind": "executable"
     },
     {
-      "bytes": 7707,
+      "bytes": 7937,
       "currentness": "tracked_source_snapshot",
       "family_id": "access",
       "path": "access/tests/test_access_contract.py",
-      "sha256": "b2adeaa3abd055e4f73a6e8f6e1ab030d73abe00be8846431cedf886bac56926",
+      "sha256": "b08c22a37e973a3fd98a65ee0ea71a32d81f8e7a664aaf481b90a9ce9c1c03cf",
       "surface_kind": "executable"
     },
     {

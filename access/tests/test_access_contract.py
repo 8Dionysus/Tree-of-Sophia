@@ -147,6 +147,10 @@ class CoreContractTests(unittest.TestCase):
 
 
 class AuthoredContractTests(unittest.TestCase):
+    def test_release_workflow_installs_standalone_mcp_extra(self) -> None:
+        workflow = (REPO_ROOT / ".github/workflows/repo-validation.yml").read_text(encoding="utf-8")
+        self.assertIn("-e './access[mcp]'", workflow)
+
     def test_web_action_contract_matches_browser_adapter(self) -> None:
         payload = json.loads((ACCESS_ROOT / "contracts/web-actions.v1.json").read_text(encoding="utf-8"))
         expected = {
@@ -174,4 +178,3 @@ class AuthoredContractTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
-
