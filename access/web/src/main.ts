@@ -2,7 +2,13 @@ import type { Graph as CosmosGraph, GraphConfig } from "@cosmos.gl/graph";
 import Graphology from "graphology";
 import forceAtlas2 from "graphology-layout-forceatlas2";
 import Sigma from "sigma";
-import { createPageCommandRegistry, type PageContextSnapshot, type PageSelection } from "./page-commands";
+import {
+  createPageCommandRegistry,
+  reloadableFocusId,
+  requireKnownViewId,
+  type PageContextSnapshot,
+  type PageSelection,
+} from "./page-commands";
 import { createToSQueryOperations } from "./query-operations";
 import { createWebMCPAdapter, type WebMCPDocument } from "./webmcp";
 import { localizedContentPayload, localizedContentText } from "./content-i18n";
@@ -1389,8 +1395,16 @@ function syncPublicRoute(): void {
   url.searchParams.set("graph", state.graphMode);
   url.searchParams.set("lang", state.language);
   url.searchParams.set("ui", state.language);
-  const selectedRouteId = state.selected ? itemId(state.selected) : "";
-  const routeFocusId = selectedRouteId && selectedRouteId !== "item" ? selectedRouteId : state.selectedGraphId;
+  const current = state.currentView as AnyItem | null;
+  const reloadableIds = current
+    ? [
+        ...((current.nodes as AnyItem[] | undefined) || []),
+        ...((current.edges as AnyItem[] | undefined) || []),
+        ...((current.clusters as AnyItem[] | undefined) || []),
+        ...((current.items as AnyItem[] | undefined) || []),
+      ].map(itemId)
+    : [];
+  const routeFocusId = reloadableFocusId(pageSelection(), state.selectedGraphId, reloadableIds);
   if (routeFocusId) url.searchParams.set("focus", routeFocusId);
   else url.searchParams.delete("focus");
   window.history.replaceState(null, "", `${url.pathname}${url.search}${url.hash}`);
@@ -3258,6 +3272,8 @@ async function loadView(
   signal?: AbortSignal,
 ): Promise<void> {
   if (!viewId) return;
+  const knownViews = state.mode === "philosophy" ? state.philosophyViews : state.corpusViews;
+  requireKnownViewId(viewId, knownViews.map((view) => view.view_id));
   const loadRevision = ++viewLoadRevision;
   searchRevision += 1;
   neighborhoodRevision += 1;
@@ -3405,7 +3421,8 @@ const pageCommands = createPageCommandRegistry(pageContextSnapshot, {
     const viewId = commandString(input, "view_id");
     const graphMode = commandString(input, "graph_mode") === "nodes" ? "nodes" : "clusters";
     const focusId = commandString(input, "focus_id");
-    if (mode !== state.mode || !viewId) {
+    const knownViews = mode === "philosophy" ? state.philosophyViews : state.corpusViews;
+    if (mode !== state.mode || !viewId || knownViews.length === 0) {
       await loadMode(mode, viewId, graphMode, focusId, execution.signal);
     } else {
       await loadView(viewId, graphMode, focusId, execution.signal);

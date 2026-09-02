@@ -52,6 +52,23 @@ export class StalePageContextError extends Error {
   }
 }
 
+export function requireKnownViewId(viewId: string, knownViewIds: Iterable<string>): void {
+  if (!viewId || !new Set(knownViewIds).has(viewId)) {
+    throw new Error(`unknown Tree of Sophia view: ${viewId || "(empty)"}`);
+  }
+}
+
+export function reloadableFocusId(
+  selected: PageSelection | null,
+  selectedGraphId: string | null,
+  reloadableIds: Iterable<string>,
+): string {
+  const allowed = new Set(reloadableIds);
+  const selectedId = selected?.id || "";
+  if (selectedId && allowed.has(selectedId)) return selectedId;
+  return selectedGraphId && allowed.has(selectedGraphId) ? selectedGraphId : "";
+}
+
 export function createPageCommandRegistry(
   readContext: () => PageContextSnapshot,
   handlers: PageCommandHandlers,
@@ -106,7 +123,7 @@ export function createPageCommandRegistry(
       };
     }
 
-    cancel(commandId);
+    cancel();
     const controller = new AbortController();
     const abortFromCaller = () => controller.abort(options.signal?.reason);
     if (options.signal?.aborted) abortFromCaller();
@@ -116,6 +133,9 @@ export function createPageCommandRegistry(
     try {
       const value = await handlers[commandId](input, { signal: controller.signal });
       controller.signal.throwIfAborted();
+      if (expectedRevision !== undefined && expectedRevision !== revision) {
+        throw new StalePageContextError(expectedRevision, revision);
+      }
       if (pending.get(commandId) === controller) pending.delete(commandId);
       revision += 1;
       const current = publish();
@@ -138,6 +158,7 @@ export function createPageCommandRegistry(
   };
 
   const notifyStateChange = (): PageContext => {
+    cancel();
     revision += 1;
     return publish();
   };

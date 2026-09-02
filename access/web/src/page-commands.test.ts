@@ -1,5 +1,11 @@
 import { describe, expect, it, vi } from "vitest";
-import { createPageCommandRegistry, StalePageContextError, type PageContextSnapshot } from "./page-commands";
+import {
+  createPageCommandRegistry,
+  reloadableFocusId,
+  requireKnownViewId,
+  StalePageContextError,
+  type PageContextSnapshot,
+} from "./page-commands";
 
 function snapshot(): PageContextSnapshot {
   return {
@@ -67,6 +73,48 @@ describe("page command registry", () => {
     await expect(invocation).rejects.toMatchObject({ name: "AbortError" });
     expect(observed.mock.calls[0][0].aborted).toBe(true);
     expect(registry.context().revision).toBe(0);
+  });
+
+  it("cancels a context-bound async command before a later selection can commit", async () => {
+    const current = snapshot();
+    let release: (() => void) | undefined;
+    const pendingHandler = async (_input: Record<string, unknown>, execution: { signal: AbortSignal }) => {
+      await new Promise<void>((resolve) => { release = resolve; });
+      execution.signal.throwIfAborted();
+      current.selected = { id: "node:stale", kind: "node" };
+    };
+    const noop = vi.fn();
+    const registry = createPageCommandRegistry(() => current, {
+      "tos.page.open-view": noop,
+      "tos.page.search": noop,
+      "tos.page.select": (input) => {
+        current.selected = { id: String(input.item_id), kind: "node" };
+      },
+      "tos.page.show-neighborhood": pendingHandler,
+      "tos.page.start-path": noop,
+      "tos.page.find-path": noop,
+      "tos.page.reroute-without-selection": noop,
+      "tos.page.clear-focus": noop,
+    });
+    const invocation = registry.invoke("tos.page.show-neighborhood", { context_revision: 0 });
+
+    await registry.invoke("tos.page.select", { item_id: "node:fresh", context_revision: 0 });
+    release?.();
+
+    await expect(invocation).rejects.toMatchObject({ name: "AbortError" });
+    expect(registry.context().selected?.id).toBe("node:fresh");
+    expect(registry.context().revision).toBe(1);
+  });
+
+  it("validates view identities and emits only reloadable focus IDs", () => {
+    expect(() => requireKnownViewId("missing", ["chronology"])).toThrow("unknown Tree of Sophia view");
+    expect(() => requireKnownViewId("chronology", ["chronology"])).not.toThrow();
+    expect(
+      reloadableFocusId({ id: "search-only", kind: "item" }, "search-only", ["node:a"]),
+    ).toBe("");
+    expect(
+      reloadableFocusId({ id: "node:a", kind: "node" }, "node:a", ["node:a"]),
+    ).toBe("node:a");
   });
 
   it("cancels an active operation through the page cancel command", async () => {
