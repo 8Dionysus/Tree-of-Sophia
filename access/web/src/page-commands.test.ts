@@ -37,6 +37,7 @@ describe("page command registry", () => {
       "tos.page.start-path": noop,
       "tos.page.find-path": noop,
       "tos.page.reroute-without-selection": noop,
+      "tos.page.inspect-epistemic": noop,
       "tos.page.clear-focus": noop,
     });
 
@@ -65,6 +66,7 @@ describe("page command registry", () => {
       "tos.page.start-path": noop,
       "tos.page.find-path": noop,
       "tos.page.reroute-without-selection": noop,
+      "tos.page.inspect-epistemic": noop,
       "tos.page.clear-focus": noop,
     });
     const controller = new AbortController();
@@ -95,6 +97,7 @@ describe("page command registry", () => {
       "tos.page.start-path": noop,
       "tos.page.find-path": noop,
       "tos.page.reroute-without-selection": noop,
+      "tos.page.inspect-epistemic": noop,
       "tos.page.clear-focus": noop,
     });
     const invocation = registry.invoke("tos.page.show-neighborhood", { context_revision: 0 });
@@ -139,6 +142,7 @@ describe("page command registry", () => {
       "tos.page.start-path": noop,
       "tos.page.find-path": noop,
       "tos.page.reroute-without-selection": noop,
+      "tos.page.inspect-epistemic": noop,
       "tos.page.clear-focus": noop,
     });
     const invocation = registry.invoke("tos.page.show-neighborhood");

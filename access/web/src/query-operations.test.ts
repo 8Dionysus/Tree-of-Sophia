@@ -53,4 +53,22 @@ describe("ToS query operations", () => {
     expect(url.searchParams.get("layers")).toBe("__tos_none__");
     expect(url.searchParams.get("predicates")).toBe("__tos_none__");
   });
+
+  it("routes epistemic inspection through the selected item and active view", async () => {
+    let requestedUrl = "";
+    const operations = createToSQueryOperations(async <T>(url: string) => {
+      requestedUrl = url;
+      return { schema: "tos_philosophy_epistemic_packet_v1" } as T;
+    });
+
+    await operations.invoke("tos.epistemic.inspect", {
+      item_id: "candidate-node:table-i-a01-node-016",
+      view_id: "source-evidence",
+      limit: 48,
+    });
+
+    const url = new URL(requestedUrl, "http://tos.local");
+    expect(url.pathname).toBe("/api/philosophy/query/epistemic/candidate-node%3Atable-i-a01-node-016");
+    expect(Object.fromEntries(url.searchParams)).toEqual({ view_id: "source-evidence", limit: "48" });
+  });
 });

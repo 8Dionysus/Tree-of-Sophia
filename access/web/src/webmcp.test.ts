@@ -33,6 +33,7 @@ describe("WebMCP page-command binding", () => {
       "tos.page.start-path": noop,
       "tos.page.find-path": noop,
       "tos.page.reroute-without-selection": noop,
+      "tos.page.inspect-epistemic": noop,
       "tos.page.clear-focus": noop,
     });
     const tools = new Map<string, RegisteredTool>();
@@ -50,7 +51,9 @@ describe("WebMCP page-command binding", () => {
     await registry.invoke("tos.page.select", { item_id: "node:human" });
     await adapter.refresh();
     const staleNeighborhoodTool = tools.get("tos.page.show-neighborhood");
+    const staleEpistemicTool = tools.get("tos.page.inspect-epistemic");
     expect(staleNeighborhoodTool).toBeDefined();
+    expect(staleEpistemicTool).toBeDefined();
 
     const selectTool = tools.get("tos.page.select");
     await selectTool?.execute({ item_id: "node:agent" }, { signal: new AbortController().signal });
@@ -59,6 +62,9 @@ describe("WebMCP page-command binding", () => {
 
     await expect(
       staleNeighborhoodTool?.execute({}, { signal: new AbortController().signal }),
+    ).rejects.toThrow("stale page context revision");
+    await expect(
+      staleEpistemicTool?.execute({}, { signal: new AbortController().signal }),
     ).rejects.toThrow("stale page context revision");
     adapter.stop();
   });
@@ -83,6 +89,7 @@ describe("WebMCP page-command binding", () => {
       "tos.page.start-path": noop,
       "tos.page.find-path": noop,
       "tos.page.reroute-without-selection": noop,
+      "tos.page.inspect-epistemic": noop,
       "tos.page.clear-focus": noop,
     });
     const tools = new Map<string, RegisteredTool>();
@@ -98,6 +105,7 @@ describe("WebMCP page-command binding", () => {
 
     expect(tools.has("tos.page.show-neighborhood")).toBe(false);
     expect(tools.has("tos.page.start-path")).toBe(false);
+    expect(tools.has("tos.page.inspect-epistemic")).toBe(false);
     adapter.stop();
   });
 
@@ -127,6 +135,7 @@ describe("WebMCP page-command binding", () => {
       "tos.page.start-path": noop,
       "tos.page.find-path": noop,
       "tos.page.reroute-without-selection": noop,
+      "tos.page.inspect-epistemic": noop,
       "tos.page.clear-focus": noop,
     });
     const tools = new Map<string, RegisteredTool>();
@@ -141,6 +150,7 @@ describe("WebMCP page-command binding", () => {
     await adapter.start();
 
     expect(tools.has("tos.page.reroute-without-selection")).toBe(false);
+    expect(tools.has("tos.page.inspect-epistemic")).toBe(false);
     adapter.stop();
   });
 });

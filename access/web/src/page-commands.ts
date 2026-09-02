@@ -33,6 +33,7 @@ export type PageCommandId =
   | "tos.page.start-path"
   | "tos.page.find-path"
   | "tos.page.reroute-without-selection"
+  | "tos.page.inspect-epistemic"
   | "tos.page.clear-focus"
   | "tos.page.cancel";
 

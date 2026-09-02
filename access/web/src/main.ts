@@ -151,6 +151,38 @@ type PathPayload = {
   source_refs?: string[];
 };
 
+type EpistemicPayload = {
+  schema?: string;
+  item_id?: string;
+  view_id?: string | null;
+  selection?: AnyItem;
+  challenge_relations?: GraphEdge[];
+  context_relations?: GraphEdge[];
+  neighbor_nodes?: GraphNode[];
+  selection_posture?: {
+    authority_posture?: string;
+    canon_status?: string;
+    review_posture?: string;
+    confidence?: string;
+    priority?: string;
+    claim_evidence_closed?: boolean;
+  };
+  field_posture?: {
+    authority_postures?: string[];
+    canon_statuses?: string[];
+    review_postures?: string[];
+    confidence_values?: string[];
+  };
+  coverage?: {
+    posture?: string;
+    challenge_state?: string;
+    missing_surfaces?: string[];
+  };
+  counts?: Record<string, number>;
+  source_refs?: string[];
+  authority_note?: string;
+};
+
 type ScaleExportTable = "nodes" | "edges" | "clusters" | "cluster-node-memberships" | "cluster-edge-memberships";
 
 type AppState = {
@@ -178,6 +210,7 @@ type AppState = {
   neighborhood: NeighborhoodPayload | null;
   pathStartNodeId: string | null;
   pathPacket: PathPayload | null;
+  epistemicPacket: EpistemicPayload | null;
   inspectorOpen: boolean;
 };
 
@@ -311,6 +344,13 @@ const uiText: Record<Language, Record<string, string>> = {
     "route.useAsPathStart": "Use as path start",
     "route.pathFrom": "Path from",
     "route.rerouteWithoutEdge": "Find alternatives without this edge",
+    "route.inspectEpistemic": "Inspect posture and challenge signals",
+    "detail.epistemicPosture": "Epistemic posture",
+    "detail.contextPosture": "Surrounding field posture",
+    "detail.projectedChallenges": "Projected challenge signals",
+    "detail.contextRelations": "Context relations",
+    "detail.coverage": "Coverage",
+    "detail.notAdjudicated": "These graph relations are leads for review, not adjudicated counterevidence.",
     "state.loading": "loading",
     "state.none": "none",
     "caption.view": "View",
@@ -418,6 +458,13 @@ const uiText: Record<Language, Record<string, string>> = {
     "route.useAsPathStart": "Сделать началом пути",
     "route.pathFrom": "Путь от",
     "route.rerouteWithoutEdge": "Найти альтернативы без этой связи",
+    "route.inspectEpistemic": "Проверить статус и сигналы спора",
+    "detail.epistemicPosture": "Эпистемический статус",
+    "detail.contextPosture": "Статус окружающего поля",
+    "detail.projectedChallenges": "Проекционные сигналы спора",
+    "detail.contextRelations": "Контекстные связи",
+    "detail.coverage": "Полнота",
+    "detail.notAdjudicated": "Эти графовые связи — маршруты для проверки, а не рассмотренное контрсвидетельство.",
     "state.loading": "загрузка",
     "state.none": "нет",
     "caption.view": "Вид",
@@ -677,6 +724,7 @@ const state: AppState = {
   neighborhood: null,
   pathStartNodeId: null,
   pathPacket: null,
+  epistemicPacket: null,
   inspectorOpen: false,
 };
 
@@ -703,6 +751,7 @@ let modeLoadRevision = 0;
 let searchRevision = 0;
 let neighborhoodRevision = 0;
 let pathRevision = 0;
+let epistemicRevision = 0;
 const lastPointer = { x: 0, y: 0 };
 
 function text(value: unknown): string {
@@ -1656,6 +1705,7 @@ function renderInspector(): void {
   const selectedNodeId = state.selected ? selectedNodeIdFor(state.selected) : "";
   if (state.selected) {
     const source = unwrapItem(state.selected);
+    const epistemicItemId = text(source.node_id || source.edge_id || "");
     const narrative = itemNarrative(source);
     if (narrative && !(source.from_id && source.to_id)) {
       cards.push(`<div class="detail-card lead-card"><span class="detail-title">${t("detail.overview")}</span><span class="detail-body">${escapeHtml(narrative)}</span></div>`);
@@ -1678,6 +1728,14 @@ function renderInspector(): void {
       !isAggregateRelation(source)
     ) {
       cards.push(`<div class="route-actions"><button id="reroute-without-edge-button" type="button">${t("route.rerouteWithoutEdge")}</button></div>`);
+    }
+    if (
+      state.mode === "philosophy" &&
+      epistemicItemId &&
+      !isAggregateRelation(source)
+    ) {
+      cards.push(`<div class="route-actions"><button id="epistemic-button" type="button">${t("route.inspectEpistemic")}</button></div>`);
+      cards.push(...epistemicCards(epistemicItemId));
     }
     cards.push(...relationDetailCards(state.selected));
     if (selectedRelationRows.length) {
@@ -1771,6 +1829,12 @@ function renderInspector(): void {
       if (item && inspectorSelectionAllowed()) selectItem(item);
     });
   });
+  byId("detail-list").querySelectorAll<HTMLButtonElement>("[data-epistemic-edge]").forEach((button) => {
+    const item = state.epistemicPacket?.challenge_relations?.[Number(button.dataset.epistemicEdge)];
+    button.addEventListener("click", () => {
+      if (item && inspectorSelectionAllowed()) selectItem(item);
+    });
+  });
   document.getElementById("neighborhood-button")?.addEventListener("click", (event) => {
     event.preventDefault();
     event.stopPropagation();
@@ -1794,6 +1858,11 @@ function renderInspector(): void {
       alternative_limit: 3,
       constrain_to_view: true,
     });
+  });
+  document.getElementById("epistemic-button")?.addEventListener("click", (event) => {
+    event.preventDefault();
+    event.stopPropagation();
+    invokePageCommandFromUi("tos.page.inspect-epistemic", { item_id: pageSelection()?.id });
   });
 }
 
@@ -1940,10 +2009,16 @@ function relationReadingCards(rows: RelationRow[]): string[] {
   return [detailCard(t("detail.relationReading"), summary), predicateText ? detailCard(t("detail.predicatesNearby"), predicateText) : ""].filter(Boolean);
 }
 
-function relationRowsSection(title: string, rows: RelationRow[], source: "selected" | "neighborhood" | "path" = "selected"): string {
+function relationRowsSection(title: string, rows: RelationRow[], source: "selected" | "neighborhood" | "path" | "epistemic" = "selected"): string {
   const grouped = relationRowsByDirection(rows);
   const actionAttr =
-    source === "neighborhood" ? "data-neighborhood-edge" : source === "path" ? "data-path-edge" : "data-selected-relation";
+    source === "neighborhood"
+      ? "data-neighborhood-edge"
+      : source === "path"
+        ? "data-path-edge"
+        : source === "epistemic"
+          ? "data-epistemic-edge"
+          : "data-selected-relation";
   return `
     <div class="section-title">${escapeHtml(title)}</div>
     <div class="relation-table">
@@ -2927,6 +3002,8 @@ function layoutGraph(): void {
 }
 
 function setSelectedItemState(item: AnyItem): void {
+  epistemicRevision += 1;
+  state.epistemicPacket = null;
   state.selected = item;
   state.inspectorOpen = true;
   state.selectedGraphId = text(item.node_id || item.cluster_id || item.edge_id || "") || null;
@@ -3011,6 +3088,113 @@ function nodeRouteActions(nodeId: string): string {
       ${canPathTo ? `<button id="path-to-button" type="button">${t("route.pathFrom")} ${escapeHtml(short(pathStartLabel, 24))}</button>` : ""}
     </div>
   `;
+}
+
+function epistemicCards(itemIdValue: string): string[] {
+  const packet = state.epistemicPacket;
+  if (!packet || packet.item_id !== itemIdValue) return [];
+  const posture = packet.selection_posture || {};
+  const fieldPosture = packet.field_posture || {};
+  const coverage = packet.coverage || {};
+  const postureLines = [
+    posture.authority_posture ? `authority: ${humanKind(posture.authority_posture)}` : "",
+    posture.canon_status ? `canon: ${humanKind(posture.canon_status)}` : "",
+    posture.review_posture ? `review: ${humanKind(posture.review_posture)}` : "",
+    posture.confidence ? `confidence: ${humanKind(posture.confidence)}` : "",
+    posture.priority ? `priority: ${humanKind(posture.priority)}` : "",
+    `claim/evidence closed: ${posture.claim_evidence_closed ? "yes" : "no"}`,
+  ].filter(Boolean);
+  const fieldPostureLines = [
+    ...(fieldPosture.authority_postures || []).map((value) => `authority: ${humanKind(value)}`),
+    ...(fieldPosture.canon_statuses || []).map((value) => `canon: ${humanKind(value)}`),
+    ...(fieldPosture.review_postures || []).map((value) => `review: ${humanKind(value)}`),
+    ...(fieldPosture.confidence_values || []).map((value) => `confidence: ${humanKind(value)}`),
+  ];
+  const coverageLines = [
+    coverage.posture ? `posture: ${humanKind(coverage.posture)}` : "",
+    coverage.challenge_state ? `challenges: ${humanKind(coverage.challenge_state)}` : "",
+    ...(coverage.missing_surfaces || []).map((value) => `missing: ${value}`),
+  ].filter(Boolean);
+  const challengeRows = (packet.challenge_relations || []).map((edge) => {
+    const direction: RelationDirection = edge.from_id === itemIdValue
+      ? "outgoing"
+      : edge.to_id === itemIdValue
+        ? "incoming"
+        : "adjacent";
+    return relationRowFromEdge(edge, direction);
+  });
+  const contextRows = (packet.context_relations || []).map((edge) => {
+    const direction: RelationDirection = edge.from_id === itemIdValue
+      ? "outgoing"
+      : edge.to_id === itemIdValue
+        ? "incoming"
+        : "adjacent";
+    return relationRowFromEdge(edge, direction);
+  });
+  const cards = [
+    detailCard(t("detail.epistemicPosture"), postureLines.join("\n")),
+    detailCard(t("detail.contextPosture"), fieldPostureLines.join("\n")),
+    detailCard(t("detail.coverage"), coverageLines.join("\n")),
+  ];
+  if (challengeRows.length) {
+    cards.push(detailCard(t("detail.projectedChallenges"), t("detail.notAdjudicated")));
+    cards.push(
+      ...challengeRows.slice(0, 8).map((row) =>
+        detailCard(
+          relationRouteText(row),
+          itemNarrative(row) || humanKind(predicateId(row)),
+        ),
+      ),
+    );
+    cards.push(relationRowsSection(t("detail.projectedChallenges"), challengeRows, "epistemic"));
+  }
+  if (contextRows.length) {
+    cards.push(`<div class="section-title">${t("detail.contextRelations")}</div>`);
+    cards.push(
+      ...contextRows.slice(0, 12).map((row) =>
+        detailCard(relationDisplayLabel(row), relationRouteText(row)),
+      ),
+    );
+  }
+  if (packet.source_refs?.length) cards.push(sourceReferenceList(packet.source_refs));
+  if (packet.authority_note) cards.push(detailCard(t("detail.coverage"), packet.authority_note));
+  return cards;
+}
+
+async function showEpistemic(
+  itemIdValue: string,
+  limit = 80,
+  signal?: AbortSignal,
+): Promise<EpistemicPayload> {
+  if (!itemIdValue) throw new Error("select a philosophy node or edge");
+  assertPhilosophyRouteAvailable();
+  const selected = pageSelection();
+  if (!selected || selected.id !== itemIdValue || !["node", "edge"].includes(selected.kind)) {
+    throw new Error("epistemic inspection requires the current projection node or edge selection");
+  }
+  if (selected.reroutable === false) {
+    throw new Error("aggregate cluster relations do not have a direct projection evidence field");
+  }
+  const requestRevision = ++epistemicRevision;
+  const requestMode = state.mode;
+  const requestViewId = state.currentViewId;
+  const packet = (await queryOperations.invoke("tos.epistemic.inspect", {
+    item_id: itemIdValue,
+    view_id: requestViewId,
+    limit,
+  }, { signal })) as EpistemicPayload;
+  signal?.throwIfAborted();
+  if (
+    requestRevision !== epistemicRevision ||
+    state.mode !== requestMode ||
+    state.currentViewId !== requestViewId ||
+    pageSelection()?.id !== itemIdValue
+  ) throw new DOMException("superseded epistemic request", "AbortError");
+  state.epistemicPacket = packet;
+  state.inspectorOpen = true;
+  renderInspector();
+  scrollInspectorTop();
+  return packet;
 }
 
 function neighborhoodCards(nodeId: string): string[] {
@@ -3249,6 +3433,7 @@ async function copyScaleExportUrl(table?: ScaleExportTable, format?: "csv" | "js
     copyError = text(error);
   }
   if (pageCommands.context().revision !== expectedRevision) return;
+  state.epistemicPacket = null;
   state.selected = {
     title: t("selection.scaleExportUrl"),
     url,
@@ -3326,6 +3511,7 @@ function commitPreparedView(prepared: PreparedView, requestedFocusId: string): v
   searchRevision += 1;
   neighborhoodRevision += 1;
   pathRevision += 1;
+  epistemicRevision += 1;
   state.mode = prepared.mode;
   state.currentViewId = prepared.viewId;
   state.currentView = prepared.currentView;
@@ -3337,6 +3523,7 @@ function commitPreparedView(prepared: PreparedView, requestedFocusId: string): v
   state.neighborhood = null;
   state.pathStartNodeId = null;
   state.pathPacket = null;
+  state.epistemicPacket = null;
   state.inspectorOpen = false;
   state.sourceNotes = prepared.sourceNotes;
   state.sourceNoteEdges = prepared.sourceNoteEdges;
@@ -3420,6 +3607,7 @@ async function search(requestedQuery?: string, signal?: AbortSignal): Promise<{ 
   const query = (requestedQuery === undefined ? input.value : requestedQuery).trim();
   input.value = query;
   state.searchQuery = query;
+  state.epistemicPacket = null;
   const payload = (await queryOperations.invoke("tos.search", {
     mode: state.mode,
     query,
@@ -3562,6 +3750,14 @@ const pageCommands = createPageCommandRegistry(pageContextSnapshot, {
       viewId: constrainToView && state.mode === "philosophy" ? state.currentViewId : undefined,
       signal: execution.signal,
     });
+  },
+  "tos.page.inspect-epistemic": async (input, execution) => {
+    const itemIdValue = commandString(input, "item_id", pageSelection()?.id || "");
+    return showEpistemic(
+      itemIdValue,
+      commandInteger(input, "limit", 80, 1, 200),
+      execution.signal,
+    );
   },
   "tos.page.clear-focus": () => {
     clearFocus();

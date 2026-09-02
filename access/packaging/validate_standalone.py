@@ -19,6 +19,7 @@ EXPECTED_QUERY_OPERATIONS = {
     "tos.view.open",
     "tos.node.inspect",
     "tos.neighborhood",
+    "tos.epistemic.inspect",
     "tos.path.find",
 }
 EXPECTED_PAGE_COMMANDS = {
@@ -30,6 +31,7 @@ EXPECTED_PAGE_COMMANDS = {
     "tos.page.start-path",
     "tos.page.find-path",
     "tos.page.reroute-without-selection",
+    "tos.page.inspect-epistemic",
     "tos.page.clear-focus",
     "tos.page.cancel",
 }
@@ -59,6 +61,17 @@ def _validate_contracts(repo_root: Path) -> None:
     operation_ids = {item.get("operation_id") for item in query.get("operations", [])}
     if operation_ids != EXPECTED_QUERY_OPERATIONS:
         raise RuntimeError(f"query operation contract drift: {sorted(operation_ids)}")
+    epistemic = json.loads((contract_root / "epistemic-packet.v1.schema.json").read_text(encoding="utf-8"))
+    if epistemic.get("properties", {}).get("schema", {}).get("const") != "tos_philosophy_epistemic_packet_v1":
+        raise RuntimeError("epistemic packet schema identity drift")
+    authority = epistemic.get("properties", {}).get("authority_boundary", {}).get("properties", {})
+    if {key: value.get("const") for key, value in authority.items()} != {
+        "is_source": False,
+        "is_canon": False,
+        "is_semantic_truth": False,
+        "is_rights_clearance": False,
+    }:
+        raise RuntimeError("epistemic packet authority boundary must fail closed")
     page = json.loads((contract_root / "page-commands.v1.json").read_text(encoding="utf-8"))
     command_ids = {item.get("command_id") for item in page.get("commands", [])}
     if command_ids != EXPECTED_PAGE_COMMANDS:
