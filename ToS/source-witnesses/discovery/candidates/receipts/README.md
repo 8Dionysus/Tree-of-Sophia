@@ -10,6 +10,10 @@ snapshot that selected it, and one protocol-native discovery run. The ledger
 binding lets replay retain later append-only queue growth without treating a
 rewritten or inserted row as historical evidence.
 
+Any independent provenance witness for that frozen snapshot must carry the
+same candidate-ledger digest; a syntactically valid digest from another ledger
+state is not sufficient.
+
 It records what was and was not acquired, the layered rights result, any
 source planting or operational relation refs, and the next trigger.
 

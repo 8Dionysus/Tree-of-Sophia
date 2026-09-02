@@ -15,6 +15,7 @@ from measure_open_work_discovery_channels import (  # noqa: E402
     build_superseding_discovery,
     main,
     retarget_timing_receipt,
+    validate_output_paths,
 )
 
 
@@ -75,6 +76,20 @@ class OpenWorkDiscoveryChannelsTest(unittest.TestCase):
                 discovery_id="tos.discovery.superseding",
                 supersedes_ref="tos.discovery.other",
                 provenance_event_ref="tos.event.discovery.superseding",
+            )
+
+    def test_outputs_must_not_alias_input_or_each_other(self) -> None:
+        discovery = Path("ToS/source-witnesses/discovery/runs/original.json")
+        with self.assertRaisesRegex(ValueError, "must not overwrite input discovery"):
+            validate_output_paths(discovery, [("--output", discovery)])
+
+        with self.assertRaisesRegex(ValueError, "must not alias --output"):
+            validate_output_paths(
+                discovery,
+                [
+                    ("--output", Path("out.json")),
+                    ("--instrumented-output", Path("./out.json")),
+                ],
             )
 
 

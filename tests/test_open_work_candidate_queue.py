@@ -442,6 +442,23 @@ class OpenWorkCandidateQueueTest(unittest.TestCase):
             {entry["candidate_id"] for entry in after_append["candidates"]},
         )
 
+        timing["measured_at"] = "2026-08-29T12:00:00.126000Z"
+        _write_json(repo / timing_ref, timing)
+        receipt["timing_sha256"] = hashlib.sha256((repo / timing_ref).read_bytes()).hexdigest()
+        _write_json(
+            repo / "ToS/source-witnesses/discovery/candidates/receipts/earliest.2026-08-29.v1.json",
+            receipt,
+        )
+        with self.assertRaisesRegex(QueueBuildError, "timing.measured_at cannot be later"):
+            build_payload(repo)
+
+        timing["measured_at"] = "2026-08-29T12:00:00.125000Z"
+        _write_json(repo / timing_ref, timing)
+        receipt["timing_sha256"] = hashlib.sha256((repo / timing_ref).read_bytes()).hexdigest()
+        _write_json(
+            repo / "ToS/source-witnesses/discovery/candidates/receipts/earliest.2026-08-29.v1.json",
+            receipt,
+        )
         timing["claim_limit"] = "tampered after terminal issuance"
         _write_json(repo / timing_ref, timing)
         with self.assertRaisesRegex(QueueBuildError, "timing_sha256 does not bind"):
@@ -546,6 +563,7 @@ class OpenWorkCandidateQueueTest(unittest.TestCase):
         receipt = {
             "receipt_id": "open-work-candidate-receipt.earliest.v1",
             "candidate_id": "open-work-candidate.earliest",
+            "candidate_ledger_sha256": "a" * 64,
             "discovery_id": "tos.discovery.earliest",
             "issued_at": "2026-08-29T12:00:00Z",
             "queue_snapshot_sha256": "b" * 64,
@@ -588,6 +606,19 @@ class OpenWorkCandidateQueueTest(unittest.TestCase):
             )
         )
 
+        event["inputs"][0]["sha256"] = "c" * 64
+        self.assertFalse(
+            _has_independent_snapshot_witness(
+                repo,
+                receipt,
+                candidate_id="open-work-candidate.earliest",
+                candidate_label="Earliest",
+                discoveries=context,
+                provenance_events=events,
+            )
+        )
+
+        event["inputs"][0]["sha256"] = "a" * 64
         event["ended_at"] = "2026-08-29T12:00:30Z"
         self.assertFalse(
             _has_independent_snapshot_witness(

@@ -29,6 +29,36 @@ def _utc_now() -> str:
     return datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
 
 
+def validate_output_paths(
+    discovery_path: Path,
+    outputs: list[tuple[str, Path | None]],
+) -> None:
+    """Reject output aliases before any probe or write can touch the source."""
+    source_path = discovery_path.resolve(strict=False)
+    seen: dict[Path, str] = {}
+    for label, output_path in outputs:
+        if output_path is None:
+            continue
+        resolved = output_path.resolve(strict=False)
+        if resolved == source_path:
+            raise ValueError(f"{label} must not overwrite input discovery {discovery_path}")
+        previous = seen.get(resolved)
+        if previous is not None:
+            raise ValueError(f"{label} must not alias {previous}: {output_path}")
+        seen[resolved] = label
+
+
+def _validate_supersedes_ref(source: dict[str, Any], supersedes_ref: str | None) -> None:
+    source_discovery_id = source.get("discovery_id")
+    if not isinstance(source_discovery_id, str) or not source_discovery_id:
+        raise ValueError("input discovery must contain a non-empty discovery_id")
+    if supersedes_ref != source_discovery_id:
+        raise ValueError(
+            "supersedes_ref must match the input discovery discovery_id "
+            f"{source_discovery_id!r}"
+        )
+
+
 def measure_url(url: str, *, timeout_seconds: float) -> dict[str, Any]:
     request = urllib.request.Request(url, headers={"User-Agent": USER_AGENT})
     started_at = _utc_now()
@@ -155,14 +185,7 @@ def build_superseding_discovery(
     supersedes_ref: str,
     provenance_event_ref: str,
 ) -> dict[str, Any]:
-    source_discovery_id = source.get("discovery_id")
-    if not isinstance(source_discovery_id, str) or not source_discovery_id:
-        raise ValueError("input discovery must contain a non-empty discovery_id")
-    if supersedes_ref != source_discovery_id:
-        raise ValueError(
-            "supersedes_ref must match the input discovery discovery_id "
-            f"{source_discovery_id!r}"
-        )
+    _validate_supersedes_ref(source, supersedes_ref)
     output = build_instrumented_discovery(source, receipt)
     output["discovery_id"] = discovery_id
     output["provenance_event_refs"] = [provenance_event_ref]
@@ -184,6 +207,31 @@ def main() -> int:
     args = parser.parse_args()
     if args.superseding_output is not None and args.instrumented_output is not None:
         parser.error("--superseding-output and --instrumented-output are mutually exclusive")
+    try:
+        validate_output_paths(
+            args.discovery,
+            [
+                ("--output", args.output),
+                ("--superseding-output", args.superseding_output),
+                ("--instrumented-output", args.instrumented_output),
+            ],
+        )
+    except ValueError as exc:
+        parser.error(str(exc))
+
+    source: dict[str, Any] | None = None
+    if args.superseding_output is not None:
+        try:
+            source = json.loads(args.discovery.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError) as exc:
+            parser.error(f"cannot read input discovery before superseding validation: {exc}")
+        if not isinstance(source, dict):
+            parser.error("input discovery must be a JSON object")
+        try:
+            _validate_supersedes_ref(source, args.supersedes_ref)
+        except ValueError as exc:
+            parser.error(str(exc))
+
     receipt = build_receipt(args.discovery, timeout_seconds=args.timeout_seconds)
     if args.superseding_output is not None:
         required = {
@@ -205,17 +253,14 @@ def main() -> int:
     else:
         args.output.write_text(rendered, encoding="utf-8")
     if args.superseding_output is not None:
-        source = json.loads(args.discovery.read_text(encoding="utf-8"))
-        try:
-            superseding = build_superseding_discovery(
-                source,
-                receipt,
-                discovery_id=args.new_discovery_id,
-                supersedes_ref=args.supersedes_ref,
-                provenance_event_ref=args.provenance_event_ref,
-            )
-        except ValueError as exc:
-            parser.error(str(exc))
+        assert source is not None
+        superseding = build_superseding_discovery(
+            source,
+            receipt,
+            discovery_id=args.new_discovery_id,
+            supersedes_ref=args.supersedes_ref,
+            provenance_event_ref=args.provenance_event_ref,
+        )
         args.superseding_output.write_text(
             json.dumps(superseding, ensure_ascii=False, indent=2) + "\n",
             encoding="utf-8",

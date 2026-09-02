@@ -1441,16 +1441,26 @@ def _load_receipts(
             "timing_sha256",
             f"latest receipt for {candidate_id}",
         )
-        actual_timing_sha256 = _sha256_file(timing_path)
-        if timing_sha256 != actual_timing_sha256:
-            raise QueueBuildError(
-                f"latest receipt for {candidate_id}: timing_sha256 does not bind {timing_ref!r}"
-            )
         issued_at = _parse_timestamp(
             receipt.get("issued_at"),
             location=f"latest receipt for {candidate_id}",
             field="issued_at",
         )
+        timing_measured_at = _parse_timestamp(
+            timing.get("measured_at"),
+            location=f"latest timing for {candidate_id}",
+            field="measured_at",
+        )
+        if timing_measured_at > issued_at:
+            raise QueueBuildError(
+                f"latest receipt for {candidate_id}: timing.measured_at cannot be later "
+                "than terminal receipt issued_at"
+            )
+        actual_timing_sha256 = _sha256_file(timing_path)
+        if timing_sha256 != actual_timing_sha256:
+            raise QueueBuildError(
+                f"latest receipt for {candidate_id}: timing_sha256 does not bind {timing_ref!r}"
+            )
         _validate_active_discovery_timings(
             discovery,
             timing,
@@ -2083,6 +2093,11 @@ def _has_independent_snapshot_witness(
     if not isinstance(event_refs, list):
         event_refs = []
     snapshot_hash = receipt.get("queue_snapshot_sha256")
+    expected_ledger_digest = receipt.get("candidate_ledger_sha256")
+    if not isinstance(expected_ledger_digest, str) or re.fullmatch(
+        r"[0-9a-f]{64}", expected_ledger_digest
+    ) is None:
+        return False
     receipt_issued_at = _parse_timestamp(
         receipt.get("issued_at"),
         location=f"receipt {receipt.get('receipt_id', 'unknown')}",
@@ -2116,7 +2131,7 @@ def _has_independent_snapshot_witness(
             None,
         )
         ledger_digest = ledger_input.get("sha256") if isinstance(ledger_input, dict) else None
-        return isinstance(ledger_digest, str) and re.fullmatch(r"[0-9a-f]{64}", ledger_digest) is not None
+        return ledger_digest == expected_ledger_digest
 
     for event_ref in event_refs:
         event_entry = provenance_events.get(event_ref)
@@ -2165,7 +2180,7 @@ def _has_independent_snapshot_witness(
             None,
         )
         ledger_digest = ledger_input.get("sha256") if isinstance(ledger_input, dict) else None
-        if not isinstance(ledger_digest, str) or not re.fullmatch(r"[0-9a-f]{64}", ledger_digest):
+        if ledger_digest != expected_ledger_digest:
             continue
 
         prompt_ref = event.get("method", {}).get("prompt_or_instruction_ref")
