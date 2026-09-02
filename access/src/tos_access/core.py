@@ -11,6 +11,13 @@ from typing import Any
 INDEX_RELATIVE_PATH = Path("ToS/derived-exports/tos_corpus_index.min.json")
 PHILOSOPHY_PROJECTION_RELATIVE_PATH = Path("ToS/derived-exports/philosophy_graph_projection.min.json")
 PHILOSOPHY_AUDIT_RELATIVE_PATH = Path("ToS/philosophy/graph-workbench/review-packets/table-i-post-planting-audit.json")
+SUPPORTED_CORPUS_VIEW_IDS = {
+    "corpus-topology",
+    "route-graph",
+    "node-neighborhood",
+    "provenance-dag",
+    "promotion-flow",
+}
 
 
 @lru_cache(maxsize=8)
@@ -48,6 +55,14 @@ def _source_refs(items: list[dict[str, Any]]) -> list[str]:
         if isinstance(item.get("source_refs"), list):
             refs.update(str(ref) for ref in item["source_refs"] if isinstance(ref, str) and ref)
     return sorted(refs)
+
+
+def _supported_corpus_views(payload: dict[str, Any]) -> list[dict[str, Any]]:
+    return [
+        view
+        for view in payload.get("graph_views", [])
+        if isinstance(view, dict) and view.get("view_id") in SUPPORTED_CORPUS_VIEW_IDS
+    ]
 
 
 def _string_list(value: Any) -> list[str]:
@@ -276,7 +291,7 @@ class ToSAccessCore:
             "owner_repo": payload.get("owner_repo"),
             "surface_kind": payload.get("surface_kind"),
             "counts": payload.get("counts", {}),
-            "graph_views": [view.get("view_id") for view in payload.get("graph_views", []) if isinstance(view, dict)],
+            "graph_views": [view.get("view_id") for view in _supported_corpus_views(payload)],
             "authority_order": payload.get("authority_order", []),
             "runtime_projection_boundary": payload.get("runtime_projection_boundary", {}),
         }
@@ -288,7 +303,7 @@ class ToSAccessCore:
             "status": self.status(),
             "counts": payload.get("counts", {}),
             "branches": payload.get("branches", []),
-            "graph_views": payload.get("graph_views", []),
+            "graph_views": _supported_corpus_views(payload),
             "runtime_projection_boundary": payload.get("runtime_projection_boundary", {}),
             "authority_order": payload.get("authority_order", []),
         }
@@ -403,6 +418,8 @@ class ToSAccessCore:
         )
         if view is None:
             raise KeyError(f"unknown ToS graph view: {view_id}")
+        if view_id not in SUPPORTED_CORPUS_VIEW_IDS:
+            raise KeyError(f"unsupported standalone ToS graph view: {view_id}")
         if view_id == "corpus-topology":
             items = payload.get("branches", [])[:limit]
         elif view_id == "route-graph":
@@ -422,8 +439,6 @@ class ToSAccessCore:
                 for edge in payload.get("relation_edges", [])
                 if isinstance(edge, dict) and edge.get("owner_branch") == "ToS/candidate-intake"
             ][:limit]
-        else:
-            items = payload.get("resources", [])[:limit]
         return {
             "schema": "tos_corpus_mcp_graph_view_v1",
             "view": view,
@@ -600,9 +615,12 @@ class ToSAccessCore:
             nodes,
             edges,
         )[:limit]
+        bounded_view = dict(view)
+        bounded_view["node_ids"] = [str(node.get("node_id")) for node in nodes if node.get("node_id")]
+        bounded_view["edge_ids"] = [str(edge.get("edge_id")) for edge in edges if edge.get("edge_id")]
         return {
             "schema": "tos_philosophy_mcp_view_v1",
-            "view": view,
+            "view": bounded_view,
             "node_count": len(nodes),
             "edge_count": len(edges),
             "available_node_count": len(all_nodes),
@@ -984,7 +1002,6 @@ class ToSAccessCore:
             left = str(edge.get("from_id") or "")
             right = str(edge.get("to_id") or "")
             adjacency.setdefault(left, []).append((right, edge))
-            adjacency.setdefault(right, []).append((left, edge))
 
         queue: list[tuple[str, list[str], list[dict[str, Any]]]] = [(from_id, [from_id], [])]
         seen = {from_id}
@@ -1091,7 +1108,7 @@ class ToSAccessCore:
             return self.summary()
         if uri == "tos-corpus://graph-views":
             payload = self.index()
-            return {"schema": "tos_corpus_mcp_graph_views_v1", "graph_views": payload.get("graph_views", [])}
+            return {"schema": "tos_corpus_mcp_graph_views_v1", "graph_views": _supported_corpus_views(payload)}
         prefix = "tos-corpus://graph-view/"
         if uri.startswith(prefix):
             return self.graph_view(uri.removeprefix(prefix))

@@ -145,6 +145,7 @@ class CoreContractTests(unittest.TestCase):
             self.assertEqual(len(view["clusters"]), 1)
             self.assertEqual(core.philosophy_views()["views"][0]["node_count"], 3)
             self.assertTrue(core.philosophy_path_between("a", "b")["found"])
+            self.assertFalse(core.philosophy_path_between("b", "a")["found"])
             self.assertEqual(core.philosophy_neighborhood("a")["neighbors"][0]["node_id"], "b")
 
     def test_bounded_graph_packets_keep_edge_endpoints_present(self) -> None:
@@ -163,6 +164,8 @@ class CoreContractTests(unittest.TestCase):
             view = core.philosophy_view("chronology", limit=1)
             self.assertEqual(view["node_count"], 1)
             self.assertEqual(view["edge_count"], 0)
+            self.assertEqual(view["view"]["node_ids"], ["a"])
+            self.assertEqual(view["view"]["edge_ids"], [])
             connected_view = core.philosophy_view("chronology", limit=2)
             connected_node_ids = {node["node_id"] for node in connected_view["nodes"]}
             self.assertEqual(len(connected_view["edges"]), 1)
@@ -244,6 +247,33 @@ class CoreContractTests(unittest.TestCase):
             expected_cluster_ref = "ToS/philosophy/graph-workbench/clusters/cluster-contracts.json"
             self.assertTrue(all(row["source_ref"] == expected_cluster_ref for row in node_memberships))
             self.assertTrue(all(row["source_ref"] == expected_cluster_ref for row in edge_memberships))
+
+    def test_corpus_runtime_advertises_only_materialized_views(self) -> None:
+        with tempfile.TemporaryDirectory() as raw:
+            root = Path(raw)
+            write_fixture(root)
+            index_path = root / "ToS/derived-exports/tos_corpus_index.min.json"
+            index = json.loads(index_path.read_text(encoding="utf-8"))
+            index["graph_views"].extend(
+                [
+                    {"view_id": "authority-layers", "title": "Authority layers"},
+                    {"view_id": "diff-snapshot", "title": "Snapshot diff"},
+                ]
+            )
+            index_path.write_text(json.dumps(index), encoding="utf-8")
+            core = ToSAccessCore.discover(tos_root=root)
+
+            self.assertEqual(core.status()["graph_views"], ["corpus-topology"])
+            self.assertEqual(
+                [view["view_id"] for view in core.summary()["graph_views"]],
+                ["corpus-topology"],
+            )
+            self.assertEqual(
+                [view["view_id"] for view in core.read_resource("tos-corpus://graph-views")["graph_views"]],
+                ["corpus-topology"],
+            )
+            with self.assertRaisesRegex(KeyError, "unsupported standalone"):
+                core.graph_view("authority-layers")
 
     def test_doctor_and_http_use_same_core(self) -> None:
         with tempfile.TemporaryDirectory() as raw:
