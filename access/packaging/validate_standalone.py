@@ -13,13 +13,25 @@ from pathlib import Path
 from typing import Any
 
 BLOCKED_CODE_MARKERS = (b"/srv/" + b"AbyssOS", b"/srv/" + b"abyss-machine")
-EXPECTED_ACTIONS = {
+EXPECTED_QUERY_OPERATIONS = {
     "tos.status",
     "tos.search",
     "tos.view.open",
     "tos.node.inspect",
     "tos.neighborhood",
     "tos.path.find",
+}
+EXPECTED_PAGE_COMMANDS = {
+    "tos.page.context",
+    "tos.page.open-view",
+    "tos.page.search",
+    "tos.page.select",
+    "tos.page.show-neighborhood",
+    "tos.page.start-path",
+    "tos.page.find-path",
+    "tos.page.reroute-without-selection",
+    "tos.page.clear-focus",
+    "tos.page.cancel",
 }
 
 
@@ -39,10 +51,18 @@ def _validate_contracts(repo_root: Path) -> None:
     profiles = {item.get("profile_id"): item for item in runtime.get("runtime_profiles", [])}
     if profiles.get("standalone", {}).get("requires_abyssos") is not False:
         raise RuntimeError("standalone profile must not require AbyssOS")
-    actions = json.loads((contract_root / "web-actions.v1.json").read_text(encoding="utf-8"))
-    action_ids = {item.get("action_id") for item in actions.get("actions", [])}
-    if action_ids != EXPECTED_ACTIONS:
-        raise RuntimeError(f"web action contract drift: {sorted(action_ids)}")
+    migration = json.loads((contract_root / "web-actions.v1.json").read_text(encoding="utf-8"))
+    expected_successors = {"query-operations.v1.json", "page-commands.v1.json"}
+    if migration.get("status") != "superseded" or set(migration.get("superseded_by", [])) != expected_successors:
+        raise RuntimeError("web action migration marker must route to the split contracts")
+    query = json.loads((contract_root / "query-operations.v1.json").read_text(encoding="utf-8"))
+    operation_ids = {item.get("operation_id") for item in query.get("operations", [])}
+    if operation_ids != EXPECTED_QUERY_OPERATIONS:
+        raise RuntimeError(f"query operation contract drift: {sorted(operation_ids)}")
+    page = json.loads((contract_root / "page-commands.v1.json").read_text(encoding="utf-8"))
+    command_ids = {item.get("command_id") for item in page.get("commands", [])}
+    if command_ids != EXPECTED_PAGE_COMMANDS:
+        raise RuntimeError(f"page command contract drift: {sorted(command_ids)}")
     allowlist = json.loads((contract_root / "runtime-data.v1.json").read_text(encoding="utf-8"))
     paths = {item.get("source_path") for item in allowlist.get("subjects", [])}
     if any("lexical-search" in str(path) or "/payload/" in str(path) for path in paths):

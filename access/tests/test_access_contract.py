@@ -151,6 +151,9 @@ def write_fixture(root: Path) -> None:
 
 
 class CoreContractTests(unittest.TestCase):
+    def test_standalone_validator_accepts_split_web_contracts(self) -> None:
+        validate_standalone._validate_contracts(REPO_ROOT)
+
     def test_projection_v2_materializes_global_membership(self) -> None:
         with tempfile.TemporaryDirectory() as raw:
             root = Path(raw)
