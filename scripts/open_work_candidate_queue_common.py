@@ -277,10 +277,87 @@ def _validate_planting_refs(
     repo_root: Path,
     refs: Any,
     *,
+    candidate: dict[str, Any],
+    receipt: dict[str, Any],
+    discovery: dict[str, Any],
+    discoveries: dict[str, tuple[dict[str, Any], str]],
+    acquisitions: list[Any],
+    provenance_events: dict[str, tuple[dict[str, Any], str]],
     location: str,
 ) -> None:
     if not isinstance(refs, list):
         raise QueueBuildError(f"{location}: planting_refs must be an array")
+
+    selection = candidate.get("selection")
+    expected_atlas_row = selection.get("atlas_row_id") if isinstance(selection, dict) else None
+    if not isinstance(expected_atlas_row, str) or not expected_atlas_row:
+        raise QueueBuildError(f"{location}: candidate selection must expose atlas_row_id for planting binding")
+
+    relation_refs = receipt.get("operational_relation_refs")
+    if not isinstance(relation_refs, list) or not all(
+        isinstance(reference, str) and reference for reference in relation_refs
+    ):
+        raise QueueBuildError(f"{location}: operational_relation_refs must be non-empty strings")
+    receipt_context_refs = set(relation_refs) | {
+        receipt.get("discovery_ref"),
+        receipt.get("discovery_id"),
+    }
+    receipt_context_refs.discard(None)
+
+    acquired_ids: set[str] = set()
+    acquisition_context_refs: set[str] = set()
+    for acquisition in acquisitions:
+        if not isinstance(acquisition, dict) or acquisition.get("downloaded") is not True:
+            continue
+        for key in (
+            "item_ref",
+            "artifact_ref",
+            "composite_ref",
+            "representation_ref",
+            "file_ref",
+            "provenance_event_ref",
+        ):
+            value = acquisition.get(key)
+            if isinstance(value, str) and value:
+                acquisition_context_refs.add(value)
+                if key in {"item_ref", "artifact_ref", "composite_ref"}:
+                    acquired_ids.add(value)
+        event_ref = acquisition.get("provenance_event_ref")
+        event_entry = provenance_events.get(event_ref)
+        if event_entry is not None:
+            event = event_entry[0]
+            for field in ("inputs", "outputs"):
+                rows = event.get(field, [])
+                if isinstance(rows, list):
+                    acquisition_context_refs.update(
+                        row.get("ref")
+                        for row in rows
+                        if isinstance(row, dict)
+                        and isinstance(row.get("ref"), str)
+                        and row.get("ref")
+                    )
+
+    discovery_target = discovery.get("target")
+    discovery_target_refs = (
+        set(discovery_target.get("known_tos_refs", []))
+        if isinstance(discovery_target, dict)
+        and isinstance(discovery_target.get("known_tos_refs"), list)
+        and all(
+            isinstance(reference, str) and reference
+            for reference in discovery_target["known_tos_refs"]
+        )
+        else set()
+    )
+    supported_ids = discovery_target_refs | acquired_ids | {
+        reference for reference in relation_refs if reference.startswith("tos.")
+    }
+
+    def resolve_discovery(ref: str, ref_location: str) -> tuple[dict[str, Any], str]:
+        for discovery_id, (payload, discovery_location) in discoveries.items():
+            if discovery_location == ref:
+                return payload, discovery_id
+        raise QueueBuildError(f"{ref_location}: planting discovery_ref does not resolve: {ref!r}")
+
     for index, ref in enumerate(refs, start=1):
         ref_location = f"{location}:planting_refs[{index}]"
         if not isinstance(ref, str) or not ref:
@@ -288,6 +365,134 @@ def _validate_planting_refs(
         payload, _ = _load_repo_json_ref(ref, repo_root=repo_root, location=ref_location)
         if not isinstance(payload.get("planting_id"), str) or not payload["planting_id"]:
             raise QueueBuildError(f"{ref_location}: planting record must expose planting_id")
+
+        if payload.get("atlas_row_id") != expected_atlas_row or payload.get("dossier_id") != expected_atlas_row:
+            raise QueueBuildError(
+                f"{ref_location}: planting atlas/dossier scope does not bind candidate atlas row {expected_atlas_row!r}"
+            )
+
+        source_witness = payload.get("source_witness")
+        if not isinstance(source_witness, dict):
+            raise QueueBuildError(f"{ref_location}: planting source_witness must be an object")
+        identity_fields = [
+            key
+            for key in ("artifact_id", "composite_id", "work_id")
+            if isinstance(source_witness.get(key), str) and source_witness.get(key)
+        ]
+        if len(identity_fields) != 1:
+            raise QueueBuildError(
+                f"{ref_location}: planting source_witness must identify exactly one source identity"
+            )
+        identity_field = identity_fields[0]
+        source_id = source_witness[identity_field]
+        source_record_ref = source_witness.get("record_ref")
+        if not isinstance(source_record_ref, str) or not source_record_ref:
+            raise QueueBuildError(f"{ref_location}: planting source_witness must bind record_ref")
+        source_record, _ = _load_repo_json_ref(
+            source_record_ref,
+            repo_root=repo_root,
+            location=ref_location,
+        )
+        record_key = "record_id" if identity_field == "work_id" else identity_field
+        if source_record.get(record_key) != source_id:
+            raise QueueBuildError(
+                f"{ref_location}: planting source_witness {identity_field} disagrees with record_ref"
+            )
+        expected_record_root = {
+            "artifact_id": "ToS/source-witnesses/artifacts/",
+            "composite_id": "ToS/source-witnesses/scholarly-composites/",
+            "work_id": "ToS/source-witnesses/works/",
+        }[identity_field]
+        if not source_record_ref.startswith(expected_record_root):
+            raise QueueBuildError(
+                f"{ref_location}: planting source_witness {identity_field} record_ref must stay under {expected_record_root}"
+            )
+        if (
+            source_id not in supported_ids
+            and source_record_ref not in relation_refs
+            and source_record_ref not in acquisition_context_refs
+        ):
+            raise QueueBuildError(
+                f"{ref_location}: planting source_witness {source_id!r} is not bound to the receipt discovery or acquisition records"
+            )
+
+        planting_discovery_ref = payload.get("discovery_ref")
+        if not isinstance(planting_discovery_ref, str) or not planting_discovery_ref:
+            raise QueueBuildError(
+                f"{ref_location}: planting discovery_ref must be a non-empty repository-relative path"
+            )
+        planting_discovery, planting_discovery_id = resolve_discovery(
+            planting_discovery_ref,
+            ref_location,
+        )
+        planting_target = planting_discovery.get("target")
+        planting_target_refs = (
+            set(planting_target.get("known_tos_refs", []))
+            if isinstance(planting_target, dict)
+            and isinstance(planting_target.get("known_tos_refs"), list)
+            else set()
+        )
+        discovery_context = {planting_discovery_ref, planting_discovery_id}
+        if not (
+            discovery_context & receipt_context_refs
+            or source_record_ref in receipt_context_refs
+            or source_id in receipt_context_refs
+            or source_record_ref in acquisition_context_refs
+            or source_id in acquisition_context_refs
+        ):
+            raise QueueBuildError(
+                f"{ref_location}: planting discovery_ref {planting_discovery_ref!r} is not bound to the receipt records"
+            )
+        if planting_target_refs and source_id not in planting_target_refs:
+            raise QueueBuildError(
+                f"{ref_location}: planting discovery target does not identify source_witness {source_id!r}"
+            )
+
+        planting_event_ref = payload.get("provenance_event_ref")
+        if not isinstance(planting_event_ref, str) or not planting_event_ref:
+            raise QueueBuildError(
+                f"{ref_location}: planting provenance_event_ref must be a non-empty event ID"
+            )
+        event_entry = provenance_events.get(planting_event_ref)
+        if event_entry is None:
+            raise QueueBuildError(
+                f"{ref_location}: planting provenance event {planting_event_ref!r} does not resolve"
+            )
+        event = event_entry[0]
+        event_inputs = event.get("inputs", [])
+        event_outputs = event.get("outputs", [])
+        if not isinstance(event_inputs, list) or not isinstance(event_outputs, list):
+            raise QueueBuildError(
+                f"{ref_location}: planting provenance event inputs and outputs must be arrays"
+            )
+        output_refs = {
+            output.get("ref")
+            for output in event_outputs
+            if isinstance(output, dict) and isinstance(output.get("ref"), str)
+        }
+        input_refs = {
+            input_ref.get("ref")
+            for input_ref in event_inputs
+            if isinstance(input_ref, dict) and isinstance(input_ref.get("ref"), str)
+        }
+        if ref not in output_refs:
+            raise QueueBuildError(
+                f"{ref_location}: planting provenance event does not output the planting record"
+            )
+        if source_record_ref not in output_refs | input_refs and source_id not in output_refs | input_refs:
+            raise QueueBuildError(
+                f"{ref_location}: planting provenance event does not bind source_witness {source_id!r}"
+            )
+        if not (
+            planting_event_ref in receipt_context_refs
+            or source_record_ref in receipt_context_refs
+            or source_id in receipt_context_refs
+            or source_record_ref in acquisition_context_refs
+            or source_id in acquisition_context_refs
+        ):
+            raise QueueBuildError(
+                f"{ref_location}: planting provenance_event_ref {planting_event_ref!r} is not bound to the receipt records"
+            )
 
 
 def _validate_acquisition_closure(
@@ -421,11 +626,13 @@ def _validate_receipt_acquisition_closure(
     repo_root: Path,
     receipt: dict[str, Any],
     *,
+    candidate: dict[str, Any],
+    discovery: dict[str, Any],
+    discoveries: dict[str, tuple[dict[str, Any], str]],
     provenance_events: dict[str, tuple[dict[str, Any], str]],
     location: str,
 ) -> None:
     candidate_id = _required_string(receipt, "candidate_id", location)
-    _validate_planting_refs(repo_root, receipt.get("planting_refs"), location=location)
     acquisitions = [receipt.get("acquisition")]
     additional = receipt.get("additional_acquisitions", [])
     if additional is not None:
@@ -440,6 +647,17 @@ def _validate_receipt_acquisition_closure(
             provenance_events=provenance_events,
             location=f"{location}:acquisition[{index}]",
         )
+    _validate_planting_refs(
+        repo_root,
+        receipt.get("planting_refs"),
+        candidate=candidate,
+        receipt=receipt,
+        discovery=discovery,
+        discoveries=discoveries,
+        acquisitions=acquisitions,
+        provenance_events=provenance_events,
+        location=location,
+    )
 
 
 def _selector_matches(payload: dict[str, Any], selector: dict[str, Any]) -> bool:
@@ -698,6 +916,9 @@ def _load_receipts(
         _validate_receipt_acquisition_closure(
             repo_root,
             receipt,
+            candidate=candidate,
+            discovery=discovery[0],
+            discoveries=discoveries,
             provenance_events=provenance_events,
             location=location,
         )

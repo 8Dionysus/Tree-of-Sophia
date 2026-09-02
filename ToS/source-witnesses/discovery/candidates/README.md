@@ -59,10 +59,16 @@ change the selected candidate's target.
 
 Before an acquired terminal outcome is accepted, its representation, File,
 artifact/composite/Item identity, acquisition event, and planting records must
-resolve and agree. Active timing receipts must cover the exact discovery
-channel set and bind each probe URL to its channel endpoint. These checks prove
-record closure and transport measurement only; they do not promote source,
-rights, textual, semantic, or canon authority.
+resolve and agree. A planting is additionally bound to the candidate's atlas
+row, its exact source-witness record, and receipt-visible discovery and
+provenance closure: the source identity, discovery target, planting output, and
+provenance input/output must all agree with the receipt's route. A source
+planting may remain a separate pre-existing witness when it is explicitly
+present in the receipt's target or operational relation set; it cannot be
+smuggled in by planting ID alone. Active timing receipts must cover the exact
+discovery channel set and bind each probe URL to its channel endpoint. These
+checks prove record closure and transport measurement only; they do not promote
+source, rights, textual, semantic, or canon authority.
 
 Operational queue relations may return to candidate, query, result,
 acquisition, planting, and provenance evidence. Bibliographic identity remains

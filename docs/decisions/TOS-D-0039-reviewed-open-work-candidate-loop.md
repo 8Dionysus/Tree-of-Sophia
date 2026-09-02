@@ -71,6 +71,12 @@ the active timing check remains scoped to the latest receipt for each
 candidate. These are mechanical record checks, not identity, rights, textual,
 semantic, or canon acceptance.
 
+Planting closure additionally binds the candidate atlas row, exact source-witness
+record, receipt-visible discovery target, and provenance event input/output. A
+pre-existing planting is admissible only when its identity and route are explicit
+in the receipt target or operational acquisition relations; a planting ID alone
+cannot smuggle an unrelated source into a terminal outcome.
+
 Represent an acquired physical-artifact image as a separate content-addressed
 File under `artifacts/.../representations/.../payload/`, governed by
 `artifact-visual-representation.schema.json`. The visual record binds the

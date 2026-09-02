@@ -17,6 +17,7 @@ if str(SCRIPTS) not in sys.path:
 from open_work_candidate_queue_common import (  # noqa: E402
     QUEUE_PATH,
     QueueBuildError,
+    _validate_planting_refs,
     build_payload,
     candidate_digest,
     render_payload,
@@ -390,6 +391,62 @@ class OpenWorkCandidateQueueTest(unittest.TestCase):
 
         with self.assertRaisesRegex(QueueBuildError, "measured elapsed_seconds"):
             build_payload(repo)
+
+    def test_planting_source_witness_must_bind_to_receipt_route(self) -> None:
+        repo = self.make_repo()
+        discovery_id = "tos.discovery.earliest"
+        discovery_ref = "ToS/source-witnesses/discovery/runs/earliest.v1.json"
+        discovery = _timed_discovery(discovery_id)
+        foreign_id = "tos.artifact.synthetic.foreign"
+        foreign_record_ref = "ToS/source-witnesses/artifacts/synthetic/foreign/artifact-witness.json"
+        _write_json(repo / foreign_record_ref, {"artifact_id": foreign_id})
+        planting_ref = "ToS/source-witnesses/discovery/candidates/foreign-planting.json"
+        _write_json(
+            repo / planting_ref,
+            {
+                "planting_id": "tos.planting.synthetic.foreign",
+                "atlas_row_id": "A04",
+                "dossier_id": "A04",
+                "source_witness": {
+                    "artifact_id": foreign_id,
+                    "record_ref": foreign_record_ref,
+                },
+                "discovery_ref": discovery_ref,
+                "provenance_event_ref": "tos.event.discovery.synthetic.foreign",
+            },
+        )
+
+        with self.assertRaisesRegex(QueueBuildError, "source_witness .*not bound to the receipt"):
+            _validate_planting_refs(
+                repo,
+                [planting_ref],
+                candidate=_candidate(
+                    "open-work-candidate.earliest",
+                    year=-2400,
+                    row_id="A04",
+                    row_order=4,
+                ),
+                receipt={
+                    "discovery_ref": discovery_ref,
+                    "discovery_id": discovery_id,
+                    "operational_relation_refs": [],
+                },
+                discovery=discovery,
+                discoveries={discovery_id: (discovery, discovery_ref)},
+                acquisitions=[
+                    {
+                        "downloaded": False,
+                        "item_ref": None,
+                        "artifact_ref": None,
+                        "composite_ref": None,
+                        "representation_ref": None,
+                        "file_ref": None,
+                        "provenance_event_ref": None,
+                    }
+                ],
+                provenance_events={},
+                location="synthetic-receipt",
+            )
 
     def test_receipt_must_bind_the_exact_candidate_digest(self) -> None:
         repo = self.make_repo()
