@@ -11,7 +11,7 @@
     {"component_id": "http-reader", "owner": "Tree-of-Sophia", "required": true},
     {"component_id": "native-mcp", "owner": "Tree-of-Sophia", "required": true},
     {"component_id": "web-app", "owner": "Tree-of-Sophia", "required": true},
-    {"component_id": "webmcp", "owner": "Tree-of-Sophia", "required": false, "posture": "next-slice"}
+    {"component_id": "webmcp", "owner": "Tree-of-Sophia", "required": true, "posture": "feature-detected-experimental-browser-api"}
   ],
   "runtime_profiles": [
     {"profile_id": "standalone", "runtime_owner": "Tree-of-Sophia", "requires_abyssos": false},

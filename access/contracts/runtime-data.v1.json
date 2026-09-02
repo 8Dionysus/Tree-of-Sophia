@@ -7,13 +7,13 @@
       "subject_id": "tos-corpus-index",
       "source_path": "ToS/derived-exports/tos_corpus_index.min.json",
       "required": true,
-      "consumer_roles": ["query-core", "native-mcp", "http-reader", "web-app"]
+      "consumer_roles": ["query-core", "native-mcp", "http-reader", "web-app", "webmcp"]
     },
     {
       "subject_id": "tos-philosophy-graph",
       "source_path": "ToS/derived-exports/philosophy_graph_projection.min.json",
       "required": true,
-      "consumer_roles": ["query-core", "native-mcp", "http-reader", "web-app"]
+      "consumer_roles": ["query-core", "native-mcp", "http-reader", "web-app", "webmcp"]
     },
     {
       "subject_id": "tos-philosophy-post-planting-audit",

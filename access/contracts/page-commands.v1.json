@@ -1,0 +1,24 @@
+{
+  "schema_version": "tos_page_commands_v1",
+  "owner": "Tree-of-Sophia/access/web",
+  "state_contract": {
+    "schema_version": "tos_page_context_v1",
+    "revision_rule": "Every successful state-changing command advances the monotonic page context revision.",
+    "deictic_rule": "A context-bound command must reject execution when its captured context_revision is stale.",
+    "deep_link_fields": ["mode", "view", "graph", "focus"]
+  },
+  "commands": [
+    {"command_id": "tos.page.context", "availability": "always", "effect": "return the current page context"},
+    {"command_id": "tos.page.open-view", "availability": "always", "effect": "open a mode/view and optional deep-link focus"},
+    {"command_id": "tos.page.search", "availability": "always", "effect": "show search results in the inspector"},
+    {"command_id": "tos.page.select", "availability": "always", "effect": "select an object present in the active view"},
+    {"command_id": "tos.page.show-neighborhood", "availability": "selected node", "effect": "show the selected node neighborhood"},
+    {"command_id": "tos.page.start-path", "availability": "selected node", "effect": "set the deictic path start"},
+    {"command_id": "tos.page.find-path", "availability": "path start and distinct selected node", "effect": "show deterministic constrained paths"},
+    {"command_id": "tos.page.reroute-without-selection", "availability": "selected edge", "effect": "show alternative paths while excluding that edge"},
+    {"command_id": "tos.page.clear-focus", "availability": "always", "effect": "clear local focus packets"},
+    {"command_id": "tos.page.cancel", "availability": "always", "effect": "abort active page command execution"}
+  ],
+  "shared_actuation_rule": "Human UI handlers and WebMCP tools invoke this same command registry.",
+  "authority_limit": "Commands may change browser presentation state but never ToS source, review, rights, or canon state."
+}

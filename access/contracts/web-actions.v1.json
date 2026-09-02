@@ -1,18 +1,8 @@
 {
   "schema_version": "tos_web_actions_v1",
   "owner": "Tree-of-Sophia/access/web",
-  "side_effect_posture": "read-only",
-  "actions": [
-    {"action_id": "tos.status", "input": {}, "result": "status packet"},
-    {"action_id": "tos.search", "input": {"mode": "philosophy|corpus", "query": "string", "limit": "1..100"}, "result": "search packet"},
-    {"action_id": "tos.view.open", "input": {"mode": "philosophy|corpus", "view_id": "string", "limit": "1..1000"}, "result": "view packet"},
-    {"action_id": "tos.node.inspect", "input": {"mode": "philosophy|corpus", "node_id": "string"}, "result": "node packet"},
-    {"action_id": "tos.neighborhood", "input": {"node_id": "string", "depth": "1..3", "limit": "1..300", "layers": "string[]", "predicates": "string[]"}, "result": "neighborhood packet"},
-    {"action_id": "tos.path.find", "input": {"from_id": "string", "to_id": "string", "max_depth": "1..8", "layers": "string[]", "predicates": "string[]"}, "result": "path packet"}
-  ],
-  "webmcp_binding": {
-    "posture": "not-registered-yet",
-    "rule": "WebMCP tools call these actions; they do not duplicate query or page-state logic."
-  },
-  "authority_limit": "Action success proves access behavior only; source_ref routes remain authoritative."
+  "status": "superseded",
+  "superseded_by": ["query-operations.v1.json", "page-commands.v1.json"],
+  "compatibility_note": "The six tos.* operation IDs remain available through query-operations.v1; browser actuation moved to revisioned page commands.",
+  "authority_limit": "This file is a migration marker and no longer owns an executable browser ABI."
 }

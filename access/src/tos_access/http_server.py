@@ -152,9 +152,30 @@ def build_handler(core: ToSAccessCore, web_root: Path) -> type[BaseHTTPRequestHa
                 if path.startswith("/api/philosophy/query/neighborhood/"):
                     packet = core.philosophy_neighborhood(unquote(path.removeprefix("/api/philosophy/query/neighborhood/")), _integer(query, "depth", 1, 1, 3), _list(query, "layers"), _list(query, "predicates"), _integer(query, "limit", 80, 1, 300)); packet["query_backend"] = "json"; self._json(packet); return
                 if path == "/api/philosophy/query/paths":
-                    packet = core.philosophy_path_between(_single(query, "from"), _single(query, "to"), _list(query, "layers"), _list(query, "predicates"), _integer(query, "max_depth", 6, 1, 8)); packet["query_backend"] = "json"; self._json(packet); return
+                    packet = core.philosophy_path_between(
+                        _single(query, "from"),
+                        _single(query, "to"),
+                        _list(query, "layers"),
+                        _list(query, "predicates"),
+                        _integer(query, "max_depth", 6, 1, 8),
+                        _single(query, "direction", "outgoing"),
+                        _single(query, "view_id") or None,
+                        _list(query, "exclude"),
+                        _integer(query, "alternatives", 1, 1, 5),
+                    ); packet["query_backend"] = "json"; self._json(packet); return
                 if path.startswith("/api/philosophy/neighborhood/"): self._json(core.philosophy_neighborhood(unquote(path.removeprefix("/api/philosophy/neighborhood/")), _integer(query, "depth", 1, 1, 3), _list(query, "layers"), _list(query, "predicates"), _integer(query, "limit", 80, 1, 300))); return
-                if path == "/api/philosophy/paths": self._json(core.philosophy_path_between(_single(query, "from"), _single(query, "to"), _list(query, "layers"), _list(query, "predicates"), _integer(query, "max_depth", 6, 1, 8))); return
+                if path == "/api/philosophy/paths":
+                    self._json(core.philosophy_path_between(
+                        _single(query, "from"),
+                        _single(query, "to"),
+                        _list(query, "layers"),
+                        _list(query, "predicates"),
+                        _integer(query, "max_depth", 6, 1, 8),
+                        _single(query, "direction", "outgoing"),
+                        _single(query, "view_id") or None,
+                        _list(query, "exclude"),
+                        _integer(query, "alternatives", 1, 1, 5),
+                    )); return
                 if path.startswith("/api/philosophy/nodes/"): self._json(core.philosophy_node(unquote(path.removeprefix("/api/philosophy/nodes/")))); return
                 if path.startswith("/api/philosophy/edges/"): self._json(core.philosophy_edge(unquote(path.removeprefix("/api/philosophy/edges/")))); return
                 if path == "/api/philosophy/scale-export/manifest": self._json(core.philosophy_scale_manifest(_single(query, "view_id") or None, _list(query, "layers"))); return

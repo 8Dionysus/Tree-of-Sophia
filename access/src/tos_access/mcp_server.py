@@ -183,14 +183,22 @@ def build_server(
         layers: list[str] | None = None,
         predicates: list[str] | None = None,
         max_depth: int = 6,
+        direction: str = "outgoing",
+        view_id: str | None = None,
+        excluded_edge_ids: list[str] | None = None,
+        alternative_limit: int = 1,
     ) -> dict[str, Any]:
-        """Return a bounded path packet between two projected ToS philosophy nodes."""
+        """Return deterministic bounded paths with direction, view, and edge-exclusion constraints."""
         return current_state().philosophy_path_between(
             from_id=from_id,
             to_id=to_id,
             layers=layers,
             predicates=predicates,
             max_depth=max_depth,
+            direction=direction,
+            view_id=view_id,
+            excluded_edge_ids=excluded_edge_ids,
+            alternative_limit=alternative_limit,
         )
 
     @mcp.tool()
