@@ -745,13 +745,12 @@ def _validate_receipt_acquisition_closure(
         isinstance(acquisition, dict) and acquisition.get("downloaded") is True
         for acquisition in acquisitions
     )
-    if downloaded:
-        if rights_status != "positive-for-acquisition":
-            raise QueueBuildError(
-                f"{location}: downloaded acquisition requires rights_result.status "
-                f"positive-for-acquisition, got {rights_status!r}"
-            )
-        _validate_rights_evidence_refs(repo_root, rights_result, location=location)
+    if downloaded and rights_status != "positive-for-acquisition":
+        raise QueueBuildError(
+            f"{location}: downloaded acquisition requires rights_result.status "
+            f"positive-for-acquisition, got {rights_status!r}"
+        )
+    _validate_rights_evidence_refs(repo_root, rights_result, location=location)
     for index, acquisition in enumerate(acquisitions, start=1):
         _validate_acquisition_closure(
             repo_root,
@@ -795,6 +794,10 @@ def _validate_source_refs(
     refs = candidate.get("source_refs")
     if not isinstance(refs, list) or not refs:
         raise QueueBuildError(f"{location}: source_refs must be a non-empty array")
+    selection = candidate.get("selection")
+    expected_atlas_row = selection.get("atlas_row_id") if isinstance(selection, dict) else None
+    if not isinstance(expected_atlas_row, str) or not expected_atlas_row:
+        raise QueueBuildError(f"{location}: candidate selection must expose atlas_row_id")
     for index, source_ref in enumerate(refs, start=1):
         ref_location = f"{location}:source_refs[{index}]"
         if not isinstance(source_ref, dict):
@@ -813,6 +816,13 @@ def _validate_source_refs(
             raise QueueBuildError(
                 f"{ref_location}: selector does not resolve in {source_path_value}: {selector}"
             )
+        for selector_key in ("row_id", "dossier_id"):
+            selected_row = selector.get(selector_key)
+            if selected_row is not None and selected_row != expected_atlas_row:
+                raise QueueBuildError(
+                    f"{ref_location}: {selector_key} selector {selected_row!r} "
+                    f"does not bind candidate selection atlas_row_id {expected_atlas_row!r}"
+                )
 
 
 def _load_candidates(repo_root: Path) -> list[tuple[dict[str, Any], str]]:
@@ -1137,6 +1147,11 @@ def _snapshot(
         LEDGER_PATH,
     ]
     input_paths.extend(Path(location) for _, location in discoveries.values())
+    input_paths.extend(
+        _safe_relative_path(source_ref["source_path"])
+        for candidate, _ in candidates
+        for source_ref in candidate["source_refs"]
+    )
     receipt_root = repo_root / RECEIPT_ROOT
     if receipt_root.is_dir():
         input_paths.extend(path.relative_to(repo_root) for path in sorted(receipt_root.glob("*.json")))

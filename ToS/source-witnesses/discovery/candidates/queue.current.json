@@ -304,7 +304,7 @@
   "generated_by": "scripts/build_open_work_candidate_queue.py",
   "next_candidate_id": "open-work-candidate.teaching-for-king-merykara",
   "owner_surface": "ToS/source-witnesses/discovery/candidates/reviewed-candidates.jsonl",
-  "queue_sha256": "72efb7eff057d9723393e4d04258799d4e413517751484f1dfddb7e07d3e6574",
+  "queue_sha256": "6f7ab8a32a496a616269795323b8ea1883770366efcb14dac1bf2ef8ee1e642f",
   "receipt_root": "ToS/source-witnesses/discovery/candidates/receipts",
   "schema_version": "tos_open_work_candidate_queue_v1",
   "source_snapshot": {
@@ -317,7 +317,7 @@
       "source_anchor_backlog_rows": 9530,
       "terminal_receipts": 14
     },
-    "input_sha256": "8813c9ebf8e01a7431d25296352d6372733b74e67aa32e79b9f97a0072025731",
+    "input_sha256": "d7c8187804ef37ba7a206ced792eab24263ee2efa837d45abe815ee5d8313512",
     "inputs": [
       {
         "path": "ToS/philosophy/atlas/dossiers/index.jsonl",
@@ -338,6 +338,10 @@
       {
         "path": "ToS/philosophy/atlas/master-tables/table-iii/rows.jsonl",
         "sha256": "df717d5b681396241be2c63261f1dc6c60dcd8bd72af6bb2b603807bfc366e83"
+      },
+      {
+        "path": "ToS/philosophy/graph-workbench/proposed-nodes/table-i-prepared-dossiers.jsonl",
+        "sha256": "e486e8ed6c320bb5bc065b793beba6f61dab968dfafcf65f491a0f3147539eb6"
       },
       {
         "path": "ToS/source-witnesses/catalog/works.jsonl",

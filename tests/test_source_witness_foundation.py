@@ -8,6 +8,7 @@ import sys
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 from jsonschema import FormatChecker
 from jsonschema.validators import validator_for
@@ -12464,6 +12465,63 @@ class SourceWitnessFoundationTests(unittest.TestCase):
                 f"{len(missing_local_content)} private local content files are unavailable"
             )
         self.assertEqual([], issues)
+
+    def test_artifact_representation_requires_a_git_tracked_payload(self) -> None:
+        representation_path = (
+            REPO_ROOT
+            / "ToS/source-witnesses/artifacts/egyptian/deir-el-medina/"
+            "museo-egizio-cgt-54014/representations/recto-photograph-p01/representation.json"
+        )
+        representation = json.loads(representation_path.read_text(encoding="utf-8"))
+        payload_path = representation_path.parent / representation["payload"]["relative_path"]
+        original_git_tracked = foundation._git_tracked
+
+        def pretend_untracked(repo_root: Path, path: Path) -> bool | None:
+            if path == payload_path:
+                return False
+            return original_git_tracked(repo_root, path)
+
+        with patch.object(foundation, "_git_tracked", side_effect=pretend_untracked):
+            issues = foundation.validate_foundation(REPO_ROOT)
+
+        self.assertIn(
+            (
+                foundation._relative(representation_path, REPO_ROOT),
+                "tracked public artifact payload must be git-tracked",
+            ),
+            issues,
+        )
+
+    def test_malformed_composite_payload_is_reported_without_a_traceback(self) -> None:
+        representation_path = sorted(
+            (REPO_ROOT / "ToS/source-witnesses/scholarly-composites").glob(
+                "**/representations/*/representation.json"
+            )
+        )[0]
+        original_load_json = foundation._load_json
+
+        def load_malformed_payload(
+            path: Path,
+            repo_root: Path,
+            issues: list[tuple[str, str]],
+        ) -> dict | None:
+            payload = original_load_json(path, repo_root, issues)
+            if path == representation_path and payload is not None:
+                payload = copy.deepcopy(payload)
+                payload["payload"] = None
+            return payload
+
+        with patch.object(foundation, "_load_json", side_effect=load_malformed_payload):
+            issues = foundation.validate_foundation(REPO_ROOT)
+
+        location = foundation._relative(representation_path, REPO_ROOT)
+        self.assertTrue(
+            any(
+                issue_location.startswith(f"{location}['payload']")
+                and message == "None is not of type 'object'"
+                for issue_location, message in issues
+            )
+        )
 
     def test_frozen_pilot_has_declared_counts_and_no_false_human_gold(self) -> None:
         sample_plan = json.loads((GOLD_ROOT / "sample-plan.json").read_text(encoding="utf-8"))

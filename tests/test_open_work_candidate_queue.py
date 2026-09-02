@@ -299,7 +299,40 @@ class OpenWorkCandidateQueueTest(unittest.TestCase):
         )
         _write_jsonl(ledger, candidates)
 
-        self.assertEqual("open-work-candidate.earliest", build_payload(repo)["next_candidate_id"])
+        payload = build_payload(repo)
+        self.assertEqual("open-work-candidate.earliest", payload["next_candidate_id"])
+        self.assertIn(
+            "ToS/philosophy/atlas/master-tables/table-i/selected.json",
+            {entry["path"] for entry in payload["source_snapshot"]["inputs"]},
+        )
+
+    def test_review_source_selectors_must_bind_candidate_selection(self) -> None:
+        for candidate_index, selector_key, wrong_row, source_path in (
+            (
+                0,
+                "row_id",
+                "A04",
+                "ToS/philosophy/atlas/master-tables/table-i/rows.jsonl",
+            ),
+            (1, "dossier_id", "A05", "ToS/philosophy/atlas/dossiers/index.jsonl"),
+        ):
+            with self.subTest(selector_key=selector_key):
+                repo = self.make_repo()
+                ledger = repo / "ToS/source-witnesses/discovery/candidates/reviewed-candidates.jsonl"
+                candidates = [
+                    json.loads(line)
+                    for line in ledger.read_text(encoding="utf-8").splitlines()
+                ]
+                source_ref = candidates[candidate_index]["source_refs"][0]
+                source_ref["source_path"] = source_path
+                source_ref["selector"] = {selector_key: wrong_row}
+                _write_jsonl(ledger, candidates)
+
+                with self.assertRaisesRegex(
+                    QueueBuildError,
+                    rf"{selector_key} selector .* does not bind candidate selection atlas_row_id",
+                ):
+                    build_payload(repo)
 
     def test_candidate_source_ref_preserves_physical_jsonl_line_number(self) -> None:
         repo = self.make_repo()
@@ -520,6 +553,10 @@ class OpenWorkCandidateQueueTest(unittest.TestCase):
 
     def test_held_source_witness_requires_resolved_witness(self) -> None:
         repo = self.make_repo()
+        _write_json(
+            repo / "ToS/source-witnesses/discovery/runs/earliest.v1.json",
+            _timed_discovery("tos.discovery.earliest"),
+        )
         with self.assertRaisesRegex(QueueBuildError, "held_source_witness requires a resolved"):
             _validate_receipt_acquisition_closure(
                 repo,
@@ -748,6 +785,34 @@ class OpenWorkCandidateQueueTest(unittest.TestCase):
                         provenance_events={},
                         location="synthetic-receipt",
                     )
+
+    def test_non_downloaded_outcome_requires_resolved_rights_evidence(self) -> None:
+        repo = self.make_repo()
+        with self.assertRaisesRegex(QueueBuildError, "rights evidence ref does not resolve"):
+            _validate_receipt_acquisition_closure(
+                repo,
+                {
+                    "candidate_id": "open-work-candidate.earliest",
+                    "terminal_status": "metadata_only",
+                    "rights_result": {
+                        "status": "insufficient-for-acquisition",
+                        "evidence_refs": ["ToS/does-not-exist.json"],
+                    },
+                    "operational_relation_refs": [],
+                    "acquisition": {"downloaded": False},
+                    "planting_refs": [],
+                },
+                candidate=_candidate(
+                    "open-work-candidate.earliest",
+                    year=-2400,
+                    row_id="A04",
+                    row_order=4,
+                ),
+                discovery=_timed_discovery("tos.discovery.earliest"),
+                discoveries={},
+                provenance_events={},
+                location="synthetic-receipt",
+            )
 
     def test_superseding_receipt_cannot_be_backdated(self) -> None:
         receipts = [

@@ -12781,6 +12781,9 @@ def validate_foundation(repo_root: Path, *, require_local_payloads: bool = False
         else:
             if _git_ignored(repo_root, payload_path):
                 issues.append((representation_ref, "tracked public artifact payload must not be gitignored"))
+            tracked = _git_tracked(repo_root, payload_path)
+            if tracked is not True:
+                issues.append((representation_ref, "tracked public artifact payload must be git-tracked"))
             if payload_path.stat().st_size != payload.get("byte_size"):
                 issues.append((representation_ref, "artifact representation byte_size differs from payload"))
             if _sha256(payload_path) != payload.get("sha256"):
@@ -13029,12 +13032,13 @@ def validate_foundation(repo_root: Path, *, require_local_payloads: bool = False
         if composite is None or composite.get("composite_id") != composite_id:
             issues.append((representation_ref, "composite_ref does not resolve the represented composite_id"))
 
-        payload = representation.get("payload", {})
+        payload = representation.get("payload")
         relative_payload = payload.get("relative_path") if isinstance(payload, dict) else None
         payload_path = representation_path.parent / str(relative_payload)
         if not isinstance(relative_payload, str) or not payload_path.is_file():
             if (
-                payload.get("materialization_status") != "not_materialized"
+                not isinstance(payload, dict)
+                or payload.get("materialization_status") != "not_materialized"
                 or payload.get("storage_posture") != "unmaterialized_payload"
                 or payload.get("git_tracked") is not False
             ):
