@@ -291,6 +291,13 @@ class CoreContractTests(unittest.TestCase):
                 "nodes",
                 {result["collection"] for result in core.philosophy_search("Alpha")["results"]},
             )
+            view_result = core.philosophy_search("Chronology", limit=1)["results"][0]["item"]
+            self.assertNotIn("nodes", view_result)
+            self.assertNotIn("edges", view_result)
+            self.assertNotIn("node_ids", view_result)
+            self.assertNotIn("edge_ids", view_result)
+            self.assertEqual(view_result["node_count"], 3)
+            self.assertEqual(view_result["edge_count"], 2)
 
     def test_scale_memberships_reference_only_selected_rows(self) -> None:
         with tempfile.TemporaryDirectory() as raw:

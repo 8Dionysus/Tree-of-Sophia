@@ -1248,7 +1248,22 @@ class ToSAccessCore:
                     continue
                 if needle and not _contains(item, needle):
                     continue
-                results.append({"collection": collection_name, "item": item})
+                compact_item = dict(item)
+                if collection_name == "views":
+                    view_nodes, view_edges = _view_nodes_edges(payload, item)
+                    for key in ("nodes", "edges", "node_ids", "edge_ids"):
+                        compact_item.pop(key, None)
+                    compact_item["node_count"] = len(view_nodes)
+                    compact_item["edge_count"] = len(view_edges)
+                elif collection_name == "clusters":
+                    member_node_ids = _string_list(compact_item.pop("member_node_ids", []))
+                    member_edge_ids = _string_list(compact_item.pop("member_edge_ids", []))
+                    compact_item["member_node_count"] = len(member_node_ids)
+                    compact_item["member_edge_count"] = len(member_edge_ids)
+                elif collection_name == "review_packets":
+                    diagnostics = compact_item.pop("unresolved_diagnostics", [])
+                    compact_item["unresolved_diagnostic_count"] = len(diagnostics) if isinstance(diagnostics, list) else 0
+                results.append({"collection": collection_name, "item": compact_item})
                 if len(results) >= limit:
                     return self._philosophy_search_payload(query, results)
         return self._philosophy_search_payload(query, results)
