@@ -13033,9 +13033,33 @@ def validate_foundation(repo_root: Path, *, require_local_payloads: bool = False
         relative_payload = payload.get("relative_path") if isinstance(payload, dict) else None
         payload_path = representation_path.parent / str(relative_payload)
         if not isinstance(relative_payload, str) or not payload_path.is_file():
+            if (
+                payload.get("materialization_status") != "not_materialized"
+                or payload.get("storage_posture") != "unmaterialized_payload"
+                or payload.get("git_tracked") is not False
+            ):
+                issues.append(
+                    (
+                        representation_ref,
+                        "missing scholarly-composite payload must declare not_materialized, "
+                        "unmaterialized_payload, and git_tracked=false",
+                    )
+                )
             if require_local_payloads:
                 issues.append((representation_ref, "scholarly-composite representation payload is missing"))
         else:
+            if (
+                payload.get("materialization_status") != "materialized"
+                or payload.get("storage_posture") != "tracked_repository_payload"
+                or payload.get("git_tracked") is not True
+            ):
+                issues.append(
+                    (
+                        representation_ref,
+                        "present scholarly-composite payload must declare materialized, "
+                        "tracked_repository_payload, and git_tracked=true",
+                    )
+                )
             tracked = _git_tracked(repo_root, payload_path)
             if tracked is False:
                 issues.append((representation_ref, "local scholarly-composite payload must be tracked"))

@@ -110,6 +110,7 @@
         "byte_size",
         "sha256",
         "container",
+        "materialization_status",
         "storage_posture",
         "git_tracked",
         "fixity_verified_at"
@@ -139,11 +140,20 @@
             }
           ]
         },
-        "storage_posture": {"const": "local_only_payload"},
-        "git_tracked": {"const": false},
+        "materialization_status": {"enum": ["not_materialized", "materialized"]},
+        "storage_posture": {"enum": ["unmaterialized_payload", "tracked_repository_payload"]},
+        "git_tracked": {"type": "boolean"},
         "fixity_verified_at": {"type": "string", "format": "date-time"}
       },
       "allOf": [
+        {
+          "if": {"properties": {"materialization_status": {"const": "not_materialized"}}, "required": ["materialization_status"]},
+          "then": {"properties": {"storage_posture": {"const": "unmaterialized_payload"}, "git_tracked": {"const": false}}}
+        },
+        {
+          "if": {"properties": {"materialization_status": {"const": "materialized"}}, "required": ["materialization_status"]},
+          "then": {"properties": {"storage_posture": {"const": "tracked_repository_payload"}, "git_tracked": {"const": true}}}
+        },
         {
           "if": {"properties": {"media_type": {"const": "application/pdf"}}, "required": ["media_type"]},
           "then": {"properties": {"page_count": {"type": "integer", "minimum": 1}, "container": {"type": "null"}}, "required": ["page_count"]},

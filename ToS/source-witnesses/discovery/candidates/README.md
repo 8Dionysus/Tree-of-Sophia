@@ -77,8 +77,11 @@ do not promote source, rights, textual, semantic, or canon authority.
 For Item acquisitions, the receipt route must name the Item (or its canonical
 manifest path) and its acquisition event. Local scholarly-composite payloads
 are tracked when present and are checked for fixity; Git-ignore is not a valid
-substitute. The channel-measurement utility accepts either a superseding or an
-instrumented output, not both in one invocation.
+substitute. A downloaded receipt's positive rights result must carry evidence
+refs that either resolve to repository-relative files or are well-formed
+`http(s)` URIs; a status string alone does not authorize acquisition. The
+channel-measurement utility accepts either a superseding or an instrumented
+output, not both in one invocation.
 
 Operational queue relations may return to candidate, query, result,
 acquisition, planting, and provenance evidence. Bibliographic identity remains

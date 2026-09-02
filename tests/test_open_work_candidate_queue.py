@@ -560,7 +560,10 @@ class OpenWorkCandidateQueueTest(unittest.TestCase):
                 repo,
                 {
                     "candidate_id": candidate_id,
-                    "rights_result": {"status": "positive-for-acquisition"},
+                    "rights_result": {
+                        "status": "positive-for-acquisition",
+                        "evidence_refs": [receipt_discovery_ref],
+                    },
                     "discovery_ref": receipt_discovery_ref,
                     "discovery_id": receipt_discovery_id,
                     "operational_relation_refs": [],
@@ -622,7 +625,12 @@ class OpenWorkCandidateQueueTest(unittest.TestCase):
                 repo,
                 {
                     "candidate_id": candidate_id,
-                    "rights_result": {"status": "positive-for-acquisition"},
+                    "rights_result": {
+                        "status": "positive-for-acquisition",
+                        "evidence_refs": [
+                            "ToS/source-witnesses/discovery/runs/earliest.v1.json"
+                        ],
+                    },
                     "discovery_ref": "ToS/source-witnesses/discovery/runs/earliest.v1.json",
                     "discovery_id": "tos.discovery.earliest",
                     "operational_relation_refs": ["tos.discovery.earliest", event_ref],
@@ -648,6 +656,62 @@ class OpenWorkCandidateQueueTest(unittest.TestCase):
                 provenance_events={event_ref: (provenance_event, "synthetic-event")},
                 location="synthetic-receipt",
             )
+
+    def test_downloaded_acquisition_requires_resolved_rights_evidence(self) -> None:
+        repo = self.make_repo()
+        with self.assertRaisesRegex(QueueBuildError, "rights evidence ref does not resolve"):
+            _validate_receipt_acquisition_closure(
+                repo,
+                {
+                    "candidate_id": "open-work-candidate.earliest",
+                    "rights_result": {
+                        "status": "positive-for-acquisition",
+                        "evidence_refs": ["ToS/does-not-exist.json"],
+                    },
+                    "operational_relation_refs": [],
+                    "acquisition": {"downloaded": True},
+                    "planting_refs": [],
+                },
+                candidate=_candidate(
+                    "open-work-candidate.earliest",
+                    year=-2400,
+                    row_id="A04",
+                    row_order=4,
+                ),
+                discovery=_timed_discovery("tos.discovery.earliest"),
+                discoveries={},
+                provenance_events={},
+                location="synthetic-receipt",
+            )
+
+    def test_downloaded_acquisition_rejects_malformed_external_rights_evidence(self) -> None:
+        repo = self.make_repo()
+        for evidence_ref in ("ftp://example.test/evidence", "https://"):
+            with self.subTest(evidence_ref=evidence_ref):
+                with self.assertRaisesRegex(QueueBuildError, "rights evidence ref must be an http\\(s\\) URI"):
+                    _validate_receipt_acquisition_closure(
+                        repo,
+                        {
+                            "candidate_id": "open-work-candidate.earliest",
+                            "rights_result": {
+                                "status": "positive-for-acquisition",
+                                "evidence_refs": [evidence_ref],
+                            },
+                            "operational_relation_refs": [],
+                            "acquisition": {"downloaded": True},
+                            "planting_refs": [],
+                        },
+                        candidate=_candidate(
+                            "open-work-candidate.earliest",
+                            year=-2400,
+                            row_id="A04",
+                            row_order=4,
+                        ),
+                        discovery=_timed_discovery("tos.discovery.earliest"),
+                        discoveries={},
+                        provenance_events={},
+                        location="synthetic-receipt",
+                    )
 
     def test_superseding_receipt_cannot_be_backdated(self) -> None:
         receipts = [

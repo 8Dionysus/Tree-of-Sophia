@@ -9,6 +9,7 @@ import re
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
+from urllib.parse import urlsplit
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
@@ -138,6 +139,38 @@ def _load_repo_json_ref(value: str, *, repo_root: Path, location: str) -> tuple[
     except QueueBuildError as exc:
         raise QueueBuildError(f"{location}: {exc}") from exc
     return payload, path
+
+
+def _validate_rights_evidence_refs(
+    repo_root: Path,
+    rights_result: Any,
+    *,
+    location: str,
+) -> None:
+    refs = rights_result.get("evidence_refs") if isinstance(rights_result, dict) else None
+    if not isinstance(refs, list) or not refs:
+        raise QueueBuildError(f"{location}: rights_result.evidence_refs must be a non-empty array")
+    for index, reference in enumerate(refs, start=1):
+        ref_location = f"{location}:rights_result.evidence_refs[{index}]"
+        if not isinstance(reference, str) or not reference:
+            raise QueueBuildError(f"{ref_location}: rights evidence ref must be a non-empty string")
+        parsed = urlsplit(reference)
+        if parsed.scheme:
+            if parsed.scheme not in {"http", "https"} or not parsed.netloc:
+                raise QueueBuildError(
+                    f"{ref_location}: rights evidence ref must be an http(s) URI with a host"
+                )
+            continue
+        try:
+            path = _safe_relative_path(reference)
+        except QueueBuildError as exc:
+            raise QueueBuildError(
+                f"{ref_location}: rights evidence ref must be a repository-relative file or http(s) URI"
+            ) from exc
+        if not (repo_root / path).is_file():
+            raise QueueBuildError(
+                f"{ref_location}: rights evidence ref does not resolve: {reference!r}"
+            )
 
 
 def _normalised_words(value: str) -> list[str]:
@@ -708,14 +741,17 @@ def _validate_receipt_acquisition_closure(
         acquisitions.extend(additional)
     rights_result = receipt.get("rights_result")
     rights_status = rights_result.get("status") if isinstance(rights_result, dict) else None
-    if any(
+    downloaded = any(
         isinstance(acquisition, dict) and acquisition.get("downloaded") is True
         for acquisition in acquisitions
-    ) and rights_status != "positive-for-acquisition":
-        raise QueueBuildError(
-            f"{location}: downloaded acquisition requires rights_result.status "
-            f"positive-for-acquisition, got {rights_status!r}"
-        )
+    )
+    if downloaded:
+        if rights_status != "positive-for-acquisition":
+            raise QueueBuildError(
+                f"{location}: downloaded acquisition requires rights_result.status "
+                f"positive-for-acquisition, got {rights_status!r}"
+            )
+        _validate_rights_evidence_refs(repo_root, rights_result, location=location)
     for index, acquisition in enumerate(acquisitions, start=1):
         _validate_acquisition_closure(
             repo_root,

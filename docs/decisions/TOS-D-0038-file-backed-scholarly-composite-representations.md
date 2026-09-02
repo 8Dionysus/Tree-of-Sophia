@@ -22,7 +22,7 @@ Selected decision lenses: decision object, owner/source, placement, evidence sta
 
 Keep `scholarly-composite-witness.json` metadata-only. Add a separate `scholarly-composite-file-representation` contract beneath `scholarly-composites/.../representations/<provider-part>/`. Each record binds one composite, one representation identity, one content-addressed File, exact bibliographic part, originating and corroborating provider records, acquisition authority, local payload path, fixity, rights, discovery, provenance, and all negative authority flags.
 
-Only the representation `payload/` bytes are Git-ignored. Representation metadata and rights remain tracked. Each exact File receives its own rights record. The terminal candidate receipt may name one primary acquisition and an additive `additional_acquisitions` array so a multi-volume composite closes every acquired object without inventing a collection Item or dropping later files.
+The public branch carries representation metadata and rights, while each payload explicitly declares whether its bytes are materialized. The current records use `materialization_status=not_materialized`, `storage_posture=unmaterialized_payload`, and `git_tracked=false`; no absent bytes are represented as an ignored local payload. If exact bytes are materialized in a checkout, they must use `materialization_status=materialized`, `storage_posture=tracked_repository_payload`, `git_tracked=true`, and must be tracked rather than Git-ignored. Each exact File receives its own rights record. The terminal candidate receipt may name one primary acquisition and an additive `additional_acquisitions` array so a multi-volume composite closes every acquired object without inventing a collection Item or dropping later files.
 
 ## Options Considered
 
@@ -38,9 +38,9 @@ The new layer preserves the owner chain: the composite owns modern editorial ide
 
 ## Consequences
 
-Multi-volume scholarly objects can be acquired one File at a time and terminal receipts can close all exact objects. Local validation checks schema, composite closure, content addressing, Git-ignore posture, rights scope, discovery target, and provenance outputs.
+Multi-volume scholarly objects can be acquired one File at a time and terminal receipts can close all exact objects. Local validation checks schema, composite closure, content addressing, declared materialization and Git-tracking posture, rights scope, discovery target, and provenance outputs.
 
-The first retained Files are CC BY-NC-SA, an open license with conditions rather than unrestricted reuse. That first case does not make CC licensing a contract invariant: later Files may be public-domain, permission-bound, jurisdictionally conflicting, or not authorized for redistribution, and the tracked rights record must preserve that stricter truth. Every payload remains local by repository policy; later OCR, transcription, correction, translation, public publication, or semantic use must create distinct versioned layers and pass their own rights and review gates.
+The first retained Files are CC BY-NC-SA, an open license with conditions rather than unrestricted reuse. That first case does not make CC licensing a contract invariant: later Files may be public-domain, permission-bound, jurisdictionally conflicting, or not authorized for redistribution, and the tracked rights record must preserve that stricter truth. The current public branch omits the exact payload bytes; a future materialized payload must be tracked under the declared posture, while site transfer remains governed by the separate local-only rights boundary. Later OCR, transcription, correction, translation, public publication, or semantic use must create distinct versioned layers and pass their own rights and review gates.
 
 This decision does not create an ancient Work, accept Sethe’s readings, prove complete witness coverage, or authorize semantic, graph, canon, server-transfer, or publication effects.
 
