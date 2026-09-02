@@ -7,6 +7,7 @@ not a substitute for the preceding source-visible review.
 
 from __future__ import annotations
 
+import ast
 import hashlib
 import json
 import os
@@ -30,10 +31,12 @@ SOURCE_RECEIPT_PATH = LAB_DIR / "source-run-receipt.json"
 CONSUMER_PATH = LAB_DIR / "independent-consumer-receipt.json"
 MANUAL_PATH = LAB_DIR / "MANUAL_SOURCE_AND_OUTPUT_REVIEW.md"
 RESULT_PATH = LAB_DIR / "comparison-result.json"
+CONSUMER_SOURCE_PATH = LAB_DIR / "consume_owner.py"
 DOCTYPE_PATTERN = re.compile(br"<!DOCTYPE\s", re.IGNORECASE)
 HEBREW_PATTERN = re.compile(r"[\u0590-\u05ff]")
 PRIVATE_OUTPUT_MODE = 0o600
 LAB_RELATIVE = LAB_DIR.relative_to(REPO_ROOT).as_posix()
+CONSUMER_SOURCE_REF = f"{LAB_RELATIVE}/consume_owner.py"
 METHOD_FILE_REFS = tuple(
     f"{LAB_RELATIVE}/{name}"
     for name in ("build_candidate.py", "run_experiment.py", "consume_owner.py", "evaluate_lab.py")
@@ -328,6 +331,106 @@ def verify_active_method_bindings(freeze: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+def git_tree_id(ref: str, root: str) -> str | None:
+    completed = subprocess.run(
+        ["git", "-C", str(REPO_ROOT), "rev-parse", f"{ref}:{root}"],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        check=False,
+        text=True,
+    )
+    if completed.returncode != 0:
+        return None
+    value = completed.stdout.strip()
+    return value or None
+
+
+def git_changed_paths_since(base_ref: str, roots: list[str]) -> list[str]:
+    completed = subprocess.run(
+        [
+            "git",
+            "-C",
+            str(REPO_ROOT),
+            "diff",
+            "--name-only",
+            f"{base_ref}..HEAD",
+            "--",
+            *roots,
+        ],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        check=False,
+        text=True,
+    )
+    if completed.returncode != 0:
+        raise RuntimeError("git diff failed for admission boundary")
+    return sorted({line.strip() for line in completed.stdout.splitlines() if line.strip()})
+
+
+def verify_admission_boundaries(manifest: dict[str, Any]) -> dict[str, Any]:
+    control = manifest.get("public_contract_control", {}).get("admission_boundary", {})
+    failures: list[str] = []
+    if not isinstance(control, dict):
+        return {
+            "ok": False,
+            "failures": ["admission-boundary-control-missing"],
+            "baseline_ref": None,
+            "roots": [],
+            "baseline_tree_checks": {},
+            "changed_paths": [],
+            "unexpected_changed_paths": [],
+        }
+    baseline_ref = control.get("baseline_ref")
+    roots = control.get("roots")
+    baseline_tree_ids = control.get("baseline_tree_ids")
+    allowed_changed_paths = control.get("allowed_changed_paths", [])
+    if not isinstance(baseline_ref, str) or not baseline_ref:
+        failures.append("admission-baseline-ref-missing")
+        baseline_ref = ""
+    if not isinstance(roots, list) or not all(isinstance(root, str) and root for root in roots):
+        failures.append("admission-roots-incomplete")
+        roots = []
+    if not isinstance(baseline_tree_ids, dict):
+        failures.append("admission-baseline-tree-ids-missing")
+        baseline_tree_ids = {}
+    if not isinstance(allowed_changed_paths, list) or not all(
+        isinstance(path, str) and path for path in allowed_changed_paths
+    ):
+        failures.append("admission-allowlist-incomplete")
+        allowed_changed_paths = []
+
+    baseline_tree_checks: dict[str, bool] = {}
+    for root in roots:
+        actual = git_tree_id(baseline_ref, root) if baseline_ref else None
+        expected = baseline_tree_ids.get(root)
+        passed = isinstance(expected, str) and actual == expected
+        baseline_tree_checks[root] = passed
+        if not passed:
+            failures.append(f"admission-baseline-tree-mismatch:{root}")
+
+    changed_paths: list[str] = []
+    if baseline_ref and roots:
+        try:
+            changed_paths = git_changed_paths_since(baseline_ref, roots)
+        except RuntimeError as error:
+            failures.append(str(error))
+    unexpected_changed_paths = sorted(
+        path for path in changed_paths if path not in set(allowed_changed_paths)
+    )
+    if unexpected_changed_paths:
+        failures.append("admission-surface-changed")
+    return {
+        "ok": not failures,
+        "baseline_ref": baseline_ref or None,
+        "roots": roots,
+        "baseline_tree_checks": baseline_tree_checks,
+        "changed_paths": changed_paths,
+        "allowed_changed_paths": sorted(set(allowed_changed_paths)),
+        "unexpected_changed_paths": unexpected_changed_paths,
+        "failures": sorted(set(failures)),
+    }
+
+
 def parse_utc_timestamp(value: Any) -> datetime:
     if not isinstance(value, str):
         raise ValueError("timestamp is not a string")
@@ -430,6 +533,88 @@ def _frozen_digest(freeze: dict[str, Any], ref: str) -> str | None:
             digest = record.get("sha256")
             return digest if isinstance(digest, str) else None
     return None
+
+
+def verify_consumer_independence(freeze: dict[str, Any]) -> dict[str, Any]:
+    """Prove the frozen consumer has no builder/evaluator/sealed-manifest dependency."""
+    expected_digest = _frozen_digest(freeze, CONSUMER_SOURCE_REF)
+    active_digest = sha256_path(CONSUMER_SOURCE_PATH) if CONSUMER_SOURCE_PATH.is_file() else None
+    failures: list[str] = []
+    forbidden_imports: list[str] = []
+    forbidden_names: list[str] = []
+    forbidden_literals: list[str] = []
+    source_parse_ok = False
+    source_text = ""
+    if expected_digest is None:
+        failures.append("consumer-source-not-frozen")
+    if active_digest != expected_digest:
+        failures.append("consumer-source-digest-mismatch")
+    if CONSUMER_SOURCE_PATH.is_file():
+        try:
+            source_text = CONSUMER_SOURCE_PATH.read_text(encoding="utf-8")
+            tree = ast.parse(source_text, filename=str(CONSUMER_SOURCE_PATH))
+            source_parse_ok = True
+        except (OSError, SyntaxError, UnicodeDecodeError):
+            failures.append("consumer-source-unreadable-or-invalid")
+            tree = None
+    else:
+        failures.append("consumer-source-missing")
+        tree = None
+
+    if tree is not None:
+        forbidden_module_parts = {"build_candidate", "evaluate_lab"}
+        for node in ast.walk(tree):
+            if isinstance(node, ast.Import):
+                modules = [alias.name for alias in node.names]
+                forbidden_imports.extend(
+                    module
+                    for module in modules
+                    if any(part in forbidden_module_parts for part in module.split("."))
+                )
+            elif isinstance(node, ast.ImportFrom) and node.module:
+                if any(part in forbidden_module_parts for part in node.module.split(".")):
+                    forbidden_imports.append(node.module)
+            elif isinstance(node, ast.Name) and node.id in {
+                "BUILD_CANDIDATE_PATH",
+                "SEALED_PATH",
+                "SEALED_MANIFEST_PATH",
+            }:
+                forbidden_names.append(node.id)
+            elif isinstance(node, ast.Constant) and isinstance(node.value, str):
+                lowered = node.value.casefold()
+                if any(
+                    token in lowered
+                    for token in (
+                        "build_candidate.py",
+                        "evaluate_lab.py",
+                        "sealed-evaluation-manifest",
+                        "sealed_evaluation_manifest",
+                        "freeze-receipt",
+                    )
+                ):
+                    forbidden_literals.append(node.value)
+
+    forbidden_imports = sorted(set(forbidden_imports))
+    forbidden_names = sorted(set(forbidden_names))
+    forbidden_literals = sorted(set(forbidden_literals))
+    if forbidden_imports:
+        failures.append("consumer-imports-builder-or-evaluator")
+    if forbidden_names:
+        failures.append("consumer-references-sealed-or-builder-path")
+    if forbidden_literals:
+        failures.append("consumer-contains-sealed-or-builder-path-literal")
+    return {
+        "ok": source_parse_ok and not failures,
+        "consumer_source_ref": CONSUMER_SOURCE_REF,
+        "frozen_consumer_sha256": expected_digest,
+        "active_consumer_sha256": active_digest,
+        "frozen_digest_match": active_digest == expected_digest,
+        "source_parse_ok": source_parse_ok,
+        "forbidden_imports": forbidden_imports,
+        "forbidden_names": forbidden_names,
+        "forbidden_literals": forbidden_literals,
+        "failures": sorted(set(failures)),
+    }
 
 
 def verify_manual_review_binding(freeze: dict[str, Any]) -> dict[str, Any]:
@@ -1105,6 +1290,12 @@ def observed_candidate_payloads(
         except (OSError, json.JSONDecodeError, TypeError):
             failures.append(f"{label}:unreadable-output")
             continue
+        if not isinstance(payload, dict):
+            failures.append(f"{label}:output-is-not-object")
+            continue
+        if payload.get("candidate") != process.get("candidate"):
+            failures.append(f"{label}:payload-candidate-mismatch")
+            continue
         payloads[label] = payload
         if payload.get("candidate") == "BC":
             for nested_label in ("owner", "projection"):
@@ -1243,6 +1434,116 @@ def collect_recursive_keys(value: Any) -> list[str]:
     return keys
 
 
+def find_source_content_fingerprint_keys(value: Any, path: str = "resources") -> list[str]:
+    """Find hash/fingerprint fields that could encode source element content."""
+    hits: list[str] = []
+    if isinstance(value, dict):
+        for key, nested in value.items():
+            key_text = str(key)
+            normalized = re.sub(r"[^a-z0-9]", "", key_text.casefold())
+            nested_path = f"{path}.{key_text}"
+            is_hash_word = any(
+                token in normalized for token in ("fingerprint", "digest", "hash", "sha")
+            )
+            is_content_word = any(
+                token in normalized
+                for token in ("content", "text", "value", "label", "source", "element", "word")
+            )
+            if normalized in {"fingerprint", "digest", "hash", "sha", "sha256"} or (
+                is_hash_word and is_content_word
+            ):
+                hits.append(nested_path)
+            hits.extend(find_source_content_fingerprint_keys(nested, nested_path))
+    elif isinstance(value, list):
+        for index, nested in enumerate(value):
+            hits.extend(find_source_content_fingerprint_keys(nested, f"{path}[{index}]"))
+    return sorted(set(hits))
+
+
+def _recursive_field_values(value: Any, field: str, path: str = "payload") -> list[tuple[str, Any]]:
+    found: list[tuple[str, Any]] = []
+    if isinstance(value, dict):
+        for key, nested in value.items():
+            nested_path = f"{path}.{key}"
+            if key == field:
+                found.append((nested_path, nested))
+            found.extend(_recursive_field_values(nested, field, nested_path))
+    elif isinstance(value, list):
+        for index, nested in enumerate(value):
+            found.extend(_recursive_field_values(nested, field, f"{path}[{index}]"))
+    return found
+
+
+def verify_content_equality_claims(payloads: dict[str, Any]) -> dict[str, Any]:
+    checks: dict[str, bool] = {}
+    invalid_labels: list[str] = []
+    invalid_fields: list[str] = []
+    for label, payload in payloads.items():
+        values = _recursive_field_values(payload, "content_equality_claimed")
+        passed = all(value is False for _, value in values)
+        checks[label] = passed
+        if not passed:
+            invalid_labels.append(label)
+            invalid_fields.extend(
+                f"{label}:{path}" for path, value in values if value is not False
+            )
+    return {
+        "ok": all(checks.values()) if checks else True,
+        "checks": checks,
+        "invalid_labels": sorted(set(invalid_labels)),
+        "invalid_fields": sorted(set(invalid_fields)),
+    }
+
+
+def verify_word_identity_claims(payloads: dict[str, Any]) -> dict[str, Any]:
+    checks: dict[str, bool] = {}
+    invalid_labels: list[str] = []
+    invalid_fields: list[str] = []
+    for label, payload in payloads.items():
+        if not isinstance(payload, dict):
+            continue
+        is_primary_provider = payload.get("candidate") == "C"
+        is_composed_projection = label.endswith(":projection")
+        if not (is_primary_provider or is_composed_projection):
+            continue
+        required = ["accepted_structure_claimed"]
+        if is_primary_provider:
+            required.append("intrinsic_or_cross_corpus_word_ids_claimed")
+        passed = True
+        for field in required:
+            value = payload.get(field)
+            field_ok = value is False
+            checks[f"{label}:{field}"] = field_ok
+            if not field_ok:
+                passed = False
+                invalid_fields.append(f"{label}:{field}")
+        if not passed:
+            invalid_labels.append(label)
+    return {
+        "ok": bool(checks) and not invalid_labels,
+        "checks": checks,
+        "invalid_labels": sorted(set(invalid_labels)),
+        "invalid_fields": sorted(set(invalid_fields)),
+    }
+
+
+def verify_tei_classification_claims(payloads: dict[str, Any]) -> dict[str, Any]:
+    checks: dict[str, bool] = {}
+    invalid_labels: list[str] = []
+    for label, payload in payloads.items():
+        if not isinstance(payload, dict) or payload.get("candidate") != "B":
+            continue
+        passed = payload.get("tei_classification_claimed") is False
+        checks[label] = passed
+        if not passed:
+            invalid_labels.append(label)
+    return {
+        "ok": bool(checks) and not invalid_labels,
+        "checks": checks,
+        "invalid_labels": sorted(set(invalid_labels)),
+    }
+
+
 def c14n_change_summary(left_path: Path, right_path: Path) -> dict[str, Any]:
     left_root = strict_parse(left_path.read_bytes())
     right_root = strict_parse(right_path.read_bytes())
@@ -1294,6 +1595,7 @@ def main() -> int:
     observations = load_json(OBSERVATIONS_PATH)
     source_receipt = load_json(SOURCE_RECEIPT_PATH)
     consumer = load_json(CONSUMER_PATH)
+    observed_payloads, observed_payload_failures = observed_candidate_payloads(observations)
     gates: list[dict[str, Any]] = []
 
     durable_freeze_ok, durable_freeze_evidence = verify_durable_freeze_order(freeze, observations)
@@ -1498,8 +1800,20 @@ def main() -> int:
         g11 = g11 and left_topology["ok"] and right_topology["ok"] and not exact_equal
         g12 = g12 and left_topology["ok"] and right_topology["ok"] and unordered_equal
     g12 = g12 and comparison_results["sibling-reorder"]["ordered_topology_equal"] is False
+    content_equality_claims = verify_content_equality_claims(observed_payloads)
+    g12 = g12 and content_equality_claims["ok"]
     gates.append(gate("G11-exact-file-change-preserved", g11, comparison_results))
-    gates.append(gate("G12-no-topology-content-equivalence", g12, {"comparison_groups": comparison_results, "content_equality_claimed": False}))
+    gates.append(
+        gate(
+            "G12-no-topology-content-equivalence",
+            g12,
+            {
+                "comparison_groups": comparison_results,
+                "content_equality_claimed": False,
+                "observed_content_equality_claims": content_equality_claims,
+            },
+        )
+    )
 
     bc = candidate_output("BC", "PC1-uxlc-shape")
     all_projection_refs = all(record["generic_resource_ref"] for record in bc["projection"]["resources"])
@@ -1531,27 +1845,112 @@ def main() -> int:
 
     source_b = source_output(manifest, "selected", "B")
     source_bc = source_output(manifest, "selected", "BC")
-    forbidden_resource_keys = {"content_fingerprint", "label_fingerprint", "content_sha256", "text_sha256"}
-    resource_keys = set(collect_recursive_keys(source_b["resources"])) | set(collect_recursive_keys(source_bc["owner"]["resources"]))
-    g17 = not (forbidden_resource_keys & resource_keys) and source_b["element_content_fingerprints_included"] is False
-    gates.append(gate("G17-no-source-element-content-fingerprints", g17, {"forbidden_keys_found": sorted(forbidden_resource_keys & resource_keys), "declared_included": source_b["element_content_fingerprints_included"]}))
+    b_payloads = {
+        label: payload
+        for label, payload in observed_payloads.items()
+        if isinstance(payload, dict) and payload.get("candidate") == "B"
+    }
+    fingerprint_hits = {
+        label: find_source_content_fingerprint_keys(payload.get("resources", []))
+        for label, payload in b_payloads.items()
+    }
+    fingerprint_hits = {
+        label: hits for label, hits in fingerprint_hits.items() if hits
+    }
+    source_content_flags = {
+        label: payload.get("source_text_included") is False
+        and payload.get("element_content_fingerprints_included") is False
+        for label, payload in b_payloads.items()
+    }
+    g17 = not fingerprint_hits and all(source_content_flags.values())
+    gates.append(
+        gate(
+            "G17-no-source-element-content-fingerprints",
+            g17,
+            {
+                "forbidden_keys_found": fingerprint_hits,
+                "source_content_flags": source_content_flags,
+                "selected_declared_included": source_b.get("element_content_fingerprints_included"),
+                "selected_bc_declared_included": source_bc.get("owner", {}).get(
+                    "element_content_fingerprints_included"
+                ),
+            },
+        )
+    )
 
     true_tei = b_output("P10-true-tei")
     lookalike = b_output("P11-tei-lookalike")
-    g18 = true_tei["resources"][0]["expanded_name"]["namespace_uri"] == "http://www.tei-c.org/ns/1.0" and lookalike["resources"][1]["expanded_name"]["namespace_uri"] is None and not true_tei["tei_classification_claimed"] and not lookalike["tei_classification_claimed"]
-    gates.append(gate("G18-no-tei-lookalike-classification", g18, {"true_tei_namespace_observed": True, "lookalike_namespace_is_null": True, "generic_owner_claims_tei": False}))
+    tei_claims = verify_tei_classification_claims(b_payloads)
+    g18 = (
+        true_tei["resources"][0]["expanded_name"]["namespace_uri"]
+        == "http://www.tei-c.org/ns/1.0"
+        and lookalike["resources"][1]["expanded_name"]["namespace_uri"] is None
+        and tei_claims["ok"]
+    )
+    gates.append(
+        gate(
+            "G18-no-tei-lookalike-classification",
+            g18,
+            {
+                "true_tei_namespace_observed": True,
+                "lookalike_namespace_is_null": True,
+                "generic_owner_claims_tei": False,
+                "observed_tei_claims": tei_claims,
+            },
+        )
+    )
 
     source_c = source_output(manifest, "selected", "C")
-    gates.append(gate("G19-no-intrinsic-or-accepted-word-id", source_c["intrinsic_or_cross_corpus_word_ids_claimed"] is False and source_c["accepted_structure_claimed"] is False, {"intrinsic_or_cross_corpus_word_ids_claimed": source_c["intrinsic_or_cross_corpus_word_ids_claimed"], "accepted_structure_claimed": source_c["accepted_structure_claimed"]}))
+    word_identity_claims = verify_word_identity_claims(observed_payloads)
+    g19 = word_identity_claims["ok"] and not observed_payload_failures
+    gates.append(
+        gate(
+            "G19-no-intrinsic-or-accepted-word-id",
+            g19,
+            {
+                "selected_intrinsic_or_cross_corpus_word_ids_claimed": source_c.get(
+                    "intrinsic_or_cross_corpus_word_ids_claimed"
+                ),
+                "selected_accepted_structure_claimed": source_c.get(
+                    "accepted_structure_claimed"
+                ),
+                "observed_word_identity_claims": word_identity_claims,
+                "observed_payload_failures": observed_payload_failures,
+            },
+        )
+    )
 
     control = manifest["public_contract_control"]
-    item_dir = REPO_ROOT / "ToS/source-witnesses/works/digital-biblical-corpora/unicode-xml-leningrad-codex/expressions/he-uxlc-2-5-full-accents/editions/uxlc-2-5-build-27-6/items/tanach-us-server-xml-prov23-1-3-20260830t160419z"
-    forbidden_admissions = [item_dir / name for name in ("item.json", "item.manifest.json", "resource-inventory.json")]
     contract_control = verify_contract_controls(manifest)
-    g20 = contract_control["ok"] and not any(path.exists() for path in forbidden_admissions)
-    gates.append(gate("G20-no-public-or-downstream-admission", g20, {**contract_control, "forbidden_admission_files_present": [path.name for path in forbidden_admissions if path.exists()]}))
+    admission_control = verify_admission_boundaries(manifest)
+    g20 = contract_control["ok"] and admission_control["ok"]
+    gates.append(
+        gate(
+            "G20-no-public-or-downstream-admission",
+            g20,
+            {**contract_control, "admission_boundary": admission_control},
+        )
+    )
 
-    gates.append(gate("G21-independent-source-return", consumer["consumer_imports_builder"] is False and consumer["consumer_reads_sealed_manifest"] is False and consumer["all_paths_and_metadata_return"] and consumer_output_binding["ok"], {"consumer_imports_builder": consumer["consumer_imports_builder"], "consumer_reads_sealed_manifest": consumer["consumer_reads_sealed_manifest"], "checks": consumer["check_count"], "errors": consumer["error_count"], "output_binding": consumer_output_binding}))
+    consumer_independence = verify_consumer_independence(freeze)
+    gates.append(
+        gate(
+            "G21-independent-source-return",
+            consumer["consumer_imports_builder"] is False
+            and consumer["consumer_reads_sealed_manifest"] is False
+            and consumer["all_paths_and_metadata_return"]
+            and consumer_output_binding["ok"]
+            and consumer_independence["ok"],
+            {
+                "consumer_imports_builder": consumer["consumer_imports_builder"],
+                "consumer_reads_sealed_manifest": consumer["consumer_reads_sealed_manifest"],
+                "checks": consumer["check_count"],
+                "errors": consumer["error_count"],
+                "output_binding": consumer_output_binding,
+                "source_independence": consumer_independence,
+            },
+        )
+    )
 
     correction: dict[str, Any]
     if "replay" in source_receipt["sources"]:
@@ -1640,9 +2039,8 @@ def main() -> int:
         "source-receipt": source_receipt,
         "consumer": consumer,
     }
-    observed_authority_payloads, observed_authority_failures = observed_candidate_payloads(
-        observations
-    )
+    observed_authority_payloads = observed_payloads
+    observed_authority_failures = observed_payload_failures
     authority_payloads.update(observed_authority_payloads)
     authority_evidence = verify_authority_boundaries(authority_payloads)
     authority_boundaries_present = authority_evidence["ok"] and not observed_authority_failures

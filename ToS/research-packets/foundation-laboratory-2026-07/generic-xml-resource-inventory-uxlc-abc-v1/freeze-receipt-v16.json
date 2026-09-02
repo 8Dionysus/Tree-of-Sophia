@@ -1,11 +1,11 @@
 {
-  "authority_boundary": "post-output evaluation-input freeze after independent summary, replay and authority-boundary hardening; no candidate output authority and no source-text, public contract, linguistic, semantic, graph, canon, rights or publication authority",
+  "authority_boundary": "post-output evaluation-input freeze after payload-shape, admission-boundary and independent-consumer hardening; no candidate output authority and no source-text, public contract, linguistic, semantic, graph, canon, rights or publication authority",
   "candidate_output_freeze_ref": "ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/freeze-receipt-v2.json",
   "candidate_output_freeze_sha256": "039cfda1d5c966325fda5e5caa2d25ef00d987ea871d7c0d06fa6bf67de34eec",
   "candidate_outputs_rebuilt_after_method_freeze": true,
   "consumer_receipt_rebuilt_after_method_freeze": true,
   "freeze_role": "post-output evaluation freeze after independent summary, replay and authority-boundary hardening",
-  "frozen_at": "2026-09-02T03:11:58.018624Z",
+  "frozen_at": "2026-09-02T04:30:33.221122Z",
   "frozen_files": [
     {
       "ref": "ToS/research-packets/foundation-laboratory-2026-07/GENERIC_XML_RESOURCE_IDENTITY_AND_PROVIDER_PROJECTION_RESEARCH_2026-08-30.md",
@@ -17,7 +17,7 @@
     },
     {
       "ref": "ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/input-manifest.json",
-      "sha256": "39623335fa6d0d7113bb2d7c4e394efc375af2861a56111cdf20eeb87d6748aa"
+      "sha256": "73ad0c10acbd7b81fe134c57a3cb4f8c8a2dd497134e1442784adc7f9bd60ca3"
     },
     {
       "ref": "ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/sealed-evaluation-manifest-v2.json",
@@ -33,11 +33,11 @@
     },
     {
       "ref": "ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/consume_owner.py",
-      "sha256": "9f2f99eb3c93a5edb1c795cd232c4a61beaca45019a16cc2e62d92cdd623048d"
+      "sha256": "ee9c24ed9cc2063641705000c988f0a679dc13d525dd9782538a14086db7360a"
     },
     {
       "ref": "ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/evaluate_lab.py",
-      "sha256": "eb6f5dcb67c1e588ad951288e45fedaf336c2bc628bfd2f27026e3871cfdeb99"
+      "sha256": "ece9c19240c0714b998b212f5289c83e109e91aa8172561acb3e9c5de8203344"
     },
     {
       "ref": "ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/RUNNER_AND_BC_PROXY_PREFLIGHT_FAILURE_V1.md",
@@ -57,7 +57,7 @@
     },
     {
       "ref": "ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/MANUAL_SOURCE_AND_OUTPUT_REVIEW.md",
-      "sha256": "fa8e154f439d0f14c82aed3d5070a99719ed0861a1d12d64a2b2c33aaf668666"
+      "sha256": "32addba07ca474d4a8350aab400fb60e719c1ee7b4a0491dd1b96adc92f39765"
     },
     {
       "ref": "ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/freeze-receipt-v4.json",
@@ -101,7 +101,7 @@
     },
     {
       "ref": "ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/run-observations.json",
-      "sha256": "563d0dca828f51fd10db4ba061d68613571883d725b6ee2838bb4f2fb329052f"
+      "sha256": "9da14ecd1256d2ee9c5dcec1cce17fe8698fad9d421e393630d975f3ce4e0ae4"
     },
     {
       "ref": "ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/source-run-receipt.json",
@@ -109,17 +109,17 @@
     },
     {
       "ref": "ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/independent-consumer-receipt.json",
-      "sha256": "194b513d5160004d9313870f4b07b45129105008e854029bf7e2eb5620b8d6d0"
+      "sha256": "25221473d07f0fbc99b1f716ba303865735e6d8007c95df1f2f8020389bdb279"
     },
     {
       "ref": "ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/freeze-receipt-v15.json",
-      "sha256": "2a011621ec8439657688fef6356b0dcd61702e672c360adb019dc5eac1dacb1d"
+      "sha256": "a6c2adc2528d4e2e75c3ff4cf1af1aea958a4b632dc17b8e317419f69e2d1bd8"
     }
   ],
   "lab_id": "tos.lab.generic-xml-resource-inventory-uxlc-abc.v1",
   "manual_review_completed_before_method_freeze": true,
   "method_freeze_ref": "ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/freeze-receipt-v15.json",
-  "method_freeze_sha256": "2a011621ec8439657688fef6356b0dcd61702e672c360adb019dc5eac1dacb1d",
+  "method_freeze_sha256": "a6c2adc2528d4e2e75c3ff4cf1af1aea958a4b632dc17b8e317419f69e2d1bd8",
   "record_version": 16,
   "review_corrections": [
     "the active method files are bound to both pre-output and post-output receipts",
@@ -133,7 +133,14 @@
     "selected and replay source receipt digests and sizes are both bound to their current exact files before correction comparison",
     "every successful observed candidate output and every B+C owner/projection payload is included in the authority-boundary scan",
     "candidate payload and complete file identity bindings are checked by the independent consumer before structural validation",
-    "projection resource IDs are unique and B resource kinds retain their declared XML-element semantics"
+    "projection resource IDs are unique and B resource kinds retain their declared XML-element semantics",
+    "A payloads require the single opaque XML-document resource shape",
+    "B payloads require closed resource and complete source-derived summary shapes",
+    "provider projections require the declared B generic owner and closed record shapes",
+    "source-content fingerprint-like fields and topology-to-content claims are rejected across observed outputs",
+    "word-identity and TEI classification claims are checked across every successful provider and B output",
+    "admission surfaces are bound to baseline tree IDs and an explicit changed-path allowlist",
+    "consumer independence is derived from frozen source AST rather than receipt flags"
   ],
   "schema_version": "tos_generic_xml_resource_inventory_lab_freeze_receipt_v16",
   "source_outputs_rebuilt_after_method_freeze": true,

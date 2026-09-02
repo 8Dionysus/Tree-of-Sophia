@@ -76,7 +76,7 @@ neutral owner or a linguistic judgment.
 
 ## Tracked-output source-value inspection
 
-I derived 74 private comparison controls from non-empty source text/tail or
+I derived 75 private comparison controls from non-empty source text/tail or
 attribute values that either contained a Hebrew code point or had at least
 three characters. This keeps short meaningful source values in scope while
 excluding one- and two-character structural tokens such as numeric ordinals.
@@ -89,7 +89,7 @@ I scanned:
 - `source-run-receipt.json`;
 - `independent-consumer-receipt.json`.
 
-Across 104 tracked files there were zero controlled source-value matches in
+Across 132 tracked files there were zero controlled source-value matches in
 the untrusted publication surfaces and zero Hebrew code points. Any intentional
 control-metadata collisions in the manifest are reported separately.
 
@@ -124,6 +124,22 @@ where a raw ASCII byte scan cannot see the declaration. The consumer receipt
 records its own wall time and peak RSS, and the evaluator joins every consumer
 output hash to the corresponding observed candidate pair before G7/G8/G21 can
 pass.
+
+The final review also treats the candidate payloads as closed shapes: A must
+remain one opaque XML-document resource, B must expose only element topology
+metadata with a source-derived complete summary, and C/B+C must retain the
+registered provider projection owner and exact source membership. Extra content,
+hash-like element fields, TEI claims, topology-to-content claims, or provider
+word-identity claims are rejected or fail their corresponding gate. The
+consumer independence evidence is derived from the frozen consumer source and
+checks its AST for builder, evaluator, sealed-manifest, and freeze-path
+dependencies rather than trusting receipt flags.
+
+The no-admission result is also bound to the pre-lab Git baseline: the relevant
+source-witness, candidate, review, canon, graph, anchor, text-layer and export
+trees are identified by their baseline tree IDs, and only the registered corpus
+index companion is allowed to change in this laboratory. Any other path change
+in those owner trees fails G20, including a differently named item artifact.
 
 ## Same-selector correction replay
 
@@ -179,7 +195,7 @@ These are process observations, not benchmark claims:
 Direct monetary cost was zero; electricity and fully loaded cost were not
 measured. Human time was zero because no human participant was asked to work.
 Manual burden is recorded instead as two exact-source reopens, seven explicit
-source XPath returns, representative owner/projection inspection, 104 tracked
+source XPath returns, representative owner/projection inspection, 132 tracked
 file leak checks and one correction comparison. A future human review of
 Hebrew content is outside this laboratory and remains unperformed.
 

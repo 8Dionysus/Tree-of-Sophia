@@ -3,7 +3,7 @@
 Date: 2026-08-30  
 Result: B generic owner preferred; C retained only over B  
 Hard gates: 25/25 pass after manual source/output review  
-Comparison result SHA-256: `0fe557af…2708`
+Comparison result SHA-256: `32dcf959…2bc`
 Public contract changed by this laboratory: no
 
 ## Decision
@@ -104,10 +104,14 @@ exact capture change
 The source files and every source-derived candidate output remain mode `0600`
 and Git-ignored. Source-value controls include element text, tails, attributes,
 comments, and processing instructions from every exact source. After
-final-result materialization, the evaluator enumerates all 128 Git-tracked
+final-result materialization, the evaluator enumerates all 132 Git-tracked
 laboratory files, applies substring matching to generated JSON/receipt data,
 and scans them against 75 private source-value controls; it found zero
 source-value matches. The fixture privacy scan found zero Hebrew code points.
+
+The no-admission gate is bound to the pre-lab baseline tree IDs for source,
+candidate, review, canon, graph, anchor, text-layer and export owners; only the
+registered corpus-index companion is allowed to change in this laboratory.
 
 The private C and B+C outputs carry the already declared provider identity and
 provider coordinates; they carry no Hebrew. The rights question for a future
@@ -140,7 +144,7 @@ outputs were not changed for the sealed-arithmetic correction.
 Direct monetary cost is zero; electricity and fully loaded cost were not
 measured. No human task or language review was opened. Manual burden consisted
 of two exact-source reopens, seven explicit XPath returns, representative
-owner/projection inspection, 128 tracked-laboratory-file leak checks and one
+owner/projection inspection, 132 tracked-laboratory-file leak checks and one
 correction comparison.
 
 ## Promotion posture

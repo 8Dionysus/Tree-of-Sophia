@@ -130,6 +130,38 @@ class GenericXmlUxLcLabContractTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "resource IDs must be unique"):
             CONSUMER.validate_projection(payload, root, None)
 
+    def test_consumer_rejects_non_opaque_a_resource_shape(self) -> None:
+        manifest = json.loads((LAB_ROOT / "input-manifest.json").read_text(encoding="utf-8"))
+        fixture = next(item for item in manifest["fixtures"] if item["id"] == "P1-no-namespace")
+        source = fixture["xml"].encode("utf-8")
+        payload = json.loads(
+            (LAB_ROOT / "public-synthetic" / "run-1" / "a" / "P1-no-namespace.json").read_text(
+                encoding="utf-8"
+            )
+        )
+        payload["resources"][0]["resource_kind"] = "xml_element"
+        with self.assertRaisesRegex(ValueError, "A resource shape mismatch"):
+            CONSUMER.validate_candidate(
+                payload,
+                source,
+                expected_candidate="A",
+                expected_input_id=fixture["id"],
+            )
+
+        payload = json.loads(
+            (LAB_ROOT / "public-synthetic" / "run-1" / "a" / "P1-no-namespace.json").read_text(
+                encoding="utf-8"
+            )
+        )
+        payload["resources"].append(copy.deepcopy(payload["resources"][0]))
+        with self.assertRaisesRegex(ValueError, "A resource shape mismatch"):
+            CONSUMER.validate_candidate(
+                payload,
+                source,
+                expected_candidate="A",
+                expected_input_id=fixture["id"],
+            )
+
     def test_consumer_requires_xml_element_resource_kind_for_b(self) -> None:
         manifest = json.loads((LAB_ROOT / "input-manifest.json").read_text(encoding="utf-8"))
         fixture = next(item for item in manifest["fixtures"] if item["id"] == "P1-no-namespace")
@@ -218,6 +250,46 @@ class GenericXmlUxLcLabContractTests(unittest.TestCase):
         payload["summary"]["resource_count"] = 999
         with self.assertRaisesRegex(ValueError, "summary mismatch"):
             CONSUMER.validate_projection(payload, root, None)
+
+    def test_consumer_recomputes_complete_b_summary(self) -> None:
+        manifest = json.loads((LAB_ROOT / "input-manifest.json").read_text(encoding="utf-8"))
+        fixture = next(item for item in manifest["fixtures"] if item["id"] == "P1-no-namespace")
+        root = CONSUMER.strict_parse(fixture["xml"].encode("utf-8"))
+        payload = json.loads(
+            (LAB_ROOT / "public-synthetic" / "run-1" / "b" / "P1-no-namespace.json").read_text(
+                encoding="utf-8"
+            )
+        )
+        payload["summary"]["max_depth"] = 999
+        with self.assertRaisesRegex(ValueError, "B summary mismatch"):
+            CONSUMER.validate_b(payload, root)
+
+        payload = json.loads(
+            (LAB_ROOT / "public-synthetic" / "run-1" / "b" / "P1-no-namespace.json").read_text(
+                encoding="utf-8"
+            )
+        )
+        payload["summary"]["namespace_uris"] = ["urn:wrong"]
+        with self.assertRaisesRegex(ValueError, "B summary mismatch"):
+            CONSUMER.validate_b(payload, root)
+
+    def test_consumer_requires_b_as_generic_projection_owner(self) -> None:
+        manifest = json.loads((LAB_ROOT / "input-manifest.json").read_text(encoding="utf-8"))
+        fixture = next(item for item in manifest["fixtures"] if item["id"] == "PC1-uxlc-shape")
+        root = CONSUMER.strict_parse(fixture["xml"].encode("utf-8"))
+        payload = json.loads(
+            (LAB_ROOT / "public-synthetic" / "run-1" / "bc" / "PC1-uxlc-shape.json").read_text(
+                encoding="utf-8"
+            )
+        )
+        payload["projection"]["generic_owner_candidate"] = "A"
+        with self.assertRaisesRegex(ValueError, "generic projection owner"):
+            CONSUMER.validate_candidate(
+                payload,
+                fixture["xml"].encode("utf-8"),
+                expected_candidate="BC",
+                expected_input_id=fixture["id"],
+            )
 
     def test_source_value_controls_include_all_available_exact_sources(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -418,6 +490,75 @@ class GenericXmlUxLcLabContractTests(unittest.TestCase):
                 "generic return only; no accepted source-text or publication authority"
             )
         )
+
+    def test_fingerprint_detection_is_not_limited_to_one_field_spelling(self) -> None:
+        resources = [{"resource_id": "x", "value_sha256": "deadbeef"}]
+        self.assertTrue(EVALUATOR.find_source_content_fingerprint_keys(resources))
+        self.assertTrue(
+            any(
+                "value_sha256" in item
+                for item in EVALUATOR.find_source_content_fingerprint_keys(resources)
+            )
+        )
+
+    def test_word_identity_claims_cover_provider_payloads(self) -> None:
+        payloads = {
+            "selected:C": {
+                "candidate": "C",
+                "intrinsic_or_cross_corpus_word_ids_claimed": False,
+                "accepted_structure_claimed": False,
+            },
+            "replay:C": {
+                "candidate": "C",
+                "intrinsic_or_cross_corpus_word_ids_claimed": True,
+                "accepted_structure_claimed": False,
+            },
+        }
+        result = EVALUATOR.verify_word_identity_claims(payloads)
+        self.assertFalse(result["ok"])
+        self.assertIn("replay:C", result["invalid_labels"])
+
+    def test_g12_rejects_content_equality_claims_in_observed_payloads(self) -> None:
+        result = EVALUATOR.verify_content_equality_claims(
+            {"B:fixture:P1": {"content_equality_claimed": True}}
+        )
+        self.assertFalse(result["ok"])
+        self.assertIn("B:fixture:P1", result["invalid_labels"])
+
+    def test_consumer_independence_is_derived_from_source(self) -> None:
+        freeze = {"frozen_files": []}
+        consumer_ref = EVALUATOR.CONSUMER_SOURCE_PATH.relative_to(EVALUATOR.REPO_ROOT).as_posix()
+        source_text = EVALUATOR.CONSUMER_SOURCE_PATH.read_text(encoding="utf-8")
+        freeze["frozen_files"].append(
+            {"ref": consumer_ref, "sha256": EVALUATOR.sha256_bytes(source_text.encode("utf-8"))}
+        )
+        with tempfile.TemporaryDirectory() as temp_dir:
+            bad_source = Path(temp_dir) / "consume_owner.py"
+            bad_source.write_text("import build_candidate\n", encoding="utf-8")
+            with mock.patch.object(EVALUATOR, "CONSUMER_SOURCE_PATH", bad_source):
+                result = EVALUATOR.verify_consumer_independence(freeze)
+        self.assertFalse(result["ok"])
+        self.assertTrue(result["forbidden_imports"])
+
+    def test_admission_boundary_reports_changes_outside_allowlist(self) -> None:
+        manifest = {
+            "public_contract_control": {
+                "admission_boundary": {
+                    "baseline_ref": "base",
+                    "roots": ["ToS/canon"],
+                    "baseline_tree_ids": {"ToS/canon": "tree"},
+                    "allowed_changed_paths": [],
+                }
+            }
+        }
+        with mock.patch.object(EVALUATOR, "git_tree_id", return_value="tree"), mock.patch.object(
+            EVALUATOR,
+            "git_changed_paths_since",
+            return_value=["ToS/canon/example-anchor.json"],
+        ):
+            result = EVALUATOR.verify_admission_boundaries(manifest)
+        self.assertFalse(result["ok"])
+        self.assertEqual(["ToS/canon/example-anchor.json"], result["unexpected_changed_paths"])
 
     def test_replay_binding_requires_current_digest_and_size(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:

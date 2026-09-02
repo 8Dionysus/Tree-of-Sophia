@@ -1,10 +1,10 @@
 {
-  "authority_boundary": "pre-output method freeze after review-boundary hardening; no candidate verdict, source-text, public contract, linguistic, semantic, graph, canon, rights or publication authority",
+  "authority_boundary": "pre-output method freeze after payload-shape, admission-boundary and independent-consumer hardening; no candidate verdict, source-text, public contract, linguistic, semantic, graph, canon, rights or publication authority",
   "candidate_output_freeze_ref": "ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/freeze-receipt-v2.json",
   "candidate_output_freeze_sha256": "039cfda1d5c966325fda5e5caa2d25ef00d987ea871d7c0d06fa6bf67de34eec",
   "candidate_outputs_rebuilt_after_candidate_freeze": true,
   "freeze_role": "pre-output method freeze after review-boundary hardening",
-  "frozen_at": "2026-09-02T03:11:04.764163Z",
+  "frozen_at": "2026-09-02T04:30:02.145943Z",
   "frozen_files": [
     {
       "ref": "ToS/research-packets/foundation-laboratory-2026-07/GENERIC_XML_RESOURCE_IDENTITY_AND_PROVIDER_PROJECTION_RESEARCH_2026-08-30.md",
@@ -16,7 +16,7 @@
     },
     {
       "ref": "ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/input-manifest.json",
-      "sha256": "39623335fa6d0d7113bb2d7c4e394efc375af2861a56111cdf20eeb87d6748aa"
+      "sha256": "73ad0c10acbd7b81fe134c57a3cb4f8c8a2dd497134e1442784adc7f9bd60ca3"
     },
     {
       "ref": "ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/sealed-evaluation-manifest-v2.json",
@@ -32,11 +32,11 @@
     },
     {
       "ref": "ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/consume_owner.py",
-      "sha256": "9f2f99eb3c93a5edb1c795cd232c4a61beaca45019a16cc2e62d92cdd623048d"
+      "sha256": "ee9c24ed9cc2063641705000c988f0a679dc13d525dd9782538a14086db7360a"
     },
     {
       "ref": "ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/evaluate_lab.py",
-      "sha256": "eb6f5dcb67c1e588ad951288e45fedaf336c2bc628bfd2f27026e3871cfdeb99"
+      "sha256": "ece9c19240c0714b998b212f5289c83e109e91aa8172561acb3e9c5de8203344"
     },
     {
       "ref": "ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/RUNNER_AND_BC_PROXY_PREFLIGHT_FAILURE_V1.md",
@@ -56,7 +56,7 @@
     },
     {
       "ref": "ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/MANUAL_SOURCE_AND_OUTPUT_REVIEW.md",
-      "sha256": "fa8e154f439d0f14c82aed3d5070a99719ed0861a1d12d64a2b2c33aaf668666"
+      "sha256": "32addba07ca474d4a8350aab400fb60e719c1ee7b4a0491dd1b96adc92f39765"
     },
     {
       "ref": "ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/freeze-receipt-v4.json",
@@ -110,7 +110,14 @@
     "the independent consumer binds each payload to the requested candidate and input identity and verifies the complete file identity tuple",
     "provider projections require unique resource IDs and complete source membership, while B resources require xml-element kind",
     "selected and replay source receipt digests and sizes are checked against current exact files",
-    "authority boundaries are checked for every successful observed candidate output and its composed owner/projection payloads"
+    "authority boundaries are checked for every successful observed candidate output and its composed owner/projection payloads",
+    "A payloads require the single opaque XML-document resource shape",
+    "B payloads require closed resource and complete source-derived summary shapes",
+    "provider projections require the declared B generic owner and closed record shapes",
+    "source-content fingerprint-like fields and topology-to-content claims are rejected across observed outputs",
+    "word-identity and TEI classification claims are checked across every successful provider and B output",
+    "admission surfaces are bound to baseline tree IDs and an explicit changed-path allowlist",
+    "consumer independence is derived from frozen source AST rather than receipt flags"
   ],
   "schema_version": "tos_generic_xml_resource_inventory_lab_freeze_receipt_v15",
   "supersedes_freeze_ref": "ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/freeze-receipt-v13.json",

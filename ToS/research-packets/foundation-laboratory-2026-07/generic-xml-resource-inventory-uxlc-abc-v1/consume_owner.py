@@ -26,6 +26,121 @@ PUBLIC_ROOT = LAB_DIR / "public-synthetic" / "run-1"
 RECEIPT_PATH = LAB_DIR / "independent-consumer-receipt.json"
 DOCTYPE_PATTERN = re.compile(br"<!DOCTYPE\s", re.IGNORECASE)
 
+FILE_BINDING_KEYS = frozenset(
+    {"input_id", "file_id", "sha256", "byte_size", "media_type"}
+)
+PARSER_POSTURE_KEYS = frozenset(
+    {
+        "parser",
+        "mode",
+        "recover",
+        "load_dtd",
+        "dtd_validation",
+        "resolve_entities",
+        "no_network",
+        "huge_tree",
+        "xinclude",
+        "reject_doctype",
+    }
+)
+A_RESOURCE_KEYS = frozenset({"resource_id", "resource_kind", "locator"})
+B_RESOURCE_KEYS = frozenset(
+    {
+        "resource_id",
+        "resource_kind",
+        "expanded_name",
+        "locator",
+        "element_child_count",
+        "attribute_count",
+        "attribute_expanded_names",
+    }
+)
+B_SUMMARY_KEYS = frozenset(
+    {
+        "resource_count",
+        "attribute_count",
+        "max_depth",
+        "namespace_uris",
+        "ordered_topology_sha256",
+        "unordered_element_shape_sha256",
+    }
+)
+B_SCOPE_KEYS = frozenset({"node_kinds", "excluded", "path_identity"})
+PROVIDER_CONTEXT_KEYS = frozenset(
+    {"provider", "expression", "edition", "book_code", "selector", "projection_authority"}
+)
+PROJECTION_RECORD_KEYS = frozenset(
+    {"resource_id", "resource_kind", "provider_coordinate", "source_element_path", "generic_resource_ref"}
+)
+C_SUMMARY_KEYS = frozenset(
+    {"resource_count", "verse_count", "word_count", "word_counts_by_verse"}
+)
+A_TOP_LEVEL_KEYS = frozenset(
+    {
+        "schema_version",
+        "lab_id",
+        "candidate",
+        "file_binding",
+        "parser_posture",
+        "scope",
+        "resources",
+        "source_text_included",
+        "element_return_supported",
+        "intrinsic_ids_claimed",
+        "authority_boundary",
+    }
+)
+B_TOP_LEVEL_KEYS = frozenset(
+    {
+        "schema_version",
+        "lab_id",
+        "candidate",
+        "file_binding",
+        "parser_posture",
+        "scope",
+        "summary",
+        "resources",
+        "source_text_included",
+        "element_content_fingerprints_included",
+        "intrinsic_ids_claimed",
+        "cross_file_identity_claimed",
+        "tei_classification_claimed",
+        "authority_boundary",
+    }
+)
+C_TOP_LEVEL_KEYS = frozenset(
+    {
+        "schema_version",
+        "lab_id",
+        "candidate",
+        "file_binding",
+        "parser_posture",
+        "provider_context",
+        "summary",
+        "resources",
+        "source_text_included",
+        "generic_xml_owner_claimed",
+        "intrinsic_or_cross_corpus_word_ids_claimed",
+        "accepted_structure_claimed",
+        "authority_boundary",
+    }
+)
+BC_TOP_LEVEL_KEYS = frozenset(
+    {"schema_version", "lab_id", "candidate", "owner", "projection", "source_text_included", "authority_boundary"}
+)
+
+
+def require_exact_keys(value: Any, expected: set[str] | frozenset[str], label: str) -> None:
+    if not isinstance(value, dict):
+        raise ValueError(f"{label} must be an object")
+    actual = set(value)
+    if actual != set(expected):
+        missing = sorted(set(expected) - actual)
+        unexpected = sorted(actual - set(expected))
+        raise ValueError(
+            f"{label} shape mismatch: missing={missing} unexpected={unexpected}"
+        )
+
 
 def canonical_bytes(value: Any) -> bytes:
     return (
@@ -110,6 +225,126 @@ def path_for(element: etree._Element) -> list[dict[str, Any]]:
     return path
 
 
+def topology_digest_bytes(value: Any) -> bytes:
+    return (
+        json.dumps(
+            value,
+            ensure_ascii=False,
+            indent=2,
+            sort_keys=True,
+            separators=(",", ": "),
+        )
+        + "\n"
+    ).encode("utf-8")
+
+
+def topology_digest_object(value: Any) -> str:
+    return sha256_bytes(topology_digest_bytes(value))
+
+
+def independent_b_resources(root: etree._Element) -> list[dict[str, Any]]:
+    """Rebuild B's structural metadata from the source, not from its payload."""
+    elements = [element for element in root.iter() if isinstance(element.tag, str)]
+    resource_ids = {
+        element: f"xml-element-{position:06d}"
+        for position, element in enumerate(elements, start=1)
+    }
+    resources: list[dict[str, Any]] = []
+    for preorder, element in enumerate(elements, start=1):
+        parent = element.getparent()
+        if parent is None:
+            child_position = 1
+            same_name_position = 1
+            parent_resource_id = None
+        else:
+            children = element_children(parent)
+            child_position = children.index(element) + 1
+            same_name_siblings = [
+                sibling
+                for sibling in children
+                if expanded_name(sibling.tag) == expanded_name(element.tag)
+            ]
+            same_name_position = same_name_siblings.index(element) + 1
+            parent_resource_id = resource_ids[parent]
+        attribute_names = sorted(
+            (expanded_name(name) for name in element.attrib.keys()),
+            key=lambda item: ((item["namespace_uri"] or ""), item["local_name"]),
+        )
+        resources.append(
+            {
+                "resource_id": resource_ids[element],
+                "expanded_name": expanded_name(element.tag),
+                "locator": {
+                    "preorder": preorder,
+                    "depth": len(list(element.iterancestors())),
+                    "parent_resource_id": parent_resource_id,
+                    "element_child_position": child_position,
+                    "same_name_sibling_position": same_name_position,
+                    "path": path_for(element),
+                },
+                "element_child_count": len(element_children(element)),
+                "attribute_count": len(element.attrib),
+                "attribute_expanded_names": attribute_names,
+            }
+        )
+    return resources
+
+
+def independent_unordered_shape_payload(root: etree._Element) -> list[dict[str, Any]]:
+    shapes: list[dict[str, Any]] = []
+    for element in root.iter():
+        if not isinstance(element.tag, str):
+            continue
+        child_names = sorted(
+            (expanded_name(child.tag) for child in element_children(element)),
+            key=lambda item: ((item["namespace_uri"] or ""), item["local_name"]),
+        )
+        attribute_names = sorted(
+            (expanded_name(name) for name in element.attrib.keys()),
+            key=lambda item: ((item["namespace_uri"] or ""), item["local_name"]),
+        )
+        shapes.append(
+            {
+                "expanded_name": expanded_name(element.tag),
+                "child_expanded_names_multiset": child_names,
+                "attribute_expanded_names": attribute_names,
+            }
+        )
+    return sorted(shapes, key=topology_digest_bytes)
+
+
+def expected_b_summary(root: etree._Element) -> dict[str, Any]:
+    resources = independent_b_resources(root)
+    return {
+        "resource_count": len(resources),
+        "attribute_count": sum(resource["attribute_count"] for resource in resources),
+        "max_depth": max(resource["locator"]["depth"] for resource in resources),
+        "namespace_uris": sorted(
+            {
+                resource["expanded_name"]["namespace_uri"]
+                for resource in resources
+                if resource["expanded_name"]["namespace_uri"] is not None
+            }
+        ),
+        "ordered_topology_sha256": topology_digest_object(
+            [
+                {
+                    "resource_id": resource["resource_id"],
+                    "expanded_name": resource["expanded_name"],
+                    "locator": resource["locator"],
+                    "element_child_count": resource["element_child_count"],
+                    "attribute_count": resource["attribute_count"],
+                    "attribute_expanded_names": resource["attribute_expanded_names"],
+                }
+                for resource in resources
+            ]
+        ),
+        "unordered_element_shape_sha256": topology_digest_object(
+            independent_unordered_shape_payload(root)
+        ),
+    }
+
+
 def expected_provider_records(
     root: etree._Element,
 ) -> list[tuple[str, list[dict[str, Any]]]]:
@@ -153,6 +388,7 @@ def validate_file_binding(
     binding = payload.get("file_binding")
     if not isinstance(binding, dict):
         raise ValueError(f"{label} file binding missing")
+    require_exact_keys(binding, FILE_BINDING_KEYS, f"{label} file binding")
     source_digest = sha256_bytes(source)
     if binding.get("sha256") != source_digest:
         raise ValueError(f"{label} file binding mismatch")
@@ -190,6 +426,9 @@ def resolve_path(root: etree._Element, path: list[dict[str, Any]]) -> etree._Ele
 
 def validate_b(owner: dict[str, Any], root: etree._Element) -> dict[str, Any]:
     resources = owner["resources"]
+    if not isinstance(resources, list):
+        raise ValueError("B resources must be a list")
+    require_exact_keys(owner.get("scope"), B_SCOPE_KEYS, "B scope")
     elements = [element for element in root.iter() if isinstance(element.tag, str)]
     if len(resources) != len(elements):
         raise ValueError("resource/element count mismatch")
@@ -205,6 +444,7 @@ def validate_b(owner: dict[str, Any], root: etree._Element) -> dict[str, Any]:
         raise ValueError("resource IDs must be unique")
     element_to_resource = {element: resource for element, resource in zip(elements, resources)}
     for expected_preorder, resource in enumerate(resources, start=1):
+        require_exact_keys(resource, B_RESOURCE_KEYS, "B resource")
         if resource.get("resource_kind") != "xml_element":
             raise ValueError("resource kind mismatch")
         element = resolve_path(root, resource["locator"]["path"])
@@ -248,11 +488,17 @@ def validate_b(owner: dict[str, Any], root: etree._Element) -> dict[str, Any]:
         )
         if resource["attribute_expanded_names"] != expected_attributes:
             raise ValueError("attribute expanded names mismatch")
+    expected_summary = expected_b_summary(root)
+    summary = owner.get("summary")
+    require_exact_keys(summary, B_SUMMARY_KEYS, "B summary")
+    if summary != expected_summary:
+        raise ValueError("B summary mismatch")
     return {
         "resource_count": len(resources),
         "resolved_exactly_once": len(resources),
         "path_failures": 0,
         "metadata_mismatches": 0,
+        "summary": expected_summary,
     }
 
 
@@ -333,8 +579,42 @@ def validate_projection(
     owner: dict[str, Any] | None,
     registered_context: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
+    if owner is not None:
+        projection_keys = {
+            "schema_version",
+            "provider_context",
+            "generic_owner_candidate",
+            "summary",
+            "resources",
+            "source_text_included",
+            "accepted_structure_claimed",
+            "authority_boundary",
+        }
+        require_exact_keys(projection, projection_keys, "provider projection")
+    elif "candidate" in projection:
+        # Direct contract tests and callers may pass the complete C payload.
+        require_exact_keys(projection, C_TOP_LEVEL_KEYS, "C payload")
+    else:
+        projection_keys = {
+            "schema_version",
+            "provider_context",
+            "summary",
+            "resources",
+            "source_text_included",
+            "generic_xml_owner_claimed",
+            "intrinsic_or_cross_corpus_word_ids_claimed",
+            "accepted_structure_claimed",
+            "authority_boundary",
+        }
+        require_exact_keys(projection, projection_keys, "provider projection")
+    require_exact_keys(projection.get("provider_context"), PROVIDER_CONTEXT_KEYS, "provider context")
+    if owner is not None and projection.get("generic_owner_candidate") != "B":
+        raise ValueError("generic projection owner must be B")
     if registered_context is not None and projection.get("provider_context") != registered_context:
         raise ValueError("provider context differs from registered selection")
+    if not isinstance(projection.get("resources"), list):
+        raise ValueError("provider projection resources must be a list")
+    require_exact_keys(projection.get("summary"), C_SUMMARY_KEYS, "provider projection summary")
     expected = expected_provider_records(root)
     expected_keys = {
         provider_path_key(resource_kind, path)
@@ -382,6 +662,7 @@ def validate_projection(
     cited_generic = 0
     validated_records: list[dict[str, Any]] = []
     for record in projection["resources"]:
+        require_exact_keys(record, PROJECTION_RECORD_KEYS, "provider projection resource")
         element = resolve_path(root, record["source_element_path"])
         if expanded_name(element.tag) != {
             "namespace_uri": None,
@@ -450,36 +731,89 @@ def validate_candidate(
     expected_candidate: str | None = None,
     expected_input_id: str | None = None,
 ) -> dict[str, Any]:
-    root = strict_parse(source)
-    candidate = payload["candidate"]
+    candidate = payload.get("candidate") if isinstance(payload, dict) else None
     if expected_candidate is not None and candidate != expected_candidate:
         raise ValueError("payload candidate differs from requested candidate")
+    root = strict_parse(source)
     if candidate == "A":
+        require_exact_keys(payload, A_TOP_LEVEL_KEYS, "A payload")
+        require_exact_keys(payload.get("file_binding"), FILE_BINDING_KEYS, "A file binding")
+        require_exact_keys(payload.get("parser_posture"), PARSER_POSTURE_KEYS, "A parser posture")
         validate_file_binding(payload, source, "A", expected_input_id)
         if payload["element_return_supported"] is not False:
             raise ValueError("A overclaims element return")
+        if payload["intrinsic_ids_claimed"] is not False or payload["source_text_included"] is not False:
+            raise ValueError("A payload claim posture mismatch")
+        if payload["scope"] != "one opaque XML document resource":
+            raise ValueError("A scope mismatch")
+        resources = payload.get("resources")
+        if resources != [
+            {
+                "resource_id": "xml-document-000001",
+                "resource_kind": "xml_document",
+                "locator": {"whole_file": True},
+            }
+        ]:
+            raise ValueError("A resource shape mismatch")
         return {
             "document_fixity_match": True,
             "resource_count": len(payload["resources"]),
             "element_return_supported": False,
         }
     if candidate == "B":
+        require_exact_keys(payload, B_TOP_LEVEL_KEYS, "B payload")
+        require_exact_keys(payload.get("file_binding"), FILE_BINDING_KEYS, "B file binding")
+        require_exact_keys(payload.get("parser_posture"), PARSER_POSTURE_KEYS, "B parser posture")
         validate_file_binding(payload, source, "B", expected_input_id)
+        if any(
+            payload[key] is not False
+            for key in (
+                "source_text_included",
+                "element_content_fingerprints_included",
+                "intrinsic_ids_claimed",
+                "cross_file_identity_claimed",
+                "tei_classification_claimed",
+            )
+        ):
+            raise ValueError("B claim posture mismatch")
         return validate_b(payload, root)
     if candidate == "C":
+        require_exact_keys(payload, C_TOP_LEVEL_KEYS, "C payload")
+        require_exact_keys(payload.get("file_binding"), FILE_BINDING_KEYS, "C file binding")
+        require_exact_keys(payload.get("parser_posture"), PARSER_POSTURE_KEYS, "C parser posture")
         validate_file_binding(payload, source, "C", expected_input_id)
+        if any(
+            payload[key] is not False
+            for key in (
+                "source_text_included",
+                "generic_xml_owner_claimed",
+                "intrinsic_or_cross_corpus_word_ids_claimed",
+                "accepted_structure_claimed",
+            )
+        ):
+            raise ValueError("C claim posture mismatch")
         result = validate_projection(payload, root, None, registered_context)
         result["generic_owner_supported"] = False
         return result
     if candidate == "BC":
-        if payload["owner"].get("candidate") != "B":
+        require_exact_keys(payload, BC_TOP_LEVEL_KEYS, "BC payload")
+        if payload["source_text_included"] is not False:
+            raise ValueError("BC claim posture mismatch")
+        owner = payload.get("owner")
+        projection = payload.get("projection")
+        if not isinstance(owner, dict) or not isinstance(projection, dict):
+            raise ValueError("BC owner/projection missing")
+        require_exact_keys(owner, B_TOP_LEVEL_KEYS, "BC owner")
+        require_exact_keys(owner.get("file_binding"), FILE_BINDING_KEYS, "BC owner file binding")
+        require_exact_keys(owner.get("parser_posture"), PARSER_POSTURE_KEYS, "BC owner parser posture")
+        if owner.get("candidate") != "B":
             raise ValueError("BC owner candidate mismatch")
-        validate_file_binding(payload["owner"], source, "BC owner", expected_input_id)
-        owner_result = validate_b(payload["owner"], root)
+        validate_file_binding(owner, source, "BC owner", expected_input_id)
+        owner_result = validate_b(owner, root)
         projection_result = validate_projection(
-            payload["projection"],
+            projection,
             root,
-            payload["owner"],
+            owner,
             registered_context,
         )
         return {"owner": owner_result, "projection": projection_result}

@@ -14,7 +14,37 @@
     "schema_ref": "ToS/contracts/source-resource-inventory.schema.json",
     "schema_sha256": "609461ce122ee527b349bb60632147e88ffc7fa9c428788a992d024195509e35",
     "builder_ref": "scripts/build_source_resource_inventories.py",
-    "builder_sha256": "1f87e27c0829fc2d4a42b9d0645f5abb5f01ac590eb0480d1b5a6ab09da12e5c"
+    "builder_sha256": "1f87e27c0829fc2d4a42b9d0645f5abb5f01ac590eb0480d1b5a6ab09da12e5c",
+    "admission_boundary": {
+      "baseline_ref": "83c75277dc11f8c0c2adfc2e52ab4a5117b8fce0",
+      "roots": [
+        "ToS/source-witnesses",
+        "ToS/candidate-intake",
+        "ToS/review-ledger",
+        "ToS/canon",
+        "ToS/derived-exports",
+        "ToS/philosophy/graph-workbench",
+        "ToS/philosophy/trunk/graph-layers",
+        "ToS/source-witnesses/relations",
+        "ToS/research-packets/foundation-laboratory-2026-07/source-anchor-v2-abc",
+        "ToS/research-packets/foundation-laboratory-2026-07/source-text-layer-abc"
+      ],
+      "baseline_tree_ids": {
+        "ToS/source-witnesses": "e451db74515d079dac78c69baa312cb5118cb7c4",
+        "ToS/candidate-intake": "e75c4dede9a4a8013968e43c59857bbf97eeaac1",
+        "ToS/review-ledger": "a02560f949f086803ded32787ca05431229d886c",
+        "ToS/canon": "03a9a6a3da7e72542bd4fb1cf7885d5b478d4770",
+        "ToS/derived-exports": "e5f6978062fa92818d201fc55b8c95ab8e3b015f",
+        "ToS/philosophy/graph-workbench": "0b937bb5933e85ffd9977f0d9dc91fc0758a4885",
+        "ToS/philosophy/trunk/graph-layers": "e19eed8ecf6fbd72b67d78882625d30ca04053ea",
+        "ToS/source-witnesses/relations": "bf4db20d3e486c9c6875c0a588d63151d9b0d1ea",
+        "ToS/research-packets/foundation-laboratory-2026-07/source-anchor-v2-abc": "725ba722803d0eb6230302986f7dc597d5efb4f9",
+        "ToS/research-packets/foundation-laboratory-2026-07/source-text-layer-abc": "bc843bbd03f84ca0205f30270b538d9f2602a203"
+      },
+      "allowed_changed_paths": [
+        "ToS/derived-exports/tos_corpus_index.min.json"
+      ]
+    }
   },
   "parser_posture": {
     "recover": false,

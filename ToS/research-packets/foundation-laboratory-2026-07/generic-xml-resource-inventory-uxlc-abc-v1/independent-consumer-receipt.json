@@ -21,7 +21,15 @@
         "metadata_mismatches": 0,
         "path_failures": 0,
         "resolved_exactly_once": 3,
-        "resource_count": 3
+        "resource_count": 3,
+        "summary": {
+          "attribute_count": 0,
+          "max_depth": 2,
+          "namespace_uris": [],
+          "ordered_topology_sha256": "ba60cc78eb870c9bdc8557e79079b02352daf69dc89b5f25a58e7cc573767aa7",
+          "resource_count": 3,
+          "unordered_element_shape_sha256": "9ff48474d09b0b350b3316bedd7f7a435ce11c1e3243e2bd03467643eed6a897"
+        }
       },
       "selection_id": "P1-no-namespace",
       "selection_kind": "fixture"
@@ -44,7 +52,17 @@
         "metadata_mismatches": 0,
         "path_failures": 0,
         "resolved_exactly_once": 2,
-        "resource_count": 2
+        "resource_count": 2,
+        "summary": {
+          "attribute_count": 0,
+          "max_depth": 1,
+          "namespace_uris": [
+            "urn:lab:shared"
+          ],
+          "ordered_topology_sha256": "0027330cbe86ab888d70a02c419bbbc83c087d2ac5444fbeb6708ab005c078e0",
+          "resource_count": 2,
+          "unordered_element_shape_sha256": "9b4ba052bb6b1e682e9204fe1f42ee719d6cdc3c3d923887d2c825bb8129cccf"
+        }
       },
       "selection_id": "P2-prefix-a",
       "selection_kind": "fixture"
@@ -67,7 +85,17 @@
         "metadata_mismatches": 0,
         "path_failures": 0,
         "resolved_exactly_once": 2,
-        "resource_count": 2
+        "resource_count": 2,
+        "summary": {
+          "attribute_count": 0,
+          "max_depth": 1,
+          "namespace_uris": [
+            "urn:lab:shared"
+          ],
+          "ordered_topology_sha256": "0027330cbe86ab888d70a02c419bbbc83c087d2ac5444fbeb6708ab005c078e0",
+          "resource_count": 2,
+          "unordered_element_shape_sha256": "9b4ba052bb6b1e682e9204fe1f42ee719d6cdc3c3d923887d2c825bb8129cccf"
+        }
       },
       "selection_id": "P2-prefix-b",
       "selection_kind": "fixture"
@@ -90,7 +118,17 @@
         "metadata_mismatches": 0,
         "path_failures": 0,
         "resolved_exactly_once": 2,
-        "resource_count": 2
+        "resource_count": 2,
+        "summary": {
+          "attribute_count": 2,
+          "max_depth": 1,
+          "namespace_uris": [
+            "urn:lab:default"
+          ],
+          "ordered_topology_sha256": "b5796665e9665f9c99bfb34f6eb31647bb97ac6c4c1ff8c88159c7909daa233d",
+          "resource_count": 2,
+          "unordered_element_shape_sha256": "7de21e6f4597915b5903d2be68368b94ba835de5e3165e24be8ff88be8867bdf"
+        }
       },
       "selection_id": "P3-default-namespace",
       "selection_kind": "fixture"
@@ -113,7 +151,15 @@
         "metadata_mismatches": 0,
         "path_failures": 0,
         "resolved_exactly_once": 4,
-        "resource_count": 4
+        "resource_count": 4,
+        "summary": {
+          "attribute_count": 0,
+          "max_depth": 1,
+          "namespace_uris": [],
+          "ordered_topology_sha256": "881377702610c60d65c14932f70f5b03e400bb289e0d325408aa1f9d2b0d8ade",
+          "resource_count": 4,
+          "unordered_element_shape_sha256": "27a2696c41e7f68fa2ca6f7a049889e028849954896e16d9dbdb47802fa13dbd"
+        }
       },
       "selection_id": "P4-duplicate-siblings",
       "selection_kind": "fixture"
@@ -136,7 +182,15 @@
         "metadata_mismatches": 0,
         "path_failures": 0,
         "resolved_exactly_once": 4,
-        "resource_count": 4
+        "resource_count": 4,
+        "summary": {
+          "attribute_count": 0,
+          "max_depth": 1,
+          "namespace_uris": [],
+          "ordered_topology_sha256": "88e03cd11a217916e4ca9ecd0858a1b78957414794f5f94c2a0310110d4bb69c",
+          "resource_count": 4,
+          "unordered_element_shape_sha256": "b9d94ed53adf601f7067b9b8d43f13022420a9c6c0e6296f6846b45fd282b8ac"
+        }
       },
       "selection_id": "P5-interleaved-siblings",
       "selection_kind": "fixture"
@@ -159,7 +213,15 @@
         "metadata_mismatches": 0,
         "path_failures": 0,
         "resolved_exactly_once": 2,
-        "resource_count": 2
+        "resource_count": 2,
+        "summary": {
+          "attribute_count": 0,
+          "max_depth": 1,
+          "namespace_uris": [],
+          "ordered_topology_sha256": "605b6204aa4c9f2f04334fd1a5bbe7a380f4c548cdd08f3617ca6d66dbd7ffb7",
+          "resource_count": 2,
+          "unordered_element_shape_sha256": "f25365eca7579c5ab3dc112ea177f783663ae1501dfcb4f566509cd685b4cc77"
+        }
       },
       "selection_id": "P6-empty-short",
       "selection_kind": "fixture"
@@ -182,7 +244,15 @@
         "metadata_mismatches": 0,
         "path_failures": 0,
         "resolved_exactly_once": 2,
-        "resource_count": 2
+        "resource_count": 2,
+        "summary": {
+          "attribute_count": 0,
+          "max_depth": 1,
+          "namespace_uris": [],
+          "ordered_topology_sha256": "605b6204aa4c9f2f04334fd1a5bbe7a380f4c548cdd08f3617ca6d66dbd7ffb7",
+          "resource_count": 2,
+          "unordered_element_shape_sha256": "f25365eca7579c5ab3dc112ea177f783663ae1501dfcb4f566509cd685b4cc77"
+        }
       },
       "selection_id": "P6-empty-long",
       "selection_kind": "fixture"
@@ -205,7 +275,15 @@
         "metadata_mismatches": 0,
         "path_failures": 0,
         "resolved_exactly_once": 2,
-        "resource_count": 2
+        "resource_count": 2,
+        "summary": {
+          "attribute_count": 2,
+          "max_depth": 1,
+          "namespace_uris": [],
+          "ordered_topology_sha256": "76fe7b1b722d4b5af412ffe19b04d1b38188a12fb41b90baed1626c5f03f496b",
+          "resource_count": 2,
+          "unordered_element_shape_sha256": "00c8f3c84a96558fea0bb7aa1b9f6f5d709d54fa6318a94109d2d34ade3e6ca4"
+        }
       },
       "selection_id": "P7-attributes-a",
       "selection_kind": "fixture"
@@ -228,7 +306,15 @@
         "metadata_mismatches": 0,
         "path_failures": 0,
         "resolved_exactly_once": 2,
-        "resource_count": 2
+        "resource_count": 2,
+        "summary": {
+          "attribute_count": 2,
+          "max_depth": 1,
+          "namespace_uris": [],
+          "ordered_topology_sha256": "76fe7b1b722d4b5af412ffe19b04d1b38188a12fb41b90baed1626c5f03f496b",
+          "resource_count": 2,
+          "unordered_element_shape_sha256": "00c8f3c84a96558fea0bb7aa1b9f6f5d709d54fa6318a94109d2d34ade3e6ca4"
+        }
       },
       "selection_id": "P7-attributes-b",
       "selection_kind": "fixture"
@@ -251,7 +337,15 @@
         "metadata_mismatches": 0,
         "path_failures": 0,
         "resolved_exactly_once": 2,
-        "resource_count": 2
+        "resource_count": 2,
+        "summary": {
+          "attribute_count": 0,
+          "max_depth": 1,
+          "namespace_uris": [],
+          "ordered_topology_sha256": "000a83da9dfe16529a7cdd41c25208a584c547fc5c73b78b394605f246febd66",
+          "resource_count": 2,
+          "unordered_element_shape_sha256": "a877ae1c67d140f5484dffba7485c87858b52ec527d155b1a4bc509182d798ed"
+        }
       },
       "selection_id": "P8-comments-pi-a",
       "selection_kind": "fixture"
@@ -274,7 +368,15 @@
         "metadata_mismatches": 0,
         "path_failures": 0,
         "resolved_exactly_once": 2,
-        "resource_count": 2
+        "resource_count": 2,
+        "summary": {
+          "attribute_count": 0,
+          "max_depth": 1,
+          "namespace_uris": [],
+          "ordered_topology_sha256": "000a83da9dfe16529a7cdd41c25208a584c547fc5c73b78b394605f246febd66",
+          "resource_count": 2,
+          "unordered_element_shape_sha256": "a877ae1c67d140f5484dffba7485c87858b52ec527d155b1a4bc509182d798ed"
+        }
       },
       "selection_id": "P8-comments-pi-b",
       "selection_kind": "fixture"
@@ -297,7 +399,18 @@
         "metadata_mismatches": 0,
         "path_failures": 0,
         "resolved_exactly_once": 3,
-        "resource_count": 3
+        "resource_count": 3,
+        "summary": {
+          "attribute_count": 0,
+          "max_depth": 2,
+          "namespace_uris": [
+            "urn:lab:a",
+            "urn:lab:b"
+          ],
+          "ordered_topology_sha256": "ecad4450a77b296bbc6cfa70e61eed74075b45c2dd8b6ef78b06686b4ee897bf",
+          "resource_count": 3,
+          "unordered_element_shape_sha256": "f19f2a3c1ceb5fd8678b619c0cb4b7abefe2eaf74f16897e020223e97f94b45e"
+        }
       },
       "selection_id": "P9-mixed-namespaces",
       "selection_kind": "fixture"
@@ -320,7 +433,17 @@
         "metadata_mismatches": 0,
         "path_failures": 0,
         "resolved_exactly_once": 5,
-        "resource_count": 5
+        "resource_count": 5,
+        "summary": {
+          "attribute_count": 0,
+          "max_depth": 3,
+          "namespace_uris": [
+            "http://www.tei-c.org/ns/1.0"
+          ],
+          "ordered_topology_sha256": "2a38326b9f8362f4bd3ff357edd81d080e986189dd9726774ac1a8a17412796f",
+          "resource_count": 5,
+          "unordered_element_shape_sha256": "e196ff2f6cb2f68a0e901fca2ab21ad2c2a4cc6a9d7ed470c863a58b7beb3d44"
+        }
       },
       "selection_id": "P10-true-tei",
       "selection_kind": "fixture"
@@ -343,7 +466,15 @@
         "metadata_mismatches": 0,
         "path_failures": 0,
         "resolved_exactly_once": 4,
-        "resource_count": 4
+        "resource_count": 4,
+        "summary": {
+          "attribute_count": 0,
+          "max_depth": 2,
+          "namespace_uris": [],
+          "ordered_topology_sha256": "8cdefd040c39b7af012bf2a4bf71a53792d6260ccb07752b7b8391f9c15ec224",
+          "resource_count": 4,
+          "unordered_element_shape_sha256": "c915407e5fa19b0b97f5dd7e91c23491b95c45e21c9d87f3ef7aed801d3f76d4"
+        }
       },
       "selection_id": "P11-tei-lookalike",
       "selection_kind": "fixture"
@@ -366,7 +497,15 @@
         "metadata_mismatches": 0,
         "path_failures": 0,
         "resolved_exactly_once": 4,
-        "resource_count": 4
+        "resource_count": 4,
+        "summary": {
+          "attribute_count": 1,
+          "max_depth": 2,
+          "namespace_uris": [],
+          "ordered_topology_sha256": "044ad7c7051fb3155b853fa45e135a4616f42430612316231dae439d734f639b",
+          "resource_count": 4,
+          "unordered_element_shape_sha256": "e13bd9b459d93a04df83a5988f52fd9ff6bc12a140d3c07f8f41ea51b8a3ad24"
+        }
       },
       "selection_id": "P12-dynamic-a",
       "selection_kind": "fixture"
@@ -389,7 +528,15 @@
         "metadata_mismatches": 0,
         "path_failures": 0,
         "resolved_exactly_once": 4,
-        "resource_count": 4
+        "resource_count": 4,
+        "summary": {
+          "attribute_count": 1,
+          "max_depth": 2,
+          "namespace_uris": [],
+          "ordered_topology_sha256": "044ad7c7051fb3155b853fa45e135a4616f42430612316231dae439d734f639b",
+          "resource_count": 4,
+          "unordered_element_shape_sha256": "e13bd9b459d93a04df83a5988f52fd9ff6bc12a140d3c07f8f41ea51b8a3ad24"
+        }
       },
       "selection_id": "P12-dynamic-b",
       "selection_kind": "fixture"
@@ -412,7 +559,15 @@
         "metadata_mismatches": 0,
         "path_failures": 0,
         "resolved_exactly_once": 4,
-        "resource_count": 4
+        "resource_count": 4,
+        "summary": {
+          "attribute_count": 2,
+          "max_depth": 1,
+          "namespace_uris": [],
+          "ordered_topology_sha256": "4c3384a6b7afcf7ba9b6a9582150c145fe2a5104e6e88fcff6f0659d6af3cfa1",
+          "resource_count": 4,
+          "unordered_element_shape_sha256": "ba4a876e147ffb9d5064295ae7f0146e5f59db51e36a1ffaeae13af8c4355fc8"
+        }
       },
       "selection_id": "P13-reorder-a",
       "selection_kind": "fixture"
@@ -435,7 +590,15 @@
         "metadata_mismatches": 0,
         "path_failures": 0,
         "resolved_exactly_once": 4,
-        "resource_count": 4
+        "resource_count": 4,
+        "summary": {
+          "attribute_count": 2,
+          "max_depth": 1,
+          "namespace_uris": [],
+          "ordered_topology_sha256": "22eb55c3f9b381267b6ad84db273231274cb4ff787fe1467b16a8b7c9ca49920",
+          "resource_count": 4,
+          "unordered_element_shape_sha256": "ba4a876e147ffb9d5064295ae7f0146e5f59db51e36a1ffaeae13af8c4355fc8"
+        }
       },
       "selection_id": "P13-reorder-b",
       "selection_kind": "fixture"
@@ -458,7 +621,15 @@
         "metadata_mismatches": 0,
         "path_failures": 0,
         "resolved_exactly_once": 2,
-        "resource_count": 2
+        "resource_count": 2,
+        "summary": {
+          "attribute_count": 0,
+          "max_depth": 1,
+          "namespace_uris": [],
+          "ordered_topology_sha256": "000a83da9dfe16529a7cdd41c25208a584c547fc5c73b78b394605f246febd66",
+          "resource_count": 2,
+          "unordered_element_shape_sha256": "a877ae1c67d140f5484dffba7485c87858b52ec527d155b1a4bc509182d798ed"
+        }
       },
       "selection_id": "P14-text-a",
       "selection_kind": "fixture"
@@ -481,7 +652,15 @@
         "metadata_mismatches": 0,
         "path_failures": 0,
         "resolved_exactly_once": 2,
-        "resource_count": 2
+        "resource_count": 2,
+        "summary": {
+          "attribute_count": 0,
+          "max_depth": 1,
+          "namespace_uris": [],
+          "ordered_topology_sha256": "000a83da9dfe16529a7cdd41c25208a584c547fc5c73b78b394605f246febd66",
+          "resource_count": 2,
+          "unordered_element_shape_sha256": "a877ae1c67d140f5484dffba7485c87858b52ec527d155b1a4bc509182d798ed"
+        }
       },
       "selection_id": "P14-text-b",
       "selection_kind": "fixture"
@@ -504,7 +683,15 @@
         "metadata_mismatches": 0,
         "path_failures": 0,
         "resolved_exactly_once": 2,
-        "resource_count": 2
+        "resource_count": 2,
+        "summary": {
+          "attribute_count": 1,
+          "max_depth": 1,
+          "namespace_uris": [],
+          "ordered_topology_sha256": "304b0834d7c99566a9ae26b131bc53eb37a2909703d2ca92ae8412dc8c44716b",
+          "resource_count": 2,
+          "unordered_element_shape_sha256": "5b9b92dfc49861506a9ea462ebb7e3ace4405bc17aeb0626de7c83a239e886ef"
+        }
       },
       "selection_id": "P15-attribute-value-a",
       "selection_kind": "fixture"
@@ -527,7 +714,15 @@
         "metadata_mismatches": 0,
         "path_failures": 0,
         "resolved_exactly_once": 2,
-        "resource_count": 2
+        "resource_count": 2,
+        "summary": {
+          "attribute_count": 1,
+          "max_depth": 1,
+          "namespace_uris": [],
+          "ordered_topology_sha256": "304b0834d7c99566a9ae26b131bc53eb37a2909703d2ca92ae8412dc8c44716b",
+          "resource_count": 2,
+          "unordered_element_shape_sha256": "5b9b92dfc49861506a9ea462ebb7e3ace4405bc17aeb0626de7c83a239e886ef"
+        }
       },
       "selection_id": "P15-attribute-value-b",
       "selection_kind": "fixture"
@@ -550,7 +745,15 @@
         "metadata_mismatches": 0,
         "path_failures": 0,
         "resolved_exactly_once": 14,
-        "resource_count": 14
+        "resource_count": 14,
+        "summary": {
+          "attribute_count": 3,
+          "max_depth": 5,
+          "namespace_uris": [],
+          "ordered_topology_sha256": "20ed9458cc18ee0799ee2ccddbba9a50c29f8482aab0f70e613af6c298b738da",
+          "resource_count": 14,
+          "unordered_element_shape_sha256": "100c3cc28fe33a96fd0c0889292ad67317822b9acb73f8be6d7d27b961e6dac3"
+        }
       },
       "selection_id": "PC1-uxlc-shape",
       "selection_kind": "fixture"
@@ -588,7 +791,15 @@
           "metadata_mismatches": 0,
           "path_failures": 0,
           "resolved_exactly_once": 14,
-          "resource_count": 14
+          "resource_count": 14,
+          "summary": {
+            "attribute_count": 3,
+            "max_depth": 5,
+            "namespace_uris": [],
+            "ordered_topology_sha256": "20ed9458cc18ee0799ee2ccddbba9a50c29f8482aab0f70e613af6c298b738da",
+            "resource_count": 14,
+            "unordered_element_shape_sha256": "100c3cc28fe33a96fd0c0889292ad67317822b9acb73f8be6d7d27b961e6dac3"
+          }
         },
         "projection": {
           "expected_resource_count": 7,
@@ -630,7 +841,15 @@
         "metadata_mismatches": 0,
         "path_failures": 0,
         "resolved_exactly_once": 133,
-        "resource_count": 133
+        "resource_count": 133,
+        "summary": {
+          "attribute_count": 27,
+          "max_depth": 5,
+          "namespace_uris": [],
+          "ordered_topology_sha256": "c689dcf25cfa8a10d0343510137c3c5104ec28f275ba92c3c71b2cd600adfb1c",
+          "resource_count": 133,
+          "unordered_element_shape_sha256": "94f408972df97e28ed989687fb2d68db365ae468bae35223416fd28de88bb676"
+        }
       },
       "selection_id": "selected",
       "selection_kind": "source"
@@ -669,7 +888,15 @@
           "metadata_mismatches": 0,
           "path_failures": 0,
           "resolved_exactly_once": 133,
-          "resource_count": 133
+          "resource_count": 133,
+          "summary": {
+            "attribute_count": 27,
+            "max_depth": 5,
+            "namespace_uris": [],
+            "ordered_topology_sha256": "c689dcf25cfa8a10d0343510137c3c5104ec28f275ba92c3c71b2cd600adfb1c",
+            "resource_count": 133,
+            "unordered_element_shape_sha256": "94f408972df97e28ed989687fb2d68db365ae468bae35223416fd28de88bb676"
+          }
         },
         "projection": {
           "expected_resource_count": 28,
@@ -712,7 +939,15 @@
         "metadata_mismatches": 0,
         "path_failures": 0,
         "resolved_exactly_once": 133,
-        "resource_count": 133
+        "resource_count": 133,
+        "summary": {
+          "attribute_count": 27,
+          "max_depth": 5,
+          "namespace_uris": [],
+          "ordered_topology_sha256": "c689dcf25cfa8a10d0343510137c3c5104ec28f275ba92c3c71b2cd600adfb1c",
+          "resource_count": 133,
+          "unordered_element_shape_sha256": "94f408972df97e28ed989687fb2d68db365ae468bae35223416fd28de88bb676"
+        }
       },
       "selection_id": "replay",
       "selection_kind": "source"
@@ -751,7 +986,15 @@
           "metadata_mismatches": 0,
           "path_failures": 0,
           "resolved_exactly_once": 133,
-          "resource_count": 133
+          "resource_count": 133,
+          "summary": {
+            "attribute_count": 27,
+            "max_depth": 5,
+            "namespace_uris": [],
+            "ordered_topology_sha256": "c689dcf25cfa8a10d0343510137c3c5104ec28f275ba92c3c71b2cd600adfb1c",
+            "resource_count": 133,
+            "unordered_element_shape_sha256": "94f408972df97e28ed989687fb2d68db365ae468bae35223416fd28de88bb676"
+          }
         },
         "projection": {
           "expected_resource_count": 28,
@@ -782,9 +1025,9 @@
   "error_count": 0,
   "errors": [],
   "lab_id": "tos.lab.generic-xml-resource-inventory-uxlc-abc.v1",
-  "max_rss_kib": 24816,
+  "max_rss_kib": 1407612,
   "schema_version": "tos_generic_xml_resource_inventory_independent_consumer_receipt_v1",
   "source_text_included": false,
   "timing_scope": "independent consumer checks and receipt assembly",
-  "wall_seconds": 0.02270376801607199
+  "wall_seconds": 0.07898778999992828
 }
