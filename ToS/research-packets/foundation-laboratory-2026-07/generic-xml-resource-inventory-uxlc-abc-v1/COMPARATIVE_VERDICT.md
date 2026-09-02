@@ -3,7 +3,7 @@
 Date: 2026-08-30  
 Result: B generic owner preferred; C retained only over B  
 Hard gates: 25/25 pass after manual source/output review  
-Comparison result SHA-256: `32dcf959…2bc`
+Comparison result SHA-256: `a8818e65…56f`
 Public contract changed by this laboratory: no
 
 ## Decision

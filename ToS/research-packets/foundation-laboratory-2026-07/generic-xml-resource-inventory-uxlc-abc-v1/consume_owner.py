@@ -128,6 +128,34 @@ C_TOP_LEVEL_KEYS = frozenset(
 BC_TOP_LEVEL_KEYS = frozenset(
     {"schema_version", "lab_id", "candidate", "owner", "projection", "source_text_included", "authority_boundary"}
 )
+B_CLAIM_POSTURE_KEYS = frozenset(
+    {
+        "source_text_included",
+        "element_content_fingerprints_included",
+        "intrinsic_ids_claimed",
+        "cross_file_identity_claimed",
+        "tei_classification_claimed",
+    }
+)
+EXPECTED_SCHEMA_VERSIONS = {
+    "A": "tos_lab_generic_xml_candidate_a_v1",
+    "B": "tos_lab_generic_xml_candidate_b_v1",
+    "C": "tos_lab_generic_xml_candidate_c_v1",
+    "BC": "tos_lab_generic_xml_candidate_bc_v1",
+}
+EXPECTED_B_SCOPE = {
+    "node_kinds": ["element"],
+    "excluded": [
+        "text",
+        "tail",
+        "attribute_values",
+        "comments",
+        "processing_instructions",
+        "dtd",
+        "entity_expansions",
+    ],
+    "path_identity": "expanded-name plus one-based same-name sibling position under exact file binding",
+}
 
 
 def require_exact_keys(value: Any, expected: set[str] | frozenset[str], label: str) -> None:
@@ -402,6 +430,11 @@ def validate_file_binding(
         raise ValueError(f"{label} media type mismatch")
 
 
+def validate_b_claim_posture(owner: dict[str, Any], label: str = "B") -> None:
+    if any(owner.get(key) is not False for key in B_CLAIM_POSTURE_KEYS):
+        raise ValueError(f"{label} claim posture mismatch")
+
+
 def resolve_path(root: etree._Element, path: list[dict[str, Any]]) -> etree._Element:
     if not path:
         raise ValueError("empty path")
@@ -429,6 +462,8 @@ def validate_b(owner: dict[str, Any], root: etree._Element) -> dict[str, Any]:
     if not isinstance(resources, list):
         raise ValueError("B resources must be a list")
     require_exact_keys(owner.get("scope"), B_SCOPE_KEYS, "B scope")
+    if owner["scope"] != EXPECTED_B_SCOPE:
+        raise ValueError("B scope value mismatch")
     elements = [element for element in root.iter() if isinstance(element.tag, str)]
     if len(resources) != len(elements):
         raise ValueError("resource/element count mismatch")
@@ -730,10 +765,16 @@ def validate_candidate(
     registered_context: dict[str, Any] | None = None,
     expected_candidate: str | None = None,
     expected_input_id: str | None = None,
+    expected_lab_id: str | None = None,
+    expected_schema_version: str | None = None,
 ) -> dict[str, Any]:
     candidate = payload.get("candidate") if isinstance(payload, dict) else None
     if expected_candidate is not None and candidate != expected_candidate:
         raise ValueError("payload candidate differs from requested candidate")
+    if expected_lab_id is not None and payload.get("lab_id") != expected_lab_id:
+        raise ValueError("payload lab ID mismatch")
+    if expected_schema_version is not None and payload.get("schema_version") != expected_schema_version:
+        raise ValueError("payload schema version mismatch")
     root = strict_parse(source)
     if candidate == "A":
         require_exact_keys(payload, A_TOP_LEVEL_KEYS, "A payload")
@@ -765,17 +806,7 @@ def validate_candidate(
         require_exact_keys(payload.get("file_binding"), FILE_BINDING_KEYS, "B file binding")
         require_exact_keys(payload.get("parser_posture"), PARSER_POSTURE_KEYS, "B parser posture")
         validate_file_binding(payload, source, "B", expected_input_id)
-        if any(
-            payload[key] is not False
-            for key in (
-                "source_text_included",
-                "element_content_fingerprints_included",
-                "intrinsic_ids_claimed",
-                "cross_file_identity_claimed",
-                "tei_classification_claimed",
-            )
-        ):
-            raise ValueError("B claim posture mismatch")
+        validate_b_claim_posture(payload)
         return validate_b(payload, root)
     if candidate == "C":
         require_exact_keys(payload, C_TOP_LEVEL_KEYS, "C payload")
@@ -808,7 +839,12 @@ def validate_candidate(
         require_exact_keys(owner.get("parser_posture"), PARSER_POSTURE_KEYS, "BC owner parser posture")
         if owner.get("candidate") != "B":
             raise ValueError("BC owner candidate mismatch")
+        if expected_lab_id is not None and owner.get("lab_id") != expected_lab_id:
+            raise ValueError("BC owner lab ID mismatch")
+        if owner.get("schema_version") != EXPECTED_SCHEMA_VERSIONS["B"]:
+            raise ValueError("BC owner schema version mismatch")
         validate_file_binding(owner, source, "BC owner", expected_input_id)
+        validate_b_claim_posture(owner, "BC owner")
         owner_result = validate_b(owner, root)
         projection_result = validate_projection(
             projection,
@@ -861,6 +897,8 @@ def main() -> int:
                             source,
                             expected_candidate=candidate,
                             expected_input_id=fixture_id,
+                            expected_lab_id=manifest["lab_id"],
+                            expected_schema_version=EXPECTED_SCHEMA_VERSIONS[candidate],
                         ),
                     }
                 )
@@ -896,6 +934,8 @@ def main() -> int:
                             manifest["provider_context"],
                             expected_candidate=candidate,
                             expected_input_id=source_id,
+                            expected_lab_id=manifest["lab_id"],
+                            expected_schema_version=EXPECTED_SCHEMA_VERSIONS[candidate],
                         ),
                     }
                 )

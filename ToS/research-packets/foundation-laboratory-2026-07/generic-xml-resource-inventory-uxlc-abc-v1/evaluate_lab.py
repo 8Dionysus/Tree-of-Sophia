@@ -353,7 +353,7 @@ def git_changed_paths_since(base_ref: str, roots: list[str]) -> list[str]:
             str(REPO_ROOT),
             "diff",
             "--name-only",
-            f"{base_ref}..HEAD",
+            base_ref,
             "--",
             *roots,
         ],
@@ -364,7 +364,50 @@ def git_changed_paths_since(base_ref: str, roots: list[str]) -> list[str]:
     )
     if completed.returncode != 0:
         raise RuntimeError("git diff failed for admission boundary")
-    return sorted({line.strip() for line in completed.stdout.splitlines() if line.strip()})
+    untracked = subprocess.run(
+        [
+            "git",
+            "-C",
+            str(REPO_ROOT),
+            "ls-files",
+            "--others",
+            "--exclude-standard",
+            "--",
+            *roots,
+        ],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        check=False,
+        text=True,
+    )
+    if untracked.returncode != 0:
+        raise RuntimeError("git ls-files failed for admission boundary")
+    ignored = subprocess.run(
+        [
+            "git",
+            "-C",
+            str(REPO_ROOT),
+            "ls-files",
+            "--others",
+            "--ignored",
+            "--exclude-standard",
+            "--",
+            *roots,
+        ],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        check=False,
+        text=True,
+    )
+    if ignored.returncode != 0:
+        raise RuntimeError("git ls-files failed for ignored admission boundary")
+    changed = {
+        line.strip()
+        for output in (completed.stdout, untracked.stdout, ignored.stdout)
+        for line in output.splitlines()
+        if line.strip()
+    }
+    return sorted(changed)
 
 
 def verify_admission_boundaries(manifest: dict[str, Any]) -> dict[str, Any]:
@@ -1307,6 +1350,35 @@ def observed_candidate_payloads(
     return payloads, sorted(set(failures))
 
 
+def verify_observed_parser_postures(
+    payloads: dict[str, Any], expected: dict[str, Any]
+) -> dict[str, Any]:
+    """Require the registered parser posture on every successful candidate output.
+
+    BC is an envelope whose parser posture is carried by its embedded B owner;
+    the observed payload map includes that owner separately. Projection records
+    are not parser candidates and therefore do not carry this field.
+    """
+    checks: dict[str, bool] = {}
+    invalid_labels: list[str] = []
+    for label, payload in payloads.items():
+        if not isinstance(payload, dict) or payload.get("candidate") not in {"A", "B", "C"}:
+            continue
+        posture = payload.get("parser_posture")
+        passed = isinstance(posture, dict) and all(
+            posture.get(key) == value for key, value in expected.items()
+        )
+        checks[label] = passed
+        if not passed:
+            invalid_labels.append(label)
+    return {
+        "ok": bool(checks) and not invalid_labels,
+        "checks": checks,
+        "invalid_labels": sorted(set(invalid_labels)),
+        "expected": expected,
+    }
+
+
 def verify_source_topology_receipt(
     manifest: dict[str, Any], source_receipt: dict[str, Any], source_id: str
 ) -> dict[str, Any]:
@@ -1669,11 +1741,15 @@ def main() -> int:
     )
 
     b_p1 = b_output("P1-no-namespace")
+    parser_posture_checks = verify_observed_parser_postures(
+        observed_payloads,
+        manifest["parser_posture"],
+    )
     gates.append(
         gate(
             "G5-parser-posture-explicit",
-            all(b_p1["parser_posture"].get(key) == value for key, value in manifest["parser_posture"].items()),
-            b_p1["parser_posture"],
+            parser_posture_checks["ok"] and not observed_payload_failures,
+            parser_posture_checks,
         )
     )
 

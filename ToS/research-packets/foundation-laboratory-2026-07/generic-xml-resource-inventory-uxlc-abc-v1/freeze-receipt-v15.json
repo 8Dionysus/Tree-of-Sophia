@@ -4,7 +4,7 @@
   "candidate_output_freeze_sha256": "039cfda1d5c966325fda5e5caa2d25ef00d987ea871d7c0d06fa6bf67de34eec",
   "candidate_outputs_rebuilt_after_candidate_freeze": true,
   "freeze_role": "pre-output method freeze after review-boundary hardening",
-  "frozen_at": "2026-09-02T04:30:02.145943Z",
+  "frozen_at": "2026-09-02T05:36:12.855372Z",
   "frozen_files": [
     {
       "ref": "ToS/research-packets/foundation-laboratory-2026-07/GENERIC_XML_RESOURCE_IDENTITY_AND_PROVIDER_PROJECTION_RESEARCH_2026-08-30.md",
@@ -32,11 +32,11 @@
     },
     {
       "ref": "ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/consume_owner.py",
-      "sha256": "ee9c24ed9cc2063641705000c988f0a679dc13d525dd9782538a14086db7360a"
+      "sha256": "7d603e8f11376800eb698e3266c51486ac54a4455823d7fd2a3c37e59ca4045f"
     },
     {
       "ref": "ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/evaluate_lab.py",
-      "sha256": "ece9c19240c0714b998b212f5289c83e109e91aa8172561acb3e9c5de8203344"
+      "sha256": "e34afe1518ed78d221d5619d2b1f74071cc2fb1f98522b318d9a86e4504120d1"
     },
     {
       "ref": "ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/RUNNER_AND_BC_PROXY_PREFLIGHT_FAILURE_V1.md",
@@ -117,7 +117,12 @@
     "source-content fingerprint-like fields and topology-to-content claims are rejected across observed outputs",
     "word-identity and TEI classification claims are checked across every successful provider and B output",
     "admission surfaces are bound to baseline tree IDs and an explicit changed-path allowlist",
-    "consumer independence is derived from frozen source AST rather than receipt flags"
+    "consumer independence is derived from frozen source AST rather than receipt flags",
+    "admission checks compare the baseline against committed, staged, unstaged and untracked paths",
+    "every successful A, B, C or embedded BC-owner output carries the registered parser posture",
+    "candidate envelopes bind lab identity and candidate-specific schema version",
+    "BC embedded B owners receive the same explicit claim-posture checks as standalone B outputs",
+    "B scope values are compared with the registered element-only value-withholding contract"
   ],
   "schema_version": "tos_generic_xml_resource_inventory_lab_freeze_receipt_v15",
   "supersedes_freeze_ref": "ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/freeze-receipt-v13.json",

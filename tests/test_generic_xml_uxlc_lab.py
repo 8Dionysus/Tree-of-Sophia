@@ -3,6 +3,7 @@ import importlib.util
 import json
 import os
 from pathlib import Path
+import subprocess
 import tempfile
 import unittest
 from unittest import mock
@@ -272,6 +273,62 @@ class GenericXmlUxLcLabContractTests(unittest.TestCase):
         payload["summary"]["namespace_uris"] = ["urn:wrong"]
         with self.assertRaisesRegex(ValueError, "B summary mismatch"):
             CONSUMER.validate_b(payload, root)
+
+    def test_consumer_binds_declared_b_scope_values(self) -> None:
+        manifest = json.loads((LAB_ROOT / "input-manifest.json").read_text(encoding="utf-8"))
+        fixture = next(item for item in manifest["fixtures"] if item["id"] == "P1-no-namespace")
+        root = CONSUMER.strict_parse(fixture["xml"].encode("utf-8"))
+        payload = json.loads(
+            (LAB_ROOT / "public-synthetic" / "run-1" / "b" / "P1-no-namespace.json").read_text(
+                encoding="utf-8"
+            )
+        )
+        payload["scope"]["path_identity"] = "element ordinal only"
+        with self.assertRaisesRegex(ValueError, "B scope value mismatch"):
+            CONSUMER.validate_b(payload, root)
+
+    def test_consumer_binds_candidate_lab_and_schema(self) -> None:
+        manifest = json.loads((LAB_ROOT / "input-manifest.json").read_text(encoding="utf-8"))
+        fixture = next(item for item in manifest["fixtures"] if item["id"] == "P1-no-namespace")
+        source = fixture["xml"].encode("utf-8")
+        payload = json.loads(
+            (LAB_ROOT / "public-synthetic" / "run-1" / "b" / "P1-no-namespace.json").read_text(
+                encoding="utf-8"
+            )
+        )
+        kwargs = {
+            "expected_candidate": "B",
+            "expected_input_id": fixture["id"],
+            "expected_lab_id": manifest["lab_id"],
+            "expected_schema_version": CONSUMER.EXPECTED_SCHEMA_VERSIONS["B"],
+        }
+        payload["lab_id"] = "tos.lab.other.v1"
+        with self.assertRaisesRegex(ValueError, "payload lab ID mismatch"):
+            CONSUMER.validate_candidate(payload, source, **kwargs)
+
+        payload["lab_id"] = manifest["lab_id"]
+        payload["schema_version"] = CONSUMER.EXPECTED_SCHEMA_VERSIONS["A"]
+        with self.assertRaisesRegex(ValueError, "payload schema version mismatch"):
+            CONSUMER.validate_candidate(payload, source, **kwargs)
+
+    def test_consumer_applies_b_claim_posture_to_bc_owner(self) -> None:
+        manifest = json.loads((LAB_ROOT / "input-manifest.json").read_text(encoding="utf-8"))
+        fixture = next(item for item in manifest["fixtures"] if item["id"] == "PC1-uxlc-shape")
+        payload = json.loads(
+            (LAB_ROOT / "public-synthetic" / "run-1" / "bc" / "PC1-uxlc-shape.json").read_text(
+                encoding="utf-8"
+            )
+        )
+        payload["owner"]["cross_file_identity_claimed"] = True
+        with self.assertRaisesRegex(ValueError, "BC owner claim posture mismatch"):
+            CONSUMER.validate_candidate(
+                payload,
+                fixture["xml"].encode("utf-8"),
+                expected_candidate="BC",
+                expected_input_id=fixture["id"],
+                expected_lab_id=manifest["lab_id"],
+                expected_schema_version=CONSUMER.EXPECTED_SCHEMA_VERSIONS["BC"],
+            )
 
     def test_consumer_requires_b_as_generic_projection_owner(self) -> None:
         manifest = json.loads((LAB_ROOT / "input-manifest.json").read_text(encoding="utf-8"))
@@ -559,6 +616,58 @@ class GenericXmlUxLcLabContractTests(unittest.TestCase):
             result = EVALUATOR.verify_admission_boundaries(manifest)
         self.assertFalse(result["ok"])
         self.assertEqual(["ToS/canon/example-anchor.json"], result["unexpected_changed_paths"])
+
+    def test_admission_boundary_includes_worktree_and_untracked_paths(self) -> None:
+        diff = subprocess.CompletedProcess(
+            ["git"],
+            0,
+            stdout="ToS/canon/committed.json\nToS/canon/staged.json\n",
+            stderr="",
+        )
+        untracked = subprocess.CompletedProcess(
+            ["git"],
+            0,
+            stdout="ToS/canon/untracked.json\n",
+            stderr="",
+        )
+        ignored = subprocess.CompletedProcess(
+            ["git"],
+            0,
+            stdout="ToS/canon/ignored.json\n",
+            stderr="",
+        )
+        with mock.patch.object(EVALUATOR.subprocess, "run", side_effect=[diff, untracked, ignored]):
+            result = EVALUATOR.git_changed_paths_since("base", ["ToS/canon"])
+        self.assertEqual(
+            [
+                "ToS/canon/committed.json",
+                "ToS/canon/ignored.json",
+                "ToS/canon/staged.json",
+                "ToS/canon/untracked.json",
+            ],
+            result,
+        )
+
+    def test_evaluator_checks_parser_posture_on_every_candidate_output(self) -> None:
+        manifest = json.loads((LAB_ROOT / "input-manifest.json").read_text(encoding="utf-8"))
+        expected = manifest["parser_posture"]
+        payloads = {
+            "A:fixture:P1": {"candidate": "A", "parser_posture": copy.deepcopy(expected)},
+            "B:fixture:P1": {"candidate": "B", "parser_posture": copy.deepcopy(expected)},
+            "C:fixture:PC1": {"candidate": "C", "parser_posture": copy.deepcopy(expected)},
+            "BC:fixture:PC1": {"candidate": "BC"},
+            "BC:fixture:PC1:owner": {
+                "candidate": "B",
+                "parser_posture": copy.deepcopy(expected),
+            },
+            "BC:fixture:PC1:projection": {"schema_version": "projection"},
+        }
+        result = EVALUATOR.verify_observed_parser_postures(payloads, expected)
+        self.assertTrue(result["ok"])
+        payloads["A:fixture:P1"]["parser_posture"]["resolve_entities"] = True
+        result = EVALUATOR.verify_observed_parser_postures(payloads, expected)
+        self.assertFalse(result["ok"])
+        self.assertIn("A:fixture:P1", result["invalid_labels"])
 
     def test_replay_binding_requires_current_digest_and_size(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
