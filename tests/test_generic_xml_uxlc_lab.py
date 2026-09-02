@@ -117,6 +117,46 @@ class GenericXmlUxLcLabContractTests(unittest.TestCase):
         self.assertEqual(7, result["expected_resource_count"])
         self.assertEqual(7, result["unique_resource_count"])
 
+    def test_consumer_rejects_duplicate_b_resource_ids(self) -> None:
+        manifest = json.loads((LAB_ROOT / "input-manifest.json").read_text(encoding="utf-8"))
+        fixture = next(item for item in manifest["fixtures"] if item["id"] == "P1-no-namespace")
+        root = CONSUMER.strict_parse(fixture["xml"].encode("utf-8"))
+        payload = json.loads(
+            (LAB_ROOT / "public-synthetic" / "run-1" / "b" / "P1-no-namespace.json").read_text(
+                encoding="utf-8"
+            )
+        )
+        payload["resources"][1]["resource_id"] = payload["resources"][0]["resource_id"]
+        with self.assertRaisesRegex(ValueError, "resource IDs must be unique"):
+            CONSUMER.validate_b(payload, root)
+
+    def test_consumer_binds_provider_context_to_registered_selection(self) -> None:
+        manifest = json.loads((LAB_ROOT / "input-manifest.json").read_text(encoding="utf-8"))
+        fixture = next(item for item in manifest["fixtures"] if item["id"] == "PC1-uxlc-shape")
+        root = CONSUMER.strict_parse(fixture["xml"].encode("utf-8"))
+        payload = json.loads(
+            (LAB_ROOT / "public-synthetic" / "run-1" / "c" / "PC1-uxlc-shape.json").read_text(
+                encoding="utf-8"
+            )
+        )
+        registered_context = copy.deepcopy(payload["provider_context"])
+        payload["provider_context"]["selector"] = "wrong-selector"
+        with self.assertRaisesRegex(ValueError, "registered selection"):
+            CONSUMER.validate_projection(payload, root, None, registered_context)
+
+    def test_consumer_recomputes_provider_summary(self) -> None:
+        manifest = json.loads((LAB_ROOT / "input-manifest.json").read_text(encoding="utf-8"))
+        fixture = next(item for item in manifest["fixtures"] if item["id"] == "PC1-uxlc-shape")
+        root = CONSUMER.strict_parse(fixture["xml"].encode("utf-8"))
+        payload = json.loads(
+            (LAB_ROOT / "public-synthetic" / "run-1" / "c" / "PC1-uxlc-shape.json").read_text(
+                encoding="utf-8"
+            )
+        )
+        payload["summary"]["resource_count"] = 999
+        with self.assertRaisesRegex(ValueError, "summary mismatch"):
+            CONSUMER.validate_projection(payload, root, None)
+
     def test_source_value_controls_include_all_available_exact_sources(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             temp_root = Path(temp_dir)
@@ -256,6 +296,90 @@ class GenericXmlUxLcLabContractTests(unittest.TestCase):
                 for item in result["leaks"]
             )
         )
+
+    def test_tracked_text_scan_matches_delimited_short_source_values(self) -> None:
+        with tempfile.TemporaryDirectory(dir=EVALUATOR.LAB_DIR) as temp_dir:
+            tracked_output = Path(temp_dir) / "tracked-output.md"
+            tracked_output.write_text("prefix-alpha-suffix\n", encoding="utf-8")
+            with mock.patch.object(
+                EVALUATOR,
+                "tracked_lab_files",
+                return_value=[tracked_output],
+            ):
+                result = EVALUATOR.scan_tracked_generated_for_source_values(
+                    ["alpha"],
+                    {},
+                )
+
+        self.assertFalse(result["ok"])
+        self.assertTrue(
+            any(
+                item.endswith("/tracked-output.md:source-value-1")
+                for item in result["leaks"]
+            )
+        )
+
+    def test_malformed_fixture_fallback_scans_text_and_attributes(self) -> None:
+        manifest = {
+            "fixtures": [
+                {
+                    "id": "malformed",
+                    "xml": '<root secret="private-secret"><item>private-secret</root>',
+                }
+            ],
+            "security_fixtures": [],
+        }
+        strings = EVALUATOR.fixture_content_strings(manifest)
+        self.assertIn("private-secret", strings)
+        self.assertEqual(["private-secret"], EVALUATOR.source_value_hits(["private-secret"], strings))
+
+    def test_evaluator_recomputes_b_topology_summary(self) -> None:
+        manifest = json.loads((LAB_ROOT / "input-manifest.json").read_text(encoding="utf-8"))
+        fixture = next(item for item in manifest["fixtures"] if item["id"] == "P2-prefix-a")
+        payload = json.loads(
+            (LAB_ROOT / "public-synthetic" / "run-1" / "b" / "P2-prefix-a.json").read_text(
+                encoding="utf-8"
+            )
+        )
+        source = fixture["xml"].encode("utf-8")
+        self.assertTrue(EVALUATOR.verify_topology_summary(payload, source)["ok"])
+        payload["summary"]["ordered_topology_sha256"] = "wrong"
+        self.assertFalse(EVALUATOR.verify_topology_summary(payload, source)["ok"])
+
+    def test_authority_boundary_must_remain_negative_and_nonempty(self) -> None:
+        self.assertFalse(EVALUATOR.non_authoritative_boundary_is_valid(""))
+        self.assertFalse(
+            EVALUATOR.non_authoritative_boundary_is_valid("this is canonical authority")
+        )
+        self.assertTrue(
+            EVALUATOR.non_authoritative_boundary_is_valid(
+                "generic return only; no accepted source-text or publication authority"
+            )
+        )
+
+    def test_replay_binding_requires_current_digest_and_size(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            replay = Path(temp_dir) / "replay.xml"
+            replay.write_bytes(b"<root/>")
+            digest = EVALUATOR.sha256_path(replay)
+            manifest = {"exact_sources": {"replay": {"path": str(replay)}}}
+            receipt = {
+                "sources": {
+                    "replay": {
+                        "source_sha256": digest,
+                        "source_bytes": replay.stat().st_size,
+                    }
+                }
+            }
+            self.assertTrue(EVALUATOR.verify_replay_binding(manifest, receipt)["ok"])
+            replay.write_bytes(b"<root><changed/></root>")
+            self.assertFalse(EVALUATOR.verify_replay_binding(manifest, receipt)["ok"])
+
+    def test_old_method_freeze_does_not_bind_current_method_files(self) -> None:
+        freeze = json.loads(
+            (LAB_ROOT / "freeze-receipt-v6.json").read_text(encoding="utf-8")
+        )
+        self.assertFalse(EVALUATOR.verify_active_method_bindings(freeze)["ok"])
 
     def test_tracked_output_scan_does_not_republish_manifest_control_collisions(self) -> None:
         manifest = json.loads(

@@ -24,7 +24,7 @@ LAB_DIR = Path(__file__).resolve().parent
 REPO_ROOT = LAB_DIR.parents[3]
 INPUT_PATH = LAB_DIR / "input-manifest.json"
 SEALED_PATH = LAB_DIR / "sealed-evaluation-manifest-v2.json"
-FREEZE_PATH = LAB_DIR / "freeze-receipt-v12.json"
+FREEZE_PATH = LAB_DIR / "freeze-receipt-v14.json"
 OBSERVATIONS_PATH = LAB_DIR / "run-observations.json"
 SOURCE_RECEIPT_PATH = LAB_DIR / "source-run-receipt.json"
 CONSUMER_PATH = LAB_DIR / "independent-consumer-receipt.json"
@@ -33,6 +33,24 @@ RESULT_PATH = LAB_DIR / "comparison-result.json"
 DOCTYPE_PATTERN = re.compile(br"<!DOCTYPE\s", re.IGNORECASE)
 HEBREW_PATTERN = re.compile(r"[\u0590-\u05ff]")
 PRIVATE_OUTPUT_MODE = 0o600
+LAB_RELATIVE = LAB_DIR.relative_to(REPO_ROOT).as_posix()
+METHOD_FILE_REFS = tuple(
+    f"{LAB_RELATIVE}/{name}"
+    for name in ("build_candidate.py", "run_experiment.py", "consume_owner.py", "evaluate_lab.py")
+)
+ATTRIBUTE_VALUE_PATTERN = re.compile(
+    r"\s+[A-Za-z_][\w:.-]*\s*=\s*(?P<quote>['\"])(?P<value>.*?)(?P=quote)",
+    re.DOTALL,
+)
+COMMENT_BODY_PATTERN = re.compile(r"<!--(.*?)-->", re.DOTALL)
+PROCESSING_INSTRUCTION_PATTERN = re.compile(r"<\?[^\s?]+\s+(.+?)\?>", re.DOTALL)
+TEXT_BETWEEN_TAGS_PATTERN = re.compile(r">([^<]*)<", re.DOTALL)
+POSITIVE_AUTHORITY_PATTERN = re.compile(
+    r"\b(?:accepted|canonical|promoted|admitted|authorized|approved|public\s+contract|"
+    r"source[- ]text|semantic|translation|graph|canon|publication)\b",
+    re.IGNORECASE,
+)
+AUTHORITY_NEGATION_PATTERN = re.compile(r"\b(?:no|not|never|without)\b", re.IGNORECASE)
 
 
 def canonical_bytes(value: Any) -> bytes:
@@ -73,6 +91,175 @@ def strict_parse(payload: bytes) -> etree._Element:
     if docinfo.doctype or docinfo.internalDTD is not None or docinfo.externalDTD is not None:
         raise ValueError("DOCTYPE forbidden")
     return root
+
+
+def expanded_name(raw_name: str) -> dict[str, str | None]:
+    if raw_name.startswith("{"):
+        namespace_uri, local_name = raw_name[1:].split("}", 1)
+        return {"namespace_uri": namespace_uri, "local_name": local_name}
+    return {"namespace_uri": None, "local_name": raw_name}
+
+
+def element_children(element: etree._Element) -> list[etree._Element]:
+    return [child for child in element if isinstance(child.tag, str)]
+
+
+def expanded_key(element: etree._Element) -> tuple[str | None, str]:
+    name = expanded_name(element.tag)
+    return name["namespace_uri"], name["local_name"]  # type: ignore[return-value]
+
+
+def topology_digest_bytes(value: Any) -> bytes:
+    return (
+        json.dumps(
+            value,
+            ensure_ascii=False,
+            indent=2,
+            sort_keys=True,
+            separators=(",", ": "),
+        )
+        + "\n"
+    ).encode("utf-8")
+
+
+def topology_digest_object(value: Any) -> str:
+    return sha256_bytes(topology_digest_bytes(value))
+
+
+def topology_path_for(element: etree._Element) -> list[dict[str, Any]]:
+    lineage = list(reversed(list(element.iterancestors()))) + [element]
+    result: list[dict[str, Any]] = []
+    for node in lineage:
+        parent = node.getparent()
+        if parent is None:
+            same_name_position = 1
+        else:
+            siblings = [
+                child
+                for child in element_children(parent)
+                if expanded_key(child) == expanded_key(node)
+            ]
+            same_name_position = siblings.index(node) + 1
+        result.append(
+            {
+                "expanded_name": expanded_name(node.tag),
+                "same_name_sibling_position": same_name_position,
+            }
+        )
+    return result
+
+
+def independent_structural_resources(
+    root: etree._Element,
+) -> list[dict[str, Any]]:
+    elements = [element for element in root.iter() if isinstance(element.tag, str)]
+    resource_ids = {
+        element: f"xml-element-{position:06d}"
+        for position, element in enumerate(elements, start=1)
+    }
+    resources: list[dict[str, Any]] = []
+    for preorder, element in enumerate(elements, start=1):
+        parent = element.getparent()
+        if parent is None:
+            child_position = 1
+            same_name_position = 1
+            parent_resource_id = None
+        else:
+            children = element_children(parent)
+            child_position = children.index(element) + 1
+            same_name_siblings = [
+                sibling
+                for sibling in children
+                if expanded_key(sibling) == expanded_key(element)
+            ]
+            same_name_position = same_name_siblings.index(element) + 1
+            parent_resource_id = resource_ids[parent]
+        attribute_names = sorted(
+            (expanded_name(name) for name in element.attrib.keys()),
+            key=lambda item: ((item["namespace_uri"] or ""), item["local_name"]),
+        )
+        resources.append(
+            {
+                "resource_id": resource_ids[element],
+                "expanded_name": expanded_name(element.tag),
+                "locator": {
+                    "preorder": preorder,
+                    "depth": len(list(element.iterancestors())),
+                    "parent_resource_id": parent_resource_id,
+                    "element_child_position": child_position,
+                    "same_name_sibling_position": same_name_position,
+                    "path": topology_path_for(element),
+                },
+                "element_child_count": len(element_children(element)),
+                "attribute_count": len(element.attrib),
+                "attribute_expanded_names": attribute_names,
+            }
+        )
+    return resources
+
+
+def independent_ordered_topology_payload(
+    resources: list[dict[str, Any]],
+) -> list[dict[str, Any]]:
+    return [
+        {
+            "resource_id": resource["resource_id"],
+            "expanded_name": resource["expanded_name"],
+            "locator": resource["locator"],
+            "element_child_count": resource["element_child_count"],
+            "attribute_count": resource["attribute_count"],
+            "attribute_expanded_names": resource["attribute_expanded_names"],
+        }
+        for resource in resources
+    ]
+
+
+def independent_unordered_shape_payload(
+    root: etree._Element,
+) -> list[dict[str, Any]]:
+    shapes: list[dict[str, Any]] = []
+    for element in root.iter():
+        if not isinstance(element.tag, str):
+            continue
+        child_names = sorted(
+            (expanded_name(child.tag) for child in element_children(element)),
+            key=lambda item: ((item["namespace_uri"] or ""), item["local_name"]),
+        )
+        attribute_names = sorted(
+            (expanded_name(name) for name in element.attrib.keys()),
+            key=lambda item: ((item["namespace_uri"] or ""), item["local_name"]),
+        )
+        shapes.append(
+            {
+                "expanded_name": expanded_name(element.tag),
+                "child_expanded_names_multiset": child_names,
+                "attribute_expanded_names": attribute_names,
+            }
+        )
+    return sorted(shapes, key=lambda value: topology_digest_bytes(value))
+
+
+def independent_topology_summary(source: bytes) -> dict[str, Any]:
+    root = strict_parse(source)
+    resources = independent_structural_resources(root)
+    return {
+        "ordered_topology_sha256": topology_digest_object(
+            independent_ordered_topology_payload(resources)
+        ),
+        "unordered_element_shape_sha256": topology_digest_object(
+            independent_unordered_shape_payload(root)
+        ),
+    }
+
+
+def verify_topology_summary(payload: dict[str, Any], source: bytes) -> dict[str, Any]:
+    expected = independent_topology_summary(source)
+    actual = payload.get("summary", {})
+    return {
+        "ok": all(actual.get(key) == value for key, value in expected.items()),
+        "expected": expected,
+        "actual": {key: actual.get(key) for key in expected},
+    }
 
 
 def b_output(fixture_id: str, run_number: int = 1) -> dict[str, Any]:
@@ -116,6 +303,29 @@ def verify_frozen_files(freeze: dict[str, Any]) -> tuple[bool, list[str]]:
         if not path.is_file() or sha256_path(path) != record["sha256"]:
             mismatches.append(record["ref"])
     return not mismatches, mismatches
+
+
+def verify_active_method_bindings(freeze: dict[str, Any]) -> dict[str, Any]:
+    frozen = {
+        record.get("ref"): record.get("sha256")
+        for record in freeze.get("frozen_files", [])
+        if isinstance(record, dict)
+    }
+    missing: list[str] = []
+    mismatches: list[str] = []
+    for ref in METHOD_FILE_REFS:
+        path = REPO_ROOT / ref
+        expected = frozen.get(ref)
+        if expected is None:
+            missing.append(ref)
+        elif not path.is_file() or sha256_path(path) != expected:
+            mismatches.append(ref)
+    return {
+        "ok": not missing and not mismatches,
+        "method_file_count": len(METHOD_FILE_REFS),
+        "missing_frozen_method_files": sorted(missing),
+        "active_method_digest_mismatches": sorted(mismatches),
+    }
 
 
 def parse_utc_timestamp(value: Any) -> datetime:
@@ -173,6 +383,10 @@ def verify_durable_freeze_order(
     candidate_ref = freeze.get("candidate_output_freeze_ref")
     candidate_path = REPO_ROOT / candidate_ref if isinstance(candidate_ref, str) else Path("/")
     candidate_digest = sha256_path(candidate_path) if candidate_path.is_file() else None
+    method_freeze_bindings = verify_active_method_bindings(
+        load_json(method_path) if method_path.is_file() else {}
+    )
+    current_method_bindings = verify_active_method_bindings(freeze)
     try:
         method_time = parse_utc_timestamp(
             load_json(method_path)["frozen_at"]
@@ -196,10 +410,96 @@ def verify_durable_freeze_order(
         "method_frozen_at": method_time.isoformat().replace("+00:00", "Z") if method_time else None,
         "output_run_started_at": output_time.isoformat().replace("+00:00", "Z") if output_time else observations.get("output_run_started_at"),
         "durable_order": order_ok,
+        "method_freeze_active_bindings": method_freeze_bindings,
+        "current_freeze_active_bindings": current_method_bindings,
         "candidate_output_freeze_sha256": candidate_digest,
         "candidate_output_freeze_digest_match": candidate_digest_ok,
     }
-    return order_ok and digest_ok and candidate_digest_ok, evidence
+    return (
+        order_ok
+        and digest_ok
+        and candidate_digest_ok
+        and method_freeze_bindings["ok"]
+        and current_method_bindings["ok"]
+    ), evidence
+
+
+def _frozen_digest(freeze: dict[str, Any], ref: str) -> str | None:
+    for record in freeze.get("frozen_files", []):
+        if isinstance(record, dict) and record.get("ref") == ref:
+            digest = record.get("sha256")
+            return digest if isinstance(digest, str) else None
+    return None
+
+
+def verify_manual_review_binding(freeze: dict[str, Any]) -> dict[str, Any]:
+    manual_ref = MANUAL_PATH.relative_to(REPO_ROOT).as_posix()
+    method_ref = freeze.get("method_freeze_ref")
+    method_path = REPO_ROOT / method_ref if isinstance(method_ref, str) else Path("/")
+    failures: list[str] = []
+    current_digest = sha256_path(MANUAL_PATH) if MANUAL_PATH.is_file() else None
+    post_digest = _frozen_digest(freeze, manual_ref)
+    method_freeze: dict[str, Any] = {}
+    if method_path.is_file():
+        try:
+            method_freeze = load_json(method_path)
+        except (OSError, json.JSONDecodeError):
+            failures.append("method-freeze-unreadable")
+    else:
+        failures.append("method-freeze-missing")
+    method_digest = _frozen_digest(method_freeze, manual_ref)
+    if current_digest is None:
+        failures.append("manual-review-missing")
+    if current_digest != post_digest:
+        failures.append("manual-review-post-freeze-digest-mismatch")
+    if current_digest != method_digest:
+        failures.append("manual-review-method-freeze-digest-mismatch")
+    if freeze.get("manual_review_completed_before_method_freeze") is not True:
+        failures.append("manual-review-before-method-freeze-not-asserted")
+    return {
+        "ok": not failures,
+        "manual_review_ref": manual_ref,
+        "manual_review_sha256": current_digest,
+        "post_freeze_sha256": post_digest,
+        "method_freeze_sha256": method_digest,
+        "manual_review_completed_before_method_freeze": freeze.get(
+            "manual_review_completed_before_method_freeze"
+        ),
+        "failures": sorted(set(failures)),
+    }
+
+
+def verify_replay_binding(
+    manifest: dict[str, Any], source_receipt: dict[str, Any]
+) -> dict[str, Any]:
+    record = manifest.get("exact_sources", {}).get("replay", {})
+    receipt = source_receipt.get("sources", {}).get("replay", {})
+    path_value = record.get("path")
+    path = Path(path_value) if isinstance(path_value, str) else Path("/")
+    failures: list[str] = []
+    actual_digest = sha256_path(path) if path.is_file() else None
+    actual_bytes = path.stat().st_size if path.is_file() else None
+    expected_digest = receipt.get("source_sha256")
+    expected_bytes = receipt.get("source_bytes")
+    if not path.is_file():
+        failures.append("replay-file-missing")
+    if not isinstance(expected_digest, str):
+        failures.append("replay-receipt-digest-missing")
+    elif actual_digest != expected_digest:
+        failures.append("replay-receipt-digest-mismatch")
+    if not isinstance(expected_bytes, int):
+        failures.append("replay-receipt-size-missing")
+    elif actual_bytes != expected_bytes:
+        failures.append("replay-receipt-size-mismatch")
+    return {
+        "ok": not failures,
+        "path": path_value,
+        "actual_sha256": actual_digest,
+        "receipt_sha256": expected_digest,
+        "actual_bytes": actual_bytes,
+        "receipt_bytes": expected_bytes,
+        "failures": sorted(set(failures)),
+    }
 
 
 def exact_source_values(source_path: Path) -> list[str]:
@@ -247,9 +547,34 @@ def recursive_json_strings(value: Any) -> list[str]:
     return strings
 
 
-def fixture_content_strings(manifest: dict[str, Any]) -> list[str]:
-    """Return only text/tail/attribute content from all fixture XML payloads."""
+def conservative_malformed_fixture_strings(xml_text: str) -> tuple[list[str], bool]:
+    """Extract content without treating malformed markup names as source text."""
     strings: list[str] = []
+    for pattern in (
+        COMMENT_BODY_PATTERN,
+        PROCESSING_INSTRUCTION_PATTERN,
+        ATTRIBUTE_VALUE_PATTERN,
+        TEXT_BETWEEN_TAGS_PATTERN,
+    ):
+        for match in pattern.finditer(xml_text):
+            value = match.group("value") if "value" in match.groupdict() else match.group(1)
+            if value and value.strip():
+                strings.append(value.strip())
+    trailing = xml_text.rsplit(">", 1)[-1]
+    if trailing and trailing != xml_text and trailing.strip():
+        strings.append(trailing.strip())
+    extraction_incomplete = (
+        xml_text.count("<") != xml_text.count(">")
+        or any(xml_text.count(quote) % 2 for quote in ("'", '"'))
+    )
+    return strings, extraction_incomplete
+
+
+def fixture_content_scan(manifest: dict[str, Any]) -> dict[str, Any]:
+    """Return fixture content, including a conservative malformed-XML fallback."""
+    strings: list[str] = []
+    fallback_fixture_ids: list[str] = []
+    incomplete_fixture_ids: list[str] = []
     parser = etree.XMLParser(
         recover=False,
         load_dtd=False,
@@ -263,9 +588,17 @@ def fixture_content_strings(manifest: dict[str, Any]) -> list[str]:
         collect_ids=False,
     )
     for fixture in manifest["fixtures"] + manifest["security_fixtures"]:
+        fixture_id = fixture.get("id", "<unknown>")
         try:
             root = etree.fromstring(fixture["xml"].encode("utf-8"), parser=parser)
         except (etree.XMLSyntaxError, UnicodeEncodeError):
+            fallback_fixture_ids.append(fixture_id)
+            fallback_strings, incomplete = conservative_malformed_fixture_strings(
+                fixture.get("xml", "")
+            )
+            strings.extend(fallback_strings)
+            if incomplete:
+                incomplete_fixture_ids.append(fixture_id)
             continue
         for node in root.iter():
             for value in (node.text, node.tail):
@@ -275,7 +608,16 @@ def fixture_content_strings(manifest: dict[str, Any]) -> list[str]:
                 for value in node.attrib.values():
                     if value.strip():
                         strings.append(value.strip())
-    return strings
+    return {
+        "strings": strings,
+        "fallback_fixture_ids": sorted(set(fallback_fixture_ids)),
+        "incomplete_fixture_ids": sorted(set(incomplete_fixture_ids)),
+    }
+
+
+def fixture_content_strings(manifest: dict[str, Any]) -> list[str]:
+    """Return only text/tail/attribute content from all fixture XML payloads."""
+    return fixture_content_scan(manifest)["strings"]
 
 
 def source_value_hits(
@@ -283,12 +625,38 @@ def source_value_hits(
     strings: list[str],
     *,
     include_short_substrings: bool = True,
+    include_delimited_short_substrings: bool = False,
 ) -> list[str]:
+    def delimited_short_substring(candidate: str, value: str) -> bool:
+        if len(value) >= 16:
+            return False
+        start = candidate.find(value)
+        while start >= 0:
+            end = start + len(value)
+            left = candidate[start - 1] if start else None
+            right = candidate[end] if end < len(candidate) else None
+            left_is_boundary = left is None or left in "-/:."
+            right_is_boundary = right is None or right in "-/:."
+            if left_is_boundary and right_is_boundary and (left is not None or right is not None):
+                return True
+            start = candidate.find(value, start + 1)
+        return False
+
     hits: list[str] = []
     for value in source_values:
         if any(
             value == candidate
-            or (value in candidate and (include_short_substrings or len(value) >= 16))
+            or (
+                value in candidate
+                and (
+                    include_short_substrings
+                    or len(value) >= 16
+                    or (
+                        include_delimited_short_substrings
+                        and delimited_short_substring(candidate, value)
+                    )
+                )
+            )
             for candidate in strings
         ):
             hits.append(value)
@@ -391,13 +759,14 @@ def scan_tracked_generated_for_source_values(
             except OSError:
                 scan_errors.append(f"unreadable-tracked-file:{relative_path}")
                 continue
-            # Authored Python/Markdown control surfaces retain the long-value
-            # substring rule. Generated JSON/receipt data above uses
-            # substring matching for every collected control.
+            # Authored Python/Markdown control surfaces also catch short values
+            # when they are embedded as explicit path/token segments. Ordinary
+            # prose and identifiers remain outside that narrow short-value rule.
             hits = source_value_hits(
                 source_values,
                 [text],
                 include_short_substrings=False,
+                include_delimited_short_substrings=True,
             )
 
         if path == INPUT_PATH:
@@ -413,18 +782,16 @@ def scan_tracked_generated_for_source_values(
             control_hits = set(
                 source_value_hits(source_values, recursive_json_strings(control))
             )
-            untrusted = {
-                "fixtures": manifest["fixtures"],
-                "security_fixtures": manifest["security_fixtures"],
-            }
             # XML element names are structural labels, not source content.
             # Parse fixture payloads so a source value such as ``Tanach`` in a
             # synthetic tag does not become a false privacy hit, while text,
             # tails, attributes, comments, and processing instructions remain
             # covered by the content scan.
-            untrusted_hits = source_value_hits(
-                source_values,
-                fixture_content_strings(manifest),
+            fixture_scan = fixture_content_scan(manifest)
+            untrusted_hits = source_value_hits(source_values, fixture_scan["strings"])
+            scan_errors.extend(
+                f"incomplete-fixture-content-extraction:{fixture_id}"
+                for fixture_id in fixture_scan["incomplete_fixture_ids"]
             )
             manifest_control_collision_indexes.update(
                 source_values.index(value) + 1 for value in control_hits
@@ -616,6 +983,177 @@ def verify_private_output_posture(
     }
 
 
+def recompute_provider_summary(payload: dict[str, Any]) -> dict[str, Any] | None:
+    projection = payload.get("projection") if payload.get("candidate") == "BC" else payload
+    if not isinstance(projection, dict) or not isinstance(projection.get("resources"), list):
+        return None
+    resources = projection["resources"]
+    verse_records = [
+        record
+        for record in resources
+        if isinstance(record, dict) and record.get("resource_kind") == "provider_verse"
+    ]
+    word_records = [
+        record
+        for record in resources
+        if isinstance(record, dict) and record.get("resource_kind") == "provider_word"
+    ]
+    if any(
+        not isinstance(record, dict)
+        or not isinstance(record.get("provider_coordinate"), dict)
+        for record in verse_records + word_records
+    ):
+        return None
+    word_counts_by_verse = [
+        sum(
+            1
+            for word in word_records
+            if all(
+                word["provider_coordinate"].get(key)
+                == verse["provider_coordinate"].get(key)
+                for key in ("book", "chapter", "verse")
+            )
+        )
+        for verse in verse_records
+    ]
+    return {
+        "resource_count": len(resources),
+        "verse_count": len(verse_records),
+        "word_count": len(word_records),
+        "word_counts_by_verse": word_counts_by_verse,
+    }
+
+
+def verify_provider_projection_summary(payload: dict[str, Any]) -> dict[str, Any]:
+    projection = payload.get("projection") if payload.get("candidate") == "BC" else payload
+    actual = projection.get("summary", {}) if isinstance(projection, dict) else {}
+    expected = recompute_provider_summary(payload)
+    return {
+        "ok": expected is not None and actual == expected,
+        "expected": expected,
+        "actual": (
+            {key: actual.get(key) for key in ("resource_count", "verse_count", "word_count", "word_counts_by_verse")}
+            if isinstance(actual, dict)
+            else actual
+        ),
+    }
+
+
+def verify_source_topology_receipt(
+    manifest: dict[str, Any], source_receipt: dict[str, Any], source_id: str
+) -> dict[str, Any]:
+    source_path = Path(manifest["exact_sources"][source_id]["path"])
+    receipt = source_receipt.get("sources", {}).get(source_id, {})
+    receipt_candidates = receipt.get("candidates", {})
+    source = source_path.read_bytes() if source_path.is_file() else b""
+    b_payload = source_output(manifest, source_id, "B")
+    bc_payload = source_output(manifest, source_id, "BC")
+    b_check = verify_topology_summary(b_payload, source)
+    bc_check = verify_topology_summary(bc_payload["owner"], source)
+    expected = b_check["expected"]
+    receipt_checks = {
+        "B": {
+            key: receipt_candidates.get("B", {}).get(key) == value
+            for key, value in expected.items()
+        },
+        "BC": {
+            key: receipt_candidates.get("BC", {}).get(
+                "ordered_topology_sha256" if key == "ordered_topology_sha256" else "unordered_element_shape_sha256"
+            ) == value
+            for key, value in expected.items()
+        },
+    }
+    return {
+        "ok": b_check["ok"] and bc_check["ok"] and all(
+            all(checks.values()) for checks in receipt_checks.values()
+        ),
+        "B": b_check,
+        "BC_owner": bc_check,
+        "receipt_matches": receipt_checks,
+    }
+
+
+def verify_source_provider_receipt(
+    manifest: dict[str, Any], source_receipt: dict[str, Any], source_id: str
+) -> dict[str, Any]:
+    receipt = source_receipt.get("sources", {}).get(source_id, {})
+    receipt_candidates = receipt.get("candidates", {})
+    c_payload = source_output(manifest, source_id, "C")
+    bc_payload = source_output(manifest, source_id, "BC")
+    c_check = verify_provider_projection_summary(c_payload)
+    bc_check = verify_provider_projection_summary(bc_payload)
+    c_expected = c_check["expected"] or {}
+    bc_expected = bc_check["expected"] or {}
+    c_receipt = receipt_candidates.get("C", {})
+    bc_receipt = receipt_candidates.get("BC", {})
+    receipt_matches = {
+        "C": {
+            key: c_receipt.get(key) == value
+            for key, value in c_expected.items()
+        },
+        "BC": {
+            "projection_resource_count": bc_receipt.get("projection_resource_count") == bc_expected.get("resource_count"),
+            "verse_count": bc_receipt.get("verse_count") == bc_expected.get("verse_count"),
+            "word_count": bc_receipt.get("word_count") == bc_expected.get("word_count"),
+            "word_counts_by_verse": bc_receipt.get("word_counts_by_verse") == bc_expected.get("word_counts_by_verse"),
+        },
+    }
+    return {
+        "ok": c_check["ok"] and bc_check["ok"] and all(
+            all(checks.values()) for checks in receipt_matches.values()
+        ),
+        "C": c_check,
+        "BC": bc_check,
+        "receipt_matches": receipt_matches,
+    }
+
+
+def non_authoritative_boundary_is_valid(value: Any) -> bool:
+    if not isinstance(value, str) or not value.strip():
+        return False
+    clauses = re.split(r"[.;]", value.casefold())
+    if not any(AUTHORITY_NEGATION_PATTERN.search(clause) for clause in clauses):
+        return False
+    for clause in clauses:
+        if POSITIVE_AUTHORITY_PATTERN.search(clause) and not AUTHORITY_NEGATION_PATTERN.search(clause):
+            return False
+    return True
+
+
+def verify_contract_controls(manifest: dict[str, Any]) -> dict[str, Any]:
+    control = manifest.get("public_contract_control", {})
+    failures: list[str] = []
+    for key in ("schema_ref", "builder_ref"):
+        ref = control.get(key)
+        digest_key = f"{key.replace('_ref', '')}_sha256"
+        path = REPO_ROOT / ref if isinstance(ref, str) else Path("/")
+        if not path.is_file() or sha256_path(path) != control.get(digest_key):
+            failures.append(f"{key}-digest-mismatch")
+
+    no_fit_ref = control.get("no_fit_ref")
+    no_fit_digest = control.get("no_fit_sha256")
+    if no_fit_ref is None and no_fit_digest is None:
+        no_fit_status = "not_declared_as_lab_gate"
+    elif isinstance(no_fit_ref, str) and isinstance(no_fit_digest, str):
+        no_fit_path = REPO_ROOT / no_fit_ref
+        if not no_fit_path.is_file() or sha256_path(no_fit_path) != no_fit_digest:
+            failures.append("no-fit-digest-mismatch")
+        no_fit_status = "validated"
+    else:
+        failures.append("no-fit-control-incomplete")
+        no_fit_status = "incomplete"
+    return {
+        "ok": not failures,
+        "contract_hash_match": not any(
+            failure.endswith("digest-mismatch")
+            for failure in failures
+            if not failure.startswith("no-fit")
+        ),
+        "no_fit_status": no_fit_status,
+        "failures": sorted(set(failures)),
+    }
+
+
 def collect_recursive_keys(value: Any) -> list[str]:
     keys: list[str] = []
     if isinstance(value, dict):
@@ -706,7 +1244,8 @@ def main() -> int:
         "security_fixtures": manifest["security_fixtures"],
     }
     fixture_text = json.dumps(fixture_payload, ensure_ascii=False)
-    fixture_content = fixture_content_strings(manifest)
+    fixture_scan = fixture_content_scan(manifest)
+    fixture_content = fixture_scan["strings"]
     fixture_leaks = [
         f"source-value-{index + 1}"
         for index, value in enumerate(source_values)
@@ -715,8 +1254,15 @@ def main() -> int:
     gates.append(
         gate(
             "G3-synthetic-fixtures-source-free",
-            not fixture_leaks and HEBREW_PATTERN.search(fixture_text) is None,
-            {"source_value_matches": fixture_leaks, "hebrew_codepoints_present": HEBREW_PATTERN.search(fixture_text) is not None},
+            not fixture_leaks
+            and not fixture_scan["incomplete_fixture_ids"]
+            and HEBREW_PATTERN.search(fixture_text) is None,
+            {
+                "source_value_matches": fixture_leaks,
+                "hebrew_codepoints_present": HEBREW_PATTERN.search(fixture_text) is not None,
+                "malformed_fixture_fallback_ids": fixture_scan["fallback_fixture_ids"],
+                "incomplete_fixture_content_ids": fixture_scan["incomplete_fixture_ids"],
+            },
         )
     )
 
@@ -816,15 +1362,29 @@ def main() -> int:
 
     p2a = b_output("P2-prefix-a")
     p2b = b_output("P2-prefix-b")
+    fixture_bytes_by_id = {
+        fixture["id"]: fixture["xml"].encode("utf-8")
+        for fixture in manifest["fixtures"]
+    }
+    p2a_topology = verify_topology_summary(p2a, fixture_bytes_by_id["P2-prefix-a"])
+    p2b_topology = verify_topology_summary(p2b, fixture_bytes_by_id["P2-prefix-b"])
     g9 = (
-        p2a["summary"]["ordered_topology_sha256"] == p2b["summary"]["ordered_topology_sha256"]
+        p2a_topology["ok"]
+        and p2b_topology["ok"]
+        and p2a["summary"]["ordered_topology_sha256"] == p2b["summary"]["ordered_topology_sha256"]
         and p2a["file_binding"]["sha256"] != p2b["file_binding"]["sha256"]
     )
     gates.append(
         gate(
             "G9-prefix-independent-expanded-names",
             g9,
-            {"ordered_topology_equal": p2a["summary"]["ordered_topology_sha256"] == p2b["summary"]["ordered_topology_sha256"], "exact_file_equal": False},
+            {
+                "ordered_topology_equal": p2a["summary"]["ordered_topology_sha256"]
+                == p2b["summary"]["ordered_topology_sha256"],
+                "exact_file_equal": False,
+                "p2a_summary_binding": p2a_topology,
+                "p2b_summary_binding": p2b_topology,
+            },
         )
     )
 
@@ -846,25 +1406,35 @@ def main() -> int:
     for group in manifest["comparison_groups"]:
         left = b_output(group["left"])
         right = b_output(group["right"])
+        left_topology = verify_topology_summary(left, fixture_bytes_by_id[group["left"]])
+        right_topology = verify_topology_summary(right, fixture_bytes_by_id[group["right"]])
         exact_equal = left["file_binding"]["sha256"] == right["file_binding"]["sha256"]
         unordered_equal = left["summary"]["unordered_element_shape_sha256"] == right["summary"]["unordered_element_shape_sha256"]
         ordered_equal = left["summary"]["ordered_topology_sha256"] == right["summary"]["ordered_topology_sha256"]
-        comparison_results[group["id"]] = {"exact_file_equal": exact_equal, "unordered_shape_equal": unordered_equal, "ordered_topology_equal": ordered_equal}
-        g11 = g11 and not exact_equal
-        g12 = g12 and unordered_equal
+        comparison_results[group["id"]] = {
+            "exact_file_equal": exact_equal,
+            "unordered_shape_equal": unordered_equal,
+            "ordered_topology_equal": ordered_equal,
+            "left_summary_binding": left_topology,
+            "right_summary_binding": right_topology,
+        }
+        g11 = g11 and left_topology["ok"] and right_topology["ok"] and not exact_equal
+        g12 = g12 and left_topology["ok"] and right_topology["ok"] and unordered_equal
     g12 = g12 and comparison_results["sibling-reorder"]["ordered_topology_equal"] is False
     gates.append(gate("G11-exact-file-change-preserved", g11, comparison_results))
     gates.append(gate("G12-no-topology-content-equivalence", g12, {"comparison_groups": comparison_results, "content_equality_claimed": False}))
 
     bc = candidate_output("BC", "PC1-uxlc-shape")
     all_projection_refs = all(record["generic_resource_ref"] for record in bc["projection"]["resources"])
-    gates.append(gate("G13-projection-cites-b", all_projection_refs, {"projection_count": len(bc["projection"]["resources"]), "cited_count": sum(1 for record in bc["projection"]["resources"] if record["generic_resource_ref"])}))
+    bc_summary_binding = verify_provider_projection_summary(bc)
+    gates.append(gate("G13-projection-cites-b", all_projection_refs and bc_summary_binding["ok"], {"projection_count": len(bc["projection"]["resources"]), "cited_count": sum(1 for record in bc["projection"]["resources"] if record["generic_resource_ref"]), "summary_binding": bc_summary_binding}))
 
     c_positive = candidate_output("C", "PC1-uxlc-shape")
+    c_summary_binding = verify_provider_projection_summary(c_positive)
     c_generic_negative = [process for process in observations["processes"] if process["candidate"] == "C" and process["selection_id"] == "P1-no-namespace" and process["selection_kind"] == "fixture" and process["exit_code"] != 0]
     expected_pc1_count = sealed["positive_expectations"]["PC1-uxlc-shape"]["candidate_c_resource_count"]
-    g14 = c_positive["summary"]["resource_count"] == expected_pc1_count and c_positive["generic_xml_owner_claimed"] is False and len(c_generic_negative) == 1 and c_generic_negative[0]["output_created"] is False
-    gates.append(gate("G14-c-derived-pass-primary-generic-fail", g14, {"provider_shape_resources": c_positive["summary"]["resource_count"], "genericity_negative_count": len(c_generic_negative), "generic_owner_claimed": c_positive["generic_xml_owner_claimed"]}))
+    g14 = c_summary_binding["ok"] and c_positive["summary"]["resource_count"] == expected_pc1_count and c_positive["generic_xml_owner_claimed"] is False and len(c_generic_negative) == 1 and c_generic_negative[0]["output_created"] is False
+    gates.append(gate("G14-c-derived-pass-primary-generic-fail", g14, {"provider_shape_resources": c_positive["summary"]["resource_count"], "genericity_negative_count": len(c_generic_negative), "generic_owner_claimed": c_positive["generic_xml_owner_claimed"], "summary_binding": c_summary_binding}))
 
     a_p1 = candidate_output("A", "P1-no-namespace")
     gates.append(gate("G15-a-capture-pass-element-return-fail", len(a_p1["resources"]) == 1 and a_p1["element_return_supported"] is False, {"resource_count": len(a_p1["resources"]), "element_return_supported": a_p1["element_return_supported"]}))
@@ -900,8 +1470,9 @@ def main() -> int:
     control = manifest["public_contract_control"]
     item_dir = REPO_ROOT / "ToS/source-witnesses/works/digital-biblical-corpora/unicode-xml-leningrad-codex/expressions/he-uxlc-2-5-full-accents/editions/uxlc-2-5-build-27-6/items/tanach-us-server-xml-prov23-1-3-20260830t160419z"
     forbidden_admissions = [item_dir / name for name in ("item.json", "item.manifest.json", "resource-inventory.json")]
-    g20 = sha256_path(REPO_ROOT / control["schema_ref"]) == control["schema_sha256"] and sha256_path(REPO_ROOT / control["builder_ref"]) == control["builder_sha256"] and not any(path.exists() for path in forbidden_admissions)
-    gates.append(gate("G20-no-public-or-downstream-admission", g20, {"contract_hash_match": sha256_path(REPO_ROOT / control["schema_ref"]) == control["schema_sha256"], "builder_hash_match": sha256_path(REPO_ROOT / control["builder_ref"]) == control["builder_sha256"], "forbidden_admission_files_present": [path.name for path in forbidden_admissions if path.exists()]}))
+    contract_control = verify_contract_controls(manifest)
+    g20 = contract_control["ok"] and not any(path.exists() for path in forbidden_admissions)
+    gates.append(gate("G20-no-public-or-downstream-admission", g20, {**contract_control, "forbidden_admission_files_present": [path.name for path in forbidden_admissions if path.exists()]}))
 
     gates.append(gate("G21-independent-source-return", consumer["consumer_imports_builder"] is False and consumer["consumer_reads_sealed_manifest"] is False and consumer["all_paths_and_metadata_return"] and consumer_output_binding["ok"], {"consumer_imports_builder": consumer["consumer_imports_builder"], "consumer_reads_sealed_manifest": consumer["consumer_reads_sealed_manifest"], "checks": consumer["check_count"], "errors": consumer["error_count"], "output_binding": consumer_output_binding}))
 
@@ -909,18 +1480,52 @@ def main() -> int:
     if "replay" in source_receipt["sources"]:
         selected = source_receipt["sources"]["selected"]
         replay = source_receipt["sources"]["replay"]
+        replay_binding = verify_replay_binding(manifest, source_receipt)
+        selected_topology_receipt = verify_source_topology_receipt(
+            manifest, source_receipt, "selected"
+        )
+        replay_topology_receipt = verify_source_topology_receipt(
+            manifest, source_receipt, "replay"
+        )
+        selected_provider_receipt = verify_source_provider_receipt(
+            manifest, source_receipt, "selected"
+        )
+        replay_provider_receipt = verify_source_provider_receipt(
+            manifest, source_receipt, "replay"
+        )
         exact_equal = selected["source_sha256"] == replay["source_sha256"]
-        topology_equal = selected["candidates"]["B"]["ordered_topology_sha256"] == replay["candidates"]["B"]["ordered_topology_sha256"]
-        provider_projection_equal = all(selected["candidates"]["C"].get(key) == replay["candidates"]["C"].get(key) for key in ("resource_count", "verse_count", "word_count", "word_counts_by_verse"))
+        topology_equal = (
+            selected_topology_receipt["B"]["expected"]
+            == replay_topology_receipt["B"]["expected"]
+        )
+        provider_projection_equal = (
+            selected_provider_receipt["C"]["expected"]
+            == replay_provider_receipt["C"]["expected"]
+        )
         correction = {
             "live_replay_available": True,
             "exact_file_equal": exact_equal,
             "generic_ordered_topology_equal": topology_equal,
             "provider_projection_shape_equal": provider_projection_equal,
+            "replay_binding": replay_binding,
+            "selected_topology_receipt": selected_topology_receipt,
+            "replay_topology_receipt": replay_topology_receipt,
+            "selected_provider_receipt": selected_provider_receipt,
+            "replay_provider_receipt": replay_provider_receipt,
             "private_c14n_change_summary": c14n_change_summary(Path(manifest["exact_sources"]["selected"]["path"]), Path(manifest["exact_sources"]["replay"]["path"])),
             "acceptance_inferred": False,
         }
-        g22 = topology_equal and provider_projection_equal and correction["private_c14n_change_summary"]["provider_content_subtree_equal"]
+        g22 = (
+            replay_binding["ok"]
+            and exact_equal is False
+            and selected_topology_receipt["ok"]
+            and replay_topology_receipt["ok"]
+            and selected_provider_receipt["ok"]
+            and replay_provider_receipt["ok"]
+            and topology_equal
+            and provider_projection_equal
+            and correction["private_c14n_change_summary"]["provider_content_subtree_equal"]
+        )
     else:
         correction = {
             "live_replay_available": False,
@@ -936,14 +1541,31 @@ def main() -> int:
     manual_text = MANUAL_PATH.read_text(encoding="utf-8") if MANUAL_PATH.is_file() else ""
     manual_required_markers = ["Direct source reopen", "Representative B return", "Tracked-output source-value inspection", "Manual verdict before evaluator"]
     missing_manual_markers = [marker for marker in manual_required_markers if marker not in manual_text]
-    gates.append(gate("G23-manual-review-before-evaluator", MANUAL_PATH.is_file() and not missing_manual_markers, {"manual_review_sha256": sha256_path(MANUAL_PATH) if MANUAL_PATH.is_file() else None, "missing_markers": missing_manual_markers}))
+    manual_binding = verify_manual_review_binding(freeze)
+    gates.append(gate("G23-manual-review-before-evaluator", MANUAL_PATH.is_file() and not missing_manual_markers and manual_binding["ok"], {"manual_review_sha256": sha256_path(MANUAL_PATH) if MANUAL_PATH.is_file() else None, "missing_markers": missing_manual_markers, "binding": manual_binding}))
 
     metrics_present = all(process["wall_seconds"] is not None and process["max_rss_kib"] is not None and (process["output_created"] is False or ("output_bytes" in process and "output_sha256" in process)) for process in observations["processes"])
     consumer_metrics_present = consumer.get("wall_seconds") is not None and consumer.get("max_rss_kib") is not None
     gates.append(gate("G24-separated-quality-cost-speed-metrics", metrics_present and consumer_metrics_present and source_receipt["direct_monetary_cost"] == 0, {"process_count": observations["process_count"], "wall_and_rss_measured": metrics_present, "independent_consumer_wall_and_rss_measured": consumer_metrics_present, "consumer_wall_seconds": consumer.get("wall_seconds"), "consumer_max_rss_kib": consumer.get("max_rss_kib"), "output_bytes_separate": True, "direct_monetary_cost": source_receipt["direct_monetary_cost"], "human_burden_in_manual_review": True}))
 
-    authority_boundaries_present = all("authority_boundary" in payload for payload in (a_p1, b_p1, c_positive, bc, source_receipt, consumer))
-    gates.append(gate("G25-machine-green-no-authority", authority_boundaries_present, {"authority_boundaries_present": authority_boundaries_present, "machine_result_is_acceptance": False}))
+    authority_payloads = {
+        "A": a_p1,
+        "B": b_p1,
+        "C": c_positive,
+        "BC": bc,
+        "BC-owner": bc.get("owner"),
+        "BC-projection": bc.get("projection"),
+        "source-receipt": source_receipt,
+        "consumer": consumer,
+    }
+    authority_checks = {
+        label: non_authoritative_boundary_is_valid(payload.get("authority_boundary"))
+        if isinstance(payload, dict)
+        else False
+        for label, payload in authority_payloads.items()
+    }
+    authority_boundaries_present = all(authority_checks.values())
+    gates.append(gate("G25-machine-green-no-authority", authority_boundaries_present, {"authority_boundaries_present": authority_boundaries_present, "authority_boundary_checks": authority_checks, "machine_result_is_acceptance": False}))
 
     gate_ids = [item["gate_id"] for item in gates]
     registered_gate_ids = sealed["hard_gates"]

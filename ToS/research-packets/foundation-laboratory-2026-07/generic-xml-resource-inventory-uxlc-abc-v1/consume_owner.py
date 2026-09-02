@@ -183,6 +183,16 @@ def validate_b(owner: dict[str, Any], root: etree._Element) -> dict[str, Any]:
     elements = [element for element in root.iter() if isinstance(element.tag, str)]
     if len(resources) != len(elements):
         raise ValueError("resource/element count mismatch")
+    resource_ids = [resource.get("resource_id") for resource in resources]
+    if any(not isinstance(resource_id, str) or not resource_id for resource_id in resource_ids):
+        raise ValueError("resource IDs are missing")
+    duplicate_ids = {
+        resource_id
+        for resource_id, count in Counter(resource_ids).items()
+        if count > 1
+    }
+    if duplicate_ids:
+        raise ValueError("resource IDs must be unique")
     element_to_resource = {element: resource for element, resource in zip(elements, resources)}
     for expected_preorder, resource in enumerate(resources, start=1):
         element = resolve_path(root, resource["locator"]["path"])
@@ -309,7 +319,10 @@ def validate_projection(
     projection: dict[str, Any],
     root: etree._Element,
     owner: dict[str, Any] | None,
+    registered_context: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
+    if registered_context is not None and projection.get("provider_context") != registered_context:
+        raise ValueError("provider context differs from registered selection")
     expected = expected_provider_records(root)
     expected_keys = {
         provider_path_key(resource_kind, path)
@@ -344,6 +357,7 @@ def validate_projection(
         "provider_word": "w",
     }
     cited_generic = 0
+    validated_records: list[dict[str, Any]] = []
     for record in projection["resources"]:
         element = resolve_path(root, record["source_element_path"])
         if expanded_name(element.tag) != {
@@ -362,6 +376,38 @@ def validate_projection(
             if owner_by_id[generic_ref]["locator"]["path"] != record["source_element_path"]:
                 raise ValueError("projection path differs from cited B path")
             cited_generic += 1
+        validated_records.append(record)
+
+    verse_records = [
+        record
+        for record in validated_records
+        if record["resource_kind"] == "provider_verse"
+    ]
+    word_records = [
+        record
+        for record in validated_records
+        if record["resource_kind"] == "provider_word"
+    ]
+    word_counts_by_verse = [
+        sum(
+            1
+            for word in word_records
+            if all(
+                word["provider_coordinate"].get(key)
+                == verse["provider_coordinate"].get(key)
+                for key in ("book", "chapter", "verse")
+            )
+        )
+        for verse in verse_records
+    ]
+    expected_summary = {
+        "resource_count": len(validated_records),
+        "verse_count": len(verse_records),
+        "word_count": len(word_records),
+        "word_counts_by_verse": word_counts_by_verse,
+    }
+    if projection.get("summary") != expected_summary:
+        raise ValueError("provider projection summary mismatch")
     return {
         "resource_count": len(projection["resources"]),
         "resolved_exactly_once": len(actual_key_set),
@@ -369,10 +415,15 @@ def validate_projection(
         "unique_resource_count": len(actual_key_set),
         "generic_refs_verified": cited_generic,
         "path_failures": 0,
+        "summary": expected_summary,
     }
 
 
-def validate_candidate(payload: dict[str, Any], source: bytes) -> dict[str, Any]:
+def validate_candidate(
+    payload: dict[str, Any],
+    source: bytes,
+    registered_context: dict[str, Any] | None = None,
+) -> dict[str, Any]:
     root = strict_parse(source)
     candidate = payload["candidate"]
     if candidate == "A":
@@ -389,13 +440,18 @@ def validate_candidate(payload: dict[str, Any], source: bytes) -> dict[str, Any]
         return validate_b(payload, root)
     if candidate == "C":
         validate_file_binding(payload, source, "C")
-        result = validate_projection(payload, root, None)
+        result = validate_projection(payload, root, None, registered_context)
         result["generic_owner_supported"] = False
         return result
     if candidate == "BC":
         validate_file_binding(payload["owner"], source, "BC owner")
         owner_result = validate_b(payload["owner"], root)
-        projection_result = validate_projection(payload["projection"], root, payload["owner"])
+        projection_result = validate_projection(
+            payload["projection"],
+            root,
+            payload["owner"],
+            registered_context,
+        )
         return {"owner": owner_result, "projection": projection_result}
     raise ValueError("unknown candidate")
 
@@ -465,7 +521,11 @@ def main() -> int:
                         "selection_id": source_id,
                         "candidate": candidate,
                         "output_sha256": sha256_bytes(path.read_bytes()),
-                        "result": validate_candidate(payload, source),
+                        "result": validate_candidate(
+                            payload,
+                            source,
+                            manifest["provider_context"],
+                        ),
                     }
                 )
             except (OSError, json.JSONDecodeError, KeyError, TypeError, ValueError) as exc:
