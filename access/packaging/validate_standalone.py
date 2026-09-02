@@ -94,7 +94,29 @@ def validate_source(repo_root: Path) -> dict[str, Any]:
     }
 
 
-def validate_bundle(bundle: Path, *, with_mcp: bool = False) -> dict[str, Any]:
+def _verify_external_manifest(bundle: Path, manifest_path: Path | None = None) -> tuple[Path, dict[str, Any]]:
+    sidecar = manifest_path or bundle.with_suffix(bundle.suffix + ".manifest.json")
+    if not sidecar.is_file():
+        raise RuntimeError(f"missing external bundle manifest: {sidecar}")
+    manifest = json.loads(sidecar.read_text(encoding="utf-8"))
+    expected_digest = manifest.get("archive_sha256")
+    expected_size = manifest.get("archive_size_bytes")
+    if not isinstance(expected_digest, str) or not expected_digest:
+        raise RuntimeError("external bundle manifest has no archive_sha256")
+    if sha256_file(bundle) != expected_digest:
+        raise RuntimeError("archive digest does not match external bundle manifest")
+    if not isinstance(expected_size, int) or bundle.stat().st_size != expected_size:
+        raise RuntimeError("archive size does not match external bundle manifest")
+    return sidecar, manifest
+
+
+def validate_bundle(
+    bundle: Path,
+    *,
+    manifest_path: Path | None = None,
+    with_mcp: bool = False,
+) -> dict[str, Any]:
+    sidecar, external_manifest = _verify_external_manifest(bundle, manifest_path)
     with tempfile.TemporaryDirectory(prefix="tos-standalone-validate-") as raw_temp:
         temp = Path(raw_temp)
         extracted = temp / "bundle"
@@ -104,10 +126,12 @@ def validate_bundle(bundle: Path, *, with_mcp: bool = False) -> dict[str, Any]:
             archive.extractall(extracted)
         if any(path.name == ".git" for path in extracted.rglob("*")):
             raise RuntimeError("standalone archive contains Git metadata")
-        manifest_path = extracted / "bundle.manifest.json"
-        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+        embedded_manifest_path = extracted / "bundle.manifest.json"
+        manifest = json.loads(embedded_manifest_path.read_text(encoding="utf-8"))
         if manifest.get("schema_version") != "tos_standalone_bundle_manifest_v1":
             raise RuntimeError("unknown standalone bundle manifest schema")
+        if any(external_manifest.get(key) != value for key, value in manifest.items()):
+            raise RuntimeError("embedded bundle manifest does not match the external manifest")
         for subject in manifest.get("subjects", []):
             path = extracted / str(subject["bundle_path"])
             if (
@@ -230,6 +254,7 @@ print(json.dumps({"ok": True, "doctor": report, "view_id": view_id}))
             "ok": True,
             "mode": "bundle",
             "archive_sha256": sha256_file(bundle),
+            "external_manifest": sidecar.as_posix(),
             "source_ref": manifest.get("source_ref"),
             "smoke": smoke,
             "installed_doctor": installed_report,
@@ -242,10 +267,15 @@ def main() -> None:
     parser = argparse.ArgumentParser(description="Validate Tree of Sophia standalone access")
     parser.add_argument("--repo-root", type=Path, default=Path(__file__).resolve().parents[2])
     parser.add_argument("--bundle", type=Path)
+    parser.add_argument("--manifest", type=Path, help="external bundle manifest; defaults to <bundle>.manifest.json")
     parser.add_argument("--with-mcp", action="store_true", help="install the MCP extra and verify native MCP registration")
     args = parser.parse_args()
     result = (
-        validate_bundle(args.bundle.resolve(), with_mcp=args.with_mcp)
+        validate_bundle(
+            args.bundle.resolve(),
+            manifest_path=args.manifest.resolve() if args.manifest else None,
+            with_mcp=args.with_mcp,
+        )
         if args.bundle
         else validate_source(args.repo_root.resolve())
     )

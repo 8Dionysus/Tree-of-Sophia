@@ -119,9 +119,9 @@ def build_server(
         return current_state().philosophy_scale_manifest(view_id=view_id, layers=layers)
 
     @mcp.tool()
-    def tos_philosophy_graph_view(view_id: str) -> dict[str, Any]:
+    def tos_philosophy_graph_view(view_id: str, limit: int = 1000) -> dict[str, Any]:
         """Return one ToS philosophy graph view packet with projected nodes, edges, and source refs."""
-        return current_state().philosophy_view(view_id=view_id)
+        return current_state().philosophy_view(view_id=view_id, limit=limit)
 
     @mcp.tool()
     def tos_philosophy_graph_clusters(
@@ -309,4 +309,3 @@ def build_server(
 def main() -> None:
     logging.basicConfig(level=logging.INFO)
     _run_server(build_server())
-

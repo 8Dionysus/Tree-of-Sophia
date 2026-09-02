@@ -665,6 +665,7 @@ let hoveredNodeId: string | null = null;
 let ignoreGraphClicksUntil = 0;
 let ignoreInspectorSelectionsUntil = 0;
 let graphRenderVersion = 0;
+let viewLoadRevision = 0;
 const lastPointer = { x: 0, y: 0 };
 
 function text(value: unknown): string {
@@ -3011,7 +3012,10 @@ async function loadMode(mode: Mode, requestedViewId = "", requestedGraphMode?: G
 
 async function loadView(viewId: string, requestedGraphMode?: GraphMode): Promise<void> {
   if (!viewId) return;
+  const loadRevision = ++viewLoadRevision;
+  const loadMode = state.mode;
   state.currentViewId = viewId;
+  state.currentView = null;
   state.selected = null;
   state.selectedGraphId = null;
   state.results = [];
@@ -3027,6 +3031,7 @@ async function loadView(viewId: string, requestedGraphMode?: GraphMode): Promise
       view_id: viewId,
       limit: 1000,
     })) as PhilosophyViewPayload;
+    if (loadRevision !== viewLoadRevision || state.mode !== loadMode || state.currentViewId !== viewId) return;
     state.sourceNotes = (sourcePayload.nodes || []).filter(isPublicSourceNote);
     const sourceNoteIds = new Set(state.sourceNotes.map((node) => node.node_id));
     state.sourceNoteEdges = (sourcePayload.edges || []).filter(
@@ -3048,6 +3053,7 @@ async function loadView(viewId: string, requestedGraphMode?: GraphMode): Promise
       view_id: viewId,
       limit: 700,
     })) as CorpusViewPayload;
+    if (loadRevision !== viewLoadRevision || state.mode !== loadMode || state.currentViewId !== viewId) return;
     state.currentView = payload;
     state.activeLayers = new Set();
     state.activePredicates = new Set();

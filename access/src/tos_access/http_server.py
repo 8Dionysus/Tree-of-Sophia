@@ -4,13 +4,14 @@ import csv
 import io
 import json
 import mimetypes
+import socket
 from http import HTTPStatus
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from typing import Any
 from urllib.parse import parse_qs, unquote, urlparse
 
-from .core import ToSAccessCore, _view_nodes_edges
+from .core import ToSAccessCore
 from .doctor import web_root_for
 
 LOOPBACK_HOSTS = {"127.0.0.1", "localhost", "::1"}
@@ -53,37 +54,7 @@ def _boot_payload(core: ToSAccessCore) -> dict[str, Any]:
 
 
 def _scale_rows(core: ToSAccessCore, table: str, view_id: str | None, layers: list[str]) -> list[dict[str, Any]]:
-    payload = core.philosophy_projection()
-    if view_id:
-        view = next((item for item in payload.get("views", []) if item.get("view_id") == view_id), None)
-        if not isinstance(view, dict):
-            raise KeyError(f"unknown ToS philosophy graph view: {view_id}")
-        nodes, edges = _view_nodes_edges(payload, view)
-        clusters = core._philosophy_clusters_for_payload(payload, view_id=view_id, limit=1_000_000)
-    else:
-        nodes = [item for item in payload.get("nodes", []) if isinstance(item, dict)]
-        edges = [item for item in payload.get("edges", []) if isinstance(item, dict)]
-        clusters = [item for item in payload.get("clusters", []) if isinstance(item, dict)]
-    layer_filter = set(layers)
-    allowed = lambda item: not layer_filter or bool(layer_filter & set(item.get("graph_layers", [])))
-    nodes, edges, clusters = ([item for item in group if allowed(item)] for group in (nodes, edges, clusters))
-    if table == "nodes":
-        return nodes
-    if table == "edges":
-        return edges
-    if table == "clusters":
-        return clusters
-    if table == "cluster-node-memberships":
-        return [
-            {"cluster_id": cluster.get("cluster_id"), "node_id": node_id}
-            for cluster in clusters for node_id in cluster.get("member_node_ids", [])
-        ]
-    if table == "cluster-edge-memberships":
-        return [
-            {"cluster_id": cluster.get("cluster_id"), "edge_id": edge_id}
-            for cluster in clusters for edge_id in cluster.get("member_edge_ids", [])
-        ]
-    raise KeyError(f"unknown scale export table: {table}")
+    return core.philosophy_scale_rows(table, view_id=view_id, layers=layers)
 
 
 def build_handler(core: ToSAccessCore, web_root: Path) -> type[BaseHTTPRequestHandler]:
@@ -168,7 +139,7 @@ def build_handler(core: ToSAccessCore, web_root: Path) -> type[BaseHTTPRequestHa
                     writer.writerows({key: json.dumps(value, ensure_ascii=False) if isinstance(value, (dict, list)) else value for key, value in row.items()} for row in rows)
                     self._send(stream.getvalue().encode("utf-8"), "text/csv; charset=utf-8"); return
                 if path.startswith("/api/philosophy/views/"):
-                    view_id = unquote(path.removeprefix("/api/philosophy/views/").split("/", 1)[0]); self._json(core.philosophy_view(view_id)); return
+                    view_id = unquote(path.removeprefix("/api/philosophy/views/").split("/", 1)[0]); self._json(core.philosophy_view(view_id, _integer(query, "limit", 1000, 1, 1000))); return
                 self._json({"error": "not found", "path": path}, HTTPStatus.NOT_FOUND)
             except KeyError as exc:
                 self._json({"error": str(exc)}, HTTPStatus.NOT_FOUND)
@@ -187,7 +158,14 @@ def make_server(core: ToSAccessCore, host: str = "127.0.0.1", port: int = 8080) 
     web_root = web_root_for(core)
     if web_root is None:
         raise RuntimeError("missing built web assets; run npm --prefix access/web run build")
-    return ThreadingHTTPServer((host, port), build_handler(core, web_root))
+    if host == "::1":
+        class IPv6ThreadingHTTPServer(ThreadingHTTPServer):
+            address_family = socket.AF_INET6
+
+        server_class = IPv6ThreadingHTTPServer
+    else:
+        server_class = ThreadingHTTPServer
+    return server_class((host, port), build_handler(core, web_root))
 
 
 def serve(core: ToSAccessCore, host: str = "127.0.0.1", port: int = 8080) -> None:

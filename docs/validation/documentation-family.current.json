@@ -36,14 +36,14 @@
     "excluded_generated_carrier_rules": 3,
     "excluded_tracked_path_count": 480,
     "human_scope": {
-      "bytes": 4512422,
+      "bytes": 4512750,
       "count": 889,
       "excluded_skill_launch_metadata": 25,
       "family_counts": {
         "access": {
-          "bytes": 4759,
+          "bytes": 5087,
           "count": 4,
-          "lines": 109
+          "lines": 115
         },
         "agents-other": {
           "bytes": 17181,
@@ -121,7 +121,7 @@
           "lines": 58689
         }
       },
-      "lines": 80273
+      "lines": 80279
     },
     "surface_kind_counts": {
       "executable": 170,
@@ -158,7 +158,7 @@
         "human": 4,
         "structured": 3
       },
-      "tracked_surface_bytes": 164028,
+      "tracked_surface_bytes": 164029,
       "tracked_surface_count": 7
     },
     {
@@ -186,7 +186,7 @@
         "human": 4,
         "structured": 8
       },
-      "tracked_surface_bytes": 166505,
+      "tracked_surface_bytes": 177192,
       "tracked_surface_count": 22
     },
     {
@@ -285,7 +285,7 @@
   "source_map": "docs/validation/documentation_family_map.json",
   "source_map_sha256": "a91467671d22738dfeae38004fce5ed6dc54ecaaf2ebb8774fd88c419004dd09",
   "tracked_source": "git ls-files -z",
-  "tracked_surface_digest": "8a478d418e9ebe564dce9f2e7d60818dd9fc6fdf997e8091173160cd9171bc42",
+  "tracked_surface_digest": "b6d9fa052f930d14941a592cef3aec14c81e9b33ee5d749dc69f9d577093f7a5",
   "tracked_surfaces": [
     {
       "bytes": 1408,
@@ -320,11 +320,11 @@
       "surface_kind": "structured"
     },
     {
-      "bytes": 84807,
+      "bytes": 84808,
       "currentness": "tracked_source_snapshot",
       "family_id": "agents-other",
       "path": ".agents/agents-route.current.json",
-      "sha256": "181f6e17f5d9bff26af8664872933a248a4420e5a6dd0f4f661e9745788c3d6d",
+      "sha256": "7099d4b42f37df75d08b455aa896aa9e0138246a8fca5289a5001c2ad6770890",
       "surface_kind": "structured"
     },
     {
@@ -21560,11 +21560,11 @@
       "surface_kind": "human"
     },
     {
-      "bytes": 2321,
+      "bytes": 2649,
       "currentness": "tracked_source_snapshot",
       "family_id": "access",
       "path": "access/README.md",
-      "sha256": "08b54296b4d22e96950864c2db638e3c454fcc8f733212c1836ec4c842c61fb1",
+      "sha256": "78fe7f8b73e2ab389f59a72a360139990f210a855a32f8e2bd7311a9486c9104",
       "surface_kind": "human"
     },
     {
@@ -21616,19 +21616,19 @@
       "surface_kind": "executable"
     },
     {
-      "bytes": 10099,
+      "bytes": 11668,
       "currentness": "tracked_source_snapshot",
       "family_id": "access",
       "path": "access/packaging/validate_standalone.py",
-      "sha256": "eb31b57b92c35af6ec3cd3c7c2a62bc9065c1c7a1de126f8551d873a75f727bc",
+      "sha256": "fe153a0ed4e8a350b684073432b18b686a40c6ba2f3bf8ad8fdcf749a1d306ee",
       "surface_kind": "executable"
     },
     {
-      "bytes": 344,
+      "bytes": 391,
       "currentness": "tracked_source_snapshot",
       "family_id": "access",
       "path": "access/profiles/abyssos.v1.json",
-      "sha256": "d91e72fc8ce2c52b4a5967c4f7afee304b3696c95ab49fe281bd8a8e6964d9a8",
+      "sha256": "387f5be659508c389a2b15856a00dcfde958cfc191ff3a91237a62fd0f046350",
       "surface_kind": "structured"
     },
     {
@@ -21664,43 +21664,43 @@
       "surface_kind": "executable"
     },
     {
-      "bytes": 42600,
+      "bytes": 45922,
       "currentness": "tracked_source_snapshot",
       "family_id": "access",
       "path": "access/src/tos_access/core.py",
-      "sha256": "3b9c169e378d5505524685dcf089d0f6190afbc137dfe78f194429d8bed71e82",
+      "sha256": "ac7c0381e0603eb2cceff99a5cabcec13d42fac99a51165ecf420c09c032e513",
       "surface_kind": "executable"
     },
     {
-      "bytes": 5229,
+      "bytes": 5803,
       "currentness": "tracked_source_snapshot",
       "family_id": "access",
       "path": "access/src/tos_access/doctor.py",
-      "sha256": "f88889bb0d8eb051e01e01f168eaa1323a4206d3a8e2584186bfc32b79d7325f",
+      "sha256": "271b8164c1bedab26851da7a9a863c305ab54ec14ee08a0d86481f608b4da134",
       "surface_kind": "executable"
     },
     {
-      "bytes": 12577,
+      "bytes": 11293,
       "currentness": "tracked_source_snapshot",
       "family_id": "access",
       "path": "access/src/tos_access/http_server.py",
-      "sha256": "320386568b58b00d8bfb49163a4fafe58d08d2d4235281a1cf6ae01e90f59c55",
+      "sha256": "9907f28c72715fa9e91158091e3e0d175789b1fec13392c35787d84a23edf8f0",
       "surface_kind": "executable"
     },
     {
-      "bytes": 13726,
+      "bytes": 13757,
       "currentness": "tracked_source_snapshot",
       "family_id": "access",
       "path": "access/src/tos_access/mcp_server.py",
-      "sha256": "cbcacbb1bf7fa882f627ad74a1949d783c09b9d11c6211ead362387863ec341c",
+      "sha256": "f1e470fe9c02012b3da19d46c1e42cea546c53a2327f8dad2e4d86cdeb2ea3f4",
       "surface_kind": "executable"
     },
     {
-      "bytes": 8280,
+      "bytes": 14380,
       "currentness": "tracked_source_snapshot",
       "family_id": "access",
       "path": "access/tests/test_access_contract.py",
-      "sha256": "aabc30ebf5e0d914ca2f4a2c3787d203fed9c1d7a91d47fa02ad6ac462b707b0",
+      "sha256": "25e6e44fce6e738a285432de08bbab04a4f1b21c5f211ff27e03b752133a7b3d",
       "surface_kind": "executable"
     },
     {

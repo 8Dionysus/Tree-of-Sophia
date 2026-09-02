@@ -3,6 +3,7 @@ from __future__ import annotations
 import hashlib
 import importlib.util
 import json
+import os
 from pathlib import Path
 from typing import Any
 
@@ -49,6 +50,8 @@ def doctor_report(
     profile: str = "standalone",
     require_mcp: bool = False,
 ) -> dict[str, Any]:
+    if profile not in {"standalone", "abyssos"}:
+        raise ValueError(f"unknown access profile: {profile}")
     core = ToSAccessCore.discover(tos_root=tos_root)
     checks: list[dict[str, Any]] = []
 
@@ -118,12 +121,17 @@ def doctor_report(
         )
     )
 
+    abyssos_root_value = os.environ.get("TOS_ABYSSOS_ROOT", "").strip()
+    abyssos_root = Path(abyssos_root_value).expanduser().resolve() if abyssos_root_value else None
+    abyssos_available = bool(abyssos_root and (abyssos_root / "abyss-stack").is_dir())
     checks.append(
         _check(
             "abyssos-integration",
-            True,
-            required=False,
-            available=(core.tos_root / "access/integrations/abyssos").is_dir(),
+            abyssos_available,
+            required=profile == "abyssos",
+            available=abyssos_available,
+            configured_root=abyssos_root.as_posix() if abyssos_root else None,
+            install_hint="set TOS_ABYSSOS_ROOT to an AbyssOS root containing abyss-stack" if not abyssos_available else None,
             posture="optional-adapter",
         )
     )

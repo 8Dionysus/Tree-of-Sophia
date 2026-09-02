@@ -1,12 +1,16 @@
 from __future__ import annotations
 
 import importlib.util
+import hashlib
 import json
+import os
+import socket
 import sys
 import tempfile
 import threading
 import tomllib
 import unittest
+from unittest.mock import patch
 import urllib.request
 from pathlib import Path
 
@@ -16,8 +20,23 @@ sys.path.insert(0, (ACCESS_ROOT / "src").as_posix())
 
 from tos_access.core import ToSAccessCore  # noqa: E402
 from tos_access.doctor import doctor_report  # noqa: E402
-from tos_access.http_server import make_server  # noqa: E402
+from tos_access.http_server import _scale_rows, make_server  # noqa: E402
 from tos_access.mcp_server import build_server  # noqa: E402
+
+
+def load_script(name: str, path: Path) -> object:
+    spec = importlib.util.spec_from_file_location(name, path)
+    if spec is None or spec.loader is None:
+        raise RuntimeError(f"unable to load {path}")
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+validate_standalone = load_script(
+    "validate_standalone",
+    ACCESS_ROOT / "packaging/validate_standalone.py",
+)
 
 
 def write_fixture(root: Path) -> None:
@@ -44,12 +63,21 @@ def write_fixture(root: Path) -> None:
         "schema_version": "tos_philosophy_graph_projection_v2",
         "owner_repo": "Tree-of-Sophia",
         "surface_kind": "derived",
-        "counts": {"nodes": 2, "edges": 1},
+        "counts": {"nodes": 3, "edges": 2},
         "nodes": [
             {"node_id": "a", "label": "Alpha", "graph_layers": ["source-relation"], "source_ref": "ToS/canon/a.json"},
             {"node_id": "b", "label": "Beta", "graph_layers": ["source-relation"], "source_ref": "ToS/canon/b.json"},
+            {"node_id": "c", "label": "Gamma", "graph_layers": ["source-relation"], "source_ref": "ToS/canon/c.json"},
         ],
         "edges": [
+            {
+                "edge_id": "e2",
+                "from_id": "a",
+                "to_id": "c",
+                "predicate_id": "relates",
+                "graph_layers": ["source-relation"],
+                "source_ref": "ToS/canon/relations.json",
+            },
             {
                 "edge_id": "e",
                 "from_id": "a",
@@ -63,8 +91,8 @@ def write_fixture(root: Path) -> None:
             {
                 "view_id": "chronology",
                 "title": "Chronology",
-                "node_ids": ["a", "b"],
-                "edge_ids": ["e"],
+                "node_ids": ["a", "b", "c"],
+                "edge_ids": ["e2", "e"],
                 "graph_layers": ["source-relation"],
                 "source_refs": ["ToS/philosophy/graph-workbench/views/chronology.graph.md"],
             }
@@ -75,8 +103,8 @@ def write_fixture(root: Path) -> None:
                 "cluster_kind": "region",
                 "label": "Fixture",
                 "view_ids": ["chronology"],
-                "member_node_ids": ["a", "b"],
-                "member_edge_ids": ["e"],
+                "member_node_ids": ["a", "b", "c", "outside"],
+                "member_edge_ids": ["e2", "e", "outside-edge"],
                 "graph_layers": ["source-relation"],
                 "source_ref": "ToS/philosophy/graph-workbench/clusters/cluster-contracts.json",
             }
@@ -112,11 +140,45 @@ class CoreContractTests(unittest.TestCase):
             write_fixture(root)
             core = ToSAccessCore.discover(tos_root=root)
             view = core.philosophy_view("chronology")
-            self.assertEqual(view["node_count"], 2)
-            self.assertEqual(view["edge_count"], 1)
-            self.assertEqual(core.philosophy_views()["views"][0]["node_count"], 2)
+            self.assertEqual(view["node_count"], 3)
+            self.assertEqual(view["edge_count"], 2)
+            self.assertEqual(core.philosophy_views()["views"][0]["node_count"], 3)
             self.assertTrue(core.philosophy_path_between("a", "b")["found"])
             self.assertEqual(core.philosophy_neighborhood("a")["neighbors"][0]["node_id"], "b")
+
+    def test_bounded_graph_packets_keep_edge_endpoints_present(self) -> None:
+        with tempfile.TemporaryDirectory() as raw:
+            root = Path(raw)
+            write_fixture(root)
+            core = ToSAccessCore.discover(tos_root=root)
+            neighborhood = core.philosophy_neighborhood("a", limit=1)
+            node_ids = {neighborhood["node"]["node_id"], *(node["node_id"] for node in neighborhood["neighbors"])}
+            self.assertEqual([node["node_id"] for node in neighborhood["neighbors"]], ["b"])
+            self.assertEqual([edge["edge_id"] for edge in neighborhood["edges"]], ["e"])
+            self.assertTrue(
+                all(edge["from_id"] in node_ids and edge["to_id"] in node_ids for edge in neighborhood["edges"])
+            )
+
+            view = core.philosophy_view("chronology", limit=1)
+            self.assertEqual(view["node_count"], 1)
+            self.assertEqual(view["edge_count"], 0)
+            packet = core.philosophy_packet(view_id="chronology", limit=-1)
+            self.assertEqual(len(packet["view"]["nodes"]), 1)
+            self.assertEqual(packet["view"]["edges"], [])
+
+    def test_scale_memberships_reference_only_selected_rows(self) -> None:
+        with tempfile.TemporaryDirectory() as raw:
+            root = Path(raw)
+            write_fixture(root)
+            core = ToSAccessCore.discover(tos_root=root)
+            node_ids = {row["node_id"] for row in _scale_rows(core, "nodes", "chronology", [])}
+            edge_ids = {row["edge_id"] for row in _scale_rows(core, "edges", "chronology", [])}
+            node_memberships = _scale_rows(core, "cluster-node-memberships", "chronology", [])
+            edge_memberships = _scale_rows(core, "cluster-edge-memberships", "chronology", [])
+            self.assertTrue(all(row["node_id"] in node_ids for row in node_memberships))
+            self.assertTrue(all(row["edge_id"] in edge_ids for row in edge_memberships))
+            self.assertNotIn("outside", {row["node_id"] for row in node_memberships})
+            self.assertNotIn("outside-edge", {row["edge_id"] for row in edge_memberships})
 
     def test_doctor_and_http_use_same_core(self) -> None:
         with tempfile.TemporaryDirectory() as raw:
@@ -132,12 +194,68 @@ class CoreContractTests(unittest.TestCase):
                 base = f"http://127.0.0.1:{server.server_port}"
                 health = json.load(urllib.request.urlopen(base + "/health"))
                 view = json.load(urllib.request.urlopen(base + "/api/philosophy/views/chronology"))
+                limited_view = json.load(urllib.request.urlopen(base + "/api/philosophy/views/chronology?limit=1"))
                 self.assertTrue(health["ok"])
-                self.assertEqual(view["node_count"], 2)
+                self.assertEqual(view["node_count"], 3)
+                self.assertEqual(limited_view["node_count"], 1)
+                self.assertEqual(limited_view["edge_count"], 0)
             finally:
                 server.shutdown()
                 server.server_close()
                 thread.join(timeout=5)
+
+    def test_ipv6_loopback_uses_ipv6_server(self) -> None:
+        with tempfile.TemporaryDirectory() as raw:
+            root = Path(raw)
+            write_fixture(root)
+            core = ToSAccessCore.discover(tos_root=root)
+            try:
+                server = make_server(core, host="::1", port=0)
+            except OSError as exc:
+                self.skipTest(f"IPv6 loopback unavailable: {exc}")
+            try:
+                self.assertEqual(server.address_family, socket.AF_INET6)
+            finally:
+                server.server_close()
+
+    def test_abyssos_profile_requires_configured_runtime_root(self) -> None:
+        with tempfile.TemporaryDirectory() as raw:
+            root = Path(raw)
+            write_fixture(root)
+            with patch.dict(os.environ, {"TOS_ABYSSOS_ROOT": ""}, clear=False):
+                report = doctor_report(tos_root=root, profile="abyssos")
+            integration = next(item for item in report["checks"] if item["check_id"] == "abyssos-integration")
+            self.assertTrue(integration["required"])
+            self.assertFalse(integration["ok"])
+            self.assertFalse(report["ok"])
+
+            abyssos_root = root / "AbyssOS"
+            (abyssos_root / "abyss-stack").mkdir(parents=True)
+            with patch.dict(os.environ, {"TOS_ABYSS_ROOT": "", "TOS_ABYSSOS_ROOT": abyssos_root.as_posix()}):
+                configured = doctor_report(tos_root=root, profile="abyssos")
+            configured_integration = next(
+                item for item in configured["checks"] if item["check_id"] == "abyssos-integration"
+            )
+            self.assertTrue(configured_integration["ok"])
+
+    def test_bundle_validation_requires_external_archive_digest(self) -> None:
+        with tempfile.TemporaryDirectory() as raw:
+            root = Path(raw)
+            bundle = root / "candidate.zip"
+            bundle.write_bytes(b"tampered")
+            sidecar = bundle.with_suffix(bundle.suffix + ".manifest.json")
+            expected = b"original"
+            sidecar.write_text(
+                json.dumps(
+                    {
+                        "archive_sha256": hashlib.sha256(expected).hexdigest(),
+                        "archive_size_bytes": len(expected),
+                    }
+                ),
+                encoding="utf-8",
+            )
+            with self.assertRaisesRegex(RuntimeError, "archive digest"):
+                validate_standalone.validate_bundle(bundle)
 
     @unittest.skipUnless(importlib.util.find_spec("mcp"), "mcp dependency is not installed")
     def test_native_mcp_builds_over_portable_root(self) -> None:
@@ -171,6 +289,11 @@ class AuthoredContractTests(unittest.TestCase):
         source = (ACCESS_ROOT / "web/src/actions.ts").read_text(encoding="utf-8")
         for action_id in expected:
             self.assertIn(f'"{action_id}"', source)
+
+    def test_browser_drops_superseded_view_loads(self) -> None:
+        source = (ACCESS_ROOT / "web/src/main.ts").read_text(encoding="utf-8")
+        self.assertIn("const loadRevision = ++viewLoadRevision", source)
+        self.assertGreaterEqual(source.count("loadRevision !== viewLoadRevision"), 2)
 
     def test_standalone_profile_is_abyssos_independent(self) -> None:
         runtime = json.loads((ACCESS_ROOT / "contracts/runtime-manifest.v1.json").read_text(encoding="utf-8"))

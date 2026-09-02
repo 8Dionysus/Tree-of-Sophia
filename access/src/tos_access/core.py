@@ -74,6 +74,34 @@ def _unique_values(items: list[dict[str, Any]], key: str) -> list[str]:
     return sorted({str(item[key]) for item in items if isinstance(item.get(key), str) and item.get(key)})
 
 
+def _bounded_int(value: Any, default: int, minimum: int, maximum: int) -> int:
+    try:
+        parsed = int(value)
+    except (TypeError, ValueError):
+        parsed = default
+    return max(minimum, min(maximum, parsed))
+
+
+def _bounded_graph(
+    nodes: list[dict[str, Any]],
+    edges: list[dict[str, Any]],
+    limit: int,
+) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+    selected_nodes = nodes[:limit]
+    selected_node_ids = {
+        str(node.get("node_id"))
+        for node in selected_nodes
+        if isinstance(node.get("node_id"), str)
+    }
+    selected_edges = [
+        edge
+        for edge in edges
+        if str(edge.get("from_id") or "") in selected_node_ids
+        and str(edge.get("to_id") or "") in selected_node_ids
+    ][:limit]
+    return selected_nodes, selected_edges
+
+
 def _discover_root(explicit: str | Path | None = None) -> Path:
     if explicit:
         return Path(explicit).expanduser().resolve()
@@ -222,6 +250,7 @@ class ToSAccessCore:
     def search(self, query: str, limit: int = 20, resource_kind: str | None = None) -> dict[str, Any]:
         payload = self.index()
         needle = query.lower().strip()
+        limit = _bounded_int(limit, 20, 1, 100)
         results: list[dict[str, Any]] = []
         for collection_name in ("nodes", "resources", "manifests", "branches", "graph_views"):
             for item in payload.get(collection_name, []):
@@ -258,6 +287,7 @@ class ToSAccessCore:
         limit: int = 100,
     ) -> dict[str, Any]:
         payload = self.index()
+        limit = _bounded_int(limit, 100, 1, 1000)
         items = []
         for resource in payload.get("resources", []):
             if not isinstance(resource, dict):
@@ -320,6 +350,7 @@ class ToSAccessCore:
 
     def graph_view(self, view_id: str, limit: int = 100) -> dict[str, Any]:
         payload = self.index()
+        limit = _bounded_int(limit, 100, 1, 1000)
         view = next(
             (item for item in payload.get("graph_views", []) if isinstance(item, dict) and item.get("view_id") == view_id),
             None,
@@ -358,6 +389,7 @@ class ToSAccessCore:
 
     def packet(self, query: str = "", view_id: str | None = None, limit: int = 20) -> dict[str, Any]:
         payload = self.index()
+        limit = _bounded_int(limit, 20, 1, 100)
         search = self.search(query=query, limit=limit) if query else {"result_count": 0, "results": []}
         view_packet = self.graph_view(view_id, limit=limit) if view_id else None
         return {
@@ -506,20 +538,25 @@ class ToSAccessCore:
             "authority_note": "Tree-of-Sophia owns graph meaning; MCP exposes the access-plane contract only.",
         }
 
-    def philosophy_view(self, view_id: str) -> dict[str, Any]:
+    def philosophy_view(self, view_id: str, limit: int = 1000) -> dict[str, Any]:
         payload = self.philosophy_projection()
+        limit = _bounded_int(limit, 1000, 1, 1000)
         view = next(
             (item for item in payload.get("views", []) if isinstance(item, dict) and item.get("view_id") == view_id),
             None,
         )
         if view is None:
             raise KeyError(f"unknown ToS philosophy graph view: {view_id}")
-        nodes, edges = _view_nodes_edges(payload, view)
+        all_nodes, all_edges = _view_nodes_edges(payload, view)
+        nodes, edges = _bounded_graph(all_nodes, all_edges, limit)
         return {
             "schema": "tos_philosophy_mcp_view_v1",
             "view": view,
             "node_count": len(nodes),
             "edge_count": len(edges),
+            "available_node_count": len(all_nodes),
+            "available_edge_count": len(all_edges),
+            "limit": limit,
             "nodes": nodes,
             "edges": edges,
             "clusters": self._philosophy_clusters_for_payload(payload, view_id=view_id, limit=40),
@@ -565,6 +602,7 @@ class ToSAccessCore:
         limit: int = 80,
     ) -> dict[str, Any]:
         payload = self.philosophy_projection()
+        limit = _bounded_int(limit, 80, 1, 1000)
         clusters = self._philosophy_clusters_for_payload(
             payload,
             view_id=view_id,
@@ -585,40 +623,30 @@ class ToSAccessCore:
     def philosophy_scale_manifest(self, view_id: str | None = None, layers: list[str] | None = None) -> dict[str, Any]:
         payload = self.philosophy_projection()
         layer_filter = set(layers or [])
-        if view_id:
-            view = next(
-                (item for item in payload.get("views", []) if isinstance(item, dict) and item.get("view_id") == view_id),
-                None,
+        rows = {
+            table: self.philosophy_scale_rows(table, view_id=view_id, layers=layers)
+            for table in (
+                "nodes",
+                "edges",
+                "clusters",
+                "cluster-node-memberships",
+                "cluster-edge-memberships",
             )
-            if view is None:
-                raise KeyError(f"unknown ToS philosophy graph view: {view_id}")
-            view_nodes, view_edges = _view_nodes_edges(payload, view)
-            nodes = [node for node in view_nodes if _layer_allowed(node, layer_filter)]
-            edges = [edge for edge in view_edges if _layer_allowed(edge, layer_filter)]
-            clusters = self._philosophy_clusters_for_payload(payload, view_id=view_id, limit=1_000_000)
-            clusters = [cluster for cluster in clusters if _layer_allowed(cluster, layer_filter)]
-        else:
-            nodes = [node for node in payload.get("nodes", []) if isinstance(node, dict) and _layer_allowed(node, layer_filter)]
-            edges = [edge for edge in payload.get("edges", []) if isinstance(edge, dict) and _layer_allowed(edge, layer_filter)]
-            clusters = [
-                cluster
-                for cluster in payload.get("clusters", [])
-                if isinstance(cluster, dict) and _layer_allowed(cluster, layer_filter)
-            ]
+        }
         return {
             "schema": "tos_philosophy_mcp_scale_manifest_v1",
             "view_id": view_id,
             "layers": sorted(layer_filter),
             "tables": {
-                "nodes": {"row_count": len(nodes), "packet_route": "tos_philosophy_graph_view"},
-                "edges": {"row_count": len(edges), "packet_route": "tos_philosophy_graph_view"},
-                "clusters": {"row_count": len(clusters), "packet_route": "tos_philosophy_graph_clusters"},
+                "nodes": {"row_count": len(rows["nodes"]), "packet_route": "tos_philosophy_graph_view"},
+                "edges": {"row_count": len(rows["edges"]), "packet_route": "tos_philosophy_graph_view"},
+                "clusters": {"row_count": len(rows["clusters"]), "packet_route": "tos_philosophy_graph_clusters"},
                 "cluster-node-memberships": {
-                    "row_count": sum(len(_string_list(cluster.get("member_node_ids"))) for cluster in clusters),
+                    "row_count": len(rows["cluster-node-memberships"]),
                     "packet_route": "tos_philosophy_graph_clusters",
                 },
                 "cluster-edge-memberships": {
-                    "row_count": sum(len(_string_list(cluster.get("member_edge_ids"))) for cluster in clusters),
+                    "row_count": len(rows["cluster-edge-memberships"]),
                     "packet_route": "tos_philosophy_graph_clusters",
                 },
             },
@@ -626,6 +654,62 @@ class ToSAccessCore:
             "runtime_projection_boundary": payload.get("runtime_projection_boundary", {}),
             "authority_note": "Scale manifests are MCP navigation packets; ToS derived exports remain authoritative.",
         }
+
+    def philosophy_scale_rows(
+        self,
+        table: str,
+        view_id: str | None = None,
+        layers: list[str] | None = None,
+    ) -> list[dict[str, Any]]:
+        payload = self.philosophy_projection()
+        layer_filter = set(layers or [])
+        if view_id:
+            view = next(
+                (item for item in payload.get("views", []) if isinstance(item, dict) and item.get("view_id") == view_id),
+                None,
+            )
+            if view is None:
+                raise KeyError(f"unknown ToS philosophy graph view: {view_id}")
+            nodes, edges = _view_nodes_edges(payload, view)
+            clusters = self._philosophy_clusters_for_payload(payload, view_id=view_id, limit=1_000_000)
+        else:
+            nodes = [item for item in payload.get("nodes", []) if isinstance(item, dict)]
+            edges = [item for item in payload.get("edges", []) if isinstance(item, dict)]
+            clusters = [item for item in payload.get("clusters", []) if isinstance(item, dict)]
+
+        nodes = [node for node in nodes if _layer_allowed(node, layer_filter)]
+        node_ids = {str(node.get("node_id")) for node in nodes if isinstance(node.get("node_id"), str)}
+        edges = [
+            edge
+            for edge in edges
+            if _layer_allowed(edge, layer_filter)
+            and str(edge.get("from_id") or "") in node_ids
+            and str(edge.get("to_id") or "") in node_ids
+        ]
+        edge_ids = {str(edge.get("edge_id")) for edge in edges if isinstance(edge.get("edge_id"), str)}
+        clusters = [cluster for cluster in clusters if _layer_allowed(cluster, layer_filter)]
+
+        if table == "nodes":
+            return nodes
+        if table == "edges":
+            return edges
+        if table == "clusters":
+            return clusters
+        if table == "cluster-node-memberships":
+            return [
+                {"cluster_id": cluster.get("cluster_id"), "node_id": node_id}
+                for cluster in clusters
+                for node_id in _string_list(cluster.get("member_node_ids"))
+                if node_id in node_ids
+            ]
+        if table == "cluster-edge-memberships":
+            return [
+                {"cluster_id": cluster.get("cluster_id"), "edge_id": edge_id}
+                for cluster in clusters
+                for edge_id in _string_list(cluster.get("member_edge_ids"))
+                if edge_id in edge_ids
+            ]
+        raise KeyError(f"unknown scale export table: {table}")
 
     def philosophy_review_packet(self, view_id: str = "chronology") -> dict[str, Any]:
         payload = self.philosophy_projection()
@@ -744,6 +828,8 @@ class ToSAccessCore:
     ) -> dict[str, Any]:
         node_packet = self.philosophy_node(node_id)
         payload = self.philosophy_projection()
+        depth = _bounded_int(depth, 1, 1, 3)
+        limit = _bounded_int(limit, 80, 1, 300)
         layer_filter = set(layers or [])
         predicate_filter = set(predicates or [])
         all_edges = [
@@ -756,7 +842,7 @@ class ToSAccessCore:
         selected_ids = {node_id}
         frontier = {node_id}
         selected_edges: list[dict[str, Any]] = []
-        for _ in range(max(depth, 1)):
+        for _ in range(depth):
             next_frontier: set[str] = set()
             for edge in all_edges:
                 from_id = str(edge.get("from_id") or "")
@@ -778,16 +864,23 @@ class ToSAccessCore:
             for node in payload.get("nodes", [])
             if isinstance(node, dict) and node.get("node_id") in neighbor_ids and _layer_allowed(node, layer_filter)
         ][:limit]
+        retained_ids = {node_id, *(str(node.get("node_id")) for node in neighbors)}
+        retained_edges = [
+            edge
+            for edge in selected_edges
+            if str(edge.get("from_id") or "") in retained_ids
+            and str(edge.get("to_id") or "") in retained_ids
+        ][:limit]
         return {
             "schema": "tos_philosophy_mcp_neighborhood_v1",
             "node": node_packet["node"],
             "neighbors": neighbors,
-            "edges": selected_edges[:limit],
-            "depth": max(depth, 1),
+            "edges": retained_edges,
+            "depth": depth,
             "layers": sorted(layer_filter),
             "predicates": sorted(predicate_filter),
-            "limit": max(limit, 0),
-            "source_refs": _source_refs([node_packet["node"]] + neighbors + selected_edges[:limit]),
+            "limit": limit,
+            "source_refs": _source_refs([node_packet["node"]] + neighbors + retained_edges),
             "runtime_projection_boundary": payload.get("runtime_projection_boundary", {}),
         }
 
@@ -861,6 +954,7 @@ class ToSAccessCore:
     def philosophy_search(self, query: str, limit: int = 20) -> dict[str, Any]:
         payload = self.philosophy_projection()
         needle = query.lower().strip()
+        limit = _bounded_int(limit, 20, 1, 100)
         results: list[dict[str, Any]] = []
         for collection_name in ("views", "nodes", "edges", "clusters", "review_packets", "graph_layers"):
             for item in payload.get(collection_name, []):
@@ -885,14 +979,15 @@ class ToSAccessCore:
 
     def philosophy_packet(self, query: str = "", view_id: str | None = None, limit: int = 20) -> dict[str, Any]:
         payload = self.philosophy_projection()
+        limit = _bounded_int(limit, 20, 1, 100)
         search = self.philosophy_search(query=query, limit=limit) if query else {"result_count": 0, "results": []}
-        view_packet = self.philosophy_view(view_id) if view_id else None
+        view_packet = self.philosophy_view(view_id, limit=limit) if view_id else None
         compact_view = None
         if view_packet:
             compact_view = {
                 "view": view_packet["view"],
-                "nodes": view_packet["nodes"][:limit],
-                "edges": view_packet["edges"][:limit],
+                "nodes": view_packet["nodes"],
+                "edges": view_packet["edges"],
                 "clusters": view_packet.get("clusters", [])[:limit],
                 "review_packet": view_packet.get("review_packet"),
                 "source_refs": view_packet["source_refs"],

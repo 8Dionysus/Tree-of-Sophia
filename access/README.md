@@ -25,6 +25,8 @@ Build a release candidate with
 `python access/packaging/build_standalone_bundle.py --output dist/tos-standalone.zip`
 and validate it with
 `python access/packaging/validate_standalone.py --bundle dist/tos-standalone.zip`.
+Validation requires the adjacent external `.zip.manifest.json` digest sidecar;
+use `--manifest` when the sidecar is stored under another path.
 
 The archive contains the installable `access/` package, prebuilt web assets,
 and only the runtime data allowlist. It contains no Git metadata, sibling
@@ -43,6 +45,10 @@ run `tos verify --profile standalone`, `tos serve`, or `tos mcp`.
   future WebMCP registration.
 - `profiles/standalone.v1.json` is the required no-AbyssOS profile.
 - `profiles/abyssos.v1.json` declares optional ecosystem adapters.
+
+`tos verify --profile abyssos` additionally requires `TOS_ABYSSOS_ROOT` to
+point at an AbyssOS root containing `abyss-stack`; this setting is never
+required by the standalone profile.
 
 The current `ToS` projection v1/v2 contracts remain source-owned. Their legacy
 `runtime_owner` field describes the existing downstream deployment contract;
