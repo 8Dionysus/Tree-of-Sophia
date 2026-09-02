@@ -2204,6 +2204,8 @@ def _has_independent_snapshot_witness(
         output_digest = output.get("sha256") if isinstance(output, dict) else None
         if not isinstance(output_digest, str) or not re.fullmatch(r"[0-9a-f]{64}", output_digest):
             continue
+        if output_digest != _sha256_file(packet):
+            continue
         try:
             packet_text = packet.read_text(encoding="utf-8")
         except OSError:

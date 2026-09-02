@@ -247,6 +247,12 @@ def main() -> int:
             discovery_id=args.new_discovery_id,
             discovery_ref=args.superseding_output.as_posix(),
         )
+    elif args.instrumented_output is not None:
+        receipt = retarget_timing_receipt(
+            receipt,
+            discovery_id=receipt["discovery_id"],
+            discovery_ref=args.instrumented_output.as_posix(),
+        )
     rendered = json.dumps(receipt, ensure_ascii=False, indent=2, sort_keys=True) + "\n"
     if args.output is None:
         print(rendered, end="")

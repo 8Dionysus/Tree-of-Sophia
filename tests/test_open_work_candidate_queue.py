@@ -631,6 +631,81 @@ class OpenWorkCandidateQueueTest(unittest.TestCase):
             )
         )
 
+    def test_legacy_snapshot_witness_binds_packet_output_digest(self) -> None:
+        repo = self.make_repo()
+        event_ref = "tos.event.discovery.synthetic-legacy-snapshot"
+        packet_path = repo / "ToS/research-packets/legacy-snapshot.md"
+        packet_path.parent.mkdir(parents=True, exist_ok=True)
+        packet_text = (
+            "Candidate: `open-work-candidate.earliest`\n"
+            "Frozen Queue snapshot SHA-256: `b" + "b" * 63 + "`\n"
+            "Earliest\n"
+        )
+        packet_path.write_text(packet_text, encoding="utf-8")
+        discovery = _timed_discovery("tos.discovery.earliest")
+        discovery["provenance_event_refs"] = [event_ref]
+        receipt = {
+            "receipt_id": "open-work-candidate-receipt.earliest.v1",
+            "candidate_id": "open-work-candidate.earliest",
+            "candidate_ledger_sha256": "a" * 64,
+            "discovery_id": "tos.discovery.earliest",
+            "issued_at": "2026-08-29T12:00:00Z",
+            "queue_snapshot_sha256": "b" * 64,
+            "operational_relation_refs": [event_ref],
+        }
+        event = {
+            "event_id": event_ref,
+            "event_type": "discovery",
+            "started_at": "2026-08-29T11:59:00Z",
+            "ended_at": "2026-08-29T11:59:30Z",
+            "inputs": [
+                {
+                    "ref": "ToS/source-witnesses/discovery/candidates/reviewed-candidates.jsonl",
+                    "sha256": "a" * 64,
+                }
+            ],
+            "outputs": [
+                {
+                    "ref": "ToS/research-packets/legacy-snapshot.md",
+                    "sha256": hashlib.sha256(packet_path.read_bytes()).hexdigest(),
+                }
+            ],
+            "method": {
+                "prompt_or_instruction_ref": "ToS/research-packets/legacy-snapshot.md",
+                "configuration": {"candidate_id": "open-work-candidate.earliest"},
+            },
+        }
+        context = {
+            "tos.discovery.earliest": (
+                discovery,
+                "ToS/source-witnesses/discovery/runs/earliest.v1.json",
+            )
+        }
+        events = {event_ref: (event, "synthetic-event")}
+
+        self.assertTrue(
+            _has_independent_snapshot_witness(
+                repo,
+                receipt,
+                candidate_id="open-work-candidate.earliest",
+                candidate_label="Earliest",
+                discoveries=context,
+                provenance_events=events,
+            )
+        )
+
+        packet_path.write_text(packet_text + "tampered\n", encoding="utf-8")
+        self.assertFalse(
+            _has_independent_snapshot_witness(
+                repo,
+                receipt,
+                candidate_id="open-work-candidate.earliest",
+                candidate_label="Earliest",
+                discoveries=context,
+                provenance_events=events,
+            )
+        )
+
     def test_reconstruction_excludes_unreceipted_post_run_discovery(self) -> None:
         repo = self.make_repo()
         current = _timed_discovery("tos.discovery.current")

@@ -12,7 +12,8 @@ rewritten or inserted row as historical evidence.
 
 Any independent provenance witness for that frozen snapshot must carry the
 same candidate-ledger digest; a syntactically valid digest from another ledger
-state is not sufficient.
+state is not sufficient. Legacy research-packet witnesses must also match the
+packet output SHA-256 recorded by their provenance event.
 
 It records what was and was not acquired, the layered rights result, any
 source planting or operational relation refs, and the next trigger.
