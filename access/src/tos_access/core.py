@@ -474,6 +474,38 @@ class ToSAccessCore:
         graph_edges: list[dict[str, Any]] = []
         if view_id == "corpus-topology":
             items = payload.get("branches", [])[:limit]
+            root_id = f"view:{view_id}"
+            graph_nodes = [
+                {
+                    "node_id": root_id,
+                    "label": view.get("title") or view_id,
+                    "node_type": "corpus-root",
+                    "source_ref": view.get("entry_surface"),
+                }
+            ]
+            for branch in items:
+                if not isinstance(branch, dict) or not branch.get("id"):
+                    continue
+                branch_id = str(branch["id"])
+                source_ref = branch.get("owner_surface") or branch.get("path")
+                graph_nodes.append(
+                    {
+                        **branch,
+                        "node_id": branch_id,
+                        "label": branch_id,
+                        "node_type": "corpus-branch",
+                        "source_ref": source_ref,
+                    }
+                )
+                graph_edges.append(
+                    {
+                        "edge_id": f"corpus-edge:{root_id}:{branch_id}",
+                        "from_id": root_id,
+                        "to_id": branch_id,
+                        "predicate_id": "contains",
+                        "source_ref": source_ref,
+                    }
+                )
         elif view_id == "route-graph":
             packs_by_id = {
                 str(pack.get("pack_id")): pack

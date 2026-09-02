@@ -345,6 +345,39 @@ class CoreContractTests(unittest.TestCase):
             with self.assertRaisesRegex(KeyError, "unsupported standalone"):
                 core.graph_view("provenance-dag")
 
+            topology = core.graph_view("corpus-topology")
+            node_ids = {node["node_id"] for node in topology["nodes"]}
+            self.assertEqual(node_ids, {"view:corpus-topology"})
+            self.assertEqual(topology["edges"], [])
+
+    def test_corpus_topology_materializes_branch_tree_in_shared_core(self) -> None:
+        with tempfile.TemporaryDirectory() as raw:
+            root = Path(raw)
+            write_fixture(root)
+            index_path = root / "ToS/derived-exports/tos_corpus_index.min.json"
+            index = json.loads(index_path.read_text(encoding="utf-8"))
+            index["branches"] = [
+                {
+                    "id": "canon",
+                    "path": "ToS/canon",
+                    "owner_surface": "ToS/canon/AGENTS.md",
+                    "authority_layer": "canon",
+                }
+            ]
+            index_path.write_text(json.dumps(index), encoding="utf-8")
+            core = ToSAccessCore.discover(tos_root=root)
+
+            topology = core.graph_view("corpus-topology")
+            self.assertEqual(
+                [node["node_id"] for node in topology["nodes"]],
+                ["view:corpus-topology", "canon"],
+            )
+            self.assertEqual(topology["edges"][0]["from_id"], "view:corpus-topology")
+            self.assertEqual(topology["edges"][0]["to_id"], "canon")
+            self.assertEqual(topology["edges"][0]["source_ref"], "ToS/canon/AGENTS.md")
+            self.assertEqual(topology["node_count"], 2)
+            self.assertEqual(topology["edge_count"], 1)
+
     def test_corpus_route_and_promotion_views_preserve_relation_topology(self) -> None:
         with tempfile.TemporaryDirectory() as raw:
             root = Path(raw)

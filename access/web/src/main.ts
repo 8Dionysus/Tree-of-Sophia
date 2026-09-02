@@ -2566,6 +2566,16 @@ function focusedNodePacket(): { nodes: GraphNode[]; edges: GraphEdge[] } | null 
 function buildCorpusGraph(): void {
   const payload = state.currentView as CorpusViewPayload;
   const items = (payload.items || []).filter(isPublicAtlasItem).slice(0, corpusItemLimit());
+  const coreNodes = (payload.nodes || []).filter((node) => Boolean(node.node_id));
+  const coreEdges = (payload.edges || []).filter((edge) => Boolean(edge.from_id && edge.to_id));
+  if (coreNodes.length && coreEdges.length) {
+    coreNodes.forEach((node, index) => addGraphNode(node.node_id, node, index, node.node_type === "corpus-root" ? 10 : 5));
+    coreEdges.forEach((edge, index) => addGraphEdge(edge.edge_id || `corpus-relation:${index}`, edge.from_id, edge.to_id, edge));
+    layoutGraph();
+    state.results = items;
+    state.relationItems = coreEdges;
+    return;
+  }
   const relations = items.filter((item) => Boolean(item.from_id && item.to_id));
   const resources = items.filter((item) => !(item.from_id && item.to_id));
   const projectedNodes = new Map(
