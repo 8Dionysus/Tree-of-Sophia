@@ -41,6 +41,10 @@
 - [TOS-D-0025 - Scholarly Composite Witness Spine](../TOS-D-0025-scholarly-composite-witness-spine.md) (`docs/decisions/TOS-D-0025-scholarly-composite-witness-spine.md`)
 - [TOS-D-0026 - Exact-Current Federated Provider Identities](../TOS-D-0026-exact-current-federated-provider-identities.md) (`docs/decisions/TOS-D-0026-exact-current-federated-provider-identities.md`)
 
+## contracts/portability
+
+- [TOS-D-0038 - Standalone Access Is A ToS Product Boundary](../TOS-D-0038-standalone-access-product-boundary.md) (`docs/decisions/TOS-D-0038-standalone-access-product-boundary.md`)
+
 ## derived-export
 
 - [TOS-D-0037 - Deduplicated Philosophy Graph View Membership](../TOS-D-0037-deduplicated-philosophy-graph-view-membership.md) (`docs/decisions/TOS-D-0037-deduplicated-philosophy-graph-view-membership.md`)
@@ -82,6 +86,7 @@
 - [TOS-D-0035 - Current KAG provider and action pin supersedes the historical route](../TOS-D-0035-current-kag-provider-action-pin.md) (`docs/decisions/TOS-D-0035-current-kag-provider-action-pin.md`)
 - [TOS-D-0036 - Partial Table II Medieval-Worlds Route](../TOS-D-0036-partial-table-ii-medieval-worlds-route.md) (`docs/decisions/TOS-D-0036-partial-table-ii-medieval-worlds-route.md`)
 - [TOS-D-0037 - Deduplicated Philosophy Graph View Membership](../TOS-D-0037-deduplicated-philosophy-graph-view-membership.md) (`docs/decisions/TOS-D-0037-deduplicated-philosophy-graph-view-membership.md`)
+- [TOS-D-0038 - Standalone Access Is A ToS Product Boundary](../TOS-D-0038-standalone-access-product-boundary.md) (`docs/decisions/TOS-D-0038-standalone-access-product-boundary.md`)
 
 ## docs/testing
 
@@ -215,6 +220,10 @@
 ## root/topology
 
 - [TOS-D-0018 - Codex Spark Agent Lane Home](../TOS-D-0018-codex-spark-agent-lane-home.md) (`docs/decisions/TOS-D-0018-codex-spark-agent-lane-home.md`)
+
+## runtime/access
+
+- [TOS-D-0038 - Standalone Access Is A ToS Product Boundary](../TOS-D-0038-standalone-access-product-boundary.md) (`docs/decisions/TOS-D-0038-standalone-access-product-boundary.md`)
 
 ## scripts/topology
 

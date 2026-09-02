@@ -18,11 +18,54 @@
     "disposition"
   ],
   "notes": [
-    "This inventory describes every active non-pyc file under */scripts/*.",
+    "This inventory describes every active non-pyc file under */scripts/* and every Python entrypoint named by a validation lane.",
     "It is not command authority.",
     "Command sequences live in docs/validation/validation_lanes.json."
   ],
   "script_surfaces": [
+    {
+      "path": "access/packaging/build_standalone_bundle.py",
+      "family": "standalone_bundle_builder",
+      "organ_lane": "release",
+      "owner_surface": "access/AGENTS.md",
+      "source_truth": [
+        "access/contracts/runtime-data.v1.json",
+        "access/contracts/runtime-manifest.v1.json",
+        "access/profiles/standalone.v1.json",
+        "access/pyproject.toml"
+      ],
+      "reads": [
+        "the standalone package, prebuilt web assets, and allowlisted ToS derived exports"
+      ],
+      "writes": [
+        "one deterministic standalone zip and adjacent manifest at the explicitly requested output path"
+      ],
+      "side_effects": "writes only the requested candidate archive and sidecar; no publication, signing, registry admission, or source mutation",
+      "validation_lane": "standalone_access",
+      "ci_inclusion": "release",
+      "test_target": "access/tests/test_access_contract.py",
+      "disposition": "keep"
+    },
+    {
+      "path": "access/packaging/validate_standalone.py",
+      "family": "standalone_bundle_validator",
+      "organ_lane": "release",
+      "owner_surface": "access/AGENTS.md",
+      "source_truth": [
+        "access/contracts/runtime-data.v1.json",
+        "access/profiles/standalone.v1.json",
+        "access/pyproject.toml"
+      ],
+      "reads": [
+        "the source profile or one explicit standalone bundle and its packaged runtime data"
+      ],
+      "writes": [],
+      "side_effects": "validation output plus isolated temporary extraction and virtual environment state removed before exit",
+      "validation_lane": "standalone_access",
+      "ci_inclusion": "release",
+      "test_target": "access/tests/test_access_contract.py",
+      "disposition": "keep"
+    },
     {
       "path": ".agents/skills/aoa-dry-run-first/scripts/dry_run_contract.py",
       "family": "skill_local_contract_tool",
