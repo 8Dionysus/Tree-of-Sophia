@@ -392,6 +392,14 @@ class AuthoredContractTests(unittest.TestCase):
         self.assertIn("const loadRevision = ++modeLoadRevision", source)
         self.assertGreaterEqual(source.count("loadRevision !== modeLoadRevision"), 4)
 
+    def test_browser_preserves_empty_filters_and_hides_unsupported_routes(self) -> None:
+        actions = (ACCESS_ROOT / "web/src/actions.ts").read_text(encoding="utf-8")
+        page = (ACCESS_ROOT / "web/src/main.ts").read_text(encoding="utf-8")
+        self.assertIn('["__tos_none__"]', actions)
+        self.assertIn('state.mode === "philosophy"', page)
+        self.assertGreaterEqual(page.count("state.activeLayers.size === 0"), 2)
+        self.assertGreaterEqual(page.count("state.activePredicates.size === 0"), 2)
+
     def test_standalone_profile_is_abyssos_independent(self) -> None:
         runtime = json.loads((ACCESS_ROOT / "contracts/runtime-manifest.v1.json").read_text(encoding="utf-8"))
         profiles = {item["profile_id"]: item for item in runtime["runtime_profiles"]}

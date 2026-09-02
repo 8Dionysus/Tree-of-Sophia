@@ -27,6 +27,12 @@ function list(value: unknown): string[] {
   return Array.isArray(value) ? value.map(String).filter(Boolean) : [];
 }
 
+function filterList(value: unknown): string[] | undefined {
+  if (!Array.isArray(value)) return undefined;
+  const selected = list(value);
+  return selected.length ? selected : ["__tos_none__"];
+}
+
 function params(values: Record<string, string | number | string[] | undefined>): string {
   const query = new URLSearchParams();
   Object.entries(values).forEach(([key, value]) => {
@@ -72,8 +78,8 @@ export function createToSWebActions(fetchJson: FetchJson) {
           `/api/philosophy/query/neighborhood/${encodeURIComponent(nodeId)}${params({
             depth: boundedInt(input.depth, 1, 1, 3),
             limit: boundedInt(input.limit, 80, 1, 300),
-            layers: list(input.layers),
-            predicates: list(input.predicates),
+            layers: filterList(input.layers),
+            predicates: filterList(input.predicates),
           })}`,
         );
       }
@@ -83,8 +89,8 @@ export function createToSWebActions(fetchJson: FetchJson) {
             from: requiredString(input.from_id, "from_id"),
             to: requiredString(input.to_id, "to_id"),
             max_depth: boundedInt(input.max_depth, 6, 1, 8),
-            layers: list(input.layers),
-            predicates: list(input.predicates),
+            layers: filterList(input.layers),
+            predicates: filterList(input.predicates),
           })}`,
         );
       }

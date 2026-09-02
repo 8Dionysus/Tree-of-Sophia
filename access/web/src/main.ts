@@ -1590,7 +1590,12 @@ function renderInspector(): void {
     if (narrative && !(source.from_id && source.to_id)) {
       cards.push(`<div class="detail-card lead-card"><span class="detail-title">${t("detail.overview")}</span><span class="detail-body">${escapeHtml(narrative)}</span></div>`);
     }
-    if (selectedNodeId) {
+    if (
+      selectedNodeId &&
+      state.mode === "philosophy" &&
+      state.activeLayers.size > 0 &&
+      state.activePredicates.size > 0
+    ) {
       cards.push(nodeRouteActions(selectedNodeId));
     }
     cards.push(...relationDetailCards(state.selected));
@@ -2903,7 +2908,12 @@ function pathCards(nodeId: string): string[] {
 }
 
 async function showNeighborhood(nodeId: string): Promise<void> {
-  if (!nodeId) return;
+  if (
+    !nodeId ||
+    state.mode !== "philosophy" ||
+    state.activeLayers.size === 0 ||
+    state.activePredicates.size === 0
+  ) return;
   const requestRevision = ++neighborhoodRevision;
   const requestMode = state.mode;
   const requestViewId = state.currentViewId;
@@ -2944,7 +2954,14 @@ function setPathStart(nodeId: string): void {
 }
 
 async function showPathTo(nodeId: string): Promise<void> {
-  if (!nodeId || !state.pathStartNodeId || state.pathStartNodeId === nodeId) return;
+  if (
+    !nodeId ||
+    !state.pathStartNodeId ||
+    state.pathStartNodeId === nodeId ||
+    state.mode !== "philosophy" ||
+    state.activeLayers.size === 0 ||
+    state.activePredicates.size === 0
+  ) return;
   const requestRevision = ++pathRevision;
   const requestMode = state.mode;
   const requestViewId = state.currentViewId;
