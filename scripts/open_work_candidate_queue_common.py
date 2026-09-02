@@ -280,6 +280,8 @@ def _validate_target_resolution(
     repo_root: Path,
     target_resolution: Any,
     *,
+    candidate: dict[str, Any] | None = None,
+    discovery: dict[str, Any] | None = None,
     location: str,
 ) -> None:
     if not isinstance(target_resolution, dict):
@@ -303,6 +305,34 @@ def _validate_target_resolution(
         raise QueueBuildError(
             f"{location}: reconciled target_resolution must declare at least one identity ref"
         )
+
+    if candidate is not None or discovery is not None:
+        bound_refs: set[str] = set()
+        for owner, owner_name in ((candidate, "candidate"), (discovery, "discovery")):
+            if owner is None:
+                continue
+            target = owner.get("target")
+            if not isinstance(target, dict):
+                raise QueueBuildError(f"{location}: {owner_name} target must be an object")
+            known_refs = target.get("known_tos_refs")
+            if not isinstance(known_refs, list) or not all(
+                isinstance(reference, str) and reference for reference in known_refs
+            ):
+                raise QueueBuildError(
+                    f"{location}: {owner_name} target known_tos_refs must contain strings"
+                )
+            bound_refs.update(known_refs)
+        declared_refs = {
+            target_resolution[field]
+            for field in TARGET_RESOLUTION_CATALOGS
+            if isinstance(target_resolution.get(field), str) and target_resolution.get(field)
+        }
+        unbound_refs = sorted(declared_refs - bound_refs)
+        if unbound_refs:
+            raise QueueBuildError(
+                f"{location}: target_resolution identity refs are not bound to the candidate or discovery target: "
+                f"{unbound_refs}"
+            )
 
     for field, (catalog_path, record_type) in TARGET_RESOLUTION_CATALOGS.items():
         reference = target_resolution.get(field)
@@ -374,6 +404,113 @@ def _find_unique_record(
         locations = ", ".join(path.relative_to(repo_root).as_posix() for _, path in matches)
         raise QueueBuildError(f"{location}: {key} {value!r} has duplicate canonical records: {locations}")
     return matches[0]
+
+
+def _find_unique_catalog_entry(
+    repo_root: Path,
+    *,
+    filename: str,
+    key: str,
+    value: str,
+    location: str,
+) -> dict[str, Any]:
+    path = Path("ToS/source-witnesses/catalog") / filename
+    matches = [
+        entry
+        for entry in _load_jsonl(repo_root / path, repo_root)
+        if entry.get(key) == value
+    ]
+    if not matches:
+        raise QueueBuildError(
+            f"{location}: {key} {value!r} has no canonical catalog entry in {path.as_posix()}"
+        )
+    if len(matches) > 1:
+        raise QueueBuildError(
+            f"{location}: {key} {value!r} has duplicate canonical catalog entries in {path.as_posix()}"
+        )
+    return matches[0]
+
+
+def _canonical_item_identity_refs(
+    repo_root: Path,
+    item: dict[str, Any],
+    item_path: Path,
+    *,
+    location: str,
+) -> set[str]:
+    """Return the canonical item-to-edition-to-expression-to-work identity ladder."""
+    item_id = item.get("item_id")
+    if not isinstance(item_id, str) or not item_id:
+        raise QueueBuildError(f"{location}: item manifest must bind a non-empty item_id")
+    refs = {item_id, item_path.relative_to(repo_root).as_posix()}
+
+    embodiment_ref = item.get("embodiment_ref")
+    if not isinstance(embodiment_ref, str) or not embodiment_ref:
+        raise QueueBuildError(f"{location}: item manifest must bind embodiment_ref")
+    refs.add(embodiment_ref)
+    edition = _find_unique_catalog_entry(
+        repo_root,
+        filename="editions.jsonl",
+        key="record_id",
+        value=embodiment_ref,
+        location=location,
+    )
+    edition_links = edition.get("links")
+    expression_refs = (
+        edition_links.get("embodies_expression_refs")
+        if isinstance(edition_links, dict)
+        else None
+    )
+    if not isinstance(expression_refs, list) or not all(
+        isinstance(reference, str) and reference for reference in expression_refs
+    ):
+        raise QueueBuildError(
+            f"{location}: canonical edition {embodiment_ref!r} must bind expression refs"
+        )
+    if not expression_refs:
+        raise QueueBuildError(
+            f"{location}: canonical edition {embodiment_ref!r} must bind at least one expression"
+        )
+    for expression_ref in expression_refs:
+        refs.add(expression_ref)
+        expression = _find_unique_catalog_entry(
+            repo_root,
+            filename="expressions.jsonl",
+            key="record_id",
+            value=expression_ref,
+            location=location,
+        )
+        expression_links = expression.get("links")
+        work_ref = expression_links.get("work_ref") if isinstance(expression_links, dict) else None
+        if not isinstance(work_ref, str) or not work_ref:
+            raise QueueBuildError(
+                f"{location}: canonical expression {expression_ref!r} must bind work_ref"
+            )
+        refs.add(work_ref)
+    return refs
+
+
+def _validate_event_output_digest(
+    outputs: list[Any],
+    *,
+    reference: str,
+    expected_digest: str,
+    location: str,
+) -> None:
+    matches = [
+        output
+        for output in outputs
+        if isinstance(output, dict) and output.get("ref") == reference
+    ]
+    if len(matches) != 1:
+        raise QueueBuildError(
+            f"{location}: acquisition event must contain exactly one output for {reference!r}"
+        )
+    if matches[0].get("sha256") != expected_digest:
+        raise QueueBuildError(
+            f"{location}: acquisition event output digest for {reference!r} does not bind "
+            f"the referenced bytes"
+        )
 
 
 def _validate_planting_refs(
@@ -603,6 +740,8 @@ def _validate_acquisition_closure(
     acquisition: Any,
     *,
     candidate_id: str,
+    candidate: dict[str, Any],
+    discovery: dict[str, Any],
     discoveries: dict[str, tuple[dict[str, Any], str]],
     receipt_context_refs: set[str],
     receipt_discovery_id: str | None,
@@ -684,6 +823,75 @@ def _validate_acquisition_closure(
             raise QueueBuildError(
                 f"{location}: item acquisition item_ref {item_ref!r} is not bound to the receipt route"
             )
+        manifest_event_ref = item.get("acquisition_event_ref")
+        if not isinstance(manifest_event_ref, str) or not manifest_event_ref:
+            raise QueueBuildError(
+                f"{location}: item manifest must bind acquisition_event_ref"
+            )
+        if manifest_event_ref != event_ref:
+            raise QueueBuildError(
+                f"{location}: item manifest acquisition_event_ref {manifest_event_ref!r} "
+                f"does not bind provenance event {event_ref!r}"
+            )
+        item_identity_refs = _canonical_item_identity_refs(
+            repo_root,
+            item,
+            item_path,
+            location=location,
+        )
+        event_input_refs = {
+            input_ref.get("ref")
+            for input_ref in event.get("inputs", [])
+            if isinstance(input_ref, dict)
+            and isinstance(input_ref.get("ref"), str)
+            and input_ref.get("ref")
+        }
+        candidate_target = candidate.get("target")
+        candidate_target_refs = (
+            {
+                reference
+                for reference in candidate_target.get("known_tos_refs", [])
+                if isinstance(reference, str) and reference
+            }
+            if isinstance(candidate_target, dict)
+            and isinstance(candidate_target.get("known_tos_refs"), list)
+            else set()
+        )
+        discovery_target = discovery.get("target")
+        discovery_target_refs = (
+            {
+                reference
+                for reference in discovery_target.get("known_tos_refs", [])
+                if isinstance(reference, str) and reference
+            }
+            if isinstance(discovery_target, dict)
+            and isinstance(discovery_target.get("known_tos_refs"), list)
+            else set()
+        )
+        discovery_event_refs = {
+            reference
+            for reference in discovery.get("provenance_event_refs", [])
+            if isinstance(reference, str) and reference
+        } if isinstance(discovery.get("provenance_event_refs"), list) else set()
+        if not event_input_refs & (
+            candidate_target_refs
+            | discovery_target_refs
+            | discovery_event_refs
+            | item_identity_refs
+        ):
+            raise QueueBuildError(
+                f"{location}: item acquisition provenance event {event_ref!r} does not bind "
+                f"candidate {candidate_id!r}, its discovery target, or the canonical item identity ladder"
+            )
+        file_digest = file_ref.removeprefix("tos.file.sha256.")
+        if re.fullmatch(r"[0-9a-f]{64}", file_digest) is None:
+            raise QueueBuildError(f"{location}: file_ref must carry a lowercase SHA-256 digest")
+        _validate_event_output_digest(
+            outputs,
+            reference=file_ref,
+            expected_digest=file_digest,
+            location=location,
+        )
         files = item.get("payload_files")
         if not isinstance(files, list) or not any(
             isinstance(payload_file, dict) and payload_file.get("file_id") == file_ref
@@ -704,8 +912,11 @@ def _validate_acquisition_closure(
     )
     if representation.get("file_id") != file_ref:
         raise QueueBuildError(f"{location}: representation does not bind file_ref {file_ref!r}")
+    file_digest = file_ref.removeprefix("tos.file.sha256.")
+    if re.fullmatch(r"[0-9a-f]{64}", file_digest) is None:
+        raise QueueBuildError(f"{location}: file_ref must carry a lowercase SHA-256 digest")
     payload = representation.get("payload")
-    if not isinstance(payload, dict) or payload.get("sha256") != file_ref.removeprefix("tos.file.sha256."):
+    if not isinstance(payload, dict) or payload.get("sha256") != file_digest:
         raise QueueBuildError(f"{location}: representation payload fixity does not bind file_ref {file_ref!r}")
     if representation_ref not in output_refs:
         raise QueueBuildError(
@@ -769,6 +980,12 @@ def _validate_acquisition_closure(
             f"to receipt discovery {receipt_discovery_ref!r} ({receipt_discovery_id!r}) "
             "or an explicit candidate binding"
         )
+    _validate_event_output_digest(
+        outputs,
+        reference=representation_ref,
+        expected_digest=_sha256_file(representation_path),
+        location=location,
+    )
 
 
 def _validate_receipt_acquisition_closure(
@@ -815,6 +1032,8 @@ def _validate_receipt_acquisition_closure(
             repo_root,
             acquisition,
             candidate_id=candidate_id,
+            candidate=candidate,
+            discovery=discovery,
             discoveries=discoveries,
             receipt_context_refs=receipt_context_refs,
             receipt_discovery_id=receipt.get("discovery_id"),
@@ -984,6 +1203,11 @@ def _validate_active_discovery_timings(
     )
     if discovery_ended_at < discovery_started_at:
         raise QueueBuildError(f"{location}: discovery ended_at precedes started_at")
+    timing_measured_at = _parse_timestamp(
+        timing.get("measured_at"),
+        location=location,
+        field="timing.measured_at",
+    )
     measurement_rows = timing.get("measurements")
     if not isinstance(measurement_rows, list) or not measurement_rows:
         raise QueueBuildError(f"{location}: timing receipt must contain measurements")
@@ -998,6 +1222,7 @@ def _validate_active_discovery_timings(
         location=f"{location}:channel_comparison",
     )
     channel_ids: set[str] = set()
+    measurement_ended_at_values: list[datetime] = []
     for index, channel in enumerate(channels, start=1):
         channel_location = f"{location}:channels[{index}]"
         if not isinstance(channel, dict):
@@ -1051,6 +1276,7 @@ def _validate_active_discovery_timings(
             )
         if measurement_ended_at < measurement_started_at:
             raise QueueBuildError(f"{channel_location}: timing_measurement ended_at precedes started_at")
+        measurement_ended_at_values.append(measurement_ended_at)
         if measurement_started_at < discovery_started_at or measurement_ended_at > discovery_ended_at:
             raise QueueBuildError(
                 f"{channel_location}: timing measurement interval must stay within discovery interval"
@@ -1093,6 +1319,10 @@ def _validate_active_discovery_timings(
         raise QueueBuildError(f"{location}: channel_comparison must cover the exact active channel set")
     if set(measurement_rows_by_id) != channel_ids:
         raise QueueBuildError(f"{location}: timing receipt must cover the exact active channel set")
+    if timing_measured_at < max(measurement_ended_at_values):
+        raise QueueBuildError(
+            f"{location}: timing.measured_at cannot precede the latest channel measurement"
+        )
 
 
 def _load_receipts(
@@ -1137,6 +1367,17 @@ def _load_receipts(
             raise QueueBuildError(
                 f"{location}: discovery_ref {discovery_ref!r} does not resolve discovery_id {discovery_id!r}"
             )
+        issued_at = _parse_timestamp(receipt.get("issued_at"), location=location, field="issued_at")
+        discovery_ended_at = _parse_timestamp(
+            discovery[0].get("ended_at"),
+            location=discovery_ref,
+            field="ended_at",
+        )
+        if issued_at < discovery_ended_at:
+            raise QueueBuildError(
+                f"{location}: issued_at {issued_at.isoformat()} precedes discovery ended_at "
+                f"{discovery_ended_at.isoformat()}"
+            )
         _validate_target_binding(
             candidate,
             discovery[0],
@@ -1146,6 +1387,8 @@ def _load_receipts(
         _validate_target_resolution(
             repo_root,
             receipt.get("target_resolution"),
+            candidate=candidate,
+            discovery=discovery[0],
             location=location,
         )
         _validate_receipt_acquisition_closure(
@@ -1190,6 +1433,50 @@ def _load_receipts(
 
 def _sha256_file(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def _historical_provenance_hashes(
+    repo_root: Path,
+    *,
+    cutoff: datetime,
+    provenance_events: dict[str, tuple[dict[str, Any], str]],
+) -> dict[Path, str]:
+    events_by_location: dict[tuple[Path, int], dict[str, Any]] = {}
+    for event, location in provenance_events.values():
+        try:
+            relative_text, line_text = location.rsplit(":", 1)
+            relative = _safe_relative_path(relative_text)
+            line_number = int(line_text)
+        except (ValueError, QueueBuildError) as exc:
+            raise QueueBuildError(f"provenance event location is invalid: {location!r}") from exc
+        events_by_location[(relative, line_number)] = event
+
+    hashes: dict[Path, str] = {}
+    source_root = repo_root / "ToS/source-witnesses"
+    if not source_root.is_dir():
+        return hashes
+    for path in sorted(source_root.rglob("provenance.jsonl")):
+        relative = path.relative_to(repo_root)
+        raw_lines = path.read_bytes().splitlines(keepends=True)
+        retained_lines: list[bytes] = []
+        for line_number, raw_line in enumerate(raw_lines, start=1):
+            if not raw_line.strip():
+                retained_lines.append(raw_line)
+                continue
+            event = events_by_location.get((relative, line_number))
+            if event is None:
+                raise QueueBuildError(
+                    f"{relative.as_posix()}:{line_number}: provenance line is not indexed"
+                )
+            event_ended_at = _parse_timestamp(
+                event.get("ended_at"),
+                location=f"{relative.as_posix()}:{line_number}",
+                field="ended_at",
+            )
+            if event_ended_at <= cutoff:
+                retained_lines.append(raw_line)
+        hashes[relative] = hashlib.sha256(b"".join(retained_lines)).hexdigest()
+    return hashes
 
 
 def _snapshot_path_from_ref(
@@ -1352,6 +1639,7 @@ def _snapshot(
     receipts: list[dict[str, Any]],
     discoveries: dict[str, tuple[dict[str, Any], str]],
     provenance_events: dict[str, tuple[dict[str, Any], str]] | None = None,
+    provenance_cutoff: datetime | None = None,
     excluded_paths: set[Path] | None = None,
 ) -> dict[str, Any]:
     master_rows = sum(len(_load_jsonl(repo_root / path, repo_root)) for path in MASTER_ROW_PATHS)
@@ -1391,10 +1679,19 @@ def _snapshot(
         {path for path in input_paths if path.as_posix() not in excluded},
         key=lambda path: path.as_posix(),
     )
+    provenance_hashes = (
+        _historical_provenance_hashes(
+            repo_root,
+            cutoff=provenance_cutoff,
+            provenance_events=provenance_events,
+        )
+        if provenance_cutoff is not None and provenance_events is not None
+        else {}
+    )
     inputs = [
         {
             "path": path.as_posix(),
-            "sha256": _sha256_file(repo_root / path),
+            "sha256": provenance_hashes.get(path, _sha256_file(repo_root / path)),
         }
         for path in unique_paths
     ]
@@ -1495,6 +1792,7 @@ def _build_queue_payload(
     receipts: list[dict[str, Any]],
     discoveries: dict[str, tuple[dict[str, Any], str]],
     provenance_events: dict[str, tuple[dict[str, Any], str]] | None = None,
+    provenance_cutoff: datetime | None = None,
     excluded_paths: set[Path] | None = None,
 ) -> dict[str, Any]:
     latest_receipts: dict[str, dict[str, Any]] = {}
@@ -1510,6 +1808,7 @@ def _build_queue_payload(
         receipts=receipts,
         discoveries=discoveries,
         provenance_events=provenance_events,
+        provenance_cutoff=provenance_cutoff,
         excluded_paths=excluded_paths,
     )
     queue_entries: list[dict[str, Any]] = []
@@ -1590,6 +1889,8 @@ def _reconstruct_pre_run_queue_sha256(
     discoveries: dict[str, tuple[dict[str, Any], str]],
     provenance_events: dict[str, tuple[dict[str, Any], str]] | None = None,
 ) -> str:
+    if provenance_events is None:
+        provenance_events = _load_provenance_events(repo_root)
     current_key = _receipt_sort_key(current_receipt)
     prior_receipts = [
         receipt
@@ -1626,11 +1927,31 @@ def _reconstruct_pre_run_queue_sha256(
         for receipt in prior_receipts
         if isinstance(receipt.get("timing_ref"), str) and receipt.get("timing_ref")
     }
+    owned_timing_refs = set(prior_timing_refs)
+    for discovery, _ in pre_run_discoveries.values():
+        event_refs = discovery.get("provenance_event_refs", [])
+        if not isinstance(event_refs, list):
+            continue
+        for event_ref in event_refs:
+            event_entry = provenance_events.get(event_ref) if provenance_events is not None else None
+            if event_entry is None:
+                continue
+            outputs = event_entry[0].get("outputs", [])
+            if not isinstance(outputs, list):
+                continue
+            for output in outputs:
+                reference = output.get("ref") if isinstance(output, dict) else None
+                if not isinstance(reference, str) or not reference.startswith(f"{TIMING_ROOT.as_posix()}/"):
+                    continue
+                path = _safe_relative_path(reference)
+                if (repo_root / path).is_file():
+                    owned_timing_refs.add(path)
     timing_root = repo_root / TIMING_ROOT
     if timing_root.is_dir():
         for path in sorted(timing_root.glob("*.json")):
             relative = path.relative_to(repo_root)
-            if relative in prior_timing_refs:
+            if relative not in owned_timing_refs:
+                excluded_paths.add(relative)
                 continue
             timing = _load_json(path, repo_root)
             measured_at = _parse_timestamp(
@@ -1646,6 +1967,7 @@ def _reconstruct_pre_run_queue_sha256(
         receipts=prior_receipts,
         discoveries=pre_run_discoveries,
         provenance_events=provenance_events,
+        provenance_cutoff=current_key[0],
         excluded_paths=excluded_paths,
     )
     return payload["queue_sha256"]
@@ -1670,11 +1992,43 @@ def _has_independent_snapshot_witness(
         location=f"receipt {receipt.get('receipt_id', 'unknown')}",
         field="issued_at",
     )
+
+    def receipt_bound_pre_run_event(event_ref: str, event: dict[str, Any]) -> bool:
+        relation_refs = receipt.get("operational_relation_refs")
+        if not isinstance(relation_refs, list) or event_ref not in relation_refs:
+            return False
+        try:
+            event_ended_at = _parse_timestamp(
+                event.get("ended_at"),
+                location=event_ref,
+                field="ended_at",
+            )
+        except QueueBuildError:
+            return False
+        if event_ended_at > receipt_issued_at:
+            return False
+        event_inputs = event.get("inputs")
+        if not isinstance(event_inputs, list):
+            return False
+        ledger_input = next(
+            (
+                input_ref
+                for input_ref in event_inputs
+                if isinstance(input_ref, dict)
+                and input_ref.get("ref") == LEDGER_PATH.as_posix()
+            ),
+            None,
+        )
+        ledger_digest = ledger_input.get("sha256") if isinstance(ledger_input, dict) else None
+        return isinstance(ledger_digest, str) and re.fullmatch(r"[0-9a-f]{64}", ledger_digest) is not None
+
     for event_ref in event_refs:
         event_entry = provenance_events.get(event_ref)
         if event_entry is None:
             continue
         event = event_entry[0]
+        if not receipt_bound_pre_run_event(event_ref, event):
+            continue
         configuration = event.get("method", {}).get("configuration", {})
         if not isinstance(configuration, dict):
             continue
@@ -1696,9 +2050,9 @@ def _has_independent_snapshot_witness(
         configuration = event.get("method", {}).get("configuration", {})
         if not isinstance(configuration, dict) or configuration.get("candidate_id") != candidate_id:
             continue
-        started_at = event.get("started_at")
+        ended_at = event.get("ended_at")
         try:
-            if _parse_timestamp(started_at, location=event_ref, field="started_at") > receipt_issued_at:
+            if _parse_timestamp(ended_at, location=event_ref, field="ended_at") > receipt_issued_at:
                 continue
         except QueueBuildError:
             continue
@@ -1777,6 +2131,10 @@ def _validate_receipt_transition_history(
     if provenance_events is None:
         provenance_events = _load_provenance_events(repo_root)
     validated_snapshot_ids: set[str] = set()
+    first_receipt_key_by_candidate: dict[str, tuple[datetime, int, str]] = {}
+    for receipt in ordered_receipts:
+        candidate_id = _required_string(receipt, "candidate_id", "receipt")
+        first_receipt_key_by_candidate.setdefault(candidate_id, _receipt_sort_key(receipt))
 
     for receipt in ordered_receipts:
         receipt_id = _required_string(receipt, "receipt_id", "receipt")
@@ -1792,20 +2150,26 @@ def _validate_receipt_transition_history(
         if previous is None:
             if candidate["candidate_kind"] not in QUEUEABLE_KINDS:
                 raise QueueBuildError(f"{receipt_id}: terminal receipt cannot advance a non-queueable candidate")
-            candidate_line = next(
-                _candidate_source_line(location)
-                for item, location in candidates_with_locations
-                if item["candidate_id"] == candidate_id
-            )
-            # The reviewed ledger is append-only for this route.  A historical
-            # receipt may predate later candidates that now sort earlier by a
-            # broad chronology year, so the pre-run frontier is bounded by the
-            # candidate's authored ledger line until an exact snapshot is
-            # available for that run.
+            # When the exact queue hash cannot be reconstructed and the receipt
+            # uses an independently witnessed snapshot, the candidate ledger
+            # may contain later rows whose sort key is earlier than the row
+            # being processed.  Ledger position is not a temporal boundary.
+            # Use the dated terminal provenance instead: a ready candidate is
+            # in this historical frontier only once its first receipt exists;
+            # non-ready authored candidates are always part of the queue state
+            # but cannot become the next executable candidate.
+            latest_boundary = datetime.max.replace(tzinfo=timezone.utc)
+            historical_candidate_ids = {
+                item["candidate_id"]
+                for item, _ in candidates_with_locations
+                if item.get("queue_status") != READY_STATUS
+                or first_receipt_key_by_candidate.get(item["candidate_id"], (latest_boundary, 0, ""))
+                <= _receipt_sort_key(receipt)
+            }
             historical_frontier = [
                 (item, location)
                 for item, location in candidates_with_locations
-                if _candidate_source_line(location) <= candidate_line
+                if item["candidate_id"] in historical_candidate_ids
             ]
             expected = next(
                 (

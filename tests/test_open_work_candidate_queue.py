@@ -251,6 +251,36 @@ class OpenWorkCandidateQueueTest(unittest.TestCase):
         with self.assertRaisesRegex(QueueBuildError, "unresolved target_resolution must not"):
             _validate_target_resolution(repo, unresolved, location="synthetic receipt")
 
+        bound_candidate = _candidate(
+            "open-work-candidate.earliest",
+            year=-2400,
+            row_id="A04",
+            row_order=4,
+        )
+        bound_candidate["target"]["known_tos_refs"] = [target["work_ref"]]
+        bound_discovery = _timed_discovery("tos.discovery.earliest")
+        bound_discovery["target"]["known_tos_refs"] = [target["work_ref"]]
+        _validate_target_resolution(
+            repo,
+            target,
+            candidate=bound_candidate,
+            discovery=bound_discovery,
+            location="bound synthetic receipt",
+        )
+
+        unbound_candidate = copy.deepcopy(bound_candidate)
+        unbound_candidate["target"]["known_tos_refs"] = ["tos.work.synthetic.other"]
+        unbound_discovery = copy.deepcopy(bound_discovery)
+        unbound_discovery["target"]["known_tos_refs"] = ["tos.work.synthetic.other"]
+        with self.assertRaisesRegex(QueueBuildError, "not bound to the candidate or discovery target"):
+            _validate_target_resolution(
+                repo,
+                target,
+                candidate=unbound_candidate,
+                discovery=unbound_discovery,
+                location="unbound synthetic receipt",
+            )
+
     def test_terminal_receipt_advances_queue_without_rewriting_candidate(self) -> None:
         repo = self.make_repo()
         before = build_payload(repo)
@@ -293,7 +323,7 @@ class OpenWorkCandidateQueueTest(unittest.TestCase):
             "planting_refs": [],
             "operational_relation_refs": [],
             "next_trigger": "A stronger exact rights record.",
-            "issued_at": "2026-08-29T12:00:00Z",
+            "issued_at": "2026-08-29T12:00:00.125000Z",
             "maker": {"maker_type": "model", "agent_ref": "codex:test"},
             "record_version": 1,
         }
@@ -318,6 +348,14 @@ class OpenWorkCandidateQueueTest(unittest.TestCase):
         states = {entry["candidate_id"]: entry["effective_status"] for entry in after["candidates"]}
         self.assertEqual("metadata_only", states["open-work-candidate.earliest"])
         self.assertEqual("ready-for-discovery", states["open-work-candidate.later"])
+
+        receipt["issued_at"] = "2026-08-29T12:00:00Z"
+        _write_json(
+            repo / "ToS/source-witnesses/discovery/candidates/receipts/earliest.2026-08-29.v1.json",
+            receipt,
+        )
+        with self.assertRaisesRegex(QueueBuildError, "precedes discovery ended_at"):
+            build_payload(repo)
 
     def test_missing_review_source_selector_fails_closed(self) -> None:
         repo = self.make_repo()
@@ -410,6 +448,68 @@ class OpenWorkCandidateQueueTest(unittest.TestCase):
             )
         )
 
+    def test_snapshot_witness_must_be_pre_run_and_receipt_bound(self) -> None:
+        repo = self.make_repo()
+        event_ref = "tos.event.discovery.synthetic-snapshot"
+        discovery = _timed_discovery("tos.discovery.earliest")
+        discovery["provenance_event_refs"] = [event_ref]
+        receipt = {
+            "receipt_id": "open-work-candidate-receipt.earliest.v1",
+            "candidate_id": "open-work-candidate.earliest",
+            "discovery_id": "tos.discovery.earliest",
+            "issued_at": "2026-08-29T12:00:00Z",
+            "queue_snapshot_sha256": "b" * 64,
+            "operational_relation_refs": [event_ref],
+        }
+        event = {
+            "event_id": event_ref,
+            "event_type": "discovery",
+            "started_at": "2026-08-29T11:59:00Z",
+            "ended_at": "2026-08-29T11:59:30Z",
+            "inputs": [
+                {
+                    "ref": "ToS/source-witnesses/discovery/candidates/reviewed-candidates.jsonl",
+                    "sha256": "a" * 64,
+                }
+            ],
+            "outputs": [],
+            "method": {
+                "configuration": {
+                    "candidate_id": "open-work-candidate.earliest",
+                    "frozen_queue_snapshot_sha256": "b" * 64,
+                }
+            },
+        }
+        context = {
+            "tos.discovery.earliest": (
+                discovery,
+                "ToS/source-witnesses/discovery/runs/earliest.v1.json",
+            )
+        }
+        events = {event_ref: (event, "synthetic-event")}
+        self.assertTrue(
+            _has_independent_snapshot_witness(
+                repo,
+                receipt,
+                candidate_id="open-work-candidate.earliest",
+                candidate_label="Earliest",
+                discoveries=context,
+                provenance_events=events,
+            )
+        )
+
+        event["ended_at"] = "2026-08-29T12:00:30Z"
+        self.assertFalse(
+            _has_independent_snapshot_witness(
+                repo,
+                receipt,
+                candidate_id="open-work-candidate.earliest",
+                candidate_label="Earliest",
+                discoveries=context,
+                provenance_events=events,
+            )
+        )
+
     def test_reconstruction_excludes_unreceipted_post_run_discovery(self) -> None:
         repo = self.make_repo()
         current = _timed_discovery("tos.discovery.current")
@@ -443,6 +543,26 @@ class OpenWorkCandidateQueueTest(unittest.TestCase):
             "record_version": 1,
         }
 
+        provenance_path = repo / "ToS/source-witnesses/discovery/provenance.jsonl"
+        pre_run_event = {
+            "event_id": "tos.event.annotation.synthetic-pre-run",
+            "event_type": "annotation",
+            "started_at": "2026-08-29T10:00:00Z",
+            "ended_at": "2026-08-29T10:00:30Z",
+            "inputs": [],
+            "outputs": [],
+            "method": {},
+        }
+        post_run_event = {
+            "event_id": "tos.event.annotation.synthetic-post-run",
+            "event_type": "annotation",
+            "started_at": "2026-08-29T13:00:00Z",
+            "ended_at": "2026-08-29T13:00:30Z",
+            "inputs": [],
+            "outputs": [],
+            "method": {},
+        }
+        _write_jsonl(provenance_path, [pre_run_event])
         without_post_run = _reconstruct_pre_run_queue_sha256(
             repo,
             current_receipt=receipt,
@@ -450,6 +570,7 @@ class OpenWorkCandidateQueueTest(unittest.TestCase):
             candidates_with_locations=candidates,
             discoveries={key: value for key, value in discoveries.items() if key != "tos.discovery.post-run"},
         )
+        _write_jsonl(provenance_path, [pre_run_event, post_run_event])
         future_timing_ref = "ToS/source-witnesses/discovery/timings/unrelated-post-run.json"
         _write_json(
             repo / future_timing_ref,
@@ -555,7 +676,7 @@ class OpenWorkCandidateQueueTest(unittest.TestCase):
                 "planting_refs": [],
                 "operational_relation_refs": [],
                 "next_trigger": "A stronger exact rights record.",
-                "issued_at": "2026-08-29T12:00:00Z",
+                "issued_at": "2026-08-29T12:00:00.125000Z",
                 "maker": {"maker_type": "model", "agent_ref": "codex:test"},
                 "record_version": 1,
             },
@@ -592,6 +713,19 @@ class OpenWorkCandidateQueueTest(unittest.TestCase):
         timing["measurements"][0]["measurement"]["started_at"] = "2026-08-29T12:00:00.001000Z"
 
         with self.assertRaisesRegex(QueueBuildError, "started_at must equal channel queried_at"):
+            _validate_active_discovery_timings(
+                discovery,
+                timing,
+                discovery_ref="ToS/source-witnesses/discovery/runs/earliest.v1.json",
+                location="synthetic-discovery",
+            )
+
+        timing = _timing_receipt(
+            "tos.discovery.earliest",
+            "ToS/source-witnesses/discovery/runs/earliest.v1.json",
+        )
+        timing["measured_at"] = "2026-08-29T12:00:00.124999Z"
+        with self.assertRaisesRegex(QueueBuildError, "timing.measured_at cannot precede"):
             _validate_active_discovery_timings(
                 discovery,
                 timing,
@@ -821,7 +955,7 @@ class OpenWorkCandidateQueueTest(unittest.TestCase):
             "event_type": "acquisition",
             "method": {"configuration": {}},
             "inputs": [{"ref": "tos.work.synthetic"}],
-            "outputs": [{"ref": file_ref}],
+            "outputs": [{"ref": file_ref, "sha256": "c" * 64}],
         }
         with self.assertRaisesRegex(QueueBuildError, "item acquisition item_ref .*not bound"):
             _validate_receipt_acquisition_closure(
@@ -857,6 +991,113 @@ class OpenWorkCandidateQueueTest(unittest.TestCase):
                     )
                 },
                 provenance_events={event_ref: (provenance_event, "synthetic-event")},
+                location="synthetic-receipt",
+            )
+
+    def test_downloaded_item_event_must_bind_canonical_item_identity(self) -> None:
+        repo = self.make_repo()
+        candidate_id = "open-work-candidate.earliest"
+        discovery_id = "tos.discovery.earliest"
+        discovery_ref = "ToS/source-witnesses/discovery/runs/earliest.v1.json"
+        item_id = "tos.item.synthetic"
+        item_ref = "ToS/source-witnesses/works/synthetic/items/item.manifest.json"
+        edition_id = "tos.edition.synthetic"
+        expression_id = "tos.expression.synthetic"
+        work_id = "tos.work.synthetic.item"
+        file_ref = "tos.file.sha256." + ("c" * 64)
+        event_ref = "tos.event.acquisition.synthetic-item"
+        _write_json(repo / discovery_ref, _timed_discovery(discovery_id))
+        _write_jsonl(
+            repo / "ToS/source-witnesses/catalog/editions.jsonl",
+            [
+                {
+                    "record_id": edition_id,
+                    "links": {"embodies_expression_refs": [expression_id]},
+                }
+            ],
+        )
+        _write_jsonl(
+            repo / "ToS/source-witnesses/catalog/expressions.jsonl",
+            [
+                {
+                    "record_id": expression_id,
+                    "links": {"work_ref": work_id},
+                }
+            ],
+        )
+        _write_json(
+            repo / item_ref,
+            {
+                "item_id": item_id,
+                "embodiment_ref": edition_id,
+                "acquisition_event_ref": event_ref,
+                "payload_files": [{"file_id": file_ref}],
+            },
+        )
+        provenance_event = {
+            "event_type": "acquisition",
+            "method": {"configuration": {}},
+            "inputs": [{"ref": "tos.work.synthetic.foreign"}],
+            "outputs": [{"ref": file_ref, "sha256": "c" * 64}],
+        }
+        receipt = {
+            "candidate_id": candidate_id,
+            "rights_result": {
+                "status": "positive-for-acquisition",
+                "evidence_refs": [discovery_ref],
+            },
+            "discovery_ref": discovery_ref,
+            "discovery_id": discovery_id,
+            "operational_relation_refs": [item_id, item_ref, event_ref],
+            "acquisition": {
+                "downloaded": True,
+                "item_ref": item_id,
+                "artifact_ref": None,
+                "composite_ref": None,
+                "representation_ref": None,
+                "file_ref": file_ref,
+                "provenance_event_ref": event_ref,
+            },
+            "planting_refs": [],
+        }
+        candidate = _candidate(candidate_id, year=-2400, row_id="A04", row_order=4)
+        discovery = _timed_discovery(discovery_id)
+        discoveries = {discovery_id: (discovery, discovery_ref)}
+        provenance_events = {event_ref: (provenance_event, "synthetic-event")}
+
+        with self.assertRaisesRegex(
+            QueueBuildError,
+            "does not bind candidate .*canonical item identity ladder",
+        ):
+            _validate_receipt_acquisition_closure(
+                repo,
+                receipt,
+                candidate=candidate,
+                discovery=discovery,
+                discoveries=discoveries,
+                provenance_events=provenance_events,
+                location="synthetic-receipt",
+            )
+
+        provenance_event["inputs"] = [{"ref": work_id}]
+        _validate_receipt_acquisition_closure(
+            repo,
+            receipt,
+            candidate=candidate,
+            discovery=discovery,
+            discoveries=discoveries,
+            provenance_events=provenance_events,
+            location="synthetic-receipt",
+        )
+        provenance_event["outputs"][0]["sha256"] = "d" * 64
+        with self.assertRaisesRegex(QueueBuildError, "acquisition event output digest"):
+            _validate_receipt_acquisition_closure(
+                repo,
+                receipt,
+                candidate=candidate,
+                discovery=discovery,
+                discoveries=discoveries,
+                provenance_events=provenance_events,
                 location="synthetic-receipt",
             )
 
