@@ -7638,8 +7638,8 @@ def validate_foundation(repo_root: Path, *, require_local_payloads: bool = False
             rights_id = rights.get("rights_id")
             if isinstance(rights_id, str):
                 rights_ids.add(rights_id)
-            scopes = rights.get("scope_refs", [])
-            if item_id not in scopes:
+            scopes = rights.get("scope_refs")
+            if isinstance(scopes, list) and item_id not in scopes:
                 issues.append((rights_location, f"scope_refs does not include item_id {item_id}"))
             if rights.get("visibility") != manifest.get("visibility"):
                 issues.append((rights_location, "rights visibility differs from item manifest visibility"))
@@ -7742,10 +7742,12 @@ def validate_foundation(repo_root: Path, *, require_local_payloads: bool = False
         if actual_fixity and actual_fixity != expected_fixity:
             issues.append((_relative(fixity_path, repo_root), "fixity companion differs from item manifest"))
         if rights is not None:
-            rights_scopes = set(rights.get("scope_refs", []))
-            missing_file_scopes = sorted(file_ids - rights_scopes)
-            if missing_file_scopes:
-                issues.append((_relative(rights_path, repo_root), f"scope_refs omits payload files: {missing_file_scopes}"))
+            scope_refs = rights.get("scope_refs")
+            if isinstance(scope_refs, list):
+                rights_scopes = set(scope_refs)
+                missing_file_scopes = sorted(file_ids - rights_scopes)
+                if missing_file_scopes:
+                    issues.append((_relative(rights_path, repo_root), f"scope_refs omits payload files: {missing_file_scopes}"))
 
     for item_id, (item, path) in item_records.items():
         location = _relative(path, repo_root)
@@ -10904,7 +10906,8 @@ def validate_foundation(repo_root: Path, *, require_local_payloads: bool = False
                     issues.append(
                         (transfer_location, "transfer target rights assessment drifted")
                     )
-                if target_item_ref not in rights_record.get("scope_refs", []):
+                scope_refs = rights_record.get("scope_refs")
+                if isinstance(scope_refs, list) and target_item_ref not in scope_refs:
                     issues.append(
                         (transfer_location, "transfer target rights record omits its item")
                     )
@@ -12711,7 +12714,8 @@ def validate_foundation(repo_root: Path, *, require_local_payloads: bool = False
         )
         if rights is not None:
             _validate_payload(rights, rights_validator, str(rights_ref), issues)
-            if artifact_id not in rights.get("scope_refs", []):
+            scope_refs = rights.get("scope_refs")
+            if isinstance(scope_refs, list) and artifact_id not in scope_refs:
                 issues.append((str(rights_ref), "artifact rights scope does not include artifact_id"))
             if rights.get("visibility") != "public_metadata_only" or rights.get("redistribution_posture") != "metadata_only":
                 issues.append((str(rights_ref), "artifact rights must remain public-metadata-only"))
@@ -12836,7 +12840,8 @@ def validate_foundation(repo_root: Path, *, require_local_payloads: bool = False
             issues.append((representation_ref, "artifact representation rights_ref is missing"))
         else:
             _validate_payload(rights, rights_validator, str(rights_ref), issues)
-            if not {artifact_id, file_id} <= set(rights.get("scope_refs", [])):
+            scope_refs = rights.get("scope_refs")
+            if isinstance(scope_refs, list) and not {artifact_id, file_id} <= set(scope_refs):
                 issues.append((str(rights_ref), "representation rights must cover artifact_id and file_id"))
             if (
                 rights.get("visibility") != "public_payload"
@@ -12926,7 +12931,8 @@ def validate_foundation(repo_root: Path, *, require_local_payloads: bool = False
         )
         if rights is not None:
             _validate_payload(rights, rights_validator, str(rights_ref), issues)
-            if composite_id not in rights.get("scope_refs", []):
+            scope_refs = rights.get("scope_refs")
+            if isinstance(scope_refs, list) and composite_id not in scope_refs:
                 issues.append(
                     (str(rights_ref), "scholarly-composite rights scope does not include composite_id")
                 )

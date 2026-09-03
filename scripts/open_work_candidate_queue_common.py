@@ -1312,6 +1312,7 @@ def _validate_acquisition_closure(
     provenance_events: dict[str, tuple[dict[str, Any], str]],
     location: str,
     receipt_issued_at: datetime | None = None,
+    validate_lineage_chronology: bool = True,
 ) -> None:
     if not isinstance(acquisition, dict):
         raise QueueBuildError(f"{location}: acquisition must be an object")
@@ -1441,6 +1442,33 @@ def _validate_acquisition_closure(
             location=location,
         )
         event_chain = event_lineage or [event]
+        if receipt_issued_at is not None and validate_lineage_chronology:
+            for chain_index, chain_event in enumerate(event_chain, start=1):
+                chain_location = f"{location}:item_event_lineage[{chain_index}]"
+                chain_started_at = None
+                if chain_event.get("started_at") is not None:
+                    chain_started_at = _parse_timestamp(
+                        chain_event.get("started_at"),
+                        location=chain_location,
+                        field="started_at",
+                    )
+                chain_ended_at = _parse_timestamp(
+                    chain_event.get("ended_at"),
+                    location=chain_location,
+                    field="ended_at",
+                )
+                if chain_started_at is not None and chain_ended_at < chain_started_at:
+                    raise QueueBuildError(
+                        f"{location}: item acquisition provenance event lineage[{chain_index}] "
+                        f"ended_at {chain_ended_at.isoformat()} precedes started_at "
+                        f"{chain_started_at.isoformat()}"
+                    )
+                if chain_ended_at > receipt_issued_at:
+                    raise QueueBuildError(
+                        f"{location}: item acquisition provenance event lineage[{chain_index}] "
+                        f"ended_at {chain_ended_at.isoformat()} is later than receipt issued_at "
+                        f"{receipt_issued_at.isoformat()}"
+                    )
         event_input_refs = {
             input_ref.get("ref")
             for chain_event in event_chain
@@ -1624,6 +1652,7 @@ def _validate_receipt_acquisition_closure(
     provenance_events: dict[str, tuple[dict[str, Any], str]],
     location: str,
     validate_planting_chronology: bool = True,
+    validate_lineage_chronology: bool = True,
 ) -> None:
     candidate_id = _required_string(receipt, "candidate_id", location)
     receipt_issued_at = None
@@ -1674,6 +1703,7 @@ def _validate_receipt_acquisition_closure(
             receipt_discovery_ref=receipt.get("discovery_ref"),
             provenance_events=provenance_events,
             receipt_issued_at=receipt_issued_at,
+            validate_lineage_chronology=validate_lineage_chronology,
             location=f"{location}:acquisition[{index}]",
         )
     if downloaded and rights_status == "positive-for-acquisition":
@@ -1741,7 +1771,8 @@ def _validate_source_refs(
             if source_path.suffix == ".json"
             else _load_jsonl(source_path, repo_root)
         )
-        if not any(_selector_matches(record, selector) for record in records):
+        matching_records = [record for record in records if _selector_matches(record, selector)]
+        if not matching_records:
             raise QueueBuildError(
                 f"{ref_location}: selector does not resolve in {source_path_value}: {selector}"
             )
@@ -1759,6 +1790,22 @@ def _validate_source_refs(
                     f"{ref_location}: {selector_key} selector {selected_row!r} "
                     f"does not bind candidate selection atlas_row_id {expected_atlas_row!r}"
                 )
+            if selector_key == "row_id":
+                selected_row_orders = {
+                    record.get("row_order")
+                    for record in matching_records
+                    if isinstance(record.get("row_order"), int)
+                }
+                expected_row_order = (
+                    selection.get("atlas_row_order")
+                    if isinstance(selection, dict)
+                    else None
+                )
+                if selected_row_orders and selected_row_orders != {expected_row_order}:
+                    raise QueueBuildError(
+                        f"{ref_location}: candidate atlas_row_order {expected_row_order!r} "
+                        f"does not match selected master row_order {sorted(selected_row_orders)!r}"
+                    )
     if not has_atlas_selector:
         raise QueueBuildError(
             f"{location}: source_refs must include a resolved row_id or dossier_id selector "
@@ -2092,9 +2139,13 @@ def _load_receipts(
             provenance_events=provenance_events,
             location=receipt_locations[receipt_id],
             # A superseded receipt is retained as historical evidence.  A
-            # later planting correction is admitted only through the latest
-            # receipt version, whose issuance must follow that correction.
+            # later planting or provenance rebind is admitted only through
+            # the latest receipt version, whose issuance must follow that
+            # current closure event.
             validate_planting_chronology=(
+                latest_by_candidate[candidate_id]["receipt_id"] == receipt_id
+            ),
+            validate_lineage_chronology=(
                 latest_by_candidate[candidate_id]["receipt_id"] == receipt_id
             ),
         )

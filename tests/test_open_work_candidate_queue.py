@@ -172,7 +172,10 @@ class OpenWorkCandidateQueueTest(unittest.TestCase):
     def make_repo(self) -> Path:
         root = Path(tempfile.mkdtemp())
         table_root = root / "ToS/philosophy/atlas/master-tables"
-        _write_jsonl(table_root / "table-i/rows.jsonl", [{"row_id": "A04"}, {"row_id": "A05"}])
+        _write_jsonl(
+            table_root / "table-i/rows.jsonl",
+            [{"row_id": "A04", "row_order": 4}, {"row_id": "A05", "row_order": 5}],
+        )
         _write_jsonl(table_root / "table-ii/rows.jsonl", [{"row_id": "T2-01"}])
         _write_jsonl(table_root / "table-iii/rows.jsonl", [{"row_id": "T3-01"}])
         _write_jsonl(
@@ -449,7 +452,7 @@ class OpenWorkCandidateQueueTest(unittest.TestCase):
             for line in ledger_path.read_text(encoding="utf-8").splitlines()
             if line.strip()
         ]
-        candidates.append(_candidate("open-work-candidate.appended-later", year=-1900, row_id="A05", row_order=6))
+        candidates.append(_candidate("open-work-candidate.appended-later", year=-1900, row_id="A05", row_order=5))
         _write_jsonl(ledger_path, candidates)
 
         after_append = build_payload(repo)
@@ -554,6 +557,19 @@ class OpenWorkCandidateQueueTest(unittest.TestCase):
                     rf"{selector_key} selector .* does not bind candidate selection atlas_row_id",
                 ):
                     build_payload(repo)
+
+    def test_review_source_selector_binds_authoritative_atlas_row_order(self) -> None:
+        repo = self.make_repo()
+        ledger = repo / "ToS/source-witnesses/discovery/candidates/reviewed-candidates.jsonl"
+        candidates = [json.loads(line) for line in ledger.read_text(encoding="utf-8").splitlines()]
+        candidates[0]["selection"]["atlas_row_order"] = 99
+        _write_jsonl(ledger, candidates)
+
+        with self.assertRaisesRegex(
+            QueueBuildError,
+            "candidate atlas_row_order .* does not match selected master row_order",
+        ):
+            build_payload(repo)
 
     def test_unreferenced_snapshot_packet_cannot_witness_receipt(self) -> None:
         repo = self.make_repo()
@@ -1575,6 +1591,49 @@ class OpenWorkCandidateQueueTest(unittest.TestCase):
             provenance_events=provenance_events,
             location="synthetic-receipt",
         )
+        descendant_ref = "tos.event.correction.synthetic-item"
+        descendant_event = {
+            "event_id": descendant_ref,
+            "event_type": "correction",
+            "started_at": "2026-08-29T11:59:58Z",
+            "ended_at": "2026-08-29T12:00:01Z",
+            "inputs": [{"ref": event_ref}],
+            "outputs": [],
+        }
+        provenance_events[descendant_ref] = (descendant_event, "synthetic-descendant-event")
+        item_manifest = json.loads((repo / item_ref).read_text(encoding="utf-8"))
+        item_manifest["acquisition_event_ref"] = descendant_ref
+        _write_json(repo / item_ref, item_manifest)
+        receipt["operational_relation_refs"].append(descendant_ref)
+        receipt["issued_at"] = "2026-08-29T12:00:00Z"
+        provenance_event["started_at"] = "2026-08-29T11:59:58Z"
+        provenance_event["ended_at"] = "2026-08-29T11:59:59Z"
+        with self.assertRaisesRegex(
+            QueueBuildError,
+            "item acquisition provenance event lineage.*ended_at .*later than receipt issued_at",
+        ):
+            _validate_receipt_acquisition_closure(
+                repo,
+                receipt,
+                candidate=candidate,
+                discovery=discovery,
+                discoveries=discoveries,
+                provenance_events=provenance_events,
+                location="synthetic-receipt",
+            )
+        descendant_event["ended_at"] = "2026-08-29T11:59:59Z"
+        _validate_receipt_acquisition_closure(
+            repo,
+            receipt,
+            candidate=candidate,
+            discovery=discovery,
+            discoveries=discoveries,
+            provenance_events=provenance_events,
+            location="synthetic-receipt",
+        )
+        item_manifest["acquisition_event_ref"] = event_ref
+        _write_json(repo / item_ref, item_manifest)
+        receipt["operational_relation_refs"].remove(descendant_ref)
         receipt["issued_at"] = "2026-08-29T12:00:00Z"
         provenance_event["ended_at"] = "2026-08-29T12:00:01Z"
         with self.assertRaisesRegex(

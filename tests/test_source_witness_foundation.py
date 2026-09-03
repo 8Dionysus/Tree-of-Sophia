@@ -12551,6 +12551,39 @@ class SourceWitnessFoundationTests(unittest.TestCase):
             )
         )
 
+    def test_malformed_artifact_rights_scopes_are_reported_without_traceback(self) -> None:
+        representation_path = (
+            REPO_ROOT
+            / "ToS/source-witnesses/artifacts/egyptian/deir-el-medina/"
+            "museo-egizio-cgt-54014/representations/recto-photograph-p01/representation.json"
+        )
+        representation = json.loads(representation_path.read_text(encoding="utf-8"))
+        rights_path = REPO_ROOT / representation["rights_ref"]
+        original_load_json = foundation._load_json
+
+        def load_malformed_rights(
+            path: Path,
+            repo_root: Path,
+            issues: list[tuple[str, str]],
+        ) -> dict | None:
+            payload = original_load_json(path, repo_root, issues)
+            if path == rights_path and payload is not None:
+                payload = copy.deepcopy(payload)
+                payload["scope_refs"] = None
+            return payload
+
+        with patch.object(foundation, "_load_json", side_effect=load_malformed_rights):
+            issues = foundation.validate_foundation(REPO_ROOT)
+
+        location = foundation._relative(rights_path, REPO_ROOT)
+        self.assertTrue(
+            any(
+                issue_location.startswith(f"{location}['scope_refs']")
+                and message == "None is not of type 'array'"
+                for issue_location, message in issues
+            )
+        )
+
     def test_frozen_pilot_has_declared_counts_and_no_false_human_gold(self) -> None:
         sample_plan = json.loads((GOLD_ROOT / "sample-plan.json").read_text(encoding="utf-8"))
         ocr_plan = json.loads(

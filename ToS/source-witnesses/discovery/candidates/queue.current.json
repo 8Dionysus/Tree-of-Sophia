@@ -187,7 +187,7 @@
         "chronology_sort_year": -2000,
         "confidence": "reviewed-for-queue-order-only"
       },
-      "terminal_receipt_id": "open-work-candidate-receipt.old-babylonian-gilgamesh-tradition.2026-08-30.v1"
+      "terminal_receipt_id": "open-work-candidate-receipt.old-babylonian-gilgamesh-tradition.2026-09-02.v2"
     },
     {
       "candidate_id": "open-work-candidate.old-babylonian-sumerian-literary-catalogue-witnesses",
@@ -304,7 +304,7 @@
   "generated_by": "scripts/build_open_work_candidate_queue.py",
   "next_candidate_id": "open-work-candidate.teaching-for-king-merykara",
   "owner_surface": "ToS/source-witnesses/discovery/candidates/reviewed-candidates.jsonl",
-  "queue_sha256": "111cab58aa37b3dd7d9422d9a674f04d9ee23a971d1b9b56bc9a7cd7b07c538e",
+  "queue_sha256": "febbfd2cc9afdf2cb419a51f8da14334fe4453ea9ddd9acf217a6a0bd6e5c1f9",
   "receipt_root": "ToS/source-witnesses/discovery/candidates/receipts",
   "schema_version": "tos_open_work_candidate_queue_v1",
   "source_snapshot": {
@@ -315,9 +315,9 @@
       "master_rows": 190,
       "reviewed_candidates": 17,
       "source_anchor_backlog_rows": 9530,
-      "terminal_receipts": 18
+      "terminal_receipts": 19
     },
-    "input_sha256": "078860dd399c5e099e72c0553a70dd6623fc01c81551e41558252c99b027a75b",
+    "input_sha256": "ce01f56edb545b49c3bbd430d54212f8aca26c2edb5cfdd36cc004fb3106d130",
     "inputs": [
       {
         "path": "ToS/philosophy/atlas/dossiers/index.jsonl",
@@ -910,6 +910,10 @@
       {
         "path": "ToS/source-witnesses/discovery/candidates/receipts/old-babylonian-gilgamesh-tradition.2026-08-30.v1.json",
         "sha256": "d9fbbcd402da266b7792a7de28ec1a552b86cebd3b35ab4b9063b7db91809f76"
+      },
+      {
+        "path": "ToS/source-witnesses/discovery/candidates/receipts/old-babylonian-gilgamesh-tradition.2026-09-02.v2.json",
+        "sha256": "1dae31fbea7fb04ec913dec2c357d53871e88e59712e5157e05f90abe1d89dda"
       },
       {
         "path": "ToS/source-witnesses/discovery/candidates/receipts/old-babylonian-sumerian-literary-catalogue-witnesses.2026-08-30.v1.json",
