@@ -35,7 +35,72 @@
       "ZIP container",
       "rights statement"
     ],
-    "purpose_ref": "ToS/source-witnesses/discovery/candidates/README.md"
+    "purpose_ref": "ToS/source-witnesses/discovery/candidates/README.md",
+    "constraint_refinements": [
+      {
+        "candidate_field": "required_properties",
+        "candidate_values": [
+          "reuse the existing provisional composite and AO 05393 artifact identities",
+          "exact downloadable object identity and fixity",
+          "originating-provider or exact File-level rights evidence",
+          "distinct catalogue tablets must not become one ancient original or universal curriculum",
+          "no source-text, translation, semantic, graph, canon, or publication effect"
+        ],
+        "discovery_field": "required_properties",
+        "discovery_values": [
+          "no promotion of the candidate into one ancient Work or closed corpus",
+          "exact provider deposit and object-scoped license",
+          "exact member and container fixity",
+          "physical AO 5393 identity kept separate from editorial XML",
+          "transliteration and embedded commentary rights separated from metadata and visual media",
+          "positive monotonic timing for every active discovery channel"
+        ],
+        "review_status": "reviewed",
+        "reviewed_at": "2026-09-02",
+        "reviewer_ref": "operator:tos-open-work-loop"
+      },
+      {
+        "candidate_field": "acceptable_substitutions",
+        "candidate_values": [
+          "an exact ETCSL/Oxford Text Archive catalogue export under a standard open license",
+          "an exact holding-institution image under an object-level standard open license",
+          "an exact historical publication scan with reviewed public-domain and digital-object rights",
+          "a rights-insufficient terminal receipt preserving every useful route and the unresolved corpus boundary"
+        ],
+        "discovery_field": "acceptable_substitutions",
+        "discovery_values": [
+          "another exact ETCSL catalogue-witness member from the same licensed deposit",
+          "a later provider export carrying an equally explicit standard open license",
+          "a public-domain edition with resolved bibliographic and file identity"
+        ],
+        "review_status": "reviewed",
+        "reviewed_at": "2026-09-02",
+        "reviewer_ref": "operator:tos-open-work-loop"
+      },
+      {
+        "candidate_field": "formats",
+        "candidate_values": [
+          "ancient catalogue index",
+          "repository HTML or XML",
+          "artifact record",
+          "artifact photograph",
+          "historical publication scan",
+          "object-level rights statement"
+        ],
+        "discovery_field": "formats",
+        "discovery_values": [
+          "authority metadata",
+          "museum metadata",
+          "scholarly composite",
+          "TEI-like XML",
+          "ZIP container",
+          "rights statement"
+        ],
+        "review_status": "reviewed",
+        "reviewed_at": "2026-09-02",
+        "reviewer_ref": "operator:tos-open-work-loop"
+      }
+    ]
   },
   "channels": [
     {

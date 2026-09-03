@@ -961,6 +961,50 @@ class OpenWorkCandidateQueueTest(unittest.TestCase):
                 location="synthetic-receipt",
             )
 
+    def test_target_constraint_refinement_requires_complete_constraint_or_reviewed_mapping(self) -> None:
+        candidate = _candidate(
+            "open-work-candidate.earliest",
+            year=-2400,
+            row_id="A04",
+            row_order=4,
+        )
+        discovery = _timed_discovery("tos.discovery.earliest")
+        candidate["target"]["required_properties"] = [
+            "exact physical witness and immutable fixity"
+        ]
+        discovery["target"]["required_properties"] = ["physical witness"]
+        receipt = {
+            "candidate_target_sha256": target_digest(candidate["target"]),
+            "discovery_target_sha256": target_digest(discovery["target"]),
+        }
+
+        with self.assertRaisesRegex(QueueBuildError, "missing complete constraint tokens"):
+            _validate_target_binding(
+                candidate,
+                discovery,
+                receipt=receipt,
+                location="synthetic-receipt",
+            )
+
+        discovery["target"]["constraint_refinements"] = [
+            {
+                "candidate_field": "required_properties",
+                "candidate_values": ["exact physical witness and immutable fixity"],
+                "discovery_field": "required_properties",
+                "discovery_values": ["physical witness"],
+                "review_status": "reviewed",
+                "reviewed_at": "2026-09-02",
+                "reviewer_ref": "operator:tos-open-work-loop",
+            }
+        ]
+        receipt["discovery_target_sha256"] = target_digest(discovery["target"])
+        _validate_target_binding(
+            candidate,
+            discovery,
+            receipt=receipt,
+            location="synthetic-receipt",
+        )
+
     def test_timing_measurement_must_match_channel_probe_timestamp(self) -> None:
         discovery = _timed_discovery("tos.discovery.earliest")
         timing = _timing_receipt(
@@ -1165,6 +1209,8 @@ class OpenWorkCandidateQueueTest(unittest.TestCase):
         ).hexdigest()
         provenance_event = {
             "event_type": "acquisition",
+            "started_at": "2026-08-29T12:00:01Z",
+            "ended_at": "2026-08-29T12:00:00Z",
             "method": {"configuration": {}},
             "inputs": [{"ref": discovery_ref}],
             "outputs": [{"ref": representation_ref, "sha256": representation_digest}],
@@ -1192,6 +1238,13 @@ class OpenWorkCandidateQueueTest(unittest.TestCase):
             "provenance_event_ref": event_ref,
         }
 
+        with self.assertRaisesRegex(
+            QueueBuildError,
+            "acquisition provenance event .*ended_at .*precedes started_at",
+        ):
+            _validate_acquisition_closure(repo, acquisition, **kwargs)
+
+        provenance_event["started_at"] = "2026-08-29T11:59:59Z"
         with self.assertRaisesRegex(
             QueueBuildError,
             "acquisition event must contain exactly one output for .*tos.file.sha256",

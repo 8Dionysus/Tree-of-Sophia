@@ -40,7 +40,66 @@
       "historical critical-edition scan",
       "object-level rights statement"
     ],
-    "purpose_ref": "ToS/source-witnesses/discovery/candidates/README.md"
+    "purpose_ref": "ToS/source-witnesses/discovery/candidates/README.md",
+    "constraint_refinements": [
+      {
+        "candidate_field": "required_properties",
+        "candidate_values": [
+          "Louvre photograph and 3D rights kept separate from artifact metadata and textual representations",
+          "no duplicate Work, semantic, graph, canon, or publication effect"
+        ],
+        "discovery_field": "required_properties",
+        "discovery_values": [
+          "reuse the existing Work, composite, and Louvre SB 8 artifact identities",
+          "exact downloadable object identity and fixity",
+          "originating-provider or exact file-level rights evidence",
+          "translation, photograph, scan, and three-dimensional-model rights separated",
+          "no source-text, translation, semantic, graph, canon, or publication admission"
+        ],
+        "review_status": "reviewed",
+        "reviewed_at": "2026-09-02",
+        "reviewer_ref": "operator:tos-open-work-loop"
+      },
+      {
+        "candidate_field": "acceptable_substitutions",
+        "candidate_values": [
+          "an exact Oracc or institutional text export with explicit standard open terms",
+          "an exact historical critical-edition scan with reviewed public-domain and digital-object rights",
+          "a zero-result or rights-insufficient terminal receipt preserving every useful URL"
+        ],
+        "discovery_field": "acceptable_substitutions",
+        "discovery_values": [
+          "an exact institutional modern translation File under a standard open license",
+          "an exact independently licensed photograph of Louvre SB 8",
+          "an exact historical critical-edition scan with reviewed reusable digital-object rights",
+          "a rights-insufficient terminal result preserving all useful routes"
+        ],
+        "review_status": "reviewed",
+        "reviewed_at": "2026-09-02",
+        "reviewer_ref": "operator:tos-open-work-loop"
+      },
+      {
+        "candidate_field": "formats",
+        "candidate_values": [
+          "scholarly composite export",
+          "museum digital image"
+        ],
+        "discovery_field": "formats",
+        "discovery_values": [
+          "national bibliographic record",
+          "scholarly composite API record",
+          "modern translation PDF",
+          "museum artifact record",
+          "photograph JPEG",
+          "three-dimensional representation",
+          "historical critical-edition scan",
+          "object-level rights statement"
+        ],
+        "review_status": "reviewed",
+        "reviewed_at": "2026-09-02",
+        "reviewer_ref": "operator:tos-open-work-loop"
+      }
+    ]
   },
   "channels": [
     {

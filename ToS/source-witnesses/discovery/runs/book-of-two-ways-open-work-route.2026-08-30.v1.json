@@ -36,7 +36,65 @@
       "artifact photograph",
       "object-level rights statement"
     ],
-    "purpose_ref": "ToS/research-packets/foundation-laboratory-2026-07/A05_BOOK_OF_TWO_WAYS_OPEN_WORK_ACQUISITION_2026-08-30.md"
+    "purpose_ref": "ToS/research-packets/foundation-laboratory-2026-07/A05_BOOK_OF_TWO_WAYS_OPEN_WORK_ACQUISITION_2026-08-30.md",
+    "constraint_refinements": [
+      {
+        "candidate_field": "required_properties",
+        "candidate_values": [
+          "map, inscription, spell, edition, transcription, and translation separation",
+          "object-level fixity and layered rights evidence"
+        ],
+        "discovery_field": "required_properties",
+        "discovery_values": [
+          "Book of Two Ways remains a provisional subcorpus rather than one fixed ancient original",
+          "exact physical coffin identity, inventory number, and holding record",
+          "physical artifact, inscription, map arrangement, provider metadata, photograph, and File remain separate",
+          "layer-specific rights evidence bound to the exact acquired bytes",
+          "no source-text, semantic, graph, canon, or publication effect"
+        ],
+        "review_status": "reviewed",
+        "reviewed_at": "2026-09-02",
+        "reviewer_ref": "operator:tos-open-work-loop"
+      },
+      {
+        "candidate_field": "acceptable_substitutions",
+        "candidate_values": [
+          "an exact public-domain historical study or critical-edition scan with reviewed digital-object rights",
+          "an exact open-licensed institutional or scholarly-project export preserving witness and version identity",
+          "an official museum coffin record or visual representation with an object-level standard open license",
+          "a rights-insufficient terminal receipt preserving every useful route and the unresolved subcorpus boundary"
+        ],
+        "discovery_field": "acceptable_substitutions",
+        "discovery_values": [
+          "an exact public-domain historical study scan with reviewed digital-object rights",
+          "an exact institutional artifact image with a standard open or noncommercial Creative Commons license",
+          "an exact scholarly-project export preserving member and version identity",
+          "a rights-insufficient terminal outcome preserving the unresolved subcorpus boundary"
+        ],
+        "review_status": "reviewed",
+        "reviewed_at": "2026-09-02",
+        "reviewer_ref": "operator:tos-open-work-loop"
+      },
+      {
+        "candidate_field": "formats",
+        "candidate_values": [
+          "coffin-map visual representation",
+          "critical-edition metadata"
+        ],
+        "discovery_field": "formats",
+        "discovery_values": [
+          "bibliographic metadata",
+          "museum object metadata",
+          "historical-study PDF",
+          "IIIF manifest",
+          "artifact photograph",
+          "object-level rights statement"
+        ],
+        "review_status": "reviewed",
+        "reviewed_at": "2026-09-02",
+        "reviewer_ref": "operator:tos-open-work-loop"
+      }
+    ]
   },
   "channels": [
     {

@@ -443,6 +443,33 @@ def _sha256(path: Path) -> str:
     return digest.hexdigest()
 
 
+def _validate_required_provenance_output_digests(
+    repo_root: Path,
+    event: dict[str, Any],
+    required_outputs: set[str],
+    *,
+    event_location: str,
+    issues: list[Issue],
+) -> None:
+    """Check digest fixity for every required local output of an event."""
+    outputs_by_ref = {
+        output.get("ref"): output
+        for output in event.get("outputs", [])
+        if isinstance(output, dict) and isinstance(output.get("ref"), str)
+    }
+    for ref in sorted(required_outputs):
+        if not ref.startswith("ToS/"):
+            continue
+        path = repo_root / ref
+        if not path.is_file():
+            continue
+        output = outputs_by_ref.get(ref)
+        if output is None:
+            continue
+        if output.get("sha256") != _sha256(path):
+            issues.append((event_location, f"provenance output digest differs: {ref}"))
+
+
 def _sha1(path: Path) -> str:
     digest = hashlib.sha1()
     with path.open("rb") as handle:
@@ -12843,6 +12870,13 @@ def validate_foundation(repo_root: Path, *, require_local_payloads: bool = False
             }
             if not required_outputs <= event_outputs:
                 issues.append((event_location, "artifact representation provenance lacks output closure"))
+            _validate_required_provenance_output_digests(
+                repo_root,
+                event,
+                required_outputs,
+                event_location=event_location,
+                issues=issues,
+            )
 
     composite_ids: set[str] = set()
     composite_root = repo_root / SOURCE_ROOT / "scholarly-composites"
@@ -13139,6 +13173,13 @@ def validate_foundation(repo_root: Path, *, require_local_payloads: bool = False
             }
             if not required_outputs <= event_outputs:
                 issues.append((event_location, "composite representation provenance lacks output closure"))
+            _validate_required_provenance_output_digests(
+                repo_root,
+                event,
+                required_outputs,
+                event_location=event_location,
+                issues=issues,
+            )
 
     access_root = repo_root / SOURCE_ROOT / "access-requests"
     for path in sorted((access_root / "public-ledger").glob("*.json")):

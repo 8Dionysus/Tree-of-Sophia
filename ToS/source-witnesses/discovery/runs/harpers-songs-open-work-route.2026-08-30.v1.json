@@ -38,7 +38,65 @@
       "historical article PDF",
       "object-level rights statement"
     ],
-    "purpose_ref": "ToS/research-packets/foundation-laboratory-2026-07/A05_HARPERS_SONGS_OPEN_WORK_ACQUISITION_2026-08-30.md"
+    "purpose_ref": "ToS/research-packets/foundation-laboratory-2026-07/A05_HARPERS_SONGS_OPEN_WORK_ACQUISITION_2026-08-30.md",
+    "constraint_refinements": [
+      {
+        "candidate_field": "required_properties",
+        "candidate_values": [
+          "originating museum and scholarly controls",
+          "layered rights for artifact metadata, image, transcription, edition, translation, and scan",
+          "no semantic or canon promotion"
+        ],
+        "discovery_field": "required_properties",
+        "discovery_values": [
+          "explicit provisional work-like corpus boundary",
+          "exact Papyrus Harris 500, recto passage, and physical custody identity",
+          "Harpist's Song distinguished from surrounding love-song cycles and verso tales",
+          "layer-specific rights for artifact metadata, photographs, scholarly transcription, historical article, translation, and scan",
+          "no source-text, semantic, graph, canon, or publication effect"
+        ],
+        "review_status": "reviewed",
+        "reviewed_at": "2026-09-02",
+        "reviewer_ref": "operator:tos-open-work-loop"
+      },
+      {
+        "candidate_field": "acceptable_substitutions",
+        "candidate_values": [
+          "an exact historical edition or facsimile scan with reviewed public-domain or open-license evidence",
+          "an openly licensed scholarly transcription or edition with exact witness and passage binding",
+          "a rights-insufficient terminal receipt preserving every useful URL and unresolved identity"
+        ],
+        "discovery_field": "acceptable_substitutions",
+        "discovery_values": [
+          "an exact openly licensed British Museum image File covering the relevant recto passage",
+          "an exact historical edition or translation scan with reviewed public-domain or open-license evidence",
+          "an exact scholarly-project record preserving witness and passage identity",
+          "a rights-insufficient terminal outcome preserving every useful URL and unresolved corpus boundary"
+        ],
+        "review_status": "reviewed",
+        "reviewed_at": "2026-09-02",
+        "reviewer_ref": "operator:tos-open-work-loop"
+      },
+      {
+        "candidate_field": "formats",
+        "candidate_values": [
+          "historical facsimile scan",
+          "critical-edition metadata"
+        ],
+        "discovery_field": "formats",
+        "discovery_values": [
+          "national-catalog metadata",
+          "museum object metadata",
+          "papyrus photograph",
+          "scholarly text record",
+          "historical article PDF",
+          "object-level rights statement"
+        ],
+        "review_status": "reviewed",
+        "reviewed_at": "2026-09-02",
+        "reviewer_ref": "operator:tos-open-work-loop"
+      }
+    ]
   },
   "channels": [
     {

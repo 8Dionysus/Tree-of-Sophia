@@ -37,7 +37,62 @@
       "papyrus photograph",
       "object-level rights statement"
     ],
-    "purpose_ref": "ToS/research-packets/foundation-laboratory-2026-07/A05_BOOK_OF_THE_DEAD_OPEN_WORK_ACQUISITION_2026-08-30.md"
+    "purpose_ref": "ToS/research-packets/foundation-laboratory-2026-07/A05_BOOK_OF_THE_DEAD_OPEN_WORK_ACQUISITION_2026-08-30.md",
+    "constraint_refinements": [
+      {
+        "candidate_field": "required_properties",
+        "candidate_values": [
+          "object-level fixity and layered rights evidence"
+        ],
+        "discovery_field": "required_properties",
+        "discovery_values": [
+          "corpus boundary without one fixed ancient original or universal title",
+          "exact physical witness, frame, inventory, and holding identity",
+          "papyrus, local spell order, vignette, edition, transcription, translation, scan, photograph, and File remain separate",
+          "layer-specific rights evidence bound to each exact acquired byte sequence",
+          "no source-text, semantic, graph, canon, or publication effect"
+        ],
+        "review_status": "reviewed",
+        "reviewed_at": "2026-09-02",
+        "reviewer_ref": "operator:tos-open-work-loop"
+      },
+      {
+        "candidate_field": "acceptable_substitutions",
+        "candidate_values": [
+          "an exact open-licensed institutional or scholarly-project export preserving witness and version identity",
+          "an official museum papyrus record or visual representation with an object-level standard open license",
+          "a rights-insufficient terminal receipt preserving every useful route and the unresolved corpus boundary"
+        ],
+        "discovery_field": "acceptable_substitutions",
+        "discovery_values": [
+          "an exact public-domain historical critical-edition or facsimile scan with reviewed digital-object rights",
+          "an exact open-licensed institutional visual representation preserving physical-witness identity",
+          "an exact scholarly-project record preserving witness and version identity",
+          "a rights-insufficient terminal outcome preserving the unresolved corpus boundary"
+        ],
+        "review_status": "reviewed",
+        "reviewed_at": "2026-09-02",
+        "reviewer_ref": "operator:tos-open-work-loop"
+      },
+      {
+        "candidate_field": "formats",
+        "candidate_values": [
+          "scholarly-project export"
+        ],
+        "discovery_field": "formats",
+        "discovery_values": [
+          "national-catalog metadata",
+          "museum object metadata",
+          "specialized corpus metadata",
+          "historical-edition PDF",
+          "papyrus photograph",
+          "object-level rights statement"
+        ],
+        "review_status": "reviewed",
+        "reviewed_at": "2026-09-02",
+        "reviewer_ref": "operator:tos-open-work-loop"
+      }
+    ]
   },
   "channels": [
     {

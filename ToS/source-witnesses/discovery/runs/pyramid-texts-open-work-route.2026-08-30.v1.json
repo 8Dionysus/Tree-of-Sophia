@@ -36,7 +36,66 @@
       "scholarly corpus record",
       "rights statement"
     ],
-    "purpose_ref": "ToS/source-witnesses/discovery/candidates/README.md"
+    "purpose_ref": "ToS/source-witnesses/discovery/candidates/README.md",
+    "constraint_refinements": [
+      {
+        "candidate_field": "required_properties",
+        "candidate_values": [
+          "corpus identity without fixed-recension claim",
+          "individual monument and inscription member boundaries",
+          "critical-edition and translation separation",
+          "layered rights and provider terms",
+          "no semantic or canon promotion"
+        ],
+        "discovery_field": "required_properties",
+        "discovery_values": [
+          "work-like corpus identity kept provisional",
+          "physical pyramid and inscription kept separate from the modern edition",
+          "exact Sethe volume identity and provider identifiers",
+          "object-level open-license evidence",
+          "content-addressed local payloads and provenance",
+          "no source-text, semantic, graph, canon, or publication admission"
+        ],
+        "review_status": "reviewed",
+        "reviewed_at": "2026-09-02",
+        "reviewer_ref": "operator:tos-open-work-loop"
+      },
+      {
+        "candidate_field": "acceptable_substitutions",
+        "candidate_values": [
+          "an official monument or inscription record used as an exact member witness",
+          "a versioned scholarly corpus that preserves monument, utterance, edition, transcription, translation, and rights layers"
+        ],
+        "discovery_field": "acceptable_substitutions",
+        "discovery_values": [
+          "an originating holding record for the same Sethe volume",
+          "a byte-distinct scan with its own File identity and equally explicit license",
+          "an exact artifact or corpus authority record that preserves witness boundaries"
+        ],
+        "review_status": "reviewed",
+        "reviewed_at": "2026-09-02",
+        "reviewer_ref": "operator:tos-open-work-loop"
+      },
+      {
+        "candidate_field": "formats",
+        "candidate_values": [
+          "monument catalog",
+          "digital scholarly project"
+        ],
+        "discovery_field": "formats",
+        "discovery_values": [
+          "authority metadata",
+          "holding record",
+          "IIIF manifest",
+          "PDF",
+          "scholarly corpus record",
+          "rights statement"
+        ],
+        "review_status": "reviewed",
+        "reviewed_at": "2026-09-02",
+        "reviewer_ref": "operator:tos-open-work-loop"
+      }
+    ]
   },
   "channels": [
     {

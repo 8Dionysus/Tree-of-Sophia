@@ -36,7 +36,65 @@
       "JPEG",
       "rights statement"
     ],
-    "purpose_ref": "ToS/source-witnesses/discovery/candidates/README.md"
+    "purpose_ref": "ToS/source-witnesses/discovery/candidates/README.md",
+    "constraint_refinements": [
+      {
+        "candidate_field": "required_properties",
+        "candidate_values": [
+          "corpus boundary without one fixed ancient original",
+          "exact physical coffin or inscription member identity",
+          "spell, edition, transcription, and translation separation",
+          "object-level fixity and layered rights evidence",
+          "no source-text, semantic, graph, canon, or publication effect"
+        ],
+        "discovery_field": "required_properties",
+        "discovery_values": [
+          "Coffin Texts corpus boundary remains provisional",
+          "exact physical coffin identity and inventory number",
+          "physical artifact, inscriptions, provider metadata, photograph, and File stay separate",
+          "exact public-domain or open-license evidence for every acquired byte sequence",
+          "no source-text, translation, semantic, graph, canon, or publication admission"
+        ],
+        "review_status": "reviewed",
+        "reviewed_at": "2026-09-02",
+        "reviewer_ref": "operator:tos-open-work-loop"
+      },
+      {
+        "candidate_field": "acceptable_substitutions",
+        "candidate_values": [
+          "an exact public-domain critical-edition volume scan with reviewed digital-object rights",
+          "a rights-insufficient terminal receipt preserving every useful route and the unresolved corpus boundary"
+        ],
+        "discovery_field": "acceptable_substitutions",
+        "discovery_values": [
+          "an exact public-domain critical-edition volume with independently reusable digital-object rights",
+          "an exact open-licensed scholarly-project export preserving member and version identity",
+          "an official museum coffin record or representation with object-level CC0 or standard open-license evidence"
+        ],
+        "review_status": "reviewed",
+        "reviewed_at": "2026-09-02",
+        "reviewer_ref": "operator:tos-open-work-loop"
+      },
+      {
+        "candidate_field": "formats",
+        "candidate_values": [
+          "inscription corpus metadata",
+          "critical-edition volume scan"
+        ],
+        "discovery_field": "formats",
+        "discovery_values": [
+          "national bibliographic record",
+          "museum object metadata",
+          "scholarly-project status",
+          "critical-edition metadata",
+          "JPEG",
+          "rights statement"
+        ],
+        "review_status": "reviewed",
+        "reviewed_at": "2026-09-02",
+        "reviewer_ref": "operator:tos-open-work-loop"
+      }
+    ]
   },
   "channels": [
     {

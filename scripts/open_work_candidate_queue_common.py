@@ -554,10 +554,12 @@ def _validate_target_constraint_refinement(
     """Require an executed target to retain the reviewed candidate constraints.
 
     Discovery is allowed to narrow a candidate and to restate it in operational
-    language.  Each candidate property/substitution/format therefore needs a
-    conservative lexical or controlled-category anchor in the executed target;
-    languages need a non-empty retained intersection.  This is a mechanical
-    anti-drop check, not semantic acceptance.
+    language.  Each candidate property/substitution/format therefore needs its
+    complete conservative lexical or controlled-category constraint in the
+    executed target, unless an explicit reviewed refinement binds the candidate
+    value to the executed values.  Languages need a non-empty retained
+    intersection.  This is a mechanical anti-drop check, not semantic
+    acceptance.
     """
     surface_values: list[Any] = [discovery_target.get("description")]
     for field in ("required_properties", "acceptable_substitutions", "languages", "formats"):
@@ -565,6 +567,84 @@ def _validate_target_constraint_refinement(
         if isinstance(values, list):
             surface_values.append(values)
     discovery_surface = _constraint_tokens(surface_values)
+
+    refinements = discovery_target.get("constraint_refinements", [])
+    if refinements is None:
+        refinements = []
+    if not isinstance(refinements, list):
+        raise QueueBuildError(f"{location}: discovery target constraint_refinements must be an array")
+    candidate_values_by_field = {
+        field: candidate_target.get(field)
+        for field in ("required_properties", "acceptable_substitutions", "formats")
+    }
+    discovery_values_by_field = {
+        field: discovery_target.get(field)
+        for field in ("required_properties", "acceptable_substitutions", "formats")
+    }
+    reviewed_refinements: set[tuple[str, str]] = set()
+    for index, refinement in enumerate(refinements, start=1):
+        refinement_location = f"{location}: discovery target constraint_refinements[{index}]"
+        if not isinstance(refinement, dict):
+            raise QueueBuildError(f"{refinement_location} must be an object")
+        candidate_field = refinement.get("candidate_field")
+        discovery_field = refinement.get("discovery_field")
+        if candidate_field not in candidate_values_by_field:
+            raise QueueBuildError(
+                f"{refinement_location}.candidate_field must name a supported constraint field"
+            )
+        if discovery_field not in discovery_values_by_field:
+            raise QueueBuildError(
+                f"{refinement_location}.discovery_field must name a supported constraint field"
+            )
+        candidate_values = refinement.get("candidate_values")
+        discovery_values = refinement.get("discovery_values")
+        if not isinstance(candidate_values, list) or not candidate_values or not all(
+            isinstance(value, str) and value for value in candidate_values
+        ):
+            raise QueueBuildError(
+                f"{refinement_location}.candidate_values must contain non-empty strings"
+            )
+        if not isinstance(discovery_values, list) or not discovery_values or not all(
+            isinstance(value, str) and value for value in discovery_values
+        ):
+            raise QueueBuildError(
+                f"{refinement_location}.discovery_values must contain non-empty strings"
+            )
+        if refinement.get("review_status") != "reviewed":
+            raise QueueBuildError(f"{refinement_location}.review_status must be reviewed")
+        if not isinstance(refinement.get("reviewed_at"), str) or not refinement["reviewed_at"]:
+            raise QueueBuildError(f"{refinement_location}.reviewed_at must be a non-empty string")
+        if not isinstance(refinement.get("reviewer_ref"), str) or not refinement["reviewer_ref"]:
+            raise QueueBuildError(f"{refinement_location}.reviewer_ref must be a non-empty string")
+        available_candidate_values = candidate_values_by_field[candidate_field]
+        available_discovery_values = discovery_values_by_field[discovery_field]
+        if not isinstance(available_candidate_values, list) or not all(
+            isinstance(value, str) for value in available_candidate_values
+        ):
+            raise QueueBuildError(
+                f"{location}: candidate target {candidate_field} must contain non-empty strings"
+            )
+        if not isinstance(available_discovery_values, list) or not all(
+            isinstance(value, str) for value in available_discovery_values
+        ):
+            raise QueueBuildError(
+                f"{location}: discovery target {discovery_field} must contain non-empty strings"
+            )
+        if not set(candidate_values) <= set(available_candidate_values):
+            raise QueueBuildError(
+                f"{refinement_location} does not bind candidate {candidate_field} values"
+            )
+        if not set(discovery_values) <= set(available_discovery_values):
+            raise QueueBuildError(
+                f"{refinement_location} does not bind discovery {discovery_field} values"
+            )
+        for value in candidate_values:
+            key = (candidate_field, value)
+            if key in reviewed_refinements:
+                raise QueueBuildError(
+                    f"{refinement_location} duplicates reviewed refinement for {candidate_field} {value!r}"
+                )
+            reviewed_refinements.add(key)
 
     for field in ("required_properties", "acceptable_substitutions", "formats"):
         candidate_values = candidate_target.get(field)
@@ -582,9 +662,11 @@ def _validate_target_constraint_refinement(
                 f"{location}: discovery target drops all candidate {field} constraints"
             )
         for index, value in enumerate(candidate_values, start=1):
-            if _constraint_tokens(value).isdisjoint(discovery_surface):
+            missing_tokens = _constraint_tokens(value) - discovery_surface
+            if missing_tokens and (field, value) not in reviewed_refinements:
                 raise QueueBuildError(
-                    f"{location}: discovery target drops candidate {field}[{index}] {value!r}"
+                    f"{location}: discovery target drops candidate {field}[{index}] {value!r}; "
+                    f"missing complete constraint tokens: {sorted(missing_tokens)} or a reviewed refinement"
                 )
 
     candidate_languages = candidate_target.get("languages")
@@ -1268,12 +1350,32 @@ def _validate_acquisition_closure(
     event, event_location = event_entry
     if event.get("event_type") != "acquisition":
         raise QueueBuildError(f"{location}: {event_ref!r} is not an acquisition event")
-    if receipt_issued_at is not None:
+    event_started_at = None
+    event_ended_at = None
+    if event.get("started_at") is not None:
+        event_started_at = _parse_timestamp(
+            event.get("started_at"),
+            location=event_location,
+            field="started_at",
+        )
+    if event.get("ended_at") is not None:
         event_ended_at = _parse_timestamp(
             event.get("ended_at"),
             location=event_location,
             field="ended_at",
         )
+    if event_started_at is not None and event_ended_at is not None and event_ended_at < event_started_at:
+        raise QueueBuildError(
+            f"{location}: acquisition provenance event {event_ref!r} ended_at "
+            f"{event_ended_at.isoformat()} precedes started_at {event_started_at.isoformat()}"
+        )
+    if receipt_issued_at is not None:
+        if event_ended_at is None:
+            event_ended_at = _parse_timestamp(
+                event.get("ended_at"),
+                location=event_location,
+                field="ended_at",
+            )
         if event_ended_at > receipt_issued_at:
             raise QueueBuildError(
                 f"{location}: acquisition provenance event {event_ref!r} ended_at "

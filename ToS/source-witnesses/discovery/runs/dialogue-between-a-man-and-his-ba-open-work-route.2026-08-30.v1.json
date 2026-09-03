@@ -40,7 +40,75 @@
       "repository article",
       "provider rights statement"
     ],
-    "purpose_ref": "ToS/research-packets/foundation-laboratory-2026-07/A05_DIALOGUE_BETWEEN_A_MAN_AND_HIS_BA_OPEN_WORK_ACQUISITION_2026-08-30.md"
+    "purpose_ref": "ToS/research-packets/foundation-laboratory-2026-07/A05_DIALOGUE_BETWEEN_A_MAN_AND_HIS_BA_OPEN_WORK_ACQUISITION_2026-08-30.md",
+    "constraint_refinements": [
+      {
+        "candidate_field": "required_properties",
+        "candidate_values": [
+          "Work title variants and identity posture without treating ba as an accepted equivalent of soul",
+          "Papyrus Berlin 3024 physical identity, holding record, date, extent, and representation boundaries",
+          "Mallorca II fragment identities and the evidence for any reported join or reconstructed opening",
+          "modern article, critical edition, transcription, and translation responsibility kept separate",
+          "exact downloadable-object identity, fixity, layered rights, and provider terms",
+          "no accepted textual, semantic, graph, canon, or publication effect"
+        ],
+        "discovery_field": "required_properties",
+        "discovery_values": [
+          "provider-independent pBerlin P 3024 identity",
+          "exact open-license digital object",
+          "reported fragment joins retained as unreviewed reconstruction",
+          "ba and soul kept as non-equivalent title variants",
+          "layer-specific rights and immutable fixity",
+          "no accepted source-text, semantic, graph, canon, or publication effect"
+        ],
+        "review_status": "reviewed",
+        "reviewed_at": "2026-09-02",
+        "reviewer_ref": "operator:tos-open-work-loop"
+      },
+      {
+        "candidate_field": "acceptable_substitutions",
+        "candidate_values": [
+          "an originating museum or papyrus-catalog record resolving Berlin P. 3024",
+          "an originating holding or publication record resolving the Mallorca II fragments",
+          "an exact historical critical-edition scan with an open license or reviewed public-domain route",
+          "an exact openly licensed article or repository object that documents the fragments without converting its reconstruction into ancient text authority",
+          "a rights-insufficient or zero-result terminal receipt preserving every useful identifier and URL"
+        ],
+        "discovery_field": "acceptable_substitutions",
+        "discovery_values": [
+          "an exact openly licensed historical facsimile of pBerlin P 3024",
+          "an originating museum or holding record",
+          "an exact openly licensed article documenting Mallorca fragments",
+          "a rights-insufficient receipt preserving all exact URLs and identifiers"
+        ],
+        "review_status": "reviewed",
+        "reviewed_at": "2026-09-02",
+        "reviewer_ref": "operator:tos-open-work-loop"
+      },
+      {
+        "candidate_field": "formats",
+        "candidate_values": [
+          "authority or bibliographic record",
+          "critical-edition metadata",
+          "historical-edition scan"
+        ],
+        "discovery_field": "formats",
+        "discovery_values": [
+          "national-catalog metadata",
+          "museum object metadata",
+          "papyrus holding record",
+          "scholarly corpus record",
+          "historical facsimile",
+          "IIIF manifest",
+          "JPEG",
+          "repository article",
+          "provider rights statement"
+        ],
+        "review_status": "reviewed",
+        "reviewed_at": "2026-09-02",
+        "reviewer_ref": "operator:tos-open-work-loop"
+      }
+    ]
   },
   "channels": [
     {

@@ -7575,6 +7575,34 @@ class SourceWitnessFoundationTests(unittest.TestCase):
             conditional_rights["license_uri"],
         )
 
+    def test_required_representation_provenance_output_digest_is_checked(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            repo_root = Path(temporary)
+            output_path = repo_root / "ToS/output.json"
+            output_path.parent.mkdir(parents=True)
+            output_path.write_text("{}\n", encoding="utf-8")
+            issues: list[tuple[str, str]] = []
+
+            foundation._validate_required_provenance_output_digests(
+                repo_root,
+                {
+                    "outputs": [
+                        {
+                            "ref": "ToS/output.json",
+                            "sha256": "0" * 64,
+                        }
+                    ]
+                },
+                {"ToS/output.json"},
+                event_location="synthetic-event",
+                issues=issues,
+            )
+
+            self.assertEqual(
+                [("synthetic-event", "provenance output digest differs: ToS/output.json")],
+                issues,
+            )
+
     def test_scholarly_composite_keeps_members_and_editorial_layers_separate(self) -> None:
         composite_validator, _ = foundation._schema_validator(
             foundation.SCHOLARLY_COMPOSITE_WITNESS_SCHEMA,
