@@ -1,8 +1,8 @@
-# TOS-D-0037 Prompt-light agent routes and on-demand validation
+# TOS-D-0041 Prompt-light agent routes and on-demand validation
 
 ## Index Metadata
 
-- Decision ID: TOS-D-0037
+- Decision ID: TOS-D-0041
 - Original date: 2026-08-31
 - Surface classes: agents/route-cards, docs/validation, docs/public-entry, scripts/validation, tests/topology
 - ToS layers: agents, docs, validation, root, ports
