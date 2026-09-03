@@ -1,0 +1,162 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/open-work-channel-timing-receipt.schema.json",
+  "claim_limit": "monotonic transport timing through the first 16384 response bytes only; not research, interpretation, rights-review, or human elapsed time",
+  "discovery_id": "tos.discovery.old-babylonian-sumerian-literary-catalogues-open-work-route.2026-08-30.v1",
+  "discovery_ref": "ToS/source-witnesses/discovery/runs/old-babylonian-sumerian-literary-catalogues-open-work-route.2026-08-30.v1.json",
+  "measured_at": "2026-08-30T10:09:15.574840Z",
+  "measurements": [
+    {
+      "channel_id": "channel-loc-bibliographic-authority",
+      "measurement": {
+        "clock": "python.time.perf_counter_ns",
+        "elapsed_seconds": 0.125675,
+        "ended_at": "2026-08-30T10:09:06.226591Z",
+        "http_status": 403,
+        "method": "monotonic-http-request-v1",
+        "outcome": "http-error",
+        "probe_url": "https://www.loc.gov/books/",
+        "response_bytes_observed": 5552,
+        "started_at": "2026-08-30T10:09:06.100889Z",
+        "timing_scope": "request-through-first-16384-response-bytes"
+      }
+    },
+    {
+      "channel_id": "channel-penn-museum-holdings",
+      "measurement": {
+        "clock": "python.time.perf_counter_ns",
+        "elapsed_seconds": 0.851116,
+        "ended_at": "2026-08-30T10:09:07.077822Z",
+        "http_status": 200,
+        "method": "monotonic-http-request-v1",
+        "outcome": "success",
+        "probe_url": "https://collections.penn.museum/collections/object/521562",
+        "response_bytes_observed": 16384,
+        "started_at": "2026-08-30T10:09:06.226695Z",
+        "timing_scope": "request-through-first-16384-response-bytes"
+      }
+    },
+    {
+      "channel_id": "channel-degruyter-catalogue-scholarship",
+      "measurement": {
+        "clock": "python.time.perf_counter_ns",
+        "elapsed_seconds": 2.065707,
+        "ended_at": "2026-08-30T10:09:09.143642Z",
+        "http_status": 202,
+        "method": "monotonic-http-request-v1",
+        "outcome": "success",
+        "probe_url": "https://doi.org/10.1515/za.2010.003",
+        "response_bytes_observed": 0,
+        "started_at": "2026-08-30T10:09:07.077926Z",
+        "timing_scope": "request-through-first-16384-response-bytes"
+      }
+    },
+    {
+      "channel_id": "channel-etcsl-ancient-catalogues",
+      "measurement": {
+        "clock": "python.time.perf_counter_ns",
+        "elapsed_seconds": 0.847301,
+        "ended_at": "2026-08-30T10:09:09.991087Z",
+        "http_status": 200,
+        "method": "monotonic-http-request-v1",
+        "outcome": "success",
+        "probe_url": "https://etcsl.orinst.ox.ac.uk/catalogue/catalogue0.htm",
+        "response_bytes_observed": 3420,
+        "started_at": "2026-08-30T10:09:09.143774Z",
+        "timing_scope": "request-through-first-16384-response-bytes"
+      }
+    },
+    {
+      "channel_id": "channel-cdli-louvre-ao-05393",
+      "measurement": {
+        "clock": "python.time.perf_counter_ns",
+        "elapsed_seconds": 1.04219,
+        "ended_at": "2026-08-30T10:09:11.033376Z",
+        "http_status": 200,
+        "method": "monotonic-http-request-v1",
+        "outcome": "success",
+        "probe_url": "https://cdli.earth/artifacts/345372",
+        "response_bytes_observed": 16384,
+        "started_at": "2026-08-30T10:09:09.991177Z",
+        "timing_scope": "request-through-first-16384-response-bytes"
+      }
+    },
+    {
+      "channel_id": "channel-oxford-text-archive",
+      "measurement": {
+        "clock": "python.time.perf_counter_ns",
+        "elapsed_seconds": 2.107129,
+        "ended_at": "2026-08-30T10:09:13.140655Z",
+        "http_status": 200,
+        "method": "monotonic-http-request-v1",
+        "outcome": "success",
+        "probe_url": "https://ota.bodleian.ox.ac.uk/repository/xmlui/handle/20.500.12024/2518?show=full",
+        "response_bytes_observed": 16384,
+        "started_at": "2026-08-30T10:09:11.033515Z",
+        "timing_scope": "request-through-first-16384-response-bytes"
+      }
+    },
+    {
+      "channel_id": "channel-europeana-aggregation",
+      "measurement": {
+        "clock": "python.time.perf_counter_ns",
+        "elapsed_seconds": 0.258545,
+        "ended_at": "2026-08-30T10:09:13.399309Z",
+        "http_status": 403,
+        "method": "monotonic-http-request-v1",
+        "outcome": "http-error",
+        "probe_url": "https://www.europeana.eu/en/search?query=AO%205393",
+        "response_bytes_observed": 5683,
+        "started_at": "2026-08-30T10:09:13.140757Z",
+        "timing_scope": "request-through-first-16384-response-bytes"
+      }
+    },
+    {
+      "channel_id": "channel-crossref-identifier",
+      "measurement": {
+        "clock": "python.time.perf_counter_ns",
+        "elapsed_seconds": 0.525966,
+        "ended_at": "2026-08-30T10:09:13.925361Z",
+        "http_status": 200,
+        "method": "monotonic-http-request-v1",
+        "outcome": "success",
+        "probe_url": "https://api.crossref.org/works/10.1515%2Fza.2010.003",
+        "response_bytes_observed": 2083,
+        "started_at": "2026-08-30T10:09:13.399388Z",
+        "timing_scope": "request-through-first-16384-response-bytes"
+      }
+    },
+    {
+      "channel_id": "channel-open-library",
+      "measurement": {
+        "clock": "python.time.perf_counter_ns",
+        "elapsed_seconds": 0.941009,
+        "ended_at": "2026-08-30T10:09:14.866480Z",
+        "http_status": 200,
+        "method": "monotonic-http-request-v1",
+        "outcome": "success",
+        "probe_url": "https://openlibrary.org/search.json?q=%22Sumerian%20Literary%20Catalogues%22",
+        "response_bytes_observed": 188,
+        "started_at": "2026-08-30T10:09:13.925463Z",
+        "timing_scope": "request-through-first-16384-response-bytes"
+      }
+    },
+    {
+      "channel_id": "channel-general-web-last",
+      "measurement": {
+        "clock": "python.time.perf_counter_ns",
+        "elapsed_seconds": 0.708186,
+        "ended_at": "2026-08-30T10:09:15.574774Z",
+        "http_status": 200,
+        "method": "monotonic-http-request-v1",
+        "outcome": "success",
+        "probe_url": "https://www.google.com/search",
+        "response_bytes_observed": 16384,
+        "started_at": "2026-08-30T10:09:14.866580Z",
+        "timing_scope": "request-through-first-16384-response-bytes"
+      }
+    }
+  ],
+  "record_version": 1,
+  "schema_version": "tos_open_work_channel_timing_receipt_v1",
+  "timing_id": "open-work-channel-timing.old-babylonian-sumerian-literary-catalogues-open-work-route.2026-08-30.v1"
+}

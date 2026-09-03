@@ -171,7 +171,9 @@ def tracked_tos_paths() -> tuple[Path, ...]:
         if not raw_ref:
             continue
         path = REPO_ROOT / raw_ref.decode("utf-8")
-        if path.is_file():
+        # Physical payload bytes belong to the source-witness artifact/item
+        # stores, not to this metadata/read-model resource index.
+        if path.is_file() and "payload" not in path.relative_to(TOS_ROOT).parts:
             paths.append(path)
     return tuple(sorted(paths))
 

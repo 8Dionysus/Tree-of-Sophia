@@ -1,0 +1,162 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/open-work-channel-timing-receipt.schema.json",
+  "claim_limit": "monotonic transport timing through the first 16384 response bytes only; not research, interpretation, rights-review, or human elapsed time",
+  "discovery_id": "tos.discovery.laws-of-lipit-ishtar-open-work-route.2026-08-30.v1",
+  "discovery_ref": "ToS/source-witnesses/discovery/runs/laws-of-lipit-ishtar-open-work-route.2026-08-30.v1.json",
+  "measured_at": "2026-08-30T08:32:23.707040Z",
+  "measurements": [
+    {
+      "channel_id": "channel-loc-national-authority",
+      "measurement": {
+        "clock": "python.time.perf_counter_ns",
+        "elapsed_seconds": 0.159357,
+        "ended_at": "2026-08-30T08:32:13.560098Z",
+        "http_status": 403,
+        "method": "monotonic-http-request-v1",
+        "outcome": "http-error",
+        "probe_url": "https://www.loc.gov/books/",
+        "response_bytes_observed": 5552,
+        "started_at": "2026-08-30T08:32:13.400719Z",
+        "timing_scope": "request-through-first-16384-response-bytes"
+      }
+    },
+    {
+      "channel_id": "channel-louvre-holding-record",
+      "measurement": {
+        "clock": "python.time.perf_counter_ns",
+        "elapsed_seconds": 2.90012,
+        "ended_at": "2026-08-30T08:32:16.460331Z",
+        "http_status": 200,
+        "method": "monotonic-http-request-v1",
+        "outcome": "success",
+        "probe_url": "https://collections.louvre.fr/en/ark:/53355/cl010166109",
+        "response_bytes_observed": 16384,
+        "started_at": "2026-08-30T08:32:13.560199Z",
+        "timing_scope": "request-through-first-16384-response-bytes"
+      }
+    },
+    {
+      "channel_id": "channel-uam-originating-publication",
+      "measurement": {
+        "clock": "python.time.perf_counter_ns",
+        "elapsed_seconds": 1.115593,
+        "ended_at": "2026-08-30T08:32:17.576171Z",
+        "http_status": 200,
+        "method": "monotonic-http-request-v1",
+        "outcome": "success",
+        "probe_url": "https://pressto.amu.edu.pl/index.php/cph/article/view/36386",
+        "response_bytes_observed": 16384,
+        "started_at": "2026-08-30T08:32:16.460558Z",
+        "timing_scope": "request-through-first-16384-response-bytes"
+      }
+    },
+    {
+      "channel_id": "channel-etcsl-catalog",
+      "measurement": {
+        "clock": "python.time.perf_counter_ns",
+        "elapsed_seconds": 0.753166,
+        "ended_at": "2026-08-30T08:32:18.329457Z",
+        "http_status": 200,
+        "method": "monotonic-http-request-v1",
+        "outcome": "success",
+        "probe_url": "https://etcsl.orinst.ox.ac.uk/catalogue/catalogue3.htm",
+        "response_bytes_observed": 11873,
+        "started_at": "2026-08-30T08:32:17.576282Z",
+        "timing_scope": "request-through-first-16384-response-bytes"
+      }
+    },
+    {
+      "channel_id": "channel-oracc-etcsri-exact-text",
+      "measurement": {
+        "clock": "python.time.perf_counter_ns",
+        "elapsed_seconds": 0.284797,
+        "ended_at": "2026-08-30T08:32:18.614340Z",
+        "http_status": null,
+        "method": "monotonic-http-request-v1",
+        "outcome": "transport-error",
+        "probe_url": "https://oracc.museum.upenn.edu/etcsri/Q000613",
+        "response_bytes_observed": 0,
+        "started_at": "2026-08-30T08:32:18.329535Z",
+        "timing_scope": "request-through-first-16384-response-bytes"
+      }
+    },
+    {
+      "channel_id": "channel-cdli-current-composite",
+      "measurement": {
+        "clock": "python.time.perf_counter_ns",
+        "elapsed_seconds": 2.569562,
+        "ended_at": "2026-08-30T08:32:21.183997Z",
+        "http_status": 200,
+        "method": "monotonic-http-request-v1",
+        "outcome": "success",
+        "probe_url": "https://cdli.earth/artifacts/464355",
+        "response_bytes_observed": 16384,
+        "started_at": "2026-08-30T08:32:18.614427Z",
+        "timing_scope": "request-through-first-16384-response-bytes"
+      }
+    },
+    {
+      "channel_id": "channel-europeana-aggregator",
+      "measurement": {
+        "clock": "python.time.perf_counter_ns",
+        "elapsed_seconds": 0.28112,
+        "ended_at": "2026-08-30T08:32:21.465210Z",
+        "http_status": 403,
+        "method": "monotonic-http-request-v1",
+        "outcome": "http-error",
+        "probe_url": "https://www.europeana.eu/en/search",
+        "response_bytes_observed": 5604,
+        "started_at": "2026-08-30T08:32:21.184083Z",
+        "timing_scope": "request-through-first-16384-response-bytes"
+      }
+    },
+    {
+      "channel_id": "channel-crossref-identifiers",
+      "measurement": {
+        "clock": "python.time.perf_counter_ns",
+        "elapsed_seconds": 1.469254,
+        "ended_at": "2026-08-30T08:32:22.934542Z",
+        "http_status": 200,
+        "method": "monotonic-http-request-v1",
+        "outcome": "success",
+        "probe_url": "https://api.crossref.org/works",
+        "response_bytes_observed": 16384,
+        "started_at": "2026-08-30T08:32:21.465280Z",
+        "timing_scope": "request-through-first-16384-response-bytes"
+      }
+    },
+    {
+      "channel_id": "channel-open-library-catalogs",
+      "measurement": {
+        "clock": "python.time.perf_counter_ns",
+        "elapsed_seconds": 0.409174,
+        "ended_at": "2026-08-30T08:32:23.343812Z",
+        "http_status": 200,
+        "method": "monotonic-http-request-v1",
+        "outcome": "success",
+        "probe_url": "https://archive.org/advancedsearch.php",
+        "response_bytes_observed": 16384,
+        "started_at": "2026-08-30T08:32:22.934629Z",
+        "timing_scope": "request-through-first-16384-response-bytes"
+      }
+    },
+    {
+      "channel_id": "channel-general-web-last",
+      "measurement": {
+        "clock": "python.time.perf_counter_ns",
+        "elapsed_seconds": 0.363021,
+        "ended_at": "2026-08-30T08:32:23.706946Z",
+        "http_status": 200,
+        "method": "monotonic-http-request-v1",
+        "outcome": "success",
+        "probe_url": "https://www.google.com/search",
+        "response_bytes_observed": 16384,
+        "started_at": "2026-08-30T08:32:23.343914Z",
+        "timing_scope": "request-through-first-16384-response-bytes"
+      }
+    }
+  ],
+  "record_version": 1,
+  "schema_version": "tos_open_work_channel_timing_receipt_v1",
+  "timing_id": "open-work-channel-timing.laws-of-lipit-ishtar-open-work-route.2026-08-30.v1"
+}

@@ -1,0 +1,847 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/material-discovery-record.schema.json",
+  "schema_version": "tos_material_discovery_record_v1",
+  "discovery_id": "tos.discovery.laws-of-hammurapi-open-work-route.2026-08-30.v1",
+  "protocol_ref": "ToS/source-witnesses/discovery/DISCOVERY_PROTOCOL.md",
+  "target": {
+    "target_kind": "scholarly-composite",
+    "known_tos_refs": [
+      "tos.work.akkadian-law.laws-of-hammurapi",
+      "tos.composite.akkadian.laws-of-hammurapi",
+      "tos.artifact.old-babylonian.susa.hammurabi-stele-sb-8"
+    ],
+    "description": "Resolve the existing Laws of Hammurapi Work, provider-independent scholarly composite, and Louvre SB 8 physical witness to exact openly licensed digital objects while keeping Work, modern translation, edition, local File, physical stela, photograph, museum catalog images, 3D representation, CDLI reconstruction, and historical scans distinct.",
+    "required_properties": [
+      "reuse the existing Work, composite, and Louvre SB 8 artifact identities",
+      "exact downloadable object identity and fixity",
+      "originating-provider or exact file-level rights evidence",
+      "translation, photograph, scan, and three-dimensional-model rights separated",
+      "no source-text, translation, semantic, graph, canon, or publication admission"
+    ],
+    "acceptable_substitutions": [
+      "an exact institutional modern translation File under a standard open license",
+      "an exact independently licensed photograph of Louvre SB 8",
+      "an exact historical critical-edition scan with reviewed reusable digital-object rights",
+      "a rights-insufficient terminal result preserving all useful routes"
+    ],
+    "languages": [
+      "akk",
+      "en",
+      "fr",
+      "de"
+    ],
+    "formats": [
+      "national bibliographic record",
+      "scholarly composite API record",
+      "modern translation PDF",
+      "museum artifact record",
+      "photograph JPEG",
+      "three-dimensional representation",
+      "historical critical-edition scan",
+      "object-level rights statement"
+    ],
+    "purpose_ref": "ToS/source-witnesses/discovery/candidates/README.md",
+    "constraint_refinements": [
+      {
+        "candidate_field": "required_properties",
+        "candidate_values": [
+          "Louvre photograph and 3D rights kept separate from artifact metadata and textual representations",
+          "no duplicate Work, semantic, graph, canon, or publication effect"
+        ],
+        "discovery_field": "required_properties",
+        "discovery_values": [
+          "reuse the existing Work, composite, and Louvre SB 8 artifact identities",
+          "exact downloadable object identity and fixity",
+          "originating-provider or exact file-level rights evidence",
+          "translation, photograph, scan, and three-dimensional-model rights separated",
+          "no source-text, translation, semantic, graph, canon, or publication admission"
+        ],
+        "review_status": "reviewed",
+        "reviewed_at": "2026-09-02",
+        "reviewer_ref": "operator:tos-open-work-loop"
+      },
+      {
+        "candidate_field": "acceptable_substitutions",
+        "candidate_values": [
+          "an exact Oracc or institutional text export with explicit standard open terms",
+          "an exact historical critical-edition scan with reviewed public-domain and digital-object rights",
+          "a zero-result or rights-insufficient terminal receipt preserving every useful URL"
+        ],
+        "discovery_field": "acceptable_substitutions",
+        "discovery_values": [
+          "an exact institutional modern translation File under a standard open license",
+          "an exact independently licensed photograph of Louvre SB 8",
+          "an exact historical critical-edition scan with reviewed reusable digital-object rights",
+          "a rights-insufficient terminal result preserving all useful routes"
+        ],
+        "review_status": "reviewed",
+        "reviewed_at": "2026-09-02",
+        "reviewer_ref": "operator:tos-open-work-loop"
+      },
+      {
+        "candidate_field": "formats",
+        "candidate_values": [
+          "scholarly composite export",
+          "museum digital image"
+        ],
+        "discovery_field": "formats",
+        "discovery_values": [
+          "national bibliographic record",
+          "scholarly composite API record",
+          "modern translation PDF",
+          "museum artifact record",
+          "photograph JPEG",
+          "three-dimensional representation",
+          "historical critical-edition scan",
+          "object-level rights statement"
+        ],
+        "review_status": "reviewed",
+        "reviewed_at": "2026-09-02",
+        "reviewer_ref": "operator:tos-open-work-loop"
+      }
+    ]
+  },
+  "channels": [
+    {
+      "channel_id": "channel-loc-national-authority",
+      "sequence": 1,
+      "channel_type": "national-catalog",
+      "role": "lead-only",
+      "source_name": "Library of Congress books API",
+      "endpoint_url": "https://www.loc.gov/books/",
+      "interface_type": "api",
+      "interface_version": "current public endpoint checked 2026-08-30",
+      "exact_query": "https://www.loc.gov/books/?fo=json&q=%22Code%20of%20Hammurabi%22; preserve the bounded HTTP result as a national-catalog lead only and do not infer object rights from availability.",
+      "queried_at": "2026-08-30T09:00:50.956352Z",
+      "elapsed_seconds": 0.240912,
+      "result_order_preserved": true,
+      "results": []
+    },
+    {
+      "channel_id": "channel-bnf-scheil-bibliography",
+      "sequence": 2,
+      "channel_type": "national-catalog",
+      "role": "originating-record",
+      "source_name": "Bibliothèque nationale de France catalogue général",
+      "endpoint_url": "https://catalogue.bnf.fr/ark:/12148/cb313123921",
+      "interface_type": "web",
+      "interface_version": "BnF bibliographic notice checked 2026-08-30",
+      "exact_query": "Open BnF ARK cb313123921; verify Jean-Vincent Scheil, Textes élamites-sémitiques, Paris, E. Leroux, 1900–1905, and the 1902 second series containing the Code des lois de Hammurabi.",
+      "queried_at": "2026-08-30T09:00:51.197464Z",
+      "elapsed_seconds": 0.998114,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.bnf-scheil-textes-elamites-semitiques-1902",
+          "rank": 1,
+          "title_as_displayed": "Textes élamites-sémitiques,... / par V. Scheil,...",
+          "result_url": "https://catalogue.bnf.fr/ark:/12148/cb313123921",
+          "originating_record_url": "https://catalogue.bnf.fr/ark:/12148/cb313123921",
+          "identifiers": [
+            {
+              "scheme": "BnF ARK",
+              "value": "ark:/12148/cb313123921"
+            },
+            {
+              "scheme": "FRBNF",
+              "value": "31312392"
+            }
+          ],
+          "available_formats": [
+            "bibliographic HTML",
+            "physical holding and reproduction-request routes"
+          ],
+          "declared_rights": {
+            "statement": "The national bibliographic record establishes edition identity and holdings but grants no open license over a scan or reproduction.",
+            "scope": "metadata",
+            "evidence_url": "https://catalogue.bnf.fr/ark:/12148/cb313123921",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "metadata-only",
+          "machine_interface": "html",
+          "decision": "select",
+          "rationale": "The record is the strongest national bibliographic control for Scheil's 1902 initial publication, but it is not the selected digital object.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-needed",
+            "format": null,
+            "sha256": null,
+            "reason": "The live BnF ARK remains the originating bibliographic authority; no page snapshot substitutes for it."
+          }
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-louvre-holding-and-media",
+      "sequence": 3,
+      "channel_type": "university-catalog",
+      "role": "originating-record",
+      "source_name": "Musée du Louvre Collections",
+      "endpoint_url": "https://collections.louvre.fr/en/ark:/53355/cl010174436",
+      "interface_type": "web",
+      "interface_version": "object page, 105 image routes, terms, and linked Sketchfab representation checked 2026-08-30",
+      "exact_query": "Open Louvre ARK cl010174436; reconcile SB 8, AS 6064, P249253, physical dimensions and custody; inspect all collection-image terms and follow the exact skfb.ly/6RszQ route to the official RMN-Grand Palais 3D record.",
+      "queried_at": "2026-08-30T09:00:52.195730Z",
+      "elapsed_seconds": 1.067576,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.louvre-hammurabi-sb8-object-metadata",
+          "rank": 1,
+          "title_as_displayed": "Code de Hammurabi",
+          "result_url": "https://collections.louvre.fr/en/ark:/53355/cl010174436",
+          "originating_record_url": "https://collections.louvre.fr/en/ark:/53355/cl010174436",
+          "identifiers": [
+            {
+              "scheme": "Louvre inventory",
+              "value": "SB 8"
+            },
+            {
+              "scheme": "Louvre ARK",
+              "value": "ark:/53355/cl010174436"
+            },
+            {
+              "scheme": "former inventory",
+              "value": "AS 6064"
+            }
+          ],
+          "available_formats": [
+            "museum HTML record",
+            "105 credited collection images",
+            "official 3D-record link"
+          ],
+          "declared_rights": {
+            "statement": "The collection notice is an exact artifact-identity route. Louvre terms enumerate bounded reuse cases and do not place every photograph or 3D object under a standard open license.",
+            "scope": "metadata",
+            "evidence_url": "https://collections.louvre.fr/en/page/cgu",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-view",
+          "machine_interface": "html",
+          "decision": "select",
+          "rationale": "The exact holding record anchors the existing physical artifact and separates it from later photographic and three-dimensional Files.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-captured",
+            "format": null,
+            "sha256": null,
+            "reason": "The live Louvre record remains mutable originating evidence; only its response fingerprint is retained."
+          }
+        },
+        {
+          "result_id": "tos-discovery-result.louvre-hammurabi-collection-photographs",
+          "rank": 2,
+          "title_as_displayed": "SB 8 — Louvre collection photographs",
+          "result_url": "https://collections.louvre.fr/en/ark:/53355/cl010174436",
+          "originating_record_url": "https://collections.louvre.fr/en/ark:/53355/cl010174436",
+          "identifiers": [
+            {
+              "scheme": "Louvre inventory",
+              "value": "SB 8"
+            }
+          ],
+          "available_formats": [
+            "credited JPEG photographs through Louvre controls"
+          ],
+          "declared_rights": {
+            "statement": "Collection display and download controls do not create a standard open license; the current Louvre terms retain enumerated-use and permission boundaries for media.",
+            "scope": "digital-object",
+            "evidence_url": "https://collections.louvre.fr/en/page/cgu",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "permission-required",
+          "machine_interface": "manual-only",
+          "decision": "reject",
+          "rationale": "No Louvre-originating photograph was downloaded because the object-level route did not satisfy the Goal's standard-open-license threshold.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-permitted",
+            "format": null,
+            "sha256": null,
+            "reason": "No restricted collection photograph is retained."
+          }
+        },
+        {
+          "result_id": "tos-discovery-result.rmn-grand-palais-hammurabi-official-3d",
+          "rank": 3,
+          "title_as_displayed": "Stèle du Code de lois de Hammurabi",
+          "result_url": "https://sketchfab.com/3d-models/stele-du-code-de-lois-de-hammurabi-44584936406a4879b8e054420dac7e07",
+          "originating_record_url": "https://collections.louvre.fr/en/ark:/53355/cl010174436",
+          "identifiers": [
+            {
+              "scheme": "Sketchfab model",
+              "value": "44584936406a4879b8e054420dac7e07"
+            },
+            {
+              "scheme": "Louvre inventory",
+              "value": "SB 8"
+            }
+          ],
+          "available_formats": [
+            "light web-display 3D model",
+            "high-quality model by contact request"
+          ],
+          "declared_rights": {
+            "statement": "The official record credits © Rmn-GrandPalais - Musée du Louvre/Reproduction 3D Rmn-GP, marks the model NoAI, supplies no Creative Commons license or anonymous download, and directs high-quality use requests to agence.photo@rmngp.fr.",
+            "scope": "digital-object",
+            "evidence_url": "https://sketchfab.com/3d-models/stele-du-code-de-lois-de-hammurabi-44584936406a4879b8e054420dac7e07",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "permission-required",
+          "machine_interface": "manual-only",
+          "decision": "defer",
+          "rationale": "The exact official 3D route is useful, but no open license or authorized download exists; future acquisition requires the named owner route rather than technical extraction.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-permitted",
+            "format": null,
+            "sha256": null,
+            "reason": "No 3D payload is captured, extracted, or reconstructed from the viewer."
+          }
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-ucf-roth-originating-publication",
+      "sequence": 4,
+      "channel_type": "publisher-catalog",
+      "role": "digital-object-record",
+      "source_name": "University of Central Florida STARS Open Educational Resources",
+      "endpoint_url": "https://stars.library.ucf.edu/ancientneareast/134/",
+      "interface_type": "web",
+      "interface_version": "originating record and exact PDF checked 2026-08-30",
+      "exact_query": "Resolve STARS Ancient Near East record 134; verify Martha T. Roth as translator/editor, the 2022 repository citation, latest revision May 2026 inside the File, exact 35-page PDF, and CC BY-NC 4.0 statement on the originating record.",
+      "queried_at": "2026-08-30T09:00:53.263493Z",
+      "elapsed_seconds": 0.389302,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.ucf-roth-laws-of-hammurabi-revised-2026-pdf",
+          "rank": 1,
+          "title_as_displayed": "Laws of Hammurabi",
+          "result_url": "https://stars.library.ucf.edu/cgi/viewcontent.cgi?article=1133&context=ancientneareast",
+          "originating_record_url": "https://stars.library.ucf.edu/ancientneareast/134/",
+          "identifiers": [
+            {
+              "scheme": "UCF STARS series item",
+              "value": "ancientneareast/134"
+            },
+            {
+              "scheme": "repository article",
+              "value": "1133"
+            }
+          ],
+          "available_formats": [
+            "35-page PDF",
+            "originating HTML metadata"
+          ],
+          "declared_rights": {
+            "statement": "The originating UCF record licenses this work under Creative Commons Attribution-NonCommercial 4.0 International.",
+            "scope": "digital-object",
+            "evidence_url": "https://stars.library.ucf.edu/ancientneareast/134/",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-download",
+          "machine_interface": "html",
+          "decision": "select",
+          "rationale": "This is the strongest exact modern translation File found: originating institutional publication, named living translator/editor, current revision statement, stable rights page, and fixity-verifiable PDF.",
+          "acquisition": {
+            "downloaded": true,
+            "acquired_at": "2026-08-30T02:53:30-06:00",
+            "byte_size": 342577,
+            "sha256": "ddc38f90b258f47acd4bb42fa5e9319288bf7930f82e6e222c53ebed91947980",
+            "event_ref": "tos.event.acquisition.laws-of-hammurapi-roth-en-2026.2026-08-30"
+          },
+          "snapshot": {
+            "state": "not-needed",
+            "format": null,
+            "sha256": null,
+            "reason": "The exact publisher PDF is preserved as the File; the mutable rights page remains an attributed provider record with a response fingerprint."
+          }
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-cdli-current-composite",
+      "sequence": 5,
+      "channel_type": "specialized-scholarly-project",
+      "role": "scholarly-index",
+      "source_name": "Cuneiform Digital Library Initiative",
+      "endpoint_url": "https://cdli.earth/artifacts/464358",
+      "interface_type": "api",
+      "interface_version": "artifact HTML and JSON API checked 2026-08-30",
+      "exact_query": "Open P464358/Q006387 and JSON; verify designation RIME 4.03.06.add21 (Laws of Hammurapi) composite, revision 2337705, 27 witness relations including physical P249253/SB 8, and the current ATF body without acquiring it under an inferred blanket license.",
+      "queried_at": "2026-08-30T09:00:53.652943Z",
+      "elapsed_seconds": 1.242662,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.cdli-q006387-current-composite",
+          "rank": 1,
+          "title_as_displayed": "RIME 4.03.06.add21 (Laws of Hammurapi) composite",
+          "result_url": "https://cdli.earth/artifacts/464358",
+          "originating_record_url": "https://cdli.earth/artifacts/464358",
+          "identifiers": [
+            {
+              "scheme": "CDLI composite",
+              "value": "Q006387"
+            },
+            {
+              "scheme": "CDLI artifact",
+              "value": "P464358"
+            },
+            {
+              "scheme": "CDLI inscription revision",
+              "value": "2337705"
+            }
+          ],
+          "available_formats": [
+            "HTML",
+            "JSON",
+            "ATF transliteration, normalization, and displayed English translation",
+            "27-member witness array"
+          ],
+          "declared_rights": {
+            "statement": "CDLI provides public scholarly access and conditional reuse guidance, but no exact standard open license was established for the full current composite ATF and translation body in this iteration.",
+            "scope": "content",
+            "evidence_url": "https://cdli.earth/terms-of-use",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-view",
+          "machine_interface": "api",
+          "decision": "defer",
+          "rationale": "The current composite is indispensable identity, version, and witness evidence but its content body remains unacquired pending a stronger exact license route.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-captured",
+            "format": null,
+            "sha256": null,
+            "reason": "Only a live response fingerprint and dated coverage observation are retained; no CDLI source text or translation is stored."
+          }
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-commons-open-photograph",
+      "sequence": 6,
+      "channel_type": "collection-aggregator",
+      "role": "digital-object-record",
+      "source_name": "Wikimedia Commons",
+      "endpoint_url": "https://commons.wikimedia.org/wiki/File:P1050551_Louvre_code_d%27Hammurabi_recto_rwk.JPG",
+      "interface_type": "api",
+      "interface_version": "file page and imageinfo API checked 2026-08-30",
+      "exact_query": "Resolve File:P1050551 Louvre code d'Hammurabi recto rwk.JPG; verify photographer Mbzt, own-work source, 2011 rear-face description, Louvre SB 8 category and accession, CC BY 3.0, original 1153×2000 JPEG, 1,538,719 bytes, and source SHA-1 54c88f49034fc86a48b4b4d8bed7b07841b6b5d1.",
+      "queried_at": "2026-08-30T09:00:54.895748Z",
+      "elapsed_seconds": 0.330975,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.commons-mbzt-hammurabi-sb8-rear-2011-jpeg",
+          "rank": 1,
+          "title_as_displayed": "P1050551 Louvre code d'Hammurabi recto rwk.JPG",
+          "result_url": "https://upload.wikimedia.org/wikipedia/commons/0/05/P1050551_Louvre_code_d%27Hammurabi_recto_rwk.JPG",
+          "originating_record_url": "https://commons.wikimedia.org/wiki/File:P1050551_Louvre_code_d%27Hammurabi_recto_rwk.JPG",
+          "identifiers": [
+            {
+              "scheme": "Wikimedia Commons page ID",
+              "value": "16931477"
+            },
+            {
+              "scheme": "source SHA-1",
+              "value": "54c88f49034fc86a48b4b4d8bed7b07841b6b5d1"
+            },
+            {
+              "scheme": "Louvre inventory",
+              "value": "SB 8"
+            }
+          ],
+          "available_formats": [
+            "original image/jpeg",
+            "imageinfo API",
+            "file description and license page"
+          ],
+          "declared_rights": {
+            "statement": "Photographer Mbzt identifies the image as own work and publishes it under CC BY 3.0 or GFDL; ToS selects the CC BY 3.0 route.",
+            "scope": "digital-object",
+            "evidence_url": "https://commons.wikimedia.org/wiki/File:P1050551_Louvre_code_d%27Hammurabi_recto_rwk.JPG",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-download",
+          "machine_interface": "api",
+          "decision": "select",
+          "rationale": "This exact independently authored photograph depicts the tracked Louvre SB 8 artifact and carries a standard open license with API-verifiable identity, dimensions, byte size, and SHA-1.",
+          "acquisition": {
+            "downloaded": true,
+            "acquired_at": "2026-08-30T02:54:30-06:00",
+            "byte_size": 1538719,
+            "sha256": "e357d0faad60c5fb5b8b6c4ba6282a34fdd2d6c48e81d8d8ae3a837bc831f8b1",
+            "event_ref": "tos.event.acquisition.hammurabi-stele-sb8-commons-mbzt-rear-2011.2026-08-30"
+          },
+          "snapshot": {
+            "state": "not-needed",
+            "format": null,
+            "sha256": null,
+            "reason": "The exact original JPEG is preserved as a separate content-addressed visual File; no page screenshot substitutes for it."
+          }
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-crossref-identifiers",
+      "sequence": 7,
+      "channel_type": "identifier-registry",
+      "role": "lead-only",
+      "source_name": "Crossref REST API",
+      "endpoint_url": "https://api.crossref.org/works",
+      "interface_type": "api",
+      "interface_version": "REST API current endpoint checked 2026-08-30",
+      "exact_query": "https://api.crossref.org/works?query.title=Laws%20of%20Hammurabi&query.author=Martha%20Roth&rows=10; use only to test for a DOI or registered identifier for the selected UCF object.",
+      "queried_at": "2026-08-30T09:00:55.226872Z",
+      "elapsed_seconds": 1.40027,
+      "result_order_preserved": true,
+      "results": []
+    },
+    {
+      "channel_id": "channel-open-library-catalogs",
+      "sequence": 8,
+      "channel_type": "open-library",
+      "role": "mixed",
+      "source_name": "Internet Archive and Project Gutenberg",
+      "endpoint_url": "https://archive.org/advancedsearch.php",
+      "interface_type": "api",
+      "interface_version": "Internet Archive metadata and Project Gutenberg ebook pages checked 2026-08-30",
+      "exact_query": "Inspect Internet Archive mmoires04franuoft and Project Gutenberg 17150; reconcile Scheil 1902 and C. H. W. Johns 1903 historical expressions, exact file routes, provider rights statements, and jurisdiction limits before acquisition.",
+      "queried_at": "2026-08-30T09:00:56.627295Z",
+      "elapsed_seconds": 0.400482,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.internet-archive-scheil-mdp4-1902-scan",
+          "rank": 1,
+          "title_as_displayed": "Mémoires",
+          "result_url": "https://archive.org/details/mmoires04franuoft",
+          "originating_record_url": "https://catalogue.bnf.fr/ark:/12148/cb313123921",
+          "identifiers": [
+            {
+              "scheme": "Internet Archive identifier",
+              "value": "mmoires04franuoft"
+            }
+          ],
+          "available_formats": [
+            "13,063,547-byte text PDF",
+            "13,415,883-byte grayscale PDF",
+            "DjVu XML",
+            "scandata XML"
+          ],
+          "declared_rights": {
+            "statement": "The Internet Archive metadata record supplies neither licenseurl nor rights for this exact digital object. The 1902 publication date alone is not a cross-jurisdiction digital-object license.",
+            "scope": "digital-object",
+            "evidence_url": "https://archive.org/metadata/mmoires04franuoft",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-download",
+          "machine_interface": "api",
+          "decision": "defer",
+          "rationale": "The scan is an excellent historical critical-edition lead, but its exact digital-object rights record is insufficient for the current FR/MX/US reusable-payload threshold.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-captured",
+            "format": null,
+            "sha256": null,
+            "reason": "No 13 MB scan was retained without a positive exact digital-object rights basis."
+          }
+        },
+        {
+          "result_id": "tos-discovery-result.project-gutenberg-johns-oldest-code-17150",
+          "rank": 2,
+          "title_as_displayed": "The Oldest Code of Laws in the World",
+          "result_url": "https://www.gutenberg.org/ebooks/17150",
+          "originating_record_url": "https://www.gutenberg.org/ebooks/17150",
+          "identifiers": [
+            {
+              "scheme": "Project Gutenberg ebook",
+              "value": "17150"
+            }
+          ],
+          "available_formats": [
+            "HTML",
+            "UTF-8 text",
+            "EPUB",
+            "downloadable archive"
+          ],
+          "declared_rights": {
+            "statement": "Project Gutenberg identifies the 1903 C. H. W. Johns translation as public domain in the USA. That jurisdiction-limited statement does not itself clear the translation for unrestricted redistribution in Mexico and France.",
+            "scope": "content",
+            "evidence_url": "https://www.gutenberg.org/ebooks/17150",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-download",
+          "machine_interface": "html",
+          "decision": "defer",
+          "rationale": "The source remains a valuable historical expression lead, but the modern UCF CC BY-NC 4.0 translation supplies the stronger worldwide license route for this iteration.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-captured",
+            "format": null,
+            "sha256": null,
+            "reason": "No Gutenberg content body was retained because its rights statement is USA-specific."
+          }
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-general-web-last",
+      "sequence": 9,
+      "channel_type": "general-web-search",
+      "role": "lead-only",
+      "source_name": "General web search",
+      "endpoint_url": "https://www.google.com/search",
+      "interface_type": "web",
+      "interface_version": "ordinary web index checked only after named source routes on 2026-08-30",
+      "exact_query": "Search exact title and license combinations: \"Laws of Hammurabi\" \"CC BY\", \"Code of Hammurabi\" Creative Commons translation, exact Louvre SB 8 open photograph, and exact official Louvre 3D model license.",
+      "queried_at": "2026-08-30T09:00:57.027934Z",
+      "elapsed_seconds": 0.822368,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.general-web-ucf-roth-license-lead",
+          "rank": 1,
+          "title_as_displayed": "Laws of Hammurabi by Martha T. Roth",
+          "result_url": "https://stars.library.ucf.edu/ancientneareast/134/",
+          "originating_record_url": "https://stars.library.ucf.edu/ancientneareast/134/",
+          "identifiers": [
+            {
+              "scheme": "UCF STARS series item",
+              "value": "ancientneareast/134"
+            }
+          ],
+          "available_formats": [
+            "search lead to originating record"
+          ],
+          "declared_rights": {
+            "statement": "Search surfaced the UCF CC BY-NC 4.0 record; the originating UCF page, not the search result, owns the rights evidence.",
+            "scope": "metadata",
+            "evidence_url": "https://stars.library.ucf.edu/ancientneareast/134/",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-view",
+          "machine_interface": "html",
+          "decision": "select",
+          "rationale": "The lead closed the remaining named gap and was immediately verified at the originating UCF record.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-needed",
+            "format": null,
+            "sha256": null,
+            "reason": "No search-result snapshot is authoritative or needed."
+          }
+        },
+        {
+          "result_id": "tos-discovery-result.general-web-commons-mbzt-photo-lead",
+          "rank": 2,
+          "title_as_displayed": "P1050551 Louvre code d'Hammurabi recto rwk.JPG",
+          "result_url": "https://commons.wikimedia.org/wiki/File:P1050551_Louvre_code_d%27Hammurabi_recto_rwk.JPG",
+          "originating_record_url": "https://commons.wikimedia.org/wiki/File:P1050551_Louvre_code_d%27Hammurabi_recto_rwk.JPG",
+          "identifiers": [
+            {
+              "scheme": "Wikimedia Commons page ID",
+              "value": "16931477"
+            }
+          ],
+          "available_formats": [
+            "search lead to exact Commons File page"
+          ],
+          "declared_rights": {
+            "statement": "Search surfaced the CC BY 3.0 photograph; the Commons file page and imageinfo API, not the search result, own the license and fixity evidence.",
+            "scope": "metadata",
+            "evidence_url": "https://commons.wikimedia.org/wiki/File:P1050551_Louvre_code_d%27Hammurabi_recto_rwk.JPG",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-view",
+          "machine_interface": "html",
+          "decision": "select",
+          "rationale": "The lead closed the open-photograph gap and was verified at the exact file record and API.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-needed",
+            "format": null,
+            "sha256": null,
+            "reason": "No search-result snapshot is authoritative or needed."
+          }
+        }
+      ]
+    }
+  ],
+  "channel_comparison": [
+    {
+      "channel_id": "channel-loc-national-authority",
+      "completeness": "limited",
+      "metadata_precision": "limited",
+      "rights_clarity": "poor",
+      "machine_interface_quality": "limited",
+      "human_minutes": 0,
+      "machine_seconds": 0.240912,
+      "notes": "The national API is retained as a bounded zero-result lead. Machine time is the automatic monotonic HTTP measurement; human_minutes=0 means no real-human review was performed."
+    },
+    {
+      "channel_id": "channel-bnf-scheil-bibliography",
+      "completeness": "adequate",
+      "metadata_precision": "strong",
+      "rights_clarity": "limited",
+      "machine_interface_quality": "adequate",
+      "human_minutes": 0,
+      "machine_seconds": 0.998114,
+      "notes": "Strong bibliographic identity for Scheil 1902, but no reusable scan license. Machine time is the automatic monotonic HTTP measurement; human_minutes=0 means no real-human review was performed."
+    },
+    {
+      "channel_id": "channel-louvre-holding-and-media",
+      "completeness": "strong",
+      "metadata_precision": "strong",
+      "rights_clarity": "adequate",
+      "machine_interface_quality": "adequate",
+      "human_minutes": 0,
+      "machine_seconds": 1.067576,
+      "notes": "Best physical-artifact identity and exact official media routes; custom photograph terms and permission-only 3D route are explicit. Machine time is the automatic monotonic HTTP measurement; human_minutes=0 means no real-human review was performed."
+    },
+    {
+      "channel_id": "channel-ucf-roth-originating-publication",
+      "completeness": "strong",
+      "metadata_precision": "strong",
+      "rights_clarity": "strong",
+      "machine_interface_quality": "strong",
+      "human_minutes": 0,
+      "machine_seconds": 0.389302,
+      "notes": "Best modern translation File route with exact institutional license and download. Machine time is the automatic monotonic HTTP measurement; human_minutes=0 means no real-human review was performed."
+    },
+    {
+      "channel_id": "channel-cdli-current-composite",
+      "completeness": "strong",
+      "metadata_precision": "strong",
+      "rights_clarity": "limited",
+      "machine_interface_quality": "strong",
+      "human_minutes": 0,
+      "machine_seconds": 1.242662,
+      "notes": "Best current composite and witness topology, but not selected as an open content File. Machine time is the automatic monotonic HTTP measurement; human_minutes=0 means no real-human review was performed."
+    },
+    {
+      "channel_id": "channel-commons-open-photograph",
+      "completeness": "strong",
+      "metadata_precision": "strong",
+      "rights_clarity": "strong",
+      "machine_interface_quality": "strong",
+      "human_minutes": 0,
+      "machine_seconds": 0.330975,
+      "notes": "Best exact independently licensed visual File route with API fixity. Machine time is the automatic monotonic HTTP measurement; human_minutes=0 means no real-human review was performed."
+    },
+    {
+      "channel_id": "channel-crossref-identifiers",
+      "completeness": "limited",
+      "metadata_precision": "limited",
+      "rights_clarity": "poor",
+      "machine_interface_quality": "strong",
+      "human_minutes": 0,
+      "machine_seconds": 1.40027,
+      "notes": "No DOI was needed or promoted for the selected UCF repository object. Machine time is the automatic monotonic HTTP measurement; human_minutes=0 means no real-human review was performed."
+    },
+    {
+      "channel_id": "channel-open-library-catalogs",
+      "completeness": "strong",
+      "metadata_precision": "adequate",
+      "rights_clarity": "limited",
+      "machine_interface_quality": "strong",
+      "human_minutes": 0,
+      "machine_seconds": 0.400482,
+      "notes": "Historical scans and translations are useful, but exact rights are absent or USA-specific for the reviewed lifecycle. Machine time is the automatic monotonic HTTP measurement; human_minutes=0 means no real-human review was performed."
+    },
+    {
+      "channel_id": "channel-general-web-last",
+      "completeness": "adequate",
+      "metadata_precision": "limited",
+      "rights_clarity": "limited",
+      "machine_interface_quality": "adequate",
+      "human_minutes": 0,
+      "machine_seconds": 0.822368,
+      "notes": "Used last only to close the named modern-translation and open-photograph gaps, then routed to originating records. Machine time is the automatic monotonic HTTP measurement; human_minutes=0 means no real-human review was performed."
+    }
+  ],
+  "selected_result_ids": [
+    "tos-discovery-result.bnf-scheil-textes-elamites-semitiques-1902",
+    "tos-discovery-result.louvre-hammurabi-sb8-object-metadata",
+    "tos-discovery-result.ucf-roth-laws-of-hammurabi-revised-2026-pdf",
+    "tos-discovery-result.commons-mbzt-hammurabi-sb8-rear-2011-jpeg",
+    "tos-discovery-result.general-web-ucf-roth-license-lead",
+    "tos-discovery-result.general-web-commons-mbzt-photo-lead"
+  ],
+  "rejected_result_ids": [
+    "tos-discovery-result.louvre-hammurabi-collection-photographs"
+  ],
+  "rights_inference_from_availability_prohibited": true,
+  "general_web_search_is_last_resort": true,
+  "technical_access_bypass_used": false,
+  "maker": {
+    "maker_type": "model",
+    "agent_ref": "model:codex"
+  },
+  "started_at": "2026-08-30T09:00:50.956352Z",
+  "ended_at": "2026-08-30T09:00:57.850313Z",
+  "status": "reconciled",
+  "provenance_event_refs": [
+    "tos.event.discovery.laws-of-hammurapi-open-work-route.2026-08-30"
+  ],
+  "record_version": 1,
+  "supersedes_discovery_ref": null
+}

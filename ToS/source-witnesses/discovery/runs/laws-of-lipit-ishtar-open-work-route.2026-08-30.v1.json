@@ -1,0 +1,975 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/material-discovery-record.schema.json",
+  "schema_version": "tos_material_discovery_record_v1",
+  "discovery_id": "tos.discovery.laws-of-lipit-ishtar-open-work-route.2026-08-30.v1",
+  "protocol_ref": "ToS/source-witnesses/discovery/DISCOVERY_PROTOCOL.md",
+  "target": {
+    "target_kind": "scholarly-composite",
+    "known_tos_refs": [
+      "tos.work.sumerian-law.laws-of-lipit-ishtar",
+      "tos.composite.sumerian.laws-of-lipit-ishtar",
+      "tos.artifact.sumerian.uncertain.louvre-ao-05473"
+    ],
+    "description": "Resolve the existing Laws of Lipit-Ištar Work, provider-independent critical composite, and exact Louvre member to openly licensed digital objects while keeping the ancient Work, physical witnesses, modern editorial text, translation publication, museum photographs, provider responses, and local Files distinct.",
+    "required_properties": [
+      "existing Work, composite, and artifact identities retained rather than reminted",
+      "exact ETCSRI Q000613 static text representation",
+      "exact modern translation or edition identity where openly licensed",
+      "object-level license and local File fixity",
+      "Louvre photographic rights separated from artifact metadata",
+      "no source-text, translation, semantic, graph, canon, or publication admission"
+    ],
+    "acceptable_substitutions": [
+      "an exact Oracc ETCSRI structured export carrying the same project license",
+      "an exact institutional translation or critical-edition File with a standard open license",
+      "an exact Louvre image only if its own object-level terms satisfy the open-license threshold"
+    ],
+    "languages": [
+      "sux",
+      "en",
+      "pl",
+      "fr"
+    ],
+    "formats": [
+      "authority metadata",
+      "scholarly composite HTML",
+      "modern translation PDF",
+      "museum object and image rights record",
+      "project licensing statement"
+    ],
+    "purpose_ref": "ToS/source-witnesses/discovery/candidates/README.md",
+    "constraint_refinements": [
+      {
+        "candidate_field": "required_properties",
+        "candidate_values": [
+          "reuse existing Work, composite, and artifact identities",
+          "exact downloadable object identity and fixity",
+          "originating provider and object-level rights evidence",
+          "Louvre visual rights kept separate from textual representations",
+          "no duplicate Work, semantic, graph, canon, or publication effect"
+        ],
+        "discovery_field": "required_properties",
+        "discovery_values": [
+          "existing Work, composite, and artifact identities retained rather than reminted",
+          "exact ETCSRI Q000613 static text representation",
+          "exact modern translation or edition identity where openly licensed",
+          "object-level license and local File fixity",
+          "Louvre photographic rights separated from artifact metadata",
+          "no source-text, translation, semantic, graph, canon, or publication admission"
+        ],
+        "review_status": "reviewed",
+        "reviewed_at": "2026-09-02",
+        "reviewer_ref": "operator:tos-open-work-loop"
+      },
+      {
+        "candidate_field": "acceptable_substitutions",
+        "candidate_values": [
+          "an exact Oracc or institutional text export with explicit standard open terms",
+          "an exact holding-institution image with an object-level open license",
+          "an exact historical critical-edition scan with reviewed public-domain and digital-object rights",
+          "a zero-result or rights-insufficient terminal receipt preserving every useful URL"
+        ],
+        "discovery_field": "acceptable_substitutions",
+        "discovery_values": [
+          "an exact Oracc ETCSRI structured export carrying the same project license",
+          "an exact institutional translation or critical-edition File with a standard open license",
+          "an exact Louvre image only if its own object-level terms satisfy the open-license threshold"
+        ],
+        "review_status": "reviewed",
+        "reviewed_at": "2026-09-02",
+        "reviewer_ref": "operator:tos-open-work-loop"
+      },
+      {
+        "candidate_field": "formats",
+        "candidate_values": [
+          "historical critical-edition scan"
+        ],
+        "discovery_field": "formats",
+        "discovery_values": [
+          "authority metadata",
+          "scholarly composite HTML",
+          "modern translation PDF",
+          "museum object and image rights record",
+          "project licensing statement"
+        ],
+        "review_status": "reviewed",
+        "reviewed_at": "2026-09-02",
+        "reviewer_ref": "operator:tos-open-work-loop"
+      }
+    ]
+  },
+  "channels": [
+    {
+      "channel_id": "channel-loc-national-authority",
+      "sequence": 1,
+      "channel_type": "national-catalog",
+      "role": "lead-only",
+      "source_name": "Library of Congress books API",
+      "endpoint_url": "https://www.loc.gov/books/",
+      "interface_type": "api",
+      "interface_version": "current public endpoint checked 2026-08-30",
+      "exact_query": "https://www.loc.gov/books/?fo=json&q=%22Laws%20of%20Lipit-Ishtar%22; bounded client returned HTTP 403, so no result order or rights state was inferred.",
+      "queried_at": "2026-08-30T08:32:13.400719Z",
+      "elapsed_seconds": 0.159357,
+      "result_order_preserved": true,
+      "results": []
+    },
+    {
+      "channel_id": "channel-louvre-holding-record",
+      "sequence": 2,
+      "channel_type": "university-catalog",
+      "role": "originating-record",
+      "source_name": "Musée du Louvre Collections",
+      "endpoint_url": "https://collections.louvre.fr/en/ark:/53355/cl010166109",
+      "interface_type": "api",
+      "interface_version": "object page, JSON representation, nine image credits, and reuse terms checked 2026-08-30",
+      "exact_query": "Open Louvre ARK cl010166109 and its JSON; reconcile AO 5473 and TCL 15,34; inspect every displayed image credit and the official reuse terms before any download.",
+      "queried_at": "2026-08-30T08:32:13.560199Z",
+      "elapsed_seconds": 2.90012,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.louvre-ao-05473-object-metadata",
+          "rank": 1,
+          "title_as_displayed": "fragment de stèle inscrite : code de Lipit-Ishtar",
+          "result_url": "https://collections.louvre.fr/en/ark:/53355/cl010166109",
+          "originating_record_url": "https://collections.louvre.fr/en/ark:/53355/cl010166109",
+          "identifiers": [
+            {
+              "scheme": "Louvre inventory",
+              "value": "AO 5473"
+            },
+            {
+              "scheme": "Louvre ARK",
+              "value": "ark:/53355/cl010166109"
+            },
+            {
+              "scheme": "publication",
+              "value": "TCL 15,34"
+            }
+          ],
+          "available_formats": [
+            "museum HTML record",
+            "JSON metadata",
+            "nine credited photographs"
+          ],
+          "declared_rights": {
+            "statement": "The collection page supplies a bounded metadata and permalink route; it does not place the photographed object or all collection data under a standard open license.",
+            "scope": "metadata",
+            "evidence_url": "https://collections.louvre.fr/en/page/cgu",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-view",
+          "machine_interface": "api",
+          "decision": "select",
+          "rationale": "The exact holding record is essential operational identity evidence for the existing artifact node, but no Louvre media File is acquired from it.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-captured",
+            "format": null,
+            "sha256": null,
+            "reason": "The mutable live record and JSON URLs remain the originating evidence; no object body was needed after the photographic layer failed the open-license threshold."
+          }
+        },
+        {
+          "result_id": "tos-discovery-result.louvre-ao-05473-nine-photographs",
+          "rank": 2,
+          "title_as_displayed": "AO 5473 — nine downloadable collection photographs",
+          "result_url": "https://collections.louvre.fr/ark:/53355/cl010166109.json",
+          "originating_record_url": "https://collections.louvre.fr/en/ark:/53355/cl010166109",
+          "identifiers": [
+            {
+              "scheme": "Louvre inventory",
+              "value": "AO 5473"
+            }
+          ],
+          "available_formats": [
+            "JPEG photographs through the Louvre download interface"
+          ],
+          "declared_rights": {
+            "statement": "The files carry named GrandPalaisRmn, Louvre distribution, and photographer credits. Louvre terms allow only an enumerated non-collective set of private, museographic, scientific, and educational reuses and require permission or payment for other uses; this is not a standard open license.",
+            "scope": "digital-object",
+            "evidence_url": "https://collections.louvre.fr/en/page/cgu",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "permission-required",
+          "machine_interface": "manual-only",
+          "decision": "reject",
+          "rationale": "The exact visual layer fails this Goal's open-license threshold despite visible download controls; no photograph was downloaded.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-permitted",
+            "format": null,
+            "sha256": null,
+            "reason": "No photograph is preserved because custom use restrictions are not an open license for the intended ToS lifecycle."
+          }
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-uam-originating-publication",
+      "sequence": 3,
+      "channel_type": "publisher-catalog",
+      "role": "digital-object-record",
+      "source_name": "Czasopismo Prawno-Historyczne / Adam Mickiewicz University PRESSto",
+      "endpoint_url": "https://pressto.amu.edu.pl/index.php/cph/article/view/36386",
+      "interface_type": "web",
+      "interface_version": "OJS article record and exact PDF checked 2026-08-30",
+      "exact_query": "Resolve 'Prawa Lipit-Esztara' from the originating journal record; verify Tytus Mikołajczak, ORCID 0000-0003-0732-0042, DOI 10.14746/cph.2022.2.2, volume 74(2), pages 37–57, publication date, PDF route, and CC BY-SA 4.0 statement in both record and PDF.",
+      "queried_at": "2026-08-30T08:32:16.460558Z",
+      "elapsed_seconds": 1.115593,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.uam-mikolajczak-prawa-lipit-esztara-2022-pdf",
+          "rank": 1,
+          "title_as_displayed": "Prawa Lipit-Esztara",
+          "result_url": "https://pressto.amu.edu.pl/index.php/cph/article/download/36386/31112",
+          "originating_record_url": "https://pressto.amu.edu.pl/index.php/cph/article/view/36386",
+          "identifiers": [
+            {
+              "scheme": "DOI",
+              "value": "10.14746/cph.2022.2.2"
+            },
+            {
+              "scheme": "ORCID",
+              "value": "0000-0003-0732-0042"
+            }
+          ],
+          "available_formats": [
+            "21-page PDF",
+            "HTML metadata",
+            "RIS",
+            "BibTeX"
+          ],
+          "declared_rights": {
+            "statement": "The originating record and the PDF's first page both state Creative Commons Attribution-ShareAlike 4.0 International.",
+            "scope": "digital-object",
+            "evidence_url": "https://pressto.amu.edu.pl/index.php/cph/article/view/36386",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-download",
+          "machine_interface": "html",
+          "decision": "select",
+          "rationale": "This exact File contains a modern Polish translation and study, has strong bibliographic identity, and is positively licensed at the originating publisher.",
+          "acquisition": {
+            "downloaded": true,
+            "acquired_at": "2026-08-30T02:25:26-06:00",
+            "byte_size": 236010,
+            "sha256": "61c2539463b95c791d0a41d004c5b901f6d145f15d25355041f73b364e47aadc",
+            "event_ref": "tos.event.acquisition.laws-of-lipit-ishtar-mikolajczak-pl-2022.2026-08-30"
+          },
+          "snapshot": {
+            "state": "not-needed",
+            "format": null,
+            "sha256": null,
+            "reason": "The exact publisher PDF is the preserved File; no separate page snapshot substitutes for it."
+          }
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-etcsl-catalog",
+      "sequence": 4,
+      "channel_type": "specialized-scholarly-project",
+      "role": "scholarly-index",
+      "source_name": "Electronic Text Corpus of Sumerian Literature",
+      "endpoint_url": "https://etcsl.orinst.ox.ac.uk/catalogue/catalogue3.htm",
+      "interface_type": "web",
+      "interface_version": "archived ETCSL catalogue checked 2026-08-30",
+      "exact_query": "Open the ETCSL group 3 catalogue and inspect the 3.4 law-code section for an exact linked 3.4.2 composition page or digital member, preserving the unlinked listing as a zero-content result.",
+      "queried_at": "2026-08-30T08:32:17.576282Z",
+      "elapsed_seconds": 0.753166,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.etcsl-342-unlinked-catalog-entry",
+          "rank": 1,
+          "title_as_displayed": "3.4.2 Laws of Lipit-Eštar",
+          "result_url": "https://etcsl.orinst.ox.ac.uk/catalogue/catalogue3.htm",
+          "originating_record_url": "https://etcsl.orinst.ox.ac.uk/catalogue/catalogue3.htm",
+          "identifiers": [
+            {
+              "scheme": "ETCSL catalogue",
+              "value": "3.4.2"
+            }
+          ],
+          "available_formats": [
+            "unlinked HTML catalogue entry"
+          ],
+          "declared_rights": {
+            "statement": "The catalogue lists the intended composition but supplies no linked 3.4.2 content object; no license is projected from other ETCSL compositions.",
+            "scope": "metadata",
+            "evidence_url": "https://etcsl.orinst.ox.ac.uk/catalogue/catalogue3.htm",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "metadata-only",
+          "machine_interface": "html",
+          "decision": "select",
+          "rationale": "This exact catalogue coordinate is useful negative-content evidence, not an available text body.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-needed",
+            "format": null,
+            "sha256": null,
+            "reason": "The exact live catalogue remains the originating negative-content evidence."
+          }
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-oracc-etcsri-exact-text",
+      "sequence": 5,
+      "channel_type": "specialized-scholarly-project",
+      "role": "digital-object-record",
+      "source_name": "Electronic Text Corpus of Sumerian Royal Inscriptions at Oracc",
+      "endpoint_url": "https://oracc.museum.upenn.edu/etcsri/Q000613",
+      "interface_type": "web",
+      "interface_version": "ETCSRI Q000613 dynamic and static HTML plus project footer checked 2026-08-30",
+      "exact_query": "Open ETCSRI Q000613; verify Laws of Lipit-Eštar, RIME 4.01.05.add10, source members, annotated Sumerian text, translation display, visible Print text route, and ETCSRI CC BY-SA 3.0 footer; capture the canonical static HTTPS response without disabling certificate checks.",
+      "queried_at": "2026-08-30T08:32:18.329535Z",
+      "elapsed_seconds": 0.284797,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.oracc-etcsri-q000613-static-html",
+          "rank": 1,
+          "title_as_displayed": "Laws of Lipit-Eštar (RIME 4.01.05.add10 composite)",
+          "result_url": "https://oracc.museum.upenn.edu//etcsri/Q000613/html",
+          "originating_record_url": "https://oracc.museum.upenn.edu/etcsri/Q000613",
+          "identifiers": [
+            {
+              "scheme": "Oracc ETCSRI",
+              "value": "Q000613"
+            },
+            {
+              "scheme": "RIME",
+              "value": "4.01.05.add10"
+            }
+          ],
+          "available_formats": [
+            "static annotated HTML",
+            "dynamic corpus HTML",
+            "Sumerian transliteration, morphology, and displayed English translation"
+          ],
+          "declared_rights": {
+            "statement": "The ETCSRI project footer declares project content released under CC BY-SA 3.0; Oracc requires attribution and ShareAlike and excludes independently licensed third-party images or downloads.",
+            "scope": "content",
+            "evidence_url": "https://oracc.museum.upenn.edu/etcsri/accesskeys/",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-download",
+          "machine_interface": "html",
+          "decision": "select",
+          "rationale": "This is the exact project-licensed annotated text representation. Browser acquisition preserved the canonical static provider response after the command-line client rejected the host's incomplete TLS chain; no warning or access control was bypassed.",
+          "acquisition": {
+            "downloaded": true,
+            "acquired_at": "2026-08-30T02:20:17-06:00",
+            "byte_size": 56318,
+            "sha256": "d5fea8eab41c2570a32d69cff978dada64a905c13a6f3bd35f67ba272501f5f6",
+            "event_ref": "tos.event.acquisition.laws-of-lipit-ishtar-oracc-etcsri-q000613.2026-08-30"
+          },
+          "snapshot": {
+            "state": "not-needed",
+            "format": null,
+            "sha256": null,
+            "reason": "The exact local File is the preserved source witness; no separate visual snapshot substitutes for it."
+          }
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-cdli-current-composite",
+      "sequence": 6,
+      "channel_type": "specialized-scholarly-project",
+      "role": "originating-record",
+      "source_name": "Cuneiform Digital Library Initiative",
+      "endpoint_url": "https://cdli.earth/artifacts/464355",
+      "interface_type": "api",
+      "interface_version": "current artifact, score, witness list, external-resource links, and terms checked 2026-08-30",
+      "exact_query": "Resolve P464355, Q000613, current inscription revision 2269336, thirteen displayed witnesses, AO 5473 member P345378, ETCSRI external-resource identity, and CDLI terms without projecting conditional reuse into a standard open license.",
+      "queried_at": "2026-08-30T08:32:18.614427Z",
+      "elapsed_seconds": 2.569562,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.cdli-q000613-current-composite",
+          "rank": 1,
+          "title_as_displayed": "RIME 4.01.05.add10 (Laws of Lipit-Ishtar) composite (P464355)",
+          "result_url": "https://cdli.earth/artifacts/464355",
+          "originating_record_url": "https://cdli.earth/artifacts/composites-score/Q000613",
+          "identifiers": [
+            {
+              "scheme": "CDLI composite",
+              "value": "Q000613"
+            },
+            {
+              "scheme": "CDLI artifact",
+              "value": "P464355"
+            },
+            {
+              "scheme": "CDLI inscription revision",
+              "value": "2269336"
+            }
+          ],
+          "available_formats": [
+            "composite HTML",
+            "score HTML",
+            "witness list",
+            "citation metadata"
+          ],
+          "declared_rights": {
+            "statement": "CDLI permits bounded scholarly reuse under custom terms; images, drawings, publications, and third-party layers remain separately governed.",
+            "scope": "content",
+            "evidence_url": "https://cdli.earth/terms-of-use",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-view",
+          "machine_interface": "html",
+          "decision": "select",
+          "rationale": "The current CDLI record is the strongest identity, revision, and witness-membership corroboration, but its custom terms are not the standard open-license basis for an acquired File.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-needed",
+            "format": null,
+            "sha256": null,
+            "reason": "The acquired exact text payload comes from separately licensed ETCSRI and the translation PDF from UAM."
+          }
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-europeana-aggregator",
+      "sequence": 7,
+      "channel_type": "collection-aggregator",
+      "role": "lead-only",
+      "source_name": "Europeana",
+      "endpoint_url": "https://www.europeana.eu/en/search",
+      "interface_type": "web",
+      "interface_version": "public search endpoint checked 2026-08-30",
+      "exact_query": "https://www.europeana.eu/en/search?query=%22Laws%20of%20Lipit-Ishtar%22; bounded client returned HTTP 403, so no result or rights state was inferred.",
+      "queried_at": "2026-08-30T08:32:21.184083Z",
+      "elapsed_seconds": 0.28112,
+      "result_order_preserved": true,
+      "results": []
+    },
+    {
+      "channel_id": "channel-crossref-identifiers",
+      "sequence": 8,
+      "channel_type": "identifier-registry",
+      "role": "scholarly-index",
+      "source_name": "Crossref REST API",
+      "endpoint_url": "https://api.crossref.org/works",
+      "interface_type": "api",
+      "interface_version": "current REST API checked 2026-08-30",
+      "exact_query": "https://api.crossref.org/works?query.title=Laws%20of%20Lipit-Ishtar&rows=5&select=DOI,title,author,published,URL,type",
+      "queried_at": "2026-08-30T08:32:21.465280Z",
+      "elapsed_seconds": 1.469254,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.crossref-lipit-ishtar-commentary-dataset",
+          "rank": 1,
+          "title_as_displayed": "The Laws of Lipit-Ishtar, Commentary",
+          "result_url": "https://doi.org/10.1163/2211-436x_cos_acosb_2_154",
+          "originating_record_url": "https://doi.org/10.1163/2211-436x_cos_acosb_2_154",
+          "identifiers": [
+            {
+              "scheme": "DOI",
+              "value": "10.1163/2211-436x_cos_acosb_2_154"
+            }
+          ],
+          "available_formats": [
+            "dataset metadata"
+          ],
+          "declared_rights": {
+            "statement": null,
+            "scope": "unknown",
+            "evidence_url": null,
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "metadata-only",
+          "machine_interface": "api",
+          "decision": "defer",
+          "rationale": "Modern commentary lead with no object-level open license in the Crossref result.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-needed",
+            "format": null,
+            "sha256": null,
+            "reason": "Identifier metadata is sufficient for a deferred lead."
+          }
+        },
+        {
+          "result_id": "tos-discovery-result.crossref-roth-lipit-ishtar-chapter",
+          "rank": 2,
+          "title_as_displayed": "Laws of Lipit-Ishtar (LL) (ca. 1930 B.C.E., Isin)",
+          "result_url": "https://doi.org/10.2307/jj.25577265.11",
+          "originating_record_url": "https://doi.org/10.2307/jj.25577265.11",
+          "identifiers": [
+            {
+              "scheme": "DOI",
+              "value": "10.2307/jj.25577265.11"
+            }
+          ],
+          "available_formats": [
+            "book-chapter metadata",
+            "provider XML download lead"
+          ],
+          "declared_rights": {
+            "statement": null,
+            "scope": "unknown",
+            "evidence_url": null,
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "subscription",
+          "machine_interface": "html",
+          "decision": "defer",
+          "rationale": "Useful modern translation/edition lead, but no open-license evidence for the exact chapter File was found in this run.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-permitted",
+            "format": null,
+            "sha256": null,
+            "reason": "No licensed object was selected from the subscription publication."
+          }
+        },
+        {
+          "result_id": "tos-discovery-result.crossref-steele-code-lipit-ishtar-1948",
+          "rank": 3,
+          "title_as_displayed": "The Code of Lipit-Ishtar",
+          "result_url": "https://doi.org/10.2307/500438",
+          "originating_record_url": "https://doi.org/10.2307/500438",
+          "identifiers": [
+            {
+              "scheme": "DOI",
+              "value": "10.2307/500438"
+            }
+          ],
+          "available_formats": [
+            "journal-article metadata"
+          ],
+          "declared_rights": {
+            "statement": null,
+            "scope": "unknown",
+            "evidence_url": null,
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "subscription",
+          "machine_interface": "html",
+          "decision": "defer",
+          "rationale": "Historically important edition lead, but no exact open digital object was resolved here.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-permitted",
+            "format": null,
+            "sha256": null,
+            "reason": "No open licensed File was available from the identifier result."
+          }
+        },
+        {
+          "result_id": "tos-discovery-result.crossref-kramer-lipit-ishtar-law-code-1947",
+          "rank": 4,
+          "title_as_displayed": "The Lipit-Ishtar Law Code",
+          "result_url": "https://doi.org/10.2307/500752",
+          "originating_record_url": "https://doi.org/10.2307/500752",
+          "identifiers": [
+            {
+              "scheme": "DOI",
+              "value": "10.2307/500752"
+            }
+          ],
+          "available_formats": [
+            "journal-article metadata"
+          ],
+          "declared_rights": {
+            "statement": null,
+            "scope": "unknown",
+            "evidence_url": null,
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "subscription",
+          "machine_interface": "html",
+          "decision": "defer",
+          "rationale": "Historically important publication lead with unresolved exact object rights.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-permitted",
+            "format": null,
+            "sha256": null,
+            "reason": "No open licensed File was available from the identifier result."
+          }
+        },
+        {
+          "result_id": "tos-discovery-result.crossref-steele-review-1951",
+          "rank": 5,
+          "title_as_displayed": "Francis R. Steele. The Code of Lipit-Ishtar.",
+          "result_url": "https://doi.org/10.2307/1359456",
+          "originating_record_url": "https://doi.org/10.2307/1359456",
+          "identifiers": [
+            {
+              "scheme": "DOI",
+              "value": "10.2307/1359456"
+            }
+          ],
+          "available_formats": [
+            "journal-review metadata"
+          ],
+          "declared_rights": {
+            "statement": null,
+            "scope": "unknown",
+            "evidence_url": null,
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "subscription",
+          "machine_interface": "html",
+          "decision": "defer",
+          "rationale": "Review lead only; it does not supply the requested primary or translated Work object.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-permitted",
+            "format": null,
+            "sha256": null,
+            "reason": "No open licensed File was available from the identifier result."
+          }
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-open-library-catalogs",
+      "sequence": 9,
+      "channel_type": "open-library",
+      "role": "lead-only",
+      "source_name": "Internet Archive advanced search",
+      "endpoint_url": "https://archive.org/advancedsearch.php",
+      "interface_type": "api",
+      "interface_version": "advancedsearch JSON checked 2026-08-30",
+      "exact_query": "https://archive.org/advancedsearch.php?q=title%3A%28%22Laws+of+Lipit-Ishtar%22%29&fl%5B%5D=identifier&fl%5B%5D=title&fl%5B%5D=year&fl%5B%5D=creator&rows=50&page=1&output=json; numFound=0.",
+      "queried_at": "2026-08-30T08:32:22.934629Z",
+      "elapsed_seconds": 0.409174,
+      "result_order_preserved": true,
+      "results": []
+    },
+    {
+      "channel_id": "channel-general-web-last",
+      "sequence": 10,
+      "channel_type": "general-web-search",
+      "role": "lead-only",
+      "source_name": "General web search used only after exact and scholarly routes",
+      "endpoint_url": "https://www.google.com/search",
+      "interface_type": "web",
+      "interface_version": "public search checked 2026-08-30",
+      "exact_query": "Ordered queries: site:oracc.museum.upenn.edu/etcsri Q000613 Lipit-Ishtar laws; site:collections.louvre.fr cl010166109 AO 5473 Lipit Ishtar; site:cdli.earth/artifacts/464355 Q000613 Lipit Ishtar; \"Laws of Lipit-Ishtar\" open license download; then \"Prawa Lipit-Esztara\" DOI to close the open translation lead.",
+      "queried_at": "2026-08-30T08:32:23.343914Z",
+      "elapsed_seconds": 0.363021,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.general-web-uam-prawa-lipit-esztara-lead",
+          "rank": 1,
+          "title_as_displayed": "Prawa Lipit-Esztara | Czasopismo Prawno-Historyczne",
+          "result_url": "https://pressto.amu.edu.pl/index.php/cph/article/view/36386",
+          "originating_record_url": "https://pressto.amu.edu.pl/index.php/cph/article/view/36386",
+          "identifiers": [
+            {
+              "scheme": "DOI",
+              "value": "10.14746/cph.2022.2.2"
+            }
+          ],
+          "available_formats": [
+            "publisher HTML",
+            "publisher PDF"
+          ],
+          "declared_rights": {
+            "statement": "Originating journal page states CC BY-SA 4.0.",
+            "scope": "digital-object",
+            "evidence_url": "https://pressto.amu.edu.pl/index.php/cph/article/view/36386",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-download",
+          "machine_interface": "html",
+          "decision": "select",
+          "rationale": "General search found the title variant and was immediately resolved to the originating publisher channel before acquisition.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-needed",
+            "format": null,
+            "sha256": null,
+            "reason": "The publisher PDF is preserved under the originating channel; this result remains the lead relation."
+          }
+        },
+        {
+          "result_id": "tos-discovery-result.general-web-researchgate-prawa-lipit-esztara",
+          "rank": 2,
+          "title_as_displayed": "Prawa Lipit-Esztara",
+          "result_url": "https://www.researchgate.net/publication/366871172_Prawa_Lipit-Esztara",
+          "originating_record_url": "https://pressto.amu.edu.pl/index.php/cph/article/view/36386",
+          "identifiers": [
+            {
+              "scheme": "DOI",
+              "value": "10.14746/cph.2022.2.2"
+            }
+          ],
+          "available_formats": [
+            "third-party publication page",
+            "PDF lead"
+          ],
+          "declared_rights": {
+            "statement": "The indexed ResearchGate surface displayed conflicting CC labels while its PDF text cited BY-SA; the originating journal's CC BY-SA 4.0 statement controls this acquisition.",
+            "scope": "digital-object",
+            "evidence_url": "https://pressto.amu.edu.pl/index.php/cph/article/view/36386",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-view",
+          "machine_interface": "html",
+          "decision": "reject",
+          "rationale": "Useful lead but not used for identity, rights, or bytes because the originating journal record and File are available.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-needed",
+            "format": null,
+            "sha256": null,
+            "reason": "No third-party snapshot is needed after resolution to the originating publisher."
+          }
+        },
+        {
+          "result_id": "tos-discovery-result.general-web-jstor-roth-lipit-ishtar",
+          "rank": 3,
+          "title_as_displayed": "Law Collections from Mesopotamia and Asia Minor",
+          "result_url": "https://www.jstor.org/stable/jj.25577265",
+          "originating_record_url": "https://doi.org/10.2307/jj.25577265.11",
+          "identifiers": [
+            {
+              "scheme": "DOI",
+              "value": "10.2307/jj.25577265.11"
+            }
+          ],
+          "available_formats": [
+            "book HTML",
+            "chapter XML lead"
+          ],
+          "declared_rights": {
+            "statement": null,
+            "scope": "unknown",
+            "evidence_url": null,
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "subscription",
+          "machine_interface": "html",
+          "decision": "defer",
+          "rationale": "Valuable translation lineage, but no exact open-license File was resolved; it remains a future rights lead rather than a download.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-permitted",
+            "format": null,
+            "sha256": null,
+            "reason": "No open licensed object was available from this route."
+          }
+        }
+      ]
+    }
+  ],
+  "channel_comparison": [
+    {
+      "channel_id": "channel-loc-national-authority",
+      "completeness": "poor",
+      "metadata_precision": "limited",
+      "rights_clarity": "unknown",
+      "machine_interface_quality": "limited",
+      "human_minutes": 0,
+      "machine_seconds": 0.159357,
+      "notes": "HTTP 403; no result was invented. Timer placeholder will be replaced by the monotonic receipt. Machine time is the automatic monotonic HTTP measurement; human_minutes=0 means no real-human review was performed."
+    },
+    {
+      "channel_id": "channel-louvre-holding-record",
+      "completeness": "strong",
+      "metadata_precision": "strong",
+      "rights_clarity": "strong",
+      "machine_interface_quality": "strong",
+      "human_minutes": 0,
+      "machine_seconds": 2.90012,
+      "notes": "Exact artifact identity and image-credit evidence; photographs rejected under custom restricted terms. Timer placeholder will be replaced by the monotonic receipt. Machine time is the automatic monotonic HTTP measurement; human_minutes=0 means no real-human review was performed."
+    },
+    {
+      "channel_id": "channel-uam-originating-publication",
+      "completeness": "strong",
+      "metadata_precision": "strong",
+      "rights_clarity": "strong",
+      "machine_interface_quality": "strong",
+      "human_minutes": 0,
+      "machine_seconds": 1.115593,
+      "notes": "Exact DOI-bound translation/study PDF under CC BY-SA 4.0; selected and acquired. Timer placeholder will be replaced by the monotonic receipt. Machine time is the automatic monotonic HTTP measurement; human_minutes=0 means no real-human review was performed."
+    },
+    {
+      "channel_id": "channel-etcsl-catalog",
+      "completeness": "limited",
+      "metadata_precision": "strong",
+      "rights_clarity": "limited",
+      "machine_interface_quality": "adequate",
+      "human_minutes": 0,
+      "machine_seconds": 0.753166,
+      "notes": "Exact 3.4.2 coordinate but no linked content object. Timer placeholder will be replaced by the monotonic receipt. Machine time is the automatic monotonic HTTP measurement; human_minutes=0 means no real-human review was performed."
+    },
+    {
+      "channel_id": "channel-oracc-etcsri-exact-text",
+      "completeness": "strong",
+      "metadata_precision": "strong",
+      "rights_clarity": "strong",
+      "machine_interface_quality": "adequate",
+      "human_minutes": 0,
+      "machine_seconds": 0.284797,
+      "notes": "Exact CC BY-SA 3.0 annotated representation; selected and acquired. Timer placeholder will be replaced by the monotonic receipt. Machine time is the automatic monotonic HTTP measurement; human_minutes=0 means no real-human review was performed."
+    },
+    {
+      "channel_id": "channel-cdli-current-composite",
+      "completeness": "strong",
+      "metadata_precision": "strong",
+      "rights_clarity": "adequate",
+      "machine_interface_quality": "strong",
+      "human_minutes": 0,
+      "machine_seconds": 2.569562,
+      "notes": "Best current revision and witness-membership control; custom terms are not the acquisition license. Timer placeholder will be replaced by the monotonic receipt. Machine time is the automatic monotonic HTTP measurement; human_minutes=0 means no real-human review was performed."
+    },
+    {
+      "channel_id": "channel-europeana-aggregator",
+      "completeness": "unknown",
+      "metadata_precision": "unknown",
+      "rights_clarity": "unknown",
+      "machine_interface_quality": "poor",
+      "human_minutes": 0,
+      "machine_seconds": 0.28112,
+      "notes": "HTTP 403; no result or rights inference was fabricated. Timer placeholder will be replaced by the monotonic receipt. Machine time is the automatic monotonic HTTP measurement; human_minutes=0 means no real-human review was performed."
+    },
+    {
+      "channel_id": "channel-crossref-identifiers",
+      "completeness": "adequate",
+      "metadata_precision": "strong",
+      "rights_clarity": "limited",
+      "machine_interface_quality": "strong",
+      "human_minutes": 0,
+      "machine_seconds": 1.469254,
+      "notes": "Five ordered modern bibliographic leads preserved; none independently supplied the selected open object. Timer placeholder will be replaced by the monotonic receipt. Machine time is the automatic monotonic HTTP measurement; human_minutes=0 means no real-human review was performed."
+    },
+    {
+      "channel_id": "channel-open-library-catalogs",
+      "completeness": "limited",
+      "metadata_precision": "adequate",
+      "rights_clarity": "adequate",
+      "machine_interface_quality": "strong",
+      "human_minutes": 0,
+      "machine_seconds": 0.409174,
+      "notes": "Exact title query returned numFound=0. Timer placeholder will be replaced by the monotonic receipt. Machine time is the automatic monotonic HTTP measurement; human_minutes=0 means no real-human review was performed."
+    },
+    {
+      "channel_id": "channel-general-web-last",
+      "completeness": "strong",
+      "metadata_precision": "adequate",
+      "rights_clarity": "adequate",
+      "machine_interface_quality": "adequate",
+      "human_minutes": 0,
+      "machine_seconds": 0.363021,
+      "notes": "Used last; found the Polish title variant and routed it to the originating publisher before acquisition. Timer placeholder will be replaced by the monotonic receipt. Machine time is the automatic monotonic HTTP measurement; human_minutes=0 means no real-human review was performed."
+    }
+  ],
+  "selected_result_ids": [
+    "tos-discovery-result.louvre-ao-05473-object-metadata",
+    "tos-discovery-result.uam-mikolajczak-prawa-lipit-esztara-2022-pdf",
+    "tos-discovery-result.etcsl-342-unlinked-catalog-entry",
+    "tos-discovery-result.oracc-etcsri-q000613-static-html",
+    "tos-discovery-result.cdli-q000613-current-composite",
+    "tos-discovery-result.general-web-uam-prawa-lipit-esztara-lead"
+  ],
+  "rejected_result_ids": [
+    "tos-discovery-result.louvre-ao-05473-nine-photographs",
+    "tos-discovery-result.general-web-researchgate-prawa-lipit-esztara"
+  ],
+  "rights_inference_from_availability_prohibited": true,
+  "general_web_search_is_last_resort": true,
+  "technical_access_bypass_used": false,
+  "maker": {
+    "maker_type": "model",
+    "agent_ref": "model:codex"
+  },
+  "started_at": "2026-08-30T08:32:13.400719Z",
+  "ended_at": "2026-08-30T08:32:23.706946Z",
+  "status": "reconciled",
+  "provenance_event_refs": [
+    "tos.event.discovery.laws-of-lipit-ishtar-open-work-route.2026-08-30",
+    "tos.event.acquisition.laws-of-lipit-ishtar-oracc-etcsri-q000613.2026-08-30",
+    "tos.event.acquisition.laws-of-lipit-ishtar-mikolajczak-pl-2022.2026-08-30"
+  ],
+  "supersedes_discovery_ref": "tos.discovery.mesopotamian-law-collections.2026-08-22",
+  "record_version": 1
+}

@@ -8,6 +8,7 @@ import sys
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 from jsonschema import FormatChecker
 from jsonschema.validators import validator_for
@@ -3196,10 +3197,10 @@ class SourceWitnessFoundationTests(unittest.TestCase):
             "ToS/source-witnesses/catalog/claims.jsonl",
             manifest["claim_file"],
         )
-        self.assertEqual(160, manifest["counts"]["object_total"])
-        self.assertEqual(181, manifest["counts"]["claim"])
-        self.assertEqual(341, manifest["counts"]["total"])
-        self.assertEqual(181, len(claim_entries))
+        self.assertEqual(171, manifest["counts"]["object_total"])
+        self.assertEqual(193, manifest["counts"]["claim"])
+        self.assertEqual(364, manifest["counts"]["total"])
+        self.assertEqual(193, len(claim_entries))
         self.assertEqual(set(source_claims), {entry["claim_id"] for entry in claim_entries})
 
         for entry in claim_entries:
@@ -3237,7 +3238,7 @@ class SourceWitnessFoundationTests(unittest.TestCase):
 
         self.assertEqual(
             {
-                "bibliographic_assertion": 164,
+                "bibliographic_assertion": 176,
                 "scholarly_report": 17,
             },
             {
@@ -3267,9 +3268,9 @@ class SourceWitnessFoundationTests(unittest.TestCase):
         )
         self.assertEqual(
             {
-                "has_expression": 26,
-                "embodied_by": 26,
-                "exemplified_by": 19,
+                "has_expression": 28,
+                "embodied_by": 28,
+                "exemplified_by": 21,
                 "is_derivative_of": 2,
             },
             {
@@ -3308,7 +3309,7 @@ class SourceWitnessFoundationTests(unittest.TestCase):
         authorship_claims = [
             entry for entry in claim_entries if entry["predicate"] == "authored_by"
         ]
-        self.assertEqual(30, len(authorship_claims))
+        self.assertEqual(33, len(authorship_claims))
         nietzsche_authorship_claims = [
             entry
             for entry in authorship_claims
@@ -7506,6 +7507,102 @@ class SourceWitnessFoundationTests(unittest.TestCase):
         embedded_transliteration["inscription_layer"]["transliteration"] = "synthetic"
         self.assertTrue(list(artifact_validator.iter_errors(embedded_transliteration)))
 
+    def test_artifact_visual_representation_binds_exact_public_payload_without_text_authority(self) -> None:
+        artifact_validator, _ = foundation._schema_validator(
+            foundation.ARTIFACT_SOURCE_WITNESS_V2_SCHEMA,
+            REPO_ROOT,
+        )
+        representation_validator, _ = foundation._schema_validator(
+            foundation.ARTIFACT_VISUAL_REPRESENTATION_SCHEMA,
+            REPO_ROOT,
+        )
+        artifact_root = (
+            REPO_ROOT
+            / "ToS/source-witnesses/artifacts/egyptian/deir-el-medina/"
+            "museo-egizio-cgt-54014"
+        )
+        artifact = json.loads(
+            (artifact_root / "artifact-witness.json").read_text(encoding="utf-8")
+        )
+        representation_path = (
+            artifact_root
+            / "representations/recto-photograph-p01/representation.json"
+        )
+        representation = json.loads(representation_path.read_text(encoding="utf-8"))
+        payload_path = representation_path.parent / representation["payload"]["relative_path"]
+
+        self.assertEqual([], list(artifact_validator.iter_errors(artifact)))
+        self.assertEqual([], artifact["philosophy_planting_refs"])
+        self.assertEqual([], list(representation_validator.iter_errors(representation)))
+        self.assertEqual(487283, payload_path.stat().st_size)
+        self.assertEqual(
+            representation["payload"]["sha256"],
+            hashlib.sha256(payload_path.read_bytes()).hexdigest(),
+        )
+        self.assertFalse(representation["layer_separation"]["visual_is_physical_artifact"])
+        self.assertFalse(representation["layer_separation"]["embedded_text_admitted"])
+        self.assertFalse(representation["authority"]["publication_authority"])
+
+        false_text_admission = copy.deepcopy(representation)
+        false_text_admission["layer_separation"]["embedded_text_admitted"] = True
+        self.assertTrue(list(representation_validator.iter_errors(false_text_admission)))
+
+        conditional_rights_path = (
+            REPO_ROOT
+            / "ToS/source-witnesses/artifacts/egyptian/deir-el-bersha/"
+            "sen-inner-coffin-b3l-ea30842/representations/"
+            "bm-mid-00018648-001/rights.json"
+        )
+        conditional_rights = json.loads(
+            conditional_rights_path.read_text(encoding="utf-8")
+        )
+        rights_validator, _ = foundation._schema_validator(
+            foundation.RIGHTS_SCHEMA,
+            REPO_ROOT,
+        )
+        self.assertEqual([], list(rights_validator.iter_errors(conditional_rights)))
+        self.assertEqual("public_payload", conditional_rights["visibility"])
+        self.assertEqual(
+            "authorized_with_conditions",
+            conditional_rights["redistribution_posture"],
+        )
+        self.assertIn(
+            conditional_rights["redistribution_posture"],
+            foundation.PUBLIC_PAYLOAD_REDISTRIBUTION_POSTURES,
+        )
+        self.assertIn(
+            "https://creativecommons.org/licenses/by-nc-sa/4.0/",
+            conditional_rights["license_uri"],
+        )
+
+    def test_required_representation_provenance_output_digest_is_checked(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            repo_root = Path(temporary)
+            output_path = repo_root / "ToS/output.json"
+            output_path.parent.mkdir(parents=True)
+            output_path.write_text("{}\n", encoding="utf-8")
+            issues: list[tuple[str, str]] = []
+
+            foundation._validate_required_provenance_output_digests(
+                repo_root,
+                {
+                    "outputs": [
+                        {
+                            "ref": "ToS/output.json",
+                            "sha256": "0" * 64,
+                        }
+                    ]
+                },
+                {"ToS/output.json"},
+                event_location="synthetic-event",
+                issues=issues,
+            )
+
+            self.assertEqual(
+                [("synthetic-event", "provenance output digest differs: ToS/output.json")],
+                issues,
+            )
+
     def test_scholarly_composite_keeps_members_and_editorial_layers_separate(self) -> None:
         composite_validator, _ = foundation._schema_validator(
             foundation.SCHOLARLY_COMPOSITE_WITNESS_SCHEMA,
@@ -7544,6 +7641,30 @@ class SourceWitnessFoundationTests(unittest.TestCase):
         embedded_composite_text = copy.deepcopy(composite)
         embedded_composite_text["content_layer"]["text"] = "synthetic"
         self.assertTrue(list(composite_validator.iter_errors(embedded_composite_text)))
+
+    def test_local_composite_file_rights_do_not_invent_a_cc_license(self) -> None:
+        rights_validator, _ = foundation._schema_validator(
+            foundation.RIGHTS_SCHEMA,
+            REPO_ROOT,
+        )
+        rights_path = (
+            REPO_ROOT
+            / "ToS/source-witnesses/scholarly-composites/critical/egyptian/"
+            "book-of-the-dead-naville-1886/representations/"
+            "commons-ia-dasaegyptischeto00naviuoft/rights.json"
+        )
+        rights = json.loads(rights_path.read_text(encoding="utf-8"))
+
+        self.assertEqual([], list(rights_validator.iter_errors(rights)))
+        self.assertEqual("local_only", rights["visibility"])
+        self.assertEqual("not_authorized", rights["redistribution_posture"])
+        self.assertEqual("local_research_only", rights["derivative_posture"])
+        self.assertIsNone(rights["license_uri"])
+        self.assertIn(
+            rights["redistribution_posture"],
+            foundation.LOCAL_COMPOSITE_PAYLOAD_REDISTRIBUTION_POSTURES,
+        )
+        self.assertEqual("conflicting_evidence", rights["assessment_status"])
 
     def test_dta_open_license_remains_separate_from_local_transfer(self) -> None:
         rights_validator, _ = foundation._schema_validator(
@@ -12358,7 +12479,11 @@ class SourceWitnessFoundationTests(unittest.TestCase):
         missing_local_content = [
             issue
             for issue in issues
-            if issue[1].startswith("required local ") and issue[1].endswith(" is missing")
+            if (
+                issue[1].startswith("required local ")
+                and issue[1].endswith(" is missing")
+            )
+            or issue[1] == "scholarly-composite representation payload is missing"
         ]
         other_issues = [issue for issue in issues if issue not in missing_local_content]
 
@@ -12368,6 +12493,96 @@ class SourceWitnessFoundationTests(unittest.TestCase):
                 f"{len(missing_local_content)} private local content files are unavailable"
             )
         self.assertEqual([], issues)
+
+    def test_artifact_representation_requires_a_git_tracked_payload(self) -> None:
+        representation_path = (
+            REPO_ROOT
+            / "ToS/source-witnesses/artifacts/egyptian/deir-el-medina/"
+            "museo-egizio-cgt-54014/representations/recto-photograph-p01/representation.json"
+        )
+        representation = json.loads(representation_path.read_text(encoding="utf-8"))
+        payload_path = representation_path.parent / representation["payload"]["relative_path"]
+        original_git_tracked = foundation._git_tracked
+
+        def pretend_untracked(repo_root: Path, path: Path) -> bool | None:
+            if path == payload_path:
+                return False
+            return original_git_tracked(repo_root, path)
+
+        with patch.object(foundation, "_git_tracked", side_effect=pretend_untracked):
+            issues = foundation.validate_foundation(REPO_ROOT)
+
+        self.assertIn(
+            (
+                foundation._relative(representation_path, REPO_ROOT),
+                "tracked public artifact payload must be git-tracked",
+            ),
+            issues,
+        )
+
+    def test_malformed_composite_payload_is_reported_without_a_traceback(self) -> None:
+        representation_path = sorted(
+            (REPO_ROOT / "ToS/source-witnesses/scholarly-composites").glob(
+                "**/representations/*/representation.json"
+            )
+        )[0]
+        original_load_json = foundation._load_json
+
+        def load_malformed_payload(
+            path: Path,
+            repo_root: Path,
+            issues: list[tuple[str, str]],
+        ) -> dict | None:
+            payload = original_load_json(path, repo_root, issues)
+            if path == representation_path and payload is not None:
+                payload = copy.deepcopy(payload)
+                payload["payload"] = None
+            return payload
+
+        with patch.object(foundation, "_load_json", side_effect=load_malformed_payload):
+            issues = foundation.validate_foundation(REPO_ROOT)
+
+        location = foundation._relative(representation_path, REPO_ROOT)
+        self.assertTrue(
+            any(
+                issue_location.startswith(f"{location}['payload']")
+                and message == "None is not of type 'object'"
+                for issue_location, message in issues
+            )
+        )
+
+    def test_malformed_artifact_rights_scopes_are_reported_without_traceback(self) -> None:
+        representation_path = (
+            REPO_ROOT
+            / "ToS/source-witnesses/artifacts/egyptian/deir-el-medina/"
+            "museo-egizio-cgt-54014/representations/recto-photograph-p01/representation.json"
+        )
+        representation = json.loads(representation_path.read_text(encoding="utf-8"))
+        rights_path = REPO_ROOT / representation["rights_ref"]
+        original_load_json = foundation._load_json
+
+        def load_malformed_rights(
+            path: Path,
+            repo_root: Path,
+            issues: list[tuple[str, str]],
+        ) -> dict | None:
+            payload = original_load_json(path, repo_root, issues)
+            if path == rights_path and payload is not None:
+                payload = copy.deepcopy(payload)
+                payload["scope_refs"] = None
+            return payload
+
+        with patch.object(foundation, "_load_json", side_effect=load_malformed_rights):
+            issues = foundation.validate_foundation(REPO_ROOT)
+
+        location = foundation._relative(rights_path, REPO_ROOT)
+        self.assertTrue(
+            any(
+                issue_location.startswith(f"{location}['scope_refs']")
+                and message == "None is not of type 'array'"
+                for issue_location, message in issues
+            )
+        )
 
     def test_frozen_pilot_has_declared_counts_and_no_false_human_gold(self) -> None:
         sample_plan = json.loads((GOLD_ROOT / "sample-plan.json").read_text(encoding="utf-8"))

@@ -1,0 +1,92 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/open-work-candidate-receipt.schema.json",
+  "schema_version": "tos_open_work_candidate_receipt_v1",
+  "receipt_id": "open-work-candidate-receipt.book-of-the-dead.2026-09-02.v2",
+  "candidate_id": "open-work-candidate.book-of-the-dead",
+  "candidate_record_sha256": "5bbd40b3ab06f0c941e84b511a048f1ab92d92900b22c69c2219ebb1fa5974e8",
+  "candidate_ledger_sha256": "54ccf553ef7bf2839b2fecf65b1a2d87384b0dcb29c4883cb20bf4e0212d109e",
+  "candidate_target_sha256": "806c720bb551bffe746c40d3b34482f81310da806c7aea326e9af6b0bc802f64",
+  "queue_snapshot_sha256": "b77d4b4c5f8453b77b6fd9d85cdcaed91d5f524c61231bfbaa601d1d86ca8d93",
+  "discovery_ref": "ToS/source-witnesses/discovery/runs/book-of-the-dead-open-work-route.2026-08-30.v1.json",
+  "discovery_id": "tos.discovery.book-of-the-dead-open-work-route.2026-08-30.v1",
+  "discovery_sha256": "fa3f1d4e121dbb9b2011b24ba1a54206b43c95e4f00ccca72798ee3bd799a8e1",
+  "discovery_target_sha256": "e812aabc32b2554e5b208ccd8085667f3b93f81c3efe0482bf1c11cd45529c2e",
+  "timing_ref": "ToS/source-witnesses/discovery/timings/book-of-the-dead-open-work-route.2026-08-30.v1.json",
+  "timing_sha256": "a0ef2c554ea4f0af7cda3b6cedbe093f990fb690cf2ada114fbc847ada875c24",
+  "terminal_status": "held_source_witness",
+  "target_resolution": {
+    "identity_status": "provisional",
+    "work_ref": null,
+    "expression_ref": null,
+    "edition_ref": null,
+    "item_ref": null,
+    "summary": "Book of the Dead remains a variable work-like corpus rather than one automatically admitted Work. One provider-independent Papyrus of Ani frame packet, one exact CC BY-NC-SA 4.0 photographic File, one Naville 1886 scholarly-composite packet, and one exact local-only Einleitung PDF File are now held. No universal title, fixed chapter order, source text, accepted transcription, translation, edition reading, corpus membership, or canon relation was minted."
+  },
+  "rights_result": {
+    "status": "positive-for-acquisition",
+    "reviewed_jurisdictions": [
+      "CH",
+      "DE",
+      "GB",
+      "MX",
+      "US"
+    ],
+    "reviewed_layers": [
+      "provider-independent physical-object metadata",
+      "British Museum collection metadata",
+      "exact British Museum photograph",
+      "embedded Papyrus of Ani inscriptions and vignette",
+      "Bonn and UCL scholarly content",
+      "Naville 1886 editorial work",
+      "exact Internet Archive and Wikimedia Commons PDF scan",
+      "provider metadata and rights statements"
+    ],
+    "evidence_refs": [
+      "ToS/source-witnesses/artifacts/egyptian/thebes/papyrus-of-ani-ea10470-frame-3/representations/bm-mid-00684647-001/rights.json",
+      "ToS/source-witnesses/scholarly-composites/critical/egyptian/book-of-the-dead-naville-1886/representations/commons-ia-dasaegyptischeto00naviuoft/rights.json",
+      "https://www.britishmuseum.org/collection/image/684647001",
+      "https://creativecommons.org/licenses/by-nc-sa/4.0/",
+      "https://commons.wikimedia.org/wiki/File%3ADas_aegyptische_Todtenbuch_der_XVIII._bis_XX._Dynastie%3B_%28IA_dasaegyptischeto00naviuoft%29.pdf",
+      "https://www.fedlex.admin.ch/eli/cc/1993/1798_1798_1798/en?version=20250701",
+      "https://www.diputados.gob.mx/LeyesBiblio/pdf/LFDA.pdf",
+      "https://relbib.de/AuthorityRecord/079864481"
+    ],
+    "summary": "The exact British Museum JPEG is positively licensed for non-commercial sharing and adaptation under CC BY-NC-SA 4.0 with attribution and ShareAlike. The exact Naville PDF is public-domain positive in Switzerland and the United States, but the current Mexican life-plus-100 term and Naville's 1926-10-17 death date conflict with the Commons global marker on 2026-08-30. The PDF is therefore acquired only as a local File with redistribution not authorized pending fresh legal review. No File license or term result admits embedded text, scholarly prose, semantics, graph, canon, or publication."
+  },
+  "acquisition": {
+    "downloaded": true,
+    "item_ref": null,
+    "artifact_ref": "tos.artifact.egyptian.thebes.papyrus-of-ani-ea10470-frame-3",
+    "representation_ref": "ToS/source-witnesses/artifacts/egyptian/thebes/papyrus-of-ani-ea10470-frame-3/representations/bm-mid-00684647-001/representation.json",
+    "file_ref": "tos.file.sha256.adcde14cf16796396daf0513c5b25785c2b9d9ea1261561086702ae45523a6b4",
+    "provenance_event_ref": "tos.event.acquisition.book-of-the-dead-papyrus-ani-and-naville.2026-08-30"
+  },
+  "planting_refs": [
+    "ToS/philosophy/eras/bronze-age/regions/north-africa/traditions/egyptian-mortuary-theological-dialogic-corpora/sources/plantings/book-of-the-dead-papyrus-ani/source-planting.json",
+    "ToS/philosophy/eras/bronze-age/regions/north-africa/traditions/egyptian-mortuary-theological-dialogic-corpora/sources/plantings/book-of-the-dead-naville-composite/source-planting.json"
+  ],
+  "operational_relation_refs": [
+    "ToS/source-witnesses/discovery/candidates/reviewed-candidates.jsonl:13",
+    "tos.discovery.book-of-the-dead-open-work-route.2026-08-30.v1",
+    "tos.discovery.book-of-the-dead-papyrus-ani-artifact.2026-08-30.v1",
+    "ToS/source-witnesses/discovery/timings/book-of-the-dead-open-work-route.2026-08-30.v1.json",
+    "ToS/source-witnesses/discovery/timings/book-of-the-dead-papyrus-ani-artifact.2026-08-30.v1.json",
+    "tos.artifact.egyptian.thebes.papyrus-of-ani-ea10470-frame-3",
+    "tos.composite.egyptian.book-of-the-dead-naville-1886",
+    "tos.file.sha256.adcde14cf16796396daf0513c5b25785c2b9d9ea1261561086702ae45523a6b4",
+    "tos.file.sha256.06c78744f35f34fb7b7d87fd32f73a1eb230d4ea49272e0eeb5a17286ae7574a",
+    "tos.rights.egyptian.bm-mid-00684647-001-cc-by-nc-sa-4.0",
+    "tos.rights.egyptian.book-of-the-dead-naville-1886-einleitung-commons-ia-jurisdiction-conflict",
+    "tos.event.acquisition.book-of-the-dead-papyrus-ani-and-naville.2026-08-30",
+    "tos.event.discovery.book-of-the-dead-open-work-route.2026-08-30",
+    "tos.event.correction.open-work-planting-digest.book-of-the-dead-papyrus-ani.2026-09-02",
+    "tos.event.correction.open-work-planting-digest.book-of-the-dead-naville-composite.2026-09-02"
+  ],
+  "next_trigger": "Rebuild and validate the reviewed queue, then freeze exactly the next earliest unresolved Work or work-like candidate. If Papyrus Ani appears as the next source lead, record it as an already-acquired non-Work physical artifact rather than rediscovering or promoting it as one ancient Work.",
+  "issued_at": "2026-09-02T13:00:01Z",
+  "maker": {
+    "maker_type": "model",
+    "agent_ref": "model:codex"
+  },
+  "record_version": 2
+}

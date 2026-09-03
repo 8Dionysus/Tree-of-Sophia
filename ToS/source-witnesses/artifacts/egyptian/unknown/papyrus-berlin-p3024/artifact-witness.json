@@ -1,0 +1,110 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/artifact-source-witness-v2.schema.json",
+  "schema_version": "tos_artifact_source_witness_v2",
+  "artifact_id": "tos.artifact.egyptian.unknown.papyrus-berlin-p3024",
+  "artifact_kind": "manuscript_object",
+  "path_identity": {
+    "basis": "repository_identity",
+    "provider_independent": true,
+    "note": "The path follows the physical pBerlin P 3024 manuscript identity held in Berlin. It does not absorb P. Amherst III, the Mallorca fragments, the current P 3024/C mounting, the TLA aggregate object, the reconstructed ancient Work, or any modern edition."
+  },
+  "identifiers": [
+    {"scheme": "Ägyptisches Museum und Papyrussammlung inventory", "value": "P 3024", "source_ref": "https://tla.digital/object/N3YSOH4QK5EINPHSB5F2WSDRXI"},
+    {"scheme": "SMB mounted component inventory", "value": "P 3024/C", "source_ref": "https://id.smb.museum/object/1388678"},
+    {"scheme": "SMB object ID for P 3024/C", "value": "obj:1388678", "source_ref": "https://search.smb.museum/object/obj-1388678"},
+    {"scheme": "TLA aggregate object ID", "value": "N3YSOH4QK5EINPHSB5F2WSDRXI", "source_ref": "https://tla.digital/object/N3YSOH4QK5EINPHSB5F2WSDRXI"},
+    {"scheme": "TLA subordinate text ID", "value": "XZIG534KFVGODK6N7G5RP7SSDE", "source_ref": "https://tla.digital/text/XZIG534KFVGODK6N7G5RP7SSDE"}
+  ],
+  "physical_description": {
+    "material": "papyrus; exact dimensions of the complete P 3024 manuscript were not established in the reviewed records",
+    "height_mm": null,
+    "width_mm": null,
+    "thickness_mm": null,
+    "source_ref": "https://tla.digital/object/N3YSOH4QK5EINPHSB5F2WSDRXI"
+  },
+  "dating": {
+    "period_label": "Twelfth Dynasty; TLA reports a palaeographic placement in its second half and a possible Amenemhat III context",
+    "display_date": "Twelfth Dynasty, reported",
+    "certainty": "reported",
+    "period_stage_separation_required": true,
+    "source_ref": "https://tla.digital/object/N3YSOH4QK5EINPHSB5F2WSDRXI"
+  },
+  "find_context": {
+    "site": null,
+    "findspot": null,
+    "excavation_numbers": [],
+    "source_note": "TLA reports a west-Thebes provenance argument from the 1837 d'Athanasi sale, while the current SMB P 3024/C record states provenance unknown.",
+    "documentation_limit": "The reviewed records do not resolve a precise excavation or findspot, the original manuscript extent, the relation of present mountings to Lepsius's plate divisions, or the proposed joins with P. Amherst III and Mallorca fragments.",
+    "source_ref": "https://search.smb.museum/object/obj-1388678"
+  },
+  "custody": {
+    "current_repository": "Ägyptisches Museum und Papyrussammlung, Staatliche Museen zu Berlin",
+    "inventory_numbers": ["P 3024"],
+    "source_ref": "https://tla.digital/object/N3YSOH4QK5EINPHSB5F2WSDRXI"
+  },
+  "digital_catalog_record": {
+    "provider": "Thesaurus Linguae Aegyptiae",
+    "record_id": "N3YSOH4QK5EINPHSB5F2WSDRXI",
+    "record_url": "https://tla.digital/object/N3YSOH4QK5EINPHSB5F2WSDRXI",
+    "api_url": null,
+    "checked_at": "2026-08-30T09:48:00-06:00",
+    "mutable": true,
+    "response_fingerprints": [
+      {"surface": "https://tla.digital/object/N3YSOH4QK5EINPHSB5F2WSDRXI", "byte_size": 46431, "sha256": "3433e25f44093e146f1c9db1dad5c4d866002eb98401cbc1016c7c5c54e1a552", "captured": false},
+      {"surface": "https://search.smb.museum/object/obj-1388678", "byte_size": 68525, "sha256": "e55ef776cf28a729de0d86e210a719b0b25beec674b479b394d064e2d7a2dbc8", "captured": false}
+    ]
+  },
+  "inscription_layer": {
+    "availability": "available_not_acquired",
+    "language_status": "reported",
+    "provider_language_code": "egy",
+    "normalized_language_code": "egy",
+    "script": "hieratic",
+    "transliteration_stored": false,
+    "translation_stored": false,
+    "source_refs": ["https://tla.digital/text/XZIG534KFVGODK6N7G5RP7SSDE", "https://search.smb.museum/object/obj-1388678"]
+  },
+  "composite_layer": {
+    "status": "linked",
+    "external_refs": [
+      {"scheme": "Morgan Library inventory", "value": "Amh. Egy. Pap. 3", "source_ref": "https://www.themorgan.org/manuscript/351017"},
+      {"scheme": "TLA aggregate object ID", "value": "N3YSOH4QK5EINPHSB5F2WSDRXI", "source_ref": "https://tla.digital/object/N3YSOH4QK5EINPHSB5F2WSDRXI"},
+      {"scheme": "DOI for reported Mallorca reconstruction", "value": "10.1515/zaes-2017-0002", "source_ref": "https://doi.org/10.1515/zaes-2017-0002"}
+    ],
+    "relationship": "TLA currently presents P. Amherst III and pBerlin P 3024 in one aggregate object, and Escolano-Poveda 2017 reports proposed Mallorca I/II continuations. Those joins remain evidence-bearing scholarly reconstruction claims and are not part of this physical artifact identity.",
+    "is_physical_artifact_identity": false
+  },
+  "visual_layers": [
+    {"layer_kind": "line_art", "availability": "visible", "content_stored": false, "source_ref": "https://iiif.dl.itc.u-tokyo.ac.jp/iiif/asia2022/Lepsius/12_222_6_12/BG_222_6_12-0045.tif/full/max/0/default.jpg", "rights_note": "The exact CC BY 4.0 JPEG is retained separately as Lepsius plate 111, a historical facsimile of reported lines 1-107; current mounting equivalence is not asserted."},
+    {"layer_kind": "line_art", "availability": "visible", "content_stored": false, "source_ref": "https://iiif.dl.itc.u-tokyo.ac.jp/iiif/asia2022/Lepsius/12_222_6_12/BG_222_6_12-0046.tif/full/max/0/default.jpg", "rights_note": "The exact CC BY 4.0 JPEG is retained separately as Lepsius plate 112, a historical facsimile of reported lines 108-180; current mounting equivalence is not asserted."}
+  ],
+  "scholarly_classification": {
+    "genre": "Middle Kingdom literary dialogue manuscript, conventionally called Der Lebensmüde or Dialogue between a Man and His Ba",
+    "corpus_labels": ["pBerlin P 3024", "Der Lebensmüde", "Dialogue between a Man and His Ba", "Debate between a Man and his Ba"],
+    "classification_is_interpretive": true,
+    "source_refs": ["https://tla.digital/object/N3YSOH4QK5EINPHSB5F2WSDRXI", "https://search.smb.museum/object/obj-1388678"]
+  },
+  "bibliography": [
+    {"citation": "C. R. Lepsius, Denkmaeler aus Aegypten und Aethiopien, Abtheilung VI, plates 111-112, 1859", "role": "primary_publication", "source_ref": "https://tla.digital/object/N3YSOH4QK5EINPHSB5F2WSDRXI"},
+    {"citation": "Adolf Erman, Gespräch eines Lebensmüden mit seiner Seele. Aus dem Papyrus 3024 der Königlichen Museen, 1896", "role": "established_control", "source_ref": "https://sru.k10plus.de/opac-de-627?version=1.1&operation=searchRetrieve&query=pica.tit%3D%22Gespr%C3%A4ch%20eines%20Lebensm%C3%BCden%20mit%20seiner%20Seele%22%20and%20pica.per%3D%22Erman%22&maximumRecords=10&recordSchema=picaxml"},
+    {"citation": "R. B. Parkinson and L. Baylis, Four 12th Dynasty Literary Papyri (Pap. Berlin P. 3022-5). A Photographic Record, 2012", "role": "current_control", "source_ref": "https://tla.digital/object/N3YSOH4QK5EINPHSB5F2WSDRXI"},
+    {"citation": "Marina Escolano-Poveda, New Fragments of Papyrus Berlin 3024, ZÄS 144.1, 2017, 16-54", "role": "current_control", "source_ref": "https://doi.org/10.1515/zaes-2017-0002"}
+  ],
+  "layer_separation": {
+    "physical_artifact_is_catalog_record": false,
+    "catalog_record_is_inscription": false,
+    "inscription_is_composite": false,
+    "visual_is_artifact": false,
+    "sign_has_fixed_translation": false,
+    "artifact_is_philosophy": false
+  },
+  "rights_ref": "ToS/source-witnesses/artifacts/egyptian/unknown/papyrus-berlin-p3024/rights.json",
+  "discovery_ref": "ToS/source-witnesses/discovery/runs/dialogue-man-ba-papyrus-berlin-p3024-artifact.2026-08-30.v1.json",
+  "provenance_event_ref": "tos.event.acquisition.dialogue-man-ba-lepsius-plates.2026-08-30",
+  "research_ref": "ToS/research-packets/foundation-laboratory-2026-07/A05_DIALOGUE_BETWEEN_A_MAN_AND_HIS_BA_OPEN_WORK_ACQUISITION_2026-08-30.md",
+  "philosophy_planting_refs": ["ToS/philosophy/eras/bronze-age/regions/north-africa/traditions/egyptian-mortuary-theological-dialogic-corpora/sources/plantings/dialogue-man-ba-papyrus-berlin-p3024/source-planting.json"],
+  "authority": {"evidence_status": "metadata_witness", "review_status": "unreviewed", "visibility": "public_metadata_only", "source_text_admitted": false, "semantic_authority": false, "graph_authority": false, "canon_authority": false, "publication_authority": false},
+  "maker": {"maker_type": "model", "agent_ref": "model:codex", "human_review_performed": false},
+  "created_at": "2026-08-30T09:48:00-06:00",
+  "record_version": 1
+}

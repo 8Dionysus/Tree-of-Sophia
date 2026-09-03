@@ -1,0 +1,72 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/open-work-candidate-receipt.schema.json",
+  "schema_version": "tos_open_work_candidate_receipt_v1",
+  "receipt_id": "open-work-candidate-receipt.instruction-of-ptahhotep.2026-08-30.v2",
+  "candidate_id": "open-work-candidate.instruction-of-ptahhotep",
+  "candidate_record_sha256": "a57101861669939bdc649c4bfc4f4ad97d4a2216922735409bdd16dc4a8e1012",
+  "candidate_ledger_sha256": "f751e3b577054c24bac9b5380c2ff6a5e43dc188b6e97eb05aa8635595ca1258",
+  "candidate_target_sha256": "55e5d3b6fef3cd88ef7ca3f7325e80ca8077660cc6fd0b5f640f10e4fd84797d",
+  "queue_snapshot_sha256": "1d75923ff0b1c1351496877ae00f63950d79d64f74dcf2d00993f1362a2be606",
+  "discovery_ref": "ToS/source-witnesses/discovery/runs/instruction-of-ptahhotep-open-work-route.2026-08-29.v2.json",
+  "discovery_id": "tos.discovery.instruction-of-ptahhotep-open-work-route.2026-08-29.v2",
+  "discovery_sha256": "0436dc8322105290c8360545aeb6116e3c60d9240875754c90559e5714578fa2",
+  "discovery_target_sha256": "55e5d3b6fef3cd88ef7ca3f7325e80ca8077660cc6fd0b5f640f10e4fd84797d",
+  "timing_ref": "ToS/source-witnesses/discovery/timings/instruction-of-ptahhotep-open-work-route.2026-08-29.v2.json",
+  "timing_sha256": "687425dc361dca0461a30880fc1e18e99ce933e2056eb7e36a3311f5bfdf058d",
+  "terminal_status": "held_source_witness",
+  "target_resolution": {
+    "identity_status": "provisional",
+    "work_ref": null,
+    "expression_ref": null,
+    "edition_ref": null,
+    "item_ref": null,
+    "summary": "The loop still separates the attributed Instruction of Ptahhotep, Papyrus Prisse, Museo Egizio CGT 54014, their visual representations, scholarly layers, and historical translations. One exact CC0 photograph and its physical-artifact metadata were retained; no Work/Expression/Edition/Item identity was minted."
+  },
+  "rights_result": {
+    "status": "positive-for-acquisition",
+    "reviewed_jurisdictions": [
+      "IT",
+      "MX",
+      "US"
+    ],
+    "reviewed_layers": [
+      "exact Commons JPEG for Museo Egizio CGT 54014 p01"
+    ],
+    "evidence_refs": [
+      "ToS/source-witnesses/artifacts/egyptian/deir-el-medina/museo-egizio-cgt-54014/representations/recto-photograph-p01/rights.json",
+      "https://collezioni.museoegizio.it/en-GB/material/CGT_54014/",
+      "https://commons.wikimedia.org/wiki/File:Papyrus_fragments_with_a_section_of_the_%27Instruction_of_Ptahhotep%27_on_the_recto_-_Museo_Egizio,_Turin_CGT_54014_p01.jpg",
+      "https://creativecommons.org/publicdomain/zero/1.0/"
+    ],
+    "summary": "The originating museum page and exact Commons file record both identify CC0 for this JPEG. That evidence is sufficient for the bounded acquisition decision only; it does not clear Prisse images, embedded text, translations, TLA content, other museum media, publication, or cross-layer reuse."
+  },
+  "acquisition": {
+    "downloaded": true,
+    "item_ref": null,
+    "artifact_ref": "tos.artifact.egyptian.deir-el-medina.museo-egizio-cgt-54014",
+    "representation_ref": "ToS/source-witnesses/artifacts/egyptian/deir-el-medina/museo-egizio-cgt-54014/representations/recto-photograph-p01/representation.json",
+    "file_ref": "tos.file.sha256.59b39f048b3dd80e74bda835be0bbb7be15987955d151fc5c21ba8ee97205696",
+    "provenance_event_ref": "tos.event.acquisition.museo-egizio-cgt-54014-commons-p01.2026-08-29"
+  },
+  "planting_refs": [],
+  "operational_relation_refs": [
+    "ToS/source-witnesses/discovery/candidates/reviewed-candidates.jsonl:2",
+    "ToS/source-witnesses/discovery/runs/instruction-of-ptahhotep-open-work-route.2026-08-29.v2.json",
+    "ToS/source-witnesses/discovery/timings/instruction-of-ptahhotep-open-work-route.2026-08-29.v2.json",
+    "ToS/source-witnesses/discovery/runs/museo-egizio-cgt-54014-artifact-route.2026-08-29.v1.json",
+    "ToS/source-witnesses/discovery/timings/museo-egizio-cgt-54014-artifact-route.2026-08-29.v1.json",
+    "ToS/source-witnesses/artifacts/egyptian/deir-el-medina/museo-egizio-cgt-54014/artifact-witness.json",
+    "ToS/source-witnesses/artifacts/egyptian/deir-el-medina/museo-egizio-cgt-54014/rights.json",
+    "ToS/source-witnesses/artifacts/egyptian/deir-el-medina/museo-egizio-cgt-54014/representations/recto-photograph-p01/representation.json",
+    "ToS/source-witnesses/artifacts/egyptian/deir-el-medina/museo-egizio-cgt-54014/representations/recto-photograph-p01/rights.json",
+    "tos.event.discovery.instruction-of-ptahhotep-open-work-route.2026-08-29.v2",
+    "tos.event.acquisition.museo-egizio-cgt-54014-commons-p01.2026-08-29"
+  ],
+  "next_trigger": "Rebuild queue.current.json so Pyramid Texts is the next eligible candidate, then stop before executing it. Any future Ptahhotep text, transcription, translation, exact Prisse representation, or publication route must proceed as a separate layer with its own identity, rights, provenance, review, and admission evidence.",
+  "issued_at": "2026-08-30T00:20:00-06:00",
+  "maker": {
+    "maker_type": "model",
+    "agent_ref": "model:codex"
+  },
+  "record_version": 2
+}

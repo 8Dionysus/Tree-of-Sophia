@@ -60,6 +60,23 @@
           "captured": false
         }
       ]
+    },
+    {
+      "provider": "University of Central Florida STARS",
+      "representation_role": "composite_edition",
+      "record_id": "Open Educational Resources for the Ancient Near East item 134",
+      "record_url": "https://stars.library.ucf.edu/ancientneareast/134/",
+      "api_url": null,
+      "checked_at": "2026-08-30T02:53:30-06:00",
+      "mutable": true,
+      "response_fingerprints": [
+        {
+          "surface": "https://stars.library.ucf.edu/cgi/viewcontent.cgi?article=1133&context=ancientneareast",
+          "byte_size": 342577,
+          "sha256": "ddc38f90b258f47acd4bb42fa5e9319288bf7930f82e6e222c53ebed91947980",
+          "captured": false
+        }
+      ]
     }
   ],
   "member_observations": [
@@ -98,17 +115,20 @@
       "CDLI composite HTML",
       "CDLI ATF revision",
       "CDLI JSON witness array",
-      "critical-edition metadata"
+      "critical-edition metadata",
+      "Roth English revised translation PDF"
     ],
-    "availability": "open_view",
+    "availability": "open_download",
     "content_stored": false,
     "source_text_admitted": false,
     "source_refs": [
       "https://cdli.earth/artifacts/464358",
       "https://cdli.earth/artifacts/464358/json",
-      "https://cdli.earth/inscriptions/2337705"
+      "https://cdli.earth/inscriptions/2337705",
+      "https://stars.library.ucf.edu/ancientneareast/134/",
+      "https://stars.library.ucf.edu/cgi/viewcontent.cgi?article=1133&context=ancientneareast"
     ],
-    "scope_note": "The modern composite can coordinate the stela lacuna and later copies, but no reconstruction, transliteration, sectioning, or translation is accepted by this metadata-only packet."
+    "scope_note": "The modern composite can coordinate the stela lacuna and later copies, but this tracked packet remains metadata-only. One exact Martha T. Roth English translation PDF, latest revision May 2026, is frozen separately under representations/ with its own fixity and CC BY-NC 4.0 rights record. The File is not accepted source text, accepted translation, legal interpretation, semantic fact, or canon."
   },
   "layer_separation": {
     "composite_is_physical_artifact": false,
@@ -120,9 +140,9 @@
     "composite_is_philosophy": false
   },
   "rights_ref": "ToS/source-witnesses/scholarly-composites/critical/akkadian/laws-of-hammurapi/rights.json",
-  "discovery_ref": "ToS/source-witnesses/discovery/runs/mesopotamian-law-collections.2026-08-22.v1.json",
-  "provenance_event_ref": "tos.event.discovery.mesopotamian-law-collections.2026-08-22",
-  "research_ref": "ToS/research-packets/foundation-laboratory-2026-07/A02_MESOPOTAMIAN_LAW_COLLECTIONS_SOURCE_PLANTING_RESEARCH_2026-08-22.md",
+  "discovery_ref": "ToS/source-witnesses/discovery/runs/laws-of-hammurapi-open-work-route.2026-08-30.v1.json",
+  "provenance_event_ref": "tos.event.discovery.laws-of-hammurapi-open-work-route.2026-08-30",
+  "research_ref": "ToS/research-packets/foundation-laboratory-2026-07/A02_LAWS_OF_HAMMURAPI_OPEN_WORK_ACQUISITION_2026-08-30.md",
   "philosophy_planting_refs": [
     "ToS/philosophy/eras/bronze-age/regions/west-asia/traditions/old-babylonian-scribal-wisdom-law/sources/plantings/laws-of-hammurapi-composite/source-planting.json"
   ],
@@ -142,5 +162,5 @@
     "human_review_performed": false
   },
   "created_at": "2026-08-22T22:43:00-06:00",
-  "record_version": 1
+  "record_version": 2
 }

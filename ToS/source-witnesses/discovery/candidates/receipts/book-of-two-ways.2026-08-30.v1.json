@@ -1,0 +1,83 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/open-work-candidate-receipt.schema.json",
+  "schema_version": "tos_open_work_candidate_receipt_v1",
+  "receipt_id": "open-work-candidate-receipt.book-of-two-ways.2026-08-30.v1",
+  "candidate_id": "open-work-candidate.book-of-two-ways",
+  "candidate_record_sha256": "74387bd03d781430fed018f8303b6c8212b2bff1cb323ffd8a72927bc5ffdfaa",
+  "candidate_ledger_sha256": "25f1a6a786bd0bf156b528c78ce7f2ada62e0e184643707766b5d09269347b20",
+  "candidate_target_sha256": "065364248d329f5351de1f8bb6700ee13809364613bc8f0817d792b871cea78f",
+  "queue_snapshot_sha256": "4f95db047afa742adc0bb542ebff5415ba7c887fd3b8e647fdca7a1b4d76cbba",
+  "discovery_ref": "ToS/source-witnesses/discovery/runs/book-of-two-ways-open-work-route.2026-08-30.v1.json",
+  "discovery_id": "tos.discovery.book-of-two-ways-open-work-route.2026-08-30.v1",
+  "discovery_sha256": "9864d1f21238794817d10202064adae941537f6eaa1c1551d78c7a85bab7a527",
+  "discovery_target_sha256": "4f2ea3bde66f191dec666a8d2e9f137a8a1a23a7e5fdb7b174cfa6ce84c6273b",
+  "timing_ref": "ToS/source-witnesses/discovery/timings/book-of-two-ways-open-work-route.2026-08-30.v1.json",
+  "timing_sha256": "9a9d7f58aeba047accc538820bcdd1fb6e84f72318fc1134d9365874711f6bcd",
+  "terminal_status": "held_source_witness",
+  "target_resolution": {
+    "identity_status": "provisional",
+    "work_ref": null,
+    "expression_ref": null,
+    "edition_ref": null,
+    "item_ref": null,
+    "summary": "Book of Two Ways remains a provisional Coffin Texts subcorpus rather than one automatically admitted Work. One provider-independent physical artifact packet and one exact CC BY-NC-SA 4.0 photographic File are now held. No map region, route order, spell inventory, source text, transcription, translation, critical composite, or accepted subcorpus-membership claim was minted."
+  },
+  "rights_result": {
+    "status": "positive-for-acquisition",
+    "reviewed_jurisdictions": [
+      "DE",
+      "GB",
+      "MX",
+      "US"
+    ],
+    "reviewed_layers": [
+      "provider-independent physical-object metadata",
+      "British Museum collection metadata",
+      "exact British Museum photograph",
+      "embedded inscriptions",
+      "museum prose",
+      "Heidelberg 1903 historical study scan",
+      "KU Leuven project content",
+      "UCL explanatory page, transliteration, and translation"
+    ],
+    "evidence_refs": [
+      "ToS/source-witnesses/artifacts/egyptian/deir-el-bersha/sen-inner-coffin-b3l-ea30842/representations/bm-mid-00018648-001/rights.json",
+      "https://www.britishmuseum.org/collection/object/Y_EA30842",
+      "https://www.britishmuseum.org/collection/image/18648001",
+      "https://creativecommons.org/licenses/by-nc-sa/4.0/",
+      "https://digi.ub.uni-heidelberg.de/diglit/schack-schackenburg1903bd1",
+      "https://www.ub.uni-heidelberg.de/Englisch/helios/digi/nutzung/"
+    ],
+    "summary": "The exact British Museum JPEG is positively licensed for non-commercial sharing and adaptation under CC BY-NC-SA 4.0 with attribution and ShareAlike. Heidelberg's exact 1903 volume has positive Public Domain evidence, but no PDF/IIIF bytes were acquired because the permitted client path remained blocked. No image status licenses museum prose, embedded inscriptions as source text, transcription, translation, or another byte-distinct file; human legal and publication acceptance remain separate."
+  },
+  "acquisition": {
+    "downloaded": true,
+    "item_ref": null,
+    "artifact_ref": "tos.artifact.egyptian.deir-el-bersha.sen-inner-coffin-b3l-ea30842",
+    "representation_ref": "ToS/source-witnesses/artifacts/egyptian/deir-el-bersha/sen-inner-coffin-b3l-ea30842/representations/bm-mid-00018648-001/representation.json",
+    "file_ref": "tos.file.sha256.733eb290d36b4cc2b76e287e3772fa2c31e10d2da3b50e4f13877003157374f9",
+    "provenance_event_ref": "tos.event.acquisition.book-of-two-ways-bm-sen-image.2026-08-30"
+  },
+  "planting_refs": [
+    "ToS/philosophy/eras/bronze-age/regions/north-africa/traditions/egyptian-mortuary-theological-dialogic-corpora/sources/plantings/book-of-two-ways-bm-sen/source-planting.json"
+  ],
+  "operational_relation_refs": [
+    "ToS/source-witnesses/discovery/candidates/reviewed-candidates.jsonl:12",
+    "tos.discovery.book-of-two-ways-open-work-route.2026-08-30.v1",
+    "tos.discovery.book-of-two-ways-bm-sen-artifact.2026-08-30.v1",
+    "ToS/source-witnesses/discovery/timings/book-of-two-ways-open-work-route.2026-08-30.v1.json",
+    "ToS/source-witnesses/discovery/timings/book-of-two-ways-bm-sen-artifact.2026-08-30.v1.json",
+    "tos.artifact.egyptian.deir-el-bersha.sen-inner-coffin-b3l-ea30842",
+    "tos.file.sha256.733eb290d36b4cc2b76e287e3772fa2c31e10d2da3b50e4f13877003157374f9",
+    "tos.rights.egyptian.bm-mid-00018648-001-cc-by-nc-sa-4.0",
+    "tos.event.acquisition.book-of-two-ways-bm-sen-image.2026-08-30",
+    "tos.event.discovery.book-of-two-ways-open-work-route.2026-08-30"
+  ],
+  "next_trigger": "Rebuild and validate the reviewed queue, then freeze exactly the next earliest unresolved Work or work-like candidate; preserve Book of the Dead, Amduat, and each physical funerary witness as separate candidate and layer pressures.",
+  "issued_at": "2026-08-30T05:05:00-06:00",
+  "maker": {
+    "maker_type": "model",
+    "agent_ref": "model:codex"
+  },
+  "record_version": 1
+}

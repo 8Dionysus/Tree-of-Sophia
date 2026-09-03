@@ -1,0 +1,786 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/material-discovery-record.schema.json",
+  "schema_version": "tos_material_discovery_record_v1",
+  "discovery_id": "tos.discovery.book-of-two-ways-open-work-route.2026-08-30.v1",
+  "protocol_ref": "ToS/source-witnesses/discovery/DISCOVERY_PROTOCOL.md",
+  "target": {
+    "target_kind": "scholarly-composite",
+    "known_tos_refs": [
+      "tos.artifact.egyptian.deir-el-bersha.sen-inner-coffin-b3l-ea30842"
+    ],
+    "description": "Resolve Book of Two Ways as a provisional Coffin Texts subcorpus and retain at least one exact reusable physical-witness visual File without collapsing the subcorpus, individual coffins, interior layouts, route sequences, ancient inscriptions, modern editions, translations, provider records, photographs, or Files.",
+    "required_properties": [
+      "Book of Two Ways remains a provisional subcorpus rather than one fixed ancient original",
+      "exact physical coffin identity, inventory number, and holding record",
+      "physical artifact, inscription, map arrangement, provider metadata, photograph, and File remain separate",
+      "layer-specific rights evidence bound to the exact acquired bytes",
+      "no source-text, semantic, graph, canon, or publication effect"
+    ],
+    "acceptable_substitutions": [
+      "an exact public-domain historical study scan with reviewed digital-object rights",
+      "an exact institutional artifact image with a standard open or noncommercial Creative Commons license",
+      "an exact scholarly-project export preserving member and version identity",
+      "a rights-insufficient terminal outcome preserving the unresolved subcorpus boundary"
+    ],
+    "languages": [
+      "egy",
+      "en",
+      "de",
+      "nl"
+    ],
+    "formats": [
+      "bibliographic metadata",
+      "museum object metadata",
+      "historical-study PDF",
+      "IIIF manifest",
+      "artifact photograph",
+      "object-level rights statement"
+    ],
+    "purpose_ref": "ToS/research-packets/foundation-laboratory-2026-07/A05_BOOK_OF_TWO_WAYS_OPEN_WORK_ACQUISITION_2026-08-30.md",
+    "constraint_refinements": [
+      {
+        "candidate_field": "required_properties",
+        "candidate_values": [
+          "map, inscription, spell, edition, transcription, and translation separation",
+          "object-level fixity and layered rights evidence"
+        ],
+        "discovery_field": "required_properties",
+        "discovery_values": [
+          "Book of Two Ways remains a provisional subcorpus rather than one fixed ancient original",
+          "exact physical coffin identity, inventory number, and holding record",
+          "physical artifact, inscription, map arrangement, provider metadata, photograph, and File remain separate",
+          "layer-specific rights evidence bound to the exact acquired bytes",
+          "no source-text, semantic, graph, canon, or publication effect"
+        ],
+        "review_status": "reviewed",
+        "reviewed_at": "2026-09-02",
+        "reviewer_ref": "operator:tos-open-work-loop"
+      },
+      {
+        "candidate_field": "acceptable_substitutions",
+        "candidate_values": [
+          "an exact public-domain historical study or critical-edition scan with reviewed digital-object rights",
+          "an exact open-licensed institutional or scholarly-project export preserving witness and version identity",
+          "an official museum coffin record or visual representation with an object-level standard open license",
+          "a rights-insufficient terminal receipt preserving every useful route and the unresolved subcorpus boundary"
+        ],
+        "discovery_field": "acceptable_substitutions",
+        "discovery_values": [
+          "an exact public-domain historical study scan with reviewed digital-object rights",
+          "an exact institutional artifact image with a standard open or noncommercial Creative Commons license",
+          "an exact scholarly-project export preserving member and version identity",
+          "a rights-insufficient terminal outcome preserving the unresolved subcorpus boundary"
+        ],
+        "review_status": "reviewed",
+        "reviewed_at": "2026-09-02",
+        "reviewer_ref": "operator:tos-open-work-loop"
+      },
+      {
+        "candidate_field": "formats",
+        "candidate_values": [
+          "coffin-map visual representation",
+          "critical-edition metadata"
+        ],
+        "discovery_field": "formats",
+        "discovery_values": [
+          "bibliographic metadata",
+          "museum object metadata",
+          "historical-study PDF",
+          "IIIF manifest",
+          "artifact photograph",
+          "object-level rights statement"
+        ],
+        "review_status": "reviewed",
+        "reviewed_at": "2026-09-02",
+        "reviewer_ref": "operator:tos-open-work-loop"
+      }
+    ]
+  },
+  "channels": [
+    {
+      "channel_id": "channel-k10plus-originating-record",
+      "sequence": 1,
+      "channel_type": "national-catalog",
+      "role": "originating-record",
+      "source_name": "K10plus SRU",
+      "endpoint_url": "https://sru.k10plus.de/opac-de-627?version=1.1&operation=searchRetrieve&query=pica.ppn%3D1741505828&maximumRecords=5&recordSchema=picaxml",
+      "interface_type": "api",
+      "interface_version": "SRU 1.1 with PICA XML checked 2026-08-30",
+      "exact_query": "pica.ppn=1741505828; maximumRecords=5; recordSchema=picaxml",
+      "queried_at": "2026-08-30T11:03:12.620933Z",
+      "elapsed_seconds": 0.732981,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.k10plus-schack-schackenburg-1903-ppn-1741505828",
+          "rank": 1,
+          "title_as_displayed": "Das Buch von den zwei Wegen des seligen Toten (Zweiwegebuch): Texte aus der Pyramidenzeit nach einem im Berliner Museum bewahrten Sargboden des Mittleren Reiches. 1. Theil: Text nebst Einleitung",
+          "result_url": "https://opac.k10plus.de/DB=2.299/PPNSET?PPN=1741505828",
+          "originating_record_url": "https://sru.k10plus.de/opac-de-627?version=1.1&operation=searchRetrieve&query=pica.ppn%3D1741505828&maximumRecords=5&recordSchema=picaxml",
+          "identifiers": [
+            {
+              "scheme": "K10plus PPN",
+              "value": "1741505828"
+            },
+            {
+              "scheme": "OCLC",
+              "value": "1226611693"
+            },
+            {
+              "scheme": "DOI",
+              "value": "10.11588/diglit.52824"
+            },
+            {
+              "scheme": "URN",
+              "value": "urn:nbn:de:bsz:16-diglit-528249"
+            }
+          ],
+          "available_formats": [
+            "SRU PICA XML",
+            "Heidelberg digitized volume link"
+          ],
+          "declared_rights": {
+            "statement": null,
+            "scope": "metadata",
+            "evidence_url": null,
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "metadata-only",
+          "machine_interface": "api",
+          "decision": "select",
+          "rationale": "The originating bibliographic record fixes editor, title, part, Leipzig publisher, year, PPN, OCLC, DOI, URN, and Heidelberg digital-object link before any rights or acquisition conclusion.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-captured",
+            "format": null,
+            "sha256": null,
+            "reason": "The live SRU response was queried and fingerprinted transiently; it remains a mutable bibliographic service response."
+          }
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-heidelberg-digital-library",
+      "sequence": 2,
+      "channel_type": "university-catalog",
+      "role": "digital-object-record",
+      "source_name": "Heidelberg University Library historic literature",
+      "endpoint_url": "https://digi.ub.uni-heidelberg.de/diglit/schack-schackenburg1903bd1",
+      "interface_type": "web",
+      "interface_version": "DWork volume page checked 2026-08-30",
+      "exact_query": "Resolve PPN 1741505828 / DOI 10.11588/diglit.52824; inspect exact volume metadata, Public Domain Mark, normal and high-resolution PDF routes, METS, IIIF v2.1 and IIIF v3 manifests.",
+      "queried_at": "2026-08-30T11:03:13.354061Z",
+      "elapsed_seconds": 0.866802,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.heidelberg-schack-schackenburg-1903-bd1",
+          "rank": 1,
+          "title_as_displayed": "Das Buch von den zwei Wegen des seligen Toten (Zweiwegebuch), 1. Theil: Text nebst Einleitung",
+          "result_url": "https://digi.ub.uni-heidelberg.de/diglit/schack-schackenburg1903bd1",
+          "originating_record_url": "https://opac.k10plus.de/DB=2.299/PPNSET?PPN=1741505828",
+          "identifiers": [
+            {
+              "scheme": "DOI",
+              "value": "10.11588/diglit.52824"
+            },
+            {
+              "scheme": "URN",
+              "value": "urn:nbn:de:bsz:16-diglit-528249"
+            },
+            {
+              "scheme": "K10plus PPN",
+              "value": "1741505828"
+            }
+          ],
+          "available_formats": [
+            "normal PDF approximately 26 MB",
+            "large PDF approximately 97 MB",
+            "METS",
+            "IIIF Presentation 2.1 manifest",
+            "IIIF Presentation 3 manifest",
+            "page images"
+          ],
+          "declared_rights": {
+            "statement": "The exact volume page displays the Creative Commons Public Domain Mark.",
+            "scope": "digital-object",
+            "evidence_url": "https://www.ub.uni-heidelberg.de/Englisch/helios/digi/nutzung/",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-download",
+          "machine_interface": "iiif",
+          "decision": "select",
+          "rationale": "This is the exact rights-positive historic study and digitized volume. The normal PDF control entered an anti-bot/client-blocked path and no file appeared on the local host, so it remains an acquisition candidate rather than a held File.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-captured",
+            "format": null,
+            "sha256": null,
+            "reason": "The exact PDF and IIIF transports were blocked by the current client after normal navigation; no access-control bypass or false download receipt was created."
+          }
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-british-museum-sen-coffin",
+      "sequence": 3,
+      "channel_type": "university-catalog",
+      "role": "originating-record",
+      "source_name": "British Museum Collection Online",
+      "endpoint_url": "https://www.britishmuseum.org/collection/object/Y_EA30842",
+      "interface_type": "web",
+      "interface_version": "collection object and exact image-use pages checked 2026-08-30",
+      "exact_query": "Resolve EA30842 / 1899,0610.12, verify the Book of Two Ways association and exact image asset 18648001, then retain only bytes governed by that asset's explicit CC BY-NC-SA 4.0 statement.",
+      "queried_at": "2026-08-30T11:03:14.220982Z",
+      "elapsed_seconds": 0.229763,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.british-museum-sen-inner-coffin-ea30842",
+          "rank": 1,
+          "title_as_displayed": "coffin — rectangular wooden inner-coffin of Sen (B3L) with lid",
+          "result_url": "https://www.britishmuseum.org/collection/object/Y_EA30842",
+          "originating_record_url": "https://www.britishmuseum.org/collection/object/Y_EA30842",
+          "identifiers": [
+            {
+              "scheme": "British Museum number",
+              "value": "EA30842"
+            },
+            {
+              "scheme": "British Museum registration number",
+              "value": "1899,0610.12"
+            },
+            {
+              "scheme": "de Buck coffin siglum",
+              "value": "B3L"
+            }
+          ],
+          "available_formats": [
+            "museum object metadata",
+            "84-image gallery",
+            "exact image-use page"
+          ],
+          "declared_rights": {
+            "statement": "The object metadata does not itself license every image or the museum prose; exact image use is stated separately per asset.",
+            "scope": "metadata",
+            "evidence_url": "https://www.britishmuseum.org/collection/object/Y_EA30842",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-view",
+          "machine_interface": "html",
+          "decision": "select",
+          "rationale": "The holding record fixes a distinct physical inner coffin, its relationship to outer coffin EA30841, date, findspot, dimensions, custody, inscriptions, and associated title Book of Two Ways.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-captured",
+            "format": null,
+            "sha256": null,
+            "reason": "The mutable catalog page was inspected in the normal browser path; automated HTTP probes returned a denial envelope and were not substituted for page content."
+          }
+        },
+        {
+          "result_id": "tos-discovery-result.british-museum-image-18648001-rights",
+          "rank": 2,
+          "title_as_displayed": "Use this image — 18648001",
+          "result_url": "https://www.britishmuseum.org/collection/image/18648001",
+          "originating_record_url": "https://www.britishmuseum.org/collection/object/Y_EA30842",
+          "identifiers": [
+            {
+              "scheme": "British Museum asset number",
+              "value": "18648001"
+            }
+          ],
+          "available_formats": [
+            "image-use page",
+            "JPEG download control"
+          ],
+          "declared_rights": {
+            "statement": "The exact image can be shared for non-commercial use under CC BY-NC-SA 4.0 with credit © The Trustees of the British Museum.",
+            "scope": "digital-object",
+            "evidence_url": "https://www.britishmuseum.org/collection/image/18648001",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-download",
+          "machine_interface": "html",
+          "decision": "select",
+          "rationale": "This exact page supplies the object-specific license, non-commercial boundary, ShareAlike duty, and requested attribution for the selected image.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-captured",
+            "format": null,
+            "sha256": null,
+            "reason": "The exact rights page remains a mutable provider record; its selected JPEG is preserved separately."
+          }
+        },
+        {
+          "result_id": "tos-discovery-result.british-museum-mid-00018648-001-jpeg",
+          "rank": 3,
+          "title_as_displayed": "Painted wooden inner-coffin of Seni with lid — mid_00018648_001.jpg",
+          "result_url": "https://media.britishmuseum.org/media/Repository/Documents/2014_9/30_15/ccbfe01f_4652_40df_b271_a3b600fe23b2/mid_00018648_001.jpg",
+          "originating_record_url": "https://www.britishmuseum.org/collection/image/18648001",
+          "identifiers": [
+            {
+              "scheme": "British Museum asset number",
+              "value": "18648001"
+            },
+            {
+              "scheme": "SHA-256",
+              "value": "733eb290d36b4cc2b76e287e3772fa2c31e10d2da3b50e4f13877003157374f9"
+            }
+          ],
+          "available_formats": [
+            "JPEG 1000x1000"
+          ],
+          "declared_rights": {
+            "statement": "CC BY-NC-SA 4.0 for non-commercial sharing of this exact image, with attribution to © The Trustees of the British Museum.",
+            "scope": "digital-object",
+            "evidence_url": "https://www.britishmuseum.org/collection/image/18648001",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-download",
+          "machine_interface": "html",
+          "decision": "select",
+          "rationale": "The rendered page exposed the exact media URL; the browser's page-asset route preserved the 1000x1000 JPEG without bypassing access controls.",
+          "acquisition": {
+            "downloaded": true,
+            "acquired_at": "2026-08-30T04:50:14-06:00",
+            "byte_size": 304159,
+            "sha256": "733eb290d36b4cc2b76e287e3772fa2c31e10d2da3b50e4f13877003157374f9",
+            "event_ref": "tos.event.acquisition.book-of-two-ways-bm-sen-image.2026-08-30"
+          },
+          "snapshot": {
+            "state": "not-needed",
+            "format": null,
+            "sha256": null,
+            "reason": "The exact acquired JPEG is the retained immutable source entity."
+          }
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-dayr-al-barsha-project",
+      "sequence": 4,
+      "channel_type": "specialized-scholarly-project",
+      "role": "scholarly-index",
+      "source_name": "KU Leuven Dayr al-Barsha project",
+      "endpoint_url": "https://www.arts.kuleuven.be/dayr-al-barsha/An-early-Book-of-Two-Ways",
+      "interface_type": "web",
+      "interface_version": "project page last updated 2022-03-07, checked 2026-08-30",
+      "exact_query": "Inspect the project-authored early Book of Two Ways report; preserve B4B/Ankh physical-witness lead and the project's correction of popular map/book claims without acquiring unlicensed imagery or article content.",
+      "queried_at": "2026-08-30T11:03:14.450897Z",
+      "elapsed_seconds": 1.162159,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.dayr-al-barsha-ankh-b4b",
+          "rank": 1,
+          "title_as_displayed": "Egyptologists discover an early ‘Book of Two Ways’",
+          "result_url": "https://www.arts.kuleuven.be/dayr-al-barsha/An-early-Book-of-Two-Ways",
+          "originating_record_url": "https://www.arts.kuleuven.be/dayr-al-barsha/An-early-Book-of-Two-Ways",
+          "identifiers": [
+            {
+              "scheme": "de Buck coffin siglum",
+              "value": "B4B"
+            },
+            {
+              "scheme": "DOI of linked article",
+              "value": "10.1177/0307513319856848"
+            }
+          ],
+          "available_formats": [
+            "project HTML",
+            "linked technical article",
+            "supplementary-image lead"
+          ],
+          "declared_rights": {
+            "statement": null,
+            "scope": "unknown",
+            "evidence_url": null,
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-view",
+          "machine_interface": "html",
+          "decision": "select",
+          "rationale": "The excavation project identifies a separate early Middle Kingdom coffin of Ankh and explicitly warns that the subcorpus is not simply the oldest map, oldest illustrated book, or a consecutive route through the afterlife.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-captured",
+            "format": null,
+            "sha256": null,
+            "reason": "Useful scholarly lead only; no exact standard open license for the page, illustration, or linked modern article was established."
+          }
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-ucl-digital-egypt",
+      "sequence": 5,
+      "channel_type": "specialized-scholarly-project",
+      "role": "scholarly-index",
+      "source_name": "UCL Digital Egypt",
+      "endpoint_url": "https://www.ucl.ac.uk/museums-static/digitalegypt/literature/religious/bd136.html",
+      "interface_type": "web",
+      "interface_version": "static Digital Egypt page checked 2026-08-30",
+      "exact_query": "Inspect the Middle Kingdom Book of Two Ways / Book of the Dead 136 relation, reported Bersha witness concentration, de Buck placement, and page-level copyright statement.",
+      "queried_at": "2026-08-30T11:03:15.613225Z",
+      "elapsed_seconds": 1.614348,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.ucl-book-of-two-ways-bd136",
+          "rank": 1,
+          "title_as_displayed": "Book of the Dead chapter 136",
+          "result_url": "https://www.ucl.ac.uk/museums-static/digitalegypt/literature/religious/bd136.html",
+          "originating_record_url": "https://www.ucl.ac.uk/museums-static/digitalegypt/literature/religious/bd136.html",
+          "identifiers": [
+            {
+              "scheme": "Coffin Text references",
+              "value": "1030, 1032-1034, 1055, 1060, 1067, 1167, 1169, 1176"
+            }
+          ],
+          "available_formats": [
+            "scholarly HTML",
+            "transliteration and translation on page"
+          ],
+          "declared_rights": {
+            "statement": "Copyright © 2002 University College London. All rights reserved.",
+            "scope": "content",
+            "evidence_url": "https://www.ucl.ac.uk/museums-static/digitalegypt/literature/religious/bd136.html",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-view",
+          "machine_interface": "html",
+          "decision": "select",
+          "rationale": "The page is useful for corpus and reception relations, but its explicit all-rights-reserved statement prevents acquiring its prose, transliteration, or translation as an open ToS payload.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-permitted",
+            "format": null,
+            "sha256": null,
+            "reason": "The page explicitly reserves all rights; only bounded factual metadata and the live source URL are retained."
+          }
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-europeana-exact-search",
+      "sequence": 6,
+      "channel_type": "collection-aggregator",
+      "role": "lead-only",
+      "source_name": "Europeana",
+      "endpoint_url": "https://www.europeana.eu/en/search?query=%22Das%20Buch%20von%20den%20zwei%20Wegen%22",
+      "interface_type": "web",
+      "interface_version": "public search surface checked 2026-08-30",
+      "exact_query": "\"Das Buch von den zwei Wegen\"",
+      "queried_at": "2026-08-30T11:03:17.227707Z",
+      "elapsed_seconds": 0.371178,
+      "result_order_preserved": true,
+      "results": []
+    },
+    {
+      "channel_id": "channel-crossref-exact-bibliography",
+      "sequence": 7,
+      "channel_type": "identifier-registry",
+      "role": "scholarly-index",
+      "source_name": "Crossref REST API",
+      "endpoint_url": "https://api.crossref.org/works?query.title=Book%20of%20Two%20Ways&query.author=Schack-Schackenburg&rows=5&select=DOI,title,author,published,publisher,type,URL",
+      "interface_type": "api",
+      "interface_version": "Crossref REST API checked 2026-08-30",
+      "exact_query": "query.title=Book of Two Ways; query.author=Schack-Schackenburg; rows=5; select=DOI,title,author,published,publisher,type,URL",
+      "queried_at": "2026-08-30T11:03:17.599006Z",
+      "elapsed_seconds": 0.670178,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.crossref-fuzzy-experts-in-a-book",
+          "rank": 1,
+          "title_as_displayed": "Experts-in-a-book: Using how-to books to teach the methodologies of practicing professionals",
+          "result_url": "https://doi.org/10.1080/02783198809553111",
+          "originating_record_url": "https://api.crossref.org/works/10.1080/02783198809553111",
+          "identifiers": [
+            {
+              "scheme": "DOI",
+              "value": "10.1080/02783198809553111"
+            }
+          ],
+          "available_formats": [
+            "Crossref metadata"
+          ],
+          "declared_rights": {
+            "statement": null,
+            "scope": "metadata",
+            "evidence_url": null,
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "metadata-only",
+          "machine_interface": "api",
+          "decision": "reject",
+          "rationale": "The fuzzy match is a 1988 education article by Gina D. Schack and has no bibliographic or subject identity with the frozen target or the 1903 Schack-Schackenburg volume.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-needed",
+            "format": null,
+            "sha256": null,
+            "reason": "Rejected identifier metadata is fully reproducible from the exact Crossref query."
+          }
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-open-library-exact-search",
+      "sequence": 8,
+      "channel_type": "open-library",
+      "role": "lead-only",
+      "source_name": "Open Library Search API",
+      "endpoint_url": "https://openlibrary.org/search.json?title=Das%20Buch%20von%20den%20zwei%20Wegen&author=Schack-Schackenburg&limit=20",
+      "interface_type": "api",
+      "interface_version": "search.json checked 2026-08-30",
+      "exact_query": "title=Das Buch von den zwei Wegen; author=Schack-Schackenburg; limit=20",
+      "queried_at": "2026-08-30T11:03:18.269322Z",
+      "elapsed_seconds": 0.676649,
+      "result_order_preserved": true,
+      "results": []
+    },
+    {
+      "channel_id": "channel-internet-archive-exact-search",
+      "sequence": 9,
+      "channel_type": "open-library",
+      "role": "lead-only",
+      "source_name": "Internet Archive Advanced Search",
+      "endpoint_url": "https://archive.org/advancedsearch.php?q=title%3A%28%22Das+Buch+von+den+zwei+Wegen%22%29+AND+creator%3A%28%22Schack-Schackenburg%22%29&fl%5B%5D=identifier%2Ctitle%2Ccreator%2Cdate&rows=20&page=1&output=json",
+      "interface_type": "api",
+      "interface_version": "advancedsearch JSON checked 2026-08-30",
+      "exact_query": "title:(\"Das Buch von den zwei Wegen\") AND creator:(\"Schack-Schackenburg\"); fields identifier,title,creator,date; rows=20; page=1",
+      "queried_at": "2026-08-30T11:03:18.946097Z",
+      "elapsed_seconds": 0.353447,
+      "result_order_preserved": true,
+      "results": []
+    },
+    {
+      "channel_id": "channel-general-web-final-gap-check",
+      "sequence": 10,
+      "channel_type": "general-web-search",
+      "role": "lead-only",
+      "source_name": "Google Search",
+      "endpoint_url": "https://www.google.com/search?q=%22Book+of+Two+Ways%22+coffin+EA30842+Schack-Schackenburg",
+      "interface_type": "web",
+      "interface_version": "ordinary web search used last on 2026-08-30",
+      "exact_query": "\"Book of Two Ways\" coffin EA30842 Schack-Schackenburg",
+      "queried_at": "2026-08-30T11:03:19.299651Z",
+      "elapsed_seconds": 0.192537,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.general-web-duplicate-heidelberg-volume",
+          "rank": 1,
+          "title_as_displayed": "Das Buch von den zwei Wegen des seligen Toten — Heidelberg historic literature",
+          "result_url": "https://digi.ub.uni-heidelberg.de/diglit/schack-schackenburg1903bd1",
+          "originating_record_url": "https://opac.k10plus.de/DB=2.299/PPNSET?PPN=1741505828",
+          "identifiers": [
+            {
+              "scheme": "DOI",
+              "value": "10.11588/diglit.52824"
+            }
+          ],
+          "available_formats": [
+            "search lead to originating university record"
+          ],
+          "declared_rights": {
+            "statement": "Search snippet is not rights evidence; exact Public Domain evidence is on the originating Heidelberg page.",
+            "scope": "unknown",
+            "evidence_url": "https://digi.ub.uni-heidelberg.de/diglit/schack-schackenburg1903bd1",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-view",
+          "machine_interface": "html",
+          "decision": "defer",
+          "rationale": "The ordinary web result adds no authority beyond the already captured K10plus and Heidelberg records and is retained only to prove the final gap check.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-needed",
+            "format": null,
+            "sha256": null,
+            "reason": "Search-engine output is a lead only; the originating records are retained instead."
+          }
+        }
+      ]
+    }
+  ],
+  "channel_comparison": [
+    {
+      "channel_id": "channel-k10plus-originating-record",
+      "completeness": "strong",
+      "metadata_precision": "strong",
+      "rights_clarity": "limited",
+      "machine_interface_quality": "strong",
+      "human_minutes": 0,
+      "machine_seconds": 0.732981,
+      "notes": "Best originating bibliographic identity for the 1903 volume; no content-rights conclusion. Machine time is the automatic monotonic HTTP measurement; human_minutes=0 means no real-human review was performed."
+    },
+    {
+      "channel_id": "channel-heidelberg-digital-library",
+      "completeness": "strong",
+      "metadata_precision": "strong",
+      "rights_clarity": "strong",
+      "machine_interface_quality": "adequate",
+      "human_minutes": 0,
+      "machine_seconds": 0.866802,
+      "notes": "Best exact historical-study and Public Domain route; current PDF/IIIF transfer remained client-blocked without bypass. Machine time is the automatic monotonic HTTP measurement; human_minutes=0 means no real-human review was performed."
+    },
+    {
+      "channel_id": "channel-british-museum-sen-coffin",
+      "completeness": "strong",
+      "metadata_precision": "strong",
+      "rights_clarity": "strong",
+      "machine_interface_quality": "adequate",
+      "human_minutes": 0,
+      "machine_seconds": 0.229763,
+      "notes": "Best exact physical-witness and acquired File route with per-image CC BY-NC-SA 4.0 evidence. Machine time is the automatic monotonic HTTP measurement; human_minutes=0 means no real-human review was performed."
+    },
+    {
+      "channel_id": "channel-dayr-al-barsha-project",
+      "completeness": "adequate",
+      "metadata_precision": "adequate",
+      "rights_clarity": "limited",
+      "machine_interface_quality": "adequate",
+      "human_minutes": 0,
+      "machine_seconds": 1.162159,
+      "notes": "Strong boundary correction and early B4B witness lead; no exact reusable content license established. Machine time is the automatic monotonic HTTP measurement; human_minutes=0 means no real-human review was performed."
+    },
+    {
+      "channel_id": "channel-ucl-digital-egypt",
+      "completeness": "adequate",
+      "metadata_precision": "adequate",
+      "rights_clarity": "strong",
+      "machine_interface_quality": "adequate",
+      "human_minutes": 0,
+      "machine_seconds": 1.614348,
+      "notes": "Useful subcorpus and Book of the Dead relation; explicit all-rights-reserved content boundary. Machine time is the automatic monotonic HTTP measurement; human_minutes=0 means no real-human review was performed."
+    },
+    {
+      "channel_id": "channel-europeana-exact-search",
+      "completeness": "poor",
+      "metadata_precision": "poor",
+      "rights_clarity": "unknown",
+      "machine_interface_quality": "limited",
+      "human_minutes": 0,
+      "machine_seconds": 0.371178,
+      "notes": "No exact result was preserved; automated access returned a challenge envelope. Machine time is the automatic monotonic HTTP measurement; human_minutes=0 means no real-human review was performed."
+    },
+    {
+      "channel_id": "channel-crossref-exact-bibliography",
+      "completeness": "poor",
+      "metadata_precision": "limited",
+      "rights_clarity": "unknown",
+      "machine_interface_quality": "strong",
+      "human_minutes": 0,
+      "machine_seconds": 0.670178,
+      "notes": "Fuzzy results did not resolve the target historical volume; the top unrelated match is explicitly rejected. Machine time is the automatic monotonic HTTP measurement; human_minutes=0 means no real-human review was performed."
+    },
+    {
+      "channel_id": "channel-open-library-exact-search",
+      "completeness": "poor",
+      "metadata_precision": "poor",
+      "rights_clarity": "unknown",
+      "machine_interface_quality": "strong",
+      "human_minutes": 0,
+      "machine_seconds": 0.676649,
+      "notes": "Exact title-and-author query returned numFound=0. Machine time is the automatic monotonic HTTP measurement; human_minutes=0 means no real-human review was performed."
+    },
+    {
+      "channel_id": "channel-internet-archive-exact-search",
+      "completeness": "poor",
+      "metadata_precision": "poor",
+      "rights_clarity": "unknown",
+      "machine_interface_quality": "strong",
+      "human_minutes": 0,
+      "machine_seconds": 0.353447,
+      "notes": "Exact title-and-creator query returned numFound=0. Machine time is the automatic monotonic HTTP measurement; human_minutes=0 means no real-human review was performed."
+    },
+    {
+      "channel_id": "channel-general-web-final-gap-check",
+      "completeness": "limited",
+      "metadata_precision": "limited",
+      "rights_clarity": "poor",
+      "machine_interface_quality": "limited",
+      "human_minutes": 0,
+      "machine_seconds": 0.192537,
+      "notes": "Final lead-only check repeated the Heidelberg route and supplied no stronger originating record or rights evidence. Machine time is the automatic monotonic HTTP measurement; human_minutes=0 means no real-human review was performed."
+    }
+  ],
+  "selected_result_ids": [
+    "tos-discovery-result.k10plus-schack-schackenburg-1903-ppn-1741505828",
+    "tos-discovery-result.heidelberg-schack-schackenburg-1903-bd1",
+    "tos-discovery-result.british-museum-sen-inner-coffin-ea30842",
+    "tos-discovery-result.british-museum-image-18648001-rights",
+    "tos-discovery-result.british-museum-mid-00018648-001-jpeg",
+    "tos-discovery-result.dayr-al-barsha-ankh-b4b",
+    "tos-discovery-result.ucl-book-of-two-ways-bd136"
+  ],
+  "rejected_result_ids": [
+    "tos-discovery-result.crossref-fuzzy-experts-in-a-book"
+  ],
+  "rights_inference_from_availability_prohibited": true,
+  "general_web_search_is_last_resort": true,
+  "technical_access_bypass_used": false,
+  "maker": {
+    "maker_type": "mixed",
+    "agent_ref": "model:codex + software:python-3.14.6"
+  },
+  "started_at": "2026-08-30T11:03:12.620933Z",
+  "ended_at": "2026-08-30T11:03:19.492198Z",
+  "status": "reconciled",
+  "provenance_event_refs": [
+    "tos.event.discovery.book-of-two-ways-open-work-route.2026-08-30"
+  ],
+  "record_version": 1,
+  "supersedes_discovery_ref": null
+}

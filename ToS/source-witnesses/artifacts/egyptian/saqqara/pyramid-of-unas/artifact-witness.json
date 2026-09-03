@@ -1,0 +1,115 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/artifact-source-witness-v2.schema.json",
+  "schema_version": "tos_artifact_source_witness_v2",
+  "artifact_id": "tos.artifact.egyptian.saqqara.pyramid-of-unas",
+  "artifact_kind": "inscription",
+  "path_identity": {
+    "basis": "physical_identity",
+    "provider_independent": true,
+    "note": "The path follows the in-situ Pyramid of Unas at Saqqara, not the modern Pyramid Texts corpus label, a Sethe volume, a provider URL, or one editorial utterance number."
+  },
+  "identifiers": [
+    {"scheme": "monument name", "value": "Pyramid of Unas", "source_ref": "https://www.ucl.ac.uk/museums-static/digitalegypt/literature/religious/pyramid.html"},
+    {"scheme": "TLA witness hierarchy", "value": "Unas", "source_ref": "https://thesaurus-linguae-aegyptiae.de/text/FZQ6IM7ENFHHROXB2W6PTYMXNE?lang=en"}
+  ],
+  "physical_description": {
+    "material": "stone monument with hieroglyphic inscriptions in inner chambers",
+    "height_mm": null,
+    "width_mm": null,
+    "thickness_mm": null,
+    "source_ref": "https://www.ucl.ac.uk/museums-static/digitalegypt/literature/religious/pyramid.html"
+  },
+  "dating": {
+    "period_label": "late Old Kingdom; reign of Unas",
+    "display_date": "late Old Kingdom (UCL gives the Old Kingdom span about 2686-2181 BCE; no exact monument year fixed here)",
+    "certainty": "reported",
+    "period_stage_separation_required": true,
+    "source_ref": "https://www.ucl.ac.uk/museums-static/digitalegypt/literature/religious/pyramid.html"
+  },
+  "find_context": {
+    "site": "Saqqara, Egypt",
+    "findspot": "inner chambers of the Pyramid of Unas",
+    "excavation_numbers": [],
+    "source_note": "UCL identifies the pyramid of Unas as the earliest surviving example in the modern Pyramid Texts corpus; TLA independently binds PT 217 to Unas.",
+    "documentation_limit": "The checked sources do not establish an excavation inventory, exact chamber coordinate for every utterance, construction year, authorship, composition date, or a unitary original Work.",
+    "source_ref": "https://www.ucl.ac.uk/museums-static/digitalegypt/literature/religious/pyramid.html"
+  },
+  "custody": {
+    "current_repository": "Pyramid of Unas, Saqqara archaeological site (in situ monument)",
+    "inventory_numbers": ["Pyramid of Unas"],
+    "source_ref": "https://www.ucl.ac.uk/museums-static/digitalegypt/literature/religious/pyramid.html"
+  },
+  "digital_catalog_record": {
+    "provider": "Thesaurus Linguae Aegyptiae",
+    "record_id": "FZQ6IM7ENFHHROXB2W6PTYMXNE",
+    "record_url": "https://thesaurus-linguae-aegyptiae.de/text/FZQ6IM7ENFHHROXB2W6PTYMXNE?lang=en",
+    "api_url": null,
+    "checked_at": "2026-08-30T01:14:00-06:00",
+    "mutable": true,
+    "response_fingerprints": [
+      {"surface": "https://thesaurus-linguae-aegyptiae.de/text/FZQ6IM7ENFHHROXB2W6PTYMXNE?lang=en", "byte_size": 34015, "sha256": "7dfda988e0165f911f1646754b8b6a501ad8256982a50ca4e359fb62523285dd", "captured": false},
+      {"surface": "https://www.ucl.ac.uk/museums-static/digitalegypt/literature/religious/pyramid.html", "byte_size": 4720, "sha256": "b585aba35b31e07a94a6807afea4c43eb65a43f1a83a144fd1a8c14cb7ad35a1", "captured": false}
+    ]
+  },
+  "inscription_layer": {
+    "availability": "available_not_acquired",
+    "language_status": "reported",
+    "provider_language_code": "egy",
+    "normalized_language_code": "egy",
+    "script": "Egyptian hieroglyphs",
+    "transliteration_stored": false,
+    "translation_stored": false,
+    "source_refs": [
+      "https://www.ucl.ac.uk/museums-static/digitalegypt/literature/religious/pyramid.html",
+      "https://thesaurus-linguae-aegyptiae.de/text/FZQ6IM7ENFHHROXB2W6PTYMXNE?lang=en"
+    ]
+  },
+  "composite_layer": {
+    "status": "linked",
+    "external_refs": [
+      {"scheme": "Sethe critical edition", "value": "Die altaegyptischen Pyramidentexte 1-2", "source_ref": "https://api.digitale-sammlungen.de/iiif/presentation/v2/bsb00068075/manifest"}
+    ],
+    "relationship": "The physical Unas monument is a reported member witness used by the modern scholarly Pyramid Texts corpus and Sethe edition; the composite is not the monument identity.",
+    "is_physical_artifact_identity": false
+  },
+  "visual_layers": [],
+  "scholarly_classification": {
+    "genre": "royal funerary inscription witness; modern Pyramid Texts corpus classification",
+    "corpus_labels": ["Pyramid Texts", "Unas", "PT 217"],
+    "classification_is_interpretive": true,
+    "source_refs": [
+      "https://www.ucl.ac.uk/museums-static/digitalegypt/literature/religious/pyramid.html",
+      "https://thesaurus-linguae-aegyptiae.de/text/FZQ6IM7ENFHHROXB2W6PTYMXNE?lang=en"
+    ]
+  },
+  "bibliography": [
+    {"citation": "Sethe, Kurt. Die altaegyptischen Pyramidentexte, Band 1 (1908).", "role": "primary_publication", "source_ref": "https://api.digitale-sammlungen.de/iiif/presentation/v2/bsb00068075/manifest"},
+    {"citation": "Piankoff, Alexandre. The Pyramid of Unas (1968).", "role": "established_control", "source_ref": "https://www.ucl.ac.uk/museums-static/digitalegypt/literature/religious/pyramid.html"}
+  ],
+  "layer_separation": {
+    "physical_artifact_is_catalog_record": false,
+    "catalog_record_is_inscription": false,
+    "inscription_is_composite": false,
+    "visual_is_artifact": false,
+    "sign_has_fixed_translation": false,
+    "artifact_is_philosophy": false
+  },
+  "rights_ref": "ToS/source-witnesses/artifacts/egyptian/saqqara/pyramid-of-unas/rights.json",
+  "discovery_ref": "ToS/source-witnesses/discovery/runs/pyramid-of-unas-artifact-route.2026-08-30.v1.json",
+  "provenance_event_ref": "tos.event.discovery.pyramid-of-unas-artifact-route.2026-08-30",
+  "research_ref": "ToS/research-packets/foundation-laboratory-2026-07/A05_PYRAMID_TEXTS_OPEN_WORK_DISCOVERY_AND_RIGHTS_ROUTE_2026-08-30.md",
+  "philosophy_planting_refs": [],
+  "authority": {
+    "evidence_status": "metadata_witness",
+    "review_status": "unreviewed",
+    "visibility": "public_metadata_only",
+    "source_text_admitted": false,
+    "semantic_authority": false,
+    "graph_authority": false,
+    "canon_authority": false,
+    "publication_authority": false
+  },
+  "maker": {"maker_type": "model", "agent_ref": "model:codex", "human_review_performed": false},
+  "created_at": "2026-08-30T01:18:00-06:00",
+  "record_version": 2
+}

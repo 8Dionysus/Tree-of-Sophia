@@ -1,0 +1,131 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/server-import-contract.schema.json",
+  "schema_version": "tos_server_import_contract_v1",
+  "server_import_id": "tos.server-import.old-babylonian-gilgamesh-jastrow-clay-1920.commons-djvu",
+  "item_ref": "tos.item.old-babylonian-scholarship.an-old-babylonian-version-of-the-gilgamesh-epic.en-jastrow-clay-1920.commons-internet-archive-robarts-scan-djvu",
+  "manifest": {
+    "ref": "ToS/source-witnesses/works/old-babylonian-scholarship/an-old-babylonian-version-of-the-gilgamesh-epic/expressions/en-jastrow-clay-1920/editions/new-haven-yale-university-press-1920/items/commons-internet-archive-robarts-scan-djvu/item.manifest.json",
+    "sha256": "6bef94e7ff0a9dce52e2d11c1335dc623085252265ca90b82739ef611df7436c",
+    "verified": true
+  },
+  "payload_files": [
+    {
+      "file_ref": "tos.file.sha256.b3affda48ef0d57008d4153c04da3797074ece4296473e7c874b4e5252932023",
+      "relative_path": "payload/an-old-babylonian-version-gilgamesh-jastrow-clay-1920.djvu",
+      "byte_size": 4493186,
+      "sha256": "b3affda48ef0d57008d4153c04da3797074ece4296473e7c874b4e5252932023",
+      "verified": true
+    }
+  ],
+  "rights_policy": {
+    "rights_record_ref": "ToS/source-witnesses/works/old-babylonian-scholarship/an-old-babylonian-version-of-the-gilgamesh-epic/expressions/en-jastrow-clay-1920/editions/new-haven-yale-university-press-1920/items/commons-internet-archive-robarts-scan-djvu/rights.json",
+    "rights_record_sha256": "ddd01549c63cc9fc681d11d3a770e75aeab9ce3e00081e149a6ab414d5edbbdd",
+    "assessment_status": "public-domain-reviewed",
+    "review_status": "unreviewed",
+    "jurisdictions_reviewed": [
+      "DE",
+      "MX",
+      "US"
+    ],
+    "permission_or_license_refs": [
+      "ToS/research-packets/foundation-laboratory-2026-07/A02_OLD_BABYLONIAN_GILGAMESH_OPEN_WORK_ACQUISITION_2026-08-30.md",
+      "https://commons.wikimedia.org/wiki/File:An_Old_Babylonian_Version_of_the_Gilgamesh_Epic_-_Morris_-_1920.djvu",
+      "https://creativecommons.org/publicdomain/mark/1.0/"
+    ],
+    "expires_at": null,
+    "recheck_before_transfer": true
+  },
+  "access_class": "metadata-only",
+  "allowed_derivatives": {
+    "ocr": {
+      "state": "prohibited",
+      "conditions": [
+        "No OCR has been accepted, human-reviewed, or authorized for server publication."
+      ]
+    },
+    "transcription": {
+      "state": "prohibited",
+      "conditions": [
+        "No historical or ancient transcription has been accepted or authorized for server publication."
+      ]
+    },
+    "page_images": {
+      "state": "prohibited",
+      "conditions": [
+        "The operator-authorized local acquisition does not authorize future-server transfer without a separate real-human operator approval and fresh exact-route check."
+      ]
+    },
+    "snippets": {
+      "state": "prohibited",
+      "conditions": [
+        "No source-bearing snippet publication is authorized by this metadata-only plan."
+      ]
+    },
+    "lexical_index": {
+      "state": "conditional",
+      "conditions": [
+        "Public-safe bibliographic metadata only; no payload-derived or dictionary-recoverable forms."
+      ]
+    },
+    "embeddings": {
+      "state": "prohibited",
+      "conditions": [
+        "No payload-derived embedding or server processing is authorized by this plan."
+      ]
+    },
+    "alignments": {
+      "state": "prohibited",
+      "conditions": [
+        "No ancient-to-modern or cross-edition alignment is accepted or authorized."
+      ]
+    },
+    "translations": {
+      "state": "prohibited",
+      "conditions": [
+        "The historical translation is not textually accepted or authorized for server publication."
+      ]
+    },
+    "annotations": {
+      "state": "prohibited",
+      "conditions": [
+        "No source-bearing annotation publication is authorized."
+      ]
+    },
+    "search_projection": {
+      "state": "conditional",
+      "conditions": [
+        "Metadata-only identity, provenance, rights-status, and fixity fields with no payload-derived text."
+      ]
+    },
+    "graph_projection": {
+      "state": "conditional",
+      "conditions": [
+        "Public-safe Work, Expression, Edition, Item, File, provenance, rights-status, and candidate-acquisition relations only; no ancient membership, semantic, or canon fact."
+      ]
+    }
+  },
+  "payload_transfer_authorized": false,
+  "operator_transfer_approval": {
+    "approved": false,
+    "approved_by_real_human": false,
+    "approved_at": null,
+    "approval_ref": null
+  },
+  "server_import_status": "blocked-rights",
+  "publication_status": "metadata-only",
+  "server_receipt_refs": [],
+  "takedown": {
+    "public_contact_url": "https://github.com/8Dionysus/Tree-of-Sophia/issues",
+    "procedure_ref": "ToS/source-witnesses/server-import/SERVER_IMPORT_PROTOCOL.md",
+    "disable_supported": true,
+    "delete_supported": true,
+    "last_reviewed_at": "2026-08-30T03:55:00-06:00"
+  },
+  "provenance_event_refs": [
+    "tos.event.server-import-plan.old-babylonian-gilgamesh-jastrow-clay-1920.commons-djvu.rebind.2026-09-02"
+  ],
+  "server_copy_is_authority": false,
+  "automatic_checkout_payload_discovery_allowed": false,
+  "contract_version": 2,
+  "supersedes_server_import_ref": null
+}

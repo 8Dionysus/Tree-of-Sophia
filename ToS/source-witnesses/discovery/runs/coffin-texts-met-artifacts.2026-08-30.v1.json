@@ -1,0 +1,363 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/material-discovery-record.schema.json",
+  "schema_version": "tos_material_discovery_record_v1",
+  "discovery_id": "tos.discovery.coffin-texts-met-artifacts.2026-08-30.v1",
+  "protocol_ref": "ToS/source-witnesses/discovery/DISCOVERY_PROTOCOL.md",
+  "target": {
+    "target_kind": "artifact",
+    "known_tos_refs": [
+      "tos.artifact.egyptian.meir.met-khnumnakht-15-2-2",
+      "tos.artifact.egyptian.lisht-south.met-khety-32-1-133"
+    ],
+    "description": "Resolve two distinct Metropolitan Museum Middle Kingdom coffins as physical artifacts and retain four exact CC0 visual representations and Files without treating an image, inscription, museum record, or corpus label as the artifact itself.",
+    "required_properties": [
+      "repository-independent physical identity and exact inventory number",
+      "reported dimensions, dating, find context, custody, and inscription boundary",
+      "exact original and encountered IIIF derivative bytes with independent fixity",
+      "object-level Public Domain indicator and Met Open Access CC0 evidence",
+      "no transcription, translation, corpus membership acceptance, semantic, graph, canon, or publication effect"
+    ],
+    "acceptable_substitutions": [
+      "a corrected Met catalog or API record preserving the same physical identity",
+      "a later byte-distinct Met image retained as its own File and visual representation"
+    ],
+    "languages": [
+      "egy",
+      "en"
+    ],
+    "formats": [
+      "museum object metadata",
+      "public object API JSON",
+      "original JPEG",
+      "IIIF JPEG",
+      "CC0 policy"
+    ],
+    "purpose_ref": "ToS/research-packets/foundation-laboratory-2026-07/A05_COFFIN_TEXTS_OPEN_WORK_ACQUISITION_2026-08-30.md"
+  },
+  "channels": [
+    {
+      "channel_id": "channel-met-object-records",
+      "sequence": 1,
+      "channel_type": "university-catalog",
+      "role": "originating-record",
+      "source_name": "The Metropolitan Museum of Art object records and public API",
+      "endpoint_url": "https://www.metmuseum.org/art/collection/search/555675",
+      "interface_type": "api",
+      "interface_version": "object pages and public API checked 2026-08-30",
+      "exact_query": "Resolve objects 555675 and 544326; preserve exact title, inventory, date, material, dimensions, geography, find context, custody, inscription description, Public Domain indicator, primaryImage and additionalImages.",
+      "queried_at": "2026-08-30T10:30:12.903488Z",
+      "elapsed_seconds": 0.321321,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.met-artifact-khety-555675",
+          "rank": 1,
+          "title_as_displayed": "Dismantled Coffin of Khety",
+          "result_url": "https://www.metmuseum.org/art/collection/search/555675",
+          "originating_record_url": "https://www.metmuseum.org/art/collection/search/555675",
+          "identifiers": [
+            {
+              "scheme": "Met object ID",
+              "value": "555675"
+            },
+            {
+              "scheme": "Met object number",
+              "value": "32.1.133a-k"
+            }
+          ],
+          "available_formats": [
+            "HTML object record",
+            "public API JSON",
+            "eight image routes"
+          ],
+          "declared_rights": {
+            "statement": "Public Domain images; Met Open Access CC0 policy.",
+            "scope": "digital-object",
+            "evidence_url": "https://www.metmuseum.org/hubs/open-access",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-download",
+          "machine_interface": "api",
+          "decision": "select",
+          "rationale": "The holding record fixes a materially distinct physical coffin and explicitly identifies Coffin Texts spells on its lid and sides.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-captured",
+            "format": null,
+            "sha256": null,
+            "reason": "The mutable API response was fingerprinted and the exact selected images were retained separately."
+          }
+        },
+        {
+          "result_id": "tos-discovery-result.met-artifact-khnumnakht-544326",
+          "rank": 2,
+          "title_as_displayed": "Coffin of Khnumnakht",
+          "result_url": "https://www.metmuseum.org/art/collection/search/544326",
+          "originating_record_url": "https://www.metmuseum.org/art/collection/search/544326",
+          "identifiers": [
+            {
+              "scheme": "Met object ID",
+              "value": "544326"
+            },
+            {
+              "scheme": "Met object number",
+              "value": "15.2.2a, b"
+            }
+          ],
+          "available_formats": [
+            "HTML object record",
+            "public API JSON",
+            "eight image routes"
+          ],
+          "declared_rights": {
+            "statement": "Public Domain images; Met Open Access CC0 policy.",
+            "scope": "digital-object",
+            "evidence_url": "https://www.metmuseum.org/hubs/open-access",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-download",
+          "machine_interface": "api",
+          "decision": "select",
+          "rationale": "The holding record fixes a separate physical coffin with reported hieroglyphic invocations and recitations; exact corpus membership remains unreviewed.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-captured",
+            "format": null,
+            "sha256": null,
+            "reason": "The mutable API response was fingerprinted and the exact selected images were retained separately."
+          }
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-met-open-access-files",
+      "sequence": 2,
+      "channel_type": "specialized-scholarly-project",
+      "role": "digital-object-record",
+      "source_name": "The Met Open Access policy and image services",
+      "endpoint_url": "https://www.metmuseum.org/hubs/open-access",
+      "interface_type": "api",
+      "interface_version": "Open Access policy, public API primaryImage, and IIIF main-image checked 2026-08-30",
+      "exact_query": "Confirm that public-domain collection images and basic data are unrestricted under CC0; acquire exact primaryImage originals DP-15316-001.jpg and DP354909.jpg plus browser-encountered byte-distinct IIIF derivatives 1836133 and 1476464.",
+      "queried_at": "2026-08-30T10:30:13.224957Z",
+      "elapsed_seconds": 0.249929,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.met-file-khety-original",
+          "rank": 1,
+          "title_as_displayed": "DP-15316-001.jpg",
+          "result_url": "https://images.metmuseum.org/CRDImages/eg/original/DP-15316-001.jpg",
+          "originating_record_url": "https://www.metmuseum.org/art/collection/search/555675",
+          "identifiers": [
+            {
+              "scheme": "SHA-256",
+              "value": "6632d9c8e5195b305288afae21c170d1cdcc887c985d168a0e6e14e4403bd5ff"
+            }
+          ],
+          "available_formats": [
+            "JPEG 4000x1118"
+          ],
+          "declared_rights": {
+            "statement": "CC0 under The Met Open Access policy for the Public Domain image.",
+            "scope": "digital-object",
+            "evidence_url": "https://www.metmuseum.org/hubs/open-access",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-download",
+          "machine_interface": "api",
+          "decision": "select",
+          "rationale": "Exact highest-resolution selected Khety view.",
+          "acquisition": {
+            "downloaded": true,
+            "acquired_at": "2026-08-30T04:22:03-06:00",
+            "byte_size": 2204002,
+            "sha256": "6632d9c8e5195b305288afae21c170d1cdcc887c985d168a0e6e14e4403bd5ff",
+            "event_ref": "tos.event.acquisition.coffin-texts-met-open-access-images.2026-08-30"
+          },
+          "snapshot": {
+            "state": "not-needed",
+            "format": null,
+            "sha256": null,
+            "reason": "The exact acquired JPEG is the retained immutable source entity."
+          }
+        },
+        {
+          "result_id": "tos-discovery-result.met-file-khety-iiif",
+          "rank": 2,
+          "title_as_displayed": "Met IIIF 555675/1836133 main-image",
+          "result_url": "https://collectionapi.metmuseum.org/api/collection/v1/iiif/555675/1836133/main-image",
+          "originating_record_url": "https://www.metmuseum.org/art/collection/search/555675",
+          "identifiers": [
+            {
+              "scheme": "SHA-256",
+              "value": "d5ad902fe005c37eaed983e79859c69a89ecbe2e9f25f3e4b33963e60ee10913"
+            }
+          ],
+          "available_formats": [
+            "JPEG 1200x335"
+          ],
+          "declared_rights": {
+            "statement": "CC0 under The Met Open Access policy for the Public Domain image.",
+            "scope": "digital-object",
+            "evidence_url": "https://www.metmuseum.org/hubs/open-access",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-download",
+          "machine_interface": "iiif",
+          "decision": "select",
+          "rationale": "Exact byte-distinct browser-visible derivative retained under its own File identity.",
+          "acquisition": {
+            "downloaded": true,
+            "acquired_at": "2026-08-30T04:20:46-06:00",
+            "byte_size": 154041,
+            "sha256": "d5ad902fe005c37eaed983e79859c69a89ecbe2e9f25f3e4b33963e60ee10913",
+            "event_ref": "tos.event.acquisition.coffin-texts-met-open-access-images.2026-08-30"
+          },
+          "snapshot": {
+            "state": "not-needed",
+            "format": null,
+            "sha256": null,
+            "reason": "The exact acquired JPEG is the retained immutable source entity."
+          }
+        },
+        {
+          "result_id": "tos-discovery-result.met-file-khnumnakht-original",
+          "rank": 3,
+          "title_as_displayed": "DP354909.jpg",
+          "result_url": "https://images.metmuseum.org/CRDImages/eg/original/DP354909.jpg",
+          "originating_record_url": "https://www.metmuseum.org/art/collection/search/544326",
+          "identifiers": [
+            {
+              "scheme": "SHA-256",
+              "value": "157590ee44135d24fc4d7e77f82e2f251c01bdcff50c2a6a6b9178cede5e358d"
+            }
+          ],
+          "available_formats": [
+            "JPEG 3927x2897"
+          ],
+          "declared_rights": {
+            "statement": "CC0 under The Met Open Access policy for the Public Domain image.",
+            "scope": "digital-object",
+            "evidence_url": "https://www.metmuseum.org/hubs/open-access",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-download",
+          "machine_interface": "api",
+          "decision": "select",
+          "rationale": "Exact highest-resolution selected Khnumnakht view.",
+          "acquisition": {
+            "downloaded": true,
+            "acquired_at": "2026-08-30T04:21:59-06:00",
+            "byte_size": 2631758,
+            "sha256": "157590ee44135d24fc4d7e77f82e2f251c01bdcff50c2a6a6b9178cede5e358d",
+            "event_ref": "tos.event.acquisition.coffin-texts-met-open-access-images.2026-08-30"
+          },
+          "snapshot": {
+            "state": "not-needed",
+            "format": null,
+            "sha256": null,
+            "reason": "The exact acquired JPEG is the retained immutable source entity."
+          }
+        },
+        {
+          "result_id": "tos-discovery-result.met-file-khnumnakht-iiif",
+          "rank": 4,
+          "title_as_displayed": "Met IIIF 544326/1476464 main-image",
+          "result_url": "https://collectionapi.metmuseum.org/api/collection/v1/iiif/544326/1476464/main-image",
+          "originating_record_url": "https://www.metmuseum.org/art/collection/search/544326",
+          "identifiers": [
+            {
+              "scheme": "SHA-256",
+              "value": "b02c20944dca202341d8cf7319354960d7df1913c0fb382cea9f05b716900a1a"
+            }
+          ],
+          "available_formats": [
+            "JPEG 1200x885"
+          ],
+          "declared_rights": {
+            "statement": "CC0 under The Met Open Access policy for the Public Domain image.",
+            "scope": "digital-object",
+            "evidence_url": "https://www.metmuseum.org/hubs/open-access",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-download",
+          "machine_interface": "iiif",
+          "decision": "select",
+          "rationale": "Exact byte-distinct browser-visible derivative retained under its own File identity.",
+          "acquisition": {
+            "downloaded": true,
+            "acquired_at": "2026-08-30T04:20:18-06:00",
+            "byte_size": 209846,
+            "sha256": "b02c20944dca202341d8cf7319354960d7df1913c0fb382cea9f05b716900a1a",
+            "event_ref": "tos.event.acquisition.coffin-texts-met-open-access-images.2026-08-30"
+          },
+          "snapshot": {
+            "state": "not-needed",
+            "format": null,
+            "sha256": null,
+            "reason": "The exact acquired JPEG is the retained immutable source entity."
+          }
+        }
+      ]
+    }
+  ],
+  "channel_comparison": [
+    {
+      "channel_id": "channel-met-object-records",
+      "completeness": "strong",
+      "metadata_precision": "strong",
+      "rights_clarity": "strong",
+      "machine_interface_quality": "strong",
+      "human_minutes": 0,
+      "machine_seconds": 0.321321,
+      "notes": "Exact physical identities, inscriptions, find contexts, inventory numbers and current API image routes. Machine time is the automatic monotonic HTTP measurement; human_minutes=0 means no real-human review was performed."
+    },
+    {
+      "channel_id": "channel-met-open-access-files",
+      "completeness": "strong",
+      "metadata_precision": "strong",
+      "rights_clarity": "strong",
+      "machine_interface_quality": "strong",
+      "human_minutes": 0,
+      "machine_seconds": 0.249929,
+      "notes": "Exact CC0 policy and four independently content-addressed public image byte sequences. Machine time is the automatic monotonic HTTP measurement; human_minutes=0 means no real-human review was performed."
+    }
+  ],
+  "selected_result_ids": [
+    "tos-discovery-result.met-artifact-khety-555675",
+    "tos-discovery-result.met-artifact-khnumnakht-544326",
+    "tos-discovery-result.met-file-khety-original",
+    "tos-discovery-result.met-file-khety-iiif",
+    "tos-discovery-result.met-file-khnumnakht-original",
+    "tos-discovery-result.met-file-khnumnakht-iiif"
+  ],
+  "rejected_result_ids": [],
+  "rights_inference_from_availability_prohibited": true,
+  "general_web_search_is_last_resort": true,
+  "technical_access_bypass_used": false,
+  "maker": {
+    "maker_type": "model",
+    "agent_ref": "model:codex"
+  },
+  "started_at": "2026-08-30T10:30:12.903488Z",
+  "ended_at": "2026-08-30T10:30:13.474897Z",
+  "status": "reconciled",
+  "provenance_event_refs": [
+    "tos.event.acquisition.coffin-texts-met-open-access-images.2026-08-30"
+  ],
+  "record_version": 1,
+  "supersedes_discovery_ref": null
+}

@@ -54,6 +54,23 @@
           "captured": false
         }
       ]
+    },
+    {
+      "provider": "Electronic Text Corpus of Sumerian Royal Inscriptions at Oracc",
+      "representation_role": "composite_edition",
+      "record_id": "ETCSRI Q000947 / Ur-Namma 20",
+      "record_url": "https://oracc.museum.upenn.edu/etcsri/Q000947",
+      "api_url": null,
+      "checked_at": "2026-08-30T02:00:59-06:00",
+      "mutable": true,
+      "response_fingerprints": [
+        {
+          "surface": "https://oracc.museum.upenn.edu//etcsri/Q000947/html",
+          "byte_size": 44278,
+          "sha256": "5f6bf53de619a0de93469044b7275944cfb8d14bc19647c694274dea3bc0620d",
+          "captured": false
+        }
+      ]
     }
   ],
   "member_observations": [
@@ -91,17 +108,21 @@
       "CDLI composite HTML",
       "CDLI ATF revision",
       "CDLI JSON witness array",
-      "critical-edition metadata"
+      "critical-edition metadata",
+      "ETCSRI static annotated Sumerian HTML"
     ],
-    "availability": "open_view",
+    "availability": "open_download",
     "content_stored": false,
     "source_text_admitted": false,
     "source_refs": [
       "https://cdli.earth/artifacts/432130",
       "https://cdli.earth/artifacts/432130/json",
-      "https://cdli.earth/inscriptions/2269337"
+      "https://cdli.earth/inscriptions/2269337",
+      "https://oracc.museum.upenn.edu/etcsri/Q000947",
+      "https://oracc.museum.upenn.edu//etcsri/Q000947/html",
+      "https://oracc.museum.upenn.edu/etcsri/accesskeys/"
     ],
-    "scope_note": "Current providers expose modern editorial text and witness coordination. This packet records identity, version, one exact member, and dated coverage only; it neither freezes nor publishes the reconstructed text."
+    "scope_note": "Current providers expose modern editorial text and witness coordination. This tracked composite packet remains metadata-only; one exact ETCSRI Q000947 static HTML File is now frozen separately under representations/, with its own fixity and CC BY-SA 3.0 rights record, and is not accepted source text, legal interpretation, semantic fact, or canon."
   },
   "layer_separation": {
     "composite_is_physical_artifact": false,
@@ -113,9 +134,9 @@
     "composite_is_philosophy": false
   },
   "rights_ref": "ToS/source-witnesses/scholarly-composites/critical/sumerian/laws-of-ur-namma/rights.json",
-  "discovery_ref": "ToS/source-witnesses/discovery/runs/mesopotamian-law-collections.2026-08-22.v1.json",
-  "provenance_event_ref": "tos.event.discovery.mesopotamian-law-collections.2026-08-22",
-  "research_ref": "ToS/research-packets/foundation-laboratory-2026-07/A02_MESOPOTAMIAN_LAW_COLLECTIONS_SOURCE_PLANTING_RESEARCH_2026-08-22.md",
+  "discovery_ref": "ToS/source-witnesses/discovery/runs/laws-of-ur-namma-open-work-route.2026-08-30.v1.json",
+  "provenance_event_ref": "tos.event.discovery.laws-of-ur-namma-open-work-route.2026-08-30",
+  "research_ref": "ToS/research-packets/foundation-laboratory-2026-07/A02_LAWS_OF_UR_NAMMA_OPEN_WORK_ACQUISITION_2026-08-30.md",
   "philosophy_planting_refs": [
     "ToS/philosophy/eras/bronze-age/regions/west-asia/traditions/old-babylonian-scribal-wisdom-law/sources/plantings/laws-of-ur-namma-composite/source-planting.json"
   ],
@@ -135,5 +156,5 @@
     "human_review_performed": false
   },
   "created_at": "2026-08-22T22:43:00-06:00",
-  "record_version": 1
+  "record_version": 2
 }

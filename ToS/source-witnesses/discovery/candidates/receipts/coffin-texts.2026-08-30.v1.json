@@ -1,0 +1,117 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/open-work-candidate-receipt.schema.json",
+  "schema_version": "tos_open_work_candidate_receipt_v1",
+  "receipt_id": "open-work-candidate-receipt.coffin-texts.2026-08-30.v1",
+  "candidate_id": "open-work-candidate.coffin-texts",
+  "candidate_record_sha256": "cddea10e57f763b64639639eedc83324d6d2cfa19eb444fcc3b78b745a6cb319",
+  "candidate_ledger_sha256": "9364319f23312df516f6af5647592c1f9f1eceeb18ec3aa4dad855cd6cdf261d",
+  "candidate_target_sha256": "28b9611fe280161fc7c682ff335fd96dbb56f36d4f68328a7752f537584651bf",
+  "queue_snapshot_sha256": "b6b65f3929ac92d993e0c3120092bb1e15eeb2e145e0ed57560507fcb5b785fb",
+  "discovery_ref": "ToS/source-witnesses/discovery/runs/coffin-texts-open-work-route.2026-08-30.v1.json",
+  "discovery_id": "tos.discovery.coffin-texts-open-work-route.2026-08-30.v1",
+  "discovery_sha256": "a93694c55d6ac24ad72cf7b5bde9262b580b134bcd511ca77a5a7b8a0f5e05bc",
+  "discovery_target_sha256": "dd93ee98288a63225d87793adeeab4582a17d8a6a8c22ee621835b381474081c",
+  "timing_ref": "ToS/source-witnesses/discovery/timings/coffin-texts-open-work-route.2026-08-30.v1.json",
+  "timing_sha256": "433e515486c4a63e82f7d6f9117e99af6288c00904d4205dc6dcd7f1837542db",
+  "terminal_status": "held_source_witness",
+  "target_resolution": {
+    "identity_status": "provisional",
+    "work_ref": null,
+    "expression_ref": null,
+    "edition_ref": null,
+    "item_ref": null,
+    "summary": "Coffin Texts remains a heterogeneous work-like corpus rather than one automatically admitted Work. Two provider-independent physical artifact packets and four exact CC0 photographic Files are now held. No critical composite, spell sequence, source text, transcription, translation, or accepted corpus-membership claim was minted."
+  },
+  "rights_result": {
+    "status": "positive-for-acquisition",
+    "reviewed_jurisdictions": [
+      "MX",
+      "US"
+    ],
+    "reviewed_layers": [
+      "provider-independent physical-object metadata",
+      "Met collection metadata",
+      "provider-original photographs",
+      "Met IIIF derivatives",
+      "embedded inscriptions",
+      "museum prose",
+      "de Buck edition PDFs",
+      "TLA future corpus",
+      "UCL explanatory pages"
+    ],
+    "evidence_refs": [
+      "ToS/source-witnesses/artifacts/egyptian/lisht-south/met-khety-32-1-133/representations/inside-lid-original/rights.json",
+      "ToS/source-witnesses/artifacts/egyptian/lisht-south/met-khety-32-1-133/representations/inside-lid-iiif-1200/rights.json",
+      "ToS/source-witnesses/artifacts/egyptian/meir/met-khnumnakht-15-2-2/representations/head-end-left-side-original/rights.json",
+      "ToS/source-witnesses/artifacts/egyptian/meir/met-khnumnakht-15-2-2/representations/head-end-left-side-iiif-1200/rights.json",
+      "https://www.metmuseum.org/art/collection/search/555675",
+      "https://www.metmuseum.org/art/collection/search/544326",
+      "https://www.metmuseum.org/hubs/open-access"
+    ],
+    "summary": "The four exact Met JPEG Files are positively licensed under the museum's CC0 Open Access route. This finding does not license museum prose, inscriptions as admitted source text, transcription, translation, de Buck edition PDFs under ISAC distribution restrictions, or another byte-distinct image; human legal and publication acceptance remain separate."
+  },
+  "acquisition": {
+    "downloaded": true,
+    "item_ref": null,
+    "artifact_ref": "tos.artifact.egyptian.lisht-south.met-khety-32-1-133",
+    "representation_ref": "ToS/source-witnesses/artifacts/egyptian/lisht-south/met-khety-32-1-133/representations/inside-lid-original/representation.json",
+    "file_ref": "tos.file.sha256.6632d9c8e5195b305288afae21c170d1cdcc887c985d168a0e6e14e4403bd5ff",
+    "provenance_event_ref": "tos.event.acquisition.coffin-texts-met-open-access-images.2026-08-30"
+  },
+  "additional_acquisitions": [
+    {
+      "downloaded": true,
+      "item_ref": null,
+      "artifact_ref": "tos.artifact.egyptian.lisht-south.met-khety-32-1-133",
+      "representation_ref": "ToS/source-witnesses/artifacts/egyptian/lisht-south/met-khety-32-1-133/representations/inside-lid-iiif-1200/representation.json",
+      "file_ref": "tos.file.sha256.d5ad902fe005c37eaed983e79859c69a89ecbe2e9f25f3e4b33963e60ee10913",
+      "provenance_event_ref": "tos.event.acquisition.coffin-texts-met-open-access-images.2026-08-30"
+    },
+    {
+      "downloaded": true,
+      "item_ref": null,
+      "artifact_ref": "tos.artifact.egyptian.meir.met-khnumnakht-15-2-2",
+      "representation_ref": "ToS/source-witnesses/artifacts/egyptian/meir/met-khnumnakht-15-2-2/representations/head-end-left-side-original/representation.json",
+      "file_ref": "tos.file.sha256.157590ee44135d24fc4d7e77f82e2f251c01bdcff50c2a6a6b9178cede5e358d",
+      "provenance_event_ref": "tos.event.acquisition.coffin-texts-met-open-access-images.2026-08-30"
+    },
+    {
+      "downloaded": true,
+      "item_ref": null,
+      "artifact_ref": "tos.artifact.egyptian.meir.met-khnumnakht-15-2-2",
+      "representation_ref": "ToS/source-witnesses/artifacts/egyptian/meir/met-khnumnakht-15-2-2/representations/head-end-left-side-iiif-1200/representation.json",
+      "file_ref": "tos.file.sha256.b02c20944dca202341d8cf7319354960d7df1913c0fb382cea9f05b716900a1a",
+      "provenance_event_ref": "tos.event.acquisition.coffin-texts-met-open-access-images.2026-08-30"
+    }
+  ],
+  "planting_refs": [
+    "ToS/philosophy/eras/bronze-age/regions/north-africa/traditions/egyptian-mortuary-theological-dialogic-corpora/sources/plantings/coffin-texts-met-khety/source-planting.json",
+    "ToS/philosophy/eras/bronze-age/regions/north-africa/traditions/egyptian-mortuary-theological-dialogic-corpora/sources/plantings/coffin-texts-met-khnumnakht/source-planting.json"
+  ],
+  "operational_relation_refs": [
+    "ToS/source-witnesses/discovery/candidates/reviewed-candidates.jsonl:11",
+    "tos.discovery.coffin-texts-open-work-route.2026-08-30.v1",
+    "tos.discovery.coffin-texts-met-artifacts.2026-08-30.v1",
+    "ToS/source-witnesses/discovery/timings/coffin-texts-open-work-route.2026-08-30.v1.json",
+    "ToS/source-witnesses/discovery/timings/coffin-texts-met-artifacts.2026-08-30.v1.json",
+    "tos.artifact.egyptian.lisht-south.met-khety-32-1-133",
+    "tos.artifact.egyptian.meir.met-khnumnakht-15-2-2",
+    "tos.file.sha256.6632d9c8e5195b305288afae21c170d1cdcc887c985d168a0e6e14e4403bd5ff",
+    "tos.file.sha256.d5ad902fe005c37eaed983e79859c69a89ecbe2e9f25f3e4b33963e60ee10913",
+    "tos.file.sha256.157590ee44135d24fc4d7e77f82e2f251c01bdcff50c2a6a6b9178cede5e358d",
+    "tos.file.sha256.b02c20944dca202341d8cf7319354960d7df1913c0fb382cea9f05b716900a1a",
+    "tos.rights.egyptian.met-khety-dp-15316-001-cc0",
+    "tos.rights.egyptian.met-khety-iiif-1836133-cc0",
+    "tos.rights.egyptian.met-khnumnakht-dp354909-cc0",
+    "tos.rights.egyptian.met-khnumnakht-iiif-1476464-cc0",
+    "tos.event.acquisition.coffin-texts-met-open-access-images.2026-08-30",
+    "tos.event.discovery.coffin-texts-open-work-route.2026-08-30"
+  ],
+  "next_trigger": "Rebuild and validate the reviewed queue, then freeze exactly the next earliest unresolved Work or work-like candidate; review the Book of Two Ways subcorpus separately rather than treating the Coffin Texts label as a mechanically accepted Work boundary.",
+  "issued_at": "2026-08-30T04:30:00-06:00",
+  "maker": {
+    "maker_type": "model",
+    "agent_ref": "model:codex"
+  },
+  "record_version": 1
+}

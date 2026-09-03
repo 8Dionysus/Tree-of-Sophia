@@ -1,0 +1,34 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/source-item-manifest.schema.json",
+  "schema_version": "tos_source_item_manifest_v1",
+  "item_id": "tos.item.old-babylonian-scholarship.an-old-babylonian-version-of-the-gilgamesh-epic.en-jastrow-clay-1920.commons-internet-archive-robarts-scan-djvu",
+  "item_kind": "digitized_physical_copy",
+  "embodiment_ref": "tos.edition.old-babylonian-scholarship.an-old-babylonian-version-of-the-gilgamesh-epic.new-haven-yale-university-press-1920",
+  "storage_posture": "local_gitignored_payload",
+  "payload_files": [
+    {
+      "file_id": "tos.file.sha256.b3affda48ef0d57008d4153c04da3797074ece4296473e7c874b4e5252932023",
+      "relative_path": "payload/an-old-babylonian-version-gilgamesh-jastrow-clay-1920.djvu",
+      "original_basename": "An_Old_Babylonian_Version_of_the_Gilgamesh_Epic_-_Morris_-_1920.djvu",
+      "media_type": "image/vnd.djvu",
+      "byte_size": 4493186,
+      "sha256": "b3affda48ef0d57008d4153c04da3797074ece4296473e7c874b4e5252932023",
+      "fixity_verified_at": "2026-08-30T03:36:00-06:00",
+      "container_member": false
+    }
+  ],
+  "acquisition_event_ref": "tos.event.acquisition-rebind.old-babylonian-gilgamesh-jastrow-clay-1920.commons-djvu.2026-09-02",
+  "rights_ref": "ToS/source-witnesses/works/old-babylonian-scholarship/an-old-babylonian-version-of-the-gilgamesh-epic/expressions/en-jastrow-clay-1920/editions/new-haven-yale-university-press-1920/items/commons-internet-archive-robarts-scan-djvu/rights.json",
+  "provenance_ref": "ToS/source-witnesses/works/old-babylonian-scholarship/an-old-babylonian-version-of-the-gilgamesh-epic/expressions/en-jastrow-clay-1920/editions/new-haven-yale-university-press-1920/items/commons-internet-archive-robarts-scan-djvu/provenance.jsonl",
+  "forensic_report_ref": "ToS/source-witnesses/works/old-babylonian-scholarship/an-old-babylonian-version-of-the-gilgamesh-epic/expressions/en-jastrow-clay-1920/editions/new-haven-yale-university-press-1920/items/commons-internet-archive-robarts-scan-djvu/forensic-report.md",
+  "resource_inventory_ref": "ToS/source-witnesses/works/old-babylonian-scholarship/an-old-babylonian-version-of-the-gilgamesh-epic/expressions/en-jastrow-clay-1920/editions/new-haven-yale-university-press-1920/items/commons-internet-archive-robarts-scan-djvu/resource-inventory.json",
+  "source_record_refs": [
+    "ToS/source-witnesses/works/old-babylonian-scholarship/an-old-babylonian-version-of-the-gilgamesh-epic/expressions/en-jastrow-clay-1920/editions/new-haven-yale-university-press-1920/edition.json",
+    "ToS/source-witnesses/works/old-babylonian-scholarship/an-old-babylonian-version-of-the-gilgamesh-epic/expressions/en-jastrow-clay-1920/editions/new-haven-yale-university-press-1920/items/commons-internet-archive-robarts-scan-djvu/source-metadata-snapshot.json",
+    "https://commons.wikimedia.org/wiki/File:An_Old_Babylonian_Version_of_the_Gilgamesh_Epic_-_Morris_-_1920.djvu",
+    "https://archive.org/metadata/anoldbabylonianv00jastuoft"
+  ],
+  "visibility": "local_only",
+  "manifest_version": 1,
+  "supersedes_manifest_ref": null
+}

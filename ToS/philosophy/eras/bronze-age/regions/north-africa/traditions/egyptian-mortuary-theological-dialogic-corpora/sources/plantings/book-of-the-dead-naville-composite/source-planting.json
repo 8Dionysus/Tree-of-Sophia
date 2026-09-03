@@ -1,0 +1,42 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/philosophy-source-planting.schema.json",
+  "schema_version": "tos_philosophy_source_planting_v1",
+  "planting_id": "tos.planting.a05.book-of-the-dead-naville-composite",
+  "atlas_row_id": "A05",
+  "dossier_id": "A05",
+  "branch_path": "ToS/philosophy/eras/bronze-age/regions/north-africa/traditions/egyptian-mortuary-theological-dialogic-corpora",
+  "source_backlog_anchor": {
+    "path": "ToS/philosophy/eras/bronze-age/regions/north-africa/traditions/egyptian-mortuary-theological-dialogic-corpora/sources/source-anchor-backlog.jsonl",
+    "line": 14,
+    "source_table_index": 12,
+    "source_row_index": 4,
+    "source_label": "Book of the Dead"
+  },
+  "source_witness": {
+    "composite_id": "tos.composite.egyptian.book-of-the-dead-naville-1886",
+    "record_ref": "ToS/source-witnesses/scholarly-composites/critical/egyptian/book-of-the-dead-naville-1886/composite-witness.json",
+    "relationship": "grounds_source_backlog_anchor"
+  },
+  "discovery_ref": "ToS/source-witnesses/discovery/runs/book-of-the-dead-open-work-route.2026-08-30.v1.json",
+  "provenance_event_ref": "tos.event.correction.open-work-planting-digest.book-of-the-dead-naville-composite.2026-09-02",
+  "research_ref": "ToS/research-packets/foundation-laboratory-2026-07/A05_BOOK_OF_THE_DEAD_OPEN_WORK_ACQUISITION_2026-08-30.md",
+  "fulfilled_source_needs": [
+    "K10plus fixes Naville's three-part 1886 edition and the exact Einleitung bibliographic part",
+    "Open Library and Internet Archive reconcile the provider object and byte-level source fixity",
+    "one exact 220-page Einleitung PDF is retained as a separate content-addressed File representation",
+    "the rights record preserves the current CH, US, and MX jurisdiction conflict instead of turning the Commons marker into a false universal conclusion",
+    "ten ordered open-work channels and two artifact channels preserve exact queries, useful URLs, zero results, denials, and positive monotonic timings"
+  ],
+  "remaining_controls": [
+    "Naville 1886 is a modern critical reconstruction, not the ancient corpus, one physical witness, or Papyrus Ani",
+    "the PDF remains local-only and not authorized for redistribution pending a fresh post-2026-10-17 MX term review",
+    "editorial text, witness readings, OCR, transcription, translation, annotation, semantic claims, graph facts, canon, and publication remain unadmitted",
+    "the observed British Museum Papyrus 9900 lead requires separate physical identity and membership review"
+  ],
+  "research_order": ["official_and_classical_documentation", "established_top_scholarship", "fresh_current_relevance_check"],
+  "authority": {"source_status": "metadata_witness_planted", "review_status": "unreviewed", "source_text_admitted": false, "semantic_status": "not_started", "graph_status": "not_promoted", "canon_status": "not_canon", "human_task_created": false},
+  "status": "source_witness_planted",
+  "maker": {"maker_type": "model", "agent_ref": "model:codex", "human_review_performed": false},
+  "created_at": "2026-08-30T05:24:00-06:00",
+  "record_version": 1
+}

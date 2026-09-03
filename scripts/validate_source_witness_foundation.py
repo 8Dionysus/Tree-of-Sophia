@@ -49,8 +49,25 @@ ITEM_MANIFEST_SCHEMA = CONTRACT_ROOT / "source-item-manifest.schema.json"
 RESOURCE_INVENTORY_SCHEMA = CONTRACT_ROOT / "source-resource-inventory.schema.json"
 RIGHTS_SCHEMA = CONTRACT_ROOT / "rights-record.schema.json"
 ARTIFACT_SOURCE_WITNESS_SCHEMA = CONTRACT_ROOT / "artifact-source-witness.schema.json"
+ARTIFACT_SOURCE_WITNESS_V2_SCHEMA = CONTRACT_ROOT / "artifact-source-witness-v2.schema.json"
+ARTIFACT_VISUAL_REPRESENTATION_SCHEMA = (
+    CONTRACT_ROOT / "artifact-visual-representation.schema.json"
+)
+PUBLIC_PAYLOAD_REDISTRIBUTION_POSTURES = {
+    "authorized",
+    "authorized_with_conditions",
+}
+LOCAL_COMPOSITE_PAYLOAD_REDISTRIBUTION_POSTURES = {
+    "not_authorized",
+    "unknown",
+    "authorized_with_conditions",
+    "authorized",
+}
 SCHOLARLY_COMPOSITE_WITNESS_SCHEMA = (
     CONTRACT_ROOT / "scholarly-composite-witness.schema.json"
+)
+SCHOLARLY_COMPOSITE_FILE_REPRESENTATION_SCHEMA = (
+    CONTRACT_ROOT / "scholarly-composite-file-representation.schema.json"
 )
 PROVENANCE_SCHEMA = CONTRACT_ROOT / "provenance-event.schema.json"
 CLAIM_SCHEMA = CONTRACT_ROOT / "claim-packet.schema.json"
@@ -424,6 +441,84 @@ def _sha256(path: Path) -> str:
         for chunk in iter(lambda: handle.read(1024 * 1024), b""):
             digest.update(chunk)
     return digest.hexdigest()
+
+
+def _validate_required_provenance_output_digests(
+    repo_root: Path,
+    event: dict[str, Any],
+    required_outputs: set[str],
+    *,
+    event_location: str,
+    issues: list[Issue],
+) -> None:
+    """Check digest fixity for every required local output of an event."""
+    outputs_by_ref = {
+        output.get("ref"): output
+        for output in event.get("outputs", [])
+        if isinstance(output, dict) and isinstance(output.get("ref"), str)
+    }
+    for ref in sorted(required_outputs):
+        if not ref.startswith("ToS/"):
+            continue
+        path = repo_root / ref
+        if not path.is_file():
+            continue
+        output = outputs_by_ref.get(ref)
+        if output is None:
+            continue
+        if output.get("sha256") != _sha256(path):
+            issues.append((event_location, f"provenance output digest differs: {ref}"))
+
+
+def _sha1(path: Path) -> str:
+    digest = hashlib.sha1()
+    with path.open("rb") as handle:
+        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+def _jpeg_dimensions(path: Path) -> tuple[int, int] | None:
+    with path.open("rb") as handle:
+        if handle.read(2) != b"\xff\xd8":
+            return None
+        while True:
+            marker_prefix = handle.read(1)
+            if not marker_prefix:
+                return None
+            if marker_prefix != b"\xff":
+                continue
+            marker = handle.read(1)
+            while marker == b"\xff":
+                marker = handle.read(1)
+            if not marker or marker in {b"\xd8", b"\xd9"}:
+                continue
+            length_bytes = handle.read(2)
+            if len(length_bytes) != 2:
+                return None
+            segment_length = int.from_bytes(length_bytes, "big")
+            if segment_length < 2:
+                return None
+            if marker[0] in {
+                0xC0,
+                0xC1,
+                0xC2,
+                0xC3,
+                0xC5,
+                0xC6,
+                0xC7,
+                0xC9,
+                0xCA,
+                0xCB,
+                0xCD,
+                0xCE,
+                0xCF,
+            }:
+                frame = handle.read(5)
+                if len(frame) != 5:
+                    return None
+                return int.from_bytes(frame[3:5], "big"), int.from_bytes(frame[1:3], "big")
+            handle.seek(segment_length - 2, 1)
 
 
 def _sha256_text(value: str) -> str:
@@ -5480,6 +5575,23 @@ def _git_ignored(repo_root: Path, path: Path) -> bool | None:
     return None
 
 
+def _git_tracked(repo_root: Path, path: Path) -> bool | None:
+    if not (repo_root / ".git").exists():
+        return None
+    result = subprocess.run(
+        ("git", "ls-files", "--error-unmatch", "--", _relative(path, repo_root)),
+        cwd=repo_root,
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+    if result.returncode == 0:
+        return True
+    if result.returncode == 1:
+        return False
+    return None
+
+
 def validate_payload_file(
     repo_root: Path,
     item_directory: Path,
@@ -7002,8 +7114,20 @@ def validate_foundation(repo_root: Path, *, require_local_payloads: bool = False
             ARTIFACT_SOURCE_WITNESS_SCHEMA,
             repo_root,
         )
+        artifact_source_witness_v2_validator, _ = _schema_validator(
+            ARTIFACT_SOURCE_WITNESS_V2_SCHEMA,
+            repo_root,
+        )
+        artifact_visual_representation_validator, _ = _schema_validator(
+            ARTIFACT_VISUAL_REPRESENTATION_SCHEMA,
+            repo_root,
+        )
         scholarly_composite_witness_validator, _ = _schema_validator(
             SCHOLARLY_COMPOSITE_WITNESS_SCHEMA,
+            repo_root,
+        )
+        scholarly_composite_file_representation_validator, _ = _schema_validator(
+            SCHOLARLY_COMPOSITE_FILE_REPRESENTATION_SCHEMA,
             repo_root,
         )
         provenance_validator, _ = _schema_validator(PROVENANCE_SCHEMA, repo_root)
@@ -7514,8 +7638,8 @@ def validate_foundation(repo_root: Path, *, require_local_payloads: bool = False
             rights_id = rights.get("rights_id")
             if isinstance(rights_id, str):
                 rights_ids.add(rights_id)
-            scopes = rights.get("scope_refs", [])
-            if item_id not in scopes:
+            scopes = rights.get("scope_refs")
+            if isinstance(scopes, list) and item_id not in scopes:
                 issues.append((rights_location, f"scope_refs does not include item_id {item_id}"))
             if rights.get("visibility") != manifest.get("visibility"):
                 issues.append((rights_location, "rights visibility differs from item manifest visibility"))
@@ -7618,10 +7742,12 @@ def validate_foundation(repo_root: Path, *, require_local_payloads: bool = False
         if actual_fixity and actual_fixity != expected_fixity:
             issues.append((_relative(fixity_path, repo_root), "fixity companion differs from item manifest"))
         if rights is not None:
-            rights_scopes = set(rights.get("scope_refs", []))
-            missing_file_scopes = sorted(file_ids - rights_scopes)
-            if missing_file_scopes:
-                issues.append((_relative(rights_path, repo_root), f"scope_refs omits payload files: {missing_file_scopes}"))
+            scope_refs = rights.get("scope_refs")
+            if isinstance(scope_refs, list):
+                rights_scopes = set(scope_refs)
+                missing_file_scopes = sorted(file_ids - rights_scopes)
+                if missing_file_scopes:
+                    issues.append((_relative(rights_path, repo_root), f"scope_refs omits payload files: {missing_file_scopes}"))
 
     for item_id, (item, path) in item_records.items():
         location = _relative(path, repo_root)
@@ -10780,7 +10906,8 @@ def validate_foundation(repo_root: Path, *, require_local_payloads: bool = False
                     issues.append(
                         (transfer_location, "transfer target rights assessment drifted")
                     )
-                if target_item_ref not in rights_record.get("scope_refs", []):
+                scope_refs = rights_record.get("scope_refs")
+                if isinstance(scope_refs, list) and target_item_ref not in scope_refs:
                     issues.append(
                         (transfer_location, "transfer target rights record omits its item")
                     )
@@ -12551,12 +12678,13 @@ def validate_foundation(repo_root: Path, *, require_local_payloads: bool = False
         artifact = _load_json(artifact_path, repo_root, issues)
         if artifact is None:
             continue
-        _validate_payload(
-            artifact,
-            artifact_source_witness_validator,
-            artifact_ref,
-            issues,
+        artifact_validator = (
+            artifact_source_witness_v2_validator
+            if artifact.get("$schema")
+            == "https://tree-of-sophia.local/ToS/contracts/artifact-source-witness-v2.schema.json"
+            else artifact_source_witness_validator
         )
+        _validate_payload(artifact, artifact_validator, artifact_ref, issues)
         artifact_id = artifact.get("artifact_id")
         if isinstance(artifact_id, str):
             if artifact_id in artifact_ids:
@@ -12586,7 +12714,8 @@ def validate_foundation(repo_root: Path, *, require_local_payloads: bool = False
         )
         if rights is not None:
             _validate_payload(rights, rights_validator, str(rights_ref), issues)
-            if artifact_id not in rights.get("scope_refs", []):
+            scope_refs = rights.get("scope_refs")
+            if isinstance(scope_refs, list) and artifact_id not in scope_refs:
                 issues.append((str(rights_ref), "artifact rights scope does not include artifact_id"))
             if rights.get("visibility") != "public_metadata_only" or rights.get("redistribution_posture") != "metadata_only":
                 issues.append((str(rights_ref), "artifact rights must remain public-metadata-only"))
@@ -12644,6 +12773,116 @@ def validate_foundation(repo_root: Path, *, require_local_payloads: bool = False
                 issues.append((artifact_ref, "artifact metadata packet exposes an absolute owner-local path"))
                 break
 
+    representation_file_ids: set[str] = set()
+    for representation_path in sorted(artifact_root.glob("**/representation.json")):
+        representation_ref = _relative(representation_path, repo_root)
+        representation = _load_json(representation_path, repo_root, issues)
+        if representation is None:
+            continue
+        _validate_payload(
+            representation,
+            artifact_visual_representation_validator,
+            representation_ref,
+            issues,
+        )
+        file_id = representation.get("file_id")
+        if isinstance(file_id, str):
+            if file_id in representation_file_ids:
+                issues.append((representation_ref, f"duplicate artifact representation file_id: {file_id}"))
+            representation_file_ids.add(file_id)
+
+        artifact_id = representation.get("artifact_id")
+        artifact_ref = representation.get("artifact_ref")
+        if artifact_id not in artifact_ids:
+            issues.append((representation_ref, f"unresolved represented artifact: {artifact_id}"))
+        artifact_path = repo_root / str(artifact_ref)
+        artifact = (
+            _load_json(artifact_path, repo_root, issues)
+            if isinstance(artifact_ref, str) and artifact_path.is_file()
+            else None
+        )
+        if artifact is None or artifact.get("artifact_id") != artifact_id:
+            issues.append((representation_ref, "artifact_ref does not resolve the represented artifact_id"))
+
+        payload = representation.get("payload", {})
+        relative_payload = payload.get("relative_path") if isinstance(payload, dict) else None
+        payload_path = representation_path.parent / str(relative_payload)
+        if not isinstance(relative_payload, str) or not payload_path.is_file():
+            issues.append((representation_ref, "artifact representation payload is missing"))
+        else:
+            if _git_ignored(repo_root, payload_path):
+                issues.append((representation_ref, "tracked public artifact payload must not be gitignored"))
+            tracked = _git_tracked(repo_root, payload_path)
+            if tracked is not True:
+                issues.append((representation_ref, "tracked public artifact payload must be git-tracked"))
+            if payload_path.stat().st_size != payload.get("byte_size"):
+                issues.append((representation_ref, "artifact representation byte_size differs from payload"))
+            if _sha256(payload_path) != payload.get("sha256"):
+                issues.append((representation_ref, "artifact representation sha256 differs from payload"))
+            if _sha1(payload_path) != payload.get("source_sha1"):
+                issues.append((representation_ref, "artifact representation source_sha1 differs from payload"))
+            dimensions = _jpeg_dimensions(payload_path)
+            expected_dimensions = (payload.get("width_pixels"), payload.get("height_pixels"))
+            if dimensions != expected_dimensions:
+                issues.append((representation_ref, "artifact representation JPEG dimensions drifted"))
+            expected_file_id = f"tos.file.sha256.{payload.get('sha256')}"
+            if file_id != expected_file_id:
+                issues.append((representation_ref, "artifact representation file_id is not content-addressed"))
+
+        rights_ref = representation.get("rights_ref")
+        rights_path = repo_root / str(rights_ref)
+        rights = (
+            _load_json(rights_path, repo_root, issues)
+            if isinstance(rights_ref, str) and rights_path.is_file()
+            else None
+        )
+        if rights is None:
+            issues.append((representation_ref, "artifact representation rights_ref is missing"))
+        else:
+            _validate_payload(rights, rights_validator, str(rights_ref), issues)
+            scope_refs = rights.get("scope_refs")
+            if isinstance(scope_refs, list) and not {artifact_id, file_id} <= set(scope_refs):
+                issues.append((str(rights_ref), "representation rights must cover artifact_id and file_id"))
+            if (
+                rights.get("visibility") != "public_payload"
+                or rights.get("redistribution_posture")
+                not in PUBLIC_PAYLOAD_REDISTRIBUTION_POSTURES
+            ):
+                issues.append((str(rights_ref), "tracked representation rights must authorize public payload"))
+
+        discovery_ref = representation.get("discovery_ref")
+        discovery = discovery_records_by_ref.get(str(discovery_ref))
+        if discovery is None:
+            issues.append((representation_ref, "representation discovery_ref is unresolved"))
+        elif artifact_id not in discovery.get("target", {}).get("known_tos_refs", []):
+            issues.append((representation_ref, "representation discovery target omits artifact_id"))
+
+        event_ref = representation.get("provenance_event_ref")
+        event_entry = discovery_events.get(str(event_ref))
+        if event_entry is None:
+            issues.append((representation_ref, "representation provenance_event_ref is unresolved"))
+        else:
+            event, event_location = event_entry
+            event_outputs = {
+                output.get("ref")
+                for output in event.get("outputs", [])
+                if isinstance(output, dict)
+            }
+            required_outputs = {
+                representation_ref,
+                str(rights_ref),
+                _relative(payload_path, repo_root),
+            }
+            if not required_outputs <= event_outputs:
+                issues.append((event_location, "artifact representation provenance lacks output closure"))
+            _validate_required_provenance_output_digests(
+                repo_root,
+                event,
+                required_outputs,
+                event_location=event_location,
+                issues=issues,
+            )
+
     composite_ids: set[str] = set()
     composite_root = repo_root / SOURCE_ROOT / "scholarly-composites"
     for composite_path in sorted(composite_root.glob("**/composite-witness.json")):
@@ -12692,7 +12931,8 @@ def validate_foundation(repo_root: Path, *, require_local_payloads: bool = False
         )
         if rights is not None:
             _validate_payload(rights, rights_validator, str(rights_ref), issues)
-            if composite_id not in rights.get("scope_refs", []):
+            scope_refs = rights.get("scope_refs")
+            if isinstance(scope_refs, list) and composite_id not in scope_refs:
                 issues.append(
                     (str(rights_ref), "scholarly-composite rights scope does not include composite_id")
                 )
@@ -12793,6 +13033,159 @@ def validate_foundation(repo_root: Path, *, require_local_payloads: bool = False
                     (composite_ref, "scholarly-composite packet exposes an absolute owner-local path")
                 )
                 break
+
+    composite_representation_ids: set[str] = set()
+    for representation_path in sorted(composite_root.glob("**/representations/*/representation.json")):
+        representation_ref = _relative(representation_path, repo_root)
+        representation = _load_json(representation_path, repo_root, issues)
+        if representation is None:
+            continue
+        _validate_payload(
+            representation,
+            scholarly_composite_file_representation_validator,
+            representation_ref,
+            issues,
+        )
+
+        representation_id = representation.get("representation_id")
+        if isinstance(representation_id, str):
+            if representation_id in composite_representation_ids:
+                issues.append((representation_ref, f"duplicate composite representation_id: {representation_id}"))
+            composite_representation_ids.add(representation_id)
+
+        file_id = representation.get("file_id")
+        if isinstance(file_id, str):
+            if file_id in representation_file_ids:
+                issues.append((representation_ref, f"duplicate source representation file_id: {file_id}"))
+            representation_file_ids.add(file_id)
+
+        composite_id = representation.get("composite_id")
+        composite_ref = representation.get("composite_ref")
+        composite_path = repo_root / str(composite_ref)
+        composite = (
+            _load_json(composite_path, repo_root, issues)
+            if isinstance(composite_ref, str) and composite_path.is_file()
+            else None
+        )
+        if composite_id not in composite_ids:
+            issues.append((representation_ref, f"unresolved represented composite: {composite_id}"))
+        if composite is None or composite.get("composite_id") != composite_id:
+            issues.append((representation_ref, "composite_ref does not resolve the represented composite_id"))
+
+        payload = representation.get("payload")
+        relative_payload = payload.get("relative_path") if isinstance(payload, dict) else None
+        payload_path = representation_path.parent / str(relative_payload)
+        if not isinstance(relative_payload, str) or not payload_path.is_file():
+            if (
+                not isinstance(payload, dict)
+                or payload.get("materialization_status") != "not_materialized"
+                or payload.get("storage_posture") != "unmaterialized_payload"
+                or payload.get("git_tracked") is not False
+            ):
+                issues.append(
+                    (
+                        representation_ref,
+                        "missing scholarly-composite payload must declare not_materialized, "
+                        "unmaterialized_payload, and git_tracked=false",
+                    )
+                )
+            if require_local_payloads:
+                issues.append((representation_ref, "scholarly-composite representation payload is missing"))
+        else:
+            if (
+                payload.get("materialization_status") != "materialized"
+                or payload.get("storage_posture") != "tracked_repository_payload"
+                or payload.get("git_tracked") is not True
+            ):
+                issues.append(
+                    (
+                        representation_ref,
+                        "present scholarly-composite payload must declare materialized, "
+                        "tracked_repository_payload, and git_tracked=true",
+                    )
+                )
+            tracked = _git_tracked(repo_root, payload_path)
+            if tracked is False:
+                issues.append((representation_ref, "local scholarly-composite payload must be tracked"))
+            elif tracked is None and (repo_root / ".git").exists():
+                issues.append((representation_ref, "could not determine scholarly-composite payload tracking posture"))
+            if _git_ignored(repo_root, payload_path) is True:
+                issues.append((representation_ref, "tracked scholarly-composite payload must not be gitignored"))
+            if payload_path.stat().st_size != payload.get("byte_size"):
+                issues.append((representation_ref, "scholarly-composite representation byte_size differs from payload"))
+            if _sha256(payload_path) != payload.get("sha256"):
+                issues.append((representation_ref, "scholarly-composite representation sha256 differs from payload"))
+            expected_file_id = f"tos.file.sha256.{payload.get('sha256')}"
+            if file_id != expected_file_id:
+                issues.append((representation_ref, "scholarly-composite representation file_id is not content-addressed"))
+
+        rights_ref = representation.get("rights_ref")
+        rights_path = repo_root / str(rights_ref)
+        rights = (
+            _load_json(rights_path, repo_root, issues)
+            if isinstance(rights_ref, str) and rights_path.is_file()
+            else None
+        )
+        if rights is None:
+            issues.append((representation_ref, "scholarly-composite representation rights_ref is missing"))
+        else:
+            _validate_payload(rights, rights_validator, str(rights_ref), issues)
+            scope_refs = rights.get("scope_refs")
+            if isinstance(scope_refs, list) and not {
+                composite_id,
+                representation_id,
+                file_id,
+            } <= set(scope_refs):
+                issues.append(
+                    (
+                        str(rights_ref),
+                        "composite representation rights must cover composite_id, representation_id, and file_id",
+                    )
+                )
+            if (
+                rights.get("visibility") != "local_only"
+                or rights.get("redistribution_posture")
+                not in LOCAL_COMPOSITE_PAYLOAD_REDISTRIBUTION_POSTURES
+            ):
+                issues.append(
+                    (
+                        str(rights_ref),
+                        "local composite representation rights must preserve local-only visibility and an explicit file redistribution posture",
+                    )
+                )
+
+        discovery_ref = representation.get("discovery_ref")
+        discovery = discovery_records_by_ref.get(str(discovery_ref))
+        if discovery is None:
+            issues.append((representation_ref, "composite representation discovery_ref is unresolved"))
+        elif composite_id not in discovery.get("target", {}).get("known_tos_refs", []):
+            issues.append((representation_ref, "composite representation discovery target omits composite_id"))
+
+        event_ref = representation.get("provenance_event_ref")
+        event_entry = discovery_events.get(str(event_ref))
+        if event_entry is None:
+            issues.append((representation_ref, "composite representation provenance_event_ref is unresolved"))
+        else:
+            event, event_location = event_entry
+            event_outputs = {
+                output.get("ref")
+                for output in event.get("outputs", [])
+                if isinstance(output, dict)
+            }
+            required_outputs = {
+                representation_ref,
+                str(rights_ref),
+                _relative(payload_path, repo_root),
+            }
+            if not required_outputs <= event_outputs:
+                issues.append((event_location, "composite representation provenance lacks output closure"))
+            _validate_required_provenance_output_digests(
+                repo_root,
+                event,
+                required_outputs,
+                event_location=event_location,
+                issues=issues,
+            )
 
     access_root = repo_root / SOURCE_ROOT / "access-requests"
     for path in sorted((access_root / "public-ledger").glob("*.json")):

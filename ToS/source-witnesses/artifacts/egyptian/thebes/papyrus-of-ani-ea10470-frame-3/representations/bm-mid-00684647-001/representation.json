@@ -1,0 +1,57 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/artifact-visual-representation.schema.json",
+  "schema_version": "tos_artifact_visual_representation_v1",
+  "file_id": "tos.file.sha256.adcde14cf16796396daf0513c5b25785c2b9d9ea1261561086702ae45523a6b4",
+  "artifact_id": "tos.artifact.egyptian.thebes.papyrus-of-ani-ea10470-frame-3",
+  "artifact_ref": "ToS/source-witnesses/artifacts/egyptian/thebes/papyrus-of-ani-ea10470-frame-3/artifact-witness.json",
+  "layer_kind": "photograph",
+  "view_label": "Papyrus of Ani frame 3, Hall of Judgment, British Museum asset 684647001",
+  "provider_records": [
+    {
+      "provider": "British Museum Collection Online",
+      "role": "originating-record",
+      "record_url": "https://www.britishmuseum.org/collection/object/Y_EA10470-3",
+      "api_url": "https://www.britishmuseum.org/api/_object?id=Y_EA10470-3",
+      "checked_at": "2026-08-30T05:18:00-06:00",
+      "response_fingerprint": {"byte_size": 5526, "sha256": "c9a4c711c973794f195e553e814d29d7ae7e96e9ff8c46f06a6e8e236ee797fd", "captured": false}
+    },
+    {
+      "provider": "British Museum image-use page and media service",
+      "role": "aggregator-file-record",
+      "record_url": "https://media.britishmuseum.org/media/Repository/Documents/2014_10/11_18/cc803582_af31_4b82_98bf_a3c1012a7429/mid_00684647_001.jpg",
+      "api_url": "https://www.britishmuseum.org/collection/image/684647001",
+      "checked_at": "2026-08-30T05:14:04-06:00",
+      "response_fingerprint": {"byte_size": 181097, "sha256": "adcde14cf16796396daf0513c5b25785c2b9d9ea1261561086702ae45523a6b4", "captured": false}
+    }
+  ],
+  "acquisition": {
+    "source_url": "https://media.britishmuseum.org/media/Repository/Documents/2014_10/11_18/cc803582_af31_4b82_98bf_a3c1012a7429/mid_00684647_001.jpg",
+    "acquired_at": "2026-08-30T05:14:04-06:00",
+    "transport": "https",
+    "technical_access_bypass_used": false,
+    "operator_authorization_ref": "operator-directive:2026-08-29-download-open-work-priority",
+    "host_preflight_decision": "deny-protected-project-root",
+    "host_preflight_scope": "machine-owned-storage-automation-only"
+  },
+  "payload": {
+    "relative_path": "payload/mid_00684647_001.jpg",
+    "original_basename": "mid_00684647_001.jpg",
+    "media_type": "image/jpeg",
+    "byte_size": 181097,
+    "sha256": "adcde14cf16796396daf0513c5b25785c2b9d9ea1261561086702ae45523a6b4",
+    "source_sha1": "b46f077ae4ccbbbb4901b42dd5de2163de508320",
+    "width_pixels": 1000,
+    "height_pixels": 721,
+    "storage_posture": "tracked_public_payload",
+    "git_tracked": true,
+    "fixity_verified_at": "2026-08-30T05:19:40-06:00"
+  },
+  "rights_ref": "ToS/source-witnesses/artifacts/egyptian/thebes/papyrus-of-ani-ea10470-frame-3/representations/bm-mid-00684647-001/rights.json",
+  "discovery_ref": "ToS/source-witnesses/discovery/runs/book-of-the-dead-papyrus-ani-artifact.2026-08-30.v1.json",
+  "provenance_event_ref": "tos.event.acquisition.book-of-the-dead-papyrus-ani-and-naville.2026-08-30",
+  "layer_separation": {"visual_is_physical_artifact": false, "visual_is_catalog_record": false, "visual_is_transcription": false, "embedded_text_admitted": false, "same_bytes_as_originating_provider_asserted": false},
+  "authority": {"evidence_status": "visual_source_witness", "review_status": "unreviewed", "visibility": "public_payload", "source_text_admitted": false, "semantic_authority": false, "graph_authority": false, "canon_authority": false, "publication_authority": false},
+  "maker": {"maker_type": "model", "agent_ref": "model:codex", "human_review_performed": false},
+  "created_at": "2026-08-30T05:20:00-06:00",
+  "record_version": 1
+}

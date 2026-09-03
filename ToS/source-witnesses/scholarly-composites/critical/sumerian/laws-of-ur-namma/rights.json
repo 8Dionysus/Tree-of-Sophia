@@ -11,6 +11,9 @@
   "source_refs": [
     "https://cdli.earth/terms-of-use",
     "https://cdli.earth/artifacts/432130",
+    "https://oracc.museum.upenn.edu/etcsri/Q000947",
+    "https://oracc.museum.upenn.edu/etcsri/accesskeys/",
+    "https://creativecommons.org/licenses/by-sa/3.0/",
     "ToS/research-packets/foundation-laboratory-2026-07/A02_MESOPOTAMIAN_LAW_COLLECTIONS_SOURCE_PLANTING_RESEARCH_2026-08-22.md"
   ],
   "layer_assessments": [
@@ -18,8 +21,8 @@
       "layer_id": "tos.rights.sumerian.q000947-composite.layer.metadata",
       "layer_role": "metadata",
       "scope_refs": ["tos.composite.sumerian.laws-of-ur-namma"],
-      "assessment_status": "copyright_undetermined",
-      "assessment_basis": "operator_statement",
+      "assessment_status": "conflicting_evidence",
+      "assessment_basis": "mixed",
       "rights_statement_uri": "https://cdli.earth/terms-of-use",
       "license_uri": null,
       "jurisdictions_reviewed": [],
@@ -45,18 +48,18 @@
       "rights_statement_uri": "https://cdli.earth/terms-of-use",
       "license_uri": null,
       "jurisdictions_reviewed": [],
-      "source_refs": ["https://cdli.earth/terms-of-use", "https://cdli.earth/artifacts/432130"],
-      "rights_holder_refs": ["CDLI and named scholarly contributors"],
-      "permissions": ["CDLI describes conditional scholarly reuse with attribution"],
-      "restrictions": ["no transliteration or editorial reconstruction was acquired", "future use requires exact revision, attribution, change tracking, and philological review"],
-      "redistribution_posture": "authorized_with_conditions",
-      "derivative_posture": "allowed_with_conditions",
+      "source_refs": ["https://cdli.earth/terms-of-use", "https://cdli.earth/artifacts/432130", "https://oracc.museum.upenn.edu/etcsri/accesskeys/", "https://creativecommons.org/licenses/by-sa/3.0/"],
+      "rights_holder_refs": ["CDLI contributors", "ETCSRI contributors"],
+      "permissions": ["CDLI describes conditional scholarly reuse with attribution", "the exact ETCSRI Q000947 static HTML representation is licensed under CC BY-SA 3.0 with attribution and ShareAlike conditions"],
+      "restrictions": ["the ETCSRI license is not projected onto every CDLI representation or third-party publication", "the exact licensed File is stored only in its separate representation packet and remains unreviewed", "future use requires exact revision, attribution, change tracking, and philological review"],
+      "redistribution_posture": "unknown",
+      "derivative_posture": "local_research_only",
       "server_processing_posture": "unknown",
       "term": {"calculation_status": "not_applicable", "basis": "provider reuse statement rather than a term calculation", "starts_on": null, "ends_on": null, "uncertainty": "Contributor and version scope remain use-specific."},
-      "uncertainty": "Conditional reuse does not establish textual completeness, accepted readings, or unrestricted corpus rights.",
+      "uncertainty": "The positive ETCSRI license covers its exact File; CDLI and other editorial representations remain differently governed. Neither license establishes textual completeness, accepted readings, or semantic authority.",
       "assessed_at": "2026-08-22T22:44:00-06:00",
       "review_status": "unreviewed",
-      "rationale": "The editorial text is a modern versioned layer distinct from both Work and tablets."
+      "rationale": "The composite spine remains provider-independent. One ETCSRI representation is positively licensed and fixity-bound, while other editorial text remains separately governed."
     },
     {
       "layer_id": "tos.rights.sumerian.q000947-composite.layer.translation",
@@ -103,17 +106,17 @@
       "rationale": "The composite remains usable as a metadata route without importing media."
     }
   ],
-  "permissions": ["track and publish the bounded attributed metadata record", "prepare local content-free comparison plans"],
-  "restrictions": ["no composite text, member text, transliteration, translation, image, or publication body is stored or published", "future content use requires source-specific fresh review", "model assessment is not legal advice or human publication approval"],
+  "permissions": ["track and publish the bounded attributed metadata record", "prepare local content-free comparison plans", "retain the exact ETCSRI Q000947 static HTML under its per-File CC BY-SA 3.0 rights record"],
+  "restrictions": ["the tracked composite packet contains and publishes no composite, member, transliteration, translation, image, or publication body", "the exact representation payload remains local-only and must carry attribution and ShareAlike conditions", "future content use requires source-specific fresh review", "model assessment is not legal advice or human publication approval"],
   "visibility": "public_metadata_only",
   "redistribution_posture": "metadata_only",
   "derivative_posture": "local_research_only",
   "assessed_by": {"maker_type": "model", "agent_ref": "model:codex"},
   "assessed_at": "2026-08-22T22:44:00-06:00",
-  "rationale": "The ancient composition, modern reconstruction, translations, and media have different rights surfaces; only bounded metadata is admitted now.",
+  "rationale": "The ancient composition, modern reconstruction, translations, and media have different rights surfaces. The composite record remains metadata-only; one exact ETCSRI File has a separate positive license and fixity record without source-text or semantic admission.",
   "review_status": "unreviewed",
   "review_refs": [],
   "access_request_ref": null,
-  "record_version": 1,
+  "record_version": 2,
   "supersedes_rights_ref": null
 }

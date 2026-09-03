@@ -1,0 +1,1653 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/open-work-candidate-queue.schema.json",
+  "authority_boundary": "generated queue navigation over reviewed candidate records and terminal receipts; not identity, rights, semantic, or canon authority",
+  "candidates": [
+    {
+      "candidate_id": "open-work-candidate.proto-cuneiform-accounting-scene",
+      "candidate_kind": "non-work-exclusion",
+      "candidate_sha256": "71fdacef2f0450b938b09bc76b790f837b23839dbd11a20c093144e7e602466b",
+      "candidate_source_ref": "ToS/source-witnesses/discovery/candidates/reviewed-candidates.jsonl:1",
+      "discovery_id": null,
+      "effective_status": "excluded-non-work",
+      "preferred_label": "Proto-cuneiform accounting scene",
+      "selection": {
+        "atlas_row_id": "A01",
+        "atlas_row_order": 1,
+        "chronology_basis": "master-table written-fixation lower bound; retained only to prove that an earlier non-Work scene was not silently skipped",
+        "chronology_sort_year": -3400,
+        "confidence": "reviewed-for-queue-order-only"
+      },
+      "terminal_receipt_id": null
+    },
+    {
+      "candidate_id": "open-work-candidate.instruction-of-ptahhotep",
+      "candidate_kind": "work",
+      "candidate_sha256": "a57101861669939bdc649c4bfc4f4ad97d4a2216922735409bdd16dc4a8e1012",
+      "candidate_source_ref": "ToS/source-witnesses/discovery/candidates/reviewed-candidates.jsonl:2",
+      "discovery_id": "tos.discovery.instruction-of-ptahhotep-open-work-route.2026-08-29.v2",
+      "effective_status": "held_source_witness",
+      "preferred_label": "Instruction of Ptahhotep",
+      "selection": {
+        "atlas_row_id": "A04",
+        "atlas_row_order": 4,
+        "chronology_basis": "reviewed master-table written-fixation lower bound; formation, attributed author-mask, surviving witness, and later school transmission remain separate",
+        "chronology_sort_year": -2400,
+        "confidence": "reviewed-for-queue-order-only"
+      },
+      "terminal_receipt_id": "open-work-candidate-receipt.instruction-of-ptahhotep.2026-08-30.v2"
+    },
+    {
+      "candidate_id": "open-work-candidate.instruction-of-kagemni",
+      "candidate_kind": "work",
+      "candidate_sha256": "5213679ec9b0294de5ab6316e7a67dc9d552b6adae9a4b2e4991c027c22923a7",
+      "candidate_source_ref": "ToS/source-witnesses/discovery/candidates/reviewed-candidates.jsonl:3",
+      "discovery_id": null,
+      "effective_status": "deferred-human-review",
+      "preferred_label": "Instruction of Kagemni",
+      "selection": {
+        "atlas_row_id": "A04",
+        "atlas_row_order": 4,
+        "chronology_basis": "A04 master-table written-fixation lower bound; candidate-specific chronology remains unresolved",
+        "chronology_sort_year": -2400,
+        "confidence": "reviewed-for-queue-order-only"
+      },
+      "terminal_receipt_id": null
+    },
+    {
+      "candidate_id": "open-work-candidate.pyramid-texts",
+      "candidate_kind": "work-like-corpus",
+      "candidate_sha256": "ad3dd29b041ba869fd47d2706187ebdd847fcd747d8ac645af686a1aec6991bc",
+      "candidate_source_ref": "ToS/source-witnesses/discovery/candidates/reviewed-candidates.jsonl:4",
+      "discovery_id": "tos.discovery.pyramid-texts-open-work-route.2026-08-30.v1",
+      "effective_status": "held_source_witness",
+      "preferred_label": "Pyramid Texts",
+      "selection": {
+        "atlas_row_id": "A05",
+        "atlas_row_order": 5,
+        "chronology_basis": "reviewed master-table written-fixation lower bound and dossier primary-corpus label; individual inscription chronology remains separate",
+        "chronology_sort_year": -2400,
+        "confidence": "reviewed-for-queue-order-only"
+      },
+      "terminal_receipt_id": "open-work-candidate-receipt.pyramid-texts.2026-09-02.v2"
+    },
+    {
+      "candidate_id": "open-work-candidate.coffin-texts",
+      "candidate_kind": "work-like-corpus",
+      "candidate_sha256": "cddea10e57f763b64639639eedc83324d6d2cfa19eb444fcc3b78b745a6cb319",
+      "candidate_source_ref": "ToS/source-witnesses/discovery/candidates/reviewed-candidates.jsonl:11",
+      "discovery_id": "tos.discovery.coffin-texts-open-work-route.2026-08-30.v1",
+      "effective_status": "held_source_witness",
+      "preferred_label": "Coffin Texts",
+      "selection": {
+        "atlas_row_id": "A05",
+        "atlas_row_order": 5,
+        "chronology_basis": "A05 master-table broad written-fixation lower bound and the next named primary-corpus anchor after the terminal Pyramid Texts iteration; Coffin Texts member dates, local workshops, spell transmission, Book of Two Ways subcorpus, and modern edition chronology remain separate",
+        "chronology_sort_year": -2400,
+        "confidence": "reviewed-for-queue-order-only"
+      },
+      "terminal_receipt_id": "open-work-candidate-receipt.coffin-texts.2026-09-02.v2"
+    },
+    {
+      "candidate_id": "open-work-candidate.book-of-two-ways",
+      "candidate_kind": "work-like-corpus",
+      "candidate_sha256": "74387bd03d781430fed018f8303b6c8212b2bff1cb323ffd8a72927bc5ffdfaa",
+      "candidate_source_ref": "ToS/source-witnesses/discovery/candidates/reviewed-candidates.jsonl:12",
+      "discovery_id": "tos.discovery.book-of-two-ways-open-work-route.2026-08-30.v1",
+      "effective_status": "held_source_witness",
+      "preferred_label": "Book of Two Ways",
+      "selection": {
+        "atlas_row_id": "A05",
+        "atlas_row_order": 5,
+        "chronology_basis": "A05 master-table broad written-fixation lower bound and the next named subcorpus anchor after the terminal Coffin Texts iteration; individual coffin dates, regional versions, map arrangements, spell membership, modern reconstruction, and publication chronology remain separate",
+        "chronology_sort_year": -2400,
+        "confidence": "reviewed-for-queue-order-only"
+      },
+      "terminal_receipt_id": "open-work-candidate-receipt.book-of-two-ways.2026-09-02.v2"
+    },
+    {
+      "candidate_id": "open-work-candidate.instructions-of-shuruppag",
+      "candidate_kind": "work",
+      "candidate_sha256": "03a0f136076b572e210e9f0f9c201ae22e244127cbb89676dc6611201be0a145",
+      "candidate_source_ref": "ToS/source-witnesses/discovery/candidates/reviewed-candidates.jsonl:5",
+      "discovery_id": "tos.discovery.instructions-of-shuruppag-open-work-route.2026-08-30.v1",
+      "effective_status": "held_source_witness",
+      "preferred_label": "Instructions of Šuruppag",
+      "selection": {
+        "atlas_row_id": "A02",
+        "atlas_row_order": 2,
+        "chronology_basis": "A02 master-table written-fixation lower bound and the dossier's first named primary wisdom-text anchor; Early Dynastic physical witnesses and composition-history claims remain separate",
+        "chronology_sort_year": -2000,
+        "confidence": "reviewed-for-queue-order-only"
+      },
+      "terminal_receipt_id": "open-work-candidate-receipt.instructions-of-shuruppag.2026-08-30.v1"
+    },
+    {
+      "candidate_id": "open-work-candidate.laws-of-ur-namma",
+      "candidate_kind": "work",
+      "candidate_sha256": "26081da9908e2ceadeec7bb7ddafc327282634d431d60d969c2d1f4d800d06b2",
+      "candidate_source_ref": "ToS/source-witnesses/discovery/candidates/reviewed-candidates.jsonl:6",
+      "discovery_id": "tos.discovery.laws-of-ur-namma-open-work-route.2026-08-30.v1",
+      "effective_status": "held_source_witness",
+      "preferred_label": "Laws of Ur-Namma",
+      "selection": {
+        "atlas_row_id": "A02",
+        "atlas_row_order": 2,
+        "chronology_basis": "A02 master-table written-fixation lower bound and the dossier's next named law-collection anchor; royal framing, composition history, surviving witness dates, and modern reconstruction remain separate",
+        "chronology_sort_year": -2000,
+        "confidence": "reviewed-for-queue-order-only"
+      },
+      "terminal_receipt_id": "open-work-candidate-receipt.laws-of-ur-namma.2026-08-30.v1"
+    },
+    {
+      "candidate_id": "open-work-candidate.laws-of-lipit-ishtar",
+      "candidate_kind": "work",
+      "candidate_sha256": "9bb253a164e6489fbc73722c8f81dfb4f850ed4a4fec3253735452ae88e1e643",
+      "candidate_source_ref": "ToS/source-witnesses/discovery/candidates/reviewed-candidates.jsonl:7",
+      "discovery_id": "tos.discovery.laws-of-lipit-ishtar-open-work-route.2026-08-30.v1",
+      "effective_status": "held_source_witness",
+      "preferred_label": "Laws of Lipit-Ištar",
+      "selection": {
+        "atlas_row_id": "A02",
+        "atlas_row_order": 2,
+        "chronology_basis": "A02 master-table written-fixation lower bound and the grouped law-collection anchor; royal framing, composition history, surviving witness dates, and modern reconstruction remain separate",
+        "chronology_sort_year": -2000,
+        "confidence": "reviewed-for-queue-order-only"
+      },
+      "terminal_receipt_id": "open-work-candidate-receipt.laws-of-lipit-ishtar.2026-08-30.v1"
+    },
+    {
+      "candidate_id": "open-work-candidate.laws-of-hammurapi",
+      "candidate_kind": "work",
+      "candidate_sha256": "d59a8c13aa74b069480a154ea9c48d9fe940464f17088f7eb2c6f6dfb7f7bc18",
+      "candidate_source_ref": "ToS/source-witnesses/discovery/candidates/reviewed-candidates.jsonl:8",
+      "discovery_id": "tos.discovery.laws-of-hammurapi-open-work-route.2026-08-30.v1",
+      "effective_status": "held_source_witness",
+      "preferred_label": "Laws of Hammurapi",
+      "selection": {
+        "atlas_row_id": "A02",
+        "atlas_row_order": 2,
+        "chronology_basis": "A02 master-table written-fixation lower bound and the grouped law-collection anchor; royal framing, stela date, earlier/later witness chronology, composition history, and modern reconstruction remain separate",
+        "chronology_sort_year": -2000,
+        "confidence": "reviewed-for-queue-order-only"
+      },
+      "terminal_receipt_id": "open-work-candidate-receipt.laws-of-hammurapi.2026-08-30.v1"
+    },
+    {
+      "candidate_id": "open-work-candidate.old-babylonian-gilgamesh-tradition",
+      "candidate_kind": "work-like-corpus",
+      "candidate_sha256": "7a8e78964f747af6199cabfd9dc3c5afa18ad9596c1dc572f9cb4aa0234e4ec2",
+      "candidate_source_ref": "ToS/source-witnesses/discovery/candidates/reviewed-candidates.jsonl:9",
+      "discovery_id": "tos.discovery.old-babylonian-gilgamesh-open-work-route.2026-08-30.v1",
+      "effective_status": "held_source_witness",
+      "preferred_label": "Old Babylonian Gilgamesh tradition",
+      "selection": {
+        "atlas_row_id": "A02",
+        "atlas_row_order": 2,
+        "chronology_basis": "A02 master-table written-fixation lower bound and the next named primary-corpus anchor after Instructions of Šuruppag and the three reviewed law collections; fragment dates, transmission stages, modern composite state, and Standard Babylonian chronology remain separate",
+        "chronology_sort_year": -2000,
+        "confidence": "reviewed-for-queue-order-only"
+      },
+      "terminal_receipt_id": "open-work-candidate-receipt.old-babylonian-gilgamesh-tradition.2026-09-02.v2"
+    },
+    {
+      "candidate_id": "open-work-candidate.old-babylonian-sumerian-literary-catalogue-witnesses",
+      "candidate_kind": "work-like-corpus",
+      "candidate_sha256": "fd995f4f0b8581587db6addfb8c58ddb48c735dbd26bcac8e39fa7669c44e003",
+      "candidate_source_ref": "ToS/source-witnesses/discovery/candidates/reviewed-candidates.jsonl:10",
+      "discovery_id": "tos.discovery.old-babylonian-sumerian-literary-catalogues-open-work-route.2026-08-30.v1",
+      "effective_status": "held_source_witness",
+      "preferred_label": "Old Babylonian Sumerian literary catalogue witnesses",
+      "selection": {
+        "atlas_row_id": "A02",
+        "atlas_row_order": 2,
+        "chronology_basis": "A02 master-table written-fixation lower bound and the next named primary-corpus/tool anchor after the terminal Old Babylonian Gilgamesh fragment iteration; individual tablet dates, inventory events, modern catalogue revisions, Decad reconstruction, and later curricular interpretation remain separate",
+        "chronology_sort_year": -2000,
+        "confidence": "reviewed-for-queue-order-only"
+      },
+      "terminal_receipt_id": "open-work-candidate-receipt.old-babylonian-sumerian-literary-catalogue-witnesses.2026-08-30.v1"
+    },
+    {
+      "candidate_id": "open-work-candidate.teaching-for-king-merykara",
+      "candidate_kind": "work",
+      "candidate_sha256": "0ddfdc1b0a6be11c3acab180a258d82c856b49c8781b11c0b9c5ec1f393d7adc",
+      "candidate_source_ref": "ToS/source-witnesses/discovery/candidates/reviewed-candidates.jsonl:17",
+      "discovery_id": null,
+      "effective_status": "ready-for-discovery",
+      "preferred_label": "Teaching for King Merykara",
+      "selection": {
+        "atlas_row_id": "A04",
+        "atlas_row_order": 4,
+        "chronology_basis": "A04's Middle Kingdom sebayt posture and its next explicit unreviewed named Work pressure after the terminal Ptahhotep, Kagemni, and A05 routes; -2000 is a conservative queue-order approximation only, while proposed composition, the historical kingly frame, surviving copy dates, and modern edition chronology remain separate.",
+        "chronology_sort_year": -2000,
+        "confidence": "reviewed-for-queue-order-only"
+      },
+      "terminal_receipt_id": null
+    },
+    {
+      "candidate_id": "open-work-candidate.dialogue-between-a-man-and-his-ba",
+      "candidate_kind": "work",
+      "candidate_sha256": "6ed989583f23f77cce0fb4014ad2d9e934f324bf32dad10f36a6d2fedd91b2fd",
+      "candidate_source_ref": "ToS/source-witnesses/discovery/candidates/reviewed-candidates.jsonl:16",
+      "discovery_id": "tos.discovery.dialogue-between-a-man-and-his-ba-open-work-route.2026-08-30.v1",
+      "effective_status": "held_source_witness",
+      "preferred_label": "Dialogue between a Man and His Ba",
+      "selection": {
+        "atlas_row_id": "A05",
+        "atlas_row_order": 5,
+        "chronology_basis": "A05's Middle Kingdom witness posture and its next explicit source-anchor pressure after the terminal Papyrus Harris 500 route; -2000 is a conservative queue-order approximation only, while composition, Berlin 3024 copying, Mallorca fragment history, and modern reconstruction chronology remain separate.",
+        "chronology_sort_year": -2000,
+        "confidence": "reviewed-for-queue-order-only"
+      },
+      "terminal_receipt_id": "open-work-candidate-receipt.dialogue-between-a-man-and-his-ba.2026-08-30.v1"
+    },
+    {
+      "candidate_id": "open-work-candidate.book-of-the-dead",
+      "candidate_kind": "work-like-corpus",
+      "candidate_sha256": "5bbd40b3ab06f0c941e84b511a048f1ab92d92900b22c69c2219ebb1fa5974e8",
+      "candidate_source_ref": "ToS/source-witnesses/discovery/candidates/reviewed-candidates.jsonl:13",
+      "discovery_id": "tos.discovery.book-of-the-dead-open-work-route.2026-08-30.v1",
+      "effective_status": "held_source_witness",
+      "preferred_label": "Book of the Dead",
+      "selection": {
+        "atlas_row_id": "A05",
+        "atlas_row_order": 5,
+        "chronology_basis": "A05 prepared node's New Kingdom-to-late-period posture and the next named primary-corpus anchor after the terminal Pyramid Texts, Coffin Texts, and Book of Two Ways iterations; individual papyrus dates, local sequence, recension history, chapter numbering, and modern publication chronology remain separate",
+        "chronology_sort_year": -1550,
+        "confidence": "reviewed-for-queue-order-only"
+      },
+      "terminal_receipt_id": "open-work-candidate-receipt.book-of-the-dead.2026-09-02.v2"
+    },
+    {
+      "candidate_id": "open-work-candidate.harpers-songs",
+      "candidate_kind": "work-like-corpus",
+      "candidate_sha256": "e229f3fff8c580172d738372b30e078ff080d03e5bbebc5384845e138eee637f",
+      "candidate_source_ref": "ToS/source-witnesses/discovery/candidates/reviewed-candidates.jsonl:15",
+      "discovery_id": "tos.discovery.harpers-songs-open-work-route.2026-08-30.v1",
+      "effective_status": "held_source_witness",
+      "preferred_label": "Ancient Egyptian Harper’s Songs",
+      "selection": {
+        "atlas_row_id": "A05",
+        "atlas_row_order": 5,
+        "chronology_basis": "A05's Harper’s Songs seed and the next source-anchor pressure after the explicit Papyrus Ani artifact exclusion; -1300 is only a reviewed approximation for the Papyrus Harris 500 witness route, while tomb prototypes, alleged Intef attribution, manuscript date, genre formation, and modern corpus construction remain separate.",
+        "chronology_sort_year": -1300,
+        "confidence": "reviewed-for-queue-order-only"
+      },
+      "terminal_receipt_id": "open-work-candidate-receipt.harpers-songs.2026-08-30.v1"
+    },
+    {
+      "candidate_id": "open-work-candidate.papyrus-of-ani-bm-ea10470",
+      "candidate_kind": "non-work-exclusion",
+      "candidate_sha256": "8ddf2e834d4ede859de6bbc93ed81bb397312a4a3e20ebba7b3be6b318c12885",
+      "candidate_source_ref": "ToS/source-witnesses/discovery/candidates/reviewed-candidates.jsonl:14",
+      "discovery_id": null,
+      "effective_status": "excluded-non-work",
+      "preferred_label": "Papyrus of Ani BM EA10470",
+      "selection": {
+        "atlas_row_id": "A05",
+        "atlas_row_order": 5,
+        "chronology_basis": "A05 source-anchor order after the terminal Book of the Dead corpus iteration and the British Museum's reported ca. 1250 BCE date for Papyrus of Ani; this only orders an explicit physical-artifact exclusion and does not date a Work.",
+        "chronology_sort_year": -1250,
+        "confidence": "reviewed-for-queue-order-only"
+      },
+      "terminal_receipt_id": null
+    }
+  ],
+  "counts": {
+    "by_effective_status": {
+      "deferred-human-review": 1,
+      "excluded-non-work": 2,
+      "held_source_witness": 13,
+      "ready-for-discovery": 1
+    },
+    "candidates": 17
+  },
+  "generated_by": "scripts/build_open_work_candidate_queue.py",
+  "next_candidate_id": "open-work-candidate.teaching-for-king-merykara",
+  "owner_surface": "ToS/source-witnesses/discovery/candidates/reviewed-candidates.jsonl",
+  "queue_sha256": "febbfd2cc9afdf2cb419a51f8da14334fe4453ea9ddd9acf217a6a0bd6e5c1f9",
+  "receipt_root": "ToS/source-witnesses/discovery/candidates/receipts",
+  "schema_version": "tos_open_work_candidate_queue_v1",
+  "source_snapshot": {
+    "counts": {
+      "accepted_dossiers": 190,
+      "catalog_works": 40,
+      "discovery_runs": 98,
+      "master_rows": 190,
+      "reviewed_candidates": 17,
+      "source_anchor_backlog_rows": 9530,
+      "terminal_receipts": 19
+    },
+    "input_sha256": "ce01f56edb545b49c3bbd430d54212f8aca26c2edb5cfdd36cc004fb3106d130",
+    "inputs": [
+      {
+        "path": "ToS/philosophy/atlas/dossiers/index.jsonl",
+        "sha256": "f0706c6773939154128974734abefb7149582ae56e547b46a1a3d102bbcbc667"
+      },
+      {
+        "path": "ToS/philosophy/atlas/dossiers/source-anchor-backlog.jsonl",
+        "sha256": "d7e1a5d558d7073a38378bef5833b368fe39d156f645c073de253a91d847564f"
+      },
+      {
+        "path": "ToS/philosophy/atlas/master-tables/table-i/rows.jsonl",
+        "sha256": "5667ddf70b9a196bf7d86823ff0e388ddedc6d119aa0f816956bd7d8a1cdef0f"
+      },
+      {
+        "path": "ToS/philosophy/atlas/master-tables/table-ii/rows.jsonl",
+        "sha256": "e9469cccc0a89d25e790b4d0058b0b4f5b733b2ba4930795a7f1d09b845b719a"
+      },
+      {
+        "path": "ToS/philosophy/atlas/master-tables/table-iii/rows.jsonl",
+        "sha256": "df717d5b681396241be2c63261f1dc6c60dcd8bd72af6bb2b603807bfc366e83"
+      },
+      {
+        "path": "ToS/philosophy/eras/bronze-age/regions/north-africa/traditions/egyptian-mortuary-theological-dialogic-corpora/sources/plantings/book-of-the-dead-naville-composite/source-planting.json",
+        "sha256": "4114f673c9419bcad830879043d27148beb0175c97bf54f9a4a001fbd5e014ed"
+      },
+      {
+        "path": "ToS/philosophy/eras/bronze-age/regions/north-africa/traditions/egyptian-mortuary-theological-dialogic-corpora/sources/plantings/book-of-the-dead-papyrus-ani/source-planting.json",
+        "sha256": "343c588beb373adcaf074b456a86bc00ceaf22e3d4e3220a0fe174f692ad6265"
+      },
+      {
+        "path": "ToS/philosophy/eras/bronze-age/regions/north-africa/traditions/egyptian-mortuary-theological-dialogic-corpora/sources/plantings/book-of-two-ways-bm-sen/source-planting.json",
+        "sha256": "175d597d3b8ac8cd7c747c88fc3f139b80ba1c1a3920981959dfff9d0dab18f5"
+      },
+      {
+        "path": "ToS/philosophy/eras/bronze-age/regions/north-africa/traditions/egyptian-mortuary-theological-dialogic-corpora/sources/plantings/coffin-texts-met-khety/source-planting.json",
+        "sha256": "3f36f42f4a01da543d9347211f323aed8f92bfb011b6e75f3c5741db39a4d499"
+      },
+      {
+        "path": "ToS/philosophy/eras/bronze-age/regions/north-africa/traditions/egyptian-mortuary-theological-dialogic-corpora/sources/plantings/coffin-texts-met-khnumnakht/source-planting.json",
+        "sha256": "509bad390bc5425d309aa081a3bff435fb53472145331fa952fa2a4f2419e82b"
+      },
+      {
+        "path": "ToS/philosophy/eras/bronze-age/regions/north-africa/traditions/egyptian-mortuary-theological-dialogic-corpora/sources/plantings/dialogue-man-ba-papyrus-berlin-p3024/source-planting.json",
+        "sha256": "cbc0ca02e786e2408c58e758b73237eaa02444c1d5d94226d09ef8b1e31c0fbf"
+      },
+      {
+        "path": "ToS/philosophy/eras/bronze-age/regions/north-africa/traditions/egyptian-mortuary-theological-dialogic-corpora/sources/plantings/harpers-songs-papyrus-harris-500/source-planting.json",
+        "sha256": "3cda4f159fa1a2be4d7e7190daa3fb8351f73b3bb662dc3b6f9abfc01ec52853"
+      },
+      {
+        "path": "ToS/philosophy/eras/bronze-age/regions/north-africa/traditions/egyptian-mortuary-theological-dialogic-corpora/sources/plantings/pyramid-texts-sethe-composite/source-planting.json",
+        "sha256": "be066e12ffd6825ee689e65c66d740455951c801b5fbbd9d2f26bcc8de63c710"
+      },
+      {
+        "path": "ToS/philosophy/eras/bronze-age/regions/north-africa/traditions/egyptian-sebayt-scribal-ethics/sources/plantings/papyrus-prisse-metadata-witness/source-planting.json",
+        "sha256": "268be14c9355e0131b84d87066869a81bddc007debf28daad3ed31279150b441"
+      },
+      {
+        "path": "ToS/philosophy/eras/bronze-age/regions/west-asia/traditions/old-babylonian-scribal-wisdom-law/sources/plantings/cdli-codex-hammurapi-stele-profile/source-planting.json",
+        "sha256": "7b9624208b9de214b56aea5b7c06cb30017e29c825eb44418c3455a202a34b3d"
+      },
+      {
+        "path": "ToS/philosophy/eras/bronze-age/regions/west-asia/traditions/old-babylonian-scribal-wisdom-law/sources/plantings/instructions-of-shuruppag-composite/source-planting.json",
+        "sha256": "11c36f98938b85b283db19db7eb715e25f4155cb54079af484af0bac31675ca2"
+      },
+      {
+        "path": "ToS/philosophy/eras/bronze-age/regions/west-asia/traditions/old-babylonian-scribal-wisdom-law/sources/plantings/laws-of-hammurapi-composite/source-planting.json",
+        "sha256": "7e38b2f32f1fb32a88dc1c7e6a41b2459791eeae9ec8f5540780a7c50fe2a00e"
+      },
+      {
+        "path": "ToS/philosophy/eras/bronze-age/regions/west-asia/traditions/old-babylonian-scribal-wisdom-law/sources/plantings/laws-of-lipit-ishtar-composite/source-planting.json",
+        "sha256": "c92fa4dc8484eb487618f74ed0a2269b61ceff4278757c7d46b912a32767210f"
+      },
+      {
+        "path": "ToS/philosophy/eras/bronze-age/regions/west-asia/traditions/old-babylonian-scribal-wisdom-law/sources/plantings/laws-of-ur-namma-composite/source-planting.json",
+        "sha256": "39512333ad0d4c311aea7b3d7ae87942c2f85388cd5e0f668b53dd625361c7c1"
+      },
+      {
+        "path": "ToS/philosophy/eras/bronze-age/regions/west-asia/traditions/old-babylonian-scribal-wisdom-law/sources/plantings/old-babylonian-gilgamesh-fragments/source-planting.json",
+        "sha256": "eabdbcd64de0d37cff70ff7c9ab8d079a05a95b2b73d2b0caee633d84fb85bf6"
+      },
+      {
+        "path": "ToS/philosophy/eras/bronze-age/regions/west-asia/traditions/old-babylonian-scribal-wisdom-law/sources/plantings/old-babylonian-sumerian-literary-catalogues/source-planting.json",
+        "sha256": "1be9294ea98a3a49cdfd16de1a48ae23de593475e13a690c3fde3b29aa6736b5"
+      },
+      {
+        "path": "ToS/philosophy/graph-workbench/proposed-nodes/table-i-prepared-dossiers.jsonl",
+        "sha256": "e486e8ed6c320bb5bc065b793beba6f61dab968dfafcf65f491a0f3147539eb6"
+      },
+      {
+        "path": "ToS/research-packets/foundation-laboratory-2026-07/A01_ATU2_SIGNLIST_SOURCE_PLANTING_RESEARCH_2026-08-12.md",
+        "sha256": "633cd40de3a9771f0003c2e1c70b4d5ee68ddc0d8c02a8295cfeafc2e5518936"
+      },
+      {
+        "path": "ToS/research-packets/foundation-laboratory-2026-07/A01_ATU3_LEXICAL_LISTS_SOURCE_PLANTING_RESEARCH_2026-08-12.md",
+        "sha256": "e64f4b3e26ff5b26200926bd3ec78bd764a736d2816cd9523b5ad4df9fbe0aac"
+      },
+      {
+        "path": "ToS/research-packets/foundation-laboratory-2026-07/A01_ATU5_NUMERICAL_TEXTS_LAYER_SOURCE_PLANTING_RESEARCH_2026-08-12.md",
+        "sha256": "f5312ec5482e85207737eab091a816eb53b10f0dc01e48f9ca356a7014224542"
+      },
+      {
+        "path": "ToS/research-packets/foundation-laboratory-2026-07/A01_BRITANNICA_CUNEIFORM_SYNTHESIS_SOURCE_PLANTING_RESEARCH_2026-08-12.md",
+        "sha256": "b0850ce2af88c46a3211f66b661a311e76ecc38b64f45e10b7df924bb85acbb8"
+      },
+      {
+        "path": "ToS/research-packets/foundation-laboratory-2026-07/A01_CDLB_2003_2_SCRIPT_DIRECTION_SOURCE_PLANTING_RESEARCH_2026-08-12.md",
+        "sha256": "970348b2811ad5d99261a76541e62287d22c30286d20f78125b08a788f7b1967"
+      },
+      {
+        "path": "ToS/research-packets/foundation-laboratory-2026-07/A01_CDLB_2006_1_N16_METROLOGICAL_CONTEXT_SOURCE_PLANTING_RESEARCH_2026-08-12.md",
+        "sha256": "80ff17b9d4242b276af674f6d77ef7086db19500d33c55676be714451b03aecf"
+      },
+      {
+        "path": "ToS/research-packets/foundation-laboratory-2026-07/A01_CDLB_2021_6_QUANTITATIVE_SIGN_USE_SOURCE_PLANTING_RESEARCH_2026-08-12.md",
+        "sha256": "3d6dd38b2981926aadc4235e93eacdb7972acc97940c5340b19e646fde890afe"
+      },
+      {
+        "path": "ToS/research-packets/foundation-laboratory-2026-07/A01_CDLI_P000015_SOURCE_PLANTING_RESEARCH_2026-08-12.md",
+        "sha256": "1016bd564cde3cf072a71c1368a6ba543d90e2ad24ee94c76de9da4cb818fcd3"
+      },
+      {
+        "path": "ToS/research-packets/foundation-laboratory-2026-07/A01_DCCLT_Q000023_SCHOLARLY_COMPOSITE_RESEARCH_2026-08-12.md",
+        "sha256": "d0dddf8183635321e0875fd9069301fdbb334969e9d5f07d29e321b4451be770"
+      },
+      {
+        "path": "ToS/research-packets/foundation-laboratory-2026-07/A01_EDUBBA_LATER_AFTERLIFE_SOURCE_PLANTING_RESEARCH_2026-08-12.md",
+        "sha256": "7d141fefb2fd178ee3ba832fa853fd5eafa19ec197da000ee1cf0fabb7d6500b"
+      },
+      {
+        "path": "ToS/research-packets/foundation-laboratory-2026-07/A01_GETTY_MESOPOTAMIA_CITY_BUREAUCRACY_WRITING_SOURCE_PLANTING_RESEARCH_2026-08-12.md",
+        "sha256": "e050ea0da509c024b93d57dde04839255d4f257634118762af8a15d301dbaad3"
+      },
+      {
+        "path": "ToS/research-packets/foundation-laboratory-2026-07/A01_NISSEN_URUK_AND_I_DOCUMENTATION_CONTEXT_SOURCE_PLANTING_RESEARCH_2026-08-12.md",
+        "sha256": "0c2d8274ce756a73cc9ec2a9216e06c68cbd585231e93744a038a720faa8a655"
+      },
+      {
+        "path": "ToS/research-packets/foundation-laboratory-2026-07/A01_SCHMANDT_BESSERAT_TOKEN_TABLET_DEBATE_SOURCE_PLANTING_RESEARCH_2026-08-12.md",
+        "sha256": "87855ad9e1a3192064644e5aaead6b3c976e4aaf4cfa183ec7af4a9fb5de9463"
+      },
+      {
+        "path": "ToS/research-packets/foundation-laboratory-2026-07/A02_CDLI_CODEX_HAMMURAPI_STELE_SOURCE_PLANTING_RESEARCH_2026-08-13.md",
+        "sha256": "e3f03d218f296cd9f0c4e27c9e31df42813703c2f9b9c03280ff794b65cc5971"
+      },
+      {
+        "path": "ToS/research-packets/foundation-laboratory-2026-07/A02_CDLI_DIGITAL_ARTIFACT_REGISTRY_SOURCE_PLANTING_RESEARCH_2026-08-12.md",
+        "sha256": "281f81f93be7eada9f9fc6348c9beb5543641866c4e0da55c84e167472544e4b"
+      },
+      {
+        "path": "ToS/research-packets/foundation-laboratory-2026-07/A02_ETCSL_DIGITAL_CORPUS_SOURCE_PLANTING_RESEARCH_2026-08-12.md",
+        "sha256": "54bda43f74b2e3199e4049c328c56679f2db5cc9a543f62c68a57bff2d47c313"
+      },
+      {
+        "path": "ToS/research-packets/foundation-laboratory-2026-07/A02_INSTRUCTIONS_OF_SHURUPPAG_OPEN_WORK_ACQUISITION_2026-08-30.md",
+        "sha256": "abb5d349b7cdcd26a47c139e345e75e7f0542893c6283b24f61c8d059e2b40de"
+      },
+      {
+        "path": "ToS/research-packets/foundation-laboratory-2026-07/A02_INSTRUCTIONS_OF_SHURUPPAG_SOURCE_PLANTING_RESEARCH_2026-08-22.md",
+        "sha256": "f556ca49fb559721ee1683ecaeebe00e4024a2acb682458b1ec52b6b5c12183c"
+      },
+      {
+        "path": "ToS/research-packets/foundation-laboratory-2026-07/A02_LAWS_OF_HAMMURAPI_OPEN_WORK_ACQUISITION_2026-08-30.md",
+        "sha256": "7d3cc7085e861c5a6f125ee91b86a26438b0acf70506393db566870fdd5a5c5d"
+      },
+      {
+        "path": "ToS/research-packets/foundation-laboratory-2026-07/A02_LAWS_OF_LIPIT_ISHTAR_OPEN_WORK_ACQUISITION_2026-08-30.md",
+        "sha256": "8852cdc3cb2d2405802389849709f14c1461c76cbefc542260bd004e090301c9"
+      },
+      {
+        "path": "ToS/research-packets/foundation-laboratory-2026-07/A02_LAWS_OF_UR_NAMMA_OPEN_WORK_ACQUISITION_2026-08-30.md",
+        "sha256": "184ca6ed7afbdd18f53f26534068db9a6cb06afc417ab6694d803e23b597ed9a"
+      },
+      {
+        "path": "ToS/research-packets/foundation-laboratory-2026-07/A02_MESOPOTAMIAN_LAW_COLLECTIONS_SOURCE_PLANTING_RESEARCH_2026-08-22.md",
+        "sha256": "0ec85a5676a371367433e1f2babc8ba921e0b1230b0da9b0ab9d5ed72ead18b6"
+      },
+      {
+        "path": "ToS/research-packets/foundation-laboratory-2026-07/A02_NIPPUR_UR_SCHOOL_TABLETS_SOURCE_PLANTING_RESEARCH_2026-08-13.md",
+        "sha256": "dc729fbfc4109a03d16afcd40d25c6271f077fe7181016e18def1af79e321d3c"
+      },
+      {
+        "path": "ToS/research-packets/foundation-laboratory-2026-07/A02_OLD_BABYLONIAN_GILGAMESH_FRAGMENTS_SOURCE_PLANTING_RESEARCH_2026-08-22.md",
+        "sha256": "1bd88008fb77d9f62e44af88953047096adb892b8a1dbe6be5d8e1f131b79de9"
+      },
+      {
+        "path": "ToS/research-packets/foundation-laboratory-2026-07/A02_OLD_BABYLONIAN_GILGAMESH_OPEN_WORK_ACQUISITION_2026-08-30.md",
+        "sha256": "7405b8de85cde9067b8bba08250c9f4d20332a4d3591c9a870273680a6221220"
+      },
+      {
+        "path": "ToS/research-packets/foundation-laboratory-2026-07/A02_OLD_BABYLONIAN_SUMERIAN_LITERARY_CATALOGUES_OPEN_WORK_ACQUISITION_2026-08-30.md",
+        "sha256": "9c0d4bc060e8bcc9e78ae572b339b875939f9df54d6db85a161181a9359f6dee"
+      },
+      {
+        "path": "ToS/research-packets/foundation-laboratory-2026-07/A02_OLD_BABYLONIAN_SUMERIAN_LITERARY_CATALOGUES_SOURCE_PLANTING_RESEARCH_2026-08-23.md",
+        "sha256": "3db9b4c6ef74ad223b76169642490ccb2a6876bf4485a191c7f21273c4588f95"
+      },
+      {
+        "path": "ToS/research-packets/foundation-laboratory-2026-07/A02_YALE_BABYLONIAN_COLLECTION_ANCIENT_MESOPOTAMIA_SPEAKS_SOURCE_PLANTING_RESEARCH_2026-08-23.md",
+        "sha256": "9bd1918457e05374954d5678c3e8a982d7e7906592587630ce390277a3a722a1"
+      },
+      {
+        "path": "ToS/research-packets/foundation-laboratory-2026-07/A04_PTAHHOTEP_OPEN_WORK_DISCOVERY_AND_RIGHTS_ROUTE_2026-08-29.md",
+        "sha256": "6df024656117c1c69d8f28a24167ce9c1e1d96860b25b10fb48d6b351cd56c1a"
+      },
+      {
+        "path": "ToS/research-packets/foundation-laboratory-2026-07/A05_BOOK_OF_THE_DEAD_OPEN_WORK_ACQUISITION_2026-08-30.md",
+        "sha256": "e227443e3d070e39267f4c152642460658285f3979000f5691794c7ad8993047"
+      },
+      {
+        "path": "ToS/research-packets/foundation-laboratory-2026-07/A05_BOOK_OF_TWO_WAYS_OPEN_WORK_ACQUISITION_2026-08-30.md",
+        "sha256": "ad9d57831d034006c0916f822149229ee7a0fdf39d6d1cdce4bf267b03d81e18"
+      },
+      {
+        "path": "ToS/research-packets/foundation-laboratory-2026-07/A05_COFFIN_TEXTS_OPEN_WORK_ACQUISITION_2026-08-30.md",
+        "sha256": "48bebb6ed77820b2bd224c797e2bf7d0343a56ccd48b8f9b623e58ab03dcd210"
+      },
+      {
+        "path": "ToS/research-packets/foundation-laboratory-2026-07/A05_DIALOGUE_BETWEEN_A_MAN_AND_HIS_BA_OPEN_WORK_ACQUISITION_2026-08-30.md",
+        "sha256": "c6b1c1181065cc27b23c3300bbbcb0bd3c2b327e6d176d63c9f8930cc05f9999"
+      },
+      {
+        "path": "ToS/research-packets/foundation-laboratory-2026-07/A05_HARPERS_SONGS_OPEN_WORK_ACQUISITION_2026-08-30.md",
+        "sha256": "78c077ec0fe9ba2c0a3bbc9110ef630e47c2c42a4dcb97bd83171e674e355360"
+      },
+      {
+        "path": "ToS/research-packets/foundation-laboratory-2026-07/A05_PYRAMID_TEXTS_OPEN_WORK_DISCOVERY_AND_RIGHTS_ROUTE_2026-08-30.md",
+        "sha256": "f7b107eec1040a8e91fa2ec5f374fc934df0167c388c63940c2708f2f2a95e44"
+      },
+      {
+        "path": "ToS/research-packets/foundation-laboratory-2026-07/ANTICHRIST_AUTHORIAL_WITNESS_ROUTE.md",
+        "sha256": "8f4b3236a86b7035b9360cf649b04fd4c81202096318dd5695979cc71f83344d"
+      },
+      {
+        "path": "ToS/research-packets/foundation-laboratory-2026-07/ANTONOVSKY_1898_1900_BIBLIOGRAPHIC_IDENTITY_RESEARCH.md",
+        "sha256": "8a7494b5bea9d69999abb026681dcce2bd4f5e192c32a00020db1038af19562d"
+      },
+      {
+        "path": "ToS/research-packets/foundation-laboratory-2026-07/ANTONOVSKY_1900_LNB_HOLDING_RESEARCH.md",
+        "sha256": "e363dd6fb02f7ef7a5cd1b52946ce67f403b330f3af7763ae37bc6c87fd1ee79"
+      },
+      {
+        "path": "ToS/research-packets/foundation-laboratory-2026-07/ANTONOVSKY_1900_RSL_RNL_LNB_CURRENT_HOLDINGS_RESEARCH.md",
+        "sha256": "7d9f3fc26c7d94b77acf3324242b9fc90c3f6c9b92e94e784a57f31e93137ec5"
+      },
+      {
+        "path": "ToS/research-packets/foundation-laboratory-2026-07/ANTONOVSKY_1903_RSL_EDITION_RESEARCH.md",
+        "sha256": "e8a2db7247a75b21e233141296ef4cbc0c32730e83aa17a7069c9e98fe0f1885"
+      },
+      {
+        "path": "ToS/research-packets/foundation-laboratory-2026-07/ANTONOVSKY_1903_RSL_RNL_CURRENT_HOLDINGS_RESEARCH.md",
+        "sha256": "17035279b427e8820aa3dc07af604f5e10f76dcdd349db3659e0e5670f484989"
+      },
+      {
+        "path": "ToS/research-packets/foundation-laboratory-2026-07/ANTONOVSKY_1907_RNL_GAK_HOLDING_RESEARCH.md",
+        "sha256": "1436bf94819c23ccb23399c2a2464a09d76684fe3f79118a783a78f11332004b"
+      },
+      {
+        "path": "ToS/research-packets/foundation-laboratory-2026-07/ANTONOVSKY_1907_RNL_PRIMO_CURRENT_HOLDING_RESEARCH.md",
+        "sha256": "4f23cf0c1da6289d2342340e3e5d3501d4888fc74a1ac3b05b2f976060cd25e8"
+      },
+      {
+        "path": "ToS/research-packets/foundation-laboratory-2026-07/ANTONOVSKY_1907_RNL_REPORTED_RSL_HOLDING_RESEARCH.md",
+        "sha256": "2d18a2185a08505e96fc5311396d13d6eaabb86499a3d69e7a56225e7709e170"
+      },
+      {
+        "path": "ToS/research-packets/foundation-laboratory-2026-07/ANTONOVSKY_1907_RUNEB_EDITION_RESEARCH.md",
+        "sha256": "e18579515428d0f0be2f9ad10f289eaaa4faaf80a6237fd13f70dbf3fd4366d6"
+      },
+      {
+        "path": "ToS/research-packets/foundation-laboratory-2026-07/ANTONOVSKY_1913_PROVISION_IDENTITY_RESEARCH.md",
+        "sha256": "dc36e785bbe0b1214d5fc81089532cca2b2527381aa353e3521ac6e4a60c21a7"
+      },
+      {
+        "path": "ToS/research-packets/foundation-laboratory-2026-07/ANTONOVSKY_CULTURAL_REVOLUTION_2007_TRANSLATION_RESPONSIBILITY_RESEARCH.md",
+        "sha256": "e08f56928f521968ad57860880d326478ffa0c6c53e8fd051a1b6bf2e6483024"
+      },
+      {
+        "path": "ToS/research-packets/foundation-laboratory-2026-07/ECCE_HOMO_AUTHORIAL_WITNESS_ROUTE.md",
+        "sha256": "4426f409820996b4c05af49ee5d211f2dddb54265e67108167ab91af1be57b8d"
+      },
+      {
+        "path": "ToS/research-packets/foundation-laboratory-2026-07/EKGWB_RIGHTS_AND_TRANSPORT_REFRESH.md",
+        "sha256": "05c334a3331b4a2546976d9d97343ca6cb66c0351303b83a48a4efb3a020f7be"
+      },
+      {
+        "path": "ToS/research-packets/foundation-laboratory-2026-07/ETYMOLOGY_EVIDENCE_ROUTE_RESEARCH.md",
+        "sha256": "a7e9d952076b39bc5c0412885149a30ff640d40411f3632a09d6cfc3a944a583"
+      },
+      {
+        "path": "ToS/research-packets/foundation-laboratory-2026-07/FALL_WAGNER_AUTHORIAL_WITNESS_ROUTE.md",
+        "sha256": "7aa4c0994713fe6bf4420de44b04752844ff3fb1146ea088015968d7606fa7f8"
+      },
+      {
+        "path": "ToS/research-packets/foundation-laboratory-2026-07/GENEALOGIE_1892_PROVISION_IDENTITY_RESEARCH.md",
+        "sha256": "17027e5556265f92ee04dafc357c0a6725408c3078ae2c1e245672397119a6c2"
+      },
+      {
+        "path": "ToS/research-packets/foundation-laboratory-2026-07/GENEALOGIE_AUTHORIAL_WITNESS_ROUTE.md",
+        "sha256": "1218569832f214410e2b1fa5a8b8fe3e2af339bf8e148e86e864195cc454684b"
+      },
+      {
+        "path": "ToS/research-packets/foundation-laboratory-2026-07/GOETZEN_DAEMMERUNG_AUTHORIAL_WITNESS_ROUTE.md",
+        "sha256": "60dddf5d360caaecb1a346edf41e0310c22861424cd95fcd472068bb266273fe"
+      },
+      {
+        "path": "ToS/research-packets/foundation-laboratory-2026-07/JENSEITS_1886_PROVISION_IDENTITY_RESEARCH.md",
+        "sha256": "c5e1b01b91992284c4455f12e0b35e9b3345bf8ee34107237fb1544e8782e3de"
+      },
+      {
+        "path": "ToS/research-packets/foundation-laboratory-2026-07/JENSEITS_AUTHORIAL_WITNESS_ROUTE.md",
+        "sha256": "00f2929f81a458d08629000e433c9674f42782c8b00f20d40ad2ec59504cf99d"
+      },
+      {
+        "path": "ToS/research-packets/foundation-laboratory-2026-07/NANI_1899_PARALLEL_FRAGMENT_SOURCE_WITNESS_RESEARCH.md",
+        "sha256": "a3c234d52af6a9aed8a7d8318065ff05f518628042a135d85ac45ebfa9fed1dc"
+      },
+      {
+        "path": "ToS/research-packets/foundation-laboratory-2026-07/NAUMANN_1893_PROVISION_IDENTITY_RESEARCH.md",
+        "sha256": "a5894daac68cdca25f05f519209a3dba7cde0a537c9c3c4e0cc1a08a2d36c211"
+      },
+      {
+        "path": "ToS/research-packets/foundation-laboratory-2026-07/READER_1899_FRAGMENT_SOURCE_WITNESS_RESEARCH.md",
+        "sha256": "f504be14d867a1680ed1334f015d027abee0937cf4e1daab8f276529169d48e2"
+      },
+      {
+        "path": "ToS/research-packets/foundation-laboratory-2026-07/STANFORD_LOEB_TINSLEY_POST_STREET_METADATA_CHECK_2026-08-11.md",
+        "sha256": "ca7704272fc335d9c9ef5b4cbbdeb9fa1468860bf3e56ab2e72c3bc5a0d5577a"
+      },
+      {
+        "path": "ToS/research-packets/foundation-laboratory-2026-07/STANFORD_LOEB_TINSLEY_PRE_STREET_DRIFT_CHECK_2026-08-10.md",
+        "sha256": "7ce3636fbd14cc8edc6acc406478035f0f7532043ef2e6f9705bf7a3f9e08dce"
+      },
+      {
+        "path": "ToS/research-packets/foundation-laboratory-2026-07/TEXTGRID_TRANSFER_SOURCE_CHALLENGER_REFRESH_2026-08-09.md",
+        "sha256": "38da15ce2beaac2890ae920182e6bcd2ef363e51a30a8e9301405031193029c0"
+      },
+      {
+        "path": "ToS/research-packets/foundation-laboratory-2026-07/TRANSLATION_REFERENCE_RESEARCH.md",
+        "sha256": "f3c6ef319777e5be595315dcf169d4befa3810ff0da140e1f788426dfbcad7fc"
+      },
+      {
+        "path": "ToS/research-packets/foundation-laboratory-2026-07/ZARATHUSTRA_AUTHORIAL_WITNESS_ROUTE.md",
+        "sha256": "859dc411462fd34fd2ffed3c7645e46564aba268b35dca4c7883add18ba1fb59"
+      },
+      {
+        "path": "ToS/research-packets/foundation-laboratory-2026-07/ZARATHUSTRA_PART1_PROVISION_IDENTITY_RESEARCH.md",
+        "sha256": "5d37afefe23edbaccce937d7ea034d911bdd9b43930a29b9052423642e3dfb89"
+      },
+      {
+        "path": "ToS/research-packets/foundation-laboratory-2026-07/ZARATHUSTRA_PART4_PROVISION_IDENTITY_RESEARCH.md",
+        "sha256": "4f90a63b6a21a5380070061dd2e5c4b233c9ef68a4a60b865ccf8e075460375e"
+      },
+      {
+        "path": "ToS/research-packets/foundation-laboratory-2026-07/ZARATHUSTRA_PARTS_2_3_PROVISION_IDENTITY_RESEARCH.md",
+        "sha256": "d0873e36529974a95f71372afe4c42835f178d68ae0c8fc69968ddcce0d97f87"
+      },
+      {
+        "path": "ToS/source-witnesses/access-requests/provenance.jsonl",
+        "sha256": "95fc9e14e0f8853cafacad5bf7b186620c920e2a95dd8bf6a547e96123a2e92e"
+      },
+      {
+        "path": "ToS/source-witnesses/artifacts/egyptian/deir-el-bersha/sen-inner-coffin-b3l-ea30842/artifact-witness.json",
+        "sha256": "024a2bb5fa60bbc36bd148839985b97a6aa8e330370fa22d65e7a609fb63ec12"
+      },
+      {
+        "path": "ToS/source-witnesses/artifacts/egyptian/deir-el-bersha/sen-inner-coffin-b3l-ea30842/representations/bm-mid-00018648-001/representation.json",
+        "sha256": "9468027b28d2b0edf541be8e77c2604085f312a4b5739140666383d3bad16634"
+      },
+      {
+        "path": "ToS/source-witnesses/artifacts/egyptian/deir-el-bersha/sen-inner-coffin-b3l-ea30842/representations/bm-mid-00018648-001/rights.json",
+        "sha256": "1daebfeac6ae95b03280f0a04ba2061529f0b0cc705cc02caa3ae82c090c5744"
+      },
+      {
+        "path": "ToS/source-witnesses/artifacts/egyptian/deir-el-medina/museo-egizio-cgt-54014/artifact-witness.json",
+        "sha256": "fd628326efae6b11901337747981707ef2b234d3113e0b27a97d27e4ffb92928"
+      },
+      {
+        "path": "ToS/source-witnesses/artifacts/egyptian/deir-el-medina/museo-egizio-cgt-54014/representations/recto-photograph-p01/representation.json",
+        "sha256": "238a7ed5fe74f047188ab6308eb4b99dde15f7c5e47f83fce62e6365d70433e8"
+      },
+      {
+        "path": "ToS/source-witnesses/artifacts/egyptian/deir-el-medina/museo-egizio-cgt-54014/representations/recto-photograph-p01/rights.json",
+        "sha256": "030d018374eacfcca78dcb27a51d6c86a1f98a3c3935234803d9a1f70d332282"
+      },
+      {
+        "path": "ToS/source-witnesses/artifacts/egyptian/lisht-south/met-khety-32-1-133/artifact-witness.json",
+        "sha256": "515ef10df8b9a6625532aa54d6a2c338e8b08f5ff90f9a42cbc268edb01186ec"
+      },
+      {
+        "path": "ToS/source-witnesses/artifacts/egyptian/lisht-south/met-khety-32-1-133/representations/inside-lid-iiif-1200/representation.json",
+        "sha256": "f8974e77faeb0113d1fdb0526048be593ebcefe8b2bbcd1af7aed4afc2250eb0"
+      },
+      {
+        "path": "ToS/source-witnesses/artifacts/egyptian/lisht-south/met-khety-32-1-133/representations/inside-lid-iiif-1200/rights.json",
+        "sha256": "3fa917a7eb0cee175f37fed4dc470bf8c3e0d97e470acd775d0c4431867ba3ec"
+      },
+      {
+        "path": "ToS/source-witnesses/artifacts/egyptian/lisht-south/met-khety-32-1-133/representations/inside-lid-original/representation.json",
+        "sha256": "0a5290dc24b87ec4e973eb2103c15efbef6dc33ed95436057d6ba0f73f071081"
+      },
+      {
+        "path": "ToS/source-witnesses/artifacts/egyptian/lisht-south/met-khety-32-1-133/representations/inside-lid-original/rights.json",
+        "sha256": "c54267fbec32a8e17b474bebc74a5512865dcc18fa2215cf4f456dc6b4e6c06e"
+      },
+      {
+        "path": "ToS/source-witnesses/artifacts/egyptian/meir/met-khnumnakht-15-2-2/artifact-witness.json",
+        "sha256": "fc8d970741ac3d078c9126932af82f41d3eddf05b7f1c606c54f4e70ccddfd81"
+      },
+      {
+        "path": "ToS/source-witnesses/artifacts/egyptian/meir/met-khnumnakht-15-2-2/representations/head-end-left-side-iiif-1200/representation.json",
+        "sha256": "cf84bebf9c034c0099a8392c83cc32ce15dfbe5376bcef5b156ab1af9c9d9cd7"
+      },
+      {
+        "path": "ToS/source-witnesses/artifacts/egyptian/meir/met-khnumnakht-15-2-2/representations/head-end-left-side-iiif-1200/rights.json",
+        "sha256": "f448be21837d283cbff44bb1f5e3141e0966d7959bc361b7491713f1ea42a702"
+      },
+      {
+        "path": "ToS/source-witnesses/artifacts/egyptian/meir/met-khnumnakht-15-2-2/representations/head-end-left-side-original/representation.json",
+        "sha256": "1855bda90ea5cb6d9a06d5947f2a5e54b1364a47b513c554f6fac10d015bb6e6"
+      },
+      {
+        "path": "ToS/source-witnesses/artifacts/egyptian/meir/met-khnumnakht-15-2-2/representations/head-end-left-side-original/rights.json",
+        "sha256": "6e10d13234dd6b1418effba251b3134dad4541cfc3d5fce508b034a5d7bd84a1"
+      },
+      {
+        "path": "ToS/source-witnesses/artifacts/egyptian/thebes/bnf-papyrus-prisse-egyptien-183-194/artifact-witness.json",
+        "sha256": "785cd41db3f521ab57b9735ae1bfa3633569b2c2a5f864a68fb22b63aafad7b2"
+      },
+      {
+        "path": "ToS/source-witnesses/artifacts/egyptian/thebes/bnf-papyrus-prisse-egyptien-183-194/rights.json",
+        "sha256": "34dd9750da96f273a26955c212f62ea2a86fd0a0b5f786646638ef8125d044c5"
+      },
+      {
+        "path": "ToS/source-witnesses/artifacts/egyptian/thebes/papyrus-of-ani-ea10470-frame-3/artifact-witness.json",
+        "sha256": "75986281cd206d5adefb61ee231783233c4f0d4ed9a17852f01e4c898a5e6bcb"
+      },
+      {
+        "path": "ToS/source-witnesses/artifacts/egyptian/thebes/papyrus-of-ani-ea10470-frame-3/representations/bm-mid-00684647-001/representation.json",
+        "sha256": "5a14fe0640a0b305774f0eecf54c2779b4afe3b1c8b219947dad3a8ffac84939"
+      },
+      {
+        "path": "ToS/source-witnesses/artifacts/egyptian/thebes/papyrus-of-ani-ea10470-frame-3/representations/bm-mid-00684647-001/rights.json",
+        "sha256": "cc6cd41ac3f647f768ce906520cd466a57810609fcbe40b85e6efb4e5036880b"
+      },
+      {
+        "path": "ToS/source-witnesses/artifacts/egyptian/unknown/papyrus-berlin-p3024/artifact-witness.json",
+        "sha256": "578e9b59a80c94c1a4702210ae111997dcad5ec232ec67fde66b8cc1c0a78ddf"
+      },
+      {
+        "path": "ToS/source-witnesses/artifacts/egyptian/unknown/papyrus-berlin-p3024/representations/utokyo-lepsius-plate-111/representation.json",
+        "sha256": "542e099e34fef8f70979d0e59ffcdea43dafa98d5cdb265ace8806f9e23bc348"
+      },
+      {
+        "path": "ToS/source-witnesses/artifacts/egyptian/unknown/papyrus-berlin-p3024/representations/utokyo-lepsius-plate-111/rights.json",
+        "sha256": "76303b1afd401a281bc386e42f0b46daa1c60cf339a3c7b489f980eac7113429"
+      },
+      {
+        "path": "ToS/source-witnesses/artifacts/egyptian/unknown/papyrus-berlin-p3024/representations/utokyo-lepsius-plate-112/representation.json",
+        "sha256": "e0912037672d0a8e467050a3eb12da45cd00435a87a560c7a75678e512132fe4"
+      },
+      {
+        "path": "ToS/source-witnesses/artifacts/egyptian/unknown/papyrus-berlin-p3024/representations/utokyo-lepsius-plate-112/rights.json",
+        "sha256": "e826ddeaf89c7ecdbe78d4a86c10afa34e18dcc603009733e9887da0a8bfdf26"
+      },
+      {
+        "path": "ToS/source-witnesses/artifacts/egyptian/unknown/papyrus-harris-500-ea10060/artifact-witness.json",
+        "sha256": "881f2258e4f141257b7825abe63bc9ec46496c965839a7ed91a5fa5aa0c564d8"
+      },
+      {
+        "path": "ToS/source-witnesses/artifacts/egyptian/unknown/papyrus-harris-500-ea10060/representations/bm-mid-00020450-001/representation.json",
+        "sha256": "e845ffb47fb8c9483519d0356e294b1be5e098aa31e2b6773740c44619cd8c97"
+      },
+      {
+        "path": "ToS/source-witnesses/artifacts/egyptian/unknown/papyrus-harris-500-ea10060/representations/bm-mid-00020450-001/rights.json",
+        "sha256": "4db0e6bf2da2a64d2eb3fcbf8877ed72a2d9b645be3bf998bad3159a64cf2838"
+      },
+      {
+        "path": "ToS/source-witnesses/artifacts/egyptian/unknown/papyrus-harris-500-ea10060/representations/bm-mid-00020451-001/representation.json",
+        "sha256": "af1533e78c0fb989c253eb32d8d8ec8317ba73c0e59f5af0e6f86d1020987c8e"
+      },
+      {
+        "path": "ToS/source-witnesses/artifacts/egyptian/unknown/papyrus-harris-500-ea10060/representations/bm-mid-00020451-001/rights.json",
+        "sha256": "06707b581c12d58860078dc55cbd84b1016fb70ceb62ecc6e3066cf91ed17a71"
+      },
+      {
+        "path": "ToS/source-witnesses/artifacts/egyptian/unknown/papyrus-harris-500-ea10060/representations/bm-mid-00020452-001/representation.json",
+        "sha256": "39ca8081c0ea223e7684b52e198b19c1cb6d3c774f5b367ee342c931e56e0f17"
+      },
+      {
+        "path": "ToS/source-witnesses/artifacts/egyptian/unknown/papyrus-harris-500-ea10060/representations/bm-mid-00020452-001/rights.json",
+        "sha256": "2f185457d1ef16f81faeb0a33099b7da2bf4ea163f65f4a79c77ebb702117d62"
+      },
+      {
+        "path": "ToS/source-witnesses/artifacts/egyptian/unknown/papyrus-harris-500-ea10060/representations/bm-mid-00020453-001/representation.json",
+        "sha256": "63a9f628e448603e3c308adcc3ec8c9271fdbb53d5c3ca03e4b36d30510d8304"
+      },
+      {
+        "path": "ToS/source-witnesses/artifacts/egyptian/unknown/papyrus-harris-500-ea10060/representations/bm-mid-00020453-001/rights.json",
+        "sha256": "1f1714378929cae13b80caba3e33e7f0ca028e1eadd0e3411a75efc4b6bfc816"
+      },
+      {
+        "path": "ToS/source-witnesses/artifacts/old-babylonian/susa/hammurabi-stele-sb-8/artifact-witness.json",
+        "sha256": "0a717b8b46580effeb6958d2dcc575af979e144e271d9656974236524df786fe"
+      },
+      {
+        "path": "ToS/source-witnesses/artifacts/old-babylonian/susa/hammurabi-stele-sb-8/representations/commons-mbzt-rear-photograph-2011/representation.json",
+        "sha256": "10407061568822516c8c8d8156787f6d164a467846973a181d8a55ba21a85079"
+      },
+      {
+        "path": "ToS/source-witnesses/artifacts/old-babylonian/susa/hammurabi-stele-sb-8/representations/commons-mbzt-rear-photograph-2011/rights.json",
+        "sha256": "5335df2d1bf858a1b1d4e305132851386773e1f9f00d49c9d48c42f70f4f14a3"
+      },
+      {
+        "path": "ToS/source-witnesses/catalog/works.jsonl",
+        "sha256": "4e80c2bde9de3ce406fa60376850461b1fc488117189071539b688c0221c92dd"
+      },
+      {
+        "path": "ToS/source-witnesses/chronology/friedrich-nietzsche/first-publication/provenance.jsonl",
+        "sha256": "cd2b964c220b6a135cb500866cd357942ea12bfaa9f602bbd3c58f48e48265dc"
+      },
+      {
+        "path": "ToS/source-witnesses/collections/friedrich-nietzsche/nietzsches-werke-erste-abtheilung-band-viii-naumann-1906/editions/leipzig-c-g-naumann-1906/items/internet-archive-google-stanford-djvu-xml/provenance.jsonl",
+        "sha256": "878d448b32c970ba99d0c252ab7db92a20cee05082bbad01869f7bccc7dd83de"
+      },
+      {
+        "path": "ToS/source-witnesses/collections/friedrich-nietzsche/nietzsches-werke-erste-abtheilung-band-viii-naumann-1906/editions/leipzig-c-g-naumann-1906/items/wikimedia-commons-stanford-scan-djvu/provenance.jsonl",
+        "sha256": "e739dd91770a8d2371cabfad49b308b6020dab3c8fd852b4141dd59c76e2b65c"
+      },
+      {
+        "path": "ToS/source-witnesses/collections/friedrich-nietzsche/works-in-two-volumes-volume-2-mysl-1996/editions/moscow-mysl-1996-volume-2/items/operator-pdf/provenance.jsonl",
+        "sha256": "54411ad25356ce0b6195c468bb7a7caa5953727d9f4cb2ebdb0ddfbc23217bd0"
+      },
+      {
+        "path": "ToS/source-witnesses/discovery/candidates/receipts/book-of-the-dead.2026-08-30.v1.json",
+        "sha256": "c121433950ca97356aad24d2ab7d96934365ff44397df04f40c76cf6f031053d"
+      },
+      {
+        "path": "ToS/source-witnesses/discovery/candidates/receipts/book-of-the-dead.2026-09-02.v2.json",
+        "sha256": "27ced2c163910e0e460f511668c4107e1079ec554dd7d5f9f86c1a281f366a79"
+      },
+      {
+        "path": "ToS/source-witnesses/discovery/candidates/receipts/book-of-two-ways.2026-08-30.v1.json",
+        "sha256": "4ded3c68974165c320e4814bdf114ab9b4ecacacb4f235da9ba8d71b67a25294"
+      },
+      {
+        "path": "ToS/source-witnesses/discovery/candidates/receipts/book-of-two-ways.2026-09-02.v2.json",
+        "sha256": "2df9be5b1f1f5b55afefb117ddf7ca6f78b47d3fd9b70ee6e2cc556e4f2208a8"
+      },
+      {
+        "path": "ToS/source-witnesses/discovery/candidates/receipts/coffin-texts.2026-08-30.v1.json",
+        "sha256": "58a68550bebb95d4ef10f76eef9f0e7f50fb7ed48d071f8bebbbcd4e9325c890"
+      },
+      {
+        "path": "ToS/source-witnesses/discovery/candidates/receipts/coffin-texts.2026-09-02.v2.json",
+        "sha256": "f8abb298841d5cba4b373d4db3e16315a601658d0507c3aeeeae13e9ad80a82d"
+      },
+      {
+        "path": "ToS/source-witnesses/discovery/candidates/receipts/dialogue-between-a-man-and-his-ba.2026-08-30.v1.json",
+        "sha256": "b4ed6e6ed2d36db51b844f67b9818314fb1a90732257faa1ba1d58ae97d1ad97"
+      },
+      {
+        "path": "ToS/source-witnesses/discovery/candidates/receipts/harpers-songs.2026-08-30.v1.json",
+        "sha256": "dd53a3a051b65da13e4742004fc2ddecc3f432f90bd7153aab3d3bb16c57c40e"
+      },
+      {
+        "path": "ToS/source-witnesses/discovery/candidates/receipts/instruction-of-ptahhotep.2026-08-29.v1.json",
+        "sha256": "274eaef73df04d39064b133d3775cf8b762fb40c3606d2e333e31ca0cec0e3df"
+      },
+      {
+        "path": "ToS/source-witnesses/discovery/candidates/receipts/instruction-of-ptahhotep.2026-08-30.v2.json",
+        "sha256": "493296bd307254a11dfb717b2f7b18fe41b58cd4c10cdabfcea2f591ab3c692c"
+      },
+      {
+        "path": "ToS/source-witnesses/discovery/candidates/receipts/instructions-of-shuruppag.2026-08-30.v1.json",
+        "sha256": "8b2556e264dacf13ae2bf0d5d5b1c5d598b1b730d47b60f0cf90c874a52f2160"
+      },
+      {
+        "path": "ToS/source-witnesses/discovery/candidates/receipts/laws-of-hammurapi.2026-08-30.v1.json",
+        "sha256": "5badb23084b802d3167e52a2c2278eb5b09e432a709837ba1817776dcd070f00"
+      },
+      {
+        "path": "ToS/source-witnesses/discovery/candidates/receipts/laws-of-lipit-ishtar.2026-08-30.v1.json",
+        "sha256": "edd2b1f6e8ffe5bbda9f4e138577c7f5bfbe5834b135e675b45597dd2b95e2eb"
+      },
+      {
+        "path": "ToS/source-witnesses/discovery/candidates/receipts/laws-of-ur-namma.2026-08-30.v1.json",
+        "sha256": "22377d19759dc23cff98dcdbb026466588c503b5cfe2de675702704d199566c5"
+      },
+      {
+        "path": "ToS/source-witnesses/discovery/candidates/receipts/old-babylonian-gilgamesh-tradition.2026-08-30.v1.json",
+        "sha256": "d9fbbcd402da266b7792a7de28ec1a552b86cebd3b35ab4b9063b7db91809f76"
+      },
+      {
+        "path": "ToS/source-witnesses/discovery/candidates/receipts/old-babylonian-gilgamesh-tradition.2026-09-02.v2.json",
+        "sha256": "1dae31fbea7fb04ec913dec2c357d53871e88e59712e5157e05f90abe1d89dda"
+      },
+      {
+        "path": "ToS/source-witnesses/discovery/candidates/receipts/old-babylonian-sumerian-literary-catalogue-witnesses.2026-08-30.v1.json",
+        "sha256": "a521c35849e3637deb5d12ec67d2a7e2145284e0846051052344e7d603a676fd"
+      },
+      {
+        "path": "ToS/source-witnesses/discovery/candidates/receipts/pyramid-texts.2026-08-30.v1.json",
+        "sha256": "94dabe190f80a4dac137bdfea03f59d638bf4508bcdd7b62b124b5ee89ca950d"
+      },
+      {
+        "path": "ToS/source-witnesses/discovery/candidates/receipts/pyramid-texts.2026-09-02.v2.json",
+        "sha256": "dd3da0320fc94368ddadbd41db9f727f3ce59e7fbe7b15aa2663bfa6e2496496"
+      },
+      {
+        "path": "ToS/source-witnesses/discovery/candidates/reviewed-candidates.jsonl",
+        "sha256": "6bea94c4b430e938df8e55ad91ed2b4324715b18b6e11c0be7bfc7f840487583"
+      },
+      {
+        "path": "ToS/source-witnesses/discovery/provenance.jsonl",
+        "sha256": "680733520ab5d9ed7d077f990a6c7e055f410d81986f47f2faccc3bb62a6a79f"
+      },
+      {
+        "path": "ToS/source-witnesses/discovery/runs/antichrist-authorial-witness-route.2026-07-30.v1.json",
+        "sha256": "18b22f599840ae98b2fd7a5a5b886bb42f4510c23720a3723b37203c1ba1a2b0"
+      },
+      {
+        "path": "ToS/source-witnesses/discovery/runs/antonovsky-1898-1900-bibliographic-identity.2026-08-01.v1.json",
+        "sha256": "a8039fe74939670fef6a0701b607d5a6f61d04578fbb0c80135ebd8f49a7dcbf"
+      },
+      {
+        "path": "ToS/source-witnesses/discovery/runs/antonovsky-1900-lnb-physical-holding.2026-08-01.v1.json",
+        "sha256": "3ee58bacee6e95b8d742886a3cbf733c4bc0b7a5780c2ba0298cca3d8c2dfdb0"
+      },
+      {
+        "path": "ToS/source-witnesses/discovery/runs/antonovsky-1900-rsl-rnl-lnb-current-holdings.2026-08-10.v2.json",
+        "sha256": "cc5ab5d9b2e3468b484c1b05fc0aab1f35e5aa3110427f575c32421367605e97"
+      },
+      {
+        "path": "ToS/source-witnesses/discovery/runs/antonovsky-1903-rsl-edition-holdings.2026-08-01.v1.json",
+        "sha256": "eceb9a5dd347ad89bf2aa176d891445bbbee2ee1b804ea312a320799c33aaae7"
+      },
+      {
+        "path": "ToS/source-witnesses/discovery/runs/antonovsky-1903-rsl-rnl-current-holdings.2026-08-10.v2.json",
+        "sha256": "563d8c9bf6ea4d15a4a2898d8fa379401df017ca90801d22ef7da9342cdf2616"
+      },
+      {
+        "path": "ToS/source-witnesses/discovery/runs/antonovsky-1907-revision-witness.2026-08-01.v1.json",
+        "sha256": "8ccc642482481b9dd345b02cff3234b243639eccb07cfa12d2f116e72fba450d"
+      },
+      {
+        "path": "ToS/source-witnesses/discovery/runs/antonovsky-1907-rnl-gak-holding.2026-08-10.v2.json",
+        "sha256": "4c13ff551e1911ffe2e0983f7292cda1f97f5e62e5b7bcf87c69140ab7a1ca67"
+      },
+      {
+        "path": "ToS/source-witnesses/discovery/runs/antonovsky-1907-rnl-primo-current-holding.2026-08-10.v3.json",
+        "sha256": "de7c0c4880d16d17aed096d36827526813a97c79f5cf3564e0db474d85ec2777"
+      },
+      {
+        "path": "ToS/source-witnesses/discovery/runs/antonovsky-1907-rnl-reported-rsl-holding.2026-08-10.v4.json",
+        "sha256": "0c5a55d2cf57897f80753687c316032c775cc8ce7f9b8fbe3d632ebcf9137df6"
+      },
+      {
+        "path": "ToS/source-witnesses/discovery/runs/antonovsky-1907-runeb-edition.2026-08-01.v1.json",
+        "sha256": "730d06050dd7cc123fbc6c1d452a2f9ec4142685241bf4bfc9be5a0296ca78e7"
+      },
+      {
+        "path": "ToS/source-witnesses/discovery/runs/antonovsky-1913-provision-identity.2026-08-01.v1.json",
+        "sha256": "e3f524983916e191afd793374a94d245ba11c98125533470399b6f6a8a193e19"
+      },
+      {
+        "path": "ToS/source-witnesses/discovery/runs/antonovsky-1913-wikimedia-open-witness.2026-07-28.v1.json",
+        "sha256": "1c3483340d0ff807f45cf54879da8fc348dbe06f54e9fef2ec814dc06bc1b2d3"
+      },
+      {
+        "path": "ToS/source-witnesses/discovery/runs/antonovsky-agent-identity-reconciliation.2026-08-01.v1.json",
+        "sha256": "be107402e23a24f0b82d09ef2370d454ff82c4aec42b7fae389d4e168c8c70d0"
+      },
+      {
+        "path": "ToS/source-witnesses/discovery/runs/antonovsky-cultural-revolution-2007-translation-responsibility.2026-08-01.v1.json",
+        "sha256": "ddc45375bfc7fa39d25165bf6228c21cffa66b366bb29336baa60a1d4583ef18"
+      },
+      {
+        "path": "ToS/source-witnesses/discovery/runs/antonovsky-cultural-revolution-2007-volume-4.2026-07-28.v1.json",
+        "sha256": "1031ef59f2398af05a2c2fcdb788c330a3832d3a047f887681a1b1560aba97da"
+      },
+      {
+        "path": "ToS/source-witnesses/discovery/runs/antonovsky-prometey-1911-source-witness.2026-08-01.v1.json",
+        "sha256": "5c3667f4f979ed18b8b56176ea4268caf016aeda1a714bf6ab96183e4c5c9c32"
+      },
+      {
+        "path": "ToS/source-witnesses/discovery/runs/book-of-the-dead-nebseny-naville-member.2026-08-30.v1.json",
+        "sha256": "7d7504a32a928807ce116dcd5745623b2fad56757c4cd202d5ef197cd42bbc64"
+      },
+      {
+        "path": "ToS/source-witnesses/discovery/runs/book-of-the-dead-open-work-route.2026-08-30.v1.json",
+        "sha256": "fa3f1d4e121dbb9b2011b24ba1a54206b43c95e4f00ccca72798ee3bd799a8e1"
+      },
+      {
+        "path": "ToS/source-witnesses/discovery/runs/book-of-the-dead-papyrus-ani-artifact.2026-08-30.v1.json",
+        "sha256": "6f4ea9f34ce395ab31474484fd26724866509b9de207db250e632da6ff580a80"
+      },
+      {
+        "path": "ToS/source-witnesses/discovery/runs/book-of-two-ways-bm-sen-artifact.2026-08-30.v1.json",
+        "sha256": "feaf0fabe7b48c8447debe76f7f292c376385806c88d4d4b4f7b480d219bbb22"
+      },
+      {
+        "path": "ToS/source-witnesses/discovery/runs/book-of-two-ways-open-work-route.2026-08-30.v1.json",
+        "sha256": "9864d1f21238794817d10202064adae941537f6eaa1c1551d78c7a85bab7a527"
+      },
+      {
+        "path": "ToS/source-witnesses/discovery/runs/coffin-texts-met-artifacts.2026-08-30.v1.json",
+        "sha256": "1dd2ede73d57a1dd45e73b29b9fee40ce440c6e223198172402a1747b1a0d7c5"
+      },
+      {
+        "path": "ToS/source-witnesses/discovery/runs/coffin-texts-open-work-route.2026-08-30.v1.json",
+        "sha256": "a93694c55d6ac24ad72cf7b5bde9262b580b134bcd511ca77a5a7b8a0f5e05bc"
+      },
+      {
+        "path": "ToS/source-witnesses/discovery/runs/der-antichrist-naumann-1906-open-scan-witness.2026-07-30.v1.json",
+        "sha256": "6f0bd26f632869d03a7580a6ab4799c1ab75dcf2e4280bf6f72c4f17343440df"
+      },
+      {
+        "path": "ToS/source-witnesses/discovery/runs/der-fall-wagner-naumann-1888-open-scan-witness.2026-07-30.v1.json",
+        "sha256": "b87dbcee418c889df12ce5aa54d51219ee12cd84b59aa69a55265761ef1ab661"
+      },
+      {
+        "path": "ToS/source-witnesses/discovery/runs/dialogue-between-a-man-and-his-ba-open-work-route.2026-08-30.v1.json",
+        "sha256": "b9da47ff3b26301c4241257b4b9be6dcc6d90456e70f6e0d371422c8434aaee6"
+      },
+      {
+        "path": "ToS/source-witnesses/discovery/runs/dialogue-man-ba-papyrus-berlin-p3024-artifact.2026-08-30.v1.json",
+        "sha256": "8671de1e4cd7b02edd1a6887305a8a509980b379fc1335891abed4c9500a7399"
+      },
+      {
+        "path": "ToS/source-witnesses/discovery/runs/dta-zarathustra-part-1-open-structured-witness.2026-07-28.v1.json",
+        "sha256": "fbcc9619839b1064ccbc128ace27b332732034437de9c3e1131da2c2be52c6b9"
+      },
+      {
+        "path": "ToS/source-witnesses/discovery/runs/dta-zarathustra-parts-2-4-open-structured-witnesses.2026-07-28.v1.json",
+        "sha256": "ee91395d0c0d19202c25d48e5b2ef1ea42016370c1871bc5eaa7dc8f7ca431bb"
+      },
+      {
+        "path": "ToS/source-witnesses/discovery/runs/ecce-homo-authorial-witness-route.2026-07-30.v1.json",
+        "sha256": "15169043087057409ea9af52312e14aeb9aff0c897505368dc5191e7f37a3030"
+      },
+      {
+        "path": "ToS/source-witnesses/discovery/runs/ecce-homo-insel-1908-open-scan-witness.2026-07-30.v1.json",
+        "sha256": "e843f4d1b1d2e1e102edf7e8e09c67665b56df33248318511a08a72d5f1f106a"
+      },
+      {
+        "path": "ToS/source-witnesses/discovery/runs/ekgwb-za-i-vorrede-1-http-fallback.2026-07-29.v2.json",
+        "sha256": "8093a24b7ad77f09ad9ca75e649ea08e9aec4eb3079f1d082643e2df06172d68"
+      },
+      {
+        "path": "ToS/source-witnesses/discovery/runs/ekgwb-za-i-vorrede-1-institutional-corroboration.2026-07-30.v3.json",
+        "sha256": "ed76d41783a9cce768c1d42b4f447f493e833ad0156b918ca2a2260cd2a2c230"
+      },
+      {
+        "path": "ToS/source-witnesses/discovery/runs/ekgwb-za-i-vorrede-1.2026-07-28.v1.json",
+        "sha256": "01e1f07fed214685528b8a8b24fbaa4b8d4a2e177f29b9cb0cffd05277ece3c0"
+      },
+      {
+        "path": "ToS/source-witnesses/discovery/runs/fall-wagner-authorial-witness-route.2026-07-30.v1.json",
+        "sha256": "3288893a6e32d7486ab95196d06e3174d7e43811c604e60cb20eef3026ec84ea"
+      },
+      {
+        "path": "ToS/source-witnesses/discovery/runs/genealogie-1892-provision-identity.2026-08-01.v1.json",
+        "sha256": "751bbbd86a44b6fb3c4744da017135a80bec487e370459b25df24d593f0e1962"
+      },
+      {
+        "path": "ToS/source-witnesses/discovery/runs/genealogie-authorial-witness-route.2026-07-30.v1.json",
+        "sha256": "57cd66f6db41efde6b5b63c4dc648903ece737035261050dbc681b3d2f3c8cce"
+      },
+      {
+        "path": "ToS/source-witnesses/discovery/runs/genealogie-naumann-1892-open-scan-witness.2026-07-30.v1.json",
+        "sha256": "81dcb6ed7c5bc6c26583f240539a736745286060c6ea550031fb754122cd6b8a"
+      },
+      {
+        "path": "ToS/source-witnesses/discovery/runs/goetzen-daemmerung-authorial-witness-route.2026-07-30.v1.json",
+        "sha256": "29705b8fce6b2081752780472d34867f4808f71803b58571b6c69f5af8953a23"
+      },
+      {
+        "path": "ToS/source-witnesses/discovery/runs/goetzen-daemmerung-naumann-1889-open-scan-witness.2026-07-30.v1.json",
+        "sha256": "329cfb0c2e07a6975a2b7420a663e78b04cfef20cb29c976090a6fb70e106bec"
+      },
+      {
+        "path": "ToS/source-witnesses/discovery/runs/harpers-songs-open-work-route.2026-08-30.v1.json",
+        "sha256": "0dc131ba17fa70f1bc44e40e4806a14e35ccfaf1c7d7fa5145fa17d361e6e358"
+      },
+      {
+        "path": "ToS/source-witnesses/discovery/runs/harpers-songs-papyrus-harris-500-artifact.2026-08-30.v1.json",
+        "sha256": "3979e4f4a5e7c03ae1ccfc89fda2e7e70c7aaab91a34bba3ff5b611cd3dfccf9"
+      },
+      {
+        "path": "ToS/source-witnesses/discovery/runs/instruction-of-ptahhotep-open-work-route.2026-08-29.v1.json",
+        "sha256": "dee6565b9535d67fc9aaf0f973444ae744f954afee7a751726be7a4f76df868f"
+      },
+      {
+        "path": "ToS/source-witnesses/discovery/runs/instruction-of-ptahhotep-open-work-route.2026-08-29.v2.json",
+        "sha256": "0436dc8322105290c8360545aeb6116e3c60d9240875754c90559e5714578fa2"
+      },
+      {
+        "path": "ToS/source-witnesses/discovery/runs/instructions-of-shuruppag-early-physical-witnesses.2026-08-22.v1.json",
+        "sha256": "0f5357468c6d8d4c31733927dce63174810beaa1c13129242c4f90025353f296"
+      },
+      {
+        "path": "ToS/source-witnesses/discovery/runs/instructions-of-shuruppag-open-work-route.2026-08-30.v1.json",
+        "sha256": "8542550b24e7716ad65289e915ef4f915f5c3991daa2dd7d57b635c5622b29d4"
+      },
+      {
+        "path": "ToS/source-witnesses/discovery/runs/jenseits-1886-provision-identity.2026-08-01.v1.json",
+        "sha256": "b8e9afefdcf58e4ffff6cd97e5fdf0a2a651a429aea739d8286f9def5de710bc"
+      },
+      {
+        "path": "ToS/source-witnesses/discovery/runs/jenseits-authorial-witness-route.2026-07-30.v1.json",
+        "sha256": "402b73172eedc52d3b554fdbf6560f35a8410e893be42540ac250bb4f3c4a84d"
+      },
+      {
+        "path": "ToS/source-witnesses/discovery/runs/jenseits-naumann-1886-open-scan-witness.2026-07-28.v1.json",
+        "sha256": "f7f2e410966097e6b6db3a1f198e667686909a2e98a1ec0e1bcff597c3e162de"
+      },
+      {
+        "path": "ToS/source-witnesses/discovery/runs/laws-of-hammurapi-open-work-route.2026-08-30.v1.json",
+        "sha256": "395403fbc0115b42169197d88fdaf6eda03b310ec59fe05d73cb37e95a23652f"
+      },
+      {
+        "path": "ToS/source-witnesses/discovery/runs/laws-of-lipit-ishtar-open-work-route.2026-08-30.v1.json",
+        "sha256": "194fd01be3d1ca3704ceb2de2521f76b53b8c42138a64c9d0d791a2128c586d6"
+      },
+      {
+        "path": "ToS/source-witnesses/discovery/runs/laws-of-ur-namma-open-work-route.2026-08-30.v1.json",
+        "sha256": "98dd110768a30418cd9dad611366809412df70378ace62aa28bec458cfbd47b1"
+      },
+      {
+        "path": "ToS/source-witnesses/discovery/runs/mesopotamian-law-collection-physical-witnesses.2026-08-22.v1.json",
+        "sha256": "1b0dfdb7ff0d97b3a2e2a92840f340183b02c55a3f0bd7563bffb19653fb4247"
+      },
+      {
+        "path": "ToS/source-witnesses/discovery/runs/mesopotamian-law-collections.2026-08-22.v1.json",
+        "sha256": "eb23720cb7359ccef24c077814fd16be3ec61621875ac5c820e6404c48c6ec3b"
+      },
+      {
+        "path": "ToS/source-witnesses/discovery/runs/museo-egizio-cgt-54014-artifact-route.2026-08-29.v1.json",
+        "sha256": "6a778093482c9f10017c84124ffe50cab48d4f8bd329ebd9d07596e5f62f87bc"
+      },
+      {
+        "path": "ToS/source-witnesses/discovery/runs/mysl-1996-volume-2.2026-07-28.v1.json",
+        "sha256": "cd5c179dd52c483b4a1c0cb3cbdf8b5063165ed5b9421e90556ad2ffa4bbdb84"
+      },
+      {
+        "path": "ToS/source-witnesses/discovery/runs/mysl-translator-identity-reconciliation.2026-08-01.v1.json",
+        "sha256": "5e97c84d7ca1c95f8e6f360387ac5d022fe45afb5b30459d3744bc5bab7ab512"
+      },
+      {
+        "path": "ToS/source-witnesses/discovery/runs/nani-1899-parallel-fragment-source-witness.2026-08-01.v1.json",
+        "sha256": "fdba319af43f35bb270604d0e315fa54f7f9d030fea0ef0b28d746f850072e41"
+      },
+      {
+        "path": "ToS/source-witnesses/discovery/runs/naumann-1893-provision-identity.2026-08-01.v1.json",
+        "sha256": "8817fa428fa738a8eb90f5dcc55214664bf869cb6f34b2a53f4425990fa55b28"
+      },
+      {
+        "path": "ToS/source-witnesses/discovery/runs/nietzsche-mysl-volume-2-member-works.2026-07-28.v1.json",
+        "sha256": "b019e7eaa8c81fe39baeec53a985bcdab7e1c5518cb0560e8e5f3e4245bbb162"
+      },
+      {
+        "path": "ToS/source-witnesses/discovery/runs/old-babylonian-cdli-digital-artifact-registry.2026-08-12.v1.json",
+        "sha256": "db470864239e7af9e2e7dbea0bdb7e9027bc2a7da277bfc33a2ce06d7a754ff6"
+      },
+      {
+        "path": "ToS/source-witnesses/discovery/runs/old-babylonian-etcsl-digital-corpus.2026-08-12.v1.json",
+        "sha256": "30a199c66094ca4200182a6e01c58fca66eacc9c21c87c96f1c9d69b7f0445a6"
+      },
+      {
+        "path": "ToS/source-witnesses/discovery/runs/old-babylonian-gilgamesh-cbs7771.2026-08-22.v1.json",
+        "sha256": "a8d60d93050581dae67654f152f5d07ea1677414426be0fa9fbe604e3306e9d3"
+      },
+      {
+        "path": "ToS/source-witnesses/discovery/runs/old-babylonian-gilgamesh-fragments.2026-08-22.v1.json",
+        "sha256": "314b168b25f873bdd43b5f1face5f246053ffb28d3dacb17c0809163ff4675d3"
+      },
+      {
+        "path": "ToS/source-witnesses/discovery/runs/old-babylonian-gilgamesh-open-work-route.2026-08-30.v1.json",
+        "sha256": "97ababbc4268ec11a36361c9e3ef51362449773fb39e0a5dd88bd7bdd3c7b41b"
+      },
+      {
+        "path": "ToS/source-witnesses/discovery/runs/old-babylonian-hammurabi-stele-sb8.2026-08-13.v1.json",
+        "sha256": "6700c4bfc32c2c6f13fa410f77bd0d2f6216d6dabc9cadeac68341ee685aa78a"
+      },
+      {
+        "path": "ToS/source-witnesses/discovery/runs/old-babylonian-instructions-of-shuruppag.2026-08-22.v1.json",
+        "sha256": "732d38948c01f0a914cfb4c5c92befc6d1e98acb4c5faac037968a5b8c184e17"
+      },
+      {
+        "path": "ToS/source-witnesses/discovery/runs/old-babylonian-louvre-ao-05393.2026-08-23.v1.json",
+        "sha256": "56f2e77f3761aa23d11f53064c55e717ac509609d5c62e47b066899e7f461339"
+      },
+      {
+        "path": "ToS/source-witnesses/discovery/runs/old-babylonian-nippur-ur-school-tablets.2026-08-13.v1.json",
+        "sha256": "9de4eb0ebe6495df9cf415ce5894754f5eabe308294ecef14c6c271d8c41b844"
+      },
+      {
+        "path": "ToS/source-witnesses/discovery/runs/old-babylonian-sumerian-literary-catalogues-open-work-route.2026-08-30.v1.json",
+        "sha256": "64404abfab4ed51395a7a4a63bbff5a754dcb504df559093bea7f6236396ef52"
+      },
+      {
+        "path": "ToS/source-witnesses/discovery/runs/old-babylonian-sumerian-literary-catalogues.2026-08-23.v1.json",
+        "sha256": "b576100ca421a6435c1e140a02033934dba310af62ec25b6226cbd7b0d6c6f97"
+      },
+      {
+        "path": "ToS/source-witnesses/discovery/runs/old-babylonian-yale-babylonian-collection-ancient-mesopotamia-speaks.2026-08-23.v1.json",
+        "sha256": "79ce517e556747cf697c6a6a2ff1d1c2c9d2408b666af48177b319843c547b11"
+      },
+      {
+        "path": "ToS/source-witnesses/discovery/runs/papyrus-prisse-artifact-route.2026-08-29.v1.json",
+        "sha256": "d107f37ad5c0f340f579643d3aa88c01753da44fec8a7125a592dfd657c036fb"
+      },
+      {
+        "path": "ToS/source-witnesses/discovery/runs/proto-cuneiform-atu2-signlist-critical-edition.2026-08-12.v1.json",
+        "sha256": "4cf7d49829292de14bc5834dc1682ec061ad0475926e7a7bccdf96fe503b7703"
+      },
+      {
+        "path": "ToS/source-witnesses/discovery/runs/proto-cuneiform-atu3-lexical-lists-critical-edition.2026-08-12.v1.json",
+        "sha256": "1077545fed9a516c7e15520aae724cbba49e9418ce08bd36714c8ccac72cc5aa"
+      },
+      {
+        "path": "ToS/source-witnesses/discovery/runs/proto-cuneiform-atu5-numerical-texts-layer.2026-08-12.v1.json",
+        "sha256": "8a0ca182b5f151c95d9e6f9bdc3df006aefb43c92d6b9ab9a2f010c2de453e1c"
+      },
+      {
+        "path": "ToS/source-witnesses/discovery/runs/proto-cuneiform-britannica-cuneiform-synthesis.2026-08-12.v1.json",
+        "sha256": "2c11195b3d1bdb4e90f176368e75fd3d35d64163155ed7fa4f504a94bf87f450"
+      },
+      {
+        "path": "ToS/source-witnesses/discovery/runs/proto-cuneiform-cdlb-2003-2-script-direction.2026-08-12.v1.json",
+        "sha256": "7264c1a2297aaf9a99670123b9414fd9ae7b08a4e153cc4afda01f929f23477c"
+      },
+      {
+        "path": "ToS/source-witnesses/discovery/runs/proto-cuneiform-cdlb-2006-1-n16-metrological-context.2026-08-12.v1.json",
+        "sha256": "a136f4581675deafe664184ce02093f6d01fee1757aa956b9050713a411bbf17"
+      },
+      {
+        "path": "ToS/source-witnesses/discovery/runs/proto-cuneiform-cdlb-2021-6-quantitative-sign-use.2026-08-12.v1.json",
+        "sha256": "0f809126fcff8f78ed7889a8f1305d57adb997b13dd7795775582d5619d172b2"
+      },
+      {
+        "path": "ToS/source-witnesses/discovery/runs/proto-cuneiform-edubba-later-afterlife.2026-08-12.v1.json",
+        "sha256": "b07dfefb1701998d92fba92ac941ee9f967be17552c950671907be8727595d70"
+      },
+      {
+        "path": "ToS/source-witnesses/discovery/runs/proto-cuneiform-getty-mesopotamia-city-bureaucracy-writing.2026-08-12.v1.json",
+        "sha256": "bc6ee2e3598d19b8d077d0c45939fb6dc9527b2b69231e4d81db3cda7d4da961"
+      },
+      {
+        "path": "ToS/source-witnesses/discovery/runs/proto-cuneiform-nissen-uruk-and-i-documentation-context.2026-08-12.v1.json",
+        "sha256": "5396cf217401120519e81bb4cd2257ae04606edacbe30a5e7ac991bf46d565f2"
+      },
+      {
+        "path": "ToS/source-witnesses/discovery/runs/proto-cuneiform-p000015-artifact-source.2026-08-12.v1.json",
+        "sha256": "73bae9be7e9fc1751923691d6422cf96434dddcb25ca28ee09173b6d6f3a1f59"
+      },
+      {
+        "path": "ToS/source-witnesses/discovery/runs/proto-cuneiform-q000023-scholarly-composite.2026-08-12.v1.json",
+        "sha256": "397769acd590b33d11d64fffdfc664793a71fcd763895ff0f4c43198a82b2fde"
+      },
+      {
+        "path": "ToS/source-witnesses/discovery/runs/proto-cuneiform-schmandt-besserat-token-tablet-debate.2026-08-12.v1.json",
+        "sha256": "548bb7c679c887c3e59a1f52d4ff6cabd58ba361360d2c715cee1ec004c45a63"
+      },
+      {
+        "path": "ToS/source-witnesses/discovery/runs/pyramid-of-unas-artifact-route.2026-08-30.v1.json",
+        "sha256": "8a558649c26d4c55703edccc7b558027d1327c03a721666ab3f656fbc6b03ae5"
+      },
+      {
+        "path": "ToS/source-witnesses/discovery/runs/pyramid-texts-open-work-route.2026-08-30.v1.json",
+        "sha256": "f1eb337a4823b5c0bef0f3f4e5706850a83e76a5218959d140cc9dac057e3794"
+      },
+      {
+        "path": "ToS/source-witnesses/discovery/runs/reader-1899-rnl-rusneb-fragment-source-witness.2026-08-01.v1.json",
+        "sha256": "99520d20ad425d5cdc1d6d5165c2843ad4ddd2344cef9bb255215f9f567eb5fe"
+      },
+      {
+        "path": "ToS/source-witnesses/discovery/runs/stanford-loeb-tinsley-post-street-metadata.2026-08-11.v2.json",
+        "sha256": "b7c93576d469099b420568a662cd555d1ad876f9875ba0a678b4f5408ef460f4"
+      },
+      {
+        "path": "ToS/source-witnesses/discovery/runs/stanford-loeb-tinsley-pre-street-drift.2026-08-10.v1.json",
+        "sha256": "35acaa6bd928fec31c7d631dca903f1d5b9688f2abccaf04da90fc07d84a6ff6"
+      },
+      {
+        "path": "ToS/source-witnesses/discovery/runs/textgrid-transfer-source-challenger.2026-08-09.v1.json",
+        "sha256": "1deff5beb8a5714c27af143a53bb00243b498d20499412bbb5060abc826d5574"
+      },
+      {
+        "path": "ToS/source-witnesses/discovery/runs/zarathustra-authorial-witness-route.2026-07-30.v1.json",
+        "sha256": "da1859bd5e300e2a80b65b7f0b97535f52264bb0eddb04843f16fa52f9904442"
+      },
+      {
+        "path": "ToS/source-witnesses/discovery/runs/zarathustra-etymology-evidence-route.2026-08-08.v1.json",
+        "sha256": "b0ea21a6e7146466c31778c910930a1f0b8547334dd99257e93f4bb141cc92fe"
+      },
+      {
+        "path": "ToS/source-witnesses/discovery/runs/zarathustra-part-1-provision-identity.2026-08-01.v1.json",
+        "sha256": "7d9c22fde08241bb7e366219512b6f0c5995f641c2a9d9f896ef5eeeb6765166"
+      },
+      {
+        "path": "ToS/source-witnesses/discovery/runs/zarathustra-part-4-provision-identity.2026-08-01.v1.json",
+        "sha256": "416d5fa4ed152043682f97d6f7fdb58332d971efc7656b2844831f5b21cd5e83"
+      },
+      {
+        "path": "ToS/source-witnesses/discovery/runs/zarathustra-parts-2-3-provision-identity.2026-08-01.v1.json",
+        "sha256": "7039aa650e634923bef758d13f40b8fab4ebd03f27938bcafd5a0e961f278ad3"
+      },
+      {
+        "path": "ToS/source-witnesses/discovery/timings/book-of-the-dead-nebseny-naville-member.2026-08-30.v1.json",
+        "sha256": "00f0452aa89c97b581f02de90e0c31b28746f44c94409158319c830f67ade232"
+      },
+      {
+        "path": "ToS/source-witnesses/discovery/timings/book-of-the-dead-open-work-route.2026-08-30.v1.json",
+        "sha256": "a0ef2c554ea4f0af7cda3b6cedbe093f990fb690cf2ada114fbc847ada875c24"
+      },
+      {
+        "path": "ToS/source-witnesses/discovery/timings/book-of-the-dead-papyrus-ani-artifact.2026-08-30.v1.json",
+        "sha256": "41d83c14772ec6b6fa1e13f5022750609171cc8bc06087bb3c59f16332256269"
+      },
+      {
+        "path": "ToS/source-witnesses/discovery/timings/book-of-two-ways-bm-sen-artifact.2026-08-30.v1.json",
+        "sha256": "60cd18a549e8c613a27733c456d4081bcd0ec9c3a137ecc2fcb6e5d8596f4416"
+      },
+      {
+        "path": "ToS/source-witnesses/discovery/timings/book-of-two-ways-open-work-route.2026-08-30.v1.json",
+        "sha256": "9a9d7f58aeba047accc538820bcdd1fb6e84f72318fc1134d9365874711f6bcd"
+      },
+      {
+        "path": "ToS/source-witnesses/discovery/timings/coffin-texts-met-artifacts.2026-08-30.v1.json",
+        "sha256": "50772eba0f8eeee131f6c94f9c81d13c0695d61cf989e0535483691ac7e355ca"
+      },
+      {
+        "path": "ToS/source-witnesses/discovery/timings/coffin-texts-open-work-route.2026-08-30.v1.json",
+        "sha256": "433e515486c4a63e82f7d6f9117e99af6288c00904d4205dc6dcd7f1837542db"
+      },
+      {
+        "path": "ToS/source-witnesses/discovery/timings/dialogue-between-a-man-and-his-ba-open-work-route.2026-08-30.v1.timing.json",
+        "sha256": "a475393057f772f31aad4c1cfe50c61d1b30ada58d866a72e929aecdb522f001"
+      },
+      {
+        "path": "ToS/source-witnesses/discovery/timings/dialogue-man-ba-papyrus-berlin-p3024-artifact.2026-08-30.v1.json",
+        "sha256": "4feb564a5d484ab9ac63973da8d27f406a75f3d5303d69eca1595715722a99d1"
+      },
+      {
+        "path": "ToS/source-witnesses/discovery/timings/harpers-songs-open-work-route.2026-08-30.v1.json",
+        "sha256": "d7981ac31e642c8dde713c423e51d90fa4ad4326614fa16fb93babb1a814d31a"
+      },
+      {
+        "path": "ToS/source-witnesses/discovery/timings/harpers-songs-papyrus-harris-500-artifact.2026-08-30.v1.json",
+        "sha256": "8e8d1e9f876d9a01f9ac44ae2a242254582a7adb592ccb7258cb99ac49567017"
+      },
+      {
+        "path": "ToS/source-witnesses/discovery/timings/instruction-of-ptahhotep-open-work-route.2026-08-29.v2.json",
+        "sha256": "687425dc361dca0461a30880fc1e18e99ce933e2056eb7e36a3311f5bfdf058d"
+      },
+      {
+        "path": "ToS/source-witnesses/discovery/timings/instructions-of-shuruppag-open-work-route.2026-08-30.v1.json",
+        "sha256": "cad1ed750ee5cf58ccec7f7f62a818306300395b1fd40a7562c6a5f2617f26b8"
+      },
+      {
+        "path": "ToS/source-witnesses/discovery/timings/laws-of-hammurapi-open-work-route.2026-08-30.v1.json",
+        "sha256": "ca4240e5953a8666d338efa4382836b214c888a14fd1ad3ceef1415336d38898"
+      },
+      {
+        "path": "ToS/source-witnesses/discovery/timings/laws-of-lipit-ishtar-open-work-route.2026-08-30.v1.json",
+        "sha256": "5e6b3d156310e097710704502b09f395ae6182cf570ae57fd2e9acd4667778c8"
+      },
+      {
+        "path": "ToS/source-witnesses/discovery/timings/laws-of-ur-namma-open-work-route.2026-08-30.v1.json",
+        "sha256": "30b6359c5f0d90c2222a07119beffb5a158fb2470c407593548fe0d7361b9683"
+      },
+      {
+        "path": "ToS/source-witnesses/discovery/timings/museo-egizio-cgt-54014-artifact-route.2026-08-29.v1.json",
+        "sha256": "ab5ed701874ab5f1937f6de8065ff561587b0c5d1d0b236757a7a14512b2f70e"
+      },
+      {
+        "path": "ToS/source-witnesses/discovery/timings/old-babylonian-gilgamesh-open-work-route.2026-08-30.v1.json",
+        "sha256": "98946cc156a9e512c2389b67b5415414372e8367500c45c7932bf3ae7cd44973"
+      },
+      {
+        "path": "ToS/source-witnesses/discovery/timings/old-babylonian-sumerian-literary-catalogues-open-work-route.2026-08-30.v1.json",
+        "sha256": "b5a2f693e8fe00866b0f3d415bd6be009786f37a443476018921426e6b3b02df"
+      },
+      {
+        "path": "ToS/source-witnesses/discovery/timings/pyramid-of-unas-artifact-route.2026-08-30.v1.json",
+        "sha256": "8798ec7c5522f8c80c9b38c76ed9ea06c7ac94edd8e18f6741637a8fe8deb7d4"
+      },
+      {
+        "path": "ToS/source-witnesses/discovery/timings/pyramid-texts-open-work-route.2026-08-30.v1.json",
+        "sha256": "a160784544e20c1d5697a6bfc435e28526e9bf1e5b1b2d647edf35b4d73fd992"
+      },
+      {
+        "path": "ToS/source-witnesses/relations/expression-derivation/provenance.jsonl",
+        "sha256": "e7715c42bf9caac92b0572b7b8bd769118ff9a75d7ae1191f6c12a86ca699e66"
+      },
+      {
+        "path": "ToS/source-witnesses/relations/provenance.jsonl",
+        "sha256": "5de4bd080065d47ff0c401daaed3d081251c45b32f18f6515660b9771664296d"
+      },
+      {
+        "path": "ToS/source-witnesses/scholarly-composites/critical/akkadian/laws-of-hammurapi/composite-witness.json",
+        "sha256": "7d39399372c3ab0bd322663d6b19e466b305d0f1d32b7a1adafe877d543bffef"
+      },
+      {
+        "path": "ToS/source-witnesses/scholarly-composites/critical/akkadian/laws-of-hammurapi/representations/roth-laws-of-hammurabi-revised-2026-pdf/representation.json",
+        "sha256": "8c08716144ec37d77d00be594ad0276ebc56a54ff9a5c21d97e1468cf486035d"
+      },
+      {
+        "path": "ToS/source-witnesses/scholarly-composites/critical/akkadian/laws-of-hammurapi/representations/roth-laws-of-hammurabi-revised-2026-pdf/rights.json",
+        "sha256": "b1040f300ab4e5d4541d4bb59b7d1bba14b6a9371c4955b6ea3a4c2b69d8dc79"
+      },
+      {
+        "path": "ToS/source-witnesses/scholarly-composites/critical/egyptian/book-of-the-dead-naville-1886/composite-witness.json",
+        "sha256": "0cb2a4a1272b9f67c7a096244692bbf5acccc2f7b3417e417b4feef8cb8daffe"
+      },
+      {
+        "path": "ToS/source-witnesses/scholarly-composites/critical/egyptian/book-of-the-dead-naville-1886/representations/commons-ia-dasaegyptischeto00naviuoft/rights.json",
+        "sha256": "c73b336bd954a67f9637392afc09327862eb80102189e4c8c90164c40b92a9bf"
+      },
+      {
+        "path": "ToS/source-witnesses/scholarly-composites/critical/egyptian/pyramid-texts-sethe-1908-1910/composite-witness.json",
+        "sha256": "263775a54fb1f8433800f97e3d6024c5867bcbe754ad6a7b94c8903e6f96b215"
+      },
+      {
+        "path": "ToS/source-witnesses/scholarly-composites/critical/egyptian/pyramid-texts-sethe-1908-1910/representations/bsb-volume-1/representation.json",
+        "sha256": "2a10f0bfdde864b32227b272ae1f2ec3aaca0e88e6c98a98f4a86c3319c17bb2"
+      },
+      {
+        "path": "ToS/source-witnesses/scholarly-composites/critical/egyptian/pyramid-texts-sethe-1908-1910/representations/bsb-volume-1/rights.json",
+        "sha256": "8963853f8667054f5b78675e8f2b5eeade107b327dce1ccaa6b017337f77eaf2"
+      },
+      {
+        "path": "ToS/source-witnesses/scholarly-composites/critical/egyptian/pyramid-texts-sethe-1908-1910/representations/bsb-volume-2/representation.json",
+        "sha256": "0d6164039ebe973fab047dcfdb290d56f6b1cd0b60be75cb4489978cf149f4cf"
+      },
+      {
+        "path": "ToS/source-witnesses/scholarly-composites/critical/egyptian/pyramid-texts-sethe-1908-1910/representations/bsb-volume-2/rights.json",
+        "sha256": "e51f7215b19529af900700157007a570ab47d8e386a55d1a338e1d7fa8bd2694"
+      },
+      {
+        "path": "ToS/source-witnesses/scholarly-composites/critical/sumerian/instructions-of-shuruppag/composite-witness.json",
+        "sha256": "07425e85cbbd018463621509fbe5adf85027c8f1cc584c3995a9f4358d2cd329"
+      },
+      {
+        "path": "ToS/source-witnesses/scholarly-composites/critical/sumerian/instructions-of-shuruppag/representations/ota-2518-etcsl-5-6-1-translation/representation.json",
+        "sha256": "8b5bc7a1881e5b06898e4e5b2275d6d1060245f1b8cbc994a19637e607a0a947"
+      },
+      {
+        "path": "ToS/source-witnesses/scholarly-composites/critical/sumerian/instructions-of-shuruppag/representations/ota-2518-etcsl-5-6-1-translation/rights.json",
+        "sha256": "69b77062ebdadfe4a17ff9eed8708ea78245f9d0a4fd46efb1065b05e1884ca3"
+      },
+      {
+        "path": "ToS/source-witnesses/scholarly-composites/critical/sumerian/instructions-of-shuruppag/representations/ota-2518-etcsl-5-6-1-transliteration/representation.json",
+        "sha256": "5efebf5ad281f57fa3e783ca16dbf0ad2a054bc6acbe9c4e9e87cb23e7c5ae2d"
+      },
+      {
+        "path": "ToS/source-witnesses/scholarly-composites/critical/sumerian/instructions-of-shuruppag/representations/ota-2518-etcsl-5-6-1-transliteration/rights.json",
+        "sha256": "2865ca27dac45e9bf932aa4928cfd7379056e89248a04245c50237c07656766c"
+      },
+      {
+        "path": "ToS/source-witnesses/scholarly-composites/critical/sumerian/laws-of-lipit-ishtar/composite-witness.json",
+        "sha256": "e826cdd6975910c25fd7bd950efd79e457a2d8038ab0ab3976da27d2283441b2"
+      },
+      {
+        "path": "ToS/source-witnesses/scholarly-composites/critical/sumerian/laws-of-lipit-ishtar/representations/mikolajczak-prawa-lipit-esztara-2022-pdf/representation.json",
+        "sha256": "a6b92ed4e71f4ac2cdcdc78e66db7bfe36a76ecc9ca7a54f99289216f17f29c8"
+      },
+      {
+        "path": "ToS/source-witnesses/scholarly-composites/critical/sumerian/laws-of-lipit-ishtar/representations/mikolajczak-prawa-lipit-esztara-2022-pdf/rights.json",
+        "sha256": "d7306755661af1ab5ca76788db55f95ca427fe08a59c688cee159ef55f85c6d7"
+      },
+      {
+        "path": "ToS/source-witnesses/scholarly-composites/critical/sumerian/laws-of-lipit-ishtar/representations/oracc-etcsri-q000613-static-html/representation.json",
+        "sha256": "6a0ab4b1ffd7a726f5cdf571fd6a9dcdd482daa1d2c3dbfe5e50545866f4a897"
+      },
+      {
+        "path": "ToS/source-witnesses/scholarly-composites/critical/sumerian/laws-of-lipit-ishtar/representations/oracc-etcsri-q000613-static-html/rights.json",
+        "sha256": "e489eadcbcbd7aa90407576aa70931813dce72b3840feafabc7d1e314346ba82"
+      },
+      {
+        "path": "ToS/source-witnesses/scholarly-composites/critical/sumerian/laws-of-ur-namma/composite-witness.json",
+        "sha256": "148e71a4a61899818b13ebe0dcaa13073e39c15db5027a36336220b7b8313ce4"
+      },
+      {
+        "path": "ToS/source-witnesses/scholarly-composites/critical/sumerian/laws-of-ur-namma/representations/oracc-etcsri-q000947-static-html/representation.json",
+        "sha256": "4610d9bad4cdd58471af4864c0a3a57cdb79f8287787092ac8c418c22fe77365"
+      },
+      {
+        "path": "ToS/source-witnesses/scholarly-composites/critical/sumerian/laws-of-ur-namma/representations/oracc-etcsri-q000947-static-html/rights.json",
+        "sha256": "2ff76b02ca8693d8df7594ef4e2b5add71929084eb988706e5626d43c257aaf6"
+      },
+      {
+        "path": "ToS/source-witnesses/scholarly-composites/synoptic/akkadian/old-babylonian-gilgamesh-fragments/composite-witness.json",
+        "sha256": "82314934a920d9c80d7b4d645f7d8d85c764dfaba8b731adfdeab3e4adf4e84a"
+      },
+      {
+        "path": "ToS/source-witnesses/scholarly-composites/synoptic/sumerian/old-babylonian-literary-catalogue-witnesses/composite-witness.json",
+        "sha256": "132a485840cf89f7b088183f991da45858afcf31f18ebe196204385fba495bf3"
+      },
+      {
+        "path": "ToS/source-witnesses/scholarly-composites/synoptic/sumerian/old-babylonian-literary-catalogue-witnesses/representations/ota-2518-etcsl-0-2-02-transliteration/representation.json",
+        "sha256": "f4a5a8c3de7f512606e51a771589d948715a5dc9a560060902968a526f272fe5"
+      },
+      {
+        "path": "ToS/source-witnesses/scholarly-composites/synoptic/sumerian/old-babylonian-literary-catalogue-witnesses/representations/ota-2518-etcsl-0-2-02-transliteration/rights.json",
+        "sha256": "786ace771286258ef23fb102e8609fdf1944a12ec18e7a022f6e841d09f79caa"
+      },
+      {
+        "path": "ToS/source-witnesses/server-import/provenance.jsonl",
+        "sha256": "d1ba9ce0845761e08c8baff8bef0d6196bfcf6c998f54e43da4076e1806c083a"
+      },
+      {
+        "path": "ToS/source-witnesses/works/digital-cuneiform-corpora/cuneiform-digital-library-initiative/provenance.jsonl",
+        "sha256": "065f8ef01e36f8569335999a53c74348fa02a9731d4b064ab90494b89dc1a94f"
+      },
+      {
+        "path": "ToS/source-witnesses/works/egyptian-scholarship/on-four-songs-contained-in-an-egyptian-papyrus-in-the-british-museum/expressions/en-goodwin-1874/editions/london-society-of-biblical-archaeology-1874/items/internet-archive-nls-scan-pdf/item.manifest.json",
+        "sha256": "32024d5d6cdfafae9d03c89b016a1ae16544f7442b807662f805e347ec262755"
+      },
+      {
+        "path": "ToS/source-witnesses/works/egyptian-scholarship/on-four-songs-contained-in-an-egyptian-papyrus-in-the-british-museum/expressions/en-goodwin-1874/editions/london-society-of-biblical-archaeology-1874/items/internet-archive-nls-scan-pdf/provenance.jsonl",
+        "sha256": "626689eff5a7561c71bd8a0cf2f1197a3f4f668767d3fd9081f41fa53d775754"
+      },
+      {
+        "path": "ToS/source-witnesses/works/egyptian-scholarship/on-four-songs-contained-in-an-egyptian-papyrus-in-the-british-museum/expressions/en-goodwin-1874/editions/london-society-of-biblical-archaeology-1874/items/internet-archive-nls-scan-pdf/rights.json",
+        "sha256": "1339122262e274692fe1f82c6ff717d3532ed7a15349436063f7f598e28d9ffa"
+      },
+      {
+        "path": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/alignments/structure/naumann-1893-dta-parts/provenance.jsonl",
+        "sha256": "271815b6bc8eba4262768d229bae8ce8fdb8eda66d38556d7f39dd721528e0ed"
+      },
+      {
+        "path": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/de-naumann-1891-part-4/editions/leipzig-naumann-1891-part-4/items/dta-sub-goettingen-corrected-tei-p5/provenance.jsonl",
+        "sha256": "0f283a742d9bd7401ff39215ec34d3270db8a18e9b8e84eba00affb6d15ec468"
+      },
+      {
+        "path": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/de-naumann-1893/editions/leipzig-c-g-naumann-1893/items/internet-archive-cornell-auto-epub/provenance.jsonl",
+        "sha256": "8463f845ef24e454da1ef704c4462475cb2bbb479cbaf543223c959b3ac56fb1"
+      },
+      {
+        "path": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/de-naumann-1893/editions/leipzig-c-g-naumann-1893/items/internet-archive-image-container-pdf/provenance.jsonl",
+        "sha256": "0ce31ba541cacc3d975208c10e74fd07dfcefa5781d5b4424c3359d7fee8bc63"
+      },
+      {
+        "path": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/de-schmeitzner-1883-part-1/editions/chemnitz-schmeitzner-1883-part-1/items/dta-sbb-corrected-tei-p5/provenance.jsonl",
+        "sha256": "6586ac787023a6908eca7182c56032d8400114ae09886155775a10fdc3ed4899"
+      },
+      {
+        "path": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/de-schmeitzner-1883-part-2/editions/chemnitz-schmeitzner-1883-part-2/items/dta-sbb-corrected-tei-p5/provenance.jsonl",
+        "sha256": "6d4650e623ba54dfe41ca586c897aef92084b952d1fed7f46a38cc418e2afd41"
+      },
+      {
+        "path": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/de-schmeitzner-1884-part-3/editions/chemnitz-schmeitzner-1884-part-3/items/dta-sbb-corrected-tei-p5/provenance.jsonl",
+        "sha256": "81c1c1f7899f5999c561a2ef1a2381de3db4517564d48267a84f7545c0a2d72c"
+      },
+      {
+        "path": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-antonovsky-1911/editions/saint-petersburg-prometey-1911-fourth/items/rsl-neb-scan-pdf/provenance.jsonl",
+        "sha256": "a864695e7aa124c023b375b014b0613033845e4f2ce92bddf2a4f31b09ebff63"
+      },
+      {
+        "path": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-antonovsky-1913/editions/saint-petersburg-zhizn-dlya-vsekh-1913/items/wikimedia-commons-penza-scan-pdf/provenance.jsonl",
+        "sha256": "d8e5f72affbf69af37b70e9aa5250afcdd00ad1ce6740a6baddb37bfb278b02f"
+      },
+      {
+        "path": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-antonovsky-cultural-revolution/editions/moscow-cultural-revolution-2007-volume-4/items/operator-pdf/provenance.jsonl",
+        "sha256": "29e79f9e466012f247b7ce724f17829ec21e34f1c2400fca0d0e14c9eb5be74a"
+      },
+      {
+        "path": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-nani-1899-nine-fragments/editions/saint-petersburg-stasyulevich-1899-nine-fragments/items/rsl-rusneb-parallel-scan-pdf/provenance.jsonl",
+        "sha256": "dd6359bf3222e998feb96c179026af0bad7d492501ac5e0c603d41c84e0cc8ab"
+      },
+      {
+        "path": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-reader-1899-uncredited/editions/moscow-reader-editorial-office-1899/items/rnl-rusneb-fragment-pdf-parts/provenance.jsonl",
+        "sha256": "7d168da5809c86890c90321c49bd45dadb944c67550df5a6dbcc31b2a8f0d675"
+      },
+      {
+        "path": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/provenance.jsonl",
+        "sha256": "6d2a7162b9092491c578ea4e123fdc700338750bab02be7b8834b2f4c6e9ba31"
+      },
+      {
+        "path": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/lexical-indexes/dta-first-editions-parts-1-4-v1/provenance.jsonl",
+        "sha256": "578e9958cc10a92c3a5b7ef43f155915bc85e559462ea02d603835f7bf51a144"
+      },
+      {
+        "path": "ToS/source-witnesses/works/friedrich-nietzsche/der-fall-wagner/expressions/de-naumann-1888/editions/leipzig-c-g-naumann-1888/items/mdz-bamberg-scan-pdf/provenance.jsonl",
+        "sha256": "a7efa9d9c4dda1b6c313c23832945f0a878ae43f53c0090356227f78c3bd7d98"
+      },
+      {
+        "path": "ToS/source-witnesses/works/friedrich-nietzsche/ecce-homo/expressions/de-richter-insel-1908/editions/leipzig-insel-verlag-1908/items/wikimedia-commons-getty-scan-pdf/provenance.jsonl",
+        "sha256": "dc4d2cdc144628a3e5e94f411ead0268fd770ef7225d4dd5fa320a05422c4e21"
+      },
+      {
+        "path": "ToS/source-witnesses/works/friedrich-nietzsche/goetzen-daemmerung/expressions/de-naumann-1889/editions/leipzig-c-g-naumann-1889/items/mdz-bsb-scan-pdf/provenance.jsonl",
+        "sha256": "a339d9bad20090998f28935038c3dd338797f0ffce8e3279a54bed26e97fe205"
+      },
+      {
+        "path": "ToS/source-witnesses/works/friedrich-nietzsche/jenseits-von-gut-und-boese/alignments/structure/naumann-1886-polilov-mysl-1996/provenance.jsonl",
+        "sha256": "175493eefa3a7abc102c15c5898306b81b9f1be7180e7f07f8e80a0e14b828d1"
+      },
+      {
+        "path": "ToS/source-witnesses/works/friedrich-nietzsche/jenseits-von-gut-und-boese/expressions/de-naumann-1886/editions/leipzig-c-g-naumann-1886/items/internet-archive-google-harvard-scan-pdf/provenance.jsonl",
+        "sha256": "cbadd72ba8ae157be03a0a3c4378eae8ef3bc8a4a2b7d27542a59037d7f8d8f8"
+      },
+      {
+        "path": "ToS/source-witnesses/works/friedrich-nietzsche/jenseits-von-gut-und-boese/expressions/de-naumann-1886/editions/leipzig-c-g-naumann-1886/items/internet-archive-google-harvard-scan-pdf/structure/provenance.jsonl",
+        "sha256": "09d3facf8fe4a405fc607246febbcf710e7d49b068755796eb0d27484a68e71c"
+      },
+      {
+        "path": "ToS/source-witnesses/works/friedrich-nietzsche/jenseits-von-gut-und-boese/expressions/ru-polilov-mysl-1996/structure/mysl-1996-volume-2-operator-pdf/provenance.jsonl",
+        "sha256": "ad8b6a44207e673c7d50e14f472a1e454c965c59e21c8ec86c73dd9946ea89ed"
+      },
+      {
+        "path": "ToS/source-witnesses/works/friedrich-nietzsche/zur-genealogie-der-moral/expressions/de-naumann-1892-second/editions/leipzig-c-g-naumann-1892-second-edition/items/wikimedia-commons-unc-scan-pdf/provenance.jsonl",
+        "sha256": "672a249a30062adc732422ab2023f0388fef0f0ace99226e4bcc9efc6ce608c7"
+      },
+      {
+        "path": "ToS/source-witnesses/works/old-babylonian-scholarship/an-old-babylonian-version-of-the-gilgamesh-epic/expressions/en-jastrow-clay-1920/editions/new-haven-yale-university-press-1920/items/commons-internet-archive-robarts-scan-djvu/item.manifest.json",
+        "sha256": "6bef94e7ff0a9dce52e2d11c1335dc623085252265ca90b82739ef611df7436c"
+      },
+      {
+        "path": "ToS/source-witnesses/works/old-babylonian-scholarship/an-old-babylonian-version-of-the-gilgamesh-epic/expressions/en-jastrow-clay-1920/editions/new-haven-yale-university-press-1920/items/commons-internet-archive-robarts-scan-djvu/provenance.jsonl",
+        "sha256": "1c2d18f497772ddd4f5eea6884b4ebeb24c8212cde312db949eaff8a2354b1ee"
+      },
+      {
+        "path": "ToS/source-witnesses/works/old-babylonian-scholarship/an-old-babylonian-version-of-the-gilgamesh-epic/expressions/en-jastrow-clay-1920/editions/new-haven-yale-university-press-1920/items/commons-internet-archive-robarts-scan-djvu/rights.json",
+        "sha256": "ddd01549c63cc9fc681d11d3a770e75aeab9ce3e00081e149a6ab414d5edbbdd"
+      }
+    ]
+  },
+  "timing_root": "ToS/source-witnesses/discovery/timings"
+}

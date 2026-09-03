@@ -1,0 +1,131 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/server-import-contract.schema.json",
+  "schema_version": "tos_server_import_contract_v1",
+  "server_import_id": "tos.server-import.goodwin-four-songs-1874.internet-archive-nls-scan-pdf",
+  "item_ref": "tos.item.egyptian-scholarship.on-four-songs-contained-in-an-egyptian-papyrus-in-the-british-museum.en-goodwin-1874.internet-archive-nls-scan-pdf",
+  "manifest": {
+    "ref": "ToS/source-witnesses/works/egyptian-scholarship/on-four-songs-contained-in-an-egyptian-papyrus-in-the-british-museum/expressions/en-goodwin-1874/editions/london-society-of-biblical-archaeology-1874/items/internet-archive-nls-scan-pdf/item.manifest.json",
+    "sha256": "32024d5d6cdfafae9d03c89b016a1ae16544f7442b807662f805e347ec262755",
+    "verified": true
+  },
+  "payload_files": [
+    {
+      "file_ref": "tos.file.sha256.71ca30507a61a791b503102b43c034aad08b45c5d78bbedf16043632add33675",
+      "relative_path": "payload/onfoursongsconta00good.pdf",
+      "byte_size": 672231,
+      "sha256": "71ca30507a61a791b503102b43c034aad08b45c5d78bbedf16043632add33675",
+      "verified": true
+    }
+  ],
+  "rights_policy": {
+    "rights_record_ref": "ToS/source-witnesses/works/egyptian-scholarship/on-four-songs-contained-in-an-egyptian-papyrus-in-the-british-museum/expressions/en-goodwin-1874/editions/london-society-of-biblical-archaeology-1874/items/internet-archive-nls-scan-pdf/rights.json",
+    "rights_record_sha256": "1339122262e274692fe1f82c6ff717d3532ed7a15349436063f7f598e28d9ffa",
+    "assessment_status": "open-licensed",
+    "review_status": "unreviewed",
+    "jurisdictions_reviewed": [
+      "GB",
+      "MX",
+      "US"
+    ],
+    "permission_or_license_refs": [
+      "ToS/research-packets/foundation-laboratory-2026-07/A05_HARPERS_SONGS_OPEN_WORK_ACQUISITION_2026-08-30.md",
+      "https://archive.org/metadata/onfoursongsconta00good",
+      "https://creativecommons.org/licenses/by-nc-sa/2.5/scotland/"
+    ],
+    "expires_at": null,
+    "recheck_before_transfer": true
+  },
+  "access_class": "metadata-only",
+  "allowed_derivatives": {
+    "ocr": {
+      "state": "prohibited",
+      "conditions": [
+        "No OCR has been accepted, human-reviewed, or authorized for server publication."
+      ]
+    },
+    "transcription": {
+      "state": "prohibited",
+      "conditions": [
+        "No historical or ancient transcription has been accepted or authorized for server publication."
+      ]
+    },
+    "page_images": {
+      "state": "prohibited",
+      "conditions": [
+        "The operator-authorized local acquisition does not authorize future-server transfer without separate real-human approval and a fresh exact-object license check."
+      ]
+    },
+    "snippets": {
+      "state": "prohibited",
+      "conditions": [
+        "No source-bearing snippet publication is authorized by this metadata-only plan."
+      ]
+    },
+    "lexical_index": {
+      "state": "conditional",
+      "conditions": [
+        "Public-safe bibliographic metadata only; no payload-derived or dictionary-recoverable forms."
+      ]
+    },
+    "embeddings": {
+      "state": "prohibited",
+      "conditions": [
+        "No payload-derived embedding or server processing is authorized by this plan."
+      ]
+    },
+    "alignments": {
+      "state": "prohibited",
+      "conditions": [
+        "No ancient-to-modern or cross-edition alignment is accepted or authorized."
+      ]
+    },
+    "translations": {
+      "state": "prohibited",
+      "conditions": [
+        "Goodwin's historical rendering remains textually unreviewed and is not authorized for server publication."
+      ]
+    },
+    "annotations": {
+      "state": "prohibited",
+      "conditions": [
+        "No source-bearing annotation publication is authorized."
+      ]
+    },
+    "search_projection": {
+      "state": "conditional",
+      "conditions": [
+        "Metadata-only identity, provenance, layer-specific rights status, and fixity fields with no payload-derived text."
+      ]
+    },
+    "graph_projection": {
+      "state": "conditional",
+      "conditions": [
+        "Public-safe Work, Expression, Edition, Item, File, provenance, rights-status, and candidate-acquisition relations only; no ancient membership, semantic, or canon fact."
+      ]
+    }
+  },
+  "payload_transfer_authorized": false,
+  "operator_transfer_approval": {
+    "approved": false,
+    "approved_by_real_human": false,
+    "approved_at": null,
+    "approval_ref": null
+  },
+  "server_import_status": "blocked-rights",
+  "publication_status": "metadata-only",
+  "server_receipt_refs": [],
+  "takedown": {
+    "public_contact_url": "https://github.com/8Dionysus/Tree-of-Sophia/issues",
+    "procedure_ref": "ToS/source-witnesses/server-import/SERVER_IMPORT_PROTOCOL.md",
+    "disable_supported": true,
+    "delete_supported": true,
+    "last_reviewed_at": "2026-08-30T06:40:00-06:00"
+  },
+  "provenance_event_refs": [
+    "tos.event.server-import-plan.goodwin-four-songs-1874.internet-archive-nls-scan-pdf.2026-08-30"
+  ],
+  "server_copy_is_authority": false,
+  "automatic_checkout_payload_discovery_allowed": false,
+  "contract_version": 2,
+  "supersedes_server_import_ref": null
+}

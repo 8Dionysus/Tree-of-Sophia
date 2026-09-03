@@ -1,0 +1,80 @@
+{
+  "schema_version": "tos_rights_record_v1",
+  "rights_id": "tos.rights.egyptian.museo-egizio-cgt-54014-commons-p01-cc0",
+  "scope_refs": [
+    "tos.artifact.egyptian.deir-el-medina.museo-egizio-cgt-54014",
+    "tos.file.sha256.59b39f048b3dd80e74bda835be0bbb7be15987955d151fc5c21ba8ee97205696"
+  ],
+  "assessment_status": "licensed",
+  "rights_statement_uri": "https://commons.wikimedia.org/wiki/File:Papyrus_fragments_with_a_section_of_the_%27Instruction_of_Ptahhotep%27_on_the_recto_-_Museo_Egizio,_Turin_CGT_54014_p01.jpg",
+  "license_uri": "https://creativecommons.org/publicdomain/zero/1.0/",
+  "jurisdictions_reviewed": ["IT", "MX", "US"],
+  "source_refs": [
+    "https://collezioni.museoegizio.it/en-GB/material/CGT_54014/",
+    "https://commons.wikimedia.org/wiki/File:Papyrus_fragments_with_a_section_of_the_%27Instruction_of_Ptahhotep%27_on_the_recto_-_Museo_Egizio,_Turin_CGT_54014_p01.jpg",
+    "https://creativecommons.org/publicdomain/zero/1.0/"
+  ],
+  "layer_assessments": [
+    {
+      "layer_id": "tos.rights.egyptian.museo-egizio-cgt-54014-commons-p01-cc0.layer.photograph",
+      "layer_role": "photograph",
+      "scope_refs": [
+        "tos.file.sha256.59b39f048b3dd80e74bda835be0bbb7be15987955d151fc5c21ba8ee97205696"
+      ],
+      "assessment_status": "licensed",
+      "assessment_basis": "license",
+      "rights_statement_uri": "https://commons.wikimedia.org/wiki/File:Papyrus_fragments_with_a_section_of_the_%27Instruction_of_Ptahhotep%27_on_the_recto_-_Museo_Egizio,_Turin_CGT_54014_p01.jpg",
+      "license_uri": "https://creativecommons.org/publicdomain/zero/1.0/",
+      "jurisdictions_reviewed": ["IT", "MX", "US"],
+      "source_refs": [
+        "https://collezioni.museoegizio.it/en-GB/material/CGT_54014/",
+        "https://commons.wikimedia.org/wiki/File:Papyrus_fragments_with_a_section_of_the_%27Instruction_of_Ptahhotep%27_on_the_recto_-_Museo_Egizio,_Turin_CGT_54014_p01.jpg",
+        "https://creativecommons.org/publicdomain/zero/1.0/"
+      ],
+      "rights_holder_refs": ["Museo Egizio"],
+      "permissions": [
+        "copy, retain, redistribute, and process the exact JPEG",
+        "prepare derivatives and use the exact JPEG commercially or non-commercially"
+      ],
+      "restrictions": [
+        "retain exact provenance and File identity even though CC0 does not require attribution",
+        "CC0 for the photograph does not accept or license a transcription, translation, interpretation, museum catalog prose, or another byte-distinct provider file"
+      ],
+      "redistribution_posture": "authorized",
+      "derivative_posture": "allowed",
+      "server_processing_posture": "authorized",
+      "term": {
+        "calculation_status": "not_applicable",
+        "basis": "exact Creative Commons Zero 1.0 Universal dedication rather than a copyright-term calculation",
+        "starts_on": null,
+        "ends_on": null,
+        "uncertainty": "The positive finding is limited to the exact SHA1/SHA256-bound JPEG and does not silently extend to other layers or files."
+      },
+      "uncertainty": "No claim is made that the current byte-distinct Museo Egizio full JPEG is identical to the acquired Commons file.",
+      "assessed_at": "2026-08-29T23:56:00-06:00",
+      "review_status": "unreviewed",
+      "rationale": "Both the originating museum page and the exact Commons file record publish a CC0 image route, while the API fixes the acquired bytes."
+    }
+  ],
+  "permissions": [
+    "retain the exact JPEG as a tracked public source payload",
+    "redistribute and process the exact JPEG under CC0",
+    "prepare future content-bearing derivatives subject to their own layer review"
+  ],
+  "restrictions": [
+    "no source text, transcription, translation, interpretation, semantic relation, graph fact, or canon status follows from the image license",
+    "publication remains a separate repository landing and review effect even though redistribution rights are positive",
+    "the current museum full JPEG is byte-distinct and needs its own File identity if acquired later"
+  ],
+  "visibility": "public_payload",
+  "redistribution_posture": "authorized",
+  "derivative_posture": "allowed",
+  "assessed_by": {"maker_type": "model", "agent_ref": "model:codex"},
+  "assessed_at": "2026-08-29T23:56:00-06:00",
+  "rationale": "The exact Commons imageinfo response and file page identify the selected bytes and CC0 dedication; the Museo Egizio originating page independently states that its images are freely downloadable and reusable under CC0.",
+  "review_status": "unreviewed",
+  "review_refs": [],
+  "access_request_ref": null,
+  "record_version": 1,
+  "supersedes_rights_ref": null
+}

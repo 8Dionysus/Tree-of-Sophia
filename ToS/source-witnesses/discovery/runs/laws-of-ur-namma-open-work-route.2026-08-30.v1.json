@@ -1,0 +1,574 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/material-discovery-record.schema.json",
+  "schema_version": "tos_material_discovery_record_v1",
+  "discovery_id": "tos.discovery.laws-of-ur-namma-open-work-route.2026-08-30.v1",
+  "protocol_ref": "ToS/source-witnesses/discovery/DISCOVERY_PROTOCOL.md",
+  "target": {
+    "target_kind": "scholarly-composite",
+    "known_tos_refs": [
+      "tos.work.sumerian-law.laws-of-ur-namma",
+      "tos.composite.sumerian.laws-of-ur-namma",
+      "tos.artifact.sumerian.nippur.istanbul-ist-ni-03191"
+    ],
+    "description": "Resolve the existing Laws of Ur-Namma Work and provider-independent critical composite to at least one exact openly licensed digital object while keeping the ancient Work, physical witnesses, Oracc/ETCSRI edition, CDLI reconstruction, provider response, and local File distinct.",
+    "required_properties": [
+      "existing Work, composite, and artifact identities retained rather than reminted",
+      "exact ETCSRI Q000947 static text representation",
+      "project-specific CC BY-SA 3.0 evidence",
+      "provider response and local File fixity",
+      "no source-text, translation, semantic, graph, canon, or publication admission"
+    ],
+    "acceptable_substitutions": [
+      "an exact Oracc ETCSRI structured export carrying the same project license",
+      "an exact CDLI export with an explicit standard open license for its content layer",
+      "a public-domain critical edition with resolved bibliographic and file identity"
+    ],
+    "languages": [
+      "sux",
+      "en"
+    ],
+    "formats": [
+      "authority metadata",
+      "scholarly composite HTML",
+      "critical-edition metadata",
+      "project licensing statement"
+    ],
+    "purpose_ref": "ToS/source-witnesses/discovery/candidates/README.md",
+    "constraint_refinements": [
+      {
+        "candidate_field": "required_properties",
+        "candidate_values": [
+          "reuse existing Work, composite, and artifact identities",
+          "exact downloadable object identity and fixity",
+          "originating provider and object-level rights evidence",
+          "transliteration and translation kept as separate representations",
+          "no duplicate Work, semantic, graph, canon, or publication effect"
+        ],
+        "discovery_field": "required_properties",
+        "discovery_values": [
+          "existing Work, composite, and artifact identities retained rather than reminted",
+          "exact ETCSRI Q000947 static text representation",
+          "project-specific CC BY-SA 3.0 evidence",
+          "provider response and local File fixity",
+          "no source-text, translation, semantic, graph, canon, or publication admission"
+        ],
+        "review_status": "reviewed",
+        "reviewed_at": "2026-09-02",
+        "reviewer_ref": "operator:tos-open-work-loop"
+      },
+      {
+        "candidate_field": "acceptable_substitutions",
+        "candidate_values": [
+          "an exact institutional XML export with explicit open terms",
+          "an exact historical critical-edition scan with object-level open license or reviewed public-domain evidence",
+          "a zero-result or rights-insufficient terminal receipt preserving every useful URL"
+        ],
+        "discovery_field": "acceptable_substitutions",
+        "discovery_values": [
+          "an exact Oracc ETCSRI structured export carrying the same project license",
+          "an exact CDLI export with an explicit standard open license for its content layer",
+          "a public-domain critical edition with resolved bibliographic and file identity"
+        ],
+        "review_status": "reviewed",
+        "reviewed_at": "2026-09-02",
+        "reviewer_ref": "operator:tos-open-work-loop"
+      },
+      {
+        "candidate_field": "formats",
+        "candidate_values": [
+          "institutional scholarly XML",
+          "historical critical-edition scan",
+          "object-level rights statement"
+        ],
+        "discovery_field": "formats",
+        "discovery_values": [
+          "authority metadata",
+          "scholarly composite HTML",
+          "critical-edition metadata",
+          "project licensing statement"
+        ],
+        "review_status": "reviewed",
+        "reviewed_at": "2026-09-02",
+        "reviewer_ref": "operator:tos-open-work-loop"
+      }
+    ]
+  },
+  "channels": [
+    {
+      "channel_id": "channel-loc-national-authority",
+      "sequence": 1,
+      "channel_type": "national-catalog",
+      "role": "lead-only",
+      "source_name": "Library of Congress books API",
+      "endpoint_url": "https://www.loc.gov/books/",
+      "interface_type": "api",
+      "interface_version": "current public endpoint checked 2026-08-30",
+      "exact_query": "https://www.loc.gov/books/?fo=json&q=%22Laws%20of%20Ur-Namma%22",
+      "queried_at": "2026-08-30T08:04:10.853372Z",
+      "elapsed_seconds": 0.134131,
+      "result_order_preserved": true,
+      "results": []
+    },
+    {
+      "channel_id": "channel-oxford-text-archive",
+      "sequence": 2,
+      "channel_type": "university-catalog",
+      "role": "originating-record",
+      "source_name": "Oxford Text Archive",
+      "endpoint_url": "https://ota.bodleian.ox.ac.uk/repository/xmlui/handle/20.500.12024/2518",
+      "interface_type": "web",
+      "interface_version": "OTA record ota:2518 and exact archive checked 2026-08-30",
+      "exact_query": "Open OTA 2518 full record and complete ETCSL catalogue; download the official 4,910,212-byte ZIP to temporary storage and inspect its complete member names for ETCSL 3.4.1 or Laws of Ur-Namma.",
+      "queried_at": "2026-08-30T08:04:10.987632Z",
+      "elapsed_seconds": 2.106373,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.ota-2518-etcsl-laws-ur-namma-catalog-only",
+          "rank": 1,
+          "title_as_displayed": "ETCSL catalogue entry 3.4.1 — Laws of Ur-Namma",
+          "result_url": "https://ota.bodleian.ox.ac.uk/repository/xmlui/bitstream/handle/20.500.12024/2518/etcslfullcat.html?isAllowed=y&sequence=7",
+          "originating_record_url": "https://ota.bodleian.ox.ac.uk/repository/xmlui/handle/20.500.12024/2518?show=full",
+          "identifiers": [
+            {
+              "scheme": "ETCSL catalogue",
+              "value": "3.4.1"
+            },
+            {
+              "scheme": "OTA",
+              "value": "ota:2518"
+            }
+          ],
+          "available_formats": [
+            "HTML catalogue entry",
+            "XML corpus ZIP without a 3.4.1 text member"
+          ],
+          "declared_rights": {
+            "statement": "The OTA 2518 corpus is CC BY-NC-SA 3.0, but the exact archive contains no transliteration or translation member for catalogue entry 3.4.1.",
+            "scope": "digital-object",
+            "evidence_url": "https://ota.bodleian.ox.ac.uk/repository/xmlui/handle/20.500.12024/2518?show=full",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "metadata-only",
+          "machine_interface": "bulk-data",
+          "decision": "reject",
+          "rationale": "The catalogue is useful negative evidence, but a title in the intended corpus catalogue is not an acquired composition. Exact ZIP inspection found no c.3.4.1.xml or t.3.4.1.xml member, so no false payload was inferred.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-needed",
+            "format": null,
+            "sha256": null,
+            "reason": "The temporary archive was byte-identical to the already fixed OTA container and was removed after exact member inspection; it contained no candidate payload."
+          }
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-etcsl-catalog",
+      "sequence": 3,
+      "channel_type": "specialized-scholarly-project",
+      "role": "scholarly-index",
+      "source_name": "Electronic Text Corpus of Sumerian Literature",
+      "endpoint_url": "https://etcsl.orinst.ox.ac.uk/catalogue/catalogue3.htm",
+      "interface_type": "web",
+      "interface_version": "archived ETCSL catalogue checked 2026-08-30",
+      "exact_query": "Open the ETCSL group 3 catalogue and inspect the 3.4 law-code section for an exact linked composition page or digital member, preserving the unlinked listing as a zero-content result.",
+      "queried_at": "2026-08-30T08:04:13.094118Z",
+      "elapsed_seconds": 0.742012,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.etcsl-341-unlinked-catalog-entry",
+          "rank": 1,
+          "title_as_displayed": "3.4.1 Laws of Ur-Namma",
+          "result_url": "https://etcsl.orinst.ox.ac.uk/catalogue/catalogue3.htm",
+          "originating_record_url": "https://etcsl.orinst.ox.ac.uk/catalogue/catalogue3.htm",
+          "identifiers": [
+            {
+              "scheme": "ETCSL catalogue",
+              "value": "3.4.1"
+            }
+          ],
+          "available_formats": [
+            "unlinked HTML catalogue entry"
+          ],
+          "declared_rights": {
+            "statement": "The live ETCSL catalogue lists the intended composition but supplies no linked 3.4.1 content object; no license is projected from other ETCSL compositions.",
+            "scope": "metadata",
+            "evidence_url": "https://etcsl.orinst.ox.ac.uk/catalogue/catalogue3.htm",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "metadata-only",
+          "machine_interface": "html",
+          "decision": "select",
+          "rationale": "This source establishes the ETCSL catalogue coordinate and the absence of a linked composition page, not an available or licensed text body.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-needed",
+            "format": null,
+            "sha256": null,
+            "reason": "The exact live catalogue remains the originating negative-content evidence."
+          }
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-oracc-etcsri-exact-text",
+      "sequence": 4,
+      "channel_type": "specialized-scholarly-project",
+      "role": "digital-object-record",
+      "source_name": "Electronic Text Corpus of Sumerian Royal Inscriptions at Oracc",
+      "endpoint_url": "https://oracc.museum.upenn.edu/etcsri/Q000947",
+      "interface_type": "web",
+      "interface_version": "ETCSRI Q000947 dynamic and static HTML plus project footer checked 2026-08-30",
+      "exact_query": "Open ETCSRI Q000947, verify title Ur-Namma 20 (= Laws of Ur-Namma), RIME coordinate, source members and annotated Sumerian text; follow the visible Print text route; verify the ETCSRI project footer says Content released under a CC BY-SA 3.0 licence; capture the validated static HTTP response without disabling TLS checks.",
+      "queried_at": "2026-08-30T08:04:13.836227Z",
+      "elapsed_seconds": 0.16282,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.oracc-etcsri-q000947-static-html",
+          "rank": 1,
+          "title_as_displayed": "Ur-Namma 20 (= Laws of Ur-Namma) (RIME 3/2.01.01.20 composite)",
+          "result_url": "https://oracc.museum.upenn.edu//etcsri/Q000947/html",
+          "originating_record_url": "https://oracc.museum.upenn.edu/etcsri/Q000947",
+          "identifiers": [
+            {
+              "scheme": "Oracc ETCSRI",
+              "value": "Q000947"
+            },
+            {
+              "scheme": "RIME",
+              "value": "3/2.01.01.20"
+            }
+          ],
+          "available_formats": [
+            "static annotated HTML",
+            "dynamic corpus HTML",
+            "Sumerian transliteration and morphology"
+          ],
+          "declared_rights": {
+            "statement": "The ETCSRI project footer declares its content released under a Creative Commons Attribution-ShareAlike 3.0 license; Oracc requires attribution and share-alike and excludes independently licensed third-party images or downloads.",
+            "scope": "content",
+            "evidence_url": "https://oracc.museum.upenn.edu/etcsri/accesskeys/",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-download",
+          "machine_interface": "html",
+          "decision": "select",
+          "rationale": "This is the exact project-licensed annotated text representation. Browser acquisition preserved the static provider response after the command-line client rejected the server's incomplete TLS chain; no certificate warning or access control was bypassed.",
+          "acquisition": {
+            "downloaded": true,
+            "acquired_at": "2026-08-30T02:00:59-06:00",
+            "byte_size": 44278,
+            "sha256": "5f6bf53de619a0de93469044b7275944cfb8d14bc19647c694274dea3bc0620d",
+            "event_ref": "tos.event.acquisition.laws-of-ur-namma-oracc-etcsri-q000947.2026-08-30"
+          },
+          "snapshot": {
+            "state": "not-needed",
+            "format": null,
+            "sha256": null,
+            "reason": "The exact local File is the preserved source witness; no separate visual snapshot substitutes for it."
+          }
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-cdli-current-composite",
+      "sequence": 5,
+      "channel_type": "specialized-scholarly-project",
+      "role": "originating-record",
+      "source_name": "Cuneiform Digital Library Initiative",
+      "endpoint_url": "https://cdli.earth/artifacts/432130",
+      "interface_type": "api",
+      "interface_version": "current artifact, score, witness list, and terms checked 2026-08-30",
+      "exact_query": "Resolve P432130, Q000947, the current score and nine displayed witnesses; compare ETCSRI external-resource identity and inspect CDLI terms without projecting its conditional academic-reuse language into a standard open license.",
+      "queried_at": "2026-08-30T08:04:13.999143Z",
+      "elapsed_seconds": 1.634432,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.cdli-q000947-current-composite",
+          "rank": 1,
+          "title_as_displayed": "RIME 3/2.01.01.20 (Laws of Ur-Namma) composite (P432130)",
+          "result_url": "https://cdli.earth/artifacts/432130",
+          "originating_record_url": "https://cdli.earth/artifacts/composites-score/Q000947",
+          "identifiers": [
+            {
+              "scheme": "CDLI composite",
+              "value": "Q000947"
+            },
+            {
+              "scheme": "CDLI artifact",
+              "value": "P432130"
+            }
+          ],
+          "available_formats": [
+            "composite HTML",
+            "score HTML",
+            "witness list",
+            "citation metadata"
+          ],
+          "declared_rights": {
+            "statement": "CDLI permits bounded scholarly reuse under custom terms; images, drawings, publications, and third-party layers remain separately governed.",
+            "scope": "content",
+            "evidence_url": "https://cdli.earth/terms-of-use",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-view",
+          "machine_interface": "html",
+          "decision": "select",
+          "rationale": "The current CDLI record is the strongest identity and witness-membership corroboration, but its custom terms were not treated as the standard open-license basis for this acquisition.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-needed",
+            "format": null,
+            "sha256": null,
+            "reason": "The exact selected payload comes from the separately licensed ETCSRI project."
+          }
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-europeana-aggregator",
+      "sequence": 6,
+      "channel_type": "collection-aggregator",
+      "role": "lead-only",
+      "source_name": "Europeana",
+      "endpoint_url": "https://www.europeana.eu/en/search",
+      "interface_type": "web",
+      "interface_version": "public search endpoint checked 2026-08-30",
+      "exact_query": "https://www.europeana.eu/en/search?query=%22Laws%20of%20Ur-Namma%22; provider returned HTTP 403 to the bounded client, so no result order or object rights were inferred.",
+      "queried_at": "2026-08-30T08:04:15.633667Z",
+      "elapsed_seconds": 0.210951,
+      "result_order_preserved": true,
+      "results": []
+    },
+    {
+      "channel_id": "channel-crossref-identifiers",
+      "sequence": 7,
+      "channel_type": "identifier-registry",
+      "role": "scholarly-index",
+      "source_name": "Crossref REST API",
+      "endpoint_url": "https://api.crossref.org/works",
+      "interface_type": "api",
+      "interface_version": "current REST API checked 2026-08-30",
+      "exact_query": "https://api.crossref.org/works?query.title=Laws%20of%20Ur-Namma&rows=5&select=DOI,title,author,published,URL,type",
+      "queried_at": "2026-08-30T08:04:15.844720Z",
+      "elapsed_seconds": 0.765576,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.crossref-laws-ur-namma-first-five",
+          "rank": 1,
+          "title_as_displayed": "LUN (Laws of Ur-Namma) and four later scholarly records",
+          "result_url": "https://doi.org/10.4324/9780429352867-8",
+          "originating_record_url": "https://api.crossref.org/works?query.title=Laws%20of%20Ur-Namma&rows=5",
+          "identifiers": [
+            {
+              "scheme": "DOI",
+              "value": "10.4324/9780429352867-8"
+            },
+            {
+              "scheme": "DOI",
+              "value": "10.1163/2211-436x_cos_acosb_2_153"
+            }
+          ],
+          "available_formats": [
+            "identifier metadata",
+            "modern book chapter",
+            "modern commentary dataset"
+          ],
+          "declared_rights": {
+            "statement": null,
+            "scope": "metadata",
+            "evidence_url": null,
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "metadata-only",
+          "machine_interface": "api",
+          "decision": "reject",
+          "rationale": "The ordered results identify modern commentary and translation routes but do not supply an exact openly licensed ancient-text object; they remain useful bibliographic leads only.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-needed",
+            "format": null,
+            "sha256": null,
+            "reason": "The live identifier API is the source; no modern content body was selected."
+          }
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-open-library-catalogs",
+      "sequence": 8,
+      "channel_type": "open-library",
+      "role": "digital-object-record",
+      "source_name": "Internet Archive advanced search",
+      "endpoint_url": "https://archive.org/advancedsearch.php",
+      "interface_type": "api",
+      "interface_version": "current advanced-search API checked 2026-08-30",
+      "exact_query": "title:(\"Laws of Ur-Namma\"); fields identifier,title,licenseurl,rights; rows=20; output=json; numFound=0",
+      "queried_at": "2026-08-30T08:04:16.610411Z",
+      "elapsed_seconds": 0.390132,
+      "result_order_preserved": true,
+      "results": []
+    },
+    {
+      "channel_id": "channel-general-web-last",
+      "sequence": 9,
+      "channel_type": "general-web-search",
+      "role": "lead-only",
+      "source_name": "General web search used only after exact and scholarly routes",
+      "endpoint_url": "https://www.google.com/search",
+      "interface_type": "web",
+      "interface_version": "public search checked 2026-08-30",
+      "exact_query": "\"Laws of Ur-Namma\" \"Creative Commons\" OR \"public domain\" filetype:xml OR filetype:html OR filetype:pdf; strongest exact result was ETCSRI/Oracc already resolved above.",
+      "queried_at": "2026-08-30T08:04:17.000658Z",
+      "elapsed_seconds": 0.378729,
+      "result_order_preserved": true,
+      "results": []
+    }
+  ],
+  "channel_comparison": [
+    {
+      "channel_id": "channel-loc-national-authority",
+      "completeness": "poor",
+      "metadata_precision": "limited",
+      "rights_clarity": "unknown",
+      "machine_interface_quality": "limited",
+      "human_minutes": 0,
+      "machine_seconds": 0.134131,
+      "notes": "No usable result; machine timing will be replaced by the monotonic receipt. Machine time is the automatic monotonic HTTP measurement; human_minutes=0 means no real-human review was performed."
+    },
+    {
+      "channel_id": "channel-oxford-text-archive",
+      "completeness": "adequate",
+      "metadata_precision": "strong",
+      "rights_clarity": "strong",
+      "machine_interface_quality": "strong",
+      "human_minutes": 0,
+      "machine_seconds": 2.106373,
+      "notes": "Strong licensed corpus record and exact negative member check, but no 3.4.1 content member. Machine time is the automatic monotonic HTTP measurement; human_minutes=0 means no real-human review was performed."
+    },
+    {
+      "channel_id": "channel-etcsl-catalog",
+      "completeness": "limited",
+      "metadata_precision": "strong",
+      "rights_clarity": "limited",
+      "machine_interface_quality": "adequate",
+      "human_minutes": 0,
+      "machine_seconds": 0.742012,
+      "notes": "Useful exact catalogue coordinate; it exposes no candidate content object. Machine time is the automatic monotonic HTTP measurement; human_minutes=0 means no real-human review was performed."
+    },
+    {
+      "channel_id": "channel-oracc-etcsri-exact-text",
+      "completeness": "strong",
+      "metadata_precision": "strong",
+      "rights_clarity": "strong",
+      "machine_interface_quality": "adequate",
+      "human_minutes": 0,
+      "machine_seconds": 0.16282,
+      "notes": "Exact openly licensed annotated representation and the selected acquisition source. Machine time is the automatic monotonic HTTP measurement; human_minutes=0 means no real-human review was performed."
+    },
+    {
+      "channel_id": "channel-cdli-current-composite",
+      "completeness": "strong",
+      "metadata_precision": "strong",
+      "rights_clarity": "adequate",
+      "machine_interface_quality": "strong",
+      "human_minutes": 0,
+      "machine_seconds": 1.634432,
+      "notes": "Best current identity and witness-membership control; custom reuse terms are not the acquisition license. Machine time is the automatic monotonic HTTP measurement; human_minutes=0 means no real-human review was performed."
+    },
+    {
+      "channel_id": "channel-europeana-aggregator",
+      "completeness": "unknown",
+      "metadata_precision": "unknown",
+      "rights_clarity": "unknown",
+      "machine_interface_quality": "poor",
+      "human_minutes": 0,
+      "machine_seconds": 0.210951,
+      "notes": "HTTP 403 prevented result inspection; no result or rights inference was fabricated. Machine time is the automatic monotonic HTTP measurement; human_minutes=0 means no real-human review was performed."
+    },
+    {
+      "channel_id": "channel-crossref-identifiers",
+      "completeness": "adequate",
+      "metadata_precision": "strong",
+      "rights_clarity": "limited",
+      "machine_interface_quality": "strong",
+      "human_minutes": 0,
+      "machine_seconds": 0.765576,
+      "notes": "Good ordered modern bibliographic leads, no exact open ancient-text object. Machine time is the automatic monotonic HTTP measurement; human_minutes=0 means no real-human review was performed."
+    },
+    {
+      "channel_id": "channel-open-library-catalogs",
+      "completeness": "limited",
+      "metadata_precision": "adequate",
+      "rights_clarity": "adequate",
+      "machine_interface_quality": "strong",
+      "human_minutes": 0,
+      "machine_seconds": 0.390132,
+      "notes": "Exact title query returned zero records. Machine time is the automatic monotonic HTTP measurement; human_minutes=0 means no real-human review was performed."
+    },
+    {
+      "channel_id": "channel-general-web-last",
+      "completeness": "adequate",
+      "metadata_precision": "limited",
+      "rights_clarity": "limited",
+      "machine_interface_quality": "adequate",
+      "human_minutes": 0,
+      "machine_seconds": 0.378729,
+      "notes": "Used last; strongest exact result was already resolved through ETCSRI and Oracc licensing. Machine time is the automatic monotonic HTTP measurement; human_minutes=0 means no real-human review was performed."
+    }
+  ],
+  "selected_result_ids": [
+    "tos-discovery-result.etcsl-341-unlinked-catalog-entry",
+    "tos-discovery-result.oracc-etcsri-q000947-static-html",
+    "tos-discovery-result.cdli-q000947-current-composite"
+  ],
+  "rejected_result_ids": [
+    "tos-discovery-result.ota-2518-etcsl-laws-ur-namma-catalog-only",
+    "tos-discovery-result.crossref-laws-ur-namma-first-five"
+  ],
+  "rights_inference_from_availability_prohibited": true,
+  "general_web_search_is_last_resort": true,
+  "technical_access_bypass_used": false,
+  "maker": {
+    "maker_type": "model",
+    "agent_ref": "codex:open-work-loop-20260829"
+  },
+  "started_at": "2026-08-30T08:04:10.853372Z",
+  "ended_at": "2026-08-30T08:04:17.379397Z",
+  "status": "reconciled",
+  "provenance_event_refs": [
+    "tos.event.discovery.laws-of-ur-namma-open-work-route.2026-08-30",
+    "tos.event.acquisition.laws-of-ur-namma-oracc-etcsri-q000947.2026-08-30"
+  ],
+  "record_version": 1,
+  "supersedes_discovery_ref": "tos.discovery.mesopotamian-law-collections.2026-08-22"
+}

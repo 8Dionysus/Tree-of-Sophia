@@ -1,0 +1,80 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/artifact-visual-representation.schema.json",
+  "schema_version": "tos_artifact_visual_representation_v1",
+  "file_id": "tos.file.sha256.e357d0faad60c5fb5b8b6c4ba6282a34fdd2d6c48e81d8d8ae3a837bc831f8b1",
+  "artifact_id": "tos.artifact.old-babylonian.susa.hammurabi-stele-sb-8",
+  "artifact_ref": "ToS/source-witnesses/artifacts/old-babylonian/susa/hammurabi-stele-sb-8/artifact-witness.json",
+  "layer_kind": "photograph",
+  "view_label": "rear-face photograph by Mbzt, 2011; Commons filename contains recto",
+  "provider_records": [
+    {
+      "provider": "Musée du Louvre Collections",
+      "role": "originating-record",
+      "record_url": "https://collections.louvre.fr/en/ark:/53355/cl010174436",
+      "api_url": null,
+      "checked_at": "2026-08-30T02:50:00-06:00",
+      "response_fingerprint": {
+        "byte_size": 293903,
+        "sha256": "97446cab5dbac216a59857c3c46e971e0f5986c50ca5ba7ec8660ba3a38602de",
+        "captured": false
+      }
+    },
+    {
+      "provider": "Wikimedia Commons",
+      "role": "aggregator-file-record",
+      "record_url": "https://commons.wikimedia.org/wiki/File:P1050551_Louvre_code_d%27Hammurabi_recto_rwk.JPG",
+      "api_url": "https://commons.wikimedia.org/w/api.php?action=query&format=json&formatversion=2&prop=imageinfo&iiprop=url%7Csize%7Csha1%7Cmime%7Cextmetadata&titles=File%3AP1050551%20Louvre%20code%20d%27Hammurabi%20recto%20rwk.JPG",
+      "checked_at": "2026-08-30T02:54:30-06:00",
+      "response_fingerprint": {
+        "byte_size": 2490,
+        "sha256": "7c0d84fab62934d3bcba0913e01fd8feb50b3cda1b7344af02ad9d263c83ae1f",
+        "captured": false
+      }
+    }
+  ],
+  "acquisition": {
+    "source_url": "https://upload.wikimedia.org/wikipedia/commons/0/05/P1050551_Louvre_code_d%27Hammurabi_recto_rwk.JPG?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+    "acquired_at": "2026-08-30T02:54:30-06:00",
+    "transport": "https",
+    "technical_access_bypass_used": false,
+    "operator_authorization_ref": "operator-directive:2026-08-30-open-work-download-priority",
+    "host_preflight_decision": "deny-protected-project-root",
+    "host_preflight_scope": "machine-owned-storage-automation-only"
+  },
+  "payload": {
+    "relative_path": "payload/P1050551_Louvre_code_d_Hammurabi_recto_rwk.JPG",
+    "original_basename": "P1050551_Louvre_code_d'Hammurabi_recto_rwk.JPG",
+    "media_type": "image/jpeg",
+    "byte_size": 1538719,
+    "sha256": "e357d0faad60c5fb5b8b6c4ba6282a34fdd2d6c48e81d8d8ae3a837bc831f8b1",
+    "source_sha1": "54c88f49034fc86a48b4b4d8bed7b07841b6b5d1",
+    "width_pixels": 1153,
+    "height_pixels": 2000,
+    "storage_posture": "tracked_public_payload",
+    "git_tracked": true,
+    "fixity_verified_at": "2026-08-30T02:54:39-06:00"
+  },
+  "rights_ref": "ToS/source-witnesses/artifacts/old-babylonian/susa/hammurabi-stele-sb-8/representations/commons-mbzt-rear-photograph-2011/rights.json",
+  "discovery_ref": "ToS/source-witnesses/discovery/runs/laws-of-hammurapi-open-work-route.2026-08-30.v1.json",
+  "provenance_event_ref": "tos.event.acquisition.hammurabi-stele-sb8-commons-mbzt-rear-2011.2026-08-30.v3",
+  "layer_separation": {
+    "visual_is_physical_artifact": false,
+    "visual_is_catalog_record": false,
+    "visual_is_transcription": false,
+    "embedded_text_admitted": false,
+    "same_bytes_as_originating_provider_asserted": false
+  },
+  "authority": {
+    "evidence_status": "visual_source_witness",
+    "review_status": "unreviewed",
+    "visibility": "public_payload",
+    "source_text_admitted": false,
+    "semantic_authority": false,
+    "graph_authority": false,
+    "canon_authority": false,
+    "publication_authority": false
+  },
+  "maker": {"maker_type": "model", "agent_ref": "model:codex", "human_review_performed": false},
+  "created_at": "2026-08-30T03:00:00-06:00",
+  "record_version": 1
+}

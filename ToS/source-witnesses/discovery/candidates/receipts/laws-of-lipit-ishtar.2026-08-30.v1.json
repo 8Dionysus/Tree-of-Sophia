@@ -1,0 +1,96 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/open-work-candidate-receipt.schema.json",
+  "schema_version": "tos_open_work_candidate_receipt_v1",
+  "receipt_id": "open-work-candidate-receipt.laws-of-lipit-ishtar.2026-08-30.v1",
+  "candidate_id": "open-work-candidate.laws-of-lipit-ishtar",
+  "candidate_record_sha256": "9bb253a164e6489fbc73722c8f81dfb4f850ed4a4fec3253735452ae88e1e643",
+  "candidate_ledger_sha256": "0e73f36c824ae228a169350b7906e2327c5dc85aca6a0fa56c3ccb1c30a6ca7d",
+  "candidate_target_sha256": "048e82b1e7c0776adfe40cecfd6bbddfdf042edee569724990c223d2ce109cb0",
+  "queue_snapshot_sha256": "c800e6fb95ef7502fc1f15fb836bdb47cd338ddf521ce4064941b70d74cd49b6",
+  "discovery_ref": "ToS/source-witnesses/discovery/runs/laws-of-lipit-ishtar-open-work-route.2026-08-30.v1.json",
+  "discovery_id": "tos.discovery.laws-of-lipit-ishtar-open-work-route.2026-08-30.v1",
+  "discovery_sha256": "194fd01be3d1ca3704ceb2de2521f76b53b8c42138a64c9d0d791a2128c586d6",
+  "discovery_target_sha256": "e3e1faa1e69b3e8f8cc997776470b64c1ee062bf250bff86d4b3171f5de48473",
+  "timing_ref": "ToS/source-witnesses/discovery/timings/laws-of-lipit-ishtar-open-work-route.2026-08-30.v1.json",
+  "timing_sha256": "5e6b3d156310e097710704502b09f395ae6182cf570ae57fd2e9acd4667778c8",
+  "terminal_status": "held_source_witness",
+  "target_resolution": {
+    "identity_status": "reconciled",
+    "work_ref": "tos.work.sumerian-law.laws-of-lipit-ishtar",
+    "expression_ref": null,
+    "edition_ref": null,
+    "item_ref": null,
+    "summary": "The existing ancient Work, provider-independent critical composite, and physical Louvre artifact identity were reused. The acquisitions are one exact ETCSRI/Oracc static annotated Sumerian HTML File and one exact Mikołajczak 2022 Polish translation/study PDF. The PDF has full bibliographic identity but is not yet formally admitted as a ToS Expression, Edition, or Item; neither File is a newly minted Work, ancient original, physical tablet, accepted source text, accepted translation, or semantic fact."
+  },
+  "rights_result": {
+    "status": "positive-for-acquisition",
+    "reviewed_jurisdictions": [
+      "HU",
+      "MX",
+      "PL",
+      "US"
+    ],
+    "reviewed_layers": [
+      "exact ETCSRI Q000613 static annotated HTML",
+      "ETCSRI project content license and Oracc attribution/ShareAlike conditions",
+      "exact Mikołajczak 2022 Polish translation and study PDF",
+      "originating UAM journal CC BY-SA 4.0 statement and File-level license notice",
+      "Louvre AO 5473 metadata and nine separately credited photographs",
+      "separately governed CDLI composite, ETCSL catalogue, modern publications, translations, images, scans, drawings, and third-party downloads"
+    ],
+    "evidence_refs": [
+      "ToS/source-witnesses/scholarly-composites/critical/sumerian/laws-of-lipit-ishtar/representations/oracc-etcsri-q000613-static-html/rights.json",
+      "ToS/source-witnesses/scholarly-composites/critical/sumerian/laws-of-lipit-ishtar/representations/mikolajczak-prawa-lipit-esztara-2022-pdf/rights.json",
+      "https://oracc.museum.upenn.edu/etcsri/accesskeys/",
+      "https://oracc.museum.upenn.edu/doc/help/visitingoracc/reusingoracc/index.html",
+      "https://pressto.amu.edu.pl/index.php/cph/article/view/36386",
+      "https://collections.louvre.fr/en/page/cgu",
+      "https://creativecommons.org/licenses/by-sa/3.0/",
+      "https://creativecommons.org/licenses/by-sa/4.0/"
+    ],
+    "summary": "Two exact Files have positive standard open licenses: ETCSRI Q000613 under CC BY-SA 3.0 and the UAM-originating Mikołajczak PDF under CC BY-SA 4.0. Each is fixity-bound and retains attribution and ShareAlike conditions. Louvre photographs were explicitly rejected because their named credits and custom enumerated-use terms are not a standard open license for the Goal. No CDLI representation, ETCSL catalogue title, other translation, third-party media, legal interpretation, or semantic layer is silently cleared."
+  },
+  "acquisition": {
+    "downloaded": true,
+    "item_ref": null,
+    "artifact_ref": null,
+    "composite_ref": "tos.composite.sumerian.laws-of-lipit-ishtar",
+    "representation_ref": "ToS/source-witnesses/scholarly-composites/critical/sumerian/laws-of-lipit-ishtar/representations/oracc-etcsri-q000613-static-html/representation.json",
+    "file_ref": "tos.file.sha256.d5fea8eab41c2570a32d69cff978dada64a905c13a6f3bd35f67ba272501f5f6",
+    "provenance_event_ref": "tos.event.acquisition.laws-of-lipit-ishtar-oracc-etcsri-q000613.2026-08-30"
+  },
+  "additional_acquisitions": [
+    {
+      "downloaded": true,
+      "item_ref": null,
+      "artifact_ref": null,
+      "composite_ref": "tos.composite.sumerian.laws-of-lipit-ishtar",
+      "representation_ref": "ToS/source-witnesses/scholarly-composites/critical/sumerian/laws-of-lipit-ishtar/representations/mikolajczak-prawa-lipit-esztara-2022-pdf/representation.json",
+      "file_ref": "tos.file.sha256.61c2539463b95c791d0a41d004c5b901f6d145f15d25355041f73b364e47aadc",
+      "provenance_event_ref": "tos.event.acquisition.laws-of-lipit-ishtar-mikolajczak-pl-2022.2026-08-30"
+    }
+  ],
+  "planting_refs": [
+    "ToS/philosophy/eras/bronze-age/regions/west-asia/traditions/old-babylonian-scribal-wisdom-law/sources/plantings/laws-of-lipit-ishtar-composite/source-planting.json"
+  ],
+  "operational_relation_refs": [
+    "ToS/source-witnesses/discovery/candidates/reviewed-candidates.jsonl:7",
+    "ToS/source-witnesses/discovery/runs/laws-of-lipit-ishtar-open-work-route.2026-08-30.v1.json",
+    "ToS/source-witnesses/discovery/timings/laws-of-lipit-ishtar-open-work-route.2026-08-30.v1.json",
+    "ToS/research-packets/foundation-laboratory-2026-07/A02_LAWS_OF_LIPIT_ISHTAR_OPEN_WORK_ACQUISITION_2026-08-30.md",
+    "ToS/source-witnesses/scholarly-composites/critical/sumerian/laws-of-lipit-ishtar/composite-witness.json",
+    "ToS/source-witnesses/scholarly-composites/critical/sumerian/laws-of-lipit-ishtar/representations/oracc-etcsri-q000613-static-html/representation.json",
+    "ToS/source-witnesses/scholarly-composites/critical/sumerian/laws-of-lipit-ishtar/representations/mikolajczak-prawa-lipit-esztara-2022-pdf/representation.json",
+    "tos.artifact.sumerian.uncertain.louvre-ao-05473",
+    "tos.event.discovery.laws-of-lipit-ishtar-open-work-route.2026-08-30",
+    "tos.event.acquisition.laws-of-lipit-ishtar-oracc-etcsri-q000613.2026-08-30",
+    "tos.event.acquisition.laws-of-lipit-ishtar-mikolajczak-pl-2022.2026-08-30"
+  ],
+  "next_trigger": "Rebuild queue.current.json. If no reviewed ready candidate remains, review exactly one next earliest source-backed Work or work-like corpus from the visible frontier, append it to reviewed-candidates.jsonl, rebuild, freeze it, and continue the loop.",
+  "issued_at": "2026-08-30T02:40:00-06:00",
+  "maker": {
+    "maker_type": "model",
+    "agent_ref": "model:codex"
+  },
+  "record_version": 1
+}

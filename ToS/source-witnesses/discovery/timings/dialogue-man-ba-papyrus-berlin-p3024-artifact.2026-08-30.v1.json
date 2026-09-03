@@ -1,0 +1,57 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/open-work-channel-timing-receipt.schema.json",
+  "claim_limit": "monotonic transport timing through the first 16384 response bytes only; not research, interpretation, rights-review, or human elapsed time",
+  "discovery_id": "tos.discovery.dialogue-man-ba-papyrus-berlin-p3024-artifact.2026-08-30.v1",
+  "discovery_ref": "ToS/source-witnesses/discovery/runs/dialogue-man-ba-papyrus-berlin-p3024-artifact.2026-08-30.v1.json",
+  "measured_at": "2026-08-30T16:00:57.443741Z",
+  "measurements": [
+    {
+      "channel_id": "channel-smb-p3024c-holding-artifact",
+      "measurement": {
+        "clock": "python.time.perf_counter_ns",
+        "elapsed_seconds": 0.785924,
+        "ended_at": "2026-08-30T16:00:21.150719Z",
+        "http_status": 200,
+        "method": "monotonic-http-request-v1",
+        "outcome": "success",
+        "probe_url": "https://search.smb.museum/object/obj-1388678",
+        "response_bytes_observed": 16384,
+        "started_at": "2026-08-30T16:00:20.364770Z",
+        "timing_scope": "request-through-first-16384-response-bytes"
+      }
+    },
+    {
+      "channel_id": "channel-tla-dialogue-object-and-text-artifact",
+      "measurement": {
+        "clock": "python.time.perf_counter_ns",
+        "elapsed_seconds": 15.310813,
+        "ended_at": "2026-08-30T16:00:36.461673Z",
+        "http_status": 200,
+        "method": "monotonic-http-request-v1",
+        "outcome": "success",
+        "probe_url": "https://tla.digital/object/N3YSOH4QK5EINPHSB5F2WSDRXI",
+        "response_bytes_observed": 16384,
+        "started_at": "2026-08-30T16:00:21.150851Z",
+        "timing_scope": "request-through-first-16384-response-bytes"
+      }
+    },
+    {
+      "channel_id": "channel-utokyo-lepsius-iiif-artifact",
+      "measurement": {
+        "clock": "python.time.perf_counter_ns",
+        "elapsed_seconds": 20.981907,
+        "ended_at": "2026-08-30T16:00:57.443683Z",
+        "http_status": null,
+        "method": "monotonic-http-request-v1",
+        "outcome": "transport-error",
+        "probe_url": "https://da.dl.itc.u-tokyo.ac.jp/portal/repo/iiif/11e8e95e-93a7-8803-2093-7ad447b26ce7/manifest",
+        "response_bytes_observed": 0,
+        "started_at": "2026-08-30T16:00:36.461767Z",
+        "timing_scope": "request-through-first-16384-response-bytes"
+      }
+    }
+  ],
+  "record_version": 1,
+  "schema_version": "tos_open_work_channel_timing_receipt_v1",
+  "timing_id": "open-work-channel-timing.dialogue-man-ba-papyrus-berlin-p3024-artifact.2026-08-30.v1"
+}

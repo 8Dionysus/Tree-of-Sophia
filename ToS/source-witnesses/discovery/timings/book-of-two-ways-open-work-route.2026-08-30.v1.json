@@ -1,0 +1,162 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/open-work-channel-timing-receipt.schema.json",
+  "claim_limit": "monotonic transport timing through the first 16384 response bytes only; not research, interpretation, rights-review, or human elapsed time",
+  "discovery_id": "tos.discovery.book-of-two-ways-open-work-route.2026-08-30.v1",
+  "discovery_ref": "ToS/source-witnesses/discovery/runs/book-of-two-ways-open-work-route.2026-08-30.v1.json",
+  "measured_at": "2026-08-30T11:03:19.492269Z",
+  "measurements": [
+    {
+      "channel_id": "channel-k10plus-originating-record",
+      "measurement": {
+        "clock": "python.time.perf_counter_ns",
+        "elapsed_seconds": 0.732981,
+        "ended_at": "2026-08-30T11:03:13.353943Z",
+        "http_status": 200,
+        "method": "monotonic-http-request-v1",
+        "outcome": "success",
+        "probe_url": "https://sru.k10plus.de/opac-de-627?version=1.1&operation=searchRetrieve&query=pica.ppn%3D1741505828&maximumRecords=5&recordSchema=picaxml",
+        "response_bytes_observed": 7896,
+        "started_at": "2026-08-30T11:03:12.620933Z",
+        "timing_scope": "request-through-first-16384-response-bytes"
+      }
+    },
+    {
+      "channel_id": "channel-heidelberg-digital-library",
+      "measurement": {
+        "clock": "python.time.perf_counter_ns",
+        "elapsed_seconds": 0.866802,
+        "ended_at": "2026-08-30T11:03:14.220875Z",
+        "http_status": 200,
+        "method": "monotonic-http-request-v1",
+        "outcome": "success",
+        "probe_url": "https://digi.ub.uni-heidelberg.de/diglit/schack-schackenburg1903bd1",
+        "response_bytes_observed": 4757,
+        "started_at": "2026-08-30T11:03:13.354061Z",
+        "timing_scope": "request-through-first-16384-response-bytes"
+      }
+    },
+    {
+      "channel_id": "channel-british-museum-sen-coffin",
+      "measurement": {
+        "clock": "python.time.perf_counter_ns",
+        "elapsed_seconds": 0.229763,
+        "ended_at": "2026-08-30T11:03:14.450756Z",
+        "http_status": 200,
+        "method": "monotonic-http-request-v1",
+        "outcome": "success",
+        "probe_url": "https://www.britishmuseum.org/collection/object/Y_EA30842",
+        "response_bytes_observed": 16384,
+        "started_at": "2026-08-30T11:03:14.220982Z",
+        "timing_scope": "request-through-first-16384-response-bytes"
+      }
+    },
+    {
+      "channel_id": "channel-dayr-al-barsha-project",
+      "measurement": {
+        "clock": "python.time.perf_counter_ns",
+        "elapsed_seconds": 1.162159,
+        "ended_at": "2026-08-30T11:03:15.613068Z",
+        "http_status": 200,
+        "method": "monotonic-http-request-v1",
+        "outcome": "success",
+        "probe_url": "https://www.arts.kuleuven.be/dayr-al-barsha/An-early-Book-of-Two-Ways",
+        "response_bytes_observed": 16384,
+        "started_at": "2026-08-30T11:03:14.450897Z",
+        "timing_scope": "request-through-first-16384-response-bytes"
+      }
+    },
+    {
+      "channel_id": "channel-ucl-digital-egypt",
+      "measurement": {
+        "clock": "python.time.perf_counter_ns",
+        "elapsed_seconds": 1.614348,
+        "ended_at": "2026-08-30T11:03:17.227585Z",
+        "http_status": 200,
+        "method": "monotonic-http-request-v1",
+        "outcome": "success",
+        "probe_url": "https://www.ucl.ac.uk/museums-static/digitalegypt/literature/religious/bd136.html",
+        "response_bytes_observed": 7989,
+        "started_at": "2026-08-30T11:03:15.613225Z",
+        "timing_scope": "request-through-first-16384-response-bytes"
+      }
+    },
+    {
+      "channel_id": "channel-europeana-exact-search",
+      "measurement": {
+        "clock": "python.time.perf_counter_ns",
+        "elapsed_seconds": 0.371178,
+        "ended_at": "2026-08-30T11:03:17.598896Z",
+        "http_status": 403,
+        "method": "monotonic-http-request-v1",
+        "outcome": "http-error",
+        "probe_url": "https://www.europeana.eu/en/search?query=%22Das%20Buch%20von%20den%20zwei%20Wegen%22",
+        "response_bytes_observed": 5825,
+        "started_at": "2026-08-30T11:03:17.227707Z",
+        "timing_scope": "request-through-first-16384-response-bytes"
+      }
+    },
+    {
+      "channel_id": "channel-crossref-exact-bibliography",
+      "measurement": {
+        "clock": "python.time.perf_counter_ns",
+        "elapsed_seconds": 0.670178,
+        "ended_at": "2026-08-30T11:03:18.269196Z",
+        "http_status": 200,
+        "method": "monotonic-http-request-v1",
+        "outcome": "success",
+        "probe_url": "https://api.crossref.org/works?query.title=Book%20of%20Two%20Ways&query.author=Schack-Schackenburg&rows=5&select=DOI,title,author,published,publisher,type,URL",
+        "response_bytes_observed": 3219,
+        "started_at": "2026-08-30T11:03:17.599006Z",
+        "timing_scope": "request-through-first-16384-response-bytes"
+      }
+    },
+    {
+      "channel_id": "channel-open-library-exact-search",
+      "measurement": {
+        "clock": "python.time.perf_counter_ns",
+        "elapsed_seconds": 0.676649,
+        "ended_at": "2026-08-30T11:03:18.945981Z",
+        "http_status": 200,
+        "method": "monotonic-http-request-v1",
+        "outcome": "success",
+        "probe_url": "https://openlibrary.org/search.json?title=Das%20Buch%20von%20den%20zwei%20Wegen&author=Schack-Schackenburg&limit=20",
+        "response_bytes_observed": 156,
+        "started_at": "2026-08-30T11:03:18.269322Z",
+        "timing_scope": "request-through-first-16384-response-bytes"
+      }
+    },
+    {
+      "channel_id": "channel-internet-archive-exact-search",
+      "measurement": {
+        "clock": "python.time.perf_counter_ns",
+        "elapsed_seconds": 0.353447,
+        "ended_at": "2026-08-30T11:03:19.299555Z",
+        "http_status": 200,
+        "method": "monotonic-http-request-v1",
+        "outcome": "success",
+        "probe_url": "https://archive.org/advancedsearch.php?q=title%3A%28%22Das+Buch+von+den+zwei+Wegen%22%29+AND+creator%3A%28%22Schack-Schackenburg%22%29&fl%5B%5D=identifier%2Ctitle%2Ccreator%2Cdate&rows=20&page=1&output=json",
+        "response_bytes_observed": 374,
+        "started_at": "2026-08-30T11:03:18.946097Z",
+        "timing_scope": "request-through-first-16384-response-bytes"
+      }
+    },
+    {
+      "channel_id": "channel-general-web-final-gap-check",
+      "measurement": {
+        "clock": "python.time.perf_counter_ns",
+        "elapsed_seconds": 0.192537,
+        "ended_at": "2026-08-30T11:03:19.492198Z",
+        "http_status": 200,
+        "method": "monotonic-http-request-v1",
+        "outcome": "success",
+        "probe_url": "https://www.google.com/search?q=%22Book+of+Two+Ways%22+coffin+EA30842+Schack-Schackenburg",
+        "response_bytes_observed": 16384,
+        "started_at": "2026-08-30T11:03:19.299651Z",
+        "timing_scope": "request-through-first-16384-response-bytes"
+      }
+    }
+  ],
+  "record_version": 1,
+  "schema_version": "tos_open_work_channel_timing_receipt_v1",
+  "timing_id": "open-work-channel-timing.book-of-two-ways-open-work-route.2026-08-30.v1"
+}

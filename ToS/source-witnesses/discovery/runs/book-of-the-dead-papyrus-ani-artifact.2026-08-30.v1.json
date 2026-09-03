@@ -1,0 +1,211 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/material-discovery-record.schema.json",
+  "schema_version": "tos_material_discovery_record_v1",
+  "discovery_id": "tos.discovery.book-of-the-dead-papyrus-ani-artifact.2026-08-30.v1",
+  "protocol_ref": "ToS/source-witnesses/discovery/DISCOVERY_PROTOCOL.md",
+  "target": {
+    "target_kind": "artifact",
+    "known_tos_refs": [
+      "tos.artifact.egyptian.thebes.papyrus-of-ani-ea10470-frame-3"
+    ],
+    "description": "Fix the physical identity of Papyrus of Ani frame 3 and retain the exact licensed British Museum visual File while keeping artifact, whole roll, frame, inscription, vignette, provider page, photograph, and File separate.",
+    "required_properties": [
+      "exact museum and registration identity",
+      "physical dimensions and findspot remain reported facts",
+      "exact image-specific license and fixity",
+      "no source-text or semantic admission"
+    ],
+    "acceptable_substitutions": [
+      "exact official museum record plus image-specific rights page",
+      "rights-insufficient artifact receipt"
+    ],
+    "languages": [
+      "egy",
+      "en",
+      "de"
+    ],
+    "formats": [
+      "museum object metadata",
+      "specialized witness metadata",
+      "JPEG",
+      "object-level rights statement"
+    ],
+    "purpose_ref": "ToS/research-packets/foundation-laboratory-2026-07/A05_BOOK_OF_THE_DEAD_OPEN_WORK_ACQUISITION_2026-08-30.md"
+  },
+  "channels": [
+    {
+      "channel_id": "channel-british-museum-papyrus-ani-frame-3",
+      "sequence": 1,
+      "channel_type": "collection-aggregator",
+      "role": "digital-object-record",
+      "source_name": "British Museum Collection Online",
+      "endpoint_url": "https://www.britishmuseum.org/collection/object/Y_EA10470-3",
+      "interface_type": "web",
+      "interface_version": "object and image-use pages checked 2026-08-30",
+      "exact_query": "Object Y_EA10470-3 and image-use asset 684647001",
+      "queried_at": "2026-08-30T11:31:12.710352Z",
+      "elapsed_seconds": 0.781688,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.bm-papyrus-ani-ea10470-frame-3-image-684647001",
+          "rank": 1,
+          "title_as_displayed": "Papyrus of Ani frame 3 — Ani's Judgment",
+          "result_url": "https://www.britishmuseum.org/collection/object/Y_EA10470-3",
+          "originating_record_url": "https://www.britishmuseum.org/collection/object/Y_EA10470-3",
+          "identifiers": [
+            {
+              "scheme": "British Museum number",
+              "value": "EA10470,3"
+            },
+            {
+              "scheme": "registration number",
+              "value": "1888,0515.1.3"
+            },
+            {
+              "scheme": "British Museum asset",
+              "value": "684647001"
+            },
+            {
+              "scheme": "Trismegistos Text",
+              "value": "134357"
+            },
+            {
+              "scheme": "SHA-256",
+              "value": "adcde14cf16796396daf0513c5b25785c2b9d9ea1261561086702ae45523a6b4"
+            }
+          ],
+          "available_formats": [
+            "object HTML",
+            "image-use HTML",
+            "JPEG 1000x721"
+          ],
+          "declared_rights": {
+            "statement": "CC BY-NC-SA 4.0 for non-commercial sharing of this exact image, with attribution to © The Trustees of the British Museum.",
+            "scope": "digital-object",
+            "evidence_url": "https://www.britishmuseum.org/collection/image/684647001",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-download",
+          "machine_interface": "html",
+          "decision": "select",
+          "rationale": "The rendered object and image-use pages fix the frame and image identity, and the normal browser page-asset route delivered the licensed JPEG without access-control bypass.",
+          "acquisition": {
+            "downloaded": true,
+            "acquired_at": "2026-08-30T05:14:04-06:00",
+            "byte_size": 181097,
+            "sha256": "adcde14cf16796396daf0513c5b25785c2b9d9ea1261561086702ae45523a6b4",
+            "event_ref": "tos.event.acquisition.book-of-the-dead-papyrus-ani-and-naville.2026-08-30"
+          },
+          "snapshot": {
+            "state": "not-needed",
+            "format": null,
+            "sha256": null,
+            "reason": "The exact acquired JPEG is the retained immutable source entity."
+          }
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-bonn-tm134357",
+      "sequence": 2,
+      "channel_type": "specialized-scholarly-project",
+      "role": "scholarly-index",
+      "source_name": "Totenbuchprojekt Bonn",
+      "endpoint_url": "https://totenbuch.awk.nrw.de/objekt/tm134357",
+      "interface_type": "web",
+      "interface_version": "digital text-witness archive checked 2026-08-30",
+      "exact_query": "TM 134357 / P. London BM EA 10470",
+      "queried_at": "2026-08-30T11:31:13.492281Z",
+      "elapsed_seconds": 3.872846,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.bonn-papyrus-ani-tm134357",
+          "rank": 1,
+          "title_as_displayed": "TM 134357, Papyrus, London — P. London BM EA 10470",
+          "result_url": "https://totenbuch.awk.nrw.de/objekt/tm134357",
+          "originating_record_url": "https://totenbuch.awk.nrw.de/objekt/tm134357",
+          "identifiers": [
+            {
+              "scheme": "Trismegistos Text",
+              "value": "134357"
+            },
+            {
+              "scheme": "object name",
+              "value": "P. London BM EA 10470"
+            }
+          ],
+          "available_formats": [
+            "scholarly HTML"
+          ],
+          "declared_rights": {
+            "statement": null,
+            "scope": "unknown",
+            "evidence_url": null,
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-view",
+          "machine_interface": "html",
+          "decision": "select",
+          "rationale": "The specialist project corroborates physical-witness identity, repository, Theban origin, 19th Dynasty date, owner Ani, script, colour, dimensions, and bibliography without supplying a reusable content license.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-captured",
+            "format": null,
+            "sha256": null,
+            "reason": "No project content was copied; only bounded metadata and the exact link are retained."
+          }
+        }
+      ]
+    }
+  ],
+  "channel_comparison": [
+    {
+      "channel_id": "channel-british-museum-papyrus-ani-frame-3",
+      "completeness": "strong",
+      "metadata_precision": "strong",
+      "rights_clarity": "strong",
+      "machine_interface_quality": "adequate",
+      "human_minutes": 0,
+      "machine_seconds": 0.781688,
+      "notes": "Exact physical-frame and licensed visual-File route. Machine time is the automatic monotonic HTTP measurement; human_minutes=0 means no real-human review was performed."
+    },
+    {
+      "channel_id": "channel-bonn-tm134357",
+      "completeness": "strong",
+      "metadata_precision": "strong",
+      "rights_clarity": "limited",
+      "machine_interface_quality": "adequate",
+      "human_minutes": 0,
+      "machine_seconds": 3.872846,
+      "notes": "Strong specialist identity and bibliography corroboration without an open content license. Machine time is the automatic monotonic HTTP measurement; human_minutes=0 means no real-human review was performed."
+    }
+  ],
+  "selected_result_ids": [
+    "tos-discovery-result.bm-papyrus-ani-ea10470-frame-3-image-684647001",
+    "tos-discovery-result.bonn-papyrus-ani-tm134357"
+  ],
+  "rejected_result_ids": [],
+  "rights_inference_from_availability_prohibited": true,
+  "general_web_search_is_last_resort": true,
+  "technical_access_bypass_used": false,
+  "maker": {
+    "maker_type": "mixed",
+    "agent_ref": "model:codex + software:python-3.14.6"
+  },
+  "started_at": "2026-08-30T11:31:12.710352Z",
+  "ended_at": "2026-08-30T11:31:17.365145Z",
+  "status": "reconciled",
+  "provenance_event_refs": [
+    "tos.event.acquisition.book-of-the-dead-papyrus-ani-and-naville.2026-08-30"
+  ],
+  "record_version": 1,
+  "supersedes_discovery_ref": null
+}

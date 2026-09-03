@@ -1,0 +1,3118 @@
+#!/usr/bin/env python3
+"""Build the reviewed open-work discovery queue from authored candidate records."""
+
+from __future__ import annotations
+
+import hashlib
+import json
+import re
+from datetime import datetime, timezone
+from pathlib import Path
+from typing import Any
+from urllib.parse import urlsplit
+
+
+REPO_ROOT = Path(__file__).resolve().parents[1]
+CANDIDATE_ROOT = Path("ToS/source-witnesses/discovery/candidates")
+LEDGER_PATH = CANDIDATE_ROOT / "reviewed-candidates.jsonl"
+RECEIPT_ROOT = CANDIDATE_ROOT / "receipts"
+TIMING_ROOT = Path("ToS/source-witnesses/discovery/timings")
+QUEUE_RELATIVE_PATH = CANDIDATE_ROOT / "queue.current.json"
+QUEUE_PATH = REPO_ROOT / QUEUE_RELATIVE_PATH
+
+MASTER_ROW_PATHS = (
+    Path("ToS/philosophy/atlas/master-tables/table-i/rows.jsonl"),
+    Path("ToS/philosophy/atlas/master-tables/table-ii/rows.jsonl"),
+    Path("ToS/philosophy/atlas/master-tables/table-iii/rows.jsonl"),
+)
+DOSSIER_INDEX_PATH = Path("ToS/philosophy/atlas/dossiers/index.jsonl")
+BACKLOG_PATH = Path("ToS/philosophy/atlas/dossiers/source-anchor-backlog.jsonl")
+WORK_CATALOG_PATH = Path("ToS/source-witnesses/catalog/works.jsonl")
+DISCOVERY_RUN_ROOT = Path("ToS/source-witnesses/discovery/runs")
+
+READY_STATUS = "ready-for-discovery"
+TERMINAL_STATUSES = {
+    "held_source_witness",
+    "metadata_only",
+    "publication_candidate",
+    "deferred",
+    "blocked",
+    "exhausted_for_now",
+    "duplicate",
+    "rejected",
+    "superseded",
+}
+QUEUEABLE_KINDS = {"work", "work-like-corpus"}
+TIMING_METHOD = "monotonic-http-request-v1"
+TIMING_CLOCK = "python.time.perf_counter_ns"
+_POSITIVE_ACQUISITION_ASSESSMENTS = frozenset(
+    {"public_domain_reviewed", "licensed", "permission_granted"}
+)
+TARGET_RESOLUTION_CATALOGS = {
+    "work_ref": (Path("ToS/source-witnesses/catalog/works.jsonl"), "work"),
+    "expression_ref": (Path("ToS/source-witnesses/catalog/expressions.jsonl"), "expression"),
+    "edition_ref": (Path("ToS/source-witnesses/catalog/editions.jsonl"), "edition"),
+    "item_ref": (Path("ToS/source-witnesses/catalog/items.jsonl"), "item"),
+}
+
+_CONSTRAINT_STOP_WORDS = frozenset(
+    {
+        "a",
+        "an",
+        "and",
+        "as",
+        "at",
+        "be",
+        "by",
+        "for",
+        "from",
+        "in",
+        "into",
+        "is",
+        "kept",
+        "must",
+        "no",
+        "of",
+        "or",
+        "rather",
+        "same",
+        "the",
+        "this",
+        "to",
+        "with",
+        "without",
+        "one",
+        "all",
+        "any",
+        "only",
+        "remain",
+        "remains",
+        "separate",
+        "separates",
+        "separation",
+        "preserve",
+        "preserves",
+        "retained",
+        "retains",
+    }
+)
+
+# Discovery targets may narrow or operationalize a reviewed candidate in
+# different words.  These aliases keep the mechanical check conservative
+# without pretending to perform semantic or human review.
+_CONSTRAINT_TOKEN_ALIASES: dict[str, tuple[str, ...]] = {
+    "catalog": ("metadata",),
+    "catalogue": ("metadata",),
+    "bibliographic": ("metadata",),
+    "authority": ("metadata",),
+    "institutional": ("metadata",),
+    "holding": ("metadata",),
+    "record": ("metadata",),
+    "records": ("metadata",),
+    "provider": ("metadata",),
+    "scan": ("digital-object",),
+    "facsimile": ("digital-object",),
+    "pdf": ("digital-object",),
+    "jpeg": ("digital-object", "text-layer"),
+    "image": ("digital-object",),
+    "photograph": ("digital-object",),
+    "visual": ("digital-object",),
+    "iiif": ("digital-object",),
+    "html": ("digital-object", "text-layer"),
+    "xml": ("digital-object", "text-layer"),
+    "json": ("digital-object", "text-layer"),
+    "export": ("digital-object",),
+    "file": ("digital-object",),
+    "files": ("digital-object",),
+    "bytes": ("digital-object",),
+    "byte": ("digital-object",),
+    "payload": ("digital-object",),
+    "line_art": ("digital-object",),
+    "plate": ("digital-object",),
+    "plates": ("digital-object",),
+    "downloadable": ("digital-object",),
+    "download": ("digital-object",),
+    "critical": ("scholarship",),
+    "edition": ("scholarship",),
+    "edition_presentation": ("scholarship",),
+    "commentary": ("scholarship",),
+    "study": ("scholarship",),
+    "publication": ("scholarship",),
+    "article": ("scholarship",),
+    "scholarly": ("scholarship",),
+    "project": ("scholarship",),
+    "translation": ("text-layer",),
+    "transcription": ("text-layer",),
+    "transliteration": ("text-layer",),
+    "text": ("text-layer",),
+    "inscription": ("text-layer",),
+    "spell": ("text-layer",),
+    "utterance": ("text-layer",),
+    "transliteration": ("text-layer",),
+    "rights": ("rights",),
+    "license": ("rights",),
+    "licensed": ("rights",),
+    "terms": ("rights",),
+    "permission": ("rights",),
+    "evidence": ("rights",),
+    "physical": ("physical-witness",),
+    "artifact": ("physical-witness",),
+    "monument": ("physical-witness",),
+    "tablet": ("physical-witness",),
+    "coffin": ("physical-witness",),
+    "papyrus": ("physical-witness",),
+    "witness": ("physical-witness",),
+    "witnesses": ("physical-witness",),
+    "work": ("work-identity",),
+    "corpus": ("work-identity",),
+    "subcorpus": ("work-identity",),
+    "composition": ("work-identity",),
+    "original_work": ("work-identity",),
+    "identity": ("identity",),
+    "identities": ("identity",),
+    "fixity": ("identity",),
+    "version": ("identity",),
+    "member": ("identity",),
+    "members": ("identity",),
+}
+
+
+class QueueBuildError(RuntimeError):
+    """Raised when authored queue inputs cannot support a deterministic build."""
+
+
+def canonical_json(payload: object) -> str:
+    return json.dumps(payload, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+
+
+def candidate_digest(candidate: dict[str, Any]) -> str:
+    return hashlib.sha256(canonical_json(candidate).encode("utf-8")).hexdigest()
+
+
+def target_digest(target: dict[str, Any]) -> str:
+    return hashlib.sha256(canonical_json(target).encode("utf-8")).hexdigest()
+
+
+def _safe_relative_path(value: str) -> Path:
+    path = Path(value)
+    if path.is_absolute() or ".." in path.parts:
+        raise QueueBuildError(f"unsafe repository-relative path: {value!r}")
+    return path
+
+
+def _load_json(path: Path, repo_root: Path) -> dict[str, Any]:
+    relative = path.relative_to(repo_root).as_posix()
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+    except FileNotFoundError as exc:
+        raise QueueBuildError(f"{relative}: required JSON file is missing") from exc
+    except (OSError, json.JSONDecodeError) as exc:
+        raise QueueBuildError(f"{relative}: cannot read JSON: {exc}") from exc
+    if not isinstance(payload, dict):
+        raise QueueBuildError(f"{relative}: JSON root must be an object")
+    return payload
+
+
+def _load_jsonl(path: Path, repo_root: Path) -> list[dict[str, Any]]:
+    return [payload for payload, _ in _load_jsonl_with_lines(path, repo_root)]
+
+
+def _load_jsonl_with_lines(
+    path: Path,
+    repo_root: Path,
+) -> list[tuple[dict[str, Any], int]]:
+    relative = path.relative_to(repo_root).as_posix()
+    try:
+        lines = path.read_text(encoding="utf-8").splitlines()
+    except FileNotFoundError as exc:
+        raise QueueBuildError(f"{relative}: required JSONL file is missing") from exc
+    except OSError as exc:
+        raise QueueBuildError(f"{relative}: cannot read JSONL: {exc}") from exc
+
+    payloads: list[tuple[dict[str, Any], int]] = []
+    for line_number, raw_line in enumerate(lines, start=1):
+        if not raw_line.strip():
+            continue
+        try:
+            payload = json.loads(raw_line)
+        except json.JSONDecodeError as exc:
+            raise QueueBuildError(f"{relative}:{line_number}: cannot parse JSON: {exc}") from exc
+        if not isinstance(payload, dict):
+            raise QueueBuildError(f"{relative}:{line_number}: JSONL record must be an object")
+        payloads.append((payload, line_number))
+    return payloads
+
+
+def _required_string(payload: dict[str, Any], key: str, location: str) -> str:
+    value = payload.get(key)
+    if not isinstance(value, str) or not value:
+        raise QueueBuildError(f"{location}: {key} must be a non-empty string")
+    return value
+
+
+def _required_sha256(payload: dict[str, Any], key: str, location: str) -> str:
+    value = payload.get(key)
+    if not isinstance(value, str) or re.fullmatch(r"[a-f0-9]{64}", value) is None:
+        raise QueueBuildError(f"{location}: {key} must be a lowercase SHA-256 digest")
+    return value
+
+
+def _parse_timestamp(value: Any, *, location: str, field: str) -> datetime:
+    if not isinstance(value, str) or not value:
+        raise QueueBuildError(f"{location}: {field} must be a non-empty date-time")
+    try:
+        parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
+    except ValueError as exc:
+        raise QueueBuildError(f"{location}: {field} is not a valid date-time: {value!r}") from exc
+    if parsed.tzinfo is None:
+        parsed = parsed.replace(tzinfo=timezone.utc)
+    return parsed.astimezone(timezone.utc)
+
+
+def _load_repo_json_ref(value: str, *, repo_root: Path, location: str) -> tuple[dict[str, Any], Path]:
+    path = repo_root / _safe_relative_path(value)
+    try:
+        payload = _load_json(path, repo_root)
+    except QueueBuildError as exc:
+        raise QueueBuildError(f"{location}: {exc}") from exc
+    return payload, path
+
+
+def _validate_rights_evidence_refs(
+    repo_root: Path,
+    rights_result: Any,
+    *,
+    location: str,
+) -> None:
+    refs = rights_result.get("evidence_refs") if isinstance(rights_result, dict) else None
+    if not isinstance(refs, list) or not refs:
+        raise QueueBuildError(f"{location}: rights_result.evidence_refs must be a non-empty array")
+    for index, reference in enumerate(refs, start=1):
+        ref_location = f"{location}:rights_result.evidence_refs[{index}]"
+        if not isinstance(reference, str) or not reference:
+            raise QueueBuildError(f"{ref_location}: rights evidence ref must be a non-empty string")
+        parsed = urlsplit(reference)
+        if parsed.scheme:
+            if parsed.scheme not in {"http", "https"} or not parsed.netloc:
+                raise QueueBuildError(
+                    f"{ref_location}: rights evidence ref must be an http(s) URI with a host"
+                )
+            continue
+        try:
+            path = _safe_relative_path(reference)
+        except QueueBuildError as exc:
+            raise QueueBuildError(
+                f"{ref_location}: rights evidence ref must be a repository-relative file or http(s) URI"
+            ) from exc
+        if not (repo_root / path).is_file():
+            raise QueueBuildError(
+                f"{ref_location}: rights evidence ref does not resolve: {reference!r}"
+            )
+
+
+def _load_acquisition_rights_contexts(
+    repo_root: Path,
+    acquisitions: list[Any],
+    *,
+    location: str,
+) -> list[dict[str, Any]]:
+    contexts: list[dict[str, Any]] = []
+    for index, acquisition in enumerate(acquisitions, start=1):
+        acquisition_location = f"{location}:acquisition[{index}]"
+        if not isinstance(acquisition, dict) or acquisition.get("downloaded") is not True:
+            continue
+        file_ref = acquisition.get("file_ref")
+        if not isinstance(file_ref, str) or not file_ref:
+            raise QueueBuildError(
+                f"{acquisition_location}: downloaded acquisition must bind file_ref before rights validation"
+            )
+        identity_fields = [
+            key
+            for key in ("item_ref", "artifact_ref", "composite_ref")
+            if isinstance(acquisition.get(key), str) and acquisition.get(key)
+        ]
+        if len(identity_fields) != 1:
+            raise QueueBuildError(
+                f"{acquisition_location}: downloaded acquisition must identify one canonical rights scope"
+            )
+        identity_ref = acquisition[identity_fields[0]]
+
+        if identity_fields[0] == "item_ref":
+            item, _ = _find_unique_record(
+                repo_root,
+                root=Path("ToS/source-witnesses"),
+                filename="item.manifest.json",
+                key="item_id",
+                value=identity_ref,
+                location=acquisition_location,
+            )
+            rights_ref = item.get("rights_ref")
+        else:
+            representation_ref = acquisition.get("representation_ref")
+            if not isinstance(representation_ref, str) or not representation_ref:
+                raise QueueBuildError(
+                    f"{acquisition_location}: downloaded acquisition must bind representation_ref"
+                )
+            representation, _ = _load_repo_json_ref(
+                representation_ref,
+                repo_root=repo_root,
+                location=acquisition_location,
+            )
+            rights_ref = representation.get("rights_ref")
+
+        if not isinstance(rights_ref, str) or not rights_ref or urlsplit(rights_ref).scheme:
+            raise QueueBuildError(
+                f"{acquisition_location}: canonical acquisition rights_ref must be a repository-relative file"
+            )
+        rights, rights_path = _load_repo_json_ref(
+            rights_ref,
+            repo_root=repo_root,
+            location=acquisition_location,
+        )
+        scope_refs = rights.get("scope_refs")
+        expected_scope = {identity_ref, file_ref}
+        if not isinstance(scope_refs, list) or not expected_scope <= {
+            reference for reference in scope_refs if isinstance(reference, str)
+        }:
+            raise QueueBuildError(
+                f"{acquisition_location}: canonical rights record {rights_ref!r} does not scope "
+                f"both {identity_ref!r} and {file_ref!r}"
+            )
+        layer_assessments = rights.get("layer_assessments")
+        matching_layers = [
+            layer
+            for layer in layer_assessments
+            if isinstance(layer, dict)
+            and file_ref in {
+                reference
+                for reference in layer.get("scope_refs", [])
+                if isinstance(reference, str)
+            }
+        ] if isinstance(layer_assessments, list) else []
+        if not matching_layers:
+            raise QueueBuildError(
+                f"{acquisition_location}: canonical rights record {rights_ref!r} lacks an "
+                f"applicable layer assessment for {file_ref!r}"
+            )
+        aggregate_status = rights.get("assessment_status")
+        if aggregate_status is not None and (
+            not isinstance(aggregate_status, str)
+            or aggregate_status not in _POSITIVE_ACQUISITION_ASSESSMENTS
+        ):
+            raise QueueBuildError(
+                f"{acquisition_location}: canonical rights record {rights_ref!r} has "
+                f"non-positive assessment_status {aggregate_status!r} for acquired file {file_ref!r}"
+            )
+        non_positive_layers = [
+            layer.get("assessment_status")
+            for layer in matching_layers
+            if not isinstance(layer.get("assessment_status"), str)
+            or layer.get("assessment_status") not in _POSITIVE_ACQUISITION_ASSESSMENTS
+        ]
+        if non_positive_layers:
+            raise QueueBuildError(
+                f"{acquisition_location}: canonical rights record {rights_ref!r} has "
+                f"non-positive layer assessment_status {non_positive_layers!r} for acquired file "
+                f"{file_ref!r}"
+            )
+        contexts.append(
+            {
+                "rights_ref": rights_path.relative_to(repo_root).as_posix(),
+                "rights": rights,
+                "identity_ref": identity_ref,
+                "file_ref": file_ref,
+                "layer_assessments": layer_assessments,
+            }
+        )
+    return contexts
+
+
+def _validate_positive_rights_scope(
+    candidate: dict[str, Any],
+    rights_result: dict[str, Any],
+    contexts: list[dict[str, Any]],
+    *,
+    location: str,
+) -> None:
+    scope = candidate.get("rights_review_scope")
+    requested_jurisdictions = scope.get("jurisdictions") if isinstance(scope, dict) else None
+    requested_layers = scope.get("layers") if isinstance(scope, dict) else None
+    if not isinstance(requested_jurisdictions, list) or not requested_jurisdictions:
+        raise QueueBuildError(
+            f"{location}: positive rights result requires a non-empty candidate jurisdiction scope"
+        )
+    if not isinstance(requested_layers, list) or not requested_layers:
+        raise QueueBuildError(
+            f"{location}: positive rights result requires a non-empty candidate layer scope"
+        )
+
+    reviewed_jurisdictions = rights_result.get("reviewed_jurisdictions")
+    if not isinstance(reviewed_jurisdictions, list) or not reviewed_jurisdictions:
+        raise QueueBuildError(
+            f"{location}: positive rights result requires non-empty reviewed_jurisdictions"
+        )
+    if not all(isinstance(value, str) and value for value in reviewed_jurisdictions):
+        raise QueueBuildError(
+            f"{location}: positive rights result reviewed_jurisdictions must contain strings"
+        )
+    if not set(requested_jurisdictions) & set(reviewed_jurisdictions):
+        raise QueueBuildError(
+            f"{location}: positive rights result jurisdictions do not cover the candidate scope"
+        )
+
+    reviewed_layers = rights_result.get("reviewed_layers")
+    if not isinstance(reviewed_layers, list) or not reviewed_layers or not all(
+        isinstance(value, str) and value for value in reviewed_layers
+    ):
+        raise QueueBuildError(
+            f"{location}: positive rights result requires non-empty reviewed_layers"
+        )
+    requested_layer_tokens = _constraint_tokens(requested_layers)
+    reviewed_layer_tokens = _constraint_tokens(reviewed_layers)
+    if not requested_layer_tokens & reviewed_layer_tokens:
+        raise QueueBuildError(
+            f"{location}: positive rights result reviewed_layers do not cover the candidate scope"
+        )
+
+    evidence_refs = set(rights_result.get("evidence_refs", []))
+    required_rights_refs = {context["rights_ref"] for context in contexts}
+    missing_rights_refs = sorted(required_rights_refs - evidence_refs)
+    if missing_rights_refs:
+        raise QueueBuildError(
+            f"{location}: positive rights result omits canonical acquisition rights refs: "
+            f"{missing_rights_refs}"
+        )
+
+    for context in contexts:
+        rights = context["rights"]
+        rights_jurisdictions = rights.get("jurisdictions_reviewed")
+        if not isinstance(rights_jurisdictions, list) or not set(rights_jurisdictions) & set(
+            reviewed_jurisdictions
+        ):
+            raise QueueBuildError(
+                f"{location}: canonical rights record {context['rights_ref']!r} is outside "
+                "the positive reviewed jurisdiction scope"
+            )
+        layer_tokens = _constraint_tokens(
+            [
+                layer.get("layer_role")
+                for layer in context["layer_assessments"]
+                if isinstance(layer, dict)
+            ]
+        )
+        if not requested_layer_tokens & layer_tokens:
+            raise QueueBuildError(
+                f"{location}: canonical rights record {context['rights_ref']!r} does not bind "
+                f"an acquired layer in the candidate scope"
+            )
+        if not reviewed_layer_tokens & layer_tokens:
+            raise QueueBuildError(
+                f"{location}: reviewed rights layers do not identify acquired layer "
+                f"{context['file_ref']!r}"
+            )
+
+
+def _normalised_words(value: str) -> list[str]:
+    value = value.casefold().replace("’", "'")
+    return re.findall(r"[\w]+", value, flags=re.UNICODE)
+
+
+def _contains_word_phrase(haystack: str, needle: str) -> bool:
+    haystack_words = _normalised_words(haystack)
+    needle_words = _normalised_words(needle)
+    if not needle_words:
+        return False
+    width = len(needle_words)
+    return any(
+        haystack_words[index : index + width] == needle_words
+        for index in range(len(haystack_words) - width + 1)
+    )
+
+
+def _constraint_tokens(value: Any) -> set[str]:
+    if isinstance(value, str):
+        raw_tokens = set(_normalised_words(value))
+    else:
+        raw_tokens = set(_normalised_words(canonical_json(value)))
+    tokens = raw_tokens - _CONSTRAINT_STOP_WORDS
+    expanded = set(tokens)
+    for token in tokens:
+        parts = {part for part in re.split(r"[-_]", token) if part}
+        expanded.update(parts)
+        expanded.update(_CONSTRAINT_TOKEN_ALIASES.get(token, ()))
+        for part in parts:
+            expanded.update(_CONSTRAINT_TOKEN_ALIASES.get(part, ()))
+    return expanded
+
+
+def _validate_target_constraint_refinement(
+    candidate_target: dict[str, Any],
+    discovery_target: dict[str, Any],
+    *,
+    location: str,
+) -> None:
+    """Require an executed target to retain the reviewed candidate constraints.
+
+    Discovery is allowed to narrow a candidate and to restate it in operational
+    language.  Each candidate property/substitution/format therefore needs its
+    complete conservative lexical or controlled-category constraint in the
+    executed target, unless an explicit reviewed refinement binds the candidate
+    value to the executed values.  Languages need a non-empty retained
+    intersection.  This is a mechanical anti-drop check, not semantic
+    acceptance.
+    """
+    surface_values: list[Any] = [discovery_target.get("description")]
+    for field in ("required_properties", "acceptable_substitutions", "languages", "formats"):
+        values = discovery_target.get(field)
+        if isinstance(values, list):
+            surface_values.append(values)
+    discovery_surface = _constraint_tokens(surface_values)
+
+    refinements = discovery_target.get("constraint_refinements", [])
+    if refinements is None:
+        refinements = []
+    if not isinstance(refinements, list):
+        raise QueueBuildError(f"{location}: discovery target constraint_refinements must be an array")
+    candidate_values_by_field = {
+        field: candidate_target.get(field)
+        for field in ("required_properties", "acceptable_substitutions", "formats")
+    }
+    discovery_values_by_field = {
+        field: discovery_target.get(field)
+        for field in ("required_properties", "acceptable_substitutions", "formats")
+    }
+    reviewed_refinements: set[tuple[str, str]] = set()
+    for index, refinement in enumerate(refinements, start=1):
+        refinement_location = f"{location}: discovery target constraint_refinements[{index}]"
+        if not isinstance(refinement, dict):
+            raise QueueBuildError(f"{refinement_location} must be an object")
+        candidate_field = refinement.get("candidate_field")
+        discovery_field = refinement.get("discovery_field")
+        if candidate_field not in candidate_values_by_field:
+            raise QueueBuildError(
+                f"{refinement_location}.candidate_field must name a supported constraint field"
+            )
+        if discovery_field not in discovery_values_by_field:
+            raise QueueBuildError(
+                f"{refinement_location}.discovery_field must name a supported constraint field"
+            )
+        candidate_values = refinement.get("candidate_values")
+        discovery_values = refinement.get("discovery_values")
+        if not isinstance(candidate_values, list) or not candidate_values or not all(
+            isinstance(value, str) and value for value in candidate_values
+        ):
+            raise QueueBuildError(
+                f"{refinement_location}.candidate_values must contain non-empty strings"
+            )
+        if not isinstance(discovery_values, list) or not discovery_values or not all(
+            isinstance(value, str) and value for value in discovery_values
+        ):
+            raise QueueBuildError(
+                f"{refinement_location}.discovery_values must contain non-empty strings"
+            )
+        if refinement.get("review_status") != "reviewed":
+            raise QueueBuildError(f"{refinement_location}.review_status must be reviewed")
+        if not isinstance(refinement.get("reviewed_at"), str) or not refinement["reviewed_at"]:
+            raise QueueBuildError(f"{refinement_location}.reviewed_at must be a non-empty string")
+        if not isinstance(refinement.get("reviewer_ref"), str) or not refinement["reviewer_ref"]:
+            raise QueueBuildError(f"{refinement_location}.reviewer_ref must be a non-empty string")
+        available_candidate_values = candidate_values_by_field[candidate_field]
+        available_discovery_values = discovery_values_by_field[discovery_field]
+        if not isinstance(available_candidate_values, list) or not all(
+            isinstance(value, str) for value in available_candidate_values
+        ):
+            raise QueueBuildError(
+                f"{location}: candidate target {candidate_field} must contain non-empty strings"
+            )
+        if not isinstance(available_discovery_values, list) or not all(
+            isinstance(value, str) for value in available_discovery_values
+        ):
+            raise QueueBuildError(
+                f"{location}: discovery target {discovery_field} must contain non-empty strings"
+            )
+        if not set(candidate_values) <= set(available_candidate_values):
+            raise QueueBuildError(
+                f"{refinement_location} does not bind candidate {candidate_field} values"
+            )
+        if not set(discovery_values) <= set(available_discovery_values):
+            raise QueueBuildError(
+                f"{refinement_location} does not bind discovery {discovery_field} values"
+            )
+        for value in candidate_values:
+            key = (candidate_field, value)
+            if key in reviewed_refinements:
+                raise QueueBuildError(
+                    f"{refinement_location} duplicates reviewed refinement for {candidate_field} {value!r}"
+                )
+            reviewed_refinements.add(key)
+
+    for field in ("required_properties", "acceptable_substitutions", "formats"):
+        candidate_values = candidate_target.get(field)
+        discovery_values = discovery_target.get(field)
+        if not isinstance(candidate_values, list) or not all(
+            isinstance(value, str) and value for value in candidate_values
+        ):
+            raise QueueBuildError(f"{location}: candidate target {field} must contain non-empty strings")
+        if not isinstance(discovery_values, list) or not all(
+            isinstance(value, str) and value for value in discovery_values
+        ):
+            raise QueueBuildError(f"{location}: discovery target {field} must contain non-empty strings")
+        if candidate_values and not discovery_values:
+            raise QueueBuildError(
+                f"{location}: discovery target drops all candidate {field} constraints"
+            )
+        for index, value in enumerate(candidate_values, start=1):
+            missing_tokens = _constraint_tokens(value) - discovery_surface
+            if missing_tokens and (field, value) not in reviewed_refinements:
+                raise QueueBuildError(
+                    f"{location}: discovery target drops candidate {field}[{index}] {value!r}; "
+                    f"missing complete constraint tokens: {sorted(missing_tokens)} or a reviewed refinement"
+                )
+
+    candidate_languages = candidate_target.get("languages")
+    discovery_languages = discovery_target.get("languages")
+    if not isinstance(candidate_languages, list) or not all(
+        isinstance(value, str) and value for value in candidate_languages
+    ):
+        raise QueueBuildError(f"{location}: candidate target languages must contain non-empty strings")
+    if not isinstance(discovery_languages, list) or not all(
+        isinstance(value, str) and value for value in discovery_languages
+    ):
+        raise QueueBuildError(f"{location}: discovery target languages must contain non-empty strings")
+    if candidate_languages and not set(candidate_languages) & set(discovery_languages):
+        raise QueueBuildError(
+            f"{location}: discovery target drops all candidate languages: {candidate_languages!r}"
+        )
+
+
+def _validate_target_binding(
+    candidate: dict[str, Any],
+    discovery: dict[str, Any],
+    *,
+    receipt: dict[str, Any],
+    location: str,
+) -> None:
+    candidate_target = candidate.get("target")
+    discovery_target = discovery.get("target")
+    if not isinstance(candidate_target, dict):
+        raise QueueBuildError(f"{location}: candidate target must be an object")
+    if not isinstance(discovery_target, dict):
+        raise QueueBuildError(f"{location}: discovery target must be an object")
+
+    candidate_kind = candidate_target.get("target_kind")
+    discovery_kind = discovery_target.get("target_kind")
+    compatible_kinds = {
+        "work": {
+            "work",
+            "expression",
+            "edition",
+            "item",
+            "artifact",
+            "scholarly-composite",
+            "translation",
+            "critical-edition",
+            "lexical-resource",
+            "research-publication",
+        },
+        "scholarly-composite": {
+            "work",
+            "expression",
+            "edition",
+            "item",
+            "artifact",
+            "scholarly-composite",
+            "translation",
+            "critical-edition",
+            "research-publication",
+        },
+    }
+    if discovery_kind not in compatible_kinds.get(candidate_kind, set()):
+        raise QueueBuildError(
+            f"{location}: discovery target_kind {discovery_kind!r} is not compatible with "
+            f"candidate target_kind {candidate_kind!r}"
+        )
+
+    candidate_refs = candidate_target.get("known_tos_refs")
+    discovery_refs = discovery_target.get("known_tos_refs")
+    if not isinstance(candidate_refs, list) or not isinstance(discovery_refs, list):
+        raise QueueBuildError(f"{location}: candidate and discovery known_tos_refs must be arrays")
+    if not all(isinstance(reference, str) and reference for reference in candidate_refs + discovery_refs):
+        raise QueueBuildError(f"{location}: candidate and discovery known_tos_refs must contain strings")
+    missing_refs = sorted(set(candidate_refs) - set(discovery_refs))
+    if missing_refs:
+        raise QueueBuildError(
+            f"{location}: discovery target drops candidate known_tos_refs: {missing_refs}"
+        )
+
+    if not candidate_refs:
+        label = candidate.get("preferred_label")
+        description = discovery_target.get("description")
+        if not isinstance(label, str) or not isinstance(description, str):
+            raise QueueBuildError(f"{location}: target binding needs candidate label and discovery description")
+        if not _contains_word_phrase(description, label):
+            raise QueueBuildError(
+                f"{location}: discovery target description does not identify candidate {label!r}"
+            )
+
+    for field, target in (
+        ("candidate_target_sha256", candidate_target),
+        ("discovery_target_sha256", discovery_target),
+    ):
+        supplied = receipt.get(field)
+        if not isinstance(supplied, str):
+            raise QueueBuildError(f"{location}: {field} is required to freeze the executed discovery target")
+        if supplied != target_digest(target):
+            raise QueueBuildError(f"{location}: {field} does not bind the referenced target")
+
+    _validate_target_constraint_refinement(
+        candidate_target,
+        discovery_target,
+        location=location,
+    )
+
+
+def _validate_target_resolution(
+    repo_root: Path,
+    target_resolution: Any,
+    *,
+    candidate: dict[str, Any] | None = None,
+    discovery: dict[str, Any] | None = None,
+    location: str,
+) -> None:
+    if not isinstance(target_resolution, dict):
+        raise QueueBuildError(f"{location}: target_resolution must be an object")
+    identity_status = target_resolution.get("identity_status")
+    if identity_status not in {"unresolved", "provisional", "reconciled"}:
+        raise QueueBuildError(
+            f"{location}: target_resolution.identity_status is unsupported: {identity_status!r}"
+        )
+
+    present_refs = [
+        field
+        for field in TARGET_RESOLUTION_CATALOGS
+        if isinstance(target_resolution.get(field), str) and target_resolution.get(field)
+    ]
+    if identity_status == "unresolved" and present_refs:
+        raise QueueBuildError(
+            f"{location}: unresolved target_resolution must not declare identity refs: {present_refs}"
+        )
+    if identity_status == "reconciled" and not present_refs:
+        raise QueueBuildError(
+            f"{location}: reconciled target_resolution must declare at least one identity ref"
+        )
+
+    if candidate is not None or discovery is not None:
+        bound_refs: set[str] = set()
+        for owner, owner_name in ((candidate, "candidate"), (discovery, "discovery")):
+            if owner is None:
+                continue
+            target = owner.get("target")
+            if not isinstance(target, dict):
+                raise QueueBuildError(f"{location}: {owner_name} target must be an object")
+            known_refs = target.get("known_tos_refs")
+            if not isinstance(known_refs, list) or not all(
+                isinstance(reference, str) and reference for reference in known_refs
+            ):
+                raise QueueBuildError(
+                    f"{location}: {owner_name} target known_tos_refs must contain strings"
+                )
+            bound_refs.update(known_refs)
+        declared_refs = {
+            target_resolution[field]
+            for field in TARGET_RESOLUTION_CATALOGS
+            if isinstance(target_resolution.get(field), str) and target_resolution.get(field)
+        }
+        unbound_refs = sorted(declared_refs - bound_refs)
+        if unbound_refs:
+            raise QueueBuildError(
+                f"{location}: target_resolution identity refs are not bound to the candidate or discovery target: "
+                f"{unbound_refs}"
+            )
+
+    for field, (catalog_path, record_type) in TARGET_RESOLUTION_CATALOGS.items():
+        reference = target_resolution.get(field)
+        if reference is None:
+            continue
+        if not isinstance(reference, str) or not reference:
+            raise QueueBuildError(f"{location}: target_resolution.{field} must be a string or null")
+        records = _load_jsonl(repo_root / catalog_path, repo_root)
+        matches = [record for record in records if record.get("record_id") == reference]
+        if not matches:
+            raise QueueBuildError(
+                f"{location}: target_resolution.{field} does not resolve canonical {record_type} {reference!r}"
+            )
+        if len(matches) > 1:
+            raise QueueBuildError(
+                f"{location}: target_resolution.{field} resolves duplicate canonical {record_type} {reference!r}"
+            )
+        if matches[0].get("record_type") != record_type:
+            raise QueueBuildError(
+                f"{location}: target_resolution.{field} resolves a non-{record_type} catalog record"
+            )
+
+
+def _load_provenance_events(repo_root: Path) -> dict[str, tuple[dict[str, Any], str]]:
+    events: dict[str, tuple[dict[str, Any], str]] = {}
+    source_root = repo_root / "ToS/source-witnesses"
+    for path in sorted(source_root.rglob("provenance.jsonl")):
+        relative = path.relative_to(repo_root).as_posix()
+        try:
+            lines = path.read_text(encoding="utf-8").splitlines()
+        except OSError as exc:
+            raise QueueBuildError(f"{relative}: cannot read provenance JSONL: {exc}") from exc
+        for line_number, raw_line in enumerate(lines, start=1):
+            if not raw_line.strip():
+                continue
+            location = f"{relative}:{line_number}"
+            try:
+                event = json.loads(raw_line)
+            except json.JSONDecodeError as exc:
+                raise QueueBuildError(f"{location}: cannot parse provenance JSON: {exc}") from exc
+            if not isinstance(event, dict):
+                raise QueueBuildError(f"{location}: provenance event must be an object")
+            event_id = _required_string(event, "event_id", location)
+            if event_id in events:
+                raise QueueBuildError(
+                    f"{location}: duplicate provenance event {event_id!r}; first seen at {events[event_id][1]}"
+                )
+            events[event_id] = (event, location)
+    return events
+
+
+def _find_unique_record(
+    repo_root: Path,
+    *,
+    root: Path,
+    filename: str,
+    key: str,
+    value: str,
+    location: str,
+) -> tuple[dict[str, Any], Path]:
+    matches: list[tuple[dict[str, Any], Path]] = []
+    for path in sorted((repo_root / root).rglob(filename)):
+        payload = _load_json(path, repo_root)
+        if payload.get(key) == value:
+            matches.append((payload, path))
+    if not matches:
+        raise QueueBuildError(f"{location}: {key} {value!r} has no canonical {filename} record")
+    if len(matches) > 1:
+        locations = ", ".join(path.relative_to(repo_root).as_posix() for _, path in matches)
+        raise QueueBuildError(f"{location}: {key} {value!r} has duplicate canonical records: {locations}")
+    return matches[0]
+
+
+def _find_unique_catalog_entry(
+    repo_root: Path,
+    *,
+    filename: str,
+    key: str,
+    value: str,
+    location: str,
+) -> dict[str, Any]:
+    path = Path("ToS/source-witnesses/catalog") / filename
+    matches = [
+        entry
+        for entry in _load_jsonl(repo_root / path, repo_root)
+        if entry.get(key) == value
+    ]
+    if not matches:
+        raise QueueBuildError(
+            f"{location}: {key} {value!r} has no canonical catalog entry in {path.as_posix()}"
+        )
+    if len(matches) > 1:
+        raise QueueBuildError(
+            f"{location}: {key} {value!r} has duplicate canonical catalog entries in {path.as_posix()}"
+        )
+    return matches[0]
+
+
+def _canonical_item_identity_refs(
+    repo_root: Path,
+    item: dict[str, Any],
+    item_path: Path,
+    *,
+    location: str,
+) -> set[str]:
+    """Return the canonical item-to-edition-to-expression-to-work identity ladder."""
+    item_id = item.get("item_id")
+    if not isinstance(item_id, str) or not item_id:
+        raise QueueBuildError(f"{location}: item manifest must bind a non-empty item_id")
+    refs = {item_id, item_path.relative_to(repo_root).as_posix()}
+
+    embodiment_ref = item.get("embodiment_ref")
+    if not isinstance(embodiment_ref, str) or not embodiment_ref:
+        raise QueueBuildError(f"{location}: item manifest must bind embodiment_ref")
+    refs.add(embodiment_ref)
+    edition = _find_unique_catalog_entry(
+        repo_root,
+        filename="editions.jsonl",
+        key="record_id",
+        value=embodiment_ref,
+        location=location,
+    )
+    edition_links = edition.get("links")
+    expression_refs = (
+        edition_links.get("embodies_expression_refs")
+        if isinstance(edition_links, dict)
+        else None
+    )
+    if not isinstance(expression_refs, list) or not all(
+        isinstance(reference, str) and reference for reference in expression_refs
+    ):
+        raise QueueBuildError(
+            f"{location}: canonical edition {embodiment_ref!r} must bind expression refs"
+        )
+    if not expression_refs:
+        raise QueueBuildError(
+            f"{location}: canonical edition {embodiment_ref!r} must bind at least one expression"
+        )
+    for expression_ref in expression_refs:
+        refs.add(expression_ref)
+        expression = _find_unique_catalog_entry(
+            repo_root,
+            filename="expressions.jsonl",
+            key="record_id",
+            value=expression_ref,
+            location=location,
+        )
+        expression_links = expression.get("links")
+        work_ref = expression_links.get("work_ref") if isinstance(expression_links, dict) else None
+        if not isinstance(work_ref, str) or not work_ref:
+            raise QueueBuildError(
+                f"{location}: canonical expression {expression_ref!r} must bind work_ref"
+            )
+        refs.add(work_ref)
+    return refs
+
+
+def _validate_event_output_digest(
+    outputs: list[Any],
+    *,
+    reference: str,
+    expected_digest: str,
+    location: str,
+) -> None:
+    matches = [
+        output
+        for output in outputs
+        if isinstance(output, dict) and output.get("ref") == reference
+    ]
+    if len(matches) != 1:
+        raise QueueBuildError(
+            f"{location}: acquisition event must contain exactly one output for {reference!r}"
+        )
+    if matches[0].get("sha256") != expected_digest:
+        raise QueueBuildError(
+            f"{location}: acquisition event output digest for {reference!r} does not bind "
+            f"the referenced bytes"
+        )
+
+
+def _event_lineage(
+    provenance_events: dict[str, tuple[dict[str, Any], str]],
+    *,
+    descendant_ref: str,
+    ancestor_ref: str,
+) -> list[dict[str, Any]]:
+    """Return a descendant-to-ancestor event chain when one is explicit."""
+    if descendant_ref == ancestor_ref:
+        event_entry = provenance_events.get(ancestor_ref)
+        return [event_entry[0]] if event_entry is not None else []
+
+    visited: set[str] = set()
+
+    def visit(event_ref: str) -> list[dict[str, Any]]:
+        if event_ref in visited:
+            return []
+        visited.add(event_ref)
+        event_entry = provenance_events.get(event_ref)
+        if event_entry is None:
+            return []
+        event = event_entry[0]
+        inputs = event.get("inputs")
+        if not isinstance(inputs, list):
+            return []
+        for input_ref in inputs:
+            if not isinstance(input_ref, dict):
+                continue
+            parent_ref = input_ref.get("ref")
+            if not isinstance(parent_ref, str):
+                continue
+            if parent_ref == ancestor_ref:
+                ancestor_entry = provenance_events.get(parent_ref)
+                if ancestor_entry is not None:
+                    return [event, ancestor_entry[0]]
+                continue
+            if parent_ref not in provenance_events:
+                continue
+            parent_chain = visit(parent_ref)
+            if parent_chain:
+                return [event, *parent_chain]
+        return []
+
+    return visit(descendant_ref)
+
+
+def _validate_planting_refs(
+    repo_root: Path,
+    refs: Any,
+    *,
+    candidate: dict[str, Any],
+    receipt: dict[str, Any],
+    discovery: dict[str, Any],
+    discoveries: dict[str, tuple[dict[str, Any], str]],
+    acquisitions: list[Any],
+    provenance_events: dict[str, tuple[dict[str, Any], str]],
+    receipt_issued_at: datetime | None = None,
+    location: str,
+) -> None:
+    if not isinstance(refs, list):
+        raise QueueBuildError(f"{location}: planting_refs must be an array")
+
+    selection = candidate.get("selection")
+    expected_atlas_row = selection.get("atlas_row_id") if isinstance(selection, dict) else None
+    if not isinstance(expected_atlas_row, str) or not expected_atlas_row:
+        raise QueueBuildError(f"{location}: candidate selection must expose atlas_row_id for planting binding")
+
+    relation_refs = receipt.get("operational_relation_refs")
+    if not isinstance(relation_refs, list) or not all(
+        isinstance(reference, str) and reference for reference in relation_refs
+    ):
+        raise QueueBuildError(f"{location}: operational_relation_refs must be non-empty strings")
+    receipt_context_refs = set(relation_refs) | {
+        receipt.get("discovery_ref"),
+        receipt.get("discovery_id"),
+    }
+    receipt_context_refs.discard(None)
+
+    acquired_ids: set[str] = set()
+    acquisition_context_refs: set[str] = set()
+    for acquisition in acquisitions:
+        if not isinstance(acquisition, dict) or acquisition.get("downloaded") is not True:
+            continue
+        for key in (
+            "item_ref",
+            "artifact_ref",
+            "composite_ref",
+            "representation_ref",
+            "file_ref",
+            "provenance_event_ref",
+        ):
+            value = acquisition.get(key)
+            if isinstance(value, str) and value:
+                acquisition_context_refs.add(value)
+                if key in {"item_ref", "artifact_ref", "composite_ref"}:
+                    acquired_ids.add(value)
+        event_ref = acquisition.get("provenance_event_ref")
+        event_entry = provenance_events.get(event_ref)
+        if event_entry is not None:
+            event = event_entry[0]
+            for field in ("inputs", "outputs"):
+                rows = event.get(field, [])
+                if isinstance(rows, list):
+                    acquisition_context_refs.update(
+                        row.get("ref")
+                        for row in rows
+                        if isinstance(row, dict)
+                        and isinstance(row.get("ref"), str)
+                        and row.get("ref")
+                    )
+
+    discovery_target = discovery.get("target")
+    discovery_target_refs = (
+        set(discovery_target.get("known_tos_refs", []))
+        if isinstance(discovery_target, dict)
+        and isinstance(discovery_target.get("known_tos_refs"), list)
+        and all(
+            isinstance(reference, str) and reference
+            for reference in discovery_target["known_tos_refs"]
+        )
+        else set()
+    )
+    supported_ids = discovery_target_refs | acquired_ids | {
+        reference for reference in relation_refs if reference.startswith("tos.")
+    }
+
+    def resolve_discovery(ref: str, ref_location: str) -> tuple[dict[str, Any], str]:
+        for discovery_id, (payload, discovery_location) in discoveries.items():
+            if discovery_location == ref:
+                return payload, discovery_id
+        raise QueueBuildError(f"{ref_location}: planting discovery_ref does not resolve: {ref!r}")
+
+    for index, ref in enumerate(refs, start=1):
+        ref_location = f"{location}:planting_refs[{index}]"
+        if not isinstance(ref, str) or not ref:
+            raise QueueBuildError(f"{ref_location}: planting ref must be a non-empty repository-relative path")
+        payload, planting_path = _load_repo_json_ref(
+            ref,
+            repo_root=repo_root,
+            location=ref_location,
+        )
+        if not isinstance(payload.get("planting_id"), str) or not payload["planting_id"]:
+            raise QueueBuildError(f"{ref_location}: planting record must expose planting_id")
+
+        if payload.get("atlas_row_id") != expected_atlas_row or payload.get("dossier_id") != expected_atlas_row:
+            raise QueueBuildError(
+                f"{ref_location}: planting atlas/dossier scope does not bind candidate atlas row {expected_atlas_row!r}"
+            )
+
+        source_witness = payload.get("source_witness")
+        if not isinstance(source_witness, dict):
+            raise QueueBuildError(f"{ref_location}: planting source_witness must be an object")
+        identity_fields = [
+            key
+            for key in ("artifact_id", "composite_id", "work_id")
+            if isinstance(source_witness.get(key), str) and source_witness.get(key)
+        ]
+        if len(identity_fields) != 1:
+            raise QueueBuildError(
+                f"{ref_location}: planting source_witness must identify exactly one source identity"
+            )
+        identity_field = identity_fields[0]
+        source_id = source_witness[identity_field]
+        source_record_ref = source_witness.get("record_ref")
+        if not isinstance(source_record_ref, str) or not source_record_ref:
+            raise QueueBuildError(f"{ref_location}: planting source_witness must bind record_ref")
+        source_record, _ = _load_repo_json_ref(
+            source_record_ref,
+            repo_root=repo_root,
+            location=ref_location,
+        )
+        record_key = "record_id" if identity_field == "work_id" else identity_field
+        if source_record.get(record_key) != source_id:
+            raise QueueBuildError(
+                f"{ref_location}: planting source_witness {identity_field} disagrees with record_ref"
+            )
+        expected_record_root = {
+            "artifact_id": "ToS/source-witnesses/artifacts/",
+            "composite_id": "ToS/source-witnesses/scholarly-composites/",
+            "work_id": "ToS/source-witnesses/works/",
+        }[identity_field]
+        if not source_record_ref.startswith(expected_record_root):
+            raise QueueBuildError(
+                f"{ref_location}: planting source_witness {identity_field} record_ref must stay under {expected_record_root}"
+            )
+        if (
+            source_id not in supported_ids
+            and source_record_ref not in relation_refs
+            and source_record_ref not in acquisition_context_refs
+        ):
+            raise QueueBuildError(
+                f"{ref_location}: planting source_witness {source_id!r} is not bound to the receipt discovery or acquisition records"
+            )
+
+        planting_discovery_ref = payload.get("discovery_ref")
+        if not isinstance(planting_discovery_ref, str) or not planting_discovery_ref:
+            raise QueueBuildError(
+                f"{ref_location}: planting discovery_ref must be a non-empty repository-relative path"
+            )
+        planting_discovery, planting_discovery_id = resolve_discovery(
+            planting_discovery_ref,
+            ref_location,
+        )
+        planting_target = planting_discovery.get("target")
+        planting_target_refs = (
+            set(planting_target.get("known_tos_refs", []))
+            if isinstance(planting_target, dict)
+            and isinstance(planting_target.get("known_tos_refs"), list)
+            else set()
+        )
+        discovery_context = {planting_discovery_ref, planting_discovery_id}
+        if not (
+            discovery_context & receipt_context_refs
+            or source_record_ref in receipt_context_refs
+            or source_id in receipt_context_refs
+            or source_record_ref in acquisition_context_refs
+            or source_id in acquisition_context_refs
+        ):
+            raise QueueBuildError(
+                f"{ref_location}: planting discovery_ref {planting_discovery_ref!r} is not bound to the receipt records"
+            )
+        if planting_target_refs and source_id not in planting_target_refs:
+            raise QueueBuildError(
+                f"{ref_location}: planting discovery target does not identify source_witness {source_id!r}"
+            )
+
+        planting_event_ref = payload.get("provenance_event_ref")
+        if not isinstance(planting_event_ref, str) or not planting_event_ref:
+            raise QueueBuildError(
+                f"{ref_location}: planting provenance_event_ref must be a non-empty event ID"
+            )
+        event_entry = provenance_events.get(planting_event_ref)
+        if event_entry is None:
+            raise QueueBuildError(
+                f"{ref_location}: planting provenance event {planting_event_ref!r} does not resolve"
+            )
+        event, event_location = event_entry
+        if receipt_issued_at is not None:
+            event_ended_at = _parse_timestamp(
+                event.get("ended_at"),
+                location=event_location,
+                field="ended_at",
+            )
+            if event_ended_at > receipt_issued_at:
+                raise QueueBuildError(
+                    f"{ref_location}: planting provenance event {planting_event_ref!r} "
+                    f"ended_at {event_ended_at.isoformat()} is later than receipt issued_at "
+                    f"{receipt_issued_at.isoformat()}"
+                )
+        event_inputs = event.get("inputs", [])
+        event_outputs = event.get("outputs", [])
+        if not isinstance(event_inputs, list) or not isinstance(event_outputs, list):
+            raise QueueBuildError(
+                f"{ref_location}: planting provenance event inputs and outputs must be arrays"
+            )
+        output_refs = {
+            output.get("ref")
+            for output in event_outputs
+            if isinstance(output, dict) and isinstance(output.get("ref"), str)
+        }
+        input_refs = {
+            input_ref.get("ref")
+            for input_ref in event_inputs
+            if isinstance(input_ref, dict) and isinstance(input_ref.get("ref"), str)
+        }
+        if ref not in output_refs:
+            raise QueueBuildError(
+                f"{ref_location}: planting provenance event does not output the planting record"
+            )
+        _validate_event_output_digest(
+            event_outputs,
+            reference=ref,
+            expected_digest=_sha256_file(planting_path),
+            location=ref_location,
+        )
+        if source_record_ref not in output_refs | input_refs and source_id not in output_refs | input_refs:
+            raise QueueBuildError(
+                f"{ref_location}: planting provenance event does not bind source_witness {source_id!r}"
+            )
+        if not (
+            planting_event_ref in receipt_context_refs
+            or source_record_ref in receipt_context_refs
+            or source_id in receipt_context_refs
+            or source_record_ref in acquisition_context_refs
+            or source_id in acquisition_context_refs
+        ):
+            raise QueueBuildError(
+                f"{ref_location}: planting provenance_event_ref {planting_event_ref!r} is not bound to the receipt records"
+            )
+
+
+def _validate_acquisition_closure(
+    repo_root: Path,
+    acquisition: Any,
+    *,
+    candidate_id: str,
+    candidate: dict[str, Any],
+    discovery: dict[str, Any],
+    discoveries: dict[str, tuple[dict[str, Any], str]],
+    receipt_context_refs: set[str],
+    receipt_discovery_id: str | None,
+    receipt_discovery_ref: str | None,
+    provenance_events: dict[str, tuple[dict[str, Any], str]],
+    location: str,
+    receipt_issued_at: datetime | None = None,
+    validate_lineage_chronology: bool = True,
+) -> None:
+    if not isinstance(acquisition, dict):
+        raise QueueBuildError(f"{location}: acquisition must be an object")
+    if acquisition.get("downloaded") is not True:
+        for key in (
+            "item_ref",
+            "artifact_ref",
+            "composite_ref",
+            "representation_ref",
+            "file_ref",
+            "provenance_event_ref",
+        ):
+            if acquisition.get(key) is not None:
+                raise QueueBuildError(f"{location}: non-downloaded acquisition must null {key}")
+        return
+
+    identity_fields = [
+        key
+        for key in ("item_ref", "artifact_ref", "composite_ref")
+        if isinstance(acquisition.get(key), str) and acquisition.get(key)
+    ]
+    if len(identity_fields) != 1:
+        raise QueueBuildError(
+            f"{location}: downloaded acquisition must identify exactly one of item_ref, artifact_ref, composite_ref"
+        )
+    identity_field = identity_fields[0]
+    file_ref = acquisition.get("file_ref")
+    event_ref = acquisition.get("provenance_event_ref")
+    if not isinstance(file_ref, str) or not file_ref:
+        raise QueueBuildError(f"{location}: downloaded acquisition must bind file_ref")
+    if not isinstance(event_ref, str) or not event_ref:
+        raise QueueBuildError(f"{location}: downloaded acquisition must bind provenance_event_ref")
+    event_entry = provenance_events.get(event_ref)
+    if event_entry is None:
+        raise QueueBuildError(f"{location}: provenance event {event_ref!r} does not resolve")
+    event, event_location = event_entry
+    if event.get("event_type") != "acquisition":
+        raise QueueBuildError(f"{location}: {event_ref!r} is not an acquisition event")
+    event_started_at = None
+    event_ended_at = None
+    if event.get("started_at") is not None:
+        event_started_at = _parse_timestamp(
+            event.get("started_at"),
+            location=event_location,
+            field="started_at",
+        )
+    if event.get("ended_at") is not None:
+        event_ended_at = _parse_timestamp(
+            event.get("ended_at"),
+            location=event_location,
+            field="ended_at",
+        )
+    if event_started_at is not None and event_ended_at is not None and event_ended_at < event_started_at:
+        raise QueueBuildError(
+            f"{location}: acquisition provenance event {event_ref!r} ended_at "
+            f"{event_ended_at.isoformat()} precedes started_at {event_started_at.isoformat()}"
+        )
+    if receipt_issued_at is not None:
+        if event_ended_at is None:
+            event_ended_at = _parse_timestamp(
+                event.get("ended_at"),
+                location=event_location,
+                field="ended_at",
+            )
+        if event_ended_at > receipt_issued_at:
+            raise QueueBuildError(
+                f"{location}: acquisition provenance event {event_ref!r} ended_at "
+                f"{event_ended_at.isoformat()} is later than receipt issued_at "
+                f"{receipt_issued_at.isoformat()}"
+            )
+    configuration = event.get("method", {}).get("configuration", {})
+    configured_candidate = None
+    if isinstance(configuration, dict):
+        configured_candidate = configuration.get("candidate_id")
+        if configured_candidate is not None and configured_candidate != candidate_id:
+            raise QueueBuildError(
+                f"{location}: provenance event {event_ref!r} belongs to {configured_candidate!r}, not {candidate_id!r}"
+            )
+    outputs = event.get("outputs")
+    if not isinstance(outputs, list):
+        raise QueueBuildError(f"{event_location}: acquisition event outputs must be an array")
+    output_refs = {
+        output.get("ref")
+        for output in outputs
+        if isinstance(output, dict) and isinstance(output.get("ref"), str)
+    }
+    if identity_field == "item_ref":
+        if acquisition.get("representation_ref") is not None:
+            raise QueueBuildError(f"{location}: item acquisition must not carry representation_ref")
+        item_ref = acquisition[identity_field]
+        if event_ref not in receipt_context_refs:
+            raise QueueBuildError(
+                f"{location}: item acquisition provenance_event_ref {event_ref!r} is not bound to the receipt route"
+            )
+        item, item_path = _find_unique_record(
+            repo_root,
+            root=Path("ToS/source-witnesses"),
+            filename="item.manifest.json",
+            key="item_id",
+            value=acquisition[identity_field],
+            location=location,
+        )
+        item_record_ref = item_path.relative_to(repo_root).as_posix()
+        if not {item_ref, item_record_ref} & receipt_context_refs:
+            raise QueueBuildError(
+                f"{location}: item acquisition item_ref {item_ref!r} is not bound to the receipt route"
+            )
+        manifest_event_ref = item.get("acquisition_event_ref")
+        if not isinstance(manifest_event_ref, str) or not manifest_event_ref:
+            raise QueueBuildError(
+                f"{location}: item manifest must bind acquisition_event_ref"
+            )
+        event_lineage = _event_lineage(
+            provenance_events,
+            descendant_ref=manifest_event_ref,
+            ancestor_ref=event_ref,
+        )
+        if manifest_event_ref != event_ref and not event_lineage:
+            raise QueueBuildError(
+                f"{location}: item manifest acquisition_event_ref {manifest_event_ref!r} "
+                f"does not bind provenance event {event_ref!r}"
+            )
+        item_identity_refs = _canonical_item_identity_refs(
+            repo_root,
+            item,
+            item_path,
+            location=location,
+        )
+        event_chain = event_lineage or [event]
+        if receipt_issued_at is not None and validate_lineage_chronology:
+            for chain_index, chain_event in enumerate(event_chain, start=1):
+                chain_location = f"{location}:item_event_lineage[{chain_index}]"
+                chain_started_at = None
+                if chain_event.get("started_at") is not None:
+                    chain_started_at = _parse_timestamp(
+                        chain_event.get("started_at"),
+                        location=chain_location,
+                        field="started_at",
+                    )
+                chain_ended_at = _parse_timestamp(
+                    chain_event.get("ended_at"),
+                    location=chain_location,
+                    field="ended_at",
+                )
+                if chain_started_at is not None and chain_ended_at < chain_started_at:
+                    raise QueueBuildError(
+                        f"{location}: item acquisition provenance event lineage[{chain_index}] "
+                        f"ended_at {chain_ended_at.isoformat()} precedes started_at "
+                        f"{chain_started_at.isoformat()}"
+                    )
+                if chain_ended_at > receipt_issued_at:
+                    raise QueueBuildError(
+                        f"{location}: item acquisition provenance event lineage[{chain_index}] "
+                        f"ended_at {chain_ended_at.isoformat()} is later than receipt issued_at "
+                        f"{receipt_issued_at.isoformat()}"
+                    )
+        event_input_refs = {
+            input_ref.get("ref")
+            for chain_event in event_chain
+            for input_ref in chain_event.get("inputs", [])
+            if isinstance(input_ref, dict)
+            and isinstance(input_ref.get("ref"), str)
+            and input_ref.get("ref")
+        }
+        candidate_target = candidate.get("target")
+        candidate_target_refs = (
+            {
+                reference
+                for reference in candidate_target.get("known_tos_refs", [])
+                if isinstance(reference, str) and reference
+            }
+            if isinstance(candidate_target, dict)
+            and isinstance(candidate_target.get("known_tos_refs"), list)
+            else set()
+        )
+        discovery_target = discovery.get("target")
+        discovery_target_refs = (
+            {
+                reference
+                for reference in discovery_target.get("known_tos_refs", [])
+                if isinstance(reference, str) and reference
+            }
+            if isinstance(discovery_target, dict)
+            and isinstance(discovery_target.get("known_tos_refs"), list)
+            else set()
+        )
+        discovery_event_refs = {
+            reference
+            for reference in discovery.get("provenance_event_refs", [])
+            if isinstance(reference, str) and reference
+        } if isinstance(discovery.get("provenance_event_refs"), list) else set()
+        candidate_discovery_refs = (
+            candidate_target_refs
+            | discovery_target_refs
+            | discovery_event_refs
+            | {
+                reference
+                for reference in (receipt_discovery_ref, receipt_discovery_id)
+                if isinstance(reference, str) and reference
+            }
+        )
+        if not event_input_refs & candidate_discovery_refs:
+            raise QueueBuildError(
+                f"{location}: item acquisition provenance event {event_ref!r} does not bind "
+                f"candidate {candidate_id!r} or its discovery target "
+                "(the canonical item identity ladder is checked independently)"
+            )
+        if not event_input_refs & item_identity_refs:
+            raise QueueBuildError(
+                f"{location}: item acquisition provenance event {event_ref!r} does not bind "
+                "the canonical item identity ladder"
+            )
+        file_digest = file_ref.removeprefix("tos.file.sha256.")
+        if re.fullmatch(r"[0-9a-f]{64}", file_digest) is None:
+            raise QueueBuildError(f"{location}: file_ref must carry a lowercase SHA-256 digest")
+        _validate_event_output_digest(
+            outputs,
+            reference=file_ref,
+            expected_digest=file_digest,
+            location=location,
+        )
+        files = item.get("payload_files")
+        matching_files = [
+            payload_file
+            for payload_file in files
+            if isinstance(payload_file, dict) and payload_file.get("file_id") == file_ref
+        ] if isinstance(files, list) else []
+        if len(matching_files) != 1:
+            raise QueueBuildError(f"{location}: item manifest does not bind file_ref {file_ref!r}")
+        if matching_files[0].get("sha256") != file_digest:
+            raise QueueBuildError(
+                f"{location}: item manifest payload fixity does not bind file_ref {file_ref!r}"
+            )
+        if file_ref not in output_refs:
+            raise QueueBuildError(f"{location}: acquisition event does not output file_ref {file_ref!r}")
+        return
+
+    representation_ref = acquisition.get("representation_ref")
+    if not isinstance(representation_ref, str) or not representation_ref:
+        raise QueueBuildError(f"{location}: artifact/composite acquisition must bind representation_ref")
+    representation, representation_path = _load_repo_json_ref(
+        representation_ref,
+        repo_root=repo_root,
+        location=location,
+    )
+    if representation.get("file_id") != file_ref:
+        raise QueueBuildError(f"{location}: representation does not bind file_ref {file_ref!r}")
+    file_digest = file_ref.removeprefix("tos.file.sha256.")
+    if re.fullmatch(r"[0-9a-f]{64}", file_digest) is None:
+        raise QueueBuildError(f"{location}: file_ref must carry a lowercase SHA-256 digest")
+    payload = representation.get("payload")
+    if not isinstance(payload, dict) or payload.get("sha256") != file_digest:
+        raise QueueBuildError(f"{location}: representation payload fixity does not bind file_ref {file_ref!r}")
+    if representation_ref not in output_refs:
+        raise QueueBuildError(
+            f"{location}: acquisition event does not output representation_ref {representation_ref!r}"
+        )
+
+    if identity_field == "artifact_ref":
+        artifact, artifact_path = _find_unique_record(
+            repo_root,
+            root=Path("ToS/source-witnesses/artifacts"),
+            filename="artifact-witness.json",
+            key="artifact_id",
+            value=acquisition[identity_field],
+            location=location,
+        )
+        if representation.get("artifact_id") != artifact["artifact_id"]:
+            raise QueueBuildError(f"{location}: representation does not bind artifact_ref {acquisition[identity_field]!r}")
+        if representation.get("artifact_ref") != artifact_path.relative_to(repo_root).as_posix():
+            raise QueueBuildError(f"{location}: representation artifact_ref path disagrees with canonical artifact")
+    else:
+        composite, composite_path = _find_unique_record(
+            repo_root,
+            root=Path("ToS/source-witnesses/scholarly-composites"),
+            filename="composite-witness.json",
+            key="composite_id",
+            value=acquisition[identity_field],
+            location=location,
+        )
+        if representation.get("composite_id") != composite["composite_id"]:
+            raise QueueBuildError(f"{location}: representation does not bind composite_ref {acquisition[identity_field]!r}")
+        if representation.get("composite_ref") != composite_path.relative_to(repo_root).as_posix():
+            raise QueueBuildError(f"{location}: representation composite_ref path disagrees with canonical composite")
+
+    representation_discovery_ref = representation.get("discovery_ref")
+    if not isinstance(representation_discovery_ref, str) or not representation_discovery_ref:
+        raise QueueBuildError(f"{location}: representation must bind discovery_ref")
+    representation_discovery_id = next(
+        (
+            discovery_id
+            for discovery_id, (_, discovery_location) in discoveries.items()
+            if discovery_location == representation_discovery_ref
+        ),
+        None,
+    )
+    if representation_discovery_id is None:
+        raise QueueBuildError(
+            f"{location}: representation discovery_ref does not resolve: {representation_discovery_ref!r}"
+        )
+    representation_event_ref = representation.get("provenance_event_ref")
+    if representation_event_ref != event_ref:
+        raise QueueBuildError(
+            f"{location}: representation provenance_event_ref does not bind acquisition event {event_ref!r}"
+        )
+    route_bound = (
+        representation_discovery_ref == receipt_discovery_ref
+        and representation_discovery_id == receipt_discovery_id
+    )
+    if not route_bound and configured_candidate != candidate_id:
+        raise QueueBuildError(
+            f"{location}: representation discovery_ref {representation_discovery_ref!r} is not bound "
+            f"to receipt discovery {receipt_discovery_ref!r} ({receipt_discovery_id!r}) "
+            "or an explicit candidate binding"
+        )
+    _validate_event_output_digest(
+        outputs,
+        reference=representation_ref,
+        expected_digest=_sha256_file(representation_path),
+        location=location,
+    )
+    _validate_event_output_digest(
+        outputs,
+        reference=file_ref,
+        expected_digest=file_digest,
+        location=location,
+    )
+
+
+def _validate_receipt_acquisition_closure(
+    repo_root: Path,
+    receipt: dict[str, Any],
+    *,
+    candidate: dict[str, Any],
+    discovery: dict[str, Any],
+    discoveries: dict[str, tuple[dict[str, Any], str]],
+    provenance_events: dict[str, tuple[dict[str, Any], str]],
+    location: str,
+    validate_planting_chronology: bool = True,
+    validate_lineage_chronology: bool = True,
+) -> None:
+    candidate_id = _required_string(receipt, "candidate_id", location)
+    receipt_issued_at = None
+    if receipt.get("issued_at") is not None:
+        receipt_issued_at = _parse_timestamp(
+            receipt.get("issued_at"),
+            location=location,
+            field="issued_at",
+        )
+    relation_refs = receipt.get("operational_relation_refs")
+    if not isinstance(relation_refs, list) or not all(
+        isinstance(reference, str) and reference for reference in relation_refs
+    ):
+        raise QueueBuildError(f"{location}: operational_relation_refs must be non-empty strings")
+    receipt_context_refs = set(relation_refs) | {
+        receipt.get("discovery_ref"),
+        receipt.get("discovery_id"),
+    }
+    receipt_context_refs.discard(None)
+    acquisitions = [receipt.get("acquisition")]
+    additional = receipt.get("additional_acquisitions", [])
+    if additional is not None:
+        if not isinstance(additional, list):
+            raise QueueBuildError(f"{location}: additional_acquisitions must be an array")
+        acquisitions.extend(additional)
+    rights_result = receipt.get("rights_result")
+    rights_status = rights_result.get("status") if isinstance(rights_result, dict) else None
+    downloaded = any(
+        isinstance(acquisition, dict) and acquisition.get("downloaded") is True
+        for acquisition in acquisitions
+    )
+    if downloaded and rights_status != "positive-for-acquisition":
+        raise QueueBuildError(
+            f"{location}: downloaded acquisition requires rights_result.status "
+            f"positive-for-acquisition, got {rights_status!r}"
+        )
+    _validate_rights_evidence_refs(repo_root, rights_result, location=location)
+    for index, acquisition in enumerate(acquisitions, start=1):
+        _validate_acquisition_closure(
+            repo_root,
+            acquisition,
+            candidate_id=candidate_id,
+            candidate=candidate,
+            discovery=discovery,
+            discoveries=discoveries,
+            receipt_context_refs=receipt_context_refs,
+            receipt_discovery_id=receipt.get("discovery_id"),
+            receipt_discovery_ref=receipt.get("discovery_ref"),
+            provenance_events=provenance_events,
+            receipt_issued_at=receipt_issued_at,
+            validate_lineage_chronology=validate_lineage_chronology,
+            location=f"{location}:acquisition[{index}]",
+        )
+    if downloaded and rights_status == "positive-for-acquisition":
+        rights_contexts = _load_acquisition_rights_contexts(
+            repo_root,
+            acquisitions,
+            location=location,
+        )
+        _validate_positive_rights_scope(
+            candidate,
+            rights_result,
+            rights_contexts,
+            location=location,
+        )
+    _validate_planting_refs(
+        repo_root,
+        receipt.get("planting_refs"),
+        candidate=candidate,
+        receipt=receipt,
+        discovery=discovery,
+        discoveries=discoveries,
+        acquisitions=acquisitions,
+        provenance_events=provenance_events,
+        receipt_issued_at=receipt_issued_at if validate_planting_chronology else None,
+        location=location,
+    )
+    if receipt.get("terminal_status") == "held_source_witness" and not downloaded and not receipt.get(
+        "planting_refs"
+    ):
+        raise QueueBuildError(
+            f"{location}: held_source_witness requires a resolved downloaded acquisition "
+            "or an explicitly resolved pre-existing witness planting"
+        )
+
+
+def _selector_matches(payload: dict[str, Any], selector: dict[str, Any]) -> bool:
+    return all(payload.get(key) == value for key, value in selector.items())
+
+
+def _validate_source_refs(
+    candidate: dict[str, Any],
+    *,
+    repo_root: Path,
+    location: str,
+) -> None:
+    refs = candidate.get("source_refs")
+    if not isinstance(refs, list) or not refs:
+        raise QueueBuildError(f"{location}: source_refs must be a non-empty array")
+    selection = candidate.get("selection")
+    expected_atlas_row = selection.get("atlas_row_id") if isinstance(selection, dict) else None
+    if not isinstance(expected_atlas_row, str) or not expected_atlas_row:
+        raise QueueBuildError(f"{location}: candidate selection must expose atlas_row_id")
+    has_atlas_selector = False
+    for index, source_ref in enumerate(refs, start=1):
+        ref_location = f"{location}:source_refs[{index}]"
+        if not isinstance(source_ref, dict):
+            raise QueueBuildError(f"{ref_location}: source ref must be an object")
+        source_path_value = _required_string(source_ref, "source_path", ref_location)
+        selector = source_ref.get("selector")
+        if not isinstance(selector, dict) or not selector:
+            raise QueueBuildError(f"{ref_location}: selector must be a non-empty object")
+        source_path = repo_root / _safe_relative_path(source_path_value)
+        records = (
+            [_load_json(source_path, repo_root)]
+            if source_path.suffix == ".json"
+            else _load_jsonl(source_path, repo_root)
+        )
+        matching_records = [record for record in records if _selector_matches(record, selector)]
+        if not matching_records:
+            raise QueueBuildError(
+                f"{ref_location}: selector does not resolve in {source_path_value}: {selector}"
+            )
+        for selector_key in ("row_id", "dossier_id"):
+            selected_row = selector.get(selector_key)
+            if selector_key not in selector:
+                continue
+            if not isinstance(selected_row, str) or not selected_row:
+                raise QueueBuildError(
+                    f"{ref_location}: {selector_key} selector must be a non-empty string"
+                )
+            has_atlas_selector = True
+            if selected_row != expected_atlas_row:
+                raise QueueBuildError(
+                    f"{ref_location}: {selector_key} selector {selected_row!r} "
+                    f"does not bind candidate selection atlas_row_id {expected_atlas_row!r}"
+                )
+            if selector_key == "row_id":
+                selected_row_orders = {
+                    record.get("row_order")
+                    for record in matching_records
+                    if isinstance(record.get("row_order"), int)
+                }
+                expected_row_order = (
+                    selection.get("atlas_row_order")
+                    if isinstance(selection, dict)
+                    else None
+                )
+                if selected_row_orders and selected_row_orders != {expected_row_order}:
+                    raise QueueBuildError(
+                        f"{ref_location}: candidate atlas_row_order {expected_row_order!r} "
+                        f"does not match selected master row_order {sorted(selected_row_orders)!r}"
+                    )
+    if not has_atlas_selector:
+        raise QueueBuildError(
+            f"{location}: source_refs must include a resolved row_id or dossier_id selector "
+            f"for atlas_row_id {expected_atlas_row!r}"
+        )
+
+
+def _load_candidates(repo_root: Path) -> list[tuple[dict[str, Any], str]]:
+    ledger = repo_root / LEDGER_PATH
+    candidates = _load_jsonl_with_lines(ledger, repo_root)
+    seen: dict[str, str] = {}
+    loaded: list[tuple[dict[str, Any], str]] = []
+    for candidate, line_number in candidates:
+        location = f"{LEDGER_PATH.as_posix()}:{line_number}"
+        candidate_id = _required_string(candidate, "candidate_id", location)
+        if candidate_id in seen:
+            raise QueueBuildError(
+                f"{location}: duplicate candidate_id {candidate_id!r}; first seen at {seen[candidate_id]}"
+            )
+        seen[candidate_id] = location
+        if candidate.get("review", {}).get("review_status") != "reviewed":
+            raise QueueBuildError(f"{location}: candidate is not reviewed")
+        selection = candidate.get("selection")
+        if not isinstance(selection, dict):
+            raise QueueBuildError(f"{location}: selection must be an object")
+        if not isinstance(selection.get("chronology_sort_year"), int):
+            raise QueueBuildError(f"{location}: chronology_sort_year must be an integer")
+        if not isinstance(selection.get("atlas_row_order"), int):
+            raise QueueBuildError(f"{location}: atlas_row_order must be an integer")
+        _validate_source_refs(candidate, repo_root=repo_root, location=location)
+        loaded.append((candidate, location))
+    return loaded
+
+
+def _discovery_records(repo_root: Path) -> dict[str, tuple[dict[str, Any], str]]:
+    records: dict[str, tuple[dict[str, Any], str]] = {}
+    root = repo_root / DISCOVERY_RUN_ROOT
+    for path in sorted(root.glob("*.json")):
+        payload = _load_json(path, repo_root)
+        location = path.relative_to(repo_root).as_posix()
+        discovery_id = _required_string(payload, "discovery_id", location)
+        if discovery_id in records:
+            raise QueueBuildError(
+                f"{location}: duplicate discovery_id {discovery_id!r}; "
+                f"first seen at {records[discovery_id][1]}"
+            )
+        records[discovery_id] = (payload, location)
+    return records
+
+
+def _index_unique_channel_rows(
+    rows: list[Any],
+    *,
+    field: str,
+    location: str,
+) -> dict[str, dict[str, Any]]:
+    indexed: dict[str, dict[str, Any]] = {}
+    first_locations: dict[str, str] = {}
+    for index, row in enumerate(rows, start=1):
+        row_location = f"{location}[{index}]"
+        if not isinstance(row, dict):
+            raise QueueBuildError(f"{row_location}: row must be an object")
+        channel_id = row.get(field)
+        if not isinstance(channel_id, str) or not channel_id:
+            raise QueueBuildError(f"{row_location}: {field} must be a non-empty string")
+        if channel_id in indexed:
+            raise QueueBuildError(
+                f"{row_location}: duplicate {field} {channel_id!r}; "
+                f"first seen at {first_locations[channel_id]}"
+            )
+        indexed[channel_id] = row
+        first_locations[channel_id] = row_location
+    return indexed
+
+
+def _validate_active_discovery_timings(
+    discovery: dict[str, Any],
+    timing: dict[str, Any],
+    *,
+    discovery_ref: str,
+    location: str,
+    receipt_issued_at: datetime | None = None,
+) -> None:
+    channels = discovery.get("channels")
+    comparisons = discovery.get("channel_comparison")
+    if not isinstance(channels, list) or not channels:
+        raise QueueBuildError(f"{location}: active discovery must contain timed channels")
+    if not isinstance(comparisons, list):
+        raise QueueBuildError(f"{location}: active discovery must contain channel_comparison")
+
+    if timing.get("discovery_id") != discovery.get("discovery_id"):
+        raise QueueBuildError(f"{location}: timing receipt does not bind discovery_id")
+    if timing.get("discovery_ref") != discovery_ref:
+        raise QueueBuildError(f"{location}: timing receipt does not bind discovery_ref")
+    discovery_started_at = _parse_timestamp(
+        discovery.get("started_at"),
+        location=location,
+        field="discovery.started_at",
+    )
+    discovery_ended_at = _parse_timestamp(
+        discovery.get("ended_at"),
+        location=location,
+        field="discovery.ended_at",
+    )
+    if discovery_ended_at < discovery_started_at:
+        raise QueueBuildError(f"{location}: discovery ended_at precedes started_at")
+    timing_measured_at = _parse_timestamp(
+        timing.get("measured_at"),
+        location=location,
+        field="timing.measured_at",
+    )
+    if receipt_issued_at is not None and timing_measured_at > receipt_issued_at:
+        raise QueueBuildError(
+            f"{location}: timing.measured_at cannot be later than terminal receipt issued_at"
+        )
+    measurement_rows = timing.get("measurements")
+    if not isinstance(measurement_rows, list) or not measurement_rows:
+        raise QueueBuildError(f"{location}: timing receipt must contain measurements")
+    measurement_rows_by_id = _index_unique_channel_rows(
+        measurement_rows,
+        field="channel_id",
+        location=f"{location}:measurements",
+    )
+    comparison_by_id = _index_unique_channel_rows(
+        comparisons,
+        field="channel_id",
+        location=f"{location}:channel_comparison",
+    )
+    channel_ids: set[str] = set()
+    measurement_ended_at_values: list[datetime] = []
+    for index, channel in enumerate(channels, start=1):
+        channel_location = f"{location}:channels[{index}]"
+        if not isinstance(channel, dict):
+            raise QueueBuildError(f"{channel_location}: channel must be an object")
+        channel_id = _required_string(channel, "channel_id", channel_location)
+        if channel_id in channel_ids:
+            raise QueueBuildError(f"{channel_location}: duplicate channel_id {channel_id!r}")
+        channel_ids.add(channel_id)
+
+        elapsed = channel.get("elapsed_seconds")
+        if not isinstance(elapsed, (int, float)) or isinstance(elapsed, bool) or elapsed <= 0:
+            raise QueueBuildError(
+                f"{channel_location}: active queue discovery requires measured elapsed_seconds > 0"
+            )
+        measurement_row = measurement_rows_by_id.get(channel_id)
+        measurement = measurement_row.get("measurement") if measurement_row else None
+        if not isinstance(measurement, dict):
+            raise QueueBuildError(
+                f"{channel_location}: active queue discovery requires an external timing measurement"
+            )
+        if measurement.get("probe_url") != channel.get("endpoint_url"):
+            raise QueueBuildError(
+                f"{channel_location}: timing measurement must bind the channel endpoint_url"
+            )
+        if measurement.get("method") != TIMING_METHOD:
+            raise QueueBuildError(
+                f"{channel_location}: timing_measurement.method must be {TIMING_METHOD!r}"
+            )
+        if measurement.get("clock") != TIMING_CLOCK:
+            raise QueueBuildError(
+                f"{channel_location}: timing_measurement.clock must be {TIMING_CLOCK!r}"
+            )
+        queried_at = _parse_timestamp(
+            channel.get("queried_at"),
+            location=channel_location,
+            field="queried_at",
+        )
+        measurement_started_at = _parse_timestamp(
+            measurement.get("started_at"),
+            location=channel_location,
+            field="timing_measurement.started_at",
+        )
+        measurement_ended_at = _parse_timestamp(
+            measurement.get("ended_at"),
+            location=channel_location,
+            field="timing_measurement.ended_at",
+        )
+        if measurement_started_at != queried_at:
+            raise QueueBuildError(
+                f"{channel_location}: timing_measurement.started_at must equal channel queried_at"
+            )
+        if measurement_ended_at < measurement_started_at:
+            raise QueueBuildError(f"{channel_location}: timing_measurement ended_at precedes started_at")
+        measurement_ended_at_values.append(measurement_ended_at)
+        if measurement_started_at < discovery_started_at or measurement_ended_at > discovery_ended_at:
+            raise QueueBuildError(
+                f"{channel_location}: timing measurement interval must stay within discovery interval"
+            )
+        measured_elapsed = measurement.get("elapsed_seconds")
+        if (
+            not isinstance(measured_elapsed, (int, float))
+            or isinstance(measured_elapsed, bool)
+            or measured_elapsed <= 0
+            or abs(float(measured_elapsed) - float(elapsed)) > 0.000001
+        ):
+            raise QueueBuildError(
+                f"{channel_location}: timing_measurement must bind the measured elapsed_seconds"
+            )
+
+        comparison = comparison_by_id.get(channel_id)
+        if comparison is None:
+            raise QueueBuildError(
+                f"{location}: channel_comparison does not cover active channel {channel_id!r}"
+            )
+        machine_seconds = comparison.get("machine_seconds")
+        if (
+            not isinstance(machine_seconds, (int, float))
+            or isinstance(machine_seconds, bool)
+            or machine_seconds <= 0
+            or abs(float(machine_seconds) - float(elapsed)) > 0.000001
+        ):
+            raise QueueBuildError(
+                f"{location}: comparison for {channel_id!r} must bind measured machine_seconds"
+            )
+        notes = comparison.get("notes")
+        if isinstance(notes, str) and any(
+            marker in notes.lower() for marker in ("unknown sentinel", "timer sentinel", "not instrumented")
+        ):
+            raise QueueBuildError(
+                f"{location}: comparison for {channel_id!r} still declares unknown timing"
+            )
+
+    if set(comparison_by_id) != channel_ids:
+        raise QueueBuildError(f"{location}: channel_comparison must cover the exact active channel set")
+    if set(measurement_rows_by_id) != channel_ids:
+        raise QueueBuildError(f"{location}: timing receipt must cover the exact active channel set")
+    if timing_measured_at < max(measurement_ended_at_values):
+        raise QueueBuildError(
+            f"{location}: timing.measured_at cannot precede the latest channel measurement"
+        )
+
+
+def _load_receipts(
+    repo_root: Path,
+    *,
+    candidates_by_id: dict[str, dict[str, Any]],
+    discoveries: dict[str, tuple[dict[str, Any], str]],
+) -> tuple[list[dict[str, Any]], dict[str, dict[str, Any]]]:
+    receipt_root = repo_root / RECEIPT_ROOT
+    receipt_paths = sorted(receipt_root.glob("*.json")) if receipt_root.is_dir() else []
+    provenance_events = _load_provenance_events(repo_root)
+    receipts: list[dict[str, Any]] = []
+    latest_by_candidate: dict[str, dict[str, Any]] = {}
+    seen_receipt_ids: set[str] = set()
+    seen_versions: dict[str, set[int]] = {}
+    receipt_locations: dict[str, str] = {}
+
+    for path in receipt_paths:
+        receipt = _load_json(path, repo_root)
+        location = path.relative_to(repo_root).as_posix()
+        receipt_id = _required_string(receipt, "receipt_id", location)
+        if receipt_id in seen_receipt_ids:
+            raise QueueBuildError(f"{location}: duplicate receipt_id {receipt_id!r}")
+        seen_receipt_ids.add(receipt_id)
+        receipt_locations[receipt_id] = location
+        candidate_id = _required_string(receipt, "candidate_id", location)
+        candidate = candidates_by_id.get(candidate_id)
+        if candidate is None:
+            raise QueueBuildError(f"{location}: receipt references unknown candidate {candidate_id!r}")
+        expected_digest = candidate_digest(candidate)
+        if receipt.get("candidate_record_sha256") != expected_digest:
+            raise QueueBuildError(
+                f"{location}: candidate_record_sha256 does not bind current candidate {candidate_id!r}"
+            )
+        _required_sha256(receipt, "candidate_ledger_sha256", location)
+        terminal_status = receipt.get("terminal_status")
+        if terminal_status not in TERMINAL_STATUSES:
+            raise QueueBuildError(f"{location}: unsupported terminal_status {terminal_status!r}")
+        discovery_id = _required_string(receipt, "discovery_id", location)
+        discovery = discoveries.get(discovery_id)
+        if discovery is None:
+            raise QueueBuildError(f"{location}: receipt references unknown discovery_id {discovery_id!r}")
+        discovery_ref = _required_string(receipt, "discovery_ref", location)
+        if discovery[1] != discovery_ref:
+            raise QueueBuildError(
+                f"{location}: discovery_ref {discovery_ref!r} does not resolve discovery_id {discovery_id!r}"
+            )
+        discovery_sha256 = _required_sha256(receipt, "discovery_sha256", location)
+        if discovery_sha256 != _sha256_file(repo_root / _safe_relative_path(discovery_ref)):
+            raise QueueBuildError(
+                f"{location}: discovery_sha256 does not bind {discovery_ref!r}"
+            )
+        issued_at = _parse_timestamp(receipt.get("issued_at"), location=location, field="issued_at")
+        discovery_ended_at = _parse_timestamp(
+            discovery[0].get("ended_at"),
+            location=discovery_ref,
+            field="ended_at",
+        )
+        if issued_at < discovery_ended_at:
+            raise QueueBuildError(
+                f"{location}: issued_at {issued_at.isoformat()} precedes discovery ended_at "
+                f"{discovery_ended_at.isoformat()}"
+            )
+        _validate_target_binding(
+            candidate,
+            discovery[0],
+            receipt=receipt,
+            location=location,
+        )
+        _validate_target_resolution(
+            repo_root,
+            receipt.get("target_resolution"),
+            candidate=candidate,
+            discovery=discovery[0],
+            location=location,
+        )
+        version = receipt.get("record_version")
+        if not isinstance(version, int) or version < 1:
+            raise QueueBuildError(f"{location}: record_version must be a positive integer")
+        if version in seen_versions.setdefault(candidate_id, set()):
+            raise QueueBuildError(
+                f"{location}: duplicate terminal receipt version {version} for {candidate_id!r}"
+            )
+        seen_versions[candidate_id].add(version)
+        previous = latest_by_candidate.get(candidate_id)
+        if previous is None or version > previous["record_version"]:
+            latest_by_candidate[candidate_id] = receipt
+        receipts.append(receipt)
+
+    for receipt in receipts:
+        receipt_id = receipt["receipt_id"]
+        candidate_id = receipt["candidate_id"]
+        candidate = candidates_by_id[candidate_id]
+        discovery = discoveries[receipt["discovery_id"]][0]
+        _validate_receipt_acquisition_closure(
+            repo_root,
+            receipt,
+            candidate=candidate,
+            discovery=discovery,
+            discoveries=discoveries,
+            provenance_events=provenance_events,
+            location=receipt_locations[receipt_id],
+            # A superseded receipt is retained as historical evidence.  A
+            # later planting or provenance rebind is admitted only through
+            # the latest receipt version, whose issuance must follow that
+            # current closure event.
+            validate_planting_chronology=(
+                latest_by_candidate[candidate_id]["receipt_id"] == receipt_id
+            ),
+            validate_lineage_chronology=(
+                latest_by_candidate[candidate_id]["receipt_id"] == receipt_id
+            ),
+        )
+
+    for candidate_id, receipt in latest_by_candidate.items():
+        discovery_id = receipt["discovery_id"]
+        discovery, discovery_location = discoveries[discovery_id]
+        timing_ref = _required_string(
+            receipt,
+            "timing_ref",
+            f"latest receipt for {candidate_id}",
+        )
+        timing_path = repo_root / _safe_relative_path(timing_ref)
+        timing = _load_json(timing_path, repo_root)
+        timing_sha256 = _required_sha256(
+            receipt,
+            "timing_sha256",
+            f"latest receipt for {candidate_id}",
+        )
+        issued_at = _parse_timestamp(
+            receipt.get("issued_at"),
+            location=f"latest receipt for {candidate_id}",
+            field="issued_at",
+        )
+        timing_measured_at = _parse_timestamp(
+            timing.get("measured_at"),
+            location=f"latest timing for {candidate_id}",
+            field="measured_at",
+        )
+        if timing_measured_at > issued_at:
+            raise QueueBuildError(
+                f"latest receipt for {candidate_id}: timing.measured_at cannot be later "
+                "than terminal receipt issued_at"
+            )
+        actual_timing_sha256 = _sha256_file(timing_path)
+        if timing_sha256 != actual_timing_sha256:
+            raise QueueBuildError(
+                f"latest receipt for {candidate_id}: timing_sha256 does not bind {timing_ref!r}"
+            )
+        _validate_active_discovery_timings(
+            discovery,
+            timing,
+            discovery_ref=receipt["discovery_ref"],
+            location=f"{discovery_location} (latest receipt for {candidate_id})",
+            receipt_issued_at=issued_at,
+        )
+    return receipts, latest_by_candidate
+
+
+def _sha256_file(path: Path) -> str:
+    return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def _historical_provenance_hashes(
+    repo_root: Path,
+    *,
+    cutoff: datetime,
+    provenance_events: dict[str, tuple[dict[str, Any], str]],
+) -> dict[Path, str]:
+    events_by_location: dict[tuple[Path, int], dict[str, Any]] = {}
+    for event, location in provenance_events.values():
+        try:
+            relative_text, line_text = location.rsplit(":", 1)
+            relative = _safe_relative_path(relative_text)
+            line_number = int(line_text)
+        except (ValueError, QueueBuildError) as exc:
+            raise QueueBuildError(f"provenance event location is invalid: {location!r}") from exc
+        events_by_location[(relative, line_number)] = event
+
+    hashes: dict[Path, str] = {}
+    source_root = repo_root / "ToS/source-witnesses"
+    if not source_root.is_dir():
+        return hashes
+    for path in sorted(source_root.rglob("provenance.jsonl")):
+        relative = path.relative_to(repo_root)
+        raw_lines = path.read_bytes().splitlines(keepends=True)
+        retained_lines: list[bytes] = []
+        retained_event = False
+        for line_number, raw_line in enumerate(raw_lines, start=1):
+            if not raw_line.strip():
+                retained_lines.append(raw_line)
+                continue
+            event = events_by_location.get((relative, line_number))
+            if event is None:
+                raise QueueBuildError(
+                    f"{relative.as_posix()}:{line_number}: provenance line is not indexed"
+                )
+            event_ended_at = _parse_timestamp(
+                event.get("ended_at"),
+                location=f"{relative.as_posix()}:{line_number}",
+                field="ended_at",
+            )
+            if event_ended_at <= cutoff:
+                retained_lines.append(raw_line)
+                retained_event = True
+        if retained_event:
+            hashes[relative] = hashlib.sha256(b"".join(retained_lines)).hexdigest()
+    return hashes
+
+
+def _snapshot_path_from_ref(
+    repo_root: Path,
+    value: Any,
+    *,
+    location: str,
+) -> Path | None:
+    if not isinstance(value, str) or not value:
+        return None
+    if urlsplit(value).scheme:
+        return None
+    path = _safe_relative_path(value)
+    if not (repo_root / path).is_file():
+        raise QueueBuildError(f"{location}: snapshot input does not resolve: {value!r}")
+    return path
+
+
+def _snapshot_closure_inputs(
+    repo_root: Path,
+    *,
+    receipts: list[dict[str, Any]],
+    discoveries: dict[str, tuple[dict[str, Any], str]],
+    provenance_events: dict[str, tuple[dict[str, Any], str]] | None,
+) -> list[Path]:
+    paths: list[Path] = []
+    source_root = repo_root / "ToS/source-witnesses"
+    if source_root.is_dir():
+        paths.extend(
+            path.relative_to(repo_root)
+            for path in sorted(source_root.rglob("provenance.jsonl"))
+        )
+    if provenance_events is not None:
+        for discovery, _ in discoveries.values():
+            event_refs = discovery.get("provenance_event_refs", [])
+            if not isinstance(event_refs, list):
+                continue
+            for event_ref in event_refs:
+                event_entry = provenance_events.get(event_ref)
+                if event_entry is None:
+                    continue
+                event = event_entry[0]
+                method = event.get("method")
+                if isinstance(method, dict):
+                    prompt_path = _snapshot_path_from_ref(
+                        repo_root,
+                        method.get("prompt_or_instruction_ref"),
+                        location=f"snapshot provenance event {event_ref}:prompt_or_instruction_ref",
+                    )
+                    if prompt_path is not None and prompt_path.as_posix().startswith("ToS/research-packets/"):
+                        paths.append(prompt_path)
+                outputs = event.get("outputs", [])
+                if not isinstance(outputs, list):
+                    continue
+                for output in outputs:
+                    if not isinstance(output, dict):
+                        continue
+                    output_path = output.get("ref")
+                    if not isinstance(output_path, str) or not output_path.startswith("ToS/research-packets/"):
+                        continue
+                    path = _snapshot_path_from_ref(
+                        repo_root,
+                        output_path,
+                        location=f"snapshot provenance event {event_ref}:output",
+                    )
+                    if path is not None:
+                        paths.append(path)
+
+    canonical_records = {
+        "item_ref": (Path("ToS/source-witnesses"), "item.manifest.json", "item_id"),
+        "artifact_ref": (Path("ToS/source-witnesses/artifacts"), "artifact-witness.json", "artifact_id"),
+        "composite_ref": (
+            Path("ToS/source-witnesses/scholarly-composites"),
+            "composite-witness.json",
+            "composite_id",
+        ),
+    }
+
+    for receipt in receipts:
+        receipt_id = receipt.get("receipt_id", "receipt")
+        location = f"snapshot closure {receipt_id}"
+        rights_result = receipt.get("rights_result")
+        evidence_refs = rights_result.get("evidence_refs", []) if isinstance(rights_result, dict) else []
+        if isinstance(evidence_refs, list):
+            for index, reference in enumerate(evidence_refs, start=1):
+                path = _snapshot_path_from_ref(
+                    repo_root,
+                    reference,
+                    location=f"{location}:rights_result.evidence_refs[{index}]",
+                )
+                if path is not None:
+                    paths.append(path)
+
+        planting_refs = receipt.get("planting_refs", [])
+        if isinstance(planting_refs, list):
+            for index, reference in enumerate(planting_refs, start=1):
+                ref_location = f"{location}:planting_refs[{index}]"
+                planting_path = _snapshot_path_from_ref(
+                    repo_root,
+                    reference,
+                    location=ref_location,
+                )
+                if planting_path is None:
+                    continue
+                paths.append(planting_path)
+                planting = _load_json(repo_root / planting_path, repo_root)
+                source_witness = planting.get("source_witness")
+                if isinstance(source_witness, dict):
+                    source_record = _snapshot_path_from_ref(
+                        repo_root,
+                        source_witness.get("record_ref"),
+                        location=f"{ref_location}:source_witness.record_ref",
+                    )
+                    if source_record is not None:
+                        paths.append(source_record)
+                planting_discovery = _snapshot_path_from_ref(
+                    repo_root,
+                    planting.get("discovery_ref"),
+                    location=f"{ref_location}:discovery_ref",
+                )
+                if planting_discovery is not None:
+                    paths.append(planting_discovery)
+
+        acquisitions: list[Any] = [receipt.get("acquisition")]
+        additional_acquisitions = receipt.get("additional_acquisitions", [])
+        if isinstance(additional_acquisitions, list):
+            acquisitions.extend(additional_acquisitions)
+        for index, acquisition in enumerate(acquisitions, start=1):
+            if not isinstance(acquisition, dict) or acquisition.get("downloaded") is not True:
+                continue
+            acquisition_location = f"{location}:acquisition[{index}]"
+            representation = _snapshot_path_from_ref(
+                repo_root,
+                acquisition.get("representation_ref"),
+                location=f"{acquisition_location}:representation_ref",
+            )
+            if representation is not None:
+                paths.append(representation)
+            for field, (record_root, filename, record_key) in canonical_records.items():
+                identity = acquisition.get(field)
+                if not isinstance(identity, str) or not identity:
+                    continue
+                _, record_path = _find_unique_record(
+                    repo_root,
+                    root=record_root,
+                    filename=filename,
+                    key=record_key,
+                    value=identity,
+                    location=acquisition_location,
+                )
+                paths.append(record_path.relative_to(repo_root))
+
+    return paths
+
+
+def _snapshot(
+    repo_root: Path,
+    *,
+    candidates: list[tuple[dict[str, Any], str]],
+    receipts: list[dict[str, Any]],
+    discoveries: dict[str, tuple[dict[str, Any], str]],
+    provenance_events: dict[str, tuple[dict[str, Any], str]] | None = None,
+    provenance_cutoff: datetime | None = None,
+    excluded_paths: set[Path] | None = None,
+    input_hash_overrides: dict[Path, str] | None = None,
+) -> dict[str, Any]:
+    master_rows = sum(len(_load_jsonl(repo_root / path, repo_root)) for path in MASTER_ROW_PATHS)
+    dossiers = _load_jsonl(repo_root / DOSSIER_INDEX_PATH, repo_root)
+    backlog = _load_jsonl(repo_root / BACKLOG_PATH, repo_root)
+    works = _load_jsonl(repo_root / WORK_CATALOG_PATH, repo_root)
+
+    input_paths: list[Path] = [
+        *MASTER_ROW_PATHS,
+        DOSSIER_INDEX_PATH,
+        BACKLOG_PATH,
+        WORK_CATALOG_PATH,
+        LEDGER_PATH,
+    ]
+    input_paths.extend(Path(location) for _, location in discoveries.values())
+    input_paths.extend(
+        _safe_relative_path(source_ref["source_path"])
+        for candidate, _ in candidates
+        for source_ref in candidate["source_refs"]
+    )
+    input_paths.extend(
+        _snapshot_closure_inputs(
+            repo_root,
+            receipts=receipts,
+            discoveries=discoveries,
+            provenance_events=provenance_events,
+        )
+    )
+    receipt_root = repo_root / RECEIPT_ROOT
+    if receipt_root.is_dir():
+        input_paths.extend(path.relative_to(repo_root) for path in sorted(receipt_root.glob("*.json")))
+    timing_root = repo_root / TIMING_ROOT
+    if timing_root.is_dir():
+        input_paths.extend(path.relative_to(repo_root) for path in sorted(timing_root.glob("*.json")))
+    excluded = {path.as_posix() for path in (excluded_paths or set())}
+    unique_paths = sorted(
+        {path for path in input_paths if path.as_posix() not in excluded},
+        key=lambda path: path.as_posix(),
+    )
+    provenance_hashes = (
+        _historical_provenance_hashes(
+            repo_root,
+            cutoff=provenance_cutoff,
+            provenance_events=provenance_events,
+        )
+        if provenance_cutoff is not None and provenance_events is not None
+        else {}
+    )
+    if provenance_cutoff is not None and provenance_events is not None:
+        unique_paths = [
+            path
+            for path in unique_paths
+            if path.name != "provenance.jsonl" or path in provenance_hashes
+        ]
+    inputs = [
+        {
+            "path": path.as_posix(),
+            "sha256": (
+                input_hash_overrides.get(path)
+                if input_hash_overrides and path in input_hash_overrides
+                else provenance_hashes.get(path, _sha256_file(repo_root / path))
+            ),
+        }
+        for path in unique_paths
+    ]
+    fingerprint_source = "".join(f"{entry['path']}\0{entry['sha256']}\n" for entry in inputs)
+
+    return {
+        "input_sha256": hashlib.sha256(fingerprint_source.encode("utf-8")).hexdigest(),
+        "inputs": inputs,
+        "counts": {
+            "master_rows": master_rows,
+            "accepted_dossiers": len(dossiers),
+            "source_anchor_backlog_rows": len(backlog),
+            "catalog_works": len(works),
+            "discovery_runs": len(discoveries),
+            "reviewed_candidates": len(candidates),
+            "terminal_receipts": len(receipts),
+        },
+    }
+
+
+def _candidate_source_line(location: str) -> int:
+    try:
+        return int(location.rsplit(":", 1)[1])
+    except (IndexError, ValueError) as exc:
+        raise QueueBuildError(f"candidate source location has no physical line number: {location!r}") from exc
+
+
+def _candidate_ledger_state_at_receipt_boundary(
+    repo_root: Path,
+    *,
+    receipt: dict[str, Any],
+    candidates_with_locations: list[tuple[dict[str, Any], str]],
+) -> tuple[list[tuple[dict[str, Any], str]], dict[Path, str]]:
+    """Resolve an append-only candidate ledger prefix bound by a receipt.
+
+    Candidate discovery is allowed to expand after a terminal receipt.  The
+    receipt therefore binds the exact ledger bytes that were visible when its
+    queue snapshot was frozen.  A later append can be replayed from the
+    current checkout by locating that digest among physical line prefixes;
+    edits or insertions do not resolve and remain fail-closed unless an
+    independent snapshot witness validates the receipt.
+    """
+    expected_digest = receipt.get("candidate_ledger_sha256")
+    if expected_digest is None:
+        # Preserve direct callers of the legacy replay helper.  Authored
+        # receipts are required to carry the binding by the receipt schema and
+        # loader before transition validation reaches this fallback.
+        return candidates_with_locations, {}
+    receipt_id = receipt.get("receipt_id", "receipt")
+    if not isinstance(expected_digest, str) or re.fullmatch(r"[a-f0-9]{64}", expected_digest) is None:
+        raise QueueBuildError(
+            f"{receipt_id}: candidate_ledger_sha256 must be a lowercase SHA-256 digest"
+        )
+
+    ledger_path = repo_root / LEDGER_PATH
+    try:
+        raw_lines = ledger_path.read_bytes().splitlines(keepends=True)
+    except (FileNotFoundError, OSError) as exc:
+        raise QueueBuildError(
+            f"{LEDGER_PATH.as_posix()}: cannot read candidate ledger bytes"
+        ) from exc
+
+    prefix = bytearray()
+    for line_count, raw_line in enumerate(raw_lines, start=1):
+        prefix.extend(raw_line)
+        if hashlib.sha256(prefix).hexdigest() != expected_digest:
+            continue
+        historical_candidates = [
+            (candidate, location)
+            for candidate, location in candidates_with_locations
+            if _candidate_source_line(location) <= line_count
+        ]
+        return historical_candidates, {LEDGER_PATH: expected_digest}
+
+    # The current ledger was rewritten, rather than extended from the frozen
+    # bytes.  Do not invent a historical record set; the transition validator
+    # may still accept an independently witnessed frozen queue.
+    return candidates_with_locations, {}
+
+
+def _candidate_sort_key(
+    candidate: dict[str, Any],
+    *,
+    source_line: int | None = None,
+) -> tuple[int, int, int, str]:
+    selection = candidate["selection"]
+    return (
+        selection["chronology_sort_year"],
+        selection["atlas_row_order"],
+        source_line if source_line is not None else 0,
+        candidate["candidate_id"],
+    )
+
+
+def _queue_sha256(payload: dict[str, Any]) -> str:
+    without_fingerprint = {key: value for key, value in payload.items() if key != "queue_sha256"}
+    return hashlib.sha256(canonical_json(without_fingerprint).encode("utf-8")).hexdigest()
+
+
+def _receipt_sort_key(receipt: dict[str, Any]) -> tuple[datetime, int, str]:
+    issued_at = receipt.get("issued_at")
+    if not isinstance(issued_at, str) or not issued_at:
+        raise QueueBuildError("receipt issued_at must be a non-empty date-time")
+    parsed = _parse_timestamp(issued_at, location="receipt", field="issued_at")
+    version = receipt.get("record_version")
+    if not isinstance(version, int) or version < 1:
+        raise QueueBuildError("receipt record_version must be a positive integer")
+    receipt_id = _required_string(receipt, "receipt_id", "receipt")
+    return parsed, version, receipt_id
+
+
+def _discovery_started_at(
+    discovery: tuple[dict[str, Any], str],
+) -> datetime:
+    payload, location = discovery
+    return _parse_timestamp(payload.get("started_at"), location=location, field="started_at")
+
+
+def _discovery_ended_at(
+    discovery: tuple[dict[str, Any], str],
+) -> datetime | None:
+    payload, location = discovery
+    if payload.get("ended_at") in (None, ""):
+        return None
+    return _parse_timestamp(payload.get("ended_at"), location=location, field="ended_at")
+
+
+def _validate_receipt_version_timestamp_order(receipts: list[dict[str, Any]]) -> None:
+    by_candidate: dict[str, list[tuple[int, datetime, str]]] = {}
+    seen_versions: dict[str, set[int]] = {}
+    for receipt in receipts:
+        receipt_id = _required_string(receipt, "receipt_id", "receipt")
+        candidate_id = _required_string(receipt, "candidate_id", receipt_id)
+        issued_at, version, _ = _receipt_sort_key(receipt)
+        if version in seen_versions.setdefault(candidate_id, set()):
+            raise QueueBuildError(
+                f"{receipt_id}: duplicate record_version {version} for candidate {candidate_id!r}"
+            )
+        seen_versions[candidate_id].add(version)
+        by_candidate.setdefault(candidate_id, []).append((version, issued_at, receipt_id))
+
+    for candidate_id, entries in by_candidate.items():
+        entries.sort(key=lambda entry: entry[0])
+        previous_version: int | None = None
+        previous_issued_at: datetime | None = None
+        for version, issued_at, receipt_id in entries:
+            if previous_issued_at is not None and issued_at < previous_issued_at:
+                raise QueueBuildError(
+                    f"{receipt_id}: record_version {version} issued_at {issued_at.isoformat()} "
+                    f"is earlier than predecessor record_version {previous_version} for candidate {candidate_id!r}"
+                )
+            previous_version = version
+            previous_issued_at = issued_at
+
+
+def _build_queue_payload(
+    repo_root: Path,
+    *,
+    candidates_with_locations: list[tuple[dict[str, Any], str]],
+    receipts: list[dict[str, Any]],
+    discoveries: dict[str, tuple[dict[str, Any], str]],
+    provenance_events: dict[str, tuple[dict[str, Any], str]] | None = None,
+    provenance_cutoff: datetime | None = None,
+    excluded_paths: set[Path] | None = None,
+    input_hash_overrides: dict[Path, str] | None = None,
+) -> dict[str, Any]:
+    latest_receipts: dict[str, dict[str, Any]] = {}
+    for receipt in receipts:
+        candidate_id = _required_string(receipt, "candidate_id", "receipt")
+        previous = latest_receipts.get(candidate_id)
+        if previous is None or receipt["record_version"] > previous["record_version"]:
+            latest_receipts[candidate_id] = receipt
+
+    snapshot = _snapshot(
+        repo_root,
+        candidates=candidates_with_locations,
+        receipts=receipts,
+        discoveries=discoveries,
+        provenance_events=provenance_events,
+        provenance_cutoff=provenance_cutoff,
+        excluded_paths=excluded_paths,
+        input_hash_overrides=input_hash_overrides,
+    )
+    queue_entries: list[dict[str, Any]] = []
+    for candidate, location in sorted(
+        candidates_with_locations,
+        key=lambda item: _candidate_sort_key(
+            item[0], source_line=_candidate_source_line(item[1])
+        ),
+    ):
+        candidate_id = candidate["candidate_id"]
+        latest_receipt = latest_receipts.get(candidate_id)
+        effective_status = (
+            latest_receipt["terminal_status"]
+            if latest_receipt is not None
+            else candidate["queue_status"]
+        )
+        queue_entries.append(
+            {
+                "candidate_id": candidate_id,
+                "candidate_kind": candidate["candidate_kind"],
+                "preferred_label": candidate["preferred_label"],
+                "selection": candidate["selection"],
+                "effective_status": effective_status,
+                "candidate_source_ref": location,
+                "candidate_sha256": candidate_digest(candidate),
+                "terminal_receipt_id": (
+                    latest_receipt["receipt_id"] if latest_receipt is not None else None
+                ),
+                "discovery_id": (
+                    latest_receipt["discovery_id"] if latest_receipt is not None else None
+                ),
+            }
+        )
+
+    next_candidate_id = next(
+        (
+            entry["candidate_id"]
+            for entry in queue_entries
+            if entry["candidate_kind"] in QUEUEABLE_KINDS
+            and entry["effective_status"] == READY_STATUS
+        ),
+        None,
+    )
+    status_counts: dict[str, int] = {}
+    for entry in queue_entries:
+        status = entry["effective_status"]
+        status_counts[status] = status_counts.get(status, 0) + 1
+
+    payload: dict[str, Any] = {
+        "$schema": "https://tree-of-sophia.local/ToS/contracts/open-work-candidate-queue.schema.json",
+        "schema_version": "tos_open_work_candidate_queue_v1",
+        "owner_surface": LEDGER_PATH.as_posix(),
+        "receipt_root": RECEIPT_ROOT.as_posix(),
+        "timing_root": TIMING_ROOT.as_posix(),
+        "generated_by": "scripts/build_open_work_candidate_queue.py",
+        "source_snapshot": snapshot,
+        "counts": {
+            "candidates": len(queue_entries),
+            "by_effective_status": dict(sorted(status_counts.items())),
+        },
+        "next_candidate_id": next_candidate_id,
+        "candidates": queue_entries,
+        "authority_boundary": (
+            "generated queue navigation over reviewed candidate records and terminal receipts; "
+            "not identity, rights, semantic, or canon authority"
+        ),
+    }
+    payload["queue_sha256"] = _queue_sha256(payload)
+    return payload
+
+
+def _reconstruct_pre_run_queue_sha256(
+    repo_root: Path,
+    *,
+    current_receipt: dict[str, Any],
+    ordered_receipts: list[dict[str, Any]],
+    candidates_with_locations: list[tuple[dict[str, Any], str]],
+    discoveries: dict[str, tuple[dict[str, Any], str]],
+    provenance_events: dict[str, tuple[dict[str, Any], str]] | None = None,
+) -> str:
+    if provenance_events is None:
+        provenance_events = _load_provenance_events(repo_root)
+    current_key = _receipt_sort_key(current_receipt)
+    prior_receipts = [
+        receipt
+        for receipt in ordered_receipts
+        if _receipt_sort_key(receipt) < current_key
+    ]
+    future_receipts = [
+        receipt
+        for receipt in ordered_receipts
+        if _receipt_sort_key(receipt) >= current_key
+    ]
+    future_discovery_ids = {receipt.get("discovery_id") for receipt in future_receipts}
+    pre_run_discoveries = {}
+    for discovery_id, entry in discoveries.items():
+        if discovery_id in future_discovery_ids:
+            continue
+        discovery_ended_at = _discovery_ended_at(entry)
+        if (
+            _discovery_started_at(entry) <= current_key[0]
+            and discovery_ended_at is not None
+            and discovery_ended_at <= current_key[0]
+        ):
+            pre_run_discoveries[discovery_id] = entry
+    excluded_paths: set[Path] = set()
+    future_receipt_ids = {receipt["receipt_id"] for receipt in future_receipts}
+    receipt_root = repo_root / RECEIPT_ROOT
+    if receipt_root.is_dir():
+        for path in sorted(receipt_root.glob("*.json")):
+            receipt = _load_json(path, repo_root)
+            if receipt.get("receipt_id") in future_receipt_ids:
+                excluded_paths.add(path.relative_to(repo_root))
+    for receipt in future_receipts:
+        for key in ("discovery_ref", "timing_ref"):
+            value = receipt.get(key)
+            if isinstance(value, str) and value:
+                excluded_paths.add(Path(value))
+    prior_timing_refs = {
+        _safe_relative_path(receipt["timing_ref"])
+        for receipt in prior_receipts
+        if isinstance(receipt.get("timing_ref"), str) and receipt.get("timing_ref")
+    }
+    owned_timing_refs = set(prior_timing_refs)
+    for discovery, _ in pre_run_discoveries.values():
+        event_refs = discovery.get("provenance_event_refs", [])
+        if not isinstance(event_refs, list):
+            continue
+        for event_ref in event_refs:
+            event_entry = provenance_events.get(event_ref) if provenance_events is not None else None
+            if event_entry is None:
+                continue
+            outputs = event_entry[0].get("outputs", [])
+            if not isinstance(outputs, list):
+                continue
+            for output in outputs:
+                reference = output.get("ref") if isinstance(output, dict) else None
+                if not isinstance(reference, str) or not reference.startswith(f"{TIMING_ROOT.as_posix()}/"):
+                    continue
+                path = _safe_relative_path(reference)
+                if (repo_root / path).is_file():
+                    owned_timing_refs.add(path)
+    timing_root = repo_root / TIMING_ROOT
+    if timing_root.is_dir():
+        for path in sorted(timing_root.glob("*.json")):
+            relative = path.relative_to(repo_root)
+            if relative not in owned_timing_refs:
+                excluded_paths.add(relative)
+                continue
+            timing = _load_json(path, repo_root)
+            measured_at = _parse_timestamp(
+                timing.get("measured_at"),
+                location=relative.as_posix(),
+                field="measured_at",
+            )
+            if measured_at > current_key[0]:
+                excluded_paths.add(relative)
+    historical_candidates, input_hash_overrides = _candidate_ledger_state_at_receipt_boundary(
+        repo_root,
+        receipt=current_receipt,
+        candidates_with_locations=candidates_with_locations,
+    )
+    payload = _build_queue_payload(
+        repo_root,
+        candidates_with_locations=historical_candidates,
+        receipts=prior_receipts,
+        discoveries=pre_run_discoveries,
+        provenance_events=provenance_events,
+        provenance_cutoff=current_key[0],
+        excluded_paths=excluded_paths,
+        input_hash_overrides=input_hash_overrides,
+    )
+    return payload["queue_sha256"]
+
+
+def _has_independent_snapshot_witness(
+    repo_root: Path,
+    receipt: dict[str, Any],
+    *,
+    candidate_id: str,
+    candidate_label: str,
+    discoveries: dict[str, tuple[dict[str, Any], str]],
+    provenance_events: dict[str, tuple[dict[str, Any], str]],
+) -> bool:
+    discovery = discoveries[receipt["discovery_id"]][0]
+    event_refs = discovery.get("provenance_event_refs", [])
+    if not isinstance(event_refs, list):
+        event_refs = []
+    snapshot_hash = receipt.get("queue_snapshot_sha256")
+    expected_ledger_digest = receipt.get("candidate_ledger_sha256")
+    if not isinstance(expected_ledger_digest, str) or re.fullmatch(
+        r"[0-9a-f]{64}", expected_ledger_digest
+    ) is None:
+        return False
+    receipt_issued_at = _parse_timestamp(
+        receipt.get("issued_at"),
+        location=f"receipt {receipt.get('receipt_id', 'unknown')}",
+        field="issued_at",
+    )
+
+    def receipt_bound_pre_run_event(event_ref: str, event: dict[str, Any]) -> bool:
+        relation_refs = receipt.get("operational_relation_refs")
+        if not isinstance(relation_refs, list) or event_ref not in relation_refs:
+            return False
+        try:
+            event_ended_at = _parse_timestamp(
+                event.get("ended_at"),
+                location=event_ref,
+                field="ended_at",
+            )
+        except QueueBuildError:
+            return False
+        if event_ended_at > receipt_issued_at:
+            return False
+        event_inputs = event.get("inputs")
+        if not isinstance(event_inputs, list):
+            return False
+        ledger_input = next(
+            (
+                input_ref
+                for input_ref in event_inputs
+                if isinstance(input_ref, dict)
+                and input_ref.get("ref") == LEDGER_PATH.as_posix()
+            ),
+            None,
+        )
+        ledger_digest = ledger_input.get("sha256") if isinstance(ledger_input, dict) else None
+        return ledger_digest == expected_ledger_digest
+
+    for event_ref in event_refs:
+        event_entry = provenance_events.get(event_ref)
+        if event_entry is None:
+            continue
+        event = event_entry[0]
+        if not receipt_bound_pre_run_event(event_ref, event):
+            continue
+        configuration = event.get("method", {}).get("configuration", {})
+        if not isinstance(configuration, dict):
+            continue
+        if (
+            configuration.get("candidate_id") == candidate_id
+            and configuration.get("frozen_queue_snapshot_sha256") == snapshot_hash
+        ):
+            return True
+
+    # Legacy iterations predate the queue validator but their pre-run
+    # provenance event names the research packet and records the reviewed
+    # candidate ledger as an input.  Do not search the repository: an
+    # unrelated packet must never be able to witness a receipt's snapshot.
+    for event_ref in event_refs:
+        event_entry = provenance_events.get(event_ref)
+        if event_entry is None:
+            continue
+        event = event_entry[0]
+        configuration = event.get("method", {}).get("configuration", {})
+        if not isinstance(configuration, dict) or configuration.get("candidate_id") != candidate_id:
+            continue
+        ended_at = event.get("ended_at")
+        try:
+            if _parse_timestamp(ended_at, location=event_ref, field="ended_at") > receipt_issued_at:
+                continue
+        except QueueBuildError:
+            continue
+        event_inputs = event.get("inputs")
+        if not isinstance(event_inputs, list):
+            continue
+        ledger_input = next(
+            (
+                input_ref
+                for input_ref in event_inputs
+                if isinstance(input_ref, dict)
+                and input_ref.get("ref") == LEDGER_PATH.as_posix()
+            ),
+            None,
+        )
+        ledger_digest = ledger_input.get("sha256") if isinstance(ledger_input, dict) else None
+        if ledger_digest != expected_ledger_digest:
+            continue
+
+        prompt_ref = event.get("method", {}).get("prompt_or_instruction_ref")
+        try:
+            packet_path = _safe_relative_path(prompt_ref)
+        except (QueueBuildError, TypeError):
+            continue
+        if not packet_path.as_posix().startswith("ToS/research-packets/"):
+            continue
+        packet = repo_root / packet_path
+        if not packet.is_file():
+            continue
+        output = next(
+            (
+                output_ref
+                for output_ref in event.get("outputs", [])
+                if isinstance(output_ref, dict) and output_ref.get("ref") == packet_path.as_posix()
+            ),
+            None,
+        )
+        output_digest = output.get("sha256") if isinstance(output, dict) else None
+        if not isinstance(output_digest, str) or not re.fullmatch(r"[0-9a-f]{64}", output_digest):
+            continue
+        if output_digest != _sha256_file(packet):
+            continue
+        try:
+            packet_text = packet.read_text(encoding="utf-8")
+        except OSError:
+            continue
+        if not re.search(
+            rf"(?im)^\s*Candidate:\s*`{re.escape(candidate_id)}`\s*$",
+            packet_text,
+        ):
+            continue
+        if not re.search(
+            rf"(?im)^\s*(?:Frozen\s+)?Queue snapshot SHA-256:\s*`{re.escape(snapshot_hash)}`\s*$",
+            packet_text,
+        ):
+            continue
+        if _contains_word_phrase(packet_text, candidate_label):
+            return True
+    return False
+
+
+def _validate_receipt_transition_history(
+    repo_root: Path,
+    *,
+    candidates_with_locations: list[tuple[dict[str, Any], str]],
+    receipts: list[dict[str, Any]],
+    discoveries: dict[str, tuple[dict[str, Any], str]],
+    provenance_events: dict[str, tuple[dict[str, Any], str]] | None = None,
+) -> None:
+    candidates_by_id = {candidate["candidate_id"]: candidate for candidate, _ in candidates_with_locations}
+    _validate_receipt_version_timestamp_order(receipts)
+    ordered_receipts = sorted(receipts, key=_receipt_sort_key)
+    status_by_candidate = {
+        candidate["candidate_id"]: candidate["queue_status"]
+        for candidate, _ in candidates_with_locations
+    }
+    previous_by_candidate: dict[str, dict[str, Any]] = {}
+    if provenance_events is None:
+        provenance_events = _load_provenance_events(repo_root)
+    validated_snapshot_ids: set[str] = set()
+
+    for receipt in ordered_receipts:
+        receipt_id = _required_string(receipt, "receipt_id", "receipt")
+        candidate_id = _required_string(receipt, "candidate_id", receipt_id)
+        candidate = candidates_by_id[candidate_id]
+        historical_candidates, _ = _candidate_ledger_state_at_receipt_boundary(
+            repo_root,
+            receipt=receipt,
+            candidates_with_locations=candidates_with_locations,
+        )
+        snapshot_hash = receipt.get("queue_snapshot_sha256")
+        if not isinstance(snapshot_hash, str) or len(snapshot_hash) != 64 or any(
+            character not in "0123456789abcdef" for character in snapshot_hash
+        ):
+            raise QueueBuildError(f"{receipt_id}: queue_snapshot_sha256 must be a lowercase SHA-256 digest")
+
+        previous = previous_by_candidate.get(candidate_id)
+        if previous is None:
+            if candidate["candidate_kind"] not in QUEUEABLE_KINDS:
+                raise QueueBuildError(f"{receipt_id}: terminal receipt cannot advance a non-queueable candidate")
+            historical_frontier = [
+                (item, location)
+                for item, location in historical_candidates
+            ]
+            expected = next(
+                (
+                    item["candidate_id"]
+                    for item, location in sorted(
+                        historical_frontier,
+                        key=lambda pair: _candidate_sort_key(
+                            pair[0], source_line=_candidate_source_line(pair[1])
+                        ),
+                    )
+                    if item["candidate_kind"] in QUEUEABLE_KINDS
+                    and status_by_candidate[item["candidate_id"]] == READY_STATUS
+                ),
+                None,
+            )
+            if candidate_id != expected:
+                raise QueueBuildError(
+                    f"{receipt_id}: receipt candidate {candidate_id!r} was not the current next_candidate_id {expected!r}"
+                )
+            status_by_candidate[candidate_id] = receipt["terminal_status"]
+        else:
+            if _receipt_sort_key(receipt) < _receipt_sort_key(previous):
+                raise QueueBuildError(f"{receipt_id}: superseding receipt is earlier than its predecessor")
+            if snapshot_hash != previous.get("queue_snapshot_sha256"):
+                raise QueueBuildError(f"{receipt_id}: superseding receipt changed the frozen queue snapshot")
+
+        reconstructed = _reconstruct_pre_run_queue_sha256(
+            repo_root,
+            current_receipt=receipt,
+            ordered_receipts=ordered_receipts,
+            candidates_with_locations=candidates_with_locations,
+            discoveries=discoveries,
+            provenance_events=provenance_events,
+        )
+        if reconstructed == snapshot_hash:
+            validated_snapshot_ids.add(receipt_id)
+        elif previous is not None and previous["receipt_id"] in validated_snapshot_ids:
+            validated_snapshot_ids.add(receipt_id)
+        elif _has_independent_snapshot_witness(
+            repo_root,
+            receipt,
+            candidate_id=candidate_id,
+            candidate_label=candidate["preferred_label"],
+            discoveries=discoveries,
+            provenance_events=provenance_events,
+        ):
+            validated_snapshot_ids.add(receipt_id)
+        else:
+            raise QueueBuildError(
+                f"{receipt_id}: queue_snapshot_sha256 does not resolve to the pre-run queue "
+                "or an independent frozen-snapshot provenance witness"
+            )
+        previous_by_candidate[candidate_id] = receipt
+
+
+def build_payload(repo_root: Path = REPO_ROOT) -> dict[str, Any]:
+    candidates_with_locations = _load_candidates(repo_root)
+    candidates_by_id = {
+        candidate["candidate_id"]: candidate for candidate, _ in candidates_with_locations
+    }
+    discoveries = _discovery_records(repo_root)
+    receipts, latest_receipts = _load_receipts(
+        repo_root,
+        candidates_by_id=candidates_by_id,
+        discoveries=discoveries,
+    )
+    provenance_events = _load_provenance_events(repo_root)
+    _validate_receipt_transition_history(
+        repo_root,
+        candidates_with_locations=candidates_with_locations,
+        receipts=receipts,
+        discoveries=discoveries,
+        provenance_events=provenance_events,
+    )
+    return _build_queue_payload(
+        repo_root,
+        candidates_with_locations=candidates_with_locations,
+        receipts=receipts,
+        discoveries=discoveries,
+        provenance_events=provenance_events,
+    )
+
+
+def render_payload(payload: dict[str, Any]) -> str:
+    return json.dumps(payload, ensure_ascii=False, indent=2, sort_keys=True) + "\n"
+
+
+def check_output(repo_root: Path, rendered: str) -> list[str]:
+    path = repo_root / QUEUE_RELATIVE_PATH
+    try:
+        current = path.read_text(encoding="utf-8")
+    except FileNotFoundError:
+        return [f"{QUEUE_RELATIVE_PATH.as_posix()}: generated queue is missing"]
+    if current != rendered:
+        return [f"{QUEUE_RELATIVE_PATH.as_posix()}: generated queue is stale"]
+    return []
+
+
+def write_output(repo_root: Path, rendered: str) -> None:
+    path = repo_root / QUEUE_RELATIVE_PATH
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(rendered, encoding="utf-8")

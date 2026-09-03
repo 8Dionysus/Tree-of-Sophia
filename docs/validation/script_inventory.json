@@ -283,6 +283,77 @@
       "disposition": "keep"
     },
     {
+      "path": "scripts/build_open_work_candidate_queue.py",
+      "family": "projection_builder",
+      "organ_lane": "projection/generated",
+      "owner_surface": "ToS/source-witnesses/discovery/candidates/README.md",
+      "source_truth": [
+        "ToS/source-witnesses/discovery/candidates/reviewed-candidates.jsonl",
+        "ToS/source-witnesses/discovery/candidates/receipts/*.json",
+        "ToS/source-witnesses/discovery/timings/*.json",
+        "ToS/philosophy/atlas/master-tables/*/rows.jsonl",
+        "ToS/philosophy/atlas/dossiers/index.jsonl",
+        "ToS/philosophy/atlas/dossiers/source-anchor-backlog.jsonl",
+        "ToS/source-witnesses/catalog/works.jsonl",
+        "ToS/source-witnesses/discovery/runs/*.json",
+        "ToS/contracts/open-work-candidate*.schema.json"
+      ],
+      "reads": [
+        "reviewed candidate records, terminal receipts, per-channel timing receipts, current atlas/dossier/backlog population, Work catalog, and discovery receipts"
+      ],
+      "writes": [
+        "ToS/source-witnesses/discovery/candidates/queue.current.json unless --check is used"
+      ],
+      "side_effects": "deterministic generated queue navigation; subordinate to reviewed candidates, terminal receipts, and their stronger owner sources",
+      "validation_lane": "source_witness_foundation",
+      "ci_inclusion": "release",
+      "test_target": "tests/test_open_work_candidate_queue.py",
+      "disposition": "keep"
+    },
+    {
+      "path": "scripts/open_work_candidate_queue_common.py",
+      "family": "projection_helper",
+      "organ_lane": "shared-library",
+      "owner_surface": "ToS/source-witnesses/discovery/candidates/README.md",
+      "source_truth": [
+        "ToS/source-witnesses/discovery/candidates/reviewed-candidates.jsonl",
+        "ToS/source-witnesses/discovery/candidates/receipts/*.json",
+        "ToS/source-witnesses/discovery/timings/*.json",
+        "ToS/contracts/open-work-candidate*.schema.json"
+      ],
+      "reads": [
+        "the exact source population declared by the candidate queue route"
+      ],
+      "writes": [],
+      "side_effects": "library only",
+      "validation_lane": "source_witness_foundation",
+      "ci_inclusion": "focused-tests",
+      "test_target": "tests/test_open_work_candidate_queue.py",
+      "disposition": "keep"
+    },
+    {
+      "path": "scripts/measure_open_work_discovery_channels.py",
+      "family": "source_fixture_builder",
+      "organ_lane": "source/topology",
+      "owner_surface": "ToS/source-witnesses/discovery/candidates/README.md",
+      "source_truth": [
+        "ToS/contracts/material-discovery-record.schema.json",
+        "ToS/contracts/open-work-channel-timing-receipt.schema.json",
+        "ToS/source-witnesses/discovery/runs/*.json"
+      ],
+      "reads": [
+        "one exact material discovery run and the live endpoint URL of each declared channel"
+      ],
+      "writes": [
+        "an explicit timing receipt path and, only when requested, a measured superseding discovery path"
+      ],
+      "side_effects": "bounded live HTTP probes through the first 16384 response bytes; no source-content, rights, semantic, or human-time claim",
+      "validation_lane": "source_witness_foundation",
+      "ci_inclusion": "focused-tests",
+      "test_target": "tests/test_open_work_candidate_queue.py",
+      "disposition": "keep"
+    },
+    {
       "path": "scripts/build_source_witness_catalog.py",
       "family": "projection_builder",
       "organ_lane": "projection/generated",
@@ -313,6 +384,31 @@
       "validation_lane": "source_witness_foundation",
       "ci_inclusion": "release",
       "test_target": "tests/test_source_witness_foundation.py",
+      "disposition": "keep"
+    },
+    {
+      "path": "scripts/validate_open_work_candidate_queue.py",
+      "family": "validator",
+      "organ_lane": "source/topology",
+      "owner_surface": "ToS/source-witnesses/discovery/candidates/README.md",
+      "source_truth": [
+        "ToS/contracts/open-work-candidate.schema.json",
+        "ToS/contracts/open-work-candidate-receipt.schema.json",
+        "ToS/contracts/open-work-candidate-queue.schema.json",
+        "ToS/contracts/open-work-channel-timing-receipt.schema.json",
+        "ToS/source-witnesses/discovery/candidates/reviewed-candidates.jsonl",
+        "ToS/source-witnesses/discovery/candidates/receipts/*.json",
+        "ToS/source-witnesses/discovery/timings/*.json",
+        "ToS/source-witnesses/discovery/candidates/queue.current.json"
+      ],
+      "reads": [
+        "candidate contracts, authored records, immutable terminal and timing receipts, and the generated queue"
+      ],
+      "writes": [],
+      "side_effects": "validation only; proves schema, selector, receipt binding, snapshot, and generated parity mechanics",
+      "validation_lane": "source_witness_foundation",
+      "ci_inclusion": "release",
+      "test_target": "tests/test_open_work_candidate_queue.py",
       "disposition": "keep"
     },
     {

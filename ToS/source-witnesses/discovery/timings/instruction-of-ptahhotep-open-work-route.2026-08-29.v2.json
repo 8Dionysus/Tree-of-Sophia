@@ -1,0 +1,192 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/open-work-channel-timing-receipt.schema.json",
+  "schema_version": "tos_open_work_channel_timing_receipt_v1",
+  "timing_id": "open-work-channel-timing.instruction-of-ptahhotep-open-work-route.2026-08-29.v2",
+  "discovery_ref": "ToS/source-witnesses/discovery/runs/instruction-of-ptahhotep-open-work-route.2026-08-29.v2.json",
+  "discovery_id": "tos.discovery.instruction-of-ptahhotep-open-work-route.2026-08-29.v2",
+  "measured_at": "2026-08-30T05:53:56.578668Z",
+  "measurements": [
+    {
+      "channel_id": "channel-bnf-manuscripts",
+      "measurement": {
+        "method": "monotonic-http-request-v1",
+        "clock": "python.time.perf_counter_ns",
+        "timing_scope": "request-through-first-16384-response-bytes",
+        "probe_url": "https://archivesetmanuscrits.bnf.fr/ark:/12148/cc12921q",
+        "started_at": "2026-08-30T05:53:43.593917Z",
+        "ended_at": "2026-08-30T05:53:44.363778Z",
+        "elapsed_seconds": 0.769834,
+        "outcome": "success",
+        "http_status": 200,
+        "response_bytes_observed": 16384
+      }
+    },
+    {
+      "channel_id": "channel-bnf-bibliography",
+      "measurement": {
+        "method": "monotonic-http-request-v1",
+        "clock": "python.time.perf_counter_ns",
+        "timing_scope": "request-through-first-16384-response-bytes",
+        "probe_url": "https://catalogue.bnf.fr/ark:/12148/cb31152665f",
+        "started_at": "2026-08-30T05:53:44.363896Z",
+        "ended_at": "2026-08-30T05:53:45.264379Z",
+        "elapsed_seconds": 0.900474,
+        "outcome": "success",
+        "http_status": 200,
+        "response_bytes_observed": 16384
+      }
+    },
+    {
+      "channel_id": "channel-library-of-congress",
+      "measurement": {
+        "method": "monotonic-http-request-v1",
+        "clock": "python.time.perf_counter_ns",
+        "timing_scope": "request-through-first-16384-response-bytes",
+        "probe_url": "https://www.loc.gov/books/",
+        "started_at": "2026-08-30T05:53:45.264503Z",
+        "ended_at": "2026-08-30T05:53:45.419361Z",
+        "elapsed_seconds": 0.154849,
+        "outcome": "http-error",
+        "http_status": 403,
+        "response_bytes_observed": 5552
+      }
+    },
+    {
+      "channel_id": "channel-tla",
+      "measurement": {
+        "method": "monotonic-http-request-v1",
+        "clock": "python.time.perf_counter_ns",
+        "timing_scope": "request-through-first-16384-response-bytes",
+        "probe_url": "https://thesaurus-linguae-aegyptiae.de/text/3W45TQYQ3RCX5DXZ7DIZ43JWNQ",
+        "started_at": "2026-08-30T05:53:45.419454Z",
+        "ended_at": "2026-08-30T05:53:46.802277Z",
+        "elapsed_seconds": 1.382814,
+        "outcome": "success",
+        "http_status": 200,
+        "response_bytes_observed": 16384
+      }
+    },
+    {
+      "channel_id": "channel-trismegistos",
+      "measurement": {
+        "method": "monotonic-http-request-v1",
+        "clock": "python.time.perf_counter_ns",
+        "timing_scope": "request-through-first-16384-response-bytes",
+        "probe_url": "https://www.trismegistos.org/collection/270",
+        "started_at": "2026-08-30T05:53:46.802389Z",
+        "ended_at": "2026-08-30T05:53:48.510437Z",
+        "elapsed_seconds": 1.708039,
+        "outcome": "transport-error",
+        "http_status": null,
+        "response_bytes_observed": 0
+      }
+    },
+    {
+      "channel_id": "channel-project-gutenberg",
+      "measurement": {
+        "method": "monotonic-http-request-v1",
+        "clock": "python.time.perf_counter_ns",
+        "timing_scope": "request-through-first-16384-response-bytes",
+        "probe_url": "https://www.gutenberg.org/ebooks/30508",
+        "started_at": "2026-08-30T05:53:48.510541Z",
+        "ended_at": "2026-08-30T05:53:49.375982Z",
+        "elapsed_seconds": 0.865432,
+        "outcome": "success",
+        "http_status": 200,
+        "response_bytes_observed": 16384
+      }
+    },
+    {
+      "channel_id": "channel-internet-archive",
+      "measurement": {
+        "method": "monotonic-http-request-v1",
+        "clock": "python.time.perf_counter_ns",
+        "timing_scope": "request-through-first-16384-response-bytes",
+        "probe_url": "https://archive.org/advancedsearch.php",
+        "started_at": "2026-08-30T05:53:49.376084Z",
+        "ended_at": "2026-08-30T05:53:49.773723Z",
+        "elapsed_seconds": 0.397629,
+        "outcome": "success",
+        "http_status": 200,
+        "response_bytes_observed": 16384
+      }
+    },
+    {
+      "channel_id": "channel-hathitrust",
+      "measurement": {
+        "method": "monotonic-http-request-v1",
+        "clock": "python.time.perf_counter_ns",
+        "timing_scope": "request-through-first-16384-response-bytes",
+        "probe_url": "https://catalog.hathitrust.org/Search/Home",
+        "started_at": "2026-08-30T05:53:49.773848Z",
+        "ended_at": "2026-08-30T05:53:54.781886Z",
+        "elapsed_seconds": 5.008029,
+        "outcome": "success",
+        "http_status": 200,
+        "response_bytes_observed": 16384
+      }
+    },
+    {
+      "channel_id": "channel-worldcat",
+      "measurement": {
+        "method": "monotonic-http-request-v1",
+        "clock": "python.time.perf_counter_ns",
+        "timing_scope": "request-through-first-16384-response-bytes",
+        "probe_url": "https://search.worldcat.org/title/The-instruction-of-Ptah-hotep-and-the-instruction-of-Ke%27gemni-%3A-the-oldest-books-in-the-world./oclc/787861218",
+        "started_at": "2026-08-30T05:53:54.781988Z",
+        "ended_at": "2026-08-30T05:53:55.276849Z",
+        "elapsed_seconds": 0.494842,
+        "outcome": "success",
+        "http_status": 200,
+        "response_bytes_observed": 16384
+      }
+    },
+    {
+      "channel_id": "channel-gallica-commons-prisse",
+      "measurement": {
+        "method": "monotonic-http-request-v1",
+        "clock": "python.time.perf_counter_ns",
+        "timing_scope": "request-through-first-16384-response-bytes",
+        "probe_url": "https://gallica.bnf.fr/ark:/12148/btv1b8304609v",
+        "started_at": "2026-08-30T05:53:55.276945Z",
+        "ended_at": "2026-08-30T05:53:56.160651Z",
+        "elapsed_seconds": 0.883697,
+        "outcome": "success",
+        "http_status": 200,
+        "response_bytes_observed": 16384
+      }
+    },
+    {
+      "channel_id": "channel-primary-rights-law",
+      "measurement": {
+        "method": "monotonic-http-request-v1",
+        "clock": "python.time.perf_counter_ns",
+        "timing_scope": "request-through-first-16384-response-bytes",
+        "probe_url": "https://www.diputados.gob.mx/LeyesBiblio/pdf/LFDA.pdf",
+        "started_at": "2026-08-30T05:53:56.160743Z",
+        "ended_at": "2026-08-30T05:53:56.398394Z",
+        "elapsed_seconds": 0.237643,
+        "outcome": "success",
+        "http_status": 200,
+        "response_bytes_observed": 16384
+      }
+    },
+    {
+      "channel_id": "channel-general-web-last",
+      "measurement": {
+        "method": "monotonic-http-request-v1",
+        "clock": "python.time.perf_counter_ns",
+        "timing_scope": "request-through-first-16384-response-bytes",
+        "probe_url": "https://www.google.com/search?q=%22Instruction+of+Ptahhotep%22+open+access+public+domain+full+text+download",
+        "started_at": "2026-08-30T05:53:56.398492Z",
+        "ended_at": "2026-08-30T05:53:56.578668Z",
+        "elapsed_seconds": 0.180166,
+        "outcome": "success",
+        "http_status": 200,
+        "response_bytes_observed": 16384
+      }
+    }
+  ],
+  "claim_limit": "monotonic transport timing through the first 16384 response bytes only; not research, interpretation, rights-review, or human elapsed time",
+  "record_version": 1
+}

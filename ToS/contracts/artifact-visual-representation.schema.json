@@ -1,0 +1,187 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://tree-of-sophia.local/ToS/contracts/artifact-visual-representation.schema.json",
+  "title": "Tree of Sophia physical-artifact visual representation",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "$schema",
+    "schema_version",
+    "file_id",
+    "artifact_id",
+    "artifact_ref",
+    "layer_kind",
+    "view_label",
+    "provider_records",
+    "acquisition",
+    "payload",
+    "rights_ref",
+    "discovery_ref",
+    "provenance_event_ref",
+    "layer_separation",
+    "authority",
+    "maker",
+    "created_at",
+    "record_version"
+  ],
+  "properties": {
+    "$schema": {"const": "https://tree-of-sophia.local/ToS/contracts/artifact-visual-representation.schema.json"},
+    "schema_version": {"const": "tos_artifact_visual_representation_v1"},
+    "file_id": {"$ref": "#/$defs/fileId"},
+    "artifact_id": {"$ref": "#/$defs/artifactId"},
+    "artifact_ref": {"$ref": "#/$defs/repoPath"},
+    "layer_kind": {"enum": ["photograph", "line_art", "three_dimensional_model", "other"]},
+    "view_label": {"type": "string", "minLength": 1},
+    "provider_records": {
+      "type": "array",
+      "minItems": 2,
+      "uniqueItems": true,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["provider", "role", "record_url", "api_url", "checked_at", "response_fingerprint"],
+        "properties": {
+          "provider": {"type": "string", "minLength": 1},
+          "role": {"enum": ["originating-record", "aggregator-file-record"]},
+          "record_url": {"type": "string", "format": "uri"},
+          "api_url": {"type": ["string", "null"], "format": "uri"},
+          "checked_at": {"type": "string", "format": "date-time"},
+          "response_fingerprint": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["byte_size", "sha256", "captured"],
+            "properties": {
+              "byte_size": {"type": "integer", "minimum": 1},
+              "sha256": {"$ref": "#/$defs/sha256"},
+              "captured": {"const": false}
+            }
+          }
+        }
+      },
+      "contains": {"type": "object", "properties": {"role": {"const": "originating-record"}}, "required": ["role"]},
+      "minContains": 1,
+      "allOf": [
+        {
+          "contains": {"type": "object", "properties": {"role": {"const": "aggregator-file-record"}}, "required": ["role"]},
+          "minContains": 1
+        }
+      ]
+    },
+    "acquisition": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "source_url",
+        "acquired_at",
+        "transport",
+        "technical_access_bypass_used",
+        "operator_authorization_ref",
+        "host_preflight_decision",
+        "host_preflight_scope"
+      ],
+      "properties": {
+        "source_url": {"type": "string", "format": "uri"},
+        "acquired_at": {"type": "string", "format": "date-time"},
+        "transport": {"const": "https"},
+        "technical_access_bypass_used": {"const": false},
+        "operator_authorization_ref": {"type": "string", "minLength": 1},
+        "host_preflight_decision": {"const": "deny-protected-project-root"},
+        "host_preflight_scope": {"const": "machine-owned-storage-automation-only"}
+      }
+    },
+    "payload": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "relative_path",
+        "original_basename",
+        "media_type",
+        "byte_size",
+        "sha256",
+        "source_sha1",
+        "width_pixels",
+        "height_pixels",
+        "storage_posture",
+        "git_tracked",
+        "fixity_verified_at"
+      ],
+      "properties": {
+        "relative_path": {"type": "string", "pattern": "^payload/(?!\\.\\.?$)[^/]+$"},
+        "original_basename": {"type": "string", "minLength": 1},
+        "media_type": {"const": "image/jpeg"},
+        "byte_size": {"type": "integer", "minimum": 1},
+        "sha256": {"$ref": "#/$defs/sha256"},
+        "source_sha1": {"$ref": "#/$defs/sha1"},
+        "width_pixels": {"type": "integer", "minimum": 1},
+        "height_pixels": {"type": "integer", "minimum": 1},
+        "storage_posture": {"const": "tracked_public_payload"},
+        "git_tracked": {"const": true},
+        "fixity_verified_at": {"type": "string", "format": "date-time"}
+      }
+    },
+    "rights_ref": {"$ref": "#/$defs/repoPath"},
+    "discovery_ref": {"$ref": "#/$defs/repoPath"},
+    "provenance_event_ref": {"type": "string", "pattern": "^tos\\.event\\.[a-z0-9]+(?:[.-][a-z0-9]+)*$"},
+    "layer_separation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "visual_is_physical_artifact",
+        "visual_is_catalog_record",
+        "visual_is_transcription",
+        "embedded_text_admitted",
+        "same_bytes_as_originating_provider_asserted"
+      ],
+      "properties": {
+        "visual_is_physical_artifact": {"const": false},
+        "visual_is_catalog_record": {"const": false},
+        "visual_is_transcription": {"const": false},
+        "embedded_text_admitted": {"const": false},
+        "same_bytes_as_originating_provider_asserted": {"const": false}
+      }
+    },
+    "authority": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "evidence_status",
+        "review_status",
+        "visibility",
+        "source_text_admitted",
+        "semantic_authority",
+        "graph_authority",
+        "canon_authority",
+        "publication_authority"
+      ],
+      "properties": {
+        "evidence_status": {"const": "visual_source_witness"},
+        "review_status": {"enum": ["unreviewed", "human_reviewed", "superseded"]},
+        "visibility": {"const": "public_payload"},
+        "source_text_admitted": {"const": false},
+        "semantic_authority": {"const": false},
+        "graph_authority": {"const": false},
+        "canon_authority": {"const": false},
+        "publication_authority": {"const": false}
+      }
+    },
+    "maker": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["maker_type", "agent_ref", "human_review_performed"],
+      "properties": {
+        "maker_type": {"const": "model"},
+        "agent_ref": {"type": "string", "minLength": 1},
+        "human_review_performed": {"const": false}
+      }
+    },
+    "created_at": {"type": "string", "format": "date-time"},
+    "record_version": {"type": "integer", "minimum": 1}
+  },
+  "$defs": {
+    "artifactId": {"type": "string", "pattern": "^tos\\.artifact\\.[a-z0-9]+(?:[.-][a-z0-9]+)*$"},
+    "fileId": {"type": "string", "pattern": "^tos\\.file\\.sha256\\.[a-f0-9]{64}$"},
+    "repoPath": {"type": "string", "minLength": 1, "pattern": "^(?![A-Za-z][A-Za-z0-9+.-]*:)(?!/)(?!.*(?:^|/)\\.\\.(?:/|$))[^\\u0000]+$"},
+    "sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "sha1": {"type": "string", "pattern": "^[a-f0-9]{40}$"}
+  }
+}

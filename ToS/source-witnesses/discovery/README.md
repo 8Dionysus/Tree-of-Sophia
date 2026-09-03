@@ -12,8 +12,23 @@ Use `DISCOVERY_PROTOCOL.md` for the ordered method and
 discovery/
 ├── README.md
 ├── DISCOVERY_PROTOCOL.md
+├── candidates/              # reviewed queue + terminal candidate receipts
+├── timings/                 # immutable per-channel transport measurements
 └── runs/                    # public-safe query/result receipts only
 ```
+
+`candidates/reviewed-candidates.jsonl` owns only reviewed queue eligibility,
+chronology ordering, and the frozen target before a run. Terminal candidate
+receipts bind one completed run; `candidates/queue.current.json` is a generated
+read model. None of these surfaces accepts bibliographic identity, rights,
+text, interpretation, canon, or publication.
+
+An active terminal candidate receipt must bind an external timing receipt with
+one positive `perf_counter_ns` measurement for every exact discovery channel.
+The measurement covers HTTP transport through at most the first 16 KiB only;
+it does not pretend to measure research, interpretation, rights review, or
+human effort. Historical discovery runs retain their original zero/unknown
+sentinels and may be superseded rather than rewritten.
 
 Acquired bytes route to the exact item `payload/`; restricted correspondence
 routes to `../access-requests/private/`; scholarly interpretation routes to a

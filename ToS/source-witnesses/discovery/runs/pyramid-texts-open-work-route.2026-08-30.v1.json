@@ -1,0 +1,951 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/material-discovery-record.schema.json",
+  "schema_version": "tos_material_discovery_record_v1",
+  "discovery_id": "tos.discovery.pyramid-texts-open-work-route.2026-08-30.v1",
+  "protocol_ref": "ToS/source-witnesses/discovery/DISCOVERY_PROTOCOL.md",
+  "target": {
+    "target_kind": "scholarly-composite",
+    "known_tos_refs": [
+      "tos.artifact.egyptian.saqqara.pyramid-of-unas",
+      "tos.composite.egyptian.pyramid-texts-sethe-1908-1910"
+    ],
+    "description": "Resolve Pyramid Texts as a work-like corpus, one physical inscription witness, Sethe's 1908-1910 modern critical reconstruction, and two exact BSB digital files without merging those layers.",
+    "required_properties": [
+      "work-like corpus identity kept provisional",
+      "physical pyramid and inscription kept separate from the modern edition",
+      "exact Sethe volume identity and provider identifiers",
+      "object-level open-license evidence",
+      "content-addressed local payloads and provenance",
+      "no source-text, semantic, graph, canon, or publication admission"
+    ],
+    "acceptable_substitutions": [
+      "an originating holding record for the same Sethe volume",
+      "a byte-distinct scan with its own File identity and equally explicit license",
+      "an exact artifact or corpus authority record that preserves witness boundaries"
+    ],
+    "languages": [
+      "egy",
+      "de",
+      "en"
+    ],
+    "formats": [
+      "authority metadata",
+      "holding record",
+      "IIIF manifest",
+      "PDF",
+      "scholarly corpus record",
+      "rights statement"
+    ],
+    "purpose_ref": "ToS/source-witnesses/discovery/candidates/README.md",
+    "constraint_refinements": [
+      {
+        "candidate_field": "required_properties",
+        "candidate_values": [
+          "corpus identity without fixed-recension claim",
+          "individual monument and inscription member boundaries",
+          "critical-edition and translation separation",
+          "layered rights and provider terms",
+          "no semantic or canon promotion"
+        ],
+        "discovery_field": "required_properties",
+        "discovery_values": [
+          "work-like corpus identity kept provisional",
+          "physical pyramid and inscription kept separate from the modern edition",
+          "exact Sethe volume identity and provider identifiers",
+          "object-level open-license evidence",
+          "content-addressed local payloads and provenance",
+          "no source-text, semantic, graph, canon, or publication admission"
+        ],
+        "review_status": "reviewed",
+        "reviewed_at": "2026-09-02",
+        "reviewer_ref": "operator:tos-open-work-loop"
+      },
+      {
+        "candidate_field": "acceptable_substitutions",
+        "candidate_values": [
+          "an official monument or inscription record used as an exact member witness",
+          "a versioned scholarly corpus that preserves monument, utterance, edition, transcription, translation, and rights layers"
+        ],
+        "discovery_field": "acceptable_substitutions",
+        "discovery_values": [
+          "an originating holding record for the same Sethe volume",
+          "a byte-distinct scan with its own File identity and equally explicit license",
+          "an exact artifact or corpus authority record that preserves witness boundaries"
+        ],
+        "review_status": "reviewed",
+        "reviewed_at": "2026-09-02",
+        "reviewer_ref": "operator:tos-open-work-loop"
+      },
+      {
+        "candidate_field": "formats",
+        "candidate_values": [
+          "monument catalog",
+          "digital scholarly project"
+        ],
+        "discovery_field": "formats",
+        "discovery_values": [
+          "authority metadata",
+          "holding record",
+          "IIIF manifest",
+          "PDF",
+          "scholarly corpus record",
+          "rights statement"
+        ],
+        "review_status": "reviewed",
+        "reviewed_at": "2026-09-02",
+        "reviewer_ref": "operator:tos-open-work-loop"
+      }
+    ]
+  },
+  "channels": [
+    {
+      "channel_id": "channel-bnf-authority",
+      "sequence": 1,
+      "channel_type": "national-catalog",
+      "role": "scholarly-index",
+      "source_name": "Bibliothèque nationale de France data authority",
+      "endpoint_url": "https://data.bnf.fr/fr/ark:/12148/cb11961463b.pdf",
+      "interface_type": "web",
+      "interface_version": "current authority export checked 2026-08-30",
+      "exact_query": "Open the BnF authority export for Textes des pyramides; inspect cited Sethe volumes and modern editions; preserve authority context only.",
+      "queried_at": "2026-08-30T07:18:28.136610Z",
+      "elapsed_seconds": 20.553928,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.bnf-pyramid-texts-authority",
+          "rank": 1,
+          "title_as_displayed": "Textes des pyramides",
+          "result_url": "https://data.bnf.fr/fr/ark:/12148/cb11961463b.pdf",
+          "originating_record_url": "https://data.bnf.fr/fr/ark:/12148/cb11961463b.pdf",
+          "identifiers": [
+            {
+              "scheme": "BnF ARK",
+              "value": "ark:/12148/cb11961463b"
+            }
+          ],
+          "available_formats": [
+            "authority PDF",
+            "bibliographic references"
+          ],
+          "declared_rights": {
+            "statement": null,
+            "scope": "metadata",
+            "evidence_url": null,
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "metadata-only",
+          "machine_interface": "html",
+          "decision": "select",
+          "rationale": "The national authority fixes the modern corpus heading and bibliography but is not a content or rights source for the selected PDFs.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-captured",
+            "format": null,
+            "sha256": null,
+            "reason": "Authority metadata was inspected live and not retained."
+          }
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-bsb-holding-iiif",
+      "sequence": 2,
+      "channel_type": "national-catalog",
+      "role": "digital-object-record",
+      "source_name": "Bayerische Staatsbibliothek digital collections and IIIF",
+      "endpoint_url": "https://api.digitale-sammlungen.de/iiif/presentation/v2/bsb00068075/manifest",
+      "interface_type": "iiif",
+      "interface_version": "IIIF Presentation 2 manifests checked 2026-08-30",
+      "exact_query": "Resolve bsb00068075 and bsb00068079 through their BSB IIIF manifests and full-PDF download form; verify title, volume, year, identifiers, attribution, license, page sequence, exact byte size, and download both objects after explicit license acceptance.",
+      "queried_at": "2026-08-30T07:18:48.690802Z",
+      "elapsed_seconds": 0.764155,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.bsb-sethe-pyramidentexte-volume-1",
+          "rank": 1,
+          "title_as_displayed": "Die altaegyptischen Pyramidentexte. 1",
+          "result_url": "https://api.digitale-sammlungen.de/iiif/presentation/v2/bsb00068075/manifest",
+          "originating_record_url": "https://mdz-nbn-resolving.de/details:bsb00068075",
+          "identifiers": [
+            {
+              "scheme": "BSB digital object",
+              "value": "bsb00068075"
+            },
+            {
+              "scheme": "BSB-ID",
+              "value": "991131026059707356"
+            },
+            {
+              "scheme": "B3Kat",
+              "value": "BV020877037"
+            },
+            {
+              "scheme": "WorldCat",
+              "value": "645694606"
+            }
+          ],
+          "available_formats": [
+            "IIIF manifest",
+            "page images",
+            "full PDF"
+          ],
+          "declared_rights": {
+            "statement": "Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International",
+            "scope": "digital-object",
+            "evidence_url": "https://creativecommons.org/licenses/by-nc-sa/4.0/",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-download",
+          "machine_interface": "iiif",
+          "decision": "select",
+          "rationale": "The holding institution supplies exact bibliographic identity, attribution, an explicit object license, and the accepted full-PDF download route.",
+          "acquisition": {
+            "downloaded": true,
+            "acquired_at": "2026-08-30T01:12:44-06:00",
+            "byte_size": 564510348,
+            "sha256": "a67fd170e8cff617d34f5c03759a394f083f312ac25f81e33c5ca96faeccac84",
+            "event_ref": "tos.event.acquisition.pyramid-texts-sethe-bsb-volumes.2026-08-30"
+          },
+          "snapshot": {
+            "state": "not-needed",
+            "format": null,
+            "sha256": null,
+            "reason": "The immutable acquired PDF and separately fingerprinted live manifest provide the bounded evidence; no web-page snapshot is needed."
+          }
+        },
+        {
+          "result_id": "tos-discovery-result.bsb-sethe-pyramidentexte-volume-2",
+          "rank": 2,
+          "title_as_displayed": "Die altaegyptischen Pyramidentexte. 2",
+          "result_url": "https://api.digitale-sammlungen.de/iiif/presentation/v2/bsb00068079/manifest",
+          "originating_record_url": "https://mdz-nbn-resolving.de/details:bsb00068079",
+          "identifiers": [
+            {
+              "scheme": "BSB digital object",
+              "value": "bsb00068079"
+            },
+            {
+              "scheme": "BSB-ID",
+              "value": "991131026069707356"
+            },
+            {
+              "scheme": "B3Kat",
+              "value": "BV020877038"
+            },
+            {
+              "scheme": "WorldCat",
+              "value": "162774900"
+            }
+          ],
+          "available_formats": [
+            "IIIF manifest",
+            "page images",
+            "full PDF"
+          ],
+          "declared_rights": {
+            "statement": "Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International",
+            "scope": "digital-object",
+            "evidence_url": "https://creativecommons.org/licenses/by-nc-sa/4.0/",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-download",
+          "machine_interface": "iiif",
+          "decision": "select",
+          "rationale": "The second holding record is byte-distinct and receives its own File and rights record under the same explicit license.",
+          "acquisition": {
+            "downloaded": true,
+            "acquired_at": "2026-08-30T01:13:28-06:00",
+            "byte_size": 608709027,
+            "sha256": "6bfa1cefa25c388c5b3ca3daf55265abad809f18804af8e1ab0725be435269ca",
+            "event_ref": "tos.event.acquisition.pyramid-texts-sethe-bsb-volumes.2026-08-30"
+          },
+          "snapshot": {
+            "state": "not-needed",
+            "format": null,
+            "sha256": null,
+            "reason": "The immutable acquired PDF and separately fingerprinted live manifest provide the bounded evidence; no web-page snapshot is needed."
+          }
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-ddb-aggregator",
+      "sequence": 3,
+      "channel_type": "collection-aggregator",
+      "role": "digital-object-record",
+      "source_name": "Deutsche Digitale Bibliothek",
+      "endpoint_url": "https://www.deutsche-digitale-bibliothek.de/item/Z62NPYXUF26JTYSGIQPYHJWB32VTRBLT",
+      "interface_type": "web",
+      "interface_version": "current item pages checked 2026-08-30",
+      "exact_query": "Search exact Sethe title and reconcile DDB volume 1 and 2 records against BSB object IDs, call numbers, URNs, dates, and CC BY-NC-SA 4.0 statements.",
+      "queried_at": "2026-08-30T07:18:49.455130Z",
+      "elapsed_seconds": 0.531091,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.ddb-sethe-volume-1",
+          "rank": 1,
+          "title_as_displayed": "Die altaegyptischen Pyramidentexte. 1",
+          "result_url": "https://www.deutsche-digitale-bibliothek.de/item/Z62NPYXUF26JTYSGIQPYHJWB32VTRBLT",
+          "originating_record_url": "https://api.digitale-sammlungen.de/iiif/presentation/v2/bsb00068075/manifest",
+          "identifiers": [
+            {
+              "scheme": "DDB item",
+              "value": "Z62NPYXUF26JTYSGIQPYHJWB32VTRBLT"
+            },
+            {
+              "scheme": "URN",
+              "value": "urn:nbn:de:bvb:12-bsb00068075-7"
+            },
+            {
+              "scheme": "call number",
+              "value": "4 Arch. 162 mn-1"
+            }
+          ],
+          "available_formats": [
+            "aggregated metadata",
+            "linked BSB digital object"
+          ],
+          "declared_rights": {
+            "statement": "CC BY-NC-SA 4.0",
+            "scope": "digital-object",
+            "evidence_url": "https://creativecommons.org/licenses/by-nc-sa/4.0/",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-download",
+          "machine_interface": "html",
+          "decision": "select",
+          "rationale": "DDB independently corroborates the BSB object identity and conditional license; BSB remains the originating digital-object source.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-captured",
+            "format": null,
+            "sha256": null,
+            "reason": "The aggregator page was fingerprinted but not retained."
+          }
+        },
+        {
+          "result_id": "tos-discovery-result.ddb-sethe-volume-2",
+          "rank": 2,
+          "title_as_displayed": "Die altaegyptischen Pyramidentexte. 2",
+          "result_url": "https://www.deutsche-digitale-bibliothek.de/item/LMFRYBVJA5HYWFPYWM3NDJQCNCRSQA5A",
+          "originating_record_url": "https://api.digitale-sammlungen.de/iiif/presentation/v2/bsb00068079/manifest",
+          "identifiers": [
+            {
+              "scheme": "DDB item",
+              "value": "LMFRYBVJA5HYWFPYWM3NDJQCNCRSQA5A"
+            },
+            {
+              "scheme": "URN",
+              "value": "urn:nbn:de:bvb:12-bsb00068079-4"
+            },
+            {
+              "scheme": "call number",
+              "value": "4 Arch. 162 mn-2"
+            }
+          ],
+          "available_formats": [
+            "aggregated metadata",
+            "linked BSB digital object"
+          ],
+          "declared_rights": {
+            "statement": "CC BY-NC-SA 4.0",
+            "scope": "digital-object",
+            "evidence_url": "https://creativecommons.org/licenses/by-nc-sa/4.0/",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-download",
+          "machine_interface": "html",
+          "decision": "select",
+          "rationale": "DDB independently corroborates volume 2 while the exact downloaded bytes remain bound to BSB and their own digest.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-captured",
+            "format": null,
+            "sha256": null,
+            "reason": "The aggregator page was fingerprinted but not retained."
+          }
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-chicago-eos",
+      "sequence": 4,
+      "channel_type": "university-catalog",
+      "role": "digital-object-record",
+      "source_name": "University of Chicago Library EOS",
+      "endpoint_url": "https://www.lib.uchicago.edu/cgi-bin/eos/eos_title.pl?callnum=PJ1553.A1_1908_cop3",
+      "interface_type": "web",
+      "interface_version": "current EOS title page checked 2026-08-30",
+      "exact_query": "Search the exact 1908 Sethe title and inspect volume, section, page-range, and downloadable-surrogate identity; look for an explicit reuse license.",
+      "queried_at": "2026-08-30T07:18:49.986394Z",
+      "elapsed_seconds": 0.458745,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.chicago-sethe-volume-1",
+          "rank": 1,
+          "title_as_displayed": "Die altaegyptischen Pyramidentexte nach den Papierabdrücken und Photographien des Berliner Museums",
+          "result_url": "https://www.lib.uchicago.edu/cgi-bin/eos/eos_title.pl?callnum=PJ1553.A1_1908_cop3",
+          "originating_record_url": "https://www.lib.uchicago.edu/cgi-bin/eos/eos_title.pl?callnum=PJ1553.A1_1908_cop3",
+          "identifiers": [
+            {
+              "scheme": "Chicago call number",
+              "value": "PJ1553.A1 1908 cop3"
+            }
+          ],
+          "available_formats": [
+            "bibliographic metadata",
+            "section PDFs"
+          ],
+          "declared_rights": {
+            "statement": null,
+            "scope": "digital-object",
+            "evidence_url": null,
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-view",
+          "machine_interface": "html",
+          "decision": "defer",
+          "rationale": "Useful university-held volume and section evidence, but no exact object-level open license was found on the inspected route.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-captured",
+            "format": null,
+            "sha256": null,
+            "reason": "Rights were insufficient for acquisition; no page snapshot was retained."
+          }
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-ucl-digital-egypt",
+      "sequence": 5,
+      "channel_type": "university-catalog",
+      "role": "scholarly-index",
+      "source_name": "UCL Digital Egypt for Universities",
+      "endpoint_url": "https://www.ucl.ac.uk/museums-static/digitalegypt/literature/religious/pyramid.html",
+      "interface_type": "web",
+      "interface_version": "static scholarly page checked and fingerprinted 2026-08-30",
+      "exact_query": "Inspect the Pyramid Texts overview for the modern corpus label, earliest Unas witness, named royal pyramids, later transmission, and Sethe bibliography; do not copy UCL content as an open payload.",
+      "queried_at": "2026-08-30T07:18:50.445307Z",
+      "elapsed_seconds": 1.329969,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.ucl-pyramid-texts-overview",
+          "rank": 1,
+          "title_as_displayed": "Pyramid Texts",
+          "result_url": "https://www.ucl.ac.uk/museums-static/digitalegypt/literature/religious/pyramid.html",
+          "originating_record_url": "https://www.ucl.ac.uk/museums-static/digitalegypt/literature/religious/pyramid.html",
+          "identifiers": [],
+          "available_formats": [
+            "scholarly overview",
+            "bibliography",
+            "artifact links"
+          ],
+          "declared_rights": {
+            "statement": "Copyright UCL 2001; all rights reserved",
+            "scope": "content",
+            "evidence_url": "https://www.ucl.ac.uk/museums-static/digitalegypt/literature/religious/pyramid.html",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-view",
+          "machine_interface": "html",
+          "decision": "select",
+          "rationale": "This is a bounded scholarly source for corpus and earliest-witness metadata only; its page content is not acquired or assigned an open license.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-permitted",
+            "format": null,
+            "sha256": null,
+            "reason": "UCL marks the page all rights reserved; only factual source-returnable metadata and links are retained."
+          }
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-tla-pyramid-text",
+      "sequence": 6,
+      "channel_type": "specialized-scholarly-project",
+      "role": "scholarly-index",
+      "source_name": "Thesaurus Linguae Aegyptiae",
+      "endpoint_url": "https://thesaurus-linguae-aegyptiae.de/text/FZQ6IM7ENFHHROXB2W6PTYMXNE?lang=en",
+      "interface_type": "web",
+      "interface_version": "TLA 2.5.2, corpus 20 checked 2026-08-30",
+      "exact_query": "Open exact TLA text FZQ6IM7ENFHHROXB2W6PTYMXNE (PT 217), inspect Unas hierarchy and Sethe bibliography, then inspect TLA license limits for corpus-scale reuse.",
+      "queried_at": "2026-08-30T07:18:51.775448Z",
+      "elapsed_seconds": 0.954861,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.tla-pt-217-unas",
+          "rank": 1,
+          "title_as_displayed": "PT 217 (Text ID FZQ6IM7ENFHHROXB2W6PTYMXNE)",
+          "result_url": "https://thesaurus-linguae-aegyptiae.de/text/FZQ6IM7ENFHHROXB2W6PTYMXNE?lang=en",
+          "originating_record_url": "https://thesaurus-linguae-aegyptiae.de/text/FZQ6IM7ENFHHROXB2W6PTYMXNE?lang=en",
+          "identifiers": [
+            {
+              "scheme": "TLA text ID",
+              "value": "FZQ6IM7ENFHHROXB2W6PTYMXNE"
+            },
+            {
+              "scheme": "Pyramid Text",
+              "value": "PT 217"
+            }
+          ],
+          "available_formats": [
+            "persistent text metadata",
+            "bibliography",
+            "linked text content"
+          ],
+          "declared_rights": {
+            "statement": "Individual datasets for academic research; subcorpora or more than ten pages are excluded from the current permission",
+            "scope": "content",
+            "evidence_url": "https://thesaurus-linguae-aegyptiae.de/info/licenses",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-view",
+          "machine_interface": "html",
+          "decision": "defer",
+          "rationale": "TLA strongly anchors one Unas text and bibliography, but its current terms do not authorize acquisition of the Pyramid Texts subcorpus for this loop.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-permitted",
+            "format": null,
+            "sha256": null,
+            "reason": "The current license route excludes corpus-scale acquisition; no TLA content was retained."
+          }
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-loc-identifiers",
+      "sequence": 7,
+      "channel_type": "identifier-registry",
+      "role": "lead-only",
+      "source_name": "Library of Congress books API",
+      "endpoint_url": "https://www.loc.gov/books/",
+      "interface_type": "api",
+      "interface_version": "current public endpoint checked 2026-08-30",
+      "exact_query": "https://www.loc.gov/books/?fo=json&q=%22Die+altaegyptischen+Pyramidentexte%22+Sethe",
+      "queried_at": "2026-08-30T07:18:52.730510Z",
+      "elapsed_seconds": 0.116692,
+      "result_order_preserved": true,
+      "results": []
+    },
+    {
+      "channel_id": "channel-internet-archive",
+      "sequence": 8,
+      "channel_type": "open-library",
+      "role": "digital-object-record",
+      "source_name": "Internet Archive",
+      "endpoint_url": "https://archive.org/metadata/diealtaegyptisch03sethuoft",
+      "interface_type": "api",
+      "interface_version": "metadata API and item page checked 2026-08-30",
+      "exact_query": "Search exact Sethe title and inspect item diealtaegyptisch03sethuoft, volume extent, contributor, PDF derivative, metadata rights fields, and page-visible copyright status.",
+      "queried_at": "2026-08-30T07:18:52.847361Z",
+      "elapsed_seconds": 0.42126,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.ia-sethe-volumes-3-4",
+          "rank": 1,
+          "title_as_displayed": "Die altaegyptischen Pyramidentexte nach den Papierabdrücken und Photographien des Berliner Museums, Band 3-4",
+          "result_url": "https://archive.org/details/diealtaegyptisch03sethuoft",
+          "originating_record_url": "https://archive.org/metadata/diealtaegyptisch03sethuoft",
+          "identifiers": [
+            {
+              "scheme": "Internet Archive item",
+              "value": "diealtaegyptisch03sethuoft"
+            }
+          ],
+          "available_formats": [
+            "metadata JSON",
+            "PDF derivative",
+            "scandata"
+          ],
+          "declared_rights": {
+            "statement": "Item page displays possible status NOT_IN_COPYRIGHT, but the metadata API exposes no rights, licenseurl, or possible_copyright_status field",
+            "scope": "digital-object",
+            "evidence_url": "https://archive.org/details/diealtaegyptisch03sethuoft",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-download",
+          "machine_interface": "api",
+          "decision": "defer",
+          "rationale": "The page/API rights inconsistency is insufficient for this cross-jurisdiction acquisition; the useful exact URL remains preserved for later review.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-captured",
+            "format": null,
+            "sha256": null,
+            "reason": "No bytes were acquired because object-level rights evidence was internally inconsistent."
+          }
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-openlibrary-google",
+      "sequence": 9,
+      "channel_type": "collection-aggregator",
+      "role": "lead-only",
+      "source_name": "Open Library and Google Books",
+      "endpoint_url": "https://openlibrary.org/works/OL18074498W/Die_altaegyptischen_Pyramidentexte",
+      "interface_type": "web",
+      "interface_version": "current work and edition pages checked 2026-08-30",
+      "exact_query": "Resolve exact Open Library Work OL18074498W, Edition OL23294592M, linked IA item, and Google Books 1908 record; use aggregators only as identity and holding leads.",
+      "queried_at": "2026-08-30T07:18:53.268815Z",
+      "elapsed_seconds": 1.317941,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.openlibrary-sethe",
+          "rank": 1,
+          "title_as_displayed": "Die altaegyptischen Pyramidentexte",
+          "result_url": "https://openlibrary.org/works/OL18074498W/Die_altaegyptischen_Pyramidentexte",
+          "originating_record_url": null,
+          "identifiers": [
+            {
+              "scheme": "Open Library Work",
+              "value": "OL18074498W"
+            },
+            {
+              "scheme": "Open Library Edition",
+              "value": "OL23294592M"
+            }
+          ],
+          "available_formats": [
+            "aggregated work metadata",
+            "linked IA item"
+          ],
+          "declared_rights": {
+            "statement": null,
+            "scope": "unknown",
+            "evidence_url": null,
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "metadata-only",
+          "machine_interface": "html",
+          "decision": "defer",
+          "rationale": "Useful identity crosswalk only; it does not supply stronger object rights than the originating holdings.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-needed",
+            "format": null,
+            "sha256": null,
+            "reason": "Aggregator metadata was sufficient as a lead."
+          }
+        },
+        {
+          "result_id": "tos-discovery-result.googlebooks-sethe-1908",
+          "rank": 2,
+          "title_as_displayed": "Die altaegyptischen Pyramidentexte",
+          "result_url": "https://books.google.com/books/about/Die_altaegyptischen_Pyramidentexte.html?id=bKlHAQAAMAAJ",
+          "originating_record_url": null,
+          "identifiers": [
+            {
+              "scheme": "Google Books",
+              "value": "bKlHAQAAMAAJ"
+            }
+          ],
+          "available_formats": [
+            "aggregated bibliographic metadata",
+            "preview"
+          ],
+          "declared_rights": {
+            "statement": null,
+            "scope": "digital-object",
+            "evidence_url": null,
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-view",
+          "machine_interface": "html",
+          "decision": "defer",
+          "rationale": "The record corroborates 1908 publication identity but does not govern the selected BSB files.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-needed",
+            "format": null,
+            "sha256": null,
+            "reason": "No Google-hosted bytes were selected."
+          }
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-general-web-last",
+      "sequence": 10,
+      "channel_type": "general-web-search",
+      "role": "lead-only",
+      "source_name": "General web search, UPenn Online Books Page, and Pyramid Texts Online",
+      "endpoint_url": "https://www.google.com/search?q=%22Die+altaegyptischen+Pyramidentexte%22+Sethe+PDF+license",
+      "interface_type": "web",
+      "interface_version": "general web checked last 2026-08-30",
+      "exact_query": "Exact-title search for Sethe PDFs and license evidence after authority, holding, scholarly, identifier, open-library, and aggregator channels; inspect UPenn and Pyramid Texts Online only as leads.",
+      "queried_at": "2026-08-30T07:18:54.586934Z",
+      "elapsed_seconds": 0.226727,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.upenn-sethe-index",
+          "rank": 1,
+          "title_as_displayed": "Die altägyptischen Pyramidentexte",
+          "result_url": "https://onlinebooks.library.upenn.edu/webbin/book/lookupid?key=olbp97474",
+          "originating_record_url": null,
+          "identifiers": [
+            {
+              "scheme": "Online Books Page",
+              "value": "olbp97474"
+            }
+          ],
+          "available_formats": [
+            "curated volume links"
+          ],
+          "declared_rights": {
+            "statement": "Site metadata is CC0; linked book content keeps provider-specific rights",
+            "scope": "metadata",
+            "evidence_url": "https://onlinebooks.library.upenn.edu/",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "metadata-only",
+          "machine_interface": "html",
+          "decision": "defer",
+          "rationale": "The curated four-volume map is useful, but its metadata license does not license linked scans.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-needed",
+            "format": null,
+            "sha256": null,
+            "reason": "Lead preserved through its stable URL."
+          }
+        },
+        {
+          "result_id": "tos-discovery-result.pyramidtextsonline-library",
+          "rank": 2,
+          "title_as_displayed": "Pyramid Texts Online — Library",
+          "result_url": "https://pyramidtextsonline.com/library.html",
+          "originating_record_url": null,
+          "identifiers": [],
+          "available_formats": [
+            "mixed bibliography and links"
+          ],
+          "declared_rights": {
+            "statement": null,
+            "scope": "unknown",
+            "evidence_url": null,
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-view",
+          "machine_interface": "html",
+          "decision": "reject",
+          "rationale": "The mixed general-web library does not provide stronger identity, provenance, or exact-object rights than the selected institutional sources.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-needed",
+            "format": null,
+            "sha256": null,
+            "reason": "No content or page snapshot was needed for the rejection."
+          }
+        }
+      ]
+    }
+  ],
+  "channel_comparison": [
+    {
+      "channel_id": "channel-bnf-authority",
+      "completeness": "limited",
+      "metadata_precision": "strong",
+      "rights_clarity": "limited",
+      "machine_interface_quality": "adequate",
+      "human_minutes": 0,
+      "machine_seconds": 20.553928,
+      "notes": "Authority and bibliography only. Machine time is the automatic monotonic HTTP measurement; human_minutes=0 means no real-human review was performed."
+    },
+    {
+      "channel_id": "channel-bsb-holding-iiif",
+      "completeness": "strong",
+      "metadata_precision": "strong",
+      "rights_clarity": "strong",
+      "machine_interface_quality": "strong",
+      "human_minutes": 0,
+      "machine_seconds": 0.764155,
+      "notes": "Originating holding, exact objects, IIIF, license, and full-PDF acquisition. Machine time is the automatic monotonic HTTP measurement; human_minutes=0 means no real-human review was performed."
+    },
+    {
+      "channel_id": "channel-ddb-aggregator",
+      "completeness": "strong",
+      "metadata_precision": "strong",
+      "rights_clarity": "strong",
+      "machine_interface_quality": "adequate",
+      "human_minutes": 0,
+      "machine_seconds": 0.531091,
+      "notes": "Independent object and rights corroboration. Machine time is the automatic monotonic HTTP measurement; human_minutes=0 means no real-human review was performed."
+    },
+    {
+      "channel_id": "channel-chicago-eos",
+      "completeness": "adequate",
+      "metadata_precision": "strong",
+      "rights_clarity": "limited",
+      "machine_interface_quality": "adequate",
+      "human_minutes": 0,
+      "machine_seconds": 0.458745,
+      "notes": "Exact university-held edition route without sufficient reuse terms. Machine time is the automatic monotonic HTTP measurement; human_minutes=0 means no real-human review was performed."
+    },
+    {
+      "channel_id": "channel-ucl-digital-egypt",
+      "completeness": "adequate",
+      "metadata_precision": "adequate",
+      "rights_clarity": "strong",
+      "machine_interface_quality": "adequate",
+      "human_minutes": 0,
+      "machine_seconds": 1.329969,
+      "notes": "Scholarly corpus overview whose page content remains all rights reserved. Machine time is the automatic monotonic HTTP measurement; human_minutes=0 means no real-human review was performed."
+    },
+    {
+      "channel_id": "channel-tla-pyramid-text",
+      "completeness": "adequate",
+      "metadata_precision": "strong",
+      "rights_clarity": "strong",
+      "machine_interface_quality": "adequate",
+      "human_minutes": 0,
+      "machine_seconds": 0.954861,
+      "notes": "Exact text identity and bibliography; current corpus-scale reuse not authorized. Machine time is the automatic monotonic HTTP measurement; human_minutes=0 means no real-human review was performed."
+    },
+    {
+      "channel_id": "channel-loc-identifiers",
+      "completeness": "poor",
+      "metadata_precision": "unknown",
+      "rights_clarity": "unknown",
+      "machine_interface_quality": "limited",
+      "human_minutes": 0,
+      "machine_seconds": 0.116692,
+      "notes": "Exact recorded query returned no retained result. Machine time is the automatic monotonic HTTP measurement; human_minutes=0 means no real-human review was performed."
+    },
+    {
+      "channel_id": "channel-internet-archive",
+      "completeness": "adequate",
+      "metadata_precision": "adequate",
+      "rights_clarity": "poor",
+      "machine_interface_quality": "strong",
+      "human_minutes": 0,
+      "machine_seconds": 0.42126,
+      "notes": "Useful later-volume object with page/API rights inconsistency. Machine time is the automatic monotonic HTTP measurement; human_minutes=0 means no real-human review was performed."
+    },
+    {
+      "channel_id": "channel-openlibrary-google",
+      "completeness": "limited",
+      "metadata_precision": "adequate",
+      "rights_clarity": "poor",
+      "machine_interface_quality": "adequate",
+      "human_minutes": 0,
+      "machine_seconds": 1.317941,
+      "notes": "Aggregator identity leads only. Machine time is the automatic monotonic HTTP measurement; human_minutes=0 means no real-human review was performed."
+    },
+    {
+      "channel_id": "channel-general-web-last",
+      "completeness": "limited",
+      "metadata_precision": "limited",
+      "rights_clarity": "poor",
+      "machine_interface_quality": "limited",
+      "human_minutes": 0,
+      "machine_seconds": 0.226727,
+      "notes": "General web was queried last and yielded no stronger source. Machine time is the automatic monotonic HTTP measurement; human_minutes=0 means no real-human review was performed."
+    }
+  ],
+  "selected_result_ids": [
+    "tos-discovery-result.bnf-pyramid-texts-authority",
+    "tos-discovery-result.bsb-sethe-pyramidentexte-volume-1",
+    "tos-discovery-result.bsb-sethe-pyramidentexte-volume-2",
+    "tos-discovery-result.ddb-sethe-volume-1",
+    "tos-discovery-result.ddb-sethe-volume-2",
+    "tos-discovery-result.ucl-pyramid-texts-overview"
+  ],
+  "rejected_result_ids": [
+    "tos-discovery-result.pyramidtextsonline-library"
+  ],
+  "rights_inference_from_availability_prohibited": true,
+  "general_web_search_is_last_resort": true,
+  "technical_access_bypass_used": false,
+  "maker": {
+    "maker_type": "model",
+    "agent_ref": "model:codex"
+  },
+  "started_at": "2026-08-30T07:18:28.136610Z",
+  "ended_at": "2026-08-30T07:18:54.813674Z",
+  "status": "reconciled",
+  "provenance_event_refs": [
+    "tos.event.discovery.pyramid-texts-open-work-route.2026-08-30",
+    "tos.event.acquisition.pyramid-texts-sethe-bsb-volumes.2026-08-30"
+  ],
+  "record_version": 1,
+  "supersedes_discovery_ref": null
+}

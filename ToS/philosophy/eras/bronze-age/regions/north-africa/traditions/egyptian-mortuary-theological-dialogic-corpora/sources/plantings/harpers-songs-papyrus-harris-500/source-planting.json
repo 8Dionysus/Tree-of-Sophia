@@ -1,0 +1,21 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/philosophy-source-planting.schema.json",
+  "schema_version": "tos_philosophy_source_planting_v1",
+  "planting_id": "tos.planting.a05.harpers-songs-papyrus-harris-500",
+  "atlas_row_id": "A05",
+  "dossier_id": "A05",
+  "branch_path": "ToS/philosophy/eras/bronze-age/regions/north-africa/traditions/egyptian-mortuary-theological-dialogic-corpora",
+  "source_backlog_anchor": {"path": "ToS/philosophy/eras/bronze-age/regions/north-africa/traditions/egyptian-mortuary-theological-dialogic-corpora/sources/source-anchor-backlog.jsonl", "line": 16, "source_table_index": 12, "source_row_index": 6, "source_label": "Papyrus Harris 500 BM EA10060"},
+  "source_witness": {"artifact_id": "tos.artifact.egyptian.unknown.papyrus-harris-500-ea10060", "record_ref": "ToS/source-witnesses/artifacts/egyptian/unknown/papyrus-harris-500-ea10060/artifact-witness.json", "relationship": "grounds_source_backlog_anchor"},
+  "discovery_ref": "ToS/source-witnesses/discovery/runs/harpers-songs-open-work-route.2026-08-30.v1.json",
+  "provenance_event_ref": "tos.event.discovery.harpers-songs-open-work-route.2026-08-30",
+  "research_ref": "ToS/research-packets/foundation-laboratory-2026-07/A05_HARPERS_SONGS_OPEN_WORK_ACQUISITION_2026-08-30.md",
+  "fulfilled_source_needs": ["the British Museum fixes physical Papyrus Harris 500, EA10060 / 1872,1101.2 / TM 380901, dimensions, custody, acquisition history, surrounding anthology contents, and the reported recto 6.2-7.3 Harpist's Song", "TLA independently separates the physical object from Recto 6-7 Anteflied, surrounding text units, bibliography, language, script, and edition history", "four adjoining object-specific CC BY-NC-SA 4.0 JPEGs are retained with exact fixity and per-File rights", "Goodwin's distinct 1874 historical article is retained through a complete bibliographic ladder under an exact-file open license", "ten ordered discovery channels preserve useful URLs, zero results, transport failures, rejection reasons, and positive monotonic timings"],
+  "remaining_controls": ["Harper's Songs remains an open-ended work-like genre rather than one admitted ancient Work", "the alleged mansion-of-Intef source, transmission relation, exact passage segmentation, and completeness of the four retained frames require human scholarly review", "TLA text bytes were not acquired under the current limited academic-use terms", "no inscription, transcription, transliteration, translation, semantic relation, graph fact, canon state, or publication authorization is admitted"],
+  "research_order": ["official_and_classical_documentation", "established_top_scholarship", "fresh_current_relevance_check"],
+  "authority": {"source_status": "metadata_witness_planted", "review_status": "unreviewed", "source_text_admitted": false, "semantic_status": "not_started", "graph_status": "not_promoted", "canon_status": "not_canon", "human_task_created": false},
+  "status": "source_witness_planted",
+  "maker": {"maker_type": "model", "agent_ref": "model:codex", "human_review_performed": false},
+  "created_at": "2026-08-30T06:30:00-06:00",
+  "record_version": 1
+}

@@ -1,0 +1,219 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/material-discovery-record.schema.json",
+  "schema_version": "tos_material_discovery_record_v1",
+  "discovery_id": "tos.discovery.harpers-songs-papyrus-harris-500-artifact.2026-08-30.v1",
+  "protocol_ref": "ToS/source-witnesses/discovery/DISCOVERY_PROTOCOL.md",
+  "target": {
+    "target_kind": "artifact",
+    "known_tos_refs": [
+      "tos.artifact.egyptian.unknown.papyrus-harris-500-ea10060"
+    ],
+    "description": "Fix the physical identity of Papyrus Harris 500 / British Museum EA10060 and its reported Recto 6-7 Harpist's Song context while keeping artifact, anthology, passage, alleged earlier exemplar, provider record, photograph, inscription, translation, and File separate.",
+    "required_properties": [
+      "exact museum, registration, Harris, and Trismegistos identities",
+      "physical dimensions, custody, dating conflict, and unknown findspot",
+      "four exact image-specific licenses and fixity records",
+      "no source-text or semantic admission"
+    ],
+    "acceptable_substitutions": [
+      "exact official museum record plus object-specific image-use pages",
+      "rights-insufficient artifact receipt"
+    ],
+    "languages": [
+      "egy",
+      "en",
+      "de"
+    ],
+    "formats": [
+      "museum object metadata",
+      "specialized scholarly object and text metadata",
+      "JPEG",
+      "object-specific rights statement"
+    ],
+    "purpose_ref": "ToS/research-packets/foundation-laboratory-2026-07/A05_HARPERS_SONGS_OPEN_WORK_ACQUISITION_2026-08-30.md"
+  },
+  "channels": [
+    {
+      "channel_id": "channel-british-museum-papyrus-harris-500-artifact",
+      "sequence": 1,
+      "channel_type": "collection-aggregator",
+      "role": "digital-object-record",
+      "source_name": "British Museum Collection Online",
+      "endpoint_url": "https://www.britishmuseum.org/collection/object/Y_EA10060",
+      "interface_type": "web",
+      "interface_version": "object, carousel, image-use, and normal browser asset routes checked 2026-08-30",
+      "exact_query": "Object Y_EA10060; image-use assets 20450001, 20451001, 20452001, and 20453001",
+      "queried_at": "2026-08-30T15:18:24.613701Z",
+      "elapsed_seconds": 0.789438,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.bm-papyrus-harris-500-ea10060-artifact",
+          "rank": 1,
+          "title_as_displayed": "papyrus — EA10060 / Harris 500",
+          "result_url": "https://www.britishmuseum.org/collection/object/Y_EA10060",
+          "originating_record_url": "https://www.britishmuseum.org/collection/object/Y_EA10060",
+          "identifiers": [
+            {
+              "scheme": "British Museum number",
+              "value": "EA10060"
+            },
+            {
+              "scheme": "British Museum registration number",
+              "value": "1872,1101.2"
+            },
+            {
+              "scheme": "British Museum additional ID",
+              "value": "Harris 500"
+            },
+            {
+              "scheme": "Trismegistos Text",
+              "value": "380901"
+            },
+            {
+              "scheme": "British Museum assets",
+              "value": "20450001; 20451001; 20452001; 20453001"
+            }
+          ],
+          "available_formats": [
+            "museum object HTML",
+            "74-image carousel",
+            "four selected object-specific image-use pages",
+            "four acquired 1000x1000 JPEGs"
+          ],
+          "declared_rights": {
+            "statement": "Each selected image-use page applies CC BY-NC-SA 4.0 with credit © The Trustees of the British Museum; object-page visibility alone is not a license.",
+            "scope": "digital-object",
+            "evidence_url": "https://www.britishmuseum.org/collection/image/20450001",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-download",
+          "machine_interface": "html",
+          "decision": "select",
+          "rationale": "The museum fixes the physical object, dimensions, custody, acquisition history, surrounding recto and verso contents, and reported Harpist's Song at recto 6.2-7.3. Four exact separately licensed adjoining JPEGs were acquired and are enumerated in the parent open-work run, visual-representation records, and acquisition provenance.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-needed",
+            "format": null,
+            "sha256": null,
+            "reason": "The exact acquired JPEGs are separate immutable File entities; the mutable object HTML was not retained."
+          }
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-tla-papyrus-harris-500-artifact",
+      "sequence": 2,
+      "channel_type": "specialized-scholarly-project",
+      "role": "scholarly-index",
+      "source_name": "Thesaurus Linguae Aegyptiae",
+      "endpoint_url": "https://tla.digital/object/AZQUE622ZRHIXAC4J4KQSR42QQ",
+      "interface_type": "web",
+      "interface_version": "Corpus edition 20 object and subordinate-text hierarchy checked 2026-08-30",
+      "exact_query": "Object AZQUE622ZRHIXAC4J4KQSR42QQ and subordinate Recto 6-7 text CRNQNNDNPNBYNNLJCWIBBH3PNY",
+      "queried_at": "2026-08-30T15:18:25.403254Z",
+      "elapsed_seconds": 10.655033,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.tla-papyrus-harris-500-artifact-and-recto-6-7",
+          "rank": 1,
+          "title_as_displayed": "pHarris 500; Recto 6-7: Anteflied (Harfnerlieder Text A)",
+          "result_url": "https://tla.digital/object/AZQUE622ZRHIXAC4J4KQSR42QQ",
+          "originating_record_url": "https://tla.digital/text/CRNQNNDNPNBYNNLJCWIBBH3PNY",
+          "identifiers": [
+            {
+              "scheme": "TLA object ID",
+              "value": "AZQUE622ZRHIXAC4J4KQSR42QQ"
+            },
+            {
+              "scheme": "TLA text ID",
+              "value": "CRNQNNDNPNBYNNLJCWIBBH3PNY"
+            },
+            {
+              "scheme": "TLA collective caption ID",
+              "value": "WLWU7O2UDBGZHDGMUIC3ZIUR74"
+            }
+          ],
+          "available_formats": [
+            "scholarly object HTML",
+            "subordinate text HTML",
+            "sentence pages",
+            "bibliography"
+          ],
+          "declared_rights": {
+            "statement": "Individual data sets may be copied or quoted for academic research, but larger subcorpora may not; a standard free raw-data release remains future work.",
+            "scope": "content",
+            "evidence_url": "https://tla.digital/info/licenses",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-view",
+          "machine_interface": "html",
+          "decision": "select",
+          "rationale": "TLA supplies the strongest exact scholarly separation of the physical object from its subordinate Recto 6-7 text and surrounding anthology units, while preserving dating and provenance disagreements. No TLA text bytes were acquired.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-permitted",
+            "format": null,
+            "sha256": null,
+            "reason": "The current terms do not license the text corpus as a reusable ToS payload."
+          }
+        }
+      ]
+    }
+  ],
+  "channel_comparison": [
+    {
+      "channel_id": "channel-british-museum-papyrus-harris-500-artifact",
+      "completeness": "strong",
+      "metadata_precision": "strong",
+      "rights_clarity": "strong",
+      "machine_interface_quality": "adequate",
+      "human_minutes": 0,
+      "machine_seconds": 0.789438,
+      "notes": "Exact physical-artifact and licensed visual-File route. Machine time is the automatic monotonic HTTP measurement; human_minutes=0 means no real-human review was performed."
+    },
+    {
+      "channel_id": "channel-tla-papyrus-harris-500-artifact",
+      "completeness": "strong",
+      "metadata_precision": "strong",
+      "rights_clarity": "strong",
+      "machine_interface_quality": "adequate",
+      "human_minutes": 0,
+      "machine_seconds": 10.655033,
+      "notes": "Strong specialist object, passage, surrounding-unit, bibliography, and license-boundary route. Machine time is the automatic monotonic HTTP measurement; human_minutes=0 means no real-human review was performed."
+    }
+  ],
+  "selected_result_ids": [
+    "tos-discovery-result.bm-papyrus-harris-500-ea10060-artifact",
+    "tos-discovery-result.tla-papyrus-harris-500-artifact-and-recto-6-7"
+  ],
+  "rejected_result_ids": [],
+  "rights_inference_from_availability_prohibited": true,
+  "general_web_search_is_last_resort": true,
+  "technical_access_bypass_used": false,
+  "maker": {
+    "maker_type": "mixed",
+    "agent_ref": "model:codex + software:python-3.14.6"
+  },
+  "started_at": "2026-08-30T15:18:24.613701Z",
+  "ended_at": "2026-08-30T15:18:36.058297Z",
+  "status": "reconciled",
+  "provenance_event_refs": [
+    "tos.event.acquisition.harpers-songs-papyrus-harris-500-bm-images.2026-08-30"
+  ],
+  "record_version": 1,
+  "supersedes_discovery_ref": null
+}

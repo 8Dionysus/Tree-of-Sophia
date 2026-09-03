@@ -1,0 +1,201 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/material-discovery-record.schema.json",
+  "schema_version": "tos_material_discovery_record_v1",
+  "discovery_id": "tos.discovery.museo-egizio-cgt-54014-artifact-route.2026-08-29",
+  "protocol_ref": "ToS/source-witnesses/discovery/DISCOVERY_PROTOCOL.md",
+  "target": {
+    "target_kind": "artifact",
+    "known_tos_refs": [
+      "tos.artifact.egyptian.deir-el-medina.museo-egizio-cgt-54014"
+    ],
+    "description": "Resolve Museo Egizio CGT 54014 as a physical papyrus witness and acquire one exact CC0 Commons JPEG as a separate visual representation and immutable File.",
+    "required_properties": [
+      "holding-institution physical identity and inventory number",
+      "material, dimensions, dating, provenance, acquisition, and custody",
+      "physical artifact separate from photograph and embedded text",
+      "exact provider and aggregator records",
+      "exact image bytes, fixity, dimensions, and CC0 evidence",
+      "no transcription, translation, semantic, graph, or canon promotion"
+    ],
+    "acceptable_substitutions": [
+      "a later byte-distinct originating-provider image retained as its own File and representation record",
+      "a corrected museum catalog record that preserves the same CGT 54014 physical identity"
+    ],
+    "languages": [
+      "egy",
+      "en",
+      "it"
+    ],
+    "formats": [
+      "museum catalog metadata",
+      "MediaWiki API metadata",
+      "JPEG",
+      "CC0 rights statement"
+    ],
+    "purpose_ref": "ToS/research-packets/foundation-laboratory-2026-07/A04_PTAHHOTEP_OPEN_WORK_DISCOVERY_AND_RIGHTS_ROUTE_2026-08-29.md"
+  },
+  "channels": [
+    {
+      "channel_id": "channel-cgt-54014-museo-egizio-owner",
+      "sequence": 1,
+      "channel_type": "specialized-scholarly-project",
+      "role": "originating-record",
+      "source_name": "Museo Egizio collection online",
+      "endpoint_url": "https://collezioni.museoegizio.it/en-GB/material/CGT_54014/",
+      "interface_type": "web",
+      "interface_version": "current collection HTML checked 2026-08-29",
+      "exact_query": "Resolve CGT 54014; retain title, inventory, material, dimensions, date, period, dynasty, provenance, acquisition, current location, bibliography, the direct image route, and the page-level CC0 image statement.",
+      "queried_at": "2026-08-30T06:00:06.059842Z",
+      "elapsed_seconds": 10.078643,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.cgt-54014-museo-egizio-owner",
+          "rank": 1,
+          "title_as_displayed": "Papyrus fragments with a section of the Instruction of Ptahhotep on the recto",
+          "result_url": "https://collezioni.museoegizio.it/en-GB/material/CGT_54014/",
+          "originating_record_url": "https://collezioni.museoegizio.it/en-GB/material/CGT_54014/",
+          "identifiers": [
+            {
+              "scheme": "Museo Egizio inventory",
+              "value": "CGT. 54014"
+            }
+          ],
+          "available_formats": [
+            "museum catalog metadata",
+            "direct full JPEG route"
+          ],
+          "declared_rights": {
+            "statement": "The collection page states that images are freely downloadable and reusable under a Creative Commons CC0 Public Domain licence.",
+            "scope": "digital-object",
+            "evidence_url": "https://collezioni.museoegizio.it/en-GB/material/CGT_54014/",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-download",
+          "machine_interface": "html",
+          "decision": "select",
+          "rationale": "The holding institution owns the physical-object record and supplies direct CC0 image evidence. Its current full JPEG is byte-distinct from the selected Commons file and was therefore not silently substituted.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-captured",
+            "format": null,
+            "sha256": null,
+            "reason": "The mutable catalog HTML was fingerprinted but not retained in the source tree."
+          }
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-cgt-54014-commons-file",
+      "sequence": 2,
+      "channel_type": "collection-aggregator",
+      "role": "digital-object-record",
+      "source_name": "Wikimedia Commons File and MediaWiki imageinfo API",
+      "endpoint_url": "https://commons.wikimedia.org/wiki/File:Papyrus_fragments_with_a_section_of_the_%27Instruction_of_Ptahhotep%27_on_the_recto_-_Museo_Egizio,_Turin_CGT_54014_p01.jpg",
+      "interface_type": "api",
+      "interface_version": "MediaWiki imageinfo checked 2026-08-29",
+      "exact_query": "action=query; formatversion=2; prop=imageinfo; iiprop=url|size|sha1|mime|mediatype|extmetadata|timestamp|user; exact File title for CGT 54014 p01",
+      "queried_at": "2026-08-30T06:00:16.138621Z",
+      "elapsed_seconds": 0.437059,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.cgt-54014-commons-file-acquired",
+          "rank": 1,
+          "title_as_displayed": "Papyrus fragments with a section of the Instruction of Ptahhotep on the recto - Museo Egizio, Turin CGT 54014 p01.jpg",
+          "result_url": "https://commons.wikimedia.org/wiki/File:Papyrus_fragments_with_a_section_of_the_%27Instruction_of_Ptahhotep%27_on_the_recto_-_Museo_Egizio,_Turin_CGT_54014_p01.jpg",
+          "originating_record_url": "https://collezioni.museoegizio.it/en-GB/material/CGT_54014/",
+          "identifiers": [
+            {
+              "scheme": "Wikimedia Commons page ID",
+              "value": "146147438"
+            },
+            {
+              "scheme": "Wikimedia Commons SHA1",
+              "value": "7360a8cfe500c9377f29415adfb24aa22b0e5672"
+            },
+            {
+              "scheme": "Museo Egizio inventory",
+              "value": "CGT 54014"
+            }
+          ],
+          "available_formats": [
+            "JPEG 1252x1982",
+            "MediaWiki imageinfo JSON"
+          ],
+          "declared_rights": {
+            "statement": "Creative Commons Zero 1.0 Universal public-domain dedication for the exact JPEG.",
+            "scope": "digital-object",
+            "evidence_url": "https://creativecommons.org/publicdomain/zero/1.0/",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-download",
+          "machine_interface": "api",
+          "decision": "select",
+          "rationale": "The API fixes the exact file URL, 487283-byte size, 1252x1982 dimensions, MIME, source SHA1, uploader timestamp, and CC0 statement. Operator authorization enabled project-owned acquisition without changing the host automation deny.",
+          "acquisition": {
+            "downloaded": true,
+            "acquired_at": "2026-08-29T23:55:06-06:00",
+            "byte_size": 487283,
+            "sha256": "59b39f048b3dd80e74bda835be0bbb7be15987955d151fc5c21ba8ee97205696",
+            "event_ref": "tos.event.acquisition.museo-egizio-cgt-54014-commons-p01.2026-08-29"
+          },
+          "snapshot": {
+            "state": "not-captured",
+            "format": null,
+            "sha256": null,
+            "reason": "The mutable API response was fingerprinted; the immutable selected JPEG is the retained source entity."
+          }
+        }
+      ]
+    }
+  ],
+  "channel_comparison": [
+    {
+      "channel_id": "channel-cgt-54014-museo-egizio-owner",
+      "completeness": "strong",
+      "metadata_precision": "strong",
+      "rights_clarity": "strong",
+      "machine_interface_quality": "adequate",
+      "human_minutes": 0,
+      "machine_seconds": 10.078643,
+      "notes": "Originating physical-object record, direct image route, and explicit page-level CC0 statement. Machine time is the automatic monotonic HTTP measurement; human_minutes=0 means no real-human review was performed."
+    },
+    {
+      "channel_id": "channel-cgt-54014-commons-file",
+      "completeness": "strong",
+      "metadata_precision": "strong",
+      "rights_clarity": "strong",
+      "machine_interface_quality": "strong",
+      "human_minutes": 0,
+      "machine_seconds": 0.437059,
+      "notes": "Exact byte identity, dimensions, MIME, SHA1, source relation, and CC0 evidence for the acquired file. Machine time is the automatic monotonic HTTP measurement; human_minutes=0 means no real-human review was performed."
+    }
+  ],
+  "selected_result_ids": [
+    "tos-discovery-result.cgt-54014-museo-egizio-owner",
+    "tos-discovery-result.cgt-54014-commons-file-acquired"
+  ],
+  "rejected_result_ids": [],
+  "rights_inference_from_availability_prohibited": true,
+  "general_web_search_is_last_resort": true,
+  "technical_access_bypass_used": false,
+  "maker": {
+    "maker_type": "model",
+    "agent_ref": "model:codex"
+  },
+  "started_at": "2026-08-30T06:00:06.059842Z",
+  "ended_at": "2026-08-30T06:00:16.575688Z",
+  "status": "reconciled",
+  "provenance_event_refs": [
+    "tos.event.acquisition.museo-egizio-cgt-54014-commons-p01.2026-08-29"
+  ],
+  "record_version": 1,
+  "supersedes_discovery_ref": null
+}

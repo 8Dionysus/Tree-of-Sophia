@@ -1,0 +1,57 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/artifact-visual-representation.schema.json",
+  "schema_version": "tos_artifact_visual_representation_v1",
+  "file_id": "tos.file.sha256.d5ad902fe005c37eaed983e79859c69a89ecbe2e9f25f3e4b33963e60ee10913",
+  "artifact_id": "tos.artifact.egyptian.lisht-south.met-khety-32-1-133",
+  "artifact_ref": "ToS/source-witnesses/artifacts/egyptian/lisht-south/met-khety-32-1-133/artifact-witness.json",
+  "layer_kind": "photograph",
+  "view_label": "inside of lid, Met IIIF derivative 1836133",
+  "provider_records": [
+    {
+      "provider": "The Metropolitan Museum of Art collection and public API",
+      "role": "originating-record",
+      "record_url": "https://www.metmuseum.org/art/collection/search/555675",
+      "api_url": "https://collectionapi.metmuseum.org/public/collection/v1/objects/555675",
+      "checked_at": "2026-08-30T04:20:46-06:00",
+      "response_fingerprint": {"byte_size": 3345, "sha256": "212dff7ea55d05103acf2e2fd9a44621133692213c94eb43143872b594503c78", "captured": false}
+    },
+    {
+      "provider": "The Met collection IIIF image service",
+      "role": "aggregator-file-record",
+      "record_url": "https://collectionapi.metmuseum.org/api/collection/v1/iiif/555675/1836133/main-image",
+      "api_url": null,
+      "checked_at": "2026-08-30T04:20:46-06:00",
+      "response_fingerprint": {"byte_size": 154041, "sha256": "d5ad902fe005c37eaed983e79859c69a89ecbe2e9f25f3e4b33963e60ee10913", "captured": false}
+    }
+  ],
+  "acquisition": {
+    "source_url": "https://collectionapi.metmuseum.org/api/collection/v1/iiif/555675/1836133/main-image",
+    "acquired_at": "2026-08-30T04:20:46-06:00",
+    "transport": "https",
+    "technical_access_bypass_used": false,
+    "operator_authorization_ref": "operator-directive:2026-08-29-download-open-work-priority",
+    "host_preflight_decision": "deny-protected-project-root",
+    "host_preflight_scope": "machine-owned-storage-automation-only"
+  },
+  "payload": {
+    "relative_path": "payload/main-image.jpeg",
+    "original_basename": "main-image.jpeg",
+    "media_type": "image/jpeg",
+    "byte_size": 154041,
+    "sha256": "d5ad902fe005c37eaed983e79859c69a89ecbe2e9f25f3e4b33963e60ee10913",
+    "source_sha1": "22bc40997e6363c363aa2c0099a2b1194734148a",
+    "width_pixels": 1200,
+    "height_pixels": 335,
+    "storage_posture": "tracked_public_payload",
+    "git_tracked": true,
+    "fixity_verified_at": "2026-08-30T04:24:30-06:00"
+  },
+  "rights_ref": "ToS/source-witnesses/artifacts/egyptian/lisht-south/met-khety-32-1-133/representations/inside-lid-iiif-1200/rights.json",
+  "discovery_ref": "ToS/source-witnesses/discovery/runs/coffin-texts-met-artifacts.2026-08-30.v1.json",
+  "provenance_event_ref": "tos.event.acquisition.coffin-texts-met-open-access-images.2026-08-30",
+  "layer_separation": {"visual_is_physical_artifact": false, "visual_is_catalog_record": false, "visual_is_transcription": false, "embedded_text_admitted": false, "same_bytes_as_originating_provider_asserted": false},
+  "authority": {"evidence_status": "visual_source_witness", "review_status": "unreviewed", "visibility": "public_payload", "source_text_admitted": false, "semantic_authority": false, "graph_authority": false, "canon_authority": false, "publication_authority": false},
+  "maker": {"maker_type": "model", "agent_ref": "model:codex", "human_review_performed": false},
+  "created_at": "2026-08-30T04:25:00-06:00",
+  "record_version": 1
+}

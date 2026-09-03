@@ -28,7 +28,7 @@ source-witnesses/
 │   └── <place>/place.json
 ├── organizations/
 │   └── <historical-organization>/organization.json
-├── discovery/                              # ordered query/result evidence
+├── discovery/                              # reviewed candidate queue + ordered query/result evidence
 ├── access-requests/                        # public status + ignored private correspondence
 ├── server-import/                          # future no-upload/import boundary
 ├── chronology/                             # Work-owned, facet-specific chronology claims
@@ -99,6 +99,13 @@ for bounded Edition-owned provision claims; a named subbranch may own one
 multi-Edition research episode while every claim stays beside its exact
 subject Edition. Shared discovery episodes are recorded under
 `discovery/provenance.jsonl`; neither provenance surface becomes claim truth.
+The authored reviewed-candidate ledger owns only queue eligibility, ordering,
+and the frozen pre-run target. Immutable candidate receipts own terminal loop
+transitions, while `discovery/candidates/queue.current.json` is generated
+navigation. Work identity, rights, acquired Items, claims, and review remain
+with their stronger source-witness surfaces. The latest terminal receipt must
+bind an external positive per-channel timing receipt; transport timing does not
+become research, rights-review, or human-effort evidence.
 
 `<responsibility-or-tradition>` is a navigational route, not an authorship
 claim. Anonymous, disputed, collective, and tradition-owned works receive
@@ -148,6 +155,14 @@ inscription or transliteration, scholarly composite, photograph, and line art
 remain separate. A philosophy branch may cite an artifact through a tracked
 source planting, but that relation alone establishes neither philosophy,
 semantics, graph truth, nor canon.
+
+An exact artifact photograph may be retained only as its own content-addressed
+File-backed visual representation with exact provider, rights, acquisition,
+fixity, and provenance closure. The visual payload does not become the
+physical artifact, embedded source text, a transcription, a translation, a
+philosophy planting, or publication authority. An artifact with no honest
+backlog anchor remains unplanted rather than borrowing a neighboring source's
+identity.
 
 Modern scholarly composites use the parallel `scholarly-composites/` spine.
 Their path follows composition and tradition rather than a current corpus or

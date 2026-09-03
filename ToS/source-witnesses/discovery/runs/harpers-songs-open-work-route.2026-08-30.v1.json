@@ -1,0 +1,965 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/material-discovery-record.schema.json",
+  "schema_version": "tos_material_discovery_record_v1",
+  "discovery_id": "tos.discovery.harpers-songs-open-work-route.2026-08-30.v1",
+  "protocol_ref": "ToS/source-witnesses/discovery/DISCOVERY_PROTOCOL.md",
+  "target": {
+    "target_kind": "scholarly-composite",
+    "known_tos_refs": [
+      "tos.composite.egyptian.harpers-songs-witnesses",
+      "tos.artifact.egyptian.unknown.papyrus-harris-500-ea10060",
+      "tos.work.egyptian-scholarship.on-four-songs-contained-in-an-egyptian-papyrus-in-the-british-museum"
+    ],
+    "description": "Resolve Ancient Egyptian Harper's Songs as an open-ended work-like genre/corpus and the Harpist's Song from the mansion of Intef as one locally delimited composition witnessed on Papyrus Harris 500 recto 6.2-7.3, while retaining exact British Museum photographs and Goodwin's 1874 historical article without collapsing genre, composition, attributed ancient source, papyrus, passage, tomb parallel, edition, translation, photograph, provider record, or File.",
+    "required_properties": [
+      "explicit provisional work-like corpus boundary",
+      "exact Papyrus Harris 500, recto passage, and physical custody identity",
+      "Harpist's Song distinguished from surrounding love-song cycles and verso tales",
+      "layer-specific rights for artifact metadata, photographs, scholarly transcription, historical article, translation, and scan",
+      "no source-text, semantic, graph, canon, or publication effect"
+    ],
+    "acceptable_substitutions": [
+      "an exact openly licensed British Museum image File covering the relevant recto passage",
+      "an exact historical edition or translation scan with reviewed public-domain or open-license evidence",
+      "an exact scholarly-project record preserving witness and passage identity",
+      "a rights-insufficient terminal outcome preserving every useful URL and unresolved corpus boundary"
+    ],
+    "languages": [
+      "egy",
+      "en",
+      "de",
+      "fr"
+    ],
+    "formats": [
+      "national-catalog metadata",
+      "museum object metadata",
+      "papyrus photograph",
+      "scholarly text record",
+      "historical article PDF",
+      "object-level rights statement"
+    ],
+    "purpose_ref": "ToS/research-packets/foundation-laboratory-2026-07/A05_HARPERS_SONGS_OPEN_WORK_ACQUISITION_2026-08-30.md",
+    "constraint_refinements": [
+      {
+        "candidate_field": "required_properties",
+        "candidate_values": [
+          "originating museum and scholarly controls",
+          "layered rights for artifact metadata, image, transcription, edition, translation, and scan",
+          "no semantic or canon promotion"
+        ],
+        "discovery_field": "required_properties",
+        "discovery_values": [
+          "explicit provisional work-like corpus boundary",
+          "exact Papyrus Harris 500, recto passage, and physical custody identity",
+          "Harpist's Song distinguished from surrounding love-song cycles and verso tales",
+          "layer-specific rights for artifact metadata, photographs, scholarly transcription, historical article, translation, and scan",
+          "no source-text, semantic, graph, canon, or publication effect"
+        ],
+        "review_status": "reviewed",
+        "reviewed_at": "2026-09-02",
+        "reviewer_ref": "operator:tos-open-work-loop"
+      },
+      {
+        "candidate_field": "acceptable_substitutions",
+        "candidate_values": [
+          "an exact historical edition or facsimile scan with reviewed public-domain or open-license evidence",
+          "an openly licensed scholarly transcription or edition with exact witness and passage binding",
+          "a rights-insufficient terminal receipt preserving every useful URL and unresolved identity"
+        ],
+        "discovery_field": "acceptable_substitutions",
+        "discovery_values": [
+          "an exact openly licensed British Museum image File covering the relevant recto passage",
+          "an exact historical edition or translation scan with reviewed public-domain or open-license evidence",
+          "an exact scholarly-project record preserving witness and passage identity",
+          "a rights-insufficient terminal outcome preserving every useful URL and unresolved corpus boundary"
+        ],
+        "review_status": "reviewed",
+        "reviewed_at": "2026-09-02",
+        "reviewer_ref": "operator:tos-open-work-loop"
+      },
+      {
+        "candidate_field": "formats",
+        "candidate_values": [
+          "historical facsimile scan",
+          "critical-edition metadata"
+        ],
+        "discovery_field": "formats",
+        "discovery_values": [
+          "national-catalog metadata",
+          "museum object metadata",
+          "papyrus photograph",
+          "scholarly text record",
+          "historical article PDF",
+          "object-level rights statement"
+        ],
+        "review_status": "reviewed",
+        "reviewed_at": "2026-09-02",
+        "reviewer_ref": "operator:tos-open-work-loop"
+      }
+    ]
+  },
+  "channels": [
+    {
+      "channel_id": "channel-k10plus-goodwin-originating-bibliography",
+      "sequence": 1,
+      "channel_type": "national-catalog",
+      "role": "originating-record",
+      "source_name": "K10plus SRU",
+      "endpoint_url": "https://sru.k10plus.de/opac-de-627?version=1.1&operation=searchRetrieve&query=pica.tit%3D%22On%20four%20songs%20contained%20in%20an%20Egyptian%20papyrus%20in%20the%20British%20Museum%22%20and%20pica.per%3D%22Goodwin%22&maximumRecords=10&recordSchema=picaxml",
+      "interface_type": "api",
+      "interface_version": "SRU 1.1 with PICA XML checked 2026-08-30",
+      "exact_query": "pica.tit=\"On four songs contained in an Egyptian papyrus in the British Museum\" and pica.per=\"Goodwin\"; maximumRecords=10; recordSchema=picaxml",
+      "queried_at": "2026-08-30T12:15:45.524091Z",
+      "elapsed_seconds": 0.809766,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.k10plus-goodwin-1874-ppn-1894019164",
+          "rank": 1,
+          "title_as_displayed": "On four songs contained in an Egyptian papyrus in the British Museum — by C. W. Goodwin",
+          "result_url": "https://opac.k10plus.de/DB=2.299/PPNSET?PPN=1894019164",
+          "originating_record_url": "https://sru.k10plus.de/opac-de-627?version=1.1&operation=searchRetrieve&query=pica.tit%3D%22On%20four%20songs%20contained%20in%20an%20Egyptian%20papyrus%20in%20the%20British%20Museum%22%20and%20pica.per%3D%22Goodwin%22&maximumRecords=10&recordSchema=picaxml",
+          "identifiers": [
+            {
+              "scheme": "K10plus PPN",
+              "value": "1894019164"
+            },
+            {
+              "scheme": "Internet Archive",
+              "value": "onfoursongsconta00good"
+            },
+            {
+              "scheme": "OCLC",
+              "value": "1049972905"
+            }
+          ],
+          "available_formats": [
+            "SRU PICA XML",
+            "one online resource reported as 9 pages"
+          ],
+          "declared_rights": {
+            "statement": null,
+            "scope": "metadata",
+            "evidence_url": null,
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "metadata-only",
+          "machine_interface": "api",
+          "decision": "select",
+          "rationale": "The exact catalog record fixes Goodwin as author, 1874 publication by the Society in London, nine printed pages, Papyrus Harris 500, the National Library of Scotland and Society contributors, and Internet Archive identifier without making a File-rights conclusion.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-captured",
+            "format": null,
+            "sha256": null,
+            "reason": "The mutable SRU result remains reproducible by exact query and stable PPN."
+          }
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-british-museum-papyrus-harris-500",
+      "sequence": 2,
+      "channel_type": "collection-aggregator",
+      "role": "digital-object-record",
+      "source_name": "British Museum Collection Online",
+      "endpoint_url": "https://www.britishmuseum.org/collection/object/Y_EA10060",
+      "interface_type": "web",
+      "interface_version": "object, carousel, image-use, and normal browser asset routes checked 2026-08-30",
+      "exact_query": "Open object Y_EA10060; inspect the first four recto photographs; follow each Use this image route; retain only the exact licensed JPEG assets.",
+      "queried_at": "2026-08-30T12:15:46.334117Z",
+      "elapsed_seconds": 0.661798,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.british-museum-papyrus-harris-500-ea10060",
+          "rank": 1,
+          "title_as_displayed": "papyrus — EA10060 / Harris 500",
+          "result_url": "https://www.britishmuseum.org/collection/object/Y_EA10060",
+          "originating_record_url": "https://www.britishmuseum.org/collection/object/Y_EA10060",
+          "identifiers": [
+            {
+              "scheme": "British Museum number",
+              "value": "EA10060"
+            },
+            {
+              "scheme": "British Museum registration number",
+              "value": "1872,1101.2"
+            },
+            {
+              "scheme": "British Museum additional ID",
+              "value": "Harris 500"
+            },
+            {
+              "scheme": "Trismegistos Text",
+              "value": "380901"
+            }
+          ],
+          "available_formats": [
+            "museum object HTML",
+            "74-image carousel",
+            "object-specific image-use pages"
+          ],
+          "declared_rights": {
+            "statement": "Collection visibility does not license object-page prose or every image; each selected photograph is assessed on its own image-use page.",
+            "scope": "metadata",
+            "evidence_url": "https://www.britishmuseum.org/collection/object/Y_EA10060",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-view",
+          "machine_interface": "html",
+          "decision": "select",
+          "rationale": "The museum fixes the physical papyrus, inventory, dimensions, reported eighteenth-dynasty classification, acquisition history, surrounding recto and verso contents, and Harpist's Song at recto 6.2-7.3. It does not authenticate the alleged Intef source or define a closed Harper's Songs corpus.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-captured",
+            "format": null,
+            "sha256": null,
+            "reason": "The museum HTML is mutable; bounded metadata and exact URLs are retained in authored records."
+          }
+        },
+        {
+          "result_id": "tos-discovery-result.british-museum-ea10060-image-20450001",
+          "rank": 2,
+          "title_as_displayed": "Use this image - 20450001",
+          "result_url": "https://www.britishmuseum.org/collection/image/20450001",
+          "originating_record_url": "https://www.britishmuseum.org/collection/object/Y_EA10060",
+          "identifiers": [
+            {
+              "scheme": "British Museum asset",
+              "value": "20450001"
+            }
+          ],
+          "available_formats": [
+            "image-use HTML",
+            "JPEG 1000x1000"
+          ],
+          "declared_rights": {
+            "statement": "CC BY-NC-SA 4.0 with credit © The Trustees of the British Museum.",
+            "scope": "digital-object",
+            "evidence_url": "https://www.britishmuseum.org/collection/image/20450001",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-download",
+          "machine_interface": "html",
+          "decision": "select",
+          "rationale": "Exact licensed recto-context photograph acquired through the normal in-app browser asset path; it is not asserted to contain the complete Harpist's Song passage.",
+          "acquisition": {
+            "downloaded": true,
+            "acquired_at": "2026-08-30T06:02:00-06:00",
+            "byte_size": 408248,
+            "sha256": "73c05fb29c3491d5fccac36f2fb2c5b2cb403f4591a394aa49b2cd148ccb3a56",
+            "event_ref": "tos.event.acquisition.harpers-songs-papyrus-harris-500-bm-images.2026-08-30"
+          },
+          "snapshot": {
+            "state": "not-needed",
+            "format": null,
+            "sha256": null,
+            "reason": "The exact acquired JPEG is the retained immutable source entity."
+          }
+        },
+        {
+          "result_id": "tos-discovery-result.british-museum-ea10060-image-20451001",
+          "rank": 3,
+          "title_as_displayed": "Use this image - 20451001",
+          "result_url": "https://www.britishmuseum.org/collection/image/20451001",
+          "originating_record_url": "https://www.britishmuseum.org/collection/object/Y_EA10060",
+          "identifiers": [
+            {
+              "scheme": "British Museum asset",
+              "value": "20451001"
+            }
+          ],
+          "available_formats": [
+            "image-use HTML",
+            "JPEG 1000x1000"
+          ],
+          "declared_rights": {
+            "statement": "CC BY-NC-SA 4.0 with credit © The Trustees of the British Museum.",
+            "scope": "digital-object",
+            "evidence_url": "https://www.britishmuseum.org/collection/image/20451001",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-download",
+          "machine_interface": "html",
+          "decision": "select",
+          "rationale": "Exact licensed adjoining recto photograph acquired to preserve the four-frame visual sequence and passage context.",
+          "acquisition": {
+            "downloaded": true,
+            "acquired_at": "2026-08-30T06:12:00-06:00",
+            "byte_size": 416568,
+            "sha256": "a93fc3da7e1778f9d170b2e918f7d863e6be8b0ef7920433841abd5f69eba9ad",
+            "event_ref": "tos.event.acquisition.harpers-songs-papyrus-harris-500-bm-images.2026-08-30"
+          },
+          "snapshot": {
+            "state": "not-needed",
+            "format": null,
+            "sha256": null,
+            "reason": "The exact acquired JPEG is the retained immutable source entity."
+          }
+        },
+        {
+          "result_id": "tos-discovery-result.british-museum-ea10060-image-20452001",
+          "rank": 4,
+          "title_as_displayed": "Use this image - 20452001",
+          "result_url": "https://www.britishmuseum.org/collection/image/20452001",
+          "originating_record_url": "https://www.britishmuseum.org/collection/object/Y_EA10060",
+          "identifiers": [
+            {
+              "scheme": "British Museum asset",
+              "value": "20452001"
+            }
+          ],
+          "available_formats": [
+            "image-use HTML",
+            "JPEG 1000x1000"
+          ],
+          "declared_rights": {
+            "statement": "CC BY-NC-SA 4.0 with credit © The Trustees of the British Museum.",
+            "scope": "digital-object",
+            "evidence_url": "https://www.britishmuseum.org/collection/image/20452001",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-download",
+          "machine_interface": "html",
+          "decision": "select",
+          "rationale": "Exact licensed photograph visually covering the central recto columns around the museum's reported 6.2 boundary; textual segmentation remains unreviewed.",
+          "acquisition": {
+            "downloaded": true,
+            "acquired_at": "2026-08-30T06:05:00-06:00",
+            "byte_size": 413518,
+            "sha256": "25319705c549e625151159102045465976f8cc5f69ee9b72eecf21ad9cdd73e5",
+            "event_ref": "tos.event.acquisition.harpers-songs-papyrus-harris-500-bm-images.2026-08-30"
+          },
+          "snapshot": {
+            "state": "not-needed",
+            "format": null,
+            "sha256": null,
+            "reason": "The exact acquired JPEG is the retained immutable source entity."
+          }
+        },
+        {
+          "result_id": "tos-discovery-result.british-museum-ea10060-image-20453001",
+          "rank": 5,
+          "title_as_displayed": "Use this image - 20453001",
+          "result_url": "https://www.britishmuseum.org/collection/image/20453001",
+          "originating_record_url": "https://www.britishmuseum.org/collection/object/Y_EA10060",
+          "identifiers": [
+            {
+              "scheme": "British Museum asset",
+              "value": "20453001"
+            }
+          ],
+          "available_formats": [
+            "image-use HTML",
+            "JPEG 1000x1000"
+          ],
+          "declared_rights": {
+            "statement": "CC BY-NC-SA 4.0 with credit © The Trustees of the British Museum.",
+            "scope": "digital-object",
+            "evidence_url": "https://www.britishmuseum.org/collection/image/20453001",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-download",
+          "machine_interface": "html",
+          "decision": "select",
+          "rationale": "Exact licensed adjoining photograph visually covering the later recto columns around the museum's reported 7.3 boundary; textual segmentation remains unreviewed.",
+          "acquisition": {
+            "downloaded": true,
+            "acquired_at": "2026-08-30T06:05:00-06:00",
+            "byte_size": 405220,
+            "sha256": "646f4c505dcbc43691f81c5551cc6793be537579a0407b9c1da0bafa3ff278ba",
+            "event_ref": "tos.event.acquisition.harpers-songs-papyrus-harris-500-bm-images.2026-08-30"
+          },
+          "snapshot": {
+            "state": "not-needed",
+            "format": null,
+            "sha256": null,
+            "reason": "The exact acquired JPEG is the retained immutable source entity."
+          }
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-tla-harpist-song-text",
+      "sequence": 3,
+      "channel_type": "specialized-scholarly-project",
+      "role": "scholarly-index",
+      "source_name": "Thesaurus Linguae Aegyptiae",
+      "endpoint_url": "https://tla.digital/text/CRNQNNDNPNBYNNLJCWIBBH3PNY",
+      "interface_type": "web",
+      "interface_version": "Corpus edition 20; object and text pages checked 2026-08-30",
+      "exact_query": "Open object AZQUE622ZRHIXAC4J4KQSR42QQ and subordinate text CRNQNNDNPNBYNNLJCWIBBH3PNY; inspect hierarchy, dating, language, script, bibliography, protocol, and license page.",
+      "queried_at": "2026-08-30T12:15:46.996138Z",
+      "elapsed_seconds": 1.210829,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.tla-papyrus-harris-500-recto-6-7",
+          "rank": 1,
+          "title_as_displayed": "Recto 6-7: Anteflied (Harfnerlieder Text A)",
+          "result_url": "https://tla.digital/text/CRNQNNDNPNBYNNLJCWIBBH3PNY",
+          "originating_record_url": "https://tla.digital/object/AZQUE622ZRHIXAC4J4KQSR42QQ",
+          "identifiers": [
+            {
+              "scheme": "TLA object ID",
+              "value": "AZQUE622ZRHIXAC4J4KQSR42QQ"
+            },
+            {
+              "scheme": "TLA text ID",
+              "value": "CRNQNNDNPNBYNNLJCWIBBH3PNY"
+            },
+            {
+              "scheme": "TLA collective caption ID",
+              "value": "WLWU7O2UDBGZHDGMUIC3ZIUR74"
+            }
+          ],
+          "available_formats": [
+            "scholarly HTML",
+            "sentence pages",
+            "bibliography"
+          ],
+          "declared_rights": {
+            "statement": "Individual data sets may be copied or quoted for academic research, but entire subcorpora or larger sets above ten pages may not; further raw-data publications are still being prepared for a free license.",
+            "scope": "content",
+            "evidence_url": "https://tla.digital/info/licenses",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-view",
+          "machine_interface": "html",
+          "decision": "select",
+          "rationale": "TLA supplies the strongest exact scholarly separation of pHarris 500 from its subordinate Recto 6-7 Antef Song text and surrounding love-song and verso units, with versioned authorship and bibliography. Its scientific data are not released under a standard free license suitable for bulk acquisition, so no TLA text bytes were stored.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-permitted",
+            "format": null,
+            "sha256": null,
+            "reason": "The current license permits bounded academic quotation but does not license the text corpus as a reusable ToS payload."
+          }
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-europeana-iiif-exact-search",
+      "sequence": 4,
+      "channel_type": "collection-aggregator",
+      "role": "lead-only",
+      "source_name": "Europeana",
+      "endpoint_url": "https://www.europeana.eu/en/search?query=%22Papyrus%20Harris%20500%22",
+      "interface_type": "web",
+      "interface_version": "web search checked 2026-08-30",
+      "exact_query": "\"Papyrus Harris 500\"; then \"On four songs contained in an Egyptian papyrus\"; inspect exact-result and IIIF-manifest leads only.",
+      "queried_at": "2026-08-30T12:15:48.207234Z",
+      "elapsed_seconds": 0.271739,
+      "result_order_preserved": true,
+      "results": []
+    },
+    {
+      "channel_id": "channel-trismegistos-identifier",
+      "sequence": 5,
+      "channel_type": "identifier-registry",
+      "role": "scholarly-index",
+      "source_name": "Trismegistos",
+      "endpoint_url": "https://www.trismegistos.org/text/380901",
+      "interface_type": "web",
+      "interface_version": "identifier route checked without TLS bypass 2026-08-30",
+      "exact_query": "TM Text 380901",
+      "queried_at": "2026-08-30T12:15:48.479147Z",
+      "elapsed_seconds": 0.323431,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.trismegistos-text-380901",
+          "rank": 1,
+          "title_as_displayed": "Trismegistos Text 380901",
+          "result_url": "https://www.trismegistos.org/text/380901",
+          "originating_record_url": "https://www.britishmuseum.org/collection/object/Y_EA10060",
+          "identifiers": [
+            {
+              "scheme": "Trismegistos Text",
+              "value": "380901"
+            }
+          ],
+          "available_formats": [
+            "identifier link reported by British Museum"
+          ],
+          "declared_rights": {
+            "statement": null,
+            "scope": "unknown",
+            "evidence_url": null,
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "metadata-only",
+          "machine_interface": "html",
+          "decision": "select",
+          "rationale": "The stable identifier is independently reported by the British Museum and TLA routes. Direct TLS verification failed in this environment, so no access-control or certificate bypass was used and no unobserved TM metadata or rights claim was added.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-captured",
+            "format": null,
+            "sha256": null,
+            "reason": "Direct TLS verification failed; stronger observed sources preserve the identifier."
+          }
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-open-library-goodwin-edition",
+      "sequence": 6,
+      "channel_type": "open-library",
+      "role": "originating-record",
+      "source_name": "Open Library",
+      "endpoint_url": "https://openlibrary.org/books/OL24821288M.json",
+      "interface_type": "api",
+      "interface_version": "JSON API checked 2026-08-30",
+      "exact_query": "OL15247338W editions; exact edition OL24821288M",
+      "queried_at": "2026-08-30T12:15:48.802754Z",
+      "elapsed_seconds": 0.384341,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.open-library-goodwin-ol24821288m",
+          "rank": 1,
+          "title_as_displayed": "On four songs contained in an Egyptian papyrus in the British Museum",
+          "result_url": "https://openlibrary.org/books/OL24821288M.json",
+          "originating_record_url": "https://openlibrary.org/works/OL15247338W/On_four_songs_contained_in_an_Egyptian_papyrus_in_the_British_Museum",
+          "identifiers": [
+            {
+              "scheme": "Open Library Work",
+              "value": "OL15247338W"
+            },
+            {
+              "scheme": "Open Library Edition",
+              "value": "OL24821288M"
+            },
+            {
+              "scheme": "Internet Archive",
+              "value": "onfoursongsconta00good"
+            }
+          ],
+          "available_formats": [
+            "JSON metadata",
+            "PDF",
+            "plain text",
+            "ePub",
+            "MOBI",
+            "DAISY"
+          ],
+          "declared_rights": {
+            "statement": null,
+            "scope": "metadata",
+            "evidence_url": null,
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-download",
+          "machine_interface": "api",
+          "decision": "select",
+          "rationale": "The edition record corroborates title, 1874, The Society, nine printed pages, the Work ID, and exact Internet Archive identifier; Internet Archive supplies the File metadata and license evidence.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-captured",
+            "format": null,
+            "sha256": null,
+            "reason": "The mutable API is reproducible through exact Work and Edition IDs."
+          }
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-internet-archive-goodwin-digital-object",
+      "sequence": 7,
+      "channel_type": "open-library",
+      "role": "digital-object-record",
+      "source_name": "Internet Archive Metadata API",
+      "endpoint_url": "https://archive.org/metadata/onfoursongsconta00good",
+      "interface_type": "api",
+      "interface_version": "metadata API and exact PDF checked 2026-08-30",
+      "exact_query": "identifier onfoursongsconta00good; select onfoursongsconta00good.pdf only",
+      "queried_at": "2026-08-30T12:15:49.187278Z",
+      "elapsed_seconds": 0.568386,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.internet-archive-goodwin-1874-pdf",
+          "rank": 1,
+          "title_as_displayed": "On four songs contained in an Egyptian papyrus in the British Museum",
+          "result_url": "https://archive.org/details/onfoursongsconta00good",
+          "originating_record_url": "https://archive.org/metadata/onfoursongsconta00good",
+          "identifiers": [
+            {
+              "scheme": "Internet Archive",
+              "value": "onfoursongsconta00good"
+            },
+            {
+              "scheme": "ARK",
+              "value": "ark:/13960/t75t3xp8p"
+            },
+            {
+              "scheme": "Open Library Work",
+              "value": "OL15247338W"
+            },
+            {
+              "scheme": "Open Library Edition",
+              "value": "OL22888534M"
+            }
+          ],
+          "available_formats": [
+            "Text PDF",
+            "Grayscale PDF",
+            "DjVu",
+            "DjVuTXT"
+          ],
+          "declared_rights": {
+            "statement": "National Library of Scotland licenses this digital resource under Creative Commons Attribution-NonCommercial-ShareAlike 2.5 UK: Scotland; metadata also reports possible-copyright-status NOT_IN_COPYRIGHT.",
+            "scope": "digital-object",
+            "evidence_url": "https://archive.org/metadata/onfoursongsconta00good",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-download",
+          "machine_interface": "api",
+          "decision": "select",
+          "rationale": "The exact API record fixes Goodwin 1817-1878, 1874, National Library of Scotland provenance, 2009 scan event, explicit CC BY-NC-SA 2.5 Scotland license, exact PDF filename, 672,231-byte size, SHA-1, MD5, and 26-image source scan. The acquired 22-page PDF matches the reported SHA-1.",
+          "acquisition": {
+            "downloaded": true,
+            "acquired_at": "2026-08-30T06:03:30-06:00",
+            "byte_size": 672231,
+            "sha256": "71ca30507a61a791b503102b43c034aad08b45c5d78bbedf16043632add33675",
+            "event_ref": "tos.event.acquisition.goodwin-four-songs-1874-ia-nls-pdf.2026-08-30"
+          },
+          "snapshot": {
+            "state": "not-needed",
+            "format": null,
+            "sha256": null,
+            "reason": "The exact acquired PDF is the retained immutable source entity; metadata and license URLs remain external evidence."
+          }
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-national-library-scotland-rights-and-derivative",
+      "sequence": 8,
+      "channel_type": "national-catalog",
+      "role": "digital-object-record",
+      "source_name": "National Library of Scotland",
+      "endpoint_url": "https://www.nls.uk/tools-for-research/copyright/",
+      "interface_type": "web",
+      "interface_version": "copyright guide last updated 2026-02-17 and derivative checked 2026-08-30",
+      "exact_query": "Inspect current faithful-copy, digitisation, metadata, and CC0 policy; inspect alternate optimized PDF 80960789.23 without selecting byte-distinct duplicate.",
+      "queried_at": "2026-08-30T12:15:49.755822Z",
+      "elapsed_seconds": 0.949572,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.nls-goodwin-1874-alternate-pdf-and-current-rights",
+          "rank": 1,
+          "title_as_displayed": "Copyright guide | National Library of Scotland",
+          "result_url": "https://www.nls.uk/tools-for-research/copyright/",
+          "originating_record_url": "https://deriv.nls.uk/dcn23/8096/80960789.23.pdf",
+          "identifiers": [
+            {
+              "scheme": "NLS derivative path",
+              "value": "dcn23/8096/80960789.23.pdf"
+            }
+          ],
+          "available_formats": [
+            "rights HTML",
+            "optimized 22-page PDF, 669,069 bytes"
+          ],
+          "declared_rights": {
+            "statement": "Faithful copies have the same copyright status as the original; to the extent digitisation rights subsist, NLS waives them under CC0.",
+            "scope": "digital-object",
+            "evidence_url": "https://www.nls.uk/tools-for-research/copyright/",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-download",
+          "machine_interface": "html",
+          "decision": "reject",
+          "rationale": "The current institutional policy is positive secondary evidence and the optimized NLS PDF was technically checked, but it is byte-distinct from the already selected Internet Archive PDF. To avoid duplicate File identities, the alternate is not acquired into ToS; its exact URL, size, SHA-256, and policy remain recorded.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-captured",
+            "format": null,
+            "sha256": null,
+            "reason": "Byte-distinct optimized duplicate of the selected IA PDF; exact institutional rights evidence retained without a second repository payload."
+          }
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-british-library-goodwin-authority",
+      "sequence": 9,
+      "channel_type": "national-catalog",
+      "role": "originating-record",
+      "source_name": "British Library Archives and Manuscripts Catalogue",
+      "endpoint_url": "https://searcharchives.bl.uk/catalog/040-002033282",
+      "interface_type": "web",
+      "interface_version": "catalog record checked 2026-08-30",
+      "exact_query": "Charles Wycliffe Goodwin 1817-1878",
+      "queried_at": "2026-08-30T12:15:50.705605Z",
+      "elapsed_seconds": 0.990734,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.british-library-goodwin-1817-1878",
+          "rank": 1,
+          "title_as_displayed": "Add MS 64868 J — letters from Charles Wycliffe Goodwin (b.1817, d.1878)",
+          "result_url": "https://searcharchives.bl.uk/catalog/040-002033282",
+          "originating_record_url": "https://searcharchives.bl.uk/catalog/040-002033282",
+          "identifiers": [
+            {
+              "scheme": "British Library record",
+              "value": "040-002033282"
+            }
+          ],
+          "available_formats": [
+            "authority-bearing archival catalog HTML"
+          ],
+          "declared_rights": {
+            "statement": null,
+            "scope": "metadata",
+            "evidence_url": null,
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "metadata-only",
+          "machine_interface": "html",
+          "decision": "select",
+          "rationale": "The national-library archival record independently fixes Goodwin's life dates 1817-1878 for bounded bibliographic identity and term review; the archival letters themselves are outside this acquisition.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-captured",
+            "format": null,
+            "sha256": null,
+            "reason": "Authority metadata only; no archival content is required or licensed by this route."
+          }
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-general-web-final-gap-check",
+      "sequence": 10,
+      "channel_type": "general-web-search",
+      "role": "lead-only",
+      "source_name": "Google Search",
+      "endpoint_url": "https://www.google.com/search?q=%22Harpist%27s+Song%22+Intef+%22Papyrus+Harris+500%22+open+license",
+      "interface_type": "web",
+      "interface_version": "ordinary web search used last on 2026-08-30",
+      "exact_query": "\"Harpist's Song\" Intef \"Papyrus Harris 500\" open license",
+      "queried_at": "2026-08-30T12:15:51.696566Z",
+      "elapsed_seconds": 0.202208,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.general-web-duplicate-harpers-songs-routes",
+          "rank": 1,
+          "title_as_displayed": "Duplicate leads to British Museum, TLA, Open Library, Internet Archive, and NLS",
+          "result_url": "https://www.google.com/search?q=%22Harpist%27s+Song%22+Intef+%22Papyrus+Harris+500%22+open+license",
+          "originating_record_url": "https://www.britishmuseum.org/collection/object/Y_EA10060",
+          "identifiers": [],
+          "available_formats": [
+            "lead-only web results"
+          ],
+          "declared_rights": {
+            "statement": "Search snippets are not rights evidence.",
+            "scope": "unknown",
+            "evidence_url": null,
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-view",
+          "machine_interface": "html",
+          "decision": "defer",
+          "rationale": "The final gap check repeated already inspected originating, scholarly, and rights-bearing routes. It exposed modern translations and commentary without stronger standard-open licenses and supplied no additional exact byte object.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-needed",
+            "format": null,
+            "sha256": null,
+            "reason": "Search-engine output is a lead only; originating sources and exact payloads are retained instead."
+          }
+        }
+      ]
+    }
+  ],
+  "channel_comparison": [
+    {
+      "channel_id": "channel-k10plus-goodwin-originating-bibliography",
+      "completeness": "strong",
+      "metadata_precision": "strong",
+      "rights_clarity": "limited",
+      "machine_interface_quality": "strong",
+      "human_minutes": 0,
+      "machine_seconds": 0.809766,
+      "notes": "Best exact bibliographic identity for Goodwin 1874; no File-rights conclusion. Machine time is the automatic monotonic HTTP measurement; human_minutes=0 means no real-human review was performed."
+    },
+    {
+      "channel_id": "channel-british-museum-papyrus-harris-500",
+      "completeness": "strong",
+      "metadata_precision": "strong",
+      "rights_clarity": "strong",
+      "machine_interface_quality": "adequate",
+      "human_minutes": 0,
+      "machine_seconds": 0.661798,
+      "notes": "Best exact physical-object, passage-boundary, image-license, and acquired visual-File route. Machine time is the automatic monotonic HTTP measurement; human_minutes=0 means no real-human review was performed."
+    },
+    {
+      "channel_id": "channel-tla-harpist-song-text",
+      "completeness": "strong",
+      "metadata_precision": "strong",
+      "rights_clarity": "strong",
+      "machine_interface_quality": "adequate",
+      "human_minutes": 0,
+      "machine_seconds": 1.210829,
+      "notes": "Strongest versioned scholarly separation of object, text, surrounding units, and bibliography; corpus acquisition is license-limited. Machine time is the automatic monotonic HTTP measurement; human_minutes=0 means no real-human review was performed."
+    },
+    {
+      "channel_id": "channel-europeana-iiif-exact-search",
+      "completeness": "poor",
+      "metadata_precision": "poor",
+      "rights_clarity": "unknown",
+      "machine_interface_quality": "limited",
+      "human_minutes": 0,
+      "machine_seconds": 0.271739,
+      "notes": "No exact Papyrus Harris 500, Goodwin article, or IIIF manifest result preserved. Machine time is the automatic monotonic HTTP measurement; human_minutes=0 means no real-human review was performed."
+    },
+    {
+      "channel_id": "channel-trismegistos-identifier",
+      "completeness": "limited",
+      "metadata_precision": "strong",
+      "rights_clarity": "unknown",
+      "machine_interface_quality": "limited",
+      "human_minutes": 0,
+      "machine_seconds": 0.323431,
+      "notes": "Stable identifier corroborated elsewhere; no TLS bypass and no direct content claim. Machine time is the automatic monotonic HTTP measurement; human_minutes=0 means no real-human review was performed."
+    },
+    {
+      "channel_id": "channel-open-library-goodwin-edition",
+      "completeness": "adequate",
+      "metadata_precision": "strong",
+      "rights_clarity": "poor",
+      "machine_interface_quality": "strong",
+      "human_minutes": 0,
+      "machine_seconds": 0.384341,
+      "notes": "Exact Work, Edition, and Internet Archive binding; no independent File-rights statement. Machine time is the automatic monotonic HTTP measurement; human_minutes=0 means no real-human review was performed."
+    },
+    {
+      "channel_id": "channel-internet-archive-goodwin-digital-object",
+      "completeness": "strong",
+      "metadata_precision": "strong",
+      "rights_clarity": "strong",
+      "machine_interface_quality": "strong",
+      "human_minutes": 0,
+      "machine_seconds": 0.568386,
+      "notes": "Exact licensed PDF acquisition route with source institution, scan event, filename, size, SHA-1, and license. Machine time is the automatic monotonic HTTP measurement; human_minutes=0 means no real-human review was performed."
+    },
+    {
+      "channel_id": "channel-national-library-scotland-rights-and-derivative",
+      "completeness": "strong",
+      "metadata_precision": "strong",
+      "rights_clarity": "strong",
+      "machine_interface_quality": "adequate",
+      "human_minutes": 0,
+      "machine_seconds": 0.949572,
+      "notes": "Current institutional faithful-copy and CC0 digitisation policy plus an exact byte-distinct duplicate rejected from repository acquisition. Machine time is the automatic monotonic HTTP measurement; human_minutes=0 means no real-human review was performed."
+    },
+    {
+      "channel_id": "channel-british-library-goodwin-authority",
+      "completeness": "adequate",
+      "metadata_precision": "strong",
+      "rights_clarity": "limited",
+      "machine_interface_quality": "adequate",
+      "human_minutes": 0,
+      "machine_seconds": 0.990734,
+      "notes": "Independent national-library life-date evidence for agent identity and term review. Machine time is the automatic monotonic HTTP measurement; human_minutes=0 means no real-human review was performed."
+    },
+    {
+      "channel_id": "channel-general-web-final-gap-check",
+      "completeness": "limited",
+      "metadata_precision": "limited",
+      "rights_clarity": "poor",
+      "machine_interface_quality": "limited",
+      "human_minutes": 0,
+      "machine_seconds": 0.202208,
+      "notes": "Final lead-only check repeated stronger sources and added no reusable exact object. Machine time is the automatic monotonic HTTP measurement; human_minutes=0 means no real-human review was performed."
+    }
+  ],
+  "selected_result_ids": [
+    "tos-discovery-result.k10plus-goodwin-1874-ppn-1894019164",
+    "tos-discovery-result.british-museum-papyrus-harris-500-ea10060",
+    "tos-discovery-result.british-museum-ea10060-image-20450001",
+    "tos-discovery-result.british-museum-ea10060-image-20451001",
+    "tos-discovery-result.british-museum-ea10060-image-20452001",
+    "tos-discovery-result.british-museum-ea10060-image-20453001",
+    "tos-discovery-result.tla-papyrus-harris-500-recto-6-7",
+    "tos-discovery-result.trismegistos-text-380901",
+    "tos-discovery-result.open-library-goodwin-ol24821288m",
+    "tos-discovery-result.internet-archive-goodwin-1874-pdf",
+    "tos-discovery-result.british-library-goodwin-1817-1878"
+  ],
+  "rejected_result_ids": [
+    "tos-discovery-result.nls-goodwin-1874-alternate-pdf-and-current-rights"
+  ],
+  "rights_inference_from_availability_prohibited": true,
+  "general_web_search_is_last_resort": true,
+  "technical_access_bypass_used": false,
+  "maker": {
+    "maker_type": "mixed",
+    "agent_ref": "model:codex + software:python"
+  },
+  "started_at": "2026-08-30T12:15:45.524091Z",
+  "ended_at": "2026-08-30T12:15:51.898794Z",
+  "status": "reconciled",
+  "provenance_event_refs": [
+    "tos.event.acquisition.harpers-songs-papyrus-harris-500-bm-images.2026-08-30",
+    "tos.event.acquisition.goodwin-four-songs-1874-ia-nls-pdf.2026-08-30",
+    "tos.event.discovery.harpers-songs-open-work-route.2026-08-30"
+  ],
+  "record_version": 1,
+  "supersedes_discovery_ref": null
+}

@@ -60,6 +60,40 @@
           "captured": false
         }
       ]
+    },
+    {
+      "provider": "Electronic Text Corpus of Sumerian Royal Inscriptions at Oracc",
+      "representation_role": "composite_edition",
+      "record_id": "ETCSRI Q000613 / RIME 4.01.05.add10",
+      "record_url": "https://oracc.museum.upenn.edu/etcsri/Q000613",
+      "api_url": null,
+      "checked_at": "2026-08-30T02:20:17-06:00",
+      "mutable": true,
+      "response_fingerprints": [
+        {
+          "surface": "https://oracc.museum.upenn.edu//etcsri/Q000613/html",
+          "byte_size": 56318,
+          "sha256": "d5fea8eab41c2570a32d69cff978dada64a905c13a6f3bd35f67ba272501f5f6",
+          "captured": false
+        }
+      ]
+    },
+    {
+      "provider": "Czasopismo Prawno-Historyczne / Adam Mickiewicz University PRESSto",
+      "representation_role": "composite_edition",
+      "record_id": "DOI 10.14746/cph.2022.2.2",
+      "record_url": "https://pressto.amu.edu.pl/index.php/cph/article/view/36386",
+      "api_url": null,
+      "checked_at": "2026-08-30T02:25:26-06:00",
+      "mutable": true,
+      "response_fingerprints": [
+        {
+          "surface": "https://pressto.amu.edu.pl/index.php/cph/article/download/36386/31112",
+          "byte_size": 236010,
+          "sha256": "61c2539463b95c791d0a41d004c5b901f6d145f15d25355041f73b364e47aadc",
+          "captured": false
+        }
+      ]
     }
   ],
   "member_observations": [
@@ -98,17 +132,24 @@
       "CDLI composite HTML",
       "CDLI ATF revision",
       "CDLI JSON witness array",
-      "critical-edition metadata"
+      "critical-edition metadata",
+      "ETCSRI static annotated Sumerian HTML",
+      "Mikołajczak 2022 Polish translation and study PDF"
     ],
-    "availability": "open_view",
+    "availability": "open_download",
     "content_stored": false,
     "source_text_admitted": false,
     "source_refs": [
       "https://cdli.earth/artifacts/464355",
       "https://cdli.earth/artifacts/464355/json",
-      "https://cdli.earth/inscriptions/2269336"
+      "https://cdli.earth/inscriptions/2269336",
+      "https://oracc.museum.upenn.edu/etcsri/Q000613",
+      "https://oracc.museum.upenn.edu//etcsri/Q000613/html",
+      "https://oracc.museum.upenn.edu/etcsri/accesskeys/",
+      "https://pressto.amu.edu.pl/index.php/cph/article/view/36386",
+      "https://doi.org/10.14746/cph.2022.2.2"
     ],
-    "scope_note": "The current digital representation and critical-edition lineage remain modern editorial layers. This packet records identity, version, one exact member, and dated coverage only; no reconstructed text or translation is admitted."
+    "scope_note": "The current digital representations and critical-edition lineage remain modern editorial layers. This tracked composite packet remains metadata-only. Two exact Files are frozen separately under representations/: ETCSRI Q000613 annotated HTML under CC BY-SA 3.0 and Mikołajczak's Polish translation/study PDF under CC BY-SA 4.0. Neither File is admitted source text, accepted translation, legal interpretation, semantic fact, or canon."
   },
   "layer_separation": {
     "composite_is_physical_artifact": false,
@@ -120,9 +161,9 @@
     "composite_is_philosophy": false
   },
   "rights_ref": "ToS/source-witnesses/scholarly-composites/critical/sumerian/laws-of-lipit-ishtar/rights.json",
-  "discovery_ref": "ToS/source-witnesses/discovery/runs/mesopotamian-law-collections.2026-08-22.v1.json",
-  "provenance_event_ref": "tos.event.discovery.mesopotamian-law-collections.2026-08-22",
-  "research_ref": "ToS/research-packets/foundation-laboratory-2026-07/A02_MESOPOTAMIAN_LAW_COLLECTIONS_SOURCE_PLANTING_RESEARCH_2026-08-22.md",
+  "discovery_ref": "ToS/source-witnesses/discovery/runs/laws-of-lipit-ishtar-open-work-route.2026-08-30.v1.json",
+  "provenance_event_ref": "tos.event.discovery.laws-of-lipit-ishtar-open-work-route.2026-08-30",
+  "research_ref": "ToS/research-packets/foundation-laboratory-2026-07/A02_LAWS_OF_LIPIT_ISHTAR_OPEN_WORK_ACQUISITION_2026-08-30.md",
   "philosophy_planting_refs": [
     "ToS/philosophy/eras/bronze-age/regions/west-asia/traditions/old-babylonian-scribal-wisdom-law/sources/plantings/laws-of-lipit-ishtar-composite/source-planting.json"
   ],
@@ -142,5 +183,5 @@
     "human_review_performed": false
   },
   "created_at": "2026-08-22T22:43:00-06:00",
-  "record_version": 1
+  "record_version": 2
 }

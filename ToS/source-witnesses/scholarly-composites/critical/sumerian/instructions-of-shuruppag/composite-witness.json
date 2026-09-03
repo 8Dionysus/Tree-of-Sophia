@@ -77,6 +77,18 @@
         {"surface": "https://etcsl.orinst.ox.ac.uk/section5/tr561.htm", "byte_size": 24534, "sha256": "577cff6444b6a3f2176d608fc61868b2654084e49b938edff2af5e0ce3789d7c", "captured": false},
         {"surface": "https://etcsl.orinst.ox.ac.uk/section5/b561.htm", "byte_size": 6305, "sha256": "207c0df7f0a7b011c37c7fbdae737cc9c284128295a8a1823c701c8523249f25", "captured": false}
       ]
+    },
+    {
+      "provider": "Oxford Text Archive",
+      "representation_role": "composite_edition",
+      "record_id": "ota:2518, members c.5.6.1.xml and t.5.6.1.xml",
+      "record_url": "https://ota.bodleian.ox.ac.uk/repository/xmlui/handle/20.500.12024/2518",
+      "api_url": null,
+      "checked_at": "2026-08-30T01:37:00-06:00",
+      "mutable": true,
+      "response_fingerprints": [
+        {"surface": "https://ota.bodleian.ox.ac.uk/repository/xmlui/handle/20.500.12024/2518", "byte_size": 115927, "sha256": "c8da4e7eec49b883b5fe9617f71e23e846cf4911d4afdc6bf575e2944f111519", "captured": false}
+      ]
     }
   ],
   "member_observations": [
@@ -123,8 +135,8 @@
   ],
   "content_layer": {
     "role": "modern_scholarly_composite",
-    "formats": ["CDLI score HTML", "CDLI ATF revision", "CDLI JSON witness array", "ETCSL composite transliteration HTML", "ETCSL English translation HTML"],
-    "availability": "open_view",
+    "formats": ["CDLI score HTML", "CDLI ATF revision", "CDLI JSON witness array", "ETCSL composite transliteration HTML", "ETCSL English translation HTML", "OTA composite transliteration XML", "OTA English translation XML"],
+    "availability": "open_download",
     "content_stored": false,
     "source_text_admitted": false,
     "source_refs": [
@@ -132,9 +144,10 @@
       "https://cdli.earth/inscriptions/2252483",
       "https://cdli.earth/artifacts/478969/json",
       "https://etcsl.orinst.ox.ac.uk/section5/c561.htm",
-      "https://etcsl.orinst.ox.ac.uk/section5/tr561.htm"
+      "https://etcsl.orinst.ox.ac.uk/section5/tr561.htm",
+      "https://ota.bodleian.ox.ac.uk/repository/xmlui/handle/20.500.12024/2518"
     ],
-    "scope_note": "The providers expose modern editorial text, alignments, variants, and translation. This tracked packet retains identity, fingerprints, counts, and member relations only; it does not accept, freeze, or publish their content."
+    "scope_note": "The providers expose modern editorial text, alignments, variants, and translation. This tracked composite packet remains metadata-only; two exact OTA 2518 Files are now frozen separately under representations/, with their own fixity and CC BY-NC-SA 3.0 rights records, and are not accepted source text or translation."
   },
   "layer_separation": {
     "composite_is_physical_artifact": false,
@@ -146,9 +159,9 @@
     "composite_is_philosophy": false
   },
   "rights_ref": "ToS/source-witnesses/scholarly-composites/critical/sumerian/instructions-of-shuruppag/rights.json",
-  "discovery_ref": "ToS/source-witnesses/discovery/runs/old-babylonian-instructions-of-shuruppag.2026-08-22.v1.json",
-  "provenance_event_ref": "tos.event.discovery.old-babylonian-instructions-of-shuruppag.2026-08-22",
-  "research_ref": "ToS/research-packets/foundation-laboratory-2026-07/A02_INSTRUCTIONS_OF_SHURUPPAG_SOURCE_PLANTING_RESEARCH_2026-08-22.md",
+  "discovery_ref": "ToS/source-witnesses/discovery/runs/instructions-of-shuruppag-open-work-route.2026-08-30.v1.json",
+  "provenance_event_ref": "tos.event.discovery.instructions-of-shuruppag-open-work-route.2026-08-30",
+  "research_ref": "ToS/research-packets/foundation-laboratory-2026-07/A02_INSTRUCTIONS_OF_SHURUPPAG_OPEN_WORK_ACQUISITION_2026-08-30.md",
   "philosophy_planting_refs": ["ToS/philosophy/eras/bronze-age/regions/west-asia/traditions/old-babylonian-scribal-wisdom-law/sources/plantings/instructions-of-shuruppag-composite/source-planting.json"],
   "authority": {
     "evidence_status": "metadata_witness",
@@ -162,5 +175,5 @@
   },
   "maker": {"maker_type": "model", "agent_ref": "model:codex", "human_review_performed": false},
   "created_at": "2026-08-22T22:00:00-06:00",
-  "record_version": 1
+  "record_version": 2
 }

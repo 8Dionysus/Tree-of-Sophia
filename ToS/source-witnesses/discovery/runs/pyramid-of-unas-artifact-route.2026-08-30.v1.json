@@ -1,0 +1,193 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/material-discovery-record.schema.json",
+  "schema_version": "tos_material_discovery_record_v1",
+  "discovery_id": "tos.discovery.pyramid-of-unas-artifact-route.2026-08-30.v1",
+  "protocol_ref": "ToS/source-witnesses/discovery/DISCOVERY_PROTOCOL.md",
+  "target": {
+    "target_kind": "artifact",
+    "known_tos_refs": [
+      "tos.artifact.egyptian.saqqara.pyramid-of-unas"
+    ],
+    "description": "Resolve the in-situ Pyramid of Unas as one physical inscription-bearing artifact independently from the modern Pyramid Texts corpus, Sethe edition, TLA text record, and any digital representation.",
+    "required_properties": [
+      "provider-independent physical identity",
+      "Saqqara in-situ custody posture",
+      "reported earliest surviving Pyramid Texts witness status",
+      "exact TLA member record",
+      "no image, inscription text, translation, semantic, canon, or publication admission"
+    ],
+    "acceptable_substitutions": [
+      "an Egyptian antiquities authority record for the same monument",
+      "an exact scholarly monument record preserving chamber and inscription boundaries"
+    ],
+    "languages": [
+      "egy",
+      "en"
+    ],
+    "formats": [
+      "monument metadata",
+      "scholarly corpus record",
+      "bibliographic reference"
+    ],
+    "purpose_ref": "ToS/research-packets/foundation-laboratory-2026-07/A05_PYRAMID_TEXTS_OPEN_WORK_DISCOVERY_AND_RIGHTS_ROUTE_2026-08-30.md"
+  },
+  "channels": [
+    {
+      "channel_id": "channel-ucl-digital-egypt",
+      "sequence": 1,
+      "channel_type": "university-catalog",
+      "role": "originating-record",
+      "source_name": "UCL Digital Egypt for Universities",
+      "endpoint_url": "https://www.ucl.ac.uk/museums-static/digitalegypt/literature/religious/pyramid.html",
+      "interface_type": "web",
+      "interface_version": "static scholarly page checked 2026-08-30",
+      "exact_query": "Inspect the Pyramid Texts overview for the earliest surviving Unas witness, named royal pyramids, physical monument context, later transmission, and Sethe bibliography; do not copy page content as an open payload.",
+      "queried_at": "2026-08-30T08:13:16.195064Z",
+      "elapsed_seconds": 1.424985,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.ucl-pyramid-of-unas-artifact",
+          "rank": 1,
+          "title_as_displayed": "Pyramid texts — earliest surviving example in the pyramid of Unas",
+          "result_url": "https://www.ucl.ac.uk/museums-static/digitalegypt/literature/religious/pyramid.html",
+          "originating_record_url": "https://www.ucl.ac.uk/museums-static/digitalegypt/literature/religious/pyramid.html",
+          "identifiers": [
+            {
+              "scheme": "monument name",
+              "value": "Pyramid of Unas"
+            }
+          ],
+          "available_formats": [
+            "scholarly monument and corpus overview"
+          ],
+          "declared_rights": {
+            "statement": null,
+            "scope": "content",
+            "evidence_url": null,
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-view",
+          "machine_interface": "html",
+          "decision": "select",
+          "rationale": "The source establishes the physical Unas monument as the earliest surviving named member witness in this modern corpus framing, without authorizing a content payload.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-needed",
+            "format": null,
+            "sha256": null,
+            "reason": "Bounded attributed metadata is sufficient for the physical identity route."
+          }
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-tla-unas-member",
+      "sequence": 2,
+      "channel_type": "specialized-scholarly-project",
+      "role": "digital-object-record",
+      "source_name": "Thesaurus Linguae Aegyptiae",
+      "endpoint_url": "https://thesaurus-linguae-aegyptiae.de/text/FZQ6IM7ENFHHROXB2W6PTYMXNE?lang=en",
+      "interface_type": "web",
+      "interface_version": "exact TLA record checked 2026-08-30",
+      "exact_query": "Open exact TLA text FZQ6IM7ENFHHROXB2W6PTYMXNE (PT 217), verify the Unas witness hierarchy and Sethe bibliography, and preserve TLA reuse limits without acquiring text.",
+      "queried_at": "2026-08-30T08:13:17.620186Z",
+      "elapsed_seconds": 0.985767,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.tla-pt217-unas-artifact-member",
+          "rank": 1,
+          "title_as_displayed": "PT 217 — Unas witness hierarchy",
+          "result_url": "https://thesaurus-linguae-aegyptiae.de/text/FZQ6IM7ENFHHROXB2W6PTYMXNE?lang=en",
+          "originating_record_url": "https://thesaurus-linguae-aegyptiae.de/text/FZQ6IM7ENFHHROXB2W6PTYMXNE?lang=en",
+          "identifiers": [
+            {
+              "scheme": "TLA text",
+              "value": "FZQ6IM7ENFHHROXB2W6PTYMXNE"
+            },
+            {
+              "scheme": "Pyramid Text",
+              "value": "PT 217"
+            }
+          ],
+          "available_formats": [
+            "text hierarchy metadata",
+            "scholarly text view"
+          ],
+          "declared_rights": {
+            "statement": "TLA permits use within its stated scholarly terms but does not provide the open object license required for acquisition in this run.",
+            "scope": "content",
+            "evidence_url": "https://thesaurus-linguae-aegyptiae.de/info/licenses",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-view",
+          "machine_interface": "html",
+          "decision": "select",
+          "rationale": "The exact record corroborates a bounded Unas inscription member and bibliography; no inscription text or digital representation was acquired.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-permitted",
+            "format": null,
+            "sha256": null,
+            "reason": "The run uses metadata and hierarchy only under TLA's bounded terms."
+          }
+        }
+      ]
+    }
+  ],
+  "channel_comparison": [
+    {
+      "channel_id": "channel-ucl-digital-egypt",
+      "completeness": "adequate",
+      "metadata_precision": "adequate",
+      "rights_clarity": "limited",
+      "machine_interface_quality": "adequate",
+      "human_minutes": 0,
+      "machine_seconds": 1.424985,
+      "notes": "Best physical-monument context in the bounded run; machine timing is replaced by the monotonic receipt. Machine time is the automatic monotonic HTTP measurement; human_minutes=0 means no real-human review was performed."
+    },
+    {
+      "channel_id": "channel-tla-unas-member",
+      "completeness": "strong",
+      "metadata_precision": "strong",
+      "rights_clarity": "adequate",
+      "machine_interface_quality": "adequate",
+      "human_minutes": 0,
+      "machine_seconds": 0.985767,
+      "notes": "Best exact inscription-member hierarchy; content remains unacquired. Machine time is the automatic monotonic HTTP measurement; human_minutes=0 means no real-human review was performed."
+    }
+  ],
+  "selected_result_ids": [
+    "tos-discovery-result.ucl-pyramid-of-unas-artifact",
+    "tos-discovery-result.tla-pt217-unas-artifact-member"
+  ],
+  "rejected_result_ids": [],
+  "rights_inference_from_availability_prohibited": true,
+  "general_web_search_is_last_resort": true,
+  "technical_access_bypass_used": false,
+  "maker": {
+    "maker_type": "model",
+    "agent_ref": "codex:open-work-loop-20260829"
+  },
+  "started_at": "2026-08-30T08:13:16.195064Z",
+  "ended_at": "2026-08-30T08:13:18.605964Z",
+  "status": "reconciled",
+  "provenance_event_refs": [
+    "tos.event.discovery.pyramid-of-unas-artifact-route.2026-08-30"
+  ],
+  "record_version": 1,
+  "supersedes_discovery_ref": null
+}

@@ -1,0 +1,76 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://tree-of-sophia.local/ToS/contracts/open-work-channel-timing-receipt.schema.json",
+  "title": "Tree of Sophia open-work channel timing receipt",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "$schema",
+    "schema_version",
+    "timing_id",
+    "discovery_ref",
+    "discovery_id",
+    "measured_at",
+    "measurements",
+    "claim_limit",
+    "record_version"
+  ],
+  "properties": {
+    "$schema": {"const": "https://tree-of-sophia.local/ToS/contracts/open-work-channel-timing-receipt.schema.json"},
+    "schema_version": {"const": "tos_open_work_channel_timing_receipt_v1"},
+    "timing_id": {"type": "string", "pattern": "^open-work-channel-timing\\.[a-z0-9]+(?:[.-][a-z0-9]+)*$"},
+    "discovery_ref": {"type": "string", "pattern": "^ToS/source-witnesses/discovery/runs/.+\\.json$"},
+    "discovery_id": {"type": "string", "pattern": "^tos\\.discovery\\.[a-z0-9]+(?:[.-][a-z0-9]+)*$"},
+    "measured_at": {"type": "string", "format": "date-time"},
+    "measurements": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["channel_id", "measurement"],
+        "properties": {
+          "channel_id": {"type": "string", "minLength": 1},
+          "measurement": {"$ref": "#/$defs/measurement"}
+        }
+      }
+    },
+    "claim_limit": {"const": "monotonic transport timing through the first 16384 response bytes only; not research, interpretation, rights-review, or human elapsed time"},
+    "record_version": {"type": "integer", "minimum": 1}
+  },
+  "$defs": {
+    "measurement": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "method",
+        "clock",
+        "timing_scope",
+        "probe_url",
+        "started_at",
+        "ended_at",
+        "elapsed_seconds",
+        "outcome",
+        "http_status",
+        "response_bytes_observed"
+      ],
+      "properties": {
+        "method": {"const": "monotonic-http-request-v1"},
+        "clock": {"const": "python.time.perf_counter_ns"},
+        "timing_scope": {"const": "request-through-first-16384-response-bytes"},
+        "probe_url": {"type": "string", "format": "uri"},
+        "started_at": {"type": "string", "format": "date-time"},
+        "ended_at": {"type": "string", "format": "date-time"},
+        "elapsed_seconds": {"type": "number", "exclusiveMinimum": 0},
+        "outcome": {"enum": ["success", "http-error", "transport-error"]},
+        "http_status": {
+          "anyOf": [
+            {"type": "integer", "minimum": 100, "maximum": 599},
+            {"type": "null"}
+          ]
+        },
+        "response_bytes_observed": {"type": "integer", "minimum": 0}
+      }
+    }
+  }
+}

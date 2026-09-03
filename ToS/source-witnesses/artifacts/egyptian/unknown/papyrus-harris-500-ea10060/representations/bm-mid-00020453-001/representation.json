@@ -1,0 +1,23 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/artifact-visual-representation.schema.json",
+  "schema_version": "tos_artifact_visual_representation_v1",
+  "file_id": "tos.file.sha256.646f4c505dcbc43691f81c5551cc6793be537579a0407b9c1da0bafa3ff278ba",
+  "artifact_id": "tos.artifact.egyptian.unknown.papyrus-harris-500-ea10060",
+  "artifact_ref": "ToS/source-witnesses/artifacts/egyptian/unknown/papyrus-harris-500-ea10060/artifact-witness.json",
+  "layer_kind": "photograph",
+  "view_label": "British Museum recto-context image 20453001; fourth of four retained adjoining frames around the reported recto 7.3 boundary",
+  "provider_records": [
+    {"provider": "British Museum Collection Online", "role": "originating-record", "record_url": "https://www.britishmuseum.org/collection/object/Y_EA10060", "api_url": null, "checked_at": "2026-08-30T06:24:00-06:00", "response_fingerprint": {"byte_size": 200106, "sha256": "b26f2bdfc5b903d4c8f3cc38a4142b3edc20e99fa15f214047225926482a6479", "captured": false}},
+    {"provider": "British Museum image-use service", "role": "aggregator-file-record", "record_url": "https://www.britishmuseum.org/collection/image/20453001", "api_url": null, "checked_at": "2026-08-30T06:24:00-06:00", "response_fingerprint": {"byte_size": 146467, "sha256": "563eaa57f51e95beb3413f61529ba2b24800263782619bb7a31f3d1a762eed1c", "captured": false}}
+  ],
+  "acquisition": {"source_url": "https://media.britishmuseum.org/media/Repository/Documents/2014_9/30_15/875755e2_4fc9_4e60_a347_a3b60105e9bd/mid_00020453_001.jpg", "acquired_at": "2026-08-30T06:05:00-06:00", "transport": "https", "technical_access_bypass_used": false, "operator_authorization_ref": "operator-directive:2026-08-29-download-open-work-priority", "host_preflight_decision": "deny-protected-project-root", "host_preflight_scope": "machine-owned-storage-automation-only"},
+  "payload": {"relative_path": "payload/mid_00020453_001.jpg", "original_basename": "mid_00020453_001.jpg", "media_type": "image/jpeg", "byte_size": 405220, "sha256": "646f4c505dcbc43691f81c5551cc6793be537579a0407b9c1da0bafa3ff278ba", "source_sha1": "62d6fe33144776abf84a2d2ea132c577dc6e1f43", "width_pixels": 1000, "height_pixels": 1000, "storage_posture": "tracked_public_payload", "git_tracked": true, "fixity_verified_at": "2026-08-30T06:20:00-06:00"},
+  "rights_ref": "ToS/source-witnesses/artifacts/egyptian/unknown/papyrus-harris-500-ea10060/representations/bm-mid-00020453-001/rights.json",
+  "discovery_ref": "ToS/source-witnesses/discovery/runs/harpers-songs-papyrus-harris-500-artifact.2026-08-30.v1.json",
+  "provenance_event_ref": "tos.event.acquisition.harpers-songs-papyrus-harris-500-bm-images.2026-08-30",
+  "layer_separation": {"visual_is_physical_artifact": false, "visual_is_catalog_record": false, "visual_is_transcription": false, "embedded_text_admitted": false, "same_bytes_as_originating_provider_asserted": false},
+  "authority": {"evidence_status": "visual_source_witness", "review_status": "unreviewed", "visibility": "public_payload", "source_text_admitted": false, "semantic_authority": false, "graph_authority": false, "canon_authority": false, "publication_authority": false},
+  "maker": {"maker_type": "model", "agent_ref": "model:codex", "human_review_performed": false},
+  "created_at": "2026-08-30T06:24:00-06:00",
+  "record_version": 1
+}

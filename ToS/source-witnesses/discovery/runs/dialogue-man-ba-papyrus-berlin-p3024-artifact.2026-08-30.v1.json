@@ -1,0 +1,366 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/material-discovery-record.schema.json",
+  "schema_version": "tos_material_discovery_record_v1",
+  "discovery_id": "tos.discovery.dialogue-man-ba-papyrus-berlin-p3024-artifact.2026-08-30.v1",
+  "protocol_ref": "ToS/source-witnesses/discovery/DISCOVERY_PROTOCOL.md",
+  "target": {
+    "target_kind": "artifact",
+    "known_tos_refs": [
+      "tos.artifact.egyptian.unknown.papyrus-berlin-p3024"
+    ],
+    "description": "Fix the physical identity of P. Berlin 3024 and its historical Lepsius plates while keeping current P 3024/C mounting, P. Amherst III, Mallorca fragments, scholarly aggregate, composition, facsimile, inscription, reconstruction, translation, and exact File separate.",
+    "required_properties": [
+      "provider-independent P. Berlin 3024 identity",
+      "current SMB component retained without complete-manuscript extrapolation",
+      "two exact CC BY 4.0 historical facsimile Files",
+      "reported joins remain unreviewed",
+      "no source-text or semantic admission"
+    ],
+    "acceptable_substitutions": [
+      "exact official holding record plus independently identified open-license facsimile",
+      "rights-insufficient artifact receipt"
+    ],
+    "languages": [
+      "egy",
+      "de",
+      "en"
+    ],
+    "formats": [
+      "museum object metadata",
+      "specialized scholarly object metadata",
+      "IIIF manifest",
+      "historical line-art facsimile",
+      "JPEG",
+      "provider rights statement"
+    ],
+    "purpose_ref": "ToS/research-packets/foundation-laboratory-2026-07/A05_DIALOGUE_BETWEEN_A_MAN_AND_HIS_BA_OPEN_WORK_ACQUISITION_2026-08-30.md"
+  },
+  "channels": [
+    {
+      "channel_id": "channel-smb-p3024c-holding-artifact",
+      "sequence": 1,
+      "channel_type": "university-catalog",
+      "role": "originating-record",
+      "source_name": "Staatliche Museen zu Berlin Collection Online",
+      "endpoint_url": "https://search.smb.museum/object/obj-1388678",
+      "interface_type": "web",
+      "interface_version": "object page updated 2026-08-04 and checked 2026-08-30",
+      "exact_query": "Open stable object obj:1388678 / P 3024/C and inspect identity, date, material, dimensions, provenance, permalink, and image availability.",
+      "queried_at": "2026-08-30T16:00:20.364770Z",
+      "elapsed_seconds": 0.785924,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.smb-p3024c-obj-1388678-artifact-route",
+          "rank": 1,
+          "title_as_displayed": "Hieratischer Papyrus, Streitgespräch eines Lebensmüden mit seiner Seele — P 3024/C",
+          "result_url": "https://search.smb.museum/object/obj-1388678",
+          "originating_record_url": "https://id.smb.museum/object/1388678",
+          "identifiers": [
+            {
+              "scheme": "SMB inventory",
+              "value": "P 3024/C"
+            },
+            {
+              "scheme": "SMB object ID",
+              "value": "obj:1388678"
+            }
+          ],
+          "available_formats": [
+            "museum object HTML",
+            "stable object permalink",
+            "no object images exposed in the checked record"
+          ],
+          "declared_rights": {
+            "statement": null,
+            "scope": "metadata",
+            "evidence_url": null,
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "metadata-only",
+          "machine_interface": "html",
+          "decision": "select",
+          "rationale": "The museum fixes one current mounted component, Amenemhat III dating label, unknown provenance, papyrus material, and 16.4 x 47.6 x 0.02 cm dimensions. It does not prove the complete P 3024 extent, image rights, or equivalence to a Lepsius plate.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-captured",
+            "format": null,
+            "sha256": null,
+            "reason": "Mutable museum HTML is represented by bounded facts, fingerprint, and exact permalink."
+          }
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-tla-dialogue-object-and-text-artifact",
+      "sequence": 2,
+      "channel_type": "specialized-scholarly-project",
+      "role": "scholarly-index",
+      "source_name": "Thesaurus Linguae Aegyptiae",
+      "endpoint_url": "https://tla.digital/object/N3YSOH4QK5EINPHSB5F2WSDRXI",
+      "interface_type": "web",
+      "interface_version": "Corpus edition 20; Web app 2.5.1; checked 2026-08-30",
+      "exact_query": "Open object N3YSOH4QK5EINPHSB5F2WSDRXI and subordinate text XZIG534KFVGODK6N7G5RP7SSDE; inspect hierarchy, locations, dating, bibliography, authoring protocol, and licenses.",
+      "queried_at": "2026-08-30T16:00:21.150851Z",
+      "elapsed_seconds": 15.310813,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.tla-pamherst3-pberlin3024-artifact-route",
+          "rank": 1,
+          "title_as_displayed": "pAmherst 3 + pBerlin P 3024",
+          "result_url": "https://tla.digital/object/N3YSOH4QK5EINPHSB5F2WSDRXI",
+          "originating_record_url": "https://tla.digital/object/N3YSOH4QK5EINPHSB5F2WSDRXI",
+          "identifiers": [
+            {
+              "scheme": "TLA object ID",
+              "value": "N3YSOH4QK5EINPHSB5F2WSDRXI"
+            },
+            {
+              "scheme": "TLA text ID",
+              "value": "XZIG534KFVGODK6N7G5RP7SSDE"
+            },
+            {
+              "scheme": "TLA collective caption ID",
+              "value": "S6UTHJ6U3BHVNKYPVKWR2J4BNM"
+            }
+          ],
+          "available_formats": [
+            "versioned scholarly HTML",
+            "bibliography",
+            "sentence hierarchy"
+          ],
+          "declared_rights": {
+            "statement": "Individual data sets may be quoted for academic research, but entire subcorpora or larger sets above ten pages may not be copied; broader free-license raw-data publication is still being prepared.",
+            "scope": "content",
+            "evidence_url": "https://tla.digital/info/licenses",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-view",
+          "machine_interface": "html",
+          "decision": "select",
+          "rationale": "TLA provides the strongest current object/text separation, custody and dating evidence, names Lepsius plates 111-112 for pBerlin P 3024, and records modern bibliography. Its aggregate pAmherst-plus-pBerlin object is not silently adopted as physical identity, and no TLA text bytes were stored.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-permitted",
+            "format": null,
+            "sha256": null,
+            "reason": "Current scientific-data terms do not support reusable bulk corpus acquisition; bounded facts and links only."
+          }
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-utokyo-lepsius-iiif-artifact",
+      "sequence": 3,
+      "channel_type": "collection-aggregator",
+      "role": "digital-object-record",
+      "source_name": "University of Tokyo Digital Archive / U-PARL IIIF",
+      "endpoint_url": "https://da.dl.itc.u-tokyo.ac.jp/portal/repo/iiif/11e8e95e-93a7-8803-2093-7ad447b26ce7/manifest",
+      "interface_type": "iiif",
+      "interface_version": "IIIF Presentation API 2 and Image API 2 level 2 checked 2026-08-30",
+      "exact_query": "Open UTokyo object 11e8e95e-93a7-8803-2093-7ad447b26ce7; inspect all 63 canvases; map filenames 0045 and 0046 to source-visible Lepsius plates 111 and 112; verify manifest license, JSON-LD dcterms:license, Image info dimensions, and full/max JPEG endpoints.",
+      "queried_at": "2026-08-30T16:00:36.461767Z",
+      "elapsed_seconds": 20.981907,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.utokyo-lepsius-band-12-artifact-route",
+          "rank": 1,
+          "title_as_displayed": "Denkmaeler aus Aegypten und Aethiopien. Band 12",
+          "result_url": "https://da.dl.itc.u-tokyo.ac.jp/portal/en/assets/11e8e95e-93a7-8803-2093-7ad447b26ce7",
+          "originating_record_url": "https://iiif.dl.itc.u-tokyo.ac.jp/repo/s/asia/document/11e8e95e-93a7-8803-2093-7ad447b26ce7",
+          "identifiers": [
+            {
+              "scheme": "UTokyo digital object",
+              "value": "11e8e95e-93a7-8803-2093-7ad447b26ce7"
+            }
+          ],
+          "available_formats": [
+            "JSON-LD metadata",
+            "63-canvas IIIF manifest",
+            "level-2 IIIF images"
+          ],
+          "declared_rights": {
+            "statement": "The object JSON-LD declares CC BY 4.0; the institutional reuse page permits download, reproduction, modification, non-commercial and commercial reuse with attribution and change notice.",
+            "scope": "digital-object",
+            "evidence_url": "https://www.lib.u-tokyo.ac.jp/ja/library/contents/archives-top/reuse",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-download",
+          "machine_interface": "iiif",
+          "decision": "select",
+          "rationale": "This is the originating digital object and exact standard-open rights route for the two selected historical facsimile plates.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-captured",
+            "format": null,
+            "sha256": null,
+            "reason": "Mutable metadata is fingerprinted; exact selected JPEG Files are retained instead."
+          }
+        },
+        {
+          "result_id": "tos-discovery-result.utokyo-lepsius-plate-111-jpeg-artifact-route",
+          "rank": 2,
+          "title_as_displayed": "Abtheilung VI, Blatt 111 — Hieratischer Papyrus No. III, lines 1-107",
+          "result_url": "https://iiif.dl.itc.u-tokyo.ac.jp/iiif/asia2022/Lepsius/12_222_6_12/BG_222_6_12-0045.tif/full/max/0/default.jpg",
+          "originating_record_url": "https://da.dl.itc.u-tokyo.ac.jp/portal/repo/iiif/11e8e95e-93a7-8803-2093-7ad447b26ce7/manifest",
+          "identifiers": [
+            {
+              "scheme": "IIIF source filename",
+              "value": "BG_222_6_12-0045.tif"
+            },
+            {
+              "scheme": "Lepsius plate",
+              "value": "Abth. VI, Bl. 111"
+            }
+          ],
+          "available_formats": [
+            "JPEG 6132x8176",
+            "IIIF TIFF, PNG, GIF derivatives"
+          ],
+          "declared_rights": {
+            "statement": "CC BY 4.0 with University of Tokyo holding-library attribution and change notice.",
+            "scope": "digital-object",
+            "evidence_url": "https://da.dl.itc.u-tokyo.ac.jp/portal/assets/11e8e95e-93a7-8803-2093-7ad447b26ce7?_format=json",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-download",
+          "machine_interface": "iiif",
+          "decision": "select",
+          "rationale": "TLA independently cites Lepsius plates 111-112 for pBerlin P 3024. This exact full-resolution JPEG is retained as historical line-art evidence, not a current photograph or accepted transcription.",
+          "acquisition": {
+            "downloaded": true,
+            "acquired_at": "2026-08-30T09:40:00-06:00",
+            "byte_size": 4036600,
+            "sha256": "b68b6ffa4a40015834f98748ed408288546cee47373d802276df2179d5dca2bc",
+            "event_ref": "tos.event.acquisition.dialogue-man-ba-lepsius-plates.2026-08-30"
+          },
+          "snapshot": {
+            "state": "not-needed",
+            "format": null,
+            "sha256": null,
+            "reason": "The exact acquired JPEG is the immutable retained source entity."
+          }
+        },
+        {
+          "result_id": "tos-discovery-result.utokyo-lepsius-plate-112-jpeg-artifact-route",
+          "rank": 3,
+          "title_as_displayed": "Abtheilung VI, Blatt 112 — Hieratischer Papyrus No. III, lines 108-180",
+          "result_url": "https://iiif.dl.itc.u-tokyo.ac.jp/iiif/asia2022/Lepsius/12_222_6_12/BG_222_6_12-0046.tif/full/max/0/default.jpg",
+          "originating_record_url": "https://da.dl.itc.u-tokyo.ac.jp/portal/repo/iiif/11e8e95e-93a7-8803-2093-7ad447b26ce7/manifest",
+          "identifiers": [
+            {
+              "scheme": "IIIF source filename",
+              "value": "BG_222_6_12-0046.tif"
+            },
+            {
+              "scheme": "Lepsius plate",
+              "value": "Abth. VI, Bl. 112"
+            }
+          ],
+          "available_formats": [
+            "JPEG 6132x8176",
+            "IIIF TIFF, PNG, GIF derivatives"
+          ],
+          "declared_rights": {
+            "statement": "CC BY 4.0 with University of Tokyo holding-library attribution and change notice.",
+            "scope": "digital-object",
+            "evidence_url": "https://da.dl.itc.u-tokyo.ac.jp/portal/assets/11e8e95e-93a7-8803-2093-7ad447b26ce7?_format=json",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-download",
+          "machine_interface": "iiif",
+          "decision": "select",
+          "rationale": "This exact companion JPEG closes the two-plate historical facsimile sequence without asserting modern mounting boundaries or text correctness.",
+          "acquisition": {
+            "downloaded": true,
+            "acquired_at": "2026-08-30T09:41:00-06:00",
+            "byte_size": 3720252,
+            "sha256": "b7d8ad123d378d1611d20fb3ea7661c5f044dea5807bc10cdf907986b50e0f9b",
+            "event_ref": "tos.event.acquisition.dialogue-man-ba-lepsius-plates.2026-08-30"
+          },
+          "snapshot": {
+            "state": "not-needed",
+            "format": null,
+            "sha256": null,
+            "reason": "The exact acquired JPEG is the immutable retained source entity."
+          }
+        }
+      ]
+    }
+  ],
+  "channel_comparison": [
+    {
+      "channel_id": "channel-smb-p3024c-holding-artifact",
+      "completeness": "adequate",
+      "metadata_precision": "strong",
+      "rights_clarity": "poor",
+      "machine_interface_quality": "adequate",
+      "human_minutes": 0,
+      "machine_seconds": 0.785924,
+      "notes": "Best exact current P 3024/C mounted-component record; no complete-manuscript or image-rights closure. A positive monotonic machine measurement will be inserted by the timing instrument; human_minutes=0 means no real-human review was performed. Machine time is the automatic monotonic HTTP measurement; human_minutes=0 means no real-human review was performed."
+    },
+    {
+      "channel_id": "channel-tla-dialogue-object-and-text-artifact",
+      "completeness": "strong",
+      "metadata_precision": "strong",
+      "rights_clarity": "strong",
+      "machine_interface_quality": "adequate",
+      "human_minutes": 0,
+      "machine_seconds": 15.310813,
+      "notes": "Strongest scholarly object/text/bibliography separation; content acquisition remains license-limited. A positive monotonic machine measurement will be inserted by the timing instrument; human_minutes=0 means no real-human review was performed. Machine time is the automatic monotonic HTTP measurement; human_minutes=0 means no real-human review was performed."
+    },
+    {
+      "channel_id": "channel-utokyo-lepsius-iiif-artifact",
+      "completeness": "strong",
+      "metadata_precision": "strong",
+      "rights_clarity": "strong",
+      "machine_interface_quality": "strong",
+      "human_minutes": 0,
+      "machine_seconds": 20.981907,
+      "notes": "Best exact CC BY 4.0 digital-object route; two full-resolution facsimile JPEGs acquired with fixity. A positive monotonic machine measurement will be inserted by the timing instrument; human_minutes=0 means no real-human review was performed. Machine time is the automatic monotonic HTTP measurement; human_minutes=0 means no real-human review was performed."
+    }
+  ],
+  "selected_result_ids": [
+    "tos-discovery-result.smb-p3024c-obj-1388678-artifact-route",
+    "tos-discovery-result.tla-pamherst3-pberlin3024-artifact-route",
+    "tos-discovery-result.utokyo-lepsius-band-12-artifact-route",
+    "tos-discovery-result.utokyo-lepsius-plate-111-jpeg-artifact-route",
+    "tos-discovery-result.utokyo-lepsius-plate-112-jpeg-artifact-route"
+  ],
+  "rejected_result_ids": [],
+  "rights_inference_from_availability_prohibited": true,
+  "general_web_search_is_last_resort": true,
+  "technical_access_bypass_used": false,
+  "maker": {
+    "maker_type": "mixed",
+    "agent_ref": "model:codex + software:jq+python"
+  },
+  "started_at": "2026-08-30T16:00:20.364770Z",
+  "ended_at": "2026-08-30T16:00:57.443683Z",
+  "status": "reconciled",
+  "provenance_event_refs": [
+    "tos.event.acquisition.dialogue-man-ba-lepsius-plates.2026-08-30"
+  ],
+  "record_version": 1,
+  "supersedes_discovery_ref": null
+}

@@ -1,0 +1,119 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/artifact-source-witness-v2.schema.json",
+  "schema_version": "tos_artifact_source_witness_v2",
+  "artifact_id": "tos.artifact.egyptian.saqqara.papyrus-of-nebseny-ea9900-frame-1",
+  "artifact_kind": "manuscript_object",
+  "path_identity": {
+    "basis": "repository_identity",
+    "provider_independent": true,
+    "note": "The path follows physical Papyrus of Nebseny frame 1, BM EA9900,1 / registration .9900.1 / TM 134286. It is not keyed to Naville's siglum Aa, Spell 1, one catalog URL, a photograph, Naville's edition, or the variable Book of the Dead corpus."
+  },
+  "identifiers": [
+    {"scheme": "British Museum number", "value": "EA9900,1", "source_ref": "https://www.britishmuseum.org/collection/object/Y_EA9900-1"},
+    {"scheme": "British Museum registration number", "value": ".9900.1", "source_ref": "https://www.britishmuseum.org/collection/object/Y_EA9900-1"},
+    {"scheme": "Trismegistos Text", "value": "134286", "source_ref": "https://totenbuch.awk.nrw.de/objekt/tm134286"},
+    {"scheme": "British Museum codex id", "value": "140231", "source_ref": "https://www.britishmuseum.org/collection/object/Y_EA9900-1"}
+  ],
+  "physical_description": {
+    "material": "papyrus, drawn; dimensions belong to mounted frame 1",
+    "height_mm": 358,
+    "width_mm": 685,
+    "thickness_mm": null,
+    "source_ref": "https://www.britishmuseum.org/collection/object/Y_EA9900-1"
+  },
+  "dating": {
+    "period_label": "New Kingdom, 18th Dynasty",
+    "display_date": "15th century BCE; reign of Thutmose IV by style",
+    "certainty": "reported",
+    "period_stage_separation_required": true,
+    "source_ref": "https://www.britishmuseum.org/collection/object/Y_EA9900-1"
+  },
+  "find_context": {
+    "site": "Saqqara (Memphis), Egypt",
+    "findspot": null,
+    "excavation_numbers": [],
+    "source_note": "The British Museum reports Saqqara (Memphis) as the findspot and records acquisition from the James Burton collection in 1836.",
+    "documentation_limit": "The checked records do not establish excavation circumstances, an original roll layout, joins between all mounted frames, production workshop, one artist-scribe, a complete spell inventory, a fixed corpus order, or equivalence between frame 1, the whole manuscript, Naville's siglum Aa, Naville's reconstructed edition, and the Book of the Dead corpus.",
+    "source_ref": "https://www.britishmuseum.org/collection/object/Y_EA9900-1"
+  },
+  "custody": {
+    "current_repository": "The British Museum, London",
+    "inventory_numbers": ["EA9900,1", ".9900.1", "Frame.1"],
+    "source_ref": "https://www.britishmuseum.org/collection/object/Y_EA9900-1"
+  },
+  "digital_catalog_record": {
+    "provider": "British Museum Collection Online",
+    "record_id": "Y_EA9900-1",
+    "record_url": "https://www.britishmuseum.org/collection/object/Y_EA9900-1",
+    "api_url": "https://www.britishmuseum.org/api/_object?id=Y_EA9900-1",
+    "checked_at": "2026-08-30T05:40:03-06:00",
+    "mutable": true,
+    "response_fingerprints": [
+      {"surface": "https://www.britishmuseum.org/api/_object?id=Y_EA9900-1", "byte_size": 5630, "sha256": "fbf7b7528e08d70a903b8fb0f3503c49ebb21d7f18de83c066cafc1c53e18fc5", "captured": false}
+    ]
+  },
+  "inscription_layer": {
+    "availability": "available_not_acquired",
+    "language_status": "reported",
+    "provider_language_code": "egy",
+    "normalized_language_code": "egy",
+    "script": "Egyptian hieroglyphic and cursive-hieroglyphic manuscript writing",
+    "transliteration_stored": false,
+    "translation_stored": false,
+    "source_refs": [
+      "https://www.britishmuseum.org/collection/object/Y_EA9900-1",
+      "https://totenbuch.awk.nrw.de/objekt/tm134286"
+    ]
+  },
+  "composite_layer": {
+    "status": "linked",
+    "external_refs": [
+      {"scheme": "British Museum associated title", "value": "Book of the Dead", "source_ref": "https://www.britishmuseum.org/collection/object/Y_EA9900-1"},
+      {"scheme": "British Museum object description", "value": "Papyrus of Nebseny frame 1; Osiris before offerings; Spell 1", "source_ref": "https://www.britishmuseum.org/collection/object/Y_EA9900-1"},
+      {"scheme": "Naville witness siglum reported by British Museum", "value": "Aa", "source_ref": "https://www.britishmuseum.org/collection/object/Y_EA9900-1"}
+    ],
+    "relationship": "The museum identifies the manuscript as Aa in Naville's Todtenbuch; Naville's acquired Einleitung names British Museum Papyrus 9900 as a photographed and collated basis. This supports an unreviewed reported-witness relation to the modern composite, not identity with Naville's reconstruction or acceptance of any text, variant, spell, or corpus relation.",
+    "is_physical_artifact_identity": false
+  },
+  "visual_layers": [
+    {
+      "layer_kind": "photograph",
+      "availability": "linked",
+      "content_stored": false,
+      "source_ref": "https://www.britishmuseum.org/collection/object/Y_EA9900-1",
+      "rights_note": "The catalog page visibly presents a photograph, but no exact image asset or image-specific license was resolved in this bounded member-link pass; no image bytes were acquired."
+    }
+  ],
+  "scholarly_classification": {
+    "genre": "New Kingdom funerary papyrus frame; candidate physical member of the Book of the Dead corpus and reported witness Aa in Naville 1886",
+    "corpus_labels": ["Book of the Dead", "Papyrus of Nebseny", "Spell 1", "Naville Aa", "BM EA9900,1", "TM 134286"],
+    "classification_is_interpretive": true,
+    "source_refs": [
+      "https://www.britishmuseum.org/collection/object/Y_EA9900-1",
+      "https://totenbuch.awk.nrw.de/objekt/tm134286",
+      "https://commons.wikimedia.org/wiki/File%3ADas_aegyptische_Todtenbuch_der_XVIII._bis_XX._Dynastie%3B_%28IA_dasaegyptischeto00naviuoft%29.pdf"
+    ]
+  },
+  "bibliography": [
+    {"citation": "British Museum Collection Online, EA9900,1 / .9900.1, Papyrus of Nebseny frame 1.", "role": "current_control", "source_ref": "https://www.britishmuseum.org/collection/object/Y_EA9900-1"},
+    {"citation": "Totenbuchprojekt Bonn, TM 134286, P. London BM EA 9900.", "role": "established_control", "source_ref": "https://totenbuch.awk.nrw.de/objekt/tm134286"},
+    {"citation": "Édouard Naville, Das aegyptische Todtenbuch der XVIII. bis XX. Dynastie, Einleitung, Berlin: Asher, 1886.", "role": "primary_publication", "source_ref": "https://commons.wikimedia.org/wiki/File%3ADas_aegyptische_Todtenbuch_der_XVIII._bis_XX._Dynastie%3B_%28IA_dasaegyptischeto00naviuoft%29.pdf"}
+  ],
+  "layer_separation": {
+    "physical_artifact_is_catalog_record": false,
+    "catalog_record_is_inscription": false,
+    "inscription_is_composite": false,
+    "visual_is_artifact": false,
+    "sign_has_fixed_translation": false,
+    "artifact_is_philosophy": false
+  },
+  "rights_ref": "ToS/source-witnesses/artifacts/egyptian/saqqara/papyrus-of-nebseny-ea9900-frame-1/rights.json",
+  "discovery_ref": "ToS/source-witnesses/discovery/runs/book-of-the-dead-nebseny-naville-member.2026-08-30.v1.json",
+  "provenance_event_ref": "tos.event.discovery.book-of-the-dead-nebseny-naville-member.2026-08-30",
+  "research_ref": "ToS/research-packets/foundation-laboratory-2026-07/A05_BOOK_OF_THE_DEAD_OPEN_WORK_ACQUISITION_2026-08-30.md",
+  "philosophy_planting_refs": ["ToS/philosophy/eras/bronze-age/regions/north-africa/traditions/egyptian-mortuary-theological-dialogic-corpora/sources/plantings/book-of-the-dead-papyrus-nebseny/source-planting.json"],
+  "authority": {"evidence_status": "metadata_witness", "review_status": "unreviewed", "visibility": "public_metadata_only", "source_text_admitted": false, "semantic_authority": false, "graph_authority": false, "canon_authority": false, "publication_authority": false},
+  "maker": {"maker_type": "model", "agent_ref": "model:codex", "human_review_performed": false},
+  "created_at": "2026-08-30T05:40:03-06:00",
+  "record_version": 1
+}

@@ -1,0 +1,203 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/material-discovery-record.schema.json",
+  "schema_version": "tos_material_discovery_record_v1",
+  "discovery_id": "tos.discovery.book-of-two-ways-bm-sen-artifact.2026-08-30.v1",
+  "protocol_ref": "ToS/source-witnesses/discovery/DISCOVERY_PROTOCOL.md",
+  "target": {
+    "target_kind": "artifact",
+    "known_tos_refs": [
+      "tos.artifact.egyptian.deir-el-bersha.sen-inner-coffin-b3l-ea30842"
+    ],
+    "description": "Resolve British Museum EA30842 as the physical inner coffin of Sen/Seni B3L and retain one exact licensed visual representation and File without treating the photograph, provider record, inscription, Book of Two Ways label, or modern subcorpus as the artifact itself.",
+    "required_properties": [
+      "repository-independent physical identity and exact inventory number",
+      "reported dimensions, dating, find context, custody, and inscription boundary",
+      "exact JPEG bytes with independent fixity",
+      "object-specific CC BY-NC-SA 4.0 image evidence",
+      "no transcription, translation, map interpretation, semantic, graph, canon, or publication effect"
+    ],
+    "acceptable_substitutions": [
+      "a corrected British Museum catalog record preserving the same physical identity",
+      "a later byte-distinct British Museum image retained as a separate File and representation"
+    ],
+    "languages": [
+      "egy",
+      "en"
+    ],
+    "formats": [
+      "museum object metadata",
+      "image-use record",
+      "JPEG",
+      "CC BY-NC-SA 4.0 license"
+    ],
+    "purpose_ref": "ToS/research-packets/foundation-laboratory-2026-07/A05_BOOK_OF_TWO_WAYS_OPEN_WORK_ACQUISITION_2026-08-30.md"
+  },
+  "channels": [
+    {
+      "channel_id": "channel-bm-sen-object-and-image-record",
+      "sequence": 1,
+      "channel_type": "university-catalog",
+      "role": "originating-record",
+      "source_name": "British Museum Collection Online",
+      "endpoint_url": "https://www.britishmuseum.org/collection/object/Y_EA30842",
+      "interface_type": "web",
+      "interface_version": "object and image-use pages checked 2026-08-30",
+      "exact_query": "Resolve Y_EA30842 / EA30842 / 1899,0610.12 / B3L and exact related image-use asset 18648001.",
+      "queried_at": "2026-08-30T11:03:19.621714Z",
+      "elapsed_seconds": 0.213666,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.bm-artifact-sen-ea30842",
+          "rank": 1,
+          "title_as_displayed": "coffin — rectangular wooden inner-coffin of Sen (B3L) with lid",
+          "result_url": "https://www.britishmuseum.org/collection/object/Y_EA30842",
+          "originating_record_url": "https://www.britishmuseum.org/collection/object/Y_EA30842",
+          "identifiers": [
+            {
+              "scheme": "British Museum number",
+              "value": "EA30842"
+            },
+            {
+              "scheme": "British Museum registration number",
+              "value": "1899,0610.12"
+            },
+            {
+              "scheme": "de Buck coffin siglum",
+              "value": "B3L"
+            }
+          ],
+          "available_formats": [
+            "HTML object record",
+            "84-image gallery",
+            "image-use page"
+          ],
+          "declared_rights": {
+            "statement": "Object metadata is retained separately from image rights; exact image-use conditions are stated on asset 18648001.",
+            "scope": "metadata",
+            "evidence_url": "https://www.britishmuseum.org/collection/object/Y_EA30842",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-view",
+          "machine_interface": "html",
+          "decision": "select",
+          "rationale": "The holding record fixes the physical inner coffin and reports the Book of Two Ways title association without making that catalog label a text-layer or semantic acceptance.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-captured",
+            "format": null,
+            "sha256": null,
+            "reason": "The record was inspected through normal browser rendering; automated HTTP probes received a denial envelope."
+          }
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-bm-sen-file-and-license",
+      "sequence": 2,
+      "channel_type": "publisher-catalog",
+      "role": "digital-object-record",
+      "source_name": "British Museum image-use record and media service",
+      "endpoint_url": "https://www.britishmuseum.org/collection/image/18648001",
+      "interface_type": "web",
+      "interface_version": "asset 18648001 page and rendered media route checked 2026-08-30",
+      "exact_query": "Confirm the asset-specific non-commercial CC BY-NC-SA 4.0 terms and acquire the rendered page asset mid_00018648_001.jpg through the browser page-asset route.",
+      "queried_at": "2026-08-30T11:03:19.835568Z",
+      "elapsed_seconds": 0.591873,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.bm-file-mid-00018648-001",
+          "rank": 1,
+          "title_as_displayed": "mid_00018648_001.jpg",
+          "result_url": "https://media.britishmuseum.org/media/Repository/Documents/2014_9/30_15/ccbfe01f_4652_40df_b271_a3b600fe23b2/mid_00018648_001.jpg",
+          "originating_record_url": "https://www.britishmuseum.org/collection/image/18648001",
+          "identifiers": [
+            {
+              "scheme": "British Museum asset number",
+              "value": "18648001"
+            },
+            {
+              "scheme": "SHA-256",
+              "value": "733eb290d36b4cc2b76e287e3772fa2c31e10d2da3b50e4f13877003157374f9"
+            }
+          ],
+          "available_formats": [
+            "JPEG 1000x1000"
+          ],
+          "declared_rights": {
+            "statement": "This exact image can be shared for non-commercial use under CC BY-NC-SA 4.0; credit © The Trustees of the British Museum.",
+            "scope": "digital-object",
+            "evidence_url": "https://www.britishmuseum.org/collection/image/18648001",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-download",
+          "machine_interface": "html",
+          "decision": "select",
+          "rationale": "The exact page-level license governs the exact acquired JPEG, whose browser-exposed URL and bytes are separately content-addressed.",
+          "acquisition": {
+            "downloaded": true,
+            "acquired_at": "2026-08-30T04:50:14-06:00",
+            "byte_size": 304159,
+            "sha256": "733eb290d36b4cc2b76e287e3772fa2c31e10d2da3b50e4f13877003157374f9",
+            "event_ref": "tos.event.acquisition.book-of-two-ways-bm-sen-image.2026-08-30"
+          },
+          "snapshot": {
+            "state": "not-needed",
+            "format": null,
+            "sha256": null,
+            "reason": "The exact acquired JPEG is the retained immutable source entity."
+          }
+        }
+      ]
+    }
+  ],
+  "channel_comparison": [
+    {
+      "channel_id": "channel-bm-sen-object-and-image-record",
+      "completeness": "strong",
+      "metadata_precision": "strong",
+      "rights_clarity": "adequate",
+      "machine_interface_quality": "adequate",
+      "human_minutes": 0,
+      "machine_seconds": 0.213666,
+      "notes": "Best physical-identity and exact image-association route; image rights remain separate. Machine time is the automatic monotonic HTTP measurement; human_minutes=0 means no real-human review was performed."
+    },
+    {
+      "channel_id": "channel-bm-sen-file-and-license",
+      "completeness": "strong",
+      "metadata_precision": "strong",
+      "rights_clarity": "strong",
+      "machine_interface_quality": "adequate",
+      "human_minutes": 0,
+      "machine_seconds": 0.591873,
+      "notes": "Exact acquired File and object-specific CC BY-NC-SA 4.0 route. Machine time is the automatic monotonic HTTP measurement; human_minutes=0 means no real-human review was performed."
+    }
+  ],
+  "selected_result_ids": [
+    "tos-discovery-result.bm-artifact-sen-ea30842",
+    "tos-discovery-result.bm-file-mid-00018648-001"
+  ],
+  "rejected_result_ids": [],
+  "rights_inference_from_availability_prohibited": true,
+  "general_web_search_is_last_resort": true,
+  "technical_access_bypass_used": false,
+  "maker": {
+    "maker_type": "mixed",
+    "agent_ref": "model:codex + software:python-3.14.6"
+  },
+  "started_at": "2026-08-30T11:03:19.621714Z",
+  "ended_at": "2026-08-30T11:03:20.427453Z",
+  "status": "reconciled",
+  "provenance_event_refs": [
+    "tos.event.acquisition.book-of-two-ways-bm-sen-image.2026-08-30"
+  ],
+  "record_version": 1,
+  "supersedes_discovery_ref": null
+}

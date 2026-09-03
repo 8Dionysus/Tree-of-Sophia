@@ -1,0 +1,57 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/artifact-visual-representation.schema.json",
+  "schema_version": "tos_artifact_visual_representation_v1",
+  "file_id": "tos.file.sha256.b02c20944dca202341d8cf7319354960d7df1913c0fb382cea9f05b716900a1a",
+  "artifact_id": "tos.artifact.egyptian.meir.met-khnumnakht-15-2-2",
+  "artifact_ref": "ToS/source-witnesses/artifacts/egyptian/meir/met-khnumnakht-15-2-2/artifact-witness.json",
+  "layer_kind": "photograph",
+  "view_label": "head end and left side, Met IIIF derivative 1476464",
+  "provider_records": [
+    {
+      "provider": "The Metropolitan Museum of Art collection and public API",
+      "role": "originating-record",
+      "record_url": "https://www.metmuseum.org/art/collection/search/544326",
+      "api_url": "https://collectionapi.metmuseum.org/public/collection/v1/objects/544326",
+      "checked_at": "2026-08-30T04:20:18-06:00",
+      "response_fingerprint": {"byte_size": 2617, "sha256": "a19c810c1f053d1d65c8675f7c5794741dc4dfdcc02c2f48fceb4c0437823d70", "captured": false}
+    },
+    {
+      "provider": "The Met collection IIIF image service",
+      "role": "aggregator-file-record",
+      "record_url": "https://collectionapi.metmuseum.org/api/collection/v1/iiif/544326/1476464/main-image",
+      "api_url": null,
+      "checked_at": "2026-08-30T04:20:18-06:00",
+      "response_fingerprint": {"byte_size": 209846, "sha256": "b02c20944dca202341d8cf7319354960d7df1913c0fb382cea9f05b716900a1a", "captured": false}
+    }
+  ],
+  "acquisition": {
+    "source_url": "https://collectionapi.metmuseum.org/api/collection/v1/iiif/544326/1476464/main-image",
+    "acquired_at": "2026-08-30T04:20:18-06:00",
+    "transport": "https",
+    "technical_access_bypass_used": false,
+    "operator_authorization_ref": "operator-directive:2026-08-29-download-open-work-priority",
+    "host_preflight_decision": "deny-protected-project-root",
+    "host_preflight_scope": "machine-owned-storage-automation-only"
+  },
+  "payload": {
+    "relative_path": "payload/main-image.jpeg",
+    "original_basename": "main-image.jpeg",
+    "media_type": "image/jpeg",
+    "byte_size": 209846,
+    "sha256": "b02c20944dca202341d8cf7319354960d7df1913c0fb382cea9f05b716900a1a",
+    "source_sha1": "b5668c01e0b95f8da4875bf7e99252cb4069a74b",
+    "width_pixels": 1200,
+    "height_pixels": 885,
+    "storage_posture": "tracked_public_payload",
+    "git_tracked": true,
+    "fixity_verified_at": "2026-08-30T04:24:30-06:00"
+  },
+  "rights_ref": "ToS/source-witnesses/artifacts/egyptian/meir/met-khnumnakht-15-2-2/representations/head-end-left-side-iiif-1200/rights.json",
+  "discovery_ref": "ToS/source-witnesses/discovery/runs/coffin-texts-met-artifacts.2026-08-30.v1.json",
+  "provenance_event_ref": "tos.event.acquisition.coffin-texts-met-open-access-images.2026-08-30",
+  "layer_separation": {"visual_is_physical_artifact": false, "visual_is_catalog_record": false, "visual_is_transcription": false, "embedded_text_admitted": false, "same_bytes_as_originating_provider_asserted": false},
+  "authority": {"evidence_status": "visual_source_witness", "review_status": "unreviewed", "visibility": "public_payload", "source_text_admitted": false, "semantic_authority": false, "graph_authority": false, "canon_authority": false, "publication_authority": false},
+  "maker": {"maker_type": "model", "agent_ref": "model:codex", "human_review_performed": false},
+  "created_at": "2026-08-30T04:25:00-06:00",
+  "record_version": 1
+}

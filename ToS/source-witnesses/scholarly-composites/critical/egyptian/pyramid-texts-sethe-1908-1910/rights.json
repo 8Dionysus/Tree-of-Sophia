@@ -1,0 +1,30 @@
+{
+  "schema_version": "tos_rights_record_v1",
+  "rights_id": "tos.rights.egyptian.pyramid-texts-sethe-1908-1910-public-metadata",
+  "scope_refs": ["tos.composite.egyptian.pyramid-texts-sethe-1908-1910"],
+  "assessment_status": "copyright_not_evaluated",
+  "rights_statement_uri": null,
+  "license_uri": null,
+  "jurisdictions_reviewed": [],
+  "source_refs": [
+    "https://api.digitale-sammlungen.de/iiif/presentation/v2/bsb00068075/manifest",
+    "https://api.digitale-sammlungen.de/iiif/presentation/v2/bsb00068079/manifest",
+    "https://www.ucl.ac.uk/museums-static/digitalegypt/literature/religious/pyramid.html"
+  ],
+  "permissions": ["retain bounded factual bibliographic identity, provider identifiers, dated coverage observations, and source links"],
+  "restrictions": [
+    "this metadata record does not copy or license Sethe text, UCL prose, TLA content, monument images, or the separate BSB PDF Files",
+    "each PDF has its own license-bound rights record and local-only repository visibility"
+  ],
+  "visibility": "public_metadata_only",
+  "redistribution_posture": "metadata_only",
+  "derivative_posture": "local_research_only",
+  "assessed_by": {"maker_type": "model", "agent_ref": "model:codex"},
+  "assessed_at": "2026-08-30T01:20:00-06:00",
+  "rationale": "Composite identity and exact File rights remain separate layers.",
+  "review_status": "unreviewed",
+  "review_refs": [],
+  "access_request_ref": null,
+  "record_version": 1,
+  "supersedes_rights_ref": null
+}

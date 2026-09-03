@@ -1,0 +1,950 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/material-discovery-record.schema.json",
+  "schema_version": "tos_material_discovery_record_v1",
+  "discovery_id": "tos.discovery.coffin-texts-open-work-route.2026-08-30.v1",
+  "protocol_ref": "ToS/source-witnesses/discovery/DISCOVERY_PROTOCOL.md",
+  "target": {
+    "target_kind": "scholarly-composite",
+    "known_tos_refs": [
+      "tos.artifact.egyptian.meir.met-khnumnakht-15-2-2",
+      "tos.artifact.egyptian.lisht-south.met-khety-32-1-133"
+    ],
+    "description": "Resolve Coffin Texts as a provisional work-like corpus and acquire exact openly reusable physical-member visual witnesses without collapsing individual coffins, local spell sequences, modern critical editions, translations, provider records, photographs, or Files into one ancient Work.",
+    "required_properties": [
+      "Coffin Texts corpus boundary remains provisional",
+      "exact physical coffin identity and inventory number",
+      "physical artifact, inscriptions, provider metadata, photograph, and File stay separate",
+      "exact public-domain or open-license evidence for every acquired byte sequence",
+      "no source-text, translation, semantic, graph, canon, or publication admission"
+    ],
+    "acceptable_substitutions": [
+      "an exact public-domain critical-edition volume with independently reusable digital-object rights",
+      "an exact open-licensed scholarly-project export preserving member and version identity",
+      "an official museum coffin record or representation with object-level CC0 or standard open-license evidence"
+    ],
+    "languages": [
+      "egy",
+      "en",
+      "de",
+      "nl"
+    ],
+    "formats": [
+      "national bibliographic record",
+      "museum object metadata",
+      "scholarly-project status",
+      "critical-edition metadata",
+      "JPEG",
+      "rights statement"
+    ],
+    "purpose_ref": "ToS/source-witnesses/discovery/candidates/README.md",
+    "constraint_refinements": [
+      {
+        "candidate_field": "required_properties",
+        "candidate_values": [
+          "corpus boundary without one fixed ancient original",
+          "exact physical coffin or inscription member identity",
+          "spell, edition, transcription, and translation separation",
+          "object-level fixity and layered rights evidence",
+          "no source-text, semantic, graph, canon, or publication effect"
+        ],
+        "discovery_field": "required_properties",
+        "discovery_values": [
+          "Coffin Texts corpus boundary remains provisional",
+          "exact physical coffin identity and inventory number",
+          "physical artifact, inscriptions, provider metadata, photograph, and File stay separate",
+          "exact public-domain or open-license evidence for every acquired byte sequence",
+          "no source-text, translation, semantic, graph, canon, or publication admission"
+        ],
+        "review_status": "reviewed",
+        "reviewed_at": "2026-09-02",
+        "reviewer_ref": "operator:tos-open-work-loop"
+      },
+      {
+        "candidate_field": "acceptable_substitutions",
+        "candidate_values": [
+          "an exact public-domain critical-edition volume scan with reviewed digital-object rights",
+          "a rights-insufficient terminal receipt preserving every useful route and the unresolved corpus boundary"
+        ],
+        "discovery_field": "acceptable_substitutions",
+        "discovery_values": [
+          "an exact public-domain critical-edition volume with independently reusable digital-object rights",
+          "an exact open-licensed scholarly-project export preserving member and version identity",
+          "an official museum coffin record or representation with object-level CC0 or standard open-license evidence"
+        ],
+        "review_status": "reviewed",
+        "reviewed_at": "2026-09-02",
+        "reviewer_ref": "operator:tos-open-work-loop"
+      },
+      {
+        "candidate_field": "formats",
+        "candidate_values": [
+          "inscription corpus metadata",
+          "critical-edition volume scan"
+        ],
+        "discovery_field": "formats",
+        "discovery_values": [
+          "national bibliographic record",
+          "museum object metadata",
+          "scholarly-project status",
+          "critical-edition metadata",
+          "JPEG",
+          "rights statement"
+        ],
+        "review_status": "reviewed",
+        "reviewed_at": "2026-09-02",
+        "reviewer_ref": "operator:tos-open-work-loop"
+      }
+    ]
+  },
+  "channels": [
+    {
+      "channel_id": "channel-loc-lccn",
+      "sequence": 1,
+      "channel_type": "national-catalog",
+      "role": "originating-record",
+      "source_name": "Library of Congress LCCN Permalink",
+      "endpoint_url": "https://lccn.loc.gov/36008779",
+      "interface_type": "web",
+      "interface_version": "current LCCN permalink checked 2026-08-30",
+      "exact_query": "Resolve LCCN 36008779 for Adriaan de Buck, The Egyptian Coffin Texts; retain title, responsibility, Chicago publication, series and seven-volume boundary only.",
+      "queried_at": "2026-08-30T10:28:34.968149Z",
+      "elapsed_seconds": 0.888686,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.coffin-texts-loc-36008779",
+          "rank": 1,
+          "title_as_displayed": "The Egyptian coffin texts",
+          "result_url": "https://lccn.loc.gov/36008779",
+          "originating_record_url": "https://lccn.loc.gov/36008779",
+          "identifiers": [
+            {
+              "scheme": "LCCN",
+              "value": "36008779"
+            }
+          ],
+          "available_formats": [
+            "national bibliographic metadata"
+          ],
+          "declared_rights": {
+            "statement": null,
+            "scope": "metadata",
+            "evidence_url": null,
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "metadata-only",
+          "machine_interface": "html",
+          "decision": "select",
+          "rationale": "The national identifier reconciles the de Buck publication family but supplies no content reuse conclusion.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-captured",
+            "format": null,
+            "sha256": null,
+            "reason": "The live national record was retained as a source URL only."
+          }
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-met-holdings-open-access",
+      "sequence": 2,
+      "channel_type": "university-catalog",
+      "role": "digital-object-record",
+      "source_name": "The Metropolitan Museum of Art collection and Open Access API",
+      "endpoint_url": "https://www.metmuseum.org/art/collection/search/555675",
+      "interface_type": "api",
+      "interface_version": "Met collection pages and public object API checked 2026-08-30",
+      "exact_query": "Search Coffin Texts in The Met collection; resolve object 555675 and object 544326; inspect exact physical identity, inscriptions, public-domain indicator, Open Access policy, API primaryImage and IIIF main-image; acquire original and encountered 1200px derivative for each exact object.",
+      "queried_at": "2026-08-30T10:28:35.856966Z",
+      "elapsed_seconds": 0.289342,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.met-khety-object-555675",
+          "rank": 1,
+          "title_as_displayed": "Dismantled Coffin of Khety",
+          "result_url": "https://www.metmuseum.org/art/collection/search/555675",
+          "originating_record_url": "https://www.metmuseum.org/art/collection/search/555675",
+          "identifiers": [
+            {
+              "scheme": "Met object ID",
+              "value": "555675"
+            },
+            {
+              "scheme": "Met object number",
+              "value": "32.1.133a-k"
+            }
+          ],
+          "available_formats": [
+            "museum object metadata",
+            "public object API",
+            "eight public-domain image routes"
+          ],
+          "declared_rights": {
+            "statement": "The object page marks the images Public Domain; The Met Open Access policy releases public-domain images and basic collection data under CC0.",
+            "scope": "digital-object",
+            "evidence_url": "https://www.metmuseum.org/hubs/open-access",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-download",
+          "machine_interface": "api",
+          "decision": "select",
+          "rationale": "The holding record explicitly identifies the lid and sides as carrying religious spells known as Coffin Texts and fixes the physical member, find context, inventory, and image rights.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-captured",
+            "format": null,
+            "sha256": null,
+            "reason": "The mutable record and API were fingerprinted; exact selected images were retained separately."
+          }
+        },
+        {
+          "result_id": "tos-discovery-result.met-khety-original-dp-15316-001",
+          "rank": 2,
+          "title_as_displayed": "Dismantled Coffin of Khety, inside of lid, DP-15316-001.jpg",
+          "result_url": "https://images.metmuseum.org/CRDImages/eg/original/DP-15316-001.jpg",
+          "originating_record_url": "https://www.metmuseum.org/art/collection/search/555675",
+          "identifiers": [
+            {
+              "scheme": "Met asset basename",
+              "value": "DP-15316-001.jpg"
+            },
+            {
+              "scheme": "SHA-256",
+              "value": "6632d9c8e5195b305288afae21c170d1cdcc887c985d168a0e6e14e4403bd5ff"
+            }
+          ],
+          "available_formats": [
+            "JPEG 4000x1118"
+          ],
+          "declared_rights": {
+            "statement": "Public Domain image distributed for unrestricted use under The Met Open Access CC0 policy.",
+            "scope": "digital-object",
+            "evidence_url": "https://www.metmuseum.org/hubs/open-access",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-download",
+          "machine_interface": "api",
+          "decision": "select",
+          "rationale": "The official API primaryImage is the highest-resolution selected view and is separately content-addressed.",
+          "acquisition": {
+            "downloaded": true,
+            "acquired_at": "2026-08-30T04:22:03-06:00",
+            "byte_size": 2204002,
+            "sha256": "6632d9c8e5195b305288afae21c170d1cdcc887c985d168a0e6e14e4403bd5ff",
+            "event_ref": "tos.event.acquisition.coffin-texts-met-open-access-images.2026-08-30"
+          },
+          "snapshot": {
+            "state": "not-needed",
+            "format": null,
+            "sha256": null,
+            "reason": "The exact acquired public image is the retained immutable entity."
+          }
+        },
+        {
+          "result_id": "tos-discovery-result.met-khety-iiif-1836133",
+          "rank": 3,
+          "title_as_displayed": "Dismantled Coffin of Khety, IIIF main-image 1836133",
+          "result_url": "https://collectionapi.metmuseum.org/api/collection/v1/iiif/555675/1836133/main-image",
+          "originating_record_url": "https://www.metmuseum.org/art/collection/search/555675",
+          "identifiers": [
+            {
+              "scheme": "Met image ID",
+              "value": "1836133"
+            },
+            {
+              "scheme": "SHA-256",
+              "value": "d5ad902fe005c37eaed983e79859c69a89ecbe2e9f25f3e4b33963e60ee10913"
+            }
+          ],
+          "available_formats": [
+            "JPEG 1200x335"
+          ],
+          "declared_rights": {
+            "statement": "Public Domain image distributed for unrestricted use under The Met Open Access CC0 policy.",
+            "scope": "digital-object",
+            "evidence_url": "https://www.metmuseum.org/hubs/open-access",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-download",
+          "machine_interface": "iiif",
+          "decision": "select",
+          "rationale": "The browser-exposed IIIF derivative is byte-distinct from the original and therefore receives its own File identity rather than being discarded or conflated.",
+          "acquisition": {
+            "downloaded": true,
+            "acquired_at": "2026-08-30T04:20:46-06:00",
+            "byte_size": 154041,
+            "sha256": "d5ad902fe005c37eaed983e79859c69a89ecbe2e9f25f3e4b33963e60ee10913",
+            "event_ref": "tos.event.acquisition.coffin-texts-met-open-access-images.2026-08-30"
+          },
+          "snapshot": {
+            "state": "not-needed",
+            "format": null,
+            "sha256": null,
+            "reason": "The exact acquired derivative is the retained immutable entity."
+          }
+        },
+        {
+          "result_id": "tos-discovery-result.met-khnumnakht-object-544326",
+          "rank": 4,
+          "title_as_displayed": "Coffin of Khnumnakht",
+          "result_url": "https://www.metmuseum.org/art/collection/search/544326",
+          "originating_record_url": "https://www.metmuseum.org/art/collection/search/544326",
+          "identifiers": [
+            {
+              "scheme": "Met object ID",
+              "value": "544326"
+            },
+            {
+              "scheme": "Met object number",
+              "value": "15.2.2a, b"
+            }
+          ],
+          "available_formats": [
+            "museum object metadata",
+            "public object API",
+            "eight public-domain image routes"
+          ],
+          "declared_rights": {
+            "statement": "The object page marks the images Public Domain; The Met Open Access policy releases public-domain images and basic collection data under CC0.",
+            "scope": "digital-object",
+            "evidence_url": "https://www.metmuseum.org/hubs/open-access",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-download",
+          "machine_interface": "api",
+          "decision": "select",
+          "rationale": "The holding record fixes a separate Middle Kingdom coffin and describes carefully painted hieroglyphs, invocations, recitations, and prayers; its precise Coffin Texts membership remains an interpretive candidate rather than a fact edge.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-captured",
+            "format": null,
+            "sha256": null,
+            "reason": "The mutable record and API were fingerprinted; exact selected images were retained separately."
+          }
+        },
+        {
+          "result_id": "tos-discovery-result.met-khnumnakht-original-dp354909",
+          "rank": 5,
+          "title_as_displayed": "Coffin of Khnumnakht, head end and left side, DP354909.jpg",
+          "result_url": "https://images.metmuseum.org/CRDImages/eg/original/DP354909.jpg",
+          "originating_record_url": "https://www.metmuseum.org/art/collection/search/544326",
+          "identifiers": [
+            {
+              "scheme": "Met asset basename",
+              "value": "DP354909.jpg"
+            },
+            {
+              "scheme": "SHA-256",
+              "value": "157590ee44135d24fc4d7e77f82e2f251c01bdcff50c2a6a6b9178cede5e358d"
+            }
+          ],
+          "available_formats": [
+            "JPEG 3927x2897"
+          ],
+          "declared_rights": {
+            "statement": "Public Domain image distributed for unrestricted use under The Met Open Access CC0 policy.",
+            "scope": "digital-object",
+            "evidence_url": "https://www.metmuseum.org/hubs/open-access",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-download",
+          "machine_interface": "api",
+          "decision": "select",
+          "rationale": "The official API primaryImage is the highest-resolution selected view and is separately content-addressed.",
+          "acquisition": {
+            "downloaded": true,
+            "acquired_at": "2026-08-30T04:21:59-06:00",
+            "byte_size": 2631758,
+            "sha256": "157590ee44135d24fc4d7e77f82e2f251c01bdcff50c2a6a6b9178cede5e358d",
+            "event_ref": "tos.event.acquisition.coffin-texts-met-open-access-images.2026-08-30"
+          },
+          "snapshot": {
+            "state": "not-needed",
+            "format": null,
+            "sha256": null,
+            "reason": "The exact acquired public image is the retained immutable entity."
+          }
+        },
+        {
+          "result_id": "tos-discovery-result.met-khnumnakht-iiif-1476464",
+          "rank": 6,
+          "title_as_displayed": "Coffin of Khnumnakht, IIIF main-image 1476464",
+          "result_url": "https://collectionapi.metmuseum.org/api/collection/v1/iiif/544326/1476464/main-image",
+          "originating_record_url": "https://www.metmuseum.org/art/collection/search/544326",
+          "identifiers": [
+            {
+              "scheme": "Met image ID",
+              "value": "1476464"
+            },
+            {
+              "scheme": "SHA-256",
+              "value": "b02c20944dca202341d8cf7319354960d7df1913c0fb382cea9f05b716900a1a"
+            }
+          ],
+          "available_formats": [
+            "JPEG 1200x885"
+          ],
+          "declared_rights": {
+            "statement": "Public Domain image distributed for unrestricted use under The Met Open Access CC0 policy.",
+            "scope": "digital-object",
+            "evidence_url": "https://www.metmuseum.org/hubs/open-access",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-download",
+          "machine_interface": "iiif",
+          "decision": "select",
+          "rationale": "The browser-exposed IIIF derivative is byte-distinct from the original and receives its own File identity.",
+          "acquisition": {
+            "downloaded": true,
+            "acquired_at": "2026-08-30T04:20:18-06:00",
+            "byte_size": 209846,
+            "sha256": "b02c20944dca202341d8cf7319354960d7df1913c0fb382cea9f05b716900a1a",
+            "event_ref": "tos.event.acquisition.coffin-texts-met-open-access-images.2026-08-30"
+          },
+          "snapshot": {
+            "state": "not-needed",
+            "format": null,
+            "sha256": null,
+            "reason": "The exact acquired derivative is the retained immutable entity."
+          }
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-isac-oip",
+      "sequence": 3,
+      "channel_type": "publisher-catalog",
+      "role": "digital-object-record",
+      "source_name": "Institute for the Study of Ancient Cultures Electronic Publications Initiative",
+      "endpoint_url": "https://isac.uchicago.edu/research/publications/oip/oip-87-egyptian-coffin-texts-7-texts-spells-787%E2%80%931185",
+      "interface_type": "web",
+      "interface_version": "current OIP 87 record and EPI terms checked 2026-08-30",
+      "exact_query": "Resolve de Buck OIP volumes 34, 49, 64, 67, 73, 81, and 87; inspect exact download links and current EPI Terms of Use before any acquisition.",
+      "queried_at": "2026-08-30T10:28:36.146416Z",
+      "elapsed_seconds": 0.344999,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.isac-oip87-coffin-texts",
+          "rank": 1,
+          "title_as_displayed": "OIP 87. The Egyptian Coffin Texts 7, Texts of Spells 787-1185",
+          "result_url": "https://isac.uchicago.edu/sites/default/files/uploads/shared/docs/oip87.pdf",
+          "originating_record_url": "https://isac.uchicago.edu/research/publications/oip/oip-87-egyptian-coffin-texts-7-texts-spells-787%E2%80%931185",
+          "identifiers": [
+            {
+              "scheme": "OIP",
+              "value": "87"
+            }
+          ],
+          "available_formats": [
+            "publisher PDF",
+            "publisher catalog metadata"
+          ],
+          "declared_rights": {
+            "statement": "One complimentary copy for personal use; files may be distributed only from ISAC's website; commercial use prohibited.",
+            "scope": "digital-object",
+            "evidence_url": "https://isac.uchicago.edu/research/electronic-publications-initiative-institute-study-ancient-cultures",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-download",
+          "machine_interface": "html",
+          "decision": "reject",
+          "rationale": "The route is bibliographically authoritative and remains a useful link, but the current publisher terms do not permit ToS redistribution and are not a standard open license; no PDF was downloaded.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-permitted",
+            "format": null,
+            "sha256": null,
+            "reason": "The provider permits a personal copy but restricts redistribution to its own website."
+          }
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-tla-status",
+      "sequence": 4,
+      "channel_type": "specialized-scholarly-project",
+      "role": "scholarly-index",
+      "source_name": "Thesaurus Linguae Aegyptiae text-corpus status",
+      "endpoint_url": "https://thesaurus-linguae-aegyptiae.de/info/text-corpus?lang=en",
+      "interface_type": "web",
+      "interface_version": "TLA web app 2.5.2, corpus edition 20, checked 2026-08-30",
+      "exact_query": "Inspect the Coffin texts section of the current TLA text-corpus status and determine whether CTUrtext data are already incorporated and downloadable under an explicit license.",
+      "queried_at": "2026-08-30T10:28:36.491551Z",
+      "elapsed_seconds": 1.402276,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.tla-coffin-texts-not-yet-incorporated",
+          "rank": 1,
+          "title_as_displayed": "Coffin texts",
+          "result_url": "https://thesaurus-linguae-aegyptiae.de/info/text-corpus?lang=en",
+          "originating_record_url": "https://thesaurus-linguae-aegyptiae.de/info/text-corpus?lang=en",
+          "identifiers": [
+            {
+              "scheme": "TLA corpus edition",
+              "value": "20"
+            },
+            {
+              "scheme": "TLA web app",
+              "value": "2.5.2"
+            }
+          ],
+          "available_formats": [
+            "project status metadata"
+          ],
+          "declared_rights": {
+            "statement": null,
+            "scope": "unknown",
+            "evidence_url": null,
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "unavailable",
+          "machine_interface": "html",
+          "decision": "defer",
+          "rationale": "TLA reports that transformation of Schenkel's CTUrtext data is still being prepared for incorporation, so no current corpus payload was silently invented or acquired.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-captured",
+            "format": null,
+            "sha256": null,
+            "reason": "The live status page remains the authoritative current lead."
+          }
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-ucl-digital-egypt",
+      "sequence": 5,
+      "channel_type": "specialized-scholarly-project",
+      "role": "scholarly-index",
+      "source_name": "UCL Digital Egypt for Universities",
+      "endpoint_url": "https://www.ucl.ac.uk/museums-static/digitalegypt/literature/religious/coffin.html",
+      "interface_type": "web",
+      "interface_version": "static Digital Egypt page checked 2026-08-30",
+      "exact_query": "Open Coffin Texts; preserve the modern corpus definition, date range, Pyramid Texts and Book of the Dead relation leads, named UCL fragment and coffin links, and the page copyright line.",
+      "queried_at": "2026-08-30T10:28:37.893944Z",
+      "elapsed_seconds": 1.858521,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.ucl-digital-egypt-coffin-texts",
+          "rank": 1,
+          "title_as_displayed": "Coffin Texts",
+          "result_url": "https://www.ucl.ac.uk/museums-static/digitalegypt/literature/religious/coffin.html",
+          "originating_record_url": "https://www.ucl.ac.uk/museums-static/digitalegypt/literature/religious/coffin.html",
+          "identifiers": [],
+          "available_formats": [
+            "scholarly summary",
+            "object and image leads"
+          ],
+          "declared_rights": {
+            "statement": "Copyright 2002 University College London. All rights reserved.",
+            "scope": "content",
+            "evidence_url": "https://www.ucl.ac.uk/museums-static/digitalegypt/literature/religious/coffin.html",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-view",
+          "machine_interface": "html",
+          "decision": "select",
+          "rationale": "The page is a useful scholarly corpus and object-route lead, but its prose, images and translations are not acquired or treated as open content.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-permitted",
+            "format": null,
+            "sha256": null,
+            "reason": "The page declares all rights reserved; source URLs and bounded factual metadata suffice."
+          }
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-europeana-search",
+      "sequence": 6,
+      "channel_type": "collection-aggregator",
+      "role": "lead-only",
+      "source_name": "Europeana search",
+      "endpoint_url": "https://www.europeana.eu/en/search?query=%22Egyptian%20Coffin%20Texts%22",
+      "interface_type": "web",
+      "interface_version": "current public search checked 2026-08-30",
+      "exact_query": "exact phrase Egyptian Coffin Texts; inspect returned digital-object leads and preserve zero-result or inaccessible state without substituting unrelated coffins",
+      "queried_at": "2026-08-30T10:28:39.752588Z",
+      "elapsed_seconds": 0.247883,
+      "result_order_preserved": true,
+      "results": []
+    },
+    {
+      "channel_id": "channel-crossref-title",
+      "sequence": 7,
+      "channel_type": "identifier-registry",
+      "role": "lead-only",
+      "source_name": "Crossref Works API",
+      "endpoint_url": "https://api.crossref.org/works?query.title=The%20Egyptian%20Coffin%20Texts&rows=5",
+      "interface_type": "api",
+      "interface_version": "Crossref REST API checked 2026-08-30",
+      "exact_query": "query.title=The Egyptian Coffin Texts; rows=5; preserve rank order and inspect whether the results are editions, reviews, or unrelated articles",
+      "queried_at": "2026-08-30T10:28:40.000589Z",
+      "elapsed_seconds": 0.364177,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.crossref-10-1177-030751335203800122",
+          "rank": 1,
+          "title_as_displayed": "The Egyptian Coffin Texts",
+          "result_url": "https://doi.org/10.1177/030751335203800122",
+          "originating_record_url": "https://api.crossref.org/works/10.1177/030751335203800122",
+          "identifiers": [
+            {
+              "scheme": "DOI",
+              "value": "10.1177/030751335203800122"
+            }
+          ],
+          "available_formats": [
+            "identifier metadata",
+            "publisher article route"
+          ],
+          "declared_rights": {
+            "statement": null,
+            "scope": "unknown",
+            "evidence_url": null,
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "metadata-only",
+          "machine_interface": "api",
+          "decision": "reject",
+          "rationale": "The ranked result is a 1952 journal article or review route, not a rights-cleared corpus edition or exact physical witness.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-captured",
+            "format": null,
+            "sha256": null,
+            "reason": "Crossref metadata was retained as a lead only."
+          }
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-internet-archive",
+      "sequence": 8,
+      "channel_type": "open-library",
+      "role": "digital-object-record",
+      "source_name": "Internet Archive advanced search and item record",
+      "endpoint_url": "https://archive.org/advancedsearch.php?q=title%3A%28%22The%20Egyptian%20Coffin%20Texts%22%29&fl%5B%5D=identifier&fl%5B%5D=title&fl%5B%5D=creator&fl%5B%5D=date&fl%5B%5D=rights&rows=20&page=1&output=json",
+      "interface_type": "api",
+      "interface_version": "Internet Archive advancedsearch checked 2026-08-30",
+      "exact_query": "title:(The Egyptian Coffin Texts); fields identifier,title,creator,date,rights; rows=20; inspect provider provenance and explicit rights before download",
+      "queried_at": "2026-08-30T10:28:40.364885Z",
+      "elapsed_seconds": 0.385992,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.internet-archive-oip87",
+          "rank": 1,
+          "title_as_displayed": "OIP 87. The Egyptian Coffin Texts 7: Texts of Spells 787-1185",
+          "result_url": "https://archive.org/details/oip87",
+          "originating_record_url": "https://isac.uchicago.edu/research/publications/oip/oip-87-egyptian-coffin-texts-7-texts-spells-787%E2%80%931185",
+          "identifiers": [
+            {
+              "scheme": "Internet Archive identifier",
+              "value": "oip87"
+            },
+            {
+              "scheme": "ARK",
+              "value": "ark:/13960/s296vg9q15p"
+            }
+          ],
+          "available_formats": [
+            "PDF",
+            "OCR derivatives",
+            "JP2 ZIP",
+            "metadata"
+          ],
+          "declared_rights": {
+            "statement": "No independent standard open license was displayed; the originating ISAC terms restrict distribution and commercial use.",
+            "scope": "digital-object",
+            "evidence_url": "https://isac.uchicago.edu/research/electronic-publications-initiative-institute-study-ancient-cultures",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-download",
+          "machine_interface": "api",
+          "decision": "reject",
+          "rationale": "Aggregator download availability does not override the originating publisher restrictions; no file was acquired from Internet Archive.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-permitted",
+            "format": null,
+            "sha256": null,
+            "reason": "The source has no independent open-license evidence broad enough for ToS redistribution."
+          }
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-open-library",
+      "sequence": 9,
+      "channel_type": "open-library",
+      "role": "scholarly-index",
+      "source_name": "Open Library Search API and edition record",
+      "endpoint_url": "https://openlibrary.org/search.json?title=The%20Egyptian%20Coffin%20Texts&author=Adriaan%20de%20Buck&limit=10",
+      "interface_type": "api",
+      "interface_version": "Open Library Search API checked 2026-08-30",
+      "exact_query": "title=The Egyptian Coffin Texts; author=Adriaan de Buck; limit=10; reconcile Work OL16006436W and edition OL6335736M against LCCN 36008779 and OCLC 4475010",
+      "queried_at": "2026-08-30T10:28:40.750984Z",
+      "elapsed_seconds": 0.485952,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.open-library-ol6335736m",
+          "rank": 1,
+          "title_as_displayed": "The Egyptian coffin texts",
+          "result_url": "https://openlibrary.org/books/OL6335736M/The_Egyptian_coffin_texts",
+          "originating_record_url": "https://lccn.loc.gov/36008779",
+          "identifiers": [
+            {
+              "scheme": "Open Library Work",
+              "value": "OL16006436W"
+            },
+            {
+              "scheme": "Open Library Edition",
+              "value": "OL6335736M"
+            },
+            {
+              "scheme": "LCCN",
+              "value": "36008779"
+            },
+            {
+              "scheme": "OCLC",
+              "value": "4475010"
+            }
+          ],
+          "available_formats": [
+            "bibliographic metadata",
+            "MARC-derived source links"
+          ],
+          "declared_rights": {
+            "statement": null,
+            "scope": "metadata",
+            "evidence_url": null,
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "metadata-only",
+          "machine_interface": "api",
+          "decision": "select",
+          "rationale": "The record usefully reconciles the seven-volume de Buck publication family but offers no rights-cleared edition file for acquisition.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-captured",
+            "format": null,
+            "sha256": null,
+            "reason": "The mutable catalog record was retained as an identifier route."
+          }
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-google-books",
+      "sequence": 10,
+      "channel_type": "meta-search",
+      "role": "lead-only",
+      "source_name": "Google Books Volumes API",
+      "endpoint_url": "https://www.googleapis.com/books/v1/volumes?q=intitle%3A%22The%20Egyptian%20Coffin%20Texts%22%20inauthor%3A%22Adriaan%20de%20Buck%22&maxResults=10",
+      "interface_type": "api",
+      "interface_version": "Volumes API checked 2026-08-30",
+      "exact_query": "intitle:The Egyptian Coffin Texts inauthor:Adriaan de Buck; maxResults=10; preserve rate-limit or zero-result state and do not infer rights from preview availability",
+      "queried_at": "2026-08-30T10:28:41.237047Z",
+      "elapsed_seconds": 0.203016,
+      "result_order_preserved": true,
+      "results": []
+    }
+  ],
+  "channel_comparison": [
+    {
+      "channel_id": "channel-loc-lccn",
+      "completeness": "adequate",
+      "metadata_precision": "strong",
+      "rights_clarity": "poor",
+      "machine_interface_quality": "limited",
+      "human_minutes": 0,
+      "machine_seconds": 0.888686,
+      "notes": "National identifier and publication-family reconciliation only. Machine time is the automatic monotonic HTTP measurement; human_minutes=0 means no real-human review was performed."
+    },
+    {
+      "channel_id": "channel-met-holdings-open-access",
+      "completeness": "strong",
+      "metadata_precision": "strong",
+      "rights_clarity": "strong",
+      "machine_interface_quality": "strong",
+      "human_minutes": 0,
+      "machine_seconds": 0.289342,
+      "notes": "Exact physical members, public object APIs, explicit Coffin Texts wording for Khety, CC0 policy, and four acquired byte sequences. Machine time is the automatic monotonic HTTP measurement; human_minutes=0 means no real-human review was performed."
+    },
+    {
+      "channel_id": "channel-isac-oip",
+      "completeness": "strong",
+      "metadata_precision": "strong",
+      "rights_clarity": "strong",
+      "machine_interface_quality": "adequate",
+      "human_minutes": 0,
+      "machine_seconds": 0.344999,
+      "notes": "Authoritative de Buck series and explicit restrictive EPI terms; useful URLs retained, PDFs rejected. Machine time is the automatic monotonic HTTP measurement; human_minutes=0 means no real-human review was performed."
+    },
+    {
+      "channel_id": "channel-tla-status",
+      "completeness": "limited",
+      "metadata_precision": "strong",
+      "rights_clarity": "unknown",
+      "machine_interface_quality": "adequate",
+      "human_minutes": 0,
+      "machine_seconds": 1.402276,
+      "notes": "Current project status says CTUrtext incorporation is still being prepared. Machine time is the automatic monotonic HTTP measurement; human_minutes=0 means no real-human review was performed."
+    },
+    {
+      "channel_id": "channel-ucl-digital-egypt",
+      "completeness": "adequate",
+      "metadata_precision": "adequate",
+      "rights_clarity": "strong",
+      "machine_interface_quality": "adequate",
+      "human_minutes": 0,
+      "machine_seconds": 1.858521,
+      "notes": "Useful corpus and object leads; page content remains all-rights-reserved. Machine time is the automatic monotonic HTTP measurement; human_minutes=0 means no real-human review was performed."
+    },
+    {
+      "channel_id": "channel-europeana-search",
+      "completeness": "poor",
+      "metadata_precision": "unknown",
+      "rights_clarity": "unknown",
+      "machine_interface_quality": "poor",
+      "human_minutes": 0,
+      "machine_seconds": 0.247883,
+      "notes": "No exact usable result was preserved from the public interface. Machine time is the automatic monotonic HTTP measurement; human_minutes=0 means no real-human review was performed."
+    },
+    {
+      "channel_id": "channel-crossref-title",
+      "completeness": "limited",
+      "metadata_precision": "adequate",
+      "rights_clarity": "poor",
+      "machine_interface_quality": "strong",
+      "human_minutes": 0,
+      "machine_seconds": 0.364177,
+      "notes": "Ranked results were reviews or articles rather than the desired corpus edition or physical witness. Machine time is the automatic monotonic HTTP measurement; human_minutes=0 means no real-human review was performed."
+    },
+    {
+      "channel_id": "channel-internet-archive",
+      "completeness": "strong",
+      "metadata_precision": "adequate",
+      "rights_clarity": "limited",
+      "machine_interface_quality": "strong",
+      "human_minutes": 0,
+      "machine_seconds": 0.385992,
+      "notes": "Many downloadable derivatives exist, but no independent open license displaced the originating ISAC restrictions. Machine time is the automatic monotonic HTTP measurement; human_minutes=0 means no real-human review was performed."
+    },
+    {
+      "channel_id": "channel-open-library",
+      "completeness": "adequate",
+      "metadata_precision": "strong",
+      "rights_clarity": "poor",
+      "machine_interface_quality": "strong",
+      "human_minutes": 0,
+      "machine_seconds": 0.485952,
+      "notes": "Strong identifier reconciliation and no acquired content. Machine time is the automatic monotonic HTTP measurement; human_minutes=0 means no real-human review was performed."
+    },
+    {
+      "channel_id": "channel-google-books",
+      "completeness": "poor",
+      "metadata_precision": "unknown",
+      "rights_clarity": "unknown",
+      "machine_interface_quality": "poor",
+      "human_minutes": 0,
+      "machine_seconds": 0.203016,
+      "notes": "The live request was rate-limited and yielded no retained result. Machine time is the automatic monotonic HTTP measurement; human_minutes=0 means no real-human review was performed."
+    }
+  ],
+  "selected_result_ids": [
+    "tos-discovery-result.coffin-texts-loc-36008779",
+    "tos-discovery-result.met-khety-object-555675",
+    "tos-discovery-result.met-khety-original-dp-15316-001",
+    "tos-discovery-result.met-khety-iiif-1836133",
+    "tos-discovery-result.met-khnumnakht-object-544326",
+    "tos-discovery-result.met-khnumnakht-original-dp354909",
+    "tos-discovery-result.met-khnumnakht-iiif-1476464",
+    "tos-discovery-result.ucl-digital-egypt-coffin-texts",
+    "tos-discovery-result.open-library-ol6335736m"
+  ],
+  "rejected_result_ids": [
+    "tos-discovery-result.isac-oip87-coffin-texts",
+    "tos-discovery-result.crossref-10-1177-030751335203800122",
+    "tos-discovery-result.internet-archive-oip87"
+  ],
+  "rights_inference_from_availability_prohibited": true,
+  "general_web_search_is_last_resort": true,
+  "technical_access_bypass_used": false,
+  "maker": {
+    "maker_type": "model",
+    "agent_ref": "model:codex"
+  },
+  "started_at": "2026-08-30T10:28:34.968149Z",
+  "ended_at": "2026-08-30T10:28:41.440071Z",
+  "status": "reconciled",
+  "provenance_event_refs": [
+    "tos.event.discovery.coffin-texts-open-work-route.2026-08-30",
+    "tos.event.acquisition.coffin-texts-met-open-access-images.2026-08-30"
+  ],
+  "record_version": 1,
+  "supersedes_discovery_ref": null
+}

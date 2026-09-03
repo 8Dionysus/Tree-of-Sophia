@@ -844,13 +844,13 @@
       "whitespace_tokens": 2631
     },
     {
-      "bytes": 33193,
+      "bytes": 33525,
       "exists": true,
-      "lines": 877,
+      "lines": 885,
       "path": "docs/validation/validation_lanes.json",
       "role": "executable validation command authority",
-      "sha256": "6de209f2fe186fd32606e508c37ccbaef137662f57a5657046ebf0a77b90acae",
-      "whitespace_tokens": 2421
+      "sha256": "8735d2cf3d952135a5bc202d2d5099d2c272bc3a2e6b4710b4898fd51b02fdc5",
+      "whitespace_tokens": 2445
     },
     {
       "bytes": 9588,
@@ -898,13 +898,13 @@
       "whitespace_tokens": 1820
     },
     {
-      "bytes": 142186,
+      "bytes": 146804,
       "exists": true,
-      "lines": 2632,
+      "lines": 2728,
       "path": "docs/validation/script_inventory.json",
       "role": "deterministic script coverage and side-effect inventory",
-      "sha256": "b95dc5eface94d4f79e746a05aaafce3108234804673f99b347e185d1f1ee30a",
-      "whitespace_tokens": 7060
+      "sha256": "19a316ab0e5cfb01244c693ee31c5f3fed00c06bf2dce64201ee9756004496bf",
+      "whitespace_tokens": 7312
     },
     {
       "bytes": 4197,
@@ -994,7 +994,7 @@
   "source_inventory_sha256": "372184263aab0966f7f780f4aa1cd1b2ecb706880c75a0bdc0d1959a99b8bb5d",
   "task_routes": [
     {
-      "additional_context_tokens": 13791,
+      "additional_context_tokens": 13919,
       "completion_evidence": [
         {
           "bytes": 6052,
@@ -1006,22 +1006,22 @@
           "whitespace_tokens": 774
         },
         {
-          "bytes": 80895,
+          "bytes": 81909,
           "exists": true,
-          "lines": 1277,
+          "lines": 1292,
           "path": "ToS/source-witnesses/README.md",
           "role": "completion",
-          "sha256": "e420b88a409199e9d6228b234719febfc779cf38830463bef153466956c49a30",
-          "whitespace_tokens": 10257
+          "sha256": "350fbe26f4b525402b97693f9bcc0d6193bbe0ae77a717a37f90132f7fb0a025",
+          "whitespace_tokens": 10385
         },
         {
-          "bytes": 683808,
+          "bytes": 701880,
           "exists": true,
-          "lines": 14952,
+          "lines": 15345,
           "path": "scripts/validate_source_witness_foundation.py",
           "role": "completion",
-          "sha256": "f3bdab3b4f3b15df9ddfdfb5d4e2da5a3061bc2e2a3f99dd0380570320af6b32",
-          "whitespace_tokens": 43856
+          "sha256": "ec5ac2f181dd18d7f8504ca7a3b3ea5166c4ac24a63cf282ff37b591ff7b4cee",
+          "whitespace_tokens": 45054
         }
       ],
       "id": "source_witness_intake",
@@ -1033,13 +1033,13 @@
       "inherited_context_tokens": 2790,
       "on_demand_surfaces": [
         {
-          "bytes": 80895,
+          "bytes": 81909,
           "exists": true,
-          "lines": 1277,
+          "lines": 1292,
           "path": "ToS/source-witnesses/README.md",
           "role": "on_demand",
-          "sha256": "e420b88a409199e9d6228b234719febfc779cf38830463bef153466956c49a30",
-          "whitespace_tokens": 10257
+          "sha256": "350fbe26f4b525402b97693f9bcc0d6193bbe0ae77a717a37f90132f7fb0a025",
+          "whitespace_tokens": 10385
         },
         {
           "bytes": 25998,
@@ -1068,13 +1068,13 @@
       "target_exists": true,
       "validation_paths": [
         {
-          "bytes": 683808,
+          "bytes": 701880,
           "exists": true,
-          "lines": 14952,
+          "lines": 15345,
           "path": "scripts/validate_source_witness_foundation.py",
           "role": "validation",
-          "sha256": "f3bdab3b4f3b15df9ddfdfb5d4e2da5a3061bc2e2a3f99dd0380570320af6b32",
-          "whitespace_tokens": 43856
+          "sha256": "ec5ac2f181dd18d7f8504ca7a3b3ea5166c4ac24a63cf282ff37b591ff7b4cee",
+          "whitespace_tokens": 45054
         },
         {
           "bytes": 15349,
@@ -1088,7 +1088,7 @@
       ]
     },
     {
-      "additional_context_tokens": 13791,
+      "additional_context_tokens": 13919,
       "completion_evidence": [
         {
           "bytes": 6052,
@@ -1109,13 +1109,13 @@
           "whitespace_tokens": 3534
         },
         {
-          "bytes": 683808,
+          "bytes": 701880,
           "exists": true,
-          "lines": 14952,
+          "lines": 15345,
           "path": "scripts/validate_source_witness_foundation.py",
           "role": "completion",
-          "sha256": "f3bdab3b4f3b15df9ddfdfb5d4e2da5a3061bc2e2a3f99dd0380570320af6b32",
-          "whitespace_tokens": 43856
+          "sha256": "ec5ac2f181dd18d7f8504ca7a3b3ea5166c4ac24a63cf282ff37b591ff7b4cee",
+          "whitespace_tokens": 45054
         }
       ],
       "id": "corpus_identity_provenance_rights",
@@ -1136,13 +1136,13 @@
           "whitespace_tokens": 3534
         },
         {
-          "bytes": 80895,
+          "bytes": 81909,
           "exists": true,
-          "lines": 1277,
+          "lines": 1292,
           "path": "ToS/source-witnesses/README.md",
           "role": "on_demand",
-          "sha256": "e420b88a409199e9d6228b234719febfc779cf38830463bef153466956c49a30",
-          "whitespace_tokens": 10257
+          "sha256": "350fbe26f4b525402b97693f9bcc0d6193bbe0ae77a717a37f90132f7fb0a025",
+          "whitespace_tokens": 10385
         }
       ],
       "owner_exists": true,
@@ -1171,13 +1171,13 @@
           "whitespace_tokens": 840
         },
         {
-          "bytes": 683808,
+          "bytes": 701880,
           "exists": true,
-          "lines": 14952,
+          "lines": 15345,
           "path": "scripts/validate_source_witness_foundation.py",
           "role": "validation",
-          "sha256": "f3bdab3b4f3b15df9ddfdfb5d4e2da5a3061bc2e2a3f99dd0380570320af6b32",
-          "whitespace_tokens": 43856
+          "sha256": "ec5ac2f181dd18d7f8504ca7a3b3ea5166c4ac24a63cf282ff37b591ff7b4cee",
+          "whitespace_tokens": 45054
         }
       ]
     },
@@ -1203,13 +1203,13 @@
           "whitespace_tokens": 1741
         },
         {
-          "bytes": 683808,
+          "bytes": 701880,
           "exists": true,
-          "lines": 14952,
+          "lines": 15345,
           "path": "scripts/validate_source_witness_foundation.py",
           "role": "completion",
-          "sha256": "f3bdab3b4f3b15df9ddfdfb5d4e2da5a3061bc2e2a3f99dd0380570320af6b32",
-          "whitespace_tokens": 43856
+          "sha256": "ec5ac2f181dd18d7f8504ca7a3b3ea5166c4ac24a63cf282ff37b591ff7b4cee",
+          "whitespace_tokens": 45054
         }
       ],
       "id": "text_segmentation",
@@ -1256,13 +1256,13 @@
       "target_exists": true,
       "validation_paths": [
         {
-          "bytes": 683808,
+          "bytes": 701880,
           "exists": true,
-          "lines": 14952,
+          "lines": 15345,
           "path": "scripts/validate_source_witness_foundation.py",
           "role": "validation",
-          "sha256": "f3bdab3b4f3b15df9ddfdfb5d4e2da5a3061bc2e2a3f99dd0380570320af6b32",
-          "whitespace_tokens": 43856
+          "sha256": "ec5ac2f181dd18d7f8504ca7a3b3ea5166c4ac24a63cf282ff37b591ff7b4cee",
+          "whitespace_tokens": 45054
         },
         {
           "bytes": 15349,
@@ -1297,13 +1297,13 @@
           "whitespace_tokens": 1483
         },
         {
-          "bytes": 683808,
+          "bytes": 701880,
           "exists": true,
-          "lines": 14952,
+          "lines": 15345,
           "path": "scripts/validate_source_witness_foundation.py",
           "role": "completion",
-          "sha256": "f3bdab3b4f3b15df9ddfdfb5d4e2da5a3061bc2e2a3f99dd0380570320af6b32",
-          "whitespace_tokens": 43856
+          "sha256": "ec5ac2f181dd18d7f8504ca7a3b3ea5166c4ac24a63cf282ff37b591ff7b4cee",
+          "whitespace_tokens": 45054
         }
       ],
       "id": "translation_alignment",
@@ -1350,13 +1350,13 @@
       "target_exists": true,
       "validation_paths": [
         {
-          "bytes": 683808,
+          "bytes": 701880,
           "exists": true,
-          "lines": 14952,
+          "lines": 15345,
           "path": "scripts/validate_source_witness_foundation.py",
           "role": "validation",
-          "sha256": "f3bdab3b4f3b15df9ddfdfb5d4e2da5a3061bc2e2a3f99dd0380570320af6b32",
-          "whitespace_tokens": 43856
+          "sha256": "ec5ac2f181dd18d7f8504ca7a3b3ea5166c4ac24a63cf282ff37b591ff7b4cee",
+          "whitespace_tokens": 45054
         },
         {
           "bytes": 15349,
@@ -1370,7 +1370,7 @@
       ]
     },
     {
-      "additional_context_tokens": 7232,
+      "additional_context_tokens": 7304,
       "completion_evidence": [
         {
           "bytes": 1668,
@@ -1427,13 +1427,13 @@
           "whitespace_tokens": 1996
         },
         {
-          "bytes": 41456,
+          "bytes": 42160,
           "exists": true,
-          "lines": 386,
+          "lines": 389,
           "path": "ToS/contracts/CORPUS_CONTRACTS.md",
           "role": "on_demand",
-          "sha256": "1657de10e73014f94f38898049ab027fcf81158c3e1fdfabb3e6a26a28ebf89e",
-          "whitespace_tokens": 4872
+          "sha256": "2ffa6bb335e9152972e329dc76f332e963eca5d6d88c085c908f43b5246511cc",
+          "whitespace_tokens": 4944
         },
         {
           "bytes": 1167,
@@ -2042,7 +2042,7 @@
       ]
     },
     {
-      "additional_context_tokens": 5133,
+      "additional_context_tokens": 5157,
       "completion_evidence": [
         {
           "bytes": 6388,
@@ -2054,13 +2054,13 @@
           "whitespace_tokens": 790
         },
         {
-          "bytes": 33193,
+          "bytes": 33525,
           "exists": true,
-          "lines": 877,
+          "lines": 885,
           "path": "docs/validation/validation_lanes.json",
           "role": "completion",
-          "sha256": "6de209f2fe186fd32606e508c37ccbaef137662f57a5657046ebf0a77b90acae",
-          "whitespace_tokens": 2421
+          "sha256": "8735d2cf3d952135a5bc202d2d5099d2c272bc3a2e6b4710b4898fd51b02fdc5",
+          "whitespace_tokens": 2445
         },
         {
           "bytes": 944,
@@ -2089,13 +2089,13 @@
       "inherited_context_tokens": 2141,
       "on_demand_surfaces": [
         {
-          "bytes": 33193,
+          "bytes": 33525,
           "exists": true,
-          "lines": 877,
+          "lines": 885,
           "path": "docs/validation/validation_lanes.json",
           "role": "on_demand",
-          "sha256": "6de209f2fe186fd32606e508c37ccbaef137662f57a5657046ebf0a77b90acae",
-          "whitespace_tokens": 2421
+          "sha256": "8735d2cf3d952135a5bc202d2d5099d2c272bc3a2e6b4710b4898fd51b02fdc5",
+          "whitespace_tokens": 2445
         },
         {
           "bytes": 14345,

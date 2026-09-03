@@ -1,0 +1,106 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/scholarly-composite-witness.schema.json",
+  "schema_version": "tos_scholarly_composite_witness_v1",
+  "composite_id": "tos.composite.egyptian.book-of-the-dead-naville-1886",
+  "composite_kind": "critical_reconstruction",
+  "preferred_label": "Das aegyptische Todtenbuch der XVIII. bis XX. Dynastie — Naville 1886 critical edition",
+  "identity_status": "verified",
+  "path_identity": {
+    "basis": "scholarly_composition_identity",
+    "provider_independent": true,
+    "note": "The path follows Naville's three-part 1886 scholarly edition identity. It is not the variable ancient corpus, Papyrus Ani, one physical manuscript, the Einleitung PDF, Internet Archive, Wikimedia Commons, or a mutable provider URL."
+  },
+  "identifiers": [
+    {"scheme": "K10plus PPN parent", "value": "142464422", "source_ref": "https://opac.k10plus.de/DB=2.299/PPNSET?PPN=142464422"},
+    {"scheme": "Open Library edition", "value": "OL23292830M", "source_ref": "https://openlibrary.org/books/OL23292830M/Das_aegyptische_Todtenbuch_der_XVIII._bis_XX._Dynastie"},
+    {"scheme": "Internet Archive", "value": "dasaegyptischeto00naviuoft", "source_ref": "https://archive.org/details/dasaegyptischeto00naviuoft"}
+  ],
+  "editorial_object": {
+    "title": "Das aegyptische Todtenbuch der XVIII. bis XX. Dynastie: aus verschiedenen Urkunden zusammengestellt und herausgegeben",
+    "tradition": "ancient Egyptian Book of the Dead text witnesses in a modern Egyptological critical reconstruction",
+    "genre": "historical critical edition",
+    "period_label": "modern edition published in 1886; ancient source witnesses belong to separate periods and objects",
+    "description": "Édouard Naville's three-part modern critical edition, comprising Text und Vignetten, Varianten, and Einleitung. Its editorial selection, ordering, chapter numbering, commentary, and reconstructed readings remain modern scholarly layers rather than an ancient original or one physical witness.",
+    "modern_reconstruction": true,
+    "ancient_original": false,
+    "physical_artifact": false
+  },
+  "provider_representations": [
+    {
+      "provider": "K10plus",
+      "representation_role": "composite_catalog",
+      "record_id": "PPN 142464422 / part PPN 156524015",
+      "record_url": "https://opac.k10plus.de/DB=2.299/PPNSET?PPN=156524015",
+      "api_url": "https://sru.k10plus.de/opac-de-627?version=1.1&operation=searchRetrieve&query=pica.tit%3D%22Das%20aegyptische%20Todtenbuch%20der%20XVIII.%20bis%20XX.%20Dynastie%22%20and%20pica.per%3D%22Naville%22&maximumRecords=10&recordSchema=picaxml",
+      "checked_at": "2026-08-30T05:18:00-06:00",
+      "mutable": true,
+      "response_fingerprints": [{"surface": "https://sru.k10plus.de/opac-de-627?version=1.1&operation=searchRetrieve&query=pica.tit%3D%22Das%20aegyptische%20Todtenbuch%20der%20XVIII.%20bis%20XX.%20Dynastie%22%20and%20pica.per%3D%22Naville%22&maximumRecords=10&recordSchema=picaxml", "byte_size": 119901, "sha256": "8c39e084eaa330f4b5d76f47cd5258db1098b709a88b9bc85434834e8d2fc8c7", "captured": false}]
+    },
+    {
+      "provider": "Internet Archive",
+      "representation_role": "composite_edition",
+      "record_id": "dasaegyptischeto00naviuoft",
+      "record_url": "https://archive.org/details/dasaegyptischeto00naviuoft",
+      "api_url": "https://archive.org/metadata/dasaegyptischeto00naviuoft",
+      "checked_at": "2026-08-30T05:18:00-06:00",
+      "mutable": true,
+      "response_fingerprints": [{"surface": "https://archive.org/metadata/dasaegyptischeto00naviuoft", "byte_size": 48086, "sha256": "d6107de9560ea306b7367d5129fbe582835a3a423b5b9a108ea57dd9449633cc", "captured": false}]
+    },
+    {
+      "provider": "Wikimedia Commons",
+      "representation_role": "composite_edition",
+      "record_id": "File:Das aegyptische Todtenbuch der XVIII. bis XX. Dynastie; (IA dasaegyptischeto00naviuoft).pdf",
+      "record_url": "https://commons.wikimedia.org/wiki/File%3ADas_aegyptische_Todtenbuch_der_XVIII._bis_XX._Dynastie%3B_%28IA_dasaegyptischeto00naviuoft%29.pdf",
+      "api_url": null,
+      "checked_at": "2026-08-30T05:17:05-06:00",
+      "mutable": true,
+      "response_fingerprints": [{"surface": "https://commons.wikimedia.org/wiki/File%3ADas_aegyptische_Todtenbuch_der_XVIII._bis_XX._Dynastie%3B_%28IA_dasaegyptischeto00naviuoft%29.pdf", "byte_size": 12119099, "sha256": "06c78744f35f34fb7b7d87fd32f73a1eb230d4ea49272e0eeb5a17286ae7574a", "captured": false}]
+    }
+  ],
+  "member_observations": [
+    {
+      "observation_id": "tos.observation.composite.book-of-the-dead-naville.member.bm-papyrus-9900.2026-08-30",
+      "member_artifact_id": "tos.artifact.egyptian.saqqara.papyrus-of-nebseny-ea9900-frame-1",
+      "relationship": "reported_witness_of",
+      "provider_relation_ids": ["British Museum: manuscript is Aa in Naville, Tb", "Naville Einleitung: British Museum Papyrus 9900 as photographic and variant basis"],
+      "source_refs": ["https://www.britishmuseum.org/collection/object/Y_EA9900-1", "https://totenbuch.awk.nrw.de/objekt/tm134286", "https://commons.wikimedia.org/wiki/File%3ADas_aegyptische_Todtenbuch_der_XVIII._bis_XX._Dynastie%3B_%28IA_dasaegyptischeto00naviuoft%29.pdf"],
+      "member_text_stored": false,
+      "review_status": "unreviewed"
+    }
+  ],
+  "coverage_observations": [
+    {
+      "provider": "Naville 1886 Einleitung PDF",
+      "surface": "https://commons.wikimedia.org/wiki/File%3ADas_aegyptische_Todtenbuch_der_XVIII._bis_XX._Dynastie%3B_%28IA_dasaegyptischeto00naviuoft%29.pdf",
+      "observed_member_count": 1,
+      "observed_tagged_count": null,
+      "named_member_present": true,
+      "coverage_posture": "page_exposed_unknown",
+      "checked_at": "2026-08-30T05:22:00-06:00",
+      "note": "The acquired introduction explicitly names British Museum Papyrus 9900 as a photographed and collated basis; the current British Museum record resolves the manuscript to Papyrus of Nebseny and reports it as Aa in Naville, while Bonn fixes TM 134286. Only this one exact physical-member lead is counted; this is not a complete witness roster or an accepted source-text relation."
+    }
+  ],
+  "content_layer": {
+    "role": "modern_scholarly_composite",
+    "formats": ["three-part historical critical edition", "Einleitung PDF", "bibliographic and provider metadata"],
+    "availability": "open_download",
+    "content_stored": false,
+    "source_text_admitted": false,
+    "source_refs": [
+      "https://opac.k10plus.de/DB=2.299/PPNSET?PPN=156524015",
+      "https://archive.org/details/dasaegyptischeto00naviuoft",
+      "https://commons.wikimedia.org/wiki/File%3ADas_aegyptische_Todtenbuch_der_XVIII._bis_XX._Dynastie%3B_%28IA_dasaegyptischeto00naviuoft%29.pdf"
+    ],
+    "scope_note": "The composite packet stores no content. The locally retained Einleitung PDF is a separate content-addressed File representation with its own jurisdiction-specific and currently conflicting rights assessment."
+  },
+  "layer_separation": {"composite_is_physical_artifact": false, "composite_is_ancient_original": false, "provider_page_is_composite_identity": false, "member_is_composite": false, "editorial_line_is_artifact_line": false, "sign_has_fixed_translation": false, "composite_is_philosophy": false},
+  "rights_ref": "ToS/source-witnesses/scholarly-composites/critical/egyptian/book-of-the-dead-naville-1886/rights.json",
+  "discovery_ref": "ToS/source-witnesses/discovery/runs/book-of-the-dead-open-work-route.2026-08-30.v1.json",
+  "provenance_event_ref": "tos.event.discovery.book-of-the-dead-open-work-route.2026-08-30",
+  "research_ref": "ToS/research-packets/foundation-laboratory-2026-07/A05_BOOK_OF_THE_DEAD_OPEN_WORK_ACQUISITION_2026-08-30.md",
+  "philosophy_planting_refs": ["ToS/philosophy/eras/bronze-age/regions/north-africa/traditions/egyptian-mortuary-theological-dialogic-corpora/sources/plantings/book-of-the-dead-naville-composite/source-planting.json"],
+  "authority": {"evidence_status": "metadata_witness", "review_status": "unreviewed", "visibility": "public_metadata_only", "source_text_admitted": false, "semantic_authority": false, "graph_authority": false, "canon_authority": false, "publication_authority": false},
+  "maker": {"maker_type": "model", "agent_ref": "model:codex", "human_review_performed": false},
+  "created_at": "2026-08-30T05:22:00-06:00",
+  "record_version": 1
+}

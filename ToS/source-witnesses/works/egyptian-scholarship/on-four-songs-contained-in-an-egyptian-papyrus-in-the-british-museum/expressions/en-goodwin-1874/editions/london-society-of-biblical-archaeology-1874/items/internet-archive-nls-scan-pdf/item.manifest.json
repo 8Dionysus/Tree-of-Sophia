@@ -1,0 +1,20 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/source-item-manifest.schema.json",
+  "schema_version": "tos_source_item_manifest_v1",
+  "item_id": "tos.item.egyptian-scholarship.on-four-songs-contained-in-an-egyptian-papyrus-in-the-british-museum.en-goodwin-1874.internet-archive-nls-scan-pdf",
+  "item_kind": "digitized_physical_copy",
+  "embodiment_ref": "tos.edition.egyptian-scholarship.on-four-songs-contained-in-an-egyptian-papyrus-in-the-british-museum.london-society-of-biblical-archaeology-1874",
+  "storage_posture": "local_gitignored_payload",
+  "payload_files": [
+    {"file_id": "tos.file.sha256.71ca30507a61a791b503102b43c034aad08b45c5d78bbedf16043632add33675", "relative_path": "payload/onfoursongsconta00good.pdf", "original_basename": "onfoursongsconta00good.pdf", "media_type": "application/pdf", "byte_size": 672231, "sha256": "71ca30507a61a791b503102b43c034aad08b45c5d78bbedf16043632add33675", "fixity_verified_at": "2026-08-30T06:20:00-06:00", "container_member": false}
+  ],
+  "acquisition_event_ref": "tos.event.acquisition.goodwin-four-songs-1874-ia-nls-pdf.2026-08-30",
+  "rights_ref": "ToS/source-witnesses/works/egyptian-scholarship/on-four-songs-contained-in-an-egyptian-papyrus-in-the-british-museum/expressions/en-goodwin-1874/editions/london-society-of-biblical-archaeology-1874/items/internet-archive-nls-scan-pdf/rights.json",
+  "provenance_ref": "ToS/source-witnesses/works/egyptian-scholarship/on-four-songs-contained-in-an-egyptian-papyrus-in-the-british-museum/expressions/en-goodwin-1874/editions/london-society-of-biblical-archaeology-1874/items/internet-archive-nls-scan-pdf/provenance.jsonl",
+  "forensic_report_ref": "ToS/source-witnesses/works/egyptian-scholarship/on-four-songs-contained-in-an-egyptian-papyrus-in-the-british-museum/expressions/en-goodwin-1874/editions/london-society-of-biblical-archaeology-1874/items/internet-archive-nls-scan-pdf/forensic-report.md",
+  "resource_inventory_ref": "ToS/source-witnesses/works/egyptian-scholarship/on-four-songs-contained-in-an-egyptian-papyrus-in-the-british-museum/expressions/en-goodwin-1874/editions/london-society-of-biblical-archaeology-1874/items/internet-archive-nls-scan-pdf/resource-inventory.json",
+  "source_record_refs": ["ToS/source-witnesses/works/egyptian-scholarship/on-four-songs-contained-in-an-egyptian-papyrus-in-the-british-museum/expressions/en-goodwin-1874/editions/london-society-of-biblical-archaeology-1874/edition.json", "ToS/source-witnesses/works/egyptian-scholarship/on-four-songs-contained-in-an-egyptian-papyrus-in-the-british-museum/expressions/en-goodwin-1874/editions/london-society-of-biblical-archaeology-1874/items/internet-archive-nls-scan-pdf/source-metadata-snapshot.json", "https://archive.org/details/onfoursongsconta00good", "https://archive.org/metadata/onfoursongsconta00good", "https://www.nls.uk/tools-for-research/copyright/"],
+  "visibility": "public_payload",
+  "manifest_version": 1,
+  "supersedes_manifest_ref": null
+}

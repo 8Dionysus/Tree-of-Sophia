@@ -1,0 +1,197 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/material-discovery-record.schema.json",
+  "schema_version": "tos_material_discovery_record_v1",
+  "discovery_id": "tos.discovery.papyrus-prisse-artifact-route.2026-08-29",
+  "protocol_ref": "ToS/source-witnesses/discovery/DISCOVERY_PROTOCOL.md",
+  "target": {
+    "target_kind": "artifact",
+    "known_tos_refs": ["tos.artifact.egyptian.thebes.bnf-papyrus-prisse-egyptien-183-194"],
+    "description": "Resolve the physical Papyrus Prisse under BnF repository identity Egyptien 183-194 while keeping manuscript units, embedded works, modern composites, editions, translations, and visual representations separate.",
+    "required_properties": [
+      "holding-institution physical identity and inventory range",
+      "material, dimensions, reported date, probable find context, and custody",
+      "Kagemni, erased leaves, and Ptahhotep unit separation",
+      "physical artifact separate from Gallica and Commons representations",
+      "metadata-only rights and authority boundary"
+    ],
+    "acceptable_substitutions": [
+      "an originating BnF record that resolves the same Egyptien 183-194 physical object and unit hierarchy",
+      "a stable external identifier registry used only as corroboration of the same repository identity"
+    ],
+    "languages": ["egy", "fr", "en"],
+    "formats": ["institutional manuscript metadata", "hierarchical EAD record", "identifier registry", "digital-object metadata", "provider rights statement"],
+    "purpose_ref": "ToS/research-packets/foundation-laboratory-2026-07/A04_PTAHHOTEP_OPEN_WORK_DISCOVERY_AND_RIGHTS_ROUTE_2026-08-29.md"
+  },
+  "channels": [
+    {
+      "channel_id": "channel-prisse-bnf-owner",
+      "sequence": 1,
+      "channel_type": "national-catalog",
+      "role": "originating-record",
+      "source_name": "Bibliothèque nationale de France — Archives et manuscrits",
+      "endpoint_url": "https://archivesetmanuscrits.bnf.fr/ark:/12148/cc12921q",
+      "interface_type": "web",
+      "interface_version": "current EAD HTML surfaces checked 2026-08-29",
+      "exact_query": "Resolve BnF EAD root cc12921q and child ca103; preserve Egyptien 183-194 physical identity, manuscript-unit hierarchy, dimensions, dating, custody, and linked digital routes.",
+      "queried_at": "2026-08-29T21:36:00-06:00",
+      "elapsed_seconds": 0,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.prisse-artifact-bnf-root",
+          "rank": 1,
+          "title_as_displayed": "Egyptien 183-194. Papyrus Prisse",
+          "result_url": "https://archivesetmanuscrits.bnf.fr/ark:/12148/cc12921q",
+          "originating_record_url": "https://archivesetmanuscrits.bnf.fr/ark:/12148/cc12921q",
+          "identifiers": [
+            {"scheme": "BnF EAD", "value": "FRBNFEAD000012921"},
+            {"scheme": "BnF Archives ARK", "value": "cc12921q"},
+            {"scheme": "BnF inventory", "value": "Egyptien 183-194"}
+          ],
+          "available_formats": ["institutional manuscript metadata", "hierarchical unit description", "linked Gallica representation"],
+          "declared_rights": {"statement": null, "scope": "metadata", "evidence_url": "https://www.bnf.fr/fr/reutiliser-les-donnees-de-la-bnf", "tos_conclusion": "evidence-only-not-a-rights-conclusion"},
+          "availability": "open-view",
+          "machine_interface": "html",
+          "decision": "select",
+          "rationale": "This is the physical object's holding-institution root and controls the metadata witness identity.",
+          "acquisition": {"downloaded": false, "acquired_at": null, "byte_size": null, "sha256": null, "event_ref": null},
+          "snapshot": {"state": "not-captured", "format": null, "sha256": null, "reason": "The mutable response was fingerprinted; no catalog or content snapshot was retained."}
+        },
+        {
+          "result_id": "tos-discovery-result.prisse-artifact-bnf-egyptien-186",
+          "rank": 2,
+          "title_as_displayed": "Egyptien 186. Enseignement de Ptahhotep (1-73)",
+          "result_url": "https://archivesetmanuscrits.bnf.fr/ark:/12148/cc12921q/ca103",
+          "originating_record_url": "https://archivesetmanuscrits.bnf.fr/ark:/12148/cc12921q/ca103",
+          "identifiers": [{"scheme": "BnF inventory", "value": "Egyptien 186"}, {"scheme": "Gallica ARK", "value": "btv1b8304609v"}],
+          "available_formats": ["institutional manuscript-unit metadata", "linked high-definition representation"],
+          "declared_rights": {"statement": null, "scope": "digital-object", "evidence_url": "https://gallica.bnf.fr/edit/und/conditions-dutilisation-des-contenus-de-gallica", "tos_conclusion": "evidence-only-not-a-rights-conclusion"},
+          "availability": "open-view",
+          "machine_interface": "html",
+          "decision": "select",
+          "rationale": "The child record proves that one Ptahhotep unit is a component of the physical inventory range, not the entire artifact or Work.",
+          "acquisition": {"downloaded": false, "acquired_at": null, "byte_size": null, "sha256": null, "event_ref": null},
+          "snapshot": {"state": "not-permitted", "format": null, "sha256": null, "reason": "No linked image bytes were retained while representation rights and storage remained unresolved."}
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-prisse-scholarly-identifiers",
+      "sequence": 2,
+      "channel_type": "specialized-scholarly-project",
+      "role": "scholarly-index",
+      "source_name": "Thesaurus Linguae Aegyptiae and Trismegistos",
+      "endpoint_url": "https://thesaurus-linguae-aegyptiae.de/text/3W45TQYQ3RCX5DXZ7DIZ43JWNQ",
+      "interface_type": "web",
+      "interface_version": "current persistent records checked 2026-08-29",
+      "exact_query": "Resolve TLA Ptahhotep version L1 and Trismegistos collection 270; preserve their relationship to BnF 186-194 without making a scholarly version or registry record the physical artifact.",
+      "queried_at": "2026-08-29T22:00:00-06:00",
+      "elapsed_seconds": 0,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.prisse-artifact-tla-l1",
+          "rank": 1,
+          "title_as_displayed": "Lehre des Ptahhotep, Version L1",
+          "result_url": "https://thesaurus-linguae-aegyptiae.de/text/3W45TQYQ3RCX5DXZ7DIZ43JWNQ",
+          "originating_record_url": "https://thesaurus-linguae-aegyptiae.de/text/3W45TQYQ3RCX5DXZ7DIZ43JWNQ",
+          "identifiers": [{"scheme": "TLA text ID", "value": "3W45TQYQ3RCX5DXZ7DIZ43JWNQ"}],
+          "available_formats": ["scholarly version metadata", "witness and bibliography links"],
+          "declared_rights": {"statement": "TLA states that content is not provided with a free license.", "scope": "content", "evidence_url": "https://thesaurus-linguae-aegyptiae.de/info/tla-development?lang=fr", "tos_conclusion": "evidence-only-not-a-rights-conclusion"},
+          "availability": "open-view",
+          "machine_interface": "html",
+          "decision": "select",
+          "rationale": "Selected as a scholarly classification and bibliography control only; it is not the artifact and its content was not acquired.",
+          "acquisition": {"downloaded": false, "acquired_at": null, "byte_size": null, "sha256": null, "event_ref": null},
+          "snapshot": {"state": "not-permitted", "format": null, "sha256": null, "reason": "Persistent metadata links were retained without TLA content."}
+        },
+        {
+          "result_id": "tos-discovery-result.prisse-artifact-trismegistos-270",
+          "rank": 2,
+          "title_as_displayed": "Paris, Bibliothèque nationale de France — Papyrus Prisse",
+          "result_url": "https://www.trismegistos.org/collection/270",
+          "originating_record_url": "https://www.trismegistos.org/collection/270",
+          "identifiers": [{"scheme": "Trismegistos collection", "value": "270"}, {"scheme": "TM", "value": "755250"}, {"scheme": "TM", "value": "755052"}],
+          "available_formats": ["identifier-registry metadata", "collection membership links"],
+          "declared_rights": {"statement": null, "scope": "metadata", "evidence_url": null, "tos_conclusion": "evidence-only-not-a-rights-conclusion"},
+          "availability": "open-view",
+          "machine_interface": "html",
+          "decision": "select",
+          "rationale": "The registry independently corroborates BnF 186-194 and keeps the Kagemni member distinct; it does not replace BnF custody or artifact identity.",
+          "acquisition": {"downloaded": false, "acquired_at": null, "byte_size": null, "sha256": null, "event_ref": null},
+          "snapshot": {"state": "not-needed", "format": null, "sha256": null, "reason": "Identifiers and source-returnable links were sufficient."}
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-prisse-representations",
+      "sequence": 3,
+      "channel_type": "collection-aggregator",
+      "role": "digital-object-record",
+      "source_name": "Gallica and Wikimedia Commons",
+      "endpoint_url": "https://gallica.bnf.fr/ark:/12148/btv1b8304609v",
+      "interface_type": "api",
+      "interface_version": "current Gallica record and MediaWiki API checked 2026-08-29",
+      "exact_query": "Compare the exact Egyptien 186 Gallica representation with the corresponding Commons file and preserve provider and aggregator rights statements as a conflict.",
+      "queried_at": "2026-08-29T22:27:00-06:00",
+      "elapsed_seconds": 0,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.prisse-artifact-gallica-egyptien-186",
+          "rank": 1,
+          "title_as_displayed": "Papyrus Prisse — Egyptien 186",
+          "result_url": "https://gallica.bnf.fr/ark:/12148/btv1b8304609v",
+          "originating_record_url": "https://archivesetmanuscrits.bnf.fr/ark:/12148/cc12921q/ca103",
+          "identifiers": [{"scheme": "Gallica ARK", "value": "btv1b8304609v"}],
+          "available_formats": ["online facsimile", "digital-object metadata"],
+          "declared_rights": {"statement": "Gallica reuse conditions distinguish non-commercial and commercial reuse and require compliance with applicable foreign law.", "scope": "digital-object", "evidence_url": "https://gallica.bnf.fr/edit/und/conditions-dutilisation-des-contenus-de-gallica", "tos_conclusion": "evidence-only-not-a-rights-conclusion"},
+          "availability": "open-view",
+          "machine_interface": "html",
+          "decision": "needs-reconciliation",
+          "rationale": "The representation is exact but remains a separate digital object with conditions not reconciled for the intended scope.",
+          "acquisition": {"downloaded": false, "acquired_at": null, "byte_size": null, "sha256": null, "event_ref": null},
+          "snapshot": {"state": "not-permitted", "format": null, "sha256": null, "reason": "No visual payload was retained."}
+        },
+        {
+          "result_id": "tos-discovery-result.prisse-artifact-commons-egyptien-186",
+          "rank": 2,
+          "title_as_displayed": "Papyrus Prisse. Egyptien 186. Enseignement de Ptahhotep (1-73) - btv1b8304609v.jpg",
+          "result_url": "https://commons.wikimedia.org/wiki/File:Papyrus_Prisse._Egyptien_186._Enseignement_de_Ptahhotep_(1-73)_-_btv1b8304609v.jpg",
+          "originating_record_url": "https://gallica.bnf.fr/ark:/12148/btv1b8304609v",
+          "identifiers": [{"scheme": "Wikimedia Commons file SHA1", "value": "197b31437074be37d2b6a9d93989e526b11118a7"}],
+          "available_formats": ["JPEG", "MediaWiki metadata"],
+          "declared_rights": {"statement": "Commons presents the file as public domain and preserves France-specific moral-rights attribution language.", "scope": "digital-object", "evidence_url": "https://commons.wikimedia.org/wiki/File:Papyrus_Prisse._Egyptien_186._Enseignement_de_Ptahhotep_(1-73)_-_btv1b8304609v.jpg", "tos_conclusion": "evidence-only-not-a-rights-conclusion"},
+          "availability": "open-download",
+          "machine_interface": "api",
+          "decision": "needs-reconciliation",
+          "rationale": "The aggregator statement is positive evidence but is not treated as overriding the originating provider conditions across FR, MX, and US.",
+          "acquisition": {"downloaded": false, "acquired_at": null, "byte_size": null, "sha256": null, "event_ref": null},
+          "snapshot": {"state": "not-permitted", "format": null, "sha256": null, "reason": "No visual payload was retained while the representation rights conflict remained open."}
+        }
+      ]
+    }
+  ],
+  "channel_comparison": [
+    {"channel_id": "channel-prisse-bnf-owner", "completeness": "strong", "metadata_precision": "strong", "rights_clarity": "limited", "machine_interface_quality": "adequate", "human_minutes": 0, "machine_seconds": 0, "notes": "Authoritative physical identity and unit hierarchy. Zero timing fields are explicit unknown sentinels because the first loop pass did not instrument per-channel timers."},
+    {"channel_id": "channel-prisse-scholarly-identifiers", "completeness": "adequate", "metadata_precision": "strong", "rights_clarity": "adequate", "machine_interface_quality": "adequate", "human_minutes": 0, "machine_seconds": 0, "notes": "Strong corroboration and classification, with an explicit non-free TLA content boundary. Timing sentinel as above."},
+    {"channel_id": "channel-prisse-representations", "completeness": "strong", "metadata_precision": "strong", "rights_clarity": "poor", "machine_interface_quality": "strong", "human_minutes": 0, "machine_seconds": 0, "notes": "Exact digital representations resolved, but provider and aggregator rights evidence remains unreconciled. Timing sentinel as above."}
+  ],
+  "selected_result_ids": [
+    "tos-discovery-result.prisse-artifact-bnf-root",
+    "tos-discovery-result.prisse-artifact-bnf-egyptien-186",
+    "tos-discovery-result.prisse-artifact-tla-l1",
+    "tos-discovery-result.prisse-artifact-trismegistos-270"
+  ],
+  "rejected_result_ids": [],
+  "rights_inference_from_availability_prohibited": true,
+  "general_web_search_is_last_resort": true,
+  "technical_access_bypass_used": false,
+  "maker": {"maker_type": "model", "agent_ref": "model:codex"},
+  "started_at": "2026-08-29T21:36:00-06:00",
+  "ended_at": "2026-08-29T22:33:00-06:00",
+  "status": "reconciled",
+  "provenance_event_refs": ["tos.event.discovery.instruction-of-ptahhotep-open-work-route.2026-08-29"],
+  "record_version": 1,
+  "supersedes_discovery_ref": null
+}

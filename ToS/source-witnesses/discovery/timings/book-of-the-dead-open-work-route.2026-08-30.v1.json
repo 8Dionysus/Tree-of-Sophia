@@ -1,0 +1,162 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/open-work-channel-timing-receipt.schema.json",
+  "claim_limit": "monotonic transport timing through the first 16384 response bytes only; not research, interpretation, rights-review, or human elapsed time",
+  "discovery_id": "tos.discovery.book-of-the-dead-open-work-route.2026-08-30.v1",
+  "discovery_ref": "ToS/source-witnesses/discovery/runs/book-of-the-dead-open-work-route.2026-08-30.v1.json",
+  "measured_at": "2026-08-30T11:23:24.252051Z",
+  "measurements": [
+    {
+      "channel_id": "channel-k10plus-originating-bibliography",
+      "measurement": {
+        "clock": "python.time.perf_counter_ns",
+        "elapsed_seconds": 0.726884,
+        "ended_at": "2026-08-30T11:23:15.435625Z",
+        "http_status": 200,
+        "method": "monotonic-http-request-v1",
+        "outcome": "success",
+        "probe_url": "https://sru.k10plus.de/opac-de-627?version=1.1&operation=searchRetrieve&query=pica.tit%3D%22Das%20aegyptische%20Todtenbuch%20der%20XVIII.%20bis%20XX.%20Dynastie%22%20and%20pica.per%3D%22Naville%22&maximumRecords=10&recordSchema=picaxml",
+        "response_bytes_observed": 16384,
+        "started_at": "2026-08-30T11:23:14.708704Z",
+        "timing_scope": "request-through-first-16384-response-bytes"
+      }
+    },
+    {
+      "channel_id": "channel-british-museum-papyrus-ani",
+      "measurement": {
+        "clock": "python.time.perf_counter_ns",
+        "elapsed_seconds": 0.644417,
+        "ended_at": "2026-08-30T11:23:16.080223Z",
+        "http_status": 200,
+        "method": "monotonic-http-request-v1",
+        "outcome": "success",
+        "probe_url": "https://www.britishmuseum.org/collection/object/Y_EA10470-3",
+        "response_bytes_observed": 16384,
+        "started_at": "2026-08-30T11:23:15.435791Z",
+        "timing_scope": "request-through-first-16384-response-bytes"
+      }
+    },
+    {
+      "channel_id": "channel-bonn-totenbuch-project",
+      "measurement": {
+        "clock": "python.time.perf_counter_ns",
+        "elapsed_seconds": 4.085067,
+        "ended_at": "2026-08-30T11:23:20.165465Z",
+        "http_status": 200,
+        "method": "monotonic-http-request-v1",
+        "outcome": "success",
+        "probe_url": "https://totenbuch.awk.nrw.de/objekt/tm134357",
+        "response_bytes_observed": 16384,
+        "started_at": "2026-08-30T11:23:16.080384Z",
+        "timing_scope": "request-through-first-16384-response-bytes"
+      }
+    },
+    {
+      "channel_id": "channel-ucl-digital-egypt-boundary",
+      "measurement": {
+        "clock": "python.time.perf_counter_ns",
+        "elapsed_seconds": 1.226544,
+        "ended_at": "2026-08-30T11:23:21.392162Z",
+        "http_status": 200,
+        "method": "monotonic-http-request-v1",
+        "outcome": "success",
+        "probe_url": "https://www.ucl.ac.uk/museums-static/digitalegypt/literature/religious/bdquestions.html",
+        "response_bytes_observed": 12238,
+        "started_at": "2026-08-30T11:23:20.165604Z",
+        "timing_scope": "request-through-first-16384-response-bytes"
+      }
+    },
+    {
+      "channel_id": "channel-europeana-exact-search",
+      "measurement": {
+        "clock": "python.time.perf_counter_ns",
+        "elapsed_seconds": 0.223124,
+        "ended_at": "2026-08-30T11:23:21.615462Z",
+        "http_status": 403,
+        "method": "monotonic-http-request-v1",
+        "outcome": "http-error",
+        "probe_url": "https://www.europeana.eu/en/search?query=%22Das%20aegyptische%20Todtenbuch%22%20Naville",
+        "response_bytes_observed": 5846,
+        "started_at": "2026-08-30T11:23:21.392324Z",
+        "timing_scope": "request-through-first-16384-response-bytes"
+      }
+    },
+    {
+      "channel_id": "channel-trismegistos-identifier",
+      "measurement": {
+        "clock": "python.time.perf_counter_ns",
+        "elapsed_seconds": 0.331099,
+        "ended_at": "2026-08-30T11:23:21.946714Z",
+        "http_status": null,
+        "method": "monotonic-http-request-v1",
+        "outcome": "transport-error",
+        "probe_url": "https://www.trismegistos.org/text/134357",
+        "response_bytes_observed": 0,
+        "started_at": "2026-08-30T11:23:21.615599Z",
+        "timing_scope": "request-through-first-16384-response-bytes"
+      }
+    },
+    {
+      "channel_id": "channel-open-library-edition",
+      "measurement": {
+        "clock": "python.time.perf_counter_ns",
+        "elapsed_seconds": 0.330847,
+        "ended_at": "2026-08-30T11:23:22.277693Z",
+        "http_status": 200,
+        "method": "monotonic-http-request-v1",
+        "outcome": "success",
+        "probe_url": "https://openlibrary.org/books/OL23292830M.json",
+        "response_bytes_observed": 1132,
+        "started_at": "2026-08-30T11:23:21.946834Z",
+        "timing_scope": "request-through-first-16384-response-bytes"
+      }
+    },
+    {
+      "channel_id": "channel-internet-archive-digital-object",
+      "measurement": {
+        "clock": "python.time.perf_counter_ns",
+        "elapsed_seconds": 1.287235,
+        "ended_at": "2026-08-30T11:23:23.565034Z",
+        "http_status": 200,
+        "method": "monotonic-http-request-v1",
+        "outcome": "success",
+        "probe_url": "https://archive.org/metadata/dasaegyptischeto00naviuoft",
+        "response_bytes_observed": 16384,
+        "started_at": "2026-08-30T11:23:22.277788Z",
+        "timing_scope": "request-through-first-16384-response-bytes"
+      }
+    },
+    {
+      "channel_id": "channel-wikimedia-commons-public-domain-file",
+      "measurement": {
+        "clock": "python.time.perf_counter_ns",
+        "elapsed_seconds": 0.462041,
+        "ended_at": "2026-08-30T11:23:24.027251Z",
+        "http_status": 200,
+        "method": "monotonic-http-request-v1",
+        "outcome": "success",
+        "probe_url": "https://commons.wikimedia.org/wiki/File%3ADas_aegyptische_Todtenbuch_der_XVIII._bis_XX._Dynastie%3B_%28IA_dasaegyptischeto00naviuoft%29.pdf",
+        "response_bytes_observed": 16384,
+        "started_at": "2026-08-30T11:23:23.565195Z",
+        "timing_scope": "request-through-first-16384-response-bytes"
+      }
+    },
+    {
+      "channel_id": "channel-general-web-final-gap-check",
+      "measurement": {
+        "clock": "python.time.perf_counter_ns",
+        "elapsed_seconds": 0.224575,
+        "ended_at": "2026-08-30T11:23:24.251983Z",
+        "http_status": 200,
+        "method": "monotonic-http-request-v1",
+        "outcome": "success",
+        "probe_url": "https://www.google.com/search?q=%22Book+of+the+Dead%22+Papyrus+Ani+Naville+1886+public+domain",
+        "response_bytes_observed": 16384,
+        "started_at": "2026-08-30T11:23:24.027395Z",
+        "timing_scope": "request-through-first-16384-response-bytes"
+      }
+    }
+  ],
+  "record_version": 1,
+  "schema_version": "tos_open_work_channel_timing_receipt_v1",
+  "timing_id": "open-work-channel-timing.book-of-the-dead-open-work-route.2026-08-30.v1"
+}
