@@ -109,6 +109,63 @@ describe("WebMCP page-command binding", () => {
     adapter.stop();
   });
 
+  it("offers compact Evidence Lens output for a selected corpus relation", async () => {
+    const current: PageContextSnapshot = {
+      mode: "corpus",
+      view_id: "route-graph",
+      graph_mode: "nodes",
+      selected: { id: "m113", kind: "edge", from_id: "principle", to_id: "event" },
+      path_start_node_id: null,
+      active_layers: [],
+      active_predicates: [],
+      deep_link: "http://tos.local/?mode=corpus&view=route-graph&focus=m113",
+    };
+    const noop = vi.fn();
+    const inspect = vi.fn(() => ({
+      schema: "tos_evidence_lens_packet_v1",
+      agent_summary: {
+        selection: "m113",
+        finding: "Retained canon route with open modern evidence closure.",
+        posture: "canon-retained-evidence-open",
+        can_conclude: true,
+        page_updated: true,
+        next_actions: ["inspect source anchors"],
+      },
+      routes: Array.from({ length: 40 }, (_, index) => ({ ref: `large-${index}` })),
+    }));
+    const registry = createPageCommandRegistry(() => current, {
+      "tos.page.open-view": noop,
+      "tos.page.search": noop,
+      "tos.page.select": noop,
+      "tos.page.show-neighborhood": noop,
+      "tos.page.start-path": noop,
+      "tos.page.find-path": noop,
+      "tos.page.reroute-without-selection": noop,
+      "tos.page.inspect-epistemic": inspect,
+      "tos.page.clear-focus": noop,
+    });
+    const tools = new Map<string, RegisteredTool>();
+    const modelContext = {
+      registerTool: vi.fn(async (tool: RegisteredTool, options?: { signal?: AbortSignal }) => {
+        tools.set(tool.name, tool);
+        options?.signal?.addEventListener("abort", () => tools.delete(tool.name), { once: true });
+      }),
+    };
+    const adapter = createWebMCPAdapter(registry, { modelContext } as unknown as WebMCPDocument);
+
+    await adapter.start();
+    const tool = tools.get("tos.page.inspect-epistemic");
+    expect(tool).toBeDefined();
+    const result = await tool?.execute({}, { signal: new AbortController().signal }) as {
+      content: Array<{ text: string }>;
+    };
+    const text = result.content[0].text;
+    expect(text.length).toBeLessThan(1500);
+    expect(text).toContain("canon-retained-evidence-open");
+    expect(text).not.toContain("large-39");
+    adapter.stop();
+  });
+
   it("keeps epistemic inspection available when visual graph filters are empty", async () => {
     const current: PageContextSnapshot = {
       mode: "philosophy",

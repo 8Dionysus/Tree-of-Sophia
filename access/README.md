@@ -44,6 +44,8 @@ run `tos verify --profile standalone`, `tos serve`, or `tos mcp`.
 - `contracts/query-operations.v1.json` owns transport-neutral read operations.
 - `contracts/epistemic-packet.v1.schema.json` defines the projection-bounded
   epistemic result and its fail-closed authority boundary.
+- `contracts/evidence-lens-packet.v1.schema.json` defines the joined page/API
+  result and its compact WebMCP `agent_summary`.
 - `contracts/page-commands.v1.json` owns revisioned browser context and shared
   human/WebMCP actuation.
 - `contracts/web-actions.v1.json` is retained only as the v1 migration marker.
@@ -68,11 +70,15 @@ context revision, so a delayed reference to “this edge” fails closed after t
 human changes selection. Tool execution forwards the browser-provided
 `AbortSignal` through page commands to HTTP queries.
 
-The first epistemic reading command exposes source-return routes, candidate or
-canon posture, and projected `contested_by`, `uncertain_relation`, and
-`polemicizes_with` signals around the current selection. It reports partial
-coverage explicitly: graph challenge signals are review leads, not adjudicated
-counterevidence, rights clearance, or semantic truth.
+The Evidence Lens command works on philosophy projection selections and on
+canonical relations in the corpus `route-graph`. Its first two curated scenes
+contrast a retained Zarathustra canon relation with open modern claim/evidence
+closure against the contested pre-canon Archaic Tribute reading. The page
+receives the full route packet; WebMCP receives a compact summary below 1,500
+characters with posture, bounded conclusion, route counts, gaps, and next
+actions. Projected `contested_by`, `uncertain_relation`, and
+`polemicizes_with` relations remain review leads rather than adjudicated
+counterevidence.
 
 The implementation follows the WebMCP Community Group draft shape current at
 `webmachinelearning/webmcp@41d12f057167ccf5954dbcf49d99502cb6c84491`:

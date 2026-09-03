@@ -143,6 +143,36 @@ def doctor_report(
                     )
                 )
 
+    checks.append(
+        _check(
+            "evidence-projection-present",
+            core.evidence_projection_exists(),
+            path=core.evidence_projection_path.as_posix(),
+        )
+    )
+    if core.evidence_projection_exists():
+        try:
+            evidence = core.evidence_projection()
+        except (OSError, RuntimeError, ValueError) as exc:
+            checks.append(
+                _check(
+                    "evidence-projection-schema",
+                    False,
+                    schema_version=None,
+                    error=str(exc),
+                )
+            )
+        else:
+            checks.append(
+                _check(
+                    "evidence-projection-schema",
+                    bool(evidence.get("scenes")),
+                    schema_version=evidence.get("schema_version"),
+                    scene_count=len(evidence.get("scenes", [])),
+                    sha256=sha256_file(core.evidence_projection_path),
+                )
+            )
+
     contract_root = contract_root_for(core)
     checks.append(
         _check(

@@ -183,6 +183,32 @@ type EpistemicPayload = {
   counts?: Record<string, number>;
   source_refs?: string[];
   authority_note?: string;
+  finding?: string;
+  finding_ru?: string;
+  posture?: string;
+  conclusion?: {
+    can_conclude?: boolean;
+    canon_membership?: boolean;
+    claim_evidence_closed?: boolean;
+    allowed?: string[];
+    allowed_ru?: string[];
+    not_allowed?: string[];
+    not_allowed_ru?: string[];
+  };
+  source_anchors?: Array<{
+    edge_id?: string;
+    anchor_segment_ids?: string[];
+    witness_scope?: string;
+    relation_ref?: string;
+  }>;
+  routes?: Array<{
+    route_kind?: string;
+    ref?: string;
+    status?: string;
+  }>;
+  gaps?: string[];
+  gaps_ru?: string[];
+  agent_summary?: Record<string, unknown>;
 };
 
 type ScaleExportTable = "nodes" | "edges" | "clusters" | "cluster-node-memberships" | "cluster-edge-memberships";
@@ -346,7 +372,13 @@ const uiText: Record<Language, Record<string, string>> = {
     "route.useAsPathStart": "Use as path start",
     "route.pathFrom": "Path from",
     "route.rerouteWithoutEdge": "Find alternatives without this edge",
-    "route.inspectEpistemic": "Inspect posture and challenge signals",
+    "route.inspectEpistemic": "Open Evidence Lens",
+    "detail.evidenceFinding": "Evidence Lens finding",
+    "detail.allowedConclusions": "What this route supports",
+    "detail.forbiddenConclusions": "What remains unsupported",
+    "detail.sourceAnchors": "Exact source anchors",
+    "detail.ownerRoutes": "Owner routes",
+    "detail.evidenceGaps": "Open gaps",
     "detail.epistemicPosture": "Epistemic posture",
     "detail.contextPosture": "Surrounding field posture",
     "detail.projectedChallenges": "Projected challenge signals",
@@ -460,7 +492,13 @@ const uiText: Record<Language, Record<string, string>> = {
     "route.useAsPathStart": "Сделать началом пути",
     "route.pathFrom": "Путь от",
     "route.rerouteWithoutEdge": "Найти альтернативы без этой связи",
-    "route.inspectEpistemic": "Проверить статус и сигналы спора",
+    "route.inspectEpistemic": "Открыть Evidence Lens",
+    "detail.evidenceFinding": "Вывод Evidence Lens",
+    "detail.allowedConclusions": "Что маршрут позволяет утверждать",
+    "detail.forbiddenConclusions": "Что остаётся без основания",
+    "detail.sourceAnchors": "Точные привязки к источнику",
+    "detail.ownerRoutes": "Маршруты к владельцам истины",
+    "detail.evidenceGaps": "Открытые пробелы",
     "detail.epistemicPosture": "Эпистемический статус",
     "detail.contextPosture": "Статус окружающего поля",
     "detail.projectedChallenges": "Проекционные сигналы спора",
@@ -1732,7 +1770,7 @@ function renderInspector(): void {
       cards.push(`<div class="route-actions"><button id="reroute-without-edge-button" type="button">${t("route.rerouteWithoutEdge")}</button></div>`);
     }
     if (
-      state.mode === "philosophy" &&
+      (state.mode === "philosophy" || (state.mode === "corpus" && state.currentViewId === "route-graph")) &&
       epistemicItemId &&
       !isAggregateRelation(source)
     ) {
@@ -3139,7 +3177,39 @@ function epistemicCards(itemIdValue: string): string[] {
         : "adjacent";
     return relationRowFromEdge(edge, direction);
   });
+  const finding = state.language === "ru" ? packet.finding_ru || packet.finding : packet.finding;
+  const conclusion = packet.conclusion || {};
+  const allowed = state.language === "ru" ? conclusion.allowed_ru || conclusion.allowed : conclusion.allowed;
+  const notAllowed = state.language === "ru" ? conclusion.not_allowed_ru || conclusion.not_allowed : conclusion.not_allowed;
+  const gaps = state.language === "ru" ? packet.gaps_ru || packet.gaps : packet.gaps;
   const cards = [
+    ...(finding
+      ? [detailCard(
+          t("detail.evidenceFinding"),
+          `${finding}\nposture: ${humanKind(packet.posture || "unknown")}\nconclusive in stated scope: ${conclusion.can_conclude ? "yes" : "no"}`,
+        )]
+      : []),
+    ...(allowed?.length
+      ? [detailCard(t("detail.allowedConclusions"), allowed.map((value) => `✓ ${value}`).join("\n"))]
+      : []),
+    ...(notAllowed?.length
+      ? [detailCard(t("detail.forbiddenConclusions"), notAllowed.map((value) => `— ${value}`).join("\n"))]
+      : []),
+    ...(packet.source_anchors?.length
+      ? [detailCard(
+          t("detail.sourceAnchors"),
+          packet.source_anchors.map((anchor) => `${anchor.edge_id}: ${(anchor.anchor_segment_ids || []).join(", ")} [${anchor.witness_scope || ""}]`).join("\n"),
+        )]
+      : []),
+    ...(packet.routes?.length
+      ? [detailCard(
+          t("detail.ownerRoutes"),
+          packet.routes.map((route) => `${humanKind(route.route_kind || "route")}: ${route.status || ""}\n${route.ref || ""}`).join("\n\n"),
+        )]
+      : []),
+    ...(gaps?.length
+      ? [detailCard(t("detail.evidenceGaps"), gaps.map((gap) => `• ${gap}`).join("\n"))]
+      : []),
     detailCard(t("detail.epistemicPosture"), postureLines.join("\n")),
     detailCard(t("detail.contextPosture"), fieldPostureLines.join("\n")),
     detailCard(t("detail.coverage"), coverageLines.join("\n")),
@@ -3174,8 +3244,10 @@ async function showEpistemic(
   limit = 80,
   signal?: AbortSignal,
 ): Promise<EpistemicPayload> {
-  if (!itemIdValue) throw new Error("select a philosophy node or edge");
-  if (state.mode !== "philosophy") throw new Error("epistemic inspection requires philosophy mode");
+  if (!itemIdValue) throw new Error("select a graph node or edge");
+  const evidenceModeAvailable = state.mode === "philosophy"
+    || (state.mode === "corpus" && state.currentViewId === "route-graph");
+  if (!evidenceModeAvailable) throw new Error("Evidence Lens requires a philosophy view or the corpus route graph");
   const selected = pageSelection();
   if (!selected || selected.id !== itemIdValue || !["node", "edge"].includes(selected.kind)) {
     throw new Error("epistemic inspection requires the current projection node or edge selection");
@@ -3198,6 +3270,7 @@ async function showEpistemic(
     : Boolean(state.currentView && viewItem(state.currentView, itemIdValue));
   const requestConstraintViewId = selectionBelongsToActiveView ? requestActiveViewId : "";
   const packet = (await queryOperations.invoke("tos.epistemic.inspect", {
+    mode: state.mode,
     item_id: itemIdValue,
     view_id: requestConstraintViewId,
     limit,

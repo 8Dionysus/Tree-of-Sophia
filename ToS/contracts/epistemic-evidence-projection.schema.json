@@ -1,0 +1,104 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://tree-of-sophia.local/contracts/epistemic-evidence-projection.schema.json",
+  "title": "Tree of Sophia public Evidence Lens projection",
+  "type": "object",
+  "required": ["schema_version", "owner_repo", "surface_kind", "source_definition_ref", "scenes", "authority_boundary"],
+  "properties": {
+    "schema_version": {"const": "tos_epistemic_evidence_projection_v1"},
+    "owner_repo": {"const": "Tree-of-Sophia"},
+    "surface_kind": {"const": "derived_public_evidence_navigation"},
+    "source_definition_ref": {"type": "string", "minLength": 1},
+    "source_definition_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "scenes": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["scene_id", "selections", "selection_ids", "posture", "finding", "finding_ru", "conclusion", "source_anchors", "routes", "gaps", "gaps_ru", "source_refs"],
+        "properties": {
+          "scene_id": {"type": "string", "minLength": 1},
+          "selections": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "object",
+              "required": ["mode", "view_id", "item_ids"],
+              "properties": {
+                "mode": {"enum": ["philosophy", "corpus"]},
+                "view_id": {"type": "string", "minLength": 1},
+                "item_ids": {"type": "array", "minItems": 1, "items": {"type": "string", "minLength": 1}, "uniqueItems": true}
+              },
+              "additionalProperties": false
+            }
+          },
+          "selection_ids": {"type": "array", "minItems": 1, "items": {"type": "string", "minLength": 1}, "uniqueItems": true},
+          "posture": {"enum": ["canon-retained-evidence-open", "contested-pre-canon"]},
+          "finding": {"type": "string", "minLength": 1},
+          "finding_ru": {"type": "string", "minLength": 1},
+          "conclusion": {
+            "type": "object",
+            "required": ["can_conclude", "canon_membership", "claim_evidence_closed", "allowed", "not_allowed"],
+            "properties": {
+              "can_conclude": {"type": "boolean"},
+              "canon_membership": {"type": "boolean"},
+              "claim_evidence_closed": {"type": "boolean"},
+              "allowed": {"type": "array", "minItems": 1, "items": {"type": "string", "minLength": 1}},
+              "allowed_ru": {"type": "array", "minItems": 1, "items": {"type": "string", "minLength": 1}},
+              "not_allowed": {"type": "array", "minItems": 1, "items": {"type": "string", "minLength": 1}},
+              "not_allowed_ru": {"type": "array", "minItems": 1, "items": {"type": "string", "minLength": 1}}
+            },
+            "additionalProperties": false
+          },
+          "source_anchors": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["edge_id", "anchor_segment_ids", "witness_scope", "relation_ref"],
+              "properties": {
+                "edge_id": {"type": "string"},
+                "anchor_segment_ids": {"type": "array", "minItems": 1, "items": {"type": "string"}},
+                "witness_scope": {"type": "string"},
+                "relation_ref": {"type": "string"}
+              },
+              "additionalProperties": false
+            }
+          },
+          "routes": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "object",
+              "required": ["route_kind", "ref", "status", "exists", "sha256"],
+              "properties": {
+                "route_kind": {"type": "string", "minLength": 1},
+                "ref": {"type": "string", "minLength": 1},
+                "status": {"type": "string", "minLength": 1},
+                "exists": {"const": true},
+                "sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"}
+              },
+              "additionalProperties": false
+            }
+          },
+          "gaps": {"type": "array", "items": {"type": "string", "minLength": 1}},
+          "gaps_ru": {"type": "array", "items": {"type": "string", "minLength": 1}},
+          "source_refs": {"type": "array", "minItems": 1, "items": {"type": "string", "minLength": 1}, "uniqueItems": true}
+        },
+        "additionalProperties": false
+      }
+    },
+    "authority_boundary": {
+      "type": "object",
+      "required": ["is_source", "is_canon", "is_semantic_truth", "is_rights_clearance", "note"],
+      "properties": {
+        "is_source": {"const": false},
+        "is_canon": {"const": false},
+        "is_semantic_truth": {"const": false},
+        "is_rights_clearance": {"const": false},
+        "note": {"type": "string", "minLength": 1}
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}

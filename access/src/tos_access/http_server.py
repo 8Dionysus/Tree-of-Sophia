@@ -136,6 +136,13 @@ def build_handler(core: ToSAccessCore, web_root: Path) -> type[BaseHTTPRequestHa
                 if path == "/api/corpus/search": self._json(core.search(_single(query, "query"), _integer(query, "limit", 20, 1, 100))); return
                 if path.startswith("/api/corpus/graph-views/"):
                     self._json(core.graph_view(unquote(path.removeprefix("/api/corpus/graph-views/")), _integer(query, "limit", 100, 1, 1000))); return
+                if path.startswith("/api/corpus/query/epistemic/"):
+                    packet = core.evidence_lens_packet(
+                        "corpus",
+                        unquote(path.removeprefix("/api/corpus/query/epistemic/")),
+                        _single(query, "view_id") or "route-graph",
+                        _integer(query, "limit", 80, 1, 200),
+                    ); self._json(packet); return
                 if path.startswith("/api/corpus/nodes/"): self._json(core.node(unquote(path.removeprefix("/api/corpus/nodes/")))); return
                 if path.startswith("/api/corpus/relation-packs/"): self._json(core.relation_pack(unquote(path.removeprefix("/api/corpus/relation-packs/")))); return
                 if path == "/api/philosophy/status": self._json(core.philosophy_status()); return
@@ -152,7 +159,8 @@ def build_handler(core: ToSAccessCore, web_root: Path) -> type[BaseHTTPRequestHa
                 if path.startswith("/api/philosophy/query/neighborhood/"):
                     packet = core.philosophy_neighborhood(unquote(path.removeprefix("/api/philosophy/query/neighborhood/")), _integer(query, "depth", 1, 1, 3), _list(query, "layers"), _list(query, "predicates"), _integer(query, "limit", 80, 1, 300)); packet["query_backend"] = "json"; self._json(packet); return
                 if path.startswith("/api/philosophy/query/epistemic/"):
-                    packet = core.philosophy_epistemic_packet(
+                    packet = core.evidence_lens_packet(
+                        "philosophy",
                         unquote(path.removeprefix("/api/philosophy/query/epistemic/")),
                         _single(query, "view_id") or None,
                         _integer(query, "limit", 80, 1, 200),

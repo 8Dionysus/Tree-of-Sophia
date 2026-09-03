@@ -39,6 +39,7 @@ function commandTool(
   commandId: PageCommandId,
   definition: Omit<WebMCPTool, "execute">,
   capturedRevision?: number,
+  compact?: (value: Record<string, unknown>) => unknown,
 ): WebMCPTool {
   return {
     ...definition,
@@ -46,8 +47,21 @@ function commandTool(
       const commandInput = capturedRevision === undefined
         ? input
         : { ...input, context_revision: capturedRevision };
-      return toolResult(await registry.invoke(commandId, commandInput, { signal: options.signal }));
+      const value = await registry.invoke(commandId, commandInput, { signal: options.signal });
+      return toolResult(compact ? compact(value) : value);
     },
+  };
+}
+
+function compactEvidenceResult(result: Record<string, unknown>): unknown {
+  const value = result.value as Record<string, unknown> | undefined;
+  const summary = value?.agent_summary as Record<string, unknown> | undefined;
+  if (!summary) return result;
+  const context = result.context as Record<string, unknown> | undefined;
+  return {
+    ...summary,
+    context_revision: result.context_revision,
+    deep_link: context?.deep_link,
   };
 }
 
@@ -108,22 +122,23 @@ function stableTools(registry: PageCommandRegistry): WebMCPTool[] {
 
 function dynamicTools(registry: PageCommandRegistry, context: PageContext): WebMCPTool[] {
   const selected = context.selected;
-  if (
-    !selected ||
-    context.mode !== "philosophy"
-  ) return [];
+  if (!selected) return [];
+  const evidenceAvailable = context.mode === "philosophy"
+    || (context.mode === "corpus" && context.view_id === "route-graph");
+  if (!evidenceAvailable) return [];
   const tools: WebMCPTool[] = [];
   if ((selected.kind === "node" || selected.kind === "edge") && selected.reroutable !== false) {
     tools.push(
       commandTool(registry, "tos.page.inspect-epistemic", {
         name: "tos.page.inspect-epistemic",
-        title: "Inspect posture and challenge signals for this selection",
-        description: `Show source-return routes, projected challenge signals, and explicit authority limits for the currently selected ${selected.kind} ${selected.id}.`,
+        title: "Open Evidence Lens for this selection",
+        description: `Show why the selected ${selected.kind} ${selected.id} may be presented, which owner routes support it, and which conclusions remain forbidden.`,
         inputSchema: objectSchema({ limit: { type: "integer", minimum: 1, maximum: 200 } }),
-        annotations: { readOnlyHint: false },
-      }, context.revision),
+        annotations: { readOnlyHint: false, untrustedContentHint: true },
+      }, context.revision, compactEvidenceResult),
     );
   }
+  if (context.mode !== "philosophy") return tools;
   if (context.active_layers.length === 0 || context.active_predicates.length === 0) return tools;
   if (selected.kind === "node") {
     tools.push(

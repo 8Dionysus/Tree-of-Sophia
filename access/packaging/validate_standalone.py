@@ -72,12 +72,24 @@ def _validate_contracts(repo_root: Path) -> None:
         "is_rights_clearance": False,
     }:
         raise RuntimeError("epistemic packet authority boundary must fail closed")
+    evidence_schema = json.loads(
+        (repo_root / "ToS/contracts/epistemic-evidence-projection.schema.json").read_text(encoding="utf-8")
+    )
+    if evidence_schema.get("properties", {}).get("schema_version", {}).get("const") != "tos_epistemic_evidence_projection_v1":
+        raise RuntimeError("Evidence Lens projection schema identity drift")
+    evidence_packet = json.loads(
+        (contract_root / "evidence-lens-packet.v1.schema.json").read_text(encoding="utf-8")
+    )
+    if evidence_packet.get("properties", {}).get("schema", {}).get("const") != "tos_evidence_lens_packet_v1":
+        raise RuntimeError("Evidence Lens packet schema identity drift")
     page = json.loads((contract_root / "page-commands.v1.json").read_text(encoding="utf-8"))
     command_ids = {item.get("command_id") for item in page.get("commands", [])}
     if command_ids != EXPECTED_PAGE_COMMANDS:
         raise RuntimeError(f"page command contract drift: {sorted(command_ids)}")
     allowlist = json.loads((contract_root / "runtime-data.v1.json").read_text(encoding="utf-8"))
     paths = {item.get("source_path") for item in allowlist.get("subjects", [])}
+    if "ToS/derived-exports/epistemic_evidence_projection.min.json" not in paths:
+        raise RuntimeError("runtime allowlist must include the Evidence Lens projection")
     if any("lexical-search" in str(path) or "/payload/" in str(path) for path in paths):
         raise RuntimeError("runtime allowlist admits an explicitly excluded subject")
 
@@ -194,6 +206,8 @@ assert report["ok"], report
 view_id = core.philosophy_views()["views"][0]["view_id"]
 packet = core.philosophy_view(view_id)
 assert packet["node_count"] > 0 and packet["edge_count"] > 0
+evidence = core.evidence_projection()
+assert len(evidence["scenes"]) >= 2
 server = make_server(core, port=0)
 thread = threading.Thread(target=server.serve_forever, daemon=True)
 thread.start()

@@ -1,0 +1,164 @@
+{
+  "schema_version": "tos_evidence_lens_scene_bindings_v1",
+  "surface_role": "source-owned navigation bindings; not evidence, review, canon, or rights authority",
+  "scenes": [
+    {
+      "scene_id": "zarathustra-canon-route",
+      "selections": [
+        {
+          "mode": "corpus",
+          "view_id": "route-graph",
+          "item_ids": [
+            "m113"
+          ]
+        }
+      ],
+      "posture": "canon-retained-evidence-open",
+      "finding": "The selected relation is retained in current ToS canon and declares exact Prologue 1 segment anchors; the modern claim/evidence closure is still open.",
+      "finding_ru": "Выбранная связь сохраняется в текущем каноне ToS и указывает точные сегменты Пролога 1; современное замыкание claim/evidence всё ещё открыто.",
+      "conclusion": {
+        "can_conclude": true,
+        "canon_membership": true,
+        "claim_evidence_closed": false,
+        "allowed": [
+          "the relation is present in current ToS canon",
+          "the relation pack declares exact source segment anchors",
+          "the retained route has source, review, assurance, and rights return paths"
+        ],
+        "allowed_ru": [
+          "связь присутствует в текущем каноне ToS",
+          "пакет связей указывает точные сегменты источника",
+          "у сохранённого маршрута есть возврат к source, review, assurance и rights surfaces"
+        ],
+        "not_allowed": [
+          "modern claim/evidence closure",
+          "semantic truth independent of the authored ToS route",
+          "publication permission inferred from this projection alone"
+        ],
+        "not_allowed_ru": [
+          "современное замыкание claim/evidence",
+          "семантическая истина вне авторского маршрута ToS",
+          "разрешение на публикацию, выведенное только из этой проекции"
+        ]
+      },
+      "anchor_edge_ids": ["m113"],
+      "routes": [
+        {
+          "route_kind": "canon",
+          "ref": "ToS/canon/relations/friedrich-nietzsche/thus-spoke-zarathustra/prologue-1/edges.csv",
+          "status": "current-canon-relation-pack"
+        },
+        {
+          "route_kind": "source",
+          "ref": "ToS/canon/source/friedrich-nietzsche/thus-spoke-zarathustra/prologue-1/node.json",
+          "status": "authored-source-node"
+        },
+        {
+          "route_kind": "source-anchor",
+          "ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/source-anchor-v2.za-i-vorrede-1-section.dta.v1.json",
+          "status": "exact-frozen-source-anchor"
+        },
+        {
+          "route_kind": "review",
+          "ref": "ToS/review-ledger/2026-03-25-zarathustra-pass-001-stabilization-review.md",
+          "status": "legacy-source-visible-review"
+        },
+        {
+          "route_kind": "assurance",
+          "ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/authored-route-evidence-bridge.za-i-vorrede-1.v1.json",
+          "status": "representation-closed-claim-evidence-open"
+        },
+        {
+          "route_kind": "rights",
+          "ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/de-schmeitzner-1883-part-1/editions/chemnitz-schmeitzner-1883-part-1/items/dta-sbb-corrected-tei-p5/rights.json",
+          "status": "rights-return-route-not-projection-clearance"
+        }
+      ],
+      "gaps": [
+        "machine-readable modern human attestation",
+        "modern semantic claim packets for the retained relation",
+        "claim-to-evidence review closure"
+      ],
+      "gaps_ru": [
+        "машиночитаемая современная аттестация человеком",
+        "современные semantic claim packets для сохранённой связи",
+        "замыкание review между claim и evidence"
+      ]
+    },
+    {
+      "scene_id": "a01-archaic-tribute-frontier",
+      "selections": [
+        {
+          "mode": "philosophy",
+          "view_id": "source-evidence",
+          "item_ids": [
+            "edge:candidate-relation:table-i-a01-relation-027"
+          ]
+        }
+      ],
+      "posture": "contested-pre-canon",
+      "finding": "Archaic Tribute is a prepared pre-canon candidate. The projection marks the proto-literary reading as contested, while current planted claims establish bibliography only.",
+      "finding_ru": "Archaic Tribute — подготовленный pre-canon кандидат. Проекция отмечает proto-literary чтение как спорное, а посаженные сейчас claims устанавливают только библиографию.",
+      "conclusion": {
+        "can_conclude": false,
+        "canon_membership": false,
+        "claim_evidence_closed": false,
+        "allowed": [
+          "the graph contains a prepared candidate and an explicit contested_by signal",
+          "the named CDLB 2021:6 Work identity and authorship claims are routed",
+          "the source-planting research classifies Tribute as a frontier case"
+        ],
+        "allowed_ru": [
+          "в графе есть подготовленный кандидат и явный сигнал contested_by",
+          "проложен маршрут к Work identity и авторским claims для CDLB 2021:6",
+          "source-planting research удерживает Tribute как пограничный случай"
+        ],
+        "not_allowed": [
+          "a proto-literary classification",
+          "genre, narrative, cultic, philosophical, or priority claims",
+          "treating bibliographic claims as semantic evidence"
+        ],
+        "not_allowed_ru": [
+          "классификация как proto-literary",
+          "утверждения о жанре, нарративе, культе, философии или первенстве",
+          "использование библиографических claims как семантического доказательства"
+        ]
+      },
+      "anchor_edge_ids": [],
+      "routes": [
+        {
+          "route_kind": "candidate",
+          "ref": "ToS/philosophy/graph-workbench/proposed-relations/table-i-prepared-dossiers.jsonl",
+          "status": "prepared-research-candidate"
+        },
+        {
+          "route_kind": "research",
+          "ref": "ToS/research-packets/foundation-laboratory-2026-07/A01_CDLB_2021_6_QUANTITATIVE_SIGN_USE_SOURCE_PLANTING_RESEARCH_2026-08-12.md",
+          "status": "source-planting-research"
+        },
+        {
+          "route_kind": "bibliography",
+          "ref": "ToS/source-witnesses/works/proto-cuneiform-scholarship/a-quantitative-analysis-of-proto-cuneiform-sign-use-in-archaic-tribute/work.json",
+          "status": "verified-work-identity"
+        },
+        {
+          "route_kind": "claim",
+          "ref": "ToS/source-witnesses/works/proto-cuneiform-scholarship/a-quantitative-analysis-of-proto-cuneiform-sign-use-in-archaic-tribute/responsibility-claims.jsonl",
+          "status": "unreviewed-public-metadata-only-bibliographic-claims"
+        }
+      ],
+      "gaps": [
+        "semantic claim packet for the proto-literary classification",
+        "source-text item and exact semantic anchors",
+        "human review decision on the contested interpretation",
+        "rights clearance for any future article text, code, dataset, or artifact image"
+      ],
+      "gaps_ru": [
+        "semantic claim packet для proto-literary классификации",
+        "source-text item и точные семантические anchors",
+        "решение человеческого review по спорной интерпретации",
+        "rights clearance для будущего текста статьи, кода, датасета или изображений артефактов"
+      ]
+    }
+  ]
+}

@@ -497,6 +497,14 @@
         "command": ["python", "scripts/validate_philosophy_graph_projection.py"]
       },
       {
+        "label": "check epistemic evidence projection",
+        "command": ["python", "scripts/build_epistemic_evidence_projection.py", "--check"]
+      },
+      {
+        "label": "validate epistemic evidence projection",
+        "command": ["python", "scripts/validate_epistemic_evidence_projection.py"]
+      },
+      {
         "label": "check philosophy post-planting audit",
         "command": ["python", "scripts/build_philosophy_post_planting_audit.py", "--check"]
       },
@@ -635,6 +643,14 @@
       {
         "label": "validate philosophy graph projection",
         "command": ["python", "scripts/validate_philosophy_graph_projection.py"]
+      },
+      {
+        "label": "check epistemic evidence projection",
+        "command": ["python", "scripts/build_epistemic_evidence_projection.py", "--check"]
+      },
+      {
+        "label": "validate epistemic evidence projection",
+        "command": ["python", "scripts/validate_epistemic_evidence_projection.py"]
       },
       {
         "label": "check philosophy post-planting audit",
@@ -777,6 +793,14 @@
       {
         "label": "validate philosophy graph projection",
         "command": ["python", "scripts/validate_philosophy_graph_projection.py"]
+      },
+      {
+        "label": "check epistemic evidence projection",
+        "command": ["python", "scripts/build_epistemic_evidence_projection.py", "--check"]
+      },
+      {
+        "label": "validate epistemic evidence projection",
+        "command": ["python", "scripts/validate_epistemic_evidence_projection.py"]
       },
       {
         "label": "run standalone access contract tests",

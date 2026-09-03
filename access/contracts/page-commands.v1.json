@@ -16,7 +16,7 @@
     {"command_id": "tos.page.start-path", "availability": "selected node", "effect": "set the deictic path start"},
     {"command_id": "tos.page.find-path", "availability": "path start and distinct selected node", "effect": "show deterministic constrained paths"},
     {"command_id": "tos.page.reroute-without-selection", "availability": "selected projection edge; aggregate cluster relations are excluded", "effect": "show alternative paths while excluding that edge"},
-    {"command_id": "tos.page.inspect-epistemic", "availability": "selected philosophy projection node or edge", "effect": "show source-return routes, projected challenge signals, and explicit authority limits for the selection"},
+    {"command_id": "tos.page.inspect-epistemic", "availability": "selected philosophy projection node or corpus route-graph node or edge", "effect": "open Evidence Lens with owner routes, bounded conclusions, gaps, and projection context for the selection"},
     {"command_id": "tos.page.clear-focus", "availability": "always", "effect": "clear local focus packets"},
     {"command_id": "tos.page.cancel", "availability": "always", "effect": "abort active page command execution"}
   ],
