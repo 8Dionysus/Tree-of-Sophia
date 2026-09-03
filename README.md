@@ -67,13 +67,13 @@ authority, and canon require matching source evidence and owner review.
 | Need | Route |
 | --- | --- |
 | Understand the architecture | [CHARTER](CHARTER.md) · [DESIGN](DESIGN.md) · [BOUNDARIES](BOUNDARIES.md) |
-| Navigate model-facing tools and owner ports | [.agents/README](.agents/README.md) · [agent-surface map](.agents/agent-surface.manifest.json) · [agent-surface validation](docs/validation/validation_lanes.json) |
+| Navigate model-facing tools and owner ports | [.agents/README](.agents/README.md) · [agent-surface map](.agents/agent-surface.manifest.json) · [agent-surface validation](.agents/VALIDATION.md) |
 | Install standalone access | [access](access/README.md) · [runtime contract](access/contracts/runtime-manifest.v1.json) · [web actions](access/contracts/web-actions.v1.json) |
 | Enter the philosophical tree | [ToS](ToS/README.md) · [philosophy](ToS/philosophy/) |
 | Inspect the evidence foundation | [doctrine](ToS/doctrine/CORPUS_FOUNDATION.md) · [source witnesses](ToS/source-witnesses/README.md) |
 | Follow the golden kernel | [contract](ToS/zarathustra/GOLDEN_GROWTH_KERNEL.md) · [public route](ToS/zarathustra/public-entry/TINY_ENTRY_ROUTE.md) · [worked capsule](ToS/zarathustra/prologue-1/TRILINGUAL_ENTRY.md) |
 | Read generated views | [root map](ToS/derived-exports/root_entry_map.min.json) · [bounded KAG export](mechanics/boundary-bridge/parts/derived-kag-seam/docs/KAG_EXPORT.md) |
-| Contribute and validate | [AGENTS](AGENTS.md#verify) · [scripts](scripts/AGENTS.md) · [mechanics](mechanics/README.md) · [cross-corpus map](docs/validation/README.md#cross-corpus-documentation) |
+| Contribute and validate | [validation](VALIDATION.md) · [agent routes](AGENTS.md) · [mechanics](mechanics/README.md) · [cross-corpus map](docs/validation/README.md#cross-corpus-documentation) |
 | Track direction and decisions | [ROADMAP](ROADMAP.md) · [CHANGELOG](CHANGELOG.md) · [records](docs/decisions/README.md) |
 
 Meaning stays in authored sources, operations in `mechanics/`, and decisions

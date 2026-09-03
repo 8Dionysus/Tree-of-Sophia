@@ -14,7 +14,6 @@ around templates, validators, relation forms, and source-facing scaffolds.
 
 ## Validation
 
-```bash
-python scripts/validate_mechanics_topology.py
-python scripts/validate_tree_node_contracts.py
-```
+Select the `mechanics_local` or `canon_contracts` route from
+[`mechanics/VALIDATION.md`](../VALIDATION.md) after the method surface is known.
+The canon and contract owner docs retain the procedure.

@@ -28,8 +28,6 @@ through the ToS source home.
 
 ## Validation
 
-```bash
-python mechanics/questbook/scripts/validate_questbook_surface.py
-python scripts/validate_mechanics_topology.py
-python scripts/validate_nested_agents.py
-```
+Select the `questbook_surface` or `mechanics_local` route from
+[`mechanics/VALIDATION.md`](../VALIDATION.md) after the obligation surface is
+known. The questbook validator and route-card checks retain the procedure.

@@ -15,9 +15,10 @@ reports, and source refs.
 
 ## Read before editing
 
-Read the root `AGENTS.md`, then this card, `README.md`, `PORT.yaml`, and the
-nearest intake, suites, or reports surface you will touch. For central proof
-adoption rules, read the local eval-port standard in `aoa-evals`.
+Read the root `AGENTS.md`, then this card and `PORT.yaml`. Open `README.md` when
+its human port explanation is relevant, followed by the nearest intake,
+suites, or reports surface you will touch. For central proof adoption rules,
+read the local eval-port standard in `aoa-evals`.
 
 ## Boundaries
 
@@ -30,10 +31,9 @@ adoption rules, read the local eval-port standard in `aoa-evals`.
 
 ## Validation
 
-```bash
-AOA_EVALS_ROOT="${AOA_EVALS_ROOT:-../aoa-evals}"
-python "$AOA_EVALS_ROOT/scripts/validate_local_eval_port.py" --target-root .
-```
+Use [`evals/VALIDATION.md`](VALIDATION.md) after the local port and intended
+`aoa-evals` owner checkout are known. That district route retains the external
+owner procedure and its advisory claim limit.
 
 ## Closeout
 

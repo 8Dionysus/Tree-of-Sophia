@@ -2648,10 +2648,13 @@
         "docs/validation/validation_lanes.json"
       ],
       "reads": [
-        "docs/validation/validation_lanes.json"
+        "docs/validation/validation_lanes.json",
+        "the selected sequence inputs declared by that manifest"
       ],
-      "writes": [],
-      "side_effects": "loads and checks lane manifest",
+      "writes": [
+        "only outputs owned by commands in the explicitly selected sequence"
+      ],
+      "side_effects": "loads, checks, prints, or executes one named manifest sequence without owning a hidden command list; downstream command effects retain their declared owners",
       "validation_lane": "validation_authority",
       "ci_inclusion": "release",
       "test_target": "tests/test_validation_lanes.py",

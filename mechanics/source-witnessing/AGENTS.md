@@ -13,7 +13,6 @@ route discipline before branch or canon movement.
 
 ## Validation
 
-```bash
-python scripts/validate_mechanics_topology.py
-python scripts/validate_tos_source_home.py
-```
+Select the `mechanics_local` or `source_home` route from
+[`mechanics/VALIDATION.md`](../VALIDATION.md) after the witness route is known.
+The source-home owner retains the procedure.

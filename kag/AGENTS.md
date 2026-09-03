@@ -32,24 +32,12 @@ tree.
 
 ## Validation
 
-Use the local provider validator first:
-
-```bash
-python scripts/validate_local_kag_provider.py
-```
-
-Use the source-owned export validator when source exports change:
-
-```bash
-python mechanics/boundary-bridge/parts/derived-kag-seam/scripts/validate_kag_export.py
-```
-
-Use the release gate when a provider change crosses generated exports,
-contracts, or route cards:
-
-```bash
-python scripts/release_check.py
-```
+Select the local KAG, `public_entry`, or release route in
+[`kag/VALIDATION.md`](VALIDATION.md) after the source export and intended claim
+are known. KAG export regeneration remains with
+`mechanics/boundary-bridge/parts/derived-kag-seam/docs/KAG_EXPORT.md` and its
+source builder; local provider procedure stays in the district validation
+route.
 
 ## Closeout
 

@@ -26,7 +26,9 @@ Please make sure:
 - uncertainty is named honestly when the material is contested or interpretive
 - public additions remain provenance-aware and reviewable
 
-Validation starts at [AGENTS](AGENTS.md#verify), then [scripts/AGENTS](scripts/AGENTS.md) or the nearest local route card.
+Validation starts at root [VALIDATION](VALIDATION.md), then the nearest district
+`VALIDATION.md` after the touched owner is known. Agent scope and stop-lines
+remain in [AGENTS](AGENTS.md).
 When the touched surface falls outside that validator coverage, use `mechanics/audit/parts/review-ledger-route/docs/REVIEW_CHECKLIST.md` as the manual validation route and include a short review note in the PR when the change is boundary-sensitive.
 When the change creates durable route, boundary, validator, export, or source-discipline rationale, add or update `docs/decisions/TOS-D-####-*.md` and use the decision route in [docs/decisions](docs/decisions/README.md).
 

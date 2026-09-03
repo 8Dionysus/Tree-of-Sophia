@@ -34,4 +34,5 @@ doctrine, or public authority.
 Use `mechanics/audit/parts/review-ledger-route/docs/REVIEW_CHECKLIST.md` for
 scope-broadening review. For the current bounded intake pack, use
 `scripts/validate_intake_pack.py` and any route/export validator named by the
-touched surface.
+touched surface. Select the nearest source-home or intake route in
+[`ToS/VALIDATION.md`](../VALIDATION.md) after that surface is known.

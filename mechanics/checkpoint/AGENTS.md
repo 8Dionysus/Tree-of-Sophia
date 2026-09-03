@@ -13,6 +13,6 @@ truth and runtime state route to their stronger owners.
 
 ## Validation
 
-```bash
-python scripts/validate_mechanics_topology.py
-```
+Select the `mechanics_local` or topology route from
+[`mechanics/VALIDATION.md`](../VALIDATION.md) after the checkpoint surface is
+known. The lane manifest retains the command order.

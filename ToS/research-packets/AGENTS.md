@@ -19,7 +19,7 @@ witness authority, doctrine, canon, or final graph truth.
 | owner | `ToS/research-packets/AGENTS.md` and the nearest packet `AGENTS.md` |
 | next route | packet -> philosophy branch review -> source anchoring -> graph workbench -> canon review |
 | tools | packet manifests and philosophy topology validator |
-| check | `python scripts/validate_philosophy_topology.py` |
+| check | `philosophy_topology` lane in `ToS/VALIDATION.md` |
 
 ## Boundary Routes
 
@@ -33,9 +33,6 @@ witness authority, doctrine, canon, or final graph truth.
 
 ## Validation
 
-Run:
-
-```bash
-python scripts/validate_philosophy_topology.py
-python scripts/validate_tos_source_home.py
-```
+Select the `philosophy_topology` or `source_home` route from
+[`ToS/VALIDATION.md`](../VALIDATION.md) after the packet surface is known.
+The route owners retain the procedure and review boundary.

@@ -32,4 +32,5 @@ that belong to authored meaning.
 
 Use `mechanics/audit/parts/review-ledger-route/docs/REVIEW_CHECKLIST.md` for
 boundary-sensitive doctrine changes. Run the route, canon, contract, or export
-validator named by the surface you touch.
+validator named by the surface you touch. Select the corresponding route in
+[`ToS/VALIDATION.md`](../VALIDATION.md) after the doctrine surface is known.

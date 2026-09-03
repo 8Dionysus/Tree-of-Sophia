@@ -15,7 +15,6 @@ operation between those surfaces.
 
 ## Validation
 
-```bash
-python scripts/validate_mechanics_topology.py
-python mechanics/relation-weaving/parts/graph-promotion/scripts/validate_tree_relation_pack.py
-```
+Select the `mechanics_local` or `canon_contracts` route from
+[`mechanics/VALIDATION.md`](../VALIDATION.md) after the relation surface is
+known. The graph-promotion owner retains the procedure.

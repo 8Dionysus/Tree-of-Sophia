@@ -6,7 +6,7 @@ This card applies to `.agents/spark/` and all descendants unless a nearer
 `AGENTS.md` narrows the path.
 
 The root `AGENTS.md` remains authoritative for repository identity, ownership
-boundaries, reading order, and validation commands. This local file only
+boundaries, reading order, and validation routes. This local file only
 narrows how GPT-5.3-Codex-Spark should behave when used as the fast-loop lane.
 
 Use `.agents/spark/SWARM.md` only when a Spark swarm is explicitly requested.
@@ -62,13 +62,8 @@ being changed.
 ## Validation
 
 Use the narrowest validator named by the touched owner surface. For purely
-Spark-local edits, do manual consistency review and route-card validation.
-
-If the Spark lane itself changes, run:
-
-```bash
-python scripts/validate_nested_agents.py
-```
+Spark-local edits, do manual consistency review and select the corresponding
+`agent_surface` or `route_docs` route in the root `VALIDATION.md`.
 
 ## Local done signal
 

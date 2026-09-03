@@ -12,11 +12,12 @@ Read the root `AGENTS.md`, then the owner surfaces that carry the action:
   and [`docs/validation/script_inventory.json`](../docs/validation/script_inventory.json)
   describe script coverage and side effects.
 - Read the nearest source, contract, mechanics, decision, public-entry, or
-  review card for the route being changed. Common entrypoints are
-  `ToS/source-witnesses/README.md`, `ToS/doctrine/CORPUS_FOUNDATION.md`,
+  review card for the route being changed. Open human-facing entrypoints such
+  as `ToS/source-witnesses/README.md`, `ToS/doctrine/CORPUS_FOUNDATION.md`,
   `ToS/zarathustra/public-entry/TINY_ENTRY_ROUTE.md`,
-  `mechanics/boundary-bridge/parts/derived-kag-seam/docs/KAG_EXPORT.md`, and
-  `mechanics/audit/parts/review-ledger-route/docs/REVIEW_CHECKLIST.md`.
+  `mechanics/boundary-bridge/parts/derived-kag-seam/docs/KAG_EXPORT.md`, or
+  `mechanics/audit/parts/review-ledger-route/docs/REVIEW_CHECKLIST.md` only
+  when the selected route needs their explanation.
 - For decision indexes, read `docs/decisions/AGENTS.md`; for agent-route
   topology, read `DESIGN.AGENTS.md` and
   `docs/validation/agents_route_inventory.json`.
@@ -97,20 +98,11 @@ public-meaning judgments.
 ## Validation
 
 Use the nearest command sequence in `docs/validation/validation_lanes.json`.
-The repository gate is:
-
-```bash
-python scripts/release_check.py
-```
-
-For route-card work, the focused lane is the inventory -> generated
-currentness -> inheritance validator -> deterministic task harness sequence:
-
-```bash
-python scripts/build_agents_route_currentness.py --check
-python scripts/validate_nested_agents.py
-python scripts/agents_route_harness.py --check
-```
+For route-card work, select the inventory -> generated currentness ->
+inheritance validator -> deterministic task harness route from
+[`scripts/VALIDATION.md`](VALIDATION.md). The repository release gate and
+affected source, mechanics, public-entry, graph, decision, test, or port checks
+remain owned by the named lane.
 
 Run affected source, mechanics, public-entry, graph, decision, test, or port
 checks named by the same lane. Do not infer human, semantic, runtime, CI, or

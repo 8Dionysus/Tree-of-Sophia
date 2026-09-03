@@ -17,7 +17,7 @@ branch-shaped topology.
 | role | growing domain branch for philosophy |
 | input | master-table row, dossier index, era, explicit non-era frontier, region, tradition, corpus, archive, inscription, work, figure, concept, institution, medium, script, transmission, controversy, source-corpus, research packet, or branch-graph material |
 | output | tree-shaped philosophical branch surface with evidence posture and local graph route |
-| owner | `ToS/philosophy/AGENTS.md`, `ToS/philosophy/README.md`, and `ToS/philosophy/philosophy.manifest.json` |
+| owner | `ToS/philosophy/AGENTS.md` and `ToS/philosophy/philosophy.manifest.json` |
 | next route | atlas row or source witness -> branch growth -> local graph workbench -> proposed nodes -> proposed relations -> relation pack -> canon promotion -> derived graph/export |
 | tools | trunk vocabularies, branch manifests, research packet contracts, source witness routes, graph view cards, local ledgers, canon route cards |
 | check | `scripts/validate_philosophy_topology.py` |
@@ -46,5 +46,6 @@ branch-shaped topology.
 
 ## Validation
 
-Use `scripts/validate_philosophy_topology.py` and the source-home or canon
-validator when those owner surfaces change.
+Select the `philosophy_topology` route in [`ToS/VALIDATION.md`](../VALIDATION.md)
+and the source-home or canon route when those owner surfaces change. Open
+`ToS/philosophy/README.md` only when its human branch explanation is relevant.

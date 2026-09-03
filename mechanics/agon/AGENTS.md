@@ -30,8 +30,6 @@ reviewable movement before any ToS canon change.
 
 ## Validation
 
-```bash
-python scripts/validate_mechanics_topology.py
-python scripts/run_mechanics_local_tests.py
-python scripts/validate_nested_agents.py
-```
+Select the `mechanics_local` route from [`mechanics/VALIDATION.md`](../VALIDATION.md)
+after the Agon package or active part is known. The package-local test and route
+card checks remain procedure-owned by that validation route.

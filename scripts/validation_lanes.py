@@ -3,6 +3,8 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
+import subprocess
 import sys
 from pathlib import Path
 from typing import TypeAlias
@@ -137,10 +139,32 @@ def command_sequence(sequence_id: str, repo_root: Path | None = None) -> list[Co
     return resolved
 
 
+def run_sequence(sequence_id: str, repo_root: Path | None = None) -> int:
+    root = repo_root or REPO_ROOT
+    for label, command in command_sequence(sequence_id, root):
+        print(f"[run] {label}: {' '.join(command)}", flush=True)
+        completed = subprocess.run(
+            command,
+            cwd=root,
+            env=os.environ.copy(),
+            check=False,
+        )
+        if completed.returncode != 0:
+            print(
+                f"[error] {label} failed with exit code {completed.returncode}",
+                file=sys.stderr,
+                flush=True,
+            )
+            return completed.returncode
+        print(f"[ok] {label}", flush=True)
+    return 0
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Inspect ToS validation lanes.")
     parser.add_argument("--check", action="store_true", help="validate the lane manifest")
     parser.add_argument("--sequence", help="print a named command sequence")
+    parser.add_argument("--run", metavar="SEQUENCE", help="execute a named command sequence")
     args = parser.parse_args(argv)
 
     if args.check:
@@ -153,10 +177,21 @@ def main(argv: list[str] | None = None) -> int:
         print("[ok] validated ToS validation lane manifest")
 
     if args.sequence:
-        for label, command in command_sequence(args.sequence, REPO_ROOT):
-            print(f"{label}: {' '.join(command)}")
+        try:
+            for label, command in command_sequence(args.sequence, REPO_ROOT):
+                print(f"{label}: {' '.join(command)}")
+        except (KeyError, ValueError) as exc:
+            print(f"error: {exc}", file=sys.stderr)
+            return 1
 
-    if not args.check and not args.sequence:
+    if args.run:
+        try:
+            return run_sequence(args.run, REPO_ROOT)
+        except (KeyError, ValueError) as exc:
+            print(f"error: {exc}", file=sys.stderr)
+            return 1
+
+    if not args.check and not args.sequence and not args.run:
         parser.print_help()
 
     return 0

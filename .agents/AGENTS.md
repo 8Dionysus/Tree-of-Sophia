@@ -34,9 +34,7 @@ owner repositories as stronger authority when the task touches their meaning.
 
 ## Validation
 
-Use the narrowest validator named by the touched owner surface. For
-agent-route shape changes, run:
-
-```bash
-python scripts/validate_nested_agents.py
-```
+Select the `agent_surface` or `route_docs` route in the root
+[`VALIDATION.md`](../VALIDATION.md) after the touched owner surface is known.
+The lane manifest and its named `validate_nested_agents` validator remain the
+procedure owners.

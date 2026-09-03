@@ -2,14 +2,12 @@
 
 This file applies to durable ToS decision rationale under `docs/decisions/`.
 
-## Read first
+## Conditional route
 
-Before editing decision records here, read:
-1. the repository root `AGENTS.md`
-2. `docs/AGENTS.md`
-3. `README.md`
-4. `CHARTER.md` and `BOUNDARIES.md`
-5. the source, intake, tree, example, generated, or script surface the decision describes
+Start with the repository root `AGENTS.md`, `docs/AGENTS.md`, and this card.
+Open `README.md`, `CHARTER.md`, or `BOUNDARIES.md` only when their human
+orientation changes the decision task. Then open the source, intake, tree,
+example, generated, or script surface the decision describes.
 
 ## Local role
 
@@ -72,12 +70,7 @@ superseding record and say what it supersedes.
 
 ## Validation
 
-After adding or editing decision metadata, run:
-
-```bash
-python scripts/generate_decision_indexes.py
-python scripts/generate_decision_indexes.py --check
-python scripts/validate_decision_records.py
-```
-
-Also run the owning validator for the source, tree, route, export, or script surface the decision describes.
+Select the decision route in [`docs/VALIDATION.md`](../VALIDATION.md). The
+decision index builder and record validator remain the owner procedure; also
+select the owning route for the source, tree, export, or script surface the
+decision describes.

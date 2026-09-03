@@ -47,7 +47,9 @@ class DocsVerifyRoutesTestCase(unittest.TestCase):
         offenders: list[str] = []
         for path in sorted(REPO_ROOT.rglob("*.md")):
             relative = path.relative_to(REPO_ROOT)
-            if path.name == "AGENTS.md" or any(part in MARKDOWN_EXCLUDED_PARTS for part in relative.parts):
+            if path.name in {"AGENTS.md", "VALIDATION.md"} or any(
+                part in MARKDOWN_EXCLUDED_PARTS for part in relative.parts
+            ):
                 continue
             for match in FENCED_BLOCK_RE.finditer(read_text(path)):
                 language = match.group(1).strip().lower().split(maxsplit=1)
@@ -67,28 +69,27 @@ class DocsVerifyRoutesTestCase(unittest.TestCase):
     def test_readme_routes_validation_instead_of_carrying_commands(self) -> None:
         readme = read_text(README_PATH)
 
-        self.assertIn("[AGENTS](AGENTS.md#verify)", readme)
-        self.assertIn("[scripts](scripts/AGENTS.md)", readme)
+        self.assertIn("[validation](VALIDATION.md)", readme)
+        self.assertIn("[agent routes](AGENTS.md)", readme)
         self.assertNotIn("python scripts/", readme)
         self.assertNotIn("python -m unittest", readme)
 
-    def test_agents_validation_section_names_release_gate_and_local_routes(self) -> None:
+    def test_agents_routes_to_on_demand_validation_and_manual_review(self) -> None:
         agents = read_text(AGENTS_PATH)
 
         assert_route_refs(
             self,
             agents,
-            "scripts/release_check.py",
-            "scripts/validate_tiny_entry_route.py",
-            KAG_EXPORT_VALIDATOR,
+            "VALIDATION.md",
+            "docs/validation/validation_lanes.json",
             REVIEW_CHECKLIST,
         )
 
     def test_contributing_routes_to_validation_owners(self) -> None:
         contributing = read_text(CONTRIBUTING_PATH)
 
-        self.assertIn("AGENTS.md#verify", contributing)
-        assert_route_refs(self, contributing, "scripts/AGENTS.md", REVIEW_CHECKLIST)
+        self.assertIn("VALIDATION.md", contributing)
+        assert_route_refs(self, contributing, "AGENTS.md", REVIEW_CHECKLIST)
 
     def test_kag_export_doc_separates_verification_from_regeneration(self) -> None:
         kag_export_doc = read_text(KAG_EXPORT_DOC_PATH)

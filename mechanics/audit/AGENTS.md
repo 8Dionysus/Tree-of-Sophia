@@ -15,7 +15,6 @@ their owning surfaces.
 
 ## Validation
 
-```bash
-python scripts/validate_mechanics_topology.py
-python scripts/validate_nested_agents.py
-```
+Select the `mechanics_local` or route-card review route from
+[`mechanics/VALIDATION.md`](../VALIDATION.md) after the evidence surface is
+known. The review checklist and validator retain the procedure.

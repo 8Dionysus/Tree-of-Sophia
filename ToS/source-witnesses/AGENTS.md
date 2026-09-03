@@ -18,14 +18,15 @@ evidence.
 | role | primary witness and source-facing evidence surface |
 | input | acquired item, primary-language text, translation, collection membership, source-page metadata, or provenance/rights evidence |
 | output | addressable reviewable witness surface with explicit identity, fixity, source, and rights posture |
-| owner | `ToS/source-witnesses/AGENTS.md`, `README.md`, nearest object/claim record, and generated tracked catalog |
+| owner | `ToS/source-witnesses/AGENTS.md`, nearest object/claim record, and generated tracked catalog |
 | next route | source witness -> `ToS/philosophy/` branch or `ToS/candidate-intake/` pass -> `ToS/canon/` review |
 | tools | manual corpus gate, source route docs, witness manifests |
 | check | route validator when the witness feeds a current public or export surface |
 
 ## Boundary Routes
 
-- Read `README.md` and `ToS/doctrine/CORPUS_FOUNDATION.md` before adding or
+- Open `README.md` when its human provenance or usage explanation is relevant;
+  use `ToS/doctrine/CORPUS_FOUNDATION.md` for corpus law before adding or
   moving corpus material.
 - Use the identity ladder `work -> expression -> edition -> item -> file`.
   Route multi-work publications through `collections/` and evidence-bearing
@@ -100,4 +101,6 @@ source-line/digest return, object/claim closure, payload-ignore, fixity, rights,
 and reference mechanics. Use the review checklist for source identity,
 edition, relation truth, translation, rights, or interpretation judgments. If
 the witness participates in the current bounded route, also use tiny-entry and
-export validators.
+export validators. Select the `source_home` route in
+[`ToS/VALIDATION.md`](../VALIDATION.md) after the witness object or claim
+surface is known.

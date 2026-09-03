@@ -35,9 +35,17 @@ validators.
   owning runtime or downstream surfaces.
 - For translation alignment, bind both exact text layers and anchor sets;
   keep competing maps and review outcomes separate from the interchange form.
+- For a source-text-unit contract, bind exact frozen text and keep physical
+  layout, orthographic units, linguistic analysis, and tokenizer/model pieces
+  as distinct layers with explicit coverage and gaps.
+- A tokenizer or aligner may propose a reproducible projection; it cannot
+  accept a linguistic unit, translation correspondence, semantic claim, or
+  review outcome.
 
 ## Validation
 
 Use the validator for the schema consumer: source-home, node contract,
 tiny-entry, corpus index, public mirror, or export seam. Use the review
-checklist for boundary-sensitive contract changes.
+checklist for boundary-sensitive contract changes. Select the nearest contract
+route in [`ToS/VALIDATION.md`](../VALIDATION.md) after the schema consumer is
+known.

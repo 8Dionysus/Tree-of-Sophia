@@ -15,7 +15,6 @@ resilience posture and source-review return.
 
 ## Validation
 
-```bash
-python scripts/validate_mechanics_topology.py
-python scripts/validate_tos_source_home.py
-```
+Select the `mechanics_local` or `source_home` route from
+[`mechanics/VALIDATION.md`](../VALIDATION.md) after the affected package or
+source boundary is known. The route owners retain the procedure.

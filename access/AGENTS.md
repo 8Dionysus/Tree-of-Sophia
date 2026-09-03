@@ -24,18 +24,9 @@ derived-export owners remain stronger than every packet emitted here.
 - Runtime packets must preserve `source_ref` and must not claim review,
   rights, canon, or semantic authority.
 
-## Verify
+## Validation route
 
-Run the focused lane from the repository root:
-
-```bash
-python -m unittest discover -s access/tests
-python access/packaging/validate_standalone.py
-npm --prefix access/web run typecheck
-npm --prefix access/web run build
-```
-
-For an archive boundary check, build a candidate and validate the extracted
-result outside the repository. A green bundle check proves portability and
-integrity mechanics only; it does not authorize publication or OS Abyss
-artifact admission.
+Select the `standalone_access` route in the repository root
+[`VALIDATION.md`](../VALIDATION.md) after the changed contract or adapter is
+known. The lane manifest owns command order; the access README remains the
+human orientation surface for archive-boundary and installation details.

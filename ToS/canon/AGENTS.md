@@ -34,3 +34,7 @@ packs, and vocabulary registries.
 Use `scripts/validate_tree_node_contracts.py`,
 `mechanics/relation-weaving/parts/graph-promotion/scripts/validate_tree_relation_pack.py`,
 and the public mirror or export validator when those surfaces are affected.
+Select the `canon_contracts` route from [`ToS/VALIDATION.md`](../VALIDATION.md)
+after the authored class or relation surface and affected companion are known.
+If a public mirror or derived export is touched, select the corresponding
+`public_entry` or `generated_parity` route; their owner docs retain procedure.

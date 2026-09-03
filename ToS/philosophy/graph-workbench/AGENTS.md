@@ -47,12 +47,7 @@ projection.
 
 ## Verify
 
-Use the narrowest graph route first:
-
-```bash
-python scripts/build_philosophy_graph_views.py --check
-python scripts/validate_philosophy_graph_views.py
-python scripts/build_philosophy_graph_projection.py --check
-python scripts/validate_philosophy_graph_projection.py
-python scripts/validate_philosophy_topology.py
-```
+Select `philosophy_topology`, `generated_parity`, or the graph-related route in
+[`ToS/VALIDATION.md`](../../VALIDATION.md) after the touched graph-workbench
+surface is known. Graph generation and validation procedure stays with the
+named owner docs and lane manifest.

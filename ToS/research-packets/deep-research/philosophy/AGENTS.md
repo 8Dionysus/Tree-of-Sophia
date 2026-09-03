@@ -19,7 +19,7 @@ philosophical source authority.
 | owner | `ToS/research-packets/deep-research/philosophy/AGENTS.md` and `research.manifest.json` |
 | next route | research packet -> `ToS/philosophy/` branch review -> source anchoring -> graph workbench -> canon review |
 | tools | research packet manifest and philosophy topology validator |
-| check | `python scripts/validate_philosophy_topology.py` |
+| check | `philosophy_topology` lane in `ToS/VALIDATION.md` |
 
 ## Boundary Routes
 
@@ -34,9 +34,6 @@ philosophical source authority.
 
 ## Validation
 
-Run:
-
-```bash
-python scripts/validate_philosophy_topology.py
-python scripts/validate_tos_source_home.py
-```
+Select the `philosophy_topology` or `source_home` route from
+[`ToS/VALIDATION.md`](../../../VALIDATION.md) after the packet surface is
+known. The route owners retain the procedure and review boundary.

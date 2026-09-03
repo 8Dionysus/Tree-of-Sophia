@@ -26,3 +26,5 @@ active owner route and validate that route.
 ## Validation
 
 Use `mechanics/audit/parts/review-ledger-route/docs/REVIEW_CHECKLIST.md` for changes here.
+Select the corresponding review or `public_entry` route in
+[`ToS/VALIDATION.md`](../../VALIDATION.md) after the archived surface is known.

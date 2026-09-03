@@ -83,6 +83,124 @@ class NestedAgentsRouteTests(unittest.TestCase):
             self.assertEqual(1, len(issues))
             self.assertIn("byte-identical", issues[0][1])
 
+    def test_prompt_light_structure_rejects_executable_and_unconditional_routes(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            (root / "VALIDATION.md").write_text("# Validation\n", encoding="utf-8")
+            (root / "AGENTS.md").write_text(
+                "# AGENTS.md\n"
+                "## Read before editing\n"
+                "Read README.md first.\n"
+                "## Validation\n"
+                "```bash\n"
+                "python scripts/check.py\n"
+                "```\n",
+                encoding="utf-8",
+            )
+            messages = [message for _, message in validate_nested_agents.validate_active_agent_structure(root)]
+            self.assertTrue(any("fenced procedure" in message for message in messages))
+            self.assertTrue(any("runnable command" in message for message in messages))
+            self.assertTrue(any("unconditional README" in message for message in messages))
+
+    def test_prompt_light_structure_rejects_unbounded_for_and_before_routes(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            (root / "VALIDATION.md").write_text("# Validation\n", encoding="utf-8")
+            (root / "AGENTS.md").write_text(
+                "# AGENTS.md\n"
+                "Read README.md for setup.\n"
+                "Review README.md before editing.\n",
+                encoding="utf-8",
+            )
+            messages = [
+                message
+                for _, message in validate_nested_agents.validate_active_agent_structure(root)
+                if "unconditional README" in message
+            ]
+            self.assertEqual(2, len(messages))
+
+    def test_prompt_light_structure_accepts_explicit_task_condition(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            (root / "VALIDATION.md").write_text("# Validation\n", encoding="utf-8")
+            (root / "AGENTS.md").write_text(
+                "# AGENTS.md\nOpen README.md when public navigation changes.\n",
+                encoding="utf-8",
+            )
+            messages = validate_nested_agents.validate_active_agent_structure(root)
+            self.assertFalse(any("unconditional README" in message for _, message in messages))
+
+    def test_prompt_light_structure_rejects_inline_env_and_empty_sections(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            (root / "VALIDATION.md").write_text("# Validation\n", encoding="utf-8")
+            (root / "AGENTS.md").write_text(
+                "# AGENTS.md\n"
+                "## Role\n"
+                "Use `python scripts/check.py` for the route.\n"
+                "FOO=bar python scripts/check.py\n"
+                "## Validation\n"
+                "## Boundary\n",
+                encoding="utf-8",
+            )
+            messages = [message for _, message in validate_nested_agents.validate_active_agent_structure(root)]
+            self.assertTrue(any("inline runnable command" in message for message in messages))
+            self.assertTrue(any("environment-assignment command" in message for message in messages))
+            self.assertTrue(any("empty procedural section" in message for message in messages))
+
+    def test_prompt_light_structure_rejects_extraction_residue_and_missing_route(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            (root / "AGENTS.md").write_text(
+                "# AGENTS.md\n"
+                "## Role\n"
+                "## Validation\n"
+                "Run:\n"
+                "## Boundary\n"
+                "- First:\n"
+                "- Second:\n",
+                encoding="utf-8",
+            )
+            messages = [message for _, message in validate_nested_agents.validate_active_agent_structure(root)]
+            self.assertTrue(any("orphan extraction lead-in" in message for message in messages))
+            self.assertTrue(any("stacked colon lead-ins" in message for message in messages))
+            self.assertTrue(any("same-level bullet lead-in" in message for message in messages))
+            self.assertTrue(any("missing nearest validation route" in message for message in messages))
+
+    def test_prompt_light_structure_allows_conditional_human_readme_route(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            (root / "VALIDATION.md").write_text("# Validation\n", encoding="utf-8")
+            (root / "AGENTS.md").write_text(
+                "# AGENTS.md\n"
+                "## Read before editing\n"
+                "Open README.md only when its human explanation is relevant.\n"
+                "## Validation\n"
+                "Select the nearest route in VALIDATION.md after the surface is known.\n",
+                encoding="utf-8",
+            )
+            self.assertEqual([], validate_nested_agents.validate_active_agent_structure(root))
+
+    def test_prompt_light_structure_allows_inherited_validation_route(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            (root / "VALIDATION.md").write_text("# Validation\n", encoding="utf-8")
+            (root / "AGENTS.md").write_text(
+                "# AGENTS.md\n"
+                "## Validation\n"
+                "Select the nearest VALIDATION.md route.\n",
+                encoding="utf-8",
+            )
+            child = root / "canon" / "AGENTS.md"
+            child.parent.mkdir()
+            child.write_text(
+                "# AGENTS.md\n"
+                "## What lives here\n"
+                "This child retains only its class-local semantic delta.\n",
+                encoding="utf-8",
+            )
+            self.assertEqual([], validate_nested_agents.validate_active_agent_structure(root))
+
     def test_stale_executable_reference_is_a_negative_control(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)

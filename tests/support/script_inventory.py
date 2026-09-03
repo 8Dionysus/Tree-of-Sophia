@@ -35,17 +35,18 @@ def discovered_script_surfaces(repo_root: Path = REPO_ROOT) -> set[str]:
         path.relative_to(repo_root).as_posix()
         for path in repo_root.rglob("*")
         if path.is_file()
+        and "__pycache__" not in path.parts
+        and path.suffix != ".pyc"
         and (
             (
                 "/scripts/" in f"/{path.relative_to(repo_root).as_posix()}"
-                and path.suffix != ".pyc"
+                and (path.suffix in {".py", ".sh"} or path.name == "AGENTS.md")
             )
             or (
                 path.relative_to(repo_root).parts[:2] == ("access", "packaging")
                 and path.suffix == ".py"
             )
         )
-        and "__pycache__" not in path.parts
     }
     return discovered | command_script_paths(repo_root)
 

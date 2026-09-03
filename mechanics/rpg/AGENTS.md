@@ -14,6 +14,5 @@ owning surfaces. This package owns progression reflection only.
 
 ## Validation
 
-```bash
-python scripts/validate_mechanics_topology.py
-```
+Select the `mechanics_local` route from [`mechanics/VALIDATION.md`](../VALIDATION.md)
+after the RPG surface is known. The lane manifest retains the command order.

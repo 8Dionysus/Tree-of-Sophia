@@ -14,6 +14,7 @@ own owner surfaces.
 
 | Surface | Role |
 | --- | --- |
+| `../../VALIDATION.md` | on-demand human selector for named internal lanes and district validation routes |
 | `validation_lanes.json` | executable command authority for named validation lanes |
 | `script_inventory.json` | descriptive map of active `*/scripts/*` surfaces to owners, lanes, and side effects |
 | `SCRIPT_TOPOLOGY.md` | descriptive map of script homes, families, side effects, and lane posture |
@@ -26,10 +27,15 @@ own owner surfaces.
 
 Inventories describe coverage. They are not command authority.
 
+Root and district `VALIDATION.md` files are human maps, not inherited prompt
+cards or second machine manifests. They may select a lane or preserve an
+external-owner procedure; exact internal sequence membership and order remain
+here in `validation_lanes.json`.
+
 ## Boundary Routes
 
-- Source-home checks route to `ToS/source_home.manifest.json` and the nearest
-  `ToS/**/AGENTS.md`.
+- Source-home checks route to `ToS/source_home.manifest.json`, the nearest
+  `ToS/**/AGENTS.md`, and `ToS/VALIDATION.md` after the source branch is known.
 - Mechanics checks route to `mechanics/topology.json`, the package-local
   `PARTS.md` maps, and the active part route. The mechanics lane also checks
   current route links, executable script references, and the bounded
@@ -47,7 +53,7 @@ Inventories describe coverage. They are not command authority.
   currentness companion, and `scripts/agents_route_harness.py`; the harness is
   a deterministic route-shape check, not a behavioral or semantic eval.
 - Test topology routes to `docs/testing/TEST_TOPOLOGY.md`, `tests/AGENTS.md`,
-  and `tests/test_inventory.json`.
+  `tests/VALIDATION.md`, and `tests/test_inventory.json`.
 - Local eval pressure routes to `evals/`, while proof authority stays with
   `aoa-evals`.
 
@@ -65,11 +71,11 @@ content hashes. It is rebuilt from `git ls-files` and the authored map; it does
 not author ToS meaning, runtime status, KAG authority, or acceptance receipts.
 
 The map records why no `llms.txt` projection was added: the repository has no
-real loader or CI/manifest consumer for it, while README, AGENTS, `.agents`,
-public-entry, and KAG manifests already own their active entry seams. The
-minimal added route is the internal on-demand currentness carrier, checked by:
-`python scripts/build_documentation_family_currentness.py --check` followed by
-`python scripts/validate_documentation_cross_corpus.py`.
+real loader or CI/manifest consumer for it, while README, AGENTS, VALIDATION,
+`.agents`, public-entry, and KAG manifests already own their active entry seams.
+The minimal added route is the internal on-demand currentness carrier. Select
+and run its exact current sequence through root `VALIDATION.md` and the
+`cross_corpus_documentation` lane.
 
 The coordinator reuses the named AGENTS-route, mechanics topology, decision,
 agent-surface, KAG, and public-entry validators and adds only cross-family
@@ -77,12 +83,7 @@ coverage, authority, public-safety, and context probes.
 
 ## Validation
 
-Run the lane manifest self-check before changing release command composition:
-
-The `validation_authority` sequence in `validation_lanes.json` owns the
-manifest self-check.
-
-For release-facing changes use:
-
-The `release_check` sequence in `validation_lanes.json` owns broad command
-composition; `scripts/release_check.py` is its entrypoint.
+Use root `VALIDATION.md` to inspect or run a named lane. The
+`validation_authority` sequence owns manifest self-check; the `release_check`
+sequence owns broad command composition and `scripts/release_check.py` remains
+its entrypoint.
