@@ -1,25 +1,25 @@
 {
-  "allowed_bytes": 39664012,
-  "allowed_tracked_bytes": 44503643,
+  "allowed_bytes": 34379795,
+  "allowed_tracked_bytes": 44660736,
   "approved_by": "repository-owner",
-  "base_ref": "7212f8f9b2fbd6a655d6c5b7031ae16de2443491",
+  "base_ref": "3b18eab67451814ed5794d338d612fc86849a874",
   "candidate_identity": {
     "algorithm": "sha256:canonical-json-file-inventory-v2",
-    "base_ref": "7212f8f9b2fbd6a655d6c5b7031ae16de2443491",
+    "base_ref": "3b18eab67451814ed5794d338d612fc86849a874",
     "contract_version": "aoa-kag:budget-receipt-candidate-identity-v2",
-    "excluded_path": "kag/receipts/index_family_budget/c69e56dd811d39b9a69ca9df391e11c140e2334ed4c218f47d59cfae8623cbe1.json",
-    "family_digest": "c69e56dd811d39b9a69ca9df391e11c140e2334ed4c218f47d59cfae8623cbe1",
-    "file_count": 4851,
-    "seal": "db084059340e58679cc3798523fbc8ea9273aef91602db0859c90d60d371f781",
-    "source_epoch": "sha256:4cf42a56ff2492d282da93bbffadbbe18023bef0dbf1e6550055469739ab5079",
-    "source_snapshot": "sha256:33b1ab1a6f400de5877aabad10d5437ea88cf8507950e8cb6ffdd14038d212e1"
+    "excluded_path": "kag/receipts/index_family_budget/c8d10dbf1b58de680b4b02b280a119032463471d8d64127eea331e5970bd8b97.json",
+    "family_digest": "c8d10dbf1b58de680b4b02b280a119032463471d8d64127eea331e5970bd8b97",
+    "file_count": 4863,
+    "seal": "0574e1380854749dc29973257242cdea3bffcf1d05f385e6b8eb809b2ad57029",
+    "source_epoch": "sha256:6df35104a62a904c8e0a1734945681d29812e5359496930f09e7c66bbf7bbb2a",
+    "source_snapshot": "sha256:635459bb953a7fa561fcc650808c3d1895009577ece0cc4fdfc4a6e46daa1ee5"
   },
-  "changed_generated_bytes": 39664012,
-  "changed_generated_files": 483,
+  "changed_generated_bytes": 34379795,
+  "changed_generated_files": 344,
   "decision_ref": "aoa-kag:docs/decisions/AOA-KAG-D-0017-portable-content-addressed-repository-family.md",
   "default_limit_bytes": 1048576,
-  "head_family_digest": "c69e56dd811d39b9a69ca9df391e11c140e2334ed4c218f47d59cfae8623cbe1",
-  "head_source_snapshot": "sha256:33b1ab1a6f400de5877aabad10d5437ea88cf8507950e8cb6ffdd14038d212e1",
+  "head_family_digest": "c8d10dbf1b58de680b4b02b280a119032463471d8d64127eea331e5970bd8b97",
+  "head_source_snapshot": "sha256:635459bb953a7fa561fcc650808c3d1895009577ece0cc4fdfc4a6e46daa1ee5",
   "producer_identity": {
     "action": {
       "bytes": 4995,
@@ -35,13 +35,13 @@
           "bytes": 40,
           "kind": "git-ref",
           "state": "set",
-          "value_digest": "1c16c152c176f4b24b397d770b6403bada635402b00b023e81178e10da0c2d47"
+          "value_digest": "dcca08031ed809489789784d546d8715263b0d6f4d6ca05273eff89c62f7b5b4"
         },
         "history-ref": {
           "bytes": 40,
           "kind": "git-ref",
           "state": "set",
-          "value_digest": "1c16c152c176f4b24b397d770b6403bada635402b00b023e81178e10da0c2d47"
+          "value_digest": "dcca08031ed809489789784d546d8715263b0d6f4d6ca05273eff89c62f7b5b4"
         },
         "output": {
           "bytes": 37,
@@ -58,11 +58,11 @@
       },
       "command_targets": {
         "artifact_root": null,
-        "base_ref": "7212f8f9b2fbd6a655d6c5b7031ae16de2443491",
-        "event_history_ref": "7212f8f9b2fbd6a655d6c5b7031ae16de2443491",
+        "base_ref": "3b18eab67451814ed5794d338d612fc86849a874",
+        "event_history_ref": "3b18eab67451814ed5794d338d612fc86849a874",
         "externalized": false,
         "family_mode": "portable",
-        "history_ref": "7212f8f9b2fbd6a655d6c5b7031ae16de2443491",
+        "history_ref": "3b18eab67451814ed5794d338d612fc86849a874",
         "output": "kag/indexes/source_surface_index.json",
         "repo_root": {
           "path_digest": "21dba821671dd5da139d85927c06f360ae3bcc5751db42dae6d309553c903d79",
@@ -726,7 +726,7 @@
         "state": "present"
       }
     ],
-    "identity_digest": "8106bb16ed9f0b9568a5a957cf5ce14ae21dbee85466a71f2e9516310916a74c",
+    "identity_digest": "21d4a10ecb568d8d76f8bf45da75c0eb37eb4166afbd1795f700a73e2f218dc0",
     "owner": "aoa-kag",
     "procedure_manifest": {
       "action_inputs": [
@@ -853,10 +853,10 @@
     "revision_binding": "content-addressed-procedure-import-closure-portable-runtime-contract-and-descriptor-io-v1",
     "source_digest": "b6ab389723d813c22d82206c098e85621be70436937e3f36188761b6edd7a98b"
   },
-  "reason": "Refresh the repo-local KAG family after documentation family currentness update on PR 173.",
+  "reason": "Refresh repo-local KAG family after rebasing PR 174 and reconciling decision/generated companions.",
   "repo": "Tree-of-Sophia",
   "schema_version": "aoa-repo-local-kag-budget-receipt-v2",
   "scope": "generated_delta_and_tracked_size",
-  "tracked_bytes": 44503643,
+  "tracked_bytes": 44660736,
   "tracked_bytes_max": 11534336
 }
