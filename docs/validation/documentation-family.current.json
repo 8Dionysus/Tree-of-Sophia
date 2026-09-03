@@ -36,14 +36,14 @@
     "excluded_generated_carrier_rules": 3,
     "excluded_tracked_path_count": 508,
     "human_scope": {
-      "bytes": 4670483,
+      "bytes": 4670311,
       "count": 921,
       "excluded_skill_launch_metadata": 25,
       "family_counts": {
         "access": {
-          "bytes": 6971,
+          "bytes": 6799,
           "count": 4,
-          "lines": 145
+          "lines": 136
         },
         "agents-other": {
           "bytes": 17683,
@@ -121,7 +121,7 @@
           "lines": 60051
         }
       },
-      "lines": 82232
+      "lines": 82223
     },
     "surface_kind_counts": {
       "executable": 176,
@@ -186,7 +186,7 @@
         "human": 4,
         "structured": 11
       },
-      "tracked_surface_bytes": 264654,
+      "tracked_surface_bytes": 264482,
       "tracked_surface_count": 25
     },
     {
@@ -285,7 +285,7 @@
   "source_map": "docs/validation/documentation_family_map.json",
   "source_map_sha256": "d70a5059be9cc7547289e4c8be380d23b3aeb9e53bb10e4cb82abf2177ea0896",
   "tracked_source": "git ls-files -z",
-  "tracked_surface_digest": "931195be60a89598f9f8ce7a86b7fa0b70778b348a45943f951a7027a421d55d",
+  "tracked_surface_digest": "7bb2b94a7120f1c437fad32215d55e575afd07322202a13997dcc412d9e864bd",
   "tracked_surfaces": [
     {
       "bytes": 1489,
@@ -332,7 +332,7 @@
       "currentness": "tracked_source_snapshot",
       "family_id": "agents-other",
       "path": ".agents/agents-route.current.json",
-      "sha256": "9acf9d4e63aa18f9ad4f6653eecf1212e549a0683177c97e0dec0607c94446c2",
+      "sha256": "960189dec93769091de661b4866e23b4db440ec7efd36df32bd462811aadc352",
       "surface_kind": "structured"
     },
     {
@@ -23120,11 +23120,11 @@
       "surface_kind": "human"
     },
     {
-      "bytes": 1556,
+      "bytes": 1384,
       "currentness": "tracked_source_snapshot",
       "family_id": "access",
       "path": "access/AGENTS.md",
-      "sha256": "2cc030f502331a3688a00d6364b39b345908b75c1244b3a5fb1e3e93dab32fef",
+      "sha256": "4b2da759e3c2cf29181fb2df336d0f3118f42e204a310a06710de79d7dfaf12f",
       "surface_kind": "human"
     },
     {
@@ -23700,7 +23700,7 @@
       "currentness": "tracked_source_snapshot",
       "family_id": "docs",
       "path": "docs/decisions/TOS-D-0041-prompt-light-agent-routes-and-on-demand-validation.md",
-      "sha256": "75e8b409895b2effc5e15a2df5057e0e64096c7846f002784fc01eecd8030ac3",
+      "sha256": "1f608763544ffb0d742d72d870c0e834e9382029a99a2cfe29900abb28aa902e",
       "surface_kind": "human"
     },
     {
@@ -23716,7 +23716,7 @@
       "currentness": "tracked_source_snapshot",
       "family_id": "docs",
       "path": "docs/decisions/indexes/by-date.md",
-      "sha256": "9313aeea1df1eb99c9532cba42c6d916491047a000a997a41a9cfbaa4aabb6de",
+      "sha256": "4468fe30b1d01fc57fe40e52a295956fd29502e6ad895d6263cbb609a006d0d9",
       "surface_kind": "human"
     },
     {
@@ -23724,7 +23724,7 @@
       "currentness": "tracked_source_snapshot",
       "family_id": "docs",
       "path": "docs/decisions/indexes/by-guard.md",
-      "sha256": "988379270594c9f30ad2994be78c7dde67f1bea8e0f5aff21a398c3af7956f37",
+      "sha256": "6bb30f7706aaa1273f7e70e3375bae18f16ba9e8b719d929197a3ba87c493603",
       "surface_kind": "human"
     },
     {
@@ -23732,7 +23732,7 @@
       "currentness": "tracked_source_snapshot",
       "family_id": "docs",
       "path": "docs/decisions/indexes/by-number.md",
-      "sha256": "c53ce43221d66901eb988c54f18a785d5594d3b4fd2bfeab90f42f25da5c6ec7",
+      "sha256": "d51c7d0194a20dec0dae689d4b4f39bae7195f06cabd03cefd9ff7e7661ae6eb",
       "surface_kind": "human"
     },
     {
@@ -23740,7 +23740,7 @@
       "currentness": "tracked_source_snapshot",
       "family_id": "docs",
       "path": "docs/decisions/indexes/by-surface.md",
-      "sha256": "f683c65993666a00f1181a6c9f893d174509f829632dd652e511d5830fd75428",
+      "sha256": "77eaa645a12c351d7228e8d85fe4c4964b83ce55d8d678a0e0ac4b4ea50b825b",
       "surface_kind": "human"
     },
     {
@@ -23748,7 +23748,7 @@
       "currentness": "tracked_source_snapshot",
       "family_id": "docs",
       "path": "docs/decisions/indexes/by-tos-layer.md",
-      "sha256": "2ed358051523e618c703308d3dc33cdb445fe0e5f6ab88fc8a8e1ecae0de084b",
+      "sha256": "901860801676c689a1431066f3c9e86070c2c6835fd6d5ba5df668d518309c4d",
       "surface_kind": "human"
     },
     {
@@ -23756,7 +23756,7 @@
       "currentness": "tracked_source_snapshot",
       "family_id": "docs",
       "path": "docs/decisions/indexes/by-tree-class.md",
-      "sha256": "1b6fb451efdfec66a93a2b2e1097181fb9a2febed9ec3945512f3a2be69b18c5",
+      "sha256": "dddf8cc180760ce41a8bb1e1ffb88df6269ea77dd0dd702f4daa63aad4dc9a82",
       "surface_kind": "human"
     },
     {
