@@ -7,19 +7,19 @@
     "algorithm": "sha256:canonical-json-file-inventory-v2",
     "base_ref": "7212f8f9b2fbd6a655d6c5b7031ae16de2443491",
     "contract_version": "aoa-kag:budget-receipt-candidate-identity-v2",
-    "excluded_path": "kag/receipts/index_family_budget/79391c28a20e4e3ce08fe16e6b1f0abf9763dd3f8a0d93788f44fe64fae60ba4.json",
-    "family_digest": "79391c28a20e4e3ce08fe16e6b1f0abf9763dd3f8a0d93788f44fe64fae60ba4",
+    "excluded_path": "kag/receipts/index_family_budget/c69e56dd811d39b9a69ca9df391e11c140e2334ed4c218f47d59cfae8623cbe1.json",
+    "family_digest": "c69e56dd811d39b9a69ca9df391e11c140e2334ed4c218f47d59cfae8623cbe1",
     "file_count": 4851,
-    "seal": "ae78ba62270b51e00fb44d107c5ba6bcc4ace57ebc3e9adaef4290bcd0df2eff",
-    "source_epoch": "sha256:e958f4ebd5e15aa7f1c33fa005ef01c1abb85edda9f7223f37a4121a9ea5636f",
-    "source_snapshot": "sha256:fab568ceee99b4ab64a584ab1858ea116d8ba0c7150fb17c3288aed4f9c9cb0d"
+    "seal": "db084059340e58679cc3798523fbc8ea9273aef91602db0859c90d60d371f781",
+    "source_epoch": "sha256:4cf42a56ff2492d282da93bbffadbbe18023bef0dbf1e6550055469739ab5079",
+    "source_snapshot": "sha256:33b1ab1a6f400de5877aabad10d5437ea88cf8507950e8cb6ffdd14038d212e1"
   },
   "changed_generated_bytes": 39664012,
   "changed_generated_files": 483,
   "decision_ref": "aoa-kag:docs/decisions/AOA-KAG-D-0017-portable-content-addressed-repository-family.md",
   "default_limit_bytes": 1048576,
-  "head_family_digest": "79391c28a20e4e3ce08fe16e6b1f0abf9763dd3f8a0d93788f44fe64fae60ba4",
-  "head_source_snapshot": "sha256:fab568ceee99b4ab64a584ab1858ea116d8ba0c7150fb17c3288aed4f9c9cb0d",
+  "head_family_digest": "c69e56dd811d39b9a69ca9df391e11c140e2334ed4c218f47d59cfae8623cbe1",
+  "head_source_snapshot": "sha256:33b1ab1a6f400de5877aabad10d5437ea88cf8507950e8cb6ffdd14038d212e1",
   "producer_identity": {
     "action": {
       "bytes": 4995,
@@ -853,7 +853,7 @@
     "revision_binding": "content-addressed-procedure-import-closure-portable-runtime-contract-and-descriptor-io-v1",
     "source_digest": "b6ab389723d813c22d82206c098e85621be70436937e3f36188761b6edd7a98b"
   },
-  "reason": "Refresh the repo-local KAG family after source validation, corpus index, and AGENTS route-currentness updates on PR 173.",
+  "reason": "Refresh the repo-local KAG family after documentation family currentness update on PR 173.",
   "repo": "Tree-of-Sophia",
   "schema_version": "aoa-repo-local-kag-budget-receipt-v2",
   "scope": "generated_delta_and_tracked_size",
