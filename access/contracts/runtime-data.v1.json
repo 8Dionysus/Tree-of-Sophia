@@ -4,6 +4,96 @@
   "publication_posture": "allowlist-only",
   "subjects": [
     {
+      "subject_id": "tos-public-access-request-1",
+      "source_path": "ToS/source-witnesses/access-requests/public-ledger/antonovsky-1900-lnb-research-copy.access-request.json",
+      "required": true,
+      "consumer_roles": ["query-core", "http-reader", "web-app", "webmcp"]
+    },
+    {
+      "subject_id": "tos-public-access-request-2",
+      "source_path": "ToS/source-witnesses/access-requests/public-ledger/antonovsky-1903-rnl-research-copy.access-request.json",
+      "required": true,
+      "consumer_roles": ["query-core", "http-reader", "web-app", "webmcp"]
+    },
+    {
+      "subject_id": "tos-public-access-request-3",
+      "source_path": "ToS/source-witnesses/access-requests/public-ledger/antonovsky-1903-rsl-research-copy.access-request.json",
+      "required": true,
+      "consumer_roles": ["query-core", "http-reader", "web-app", "webmcp"]
+    },
+    {
+      "subject_id": "tos-public-access-request-4",
+      "source_path": "ToS/source-witnesses/access-requests/public-ledger/antonovsky-1907-blok-library.access-request.json",
+      "required": true,
+      "consumer_roles": ["query-core", "http-reader", "web-app", "webmcp"]
+    },
+    {
+      "subject_id": "tos-public-access-request-5",
+      "source_path": "ToS/source-witnesses/access-requests/public-ledger/antonovsky-1907-rnl-gak-holding.access-request.json",
+      "required": true,
+      "consumer_roles": ["query-core", "http-reader", "web-app", "webmcp"]
+    },
+    {
+      "subject_id": "tos-public-access-request-6",
+      "source_path": "ToS/source-witnesses/access-requests/public-ledger/antonovsky-1907-rsl-neb-replacement.access-request.json",
+      "required": true,
+      "consumer_roles": ["query-core", "http-reader", "web-app", "webmcp"]
+    },
+    {
+      "subject_id": "tos-public-access-request-7",
+      "source_path": "ToS/source-witnesses/access-requests/public-ledger/atu2-green-sign-list-research-access.access-request.json",
+      "required": true,
+      "consumer_roles": ["query-core", "http-reader", "web-app", "webmcp"]
+    },
+    {
+      "subject_id": "tos-public-access-request-8",
+      "source_path": "ToS/source-witnesses/access-requests/public-ledger/atu3-lexical-lists-research-access.access-request.json",
+      "required": true,
+      "consumer_roles": ["query-core", "http-reader", "web-app", "webmcp"]
+    },
+    {
+      "subject_id": "tos-public-access-request-9",
+      "source_path": "ToS/source-witnesses/access-requests/public-ledger/atu5-numerical-texts-layer-research-access.access-request.json",
+      "required": true,
+      "consumer_roles": ["query-core", "http-reader", "web-app", "webmcp"]
+    },
+    {
+      "subject_id": "tos-public-access-request-10",
+      "source_path": "ToS/source-witnesses/access-requests/public-ledger/before-writing-token-theory-local-research.access-request.json",
+      "required": true,
+      "consumer_roles": ["query-core", "http-reader", "web-app", "webmcp"]
+    },
+    {
+      "subject_id": "tos-public-access-request-11",
+      "source_path": "ToS/source-witnesses/access-requests/public-ledger/britannica-cuneiform-local-ai-research.access-request.json",
+      "required": true,
+      "consumer_roles": ["query-core", "http-reader", "web-app", "webmcp"]
+    },
+    {
+      "subject_id": "tos-public-access-request-12",
+      "source_path": "ToS/source-witnesses/access-requests/public-ledger/getty-mesopotamia-digital-experience-local-ai-research.access-request.json",
+      "required": true,
+      "consumer_roles": ["query-core", "http-reader", "web-app", "webmcp"]
+    },
+    {
+      "subject_id": "tos-public-access-request-13",
+      "source_path": "ToS/source-witnesses/access-requests/public-ledger/nietzsche-source-ekgwb.access-request.json",
+      "required": true,
+      "consumer_roles": ["query-core", "http-reader", "web-app", "webmcp"]
+    },
+    {
+      "subject_id": "tos-public-access-request-14",
+      "source_path": "ToS/source-witnesses/access-requests/public-ledger/nietzsche-woerterbuch.access-request.json",
+      "required": true,
+      "consumer_roles": ["query-core", "http-reader", "web-app", "webmcp"]
+    },
+    {
+      "subject_id": "tos-public-access-request-15",
+      "source_path": "ToS/source-witnesses/access-requests/public-ledger/reader-1899-rnl-runeb-complete-copy.access-request.json",
+      "required": true,
+      "consumer_roles": ["query-core", "http-reader", "web-app", "webmcp"]
+    },
+    {
       "subject_id": "tos-corpus-index",
       "source_path": "ToS/derived-exports/tos_corpus_index.min.json",
       "required": true,

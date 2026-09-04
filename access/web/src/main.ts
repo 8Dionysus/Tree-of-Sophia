@@ -4377,6 +4377,33 @@ const pageCommands = createPageCommandRegistry(pageContextSnapshot, {
     return { mode: state.mode, view_id: state.currentViewId, focus_id: state.selectedGraphId };
   },
   "tos.page.search": async (input, execution) => search(commandString(input, "query"), execution.signal),
+  "tos.page.find-source-gaps": async (input, execution) => {
+    const query = commandString(input, "query");
+    const payload = await queryOperations.invoke("tos.source-gaps.search", {
+      query,
+      limit: commandInteger(input, "limit", 20, 1, 100),
+    }, { signal: execution.signal }) as { gaps?: AnyItem[]; authority_note?: string };
+    execution.signal.throwIfAborted();
+    state.epistemicPacket = null;
+    state.interpretationComparison = null;
+    state.results = payload.gaps || [];
+    state.selectedGraphId = null;
+    state.selected = {
+      title: `Source access gaps${query ? `: ${query}` : ""}`,
+      results: state.results.length,
+      note: payload.authority_note || "",
+    };
+    state.inspectorOpen = true;
+    renderInspector();
+    syncPublicRoute();
+    scrollInspectorTop();
+    return {
+      query,
+      result_count: state.results.length,
+      gaps: state.results.slice(0, 10).map(agentItemSummary),
+      authority_note: payload.authority_note || "",
+    };
+  },
   "tos.page.prepare-word-analysis": async (input, execution) => {
     const query = commandString(input, "query");
     if (!query) throw new Error("query is required");

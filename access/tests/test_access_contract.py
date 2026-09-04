@@ -1088,6 +1088,7 @@ class AuthoredContractTests(unittest.TestCase):
             "tos.status",
             "tos.snapshot",
             "tos.search",
+            "tos.source-gaps.search",
             "tos.view.open",
             "tos.node.inspect",
             "tos.neighborhood",
