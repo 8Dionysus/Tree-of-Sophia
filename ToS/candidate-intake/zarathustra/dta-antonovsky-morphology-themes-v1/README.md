@@ -27,10 +27,7 @@ German casing controls and Russian dictionary/quality controls were integrated
 before the final build; the audit is explicitly not a human linguistic or
 semantic review.
 
-Build and verify:
-
-```bash
-python scripts/build_zarathustra_morphology_theme_candidates_v1.py --build --issue-identities
-python scripts/build_zarathustra_morphology_theme_candidates_v1.py --check
-python -m unittest tests.test_zarathustra_morphology_theme_candidates_v1
-```
+The implementation and focused validation are owned by
+`scripts/build_zarathustra_morphology_theme_candidates_v1.py` and
+`tests/test_zarathustra_morphology_theme_candidates_v1.py`; execute them
+through the [ToS validation routes](../../../VALIDATION.md).

@@ -3,7 +3,7 @@
 This route compiles the complete four-part German/Russian technical corpus into
 one reusable candidate workbench and prepares English translation candidates
 on demand. A request supplies mutable labels, lexical
-seeds, explicitly weaker semantic-neighbor seeds, distinctions, negative
+probes, explicitly weaker semantic-neighbor probes, distinctions, negative
 controls, and an allowed relation vocabulary. The builder returns a complete
 request-local dossier without accepting a concept.
 
@@ -63,12 +63,9 @@ identity.
 
 For example, the Russian genitive form `судьбы` is recognized as a reversible
 morphology candidate for the discovery label `судьба` and returns the German
-source cards in work order:
-
-```bash
-python scripts/query_zarathustra_concept_workbench_v1.py \
-  --query 'судьбы' --language ru --limit 10
-```
+source cards in work order. The local query adapter is
+`scripts/query_zarathustra_concept_workbench_v1.py`; use the query `судьбы`,
+language `ru`, and the required result limit.
 
 Each card contains the exact German surface and context, part, reading and
 text-unit anchors, speaker status, aligned Antonovsky context where available,
@@ -78,12 +75,7 @@ mode-`0600` index and is not written to tracked search output.
 
 The default result set contains only the direct German lexical/morphological
 core. Semantic-neighbor expressions remain visibly separate and require an
-explicit expansion:
-
-```bash
-python scripts/query_zarathustra_concept_workbench_v1.py \
-  --query 'судьба' --language ru --include-semantic-neighbors --limit 10
-```
+explicit `--include-semantic-neighbors` expansion on the same local adapter.
 
 Searching a semantic-neighbor alias also resolves only with `ambiguous`
 status. Negative controls such as lowercase German `los` do not resolve to the
@@ -93,12 +85,9 @@ authority through search.
 
 ## On-demand word analysis
 
-One search result can now be compiled into a source-bound task for an agent:
-
-```bash
-python scripts/prepare_zarathustra_word_analysis_v1.py \
-  --query 'судьбы' --language ru --rank 1
-```
+One search result can now be compiled into a source-bound task by
+`scripts/prepare_zarathustra_word_analysis_v1.py`, using the query `судьбы`,
+language `ru`, and the selected result rank.
 
 The task contains the exact German form and barrier-bounded context, stable
 occurrence and anchor references, the aligned Antonovsky comparison, speaker
@@ -109,13 +98,8 @@ candidate. Etymology requires a point citation, may inform a translation
 choice, and cannot determine contextual meaning or authorial intent.
 
 An agent can return an `english-translation-candidate.v1.schema.json` object
-and check both its schema and its binding to the prepared occurrence:
-
-```bash
-python scripts/prepare_zarathustra_word_analysis_v1.py \
-  --query 'судьбы' --language ru --rank 1 \
-  --validate-candidate /absolute/path/to/candidate.json
-```
+and check both its schema and its binding to the prepared occurrence with the
+adapter's `--validate-candidate` option.
 
 The compiler writes nothing. Exact text remains local and excluded from the
 public standalone bundle; a valid candidate is still AI-generated,
@@ -134,24 +118,14 @@ excluded from the Zarathustra work scope. In particular, three apparent extra
 `Schicksal` occurrences belong to that separate work; the German direct core
 inside Zarathustra is therefore 26 occurrences, not 29.
 
-Build and verify:
+The implementation and focused validation are owned by
+`scripts/build_zarathustra_concept_workbench_v1.py` and
+`tests/test_zarathustra_concept_workbench_v1.py`; execute them through the
+[ToS validation routes](../../../VALIDATION.md).
 
-```bash
-python scripts/build_zarathustra_concept_workbench_v1.py --build --issue-identities
-python scripts/build_zarathustra_concept_workbench_v1.py --check
-python -m unittest tests.test_zarathustra_concept_workbench_v1
-```
-
-Run another schema-valid request without changing the builder:
-
-```bash
-python scripts/build_zarathustra_concept_workbench_v1.py --preview \
-  --request /absolute/path/to/concept-request.v2.json
-python scripts/build_zarathustra_concept_workbench_v1.py --build --issue-identities \
-  --request /absolute/path/to/concept-request.v2.json
-python scripts/build_zarathustra_concept_workbench_v1.py --check \
-  --request /absolute/path/to/concept-request.v2.json
-```
+Another schema-valid request needs no builder change: pass its path through
+the builder's `--request` option and use the routed preview, build, and check
+modes. Identity issuance remains an explicit first-build operation.
 
 Non-default requests receive their own
 `outputs/<request-key>-v<version>-<full-opaque-identity>/` route and private
@@ -166,7 +140,7 @@ the request's optional allowlist controls translation, speaker, reprise, and
 sequence edges. Graph nodes are projected only when referenced by an emitted
 edge, so a narrow request cannot create dangling or isolated nodes.
 
-If every declared seed is absent, the request remains a valid negative result:
+If every declared probe is absent, the request remains a valid negative result:
 the graph contains only its concept candidate and sets `empty_result: true`.
 The no-isolated-node invariant applies to evidence-bearing form, occurrence,
 and speaker nodes; absence is recorded rather than padded with invented edges.

@@ -460,9 +460,9 @@ def form_inventory(occurrences: list[dict[str, Any]]) -> dict[tuple[str, str], d
     return result
 
 
-def seed_profiles(request: dict[str, Any], lexical: Any, morphology: Any) -> list[dict[str, Any]]:
+def probe_profiles(request: dict[str, Any], lexical: Any, morphology: Any) -> list[dict[str, Any]]:
     result = []
-    for field, tier in (("lexical_seeds", "direct"), ("semantic_neighbor_seeds", "semantic_neighbor")):
+    for field, tier in (("lexical_probes", "direct"), ("semantic_neighbor_probes", "semantic_neighbor")):
         for language in ("de", "ru"):
             for display in request[field][language]:
                 normalized = lexical.ru_key(display) if language == "ru" else lexical.base_key(display)
@@ -503,14 +503,14 @@ def select_forms(forms: dict[tuple[str, str], dict[str, Any]], profiles: list[di
             exact_seen |= exact
             kind = ("direct" if profile["tier"] == "direct" else "semantic") + ("_exact" if exact else "_morphology")
             candidate = {**form, "selection_kind": kind, "selection_method": method,
-                         "seed_normalized_sha256": profile["normalized_sha256"], "seed_display": profile["display"],
+                         "probe_normalized_sha256": profile["normalized_sha256"], "probe_display": profile["display"],
                          "status": "proposed" if exact else "ambiguous"}
             if key not in selected or rank[kind] < rank[selected[key]["selection_kind"]]:
                 selected[key] = candidate
         if not exact_seen:
-            gaps.append({"schema_version": "tos_zarathustra_concept_seed_gap_v1",
-                         "gap_code": "seed_exact_form_unobserved", "tier": profile["tier"],
-                         "language": profile["language"], "seed_normalized_sha256": profile["normalized_sha256"],
+            gaps.append({"schema_version": "tos_zarathustra_concept_probe_gap_v1",
+                         "gap_code": "probe_exact_form_unobserved", "tier": profile["tier"],
+                         "language": profile["language"], "probe_normalized_sha256": profile["normalized_sha256"],
                          "review_status": "unreviewed", "accepted": False, "graph_effect": False, "canon_effect": False})
     return selected, gaps
 
@@ -538,7 +538,7 @@ def select_occurrences(all_occurrences: list[dict[str, Any]],
                        "surface_private": occ["surface"],
                        "exact_form_sha256": occ["exact_sha256"], "analysis_key_sha256": occ["analysis_key_sha256"],
                        "source_locator_sha256": occ["source_locator_sha256"],
-                       "form_binding": f"{form['selection_kind']}|{form['language']}|{form['analysis_key_sha256']}|{form['seed_normalized_sha256']}",
+                       "form_binding": f"{form['selection_kind']}|{form['language']}|{form['analysis_key_sha256']}|{form['probe_normalized_sha256']}",
                        "evidence_tier": tier, "selection_kind": form["selection_kind"],
                        "status": "proposed" if form["selection_kind"].endswith("exact") else "ambiguous"})
     return result
@@ -651,7 +651,7 @@ def identity_bindings(request: dict[str, Any], speakers: list[dict[str, Any]],
               ("concept", f"concept|{scoped_request}")]
     result.extend(("speaker", x["binding"]) for x in speakers)
     result.extend(("form", request_local_binding(
-        request, f"{x['selection_kind']}|{x['language']}|{x['analysis_key_sha256']}|{x['seed_normalized_sha256']}"))
+        request, f"{x['selection_kind']}|{x['language']}|{x['analysis_key_sha256']}|{x['probe_normalized_sha256']}"))
         for x in forms.values())
     result.extend(("occurrence", request_local_binding(request, x["binding"])) for x in occurrences)
     result.extend(("relation", request_local_binding(request, x["binding"])) for x in relations)
@@ -730,7 +730,7 @@ def fate_probe(occurrences: list[dict[str, Any]], exclusions_rows: list[dict[str
                 alignments[row["language"]].add(link["alignment_ref"])
     de, ru = alignments["de"], alignments["ru"]
     semantic_form_hashes = {x["analysis_key_sha256"] for x in selected.values()
-                            if x["language"] == "de" and x["seed_display"] == "Verhängniss"}
+                            if x["language"] == "de" and x["probe_display"] == "Verhängniss"}
     return {"de_direct_occurrences": language_counts["de"], "ru_direct_occurrences": language_counts["ru"],
             "de_direct_prose_occurrences": kind_counts[("de", "paragraph")],
             "de_direct_verse_occurrences": kind_counts[("de", "verse_line")],
@@ -757,13 +757,13 @@ def render(plan: dict[str, Any], request: dict[str, Any], units: list[dict[str, 
     speaker_by = {x["context_unit_ref"]: x for x in speaker_rows}
     form_rows, form_ids = [], {}
     for row in sorted(selected.values(), key=lambda x: (x["language"], x["analysis_key_sha256"], x["selection_kind"])):
-        binding = f"{row['selection_kind']}|{row['language']}|{row['analysis_key_sha256']}|{row['seed_normalized_sha256']}"
+        binding = f"{row['selection_kind']}|{row['language']}|{row['analysis_key_sha256']}|{row['probe_normalized_sha256']}"
         fid = ids[("form", request_local_binding(request, binding))]
         form_ids[binding] = fid
         form_rows.append({"schema_version": "tos_zarathustra_request_form_family_candidate_v1",
                           "form_family_candidate_id": fid, "request_ref": request_id,
                           "language": row["language"], "analysis_key_sha256": row["analysis_key_sha256"],
-                          "seed_normalized_sha256": row["seed_normalized_sha256"], "selection_kind": row["selection_kind"],
+                          "probe_normalized_sha256": row["probe_normalized_sha256"], "selection_kind": row["selection_kind"],
                           "selection_method": row["selection_method"], "occurrence_count": row["occurrence_count"],
                           "exact_form_variant_count": len(row["exact_hashes"]), "part_count": len(row["parts"]),
                           "reading_count": len(row["readings"]), "status": row["status"], "accepted": False,
@@ -892,15 +892,15 @@ def render(plan: dict[str, Any], request: dict[str, Any], units: list[dict[str, 
                 "outside_work_occurrences_excluded": census["de_exact_occurrences"] - census["de_work_scope_occurrences"],
                 "parts_scanned": 4, "languages_scanned": ["de", "ru"], "form_candidate_count": len(form_rows),
                 "occurrence_candidate_count": len(occurrence_rows), "evidence_tier_counts": dict(sorted(evidence_counts.items())),
-                "relation_type_counts": dict(sorted(relation_counts.items())), "seed_gap_count": len(gaps),
+                "relation_type_counts": dict(sorted(relation_counts.items())), "probe_gap_count": len(gaps),
                 "selected_occurrences_without_content_context": sum(x["context_unit_ref"] is None for x in occurrence_rows),
                 "english_on_demand_task_count": len(english_task_rows),
                 "english_translation_candidate_count": 0,
                 "source_return_verified": True, "minimum_form_frequency": 1,
                 "semantic_neighbors_counted_as_direct_mentions": False,
                 "acceptance_probe": probe if request["request_key"] == "fate" else None,
-                "requested_seed_exact_absence_count": len(gaps),
-                "mechanically_complete_with_explicit_seed_gaps": all(x["context_unit_ref"] for x in occurrence_rows),
+                "requested_probe_exact_absence_count": len(gaps),
+                "mechanically_complete_with_explicit_probe_gaps": all(x["context_unit_ref"] for x in occurrence_rows),
                 "complete_for_declared_request": all(x["context_unit_ref"] for x in occurrence_rows)}
     referenced_graph_nodes = {
         ref for relation in relation_rows for ref in relation["subject_refs"] + relation["object_refs"]
@@ -1083,7 +1083,7 @@ def generate(include_ids: bool) -> tuple[dict[Path, bytes], dict[Path, tuple[byt
     census = verify_census(all_occurrences)
     speakers = speaker_candidates(units)
     all_forms = form_inventory(all_occurrences)
-    selected, gaps = select_forms(all_forms, seed_profiles(request, lexical, morphology), morphology)
+    selected, gaps = select_forms(all_forms, probe_profiles(request, lexical, morphology), morphology)
     occurrences = select_occurrences(all_occurrences, selected)
     english_tasks = english_task_protos(request, occurrences, unit_by)
     relations = relation_protos(occurrences, unit_by)

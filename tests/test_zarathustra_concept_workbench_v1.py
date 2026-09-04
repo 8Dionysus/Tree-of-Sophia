@@ -275,8 +275,8 @@ class ZarathustraConceptWorkbenchV1Tests(unittest.TestCase):
         self.assertEqual(coverage["evidence_tier_counts"], {
             "direct_or_morphological": 55, "semantic_neighbor": 52,
         })
-        self.assertEqual(coverage["requested_seed_exact_absence_count"], 4)
-        self.assertTrue(coverage["mechanically_complete_with_explicit_seed_gaps"])
+        self.assertEqual(coverage["requested_probe_exact_absence_count"], 4)
+        self.assertTrue(coverage["mechanically_complete_with_explicit_probe_gaps"])
         self.assertTrue(coverage["complete_for_declared_request"])
         exclusions = jsonl("outputs/fate/exclusion-ledger.v1.jsonl")
         self.assertEqual(Counter(x["control_code"] for x in exclusions), Counter({
@@ -383,7 +383,7 @@ class ZarathustraConceptWorkbenchV1Tests(unittest.TestCase):
             self.assertEqual(item["evidence_tier"], "direct_or_morphological")
             self.assertIn(item["source_surface"], item["source_context"])
             self.assertEqual(item["source_headword_candidate"], "Schicksal")
-            self.assertEqual(item["source_headword_status"], "request_seed_not_accepted_lemma")
+            self.assertEqual(item["source_headword_status"], "request_probe_not_accepted_lemma")
             self.assertTrue(item["source_existing_occurrence_ref"])
             self.assertTrue(item["source_context_unit_ref"])
             self.assertGreaterEqual(item["occurrence_ordinal_within_context"], 1)

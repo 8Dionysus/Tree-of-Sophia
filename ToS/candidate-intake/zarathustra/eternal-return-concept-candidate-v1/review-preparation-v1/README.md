@@ -27,10 +27,7 @@ All records remain `unreviewed` or `prepared_for_review`. This route issues no
 review IDs, writes nothing to `ToS/review-ledger/`, materializes no claims or
 relations, and has no graph or canon effect.
 
-Build and verify:
-
-```bash
-python scripts/build_zarathustra_eternal_return_review_preparation_v1.py --build --issue-identities
-python scripts/build_zarathustra_eternal_return_review_preparation_v1.py --check
-python -m unittest tests.test_zarathustra_eternal_return_review_preparation_v1
-```
+The implementation and focused validation are owned by
+`scripts/build_zarathustra_eternal_return_review_preparation_v1.py` and
+`tests/test_zarathustra_eternal_return_review_preparation_v1.py`; execute them
+through the [ToS validation routes](../../../../VALIDATION.md).

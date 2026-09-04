@@ -17,7 +17,7 @@
         "normalized": {"type": "string", "minLength": 1},
         "matched_alias": {"type": "string", "minLength": 1},
         "matched_alias_language": {"enum": ["de", "ru", "en"]},
-        "matched_alias_role": {"enum": ["preferred_label", "direct_lexical_seed", "semantic_neighbor_seed"]},
+        "matched_alias_role": {"enum": ["preferred_label", "direct_lexical_probe", "semantic_neighbor_probe"]},
         "match_method": {"enum": ["exact_alias", "morphology_alias_candidate"]},
         "resolution_tier": {"enum": ["direct", "semantic_neighbor"]},
         "resolution_status": {"enum": ["proposed", "ambiguous"]}
@@ -80,7 +80,7 @@
         "language": {"enum": ["de", "ru", "en"]},
         "display": {"type": "string", "minLength": 1},
         "normalized": {"type": "string", "minLength": 1},
-        "role": {"enum": ["preferred_label", "direct_lexical_seed", "semantic_neighbor_seed"]},
+        "role": {"enum": ["preferred_label", "direct_lexical_probe", "semantic_neighbor_probe"]},
         "tier": {"enum": ["direct", "semantic_neighbor"]}
       }
     },
@@ -134,7 +134,7 @@
         "source_surface": {"type": "string", "minLength": 1},
         "source_analysis_form": {"type": "string", "minLength": 1},
         "source_headword_candidate": {"type": "string", "minLength": 1},
-        "source_headword_status": {"const": "request_seed_not_accepted_lemma"},
+        "source_headword_status": {"const": "request_probe_not_accepted_lemma"},
         "source_context": {"type": "string", "minLength": 1},
         "anchor_refs": {"type": "array", "minItems": 1, "items": {"type": "string"}},
         "speaker": {

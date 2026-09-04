@@ -292,7 +292,7 @@ def build_surface_families(previous: dict[str, Any], plan: dict[str, Any]) -> tu
         })
         member_of_multi.update(members)
 
-    # High-frequency singleton seeds let translation bridges and themes retain
+    # High-frequency singleton probes let translation bridges and themes retain
     # important non-inflected forms without pretending a singleton is a lemma.
     strong_forms = set()
     for assoc in previous["translation_surface_associations"]:
@@ -304,8 +304,8 @@ def build_surface_families(previous: dict[str, Any], plan: dict[str, Any]) -> tu
             continue
         candidates.append({
             "binding": f"singleton|{form['language']}|{form['form_sha256']}",
-            "candidate_kind": "singleton_surface_seed_candidate",
-            "language": form["language"], "method": "singleton_recurrence_seed",
+            "candidate_kind": "singleton_surface_probe_candidate",
+            "language": form["language"], "method": "singleton_recurrence_probe",
             "status": "proposed", "member_keys": [key],
             "member_form_sha256s": [form["form_sha256"]], "member_count": 1,
             "occurrence_count": form["occurrence_count"], "part_range": form["part_range"],

@@ -503,7 +503,7 @@ def _issue_identities(
         "issuance_id": "tos.identity-issuance.zarathustra-dta-technical-markup-v1",
         "created_at": plan["created_at"],
         "identity_policy": plan["identity_policy"]["policy"],
-        "namespace_seed_sha256": _sha256_text(ID_NAMESPACE),
+        "namespace_probe_sha256": _sha256_text(ID_NAMESPACE),
         "ids_minted_from": "issuance-namespace-and-issued-sequence-only",
         "source_locator_role": "binding-only-not-identity-input",
         "automatic_remint_on_locator_drift": False,

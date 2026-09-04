@@ -582,7 +582,7 @@ def association_rows(units: list[dict[str, Any]], issuance: dict[str, str] | Non
             **metrics, "supporting_alignment_refs": evidence[(de, ru)],
             "identity_universe_alignment_refs": universe_evidence[(de, ru)],
             "candidate_kind": "translation_surface_association_candidate",
-            "semantic_seed_posture": "proposal_not_lexical_equivalence_sign_or_concept",
+            "semantic_probe_posture": "proposal_not_lexical_equivalence_sign_or_concept",
             "accepted": False, "review_refs": [], "graph_effect": False,
         }
         tracked.append(row)
@@ -752,7 +752,8 @@ def generate(*, with_issuance: bool) -> tuple[dict[Path, bytes], dict[Path, tupl
         "schema_version": "tos_provenance_event_v1",
         "event_id": "tos.event.zarathustra-parallel-lexical-candidates-v1.build",
         "event_type": "mechanical_lexical_candidate_materialization",
-        "occurred_at": "2026-09-02T00:15:00-06:00", "agent_ref": "codex-internal-agents.lexical-candidate-v1",
+        "occurred_at": "2026-09-02T00:15:00-06:00", "ended_at": "2026-09-02T00:15:00-06:00",
+        "agent_ref": "codex-internal-agents.lexical-candidate-v1",
         "software_ref": str(GENERATOR_REF), "software_sha256": digest_file(REPO / GENERATOR_REF),
         "plan_ref": str(PLAN_REF), "plan_sha256": digest_file(REPO / PLAN_REF),
         "authority_boundary": plan["authority_boundary"],

@@ -791,18 +791,19 @@ def build_artifacts(material: dict[str, Any]) -> tuple[dict[str, bytes], dict[st
         "canon_effect": False,
     }
     provenance = [
-        {"event_ref": "tos.event.zarathustra-de-ru-paragraph-alignment-v1.primary-import",
+        {"event_id": "tos.event.zarathustra-de-ru-paragraph-alignment-v1.primary-import",
          "event_kind": "primary_machine_proposal_import", "input_ref": PRIMARY_RECEIPT_REF},
-        {"event_ref": "tos.event.zarathustra-de-ru-paragraph-alignment-v1.challenger-import",
+        {"event_id": "tos.event.zarathustra-de-ru-paragraph-alignment-v1.challenger-import",
          "event_kind": "independent_mixed_content_challenger_import", "input_ref": CHALLENGER_RECEIPT_REF},
-        {"event_ref": "tos.event.zarathustra-de-ru-paragraph-alignment-v1.target-layer",
+        {"event_id": "tos.event.zarathustra-de-ru-paragraph-alignment-v1.target-layer",
          "event_kind": "private_russian_paragraph_layer_derivation", "input_ref": f"{RU_ROUTE_REF}/paragraph-spine.v2.jsonl"},
-        {"event_ref": "tos.event.zarathustra-de-ru-paragraph-alignment-v1.build",
+        {"event_id": "tos.event.zarathustra-de-ru-paragraph-alignment-v1.build",
          "event_kind": "translation_alignment_packet_proposal_materialization", "input_ref": SCHEMA_REF},
     ]
     for row in provenance:
         row.update({"schema_version": "tos_zarathustra_de_ru_paragraph_alignment_provenance_v1",
-                    "event_date": "2026-09-01", "method_output_posture": "proposal_not_truth",
+                    "event_date": "2026-09-01", "ended_at": "2026-09-01T21:00:00-06:00",
+                    "method_output_posture": "proposal_not_truth",
                     "human_review": False, "source_text_included": False,
                     "semantic_equivalence_asserted": False, "canon_effect": False})
 

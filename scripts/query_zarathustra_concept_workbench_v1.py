@@ -76,20 +76,20 @@ def normalize(value: str, language: str, lexical: Any) -> str:
 
 
 def alias_profiles(request: dict[str, Any], lexical: Any) -> list[dict[str, str]]:
-    rank = {"preferred_label": 0, "direct_lexical_seed": 1, "semantic_neighbor_seed": 2}
+    rank = {"preferred_label": 0, "direct_lexical_probe": 1, "semantic_neighbor_probe": 2}
     rows: list[dict[str, str]] = []
     for language, display in request["labels"].items():
         rows.append({"language": language, "display": display, "normalized": normalize(display, language, lexical),
                      "role": "preferred_label", "tier": "direct"})
     for language in ("de", "ru"):
-        for display in request["lexical_seeds"][language]:
+        for display in request["lexical_probes"][language]:
             rows.append({"language": language, "display": display,
                          "normalized": normalize(display, language, lexical),
-                         "role": "direct_lexical_seed", "tier": "direct"})
-        for display in request["semantic_neighbor_seeds"][language]:
+                         "role": "direct_lexical_probe", "tier": "direct"})
+        for display in request["semantic_neighbor_probes"][language]:
             rows.append({"language": language, "display": display,
                          "normalized": normalize(display, language, lexical),
-                         "role": "semantic_neighbor_seed", "tier": "semantic_neighbor"})
+                         "role": "semantic_neighbor_probe", "tier": "semantic_neighbor"})
     strongest: dict[tuple[str, str, str], dict[str, str]] = {}
     for row in rows:
         key = (row["language"], row["normalized"], row["tier"])
@@ -247,8 +247,8 @@ def build_result(query: str, language: str, request_path: Path,
     for row in occurrences:
         if row["context_unit_ref"]:
             occurrences_by_context[row["context_unit_ref"]].append(row)
-    form_seed = {
-        (row["language"], row["analysis_key_sha256"], row["selection_kind"]): row["seed_display"]
+    form_probe = {
+        (row["language"], row["analysis_key_sha256"], row["selection_kind"]): row["probe_display"]
         for row in private_request["selected_forms"]
     }
 
@@ -280,7 +280,7 @@ def build_result(query: str, language: str, request_path: Path,
                 "selected_surfaces": [exact[row["existing_occurrence_ref"]]["exact_form"] for row in selected_ru],
                 "role": "historical_translation_comparator_not_source_authority",
             })
-        seed = form_seed[("de", occurrence["analysis_key_sha256"], occurrence["selection_kind"])]
+        probe = form_probe[("de", occurrence["analysis_key_sha256"], occurrence["selection_kind"])]
         rows.append({
             "rank": rank,
             "source_language": "de",
@@ -297,8 +297,8 @@ def build_result(query: str, language: str, request_path: Path,
             "source_context_unit_ref": occurrence["context_unit_ref"],
             "source_surface": exact_row["exact_form"],
             "source_analysis_form": exact_row["analysis_key"],
-            "source_headword_candidate": seed,
-            "source_headword_status": "request_seed_not_accepted_lemma",
+            "source_headword_candidate": probe,
+            "source_headword_status": "request_probe_not_accepted_lemma",
             "source_context": context["exact_text"],
             "anchor_refs": public_contexts[occurrence["context_unit_ref"]]["anchor_refs"],
             "speaker": {"role": context["speaker_role"], "status": context["speaker_status"]},

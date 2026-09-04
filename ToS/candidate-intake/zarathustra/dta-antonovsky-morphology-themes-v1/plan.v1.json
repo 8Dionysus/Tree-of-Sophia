@@ -7,7 +7,7 @@
   "inputs": {
     "parallel_lexical_manifest": {
       "ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/lexical-indexes/dta-antonovsky-parallel-candidates-v1/manifest.v1.json",
-      "sha256": "07ab9f1053fb7de3dca9ec45dbdbd5e3136675dd694ef57c7e46c16c1a98b99d"
+      "sha256": "763d7e37317e184b76ac9498f70e401c3c54283413aa4e14d685068086de0db1"
     },
     "german_morphology_census_receipt": {
       "ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/morphology-census-result.a-dwdsmor-open-0.18.0.v1.json",
@@ -19,13 +19,13 @@
     },
     "paragraph_alignment_manifest": {
       "ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/alignments/translation/dta-first-editions-to-antonovsky-1911-paragraph-v1/manifest.v1.json",
-      "sha256": "69ad4c7af473982940db86e0ea8ad32317ecc1dc0ea3e4a50b74897734037af7"
+    "sha256": "eeeb266954ffc4ae22da42b6fd168b2e64094917c46e505551c04778743df313"
     }
   },
   "candidate_methods": {
     "surface_family": "language-specific transparent inflectional signatures over recurring exact-form analysis keys; overlapping signatures remain competing candidates",
     "alignment_challenger": "otherwise separate surface families may be grouped only as an ambiguous challenger when they repeatedly share a strong opposite-language family neighborhood",
-    "bilingual_cluster": "connected component of proposed aggregate DE-to-RU family bridges; cluster labels remain private display hints and never seed identity",
+    "bilingual_cluster": "connected component of proposed aggregate DE-to-RU family bridges; cluster labels remain private display hints and never probe identity",
     "typed_relations": [
       "candidate_form_membership",
       "candidate_competes_with",

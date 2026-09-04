@@ -34,10 +34,7 @@ gaps are retained explicitly; two central Russian III.13 formulas are visible
 in the witness but missed by the direct detector, so no silent correction is
 performed.
 
-Build and verify:
-
-```bash
-python scripts/build_zarathustra_eternal_return_concept_candidate_v1.py --build --issue-identities
-python scripts/build_zarathustra_eternal_return_concept_candidate_v1.py --check
-python -m unittest tests.test_zarathustra_eternal_return_concept_candidate_v1
-```
+The implementation and focused validation are owned by
+`scripts/build_zarathustra_eternal_return_concept_candidate_v1.py` and
+`tests/test_zarathustra_eternal_return_concept_candidate_v1.py`; execute them
+through the [ToS validation routes](../../../VALIDATION.md).

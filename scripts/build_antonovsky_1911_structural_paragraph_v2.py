@@ -143,7 +143,7 @@ class LogicalRow:
     subpart_ref: str | None = None
     base_x: float | None = None
     indent_delta: float | None = None
-    verse_seed: bool = False
+    verse_probe: bool = False
 
 
 def load_source() -> tuple[dict[str, Any], Any, list[dict[str, Any]], list[dict[str, Any]]]:
@@ -384,13 +384,13 @@ def mark_verse(rows: list[LogicalRow], margins: dict[tuple[int, str], float]) ->
         if row.role is None and row.reading_ref:
             row.base_x = margins[(row.page, row.panel)]
             row.indent_delta = row.bbox[0] - row.base_x
-            row.verse_seed = row.indent_delta >= 12
+            row.verse_probe = row.indent_delta >= 12
     for run in context_runs(rows):
-        seeds, marked, i = [x.verse_seed for x in run], [False] * len(run), 0
+        probes, marked, i = [x.verse_probe for x in run], [False] * len(run), 0
         while i < len(run):
-            if not seeds[i]: i += 1; continue
+            if not probes[i]: i += 1; continue
             j = i
-            while j+1 < len(run) and seeds[j+1]:
+            while j+1 < len(run) and probes[j+1]:
                 if (run[j].page, run[j].panel) == (run[j+1].page, run[j+1].panel) \
                         and run[j+1].bbox[1] - run[j].bbox[3] > 22: break
                 j += 1
@@ -406,7 +406,7 @@ def mark_verse(rows: list[LogicalRow], margins: dict[tuple[int, str], float]) ->
                                   "resolution": "prose_by_conservative_five_row_verse_threshold"})
             i = j+1
         for i in range(len(run)):
-            if not marked[i] and seeds[i] and ((i and marked[i-1]) or (i+1 < len(run) and marked[i+1])):
+            if not marked[i] and probes[i] and ((i and marked[i-1]) or (i+1 < len(run) and marked[i+1])):
                 marked[i] = True
         for row, verse in zip(run, marked, strict=True):
             if verse: row.role = "verse"
@@ -935,20 +935,21 @@ def make_outputs(model: dict[str, Any]) -> dict[str, bytes]:
         "authority_boundary": "complete_technical_proposal_only",
     }
     provenance = [
-        {"event_ref": "ru-ant1911-v2.source-rebuild", "event_kind": "exact_source_rebuild",
+        {"event_id": "ru-ant1911-v2.source-rebuild", "event_kind": "exact_source_rebuild",
          "input_ref": f"{V1_ROUTE_REF}/citation-spine.v1.jsonl", "status": "complete"},
-        {"event_ref": "ru-ant1911-v2.structure-census", "event_kind": "source_visible_structure_census",
+        {"event_id": "ru-ant1911-v2.structure-census", "event_kind": "source_visible_structure_census",
          "input_ref": CENSUS_REF, "status": "complete"},
-        {"event_ref": "ru-ant1911-v2.independent-pass", "event_kind": "independent_paragraph_verse_reconstruction",
+        {"event_id": "ru-ant1911-v2.independent-pass", "event_kind": "independent_paragraph_verse_reconstruction",
          "status": "complete"},
-        {"event_ref": "ru-ant1911-v2.challenger-comparison", "event_kind": "full_adjacent_boundary_comparison",
+        {"event_id": "ru-ant1911-v2.challenger-comparison", "event_kind": "full_adjacent_boundary_comparison",
          "input_ref": CHALLENGER_REF, "status": "complete"},
-        {"event_ref": "ru-ant1911-v2.agent-verification", "event_kind": "independent_technical_verification",
+        {"event_id": "ru-ant1911-v2.agent-verification", "event_kind": "independent_technical_verification",
          "status": "agent_verified_complete"},
     ]
     for row in provenance:
         row.update({"schema_version": "tos_antonovsky_1911_provenance_event_v2",
-                    "event_date": "2026-09-01", "source_text_included": False,
+                    "event_date": "2026-09-01", "ended_at": "2026-09-01T18:00:00-06:00",
+                    "source_text_included": False,
                     "semantic_promotion": False})
 
     artifacts = {

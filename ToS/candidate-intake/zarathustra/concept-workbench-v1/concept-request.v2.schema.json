@@ -7,7 +7,7 @@
   "required": [
     "schema_version", "request_identity_key", "request_version",
     "supersedes_request_ref", "scope", "request_key", "labels",
-    "lexical_seeds", "semantic_neighbor_seeds", "expansion",
+    "lexical_probes", "semantic_neighbor_probes", "expansion",
     "distinctions", "negative_controls", "relation_policy",
     "english_generation", "authority_boundary"
   ],
@@ -36,8 +36,8 @@
         "en": {"type": "string", "minLength": 1}
       }
     },
-    "lexical_seeds": {"$ref": "#/$defs/languageSeeds"},
-    "semantic_neighbor_seeds": {"$ref": "#/$defs/languageSeeds"},
+    "lexical_probes": {"$ref": "#/$defs/languageProbes"},
+    "semantic_neighbor_probes": {"$ref": "#/$defs/languageProbes"},
     "expansion": {
       "type": "object", "additionalProperties": false,
       "required": ["morphology", "translation_neighborhoods", "semantic_neighbors"],
@@ -101,7 +101,7 @@
     "authority_boundary": {"const": "candidate_only_no_accepted_semantics_review_graph_or_canon"}
   },
   "$defs": {
-    "languageSeeds": {
+    "languageProbes": {
       "type": "object", "additionalProperties": false,
       "required": ["de", "ru"],
       "properties": {

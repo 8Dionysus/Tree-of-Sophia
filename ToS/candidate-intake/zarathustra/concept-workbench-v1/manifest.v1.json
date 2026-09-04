@@ -29,7 +29,7 @@
     {
       "ref": "ToS/candidate-intake/zarathustra/concept-workbench-v1/outputs/fate/form-family-candidates.v1.jsonl",
       "role": "forms",
-      "sha256": "f5b418284cecf49378bbf1cc875dabc38b6579873300460e0e0b008a94bbccbd"
+      "sha256": "eb057273711f3cf151df4b6ddbdfbb8e165f41cf9f5689e4fa51d76d29f4759d"
     },
     {
       "ref": "ToS/candidate-intake/zarathustra/concept-workbench-v1/outputs/fate/occurrence-spine.v1.jsonl",
@@ -44,7 +44,7 @@
     {
       "ref": "ToS/candidate-intake/zarathustra/concept-workbench-v1/outputs/fate/gap-ledger.v1.jsonl",
       "role": "gaps",
-      "sha256": "001dcae8f2bb016f3dfe526b41849417a066fa66902b9bfdb608d8cdcbecb60d"
+      "sha256": "48ce0b42dca12abda116e6fbc1fd89316b7c6934036cb2838f50fe323d77a4fa"
     },
     {
       "ref": "ToS/candidate-intake/zarathustra/concept-workbench-v1/outputs/fate/exclusion-ledger.v1.jsonl",
@@ -59,7 +59,7 @@
     {
       "ref": "ToS/candidate-intake/zarathustra/concept-workbench-v1/outputs/fate/coverage-receipt.v1.json",
       "role": "coverage",
-      "sha256": "f16d0613f96c4f3bc06b6d228bc6935579b2dcb71e560396b4e3518cfa6747d5"
+      "sha256": "2f54cc4eaefcfe92be9c4d14508603f546bc59ca68f0574b1f0ec4ae7e77c060"
     },
     {
       "ref": "ToS/candidate-intake/zarathustra/concept-workbench-v1/outputs/fate/english-on-demand-worklist.v1.jsonl",
@@ -79,21 +79,21 @@
   ],
   "canon_effect": false,
   "concept_search_query_ref": "scripts/query_zarathustra_concept_workbench_v1.py",
-  "concept_search_query_sha256": "1d4f157bc2b7d76c16531748c17abbe4c2798b9ca0d0bf3e83699fffa88d6206",
+  "concept_search_query_sha256": "e2d1124e25dc9fa0165f5617c9913b87dc825515bda013f9ce58c8cee2e80d08",
   "concept_search_result_schema_ref": "ToS/candidate-intake/zarathustra/concept-workbench-v1/concept-search-result.v1.schema.json",
-  "concept_search_result_schema_sha256": "161418744c786f00208b2109b3f1d72bb6690eb479771a82e8bc44eec922f484",
+  "concept_search_result_schema_sha256": "5f67d5b3abf88ecd88dcdb94f70eee0cb685b7ac81b7abbd41bc2b14542c3cc3",
   "english_candidate_schema_ref": "ToS/candidate-intake/zarathustra/concept-workbench-v1/english-translation-candidate.v1.schema.json",
   "english_candidate_schema_sha256": "bc1dfc9ea16e7279e0007ca9c17dc5558a3520e724e1f246b62fddb5afff6ab2",
   "english_task_schema_ref": "ToS/candidate-intake/zarathustra/concept-workbench-v1/english-on-demand-task.v1.schema.json",
   "english_task_schema_sha256": "4f1d53dc25f86eeeb605e5c03fe8537c9878d4f0906463aea1bfc4ea2ccdda7a",
   "generator_ref": "scripts/build_zarathustra_concept_workbench_v1.py",
-  "generator_sha256": "b86c4050046bd561258de46c38777e36e443959620c6cccc4ada54dc1d481a1b",
+  "generator_sha256": "36ef1cfbca8a546c9ae7a102616c64b64c310371f23da062aac2034131683dd7",
   "graph_effect": false,
   "human_review_count": 0,
   "identity_issuance_ref": "ToS/candidate-intake/zarathustra/concept-workbench-v1/identity-issuance.v1.json",
   "identity_issuance_sha256": "2a194915f22c0141f87ecdd3c4678a61c407af24e651b4255f804bb2481a2cd1",
   "plan_ref": "ToS/candidate-intake/zarathustra/concept-workbench-v1/plan.v1.json",
-  "plan_sha256": "03d962b18b87bb2e0f43051253623b5600350cf62db42369b10a876941fa3f0f",
+  "plan_sha256": "66558b6f0046c82417204a7b78945035e17c0ae780ff70ef736df43d0882cad6",
   "private_artifacts": [
     {
       "mode": "0600",
@@ -104,7 +104,7 @@
     {
       "mode": "0600",
       "ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/local-content/concept-workbench-v1/requests/fate.request-analysis.v1.json",
-      "sha256": "8baa9b4bb5d2df285269b989c7b3a0f08e0cc7d0785ddea0f41299ee93459bbc",
+      "sha256": "0c943f0d0da2e3a17757e871f6b615dc4df87e38be12719c28ae9fda6201dd23",
       "tracked": false
     }
   ],
@@ -113,16 +113,16 @@
   "request_refs": [
     {
       "ref": "ToS/candidate-intake/zarathustra/concept-workbench-v1/requests/fate.concept-request.v2.json",
-      "sha256": "8d3e40d908863b085421ef950ddda9654c0d0566573fc8a6c9449e40e71770b2"
+      "sha256": "0e4dae0e68826078c1e5e214be5919d87ae9de6f618717bdf4660ea2f9af1028"
     }
   ],
   "request_schema_ref": "ToS/candidate-intake/zarathustra/concept-workbench-v1/concept-request.v2.schema.json",
-  "request_schema_sha256": "9869159f14343d8f1ff15235d4c41b9f4d438abecd7cededdc9ab0b792eb3aea",
+  "request_schema_sha256": "a648d2374c32a4a72081f847eb4ad30df8ba319517612e936429b03aec0b1e3f",
   "route_id": "zarathustra-concept-workbench-v1",
   "schema_version": "tos_zarathustra_concept_workbench_manifest_v1",
   "word_analysis_prepare_ref": "scripts/prepare_zarathustra_word_analysis_v1.py",
   "word_analysis_prepare_sha256": "22baa889d2da9f8ef4b361db8402b473f1b72c3eecc229b77c7b1c880c5b60ff",
   "word_analysis_task_schema_ref": "ToS/candidate-intake/zarathustra/concept-workbench-v1/word-analysis-task.v1.schema.json",
-  "word_analysis_task_schema_sha256": "0a0c167f66b872f98019940064428530358030f9df67177af61194642992462e",
+  "word_analysis_task_schema_sha256": "83cadb8204153cf0f0d6f04bb65a5994386c665911cbb7f8a73c941309c39753",
   "workbench_id": "tos.annotation.concept-workbench.sid-db554c6c531ebbc1a295977ff3b0f678"
 }

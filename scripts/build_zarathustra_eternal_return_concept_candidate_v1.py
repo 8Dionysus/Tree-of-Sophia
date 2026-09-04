@@ -713,7 +713,7 @@ def generate(include_ids: bool) -> tuple[dict[Path, bytes], bytes, list[tuple[st
             "occurrence_class_counts": {
                 "core": 127, "supporting": 146, "ambiguous": 161, "excluded": 357,
             },
-            "whole_work_lexical_seed_occurrence_count": 823,
+            "whole_work_lexical_probe_occurrence_count": 823,
             "passage_candidate_count": 171,
             "formula_correspondence_count": 34,
             "alignment_gaps": ALIGNMENT_GAPS,

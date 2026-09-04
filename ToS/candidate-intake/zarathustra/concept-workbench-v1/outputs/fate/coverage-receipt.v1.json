@@ -28,11 +28,12 @@
     "de",
     "ru"
   ],
-  "mechanically_complete_with_explicit_seed_gaps": true,
+  "mechanically_complete_with_explicit_probe_gaps": true,
   "minimum_form_frequency": 1,
   "occurrence_candidate_count": 107,
   "outside_work_occurrences_excluded": 1796,
   "parts_scanned": 4,
+  "probe_gap_count": 4,
   "relation_type_counts": {
     "form_membership_candidate": 107,
     "lexical_realization": 37,
@@ -44,9 +45,8 @@
     "translation_parallel_candidate": 30
   },
   "request_id": "tos.annotation.concept-request.sid-086e381bf1a0782dda12737940a74a04",
-  "requested_seed_exact_absence_count": 4,
+  "requested_probe_exact_absence_count": 4,
   "schema_version": "tos_zarathustra_concept_request_coverage_v1",
-  "seed_gap_count": 4,
   "selected_occurrences_without_content_context": 0,
   "semantic_neighbors_counted_as_direct_mentions": false,
   "source_item_occurrences_examined": 179930,
