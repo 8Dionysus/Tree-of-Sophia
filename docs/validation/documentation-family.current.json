@@ -36,14 +36,14 @@
     "excluded_generated_carrier_rules": 3,
     "excluded_tracked_path_count": 525,
     "human_scope": {
-      "bytes": 4698027,
+      "bytes": 4698008,
       "count": 926,
       "excluded_skill_launch_metadata": 25,
       "family_counts": {
         "access": {
-          "bytes": 18270,
+          "bytes": 18251,
           "count": 7,
-          "lines": 367
+          "lines": 358
         },
         "agents-other": {
           "bytes": 17683,
@@ -121,7 +121,7 @@
           "lines": 60060
         }
       },
-      "lines": 82790
+      "lines": 82781
     },
     "surface_kind_counts": {
       "executable": 186,
@@ -186,7 +186,7 @@
         "human": 7,
         "structured": 16
       },
-      "tracked_surface_bytes": 426098,
+      "tracked_surface_bytes": 426079,
       "tracked_surface_count": 39
     },
     {
@@ -285,7 +285,7 @@
   "source_map": "docs/validation/documentation_family_map.json",
   "source_map_sha256": "d70a5059be9cc7547289e4c8be380d23b3aeb9e53bb10e4cb82abf2177ea0896",
   "tracked_source": "git ls-files -z",
-  "tracked_surface_digest": "11e39d98a724d355b1f9dfee9544764fb8b4affd153b3cd394f954d58a7b214f",
+  "tracked_surface_digest": "8ade257902b5875c3b6f3db019b8a2f087e840ced6da106950ad3be82136528f",
   "tracked_surfaces": [
     {
       "bytes": 1489,
@@ -23256,11 +23256,11 @@
       "surface_kind": "executable"
     },
     {
-      "bytes": 3941,
+      "bytes": 3922,
       "currentness": "tracked_source_snapshot",
       "family_id": "access",
       "path": "access/deploy/cloudflare-worker/README.md",
-      "sha256": "a13beb3f48c2e3fd0f7896a6f321193a46f5a0b8006ffab73cc1301cdd60d24d",
+      "sha256": "33c3ed1dc4bb9e1a6300cc0c1b0b8967ec698a7a28171a3f4714f4ea6ea964b0",
       "surface_kind": "human"
     },
     {

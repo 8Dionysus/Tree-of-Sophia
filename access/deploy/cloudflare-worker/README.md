@@ -35,17 +35,8 @@ tracked.
 ## Production flow
 
 Cloudflare Workers Builds watches the repository's `main` branch with this
-directory as its root. The production build command is:
-
-```text
-npm run build:ci
-```
-
-The production deploy command is:
-
-```text
-npm run deploy:edge
-```
+directory as its root. Its production build command is `npm run build:ci`, and
+its production deploy command is `npm run deploy:edge`.
 
 The deploy command first compares the generated `data_revision` with the live
 D1 metadata. That digest covers both the allowlisted inputs and the explicit
