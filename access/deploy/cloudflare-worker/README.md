@@ -36,6 +36,11 @@ Generated `dist/`, `runtime/`, local D1 state, and dependencies are ignored.
 Only source, configuration, lockfiles, tests, and generated binding types are
 tracked.
 
+The edge build stages the Vite bundle under the shared `/static/assets/` URL
+contract and fingerprints the HTML asset references before applying immutable
+cache headers. This keeps the local HTTP and Worker paths aligned without
+leaving browsers pinned to a stale fixed-name asset.
+
 ## Production flow
 
 Cloudflare Workers Builds watches the repository's `main` branch with this

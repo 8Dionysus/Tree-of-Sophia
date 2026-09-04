@@ -114,6 +114,20 @@ def build_static_assets(core: ToSAccessCore, output: Path) -> dict[str, Any]:
     if output.exists():
         shutil.rmtree(output)
     shutil.copytree(web_dist, output)
+    index_path = output / "index.html"
+    index_html = index_path.read_text(encoding="utf-8")
+    for asset in sorted((output / "assets").rglob("*")):
+        if not asset.is_file():
+            continue
+        relative_asset = asset.relative_to(output / "assets").as_posix()
+        public_path = f"/static/assets/{relative_asset}"
+        if public_path in index_html:
+            fingerprint = hashlib.sha256(asset.read_bytes()).hexdigest()[:16]
+            index_html = index_html.replace(public_path, f"{public_path}?v={fingerprint}")
+    index_path.write_text(index_html, encoding="utf-8")
+    static_assets = output / "static" / "assets"
+    static_assets.parent.mkdir(parents=True)
+    shutil.move(output / "assets", static_assets)
 
     health = {
         "service": "tree-of-sophia-access",
