@@ -30,8 +30,8 @@ jobs:
       - name: Run tiny-entry validator
         run: python scripts/validate_tiny_entry_route.py
 
-      - name: Check frozen ToS KAG surface binding
-        run: python scripts/validate_local_kag_provider.py --freeze-only
+      - name: Check current ToS KAG provider
+        run: python scripts/validate_local_kag_provider.py
 
       - name: Run tree-node contract validator
         run: python scripts/validate_tree_node_contracts.py
