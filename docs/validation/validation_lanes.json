@@ -222,12 +222,12 @@
     "local_kag_provider": {
       "label": "local KAG provider",
       "layer": "local-kag-provider",
-      "mode": "paused",
+      "mode": "blocking",
       "owner_surface": "kag/AGENTS.md",
-      "purpose": "Keep the exact frozen ToS KAG family binding visible while provider regeneration and freshness admission are paused.",
+      "purpose": "Protect the exact frozen ToS KAG manifest, shard bytes, record counts, and family binding while provider regeneration and source-currentness admission are paused.",
       "command_sequence": "local_kag_provider",
       "failure_route": "kag/AGENTS.md",
-      "pause_reason": "Temporarily frozen for rapid ToS landings; full KAG validation resumes only after an explicit ToS operator unfreeze command.",
+      "paused_scope": "Provider regeneration and source-currentness admission resume only after an explicit ToS operator unfreeze command.",
       "does_not_own": [
         "aoa-kag shared schema law",
         "runtime graph storage",
@@ -342,6 +342,7 @@
         "canon_contracts",
         "intake_contracts",
         "public_entry",
+        "local_kag_provider",
         "local_stats_port",
         "questbook_surface",
         "route_docs",
@@ -833,6 +834,10 @@
       {
         "label": "validate tiny entry route",
         "command": ["python", "scripts/validate_tiny_entry_route.py"]
+      },
+      {
+        "label": "validate frozen ToS KAG family integrity",
+        "command": ["python", "scripts/validate_local_kag_provider.py", "--freeze-only"]
       },
       {
         "label": "validate local stats port",

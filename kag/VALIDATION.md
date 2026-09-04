@@ -10,9 +10,10 @@ python scripts/validation_lanes.py --run public_entry
 ```
 
 The public-entry route still checks the ToS-owned tiny entry. Full local KAG
-record, provider, and generated-family validation is intentionally paused;
-shared KAG composition and runtime freshness remain with `aoa-kag` and its
-consumers.
-The current ToS KAG family is frozen by `kag/indexes/hot_profile.json`; a
-family or source-snapshot drift is a blocking local-provider failure until an
-explicit ToS operator unfreeze command.
+record, regeneration, and source-currentness validation is intentionally
+paused; shared KAG composition and runtime freshness remain with `aoa-kag` and
+its consumers. The freeze-only route remains blocking: it verifies the frozen
+manifest binding plus every shard's bytes, digest, and record count. Changes in
+the live ToS sources are expected during the freeze and do not invalidate the
+frozen snapshot. Changing the frozen family itself requires an explicit ToS
+operator unfreeze command.

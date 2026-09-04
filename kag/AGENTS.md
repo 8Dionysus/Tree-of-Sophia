@@ -23,10 +23,13 @@ tree.
 | next route | source surface -> derived export validator -> `aoa-kag` registry/composition |
 | validation | local KAG provider validator, derived KAG seam validator, and repo release check |
 
-The portable family is temporarily frozen at the digest recorded in
-`kag/indexes/hot_profile.json`. The local provider validator must reject family
-or source-snapshot drift until an explicit ToS operator command changes that
-state. This freeze does not mutate or activate any downstream AbyssOS owner.
+The portable family is temporarily frozen at the identity recorded in
+`kag/indexes/hot_profile.json`. The local provider validator must reject any
+change to the frozen manifest binding, shard bytes, digests, or record counts
+until an explicit ToS operator command changes that state. Source-currentness
+drift against evolving ToS files is expected while regeneration is paused and
+is not part of the frozen-family integrity check. This freeze does not mutate
+or activate any downstream AbyssOS owner.
 
 ## Source Routes
 
@@ -39,7 +42,8 @@ state. This freeze does not mutate or activate any downstream AbyssOS owner.
 
 Select the frozen local KAG binding, `public_entry`, or release route in
 [`kag/VALIDATION.md`](VALIDATION.md) after the source export and intended claim
-are known. While the freeze is active, `local_kag_provider` runs
+are known. While the freeze is active, `local_kag_provider` remains a blocking
+integrity guard and runs
 `scripts/validate_local_kag_provider.py --freeze-only`; the full provider
 validator and KAG export regeneration resume only after the explicit ToS
 operator unfreeze command. KAG export regeneration remains with

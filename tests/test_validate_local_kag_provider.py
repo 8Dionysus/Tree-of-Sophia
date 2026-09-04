@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import importlib.util
 import json
 from pathlib import Path
@@ -69,6 +70,54 @@ def valid_record(source_path: str) -> dict[str, object]:
     }
 
 
+def write_frozen_family(tmp_path: Path) -> Path:
+    shard_relative = Path("kag/indexes/shards/source/00.jsonl")
+    shard_path = tmp_path / shard_relative
+    shard_path.parent.mkdir(parents=True)
+    shard_bytes = (
+        json.dumps(
+            {
+                "_kind": "source",
+                "identity": {
+                    "repo": "Tree-of-Sophia",
+                    "path": "ToS/source-that-may-have-moved.md",
+                    "content_hash": "stale-during-freeze",
+                },
+            },
+            sort_keys=True,
+        )
+        + "\n"
+    ).encode("utf-8")
+    shard_path.write_bytes(shard_bytes)
+
+    manifest_path = tmp_path / "kag/indexes/index_family.manifest.json"
+    manifest_path.write_text(
+        json.dumps(
+            {
+                "schema_version": "aoa-repo-local-kag-family-manifest-v3",
+                "repo": {"name": "Tree-of-Sophia"},
+                "family_identity": {
+                    "content_digest": "frozen-family-digest",
+                    "source_snapshot": "sha256:frozen-source-snapshot",
+                },
+                "shards": [
+                    {
+                        "path": shard_relative.as_posix(),
+                        "bytes": len(shard_bytes),
+                        "digest": "sha256:" + hashlib.sha256(shard_bytes).hexdigest(),
+                        "records": 1,
+                        "kind": "source",
+                    }
+                ],
+                "summary": {"source_records": 1},
+            }
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    return shard_path
+
+
 def test_repo_path_rejects_absolute_and_parent_escape_paths() -> None:
     validator = load_validator()
 
@@ -96,3 +145,25 @@ def test_validate_records_discovers_nested_provider_json(monkeypatch: pytest.Mon
     groups = validator.validate_records()
 
     assert groups["nodes"][0]["local_id"] == "node:test:nested"
+
+
+def test_frozen_family_integrity_allows_live_source_currentness_drift(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    validator = load_validator()
+    write_frozen_family(tmp_path)
+    monkeypatch.setattr(validator, "REPO_ROOT", tmp_path)
+
+    validator.validate_repo_local_family(check_source_currentness=False)
+
+
+def test_frozen_family_integrity_rejects_changed_shard_bytes(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    validator = load_validator()
+    shard_path = write_frozen_family(tmp_path)
+    shard_path.write_bytes(shard_path.read_bytes() + b"{}\n")
+    monkeypatch.setattr(validator, "REPO_ROOT", tmp_path)
+
+    with pytest.raises(validator.ValidationError, match="bytes drifted"):
+        validator.validate_repo_local_family(check_source_currentness=False)

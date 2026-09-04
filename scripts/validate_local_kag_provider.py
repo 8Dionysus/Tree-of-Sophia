@@ -185,7 +185,7 @@ def validate_records() -> dict[str, list[dict[str, Any]]]:
     return groups
 
 
-def validate_repo_local_family() -> None:
+def validate_repo_local_family(*, check_source_currentness: bool = True) -> None:
     payload = read_json(REPO_ROOT / REPO_LOCAL_FAMILY_MANIFEST)
     label = REPO_LOCAL_FAMILY_MANIFEST.as_posix()
     if payload.get("schema_version") != "aoa-repo-local-kag-family-manifest-v3":
@@ -219,6 +219,8 @@ def validate_repo_local_family() -> None:
         if shard.get("kind") != "source":
             continue
         source_records += len(lines)
+        if not check_source_currentness:
+            continue
         for line_index, line in enumerate(lines, start=1):
             try:
                 record = json.loads(line)
@@ -322,7 +324,9 @@ def main(argv: list[str] | None = None) -> int:
     )
     args = parser.parse_args(argv)
     try:
-        if not args.freeze_only:
+        if args.freeze_only:
+            validate_repo_local_family(check_source_currentness=False)
+        else:
             validate_manifest()
             groups = validate_records()
             validate_links(groups)
