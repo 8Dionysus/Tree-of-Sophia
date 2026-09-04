@@ -51,6 +51,7 @@ export type PageCommandId =
   | "tos.page.context"
   | "tos.page.open-view"
   | "tos.page.search"
+  | "tos.page.find-source-gaps"
   | "tos.page.prepare-word-analysis"
   | "tos.page.select"
   | "tos.page.inspect-selection"
@@ -80,7 +81,7 @@ export type PageCommandHandler = (
   input: PageCommandInput,
   execution: PageCommandExecution,
 ) => Promise<unknown> | unknown;
-export type PageCommandHandlers = Record<HandledPageCommandId, PageCommandHandler>;
+export type PageCommandHandlers = Partial<Record<HandledPageCommandId, PageCommandHandler>>;
 export type PageContextListener = (context: PageContext) => void;
 
 export class StalePageContextError extends Error {
@@ -170,7 +171,9 @@ export function createPageCommandRegistry(
       };
     }
     if (readOnlyCommands.has(commandId)) {
-      const value = await handlers[commandId as HandledPageCommandId](input, {
+      const handler = handlers[commandId as HandledPageCommandId];
+      if (!handler) throw new Error(`page command has no handler: ${commandId}`);
+      const value = await handler(input, {
         signal: options.signal || new AbortController().signal,
       });
       return {
@@ -190,7 +193,9 @@ export function createPageCommandRegistry(
     pending.set(commandId, controller);
 
     try {
-      const value = await handlers[commandId as HandledPageCommandId](input, { signal: controller.signal });
+      const handler = handlers[commandId as HandledPageCommandId];
+      if (!handler) throw new Error(`page command has no handler: ${commandId}`);
+      const value = await handler(input, { signal: controller.signal });
       controller.signal.throwIfAborted();
       if (expectedRevision !== undefined && expectedRevision !== revision) {
         throw new StalePageContextError(expectedRevision, revision);

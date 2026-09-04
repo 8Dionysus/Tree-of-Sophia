@@ -4,6 +4,7 @@ export type ToSQueryOperationId =
   | "tos.status"
   | "tos.snapshot"
   | "tos.search"
+  | "tos.source-gaps.search"
   | "tos.view.open"
   | "tos.node.inspect"
   | "tos.neighborhood"
@@ -83,6 +84,11 @@ export function createToSQueryOperations(fetchJson: FetchJson) {
         const query = String(input.query || "").trim();
         const limit = boundedInt(input.limit, 20, 1, 100);
         return fetchJson<ToSQueryResult>(`/api/${mode}/search${params({ query, limit })}`, request);
+      }
+      case "tos.source-gaps.search": {
+        const query = String(input.query || "").trim();
+        const limit = boundedInt(input.limit, 20, 1, 100);
+        return fetchJson<ToSQueryResult>(`/api/source-gaps${params({ query, limit })}`, request);
       }
       case "tos.view.open": {
         const viewId = requiredString(input.view_id, "view_id");

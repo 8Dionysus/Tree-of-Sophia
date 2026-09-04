@@ -219,6 +219,27 @@ def test_real_browser_webmcp_loop_and_stale_deixis(webmcp_page: Page) -> None:
     assert "stale page context revision" in stale["message"]
 
 
+def test_real_browser_source_gap_research_stages_reviewable_route(webmcp_page: Page) -> None:
+    page = webmcp_page
+    assert "tos.page.find-source-gaps" in page.evaluate("window.__TOS_E2E.names()")
+    found = text_result(invoke(page, "tos.page.find-source-gaps", {"query": "Nietzsche", "limit": 20}))
+    assert found["result_count"] >= 2
+    assert "corpus-completeness" in found["authority_note"]
+    lexical = next(gap for gap in found["gaps"] if "Nietzsche-Wörterbuch" in gap["label"])
+    assert "Nietzsche-Wörterbuch" in page.locator("#detail-list").inner_text()
+
+    invoke(page, "tos.page.select", {"item_id": lexical["id"]})
+    wait_for(page, "window.__TOS_E2E.names().includes('tos.page.stage-proposal')")
+    assert "tos.page.inspect-epistemic" not in page.evaluate("window.__TOS_E2E.names()")
+    staged = command_value(invoke(page, "tos.page.stage-proposal", {
+        "kind": "source_route",
+        "statement": "Verify a lawful current institutional route to the relevant Nietzsche-Wörterbuch article before source use.",
+        "confidence": "unknown",
+    }))
+    assert staged["proposal"]["status"] == "pending_human_review"
+    assert staged["authority"] == {"source": False, "reviewed": False, "canon": False}
+
+
 def test_real_browser_cancellation_reload_and_deep_link(webmcp_page: Page) -> None:
     page = webmcp_page
     edge_id, node_id = first_edge_and_node(page)

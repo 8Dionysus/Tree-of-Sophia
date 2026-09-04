@@ -185,6 +185,7 @@ def build_handler(core: ToSAccessCore, web_root: Path) -> type[BaseHTTPRequestHa
                     self._json(health, HTTPStatus.OK if not errors else HTTPStatus.SERVICE_UNAVAILABLE)
                     return
                 if path == "/api/corpus/status": self._json(core.status()); return
+                if path == "/api/source-gaps": self._json(core.source_gap_search(_single(query, "query"), _integer(query, "limit", 20, 1, 100))); return
                 if path == "/api/zarathustra/word-analysis":
                     self._json(core.zarathustra_word_analysis_task(
                         _single(query, "query"),

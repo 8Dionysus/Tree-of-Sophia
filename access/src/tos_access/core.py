@@ -16,6 +16,7 @@ PHILOSOPHY_PROJECTION_RELATIVE_PATH = Path("ToS/derived-exports/philosophy_graph
 PHILOSOPHY_AUDIT_RELATIVE_PATH = Path("ToS/philosophy/graph-workbench/review-packets/table-i-post-planting-audit.json")
 EVIDENCE_PROJECTION_RELATIVE_PATH = Path("ToS/derived-exports/epistemic_evidence_projection.min.json")
 WORD_ANALYSIS_PROVIDER_RELATIVE_PATH = Path("scripts/prepare_zarathustra_word_analysis_v1.py")
+SOURCE_GAP_LEDGER_RELATIVE_PATH = Path("ToS/source-witnesses/access-requests/public-ledger")
 SUPPORTED_CORPUS_VIEW_IDS = {
     "corpus-topology",
     "route-graph",
@@ -504,6 +505,85 @@ class ToSAccessCore:
             "graph_views": _supported_corpus_views(payload),
             "runtime_projection_boundary": payload.get("runtime_projection_boundary", {}),
             "authority_order": payload.get("authority_order", []),
+        }
+
+    def source_gap_search(self, query: str, limit: int = 20) -> dict[str, Any]:
+        """Search a bounded public set of authored source-access gap records."""
+        normalized_query = str(query).strip()
+        if len(normalized_query) > 256:
+            raise ValueError("source-gap query exceeds 256 characters")
+        needle = normalized_query.casefold()
+        bounded_limit = _bounded_int(limit, 20, 1, 100)
+        root = self.tos_root.resolve()
+        ranked_gaps: list[tuple[int, dict[str, Any]]] = []
+        ledger = self.tos_root / SOURCE_GAP_LEDGER_RELATIVE_PATH
+        candidates = sorted(ledger.glob("*.access-request.json")) if ledger.is_dir() else []
+        for candidate in candidates[:100]:
+            relative_path = candidate.relative_to(self.tos_root)
+            if candidate.is_symlink():
+                raise RuntimeError(f"unsafe public source-gap record: {relative_path.as_posix()}")
+            resolved = candidate.resolve()
+            if root not in resolved.parents or resolved.stat().st_size > 256_000:
+                raise RuntimeError(f"unsafe public source-gap record: {relative_path.as_posix()}")
+            record = _read_json(resolved)
+            if record.get("schema_version") != "tos_access_request_v1":
+                raise RuntimeError(f"unsupported source-gap record: {relative_path.as_posix()}")
+            if record.get("personal_or_confidential_data_committed") is True:
+                raise RuntimeError(f"source-gap record is not public-safe: {relative_path.as_posix()}")
+            if needle and not _contains(record, needle):
+                continue
+            material = record.get("material") if isinstance(record.get("material"), dict) else {}
+            response = record.get("response") if isinstance(record.get("response"), dict) else {}
+            tos_refs = _string_list(material.get("tos_refs"))
+            request_id = str(record.get("request_id") or relative_path.stem)
+            title = str(material.get("title") or request_id)
+            source_ref = relative_path.as_posix()
+            refs = [
+                source_ref,
+                *_string_list(material.get("discovery_refs")),
+                *_string_list(record.get("rights_record_refs")),
+                *_string_list(response.get("safe_evidence_refs")),
+            ]
+            gap = {
+                    "edge_id": f"cluster-relation:source-gap:{request_id}",
+                    "from_id": tos_refs[0] if tos_refs else "tos.subject.friedrich-nietzsche",
+                    "to_id": request_id,
+                    "from_label": str(material.get("edition_or_resource") or (tos_refs[0] if tos_refs else "Tree of Sophia")),
+                    "to_label": title,
+                    "predicate_id": "source_access_gap",
+                    "source_refs": list(dict.fromkeys(refs)),
+                    "access_status": str(record.get("access_status") or "unknown"),
+                    "request_status": str(record.get("request_status") or "unknown"),
+                    "response_state": str(response.get("state") or "none"),
+                    "request_sent": bool(record.get("sent_at")),
+                    "authority_posture": "source_witness_public_ledger",
+                    "review_posture": str(record.get("request_status") or "unknown"),
+                    "canon_status": "not_applicable",
+                    "confidence": "recorded_status",
+                    "properties": {
+                        "public_summary_en": (
+                            f"ToS records {title} as {record.get('access_status') or 'unknown'}; "
+                            f"request status is {record.get('request_status') or 'unknown'} and response state is "
+                            f"{response.get('state') or 'none'}."
+                        ),
+                        "research_purpose": str(record.get("research_purpose") or ""),
+                    },
+                }
+            title_haystack = title.casefold()
+            identity_haystack = f"{request_id} {material.get('responsibility') or ''}".casefold()
+            score = (8 if needle and needle in title_haystack else 0) + (4 if needle and needle in identity_haystack else 0)
+            ranked_gaps.append((score, gap))
+        ranked_gaps.sort(key=lambda item: (-item[0], str(item[1].get("to_label") or "").casefold()))
+        gaps = [gap for _, gap in ranked_gaps[:bounded_limit]]
+        return {
+            "schema": "tos_source_gap_search_v1",
+            "query": normalized_query,
+            "result_count": len(gaps),
+            "gaps": gaps,
+            "authority_note": (
+                "These are recorded source-access gaps in a bounded public runtime set; this is not a "
+                "corpus-completeness or legal conclusion. No request is sent and no source or canon is changed."
+            ),
         }
 
     def search(self, query: str, limit: int = 20, resource_kind: str | None = None) -> dict[str, Any]:

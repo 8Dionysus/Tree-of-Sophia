@@ -47,6 +47,20 @@ async function staticApi(env: Env, request: Request, relativePath: string): Prom
   return withSecurity(new Response(asset.body, { status: asset.status, headers }));
 }
 
+async function sourceGapResponse(request: Request, env: Env, search: URLSearchParams): Promise<Response> {
+  const query = (search.get("query") ?? "").trim();
+  if (query.length > 256) throw new HttpError(400, "source-gap query exceeds 256 characters");
+  const limit = boundedInt(search.get("limit"), 20, 1, 100);
+  const assetUrl = new URL("/__edge/source-gaps/all.json", request.url);
+  const asset = await env.ASSETS.fetch(new Request(assetUrl));
+  if (!asset.ok) throw new Error("generated source-gap asset is missing");
+  const packet = await asset.json() as Record<string, unknown>;
+  const needle = query.toLocaleLowerCase();
+  const all = Array.isArray(packet.gaps) ? packet.gaps as Array<Record<string, unknown>> : [];
+  const gaps = all.filter((gap) => !needle || JSON.stringify(gap).toLocaleLowerCase().includes(needle)).slice(0, limit);
+  return jsonResponse({ ...packet, query, result_count: gaps.length, gaps }, 200, request.method);
+}
+
 async function apiResponse(request: Request, env: Env, url: URL): Promise<Response> {
   const path = url.pathname;
   const search = url.searchParams;
@@ -83,6 +97,7 @@ async function apiResponse(request: Request, env: Env, url: URL): Promise<Respon
     booleanParam(search, "include_semantic_neighbors");
     return jsonResponse(await metaItem(env.DB, "word_analysis_capability"), 200, method);
   }
+  if (path === "/api/source-gaps") return sourceGapResponse(request, env, search);
 
   const fixedAssets: Record<string, string> = {
     "/api/corpus/status": "corpus/status.json",

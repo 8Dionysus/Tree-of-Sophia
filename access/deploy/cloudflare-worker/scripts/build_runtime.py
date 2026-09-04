@@ -142,6 +142,7 @@ def build_static_assets(core: ToSAccessCore, output: Path) -> dict[str, Any]:
     corpus_summary = normalize_paths(core.summary(), REPO_ROOT)
     write_json(output, "__edge/corpus/status.json", corpus_status)
     write_json(output, "__edge/corpus/summary.json", corpus_summary)
+    write_json(output, "__edge/source-gaps/all.json", normalize_paths(core.source_gap_search("", limit=100), REPO_ROOT))
     for view_id in corpus_status.get("graph_views", []):
         for limit in STATIC_CORPUS_LIMITS:
             packet = normalize_paths(core.graph_view(str(view_id), limit=limit), REPO_ROOT)
@@ -580,6 +581,7 @@ def data_revision(core: ToSAccessCore) -> str:
         core.philosophy_graph_projection_path,
         core.evidence_projection_path,
         core.philosophy_post_planting_audit_path,
+        *sorted((core.tos_root / "ToS/source-witnesses/access-requests/public-ledger").glob("*.access-request.json")),
     ):
         digest.update(path.relative_to(REPO_ROOT).as_posix().encode("utf-8"))
         digest.update(b"\0")
@@ -612,6 +614,10 @@ def main() -> int:
             core.philosophy_graph_projection_path.relative_to(REPO_ROOT).as_posix(),
             core.evidence_projection_path.relative_to(REPO_ROOT).as_posix(),
             core.philosophy_post_planting_audit_path.relative_to(REPO_ROOT).as_posix(),
+            *[
+                path.relative_to(REPO_ROOT).as_posix()
+                for path in sorted((core.tos_root / "ToS/source-witnesses/access-requests/public-ledger").glob("*.access-request.json"))
+            ],
         ],
         "counts": counts,
         "default_corpus_view": next(iter(static_summary["corpus"].get("graph_views", [])), ""),

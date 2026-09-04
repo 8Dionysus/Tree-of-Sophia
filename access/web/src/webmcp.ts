@@ -136,6 +136,27 @@ function compactSearchResult(result: Record<string, unknown>): unknown {
   };
 }
 
+function compactSourceGapResult(result: Record<string, unknown>): unknown {
+  const value = result.value as Record<string, unknown> | undefined;
+  const context = result.context as Record<string, unknown> | undefined;
+  const gaps = Array.isArray(value?.gaps) ? value.gaps as Array<Record<string, unknown>> : [];
+  return {
+    query: clipped(value?.query, 160),
+    result_count: Number(value?.result_count || 0),
+    gaps: gaps.slice(0, 6).map((item) => ({
+      id: clipped(item.id, 140),
+      label: clipped(item.label, 160),
+      status: clipped(item.review_posture || item.authority_posture, 64),
+      summary: clipped(item.summary, 180),
+    })),
+    authority_note: clipped(value?.authority_note, 300),
+    page_updated: true,
+    context_revision: result.context_revision,
+    deep_link: context?.deep_link,
+    next_actions: ["use web research to verify a lawful current route", "select one gap", "stage a source_route proposal"],
+  };
+}
+
 function compactEvidenceResult(result: Record<string, unknown>): unknown {
   const value = result.value as Record<string, unknown> | undefined;
   const summary = value?.agent_summary as Record<string, unknown> | undefined;
@@ -377,6 +398,16 @@ function stableTools(registry: PageCommandRegistry): WebMCPTool[] {
       inputSchema: objectSchema({ query: { type: "string" } }, ["query"]),
       annotations: { readOnlyHint: false },
     }, undefined, compactSearchResult),
+    commandTool(registry, "tos.page.find-source-gaps", {
+      name: "tos.page.find-source-gaps",
+      title: "Find recorded source-access gaps",
+      description: "Search the bounded public Tree of Sophia access-request ledger. Use the result as a starting point for live web research, then select a gap and stage a source_route proposal. This tool does not claim corpus completeness or legal clearance, contact anyone, download sources, or change source and canon.",
+      inputSchema: objectSchema({
+        query: { type: "string", maxLength: 256 },
+        limit: { type: "integer", minimum: 1, maximum: 100, default: 20 },
+      }),
+      annotations: { readOnlyHint: false, untrustedContentHint: true },
+    }, undefined, compactSourceGapResult),
     commandTool(registry, "tos.page.select", {
       name: "tos.page.select",
       title: "Select an object on the Tree of Sophia page",
