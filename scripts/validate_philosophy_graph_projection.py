@@ -17,9 +17,10 @@ from philosophy_graph_projection_common import (
 
 def main() -> int:
     expected_payload = build_payload()
-    current_payload = json.loads(GRAPH_PROJECTION_PATH.read_text(encoding="utf-8"))
+    current_text = GRAPH_PROJECTION_PATH.read_text(encoding="utf-8")
+    current_payload = json.loads(current_text)
     validate_payload_schema(current_payload)
-    if render_payload(current_payload) != render_payload(expected_payload):
+    if current_text != render_payload(expected_payload):
         raise SystemExit("ToS/derived-exports/philosophy_graph_projection.min.json does not match the canonical rebuild")
 
     counts = current_payload.get("counts", {})
