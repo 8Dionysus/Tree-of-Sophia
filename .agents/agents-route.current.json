@@ -1622,7 +1622,7 @@
       ]
     },
     {
-      "additional_context_tokens": 200,
+      "additional_context_tokens": 238,
       "completion_evidence": [
         {
           "bytes": 1384,
@@ -1634,22 +1634,22 @@
           "whitespace_tokens": 185
         },
         {
-          "bytes": 6852,
+          "bytes": 7478,
           "exists": true,
-          "lines": 126,
+          "lines": 136,
           "path": "access/README.md",
           "role": "completion",
-          "sha256": "aa4713b5d32424cf29bef6d1ce36eb93912aba29ba85378d80f2e96b1b98651a",
-          "whitespace_tokens": 848
+          "sha256": "ca8921ca84ac6a38b8a2ba96619da71b8b5a37e142bd33ac33479a8eadfdc49c",
+          "whitespace_tokens": 935
         },
         {
-          "bytes": 15969,
+          "bytes": 16014,
           "exists": true,
-          "lines": 367,
+          "lines": 368,
           "path": "access/packaging/validate_standalone.py",
           "role": "completion",
-          "sha256": "d772f3930b981233774017191d54a3302dd7b0190e5bf0dfd98ab352524ecd17",
-          "whitespace_tokens": 1170
+          "sha256": "45617001fcfc4d100b0b4b8d79876e457bd026e98767a48a7b70c17e65aae048",
+          "whitespace_tokens": 1171
         }
       ],
       "id": "standalone_access_product",
@@ -1660,13 +1660,13 @@
       "inherited_context_tokens": 1050,
       "on_demand_surfaces": [
         {
-          "bytes": 692,
+          "bytes": 991,
           "exists": true,
-          "lines": 13,
+          "lines": 18,
           "path": "access/contracts/README.md",
           "role": "on_demand",
-          "sha256": "f0d4fb853de0a7cfc49480f34faca7d138afcc6f44f49425d05d453052a322fd",
-          "whitespace_tokens": 83
+          "sha256": "d8682cfdaa43bdda3c6622b757d469325cc84f16b8759a6da41cff0767ba21d3",
+          "whitespace_tokens": 121
         },
         {
           "bytes": 1488,
@@ -1704,22 +1704,22 @@
       "target_exists": true,
       "validation_paths": [
         {
-          "bytes": 15969,
+          "bytes": 16014,
           "exists": true,
-          "lines": 367,
+          "lines": 368,
           "path": "access/packaging/validate_standalone.py",
           "role": "validation",
-          "sha256": "d772f3930b981233774017191d54a3302dd7b0190e5bf0dfd98ab352524ecd17",
-          "whitespace_tokens": 1170
+          "sha256": "45617001fcfc4d100b0b4b8d79876e457bd026e98767a48a7b70c17e65aae048",
+          "whitespace_tokens": 1171
         },
         {
-          "bytes": 53850,
+          "bytes": 58343,
           "exists": true,
-          "lines": 1069,
+          "lines": 1146,
           "path": "access/tests/test_access_contract.py",
           "role": "validation",
-          "sha256": "af255a800978fd79bc3247e034817728a4dbef3251e195de1d739059b261bfd6",
-          "whitespace_tokens": 2733
+          "sha256": "b6022da12dd25c2d8838cd89340b217087c7de3033146158f72457fdf2d5cb03",
+          "whitespace_tokens": 2934
         },
         {
           "bytes": 23014,
