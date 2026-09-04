@@ -6,12 +6,36 @@ interpretations, contexts, and intellectual lineages into an authored,
 reviewable tree. Systems reproduce this tree as graphs, search indexes, and
 public routes.
 
+**Live site:** [treeofsophia.com](https://treeofsophia.com/)
+
 Source-backed branches cite their source. Scaffold branches remain explicit
 about their provisional role until that evidence exists. Nodes and relations
 record provenance, exact source routes, interpretation history, and review
 status. ToS traces how ideas
 descend, diverge, inherit, and return across languages, traditions, places,
 and time while preserving uncertainty and competing readings.
+
+## WebMCP Challenge — what was built
+
+The source-first Tree predates the challenge; [`access/`](access/README.md)
+contains the 2026 WebMCP submission completed in
+[PR #189](https://github.com/8Dionysus/Tree-of-Sophia/pull/189).
+
+- Codex discovers stable and selection-bound tools through `document.modelContext`.
+- Human focus and agent actions share one revisioned page state and command core.
+- Evidence Lens exposes provenance, competing readings, gaps, and bounded conclusions.
+- Codex reroutes around disputed edges and updates the human-visible graph.
+- Hypotheses and proposals stay traceable, local, noncanonical, and pending human review.
+- No model API, API key, or separate MCP connection is required.
+
+## Quick start
+
+With Python 3.11+, run
+`git clone https://github.com/8Dionysus/Tree-of-Sophia.git && cd Tree-of-Sophia`,
+`python3 -m venv .venv`, `.venv/bin/python -m pip install -e 'access[mcp]'`,
+`.venv/bin/tos verify --profile standalone`, and `.venv/bin/tos serve`.
+Open [http://127.0.0.1:8080](http://127.0.0.1:8080); standalone archives and
+native MCP are documented in [`access/README.md`](access/README.md).
 
 ## How ToS works
 
@@ -78,13 +102,6 @@ authority, and canon require matching source evidence and owner review.
 
 Meaning stays in authored sources, operations in `mechanics/`, and decisions
 and projections with their named owners.
-
-## Relationship to AoA
-
-`Agents-of-Abyss` supplies ecosystem law and agent federation, `access/`
-supplies the standalone ToS read-only product, `abyss-stack` supplies optional
-ecosystem deployment and orchestration, and `aoa-kag` consumes bounded
-knowledge projections. ToS remains their meaning-bearing philosophical tree.
 
 ## License
 
