@@ -42,6 +42,83 @@ describe("portable research workspace", () => {
     expect(() => restored.importPacket('{"schema":"tos_research_workspace_session_v1","version":1}')).toThrow(/invalid research workspace packet/);
   });
 
+  it("keeps pre-proposal v1 browser sessions readable", () => {
+    const workspace = createResearchWorkspace({ sessionId: "legacy" });
+    workspace.addNote({ id: "note:legacy", body: "Preserve me." });
+    const packet = JSON.parse(workspace.exportPacket());
+    delete packet.proposals;
+    const restored = createResearchWorkspace({ persistence: false });
+    expect(restored.importPacket(JSON.stringify(packet))).toBe(true);
+    expect(restored.getState().notes[0].body).toBe("Preserve me.");
+    expect(restored.getState().proposals).toEqual([]);
+  });
+
+  it("stages a typed local proposal with traceability and a deterministic digest", () => {
+    const workspace = createResearchWorkspace({ sessionId: "proposals" });
+    workspace.addHypothesis({ id: "hyp:reading", title: "Working reading", body: "A local interpretation.", targetId: "edge:ab", fromId: "node:a", toId: "node:b", predicateLabel: "interprets" });
+    const baseWorkspaceRevision = workspace.getState().revision;
+    const proposal = workspace.stageProposal({
+      id: "proposal:reading",
+      kind: "interpretation",
+      parentHypothesisId: "hyp:reading",
+      targetId: "edge:ab",
+      fromId: "node:a",
+      toId: "node:b",
+      statement: "The relation admits a second local reading.",
+      sourceRefs: ["tos:source:zarathustra"],
+      evidenceRefs: ["evidence:edge-ab", "evidence:route-1"],
+      confidencePosture: { value: "low", meaning: "maker_declared_uncertainty_not_truth_probability" },
+      actorOrigin: "agent",
+      basePageRevision: 17,
+      baseWorkspaceRevision,
+      dataFingerprint: "sha256:projection-v1",
+      createdAt: "2026-09-03T12:00:00.000Z",
+    });
+    expect(proposal).toMatchObject({
+      id: "proposal:reading", kind: "interpretation", parentHypothesisId: "hyp:reading",
+      targetId: "edge:ab", fromId: "node:a", toId: "node:b", sourceRefs: ["tos:source:zarathustra"],
+      evidenceRefs: ["evidence:edge-ab", "evidence:route-1"], actorOrigin: "agent",
+      basePageRevision: 17, baseWorkspaceRevision, dataFingerprint: "sha256:projection-v1",
+      createdAt: "2026-09-03T12:00:00.000Z", localOnly: true, reviewStatus: "pending_human_review", canon: false,
+    });
+    expect(proposal.digest).toMatch(/^fnv1a64:[0-9a-f]{16}$/);
+    expect(workspace.getState().proposals).toEqual([proposal]);
+    expect(workspace.getState().journal.at(-1)).toMatchObject({ action: "proposal.stage", targetId: "proposal:reading" });
+    expect(workspace.summary()).toMatchObject({ proposal_count: 1, can_undo: true });
+    const packet = JSON.parse(workspace.exportPacket());
+    expect(packet.proposals[0]).toMatchObject({
+      review_status: "pending_human_review", local_only: true, canon: false,
+      parent_hypothesis_id: "hyp:reading", confidence_posture: proposal.confidencePosture,
+      digest: proposal.digest,
+    });
+    const restored = createResearchWorkspace({ sessionId: "restored", persistence: false });
+    expect(restored.importPacket(workspace.exportPacket())).toBe(true);
+    expect(restored.getState().proposals).toEqual(workspace.getState().proposals);
+  });
+
+  it("fails closed for stale, untraceable, or tampered proposals", () => {
+    const workspace = createResearchWorkspace({ sessionId: "proposal-validation" });
+    workspace.addHypothesis({ id: "hyp:valid", title: "Valid", body: "Valid" });
+    const baseWorkspaceRevision = workspace.getState().revision;
+    const input = {
+      id: "proposal:one", kind: "metadata_correction" as const, parentHypothesisId: "hyp:valid",
+      targetId: "item:x", statement: "Correct a local label.", sourceRefs: ["source:x"], evidenceRefs: ["evidence:x"],
+      confidencePosture: { value: "unknown" as const, meaning: "maker_declared_uncertainty_not_truth_probability" as const },
+      actorOrigin: "human" as const, basePageRevision: 0, baseWorkspaceRevision,
+      dataFingerprint: "fingerprint:x", createdAt: "2026-09-03T12:00:00.000Z",
+    };
+    expect(() => workspace.stageProposal({ ...input, parentHypothesisId: "hyp:missing" })).toThrow(/parent hypothesis does not exist/);
+    expect(() => workspace.stageProposal({ ...input, baseWorkspaceRevision: baseWorkspaceRevision - 1 })).toThrow(/workspace revision is stale/);
+    expect(() => workspace.stageProposal({ ...input, sourceRefs: [] })).toThrow(/sourceRefs must contain at least one/);
+    const proposal = workspace.stageProposal(input);
+    expect(() => workspace.removeHypothesis("hyp:valid")).toThrow(/staged proposals/);
+    const tampered = JSON.parse(workspace.exportPacket()); tampered.proposals[0].statement = "tampered";
+    expect(() => createResearchWorkspace({ persistence: false }).importPacket(JSON.stringify(tampered))).toThrow(/digest mismatch/);
+    tampered.proposals[0].canon = true;
+    expect(() => createResearchWorkspace({ persistence: false }).importPacket(JSON.stringify(tampered))).toThrow(/digest mismatch|canon|posture/);
+    expect(proposal.canon).toBe(false);
+  });
+
   it("persists through an adapter and can be explicitly disabled", () => {
     const saved: string[] = []; const adapter: ResearchWorkspacePersistence = { load: vi.fn(() => saved.at(-1) ?? null), save: vi.fn((packet) => { saved.push(packet); }) };
     const workspace = createResearchWorkspace({ sessionId: "persisted", persistence: adapter }); workspace.addNote({ id: "note:persisted", body: "Keep locally." }); expect(adapter.save).toHaveBeenCalledTimes(1);

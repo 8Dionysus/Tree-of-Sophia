@@ -31,8 +31,8 @@ export const PRODUCT_DEMO_PROMPTS: Record<ProductLanguage, ProductDemoPrompt[]> 
     },
     {
       id: "hypothesis",
-      title: "Form a hypothesis",
-      prompt: "Add this interpretation as a local session hypothesis, explicitly not source, not reviewed, and not canon.",
+      title: "Stage a proposal",
+      prompt: "Compare the readings, preserve this interpretation as a local hypothesis, then stage a traceable interpretation proposal pending human review. Do not change source or canon.",
     },
   ],
   ru: [
@@ -48,8 +48,8 @@ export const PRODUCT_DEMO_PROMPTS: Record<ProductLanguage, ProductDemoPrompt[]> 
     },
     {
       id: "hypothesis",
-      title: "Сформулировать гипотезу",
-      prompt: "Добавь эту интерпретацию как локальную гипотезу сессии, не меняя канон: это не источник и не review.",
+      title: "Подготовить предложение",
+      prompt: "Сравни прочтения, сохрани эту интерпретацию как локальную гипотезу и подготовь прослеживаемое предложение, ожидающее человеческого review. Не меняй источник или канон.",
     },
   ],
 };

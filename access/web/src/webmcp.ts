@@ -27,13 +27,6 @@ export type WebMCPStatus = {
   registration_error: string | null;
 };
 
-export type WebMCPServices = {
-  prepareWordAnalysis?: (
-    input: Record<string, unknown>,
-    options: { signal: AbortSignal },
-  ) => Promise<unknown>;
-};
-
 const emptySchema: JsonSchema = { type: "object", properties: {}, additionalProperties: false };
 
 function objectSchema(properties: Record<string, unknown>, required: string[] = []): JsonSchema {
@@ -57,16 +50,89 @@ function commandTool(
   definition: Omit<WebMCPTool, "execute">,
   capturedRevision?: number,
   compact?: (value: Record<string, unknown>) => unknown,
+  bindInput?: (input: Record<string, unknown>) => Record<string, unknown>,
 ): WebMCPTool {
   return {
     ...definition,
     execute: async (input, options) => {
+      const boundInput = bindInput ? bindInput(input) : input;
       const commandInput = capturedRevision === undefined
-        ? input
-        : { ...input, context_revision: capturedRevision };
+        ? boundInput
+        : { ...boundInput, context_revision: capturedRevision };
       const value = await registry.invoke(commandId, commandInput, { signal: options.signal });
       return toolResult(compact ? compact(value) : value);
     },
+  };
+}
+
+function compactSelectionResult(result: Record<string, unknown>): unknown {
+  const context = result.context as Record<string, unknown> | undefined;
+  const selection = result.value as Record<string, unknown> | undefined;
+  return {
+    selection: selection ? {
+      id: clipped(selection.id, 96),
+      page_kind: clipped(selection.kind, 24),
+      semantic_kind: clipped(selection.semantic_kind || selection.kind, 48),
+      label: clipped(selection.label, 120),
+      subtitle: clipped(selection.subtitle, 100),
+      from_id: clipped(selection.from_id, 96) || undefined,
+      to_id: clipped(selection.to_id, 96) || undefined,
+      predicate_id: clipped(selection.predicate_id, 64) || undefined,
+      source_refs: Array.isArray(selection.source_refs) ? selection.source_refs.slice(0, 3).map((ref) => clipped(ref, 160)) : [],
+      authority_posture: clipped(selection.authority_posture, 48) || undefined,
+      review_posture: clipped(selection.review_posture, 48) || undefined,
+      canon_status: clipped(selection.canon_status, 48) || undefined,
+      confidence: clipped(selection.confidence, 48) || undefined,
+    } : null,
+    context_revision: result.context_revision,
+    deep_link: context?.deep_link,
+  };
+}
+
+function compactPageContext(value: Record<string, unknown>): unknown {
+  const selected = value.selected as Record<string, unknown> | undefined;
+  return {
+    schema: value.schema,
+    revision: value.revision,
+    mode: value.mode,
+    view_id: clipped(value.view_id, 96),
+    graph_mode: value.graph_mode,
+    selected: selected ? {
+      id: clipped(selected.id, 96),
+      page_kind: clipped(selected.kind, 24),
+      semantic_kind: clipped(selected.semantic_kind || selected.kind, 48),
+      label: clipped(selected.label, 120),
+      from_id: clipped(selected.from_id, 96) || undefined,
+      to_id: clipped(selected.to_id, 96) || undefined,
+      source_refs: Array.isArray(selected.source_refs) ? selected.source_refs.slice(0, 3).map((ref) => clipped(ref, 140)) : [],
+    } : null,
+    path_start_node_id: clipped(value.path_start_node_id, 96) || null,
+    active_layers: Array.isArray(value.active_layers) ? value.active_layers.slice(0, 16) : [],
+    active_predicates: Array.isArray(value.active_predicates) ? value.active_predicates.slice(0, 16) : [],
+    research_workspace: value.research_workspace,
+    deep_link: clipped(value.deep_link, 240),
+    pending_command_ids: Array.isArray(value.pending_command_ids) ? value.pending_command_ids.slice(0, 8) : [],
+  };
+}
+
+function compactSearchResult(result: Record<string, unknown>): unknown {
+  const value = result.value as Record<string, unknown> | undefined;
+  const context = result.context as Record<string, unknown> | undefined;
+  const results = Array.isArray(value?.results) ? value.results as Array<Record<string, unknown>> : [];
+  return {
+    query: clipped(value?.query, 160),
+    result_count: Number(value?.result_count || 0),
+    results: results.slice(0, 6).map((item) => ({
+      id: clipped(item.id, 96),
+      kind: clipped(item.semantic_kind || item.kind, 48),
+      label: clipped(item.label, 80),
+      posture: clipped(item.review_posture || item.canon_status || item.authority_posture, 56),
+      summary: clipped(item.summary, 72),
+    })),
+    page_updated: true,
+    context_revision: result.context_revision,
+    deep_link: context?.deep_link,
+    next_action: "select one result by stable id",
   };
 }
 
@@ -111,17 +177,77 @@ function compactPathResult(result: Record<string, unknown>): unknown {
   };
 }
 
+function compactNeighborhoodResult(result: Record<string, unknown>): unknown {
+  const value = result.value as Record<string, unknown> | undefined;
+  const context = result.context as Record<string, unknown> | undefined;
+  const node = value?.node as Record<string, unknown> | undefined;
+  const neighbors = Array.isArray(value?.neighbors) ? value.neighbors as Array<Record<string, unknown>> : [];
+  const edges = Array.isArray(value?.edges) ? value.edges as Array<Record<string, unknown>> : [];
+  return {
+    selection: {
+      id: clipped(node?.node_id || node?.id, 96),
+      label: clipped(node?.label || node?.title, 120),
+    },
+    neighbor_count: neighbors.length,
+    relation_count: edges.length,
+    neighbors: neighbors.slice(0, 6).map((item) => ({
+      id: clipped(item.node_id || item.id, 72),
+      label: clipped(item.label || item.title, 72),
+      kind: clipped(item.node_type, 36),
+    })),
+    predicates: Array.isArray(value?.predicates) ? value.predicates.slice(0, 12) : [],
+    page_updated: true,
+    context_revision: result.context_revision,
+    deep_link: context?.deep_link,
+  };
+}
+
+function compactReadingComparison(result: Record<string, unknown>): unknown {
+  const value = result.value as Record<string, unknown> | undefined;
+  const context = result.context as Record<string, unknown> | undefined;
+  const selection = value?.selection as Record<string, unknown> | undefined;
+  const readings = Array.isArray(value?.competing_readings) ? value.competing_readings as Array<Record<string, unknown>> : [];
+  return {
+    schema: value?.schema,
+    selection: selection ? { id: clipped(selection.id, 96), kind: clipped(selection.semantic_kind || selection.kind, 48), label: clipped(selection.label, 120) } : null,
+    posture: value?.posture,
+    can_conclude: value?.can_conclude === true,
+    competing_reading_count: Number(value?.competing_reading_count || 0),
+    competing_readings: readings.slice(0, 4).map((reading) => ({
+      id: clipped(reading.id, 80),
+      label: clipped(reading.label, 96),
+      predicate_id: clipped(reading.predicate_id, 48),
+      review_posture: clipped(reading.review_posture, 48) || "unresolved",
+      source_refs: Array.isArray(reading.source_refs) ? reading.source_refs.slice(0, 2).map((ref) => clipped(ref, 120)) : [],
+    })),
+    gaps: Array.isArray(value?.gaps) ? value.gaps.slice(0, 4).map((gap) => clipped(gap, 120)) : [],
+    authority_note: clipped(value?.authority_note, 180),
+    page_updated: true,
+    context_revision: result.context_revision,
+    deep_link: context?.deep_link,
+    next_actions: ["inspect a competing relation", "stage a traceable local proposal"],
+  };
+}
+
 function compactWorkspaceMutation(result: Record<string, unknown>): unknown {
   const value = result.value as Record<string, unknown> | undefined;
   const context = result.context as Record<string, unknown> | undefined;
   const summary = value?.summary || context?.research_workspace;
   const hypothesis = value?.hypothesis as Record<string, unknown> | undefined;
   const route = value?.route as Record<string, unknown> | undefined;
+  const proposal = value?.proposal as Record<string, unknown> | undefined;
   return {
     changed: value?.changed ?? value?.added ?? value?.imported ?? true,
     ...(value?.excluded_edge_id ? { excluded_edge_id: clipped(value.excluded_edge_id) } : {}),
     ...(hypothesis ? { hypothesis: { id: clipped(hypothesis.id), title: clipped(hypothesis.title, 140), posture: hypothesis.posture } } : {}),
     ...(route ? { route: { id: clipped(route.id), label: clipped(route.label, 140), node_count: Array.isArray(route.nodeIds) ? route.nodeIds.length : 0, edge_count: Array.isArray(route.edgeIds) ? route.edgeIds.length : 0 } } : {}),
+    ...(proposal ? { proposal: {
+      id: clipped(proposal.id, 96),
+      kind: clipped(proposal.kind, 48),
+      statement: clipped(proposal.statement, 180),
+      status: proposal.reviewStatus || proposal.review_status,
+      digest: clipped(proposal.digest, 96),
+    } } : {}),
     comparison_ready: value?.comparison_ready,
     research_workspace: summary,
     local_only: true,
@@ -137,6 +263,7 @@ function compactWorkspaceRead(result: Record<string, unknown>): unknown {
   const packet = value?.packet as Record<string, unknown> | undefined;
   const context = result.context as Record<string, unknown> | undefined;
   const hypotheses = Array.isArray(packet?.hypotheses) ? packet.hypotheses as Array<Record<string, unknown>> : [];
+  const proposals = Array.isArray(packet?.proposals) ? packet.proposals as Array<Record<string, unknown>> : [];
   const routes = Array.isArray(packet?.route_snapshots) ? packet.route_snapshots as Array<Record<string, unknown>> : [];
   const notes = Array.isArray(packet?.notes) ? packet.notes as Array<Record<string, unknown>> : [];
   const journal = Array.isArray(packet?.journal) ? packet.journal as Array<Record<string, unknown>> : [];
@@ -144,6 +271,7 @@ function compactWorkspaceRead(result: Record<string, unknown>): unknown {
     research_workspace: context?.research_workspace,
     selected_lens: packet?.selected_lens || null,
     hypothesis_preview: hypotheses.slice(-1).map((item) => ({ id: clipped(item.id, 72), title: clipped(item.title, 80), body: clipped(item.body, 96), posture: item.posture })),
+    proposal_preview: proposals.slice(-2).map((item) => ({ id: clipped(item.id, 72), kind: item.kind, statement: clipped(item.statement, 120), review_status: item.review_status, digest: clipped(item.digest, 80) })),
     excluded_edge_ids: (Array.isArray(packet?.excluded_edge_ids) ? packet.excluded_edge_ids : []).slice(-3).map((id) => clipped(id, 72)),
     route_preview: routes.slice(-2).map((item) => ({ label: clipped(item.label, 80), node_count: Array.isArray(item.node_ids) ? item.node_ids.length : 0, edge_count: Array.isArray(item.edge_ids) ? item.edge_ids.length : 0 })),
     note_preview: notes.slice(-1).map((item) => ({ body: clipped(item.body, 96), target_id: clipped(item.target_id, 72) })),
@@ -154,7 +282,31 @@ function compactWorkspaceRead(result: Record<string, unknown>): unknown {
   };
 }
 
-function stableTools(registry: PageCommandRegistry, services: WebMCPServices): WebMCPTool[] {
+function compactWordAnalysisResult(result: Record<string, unknown>): unknown {
+  const value = result.value as Record<string, unknown> | undefined;
+  const task = value?.task as Record<string, unknown> | undefined;
+  const source = task?.source as Record<string, unknown> | undefined;
+  const context = result.context as Record<string, unknown> | undefined;
+  return {
+    schema: value?.schema,
+    available: value?.available === true,
+    reason: clipped(value?.reason, 180) || null,
+    publication_posture: value?.publication_posture,
+    source: source ? {
+      occurrence_id: clipped(source.occurrence_id || source.id, 96),
+      language: clipped(source.language, 24),
+      surface: clipped(source.surface || source.text, 160),
+      source_ref: clipped(source.source_ref, 180),
+    } : null,
+    task_schema: task?.schema_version || task?.schema,
+    page_updated: true,
+    context_revision: result.context_revision,
+    deep_link: context?.deep_link,
+    next_action: value?.available === true ? "perform the source-bound analysis and preserve citations" : "install the local source-bound provider",
+  };
+}
+
+function stableTools(registry: PageCommandRegistry): WebMCPTool[] {
   return [
     commandTool(registry, "tos.page.context", {
       name: "tos.page.context",
@@ -162,8 +314,8 @@ function stableTools(registry: PageCommandRegistry, services: WebMCPServices): W
       description: "Return the current ToS view, selected object, filters, path start, deep link, and context revision.",
       inputSchema: emptySchema,
       annotations: { readOnlyHint: true },
-    }),
-    {
+    }, undefined, compactPageContext),
+    commandTool(registry, "tos.page.prepare-word-analysis", {
       name: "tos.zarathustra.word-analysis.prepare",
       title: "Prepare a source-bound Zarathustra word analysis",
       description: "Resolve a German, Russian, or English concept query to one exact German occurrence and return the required morphology, syntax, historical-sense, cited-etymology, Russian-comparison, and English-rendering task. The result is local, unreviewed, and non-canonical.",
@@ -173,19 +325,8 @@ function stableTools(registry: PageCommandRegistry, services: WebMCPServices): W
         rank: { type: "integer", minimum: 1, maximum: 100, default: 1 },
         include_semantic_neighbors: { type: "boolean", default: false },
       }, ["query"]),
-      annotations: { readOnlyHint: true, untrustedContentHint: true },
-      execute: async (input, options) => {
-        const value = services.prepareWordAnalysis
-          ? await services.prepareWordAnalysis(input, options)
-          : {
-              schema: "tos_zarathustra_word_analysis_capability_v1",
-              available: false,
-              reason: "word-analysis query service is unavailable",
-              task: null,
-            };
-        return toolResult(value);
-      },
-    },
+      annotations: { readOnlyHint: false, untrustedContentHint: true },
+    }, undefined, compactWordAnalysisResult),
     commandTool(registry, "tos.page.research-workspace", {
       name: "tos.page.research-workspace",
       title: "Read the local research workspace",
@@ -196,7 +337,7 @@ function stableTools(registry: PageCommandRegistry, services: WebMCPServices): W
     commandTool(registry, "tos.page.add-research-note", {
       name: "tos.page.add-research-note",
       title: "Add a local research note",
-      description: "Add a bounded note to this browser's research session without writing to Tree of Sophia sources, review, or canon.",
+      description: "Add a bounded global note to this browser's research session without writing to Tree of Sophia sources, review, or canon. Select an object first to receive a context-bound note tool.",
       inputSchema: objectSchema({ text: { type: "string", minLength: 1, maxLength: 2000 } }, ["text"]),
       annotations: { readOnlyHint: false, untrustedContentHint: true },
     }, undefined, compactWorkspaceMutation),
@@ -235,7 +376,7 @@ function stableTools(registry: PageCommandRegistry, services: WebMCPServices): W
       description: "Search the active ToS surface and show the results in the shared page inspector.",
       inputSchema: objectSchema({ query: { type: "string" } }, ["query"]),
       annotations: { readOnlyHint: false },
-    }),
+    }, undefined, compactSearchResult),
     commandTool(registry, "tos.page.select", {
       name: "tos.page.select",
       title: "Select an object on the Tree of Sophia page",
@@ -263,10 +404,40 @@ function stableTools(registry: PageCommandRegistry, services: WebMCPServices): W
 function dynamicTools(registry: PageCommandRegistry, context: PageContext): WebMCPTool[] {
   const selected = context.selected;
   if (!selected) return [];
+  const tools: WebMCPTool[] = [
+    commandTool(registry, "tos.page.inspect-selection", {
+      name: "tos.page.inspect-selection",
+      title: "Inspect this selected ToS object",
+      description: `Read the stable identity, semantic kind, provenance posture, and source references of the currently selected ${selected.semantic_kind || selected.kind} ${selected.id}.`,
+      inputSchema: emptySchema,
+      annotations: { readOnlyHint: true, untrustedContentHint: true },
+    }, context.revision, compactSelectionResult),
+    commandTool(registry, "tos.page.add-research-note", {
+      name: "tos.page.add-note-to-selection",
+      title: "Add a note to this selected object",
+      description: `Attach a local research note specifically to selected object ${selected.id}. The captured page revision prevents the note from following a later selection.`,
+      inputSchema: objectSchema({ text: { type: "string", minLength: 1, maxLength: 2000 } }, ["text"]),
+      annotations: { readOnlyHint: false, untrustedContentHint: true },
+    }, context.revision, compactWorkspaceMutation, (input) => ({ ...input, target_id: selected.id })),
+    commandTool(registry, "tos.page.stage-proposal", {
+      name: "tos.page.stage-proposal",
+      title: "Stage a traceable proposal from this selection",
+      description: `Stage a local, exportable proposal anchored to ${selected.id}. It remains pending human review, never writes to source, and never changes canon.`,
+      inputSchema: objectSchema({
+        kind: { type: "string", enum: ["relation", "interpretation", "metadata_correction", "source_route", "concept_enrichment"] },
+        statement: { type: "string", minLength: 1, maxLength: 2000 },
+        from_id: { type: "string", maxLength: 256 },
+        to_id: { type: "string", maxLength: 256 },
+        source_refs: { type: "array", items: { type: "string", maxLength: 512 }, maxItems: 32 },
+        evidence_refs: { type: "array", items: { type: "string", maxLength: 512 }, maxItems: 32 },
+        confidence: { type: "string", enum: ["low", "medium", "high", "unknown"] },
+      }, ["kind", "statement"]),
+      annotations: { readOnlyHint: false, untrustedContentHint: true },
+    }, context.revision, compactWorkspaceMutation, (input) => ({ ...input, target_id: selected.id, actor_origin: "agent" })),
+  ];
   const evidenceAvailable = context.mode === "philosophy"
     || (context.mode === "corpus" && context.view_id === "route-graph");
-  if (!evidenceAvailable) return [];
-  const tools: WebMCPTool[] = [];
+  if (!evidenceAvailable) return tools;
   if ((selected.kind === "node" || selected.kind === "edge") && selected.reroutable !== false) {
     tools.push(
       commandTool(registry, "tos.page.inspect-epistemic", {
@@ -276,6 +447,13 @@ function dynamicTools(registry: PageCommandRegistry, context: PageContext): WebM
         inputSchema: objectSchema({ limit: { type: "integer", minimum: 1, maximum: 200 } }),
         annotations: { readOnlyHint: false, untrustedContentHint: true },
       }, context.revision, compactEvidenceResult),
+      commandTool(registry, "tos.page.compare-readings", {
+        name: "tos.page.compare-readings",
+        title: "Compare readings around this selection",
+        description: `Show the selected reading beside projected challenges, contextual support, evidence gaps, and review posture for ${selected.id}. This organizes evidence but does not adjudicate it.`,
+        inputSchema: objectSchema({ limit: { type: "integer", minimum: 1, maximum: 80 } }),
+        annotations: { readOnlyHint: false, untrustedContentHint: true },
+      }, context.revision, compactReadingComparison),
     );
   }
   if (
@@ -321,7 +499,7 @@ function dynamicTools(registry: PageCommandRegistry, context: PageContext): WebM
         description: `Show the filtered neighborhood of the currently selected node ${selected.id} in the shared graph.`,
         inputSchema: objectSchema({ depth: { type: "integer", minimum: 1, maximum: 3 } }),
         annotations: { readOnlyHint: false },
-      }, context.revision),
+      }, context.revision, compactNeighborhoodResult),
       commandTool(registry, "tos.page.start-path", {
         name: "tos.page.start-path",
         title: "Start a path from this node",
@@ -375,7 +553,6 @@ function dynamicTools(registry: PageCommandRegistry, context: PageContext): WebM
 export function createWebMCPAdapter(
   registry: PageCommandRegistry,
   targetDocument: WebMCPDocument,
-  services: WebMCPServices = {},
 ) {
   let stableController: AbortController | null = null;
   let dynamicController: AbortController | null = null;
@@ -457,7 +634,7 @@ export function createWebMCPAdapter(
     }
     stableController = new AbortController();
     try {
-      const tools = stableTools(registry, services);
+      const tools = stableTools(registry);
       await registerAll(tools, stableController);
       stableToolCount = tools.length;
       unsubscribe = registry.subscribe((context) => void refresh(context));

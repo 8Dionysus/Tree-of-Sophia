@@ -17,6 +17,8 @@ import {
   createLocalStoragePersistence,
   createResearchWorkspace,
   type ResearchHypothesis,
+  type ResearchProposal,
+  type ResearchProposalKind,
   type RouteSnapshot,
 } from "./research-workspace";
 import { agentSurfaceState, PRODUCT_DEMO_PROMPTS } from "./product-shell";
@@ -218,6 +220,31 @@ type EpistemicPayload = {
   agent_summary?: Record<string, unknown>;
 };
 
+type InterpretationReading = {
+  id: string;
+  label: string;
+  predicate_id?: string;
+  from_id?: string;
+  to_id?: string;
+  source_refs: string[];
+  authority_posture?: string;
+  canon_status?: string;
+  review_posture?: string;
+  confidence?: string;
+};
+
+type InterpretationComparisonPayload = {
+  schema: "tos_interpretation_comparison_v1";
+  selection: PageSelection;
+  posture: string;
+  can_conclude: boolean;
+  competing_reading_count: number;
+  competing_readings: InterpretationReading[];
+  contextual_readings: InterpretationReading[];
+  gaps: string[];
+  authority_note: string;
+};
+
 type ScaleExportTable = "nodes" | "edges" | "clusters" | "cluster-node-memberships" | "cluster-edge-memberships";
 
 type AppState = {
@@ -246,6 +273,7 @@ type AppState = {
   pathStartNodeId: string | null;
   pathPacket: PathPayload | null;
   epistemicPacket: EpistemicPayload | null;
+  interpretationComparison: InterpretationComparisonPayload | null;
   inspectorOpen: boolean;
 };
 
@@ -380,6 +408,7 @@ const uiText: Record<Language, Record<string, string>> = {
     "route.pathFrom": "Path from",
     "route.rerouteWithoutEdge": "Find alternatives without this edge",
     "route.inspectEpistemic": "Open Evidence Lens",
+    "route.compareReadings": "Compare readings",
     "detail.evidenceFinding": "Evidence Lens finding",
     "detail.allowedConclusions": "What this route supports",
     "detail.forbiddenConclusions": "What remains unsupported",
@@ -392,6 +421,9 @@ const uiText: Record<Language, Record<string, string>> = {
     "detail.contextRelations": "Context relations",
     "detail.coverage": "Coverage",
     "detail.notAdjudicated": "These graph relations are leads for review, not adjudicated counterevidence.",
+    "detail.readingComparison": "Interpretation comparison",
+    "detail.comparisonPosture": "Review posture",
+    "detail.wordAnalysis": "Source-bound word analysis",
     "workspace.title": "Research workspace",
     "workspace.localOnly": "Local session only · not source · not reviewed · not canon",
     "workspace.hypothesisPlaceholder": "State a working interpretation",
@@ -406,24 +438,25 @@ const uiText: Record<Language, Record<string, string>> = {
     "workspace.export": "Export session",
     "workspace.import": "Import session",
     "workspace.hypotheses": "Session hypotheses",
+    "workspace.proposals": "Staged proposals",
     "workspace.comparisons": "Route comparisons",
     "workspace.exclusions": "Excluded edges",
     "workspace.notes": "Notes",
     "workspace.journal": "Recent actions",
     "workspace.empty": "The workspace is empty. Select an edge to begin a bounded investigation.",
     "workspace.compareReady": "Comparison ready",
-    "agent.title": "Agent surface",
-    "agent.connected": "WebMCP connected",
-    "agent.connecting": "Connecting WebMCP",
-    "agent.unavailable": "WebMCP unavailable",
-    "agent.error": "WebMCP registration failed",
+    "agent.title": "Codex site tools",
+    "agent.connected": "Codex WebMCP ready",
+    "agent.connecting": "Connecting Codex WebMCP",
+    "agent.unavailable": "Codex WebMCP unavailable in this browser",
+    "agent.error": "Codex WebMCP registration failed",
     "agent.tools": "tools available",
     "agent.selectionTools": "selection-bound",
     "agent.revision": "context revision",
-    "agent.fallback": "The atlas remains fully usable. Connect an external agent through the native MCP server.",
-    "agent.nativeMcp": "Native fallback: run tos mcp",
+    "agent.fallback": "The atlas remains fully usable. Open this page in Codex's built-in browser to enable site tools; no API key or model API is required.",
+    "agent.nativeMcp": "Optional off-page access: run tos mcp",
     "agent.demoTitle": "Try the research loop",
-    "agent.demoLead": "Select a relation, then give one of these prompts to your agent.",
+    "agent.demoLead": "Select a relation, then give one of these prompts to Codex.",
     "agent.copy": "Copy prompt",
     "agent.copied": "Copied",
     "agent.done": "Got it",
@@ -535,6 +568,7 @@ const uiText: Record<Language, Record<string, string>> = {
     "route.pathFrom": "Путь от",
     "route.rerouteWithoutEdge": "Найти альтернативы без этой связи",
     "route.inspectEpistemic": "Открыть Evidence Lens",
+    "route.compareReadings": "Сравнить прочтения",
     "detail.evidenceFinding": "Вывод Evidence Lens",
     "detail.allowedConclusions": "Что маршрут позволяет утверждать",
     "detail.forbiddenConclusions": "Что остаётся без основания",
@@ -547,6 +581,9 @@ const uiText: Record<Language, Record<string, string>> = {
     "detail.contextRelations": "Контекстные связи",
     "detail.coverage": "Полнота",
     "detail.notAdjudicated": "Эти графовые связи — маршруты для проверки, а не рассмотренное контрсвидетельство.",
+    "detail.readingComparison": "Сравнение интерпретаций",
+    "detail.comparisonPosture": "Статус рассмотрения",
+    "detail.wordAnalysis": "Анализ слова с привязкой к источнику",
     "workspace.title": "Исследовательская область",
     "workspace.localOnly": "Только локальная сессия · не источник · не review · не канон",
     "workspace.hypothesisPlaceholder": "Сформулируйте рабочую интерпретацию",
@@ -561,24 +598,25 @@ const uiText: Record<Language, Record<string, string>> = {
     "workspace.export": "Экспорт сессии",
     "workspace.import": "Импорт сессии",
     "workspace.hypotheses": "Гипотезы сессии",
+    "workspace.proposals": "Подготовленные предложения",
     "workspace.comparisons": "Сравнение маршрутов",
     "workspace.exclusions": "Исключённые рёбра",
     "workspace.notes": "Заметки",
     "workspace.journal": "Последние действия",
     "workspace.empty": "Область пуста. Выберите ребро, чтобы начать ограниченное исследование.",
     "workspace.compareReady": "Можно сравнивать",
-    "agent.title": "Поверхность агента",
-    "agent.connected": "WebMCP подключён",
-    "agent.connecting": "WebMCP подключается",
-    "agent.unavailable": "WebMCP недоступен",
-    "agent.error": "Ошибка регистрации WebMCP",
+    "agent.title": "Инструменты сайта для Codex",
+    "agent.connected": "Codex WebMCP готов",
+    "agent.connecting": "Codex подключается к WebMCP",
+    "agent.unavailable": "Codex WebMCP недоступен в этом браузере",
+    "agent.error": "Ошибка регистрации Codex WebMCP",
     "agent.tools": "инструментов доступно",
     "agent.selectionTools": "зависят от выбора",
     "agent.revision": "ревизия контекста",
-    "agent.fallback": "Атлас остаётся полностью доступным. Внешнего агента можно подключить через родной MCP-сервер.",
-    "agent.nativeMcp": "Родной fallback: запустите tos mcp",
+    "agent.fallback": "Атлас остаётся полностью доступным. Откройте эту страницу во встроенном браузере Codex: API key и модельный API не требуются.",
+    "agent.nativeMcp": "Необязательный доступ вне страницы: запустите tos mcp",
     "agent.demoTitle": "Попробуйте исследовательский цикл",
-    "agent.demoLead": "Выберите связь и передайте агенту один из этих запросов.",
+    "agent.demoLead": "Выберите связь и передайте Codex один из этих запросов.",
     "agent.copy": "Копировать запрос",
     "agent.copied": "Скопировано",
     "agent.done": "Понятно",
@@ -855,6 +893,7 @@ const state: AppState = {
   pathStartNodeId: null,
   pathPacket: null,
   epistemicPacket: null,
+  interpretationComparison: null,
   inspectorOpen: false,
 };
 
@@ -1951,6 +1990,9 @@ function renderInspector(): void {
     if (source.session_hypothesis === true) {
       cards.push(`<div class="detail-card workspace-hypothesis-card"><span class="detail-title">${t("workspace.hypotheses")}</span><span class="detail-body">${escapeHtml(t("workspace.localOnly"))}</span></div>`);
     }
+    if (source.word_analysis_payload && typeof source.word_analysis_payload === "object") {
+      cards.push(...wordAnalysisCards(source));
+    }
     if (narrative && !(source.from_id && source.to_id)) {
       cards.push(`<div class="detail-card lead-card"><span class="detail-title">${t("detail.overview")}</span><span class="detail-body">${escapeHtml(narrative)}</span></div>`);
     }
@@ -1980,8 +2022,9 @@ function renderInspector(): void {
       !isAggregateRelation(source) &&
       source.session_hypothesis !== true
     ) {
-      cards.push(`<div class="route-actions"><button id="epistemic-button" type="button">${t("route.inspectEpistemic")}</button></div>`);
+      cards.push(`<div class="route-actions"><button id="epistemic-button" type="button">${t("route.inspectEpistemic")}</button><button id="compare-readings-button" type="button">${t("route.compareReadings")}</button></div>`);
       cards.push(...epistemicCards(epistemicItemId));
+      cards.push(...interpretationComparisonCards(epistemicItemId));
     }
     cards.push(...relationDetailCards(state.selected));
     if (selectedRelationRows.length) {
@@ -2110,6 +2153,11 @@ function renderInspector(): void {
     event.stopPropagation();
     invokePageCommandFromUi("tos.page.inspect-epistemic", { item_id: pageSelection()?.id });
   });
+  document.getElementById("compare-readings-button")?.addEventListener("click", (event) => {
+    event.preventDefault();
+    event.stopPropagation();
+    invokePageCommandFromUi("tos.page.compare-readings", { item_id: pageSelection()?.id });
+  });
 }
 
 function setInspectorOpen(open: boolean): void {
@@ -2131,6 +2179,22 @@ function detailCard(title: string, body: string, pre = false): string {
       ${pre ? `<pre>${safeBody}</pre>` : `<span class="detail-body">${safeBody}</span>`}
     </div>
   `;
+}
+
+function wordAnalysisCards(item: AnyItem): string[] {
+  const payload = item.word_analysis_payload as Record<string, unknown>;
+  const task = payload.task && typeof payload.task === "object" ? payload.task as Record<string, unknown> : null;
+  const source = task?.source && typeof task.source === "object" ? task.source as Record<string, unknown> : null;
+  const overview = [
+    `available: ${payload.available === true ? "yes" : "no"}`,
+    payload.reason ? `reason: ${text(payload.reason)}` : "",
+    payload.publication_posture ? `publication: ${humanKind(payload.publication_posture)}` : "",
+    source?.surface ? `source surface: ${text(source.surface)}` : "",
+    source?.occurrence_id ? `occurrence: ${text(source.occurrence_id)}` : "",
+  ].filter(Boolean).join("\n");
+  const cards = [detailCard(t("detail.wordAnalysis"), overview)];
+  if (task) cards.push(detailCard("Task", JSON.stringify(task, null, 2).slice(0, 12_000), true));
+  return cards;
 }
 
 function relationDetailCards(item: AnyItem): string[] {
@@ -2176,6 +2240,84 @@ function collectRefs(item: AnyItem): string[] {
     const segments = ref.split("/");
     return segments.length > 1 && segments.every((segment) => segment && segment !== "." && segment !== "..");
   });
+}
+
+function firstItemText(item: AnyItem, ...keys: string[]): string {
+  const source = unwrapItem(item);
+  const properties = itemProperties(source);
+  for (const key of keys) {
+    const value = text(source[key] ?? properties[key]).trim();
+    if (value) return value;
+  }
+  return "";
+}
+
+function semanticKind(item: AnyItem): string {
+  const source = unwrapItem(item);
+  if (source.edge_id || (source.from_id && source.to_id)) return "relation";
+  const raw = firstItemText(source, "semantic_kind", "original_node_type", "node_type", "cluster_kind", "resource_kind");
+  if (["text_corpus", "material-work", "work"].includes(raw)) return "work";
+  if (["passage", "text_unit", "source_text_unit", "segment"].includes(raw)) return "passage";
+  if (["source_witness", "corpus_record", "source_planting", "material-reference"].includes(raw)) return "source";
+  if (raw.includes("concept")) return "concept";
+  if (raw.includes("claim")) return "claim";
+  return raw || (source.cluster_id ? "cluster" : "knowledge_object");
+}
+
+function readingSummary(item: AnyItem): InterpretationReading {
+  const source = unwrapItem(item);
+  const isRelation = Boolean(source.edge_id || (source.from_id && source.to_id));
+  return {
+    id: itemId(source),
+    label: short(displayTitle(source), 140),
+    ...(isRelation ? { predicate_id: predicateId(source) } : {}),
+    ...(source.from_id ? { from_id: text(source.from_id) } : {}),
+    ...(source.to_id ? { to_id: text(source.to_id) } : {}),
+    source_refs: collectRefs(source).slice(0, 8),
+    ...(firstItemText(source, "authority_posture", "authority") ? { authority_posture: firstItemText(source, "authority_posture", "authority") } : {}),
+    ...(firstItemText(source, "canon_status", "canon") ? { canon_status: firstItemText(source, "canon_status", "canon") } : {}),
+    ...(firstItemText(source, "review_posture", "review_status") ? { review_posture: firstItemText(source, "review_posture", "review_status") } : {}),
+    ...(firstItemText(source, "confidence", "confidence_posture") ? { confidence: firstItemText(source, "confidence", "confidence_posture") } : {}),
+  };
+}
+
+function selectionFromItem(item: AnyItem): PageSelection {
+  const source = unwrapItem(item);
+  const id = itemId(source);
+  const kind: PageSelection["kind"] = source.edge_id || (source.from_id && source.to_id)
+    ? "edge"
+    : source.node_id
+      ? "node"
+      : source.cluster_id
+        ? "cluster"
+        : "item";
+  const reading = readingSummary(source);
+  return {
+    id,
+    kind,
+    semantic_kind: semanticKind(source),
+    label: displayTitle(source),
+    subtitle: displaySubtitle(source),
+    ...(reading.from_id ? { from_id: reading.from_id } : {}),
+    ...(reading.to_id ? { to_id: reading.to_id } : {}),
+    ...(reading.predicate_id ? { predicate_id: reading.predicate_id } : {}),
+    ...(reading.source_refs.length ? { source_refs: reading.source_refs } : {}),
+    ...(reading.authority_posture ? { authority_posture: reading.authority_posture } : {}),
+    ...(reading.canon_status ? { canon_status: reading.canon_status } : {}),
+    ...(reading.review_posture ? { review_posture: reading.review_posture } : {}),
+    ...(reading.confidence ? { confidence: reading.confidence } : {}),
+    ...(kind === "edge" ? { reroutable: !isAggregateRelation(source) && source.session_hypothesis !== true } : {}),
+  };
+}
+
+function agentItemSummary(item: AnyItem): Record<string, unknown> {
+  const source = unwrapItem(item);
+  const selection = selectionFromItem(source);
+  const narrative = itemNarrative(source);
+  return {
+    ...selection,
+    ...(narrative ? { summary: short(narrative, 220) } : {}),
+  };
 }
 
 function sourceReferenceList(refs: string[]): string {
@@ -3278,6 +3420,7 @@ function layoutGraph(): void {
 function setSelectedItemState(item: AnyItem): void {
   epistemicRevision += 1;
   state.epistemicPacket = null;
+  state.interpretationComparison = null;
   state.selected = item;
   state.inspectorOpen = true;
   state.selectedGraphId = text(item.node_id || item.cluster_id || item.edge_id || "") || null;
@@ -3471,6 +3614,77 @@ function epistemicCards(itemIdValue: string): string[] {
   if (packet.source_refs?.length) cards.push(sourceReferenceList(packet.source_refs));
   if (packet.authority_note) cards.push(detailCard(t("detail.coverage"), packet.authority_note));
   return cards;
+}
+
+function interpretationComparisonCards(itemIdValue: string): string[] {
+  const comparison = state.interpretationComparison;
+  if (!comparison || comparison.selection.id !== itemIdValue) return [];
+  const cards = [
+    detailCard(
+      t("detail.readingComparison"),
+      [
+        comparison.selection.label || comparison.selection.id,
+        `${comparison.competing_reading_count} ${state.language === "ru" ? "конкурирующих прочтений" : "competing readings"}`,
+        `${state.language === "ru" ? "достаточно для вывода" : "conclusive in stated scope"}: ${comparison.can_conclude ? "yes" : "no"}`,
+      ].join("\n"),
+    ),
+    detailCard(t("detail.comparisonPosture"), `${humanKind(comparison.posture)}\n${comparison.authority_note}`),
+  ];
+  if (comparison.competing_readings.length) {
+    cards.push(`<div class="section-title">${t("detail.projectedChallenges")}</div>`);
+    cards.push(...comparison.competing_readings.slice(0, 8).map((reading) =>
+      detailCard(
+        reading.label || reading.id,
+        [
+          reading.predicate_id ? humanKind(reading.predicate_id) : "",
+          reading.review_posture ? `review: ${humanKind(reading.review_posture)}` : "review: unresolved",
+          reading.source_refs.length ? reading.source_refs.join("\n") : "source route not present in this projection",
+        ].filter(Boolean).join("\n"),
+      ),
+    ));
+  }
+  if (comparison.gaps.length) {
+    cards.push(detailCard(t("detail.evidenceGaps"), comparison.gaps.map((gap) => `• ${gap}`).join("\n")));
+  }
+  return cards;
+}
+
+function buildInterpretationComparison(packet: EpistemicPayload, selection: PageSelection): InterpretationComparisonPayload {
+  const challengeReadings = (packet.challenge_relations || []).map(readingSummary);
+  const contextReadings = (packet.context_relations || []).map(readingSummary);
+  const posture = challengeReadings.length
+    ? "contested_review_required"
+    : packet.posture || packet.selection_posture?.review_posture || "review_status_unresolved";
+  const localizedGaps = state.language === "ru" ? packet.gaps_ru || packet.gaps : packet.gaps;
+  return {
+    schema: "tos_interpretation_comparison_v1",
+    selection,
+    posture,
+    can_conclude: packet.conclusion?.can_conclude === true,
+    competing_reading_count: challengeReadings.length,
+    competing_readings: challengeReadings.slice(0, 8),
+    contextual_readings: contextReadings.slice(0, 8),
+    gaps: (localizedGaps || []).slice(0, 12),
+    authority_note: packet.authority_note || "Projected challenge relations are review leads, not adjudicated counterevidence or canon decisions.",
+  };
+}
+
+async function compareReadings(itemIdValue: string, limit = 60, signal?: AbortSignal): Promise<InterpretationComparisonPayload> {
+  const selected = pageSelection();
+  if (!selected || selected.id !== itemIdValue || !["node", "edge"].includes(selected.kind)) {
+    throw new Error("comparison requires the current projection node or edge selection");
+  }
+  const packet = state.epistemicPacket?.item_id === itemIdValue
+    ? state.epistemicPacket
+    : await showEpistemic(itemIdValue, limit, signal);
+  signal?.throwIfAborted();
+  if (pageSelection()?.id !== itemIdValue) throw new DOMException("superseded comparison request", "AbortError");
+  const comparison = buildInterpretationComparison(packet, selected);
+  state.interpretationComparison = comparison;
+  state.inspectorOpen = true;
+  renderInspector();
+  scrollInspectorTop();
+  return comparison;
 }
 
 async function showEpistemic(
@@ -3738,7 +3952,7 @@ function assertPhilosophyRouteAvailable(): void {
   }
 }
 
-function researchId(prefix: "hypothesis" | "route" | "note"): string {
+function researchId(prefix: "hypothesis" | "proposal" | "route" | "note"): string {
   const suffix = typeof crypto.randomUUID === "function"
     ? crypto.randomUUID()
     : `${Date.now()}-${Math.random().toString(36).slice(2, 12)}`;
@@ -3765,6 +3979,15 @@ function workspaceRouteCard(route: RouteSnapshot): string {
   </article>`;
 }
 
+function workspaceProposalCard(proposal: ResearchProposal): string {
+  return `<article class="workspace-card workspace-hypothesis">
+    <strong>${escapeHtml(humanKind(proposal.kind))}</strong>
+    <span>${escapeHtml(proposal.statement)}</span>
+    <small>${escapeHtml(proposal.reviewStatus)} · ${escapeHtml(proposal.actorOrigin)} · ${escapeHtml(proposal.digest)}</small>
+    <em>${escapeHtml(t("workspace.localOnly"))}</em>
+  </article>`;
+}
+
 async function exportResearchWorkspace(): Promise<void> {
   const result = await pageCommands.invoke("tos.page.workspace-export");
   const value = result.value as { filename?: unknown; packet?: unknown } | undefined;
@@ -3788,8 +4011,8 @@ function renderResearchWorkspace(): void {
   const selectedEdge = selection?.kind === "edge" && selection.reroutable !== false && selection.from_id && selection.to_id
     ? selection
     : null;
-  summaryNode.textContent = `${summary.hypothesis_count}H · ${summary.comparison_count}R · ${summary.note_count}N`;
-  const hasContents = summary.hypothesis_count + summary.comparison_count + summary.excluded_edge_count + summary.note_count > 0;
+  summaryNode.textContent = `${summary.hypothesis_count}H · ${summary.proposal_count}P · ${summary.comparison_count}R · ${summary.note_count}N`;
+  const hasContents = summary.hypothesis_count + summary.proposal_count + summary.comparison_count + summary.excluded_edge_count + summary.note_count > 0;
 
   root.innerHTML = `
     <p class="workspace-posture">${escapeHtml(t("workspace.localOnly"))}</p>
@@ -3815,6 +4038,7 @@ function renderResearchWorkspace(): void {
     </div>
     ${researchWorkspace.comparableRoutesReady() ? `<p class="workspace-ready">${t("workspace.compareReady")}</p>` : ""}
     ${workspace.hypotheses.length ? `<section><h3>${t("workspace.hypotheses")}</h3>${workspace.hypotheses.map(workspaceHypothesisCard).join("")}</section>` : ""}
+    ${workspace.proposals.length ? `<section><h3>${t("workspace.proposals")}</h3>${workspace.proposals.map(workspaceProposalCard).join("")}</section>` : ""}
     ${workspace.routeSnapshots.length ? `<section><h3>${t("workspace.comparisons")}</h3>${workspace.routeSnapshots.map(workspaceRouteCard).join("")}</section>` : ""}
     ${workspace.excludedEdgeIds.length ? `<section><h3>${t("workspace.exclusions")}</h3><div class="workspace-tags">${workspace.excludedEdgeIds.map((id) => `<code>${escapeHtml(id)}</code>`).join("")}</div></section>` : ""}
     ${workspace.notes.length ? `<section><h3>${t("workspace.notes")}</h3>${workspace.notes.map((note) => `<article class="workspace-card"><span>${escapeHtml(note.body)}</span>${note.targetId ? `<small>${escapeHtml(note.targetId)}</small>` : ""}</article>`).join("")}</section>` : ""}
@@ -3831,7 +4055,7 @@ function renderResearchWorkspace(): void {
   document.getElementById("workspace-save-route")?.addEventListener("click", () => invokePageCommandFromUi("tos.page.save-route-comparison"));
   document.getElementById("workspace-add-note")?.addEventListener("click", () => {
     const note = (document.getElementById("workspace-note-input") as HTMLTextAreaElement | null)?.value || "";
-    invokePageCommandFromUi("tos.page.add-research-note", { text: note });
+    invokePageCommandFromUi("tos.page.add-research-note", { text: note, target_id: pageSelection()?.id || "" });
   });
   document.getElementById("workspace-undo")?.addEventListener("click", () => invokePageCommandFromUi("tos.page.workspace-undo"));
   document.getElementById("workspace-redo")?.addEventListener("click", () => invokePageCommandFromUi("tos.page.workspace-redo"));
@@ -3952,6 +4176,7 @@ function commitPreparedView(prepared: PreparedView, requestedFocusId: string): v
   state.pathStartNodeId = null;
   state.pathPacket = null;
   state.epistemicPacket = null;
+  state.interpretationComparison = null;
   state.inspectorOpen = false;
   state.sourceNotes = prepared.sourceNotes;
   state.sourceNoteEdges = prepared.sourceNoteEdges;
@@ -4027,7 +4252,7 @@ async function loadView(
   commitPreparedView(prepared, requestedFocusId);
 }
 
-async function search(requestedQuery?: string, signal?: AbortSignal): Promise<{ result_count: number }> {
+async function search(requestedQuery?: string, signal?: AbortSignal): Promise<{ query: string; result_count: number; results: Record<string, unknown>[] }> {
   const requestRevision = ++searchRevision;
   const requestMode = state.mode;
   const requestViewId = state.currentViewId;
@@ -4036,6 +4261,7 @@ async function search(requestedQuery?: string, signal?: AbortSignal): Promise<{ 
   input.value = query;
   state.searchQuery = query;
   state.epistemicPacket = null;
+  state.interpretationComparison = null;
   const payload = (await queryOperations.invoke("tos.search", {
     mode: state.mode,
     query,
@@ -4054,7 +4280,11 @@ async function search(requestedQuery?: string, signal?: AbortSignal): Promise<{ 
   renderInspector();
   syncPublicRoute();
   scrollInspectorTop();
-  return { result_count: state.results.length };
+  return {
+    query,
+    result_count: state.results.length,
+    results: state.results.slice(0, 10).map(agentItemSummary),
+  };
 }
 
 function pageSelection(): PageSelection | null {
@@ -4062,21 +4292,7 @@ function pageSelection(): PageSelection | null {
   const item = unwrapItem(state.selected);
   const id = itemId(item);
   if (!id || id === "item") return null;
-  const kind: PageSelection["kind"] = item.edge_id || (item.from_id && item.to_id)
-    ? "edge"
-    : item.node_id
-      ? "node"
-      : item.cluster_id
-        ? "cluster"
-        : "item";
-  return {
-    id,
-    kind,
-    label: displayTitle(item),
-    ...(item.from_id ? { from_id: text(item.from_id) } : {}),
-    ...(item.to_id ? { to_id: text(item.to_id) } : {}),
-    ...(kind === "edge" ? { reroutable: !isAggregateRelation(item) && item.session_hypothesis !== true } : {}),
-  };
+  return selectionFromItem(item);
 }
 
 function pageContextSnapshot(): PageContextSnapshot {
@@ -4161,6 +4377,58 @@ const pageCommands = createPageCommandRegistry(pageContextSnapshot, {
     return { mode: state.mode, view_id: state.currentViewId, focus_id: state.selectedGraphId };
   },
   "tos.page.search": async (input, execution) => search(commandString(input, "query"), execution.signal),
+  "tos.page.prepare-word-analysis": async (input, execution) => {
+    const query = commandString(input, "query");
+    if (!query) throw new Error("query is required");
+    const language = commandString(input, "language", "ru");
+    let result: Record<string, unknown>;
+    try {
+      result = await queryOperations.invoke("tos.zarathustra.word-analysis.prepare", {
+        query,
+        language,
+        rank: commandInteger(input, "rank", 1, 1, 100),
+        include_semantic_neighbors: input.include_semantic_neighbors === true,
+      }, { signal: execution.signal });
+    } catch {
+      execution.signal.throwIfAborted();
+      result = {
+        schema: "tos_zarathustra_word_analysis_capability_v1",
+        available: false,
+        reason: "the local source-bound word-analysis capability failed its integrity check",
+        provider_ref: "scripts/prepare_zarathustra_word_analysis_v1.py",
+        publication_posture: "excluded_from_public_bundle",
+        task: null,
+        authority: {
+          source_owner: "Tree-of-Sophia",
+          access_plane_is_source: false,
+          is_semantic_truth: false,
+          writes_to_tree: false,
+          reviewed: false,
+          canon: false,
+        },
+      };
+    }
+    execution.signal.throwIfAborted();
+    const task = result.task && typeof result.task === "object" ? result.task as Record<string, unknown> : null;
+    const source = task?.source && typeof task.source === "object" ? task.source as Record<string, unknown> : null;
+    const sourceRef = text(source?.source_ref).trim();
+    state.epistemicPacket = null;
+    state.interpretationComparison = null;
+    state.results = [];
+    state.selectedGraphId = null;
+    state.selected = {
+      id: `word-analysis:${language}:${encodeURIComponent(query)}`.slice(0, 256),
+      title: `${t("detail.wordAnalysis")}: ${query}`,
+      node_type: "word-analysis-task",
+      word_analysis_payload: result,
+      ...(sourceRef ? { source_refs: [sourceRef] } : {}),
+    };
+    state.inspectorOpen = true;
+    renderInspector();
+    syncPublicRoute();
+    scrollInspectorTop();
+    return result;
+  },
   "tos.page.select": (input) => {
     const itemIdValue = commandString(input, "item_id");
     if (!itemIdValue) throw new Error("item_id is required");
@@ -4168,6 +4436,14 @@ const pageCommands = createPageCommandRegistry(pageContextSnapshot, {
     if (!item) throw new Error(`item is not present in the active view: ${itemIdValue}`);
     applySelectedItem(item);
     return { selected_id: itemIdValue };
+  },
+  "tos.page.inspect-selection": (input) => {
+    const selected = pageSelection();
+    const expectedId = commandString(input, "item_id", selected?.id || "");
+    if (!selected || !expectedId || selected.id !== expectedId || !state.selected) {
+      throw new Error("selection inspection requires the current selected object");
+    }
+    return agentItemSummary(state.selected);
   },
   "tos.page.show-neighborhood": async (input, execution) => {
     const nodeId = commandString(input, "node_id", selectedNodeId());
@@ -4228,6 +4504,11 @@ const pageCommands = createPageCommandRegistry(pageContextSnapshot, {
     renderResearchWorkspace();
     return result;
   },
+  "tos.page.compare-readings": async (input, execution) => compareReadings(
+    commandString(input, "item_id", pageSelection()?.id || ""),
+    commandInteger(input, "limit", 60, 1, 80),
+    execution.signal,
+  ),
   "tos.page.research-workspace": () => ({
     packet: JSON.parse(researchWorkspace.exportPacket()) as Record<string, unknown>,
     local_only: true,
@@ -4236,11 +4517,14 @@ const pageCommands = createPageCommandRegistry(pageContextSnapshot, {
   "tos.page.add-research-note": (input) => {
     const body = commandString(input, "text");
     if (!body) throw new Error("text is required");
-    const selected = pageSelection();
+    const targetId = commandString(input, "target_id");
+    if (targetId && pageSelection()?.id !== targetId) {
+      throw new Error("target_id must match the current selected object");
+    }
     researchWorkspace.addNote({
       id: researchId("note"),
       body,
-      ...(selected ? { targetId: selected.id } : {}),
+      ...(targetId ? { targetId } : {}),
     });
     renderResearchWorkspace();
     return { added: true, summary: researchWorkspace.summary() };
@@ -4268,6 +4552,76 @@ const pageCommands = createPageCommandRegistry(pageContextSnapshot, {
       summary: researchWorkspace.summary(),
       authority: { session_hypothesis: true, source: false, reviewed: false, canon: false },
     };
+  },
+  "tos.page.stage-proposal": async (input, execution) => {
+    const selected = pageSelection();
+    if (!selected || commandString(input, "target_id", selected.id) !== selected.id) {
+      throw new Error("proposal staging requires the current selected object");
+    }
+    const statement = commandString(input, "statement");
+    if (!statement) throw new Error("statement is required");
+    const kind = commandString(input, "kind") as ResearchProposalKind;
+    if (!["relation", "interpretation", "metadata_correction", "source_route", "concept_enrichment"].includes(kind)) {
+      throw new Error("unsupported proposal kind");
+    }
+    const explicitFrom = commandString(input, "from_id");
+    const explicitTo = commandString(input, "to_id");
+    const fromId = explicitFrom || selected.from_id || "";
+    const toId = explicitTo || selected.to_id || "";
+    if (["relation", "source_route"].includes(kind) && (!fromId || !toId)) {
+      throw new Error(`${kind} proposal requires from_id and to_id`);
+    }
+    const sourceRefs = stringList(input.source_refs).length
+      ? stringList(input.source_refs)
+      : [...new Set([...(selected.source_refs || []), ...(state.epistemicPacket?.source_refs || [])])];
+    if (!sourceRefs.length) throw new Error("proposal requires at least one explicit source reference");
+    const packetEvidenceRefs = [
+      ...(state.epistemicPacket?.source_anchors || []).flatMap((anchor) => [
+        anchor.relation_ref || "",
+        ...(anchor.anchor_segment_ids || []),
+      ]),
+      ...(state.epistemicPacket?.routes || []).map((route) => route.ref || ""),
+    ].filter(Boolean);
+    const evidenceRefs = stringList(input.evidence_refs).length
+      ? stringList(input.evidence_refs)
+      : [...new Set([...packetEvidenceRefs, ...sourceRefs])];
+    if (!evidenceRefs.length) throw new Error("proposal requires at least one explicit evidence reference");
+    const snapshot = await queryOperations.invoke("tos.snapshot", {}, { signal: execution.signal });
+    execution.signal.throwIfAborted();
+    const snapshotReview = snapshot.snapshot_review as Record<string, unknown> | undefined;
+    const currentSnapshot = snapshotReview?.current_snapshot as Record<string, unknown> | undefined;
+    const rawFingerprint = text(currentSnapshot?.projection_fingerprint).trim();
+    if (!rawFingerprint) throw new Error("projection fingerprint is unavailable; proposal was not staged");
+    const parentHypothesisId = researchId("hypothesis");
+    researchWorkspace.addHypothesis({
+      id: parentHypothesisId,
+      title: `${humanKind(kind)} proposal`,
+      body: statement,
+      targetId: selected.id,
+      ...(fromId && toId ? { fromId, toId } : {}),
+      predicateLabel: selected.predicate_id || humanKind(kind),
+    });
+    const confidence = commandString(input, "confidence", "unknown");
+    const proposal = researchWorkspace.stageProposal({
+      id: researchId("proposal"),
+      kind,
+      parentHypothesisId,
+      targetId: selected.id,
+      ...(fromId && toId ? { fromId, toId } : {}),
+      statement,
+      sourceRefs,
+      evidenceRefs,
+      confidencePosture: {
+        value: (["unknown", "low", "medium", "high"].includes(confidence) ? confidence : "unknown") as "unknown" | "low" | "medium" | "high",
+        meaning: "maker_declared_uncertainty_not_truth_probability",
+      },
+      actorOrigin: commandString(input, "actor_origin") === "human" ? "human" : "agent",
+      basePageRevision: Number(input.context_revision ?? pageCommands.context().revision),
+      baseWorkspaceRevision: researchWorkspace.getState().revision,
+      dataFingerprint: `sha256:${rawFingerprint}`,
+    });
+    refreshResearchSurfaces();
+    return { proposal, summary: researchWorkspace.summary() };
   },
   "tos.page.exclude-selected-edge": () => {
     const selected = pageSelection();
@@ -4314,13 +4668,7 @@ const pageCommands = createPageCommandRegistry(pageContextSnapshot, {
   },
 });
 
-webMCP = createWebMCPAdapter(pageCommands, document as WebMCPDocument, {
-  prepareWordAnalysis: (input, options) => queryOperations.invoke(
-    "tos.zarathustra.word-analysis.prepare",
-    input,
-    options,
-  ),
-});
+webMCP = createWebMCPAdapter(pageCommands, document as WebMCPDocument);
 
 renderShell();
 webMCP.subscribeStatus(() => renderAgentSurface());
