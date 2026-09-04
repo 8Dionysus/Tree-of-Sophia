@@ -97,7 +97,7 @@ def main() -> int:
             ("philosophy views", core.philosophy_views, "/api/philosophy/views"),
             (
                 "Zarathustra word-analysis capability",
-                lambda: core.zarathustra_word_analysis_task("Geist", "de", 2, True),
+                core.zarathustra_word_analysis_public_capability,
                 "/api/zarathustra/word-analysis?query=Geist&language=de&rank=2&include_semantic_neighbors=true",
             ),
             ("chronology view", lambda: core.philosophy_view("chronology", 1000), "/api/philosophy/views/chronology?limit=1000"),

@@ -227,7 +227,7 @@ def build_read_model_sql(core: ToSAccessCore, target: Path, revision: str) -> di
     corpus = core.index()
     evidence = core.evidence_projection()
     audit = core.philosophy_audit_payload() if core.philosophy_audit_exists() else {}
-    word_analysis_capability = core.zarathustra_word_analysis_task("__edge_capability_probe__")
+    word_analysis_capability = core.zarathustra_word_analysis_public_capability()
     if word_analysis_capability.get("available") is True:
         raise RuntimeError(
             "the local Zarathustra word-analysis provider is available but has no Cloudflare edge adapter"

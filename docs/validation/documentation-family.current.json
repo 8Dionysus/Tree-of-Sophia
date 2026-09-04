@@ -36,14 +36,14 @@
     "excluded_generated_carrier_rules": 3,
     "excluded_tracked_path_count": 583,
     "human_scope": {
-      "bytes": 4736093,
+      "bytes": 4736292,
       "count": 942,
       "excluded_skill_launch_metadata": 25,
       "family_counts": {
         "access": {
-          "bytes": 19643,
+          "bytes": 19842,
           "count": 7,
-          "lines": 378
+          "lines": 382
         },
         "agents-other": {
           "bytes": 17683,
@@ -121,7 +121,7 @@
           "lines": 60720
         }
       },
-      "lines": 83461
+      "lines": 83465
     },
     "surface_kind_counts": {
       "executable": 206,
@@ -186,7 +186,7 @@
         "human": 7,
         "structured": 16
       },
-      "tracked_surface_bytes": 435686,
+      "tracked_surface_bytes": 436556,
       "tracked_surface_count": 39
     },
     {
@@ -285,7 +285,7 @@
   "source_map": "docs/validation/documentation_family_map.json",
   "source_map_sha256": "d70a5059be9cc7547289e4c8be380d23b3aeb9e53bb10e4cb82abf2177ea0896",
   "tracked_source": "git ls-files -z",
-  "tracked_surface_digest": "6335e58f137a0369bb91576c9503e577597720e2343a9bacc446f78788d0b110",
+  "tracked_surface_digest": "4c7afab29ce889d37937fc7be57e5bc0ffe17cd2ed53a61b7c9731d81966f5e4",
   "tracked_surfaces": [
     {
       "bytes": 1489,
@@ -332,7 +332,7 @@
       "currentness": "tracked_source_snapshot",
       "family_id": "agents-other",
       "path": ".agents/agents-route.current.json",
-      "sha256": "0ead5a618c2b9679cab5a9d9676831835125a15f1d0e75b71a7c45578f13dc4f",
+      "sha256": "b3e61edd630b7b6595d7e95763c62450ad2b8f4c4a6dccbc176c51a2b8a79b63",
       "surface_kind": "structured"
     },
     {
@@ -24032,11 +24032,11 @@
       "surface_kind": "executable"
     },
     {
-      "bytes": 3922,
+      "bytes": 4121,
       "currentness": "tracked_source_snapshot",
       "family_id": "access",
       "path": "access/deploy/cloudflare-worker/README.md",
-      "sha256": "33c3ed1dc4bb9e1a6300cc0c1b0b8967ec698a7a28171a3f4714f4ea6ea964b0",
+      "sha256": "b7ac613692f3c3cac47d77b16fa77ae5893da7ab893cb0797bb0b3b335dfe11c",
       "surface_kind": "human"
     },
     {
@@ -24056,19 +24056,19 @@
       "surface_kind": "structured"
     },
     {
-      "bytes": 26644,
+      "bytes": 26630,
       "currentness": "tracked_source_snapshot",
       "family_id": "access",
       "path": "access/deploy/cloudflare-worker/scripts/build_runtime.py",
-      "sha256": "c4b9f1144f17ee4af859bd366f72d13a3de29f4ce872d0436d5245d685061047",
+      "sha256": "857de380c7ae3bced63313f924b78cbc1bf9c9358c985de4e63a0c8a12bd8003",
       "surface_kind": "executable"
     },
     {
-      "bytes": 7841,
+      "bytes": 7822,
       "currentness": "tracked_source_snapshot",
       "family_id": "access",
       "path": "access/deploy/cloudflare-worker/scripts/verify_local_runtime.py",
-      "sha256": "1513d179caffac4ca3b09073359a7b845c686231f25636f53f65dacdf3c13bfb",
+      "sha256": "c932b77d28bd516709f48fd83c911a86c320a9fd01a2d1ae44292cc77e2c2dc3",
       "surface_kind": "executable"
     },
     {
@@ -24160,11 +24160,11 @@
       "surface_kind": "executable"
     },
     {
-      "bytes": 88043,
+      "bytes": 88361,
       "currentness": "tracked_source_snapshot",
       "family_id": "access",
       "path": "access/src/tos_access/core.py",
-      "sha256": "463d14d7ee176d1e2e3624a451c5f737033444eb9aad4274098910f01cf99a46",
+      "sha256": "12d908afb53f68348b0616750449eef45187de02b50b3f2eb136e2f72cc96589",
       "surface_kind": "executable"
     },
     {
@@ -24192,11 +24192,11 @@
       "surface_kind": "executable"
     },
     {
-      "bytes": 58997,
+      "bytes": 59383,
       "currentness": "tracked_source_snapshot",
       "family_id": "access",
       "path": "access/tests/test_access_contract.py",
-      "sha256": "2bbb8ac078389b146c8f5d80dd8f9b3de94a3900d5c5114f5b660f1bda8ee387",
+      "sha256": "e6edda55f938876cbdbe676a55390b71722725604e98aff2d9588c5c5c0f1427",
       "surface_kind": "executable"
     },
     {

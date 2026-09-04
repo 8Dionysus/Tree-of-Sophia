@@ -30,6 +30,25 @@ PHILOSOPHY_CHALLENGE_PREDICATES = {
 }
 
 
+def _unavailable_word_analysis_capability(reason: str) -> dict[str, Any]:
+    return {
+        "schema": "tos_zarathustra_word_analysis_capability_v1",
+        "available": False,
+        "reason": reason,
+        "provider_ref": WORD_ANALYSIS_PROVIDER_RELATIVE_PATH.as_posix(),
+        "publication_posture": "excluded_from_public_bundle",
+        "task": None,
+        "authority": {
+            "source_owner": "Tree-of-Sophia",
+            "access_plane_is_source": False,
+            "is_semantic_truth": False,
+            "writes_to_tree": False,
+            "reviewed": False,
+            "canon": False,
+        },
+    }
+
+
 @lru_cache(maxsize=8)
 def _read_json_version(path_text: str, mtime_ns: int, size: int) -> dict[str, Any]:
     del mtime_ns, size
@@ -405,15 +424,9 @@ class ToSAccessCore:
             "canon": False,
         }
         if provider_candidate.is_symlink() or not provider_candidate.is_file():
-            return {
-                "schema": "tos_zarathustra_word_analysis_capability_v1",
-                "available": False,
-                "reason": "local source-bound word-analysis provider is not installed",
-                "provider_ref": WORD_ANALYSIS_PROVIDER_RELATIVE_PATH.as_posix(),
-                "publication_posture": "excluded_from_public_bundle",
-                "task": None,
-                "authority": authority,
-            }
+            return _unavailable_word_analysis_capability(
+                "local source-bound word-analysis provider is not installed"
+            )
         provider_path = provider_candidate.resolve()
         if root not in provider_path.parents:
             raise RuntimeError("local word-analysis provider escapes the configured ToS root")
@@ -441,15 +454,9 @@ class ToSAccessCore:
                     "private source-return artifact must be a regular non-symlink:"
                 ):
                     raise
-                return {
-                    "schema": "tos_zarathustra_word_analysis_capability_v1",
-                    "available": False,
-                    "reason": "private source-return artifacts are not installed",
-                    "provider_ref": WORD_ANALYSIS_PROVIDER_RELATIVE_PATH.as_posix(),
-                    "publication_posture": "excluded_from_public_bundle",
-                    "task": None,
-                    "authority": authority,
-                }
+                return _unavailable_word_analysis_capability(
+                    "private source-return artifacts are not installed"
+                )
         finally:
             sys.modules.pop(module_name, None)
         task_authority = task.get("authority") if isinstance(task, dict) else None
@@ -480,6 +487,12 @@ class ToSAccessCore:
             "task": task,
             "authority": authority,
         }
+
+    def zarathustra_word_analysis_public_capability(self) -> dict[str, Any]:
+        """Describe the public bundle posture without loading the local provider."""
+        return _unavailable_word_analysis_capability(
+            "local source-bound word-analysis provider is excluded from the public bundle"
+        )
 
     def summary(self) -> dict[str, Any]:
         payload = self.index()

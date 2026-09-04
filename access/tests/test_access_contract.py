@@ -204,6 +204,13 @@ class CoreContractTests(unittest.TestCase):
             root = Path(raw)
             write_fixture(root)
             core = ToSAccessCore.discover(tos_root=root)
+            public_capability = core.zarathustra_word_analysis_public_capability()
+            self.assertFalse(public_capability["available"])
+            self.assertIsNone(public_capability["task"])
+            self.assertEqual(
+                public_capability["reason"],
+                "local source-bound word-analysis provider is excluded from the public bundle",
+            )
             unavailable = core.zarathustra_word_analysis_task("судьбы", "ru", rank=2)
             self.assertFalse(unavailable["available"])
             self.assertIsNone(unavailable["task"])

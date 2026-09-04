@@ -19,6 +19,10 @@ standalone access inputs already allowlisted by `Tree-of-Sophia`:
 KAG is not a build input or runtime dependency. The edge build must not
 regenerate or silently strengthen any KAG surface.
 
+The source-bound Zarathustra word-analysis provider is also local-only. The
+edge build records an explicit unavailable capability without importing that
+provider or its private SQLite dependencies.
+
 ## Local verification
 
 From this directory, install the Worker dependencies with `npm ci` and the web
