@@ -44,7 +44,27 @@ jobs:
       - name: Run release audit
         env:
           AOA_STATS_ROOT: ${{ runner.temp }}/aoa-stats
-        run: python scripts/release_check.py
+        run: python scripts/release_check.py --phase checks
+
+  repository_tests:
+    name: Repository Tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+        with:
+          fetch-depth: 0
+
+      - name: Setup Python
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405
+        with:
+          python-version: "3.12"
+
+      - name: Install repository test dependencies
+        run: python -m pip install -r requirements-dev.txt 'mcp>=1.27,<2'
+
+      - name: Run repository tests
+        run: python scripts/release_check.py --phase tests
 
   product_shell:
     name: Product Shell
@@ -85,6 +105,7 @@ jobs:
     name: Standalone Product Candidate
     needs:
       - release_audit
+      - repository_tests
       - product_shell
     runs-on: ubuntu-latest
     steps:
@@ -118,6 +139,7 @@ jobs:
     if: ${{ always() }}
     needs:
       - release_audit
+      - repository_tests
       - product_shell
       - standalone_product_candidate
     runs-on: ubuntu-latest
@@ -125,5 +147,6 @@ jobs:
       - name: Require every validation branch to pass
         run: |
           test "${{ needs.release_audit.result }}" = "success"
+          test "${{ needs.repository_tests.result }}" = "success"
           test "${{ needs.product_shell.result }}" = "success"
           test "${{ needs.standalone_product_candidate.result }}" = "success"
