@@ -61,6 +61,15 @@ run `tos verify --profile standalone`, `tos serve`, or `tos mcp`.
 point at an AbyssOS root containing `abyss-stack`; this setting is never
 required by the standalone profile.
 
+## Cloudflare Tunnel deployment
+
+The bounded production-ingress route under
+[`deploy/cloudflare-tunnel/`](deploy/cloudflare-tunnel/README.md) publishes
+this same loopback-only `tos serve` runtime through an outbound Cloudflare
+Tunnel. Application code, checked-in web assets, and allowlisted projections
+still run from a Tree-of-Sophia checkout; the tunnel supplies transport and
+does not make `abyss-stack` a dependency or authority.
+
 The current `ToS` projection v1/v2 contracts remain source-owned. Their legacy
 `runtime_owner` field describes the existing downstream deployment contract;
 it does not override this product's standalone runtime manifest.
