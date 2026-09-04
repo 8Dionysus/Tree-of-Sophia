@@ -1,0 +1,28 @@
+[Unit]
+Description=Cloudflare Tunnel transport for Tree of Sophia
+Documentation=https://developers.cloudflare.com/tunnel/
+Requires=tos-access-origin.service
+After=network-online.target tos-access-origin.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+EnvironmentFile=%h/.config/tree-of-sophia/site.env
+LoadCredential=cloudflare-tunnel-token:%h/.config/tree-of-sophia/cloudflare-tunnel.token
+ExecStart=/usr/bin/env ${CLOUDFLARED_BIN} tunnel --no-autoupdate --loglevel info --metrics ${TOS_TUNNEL_METRICS} run --token-file %d/cloudflare-tunnel-token
+Restart=on-failure
+RestartSec=5s
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectControlGroups=yes
+ProtectHome=read-only
+ProtectKernelModules=yes
+ProtectKernelTunables=yes
+ProtectSystem=strict
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+RestrictNamespaces=yes
+LockPersonality=yes
+MemoryMax=256M
+
+[Install]
+WantedBy=default.target

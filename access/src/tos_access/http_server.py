@@ -106,6 +106,8 @@ def build_handler(core: ToSAccessCore, web_root: Path) -> type[BaseHTTPRequestHa
             for name, value in _security_headers(csp_nonce).items():
                 self.send_header(name, value)
             self.end_headers()
+            if self.command == "HEAD":
+                return
             try:
                 self.wfile.write(body)
             except (BrokenPipeError, ConnectionResetError):
@@ -254,6 +256,9 @@ def build_handler(core: ToSAccessCore, web_root: Path) -> type[BaseHTTPRequestHa
                 self._json({"error": str(exc)}, HTTPStatus.NOT_FOUND)
             except (RuntimeError, ValueError) as exc:
                 self._json({"error": str(exc)}, HTTPStatus.BAD_REQUEST)
+
+        def do_HEAD(self) -> None:  # noqa: N802
+            self.do_GET()
 
         def do_POST(self) -> None:  # noqa: N802
             self._json({"error": "standalone access is read-only"}, HTTPStatus.METHOD_NOT_ALLOWED)

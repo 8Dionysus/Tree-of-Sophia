@@ -48,6 +48,21 @@
       "disposition": "keep"
     },
     {
+      "path": "access/tests/test_cloudflare_tunnel_deploy.py",
+      "home": "access",
+      "home_scope": "product-local",
+      "family": "standalone_access_deployment",
+      "validation_lane": "standalone_access",
+      "owner_surface": "access/AGENTS.md",
+      "protects": "ToS-owned loopback origin launch, external tunnel credentials, and systemd origin dependency",
+      "coverage_authority": "access/AGENTS.md standalone access validation",
+      "mode": "blocking",
+      "runtime_cost": "fast",
+      "focused_target": "access/tests/test_cloudflare_tunnel_deploy.py",
+      "failure_route": "Fix the Cloudflare Tunnel deployment route or its credential boundary before changing test expectations.",
+      "disposition": "keep"
+    },
+    {
       "path": "access/tests/test_http_security.py",
       "home": "access",
       "home_scope": "product-local",

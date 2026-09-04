@@ -780,6 +780,12 @@ class CoreContractTests(unittest.TestCase):
             try:
                 base = f"http://127.0.0.1:{server.server_port}"
                 health = json.load(urllib.request.urlopen(base + "/health"))
+                with urllib.request.urlopen(
+                    urllib.request.Request(base + "/health", method="HEAD")
+                ) as head:
+                    self.assertEqual(head.status, 200)
+                    self.assertGreater(int(head.headers["Content-Length"]), 0)
+                    self.assertEqual(head.read(), b"")
                 view = json.load(urllib.request.urlopen(base + "/api/philosophy/views/chronology"))
                 limited_view = json.load(urllib.request.urlopen(base + "/api/philosophy/views/chronology?limit=1"))
                 rerouted = json.load(urllib.request.urlopen(
