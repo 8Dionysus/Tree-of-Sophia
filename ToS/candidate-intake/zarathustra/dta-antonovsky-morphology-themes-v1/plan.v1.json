@@ -1,0 +1,60 @@
+{
+  "schema_version": "tos_zarathustra_morphology_theme_candidate_plan_v1",
+  "plan_id": "candidate-plan:zarathustra-dta-antonovsky-morphology-themes-v1",
+  "status": "frozen-before-output",
+  "frozen_at": "2026-09-02T02:10:00-06:00",
+  "research_question": "Which mechanically reproducible form-family candidates, bilingual recurrence neighborhoods, and typed candidate relations can be proposed over the complete four-part DE/RU lexical layer without promoting a lemma, lexeme, sense, sign, concept, semantic relation, graph fact, or canon object?",
+  "inputs": {
+    "parallel_lexical_manifest": {
+      "ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/lexical-indexes/dta-antonovsky-parallel-candidates-v1/manifest.v1.json",
+      "sha256": "07ab9f1053fb7de3dca9ec45dbdbd5e3136675dd694ef57c7e46c16c1a98b99d"
+    },
+    "german_morphology_census_receipt": {
+      "ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/morphology-census-result.a-dwdsmor-open-0.18.0.v1.json",
+      "sha256": "9dbf0733e48164e25c19aceb26cf678a006fa376fd1c828f848352080482301f"
+    },
+    "semantic_identity_research": {
+      "ref": "ToS/research-packets/foundation-laboratory-2026-07/SEMANTIC_IDENTITY_ANNOTATION_RESEARCH_2026-08-11.md",
+      "sha256": "32aad968739e35f77841d8bd4954480773533e5ec789bc875e524de3f18fe634"
+    },
+    "paragraph_alignment_manifest": {
+      "ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/alignments/translation/dta-first-editions-to-antonovsky-1911-paragraph-v1/manifest.v1.json",
+      "sha256": "69ad4c7af473982940db86e0ea8ad32317ecc1dc0ea3e4a50b74897734037af7"
+    }
+  },
+  "candidate_methods": {
+    "surface_family": "language-specific transparent inflectional signatures over recurring exact-form analysis keys; overlapping signatures remain competing candidates",
+    "alignment_challenger": "otherwise separate surface families may be grouped only as an ambiguous challenger when they repeatedly share a strong opposite-language family neighborhood",
+    "bilingual_cluster": "connected component of proposed aggregate DE-to-RU family bridges; cluster labels remain private display hints and never seed identity",
+    "typed_relations": [
+      "candidate_form_membership",
+      "candidate_competes_with",
+      "candidate_translation_neighborhood_bridge",
+      "candidate_within_language_co_recurrence",
+      "candidate_cluster_membership",
+      "candidate_cluster_co_recurrence"
+    ]
+  },
+  "thresholds": {
+    "minimum_form_frequency": 5,
+    "minimum_multi_form_family_frequency": 8,
+    "maximum_surface_family_size": 12,
+    "alignment_challenger_minimum_combined_support": 16,
+    "family_bridge_minimum_support": 8,
+    "family_bridge_minimum_dice_millionths": 180000,
+    "co_recurrence_minimum_support": 8,
+    "co_recurrence_minimum_dice_millionths": 180000,
+    "co_recurrence_minimum_pmi_millibits": 500,
+    "maximum_co_recurrence_relations_per_language": 500
+  },
+  "outputs": {
+    "tracked_route": "ToS/candidate-intake/zarathustra/dta-antonovsky-morphology-themes-v1",
+    "private_root": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/local-content/morphology-themes-v1",
+    "private_mode": "0600",
+    "tracked_source_strings": false,
+    "opaque_ids_issued_separately_from_bindings": true
+  },
+  "risk": "medium: morphology and thematic grouping are linguistically and interpretively fallible, while the source and prior lexical layers remain immutable and every output is candidate-only with zero graph/canon effect",
+  "rollback": "remove only this candidate-intake route, its ignored private analysis, its builder, focused tests, and additive inventory entries; no witness, paragraph, alignment, prior lexical output, doctrine, canon, graph, or export is rewritten",
+  "authority_boundary": "agent-generated morphology, recurrence-neighborhood, and typed relation candidates only; no accepted lemma, lexeme, lexical sense, translation equivalence, sign, concept, semantic relation, graph fact, canon, or human review"
+}

@@ -1,0 +1,55 @@
+{
+  "acceptance_probe": {
+    "alignment_union": 31,
+    "de_direct_occurrences": 26,
+    "de_direct_prose_occurrences": 26,
+    "de_direct_verse_occurrences": 0,
+    "de_only_alignment_groups": 4,
+    "lowercase_los_hard_negative_occurrences": 10,
+    "parallel_alignment_intersection": 20,
+    "ru_direct_occurrences": 29,
+    "ru_direct_prose_occurrences": 29,
+    "ru_direct_verse_occurrences": 0,
+    "ru_only_alignment_groups": 7,
+    "verhaengniss_family_semantic_candidates": 6
+  },
+  "alignment_units_scanned": 3423,
+  "complete_for_declared_request": true,
+  "concept_candidate_ref": "tos.annotation.concept-candidate.sid-0362b332387f057558f9fc4b3670e6ab",
+  "english_on_demand_task_count": 57,
+  "english_translation_candidate_count": 0,
+  "evidence_tier_counts": {
+    "direct_or_morphological": 55,
+    "semantic_neighbor": 52
+  },
+  "exact_occurrences_scanned": 178134,
+  "form_candidate_count": 25,
+  "languages_scanned": [
+    "de",
+    "ru"
+  ],
+  "mechanically_complete_with_explicit_seed_gaps": true,
+  "minimum_form_frequency": 1,
+  "occurrence_candidate_count": 107,
+  "outside_work_occurrences_excluded": 1796,
+  "parts_scanned": 4,
+  "relation_type_counts": {
+    "form_membership_candidate": 107,
+    "lexical_realization": 37,
+    "morphological_realization": 18,
+    "precedes_in_work": 53,
+    "same_reading_reprise": 19,
+    "semantic_neighbor_candidate": 52,
+    "spoken_by_candidate": 107,
+    "translation_parallel_candidate": 30
+  },
+  "request_id": "tos.annotation.concept-request.sid-086e381bf1a0782dda12737940a74a04",
+  "requested_seed_exact_absence_count": 4,
+  "schema_version": "tos_zarathustra_concept_request_coverage_v1",
+  "seed_gap_count": 4,
+  "selected_occurrences_without_content_context": 0,
+  "semantic_neighbors_counted_as_direct_mentions": false,
+  "source_item_occurrences_examined": 179930,
+  "source_return_verified": true,
+  "witness_context_units_scanned": 7743
+}

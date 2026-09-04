@@ -1,0 +1,75 @@
+{
+  "schema_version": "tos_zarathustra_eternal_return_concept_candidate_plan_v1",
+  "plan_id": "candidate-plan:zarathustra-eternal-return-concept-v1",
+  "status": "frozen-before-output",
+  "frozen_at": "2026-09-02T12:20:00-06:00",
+  "research_question": "Which source-addressed DE/RU passages and recurrent formula families support, qualify, compete with, or must be excluded from a candidate concept of eternal return in Thus Spoke Zarathustra, without accepting a sign, concept, claim, graph edge, canon object, or translation equivalence?",
+  "inputs": {
+    "paragraph_alignment_manifest": {
+      "ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/alignments/translation/dta-first-editions-to-antonovsky-1911-paragraph-v1/manifest.v1.json",
+      "sha256": "69ad4c7af473982940db86e0ea8ad32317ecc1dc0ea3e4a50b74897734037af7"
+    },
+    "parallel_lexical_manifest": {
+      "ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/lexical-indexes/dta-antonovsky-parallel-candidates-v1/manifest.v1.json",
+      "sha256": "07ab9f1053fb7de3dca9ec45dbdbd5e3136675dd694ef57c7e46c16c1a98b99d"
+    },
+    "morphology_theme_manifest": {
+      "ref": "ToS/candidate-intake/zarathustra/dta-antonovsky-morphology-themes-v1/manifest.v1.json",
+      "sha256": "94fe9fdd669e4f954ec59963b55b7fe1f2e1f121fed4929dcbb911822eb74595"
+    },
+    "semantic_identity_research": {
+      "ref": "ToS/research-packets/foundation-laboratory-2026-07/SEMANTIC_IDENTITY_ANNOTATION_RESEARCH_2026-08-11.md",
+      "sha256": "32aad968739e35f77841d8bd4954480773533e5ec789bc875e524de3f18fe634"
+    },
+    "sign_annotation_contract": {
+      "ref": "ToS/contracts/sign-annotation.schema.json",
+      "sha256": "823cd06541a8ac4dd79f21428d0351fdff3b4802b93d6621254b39f93efa4427"
+    },
+    "semantic_ladder_contract": {
+      "ref": "ToS/contracts/semantic-ladder-packet.schema.json",
+      "sha256": "81e109d6a89e041ea46ea537980f0715fcc4a4f92f1ebdfc3c69c808aa5ff45d"
+    },
+    "return_as_action_negative_control": {
+      "ref": "ToS/canon/principle/friedrich-nietzsche/thus-spoke-zarathustra/prologue-1/return-as-action/node.json",
+      "sha256": "a82d26c150a88648cb103f7045fe6fa6c2643e5c4a62a789b8408c35aabae548"
+    }
+  },
+  "scope": {
+    "parts": [1, 2, 3, 4],
+    "languages": ["de", "ru"],
+    "core_readings": ["p3.r2", "p3.r13", "p3.r16", "p4.r19"],
+    "negative_control_readings": ["p1.r1", "p3.r9"],
+    "evidence_classes": ["core", "supporting", "ambiguous", "excluded"],
+    "tracked_source_strings": false
+  },
+  "candidate_facets": [
+    "cosmological_recurrence",
+    "temporality_and_augenblick",
+    "existential_test_and_affirmation",
+    "ring_and_wholeness",
+    "life_joy_pain_affirmation"
+  ],
+  "competing_readings": [
+    "cosmological_recurrence",
+    "existential_test_and_affirmation",
+    "poetic_symbolic_affirmation"
+  ],
+  "blocked_cross_work_relation_slots": ["amor_fati_cross_work"],
+  "selection_law": {
+    "core": "an eligible aligned unit in a core reading contains an explicit recurrence noun, the eternal-again formula, or a recurrence verb joined to eternity, ring, or universal/same-life scope",
+    "supporting": "an eligible aligned unit in a core reading contains eternity, ring, time or moment, joy, pain, love, life, affirmation, or universal-scope signals but does not pass the core rule",
+    "ambiguous": "an eligible aligned unit outside the core readings contains an eternity or explicit recurrence signal without satisfying an exclusion rule",
+    "excluded": "a declared negative-control passage denotes return to humans or return home rather than eternal return"
+  },
+  "outputs": {
+    "tracked_route": "ToS/candidate-intake/zarathustra/eternal-return-concept-candidate-v1",
+    "private_analysis": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/local-content/eternal-return-concept-candidate-v1/eternal-return-analysis.v1.json",
+    "private_mode": "0600",
+    "opaque_ids_issued_separately_from_bindings": true,
+    "graph_projection": "empty"
+  },
+  "risk": "medium: lexical recurrence can be mistaken for doctrine and an agent interpretation can be mistaken for an accepted semantic identity; exact source anchors, negative controls, competing readings, candidate-only posture, and zero graph/canon effect constrain that risk",
+  "rollback": "remove only this candidate route, its ignored private analysis, its builder, focused test, and additive inventory entries; do not rewrite witnesses, alignments, lexical or morphology layers, doctrine, review ledgers, canon, graph, or exports",
+  "contract_fit": "materialize one sign-annotation concept_candidate; keep interpretive claims as non-materialized templates because semantic-ladder interpretation remains blocked before a real-human sign decision",
+  "authority_boundary": "agent-generated, source-addressed semantic dossier only; no accepted occurrence, lexeme, sense, sign, concept, materialized claim, relation, translation equivalence, graph fact, canon object, or human review"
+}

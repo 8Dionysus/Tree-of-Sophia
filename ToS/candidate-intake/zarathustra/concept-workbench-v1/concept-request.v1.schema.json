@@ -1,0 +1,105 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://tree-of-sophia.local/contracts/zarathustra-concept-request-v1.schema.json",
+  "title": "Zarathustra concept request v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "request_identity_key",
+    "request_version",
+    "supersedes_request_ref",
+    "scope",
+    "request_key",
+    "labels",
+    "lexical_seeds",
+    "semantic_neighbor_seeds",
+    "expansion",
+    "distinctions",
+    "negative_controls",
+    "relation_policy",
+    "authority_boundary"
+  ],
+  "properties": {
+    "schema_version": {"const": "tos_zarathustra_concept_request_v1"},
+    "request_identity_key": {"type": "string", "pattern": "^tos\\.concept-request-key\\.sid-[0-9a-f]{32}$"},
+    "request_version": {"type": "integer", "minimum": 1},
+    "supersedes_request_ref": {"type": ["string", "null"]},
+    "scope": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["work_ref", "parts", "languages", "exclude_separate_works"],
+      "properties": {
+        "work_ref": {"const": "tos.work.friedrich-nietzsche.also-sprach-zarathustra"},
+        "parts": {"const": [1, 2, 3, 4]},
+        "languages": {"const": ["de", "ru"]},
+        "exclude_separate_works": {"const": true}
+      }
+    },
+    "request_key": {"type": "string", "pattern": "^[a-z][a-z0-9_-]+$"},
+    "labels": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["de", "ru", "en"],
+      "properties": {
+        "de": {"type": "string", "minLength": 1},
+        "ru": {"type": "string", "minLength": 1},
+        "en": {"type": "string", "minLength": 1}
+      }
+    },
+    "lexical_seeds": {"$ref": "#/$defs/languageSeeds"},
+    "semantic_neighbor_seeds": {"$ref": "#/$defs/languageSeeds"},
+    "expansion": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["morphology", "translation_neighborhoods", "semantic_neighbors"],
+      "properties": {
+        "morphology": {"const": true},
+        "translation_neighborhoods": {"const": true},
+        "semantic_neighbors": {"const": "candidate_only"}
+      }
+    },
+    "distinctions": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"type": "string", "pattern": "^[a-z][a-z0-9_]+$"}},
+    "negative_controls": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/control"}},
+    "relation_policy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["hub_not_clique", "structural_types", "allowed_types"],
+      "properties": {
+        "hub_not_clique": {"const": true},
+        "structural_types": {
+          "const": ["form_membership_candidate", "lexical_realization", "morphological_realization", "semantic_neighbor_candidate"]
+        },
+        "allowed_types": {
+          "type": "array",
+          "minItems": 0,
+          "uniqueItems": true,
+          "items": {"enum": ["translation_parallel_candidate", "spoken_by_candidate", "same_reading_reprise", "precedes_in_work"]}
+        }
+      }
+    },
+    "authority_boundary": {"const": "candidate_only_no_accepted_semantics_review_graph_or_canon"}
+  },
+  "$defs": {
+    "languageSeeds": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["de", "ru"],
+      "properties": {
+        "de": {"type": "array", "uniqueItems": true, "items": {"type": "string", "minLength": 1}},
+        "ru": {"type": "array", "uniqueItems": true, "items": {"type": "string", "minLength": 1}}
+      }
+    },
+    "control": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["control_code", "language", "form", "reason"],
+      "properties": {
+        "control_code": {"type": "string", "pattern": "^[a-z][a-z0-9_]+$"},
+        "language": {"enum": ["de", "ru"]},
+        "form": {"type": "string", "minLength": 1},
+        "reason": {"type": "string", "minLength": 1}
+      }
+    }
+  }
+}

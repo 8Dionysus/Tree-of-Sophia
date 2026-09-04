@@ -1,0 +1,159 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://tree-of-sophia.local/schemas/zarathustra-concept-search-result-v1.json",
+  "title": "Zarathustra multilingual concept search result",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "search_result_id", "query_analysis", "concept_search_route", "concept_candidate_ref", "work_ref", "content_posture", "authority_boundary", "provenance", "coverage", "results"],
+  "properties": {
+    "schema_version": {"const": "tos_zarathustra_concept_search_result_v1"},
+    "search_result_id": {"type": "string", "pattern": "^tos\\.navigation\\.concept-search-result\\.sid-[a-f0-9]{32}$"},
+    "query_analysis": {
+      "type": "object", "additionalProperties": false,
+      "required": ["input", "language", "normalized", "matched_alias", "matched_alias_language", "matched_alias_role", "match_method", "resolution_tier", "resolution_status"],
+      "properties": {
+        "input": {"type": "string", "minLength": 1},
+        "language": {"enum": ["de", "ru", "en"]},
+        "normalized": {"type": "string", "minLength": 1},
+        "matched_alias": {"type": "string", "minLength": 1},
+        "matched_alias_language": {"enum": ["de", "ru", "en"]},
+        "matched_alias_role": {"enum": ["preferred_label", "direct_lexical_seed", "semantic_neighbor_seed"]},
+        "match_method": {"enum": ["exact_alias", "morphology_alias_candidate"]},
+        "resolution_tier": {"enum": ["direct", "semantic_neighbor"]},
+        "resolution_status": {"enum": ["proposed", "ambiguous"]}
+      }
+    },
+    "concept_search_route": {
+      "type": "object", "additionalProperties": false,
+      "required": ["route_id", "identity_basis_ref", "identity_posture", "labels", "aliases", "current_request_ref", "current_request_id", "accepted_concept_ref"],
+      "properties": {
+        "route_id": {"type": "string", "pattern": "^tos\\.navigation\\.concept-search-route\\.sid-[a-f0-9]{32}$"},
+        "identity_basis_ref": {"type": "string", "pattern": "^tos\\.concept-request-key\\.sid-[a-f0-9]{32}$"},
+        "identity_posture": {"const": "stable_navigation_identity_not_semantic_concept_identity"},
+        "labels": {"$ref": "#/$defs/labels"},
+        "aliases": {"type": "array", "items": {"$ref": "#/$defs/alias"}},
+        "current_request_ref": {"type": "string", "minLength": 1},
+        "current_request_id": {"type": "string", "minLength": 1},
+        "accepted_concept_ref": {"type": ["string", "null"]}
+      }
+    },
+    "concept_candidate_ref": {"type": "string", "minLength": 1},
+    "work_ref": {"const": "tos.work.friedrich-nietzsche.also-sprach-zarathustra"},
+    "content_posture": {"const": "local_runtime_exact_source_return_not_tracked"},
+    "authority_boundary": {"const": "navigation_to_candidate_evidence_only_no_semantic_translation_graph_or_canon_acceptance"},
+    "provenance": {
+      "type": "object", "additionalProperties": false,
+      "required": ["source_manifest_ref", "source_manifest_sha256", "query_adapter_ref", "query_adapter_sha256", "result_schema_ref", "result_schema_sha256"],
+      "properties": {
+        "source_manifest_ref": {"type": "string", "minLength": 1},
+        "source_manifest_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+        "query_adapter_ref": {"const": "scripts/query_zarathustra_concept_workbench_v1.py"},
+        "query_adapter_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+        "result_schema_ref": {"const": "ToS/candidate-intake/zarathustra/concept-workbench-v1/concept-search-result.v1.schema.json"},
+        "result_schema_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"}
+      }
+    },
+    "coverage": {
+      "type": "object", "additionalProperties": false,
+      "required": ["total_source_results", "returned_source_results", "source_evidence_tier_counts", "semantic_neighbors_included", "original_language", "russian_query_is_source_authority"],
+      "properties": {
+        "total_source_results": {"type": "integer", "minimum": 0},
+        "returned_source_results": {"type": "integer", "minimum": 0},
+        "source_evidence_tier_counts": {"type": "object", "additionalProperties": {"type": "integer", "minimum": 0}},
+        "semantic_neighbors_included": {"type": "boolean"},
+        "original_language": {"const": "de"},
+        "russian_query_is_source_authority": {"const": false}
+      }
+    },
+    "results": {"type": "array", "items": {"$ref": "#/$defs/result"}}
+  },
+  "$defs": {
+    "labels": {
+      "type": "object", "additionalProperties": false,
+      "required": ["de", "ru", "en"],
+      "properties": {"de": {"type": "string"}, "ru": {"type": "string"}, "en": {"type": "string"}}
+    },
+    "alias": {
+      "type": "object", "additionalProperties": false,
+      "required": ["language", "display", "normalized", "role", "tier"],
+      "properties": {
+        "language": {"enum": ["de", "ru", "en"]},
+        "display": {"type": "string", "minLength": 1},
+        "normalized": {"type": "string", "minLength": 1},
+        "role": {"enum": ["preferred_label", "direct_lexical_seed", "semantic_neighbor_seed"]},
+        "tier": {"enum": ["direct", "semantic_neighbor"]}
+      }
+    },
+    "alignment": {
+      "type": "object", "additionalProperties": false,
+      "required": ["alignment_ref", "shape", "status"],
+      "properties": {
+        "alignment_ref": {"type": "string", "minLength": 1},
+        "shape": {"type": "string", "minLength": 1},
+        "status": {"enum": ["proposed", "ambiguous", "deferred"]}
+      }
+    },
+    "russianComparator": {
+      "type": "object", "additionalProperties": false,
+      "required": ["context_unit_ref", "exact_text", "selected_occurrence_refs", "selected_surfaces", "role"],
+      "properties": {
+        "context_unit_ref": {"type": "string", "minLength": 1},
+        "exact_text": {"type": "string"},
+        "selected_occurrence_refs": {"type": "array", "items": {"type": "string"}},
+        "selected_surfaces": {"type": "array", "items": {"type": "string"}},
+        "role": {"const": "historical_translation_comparator_not_source_authority"}
+      }
+    },
+    "pathStep": {
+      "type": "object", "additionalProperties": false,
+      "required": ["step", "from_ref", "to_ref", "status"],
+      "properties": {
+        "step": {"enum": ["query_alias_match", "routes_to_concept_candidate", "candidate_realization", "source_return"]},
+        "from_ref": {"type": "string", "minLength": 1},
+        "to_ref": {"type": "string", "minLength": 1},
+        "status": {"type": "string", "minLength": 1}
+      }
+    },
+    "result": {
+      "type": "object", "additionalProperties": false,
+      "required": ["rank", "source_language", "evidence_tier", "selection_kind", "part", "reading_ref", "unit_kind", "witness_order", "token_ordinal", "occurrence_ordinal_within_context", "source_occurrence_candidate_ref", "source_existing_occurrence_ref", "source_context_unit_ref", "source_surface", "source_analysis_form", "source_headword_candidate", "source_headword_status", "source_context", "anchor_refs", "speaker", "alignment_candidates", "russian_comparators", "realization_relation_candidate_ref", "translation_parallel_candidate_refs", "english_on_demand_task_ref", "query_to_source_path", "accepted", "review_status", "semantic_fact_asserted", "translation_truth_asserted", "graph_effect", "canon_effect"],
+      "properties": {
+        "rank": {"type": "integer", "minimum": 1},
+        "source_language": {"const": "de"},
+        "evidence_tier": {"enum": ["direct_or_morphological", "semantic_neighbor"]},
+        "selection_kind": {"enum": ["direct_exact", "direct_morphology", "semantic_exact", "semantic_morphology"]},
+        "part": {"type": "integer", "minimum": 1, "maximum": 4},
+        "reading_ref": {"type": ["string", "null"]},
+        "unit_kind": {"type": "string"},
+        "witness_order": {"type": "integer", "minimum": 1},
+        "token_ordinal": {"type": "integer", "minimum": 1},
+        "occurrence_ordinal_within_context": {"type": "integer", "minimum": 1},
+        "source_occurrence_candidate_ref": {"type": "string", "minLength": 1},
+        "source_existing_occurrence_ref": {"type": "string", "minLength": 1},
+        "source_context_unit_ref": {"type": "string", "minLength": 1},
+        "source_surface": {"type": "string", "minLength": 1},
+        "source_analysis_form": {"type": "string", "minLength": 1},
+        "source_headword_candidate": {"type": "string", "minLength": 1},
+        "source_headword_status": {"const": "request_seed_not_accepted_lemma"},
+        "source_context": {"type": "string", "minLength": 1},
+        "anchor_refs": {"type": "array", "minItems": 1, "items": {"type": "string"}},
+        "speaker": {
+          "type": "object", "additionalProperties": false, "required": ["role", "status"],
+          "properties": {"role": {"type": "string", "minLength": 1}, "status": {"type": "string", "minLength": 1}}
+        },
+        "alignment_candidates": {"type": "array", "items": {"$ref": "#/$defs/alignment"}},
+        "russian_comparators": {"type": "array", "items": {"$ref": "#/$defs/russianComparator"}},
+        "realization_relation_candidate_ref": {"type": "string", "minLength": 1},
+        "translation_parallel_candidate_refs": {"type": "array", "items": {"type": "string"}},
+        "english_on_demand_task_ref": {"type": ["string", "null"]},
+        "query_to_source_path": {"type": "array", "minItems": 4, "maxItems": 4, "items": {"$ref": "#/$defs/pathStep"}},
+        "accepted": {"const": false},
+        "review_status": {"const": "unreviewed"},
+        "semantic_fact_asserted": {"const": false},
+        "translation_truth_asserted": {"const": false},
+        "graph_effect": {"const": false},
+        "canon_effect": {"const": false}
+      }
+    }
+  }
+}

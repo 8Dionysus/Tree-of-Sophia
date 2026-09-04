@@ -1,0 +1,79 @@
+{
+  "annotation_ref": "tos.annotation.eternal-return-candidate.sid-5cbb125d0d411355a3b40aeefa71de2f",
+  "audit_kind": "two_independent_codex_agent_challengers",
+  "authority_boundary": "independent model challenge and integration receipt, not human semantic review or acceptance",
+  "comparison_limit": "the source challenger counts anchor occurrences and passages while the primary dossier counts selected alignment units; their denominators are intentionally not collapsed",
+  "human_review": false,
+  "integrated_controls": {
+    "accepted_candidate_count": 0,
+    "bare_again_eternity_ring_and_liturgical_controls_present": true,
+    "canon_effect": false,
+    "five_interpretive_axes_are_separate": true,
+    "graph_effect": false,
+    "human_review_count": 0,
+    "interpretations_are_templates_not_claims": true,
+    "ocr_and_letterspacing_gaps_not_silently_corrected": true,
+    "one_sided_alignment_residue_preserved": true,
+    "speaker_flattening_forbidden": true
+  },
+  "schema_version": "tos_zarathustra_eternal_return_independent_agent_audit_v1",
+  "semantic_design_challenger": {
+    "amor_fati_cross_work_slot_blocked": true,
+    "artifact_sha256": {
+      "claim_relation_design": "8d2c061fc9ead09c0b1553aec2db3c2b46cffb13be730ac8ea0c62f079667ddb",
+      "negative_controls": "db9ccabc7dd3c665e7fa93f34b960e0991d7866290be147789a2448bcd3721bc",
+      "schema_fit": "91a685a2f205bf9868cfffc33c233eb742bee712bd81062ccbf23ba343e0435f"
+    },
+    "five_axes_preserved": true,
+    "graph_must_remain_empty": true,
+    "interpretations_materialized_as_claims": false,
+    "route_fit_confirmed": true,
+    "semantic_annotation_v2_rejected_for_bilingual_umbrella": true,
+    "sign_annotation_concept_candidate_selected": true
+  },
+  "source_evidence_challenger": {
+    "alignment_gaps": [
+      {
+        "alignment_ref": "tos.translation-alignment.sid-6922c0b268a890cf94d0454b67143f43",
+        "gap_code": "one_to_many_mapping",
+        "reading_ref": "p3.r2"
+      },
+      {
+        "alignment_ref": "tos.translation-alignment.sid-a1f9250a6975af780fb35023b6070ff2",
+        "gap_code": "ru_formula_broken_by_letterspacing",
+        "reading_ref": "p3.r13"
+      },
+      {
+        "alignment_ref": "tos.translation-alignment.sid-a474f471a32163007afa33b3ae624ab9",
+        "gap_code": "ru_formula_blocked_by_ocr_substitution",
+        "reading_ref": "p3.r13"
+      },
+      {
+        "alignment_ref": "tos.translation-alignment.sid-b3ce5734f20040829abd1acbbf5c17bd",
+        "gap_code": "machine_target_gap_not_translation_omission",
+        "reading_ref": "p3.r15"
+      },
+      {
+        "alignment_ref": "tos.translation-alignment.sid-f7e6b8c00ed9861bf01841a9b0212e78",
+        "gap_code": "one_to_many_mapping",
+        "reading_ref": "p3.r16"
+      }
+    ],
+    "alignment_groups_scanned": 3423,
+    "deterministic_check_passed": true,
+    "dossier_sha256": "92e81e1e85dcf8fd4818934517b04778bcd38f1891c35e3f0759a34e2b2832c6",
+    "formula_correspondence_count": 34,
+    "manifest_sha256": "bc3ab711c1de33110ed073948abb14f9cee027cffd0677a51a499466a0b5095e",
+    "occurrence_candidate_count": 791,
+    "occurrence_class_counts": {
+      "ambiguous": 161,
+      "core": 127,
+      "excluded": 357,
+      "supporting": 146
+    },
+    "passage_candidate_count": 171,
+    "source_paragraph_anchors_visited": 3447,
+    "target_paragraph_anchors_visited": 3569,
+    "whole_work_lexical_seed_occurrence_count": 823
+  }
+}

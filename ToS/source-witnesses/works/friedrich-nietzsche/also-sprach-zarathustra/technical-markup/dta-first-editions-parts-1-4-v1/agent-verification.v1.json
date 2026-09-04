@@ -1,0 +1,64 @@
+{
+  "schema_version": "tos_zarathustra_dta_technical_agent_verification_v1",
+  "verification_id": "tos.verification.zarathustra.dta-first-editions-parts-1-4-v1.2026-09-01",
+  "target_route_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/technical-markup/dta-first-editions-parts-1-4-v1",
+  "verification_status": "agent_verified_complete_technical",
+  "verified_at": "2026-09-01",
+  "source_basis": {
+    "item_count": 4,
+    "part_count": 4,
+    "tracked_unit_count": 5037,
+    "source_marked_paragraph_count": 3447,
+    "verse_group_count": 39,
+    "verse_line_count": 368,
+    "major_reading_unit_count": 81,
+    "major_reading_units_by_part": {
+      "I": 23,
+      "II": 22,
+      "III": 16,
+      "IV": 20
+    },
+    "major_wrapper_count": 1,
+    "nested_section_count": 116,
+    "paragraphs_outside_major_reading_units": 9
+  },
+  "checks": {
+    "full_local_rebuild_parity": true,
+    "tracked_only_validation": true,
+    "source_file_and_text_layer_fixity_closed": true,
+    "unit_and_anchor_identity_unique": true,
+    "parent_child_links_reciprocal": true,
+    "parent_graph_acyclic": true,
+    "child_anchor_ranges_nested_and_monotonic": true,
+    "sibling_ordinals_continuous": true,
+    "paragraph_ordinals_continuous_in_all_81_major_reading_units": true,
+    "source_text_absent_from_tracked_projection": true,
+    "russian_structure_not_copied_into_german_witness": true,
+    "translation_alignment_absent": true,
+    "semantic_fields_absent": true
+  },
+  "authority_boundary": {
+    "source_tei_structure_observed": true,
+    "work_level_major_role_is_technical_candidate": true,
+    "editorial_hierarchy_accepted": false,
+    "linguistic_or_semantic_authority": false,
+    "translation_alignment_authority": false,
+    "canon_authority": false
+  },
+  "evidence": [
+    {
+      "command": "python scripts/build_zarathustra_technical_markup.py --check",
+      "status": "pass"
+    },
+    {
+      "command": "python scripts/build_zarathustra_technical_markup.py --validate-tracked",
+      "status": "pass"
+    },
+    {
+      "command": "python -m unittest tests.test_zarathustra_technical_markup",
+      "status": "pass"
+    }
+  ],
+  "source_text_included": false,
+  "semantic_promotion": false
+}

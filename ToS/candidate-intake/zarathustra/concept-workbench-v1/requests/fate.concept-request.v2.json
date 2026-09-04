@@ -1,0 +1,86 @@
+{
+  "schema_version": "tos_zarathustra_concept_request_v2",
+  "request_identity_key": "tos.concept-request-key.sid-74d83c95057d4a91a7b72cce7493020a",
+  "request_version": 2,
+  "supersedes_request_ref": "tos.annotation.concept-request.sid-3d004bb5df6b700fdcc1bcf23990cadf",
+  "request_key": "fate",
+  "scope": {
+    "work_ref": "tos.work.friedrich-nietzsche.also-sprach-zarathustra",
+    "parts": [1, 2, 3, 4],
+    "languages": ["de", "ru"],
+    "exclude_separate_works": true
+  },
+  "labels": {"de": "Schicksal", "ru": "судьба", "en": "fate"},
+  "lexical_seeds": {"de": ["Schicksal"], "ru": ["судьба"]},
+  "semantic_neighbor_seeds": {
+    "de": ["Verhängniss", "Nothwendigkeit", "Zufall", "Bestimmung", "Aufgabe"],
+    "ru": ["рок", "жребий", "удел", "назначение", "необходимость", "случай", "задача"]
+  },
+  "expansion": {
+    "morphology": true,
+    "translation_neighborhoods": true,
+    "semantic_neighbors": "candidate_only"
+  },
+  "distinctions": [
+    "personal_fate", "destined_task", "fatal_necessity",
+    "lot_or_portion", "chance", "becoming_oneself"
+  ],
+  "negative_controls": [
+    {
+      "control_code": "de_los_particle_or_command",
+      "language": "de",
+      "form": "los",
+      "reason": "all ten observed lowercase los occurrences in this witness are release or motion uses and are hard negatives for the direct fate core"
+    },
+    {
+      "control_code": "semantic_neighbor_not_direct_mention",
+      "language": "ru",
+      "form": "случай",
+      "reason": "chance is a competing or neighboring axis and must not be counted as a direct mention of fate"
+    }
+  ],
+  "relation_policy": {
+    "hub_not_clique": true,
+    "structural_types": [
+      "form_membership_candidate", "lexical_realization",
+      "morphological_realization", "semantic_neighbor_candidate"
+    ],
+    "allowed_types": [
+      "translation_parallel_candidate", "spoken_by_candidate",
+      "same_reading_reprise", "precedes_in_work"
+    ]
+  },
+  "english_generation": {
+    "mode": "on_demand",
+    "target_language": "en",
+    "source_language": "de",
+    "unit": "source_occurrence_in_barrier_bounded_context",
+    "required_views": [
+      "literal_gloss", "contextual_translation",
+      "semantic_alternatives", "untranslatability_note"
+    ],
+    "required_analysis_stages": [
+      "morphology", "syntax", "historical_sense", "sourced_etymology",
+      "intra_work_recurrence", "russian_witness_comparison", "english_rendering"
+    ],
+    "russian_witness_role": "historical_translation_comparator_not_source_authority",
+    "recognized_english_translation_policy": "sealed_until_candidate_frozen_then_comparator_only",
+    "etymology_policy": {
+      "posture": "sourced_contestable_translation_consequence_candidate",
+      "external_citation_required": true,
+      "model_memory_is_evidence": false,
+      "etymological_fallacy_allowed": false,
+      "missing_evidence_state": "explicit_unavailable_not_inferred"
+    },
+    "reference_register": {
+      "ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/translation-reference-register.v1.json",
+      "sha256": "a353659898ff387466c64262c1d2aa46f052ed2b925bd8619f10771bb453f8a4"
+    },
+    "etymology_route": {
+      "ref": "ToS/research-packets/foundation-laboratory-2026-07/ETYMOLOGY_EVIDENCE_ROUTE_RESEARCH.md",
+      "sha256": "a7e9d952076b39bc5c0412885149a30ff640d40411f3632a09d6cfc3a944a583"
+    },
+    "candidate_status": "ai_generated_unreviewed_not_translation_truth"
+  },
+  "authority_boundary": "candidate_only_no_accepted_semantics_review_graph_or_canon"
+}

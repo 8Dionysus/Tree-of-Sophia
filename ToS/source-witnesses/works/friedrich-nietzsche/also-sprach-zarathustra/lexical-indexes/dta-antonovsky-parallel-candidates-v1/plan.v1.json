@@ -1,0 +1,78 @@
+{
+  "schema_version": "tos_zarathustra_parallel_lexical_candidate_plan_v1",
+  "plan_id": "lexical-candidate-plan:zarathustra-dta-antonovsky-parallel-v1",
+  "status": "frozen-before-output",
+  "frozen_at": "2026-09-01T23:55:00-06:00",
+  "research_question": "Which exact-form recurrences, repeated surface sequences, and cross-witness surface associations are mechanically prominent across all four Zarathustra parts without promoting a lemma, lexeme, translation equivalence, sign, concept, relation, or canon claim?",
+  "inputs": {
+    "german_lexical_projection": {
+      "ref": "ToS/derived-exports/lexical-search/zarathustra-dta-first-editions-parts-1-4-v1.min.json",
+      "sha256": "bc587f7192131450e30a80723d7e2341dd5abc40bf59f19b7ee9e3f04672d542"
+    },
+    "german_recurrence_projection": {
+      "ref": "ToS/derived-exports/lexical-search/zarathustra-dta-first-editions-parts-1-4-recurrence-v1.min.json",
+      "sha256": "7b5ecdd8dc9f3911bbf25a29da1c820d836b26502a4e925e89baf39bde011edb"
+    },
+    "russian_structural_manifest": {
+      "ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/technical-markup/antonovsky-1911-structural-paragraph-v2/manifest.v2.json",
+      "sha256": "005c67c9ba64419f1f2ce0daba47ed9cf68366a29f090151373ea7515862c5cb"
+    },
+    "parallel_alignment_manifest": {
+      "ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/alignments/translation/dta-first-editions-to-antonovsky-1911-paragraph-v1/manifest.v1.json",
+      "sha256": "69ad4c7af473982940db86e0ea8ad32317ecc1dc0ea3e4a50b74897734037af7"
+    },
+    "parallel_alignment_spine": {
+      "ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/alignments/translation/dta-first-editions-to-antonovsky-1911-paragraph-v1/alignment-spine.v1.jsonl",
+      "sha256": "f02e07aca5e67dc04c636f36a512064dd6c875c8844909b044fb05e0b643a0cf"
+    }
+  },
+  "scope": {
+    "parts": 4,
+    "german_whole_work_source": "existing exact DTA lexical SQLite and tracked recurrence projection",
+    "russian_included_roles": ["reading_unit_heading", "cycle_heading", "prose", "verse"],
+    "russian_excluded_roles": ["front_matter", "back_matter", "part_preamble", "part_heading", "numbered_subpart_marker", "ornament", "page_furniture", "terminal_marker"],
+    "cross_language_positive_evidence_status": ["proposed"],
+    "cross_language_risk_status": ["ambiguous", "deferred"]
+  },
+  "normalization": {
+    "exact_form": "source-visible alphabetic token before analysis folding",
+    "base_search_key": "Unicode NFC plus casefold",
+    "russian_challenger_key": "base key plus 1911 orthographic folding of yat, decimal-i, fita, izhitsa, and terminal hard sign",
+    "line_break_join": "join only alphabetic line-end hyphen or not-sign with at least two letters on both sides before analysis tokenization",
+    "letterspacing_join": "never join in the baseline; record runs of three or more one-letter tokens as layout-repair candidates",
+    "quality_gate": "candidate identity universe uses the frozen half-one-letter ceiling; positive association metrics require every constituent paragraph to have at most one quarter one-letter exact tokens, content tokens, and no material mixed-script contamination",
+    "linguistic_identity_created": false
+  },
+  "methods": {
+    "global_recurrence_prominence": "log1p(frequency) multiplied by 0.35 plus 0.65 times normalized four-part entropy",
+    "keyword_stopword_posture": "declared conservative function-word and pronoun filters; independent top-100 challenger shows stoplist sensitivity, so keyword means recurrence-prominence candidate only",
+    "part_salience": "smoothed part-versus-rest log odds multiplied by log1p(part frequency)",
+    "repeated_sequences": "all within-unit normalized 2- and 3-token sequences with at least three occurrences and at least one non-stopword token",
+    "cross_language_association": "alignment-unit support, bidirectional conditional precision, Dice, normalized PMI, strict one-to-one support, and ambiguous/deferred risk support"
+  },
+  "candidate_thresholds": {
+    "keyword_minimum_frequency": 5,
+    "phrase_minimum_frequency": 3,
+    "association_minimum_support": 4,
+    "association_minimum_dice_millionths": 100000,
+    "association_minimum_pmi_millibits": 1000,
+    "association_maximum_mutual_rank": 5,
+    "proposed_minimum_support": 8,
+    "proposed_minimum_dice_millionths": 200000,
+    "proposed_minimum_pmi_millibits": 2000,
+    "proposed_maximum_mutual_rank": 3,
+    "proposed_minimum_strict_support": 4,
+    "proposed_maximum_risk_share_millionths": 200000,
+    "proposed_maximum_single_reading_share_millionths": 500000
+  },
+  "outputs": {
+    "tracked_route": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/lexical-indexes/dta-antonovsky-parallel-candidates-v1",
+    "private_root": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/local-content/parallel-lexical-candidates-v1",
+    "private_mode": "0600",
+    "tracked_exact_strings": false,
+    "tracked_occurrence_positions": false,
+    "tracked_form_and_sequence_hashes": true
+  },
+  "rollback": "remove only this route, its builder, its focused test, and its ignored private parallel-lexical-candidates-v1 artifacts; no source witness, prior lexical projection, paragraph segmentation, or alignment packet is rewritten",
+  "authority_boundary": "deterministic whole-work recurrence, repeated-sequence, and cross-witness surface-association candidates only; no accepted text, morphology, lemma, lexeme, sense, translation equivalence, sign, concept, relation, graph, canon, publication, or human review"
+}

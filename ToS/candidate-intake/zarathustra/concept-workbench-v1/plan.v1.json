@@ -1,0 +1,109 @@
+{
+  "schema_version": "tos_zarathustra_concept_workbench_plan_v1",
+  "plan_id": "candidate-plan:zarathustra-concept-workbench-v1",
+  "status": "frozen-before-output",
+  "frozen_at": "2026-09-02T16:30:00-06:00",
+  "research_question": "Can the complete four-part DE/RU technical corpus be compiled once into an addressable candidate workbench so that a bounded concept request can exhaustively return literal and morphological occurrences, separate semantic-neighbor candidates, speaker/context packets, typed cross-book relations, gaps, a non-authoritative graph projection, and source-first English translation candidates generated on demand with cited etymology and explicit semantic loss?",
+  "inputs": {
+    "paragraph_alignment_manifest": {
+      "ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/alignments/translation/dta-first-editions-to-antonovsky-1911-paragraph-v1/manifest.v1.json",
+      "sha256": "69ad4c7af473982940db86e0ea8ad32317ecc1dc0ea3e4a50b74897734037af7"
+    },
+    "german_technical_markup_summary": {
+      "ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/technical-markup/dta-first-editions-parts-1-4-v1/summary.v1.json",
+      "sha256": "e2cda843b3e9364627fb833fa8e930da359fd2255730abb7df3de9486ddd61c0"
+    },
+    "russian_structural_markup_manifest": {
+      "ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/technical-markup/antonovsky-1911-structural-paragraph-v2/manifest.v2.json",
+      "sha256": "005c67c9ba64419f1f2ce0daba47ed9cf68366a29f090151373ea7515862c5cb"
+    },
+    "alignment_scope_exclusions": {
+      "ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/alignments/translation/dta-first-editions-to-antonovsky-1911-paragraph-v1/scope-exclusions.v1.jsonl",
+      "sha256": "fb97ecc7e8650b70ec487a6df7c738aaffcdb80bae5c05dd6b786e5bcba5bf8d"
+    },
+    "parallel_lexical_manifest": {
+      "ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/lexical-indexes/dta-antonovsky-parallel-candidates-v1/manifest.v1.json",
+      "sha256": "07ab9f1053fb7de3dca9ec45dbdbd5e3136675dd694ef57c7e46c16c1a98b99d"
+    },
+    "morphology_theme_manifest": {
+      "ref": "ToS/candidate-intake/zarathustra/dta-antonovsky-morphology-themes-v1/manifest.v1.json",
+      "sha256": "94fe9fdd669e4f954ec59963b55b7fe1f2e1f121fed4929dcbb911822eb74595"
+    },
+    "eternal_return_review_preparation_manifest": {
+      "ref": "ToS/candidate-intake/zarathustra/eternal-return-concept-candidate-v1/review-preparation-v1/manifest.v1.json",
+      "sha256": "d0c7194b25bb173d3deeeaf3b3460ede7405d4766066b3981b2c464cbe575fe4"
+    },
+    "semantic_identity_research": {
+      "ref": "ToS/research-packets/foundation-laboratory-2026-07/SEMANTIC_IDENTITY_ANNOTATION_RESEARCH_2026-08-11.md",
+      "sha256": "32aad968739e35f77841d8bd4954480773533e5ec789bc875e524de3f18fe634"
+    },
+    "review_checklist": {
+      "ref": "mechanics/audit/parts/review-ledger-route/docs/REVIEW_CHECKLIST.md",
+      "sha256": "85f0ab24e8a90d15b1ac4a97a521f1da86a8f58d8160fcfbd384d43904b0646c"
+    },
+    "parallel_lexical_builder": {
+      "ref": "scripts/build_zarathustra_parallel_lexical_candidates_v1.py",
+      "sha256": "9e7a6d90320d65b06377ec10ba002e9a68eb73591d4ee8fd1a2be61eea80de86"
+    },
+    "morphology_theme_builder": {
+      "ref": "scripts/build_zarathustra_morphology_theme_candidates_v1.py",
+      "sha256": "d4044bd2442f0280f87cab09578b22f40d8723da7f0cf58f979d0f9cc95b8b02"
+    },
+    "russian_structural_builder": {
+      "ref": "scripts/build_antonovsky_1911_structural_paragraph_v2.py",
+      "sha256": "d615ce18257145c310f699484050ec1769c9d1f204c821281c523ea1a3c8c213"
+    },
+    "german_exact_occurrence_database": {
+      "ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/local-content/lexical-search/zarathustra-dta-first-editions-parts-1-4-v1.sqlite3",
+      "sha256": "c2912a9f481205f0de9a1a0242b26a3419e3d82d44163ab91a2a2ab16ced5736"
+    },
+    "translation_reference_register": {
+      "ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/translation-reference-register.v1.json",
+      "sha256": "a353659898ff387466c64262c1d2aa46f052ed2b925bd8619f10771bb453f8a4"
+    },
+    "etymology_evidence_route": {
+      "ref": "ToS/research-packets/foundation-laboratory-2026-07/ETYMOLOGY_EVIDENCE_ROUTE_RESEARCH.md",
+      "sha256": "a7e9d952076b39bc5c0412885149a30ff640d40411f3632a09d6cfc3a944a583"
+    }
+  },
+  "scope": {
+    "parts": [1, 2, 3, 4],
+    "languages": ["de", "ru"],
+    "alignment_units": 3423,
+    "german_paragraph_units": 3447,
+    "russian_paragraph_units": 3569,
+    "german_verse_lines": 368,
+    "russian_verse_lines": 359,
+    "german_source_item_exact_occurrences": 86287,
+    "german_zarathustra_work_scope_exact_occurrences": 84491,
+    "german_appended_dionysos_dithyramben_occurrences_excluded": 1796,
+    "russian_work_scope_exact_occurrences": 93643,
+    "witness_local_source_order_required": true,
+    "all_observed_normalized_forms_required": true,
+    "minimum_form_frequency": 1,
+    "speaker_state_population": "one witness-local candidate per paragraph or verse line",
+    "context_window": "previous/current/next witness-local unit inside the same reading and language",
+    "tracked_source_strings": false,
+    "english_target_mode": "on_demand_candidate_from_german_source"
+  },
+  "contexts": {
+    "witness_and_alignment": "owns exact DE/RU return, anchors, order, correspondence shape, and gaps",
+    "lexical_and_morphology": "owns observed token/form candidates and reversible family proposals",
+    "speaker_and_context": "owns discourse-role candidates and bounded source-return packets",
+    "concept_request": "owns request-local seeds, distinctions, controls, and expansion posture",
+    "candidate_graph": "owns derived navigation over request outputs and never semantic acceptance",
+    "english_generation": "owns request-local AI translation candidates; German remains source, Russian remains a historical comparator, and cited etymology remains contestable evidence"
+  },
+  "outputs": {
+    "tracked_route": "ToS/candidate-intake/zarathustra/concept-workbench-v1",
+    "private_index": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/local-content/concept-workbench-v1/workbench-index.v1.sqlite3",
+    "private_request_analysis_root": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/local-content/concept-workbench-v1/requests",
+    "private_mode": "0600",
+    "sample_request": "requests/fate.concept-request.v2.json",
+    "english_task_projection": "outputs/fate/english-on-demand-worklist.v1.jsonl",
+    "graph_projection": "candidate_only"
+  },
+  "risk": "high: a universal extractor can hide source gaps, over-group morphology, flatten speakers, turn co-occurrence into meaning, or project a request label as an accepted concept; complete denominators, tiered evidence, explicit alternatives, typed relation ceilings, negative controls, private exact return, and zero review/canon effect constrain the risk",
+  "rollback": "remove only this workbench route, ignored private index/request analyses, builder, focused test, and additive inventory entries; do not rewrite witnesses, alignments, lexical/morphology candidates, prior concept dossiers, review ledger, canon, or graph exports",
+  "authority_boundary": "agent-generated candidate workbench only; no accepted source correction, lemma, lexeme, lexical sense, sign, concept, semantic neighbor, translation equivalence, speaker attribution, claim, relation, review, graph fact, or canon effect"
+}

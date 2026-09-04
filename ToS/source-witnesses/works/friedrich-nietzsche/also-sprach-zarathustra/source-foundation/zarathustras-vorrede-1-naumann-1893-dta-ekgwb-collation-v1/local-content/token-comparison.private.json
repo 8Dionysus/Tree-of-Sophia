@@ -1,0 +1,109 @@
+{
+  "cause": "unresolved",
+  "dta_token": "Überfluss",
+  "legacy_opcodes": [
+    [
+      "equal",
+      0,
+      111,
+      0,
+      111
+    ],
+    [
+      "replace",
+      111,
+      112,
+      111,
+      112
+    ],
+    [
+      "equal",
+      112,
+      165,
+      112,
+      165
+    ],
+    [
+      "insert",
+      165,
+      165,
+      165,
+      180
+    ],
+    [
+      "equal",
+      165,
+      261,
+      180,
+      276
+    ],
+    [
+      "insert",
+      261,
+      261,
+      276,
+      392
+    ]
+  ],
+  "naumann_token": "Ueberfluss",
+  "schema_version": "tos_private_source_aware_token_comparison_v1",
+  "source_text_publication_authorized": false,
+  "views": [
+    {
+      "opcodes": [
+        [
+          "replace",
+          0,
+          2,
+          0,
+          1
+        ],
+        [
+          "equal",
+          2,
+          10,
+          1,
+          9
+        ]
+      ],
+      "view_id": "exact",
+      "witness_a": "Ueberfluss",
+      "witness_b": "Überfluss"
+    },
+    {
+      "opcodes": [
+        [
+          "replace",
+          0,
+          2,
+          0,
+          1
+        ],
+        [
+          "equal",
+          2,
+          10,
+          1,
+          9
+        ]
+      ],
+      "view_id": "unicode-nfc",
+      "witness_a": "Ueberfluss",
+      "witness_b": "Überfluss"
+    },
+    {
+      "opcodes": [
+        [
+          "equal",
+          0,
+          9,
+          0,
+          9
+        ]
+      ],
+      "view_id": "historical-ue-u-umlaut-retrieval-shadow",
+      "witness_a": "Überfluss",
+      "witness_b": "Überfluss"
+    }
+  ]
+}

@@ -1,0 +1,26 @@
+{
+  "challenger": {
+    "different_transition_priors": true,
+    "length_ratio": "corpus-wide ratio",
+    "purpose": "boundary stability comparison only",
+    "variance_per_source_character": 25.0
+  },
+  "claim_status": "proposed",
+  "external_text_transmission": false,
+  "length_measure": "Unicode alphanumeric code point count; whitespace and punctuation excluded",
+  "method": "classical_length_based_dynamic_programming",
+  "multilingual_embeddings_used": false,
+  "primary": {
+    "corpus_wide_ratio": 0.95472766,
+    "hard_technical_anchors": "matching witness-local numbered subpart ordinals when both spines have the same non-empty ordinal census",
+    "length_ratio": "chapter total ratio shrunk toward corpus-wide ratio",
+    "maximum_non_null_group_size_per_side": 4,
+    "monotonic": true,
+    "null_transition_maximum_units": 1,
+    "transition_priors": "declared in build_alignment.py:transition_prior",
+    "variance_per_source_character": 16.0
+  },
+  "schema_version": "tos_zarathustra_de_ru_paragraph_alignment_method_v1",
+  "semantic_equivalence_asserted": false,
+  "source_text_written_to_outputs": false
+}

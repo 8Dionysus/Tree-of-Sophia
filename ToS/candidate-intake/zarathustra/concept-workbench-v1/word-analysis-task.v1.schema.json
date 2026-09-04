@@ -1,0 +1,193 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://tree-of-sophia.local/contracts/zarathustra-word-analysis-task-v1.schema.json",
+  "title": "Private source-bound Zarathustra word-analysis task",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version", "analysis_task_id", "request_ref",
+    "concept_search_result_ref", "query_analysis", "source",
+    "russian_comparators", "recurrence_navigation", "english_on_demand_task_ref",
+    "analysis_policy", "response_contract", "authority", "provenance"
+  ],
+  "properties": {
+    "schema_version": {"const": "tos_zarathustra_word_analysis_task_v1"},
+    "analysis_task_id": {
+      "type": "string",
+      "pattern": "^tos\\.annotation\\.word-analysis-task\\.sid-[0-9a-f]{32}$"
+    },
+    "request_ref": {
+      "type": "string",
+      "pattern": "^tos\\.annotation\\.concept-request\\.sid-[0-9a-f]{32}$"
+    },
+    "concept_search_result_ref": {"type": "string", "minLength": 1},
+    "query_analysis": {"type": "object"},
+    "source": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "language", "occurrence_candidate_ref", "existing_occurrence_ref",
+        "context_unit_ref", "surface", "analysis_form", "headword_candidate",
+        "headword_status", "exact_context", "surface_sha256", "context_sha256",
+        "anchor_refs", "part", "reading_ref", "unit_kind", "witness_order",
+        "token_ordinal", "speaker"
+      ],
+      "properties": {
+        "language": {"const": "de"},
+        "occurrence_candidate_ref": {"type": "string", "minLength": 1},
+        "existing_occurrence_ref": {"type": "string", "minLength": 1},
+        "context_unit_ref": {"type": "string", "minLength": 1},
+        "surface": {"type": "string", "minLength": 1},
+        "analysis_form": {"type": "string", "minLength": 1},
+        "headword_candidate": {"type": "string", "minLength": 1},
+        "headword_status": {"const": "request_seed_not_accepted_lemma"},
+        "exact_context": {"type": "string", "minLength": 1},
+        "surface_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+        "context_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+        "anchor_refs": {
+          "type": "array", "minItems": 1, "uniqueItems": true,
+          "items": {"type": "string", "minLength": 1}
+        },
+        "part": {"type": "integer", "minimum": 1},
+        "reading_ref": {"type": "string", "minLength": 1},
+        "unit_kind": {"enum": ["paragraph", "verse_line"]},
+        "witness_order": {"type": "integer", "minimum": 1},
+        "token_ordinal": {"type": "integer", "minimum": 1},
+        "speaker": {
+          "type": "object", "additionalProperties": false,
+          "required": ["role", "status"],
+          "properties": {
+            "role": {"type": "string", "minLength": 1},
+            "status": {"enum": ["proposed", "ambiguous", "unresolved", "deferred"]}
+          }
+        }
+      }
+    },
+    "russian_comparators": {
+      "type": "array",
+      "items": {
+        "type": "object", "additionalProperties": false,
+        "required": [
+          "context_unit_ref", "exact_text", "context_sha256",
+          "selected_occurrence_refs", "selected_surfaces", "role"
+        ],
+        "properties": {
+          "context_unit_ref": {"type": "string", "minLength": 1},
+          "exact_text": {"type": "string", "minLength": 1},
+          "context_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+          "selected_occurrence_refs": {
+            "type": "array", "uniqueItems": true,
+            "items": {"type": "string", "minLength": 1}
+          },
+          "selected_surfaces": {
+            "type": "array",
+            "items": {"type": "string", "minLength": 1}
+          },
+          "role": {"const": "historical_translation_comparator_not_source_authority"}
+        }
+      }
+    },
+    "recurrence_navigation": {
+      "type": "object", "additionalProperties": false,
+      "required": [
+        "operation_id", "total_source_results", "current_rank", "next_rank",
+        "query", "language", "semantic_neighbors_included"
+      ],
+      "properties": {
+        "operation_id": {"const": "tos.zarathustra.word-analysis.prepare"},
+        "total_source_results": {"type": "integer", "minimum": 1},
+        "current_rank": {"type": "integer", "minimum": 1},
+        "next_rank": {"type": ["integer", "null"], "minimum": 1},
+        "query": {"type": "string", "minLength": 1},
+        "language": {"enum": ["de", "ru", "en"]},
+        "semantic_neighbors_included": {"type": "boolean"}
+      }
+    },
+    "english_on_demand_task_ref": {
+      "type": "string",
+      "pattern": "^tos\\.annotation\\.english-translation-task\\.sid-[0-9a-f]{32}$"
+    },
+    "analysis_policy": {
+      "type": "object", "additionalProperties": false,
+      "required": [
+        "required_stages", "source_language", "output_language",
+        "lemma_posture", "etymology", "translation_posture"
+      ],
+      "properties": {
+        "required_stages": {
+          "const": [
+            "morphology", "syntax", "historical_sense", "sourced_etymology",
+            "contextual_semantics", "intra_work_recurrence",
+            "russian_witness_comparison", "english_rendering"
+          ]
+        },
+        "source_language": {"const": "de"},
+        "output_language": {"const": "en"},
+        "lemma_posture": {"const": "candidate_until_occurrence_visible_review"},
+        "etymology": {
+          "type": "object", "additionalProperties": false,
+          "required": [
+            "state", "minimum_citation_count", "point_consultation_only",
+            "bulk_ingest_allowed", "etymological_fallacy_guard",
+            "evidence_route_ref", "reference_register_ref"
+          ],
+          "properties": {
+            "state": {"const": "citation_required_before_claim"},
+            "minimum_citation_count": {"const": 1},
+            "point_consultation_only": {"const": true},
+            "bulk_ingest_allowed": {"const": false},
+            "evidence_route_ref": {"type": "string", "minLength": 1},
+            "reference_register_ref": {"type": "string", "minLength": 1},
+            "etymological_fallacy_guard": {
+              "const": "word_history_may_inform_but_never_determine_contextual_meaning_or_authorial_intent"
+            }
+          }
+        },
+        "translation_posture": {
+          "const": "german_source_first_russian_comparator_english_unreviewed_candidate"
+        }
+      }
+    },
+    "response_contract": {
+      "type": "object", "additionalProperties": false,
+      "required": ["schema_ref", "validation_command", "persistence"],
+      "properties": {
+        "schema_ref": {"const": "ToS/candidate-intake/zarathustra/concept-workbench-v1/english-translation-candidate.v1.schema.json"},
+        "validation_command": {"type": "string", "minLength": 1},
+        "persistence": {"const": "none_return_candidate_to_caller"}
+      }
+    },
+    "authority": {
+      "type": "object", "additionalProperties": false,
+      "required": [
+        "task_status", "content_posture", "accepted", "review_status",
+        "translation_truth_asserted", "semantic_fact_asserted", "graph_effect", "canon_effect"
+      ],
+      "properties": {
+        "task_status": {"const": "ready_for_on_demand_agent_analysis"},
+        "content_posture": {"const": "local_runtime_exact_source_return_not_for_public_bundle"},
+        "accepted": {"const": false},
+        "review_status": {"const": "unreviewed"},
+        "translation_truth_asserted": {"const": false},
+        "semantic_fact_asserted": {"const": false},
+        "graph_effect": {"const": false},
+        "canon_effect": {"const": false}
+      }
+    },
+    "provenance": {
+      "type": "object", "additionalProperties": false,
+      "required": [
+        "concept_search_adapter_ref", "concept_search_adapter_sha256",
+        "task_builder_ref", "task_builder_sha256", "task_schema_ref", "task_schema_sha256"
+      ],
+      "properties": {
+        "concept_search_adapter_ref": {"type": "string", "minLength": 1},
+        "concept_search_adapter_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+        "task_builder_ref": {"type": "string", "minLength": 1},
+        "task_builder_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+        "task_schema_ref": {"type": "string", "minLength": 1},
+        "task_schema_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"}
+      }
+    }
+  }
+}

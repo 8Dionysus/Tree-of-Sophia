@@ -1,0 +1,29 @@
+{
+  "annotation_ref": "tos.annotation.eternal-return-candidate.sid-5cbb125d0d411355a3b40aeefa71de2f",
+  "blocked_semantic_ladder_stages": [
+    "stable_sign_candidate",
+    "manual_confirmation_or_rejection",
+    "relations_between_signs",
+    "conceptual_interpretations",
+    "competing_readings",
+    "graph_projection"
+  ],
+  "blockers": [
+    "human semantic review has not occurred",
+    "competing cosmological, existential, and poetic-symbolic readings remain open",
+    "paragraph alignments are machine proposals rather than accepted translation mappings",
+    "lexical and morphology inputs remain candidate layers",
+    "exact DE/RU passages require source-visible review against both witnesses",
+    "two central Russian formulas in p3.r13 are detector gaps caused by letterspacing and OCR substitution and must not be silently corrected",
+    "a relation to amor fati is deferred because it is not established by this scoped Zarathustra dossier"
+  ],
+  "next_owner_route": "ToS/review-ledger after a source-visible semantic review; only an accepted review may route a new sign or concept identity toward ToS/canon",
+  "ready_for_canon": false,
+  "ready_for_graph_projection": false,
+  "ready_for_sign_or_concept_identity_issuance": false,
+  "ready_for_source_visible_semantic_review": true,
+  "schema_version": "tos_zarathustra_eternal_return_promotion_readiness_v1",
+  "semantic_ladder_contract_ref": "ToS/contracts/semantic-ladder-packet.schema.json",
+  "semantic_ladder_packet_materialized": false,
+  "semantic_ladder_posture": "witness-local child packets remain future lifecycle controllers; this bilingual umbrella does not impersonate them"
+}
