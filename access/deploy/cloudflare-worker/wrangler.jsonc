@@ -1,0 +1,32 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "tree-of-sophia-access",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-09-03",
+  "assets": {
+    "directory": "./dist",
+    "binding": "ASSETS",
+    "not_found_handling": "single-page-application",
+    "run_worker_first": ["/api/*", "/health"]
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "tree-of-sophia-access",
+      "database_id": "fae9e3fc-2488-4704-9aff-82fb710bbce2"
+    }
+  ],
+  "routes": [
+    {
+      "pattern": "treeofsophia.com",
+      "custom_domain": true
+    },
+    {
+      "pattern": "www.treeofsophia.com",
+      "custom_domain": true
+    }
+  ],
+  "observability": {
+    "enabled": true
+  }
+}

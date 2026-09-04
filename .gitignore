@@ -7,6 +7,10 @@ dist/
 !/access/web/dist/**
 /access/deploy/cloudflare-tunnel/site.env
 /access/deploy/cloudflare-tunnel/*.token
+/access/deploy/cloudflare-worker/node_modules/
+/access/deploy/cloudflare-worker/.wrangler/
+/access/deploy/cloudflare-worker/.dev.vars*
+/access/deploy/cloudflare-worker/runtime/
 
 # Local immutable corpus bytes. Catalogs, manifests, fixity, provenance,
 # rights, forensic reports, review state, and rights-safe alignments remain

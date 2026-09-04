@@ -1,0 +1,31 @@
+{
+  "name": "tree-of-sophia-cloudflare-worker",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "ci:web": "npm ci --prefix ../../web",
+    "build:web": "npm --prefix ../../web run build",
+    "build:data": "python scripts/build_runtime.py",
+    "build": "npm run build:web && npm run build:data",
+    "build:ci": "npm run ci:web && npm run build",
+    "types": "wrangler types",
+    "typecheck": "tsc --noEmit",
+    "load:local": "wrangler d1 execute DB --local --file=runtime/read-model.sql --yes",
+    "dev": "npm run build && npm run load:local && wrangler dev",
+    "test": "node --experimental-strip-types --test test/*.test.ts test/*.test.mjs",
+    "verify:local": "python scripts/verify_local_runtime.py",
+    "deploy:edge": "node scripts/deploy_edge.mjs",
+    "deploy:edge:plan": "node scripts/deploy_edge.mjs --plan",
+    "load:remote": "wrangler d1 execute DB --remote --file=runtime/read-model.sql --yes",
+    "check": "npm run build && npm run types && npm run typecheck && npm test",
+    "check:local": "npm run check && npm run load:local && npm run verify:local"
+  },
+  "devDependencies": {
+    "typescript": "5.9.3",
+    "wrangler": "4.129.0"
+  }
+}

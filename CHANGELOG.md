@@ -9,6 +9,15 @@ Tracking starts with the community-docs baseline for this repository.
 
 ### Changed
 
+- Moves the public `treeofsophia.com` access product from an operator-machine
+  Cloudflare Tunnel to a repository-driven Cloudflare Worker with Static
+  Assets and a generated D1 read model. Merges to `main` can rebuild and
+  deploy the site, API, Evidence Lens, and streaming scale exports without a
+  continuously powered origin machine; `www` redirects to the apex, the
+  tunnel remains a recovery profile, and the frozen KAG family is not a build
+  or runtime dependency. Deployment compares the generated source revision
+  with live D1 metadata, so code-only rebuilds and retries write zero D1 rows
+  instead of repeatedly consuming the free-tier daily allowance.
 - Adds the self-contained `access/` product: a portable v1/v2 query core,
   `tos doctor/verify/serve/mcp`, native MCP, loopback JSON runtime, the
   constellation web app, a WebMCP-ready read-only action ABI, optional
@@ -88,6 +97,11 @@ Tracking starts with the community-docs baseline for this repository.
 
 ### Validation
 
+- The Cloudflare edge lane rebuilds the allowlisted web/data surfaces,
+  type-checks and unit-tests the Worker, imports the generated model into
+  local D1, compares bounded and scale-export responses with the Python core,
+  and validates the deployment bundle. Public runtime and repository-driven
+  deployment acceptance remain separate landing checks.
 - Prepared-dossier, multilingual, topology, atlas/graph projection, and
   post-planting checks account for 190 admitted dossiers across Tables I–III,
   7,193 proposed nodes, 8,564 proposed relations, and 1,278 text-bearing

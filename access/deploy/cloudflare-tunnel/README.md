@@ -1,9 +1,9 @@
 # Cloudflare Tunnel deployment
 
-This route publishes the ToS-owned standalone access product without moving
-its runtime into another repository. `tos_access` remains the only application
-server and binds to loopback; Cloudflare Tunnel supplies outbound-only ingress,
-TLS, and the public hostname.
+This is a temporary recovery and local-preview route for the ToS-owned
+standalone access product. It is not the permanent production architecture.
+`tos_access` remains the application server and binds to loopback; Cloudflare
+Tunnel supplies outbound-only ingress and TLS while this fallback is active.
 
 The route is intentionally small:
 
@@ -29,7 +29,7 @@ build checks before it is made public. A healthy local origin is observable at
 after `cloudflared` reports connected and the public hostname returns that
 same read-only health packet.
 
-## Cloudflare configuration
+## Temporary Cloudflare configuration
 
 Use a remotely managed tunnel with one ingress rule for the public hostname:
 
@@ -38,14 +38,16 @@ treeofsophia.com -> http://127.0.0.1:5439
 *                 -> http_status:404
 ```
 
-The apex DNS record is a proxied CNAME to `<tunnel-id>.cfargotunnel.com`.
-`www.treeofsophia.com` should redirect to the apex at the Cloudflare edge; it
-must not become a second application runtime.
+When this fallback is deliberately activated, the apex DNS record is a proxied
+CNAME to `<tunnel-id>.cfargotunnel.com`. The normal production owner is the
+Worker profile in `../cloudflare-worker/`; do not run both profiles as
+competing owners of the apex hostname. `www.treeofsophia.com` redirects to the
+apex and must not become a second application runtime.
 
 ## Claim boundary
 
 A healthy tunnel proves public transport to the selected ToS checkout. It does
 not prove that unmerged source work, later generated projections, or optional
 AbyssOS integrations are deployed. The host must remain powered and online;
-edge-native hosting is a separate deployment profile, not an implicit property
-of this tunnel route.
+that dependency is why this profile cannot satisfy permanent production
+availability.
