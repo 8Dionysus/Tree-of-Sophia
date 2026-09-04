@@ -34,16 +34,16 @@
   },
   "coverage": {
     "excluded_generated_carrier_rules": 3,
-    "excluded_tracked_path_count": 587,
+    "excluded_tracked_path_count": 598,
     "human_scope": {
-      "bytes": 4739270,
+      "bytes": 4739576,
       "count": 942,
       "excluded_skill_launch_metadata": 25,
       "family_counts": {
         "access": {
-          "bytes": 20739,
+          "bytes": 21045,
           "count": 7,
-          "lines": 397
+          "lines": 402
         },
         "agents-other": {
           "bytes": 17725,
@@ -121,14 +121,14 @@
           "lines": 60739
         }
       },
-      "lines": 83513
+      "lines": 83518
     },
     "surface_kind_counts": {
       "executable": 206,
       "human": 967,
       "structured": 2304
     },
-    "tracked_path_count": 4064,
+    "tracked_path_count": 4075,
     "tracked_surface_count": 3477,
     "unhandled_family_count": 0,
     "unhandled_paths": []
@@ -186,7 +186,7 @@
         "human": 7,
         "structured": 16
       },
-      "tracked_surface_bytes": 475622,
+      "tracked_surface_bytes": 475928,
       "tracked_surface_count": 39
     },
     {
@@ -285,7 +285,7 @@
   "source_map": "docs/validation/documentation_family_map.json",
   "source_map_sha256": "d70a5059be9cc7547289e4c8be380d23b3aeb9e53bb10e4cb82abf2177ea0896",
   "tracked_source": "git ls-files -z",
-  "tracked_surface_digest": "5d117f1dd60b634138a52c5164e286af2718d883e0d9dbbc2678f42501d28909",
+  "tracked_surface_digest": "43460fd2008f87e48db5321fa98aa50949052cb5b6029fb8926eb78d2b4d9f38",
   "tracked_surfaces": [
     {
       "bytes": 1489,
@@ -24088,11 +24088,11 @@
       "surface_kind": "executable"
     },
     {
-      "bytes": 4404,
+      "bytes": 4710,
       "currentness": "tracked_source_snapshot",
       "family_id": "access",
       "path": "access/deploy/cloudflare-worker/README.md",
-      "sha256": "f4549b0cef344a3af923e2c6103cb8bbb7e6bd5772d8b60effe90352e1416bb7",
+      "sha256": "7265af1c00a6a96c468a41b78ae0ae6f152b7607daa307b870cdc540e1ddd323",
       "surface_kind": "human"
     },
     {
