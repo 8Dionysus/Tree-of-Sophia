@@ -1,0 +1,90 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://tree-of-sophia.local/contracts/zarathustra-concept-relation-candidate-v1.schema.json",
+  "title": "Zarathustra concept relation candidate v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version", "relation_candidate_id", "request_ref", "relation_type",
+    "subject_refs", "object_refs", "support", "status", "evidence_refs",
+    "evidence_roles", "source_context_refs", "alignment_ref",
+    "provenance_event_ref", "maker", "certainty", "competing_relation_refs",
+    "accepted", "review_status", "semantic_fact_asserted", "graph_effect",
+    "canon_effect"
+  ],
+  "properties": {
+    "schema_version": {"const": "tos_zarathustra_concept_relation_candidate_v1"},
+    "relation_candidate_id": {"type": "string", "pattern": "^tos\\.annotation\\.concept-relation-candidate\\.sid-[0-9a-f]{32}$"},
+    "request_ref": {"type": "string", "pattern": "^tos\\.annotation\\.concept-request\\.sid-[0-9a-f]{32}$"},
+    "relation_type": {
+      "enum": [
+        "form_membership_candidate", "lexical_realization",
+        "morphological_realization", "semantic_neighbor_candidate",
+        "translation_parallel_candidate", "spoken_by_candidate",
+        "same_reading_reprise", "precedes_in_work"
+      ]
+    },
+    "subject_refs": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"type": "string", "minLength": 1}},
+    "object_refs": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"type": "string", "minLength": 1}},
+    "support": {"type": "integer", "minimum": 1},
+    "status": {"enum": ["proposed", "ambiguous", "deferred"]},
+    "evidence_refs": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"type": "string", "minLength": 1}},
+    "evidence_roles": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["evidence_ref", "role"],
+        "properties": {
+          "evidence_ref": {"type": "string", "minLength": 1},
+          "role": {"enum": ["subject_occurrence", "object_occurrence"]}
+        }
+      }
+    },
+    "source_context_refs": {"type": "array", "uniqueItems": true, "items": {"type": "string", "minLength": 1}},
+    "alignment_ref": {"type": ["string", "null"]},
+    "provenance_event_ref": {"type": "string", "pattern": "^tos\\.event\\.zarathustra-concept-workbench-v1\\.build\\.sid-[0-9a-f]{32}$"},
+    "maker": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["maker_kind", "software_ref", "method_output_posture"],
+      "properties": {
+        "maker_kind": {"const": "software"},
+        "software_ref": {"type": "string", "minLength": 1},
+        "method_output_posture": {"const": "candidate_not_truth"}
+      }
+    },
+    "certainty": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["meaning", "value"],
+      "properties": {
+        "meaning": {"const": "candidate_status_not_truth_probability"},
+        "value": {"type": "number", "minimum": 0, "maximum": 1}
+      }
+    },
+    "competing_relation_refs": {"type": "array", "uniqueItems": true, "items": {"type": "string"}},
+    "accepted": {"const": false},
+    "review_status": {"const": "unreviewed"},
+    "semantic_fact_asserted": {"const": false},
+    "graph_effect": {"const": false},
+    "canon_effect": {"const": false}
+  },
+  "allOf": [
+    {
+      "if": {"properties": {"relation_type": {"const": "translation_parallel_candidate"}}},
+      "then": {
+        "properties": {
+          "alignment_ref": {"type": "string", "minLength": 1},
+          "evidence_roles": {
+            "allOf": [
+              {"contains": {"properties": {"role": {"const": "subject_occurrence"}}, "required": ["role"]}},
+              {"contains": {"properties": {"role": {"const": "object_occurrence"}}, "required": ["role"]}}
+            ]
+          }
+        }
+      }
+    }
+  ]
+}

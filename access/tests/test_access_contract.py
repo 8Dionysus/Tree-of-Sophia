@@ -220,6 +220,17 @@ class CoreContractTests(unittest.TestCase):
             self.assertFalse(symlinked["available"])
             provider.unlink()
             provider.write_text(
+                "def build_task(*args, **kwargs):\n"
+                "    raise RuntimeError('private source-return artifact must be a regular non-symlink: fixture')\n",
+                encoding="utf-8",
+            )
+            private_missing = ToSAccessCore.discover(tos_root=root).zarathustra_word_analysis_task(
+                "судьбы", "ru",
+            )
+            self.assertFalse(private_missing["available"])
+            self.assertIsNone(private_missing["task"])
+            self.assertEqual(private_missing["reason"], "private source-return artifacts are not installed")
+            provider.write_text(
                 "def build_task(query, language, rank=1, include_semantic_neighbors=False, request_path=None):\n"
                 "    return {\n"
                 "        'schema_version': 'tos_zarathustra_word_analysis_task_v1',\n"

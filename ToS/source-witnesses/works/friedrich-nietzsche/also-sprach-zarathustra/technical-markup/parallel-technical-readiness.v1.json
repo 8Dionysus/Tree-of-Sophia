@@ -1,0 +1,65 @@
+{
+  "schema_version": "tos_zarathustra_parallel_technical_readiness_v1",
+  "work_ref": "tos.work.friedrich-nietzsche.also-sprach-zarathustra",
+  "verification_status": "agent_verified_complete_technical_parallel",
+  "verified_on": "2026-09-01",
+  "witnesses": {
+    "german_dta_first_editions": {
+      "route_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/technical-markup/dta-first-editions-parts-1-4-v1",
+      "verification_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/technical-markup/dta-first-editions-parts-1-4-v1/agent-verification.v1.json",
+      "part_count": 4,
+      "reading_unit_count": 81,
+      "reading_units_by_part": {
+        "I": 23,
+        "II": 22,
+        "III": 16,
+        "IV": 20
+      },
+      "source_marked_paragraph_count": 3447,
+      "verse_group_count": 39,
+      "verse_line_count": 368,
+      "nested_section_count": 116,
+      "source_structure_posture": "observed_source_structure"
+    },
+    "russian_antonovsky_1911": {
+      "route_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/technical-markup/antonovsky-1911-structural-paragraph-v2",
+      "verification_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/technical-markup/antonovsky-1911-structural-paragraph-v2/agent-verification.v2.json",
+      "part_count": 4,
+      "reading_unit_count": 81,
+      "reading_units_by_part": {
+        "I": 23,
+        "II": 22,
+        "III": 16,
+        "IV": 20
+      },
+      "prose_paragraph_count": 3569,
+      "continuous_verse_group_count": 13,
+      "verse_line_count": 359,
+      "numbered_subpart_count": 112,
+      "physical_line_count": 13071,
+      "technical_structure_posture": "agent_verified_complete"
+    }
+  },
+  "checks": {
+    "both_exact_witness_routes_fixed": true,
+    "both_part_censuses_complete": true,
+    "both_reading_unit_censuses_complete": true,
+    "both_paragraph_ordinals_continuous": true,
+    "both_hierarchy_checks_pass": true,
+    "both_tracked_projections_text_free": true,
+    "source_target_unit_map_absent": true,
+    "translation_alignment_claims_absent": true,
+    "semantic_fields_absent": true
+  },
+  "next_route": "translation_alignment_claim_intake",
+  "authority_boundary": {
+    "technical_parallelism": true,
+    "translation_alignment_created": false,
+    "ordinal_equality_creates_correspondence": false,
+    "paragraph_count_equality_required": false,
+    "linguistic_or_semantic_authority": false,
+    "canon_authority": false
+  },
+  "source_text_included": false,
+  "semantic_promotion": false
+}

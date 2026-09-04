@@ -29,15 +29,15 @@
     "metric": "whitespace_tokens_v1",
     "posture": "summary_first_records_on_demand",
     "record_loading": "machine readers may select records by family_id or path; do not load the full carrier into an always-on prompt",
-    "tracked_surface_count": 3353,
+    "tracked_surface_count": 3470,
     "unhandled_family_count": 0
   },
   "coverage": {
     "excluded_generated_carrier_rules": 3,
-    "excluded_tracked_path_count": 525,
+    "excluded_tracked_path_count": 583,
     "human_scope": {
-      "bytes": 4698008,
-      "count": 926,
+      "bytes": 4734680,
+      "count": 942,
       "excluded_skill_launch_metadata": 25,
       "family_counts": {
         "access": {
@@ -116,20 +116,20 @@
           "lines": 55
         },
         "tos": {
-          "bytes": 3506651,
-          "count": 529,
-          "lines": 60060
+          "bytes": 3543323,
+          "count": 545,
+          "lines": 60720
         }
       },
-      "lines": 82781
+      "lines": 83441
     },
     "surface_kind_counts": {
-      "executable": 186,
-      "human": 951,
-      "structured": 2216
+      "executable": 206,
+      "human": 967,
+      "structured": 2297
     },
-    "tracked_path_count": 3878,
-    "tracked_surface_count": 3353,
+    "tracked_path_count": 4053,
+    "tracked_surface_count": 3470,
     "unhandled_family_count": 0,
     "unhandled_paths": []
   },
@@ -173,11 +173,11 @@
       "family_id": "tos",
       "surface_kind_counts": {
         "executable": 4,
-        "human": 529,
-        "structured": 2138
+        "human": 545,
+        "structured": 2219
       },
-      "tracked_surface_bytes": 95267701,
-      "tracked_surface_count": 2671
+      "tracked_surface_bytes": 158964423,
+      "tracked_surface_count": 2768
     },
     {
       "family_id": "access",
@@ -186,7 +186,7 @@
         "human": 7,
         "structured": 16
       },
-      "tracked_surface_bytes": 426079,
+      "tracked_surface_bytes": 427439,
       "tracked_surface_count": 39
     },
     {
@@ -195,7 +195,7 @@
         "human": 60,
         "structured": 6
       },
-      "tracked_surface_bytes": 692117,
+      "tracked_surface_bytes": 711897,
       "tracked_surface_count": 66
     },
     {
@@ -237,21 +237,21 @@
     {
       "family_id": "scripts",
       "surface_kind_counts": {
-        "executable": 95,
+        "executable": 106,
         "human": 2
       },
-      "tracked_surface_bytes": 3063834,
-      "tracked_surface_count": 97
+      "tracked_surface_bytes": 3608598,
+      "tracked_surface_count": 108
     },
     {
       "family_id": "tests",
       "surface_kind_counts": {
-        "executable": 50,
+        "executable": 59,
         "human": 2,
         "structured": 1
       },
-      "tracked_surface_bytes": 1227394,
-      "tracked_surface_count": 53
+      "tracked_surface_bytes": 1331872,
+      "tracked_surface_count": 62
     },
     {
       "family_id": "manifests",
@@ -285,7 +285,7 @@
   "source_map": "docs/validation/documentation_family_map.json",
   "source_map_sha256": "d70a5059be9cc7547289e4c8be380d23b3aeb9e53bb10e4cb82abf2177ea0896",
   "tracked_source": "git ls-files -z",
-  "tracked_surface_digest": "8ade257902b5875c3b6f3db019b8a2f087e840ced6da106950ad3be82136528f",
+  "tracked_surface_digest": "a9b26267f1660f8871948f5fe735ae40c0c256c0956d8e3b8a8c42133ab501fe",
   "tracked_surfaces": [
     {
       "bytes": 1489,
@@ -332,7 +332,7 @@
       "currentness": "tracked_source_snapshot",
       "family_id": "agents-other",
       "path": ".agents/agents-route.current.json",
-      "sha256": "f12c3f210e4063437d23d4db130249b6f5aca56a5a7141d1a2e6243217584fe5",
+      "sha256": "15b06d8cabd0edaf5cc94dc7f1d931a8d4f49f591067a79d5953c9db4a262975",
       "surface_kind": "structured"
     },
     {
@@ -1814,6 +1814,350 @@
       "path": "ToS/candidate-intake/thus-spoke-zarathustra/prologue-1/mode-b/README.md",
       "sha256": "f6069cb3a1b0ead70317525cb4d55b8dd15f660674386b36843ecb17d2f84ca5",
       "surface_kind": "human"
+    },
+    {
+      "bytes": 8189,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/candidate-intake/zarathustra/concept-workbench-v1/README.md",
+      "sha256": "80b331b4d49b0f2595ffbcec4e7de93b6f35780539be0b588eb624173e5262fd",
+      "surface_kind": "human"
+    },
+    {
+      "bytes": 1274,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/candidate-intake/zarathustra/concept-workbench-v1/all-form-coverage.v1.json",
+      "sha256": "8e4fbba30127851319c4dddf7f9ce505272c3369c59f5c5ceb3f193a725adeba",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3972,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/candidate-intake/zarathustra/concept-workbench-v1/concept-relation-candidate.v1.schema.json",
+      "sha256": "f51936a1c1a422aaad0b6c970e6fc44e6c976b56f50ac8506864dbe0633c246f",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3951,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/candidate-intake/zarathustra/concept-workbench-v1/concept-request.v1.schema.json",
+      "sha256": "a102ae20594627711016cb31bddf54b1d7b1ad7065494420307a8b2a32d47d88",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 6262,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/candidate-intake/zarathustra/concept-workbench-v1/concept-request.v2.schema.json",
+      "sha256": "a648d2374c32a4a72081f847eb4ad30df8ba319517612e936429b03aec0b1e3f",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 9822,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/candidate-intake/zarathustra/concept-workbench-v1/concept-search-result.v1.schema.json",
+      "sha256": "5f67d5b3abf88ecd88dcdb94f70eee0cb685b7ac81b7abbd41bc2b14542c3cc3",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 2270,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/candidate-intake/zarathustra/concept-workbench-v1/english-on-demand-task.v1.schema.json",
+      "sha256": "4f1d53dc25f86eeeb605e5c03fe8537c9878d4f0906463aea1bfc4ea2ccdda7a",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 5814,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/candidate-intake/zarathustra/concept-workbench-v1/english-translation-candidate.v1.schema.json",
+      "sha256": "bc1dfc9ea16e7279e0007ca9c17dc5558a3520e724e1f246b62fddb5afff6ab2",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1830026,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/candidate-intake/zarathustra/concept-workbench-v1/identity-issuance.v1.json",
+      "sha256": "2a194915f22c0141f87ecdd3c4678a61c407af24e651b4255f804bb2481a2cd1",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 6934,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/candidate-intake/zarathustra/concept-workbench-v1/manifest.v1.json",
+      "sha256": "312a808288743451520028a0a82119b9c8ce143e9cf8d681b382bf8f4b941d40",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 238635,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/candidate-intake/zarathustra/concept-workbench-v1/outputs/fate/candidate-graph.v1.json",
+      "sha256": "745ffc15db36f4e5250efab4f9c9a6c7f3a0f96ee6c358ba5415c2121043f7b9",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 48896,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/candidate-intake/zarathustra/concept-workbench-v1/outputs/fate/concept-candidate.v1.json",
+      "sha256": "d1d379b5d68c568906bb2e7388c0cf3365dd73c0f55b613de3d7ccd790392bfe",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1922,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/candidate-intake/zarathustra/concept-workbench-v1/outputs/fate/coverage-receipt.v1.json",
+      "sha256": "2f54cc4eaefcfe92be9c4d14508603f546bc59ca68f0574b1f0ec4ae7e77c060",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 7767,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/candidate-intake/zarathustra/concept-workbench-v1/plan.v1.json",
+      "sha256": "66558b6f0046c82417204a7b78945035e17c0ae780ff70ef736df43d0882cad6",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 2106,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/candidate-intake/zarathustra/concept-workbench-v1/requests/fate.concept-request.v1.json",
+      "sha256": "964dcb6d14536b6962fb21a243e6f5eac3d837cfc7d56f61053522cde161f3ca",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3659,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/candidate-intake/zarathustra/concept-workbench-v1/requests/fate.concept-request.v2.json",
+      "sha256": "0e4dae0e68826078c1e5e214be5919d87ae9de6f618717bdf4660ea2f9af1028",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 619196,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/candidate-intake/zarathustra/concept-workbench-v1/speaker-exception-worklist.v1.json",
+      "sha256": "937bac81857c0322069ad98d938432dae68639834676918ae208704ba9b7fd8b",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1206,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/candidate-intake/zarathustra/concept-workbench-v1/summary.v1.json",
+      "sha256": "ece2c5581bcbfea65239d11eae21c19bbb0cb587129b4173e6238a379cda9bd4",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 8488,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/candidate-intake/zarathustra/concept-workbench-v1/word-analysis-task.v1.schema.json",
+      "sha256": "83cadb8204153cf0f0d6f04bb65a5994386c665911cbb7f8a73c941309c39753",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1704,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/candidate-intake/zarathustra/dta-antonovsky-morphology-themes-v1/README.md",
+      "sha256": "ee2e068a442cb66acb509521cbbfd325b5cf25e64d6f4dbf1aa8e3efe103fd8c",
+      "surface_kind": "human"
+    },
+    {
+      "bytes": 1450,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/candidate-intake/zarathustra/dta-antonovsky-morphology-themes-v1/coverage-receipt.v1.json",
+      "sha256": "48a3828a15f4f970c4e7422b3fd81be66a6159f2885239ecada8b4fc94cd807b",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3707810,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/candidate-intake/zarathustra/dta-antonovsky-morphology-themes-v1/identity-issuance.v1.json",
+      "sha256": "b2136382a7c72005bb040e6e9e7cf0a48003caf9793157df7517215279591a91",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 2625,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/candidate-intake/zarathustra/dta-antonovsky-morphology-themes-v1/independent-agent-audit.v1.json",
+      "sha256": "33d80affc637796da6039a43e8747724b84b0999ddb870c6937290c724631bb8",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 2399,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/candidate-intake/zarathustra/dta-antonovsky-morphology-themes-v1/manifest.v1.json",
+      "sha256": "94f986029a50f60ec9e05771ec1948059299adaccb31d2a7b5547a214be47387",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 4145,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/candidate-intake/zarathustra/dta-antonovsky-morphology-themes-v1/plan.v1.json",
+      "sha256": "3252e93ba6fc46ee7d25808872c4a08fe724aeb6b69a2583b15ef9cba9d90988",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1082,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/candidate-intake/zarathustra/dta-antonovsky-morphology-themes-v1/summary.v1.json",
+      "sha256": "987e113796bdec639c0c3b46dddba1e0b52c847c5f82de525df219e9bee6334e",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 2129,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/candidate-intake/zarathustra/eternal-return-concept-candidate-v1/README.md",
+      "sha256": "522eb2c7712434f56d9a13f37e5011c01c03b11782bbb608acfd203846e788b1",
+      "surface_kind": "human"
+    },
+    {
+      "bytes": 33138,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/candidate-intake/zarathustra/eternal-return-concept-candidate-v1/concept-candidate.v1.json",
+      "sha256": "1226ef4df34e054fc453e70a1ddd8a473e00b4334603647dfc55082d83922bb3",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 2084,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/candidate-intake/zarathustra/eternal-return-concept-candidate-v1/coverage-receipt.v1.json",
+      "sha256": "36326bf57f9ca75ed89a725e3c5317ef2d3e03e5a371734e0a8ddf342c557bfa",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 50625,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/candidate-intake/zarathustra/eternal-return-concept-candidate-v1/identity-issuance.v1.json",
+      "sha256": "209ee1aa7a00f824b7cd9073ad7ab1d0dcefa007b3e16a5ea344aa57f74201a6",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3430,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/candidate-intake/zarathustra/eternal-return-concept-candidate-v1/independent-agent-audit.v1.json",
+      "sha256": "7ab542903180d8972a601fdb62096ecdaf3f1121791e995eb3c79de8aa77691e",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3535,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/candidate-intake/zarathustra/eternal-return-concept-candidate-v1/manifest.v1.json",
+      "sha256": "69ef678246a310f728e11081db7823aca0b513c572ebaabdc477329119ece557",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 5067,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/candidate-intake/zarathustra/eternal-return-concept-candidate-v1/plan.v1.json",
+      "sha256": "2ce7877b1c83a83647ca2ab3cc5e57e3ad2ce9c552e4953defeab049a05ca6e9",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1664,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/candidate-intake/zarathustra/eternal-return-concept-candidate-v1/promotion-readiness.v1.json",
+      "sha256": "202d72cfe06c7c6cd7715b199d338dad1d1d1c0af703111164b933b1851f246e",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1710,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/candidate-intake/zarathustra/eternal-return-concept-candidate-v1/review-preparation-v1/README.md",
+      "sha256": "f1a3930946444cddbb11702b5d3e067739708597ef1d0bfb0a8c01161c2cff87",
+      "surface_kind": "human"
+    },
+    {
+      "bytes": 1107,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/candidate-intake/zarathustra/eternal-return-concept-candidate-v1/review-preparation-v1/coverage-receipt.v1.json",
+      "sha256": "37a0d8dd939cf80e1c72feeaf2143e108c8dea709a17f04714c1a28ac6da8687",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 37203,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/candidate-intake/zarathustra/eternal-return-concept-candidate-v1/review-preparation-v1/identity-issuance.v1.json",
+      "sha256": "50dcae13f4636c02c3260a9fabd6c4ac586025f63681cb5fb42fc57fefdee850",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 33571,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/candidate-intake/zarathustra/eternal-return-concept-candidate-v1/review-preparation-v1/interpretation-review-matrix.v1.json",
+      "sha256": "a3e2819fda6e7e8fb0c091b5b274f0008ce7be504bcbd1118444ca4b4138dd51",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3212,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/candidate-intake/zarathustra/eternal-return-concept-candidate-v1/review-preparation-v1/manifest.v1.json",
+      "sha256": "cdcc26f029901df3080c30fb12da006a312ac68c5dc2c205b74fed3b9a60e802",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 5313,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/candidate-intake/zarathustra/eternal-return-concept-candidate-v1/review-preparation-v1/plan.v1.json",
+      "sha256": "d16900b7d259d525da24a8fd2ed1567567872b2e01929f75e5988349f08877ff",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 9509,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/candidate-intake/zarathustra/eternal-return-concept-candidate-v1/review-preparation-v1/review-worklist.v1.json",
+      "sha256": "6540c4440732c6a9b31a46213d348a2cfb1c316dbf9816a679a4d56d1c610fd0",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 616,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/candidate-intake/zarathustra/eternal-return-concept-candidate-v1/review-preparation-v1/summary.v1.json",
+      "sha256": "11bf504af57127af63668d93e879334eec954f2eba8435813ae9d6ac4574477e",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 676,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/candidate-intake/zarathustra/eternal-return-concept-candidate-v1/summary.v1.json",
+      "sha256": "f9f3378ecbf159e8b8bb3d4996bdb1b04c960c19cd5edc02291afafffe0f7276",
+      "surface_kind": "structured"
     },
     {
       "bytes": 1844,
@@ -3616,11 +3960,11 @@
       "surface_kind": "structured"
     },
     {
-      "bytes": 1675008,
+      "bytes": 1727618,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/derived-exports/tos_corpus_index.min.json",
-      "sha256": "9c5bf950ce09781ea1424104363b1d3d44328c8454f10c1e2af041b1cca8d0cb",
+      "sha256": "343be7dae6e600592d979739a7328896ef4670e835b316ff5ca0a62bd52e2314",
       "surface_kind": "structured"
     },
     {
@@ -17600,6 +17944,14 @@
       "surface_kind": "human"
     },
     {
+      "bytes": 2051,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/review-ledger/2026-09-01-antonovsky-1911-technical-screening.md",
+      "sha256": "5a4258c8944af9f99a0f6f2776202ad56f0c0b74e6c706c798955696589f8cd1",
+      "surface_kind": "human"
+    },
+    {
       "bytes": 1285,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
@@ -18928,11 +19280,11 @@
       "surface_kind": "human"
     },
     {
-      "bytes": 97478,
+      "bytes": 98804,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/source-witnesses/discovery/candidates/queue.current.json",
-      "sha256": "da2be3133533bcebf68cdef04753ff991e7a805cf052d96f0cd7373db74c1950",
+      "sha256": "a6b7c1b15026f8e2ab79fa88998885ef74c8cd13b0095251400bce76ab6e9587",
       "surface_kind": "structured"
     },
     {
@@ -20824,6 +21176,14 @@
       "surface_kind": "structured"
     },
     {
+      "bytes": 438,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/alignments/README.md",
+      "sha256": "25fa646c9189f813e60f76c47a09c9e486479989f396552f770c6a61c5226f59",
+      "surface_kind": "human"
+    },
+    {
       "bytes": 7012,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
@@ -20845,6 +21205,118 @@
       "family_id": "tos",
       "path": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/alignments/structure/naumann-1893-dta-parts/structure-correspondence.json",
       "sha256": "7b4fc0a2d3cbbb2fc6c72ba9ea95bb14c300cf363d928dc8fe534194fd8acc96",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 499,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/alignments/translation/README.md",
+      "sha256": "19f6319d775b516c26393118347f07dd402035db73321c1ca2329b751c39af6d",
+      "surface_kind": "human"
+    },
+    {
+      "bytes": 3028,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/alignments/translation/dta-first-editions-to-antonovsky-1911-paragraph-v1/README.md",
+      "sha256": "03b982d0490628796da2792bec29d6f6678c2c0df79067d86fceb21819d1973a",
+      "surface_kind": "human"
+    },
+    {
+      "bytes": 1302,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/alignments/translation/dta-first-editions-to-antonovsky-1911-paragraph-v1/agent-verification.v1.json",
+      "sha256": "cd30afa0a9a29ab1961893c94e1a0c45ff8967b8fc8b4e15a7100a071942326a",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 2124,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/alignments/translation/dta-first-editions-to-antonovsky-1911-paragraph-v1/coverage-receipt.v1.json",
+      "sha256": "b7715c128a6c5f1f23d9759a732d779e084cf5e83ef8aa480743fe1a59238781",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1543210,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/alignments/translation/dta-first-editions-to-antonovsky-1911-paragraph-v1/identity-issuance.v1.json",
+      "sha256": "a301ae354ac42d09bfd542266f48d241de05b2f6f3eed644172b7a14365b0e51",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1057,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/alignments/translation/dta-first-editions-to-antonovsky-1911-paragraph-v1/independent-challenger-input-receipt.v1.json",
+      "sha256": "7907b1f2406584d9d3c18fe86dd48982ad8458ce7c6bd27b179a8f59912c33b7",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 8395,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/alignments/translation/dta-first-editions-to-antonovsky-1911-paragraph-v1/manifest.v1.json",
+      "sha256": "eeeb266954ffc4ae22da42b6fd168b2e64094917c46e505551c04778743df313",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3868817,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/alignments/translation/dta-first-editions-to-antonovsky-1911-paragraph-v1/part-1.translation-alignment-packet.v1.json",
+      "sha256": "86964e9f60c43522a793de6cb32539f2570a1ae762bcff82304ca9e89b4f7955",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 4051795,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/alignments/translation/dta-first-editions-to-antonovsky-1911-paragraph-v1/part-2.translation-alignment-packet.v1.json",
+      "sha256": "cd0ee29dcfef85287a01192bd1be09d843bdce6fbd06fb7b79bdd44140fa88e4",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 4424053,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/alignments/translation/dta-first-editions-to-antonovsky-1911-paragraph-v1/part-3.translation-alignment-packet.v1.json",
+      "sha256": "225b6025ecbfc0fa155db1b77a321299519b0149637daf3127351caadb94609a",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3764044,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/alignments/translation/dta-first-editions-to-antonovsky-1911-paragraph-v1/part-4.translation-alignment-packet.v1.json",
+      "sha256": "f63f69ef37399e88728633b9a0f44ffdd8d638b02c45a068c5025e887bd27caa",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 981,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/alignments/translation/dta-first-editions-to-antonovsky-1911-paragraph-v1/primary-input-receipt.v1.json",
+      "sha256": "9ca27f1785092effe3645f1131191e781310ba76c175d4cd9fef0952e3c63528",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1127,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/alignments/translation/dta-first-editions-to-antonovsky-1911-paragraph-v1/primary-method-input.v1.json",
+      "sha256": "f8d8607c4fad49e7cb88220785be1474fe5905d1d6ed1e2a1699c68f22408457",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1173,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/alignments/translation/dta-first-editions-to-antonovsky-1911-paragraph-v1/summary.v1.json",
+      "sha256": "0d1d556733ba48edaed8f1ad3950628a0bc5906111b5b3921e40773956764802",
       "surface_kind": "structured"
     },
     {
@@ -22184,6 +22656,54 @@
       "surface_kind": "structured"
     },
     {
+      "bytes": 2272,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/lexical-indexes/dta-antonovsky-parallel-candidates-v1/README.md",
+      "sha256": "ac572fd65d8593fc8c273b645be86dddd554e2673867908316314f9280184763",
+      "surface_kind": "human"
+    },
+    {
+      "bytes": 2224,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/lexical-indexes/dta-antonovsky-parallel-candidates-v1/coverage-receipt.v1.json",
+      "sha256": "007b70c21c5111a6fa929bc5a847ee939a590a171aa355ebeb8ee937169124fc",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 2024987,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/lexical-indexes/dta-antonovsky-parallel-candidates-v1/identity-issuance.v1.json",
+      "sha256": "01351846bee44a569dde500e937e99f8aa6dc367fe173e629d4dd6ad660b5bac",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3431,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/lexical-indexes/dta-antonovsky-parallel-candidates-v1/manifest.v1.json",
+      "sha256": "763d7e37317e184b76ac9498f70e401c3c54283413aa4e14d685068086de0db1",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 5694,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/lexical-indexes/dta-antonovsky-parallel-candidates-v1/plan.v1.json",
+      "sha256": "09f29b6442ce0634dde77c0945f8c559d1b4dad3f0563aab2868e87591f8c3a7",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1025,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/lexical-indexes/dta-antonovsky-parallel-candidates-v1/summary.v1.json",
+      "sha256": "1b556f826b7c08cfcef72eea0fbc3f70eea0d9ac9ec6ce5a0914022ca1923a87",
+      "surface_kind": "structured"
+    },
+    {
       "bytes": 3884,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
@@ -22221,6 +22741,262 @@
       "family_id": "tos",
       "path": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/lexical-indexes/dta-first-editions-parts-1-4-v1/usage-context-receipt.v1.json",
       "sha256": "2c0b0cb5cd36bee49a12f9c6c6452383e121b000fa556e99b73bbb9082a76a19",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 10,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/source-foundation/zarathustras-vorrede-1-naumann-1893-dta-ekgwb-collation-v1/local-content/dta-token.txt",
+      "sha256": "6cb9b26d04530e1bc3701fb2099eed147844342a70b1fff8da4e69702c8b690a",
+      "surface_kind": "human"
+    },
+    {
+      "bytes": 10,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/source-foundation/zarathustras-vorrede-1-naumann-1893-dta-ekgwb-collation-v1/local-content/naumann-token.txt",
+      "sha256": "7816460df342e0511309335059254549b62bcb4a52b5f6f12b929c72bbf7e2ee",
+      "surface_kind": "human"
+    },
+    {
+      "bytes": 1568,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/source-foundation/zarathustras-vorrede-1-naumann-1893-dta-ekgwb-collation-v1/local-content/token-comparison.private.json",
+      "sha256": "1dd86edd9dfa87915dd74405348fd0db5309494d43c3c362907d396171cc557f",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 4422,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/source-foundation/zarathustras-vorrede-1-naumann-1893-epub-p055-v1/local-content/variant-b.extraction-trace.v1.json",
+      "sha256": "2601fa50f5982d390be217fbd1f9a1b2950f246747b1eef27ebfd2807ab77c12",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1091,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/source-foundation/zarathustras-vorrede-1-naumann-1893-epub-p055-v1/local-content/variant-b.page-55.raw-ocr.txt",
+      "sha256": "6d1341c33f6d4c0003fb48a0c0d790ca4531d66ba78248eda6ce9b9b34427405",
+      "surface_kind": "human"
+    },
+    {
+      "bytes": 713,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/source-foundation/zarathustras-vorrede-1-source-form-semantic-firewall-v1/local-content/retrieval-shadow.private.json",
+      "sha256": "5366858f056fd167ea170d2cd1ea625bb01d315d5f780b7e654b9d6cba4ab594",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 2194,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/technical-markup/README.md",
+      "sha256": "1149e717f3931bfaa5ef4154e24b97916fc529e56e3d31b37dc38b8b861af256",
+      "surface_kind": "human"
+    },
+    {
+      "bytes": 5313,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/technical-markup/antonovsky-1911-pdf-layout-v1/README.md",
+      "sha256": "092c25a09b7086e0884bbb266a1ce8f3572d837691ed0e5a4d7318edb1027b58",
+      "surface_kind": "human"
+    },
+    {
+      "bytes": 1944924,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/technical-markup/antonovsky-1911-pdf-layout-v1/identity-issuance.v1.json",
+      "sha256": "870486e789854926469a8e89831aaeec53909288342eb0b062c7430ed02ce716",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 9391,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/technical-markup/antonovsky-1911-pdf-layout-v1/plan.v1.json",
+      "sha256": "3a6ef85b00d0e6089b76a68b148cb2a4842fdb216362b64bc62573a23d3fb4e0",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 2036,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/technical-markup/antonovsky-1911-pdf-layout-v1/screening-summary.v1.json",
+      "sha256": "cd80384ab7ba6bf50ffc209d97cf86b5e16bcca90ddd33678cd098d974ca72fe",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 16734381,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/technical-markup/antonovsky-1911-pdf-layout-v1/source-text-unit.v1.json",
+      "sha256": "6cc138df46c57f56d3ef25bece8d42fc149bce5eaa4448e675275bb85d68e7b5",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 7953,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/technical-markup/antonovsky-1911-pdf-layout-v1/summary.v1.json",
+      "sha256": "e089a061d47d1c6fedbab4f9e3973d929fb2c0d6975f62e6739490f88c8a1182",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 4247,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/technical-markup/antonovsky-1911-pdf-layout-v1/technical-screening-plan.v1.json",
+      "sha256": "ec2aeb65eaeef8461e727d70e3269f9d51c97309089c6de175bb0ed65fb2987b",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 2103,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/technical-markup/antonovsky-1911-structural-paragraph-v2/README.md",
+      "sha256": "436996c8a53a382957d715968e7f0c4fafe560dabd8097aee85d00c6c6a3e17e",
+      "surface_kind": "human"
+    },
+    {
+      "bytes": 851,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/technical-markup/antonovsky-1911-structural-paragraph-v2/agent-verification.v2.json",
+      "sha256": "ef465ddcf90d097b28b34aa5bf7c5df69c59fc7115ae50544e0cc564734c4522",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 681,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/technical-markup/antonovsky-1911-structural-paragraph-v2/boundary-comparison.v2.json",
+      "sha256": "6d358db41f58b74c68cbb6746392e5ff00c9d62cc24877be1e601b57aa3baf04",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1222,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/technical-markup/antonovsky-1911-structural-paragraph-v2/coverage-receipt.v2.json",
+      "sha256": "e4c2014abc85c6f10c90d1ad19386bb27876da654e1325d95fef0d08f8873de0",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 4947973,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/technical-markup/antonovsky-1911-structural-paragraph-v2/identity-issuance.v2.json",
+      "sha256": "2edd46dd05507d292b383314651f4d6086992a4200c87732fee3aae893eac04c",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 4599,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/technical-markup/antonovsky-1911-structural-paragraph-v2/manifest.v2.json",
+      "sha256": "400941db22345d9870a6c6c123c68fc59deec24b6f5550999b63fc0c2c2df5ad",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 253782,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/technical-markup/antonovsky-1911-structural-paragraph-v2/primary-challenger-input.v2.json",
+      "sha256": "48711a7b0bfa3ec4c1fce2946717673cf75befc5373652b223ef92e2ab6196f6",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 896,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/technical-markup/antonovsky-1911-structural-paragraph-v2/summary.v2.json",
+      "sha256": "66a9d2911f5927aeaf8d9b977b5d97255c265f96e5dbbfe9bd7503fcd8d15eae",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3931,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/technical-markup/dta-first-editions-parts-1-4-v1/README.md",
+      "sha256": "e9f003d4fa36b0c41975e07feafa7efabace3bd3df716f6a0b00855687be1c4d",
+      "surface_kind": "human"
+    },
+    {
+      "bytes": 2241,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/technical-markup/dta-first-editions-parts-1-4-v1/agent-verification.v1.json",
+      "sha256": "6155ce51b574d76d3afedf0568561b5f96f912a0c08470d7f590921b343eeda0",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1759812,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/technical-markup/dta-first-editions-parts-1-4-v1/identity-issuance.v1.json",
+      "sha256": "9626f1898f727ba7d554b27408ff3a65f797b1cdb355d90754f50ca109f41f31",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 2465420,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/technical-markup/dta-first-editions-parts-1-4-v1/part-1.source-text-unit.v1.json",
+      "sha256": "a47b642757ad8a71225787e3e38851a15b407840c1cfc740884a13ae43d85dfc",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 2475456,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/technical-markup/dta-first-editions-parts-1-4-v1/part-2.source-text-unit.v1.json",
+      "sha256": "a7c5e49366f5bfe0c3e198986a063c0f36802138a50084fb9c82414b3eb7ae7b",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 2940858,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/technical-markup/dta-first-editions-parts-1-4-v1/part-3.source-text-unit.v1.json",
+      "sha256": "4a8aebd01d941a44246bce430ac9cfb0f625d76c8a98aa0ff08d73fbeeccf3a4",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3606178,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/technical-markup/dta-first-editions-parts-1-4-v1/part-4.source-text-unit.v1.json",
+      "sha256": "d857eb6c714f56a2659a81eedbdac1c9170810f0a45ec5e5d965ef654a449724",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 9595,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/technical-markup/dta-first-editions-parts-1-4-v1/plan.v1.json",
+      "sha256": "313db1f8e4cf6599c93b9f60afc086cfc18598351717f4fe1573669e5adf67c2",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 6405,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/technical-markup/dta-first-editions-parts-1-4-v1/summary.v1.json",
+      "sha256": "e2cda843b3e9364627fb833fa8e930da359fd2255730abb7df3de9486ddd61c0",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 2610,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/technical-markup/parallel-technical-readiness.v1.json",
+      "sha256": "19556944d050ab06d1e2c1a8311ccdd448f534476fa6e4adb43ae6d2a46c7c4b",
       "surface_kind": "structured"
     },
     {
@@ -23384,11 +24160,11 @@
       "surface_kind": "executable"
     },
     {
-      "bytes": 87309,
+      "bytes": 88043,
       "currentness": "tracked_source_snapshot",
       "family_id": "access",
       "path": "access/src/tos_access/core.py",
-      "sha256": "7f12557a3b8c5baf75c76c45337241e6ce0349ca5efb7b3daa95302aa4b905b0",
+      "sha256": "463d14d7ee176d1e2e3624a451c5f737033444eb9aad4274098910f01cf99a46",
       "surface_kind": "executable"
     },
     {
@@ -23416,11 +24192,11 @@
       "surface_kind": "executable"
     },
     {
-      "bytes": 58343,
+      "bytes": 58969,
       "currentness": "tracked_source_snapshot",
       "family_id": "access",
       "path": "access/tests/test_access_contract.py",
-      "sha256": "b6022da12dd25c2d8838cd89340b217087c7de3033146158f72457fdf2d5cb03",
+      "sha256": "260356b1a4a86502223d45c3b6fbf6419fa36274f6fbff7bad6905140bf85bb4",
       "surface_kind": "executable"
     },
     {
@@ -23976,11 +24752,11 @@
       "surface_kind": "structured"
     },
     {
-      "bytes": 152191,
+      "bytes": 171971,
       "currentness": "tracked_source_snapshot",
       "family_id": "docs",
       "path": "docs/validation/script_inventory.json",
-      "sha256": "f9d387cec85001f62377a220b0e46213061df2a2bea0da5fcf87484fff71b843",
+      "sha256": "3dc3ef6d2609e631053a2a91458d85d1ef096a855114104d1ef05265a45e0b0b",
       "surface_kind": "structured"
     },
     {
@@ -25912,6 +26688,22 @@
       "surface_kind": "executable"
     },
     {
+      "bytes": 60989,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "scripts",
+      "path": "scripts/build_antonovsky_1911_structural_paragraph_v2.py",
+      "sha256": "f1c6bf35b382e1daa15f6f934107e130a781c7d4f0943b196e853dbdc4409570",
+      "surface_kind": "executable"
+    },
+    {
+      "bytes": 91832,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "scripts",
+      "path": "scripts/build_antonovsky_1911_technical_markup.py",
+      "sha256": "82452bce0c1599925e18ffd08c5d963d1a872da532d9a7aef72b155087aefcb9",
+      "surface_kind": "executable"
+    },
+    {
       "bytes": 83381,
       "currentness": "tracked_source_snapshot",
       "family_id": "scripts",
@@ -26160,6 +26952,38 @@
       "surface_kind": "executable"
     },
     {
+      "bytes": 81143,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "scripts",
+      "path": "scripts/build_zarathustra_concept_workbench_v1.py",
+      "sha256": "36ef1cfbca8a546c9ae7a102616c64b64c310371f23da062aac2034131683dd7",
+      "surface_kind": "executable"
+    },
+    {
+      "bytes": 58448,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "scripts",
+      "path": "scripts/build_zarathustra_de_ru_paragraph_alignment_v1.py",
+      "sha256": "f8b6991680957368ff99e55aa398c4f1b610da4c9adae0c61664591496487a6e",
+      "surface_kind": "executable"
+    },
+    {
+      "bytes": 38265,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "scripts",
+      "path": "scripts/build_zarathustra_eternal_return_concept_candidate_v1.py",
+      "sha256": "8eebb793ad3c6fbff416caa183ecfcf35dd510737fbe0a45d92b0f6cefd42596",
+      "surface_kind": "executable"
+    },
+    {
+      "bytes": 36822,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "scripts",
+      "path": "scripts/build_zarathustra_eternal_return_review_preparation_v1.py",
+      "sha256": "0e6859ccb4bc9e8eac65c9d63a03e9a7e30d01852f0a1dcf1695175cbb30283e",
+      "surface_kind": "executable"
+    },
+    {
       "bytes": 43546,
       "currentness": "tracked_source_snapshot",
       "family_id": "scripts",
@@ -26192,11 +27016,27 @@
       "surface_kind": "executable"
     },
     {
+      "bytes": 41924,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "scripts",
+      "path": "scripts/build_zarathustra_morphology_theme_candidates_v1.py",
+      "sha256": "7d8fc20ffdd3bb6a0440b25159465c170a378f80ba67bdc78459cb735e1f3f30",
+      "surface_kind": "executable"
+    },
+    {
       "bytes": 46142,
       "currentness": "tracked_source_snapshot",
       "family_id": "scripts",
       "path": "scripts/build_zarathustra_opening_sentence_alignment.py",
       "sha256": "80d312d541718d5fc5e57caa5689202102ec527fe311e29f362c341e76f9d52d",
+      "surface_kind": "executable"
+    },
+    {
+      "bytes": 43400,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "scripts",
+      "path": "scripts/build_zarathustra_parallel_lexical_candidates_v1.py",
+      "sha256": "4a3c0685e93bb7bda9b19db4cf9dc9fe5a3bae7580c8166eef7c8128d139ceba",
       "surface_kind": "executable"
     },
     {
@@ -26221,6 +27061,14 @@
       "family_id": "scripts",
       "path": "scripts/build_zarathustra_target_text_foundation.py",
       "sha256": "62d35662d6ebd45833edaf189ec9777b6343e10fa74e7020e4c07b5c1248c21b",
+      "surface_kind": "executable"
+    },
+    {
+      "bytes": 61965,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "scripts",
+      "path": "scripts/build_zarathustra_technical_markup.py",
+      "sha256": "2e141c0f3cc5be3260893ede27b08c329ac3abece781d4031696e88d49caf7ae",
       "surface_kind": "executable"
     },
     {
@@ -26320,11 +27168,27 @@
       "surface_kind": "executable"
     },
     {
+      "bytes": 10073,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "scripts",
+      "path": "scripts/prepare_zarathustra_word_analysis_v1.py",
+      "sha256": "22baa889d2da9f8ef4b361db8402b473f1b72c3eecc229b77c7b1c880c5b60ff",
+      "surface_kind": "executable"
+    },
+    {
       "bytes": 2230,
       "currentness": "tracked_source_snapshot",
       "family_id": "scripts",
       "path": "scripts/query_source_witness_bibliographic_graph.py",
       "sha256": "55256d834ae0479a5a6919010bc6e68f7da6031877db5ffd8dbac0daa685fe56",
+      "surface_kind": "executable"
+    },
+    {
+      "bytes": 19903,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "scripts",
+      "path": "scripts/query_zarathustra_concept_workbench_v1.py",
+      "sha256": "e2d1124e25dc9fa0165f5617c9913b87dc825515bda013f9ce58c8cee2e80d08",
       "surface_kind": "executable"
     },
     {
@@ -26728,6 +27592,22 @@
       "surface_kind": "executable"
     },
     {
+      "bytes": 5823,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tests",
+      "path": "tests/test_antonovsky_1911_structural_paragraph_v2.py",
+      "sha256": "1d7ae31f39eb09627a25138f25cc2625e227edf7a05d8c311c1d28a381b8ac78",
+      "surface_kind": "executable"
+    },
+    {
+      "bytes": 8888,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tests",
+      "path": "tests/test_antonovsky_1911_technical_markup.py",
+      "sha256": "419eadaafa14515b569b80f9ab9accc3b034542906446f95fb1731db8680a89b",
+      "surface_kind": "executable"
+    },
+    {
       "bytes": 13686,
       "currentness": "tracked_source_snapshot",
       "family_id": "tests",
@@ -26832,11 +27712,11 @@
       "surface_kind": "executable"
     },
     {
-      "bytes": 48528,
+      "bytes": 58838,
       "currentness": "tracked_source_snapshot",
       "family_id": "tests",
       "path": "tests/test_inventory.json",
-      "sha256": "5db1d33175f39add790cba0b6288a6bad6e67166f6f8a47c5904f1ad24f7f048",
+      "sha256": "ea2188af14d5b092fb7b2e3e2eacfb3d63fc50a8ad0c29c63edc0b3b9cf278a8",
       "surface_kind": "structured"
     },
     {
@@ -27096,11 +27976,67 @@
       "surface_kind": "executable"
     },
     {
+      "bytes": 32020,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tests",
+      "path": "tests/test_zarathustra_concept_workbench_v1.py",
+      "sha256": "d4dcbb6f77339cc6e2b52b2751fe326d488811d77b829effba0a2f5d183839d6",
+      "surface_kind": "executable"
+    },
+    {
+      "bytes": 8799,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tests",
+      "path": "tests/test_zarathustra_de_ru_paragraph_alignment_v1.py",
+      "sha256": "62af894b13fe6ac8b580586df66ddad9a340c0e3a76b3ef6805c127eb37644f9",
+      "surface_kind": "executable"
+    },
+    {
+      "bytes": 8283,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tests",
+      "path": "tests/test_zarathustra_eternal_return_concept_candidate_v1.py",
+      "sha256": "0b51e905d3900f25b510c4659a04e156b2d07a1973db8d131280ee756d313d76",
+      "surface_kind": "executable"
+    },
+    {
+      "bytes": 6974,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tests",
+      "path": "tests/test_zarathustra_eternal_return_review_preparation_v1.py",
+      "sha256": "bf84f57008f5376552c7d79dca69ff4fa82abad952e8ec7feda44361e5360119",
+      "surface_kind": "executable"
+    },
+    {
       "bytes": 53894,
       "currentness": "tracked_source_snapshot",
       "family_id": "tests",
       "path": "tests/test_zarathustra_lexical_index.py",
       "sha256": "7fbe7553db202d39bb0b7c079aab52a31a667199a7a8892d285b7b28d30ef679",
+      "surface_kind": "executable"
+    },
+    {
+      "bytes": 6325,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tests",
+      "path": "tests/test_zarathustra_morphology_theme_candidates_v1.py",
+      "sha256": "7b312a72146a20ca65aaa723a105556858ef9d83915857bf8ac43aee98f2d689",
+      "surface_kind": "executable"
+    },
+    {
+      "bytes": 4929,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tests",
+      "path": "tests/test_zarathustra_parallel_lexical_candidates_v1.py",
+      "sha256": "4be1bc57451ecaddd92aed95085f03108baf6a207c574955b6b55ca9d0cdf82f",
+      "surface_kind": "executable"
+    },
+    {
+      "bytes": 12127,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tests",
+      "path": "tests/test_zarathustra_technical_markup.py",
+      "sha256": "ffd86a8434eb90e70b718380e154693cc79eebb8b39e5eee3c1c35893e16f44d",
       "surface_kind": "executable"
     },
     {

@@ -1,0 +1,36 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://tree-of-sophia.local/contracts/zarathustra-english-on-demand-task-v1.schema.json",
+  "title": "Text-free on-demand English translation task",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version", "english_task_id", "request_ref",
+    "source_occurrence_ref", "source_context_unit_ref", "source_form_sha256",
+    "alignment_refs", "russian_comparator_context_refs", "target_language",
+    "required_views", "required_analysis_stages", "etymology_state",
+    "recognized_english_comparator_state", "task_status", "source_text_included",
+    "accepted", "review_status", "graph_effect", "canon_effect"
+  ],
+  "properties": {
+    "schema_version": {"const": "tos_zarathustra_english_on_demand_task_v1"},
+    "english_task_id": {"type": "string", "pattern": "^tos\\.annotation\\.english-translation-task\\.sid-[0-9a-f]{32}$"},
+    "request_ref": {"type": "string", "pattern": "^tos\\.annotation\\.concept-request\\.sid-[0-9a-f]{32}$"},
+    "source_occurrence_ref": {"type": "string", "minLength": 1},
+    "source_context_unit_ref": {"type": "string", "minLength": 1},
+    "source_form_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "alignment_refs": {"type": "array", "uniqueItems": true, "items": {"type": "string", "minLength": 1}},
+    "russian_comparator_context_refs": {"type": "array", "uniqueItems": true, "items": {"type": "string", "minLength": 1}},
+    "target_language": {"const": "en"},
+    "required_views": {"const": ["literal_gloss", "contextual_translation", "semantic_alternatives", "untranslatability_note"]},
+    "required_analysis_stages": {"const": ["morphology", "syntax", "historical_sense", "sourced_etymology", "intra_work_recurrence", "russian_witness_comparison", "english_rendering"]},
+    "etymology_state": {"const": "citation_required_before_claim"},
+    "recognized_english_comparator_state": {"const": "sealed_until_candidate_frozen"},
+    "task_status": {"const": "ready_for_on_demand_ai_candidate"},
+    "source_text_included": {"const": false},
+    "accepted": {"const": false},
+    "review_status": {"const": "unreviewed"},
+    "graph_effect": {"const": false},
+    "canon_effect": {"const": false}
+  }
+}

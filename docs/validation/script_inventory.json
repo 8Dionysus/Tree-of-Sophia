@@ -2839,6 +2839,261 @@
       "ci_inclusion": "release",
       "test_target": "tests/test_documentation_cross_corpus.py",
       "disposition": "keep"
+    },
+    {
+      "path": "scripts/build_zarathustra_parallel_lexical_candidates_v1.py",
+      "family": "source_projection_builder",
+      "organ_lane": "projection/generated",
+      "owner_surface": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/lexical-indexes/dta-antonovsky-parallel-candidates-v1/README.md",
+      "source_truth": [
+        "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/lexical-indexes/dta-antonovsky-parallel-candidates-v1/plan.v1.json",
+        "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/lexical-indexes/dta-antonovsky-parallel-candidates-v1/identity-issuance.v1.json",
+        "ToS/derived-exports/lexical-search/zarathustra-dta-first-editions-parts-1-4-v1.min.json",
+        "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/technical-markup/antonovsky-1911-structural-paragraph-v2/manifest.v2.json",
+        "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/alignments/translation/dta-first-editions-to-antonovsky-1911-paragraph-v1/manifest.v1.json"
+      ],
+      "reads": [
+        "the existing exact German lexical database and recurrence projection, the complete rebuilt Russian structural witness, all four private DE/RU paragraph layers, and the frozen paragraph-alignment packets"
+      ],
+      "writes": [
+        "tracked text-free Russian recurrence, keyword, repeated-sequence, and translation-surface-association projections plus coverage, summary, provenance and manifest; ignored mode-0600 Russian SQLite and readable analysis unless --check is used"
+      ],
+      "side_effects": "mechanical whole-work lexical observations and proposed/ambiguous/deferred surface-association candidates only; no text acceptance, correction overlay, morphology, lemma, lexeme, translation equivalence, sign, concept, graph/canon effect, publication, or human review",
+      "validation_lane": "source_witness_foundation",
+      "ci_inclusion": "focused-tests",
+      "test_target": "tests/test_zarathustra_parallel_lexical_candidates_v1.py",
+      "disposition": "keep"
+    },
+    {
+      "path": "scripts/build_antonovsky_1911_technical_markup.py",
+      "family": "source_projection_builder",
+      "organ_lane": "source/topology",
+      "owner_surface": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/technical-markup/antonovsky-1911-pdf-layout-v1/README.md",
+      "source_truth": [
+        "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/technical-markup/antonovsky-1911-pdf-layout-v1/plan.v1.json",
+        "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/technical-markup/antonovsky-1911-pdf-layout-v1/identity-issuance.v1.json",
+        "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-antonovsky-1911/editions/saint-petersburg-prometey-1911-fourth/items/rsl-neb-scan-pdf/item.manifest.json",
+        "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-antonovsky-1911/editions/saint-petersburg-prometey-1911-fourth/items/rsl-neb-scan-pdf/resource-inventory.json",
+        "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-antonovsky-1911/editions/saint-petersburg-prometey-1911-fourth/items/rsl-neb-scan-pdf/rights.json",
+        "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-antonovsky-1911/editions/saint-petersburg-prometey-1911-fourth/items/rsl-neb-scan-pdf/payload/antonovsky-prometey-1911-rsl-neb.pdf",
+        "ToS/contracts/source-text-unit-packet-v1.schema.json"
+      ],
+      "reads": [
+        "the exact local Antonovsky 1911 PDF, its page-resource inventory and layered-rights record, the witness-local page-side region plan, the fixed Poppler method contract, and the stable opaque identity issuance"
+      ],
+      "writes": [
+        "one tracked source-text-unit packet, text-free citation, region and heading candidate projections, summary and provenance, plus ignored mode-0600 private sequential text and full bbox layers unless --check or --validate-tracked is used"
+      ],
+      "side_effects": "exact-PDF-page and proposed midpoint-panel/layout-block count foundation only; blocks remain unreviewed paragraph candidates, headings and region spans remain proposals, and no accepted Russian, German correspondence, translation alignment, semantics, graph/canon effect, rights clearance, publication, server transfer, or runtime authority is created",
+      "validation_lane": "source_witness_foundation",
+      "ci_inclusion": "release",
+      "test_target": "tests/test_antonovsky_1911_technical_markup.py",
+      "disposition": "keep"
+    },
+    {
+      "path": "scripts/build_antonovsky_1911_structural_paragraph_v2.py",
+      "family": "source_projection_builder",
+      "organ_lane": "source/topology",
+      "owner_surface": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/technical-markup/antonovsky-1911-structural-paragraph-v2/README.md",
+      "source_truth": [
+        "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/technical-markup/antonovsky-1911-pdf-layout-v1/citation-spine.v1.jsonl",
+        "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/technical-markup/antonovsky-1911-structural-paragraph-v2/structure-census.v2.jsonl",
+        "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/technical-markup/antonovsky-1911-structural-paragraph-v2/identity-issuance.v2.json",
+        "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/technical-markup/antonovsky-1911-structural-paragraph-v2/primary-challenger-input.v2.json",
+        "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-antonovsky-1911/editions/saint-petersburg-prometey-1911-fourth/items/rsl-neb-scan-pdf/payload/antonovsky-prometey-1911-rsl-neb.pdf"
+      ],
+      "reads": [
+        "the exact frozen Antonovsky PDF and v1 Poppler observation, the complete witness-local structure census, the one-time opaque identity issuance, and the fixed full-boundary challenger projection"
+      ],
+      "writes": [
+        "text-free physical-line, logical-row, structure, paragraph, continuous-verse, conflict, comparison, contradiction, coverage, verification, provenance, summary, and manifest projections unless --check or --validate-tracked is used"
+      ],
+      "side_effects": "complete agent-verified witness-local technical segmentation only; no accepted Russian text, editorial or linguistic paragraph truth, German/Russian alignment, semantics, graph/canon effect, rights clearance, publication, or runtime authority",
+      "validation_lane": "source_witness_foundation",
+      "ci_inclusion": "release",
+      "test_target": "tests/test_antonovsky_1911_structural_paragraph_v2.py",
+      "disposition": "keep"
+    },
+    {
+      "path": "scripts/build_zarathustra_de_ru_paragraph_alignment_v1.py",
+      "family": "source_projection_builder",
+      "organ_lane": "source/topology",
+      "owner_surface": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/alignments/translation/dta-first-editions-to-antonovsky-1911-paragraph-v1/README.md",
+      "source_truth": [
+        "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/technical-markup/dta-first-editions-parts-1-4-v1/part-*.source-text-unit.v1.json",
+        "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/technical-markup/antonovsky-1911-structural-paragraph-v2/paragraph-spine.v2.jsonl",
+        "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/alignments/translation/dta-first-editions-to-antonovsky-1911-paragraph-v1/primary-proposals-input.v1.jsonl",
+        "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/alignments/translation/dta-first-editions-to-antonovsky-1911-paragraph-v1/independent-challenger-input.v1.jsonl",
+        "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/alignments/translation/dta-first-editions-to-antonovsky-1911-paragraph-v1/identity-issuance.v1.json",
+        "ToS/contracts/translation-alignment-packet-v1.schema.json"
+      ],
+      "reads": [
+        "the exact four German and four rebuilt Russian private paragraph layers, both frozen text-free machine passes, the one-time opaque identity issuance, and the translation-alignment packet contract"
+      ],
+      "writes": [
+        "four tracked text-free translation-alignment packets plus coverage, diagnostics, conflict, scope-exclusion, independent-audit, provenance, verification, summary and manifest receipts, and four ignored mode-0600 Russian paragraph layers unless --check or --validate-tracked is used"
+      ],
+      "side_effects": "complete paragraph-level machine proposal coverage only; all independent disagreements and primary-only risks remain ambiguous or deferred, reviews and projections stay empty, and no translation acceptance, lexical or semantic equivalence, graph/canon effect, publication, or runtime authority is created",
+      "validation_lane": "source_witness_foundation",
+      "ci_inclusion": "release",
+      "test_target": "tests/test_zarathustra_de_ru_paragraph_alignment_v1.py",
+      "disposition": "keep"
+    },
+    {
+      "path": "scripts/build_zarathustra_technical_markup.py",
+      "family": "source_projection_builder",
+      "organ_lane": "source/topology",
+      "owner_surface": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/technical-markup/dta-first-editions-parts-1-4-v1/README.md",
+      "source_truth": [
+        "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/technical-markup/dta-first-editions-parts-1-4-v1/plan.v1.json",
+        "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/technical-markup/dta-first-editions-parts-1-4-v1/identity-issuance.v1.json",
+        "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/alignments/structure/naumann-1893-dta-parts/structure-correspondence.json",
+        "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/de-*/**/payload/*.tei.xml",
+        "ToS/contracts/source-text-unit-packet-v1.schema.json",
+        "ToS/contracts/provenance-event.schema.json"
+      ],
+      "reads": [
+        "the exact four local DTA TEI payloads, their manifests, resource inventories and rights records, the existing text-free major-structure correspondence, and the stable opaque identity issuance"
+      ],
+      "writes": [
+        "four tracked source-text-unit packets, one tracked text-free citation spine, summary and provenance, plus four ignored mode-0600 private sequential text layers unless --check or --validate-tracked is used"
+      ],
+      "side_effects": "source-markup-bound German technical hierarchy and paragraph/verse citation projection only; no accepted German, editorial hierarchy, sentence or token boundary, Russian structure, translation alignment, semantics, graph/canon effect, rights clearance, publication, or runtime authority",
+      "validation_lane": "source_witness_foundation",
+      "ci_inclusion": "release",
+      "test_target": "tests/test_zarathustra_technical_markup.py",
+      "disposition": "keep"
+    },
+    {
+      "path": "scripts/build_zarathustra_morphology_theme_candidates_v1.py",
+      "family": "candidate_projection_builder",
+      "organ_lane": "projection/generated",
+      "owner_surface": "ToS/candidate-intake/zarathustra/dta-antonovsky-morphology-themes-v1/plan.v1.json",
+      "source_truth": [
+        "complete Zarathustra DE/RU parallel lexical candidate manifest",
+        "mode-0600 readable lexical analysis and exact occurrence stores",
+        "fixed local ru_RU Hunspell dictionary",
+        "semantic identity research and candidate-intake authority boundary"
+      ],
+      "reads": [
+        "recurring exact-form candidate keys, paragraph alignment evidence, German casing profiles, Russian historical folds, and provider stem proposals"
+      ],
+      "writes": [
+        "text-free candidate morphology families, typed relations, bilingual recurrence neighborhoods, receipts, and one mode-0600 readable analysis"
+      ],
+      "side_effects": "issues opaque candidate identities only on explicit first build; creates no accepted lemma, lexeme, sense, translation equivalence, sign, concept, semantic relation, graph fact, canon object, or human review",
+      "validation_lane": "source_witness_foundation",
+      "ci_inclusion": "focused-tests",
+      "test_target": "tests/test_zarathustra_morphology_theme_candidates_v1.py",
+      "disposition": "keep"
+    },
+    {
+      "path": "scripts/build_zarathustra_eternal_return_concept_candidate_v1.py",
+      "family": "candidate_projection_builder",
+      "organ_lane": "projection/generated",
+      "owner_surface": "ToS/candidate-intake/zarathustra/eternal-return-concept-candidate-v1/plan.v1.json",
+      "source_truth": [
+        "complete Zarathustra DE/RU paragraph-alignment manifest and exact private text layers",
+        "parallel lexical and morphology/theme candidate manifests",
+        "semantic identity research and sign-annotation contract",
+        "return-as-action canon node as a declared negative control"
+      ],
+      "reads": [
+        "all 3423 aligned units, exact DE/RU source-return anchors, recurrence formulas, context signals, and declared negative controls"
+      ],
+      "writes": [
+        "one sign-annotation concept candidate, text-free evidence/formula/template ledgers, coverage and promotion receipts, plus one mode-0600 exact bilingual analysis"
+      ],
+      "side_effects": "issues opaque candidate identities only on explicit first build; materializes no accepted sign, concept, claim, relation, translation equivalence, graph fact, canon object, or human review",
+      "validation_lane": "source_witness_foundation",
+      "ci_inclusion": "focused-tests",
+      "test_target": "tests/test_zarathustra_eternal_return_concept_candidate_v1.py",
+      "disposition": "keep"
+    },
+    {
+      "path": "scripts/build_zarathustra_eternal_return_review_preparation_v1.py",
+      "family": "candidate_projection_builder",
+      "organ_lane": "projection/generated",
+      "owner_surface": "ToS/candidate-intake/zarathustra/eternal-return-concept-candidate-v1/review-preparation-v1/plan.v1.json",
+      "source_truth": [
+        "frozen eternal-return parent candidate and exact mode-0600 analysis",
+        "complete DE/RU paragraph-alignment manifest",
+        "Antonovsky 1911 structural paragraph/verse manifest",
+        "semantic identity research and review-ledger checklist"
+      ],
+      "reads": [
+        "five declared gap alignments, all 159 selected core-reading evidence units in source order, exact witness slices, speaker transitions, interpretation templates, and counterpressure passages"
+      ],
+      "writes": [
+        "text-free gap and speaker candidates, interpretation review matrix, compressed exception worklist, coverage/provenance receipts, and one mode-0600 exact review-preparation analysis"
+      ],
+      "side_effects": "issues opaque candidate identities only on explicit first build; corrects no witness, mutates no alignment, records no human review, materializes no claim or relation, and has no graph or canon effect",
+      "validation_lane": "source_witness_foundation",
+      "ci_inclusion": "focused-tests",
+      "test_target": "tests/test_zarathustra_eternal_return_review_preparation_v1.py",
+      "disposition": "keep"
+    },
+    {
+      "path": "scripts/build_zarathustra_concept_workbench_v1.py",
+      "family": "candidate_projection_builder",
+      "organ_lane": "projection/generated",
+      "owner_surface": "ToS/candidate-intake/zarathustra/concept-workbench-v1/plan.v1.json",
+      "source_truth": [
+        "complete four-part German and Russian technical witness units, exact occurrence indexes, and paragraph alignment candidates",
+        "candidate lexical and morphology methods, semantic identity research, and review checklist",
+        "one parameterized concept request with explicit seeds, distinctions, negative controls, relation ceiling, and a source-first on-demand English policy",
+        "the fixity-bound translation reference register and etymology evidence route"
+      ],
+      "reads": [
+        "all exact source-item occurrences, Zarathustra work-scope boundaries, every paragraph and verse line, alignment shapes and statuses, and private source-return layers"
+      ],
+      "writes": [
+        "text-free all-form and witness-local context spines, speaker-state candidates, request-local form and occurrence candidates, typed relations, gap and exclusion ledgers, a candidate graph, English on-demand task worklists, and mode-0600 exact and English context packets"
+      ],
+      "side_effects": "issues opaque candidate identities only on explicit first build; excludes appended separate-work material; English is AI-generated per German occurrence with Russian as comparator, sourced etymology required, recognized English translations sealed until freeze, and no accepted translation, lemma, speaker, sign, concept, relation, graph fact, review, or canon object",
+      "validation_lane": "source_witness_foundation",
+      "ci_inclusion": "focused-tests",
+      "test_target": "tests/test_zarathustra_concept_workbench_v1.py",
+      "disposition": "keep"
+    },
+    {
+      "path": "scripts/query_zarathustra_concept_workbench_v1.py",
+      "family": "candidate_query_adapter",
+      "organ_lane": "projection/generated",
+      "owner_surface": "ToS/candidate-intake/zarathustra/concept-workbench-v1/README.md",
+      "source_truth": [
+        "current schema-valid concept request and request-local concept candidate",
+        "typed candidate realization and translation-parallel relations",
+        "fixity-bound tracked workbench outputs and ignored mode-0600 exact source-return index"
+      ],
+      "reads": [
+        "multilingual discovery labels and reversible morphology candidates, exact German occurrences and contexts, aligned Antonovsky comparator contexts, and prepared English on-demand task refs"
+      ],
+      "writes": [],
+      "side_effects": "prints a schema-valid local exact-source result to stdout; creates no persistent search artifact, accepted concept, translation truth, graph fact, review, or canon effect",
+      "validation_lane": "source_witness_foundation",
+      "ci_inclusion": "focused-tests",
+      "test_target": "tests/test_zarathustra_concept_workbench_v1.py",
+      "disposition": "keep"
+    },
+    {
+      "path": "scripts/prepare_zarathustra_word_analysis_v1.py",
+      "family": "candidate_query_adapter",
+      "organ_lane": "projection/generated",
+      "owner_surface": "ToS/candidate-intake/zarathustra/concept-workbench-v1/README.md",
+      "source_truth": [
+        "one schema-valid concept-search result returning to an exact German occurrence and context",
+        "the source-first English candidate contract and the etymology evidence route"
+      ],
+      "reads": [
+        "one ranked German occurrence card, exact German context, aligned Antonovsky comparator context, and immutable source digests"
+      ],
+      "writes": [],
+      "side_effects": "prints a private source-bound agent task or validation receipt; persists no text or candidate and has no accepted lemma, translation, semantic, graph, review, or canon effect",
+      "validation_lane": "source_witness_foundation",
+      "ci_inclusion": "focused-tests",
+      "test_target": "tests/test_zarathustra_concept_workbench_v1.py",
+      "disposition": "keep"
     }
   ]
 }

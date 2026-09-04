@@ -1,0 +1,97 @@
+{
+  "schema_version": "tos_zarathustra_antonovsky_technical_screening_plan_v1",
+  "screening_id": "tos.screening.zarathustra-antonovsky-1911-layout-v1.2026-09-01",
+  "created_at": "2026-09-01T19:30:00-06:00",
+  "source_plan_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/technical-markup/antonovsky-1911-pdf-layout-v1/plan.v1.json",
+  "source_packet_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/technical-markup/antonovsky-1911-pdf-layout-v1/source-text-unit.v1.json",
+  "source_heading_candidates_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/technical-markup/antonovsky-1911-pdf-layout-v1/heading-candidates.v1.jsonl",
+  "source_file_sha256": "57518b50e24fee37b3e9c151e853c36ad34258f51a8b65b8233742d69017db69",
+  "source_bbox_sha256": "c145e47a5655bc440c35bb36922d88a886e9da126c332a23a71beee569615383",
+  "private_text_layer_sha256": "9a3e85fe010ec0eb22379b04f8c03a7dfa7beff06286cc0ac35521d8ae66c787",
+  "maker": {
+    "maker_kind": "model_source_visible",
+    "model_ref": "model:codex",
+    "source_visible": true,
+    "real_human_reviewer": false,
+    "creates_packet_review": false
+  },
+  "heading_screening": {
+    "expected_candidate_count": 86,
+    "coverage": "all_enumerated_candidates",
+    "classification_groups": [
+      {
+        "technical_role": "reading_unit_heading_candidate",
+        "candidate_ordinals": [5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 39, 40, 41, 43, 44, 49, 50, 51, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67, 74, 75, 76, 77, 78, 79, 81]
+      },
+      {
+        "technical_role": "numbered_subsection_marker",
+        "candidate_ordinals": [4, 24, 42, 45, 46, 47, 48, 52, 53, 54, 68, 69, 70, 71, 72, 73, 80]
+      },
+      {
+        "technical_role": "work_title_component_at_part_opening",
+        "candidate_ordinals": [25, 38, 55]
+      },
+      {
+        "technical_role": "part_title_heading",
+        "candidate_ordinals": [56]
+      },
+      {
+        "technical_role": "work_subtitle_component",
+        "candidate_ordinals": [1]
+      },
+      {
+        "technical_role": "table_of_contents_heading",
+        "candidate_ordinals": [2]
+      },
+      {
+        "technical_role": "translator_preface_heading",
+        "candidate_ordinals": [3]
+      },
+      {
+        "technical_role": "publisher_catalog_heading",
+        "candidate_ordinals": [82, 83, 84, 85, 86]
+      }
+    ],
+    "screening_outcome": "retained_all_candidates_with_witness_local_technical_roles",
+    "full_witness_heading_recall_claimed": false,
+    "accepted_section": false,
+    "human_review_performed": false
+  },
+  "paragraph_split_screening": {
+    "rule_version": "1",
+    "scope_region_candidate_ids": ["part_1", "part_2", "part_3", "part_4"],
+    "minimum_block_median_word_height_points": 8.0,
+    "maximum_block_median_word_height_points": 11.2,
+    "minimum_indent_from_block_left_points": 18.0,
+    "maximum_indent_from_block_left_points": 28.0,
+    "minimum_words_on_split_line": 2,
+    "verse_guard": {
+      "minimum_block_line_count": 5,
+      "maximum_candidate_split_ratio": 0.6,
+      "action": "exclude_block_from_paragraph_overlay"
+    },
+    "source_visible_sample": {
+      "sample_block_count": 42,
+      "sampling_posture": "region_stratified_first_middle_last_and_multi_split_pressure",
+      "observed_false_positive_classes": ["front_matter_reference_material", "verse_line_indentation"],
+      "rule_refinement_recorded": true,
+      "sample_does_not_accept_unsampled_boundaries": true
+    },
+    "expected_affected_source_block_count": 692,
+    "expected_split_boundary_count": 1372,
+    "expected_proposed_segment_count": 2064,
+    "status": "proposed",
+    "accepted_paragraphs": false,
+    "human_review_performed": false
+  },
+  "authority_boundary": {
+    "screening_is_human_review": false,
+    "screening_accepts_heading_or_paragraph_boundaries": false,
+    "source_block_units_are_replaced": false,
+    "new_text_unit_identities_are_issued": false,
+    "source_text_is_changed": false,
+    "translation_alignment_is_created": false,
+    "full_alignment_readiness_claimed": false,
+    "semantic_promotion": false
+  }
+}

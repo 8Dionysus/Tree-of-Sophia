@@ -1,0 +1,134 @@
+{
+  "schema_version": "tos_zarathustra_antonovsky_1911_pdf_layout_plan_v1",
+  "plan_id": "tos.plan.zarathustra-antonovsky-1911-pdf-layout-v1",
+  "created_at": "2026-09-01T15:00:00-06:00",
+  "work_ref": "tos.work.friedrich-nietzsche.also-sprach-zarathustra",
+  "language": "ru",
+  "contract_ref": "ToS/contracts/source-text-unit-packet-v1.schema.json",
+  "route_root": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/technical-markup/antonovsky-1911-pdf-layout-v1",
+  "private_layer_root": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/local-content/technical-markup-v1",
+  "source_item": {
+    "expression_ref": "tos.expression.friedrich-nietzsche.also-sprach-zarathustra.ru-antonovsky-1911",
+    "edition_ref": "tos.edition.friedrich-nietzsche.also-sprach-zarathustra.saint-petersburg-prometey-1911-fourth",
+    "item_ref": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.ru-antonovsky-1911.rsl-neb-scan-pdf",
+    "manifest_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-antonovsky-1911/editions/saint-petersburg-prometey-1911-fourth/items/rsl-neb-scan-pdf/item.manifest.json",
+    "resource_inventory_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-antonovsky-1911/editions/saint-petersburg-prometey-1911-fourth/items/rsl-neb-scan-pdf/resource-inventory.json",
+    "rights_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-antonovsky-1911/editions/saint-petersburg-prometey-1911-fourth/items/rsl-neb-scan-pdf/rights.json",
+    "file_ref": "tos.file.sha256.57518b50e24fee37b3e9c151e853c36ad34258f51a8b65b8233742d69017db69",
+    "file_sha256": "57518b50e24fee37b3e9c151e853c36ad34258f51a8b65b8233742d69017db69"
+  },
+  "extraction_policy": {
+    "software_name": "pdftotext",
+    "software_version": "26.01.0",
+    "argv": [
+      "pdftotext",
+      "-bbox-layout",
+      "SOURCE_PDF",
+      "-"
+    ],
+    "expected_bbox_sha256": "c145e47a5655bc440c35bb36922d88a886e9da126c332a23a71beee569615383",
+    "expected_bbox_bytes": 12306305,
+    "expected_warning": "Syntax Warning: Invalid Font Weight",
+    "expected_warning_count": 2601,
+    "panel_rule": "assign each Poppler block to left when its horizontal bbox center is less than half the exact PDF page width, otherwise right",
+    "panel_order": ["left", "right"],
+    "block_order": "within each panel sort by yMin, then xMin, then original Poppler flow and block ordinals",
+    "word_join_rule": "join consecutive Poppler word elements inside one line with exactly one U+0020",
+    "line_join_rule": "join consecutive lines inside one block with exactly one U+000A",
+    "block_separator": "two U+000A code points",
+    "panel_separator": "three U+000A code points",
+    "page_separator": "one U+000C code point",
+    "unicode_normalization": "none",
+    "source_text_mutation_authorized": false
+  },
+  "region_candidates": [
+    {"region_id": "front_matter", "display_label": "front matter candidate", "start": {"pdf_page": 1, "panel": "left"}, "end": {"pdf_page": 5, "panel": "left"}},
+    {"region_id": "part_1", "display_label": "Part I candidate", "start": {"pdf_page": 5, "panel": "right"}, "end": {"pdf_page": 38, "panel": "left"}},
+    {"region_id": "part_2", "display_label": "Part II candidate", "start": {"pdf_page": 38, "panel": "right"}, "end": {"pdf_page": 69, "panel": "left"}},
+    {"region_id": "part_3", "display_label": "Part III candidate", "start": {"pdf_page": 69, "panel": "right"}, "end": {"pdf_page": 108, "panel": "left"}},
+    {"region_id": "part_4", "display_label": "Part IV candidate", "start": {"pdf_page": 108, "panel": "right"}, "end": {"pdf_page": 151, "panel": "left"}},
+    {"region_id": "back_matter", "display_label": "back matter candidate", "start": {"pdf_page": 151, "panel": "right"}, "end": {"pdf_page": 153, "panel": "right"}}
+  ],
+  "region_observation": {
+    "maker": "model_source_visible",
+    "render_dpi": 120,
+    "human_review_performed": false,
+    "status": "proposed",
+    "reason": "part-title openings and the final publisher-catalog transition are source-visible on exact rendered page sides; no German numbering or title mapping was used"
+  },
+  "heading_candidate_rule": {
+    "rule_version": "1",
+    "maximum_line_count": 3,
+    "maximum_word_count": 14,
+    "maximum_width_points": 220.0,
+    "panel_center_tolerance_points": 40.0,
+    "minimum_y_points": 55.0,
+    "bottom_margin_points": 45.0,
+    "minimum_gap_before_points": 8.0,
+    "minimum_gap_after_points": 8.0,
+    "minimum_median_word_height_points": 11.2,
+    "status": "proposed",
+    "coverage_posture": "high_precision_incomplete_candidate_set",
+    "text_matching_used": false,
+    "human_review_performed": false
+  },
+  "expected_counts": {
+    "pdf_pages": 153,
+    "observed_panels": 297,
+    "poppler_flows": 4115,
+    "layout_block_paragraph_candidates": 7225,
+    "physical_lines_counted_not_unitized": 13071,
+    "embedded_words_counted_not_unitized": 97419,
+    "heading_candidates": 86,
+    "tracked_units": 7676,
+    "regions": {
+      "front_matter": {"panels": 7, "blocks": 323, "lines": 371, "words": 891, "heading_candidates": 3},
+      "part_1": {"panels": 64, "blocks": 918, "lines": 2461, "words": 19464, "heading_candidates": 21},
+      "part_2": {"panels": 61, "blocks": 1252, "lines": 2612, "words": 19940, "heading_candidates": 13},
+      "part_3": {"panels": 76, "blocks": 2402, "lines": 3588, "words": 25907, "heading_candidates": 17},
+      "part_4": {"panels": 85, "blocks": 2150, "lines": 3839, "words": 30192, "heading_candidates": 27},
+      "back_matter": {"panels": 4, "blocks": 180, "lines": 200, "words": 1025, "heading_candidates": 5}
+    }
+  },
+  "identity_policy": {
+    "issuance_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/technical-markup/antonovsky-1911-pdf-layout-v1/identity-issuance.v1.json",
+    "policy": "opaque-issued-identity-independent-of-label-text-source-ordinal-offset-and-current-citation",
+    "source_locator_is_binding_not_identity": true,
+    "automatic_remint_on_locator_drift": false
+  },
+  "technical_screening_plan_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/technical-markup/antonovsky-1911-pdf-layout-v1/technical-screening-plan.v1.json",
+  "outputs": {
+    "packet_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/technical-markup/antonovsky-1911-pdf-layout-v1/source-text-unit.v1.json",
+    "citation_spine_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/technical-markup/antonovsky-1911-pdf-layout-v1/citation-spine.v1.jsonl",
+    "region_candidates_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/technical-markup/antonovsky-1911-pdf-layout-v1/region-candidates.v1.jsonl",
+    "heading_candidates_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/technical-markup/antonovsky-1911-pdf-layout-v1/heading-candidates.v1.jsonl",
+    "heading_screening_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/technical-markup/antonovsky-1911-pdf-layout-v1/heading-screening.v1.jsonl",
+    "paragraph_segment_overlay_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/technical-markup/antonovsky-1911-pdf-layout-v1/paragraph-segment-overlay.v1.jsonl",
+    "screening_summary_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/technical-markup/antonovsky-1911-pdf-layout-v1/screening-summary.v1.json",
+    "summary_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/technical-markup/antonovsky-1911-pdf-layout-v1/summary.v1.json",
+    "provenance_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/technical-markup/antonovsky-1911-pdf-layout-v1/provenance.jsonl",
+    "private_text_layer_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/local-content/technical-markup-v1/antonovsky-1911-pdf-layout.v1.txt",
+    "private_bbox_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/local-content/technical-markup-v1/antonovsky-1911-pdf.bbox-layout.v1.html"
+  },
+  "rights_and_visibility": {
+    "source_visibility": "local_only",
+    "tracked_packet_visibility": "public_metadata_only",
+    "effective_visibility": "local_only",
+    "publication_authorized": false,
+    "server_transfer_authorized": false,
+    "local_noncommercial_research_only": true
+  },
+  "semantic_boundary": {
+    "creates_accepted_russian_text": false,
+    "creates_accepted_paragraphs": false,
+    "creates_accepted_sections": false,
+    "creates_sentence_boundaries": false,
+    "creates_tokens": false,
+    "creates_lemmas": false,
+    "creates_translation_alignment": false,
+    "creates_signs_or_concepts": false,
+    "creates_relations": false,
+    "creates_graph_or_canon_authority": false
+  },
+  "authority_boundary": "exact-PDF-page-bound local technical navigation and count foundation; Poppler layout blocks, midpoint panels, part spans, and heading detections remain unreviewed method proposals with no accepted Russian, translation alignment, semantics, graph, canon, rights clearance, or publication authority"
+}
