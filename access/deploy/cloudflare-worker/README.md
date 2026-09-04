@@ -68,6 +68,11 @@ The Worker owns the apex custom domain and redirects `www.treeofsophia.com` to
 the apex. `api`, `assets`, and `docs` remain unassigned for later bounded
 profiles.
 
+The web build also publishes the operator-facing AoA Social Connector service
+information at `/apps/aoa-social-connector/`, with directly linked privacy and
+terms pages. These static pages describe the external connector project and do
+not become an authority for Tree of Sophia source, review, or canon.
+
 No Cloudflare credential belongs in this repository. Local Wrangler OAuth and
 Cloudflare's encrypted Workers Builds token are operational credentials owned
 by Cloudflare and the operator account.
