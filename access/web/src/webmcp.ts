@@ -27,6 +27,13 @@ export type WebMCPStatus = {
   registration_error: string | null;
 };
 
+export type WebMCPServices = {
+  prepareWordAnalysis?: (
+    input: Record<string, unknown>,
+    options: { signal: AbortSignal },
+  ) => Promise<unknown>;
+};
+
 const emptySchema: JsonSchema = { type: "object", properties: {}, additionalProperties: false };
 
 function objectSchema(properties: Record<string, unknown>, required: string[] = []): JsonSchema {
@@ -147,7 +154,7 @@ function compactWorkspaceRead(result: Record<string, unknown>): unknown {
   };
 }
 
-function stableTools(registry: PageCommandRegistry): WebMCPTool[] {
+function stableTools(registry: PageCommandRegistry, services: WebMCPServices): WebMCPTool[] {
   return [
     commandTool(registry, "tos.page.context", {
       name: "tos.page.context",
@@ -156,6 +163,29 @@ function stableTools(registry: PageCommandRegistry): WebMCPTool[] {
       inputSchema: emptySchema,
       annotations: { readOnlyHint: true },
     }),
+    {
+      name: "tos.zarathustra.word-analysis.prepare",
+      title: "Prepare a source-bound Zarathustra word analysis",
+      description: "Resolve a German, Russian, or English concept query to one exact German occurrence and return the required morphology, syntax, historical-sense, cited-etymology, Russian-comparison, and English-rendering task. The result is local, unreviewed, and non-canonical.",
+      inputSchema: objectSchema({
+        query: { type: "string", minLength: 1, maxLength: 256 },
+        language: { type: "string", enum: ["de", "ru", "en"], default: "ru" },
+        rank: { type: "integer", minimum: 1, maximum: 100, default: 1 },
+        include_semantic_neighbors: { type: "boolean", default: false },
+      }, ["query"]),
+      annotations: { readOnlyHint: true, untrustedContentHint: true },
+      execute: async (input, options) => {
+        const value = services.prepareWordAnalysis
+          ? await services.prepareWordAnalysis(input, options)
+          : {
+              schema: "tos_zarathustra_word_analysis_capability_v1",
+              available: false,
+              reason: "word-analysis query service is unavailable",
+              task: null,
+            };
+        return toolResult(value);
+      },
+    },
     commandTool(registry, "tos.page.research-workspace", {
       name: "tos.page.research-workspace",
       title: "Read the local research workspace",
@@ -342,7 +372,11 @@ function dynamicTools(registry: PageCommandRegistry, context: PageContext): WebM
   return tools;
 }
 
-export function createWebMCPAdapter(registry: PageCommandRegistry, targetDocument: WebMCPDocument) {
+export function createWebMCPAdapter(
+  registry: PageCommandRegistry,
+  targetDocument: WebMCPDocument,
+  services: WebMCPServices = {},
+) {
   let stableController: AbortController | null = null;
   let dynamicController: AbortController | null = null;
   let unsubscribe: (() => void) | null = null;
@@ -423,7 +457,7 @@ export function createWebMCPAdapter(registry: PageCommandRegistry, targetDocumen
     }
     stableController = new AbortController();
     try {
-      const tools = stableTools(registry);
+      const tools = stableTools(registry, services);
       await registerAll(tools, stableController);
       stableToolCount = tools.length;
       unsubscribe = registry.subscribe((context) => void refresh(context));

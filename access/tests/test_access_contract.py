@@ -199,6 +199,82 @@ def write_fixture(root: Path) -> None:
 
 
 class CoreContractTests(unittest.TestCase):
+    def test_local_word_analysis_provider_is_capability_gated_and_source_bound(self) -> None:
+        with tempfile.TemporaryDirectory() as raw:
+            root = Path(raw)
+            write_fixture(root)
+            core = ToSAccessCore.discover(tos_root=root)
+            unavailable = core.zarathustra_word_analysis_task("судьбы", "ru", rank=2)
+            self.assertFalse(unavailable["available"])
+            self.assertIsNone(unavailable["task"])
+            self.assertEqual(unavailable["publication_posture"], "excluded_from_public_bundle")
+
+            provider = root / "scripts/prepare_zarathustra_word_analysis_v1.py"
+            provider.parent.mkdir(parents=True)
+            symlink_target = provider.parent / "provider-target.py"
+            symlink_target.write_text("raise AssertionError('must not load through symlink')\n", encoding="utf-8")
+            provider.symlink_to(symlink_target)
+            symlinked = ToSAccessCore.discover(tos_root=root).zarathustra_word_analysis_task(
+                "судьбы", "ru",
+            )
+            self.assertFalse(symlinked["available"])
+            provider.unlink()
+            provider.write_text(
+                "def build_task(query, language, rank=1, include_semantic_neighbors=False, request_path=None):\n"
+                "    return {\n"
+                "        'schema_version': 'tos_zarathustra_word_analysis_task_v1',\n"
+                "        'analysis_task_id': 'task:fixture',\n"
+                "        'query': query, 'language': language, 'rank': rank,\n"
+                "        'include_semantic_neighbors': include_semantic_neighbors,\n"
+                "        'source': {'language': 'de', 'surface': 'Schicksal', 'exact_context': 'mein Schicksal'},\n"
+                "        'authority': {'accepted': False, 'semantic_fact_asserted': False, 'canon_effect': False},\n"
+                "    }\n",
+                encoding="utf-8",
+            )
+            available = ToSAccessCore.discover(tos_root=root).zarathustra_word_analysis_task(
+                "судьбы", "ru", rank=2, include_semantic_neighbors=True,
+            )
+            self.assertTrue(available["available"])
+            self.assertEqual(available["task"]["source"]["surface"], "Schicksal")
+            self.assertEqual(available["task"]["rank"], 2)
+            self.assertTrue(available["task"]["include_semantic_neighbors"])
+            self.assertFalse(available["authority"]["is_semantic_truth"])
+            self.assertFalse(available["authority"]["writes_to_tree"])
+
+    def test_http_exposes_same_local_word_analysis_capability(self) -> None:
+        with tempfile.TemporaryDirectory() as raw:
+            root = Path(raw)
+            write_fixture(root)
+            provider = root / "scripts/prepare_zarathustra_word_analysis_v1.py"
+            provider.parent.mkdir(parents=True)
+            provider.write_text(
+                "def build_task(query, language, rank=1, include_semantic_neighbors=False, request_path=None):\n"
+                "    return {'schema_version': 'tos_zarathustra_word_analysis_task_v1', "
+                "'query': query, 'language': language, 'rank': rank, "
+                "'include_semantic_neighbors': include_semantic_neighbors, "
+                "'source': {'language': 'de', 'exact_context': 'mein Schicksal'}, "
+                "'authority': {'accepted': False, 'semantic_fact_asserted': False, 'canon_effect': False}}\n",
+                encoding="utf-8",
+            )
+            server = make_server(ToSAccessCore.discover(tos_root=root), port=0)
+            thread = threading.Thread(target=server.serve_forever, daemon=True)
+            thread.start()
+            try:
+                url = (
+                    f"http://127.0.0.1:{server.server_port}/api/zarathustra/word-analysis"
+                    "?query=%D1%81%D1%83%D0%B4%D1%8C%D0%B1%D1%8B&language=ru&rank=3"
+                    "&include_semantic_neighbors=true"
+                )
+                packet = json.load(urllib.request.urlopen(url))
+                self.assertTrue(packet["available"])
+                self.assertEqual(packet["task"]["query"], "судьбы")
+                self.assertEqual(packet["task"]["rank"], 3)
+                self.assertTrue(packet["task"]["include_semantic_neighbors"])
+            finally:
+                server.shutdown()
+                server.server_close()
+                thread.join(timeout=5)
+
     def test_standalone_validator_accepts_split_web_contracts(self) -> None:
         validate_standalone._validate_contracts(REPO_ROOT)
 
@@ -998,6 +1074,7 @@ class AuthoredContractTests(unittest.TestCase):
             "tos.neighborhood",
             "tos.path.find",
             "tos.epistemic.inspect",
+            "tos.zarathustra.word-analysis.prepare",
         }
         self.assertEqual(
             {item["operation_id"] for item in query_contract["operations"]},

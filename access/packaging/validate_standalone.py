@@ -21,6 +21,7 @@ EXPECTED_QUERY_OPERATIONS = {
     "tos.neighborhood",
     "tos.epistemic.inspect",
     "tos.path.find",
+    "tos.zarathustra.word-analysis.prepare",
 }
 EXPECTED_PAGE_COMMANDS = {
     "tos.page.context",

@@ -35,6 +35,61 @@ function workspaceSummary() {
 }
 
 describe("WebMCP page-command binding", () => {
+  it("offers a stable source-bound word-analysis tool to the page agent", async () => {
+    const current: PageContextSnapshot = {
+      mode: "philosophy",
+      view_id: "chronology",
+      graph_mode: "nodes",
+      selected: null,
+      path_start_node_id: null,
+      active_layers: [],
+      active_predicates: [],
+      deep_link: "http://tos.local/",
+      research_workspace: workspaceSummary(),
+    };
+    const noop = vi.fn();
+    const prepare = vi.fn((_input: Record<string, unknown>) => ({
+      schema: "tos_zarathustra_word_analysis_capability_v1",
+      available: true,
+      task: { source: { language: "de", surface: "Schicksal" } },
+    }));
+    const registry = createPageCommandRegistry(() => current, {
+      "tos.page.open-view": noop,
+      "tos.page.search": noop,
+      "tos.page.select": noop,
+      "tos.page.show-neighborhood": noop,
+      "tos.page.start-path": noop,
+      "tos.page.find-path": noop,
+      "tos.page.reroute-without-selection": noop,
+      "tos.page.inspect-epistemic": noop,
+      "tos.page.clear-focus": noop,
+      ...workspaceNoopHandlers,
+    });
+    const tools = new Map<string, RegisteredTool>();
+    const modelContext = {
+      registerTool: vi.fn(async (tool: RegisteredTool, options?: { signal?: AbortSignal }) => {
+        tools.set(tool.name, tool);
+        options?.signal?.addEventListener("abort", () => tools.delete(tool.name), { once: true });
+      }),
+    };
+    const adapter = createWebMCPAdapter(
+      registry,
+      { modelContext } as unknown as WebMCPDocument,
+      { prepareWordAnalysis: async (input) => prepare(input) },
+    );
+
+    await adapter.start();
+    const tool = tools.get("tos.zarathustra.word-analysis.prepare");
+    expect(tool).toBeDefined();
+    const result = await tool?.execute(
+      { query: "судьбы", language: "ru", rank: 1 },
+      { signal: new AbortController().signal },
+    ) as { content: Array<{ text: string }> };
+    expect(prepare).toHaveBeenCalled();
+    expect(result.content[0].text).toContain("Schicksal");
+    adapter.stop();
+  });
+
   it("reports product-shell connection and selection-bound tool counts", async () => {
     const current: PageContextSnapshot = {
       mode: "philosophy",

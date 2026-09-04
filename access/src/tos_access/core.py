@@ -1,7 +1,9 @@
 from __future__ import annotations
 
+import importlib.util
 import json
 import os
+import sys
 from collections import deque
 from dataclasses import dataclass
 from functools import lru_cache
@@ -13,6 +15,7 @@ INDEX_RELATIVE_PATH = Path("ToS/derived-exports/tos_corpus_index.min.json")
 PHILOSOPHY_PROJECTION_RELATIVE_PATH = Path("ToS/derived-exports/philosophy_graph_projection.min.json")
 PHILOSOPHY_AUDIT_RELATIVE_PATH = Path("ToS/philosophy/graph-workbench/review-packets/table-i-post-planting-audit.json")
 EVIDENCE_PROJECTION_RELATIVE_PATH = Path("ToS/derived-exports/epistemic_evidence_projection.min.json")
+WORD_ANALYSIS_PROVIDER_RELATIVE_PATH = Path("scripts/prepare_zarathustra_word_analysis_v1.py")
 SUPPORTED_CORPUS_VIEW_IDS = {
     "corpus-topology",
     "route-graph",
@@ -373,6 +376,94 @@ class ToSAccessCore:
             "graph_views": [view.get("view_id") for view in _supported_corpus_views(payload)],
             "authority_order": payload.get("authority_order", []),
             "runtime_projection_boundary": payload.get("runtime_projection_boundary", {}),
+        }
+
+    def zarathustra_word_analysis_task(
+        self,
+        query: str,
+        language: str = "ru",
+        rank: int = 1,
+        include_semantic_neighbors: bool = False,
+    ) -> dict[str, Any]:
+        normalized_query = str(query).strip()
+        if not normalized_query:
+            raise ValueError("word-analysis query is required")
+        if len(normalized_query) > 256:
+            raise ValueError("word-analysis query exceeds 256 characters")
+        normalized_language = str(language).strip().lower()
+        if normalized_language not in {"de", "ru", "en"}:
+            raise ValueError(f"unsupported word-analysis language: {normalized_language}")
+        bounded_rank = _bounded_int(rank, 1, 1, 100)
+        provider_candidate = self.tos_root / WORD_ANALYSIS_PROVIDER_RELATIVE_PATH
+        root = self.tos_root.resolve()
+        authority = {
+            "source_owner": "Tree-of-Sophia",
+            "access_plane_is_source": False,
+            "is_semantic_truth": False,
+            "writes_to_tree": False,
+            "reviewed": False,
+            "canon": False,
+        }
+        if provider_candidate.is_symlink() or not provider_candidate.is_file():
+            return {
+                "schema": "tos_zarathustra_word_analysis_capability_v1",
+                "available": False,
+                "reason": "local source-bound word-analysis provider is not installed",
+                "provider_ref": WORD_ANALYSIS_PROVIDER_RELATIVE_PATH.as_posix(),
+                "publication_posture": "excluded_from_public_bundle",
+                "task": None,
+                "authority": authority,
+            }
+        provider_path = provider_candidate.resolve()
+        if root not in provider_path.parents:
+            raise RuntimeError("local word-analysis provider escapes the configured ToS root")
+        stat = provider_path.stat()
+        module_name = f"tos_local_word_analysis_{stat.st_mtime_ns}_{stat.st_size}"
+        spec = importlib.util.spec_from_file_location(module_name, provider_path)
+        if spec is None or spec.loader is None:
+            raise RuntimeError(f"cannot load local word-analysis provider: {provider_path}")
+        module = importlib.util.module_from_spec(spec)
+        sys.modules[module_name] = module
+        try:
+            spec.loader.exec_module(module)
+            build_task = getattr(module, "build_task", None)
+            if not callable(build_task):
+                raise RuntimeError("local word-analysis provider has no callable build_task")
+            task = build_task(
+                normalized_query,
+                normalized_language,
+                rank=bounded_rank,
+                include_semantic_neighbors=bool(include_semantic_neighbors),
+            )
+        finally:
+            sys.modules.pop(module_name, None)
+        task_authority = task.get("authority") if isinstance(task, dict) else None
+        task_source = task.get("source") if isinstance(task, dict) else None
+        safe_authority = isinstance(task_authority, dict) and all(
+            task_authority.get(field) is False
+            for field in ("accepted", "semantic_fact_asserted", "canon_effect")
+        )
+        source_bound = (
+            isinstance(task_source, dict)
+            and task_source.get("language") == "de"
+            and isinstance(task_source.get("exact_context"), str)
+            and bool(task_source["exact_context"])
+        )
+        if (
+            not isinstance(task, dict)
+            or task.get("schema_version") != "tos_zarathustra_word_analysis_task_v1"
+            or not safe_authority
+            or not source_bound
+        ):
+            raise RuntimeError("local word-analysis provider returned an unsupported task contract")
+        return {
+            "schema": "tos_zarathustra_word_analysis_capability_v1",
+            "available": True,
+            "reason": None,
+            "provider_ref": WORD_ANALYSIS_PROVIDER_RELATIVE_PATH.as_posix(),
+            "publication_posture": "local_full_tree_only",
+            "task": task,
+            "authority": authority,
         }
 
     def summary(self) -> dict[str, Any]:

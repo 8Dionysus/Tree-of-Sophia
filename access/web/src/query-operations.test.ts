@@ -89,4 +89,30 @@ describe("ToS query operations", () => {
     expect(url.pathname).toBe("/api/corpus/query/epistemic/m113");
     expect(url.searchParams.get("view_id")).toBe("route-graph");
   });
+
+  it("routes source-bound Zarathustra word analysis through the local capability", async () => {
+    let requestedUrl = "";
+    const controller = new AbortController();
+    const operations = createToSQueryOperations(async <T>(url: string, options?: RequestInit) => {
+      requestedUrl = url;
+      expect(options?.signal).toBe(controller.signal);
+      return { available: true } as T;
+    });
+
+    await operations.invoke("tos.zarathustra.word-analysis.prepare", {
+      query: "судьбы",
+      language: "ru",
+      rank: 2,
+      include_semantic_neighbors: true,
+    }, { signal: controller.signal });
+
+    const url = new URL(requestedUrl, "http://tos.local");
+    expect(url.pathname).toBe("/api/zarathustra/word-analysis");
+    expect(Object.fromEntries(url.searchParams)).toEqual({
+      query: "судьбы",
+      language: "ru",
+      rank: "2",
+      include_semantic_neighbors: "true",
+    });
+  });
 });
