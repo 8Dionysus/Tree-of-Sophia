@@ -83,9 +83,10 @@ class RoadmapParityTestCase(unittest.TestCase):
             with self.subTest(indexed_surface=surface):
                 self.assertTrue((REPO_ROOT / surface).exists(), surface)
 
-    def test_release_contract_keeps_exact_current_provider_identities(self) -> None:
+    def test_release_contract_keeps_owner_identities_and_tos_freeze(self) -> None:
         release_contract = read_text("docs/RELEASING.md")
         workflow = read_text(".github/workflows/repo-validation.yml")
+        freeze = load_json("kag/indexes/hot_profile.json")
 
         self.assertIn(
             "`aoa-stats@v0.2.0`, commit `88ff38b1b38eef939f2c5b4541cbe8363a05fc8d`",
@@ -111,11 +112,9 @@ class RoadmapParityTestCase(unittest.TestCase):
             "AOA_STATS_REVISION: 88ff38b1b38eef939f2c5b4541cbe8363a05fc8d",
             workflow,
         )
-        self.assertIn(
-            "uses: 8Dionysus/aoa-kag/.github/actions/repo-local-kag-index@"
-            "25cd6263ae2c860c58f86cf3a0747f2070eb45ff",
-            workflow,
-        )
+        self.assertEqual("frozen", freeze["state"])
+        self.assertNotIn("AOA_KAG_ROOT", workflow)
+        self.assertNotIn("uses: 8Dionysus/aoa-kag/.github/actions/repo-local-kag-index@", workflow)
 
 
 if __name__ == "__main__":

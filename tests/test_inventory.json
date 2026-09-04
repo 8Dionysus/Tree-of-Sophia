@@ -48,6 +48,36 @@
       "disposition": "keep"
     },
     {
+      "path": "access/tests/test_http_security.py",
+      "home": "access",
+      "home_scope": "product-local",
+      "family": "standalone_http_security",
+      "validation_lane": "standalone_access",
+      "owner_surface": "access/AGENTS.md",
+      "protects": "standalone HTTP security headers, origin handling, and disabled external integration behavior",
+      "coverage_authority": "access/AGENTS.md standalone access validation",
+      "mode": "blocking",
+      "runtime_cost": "fast",
+      "focused_target": "access/tests/test_http_security.py",
+      "failure_route": "Fix the access HTTP adapter or security boundary before changing test expectations.",
+      "disposition": "keep"
+    },
+    {
+      "path": "access/e2e/test_webmcp.py",
+      "home": "access/e2e",
+      "home_scope": "root",
+      "family": "standalone_browser_e2e",
+      "validation_lane": "standalone_access",
+      "owner_surface": "access/e2e/README.md",
+      "protects": "real Chromium product-shell behavior, WebMCP registration, page commands, persistence, and no-WebMCP fallback",
+      "coverage_authority": "access/e2e/README.md and Repo Validation browser contract",
+      "mode": "release-only",
+      "runtime_cost": "slow",
+      "focused_target": "access/e2e/test_webmcp.py",
+      "failure_route": "Fix the access product shell, browser contract, or E2E harness before changing test expectations.",
+      "disposition": "keep"
+    },
+    {
       "path": "mechanics/agon/parts/threshold-registry/tests/test_tos_agon_threshold_intake_registry.py",
       "home": "mechanics/agon/parts/threshold-registry",
       "home_scope": "part-local",
@@ -480,6 +510,21 @@
       "runtime_cost": "fast",
       "focused_target": "tests/test_test_topology.py",
       "failure_route": "Fix docs/testing/TEST_TOPOLOGY.md or tests/test_inventory.json before changing topology expectations.",
+      "disposition": "keep"
+    },
+    {
+      "path": "tests/test_epistemic_evidence_projection.py",
+      "home": "tests",
+      "home_scope": "root",
+      "family": "generated_parity",
+      "validation_lane": "graph_exports",
+      "owner_surface": "ToS/contracts/epistemic-evidence-projection.schema.json",
+      "protects": "public-safe Evidence Lens projection parity, source-route binding, and non-authority boundaries",
+      "coverage_authority": "tests/AGENTS.md root unittest discovery",
+      "mode": "blocking",
+      "runtime_cost": "fast",
+      "focused_target": "tests/test_epistemic_evidence_projection.py",
+      "failure_route": "Fix the Evidence Lens projection source, schema, builder, or validator before changing test expectations.",
       "disposition": "keep"
     },
     {

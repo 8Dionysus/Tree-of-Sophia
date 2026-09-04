@@ -12,8 +12,6 @@ jobs:
     runs-on: ubuntu-latest
     env:
       AOA_STATS_REVISION: 88ff38b1b38eef939f2c5b4541cbe8363a05fc8d
-      AOA_KAG_REVISION: 47598411fba56f126a8530cb1e7e91bed57f5fef
-      AOA_KAG_ACTION_REVISION: 25cd6263ae2c860c58f86cf3a0747f2070eb45ff
     steps:
       - name: Checkout
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
@@ -21,12 +19,6 @@ jobs:
           # Budget receipts bind admission to an exact historical base_ref.
           # Keep that owner evidence locally verifiable for the release lane.
           fetch-depth: 0
-
-      - name: Check repo-local KAG index family
-        uses: 8Dionysus/aoa-kag/.github/actions/repo-local-kag-index@25cd6263ae2c860c58f86cf3a0747f2070eb45ff
-        with:
-          history-ref: ${{ github.event.pull_request.base.sha || github.event.before || format('{0}^', github.sha) }}
-          event-history-ref: ${{ github.event.pull_request.base.sha || github.event.before || format('{0}^', github.sha) }}
 
       - name: Setup Python
         uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405
@@ -45,31 +37,8 @@ jobs:
           git -C "$AOA_STATS_ROOT" checkout --quiet --detach FETCH_HEAD
           test "$(git -C "$AOA_STATS_ROOT" rev-parse HEAD)" = "$AOA_STATS_REVISION"
 
-      - name: Fetch pinned aoa-kag provider and action sources
-        env:
-          AOA_KAG_ROOT: ${{ runner.temp }}/aoa-kag
-        run: |
-          git init --quiet "$AOA_KAG_ROOT"
-          git -C "$AOA_KAG_ROOT" remote add origin https://github.com/8Dionysus/aoa-kag.git
-          git -C "$AOA_KAG_ROOT" fetch --quiet --no-tags --depth=1 origin "$AOA_KAG_REVISION" "$AOA_KAG_ACTION_REVISION"
-          git -C "$AOA_KAG_ROOT" checkout --quiet --detach "$AOA_KAG_REVISION"
-          git -C "$AOA_KAG_ROOT" fetch --quiet --no-tags --unshallow origin
-          test "$(git -C "$AOA_KAG_ROOT" rev-parse HEAD)" = "$AOA_KAG_REVISION"
-
-      - name: Validate exact aoa-kag provider and separate action ABI
-        env:
-          AOA_KAG_ROOT: ${{ runner.temp }}/aoa-kag
-        run: |
-          python "$AOA_KAG_ROOT/scripts/validate_kag.py" --scope local
-          provider_action_digest="$(git -C "$AOA_KAG_ROOT" show "$AOA_KAG_REVISION:.github/actions/repo-local-kag-index/action.yml" | sha256sum | cut -d' ' -f1)"
-          executable_action_digest="$(git -C "$AOA_KAG_ROOT" show "$AOA_KAG_ACTION_REVISION:.github/actions/repo-local-kag-index/action.yml" | sha256sum | cut -d' ' -f1)"
-          test "$provider_action_digest" != "$executable_action_digest"
-          test -n "$provider_action_digest"
-          test -n "$executable_action_digest"
-
       - name: Run release audit
         env:
-          AOA_KAG_ROOT: ${{ runner.temp }}/aoa-kag
           AOA_STATS_ROOT: ${{ runner.temp }}/aoa-stats
         run: python scripts/release_check.py
 

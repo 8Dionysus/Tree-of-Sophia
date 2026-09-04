@@ -37,9 +37,12 @@ state. This freeze does not mutate or activate any downstream AbyssOS owner.
 
 ## Validation
 
-Select the local KAG, `public_entry`, or release route in
+Select the frozen local KAG binding, `public_entry`, or release route in
 [`kag/VALIDATION.md`](VALIDATION.md) after the source export and intended claim
-are known. KAG export regeneration remains with
+are known. While the freeze is active, `local_kag_provider` runs
+`scripts/validate_local_kag_provider.py --freeze-only`; the full provider
+validator and KAG export regeneration resume only after the explicit ToS
+operator unfreeze command. KAG export regeneration remains with
 `mechanics/boundary-bridge/parts/derived-kag-seam/docs/KAG_EXPORT.md` and its
 source builder; local provider procedure stays in the district validation
 route.

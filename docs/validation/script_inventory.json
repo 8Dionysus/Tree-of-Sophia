@@ -1616,6 +1616,55 @@
       "disposition": "keep"
     },
     {
+      "path": "scripts/build_epistemic_evidence_projection.py",
+      "family": "projection_builder",
+      "organ_lane": "projection/generated",
+      "owner_surface": "ToS/derived-exports/AGENTS.md",
+      "source_truth": [
+        "scripts/epistemic_evidence_projection_common.py",
+        "ToS/philosophy/graph-workbench/views/evidence-lens-scenes.v1.json",
+        "ToS/contracts/epistemic-evidence-projection.schema.json"
+      ],
+      "reads": [
+        "ToS/philosophy/graph-workbench/views/evidence-lens-scenes.v1.json",
+        "ToS/derived-exports/philosophy_graph_projection.min.json",
+        "ToS/derived-exports/tos_corpus_index.min.json",
+        "ToS/canon/relations/friedrich-nietzsche/thus-spoke-zarathustra/prologue-1/edges.csv",
+        "ToS/contracts/epistemic-evidence-projection.schema.json"
+      ],
+      "writes": [
+        "ToS/derived-exports/epistemic_evidence_projection.min.json unless --check is used"
+      ],
+      "side_effects": "tracked generated public-safe evidence navigation projection for bounded inspection routes",
+      "validation_lane": "graph_exports",
+      "ci_inclusion": "release",
+      "test_target": "tests/test_epistemic_evidence_projection.py",
+      "disposition": "keep"
+    },
+    {
+      "path": "scripts/epistemic_evidence_projection_common.py",
+      "family": "builder_common",
+      "organ_lane": "shared-library",
+      "owner_surface": "ToS/derived-exports/AGENTS.md",
+      "source_truth": [
+        "ToS/philosophy/graph-workbench/views/evidence-lens-scenes.v1.json",
+        "ToS/contracts/epistemic-evidence-projection.schema.json"
+      ],
+      "reads": [
+        "ToS/philosophy/graph-workbench/views/evidence-lens-scenes.v1.json",
+        "ToS/derived-exports/philosophy_graph_projection.min.json",
+        "ToS/derived-exports/tos_corpus_index.min.json",
+        "ToS/canon/relations/friedrich-nietzsche/thus-spoke-zarathustra/prologue-1/edges.csv",
+        "ToS/contracts/epistemic-evidence-projection.schema.json"
+      ],
+      "writes": [],
+      "side_effects": "shared deterministic Evidence Lens builder and validator helpers only",
+      "validation_lane": "graph_exports",
+      "ci_inclusion": "release",
+      "test_target": "tests/test_epistemic_evidence_projection.py",
+      "disposition": "keep"
+    },
+    {
       "path": "scripts/build_philosophy_atlas_projection.py",
       "family": "projection_builder",
       "organ_lane": "projection/generated",
@@ -2228,7 +2277,7 @@
       "writes": [],
       "side_effects": "validation output only",
       "validation_lane": "local_kag_provider",
-      "ci_inclusion": "release",
+      "ci_inclusion": "inventory-only",
       "test_target": "scripts/validate_local_kag_provider.py",
       "disposition": "keep"
     },
@@ -2395,6 +2444,26 @@
       "validation_lane": "graph_exports",
       "ci_inclusion": "release",
       "test_target": "tests/test_tos_corpus_index.py",
+      "disposition": "keep"
+    },
+    {
+      "path": "scripts/validate_epistemic_evidence_projection.py",
+      "family": "projection_validator",
+      "organ_lane": "projection/generated",
+      "owner_surface": "ToS/contracts/epistemic-evidence-projection.schema.json",
+      "source_truth": [
+        "ToS/derived-exports/epistemic_evidence_projection.min.json",
+        "scripts/epistemic_evidence_projection_common.py",
+        "ToS/contracts/epistemic-evidence-projection.schema.json"
+      ],
+      "reads": [
+        "ToS/derived-exports/epistemic_evidence_projection.min.json"
+      ],
+      "writes": [],
+      "side_effects": "validation output only",
+      "validation_lane": "graph_exports",
+      "ci_inclusion": "release",
+      "test_target": "tests/test_epistemic_evidence_projection.py",
       "disposition": "keep"
     },
     {

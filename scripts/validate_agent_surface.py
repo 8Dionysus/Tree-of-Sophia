@@ -181,6 +181,7 @@ KAG_BUDGET_RUNTIME_CONTRACT_PREFIX = "aoa-kag:budget-producer-runtime-contract:"
 KAG_BUDGET_PROCEDURE_MANIFEST_PATH = "config/repo-local-kag-budget-producer.json"
 KAG_BUDGET_PROCEDURE_SCHEMA_PATH = "schemas/repo-local-kag-budget-producer-manifest.schema.json"
 KAG_BUDGET_PROCEDURE_ACTION_PATH = ".github/actions/repo-local-kag-index/action.yml"
+KAG_SURFACE_FREEZE_MANIFEST = Path("kag/indexes/hot_profile.json")
 
 
 def activation_policy_issues(
@@ -2376,6 +2377,14 @@ def generated_family_issues(
     fetch_missing_base: bool = False,
 ) -> list[Issue]:
     """Check the KAG generated carrier without coupling it into currentness."""
+    freeze_path = root / KAG_SURFACE_FREEZE_MANIFEST
+    try:
+        freeze = json.loads(freeze_path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        freeze = None
+    if isinstance(freeze, dict) and freeze.get("state") == "frozen":
+        return frozen_kag_surface_issues(root, port, freeze)
+
     issues: list[Issue] = []
     family = port.get("generated_family")
     if not isinstance(family, dict):
@@ -2436,6 +2445,51 @@ def generated_family_issues(
             require_v2=True,
         )
     )
+    return issues
+
+
+def frozen_kag_surface_issues(
+    root: Path,
+    port: dict[str, Any],
+    freeze: dict[str, Any],
+) -> list[Issue]:
+    """Keep only the exact family binding while ToS has explicitly frozen KAG."""
+    label = KAG_SURFACE_FREEZE_MANIFEST.as_posix()
+    issues: list[Issue] = []
+    if freeze.get("schema_version") != "tos_kag_surface_freeze_v1":
+        issues.append((label, "frozen KAG surface schema_version is invalid"))
+    if freeze.get("owner_repo") != "Tree-of-Sophia":
+        issues.append((label, "frozen KAG surface owner_repo is invalid"))
+    surface = freeze.get("surface")
+    if not isinstance(surface, dict):
+        return [(label, "frozen KAG surface must keep a surface binding")]
+    manifest_text = surface.get("manifest")
+    generated_family = port.get("generated_family")
+    expected_manifest = generated_family.get("manifest") if isinstance(generated_family, dict) else None
+    if manifest_text != expected_manifest:
+        issues.append((label, "frozen KAG surface manifest must match the agent owner-port manifest"))
+    if (
+        not isinstance(manifest_text, str)
+        or not manifest_text
+        or Path(manifest_text).is_absolute()
+        or ".." in Path(manifest_text).parts
+    ):
+        return issues + [(label, "frozen KAG surface manifest path is unsafe")]
+    manifest_path = root / manifest_text
+    try:
+        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return issues + [(manifest_text, "frozen KAG family manifest is missing or invalid")]
+    identity = manifest.get("family_identity") if isinstance(manifest, dict) else None
+    if not isinstance(identity, dict):
+        return issues + [(manifest_text, "frozen KAG family manifest lacks family_identity")]
+    if surface.get("family_digest") != identity.get("content_digest"):
+        issues.append((label, "frozen KAG family digest drifted; explicit unfreeze is required"))
+    if surface.get("source_snapshot") != identity.get("source_snapshot"):
+        issues.append((label, "frozen KAG source snapshot drifted; explicit unfreeze is required"))
+    unfreeze = freeze.get("unfreeze")
+    if not isinstance(unfreeze, dict) or unfreeze.get("requires") != "explicit ToS operator command":
+        issues.append((label, "frozen KAG surface must keep an explicit ToS operator unfreeze route"))
     return issues
 
 

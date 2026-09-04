@@ -436,16 +436,16 @@
       "whitespace_tokens": 207
     },
     {
-      "bytes": 1635,
+      "bytes": 2181,
       "inheritance_stack": [
         "AGENTS.md",
         "kag/AGENTS.md"
       ],
-      "lines": 45,
+      "lines": 53,
       "path": "kag/AGENTS.md",
-      "sha256": "9bca3f65868dfc15bd6e5c1b5721c0c3b08980ab93c3e44e8e3ca6e9220e8c1b",
+      "sha256": "e8c97be8d5abf907575d397ada191cd0c5b4257dd60b9314586d1a3dd652783a",
       "tracked": true,
-      "whitespace_tokens": 206
+      "whitespace_tokens": 276
     },
     {
       "bytes": 1478,
@@ -808,13 +808,13 @@
       "whitespace_tokens": 705
     },
     {
-      "bytes": 13743,
+      "bytes": 13930,
       "exists": true,
       "lines": 218,
       "path": "ROADMAP.md",
       "role": "current direction and next pressure",
-      "sha256": "c91c0768c11c063f97170dd5a0c451026dc475414a0c8607d3cff41e6f040ac4",
-      "whitespace_tokens": 1845
+      "sha256": "0266afdb6cbee54b50e1f05859224c78a573d275ac7708ee1c25f7f1a1e2ffff",
+      "whitespace_tokens": 1868
     },
     {
       "bytes": 8721,
@@ -849,17 +849,17 @@
       "lines": 1110,
       "path": ".agents/agent-surface.current.json",
       "role": "generated skill/port currentness read model",
-      "sha256": "c7deca8dc46cf318a66fcab7b7860f4d32e42ab2fa50b44ce1d8569b221837e7",
+      "sha256": "db151f9fe1b1dfba66105a1c01efafe92cd369a895367bccb9dce7793d857556",
       "whitespace_tokens": 2631
     },
     {
-      "bytes": 33525,
+      "bytes": 34056,
       "exists": true,
-      "lines": 885,
+      "lines": 893,
       "path": "docs/validation/validation_lanes.json",
       "role": "executable validation command authority",
-      "sha256": "8735d2cf3d952135a5bc202d2d5099d2c272bc3a2e6b4710b4898fd51b02fdc5",
-      "whitespace_tokens": 2445
+      "sha256": "111b0dd6ddb1bbc13886b2ed9531ced80dcf41c92662cb1d9abc23c4aa5df0d8",
+      "whitespace_tokens": 2504
     },
     {
       "bytes": 9588,
@@ -907,22 +907,22 @@
       "whitespace_tokens": 1820
     },
     {
-      "bytes": 147080,
+      "bytes": 150197,
       "exists": true,
-      "lines": 2731,
+      "lines": 2800,
       "path": "docs/validation/script_inventory.json",
       "role": "deterministic script coverage and side-effect inventory",
-      "sha256": "eb43fcc91437d140bad74a1d3748ca990154fb4755ea44f49ac1198171416f43",
-      "whitespace_tokens": 7348
+      "sha256": "85c49b1bed1a513115137855c7c77fdbe79e3e882888712527410ebcb9b5ade0",
+      "whitespace_tokens": 7476
     },
     {
-      "bytes": 4197,
+      "bytes": 3000,
       "exists": true,
-      "lines": 93,
+      "lines": 80,
       "path": ".github/workflows/repo-validation.yml",
       "role": "CI execution of the release lane",
-      "sha256": "e0fbd3bee1c0f4f2979fe9d7840704b5cc05a24134bec207575a29d04d44f8a9",
-      "whitespace_tokens": 354
+      "sha256": "131c71f404c292b79fe05a5b466f1d969929f268c644bcafea6ed690ec0526e0",
+      "whitespace_tokens": 250
     },
     {
       "bytes": 930,
@@ -1622,7 +1622,7 @@
       ]
     },
     {
-      "additional_context_tokens": 186,
+      "additional_context_tokens": 200,
       "completion_evidence": [
         {
           "bytes": 1384,
@@ -1634,22 +1634,22 @@
           "whitespace_tokens": 185
         },
         {
-          "bytes": 4212,
+          "bytes": 6416,
           "exists": true,
-          "lines": 81,
+          "lines": 117,
           "path": "access/README.md",
           "role": "completion",
-          "sha256": "53abdc0ce99d138f5fd2dd487d4e5ae5e80cc2aff840dd00b3d7368495fe3880",
-          "whitespace_tokens": 506
+          "sha256": "8f4da563f8ac069d140c6f0675e303f5f1199f64a51bf50e9d1e95db743524a6",
+          "whitespace_tokens": 799
         },
         {
-          "bytes": 13439,
+          "bytes": 15969,
           "exists": true,
-          "lines": 319,
+          "lines": 367,
           "path": "access/packaging/validate_standalone.py",
           "role": "completion",
-          "sha256": "57cf54516077f007b132a36374f2d304f9d15206f3897156df812f08675fba9a",
-          "whitespace_tokens": 1001
+          "sha256": "d772f3930b981233774017191d54a3302dd7b0190e5bf0dfd98ab352524ecd17",
+          "whitespace_tokens": 1170
         }
       ],
       "id": "standalone_access_product",
@@ -1669,13 +1669,13 @@
           "whitespace_tokens": 83
         },
         {
-          "bytes": 1233,
+          "bytes": 1488,
           "exists": true,
-          "lines": 35,
+          "lines": 41,
           "path": "access/contracts/runtime-data.v1.json",
           "role": "on_demand",
-          "sha256": "34d747d5deaf83df21cd89d5dc77851a945a72720f250d636effdb8288a3a5c4",
-          "whitespace_tokens": 81
+          "sha256": "709ec33bf58904c95a601960645ed9526aacd3ecadc8b3bbec4f65d74aa17ea8",
+          "whitespace_tokens": 95
         },
         {
           "bytes": 362,
@@ -1704,22 +1704,22 @@
       "target_exists": true,
       "validation_paths": [
         {
-          "bytes": 13439,
+          "bytes": 15969,
           "exists": true,
-          "lines": 319,
+          "lines": 367,
           "path": "access/packaging/validate_standalone.py",
           "role": "validation",
-          "sha256": "57cf54516077f007b132a36374f2d304f9d15206f3897156df812f08675fba9a",
-          "whitespace_tokens": 1001
+          "sha256": "d772f3930b981233774017191d54a3302dd7b0190e5bf0dfd98ab352524ecd17",
+          "whitespace_tokens": 1170
         },
         {
-          "bytes": 44938,
+          "bytes": 53513,
           "exists": true,
-          "lines": 889,
+          "lines": 1063,
           "path": "access/tests/test_access_contract.py",
           "role": "validation",
-          "sha256": "b677bf871a58d416b1c45f8ac299b9bf334d4770dcf7c9d2b0e6b9ee49d0aea6",
-          "whitespace_tokens": 2303
+          "sha256": "7b487ee066da8e889d6a5021810c16e3708a4c36c8f35f0d371c1b57fcc7d9d0",
+          "whitespace_tokens": 2718
         },
         {
           "bytes": 23014,
@@ -2060,7 +2060,7 @@
       ]
     },
     {
-      "additional_context_tokens": 5417,
+      "additional_context_tokens": 5423,
       "completion_evidence": [
         {
           "bytes": 6403,
@@ -2072,13 +2072,13 @@
           "whitespace_tokens": 802
         },
         {
-          "bytes": 33525,
+          "bytes": 34056,
           "exists": true,
-          "lines": 885,
+          "lines": 893,
           "path": "docs/validation/validation_lanes.json",
           "role": "completion",
-          "sha256": "8735d2cf3d952135a5bc202d2d5099d2c272bc3a2e6b4710b4898fd51b02fdc5",
-          "whitespace_tokens": 2445
+          "sha256": "111b0dd6ddb1bbc13886b2ed9531ced80dcf41c92662cb1d9abc23c4aa5df0d8",
+          "whitespace_tokens": 2504
         },
         {
           "bytes": 944,
@@ -2090,13 +2090,13 @@
           "whitespace_tokens": 88
         },
         {
-          "bytes": 4197,
+          "bytes": 3000,
           "exists": true,
-          "lines": 93,
+          "lines": 80,
           "path": ".github/workflows/repo-validation.yml",
           "role": "completion",
-          "sha256": "e0fbd3bee1c0f4f2979fe9d7840704b5cc05a24134bec207575a29d04d44f8a9",
-          "whitespace_tokens": 354
+          "sha256": "131c71f404c292b79fe05a5b466f1d969929f268c644bcafea6ed690ec0526e0",
+          "whitespace_tokens": 250
         }
       ],
       "id": "release_validation",
@@ -2116,13 +2116,13 @@
           "whitespace_tokens": 260
         },
         {
-          "bytes": 33525,
+          "bytes": 34056,
           "exists": true,
-          "lines": 885,
+          "lines": 893,
           "path": "docs/validation/validation_lanes.json",
           "role": "on_demand",
-          "sha256": "8735d2cf3d952135a5bc202d2d5099d2c272bc3a2e6b4710b4898fd51b02fdc5",
-          "whitespace_tokens": 2445
+          "sha256": "111b0dd6ddb1bbc13886b2ed9531ced80dcf41c92662cb1d9abc23c4aa5df0d8",
+          "whitespace_tokens": 2504
         },
         {
           "bytes": 14345,
@@ -2134,22 +2134,22 @@
           "whitespace_tokens": 1820
         },
         {
-          "bytes": 4367,
+          "bytes": 4756,
           "exists": true,
-          "lines": 71,
+          "lines": 78,
           "path": "docs/RELEASING.md",
           "role": "on_demand",
-          "sha256": "a0394054efb55aad9d4066ec48ed21dcf8a340ed44bec6aac9cceebf45726bdb",
-          "whitespace_tokens": 538
+          "sha256": "a223980216dad57ff4867b21c252914b8affda911cb54775e93e39e0167e8265",
+          "whitespace_tokens": 589
         },
         {
-          "bytes": 4197,
+          "bytes": 3000,
           "exists": true,
-          "lines": 93,
+          "lines": 80,
           "path": ".github/workflows/repo-validation.yml",
           "role": "on_demand",
-          "sha256": "e0fbd3bee1c0f4f2979fe9d7840704b5cc05a24134bec207575a29d04d44f8a9",
-          "whitespace_tokens": 354
+          "sha256": "131c71f404c292b79fe05a5b466f1d969929f268c644bcafea6ed690ec0526e0",
+          "whitespace_tokens": 250
         }
       ],
       "owner_exists": true,
@@ -2224,17 +2224,17 @@
           "lines": 1110,
           "path": ".agents/agent-surface.current.json",
           "role": "completion",
-          "sha256": "c7deca8dc46cf318a66fcab7b7860f4d32e42ab2fa50b44ce1d8569b221837e7",
+          "sha256": "db151f9fe1b1dfba66105a1c01efafe92cd369a895367bccb9dce7793d857556",
           "whitespace_tokens": 2631
         },
         {
-          "bytes": 116795,
+          "bytes": 119587,
           "exists": true,
-          "lines": 2723,
+          "lines": 2777,
           "path": "scripts/validate_agent_surface.py",
           "role": "completion",
-          "sha256": "024a4baaf0d3b3d667522bedf66f64ce3a26e08ab06b4c2d121c7e6d58a709e1",
-          "whitespace_tokens": 9103
+          "sha256": "43649ddbbcd30ef715d258e69cdc46aabd3109acd62958e646985fb7d4c9c2a9",
+          "whitespace_tokens": 9360
         }
       ],
       "id": "agent_skill",
@@ -2298,13 +2298,13 @@
           "whitespace_tokens": 1255
         },
         {
-          "bytes": 116795,
+          "bytes": 119587,
           "exists": true,
-          "lines": 2723,
+          "lines": 2777,
           "path": "scripts/validate_agent_surface.py",
           "role": "validation",
-          "sha256": "024a4baaf0d3b3d667522bedf66f64ce3a26e08ab06b4c2d121c7e6d58a709e1",
-          "whitespace_tokens": 9103
+          "sha256": "43649ddbbcd30ef715d258e69cdc46aabd3109acd62958e646985fb7d4c9c2a9",
+          "whitespace_tokens": 9360
         },
         {
           "bytes": 23014,
@@ -2540,16 +2540,16 @@
       ]
     },
     {
-      "additional_context_tokens": 613,
+      "additional_context_tokens": 667,
       "completion_evidence": [
         {
-          "bytes": 1635,
+          "bytes": 2181,
           "exists": true,
-          "lines": 45,
+          "lines": 53,
           "path": "kag/AGENTS.md",
           "role": "completion",
-          "sha256": "9bca3f65868dfc15bd6e5c1b5721c0c3b08980ab93c3e44e8e3ca6e9220e8c1b",
-          "whitespace_tokens": 206
+          "sha256": "e8c97be8d5abf907575d397ada191cd0c5b4257dd60b9314586d1a3dd652783a",
+          "whitespace_tokens": 276
         },
         {
           "bytes": 1735,
@@ -2561,13 +2561,13 @@
           "whitespace_tokens": 110
         },
         {
-          "bytes": 12603,
+          "bytes": 14832,
           "exists": true,
-          "lines": 300,
+          "lines": 342,
           "path": "scripts/validate_local_kag_provider.py",
           "role": "completion",
-          "sha256": "a1d4f18102d3ee90e9d26b52a15ba71d1ccca5fe4c44c884effd1ed29d1ac6b0",
-          "whitespace_tokens": 1030
+          "sha256": "6d50c7282a52dcd97ce239bc79250359ad84531cdbccf949884b1cece77c80fc",
+          "whitespace_tokens": 1217
         }
       ],
       "id": "kag_port",
@@ -2575,7 +2575,7 @@
         "AGENTS.md",
         "kag/AGENTS.md"
       ],
-      "inherited_context_tokens": 1071,
+      "inherited_context_tokens": 1141,
       "on_demand_surfaces": [
         {
           "bytes": 1154,
@@ -2596,13 +2596,13 @@
           "whitespace_tokens": 110
         },
         {
-          "bytes": 394,
+          "bytes": 767,
           "exists": true,
-          "lines": 12,
+          "lines": 18,
           "path": "kag/VALIDATION.md",
           "role": "on_demand",
-          "sha256": "1e5a8363b2a05dbbc10889f06922e2fa9c6ecbaef086f42d20cafdb25b0c3f24",
-          "whitespace_tokens": 47
+          "sha256": "8b7f93a68a22a0b59190f43ac99135e2b434887e55c7215d578ce26138697441",
+          "whitespace_tokens": 101
         },
         {
           "bytes": 2717,
@@ -2616,13 +2616,13 @@
       ],
       "owner_exists": true,
       "owner_handoff": {
-        "bytes": 1635,
+        "bytes": 2181,
         "exists": true,
-        "lines": 45,
+        "lines": 53,
         "path": "kag/AGENTS.md",
         "role": "owner_handoff",
-        "sha256": "9bca3f65868dfc15bd6e5c1b5721c0c3b08980ab93c3e44e8e3ca6e9220e8c1b",
-        "whitespace_tokens": 206
+        "sha256": "e8c97be8d5abf907575d397ada191cd0c5b4257dd60b9314586d1a3dd652783a",
+        "whitespace_tokens": 276
       },
       "owner_handoff_context_tokens": 0,
       "owner_in_inheritance_stack": true,
@@ -2631,13 +2631,13 @@
       "target_exists": true,
       "validation_paths": [
         {
-          "bytes": 12603,
+          "bytes": 14832,
           "exists": true,
-          "lines": 300,
+          "lines": 342,
           "path": "scripts/validate_local_kag_provider.py",
           "role": "validation",
-          "sha256": "a1d4f18102d3ee90e9d26b52a15ba71d1ccca5fe4c44c884effd1ed29d1ac6b0",
-          "whitespace_tokens": 1030
+          "sha256": "6d50c7282a52dcd97ce239bc79250359ad84531cdbccf949884b1cece77c80fc",
+          "whitespace_tokens": 1217
         },
         {
           "bytes": 6421,
