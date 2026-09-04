@@ -58,8 +58,8 @@ run `tos verify --profile standalone`, `tos serve`, or `tos mcp`.
 - `contracts/page-commands.v1.json` owns revisioned browser context and shared
   human/WebMCP actuation.
 - `contracts/research-workspace.v1.schema.json` defines the portable local
-  session packet for hypotheses, exclusions, route comparisons, notes, and its
-  action journal.
+  session packet for hypotheses, staged proposals, exclusions, route
+  comparisons, notes, and its action journal.
 - `contracts/web-actions.v1.json` is retained only as the v1 migration marker.
 - `profiles/standalone.v1.json` is the required no-AbyssOS profile.
 - `profiles/abyssos.v1.json` declares optional ecosystem adapters; the profile
@@ -91,14 +91,24 @@ it does not override this product's standalone runtime manifest.
 
 ## WebMCP posture
 
-The site feature-detects the experimental `document.modelContext` API and
-remains fully usable when it is absent. Stable tools expose view, search,
+The intended page agent is Codex in the ChatGPT desktop app's built-in browser.
+The site does not embed a model, call the OpenAI API, require an API key, or
+require users to install a separate MCP connection for this browser-native
+path. Codex discovers the page's registered site tools through WebMCP and acts
+on the same live page as the human. The native `tos mcp` server remains an
+optional off-page access path, not a prerequisite for WebMCP.
+
+The site feature-detects `document.modelContext` and remains fully usable when
+it is absent. Stable tools expose view, search,
 selection, focus, cancellation, page context, and the capability-gated
-Zarathustra word-analysis task. Selection-dependent
-tools are registered only for the current node or edge and bind the captured
-context revision, so a delayed reference to “this edge” fails closed after the
-human changes selection. Tool execution forwards the browser-provided
-`AbortSignal` through page commands to HTTP queries.
+Zarathustra word-analysis task. Word analysis returns a compact agent envelope
+and puts the complete task or explicit unavailable posture into the same page
+inspector. Selection-dependent tools are registered for the current work,
+passage, concept, source, node, edge, cluster, or other knowledge object and
+bind the captured context revision, so a delayed reference to “this edge” (or
+note for “this work”) fails closed after the human changes selection. Tool
+execution forwards the browser-provided `AbortSignal` through page commands to
+HTTP queries.
 
 The Evidence Lens command works on philosophy projection selections and on
 canonical relations in the corpus `route-graph`. Its first two curated scenes
@@ -110,24 +120,34 @@ actions. Projected `contested_by`, `uncertain_relation`, and
 `polemicizes_with` relations remain review leads rather than adjudicated
 counterevidence.
 
-The local research workspace lets the human and agent work on the same
-temporary investigation: exclude a relation, save the direct and alternative
-routes, add notes, or draw a working hypothesis as a visibly distinct edge.
+The local research workspace lets the human and Codex work on the same
+temporary investigation: inspect the semantic identity and source posture of
+any selected object, compare projected readings, exclude a relation, save the
+direct and alternative routes, add context-bound notes, or draw a working
+hypothesis as a visibly distinct edge. Search and neighborhood tools return a
+bounded agent envelope with stable IDs while the complete result remains on
+the page.
 Every hypothesis is structurally fixed as `session_hypothesis: true`,
 `source: false`, `reviewed: false`, and `canon: false`. Undo/redo, browser-local
-persistence, and a validated JSON export/import packet are supported. None of
-these actions writes to candidate intake, review ledgers, authored ToS source,
-or canon; any future proposal/writeback flow requires a separate explicit
-contract and user confirmation.
+persistence, and a validated JSON export/import packet are supported. Codex
+can also stage a typed relation, interpretation, metadata correction,
+source route, or concept-enrichment proposal. The proposal is bound to a
+parent hypothesis, the captured page/workspace revisions, explicit source and
+evidence references, actor origin, timestamp, projection fingerprint, and a
+deterministic trace digest. It is always local, `pending_human_review`, and
+`canon: false`. None of these actions writes to candidate intake, review
+ledgers, authored ToS source, or canon; export is the only handoff from this
+surface.
 
 The product shell makes this shared surface visible instead of assuming the
-browser integration worked. Its header panel reports WebMCP availability,
+Codex browser integration worked. Its header panel reports WebMCP availability,
 registered and selection-bound tool counts, the current context revision, and
-any registration failure. Without WebMCP it gives a graceful native `tos mcp`
-fallback while the atlas remains usable. The same panel contains three
+any registration failure. Without WebMCP it explains that the page should be
+opened in Codex's built-in browser; the atlas remains usable and `tos mcp` is
+shown only as optional off-page access. The same panel contains three
 bilingual, copyable prompts for the core demonstration loop: inspect evidence,
-reroute around a disputed edge, and preserve an interpretation as a local-only
-hypothesis.
+reroute around a disputed edge, and move from comparison through a local
+hypothesis to a traceable proposal that remains pending human review.
 
 Every successful `Repo Validation` run builds and validates
 `tree-of-sophia-standalone.zip`, then uploads the archive and its external

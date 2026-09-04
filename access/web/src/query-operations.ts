@@ -2,6 +2,7 @@ export type ToSMode = "philosophy" | "corpus";
 
 export type ToSQueryOperationId =
   | "tos.status"
+  | "tos.snapshot"
   | "tos.search"
   | "tos.view.open"
   | "tos.node.inspect"
@@ -76,6 +77,8 @@ export function createToSQueryOperations(fetchJson: FetchJson) {
         ]);
         return { corpus, philosophy };
       }
+      case "tos.snapshot":
+        return fetchJson<ToSQueryResult>("/api/philosophy/snapshot", request);
       case "tos.search": {
         const query = String(input.query || "").trim();
         const limit = boundedInt(input.limit, 20, 1, 100);

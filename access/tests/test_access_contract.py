@@ -1079,6 +1079,7 @@ class AuthoredContractTests(unittest.TestCase):
         )
         expected_operations = {
             "tos.status",
+            "tos.snapshot",
             "tos.search",
             "tos.view.open",
             "tos.node.inspect",

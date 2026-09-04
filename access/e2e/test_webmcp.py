@@ -141,21 +141,54 @@ def test_real_browser_webmcp_loop_and_stale_deixis(webmcp_page: Page) -> None:
     assert "tos.page.research-workspace" in names
     assert "tos.zarathustra.word-analysis.prepare" in names
     assert page.locator("#agent-surface").get_attribute("data-webmcp-state") == "connected"
+    assert "Codex WebMCP ready" in page.locator("#agent-surface").inner_text()
 
-    word_analysis = command_value(invoke(
+    word_analysis_result = invoke(
         page,
         "tos.zarathustra.word-analysis.prepare",
         {"query": "судьбы", "language": "ru", "rank": 1},
-    ))
+    )
+    assert len(word_analysis_result["content"][0]["text"]) < 1500
+    word_analysis = command_value(word_analysis_result)
     assert word_analysis["available"] is False
-    assert word_analysis["task"] is None
     assert word_analysis["publication_posture"] == "excluded_from_public_bundle"
+    assert word_analysis["page_updated"] is True
+    assert "Source-bound word analysis" in page.locator("#detail-list").inner_text()
 
     edge_id, node_id = first_edge_and_node(page)
     invoke(page, "tos.page.select", {"item_id": edge_id})
     wait_for(page, "window.__TOS_E2E.names().includes('tos.page.add-session-hypothesis')")
+    assert "tos.page.inspect-selection" in page.evaluate("window.__TOS_E2E.names()")
+    assert "tos.page.add-note-to-selection" in page.evaluate("window.__TOS_E2E.names()")
+    assert "tos.page.compare-readings" in page.evaluate("window.__TOS_E2E.names()")
+    assert "tos.page.stage-proposal" in page.evaluate("window.__TOS_E2E.names()")
     assert "tos.page.exclude-selected-edge" in page.evaluate("window.__TOS_E2E.names()")
     assert "tos.page.save-route-comparison" in page.evaluate("window.__TOS_E2E.names()")
+
+    selection_result = invoke(page, "tos.page.inspect-selection")
+    assert len(selection_result["content"][0]["text"]) < 1500
+    selection = command_value(selection_result)
+    assert selection["selection"]["id"] == edge_id
+    assert selection["selection"]["semantic_kind"] == "relation"
+    comparison_result = invoke(page, "tos.page.compare-readings", {"limit": 20})
+    assert len(comparison_result["content"][0]["text"]) < 1500
+    comparison = command_value(comparison_result)
+    assert comparison["schema"] == "tos_interpretation_comparison_v1"
+    assert comparison["page_updated"] is True
+    assert "Interpretation comparison" in page.locator("#detail-list").inner_text()
+    wait_for(page, "window.__TOS_E2E.names().includes('tos.page.stage-proposal')")
+    proposal_result = invoke(page, "tos.page.stage-proposal", {
+        "kind": "interpretation",
+        "statement": "Treat this route as a reviewable alternative.",
+        "source_refs": ["ToS/philosophy/atlas/atlas.manifest.json"],
+        "evidence_refs": [edge_id],
+        "confidence": "low",
+    })
+    assert len(proposal_result["content"][0]["text"]) < 1500
+    proposal = command_value(proposal_result)
+    assert proposal["proposal"]["status"] == "pending_human_review"
+    assert proposal["authority"] == {"source": False, "reviewed": False, "canon": False}
+    assert "pending_human_review" in (page.locator("#research-workspace-body").text_content() or "")
 
     old_context_tool = page.evaluate("window.__TOS_E2E.invokeFirst('tos.page.context')")
     assert command_value(old_context_tool["value"])["selected"]["id"] == edge_id
@@ -221,6 +254,10 @@ def test_real_browser_graceful_without_webmcp(access_base_url: str) -> None:
         assert page.evaluate("document.modelContext === undefined")
         assert page.locator("#app").count() == 1
         assert page.locator("#agent-surface").get_attribute("data-webmcp-state") == "unavailable"
+        fallback = page.locator("#agent-surface").inner_text()
+        assert "Codex WebMCP unavailable" in fallback
+        assert "no API key or model API is required" in fallback
+        assert "Optional off-page access" in fallback
         assert "Tree of Sophia" in page.locator("body").inner_text()
         context.close()
         browser.close()
