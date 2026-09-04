@@ -48,9 +48,11 @@ npm run deploy:edge
 ```
 
 The deploy command first compares the generated `data_revision` with the live
-D1 metadata. Ordinary code-only rebuilds and retries skip the 64k-row import
-when that revision is already current. A changed source revision imports the
-newly generated D1 read model before deploying the Worker and static assets.
+D1 metadata. That digest covers both the allowlisted inputs and the explicit
+read-model schema version. Ordinary code-only rebuilds and retries skip the
+64k-row import when that revision is already current. A changed source or
+read-model schema revision imports the newly generated D1 read model before
+deploying the Worker and static assets.
 `npm run deploy:edge:plan` performs the read-only revision check without
 importing or deploying, while `npm run load:remote` is the explicit recovery
 command. Operators can set `TOS_D1_MAX_SYNC_STATEMENTS` when an environment

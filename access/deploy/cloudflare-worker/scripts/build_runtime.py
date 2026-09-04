@@ -25,6 +25,7 @@ CORPUS_COLLECTIONS = ("nodes", "resources", "manifests", "branches", "graph_view
 STATIC_PHILOSOPHY_LIMITS = (1, 1000)
 STATIC_CORPUS_LIMITS = (1, 100, 700, 1000)
 SQL_CHUNK_CHARS = 40_000
+READ_MODEL_SCHEMA_VERSION = "tos_cloudflare_edge_read_model_v1"
 
 
 def compact_json(value: Any) -> str:
@@ -558,6 +559,8 @@ def build_read_model_sql(core: ToSAccessCore, target: Path, revision: str) -> di
 
 def data_revision(core: ToSAccessCore) -> str:
     digest = hashlib.sha256()
+    digest.update(READ_MODEL_SCHEMA_VERSION.encode("utf-8"))
+    digest.update(b"\0")
     for path in (
         core.index_path,
         core.philosophy_graph_projection_path,
@@ -587,6 +590,7 @@ def main() -> int:
     counts = build_read_model_sql(core, (args.runtime / "read-model.sql").resolve(), revision)
     manifest = {
         "schema": "tos_cloudflare_edge_build_v1",
+        "read_model_schema": READ_MODEL_SCHEMA_VERSION,
         "data_revision": revision,
         "source_owner": "Tree-of-Sophia",
         "source_paths": [

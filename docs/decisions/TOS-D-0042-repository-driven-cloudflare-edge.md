@@ -68,9 +68,11 @@ reviewable and reproducible. Keeping credentials only in local Wrangler OAuth
 or Cloudflare's encrypted build-token store prevents Git history and generated
 artifacts from becoming secret stores.
 
-The D1 refresh is content-addressed at deployment time. Code-only merges,
-retries, and rebuilds of the same ToS inputs perform a bounded metadata read
-and zero D1 writes instead of consuming the free-tier write allowance again.
+The D1 refresh is content-addressed at deployment time. The digest binds both
+the ToS inputs and an explicit read-model schema version, so a schema change
+cannot reuse structurally stale D1 state. Code-only merges, retries, and
+rebuilds of the same inputs and schema perform a bounded metadata read and zero
+D1 writes instead of consuming the write allowance again.
 
 ## Consequences
 

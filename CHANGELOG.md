@@ -15,9 +15,9 @@ Tracking starts with the community-docs baseline for this repository.
   deploy the site, API, Evidence Lens, and streaming scale exports without a
   continuously powered origin machine; `www` redirects to the apex, the
   tunnel remains a recovery profile, and the frozen KAG family is not a build
-  or runtime dependency. Deployment compares the generated source revision
-  with live D1 metadata, so code-only rebuilds and retries write zero D1 rows
-  instead of repeatedly consuming the free-tier daily allowance.
+  or runtime dependency. Deployment compares the generated source-and-schema
+  revision with live D1 metadata, so code-only rebuilds and retries write zero
+  D1 rows while read-model changes cannot silently reuse stale structure.
 - Adds the self-contained `access/` product: a portable v1/v2 query core,
   `tos doctor/verify/serve/mcp`, native MCP, loopback JSON runtime, the
   constellation web app, a WebMCP-ready read-only action ABI, optional
