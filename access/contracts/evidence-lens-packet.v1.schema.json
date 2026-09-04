@@ -1,0 +1,74 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://tree-of-sophia.local/access/contracts/evidence-lens-packet.v1.schema.json",
+  "title": "Tree of Sophia Evidence Lens result",
+  "type": "object",
+  "required": [
+    "schema", "mode", "item_id", "selection", "scene", "finding", "finding_ru",
+    "posture", "conclusion", "source_anchors", "routes", "gaps", "gaps_ru", "challenge_relations",
+    "context_relations", "neighbor_nodes", "selection_posture", "field_posture",
+    "coverage", "counts", "source_refs", "authority_boundary", "authority_note", "agent_summary"
+  ],
+  "properties": {
+    "schema": {"const": "tos_evidence_lens_packet_v1"},
+    "mode": {"enum": ["philosophy", "corpus"]},
+    "item_id": {"type": "string", "minLength": 1},
+    "view_id": {"type": ["string", "null"]},
+    "selection": {"type": "object"},
+    "scene": {"type": ["object", "null"]},
+    "finding": {"type": "string", "minLength": 1},
+    "finding_ru": {"type": "string", "minLength": 1},
+    "posture": {"type": "string", "minLength": 1},
+    "conclusion": {
+      "type": "object",
+      "required": ["can_conclude", "canon_membership", "claim_evidence_closed", "allowed", "not_allowed"]
+    },
+    "source_anchors": {"type": "array", "items": {"type": "object"}},
+    "routes": {"type": "array", "items": {"type": "object"}},
+    "gaps": {"type": "array", "items": {"type": "string"}},
+    "gaps_ru": {"type": "array", "items": {"type": "string"}},
+    "challenge_relations": {"type": "array", "items": {"type": "object"}},
+    "context_relations": {"type": "array", "items": {"type": "object"}},
+    "neighbor_nodes": {"type": "array", "items": {"type": "object"}},
+    "selection_posture": {"type": "object"},
+    "field_posture": {"type": "object"},
+    "coverage": {"type": "object"},
+    "counts": {"type": "object"},
+    "source_refs": {"type": "array", "items": {"type": "string"}, "uniqueItems": true},
+    "authority_boundary": {
+      "type": "object",
+      "required": ["is_source", "is_canon", "is_semantic_truth", "is_rights_clearance", "note"],
+      "properties": {
+        "is_source": {"const": false},
+        "is_canon": {"const": false},
+        "is_semantic_truth": {"const": false},
+        "is_rights_clearance": {"const": false},
+        "note": {"type": "string", "minLength": 1}
+      }
+    },
+    "authority_note": {"type": "string", "minLength": 1},
+    "agent_summary": {
+      "type": "object",
+      "required": [
+        "selection", "finding", "finding_ru", "posture", "can_conclude",
+        "canon_membership", "claim_evidence_closed", "route_counts", "gap_count",
+        "page_updated", "next_actions"
+      ],
+      "properties": {
+        "selection": {"type": "string", "minLength": 1},
+        "finding": {"type": "string", "minLength": 1},
+        "finding_ru": {"type": "string", "minLength": 1},
+        "posture": {"type": "string", "minLength": 1},
+        "can_conclude": {"type": "boolean"},
+        "canon_membership": {"type": "boolean"},
+        "claim_evidence_closed": {"type": "boolean"},
+        "route_counts": {"type": "object", "additionalProperties": {"type": "integer", "minimum": 0}},
+        "gap_count": {"type": "integer", "minimum": 0},
+        "page_updated": {"const": true},
+        "next_actions": {"type": "array", "items": {"type": "string"}}
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}

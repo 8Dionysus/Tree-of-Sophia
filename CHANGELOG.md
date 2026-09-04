@@ -13,6 +13,11 @@ Tracking starts with the community-docs baseline for this repository.
   `tos doctor/verify/serve/mcp`, native MCP, loopback JSON runtime, the
   constellation web app, a WebMCP-ready read-only action ABI, optional
   AbyssOS adapters, and an allowlist-only fingerprinted standalone bundle.
+- Completes the first WebMCP product shell with a visible connection and tool
+  status, graceful native-MCP fallback, bilingual demonstration prompts,
+  compact agent envelopes, a persistent local-only research workspace, real
+  browser-contract coverage, explicit HTTP security headers, and a validated
+  standalone candidate uploaded by `Repo Validation`.
 
 - Completes Table II at 58 of 58 master-aligned prepared dossiers, including
   the corrected T2-26 nominalism packet and T2-51–T2-58, with generated

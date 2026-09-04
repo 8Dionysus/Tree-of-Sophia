@@ -32,6 +32,15 @@ EXPECTED_PAGE_COMMANDS = {
     "tos.page.find-path",
     "tos.page.reroute-without-selection",
     "tos.page.inspect-epistemic",
+    "tos.page.research-workspace",
+    "tos.page.add-research-note",
+    "tos.page.add-session-hypothesis",
+    "tos.page.exclude-selected-edge",
+    "tos.page.save-route-comparison",
+    "tos.page.workspace-undo",
+    "tos.page.workspace-redo",
+    "tos.page.workspace-export",
+    "tos.page.workspace-import",
     "tos.page.clear-focus",
     "tos.page.cancel",
 }
@@ -53,6 +62,20 @@ def _validate_contracts(repo_root: Path) -> None:
     profiles = {item.get("profile_id"): item for item in runtime.get("runtime_profiles", [])}
     if profiles.get("standalone", {}).get("requires_abyssos") is not False:
         raise RuntimeError("standalone profile must not require AbyssOS")
+    posture = runtime.get("integration_posture")
+    if posture != {
+        "state": "paused",
+        "scope": ["abyssos"],
+        "default_profile": "standalone",
+        "external_activation": "disabled",
+        "unfreeze_requires": "explicit ToS operator command",
+    }:
+        raise RuntimeError("AbyssOS integration posture must remain explicitly paused")
+    abyssos_profile = json.loads(
+        (repo_root / "access/profiles/abyssos.v1.json").read_text(encoding="utf-8")
+    )
+    if abyssos_profile.get("availability") != "paused":
+        raise RuntimeError("AbyssOS access profile must remain paused")
     migration = json.loads((contract_root / "web-actions.v1.json").read_text(encoding="utf-8"))
     expected_successors = {"query-operations.v1.json", "page-commands.v1.json"}
     if migration.get("status") != "superseded" or set(migration.get("superseded_by", [])) != expected_successors:
@@ -72,12 +95,35 @@ def _validate_contracts(repo_root: Path) -> None:
         "is_rights_clearance": False,
     }:
         raise RuntimeError("epistemic packet authority boundary must fail closed")
+    evidence_schema = json.loads(
+        (repo_root / "ToS/contracts/epistemic-evidence-projection.schema.json").read_text(encoding="utf-8")
+    )
+    if evidence_schema.get("properties", {}).get("schema_version", {}).get("const") != "tos_epistemic_evidence_projection_v1":
+        raise RuntimeError("Evidence Lens projection schema identity drift")
+    evidence_packet = json.loads(
+        (contract_root / "evidence-lens-packet.v1.schema.json").read_text(encoding="utf-8")
+    )
+    if evidence_packet.get("properties", {}).get("schema", {}).get("const") != "tos_evidence_lens_packet_v1":
+        raise RuntimeError("Evidence Lens packet schema identity drift")
     page = json.loads((contract_root / "page-commands.v1.json").read_text(encoding="utf-8"))
     command_ids = {item.get("command_id") for item in page.get("commands", [])}
     if command_ids != EXPECTED_PAGE_COMMANDS:
         raise RuntimeError(f"page command contract drift: {sorted(command_ids)}")
+    workspace = json.loads((contract_root / "research-workspace.v1.schema.json").read_text(encoding="utf-8"))
+    if workspace.get("properties", {}).get("schema", {}).get("const") != "tos_research_workspace_session_v1":
+        raise RuntimeError("research workspace packet schema identity drift")
+    workspace_posture = workspace.get("$defs", {}).get("posture", {}).get("properties", {})
+    if {key: value.get("const") for key, value in workspace_posture.items()} != {
+        "session_hypothesis": True,
+        "source": False,
+        "reviewed": False,
+        "canon": False,
+    }:
+        raise RuntimeError("research hypotheses must remain explicitly outside ToS authority")
     allowlist = json.loads((contract_root / "runtime-data.v1.json").read_text(encoding="utf-8"))
     paths = {item.get("source_path") for item in allowlist.get("subjects", [])}
+    if "ToS/derived-exports/epistemic_evidence_projection.min.json" not in paths:
+        raise RuntimeError("runtime allowlist must include the Evidence Lens projection")
     if any("lexical-search" in str(path) or "/payload/" in str(path) for path in paths):
         raise RuntimeError("runtime allowlist admits an explicitly excluded subject")
 
@@ -194,6 +240,8 @@ assert report["ok"], report
 view_id = core.philosophy_views()["views"][0]["view_id"]
 packet = core.philosophy_view(view_id)
 assert packet["node_count"] > 0 and packet["edge_count"] > 0
+evidence = core.evidence_projection()
+assert len(evidence["scenes"]) >= 2
 server = make_server(core, port=0)
 thread = threading.Thread(target=server.serve_forever, daemon=True)
 thread.start()

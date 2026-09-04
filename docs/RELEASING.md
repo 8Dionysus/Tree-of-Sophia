@@ -49,6 +49,13 @@ release changes tracked source surfaces, regenerate the seven canonical
 indexes with the workflow-pinned `aoa-kag` action revision and verify full,
 incremental, and family-contract parity before the final PR commit.
 
+After all `Repo Validation` gates pass, the workflow also builds and validates
+the standalone access product and uploads `tree-of-sophia-standalone.zip` with
+its external digest manifest. That downloadable artifact is a commit-bound
+release candidate for ordinary-user acceptance. It does not replace the
+official tag/publication flow above and does not imply AbyssOS artifact
+admission.
+
 ## Federated dependency identities
 
 The consolidated `v0.5.0` release records the published direct provider edges

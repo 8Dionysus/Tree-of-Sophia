@@ -31,6 +31,7 @@ The current generated export surfaces are:
 - `philosophy_atlas_projection.min.json`
 - `philosophy_graph_views.min.json`
 - `philosophy_graph_projection.min.json`
+- `epistemic_evidence_projection.min.json`
 - `graph/source-witness-bibliographic-claims.min.json`
 - `lexical-search/zarathustra-dta-first-editions-parts-1-4-v1.min.json`
 
@@ -50,6 +51,12 @@ The philosophy graph projection materializes the atlas projection once as a
 source-ref-preserving node/edge set. Each graph view carries stable node/edge
 ID membership over that set, avoiding a second full copy of the same records
 inside every lens while keeping runtime access subordinate to ToS authority.
+The epistemic evidence projection joins two bounded, public-safe research
+scenes to explicit source, review, canon, claim, and rights return routes. It
+does not copy source text or infer closure: the Zarathustra scene distinguishes
+retained canon from still-open modern claim/evidence work, while the Archaic
+Tribute scene keeps a contested pre-canon reading separate from verified
+bibliographic identity.
 The source-witness bibliographic graph separately projects the public-safe
 object/claim catalog into a claim-reified graph. Every edge returns to the
 claim packet, evidence, maker, provenance event, review posture, exact source
@@ -94,6 +101,8 @@ Use:
 - `python scripts/validate_philosophy_graph_views.py`
 - `python scripts/build_philosophy_graph_projection.py --check`
 - `python scripts/validate_philosophy_graph_projection.py`
+- `python scripts/build_epistemic_evidence_projection.py --check`
+- `python scripts/validate_epistemic_evidence_projection.py`
 - `python scripts/build_source_witness_bibliographic_graph.py --check`
 - `python scripts/validate_source_witness_bibliographic_graph.py`
 - `python mechanics/release-support/parts/artifact-bundles/scripts/validate_abyss_machine_generated_readmodel_bundle.py`

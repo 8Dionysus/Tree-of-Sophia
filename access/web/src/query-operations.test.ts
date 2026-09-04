@@ -71,4 +71,22 @@ describe("ToS query operations", () => {
     expect(url.pathname).toBe("/api/philosophy/query/epistemic/candidate-node%3Atable-i-a01-node-016");
     expect(Object.fromEntries(url.searchParams)).toEqual({ view_id: "source-evidence", limit: "48" });
   });
+
+  it("routes Evidence Lens inspection to the corpus route graph", async () => {
+    let requestedUrl = "";
+    const operations = createToSQueryOperations(async <T>(url: string) => {
+      requestedUrl = url;
+      return { schema: "tos_evidence_lens_packet_v1" } as T;
+    });
+
+    await operations.invoke("tos.epistemic.inspect", {
+      mode: "corpus",
+      item_id: "m113",
+      view_id: "route-graph",
+    });
+
+    const url = new URL(requestedUrl, "http://tos.local");
+    expect(url.pathname).toBe("/api/corpus/query/epistemic/m113");
+    expect(url.searchParams.get("view_id")).toBe("route-graph");
+  });
 });

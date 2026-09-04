@@ -39,6 +39,7 @@ REQUIRED_RECORD_FIELDS = {
 }
 REPO_LOCAL_FAMILY_MANIFEST = Path("kag/indexes/index_family.manifest.json")
 REPO_LOCAL_BUDGET_RECEIPT_ROOT = Path("kag/receipts/index_family_budget")
+KAG_SURFACE_FREEZE_MANIFEST = Path("kag/indexes/hot_profile.json")
 
 
 class ValidationError(RuntimeError):
@@ -158,7 +159,10 @@ def validate_records() -> dict[str, list[dict[str, Any]]]:
         for path in paths:
             relative = path.relative_to(REPO_ROOT)
             relative_path = relative.as_posix()
-            if relative == REPO_LOCAL_FAMILY_MANIFEST or REPO_LOCAL_BUDGET_RECEIPT_ROOT in relative.parents:
+            if (
+                relative in {REPO_LOCAL_FAMILY_MANIFEST, KAG_SURFACE_FREEZE_MANIFEST}
+                or REPO_LOCAL_BUDGET_RECEIPT_ROOT in relative.parents
+            ):
                 continue
             record = read_json(path)
             missing = REQUIRED_RECORD_FIELDS - set(record)
@@ -251,6 +255,31 @@ def validate_repo_local_family() -> None:
         fail(f"{label} summary.source_records must match source shards")
 
 
+def validate_kag_surface_freeze() -> None:
+    freeze = read_json(REPO_ROOT / KAG_SURFACE_FREEZE_MANIFEST)
+    label = KAG_SURFACE_FREEZE_MANIFEST.as_posix()
+    if freeze.get("schema_version") != "tos_kag_surface_freeze_v1":
+        fail(f"{label} schema_version is invalid")
+    if freeze.get("owner_repo") != REPO_NAME:
+        fail(f"{label} owner_repo is invalid")
+    if freeze.get("state") != "frozen":
+        fail(f"{label} must remain frozen until an explicit ToS operator command")
+    surface = freeze.get("surface")
+    if not isinstance(surface, dict) or surface.get("manifest") != REPO_LOCAL_FAMILY_MANIFEST.as_posix():
+        fail(f"{label} must bind the repo-local KAG family manifest")
+    manifest = read_json(REPO_ROOT / REPO_LOCAL_FAMILY_MANIFEST)
+    identity = manifest.get("family_identity")
+    if not isinstance(identity, dict):
+        fail(f"{REPO_LOCAL_FAMILY_MANIFEST.as_posix()} family_identity is missing")
+    if surface.get("family_digest") != identity.get("content_digest"):
+        fail(f"{label} family digest drifted; explicit unfreeze is required before regeneration")
+    if surface.get("source_snapshot") != identity.get("source_snapshot"):
+        fail(f"{label} source snapshot drifted; explicit unfreeze is required before regeneration")
+    unfreeze = freeze.get("unfreeze")
+    if not isinstance(unfreeze, dict) or unfreeze.get("requires") != "explicit ToS operator command":
+        fail(f"{label} must keep an explicit ToS operator unfreeze route")
+
+
 def validate_links(groups: dict[str, list[dict[str, Any]]]) -> None:
     all_records = [record for records in groups.values() for record in records]
     ids = [record["local_id"] for record in all_records]
@@ -289,6 +318,7 @@ def main() -> int:
         groups = validate_records()
         validate_links(groups)
         validate_repo_local_family()
+        validate_kag_surface_freeze()
     except ValidationError as exc:
         print(f"[error] {exc}")
         return 1

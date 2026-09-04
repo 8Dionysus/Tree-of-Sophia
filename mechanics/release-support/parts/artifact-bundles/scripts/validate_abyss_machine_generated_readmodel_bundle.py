@@ -48,6 +48,22 @@ SUBJECT_STORE_ENV_NAMES = (
     "ABYSS_MACHINE_ARTIFACT_SUBJECT_STORE_ROOT",
     "ABYSS_MACHINE_ARTIFACT_SUBJECT_STORE_ROOTS",
 )
+TOS_RUNTIME_MANIFEST = REPO_ROOT / "access" / "contracts" / "runtime-manifest.v1.json"
+
+
+def _tos_abyssos_admission_paused() -> bool:
+    """Keep the ToS-side freeze local and avoid importing abyss-machine."""
+    try:
+        runtime = json.loads(TOS_RUNTIME_MANIFEST.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return False
+    posture = runtime.get("integration_posture") if isinstance(runtime, dict) else None
+    return (
+        isinstance(posture, dict)
+        and posture.get("state") == "paused"
+        and posture.get("external_activation") == "disabled"
+        and "abyssos" in posture.get("scope", [])
+    )
 
 
 @contextmanager
@@ -1022,6 +1038,20 @@ def main() -> int:
     parser.add_argument("--no-clean", action="store_true", help="do not remove the previous generated bundle directory first")
     parser.add_argument("--json", action="store_true", help="print the full validation payload")
     args = parser.parse_args()
+
+    if _tos_abyssos_admission_paused():
+        payload = {
+            "schema_version": "tos_abyssos_admission_pause_v1",
+            "ok": True,
+            "status": "paused",
+            "external_activation": "disabled",
+            "reason": "ToS integration freeze; AbyssOS admission is deferred until an explicit ToS operator command.",
+        }
+        if args.json:
+            print(json.dumps(payload, sort_keys=True))
+        else:
+            print("[paused] ToS AbyssOS admission is frozen; external artifact validation deferred")
+        return 0
 
     manifest = args.manifest if args.manifest.is_absolute() else REPO_ROOT / args.manifest
     subject = args.subject if args.subject.is_absolute() else REPO_ROOT / args.subject

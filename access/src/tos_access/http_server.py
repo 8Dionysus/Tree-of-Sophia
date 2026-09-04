@@ -4,6 +4,7 @@ import csv
 import io
 import json
 import mimetypes
+import secrets
 import socket
 from http import HTTPStatus
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
@@ -19,7 +20,7 @@ LOOPBACK_HOSTS = {"127.0.0.1", "localhost", "::1"}
 INDEX_TEMPLATE = """<!doctype html>
 <html lang="ru"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Древо Софии</title><link rel="stylesheet" href="/static/assets/tos-graph.css"></head>
-<body><div id="app"></div><script>window.__TOS_GRAPH_BOOT__=__BOOT__;</script>
+<body><div id="app"></div><script nonce="__CSP_NONCE__">window.__TOS_GRAPH_BOOT__=__BOOT__;</script>
 <script type="module" src="/static/assets/tos-graph.js"></script></body></html>"""
 
 
@@ -53,6 +54,38 @@ def _boot_payload(core: ToSAccessCore) -> dict[str, Any]:
     }
 
 
+def _security_headers(csp_nonce: str | None = None) -> dict[str, str]:
+    script_source = "'self'"
+    if csp_nonce:
+        script_source += f" 'nonce-{csp_nonce}'"
+    return {
+        "Content-Security-Policy": "; ".join(
+            (
+                "default-src 'self'",
+                "base-uri 'none'",
+                "connect-src 'self'",
+                "font-src 'self'",
+                "form-action 'self'",
+                "frame-ancestors 'none'",
+                "img-src 'self' data:",
+                "object-src 'none'",
+                f"script-src {script_source}",
+                "style-src 'self'",
+                "worker-src 'self'",
+            )
+        ),
+        # WebMCP's permission feature is `tools`; self is allowed while
+        # cross-origin iframe delegation remains disabled.
+        "Permissions-Policy": "tools=(self), accelerometer=(), camera=(), geolocation=(), gyroscope=(), microphone=(), payment=(), usb=()",
+        "Cross-Origin-Opener-Policy": "same-origin",
+        "Cross-Origin-Embedder-Policy": "require-corp",
+        "Cross-Origin-Resource-Policy": "same-origin",
+        "Origin-Agent-Cluster": "?1",
+        "Referrer-Policy": "no-referrer",
+        "X-Frame-Options": "DENY",
+    }
+
+
 def _scale_rows(core: ToSAccessCore, table: str, view_id: str | None, layers: list[str]) -> list[dict[str, Any]]:
     return core.philosophy_scale_rows(table, view_id=view_id, layers=layers)
 
@@ -64,14 +97,22 @@ def build_handler(core: ToSAccessCore, web_root: Path) -> type[BaseHTTPRequestHa
         def log_message(self, format: str, *args: Any) -> None:
             return
 
-        def _send(self, body: bytes, content_type: str, status: int = 200) -> None:
+        def _send(self, body: bytes, content_type: str, status: int = 200, *, csp_nonce: str | None = None) -> None:
             self.send_response(status)
             self.send_header("Content-Type", content_type)
             self.send_header("Content-Length", str(len(body)))
             self.send_header("Cache-Control", "no-store" if content_type.startswith("application/json") else "no-cache")
             self.send_header("X-Content-Type-Options", "nosniff")
+            for name, value in _security_headers(csp_nonce).items():
+                self.send_header(name, value)
             self.end_headers()
-            self.wfile.write(body)
+            try:
+                self.wfile.write(body)
+            except (BrokenPipeError, ConnectionResetError):
+                # A browser cancellation can close an in-flight response.
+                # The request is already gone; do not turn it into a server
+                # traceback or a misleading product failure.
+                return
 
         def _json(self, payload: Any, status: int = 200) -> None:
             self._send(json.dumps(payload, ensure_ascii=False).encode("utf-8"), "application/json; charset=utf-8", status)
@@ -90,8 +131,9 @@ def build_handler(core: ToSAccessCore, web_root: Path) -> type[BaseHTTPRequestHa
             path = parsed.path
             try:
                 if path == "/":
-                    html = INDEX_TEMPLATE.replace("__BOOT__", json.dumps(_boot_payload(core), ensure_ascii=False))
-                    self._send(html.encode("utf-8"), "text/html; charset=utf-8")
+                    nonce = secrets.token_urlsafe(18)
+                    html = INDEX_TEMPLATE.replace("__CSP_NONCE__", nonce).replace("__BOOT__", json.dumps(_boot_payload(core), ensure_ascii=False))
+                    self._send(html.encode("utf-8"), "text/html; charset=utf-8", csp_nonce=nonce)
                     return
                 if path.startswith("/static/"):
                     self._static(path.removeprefix("/static/"))
@@ -136,6 +178,13 @@ def build_handler(core: ToSAccessCore, web_root: Path) -> type[BaseHTTPRequestHa
                 if path == "/api/corpus/search": self._json(core.search(_single(query, "query"), _integer(query, "limit", 20, 1, 100))); return
                 if path.startswith("/api/corpus/graph-views/"):
                     self._json(core.graph_view(unquote(path.removeprefix("/api/corpus/graph-views/")), _integer(query, "limit", 100, 1, 1000))); return
+                if path.startswith("/api/corpus/query/epistemic/"):
+                    packet = core.evidence_lens_packet(
+                        "corpus",
+                        unquote(path.removeprefix("/api/corpus/query/epistemic/")),
+                        _single(query, "view_id") or "route-graph",
+                        _integer(query, "limit", 80, 1, 200),
+                    ); self._json(packet); return
                 if path.startswith("/api/corpus/nodes/"): self._json(core.node(unquote(path.removeprefix("/api/corpus/nodes/")))); return
                 if path.startswith("/api/corpus/relation-packs/"): self._json(core.relation_pack(unquote(path.removeprefix("/api/corpus/relation-packs/")))); return
                 if path == "/api/philosophy/status": self._json(core.philosophy_status()); return
@@ -152,7 +201,8 @@ def build_handler(core: ToSAccessCore, web_root: Path) -> type[BaseHTTPRequestHa
                 if path.startswith("/api/philosophy/query/neighborhood/"):
                     packet = core.philosophy_neighborhood(unquote(path.removeprefix("/api/philosophy/query/neighborhood/")), _integer(query, "depth", 1, 1, 3), _list(query, "layers"), _list(query, "predicates"), _integer(query, "limit", 80, 1, 300)); packet["query_backend"] = "json"; self._json(packet); return
                 if path.startswith("/api/philosophy/query/epistemic/"):
-                    packet = core.philosophy_epistemic_packet(
+                    packet = core.evidence_lens_packet(
+                        "philosophy",
                         unquote(path.removeprefix("/api/philosophy/query/epistemic/")),
                         _single(query, "view_id") or None,
                         _integer(query, "limit", 80, 1, 200),

@@ -15,6 +15,8 @@ import urllib.error
 import urllib.request
 from pathlib import Path
 
+from jsonschema import Draft202012Validator
+
 ACCESS_ROOT = Path(__file__).resolve().parents[1]
 REPO_ROOT = ACCESS_ROOT.parent
 sys.path.insert(0, (ACCESS_ROOT / "src").as_posix())
@@ -136,6 +138,52 @@ def write_fixture(root: Path) -> None:
     }
     (derived / "tos_corpus_index.min.json").write_text(json.dumps(index), encoding="utf-8")
     (derived / "philosophy_graph_projection.min.json").write_text(json.dumps(graph), encoding="utf-8")
+    (derived / "epistemic_evidence_projection.min.json").write_text(
+        json.dumps(
+            {
+                "schema_version": "tos_epistemic_evidence_projection_v1",
+                "owner_repo": "Tree-of-Sophia",
+                "surface_kind": "derived_public_evidence_navigation",
+                "scenes": [
+                    {
+                        "scene_id": "fixture-scene",
+                        "selections": [
+                            {"mode": "philosophy", "view_id": "chronology", "item_ids": ["a"]}
+                        ],
+                        "selection_ids": ["a"],
+                        "posture": "contested-pre-canon",
+                        "finding": "Fixture evidence route remains open.",
+                        "conclusion": {
+                            "can_conclude": False,
+                            "canon_membership": False,
+                            "claim_evidence_closed": False,
+                            "allowed": ["the selection is present in the projection"],
+                            "not_allowed": ["semantic truth"],
+                        },
+                        "source_anchors": [],
+                        "routes": [
+                            {
+                                "route_kind": "candidate",
+                                "ref": "ToS/canon/a.json",
+                                "status": "fixture",
+                                "exists": True,
+                            }
+                        ],
+                        "gaps": ["review"],
+                        "source_refs": ["ToS/canon/a.json"],
+                    }
+                ],
+                "authority_boundary": {
+                    "is_source": False,
+                    "is_canon": False,
+                    "is_semantic_truth": False,
+                    "is_rights_clearance": False,
+                    "note": "Fixture authority remains with the referenced source.",
+                },
+            }
+        ),
+        encoding="utf-8",
+    )
     (audit / "table-i-post-planting-audit.json").write_text(
         json.dumps({"schema_version": "tos_philosophy_post_planting_audit_v1"}),
         encoding="utf-8",
@@ -442,6 +490,65 @@ class CoreContractTests(unittest.TestCase):
             self.assertEqual(truncated["coverage"]["available_challenge_relations"], 2)
             self.assertEqual(truncated["coverage"]["returned_challenge_relations"], 0)
 
+    def test_evidence_lens_joins_selection_to_explicit_routes_without_inventing_closure(self) -> None:
+        with tempfile.TemporaryDirectory() as raw:
+            root = Path(raw)
+            write_fixture(root)
+            core = ToSAccessCore.discover(tos_root=root)
+
+            packet = core.evidence_lens_packet("philosophy", "a", view_id="chronology")
+
+            self.assertEqual(packet["schema"], "tos_evidence_lens_packet_v1")
+            self.assertEqual(packet["mode"], "philosophy")
+            self.assertEqual(packet["selection"]["node_id"], "a")
+            self.assertEqual(packet["scene"]["scene_id"], "fixture-scene")
+            self.assertFalse(packet["scene"]["conclusion"]["can_conclude"])
+            self.assertEqual(packet["agent_summary"]["finding"], "Fixture evidence route remains open.")
+            self.assertFalse(packet["agent_summary"]["can_conclude"])
+            self.assertLess(len(json.dumps(packet["agent_summary"])), 1500)
+            schema = json.loads(
+                (ACCESS_ROOT / "contracts/evidence-lens-packet.v1.schema.json").read_text(encoding="utf-8")
+            )
+            Draft202012Validator(schema).validate(packet)
+
+    def test_research_workspace_contract_keeps_session_hypotheses_non_authoritative(self) -> None:
+        schema = json.loads(
+            (ACCESS_ROOT / "contracts/research-workspace.v1.schema.json").read_text(encoding="utf-8")
+        )
+        Draft202012Validator.check_schema(schema)
+        packet = {
+            "schema": "tos_research_workspace_session_v1",
+            "version": 1,
+            "session_id": "demo",
+            "revision": 3,
+            "selected_lens": {"id": "edge:contested", "kind": "edge", "label": "Contested relation"},
+            "excluded_edge_ids": ["edge:contested"],
+            "route_snapshots": [],
+            "hypotheses": [
+                {
+                    "id": "hypothesis:alternate",
+                    "title": "Alternate reading",
+                    "body": "Treat this relation as a local possibility.",
+                    "target_id": "edge:contested",
+                    "from_id": "node:a",
+                    "to_id": "node:b",
+                    "predicate_label": "might imply",
+                    "posture": {
+                        "session_hypothesis": True,
+                        "source": False,
+                        "reviewed": False,
+                        "canon": False,
+                    },
+                }
+            ],
+            "notes": [],
+            "journal": [{"sequence": 1, "action": "hypothesis.add", "target_id": "hypothesis:alternate"}],
+        }
+        Draft202012Validator(schema).validate(packet)
+        packet["hypotheses"][0]["posture"]["canon"] = True
+        with self.assertRaises(Exception):
+            Draft202012Validator(schema).validate(packet)
+
     def test_scale_memberships_reference_only_selected_rows(self) -> None:
         with tempfile.TemporaryDirectory() as raw:
             root = Path(raw)
@@ -643,6 +750,27 @@ class CoreContractTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as raw:
             root = Path(raw)
             write_fixture(root)
+            index_path = root / "ToS/derived-exports/tos_corpus_index.min.json"
+            index = json.loads(index_path.read_text(encoding="utf-8"))
+            index["nodes"].append(
+                {"node_id": "b", "label": "Beta", "source_ref": "ToS/canon/b.json"}
+            )
+            index["relation_packs"] = [
+                {"pack_id": "canon/fixture", "owner_branch": "ToS/canon", "path": "ToS/canon/fixture/edges.csv"}
+            ]
+            index["relation_edges"] = [
+                {
+                    "edge_id": "corpus-e",
+                    "pack_id": "canon/fixture",
+                    "owner_branch": "ToS/canon",
+                    "authority_layer": "canon",
+                    "status": "canon",
+                    "from_id": "a",
+                    "to_id": "b",
+                }
+            ]
+            index["graph_views"].append({"view_id": "route-graph", "title": "Routes"})
+            index_path.write_text(json.dumps(index), encoding="utf-8")
             core = ToSAccessCore.discover(tos_root=root)
             report = doctor_report(tos_root=root)
             self.assertTrue(report["ok"], report)
@@ -660,6 +788,9 @@ class CoreContractTests(unittest.TestCase):
                 epistemic = json.load(urllib.request.urlopen(
                     base + "/api/philosophy/query/epistemic/a?view_id=direct-only"
                 ))
+                corpus_evidence = json.load(urllib.request.urlopen(
+                    base + "/api/corpus/query/epistemic/corpus-e?view_id=route-graph"
+                ))
                 self.assertTrue(health["ok"])
                 self.assertEqual(view["node_count"], 3)
                 self.assertEqual(limited_view["node_count"], 1)
@@ -669,6 +800,8 @@ class CoreContractTests(unittest.TestCase):
                 self.assertEqual(epistemic["selection"]["node_id"], "a")
                 self.assertEqual(epistemic["view_id"], "direct-only")
                 self.assertNotIn("query_backend", epistemic)
+                self.assertEqual(corpus_evidence["schema"], "tos_evidence_lens_packet_v1")
+                self.assertEqual(corpus_evidence["selection"]["edge_id"], "corpus-e")
             finally:
                 server.shutdown()
                 server.server_close()
@@ -773,6 +906,33 @@ class CoreContractTests(unittest.TestCase):
             )
             self.assertTrue(configured_integration["ok"])
 
+    def test_abyssos_profile_is_blocked_by_tos_freeze(self) -> None:
+        with tempfile.TemporaryDirectory() as raw:
+            root = Path(raw)
+            write_fixture(root)
+            runtime_path = root / "access/contracts/runtime-manifest.v1.json"
+            runtime_path.write_text(
+                json.dumps(
+                    {
+                        "integration_posture": {
+                            "state": "paused",
+                            "scope": ["abyssos"],
+                            "external_activation": "disabled",
+                        }
+                    }
+                ),
+                encoding="utf-8",
+            )
+            abyssos_root = root / "AbyssOS"
+            (abyssos_root / "abyss-stack").mkdir(parents=True)
+            with patch.dict(os.environ, {"TOS_ABYSSOS_ROOT": abyssos_root.as_posix()}):
+                report = doctor_report(tos_root=root, profile="abyssos")
+            integration = next(item for item in report["checks"] if item["check_id"] == "abyssos-integration")
+            freeze = next(item for item in report["checks"] if item["check_id"] == "abyssos-integration-freeze")
+            self.assertTrue(integration["ok"])
+            self.assertFalse(freeze["ok"])
+            self.assertFalse(report["ok"])
+
     def test_bundle_validation_requires_external_archive_digest(self) -> None:
         with tempfile.TemporaryDirectory() as raw:
             root = Path(raw)
@@ -801,6 +961,16 @@ class CoreContractTests(unittest.TestCase):
 
 
 class AuthoredContractTests(unittest.TestCase):
+    def test_repo_validation_publishes_a_validated_standalone_candidate(self) -> None:
+        workflow = (REPO_ROOT / ".github/workflows/repo-validation.yml").read_text(encoding="utf-8")
+        self.assertIn("playwright install --with-deps chromium", workflow)
+        self.assertIn("access/e2e/test_webmcp.py", workflow)
+        self.assertIn("build_standalone_bundle.py", workflow)
+        self.assertIn("validate_standalone.py --bundle", workflow)
+        self.assertIn("actions/upload-artifact@", workflow)
+        self.assertIn("tree-of-sophia-standalone.zip.manifest.json", workflow)
+        self.assertIn("if-no-files-found: error", workflow)
+
     def test_release_workflow_installs_standalone_mcp_extra(self) -> None:
         workflow = (REPO_ROOT / ".github/workflows/repo-validation.yml").read_text(encoding="utf-8")
         package = tomllib.loads((ACCESS_ROOT / "pyproject.toml").read_text(encoding="utf-8"))
@@ -880,6 +1050,10 @@ class AuthoredContractTests(unittest.TestCase):
         profiles = {item["profile_id"]: item for item in runtime["runtime_profiles"]}
         self.assertFalse(profiles["standalone"]["requires_abyssos"])
         self.assertTrue(profiles["abyssos"]["adapter_only"])
+        self.assertEqual(runtime["integration_posture"]["state"], "paused")
+        self.assertEqual(runtime["integration_posture"]["external_activation"], "disabled")
+        abyssos_profile = json.loads((ACCESS_ROOT / "profiles/abyssos.v1.json").read_text(encoding="utf-8"))
+        self.assertEqual(abyssos_profile["availability"], "paused")
         allowlist = json.loads((ACCESS_ROOT / "contracts/runtime-data.v1.json").read_text(encoding="utf-8"))
         paths = {item["source_path"] for item in allowlist["subjects"]}
         self.assertFalse(any("lexical-search" in path or "/payload/" in path for path in paths))

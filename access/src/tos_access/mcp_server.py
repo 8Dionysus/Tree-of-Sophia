@@ -169,6 +169,21 @@ def build_server(
         return current_state().philosophy_epistemic_packet(item_id=item_id, view_id=view_id, limit=limit)
 
     @mcp.tool()
+    def tos_evidence_lens(
+        mode: str,
+        item_id: str,
+        view_id: str | None = None,
+        limit: int = 80,
+    ) -> dict[str, Any]:
+        """Return a public-safe Evidence Lens packet joining a selection to explicit owner routes and gaps."""
+        return current_state().evidence_lens_packet(
+            mode=mode,
+            item_id=item_id,
+            view_id=view_id,
+            limit=limit,
+        )
+
+    @mcp.tool()
     def tos_philosophy_graph_neighborhood(
         node_id: str,
         depth: int = 1,

@@ -143,7 +143,47 @@ def doctor_report(
                     )
                 )
 
+    checks.append(
+        _check(
+            "evidence-projection-present",
+            core.evidence_projection_exists(),
+            path=core.evidence_projection_path.as_posix(),
+        )
+    )
+    if core.evidence_projection_exists():
+        try:
+            evidence = core.evidence_projection()
+        except (OSError, RuntimeError, ValueError) as exc:
+            checks.append(
+                _check(
+                    "evidence-projection-schema",
+                    False,
+                    schema_version=None,
+                    error=str(exc),
+                )
+            )
+        else:
+            checks.append(
+                _check(
+                    "evidence-projection-schema",
+                    bool(evidence.get("scenes")),
+                    schema_version=evidence.get("schema_version"),
+                    scene_count=len(evidence.get("scenes", [])),
+                    sha256=sha256_file(core.evidence_projection_path),
+                )
+            )
+
     contract_root = contract_root_for(core)
+    runtime_manifest: dict[str, Any] | None = None
+    if contract_root is not None:
+        try:
+            candidate = json.loads(
+                (contract_root / "runtime-manifest.v1.json").read_text(encoding="utf-8")
+            )
+        except (OSError, json.JSONDecodeError):
+            candidate = None
+        if isinstance(candidate, dict):
+            runtime_manifest = candidate
     checks.append(
         _check(
             "runtime-contracts",
@@ -183,6 +223,29 @@ def doctor_report(
             posture="optional-adapter",
         )
     )
+    integration_posture = runtime_manifest.get("integration_posture", {}) if runtime_manifest else {}
+    abyssos_paused = (
+        isinstance(integration_posture, dict)
+        and integration_posture.get("state") == "paused"
+        and "abyssos" in integration_posture.get("scope", [])
+    )
+    if profile == "abyssos":
+        checks.append(
+            _check(
+                "abyssos-integration-freeze",
+                not abyssos_paused,
+                required=True,
+                state=integration_posture.get("state") if isinstance(integration_posture, dict) else None,
+                activation=integration_posture.get("external_activation")
+                if isinstance(integration_posture, dict)
+                else None,
+                reason=(
+                    "ToS has paused AbyssOS activation; an explicit ToS operator command is required"
+                    if abyssos_paused
+                    else None
+                ),
+            )
+        )
 
     required_failures = [item["check_id"] for item in checks if item["required"] and not item["ok"]]
     return {

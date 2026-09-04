@@ -4,6 +4,10 @@ This directory is the adapter boundary for ecosystem deployment, KAG, shared
 stats, and artifact admission. It intentionally contains no required runtime
 code in the standalone profile.
 
+The AbyssOS adapter is currently paused by the ToS runtime posture. No
+deployment, KAG consumer activation, or artifact admission is implied until an
+explicit ToS operator command unfreezes this boundary.
+
 Tree of Sophia owns the standalone product and its projection readers.
 `abyss-stack` may deploy the product; `aoa-kag` and `aoa-stats` may consume
 bounded ports; `abyss-machine` retains artifact policy, registry, and consumer

@@ -105,7 +105,7 @@ export function createToSQueryOperations(fetchJson: FetchJson) {
       case "tos.epistemic.inspect": {
         const itemId = requiredString(input.item_id, "item_id");
         return fetchJson<ToSQueryResult>(
-          `/api/philosophy/query/epistemic/${encodeURIComponent(itemId)}${params({
+          `/api/${mode}/query/epistemic/${encodeURIComponent(itemId)}${params({
             view_id: optionalString(input.view_id),
             limit: boundedInt(input.limit, 80, 1, 200),
           })}`,

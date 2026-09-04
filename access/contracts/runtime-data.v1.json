@@ -16,6 +16,12 @@
       "consumer_roles": ["query-core", "native-mcp", "http-reader", "web-app", "webmcp"]
     },
     {
+      "subject_id": "tos-epistemic-evidence",
+      "source_path": "ToS/derived-exports/epistemic_evidence_projection.min.json",
+      "required": true,
+      "consumer_roles": ["query-core", "native-mcp", "http-reader", "web-app", "webmcp"]
+    },
+    {
       "subject_id": "tos-philosophy-post-planting-audit",
       "source_path": "ToS/philosophy/graph-workbench/review-packets/table-i-post-planting-audit.json",
       "required": false,

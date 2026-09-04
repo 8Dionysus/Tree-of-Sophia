@@ -12,6 +12,7 @@ from typing import Any
 INDEX_RELATIVE_PATH = Path("ToS/derived-exports/tos_corpus_index.min.json")
 PHILOSOPHY_PROJECTION_RELATIVE_PATH = Path("ToS/derived-exports/philosophy_graph_projection.min.json")
 PHILOSOPHY_AUDIT_RELATIVE_PATH = Path("ToS/philosophy/graph-workbench/review-packets/table-i-post-planting-audit.json")
+EVIDENCE_PROJECTION_RELATIVE_PATH = Path("ToS/derived-exports/epistemic_evidence_projection.min.json")
 SUPPORTED_CORPUS_VIEW_IDS = {
     "corpus-topology",
     "route-graph",
@@ -270,6 +271,7 @@ class ToSAccessCore:
     index_path: Path
     philosophy_graph_projection_path: Path
     philosophy_post_planting_audit_path: Path
+    evidence_projection_path: Path
 
     @classmethod
     def discover(
@@ -278,6 +280,7 @@ class ToSAccessCore:
         index_path: str | Path | None = None,
         philosophy_graph_projection_path: str | Path | None = None,
         philosophy_post_planting_audit_path: str | Path | None = None,
+        evidence_projection_path: str | Path | None = None,
     ) -> "ToSAccessCore":
         root = _discover_root(tos_root)
         index = Path(
@@ -301,11 +304,19 @@ class ToSAccessCore:
         ).expanduser()
         if not philosophy_audit.is_absolute():
             philosophy_audit = root / philosophy_audit
+        evidence_projection = Path(
+            evidence_projection_path
+            or os.environ.get("TOS_EVIDENCE_PROJECTION_PATH")
+            or root / EVIDENCE_PROJECTION_RELATIVE_PATH
+        ).expanduser()
+        if not evidence_projection.is_absolute():
+            evidence_projection = root / evidence_projection
         return cls(
             tos_root=root,
             index_path=index.resolve(),
             philosophy_graph_projection_path=philosophy_projection.resolve(),
             philosophy_post_planting_audit_path=philosophy_audit.resolve(),
+            evidence_projection_path=evidence_projection.resolve(),
         )
 
     def index_exists(self) -> bool:
@@ -334,6 +345,18 @@ class ToSAccessCore:
         payload = _read_json(self.philosophy_post_planting_audit_path)
         if payload.get("schema_version") != "tos_philosophy_post_planting_audit_v1":
             raise RuntimeError("ToS philosophy post-planting audit schema_version must be tos_philosophy_post_planting_audit_v1")
+        return payload
+
+    def evidence_projection_exists(self) -> bool:
+        return self.evidence_projection_path.is_file()
+
+    def evidence_projection(self) -> dict[str, Any]:
+        payload = _read_json(self.evidence_projection_path)
+        if payload.get("schema_version") != "tos_epistemic_evidence_projection_v1":
+            raise RuntimeError(
+                "ToS Evidence Lens projection schema_version must be "
+                "tos_epistemic_evidence_projection_v1"
+            )
         return payload
 
     def status(self) -> dict[str, Any]:
@@ -1312,6 +1335,211 @@ class ToSAccessCore:
                 "A contested_by, uncertain_relation, or polemicizes_with candidate is not adjudicated counterevidence; "
                 "ToS source, claim, review, rights, and canon owners remain authoritative."
             ),
+        }
+
+    def evidence_lens_packet(
+        self,
+        mode: str,
+        item_id: str,
+        view_id: str | None = None,
+        limit: int = 80,
+    ) -> dict[str, Any]:
+        """Join a selected graph item to explicit public-safe evidence routes."""
+        if mode not in {"philosophy", "corpus"}:
+            raise KeyError(f"unsupported ToS Evidence Lens mode: {mode}")
+        bounded_limit = _bounded_int(limit, 80, 1, 200)
+        if mode == "philosophy":
+            context = self.philosophy_epistemic_packet(item_id, view_id=view_id, limit=bounded_limit)
+            selection = context["selection"]
+            challenge_relations = context["challenge_relations"]
+            context_relations = context["context_relations"]
+            neighbor_nodes = context["neighbor_nodes"]
+            selection_posture = context["selection_posture"]
+            field_posture = context["field_posture"]
+            coverage = dict(context["coverage"])
+            projection_refs = context["source_refs"]
+        else:
+            selected_view_id = view_id or "route-graph"
+            if selected_view_id != "route-graph":
+                raise KeyError("corpus Evidence Lens currently supports the route-graph view")
+            graph = self.graph_view(selected_view_id, limit=1000)
+            nodes = [item for item in graph.get("nodes", []) if isinstance(item, dict)]
+            edges = [item for item in graph.get("edges", []) if isinstance(item, dict)]
+            selection = next(
+                (
+                    item
+                    for item in [*nodes, *edges]
+                    if str(item.get("node_id") or item.get("edge_id") or "") == item_id
+                ),
+                None,
+            )
+            if selection is None:
+                raise KeyError(f"unknown ToS corpus route-graph item: {item_id}")
+            if selection.get("node_id"):
+                selected_node_ids = {item_id}
+                relation_candidates = [
+                    edge
+                    for edge in edges
+                    if edge.get("from_id") == item_id or edge.get("to_id") == item_id
+                ]
+            else:
+                selected_node_ids = {
+                    str(selection.get("from_id") or ""),
+                    str(selection.get("to_id") or ""),
+                }
+                relation_candidates = [
+                    edge
+                    for edge in edges
+                    if edge.get("edge_id") == item_id
+                    or edge.get("from_id") in selected_node_ids
+                    or edge.get("to_id") in selected_node_ids
+                ]
+            relation_candidates.sort(
+                key=lambda item: (
+                    str(item.get("edge_id") or "") != item_id,
+                    str(item.get("edge_id") or ""),
+                )
+            )
+            context_relations = relation_candidates[:bounded_limit]
+            related_node_ids = {
+                str(endpoint)
+                for edge in context_relations
+                for endpoint in (edge.get("from_id"), edge.get("to_id"))
+                if endpoint
+            }
+            if selection.get("node_id"):
+                related_node_ids.discard(item_id)
+            neighbor_nodes = [
+                node for node in nodes if str(node.get("node_id") or "") in related_node_ids
+            ]
+            challenge_relations = []
+            selection_posture = {
+                "authority_posture": selection.get("authority_layer"),
+                "canon_status": selection.get("status"),
+                "review_posture": None,
+                "confidence": selection.get("confidence"),
+                "priority": None,
+                "claim_evidence_closed": False,
+            }
+            field_posture = {
+                "authority_postures": _unique_values(context_relations, "authority_layer"),
+                "canon_statuses": _unique_values(context_relations, "status"),
+                "review_postures": [],
+                "confidence_values": _unique_values(context_relations, "confidence"),
+            }
+            coverage = {
+                "posture": "partial",
+                "challenge_state": "none_in_projection_scope",
+                "available_challenge_relations": 0,
+                "returned_challenge_relations": 0,
+                "missing_surfaces": ["curated Evidence Lens scene lookup pending"],
+            }
+            projection_refs = _source_refs([selection, *context_relations, *neighbor_nodes])
+
+        evidence = self.evidence_projection()
+        scene = next(
+            (
+                candidate
+                for candidate in evidence.get("scenes", [])
+                if isinstance(candidate, dict)
+                and any(
+                    isinstance(route, dict)
+                    and route.get("mode") == mode
+                    and item_id in route.get("item_ids", [])
+                    for route in candidate.get("selections", [])
+                )
+            ),
+            None,
+        )
+        if scene is None:
+            finding = "No curated Evidence Lens route is published for this selection."
+            finding_ru = "Для выбранного объекта ещё не опубликован курируемый маршрут Evidence Lens."
+            posture = "projection-only"
+            conclusion = {
+                "can_conclude": False,
+                "canon_membership": selection.get("authority_layer") == "canon",
+                "claim_evidence_closed": False,
+                "allowed": ["inspect the projection context and its source-return references"],
+                "allowed_ru": ["исследовать контекст проекции и её ссылки возврата к источникам"],
+                "not_allowed": ["infer evidence closure from projection membership"],
+                "not_allowed_ru": ["выводить доказательную замкнутость из присутствия в проекции"],
+            }
+            routes: list[dict[str, Any]] = []
+            gaps = ["curated source, review, rights, and claim/evidence routes"]
+            gaps_ru = ["курируемые маршруты к source, review, rights и claim/evidence"]
+            source_anchors: list[dict[str, Any]] = []
+        else:
+            finding = str(scene.get("finding") or "")
+            finding_ru = str(scene.get("finding_ru") or finding)
+            posture = str(scene.get("posture") or "")
+            conclusion = dict(scene.get("conclusion") or {})
+            routes = [dict(route) for route in scene.get("routes", []) if isinstance(route, dict)]
+            gaps = [str(gap) for gap in scene.get("gaps", [])]
+            gaps_ru = [str(gap) for gap in scene.get("gaps_ru", gaps)]
+            source_anchors = [
+                dict(anchor) for anchor in scene.get("source_anchors", []) if isinstance(anchor, dict)
+            ]
+            coverage["missing_surfaces"] = gaps
+            coverage["posture"] = "curated-route"
+
+        route_counts: dict[str, int] = {}
+        for route in routes:
+            route_kind = str(route.get("route_kind") or "other")
+            route_counts[route_kind] = route_counts.get(route_kind, 0) + 1
+        source_refs = sorted(
+            {
+                *projection_refs,
+                *(str(ref) for ref in (scene or {}).get("source_refs", []) if isinstance(ref, str)),
+            }
+        )
+        agent_summary = {
+            "selection": item_id,
+            "finding": finding,
+            "finding_ru": finding_ru,
+            "posture": posture,
+            "can_conclude": conclusion.get("can_conclude") is True,
+            "canon_membership": conclusion.get("canon_membership") is True,
+            "claim_evidence_closed": conclusion.get("claim_evidence_closed") is True,
+            "route_counts": route_counts,
+            "gap_count": len(gaps),
+            "page_updated": True,
+            "next_actions": [
+                "inspect the full route cards on the page",
+                "open the referenced owner surface before making a stronger claim",
+            ],
+        }
+        return {
+            "schema": "tos_evidence_lens_packet_v1",
+            "mode": mode,
+            "item_id": item_id,
+            "view_id": view_id,
+            "selection": selection,
+            "scene": scene,
+            "finding": finding,
+            "finding_ru": finding_ru,
+            "posture": posture,
+            "conclusion": conclusion,
+            "source_anchors": source_anchors,
+            "routes": routes,
+            "gaps": gaps,
+            "gaps_ru": gaps_ru,
+            "challenge_relations": challenge_relations,
+            "context_relations": context_relations,
+            "neighbor_nodes": neighbor_nodes,
+            "selection_posture": selection_posture,
+            "field_posture": field_posture,
+            "coverage": coverage,
+            "counts": {
+                "routes": len(routes),
+                "source_anchors": len(source_anchors),
+                "gaps": len(gaps),
+                "challenge_relations": len(challenge_relations),
+                "context_relations": len(context_relations),
+            },
+            "source_refs": source_refs,
+            "authority_boundary": evidence.get("authority_boundary", {}),
+            "authority_note": evidence.get("authority_boundary", {}).get("note", ""),
+            "agent_summary": agent_summary,
         }
 
     def philosophy_neighborhood(
