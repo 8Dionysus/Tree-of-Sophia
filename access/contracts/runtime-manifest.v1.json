@@ -5,6 +5,13 @@
   "source_authority_root": "ToS/",
   "derived_input_root": "ToS/derived-exports/",
   "default_profile": "standalone",
+  "integration_posture": {
+    "state": "paused",
+    "scope": ["abyssos"],
+    "default_profile": "standalone",
+    "external_activation": "disabled",
+    "unfreeze_requires": "explicit ToS operator command"
+  },
   "components": [
     {"component_id": "query-core", "owner": "Tree-of-Sophia", "required": true},
     {"component_id": "cli", "owner": "Tree-of-Sophia", "required": true},

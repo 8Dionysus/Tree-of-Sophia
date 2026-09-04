@@ -53,6 +53,20 @@ def _validate_contracts(repo_root: Path) -> None:
     profiles = {item.get("profile_id"): item for item in runtime.get("runtime_profiles", [])}
     if profiles.get("standalone", {}).get("requires_abyssos") is not False:
         raise RuntimeError("standalone profile must not require AbyssOS")
+    posture = runtime.get("integration_posture")
+    if posture != {
+        "state": "paused",
+        "scope": ["abyssos"],
+        "default_profile": "standalone",
+        "external_activation": "disabled",
+        "unfreeze_requires": "explicit ToS operator command",
+    }:
+        raise RuntimeError("AbyssOS integration posture must remain explicitly paused")
+    abyssos_profile = json.loads(
+        (repo_root / "access/profiles/abyssos.v1.json").read_text(encoding="utf-8")
+    )
+    if abyssos_profile.get("availability") != "paused":
+        raise RuntimeError("AbyssOS access profile must remain paused")
     migration = json.loads((contract_root / "web-actions.v1.json").read_text(encoding="utf-8"))
     expected_successors = {"query-operations.v1.json", "page-commands.v1.json"}
     if migration.get("status") != "superseded" or set(migration.get("superseded_by", [])) != expected_successors:

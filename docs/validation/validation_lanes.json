@@ -306,11 +306,12 @@
     "artifact_bundles": {
       "label": "artifact bundles",
       "layer": "release-artifact",
-      "mode": "blocking",
+      "mode": "paused",
       "owner_surface": "mechanics/release-support/parts/artifact-bundles/README.md",
       "purpose": "Verify generated ToS readmodel exports through the OS Abyss artifact bundle verifier without promoting JSON exports to media credentials or release signatures.",
       "command_sequence": "artifact_bundles",
       "failure_route": "mechanics/release-support/parts/artifact-bundles/README.md",
+      "pause_reason": "Temporarily paused by the ToS integration freeze; AbyssOS admission resumes only after an explicit ToS operator command.",
       "does_not_own": [
         "ToS authored meaning",
         "abyss-machine signing policy",
@@ -337,7 +338,6 @@
         "generated_parity",
         "graph_exports",
         "standalone_access",
-        "artifact_bundles",
         "canon_contracts",
         "intake_contracts",
         "public_entry",
@@ -817,10 +817,6 @@
       {
         "label": "validate philosophy post-planting audit",
         "command": ["python", "scripts/validate_philosophy_post_planting_audit.py"]
-      },
-      {
-        "label": "validate OS Abyss generated readmodel artifact bundle",
-        "command": ["python", "mechanics/release-support/parts/artifact-bundles/scripts/validate_abyss_machine_generated_readmodel_bundle.py"]
       },
       {
         "label": "validate tree node contracts",

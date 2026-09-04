@@ -23,6 +23,11 @@ tree.
 | next route | source surface -> derived export validator -> `aoa-kag` registry/composition |
 | validation | local KAG provider validator, derived KAG seam validator, and repo release check |
 
+The portable family is temporarily frozen at the digest recorded in
+`kag/indexes/hot_profile.json`. The local provider validator must reject family
+or source-snapshot drift until an explicit ToS operator command changes that
+state. This freeze does not mutate or activate any downstream AbyssOS owner.
+
 ## Source Routes
 
 - `ToS/derived-exports/kag_export.min.json`

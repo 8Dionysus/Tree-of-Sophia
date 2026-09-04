@@ -50,7 +50,9 @@ run `tos verify --profile standalone`, `tos serve`, or `tos mcp`.
   human/WebMCP actuation.
 - `contracts/web-actions.v1.json` is retained only as the v1 migration marker.
 - `profiles/standalone.v1.json` is the required no-AbyssOS profile.
-- `profiles/abyssos.v1.json` declares optional ecosystem adapters.
+- `profiles/abyssos.v1.json` declares optional ecosystem adapters; the profile
+  is currently paused by the ToS integration posture until an explicit owner
+  command reopens it.
 
 `tos verify --profile abyssos` additionally requires `TOS_ABYSSOS_ROOT` to
 point at an AbyssOS root containing `abyss-stack`; this setting is never

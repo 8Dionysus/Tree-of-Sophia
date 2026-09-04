@@ -1,0 +1,14 @@
+{
+  "schema_version": "tos_kag_surface_freeze_v1",
+  "owner_repo": "Tree-of-Sophia",
+  "state": "frozen",
+  "surface": {
+    "manifest": "kag/indexes/index_family.manifest.json",
+    "family_digest": "ad1066db67b03be23b9df0dfb049f622f5842272e74f0a8964c1b8ffffe1b113",
+    "source_snapshot": "sha256:7eb64a1290366acc22ae01b2fae912a8a19be7a77615a97d3da5ac157a87f969"
+  },
+  "unfreeze": {
+    "requires": "explicit ToS operator command",
+    "route": "change this state before regenerating the KAG family or enabling external consumers"
+  }
+}

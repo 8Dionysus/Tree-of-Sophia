@@ -868,6 +868,33 @@ class CoreContractTests(unittest.TestCase):
             )
             self.assertTrue(configured_integration["ok"])
 
+    def test_abyssos_profile_is_blocked_by_tos_freeze(self) -> None:
+        with tempfile.TemporaryDirectory() as raw:
+            root = Path(raw)
+            write_fixture(root)
+            runtime_path = root / "access/contracts/runtime-manifest.v1.json"
+            runtime_path.write_text(
+                json.dumps(
+                    {
+                        "integration_posture": {
+                            "state": "paused",
+                            "scope": ["abyssos"],
+                            "external_activation": "disabled",
+                        }
+                    }
+                ),
+                encoding="utf-8",
+            )
+            abyssos_root = root / "AbyssOS"
+            (abyssos_root / "abyss-stack").mkdir(parents=True)
+            with patch.dict(os.environ, {"TOS_ABYSSOS_ROOT": abyssos_root.as_posix()}):
+                report = doctor_report(tos_root=root, profile="abyssos")
+            integration = next(item for item in report["checks"] if item["check_id"] == "abyssos-integration")
+            freeze = next(item for item in report["checks"] if item["check_id"] == "abyssos-integration-freeze")
+            self.assertTrue(integration["ok"])
+            self.assertFalse(freeze["ok"])
+            self.assertFalse(report["ok"])
+
     def test_bundle_validation_requires_external_archive_digest(self) -> None:
         with tempfile.TemporaryDirectory() as raw:
             root = Path(raw)
@@ -975,6 +1002,10 @@ class AuthoredContractTests(unittest.TestCase):
         profiles = {item["profile_id"]: item for item in runtime["runtime_profiles"]}
         self.assertFalse(profiles["standalone"]["requires_abyssos"])
         self.assertTrue(profiles["abyssos"]["adapter_only"])
+        self.assertEqual(runtime["integration_posture"]["state"], "paused")
+        self.assertEqual(runtime["integration_posture"]["external_activation"], "disabled")
+        abyssos_profile = json.loads((ACCESS_ROOT / "profiles/abyssos.v1.json").read_text(encoding="utf-8"))
+        self.assertEqual(abyssos_profile["availability"], "paused")
         allowlist = json.loads((ACCESS_ROOT / "contracts/runtime-data.v1.json").read_text(encoding="utf-8"))
         paths = {item["source_path"] for item in allowlist["subjects"]}
         self.assertFalse(any("lexical-search" in path or "/payload/" in path for path in paths))
