@@ -48,7 +48,7 @@ jobs:
         with:
           python-version: "3.13"
       - name: Install dependencies
-        run: npm ci && npm run ci:web
+        run: npm ci && npm run ci:python && npm run ci:web
       - name: Build and check Worker
         run: npm run check
       - name: Import local D1 read model

@@ -7,11 +7,12 @@
     "node": ">=22"
   },
   "scripts": {
+    "ci:python": "python -m pip install -r ../../../requirements-dev.txt",
     "ci:web": "npm ci --prefix ../../web",
     "build:web": "npm --prefix ../../web run build",
     "build:data": "python scripts/build_runtime.py",
     "build": "npm run build:web && npm run build:data",
-    "build:ci": "npm run ci:web && npm run build",
+    "build:ci": "npm run ci:python && npm run ci:web && npm run build",
     "types": "wrangler types",
     "typecheck": "tsc --noEmit",
     "load:local": "wrangler d1 execute DB --local --file=runtime/read-model.sql --yes",

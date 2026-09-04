@@ -36,7 +36,7 @@
     "excluded_generated_carrier_rules": 3,
     "excluded_tracked_path_count": 583,
     "human_scope": {
-      "bytes": 4736072,
+      "bytes": 4736093,
       "count": 942,
       "excluded_skill_launch_metadata": 25,
       "family_counts": {
@@ -66,7 +66,7 @@
           "lines": 106
         },
         "github": {
-          "bytes": 11132,
+          "bytes": 11153,
           "count": 5,
           "lines": 315
         },
@@ -166,7 +166,7 @@
       "surface_kind_counts": {
         "human": 5
       },
-      "tracked_surface_bytes": 11132,
+      "tracked_surface_bytes": 11153,
       "tracked_surface_count": 5
     },
     {
@@ -186,7 +186,7 @@
         "human": 7,
         "structured": 16
       },
-      "tracked_surface_bytes": 435590,
+      "tracked_surface_bytes": 435686,
       "tracked_surface_count": 39
     },
     {
@@ -285,7 +285,7 @@
   "source_map": "docs/validation/documentation_family_map.json",
   "source_map_sha256": "d70a5059be9cc7547289e4c8be380d23b3aeb9e53bb10e4cb82abf2177ea0896",
   "tracked_source": "git ls-files -z",
-  "tracked_surface_digest": "e6df1f942af59f01310476288617425526a81a63d96cc22fd7ba869c568a8b3f",
+  "tracked_surface_digest": "6335e58f137a0369bb91576c9503e577597720e2343a9bacc446f78788d0b110",
   "tracked_surfaces": [
     {
       "bytes": 1489,
@@ -1656,11 +1656,11 @@
       "surface_kind": "human"
     },
     {
-      "bytes": 1935,
+      "bytes": 1956,
       "currentness": "tracked_source_snapshot",
       "family_id": "github",
       "path": ".github/workflows/cloudflare-edge.yml",
-      "sha256": "6e82dbe15a15cb829d7715d37307fa25f9459cf47480fc787709bfe885837f80",
+      "sha256": "7d6291586149cc1e2c07a96d5baf57306e3031f7dda3a52d54cf248a06fbbd18",
       "surface_kind": "human"
     },
     {
@@ -24048,11 +24048,11 @@
       "surface_kind": "structured"
     },
     {
-      "bytes": 1236,
+      "bytes": 1332,
       "currentness": "tracked_source_snapshot",
       "family_id": "access",
       "path": "access/deploy/cloudflare-worker/package.json",
-      "sha256": "e44368a27d69ca5db0a7fde3e50f1d7a65eff58b69b5c74a421c8070ee6f0a46",
+      "sha256": "387ba27515c0dd9b719b5c4309cbfcf238240448918af696a4530d14adfff33d",
       "surface_kind": "structured"
     },
     {
