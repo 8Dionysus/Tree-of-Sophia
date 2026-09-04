@@ -35,6 +35,107 @@ function workspaceSummary() {
 }
 
 describe("WebMCP page-command binding", () => {
+  it("reports product-shell connection and selection-bound tool counts", async () => {
+    const current: PageContextSnapshot = {
+      mode: "philosophy",
+      view_id: "chronology",
+      graph_mode: "nodes",
+      selected: null,
+      path_start_node_id: null,
+      active_layers: ["source-relation"],
+      active_predicates: ["relates"],
+      deep_link: "http://tos.local/?view=chronology",
+      research_workspace: workspaceSummary(),
+    };
+    const noop = vi.fn();
+    const registry = createPageCommandRegistry(() => current, {
+      "tos.page.open-view": noop,
+      "tos.page.search": noop,
+      "tos.page.select": noop,
+      "tos.page.show-neighborhood": noop,
+      "tos.page.start-path": noop,
+      "tos.page.find-path": noop,
+      "tos.page.reroute-without-selection": noop,
+      "tos.page.inspect-epistemic": noop,
+      "tos.page.clear-focus": noop,
+      ...workspaceNoopHandlers,
+    });
+    const tools = new Map<string, RegisteredTool>();
+    const modelContext = {
+      registerTool: vi.fn(async (tool: RegisteredTool, options?: { signal?: AbortSignal }) => {
+        tools.set(tool.name, tool);
+        options?.signal?.addEventListener("abort", () => {
+          if (tools.get(tool.name) === tool) tools.delete(tool.name);
+        }, { once: true });
+      }),
+    };
+    const adapter = createWebMCPAdapter(registry, { modelContext } as unknown as WebMCPDocument);
+    const seen: Array<ReturnType<typeof adapter.status>> = [];
+    const unsubscribe = adapter.subscribeStatus((status) => seen.push(status));
+
+    await adapter.start();
+    expect(adapter.status()).toMatchObject({
+      supported: true,
+      registered: true,
+      selection_tool_count: 0,
+      context_revision: 0,
+    });
+    expect(adapter.status().stable_tool_count).toBeGreaterThan(0);
+
+    current.selected = { id: "node:a", kind: "node", reroutable: true };
+    registry.notifyStateChange();
+    await adapter.refresh();
+    expect(adapter.status().selection_tool_count).toBeGreaterThan(0);
+    expect(adapter.status().tool_count).toBe(
+      adapter.status().stable_tool_count + adapter.status().selection_tool_count,
+    );
+    expect(adapter.status().context_revision).toBe(1);
+    expect(seen.length).toBeGreaterThan(1);
+
+    unsubscribe();
+    adapter.stop();
+    expect(adapter.status()).toMatchObject({ registered: false, tool_count: 0 });
+  });
+
+  it("reports an immediately usable no-WebMCP fallback state", async () => {
+    const current: PageContextSnapshot = {
+      mode: "philosophy",
+      view_id: "chronology",
+      graph_mode: "nodes",
+      selected: null,
+      path_start_node_id: null,
+      active_layers: [],
+      active_predicates: [],
+      deep_link: "http://tos.local/",
+      research_workspace: workspaceSummary(),
+    };
+    const noop = vi.fn();
+    const registry = createPageCommandRegistry(() => current, {
+      "tos.page.open-view": noop,
+      "tos.page.search": noop,
+      "tos.page.select": noop,
+      "tos.page.show-neighborhood": noop,
+      "tos.page.start-path": noop,
+      "tos.page.find-path": noop,
+      "tos.page.reroute-without-selection": noop,
+      "tos.page.inspect-epistemic": noop,
+      "tos.page.clear-focus": noop,
+      ...workspaceNoopHandlers,
+    });
+    const adapter = createWebMCPAdapter(registry, {} as WebMCPDocument);
+
+    await adapter.start();
+    expect(adapter.status()).toMatchObject({
+      supported: false,
+      registered: false,
+      stable_tool_count: 0,
+      selection_tool_count: 0,
+      tool_count: 0,
+      context_revision: 0,
+    });
+    adapter.stop();
+  });
+
   it("uses the same command for human and agent actuation and fails stale deixis closed", async () => {
     const current: PageContextSnapshot = {
       mode: "philosophy",

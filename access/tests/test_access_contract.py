@@ -961,6 +961,16 @@ class CoreContractTests(unittest.TestCase):
 
 
 class AuthoredContractTests(unittest.TestCase):
+    def test_repo_validation_publishes_a_validated_standalone_candidate(self) -> None:
+        workflow = (REPO_ROOT / ".github/workflows/repo-validation.yml").read_text(encoding="utf-8")
+        self.assertIn("playwright install --with-deps chromium", workflow)
+        self.assertIn("access/e2e/test_webmcp.py", workflow)
+        self.assertIn("build_standalone_bundle.py", workflow)
+        self.assertIn("validate_standalone.py --bundle", workflow)
+        self.assertIn("actions/upload-artifact@", workflow)
+        self.assertIn("tree-of-sophia-standalone.zip.manifest.json", workflow)
+        self.assertIn("if-no-files-found: error", workflow)
+
     def test_release_workflow_installs_standalone_mcp_extra(self) -> None:
         workflow = (REPO_ROOT / ".github/workflows/repo-validation.yml").read_text(encoding="utf-8")
         package = tomllib.loads((ACCESS_ROOT / "pyproject.toml").read_text(encoding="utf-8"))

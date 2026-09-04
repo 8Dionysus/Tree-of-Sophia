@@ -19,6 +19,7 @@ import {
   type ResearchHypothesis,
   type RouteSnapshot,
 } from "./research-workspace";
+import { agentSurfaceState, PRODUCT_DEMO_PROMPTS } from "./product-shell";
 import { createWebMCPAdapter, type WebMCPDocument } from "./webmcp";
 import { localizedContentPayload, localizedContentText } from "./content-i18n";
 import StarNodeProgram from "./star-node-program";
@@ -411,6 +412,21 @@ const uiText: Record<Language, Record<string, string>> = {
     "workspace.journal": "Recent actions",
     "workspace.empty": "The workspace is empty. Select an edge to begin a bounded investigation.",
     "workspace.compareReady": "Comparison ready",
+    "agent.title": "Agent surface",
+    "agent.connected": "WebMCP connected",
+    "agent.connecting": "Connecting WebMCP",
+    "agent.unavailable": "WebMCP unavailable",
+    "agent.error": "WebMCP registration failed",
+    "agent.tools": "tools available",
+    "agent.selectionTools": "selection-bound",
+    "agent.revision": "context revision",
+    "agent.fallback": "The atlas remains fully usable. Connect an external agent through the native MCP server.",
+    "agent.nativeMcp": "Native fallback: run tos mcp",
+    "agent.demoTitle": "Try the research loop",
+    "agent.demoLead": "Select a relation, then give one of these prompts to your agent.",
+    "agent.copy": "Copy prompt",
+    "agent.copied": "Copied",
+    "agent.done": "Got it",
     "state.loading": "loading",
     "state.none": "none",
     "caption.view": "View",
@@ -551,6 +567,21 @@ const uiText: Record<Language, Record<string, string>> = {
     "workspace.journal": "Последние действия",
     "workspace.empty": "Область пуста. Выберите ребро, чтобы начать ограниченное исследование.",
     "workspace.compareReady": "Можно сравнивать",
+    "agent.title": "Поверхность агента",
+    "agent.connected": "WebMCP подключён",
+    "agent.connecting": "WebMCP подключается",
+    "agent.unavailable": "WebMCP недоступен",
+    "agent.error": "Ошибка регистрации WebMCP",
+    "agent.tools": "инструментов доступно",
+    "agent.selectionTools": "зависят от выбора",
+    "agent.revision": "ревизия контекста",
+    "agent.fallback": "Атлас остаётся полностью доступным. Внешнего агента можно подключить через родной MCP-сервер.",
+    "agent.nativeMcp": "Родной fallback: запустите tos mcp",
+    "agent.demoTitle": "Попробуйте исследовательский цикл",
+    "agent.demoLead": "Выберите связь и передайте агенту один из этих запросов.",
+    "agent.copy": "Копировать запрос",
+    "agent.copied": "Скопировано",
+    "agent.done": "Понятно",
     "state.loading": "загрузка",
     "state.none": "нет",
     "caption.view": "Вид",
@@ -851,6 +882,7 @@ let searchRevision = 0;
 let neighborhoodRevision = 0;
 let pathRevision = 0;
 let epistemicRevision = 0;
+let webMCP: ReturnType<typeof createWebMCPAdapter> | null = null;
 const lastPointer = { x: 0, y: 0 };
 
 function text(value: unknown): string {
@@ -1419,9 +1451,18 @@ function renderShell(): void {
           <input id="search" type="search" placeholder="${t("search.placeholder")}" />
           <button id="search-button" type="button" aria-label="${t("button.search")}">↵</button>
         </div>
-        <div class="language-toggle" aria-label="${t("language.label")}">
-          <button id="language-en" type="button">EN</button>
-          <button id="language-ru" type="button">RU</button>
+        <div class="reader-header-actions">
+          <details id="agent-surface" class="agent-surface">
+            <summary>
+              <i id="agent-surface-dot" aria-hidden="true"></i>
+              <span id="agent-surface-label">${t("agent.connecting")}</span>
+            </summary>
+            <div id="agent-surface-body" class="agent-surface-body"></div>
+          </details>
+          <div class="language-toggle" aria-label="${t("language.label")}">
+            <button id="language-en" type="button">EN</button>
+            <button id="language-ru" type="button">RU</button>
+          </div>
         </div>
       </header>
       <nav class="reader-nav" aria-label="${t("section.views")}">
@@ -1491,6 +1532,81 @@ function renderShell(): void {
   graphContainer = document.querySelector<HTMLDivElement>("#graph");
   nodeTooltip = document.querySelector<HTMLDivElement>("#node-tooltip");
   bindShellEvents();
+}
+
+function productOnboardingSeen(): boolean {
+  try {
+    return window.localStorage.getItem("tos-product-onboarding-v1") === "seen";
+  } catch {
+    return false;
+  }
+}
+
+function markProductOnboardingSeen(): void {
+  try {
+    window.localStorage.setItem("tos-product-onboarding-v1", "seen");
+  } catch {
+    // The shell remains usable when browser storage is unavailable.
+  }
+}
+
+function renderAgentSurface(): void {
+  const panel = document.getElementById("agent-surface") as HTMLDetailsElement | null;
+  const label = document.getElementById("agent-surface-label");
+  const body = document.getElementById("agent-surface-body");
+  if (!panel || !label || !body || !webMCP) return;
+  const model = agentSurfaceState(webMCP.status());
+  panel.dataset.webmcpState = model.state;
+  label.textContent = t(`agent.${model.state}`);
+  if (!productOnboardingSeen() && !panel.dataset.onboardingOpened) {
+    panel.open = true;
+    panel.dataset.onboardingOpened = "true";
+  }
+  const statusDetail = model.state === "connected"
+    ? `<dl class="agent-surface-metrics">
+        <div><dt>${t("agent.tools")}</dt><dd id="agent-tool-count">${model.toolCount}</dd></div>
+        <div><dt>${t("agent.selectionTools")}</dt><dd id="agent-selection-tool-count">${model.selectionToolCount}</dd></div>
+        <div><dt>${t("agent.revision")}</dt><dd id="agent-context-revision">${model.contextRevision}</dd></div>
+      </dl>`
+    : `<div class="agent-fallback">
+        <p>${escapeHtml(model.error || t("agent.fallback"))}</p>
+        <code>${t("agent.nativeMcp")}</code>
+      </div>`;
+  const prompts = PRODUCT_DEMO_PROMPTS[state.language]
+    .map((prompt) => `<article class="agent-prompt-card">
+      <strong>${escapeHtml(prompt.title)}</strong>
+      <p>${escapeHtml(prompt.prompt)}</p>
+      <button type="button" data-agent-prompt="${prompt.id}">${t("agent.copy")}</button>
+    </article>`)
+    .join("");
+  body.innerHTML = `
+    <div class="agent-surface-status">
+      <span>${t(`agent.${model.state}`)}</span>
+      ${statusDetail}
+    </div>
+    <section class="agent-onboarding">
+      <h3>${t("agent.demoTitle")}</h3>
+      <p>${t("agent.demoLead")}</p>
+      <div class="agent-prompt-list">${prompts}</div>
+      <button id="agent-onboarding-done" type="button">${t("agent.done")}</button>
+    </section>`;
+  body.querySelectorAll<HTMLButtonElement>("[data-agent-prompt]").forEach((button) => {
+    button.addEventListener("click", () => {
+      const prompt = PRODUCT_DEMO_PROMPTS[state.language].find((item) => item.id === button.dataset.agentPrompt);
+      if (!prompt) return;
+      void navigator.clipboard.writeText(prompt.prompt).then(() => {
+        markProductOnboardingSeen();
+        button.textContent = t("agent.copied");
+      }).catch(() => {
+        button.classList.add("danger");
+        button.textContent = t("agent.copy");
+      });
+    });
+  });
+  document.getElementById("agent-onboarding-done")?.addEventListener("click", () => {
+    markProductOnboardingSeen();
+    panel.open = false;
+  });
 }
 
 function bindShellEvents(): void {
@@ -1570,6 +1686,7 @@ function setLanguage(language: Language): void {
   document.documentElement.lang = language;
   renderShell();
   renderAll();
+  renderAgentSurface();
   syncPublicRoute();
   pageCommands.notifyStateChange();
 }
@@ -4197,9 +4314,10 @@ const pageCommands = createPageCommandRegistry(pageContextSnapshot, {
   },
 });
 
-const webMCP = createWebMCPAdapter(pageCommands, document as WebMCPDocument);
+webMCP = createWebMCPAdapter(pageCommands, document as WebMCPDocument);
 
 renderShell();
+webMCP.subscribeStatus(() => renderAgentSurface());
 void webMCP.start();
 window.addEventListener("beforeunload", () => webMCP.stop(), { once: true });
 void pageCommands.invoke("tos.page.open-view", {

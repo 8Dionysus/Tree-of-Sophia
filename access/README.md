@@ -95,6 +95,21 @@ these actions writes to candidate intake, review ledgers, authored ToS source,
 or canon; any future proposal/writeback flow requires a separate explicit
 contract and user confirmation.
 
+The product shell makes this shared surface visible instead of assuming the
+browser integration worked. Its header panel reports WebMCP availability,
+registered and selection-bound tool counts, the current context revision, and
+any registration failure. Without WebMCP it gives a graceful native `tos mcp`
+fallback while the atlas remains usable. The same panel contains three
+bilingual, copyable prompts for the core demonstration loop: inspect evidence,
+reroute around a disputed edge, and preserve an interpretation as a local-only
+hypothesis.
+
+Every successful `Repo Validation` run builds and validates
+`tree-of-sophia-standalone.zip`, then uploads the archive and its external
+digest manifest as a downloadable workflow artifact. This is a source-bound
+release candidate, not an official ToS release or an AbyssOS artifact-admission
+verdict; official publication still follows `docs/RELEASING.md`.
+
 The implementation follows the WebMCP Community Group draft shape current at
 `webmachinelearning/webmcp@41d12f057167ccf5954dbcf49d99502cb6c84491`:
 `document.modelContext.registerTool()`, registration lifecycle by

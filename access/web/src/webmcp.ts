@@ -17,6 +17,16 @@ type ModelContextLike = {
 
 export type WebMCPDocument = Document & { modelContext?: ModelContextLike };
 
+export type WebMCPStatus = {
+  supported: boolean;
+  registered: boolean;
+  stable_tool_count: number;
+  selection_tool_count: number;
+  tool_count: number;
+  context_revision: number;
+  registration_error: string | null;
+};
+
 const emptySchema: JsonSchema = { type: "object", properties: {}, additionalProperties: false };
 
 function objectSchema(properties: Record<string, unknown>, required: string[] = []): JsonSchema {
@@ -341,6 +351,29 @@ export function createWebMCPAdapter(registry: PageCommandRegistry, targetDocumen
   let registrationError: string | null = null;
   let probeTimer: ReturnType<typeof setTimeout> | null = null;
   let probeAttempts = 0;
+  let stableToolCount = 0;
+  let selectionToolCount = 0;
+  const statusListeners = new Set<(status: WebMCPStatus) => void>();
+
+  const status = (): WebMCPStatus => {
+    const registered = Boolean(stableController && !stableController.signal.aborted);
+    const currentStableToolCount = registered ? stableToolCount : 0;
+    const currentSelectionToolCount = registered ? selectionToolCount : 0;
+    return {
+      supported: Boolean(targetDocument.modelContext),
+      registered,
+      stable_tool_count: currentStableToolCount,
+      selection_tool_count: currentSelectionToolCount,
+      tool_count: currentStableToolCount + currentSelectionToolCount,
+      context_revision: registry.context().revision,
+      registration_error: registrationError,
+    };
+  };
+
+  const publishStatus = (): void => {
+    const current = status();
+    statusListeners.forEach((listener) => listener(current));
+  };
 
   const registerAll = async (tools: WebMCPTool[], controller: AbortController): Promise<void> => {
     const modelContext = targetDocument.modelContext;
@@ -358,11 +391,16 @@ export function createWebMCPAdapter(registry: PageCommandRegistry, targetDocumen
       const controller = new AbortController();
       dynamicController = controller;
       try {
-        await registerAll(dynamicTools(registry, context), controller);
+        const tools = dynamicTools(registry, context);
+        await registerAll(tools, controller);
+        selectionToolCount = tools.length;
         registrationError = null;
       } catch (error) {
         controller.abort();
+        selectionToolCount = 0;
         registrationError = String(error);
+      } finally {
+        publishStatus();
       }
     });
     return refreshQueue;
@@ -371,6 +409,9 @@ export function createWebMCPAdapter(registry: PageCommandRegistry, targetDocumen
   const start = async (): Promise<void> => {
     if (stableController) return;
     if (!targetDocument.modelContext) {
+      stableToolCount = 0;
+      selectionToolCount = 0;
+      publishStatus();
       if (probeAttempts < 20 && !probeTimer) {
         probeAttempts += 1;
         probeTimer = setTimeout(() => {
@@ -382,13 +423,18 @@ export function createWebMCPAdapter(registry: PageCommandRegistry, targetDocumen
     }
     stableController = new AbortController();
     try {
-      await registerAll(stableTools(registry), stableController);
+      const tools = stableTools(registry);
+      await registerAll(tools, stableController);
+      stableToolCount = tools.length;
       unsubscribe = registry.subscribe((context) => void refresh(context));
       await refresh();
     } catch (error) {
       registrationError = String(error);
       stableController.abort();
       stableController = null;
+      stableToolCount = 0;
+      selectionToolCount = 0;
+      publishStatus();
     }
   };
 
@@ -402,13 +448,16 @@ export function createWebMCPAdapter(registry: PageCommandRegistry, targetDocumen
     probeTimer = null;
     dynamicController = null;
     stableController = null;
+    stableToolCount = 0;
+    selectionToolCount = 0;
+    publishStatus();
   };
 
-  const status = () => ({
-    supported: Boolean(targetDocument.modelContext),
-    registered: Boolean(stableController && !stableController.signal.aborted),
-    registration_error: registrationError,
-  });
+  const subscribeStatus = (listener: (status: WebMCPStatus) => void): (() => void) => {
+    statusListeners.add(listener);
+    listener(status());
+    return () => statusListeners.delete(listener);
+  };
 
-  return { start, stop, refresh, status };
+  return { start, stop, refresh, status, subscribeStatus };
 }
