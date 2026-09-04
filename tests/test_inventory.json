@@ -483,6 +483,21 @@
       "disposition": "keep"
     },
     {
+      "path": "tests/test_epistemic_evidence_projection.py",
+      "home": "tests",
+      "home_scope": "root",
+      "family": "generated_parity",
+      "validation_lane": "graph_exports",
+      "owner_surface": "ToS/contracts/epistemic-evidence-projection.schema.json",
+      "protects": "public-safe Evidence Lens projection parity, source-route binding, and non-authority boundaries",
+      "coverage_authority": "tests/AGENTS.md root unittest discovery",
+      "mode": "blocking",
+      "runtime_cost": "fast",
+      "focused_target": "tests/test_epistemic_evidence_projection.py",
+      "failure_route": "Fix the Evidence Lens projection source, schema, builder, or validator before changing test expectations.",
+      "disposition": "keep"
+    },
+    {
       "path": "tests/test_tos_corpus_index.py",
       "home": "tests",
       "home_scope": "root",
