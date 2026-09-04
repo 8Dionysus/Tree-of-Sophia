@@ -511,6 +511,44 @@ class CoreContractTests(unittest.TestCase):
             )
             Draft202012Validator(schema).validate(packet)
 
+    def test_research_workspace_contract_keeps_session_hypotheses_non_authoritative(self) -> None:
+        schema = json.loads(
+            (ACCESS_ROOT / "contracts/research-workspace.v1.schema.json").read_text(encoding="utf-8")
+        )
+        Draft202012Validator.check_schema(schema)
+        packet = {
+            "schema": "tos_research_workspace_session_v1",
+            "version": 1,
+            "session_id": "demo",
+            "revision": 3,
+            "selected_lens": {"id": "edge:contested", "kind": "edge", "label": "Contested relation"},
+            "excluded_edge_ids": ["edge:contested"],
+            "route_snapshots": [],
+            "hypotheses": [
+                {
+                    "id": "hypothesis:alternate",
+                    "title": "Alternate reading",
+                    "body": "Treat this relation as a local possibility.",
+                    "target_id": "edge:contested",
+                    "from_id": "node:a",
+                    "to_id": "node:b",
+                    "predicate_label": "might imply",
+                    "posture": {
+                        "session_hypothesis": True,
+                        "source": False,
+                        "reviewed": False,
+                        "canon": False,
+                    },
+                }
+            ],
+            "notes": [],
+            "journal": [{"sequence": 1, "action": "hypothesis.add", "target_id": "hypothesis:alternate"}],
+        }
+        Draft202012Validator(schema).validate(packet)
+        packet["hypotheses"][0]["posture"]["canon"] = True
+        with self.assertRaises(Exception):
+            Draft202012Validator(schema).validate(packet)
+
     def test_scale_memberships_reference_only_selected_rows(self) -> None:
         with tempfile.TemporaryDirectory() as raw:
             root = Path(raw)
@@ -923,6 +961,16 @@ class CoreContractTests(unittest.TestCase):
 
 
 class AuthoredContractTests(unittest.TestCase):
+    def test_repo_validation_publishes_a_validated_standalone_candidate(self) -> None:
+        workflow = (REPO_ROOT / ".github/workflows/repo-validation.yml").read_text(encoding="utf-8")
+        self.assertIn("playwright install --with-deps chromium", workflow)
+        self.assertIn("access/e2e/test_webmcp.py", workflow)
+        self.assertIn("build_standalone_bundle.py", workflow)
+        self.assertIn("validate_standalone.py --bundle", workflow)
+        self.assertIn("actions/upload-artifact@", workflow)
+        self.assertIn("tree-of-sophia-standalone.zip.manifest.json", workflow)
+        self.assertIn("if-no-files-found: error", workflow)
+
     def test_release_workflow_installs_standalone_mcp_extra(self) -> None:
         workflow = (REPO_ROOT / ".github/workflows/repo-validation.yml").read_text(encoding="utf-8")
         package = tomllib.loads((ACCESS_ROOT / "pyproject.toml").read_text(encoding="utf-8"))

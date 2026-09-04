@@ -61,7 +61,7 @@ The current repository move is:
 - keep graph-workbench material pre-canon until review promotes relation packs;
 - keep generated graph, KAG, and public exports downstream of authored ToS
   surfaces;
-- make the site, native MCP, and future WebMCP installable from ToS itself,
+- make the site, native MCP, and WebMCP installable from ToS itself,
   with AbyssOS capabilities remaining optional integrations;
 - let mechanics carry repeatable movement around the source home without
   becoming the source home.
@@ -162,8 +162,8 @@ review the tree before canon promotion.
 
 | Field | Direction |
 | --- | --- |
-| Current posture | Root-entry, tiny-entry, KAG export, public compatibility, graph-view catalog, and graph projection are bounded downstream companions; `access/` supplies a standalone read-only product over an explicit data allowlist. |
-| Next honest move | Register WebMCP against the shared `web-actions.v1` ABI, then let `abyss-stack` consume the standalone release through its optional adapter profile. |
+| Current posture | Root-entry, tiny-entry, KAG export, public compatibility, graph-view catalog, and graph projection are bounded downstream companions; `access/` supplies a standalone read-only product with Evidence Lens, shared page commands, a local research workspace, a visible WebMCP/fallback surface, and a validated downloadable candidate over an explicit data allowlist. |
+| Next honest move | Run ordinary-user acceptance against the downloadable standalone candidate, then let `abyss-stack` consume the same release through its optional adapter profile without reclaiming runtime authority. |
 | Guardrail | Runtime can display or operate projections; ToS owns philosophical source and structural truth. |
 
 ## Phase Path

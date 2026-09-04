@@ -25,8 +25,8 @@ jobs:
         with:
           python-version: "3.12"
 
-      - name: Install validator and standalone MCP dependencies
-        run: python -m pip install -r requirements-dev.txt 'mcp>=1.27,<2'
+      - name: Install validator, standalone MCP, and browser dependencies
+        run: python -m pip install -r requirements-dev.txt 'mcp>=1.27,<2' 'playwright>=1.40'
 
       - name: Fetch pinned aoa-stats contract owner
         env:
@@ -56,3 +56,25 @@ jobs:
           npm run typecheck --prefix access/web
           npm run build --prefix access/web
           git diff --exit-code -- access/web/dist
+
+      - name: Validate the Product Shell in Chromium
+        run: |
+          python -m playwright install --with-deps chromium
+          PYTHONPATH=access/src pytest -q access/tests/test_http_security.py access/e2e/test_webmcp.py
+
+      - name: Build and validate standalone product candidate
+        run: |
+          mkdir -p dist
+          python access/packaging/build_standalone_bundle.py --output dist/tree-of-sophia-standalone.zip
+          python access/packaging/validate_standalone.py --bundle dist/tree-of-sophia-standalone.zip
+
+      - name: Publish standalone product candidate
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: tree-of-sophia-standalone-${{ github.sha }}
+          path: |
+            dist/tree-of-sophia-standalone.zip
+            dist/tree-of-sophia-standalone.zip.manifest.json
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: 14

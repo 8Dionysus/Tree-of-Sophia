@@ -1,25 +1,25 @@
 {
-  "allowed_bytes": 22698447,
-  "allowed_tracked_bytes": 44782440,
+  "allowed_bytes": 21402179,
+  "allowed_tracked_bytes": 44779721,
   "approved_by": "repository-owner",
   "base_ref": "d88708732d92dedc8a103cba86ed338b6fc4e88c",
   "candidate_identity": {
     "algorithm": "sha256:canonical-json-file-inventory-v2",
     "base_ref": "d88708732d92dedc8a103cba86ed338b6fc4e88c",
     "contract_version": "aoa-kag:budget-receipt-candidate-identity-v2",
-    "excluded_path": "kag/receipts/index_family_budget/cee4eff313be82c1b6b9d133912257771de1f493fbb529c8522262b62fcbfe12.json",
-    "family_digest": "cee4eff313be82c1b6b9d133912257771de1f493fbb529c8522262b62fcbfe12",
+    "excluded_path": "kag/receipts/index_family_budget/de84c2de2e2e0f388ed600521fa50c470e4693ee5d110bbfec4f993d03d39d3c.json",
+    "family_digest": "de84c2de2e2e0f388ed600521fa50c470e4693ee5d110bbfec4f993d03d39d3c",
     "file_count": 4874,
-    "seal": "0032258c67de1ac79f6455ce8198d9f747a361cc08ce7b6718dc9b2f8ea79024",
-    "source_epoch": "sha256:43959fb8dca6ba964dc348db1c56510b1f98e18092f6111054b3fe8aaedc86e0",
-    "source_snapshot": "sha256:62e6d2cbc31e6d77e43e97ed1687b33c1b8df112bae5586de4b0c48d95291517"
+    "seal": "e6577c5f81d4b539a059a7c22a09bc41d43b986126b96206cce6d32b2281b560",
+    "source_epoch": "sha256:c7abd0ab24d95071a79cb37e9d050e89c356517e24c162df5863dab95bd3e043",
+    "source_snapshot": "sha256:e026c6e881fe7b1fb5368c9e795d5585298b0ad3f7e3292658ca6298fe8bd9d9"
   },
-  "changed_generated_bytes": 22698447,
-  "changed_generated_files": 212,
+  "changed_generated_bytes": 21402179,
+  "changed_generated_files": 201,
   "decision_ref": "aoa-kag:docs/decisions/AOA-KAG-D-0017-portable-content-addressed-repository-family.md",
   "default_limit_bytes": 1048576,
-  "head_family_digest": "cee4eff313be82c1b6b9d133912257771de1f493fbb529c8522262b62fcbfe12",
-  "head_source_snapshot": "sha256:62e6d2cbc31e6d77e43e97ed1687b33c1b8df112bae5586de4b0c48d95291517",
+  "head_family_digest": "de84c2de2e2e0f388ed600521fa50c470e4693ee5d110bbfec4f993d03d39d3c",
+  "head_source_snapshot": "sha256:e026c6e881fe7b1fb5368c9e795d5585298b0ad3f7e3292658ca6298fe8bd9d9",
   "producer_identity": {
     "action": {
       "bytes": 4995,
@@ -853,10 +853,10 @@
     "revision_binding": "content-addressed-procedure-import-closure-portable-runtime-contract-and-descriptor-io-v1",
     "source_digest": "b6ab389723d813c22d82206c098e85621be70436937e3f36188761b6edd7a98b"
   },
-  "reason": "Refresh the frozen ToS KAG family after the generated corpus index was brought current; AbyssOS admission remains paused until an explicit ToS operator command.",
+  "reason": "Freeze the current ToS KAG family; AbyssOS admission remains paused until an explicit ToS operator command.",
   "repo": "Tree-of-Sophia",
   "schema_version": "aoa-repo-local-kag-budget-receipt-v2",
   "scope": "generated_delta_and_tracked_size",
-  "tracked_bytes": 44782440,
+  "tracked_bytes": 44779721,
   "tracked_bytes_max": 11534336
 }

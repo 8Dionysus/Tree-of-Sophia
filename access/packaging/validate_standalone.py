@@ -32,6 +32,15 @@ EXPECTED_PAGE_COMMANDS = {
     "tos.page.find-path",
     "tos.page.reroute-without-selection",
     "tos.page.inspect-epistemic",
+    "tos.page.research-workspace",
+    "tos.page.add-research-note",
+    "tos.page.add-session-hypothesis",
+    "tos.page.exclude-selected-edge",
+    "tos.page.save-route-comparison",
+    "tos.page.workspace-undo",
+    "tos.page.workspace-redo",
+    "tos.page.workspace-export",
+    "tos.page.workspace-import",
     "tos.page.clear-focus",
     "tos.page.cancel",
 }
@@ -100,6 +109,17 @@ def _validate_contracts(repo_root: Path) -> None:
     command_ids = {item.get("command_id") for item in page.get("commands", [])}
     if command_ids != EXPECTED_PAGE_COMMANDS:
         raise RuntimeError(f"page command contract drift: {sorted(command_ids)}")
+    workspace = json.loads((contract_root / "research-workspace.v1.schema.json").read_text(encoding="utf-8"))
+    if workspace.get("properties", {}).get("schema", {}).get("const") != "tos_research_workspace_session_v1":
+        raise RuntimeError("research workspace packet schema identity drift")
+    workspace_posture = workspace.get("$defs", {}).get("posture", {}).get("properties", {})
+    if {key: value.get("const") for key, value in workspace_posture.items()} != {
+        "session_hypothesis": True,
+        "source": False,
+        "reviewed": False,
+        "canon": False,
+    }:
+        raise RuntimeError("research hypotheses must remain explicitly outside ToS authority")
     allowlist = json.loads((contract_root / "runtime-data.v1.json").read_text(encoding="utf-8"))
     paths = {item.get("source_path") for item in allowlist.get("subjects", [])}
     if "ToS/derived-exports/epistemic_evidence_projection.min.json" not in paths:
