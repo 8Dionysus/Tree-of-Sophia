@@ -36,14 +36,14 @@
     "excluded_generated_carrier_rules": 3,
     "excluded_tracked_path_count": 583,
     "human_scope": {
-      "bytes": 4737162,
+      "bytes": 4737445,
       "count": 942,
       "excluded_skill_launch_metadata": 25,
       "family_counts": {
         "access": {
-          "bytes": 19842,
+          "bytes": 20125,
           "count": 7,
-          "lines": 382
+          "lines": 387
         },
         "agents-other": {
           "bytes": 17683,
@@ -121,7 +121,7 @@
           "lines": 60720
         }
       },
-      "lines": 83482
+      "lines": 83487
     },
     "surface_kind_counts": {
       "executable": 206,
@@ -186,7 +186,7 @@
         "human": 7,
         "structured": 16
       },
-      "tracked_surface_bytes": 436556,
+      "tracked_surface_bytes": 437581,
       "tracked_surface_count": 39
     },
     {
@@ -285,7 +285,7 @@
   "source_map": "docs/validation/documentation_family_map.json",
   "source_map_sha256": "d70a5059be9cc7547289e4c8be380d23b3aeb9e53bb10e4cb82abf2177ea0896",
   "tracked_source": "git ls-files -z",
-  "tracked_surface_digest": "1a8a9f7d44d349a78d71c829eb34eca907d90f924ec998c99db7a2a9b7cad8da",
+  "tracked_surface_digest": "79b196248662110a54198f792cf2376467dc4659f8afec0e0acdcac638743a83",
   "tracked_surfaces": [
     {
       "bytes": 1489,
@@ -24032,11 +24032,11 @@
       "surface_kind": "executable"
     },
     {
-      "bytes": 4121,
+      "bytes": 4404,
       "currentness": "tracked_source_snapshot",
       "family_id": "access",
       "path": "access/deploy/cloudflare-worker/README.md",
-      "sha256": "b7ac613692f3c3cac47d77b16fa77ae5893da7ab893cb0797bb0b3b335dfe11c",
+      "sha256": "f4549b0cef344a3af923e2c6103cb8bbb7e6bd5772d8b60effe90352e1416bb7",
       "surface_kind": "human"
     },
     {
@@ -24056,11 +24056,11 @@
       "surface_kind": "structured"
     },
     {
-      "bytes": 26630,
+      "bytes": 27372,
       "currentness": "tracked_source_snapshot",
       "family_id": "access",
       "path": "access/deploy/cloudflare-worker/scripts/build_runtime.py",
-      "sha256": "857de380c7ae3bced63313f924b78cbc1bf9c9358c985de4e63a0c8a12bd8003",
+      "sha256": "30e4f6b85d02a89cf55a650ceca4f5880ea2e78df03ed1a03f36a682f754eea9",
       "surface_kind": "executable"
     },
     {
