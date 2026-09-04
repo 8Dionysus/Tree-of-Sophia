@@ -19,6 +19,8 @@ def jsonl(name: str) -> list[dict]:
 
 class ZarathustraMorphologyThemeCandidateV1Tests(unittest.TestCase):
     def test_builder_parity(self):
+        if not PRIVATE.is_file():
+            self.skipTest("private morphology analysis is not present")
         result = subprocess.run(
             ["python", "scripts/build_zarathustra_morphology_theme_candidates_v1.py", "--check"],
             cwd=REPO, text=True, capture_output=True,
@@ -66,6 +68,8 @@ class ZarathustraMorphologyThemeCandidateV1Tests(unittest.TestCase):
             self.assertNotIn(source_string, tracked.casefold())
 
     def test_named_probes_and_false_merge_controls(self):
+        if not PRIVATE.is_file():
+            self.skipTest("private morphology analysis is not present")
         private = json.loads(PRIVATE.read_text(encoding="utf-8"))
         probes = private["named_probe_examples"]
         self.assertTrue(any(
@@ -90,6 +94,8 @@ class ZarathustraMorphologyThemeCandidateV1Tests(unittest.TestCase):
             self.assertTrue(all(row["status"] != "proposed" for row in hits))
 
     def test_private_mode_provider_fixity_and_bilingual_clusters(self):
+        if not PRIVATE.is_file():
+            self.skipTest("private morphology analysis is not present")
         self.assertEqual(stat.S_IMODE(PRIVATE.stat().st_mode), 0o600)
         private = json.loads(PRIVATE.read_text(encoding="utf-8"))
         provider = private["russian_morphology_provider"]

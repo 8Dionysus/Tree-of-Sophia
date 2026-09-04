@@ -26,6 +26,8 @@ def jsonl(name: str) -> list[dict]:
 
 class ZarathustraEternalReturnConceptCandidateV1Tests(unittest.TestCase):
     def test_builder_parity_and_sign_annotation_contract(self):
+        if not PRIVATE.is_file():
+            self.skipTest("private eternal-return source-return analysis is not present")
         result = subprocess.run(
             ["python", "scripts/build_zarathustra_eternal_return_concept_candidate_v1.py", "--check"],
             cwd=REPO, text=True, capture_output=True,
@@ -103,6 +105,8 @@ class ZarathustraEternalReturnConceptCandidateV1Tests(unittest.TestCase):
         })
 
     def test_formula_census_private_return_and_source_withholding(self):
+        if not PRIVATE.is_file():
+            self.skipTest("private eternal-return source-return analysis is not present")
         formulas = {x["formula_code"]: x for x in jsonl("formula-candidates.v1.jsonl")}
         self.assertEqual(formulas["de_recurrence_noun"]["occurrence_count"], 12)
         self.assertEqual(formulas["de_ring_of_recurrence"]["occurrence_count"], 7)

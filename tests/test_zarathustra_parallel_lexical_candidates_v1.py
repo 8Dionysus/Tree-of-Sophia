@@ -22,6 +22,8 @@ def jsonl(name: str):
 
 class ParallelLexicalCandidateV1Tests(unittest.TestCase):
     def test_builder_parity(self):
+        if not (PRIVATE / "antonovsky-1911-lexical-observation-v1.sqlite3").is_file():
+            self.skipTest("private lexical databases are not present")
         result = subprocess.run(
             ["python", "scripts/build_zarathustra_parallel_lexical_candidates_v1.py", "--check"],
             cwd=REPO, text=True, capture_output=True,
@@ -76,6 +78,8 @@ class ParallelLexicalCandidateV1Tests(unittest.TestCase):
     def test_private_artifacts_are_closed_and_searchable(self):
         analysis = PRIVATE / "parallel-candidate-analysis.v1.json"
         database = PRIVATE / "antonovsky-1911-lexical-observation-v1.sqlite3"
+        if not analysis.is_file() or not database.is_file():
+            self.skipTest("private parallel lexical artifacts are not present")
         for path in (analysis, database):
             self.assertEqual(stat.S_IMODE(path.stat().st_mode), 0o600)
         summary = json.loads((ROUTE / "summary.v1.json").read_text(encoding="utf-8"))

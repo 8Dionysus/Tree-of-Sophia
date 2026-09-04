@@ -13,6 +13,11 @@ ROUTE = REPO / (
     "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/"
     "technical-markup/antonovsky-1911-structural-paragraph-v2"
 )
+SOURCE_PDF = REPO / (
+    "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/"
+    "expressions/ru-antonovsky-1911/editions/saint-petersburg-prometey-1911-fourth/"
+    "items/rsl-neb-scan-pdf/payload/antonovsky-prometey-1911-rsl-neb.pdf"
+)
 
 
 def jsonl(name: str) -> list[dict]:
@@ -97,6 +102,8 @@ class Antonovsky1911StructuralParagraphV2Tests(unittest.TestCase):
         self.assertEqual(comparison["disagreement_count"], 358)
         self.assertEqual(comparison["unresolved_disagreement_count"], 0)
         self.assertEqual(sum(comparison["all_pair_results"].values()), 13070)
+        if not SOURCE_PDF.is_file():
+            self.skipTest("exact local Antonovsky 1911 PDF is not present")
         completed = subprocess.run(
             [sys.executable, "scripts/build_antonovsky_1911_structural_paragraph_v2.py", "--check"],
             cwd=REPO, capture_output=True, text=True)

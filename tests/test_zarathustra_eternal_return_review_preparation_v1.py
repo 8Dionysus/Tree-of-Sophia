@@ -28,6 +28,8 @@ def jsonl(name: str) -> list[dict]:
 
 class ZarathustraEternalReturnReviewPreparationV1Tests(unittest.TestCase):
     def test_builder_parity_and_complete_declared_scope(self):
+        if not PRIVATE.is_file():
+            self.skipTest("private eternal-return review preparation is not present")
         result = subprocess.run(
             ["python", "scripts/build_zarathustra_eternal_return_review_preparation_v1.py", "--check"],
             cwd=REPO, text=True, capture_output=True,
@@ -98,6 +100,8 @@ class ZarathustraEternalReturnReviewPreparationV1Tests(unittest.TestCase):
         self.assertIsNone(worklist["review_ledger_ref"])
 
     def test_private_exact_return_and_public_withholding(self):
+        if not PRIVATE.is_file():
+            self.skipTest("private eternal-return review preparation is not present")
         self.assertEqual(stat.S_IMODE(PRIVATE.stat().st_mode), 0o600)
         private = json.loads(PRIVATE.read_text(encoding="utf-8"))
         gaps = {row["alignment_ref"]: row for row in jsonl("gap-review-candidates.v1.jsonl")}

@@ -17,6 +17,7 @@ from jsonschema import Draft202012Validator
 REPO = Path(__file__).resolve().parents[1]
 ROUTE = REPO / "ToS/candidate-intake/zarathustra/concept-workbench-v1"
 PRIVATE = REPO / "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/local-content/concept-workbench-v1"
+PRIVATE_REQUEST = PRIVATE / "requests/fate.request-analysis.v1.json"
 
 
 def load(name: str) -> dict:
@@ -28,6 +29,10 @@ def jsonl(name: str) -> list[dict]:
 
 
 class ZarathustraConceptWorkbenchV1Tests(unittest.TestCase):
+    def require_private_workbench(self) -> None:
+        if not PRIVATE_REQUEST.is_file():
+            self.skipTest("private concept-workbench source-return artifacts are not present")
+
     def run_concept_search(self, query: str, language: str, *extra: str) -> subprocess.CompletedProcess[str]:
         return subprocess.run(
             ["python", "scripts/query_zarathustra_concept_workbench_v1.py",
@@ -43,6 +48,7 @@ class ZarathustraConceptWorkbenchV1Tests(unittest.TestCase):
         )
 
     def test_builder_parity_and_request_contract(self):
+        self.require_private_workbench()
         result = subprocess.run(
             ["python", "scripts/build_zarathustra_concept_workbench_v1.py", "--check"],
             cwd=REPO, text=True, capture_output=True,
@@ -61,6 +67,7 @@ class ZarathustraConceptWorkbenchV1Tests(unittest.TestCase):
                          "scripts/prepare_zarathustra_word_analysis_v1.py")
 
     def test_second_request_and_relation_allowlist_need_no_code_change(self):
+        self.require_private_workbench()
         request = load("requests/fate.concept-request.v2.json")
         request.update({
             "request_identity_key": "tos.concept-request-key.sid-1234567890abcdef1234567890abcdef",
@@ -181,6 +188,7 @@ class ZarathustraConceptWorkbenchV1Tests(unittest.TestCase):
         self.assertTrue(forms["all_analysis_forms_have_explicit_state"])
 
     def test_english_is_on_demand_source_first_and_etymology_cited(self):
+        self.require_private_workbench()
         tasks = jsonl("outputs/fate/english-on-demand-worklist.v1.jsonl")
         self.assertEqual(len(tasks), 57)
         self.assertTrue(all(row["target_language"] == "en" for row in tasks))
@@ -326,6 +334,7 @@ class ZarathustraConceptWorkbenchV1Tests(unittest.TestCase):
         self.assertTrue(all(not x["accepted"] and not x["graph_effect"] and not x["canon_effect"] for x in occurrences))
 
     def test_private_boundary_and_label_independent_identity(self):
+        self.require_private_workbench()
         for name in ("workbench-index.v1.sqlite3", "requests/fate.request-analysis.v1.json"):
             self.assertEqual(stat.S_IMODE((PRIVATE / name).stat().st_mode), 0o600)
         database = sqlite3.connect(f"file:{PRIVATE / 'workbench-index.v1.sqlite3'}?mode=ro&immutable=1", uri=True)
@@ -344,6 +353,7 @@ class ZarathustraConceptWorkbenchV1Tests(unittest.TestCase):
         self.assertEqual(load("summary.v1.json")["human_review_count"], 0)
 
     def test_inflected_russian_concept_query_returns_original_german_source(self):
+        self.require_private_workbench()
         result = self.run_concept_search("судьбы", "ru", "--limit", "100")
         self.assertEqual(result.returncode, 0, result.stderr)
         payload = json.loads(result.stdout)
@@ -385,6 +395,7 @@ class ZarathustraConceptWorkbenchV1Tests(unittest.TestCase):
             )
 
     def test_concept_search_keeps_direct_semantic_and_negative_routes_distinct(self):
+        self.require_private_workbench()
         direct = self.run_concept_search("судьба", "ru", "--limit", "0")
         self.assertEqual(direct.returncode, 0, direct.stderr)
         direct_payload = json.loads(direct.stdout)
@@ -415,6 +426,7 @@ class ZarathustraConceptWorkbenchV1Tests(unittest.TestCase):
         self.assertIn("no concept-search route", negative.stderr)
 
     def test_word_analysis_task_returns_exact_source_and_agent_contract(self):
+        self.require_private_workbench()
         result = self.run_word_analysis("судьбы", "ru", "--rank", "1")
         self.assertEqual(result.returncode, 0, result.stderr)
         task = json.loads(result.stdout)
@@ -444,6 +456,7 @@ class ZarathustraConceptWorkbenchV1Tests(unittest.TestCase):
         self.assertFalse(task["authority"]["canon_effect"])
 
     def test_word_analysis_candidate_validation_binds_context_and_citations(self):
+        self.require_private_workbench()
         prepared = self.run_word_analysis("судьбы", "ru", "--rank", "1")
         self.assertEqual(prepared.returncode, 0, prepared.stderr)
         task = json.loads(prepared.stdout)
