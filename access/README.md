@@ -19,6 +19,16 @@ with `.venv/bin/python -m pip install -e 'access[mcp,dev]'`, then use
 web assets plus the JSON API. `tos mcp` uses stdio unless a loopback-only
 streamable HTTP transport is selected with `TOS_MCP_TRANSPORT`.
 
+The backend exposes two source-navigation operations over the same corpus
+index. `tos.source.descend` / `GET /api/source/navigation/{node_id}` walks from
+an era, region, tradition, planting, or source object toward bibliographic
+objects and Links. `tos.dossier.inspect` /
+`GET /api/source/dossiers/{object_id}` returns a compact Work or Link dossier:
+the connected Work/Expression/Edition/Item/File chain, observed Links, scoped
+rights records, gaps, source refs, and a fail-closed `agent_summary`. A
+downloadable URL is reported as technical access only; legal openness requires
+an accepted human rights review.
+
 ## Standalone archive
 
 Build a release candidate with

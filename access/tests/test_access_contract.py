@@ -61,6 +61,27 @@ def write_fixture(root: Path) -> None:
         "graph_views": [{"view_id": "corpus-topology", "title": "Corpus"}],
         "authority_order": ["ToS/canon"],
         "runtime_projection_boundary": {"runtime_owner": "abyss-stack"},
+        "source_navigation": {
+            "schema_version": "tos_source_navigation_v1",
+            "authority_boundary": "fixture source authority",
+            "counts": {"nodes": 5, "edges": 4, "rights": 1},
+            "nodes": [
+                {"node_id": "philosophy.eras.fixture", "node_kind": "era", "label": "Fixture era", "source_ref": "ToS/philosophy/eras/fixture/branch.manifest.json", "identity_status": "not_applicable", "properties": {}},
+                {"node_id": "tos.work.fixture", "node_kind": "work", "label": "Fixture Work", "source_ref": "ToS/source-witnesses/works/fixture/work.json", "identity_status": "verified", "properties": {}},
+                {"node_id": "tos.item.fixture", "node_kind": "item", "label": "Fixture Item", "source_ref": "ToS/source-witnesses/works/fixture/item.json", "identity_status": "verified", "properties": {}},
+                {"node_id": "tos.file.sha256.fixture", "node_kind": "file", "label": "fixture.pdf", "source_ref": "ToS/source-witnesses/works/fixture/item.manifest.json", "identity_status": "content_addressed", "properties": {}},
+                {"node_id": "tos.link.fixture.download", "node_kind": "link", "label": "Fixture download", "source_ref": "ToS/source-witnesses/links/fixture/link.json", "identity_status": "verified", "properties": {"uri": "https://example.test/fixture.pdf", "access_status": "open_download"}},
+            ],
+            "edges": [
+                {"edge_id": "sn1", "from_id": "philosophy.eras.fixture", "predicate_id": "grounds", "to_id": "tos.work.fixture", "edge_kind": "authored_source_planting", "review_status": "unreviewed", "source_refs": ["ToS/philosophy/eras/fixture/source-planting.json"]},
+                {"edge_id": "sn2", "from_id": "tos.work.fixture", "predicate_id": "exemplified_by", "to_id": "tos.item.fixture", "edge_kind": "evidence_claim", "review_status": "unreviewed", "source_refs": ["ToS/source-witnesses/relations/fixture.jsonl"]},
+                {"edge_id": "sn3", "from_id": "tos.item.fixture", "predicate_id": "has_file", "to_id": "tos.file.sha256.fixture", "edge_kind": "authored_item_manifest", "review_status": "not_applicable", "source_refs": ["ToS/source-witnesses/works/fixture/item.manifest.json"]},
+                {"edge_id": "sn4", "from_id": "tos.item.fixture", "predicate_id": "downloadable_at", "to_id": "tos.link.fixture.download", "edge_kind": "evidence_claim", "review_status": "unreviewed", "source_refs": ["ToS/source-witnesses/relations/object-link-claims.jsonl"]},
+            ],
+            "rights": [
+                {"rights_id": "tos.rights.fixture", "scope_refs": ["tos.item.fixture", "tos.file.sha256.fixture"], "assessment_status": "licensed", "review_status": "unreviewed", "redistribution_posture": "authorized_with_conditions", "derivative_posture": "allowed_with_conditions", "server_processing_posture": "authorized_with_conditions", "visibility": "public_payload", "license_uri": "https://example.test/license", "rights_statement_uri": "https://example.test/metadata", "restrictions": ["attribution"], "source_ref": "ToS/source-witnesses/works/fixture/rights.json"}
+            ],
+        },
     }
     graph = {
         "schema_version": "tos_philosophy_graph_projection_v2",
@@ -199,6 +220,77 @@ def write_fixture(root: Path) -> None:
 
 
 class CoreContractTests(unittest.TestCase):
+    def test_source_navigation_and_dossiers_keep_access_separate_from_rights(self) -> None:
+        with tempfile.TemporaryDirectory() as raw:
+            root = Path(raw)
+            write_fixture(root)
+            index_path = root / "ToS/derived-exports/tos_corpus_index.min.json"
+            index = json.loads(index_path.read_text(encoding="utf-8"))
+            navigation = index["source_navigation"]
+            navigation["nodes"].extend(
+                [
+                    {
+                        "node_id": "tos.work.neighbor",
+                        "node_kind": "work",
+                        "label": "Neighbor Work",
+                        "source_ref": "ToS/source-witnesses/works/neighbor/work.json",
+                        "identity_status": "verified",
+                        "properties": {},
+                    },
+                    {
+                        "node_id": "tos.link.neighbor",
+                        "node_kind": "link",
+                        "label": "Neighbor Link",
+                        "source_ref": "ToS/source-witnesses/links/neighbor/link.json",
+                        "identity_status": "verified",
+                        "properties": {
+                            "uri": "https://example.test/neighbor",
+                            "access_status": "open_download",
+                        },
+                    },
+                ]
+            )
+            navigation["edges"].extend(
+                [
+                    {
+                        "edge_id": "sn5",
+                        "from_id": "philosophy.eras.fixture",
+                        "predicate_id": "grounds",
+                        "to_id": "tos.work.neighbor",
+                        "edge_kind": "authored_source_planting",
+                        "review_status": "unreviewed",
+                        "source_refs": [
+                            "ToS/philosophy/eras/fixture/neighbor-source-planting.json"
+                        ],
+                    },
+                    {
+                        "edge_id": "sn6",
+                        "from_id": "tos.work.neighbor",
+                        "predicate_id": "downloadable_at",
+                        "to_id": "tos.link.neighbor",
+                        "edge_kind": "evidence_claim",
+                        "review_status": "unreviewed",
+                        "source_refs": ["ToS/source-witnesses/relations/neighbor.jsonl"],
+                    },
+                ]
+            )
+            navigation["counts"] = {"nodes": 7, "edges": 6, "rights": 1}
+            index_path.write_text(json.dumps(index), encoding="utf-8")
+            core = ToSAccessCore.discover(tos_root=root)
+
+            descent = core.source_descend("philosophy.eras.fixture")
+            self.assertEqual(descent["counts"], {"nodes": 7, "edges": 6})
+            self.assertEqual(descent["nodes"][-1]["depth"], 3)
+            dossier = core.source_dossier("tos.link.fixture.download")
+            self.assertEqual(dossier["agent_summary"]["technical_access"], "downloadable")
+            self.assertEqual(dossier["agent_summary"]["rights_posture"], "candidate_requires_human_review")
+            self.assertFalse(dossier["agent_summary"]["can_conclude_legal_openness"])
+            self.assertFalse(dossier["agent_summary"]["availability_is_license"])
+            self.assertEqual(dossier["tree_paths"][0]["node_ids"][-1], "tos.link.fixture.download")
+            self.assertEqual(dossier["chain"]["work"][0]["node_id"], "tos.work.fixture")
+            self.assertNotIn("tos.work.neighbor", {node["node_id"] for node in dossier["chain"]["work"]})
+            self.assertNotIn("tos.link.neighbor", {node["node_id"] for node in dossier["chain"]["link"]})
+
     def test_local_word_analysis_provider_is_capability_gated_and_source_bound(self) -> None:
         with tempfile.TemporaryDirectory() as raw:
             root = Path(raw)
@@ -891,6 +983,12 @@ class CoreContractTests(unittest.TestCase):
                 corpus_evidence = json.load(urllib.request.urlopen(
                     base + "/api/corpus/query/epistemic/corpus-e?view_id=route-graph"
                 ))
+                source_descent = json.load(urllib.request.urlopen(
+                    base + "/api/source/navigation/philosophy.eras.fixture?max_depth=8&limit=20"
+                ))
+                source_dossier = json.load(urllib.request.urlopen(
+                    base + "/api/source/dossiers/tos.link.fixture.download?limit=20"
+                ))
                 self.assertTrue(health["ok"])
                 self.assertEqual(view["node_count"], 3)
                 self.assertEqual(limited_view["node_count"], 1)
@@ -902,6 +1000,9 @@ class CoreContractTests(unittest.TestCase):
                 self.assertNotIn("query_backend", epistemic)
                 self.assertEqual(corpus_evidence["schema"], "tos_evidence_lens_packet_v1")
                 self.assertEqual(corpus_evidence["selection"]["edge_id"], "corpus-e")
+                self.assertEqual(source_descent["schema"], "tos_source_descent_v1")
+                self.assertEqual(source_dossier["schema"], "tos_source_dossier_v1")
+                self.assertFalse(source_dossier["agent_summary"]["availability_is_license"])
             finally:
                 server.shutdown()
                 server.server_close()
@@ -1089,6 +1190,8 @@ class AuthoredContractTests(unittest.TestCase):
             "tos.snapshot",
             "tos.search",
             "tos.source-gaps.search",
+            "tos.source.descend",
+            "tos.dossier.inspect",
             "tos.view.open",
             "tos.node.inspect",
             "tos.neighborhood",

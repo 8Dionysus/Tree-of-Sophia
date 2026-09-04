@@ -89,6 +89,10 @@ def main() -> int:
         wait_ready(base, process)
         node_id = "candidate-node:table-i-a01-node-016"
         target_id = "candidate-node:table-i-a01-node-014"
+        source_work_id = (
+            "tos.work.egyptian-scholarship."
+            "on-four-songs-contained-in-an-egyptian-papyrus-in-the-british-museum"
+        )
         quote = lambda value: urllib.parse.quote(value, safe="")
         cases: list[tuple[str, Callable[[], dict[str, Any]], str]] = [
             ("corpus status", core.status, "/api/corpus/status"),
@@ -104,6 +108,16 @@ def main() -> int:
             ("dynamic corpus view", lambda: core.graph_view("route-graph", 37), "/api/corpus/graph-views/route-graph?limit=37"),
             ("corpus search", lambda: core.search("zarathustra", 5), "/api/corpus/search?query=zarathustra&limit=5"),
             ("philosophy search", lambda: core.philosophy_search("Gilgamesh", 5), "/api/philosophy/search?query=Gilgamesh&limit=5"),
+            (
+                "source descent",
+                lambda: core.source_descend(source_work_id, 3, 40),
+                f"/api/source/navigation/{quote(source_work_id)}?max_depth=3&limit=40",
+            ),
+            (
+                "source dossier",
+                lambda: core.source_dossier(source_work_id, 300),
+                f"/api/source/dossiers/{quote(source_work_id)}?limit=300",
+            ),
             ("node packet", lambda: core.philosophy_node(node_id), f"/api/philosophy/nodes/{quote(node_id)}"),
             (
                 "neighborhood",

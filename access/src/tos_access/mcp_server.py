@@ -65,6 +65,16 @@ def build_server(
         return current_state().search(query=query, limit=limit, resource_kind=resource_kind)
 
     @mcp.tool()
+    def tos_source_descend(node_id: str, max_depth: int = 8, limit: int = 300) -> dict[str, Any]:
+        """Walk from an era, region, tradition, planting, or source object down the source-navigation graph."""
+        return current_state().source_descend(node_id=node_id, max_depth=max_depth, limit=limit)
+
+    @mcp.tool()
+    def tos_dossier_inspect(object_id: str, limit: int = 300) -> dict[str, Any]:
+        """Return a compact dossier for one Work or Link without converting availability into a rights conclusion."""
+        return current_state().source_dossier(object_id=object_id, limit=limit)
+
+    @mcp.tool()
     def tos_corpus_resources(
         resource_kind: str | None = None,
         owner_branch: str | None = None,

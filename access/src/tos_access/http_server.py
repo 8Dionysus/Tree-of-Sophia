@@ -195,6 +195,17 @@ def build_handler(core: ToSAccessCore, web_root: Path) -> type[BaseHTTPRequestHa
                     )); return
                 if path == "/api/corpus/summary": self._json(core.summary()); return
                 if path == "/api/corpus/search": self._json(core.search(_single(query, "query"), _integer(query, "limit", 20, 1, 100))); return
+                if path.startswith("/api/source/navigation/"):
+                    self._json(core.source_descend(
+                        unquote(path.removeprefix("/api/source/navigation/")),
+                        _integer(query, "max_depth", 8, 1, 8),
+                        _integer(query, "limit", 300, 1, 300),
+                    )); return
+                if path.startswith("/api/source/dossiers/"):
+                    self._json(core.source_dossier(
+                        unquote(path.removeprefix("/api/source/dossiers/")),
+                        _integer(query, "limit", 300, 1, 300),
+                    )); return
                 if path.startswith("/api/corpus/graph-views/"):
                     self._json(core.graph_view(unquote(path.removeprefix("/api/corpus/graph-views/")), _integer(query, "limit", 100, 1, 1000))); return
                 if path.startswith("/api/corpus/query/epistemic/"):

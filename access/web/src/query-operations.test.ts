@@ -128,4 +128,29 @@ describe("ToS query operations", () => {
       include_semantic_neighbors: "true",
     });
   });
+
+  it("routes source descent and dossiers through their backend surfaces", async () => {
+    const requested: string[] = [];
+    const operations = createToSQueryOperations(async <T>(url: string) => {
+      requested.push(url);
+      return { schema: "ok" } as T;
+    });
+
+    await operations.invoke("tos.source.descend", {
+      node_id: "philosophy.eras.bronze-age",
+      max_depth: 7,
+      limit: 250,
+    });
+    await operations.invoke("tos.dossier.inspect", {
+      object_id: "tos.link.cdli.cdlb-2006-1.pdf",
+      limit: 80,
+    });
+
+    const descent = new URL(requested[0], "http://tos.local");
+    expect(descent.pathname).toBe("/api/source/navigation/philosophy.eras.bronze-age");
+    expect(Object.fromEntries(descent.searchParams)).toEqual({ max_depth: "7", limit: "250" });
+    const dossier = new URL(requested[1], "http://tos.local");
+    expect(dossier.pathname).toBe("/api/source/dossiers/tos.link.cdli.cdlb-2006-1.pdf");
+    expect(Object.fromEntries(dossier.searchParams)).toEqual({ limit: "80" });
+  });
 });

@@ -215,6 +215,35 @@ class SourceWitnessBibliographicGraphTest(unittest.TestCase):
             ):
                 _load_claim_catalog(temp_root)
 
+    def test_catalog_loader_excludes_object_link_claims_from_bibliographic_graph(self) -> None:
+        source_entry = next(
+            json.loads(line)
+            for line in (REPO_ROOT / CLAIM_CATALOG_REF).read_text(encoding="utf-8").splitlines()
+            if "/relations/object-link/" in line
+        )
+        with tempfile.TemporaryDirectory() as temporary:
+            temp_root = Path(temporary)
+            claim_path = temp_root / CLAIM_CATALOG_REF
+            claim_path.parent.mkdir(parents=True)
+            claim_path.write_text(
+                json.dumps(source_entry, ensure_ascii=False) + "\n",
+                encoding="utf-8",
+            )
+            self.assertEqual(_load_claim_catalog(temp_root), [])
+
+            source_entry["source_claim_file_ref"] = (
+                "ToS/source-witnesses/relations/unexpected/relation-claims.jsonl"
+            )
+            claim_path.write_text(
+                json.dumps(source_entry, ensure_ascii=False) + "\n",
+                encoding="utf-8",
+            )
+            with self.assertRaisesRegex(
+                BibliographicGraphBuildError,
+                "outside the bounded Expression-derivation profile",
+            ):
+                _load_claim_catalog(temp_root)
+
     def test_exact_claim_query_returns_complete_source_bundle(self) -> None:
         payload = load_verified_projection()
         claim_ref = (

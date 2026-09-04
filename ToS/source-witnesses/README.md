@@ -28,6 +28,8 @@ source-witnesses/
 │   └── <place>/place.json
 ├── organizations/
 │   └── <historical-organization>/organization.json
+├── links/                                  # first-class observed web/API/file routes
+│   └── <provider>/<object>/<route>/link.json
 ├── discovery/                              # reviewed candidate queue + ordered query/result evidence
 ├── access-requests/                        # public status + ignored private correspondence
 ├── server-import/                          # future no-upload/import boundary
@@ -45,6 +47,7 @@ source-witnesses/
 │   ├── editions.jsonl
 │   ├── collections.jsonl
 │   ├── items.jsonl
+│   ├── links.jsonl
 │   └── claims.jsonl                       # generated source-returnable relation index
 ├── relations/                             # corpus-wide identity-ladder assertions
 │   ├── work-expression/
@@ -55,6 +58,8 @@ source-witnesses/
 │   │   └── edition-item-claims.jsonl       # Edition --exemplified_by--> Item
 │   ├── expression-derivation/
 │   │   └── expression-derivation-claims.jsonl # Expression --is_derivative_of--> Expression
+│   ├── object-link/
+│   │   └── object-link-claims.jsonl       # Work/Expression/Edition/Item --> Link
 │   └── provenance.jsonl                   # digest-bound batch materialization event
 ├── works/
 │   └── <responsibility-or-tradition>/
@@ -124,6 +129,13 @@ projection admits only `public` or
 reviewed public-safe derivative. Filesystem paths are human navigation and may
 improve through reviewed migrations. A path change never silently changes
 object or claim identity.
+
+A `Link` is a first-class observed route with provider, interface kind,
+technical access status, observation timestamp, provenance event, and a stable
+ToS ID independent of the mutable URL. Its association with a Work or another
+bibliographic object is an evidence-bearing `object-link` claim. Link
+availability never supplies a license: reusable-content conclusions remain in
+the separately scoped rights record and its human review posture.
 
 The corpus follows `work -> expression -> edition -> item -> file`. Aggregate
 volumes route through `collections/` and point to contained works/expressions

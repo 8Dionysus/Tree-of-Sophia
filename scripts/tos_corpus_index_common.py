@@ -158,10 +158,19 @@ def repo_ref(path: Path) -> str:
 
 
 def tracked_tos_paths() -> tuple[Path, ...]:
-    """Return the Git-owned ToS source view, excluding private ignored bytes."""
+    """Return the Git-trackable ToS source view, excluding private ignored bytes."""
 
     completed = subprocess.run(
-        ("git", "ls-files", "-z", "--", "ToS"),
+        (
+            "git",
+            "ls-files",
+            "--cached",
+            "--others",
+            "--exclude-standard",
+            "-z",
+            "--",
+            "ToS",
+        ),
         cwd=REPO_ROOT,
         check=True,
         capture_output=True,
@@ -444,6 +453,333 @@ def build_resources(tracked_paths: tuple[Path, ...]) -> list[dict[str, Any]]:
     return resources
 
 
+def _jsonl(path: Path) -> list[dict[str, Any]]:
+    if not path.is_file():
+        return []
+    return [
+        payload
+        for line in path.read_text(encoding="utf-8").splitlines()
+        if line.strip()
+        for payload in (json.loads(line),)
+        if isinstance(payload, dict)
+    ]
+
+
+def _source_navigation_branch_kind(path_ref: str) -> str:
+    parts = Path(path_ref).parts
+    if "traditions" in parts and parts.index("traditions") == len(parts) - 2:
+        return "tradition"
+    if "regions" in parts and parts.index("regions") == len(parts) - 2:
+        return "region"
+    if "eras" in parts and parts.index("eras") == len(parts) - 2:
+        return "era"
+    return "branch"
+
+
+def build_source_navigation(diagnostics: list[dict[str, str]]) -> dict[str, Any]:
+    """Join authored topology and source records into a read-only descent graph."""
+
+    nodes: dict[str, dict[str, Any]] = {}
+    edges: dict[str, dict[str, Any]] = {}
+    rights: list[dict[str, Any]] = []
+
+    def add_node(
+        node_id: str,
+        node_kind: str,
+        label: str,
+        source_ref: str,
+        identity_status: str = "not_applicable",
+        properties: dict[str, Any] | None = None,
+    ) -> None:
+        candidate = {
+            "node_id": node_id,
+            "node_kind": node_kind,
+            "label": label,
+            "source_ref": source_ref,
+            "identity_status": identity_status,
+            "properties": properties or {},
+        }
+        existing = nodes.get(node_id)
+        if existing is not None and existing != candidate:
+            diagnostics.append(
+                {
+                    "level": "error",
+                    "path": source_ref,
+                    "message": f"source-navigation node {node_id} has conflicting projections",
+                }
+            )
+            return
+        nodes[node_id] = candidate
+
+    def add_edge(
+        edge_id: str,
+        from_id: str,
+        predicate_id: str,
+        to_id: str,
+        edge_kind: str,
+        source_refs: list[str],
+        review_status: str = "not_applicable",
+        claim_ref: str | None = None,
+    ) -> None:
+        candidate: dict[str, Any] = {
+            "edge_id": edge_id,
+            "from_id": from_id,
+            "predicate_id": predicate_id,
+            "to_id": to_id,
+            "edge_kind": edge_kind,
+            "review_status": review_status,
+            "source_refs": sorted(dict.fromkeys(source_refs)),
+        }
+        if claim_ref:
+            candidate["claim_ref"] = claim_ref
+        existing = edges.get(edge_id)
+        if existing is not None and existing != candidate:
+            diagnostics.append(
+                {
+                    "level": "error",
+                    "path": source_refs[0] if source_refs else "ToS",
+                    "message": f"source-navigation edge {edge_id} has conflicting projections",
+                }
+            )
+            return
+        edges[edge_id] = candidate
+
+    branch_by_path: dict[str, dict[str, Any]] = {}
+    for manifest_path in sorted((TOS_ROOT / "philosophy" / "eras").rglob("branch.manifest.json")):
+        try:
+            manifest = load_json(manifest_path)
+        except (json.JSONDecodeError, ValueError) as exc:
+            diagnostics.append({"level": "error", "path": repo_ref(manifest_path), "message": str(exc)})
+            continue
+        branch_id = manifest.get("branch_id")
+        path_ref = manifest.get("path")
+        if not isinstance(branch_id, str) or not isinstance(path_ref, str):
+            continue
+        branch_by_path[path_ref] = manifest
+        add_node(
+            branch_id,
+            _source_navigation_branch_kind(path_ref),
+            str(manifest.get("role") or Path(path_ref).name.replace("-", " ").title()),
+            repo_ref(manifest_path),
+            properties={"branch_path": path_ref, "role": str(manifest.get("role") or "")},
+        )
+
+    branch_paths = sorted(branch_by_path, key=lambda item: (len(Path(item).parts), item))
+    for child_path in branch_paths:
+        parent_candidates = [
+            path_ref
+            for path_ref in branch_paths
+            if path_ref != child_path and Path(path_ref) in Path(child_path).parents
+        ]
+        if not parent_candidates:
+            continue
+        parent_path = max(parent_candidates, key=lambda item: len(Path(item).parts))
+        parent_id = str(branch_by_path[parent_path]["branch_id"])
+        child_id = str(branch_by_path[child_path]["branch_id"])
+        add_edge(
+            f"source-navigation:branch:{parent_id}:{child_id}",
+            parent_id,
+            "contains",
+            child_id,
+            "authored_branch_hierarchy",
+            [repo_ref(TOS_ROOT.parent / child_path / "branch.manifest.json")],
+        )
+
+    catalog_root = TOS_ROOT / "source-witnesses" / "catalog"
+    catalog_manifest_path = catalog_root / "catalog.manifest.json"
+    if catalog_manifest_path.is_file():
+        catalog_manifest = load_json(catalog_manifest_path)
+        for record_type, file_ref in sorted(catalog_manifest.get("record_files", {}).items()):
+            for entry in _jsonl(REPO_ROOT / str(file_ref)):
+                record_id = str(entry.get("record_id") or "")
+                source_ref = str(entry.get("source_record_ref") or "")
+                if not record_id or not source_ref:
+                    continue
+                properties = dict(entry.get("links") or {})
+                if record_type == "link":
+                    link_record = load_json(REPO_ROOT / source_ref)
+                    properties.update(
+                        {
+                            key: link_record.get(key)
+                            for key in (
+                                "uri",
+                                "link_kind",
+                                "provider_label",
+                                "interface_type",
+                                "access_status",
+                                "observed_at",
+                                "observation_ref",
+                                "mutable",
+                                "provenance_event_ref",
+                            )
+                        }
+                    )
+                add_node(
+                    record_id,
+                    str(record_type),
+                    str(entry.get("preferred_label") or record_id),
+                    source_ref,
+                    str(entry.get("identity_status") or "unknown"),
+                    properties,
+                )
+
+    planting_root = TOS_ROOT / "philosophy" / "eras"
+    for planting_path in sorted(planting_root.rglob("source-planting.json")):
+        planting = load_json(planting_path)
+        planting_id = planting.get("planting_id")
+        branch_path = planting.get("branch_path")
+        witness = planting.get("source_witness")
+        if not isinstance(planting_id, str) or not isinstance(branch_path, str) or not isinstance(witness, dict):
+            continue
+        planting_ref = repo_ref(planting_path)
+        add_node(
+            planting_id,
+            "source_planting",
+            str(planting.get("source_backlog_anchor", {}).get("source_label") or planting_id),
+            planting_ref,
+            str(planting.get("authority", {}).get("source_status") or "unknown"),
+            {
+                "status": planting.get("status"),
+                "discovery_ref": planting.get("discovery_ref"),
+                "research_ref": planting.get("research_ref"),
+            },
+        )
+        branch = branch_by_path.get(branch_path)
+        if isinstance(branch, dict):
+            branch_id = str(branch.get("branch_id") or "")
+            add_edge(
+                f"source-navigation:planting:{branch_id}:{planting_id}",
+                branch_id,
+                "has_source_planting",
+                planting_id,
+                "authored_source_planting",
+                [planting_ref],
+            )
+        witness_id = next(
+            (
+                value
+                for key in ("work_id", "artifact_id", "composite_id", "item_id")
+                for value in (witness.get(key),)
+                if isinstance(value, str) and value
+            ),
+            None,
+        )
+        if witness_id:
+            witness_ref = str(witness.get("record_ref") or planting_ref)
+            if witness_id not in nodes:
+                add_node(witness_id, "source_witness", witness_id, witness_ref, "provisional")
+            add_edge(
+                f"source-navigation:witness:{planting_id}:{witness_id}",
+                planting_id,
+                str(witness.get("relationship") or "references_source_witness"),
+                witness_id,
+                "authored_source_planting",
+                [planting_ref, witness_ref],
+            )
+
+    claim_files = (
+        "work-expression-claims.jsonl",
+        "expression-edition-claims.jsonl",
+        "edition-item-claims.jsonl",
+        "object-link-claims.jsonl",
+    )
+    for basename in claim_files:
+        for claim_path in sorted((TOS_ROOT / "source-witnesses").rglob(basename)):
+            claim_ref = repo_ref(claim_path)
+            for claim in _jsonl(claim_path):
+                subject_ref = claim.get("subject_ref")
+                object_ref = claim.get("object")
+                claim_id = claim.get("claim_id")
+                if not all(isinstance(value, str) and value for value in (subject_ref, object_ref, claim_id)):
+                    continue
+                if subject_ref not in nodes or object_ref not in nodes:
+                    diagnostics.append(
+                        {
+                            "level": "error",
+                            "path": claim_ref,
+                            "message": f"source-navigation claim {claim_id} has an unresolved endpoint",
+                        }
+                    )
+                    continue
+                add_edge(
+                    f"source-navigation:claim:{claim_id}",
+                    subject_ref,
+                    str(claim.get("predicate") or "related_to"),
+                    object_ref,
+                    "evidence_claim",
+                    [claim_ref, *[str(ref) for ref in claim.get("evidence_refs", [])]],
+                    str(claim.get("review_status") or "unknown"),
+                    claim_id,
+                )
+
+    for manifest_path in sorted((TOS_ROOT / "source-witnesses").rglob("item.manifest.json")):
+        manifest = load_json(manifest_path)
+        item_id = manifest.get("item_id")
+        if not isinstance(item_id, str) or item_id not in nodes:
+            continue
+        manifest_ref = repo_ref(manifest_path)
+        for file_entry in manifest.get("payload_files", []):
+            if not isinstance(file_entry, dict) or not isinstance(file_entry.get("file_id"), str):
+                continue
+            file_id = str(file_entry["file_id"])
+            add_node(
+                file_id,
+                "file",
+                str(file_entry.get("original_basename") or file_id),
+                manifest_ref,
+                "content_addressed",
+                {
+                    key: file_entry.get(key)
+                    for key in ("media_type", "byte_size", "sha256", "fixity_verified_at")
+                },
+            )
+            add_edge(
+                f"source-navigation:file:{item_id}:{file_id}",
+                item_id,
+                "has_file",
+                file_id,
+                "authored_item_manifest",
+                [manifest_ref],
+            )
+
+    for rights_path in sorted((TOS_ROOT / "source-witnesses").rglob("rights.json")):
+        record = load_json(rights_path)
+        if record.get("visibility") not in {"public", "public_payload", "public_metadata_only"}:
+            continue
+        rights_ref = repo_ref(rights_path)
+        assessments = [record, *[item for item in record.get("layer_assessments", []) if isinstance(item, dict)]]
+        for index, assessment in enumerate(assessments):
+            rights_id = str(assessment.get("layer_id") or record.get("rights_id") or f"{rights_ref}#{index}")
+            rights.append(
+                {
+                    "rights_id": rights_id,
+                    "scope_refs": sorted(str(ref) for ref in assessment.get("scope_refs", []) if isinstance(ref, str)),
+                    "assessment_status": str(assessment.get("assessment_status") or "unknown"),
+                    "review_status": str(assessment.get("review_status") or record.get("review_status") or "unknown"),
+                    "redistribution_posture": str(assessment.get("redistribution_posture") or record.get("redistribution_posture") or "unknown"),
+                    "derivative_posture": str(assessment.get("derivative_posture") or record.get("derivative_posture") or "unknown"),
+                    "server_processing_posture": str(assessment.get("server_processing_posture") or record.get("server_processing_posture") or "unknown"),
+                    "visibility": str(record.get("visibility") or "unknown"),
+                    "license_uri": assessment.get("license_uri") or record.get("license_uri"),
+                    "rights_statement_uri": assessment.get("rights_statement_uri") or record.get("rights_statement_uri"),
+                    "restrictions": [str(item) for item in assessment.get("restrictions", record.get("restrictions", []))],
+                    "source_ref": rights_ref,
+                }
+            )
+
+    return {
+        "schema_version": "tos_source_navigation_v1",
+        "authority_boundary": (
+            "generated read-only navigation; authored branch manifests, source records, claims, "
+            "item manifests, and rights records retain authority"
+        ),
+        "counts": {"nodes": len(nodes), "edges": len(edges), "rights": len(rights)},
+        "nodes": [nodes[key] for key in sorted(nodes)],
+        "edges": [edges[key] for key in sorted(edges)],
+        "rights": sorted(rights, key=lambda item: item["rights_id"]),
+    }
+
+
 def load_schema() -> dict[str, Any]:
     return load_json(REPO_ROOT / SCHEMA_REF)
 
@@ -466,6 +802,7 @@ def build_payload() -> dict[str, Any]:
     nodes = build_nodes(diagnostics, tracked_paths)
     relation_packs, relation_edges = build_relations(diagnostics, tracked_paths)
     resources = build_resources(tracked_paths)
+    source_navigation = build_source_navigation(diagnostics)
     payload: dict[str, Any] = {
         "schema_version": "tos_corpus_index_v1",
         "schema_ref": SCHEMA_REF,
@@ -494,6 +831,8 @@ def build_payload() -> dict[str, Any]:
             "relation_packs": len(relation_packs),
             "relation_edges": len(relation_edges),
             "resources": len(resources),
+            "source_navigation_nodes": source_navigation["counts"]["nodes"],
+            "source_navigation_edges": source_navigation["counts"]["edges"],
             "diagnostics": len(diagnostics),
         },
         "graph_views": list(GRAPH_VIEWS),
@@ -503,6 +842,7 @@ def build_payload() -> dict[str, Any]:
         "relation_packs": relation_packs,
         "relation_edges": relation_edges,
         "resources": resources,
+        "source_navigation": source_navigation,
         "diagnostics": diagnostics,
     }
     validate_payload_schema(payload)

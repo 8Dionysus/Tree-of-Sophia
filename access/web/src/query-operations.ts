@@ -5,6 +5,8 @@ export type ToSQueryOperationId =
   | "tos.snapshot"
   | "tos.search"
   | "tos.source-gaps.search"
+  | "tos.source.descend"
+  | "tos.dossier.inspect"
   | "tos.view.open"
   | "tos.node.inspect"
   | "tos.neighborhood"
@@ -89,6 +91,25 @@ export function createToSQueryOperations(fetchJson: FetchJson) {
         const query = String(input.query || "").trim();
         const limit = boundedInt(input.limit, 20, 1, 100);
         return fetchJson<ToSQueryResult>(`/api/source-gaps${params({ query, limit })}`, request);
+      }
+      case "tos.source.descend": {
+        const nodeId = requiredString(input.node_id, "node_id");
+        return fetchJson<ToSQueryResult>(
+          `/api/source/navigation/${encodeURIComponent(nodeId)}${params({
+            max_depth: boundedInt(input.max_depth, 8, 1, 8),
+            limit: boundedInt(input.limit, 300, 1, 300),
+          })}`,
+          request,
+        );
+      }
+      case "tos.dossier.inspect": {
+        const objectId = requiredString(input.object_id, "object_id");
+        return fetchJson<ToSQueryResult>(
+          `/api/source/dossiers/${encodeURIComponent(objectId)}${params({
+            limit: boundedInt(input.limit, 300, 1, 300),
+          })}`,
+          request,
+        );
       }
       case "tos.view.open": {
         const viewId = requiredString(input.view_id, "view_id");

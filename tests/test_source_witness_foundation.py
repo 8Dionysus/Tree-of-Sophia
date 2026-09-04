@@ -3197,10 +3197,11 @@ class SourceWitnessFoundationTests(unittest.TestCase):
             "ToS/source-witnesses/catalog/claims.jsonl",
             manifest["claim_file"],
         )
-        self.assertEqual(171, manifest["counts"]["object_total"])
-        self.assertEqual(193, manifest["counts"]["claim"])
-        self.assertEqual(364, manifest["counts"]["total"])
-        self.assertEqual(193, len(claim_entries))
+        self.assertEqual(176, manifest["counts"]["object_total"])
+        self.assertEqual(198, manifest["counts"]["claim"])
+        self.assertEqual(374, manifest["counts"]["total"])
+        self.assertEqual(5, manifest["counts"]["link"])
+        self.assertEqual(198, len(claim_entries))
         self.assertEqual(set(source_claims), {entry["claim_id"] for entry in claim_entries})
 
         for entry in claim_entries:
@@ -3239,6 +3240,7 @@ class SourceWitnessFoundationTests(unittest.TestCase):
         self.assertEqual(
             {
                 "bibliographic_assertion": 176,
+                "forensic_observation": 5,
                 "scholarly_report": 17,
             },
             {
@@ -3265,6 +3267,21 @@ class SourceWitnessFoundationTests(unittest.TestCase):
                 and entry["predicate"] == "is_derivative_of"
                 for entry in claim_entries
             ),
+        )
+        object_link_claims = [
+            entry
+            for entry in claim_entries
+            if entry["source_claim_file_ref"].endswith("/object-link-claims.jsonl")
+        ]
+        self.assertEqual(5, len(object_link_claims))
+        self.assertTrue(
+            all(
+                entry["claim_type"] == "relation"
+                and entry["assertion_layer"] == "forensic_observation"
+                and entry["qualifiers"]["availability_is_rights_conclusion"] is False
+                and str(entry["object"]).startswith("tos.link.")
+                for entry in object_link_claims
+            )
         )
         self.assertEqual(
             {

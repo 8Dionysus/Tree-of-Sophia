@@ -20,6 +20,7 @@
     "relation_packs",
     "relation_edges",
     "resources",
+    "source_navigation",
     "diagnostics"
   ],
   "properties": {
@@ -123,6 +124,9 @@
       "items": {
         "$ref": "#/$defs/resource"
       }
+    },
+    "source_navigation": {
+      "$ref": "#/$defs/sourceNavigation"
     },
     "diagnostics": {
       "type": "array",
@@ -387,6 +391,75 @@
           "type": "integer",
           "minimum": 0
         }
+      }
+    },
+    "sourceNavigation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["schema_version", "authority_boundary", "counts", "nodes", "edges", "rights"],
+      "properties": {
+        "schema_version": {"const": "tos_source_navigation_v1"},
+        "authority_boundary": {"type": "string", "minLength": 1},
+        "counts": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["nodes", "edges", "rights"],
+          "properties": {
+            "nodes": {"type": "integer", "minimum": 0},
+            "edges": {"type": "integer", "minimum": 0},
+            "rights": {"type": "integer", "minimum": 0}
+          }
+        },
+        "nodes": {"type": "array", "items": {"$ref": "#/$defs/sourceNavigationNode"}},
+        "edges": {"type": "array", "items": {"$ref": "#/$defs/sourceNavigationEdge"}},
+        "rights": {"type": "array", "items": {"$ref": "#/$defs/sourceNavigationRights"}}
+      }
+    },
+    "sourceNavigationNode": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["node_id", "node_kind", "label", "source_ref", "identity_status", "properties"],
+      "properties": {
+        "node_id": {"type": "string", "minLength": 1},
+        "node_kind": {"type": "string", "minLength": 1},
+        "label": {"type": "string", "minLength": 1},
+        "source_ref": {"type": "string", "minLength": 1},
+        "identity_status": {"type": "string", "minLength": 1},
+        "properties": {"type": "object"}
+      }
+    },
+    "sourceNavigationEdge": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["edge_id", "from_id", "predicate_id", "to_id", "edge_kind", "review_status", "source_refs"],
+      "properties": {
+        "edge_id": {"type": "string", "minLength": 1},
+        "from_id": {"type": "string", "minLength": 1},
+        "predicate_id": {"type": "string", "minLength": 1},
+        "to_id": {"type": "string", "minLength": 1},
+        "edge_kind": {"type": "string", "minLength": 1},
+        "review_status": {"type": "string", "minLength": 1},
+        "source_refs": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"type": "string", "minLength": 1}},
+        "claim_ref": {"type": "string", "minLength": 1}
+      }
+    },
+    "sourceNavigationRights": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["rights_id", "scope_refs", "assessment_status", "review_status", "redistribution_posture", "derivative_posture", "server_processing_posture", "visibility", "license_uri", "rights_statement_uri", "restrictions", "source_ref"],
+      "properties": {
+        "rights_id": {"type": "string", "minLength": 1},
+        "scope_refs": {"type": "array", "items": {"type": "string", "minLength": 1}},
+        "assessment_status": {"type": "string", "minLength": 1},
+        "review_status": {"type": "string", "minLength": 1},
+        "redistribution_posture": {"type": "string", "minLength": 1},
+        "derivative_posture": {"type": "string", "minLength": 1},
+        "server_processing_posture": {"type": "string", "minLength": 1},
+        "visibility": {"type": "string", "minLength": 1},
+        "license_uri": {"type": ["string", "null"]},
+        "rights_statement_uri": {"type": ["string", "null"]},
+        "restrictions": {"type": "array", "items": {"type": "string"}},
+        "source_ref": {"type": "string", "minLength": 1}
       }
     },
     "diagnostic": {

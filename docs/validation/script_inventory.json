@@ -409,13 +409,17 @@
         "ToS/source-witnesses/**/edition.json",
         "ToS/source-witnesses/**/collection.json",
         "ToS/source-witnesses/**/item.json",
+        "ToS/source-witnesses/**/link.json",
         "ToS/source-witnesses/**/membership-claims.jsonl",
         "ToS/source-witnesses/**/responsibility-claims.jsonl",
         "ToS/source-witnesses/**/publication-claims.jsonl",
         "ToS/source-witnesses/**/work-expression-claims.jsonl",
         "ToS/source-witnesses/**/expression-edition-claims.jsonl",
         "ToS/source-witnesses/**/edition-item-claims.jsonl",
+        "ToS/source-witnesses/**/object-link-claims.jsonl",
         "ToS/contracts/claim-packet.schema.json",
+        "ToS/contracts/source-link.schema.json",
+        "ToS/contracts/object-link-claim.schema.json",
         "ToS/contracts/source-witness-catalog.schema.json"
       ],
       "reads": [
@@ -1395,6 +1399,7 @@
       "source_truth": [
         "ToS/doctrine/CORPUS_FOUNDATION.md",
         "ToS/contracts/corpus-record.schema.json",
+        "ToS/contracts/source-link.schema.json",
         "ToS/contracts/source-item-manifest.schema.json",
         "ToS/contracts/source-resource-inventory.schema.json",
         "ToS/contracts/rights-record.schema.json",
@@ -1406,6 +1411,7 @@
         "ToS/contracts/translation-alignment-packet-v1.schema.json",
         "ToS/research-packets/foundation-laboratory-2026-07/translation-alignment-v1-abc/lab.manifest.json",
         "ToS/contracts/claim-packet.schema.json",
+        "ToS/contracts/object-link-claim.schema.json",
         "ToS/contracts/source-witness-catalog.schema.json",
         "ToS/contracts/source-anchor-v2.schema.json",
         "ToS/research-packets/foundation-laboratory-2026-07/source-anchor-v2-abc/lab.manifest.json",

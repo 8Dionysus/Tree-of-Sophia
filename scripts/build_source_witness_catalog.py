@@ -26,6 +26,7 @@ RECORD_FILES = {
     "edition": "editions.jsonl",
     "collection": "collections.jsonl",
     "item": "items.jsonl",
+    "link": "links.jsonl",
 }
 SOURCE_BASENAMES = {record_type: f"{record_type}.json" for record_type in RECORD_FILES}
 CLAIM_SOURCE_BASENAMES = (
@@ -38,6 +39,7 @@ CLAIM_SOURCE_BASENAMES = (
     "expression-edition-claims.jsonl",
     "edition-item-claims.jsonl",
     "expression-derivation-claims.jsonl",
+    "object-link-claims.jsonl",
 )
 TRACKED_CLAIM_VISIBILITIES = {"public_metadata_only", "public"}
 LINK_FIELDS = (
@@ -54,6 +56,7 @@ LINK_FIELDS = (
     "collection_ref",
     "membership_claim_refs",
     "item_manifest_ref",
+    "association_claim_refs",
 )
 
 
