@@ -60,6 +60,13 @@ PATH_TOKEN_PATTERN = re.compile(
     + r")(?![A-Za-z0-9])",
     re.IGNORECASE,
 )
+# Keep the broad path alphabet and IGNORECASE behavior of the legacy matcher,
+# but inspect each maximal run once instead of asking a greedy lookahead to
+# restart at every path separator.  The extra boundary character matters for
+# the legacy marker's ``\d`` branch: Python's ``\d`` also accepts a Unicode
+# decimal digit immediately after an ASCII path run.
+PATH_RUN_PATTERN = re.compile(r"[A-Za-z0-9._/-]+", re.IGNORECASE)
+PATH_MARKER_SEARCH_PATTERN = re.compile(PATH_REFERENCE_MARKER_PATTERN, re.IGNORECASE)
 ACTIVE_REFERENCE_PATTERN = re.compile(
     r"(?<![A-Za-z0-9])"
     r"(?=[A-Za-z0-9._/-]*" + PATH_REFERENCE_MARKER_PATTERN + r")"
@@ -163,6 +170,24 @@ def retired_path_issue(value: str) -> str | None:
     return None
 
 
+def active_reference_issue(text: str) -> str | None:
+    """Return the first non-allowlisted retired path-like content reference."""
+    if not RETIRED_TOKEN_SEARCH_PATTERN.search(text):
+        return None
+    for match in PATH_RUN_PATTERN.finditer(text):
+        reference = match.group(0)
+        if not RETIRED_TOKEN_SEARCH_PATTERN.search(reference):
+            continue
+        # Search through one character beyond the run without copying the
+        # string.  This preserves ACTIVE_REFERENCE_PATTERN's Unicode ``\d``
+        # marker behavior at a path-run boundary.
+        if PATH_MARKER_SEARCH_PATTERN.search(text, match.start(), match.end() + 1) is None:
+            continue
+        if reference.lower() not in ALLOWED_ACTIVE_CONTENT_REFERENCES:
+            return reference
+    return None
+
+
 def retired_content_issue(text: str) -> str | None:
     for artifact_identity in QUOTED_EXTERNAL_ARTIFACT_IDENTITIES:
         text = text.replace(artifact_identity, "[quoted-external-artifact-identity]")
@@ -172,11 +197,9 @@ def retired_content_issue(text: str) -> str | None:
     # so running it against every large markdown/JSON surface dominates this
     # validator. It can only match when a retired token is present; use the
     # cheap token guard before entering the expensive path-shaped regex.
-    if RETIRED_TOKEN_SEARCH_PATTERN.search(text):
-        for match in ACTIVE_REFERENCE_PATTERN.finditer(text):
-            reference = match.group(0)
-            if reference.lower() not in ALLOWED_ACTIVE_CONTENT_REFERENCES:
-                return reference
+    reference = active_reference_issue(text)
+    if reference is not None:
+        return reference
     match = RETIRED_ROUTE_LABEL_PATTERN.search(text)
     if match:
         return match.group(0)

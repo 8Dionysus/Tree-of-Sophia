@@ -37,6 +37,14 @@ def active_reference(text: str) -> str | None:
     return match.group(0) if match else None
 
 
+def active_content_reference(text: str) -> str | None:
+    for match in validate_active_naming.ACTIVE_REFERENCE_PATTERN.finditer(text):
+        reference = match.group(0)
+        if reference.lower() not in validate_active_naming.ALLOWED_ACTIVE_CONTENT_REFERENCES:
+            return reference
+    return None
+
+
 def old_route_prefix() -> str:
     return "z" + "v"
 
@@ -103,6 +111,28 @@ class ValidateActiveNamingTests(unittest.TestCase):
         for text, expected in cases:
             with self.subTest(text=text):
                 self.assertEqual(active_reference(text), expected)
+
+    def test_linear_active_reference_matches_legacy_boundaries(self) -> None:
+        old_s = retired_s_token()
+        old_w = retired_w_token()
+        cases = (
+            old_s + ".",
+            old_s + ".v1",
+            old_s + ".Ω",
+            old_s + "١",
+            old_s + "١-" + old_w,
+            "ſ" + "eed-pack",
+            "w" + "ı" + "ve-pack",
+            "seed_claim_ref",
+            "first-wave-resident",
+            "x-" * 64 + "seed_claim_ref " + "x_" * 64 + old_w + "-pack",
+        )
+        for text in cases:
+            with self.subTest(text=text):
+                self.assertEqual(
+                    validate_active_naming.active_reference_issue(text),
+                    active_content_reference(text),
+                )
 
     def test_exact_corpus_domain_identifiers_are_not_retired_routes(self) -> None:
         for reference in (
