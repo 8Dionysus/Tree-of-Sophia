@@ -1,9 +1,17 @@
 export type PageSelection = {
   id: string;
   kind: "node" | "edge" | "cluster" | "item";
+  semantic_kind?: string;
   label?: string;
+  subtitle?: string;
   from_id?: string;
   to_id?: string;
+  predicate_id?: string;
+  source_refs?: string[];
+  authority_posture?: string;
+  canon_status?: string;
+  review_posture?: string;
+  confidence?: string;
   reroutable?: boolean;
 };
 
@@ -12,6 +20,7 @@ export type ResearchWorkspaceSummary = {
   session_id: string;
   revision: number;
   hypothesis_count: number;
+  proposal_count: number;
   excluded_edge_count: number;
   comparison_count: number;
   note_count: number;
@@ -42,15 +51,19 @@ export type PageCommandId =
   | "tos.page.context"
   | "tos.page.open-view"
   | "tos.page.search"
+  | "tos.page.prepare-word-analysis"
   | "tos.page.select"
+  | "tos.page.inspect-selection"
   | "tos.page.show-neighborhood"
   | "tos.page.start-path"
   | "tos.page.find-path"
   | "tos.page.reroute-without-selection"
   | "tos.page.inspect-epistemic"
+  | "tos.page.compare-readings"
   | "tos.page.research-workspace"
   | "tos.page.add-research-note"
   | "tos.page.add-session-hypothesis"
+  | "tos.page.stage-proposal"
   | "tos.page.exclude-selected-edge"
   | "tos.page.save-route-comparison"
   | "tos.page.workspace-undo"
@@ -106,6 +119,7 @@ export function createPageCommandRegistry(
   const listeners = new Set<PageContextListener>();
   const pending = new Map<string, AbortController>();
   const readOnlyCommands = new Set<PageCommandId>([
+    "tos.page.inspect-selection",
     "tos.page.research-workspace",
     "tos.page.workspace-export",
   ]);

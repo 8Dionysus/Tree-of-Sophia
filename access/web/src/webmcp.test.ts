@@ -8,9 +8,13 @@ type RegisteredTool = {
 };
 
 const workspaceNoopHandlers = {
+  "tos.page.prepare-word-analysis": () => ({}),
+  "tos.page.inspect-selection": () => ({}),
+  "tos.page.compare-readings": () => ({}),
   "tos.page.research-workspace": () => ({}),
   "tos.page.add-research-note": () => ({}),
   "tos.page.add-session-hypothesis": () => ({}),
+  "tos.page.stage-proposal": () => ({}),
   "tos.page.exclude-selected-edge": () => ({}),
   "tos.page.save-route-comparison": () => ({}),
   "tos.page.workspace-undo": () => ({}),
@@ -25,6 +29,7 @@ function workspaceSummary() {
     session_id: "research:test",
     revision: 0,
     hypothesis_count: 0,
+    proposal_count: 0,
     excluded_edge_count: 0,
     comparison_count: 0,
     note_count: 0,
@@ -35,6 +40,128 @@ function workspaceSummary() {
 }
 
 describe("WebMCP page-command binding", () => {
+  it("returns bounded search hits with stable IDs instead of a page-only count", async () => {
+    const current: PageContextSnapshot = {
+      mode: "philosophy", view_id: "chronology", graph_mode: "nodes", selected: null,
+      path_start_node_id: null, active_layers: [], active_predicates: [], deep_link: "http://tos.local/",
+      research_workspace: workspaceSummary(),
+    };
+    const noop = vi.fn();
+    const registry = createPageCommandRegistry(() => current, {
+      "tos.page.open-view": noop,
+      "tos.page.search": (input) => ({
+        query: input.query,
+        result_count: 40,
+        results: Array.from({ length: 40 }, (_, index) => ({ id: `node:${index}`, kind: "node", label: `Result ${index}`, summary: `large-${index}-${"x".repeat(100)}` })),
+      }),
+      "tos.page.select": noop,
+      "tos.page.show-neighborhood": noop,
+      "tos.page.start-path": noop,
+      "tos.page.find-path": noop,
+      "tos.page.reroute-without-selection": noop,
+      "tos.page.inspect-epistemic": noop,
+      "tos.page.clear-focus": noop,
+      ...workspaceNoopHandlers,
+    });
+    const tools = new Map<string, RegisteredTool>();
+    const modelContext = { registerTool: vi.fn(async (tool: RegisteredTool) => { tools.set(tool.name, tool); }) };
+    const adapter = createWebMCPAdapter(registry, { modelContext } as unknown as WebMCPDocument);
+    await adapter.start();
+
+    const result = await tools.get("tos.page.search")?.execute({ query: "fate" }, { signal: new AbortController().signal }) as { content: Array<{ text: string }> };
+    const text = result.content[0].text;
+    expect(text.length).toBeLessThan(1500);
+    expect(text).toContain("node:0");
+    expect(text).toContain("node:5");
+    expect(text).not.toContain("node:6");
+    adapter.stop();
+  });
+
+  it("keeps a large neighborhood on the page while returning a bounded agent envelope", async () => {
+    const current: PageContextSnapshot = {
+      mode: "philosophy", view_id: "chronology", graph_mode: "nodes",
+      selected: { id: "node:center", kind: "node", semantic_kind: "concept", label: "Center" },
+      path_start_node_id: null, active_layers: ["conceptual-relation"], active_predicates: ["relates"],
+      deep_link: "http://tos.local/?focus=node%3Acenter", research_workspace: workspaceSummary(),
+    };
+    const noop = vi.fn();
+    const registry = createPageCommandRegistry(() => current, {
+      "tos.page.open-view": noop,
+      "tos.page.search": noop,
+      "tos.page.select": noop,
+      "tos.page.show-neighborhood": () => ({
+        node: { node_id: "node:center", label: "Center" },
+        neighbors: Array.from({ length: 40 }, (_, index) => ({ node_id: `node:${index}`, label: `Neighbor ${index} ${"x".repeat(100)}`, node_type: "concept" })),
+        edges: Array.from({ length: 50 }, (_, index) => ({ edge_id: `edge:${index}` })),
+        predicates: ["relates"],
+      }),
+      "tos.page.start-path": noop,
+      "tos.page.find-path": noop,
+      "tos.page.reroute-without-selection": noop,
+      "tos.page.inspect-epistemic": noop,
+      "tos.page.clear-focus": noop,
+      ...workspaceNoopHandlers,
+    });
+    const tools = new Map<string, RegisteredTool>();
+    const modelContext = { registerTool: vi.fn(async (tool: RegisteredTool) => { tools.set(tool.name, tool); }) };
+    const adapter = createWebMCPAdapter(registry, { modelContext } as unknown as WebMCPDocument);
+    await adapter.start();
+
+    const result = await tools.get("tos.page.show-neighborhood")?.execute({}, { signal: new AbortController().signal }) as { content: Array<{ text: string }> };
+    const text = result.content[0].text;
+    expect(text.length).toBeLessThan(1500);
+    expect(text).toContain("node:5");
+    expect(text).not.toContain("node:6");
+    expect(text).toContain('"neighbor_count":40');
+    adapter.stop();
+  });
+
+  it("binds selected-object tools to the captured revision and target", async () => {
+    const current: PageContextSnapshot = {
+      mode: "corpus", view_id: "corpus-topology", graph_mode: "nodes",
+      selected: { id: "work:a", kind: "item", semantic_kind: "work", label: "Work A", source_refs: ["ToS/source/a.json"] },
+      path_start_node_id: null, active_layers: [], active_predicates: [], deep_link: "http://tos.local/?focus=work%3Aa",
+      research_workspace: workspaceSummary(),
+    };
+    const notes: Record<string, unknown>[] = [];
+    const noop = vi.fn();
+    const registry = createPageCommandRegistry(() => current, {
+      "tos.page.open-view": noop,
+      "tos.page.search": noop,
+      "tos.page.select": (input) => { current.selected = { id: String(input.item_id), kind: "item" }; },
+      "tos.page.show-neighborhood": noop,
+      "tos.page.start-path": noop,
+      "tos.page.find-path": noop,
+      "tos.page.reroute-without-selection": noop,
+      "tos.page.inspect-epistemic": noop,
+      "tos.page.clear-focus": noop,
+      ...workspaceNoopHandlers,
+      "tos.page.inspect-selection": () => current.selected,
+      "tos.page.add-research-note": (input) => { notes.push(input); return { added: true }; },
+    });
+    const tools = new Map<string, RegisteredTool>();
+    const modelContext = {
+      registerTool: vi.fn(async (tool: RegisteredTool, options?: { signal?: AbortSignal }) => {
+        tools.set(tool.name, tool);
+        options?.signal?.addEventListener("abort", () => { if (tools.get(tool.name) === tool) tools.delete(tool.name); }, { once: true });
+      }),
+    };
+    const adapter = createWebMCPAdapter(registry, { modelContext } as unknown as WebMCPDocument);
+    await adapter.start();
+    expect(tools.has("tos.page.inspect-selection")).toBe(true);
+    expect(tools.has("tos.page.stage-proposal")).toBe(true);
+    const noteForA = tools.get("tos.page.add-note-to-selection");
+
+    await noteForA?.execute({ text: "Bound to A" }, { signal: new AbortController().signal });
+    expect(notes[0]).toMatchObject({ text: "Bound to A", target_id: "work:a", context_revision: 0 });
+    await adapter.refresh();
+    const refreshedNoteForA = tools.get("tos.page.add-note-to-selection");
+    await registry.invoke("tos.page.select", { item_id: "work:b", context_revision: 1 });
+    await expect(refreshedNoteForA?.execute({ text: "Must not follow" }, { signal: new AbortController().signal })).rejects.toThrow("stale page context revision");
+    expect(notes).toHaveLength(1);
+    adapter.stop();
+  });
+
   it("offers a stable source-bound word-analysis tool to the page agent", async () => {
     const current: PageContextSnapshot = {
       mode: "philosophy",
@@ -64,6 +191,7 @@ describe("WebMCP page-command binding", () => {
       "tos.page.inspect-epistemic": noop,
       "tos.page.clear-focus": noop,
       ...workspaceNoopHandlers,
+      "tos.page.prepare-word-analysis": (input) => prepare(input),
     });
     const tools = new Map<string, RegisteredTool>();
     const modelContext = {
@@ -72,11 +200,7 @@ describe("WebMCP page-command binding", () => {
         options?.signal?.addEventListener("abort", () => tools.delete(tool.name), { once: true });
       }),
     };
-    const adapter = createWebMCPAdapter(
-      registry,
-      { modelContext } as unknown as WebMCPDocument,
-      { prepareWordAnalysis: async (input) => prepare(input) },
-    );
+    const adapter = createWebMCPAdapter(registry, { modelContext } as unknown as WebMCPDocument);
 
     await adapter.start();
     const tool = tools.get("tos.zarathustra.word-analysis.prepare");
@@ -467,6 +591,7 @@ describe("WebMCP page-command binding", () => {
     const registry = createPageCommandRegistry(() => current, {
       "tos.page.open-view": noop,
       "tos.page.search": noop,
+      "tos.page.prepare-word-analysis": noop,
       "tos.page.select": noop,
       "tos.page.show-neighborhood": noop,
       "tos.page.start-path": noop,
@@ -479,7 +604,9 @@ describe("WebMCP page-command binding", () => {
         paths: [{ node_ids: ["node:a", "node:via", "node:b"], edge_ids: ["edge:a-via", "edge:via-b"], nodes: Array.from({ length: 40 }, (_, index) => ({ label: `large-node-${index}` })) }],
         excluded_edge_ids: ["edge:candidate"],
       }),
+      "tos.page.inspect-selection": () => current.selected,
       "tos.page.inspect-epistemic": noop,
+      "tos.page.compare-readings": noop,
       "tos.page.clear-focus": noop,
       "tos.page.research-workspace": () => ({
         local_only: true,
@@ -487,12 +614,14 @@ describe("WebMCP page-command binding", () => {
           hypotheses: Array.from({ length: 40 }, (_, index) => ({ id: `hypothesis:${index}`, title: `Hypothesis ${index}`, body: `large-hypothesis-${index}`, posture: { session_hypothesis: true, source: false, reviewed: false, canon: false } })),
           excluded_edge_ids: ["edge:candidate"],
           route_snapshots: [],
+          proposals: [],
           notes: [],
           journal: [],
         },
       }),
       "tos.page.add-research-note": (input) => calls.push(["note", input]),
       "tos.page.add-session-hypothesis": (input) => calls.push(["hypothesis", input]),
+      "tos.page.stage-proposal": (input) => calls.push(["proposal", input]),
       "tos.page.exclude-selected-edge": (input) => calls.push(["exclude", input]),
       "tos.page.save-route-comparison": (input) => calls.push(["comparison", input]),
       "tos.page.workspace-undo": () => calls.push(["undo", {}]),
@@ -516,6 +645,8 @@ describe("WebMCP page-command binding", () => {
     expect(tools.has("tos.page.workspace-undo")).toBe(true);
     expect(tools.has("tos.page.workspace-redo")).toBe(true);
     expect(tools.has("tos.page.add-session-hypothesis")).toBe(true);
+    expect(tools.has("tos.page.compare-readings")).toBe(true);
+    expect(tools.has("tos.page.stage-proposal")).toBe(true);
     expect(tools.has("tos.page.exclude-selected-edge")).toBe(true);
     expect(tools.has("tos.page.save-route-comparison")).toBe(true);
 

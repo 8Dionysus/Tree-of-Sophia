@@ -9,9 +9,13 @@ import {
 } from "./page-commands";
 
 const workspaceNoopHandlers = {
+  "tos.page.prepare-word-analysis": () => ({}),
+  "tos.page.inspect-selection": () => ({}),
+  "tos.page.compare-readings": () => ({}),
   "tos.page.research-workspace": () => ({}),
   "tos.page.add-research-note": () => ({}),
   "tos.page.add-session-hypothesis": () => ({}),
+  "tos.page.stage-proposal": () => ({}),
   "tos.page.exclude-selected-edge": () => ({}),
   "tos.page.save-route-comparison": () => ({}),
   "tos.page.workspace-undo": () => ({}),
@@ -35,6 +39,7 @@ function snapshot(): PageContextSnapshot {
       session_id: "research:test",
       revision: 0,
       hypothesis_count: 0,
+      proposal_count: 0,
       excluded_edge_count: 0,
       comparison_count: 0,
       note_count: 0,

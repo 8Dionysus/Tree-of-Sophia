@@ -15,16 +15,30 @@
     "excluded_edge_ids": { "type": "array", "maxItems": 256, "uniqueItems": true, "items": { "$ref": "#/$defs/id" } },
     "route_snapshots": { "type": "array", "maxItems": 256, "items": { "$ref": "#/$defs/route" } },
     "hypotheses": { "type": "array", "maxItems": 256, "items": { "$ref": "#/$defs/hypothesis" } },
+    "proposals": { "type": "array", "maxItems": 256, "description": "Session-local staged proposals. They require explicit human review and never update ToS canon.", "items": { "$ref": "#/$defs/proposal" } },
     "notes": { "type": "array", "maxItems": 256, "items": { "$ref": "#/$defs/note" } },
     "journal": { "type": "array", "maxItems": 512, "items": { "$ref": "#/$defs/journal_entry" } }
   },
   "$defs": {
     "id": { "type": "string", "minLength": 1, "maxLength": 256, "pattern": "\\S" },
+    "ref": { "type": "string", "minLength": 1, "maxLength": 1024, "pattern": "\\S" },
     "label": { "type": "string", "minLength": 1, "maxLength": 512, "pattern": "\\S" },
     "body": { "type": "string", "minLength": 1, "maxLength": 4000, "pattern": "\\S" },
     "selection": { "type": "object", "additionalProperties": false, "required": ["id", "kind"], "properties": { "id": { "$ref": "#/$defs/id" }, "kind": { "enum": ["node", "edge", "cluster", "item"] }, "label": { "$ref": "#/$defs/label" } } },
     "posture": { "type": "object", "additionalProperties": false, "required": ["session_hypothesis", "source", "reviewed", "canon"], "properties": { "session_hypothesis": { "const": true }, "source": { "const": false }, "reviewed": { "const": false }, "canon": { "const": false } } },
     "hypothesis": { "type": "object", "additionalProperties": false, "required": ["id", "title", "body", "posture"], "properties": { "id": { "$ref": "#/$defs/id" }, "title": { "$ref": "#/$defs/label" }, "body": { "$ref": "#/$defs/body" }, "target_id": { "$ref": "#/$defs/id" }, "from_id": { "$ref": "#/$defs/id" }, "to_id": { "$ref": "#/$defs/id" }, "predicate_label": { "$ref": "#/$defs/label" }, "posture": { "$ref": "#/$defs/posture" } }, "allOf": [{ "if": { "required": ["from_id"] }, "then": { "required": ["to_id"] } }, { "if": { "required": ["to_id"] }, "then": { "required": ["from_id"] } }] },
+    "confidence_posture": { "type": "object", "additionalProperties": false, "required": ["value", "meaning"], "properties": { "value": { "enum": ["unknown", "low", "medium", "high"] }, "meaning": { "const": "maker_declared_uncertainty_not_truth_probability" } } },
+    "proposal": { "type": "object", "additionalProperties": false, "required": ["id", "kind", "parent_hypothesis_id", "statement", "source_refs", "evidence_refs", "confidence_posture", "actor_origin", "base_page_revision", "base_workspace_revision", "data_fingerprint", "created_at", "local_only", "review_status", "canon", "digest"], "properties": {
+      "id": { "$ref": "#/$defs/id" }, "kind": { "enum": ["relation", "interpretation", "metadata_correction", "source_route", "concept_enrichment"] }, "parent_hypothesis_id": { "$ref": "#/$defs/id" },
+      "target_id": { "$ref": "#/$defs/id" }, "from_id": { "$ref": "#/$defs/id" }, "to_id": { "$ref": "#/$defs/id" }, "statement": { "$ref": "#/$defs/body" },
+      "source_refs": { "type": "array", "minItems": 1, "maxItems": 256, "uniqueItems": true, "items": { "$ref": "#/$defs/ref" } }, "evidence_refs": { "type": "array", "minItems": 1, "maxItems": 256, "uniqueItems": true, "items": { "$ref": "#/$defs/ref" } },
+      "confidence_posture": { "$ref": "#/$defs/confidence_posture" }, "actor_origin": { "enum": ["human", "agent"] }, "base_page_revision": { "type": "integer", "minimum": 0, "maximum": 1000000000 }, "base_workspace_revision": { "type": "integer", "minimum": 0, "maximum": 1000000000 },
+      "data_fingerprint": { "$ref": "#/$defs/ref" }, "created_at": { "type": "string", "format": "date-time", "minLength": 1, "maxLength": 64 }, "local_only": { "const": true }, "review_status": { "const": "pending_human_review" }, "canon": { "const": false }, "digest": { "type": "string", "pattern": "^fnv1a64:[0-9a-f]{16}$", "description": "Deterministic local trace digest; not a cryptographic signature." }
+    }, "allOf": [
+      { "if": { "required": ["from_id"] }, "then": { "required": ["to_id"] } }, { "if": { "required": ["to_id"] }, "then": { "required": ["from_id"] } },
+      { "if": { "properties": { "kind": { "enum": ["relation", "source_route"] } } }, "then": { "required": ["from_id", "to_id"] } },
+      { "if": { "properties": { "kind": { "enum": ["interpretation", "metadata_correction", "concept_enrichment"] } } }, "then": { "required": ["target_id"] } }
+    ] },
     "route": { "type": "object", "additionalProperties": false, "required": ["id", "label", "from_id", "to_id", "node_ids", "edge_ids"], "properties": { "id": { "$ref": "#/$defs/id" }, "label": { "$ref": "#/$defs/label" }, "from_id": { "$ref": "#/$defs/id" }, "to_id": { "$ref": "#/$defs/id" }, "node_ids": { "type": "array", "maxItems": 512, "uniqueItems": true, "items": { "$ref": "#/$defs/id" } }, "edge_ids": { "type": "array", "maxItems": 512, "uniqueItems": true, "items": { "$ref": "#/$defs/id" } } } },
     "note": { "type": "object", "additionalProperties": false, "required": ["id", "body"], "properties": { "id": { "$ref": "#/$defs/id" }, "body": { "$ref": "#/$defs/body" }, "target_id": { "$ref": "#/$defs/id" } } },
     "scalar": { "type": ["string", "number", "boolean", "null"] },

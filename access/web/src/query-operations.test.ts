@@ -2,6 +2,19 @@ import { describe, expect, it } from "vitest";
 import { createToSQueryOperations } from "./query-operations";
 
 describe("ToS query operations", () => {
+  it("reads the projection fingerprint used by traceable local proposals", async () => {
+    let requestedUrl = "";
+    const operations = createToSQueryOperations(async <T>(url: string) => {
+      requestedUrl = url;
+      return { snapshot_review: { current_snapshot: { projection_fingerprint: "abc" } } } as T;
+    });
+
+    const result = await operations.invoke("tos.snapshot");
+
+    expect(requestedUrl).toBe("/api/philosophy/snapshot");
+    expect(result).toMatchObject({ snapshot_review: { current_snapshot: { projection_fingerprint: "abc" } } });
+  });
+
   it("forwards cancellation and all path constraints to the HTTP seam", async () => {
     const calls: Array<{ url: string; options?: RequestInit }> = [];
     const operations = createToSQueryOperations(async <T>(url: string, options?: RequestInit) => {

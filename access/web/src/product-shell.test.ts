@@ -31,7 +31,8 @@ describe("WebMCP product shell", () => {
       expect(prompts).toMatch(/Evidence Lens|основан|основании/i);
       expect(prompts).toMatch(/alternative|альтернатив/i);
       expect(prompts).toMatch(/hypothesis|гипотез/i);
-      expect(prompts).toMatch(/not canon|не меняя канон/i);
+      expect(prompts).toMatch(/human review|человеческого review/i);
+      expect(prompts).toMatch(/canon|канон/i);
     }
   });
 });
