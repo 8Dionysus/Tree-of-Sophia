@@ -36,14 +36,14 @@
     "excluded_generated_carrier_rules": 3,
     "excluded_tracked_path_count": 512,
     "human_scope": {
-      "bytes": 4675026,
+      "bytes": 4675138,
       "count": 922,
       "excluded_skill_launch_metadata": 25,
       "family_counts": {
         "access": {
-          "bytes": 10297,
+          "bytes": 10409,
           "count": 5,
-          "lines": 205
+          "lines": 198
         },
         "agents-other": {
           "bytes": 17683,
@@ -121,7 +121,7 @@
           "lines": 60060
         }
       },
-      "lines": 82314
+      "lines": 82307
     },
     "surface_kind_counts": {
       "executable": 182,
@@ -186,7 +186,7 @@
         "human": 5,
         "structured": 13
       },
-      "tracked_surface_bytes": 317009,
+      "tracked_surface_bytes": 317121,
       "tracked_surface_count": 30
     },
     {
@@ -250,7 +250,7 @@
         "human": 2,
         "structured": 1
       },
-      "tracked_surface_bytes": 1221296,
+      "tracked_surface_bytes": 1222735,
       "tracked_surface_count": 53
     },
     {
@@ -285,7 +285,7 @@
   "source_map": "docs/validation/documentation_family_map.json",
   "source_map_sha256": "d70a5059be9cc7547289e4c8be380d23b3aeb9e53bb10e4cb82abf2177ea0896",
   "tracked_source": "git ls-files -z",
-  "tracked_surface_digest": "56f56a97995e2bdf5876973dfe018ab55d9b026b752f7c91a989989f5b2025e0",
+  "tracked_surface_digest": "7103ed9e61bb9bb8c66a21899b53215e914132d1a1ec6f38f0ae6b7637de9584",
   "tracked_surfaces": [
     {
       "bytes": 1489,
@@ -23232,11 +23232,11 @@
       "surface_kind": "structured"
     },
     {
-      "bytes": 1088,
+      "bytes": 1200,
       "currentness": "tracked_source_snapshot",
       "family_id": "access",
       "path": "access/e2e/README.md",
-      "sha256": "5176a89e8bec57d6f43e1c5dac5cb7a490b14928facfdc38a37d4ef279cd4bea",
+      "sha256": "d260ba3a11444f673d3c07aad60cf825a871521e79f4bd15b177c13b57c6fb07",
       "surface_kind": "human"
     },
     {
@@ -26744,11 +26744,11 @@
       "surface_kind": "executable"
     },
     {
-      "bytes": 46336,
+      "bytes": 47775,
       "currentness": "tracked_source_snapshot",
       "family_id": "tests",
       "path": "tests/test_inventory.json",
-      "sha256": "4a917bcce1bd486ffc366c9f53b08db26a3431ac91c72bc3af2880ac3174ae39",
+      "sha256": "105201730e66a18d58fd280a915871c01335d34c77d5da3c1d545f96cc009727",
       "surface_kind": "structured"
     },
     {
