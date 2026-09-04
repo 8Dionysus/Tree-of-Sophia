@@ -797,9 +797,13 @@ def validate_public_safety(repo_root: Path, payload: dict[str, Any], issues: lis
                 _issue(issues, relative, f"contains forbidden public-safety marker {marker!r}")
 
 
-def _run_existing_command(repo_root: Path, script: str) -> tuple[str, str] | None:
+def _run_existing_command(
+    repo_root: Path,
+    script: str,
+    arguments: list[str] | None = None,
+) -> tuple[str, str] | None:
     completed = subprocess.run(
-        [sys.executable, script],
+        [sys.executable, script, *(arguments or [])],
         cwd=repo_root,
         check=False,
         capture_output=True,
@@ -809,6 +813,15 @@ def _run_existing_command(repo_root: Path, script: str) -> tuple[str, str] | Non
         return None
     detail = (completed.stdout + completed.stderr).strip().splitlines()
     return script, " ".join(detail[-4:]) or f"exit code {completed.returncode}"
+
+
+def _local_kag_provider_arguments(repo_root: Path) -> list[str]:
+    freeze_path = repo_root / "kag/indexes/hot_profile.json"
+    try:
+        freeze = json.loads(freeze_path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return []
+    return ["--freeze-only"] if isinstance(freeze, dict) and freeze.get("state") == "frozen" else []
 
 
 def validate_existing_owner_contracts(repo_root: Path, issues: list[Issue]) -> None:
@@ -822,8 +835,12 @@ def validate_existing_owner_contracts(repo_root: Path, issues: list[Issue]) -> N
         _issue(issues, location, f"public-entry validator: {message}")
     for location, message in validate_agent_surface.validate_manifest(repo_root, fetch_missing_budget_base=False):
         _issue(issues, location, f"agent-surface validator: {message}")
-    for script in ("scripts/validate_root_entry_map.py", "scripts/validate_local_kag_provider.py"):
-        result = _run_existing_command(repo_root, script)
+    owner_commands = (
+        ("scripts/validate_root_entry_map.py", []),
+        ("scripts/validate_local_kag_provider.py", _local_kag_provider_arguments(repo_root)),
+    )
+    for script, arguments in owner_commands:
+        result = _run_existing_command(repo_root, script, arguments)
         if result is not None:
             location, message = result
             _issue(issues, location, f"owner validator: {message}")
