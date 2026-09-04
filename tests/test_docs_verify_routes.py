@@ -28,7 +28,7 @@ COMMAND_LINE_RE = re.compile(
     r"|^\s*(?:\./|\.\./)[\w./-]+",
     re.MULTILINE,
 )
-MARKDOWN_EXCLUDED_PARTS = {".git", "archive", "archives", "legacy"}
+MARKDOWN_EXCLUDED_PARTS = {".git", "archive", "archives", "legacy", "node_modules"}
 
 
 def read_text(path: Path) -> str:
