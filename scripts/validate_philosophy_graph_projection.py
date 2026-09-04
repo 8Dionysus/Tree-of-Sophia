@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Validate the ToS philosophy graph projection export."""
+"""Validate the ToS philosophy graph projection, including one canonical rebuild."""
 
 from __future__ import annotations
 

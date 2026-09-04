@@ -1,7 +1,8 @@
 import importlib.util
 import json
-import unittest
 from pathlib import Path
+from tempfile import TemporaryDirectory
+import unittest
 
 
 SCRIPT_PATH = Path(__file__).resolve().parents[1] / "scripts" / "validate_active_naming.py"
@@ -189,6 +190,28 @@ class ValidateActiveNamingTests(unittest.TestCase):
         self.assertIsNone(validate_active_naming.retired_content_issue("Tree-of-Sophia v0.2.2"))
         self.assertIsNone(validate_active_naming.retired_content_issue("Tree-of-Sophia " + old_experience_version("6")))
         self.assertIsNone(validate_active_naming.retired_path_issue("mechanics/experience/parts/adoption-boundary/README.md"))
+
+    def test_validate_prunes_excluded_trees_and_checks_directory_paths(self) -> None:
+        with TemporaryDirectory(prefix="tos-active-naming-") as raw_root:
+            root = Path(raw_root)
+            (root / "legacy" / retired_w_token()).mkdir(parents=True)
+            (root / "legacy" / retired_w_token() / "ignored.md").write_text(
+                retired_w_token() + "-pack\n",
+                encoding="utf-8",
+            )
+            retired_dir = root / "mechanics" / "experience" / old_experience_version("7")
+            retired_dir.mkdir(parents=True)
+            retired_dir.joinpath("README.md").write_text("clean\n", encoding="utf-8")
+
+            original_root = validate_active_naming.REPO_ROOT
+            validate_active_naming.REPO_ROOT = root
+            try:
+                issues = validate_active_naming.validate()
+            finally:
+                validate_active_naming.REPO_ROOT = original_root
+
+        self.assertTrue(any(old_experience_version("7") in issue for issue in issues))
+        self.assertFalse(any("legacy" in issue for issue in issues))
 
     def test_mechanics_topology_checks_active_targets_not_historical_keys(self) -> None:
         retired_path = "ToS/doctrine/NO_DIRECT_" + "CONSTITUTION" + "_" + "RUNTIME" + "_WRITE.md"

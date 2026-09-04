@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Validate the ToS whole-corpus index derived export."""
+"""Validate the ToS whole-corpus index, including one canonical rebuild."""
 
 from __future__ import annotations
 
