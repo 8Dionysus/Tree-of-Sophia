@@ -429,12 +429,27 @@ class ToSAccessCore:
             build_task = getattr(module, "build_task", None)
             if not callable(build_task):
                 raise RuntimeError("local word-analysis provider has no callable build_task")
-            task = build_task(
-                normalized_query,
-                normalized_language,
-                rank=bounded_rank,
-                include_semantic_neighbors=bool(include_semantic_neighbors),
-            )
+            try:
+                task = build_task(
+                    normalized_query,
+                    normalized_language,
+                    rank=bounded_rank,
+                    include_semantic_neighbors=bool(include_semantic_neighbors),
+                )
+            except RuntimeError as exc:
+                if not str(exc).startswith(
+                    "private source-return artifact must be a regular non-symlink:"
+                ):
+                    raise
+                return {
+                    "schema": "tos_zarathustra_word_analysis_capability_v1",
+                    "available": False,
+                    "reason": "private source-return artifacts are not installed",
+                    "provider_ref": WORD_ANALYSIS_PROVIDER_RELATIVE_PATH.as_posix(),
+                    "publication_posture": "excluded_from_public_bundle",
+                    "task": None,
+                    "authority": authority,
+                }
         finally:
             sys.modules.pop(module_name, None)
         task_authority = task.get("authority") if isinstance(task, dict) else None
