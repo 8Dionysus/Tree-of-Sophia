@@ -1956,7 +1956,7 @@
         "docs/validation/validation_lanes.json"
       ],
       "writes": [],
-      "side_effects": "runs command sequence from lane authority",
+      "side_effects": "runs the complete command sequence or one complementary CI partition from lane authority",
       "validation_lane": "release",
       "ci_inclusion": "release",
       "test_target": "tests/test_validation_lanes.py",

@@ -36,7 +36,10 @@ See also:
 
 `scripts/release_check.py` runs the `release_check` command sequence from
 `docs/validation/validation_lanes.json`. That manifest is the command-authority
-surface; inventories only describe coverage.
+surface; inventories only describe coverage. GitHub may execute the
+complementary `checks` and `tests` phases in parallel, while the default command
+continues to run the complete ordered sequence for local and official release
+use.
 
 The current bounded route battery covers validation authority, source-home and
 mechanics topology, Experience contracts, generated parity, graph exports,

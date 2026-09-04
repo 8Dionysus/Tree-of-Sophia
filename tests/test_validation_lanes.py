@@ -3,6 +3,7 @@ from __future__ import annotations
 import importlib.util
 import json
 from pathlib import Path
+import sys
 import unittest
 from unittest import mock
 
@@ -22,6 +23,8 @@ def load_module(name: str, path: Path) -> object:
 
 
 validation_lanes = load_module("validation_lanes", VALIDATION_LANES_PATH)
+with mock.patch.object(sys, "path", [str(REPO_ROOT / "scripts"), *sys.path]):
+    release_check = load_module("release_check", RELEASE_CHECK_PATH)
 release_check_source = RELEASE_CHECK_PATH.read_text(encoding="utf-8")
 
 
@@ -56,6 +59,32 @@ class ValidationLanesTestCase(unittest.TestCase):
     def test_release_check_has_no_hidden_command_list(self) -> None:
         self.assertNotIn("COMMANDS =", release_check_source)
         self.assertIn("command_sequence(RELEASE_SEQUENCE", release_check_source)
+
+    def test_release_phases_are_exact_complements(self) -> None:
+        steps = validation_lanes.command_sequence("release_check", REPO_ROOT)
+
+        checks = release_check.select_steps(steps, "checks")
+        tests = release_check.select_steps(steps, "tests")
+
+        self.assertEqual(checks + tests, steps)
+        self.assertEqual(tests, [steps[-1]])
+        self.assertEqual(tests[0][0], "run tests")
+
+    def test_release_phase_split_fails_closed_on_manifest_drift(self) -> None:
+        with self.assertRaisesRegex(ValueError, "exactly one final"):
+            release_check.select_steps([("other", ["python", "other.py"])], "checks")
+        with self.assertRaisesRegex(ValueError, "exactly one final"):
+            release_check.select_steps(
+                [("run tests", ["python", "tests.py"]), ("other", ["python", "other.py"])],
+                "tests",
+            )
+
+    def test_repo_validation_requires_checks_and_repository_tests(self) -> None:
+        workflow = (REPO_ROOT / ".github/workflows/repo-validation.yml").read_text(encoding="utf-8")
+
+        self.assertIn("python scripts/release_check.py --phase checks", workflow)
+        self.assertIn("python scripts/release_check.py --phase tests", workflow)
+        self.assertIn("needs.repository_tests.result", workflow)
 
     def test_source_home_uses_lane_ids_not_shell_commands(self) -> None:
         source_home = json.loads((REPO_ROOT / "ToS" / "source_home.manifest.json").read_text(encoding="utf-8"))

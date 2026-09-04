@@ -907,22 +907,22 @@
       "whitespace_tokens": 1820
     },
     {
-      "bytes": 150197,
+      "bytes": 150244,
       "exists": true,
       "lines": 2800,
       "path": "docs/validation/script_inventory.json",
       "role": "deterministic script coverage and side-effect inventory",
-      "sha256": "85c49b1bed1a513115137855c7c77fdbe79e3e882888712527410ebcb9b5ade0",
-      "whitespace_tokens": 7476
+      "sha256": "22ce5b5c04b5f86e4bbd5fafc837e54c9965a9b8070cd3e4cdb9219078d88f40",
+      "whitespace_tokens": 7483
     },
     {
-      "bytes": 4485,
+      "bytes": 5208,
       "exists": true,
-      "lines": 129,
+      "lines": 152,
       "path": ".github/workflows/repo-validation.yml",
       "role": "CI execution of the release lane",
-      "sha256": "11125b99e0ddf31b85b8a1937778fa9c5e7e3c798b09604799ae339cd3e71e81",
-      "whitespace_tokens": 370
+      "sha256": "ec434ceef755ae22c87ccf5894ed50c4e3ff76f571c436a233653ab33739dc15",
+      "whitespace_tokens": 430
     },
     {
       "bytes": 930,
@@ -2060,7 +2060,7 @@
       ]
     },
     {
-      "additional_context_tokens": 5558,
+      "additional_context_tokens": 5646,
       "completion_evidence": [
         {
           "bytes": 6403,
@@ -2081,22 +2081,22 @@
           "whitespace_tokens": 2519
         },
         {
-          "bytes": 944,
+          "bytes": 2089,
           "exists": true,
-          "lines": 33,
+          "lines": 66,
           "path": "scripts/release_check.py",
           "role": "completion",
-          "sha256": "e356b32e4c48ff981ecbe983c989de2395cfcec1a9866acb7bbe6d71104ba707",
-          "whitespace_tokens": 88
+          "sha256": "4dfc6d77e759a3edceb08ac2a8bf4ad2cf17b5d25e39602d4775500602d33c54",
+          "whitespace_tokens": 205
         },
         {
-          "bytes": 4485,
+          "bytes": 5208,
           "exists": true,
-          "lines": 129,
+          "lines": 152,
           "path": ".github/workflows/repo-validation.yml",
           "role": "completion",
-          "sha256": "11125b99e0ddf31b85b8a1937778fa9c5e7e3c798b09604799ae339cd3e71e81",
-          "whitespace_tokens": 370
+          "sha256": "ec434ceef755ae22c87ccf5894ed50c4e3ff76f571c436a233653ab33739dc15",
+          "whitespace_tokens": 430
         }
       ],
       "id": "release_validation",
@@ -2134,22 +2134,22 @@
           "whitespace_tokens": 1820
         },
         {
-          "bytes": 4756,
+          "bytes": 4943,
           "exists": true,
-          "lines": 78,
+          "lines": 81,
           "path": "docs/RELEASING.md",
           "role": "on_demand",
-          "sha256": "a223980216dad57ff4867b21c252914b8affda911cb54775e93e39e0167e8265",
-          "whitespace_tokens": 589
+          "sha256": "c808e43b782ff718ca8aeead3c062283d0c2cada67f51d6663a9df58e124804d",
+          "whitespace_tokens": 617
         },
         {
-          "bytes": 4485,
+          "bytes": 5208,
           "exists": true,
-          "lines": 129,
+          "lines": 152,
           "path": ".github/workflows/repo-validation.yml",
           "role": "on_demand",
-          "sha256": "11125b99e0ddf31b85b8a1937778fa9c5e7e3c798b09604799ae339cd3e71e81",
-          "whitespace_tokens": 370
+          "sha256": "ec434ceef755ae22c87ccf5894ed50c4e3ff76f571c436a233653ab33739dc15",
+          "whitespace_tokens": 430
         }
       ],
       "owner_exists": true,
@@ -2178,13 +2178,13 @@
           "whitespace_tokens": 712
         },
         {
-          "bytes": 944,
+          "bytes": 2089,
           "exists": true,
-          "lines": 33,
+          "lines": 66,
           "path": "scripts/release_check.py",
           "role": "validation",
-          "sha256": "e356b32e4c48ff981ecbe983c989de2395cfcec1a9866acb7bbe6d71104ba707",
-          "whitespace_tokens": 88
+          "sha256": "4dfc6d77e759a3edceb08ac2a8bf4ad2cf17b5d25e39602d4775500602d33c54",
+          "whitespace_tokens": 205
         },
         {
           "bytes": 23014,
