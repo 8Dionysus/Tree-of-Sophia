@@ -36,7 +36,7 @@
     "excluded_generated_carrier_rules": 3,
     "excluded_tracked_path_count": 587,
     "human_scope": {
-      "bytes": 4739214,
+      "bytes": 4739270,
       "count": 942,
       "excluded_skill_launch_metadata": 25,
       "family_counts": {
@@ -46,9 +46,9 @@
           "lines": 397
         },
         "agents-other": {
-          "bytes": 17683,
+          "bytes": 17725,
           "count": 5,
-          "lines": 378
+          "lines": 379
         },
         "agents-skills": {
           "bytes": 340056,
@@ -56,9 +56,9 @@
           "lines": 6530
         },
         "docs": {
-          "bytes": 444919,
+          "bytes": 444961,
           "count": 60,
-          "lines": 7372
+          "lines": 7373
         },
         "evals": {
           "bytes": 3954,
@@ -76,9 +76,9 @@
           "lines": 105
         },
         "manifests": {
-          "bytes": 1820,
+          "bytes": 1771,
           "count": 2,
-          "lines": 49
+          "lines": 44
         },
         "mechanics": {
           "bytes": 151128,
@@ -101,7 +101,7 @@
           "lines": 3016
         },
         "scripts": {
-          "bytes": 7094,
+          "bytes": 7115,
           "count": 2,
           "lines": 128
         },
@@ -121,7 +121,7 @@
           "lines": 60739
         }
       },
-      "lines": 83516
+      "lines": 83513
     },
     "surface_kind_counts": {
       "executable": 206,
@@ -158,7 +158,7 @@
         "human": 5,
         "structured": 3
       },
-      "tracked_surface_bytes": 166584,
+      "tracked_surface_bytes": 166626,
       "tracked_surface_count": 8
     },
     {
@@ -195,7 +195,7 @@
         "human": 60,
         "structured": 6
       },
-      "tracked_surface_bytes": 712210,
+      "tracked_surface_bytes": 712252,
       "tracked_surface_count": 66
     },
     {
@@ -240,7 +240,7 @@
         "executable": 106,
         "human": 2
       },
-      "tracked_surface_bytes": 3628879,
+      "tracked_surface_bytes": 3628900,
       "tracked_surface_count": 108
     },
     {
@@ -259,7 +259,7 @@
         "human": 2,
         "structured": 2
       },
-      "tracked_surface_bytes": 4114,
+      "tracked_surface_bytes": 4065,
       "tracked_surface_count": 4
     },
     {
@@ -285,7 +285,7 @@
   "source_map": "docs/validation/documentation_family_map.json",
   "source_map_sha256": "d70a5059be9cc7547289e4c8be380d23b3aeb9e53bb10e4cb82abf2177ea0896",
   "tracked_source": "git ls-files -z",
-  "tracked_surface_digest": "72901fb406498c2925d4b74334fa653d7d0b1893c1ffe4f1eccef76bc58c81fe",
+  "tracked_surface_digest": "5d117f1dd60b634138a52c5164e286af2718d883e0d9dbbc2678f42501d28909",
   "tracked_surfaces": [
     {
       "bytes": 1489,
@@ -304,11 +304,11 @@
       "surface_kind": "human"
     },
     {
-      "bytes": 448,
+      "bytes": 490,
       "currentness": "tracked_source_snapshot",
       "family_id": "agents-other",
       "path": ".agents/VALIDATION.md",
-      "sha256": "596d28a72d59798cf4d6909f8aef3a5019fda62950102c380eedc4b8850ea233",
+      "sha256": "eaebd71da143af3b209e5bda4f3c5066f8a79afb71d686dbb61d42699663191c",
       "surface_kind": "human"
     },
     {
@@ -332,7 +332,7 @@
       "currentness": "tracked_source_snapshot",
       "family_id": "agents-other",
       "path": ".agents/agents-route.current.json",
-      "sha256": "7db5a2ca3e625db6bca0f3f3d051b69c588f3c57d8a124b5a2ba5ad089e0799c",
+      "sha256": "ccca4c69def11cda7a9dbcb1a7c3c8f5f48df2bb389892485db4f5b10eae592f",
       "surface_kind": "structured"
     },
     {
@@ -24320,11 +24320,11 @@
       "surface_kind": "human"
     },
     {
-      "bytes": 718,
+      "bytes": 760,
       "currentness": "tracked_source_snapshot",
       "family_id": "docs",
       "path": "docs/VALIDATION.md",
-      "sha256": "be454c6c59c515924fb587865bc3fa5be1376275f1167cc0a110587c401e141d",
+      "sha256": "9f719f17c1059a7df014fc430d60a91299a3ffed12aa3e43aee91a4b38dd8e88",
       "surface_kind": "human"
     },
     {
@@ -24960,11 +24960,11 @@
       "surface_kind": "human"
     },
     {
-      "bytes": 342,
+      "bytes": 293,
       "currentness": "tracked_source_snapshot",
       "family_id": "manifests",
       "path": "manifests/VALIDATION.md",
-      "sha256": "f961230d204d0e7700a24c9a90a1a063f2dce6e6669d9f89decc4adfd45e8d37",
+      "sha256": "305ddb41708a33098fdf6e3412933bfd7e68175095ab53d956b8259910e2ad4e",
       "surface_kind": "human"
     },
     {
@@ -26712,11 +26712,11 @@
       "surface_kind": "human"
     },
     {
-      "bytes": 691,
+      "bytes": 712,
       "currentness": "tracked_source_snapshot",
       "family_id": "scripts",
       "path": "scripts/VALIDATION.md",
-      "sha256": "21a385772d15845020748b8909f69e449f71f34c3d47a9b816eb234d48cd2fc2",
+      "sha256": "4a015134b2f72a224116075f3e51f898bd902b35ef7f1445af8687d783bc4638",
       "surface_kind": "human"
     },
     {
