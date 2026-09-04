@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 from __future__ import annotations
 
-import json
+import argparse
 import hashlib
+import json
 import subprocess
 from pathlib import Path
 from typing import Any
@@ -312,17 +313,28 @@ def validate_links(groups: dict[str, list[dict[str, Any]]]) -> None:
             fail(f"{receipt['local_id']} fallback_route is missing: {fallback_route}")
 
 
-def main() -> int:
+def main(argv: list[str] | None = None) -> int:
+    parser = argparse.ArgumentParser(description="Validate the ToS-local KAG provider or its frozen surface binding.")
+    parser.add_argument(
+        "--freeze-only",
+        action="store_true",
+        help="check only the exact frozen family binding; skip provider record and freshness validation",
+    )
+    args = parser.parse_args(argv)
     try:
-        validate_manifest()
-        groups = validate_records()
-        validate_links(groups)
-        validate_repo_local_family()
+        if not args.freeze_only:
+            validate_manifest()
+            groups = validate_records()
+            validate_links(groups)
+            validate_repo_local_family()
         validate_kag_surface_freeze()
     except ValidationError as exc:
         print(f"[error] {exc}")
         return 1
-    print("[ok] validated Tree-of-Sophia local KAG provider")
+    if args.freeze_only:
+        print("[paused] validated frozen ToS KAG surface binding")
+    else:
+        print("[ok] validated Tree-of-Sophia local KAG provider")
     return 0
 
 

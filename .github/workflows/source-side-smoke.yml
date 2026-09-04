@@ -30,8 +30,8 @@ jobs:
       - name: Run tiny-entry validator
         run: python scripts/validate_tiny_entry_route.py
 
-      - name: Run KAG export validator
-        run: python mechanics/boundary-bridge/parts/derived-kag-seam/scripts/validate_kag_export.py
+      - name: Check frozen ToS KAG surface binding
+        run: python scripts/validate_local_kag_provider.py --freeze-only
 
       - name: Run tree-node contract validator
         run: python scripts/validate_tree_node_contracts.py
