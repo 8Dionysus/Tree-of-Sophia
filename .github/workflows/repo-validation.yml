@@ -6,9 +6,13 @@ on:
       - main
   pull_request:
 
+concurrency:
+  group: repo-validation-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 jobs:
   release_audit:
-    name: Repo Validation
+    name: Release Audit
     runs-on: ubuntu-latest
     env:
       AOA_STATS_REVISION: 88ff38b1b38eef939f2c5b4541cbe8363a05fc8d
@@ -25,8 +29,8 @@ jobs:
         with:
           python-version: "3.12"
 
-      - name: Install validator, standalone MCP, and browser dependencies
-        run: python -m pip install -r requirements-dev.txt 'mcp>=1.27,<2' 'playwright>=1.40'
+      - name: Install validator and standalone MCP dependencies
+        run: python -m pip install -r requirements-dev.txt 'mcp>=1.27,<2'
 
       - name: Fetch pinned aoa-stats contract owner
         env:
@@ -42,6 +46,21 @@ jobs:
           AOA_STATS_ROOT: ${{ runner.temp }}/aoa-stats
         run: python scripts/release_check.py
 
+  product_shell:
+    name: Product Shell
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+
+      - name: Setup Python
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405
+        with:
+          python-version: "3.12"
+
+      - name: Install browser test dependencies
+        run: python -m pip install -r requirements-dev.txt 'playwright>=1.40'
+
       - name: Setup Node for the WebMCP browser contract
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
         with:
@@ -51,7 +70,7 @@ jobs:
 
       - name: Validate the WebMCP browser contract and checked-in build
         run: |
-          npm ci --prefix access/web
+          npm ci --prefer-offline --no-audit --no-fund --prefix access/web
           npm run test --prefix access/web
           npm run typecheck --prefix access/web
           npm run build --prefix access/web
@@ -61,6 +80,21 @@ jobs:
         run: |
           python -m playwright install --with-deps chromium
           PYTHONPATH=access/src pytest -q access/tests/test_http_security.py access/e2e/test_webmcp.py
+
+  standalone_product_candidate:
+    name: Standalone Product Candidate
+    needs:
+      - release_audit
+      - product_shell
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+
+      - name: Setup Python
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405
+        with:
+          python-version: "3.12"
 
       - name: Build and validate standalone product candidate
         run: |
@@ -78,3 +112,18 @@ jobs:
           if-no-files-found: error
           compression-level: 0
           retention-days: 14
+
+  required_gate:
+    name: Repo Validation
+    if: ${{ always() }}
+    needs:
+      - release_audit
+      - product_shell
+      - standalone_product_candidate
+    runs-on: ubuntu-latest
+    steps:
+      - name: Require every validation branch to pass
+        run: |
+          test "${{ needs.release_audit.result }}" = "success"
+          test "${{ needs.product_shell.result }}" = "success"
+          test "${{ needs.standalone_product_candidate.result }}" = "success"
