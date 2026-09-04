@@ -46,8 +46,8 @@
       "test_target": "access/tests/test_access_contract.py",
       "disposition": "keep"
     },
-    {
-      "path": "access/packaging/validate_standalone.py",
+  {
+    "path": "access/packaging/validate_standalone.py",
       "family": "standalone_bundle_validator",
       "organ_lane": "release",
       "owner_surface": "access/AGENTS.md",
@@ -63,11 +63,55 @@
       "side_effects": "validation output plus isolated temporary extraction and virtual environment state removed before exit",
       "validation_lane": "standalone_access",
       "ci_inclusion": "release",
-      "test_target": "access/tests/test_access_contract.py",
-      "disposition": "keep"
-    },
-    {
-      "path": ".agents/skills/aoa-dry-run-first/scripts/dry_run_contract.py",
+    "test_target": "access/tests/test_access_contract.py",
+    "disposition": "keep"
+  },
+  {
+    "path": "access/deploy/cloudflare-worker/scripts/build_runtime.py",
+    "family": "cloudflare_edge_read_model_builder",
+    "organ_lane": "projection/generated",
+    "owner_surface": "access/AGENTS.md",
+    "source_truth": [
+      "access/src/tos_access/core.py",
+      "ToS/derived-exports/tos_corpus_index.min.json",
+      "ToS/derived-exports/philosophy_graph_projection.min.json",
+      "ToS/derived-exports/epistemic_evidence_projection.min.json",
+      "ToS/philosophy/graph-workbench/review-packets/table-i-post-planting-audit.json"
+    ],
+    "reads": [
+      "the built access web app and four allowlisted ToS access inputs through ToSAccessCore"
+    ],
+    "writes": [
+      "ignored Cloudflare static assets, a local D1 read-model import, and a build manifest"
+    ],
+    "side_effects": "replaces only ignored local dist and runtime outputs; no remote D1 write, deployment, source mutation, KAG generation, or authority effect",
+    "validation_lane": "standalone_access",
+    "ci_inclusion": "focused-tests",
+    "test_target": "access/deploy/cloudflare-worker/test/common.test.ts",
+    "disposition": "keep"
+  },
+  {
+    "path": "access/deploy/cloudflare-worker/scripts/verify_local_runtime.py",
+    "family": "cloudflare_edge_contract_validator",
+    "organ_lane": "release",
+    "owner_surface": "access/AGENTS.md",
+    "source_truth": [
+      "access/src/tos_access/core.py",
+      "access/deploy/cloudflare-worker/src/index.ts",
+      "access/deploy/cloudflare-worker/wrangler.jsonc"
+    ],
+    "reads": [
+      "the local Cloudflare Worker and D1 read model plus representative ToSAccessCore responses"
+    ],
+    "writes": [],
+    "side_effects": "prints contract comparison results and starts then stops one ephemeral loopback Wrangler process",
+    "validation_lane": "standalone_access",
+    "ci_inclusion": "focused-tests",
+    "test_target": "access/deploy/cloudflare-worker/test/common.test.ts",
+    "disposition": "keep"
+  },
+  {
+    "path": ".agents/skills/aoa-dry-run-first/scripts/dry_run_contract.py",
       "family": "skill_local_contract_tool",
       "organ_lane": "agent-skill/advisory",
       "owner_surface": ".agents/skills/aoa-dry-run-first/SKILL.md",

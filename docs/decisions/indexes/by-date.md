@@ -99,3 +99,7 @@
 
 - [TOS-D-0037 - Deduplicated Philosophy Graph View Membership](../TOS-D-0037-deduplicated-philosophy-graph-view-membership.md) (`docs/decisions/TOS-D-0037-deduplicated-philosophy-graph-view-membership.md`)
 - [TOS-D-0038 - Standalone Access Is A ToS Product Boundary](../TOS-D-0038-standalone-access-product-boundary.md) (`docs/decisions/TOS-D-0038-standalone-access-product-boundary.md`)
+
+## 2026-09-03
+
+- [TOS-D-0042 - TOS-D-0042 Repository-driven Cloudflare edge](../TOS-D-0042-repository-driven-cloudflare-edge.md) (`docs/decisions/TOS-D-0042-repository-driven-cloudflare-edge.md`)
