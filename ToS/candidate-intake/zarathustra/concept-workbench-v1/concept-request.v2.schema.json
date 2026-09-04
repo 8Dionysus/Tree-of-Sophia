@@ -1,0 +1,131 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://tree-of-sophia.local/contracts/zarathustra-concept-request-v2.schema.json",
+  "title": "Zarathustra concept request v2 with on-demand English",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version", "request_identity_key", "request_version",
+    "supersedes_request_ref", "scope", "request_key", "labels",
+    "lexical_probes", "semantic_neighbor_probes", "expansion",
+    "distinctions", "negative_controls", "relation_policy",
+    "english_generation", "authority_boundary"
+  ],
+  "properties": {
+    "schema_version": {"const": "tos_zarathustra_concept_request_v2"},
+    "request_identity_key": {"type": "string", "pattern": "^tos\\.concept-request-key\\.sid-[0-9a-f]{32}$"},
+    "request_version": {"type": "integer", "minimum": 2},
+    "supersedes_request_ref": {"type": ["string", "null"]},
+    "scope": {
+      "type": "object", "additionalProperties": false,
+      "required": ["work_ref", "parts", "languages", "exclude_separate_works"],
+      "properties": {
+        "work_ref": {"const": "tos.work.friedrich-nietzsche.also-sprach-zarathustra"},
+        "parts": {"const": [1, 2, 3, 4]},
+        "languages": {"const": ["de", "ru"]},
+        "exclude_separate_works": {"const": true}
+      }
+    },
+    "request_key": {"type": "string", "pattern": "^[a-z][a-z0-9_-]+$"},
+    "labels": {
+      "type": "object", "additionalProperties": false,
+      "required": ["de", "ru", "en"],
+      "properties": {
+        "de": {"type": "string", "minLength": 1},
+        "ru": {"type": "string", "minLength": 1},
+        "en": {"type": "string", "minLength": 1}
+      }
+    },
+    "lexical_probes": {"$ref": "#/$defs/languageProbes"},
+    "semantic_neighbor_probes": {"$ref": "#/$defs/languageProbes"},
+    "expansion": {
+      "type": "object", "additionalProperties": false,
+      "required": ["morphology", "translation_neighborhoods", "semantic_neighbors"],
+      "properties": {
+        "morphology": {"const": true},
+        "translation_neighborhoods": {"const": true},
+        "semantic_neighbors": {"const": "candidate_only"}
+      }
+    },
+    "distinctions": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"type": "string", "pattern": "^[a-z][a-z0-9_]+$"}},
+    "negative_controls": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/control"}},
+    "relation_policy": {
+      "type": "object", "additionalProperties": false,
+      "required": ["hub_not_clique", "structural_types", "allowed_types"],
+      "properties": {
+        "hub_not_clique": {"const": true},
+        "structural_types": {"const": ["form_membership_candidate", "lexical_realization", "morphological_realization", "semantic_neighbor_candidate"]},
+        "allowed_types": {
+          "type": "array", "uniqueItems": true,
+          "items": {"enum": ["translation_parallel_candidate", "spoken_by_candidate", "same_reading_reprise", "precedes_in_work"]}
+        }
+      }
+    },
+    "english_generation": {
+      "type": "object", "additionalProperties": false,
+      "required": [
+        "mode", "target_language", "source_language", "unit",
+        "required_views", "required_analysis_stages", "russian_witness_role",
+        "recognized_english_translation_policy", "etymology_policy",
+        "reference_register", "etymology_route", "candidate_status"
+      ],
+      "properties": {
+        "mode": {"const": "on_demand"},
+        "target_language": {"const": "en"},
+        "source_language": {"const": "de"},
+        "unit": {"const": "source_occurrence_in_barrier_bounded_context"},
+        "required_views": {
+          "const": ["literal_gloss", "contextual_translation", "semantic_alternatives", "untranslatability_note"]
+        },
+        "required_analysis_stages": {
+          "const": ["morphology", "syntax", "historical_sense", "sourced_etymology", "intra_work_recurrence", "russian_witness_comparison", "english_rendering"]
+        },
+        "russian_witness_role": {"const": "historical_translation_comparator_not_source_authority"},
+        "recognized_english_translation_policy": {"const": "sealed_until_candidate_frozen_then_comparator_only"},
+        "etymology_policy": {
+          "type": "object", "additionalProperties": false,
+          "required": ["posture", "external_citation_required", "model_memory_is_evidence", "etymological_fallacy_allowed", "missing_evidence_state"],
+          "properties": {
+            "posture": {"const": "sourced_contestable_translation_consequence_candidate"},
+            "external_citation_required": {"const": true},
+            "model_memory_is_evidence": {"const": false},
+            "etymological_fallacy_allowed": {"const": false},
+            "missing_evidence_state": {"const": "explicit_unavailable_not_inferred"}
+          }
+        },
+        "reference_register": {"$ref": "#/$defs/digestRef"},
+        "etymology_route": {"$ref": "#/$defs/digestRef"},
+        "candidate_status": {"const": "ai_generated_unreviewed_not_translation_truth"}
+      }
+    },
+    "authority_boundary": {"const": "candidate_only_no_accepted_semantics_review_graph_or_canon"}
+  },
+  "$defs": {
+    "languageProbes": {
+      "type": "object", "additionalProperties": false,
+      "required": ["de", "ru"],
+      "properties": {
+        "de": {"type": "array", "uniqueItems": true, "items": {"type": "string", "minLength": 1}},
+        "ru": {"type": "array", "uniqueItems": true, "items": {"type": "string", "minLength": 1}}
+      }
+    },
+    "control": {
+      "type": "object", "additionalProperties": false,
+      "required": ["control_code", "language", "form", "reason"],
+      "properties": {
+        "control_code": {"type": "string", "pattern": "^[a-z][a-z0-9_]+$"},
+        "language": {"enum": ["de", "ru"]},
+        "form": {"type": "string", "minLength": 1},
+        "reason": {"type": "string", "minLength": 1}
+      }
+    },
+    "digestRef": {
+      "type": "object", "additionalProperties": false,
+      "required": ["ref", "sha256"],
+      "properties": {
+        "ref": {"type": "string", "pattern": "^(?!/)(?!.*(?:^|/)\\.\\.(?:/|$))(?:ToS|mechanics|docs)/[A-Za-z0-9._/-]+$"},
+        "sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"}
+      }
+    }
+  }
+}

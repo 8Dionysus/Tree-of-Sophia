@@ -304,7 +304,7 @@
   "generated_by": "scripts/build_open_work_candidate_queue.py",
   "next_candidate_id": "open-work-candidate.teaching-for-king-merykara",
   "owner_surface": "ToS/source-witnesses/discovery/candidates/reviewed-candidates.jsonl",
-  "queue_sha256": "febbfd2cc9afdf2cb419a51f8da14334fe4453ea9ddd9acf217a6a0bd6e5c1f9",
+  "queue_sha256": "f0bc413f6a27dc2d2a56c3fb479c0fdf3a3909eb8095ec723da2bc0a01ccfbd2",
   "receipt_root": "ToS/source-witnesses/discovery/candidates/receipts",
   "schema_version": "tos_open_work_candidate_queue_v1",
   "source_snapshot": {
@@ -317,7 +317,7 @@
       "source_anchor_backlog_rows": 9530,
       "terminal_receipts": 19
     },
-    "input_sha256": "ce01f56edb545b49c3bbd430d54212f8aca26c2edb5cfdd36cc004fb3106d130",
+    "input_sha256": "e532c9733a12232490bcdf0471326c229e074add192e2826103bfdf8452e033b",
     "inputs": [
       {
         "path": "ToS/philosophy/atlas/dossiers/index.jsonl",
@@ -1552,6 +1552,10 @@
         "sha256": "271815b6bc8eba4262768d229bae8ce8fdb8eda66d38556d7f39dd721528e0ed"
       },
       {
+        "path": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/alignments/translation/dta-first-editions-to-antonovsky-1911-paragraph-v1/provenance.jsonl",
+        "sha256": "914139ab9b159adbda1abe7502c508aecb5d1ddf697e9647620e497c98df92e8"
+      },
+      {
         "path": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/de-naumann-1891-part-4/editions/leipzig-naumann-1891-part-4/items/dta-sub-goettingen-corrected-tei-p5/provenance.jsonl",
         "sha256": "0f283a742d9bd7401ff39215ec34d3270db8a18e9b8e84eba00affb6d15ec468"
       },
@@ -1600,8 +1604,24 @@
         "sha256": "6d2a7162b9092491c578ea4e123fdc700338750bab02be7b8834b2f4c6e9ba31"
       },
       {
+        "path": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/lexical-indexes/dta-antonovsky-parallel-candidates-v1/provenance.jsonl",
+        "sha256": "5979b6dccb5e450aadf5a580bb74e83b70c5bbae958cc532e35731c4d2038770"
+      },
+      {
         "path": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/lexical-indexes/dta-first-editions-parts-1-4-v1/provenance.jsonl",
         "sha256": "578e9958cc10a92c3a5b7ef43f155915bc85e559462ea02d603835f7bf51a144"
+      },
+      {
+        "path": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/technical-markup/antonovsky-1911-pdf-layout-v1/provenance.jsonl",
+        "sha256": "a7f5f9e0354c5fa8b8c41e0696497080c22bd69fec60a83cea90bc80f41d2204"
+      },
+      {
+        "path": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/technical-markup/antonovsky-1911-structural-paragraph-v2/provenance.jsonl",
+        "sha256": "0a0a3b3f73cf3a50c3ce1dc8b908258c909b44d47b6fb4ef496163f879b06cac"
+      },
+      {
+        "path": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/technical-markup/dta-first-editions-parts-1-4-v1/provenance.jsonl",
+        "sha256": "16a93b52ee7a86b72bd4ad1a8bb4e0f245c2eab95f447a9f600faf04890fdd17"
       },
       {
         "path": "ToS/source-witnesses/works/friedrich-nietzsche/der-fall-wagner/expressions/de-naumann-1888/editions/leipzig-c-g-naumann-1888/items/mdz-bamberg-scan-pdf/provenance.jsonl",

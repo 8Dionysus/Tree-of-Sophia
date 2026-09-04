@@ -1,0 +1,122 @@
+{
+  "schema_version": "tos_zarathustra_dta_technical_markup_plan_v1",
+  "plan_id": "tos.plan.zarathustra-dta-technical-markup-v1",
+  "created_at": "2026-09-01T12:00:00-06:00",
+  "work_ref": "tos.work.friedrich-nietzsche.also-sprach-zarathustra",
+  "language": "de",
+  "contract_ref": "ToS/contracts/source-text-unit-packet-v1.schema.json",
+  "structure_correspondence_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/alignments/structure/naumann-1893-dta-parts/structure-correspondence.json",
+  "route_root": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/technical-markup/dta-first-editions-parts-1-4-v1",
+  "private_layer_root": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/local-content/technical-markup-v1",
+  "source_items": [
+    {
+      "part_order": 1,
+      "part_label": "I",
+      "expression_ref": "tos.expression.friedrich-nietzsche.also-sprach-zarathustra.de-schmeitzner-1883-part-1",
+      "edition_ref": "tos.edition.friedrich-nietzsche.also-sprach-zarathustra.chemnitz-schmeitzner-1883-part-1",
+      "item_ref": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-schmeitzner-1883-part-1.dta-sbb-corrected-tei-p5",
+      "manifest_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/de-schmeitzner-1883-part-1/editions/chemnitz-schmeitzner-1883-part-1/items/dta-sbb-corrected-tei-p5/item.manifest.json",
+      "resource_inventory_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/de-schmeitzner-1883-part-1/editions/chemnitz-schmeitzner-1883-part-1/items/dta-sbb-corrected-tei-p5/resource-inventory.json",
+      "rights_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/de-schmeitzner-1883-part-1/editions/chemnitz-schmeitzner-1883-part-1/items/dta-sbb-corrected-tei-p5/rights.json",
+      "file_ref": "tos.file.sha256.d3fa5f8af39d87c8f0ede7a0b52b26da0c57e73125d3b0bd2a836b80eae24a4b",
+      "file_sha256": "d3fa5f8af39d87c8f0ede7a0b52b26da0c57e73125d3b0bd2a836b80eae24a4b",
+      "excluded_resource_ids": []
+    },
+    {
+      "part_order": 2,
+      "part_label": "II",
+      "expression_ref": "tos.expression.friedrich-nietzsche.also-sprach-zarathustra.de-schmeitzner-1883-part-2",
+      "edition_ref": "tos.edition.friedrich-nietzsche.also-sprach-zarathustra.chemnitz-schmeitzner-1883-part-2",
+      "item_ref": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-schmeitzner-1883-part-2.dta-sbb-corrected-tei-p5",
+      "manifest_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/de-schmeitzner-1883-part-2/editions/chemnitz-schmeitzner-1883-part-2/items/dta-sbb-corrected-tei-p5/item.manifest.json",
+      "resource_inventory_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/de-schmeitzner-1883-part-2/editions/chemnitz-schmeitzner-1883-part-2/items/dta-sbb-corrected-tei-p5/resource-inventory.json",
+      "rights_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/de-schmeitzner-1883-part-2/editions/chemnitz-schmeitzner-1883-part-2/items/dta-sbb-corrected-tei-p5/rights.json",
+      "file_ref": "tos.file.sha256.b78a09d74bcc1dd9610b81ee348387942a5df1f9e6c8a4340fb7f2221d8372cb",
+      "file_sha256": "b78a09d74bcc1dd9610b81ee348387942a5df1f9e6c8a4340fb7f2221d8372cb",
+      "excluded_resource_ids": []
+    },
+    {
+      "part_order": 3,
+      "part_label": "III",
+      "expression_ref": "tos.expression.friedrich-nietzsche.also-sprach-zarathustra.de-schmeitzner-1884-part-3",
+      "edition_ref": "tos.edition.friedrich-nietzsche.also-sprach-zarathustra.chemnitz-schmeitzner-1884-part-3",
+      "item_ref": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-schmeitzner-1884-part-3.dta-sbb-corrected-tei-p5",
+      "manifest_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/de-schmeitzner-1884-part-3/editions/chemnitz-schmeitzner-1884-part-3/items/dta-sbb-corrected-tei-p5/item.manifest.json",
+      "resource_inventory_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/de-schmeitzner-1884-part-3/editions/chemnitz-schmeitzner-1884-part-3/items/dta-sbb-corrected-tei-p5/resource-inventory.json",
+      "rights_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/de-schmeitzner-1884-part-3/editions/chemnitz-schmeitzner-1884-part-3/items/dta-sbb-corrected-tei-p5/rights.json",
+      "file_ref": "tos.file.sha256.722dbdab2a3d28ea1691dad4c9fbec62bb7f4caf2699212fd7eef40f1ac8f331",
+      "file_sha256": "722dbdab2a3d28ea1691dad4c9fbec62bb7f4caf2699212fd7eef40f1ac8f331",
+      "excluded_resource_ids": []
+    },
+    {
+      "part_order": 4,
+      "part_label": "IV",
+      "expression_ref": "tos.expression.friedrich-nietzsche.also-sprach-zarathustra.de-naumann-1891-part-4",
+      "edition_ref": "tos.edition.friedrich-nietzsche.also-sprach-zarathustra.leipzig-naumann-1891-part-4",
+      "item_ref": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-naumann-1891-part-4.dta-sub-goettingen-corrected-tei-p5",
+      "manifest_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/de-naumann-1891-part-4/editions/leipzig-naumann-1891-part-4/items/dta-sub-goettingen-corrected-tei-p5/item.manifest.json",
+      "resource_inventory_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/de-naumann-1891-part-4/editions/leipzig-naumann-1891-part-4/items/dta-sub-goettingen-corrected-tei-p5/resource-inventory.json",
+      "rights_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/de-naumann-1891-part-4/editions/leipzig-naumann-1891-part-4/items/dta-sub-goettingen-corrected-tei-p5/rights.json",
+      "file_ref": "tos.file.sha256.ffc34ce6bea3f0b906c37f313bc66e5e58d9a8b0e69b53ea497a778c15dadd0d",
+      "file_sha256": "ffc34ce6bea3f0b906c37f313bc66e5e58d9a8b0e69b53ea497a778c15dadd0d",
+      "excluded_resource_ids": [
+        "tei-pb-0143",
+        "tei-pb-0144",
+        "tei-div-0070"
+      ]
+    }
+  ],
+  "expected_counts": {
+    "parts": 4,
+    "major_structure_candidates": 82,
+    "reading_units_excluding_wrapper": 81,
+    "divisions": 198,
+    "paragraphs": 3447,
+    "verse_groups": 39,
+    "verse_lines": 368,
+    "part_counts": {
+      "I": {"major_structure_candidates": 24, "divisions": 38, "paragraphs": 831, "verse_groups": 0, "verse_lines": 0},
+      "II": {"major_structure_candidates": 22, "divisions": 23, "paragraphs": 871, "verse_groups": 0, "verse_lines": 0},
+      "III": {"major_structure_candidates": 16, "divisions": 70, "paragraphs": 944, "verse_groups": 0, "verse_lines": 0},
+      "IV": {"major_structure_candidates": 20, "divisions": 67, "paragraphs": 801, "verse_groups": 39, "verse_lines": 368}
+    }
+  },
+  "extraction_policy": {
+    "included_region": "TEI/text[1]/body[1] minus exact excluded resource subtrees or milestones",
+    "excluded_elements": ["fw", "note"],
+    "choice_policy": "prefer-sic-then-orig-then-abbr-then-first",
+    "line_break_policy": "render-lb-as-one-U+000A-and-drop-one-XML-formatting-newline-from-its-tail",
+    "formatting_whitespace_policy": "drop-whitespace-only-node-content-containing-newline-carriage-return-or-tab; preserve-space-only-content",
+    "unicode_normalization": "none",
+    "source_text_mutation_authorized": false
+  },
+  "identity_policy": {
+    "issuance_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/technical-markup/dta-first-editions-parts-1-4-v1/identity-issuance.v1.json",
+    "policy": "opaque-issued-identity-independent-of-label-text-source-ordinal-offset-and-current-citation",
+    "source_locator_is_binding_not_identity": true,
+    "automatic_remint_on_locator_drift": false
+  },
+  "outputs": {
+    "citation_spine_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/technical-markup/dta-first-editions-parts-1-4-v1/citation-spine.v1.jsonl",
+    "summary_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/technical-markup/dta-first-editions-parts-1-4-v1/summary.v1.json",
+    "provenance_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/technical-markup/dta-first-editions-parts-1-4-v1/provenance.jsonl",
+    "part_packet_pattern": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/technical-markup/dta-first-editions-parts-1-4-v1/part-{part_order}.source-text-unit.v1.json",
+    "private_layer_pattern": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/local-content/technical-markup-v1/dta-part-{part_order}-body.v1.txt"
+  },
+  "rights_and_visibility": {
+    "source_visibility": "local_only",
+    "tracked_packet_visibility": "public_metadata_only",
+    "effective_visibility": "local_only",
+    "publication_authorized": false
+  },
+  "semantic_boundary": {
+    "creates_sentence_boundaries": false,
+    "creates_tokens": false,
+    "creates_lemmas": false,
+    "creates_translation_alignment": false,
+    "creates_signs_or_concepts": false,
+    "creates_relations": false,
+    "creates_graph_or_canon_authority": false
+  },
+  "authority_boundary": "source-markup-bound technical navigation and count foundation only; no accepted German, editorial hierarchy, sentence or word boundary, morphology, translation, semantics, graph, canon, rights clearance, or publication authority"
+}

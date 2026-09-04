@@ -1,0 +1,59 @@
+{
+  "accepted_candidate_count": 0,
+  "artifacts": [
+    {
+      "ref": "ToS/candidate-intake/zarathustra/eternal-return-concept-candidate-v1/review-preparation-v1/gap-review-candidates.v1.jsonl",
+      "role": "gaps",
+      "sha256": "95415028805bf09b25f6d1cde2a7be1174ed575cd789bc2225a5fb836f417cef"
+    },
+    {
+      "ref": "ToS/candidate-intake/zarathustra/eternal-return-concept-candidate-v1/review-preparation-v1/speaker-attribution-candidates.v1.jsonl",
+      "role": "speakers",
+      "sha256": "d96a7cde61ad09431f5e99f87df2011ef4579c9a868c4407dd972c21d4b87a0f"
+    },
+    {
+      "ref": "ToS/candidate-intake/zarathustra/eternal-return-concept-candidate-v1/review-preparation-v1/interpretation-review-matrix.v1.json",
+      "role": "matrix",
+      "sha256": "a3e2819fda6e7e8fb0c091b5b274f0008ce7be504bcbd1118444ca4b4138dd51"
+    },
+    {
+      "ref": "ToS/candidate-intake/zarathustra/eternal-return-concept-candidate-v1/review-preparation-v1/review-worklist.v1.json",
+      "role": "worklist",
+      "sha256": "6540c4440732c6a9b31a46213d348a2cfb1c316dbf9816a679a4d56d1c610fd0"
+    },
+    {
+      "ref": "ToS/candidate-intake/zarathustra/eternal-return-concept-candidate-v1/review-preparation-v1/coverage-receipt.v1.json",
+      "role": "coverage",
+      "sha256": "37a0d8dd939cf80e1c72feeaf2143e108c8dea709a17f04714c1a28ac6da8687"
+    },
+    {
+      "ref": "ToS/candidate-intake/zarathustra/eternal-return-concept-candidate-v1/review-preparation-v1/summary.v1.json",
+      "role": "summary",
+      "sha256": "11bf504af57127af63668d93e879334eec954f2eba8435813ae9d6ac4574477e"
+    },
+    {
+      "ref": "ToS/candidate-intake/zarathustra/eternal-return-concept-candidate-v1/review-preparation-v1/provenance.jsonl",
+      "role": "provenance",
+      "sha256": "cf6b004e83490fb4efd5a6616e9779e6a9858064a604f261a6a8f1718abbaba1"
+    }
+  ],
+  "canon_effect": false,
+  "generator_ref": "scripts/build_zarathustra_eternal_return_review_preparation_v1.py",
+  "generator_sha256": "0e6859ccb4bc9e8eac65c9d63a03e9a7e30d01852f0a1dcf1695175cbb30283e",
+  "graph_effect": false,
+  "human_review_count": 0,
+  "identity_issuance_ref": "ToS/candidate-intake/zarathustra/eternal-return-concept-candidate-v1/review-preparation-v1/identity-issuance.v1.json",
+  "identity_issuance_sha256": "50dcae13f4636c02c3260a9fabd6c4ac586025f63681cb5fb42fc57fefdee850",
+  "plan_ref": "ToS/candidate-intake/zarathustra/eternal-return-concept-candidate-v1/review-preparation-v1/plan.v1.json",
+  "plan_sha256": "d16900b7d259d525da24a8fd2ed1567567872b2e01929f75e5988349f08877ff",
+  "private_artifact": {
+    "mode": "0600",
+    "ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/local-content/eternal-return-concept-candidate-v1/review-preparation-v1/review-preparation-analysis.v1.json",
+    "sha256": "58e60d5299841e2a9c138b3490c6f8416330f934e208feedd983c9f022bb40cc",
+    "tracked": false
+  },
+  "review_ledger_write_count": 0,
+  "review_preparation_id": "tos.annotation.review-preparation.sid-678d15aaaac2390b00a712dae9283382",
+  "route_id": "zarathustra-eternal-return-review-preparation-v1",
+  "schema_version": "tos_zarathustra_eternal_return_review_preparation_manifest_v1"
+}

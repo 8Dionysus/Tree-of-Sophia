@@ -1,0 +1,116 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://tree-of-sophia.local/contracts/zarathustra-english-translation-candidate-v1.schema.json",
+  "title": "Private on-demand English translation candidate",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version", "translation_candidate_id", "english_task_ref",
+    "request_ref", "source_occurrence_ref", "source_context_unit_ref",
+    "target_language", "source_echo_sha256", "source_context_echo_sha256", "literal_gloss",
+    "contextual_translation", "semantic_alternatives", "untranslatability_note",
+    "analysis", "russian_witness_comparison", "maker", "provenance_event_ref",
+    "status", "accepted", "review_status", "translation_truth_asserted",
+    "semantic_fact_asserted", "graph_effect", "canon_effect"
+  ],
+  "properties": {
+    "schema_version": {"const": "tos_zarathustra_english_translation_candidate_v1"},
+    "translation_candidate_id": {"type": "string", "pattern": "^tos\\.annotation\\.english-translation-candidate\\.sid-[0-9a-f]{32}$"},
+    "english_task_ref": {"type": "string", "pattern": "^tos\\.annotation\\.english-translation-task\\.sid-[0-9a-f]{32}$"},
+    "request_ref": {"type": "string", "pattern": "^tos\\.annotation\\.concept-request\\.sid-[0-9a-f]{32}$"},
+    "source_occurrence_ref": {"type": "string", "minLength": 1},
+    "source_context_unit_ref": {"type": "string", "minLength": 1},
+    "target_language": {"const": "en"},
+    "source_echo_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "source_context_echo_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "literal_gloss": {"type": "string", "minLength": 1},
+    "contextual_translation": {"type": "string", "minLength": 1},
+    "semantic_alternatives": {
+      "type": "array", "minItems": 1,
+      "items": {
+        "type": "object", "additionalProperties": false,
+        "required": ["rendering", "preserves", "loses_or_risks"],
+        "properties": {
+          "rendering": {"type": "string", "minLength": 1},
+          "preserves": {"type": "array", "items": {"type": "string", "minLength": 1}},
+          "loses_or_risks": {"type": "array", "minItems": 1, "items": {"type": "string", "minLength": 1}}
+        }
+      }
+    },
+    "untranslatability_note": {"type": "string", "minLength": 1},
+    "analysis": {
+      "type": "object", "additionalProperties": false,
+      "required": ["morphology", "syntax", "historical_sense", "contextual_semantics", "etymology_state", "etymology_findings", "intra_work_recurrence"],
+      "properties": {
+        "morphology": {"type": "string", "minLength": 1},
+        "syntax": {"type": "string", "minLength": 1},
+        "historical_sense": {"type": "string", "minLength": 1},
+        "contextual_semantics": {"type": "string", "minLength": 1},
+        "etymology_state": {"enum": ["sourced_candidate", "explicit_unavailable_not_inferred"]},
+        "etymology_findings": {
+          "type": "array",
+          "items": {
+            "type": "object", "additionalProperties": false,
+            "required": ["claim", "translation_consequence", "citations", "epistemic_status"],
+            "properties": {
+              "claim": {"type": "string", "minLength": 1},
+              "translation_consequence": {"type": "string", "minLength": 1},
+              "citations": {
+                "type": "array", "minItems": 1,
+                "items": {
+                  "type": "object", "additionalProperties": false,
+                  "required": ["reference_id", "locator", "url", "accessed_at"],
+                  "properties": {
+                    "reference_id": {"type": "string", "minLength": 1},
+                    "locator": {"type": "string", "minLength": 1},
+                    "url": {"type": "string", "format": "uri"},
+                    "accessed_at": {"type": "string", "format": "date"}
+                  }
+                }
+              },
+              "epistemic_status": {"enum": ["proposed", "contested", "corroborated_candidate"]}
+            }
+          }
+        },
+        "intra_work_recurrence": {"type": "string", "minLength": 1}
+      }
+    },
+    "russian_witness_comparison": {
+      "type": "object", "additionalProperties": false,
+      "required": ["consulted", "role", "divergence_note"],
+      "properties": {
+        "consulted": {"type": "boolean"},
+        "role": {"const": "historical_translation_comparator_not_source_authority"},
+        "divergence_note": {"type": "string", "minLength": 1}
+      }
+    },
+    "maker": {
+      "type": "object", "additionalProperties": false,
+      "required": ["maker_kind", "model_id", "context_isolation", "training_exposure"],
+      "properties": {
+        "maker_kind": {"const": "ai"},
+        "model_id": {"type": "string", "minLength": 1},
+        "context_isolation": {"const": "current_task_only"},
+        "training_exposure": {"const": "unknown"}
+      }
+    },
+    "provenance_event_ref": {"type": "string", "minLength": 1},
+    "status": {"const": "ai_generated_unreviewed_not_translation_truth"},
+    "accepted": {"const": false},
+    "review_status": {"const": "unreviewed"},
+    "translation_truth_asserted": {"const": false},
+    "semantic_fact_asserted": {"const": false},
+    "graph_effect": {"const": false},
+    "canon_effect": {"const": false}
+  },
+  "allOf": [
+    {
+      "if": {"properties": {"analysis": {"properties": {"etymology_state": {"const": "explicit_unavailable_not_inferred"}}}}},
+      "then": {"properties": {"analysis": {"properties": {"etymology_findings": {"maxItems": 0}}}}}
+    },
+    {
+      "if": {"properties": {"analysis": {"properties": {"etymology_state": {"const": "sourced_candidate"}}}}},
+      "then": {"properties": {"analysis": {"properties": {"etymology_findings": {"minItems": 1}}}}}
+    }
+  ]
+}

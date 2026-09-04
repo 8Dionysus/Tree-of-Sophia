@@ -1,0 +1,74 @@
+{
+  "schema_version": "tos_zarathustra_eternal_return_review_preparation_plan_v1",
+  "plan_id": "candidate-plan:zarathustra-eternal-return-review-preparation-v1",
+  "status": "frozen-before-output",
+  "frozen_at": "2026-09-02T14:10:00-06:00",
+  "research_question": "Can the five retained DE/RU gaps, the speaker structure of all selected core-reading evidence, and five competing interpretation axes be prepared for bounded source-visible review without correcting witnesses, accepting alignments, impersonating human review, or promoting semantic authority?",
+  "inputs": {
+    "parent_candidate_manifest": {
+      "ref": "ToS/candidate-intake/zarathustra/eternal-return-concept-candidate-v1/manifest.v1.json",
+    "sha256": "69ef678246a310f728e11081db7823aca0b513c572ebaabdc477329119ece557"
+    },
+    "parent_interpretation_templates": {
+      "ref": "ToS/candidate-intake/zarathustra/eternal-return-concept-candidate-v1/interpretation-templates.v1.jsonl",
+      "sha256": "22ad29d506901600c07f4209f458a6cd2b1d9dd1abce308880526a350f8cf0b0"
+    },
+    "parent_private_exact_analysis": {
+      "ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/local-content/eternal-return-concept-candidate-v1/eternal-return-analysis.v1.json",
+      "sha256": "59c81ffa3f623a8abe66763431ee7ee5a6ee736f73204467d265244dbb313148"
+    },
+    "paragraph_alignment_manifest": {
+      "ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/alignments/translation/dta-first-editions-to-antonovsky-1911-paragraph-v1/manifest.v1.json",
+    "sha256": "eeeb266954ffc4ae22da42b6fd168b2e64094917c46e505551c04778743df313"
+    },
+    "russian_structural_manifest": {
+      "ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/technical-markup/antonovsky-1911-structural-paragraph-v2/manifest.v2.json",
+      "sha256": "400941db22345d9870a6c6c123c68fc59deec24b6f5550999b63fc0c2c2df5ad"
+    },
+    "semantic_identity_research": {
+      "ref": "ToS/research-packets/foundation-laboratory-2026-07/SEMANTIC_IDENTITY_ANNOTATION_RESEARCH_2026-08-11.md",
+      "sha256": "32aad968739e35f77841d8bd4954480773533e5ec789bc875e524de3f18fe634"
+    },
+    "review_checklist": {
+      "ref": "mechanics/audit/parts/review-ledger-route/docs/REVIEW_CHECKLIST.md",
+      "sha256": "85f0ab24e8a90d15b1ac4a97a521f1da86a8f58d8160fcfbd384d43904b0646c"
+    }
+  },
+  "scope": {
+    "gap_count": 5,
+    "gap_alignment_refs": [
+      "tos.translation-alignment.sid-6922c0b268a890cf94d0454b67143f43",
+      "tos.translation-alignment.sid-a1f9250a6975af780fb35023b6070ff2",
+      "tos.translation-alignment.sid-a474f471a32163007afa33b3ae624ab9",
+      "tos.translation-alignment.sid-b3ce5734f20040829abd1acbbf5c17bd",
+      "tos.translation-alignment.sid-f7e6b8c00ed9861bf01841a9b0212e78"
+    ],
+    "speaker_readings": ["p3.r2", "p3.r13", "p3.r16", "p4.r19"],
+    "speaker_population": "every parent core/supporting evidence unit in the four declared core readings",
+    "interpretation_axes": [
+      "cosmological_recurrence",
+      "temporality_and_augenblick",
+      "existential_test_and_affirmation",
+      "ring_and_wholeness",
+      "life_joy_pain_affirmation"
+    ],
+    "competing_or_blocked_controls": ["poetic_symbolic_affirmation", "amor_fati_cross_work"]
+  },
+  "method": {
+    "source_return": "reconstruct exact frozen DE/RU alignment slices and the one related Russian verse row; verify tracked digests before analysis",
+    "gap_policy": "preserve observed text privately; publish only digests, addresses, mechanical explanations, and reversible proposals",
+    "speaker_policy": "attribute discourse roles from source-order transitions and explicit reporting cues; retain mixed and performative-voice alternatives",
+    "interpretation_policy": "bind each axis to positive evidence, counterpressure, speaker dependencies, and falsifying review questions",
+    "review_compression": "prepare all 159 speaker candidates but route only ambiguous boundaries, five gaps, and interpretation axes to the exception worklist"
+  },
+  "outputs": {
+    "tracked_route": "ToS/candidate-intake/zarathustra/eternal-return-concept-candidate-v1/review-preparation-v1",
+    "private_analysis": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/local-content/eternal-return-concept-candidate-v1/review-preparation-v1/review-preparation-analysis.v1.json",
+    "private_mode": "0600",
+    "review_ledger_write": false,
+    "graph_projection": "empty"
+  },
+  "risk": "medium: source-order speaker inference and interpretive evidence selection can be mistaken for accepted authorship or doctrine; explicit alternatives, counterpressure, unreviewed status, private exact text, and zero semantic/graph/canon effect constrain the risk",
+  "rollback": "remove only this review-preparation subroute, its ignored private analysis, its builder, focused test, and additive inventory entries; do not alter witnesses, technical markup, alignments, parent candidate, review ledger, canon, graph, or exports",
+  "authority_boundary": "agent-generated review preparation only; no witness correction, accepted alignment, human review, accepted speaker attribution, sign, concept, claim, relation, graph fact, or canon effect"
+}
