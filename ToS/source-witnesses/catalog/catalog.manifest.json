@@ -13,7 +13,8 @@
     "expression": "ToS/source-witnesses/catalog/expressions.jsonl",
     "edition": "ToS/source-witnesses/catalog/editions.jsonl",
     "collection": "ToS/source-witnesses/catalog/collections.jsonl",
-    "item": "ToS/source-witnesses/catalog/items.jsonl"
+    "item": "ToS/source-witnesses/catalog/items.jsonl",
+    "link": "ToS/source-witnesses/catalog/links.jsonl"
   },
   "claim_file": "ToS/source-witnesses/catalog/claims.jsonl",
   "counts": {
@@ -25,10 +26,11 @@
     "edition": 23,
     "collection": 3,
     "item": 21,
-    "object_total": 171,
-    "claim": 193,
-    "total": 364
+    "link": 5,
+    "object_total": 176,
+    "claim": 198,
+    "total": 374
   },
-  "catalog_sha256": "24e9b8e74e87591b1425ea1fdd77484e65f3d9f326a816f304e61078d59b9539",
+  "catalog_sha256": "2290cfc4b9f703d30da2bc4251099b98e99034929478c603cf7c6efb24efa89b",
   "authority_boundary": "generated navigation over tracked object and claim records; not bibliographic, textual, rights, review, or semantic authority"
 }

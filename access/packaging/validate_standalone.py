@@ -18,6 +18,8 @@ EXPECTED_QUERY_OPERATIONS = {
     "tos.snapshot",
     "tos.search",
     "tos.source-gaps.search",
+    "tos.source.descend",
+    "tos.dossier.inspect",
     "tos.view.open",
     "tos.node.inspect",
     "tos.neighborhood",

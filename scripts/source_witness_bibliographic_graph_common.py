@@ -17,6 +17,9 @@ SOURCE_ROOT = Path("ToS/source-witnesses")
 CATALOG_ROOT = SOURCE_ROOT / "catalog"
 CLAIM_CATALOG_REF = (CATALOG_ROOT / "claims.jsonl").as_posix()
 CATALOG_MANIFEST_REF = (CATALOG_ROOT / "catalog.manifest.json").as_posix()
+OBJECT_LINK_CLAIM_REF = (
+    SOURCE_ROOT / "relations" / "object-link" / "object-link-claims.jsonl"
+).as_posix()
 OBJECT_CATALOG_REFS = {
     record_type: (CATALOG_ROOT / f"{record_type}s.jsonl").as_posix()
     for record_type in (
@@ -174,6 +177,8 @@ def _load_claim_catalog(repo_root: Path) -> list[dict[str, Any]]:
         if claim_id in seen:
             raise BibliographicGraphBuildError(f"{location}: duplicate claim_id {claim_id!r}")
         seen.add(claim_id)
+        if entry.get("source_claim_file_ref") == OBJECT_LINK_CLAIM_REF:
+            continue
         claim_type = entry.get("claim_type")
         if claim_type not in {"bibliographic", "relation"}:
             raise BibliographicGraphBuildError(
@@ -761,11 +766,14 @@ def build_payload(repo_root: Path = REPO_ROOT) -> dict[str, Any]:
 
     input_digests = _catalog_input_digests(repo_root)
     objects = _load_object_catalog(repo_root)
-    claim_entries = _load_claim_catalog(repo_root)
-    if manifest.get("counts", {}).get("claim") != len(claim_entries):
+    catalog_claim_count = sum(
+        1 for _line_number, _entry in iter_jsonl(repo_root / CLAIM_CATALOG_REF, repo_root)
+    )
+    if manifest.get("counts", {}).get("claim") != catalog_claim_count:
         raise BibliographicGraphBuildError(
             f"{CATALOG_MANIFEST_REF}: claim count differs from the claim catalog"
         )
+    claim_entries = _load_claim_catalog(repo_root)
 
     events = _scan_index(
         repo_root,

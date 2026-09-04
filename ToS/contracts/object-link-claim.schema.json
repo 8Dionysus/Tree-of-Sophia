@@ -1,0 +1,36 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://tree-of-sophia.local/ToS/contracts/object-link-claim.schema.json",
+  "title": "Tree of Sophia object-to-Link relation claim",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "claim_id", "claim_type", "assertion_layer", "subject_ref", "predicate", "object", "evidence_refs", "maker", "provenance_event_ref", "epistemic_status", "qualifiers", "review_status", "reviews", "visibility", "claim_version", "supersedes_claim_ref"],
+  "properties": {
+    "schema_version": {"const": "tos_object_link_claim_v1"},
+    "claim_id": {"$ref": "#/$defs/claimId"},
+    "claim_type": {"const": "relation"},
+    "assertion_layer": {"const": "forensic_observation"},
+    "subject_ref": {"type": "string", "pattern": "^tos\\.(work|expression|edition|collection|item)\\.[a-z0-9]+(?:[.-][a-z0-9]+)*$"},
+    "predicate": {"enum": ["described_by", "metadata_at", "downloadable_at", "rights_statement_at"]},
+    "object": {"$ref": "#/$defs/linkId"},
+    "evidence_refs": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"type": "string", "minLength": 1}},
+    "maker": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["maker_type", "agent_ref"],
+      "properties": {"maker_type": {"enum": ["human", "software", "model", "mixed", "imported_source"]}, "agent_ref": {"type": "string", "minLength": 1}}
+    },
+    "provenance_event_ref": {"type": "string", "pattern": "^tos\\.event\\.[a-z0-9]+(?:[.-][a-z0-9]+)*$"},
+    "epistemic_status": {"const": "observed"},
+    "qualifiers": {"type": "object", "required": ["link_role", "availability_is_rights_conclusion"], "properties": {"link_role": {"type": "string", "minLength": 1}, "availability_is_rights_conclusion": {"const": false}}},
+    "review_status": {"const": "unreviewed"},
+    "reviews": {"const": []},
+    "visibility": {"const": "public_metadata_only"},
+    "claim_version": {"type": "integer", "minimum": 1},
+    "supersedes_claim_ref": {"oneOf": [{"$ref": "#/$defs/claimId"}, {"type": "null"}]}
+  },
+  "$defs": {
+    "linkId": {"type": "string", "pattern": "^tos\\.link\\.[a-z0-9]+(?:[.-][a-z0-9]+)*$"},
+    "claimId": {"type": "string", "pattern": "^tos\\.claim\\.[a-z0-9]+(?:[.-][a-z0-9]+)*$"}
+  }
+}

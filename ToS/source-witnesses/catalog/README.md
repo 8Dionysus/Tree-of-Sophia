@@ -14,7 +14,8 @@ object and bibliographic claim records in the speaking `agents/`, `places/`,
 | `editions.jsonl` | published/edited manifestations |
 | `collections.jsonl` | aggregate publications |
 | `items.jsonl` | acquired physical/digital copies or containers |
-| `claims.jsonl` | source-returnable membership, responsibility, chronology, publication, provision-activity, and Work/Expression/Edition/Item topology claims |
+| `links.jsonl` | observed landing, metadata, authority, rights, and download routes |
+| `claims.jsonl` | source-returnable membership, responsibility, chronology, publication, provision-activity, Work/Expression/Edition/Item topology, and object-to-Link claims |
 | `catalog.manifest.json` | counts, paths, digest, and generation boundary |
 
 Object records own identity; source claim packets own bibliographic
@@ -27,14 +28,20 @@ does not accept or promote any claim. Only claims already marked `public` or
 or permission-pending material requires a separately reviewed public-safe
 derivative rather than silent copying.
 
+Link entries preserve technical reachability separately from rights. Their
+object associations return to `object-link-claims.jsonl`; `open_download` and
+`open_view` are transport observations and never mean that a Work or File is
+legally open.
+
 The current topology contribution is 64 separately addressable packets: 24
 `has_expression`, 24 `embodied_by`, and 16 `exemplified_by`. Their presence in
 this generated catalog proves exact projection only. It does not make the
 declared identity ladder true, accept any text, or turn embodiment into
 textual equivalence.
 
-The current bounded projection contains 85 object records and 129 claim records
-(214 entries total). The responsibility slice contains seven Work authorship,
+The current bounded projection contains 176 object records and 198 claim records
+(374 entries total), including five first-class Links and five object-to-Link
+claims. The responsibility slice contains seven Work authorship,
 ten Expression translation, and three Edition role claims; all remain
 source-returnable, model-made, public-metadata-only, and unreviewed.
 The 1913 Antonovsky responsibility claim is bound to a proposed whole-page

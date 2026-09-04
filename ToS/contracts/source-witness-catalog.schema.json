@@ -27,7 +27,7 @@
     "record_files": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["agent", "place", "organization", "work", "expression", "edition", "collection", "item"],
+      "required": ["agent", "place", "organization", "work", "expression", "edition", "collection", "item", "link"],
       "properties": {
         "agent": {"const": "ToS/source-witnesses/catalog/agents.jsonl"},
         "place": {"const": "ToS/source-witnesses/catalog/places.jsonl"},
@@ -36,7 +36,8 @@
         "expression": {"const": "ToS/source-witnesses/catalog/expressions.jsonl"},
         "edition": {"const": "ToS/source-witnesses/catalog/editions.jsonl"},
         "collection": {"const": "ToS/source-witnesses/catalog/collections.jsonl"},
-        "item": {"const": "ToS/source-witnesses/catalog/items.jsonl"}
+        "item": {"const": "ToS/source-witnesses/catalog/items.jsonl"},
+        "link": {"const": "ToS/source-witnesses/catalog/links.jsonl"}
       }
     },
     "claim_file": {"const": "ToS/source-witnesses/catalog/claims.jsonl"},
@@ -52,6 +53,7 @@
         "edition",
         "collection",
         "item",
+        "link",
         "object_total",
         "claim",
         "total"
@@ -65,6 +67,7 @@
         "edition": {"type": "integer", "minimum": 0},
         "collection": {"type": "integer", "minimum": 0},
         "item": {"type": "integer", "minimum": 0},
+        "link": {"type": "integer", "minimum": 0},
         "object_total": {"type": "integer", "minimum": 1},
         "claim": {"type": "integer", "minimum": 0},
         "total": {"type": "integer", "minimum": 1}
@@ -90,7 +93,7 @@
       "properties": {
         "schema_version": {"const": "tos_source_witness_catalog_entry_v1"},
         "record_id": {"type": "string", "minLength": 1},
-        "record_type": {"enum": ["agent", "place", "organization", "work", "expression", "edition", "collection", "item"]},
+        "record_type": {"enum": ["agent", "place", "organization", "work", "expression", "edition", "collection", "item", "link"]},
         "preferred_label": {"type": "string", "minLength": 1},
         "identity_status": {"enum": ["provisional", "verified", "disputed", "superseded"]},
         "source_record_ref": {"type": "string", "pattern": "^ToS/source-witnesses/.+\\.json$"},
@@ -244,7 +247,7 @@
         },
         "source_claim_file_ref": {
           "type": "string",
-          "pattern": "^ToS/source-witnesses/.+/(membership|responsibility|publication|provision-activity|work-chronology|work-expression|expression-edition|edition-item|expression-derivation)-claims\\.jsonl$"
+          "pattern": "^ToS/source-witnesses/.+/(membership|responsibility|publication|provision-activity|work-chronology|work-expression|expression-edition|edition-item|expression-derivation|object-link)-claims\\.jsonl$"
         },
         "source_claim_line": {"type": "integer", "minimum": 1},
         "claim_sha256": {
@@ -255,7 +258,7 @@
     },
     "tosId": {
       "type": "string",
-      "pattern": "^tos\\.(agent|place|organization|work|expression|edition|collection|item|file|passage|region|anchor|occurrence|lexeme|annotation|sign|concept|claim|relation|rights|review|event)\\.[a-z0-9]+(?:[.-][a-z0-9]+)*$"
+      "pattern": "^tos\\.(agent|place|organization|work|expression|edition|collection|item|link|file|passage|region|anchor|occurrence|lexeme|annotation|sign|concept|claim|relation|rights|review|event)\\.[a-z0-9]+(?:[.-][a-z0-9]+)*$"
     }
   }
 }

@@ -16,6 +16,7 @@ import {
   philosophyView,
 } from "./queries";
 import { scaleExportResponse } from "./scale";
+import { SourceNavigationError, sourceDescend, sourceDossier } from "./source-navigation";
 import { metaItem } from "./store";
 
 const STATIC_CORPUS_LIMITS = new Set([1, 100, 700, 1000]);
@@ -61,6 +62,17 @@ async function sourceGapResponse(request: Request, env: Env, search: URLSearchPa
   return jsonResponse({ ...packet, query, result_count: gaps.length, gaps }, 200, request.method);
 }
 
+async function sourceNavigationPayload(request: Request, env: Env): Promise<Item> {
+  const assetUrl = new URL("/__edge/source-navigation/all.json", request.url);
+  const asset = await env.ASSETS.fetch(new Request(assetUrl));
+  if (!asset.ok) throw new Error("generated source-navigation asset is missing");
+  const payload = await asset.json();
+  if (!payload || typeof payload !== "object" || Array.isArray(payload)) {
+    throw new Error("generated source-navigation asset is invalid");
+  }
+  return payload as Item;
+}
+
 async function apiResponse(request: Request, env: Env, url: URL): Promise<Response> {
   const path = url.pathname;
   const search = url.searchParams;
@@ -98,6 +110,31 @@ async function apiResponse(request: Request, env: Env, url: URL): Promise<Respon
     return jsonResponse(await metaItem(env.DB, "word_analysis_capability"), 200, method);
   }
   if (path === "/api/source-gaps") return sourceGapResponse(request, env, search);
+  const sourceNavigationPrefix = "/api/source/navigation/";
+  if (path.startsWith(sourceNavigationPrefix)) {
+    return jsonResponse(
+      sourceDescend(
+        await sourceNavigationPayload(request, env),
+        segment(path, sourceNavigationPrefix),
+        boundedInt(search.get("max_depth"), 8, 1, 8),
+        boundedInt(search.get("limit"), 300, 1, 300),
+      ),
+      200,
+      method,
+    );
+  }
+  const sourceDossierPrefix = "/api/source/dossiers/";
+  if (path.startsWith(sourceDossierPrefix)) {
+    return jsonResponse(
+      sourceDossier(
+        await sourceNavigationPayload(request, env),
+        segment(path, sourceDossierPrefix),
+        boundedInt(search.get("limit"), 300, 1, 300),
+      ),
+      200,
+      method,
+    );
+  }
 
   const fixedAssets: Record<string, string> = {
     "/api/corpus/status": "corpus/status.json",
@@ -271,7 +308,9 @@ export default {
       try {
         return await apiResponse(request, env, url);
       } catch (error) {
-        if (error instanceof HttpError) return jsonResponse({ error: error.message }, error.status, request.method);
+        if (error instanceof HttpError || error instanceof SourceNavigationError) {
+          return jsonResponse({ error: error.message }, error.status, request.method);
+        }
         console.error("Cloudflare edge request failed", error);
         return jsonResponse({ error: "Cloudflare edge request failed" }, 500, request.method);
       }

@@ -45,6 +45,7 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 CONTRACT_ROOT = Path("ToS/contracts")
 
 CORPUS_SCHEMA = CONTRACT_ROOT / "corpus-record.schema.json"
+SOURCE_LINK_SCHEMA = CONTRACT_ROOT / "source-link.schema.json"
 ITEM_MANIFEST_SCHEMA = CONTRACT_ROOT / "source-item-manifest.schema.json"
 RESOURCE_INVENTORY_SCHEMA = CONTRACT_ROOT / "source-resource-inventory.schema.json"
 RIGHTS_SCHEMA = CONTRACT_ROOT / "rights-record.schema.json"
@@ -71,6 +72,7 @@ SCHOLARLY_COMPOSITE_FILE_REPRESENTATION_SCHEMA = (
 )
 PROVENANCE_SCHEMA = CONTRACT_ROOT / "provenance-event.schema.json"
 CLAIM_SCHEMA = CONTRACT_ROOT / "claim-packet.schema.json"
+OBJECT_LINK_CLAIM_SCHEMA = CONTRACT_ROOT / "object-link-claim.schema.json"
 EXPRESSION_DERIVATION_SCHEMA = CONTRACT_ROOT / "expression-derivation.schema.json"
 PROVISION_ACTIVITY_SCHEMA = CONTRACT_ROOT / "provision-activity.schema.json"
 FIRST_PUBLICATION_CHRONOLOGY_SCHEMA = (
@@ -7065,7 +7067,9 @@ def validate_zarathustra_authored_canon_evidence_bridge(
 
 def _record_paths(repo_root: Path) -> Iterable[Path]:
     source_root = repo_root / SOURCE_ROOT
-    for basename in SOURCE_BASENAMES.values():
+    for record_type, basename in SOURCE_BASENAMES.items():
+        if record_type == "link":
+            continue
         for path in sorted(source_root.rglob(basename)):
             if CATALOG_ROOT in path.relative_to(repo_root).parents:
                 continue
@@ -7104,6 +7108,7 @@ def validate_foundation(repo_root: Path, *, require_local_payloads: bool = False
 
     try:
         corpus_validator, _ = _schema_validator(CORPUS_SCHEMA, repo_root)
+        source_link_validator, _ = _schema_validator(SOURCE_LINK_SCHEMA, repo_root)
         manifest_validator, _ = _schema_validator(ITEM_MANIFEST_SCHEMA, repo_root)
         resource_inventory_validator, _ = _schema_validator(
             RESOURCE_INVENTORY_SCHEMA,
@@ -7132,6 +7137,10 @@ def validate_foundation(repo_root: Path, *, require_local_payloads: bool = False
         )
         provenance_validator, _ = _schema_validator(PROVENANCE_SCHEMA, repo_root)
         claim_validator, _ = _schema_validator(CLAIM_SCHEMA, repo_root)
+        object_link_claim_validator, _ = _schema_validator(
+            OBJECT_LINK_CLAIM_SCHEMA,
+            repo_root,
+        )
         expression_derivation_validator, _ = _schema_validator(
             EXPRESSION_DERIVATION_SCHEMA,
             repo_root,
@@ -7509,6 +7518,37 @@ def validate_foundation(repo_root: Path, *, require_local_payloads: bool = False
                 records_by_id[record_id] = (payload, path)
             if payload.get("record_type") == "item":
                 item_records[record_id] = (payload, path)
+
+    link_records: dict[str, tuple[dict[str, Any], Path]] = {}
+    link_uris: dict[str, str] = {}
+    for path in sorted((repo_root / SOURCE_ROOT).rglob("link.json")):
+        payload = _load_json(path, repo_root, issues)
+        if payload is None:
+            continue
+        location = _relative(path, repo_root)
+        _validate_payload(payload, source_link_validator, location, issues)
+        _validate_source_refs(repo_root, payload, location, issues)
+        observation_ref = payload.get("observation_ref")
+        if (
+            isinstance(observation_ref, str)
+            and observation_ref.startswith("ToS/")
+            and not (repo_root / observation_ref).is_file()
+        ):
+            issues.append((location, f"unresolved Link observation_ref: {observation_ref}"))
+        record_id = payload.get("record_id")
+        uri = payload.get("uri")
+        if isinstance(record_id, str):
+            if record_id in records_by_id:
+                issues.append((location, f"duplicate record_id: {record_id}"))
+            else:
+                records_by_id[record_id] = (payload, path)
+                link_records[record_id] = (payload, path)
+        if isinstance(uri, str):
+            previous = link_uris.get(uri)
+            if previous is not None:
+                issues.append((location, f"duplicate Link uri; first used by {previous}"))
+            elif isinstance(record_id, str):
+                link_uris[uri] = record_id
 
     def require_record(ref: object, expected_type: str, location: str) -> None:
         if not isinstance(ref, str):
@@ -14956,6 +14996,72 @@ def validate_foundation(repo_root: Path, *, require_local_payloads: bool = False
                     "work chronology provenance configuration differs from the bounded profile",
                 )
             )
+
+    object_link_claim_ids: set[str] = set()
+    object_link_claim_targets: dict[str, str] = {}
+    object_link_claim_events: dict[str, str] = {}
+    for claim_path in sorted((repo_root / SOURCE_ROOT).rglob("object-link-claims.jsonl")):
+        claim_ref = _relative(claim_path, repo_root)
+        for index, claim in enumerate(_load_jsonl(claim_path, repo_root, issues), start=1):
+            location = f"{claim_ref}:{index}"
+            _validate_payload(claim, object_link_claim_validator, location, issues)
+            claim_id = claim.get("claim_id")
+            subject_ref = claim.get("subject_ref")
+            link_ref = claim.get("object")
+            if isinstance(claim_id, str):
+                if claim_id in claim_ids:
+                    issues.append((location, f"duplicate claim_id: {claim_id}"))
+                claim_ids.add(claim_id)
+                object_link_claim_ids.add(claim_id)
+                if isinstance(link_ref, str):
+                    object_link_claim_targets[claim_id] = link_ref
+                event_value = claim.get("provenance_event_ref")
+                if isinstance(event_value, str):
+                    object_link_claim_events[claim_id] = event_value
+            subject = records_by_id.get(str(subject_ref))
+            if subject is None or subject[0].get("record_type") == "link":
+                issues.append((location, f"unresolved or invalid object-Link subject: {subject_ref}"))
+            target = link_records.get(str(link_ref))
+            if target is None:
+                issues.append((location, f"unresolved Link object: {link_ref}"))
+            event_ref = claim.get("provenance_event_ref")
+            if event_ref not in events_by_id:
+                issues.append((location, f"unresolved object-Link provenance_event_ref: {event_ref}"))
+            for evidence_ref in claim.get("evidence_refs", []):
+                if (
+                    isinstance(evidence_ref, str)
+                    and evidence_ref.startswith("ToS/")
+                    and not (repo_root / evidence_ref).is_file()
+                ):
+                    issues.append((location, f"unresolved object-Link evidence ref: {evidence_ref}"))
+
+    for link_id, (link, link_path) in link_records.items():
+        location = _relative(link_path, repo_root)
+        actual_refs = set(link.get("association_claim_refs", []))
+        missing = sorted(actual_refs - object_link_claim_ids)
+        if missing:
+            issues.append((location, f"unresolved object-Link claims: {missing}"))
+        misbound = sorted(
+            claim_ref
+            for claim_ref in actual_refs & object_link_claim_ids
+            if object_link_claim_targets.get(claim_ref) != link_id
+        )
+        if misbound:
+            issues.append((location, f"object-Link claims target another Link: {misbound}"))
+        event_mismatch = sorted(
+            claim_ref
+            for claim_ref in actual_refs & object_link_claim_ids
+            if object_link_claim_events.get(claim_ref) != link.get("provenance_event_ref")
+        )
+        if event_mismatch:
+            issues.append((location, f"object-Link claims cite another provenance event: {event_mismatch}"))
+        unreferenced = sorted(
+            claim_ref
+            for claim_ref, target_ref in object_link_claim_targets.items()
+            if target_ref == link_id and claim_ref not in actual_refs
+        )
+        if unreferenced:
+            issues.append((location, f"object-Link claims are not referenced by Link: {unreferenced}"))
 
     for payload, path in (value for value in records_by_id.values() if value[0].get("record_type") == "collection"):
         location = _relative(path, repo_root)

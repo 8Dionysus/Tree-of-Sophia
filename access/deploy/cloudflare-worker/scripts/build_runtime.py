@@ -143,6 +143,7 @@ def build_static_assets(core: ToSAccessCore, output: Path) -> dict[str, Any]:
     write_json(output, "__edge/corpus/status.json", corpus_status)
     write_json(output, "__edge/corpus/summary.json", corpus_summary)
     write_json(output, "__edge/source-gaps/all.json", normalize_paths(core.source_gap_search("", limit=100), REPO_ROOT))
+    write_json(output, "__edge/source-navigation/all.json", normalize_paths(core.source_navigation(), REPO_ROOT))
     for view_id in corpus_status.get("graph_views", []):
         for limit in STATIC_CORPUS_LIMITS:
             packet = normalize_paths(core.graph_view(str(view_id), limit=limit), REPO_ROOT)
@@ -304,6 +305,7 @@ def build_read_model_sql(core: ToSAccessCore, target: Path, revision: str) -> di
             "graph_views",
             "relation_edges",
             "relation_packs",
+            "source_navigation",
         }
     }
     metadata = {
