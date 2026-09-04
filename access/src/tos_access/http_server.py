@@ -41,6 +41,15 @@ def _list(query: dict[str, list[str]], key: str) -> list[str]:
     return [item for item in _single(query, key).split(",") if item]
 
 
+def _boolean(query: dict[str, list[str]], key: str, default: bool = False) -> bool:
+    raw = _single(query, key, "true" if default else "false").strip().lower()
+    if raw in {"1", "true", "yes", "on"}:
+        return True
+    if raw in {"0", "false", "no", "off"}:
+        return False
+    raise ValueError(f"{key} must be a boolean")
+
+
 def _boot_payload(core: ToSAccessCore) -> dict[str, Any]:
     corpus = core.summary()
     philosophy = core.philosophy_views()
@@ -176,6 +185,13 @@ def build_handler(core: ToSAccessCore, web_root: Path) -> type[BaseHTTPRequestHa
                     self._json(health, HTTPStatus.OK if not errors else HTTPStatus.SERVICE_UNAVAILABLE)
                     return
                 if path == "/api/corpus/status": self._json(core.status()); return
+                if path == "/api/zarathustra/word-analysis":
+                    self._json(core.zarathustra_word_analysis_task(
+                        _single(query, "query"),
+                        _single(query, "language", "ru"),
+                        _integer(query, "rank", 1, 1, 100),
+                        _boolean(query, "include_semantic_neighbors"),
+                    )); return
                 if path == "/api/corpus/summary": self._json(core.summary()); return
                 if path == "/api/corpus/search": self._json(core.search(_single(query, "query"), _integer(query, "limit", 20, 1, 100))); return
                 if path.startswith("/api/corpus/graph-views/"):

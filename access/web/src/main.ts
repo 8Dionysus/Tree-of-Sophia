@@ -4314,7 +4314,13 @@ const pageCommands = createPageCommandRegistry(pageContextSnapshot, {
   },
 });
 
-webMCP = createWebMCPAdapter(pageCommands, document as WebMCPDocument);
+webMCP = createWebMCPAdapter(pageCommands, document as WebMCPDocument, {
+  prepareWordAnalysis: (input, options) => queryOperations.invoke(
+    "tos.zarathustra.word-analysis.prepare",
+    input,
+    options,
+  ),
+});
 
 renderShell();
 webMCP.subscribeStatus(() => renderAgentSurface());

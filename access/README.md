@@ -33,6 +33,15 @@ and only the runtime data allowlist. It contains no Git metadata, sibling
 repository, restricted source payload, lexical projection, Neo4j database, or
 AbyssOS runtime dependency.
 
+The full local Tree may additionally expose a source-bound Zarathustra word
+analysis capability. It resolves a German, Russian, or English query to one
+exact German occurrence and prepares morphology, syntax, historical sense,
+cited etymology, contextual semantics, Russian comparison, and English
+rendering for the calling agent. Native MCP, local HTTP, and WebMCP use the
+same read-only core operation. The standalone archive deliberately omits the
+local provider and exact text, so the call returns an explicit
+`available: false` packet rather than fabricating weaker evidence.
+
 After extraction, install the full standalone profile from any location:
 `python -m pip install '/path/to/tree-of-sophia-standalone/access[mcp]'`. Then
 run `tos verify --profile standalone`, `tos serve`, or `tos mcp`.
@@ -78,7 +87,8 @@ it does not override this product's standalone runtime manifest.
 
 The site feature-detects the experimental `document.modelContext` API and
 remains fully usable when it is absent. Stable tools expose view, search,
-selection, focus, cancellation, and page-context commands. Selection-dependent
+selection, focus, cancellation, page context, and the capability-gated
+Zarathustra word-analysis task. Selection-dependent
 tools are registered only for the current node or edge and bind the captured
 context revision, so a delayed reference to “this edge” fails closed after the
 human changes selection. Tool execution forwards the browser-provided

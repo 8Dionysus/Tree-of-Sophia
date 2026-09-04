@@ -27,6 +27,16 @@
         "predicates": "string[]"
       },
       "result": "deterministically ordered path alternatives packet"
+    },
+    {
+      "operation_id": "tos.zarathustra.word-analysis.prepare",
+      "input": {
+        "query": "German, Russian, or English concept query",
+        "language": "de|ru|en",
+        "rank": "1..100",
+        "include_semantic_neighbors": "boolean"
+      },
+      "result": "capability envelope containing one exact-source local analysis task or an explicit unavailable state"
     }
   ],
   "consumers": ["native MCP", "HTTP API", "page commands"],

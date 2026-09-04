@@ -7,7 +7,8 @@ export type ToSQueryOperationId =
   | "tos.node.inspect"
   | "tos.neighborhood"
   | "tos.epistemic.inspect"
-  | "tos.path.find";
+  | "tos.path.find"
+  | "tos.zarathustra.word-analysis.prepare";
 
 export type ToSQueryInput = Record<string, unknown>;
 export type ToSQueryResult = Record<string, unknown>;
@@ -46,7 +47,7 @@ function oneOf(value: unknown, fallback: string, allowed: Set<string>): string {
   return result;
 }
 
-function params(values: Record<string, string | number | string[] | undefined>): string {
+function params(values: Record<string, string | number | boolean | string[] | undefined>): string {
   const query = new URLSearchParams();
   Object.entries(values).forEach(([key, value]) => {
     if (Array.isArray(value)) {
@@ -124,6 +125,17 @@ export function createToSQueryOperations(fetchJson: FetchJson) {
             alternatives: boundedInt(input.alternative_limit, 1, 1, 5),
             layers: filterList(input.layers),
             predicates: filterList(input.predicates),
+          })}`,
+          request,
+        );
+      }
+      case "tos.zarathustra.word-analysis.prepare": {
+        return fetchJson<ToSQueryResult>(
+          `/api/zarathustra/word-analysis${params({
+            query: requiredString(input.query, "query"),
+            language: oneOf(input.language, "ru", new Set(["de", "ru", "en"])),
+            rank: boundedInt(input.rank, 1, 1, 100),
+            include_semantic_neighbors: input.include_semantic_neighbors === true,
           })}`,
           request,
         );

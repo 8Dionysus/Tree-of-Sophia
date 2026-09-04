@@ -94,6 +94,21 @@ def build_server(
         return current_state().packet(query=query, view_id=view_id, limit=limit)
 
     @mcp.tool()
+    def tos_zarathustra_prepare_word_analysis(
+        query: str,
+        language: str = "ru",
+        rank: int = 1,
+        include_semantic_neighbors: bool = False,
+    ) -> dict[str, Any]:
+        """Return one exact-source local analysis task; never accept or persist its interpretation."""
+        return current_state().zarathustra_word_analysis_task(
+            query=query,
+            language=language,
+            rank=rank,
+            include_semantic_neighbors=include_semantic_neighbors,
+        )
+
+    @mcp.tool()
     def tos_philosophy_graph_status() -> dict[str, Any]:
         """Return ToS philosophy graph projection path, counts, graph views, and authority boundary."""
         return current_state().philosophy_status()
@@ -349,6 +364,17 @@ def build_server(
             f"tos_philosophy_graph_review_packet(view_id={view_id!r}), then "
             f"tos_philosophy_graph_packet(query={query!r}, view_id={view_id!r}). "
             "Treat ToS source_ref values as meaning authority; treat native MCP, UI, and optional integrations as projection/access surfaces only."
+        )
+
+    @mcp.prompt(name="tos-zarathustra-word-analysis")
+    def tos_zarathustra_word_analysis(query: str, language: str = "ru", rank: int = 1) -> str:
+        """Prompt route for source-first morphology, semantics, etymology, and English rendering."""
+        return (
+            "Call tos_zarathustra_prepare_word_analysis"
+            f"(query={query!r}, language={language!r}, rank={rank}). "
+            "Analyze every required stage in the returned task. Use point citations for etymology, "
+            "keep German as source authority, Russian as a historical comparator, and English as an "
+            "unreviewed candidate. Do not infer contextual meaning from etymology alone."
         )
 
     LOGGER.info("ToS corpus MCP server ready")

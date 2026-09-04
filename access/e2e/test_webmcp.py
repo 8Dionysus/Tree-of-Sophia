@@ -139,7 +139,17 @@ def test_real_browser_webmcp_loop_and_stale_deixis(webmcp_page: Page) -> None:
     names = page.evaluate("window.__TOS_E2E.names()")
     assert "tos.page.context" in names
     assert "tos.page.research-workspace" in names
+    assert "tos.zarathustra.word-analysis.prepare" in names
     assert page.locator("#agent-surface").get_attribute("data-webmcp-state") == "connected"
+
+    word_analysis = command_value(invoke(
+        page,
+        "tos.zarathustra.word-analysis.prepare",
+        {"query": "судьбы", "language": "ru", "rank": 1},
+    ))
+    assert word_analysis["available"] is False
+    assert word_analysis["task"] is None
+    assert word_analysis["publication_posture"] == "excluded_from_public_bundle"
 
     edge_id, node_id = first_edge_and_node(page)
     invoke(page, "tos.page.select", {"item_id": edge_id})
