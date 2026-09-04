@@ -29,15 +29,15 @@
     "metric": "whitespace_tokens_v1",
     "posture": "summary_first_records_on_demand",
     "record_loading": "machine readers may select records by family_id or path; do not load the full carrier into an always-on prompt",
-    "tracked_surface_count": 3477,
+    "tracked_surface_count": 3459,
     "unhandled_family_count": 0
   },
   "coverage": {
     "excluded_generated_carrier_rules": 3,
     "excluded_tracked_path_count": 598,
     "human_scope": {
-      "bytes": 4739576,
-      "count": 942,
+      "bytes": 4721229,
+      "count": 924,
       "excluded_skill_launch_metadata": 25,
       "family_counts": {
         "access": {
@@ -46,9 +46,9 @@
           "lines": 402
         },
         "agents-other": {
-          "bytes": 17725,
-          "count": 5,
-          "lines": 379
+          "bytes": 9936,
+          "count": 3,
+          "lines": 159
         },
         "agents-skills": {
           "bytes": 340056,
@@ -56,9 +56,9 @@
           "lines": 6530
         },
         "docs": {
-          "bytes": 444961,
+          "bytes": 448952,
           "count": 60,
-          "lines": 7373
+          "lines": 7403
         },
         "evals": {
           "bytes": 3954,
@@ -81,9 +81,9 @@
           "lines": 44
         },
         "mechanics": {
-          "bytes": 151128,
-          "count": 155,
-          "lines": 3877
+          "bytes": 136579,
+          "count": 139,
+          "lines": 3649
         },
         "memo": {
           "bytes": 4538,
@@ -121,15 +121,15 @@
           "lines": 60739
         }
       },
-      "lines": 83518
+      "lines": 83100
     },
     "surface_kind_counts": {
       "executable": 206,
-      "human": 967,
+      "human": 949,
       "structured": 2304
     },
-    "tracked_path_count": 4075,
-    "tracked_surface_count": 3477,
+    "tracked_path_count": 4057,
+    "tracked_surface_count": 3459,
     "unhandled_family_count": 0,
     "unhandled_paths": []
   },
@@ -155,11 +155,11 @@
     {
       "family_id": "agents-other",
       "surface_kind_counts": {
-        "human": 5,
+        "human": 3,
         "structured": 3
       },
-      "tracked_surface_bytes": 166626,
-      "tracked_surface_count": 8
+      "tracked_surface_bytes": 158483,
+      "tracked_surface_count": 6
     },
     {
       "family_id": "github",
@@ -195,7 +195,7 @@
         "human": 60,
         "structured": 6
       },
-      "tracked_surface_bytes": 712252,
+      "tracked_surface_bytes": 716243,
       "tracked_surface_count": 66
     },
     {
@@ -228,11 +228,11 @@
       "family_id": "mechanics",
       "surface_kind_counts": {
         "executable": 15,
-        "human": 155,
+        "human": 139,
         "structured": 33
       },
-      "tracked_surface_bytes": 395863,
-      "tracked_surface_count": 203
+      "tracked_surface_bytes": 381322,
+      "tracked_surface_count": 187
     },
     {
       "family_id": "scripts",
@@ -240,7 +240,7 @@
         "executable": 106,
         "human": 2
       },
-      "tracked_surface_bytes": 3628900,
+      "tracked_surface_bytes": 3628707,
       "tracked_surface_count": 108
     },
     {
@@ -285,7 +285,7 @@
   "source_map": "docs/validation/documentation_family_map.json",
   "source_map_sha256": "d70a5059be9cc7547289e4c8be380d23b3aeb9e53bb10e4cb82abf2177ea0896",
   "tracked_source": "git ls-files -z",
-  "tracked_surface_digest": "43460fd2008f87e48db5321fa98aa50949052cb5b6029fb8926eb78d2b4d9f38",
+  "tracked_surface_digest": "7cbc2c445cc14991f43648a155e4a23f4961d4718c99392683fcc0f27e897cf7",
   "tracked_surfaces": [
     {
       "bytes": 1489,
@@ -328,11 +328,11 @@
       "surface_kind": "structured"
     },
     {
-      "bytes": 86861,
+      "bytes": 86507,
       "currentness": "tracked_source_snapshot",
       "family_id": "agents-other",
       "path": ".agents/agents-route.current.json",
-      "sha256": "ccca4c69def11cda7a9dbcb1a7c3c8f5f48df2bb389892485db4f5b10eae592f",
+      "sha256": "7177cdd5e784fffffdaf7334829f9d85c2c2aefcf7b10aa4dab3b965c1e662f8",
       "surface_kind": "structured"
     },
     {
@@ -1621,22 +1621,6 @@
       "family_id": "agents-skills",
       "path": ".agents/skills/aoa-tdd-slice/references/tdd-slice-shapes.md",
       "sha256": "0c3b53314671ffa75a899cc12532eb55bda69b97b5d032339fe6a34db5420e58",
-      "surface_kind": "human"
-    },
-    {
-      "bytes": 3321,
-      "currentness": "tracked_source_snapshot",
-      "family_id": "agents-other",
-      "path": ".agents/spark/AGENTS.md",
-      "sha256": "5295e505a96faec8843b8d2c80052af0392845cf990b607811611a5d62bbcdd8",
-      "surface_kind": "human"
-    },
-    {
-      "bytes": 4468,
-      "currentness": "tracked_source_snapshot",
-      "family_id": "agents-other",
-      "path": ".agents/spark/SWARM.md",
-      "sha256": "2cc9468b190a34a68b7ca3688d96ee7b215ae5388d43b0f64184a9ff128d3655",
       "surface_kind": "human"
     },
     {
@@ -24696,51 +24680,51 @@
       "surface_kind": "human"
     },
     {
-      "bytes": 7983,
+      "bytes": 8198,
       "currentness": "tracked_source_snapshot",
       "family_id": "docs",
       "path": "docs/decisions/indexes/by-date.md",
-      "sha256": "ec74f85a736f3463bc5efb3f94e95981c2e5cccadf362b63966bcae40b1c8fe3",
+      "sha256": "427a5c4195154aa1868fc36b729fc9b11c6c36bef92b57d1a68f626327c1767a",
       "surface_kind": "human"
     },
     {
-      "bytes": 40466,
+      "bytes": 41096,
       "currentness": "tracked_source_snapshot",
       "family_id": "docs",
       "path": "docs/decisions/indexes/by-guard.md",
-      "sha256": "607bc1e6021a3bb931259cc297f98e605f2df8d9f229ab42d8ae448e6aef5bff",
+      "sha256": "f856d5d645cfa74c6fbfb443d905c9e20caaada4d08584903737817a6ab0c1ca",
       "surface_kind": "human"
     },
     {
-      "bytes": 21108,
+      "bytes": 21634,
       "currentness": "tracked_source_snapshot",
       "family_id": "docs",
       "path": "docs/decisions/indexes/by-number.md",
-      "sha256": "d8d28b14a0c8599b8f35624fa0ca96a0ae276efa05e82e6a060557d9840b65df",
+      "sha256": "0944274b13c5ce40196ea2ad4dbba1e08b2ac62455ebe73c9f592758c174c11d",
       "surface_kind": "human"
     },
     {
-      "bytes": 33298,
+      "bytes": 34310,
       "currentness": "tracked_source_snapshot",
       "family_id": "docs",
       "path": "docs/decisions/indexes/by-surface.md",
-      "sha256": "c4bfc57e79d17f9c163a64c3d3d1e1093c6d0943f802130e18c08c1bc30839fd",
+      "sha256": "a9d32b551199ddd8d265a242f6abe6b9dd7ff9037580fd239111b4dc583be90e",
       "surface_kind": "human"
     },
     {
-      "bytes": 36356,
+      "bytes": 37367,
       "currentness": "tracked_source_snapshot",
       "family_id": "docs",
       "path": "docs/decisions/indexes/by-tos-layer.md",
-      "sha256": "8df8bc0c3805310dc5c2173edba82d15c5a3a8dbf5dcd9e80c9c5e573d73036d",
+      "sha256": "a3031d9aae2cb7b86edc2d048f62fe6882a1609ef82e0b2c1f0bbc429253f36e",
       "surface_kind": "human"
     },
     {
-      "bytes": 31556,
+      "bytes": 32153,
       "currentness": "tracked_source_snapshot",
       "family_id": "docs",
       "path": "docs/decisions/indexes/by-tree-class.md",
-      "sha256": "2fbba6e99ade648c58e55cb189a3b1e85e0fa20a7078968c79a117887c5f4863",
+      "sha256": "83ede218be49e27509bc8befd29b526723788b06cbd14476cf3b5a18c7855d7a",
       "surface_kind": "human"
     },
     {
@@ -25024,11 +25008,11 @@
       "surface_kind": "human"
     },
     {
-      "bytes": 736,
+      "bytes": 799,
       "currentness": "tracked_source_snapshot",
       "family_id": "mechanics",
       "path": "mechanics/agon/PROVENANCE.md",
-      "sha256": "e11af2f5c9c4311017ae7b6a484e3f454f77e65b078e23809185cfabdda05bde",
+      "sha256": "ee11b13d57b27a0440cf3f40a84d88d84f5ffc39c42985992e90304fd8df0319",
       "surface_kind": "human"
     },
     {
@@ -25045,22 +25029,6 @@
       "family_id": "mechanics",
       "path": "mechanics/agon/ROADMAP.md",
       "sha256": "c8da66eeb250cbaf1ed601940e432c7fee1983bdf37ec16d02be8afe8bfa4079",
-      "surface_kind": "human"
-    },
-    {
-      "bytes": 1965,
-      "currentness": "tracked_source_snapshot",
-      "family_id": "mechanics",
-      "path": "mechanics/agon/legacy/INDEX.md",
-      "sha256": "80d033f6ae29abeb2d86c35a757ee4f70c97f5b68f6af1a6d525c8e016e3407a",
-      "surface_kind": "human"
-    },
-    {
-      "bytes": 312,
-      "currentness": "tracked_source_snapshot",
-      "family_id": "mechanics",
-      "path": "mechanics/agon/legacy/README.md",
-      "sha256": "cf6e67e18fc978b1d263ad126d3716399ba780e4a684ec0142c2cd2e2b7273b6",
       "surface_kind": "human"
     },
     {
@@ -25288,22 +25256,6 @@
       "surface_kind": "human"
     },
     {
-      "bytes": 221,
-      "currentness": "tracked_source_snapshot",
-      "family_id": "mechanics",
-      "path": "mechanics/audit/legacy/INDEX.md",
-      "sha256": "9ff1f4944fad2c9817ff6b242340eefcd194564515afd172344d6a2a393e7609",
-      "surface_kind": "human"
-    },
-    {
-      "bytes": 381,
-      "currentness": "tracked_source_snapshot",
-      "family_id": "mechanics",
-      "path": "mechanics/audit/legacy/README.md",
-      "sha256": "4721011822fd638f7440a5716736bde89ed4abf7c4e246dddd55ddb0accbea9c",
-      "surface_kind": "human"
-    },
-    {
       "bytes": 547,
       "currentness": "tracked_source_snapshot",
       "family_id": "mechanics",
@@ -25357,22 +25309,6 @@
       "family_id": "mechanics",
       "path": "mechanics/boundary-bridge/ROADMAP.md",
       "sha256": "e91da277dfb3adfd080624aa27809c8a016eaaaa0eadff3b9f0087689758bb01",
-      "surface_kind": "human"
-    },
-    {
-      "bytes": 223,
-      "currentness": "tracked_source_snapshot",
-      "family_id": "mechanics",
-      "path": "mechanics/boundary-bridge/legacy/INDEX.md",
-      "sha256": "c7d0975425fbda86129923aeb112c2c89cf802ace9cf5559f5045c0be855aa8b",
-      "surface_kind": "human"
-    },
-    {
-      "bytes": 423,
-      "currentness": "tracked_source_snapshot",
-      "family_id": "mechanics",
-      "path": "mechanics/boundary-bridge/legacy/README.md",
-      "sha256": "cbf1c1520082564ba675968738b69de4d21774228d81f19aba811f0127f30c20",
       "surface_kind": "human"
     },
     {
@@ -25576,22 +25512,6 @@
       "surface_kind": "human"
     },
     {
-      "bytes": 223,
-      "currentness": "tracked_source_snapshot",
-      "family_id": "mechanics",
-      "path": "mechanics/distillation/legacy/INDEX.md",
-      "sha256": "74bbe63b57cee63a98eb20c4783d1be0603b4c39d6c6998a1b3cbf894bf2a41c",
-      "surface_kind": "human"
-    },
-    {
-      "bytes": 412,
-      "currentness": "tracked_source_snapshot",
-      "family_id": "mechanics",
-      "path": "mechanics/distillation/legacy/README.md",
-      "sha256": "c06931defa0f6fd93b310aae84a953a0ab3e7f28bb716b5c936c8bba5fac656b",
-      "surface_kind": "human"
-    },
-    {
       "bytes": 555,
       "currentness": "tracked_source_snapshot",
       "family_id": "mechanics",
@@ -25624,11 +25544,11 @@
       "surface_kind": "human"
     },
     {
-      "bytes": 957,
+      "bytes": 1020,
       "currentness": "tracked_source_snapshot",
       "family_id": "mechanics",
       "path": "mechanics/experience/PROVENANCE.md",
-      "sha256": "fc7e9caf847a2cc07b0a8ec7a79b048112f9e87577e2a43d452654ab543c4972",
+      "sha256": "cc8f4da5729437d93c408e3dfcacdd2aedf734b637b8260af69d9382f09d7cbf",
       "surface_kind": "human"
     },
     {
@@ -25645,22 +25565,6 @@
       "family_id": "mechanics",
       "path": "mechanics/experience/ROADMAP.md",
       "sha256": "fc1ba648d66a6ce1a17d3867a018114ad75a66b177151c03bd4b0546c3a2e68a",
-      "surface_kind": "human"
-    },
-    {
-      "bytes": 7253,
-      "currentness": "tracked_source_snapshot",
-      "family_id": "mechanics",
-      "path": "mechanics/experience/legacy/INDEX.md",
-      "sha256": "a37e40dffcbf4d8d8753a29afdaab8d36244a5c45beb9d20a507da54febef271",
-      "surface_kind": "human"
-    },
-    {
-      "bytes": 329,
-      "currentness": "tracked_source_snapshot",
-      "family_id": "mechanics",
-      "path": "mechanics/experience/legacy/README.md",
-      "sha256": "118f8509a76b89e37354cb1f2fbf937b659e0a5e4228efe91deabeefc2557883",
       "surface_kind": "human"
     },
     {
@@ -26080,22 +25984,6 @@
       "surface_kind": "human"
     },
     {
-      "bytes": 535,
-      "currentness": "tracked_source_snapshot",
-      "family_id": "mechanics",
-      "path": "mechanics/growth-cycle/legacy/INDEX.md",
-      "sha256": "444c6ad5354e1ab6da6076f31b6da62445a1ede5415865ce87224f12170248ba",
-      "surface_kind": "human"
-    },
-    {
-      "bytes": 398,
-      "currentness": "tracked_source_snapshot",
-      "family_id": "mechanics",
-      "path": "mechanics/growth-cycle/legacy/README.md",
-      "sha256": "0ce21ccde9afc7d2e638840f43e2c99d2a8bb7ababea653466cb1ab1ef1b0470",
-      "surface_kind": "human"
-    },
-    {
       "bytes": 566,
       "currentness": "tracked_source_snapshot",
       "family_id": "mechanics",
@@ -26192,11 +26080,11 @@
       "surface_kind": "human"
     },
     {
-      "bytes": 678,
+      "bytes": 741,
       "currentness": "tracked_source_snapshot",
       "family_id": "mechanics",
       "path": "mechanics/questbook/PROVENANCE.md",
-      "sha256": "9a66ff0be10c5a586cd5d653f312d92ccce08a1bc1341fd964dce5b524a5d0d4",
+      "sha256": "0ed6e0e0432fd0e5d98e1e4145c680592fb72e5b14689663d57de5a47bdc69ca",
       "surface_kind": "human"
     },
     {
@@ -26213,22 +26101,6 @@
       "family_id": "mechanics",
       "path": "mechanics/questbook/ROADMAP.md",
       "sha256": "c07497ed2f8aa351138b521cd79532463d696a5fe56599c23652b8bc363772e9",
-      "surface_kind": "human"
-    },
-    {
-      "bytes": 1040,
-      "currentness": "tracked_source_snapshot",
-      "family_id": "mechanics",
-      "path": "mechanics/questbook/legacy/INDEX.md",
-      "sha256": "d1b8494d09cd94eb0667a5c23a383e9901f0032fe7e65bf437f99f38a4753bd7",
-      "surface_kind": "human"
-    },
-    {
-      "bytes": 331,
-      "currentness": "tracked_source_snapshot",
-      "family_id": "mechanics",
-      "path": "mechanics/questbook/legacy/README.md",
-      "sha256": "4bf309164b82480e86d36aaa71b6f3bf6253f6fe5f128610dfa4922a8f420c4e",
       "surface_kind": "human"
     },
     {
@@ -26568,22 +26440,6 @@
       "surface_kind": "human"
     },
     {
-      "bytes": 249,
-      "currentness": "tracked_source_snapshot",
-      "family_id": "mechanics",
-      "path": "mechanics/source-witnessing/legacy/INDEX.md",
-      "sha256": "ed83bb896e5d848003c81be330b097896e92044a154ef979b59d9e035fea611b",
-      "surface_kind": "human"
-    },
-    {
-      "bytes": 443,
-      "currentness": "tracked_source_snapshot",
-      "family_id": "mechanics",
-      "path": "mechanics/source-witnessing/legacy/README.md",
-      "sha256": "52e5aa31c0b083ab0a496846a6b2ad9c448317bf72432a3d1d7fddabeb015ed0",
-      "surface_kind": "human"
-    },
-    {
       "bytes": 557,
       "currentness": "tracked_source_snapshot",
       "family_id": "mechanics",
@@ -26600,11 +26456,11 @@
       "surface_kind": "human"
     },
     {
-      "bytes": 17084,
+      "bytes": 17092,
       "currentness": "tracked_source_snapshot",
       "family_id": "mechanics",
       "path": "mechanics/topology.json",
-      "sha256": "f3fd38f2c609dab167d5c1e01764893a3b698921e69b171bcad8244c0741cd65",
+      "sha256": "f5ff010dd78972ddddfd10ff5dbecffdf831ca06ffa9d724629b2e73e74de682",
       "surface_kind": "structured"
     },
     {
@@ -27416,11 +27272,11 @@
       "surface_kind": "executable"
     },
     {
-      "bytes": 22132,
+      "bytes": 21939,
       "currentness": "tracked_source_snapshot",
       "family_id": "scripts",
       "path": "scripts/validate_mechanics_topology.py",
-      "sha256": "7d0d2a90172710c88833908f0cef22a61e7f90f8a7709f807b92a7c14923e287",
+      "sha256": "d5e17e0cf610bada8463c8570501a390fb675f9238949fe60e2d115df6b0a5a9",
       "surface_kind": "executable"
     },
     {

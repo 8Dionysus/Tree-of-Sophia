@@ -13,19 +13,6 @@
       "whitespace_tokens": 200
     },
     {
-      "bytes": 3321,
-      "inheritance_stack": [
-        "AGENTS.md",
-        ".agents/AGENTS.md",
-        ".agents/spark/AGENTS.md"
-      ],
-      "lines": 90,
-      "path": ".agents/spark/AGENTS.md",
-      "sha256": "5295e505a96faec8843b8d2c80052af0392845cf990b607811611a5d62bbcdd8",
-      "tracked": true,
-      "whitespace_tokens": 483
-    },
-    {
       "bytes": 1629,
       "inheritance_stack": [
         "AGENTS.md",
@@ -955,9 +942,9 @@
     }
   ],
   "route_card_counts": {
-    "discovered_by_inventory": 56,
+    "discovered_by_inventory": 55,
     "discovered_untracked": [],
-    "tracked_exact_basename": 56,
+    "tracked_exact_basename": 55,
     "tracked_only": []
   },
   "route_card_discovery": {
@@ -1857,22 +1844,22 @@
           "whitespace_tokens": 76
         },
         {
-          "bytes": 17084,
+          "bytes": 17092,
           "exists": true,
           "lines": 343,
           "path": "mechanics/topology.json",
           "role": "completion",
-          "sha256": "f3fd38f2c609dab167d5c1e01764893a3b698921e69b171bcad8244c0741cd65",
+          "sha256": "f5ff010dd78972ddddfd10ff5dbecffdf831ca06ffa9d724629b2e73e74de682",
           "whitespace_tokens": 519
         },
         {
-          "bytes": 22132,
+          "bytes": 21939,
           "exists": true,
-          "lines": 532,
+          "lines": 530,
           "path": "scripts/validate_mechanics_topology.py",
           "role": "completion",
-          "sha256": "7d0d2a90172710c88833908f0cef22a61e7f90f8a7709f807b92a7c14923e287",
-          "whitespace_tokens": 1730
+          "sha256": "d5e17e0cf610bada8463c8570501a390fb675f9238949fe60e2d115df6b0a5a9",
+          "whitespace_tokens": 1720
         }
       ],
       "id": "mechanics_package_change",
@@ -1928,13 +1915,13 @@
       "target_exists": true,
       "validation_paths": [
         {
-          "bytes": 22132,
+          "bytes": 21939,
           "exists": true,
-          "lines": 532,
+          "lines": 530,
           "path": "scripts/validate_mechanics_topology.py",
           "role": "validation",
-          "sha256": "7d0d2a90172710c88833908f0cef22a61e7f90f8a7709f807b92a7c14923e287",
-          "whitespace_tokens": 1730
+          "sha256": "d5e17e0cf610bada8463c8570501a390fb675f9238949fe60e2d115df6b0a5a9",
+          "whitespace_tokens": 1720
         },
         {
           "bytes": 23014,

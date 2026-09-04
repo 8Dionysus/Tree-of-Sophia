@@ -393,8 +393,6 @@ def validate_moved_targets(
             known_parts: set[str] = set()
         else:
             known_parts = package_parts.get(package, set())
-            if packages[package].get("legacy_required") is not True:
-                issues.append((TOPOLOGY_PATH.as_posix(), f"moved_path_accounting.{package} requires legacy_required true"))
         for part, old_paths in parts.items():
             if part not in known_parts:
                 issues.append((TOPOLOGY_PATH.as_posix(), f"moved_path_accounting.{package}.{part} is not an active part"))
