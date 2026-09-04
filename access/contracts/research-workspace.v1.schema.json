@@ -1,0 +1,33 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://tree-of-sophia.invalid/contracts/research-workspace.v1.schema.json",
+  "title": "Tree of Sophia local research workspace packet",
+  "description": "Portable session-local working state. It never writes ToS source, review, rights, or canon.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema", "version", "session_id", "revision", "selected_lens", "excluded_edge_ids", "route_snapshots", "hypotheses", "notes", "journal"],
+  "properties": {
+    "schema": { "const": "tos_research_workspace_session_v1" },
+    "version": { "const": 1 },
+    "session_id": { "$ref": "#/$defs/id" },
+    "revision": { "type": "integer", "minimum": 0, "maximum": 1000000000 },
+    "selected_lens": { "anyOf": [{ "type": "null" }, { "$ref": "#/$defs/selection" }] },
+    "excluded_edge_ids": { "type": "array", "maxItems": 256, "uniqueItems": true, "items": { "$ref": "#/$defs/id" } },
+    "route_snapshots": { "type": "array", "maxItems": 256, "items": { "$ref": "#/$defs/route" } },
+    "hypotheses": { "type": "array", "maxItems": 256, "items": { "$ref": "#/$defs/hypothesis" } },
+    "notes": { "type": "array", "maxItems": 256, "items": { "$ref": "#/$defs/note" } },
+    "journal": { "type": "array", "maxItems": 512, "items": { "$ref": "#/$defs/journal_entry" } }
+  },
+  "$defs": {
+    "id": { "type": "string", "minLength": 1, "maxLength": 256, "pattern": "\\S" },
+    "label": { "type": "string", "minLength": 1, "maxLength": 512, "pattern": "\\S" },
+    "body": { "type": "string", "minLength": 1, "maxLength": 4000, "pattern": "\\S" },
+    "selection": { "type": "object", "additionalProperties": false, "required": ["id", "kind"], "properties": { "id": { "$ref": "#/$defs/id" }, "kind": { "enum": ["node", "edge", "cluster", "item"] }, "label": { "$ref": "#/$defs/label" } } },
+    "posture": { "type": "object", "additionalProperties": false, "required": ["session_hypothesis", "source", "reviewed", "canon"], "properties": { "session_hypothesis": { "const": true }, "source": { "const": false }, "reviewed": { "const": false }, "canon": { "const": false } } },
+    "hypothesis": { "type": "object", "additionalProperties": false, "required": ["id", "title", "body", "posture"], "properties": { "id": { "$ref": "#/$defs/id" }, "title": { "$ref": "#/$defs/label" }, "body": { "$ref": "#/$defs/body" }, "target_id": { "$ref": "#/$defs/id" }, "from_id": { "$ref": "#/$defs/id" }, "to_id": { "$ref": "#/$defs/id" }, "predicate_label": { "$ref": "#/$defs/label" }, "posture": { "$ref": "#/$defs/posture" } }, "allOf": [{ "if": { "required": ["from_id"] }, "then": { "required": ["to_id"] } }, { "if": { "required": ["to_id"] }, "then": { "required": ["from_id"] } }] },
+    "route": { "type": "object", "additionalProperties": false, "required": ["id", "label", "from_id", "to_id", "node_ids", "edge_ids"], "properties": { "id": { "$ref": "#/$defs/id" }, "label": { "$ref": "#/$defs/label" }, "from_id": { "$ref": "#/$defs/id" }, "to_id": { "$ref": "#/$defs/id" }, "node_ids": { "type": "array", "maxItems": 512, "uniqueItems": true, "items": { "$ref": "#/$defs/id" } }, "edge_ids": { "type": "array", "maxItems": 512, "uniqueItems": true, "items": { "$ref": "#/$defs/id" } } } },
+    "note": { "type": "object", "additionalProperties": false, "required": ["id", "body"], "properties": { "id": { "$ref": "#/$defs/id" }, "body": { "$ref": "#/$defs/body" }, "target_id": { "$ref": "#/$defs/id" } } },
+    "scalar": { "type": ["string", "number", "boolean", "null"] },
+    "journal_entry": { "type": "object", "additionalProperties": false, "required": ["sequence", "action"], "properties": { "sequence": { "type": "integer", "minimum": 1, "maximum": 1000000000 }, "action": { "$ref": "#/$defs/id" }, "target_id": { "$ref": "#/$defs/id" }, "detail": { "type": "object", "maxProperties": 32, "additionalProperties": { "$ref": "#/$defs/scalar" } } } }
+  }
+}

@@ -13,6 +13,12 @@ import {
   type PageSelection,
 } from "./page-commands";
 import { createToSQueryOperations } from "./query-operations";
+import {
+  createLocalStoragePersistence,
+  createResearchWorkspace,
+  type ResearchHypothesis,
+  type RouteSnapshot,
+} from "./research-workspace";
 import { createWebMCPAdapter, type WebMCPDocument } from "./webmcp";
 import { localizedContentPayload, localizedContentText } from "./content-i18n";
 import StarNodeProgram from "./star-node-program";
@@ -385,6 +391,26 @@ const uiText: Record<Language, Record<string, string>> = {
     "detail.contextRelations": "Context relations",
     "detail.coverage": "Coverage",
     "detail.notAdjudicated": "These graph relations are leads for review, not adjudicated counterevidence.",
+    "workspace.title": "Research workspace",
+    "workspace.localOnly": "Local session only · not source · not reviewed · not canon",
+    "workspace.hypothesisPlaceholder": "State a working interpretation",
+    "workspace.predicatePlaceholder": "Relation label (optional)",
+    "workspace.addHypothesis": "Add hypothesis",
+    "workspace.excludeEdge": "Exclude selected edge",
+    "workspace.saveRoute": "Save route for comparison",
+    "workspace.notePlaceholder": "Add a research note",
+    "workspace.addNote": "Add note",
+    "workspace.undo": "Undo",
+    "workspace.redo": "Redo",
+    "workspace.export": "Export session",
+    "workspace.import": "Import session",
+    "workspace.hypotheses": "Session hypotheses",
+    "workspace.comparisons": "Route comparisons",
+    "workspace.exclusions": "Excluded edges",
+    "workspace.notes": "Notes",
+    "workspace.journal": "Recent actions",
+    "workspace.empty": "The workspace is empty. Select an edge to begin a bounded investigation.",
+    "workspace.compareReady": "Comparison ready",
     "state.loading": "loading",
     "state.none": "none",
     "caption.view": "View",
@@ -505,6 +531,26 @@ const uiText: Record<Language, Record<string, string>> = {
     "detail.contextRelations": "Контекстные связи",
     "detail.coverage": "Полнота",
     "detail.notAdjudicated": "Эти графовые связи — маршруты для проверки, а не рассмотренное контрсвидетельство.",
+    "workspace.title": "Исследовательская область",
+    "workspace.localOnly": "Только локальная сессия · не источник · не review · не канон",
+    "workspace.hypothesisPlaceholder": "Сформулируйте рабочую интерпретацию",
+    "workspace.predicatePlaceholder": "Название отношения (необязательно)",
+    "workspace.addHypothesis": "Добавить гипотезу",
+    "workspace.excludeEdge": "Исключить выбранное ребро",
+    "workspace.saveRoute": "Сохранить маршрут для сравнения",
+    "workspace.notePlaceholder": "Добавить исследовательскую заметку",
+    "workspace.addNote": "Добавить заметку",
+    "workspace.undo": "Отменить",
+    "workspace.redo": "Повторить",
+    "workspace.export": "Экспорт сессии",
+    "workspace.import": "Импорт сессии",
+    "workspace.hypotheses": "Гипотезы сессии",
+    "workspace.comparisons": "Сравнение маршрутов",
+    "workspace.exclusions": "Исключённые рёбра",
+    "workspace.notes": "Заметки",
+    "workspace.journal": "Последние действия",
+    "workspace.empty": "Область пуста. Выберите ребро, чтобы начать ограниченное исследование.",
+    "workspace.compareReady": "Можно сравнивать",
     "state.loading": "загрузка",
     "state.none": "нет",
     "caption.view": "Вид",
@@ -731,6 +777,19 @@ function readInitialRoute(): InitialRoute {
 }
 
 const initialRoute = readInitialRoute();
+
+function createBrowserResearchWorkspace() {
+  try {
+    return createResearchWorkspace({
+      sessionId: "tos-local-research",
+      persistence: createLocalStoragePersistence(window.localStorage, "tos-research-workspace-v1"),
+    });
+  } catch {
+    return createResearchWorkspace({ sessionId: "tos-local-research", persistence: false });
+  }
+}
+
+const researchWorkspace = createBrowserResearchWorkspace();
 
 function initialLanguage(): Language {
   if (initialRoute.language) return initialRoute.language;
@@ -1254,6 +1313,8 @@ function endpointLabel(id: unknown): string {
 }
 
 function relationAllowed(item: AnyItem): boolean {
+  const edgeId = text(item.edge_id);
+  if (edgeId && researchWorkspace.getState().excludedEdgeIds.includes(edgeId)) return false;
   if (state.mode === "corpus") return true;
   return isPublicAtlasItem(item) && layerAllowed(item) && predicateAllowed(item);
 }
@@ -1328,6 +1389,7 @@ function colorFor(item: AnyItem, index: number): string {
 }
 
 function edgeColorFor(item: AnyItem): string {
+  if (item.session_hypothesis === true) return "rgba(222,118,255,0.95)";
   const predicate = text(item.predicate_id || item.primary_predicate || "");
   const layers = itemLayers(item).join(" ");
   const signal = `${predicate} ${layers}`;
@@ -1339,6 +1401,7 @@ function edgeColorFor(item: AnyItem): string {
 }
 
 function relationWeight(item: AnyItem): number {
+  if (item.session_hypothesis === true) return 3.2;
   const count = Number(item.relation_count || item.member_count || item.count || 1);
   if (!Number.isFinite(count) || count <= 1) return 1.05;
   return Math.min(5.2, 1.05 + Math.log2(count + 1) * 0.52);
@@ -1397,6 +1460,14 @@ function renderShell(): void {
               </div>
             </details>
           </div>
+          <details id="research-workspace-panel" class="research-workspace-panel">
+            <summary>
+              <span>${t("workspace.title")}</span>
+              <small id="research-workspace-summary"></small>
+            </summary>
+            <div id="research-workspace-body" class="research-workspace-body"></div>
+          </details>
+          <input id="research-workspace-import" type="file" accept="application/json,.json" hidden />
           <button id="inspector-open" class="inspector-open-button" type="button">${t("inspector.open")} <span>↗</span></button>
           <div id="graph-empty" class="graph-empty" hidden>${t("empty.graph")}</div>
           <div id="graph-caption" class="graph-caption"></div>
@@ -1456,6 +1527,15 @@ function bindShellEvents(): void {
   });
   graphContainer?.addEventListener("pointerleave", hideNodeTooltip);
   graphContainer?.addEventListener("wheel", hideNodeTooltip, { passive: true });
+  (byId("research-workspace-import") as HTMLInputElement).addEventListener("change", (event) => {
+    const input = event.currentTarget as HTMLInputElement;
+    const file = input.files?.[0];
+    if (!file) return;
+    void file.text()
+      .then((packet) => pageCommands.invoke("tos.page.workspace-import", { packet }))
+      .catch((error: unknown) => showPageCommandError("tos.page.workspace-import", error))
+      .finally(() => { input.value = ""; });
+  });
 }
 
 function byId(id: string): HTMLElement {
@@ -1467,12 +1547,16 @@ function byId(id: string): HTMLElement {
 function invokePageCommandFromUi(commandId: PageCommandId, input: PageCommandInput = {}): void {
   void pageCommands.invoke(commandId, input).catch((error: unknown) => {
     if (isPageCommandCancellation(error)) return;
-    console.error(`Tree of Sophia page command failed: ${commandId}`, error);
-    const title = document.getElementById("inspector-title");
-    const meta = document.getElementById("inspector-meta");
-    if (title) title.textContent = t("load.failed");
-    if (meta) meta.innerHTML = `<span class="danger">${text(error)}</span>`;
+    showPageCommandError(commandId, error);
   });
+}
+
+function showPageCommandError(commandId: PageCommandId, error: unknown): void {
+  console.error(`Tree of Sophia page command failed: ${commandId}`, error);
+  const title = document.getElementById("inspector-title");
+  const meta = document.getElementById("inspector-meta");
+  if (title) title.textContent = t("load.failed");
+  if (meta) meta.innerHTML = `<span class="danger">${escapeHtml(text(error))}</span>`;
 }
 
 function setActive(id: string, active: boolean): void {
@@ -1747,6 +1831,9 @@ function renderInspector(): void {
     const source = unwrapItem(state.selected);
     const epistemicItemId = text(source.node_id || source.edge_id || "");
     const narrative = itemNarrative(source);
+    if (source.session_hypothesis === true) {
+      cards.push(`<div class="detail-card workspace-hypothesis-card"><span class="detail-title">${t("workspace.hypotheses")}</span><span class="detail-body">${escapeHtml(t("workspace.localOnly"))}</span></div>`);
+    }
     if (narrative && !(source.from_id && source.to_id)) {
       cards.push(`<div class="detail-card lead-card"><span class="detail-title">${t("detail.overview")}</span><span class="detail-body">${escapeHtml(narrative)}</span></div>`);
     }
@@ -1765,14 +1852,16 @@ function renderInspector(): void {
       source.from_id &&
       source.to_id &&
       source.edge_id &&
-      !isAggregateRelation(source)
+      !isAggregateRelation(source) &&
+      source.session_hypothesis !== true
     ) {
       cards.push(`<div class="route-actions"><button id="reroute-without-edge-button" type="button">${t("route.rerouteWithoutEdge")}</button></div>`);
     }
     if (
       (state.mode === "philosophy" || (state.mode === "corpus" && state.currentViewId === "route-graph")) &&
       epistemicItemId &&
-      !isAggregateRelation(source)
+      !isAggregateRelation(source) &&
+      source.session_hypothesis !== true
     ) {
       cards.push(`<div class="route-actions"><button id="epistemic-button" type="button">${t("route.inspectEpistemic")}</button></div>`);
       cards.push(...epistemicCards(epistemicItemId));
@@ -2243,6 +2332,8 @@ function renderGraph(): void {
   else if (state.graphMode === "clusters") buildClusterGraph();
   else buildNodeGraph();
 
+  addResearchHypothesisOverlays();
+
   if (graph.order === 0) {
     setGraphEmpty(true, t("empty.filters"));
     return;
@@ -2310,6 +2401,9 @@ function renderSigmaGraph(): void {
       return { ...data, label: "", color: "rgba(146, 164, 169, 0.3)", zIndex: 0 };
     },
     edgeReducer: (edge, data) => {
+      if (data.sessionHypothesis === true) {
+        return { ...data, size: Math.max(Number(data.size || 1), 3.2), color: "rgba(229,136,255,0.96)", zIndex: 220 };
+      }
       if (!focus) {
         if (graphSize > 600) {
           return { ...data, size: Math.min(Number(data.size || 1), 0.42), color: "rgba(130, 166, 177, 0.075)", zIndex: 0 };
@@ -2771,7 +2865,7 @@ function buildCorpusGraph(): void {
   const payload = state.currentView as CorpusViewPayload;
   const items = (payload.items || []).filter(isPublicAtlasItem).slice(0, corpusItemLimit());
   const coreNodes = (payload.nodes || []).filter((node) => Boolean(node.node_id));
-  const coreEdges = (payload.edges || []).filter((edge) => Boolean(edge.from_id && edge.to_id));
+  const coreEdges = (payload.edges || []).filter((edge) => Boolean(edge.from_id && edge.to_id)).filter(relationAllowed);
   if (coreNodes.length && coreEdges.length) {
     coreNodes.forEach((node, index) => addGraphNode(node.node_id, node, index, node.node_type === "corpus-root" ? 10 : 5));
     coreEdges.forEach((edge, index) => addGraphEdge(edge.edge_id || `corpus-relation:${index}`, edge.from_id, edge.to_id, edge));
@@ -2780,7 +2874,7 @@ function buildCorpusGraph(): void {
     state.relationItems = coreEdges;
     return;
   }
-  const relations = items.filter((item) => Boolean(item.from_id && item.to_id));
+  const relations = items.filter((item) => Boolean(item.from_id && item.to_id)).filter(relationAllowed);
   const resources = items.filter((item) => !(item.from_id && item.to_id));
   const projectedNodes = new Map(
     (payload.nodes || []).filter((node) => node.node_id).map((node) => [node.node_id, node]),
@@ -2845,6 +2939,29 @@ function addGraphEdge(id: string, from: string, to: string, item: AnyItem): void
     size: relationWeight(item),
     color: edgeColorFor(item),
     label: humanKind(predicateId(item)),
+    sessionHypothesis: item.session_hypothesis === true,
+  });
+}
+
+function addResearchHypothesisOverlays(): void {
+  researchWorkspace.getState().hypotheses.forEach((hypothesis) => {
+    if (!hypothesis.fromId || !hypothesis.toId) return;
+    const payload: AnyItem = {
+      edge_id: hypothesis.id,
+      from_id: hypothesis.fromId,
+      to_id: hypothesis.toId,
+      predicate_id: hypothesis.predicateLabel || "session_hypothesis",
+      label: hypothesis.title,
+      title: hypothesis.title,
+      summary: hypothesis.body,
+      session_hypothesis: true,
+      source: false,
+      reviewed: false,
+      canon: false,
+      authority_layer: "session-hypothesis",
+      graph_layers: ["session-hypothesis"],
+    };
+    addGraphEdge(hypothesis.id, hypothesis.fromId, hypothesis.toId, payload);
   });
 }
 
@@ -3504,6 +3621,107 @@ function assertPhilosophyRouteAvailable(): void {
   }
 }
 
+function researchId(prefix: "hypothesis" | "route" | "note"): string {
+  const suffix = typeof crypto.randomUUID === "function"
+    ? crypto.randomUUID()
+    : `${Date.now()}-${Math.random().toString(36).slice(2, 12)}`;
+  return `${prefix}:${suffix}`;
+}
+
+function workspaceHypothesisCard(hypothesis: ResearchHypothesis): string {
+  const route = hypothesis.fromId && hypothesis.toId
+    ? `<small>${escapeHtml(endpointLabel(hypothesis.fromId) || hypothesis.fromId)} → ${escapeHtml(endpointLabel(hypothesis.toId) || hypothesis.toId)}</small>`
+    : "";
+  return `<article class="workspace-card workspace-hypothesis">
+    <strong>${escapeHtml(hypothesis.title)}</strong>
+    ${route}
+    <span>${escapeHtml(hypothesis.body)}</span>
+    <em>${escapeHtml(t("workspace.localOnly"))}</em>
+  </article>`;
+}
+
+function workspaceRouteCard(route: RouteSnapshot): string {
+  return `<article class="workspace-card">
+    <strong>${escapeHtml(route.label)}</strong>
+    <span>${escapeHtml(endpointLabel(route.fromId) || route.fromId)} → ${escapeHtml(endpointLabel(route.toId) || route.toId)}</span>
+    <small>${route.nodeIds.length} ${t("caption.nodes")} · ${route.edgeIds.length} ${t("caption.links")}</small>
+  </article>`;
+}
+
+async function exportResearchWorkspace(): Promise<void> {
+  const result = await pageCommands.invoke("tos.page.workspace-export");
+  const value = result.value as { filename?: unknown; packet?: unknown } | undefined;
+  const packet = typeof value?.packet === "string" ? value.packet : "";
+  if (!packet) throw new Error("research workspace export is empty");
+  const url = URL.createObjectURL(new Blob([`${packet}\n`], { type: "application/json" }));
+  const anchor = document.createElement("a");
+  anchor.href = url;
+  anchor.download = typeof value?.filename === "string" ? value.filename : "tos-research-workspace.v1.json";
+  anchor.click();
+  URL.revokeObjectURL(url);
+}
+
+function renderResearchWorkspace(): void {
+  const root = document.getElementById("research-workspace-body");
+  const summaryNode = document.getElementById("research-workspace-summary");
+  if (!root || !summaryNode) return;
+  const workspace = researchWorkspace.getState();
+  const summary = researchWorkspace.summary();
+  const selection = pageSelection();
+  const selectedEdge = selection?.kind === "edge" && selection.reroutable !== false && selection.from_id && selection.to_id
+    ? selection
+    : null;
+  summaryNode.textContent = `${summary.hypothesis_count}H · ${summary.comparison_count}R · ${summary.note_count}N`;
+  const hasContents = summary.hypothesis_count + summary.comparison_count + summary.excluded_edge_count + summary.note_count > 0;
+
+  root.innerHTML = `
+    <p class="workspace-posture">${escapeHtml(t("workspace.localOnly"))}</p>
+    ${selectedEdge ? `<div class="workspace-context">
+      <small>${escapeHtml(selectedEdge.label || selectedEdge.id)}</small>
+      <textarea id="workspace-hypothesis-input" maxlength="4000" placeholder="${escapeHtml(t("workspace.hypothesisPlaceholder"))}"></textarea>
+      <input id="workspace-predicate-input" type="text" maxlength="512" placeholder="${escapeHtml(t("workspace.predicatePlaceholder"))}" />
+      <div class="workspace-actions">
+        <button id="workspace-add-hypothesis" type="button">${t("workspace.addHypothesis")}</button>
+        <button id="workspace-exclude-edge" type="button">${t("workspace.excludeEdge")}</button>
+        <button id="workspace-save-route" type="button">${t("workspace.saveRoute")}</button>
+      </div>
+    </div>` : ""}
+    <div class="workspace-note-entry">
+      <textarea id="workspace-note-input" maxlength="4000" placeholder="${escapeHtml(t("workspace.notePlaceholder"))}"></textarea>
+      <button id="workspace-add-note" type="button">${t("workspace.addNote")}</button>
+    </div>
+    <div class="workspace-history-actions">
+      <button id="workspace-undo" type="button" ${summary.can_undo ? "" : "disabled"}>${t("workspace.undo")}</button>
+      <button id="workspace-redo" type="button" ${summary.can_redo ? "" : "disabled"}>${t("workspace.redo")}</button>
+      <button id="workspace-export" type="button">${t("workspace.export")}</button>
+      <button id="workspace-import-button" type="button">${t("workspace.import")}</button>
+    </div>
+    ${researchWorkspace.comparableRoutesReady() ? `<p class="workspace-ready">${t("workspace.compareReady")}</p>` : ""}
+    ${workspace.hypotheses.length ? `<section><h3>${t("workspace.hypotheses")}</h3>${workspace.hypotheses.map(workspaceHypothesisCard).join("")}</section>` : ""}
+    ${workspace.routeSnapshots.length ? `<section><h3>${t("workspace.comparisons")}</h3>${workspace.routeSnapshots.map(workspaceRouteCard).join("")}</section>` : ""}
+    ${workspace.excludedEdgeIds.length ? `<section><h3>${t("workspace.exclusions")}</h3><div class="workspace-tags">${workspace.excludedEdgeIds.map((id) => `<code>${escapeHtml(id)}</code>`).join("")}</div></section>` : ""}
+    ${workspace.notes.length ? `<section><h3>${t("workspace.notes")}</h3>${workspace.notes.map((note) => `<article class="workspace-card"><span>${escapeHtml(note.body)}</span>${note.targetId ? `<small>${escapeHtml(note.targetId)}</small>` : ""}</article>`).join("")}</section>` : ""}
+    ${workspace.journal.length ? `<section><h3>${t("workspace.journal")}</h3><ol class="workspace-journal">${workspace.journal.slice(-8).reverse().map((entry) => `<li><span>${escapeHtml(humanKind(entry.action))}</span>${entry.targetId ? `<code>${escapeHtml(entry.targetId)}</code>` : ""}</li>`).join("")}</ol></section>` : ""}
+    ${hasContents ? "" : `<p class="workspace-empty">${t("workspace.empty")}</p>`}
+  `;
+
+  document.getElementById("workspace-add-hypothesis")?.addEventListener("click", () => {
+    const statement = (document.getElementById("workspace-hypothesis-input") as HTMLTextAreaElement | null)?.value || "";
+    const predicateLabel = (document.getElementById("workspace-predicate-input") as HTMLInputElement | null)?.value || "";
+    invokePageCommandFromUi("tos.page.add-session-hypothesis", { statement, predicate_label: predicateLabel });
+  });
+  document.getElementById("workspace-exclude-edge")?.addEventListener("click", () => invokePageCommandFromUi("tos.page.exclude-selected-edge"));
+  document.getElementById("workspace-save-route")?.addEventListener("click", () => invokePageCommandFromUi("tos.page.save-route-comparison"));
+  document.getElementById("workspace-add-note")?.addEventListener("click", () => {
+    const note = (document.getElementById("workspace-note-input") as HTMLTextAreaElement | null)?.value || "";
+    invokePageCommandFromUi("tos.page.add-research-note", { text: note });
+  });
+  document.getElementById("workspace-undo")?.addEventListener("click", () => invokePageCommandFromUi("tos.page.workspace-undo"));
+  document.getElementById("workspace-redo")?.addEventListener("click", () => invokePageCommandFromUi("tos.page.workspace-redo"));
+  document.getElementById("workspace-export")?.addEventListener("click", () => void exportResearchWorkspace().catch((error: unknown) => showPageCommandError("tos.page.workspace-export", error)));
+  document.getElementById("workspace-import-button")?.addEventListener("click", () => (byId("research-workspace-import") as HTMLInputElement).click());
+}
+
 function renderAll(): void {
   renderChips();
   renderMetrics();
@@ -3513,6 +3731,7 @@ function renderAll(): void {
   renderScaleExportControls();
   renderGraph();
   renderInspector();
+  renderResearchWorkspace();
 }
 
 async function copyScaleExportUrl(table?: ScaleExportTable, format?: "csv" | "jsonl"): Promise<void> {
@@ -3739,7 +3958,7 @@ function pageSelection(): PageSelection | null {
     label: displayTitle(item),
     ...(item.from_id ? { from_id: text(item.from_id) } : {}),
     ...(item.to_id ? { to_id: text(item.to_id) } : {}),
-    ...(kind === "edge" ? { reroutable: !isAggregateRelation(item) } : {}),
+    ...(kind === "edge" ? { reroutable: !isAggregateRelation(item) && item.session_hypothesis !== true } : {}),
   };
 }
 
@@ -3753,6 +3972,7 @@ function pageContextSnapshot(): PageContextSnapshot {
     active_layers: [...state.activeLayers].sort(),
     active_predicates: [...state.activePredicates].sort(),
     deep_link: window.location.href,
+    research_workspace: researchWorkspace.summary(),
   };
 }
 
@@ -3773,6 +3993,40 @@ function commandDirection(input: Record<string, unknown>): "outgoing" | "incomin
 
 function selectedNodeId(): string {
   return state.selected ? selectedNodeIdFor(state.selected) : "";
+}
+
+function workspaceExcludedEdgeIds(extra: string[] = []): string[] {
+  return [...new Set([...researchWorkspace.getState().excludedEdgeIds, ...extra].filter(Boolean))];
+}
+
+function refreshResearchSurfaces(): void {
+  renderGraph();
+  renderInspector();
+  renderResearchWorkspace();
+}
+
+function currentRouteSnapshot(label: string): RouteSnapshot {
+  const selected = pageSelection();
+  const path = state.pathPacket?.found
+    ? state.pathPacket.paths?.[0] || {
+        node_ids: stringList(state.pathPacket.nodes?.map((node) => node.node_id)),
+        edge_ids: stringList(state.pathPacket.edges?.map((edge) => edge.edge_id)),
+      }
+    : null;
+  const fromId = text(state.pathPacket?.from_id || selected?.from_id);
+  const toId = text(state.pathPacket?.to_id || selected?.to_id);
+  if (!fromId || !toId) throw new Error("select an edge or show a path before saving a route comparison");
+  const nodeIds = path ? stringList(path.node_ids) : [fromId, toId];
+  const edgeIds = path ? stringList(path.edge_ids) : selected?.kind === "edge" ? [selected.id] : [];
+  if (!nodeIds.length) throw new Error("the visible route has no nodes to save");
+  return {
+    id: researchId("route"),
+    label,
+    fromId,
+    toId,
+    nodeIds,
+    edgeIds,
+  };
 }
 
 const pageCommands = createPageCommandRegistry(pageContextSnapshot, {
@@ -3817,7 +4071,7 @@ const pageCommands = createPageCommandRegistry(pageContextSnapshot, {
       direction: commandDirection(input),
       maxDepth: commandInteger(input, "max_depth", 6, 1, 8),
       alternativeLimit: commandInteger(input, "alternative_limit", 1, 1, 5),
-      excludedEdgeIds: stringList(input.excluded_edge_ids),
+      excludedEdgeIds: workspaceExcludedEdgeIds(stringList(input.excluded_edge_ids)),
       viewId: constrainToView && state.mode === "philosophy" ? state.currentViewId : undefined,
       signal: execution.signal,
     });
@@ -3838,18 +4092,104 @@ const pageCommands = createPageCommandRegistry(pageContextSnapshot, {
       direction: commandDirection(input),
       maxDepth: commandInteger(input, "max_depth", 6, 1, 8),
       alternativeLimit: commandInteger(input, "alternative_limit", 3, 1, 5),
-      excludedEdgeIds: [selected.id],
+      excludedEdgeIds: workspaceExcludedEdgeIds([selected.id]),
       viewId: constrainToView && state.mode === "philosophy" ? state.currentViewId : undefined,
       signal: execution.signal,
     });
   },
   "tos.page.inspect-epistemic": async (input, execution) => {
     const itemIdValue = commandString(input, "item_id", pageSelection()?.id || "");
-    return showEpistemic(
+    const result = await showEpistemic(
       itemIdValue,
       commandInteger(input, "limit", 80, 1, 200),
       execution.signal,
     );
+    const selected = pageSelection();
+    if (selected && researchWorkspace.getState().selectedLens?.id !== selected.id) {
+      researchWorkspace.selectLens({ id: selected.id, kind: selected.kind, ...(selected.label ? { label: selected.label } : {}) });
+    }
+    renderResearchWorkspace();
+    return result;
+  },
+  "tos.page.research-workspace": () => ({
+    packet: JSON.parse(researchWorkspace.exportPacket()) as Record<string, unknown>,
+    local_only: true,
+    authority: { source: false, reviewed: false, canon: false },
+  }),
+  "tos.page.add-research-note": (input) => {
+    const body = commandString(input, "text");
+    if (!body) throw new Error("text is required");
+    const selected = pageSelection();
+    researchWorkspace.addNote({
+      id: researchId("note"),
+      body,
+      ...(selected ? { targetId: selected.id } : {}),
+    });
+    renderResearchWorkspace();
+    return { added: true, summary: researchWorkspace.summary() };
+  },
+  "tos.page.add-session-hypothesis": (input) => {
+    const selected = pageSelection();
+    if (!selected || selected.kind !== "edge" || selected.reroutable === false || !selected.from_id || !selected.to_id) {
+      throw new Error("select a non-aggregate source edge before adding a session hypothesis");
+    }
+    const statement = commandString(input, "statement");
+    if (!statement) throw new Error("statement is required");
+    const predicateLabel = commandString(input, "predicate_label", "session hypothesis");
+    const hypothesis = researchWorkspace.addHypothesis({
+      id: researchId("hypothesis"),
+      title: predicateLabel || "session hypothesis",
+      body: statement,
+      targetId: selected.id,
+      fromId: selected.from_id,
+      toId: selected.to_id,
+      ...(predicateLabel ? { predicateLabel } : {}),
+    });
+    refreshResearchSurfaces();
+    return {
+      hypothesis,
+      summary: researchWorkspace.summary(),
+      authority: { session_hypothesis: true, source: false, reviewed: false, canon: false },
+    };
+  },
+  "tos.page.exclude-selected-edge": () => {
+    const selected = pageSelection();
+    if (!selected || selected.kind !== "edge" || selected.reroutable === false) {
+      throw new Error("select a non-aggregate source edge before excluding it");
+    }
+    researchWorkspace.excludeEdge(selected.id);
+    refreshResearchSurfaces();
+    return { excluded_edge_id: selected.id, summary: researchWorkspace.summary() };
+  },
+  "tos.page.save-route-comparison": (input) => {
+    const nextNumber = researchWorkspace.getState().routeSnapshots.length + 1;
+    const label = commandString(input, "label", `Route ${nextNumber}`);
+    const route = currentRouteSnapshot(label);
+    researchWorkspace.saveRouteSnapshot(route);
+    renderResearchWorkspace();
+    return { route, comparison_ready: researchWorkspace.comparableRoutesReady(), summary: researchWorkspace.summary() };
+  },
+  "tos.page.workspace-undo": () => {
+    const changed = researchWorkspace.undo();
+    refreshResearchSurfaces();
+    return { changed, summary: researchWorkspace.summary() };
+  },
+  "tos.page.workspace-redo": () => {
+    const changed = researchWorkspace.redo();
+    refreshResearchSurfaces();
+    return { changed, summary: researchWorkspace.summary() };
+  },
+  "tos.page.workspace-export": () => ({
+    filename: "tos-research-workspace.v1.json",
+    packet: researchWorkspace.exportPacket(),
+    local_only: true,
+  }),
+  "tos.page.workspace-import": (input) => {
+    const packet = commandString(input, "packet");
+    if (!packet) throw new Error("packet is required");
+    researchWorkspace.importPacket(packet);
+    refreshResearchSurfaces();
+    return { imported: true, summary: researchWorkspace.summary() };
   },
   "tos.page.clear-focus": () => {
     clearFocus();

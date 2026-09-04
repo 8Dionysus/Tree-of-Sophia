@@ -48,6 +48,9 @@ run `tos verify --profile standalone`, `tos serve`, or `tos mcp`.
   result and its compact WebMCP `agent_summary`.
 - `contracts/page-commands.v1.json` owns revisioned browser context and shared
   human/WebMCP actuation.
+- `contracts/research-workspace.v1.schema.json` defines the portable local
+  session packet for hypotheses, exclusions, route comparisons, notes, and its
+  action journal.
 - `contracts/web-actions.v1.json` is retained only as the v1 migration marker.
 - `profiles/standalone.v1.json` is the required no-AbyssOS profile.
 - `profiles/abyssos.v1.json` declares optional ecosystem adapters; the profile
@@ -81,6 +84,16 @@ characters with posture, bounded conclusion, route counts, gaps, and next
 actions. Projected `contested_by`, `uncertain_relation`, and
 `polemicizes_with` relations remain review leads rather than adjudicated
 counterevidence.
+
+The local research workspace lets the human and agent work on the same
+temporary investigation: exclude a relation, save the direct and alternative
+routes, add notes, or draw a working hypothesis as a visibly distinct edge.
+Every hypothesis is structurally fixed as `session_hypothesis: true`,
+`source: false`, `reviewed: false`, and `canon: false`. Undo/redo, browser-local
+persistence, and a validated JSON export/import packet are supported. None of
+these actions writes to candidate intake, review ledgers, authored ToS source,
+or canon; any future proposal/writeback flow requires a separate explicit
+contract and user confirmation.
 
 The implementation follows the WebMCP Community Group draft shape current at
 `webmachinelearning/webmcp@41d12f057167ccf5954dbcf49d99502cb6c84491`:

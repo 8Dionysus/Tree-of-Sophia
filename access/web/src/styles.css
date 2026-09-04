@@ -1125,6 +1125,114 @@ pre {
 .map-settings-panel .muted,
 .map-settings-panel small { color: rgba(205, 219, 224, 0.56); }
 
+.research-workspace-panel {
+  position: absolute;
+  z-index: 10;
+  left: 22px;
+  bottom: 46px;
+  width: min(390px, calc(100% - 44px));
+  border: 1px solid rgba(183, 132, 221, 0.3);
+  border-radius: 18px;
+  background: rgba(5, 11, 20, 0.84);
+  box-shadow: 0 20px 54px rgba(0, 0, 0, 0.34);
+  color: #e6e9ee;
+  backdrop-filter: blur(22px);
+}
+
+.research-workspace-panel > summary {
+  display: flex;
+  min-height: 42px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 14px;
+  cursor: pointer;
+  color: #eee7f3;
+  font-size: 10px;
+  font-weight: 720;
+  letter-spacing: 0.11em;
+  list-style: none;
+  text-transform: uppercase;
+}
+
+.research-workspace-panel > summary::-webkit-details-marker { display: none; }
+.research-workspace-panel > summary small { color: rgba(219, 177, 241, 0.72); font-size: 9px; letter-spacing: 0.05em; }
+.research-workspace-panel[open] { background: rgba(5, 11, 20, 0.96); }
+.research-workspace-panel[open] > summary { border-bottom: 1px solid rgba(183, 132, 221, 0.18); }
+
+.research-workspace-body {
+  display: grid;
+  max-height: min(62vh, 620px);
+  gap: 12px;
+  padding: 14px;
+  overflow: auto;
+}
+
+.workspace-posture,
+.workspace-empty,
+.workspace-ready { margin: 0; font-size: 10px; line-height: 1.45; }
+.workspace-posture { color: #dbadf0; }
+.workspace-empty { color: rgba(206, 218, 224, 0.58); }
+.workspace-ready { border-left: 2px solid #68bda9; padding-left: 8px; color: #9ed6c7; }
+
+.workspace-context,
+.workspace-note-entry,
+.research-workspace-body section { display: grid; gap: 8px; }
+.workspace-context > small { color: rgba(216, 226, 230, 0.68); overflow-wrap: anywhere; }
+.research-workspace-body textarea,
+.research-workspace-body input[type="text"] {
+  width: 100%;
+  border: 1px solid rgba(157, 190, 202, 0.18);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.045);
+  padding: 9px 10px;
+  color: #e5edf0;
+  font: inherit;
+  outline: none;
+}
+.research-workspace-body textarea { min-height: 64px; resize: vertical; }
+.research-workspace-body textarea:focus,
+.research-workspace-body input[type="text"]:focus { border-color: rgba(220, 145, 250, 0.62); }
+
+.workspace-actions,
+.workspace-history-actions { display: flex; flex-wrap: wrap; gap: 6px; }
+.research-workspace-body button {
+  min-height: 30px;
+  border: 1px solid rgba(157, 190, 202, 0.18);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.05);
+  padding: 6px 10px;
+  color: rgba(226, 235, 238, 0.8);
+  font-size: 9px;
+}
+.research-workspace-body button:hover:not(:disabled) { border-color: rgba(220, 145, 250, 0.62); color: #fff; }
+.research-workspace-body button:disabled { opacity: 0.34; }
+.research-workspace-body h3 { margin: 2px 0 0; color: #bca3c9; font-size: 9px; letter-spacing: 0.13em; text-transform: uppercase; }
+
+.workspace-card {
+  display: grid;
+  gap: 4px;
+  border: 1px solid rgba(157, 190, 202, 0.12);
+  border-radius: 11px;
+  background: rgba(255, 255, 255, 0.035);
+  padding: 9px 10px;
+  overflow-wrap: anywhere;
+}
+.workspace-card strong { color: #f0eaf3; font-family: Georgia, "Times New Roman", serif; font-size: 12px; font-weight: 400; }
+.workspace-card span { color: rgba(225, 232, 235, 0.76); font-size: 10px; line-height: 1.45; }
+.workspace-card small { color: rgba(195, 209, 214, 0.52); font-size: 9px; }
+.workspace-card em { color: #ce9fe5; font-size: 8px; font-style: normal; letter-spacing: 0.04em; }
+.workspace-hypothesis { border-color: rgba(222, 118, 255, 0.34); }
+.workspace-hypothesis-card { border-color: rgba(188, 103, 220, 0.34) !important; background: rgba(208, 120, 237, 0.08) !important; }
+
+.workspace-tags { display: flex; flex-wrap: wrap; gap: 5px; }
+.workspace-tags code,
+.workspace-journal code { color: rgba(220, 177, 240, 0.72); font-size: 8px; overflow-wrap: anywhere; }
+.workspace-tags code { border: 1px solid rgba(220, 145, 250, 0.2); border-radius: 999px; padding: 4px 7px; }
+.workspace-journal { display: grid; gap: 5px; margin: 0; padding: 0; list-style: none; }
+.workspace-journal li { display: grid; grid-template-columns: minmax(0, 0.7fr) minmax(0, 1fr); gap: 8px; font-size: 9px; }
+.workspace-journal span { color: rgba(213, 224, 228, 0.65); }
+
 .inspector-open-button {
   position: absolute;
   z-index: 7;
@@ -1300,6 +1408,8 @@ pre {
   .sky-intro { width: calc(100% - 48px); }
   .sky-intro p { max-width: 75%; }
   .graph-tools { top: 118px; }
+  .research-workspace-panel { right: 14px; bottom: 52px; left: 14px; width: auto; }
+  .research-workspace-body { max-height: 48vh; }
   .reader-inspector { top: 76px; width: 100vw; }
 }
 

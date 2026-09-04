@@ -7,6 +7,19 @@ export type PageSelection = {
   reroutable?: boolean;
 };
 
+export type ResearchWorkspaceSummary = {
+  schema: "tos_research_workspace_summary_v1";
+  session_id: string;
+  revision: number;
+  hypothesis_count: number;
+  excluded_edge_count: number;
+  comparison_count: number;
+  note_count: number;
+  journal_count: number;
+  can_undo: boolean;
+  can_redo: boolean;
+};
+
 export type PageContextSnapshot = {
   mode: "philosophy" | "corpus";
   view_id: string;
@@ -16,6 +29,7 @@ export type PageContextSnapshot = {
   active_layers: string[];
   active_predicates: string[];
   deep_link: string;
+  research_workspace: ResearchWorkspaceSummary;
 };
 
 export type PageContext = PageContextSnapshot & {
@@ -34,17 +48,26 @@ export type PageCommandId =
   | "tos.page.find-path"
   | "tos.page.reroute-without-selection"
   | "tos.page.inspect-epistemic"
+  | "tos.page.research-workspace"
+  | "tos.page.add-research-note"
+  | "tos.page.add-session-hypothesis"
+  | "tos.page.exclude-selected-edge"
+  | "tos.page.save-route-comparison"
+  | "tos.page.workspace-undo"
+  | "tos.page.workspace-redo"
+  | "tos.page.workspace-export"
+  | "tos.page.workspace-import"
   | "tos.page.clear-focus"
   | "tos.page.cancel";
 
-export type StatefulPageCommandId = Exclude<PageCommandId, "tos.page.context" | "tos.page.cancel">;
+export type HandledPageCommandId = Exclude<PageCommandId, "tos.page.context" | "tos.page.cancel">;
 export type PageCommandInput = Record<string, unknown> & { context_revision?: number };
 export type PageCommandExecution = { signal: AbortSignal };
 export type PageCommandHandler = (
   input: PageCommandInput,
   execution: PageCommandExecution,
 ) => Promise<unknown> | unknown;
-export type PageCommandHandlers = Record<StatefulPageCommandId, PageCommandHandler>;
+export type PageCommandHandlers = Record<HandledPageCommandId, PageCommandHandler>;
 export type PageContextListener = (context: PageContext) => void;
 
 export class StalePageContextError extends Error {
@@ -82,6 +105,10 @@ export function createPageCommandRegistry(
   let revision = 0;
   const listeners = new Set<PageContextListener>();
   const pending = new Map<string, AbortController>();
+  const readOnlyCommands = new Set<PageCommandId>([
+    "tos.page.research-workspace",
+    "tos.page.workspace-export",
+  ]);
 
   const context = (): PageContext => ({
     schema: "tos_page_context_v1",
@@ -128,6 +155,18 @@ export function createPageCommandRegistry(
         context: context(),
       };
     }
+    if (readOnlyCommands.has(commandId)) {
+      const value = await handlers[commandId as HandledPageCommandId](input, {
+        signal: options.signal || new AbortController().signal,
+      });
+      return {
+        schema: "tos_page_command_result_v1",
+        command_id: commandId,
+        context_revision: revision,
+        context: context(),
+        value,
+      };
+    }
 
     cancel();
     const controller = new AbortController();
@@ -137,7 +176,7 @@ export function createPageCommandRegistry(
     pending.set(commandId, controller);
 
     try {
-      const value = await handlers[commandId](input, { signal: controller.signal });
+      const value = await handlers[commandId as HandledPageCommandId](input, { signal: controller.signal });
       controller.signal.throwIfAborted();
       if (expectedRevision !== undefined && expectedRevision !== revision) {
         throw new StalePageContextError(expectedRevision, revision);

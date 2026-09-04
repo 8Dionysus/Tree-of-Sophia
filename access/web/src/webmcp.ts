@@ -65,6 +65,78 @@ function compactEvidenceResult(result: Record<string, unknown>): unknown {
   };
 }
 
+function clipped(value: unknown, maximum = 96): string {
+  const output = typeof value === "string" ? value : "";
+  return output.length > maximum ? `${output.slice(0, maximum - 1)}…` : output;
+}
+
+function compactPathResult(result: Record<string, unknown>): unknown {
+  const value = result.value as Record<string, unknown> | undefined;
+  if (!value) return result;
+  const paths = Array.isArray(value.paths) ? value.paths as Array<Record<string, unknown>> : [];
+  const first = paths[0] || {};
+  const nodeIds = Array.isArray(first.node_ids) ? first.node_ids.map((id) => clipped(id)).slice(0, 10) : [];
+  const edgeIds = Array.isArray(first.edge_ids) ? first.edge_ids : [];
+  const context = result.context as Record<string, unknown> | undefined;
+  return {
+    finding: value.found ? "alternative route found and shown on the page" : "no route found within the requested bounds",
+    found: value.found === true,
+    from_id: clipped(value.from_id),
+    to_id: clipped(value.to_id),
+    route_count: Number(value.path_count || paths.length || 0),
+    first_route_node_ids: nodeIds,
+    first_route_edge_count: edgeIds.length,
+    excluded_edge_count: Array.isArray(value.excluded_edge_ids) ? value.excluded_edge_ids.length : 0,
+    page_updated: true,
+    context_revision: result.context_revision,
+    deep_link: context?.deep_link,
+    next_actions: value.found ? ["save the route for comparison", "inspect its uncertain edges"] : ["widen the route bounds", "restore an excluded edge"],
+  };
+}
+
+function compactWorkspaceMutation(result: Record<string, unknown>): unknown {
+  const value = result.value as Record<string, unknown> | undefined;
+  const context = result.context as Record<string, unknown> | undefined;
+  const summary = value?.summary || context?.research_workspace;
+  const hypothesis = value?.hypothesis as Record<string, unknown> | undefined;
+  const route = value?.route as Record<string, unknown> | undefined;
+  return {
+    changed: value?.changed ?? value?.added ?? value?.imported ?? true,
+    ...(value?.excluded_edge_id ? { excluded_edge_id: clipped(value.excluded_edge_id) } : {}),
+    ...(hypothesis ? { hypothesis: { id: clipped(hypothesis.id), title: clipped(hypothesis.title, 140), posture: hypothesis.posture } } : {}),
+    ...(route ? { route: { id: clipped(route.id), label: clipped(route.label, 140), node_count: Array.isArray(route.nodeIds) ? route.nodeIds.length : 0, edge_count: Array.isArray(route.edgeIds) ? route.edgeIds.length : 0 } } : {}),
+    comparison_ready: value?.comparison_ready,
+    research_workspace: summary,
+    local_only: true,
+    authority: { source: false, reviewed: false, canon: false },
+    page_updated: true,
+    context_revision: result.context_revision,
+    deep_link: context?.deep_link,
+  };
+}
+
+function compactWorkspaceRead(result: Record<string, unknown>): unknown {
+  const value = result.value as Record<string, unknown> | undefined;
+  const packet = value?.packet as Record<string, unknown> | undefined;
+  const context = result.context as Record<string, unknown> | undefined;
+  const hypotheses = Array.isArray(packet?.hypotheses) ? packet.hypotheses as Array<Record<string, unknown>> : [];
+  const routes = Array.isArray(packet?.route_snapshots) ? packet.route_snapshots as Array<Record<string, unknown>> : [];
+  const notes = Array.isArray(packet?.notes) ? packet.notes as Array<Record<string, unknown>> : [];
+  const journal = Array.isArray(packet?.journal) ? packet.journal as Array<Record<string, unknown>> : [];
+  return {
+    research_workspace: context?.research_workspace,
+    selected_lens: packet?.selected_lens || null,
+    hypothesis_preview: hypotheses.slice(-1).map((item) => ({ id: clipped(item.id, 72), title: clipped(item.title, 80), body: clipped(item.body, 96), posture: item.posture })),
+    excluded_edge_ids: (Array.isArray(packet?.excluded_edge_ids) ? packet.excluded_edge_ids : []).slice(-3).map((id) => clipped(id, 72)),
+    route_preview: routes.slice(-2).map((item) => ({ label: clipped(item.label, 80), node_count: Array.isArray(item.node_ids) ? item.node_ids.length : 0, edge_count: Array.isArray(item.edge_ids) ? item.edge_ids.length : 0 })),
+    note_preview: notes.slice(-1).map((item) => ({ body: clipped(item.body, 96), target_id: clipped(item.target_id, 72) })),
+    recent_actions: journal.slice(-3).map((item) => ({ action: clipped(item.action, 48), target_id: clipped(item.target_id, 72) })),
+    local_only: true,
+    authority: { source: false, reviewed: false, canon: false },
+    context_revision: result.context_revision,
+  };
+}
+
 function stableTools(registry: PageCommandRegistry): WebMCPTool[] {
   return [
     commandTool(registry, "tos.page.context", {
@@ -74,6 +146,34 @@ function stableTools(registry: PageCommandRegistry): WebMCPTool[] {
       inputSchema: emptySchema,
       annotations: { readOnlyHint: true },
     }),
+    commandTool(registry, "tos.page.research-workspace", {
+      name: "tos.page.research-workspace",
+      title: "Read the local research workspace",
+      description: "Return session-local hypotheses, exclusions, saved route comparisons, notes, and undo state. Nothing here changes ToS source or canon.",
+      inputSchema: emptySchema,
+      annotations: { readOnlyHint: true, untrustedContentHint: true },
+    }, undefined, compactWorkspaceRead),
+    commandTool(registry, "tos.page.add-research-note", {
+      name: "tos.page.add-research-note",
+      title: "Add a local research note",
+      description: "Add a bounded note to this browser's research session without writing to Tree of Sophia sources, review, or canon.",
+      inputSchema: objectSchema({ text: { type: "string", minLength: 1, maxLength: 2000 } }, ["text"]),
+      annotations: { readOnlyHint: false, untrustedContentHint: true },
+    }, undefined, compactWorkspaceMutation),
+    commandTool(registry, "tos.page.workspace-undo", {
+      name: "tos.page.workspace-undo",
+      title: "Undo the last research edit",
+      description: "Undo one local research workspace change. This never changes Tree of Sophia source, review, or canon.",
+      inputSchema: emptySchema,
+      annotations: { readOnlyHint: false },
+    }, undefined, compactWorkspaceMutation),
+    commandTool(registry, "tos.page.workspace-redo", {
+      name: "tos.page.workspace-redo",
+      title: "Redo the last research edit",
+      description: "Redo one previously undone local research workspace change.",
+      inputSchema: emptySchema,
+      annotations: { readOnlyHint: false },
+    }, undefined, compactWorkspaceMutation),
     commandTool(registry, "tos.page.open-view", {
       name: "tos.page.open-view",
       title: "Open a Tree of Sophia view",
@@ -138,6 +238,39 @@ function dynamicTools(registry: PageCommandRegistry, context: PageContext): WebM
       }, context.revision, compactEvidenceResult),
     );
   }
+  if (
+    selected.kind === "edge" &&
+    selected.reroutable !== false &&
+    selected.from_id &&
+    selected.to_id
+  ) {
+    tools.push(
+      commandTool(registry, "tos.page.add-session-hypothesis", {
+        name: "tos.page.add-session-hypothesis",
+        title: "Add a hypothesis for this relation",
+        description: `Add a visibly non-canonical session hypothesis between ${selected.from_id} and ${selected.to_id}, anchored to selected edge ${selected.id}.`,
+        inputSchema: objectSchema({
+          statement: { type: "string", minLength: 1, maxLength: 1000 },
+          predicate_label: { type: "string", maxLength: 120 },
+        }, ["statement"]),
+        annotations: { readOnlyHint: false, untrustedContentHint: true },
+      }, context.revision, compactWorkspaceMutation),
+      commandTool(registry, "tos.page.exclude-selected-edge", {
+        name: "tos.page.exclude-selected-edge",
+        title: "Exclude this edge from the research view",
+        description: `Exclude selected edge ${selected.id} from this local session and record the exclusion in its journal.`,
+        inputSchema: emptySchema,
+        annotations: { readOnlyHint: false },
+      }, context.revision, compactWorkspaceMutation),
+      commandTool(registry, "tos.page.save-route-comparison", {
+        name: "tos.page.save-route-comparison",
+        title: "Save the current route for comparison",
+        description: "Save the visible direct relation or current alternative-path packet as a bounded local comparison snapshot.",
+        inputSchema: objectSchema({ label: { type: "string", maxLength: 120 } }),
+        annotations: { readOnlyHint: false, untrustedContentHint: true },
+      }, context.revision, compactWorkspaceMutation),
+    );
+  }
   if (context.mode !== "philosophy") return tools;
   if (context.active_layers.length === 0 || context.active_predicates.length === 0) return tools;
   if (selected.kind === "node") {
@@ -171,7 +304,7 @@ function dynamicTools(registry: PageCommandRegistry, context: PageContext): WebM
             constrain_to_view: { type: "boolean" },
           }),
           annotations: { readOnlyHint: false },
-        }, context.revision),
+        }, context.revision, compactPathResult),
       );
     }
   }
@@ -193,7 +326,7 @@ function dynamicTools(registry: PageCommandRegistry, context: PageContext): WebM
           constrain_to_view: { type: "boolean" },
         }),
         annotations: { readOnlyHint: false },
-      }, context.revision),
+      }, context.revision, compactPathResult),
     );
   }
   return tools;
