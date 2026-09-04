@@ -36,7 +36,7 @@
     "excluded_generated_carrier_rules": 3,
     "excluded_tracked_path_count": 515,
     "human_scope": {
-      "bytes": 4678959,
+      "bytes": 4680444,
       "count": 923,
       "excluded_skill_launch_metadata": 25,
       "family_counts": {
@@ -66,9 +66,9 @@
           "lines": 106
         },
         "github": {
-          "bytes": 6989,
+          "bytes": 8474,
           "count": 4,
-          "lines": 184
+          "lines": 233
         },
         "kag": {
           "bytes": 4478,
@@ -121,7 +121,7 @@
           "lines": 60060
         }
       },
-      "lines": 82387
+      "lines": 82436
     },
     "surface_kind_counts": {
       "executable": 184,
@@ -158,7 +158,7 @@
         "human": 5,
         "structured": 3
       },
-      "tracked_surface_bytes": 166573,
+      "tracked_surface_bytes": 166576,
       "tracked_surface_count": 8
     },
     {
@@ -166,7 +166,7 @@
       "surface_kind_counts": {
         "human": 4
       },
-      "tracked_surface_bytes": 6989,
+      "tracked_surface_bytes": 8474,
       "tracked_surface_count": 4
     },
     {
@@ -285,7 +285,7 @@
   "source_map": "docs/validation/documentation_family_map.json",
   "source_map_sha256": "d70a5059be9cc7547289e4c8be380d23b3aeb9e53bb10e4cb82abf2177ea0896",
   "tracked_source": "git ls-files -z",
-  "tracked_surface_digest": "a1014f85cbebbb69da35432d814365c9de3ce9164a8d3e940ca97ca87f8f44b3",
+  "tracked_surface_digest": "7a5b832bed231823c702fed5858200c032597415c227e2183bac3608cd9ffe2f",
   "tracked_surfaces": [
     {
       "bytes": 1489,
@@ -328,11 +328,11 @@
       "surface_kind": "structured"
     },
     {
-      "bytes": 86850,
+      "bytes": 86853,
       "currentness": "tracked_source_snapshot",
       "family_id": "agents-other",
       "path": ".agents/agents-route.current.json",
-      "sha256": "cf9ad49157b0d1dc54039839e33f3291abce18c48f86e1a2db7b9536dbc59634",
+      "sha256": "9fef8061ff0fc21a56d8c12e353e3bee05c9a5a7556348d7a207b93134b3d578",
       "surface_kind": "structured"
     },
     {
@@ -1656,11 +1656,11 @@
       "surface_kind": "human"
     },
     {
-      "bytes": 3000,
+      "bytes": 4485,
       "currentness": "tracked_source_snapshot",
       "family_id": "github",
       "path": ".github/workflows/repo-validation.yml",
-      "sha256": "131c71f404c292b79fe05a5b466f1d969929f268c644bcafea6ed690ec0526e0",
+      "sha256": "11125b99e0ddf31b85b8a1937778fa9c5e7e3c798b09604799ae339cd3e71e81",
       "surface_kind": "human"
     },
     {
