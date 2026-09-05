@@ -13,6 +13,9 @@ export type PageSelection = {
   review_posture?: string;
   confidence?: string;
   reroutable?: boolean;
+  path_available?: boolean;
+  /** A shell may bind evidence independently from path routing. */
+  evidence_available?: boolean;
 };
 
 export type ResearchWorkspaceSummary = {

@@ -302,8 +302,12 @@ before a full-corpus pass and account for SQLite metadata beyond payload limits.
 --client-module /absolute/ui/src/observatory/knowledge-client.mjs` measures local
 catalog/search/focus, then runs the supplied actual UI client against a temporary
 loopback HTTP server. It checks focus/search/inspection/relation selection and
-the HTML/CSP response, closing its server afterward. It also measures inspection
-and bounded exploration/continuation. Use `--report /absolute/scratch/query.jsonl`
+the HTML/CSP response, closing its server afterward. The supplied UI source must
+also contain the sibling navigation/evidence modules and query operations;
+Node's TypeScript stripping executes those same adapters. The check follows up
+to four exploration pages, binds a source-owned contested relation to its
+evidence and path, and verifies exclusion of that relation. It also measures
+inspection and bounded exploration/continuation. Use `--report /absolute/scratch/query.jsonl`
 to retain the timings and exact client/HTML hashes outside the checkout. This checks the named
 producer-consumer seam, not browser rendering, production or deployment. Neither
 command belongs in the fast test lane or modifies the UI checkout.

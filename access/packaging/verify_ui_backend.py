@@ -30,9 +30,41 @@ await client.inspect('relation',relation.id,undefined,first.source_revision,rela
 const pair=await client.compile(relationSpec(relation),undefined,first.source_revision);
 if(pair.relations.length!==1||pair.relations[0].id!==relation.id)throw Error('relation selection drift');
 const next=await client.compile(focusSpec(relation.to_id),undefined,first.source_revision);
+const {explorationQuery,loadPaths}=await import(new URL('./navigation-model.mjs',process.argv[1]));
+const {loadEvidence}=await import(new URL('./evidence-model.mjs',process.argv[1]));
+const {createToSQueryOperations}=await import(new URL('../query-operations.ts',process.argv[1]));
+const queries=createToSQueryOperations(async(path,options)=>{
+ const response=await fetch(base+path,options);
+ if(!response.ok){const error=new Error('HTTP '+response.status);error.status=response.status;throw error;}
+ return response.json();
+});
+// The UI opens exploration from the selected opaque knowledge ID, not its alias.
+let page=await client.explore(explorationQuery(first.focus.node_id),undefined,first.source_revision);
+const pages=[page.page.number];
+while(page.page.next_cursor&&pages.length<4){
+ page=await client.explore({cursor:page.page.next_cursor},undefined,first.source_revision,page);
+ pages.push(page.page.number);
+}
+// A source-owned contested example exercises native/knowledge identity binding.
+const evidenceArea=await client.compile({schema_version:'tos_lens_spec_v1',lens_id:'integration-evidence',sources:['philosophy'],
+ detail:'compact',node_query:{enabled:false},relation_query:{filters:[{field:'native_id',op:'eq',
+ value:'edge:candidate-relation:table-i-a01-relation-027'}]},traversal:{depth:0,profile:'all'},
+ composition:{endpoint_policy:'independent'},limits:{nodes:2,relations:1,groups:1}},undefined,first.source_revision);
+if(evidenceArea.relations.length!==1)throw Error('missing contested source fixture');
+const subject=evidenceArea.relations[0];
+const evidence=await loadEvidence(subject,'relation',first.source_revision,{client,queries});
+if(evidence.availability!=='available'||evidence.packet.conclusion.can_conclude!==false)
+ throw Error('contested evidence boundary drift');
+const start=evidenceArea.nodes.find(n=>n.id===subject.from_id),end=evidenceArea.nodes.find(n=>n.id===subject.to_id);
+const paths=await loadPaths(start,end,first.source_revision,{client,queries});
+if(!paths.found||!paths.paths.some(path=>path.edge_ids.includes(subject.id)))throw Error('missing bound direct path');
+const excluded=await loadPaths(start,end,first.source_revision,{client,queries,excluded:[subject]});
+if(excluded.paths.some(path=>path.edge_ids.includes(subject.id)))throw Error('excluded edge returned');
 console.log(JSON.stringify({consumer:'observatory KnowledgeClient',source_revision:first.source_revision,
  focus:[first.nodes.length,first.relations.length],pair:[pair.nodes.length,pair.relations.length],
- next:[next.nodes.length,next.relations.length],search:[search.nodes.length,search.relations.length]}));
+ next:[next.nodes.length,next.relations.length],search:[search.nodes.length,search.relations.length],
+ exploration_pages:pages,evidence:evidence.availability,path_count:paths.path_count,
+ excluded_path_count:excluded.path_count}));
 '''
 
 
@@ -85,7 +117,9 @@ def main():
             assert response.status==200
             assert 'script-src' in response.headers['Content-Security-Policy']
             assert response.read(), 'empty frontend HTML'
-        result=subprocess.run(['node','--input-type=module','-e',CLIENT_CHECK,args.client_module.resolve().as_uri(),base],check=True,timeout=240,capture_output=True,text=True)
+        result=subprocess.run(['node','--experimental-strip-types','--input-type=module','-e',CLIENT_CHECK,args.client_module.resolve().as_uri(),base],timeout=240,capture_output=True,text=True)
+        if result.returncode:
+            raise RuntimeError(f'UI consumer check failed:\n{result.stderr}')
         emit(json.loads(result.stdout))
     finally:
         server.shutdown();server.server_close();worker.join(timeout=5)
