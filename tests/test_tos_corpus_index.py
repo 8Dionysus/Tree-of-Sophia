@@ -14,6 +14,7 @@ if str(SCRIPTS) not in sys.path:
 
 from tos_corpus_index_common import (  # noqa: E402
     TOS_CORPUS_INDEX_PATH,
+    _nearest_branch_parents,
     build_payload,
     render_payload,
     tracked_tos_paths,
@@ -21,6 +22,22 @@ from tos_corpus_index_common import (  # noqa: E402
 
 
 class ToSCorpusIndexTest(unittest.TestCase):
+    def test_branch_parents_preserve_nearest_authored_ancestor_and_path_identity(self) -> None:
+        paths = [
+            "tree/a/deep/leaf", "tree/ab/leaf", "tree/a", "tree/ab",
+            "elsewhere/a", "tree/a//", "tree", "tree/a/gap/leaf",
+            "tree/a/deep", "tree/a/./",
+        ]
+        expected = {
+            "tree/a": "tree", "tree/a/./": "tree", "tree/a//": "tree",
+            "tree/ab": "tree", "tree/a/deep": "tree/a",
+            "tree/a/gap/leaf": "tree/a", "tree/ab/leaf": "tree/ab",
+            "tree/a/deep/leaf": "tree/a/deep",
+        }
+        for input_paths in (paths, list(reversed(paths)), []):
+            with self.subTest(input_paths=input_paths):
+                self.assertEqual(_nearest_branch_parents(input_paths), expected if input_paths else {})
+
     def test_validator_rejects_noncanonical_encoding_with_one_rebuild(self) -> None:
         import validate_tos_corpus_index as validator
 
