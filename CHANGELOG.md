@@ -9,6 +9,11 @@ Tracking starts with the community-docs baseline for this repository.
 
 ### Changed
 
+- Searches active naming references from retired-token occurrences instead of
+  rechecking every unrelated path-shaped word. Length-preserving case mapping
+  retains Unicode boundaries, exact allowlists, and original diagnostics while
+  reducing whole-corpus validator work without a persistent result cache.
+
 - Finds source-navigation branch parents through a per-build path index
   instead of comparing every branch with every other branch. The nearest
   authored ancestor, path-alias tie-break, output order, and complete generated
