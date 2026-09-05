@@ -91,13 +91,13 @@ Root `mechanics/` owns only:
 
 - `README.md` for human route selection.
 - `AGENTS.md` for mechanics-tree edit law.
-- `topology.json` for the active package, part, and legacy-eligibility map.
+- `topology.json` for the active package, part, and historical-recovery policy.
 
 Do not add root rosters, migration ledgers, backlogs, notes, `_meta/`,
 scratch, or root `legacy/` holding areas. Active operation detail belongs in
 the owning package or part. Durable rationale belongs in `docs/decisions/`.
-Former-path accounting belongs in package `PROVENANCE.md` and package-local
-`legacy/` only when an active route needs it.
+Former-path accounting belongs in package `PROVENANCE.md` and its exact Git
+history route, consulted only when current work needs historical context.
 
 Package `ROADMAP.md` files own future pressure contours: what the mechanic is
 currently holding, what condition would make it grow, and what boundary keeps
@@ -120,16 +120,18 @@ placement plans, or migration ledgers.
 
 ## Legacy Rule
 
-`legacy/` is not a warehouse and not an active route. It forms after an active
-package and part map exist, when old paths, raw receipts, or previous names
-must remain accountable to the current route.
+Historical archives remain recoverable in Git, outside the current checkout.
+The owning package links an immutable commit and original path through
+`PROVENANCE.md` when old paths, receipts, or names need historical accounting.
 
 The route is:
 
-`active package -> PARTS.md -> PROVENANCE.md -> package-local legacy/`
+`active package -> PARTS.md -> PROVENANCE.md -> immutable Git source`
 
-Packages without moved-path or raw-receipt accounting do not get empty
-`legacy/` directories for symmetry.
+Do not recreate `legacy/` directories or empty accounting scaffolds. Current
+operational receipts and candidate evidence stay with the active owning part.
+The topology retains `legacy_required: false` as an explicit absence guard;
+setting it to true does not authorize restoring a retired archive.
 
 ## Validation
 

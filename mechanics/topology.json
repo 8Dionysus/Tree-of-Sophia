@@ -2,7 +2,7 @@
   "schema_version": "tos_mechanics_topology_v2",
   "owner_repo": "Tree-of-Sophia",
   "root": "mechanics/",
-  "legacy_policy": "package-local-only-when-active-route-has-moved-path-or-raw-receipt-accounting",
+  "legacy_policy": "pinned-git-history-no-active-legacy",
   "always_on_context_budget": {
     "surface": "mechanics/README.md",
     "metric": "whitespace_tokens_v1",

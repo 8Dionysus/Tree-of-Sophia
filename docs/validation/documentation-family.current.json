@@ -36,7 +36,7 @@
     "excluded_generated_carrier_rules": 3,
     "excluded_tracked_path_count": 598,
     "human_scope": {
-      "bytes": 4730427,
+      "bytes": 4730792,
       "count": 926,
       "excluded_skill_launch_metadata": 25,
       "family_counts": {
@@ -81,9 +81,9 @@
           "lines": 44
         },
         "mechanics": {
-          "bytes": 136579,
+          "bytes": 136944,
           "count": 139,
-          "lines": 3649
+          "lines": 3652
         },
         "memo": {
           "bytes": 4538,
@@ -121,7 +121,7 @@
           "lines": 60739
         }
       },
-      "lines": 83253
+      "lines": 83256
     },
     "surface_kind_counts": {
       "executable": 206,
@@ -231,7 +231,7 @@
         "human": 139,
         "structured": 33
       },
-      "tracked_surface_bytes": 381322,
+      "tracked_surface_bytes": 381645,
       "tracked_surface_count": 187
     },
     {
@@ -240,7 +240,7 @@
         "executable": 106,
         "human": 2
       },
-      "tracked_surface_bytes": 3624955,
+      "tracked_surface_bytes": 3623318,
       "tracked_surface_count": 108
     },
     {
@@ -250,7 +250,7 @@
         "human": 2,
         "structured": 1
       },
-      "tracked_surface_bytes": 1338207,
+      "tracked_surface_bytes": 1339095,
       "tracked_surface_count": 62
     },
     {
@@ -285,7 +285,7 @@
   "source_map": "docs/validation/documentation_family_map.json",
   "source_map_sha256": "d70a5059be9cc7547289e4c8be380d23b3aeb9e53bb10e4cb82abf2177ea0896",
   "tracked_source": "git ls-files -z",
-  "tracked_surface_digest": "8e8d0e03a5160200a9959b6b4f4db5b6eed421f4ee8fd1c558a8251fdcf8a0fa",
+  "tracked_surface_digest": "3b1273e04d289d88a7e0d9f3292859a5f6296b9f1748e06df0bacbe07d45e05c",
   "tracked_surfaces": [
     {
       "bytes": 1413,
@@ -332,7 +332,7 @@
       "currentness": "tracked_source_snapshot",
       "family_id": "agents-other",
       "path": ".agents/agents-route.current.json",
-      "sha256": "882f19f8888f93e473e7f81d6f9933a4e13cb10f89d9da51d01395dff3bdb1d7",
+      "sha256": "e932676432fc57982ae699ac283b10b698b8aaf4f72d87b1c7bb7a5a3d9c7a45",
       "surface_kind": "structured"
     },
     {
@@ -24984,19 +24984,19 @@
       "surface_kind": "structured"
     },
     {
-      "bytes": 2990,
+      "bytes": 3107,
       "currentness": "tracked_source_snapshot",
       "family_id": "mechanics",
       "path": "mechanics/AGENTS.md",
-      "sha256": "e164d480d183d3eb669de85ef43bd296f06f54f484f28d2fa24ee4951b056731",
+      "sha256": "edb669804f4d37b0689392d56df7b8a93e366b1335886a4eac5a56e8ce42a4cc",
       "surface_kind": "human"
     },
     {
-      "bytes": 8201,
+      "bytes": 8449,
       "currentness": "tracked_source_snapshot",
       "family_id": "mechanics",
       "path": "mechanics/README.md",
-      "sha256": "f68a015afc4cb5f4ed5eac9605ec0706b8781bdd88c70de8bc9ed8ec6e14ceef",
+      "sha256": "21ddbc6d64df42553262d9c8fc8fe9a28bbdb1048a6620bcd6cca7f38ac88e47",
       "surface_kind": "human"
     },
     {
@@ -26472,11 +26472,11 @@
       "surface_kind": "human"
     },
     {
-      "bytes": 17092,
+      "bytes": 17050,
       "currentness": "tracked_source_snapshot",
       "family_id": "mechanics",
       "path": "mechanics/topology.json",
-      "sha256": "f5ff010dd78972ddddfd10ff5dbecffdf831ca06ffa9d724629b2e73e74de682",
+      "sha256": "ce4c5654417d1734122bd89da9e33a1b20414bbc4d78ba82ee4037b149300535",
       "surface_kind": "structured"
     },
     {
@@ -27288,11 +27288,11 @@
       "surface_kind": "executable"
     },
     {
-      "bytes": 21939,
+      "bytes": 20302,
       "currentness": "tracked_source_snapshot",
       "family_id": "scripts",
       "path": "scripts/validate_mechanics_topology.py",
-      "sha256": "d5e17e0cf610bada8463c8570501a390fb675f9238949fe60e2d115df6b0a5a9",
+      "sha256": "581d1231d07b54d908cd9f12f2ea75edc1959b3bb022aca29e983018e378eacc",
       "surface_kind": "executable"
     },
     {
@@ -27664,11 +27664,11 @@
       "surface_kind": "executable"
     },
     {
-      "bytes": 6461,
+      "bytes": 7349,
       "currentness": "tracked_source_snapshot",
       "family_id": "tests",
       "path": "tests/test_mechanics_route_docs.py",
-      "sha256": "f6995646d2038fb61fc6fe6a3233aa5af74a6cf013f5b02388008090330773e1",
+      "sha256": "2df777f6b1d2e8c003e4f61211a339eae42b0bfd2a041d10b55eec30c35ff716",
       "surface_kind": "executable"
     },
     {

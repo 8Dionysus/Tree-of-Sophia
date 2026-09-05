@@ -447,16 +447,16 @@
       "whitespace_tokens": 224
     },
     {
-      "bytes": 2990,
+      "bytes": 3107,
       "inheritance_stack": [
         "AGENTS.md",
         "mechanics/AGENTS.md"
       ],
-      "lines": 64,
+      "lines": 65,
       "path": "mechanics/AGENTS.md",
-      "sha256": "e164d480d183d3eb669de85ef43bd296f06f54f484f28d2fa24ee4951b056731",
+      "sha256": "edb669804f4d37b0689392d56df7b8a93e366b1335886a4eac5a56e8ce42a4cc",
       "tracked": true,
-      "whitespace_tokens": 417
+      "whitespace_tokens": 430
     },
     {
       "bytes": 1401,
@@ -1823,16 +1823,16 @@
       ]
     },
     {
-      "additional_context_tokens": 1212,
+      "additional_context_tokens": 1241,
       "completion_evidence": [
         {
-          "bytes": 2990,
+          "bytes": 3107,
           "exists": true,
-          "lines": 64,
+          "lines": 65,
           "path": "mechanics/AGENTS.md",
           "role": "completion",
-          "sha256": "e164d480d183d3eb669de85ef43bd296f06f54f484f28d2fa24ee4951b056731",
-          "whitespace_tokens": 417
+          "sha256": "edb669804f4d37b0689392d56df7b8a93e366b1335886a4eac5a56e8ce42a4cc",
+          "whitespace_tokens": 430
         },
         {
           "bytes": 586,
@@ -1844,22 +1844,22 @@
           "whitespace_tokens": 76
         },
         {
-          "bytes": 17092,
+          "bytes": 17050,
           "exists": true,
           "lines": 343,
           "path": "mechanics/topology.json",
           "role": "completion",
-          "sha256": "f5ff010dd78972ddddfd10ff5dbecffdf831ca06ffa9d724629b2e73e74de682",
+          "sha256": "ce4c5654417d1734122bd89da9e33a1b20414bbc4d78ba82ee4037b149300535",
           "whitespace_tokens": 519
         },
         {
-          "bytes": 21939,
+          "bytes": 20302,
           "exists": true,
-          "lines": 530,
+          "lines": 495,
           "path": "scripts/validate_mechanics_topology.py",
           "role": "completion",
-          "sha256": "d5e17e0cf610bada8463c8570501a390fb675f9238949fe60e2d115df6b0a5a9",
-          "whitespace_tokens": 1720
+          "sha256": "581d1231d07b54d908cd9f12f2ea75edc1959b3bb022aca29e983018e378eacc",
+          "whitespace_tokens": 1639
         }
       ],
       "id": "mechanics_package_change",
@@ -1868,16 +1868,16 @@
         "mechanics/AGENTS.md",
         "mechanics/boundary-bridge/AGENTS.md"
       ],
-      "inherited_context_tokens": 1358,
+      "inherited_context_tokens": 1371,
       "on_demand_surfaces": [
         {
-          "bytes": 8201,
+          "bytes": 8449,
           "exists": true,
-          "lines": 142,
+          "lines": 144,
           "path": "mechanics/README.md",
           "role": "on_demand",
-          "sha256": "f68a015afc4cb5f4ed5eac9605ec0706b8781bdd88c70de8bc9ed8ec6e14ceef",
-          "whitespace_tokens": 1082
+          "sha256": "21ddbc6d64df42553262d9c8fc8fe9a28bbdb1048a6620bcd6cca7f38ac88e47",
+          "whitespace_tokens": 1111
         },
         {
           "bytes": 629,
@@ -1915,13 +1915,13 @@
       "target_exists": true,
       "validation_paths": [
         {
-          "bytes": 21939,
+          "bytes": 20302,
           "exists": true,
-          "lines": 530,
+          "lines": 495,
           "path": "scripts/validate_mechanics_topology.py",
           "role": "validation",
-          "sha256": "d5e17e0cf610bada8463c8570501a390fb675f9238949fe60e2d115df6b0a5a9",
-          "whitespace_tokens": 1720
+          "sha256": "581d1231d07b54d908cd9f12f2ea75edc1959b3bb022aca29e983018e378eacc",
+          "whitespace_tokens": 1639
         },
         {
           "bytes": 23014,
