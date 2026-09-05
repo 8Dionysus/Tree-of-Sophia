@@ -4,12 +4,15 @@ import './connected.css';
 import './workspace.css';
 import './evidence.css';
 import './navigation.css';
+import './lens.css';
 import {mountScene} from './scene.js';
 import {createTools} from './workspace.mjs';
 import {createPanelHost} from './panels.mjs';
 import {createEvidencePanel} from './evidence-panel.mjs';
 import {evidenceRoute} from './evidence-model.mjs';
 import {createNavigationPanel} from './navigation-panel.mjs';
+import {createLensPanel} from './lens-panel.mjs';
+import {draftForPacket,encodeDraft} from './lens-model.mjs';
 import {pathAvailable} from './navigation-model.mjs';
 import {createPageCommandRegistry} from '../page-commands';
 import {createWebMCPAdapter} from '../webmcp';
@@ -18,7 +21,7 @@ import {KnowledgeClient,focusSpec,relationSpec,localized,DEFAULT_FOCUS} from './
 const host=document.getElementById('app');
 host.innerHTML=shell;
 const root=host.firstElementChild;
-let scene,tools,evidence,navigation,registry,syncing=false,lastContext='';
+let scene,tools,evidence,navigation,builder,registry,syncing=false,lastContext='';
 const client=new KnowledgeClient();
 function selected(){
   if(tools?.auxiliarySelection)return tools.auxiliarySelection;
@@ -35,21 +38,24 @@ function sync(){
   if(!scene)return;
   const selection=selected(),packet=scene.port.packet;
   const url=new URL(location.href);
-  if(packet?.focus?.node_id)url.searchParams.set('focus',packet.focus.node_id);
+  if(packet?.focus?.node_id)url.searchParams.set('focus',packet.focus.node_id);else if(packet)url.searchParams.delete('focus');
+  if(packet){const draft=draftForPacket(packet);if(draft)url.searchParams.set('lens',encodeDraft(draft));else url.searchParams.delete('lens');}
   if(selection&&!tools?.auxiliarySelection)url.searchParams.set('selection',selection.id);else url.searchParams.delete('selection');
   history.replaceState(null,'',url);
-  const key=JSON.stringify([packet?.source_revision,packet?.focus,selection,root.dataset.lens,navigation?.startId]);
+  const key=JSON.stringify([packet?.source_revision,packet?.fingerprint,packet?.focus,selection,root.dataset.lens,navigation?.startId]);
   if(key!==lastContext){lastContext=key;if(!syncing)registry?.notifyStateChange();}
   tools?.selectionChanged();
   evidence?.selectionChanged();
   navigation?.selectionChanged();
+  builder?.selectionChanged();
 }
 const commit=action=>{syncing=true;try{return action();}finally{syncing=false;sync();}};
-scene=mountScene(root,{initialFocus:new URLSearchParams(location.search).get('focus')||DEFAULT_FOCUS,onChange:()=>{tools?.clearAuxiliarySelection();sync();}});
+scene=mountScene(root,{initialFocus:new URLSearchParams(location.search).get('focus')||DEFAULT_FOCUS,initialLens:new URLSearchParams(location.search).get('lens'),onChange:()=>{tools?.clearAuxiliarySelection();sync();}});
 const panels=createPanelHost(root,scene);
 tools=createTools(root,scene,{selected,panels,onChange:()=>{if(!syncing)registry?.notifyStateChange();sync();}});
 evidence=createEvidencePanel(root,scene,panels,{selected,onUserAction:()=>registry?.notifyStateChange()});
 navigation=createNavigationPanel(root,scene,panels,{selected,commit,onUserAction:()=>registry?.notifyStateChange()});
+builder=createLensPanel(root,scene,panels,{onUserAction:()=>registry?.notifyStateChange()});
 const handlers={
   ...tools.handlers,
   ...evidence.handlers,
@@ -88,8 +94,13 @@ const searchHits=new Map();let searchRevision=null;
 for(const id of Object.keys(tools.handlers)){
   const handler=handlers[id];handlers[id]=(input,execution)=>commit(()=>handler(input,execution));
 }
-registry=createPageCommandRegistry(()=>({mode:'philosophy',view_id:'observatory',graph_mode:'nodes',selected:selected(),
-  path_start_node_id:navigation.startId,active_layers:['knowledge'],active_predicates:['overview'],deep_link:location.href,research_workspace:tools.workspace.summary()}),handlers);
+registry=createPageCommandRegistry(()=>{
+  const draft=draftForPacket(scene.port.packet);
+  return {mode:'philosophy',view_id:'observatory',graph_mode:'nodes',selected:selected(),path_start_node_id:navigation.startId,
+    active_layers:draft?[...draft.sources]:['knowledge'],
+    active_predicates:draft?(draft.relations?(draft.predicates.length?[...draft.predicates]:[...new Set(scene.port.packet.relations.map(r=>r.predicate_id))]):[]):['overview'],
+    deep_link:location.href,research_workspace:tools.workspace.summary()};
+},handlers);
 const allowed=new Set(['tos.page.context','tos.page.cancel',...Object.keys(handlers)]);
 root.querySelector('#sc-query').addEventListener('input',()=>registry.notifyStateChange());
 const webmcp=createWebMCPAdapter(registry,document,allowed);

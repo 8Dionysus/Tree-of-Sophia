@@ -34,16 +34,16 @@
   },
   "coverage": {
     "excluded_generated_carrier_rules": 3,
-    "excluded_tracked_path_count": 625,
+    "excluded_tracked_path_count": 629,
     "human_scope": {
-      "bytes": 4848916,
+      "bytes": 4851341,
       "count": 952,
       "excluded_skill_launch_metadata": 25,
       "family_counts": {
         "access": {
-          "bytes": 66328,
+          "bytes": 68753,
           "count": 8,
-          "lines": 1113
+          "lines": 1148
         },
         "agents-other": {
           "bytes": 17683,
@@ -121,14 +121,14 @@
           "lines": 60823
         }
       },
-      "lines": 85198
+      "lines": 85233
     },
     "surface_kind_counts": {
       "executable": 220,
       "human": 977,
       "structured": 2314
     },
-    "tracked_path_count": 4136,
+    "tracked_path_count": 4140,
     "tracked_surface_count": 3511,
     "unhandled_family_count": 0,
     "unhandled_paths": []
@@ -186,7 +186,7 @@
         "human": 8,
         "structured": 22
       },
-      "tracked_surface_bytes": 1007054,
+      "tracked_surface_bytes": 1009479,
       "tracked_surface_count": 60
     },
     {
@@ -285,7 +285,7 @@
   "source_map": "docs/validation/documentation_family_map.json",
   "source_map_sha256": "d70a5059be9cc7547289e4c8be380d23b3aeb9e53bb10e4cb82abf2177ea0896",
   "tracked_source": "git ls-files -z",
-  "tracked_surface_digest": "6dc1684194727af9e47c746db26ab1d70742c0c2cc9747090d9912bc523955a1",
+  "tracked_surface_digest": "a50c0fb4bfe429b54ae26a8ce7826b228103a26827c453197ba5f7cbcab7a256",
   "tracked_surfaces": [
     {
       "bytes": 1489,
@@ -24472,11 +24472,11 @@
       "surface_kind": "executable"
     },
     {
-      "bytes": 10921,
+      "bytes": 13346,
       "currentness": "tracked_source_snapshot",
       "family_id": "access",
       "path": "access/web/README.md",
-      "sha256": "ad85d3a56e8811da48558b566a28dd4a028a5559ac4166a0addc70c75a69c3a4",
+      "sha256": "c7ce57d5b1a451351281af9e466067a6c3f1c3b6a05e86e5786d9ad767757d09",
       "surface_kind": "human"
     },
     {

@@ -1,6 +1,7 @@
 import {KnowledgeClient,RequestSlots,RevisionError,ContractError,localized,focusSpec,relationSpec,DEFAULT_FOCUS} from './knowledge-client.mjs';
+import {decodeDraft,constructorCatalog,previewDraft} from './lens-model.mjs';
 
-export function attachKnowledgeUI(root,port,{client=new KnowledgeClient(),initialFocus=DEFAULT_FOCUS}={}) {
+export function attachKnowledgeUI(root,port,{client=new KnowledgeClient(),initialFocus=DEFAULT_FOCUS,initialLens}={}) {
   const q=s=>root.querySelector(s),slots=new RequestSlots(),cache=new Map();
   let searchTimer=0,retryAction=null,searchOffset=0;
   const text=(tag,className,value)=>{const el=document.createElement(tag);el.className=className;el.textContent=value;return el;};
@@ -152,10 +153,16 @@ export function attachKnowledgeUI(root,port,{client=new KnowledgeClient(),initia
   q('.sc-open-neighborhood').addEventListener('click',()=>{
     const raw=port.node(port.selection.nodeId);if(raw)root.dispatchEvent(new CustomEvent('sophia-navigate',{detail:{raw,kind:'node',tab:'neighbors'}}));
   });
+  async function loadLensLink(){
+    root.dataset.dataState='loading';notice('Открываю линзу…');
+    try{const result=await slots.run('scene',async signal=>{const draft=decodeDraft(initialLens),context=await constructorCatalog(client,signal);return previewDraft(client,draft,context,signal);});
+      if(!result.current)return;port.setGraph(result.value,{initial:true});notice('');port.announce('Линза загружена. Узлов: '+result.value.nodes.length+'. Связей: '+result.value.relations.length+'.');
+    }catch(error){root.dataset.dataState='error';notifyFailure(error,loadLensLink);}
+  }
   addEventListener('pagehide',cancelPending);
   return {loadFocus,chooseNode,chooseRelation,searchRow,search,showCard,cancelSearch,cancelInspector,cancelPending,willSelect,
     async start(){
-      loadFocus(initialFocus,{initial:true,selectFocus:false});
+      if(initialLens)void loadLensLink();else loadFocus(initialFocus,{initial:true,selectFocus:false});
       try{const result=await slots.run('capabilities',signal=>client.capabilities(signal));if(result.current)root.dataset.explorationAvailable=String(result.value.available===true);}catch{root.dataset.explorationAvailable='false';}
     },
   };

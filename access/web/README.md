@@ -56,7 +56,7 @@ CSP is required.
   retain that side; mobile sheets retain their bottom placement. This changes
   neither the camera nor the painter.
   Registering another panel does not change the camera or painter. This is a local
-  UI seam; integration with the backend UI constructor remains a later slice.
+  UI seam shared by evidence, navigation and the lens constructor.
 - `navigation-panel.mjs` presents paged connections, start/end selection, bounded
   alternative paths, temporary query exclusions, and a return to the starting
   camera/view. An exploration page keeps its own schema and query provenance;
@@ -76,6 +76,23 @@ CSP is required.
   exploration but do not yet have a path-between-two-objects backend contract.
   Query exclusions stay in this panel; they do not edit the graph or the local
   research journal. Saved route comparisons remain a later integration slice.
+- `lens-panel.mjs` adds the constructor under **Линзы → Конструктор линз**.
+  It selects roots from the original area, an exact focused star, or the whole
+  tree, with source, text, kind, predicate, direction and depth controls. All
+  vocabulary comes from the live catalog and LensSpec schema. Root filters do
+  not masquerade as conditions on traversal context; the preview distinguishes
+  selected roots, returned context and truncation.
+- `lens-model.mjs` compiles these controls through the existing lens API, bounded
+  to 40 nodes, 80 relations and depth 3. Preview leaves the scene intact; apply
+  recompiles and checks the fingerprint before replacing it, retaining camera
+  pose and established star positions. Closing, changing conditions or changing
+  the area invalidates pending work. Empty results and failures keep the graph.
+  The original-view action restores its scene and camera bookmark.
+  Up to 12 definitions are saved under a separate browser-local storage key,
+  updated by name. URL links carry validated conditions and exact original-area
+  IDs, not data snapshots or authority; reopening recompiles current data.
+  Arbitrary backend LensSpecs, server persistence and paginated custom-lens
+  expansion are outside this first constructor slice.
 - `webmcp.ts` can restrict registration to commands implemented by the active
   shell. IDs, source references and deep links are returned intact. Legacy
   saved path comparison remains on compatibility routes. Path start/find,
@@ -167,3 +184,21 @@ selection/inspection and exploration continuation. This does not renew physical
 trackpad acceptance, prove atomicity of the legacy evidence/path endpoints, or
 establish production performance. Cold local graph construction remains slow;
 CI, clean release/archive validation and deployment are separate gates.
+
+## Lens constructor verification (2026-09-05)
+
+71 frontend tests, TypeScript, Vite, 110 access tests and standalone source
+validation passed. The live backend advertised 7 sources, 79 node kinds and
+115 predicates. Real HTTP checks covered exact area roots, global source/kind
+filtering (10 displayed of 40 selected works), empty results and focus traversal.
+Browser checks covered preview without changing the graph, apply and return
+with identical camera pose, saved-definition selection, link reload, empty
+results, actual offline failure and retry, and closing during a delayed apply.
+The latter retained the previous graph. At 390×844 the sheet measured
+360×354.48 with a 195.48px scrolling body and no horizontal page overflow.
+The scene changed only to pass an initial lens link; camera, gestures, painter
+and scene styling remain unchanged. Browser context includes the custom lens
+sources, active predicates and full deep link. Saved links recompile current
+data; they are not frozen research snapshots. CI, production deployment,
+large-corpus performance profiling and physical gesture acceptance were not
+performed in this slice.
