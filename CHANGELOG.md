@@ -9,6 +9,12 @@ Tracking starts with the community-docs baseline for this repository.
 
 ### Changed
 
+- Finds source-navigation branch parents through a per-build path index
+  instead of comparing every branch with every other branch. The nearest
+  authored ancestor, path-alias tie-break, output order, and complete generated
+  corpus index remain unchanged; focused corpus checks avoid the quadratic
+  traversal without persistent caches or skipped validation.
+
 - Speeds up focused source-witness negatives by testing the same payload and
   rights guards used by full corpus validation, without rebuilding unrelated
   schema and corpus checks. The aggregate planting CLI test uses minimal
