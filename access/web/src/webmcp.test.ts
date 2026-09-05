@@ -679,3 +679,25 @@ describe("WebMCP page-command binding", () => {
     adapter.stop();
   });
 });
+
+
+describe("observatory capability boundary", () => {
+  it("advertises only implemented commands and round-trips long opaque identities", async () => {
+    const id = "knowledge:" + "source-identity/".repeat(12);
+    const sourceRef = "ToS/" + "long-source-path/".repeat(12) + "node.json";
+    const context: PageContextSnapshot = {mode:"philosophy",view_id:"observatory",graph_mode:"nodes",
+      selected:{id,kind:"node",label:"Source",source_refs:[sourceRef]},path_start_node_id:null,
+      active_layers:["knowledge"],active_predicates:["overview"],deep_link:"http://tos.local/?selection="+encodeURIComponent(id),research_workspace:workspaceSummary()};
+    const registry=createPageCommandRegistry(()=>context,{"tos.page.inspect-selection":()=>context.selected});
+    const tools=new Map<string,RegisteredTool>();
+    const adapter=createWebMCPAdapter(registry,{modelContext:{registerTool:async(tool:RegisteredTool)=>{tools.set(tool.name,tool);}}} as unknown as WebMCPDocument,
+      new Set(["tos.page.context","tos.page.inspect-selection"]));
+    await adapter.start();
+    expect([...tools.keys()].sort()).toEqual(["tos.page.context","tos.page.inspect-selection"]);
+    const reply=await tools.get("tos.page.inspect-selection")!.execute({}, {signal:new AbortController().signal}) as {content:Array<{text:string}>};
+    const result=JSON.parse(reply.content[0].text);
+    expect(result.selection.id).toBe(id);expect(result.selection.source_refs).toEqual([sourceRef]);
+    const page=await tools.get("tos.page.context")!.execute({}, {signal:new AbortController().signal}) as {content:Array<{text:string}>};
+    expect(JSON.parse(page.content[0].text).deep_link).toBe(context.deep_link);adapter.stop();
+  });
+});

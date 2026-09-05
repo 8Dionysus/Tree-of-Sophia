@@ -1,0 +1,47 @@
+<div id="sophia-gestures" aria-label="Древо Софии — область исследования">
+  <canvas class="sc-sky" role="img" aria-label="Трёхмерное звёздное пространство. Два пальца сдвигают пространство, щипок приближает и отдаляет. Перетаскивание вращает; Shift с перетаскиванием сдвигает."></canvas>
+  <div class="sc-vignette" aria-hidden="true"></div>
+  <header class="sc-header">
+    <div class="sc-brand"><span class="sc-sigil" aria-hidden="true">✧</span><div>Древо Софии<span class="sc-brand-sub">АТЛАС МЫСЛИ</span></div></div>
+    <div class="sc-header-actions">
+      <button type="button" class="sc-control sc-search-open" aria-label="Найти узел" aria-expanded="false"><i data-lucide="search" aria-hidden="true"></i><span>Найти в древе</span><kbd>/</kbd></button>
+      <button type="button" class="sc-control sc-lenses-open" aria-label="Линзы" aria-expanded="false"><i data-lucide="layers-2" aria-hidden="true"></i><span>Линзы</span></button>
+    </div>
+  </header>
+  <div class="sc-context"><span class="sc-eyebrow">ПРОСТРАНСТВО 01</span><h2>Созвездия мысли</h2><div class="sc-context-route"><button type="button" class="sc-back" aria-label="Вернуться к предыдущему виду" hidden><i data-lucide="arrow-left" aria-hidden="true"></i><span>Назад</span></button><span class="sc-context-sub">Загружаем область…</span></div></div>
+  <div class="sc-constellation-label sc-label-west" hidden aria-hidden="true"><span>01 / ИСТОКИ</span><small>Течение и единство</small></div>
+  <div class="sc-constellation-label sc-label-east" hidden aria-hidden="true"><span>03 / ГОРИЗОНТЫ</span><small>Человек и возможность</small></div>
+  <div class="sc-nodes" role="group" aria-label="Узлы созвездий"></div>
+  <section class="sc-panel sc-inspector" aria-label="Выбранный узел" hidden>
+    <div class="sc-panel-top"><button type="button" class="sc-window-handle" aria-label="Переместить карточку" data-tooltip="Перетаскивание или стрелки на клавиатуре"><i data-lucide="grip-horizontal" aria-hidden="true"></i><span class="sc-eyebrow sc-kind">КОНЦЕПТ</span></button><button type="button" class="sc-icon sc-close" aria-label="Закрыть карточку"><i data-lucide="x" aria-hidden="true"></i></button></div>
+    <h3 class="sc-node-title"></h3><div class="sc-node-original"></div>
+    <div class="sc-card-tabs" role="tablist" aria-label="Содержание карточки"><button type="button" class="sc-card-tab" id="so-about-tab" role="tab" aria-selected="true" aria-controls="so-about">Смысл</button><button type="button" class="sc-card-tab" id="so-relations-tab" role="tab" aria-selected="false" aria-controls="so-relations">Связи <span class="sc-neighbor-count"></span></button></div>
+    <div id="so-about" role="tabpanel" aria-labelledby="so-about-tab"><p class="sc-description"></p><div class="sc-provenance"></div></div>
+    <div id="so-relations" role="tabpanel" aria-labelledby="so-relations-tab" hidden><div class="sc-neighbors" aria-label="Отношения выбранного узла"></div></div>
+    <div class="sc-panel-bottom"><button type="button" class="sc-open-neighborhood">Окрестность</button><button type="button" class="sc-focus">Приблизиться <span aria-hidden="true">↗</span></button></div>
+  </section>
+  <section class="sc-panel sc-search" aria-label="Поиск по Древу Софии" hidden>
+    <div class="sc-panel-top"><label class="sc-eyebrow" for="sc-query">НАЙТИ В ДРЕВЕ</label><button class="sc-icon sc-search-close" type="button" aria-label="Закрыть поиск"><i data-lucide="x" aria-hidden="true"></i></button></div>
+    <input id="sc-query" type="search" placeholder="Имя, произведение, понятие…" autocomplete="off">
+    <div class="sc-search-results" aria-label="Результаты поиска"></div>
+  </section>
+  <section class="sc-panel sc-lenses" aria-label="Линзы пространства" hidden>
+    <div class="sc-panel-top"><span class="sc-eyebrow">ЛИНЗЫ ПРОСТРАНСТВА</span><button class="sc-icon sc-lenses-close" type="button" aria-label="Закрыть линзы"><i data-lucide="x" aria-hidden="true"></i></button></div>
+    <button class="sc-lens" data-lens="constellations" type="button" aria-pressed="true"><span>Созвездия</span><small>Свободная глубина</small><span class="sc-lens-mark" aria-hidden="true">✧</span></button>
+    <button class="sc-lens" data-lens="orbits" type="button" aria-pressed="false"><span>Орбиты</span><small>Окружение выбранного узла</small><span class="sc-lens-mark" aria-hidden="true">◎</span></button>
+    <button class="sc-lens" data-lens="plane" type="button" aria-pressed="false"><span>Плоскость</span><small>Спокойное чтение связей</small><span class="sc-lens-mark" aria-hidden="true">⌗</span></button>
+  </section>
+  <footer class="sc-footer">
+    <div class="sc-caption"><span class="sc-tiny-star" aria-hidden="true"></span><span>Данные ToS</span><span class="sc-caption-detail">· ограниченная область</span></div>
+    <div class="sc-navigation" aria-label="Управление пространством">
+      <button type="button" class="sc-icon sc-minus" aria-label="Отдалить"><i data-lucide="minus" aria-hidden="true"></i></button>
+      <button type="button" class="sc-overview" aria-label="Вернуться к общему виду">Общий вид</button>
+      <button type="button" class="sc-icon sc-plus" aria-label="Приблизить"><i data-lucide="plus" aria-hidden="true"></i></button>
+      <span class="sc-separator" aria-hidden="true"></span>
+      <button type="button" class="sc-icon sc-motion" aria-label="Приостановить движение" aria-pressed="false"><i data-lucide="pause" aria-hidden="true"></i></button>
+      <button type="button" class="sc-icon sc-input-mode" aria-label="Управление: тачпад. Переключить на мышь" data-tooltip="Тачпад · два пальца — сдвиг, щипок — полёт"><i data-lucide="touchpad" aria-hidden="true"></i></button>
+    </div>
+    <span class="sc-gesture">Два пальца — сдвиг · щипок — полёт</span>
+  </footer>
+  <div class="sc-data-notice" role="status" hidden><span></span><button type="button" class="sc-retry">Повторить</button></div><div class="sc-announcement" role="status" aria-live="polite"></div>
+</div>
