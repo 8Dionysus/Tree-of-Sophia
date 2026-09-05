@@ -126,6 +126,12 @@ class ValidateActiveNamingTests(unittest.TestCase):
             "seed_claim_ref",
             "first-wave-resident",
             "x-" * 64 + "seed_claim_ref " + "x_" * 64 + old_w + "-pack",
+            "İıK/ſ" + "EED-pack",
+            "İ Ω " + old_s + "-pack",
+            "ſ" + "EED_CLAIM_REF " + old_w + "-pack",
+            old_s + ". " + old_w + "-pack",
+            old_s + "_claim_ref/" + old_w + "-pack",
+            old_s + "_claim_ref " + old_w + "١",
         )
         for text in cases:
             with self.subTest(text=text):

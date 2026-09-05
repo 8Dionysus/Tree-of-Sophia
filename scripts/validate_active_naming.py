@@ -52,7 +52,14 @@ RETIRED_TOKENS = (
     "s" + "eed_pack",
 )
 RETIRED_TOKEN_PATTERN = r"(?:" + "|".join(re.escape(token) for token in RETIRED_TOKENS) + r")"
-RETIRED_TOKEN_SEARCH_PATTERN = re.compile(RETIRED_TOKEN_PATTERN, re.IGNORECASE)
+# Preserve Unicode IGNORECASE's ASCII-letter equivalents without changing
+# string offsets (str.lower/casefold can expand characters such as U+0130).
+# Literal search on the translated text avoids case-folding every word in
+# large generated surfaces. The original text remains the diagnostic source.
+TOKEN_CASE_TRANSLATION = str.maketrans(
+    "ABCDEFGHIJKLMNOPQRSTUVWXYZİıſK", "abcdefghijklmnopqrstuvwxyziisk"
+)
+FOLDED_RETIRED_TOKEN_PATTERN = re.compile(RETIRED_TOKEN_PATTERN)
 PATH_REFERENCE_MARKER_PATTERN = r"(?:[-_/]|\d|\.(?=[A-Za-z0-9]))"
 PATH_TOKEN_PATTERN = re.compile(
     r"(?<![A-Za-z0-9])(?:"
@@ -66,6 +73,9 @@ PATH_TOKEN_PATTERN = re.compile(
 # the legacy marker's ``\d`` branch: Python's ``\d`` also accepts a Unicode
 # decimal digit immediately after an ASCII path run.
 PATH_RUN_PATTERN = re.compile(r"[A-Za-z0-9._/-]+", re.IGNORECASE)
+PATH_RUN_CHARACTERS = frozenset(
+    "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789._/-İıſK"
+)
 PATH_MARKER_SEARCH_PATTERN = re.compile(PATH_REFERENCE_MARKER_PATTERN, re.IGNORECASE)
 ACTIVE_REFERENCE_PATTERN = re.compile(
     r"(?<![A-Za-z0-9])"
@@ -172,17 +182,23 @@ def retired_path_issue(value: str) -> str | None:
 
 def active_reference_issue(text: str) -> str | None:
     """Return the first non-allowlisted retired path-like content reference."""
-    if not RETIRED_TOKEN_SEARCH_PATTERN.search(text):
-        return None
-    for match in PATH_RUN_PATTERN.finditer(text):
-        reference = match.group(0)
-        if not RETIRED_TOKEN_SEARCH_PATTERN.search(reference):
+    consumed = 0
+    for token in FOLDED_RETIRED_TOKEN_PATTERN.finditer(text.translate(TOKEN_CASE_TRANSLATION)):
+        if token.start() < consumed:
             continue
+        # Inspect only runs containing a retired token, once per run, rather
+        # than applying the token regex to millions of unrelated words.
+        start = token.start()
+        while start and text[start - 1] in PATH_RUN_CHARACTERS:
+            start -= 1
+        end = PATH_RUN_PATTERN.match(text, token.start()).end()
+        consumed = end
         # Search through one character beyond the run without copying the
         # string.  This preserves ACTIVE_REFERENCE_PATTERN's Unicode ``\d``
         # marker behavior at a path-run boundary.
-        if PATH_MARKER_SEARCH_PATTERN.search(text, match.start(), match.end() + 1) is None:
+        if PATH_MARKER_SEARCH_PATTERN.search(text, start, end + 1) is None:
             continue
+        reference = text[start:end]
         if reference.lower() not in ALLOWED_ACTIVE_CONTENT_REFERENCES:
             return reference
     return None
@@ -193,10 +209,8 @@ def retired_content_issue(text: str) -> str | None:
         text = text.replace(artifact_identity, "[quoted-external-artifact-identity]")
     for capture_fragment in QUOTED_CAPTURE_PROVENANCE_FRAGMENTS:
         text = text.replace(capture_fragment, "[quoted-capture-provenance-fragment]")
-    # ACTIVE_REFERENCE_PATTERN deliberately accepts broad path-like material,
-    # so running it against every large markdown/JSON surface dominates this
-    # validator. It can only match when a retired token is present; use the
-    # cheap token guard before entering the expensive path-shaped regex.
+    # Keep the legacy path-shaped matcher as a bounded test oracle; the live
+    # search examines only runs containing a retired token.
     reference = active_reference_issue(text)
     if reference is not None:
         return reference
