@@ -40,6 +40,25 @@ function workspaceSummary() {
 }
 
 describe("WebMCP page-command binding", () => {
+  it("binds Observatory evidence independently from unsupported path routing", async () => {
+    for (const evidenceAvailable of [true, false]) {
+      const registry = createPageCommandRegistry(() => ({
+        mode: "philosophy", view_id: "observatory", graph_mode: "nodes",
+        selected: { id: "opaque:edge/a", kind: "edge", from_id: "a", to_id: "b", reroutable: false, evidence_available: evidenceAvailable },
+        path_start_node_id: null, active_layers: ["knowledge"], active_predicates: ["overview"],
+        deep_link: "http://tos.local/", research_workspace: workspaceSummary(),
+      }), { ...workspaceNoopHandlers, "tos.page.inspect-epistemic": () => ({}), "tos.page.reroute-without-selection": () => ({}) });
+      const names = new Set<string>();
+      const adapter = createWebMCPAdapter(registry, { modelContext: {
+        registerTool: async (tool: RegisteredTool) => { names.add(tool.name); },
+      } } as unknown as WebMCPDocument, new Set(["tos.page.inspect-epistemic", "tos.page.compare-readings", "tos.page.reroute-without-selection"]));
+      await adapter.start();
+      expect(names.has("tos.page.inspect-epistemic")).toBe(evidenceAvailable);
+      expect(names.has("tos.page.compare-readings")).toBe(evidenceAvailable);
+      expect(names.has("tos.page.reroute-without-selection")).toBe(false);
+      adapter.stop();
+    }
+  });
   it("returns bounded search hits with stable IDs instead of a page-only count", async () => {
     const current: PageContextSnapshot = {
       mode: "philosophy", view_id: "chronology", graph_mode: "nodes", selected: null,

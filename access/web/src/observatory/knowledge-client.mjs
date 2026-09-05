@@ -101,12 +101,13 @@ export class KnowledgeClient {
     checkItems(packet.nodes,'node');checkItems(packet.relations,'relation');return packet;
   }
   async compile(spec,signal,expected=null){return validateLens(await this.request('/lenses/compile',{signal,body:spec}),expected);}
-  async inspect(kind,id,signal,expected) {
+  async inspect(kind,id,signal,expected,contentRevision) {
     const packet=checkRevision(await this.request('/'+(kind==='node'?'nodes/':'relations/')+encodeURIComponent(id)+(kind==='node'?'?relation_limit=0':''),{signal}),expected);
     if(packet.schema!==(kind==='node'?'tos_knowledge_node_packet_v1':'tos_knowledge_relation_packet_v1'))throw new ContractError('Неверная карточка.');
     checkItems(packet.matches,kind);
     const match=packet.matches.find(item=>item.id===id);
     if(!match)throw new ContractError('Не найден точный идентификатор карточки.');
+    if(contentRevision&&match.content_revision!==contentRevision)throw new RevisionError();
     if(kind==='relation'){const ids=checkItems(packet.endpoints,'node');if(!ids.has(match.from_id)||!ids.has(match.to_id))throw new ContractError('Неполные концы связи.');}
     return {packet,match};
   }

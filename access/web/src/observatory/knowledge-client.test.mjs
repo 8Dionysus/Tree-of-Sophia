@@ -89,6 +89,14 @@ test('timeouts fail visibly and user cancellation remains cancellation',async()=
   assert.deepEqual(await call,{current:false});
 });
 
+test('a normalizer change with identical input revision cannot enter the old card cache',async()=>{
+  const raw=fixture.nodes[0],normalized={...raw,content_revision:'f'.repeat(64)};
+  const client=new KnowledgeClient({fetcher:async()=>({ok:true,json:async()=>({
+    schema:'tos_knowledge_node_packet_v1',source_revision:fixture.source_revision,matches:[normalized]})})});
+  await assert.rejects(client.inspect('node',raw.id,undefined,fixture.source_revision,raw.content_revision),RevisionError);
+  assert.equal((await client.inspect('node',raw.id,undefined,fixture.source_revision,normalized.content_revision)).match,normalized);
+});
+
 test('network and malformed payload errors are readable without losing cancellation',async()=>{
   const network=new KnowledgeClient({fetcher:async()=>{throw new TypeError('Failed to fetch');}});
   await assert.rejects(network.capabilities(),e=>e instanceof RequestError&&e.status===0&&e.message.startsWith('Нет связи'));

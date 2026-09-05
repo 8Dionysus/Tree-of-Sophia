@@ -2,8 +2,12 @@ import shell from './shell.html?raw';
 import './scene.css';
 import './connected.css';
 import './workspace.css';
+import './evidence.css';
 import {mountScene} from './scene.js';
 import {createTools} from './workspace.mjs';
+import {createPanelHost} from './panels.mjs';
+import {createEvidencePanel} from './evidence-panel.mjs';
+import {evidenceRoute} from './evidence-model.mjs';
 import {createPageCommandRegistry} from '../page-commands';
 import {createWebMCPAdapter} from '../webmcp';
 import {KnowledgeClient,focusSpec,relationSpec,localized,DEFAULT_FOCUS} from './knowledge-client.mjs';
@@ -11,7 +15,7 @@ import {KnowledgeClient,focusSpec,relationSpec,localized,DEFAULT_FOCUS} from './
 const host=document.getElementById('app');
 host.innerHTML=shell;
 const root=host.firstElementChild;
-let scene,tools,registry,syncing=false,lastContext='';
+let scene,tools,evidence,registry,syncing=false,lastContext='';
 const client=new KnowledgeClient();
 function selected(){
   if(tools?.auxiliarySelection)return tools.auxiliarySelection;
@@ -22,7 +26,7 @@ function selected(){
     label:localized(raw.display.title||raw.display.label),subtitle:localized(raw.display.statement),
     from_id:raw.from_id,to_id:raw.to_id,predicate_id:raw.predicate_id,source_refs:raw.source_refs,
     authority_posture:raw.epistemic?.authority_layer,review_posture:raw.epistemic?.review_posture,
-    canon_status:raw.epistemic?.canon_status,reroutable:false};
+    canon_status:raw.epistemic?.canon_status,reroutable:false,evidence_available:Boolean(evidenceRoute(raw))};
 }
 function sync(){
   if(!scene)return;
@@ -34,12 +38,16 @@ function sync(){
   const key=JSON.stringify([packet?.source_revision,packet?.focus,selection,root.dataset.lens]);
   if(key!==lastContext){lastContext=key;if(!syncing)registry?.notifyStateChange();}
   tools?.selectionChanged();
+  evidence?.selectionChanged();
 }
 const commit=action=>{syncing=true;try{return action();}finally{syncing=false;sync();}};
 scene=mountScene(root,{initialFocus:new URLSearchParams(location.search).get('focus')||DEFAULT_FOCUS,onChange:()=>{tools?.clearAuxiliarySelection();sync();}});
-tools=createTools(root,scene,{selected,onChange:()=>{if(!syncing)registry?.notifyStateChange();sync();}});
+const panels=createPanelHost(root,scene);
+tools=createTools(root,scene,{selected,panels,onChange:()=>{if(!syncing)registry?.notifyStateChange();sync();}});
+evidence=createEvidencePanel(root,scene,panels,{selected,onUserAction:()=>registry?.notifyStateChange()});
 const handlers={
   ...tools.handlers,
+  ...evidence.handlers,
   'tos.page.inspect-selection':()=>selected(),
   'tos.page.open-view':async(input,{signal})=>{
     scene.ui.cancelPending();

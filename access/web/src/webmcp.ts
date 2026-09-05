@@ -475,7 +475,7 @@ function dynamicTools(registry: PageCommandRegistry, context: PageContext): WebM
   const evidenceAvailable = context.mode === "philosophy"
     || (context.mode === "corpus" && context.view_id === "route-graph");
   if (!evidenceAvailable) return tools;
-  if ((selected.kind === "node" || selected.kind === "edge") && selected.reroutable !== false) {
+  if ((selected.kind === "node" || selected.kind === "edge") && (selected.evidence_available ?? selected.reroutable !== false)) {
     tools.push(
       commandTool(registry, "tos.page.inspect-epistemic", {
         name: "tos.page.inspect-epistemic",

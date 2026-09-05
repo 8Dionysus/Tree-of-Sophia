@@ -29,17 +29,35 @@ CSP is required.
   IDs, closed relation endpoints, and a 40-node/80-relation display budget.
   A large corpus never directly determines per-frame scene size.
 - `knowledge-ui.mjs` handles paged search, inspection, scene request cancellation
-  and explicit retry. A failed request retains the current graph.
+  and explicit retry. A failed request retains the current graph. Inspection
+  checks both source and content revisions before entering the card cache.
 - `workspace.mjs` rebuilds source dossiers, notes, hypotheses, proposals, source
   gaps and source-bound word-analysis preparation in floating panels. It reuses
   `query-operations.ts` and `research-workspace.ts`; there is no second backend.
   Unavailable source material is shown as unavailable, not reconstructed.
 - `research-actions.ts` validates a complete proposal before changing the local
   journal. Existing workspace storage and export packets remain compatible.
+- `evidence-panel.mjs` presents grounds and reading comparison in a floating
+  reading sheet. Source routes, permitted conclusions, open questions and
+  competing/contextual relations come from the existing Evidence Lens. The
+  selected relation is excluded from its own comparison; partial coverage and
+  the absence of competing readings do not establish agreement or truth.
+- `evidence-model.mjs` binds that older query only through explicit `source_graph`
+  and `native_id`, checks selection identity, source overlap and authority, and
+  checks the knowledge snapshot before and after the query. Philosophy records
+  use the philosophy route; canon records attempt the bounded corpus route graph.
+  A 404 means the object is outside that route, not that evidence does not exist.
+  Other layers show their inspected provenance without synthesizing Evidence Lens.
+  The old endpoint has no revision token: these checks are not an atomic snapshot
+  guarantee, and evidence responses are deliberately not cached.
+- `panels.mjs` coordinates auxiliary window visibility and resize invalidation.
+  Registering another panel does not change the camera or painter. This is a local
+  UI seam; integration with the backend UI constructor remains a later slice.
 - `webmcp.ts` can restrict registration to commands implemented by the active
   shell. IDs, source references and deep links are returned intact. Legacy
-  path comparison, exclusions and Evidence Lens remain on compatibility routes;
-  their replacement in the Observatory is still a separate UI slice.
+  path comparison and exclusions remain on compatibility routes. Evidence and
+  reading comparison are also available in the Observatory when the selection
+  has an explicit evidence route, independently of path-routing capability.
 
 The Observatory requires the knowledge/lens API prepared in the backend lane.
 The base commit `61cc594c` does not include it. Land and verify that backend before
@@ -78,3 +96,16 @@ physical-device acceptance test for this built application.
   trackpad feel and final visual approval remain with the operator.
 
 This is source/build/browser verification, not CI, merge, release or deployment.
+
+## Evidence reading slice verification (2026-09-05)
+
+56 frontend tests, TypeScript, Vite build, 39 base access tests and standalone
+source validation passed. Real HTTP/browser checks covered the Archaic Tribute
+node and its contested relation, distinct comparison subjects, intact source
+references, WebMCP evidence/comparison, unchanged camera while switching tabs or
+scrolling, source-panel handoff, keyboard tabs/Escape, offline error/retry and a
+390×844 sheet with no horizontal overflow. The source-navigation work correctly
+shows provenance with an unconnected evidence route. Camera/input and GPU painter
+code stayed unchanged; only panel obstacle discovery changed in the scene module.
+Large-data performance, alternative-path UI and the backend constructor remain
+subsequent slices; this does not renew physical trackpad acceptance.

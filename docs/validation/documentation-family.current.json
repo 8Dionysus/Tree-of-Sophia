@@ -29,21 +29,21 @@
     "metric": "whitespace_tokens_v1",
     "posture": "summary_first_records_on_demand",
     "record_loading": "machine readers may select records by family_id or path; do not load the full carrier into an always-on prompt",
-    "tracked_surface_count": 3477,
+    "tracked_surface_count": 3478,
     "unhandled_family_count": 0
   },
   "coverage": {
     "excluded_generated_carrier_rules": 3,
-    "excluded_tracked_path_count": 587,
+    "excluded_tracked_path_count": 613,
     "human_scope": {
-      "bytes": 4739214,
-      "count": 942,
+      "bytes": 4746124,
+      "count": 943,
       "excluded_skill_launch_metadata": 25,
       "family_counts": {
         "access": {
-          "bytes": 20739,
-          "count": 7,
-          "lines": 397
+          "bytes": 27649,
+          "count": 8,
+          "lines": 508
         },
         "agents-other": {
           "bytes": 17683,
@@ -121,15 +121,15 @@
           "lines": 60739
         }
       },
-      "lines": 83516
+      "lines": 83627
     },
     "surface_kind_counts": {
       "executable": 206,
-      "human": 967,
+      "human": 968,
       "structured": 2304
     },
-    "tracked_path_count": 4064,
-    "tracked_surface_count": 3477,
+    "tracked_path_count": 4091,
+    "tracked_surface_count": 3478,
     "unhandled_family_count": 0,
     "unhandled_paths": []
   },
@@ -183,11 +183,11 @@
       "family_id": "access",
       "surface_kind_counts": {
         "executable": 16,
-        "human": 7,
+        "human": 8,
         "structured": 16
       },
-      "tracked_surface_bytes": 475622,
-      "tracked_surface_count": 39
+      "tracked_surface_bytes": 483235,
+      "tracked_surface_count": 40
     },
     {
       "family_id": "docs",
@@ -285,7 +285,7 @@
   "source_map": "docs/validation/documentation_family_map.json",
   "source_map_sha256": "d70a5059be9cc7547289e4c8be380d23b3aeb9e53bb10e4cb82abf2177ea0896",
   "tracked_source": "git ls-files -z",
-  "tracked_surface_digest": "72901fb406498c2925d4b74334fa653d7d0b1893c1ffe4f1eccef76bc58c81fe",
+  "tracked_surface_digest": "b60bdfd0ffc00a2b7b816595ec6f27c374abd07447140b9ae82117b37ce667c0",
   "tracked_surfaces": [
     {
       "bytes": 1489,
@@ -24272,27 +24272,35 @@
       "surface_kind": "executable"
     },
     {
-      "bytes": 66019,
+      "bytes": 6910,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "access",
+      "path": "access/web/README.md",
+      "sha256": "5e70b92d964a5cf062b1aa35a1a0eac68a941dc3a52ea56ea90455c17ce98ad1",
+      "surface_kind": "human"
+    },
+    {
+      "bytes": 66632,
       "currentness": "tracked_source_snapshot",
       "family_id": "access",
       "path": "access/web/package-lock.json",
-      "sha256": "118c2240cd852bac766193b98f07deb2773c39f1cc87e4407acf8f0eb1f56458",
+      "sha256": "00577474877b5bf891d0627eb50a06f607bf5a7d626d2a210744189ab6be309b",
       "surface_kind": "structured"
     },
     {
-      "bytes": 561,
+      "bytes": 609,
       "currentness": "tracked_source_snapshot",
       "family_id": "access",
       "path": "access/web/package.json",
-      "sha256": "339a26ee81a85f5242c3bbbde4df62d5661891e7af393d516eb1a489256ad1cf",
+      "sha256": "08b626b467894edb6937d7b7d8d4ec30a4310aff85c9c4e34081a7083b694822",
       "surface_kind": "structured"
     },
     {
-      "bytes": 516,
+      "bytes": 558,
       "currentness": "tracked_source_snapshot",
       "family_id": "access",
       "path": "access/web/tsconfig.json",
-      "sha256": "2b33a6c25fd65ce0ec429e0c2a677364491b8ad525718e924e78888db41426e6",
+      "sha256": "08c124d24c66ee0cb084cfc7597b0ad7ae6c6ec5e48fda2d9c72ea8ae77374d9",
       "surface_kind": "structured"
     },
     {

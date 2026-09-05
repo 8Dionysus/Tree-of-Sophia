@@ -36,7 +36,7 @@ export function attachKnowledgeUI(root,port,{client=new KnowledgeClient(),initia
     notice('Открываю отношение…');root.dataset.dataState='loading';
     try{
       const result=await slots.run('scene',async signal=>{
-        const {match}=await client.inspect('relation',raw.id,signal,expected);
+        const {match}=await client.inspect('relation',raw.id,signal,expected,raw.content_revision);
         const spec=relationSpec(match),packet=await client.compile(spec,signal,expected);
         if(!packet.relations.some(r=>r.id===match.id))throw new ContractError('Выбранное отношение отсутствует в области.');
         return {packet};
@@ -131,7 +131,7 @@ export function attachKnowledgeUI(root,port,{client=new KnowledgeClient(),initia
         const b=button(label+': '+localized(node?.display.title,id),()=>chooseNode(id,port.packet.source_revision),'sc-neighbor sc-relation-row');list.append(b);
       }
     }
-    sourceDetails(raw,kind);q('.sc-provenance').append(button('Открыть источники',()=>root.dispatchEvent(new CustomEvent('sophia-sources',{detail:{raw,kind}}))));port.cardChanged();
+    sourceDetails(raw,kind);q('.sc-provenance').append(button('Основания и прочтения',()=>root.dispatchEvent(new CustomEvent('sophia-evidence',{detail:{raw,kind}}))),button('Открыть источники',()=>root.dispatchEvent(new CustomEvent('sophia-sources',{detail:{raw,kind}}))));port.cardChanged();
   }
   async function showCard(kind,raw){
     cancelInspector();const revision=port.packet?.source_revision;if(!revision)return;
@@ -139,7 +139,7 @@ export function attachKnowledgeUI(root,port,{client=new KnowledgeClient(),initia
     const key=[revision,kind,raw.id,raw.content_revision].join('|');
     if(cache.has(key)){const saved=cache.get(key);renderCard(kind,saved.match,saved.packet.endpoints);root.dataset.inspectorState='ready';return;}
     try{
-      const found=await slots.run('inspect',signal=>client.inspect(kind,raw.id,signal,revision));if(!found.current)return;
+      const found=await slots.run('inspect',signal=>client.inspect(kind,raw.id,signal,revision,raw.content_revision));if(!found.current)return;
       saveCache(key,found.value);renderCard(kind,found.value.match,found.value.packet.endpoints);root.dataset.inspectorState='ready';
     }catch(error){
       root.dataset.inspectorState='error';

@@ -10,7 +10,7 @@ function link(ref){
   if(/^https?:\/\//i.test(ref)){try{const url=new URL(ref);const a=el('a',url.hostname+url.pathname,'sc-source-ref');a.href=url.href;a.target='_blank';a.rel='noreferrer noopener';return a;}catch{/* Render invalid references as text. */}}
   return el('span',ref,'sc-source-ref');
 }
-export function createTools(root,scene,{selected,onChange}){
+export function createTools(root,scene,{selected,panels,onChange}){
   let persistence=false;
   try{persistence=createLocalStoragePersistence(localStorage,'tos-research-workspace-v1');}catch{/* Workspace remains usable in memory. */}
   const workspace=createResearchWorkspace({sessionId:'tos-local-research',persistence});
@@ -27,27 +27,24 @@ export function createTools(root,scene,{selected,onChange}){
   const panel=el('section','','sc-panel sc-workspace');panel.hidden=true;panel.setAttribute('aria-label','Исследовательская панель');
   panel.innerHTML='<div class="sc-panel-top"><span class="sc-eyebrow">РАБОЧЕЕ ПРОСТРАНСТВО</span><button type="button" class="sc-icon sc-workspace-close" aria-label="Закрыть исследование"><i data-lucide="x" aria-hidden="true"></i></button></div><h3>Исследование</h3><div class="sc-workspace-tabs" role="tablist" aria-label="Инструменты исследования"></div><div class="sc-workspace-body" role="tabpanel" id="sc-tool-content"></div><div class="sc-tool-status" role="status"></div><div class="sc-workspace-footer"></div>';
   root.append(panel);
+  panels.register('workspace',panel,()=>{requests.cancelAll();open.setAttribute('aria-expanded','false');});
   const body=panel.querySelector('.sc-workspace-body'),status=panel.querySelector('.sc-tool-status'),tabs=panel.querySelector('.sc-workspace-tabs'),footer=panel.querySelector('.sc-workspace-footer');
   let active='notes',target=null,rawSource=null,sourceKind='node',focusReturn=open,notebookDraft='',draftKind='note',draftTarget=null;
   const names={notes:'Записи',sources:'Источники',analysis:'Разбор'};
   const tabButtons=Object.entries(names).map(([id,name])=>{const b=button(name,()=>switchTab(id));b.id='sc-tool-'+id;b.setAttribute('role','tab');b.setAttribute('aria-controls','sc-tool-content');tabs.append(b);return b;});
   tabs.addEventListener('keydown',e=>{if(!['ArrowLeft','ArrowRight','Home','End'].includes(e.key))return;e.preventDefault();const index=tabButtons.indexOf(e.target),next=e.key==='Home'?0:e.key==='End'?2:(index+(e.key==='ArrowLeft'?2:1))%3;switchTab(Object.keys(names)[next]);tabButtons[next].focus();});
-  function close(){requests.cancelAll();panel.hidden=true;open.setAttribute('aria-expanded','false');scene.invalidate();(focusReturn?.isConnected&&!focusReturn.closest('[hidden]')?focusReturn:open).focus();}
+  function close(){panels.close('workspace');(focusReturn?.isConnected&&!focusReturn.closest('[hidden]')?focusReturn:open).focus();}
   panel.querySelector('.sc-workspace-close').addEventListener('click',close);
   panel.addEventListener('keydown',e=>{if(e.key==='Escape'){e.preventDefault();e.stopPropagation();close();}});
   function show(tab='notes',source){
     focusReturn=document.activeElement instanceof HTMLElement?document.activeElement:open;
     target=source?{id:source.raw.id,label:localized(source.raw.display.title||source.raw.display.label),kind:source.kind==='relation'?'edge':'node',source_refs:source.raw.source_refs}:selected();
     rawSource=source?.raw||(target?.kind==='edge'?scene.port.relation(target.id):scene.port.node(target?.id));sourceKind=source?.kind||(target?.kind==='edge'?'relation':'node');
-    scene.closeInspector(false);root.querySelector('.sc-search-close').click();root.querySelector('.sc-lenses-close').click();
-    panel.hidden=false;open.setAttribute('aria-expanded','true');switchTab(tab);tabButtons[Object.keys(names).indexOf(tab)].focus();
+    panels.open('workspace');open.setAttribute('aria-expanded','true');switchTab(tab);tabButtons[Object.keys(names).indexOf(tab)].focus();
   }
   function switchTab(tab){requests.cancelAll();active=tab;panel.querySelector('h3').textContent={notes:'Исследование',sources:'Источники',analysis:'Разбор текста'}[tab];status.textContent='';for(const [i,b]of tabButtons.entries()){const isActive=Object.keys(names)[i]===tab;b.setAttribute('aria-selected',String(isActive));b.tabIndex=isActive?0:-1;}body.setAttribute('aria-labelledby','sc-tool-'+tab);body.replaceChildren();
     if(tab==='notes')renderNotes();else if(tab==='sources')renderSources();else renderAnalysis();scene.invalidate();
   }
-  // Opening another auxiliary window does not leave two mobile sheets overlapping.
-  const overlays=new MutationObserver(()=>{if(!root.querySelector('.sc-search').hidden||!root.querySelector('.sc-lenses').hidden){panel.hidden=true;open.setAttribute('aria-expanded','false');requests.cancelAll();scene.invalidate();}});
-  for(const cls of ['.sc-search','.sc-lenses'])overlays.observe(root.querySelector(cls),{attributes:true,attributeFilter:['hidden']});
   root.addEventListener('sophia-sources',e=>show('sources',e.detail));
   function report(error){if(error?.name==='AbortError')return;status.textContent=error.message||'Не удалось выполнить действие.';scene.invalidate();}
   function safe(action){try{return action();}catch(error){report(error);}}
@@ -148,7 +145,7 @@ export function createTools(root,scene,{selected,onChange}){
     const gap=gapHits.get(id);if(!gap)return false;
     gapSelection={id:gap.edge_id,kind:'edge',semantic_kind:'source_access_gap',label:gap.to_label,from_id:gap.from_id,to_id:gap.to_id,predicate_id:gap.predicate_id,
       source_refs:gap.source_refs,authority_posture:gap.authority_posture,review_posture:gap.review_posture,canon_status:gap.canon_status,reroutable:false};
-    target=gapSelection;panel.hidden=false;open.setAttribute('aria-expanded','true');switchTab('notes');
+    target=gapSelection;panels.open('workspace');open.setAttribute('aria-expanded','true');switchTab('notes');
     onChange();return true;
   }
   const handlers={

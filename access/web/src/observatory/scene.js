@@ -179,7 +179,7 @@ export function mountScene(root, {onChange=()=>{}, initialFocus}={}) {
   function measureLabels(){nodes.forEach(n=>{const s=getComputedStyle(n.label);ctx.font=s.font;const spacing=parseFloat(s.letterSpacing)||0;n.labelWidth=Math.ceil(ctx.measureText(n.name).width+spacing*n.name.length)+2;n.labelHeight=Math.ceil(parseFloat(s.fontSize)*1.5);});}
   function localBox(el){const r=el.getBoundingClientRect(),origin=root.getBoundingClientRect();return{x:r.left-origin.left,y:r.top-origin.top,w:r.width,h:r.height};}
   function overlap(a,b,gap=0){return a.x<b.x+b.w+gap&&a.x+a.w+gap>b.x&&a.y<b.y+b.h+gap&&a.y+a.h+gap>b.y;}
-  function updateLayout(){obstacles=[];for(const s of ['.sc-header','.sc-context','.sc-footer','.sc-label-west','.sc-label-east','.sc-inspector','.sc-search','.sc-lenses','.sc-workspace']){const el=q(s);if(!el.hidden){const b=localBox(el);if(b.w&&b.h)obstacles.push(b)}}panelBounds=panel.hidden?null:localBox(panel);layoutDirty=false;}
+  function updateLayout(){obstacles=[];for(const el of root.querySelectorAll('.sc-header,.sc-context,.sc-footer,.sc-label-west,.sc-label-east,.sc-panel')){if(!el.hidden){const b=localBox(el);if(b.w&&b.h)obstacles.push(b)}}panelBounds=panel.hidden?null:localBox(panel);layoutDirty=false;}
   function placePanel(reposition=false){
     if(panel.hidden)return;
     q('.sc-window-handle').disabled=w<=540;
