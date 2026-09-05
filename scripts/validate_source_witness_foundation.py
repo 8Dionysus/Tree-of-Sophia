@@ -5594,6 +5594,141 @@ def _git_tracked(repo_root: Path, path: Path) -> bool | None:
     return None
 
 
+def _validate_artifact_representation_payload(
+    repo_root: Path,
+    representation_path: Path,
+    representation: dict[str, Any],
+    *,
+    issues: list[Issue],
+) -> Path:
+    """Validate one public artifact representation and return its payload path."""
+
+    representation_ref = _relative(representation_path, repo_root)
+    file_id = representation.get("file_id")
+    payload = representation.get("payload", {})
+    relative_payload = payload.get("relative_path") if isinstance(payload, dict) else None
+    payload_path = representation_path.parent / str(relative_payload)
+    if not isinstance(relative_payload, str) or not payload_path.is_file():
+        issues.append((representation_ref, "artifact representation payload is missing"))
+    else:
+        if _git_ignored(repo_root, payload_path):
+            issues.append((representation_ref, "tracked public artifact payload must not be gitignored"))
+        tracked = _git_tracked(repo_root, payload_path)
+        if tracked is not True:
+            issues.append((representation_ref, "tracked public artifact payload must be git-tracked"))
+        if payload_path.stat().st_size != payload.get("byte_size"):
+            issues.append((representation_ref, "artifact representation byte_size differs from payload"))
+        if _sha256(payload_path) != payload.get("sha256"):
+            issues.append((representation_ref, "artifact representation sha256 differs from payload"))
+        if _sha1(payload_path) != payload.get("source_sha1"):
+            issues.append((representation_ref, "artifact representation source_sha1 differs from payload"))
+        dimensions = _jpeg_dimensions(payload_path)
+        expected_dimensions = (payload.get("width_pixels"), payload.get("height_pixels"))
+        if dimensions != expected_dimensions:
+            issues.append((representation_ref, "artifact representation JPEG dimensions drifted"))
+        expected_file_id = f"tos.file.sha256.{payload.get('sha256')}"
+        if file_id != expected_file_id:
+            issues.append((representation_ref, "artifact representation file_id is not content-addressed"))
+    return payload_path
+
+
+def _validate_artifact_representation_rights(
+    repo_root: Path,
+    representation_path: Path,
+    representation: dict[str, Any],
+    *,
+    rights_validator: Any,
+    issues: list[Issue],
+) -> object:
+    """Validate the rights record bound to one public artifact representation."""
+
+    representation_ref = _relative(representation_path, repo_root)
+    artifact_id = representation.get("artifact_id")
+    file_id = representation.get("file_id")
+    rights_ref = representation.get("rights_ref")
+    rights_path = repo_root / str(rights_ref)
+    rights = (
+        _load_json(rights_path, repo_root, issues)
+        if isinstance(rights_ref, str) and rights_path.is_file()
+        else None
+    )
+    if rights is None:
+        issues.append((representation_ref, "artifact representation rights_ref is missing"))
+    else:
+        _validate_payload(rights, rights_validator, str(rights_ref), issues)
+        scope_refs = rights.get("scope_refs")
+        if isinstance(scope_refs, list) and not {artifact_id, file_id} <= set(scope_refs):
+            issues.append((str(rights_ref), "representation rights must cover artifact_id and file_id"))
+        if (
+            rights.get("visibility") != "public_payload"
+            or rights.get("redistribution_posture")
+            not in PUBLIC_PAYLOAD_REDISTRIBUTION_POSTURES
+        ):
+            issues.append((str(rights_ref), "tracked representation rights must authorize public payload"))
+    return rights_ref
+
+
+def _validate_composite_representation_payload(
+    repo_root: Path,
+    representation_path: Path,
+    representation: dict[str, Any],
+    *,
+    require_local_payloads: bool,
+    issues: list[Issue],
+) -> Path:
+    """Validate one scholarly-composite representation and return its payload path."""
+
+    representation_ref = _relative(representation_path, repo_root)
+    file_id = representation.get("file_id")
+    payload = representation.get("payload")
+    relative_payload = payload.get("relative_path") if isinstance(payload, dict) else None
+    payload_path = representation_path.parent / str(relative_payload)
+    if not isinstance(relative_payload, str) or not payload_path.is_file():
+        if (
+            not isinstance(payload, dict)
+            or payload.get("materialization_status") != "not_materialized"
+            or payload.get("storage_posture") != "unmaterialized_payload"
+            or payload.get("git_tracked") is not False
+        ):
+            issues.append(
+                (
+                    representation_ref,
+                    "missing scholarly-composite payload must declare not_materialized, "
+                    "unmaterialized_payload, and git_tracked=false",
+                )
+            )
+        if require_local_payloads:
+            issues.append((representation_ref, "scholarly-composite representation payload is missing"))
+    else:
+        if (
+            payload.get("materialization_status") != "materialized"
+            or payload.get("storage_posture") != "tracked_repository_payload"
+            or payload.get("git_tracked") is not True
+        ):
+            issues.append(
+                (
+                    representation_ref,
+                    "present scholarly-composite payload must declare materialized, "
+                    "tracked_repository_payload, and git_tracked=true",
+                )
+            )
+        tracked = _git_tracked(repo_root, payload_path)
+        if tracked is False:
+            issues.append((representation_ref, "local scholarly-composite payload must be tracked"))
+        elif tracked is None and (repo_root / ".git").exists():
+            issues.append((representation_ref, "could not determine scholarly-composite payload tracking posture"))
+        if _git_ignored(repo_root, payload_path) is True:
+            issues.append((representation_ref, "tracked scholarly-composite payload must not be gitignored"))
+        if payload_path.stat().st_size != payload.get("byte_size"):
+            issues.append((representation_ref, "scholarly-composite representation byte_size differs from payload"))
+        if _sha256(payload_path) != payload.get("sha256"):
+            issues.append((representation_ref, "scholarly-composite representation sha256 differs from payload"))
+        expected_file_id = f"tos.file.sha256.{payload.get('sha256')}"
+        if file_id != expected_file_id:
+            issues.append((representation_ref, "scholarly-composite representation file_id is not content-addressed"))
+    return payload_path
+
+
 def validate_payload_file(
     repo_root: Path,
     item_directory: Path,
@@ -12844,51 +12979,20 @@ def validate_foundation(repo_root: Path, *, require_local_payloads: bool = False
         if artifact is None or artifact.get("artifact_id") != artifact_id:
             issues.append((representation_ref, "artifact_ref does not resolve the represented artifact_id"))
 
-        payload = representation.get("payload", {})
-        relative_payload = payload.get("relative_path") if isinstance(payload, dict) else None
-        payload_path = representation_path.parent / str(relative_payload)
-        if not isinstance(relative_payload, str) or not payload_path.is_file():
-            issues.append((representation_ref, "artifact representation payload is missing"))
-        else:
-            if _git_ignored(repo_root, payload_path):
-                issues.append((representation_ref, "tracked public artifact payload must not be gitignored"))
-            tracked = _git_tracked(repo_root, payload_path)
-            if tracked is not True:
-                issues.append((representation_ref, "tracked public artifact payload must be git-tracked"))
-            if payload_path.stat().st_size != payload.get("byte_size"):
-                issues.append((representation_ref, "artifact representation byte_size differs from payload"))
-            if _sha256(payload_path) != payload.get("sha256"):
-                issues.append((representation_ref, "artifact representation sha256 differs from payload"))
-            if _sha1(payload_path) != payload.get("source_sha1"):
-                issues.append((representation_ref, "artifact representation source_sha1 differs from payload"))
-            dimensions = _jpeg_dimensions(payload_path)
-            expected_dimensions = (payload.get("width_pixels"), payload.get("height_pixels"))
-            if dimensions != expected_dimensions:
-                issues.append((representation_ref, "artifact representation JPEG dimensions drifted"))
-            expected_file_id = f"tos.file.sha256.{payload.get('sha256')}"
-            if file_id != expected_file_id:
-                issues.append((representation_ref, "artifact representation file_id is not content-addressed"))
-
-        rights_ref = representation.get("rights_ref")
-        rights_path = repo_root / str(rights_ref)
-        rights = (
-            _load_json(rights_path, repo_root, issues)
-            if isinstance(rights_ref, str) and rights_path.is_file()
-            else None
+        payload_path = _validate_artifact_representation_payload(
+            repo_root,
+            representation_path,
+            representation,
+            issues=issues,
         )
-        if rights is None:
-            issues.append((representation_ref, "artifact representation rights_ref is missing"))
-        else:
-            _validate_payload(rights, rights_validator, str(rights_ref), issues)
-            scope_refs = rights.get("scope_refs")
-            if isinstance(scope_refs, list) and not {artifact_id, file_id} <= set(scope_refs):
-                issues.append((str(rights_ref), "representation rights must cover artifact_id and file_id"))
-            if (
-                rights.get("visibility") != "public_payload"
-                or rights.get("redistribution_posture")
-                not in PUBLIC_PAYLOAD_REDISTRIBUTION_POSTURES
-            ):
-                issues.append((str(rights_ref), "tracked representation rights must authorize public payload"))
+
+        rights_ref = _validate_artifact_representation_rights(
+            repo_root,
+            representation_path,
+            representation,
+            rights_validator=rights_validator,
+            issues=issues,
+        )
 
         discovery_ref = representation.get("discovery_ref")
         discovery = discovery_records_by_ref.get(str(discovery_ref))
@@ -13112,52 +13216,13 @@ def validate_foundation(repo_root: Path, *, require_local_payloads: bool = False
         if composite is None or composite.get("composite_id") != composite_id:
             issues.append((representation_ref, "composite_ref does not resolve the represented composite_id"))
 
-        payload = representation.get("payload")
-        relative_payload = payload.get("relative_path") if isinstance(payload, dict) else None
-        payload_path = representation_path.parent / str(relative_payload)
-        if not isinstance(relative_payload, str) or not payload_path.is_file():
-            if (
-                not isinstance(payload, dict)
-                or payload.get("materialization_status") != "not_materialized"
-                or payload.get("storage_posture") != "unmaterialized_payload"
-                or payload.get("git_tracked") is not False
-            ):
-                issues.append(
-                    (
-                        representation_ref,
-                        "missing scholarly-composite payload must declare not_materialized, "
-                        "unmaterialized_payload, and git_tracked=false",
-                    )
-                )
-            if require_local_payloads:
-                issues.append((representation_ref, "scholarly-composite representation payload is missing"))
-        else:
-            if (
-                payload.get("materialization_status") != "materialized"
-                or payload.get("storage_posture") != "tracked_repository_payload"
-                or payload.get("git_tracked") is not True
-            ):
-                issues.append(
-                    (
-                        representation_ref,
-                        "present scholarly-composite payload must declare materialized, "
-                        "tracked_repository_payload, and git_tracked=true",
-                    )
-                )
-            tracked = _git_tracked(repo_root, payload_path)
-            if tracked is False:
-                issues.append((representation_ref, "local scholarly-composite payload must be tracked"))
-            elif tracked is None and (repo_root / ".git").exists():
-                issues.append((representation_ref, "could not determine scholarly-composite payload tracking posture"))
-            if _git_ignored(repo_root, payload_path) is True:
-                issues.append((representation_ref, "tracked scholarly-composite payload must not be gitignored"))
-            if payload_path.stat().st_size != payload.get("byte_size"):
-                issues.append((representation_ref, "scholarly-composite representation byte_size differs from payload"))
-            if _sha256(payload_path) != payload.get("sha256"):
-                issues.append((representation_ref, "scholarly-composite representation sha256 differs from payload"))
-            expected_file_id = f"tos.file.sha256.{payload.get('sha256')}"
-            if file_id != expected_file_id:
-                issues.append((representation_ref, "scholarly-composite representation file_id is not content-addressed"))
+        payload_path = _validate_composite_representation_payload(
+            repo_root,
+            representation_path,
+            representation,
+            require_local_payloads=require_local_payloads,
+            issues=issues,
+        )
 
         rights_ref = representation.get("rights_ref")
         rights_path = repo_root / str(rights_ref)

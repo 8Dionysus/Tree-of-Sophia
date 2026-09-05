@@ -434,7 +434,23 @@ class PreparedDossierPipelineTest(unittest.TestCase):
                 self.assertFalse(table_ii["package_ready_to_plant"])
 
     def test_planting_cli_is_explicitly_aggregate_only(self) -> None:
-        payload = readiness_payload()
+        package_readiness = {
+            table_id: {
+                "table_id": table_id,
+                "supported": True,
+                "package_ready_to_plant": True,
+                "planting_entrypoint": "scripts/plant_prepared_dossiers.py --plant",
+            }
+            for table_id in ("table-i", "table-ii", "table-iii")
+        }
+        with (
+            patch(
+                "plant_prepared_dossiers.table_readiness",
+                side_effect=lambda table_id: package_readiness[table_id],
+            ),
+            patch("plant_prepared_dossiers.discover_local_docx_ids", return_value={}),
+        ):
+            payload = readiness_payload()
         self.assertEqual(
             payload["tables"]["table-i"]["planting_entrypoint"],
             "scripts/plant_prepared_dossiers.py --plant",
