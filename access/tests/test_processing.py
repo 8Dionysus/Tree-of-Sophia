@@ -17,6 +17,27 @@ from tos_access.knowledge import build_knowledge_graph, validate_knowledge_seman
 
 
 class ProcessingTests(unittest.TestCase):
+    def test_validation_cache_avoids_public_digest_framing_and_keeps_parity(self):
+        from test_knowledge_contract import KnowledgeContractTests
+        KnowledgeContractTests.setUpClass()
+        entities = KnowledgeContractTests.entity_type_registry
+        relations = KnowledgeContractTests.relation_type_registry
+        corpus, philosophy = KnowledgeContractTests().fixture()
+        graph = build_knowledge_graph(corpus, philosophy, {}, entities, relations)
+        expected = validate_knowledge_semantics(graph, entities, relations)
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / 'cache.sqlite'
+            for attempt in range(2):
+                with NormalizationCache(path, 'v1') as cache:
+                    with patch('tos_access.knowledge._stable_digest', side_effect=AssertionError('public digest framing used for private validation cache')):
+                        self.assertEqual(validate_knowledge_semantics(graph, entities, relations), expected)
+                if attempt:
+                    self.assertEqual(cache.scheduler.executed, 0)
+            graph['nodes'][0]['attributes']['nonfinite'] = float('nan')
+            with self.assertRaises(ValueError):
+                with NormalizationCache(path, 'v1'):
+                    validate_knowledge_semantics(graph, entities, relations)
+
     def test_cached_output_is_not_reserialized_for_transport(self):
         with closing(sqlite3.connect(':memory:')) as db:
             value={'large-output':'retained'}

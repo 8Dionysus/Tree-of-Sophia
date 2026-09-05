@@ -1714,6 +1714,18 @@ def _type_is_a(
     return False
 
 
+def _validation_digest(value: Any) -> str:
+    """Private change fingerprint, never a public cross-language revision.
+
+    JSON encoding avoids millions of per-scalar framing/hash calls on warm
+    validation. Keep non-finite values rejected and bind this implementation
+    through the normalization processor version before admitting cached checks.
+    """
+    payload = json.dumps(value, ensure_ascii=False, sort_keys=True,
+                         separators=(",", ":"), allow_nan=False)
+    return hashlib.sha256(payload.encode("utf-8")).hexdigest()
+
+
 def validate_knowledge_semantics(
     graph: Any,
     entity_registry: Any,
@@ -1790,8 +1802,8 @@ def validate_knowledge_semantics(
 
     node_occurrences = Counter(str(n.get('id')) for n in nodes)
     incremental = active_cache.get() is not None
-    node_digests = {str(n.get('id')): _stable_digest(n) for n in nodes} if incremental else {}
-    registry_digest = _stable_digest([entity_registry, relation_registry]) if incremental else None
+    node_digests = {str(n.get('id')): _validation_digest(n) for n in nodes} if incremental else {}
+    registry_digest = _validation_digest([entity_registry, relation_registry]) if incremental else None
 
     def checked(kind, identifier, context, compute, *, unique=True):
         cache = active_cache.get()
@@ -1917,7 +1929,7 @@ def validate_knowledge_semantics(
         return violations, gaps
 
     relation_occurrences = Counter(str(r.get('id')) for r in relations)
-    relation_digests = {str(r.get('id')): _stable_digest(r) for r in relations} if incremental else {}
+    relation_digests = {str(r.get('id')): _validation_digest(r) for r in relations} if incremental else {}
     for relation in relations:
         identifier = _string(relation.get('id')) or '<missing relation id>'
         relation_type = _string(relation.get('relation_type_id'))
@@ -1932,7 +1944,7 @@ def validate_knowledge_semantics(
         evidence = supporting.get('semantics', {}).get('claim', {}).get('evidence_node_ids', [])
         context = [relation_digests.get(identifier),
                    references([relation.get('from_id'), relation.get('to_id'), attrs.get('review_node_id'), *evidence]),
-                   _stable_digest(supporting)] if incremental else None
+                   _validation_digest(supporting)] if incremental else None
         errors, missing = checked('relation', identifier, context,
                                   lambda relation=relation: validate_relation(relation),
                                   unique=relation_occurrences[identifier] == 1)
@@ -1986,7 +1998,7 @@ def validate_knowledge_semantics(
         adjacent = [e for predicate in ('tos.relation.has-subject', 'tos.relation.has-object')
                     for e in outgoing.get((identifier, predicate), [])]
         context = [node_digests.get(identifier),
-                   _stable_digest(adjacent),
+                   _validation_digest(adjacent),
                    references([claim.get('subject_node_id'), claim.get('object_node_id'),
                                *claim.get('evidence_node_ids', [])])] if incremental else None
         errors, missing, count = checked('claim', identifier, context,

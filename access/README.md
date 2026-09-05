@@ -272,6 +272,9 @@ before/after digests from the cache DB; incomplete scans never imply removal.
 The disposable cache has output byte/count limits, integrity checks, exclusive
 builder ownership and bounded run history. See the
 [retention boundary](deploy/cloudflare-worker/README.md#incremental-checks-and-cache-retention).
+Private validation fingerprints use canonical JSON and are bound to the
+normalization processor version. They do not replace the cross-language
+framing of public source/content revisions or alter semantic validation rules.
 
 The edge builder additionally checkpoints completed SQL and static-response
 stages. An unchanged build verifies source/producer and output byte digests, then
