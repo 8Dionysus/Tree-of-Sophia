@@ -8,16 +8,15 @@ This card applies to `.agents/` and all descendants unless a nearer
 ## Role
 
 `.agents/` holds agent-facing companion lanes for Tree-of-Sophia work:
-repo-local skills, Codex Spark guidance, prompts, handoff material, and other
-model-facing support surfaces.
+repo-local skills, prompts, handoff material, and other model-facing support
+surfaces.
 
 Durable ToS meaning, repeatable mechanics, proof authority, memory authority,
 runtime state, and public repository entrypoints route to their owning homes.
 
 ## Read before editing
 
-Read root `AGENTS.md`, then the nearest lane card. For Codex Spark work, read
-`.agents/spark/AGENTS.md` and `.agents/spark/SWARM.md`.
+Read root `AGENTS.md`, then the nearest lane card for the surface being edited.
 
 Use ToS source surfaces, mechanics packages, docs, validators, and sibling
 owner repositories as stronger authority when the task touches their meaning.

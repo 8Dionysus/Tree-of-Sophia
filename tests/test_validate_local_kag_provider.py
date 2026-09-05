@@ -70,7 +70,7 @@ def valid_record(source_path: str) -> dict[str, object]:
     }
 
 
-def write_frozen_family(tmp_path: Path) -> Path:
+def write_source_family(tmp_path: Path) -> Path:
     shard_relative = Path("kag/indexes/shards/source/00.jsonl")
     shard_path = tmp_path / shard_relative
     shard_path.parent.mkdir(parents=True)
@@ -147,23 +147,30 @@ def test_validate_records_discovers_nested_provider_json(monkeypatch: pytest.Mon
     assert groups["nodes"][0]["local_id"] == "node:test:nested"
 
 
-def test_frozen_family_integrity_allows_live_source_currentness_drift(
+def test_family_rejects_deleted_source_despite_intact_shards(
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:
     validator = load_validator()
-    write_frozen_family(tmp_path)
+    write_source_family(tmp_path)
     monkeypatch.setattr(validator, "REPO_ROOT", tmp_path)
 
-    validator.validate_repo_local_family(check_source_currentness=False)
+    with pytest.raises(validator.ValidationError, match="record path is missing"):
+        validator.validate_repo_local_family()
 
 
-def test_frozen_family_integrity_rejects_changed_shard_bytes(
+def test_family_integrity_rejects_changed_shard_bytes(
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:
     validator = load_validator()
-    shard_path = write_frozen_family(tmp_path)
+    shard_path = write_source_family(tmp_path)
     shard_path.write_bytes(shard_path.read_bytes() + b"{}\n")
     monkeypatch.setattr(validator, "REPO_ROOT", tmp_path)
 
     with pytest.raises(validator.ValidationError, match="bytes drifted"):
-        validator.validate_repo_local_family(check_source_currentness=False)
+        validator.validate_repo_local_family()
+
+
+def test_removed_freeze_only_option_cannot_bypass_currentness() -> None:
+    with pytest.raises(SystemExit) as error:
+        load_validator().main(["--freeze-only"])
+    assert error.value.code == 2

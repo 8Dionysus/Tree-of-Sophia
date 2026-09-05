@@ -24,6 +24,18 @@ class MechanicsRouteDocsTests(unittest.TestCase):
     def test_current_mechanics_route_docs_pass(self) -> None:
         self.assertEqual(validate_mechanics_topology.run_validation(REPO_ROOT), [])
 
+    def test_archive_flag_cannot_reactivate_retired_directory(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            repo_root = Path(tmpdir)
+            for name in ("AGENTS.md", "README.md", "PARTS.md", "PROVENANCE.md", "ROADMAP.md", "parts/intake/README.md"):
+                write_text(repo_root / "mechanics" / "agon" / name, "# Route\n")
+            entry = {"class": "local", "status": "active", "active_parts": ["intake"], "legacy_required": True}
+            write_text(repo_root / "mechanics/agon/legacy/README.md", "# Old archive\n")
+            issues: list[tuple[str, str]] = []
+            validate_mechanics_topology.validate_package(repo_root, issues, "agon", entry)
+            self.assertTrue(any("must remain false" in message for _, message in issues))
+            self.assertTrue(any(path == "mechanics/agon/legacy" for path, _ in issues))
+
     def test_missing_active_part_from_selection_map_fails(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
             repo_root = Path(tmpdir) / "Tree-of-Sophia"

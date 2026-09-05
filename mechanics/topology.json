@@ -2,7 +2,7 @@
   "schema_version": "tos_mechanics_topology_v2",
   "owner_repo": "Tree-of-Sophia",
   "root": "mechanics/",
-  "legacy_policy": "package-local-only-when-active-route-has-moved-path-or-raw-receipt-accounting",
+  "legacy_policy": "pinned-git-history-no-active-legacy",
   "always_on_context_budget": {
     "surface": "mechanics/README.md",
     "metric": "whitespace_tokens_v1",
@@ -19,7 +19,7 @@
         "threshold-registry",
         "landing-handoff"
       ],
-      "legacy_required": true
+      "legacy_required": false
     },
     {
       "slug": "antifragility",
@@ -37,7 +37,7 @@
       "active_parts": [
         "review-ledger-route"
       ],
-      "legacy_required": true
+      "legacy_required": false
     },
     {
       "slug": "boundary-bridge",
@@ -47,7 +47,7 @@
         "derived-kag-seam",
         "public-mirror-sync"
       ],
-      "legacy_required": true
+      "legacy_required": false
     },
     {
       "slug": "canon-formation",
@@ -74,7 +74,7 @@
       "active_parts": [
         "source-compost"
       ],
-      "legacy_required": true
+      "legacy_required": false
     },
     {
       "slug": "experience",
@@ -89,7 +89,7 @@
         "pattern-review",
         "write-guards"
       ],
-      "legacy_required": true
+      "legacy_required": false
     },
     {
       "slug": "growth-cycle",
@@ -98,7 +98,7 @@
       "active_parts": [
         "branch-growth-cycle"
       ],
-      "legacy_required": true
+      "legacy_required": false
     },
     {
       "slug": "method-growth",
@@ -117,7 +117,7 @@
         "obligation-boundary",
         "dispatch-contracts"
       ],
-      "legacy_required": true
+      "legacy_required": false
     },
     {
       "slug": "recurrence",
@@ -163,7 +163,7 @@
       "active_parts": [
         "witness-route"
       ],
-      "legacy_required": true
+      "legacy_required": false
     }
   ],
   "moved_path_accounting": {

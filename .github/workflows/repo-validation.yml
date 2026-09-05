@@ -11,6 +11,26 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  kag_owner_family:
+    name: KAG Owner Family
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+        with:
+          fetch-depth: 0
+
+      - name: Setup Python
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405
+        with:
+          python-version: "3.12"
+
+      - name: Check current canonical KAG owner family
+        uses: 8Dionysus/aoa-kag/.github/actions/repo-local-kag-index@14ee1e33e43749d23c557b3ef526eca7edb36196
+        with:
+          history-ref: ${{ github.event.pull_request.base.sha || github.event.before || github.sha }}
+          event-history-ref: ${{ github.event.pull_request.base.sha || github.event.before || github.sha }}
+
   release_audit:
     name: Release Audit
     runs-on: ubuntu-latest
@@ -138,6 +158,7 @@ jobs:
     name: Repo Validation
     if: ${{ always() }}
     needs:
+      - kag_owner_family
       - release_audit
       - repository_tests
       - product_shell
@@ -146,6 +167,7 @@ jobs:
     steps:
       - name: Require every validation branch to pass
         run: |
+          test "${{ needs.kag_owner_family.result }}" = "success"
           test "${{ needs.release_audit.result }}" = "success"
           test "${{ needs.repository_tests.result }}" = "success"
           test "${{ needs.product_shell.result }}" = "success"
