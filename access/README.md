@@ -43,6 +43,11 @@ source predicate, localized labels, a readable endpoint statement, an
 explanation, provenance, and the same return route to source. When source prose
 does not exist, the backend emits a deterministic metadata synthesis and marks
 it as such; it never presents generated wording as authored ToS meaning.
+Missing prose is reported with a short localized notice, not filled with
+repository paths, machine statuses, or internal review terminology. Those
+values remain available in structured attributes, provenance and source refs.
+Synthesized relationship statements use available localized endpoint and
+predicate labels; source-supplied prose and translations are preserved verbatim.
 
 Clients discover the construction vocabulary through `tos knowledge catalog`
 or `GET /api/knowledge/catalog`. The catalog reports current kinds,

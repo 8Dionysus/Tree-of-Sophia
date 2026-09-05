@@ -29,6 +29,57 @@ from tos_access.knowledge import (  # noqa: E402
 
 
 class KnowledgeContractTests(unittest.TestCase):
+    def test_synthesized_description_keeps_machine_metadata_out_of_prose(self):
+        node = _normalize_node({
+            'node_id': 'work:sample', 'label': 'Так говорил Заратустра',
+            'node_type': 'work', 'source_ref': 'ToS/work/sample.json',
+            'status': 'candidate-not-reviewed', 'owner_branch': 'ToS/candidate-intake',
+            'route_hint': 'review-ledger/pending',
+            'properties': {'review_reason': 'machine_generated', 'source_document': 'payload/source.xml'},
+        }, 'philosophy')
+        prose = node['display']['summary']
+        self.assertIn('описание', prose['ru'].lower())
+        for value in ('ToS/', 'candidate-not-reviewed', 'review-ledger', 'machine_generated', 'payload/', 'review'):
+            self.assertNotIn(value, json.dumps(prose, ensure_ascii=False))
+        self.assertEqual(node['attributes']['status'], 'candidate-not-reviewed')
+        self.assertEqual(node['attributes']['review_reason'], 'machine_generated')
+        self.assertIn('ToS/work/sample.json', node['source_refs'])
+        self.assertEqual(node['display']['summary_state'], 'metadata-synthesis')
+        self.assertFalse(node['display']['provenance']['source_summary_available'])
+
+    def test_synthesized_relation_statement_uses_available_russian_labels(self):
+        from tos_access.knowledge import _relation_display
+        left = {'display': {'title': {'default': 'Thus Spoke Zarathustra', 'ru': 'Так говорил Заратустра'}}}
+        right = {'display': {'title': {'default': 'Friedrich Nietzsche', 'ru': 'Фридрих Ницше'}}}
+        display = _relation_display({}, 'authored_by', left, right, ['ToS/work/sample.json'], {
+            'labels': {'default': 'authored by', 'ru': 'написано автором'},
+            'source_mappings': [{'source_predicate_id': 'authored_by'}],
+        })
+        self.assertEqual(display['statement']['ru'], 'Так говорил Заратустра — написано автором → Фридрих Ницше.')
+        self.assertIn('пояснение', display['explanation']['ru'].lower())
+        self.assertNotIn('ToS/', json.dumps(display['explanation']))
+        self.assertFalse(display['provenance']['source_explanation_available'])
+
+    def test_source_prose_and_translations_are_preserved_not_sanitized(self):
+        from tos_access.knowledge import _node_display, _relation_display
+        summary = {'default': 'Source review: ToS/example', 'ru': 'Авторское описание: review ToS/example'}
+        display = _node_display({'display': {'summary': summary}}, 'work', ['ToS/example'])
+        self.assertEqual(display['summary']['default'], summary['default'])
+        self.assertEqual(display['summary']['ru'], summary['ru'])
+        self.assertTrue(display['provenance']['source_summary_available'])
+        translated = {'ru': 'Описание из источника', 'en': 'Source description'}
+        display = _node_display({'display': {'summary': translated}}, 'work', ['ToS/example'])
+        self.assertTrue(display['provenance']['source_summary_available'])
+        self.assertEqual(display['summary_state'], 'source-derived')
+        self.assertEqual(display['summary']['ru'], translated['ru'])
+        relation = _relation_display({'display': {
+            'statement': {'ru': 'Точная авторская формулировка'},
+            'explanation': translated,
+        }}, 'related_to', None, None, ['ToS/example'])
+        self.assertEqual(relation['statement']['ru'], 'Точная авторская формулировка')
+        self.assertEqual(relation['explanation']['ru'], translated['ru'])
+        self.assertTrue(relation['provenance']['source_explanation_available'])
+
     def test_catalog_example_limit_does_not_limit_counts_or_types(self):
         from tos_access.knowledge import _attribute_catalog
         items = [{'source_graph': 'philosophy' if i < 5 else 'canon',

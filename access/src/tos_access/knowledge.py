@@ -411,6 +411,14 @@ def _localized_from(value: Any, fallback: str) -> dict[str, str | None]:
     return _localized(_string(value) or fallback)
 
 
+def _display_text(value: Any) -> str | None:
+    """Recognize source prose in any declared display language, without translating it."""
+    if isinstance(value, dict):
+        return next((_string(value.get(key)) for key in ('default', 'ru', 'en', 'original')
+                     if _string(value.get(key))), None)
+    return _string(value)
+
+
 def _lens_localized(value: Any, fallback: str, name: str) -> dict[str, str | None]:
     if value is None:
         return _localized(fallback)
@@ -500,7 +508,7 @@ def _node_display(
         (
             _string(value)
             for value in (
-                existing.get("summary", {}).get("default") if isinstance(existing.get("summary"), dict) else None,
+                _display_text(existing.get("summary")),
                 item.get("distilled_thesis"),
                 item.get("summary"),
                 item.get("description"),
@@ -525,40 +533,15 @@ def _node_display(
         # a projection.
         state = state or "source-derived"
     else:
-        period = _string(properties.get("period")) or _string(item.get("period"))
-        source_document = _string(properties.get("source_document"))
-        review_reason = _string(properties.get("review_reason")) or _string(item.get("review_reason"))
-        status = (
-            _string(properties.get("canon_status"))
-            or _string(properties.get("review_posture"))
-            or _string(item.get("identity_status"))
-            or _string(item.get("status"))
-        )
-        branch = (
-            _string(properties.get("branch_path"))
-            or _string(item.get("owner_branch"))
-            or _string(item.get("declared_path"))
-        )
-        route_hint = _string(item.get("route_hint"))
-        parts = [f"{title['default']} — объект типа «{kind_label['default']}»."]
-        if period:
-            parts.append(f"Период: {period}.")
-        if status:
-            parts.append(f"Статус: {status}.")
-        if review_reason:
-            parts.append(f"Основание текущего review-положения: {review_reason}.")
-        if source_document:
-            parts.append(f"Материал подготовлен по источнику: {source_document}.")
-        if branch:
-            parts.append(f"Владеющая ветвь: {branch}.")
-        if route_hint:
-            parts.append(f"Маршрут в дереве: {route_hint}.")
-        if not any((period, status, review_reason, source_document, branch, route_hint)):
-            parts.append(f"Развёрнутое описание в публичной проекции отсутствует; см. {source_refs[0]}.")
+        # Technical status, paths and identifiers remain in the structured
+        # packet. They are not a substitute for a description of the subject.
         state = state or "metadata-synthesis"
-        summary_default = " ".join(parts)
+        summary_default = "Развёрнутое описание пока не добавлено."
     summary = _localized_from(existing.get("summary"), summary_default)
     summary["default"] = summary_default
+    if not authored_summary:
+        summary["ru"] = summary_default
+        summary["en"] = "A detailed description has not been added yet."
     provenance = dict(existing.get("provenance")) if isinstance(existing.get("provenance"), dict) else {}
     provenance.setdefault(
         "title",
@@ -964,11 +947,20 @@ def _relation_display(
     statement_default = f"{left_title} — {label['default']} → {right_title}."
     statement = _localized_from(existing.get("statement"), statement_default)
     statement["default"] = statement_default if not _string(statement.get("default")) else statement["default"]
+    if not _display_text(existing.get("statement")):
+        for language in ("ru", "en"):
+            if not label[language]:
+                continue
+            left_labels = ((left or {}).get("display") or {}).get("title") or {}
+            right_labels = ((right or {}).get("display") or {}).get("title") or {}
+            localized_left = left_labels.get(language) or left_labels.get("original") or left_title
+            localized_right = right_labels.get(language) or right_labels.get("original") or right_title
+            statement[language] = f"{localized_left} — {label[language]} → {localized_right}."
     explanation_value = next(
         (
             _string(value)
             for value in (
-                existing.get("explanation", {}).get("default") if isinstance(existing.get("explanation"), dict) else None,
+                _display_text(existing.get("explanation")),
                 item.get("note"),
                 item.get("comment"),
                 properties.get("comment"),
@@ -984,13 +976,13 @@ def _relation_display(
         explanation_default = explanation_value
         state = state or "source-derived"
     else:
-        explanation_default = (
-            f"Связь «{label['default']}» соединяет «{left_title}» и «{right_title}». "
-            f"Отдельный авторский комментарий в публичной проекции отсутствует; см. {source_refs[0]}."
-        )
+        explanation_default = "Отдельное пояснение к этой связи пока не добавлено."
         state = state or "metadata-synthesis"
     explanation = _localized_from(existing.get("explanation"), explanation_default)
     explanation["default"] = explanation_default
+    if not explanation_value:
+        explanation["ru"] = explanation_default
+        explanation["en"] = "A separate explanation of this relationship has not been added yet."
     provenance = dict(existing.get("provenance")) if isinstance(existing.get("provenance"), dict) else {}
     provenance.setdefault("label", "projected-predicate-label" if existing.get("label") or _string(properties.get("relation_label"))
                           else "registry-label" if exact_type_label and registry_labels else "identifier-fallback")
