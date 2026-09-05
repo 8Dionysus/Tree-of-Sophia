@@ -1,0 +1,1709 @@
+{
+  "schema_version": "tos_semantic_relation_type_registry_v1",
+  "registry_id": "tos.semantic.relation-types",
+  "registry_version": 2,
+  "entity_registry_ref": "ToS/doctrine/semantic-interchange/entity-types.v1.json",
+  "source_refs": [
+    "ToS/doctrine/semantic-interchange/README.md",
+    "ToS/doctrine/KNOWLEDGE_MODEL.md",
+    "ToS/doctrine/CORPUS_FOUNDATION.md",
+    "ToS/contracts/claim-packet.schema.json",
+    "ToS/contracts/first-publication-chronology.schema.json",
+    "ToS/contracts/provision-activity.schema.json",
+    "ToS/canon/registries/predicates.csv",
+    "ToS/philosophy/trunk/relation-kinds/README.md",
+    "scripts/philosophy_graph_projection_common.py"
+  ],
+  "fallback_relation_type_id": "tos.relation.unmapped",
+  "relations": [
+    {"relation_type_id":"tos.relation.has-text-layer","parent_relation_type_ids":["tos.relation.related"],"abstract":false,"labels":{"default":"has text layer","ru":"имеет текстовый слой","en":"has text layer"},"inverse_labels":null,"definition":"Stand-off has_text_layer link explicitly present in the source packet. It records structure, not acceptance of the associated interpretation.","lifecycle":"stable","owner_ref":"ToS/contracts/semantic-annotation-packet-v2.schema.json","domain_type_ids":["tos.entity.work"],"range_type_ids":["tos.entity.text-layer"],"directionality":"directed","transitive":false,"inverse_relation_type_id":null,"cardinality":{"per_subject_min":null,"per_subject_max":null,"per_object_min":null,"per_object_max":null},"assertion_mode":"derived-projection","evidence_required":true,"review_requirement":"recorded","source_mappings":[{"source_graph":"source-navigation","source_predicate_id":"has_text_layer","scope":"edge"}],"supersedes_relation_type_id":null},
+    {"relation_type_id":"tos.relation.has-annotation","parent_relation_type_ids":["tos.relation.related"],"abstract":false,"labels":{"default":"has stand-off packet","ru":"имеет пакет разметки","en":"has stand-off packet"},"inverse_labels":null,"definition":"Stand-off has_annotation link explicitly present in the source packet. It records structure, not acceptance of the associated interpretation.","lifecycle":"stable","owner_ref":"ToS/contracts/semantic-annotation-packet-v2.schema.json","domain_type_ids":["tos.entity.text-layer"],"range_type_ids":["tos.entity.annotation"],"directionality":"directed","transitive":false,"inverse_relation_type_id":null,"cardinality":{"per_subject_min":null,"per_subject_max":null,"per_object_min":null,"per_object_max":null},"assertion_mode":"derived-projection","evidence_required":true,"review_requirement":"recorded","source_mappings":[{"source_graph":"source-navigation","source_predicate_id":"has_annotation","scope":"edge"}],"supersedes_relation_type_id":null},
+    {"relation_type_id":"tos.relation.anchored-in","parent_relation_type_ids":["tos.relation.related"],"abstract":false,"labels":{"default":"anchored in","ru":"привязано к слою","en":"anchored in"},"inverse_labels":null,"definition":"Stand-off anchored_in link explicitly present in the source packet. It records structure, not acceptance of the associated interpretation.","lifecycle":"stable","owner_ref":"ToS/contracts/semantic-annotation-packet-v2.schema.json","domain_type_ids":["tos.entity.anchor"],"range_type_ids":["tos.entity.text-layer"],"directionality":"directed","transitive":false,"inverse_relation_type_id":null,"cardinality":{"per_subject_min":null,"per_subject_max":null,"per_object_min":null,"per_object_max":null},"assertion_mode":"derived-projection","evidence_required":true,"review_requirement":"recorded","source_mappings":[{"source_graph":"source-navigation","source_predicate_id":"anchored_in","scope":"edge"}],"supersedes_relation_type_id":null},
+    {"relation_type_id":"tos.relation.has-text-unit","parent_relation_type_ids":["tos.relation.related"],"abstract":false,"labels":{"default":"has text unit","ru":"содержит текстовую единицу","en":"has text unit"},"inverse_labels":null,"definition":"Stand-off has_text_unit link explicitly present in the source packet. It records structure, not acceptance of the associated interpretation.","lifecycle":"stable","owner_ref":"ToS/contracts/semantic-annotation-packet-v2.schema.json","domain_type_ids":["tos.entity.text-layer"],"range_type_ids":["tos.entity.text-unit"],"directionality":"directed","transitive":false,"inverse_relation_type_id":null,"cardinality":{"per_subject_min":null,"per_subject_max":null,"per_object_min":null,"per_object_max":null},"assertion_mode":"derived-projection","evidence_required":true,"review_requirement":"recorded","source_mappings":[{"source_graph":"source-navigation","source_predicate_id":"has_text_unit","scope":"edge"}],"supersedes_relation_type_id":null},
+    {"relation_type_id":"tos.relation.has-anchor","parent_relation_type_ids":["tos.relation.related"],"abstract":false,"labels":{"default":"has exact anchor","ru":"имеет точный якорь","en":"has exact anchor"},"inverse_labels":null,"definition":"Stand-off has_anchor link explicitly present in the source packet. It records structure, not acceptance of the associated interpretation.","lifecycle":"stable","owner_ref":"ToS/contracts/semantic-annotation-packet-v2.schema.json","domain_type_ids":["tos.entity.text-unit","tos.entity.semantic-object","tos.entity.assertion","tos.entity.evidence"],"range_type_ids":["tos.entity.anchor"],"directionality":"directed","transitive":false,"inverse_relation_type_id":null,"cardinality":{"per_subject_min":null,"per_subject_max":null,"per_object_min":null,"per_object_max":null},"assertion_mode":"derived-projection","evidence_required":true,"review_requirement":"recorded","source_mappings":[{"source_graph":"source-navigation","source_predicate_id":"has_anchor","scope":"edge"}],"supersedes_relation_type_id":null},
+    {"relation_type_id":"tos.relation.annotation-member","parent_relation_type_ids":["tos.relation.related"],"abstract":false,"labels":{"default":"contains annotation member","ru":"содержит элемент разметки","en":"contains annotation member"},"inverse_labels":null,"definition":"Stand-off annotation_member link explicitly present in the source packet. It records structure, not acceptance of the associated interpretation.","lifecycle":"stable","owner_ref":"ToS/contracts/semantic-annotation-packet-v2.schema.json","domain_type_ids":["tos.entity.annotation"],"range_type_ids":["tos.entity.semantic-object","tos.entity.assertion","tos.entity.review"],"directionality":"directed","transitive":false,"inverse_relation_type_id":null,"cardinality":{"per_subject_min":null,"per_subject_max":null,"per_object_min":null,"per_object_max":null},"assertion_mode":"derived-projection","evidence_required":true,"review_requirement":"recorded","source_mappings":[{"source_graph":"source-navigation","source_predicate_id":"annotation_member","scope":"edge"}],"supersedes_relation_type_id":null},
+    {"relation_type_id":"tos.relation.assertion-subject","parent_relation_type_ids":["tos.relation.related"],"abstract":false,"labels":{"default":"has assertion subject","ru":"имеет субъект утверждения","en":"has assertion subject"},"inverse_labels":null,"definition":"Stand-off assertion_subject link explicitly present in the source packet. It records structure, not acceptance of the associated interpretation.","lifecycle":"stable","owner_ref":"ToS/contracts/semantic-annotation-packet-v2.schema.json","domain_type_ids":["tos.entity.assertion"],"range_type_ids":["tos.entity.semantic-object"],"directionality":"directed","transitive":false,"inverse_relation_type_id":null,"cardinality":{"per_subject_min":null,"per_subject_max":null,"per_object_min":null,"per_object_max":null},"assertion_mode":"derived-projection","evidence_required":true,"review_requirement":"recorded","source_mappings":[{"source_graph":"source-navigation","source_predicate_id":"assertion_subject","scope":"edge"}],"supersedes_relation_type_id":null},
+    {"relation_type_id":"tos.relation.assertion-object","parent_relation_type_ids":["tos.relation.related"],"abstract":false,"labels":{"default":"has assertion object","ru":"имеет объект утверждения","en":"has assertion object"},"inverse_labels":null,"definition":"Stand-off assertion_object link explicitly present in the source packet. It records structure, not acceptance of the associated interpretation.","lifecycle":"stable","owner_ref":"ToS/contracts/semantic-annotation-packet-v2.schema.json","domain_type_ids":["tos.entity.assertion"],"range_type_ids":["tos.entity.semantic-object","tos.entity.literal"],"directionality":"directed","transitive":false,"inverse_relation_type_id":null,"cardinality":{"per_subject_min":null,"per_subject_max":null,"per_object_min":null,"per_object_max":null},"assertion_mode":"derived-projection","evidence_required":true,"review_requirement":"recorded","source_mappings":[{"source_graph":"source-navigation","source_predicate_id":"assertion_object","scope":"edge"}],"supersedes_relation_type_id":null},
+    {"relation_type_id":"tos.relation.assertion-evidence","parent_relation_type_ids":["tos.relation.related"],"abstract":false,"labels":{"default":"supported or qualified by","ru":"имеет свидетельство","en":"supported or qualified by"},"inverse_labels":null,"definition":"Stand-off assertion_evidence link explicitly present in the source packet. It records structure, not acceptance of the associated interpretation.","lifecycle":"stable","owner_ref":"ToS/contracts/semantic-annotation-packet-v2.schema.json","domain_type_ids":["tos.entity.claim"],"range_type_ids":["tos.entity.evidence"],"directionality":"directed","transitive":false,"inverse_relation_type_id":null,"cardinality":{"per_subject_min":null,"per_subject_max":null,"per_object_min":null,"per_object_max":null},"assertion_mode":"derived-projection","evidence_required":true,"review_requirement":"recorded","source_mappings":[{"source_graph":"source-navigation","source_predicate_id":"assertion_evidence","scope":"edge"}],"supersedes_relation_type_id":null},
+    {"relation_type_id":"tos.relation.assertion-review","parent_relation_type_ids":["tos.relation.related"],"abstract":false,"labels":{"default":"has scoped review","ru":"имеет проверку","en":"has scoped review"},"inverse_labels":null,"definition":"Stand-off assertion_review link explicitly present in the source packet. It records structure, not acceptance of the associated interpretation.","lifecycle":"stable","owner_ref":"ToS/contracts/semantic-annotation-packet-v2.schema.json","domain_type_ids":["tos.entity.claim"],"range_type_ids":["tos.entity.review"],"directionality":"directed","transitive":false,"inverse_relation_type_id":null,"cardinality":{"per_subject_min":null,"per_subject_max":null,"per_object_min":null,"per_object_max":null},"assertion_mode":"derived-projection","evidence_required":true,"review_requirement":"recorded","source_mappings":[{"source_graph":"source-navigation","source_predicate_id":"assertion_review","scope":"edge"}],"supersedes_relation_type_id":null},
+    {"relation_type_id":"tos.relation.asserted-by","parent_relation_type_ids":["tos.relation.related"],"abstract":false,"labels":{"default":"asserted by claim","ru":"заявлено в утверждении","en":"asserted by claim"},"inverse_labels":null,"definition":"Stand-off asserted_by link explicitly present in the source packet. It records structure, not acceptance of the associated interpretation.","lifecycle":"stable","owner_ref":"ToS/contracts/semantic-annotation-packet-v2.schema.json","domain_type_ids":["tos.entity.assertion"],"range_type_ids":["tos.entity.claim"],"directionality":"directed","transitive":false,"inverse_relation_type_id":null,"cardinality":{"per_subject_min":null,"per_subject_max":null,"per_object_min":null,"per_object_max":null},"assertion_mode":"derived-projection","evidence_required":true,"review_requirement":"recorded","source_mappings":[{"source_graph":"source-navigation","source_predicate_id":"asserted_by","scope":"edge"}],"supersedes_relation_type_id":null},
+    {
+      "relation_type_id": "tos.relation.related",
+      "parent_relation_type_ids": [],
+      "abstract": true,
+      "labels": {"default": "related to", "ru": "связано с", "en": "related to"},
+      "inverse_labels": null,
+      "definition": "Root of the semantic interchange relation hierarchy; it does not erase source-native predicates.",
+      "lifecycle": "stable",
+      "owner_ref": "ToS/doctrine/semantic-interchange/README.md",
+      "domain_type_ids": ["tos.entity.thing"],
+      "range_type_ids": ["tos.entity.thing"],
+      "directionality": "directed",
+      "transitive": false,
+      "inverse_relation_type_id": null,
+      "cardinality": {"per_subject_min": null, "per_subject_max": null, "per_object_min": null, "per_object_max": null},
+      "assertion_mode": "direct",
+      "evidence_required": false,
+      "review_requirement": "none",
+      "source_mappings": [],
+      "supersedes_relation_type_id": null
+    },
+    {
+      "relation_type_id": "tos.relation.unmapped",
+      "parent_relation_type_ids": ["tos.relation.related"],
+      "abstract": false,
+      "labels": {"default": "unmapped source relation", "ru": "неотображённое исходное отношение", "en": "unmapped source relation"},
+      "inverse_labels": null,
+      "definition": "Explicit fallback for a source-native predicate that has no reviewed semantic interchange mapping yet.",
+      "lifecycle": "stable",
+      "owner_ref": "ToS/doctrine/semantic-interchange/README.md",
+      "domain_type_ids": ["tos.entity.thing"],
+      "range_type_ids": ["tos.entity.thing"],
+      "directionality": "directed",
+      "transitive": false,
+      "inverse_relation_type_id": null,
+      "cardinality": {"per_subject_min": null, "per_subject_max": null, "per_object_min": null, "per_object_max": null},
+      "assertion_mode": "unmapped",
+      "evidence_required": false,
+      "review_requirement": "none",
+      "source_mappings": [],
+      "supersedes_relation_type_id": null
+    },
+    {
+      "relation_type_id": "tos.relation.philosophy-conceptual",
+      "parent_relation_type_ids": ["tos.relation.related"],
+      "abstract": false,
+      "labels": {"default": "philosophical conceptual relation", "ru": "философская понятийная связь", "en": "philosophical conceptual relation"},
+      "inverse_labels": null,
+      "definition": "Stable interchange family for source-native conceptual predicates; predicate_id preserves the exact authored relation such as develops_concept or influences.",
+      "lifecycle": "stable",
+      "owner_ref": "ToS/philosophy/trunk/relation-kinds/README.md",
+      "domain_type_ids": ["tos.entity.thing"],
+      "range_type_ids": ["tos.entity.thing"],
+      "directionality": "directed",
+      "transitive": false,
+      "inverse_relation_type_id": null,
+      "cardinality": {"per_subject_min": null, "per_subject_max": null, "per_object_min": null, "per_object_max": null},
+      "assertion_mode": "direct",
+      "evidence_required": true,
+      "review_requirement": "recorded",
+      "source_mappings": [
+        {"source_graph": "philosophy", "source_predicate_id": "belongs_to_genre", "scope": "edge", "labels": {"default": "belongs to genre", "ru": "относится к жанру", "en": "belongs to genre"}, "definition": "Source-declared genre classification; neither identity nor authorship."},
+        {"source_graph": "philosophy", "source_predicate_id": "develops_concept", "scope": "edge", "labels": {"default": "develops concept", "ru": "развивает понятие", "en": "develops concept"}, "definition": "Source-declared development of the target concept; the source review posture remains authoritative."},
+        {"source_graph": "philosophy", "source_predicate_id": "influences", "scope": "edge", "labels": {"default": "influences", "ru": "влияет на", "en": "influences"}, "definition": "A directional influence claim, not equivalence, necessary causation, or an automatically transitive relation."},
+        {"source_graph": "philosophy", "source_predicate_id": "polemicizes_with", "scope": "edge", "labels": {"default": "polemicizes with", "ru": "полемизирует с", "en": "polemicizes with"}, "definition": "Source-declared polemical engagement; it neither establishes influence nor requires reciprocal engagement."},
+        {"source_graph": "philosophy", "source_predicate_id": "transforms_concept", "scope": "edge", "labels": {"default": "transforms concept", "ru": "преобразует понятие", "en": "transforms concept"}, "definition": "Source-declared conceptual transformation; the target is not thereby identical to the source."}
+      ],
+      "supersedes_relation_type_id": null
+    },
+    {
+      "relation_type_id": "tos.relation.philosophy-historical",
+      "parent_relation_type_ids": ["tos.relation.related"],
+      "abstract": false,
+      "labels": {"default": "philosophical historical relation", "ru": "философско-историческая связь", "en": "philosophical historical relation"},
+      "inverse_labels": null,
+      "definition": "Stable interchange family for historical placement while retaining the exact source-native predicate_id.",
+      "lifecycle": "stable",
+      "owner_ref": "scripts/philosophy_graph_projection_common.py",
+      "domain_type_ids": ["tos.entity.thing"],
+      "range_type_ids": ["tos.entity.thing"],
+      "directionality": "directed",
+      "transitive": false,
+      "inverse_relation_type_id": null,
+      "cardinality": {"per_subject_min": null, "per_subject_max": null, "per_object_min": null, "per_object_max": null},
+      "assertion_mode": "direct",
+      "evidence_required": true,
+      "review_requirement": "recorded",
+      "source_mappings": [{"source_graph": "philosophy", "source_predicate_id": "institutionalized_in", "scope": "edge"}],
+      "supersedes_relation_type_id": null
+    },
+    {
+      "relation_type_id": "tos.relation.philosophy-transmission",
+      "parent_relation_type_ids": ["tos.relation.related"],
+      "abstract": false,
+      "labels": {"default": "philosophical transmission relation", "ru": "связь передачи и сохранения", "en": "philosophical transmission relation"},
+      "inverse_labels": null,
+      "definition": "Stable interchange family for transmission, commentary, translation, preservation and survival predicates without collapsing their source-native identity.",
+      "lifecycle": "stable",
+      "owner_ref": "ToS/philosophy/trunk/relation-kinds/README.md",
+      "domain_type_ids": ["tos.entity.thing"],
+      "range_type_ids": ["tos.entity.thing"],
+      "directionality": "directed",
+      "transitive": false,
+      "inverse_relation_type_id": null,
+      "cardinality": {"per_subject_min": null, "per_subject_max": null, "per_object_min": null, "per_object_max": null},
+      "assertion_mode": "direct",
+      "evidence_required": true,
+      "review_requirement": "recorded",
+      "source_mappings": [
+        {"source_graph": "philosophy", "source_predicate_id": "canonized_by", "scope": "edge"},
+        {"source_graph": "philosophy", "source_predicate_id": "commented_by", "scope": "edge"},
+        {"source_graph": "philosophy", "source_predicate_id": "fragments_preserved_by", "scope": "edge"},
+        {"source_graph": "philosophy", "source_predicate_id": "preserved_in", "scope": "edge"},
+        {"source_graph": "philosophy", "source_predicate_id": "preserves_in", "scope": "edge"},
+        {"source_graph": "philosophy", "source_predicate_id": "receives_from", "scope": "edge"},
+        {"source_graph": "philosophy", "source_predicate_id": "survives_as", "scope": "edge"},
+        {"source_graph": "philosophy", "source_predicate_id": "translated_into", "scope": "edge"},
+        {"source_graph": "philosophy", "source_predicate_id": "transmits_to", "scope": "edge"}
+      ],
+      "supersedes_relation_type_id": null
+    },
+    {
+      "relation_type_id": "tos.relation.philosophy-evidential",
+      "parent_relation_type_ids": ["tos.relation.related"],
+      "abstract": false,
+      "labels": {"default": "philosophical evidence posture", "ru": "доказательная позиция философского графа", "en": "philosophical evidence posture"},
+      "inverse_labels": null,
+      "definition": "Stable interchange family for contestation and explicitly uncertain source relations; it never upgrades them to accepted truth.",
+      "lifecycle": "stable",
+      "owner_ref": "scripts/philosophy_graph_projection_common.py",
+      "domain_type_ids": ["tos.entity.thing"],
+      "range_type_ids": ["tos.entity.thing"],
+      "directionality": "directed",
+      "transitive": false,
+      "inverse_relation_type_id": null,
+      "cardinality": {"per_subject_min": null, "per_subject_max": null, "per_object_min": null, "per_object_max": null},
+      "assertion_mode": "direct",
+      "evidence_required": true,
+      "review_requirement": "recorded",
+      "source_mappings": [
+        {"source_graph": "philosophy", "source_predicate_id": "contested_by", "scope": "edge"},
+        {"source_graph": "philosophy", "source_predicate_id": "uncertain_relation", "scope": "edge"}
+      ],
+      "supersedes_relation_type_id": null
+    },
+    {
+      "relation_type_id": "tos.relation.philosophy-language",
+      "parent_relation_type_ids": ["tos.relation.related"],
+      "abstract": false,
+      "labels": {"default": "language or script relation", "ru": "связь языка или письменности", "en": "language or script relation"},
+      "inverse_labels": null,
+      "definition": "Stable interchange family for declared language and script use; exact predicate_id distinguishes language from script.",
+      "lifecycle": "stable",
+      "owner_ref": "ToS/philosophy/trunk/relation-kinds/README.md",
+      "domain_type_ids": ["tos.entity.thing"],
+      "range_type_ids": ["tos.entity.thing"],
+      "directionality": "directed",
+      "transitive": false,
+      "inverse_relation_type_id": null,
+      "cardinality": {"per_subject_min": null, "per_subject_max": null, "per_object_min": null, "per_object_max": null},
+      "assertion_mode": "direct",
+      "evidence_required": true,
+      "review_requirement": "recorded",
+      "source_mappings": [
+        {"source_graph": "philosophy", "source_predicate_id": "uses_language", "scope": "edge"},
+        {"source_graph": "philosophy", "source_predicate_id": "uses_script", "scope": "edge"}
+      ],
+      "supersedes_relation_type_id": null
+    },
+    {
+      "relation_type_id": "tos.relation.projection-pressure",
+      "parent_relation_type_ids": ["tos.relation.structural"],
+      "abstract": false,
+      "labels": {"default": "records projection pressure", "ru": "фиксирует давление проекции", "en": "records projection pressure"},
+      "inverse_labels": null,
+      "definition": "Derived workbench relation that counts requested node or relation vocabulary; it is not a philosophical assertion.",
+      "lifecycle": "stable",
+      "owner_ref": "scripts/philosophy_atlas_projection_common.py",
+      "domain_type_ids": ["tos.entity.philosophy-meta"],
+      "range_type_ids": ["tos.entity.philosophy-meta"],
+      "directionality": "directed",
+      "transitive": false,
+      "inverse_relation_type_id": null,
+      "cardinality": {"per_subject_min": null, "per_subject_max": null, "per_object_min": null, "per_object_max": null},
+      "assertion_mode": "derived-projection",
+      "evidence_required": false,
+      "review_requirement": "none",
+      "source_mappings": [
+        {"source_graph": "philosophy", "source_predicate_id": "has_node_type_pressure", "scope": "edge"},
+        {"source_graph": "philosophy", "source_predicate_id": "has_relation_pressure", "scope": "edge"}
+      ],
+      "supersedes_relation_type_id": null
+    },
+    {
+      "relation_type_id": "tos.relation.projection-structure",
+      "parent_relation_type_ids": ["tos.relation.structural"],
+      "abstract": false,
+      "labels": {"default": "contains projected workbench object", "ru": "содержит объект рабочей проекции", "en": "contains projected workbench object"},
+      "inverse_labels": null,
+      "definition": "Derived atlas and workbench containment or preparation route; it carries navigation, not philosophical truth.",
+      "lifecycle": "stable",
+      "owner_ref": "scripts/philosophy_atlas_projection_common.py",
+      "domain_type_ids": ["tos.entity.philosophy-meta"],
+      "range_type_ids": ["tos.entity.philosophy-meta"],
+      "directionality": "directed",
+      "transitive": false,
+      "inverse_relation_type_id": null,
+      "cardinality": {"per_subject_min": null, "per_subject_max": null, "per_object_min": null, "per_object_max": null},
+      "assertion_mode": "derived-projection",
+      "evidence_required": false,
+      "review_requirement": "none",
+      "source_mappings": [
+        {"source_graph": "philosophy", "source_predicate_id": "contains_row", "scope": "edge"},
+        {"source_graph": "philosophy", "source_predicate_id": "contains_view", "scope": "edge"},
+        {"source_graph": "philosophy", "source_predicate_id": "has_prepared_dossier", "scope": "edge"}
+      ],
+      "supersedes_relation_type_id": null
+    },
+    {
+      "relation_type_id": "tos.relation.link-access",
+      "parent_relation_type_ids": ["tos.relation.related"],
+      "abstract": false,
+      "labels": {"default": "links to an access or description surface", "ru": "связывает с поверхностью доступа или описания", "en": "links to an access or description surface"},
+      "inverse_labels": null,
+      "definition": "Connects a source object to a declared Link identity; predicate_id retains whether the link describes, supplies metadata, states rights, or permits download.",
+      "lifecycle": "stable",
+      "owner_ref": "ToS/contracts/corpus-record.schema.json",
+      "domain_type_ids": ["tos.entity.thing"],
+      "range_type_ids": ["tos.entity.link"],
+      "directionality": "directed",
+      "transitive": false,
+      "inverse_relation_type_id": null,
+      "cardinality": {"per_subject_min": null, "per_subject_max": null, "per_object_min": null, "per_object_max": null},
+      "assertion_mode": "direct",
+      "evidence_required": true,
+      "review_requirement": "recorded",
+      "source_mappings": [
+        {"source_graph": "source-navigation", "source_predicate_id": "described_by", "scope": "edge"},
+        {"source_graph": "source-navigation", "source_predicate_id": "downloadable_at", "scope": "edge"},
+        {"source_graph": "source-navigation", "source_predicate_id": "metadata_at", "scope": "edge"},
+        {"source_graph": "source-navigation", "source_predicate_id": "rights_statement_at", "scope": "edge"}
+      ],
+      "supersedes_relation_type_id": null
+    },
+    {
+      "relation_type_id": "tos.relation.canon-node-relation",
+      "parent_relation_type_ids": ["tos.relation.related"],
+      "abstract": false,
+      "labels": {"default": "authored canon-node relation", "ru": "авторская связь canon-узла", "en": "authored canon-node relation"},
+      "inverse_labels": null,
+      "definition": "Stable interchange family for the bounded relation vocabulary embedded directly in authored ToS node contracts; predicate_id preserves the exact subtype.",
+      "lifecycle": "stable",
+      "owner_ref": "ToS/contracts/tos-node-contract.schema.json",
+      "domain_type_ids": ["tos.entity.thing"],
+      "range_type_ids": ["tos.entity.thing"],
+      "directionality": "directed",
+      "transitive": false,
+      "inverse_relation_type_id": null,
+      "cardinality": {"per_subject_min": null, "per_subject_max": null, "per_object_min": null, "per_object_max": null},
+      "assertion_mode": "direct",
+      "evidence_required": true,
+      "review_requirement": "recorded",
+      "source_mappings": [
+        {"source_graph": "canon", "source_predicate_id": "commentary-on", "scope": "edge"},
+        {"source_graph": "canon", "source_predicate_id": "contextualized-by", "scope": "edge"},
+        {"source_graph": "canon", "source_predicate_id": "descendant", "scope": "edge"},
+        {"source_graph": "canon", "source_predicate_id": "mutation", "scope": "edge"},
+        {"source_graph": "canon", "source_predicate_id": "parallel", "scope": "edge"},
+        {"source_graph": "canon", "source_predicate_id": "predecessor", "scope": "edge"},
+        {"source_graph": "canon", "source_predicate_id": "tension", "scope": "edge"}
+      ],
+      "supersedes_relation_type_id": null
+    },
+    {
+      "relation_type_id": "tos.relation.canon-registered-predicate",
+      "parent_relation_type_ids": [
+        "tos.relation.related"
+      ],
+      "abstract": false,
+      "labels": {
+        "default": "registered authored predicate",
+        "ru": "зарегистрированный авторский предикат",
+        "en": "registered authored predicate"
+      },
+      "inverse_labels": null,
+      "definition": "Stable interchange family for predicates owned by the ToS canon predicate registry; predicate_id preserves the exact registered subtype and its source authority.",
+      "lifecycle": "stable",
+      "owner_ref": "ToS/canon/registries/predicates.csv",
+      "domain_type_ids": [
+        "tos.entity.thing"
+      ],
+      "range_type_ids": [
+        "tos.entity.thing"
+      ],
+      "directionality": "directed",
+      "transitive": false,
+      "inverse_relation_type_id": null,
+      "cardinality": {
+        "per_subject_min": null,
+        "per_subject_max": null,
+        "per_object_min": null,
+        "per_object_max": null
+      },
+      "assertion_mode": "direct",
+      "evidence_required": true,
+      "review_requirement": "recorded",
+      "source_mappings": [
+        {
+          "source_graph": "canon",
+          "source_predicate_id": "addresses",
+          "scope": "edge"
+        },
+        {
+          "source_graph": "candidate-intake",
+          "source_predicate_id": "addresses",
+          "scope": "edge"
+        },
+        {
+          "source_graph": "canon",
+          "source_predicate_id": "affects",
+          "scope": "edge"
+        },
+        {
+          "source_graph": "candidate-intake",
+          "source_predicate_id": "affects",
+          "scope": "edge"
+        },
+        {
+          "source_graph": "canon",
+          "source_predicate_id": "aims_at",
+          "scope": "edge"
+        },
+        {
+          "source_graph": "candidate-intake",
+          "source_predicate_id": "aims_at",
+          "scope": "edge"
+        },
+        {
+          "source_graph": "canon",
+          "source_predicate_id": "asks_for",
+          "scope": "edge"
+        },
+        {
+          "source_graph": "candidate-intake",
+          "source_predicate_id": "asks_for",
+          "scope": "edge"
+        },
+        {
+          "source_graph": "canon",
+          "source_predicate_id": "aspect_of",
+          "scope": "edge"
+        },
+        {
+          "source_graph": "candidate-intake",
+          "source_predicate_id": "aspect_of",
+          "scope": "edge"
+        },
+        {
+          "source_graph": "canon",
+          "source_predicate_id": "becomes_glad_of",
+          "scope": "edge"
+        },
+        {
+          "source_graph": "candidate-intake",
+          "source_predicate_id": "becomes_glad_of",
+          "scope": "edge"
+        },
+        {
+          "source_graph": "canon",
+          "source_predicate_id": "beholds",
+          "scope": "edge"
+        },
+        {
+          "source_graph": "candidate-intake",
+          "source_predicate_id": "beholds",
+          "scope": "edge"
+        },
+        {
+          "source_graph": "canon",
+          "source_predicate_id": "blesses",
+          "scope": "edge"
+        },
+        {
+          "source_graph": "candidate-intake",
+          "source_predicate_id": "blesses",
+          "scope": "edge"
+        },
+        {
+          "source_graph": "canon",
+          "source_predicate_id": "carries",
+          "scope": "edge"
+        },
+        {
+          "source_graph": "candidate-intake",
+          "source_predicate_id": "carries",
+          "scope": "edge"
+        },
+        {
+          "source_graph": "canon",
+          "source_predicate_id": "compares_state_to",
+          "scope": "edge"
+        },
+        {
+          "source_graph": "candidate-intake",
+          "source_predicate_id": "compares_state_to",
+          "scope": "edge"
+        },
+        {
+          "source_graph": "canon",
+          "source_predicate_id": "concerns",
+          "scope": "edge"
+        },
+        {
+          "source_graph": "candidate-intake",
+          "source_predicate_id": "concerns",
+          "scope": "edge"
+        },
+        {
+          "source_graph": "canon",
+          "source_predicate_id": "continues_until",
+          "scope": "edge"
+        },
+        {
+          "source_graph": "candidate-intake",
+          "source_predicate_id": "continues_until",
+          "scope": "edge"
+        },
+        {
+          "source_graph": "canon",
+          "source_predicate_id": "culminates_in",
+          "scope": "edge"
+        },
+        {
+          "source_graph": "candidate-intake",
+          "source_predicate_id": "culminates_in",
+          "scope": "edge"
+        },
+        {
+          "source_graph": "canon",
+          "source_predicate_id": "delights_in",
+          "scope": "edge"
+        },
+        {
+          "source_graph": "candidate-intake",
+          "source_predicate_id": "delights_in",
+          "scope": "edge"
+        },
+        {
+          "source_graph": "canon",
+          "source_predicate_id": "depends_on",
+          "scope": "edge"
+        },
+        {
+          "source_graph": "candidate-intake",
+          "source_predicate_id": "depends_on",
+          "scope": "edge"
+        },
+        {
+          "source_graph": "canon",
+          "source_predicate_id": "destination",
+          "scope": "edge"
+        },
+        {
+          "source_graph": "candidate-intake",
+          "source_predicate_id": "destination",
+          "scope": "edge"
+        },
+        {
+          "source_graph": "canon",
+          "source_predicate_id": "duration",
+          "scope": "edge"
+        },
+        {
+          "source_graph": "candidate-intake",
+          "source_predicate_id": "duration",
+          "scope": "edge"
+        },
+        {
+          "source_graph": "canon",
+          "source_predicate_id": "enters_state",
+          "scope": "edge"
+        },
+        {
+          "source_graph": "candidate-intake",
+          "source_predicate_id": "enters_state",
+          "scope": "edge"
+        },
+        {
+          "source_graph": "canon",
+          "source_predicate_id": "excludes",
+          "scope": "edge"
+        },
+        {
+          "source_graph": "candidate-intake",
+          "source_predicate_id": "excludes",
+          "scope": "edge"
+        },
+        {
+          "source_graph": "canon",
+          "source_predicate_id": "for",
+          "scope": "edge"
+        },
+        {
+          "source_graph": "candidate-intake",
+          "source_predicate_id": "for",
+          "scope": "edge"
+        },
+        {
+          "source_graph": "canon",
+          "source_predicate_id": "formalizes",
+          "scope": "edge"
+        },
+        {
+          "source_graph": "candidate-intake",
+          "source_predicate_id": "formalizes",
+          "scope": "edge"
+        },
+        {
+          "source_graph": "canon",
+          "source_predicate_id": "from",
+          "scope": "edge"
+        },
+        {
+          "source_graph": "candidate-intake",
+          "source_predicate_id": "from",
+          "scope": "edge"
+        },
+        {
+          "source_graph": "canon",
+          "source_predicate_id": "gathers",
+          "scope": "edge"
+        },
+        {
+          "source_graph": "candidate-intake",
+          "source_predicate_id": "gathers",
+          "scope": "edge"
+        },
+        {
+          "source_graph": "canon",
+          "source_predicate_id": "goes_to",
+          "scope": "edge"
+        },
+        {
+          "source_graph": "candidate-intake",
+          "source_predicate_id": "goes_to",
+          "scope": "edge"
+        },
+        {
+          "source_graph": "canon",
+          "source_predicate_id": "has_mode",
+          "scope": "edge"
+        },
+        {
+          "source_graph": "candidate-intake",
+          "source_predicate_id": "has_mode",
+          "scope": "edge"
+        },
+        {
+          "source_graph": "canon",
+          "source_predicate_id": "has_quality",
+          "scope": "edge"
+        },
+        {
+          "source_graph": "candidate-intake",
+          "source_predicate_id": "has_quality",
+          "scope": "edge"
+        },
+        {
+          "source_graph": "canon",
+          "source_predicate_id": "has_quantity",
+          "scope": "edge"
+        },
+        {
+          "source_graph": "candidate-intake",
+          "source_predicate_id": "has_quantity",
+          "scope": "edge"
+        },
+        {
+          "source_graph": "canon",
+          "source_predicate_id": "includes",
+          "scope": "edge"
+        },
+        {
+          "source_graph": "candidate-intake",
+          "source_predicate_id": "includes",
+          "scope": "edge"
+        },
+        {
+          "source_graph": "canon",
+          "source_predicate_id": "leads_to",
+          "scope": "edge"
+        },
+        {
+          "source_graph": "candidate-intake",
+          "source_predicate_id": "leads_to",
+          "scope": "edge"
+        },
+        {
+          "source_graph": "canon",
+          "source_predicate_id": "leaves",
+          "scope": "edge"
+        },
+        {
+          "source_graph": "candidate-intake",
+          "source_predicate_id": "leaves",
+          "scope": "edge"
+        },
+        {
+          "source_graph": "canon",
+          "source_predicate_id": "mirrors",
+          "scope": "edge"
+        },
+        {
+          "source_graph": "candidate-intake",
+          "source_predicate_id": "mirrors",
+          "scope": "edge"
+        },
+        {
+          "source_graph": "canon",
+          "source_predicate_id": "motivated_by",
+          "scope": "edge"
+        },
+        {
+          "source_graph": "candidate-intake",
+          "source_predicate_id": "motivated_by",
+          "scope": "edge"
+        },
+        {
+          "source_graph": "canon",
+          "source_predicate_id": "moves_beyond",
+          "scope": "edge"
+        },
+        {
+          "source_graph": "candidate-intake",
+          "source_predicate_id": "moves_beyond",
+          "scope": "edge"
+        },
+        {
+          "source_graph": "canon",
+          "source_predicate_id": "names_descent_as",
+          "scope": "edge"
+        },
+        {
+          "source_graph": "candidate-intake",
+          "source_predicate_id": "names_descent_as",
+          "scope": "edge"
+        },
+        {
+          "source_graph": "canon",
+          "source_predicate_id": "occurs_every",
+          "scope": "edge"
+        },
+        {
+          "source_graph": "candidate-intake",
+          "source_predicate_id": "occurs_every",
+          "scope": "edge"
+        },
+        {
+          "source_graph": "canon",
+          "source_predicate_id": "occurs_in",
+          "scope": "edge"
+        },
+        {
+          "source_graph": "candidate-intake",
+          "source_predicate_id": "occurs_in",
+          "scope": "edge"
+        },
+        {
+          "source_graph": "canon",
+          "source_predicate_id": "occurs_with",
+          "scope": "edge"
+        },
+        {
+          "source_graph": "candidate-intake",
+          "source_predicate_id": "occurs_with",
+          "scope": "edge"
+        },
+        {
+          "source_graph": "canon",
+          "source_predicate_id": "originates_from",
+          "scope": "edge"
+        },
+        {
+          "source_graph": "candidate-intake",
+          "source_predicate_id": "originates_from",
+          "scope": "edge"
+        },
+        {
+          "source_graph": "canon",
+          "source_predicate_id": "parallels",
+          "scope": "edge"
+        },
+        {
+          "source_graph": "candidate-intake",
+          "source_predicate_id": "parallels",
+          "scope": "edge"
+        },
+        {
+          "source_graph": "canon",
+          "source_predicate_id": "participates_in",
+          "scope": "edge"
+        },
+        {
+          "source_graph": "candidate-intake",
+          "source_predicate_id": "participates_in",
+          "scope": "edge"
+        },
+        {
+          "source_graph": "canon",
+          "source_predicate_id": "performs",
+          "scope": "edge"
+        },
+        {
+          "source_graph": "candidate-intake",
+          "source_predicate_id": "performs",
+          "scope": "edge"
+        },
+        {
+          "source_graph": "canon",
+          "source_predicate_id": "pertains_to",
+          "scope": "edge"
+        },
+        {
+          "source_graph": "candidate-intake",
+          "source_predicate_id": "pertains_to",
+          "scope": "edge"
+        },
+        {
+          "source_graph": "canon",
+          "source_predicate_id": "prefigures",
+          "scope": "edge"
+        },
+        {
+          "source_graph": "candidate-intake",
+          "source_predicate_id": "prefigures",
+          "scope": "edge"
+        },
+        {
+          "source_graph": "canon",
+          "source_predicate_id": "prepares",
+          "scope": "edge"
+        },
+        {
+          "source_graph": "candidate-intake",
+          "source_predicate_id": "prepares",
+          "scope": "edge"
+        },
+        {
+          "source_graph": "canon",
+          "source_predicate_id": "prevented_by",
+          "scope": "edge"
+        },
+        {
+          "source_graph": "candidate-intake",
+          "source_predicate_id": "prevented_by",
+          "scope": "edge"
+        },
+        {
+          "source_graph": "canon",
+          "source_predicate_id": "receives",
+          "scope": "edge"
+        },
+        {
+          "source_graph": "candidate-intake",
+          "source_predicate_id": "receives",
+          "scope": "edge"
+        },
+        {
+          "source_graph": "canon",
+          "source_predicate_id": "reflects",
+          "scope": "edge"
+        },
+        {
+          "source_graph": "candidate-intake",
+          "source_predicate_id": "reflects",
+          "scope": "edge"
+        },
+        {
+          "source_graph": "canon",
+          "source_predicate_id": "requires",
+          "scope": "edge"
+        },
+        {
+          "source_graph": "candidate-intake",
+          "source_predicate_id": "requires",
+          "scope": "edge"
+        },
+        {
+          "source_graph": "canon",
+          "source_predicate_id": "subset_of",
+          "scope": "edge"
+        },
+        {
+          "source_graph": "candidate-intake",
+          "source_predicate_id": "subset_of",
+          "scope": "edge"
+        },
+        {
+          "source_graph": "canon",
+          "source_predicate_id": "supported_by",
+          "scope": "edge"
+        },
+        {
+          "source_graph": "candidate-intake",
+          "source_predicate_id": "supported_by",
+          "scope": "edge"
+        },
+        {
+          "source_graph": "canon",
+          "source_predicate_id": "targets",
+          "scope": "edge"
+        },
+        {
+          "source_graph": "candidate-intake",
+          "source_predicate_id": "targets",
+          "scope": "edge"
+        },
+        {
+          "source_graph": "canon",
+          "source_predicate_id": "uses_image_of",
+          "scope": "edge"
+        },
+        {
+          "source_graph": "candidate-intake",
+          "source_predicate_id": "uses_image_of",
+          "scope": "edge"
+        },
+        {
+          "source_graph": "canon",
+          "source_predicate_id": "uses_surface",
+          "scope": "edge"
+        },
+        {
+          "source_graph": "candidate-intake",
+          "source_predicate_id": "uses_surface",
+          "scope": "edge"
+        }
+      ],
+      "supersedes_relation_type_id": null
+    }
+    ,
+    {
+      "relation_type_id": "tos.relation.structural",
+      "parent_relation_type_ids": ["tos.relation.related"],
+      "abstract": true,
+      "labels": {"default": "structurally related to", "ru": "структурно связано с", "en": "structurally related to"},
+      "inverse_labels": null,
+      "definition": "Root for source-tree and repository topology relations that do not assert philosophical meaning.",
+      "lifecycle": "stable",
+      "owner_ref": "ToS/source_home.manifest.json",
+      "domain_type_ids": ["tos.entity.thing"],
+      "range_type_ids": ["tos.entity.thing"],
+      "directionality": "directed",
+      "transitive": false,
+      "inverse_relation_type_id": null,
+      "cardinality": {"per_subject_min": null, "per_subject_max": null, "per_object_min": null, "per_object_max": null},
+      "assertion_mode": "structural",
+      "evidence_required": false,
+      "review_requirement": "none",
+      "source_mappings": [],
+      "supersedes_relation_type_id": null
+    },
+    {
+      "relation_type_id": "tos.relation.contains-structurally",
+      "parent_relation_type_ids": ["tos.relation.structural"],
+      "abstract": false,
+      "labels": {"default": "contains structurally", "ru": "структурно содержит", "en": "contains structurally"},
+      "inverse_labels": {"default": "is structurally contained by", "ru": "структурно содержится в", "en": "is structurally contained by"},
+      "definition": "Contains another navigation or repository projection object; it is not geographic containment.",
+      "lifecycle": "stable",
+      "owner_ref": "ToS/source_home.manifest.json",
+      "domain_type_ids": ["tos.entity.thing"],
+      "range_type_ids": ["tos.entity.thing"],
+      "directionality": "directed",
+      "transitive": false,
+      "inverse_relation_type_id": null,
+      "cardinality": {"per_subject_min": null, "per_subject_max": null, "per_object_min": null, "per_object_max": null},
+      "assertion_mode": "structural",
+      "evidence_required": false,
+      "review_requirement": "none",
+      "source_mappings": [
+        {"source_graph": "repository", "source_predicate_id": "contains", "scope": "edge"},
+        {"source_graph": "source-navigation", "source_predicate_id": "contains", "scope": "edge"}
+      ],
+      "supersedes_relation_type_id": null
+    },
+    {
+      "relation_type_id": "tos.relation.owns-manifest",
+      "parent_relation_type_ids": ["tos.relation.structural"],
+      "abstract": false,
+      "labels": {"default": "owns manifest", "ru": "владеет манифестом", "en": "owns manifest"},
+      "inverse_labels": {"default": "is manifest of", "ru": "является манифестом", "en": "is manifest of"},
+      "definition": "Connects a repository branch projection to its indexed manifest representation.",
+      "lifecycle": "stable",
+      "owner_ref": "ToS/derived-exports/AGENTS.md",
+      "domain_type_ids": ["tos.entity.repository-branch"],
+      "range_type_ids": ["tos.entity.repository-manifest"],
+      "directionality": "directed",
+      "transitive": false,
+      "inverse_relation_type_id": null,
+      "cardinality": {"per_subject_min": null, "per_subject_max": null, "per_object_min": null, "per_object_max": 1},
+      "assertion_mode": "structural",
+      "evidence_required": false,
+      "review_requirement": "none",
+      "source_mappings": [{"source_graph": "repository", "source_predicate_id": "owns_manifest", "scope": "edge"}],
+      "supersedes_relation_type_id": null
+    },
+    {
+      "relation_type_id": "tos.relation.owns-resource",
+      "parent_relation_type_ids": ["tos.relation.structural"],
+      "abstract": false,
+      "labels": {"default": "owns resource", "ru": "владеет ресурсом", "en": "owns resource"},
+      "inverse_labels": {"default": "is resource of", "ru": "является ресурсом", "en": "is resource of"},
+      "definition": "Connects a repository branch projection to an indexed resource representation.",
+      "lifecycle": "stable",
+      "owner_ref": "ToS/derived-exports/AGENTS.md",
+      "domain_type_ids": ["tos.entity.repository-branch"],
+      "range_type_ids": ["tos.entity.repository-object"],
+      "directionality": "directed",
+      "transitive": false,
+      "inverse_relation_type_id": null,
+      "cardinality": {"per_subject_min": null, "per_subject_max": null, "per_object_min": null, "per_object_max": 1},
+      "assertion_mode": "structural",
+      "evidence_required": false,
+      "review_requirement": "none",
+      "source_mappings": [{"source_graph": "repository", "source_predicate_id": "owns_resource", "scope": "edge"}],
+      "supersedes_relation_type_id": null
+    },
+    {
+      "relation_type_id": "tos.relation.has-source-planting",
+      "parent_relation_type_ids": ["tos.relation.structural"],
+      "abstract": false,
+      "labels": {"default": "has source planting", "ru": "имеет посадку источника", "en": "has source planting"},
+      "inverse_labels": {"default": "is planted in", "ru": "посажено в", "en": "is planted in"},
+      "definition": "Connects a philosophy branch route to an authored source-planting record.",
+      "lifecycle": "stable",
+      "owner_ref": "ToS/contracts/philosophy-source-planting.schema.json",
+      "domain_type_ids": ["tos.entity.navigation-object"],
+      "range_type_ids": ["tos.entity.source-planting"],
+      "directionality": "directed",
+      "transitive": false,
+      "inverse_relation_type_id": null,
+      "cardinality": {"per_subject_min": null, "per_subject_max": null, "per_object_min": null, "per_object_max": 1},
+      "assertion_mode": "structural",
+      "evidence_required": false,
+      "review_requirement": "none",
+      "source_mappings": [{"source_graph": "source-navigation", "source_predicate_id": "has_source_planting", "scope": "edge"}],
+      "supersedes_relation_type_id": null
+    },
+    {
+      "relation_type_id": "tos.relation.grounds-source-backlog-anchor",
+      "parent_relation_type_ids": ["tos.relation.structural"],
+      "abstract": false,
+      "labels": {"default": "grounds source backlog anchor", "ru": "обосновывает якорь очереди источников", "en": "grounds source backlog anchor"},
+      "inverse_labels": {"default": "is grounded by source planting", "ru": "обосновано посадкой источника", "en": "is grounded by source planting"},
+      "definition": "Connects one source planting to its declared witness backlog anchor without asserting canon.",
+      "lifecycle": "stable",
+      "owner_ref": "ToS/contracts/philosophy-source-planting.schema.json",
+      "domain_type_ids": ["tos.entity.source-planting"],
+      "range_type_ids": ["tos.entity.source-witness", "tos.entity.intellectual-object", "tos.entity.item"],
+      "directionality": "directed",
+      "transitive": false,
+      "inverse_relation_type_id": null,
+      "cardinality": {"per_subject_min": null, "per_subject_max": null, "per_object_min": null, "per_object_max": null},
+      "assertion_mode": "structural",
+      "evidence_required": false,
+      "review_requirement": "none",
+      "source_mappings": [{"source_graph": "source-navigation", "source_predicate_id": "grounds_source_backlog_anchor", "scope": "edge"}],
+      "supersedes_relation_type_id": null
+    },
+    {
+      "relation_type_id": "tos.relation.projects",
+      "parent_relation_type_ids": ["tos.relation.structural"],
+      "abstract": false,
+      "labels": {"default": "projects", "ru": "проецирует", "en": "projects"},
+      "inverse_labels": {"default": "is projected by", "ru": "проецируется через", "en": "is projected by"},
+      "definition": "Connects two carrier representations that declare the same persistent ToS entity identity; it is not a new same-as judgment.",
+      "lifecycle": "stable",
+      "owner_ref": "ToS/doctrine/semantic-interchange/README.md",
+      "domain_type_ids": ["tos.entity.thing"],
+      "range_type_ids": ["tos.entity.thing"],
+      "directionality": "directed",
+      "transitive": false,
+      "inverse_relation_type_id": "tos.relation.projected-by",
+      "cardinality": {"per_subject_min": null, "per_subject_max": null, "per_object_min": null, "per_object_max": null},
+      "assertion_mode": "derived-projection",
+      "evidence_required": false,
+      "review_requirement": "none",
+      "source_mappings": [{"source_graph": "semantic-interchange", "source_predicate_id": "projects", "scope": "edge"}],
+      "supersedes_relation_type_id": null
+    },
+    {
+      "relation_type_id": "tos.relation.projected-by",
+      "parent_relation_type_ids": ["tos.relation.structural"],
+      "abstract": false,
+      "labels": {"default": "is projected by", "ru": "проецируется через", "en": "is projected by"},
+      "inverse_labels": {"default": "projects", "ru": "проецирует", "en": "projects"},
+      "definition": "Inverse vocabulary entry for tos.relation.projects; stored graph edges remain in the projects direction.",
+      "lifecycle": "stable",
+      "owner_ref": "ToS/doctrine/semantic-interchange/README.md",
+      "domain_type_ids": ["tos.entity.thing"],
+      "range_type_ids": ["tos.entity.thing"],
+      "directionality": "directed",
+      "transitive": false,
+      "inverse_relation_type_id": "tos.relation.projects",
+      "cardinality": {"per_subject_min": null, "per_subject_max": null, "per_object_min": null, "per_object_max": null},
+      "assertion_mode": "derived-projection",
+      "evidence_required": false,
+      "review_requirement": "none",
+      "source_mappings": [],
+      "supersedes_relation_type_id": null
+    },
+    {
+      "relation_type_id": "tos.relation.bibliographic-topology",
+      "parent_relation_type_ids": ["tos.relation.related"],
+      "abstract": true,
+      "labels": {"default": "bibliographically related to", "ru": "библиографически связано с", "en": "bibliographically related to"},
+      "inverse_labels": null,
+      "definition": "Root for evidence-bearing Work, Expression, Edition, Collection, Item and File topology predicates.",
+      "lifecycle": "stable",
+      "owner_ref": "ToS/doctrine/CORPUS_FOUNDATION.md",
+      "domain_type_ids": ["tos.entity.thing"],
+      "range_type_ids": ["tos.entity.thing"],
+      "directionality": "directed",
+      "transitive": false,
+      "inverse_relation_type_id": null,
+      "cardinality": {"per_subject_min": null, "per_subject_max": null, "per_object_min": null, "per_object_max": null},
+      "assertion_mode": "reified-claim",
+      "evidence_required": true,
+      "review_requirement": "recorded",
+      "source_mappings": [],
+      "supersedes_relation_type_id": null
+    },
+    {
+      "relation_type_id": "tos.relation.has-expression",
+      "parent_relation_type_ids": ["tos.relation.bibliographic-topology"],
+      "abstract": false,
+      "labels": {"default": "has expression", "ru": "имеет выражение", "en": "has expression"},
+      "inverse_labels": {"default": "is expression of", "ru": "является выражением", "en": "is expression of"},
+      "definition": "Relates a Work to an Expression through an evidence-bearing claim.",
+      "lifecycle": "stable",
+      "owner_ref": "ToS/doctrine/CORPUS_FOUNDATION.md",
+      "domain_type_ids": ["tos.entity.work"],
+      "range_type_ids": ["tos.entity.expression"],
+      "directionality": "directed",
+      "transitive": false,
+      "inverse_relation_type_id": null,
+      "cardinality": {"per_subject_min": null, "per_subject_max": null, "per_object_min": null, "per_object_max": 1},
+      "assertion_mode": "reified-claim",
+      "evidence_required": true,
+      "review_requirement": "recorded",
+      "source_mappings": [
+        {"source_graph": "source-navigation", "source_predicate_id": "has_expression", "scope": "edge"},
+        {"source_graph": "source-claims", "source_predicate_id": "has_expression", "scope": "claim-predicate"}
+      ],
+      "supersedes_relation_type_id": null
+    },
+    {
+      "relation_type_id": "tos.relation.embodied-by",
+      "parent_relation_type_ids": ["tos.relation.bibliographic-topology"],
+      "abstract": false,
+      "labels": {"default": "embodied by", "ru": "воплощено изданием", "en": "embodied by"},
+      "inverse_labels": {"default": "embodies expression", "ru": "воплощает выражение", "en": "embodies expression"},
+      "definition": "Relates an Expression to an Edition without implying textual equivalence.",
+      "lifecycle": "stable",
+      "owner_ref": "ToS/doctrine/CORPUS_FOUNDATION.md",
+      "domain_type_ids": ["tos.entity.expression"],
+      "range_type_ids": ["tos.entity.edition"],
+      "directionality": "directed",
+      "transitive": false,
+      "inverse_relation_type_id": null,
+      "cardinality": {"per_subject_min": null, "per_subject_max": null, "per_object_min": null, "per_object_max": null},
+      "assertion_mode": "reified-claim",
+      "evidence_required": true,
+      "review_requirement": "recorded",
+      "source_mappings": [
+        {"source_graph": "source-navigation", "source_predicate_id": "embodied_by", "scope": "edge"},
+        {"source_graph": "source-claims", "source_predicate_id": "embodied_by", "scope": "claim-predicate"}
+      ],
+      "supersedes_relation_type_id": null
+    },
+    {
+      "relation_type_id": "tos.relation.exemplified-by",
+      "parent_relation_type_ids": ["tos.relation.bibliographic-topology"],
+      "abstract": false,
+      "labels": {"default": "exemplified by", "ru": "представлено экземпляром", "en": "exemplified by"},
+      "inverse_labels": {"default": "is exemplar of", "ru": "является экземпляром", "en": "is exemplar of"},
+      "definition": "Relates an Edition to one acquired Item through an evidence-bearing claim.",
+      "lifecycle": "stable",
+      "owner_ref": "ToS/doctrine/CORPUS_FOUNDATION.md",
+      "domain_type_ids": ["tos.entity.edition"],
+      "range_type_ids": ["tos.entity.item"],
+      "directionality": "directed",
+      "transitive": false,
+      "inverse_relation_type_id": null,
+      "cardinality": {"per_subject_min": null, "per_subject_max": null, "per_object_min": null, "per_object_max": 1},
+      "assertion_mode": "reified-claim",
+      "evidence_required": true,
+      "review_requirement": "recorded",
+      "source_mappings": [
+        {"source_graph": "source-navigation", "source_predicate_id": "exemplified_by", "scope": "edge"},
+        {"source_graph": "source-claims", "source_predicate_id": "exemplified_by", "scope": "claim-predicate"}
+      ],
+      "supersedes_relation_type_id": null
+    },
+    {
+      "relation_type_id": "tos.relation.has-file",
+      "parent_relation_type_ids": ["tos.relation.bibliographic-topology"],
+      "abstract": false,
+      "labels": {"default": "has file", "ru": "имеет файл", "en": "has file"},
+      "inverse_labels": {"default": "is file of item", "ru": "является файлом экземпляра", "en": "is file of item"},
+      "definition": "Connects one Item to an immutable content-addressed File from its manifest.",
+      "lifecycle": "stable",
+      "owner_ref": "ToS/contracts/source-item-manifest.schema.json",
+      "domain_type_ids": ["tos.entity.item"],
+      "range_type_ids": ["tos.entity.file"],
+      "directionality": "directed",
+      "transitive": false,
+      "inverse_relation_type_id": null,
+      "cardinality": {"per_subject_min": null, "per_subject_max": null, "per_object_min": null, "per_object_max": 1},
+      "assertion_mode": "structural",
+      "evidence_required": false,
+      "review_requirement": "none",
+      "source_mappings": [{"source_graph": "source-navigation", "source_predicate_id": "has_file", "scope": "edge"}],
+      "supersedes_relation_type_id": null
+    },
+    {
+      "relation_type_id": "tos.relation.contains-work",
+      "parent_relation_type_ids": ["tos.relation.bibliographic-topology"],
+      "abstract": false,
+      "labels": {"default": "contains work", "ru": "содержит произведение", "en": "contains work"},
+      "inverse_labels": {"default": "is contained in collection", "ru": "содержится в сборнике", "en": "is contained in collection"},
+      "definition": "Relates a Collection to a member Work through an evidence-bearing membership claim.",
+      "lifecycle": "stable",
+      "owner_ref": "ToS/doctrine/CORPUS_FOUNDATION.md",
+      "domain_type_ids": ["tos.entity.collection"],
+      "range_type_ids": ["tos.entity.work"],
+      "directionality": "directed",
+      "transitive": false,
+      "inverse_relation_type_id": null,
+      "cardinality": {"per_subject_min": null, "per_subject_max": null, "per_object_min": null, "per_object_max": null},
+      "assertion_mode": "reified-claim",
+      "evidence_required": true,
+      "review_requirement": "recorded",
+      "source_mappings": [{"source_graph": "source-claims", "source_predicate_id": "contains_work", "scope": "claim-predicate"}],
+      "supersedes_relation_type_id": null
+    },
+    {
+      "relation_type_id": "tos.relation.is-derivative-of",
+      "parent_relation_type_ids": ["tos.relation.bibliographic-topology"],
+      "abstract": false,
+      "labels": {"default": "is derivative of", "ru": "является производным от", "en": "is derivative of"},
+      "inverse_labels": {"default": "has derivative", "ru": "имеет производное выражение", "en": "has derivative"},
+      "definition": "A directed non-transitive Expression derivation claim that does not establish equivalence.",
+      "lifecycle": "stable",
+      "owner_ref": "ToS/contracts/expression-derivation.schema.json",
+      "domain_type_ids": ["tos.entity.expression"],
+      "range_type_ids": ["tos.entity.expression"],
+      "directionality": "directed",
+      "transitive": false,
+      "inverse_relation_type_id": null,
+      "cardinality": {"per_subject_min": null, "per_subject_max": null, "per_object_min": null, "per_object_max": null},
+      "assertion_mode": "reified-claim",
+      "evidence_required": true,
+      "review_requirement": "recorded",
+      "source_mappings": [{"source_graph": "source-claims", "source_predicate_id": "is_derivative_of", "scope": "claim-predicate"}],
+      "supersedes_relation_type_id": null
+    },
+    {
+      "relation_type_id": "tos.relation.responsibility",
+      "parent_relation_type_ids": ["tos.relation.related"],
+      "abstract": true,
+      "labels": {"default": "has responsibility bearer", "ru": "имеет носителя ответственности", "en": "has responsibility bearer"},
+      "inverse_labels": null,
+      "definition": "Root for role-specific responsibility claims; roles are relations, not Agent subclasses.",
+      "lifecycle": "stable",
+      "owner_ref": "ToS/doctrine/CORPUS_FOUNDATION.md",
+      "domain_type_ids": ["tos.entity.intellectual-object"],
+      "range_type_ids": ["tos.entity.agent", "tos.entity.organization"],
+      "directionality": "directed",
+      "transitive": false,
+      "inverse_relation_type_id": null,
+      "cardinality": {"per_subject_min": null, "per_subject_max": null, "per_object_min": null, "per_object_max": null},
+      "assertion_mode": "reified-claim",
+      "evidence_required": true,
+      "review_requirement": "recorded",
+      "source_mappings": [],
+      "supersedes_relation_type_id": null
+    },
+    {
+      "relation_type_id": "tos.relation.authored-by",
+      "parent_relation_type_ids": ["tos.relation.responsibility"],
+      "abstract": false,
+      "labels": {"default": "authored by", "ru": "написано автором", "en": "authored by"},
+      "inverse_labels": {"default": "author of", "ru": "автор произведения", "en": "author of"},
+      "definition": "Relates a Work to the Agent carrying the author role through a claim.",
+      "lifecycle": "stable",
+      "owner_ref": "ToS/doctrine/CORPUS_FOUNDATION.md",
+      "domain_type_ids": ["tos.entity.work"],
+      "range_type_ids": ["tos.entity.agent"],
+      "directionality": "directed",
+      "transitive": false,
+      "inverse_relation_type_id": null,
+      "cardinality": {"per_subject_min": null, "per_subject_max": null, "per_object_min": null, "per_object_max": null},
+      "assertion_mode": "reified-claim",
+      "evidence_required": true,
+      "review_requirement": "recorded",
+      "source_mappings": [
+        {"source_graph": "source-navigation", "source_predicate_id": "authored_by", "scope": "edge"},
+        {"source_graph": "source-claims", "source_predicate_id": "authored_by", "scope": "claim-predicate"}
+      ],
+      "supersedes_relation_type_id": null
+    },
+    {
+      "relation_type_id": "tos.relation.translated-by",
+      "parent_relation_type_ids": ["tos.relation.responsibility"],
+      "abstract": false,
+      "labels": {"default": "translated by", "ru": "переведено", "en": "translated by"},
+      "inverse_labels": {"default": "translator of", "ru": "переводчик", "en": "translator of"},
+      "definition": "Relates an Expression to the Agent carrying the translator role through a claim.",
+      "lifecycle": "stable",
+      "owner_ref": "ToS/doctrine/CORPUS_FOUNDATION.md",
+      "domain_type_ids": ["tos.entity.expression"],
+      "range_type_ids": ["tos.entity.agent"],
+      "directionality": "directed",
+      "transitive": false,
+      "inverse_relation_type_id": null,
+      "cardinality": {"per_subject_min": null, "per_subject_max": null, "per_object_min": null, "per_object_max": null},
+      "assertion_mode": "reified-claim",
+      "evidence_required": true,
+      "review_requirement": "recorded",
+      "source_mappings": [
+        {"source_graph": "source-navigation", "source_predicate_id": "translated_by", "scope": "edge"},
+        {"source_graph": "source-claims", "source_predicate_id": "translated_by", "scope": "claim-predicate"}
+      ],
+      "supersedes_relation_type_id": null
+    },
+    {
+      "relation_type_id": "tos.relation.edited-by",
+      "parent_relation_type_ids": ["tos.relation.responsibility"],
+      "abstract": false,
+      "labels": {"default": "edited by", "ru": "отредактировано", "en": "edited by"},
+      "inverse_labels": {"default": "editor of", "ru": "редактор", "en": "editor of"},
+      "definition": "Relates an intellectual object to the Agent carrying an editor role through a claim.",
+      "lifecycle": "stable",
+      "owner_ref": "ToS/doctrine/CORPUS_FOUNDATION.md",
+      "domain_type_ids": ["tos.entity.intellectual-object"],
+      "range_type_ids": ["tos.entity.agent"],
+      "directionality": "directed",
+      "transitive": false,
+      "inverse_relation_type_id": null,
+      "cardinality": {"per_subject_min": null, "per_subject_max": null, "per_object_min": null, "per_object_max": null},
+      "assertion_mode": "reified-claim",
+      "evidence_required": true,
+      "review_requirement": "recorded",
+      "source_mappings": [
+        {"source_graph": "source-navigation", "source_predicate_id": "edited_by", "scope": "edge"},
+        {"source_graph": "source-claims", "source_predicate_id": "edited_by", "scope": "claim-predicate"}
+      ],
+      "supersedes_relation_type_id": null
+    },
+    {
+      "relation_type_id": "tos.relation.afterword-by",
+      "parent_relation_type_ids": ["tos.relation.responsibility"],
+      "abstract": false,
+      "labels": {"default": "afterword by", "ru": "послесловие написано", "en": "afterword by"},
+      "inverse_labels": {"default": "afterword author of", "ru": "автор послесловия", "en": "afterword author of"},
+      "definition": "Relates an intellectual object to the Agent responsible for an afterword.",
+      "lifecycle": "stable",
+      "owner_ref": "ToS/doctrine/CORPUS_FOUNDATION.md",
+      "domain_type_ids": ["tos.entity.intellectual-object"],
+      "range_type_ids": ["tos.entity.agent"],
+      "directionality": "directed",
+      "transitive": false,
+      "inverse_relation_type_id": null,
+      "cardinality": {"per_subject_min": null, "per_subject_max": null, "per_object_min": null, "per_object_max": null},
+      "assertion_mode": "reified-claim",
+      "evidence_required": true,
+      "review_requirement": "recorded",
+      "source_mappings": [
+        {"source_graph": "source-navigation", "source_predicate_id": "afterword_by", "scope": "edge"},
+        {"source_graph": "source-claims", "source_predicate_id": "afterword_by", "scope": "claim-predicate"}
+      ],
+      "supersedes_relation_type_id": null
+    },
+    {
+      "relation_type_id": "tos.relation.contributed-by",
+      "parent_relation_type_ids": ["tos.relation.responsibility"],
+      "abstract": false,
+      "labels": {"default": "contributed by", "ru": "создано при участии", "en": "contributed by"},
+      "inverse_labels": {"default": "contributor to", "ru": "участник создания", "en": "contributor to"},
+      "definition": "Relates an intellectual object to a role-bearing contributor when a narrower responsibility predicate is unavailable.",
+      "lifecycle": "stable",
+      "owner_ref": "ToS/doctrine/CORPUS_FOUNDATION.md",
+      "domain_type_ids": ["tos.entity.intellectual-object"],
+      "range_type_ids": ["tos.entity.agent"],
+      "directionality": "directed",
+      "transitive": false,
+      "inverse_relation_type_id": null,
+      "cardinality": {"per_subject_min": null, "per_subject_max": null, "per_object_min": null, "per_object_max": null},
+      "assertion_mode": "reified-claim",
+      "evidence_required": true,
+      "review_requirement": "recorded",
+      "source_mappings": [
+        {"source_graph": "source-navigation", "source_predicate_id": "contributed_by", "scope": "edge"},
+        {"source_graph": "source-claims", "source_predicate_id": "contributed_by", "scope": "claim-predicate"}
+      ],
+      "supersedes_relation_type_id": null
+    },
+    {
+      "relation_type_id": "tos.relation.designed-by",
+      "parent_relation_type_ids": ["tos.relation.responsibility"],
+      "abstract": false,
+      "labels": {"default": "designed by", "ru": "оформлено", "en": "designed by"},
+      "inverse_labels": {"default": "designer of", "ru": "оформитель", "en": "designer of"},
+      "definition": "Relates an intellectual object to the Agent carrying a design responsibility role.",
+      "lifecycle": "stable",
+      "owner_ref": "ToS/doctrine/CORPUS_FOUNDATION.md",
+      "domain_type_ids": ["tos.entity.intellectual-object"],
+      "range_type_ids": ["tos.entity.agent"],
+      "directionality": "directed",
+      "transitive": false,
+      "inverse_relation_type_id": null,
+      "cardinality": {"per_subject_min": null, "per_subject_max": null, "per_object_min": null, "per_object_max": null},
+      "assertion_mode": "reified-claim",
+      "evidence_required": true,
+      "review_requirement": "recorded",
+      "source_mappings": [
+        {"source_graph": "source-navigation", "source_predicate_id": "designed_by", "scope": "edge"},
+        {"source_graph": "source-claims", "source_predicate_id": "designed_by", "scope": "claim-predicate"}
+      ],
+      "supersedes_relation_type_id": null
+    },
+    {
+      "relation_type_id": "tos.relation.claim-structure",
+      "parent_relation_type_ids": ["tos.relation.related"],
+      "abstract": true,
+      "labels": {"default": "claim structure", "ru": "структура утверждения", "en": "claim structure"},
+      "inverse_labels": null,
+      "definition": "Root for reified claim, evidence, maker, provenance and review edges.",
+      "lifecycle": "stable",
+      "owner_ref": "ToS/contracts/source-witness-bibliographic-graph.schema.json",
+      "domain_type_ids": ["tos.entity.claim"],
+      "range_type_ids": ["tos.entity.thing"],
+      "directionality": "directed",
+      "transitive": false,
+      "inverse_relation_type_id": null,
+      "cardinality": {"per_subject_min": null, "per_subject_max": null, "per_object_min": null, "per_object_max": null},
+      "assertion_mode": "reified-claim",
+      "evidence_required": false,
+      "review_requirement": "recorded",
+      "source_mappings": [],
+      "supersedes_relation_type_id": null
+    },
+    {
+      "relation_type_id": "tos.relation.has-subject",
+      "parent_relation_type_ids": ["tos.relation.claim-structure"],
+      "abstract": false,
+      "labels": {"default": "has subject", "ru": "имеет субъект", "en": "has subject"},
+      "inverse_labels": {"default": "is subject of claim", "ru": "является субъектом утверждения", "en": "is subject of claim"},
+      "definition": "Connects a reified Claim to its subject representation.",
+      "lifecycle": "stable",
+      "owner_ref": "ToS/contracts/source-witness-bibliographic-graph.schema.json",
+      "domain_type_ids": ["tos.entity.claim"],
+      "range_type_ids": ["tos.entity.thing"],
+      "directionality": "directed",
+      "transitive": false,
+      "inverse_relation_type_id": null,
+      "cardinality": {"per_subject_min": 1, "per_subject_max": 1, "per_object_min": null, "per_object_max": null},
+      "assertion_mode": "reified-claim",
+      "evidence_required": false,
+      "review_requirement": "recorded",
+      "source_mappings": [{"source_graph": "source-claims", "source_predicate_id": "has_subject", "scope": "edge"}],
+      "supersedes_relation_type_id": null
+    },
+    {
+      "relation_type_id": "tos.relation.has-object",
+      "parent_relation_type_ids": ["tos.relation.claim-structure"],
+      "abstract": false,
+      "labels": {"default": "has object", "ru": "имеет объект", "en": "has object"},
+      "inverse_labels": {"default": "is object of claim", "ru": "является объектом утверждения", "en": "is object of claim"},
+      "definition": "Connects a reified Claim to its identity or literal object representation.",
+      "lifecycle": "stable",
+      "owner_ref": "ToS/contracts/source-witness-bibliographic-graph.schema.json",
+      "domain_type_ids": ["tos.entity.claim"],
+      "range_type_ids": ["tos.entity.thing"],
+      "directionality": "directed",
+      "transitive": false,
+      "inverse_relation_type_id": null,
+      "cardinality": {"per_subject_min": 1, "per_subject_max": 1, "per_object_min": null, "per_object_max": null},
+      "assertion_mode": "reified-claim",
+      "evidence_required": false,
+      "review_requirement": "recorded",
+      "source_mappings": [{"source_graph": "source-claims", "source_predicate_id": "has_object", "scope": "edge"}],
+      "supersedes_relation_type_id": null
+    },
+    {
+      "relation_type_id": "tos.relation.claim-supported-by",
+      "parent_relation_type_ids": ["tos.relation.claim-structure"],
+      "abstract": false,
+      "labels": {"default": "claim supported by", "ru": "утверждение подтверждается", "en": "claim supported by"},
+      "inverse_labels": {"default": "supports claim", "ru": "подтверждает утверждение", "en": "supports claim"},
+      "definition": "Connects a reified Claim to one source-returnable Evidence object.",
+      "lifecycle": "stable",
+      "owner_ref": "ToS/contracts/source-witness-bibliographic-graph.schema.json",
+      "domain_type_ids": ["tos.entity.claim"],
+      "range_type_ids": ["tos.entity.evidence"],
+      "directionality": "directed",
+      "transitive": false,
+      "inverse_relation_type_id": null,
+      "cardinality": {"per_subject_min": 1, "per_subject_max": null, "per_object_min": null, "per_object_max": null},
+      "assertion_mode": "reified-claim",
+      "evidence_required": false,
+      "review_requirement": "recorded",
+      "source_mappings": [{"source_graph": "source-claims", "source_predicate_id": "supported_by", "scope": "edge"}],
+      "supersedes_relation_type_id": null
+    },
+    {
+      "relation_type_id": "tos.relation.made-by",
+      "parent_relation_type_ids": ["tos.relation.claim-structure"],
+      "abstract": false,
+      "labels": {"default": "made by", "ru": "создано", "en": "made by"},
+      "inverse_labels": {"default": "made claim", "ru": "создал утверждение", "en": "made claim"},
+      "definition": "Connects a reified Claim to its recorded maker representation.",
+      "lifecycle": "stable",
+      "owner_ref": "ToS/contracts/source-witness-bibliographic-graph.schema.json",
+      "domain_type_ids": ["tos.entity.claim"],
+      "range_type_ids": ["tos.entity.maker"],
+      "directionality": "directed",
+      "transitive": false,
+      "inverse_relation_type_id": null,
+      "cardinality": {"per_subject_min": 1, "per_subject_max": 1, "per_object_min": null, "per_object_max": null},
+      "assertion_mode": "reified-claim",
+      "evidence_required": false,
+      "review_requirement": "recorded",
+      "source_mappings": [{"source_graph": "source-claims", "source_predicate_id": "made_by", "scope": "edge"}],
+      "supersedes_relation_type_id": null
+    },
+    {
+      "relation_type_id": "tos.relation.generated-by",
+      "parent_relation_type_ids": ["tos.relation.claim-structure"],
+      "abstract": false,
+      "labels": {"default": "generated by", "ru": "порождено событием", "en": "generated by"},
+      "inverse_labels": {"default": "generated claim", "ru": "породило утверждение", "en": "generated claim"},
+      "definition": "Connects a reified Claim to the provenance event that generated its recorded form.",
+      "lifecycle": "stable",
+      "owner_ref": "ToS/contracts/source-witness-bibliographic-graph.schema.json",
+      "domain_type_ids": ["tos.entity.claim"],
+      "range_type_ids": ["tos.entity.provenance-event"],
+      "directionality": "directed",
+      "transitive": false,
+      "inverse_relation_type_id": null,
+      "cardinality": {"per_subject_min": 1, "per_subject_max": 1, "per_object_min": null, "per_object_max": null},
+      "assertion_mode": "reified-claim",
+      "evidence_required": false,
+      "review_requirement": "recorded",
+      "source_mappings": [{"source_graph": "source-claims", "source_predicate_id": "generated_by", "scope": "edge"}],
+      "supersedes_relation_type_id": null
+    },
+    {
+      "relation_type_id": "tos.relation.has-normalized-place",
+      "parent_relation_type_ids": ["tos.relation.claim-structure"],
+      "abstract": false,
+      "labels": {"default": "has normalized place", "ru": "имеет нормализованное место", "en": "has normalized place"},
+      "inverse_labels": {"default": "is normalized place of claim", "ru": "является нормализованным местом утверждения", "en": "is normalized place of claim"},
+      "definition": "Connects a claim to a normalized Place while preserving literal form and spatial role separately.",
+      "lifecycle": "stable",
+      "owner_ref": "ToS/contracts/provision-activity.schema.json",
+      "domain_type_ids": ["tos.entity.claim"],
+      "range_type_ids": ["tos.entity.place"],
+      "directionality": "directed",
+      "transitive": false,
+      "inverse_relation_type_id": null,
+      "cardinality": {"per_subject_min": null, "per_subject_max": null, "per_object_min": null, "per_object_max": null},
+      "assertion_mode": "reified-claim",
+      "evidence_required": true,
+      "review_requirement": "recorded",
+      "source_mappings": [{"source_graph": "source-claims", "source_predicate_id": "has_normalized_place", "scope": "edge"}],
+      "supersedes_relation_type_id": null
+    },
+    {
+      "relation_type_id": "tos.relation.has-normalized-agent",
+      "parent_relation_type_ids": ["tos.relation.claim-structure"],
+      "abstract": false,
+      "labels": {"default": "has normalized agent", "ru": "имеет нормализованного участника", "en": "has normalized agent"},
+      "inverse_labels": {"default": "is normalized participant of claim", "ru": "является нормализованным участником утверждения", "en": "is normalized participant of claim"},
+      "definition": "Connects a claim to a normalized Agent or Organization while preserving the role separately.",
+      "lifecycle": "stable",
+      "owner_ref": "ToS/contracts/provision-activity.schema.json",
+      "domain_type_ids": ["tos.entity.claim"],
+      "range_type_ids": ["tos.entity.agent", "tos.entity.organization"],
+      "directionality": "directed",
+      "transitive": false,
+      "inverse_relation_type_id": null,
+      "cardinality": {"per_subject_min": null, "per_subject_max": null, "per_object_min": null, "per_object_max": null},
+      "assertion_mode": "reified-claim",
+      "evidence_required": true,
+      "review_requirement": "recorded",
+      "source_mappings": [{"source_graph": "source-claims", "source_predicate_id": "has_normalized_agent", "scope": "edge"}],
+      "supersedes_relation_type_id": null
+    },
+    {
+      "relation_type_id": "tos.relation.first-publication-chronology",
+      "parent_relation_type_ids": ["tos.relation.related"],
+      "abstract": false,
+      "labels": {"default": "has first-publication chronology", "ru": "имеет хронологию первой публикации", "en": "has first-publication chronology"},
+      "inverse_labels": {"default": "is first-publication chronology of", "ru": "является хронологией первой публикации", "en": "is first-publication chronology of"},
+      "definition": "Relates a Work to a claim-scoped chronology with explicit interval, stages, precision and ordering warning.",
+      "lifecycle": "stable",
+      "owner_ref": "ToS/contracts/first-publication-chronology.schema.json",
+      "domain_type_ids": ["tos.entity.work"],
+      "range_type_ids": ["tos.entity.temporal-assertion"],
+      "directionality": "directed",
+      "transitive": false,
+      "inverse_relation_type_id": null,
+      "cardinality": {"per_subject_min": null, "per_subject_max": 1, "per_object_min": null, "per_object_max": 1},
+      "assertion_mode": "reified-claim",
+      "evidence_required": true,
+      "review_requirement": "recorded",
+      "source_mappings": [{"source_graph": "source-claims", "source_predicate_id": "first_publication_chronology", "scope": "claim-predicate"}],
+      "supersedes_relation_type_id": null
+    },
+    {
+      "relation_type_id": "tos.relation.provision-activity",
+      "parent_relation_type_ids": ["tos.relation.related"],
+      "abstract": false,
+      "labels": {"default": "has provision activity", "ru": "имеет производственно-публикационную деятельность", "en": "has provision activity"},
+      "inverse_labels": {"default": "is provision activity of", "ru": "является деятельностью издания", "en": "is provision activity of"},
+      "definition": "Relates an Edition to a claim-scoped provision activity with typed roles, places and temporal assertion.",
+      "lifecycle": "stable",
+      "owner_ref": "ToS/contracts/provision-activity.schema.json",
+      "domain_type_ids": ["tos.entity.edition"],
+      "range_type_ids": ["tos.entity.provision-activity"],
+      "directionality": "directed",
+      "transitive": false,
+      "inverse_relation_type_id": null,
+      "cardinality": {"per_subject_min": null, "per_subject_max": null, "per_object_min": null, "per_object_max": 1},
+      "assertion_mode": "reified-claim",
+      "evidence_required": true,
+      "review_requirement": "recorded",
+      "source_mappings": [{"source_graph": "source-claims", "source_predicate_id": "provision_activity", "scope": "claim-predicate"}],
+      "supersedes_relation_type_id": null
+    },
+    {
+      "relation_type_id": "tos.relation.temporal-assertion",
+      "parent_relation_type_ids": ["tos.relation.related"],
+      "abstract": false,
+      "labels": {"default": "has temporal assertion", "ru": "имеет временное утверждение", "en": "has temporal assertion"},
+      "inverse_labels": {"default": "is temporal assertion of", "ru": "является временным утверждением", "en": "is temporal assertion of"},
+      "definition": "Generic claim predicate for a named temporal facet that is not first-publication chronology.",
+      "lifecycle": "stable",
+      "owner_ref": "ToS/doctrine/CORPUS_FOUNDATION.md",
+      "domain_type_ids": ["tos.entity.thing"],
+      "range_type_ids": ["tos.entity.temporal-assertion"],
+      "directionality": "directed",
+      "transitive": false,
+      "inverse_relation_type_id": null,
+      "cardinality": {"per_subject_min": null, "per_subject_max": null, "per_object_min": null, "per_object_max": null},
+      "assertion_mode": "reified-claim",
+      "evidence_required": true,
+      "review_requirement": "recorded",
+      "source_mappings": [
+        {"source_graph": "source-claims", "source_predicate_id": "author_received_finished_copies_on", "scope": "claim-predicate"},
+        {"source_graph": "source-claims", "source_predicate_id": "official_publication_on", "scope": "claim-predicate"},
+        {"source_graph": "source-claims", "source_predicate_id": "printing_completed_in", "scope": "claim-predicate"},
+        {"source_graph": "source-claims", "source_predicate_id": "printing_completed_on", "scope": "claim-predicate"},
+        {"source_graph": "source-claims", "source_predicate_id": "public_sale_released_on", "scope": "claim-predicate"},
+        {"source_graph": "source-claims", "source_predicate_id": "title_page_year", "scope": "claim-predicate"}
+      ],
+      "supersedes_relation_type_id": null
+    },
+    {
+      "relation_type_id": "tos.relation.cross-layer",
+      "parent_relation_type_ids": ["tos.relation.related"],
+      "abstract": true,
+      "labels": {"default": "cross-layer relation", "ru": "межслойное отношение", "en": "cross-layer relation"},
+      "inverse_labels": null,
+      "definition": "Root for explicit semantic handoffs between source, claim, canon and projection layers.",
+      "lifecycle": "stable",
+      "owner_ref": "ToS/doctrine/semantic-interchange/README.md",
+      "domain_type_ids": ["tos.entity.thing"],
+      "range_type_ids": ["tos.entity.thing"],
+      "directionality": "directed",
+      "transitive": false,
+      "inverse_relation_type_id": null,
+      "cardinality": {"per_subject_min": null, "per_subject_max": null, "per_object_min": null, "per_object_max": null},
+      "assertion_mode": "reified-claim",
+      "evidence_required": true,
+      "review_requirement": "recorded",
+      "source_mappings": [],
+      "supersedes_relation_type_id": null
+    },
+    {
+      "relation_type_id": "tos.relation.represents",
+      "parent_relation_type_ids": ["tos.relation.cross-layer"],
+      "abstract": false,
+      "labels": {"default": "represents", "ru": "представляет", "en": "represents"},
+      "inverse_labels": {"default": "is represented by", "ru": "представлено", "en": "is represented by"},
+      "definition": "States that one explicit representation stands for another identified object under a source-owned assertion.",
+      "lifecycle": "stable",
+      "owner_ref": "ToS/doctrine/semantic-interchange/README.md",
+      "domain_type_ids": ["tos.entity.thing"],
+      "range_type_ids": ["tos.entity.thing"],
+      "directionality": "directed",
+      "transitive": false,
+      "inverse_relation_type_id": null,
+      "cardinality": {"per_subject_min": null, "per_subject_max": null, "per_object_min": null, "per_object_max": null},
+      "assertion_mode": "reified-claim",
+      "evidence_required": true,
+      "review_requirement": "recorded",
+      "source_mappings": [],
+      "supersedes_relation_type_id": null
+    },
+    {
+      "relation_type_id": "tos.relation.grounded-in",
+      "parent_relation_type_ids": ["tos.relation.cross-layer"],
+      "abstract": false,
+      "labels": {"default": "grounded in", "ru": "обосновано через", "en": "grounded in"},
+      "inverse_labels": {"default": "grounds", "ru": "обосновывает", "en": "grounds"},
+      "definition": "Connects a semantic object or claim to the exact source identity or evidence that grounds it.",
+      "lifecycle": "stable",
+      "owner_ref": "ToS/doctrine/semantic-interchange/README.md",
+      "domain_type_ids": ["tos.entity.thing"],
+      "range_type_ids": ["tos.entity.thing"],
+      "directionality": "directed",
+      "transitive": false,
+      "inverse_relation_type_id": null,
+      "cardinality": {"per_subject_min": null, "per_subject_max": null, "per_object_min": null, "per_object_max": null},
+      "assertion_mode": "derived-projection",
+      "evidence_required": true,
+      "review_requirement": "recorded",
+      "source_mappings": [
+        {"source_graph": "semantic-interchange", "source_predicate_id": "grounded_in", "scope": "edge"}
+      ],
+      "supersedes_relation_type_id": null
+    },
+    {
+      "relation_type_id": "tos.relation.about",
+      "parent_relation_type_ids": ["tos.relation.cross-layer"],
+      "abstract": false,
+      "labels": {"default": "about", "ru": "о", "en": "about"},
+      "inverse_labels": {"default": "is subject of", "ru": "является предметом", "en": "is subject of"},
+      "definition": "A source-owned topical relation that must not be inferred from labels or text similarity alone.",
+      "lifecycle": "stable",
+      "owner_ref": "ToS/doctrine/semantic-interchange/README.md",
+      "domain_type_ids": ["tos.entity.thing"],
+      "range_type_ids": ["tos.entity.thing"],
+      "directionality": "directed",
+      "transitive": false,
+      "inverse_relation_type_id": null,
+      "cardinality": {"per_subject_min": null, "per_subject_max": null, "per_object_min": null, "per_object_max": null},
+      "assertion_mode": "reified-claim",
+      "evidence_required": true,
+      "review_requirement": "recorded",
+      "source_mappings": [],
+      "supersedes_relation_type_id": null
+    },
+    {
+      "relation_type_id": "tos.relation.same-as",
+      "parent_relation_type_ids": ["tos.relation.cross-layer"],
+      "abstract": false,
+      "labels": {"default": "same identity as", "ru": "имеет ту же идентичность, что", "en": "same identity as"},
+      "inverse_labels": {"default": "same identity as", "ru": "имеет ту же идентичность, что", "en": "same identity as"},
+      "definition": "A reviewed identity-equivalence assertion; shared labels, paths or similar text never create it automatically.",
+      "lifecycle": "stable",
+      "owner_ref": "ToS/doctrine/CORPUS_FOUNDATION.md",
+      "domain_type_ids": ["tos.entity.identity"],
+      "range_type_ids": ["tos.entity.identity"],
+      "directionality": "symmetric",
+      "transitive": true,
+      "inverse_relation_type_id": "tos.relation.same-as",
+      "cardinality": {"per_subject_min": null, "per_subject_max": null, "per_object_min": null, "per_object_max": null},
+      "assertion_mode": "reified-claim",
+      "evidence_required": true,
+      "review_requirement": "accepted",
+      "source_mappings": [],
+      "supersedes_relation_type_id": null
+    }
+  ]
+}

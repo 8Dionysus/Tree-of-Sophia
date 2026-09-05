@@ -1,0 +1,96 @@
+#!/usr/bin/env python3
+"""Opt-in real UI-client/HTTP compatibility check, without editing either tree."""
+import argparse
+import hashlib
+import json
+import subprocess
+import sys
+import threading
+import time
+from http.server import ThreadingHTTPServer
+from pathlib import Path
+from urllib.request import urlopen
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'src'))
+from tos_access.core import ToSAccessCore
+from tos_access.http_server import build_handler
+from tos_access.knowledge import search_knowledge_graph
+
+CLIENT_CHECK = r'''
+const {KnowledgeClient,focusSpec,relationSpec,DEFAULT_FOCUS}=await import(process.argv[1]);
+const base=process.argv[2];
+const client=new KnowledgeClient({base:base+'/api/knowledge'});
+const first=await client.compile(focusSpec(DEFAULT_FOCUS));
+if(!first.nodes.length||!first.relations.length)throw Error('empty initial focus');
+const search=await client.search('Заратустра');
+if(!search.nodes.length)throw Error('empty search');
+await client.inspect('node',first.nodes[0].id,undefined,first.source_revision,first.nodes[0].content_revision);
+const relation=first.relations[0];
+await client.inspect('relation',relation.id,undefined,first.source_revision,relation.content_revision);
+const pair=await client.compile(relationSpec(relation),undefined,first.source_revision);
+if(pair.relations.length!==1||pair.relations[0].id!==relation.id)throw Error('relation selection drift');
+const next=await client.compile(focusSpec(relation.to_id),undefined,first.source_revision);
+console.log(JSON.stringify({consumer:'observatory KnowledgeClient',source_revision:first.source_revision,
+ focus:[first.nodes.length,first.relations.length],pair:[pair.nodes.length,pair.relations.length],
+ next:[next.nodes.length,next.relations.length],search:[search.nodes.length,search.relations.length]}));
+'''
+
+
+def main():
+    parser=argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--root',type=Path,default=Path(__file__).resolve().parents[2])
+    parser.add_argument('--web-root',type=Path,required=True)
+    parser.add_argument('--client-module',type=Path,required=True)
+    parser.add_argument('--report',type=Path,help='new JSONL report outside the source repository')
+    args=parser.parse_args()
+    if args.report:
+        args.report=args.report.resolve()
+        if args.report.exists() or args.report.is_relative_to(args.root.resolve()):
+            parser.error('use a new report outside the source repository')
+        args.report.parent.mkdir(parents=True,exist_ok=True)
+    def emit(packet):
+        line=json.dumps(packet)
+        if args.report:
+            with args.report.open('a',encoding='utf-8') as stream:
+                stream.write(line+'\n')
+        print(line,flush=True)
+    emit({'client_sha256':hashlib.sha256(args.client_module.read_bytes()).hexdigest(),
+          'html_sha256':hashlib.sha256((args.web_root/'index.html').read_bytes()).hexdigest()})
+    core=ToSAccessCore.discover(args.root)
+    for name,operation in [('catalog-cold',core.knowledge_catalog),('catalog-warm',core.knowledge_catalog),
+                           ('search-first',lambda:core.knowledge_search('Заратустра',limit=6)),
+                           ('search-warm',lambda:core.knowledge_search('Заратустра',limit=6)),
+                           ('search-alternative',lambda:core.knowledge_search('Ницше',limit=6)),
+                           ('focus',lambda:core.knowledge_focus('tos.work.friedrich-nietzsche.also-sprach-zarathustra',node_limit=40,relation_limit=80))]:
+        started=time.monotonic();packet=operation();seconds=time.monotonic()-started
+        emit({'query':name,'seconds':seconds,'bytes':len(json.dumps(packet,ensure_ascii=False).encode())})
+    expected=search_knowledge_graph(core.knowledge_graph(),'Заратустра',limit=6)
+    assert core.knowledge_search('Заратустра',limit=6)==expected
+    selected=packet['relations'][0]
+    for name,operation in [('inspect-node',lambda:core.knowledge_node(selected['from_id'],relation_limit=0)),
+                           ('inspect-relation',lambda:core.knowledge_relation(selected['id'])),
+                           ('explore',lambda:core.knowledge_explore({'focus_node_id':selected['from_id'],'max_depth':2,'page_nodes':10,'page_relations':10}))]:
+        started=time.monotonic();result=operation();seconds=time.monotonic()-started
+        emit({'query':name,'seconds':seconds,'bytes':len(json.dumps(result,ensure_ascii=False).encode())})
+    cursor=result['page']['next_cursor']
+    if cursor:
+        started=time.monotonic();result=core.knowledge_explore({'cursor':cursor})
+        emit({'query':'explore-resume','seconds':time.monotonic()-started,
+              'bytes':len(json.dumps(result,ensure_ascii=False).encode())})
+    server=ThreadingHTTPServer(('127.0.0.1',0),build_handler(core,args.web_root))
+    worker=threading.Thread(target=server.serve_forever,daemon=True);worker.start()
+    base=f'http://127.0.0.1:{server.server_port}'
+    try:
+        with urlopen(base,timeout=30) as response:
+            assert response.status==200
+            assert 'script-src' in response.headers['Content-Security-Policy']
+            assert response.read(), 'empty frontend HTML'
+        result=subprocess.run(['node','--input-type=module','-e',CLIENT_CHECK,args.client_module.resolve().as_uri(),base],check=True,timeout=240,capture_output=True,text=True)
+        emit(json.loads(result.stdout))
+    finally:
+        server.shutdown();server.server_close();worker.join(timeout=5)
+    emit({'ok':True,'scope':'local real-client HTTP contract, not browser rendering or deployment'})
+
+
+if __name__=='__main__':
+    main()

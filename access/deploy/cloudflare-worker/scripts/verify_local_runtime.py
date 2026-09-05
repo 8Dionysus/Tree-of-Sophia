@@ -6,6 +6,7 @@ from __future__ import annotations
 import json
 import socket
 import subprocess
+import tempfile
 import sys
 import time
 import urllib.parse
@@ -52,6 +53,20 @@ def fetch_json(base: str, path: str) -> dict[str, Any]:
     return payload
 
 
+def post_json(base: str, path: str, payload: dict[str, Any]) -> dict[str, Any]:
+    request = urllib.request.Request(
+        base + path,
+        data=json.dumps(payload, ensure_ascii=False, separators=(",", ":")).encode("utf-8"),
+        method="POST",
+        headers={"Content-Type": "application/json"},
+    )
+    with urllib.request.urlopen(request, timeout=30) as response:
+        result = json.load(response)
+    if not isinstance(result, dict):
+        raise AssertionError(f"{path} did not return a JSON object")
+    return result
+
+
 def fetch_jsonl(base: str, path: str) -> list[dict[str, Any]]:
     with urllib.request.urlopen(base + path, timeout=30) as response:
         rows = [json.loads(line) for line in response if line.strip()]
@@ -78,10 +93,12 @@ def main() -> int:
     core = ToSAccessCore.discover(REPO_ROOT)
     port = free_port()
     base = f"http://127.0.0.1:{port}"
+    # A never-drained PIPE can block Wrangler logging and internal asset reads.
+    logs = tempfile.TemporaryFile(mode='w+t')
     process = subprocess.Popen(
         ["npx", "wrangler", "dev", "--local", "--ip", "127.0.0.1", "--port", str(port)],
         cwd=WORKER_ROOT,
-        stdout=subprocess.PIPE,
+        stdout=logs,
         stderr=subprocess.STDOUT,
         text=True,
     )
@@ -93,12 +110,103 @@ def main() -> int:
             "tos.work.egyptian-scholarship."
             "on-four-songs-contained-in-an-egyptian-papyrus-in-the-british-museum"
         )
+        knowledge_node_id = "philosophy:philosophy.atlas"
+        knowledge_author_id = "source-navigation:tos.agent.friedrich-nietzsche"
+        knowledge_work_id = "tos.work.friedrich-nietzsche.also-sprach-zarathustra"
+        large_knowledge_node_id = "canon:tos.source.thus-spoke-zarathustra.prologue"
+        knowledge_node_packet = core.knowledge_node(knowledge_node_id, 20)
+        related_relations = knowledge_node_packet.get("related_relations", [])
+        if not related_relations:
+            raise AssertionError(f"knowledge parity node has no relation: {knowledge_node_id}")
+        knowledge_relation_id = str(related_relations[0]["id"])
         quote = lambda value: urllib.parse.quote(value, safe="")
         cases: list[tuple[str, Callable[[], dict[str, Any]], str]] = [
             ("corpus status", core.status, "/api/corpus/status"),
             ("corpus summary", core.summary, "/api/corpus/summary"),
             ("philosophy status", core.philosophy_status, "/api/philosophy/status"),
             ("philosophy views", core.philosophy_views, "/api/philosophy/views"),
+            ("knowledge catalog", core.knowledge_catalog, "/api/knowledge/catalog"),
+            ("knowledge contracts", core.knowledge_contracts, "/api/knowledge/contracts"),
+            (
+                "knowledge search",
+                lambda: core.knowledge_search("Zarathustra", sources=["philosophy"], limit=5),
+                "/api/knowledge/search?query=Zarathustra&sources=philosophy&limit=5",
+            ),
+            (
+                "Unicode knowledge search",
+                lambda: core.knowledge_search("Заратустра", sources=["philosophy"], limit=5),
+                f"/api/knowledge/search?query={quote('Заратустра')}&sources=philosophy&limit=5",
+            ),
+            (
+                "knowledge node",
+                lambda: knowledge_node_packet,
+                f"/api/knowledge/nodes/{quote(knowledge_node_id)}?relation_limit=20",
+            ),
+            (
+                "lossless large knowledge node",
+                lambda: core.knowledge_node(large_knowledge_node_id, 20),
+                f"/api/knowledge/nodes/{quote(large_knowledge_node_id)}?relation_limit=20",
+            ),
+            (
+                "knowledge relation",
+                lambda: core.knowledge_relation(knowledge_relation_id),
+                f"/api/knowledge/relations/{quote(knowledge_relation_id)}",
+            ),
+            (
+                "focused knowledge neighborhood",
+                lambda: core.knowledge_focus(
+                    knowledge_node_id,
+                    sources=["philosophy"],
+                    depth=1,
+                    direction="either",
+                    node_limit=40,
+                    relation_limit=40,
+                ),
+                f"/api/knowledge/focus/{quote(knowledge_node_id)}?sources=philosophy&depth=1&direction=either&node_limit=40&relation_limit=40",
+            ),
+            (
+                "author-to-works knowledge neighborhood",
+                lambda: core.knowledge_focus(
+                    knowledge_author_id,
+                    sources=["source-navigation"],
+                    depth=1,
+                    direction="either",
+                    node_limit=40,
+                    relation_limit=40,
+                ),
+                f"/api/knowledge/focus/{quote(knowledge_author_id)}?sources=source-navigation&depth=1&direction=either&node_limit=40&relation_limit=40",
+            ),
+            (
+                "cross-layer work knowledge neighborhood",
+                lambda: core.knowledge_focus(
+                    knowledge_work_id,
+                    sources=["canon", "source-navigation", "source-claims", "semantic-interchange"],
+                    depth=5,
+                    direction="either",
+                    predicate_ids=[
+                        "authored_by",
+                        "has_expression",
+                        "embodied_by",
+                        "has_subject",
+                        "has_object",
+                        "has_normalized_place",
+                        "projects",
+                        "grounded_in",
+                        "commentary-on",
+                    ],
+                    node_limit=400,
+                    relation_limit=800,
+                ),
+                f"/api/knowledge/focus/{quote(knowledge_work_id)}?"
+                "sources=canon,source-navigation,source-claims,semantic-interchange&depth=5&direction=either&"
+                "predicates=authored_by,has_expression,embodied_by,has_subject,has_object,has_normalized_place,projects,grounded_in,commentary-on&"
+                "node_limit=400&relation_limit=800",
+            ),
+            (
+                "stored knowledge lens",
+                lambda: core.stored_knowledge_lens("corpus-topology"),
+                "/api/knowledge/lenses/corpus-topology",
+            ),
             (
                 "Zarathustra word-analysis capability",
                 core.zarathustra_word_analysis_public_capability,
@@ -147,6 +255,52 @@ def main() -> int:
                 raise AssertionError(f"Cloudflare contract drift for {label}")
             print(f"ok: {label}")
 
+        arbitrary_lens = {
+            "schema_version": "tos_lens_spec_v1",
+            "lens_id": "edge-contract-smoke",
+            "sources": ["philosophy"],
+            "node_query": {"enabled": False},
+            "relation_query": {
+                "filters": [{"field": "predicate_id", "op": "eq", "value": "uses_script"}]
+            },
+            "composition": {"endpoint_policy": "independent"},
+            "limits": {"nodes": 20, "relations": 10, "groups": 10},
+        }
+        actual_lens = post_json(base, "/api/knowledge/lenses/compile", arbitrary_lens)
+        expected_lens = normalize_paths(core.compile_knowledge_lens(arbitrary_lens))
+        if actual_lens != expected_lens:
+            raise AssertionError("Cloudflare contract drift for arbitrary knowledge lens")
+        print("ok: arbitrary knowledge lens")
+        compact_lens = {**arbitrary_lens, 'detail': 'compact'}
+        if post_json(base, '/api/knowledge/lenses/compile', compact_lens) != normalize_paths(core.compile_knowledge_lens(compact_lens)):
+            raise AssertionError('Cloudflare contract drift for compact knowledge carrier')
+        print('ok: compact knowledge carrier')
+        scoped_lens = {'schema_version': 'tos_lens_spec_v1', 'lens_id': 'source-scope-parity',
+                       'sources': ['source-claims', 'semantic-interchange'],
+                       'seed': {'focus_node_id': knowledge_work_id}, 'node_query': {'enabled': False},
+                       'traversal': {'depth': 2, 'profile': 'all'}}
+        if post_json(base, '/api/knowledge/lenses/compile', scoped_lens) != normalize_paths(core.compile_knowledge_lens(scoped_lens)):
+            raise AssertionError('Cloudflare traversal escaped the selected source scope')
+        print('ok: cross-layer traversal preserves source scope')
+
+        null_lens = {
+            "schema_version": "tos_lens_spec_v1",
+            "lens_id": "edge-null-filter-smoke",
+            "sources": ["philosophy"],
+            "node_query": {
+                "filters": [
+                    {"field": "attributes.missing_contract_probe", "op": "in", "value": [None]}
+                ]
+            },
+            "relation_query": {"enabled": False},
+            "limits": {"nodes": 3, "relations": 0, "groups": 3},
+        }
+        actual_null_lens = post_json(base, "/api/knowledge/lenses/compile", null_lens)
+        expected_null_lens = normalize_paths(core.compile_knowledge_lens(null_lens))
+        if actual_null_lens != expected_null_lens:
+            raise AssertionError("Cloudflare contract drift for null-valued knowledge filter")
+        print("ok: null-valued knowledge filter")
+
         scale_layers = ["evidence-relation", "historical-relation"]
         scale_query = urllib.parse.urlencode({"view_id": "chronology", "layers": ",".join(scale_layers)})
         actual_manifest = fetch_json(base, f"/api/philosophy/scale-export/manifest?{scale_query}")
@@ -184,6 +338,10 @@ def main() -> int:
             if response.headers.get_content_type() != "text/csv" or not response.readline().strip():
                 raise AssertionError("Cloudflare CSV scale export is not downloadable")
         print("ok: scale export CSV and empty filter")
+    except Exception:
+        logs.seek(0)
+        print(logs.read()[-6000:], file=sys.stderr)
+        raise
     finally:
         process.terminate()
         try:
@@ -191,6 +349,7 @@ def main() -> int:
         except subprocess.TimeoutExpired:
             process.kill()
             process.wait(timeout=5)
+        logs.close()
     return 0
 
 

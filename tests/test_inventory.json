@@ -33,6 +33,51 @@
   ],
   "tests": [
     {
+      "path": "access/tests/test_processing.py",
+      "home": "access",
+      "home_scope": "product-local",
+      "family": "normalization_processing_dependencies",
+      "validation_lane": "standalone_access",
+      "owner_surface": "access/src/tos_access/processing.py",
+      "protects": "dependency-output reuse, failed-run resume, cycle and identity rejection, guarded execution-index publication and scoped processor invalidation",
+      "coverage_authority": "access/AGENTS.md standalone access validation",
+      "mode": "blocking",
+      "runtime_cost": "fast",
+      "focused_target": "access/tests/test_processing.py",
+      "failure_route": "Fix the normalization scheduler or adapter without promoting execution metadata into corpus or serving truth.",
+      "disposition": "keep"
+    },
+    {
+      "path": "access/tests/test_exploration.py",
+      "home": "access",
+      "home_scope": "product-local",
+      "family": "resumable_neighborhood_contract",
+      "validation_lane": "standalone_access",
+      "owner_surface": "access/contracts/exploration-request.v1.schema.json",
+      "protects": "bounded resumable BFS, exact coverage and endpoint closure across pages, immutable replay, snapshot conflict, expiration and HTTP/native MCP continuation",
+      "coverage_authority": "access/AGENTS.md standalone access validation",
+      "mode": "blocking",
+      "runtime_cost": "fast",
+      "focused_target": "access/tests/test_exploration.py",
+      "failure_route": "Fix traversal, checkpoint lifecycle or adapter contracts without hiding incomplete neighborhoods or changing source authority.",
+      "disposition": "keep"
+    },
+    {
+      "path": "access/tests/test_incremental_runtime.py",
+      "home": "access",
+      "home_scope": "product-local",
+      "family": "incremental_read_model_contract",
+      "validation_lane": "standalone_access",
+      "owner_surface": "access/deploy/cloudflare-worker/README.md",
+      "protects": "unchanged-row conservation, schema-bound deltas, stale-baseline rejection, atomic replayable publication and content-verified resumable build stages",
+      "coverage_authority": "access/AGENTS.md standalone access validation",
+      "mode": "blocking",
+      "runtime_cost": "fast",
+      "focused_target": "access/tests/test_incremental_runtime.py",
+      "failure_route": "Fix the deterministic delta producer or publication guard without weakening baseline and atomicity guarantees.",
+      "disposition": "keep"
+    },
+    {
       "path": "access/tests/test_access_contract.py",
       "home": "access",
       "home_scope": "product-local",
@@ -45,6 +90,21 @@
       "runtime_cost": "fast",
       "focused_target": "access/tests/test_access_contract.py",
       "failure_route": "Fix the access core, adapter, contract, profile, or bundle boundary before changing test expectations.",
+      "disposition": "keep"
+    },
+    {
+      "path": "access/tests/test_knowledge_contract.py",
+      "home": "access",
+      "home_scope": "product-local",
+      "family": "backend_knowledge_lens_contract",
+      "validation_lane": "standalone_access",
+      "owner_surface": "access/contracts/knowledge-api.v1.json",
+      "protects": "normalized display-complete knowledge graph, safe declarative LensSpec execution, source-bound fingerprints, adapter operation mapping, and schema parity",
+      "coverage_authority": "access/AGENTS.md standalone access validation",
+      "mode": "blocking",
+      "runtime_cost": "fast",
+      "focused_target": "access/tests/test_knowledge_contract.py",
+      "failure_route": "Fix the access knowledge normalizer, LensSpec engine, public schemas, or adapter contract before changing test expectations.",
       "disposition": "keep"
     },
     {

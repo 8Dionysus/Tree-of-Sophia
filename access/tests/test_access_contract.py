@@ -5,11 +5,13 @@ import hashlib
 import json
 import os
 import socket
+import sqlite3
 import sys
 import tempfile
 import threading
 import tomllib
 import unittest
+from contextlib import closing
 from unittest.mock import patch
 import urllib.error
 import urllib.request
@@ -40,12 +42,18 @@ validate_standalone = load_script(
     "validate_standalone",
     ACCESS_ROOT / "packaging/validate_standalone.py",
 )
+edge_build = load_script(
+    "edge_build_runtime",
+    ACCESS_ROOT / "deploy/cloudflare-worker/scripts/build_runtime.py",
+)
 
 
 def write_fixture(root: Path) -> None:
     derived = root / "ToS/derived-exports"
+    graph_derived = derived / "graph"
     audit = root / "ToS/philosophy/graph-workbench/review-packets"
     derived.mkdir(parents=True)
+    graph_derived.mkdir(parents=True)
     audit.mkdir(parents=True)
     index = {
         "schema_version": "tos_corpus_index_v1",
@@ -64,17 +72,21 @@ def write_fixture(root: Path) -> None:
         "source_navigation": {
             "schema_version": "tos_source_navigation_v1",
             "authority_boundary": "fixture source authority",
-            "counts": {"nodes": 5, "edges": 4, "rights": 1},
+            "counts": {"nodes": 7, "edges": 6, "rights": 1},
             "nodes": [
                 {"node_id": "philosophy.eras.fixture", "node_kind": "era", "label": "Fixture era", "source_ref": "ToS/philosophy/eras/fixture/branch.manifest.json", "identity_status": "not_applicable", "properties": {}},
                 {"node_id": "tos.work.fixture", "node_kind": "work", "label": "Fixture Work", "source_ref": "ToS/source-witnesses/works/fixture/work.json", "identity_status": "verified", "properties": {}},
+                {"node_id": "tos.expression.fixture", "node_kind": "expression", "label": "Fixture expression", "source_ref": "ToS/source-witnesses/works/fixture/expression.json", "identity_status": "verified", "properties": {}},
+                {"node_id": "tos.edition.fixture", "node_kind": "edition", "label": "Fixture edition", "source_ref": "ToS/source-witnesses/works/fixture/edition.json", "identity_status": "verified", "properties": {}},
                 {"node_id": "tos.item.fixture", "node_kind": "item", "label": "Fixture Item", "source_ref": "ToS/source-witnesses/works/fixture/item.json", "identity_status": "verified", "properties": {}},
                 {"node_id": "tos.file.sha256.fixture", "node_kind": "file", "label": "fixture.pdf", "source_ref": "ToS/source-witnesses/works/fixture/item.manifest.json", "identity_status": "content_addressed", "properties": {}},
                 {"node_id": "tos.link.fixture.download", "node_kind": "link", "label": "Fixture download", "source_ref": "ToS/source-witnesses/links/fixture/link.json", "identity_status": "verified", "properties": {"uri": "https://example.test/fixture.pdf", "access_status": "open_download"}},
             ],
             "edges": [
                 {"edge_id": "sn1", "from_id": "philosophy.eras.fixture", "predicate_id": "grounds", "to_id": "tos.work.fixture", "edge_kind": "authored_source_planting", "review_status": "unreviewed", "source_refs": ["ToS/philosophy/eras/fixture/source-planting.json"]},
-                {"edge_id": "sn2", "from_id": "tos.work.fixture", "predicate_id": "exemplified_by", "to_id": "tos.item.fixture", "edge_kind": "evidence_claim", "review_status": "unreviewed", "source_refs": ["ToS/source-witnesses/relations/fixture.jsonl"]},
+                {"edge_id": "sn1a", "from_id": "tos.work.fixture", "predicate_id": "has_expression", "to_id": "tos.expression.fixture", "edge_kind": "evidence_claim", "review_status": "unreviewed", "source_refs": ["ToS/source-witnesses/relations/fixture.jsonl"]},
+                {"edge_id": "sn1b", "from_id": "tos.expression.fixture", "predicate_id": "embodied_by", "to_id": "tos.edition.fixture", "edge_kind": "evidence_claim", "review_status": "unreviewed", "source_refs": ["ToS/source-witnesses/relations/fixture.jsonl"]},
+                {"edge_id": "sn2", "from_id": "tos.edition.fixture", "predicate_id": "exemplified_by", "to_id": "tos.item.fixture", "edge_kind": "evidence_claim", "review_status": "unreviewed", "source_refs": ["ToS/source-witnesses/relations/fixture.jsonl"]},
                 {"edge_id": "sn3", "from_id": "tos.item.fixture", "predicate_id": "has_file", "to_id": "tos.file.sha256.fixture", "edge_kind": "authored_item_manifest", "review_status": "not_applicable", "source_refs": ["ToS/source-witnesses/works/fixture/item.manifest.json"]},
                 {"edge_id": "sn4", "from_id": "tos.item.fixture", "predicate_id": "downloadable_at", "to_id": "tos.link.fixture.download", "edge_kind": "evidence_claim", "review_status": "unreviewed", "source_refs": ["ToS/source-witnesses/relations/object-link-claims.jsonl"]},
             ],
@@ -89,9 +101,38 @@ def write_fixture(root: Path) -> None:
         "surface_kind": "derived",
         "counts": {"nodes": 3, "edges": 3},
         "nodes": [
-            {"node_id": "a", "label": "Alpha", "graph_layers": ["source-relation"], "source_ref": "ToS/canon/a.json"},
-            {"node_id": "b", "label": "Beta", "graph_layers": ["source-relation"], "source_ref": "ToS/canon/b.json"},
-            {"node_id": "c", "label": "Gamma", "graph_layers": ["source-relation"], "source_ref": "ToS/canon/c.json"},
+            {
+                "node_id": "a",
+                "label": "Alpha",
+                "node_type": "candidate-node",
+                "multilingual": {"label": {"ru": "Альфа", "en": "Alpha", "original": None}},
+                "graph_layers": ["source-relation"],
+                "view_ids": ["chronology", "direct-only"],
+                "source_ref": "ToS/canon/a.json",
+                "properties": {
+                    "original_node_type": "concept",
+                    "canon_status": "pre-canon",
+                    "period": "fixture period",
+                },
+            },
+            {
+                "node_id": "b",
+                "label": "Beta",
+                "node_type": "work",
+                "graph_layers": ["source-relation"],
+                "view_ids": ["chronology", "direct-only"],
+                "source_ref": "ToS/canon/b.json",
+                "properties": {},
+            },
+            {
+                "node_id": "c",
+                "label": "Gamma",
+                "node_type": "source",
+                "graph_layers": ["source-relation"],
+                "view_ids": ["chronology"],
+                "source_ref": "ToS/canon/c.json",
+                "properties": {},
+            },
         ],
         "edges": [
             {
@@ -101,6 +142,8 @@ def write_fixture(root: Path) -> None:
                 "predicate_id": "relates",
                 "graph_layers": ["source-relation"],
                 "source_ref": "ToS/canon/relations.json",
+                "view_ids": ["chronology"],
+                "properties": {"comment": "Alpha is evidenced by Gamma."},
             },
             {
                 "edge_id": "e",
@@ -109,6 +152,8 @@ def write_fixture(root: Path) -> None:
                 "predicate_id": "relates",
                 "graph_layers": ["source-relation"],
                 "source_ref": "ToS/canon/relations.json",
+                "view_ids": ["chronology", "direct-only"],
+                "properties": {},
             },
             {
                 "edge_id": "e3",
@@ -117,6 +162,8 @@ def write_fixture(root: Path) -> None:
                 "predicate_id": "relates",
                 "graph_layers": ["source-relation"],
                 "source_ref": "ToS/canon/relations.json",
+                "view_ids": ["chronology"],
+                "properties": {},
             },
         ],
         "views": [
@@ -157,8 +204,41 @@ def write_fixture(root: Path) -> None:
         "snapshot_review": {"snapshot_schema_version": "tos_philosophy_graph_projection_snapshot_v1"},
         "unresolved_review_surfaces": [],
     }
+    bibliographic_nodes = {}
+    bibliographic_edges = []
+    claim_traces = []
+    for edge in index.get('source_navigation', {}).get('edges', []):
+        if edge.get('edge_kind') != 'evidence_claim':
+            continue
+        claim_ref = 'tos.claim.fixture.' + edge['edge_id']
+        edge['claim_ref'] = claim_ref
+        claim_node = 'claim:' + claim_ref
+        refs = edge['source_refs']
+        bibliographic_nodes[claim_node] = {'node_id': claim_node, 'node_kind': 'claim', 'label': edge['predicate_id'],
+            'source_refs': refs, 'properties': {'claim_ref': claim_ref, 'predicate': edge['predicate_id'], 'claim_version': 1, 'review_status': 'unreviewed'}}
+        for role, endpoint in [('subject', edge['from_id']), ('object', edge['to_id'])]:
+            identity = 'identity:' + endpoint
+            bibliographic_nodes[identity] = {'node_id': identity, 'node_kind': 'identity', 'label': endpoint,
+                'source_refs': refs, 'properties': {'identity_ref': endpoint, 'identity_kind': endpoint.split('.')[1]}}
+            bibliographic_edges.append({'edge_id': edge['edge_id'] + ':' + role, 'edge_kind': 'has_' + role,
+                'from_id': claim_node, 'to_id': identity, 'claim_ref': claim_ref, 'review_status': 'unreviewed',
+                'source_claim_file_ref': refs[0]})
+        claim_traces.append({'claim_ref': claim_ref, 'claim_node_id': claim_node, 'predicate': edge['predicate_id'],
+            'subject_node_id': 'identity:' + edge['from_id'], 'object_node_id': 'identity:' + edge['to_id'],
+            'evidence_node_ids': [], 'review_status': 'unreviewed', 'epistemic_status': 'reported'})
     (derived / "tos_corpus_index.min.json").write_text(json.dumps(index), encoding="utf-8")
     (derived / "philosophy_graph_projection.min.json").write_text(json.dumps(graph), encoding="utf-8")
+    (graph_derived / "source-witness-bibliographic-claims.min.json").write_text(
+        json.dumps(
+            {
+                "schema_version": "tos_source_witness_bibliographic_graph_v1",
+                "nodes": list(bibliographic_nodes.values()),
+                "edges": bibliographic_edges,
+                "claim_traces": claim_traces,
+            }
+        ),
+        encoding="utf-8",
+    )
     (derived / "epistemic_evidence_projection.min.json").write_text(
         json.dumps(
             {
@@ -217,9 +297,426 @@ def write_fixture(root: Path) -> None:
     contracts.mkdir(parents=True)
     for name in ("runtime-manifest.v1.json", "runtime-data.v1.json", "web-actions.v1.json"):
         (contracts / name).write_text("{}\n", encoding="utf-8")
+    for name in (
+        "knowledge-api.v1.json",
+        "knowledge-graph.v1.schema.json",
+        "lens-spec.v1.schema.json",
+        "lens-result.v1.schema.json",
+        "exploration-request.v1.schema.json",
+        "exploration-result.v1.schema.json",
+    ):
+        (contracts / name).write_text(
+            (ACCESS_ROOT / "contracts" / name).read_text(encoding="utf-8"),
+            encoding="utf-8",
+        )
+    tos_contracts = root / "ToS/contracts"
+    semantic_interchange = root / "ToS/doctrine/semantic-interchange"
+    tos_contracts.mkdir(parents=True)
+    semantic_interchange.mkdir(parents=True)
+    for name in (
+        "semantic-entity-type-registry.schema.json",
+        "semantic-relation-type-registry.schema.json",
+    ):
+        (tos_contracts / name).write_text(
+            (REPO_ROOT / "ToS/contracts" / name).read_text(encoding="utf-8"),
+            encoding="utf-8",
+        )
+    for name in ("entity-types.v1.json", "relation-types.v1.json"):
+        (semantic_interchange / name).write_text(
+            (REPO_ROOT / "ToS/doctrine/semantic-interchange" / name).read_text(
+                encoding="utf-8"
+            ),
+            encoding="utf-8",
+        )
 
 
 class CoreContractTests(unittest.TestCase):
+    def test_core_search_reuses_only_its_current_snapshot(self) -> None:
+        from unittest.mock import patch
+        from copy import deepcopy
+        from tos_access.knowledge import KnowledgeSearchIndex, search_knowledge_graph
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder); write_fixture(root)
+            core = ToSAccessCore.discover(root)
+            initial = core.knowledge_graph()
+            changed = deepcopy(initial)
+            changed['nodes'][0]['attributes']['search_probe'] = 'new-snapshot-only'
+            with patch('tos_access.core.KnowledgeSearchIndex', wraps=KnowledgeSearchIndex) as prepare:
+                with patch.object(ToSAccessCore, 'knowledge_graph', return_value=initial):
+                    for query in ('Alpha', 'Альфа', 'missing'):
+                        self.assertEqual(core.knowledge_search(query), search_knowledge_graph(initial, query))
+                    self.assertEqual(prepare.call_count, 1)
+                with patch.object(ToSAccessCore, 'knowledge_graph', return_value=changed):
+                    packet = core.knowledge_search('new-snapshot-only')
+                    self.assertEqual(packet, search_knowledge_graph(changed, 'new-snapshot-only'))
+                    self.assertEqual(packet['counts']['matching_nodes'], 1)
+                    self.assertEqual(prepare.call_count, 2)
+
+    def test_knowledge_graph_normalizes_every_item_for_humans_and_agents(self) -> None:
+        with tempfile.TemporaryDirectory() as raw:
+            root = Path(raw)
+            write_fixture(root)
+            core = ToSAccessCore.discover(tos_root=root)
+
+            graph = core.knowledge_graph()
+
+            self.assertEqual(graph["schema"], "tos_knowledge_graph_v1")
+            self.assertIn("philosophy:a", {node["id"] for node in graph["nodes"]})
+            self.assertIn("canon:a", {node["id"] for node in graph["nodes"]})
+            philosophy_alpha = next(node for node in graph["nodes"] if node["id"] == "philosophy:a")
+            self.assertEqual(philosophy_alpha["kind_id"], "concept")
+            self.assertEqual(philosophy_alpha["type_id"], "tos.entity.concept")
+            self.assertEqual(philosophy_alpha["type_mapping"]["status"], "mapped")
+            self.assertEqual(philosophy_alpha["display"]["title"]["ru"], "Альфа")
+            self.assertEqual(philosophy_alpha["epistemic"]["canon_status"], "pre-canon")
+            for node in graph["nodes"]:
+                self.assertTrue(node["display"]["title"]["default"])
+                self.assertTrue(node["display"]["kind_label"]["default"])
+                self.assertTrue(node["display"]["summary"]["default"])
+                self.assertIn(node["display"]["summary_state"], {"authored", "source-derived", "metadata-synthesis", "missing"})
+                self.assertTrue(node["source_refs"])
+            for relation in graph["relations"]:
+                self.assertTrue(relation["display"]["label"]["default"])
+                self.assertTrue(relation["display"]["statement"]["default"])
+                self.assertTrue(relation["display"]["explanation"]["default"])
+                self.assertIn(relation["display"]["explanation_state"], {"authored", "source-derived", "metadata-synthesis", "missing"})
+                self.assertTrue(relation["source_refs"])
+
+    def test_arbitrary_lens_spec_is_compiled_without_a_known_view_id(self) -> None:
+        with tempfile.TemporaryDirectory() as raw:
+            root = Path(raw)
+            write_fixture(root)
+            core = ToSAccessCore.discover(tos_root=root)
+            spec = {
+                "schema_version": "tos_lens_spec_v1",
+                "lens_id": "operator.concepts-with-context",
+                "title": {"default": "Concepts with context", "ru": "Понятия с контекстом", "en": "Concepts with context"},
+                "sources": ["philosophy"],
+                "node_query": {
+                    "match": "all",
+                    "filters": [{"field": "kind_id", "op": "eq", "value": "concept"}],
+                },
+                "relation_query": {
+                    "match": "all",
+                    "filters": [{"field": "predicate_id", "op": "eq", "value": "relates"}],
+                },
+                "traversal": {"depth": 1, "direction": "either", "predicate_ids": ["relates"]},
+                "composition": {
+                    "endpoint_policy": "either",
+                    "group_by": ["kind_id"],
+                    "sort_nodes": [{"field": "display.title.default", "direction": "asc"}],
+                    "sort_relations": [{"field": "id", "direction": "asc"}],
+                },
+                "presentation": {
+                    "layout": "semantic",
+                    "color_by": "kind_id",
+                    "lane_by": "epistemic.canon_status",
+                    "size_by": None,
+                    "inspector_fields": ["display.summary", "epistemic", "source_refs"],
+                },
+                "limits": {"nodes": 20, "relations": 20, "groups": 20},
+            }
+
+            result = core.compile_knowledge_lens(spec)
+
+            self.assertEqual(result["schema"], "tos_lens_result_v1")
+            self.assertEqual(result["lens"]["lens_id"], "operator.concepts-with-context")
+            self.assertEqual(result["presentation"]["layout"], "semantic")
+            self.assertEqual(
+                {node["id"] for node in result["nodes"]},
+                {"philosophy:a", "philosophy:b", "philosophy:c"},
+            )
+            self.assertEqual(
+                {relation["id"] for relation in result["relations"]},
+                {"philosophy:e", "philosophy:e2", "philosophy:e3"},
+            )
+            self.assertEqual(result["groups"][0]["field"], "kind_id")
+            self.assertEqual(len(result["fingerprint"]), 64)
+            self.assertEqual(result["fingerprint"], core.compile_knowledge_lens(spec)["fingerprint"])
+            self.assertFalse(result["authority_boundary"]["is_source"])
+
+    def test_knowledge_catalog_exposes_saved_lenses_and_safe_composition_grammar(self) -> None:
+        with tempfile.TemporaryDirectory() as raw:
+            root = Path(raw)
+            write_fixture(root)
+            core = ToSAccessCore.discover(tos_root=root)
+
+            catalog = core.knowledge_catalog()
+
+            self.assertEqual(catalog["schema"], "tos_knowledge_catalog_v1")
+            self.assertIn("chronology", {lens["lens_id"] for lens in catalog["lenses"]})
+            self.assertIn("concept", {kind["kind_id"] for kind in catalog["node_kinds"]})
+            self.assertIn("relates", {predicate["predicate_id"] for predicate in catalog["predicates"]})
+            self.assertIn("contains", catalog["capabilities"]["filter_operators"])
+            self.assertEqual(catalog["capabilities"]["maximums"]["traversal_depth"], 5)
+            self.assertEqual(catalog["counts"]["display_coverage"]["node_titles"], catalog["counts"]["nodes"])
+            contracts = core.knowledge_contracts()
+            self.assertEqual(contracts["schema"], "tos_knowledge_contract_bundle_v1")
+            self.assertEqual(
+                set(contracts["contracts"]),
+                {
+                    "api",
+                    "knowledge_graph",
+                    "lens_spec",
+                    "lens_result",
+                    "entity_type_registry_schema",
+                    "relation_type_registry_schema",
+                    "entity_type_registry",
+                    "relation_type_registry",
+                },
+            )
+            self.assertEqual(
+                contracts["contracts"]["lens_spec"]["title"],
+                "Tree of Sophia declarative LensSpec v1",
+            )
+
+            with self.assertRaisesRegex(ValueError, "unsupported node filter field"):
+                core.compile_knowledge_lens(
+                    {
+                        "schema_version": "tos_lens_spec_v1",
+                        "lens_id": "unsafe",
+                        "node_query": {"match": "all", "filters": [{"field": "__proto__.polluted", "op": "eq", "value": "yes"}]},
+                    }
+                )
+
+            with self.assertRaisesRegex(ValueError, "unsupported node filter field"):
+                core.compile_knowledge_lens(
+                    {
+                        "schema_version": "tos_lens_spec_v1",
+                        "lens_id": "unsafe-nested",
+                        "node_query": {"match": "all", "filters": [{"field": "attributes.safe.constructor.name", "op": "eq", "value": "x"}]},
+                    }
+                )
+
+    def test_edge_data_revision_ignores_api_only_changes_but_tracks_rows_and_sources(self) -> None:
+        with tempfile.TemporaryDirectory() as raw:
+            root = Path(raw)
+            source_paths = [
+                root / name
+                for name in (
+                    "index.json",
+                    "philosophy.json",
+                    "bibliographic.json",
+                    "entity-registry.json",
+                    "relation-registry.json",
+                    "evidence.json",
+                    "audit.json",
+                )
+            ]
+            for index, source_path in enumerate(source_paths):
+                source_path.write_text(json.dumps({"revision": index}), encoding="utf-8")
+            contract = root / "access/contracts/lens-spec.v1.schema.json"
+            contract.parent.mkdir(parents=True)
+            contract.write_text('{"revision":1}', encoding="utf-8")
+            graph = {
+                "source_revision": "a" * 64,
+                "nodes": [{"id": "n", "content_revision": "b" * 64}],
+                "relations": [{"id": "r", "content_revision": "c" * 64}],
+                "catalog_hint": "first",
+            }
+
+            class FakeCore:
+                tos_root = root
+                (
+                    index_path,
+                    philosophy_graph_projection_path,
+                    bibliographic_graph_path,
+                    entity_type_registry_path,
+                    relation_type_registry_path,
+                    evidence_projection_path,
+                    philosophy_post_planting_audit_path,
+                ) = source_paths
+
+                @staticmethod
+                def knowledge_graph() -> dict[str, object]:
+                    return graph
+
+                @staticmethod
+                def zarathustra_word_analysis_public_capability() -> dict[str, object]:
+                    return {"available": False, "reason": "fixture"}
+
+            with patch.object(edge_build, "REPO_ROOT", root):
+                baseline = edge_build.data_revision(FakeCore())
+                contract.write_text('{"revision":2}', encoding="utf-8")
+                graph["catalog_hint"] = "second"
+                self.assertEqual(edge_build.data_revision(FakeCore()), baseline)
+
+                graph["nodes"][0]["content_revision"] = "d" * 64
+                self.assertNotEqual(edge_build.data_revision(FakeCore()), baseline)
+                graph["nodes"][0]["content_revision"] = "b" * 64
+
+                source_paths[0].write_text('{"revision":"changed"}', encoding="utf-8")
+                self.assertNotEqual(edge_build.data_revision(FakeCore()), baseline)
+
+    def test_edge_sql_preserves_oversized_lossless_json_in_bounded_statements(self) -> None:
+        with tempfile.TemporaryDirectory() as raw:
+            target = Path(raw) / "read-model.sql"
+            writer = edge_build.SqlStatementWriter(target)
+            writer.append(
+                "CREATE TABLE knowledge_nodes_next "
+                "(id TEXT PRIMARY KEY, search_text TEXT NOT NULL, json TEXT NOT NULL);"
+            )
+            item_json = json.dumps(
+                {"source_payload": ("Zarathustra's Überfluss — " * 6_000)},
+                ensure_ascii=False,
+                separators=(",", ":"),
+            )
+            edge_build.append_chunkable_insert(
+                writer,
+                "knowledge_nodes_next",
+                ("id", "search_text", "json"),
+                (
+                    edge_build.sql_text("fixture:large"),
+                    edge_build.sql_text(item_json.lower()),
+                    edge_build.sql_text(item_json),
+                ),
+                selector_sql=f"id = {edge_build.sql_text('fixture:large')}",
+                chunked_text={"search_text": item_json.lower(), "json": item_json},
+            )
+            writer.finish()
+
+            statements = target.read_text(encoding="utf-8").splitlines()
+            self.assertTrue(
+                all(
+                    len(statement.encode("utf-8"))
+                    <= edge_build.MAX_D1_SQL_STATEMENT_BYTES
+                    for statement in statements
+                )
+            )
+            with closing(sqlite3.connect(":memory:")) as database:
+                database.executescript(target.read_text(encoding="utf-8"))
+                stored = database.execute(
+                    "SELECT search_text, json FROM knowledge_nodes_next WHERE id = ?",
+                    ("fixture:large",),
+                ).fetchone()
+            self.assertEqual(stored, (item_json.lower(), item_json))
+
+    def test_relation_first_lenses_and_unified_inspection_need_no_legacy_mode(self) -> None:
+        with tempfile.TemporaryDirectory() as raw:
+            root = Path(raw)
+            write_fixture(root)
+            core = ToSAccessCore.discover(tos_root=root)
+            result = core.compile_knowledge_lens(
+                {
+                    "schema_version": "tos_lens_spec_v1",
+                    "lens_id": "relations-first",
+                    "sources": ["philosophy"],
+                    "node_query": {"enabled": False, "match": "all", "filters": []},
+                    "relation_query": {
+                        "match": "all",
+                        "filters": [{"field": "predicate_id", "op": "eq", "value": "relates"}],
+                    },
+                    "composition": {"endpoint_policy": "independent"},
+                    "limits": {"nodes": 10, "relations": 10, "groups": 10},
+                }
+            )
+            self.assertEqual({item["id"] for item in result["relations"]}, {"philosophy:e", "philosophy:e2", "philosophy:e3"})
+            self.assertEqual({item["id"] for item in result["nodes"]}, {"philosophy:a", "philosophy:b", "philosophy:c"})
+
+            search = core.knowledge_search("Альфа", sources=["philosophy"], limit=5)
+            self.assertEqual(search["nodes"][0]["id"], "philosophy:a")
+            exact = core.knowledge_node("philosophy:a")
+            self.assertFalse(exact["ambiguous_native_id"])
+            ambiguous = core.knowledge_node("a")
+            self.assertTrue(ambiguous["ambiguous_native_id"])
+            relation = core.knowledge_relation("philosophy:e")
+            self.assertEqual({item["id"] for item in relation["endpoints"]}, {"philosophy:a", "philosophy:b"})
+            focused = core.knowledge_focus("philosophy:a", sources=["philosophy"], depth=1)
+            self.assertEqual(focused["focus"]["node_id"], "philosophy:a")
+            self.assertEqual(focused["presentation"]["layout"], "radial")
+
+    def test_http_accepts_only_read_only_lens_compilation_post(self) -> None:
+        with tempfile.TemporaryDirectory() as raw:
+            root = Path(raw)
+            write_fixture(root)
+            server = make_server(ToSAccessCore.discover(tos_root=root), port=0)
+            thread = threading.Thread(target=server.serve_forever, daemon=True)
+            thread.start()
+            try:
+                spec = json.dumps(
+                    {
+                        "schema_version": "tos_lens_spec_v1",
+                        "lens_id": "http.fixture",
+                        "sources": ["philosophy"],
+                        "node_query": {"match": "all", "filters": []},
+                        "limits": {"nodes": 2, "relations": 2, "groups": 10},
+                    }
+                ).encode("utf-8")
+                request = urllib.request.Request(
+                    f"http://127.0.0.1:{server.server_port}/api/knowledge/lenses/compile",
+                    data=spec,
+                    method="POST",
+                    headers={"Content-Type": "application/json"},
+                )
+                packet = json.load(urllib.request.urlopen(request))
+                self.assertEqual(packet["schema"], "tos_lens_result_v1")
+                self.assertEqual(packet["lens"]["lens_id"], "http.fixture")
+
+                base = f"http://127.0.0.1:{server.server_port}"
+                catalog = json.load(urllib.request.urlopen(base + "/api/knowledge/catalog"))
+                contracts = json.load(urllib.request.urlopen(base + "/api/knowledge/contracts"))
+                search = json.load(urllib.request.urlopen(base + "/api/knowledge/search?query=Alpha&sources=philosophy"))
+                node = json.load(urllib.request.urlopen(base + "/api/knowledge/nodes/philosophy%3Aa"))
+                relation = json.load(urllib.request.urlopen(base + "/api/knowledge/relations/philosophy%3Ae"))
+                focused = json.load(urllib.request.urlopen(
+                    base + "/api/knowledge/focus/philosophy%3Aa?sources=philosophy&depth=5"
+                ))
+                self.assertEqual(catalog["schema"], "tos_knowledge_catalog_v1")
+                self.assertEqual(contracts["schema"], "tos_knowledge_contract_bundle_v1")
+                self.assertEqual(search["nodes"][0]["id"], "philosophy:a")
+                self.assertEqual(node["matches"][0]["id"], "philosophy:a")
+                self.assertEqual(relation["matches"][0]["id"], "philosophy:e")
+                self.assertEqual(focused["focus"]["node_id"], "philosophy:a")
+                self.assertEqual(focused["lens"]["traversal"]["depth"], 5)
+                for inspected in (search, node, relation):
+                    self.assertEqual(inspected['source_revision'], focused['source_revision'])
+                paged_spec = {**json.loads(spec), 'pagination': {'nodes': 1, 'relations': 1}}
+                def compile_page(value):
+                    return urllib.request.urlopen(urllib.request.Request(base + '/api/knowledge/lenses/compile',
+                        data=json.dumps(value).encode(), headers={'Content-Type': 'application/json'}))
+                with compile_page(paged_spec) as response:
+                    page = json.load(response)
+                self.assertTrue(page['page']['next_cursor'])
+                paged_spec['pagination']['cursor'] = page['page']['next_cursor']
+                paged_spec['lens_id'] = 'different-query'
+                with self.assertRaises(urllib.error.HTTPError) as conflict:
+                    compile_page(paged_spec)
+                self.assertEqual(conflict.exception.code, 409)
+                conflict.exception.close()
+
+                health = json.load(urllib.request.urlopen(base + "/health"))
+                self.assertTrue(health["ok"])
+                self.assertEqual(health["knowledge_schema"], "tos_knowledge_graph_v1")
+                knowledge_counts = health["knowledge_counts"]
+                coverage = knowledge_counts["display_coverage"]
+                self.assertEqual(coverage["node_summaries"], knowledge_counts["nodes"])
+                self.assertEqual(coverage["relation_explanations"], knowledge_counts["relations"])
+
+                oversized = urllib.request.Request(
+                    base + "/api/knowledge/lenses/compile",
+                    data=b"x" * (64 * 1024 + 1),
+                    method="POST",
+                    headers={"Content-Type": "application/json"},
+                )
+                with self.assertRaises(urllib.error.HTTPError) as caught:
+                    urllib.request.urlopen(oversized)
+                self.assertEqual(caught.exception.code, 413)
+                caught.exception.close()
+
+                forbidden = urllib.request.Request(
+                    f"http://127.0.0.1:{server.server_port}/api/corpus/status",
+                    data=b"{}",
+                    method="POST",
+                    headers={"Content-Type": "application/json"},
+                )
+                with self.assertRaises(urllib.error.HTTPError) as caught:
+                    urllib.request.urlopen(forbidden)
+                self.assertEqual(caught.exception.code, 405)
+                caught.exception.close()
+            finally:
+                server.shutdown()
+                server.server_close()
+                thread.join(timeout=5)
     def test_source_navigation_and_dossiers_keep_access_separate_from_rights(self) -> None:
         with tempfile.TemporaryDirectory() as raw:
             root = Path(raw)
@@ -274,13 +771,13 @@ class CoreContractTests(unittest.TestCase):
                     },
                 ]
             )
-            navigation["counts"] = {"nodes": 7, "edges": 6, "rights": 1}
+            navigation["counts"] = {"nodes": 9, "edges": 8, "rights": 1}
             index_path.write_text(json.dumps(index), encoding="utf-8")
             core = ToSAccessCore.discover(tos_root=root)
 
             descent = core.source_descend("philosophy.eras.fixture")
-            self.assertEqual(descent["counts"], {"nodes": 7, "edges": 6})
-            self.assertEqual(descent["nodes"][-1]["depth"], 3)
+            self.assertEqual(descent["counts"], {"nodes": 9, "edges": 8})
+            self.assertEqual(descent["nodes"][-1]["depth"], 5)
             dossier = core.source_dossier("tos.link.fixture.download")
             self.assertEqual(dossier["agent_summary"]["technical_access"], "downloadable")
             self.assertEqual(dossier["agent_summary"]["rights_posture"], "candidate_requires_human_review")

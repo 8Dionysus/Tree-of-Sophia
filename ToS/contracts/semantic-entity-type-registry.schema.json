@@ -1,0 +1,124 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://treeofsophia.local/ToS/contracts/semantic-entity-type-registry.schema.json",
+  "title": "Tree of Sophia semantic entity type registry",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "registry_id",
+    "registry_version",
+    "source_refs",
+    "fallback_type_id",
+    "types"
+  ],
+  "properties": {
+    "schema_version": {"const": "tos_semantic_entity_type_registry_v1"},
+    "registry_id": {"const": "tos.semantic.entity-types"},
+    "registry_version": {"type": "integer", "minimum": 1},
+    "source_refs": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {"$ref": "#/$defs/nonEmptyString"}
+    },
+    "fallback_type_id": {"$ref": "#/$defs/typeId"},
+    "property_definitions": {"type": "array", "items": {"$ref": "#/$defs/propertyDefinition"}},
+    "types": {
+      "type": "array",
+      "minItems": 1,
+      "items": {"$ref": "#/$defs/typeEntry"}
+    }
+  },
+  "$defs": {
+    "propertyDefinition": {
+      "type": "object", "additionalProperties": false,
+      "required": ["property_id", "field", "labels", "definition", "value_type", "applies_to", "required", "inherited", "unit", "language", "operators"],
+      "properties": {
+        "property_id": {"type": "string", "pattern": "^tos\\.property\\.[a-z0-9-]+$"},
+        "field": {"type": "string", "minLength": 1}, "labels": {"$ref": "#/$defs/localizedLabel"},
+        "definition": {"type": "string", "minLength": 1},
+        "value_type": {"enum": ["string", "number", "boolean", "string-array"]},
+        "applies_to": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/typeId"}},
+        "required": {"type": "boolean"}, "inherited": {"type": "boolean"},
+        "unit": {"type": ["string", "null"]}, "language": {"type": ["string", "null"]},
+        "operators": {"type": "array", "minItems": 1, "items": {"enum": ["eq", "neq", "in", "contains", "prefix", "exists", "gt", "gte", "lt", "lte"]}}
+      }
+    },
+    "nonEmptyString": {"type": "string", "minLength": 1},
+    "typeId": {
+      "type": "string",
+      "pattern": "^tos\\.entity\\.[a-z0-9]+(?:-[a-z0-9]+)*(?:\\.[a-z0-9]+(?:-[a-z0-9]+)*)*$"
+    },
+    "localizedLabel": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["default", "ru", "en"],
+      "properties": {
+        "default": {"$ref": "#/$defs/nonEmptyString"},
+        "ru": {"type": ["string", "null"], "minLength": 1},
+        "en": {"type": ["string", "null"], "minLength": 1}
+      }
+    },
+    "sourceMapping": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["source_graph", "source_kind_id"],
+      "properties": {
+        "source_graph": {"$ref": "#/$defs/nonEmptyString"},
+        "source_kind_id": {"$ref": "#/$defs/nonEmptyString"}
+      }
+    },
+    "typeEntry": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type_id",
+        "parent_type_ids",
+        "abstract",
+        "object_role",
+        "labels",
+        "definition",
+        "lifecycle",
+        "owner_ref",
+        "source_mappings",
+        "supersedes_type_id"
+      ],
+      "properties": {
+        "type_id": {"$ref": "#/$defs/typeId"},
+        "parent_type_ids": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {"$ref": "#/$defs/typeId"}
+        },
+        "abstract": {"type": "boolean"},
+        "object_role": {
+          "enum": [
+            "root",
+            "identity",
+            "semantic",
+            "assertion",
+            "literal",
+            "evidence",
+            "activity",
+            "navigation",
+            "projection",
+            "unresolved",
+            "unmapped"
+          ]
+        },
+        "labels": {"$ref": "#/$defs/localizedLabel"},
+        "definition": {"$ref": "#/$defs/nonEmptyString"},
+        "lifecycle": {"enum": ["stable", "candidate", "deprecated"]},
+        "owner_ref": {"$ref": "#/$defs/nonEmptyString"},
+        "source_mappings": {
+          "type": "array",
+          "items": {"$ref": "#/$defs/sourceMapping"}
+        },
+        "supersedes_type_id": {
+          "anyOf": [{"$ref": "#/$defs/typeId"}, {"type": "null"}]
+        }
+      }
+    }
+  }
+}

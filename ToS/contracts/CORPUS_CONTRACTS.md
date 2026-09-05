@@ -12,6 +12,8 @@ judgment true.
 | `artifact-visual-representation.schema.json` | one exact File-backed visual representation with provider records, payload fixity, rights, acquisition, storage scope, and zero embedded-text or publication authority |
 | `open-work-channel-timing-receipt.schema.json` | external positive per-channel monotonic HTTP transport measurements for the active reviewed open-Work loop, explicitly excluding research, interpretation, rights-review, and human time |
 | `corpus-record.schema.json` | persistent agent/work/expression/edition/collection/item identity plus exact outgoing Work→Expression, Expression→Edition, Edition→Item, and optional Expression-derivation claim closure refs |
+| `semantic-entity-type-registry.schema.json` | versioned stable `tos.entity.*` hierarchy and source-kind crosswalk with explicit lifecycle, owner, human labels, and an unmapped fallback |
+| `semantic-relation-type-registry.schema.json` | versioned stable `tos.relation.*` hierarchy and source-predicate crosswalk with domain/range, directionality, cardinality, evidence/review posture, and an unmapped fallback |
 | `source-item-manifest.schema.json` | immutable local payload inventory, digest, and tracked companion refs |
 | `source-resource-inventory.schema.json` | text-free PDF or bundled-DjVu page, EPUB member/spine, TEI page-break/division, and provider DjVu/ABBYY OCR-page inventory with geometry, ordering, counts, member fixity, and one-way fingerprints |
 | `lexical-index-plan.schema.json` | source-gated exact-form observation plan with explicit local source-bearing versus tracked hash-only outputs, field-by-field authority, rights routing, and a semantic non-effect boundary |

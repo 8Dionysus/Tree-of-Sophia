@@ -113,6 +113,47 @@ class SourceWitnessBibliographicGraphTest(unittest.TestCase):
             self.assertEqual(digest, trace["source_claim_sha256"])
             self.assertEqual(digest, trace["claim_sha256"])
 
+    def test_structured_source_fields_survive_claim_projection_losslessly(self) -> None:
+        payload = self.load_projection()
+        nodes = {node["node_id"]: node for node in payload["nodes"]}
+        trace = payload["claim_traces"][0]
+
+        claim_node = nodes[trace["claim_node_id"]]
+        claim_lines = (REPO_ROOT / claim_node["source_ref"]).read_text(
+            encoding="utf-8"
+        ).splitlines()
+        source_claim = json.loads(claim_lines[claim_node["source_line"] - 1])
+        self.assertEqual(claim_node["properties"]["source_claim"], source_claim)
+
+        identity_node = nodes[trace["subject_node_id"]]
+        source_record = json.loads(
+            (REPO_ROOT / identity_node["source_ref"]).read_text(encoding="utf-8")
+        )
+        self.assertEqual(identity_node["properties"]["source_record"], source_record)
+        self.assertEqual(
+            identity_node["properties"]["record_version"],
+            source_record["record_version"],
+        )
+
+        event_node = nodes[trace["provenance_event_node_id"]]
+        event_lines = (REPO_ROOT / event_node["source_ref"]).read_text(
+            encoding="utf-8"
+        ).splitlines()
+        source_event = json.loads(event_lines[event_node["source_line"] - 1])
+        self.assertEqual(event_node["properties"]["source_event"], source_event)
+
+        anchor_node = next(
+            node
+            for node in payload["nodes"]
+            if node["node_kind"] == "evidence"
+            and node["properties"].get("evidence_kind") == "anchor"
+        )
+        anchor_lines = (REPO_ROOT / anchor_node["source_ref"]).read_text(
+            encoding="utf-8"
+        ).splitlines()
+        source_anchor = json.loads(anchor_lines[anchor_node["source_line"] - 1])
+        self.assertEqual(anchor_node["properties"]["source_anchor"], source_anchor)
+
     def test_literal_objects_remain_literals_not_false_identities(self) -> None:
         payload = self.load_projection()
         nodes = {node["node_id"]: node for node in payload["nodes"]}

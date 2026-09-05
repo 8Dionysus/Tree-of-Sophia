@@ -1,0 +1,184 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://treeofsophia.com/contracts/knowledge-graph.v1.schema.json",
+  "title": "Tree of Sophia normalized knowledge graph v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema", "source_revision", "nodes", "relations", "counts", "authority_boundary"],
+  "properties": {
+    "schema": {"const": "tos_knowledge_graph_v1"},
+    "source_revision": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "nodes": {"type": "array", "items": {"$ref": "#/$defs/node"}},
+    "relations": {"type": "array", "items": {"$ref": "#/$defs/relation"}},
+    "counts": {"type": "object"},
+    "authority_boundary": {"$ref": "#/$defs/authorityBoundary"}
+  },
+  "$defs": {
+    "sourceRecord": {
+      "type": "object", "additionalProperties": false,
+      "required": ["payload", "digest", "transform_version", "field_map"],
+      "properties": {"payload": {"type": "object"}, "digest": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+        "transform_version": {"type": "string"}, "field_map": {"type": "object", "additionalProperties": {"type": "string"}}}
+    },
+    "nonEmptyString": {"type": "string", "minLength": 1},
+    "nullableString": {"type": ["string", "null"]},
+    "localizedText": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["default", "ru", "en", "original"],
+      "properties": {
+        "default": {"$ref": "#/$defs/nonEmptyString"},
+        "ru": {"$ref": "#/$defs/nullableString"},
+        "en": {"$ref": "#/$defs/nullableString"},
+        "original": {"$ref": "#/$defs/nullableString"}
+      }
+    },
+    "epistemic": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["authority_layer", "canon_status", "review_posture", "confidence"],
+      "properties": {
+        "authority_layer": {"$ref": "#/$defs/nullableString"},
+        "canon_status": {"$ref": "#/$defs/nullableString"},
+        "review_posture": {"$ref": "#/$defs/nullableString"},
+        "confidence": {"type": ["string", "number", "null"]}
+      }
+    },
+    "semanticMapping": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["status", "registry_ref"],
+      "properties": {
+        "status": {"enum": ["mapped", "unmapped"]},
+        "source_kind_id": {"$ref": "#/$defs/nonEmptyString"},
+        "source_predicate_id": {"$ref": "#/$defs/nonEmptyString"},
+        "registry_ref": {"$ref": "#/$defs/nonEmptyString"}
+      },
+      "oneOf": [
+        {"required": ["source_kind_id"], "not": {"required": ["source_predicate_id"]}},
+        {"required": ["source_predicate_id"], "not": {"required": ["source_kind_id"]}}
+      ]
+    },
+    "nodeSemantics": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "type_ancestors": {"type": "array", "items": {"type": "string"}},
+        "annotation": {"type": "object"},
+        "claim": {"type": "object"},
+        "time": {"type": "object"},
+        "space": {"type": "object"},
+        "responsibility": {"type": "object"}
+      }
+    },
+    "relationSemantics": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "time": {"type": "object"},
+        "space": {"type": "object"},
+        "responsibility": {"type": "object"}
+      }
+    },
+    "nodeDisplay": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["title", "kind_label", "summary", "summary_state", "provenance"],
+      "properties": {
+        "title": {"$ref": "#/$defs/localizedText"},
+        "kind_label": {"$ref": "#/$defs/localizedText"},
+        "summary": {"$ref": "#/$defs/localizedText"},
+        "summary_state": {
+          "enum": ["authored", "source-derived", "metadata-synthesis", "missing"]
+        },
+        "provenance": {"type": "object"}
+      }
+    },
+    "relationDisplay": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["label", "inverse_label", "statement", "explanation", "explanation_state", "provenance"],
+      "properties": {
+        "label": {"$ref": "#/$defs/localizedText"},
+        "inverse_label": {
+          "anyOf": [
+            {"$ref": "#/$defs/localizedText"},
+            {"type": "null"}
+          ]
+        },
+        "statement": {"$ref": "#/$defs/localizedText"},
+        "explanation": {"$ref": "#/$defs/localizedText"},
+        "explanation_state": {
+          "enum": ["authored", "source-derived", "metadata-synthesis", "missing"]
+        },
+        "provenance": {"type": "object"}
+      }
+    },
+    "node": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id", "entity_id", "native_id", "source_graph", "kind_id", "type_id", "type_mapping",
+        "content_revision", "display", "epistemic", "graph_layers", "view_ids", "source_refs",
+        "attributes", "semantics"
+      ],
+      "properties": {
+        "id": {"$ref": "#/$defs/nonEmptyString"},
+        "entity_id": {"$ref": "#/$defs/nonEmptyString"},
+        "native_id": {"$ref": "#/$defs/nonEmptyString"},
+        "source_graph": {"enum": ["philosophy", "canon", "candidate-intake", "source-navigation", "source-claims", "semantic-interchange", "repository"]},
+        "kind_id": {"$ref": "#/$defs/nonEmptyString"},
+        "type_id": {"$ref": "#/$defs/nonEmptyString"},
+        "type_mapping": {"$ref": "#/$defs/semanticMapping"},
+        "content_revision": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+        "display": {"$ref": "#/$defs/nodeDisplay"},
+        "epistemic": {"$ref": "#/$defs/epistemic"},
+        "graph_layers": {"type": "array", "items": {"$ref": "#/$defs/nonEmptyString"}, "uniqueItems": true},
+        "view_ids": {"type": "array", "items": {"$ref": "#/$defs/nonEmptyString"}, "uniqueItems": true},
+        "source_refs": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/nonEmptyString"}, "uniqueItems": true},
+        "attributes": {"type": "object"},
+        "semantics": {"$ref": "#/$defs/nodeSemantics"},
+        "source_record": {"$ref": "#/$defs/sourceRecord"}
+      }
+    },
+    "relation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id", "native_id", "source_graph", "from_id", "to_id", "predicate_id", "content_revision",
+        "relation_type_id", "predicate_mapping", "display", "epistemic", "graph_layers", "view_ids",
+        "source_refs", "attributes", "semantics"
+      ],
+      "properties": {
+        "id": {"$ref": "#/$defs/nonEmptyString"},
+        "native_id": {"$ref": "#/$defs/nonEmptyString"},
+        "source_graph": {"enum": ["philosophy", "canon", "candidate-intake", "source-navigation", "source-claims", "semantic-interchange", "repository"]},
+        "from_id": {"$ref": "#/$defs/nonEmptyString"},
+        "to_id": {"$ref": "#/$defs/nonEmptyString"},
+        "predicate_id": {"$ref": "#/$defs/nonEmptyString"},
+        "relation_type_id": {"$ref": "#/$defs/nonEmptyString"},
+        "predicate_mapping": {"$ref": "#/$defs/semanticMapping"},
+        "content_revision": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+        "display": {"$ref": "#/$defs/relationDisplay"},
+        "epistemic": {"$ref": "#/$defs/epistemic"},
+        "graph_layers": {"type": "array", "items": {"$ref": "#/$defs/nonEmptyString"}, "uniqueItems": true},
+        "view_ids": {"type": "array", "items": {"$ref": "#/$defs/nonEmptyString"}, "uniqueItems": true},
+        "source_refs": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/nonEmptyString"}, "uniqueItems": true},
+        "attributes": {"type": "object"},
+        "semantics": {"$ref": "#/$defs/relationSemantics"},
+        "source_record": {"$ref": "#/$defs/sourceRecord"}
+      }
+    },
+    "authorityBoundary": {
+      "type": "object",
+      "required": ["is_source", "is_canon", "writes_to_tree", "source_owner", "note"],
+      "properties": {
+        "is_source": {"const": false},
+        "is_canon": {"const": false},
+        "writes_to_tree": {"const": false},
+        "source_owner": {"const": "Tree-of-Sophia"},
+        "note": {"$ref": "#/$defs/nonEmptyString"}
+      }
+    }
+  }
+}

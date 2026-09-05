@@ -1,0 +1,60 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://treeofsophia.com/contracts/exploration-result.v1.schema.json",
+  "title": "Resumable neighborhood page, not a LensResult or a semantic assertion",
+  "type": "object", "additionalProperties": false,
+  "required": ["schema", "execution_version", "snapshot_revision", "source_revision", "query", "focus", "status", "limit_reason", "nodes", "relations", "page", "counts", "inclusion", "authority_boundary", "writes_to_tree"],
+  "properties": {
+    "schema": {"const": "tos_exploration_result_v1"},
+    "execution_version": {"enum": ["tos-exploration-execution-v1", "tos-exploration-d1-execution-v1"]},
+    "snapshot_revision": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "source_revision": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "query": {"$ref": "exploration-request.v1.schema.json#/oneOf/1"},
+    "focus": {"type": "object", "additionalProperties": false, "required": ["node_id"], "properties": {"node_id": {"type": "string"}}},
+    "status": {"enum": ["paused", "complete", "limit_reached"]},
+    "limit_reason": {"enum": [null, "session_nodes", "session_relations"]},
+    "nodes": {"type": "array", "items": {"$ref": "knowledge-graph.v1.schema.json#/$defs/node"}},
+    "relations": {"type": "array", "items": {"$ref": "knowledge-graph.v1.schema.json#/$defs/relation"}},
+    "page": {
+      "type": "object", "additionalProperties": false,
+      "required": ["number", "primary_node_ids", "context_node_ids", "next_cursor", "returned_nodes", "returned_relations", "work_units", "scope"],
+      "properties": {
+        "number": {"type": "integer", "minimum": 1},
+        "primary_node_ids": {"$ref": "#/$defs/ids"}, "context_node_ids": {"$ref": "#/$defs/ids"},
+        "next_cursor": {"type": ["string", "null"], "pattern": "^[0-9a-f]{64}$"},
+        "returned_nodes": {"type": "integer", "minimum": 1, "maximum": 301},
+        "returned_relations": {"type": "integer", "minimum": 0, "maximum": 100},
+        "work_units": {"type": "integer", "minimum": 0, "maximum": 512},
+        "scope": {"const": "resumable-neighborhood"}
+      }
+    },
+    "counts": {
+      "type": "object", "additionalProperties": false, "required": ["discovered_nodes", "emitted_relations", "scope"],
+      "properties": {
+        "discovered_nodes": {"type": "integer", "minimum": 1, "maximum": 10000},
+        "emitted_relations": {"type": "integer", "minimum": 0, "maximum": 20000},
+        "scope": {"const": "cumulative-discovered-not-global-total"}
+      }
+    },
+    "inclusion": {
+      "type": "object", "additionalProperties": false, "required": ["nodes", "relations", "authority"],
+      "properties": {
+        "nodes": {"type": "object", "additionalProperties": {"oneOf": [
+          {"type": "object", "additionalProperties": false, "required": ["kind"], "properties": {"kind": {"enum": ["focus", "context-endpoint"]}}},
+          {"type": "object", "additionalProperties": false, "required": ["kind", "via_node_id", "via_relation_id", "depth"], "properties": {"kind": {"const": "traversal"}, "via_node_id": {"type": "string"}, "via_relation_id": {"type": "string"}, "depth": {"type": "integer", "minimum": 1, "maximum": 10}}}
+        ]}},
+        "relations": {"type": "object", "additionalProperties": {
+          "type": "object", "additionalProperties": false, "required": ["kind", "via_node_id", "depth"],
+          "properties": {"kind": {"const": "traversal"}, "via_node_id": {"type": "string"}, "depth": {"type": "integer", "minimum": 1, "maximum": 10}}
+        }},
+        "authority": {"const": "query-execution-not-semantic-proof"}
+      }
+    },
+    "authority_boundary": {"type": "object"}, "writes_to_tree": {"const": false}
+  },
+  "allOf": [
+    {"if": {"properties": {"status": {"const": "paused"}}}, "then": {"properties": {"page": {"properties": {"next_cursor": {"type": "string"}}}, "limit_reason": {"const": null}}}, "else": {"properties": {"page": {"properties": {"next_cursor": {"const": null}}}}}},
+    {"if": {"properties": {"status": {"const": "limit_reached"}}}, "then": {"properties": {"limit_reason": {"type": "string"}}}, "else": {"properties": {"limit_reason": {"const": null}}}}
+  ],
+  "$defs": {"ids": {"type": "array", "uniqueItems": true, "items": {"type": "string"}}}
+}

@@ -161,7 +161,9 @@ def _load_object_catalog(repo_root: Path) -> dict[str, dict[str, Any]]:
                 raise BibliographicGraphBuildError(
                     f"{location}: source record digest differs from {source_ref}"
                 )
-            objects[record_id] = entry
+            material = dict(entry)
+            material["_source_record"] = source_payload
+            objects[record_id] = material
     return objects
 
 
@@ -335,16 +337,23 @@ def _literal_node(value: Any, claim: dict[str, Any], entry: dict[str, Any]) -> d
 
 
 def _identity_node(entry: dict[str, Any]) -> dict[str, Any]:
+    source_record = (
+        dict(entry["_source_record"])
+        if isinstance(entry.get("_source_record"), dict)
+        else {}
+    )
     return {
         "node_id": _node_id("identity", str(entry["record_id"])),
         "node_kind": "identity",
         "source_ref": entry["source_record_ref"],
         "source_sha256": entry["record_sha256"],
         "properties": {
+            **source_record,
             "identity_ref": entry["record_id"],
             "identity_kind": entry["record_type"],
             "preferred_label": entry["preferred_label"],
             "identity_status": entry["identity_status"],
+            "source_record": source_record,
         },
     }
 
@@ -402,6 +411,7 @@ def _claim_node(entry: dict[str, Any], claim: dict[str, Any]) -> dict[str, Any]:
         "source_line": entry["source_claim_line"],
         "source_sha256": entry["claim_sha256"],
         "properties": {
+            **dict(claim),
             "claim_ref": entry["claim_id"],
             "claim_type": entry["claim_type"],
             "assertion_layer": entry["assertion_layer"],
@@ -412,6 +422,7 @@ def _claim_node(entry: dict[str, Any], claim: dict[str, Any]) -> dict[str, Any]:
             "claim_version": entry["claim_version"],
             "confidence": claim.get("confidence"),
             "qualifiers": claim.get("qualifiers"),
+            "source_claim": dict(claim),
         },
     }
 
@@ -425,6 +436,7 @@ def _event_node(indexed: dict[str, Any]) -> dict[str, Any]:
         "source_line": indexed["source_line"],
         "source_sha256": indexed["source_sha256"],
         "properties": {
+            **dict(event),
             "event_ref": event["event_id"],
             "event_type": event["event_type"],
             "started_at": event["started_at"],
@@ -433,6 +445,7 @@ def _event_node(indexed: dict[str, Any]) -> dict[str, Any]:
             "method": event["method"],
             "status": event["status"],
             "event_version": event["event_version"],
+            "source_event": dict(event),
         },
     }
 
@@ -447,6 +460,7 @@ def _maker_node(
     properties: dict[str, Any] = {
         "agent_ref": agent_ref,
         "maker_type": maker["maker_type"],
+        "source_maker": dict(maker),
     }
     if agent_ref in objects:
         identity = objects[agent_ref]
@@ -502,12 +516,14 @@ def _evidence_node(
             "source_line": indexed["source_line"],
             "source_sha256": indexed["source_sha256"],
             "properties": {
+                **dict(anchor),
                 "evidence_ref": evidence_ref,
                 "evidence_kind": "anchor",
                 "resolved": True,
                 "anchor_status": anchor.get("status"),
                 "item_ref": anchor.get("item_id"),
                 "file_ref": anchor.get("file_id"),
+                "source_anchor": dict(anchor),
             },
         }
     if evidence_ref in objects:
@@ -556,11 +572,13 @@ def _review_node(
         "source_line": entry["source_claim_line"],
         "source_sha256": entry["claim_sha256"],
         "properties": {
+            **dict(review),
             "review_ref": review["review_id"],
             "reviewer_kind": review["reviewer_kind"],
             "reviewer_ref": review["reviewer_ref"],
             "decision": review["decision"],
             "reviewed_at": review["reviewed_at"],
+            "source_review": dict(review),
         },
     }
 
