@@ -155,5 +155,6 @@ export function createLensPanel(root,scene,panels,{onUserAction}){
     if(applying||panel.hidden||scene.port.packet===basePacket)return;
     stop();preview=null;stale=true;renderResult();
   }
+  panels.configure('builder',{onResume:()=>{if(!context)void loadCatalog();else renderResult();}});
   addEventListener('pagehide',stop);refreshIcons();return {selectionChanged};
 }

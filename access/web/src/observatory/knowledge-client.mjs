@@ -1,6 +1,8 @@
 // The browser consumes the access contract; it never authors ToS relationships.
 export const DEFAULT_FOCUS = 'tos.work.friedrich-nietzsche.also-sprach-zarathustra';
 export const BUDGET = Object.freeze({nodes:40,relations:80});
+const executedSpecs=new WeakMap();
+export const specForPacket=packet=>executedSpecs.get(packet)||null;
 export class ContractError extends Error {}
 export class RevisionError extends Error {
   constructor(){super('Данные изменились. Обновите область, чтобы продолжить.');}
@@ -12,7 +14,7 @@ export function localized(value,fallback='') {
   return [value?.ru,value?.default,value?.original,value?.en].find(v=>typeof v==='string'&&v.trim())||fallback;
 }
 export function focusSpec(id,{depth=1}={}) {
-  return {schema_version:'tos_lens_spec_v1',lens_id:'sophia-observatory-focus',language:'ru',detail:'compact',
+  return {schema_version:'tos_lens_spec_v1',lens_id:'sophia-observatory-focus',language:'ru',detail:'compact',explain:true,
     seed:{focus_node_id:id},node_query:{enabled:false},
     traversal:{depth,direction:'either',profile:'overview'},limits:{...BUDGET,groups:8}};
 }
@@ -127,7 +129,7 @@ export class KnowledgeClient {
     if(packet.schema!=='tos_knowledge_search_v1'||packet.nodes?.length>6||packet.relations?.length>6)throw new ContractError('Неподдерживаемый ответ поиска.');
     checkItems(packet.nodes,'node');checkItems(packet.relations,'relation');return packet;
   }
-  async compile(spec,signal,expected=null){return validateLens(await this.request('/lenses/compile',{signal,body:spec}),expected);}
+  async compile(spec,signal,expected=null){const owned=structuredClone(spec),packet=validateLens(await this.request('/lenses/compile',{signal,body:owned}),expected);executedSpecs.set(packet,owned);return packet;}
   async explore(query,signal,expected,previous=null){
     const packet=validateExploration(await this.request('/explore',{signal,body:query}),expected,previous);
     if(!previous&&Object.entries(query).some(([key,value])=>JSON.stringify(packet.query?.[key])!==JSON.stringify(value)))throw new ContractError('Сервер вернул другую область раскрытия.');

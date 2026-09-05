@@ -219,3 +219,60 @@ explicit same-composition and empty-result messages. Technical and substantive
 choices are grouped using the backend registry. The prior slice's two-step
 interaction is superseded; its camera, budget and source-ownership boundaries
 remain. Validation for this correction is recorded in the task's commit review.
+
+## Reading continuity and personal space (2026-09-05)
+
+The next UI slice builds on the live lens constructor at `6440248cf`:
+
+- `reading-state.mjs` keeps bounded page-local reading positions by exact object,
+  source revision and section. It restores expanded references and a text anchor
+  after tab changes or asynchronous content arrival. The panel host captures before
+  hiding a surface. A contextual return trail goes from sources to evidence and
+  back to the selected card; another graph/selection cannot reuse that trail.
+- The registered panel host supports remembered window sizes, pointer and keyboard
+  resizing, and automatic/left/right docking. The scene stays dominant: desktop
+  sheets are limited to 48% width and mobile sheets to 42dvh. Long descriptions
+  and available source text use a readable serif measure, with a larger-text option.
+  This does not manufacture full text when the owner API only provides metadata
+  and source links. External source links keep their existing explicit routes.
+- `scene-feedback.mjs` marks additions briefly and differentiates selector/focus
+  from traversal/endpoint inclusion using the advertised query-execution evidence.
+  These shapes describe inclusion in a view, not truth or semantic importance.
+  Existing ID-based positions survive changes; the GPU painter is unchanged.
+- `place-model.mjs` and `view-state.mjs` store at most 12 named places: bounded
+  query/draft, opaque identities, layout and camera, selection, and card section.
+  They never persist source packets or resumable exploration cursors. Reopening
+  always makes a fresh validated read; changed source revisions are reported.
+  An exploration page saves its visible IDs as a bounded view, not its traversal
+  continuation. Empty or failed reads leave the current scene in place.
+- `studio.mjs` adds **Моё пространство → Места / Инструменты**. The last view is
+  remembered locally and restored on a matching URL or home; an explicit different
+  deep link takes precedence. Named places support update, removal and immediate
+  undo. Storage failures remain visible and do not replace a damaged place list.
+- `interface-model.mjs` restricts composition to the registered local adapters.
+  Search, lenses, research, navigation, lens constructor, evidence and sources can
+  be pinned and reordered; all remain available in the tool list. Preferences
+  contain no executable code, service endpoints or additional write authority.
+  Existing WebMCP and backend action contracts remain the execution boundary.
+
+Camera changes in this slice are limited to the validated saved-view bridge,
+initial-load sequencing, and card-section/read-position restoration. Accepted
+wheel/pinch/pan gains, projection and GPU painting remain the baseline. New
+visual arrival effects respect reduced motion. Small-screen connection lists,
+previously hidden by prototype CSS, are available again. Resize grips support
+arrows and Home; tabs retain roving keyboard focus.
+
+Verification for this slice is local. Physical device feel, cross-device account
+sync, arbitrary remote panel plugins and production rollout are separate scopes.
+
+Validation: 84 frontend tests, TypeScript, Vite build, and the `standalone_access`
+lane (110 tests plus source-profile validation) passed. Browser checks covered
+named-place save/open, exact desktop and mobile camera restoration after reload,
+reading return (636px to 636px), resize controls and keyboard arrows, tool pinning,
+docking and text preferences, offline failure/retry, and closing a delayed read.
+Twenty repeated studio open/tab/close cycles retained the camera and graph.
+At 390x844 the sheet measured 360x354.48 without horizontal page overflow; reduced
+motion held the background clock still. Actual custom views at 10 and 40 nodes
+showed the corresponding inclusion marks. One 40-node/25-relation sample measured
+2.80ms drawing and 22.40ms frame intervals under concurrent host load. This is a
+bounded responsiveness check, not sustained 60fps or whole-corpus profiling.

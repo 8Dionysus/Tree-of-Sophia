@@ -1,9 +1,10 @@
+import {validatePose} from './view-state.mjs';
 import {refreshIcons} from './icons';
 import { projectLens } from './knowledge-client.mjs';
 import { attachKnowledgeUI } from './knowledge-ui.mjs';
 import { SophiaGpuCanvas } from './gpu-canvas.js';
 
-export function mountScene(root, {onChange=()=>{}, initialFocus,initialLens}={}) {
+export function mountScene(root, {onChange=()=>{}, initialFocus,initialLens,autoStart=true}={}) {
   const q = s => root.querySelector(s);root.dataset.rendererBuild='c8d4575cf448b8707cdf55ae779d2743482a02f7348ae5e66f4972983bfe18cb';
 
   let canvas=q('.sc-sky'),ctx;
@@ -75,6 +76,7 @@ export function mountScene(root, {onChange=()=>{}, initialFocus,initialLens}={})
   let inputMode='trackpad',nativeGesture=null,nativeGestureUntil=-Infinity;
   const panGain=.55,panResponse=22;
   let windowPosition={x:0,y:0,manual:false},obstacles=[],panelBounds=null;
+  const cardSections=new Map();
   const history=[],pointers=new Map(),clamp=(v,min,max)=>Math.max(min,Math.min(max,v));
   const eye={x:0,y:0,tx:0,ty:0};
   let cameraCos=1,cameraSin=0,cameraPitchCos=1,cameraPitchSin=0,skyCos=1,skySin=0,skyPitchCos=1,skyPitchSin=0;
@@ -104,9 +106,11 @@ export function mountScene(root, {onChange=()=>{}, initialFocus,initialLens}={})
     });
     lookup.clear();nodes.forEach((n,i)=>lookup.set(n.id,i));nodeLayer.replaceChildren(...nodes.map(n=>n.el));
     scenePacket=packet;relationRecords=packet.relations;edges=relationRecords.map(r=>[lookup.get(r.from_id),lookup.get(r.to_id)]);
-    if(!restore&&lens!=='constellations'){
+    if(lens!=='constellations'){
+      const retained=restore?new Set(vertices.map(n=>n.id)):null;
       const active=lookup.get(packet.focus?.node_id)??0,near=nearTo(active),far=nodes.map((n,i)=>i).filter(i=>i!==active&&!near.includes(i));
       nodes.forEach((n,i)=>{
+        if(retained?.has(n.id))return;
         if(lens==='plane')n.target=[n.sourcePosition[0],n.sourcePosition[1],0];
         else if(i===active)n.target=[0,0,0];
         else{const ring=near.includes(i)?near:far,angle=ring.indexOf(i)/ring.length*Math.PI*2-.8,r=ring===near?175:380;n.target=[Math.cos(angle)*r,Math.sin(angle)*r*.68,Math.sin(angle*2)*140*design.depth];}
@@ -141,7 +145,7 @@ export function mountScene(root, {onChange=()=>{}, initialFocus,initialLens}={})
     const relation=relationRecords.find(r=>r.id===id);if(!relation)return;
     knowledgeUI?.willSelect();
     if(selectedRelation!==id||panel.hidden)remember();closeSearch(false,false);closeLenses(false,false);selectedRelation=id;
-    selected=lookup.get(relation.from_id)??-1;panel.hidden=false;fillCard();setCardTab('about');
+    selected=lookup.get(relation.from_id)??-1;panel.hidden=false;fillCard();setCardTab(cardSections.get(id)||'about');
     updateSelection();updateContext();placePanel(true);layoutDirty=true;kick();
     announce('Отношение: '+q('.sc-node-title').textContent);q('#so-about-tab').focus();
   }
@@ -152,6 +156,15 @@ export function mountScene(root, {onChange=()=>{}, initialFocus,initialLens}={})
     relation:id=>relationRecords.find(r=>r.id===id),
     neighbors:id=>relationRecords.filter(r=>r.from_id===id||r.to_id===id),
     captureView:()=>captureView(),
+    capturePlace:()=>validatePose({lens,yaw:tyaw,pitch:tpitch,zoom:tzoom,pan:tpan,selectedId:nodes[selected]?.id||null,relationId:selectedRelation,panelOpen:!panel.hidden,cardTab,vertices:captureGraph().vertices}),
+    restorePlace(value){
+      const state=validatePose(value);endWheelResponse();
+      lens=state.lens;installGraph(scenePacket,state.vertices,{restore:true});selected=lookup.get(state.selectedId)??-1;selectedRelation=relationRecords.some(r=>r.id===state.relationId)?state.relationId:null;
+      tyaw=state.yaw;tpitch=state.pitch;tzoom=state.zoom;tpan={...state.pan};updateLensUI();
+      if(selected>=0||selectedRelation){fillCard();setCardTab(state.cardTab,{preserveCamera:true});panel.hidden=!state.panelOpen;placePanel(false);}else panel.hidden=true;
+      updateSelection();updateContext();settling=1;kick();
+    },
+    refreshTypography(){measureLabels();layoutDirty=true;kick();},
     restoreView(state){if(!state?.graph?.packet)return;remember();restoreView(state);},
     setGraph(packet,{selectFocus=false,initial=false}={}){
       if(!initial)remember();
@@ -226,15 +239,15 @@ export function mountScene(root, {onChange=()=>{}, initialFocus,initialLens}={})
   }
   function select(i,{fly=false,keepWindow=false}={}){
     knowledgeUI?.willSelect();const changed=selected!==i||Boolean(selectedRelation);if(changed||panel.hidden)remember();selectedRelation=null;const hadPanel=!panel.hidden;
-    closeSearch(false,false);closeLenses(false,false);selected=i;fillCard();setCardTab('about');panel.hidden=false;updateSelection();updateContext();
+    closeSearch(false,false);closeLenses(false,false);selected=i;fillCard();setCardTab(cardSections.get(nodes[i].id)||'about');panel.hidden=false;knowledgeUI?.restoreReading();updateSelection();updateContext();
     placePanel(!keepWindow&&(changed||!hadPanel));if(fly)focus(i,true);else if(changed||!hadPanel)focus(i,false,{gentle:true});else if(w<=540)focus(i,false);announce(nodes[i].kind+': '+nodes[i].name);layoutDirty=true;kick();
   }
-  function closeInspector(returnFocus=true,clear=false){knowledgeUI?.cancelInspector();panel.hidden=true;overlayReturnPanel=false;if(returnFocus&&selected>=0&&!nodes[selected].el.hidden)nodes[selected].el.focus();if(clear){selectedRelation=null;selected=-1;hover=-1;updateSelection();updateContext()}layoutDirty=true;kick();}
+  function closeInspector(returnFocus=true,clear=false){knowledgeUI?.captureReading();knowledgeUI?.cancelInspector();panel.hidden=true;overlayReturnPanel=false;if(returnFocus&&selected>=0&&!nodes[selected].el.hidden)nodes[selected].el.focus();if(clear){selectedRelation=null;selected=-1;hover=-1;updateSelection();updateContext()}layoutDirty=true;kick();}
   function closeSearch(focusBack=true,restore=true){knowledgeUI?.cancelSearch();const wasOpen=!q('.sc-search').hidden;q('.sc-search').hidden=true;q('.sc-search-open').setAttribute('aria-expanded','false');if(wasOpen){if(restore&&overlayReturnPanel&&selected>=0){panel.hidden=false;placePanel(false)}overlayReturnPanel=false}if(focusBack)q('.sc-search-open').focus();layoutDirty=true;kick();}
   function closeLenses(focusBack=true,restore=true){const wasOpen=!q('.sc-lenses').hidden;q('.sc-lenses').hidden=true;q('.sc-lenses-open').setAttribute('aria-expanded','false');if(wasOpen){if(restore&&overlayReturnPanel&&selected>=0){panel.hidden=false;placePanel(false)}overlayReturnPanel=false}if(focusBack)q('.sc-lenses-open').focus();layoutDirty=true;kick();}
   function openOverlay(kind){const el=q('.sc-'+kind);if(!el.hidden){kind==='search'?closeSearch():closeLenses();return}const restore=!panel.hidden||overlayReturnPanel;closeSearch(false,false);closeLenses(false,false);overlayReturnPanel=restore;panel.hidden=true;el.hidden=false;q('.sc-'+kind+'-open').setAttribute('aria-expanded','true');if(kind==='search'){search();q('#sc-query').focus()}else q('.sc-lens[aria-pressed="true"]').focus();layoutDirty=true;kick();}
   function search(){knowledgeUI?.search(q('#sc-query').value);}
-  function setCardTab(value){cardTab=value;root.querySelectorAll('.sc-card-tab').forEach(b=>b.setAttribute('aria-selected',String(b.id==='so-'+value+'-tab')));q('#so-about').hidden=value!=='about';q('#so-relations').hidden=value!=='relations';placePanel(false);if(w<=540&&selected>=0&&!panel.hidden)focus(selected,false);layoutDirty=true;kick();}
+  function setCardTab(value,{preserveCamera=false}={}){knowledgeUI?.captureReading();cardTab=value;const cardId=selectedRelation||nodes[selected]?.id;if(cardId){cardSections.delete(cardId);cardSections.set(cardId,value);if(cardSections.size>64)cardSections.delete(cardSections.keys().next().value);}root.querySelectorAll('.sc-card-tab').forEach(b=>{const active=b.id==='so-'+value+'-tab';b.setAttribute('aria-selected',String(active));b.tabIndex=active?0:-1;});q('#so-about').hidden=value!=='about';q('#so-relations').hidden=value!=='relations';knowledgeUI?.restoreReading();placePanel(false);if(!preserveCamera&&w<=540&&selected>=0&&!panel.hidden)focus(selected,false);layoutDirty=true;kick();}
   function updateLensUI(){root.dataset.lens=lens;q('.sc-context h2').textContent=lens==='orbits'?'Орбиты мысли':lens==='plane'?'Карта связей':'Созвездия мысли';q('.sc-label-west').hidden=true;q('.sc-label-east').hidden=true;root.querySelectorAll('.sc-lens').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.lens===lens)));layoutDirty=true;}
   function setLens(value){
     if(value===lens){closeLenses();return}endWheelResponse();remember();lens=value;const active=selected>=0?selected:0,near=nearTo(active),far=nodes.map((n,i)=>i).filter(i=>i!==active&&!near.includes(i));
@@ -414,7 +427,7 @@ export function mountScene(root, {onChange=()=>{}, initialFocus,initialLens}={})
   const observer=new IntersectionObserver(es=>{visible=es[0].isIntersecting;if(visible)kick();else{cancelAnimationFrame(raf);raf=0;last=0}});observer.observe(root);new ResizeObserver(resize).observe(root);
   reduced.addEventListener('change',e=>{design.playing=!e.matches;syncMotion()});
   knowledgeUI=attachKnowledgeUI(root,scenePort,{initialFocus,initialLens});
-  paintNebula();resize();syncMotion();syncInputMode();root.dataset.lens=lens;updateContext();knowledgeUI.start();document.fonts?.ready.then(()=>{measureLabels();kick()});
+  paintNebula();resize();syncMotion();syncInputMode();root.dataset.lens=lens;updateContext();if(autoStart)knowledgeUI.start();document.fonts?.ready.then(()=>{measureLabels();kick()});
   refreshIcons();
   return {port:scenePort, ui:knowledgeUI, openSearch:()=>openOverlay('search'), overview, closeInspector, invalidate:()=>{layoutDirty=true;kick()}};
 }

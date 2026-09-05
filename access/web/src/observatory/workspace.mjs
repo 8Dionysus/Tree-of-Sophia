@@ -1,3 +1,4 @@
+import {createReadingMemory} from './reading-state.mjs';
 import {createResearchWorkspace,createLocalStoragePersistence} from '../research-workspace';
 import {createToSQueryOperations} from '../query-operations';
 import {localized,RequestSlots} from './knowledge-client.mjs';
@@ -27,8 +28,9 @@ export function createTools(root,scene,{selected,panels,onChange}){
   const panel=el('section','','sc-panel sc-workspace');panel.hidden=true;panel.setAttribute('aria-label','Исследовательская панель');
   panel.innerHTML='<div class="sc-panel-top"><span class="sc-eyebrow">РАБОЧЕЕ ПРОСТРАНСТВО</span><button type="button" class="sc-icon sc-workspace-close" aria-label="Закрыть исследование"><i data-lucide="x" aria-hidden="true"></i></button></div><h3>Исследование</h3><div class="sc-workspace-tabs" role="tablist" aria-label="Инструменты исследования"></div><div class="sc-workspace-body" role="tabpanel" id="sc-tool-content"></div><div class="sc-tool-status" role="status"></div><div class="sc-workspace-footer"></div>';
   root.append(panel);
-  panels.register('workspace',panel,()=>{requests.cancelAll();open.setAttribute('aria-expanded','false');});
+  panels.register('workspace',panel,()=>{reading.capture();requests.cancelAll();open.setAttribute('aria-expanded','false');});
   const body=panel.querySelector('.sc-workspace-body'),status=panel.querySelector('.sc-tool-status'),tabs=panel.querySelector('.sc-workspace-tabs'),footer=panel.querySelector('.sc-workspace-footer');
+  const reading=createReadingMemory(body);
   let active='notes',target=null,rawSource=null,sourceKind='node',focusReturn=open,notebookDraft='',draftKind='note',draftTarget=null;
   const names={notes:'Записи',sources:'Источники',analysis:'Разбор'};
   const tabButtons=Object.entries(names).map(([id,name])=>{const b=button(name,()=>switchTab(id));b.id='sc-tool-'+id;b.setAttribute('role','tab');b.setAttribute('aria-controls','sc-tool-content');tabs.append(b);return b;});
@@ -37,14 +39,15 @@ export function createTools(root,scene,{selected,panels,onChange}){
   panel.querySelector('.sc-workspace-close').addEventListener('click',close);
   panel.addEventListener('keydown',e=>{if(e.key==='Escape'){e.preventDefault();e.stopPropagation();close();}});
   function show(tab='notes',source){
-    focusReturn=document.activeElement instanceof HTMLElement?document.activeElement:open;
+    reading.capture();focusReturn=document.activeElement instanceof HTMLElement?document.activeElement:open;
     target=source?{id:source.raw.id,label:localized(source.raw.display.title||source.raw.display.label),kind:source.kind==='relation'?'edge':'node',source_refs:source.raw.source_refs}:selected();
     rawSource=source?.raw||(target?.kind==='edge'?scene.port.relation(target.id):scene.port.node(target?.id));sourceKind=source?.kind||(target?.kind==='edge'?'relation':'node');
     panels.open('workspace');open.setAttribute('aria-expanded','true');switchTab(tab);tabButtons[Object.keys(names).indexOf(tab)].focus();
   }
-  function switchTab(tab){requests.cancelAll();active=tab;panel.querySelector('h3').textContent={notes:'Исследование',sources:'Источники',analysis:'Разбор текста'}[tab];status.textContent='';for(const [i,b]of tabButtons.entries()){const isActive=Object.keys(names)[i]===tab;b.setAttribute('aria-selected',String(isActive));b.tabIndex=isActive?0:-1;}body.setAttribute('aria-labelledby','sc-tool-'+tab);body.replaceChildren();
-    if(tab==='notes')renderNotes();else if(tab==='sources')renderSources();else renderAnalysis();scene.invalidate();
+  function switchTab(tab){reading.capture();requests.cancelAll();body.setAttribute('aria-busy','false');active=tab;reading.enter(JSON.stringify([scene.port.packet?.source_revision,target?.id,tab]));panel.querySelector('h3').textContent={notes:'Исследование',sources:'Источники',analysis:'Разбор текста'}[tab];status.textContent='';for(const [i,b]of tabButtons.entries()){const isActive=Object.keys(names)[i]===tab;b.setAttribute('aria-selected',String(isActive));b.tabIndex=isActive?0:-1;}body.setAttribute('aria-labelledby','sc-tool-'+tab);body.replaceChildren();
+    if(tab==='notes')renderNotes();else if(tab==='sources')void renderSources();else renderAnalysis();reading.restore();scene.invalidate();
   }
+  panels.configure('workspace',{onResume:()=>{reading.restore();switchTab(active);}});
   root.addEventListener('sophia-sources',e=>show('sources',e.detail));
   function report(error){if(error?.name==='AbortError')return;status.textContent=error.message||'Не удалось выполнить действие.';scene.invalidate();}
   function safe(action){try{return action();}catch(error){report(error);}}
@@ -90,13 +93,13 @@ export function createTools(root,scene,{selected,panels,onChange}){
   }
   function sourceRecord(record){
     const entry=el('article','','sc-entry');entry.append(el('h4',record.label||record.preferred_label||record.node_id));
-    const properties=record.properties||{};if(properties.description||properties.notes)entry.append(el('p',properties.description||properties.notes));
+    const properties=record.properties||{};if(properties.description||properties.notes)entry.append(el('p',properties.description||properties.notes,'sc-source-text'));
     for(const ref of [...new Set([...(record.source_refs||[]),properties.url,properties.locator,properties.source_url].filter(v=>typeof v==='string'))])entry.append(link(ref));
     return entry;
   }
   async function renderSources(){
     context();if(!rawSource){body.append(el('p','Выберите звезду или отношение, чтобы увидеть источники.'));return;}
-    const source=rawSource;body.append(el('p',localized(sourceKind==='relation'?source.display.explanation:source.display.summary,'Описание пока не зафиксировано.')));
+    const source=rawSource;body.append(el('p',localized(sourceKind==='relation'?source.display.explanation:source.display.summary,'Описание пока не зафиксировано.'),'sc-source-text'));
     const provenance=el('details');provenance.append(el('summary','Происхождение и статус'));
     for(const [label,value]of [['Слой',source.epistemic?.authority_layer],['Рассмотрение',source.epistemic?.review_posture],['Канон',source.epistemic?.canon_status]])provenance.append(el('p',label+': '+(value&&value!=='not-recorded'?value:'не указан'),'sc-muted'));
     for(const ref of source.source_refs)provenance.append(link(ref));body.append(provenance);
@@ -104,6 +107,7 @@ export function createTools(root,scene,{selected,panels,onChange}){
     const nativeId=source.native_id; // Explicit owner identity; never split or guess an opaque knowledge ID.
     if(!nativeId)return;
     const result=el('div');body.append(result);result.append(el('p','Получаю досье источников…','sc-muted'));
+    body.setAttribute('aria-busy','true');
     try{
       const response=await requests.run('source',signal=>queries.invoke('tos.dossier.inspect',{object_id:nativeId,limit:40},{signal}));if(!response.current||panel.hidden||active!=='sources')return;
       result.replaceChildren();const packet=response.value;
@@ -112,8 +116,8 @@ export function createTools(root,scene,{selected,panels,onChange}){
       }
       const boundary=packet.agent_summary;if(boundary)result.append(el('p','Доступность ссылки и право использования — отдельные сведения. Статус прав: '+(boundary.rights_posture&&boundary.rights_posture!=='unknown'?boundary.rights_posture:'не указан')+'.','sc-muted'));
       if(!result.children.length)result.append(el('p','Дополнительные маршруты источников пока не записаны.','sc-muted'));
-      scene.invalidate();
-    }catch(error){result.replaceChildren(el('p',error.message,'sc-muted'));result.append(actions(button('Повторить',()=>switchTab('sources'))));scene.invalidate();}
+      body.setAttribute('aria-busy','false');reading.restore();scene.invalidate();
+    }catch(error){body.setAttribute('aria-busy','false');result.replaceChildren(el('p',error.message,'sc-muted'));result.append(actions(button('Повторить',()=>switchTab('sources'))));scene.invalidate();}
   }
   function renderAnalysis(){
     body.append(el('p','Ищите недостающие источники или подготовьте разбор слова в «Заратустре».','sc-muted'));
