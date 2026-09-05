@@ -308,8 +308,6 @@
   ],
   "companion_surfaces": [
     {"path":".agents/AGENTS.md","role":"current owner contract","load_moment":"route selection","canonical_owner":"Tree-of-Sophia"},
-    {"path":".agents/spark/AGENTS.md","role":"Spark fast-loop owner contract","load_moment":"Spark route selected","canonical_owner":"Tree-of-Sophia"},
-    {"path":".agents/spark/SWARM.md","role":"Spark swarm companion","load_moment":"explicit Spark swarm only","canonical_owner":"Tree-of-Sophia"},
     {"path":"agents/openai.yaml","role":"skill display/activation metadata","load_moment":"discovery/install","canonical_owner":"each skill package source owner"},
     {"path":"references/","role":"on-demand reference family","load_moment":"triggered task asks for detail","canonical_owner":"each skill package source owner"},
     {"path":"examples/","role":"on-demand example family","load_moment":"triggered task asks for a worked shape","canonical_owner":"each skill package source owner"},

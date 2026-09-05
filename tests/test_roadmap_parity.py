@@ -83,10 +83,9 @@ class RoadmapParityTestCase(unittest.TestCase):
             with self.subTest(indexed_surface=surface):
                 self.assertTrue((REPO_ROOT / surface).exists(), surface)
 
-    def test_release_contract_keeps_owner_identities_and_tos_freeze(self) -> None:
+    def test_release_contract_keeps_owner_identities_and_current_kag_gate(self) -> None:
         release_contract = read_text("docs/RELEASING.md")
         workflow = read_text(".github/workflows/repo-validation.yml")
-        freeze = load_json("kag/indexes/hot_profile.json")
 
         self.assertIn(
             "`aoa-stats@v0.2.0`, commit `88ff38b1b38eef939f2c5b4541cbe8363a05fc8d`",
@@ -96,8 +95,8 @@ class RoadmapParityTestCase(unittest.TestCase):
             "`aoa-kag@v0.5.0`, commit `f46f146cc79a26fa81ad0f400b9c5774df293e57`",
             release_contract,
         )
-        provider_ref = "47598411fba56f126a8530cb1e7e91bed57f5fef"
-        action_ref = "25cd6263ae2c860c58f86cf3a0747f2070eb45ff"
+        provider_ref = "14ee1e33e43749d23c557b3ef526eca7edb36196"
+        action_ref = provider_ref
         self.assertIn(
             "current provider source snapshot `" + provider_ref + "`",
             release_contract,
@@ -107,14 +106,15 @@ class RoadmapParityTestCase(unittest.TestCase):
             + action_ref,
             release_contract,
         )
-        self.assertNotEqual(provider_ref, action_ref)
         self.assertIn(
             "AOA_STATS_REVISION: 88ff38b1b38eef939f2c5b4541cbe8363a05fc8d",
             workflow,
         )
-        self.assertEqual("frozen", freeze["state"])
+        self.assertFalse((REPO_ROOT / "kag/indexes/hot_profile.json").exists())
         self.assertNotIn("AOA_KAG_ROOT", workflow)
-        self.assertNotIn("uses: 8Dionysus/aoa-kag/.github/actions/repo-local-kag-index@", workflow)
+        self.assertIn("uses: 8Dionysus/aoa-kag/.github/actions/repo-local-kag-index@" + action_ref, workflow)
+        self.assertIn('needs.kag_owner_family.result', workflow)
+        self.assertNotIn("--freeze-only", workflow)
 
 
 if __name__ == "__main__":

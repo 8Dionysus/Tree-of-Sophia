@@ -210,7 +210,7 @@
       "layer": "public-compatibility",
       "mode": "blocking",
       "owner_surface": "ToS/zarathustra/public-entry/TINY_ENTRY_ROUTE.md",
-      "purpose": "Protect the bounded public tiny-entry route; the derived KAG export remains frozen separately.",
+      "purpose": "Protect the bounded public tiny-entry route and its source-owned derived export.",
       "command_sequence": "public_entry",
       "failure_route": "ToS/zarathustra/AGENTS.md",
       "does_not_own": [
@@ -224,10 +224,9 @@
       "layer": "local-kag-provider",
       "mode": "blocking",
       "owner_surface": "kag/AGENTS.md",
-      "purpose": "Protect the exact frozen ToS KAG manifest, shard bytes, record counts, and family binding while provider regeneration and source-currentness admission are paused.",
+      "purpose": "Protect the complete ToS KAG provider, source ownership, current source hashes, shard integrity, record counts and family binding.",
       "command_sequence": "local_kag_provider",
       "failure_route": "kag/AGENTS.md",
-      "paused_scope": "Provider regeneration and source-currentness admission resume only after an explicit ToS operator unfreeze command.",
       "does_not_own": [
         "aoa-kag shared schema law",
         "runtime graph storage",
@@ -576,8 +575,8 @@
     ],
     "local_kag_provider": [
       {
-        "label": "validate frozen ToS KAG surface binding",
-        "command": ["python", "scripts/validate_local_kag_provider.py", "--freeze-only"]
+        "label": "validate current ToS KAG provider and source family",
+        "command": ["python", "scripts/validate_local_kag_provider.py"]
       }
     ],
     "local_stats_port": [
@@ -812,8 +811,8 @@
         "command": ["python", "scripts/validate_tiny_entry_route.py"]
       },
       {
-        "label": "validate frozen ToS KAG family integrity",
-        "command": ["python", "scripts/validate_local_kag_provider.py", "--freeze-only"]
+        "label": "validate ToS KAG provider integrity and source currentness",
+        "command": ["python", "scripts/validate_local_kag_provider.py"]
       },
       {
         "label": "validate local stats port",

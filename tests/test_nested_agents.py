@@ -23,12 +23,12 @@ class NestedAgentsRouteTests(unittest.TestCase):
     def test_inventory_inheritance_currentness_and_harness_are_green(self) -> None:
         self.assertEqual([], validate_nested_agents.run_validation(REPO_ROOT))
         cards = validate_nested_agents.discover_route_cards(REPO_ROOT)
-        self.assertEqual(56, len(cards))
+        self.assertEqual(55, len(cards))
         self.assertIn(REPO_ROOT / ".github/AGENTS.md", cards)
 
         currentness = json.loads((REPO_ROOT / ".agents/agents-route.current.json").read_text(encoding="utf-8"))
-        self.assertEqual(56, currentness["route_card_counts"]["tracked_exact_basename"])
-        self.assertEqual(56, currentness["route_card_counts"]["discovered_by_inventory"])
+        self.assertEqual(55, currentness["route_card_counts"]["tracked_exact_basename"])
+        self.assertEqual(55, currentness["route_card_counts"]["discovered_by_inventory"])
         self.assertEqual([], currentness["route_card_counts"]["tracked_only"])
         self.assertEqual([], currentness["route_card_counts"]["discovered_untracked"])
         preserved = {entry["path"] for entry in currentness["preserved_non_cards"]}

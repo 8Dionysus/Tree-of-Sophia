@@ -815,13 +815,6 @@ def _run_existing_command(
     return script, " ".join(detail[-4:]) or f"exit code {completed.returncode}"
 
 
-def _local_kag_provider_arguments(repo_root: Path) -> list[str]:
-    freeze_path = repo_root / "kag/indexes/hot_profile.json"
-    try:
-        freeze = json.loads(freeze_path.read_text(encoding="utf-8"))
-    except (OSError, json.JSONDecodeError):
-        return []
-    return ["--freeze-only"] if isinstance(freeze, dict) and freeze.get("state") == "frozen" else []
 
 
 def validate_existing_owner_contracts(repo_root: Path, issues: list[Issue]) -> None:
@@ -837,7 +830,7 @@ def validate_existing_owner_contracts(repo_root: Path, issues: list[Issue]) -> N
         _issue(issues, location, f"agent-surface validator: {message}")
     owner_commands = (
         ("scripts/validate_root_entry_map.py", []),
-        ("scripts/validate_local_kag_provider.py", _local_kag_provider_arguments(repo_root)),
+        ("scripts/validate_local_kag_provider.py", []),
     )
     for script, arguments in owner_commands:
         result = _run_existing_command(repo_root, script, arguments)

@@ -664,6 +664,42 @@ class AgentSurfaceTests(unittest.TestCase):
         receipt = json.loads(receipt_path.read_text(encoding="utf-8"))
         return family_manifest, receipt, digest, receipt_path
 
+    def test_procedure_dynamic_imports_remain_bounded_and_backward_compatible(self) -> None:
+        procedure = self._current_receipt_case()[1]["producer_identity"]["procedure_manifest"]
+        edge = {"kind": "module_from_spec", "source": "scripts/a.py", "target": "scripts/b.py"}
+        procedure["python_import_closure"] = ["scripts/a.py", "scripts/b.py"]
+        with mock.patch.dict(os.environ, {}, clear=True):
+            for edges in (None, [], [edge]):
+                if edges is None:
+                    procedure.pop("dynamic_imports", None)
+                else:
+                    procedure["dynamic_imports"] = edges
+                self.assertEqual(validator._v2_procedure_manifest_issues("receipt", procedure), [])
+            for malformed in ({}, [None], [{**edge, "extra": True}],
+                              [{**edge, "kind": "eval"}], [{**edge, "target": "../b.py"}],
+                              [{**edge, "source": "scripts/outside.py"}]):
+                with self.subTest(malformed=malformed):
+                    procedure["dynamic_imports"] = malformed
+                    self.assertTrue(validator._v2_procedure_manifest_issues("receipt", procedure))
+
+    def test_procedure_dynamic_imports_must_match_pinned_owner(self) -> None:
+        procedure = self._current_receipt_case()[1]["producer_identity"]["procedure_manifest"]
+        procedure["dynamic_imports"] = []
+        canonical = dict(procedure)
+        canonical["dynamic_imports"] = [
+            {"kind": "module_from_spec", "source": "scripts/a.py", "target": "scripts/b.py"}
+        ]
+        raw = json.dumps(canonical).encode()
+        procedure["manifest_digest"] = validator.hashlib.sha256(raw).hexdigest()
+        with tempfile.TemporaryDirectory() as owner_root, mock.patch.dict(
+            os.environ, {"AOA_KAG_ROOT": owner_root, "AOA_KAG_ACTION_REVISION": "a" * 40}
+        ), mock.patch.object(validator.subprocess, "run", return_value=mock.Mock(returncode=0, stdout=raw)):
+            issues = validator._v2_procedure_manifest_issues("receipt", procedure)
+        self.assertIn(
+            ("receipt", "budget receipt producer procedure manifest dynamic_imports does not match pinned owner payload"),
+            issues,
+        )
+
     def test_current_receipt_binds_source_snapshot_to_family_manifest(self) -> None:
         family_manifest, receipt, digest, receipt_path = self._current_receipt_case()
         snapshot = "sha256:" + "0" * 64
