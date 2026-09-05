@@ -24,6 +24,7 @@ from build_agent_surface_currentness import (
     rendered_currentness,
 )
 
+
 Issue = tuple[str, str]
 EXPECTED_SKILLS = {
     "aoa-adr-write",
@@ -1130,7 +1131,7 @@ def _v2_git_nul_paths(root: Path, *arguments: str) -> set[Path]:
 
 
 def _v2_source_epoch(root: Path) -> str:
-    """Compute aoa-kag's source epoch from the current clean Git index."""
+    """Recompute aoa-kag's source epoch from the current clean Git index."""
     head = subprocess.run(
         ("git", "rev-parse", "HEAD"),
         cwd=root,

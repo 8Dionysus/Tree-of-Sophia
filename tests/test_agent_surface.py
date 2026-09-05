@@ -17,13 +17,18 @@ import build_agent_surface_currentness as builder  # noqa: E402
 import validate_agent_surface as validator  # noqa: E402
 
 
+class _MeasurementResult(NamedTuple):
+    value: Any = None
+    error: tuple[type[Exception], str] | None = None
+
+
 class _ReceiptMeasurementFixture(NamedTuple):
     digest: str
     base_ref: str
     manifest_text: str
-    candidate_seal: tuple[str, int]
-    source_epoch: str
-    generated_measurements: tuple[int, int]
+    candidate_seal: _MeasurementResult
+    source_epoch: _MeasurementResult
+    generated_measurements: _MeasurementResult
 
 
 class AgentSurfaceTests(unittest.TestCase):
@@ -43,6 +48,22 @@ class AgentSurfaceTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
         super().setUpClass()
+        cls._receipt_fixture: _ReceiptMeasurementFixture | None = None
+        cls._real_candidate_seal = validator._v2_candidate_seal
+        cls._real_source_epoch = validator._v2_source_epoch
+        cls._real_generated_measurements = validator._v2_changed_generated_measurements
+
+    @staticmethod
+    def _capture_measurement(operation: Any, *args: Any) -> _MeasurementResult:
+        try:
+            return _MeasurementResult(value=operation(*args))
+        except (OSError, ValueError) as exc:
+            return _MeasurementResult(error=(type(exc), str(exc)))
+
+    @classmethod
+    def _receipt_measurement_fixture(cls) -> _ReceiptMeasurementFixture:
+        if cls._receipt_fixture is not None:
+            return cls._receipt_fixture
         family_manifest, receipt, digest, _ = cls._current_receipt_case()
         base_ref = receipt["base_ref"]
         manifest_text = json.dumps(
@@ -55,32 +76,40 @@ class AgentSurfaceTests(unittest.TestCase):
             digest=digest,
             base_ref=base_ref,
             manifest_text=manifest_text,
-            candidate_seal=validator._v2_candidate_seal(ROOT, digest),
-            source_epoch=validator._v2_source_epoch(ROOT),
-            generated_measurements=validator._v2_changed_generated_measurements(
+            candidate_seal=cls._capture_measurement(
+                cls._real_candidate_seal, ROOT, digest
+            ),
+            source_epoch=cls._capture_measurement(cls._real_source_epoch, ROOT),
+            generated_measurements=cls._capture_measurement(
+                cls._real_generated_measurements,
                 ROOT,
                 family_manifest,
                 base_ref,
             ),
         )
-        cls._real_candidate_seal = validator._v2_candidate_seal
-        cls._real_source_epoch = validator._v2_source_epoch
-        cls._real_generated_measurements = validator._v2_changed_generated_measurements
+        return cls._receipt_fixture
+
+    @staticmethod
+    def _replay_measurement(result: _MeasurementResult) -> Any:
+        if result.error is not None:
+            error_type, message = result.error
+            raise error_type(message)
+        return result.value
 
     def setUp(self) -> None:
         super().setUp()
         if not self._testMethodName.startswith(("test_current_receipt_", "test_historical_v4_receipt_")):
             return
-        fixture = self._receipt_fixture
+        fixture = type(self)._receipt_measurement_fixture()
 
         def candidate_seal(root: Path, digest: str) -> tuple[str, int]:
             if root == ROOT and digest == fixture.digest:
-                return fixture.candidate_seal
+                return type(self)._replay_measurement(fixture.candidate_seal)
             return type(self)._real_candidate_seal(root, digest)
 
         def source_epoch(root: Path) -> str:
             if root == ROOT:
-                return fixture.source_epoch
+                return type(self)._replay_measurement(fixture.source_epoch)
             return type(self)._real_source_epoch(root)
 
         def generated_measurements(
@@ -99,7 +128,7 @@ class AgentSurfaceTests(unittest.TestCase):
                 and base_ref == fixture.base_ref
                 and manifest_text == fixture.manifest_text
             ):
-                return fixture.generated_measurements
+                return type(self)._replay_measurement(fixture.generated_measurements)
             return type(self)._real_generated_measurements(root, manifest, base_ref)
 
         for target, replacement in (
