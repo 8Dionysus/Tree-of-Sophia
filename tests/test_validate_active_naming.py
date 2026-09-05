@@ -1,7 +1,8 @@
 import importlib.util
 import json
-import unittest
 from pathlib import Path
+from tempfile import TemporaryDirectory
+import unittest
 
 
 SCRIPT_PATH = Path(__file__).resolve().parents[1] / "scripts" / "validate_active_naming.py"
@@ -34,6 +35,14 @@ def quoted_capture_provenance_fragment() -> str:
 def active_reference(text: str) -> str | None:
     match = validate_active_naming.ACTIVE_REFERENCE_PATTERN.search(text)
     return match.group(0) if match else None
+
+
+def active_content_reference(text: str) -> str | None:
+    for match in validate_active_naming.ACTIVE_REFERENCE_PATTERN.finditer(text):
+        reference = match.group(0)
+        if reference.lower() not in validate_active_naming.ALLOWED_ACTIVE_CONTENT_REFERENCES:
+            return reference
+    return None
 
 
 def old_route_prefix() -> str:
@@ -102,6 +111,28 @@ class ValidateActiveNamingTests(unittest.TestCase):
         for text, expected in cases:
             with self.subTest(text=text):
                 self.assertEqual(active_reference(text), expected)
+
+    def test_linear_active_reference_matches_legacy_boundaries(self) -> None:
+        old_s = retired_s_token()
+        old_w = retired_w_token()
+        cases = (
+            old_s + ".",
+            old_s + ".v1",
+            old_s + ".Ω",
+            old_s + "١",
+            old_s + "١-" + old_w,
+            "ſ" + "eed-pack",
+            "w" + "ı" + "ve-pack",
+            "seed_claim_ref",
+            "first-wave-resident",
+            "x-" * 64 + "seed_claim_ref " + "x_" * 64 + old_w + "-pack",
+        )
+        for text in cases:
+            with self.subTest(text=text):
+                self.assertEqual(
+                    validate_active_naming.active_reference_issue(text),
+                    active_content_reference(text),
+                )
 
     def test_exact_corpus_domain_identifiers_are_not_retired_routes(self) -> None:
         for reference in (
@@ -189,6 +220,28 @@ class ValidateActiveNamingTests(unittest.TestCase):
         self.assertIsNone(validate_active_naming.retired_content_issue("Tree-of-Sophia v0.2.2"))
         self.assertIsNone(validate_active_naming.retired_content_issue("Tree-of-Sophia " + old_experience_version("6")))
         self.assertIsNone(validate_active_naming.retired_path_issue("mechanics/experience/parts/adoption-boundary/README.md"))
+
+    def test_validate_prunes_excluded_trees_and_checks_directory_paths(self) -> None:
+        with TemporaryDirectory(prefix="tos-active-naming-") as raw_root:
+            root = Path(raw_root)
+            (root / "legacy" / retired_w_token()).mkdir(parents=True)
+            (root / "legacy" / retired_w_token() / "ignored.md").write_text(
+                retired_w_token() + "-pack\n",
+                encoding="utf-8",
+            )
+            retired_dir = root / "mechanics" / "experience" / old_experience_version("7")
+            retired_dir.mkdir(parents=True)
+            retired_dir.joinpath("README.md").write_text("clean\n", encoding="utf-8")
+
+            original_root = validate_active_naming.REPO_ROOT
+            validate_active_naming.REPO_ROOT = root
+            try:
+                issues = validate_active_naming.validate()
+            finally:
+                validate_active_naming.REPO_ROOT = original_root
+
+        self.assertTrue(any(old_experience_version("7") in issue for issue in issues))
+        self.assertFalse(any("legacy" in issue for issue in issues))
 
     def test_mechanics_topology_checks_active_targets_not_historical_keys(self) -> None:
         retired_path = "ToS/doctrine/NO_DIRECT_" + "CONSTITUTION" + "_" + "RUNTIME" + "_WRITE.md"

@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import json
+import os
 import re
 import sys
 from pathlib import Path
@@ -51,6 +52,7 @@ RETIRED_TOKENS = (
     "s" + "eed_pack",
 )
 RETIRED_TOKEN_PATTERN = r"(?:" + "|".join(re.escape(token) for token in RETIRED_TOKENS) + r")"
+RETIRED_TOKEN_SEARCH_PATTERN = re.compile(RETIRED_TOKEN_PATTERN, re.IGNORECASE)
 PATH_REFERENCE_MARKER_PATTERN = r"(?:[-_/]|\d|\.(?=[A-Za-z0-9]))"
 PATH_TOKEN_PATTERN = re.compile(
     r"(?<![A-Za-z0-9])(?:"
@@ -58,6 +60,13 @@ PATH_TOKEN_PATTERN = re.compile(
     + r")(?![A-Za-z0-9])",
     re.IGNORECASE,
 )
+# Keep the broad path alphabet and IGNORECASE behavior of the legacy matcher,
+# but inspect each maximal run once instead of asking a greedy lookahead to
+# restart at every path separator.  The extra boundary character matters for
+# the legacy marker's ``\d`` branch: Python's ``\d`` also accepts a Unicode
+# decimal digit immediately after an ASCII path run.
+PATH_RUN_PATTERN = re.compile(r"[A-Za-z0-9._/-]+", re.IGNORECASE)
+PATH_MARKER_SEARCH_PATTERN = re.compile(PATH_REFERENCE_MARKER_PATTERN, re.IGNORECASE)
 ACTIVE_REFERENCE_PATTERN = re.compile(
     r"(?<![A-Za-z0-9])"
     r"(?=[A-Za-z0-9._/-]*" + PATH_REFERENCE_MARKER_PATTERN + r")"
@@ -125,7 +134,10 @@ def relative(path: Path) -> str:
 
 
 def is_excluded(path: Path) -> bool:
-    rel = path.relative_to(REPO_ROOT)
+    return _is_excluded_relative(path.relative_to(REPO_ROOT))
+
+
+def _is_excluded_relative(rel: Path) -> bool:
     return (
         rel.as_posix() in EXCLUDED_FILES
         or any(prefix == rel or prefix in rel.parents for prefix in GENERATED_KAG_PREFIXES)
@@ -158,15 +170,36 @@ def retired_path_issue(value: str) -> str | None:
     return None
 
 
+def active_reference_issue(text: str) -> str | None:
+    """Return the first non-allowlisted retired path-like content reference."""
+    if not RETIRED_TOKEN_SEARCH_PATTERN.search(text):
+        return None
+    for match in PATH_RUN_PATTERN.finditer(text):
+        reference = match.group(0)
+        if not RETIRED_TOKEN_SEARCH_PATTERN.search(reference):
+            continue
+        # Search through one character beyond the run without copying the
+        # string.  This preserves ACTIVE_REFERENCE_PATTERN's Unicode ``\d``
+        # marker behavior at a path-run boundary.
+        if PATH_MARKER_SEARCH_PATTERN.search(text, match.start(), match.end() + 1) is None:
+            continue
+        if reference.lower() not in ALLOWED_ACTIVE_CONTENT_REFERENCES:
+            return reference
+    return None
+
+
 def retired_content_issue(text: str) -> str | None:
     for artifact_identity in QUOTED_EXTERNAL_ARTIFACT_IDENTITIES:
         text = text.replace(artifact_identity, "[quoted-external-artifact-identity]")
     for capture_fragment in QUOTED_CAPTURE_PROVENANCE_FRAGMENTS:
         text = text.replace(capture_fragment, "[quoted-capture-provenance-fragment]")
-    for match in ACTIVE_REFERENCE_PATTERN.finditer(text):
-        reference = match.group(0)
-        if reference.lower() not in ALLOWED_ACTIVE_CONTENT_REFERENCES:
-            return reference
+    # ACTIVE_REFERENCE_PATTERN deliberately accepts broad path-like material,
+    # so running it against every large markdown/JSON surface dominates this
+    # validator. It can only match when a retired token is present; use the
+    # cheap token guard before entering the expensive path-shaped regex.
+    reference = active_reference_issue(text)
+    if reference is not None:
+        return reference
     match = RETIRED_ROUTE_LABEL_PATTERN.search(text)
     if match:
         return match.group(0)
@@ -235,31 +268,55 @@ def active_content_text(rel: str, text: str) -> str:
 
 def validate() -> list[str]:
     issues: list[str] = []
-    for path in sorted(REPO_ROOT.rglob("*")):
-        if is_excluded(path):
-            continue
-        rel = relative(path)
-        path_issue = retired_path_issue(rel)
-        if path_issue:
-            issues.append(f"{rel}: retired active name in path: {path_issue}")
-        if rel.startswith(EXPERIENCE_ROUTE_PREFIX):
-            path_issue = retired_experience_pass_issue(rel)
+    # Walk top-down so excluded trees are pruned before their entries are
+    # materialized. Path.rglob() enumerated those trees first and only then
+    # discarded them in is_excluded(), which was needlessly expensive for a
+    # repository with generated/read-model directories.
+    for dirpath, dirnames, filenames in os.walk(REPO_ROOT, topdown=True, followlinks=False):
+        rel_root = Path(dirpath).relative_to(REPO_ROOT)
+        active_dirnames: list[str] = []
+        for dirname in sorted(dirnames):
+            rel_path = rel_root / dirname
+            if _is_excluded_relative(rel_path):
+                continue
+            rel = rel_path.as_posix()
+            path_issue = retired_path_issue(rel)
             if path_issue:
-                issues.append(f"{rel}: retired experience pass marker in path: {path_issue}")
-        if not path.is_file() or path.suffix not in TEXT_SUFFIXES:
-            continue
-        try:
-            text = path.read_text(encoding="utf-8")
-        except UnicodeDecodeError:
-            continue
-        text = active_content_text(rel, text)
-        content_issue = retired_content_issue(text)
-        if content_issue:
-            issues.append(f"{rel}: retired active path/id reference in content: {content_issue}")
-        if rel.startswith(EXPERIENCE_ROUTE_PREFIX):
-            content_issue = retired_experience_pass_issue(text)
+                issues.append(f"{rel}: retired active name in path: {path_issue}")
+            if rel.startswith(EXPERIENCE_ROUTE_PREFIX):
+                path_issue = retired_experience_pass_issue(rel)
+                if path_issue:
+                    issues.append(f"{rel}: retired experience pass marker in path: {path_issue}")
+            active_dirnames.append(dirname)
+        dirnames[:] = active_dirnames
+
+        for filename in sorted(filenames):
+            rel_path = rel_root / filename
+            if _is_excluded_relative(rel_path):
+                continue
+            rel = rel_path.as_posix()
+            path = Path(dirpath) / filename
+            path_issue = retired_path_issue(rel)
+            if path_issue:
+                issues.append(f"{rel}: retired active name in path: {path_issue}")
+            if rel.startswith(EXPERIENCE_ROUTE_PREFIX):
+                path_issue = retired_experience_pass_issue(rel)
+                if path_issue:
+                    issues.append(f"{rel}: retired experience pass marker in path: {path_issue}")
+            if not path.is_file() or path.suffix not in TEXT_SUFFIXES:
+                continue
+            try:
+                text = path.read_text(encoding="utf-8")
+            except UnicodeDecodeError:
+                continue
+            text = active_content_text(rel, text)
+            content_issue = retired_content_issue(text)
             if content_issue:
-                issues.append(f"{rel}: retired experience pass marker in content: {content_issue}")
+                issues.append(f"{rel}: retired active path/id reference in content: {content_issue}")
+            if rel.startswith(EXPERIENCE_ROUTE_PREFIX):
+                content_issue = retired_experience_pass_issue(text)
+                if content_issue:
+                    issues.append(f"{rel}: retired experience pass marker in content: {content_issue}")
     return issues
 
 

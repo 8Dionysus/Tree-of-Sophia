@@ -4,6 +4,7 @@ import json
 import sys
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
@@ -24,6 +25,25 @@ from philosophy_multilingual_common import english_label  # noqa: E402
 
 
 class PhilosophyGraphProjectionTest(unittest.TestCase):
+    def test_validator_rejects_noncanonical_encoding_with_one_rebuild(self) -> None:
+        import validate_philosophy_graph_projection as validator
+
+        # The semantic schema has its own coverage; exercise byte parity
+        # without rebuilding the real graph for each equivalent encoding.
+        payload = {"counts": {}}
+        for text in (' {"counts": {}}\n', '{"counts": {}, "counts": {}}\n'):
+            with (
+                self.subTest(text=text),
+                patch.object(validator, "build_payload", return_value=payload) as build,
+                patch.object(validator, "validate_payload_schema"),
+                patch.object(validator, "GRAPH_PROJECTION_PATH") as source,
+            ):
+                source.read_text.return_value = text
+                self.assertEqual(json.loads(text), payload)
+                with self.assertRaisesRegex(SystemExit, "canonical rebuild"):
+                    validator.main()
+                build.assert_called_once_with()
+
     def load_projection(self) -> dict[str, object]:
         return json.loads(GRAPH_PROJECTION_PATH.read_text(encoding="utf-8"))
 

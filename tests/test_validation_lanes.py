@@ -70,6 +70,31 @@ class ValidationLanesTestCase(unittest.TestCase):
         self.assertEqual(tests, [steps[-1]])
         self.assertEqual(tests[0][0], "run tests")
 
+    def test_large_generated_checks_rebuild_once_in_the_validator(self) -> None:
+        manifest = json.loads(
+            (REPO_ROOT / "docs" / "validation" / "validation_lanes.json").read_text(encoding="utf-8")
+        )
+        sequences = manifest["command_sequences"]
+        for sequence_id in ("generated_parity", "graph_exports", "release_check"):
+            commands = [tuple(step["command"]) for step in sequences[sequence_id]]
+            with self.subTest(sequence=sequence_id):
+                self.assertNotIn(
+                    ("python", "scripts/build_tos_corpus_index.py", "--check"),
+                    commands,
+                )
+                self.assertIn(
+                    ("python", "scripts/validate_tos_corpus_index.py"),
+                    commands,
+                )
+                self.assertNotIn(
+                    ("python", "scripts/build_philosophy_graph_projection.py", "--check"),
+                    commands,
+                )
+                self.assertIn(
+                    ("python", "scripts/validate_philosophy_graph_projection.py"),
+                    commands,
+                )
+
     def test_release_phase_split_fails_closed_on_manifest_drift(self) -> None:
         with self.assertRaisesRegex(ValueError, "exactly one final"):
             release_check.select_steps([("other", ["python", "other.py"])], "checks")
