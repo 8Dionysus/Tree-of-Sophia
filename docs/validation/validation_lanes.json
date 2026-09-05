@@ -457,10 +457,6 @@
         "command": ["python", "scripts/validate_root_entry_map.py"]
       },
       {
-        "label": "check ToS corpus index",
-        "command": ["python", "scripts/build_tos_corpus_index.py", "--check"]
-      },
-      {
         "label": "validate ToS corpus index",
         "command": ["python", "scripts/validate_tos_corpus_index.py"]
       },
@@ -487,10 +483,6 @@
       {
         "label": "validate philosophy graph views",
         "command": ["python", "scripts/validate_philosophy_graph_views.py"]
-      },
-      {
-        "label": "check philosophy graph projection",
-        "command": ["python", "scripts/build_philosophy_graph_projection.py", "--check"]
       },
       {
         "label": "validate philosophy graph projection",
@@ -601,10 +593,6 @@
     ],
     "graph_exports": [
       {
-        "label": "check ToS corpus index",
-        "command": ["python", "scripts/build_tos_corpus_index.py", "--check"]
-      },
-      {
         "label": "validate ToS corpus index",
         "command": ["python", "scripts/validate_tos_corpus_index.py"]
       },
@@ -631,10 +619,6 @@
       {
         "label": "validate philosophy graph views",
         "command": ["python", "scripts/validate_philosophy_graph_views.py"]
-      },
-      {
-        "label": "check philosophy graph projection",
-        "command": ["python", "scripts/build_philosophy_graph_projection.py", "--check"]
       },
       {
         "label": "validate philosophy graph projection",
@@ -751,10 +735,6 @@
         "command": ["python", "scripts/validate_root_entry_map.py"]
       },
       {
-        "label": "check ToS corpus index",
-        "command": ["python", "scripts/build_tos_corpus_index.py", "--check"]
-      },
-      {
         "label": "validate ToS corpus index",
         "command": ["python", "scripts/validate_tos_corpus_index.py"]
       },
@@ -781,10 +761,6 @@
       {
         "label": "validate philosophy graph views",
         "command": ["python", "scripts/validate_philosophy_graph_views.py"]
-      },
-      {
-        "label": "check philosophy graph projection",
-        "command": ["python", "scripts/build_philosophy_graph_projection.py", "--check"]
       },
       {
         "label": "validate philosophy graph projection",

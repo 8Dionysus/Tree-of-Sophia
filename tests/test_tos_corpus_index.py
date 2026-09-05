@@ -4,6 +4,7 @@ import json
 import sys
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
@@ -20,6 +21,25 @@ from tos_corpus_index_common import (  # noqa: E402
 
 
 class ToSCorpusIndexTest(unittest.TestCase):
+    def test_validator_rejects_noncanonical_encoding_with_one_rebuild(self) -> None:
+        import validate_tos_corpus_index as validator
+
+        # Isolate serialization parity from the independently tested schema
+        # and whole-corpus build; both encodings parse to the expected object.
+        payload = {"counts": {}}
+        for text in (' {"counts": {}}\n', '{"counts": {}, "counts": {}}\n'):
+            with (
+                self.subTest(text=text),
+                patch.object(validator, "build_payload", return_value=payload) as build,
+                patch.object(validator, "validate_payload_schema"),
+                patch.object(validator, "TOS_CORPUS_INDEX_PATH") as source,
+            ):
+                source.read_text.return_value = text
+                self.assertEqual(json.loads(text), payload)
+                with self.assertRaisesRegex(SystemExit, "canonical rebuild"):
+                    validator.main()
+                build.assert_called_once_with()
+
     def test_generated_index_matches_builder(self) -> None:
         expected = render_payload(build_payload())
         current = TOS_CORPUS_INDEX_PATH.read_text(encoding="utf-8")
