@@ -51,6 +51,10 @@ CSP is required.
   The old endpoint has no revision token: these checks are not an atomic snapshot
   guarantee, and evidence responses are deliberately not cached.
 - `panels.mjs` coordinates auxiliary window visibility and resize invalidation.
+  On desktop, a tool inherits the inspector's free side (or opens opposite the
+  selected star) so the window does not cover the focus. Tool-to-tool handoffs
+  retain that side; mobile sheets retain their bottom placement. This changes
+  neither the camera nor the painter.
   Registering another panel does not change the camera or painter. This is a local
   UI seam; integration with the backend UI constructor remains a later slice.
 - `navigation-panel.mjs` presents paged connections, start/end selection, bounded
@@ -81,7 +85,8 @@ CSP is required.
   has an explicit evidence route, independently of path-routing capability.
 
 The Observatory requires the knowledge/lens API. The integration branch combines
-backend `7f4aae92` with UI `2b1d6800`; their common base `61cc594c` alone cannot
+backend `7f4aae92` with UI `6518e240` (including the panel docking fix over
+`2b1d6800`); their common base `61cc594c` alone cannot
 serve this client. Local integration is not publication: verify the combined
 release and production Worker before making this default client public.
 
@@ -149,7 +154,7 @@ were not run in that UI slice. The subsequent local integration is described bel
 
 ## Local backend integration (2026-09-05)
 
-The integration preserves every UI source and built asset from `2b1d6800`;
+The integration preserves every UI source and built asset from `6518e240`;
 the Vite rebuild reproduces the same bytes. Shared documentation currentness
 is rebuilt from the combined sources. The combined tree passes 63 web tests,
 110 access tests, 20 Worker tests, TypeScript checks and standalone source

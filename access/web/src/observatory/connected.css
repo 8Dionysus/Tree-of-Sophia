@@ -1,4 +1,8 @@
 /* Additions for source material; the accepted visual stylesheet stays intact. */
+/* Auxiliary tools inherit the free side of the inspector; mobile sheets keep
+   their existing bottom placement. Opening a tool never moves the camera. */
+@container(min-width:651px){#sophia-gestures .sc-panel[data-dock=left]{left:28px;right:auto;top:var(--sc-tool-top);max-height:calc(100% - var(--sc-tool-top) - 98px)}}
+@container(min-width:651px) and (max-width:1050px){#sophia-gestures .sc-panel[data-dock=left]{left:20px}}
 #sophia-gestures .sc-inspector{display:flex;flex-direction:column;max-height:min(580px,calc(max(740px,100dvh) - 288px))}
 #sophia-gestures .sc-inspector>*{flex-shrink:0}
 #sophia-gestures .sc-inspector #so-about,#sophia-gestures .sc-inspector #so-relations{flex-shrink:1;min-height:0}
