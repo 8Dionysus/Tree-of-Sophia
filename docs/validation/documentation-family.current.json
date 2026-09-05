@@ -29,7 +29,7 @@
     "metric": "whitespace_tokens_v1",
     "posture": "summary_first_records_on_demand",
     "record_loading": "machine readers may select records by family_id or path; do not load the full carrier into an always-on prompt",
-    "tracked_surface_count": 3463,
+    "tracked_surface_count": 3461,
     "unhandled_family_count": 0
   },
   "coverage": {
@@ -126,10 +126,10 @@
     "surface_kind_counts": {
       "executable": 206,
       "human": 951,
-      "structured": 2306
+      "structured": 2304
     },
-    "tracked_path_count": 4061,
-    "tracked_surface_count": 3463,
+    "tracked_path_count": 4059,
+    "tracked_surface_count": 3461,
     "unhandled_family_count": 0,
     "unhandled_paths": []
   },
@@ -156,10 +156,10 @@
       "family_id": "agents-other",
       "surface_kind_counts": {
         "human": 3,
-        "structured": 5
+        "structured": 3
       },
-      "tracked_surface_bytes": 331122,
-      "tracked_surface_count": 8
+      "tracked_surface_bytes": 158108,
+      "tracked_surface_count": 6
     },
     {
       "family_id": "github",
@@ -285,7 +285,7 @@
   "source_map": "docs/validation/documentation_family_map.json",
   "source_map_sha256": "d70a5059be9cc7547289e4c8be380d23b3aeb9e53bb10e4cb82abf2177ea0896",
   "tracked_source": "git ls-files -z",
-  "tracked_surface_digest": "6dcadfebe4e9925d84813dce00c09978d0eab19af0574b11afd3dd5c16042c05",
+  "tracked_surface_digest": "a75cf9f5953d9cb4d826d77b10ae7cbde48175045aa0de5218cb4992105c59a0",
   "tracked_surfaces": [
     {
       "bytes": 1413,
@@ -325,22 +325,6 @@
       "family_id": "agents-other",
       "path": ".agents/agent-surface.manifest.json",
       "sha256": "988c2870e6ceb2cb6357e66668d14f2815a93e53560adbfab17f05eb473e0ef0",
-      "surface_kind": "structured"
-    },
-    {
-      "bytes": 86507,
-      "currentness": "tracked_source_snapshot",
-      "family_id": "agents-other",
-      "path": ".agents/agents-route.current.json",
-      "sha256": "706e9d753e1110a16f7b81434b22957bef90d6e1a2d18062c41d4fc08cdcbefc",
-      "surface_kind": "structured"
-    },
-    {
-      "bytes": 86507,
-      "currentness": "tracked_source_snapshot",
-      "family_id": "agents-other",
-      "path": ".agents/agents-route.current.json",
-      "sha256": "706e9d753e1110a16f7b81434b22957bef90d6e1a2d18062c41d4fc08cdcbefc",
       "surface_kind": "structured"
     },
     {
