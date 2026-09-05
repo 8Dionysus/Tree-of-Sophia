@@ -1,13 +1,13 @@
 from __future__ import annotations
 
+import json
 import os
+import subprocess
 import sys
 import tempfile
 import unittest
-import json
 from pathlib import Path
 from unittest import mock
-
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "scripts"))
@@ -1508,6 +1508,50 @@ class AgentSurfaceTests(unittest.TestCase):
             ),
             issues,
         )
+
+    def test_v2_cache_requires_explicit_clear_after_candidate_mutation(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            subprocess.run(("git", "-c", "init.defaultBranch=main", "init", "-q"), cwd=root, check=True)
+            marker = root / "kag/indexes/generated.json"
+            marker.parent.mkdir(parents=True)
+            marker.write_text("before", encoding="utf-8")
+            digest = "d" * 64
+
+            validator.clear_v2_validation_caches()
+            before = validator._v2_candidate_seal(root, digest)
+            marker.write_text("after", encoding="utf-8")
+            self.assertEqual(before, validator._v2_candidate_seal(root, digest))
+
+            validator.clear_v2_validation_caches()
+            self.assertNotEqual(before, validator._v2_candidate_seal(root, digest))
+
+    def test_public_validation_clears_v2_cache_between_generated_input_changes(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            identity_root = Path(temporary)
+            subprocess.run(
+                ("git", "-c", "init.defaultBranch=main", "init", "-q"),
+                cwd=identity_root,
+                check=True,
+            )
+            marker = identity_root / "kag/indexes/generated.json"
+            marker.parent.mkdir(parents=True)
+            marker.write_text("before", encoding="utf-8")
+            identity_digest = "e" * 64
+            validator.clear_v2_validation_caches()
+            expected = validator._v2_candidate_seal(identity_root, identity_digest)
+
+            def generated_family_check(*_args: object, **_kwargs: object) -> list[validator.Issue]:
+                actual = validator._v2_candidate_seal(identity_root, identity_digest)
+                return [] if actual == expected else [("kag/indexes/generated.json", "candidate changed")]
+
+            with mock.patch.object(validator, "generated_family_issues", side_effect=generated_family_check):
+                self.assertEqual([], validator.validate_manifest(ROOT))
+                marker.write_text("after", encoding="utf-8")
+                self.assertEqual(
+                    [("kag/indexes/generated.json", "candidate changed")],
+                    validator.validate_manifest(ROOT),
+                )
 
     def test_current_receipt_requires_procedure_manifest_contents(self) -> None:
         family_manifest, receipt, digest, receipt_path = self._current_receipt_case()
