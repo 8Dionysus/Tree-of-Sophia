@@ -237,7 +237,7 @@ The next UI slice builds on the live lens constructor at `6440248cf`:
   and source links. External source links keep their existing explicit routes.
 - `scene-feedback.mjs` marks additions briefly and differentiates selector/focus
   from traversal/endpoint inclusion using the advertised query-execution evidence.
-  These shapes describe inclusion in a view, not truth or semantic importance.
+  These cues describe inclusion in a view, not truth or semantic importance.
   Existing ID-based positions survive changes; the GPU painter is unchanged.
 - `place-model.mjs` and `view-state.mjs` store at most 12 named places: bounded
   query/draft, opaque identities, layout and camera, selection, and card section.
@@ -276,3 +276,10 @@ motion held the background clock still. Actual custom views at 10 and 40 nodes
 showed the corresponding inclusion marks. One 40-node/25-relation sample measured
 2.80ms drawing and 22.40ms frame intervals under concurrent host load. This is a
 bounded responsiveness check, not sustained 60fps or whole-corpus profiling.
+
+The operator rejected the persistent inclusion diamonds. Inclusion now uses a
+subtle warm halo for matched/focus nodes and a quieter cool halo for context.
+A bounded explanation appears on hover or keyboard focus, is linked through
+`aria-describedby`, and can be dismissed with Escape or a scene gesture. Tooltip
+placement is measured on opening only; it follows the existing node transform.
+The painter, camera and gesture handlers are unchanged by this presentation fix.
