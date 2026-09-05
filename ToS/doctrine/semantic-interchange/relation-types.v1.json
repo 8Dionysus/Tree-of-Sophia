@@ -1,7 +1,7 @@
 {
   "schema_version": "tos_semantic_relation_type_registry_v1",
   "registry_id": "tos.semantic.relation-types",
-  "registry_version": 2,
+  "registry_version": 3,
   "entity_registry_ref": "ToS/doctrine/semantic-interchange/entity-types.v1.json",
   "source_refs": [
     "ToS/doctrine/semantic-interchange/README.md",
@@ -337,532 +337,1062 @@
         {
           "source_graph": "canon",
           "source_predicate_id": "addresses",
-          "scope": "edge"
+          "scope": "edge",
+          "labels": {
+            "default": "обращается к",
+            "ru": "обращается к",
+            "en": null
+          }
         },
         {
           "source_graph": "candidate-intake",
           "source_predicate_id": "addresses",
-          "scope": "edge"
+          "scope": "edge",
+          "labels": {
+            "default": "обращается к",
+            "ru": "обращается к",
+            "en": null
+          }
         },
         {
           "source_graph": "canon",
           "source_predicate_id": "affects",
-          "scope": "edge"
+          "scope": "edge",
+          "labels": {
+            "default": "затрагивает",
+            "ru": "затрагивает",
+            "en": null
+          }
         },
         {
           "source_graph": "candidate-intake",
           "source_predicate_id": "affects",
-          "scope": "edge"
+          "scope": "edge",
+          "labels": {
+            "default": "затрагивает",
+            "ru": "затрагивает",
+            "en": null
+          }
         },
         {
           "source_graph": "canon",
           "source_predicate_id": "aims_at",
-          "scope": "edge"
+          "scope": "edge",
+          "labels": {
+            "default": "устремлено к",
+            "ru": "устремлено к",
+            "en": null
+          }
         },
         {
           "source_graph": "candidate-intake",
           "source_predicate_id": "aims_at",
-          "scope": "edge"
+          "scope": "edge",
+          "labels": {
+            "default": "устремлено к",
+            "ru": "устремлено к",
+            "en": null
+          }
         },
         {
           "source_graph": "canon",
           "source_predicate_id": "asks_for",
-          "scope": "edge"
+          "scope": "edge",
+          "labels": {
+            "default": "просит",
+            "ru": "просит",
+            "en": null
+          }
         },
         {
           "source_graph": "candidate-intake",
           "source_predicate_id": "asks_for",
-          "scope": "edge"
+          "scope": "edge",
+          "labels": {
+            "default": "просит",
+            "ru": "просит",
+            "en": null
+          }
         },
         {
           "source_graph": "canon",
           "source_predicate_id": "aspect_of",
-          "scope": "edge"
+          "scope": "edge",
+          "labels": {
+            "default": "является аспектом",
+            "ru": "является аспектом",
+            "en": null
+          }
         },
         {
           "source_graph": "candidate-intake",
           "source_predicate_id": "aspect_of",
-          "scope": "edge"
+          "scope": "edge",
+          "labels": {
+            "default": "является аспектом",
+            "ru": "является аспектом",
+            "en": null
+          }
         },
         {
           "source_graph": "canon",
           "source_predicate_id": "becomes_glad_of",
-          "scope": "edge"
+          "scope": "edge",
+          "labels": {
+            "default": "становится радостным о",
+            "ru": "становится радостным о",
+            "en": null
+          }
         },
         {
           "source_graph": "candidate-intake",
           "source_predicate_id": "becomes_glad_of",
-          "scope": "edge"
+          "scope": "edge",
+          "labels": {
+            "default": "становится радостным о",
+            "ru": "становится радостным о",
+            "en": null
+          }
         },
         {
           "source_graph": "canon",
           "source_predicate_id": "beholds",
-          "scope": "edge"
+          "scope": "edge",
+          "labels": {
+            "default": "созерцает",
+            "ru": "созерцает",
+            "en": null
+          }
         },
         {
           "source_graph": "candidate-intake",
           "source_predicate_id": "beholds",
-          "scope": "edge"
+          "scope": "edge",
+          "labels": {
+            "default": "созерцает",
+            "ru": "созерцает",
+            "en": null
+          }
         },
         {
           "source_graph": "canon",
           "source_predicate_id": "blesses",
-          "scope": "edge"
+          "scope": "edge",
+          "labels": {
+            "default": "благословляет",
+            "ru": "благословляет",
+            "en": null
+          }
         },
         {
           "source_graph": "candidate-intake",
           "source_predicate_id": "blesses",
-          "scope": "edge"
+          "scope": "edge",
+          "labels": {
+            "default": "благословляет",
+            "ru": "благословляет",
+            "en": null
+          }
         },
         {
           "source_graph": "canon",
           "source_predicate_id": "carries",
-          "scope": "edge"
+          "scope": "edge",
+          "labels": {
+            "default": "несёт",
+            "ru": "несёт",
+            "en": null
+          }
         },
         {
           "source_graph": "candidate-intake",
           "source_predicate_id": "carries",
-          "scope": "edge"
+          "scope": "edge",
+          "labels": {
+            "default": "несёт",
+            "ru": "несёт",
+            "en": null
+          }
         },
         {
           "source_graph": "canon",
           "source_predicate_id": "compares_state_to",
-          "scope": "edge"
+          "scope": "edge",
+          "labels": {
+            "default": "сравнивает состояние с",
+            "ru": "сравнивает состояние с",
+            "en": null
+          }
         },
         {
           "source_graph": "candidate-intake",
           "source_predicate_id": "compares_state_to",
-          "scope": "edge"
+          "scope": "edge",
+          "labels": {
+            "default": "сравнивает состояние с",
+            "ru": "сравнивает состояние с",
+            "en": null
+          }
         },
         {
           "source_graph": "canon",
           "source_predicate_id": "concerns",
-          "scope": "edge"
+          "scope": "edge",
+          "labels": {
+            "default": "касается",
+            "ru": "касается",
+            "en": null
+          }
         },
         {
           "source_graph": "candidate-intake",
           "source_predicate_id": "concerns",
-          "scope": "edge"
+          "scope": "edge",
+          "labels": {
+            "default": "касается",
+            "ru": "касается",
+            "en": null
+          }
         },
         {
           "source_graph": "canon",
           "source_predicate_id": "continues_until",
-          "scope": "edge"
+          "scope": "edge",
+          "labels": {
+            "default": "длится до",
+            "ru": "длится до",
+            "en": null
+          }
         },
         {
           "source_graph": "candidate-intake",
           "source_predicate_id": "continues_until",
-          "scope": "edge"
+          "scope": "edge",
+          "labels": {
+            "default": "длится до",
+            "ru": "длится до",
+            "en": null
+          }
         },
         {
           "source_graph": "canon",
           "source_predicate_id": "culminates_in",
-          "scope": "edge"
+          "scope": "edge",
+          "labels": {
+            "default": "кульминирует в",
+            "ru": "кульминирует в",
+            "en": null
+          }
         },
         {
           "source_graph": "candidate-intake",
           "source_predicate_id": "culminates_in",
-          "scope": "edge"
+          "scope": "edge",
+          "labels": {
+            "default": "кульминирует в",
+            "ru": "кульминирует в",
+            "en": null
+          }
         },
         {
           "source_graph": "canon",
           "source_predicate_id": "delights_in",
-          "scope": "edge"
+          "scope": "edge",
+          "labels": {
+            "default": "вкушает / наслаждается",
+            "ru": "вкушает / наслаждается",
+            "en": null
+          }
         },
         {
           "source_graph": "candidate-intake",
           "source_predicate_id": "delights_in",
-          "scope": "edge"
+          "scope": "edge",
+          "labels": {
+            "default": "вкушает / наслаждается",
+            "ru": "вкушает / наслаждается",
+            "en": null
+          }
         },
         {
           "source_graph": "canon",
           "source_predicate_id": "depends_on",
-          "scope": "edge"
+          "scope": "edge",
+          "labels": {
+            "default": "зависит от",
+            "ru": "зависит от",
+            "en": null
+          }
         },
         {
           "source_graph": "candidate-intake",
           "source_predicate_id": "depends_on",
-          "scope": "edge"
+          "scope": "edge",
+          "labels": {
+            "default": "зависит от",
+            "ru": "зависит от",
+            "en": null
+          }
         },
         {
           "source_graph": "canon",
           "source_predicate_id": "destination",
-          "scope": "edge"
+          "scope": "edge",
+          "labels": {
+            "default": "направляется в",
+            "ru": "направляется в",
+            "en": null
+          }
         },
         {
           "source_graph": "candidate-intake",
           "source_predicate_id": "destination",
-          "scope": "edge"
+          "scope": "edge",
+          "labels": {
+            "default": "направляется в",
+            "ru": "направляется в",
+            "en": null
+          }
         },
         {
           "source_graph": "canon",
           "source_predicate_id": "duration",
-          "scope": "edge"
+          "scope": "edge",
+          "labels": {
+            "default": "имеет длительность",
+            "ru": "имеет длительность",
+            "en": null
+          }
         },
         {
           "source_graph": "candidate-intake",
           "source_predicate_id": "duration",
-          "scope": "edge"
+          "scope": "edge",
+          "labels": {
+            "default": "имеет длительность",
+            "ru": "имеет длительность",
+            "en": null
+          }
         },
         {
           "source_graph": "canon",
           "source_predicate_id": "enters_state",
-          "scope": "edge"
+          "scope": "edge",
+          "labels": {
+            "default": "входит в состояние",
+            "ru": "входит в состояние",
+            "en": null
+          }
         },
         {
           "source_graph": "candidate-intake",
           "source_predicate_id": "enters_state",
-          "scope": "edge"
+          "scope": "edge",
+          "labels": {
+            "default": "входит в состояние",
+            "ru": "входит в состояние",
+            "en": null
+          }
         },
         {
           "source_graph": "canon",
           "source_predicate_id": "excludes",
-          "scope": "edge"
+          "scope": "edge",
+          "labels": {
+            "default": "исключает",
+            "ru": "исключает",
+            "en": null
+          }
         },
         {
           "source_graph": "candidate-intake",
           "source_predicate_id": "excludes",
-          "scope": "edge"
+          "scope": "edge",
+          "labels": {
+            "default": "исключает",
+            "ru": "исключает",
+            "en": null
+          }
         },
         {
           "source_graph": "canon",
           "source_predicate_id": "for",
-          "scope": "edge"
+          "scope": "edge",
+          "labels": {
+            "default": "за / по причине",
+            "ru": "за / по причине",
+            "en": null
+          }
         },
         {
           "source_graph": "candidate-intake",
           "source_predicate_id": "for",
-          "scope": "edge"
+          "scope": "edge",
+          "labels": {
+            "default": "за / по причине",
+            "ru": "за / по причине",
+            "en": null
+          }
         },
         {
           "source_graph": "canon",
           "source_predicate_id": "formalizes",
-          "scope": "edge"
+          "scope": "edge",
+          "labels": {
+            "default": "оформляет",
+            "ru": "оформляет",
+            "en": null
+          }
         },
         {
           "source_graph": "candidate-intake",
           "source_predicate_id": "formalizes",
-          "scope": "edge"
+          "scope": "edge",
+          "labels": {
+            "default": "оформляет",
+            "ru": "оформляет",
+            "en": null
+          }
         },
         {
           "source_graph": "canon",
           "source_predicate_id": "from",
-          "scope": "edge"
+          "scope": "edge",
+          "labels": {
+            "default": "от",
+            "ru": "от",
+            "en": null
+          }
         },
         {
           "source_graph": "candidate-intake",
           "source_predicate_id": "from",
-          "scope": "edge"
+          "scope": "edge",
+          "labels": {
+            "default": "от",
+            "ru": "от",
+            "en": null
+          }
         },
         {
           "source_graph": "canon",
           "source_predicate_id": "gathers",
-          "scope": "edge"
+          "scope": "edge",
+          "labels": {
+            "default": "собирает",
+            "ru": "собирает",
+            "en": null
+          }
         },
         {
           "source_graph": "candidate-intake",
           "source_predicate_id": "gathers",
-          "scope": "edge"
+          "scope": "edge",
+          "labels": {
+            "default": "собирает",
+            "ru": "собирает",
+            "en": null
+          }
         },
         {
           "source_graph": "canon",
           "source_predicate_id": "goes_to",
-          "scope": "edge"
+          "scope": "edge",
+          "labels": {
+            "default": "идёт в",
+            "ru": "идёт в",
+            "en": null
+          }
         },
         {
           "source_graph": "candidate-intake",
           "source_predicate_id": "goes_to",
-          "scope": "edge"
+          "scope": "edge",
+          "labels": {
+            "default": "идёт в",
+            "ru": "идёт в",
+            "en": null
+          }
         },
         {
           "source_graph": "canon",
           "source_predicate_id": "has_mode",
-          "scope": "edge"
+          "scope": "edge",
+          "labels": {
+            "default": "имеет модус",
+            "ru": "имеет модус",
+            "en": null
+          }
         },
         {
           "source_graph": "candidate-intake",
           "source_predicate_id": "has_mode",
-          "scope": "edge"
+          "scope": "edge",
+          "labels": {
+            "default": "имеет модус",
+            "ru": "имеет модус",
+            "en": null
+          }
         },
         {
           "source_graph": "canon",
           "source_predicate_id": "has_quality",
-          "scope": "edge"
+          "scope": "edge",
+          "labels": {
+            "default": "имеет качество",
+            "ru": "имеет качество",
+            "en": null
+          }
         },
         {
           "source_graph": "candidate-intake",
           "source_predicate_id": "has_quality",
-          "scope": "edge"
+          "scope": "edge",
+          "labels": {
+            "default": "имеет качество",
+            "ru": "имеет качество",
+            "en": null
+          }
         },
         {
           "source_graph": "canon",
           "source_predicate_id": "has_quantity",
-          "scope": "edge"
+          "scope": "edge",
+          "labels": {
+            "default": "имеет количество",
+            "ru": "имеет количество",
+            "en": null
+          }
         },
         {
           "source_graph": "candidate-intake",
           "source_predicate_id": "has_quantity",
-          "scope": "edge"
+          "scope": "edge",
+          "labels": {
+            "default": "имеет количество",
+            "ru": "имеет количество",
+            "en": null
+          }
         },
         {
           "source_graph": "canon",
           "source_predicate_id": "includes",
-          "scope": "edge"
+          "scope": "edge",
+          "labels": {
+            "default": "включает",
+            "ru": "включает",
+            "en": null
+          }
         },
         {
           "source_graph": "candidate-intake",
           "source_predicate_id": "includes",
-          "scope": "edge"
+          "scope": "edge",
+          "labels": {
+            "default": "включает",
+            "ru": "включает",
+            "en": null
+          }
         },
         {
           "source_graph": "canon",
           "source_predicate_id": "leads_to",
-          "scope": "edge"
+          "scope": "edge",
+          "labels": {
+            "default": "ведёт к",
+            "ru": "ведёт к",
+            "en": null
+          }
         },
         {
           "source_graph": "candidate-intake",
           "source_predicate_id": "leads_to",
-          "scope": "edge"
+          "scope": "edge",
+          "labels": {
+            "default": "ведёт к",
+            "ru": "ведёт к",
+            "en": null
+          }
         },
         {
           "source_graph": "canon",
           "source_predicate_id": "leaves",
-          "scope": "edge"
+          "scope": "edge",
+          "labels": {
+            "default": "покидает",
+            "ru": "покидает",
+            "en": null
+          }
         },
         {
           "source_graph": "candidate-intake",
           "source_predicate_id": "leaves",
-          "scope": "edge"
+          "scope": "edge",
+          "labels": {
+            "default": "покидает",
+            "ru": "покидает",
+            "en": null
+          }
         },
         {
           "source_graph": "canon",
           "source_predicate_id": "mirrors",
-          "scope": "edge"
+          "scope": "edge",
+          "labels": {
+            "default": "отзеркаливает",
+            "ru": "отзеркаливает",
+            "en": null
+          }
         },
         {
           "source_graph": "candidate-intake",
           "source_predicate_id": "mirrors",
-          "scope": "edge"
+          "scope": "edge",
+          "labels": {
+            "default": "отзеркаливает",
+            "ru": "отзеркаливает",
+            "en": null
+          }
         },
         {
           "source_graph": "canon",
           "source_predicate_id": "motivated_by",
-          "scope": "edge"
+          "scope": "edge",
+          "labels": {
+            "default": "движимо",
+            "ru": "движимо",
+            "en": null
+          }
         },
         {
           "source_graph": "candidate-intake",
           "source_predicate_id": "motivated_by",
-          "scope": "edge"
+          "scope": "edge",
+          "labels": {
+            "default": "движимо",
+            "ru": "движимо",
+            "en": null
+          }
         },
         {
           "source_graph": "canon",
           "source_predicate_id": "moves_beyond",
-          "scope": "edge"
+          "scope": "edge",
+          "labels": {
+            "default": "уходит за",
+            "ru": "уходит за",
+            "en": null
+          }
         },
         {
           "source_graph": "candidate-intake",
           "source_predicate_id": "moves_beyond",
-          "scope": "edge"
+          "scope": "edge",
+          "labels": {
+            "default": "уходит за",
+            "ru": "уходит за",
+            "en": null
+          }
         },
         {
           "source_graph": "canon",
           "source_predicate_id": "names_descent_as",
-          "scope": "edge"
+          "scope": "edge",
+          "labels": {
+            "default": "называет нисхождение как",
+            "ru": "называет нисхождение как",
+            "en": null
+          }
         },
         {
           "source_graph": "candidate-intake",
           "source_predicate_id": "names_descent_as",
-          "scope": "edge"
+          "scope": "edge",
+          "labels": {
+            "default": "называет нисхождение как",
+            "ru": "называет нисхождение как",
+            "en": null
+          }
         },
         {
           "source_graph": "canon",
           "source_predicate_id": "occurs_every",
-          "scope": "edge"
+          "scope": "edge",
+          "labels": {
+            "default": "повторяется каждое",
+            "ru": "повторяется каждое",
+            "en": null
+          }
         },
         {
           "source_graph": "candidate-intake",
           "source_predicate_id": "occurs_every",
-          "scope": "edge"
+          "scope": "edge",
+          "labels": {
+            "default": "повторяется каждое",
+            "ru": "повторяется каждое",
+            "en": null
+          }
         },
         {
           "source_graph": "canon",
           "source_predicate_id": "occurs_in",
-          "scope": "edge"
+          "scope": "edge",
+          "labels": {
+            "default": "происходит в",
+            "ru": "происходит в",
+            "en": null
+          }
         },
         {
           "source_graph": "candidate-intake",
           "source_predicate_id": "occurs_in",
-          "scope": "edge"
+          "scope": "edge",
+          "labels": {
+            "default": "происходит в",
+            "ru": "происходит в",
+            "en": null
+          }
         },
         {
           "source_graph": "canon",
           "source_predicate_id": "occurs_with",
-          "scope": "edge"
+          "scope": "edge",
+          "labels": {
+            "default": "происходит вместе с",
+            "ru": "происходит вместе с",
+            "en": null
+          }
         },
         {
           "source_graph": "candidate-intake",
           "source_predicate_id": "occurs_with",
-          "scope": "edge"
+          "scope": "edge",
+          "labels": {
+            "default": "происходит вместе с",
+            "ru": "происходит вместе с",
+            "en": null
+          }
         },
         {
           "source_graph": "canon",
           "source_predicate_id": "originates_from",
-          "scope": "edge"
+          "scope": "edge",
+          "labels": {
+            "default": "истекает из",
+            "ru": "истекает из",
+            "en": null
+          }
         },
         {
           "source_graph": "candidate-intake",
           "source_predicate_id": "originates_from",
-          "scope": "edge"
+          "scope": "edge",
+          "labels": {
+            "default": "истекает из",
+            "ru": "истекает из",
+            "en": null
+          }
         },
         {
           "source_graph": "canon",
           "source_predicate_id": "parallels",
-          "scope": "edge"
+          "scope": "edge",
+          "labels": {
+            "default": "параллелен",
+            "ru": "параллелен",
+            "en": null
+          }
         },
         {
           "source_graph": "candidate-intake",
           "source_predicate_id": "parallels",
-          "scope": "edge"
+          "scope": "edge",
+          "labels": {
+            "default": "параллелен",
+            "ru": "параллелен",
+            "en": null
+          }
         },
         {
           "source_graph": "canon",
           "source_predicate_id": "participates_in",
-          "scope": "edge"
+          "scope": "edge",
+          "labels": {
+            "default": "участвует в",
+            "ru": "участвует в",
+            "en": null
+          }
         },
         {
           "source_graph": "candidate-intake",
           "source_predicate_id": "participates_in",
-          "scope": "edge"
+          "scope": "edge",
+          "labels": {
+            "default": "участвует в",
+            "ru": "участвует в",
+            "en": null
+          }
         },
         {
           "source_graph": "canon",
           "source_predicate_id": "performs",
-          "scope": "edge"
+          "scope": "edge",
+          "labels": {
+            "default": "совершает",
+            "ru": "совершает",
+            "en": null
+          }
         },
         {
           "source_graph": "candidate-intake",
           "source_predicate_id": "performs",
-          "scope": "edge"
+          "scope": "edge",
+          "labels": {
+            "default": "совершает",
+            "ru": "совершает",
+            "en": null
+          }
         },
         {
           "source_graph": "canon",
           "source_predicate_id": "pertains_to",
-          "scope": "edge"
+          "scope": "edge",
+          "labels": {
+            "default": "относится к",
+            "ru": "относится к",
+            "en": null
+          }
         },
         {
           "source_graph": "candidate-intake",
           "source_predicate_id": "pertains_to",
-          "scope": "edge"
+          "scope": "edge",
+          "labels": {
+            "default": "относится к",
+            "ru": "относится к",
+            "en": null
+          }
         },
         {
           "source_graph": "canon",
           "source_predicate_id": "prefigures",
-          "scope": "edge"
+          "scope": "edge",
+          "labels": {
+            "default": "предвосхищает",
+            "ru": "предвосхищает",
+            "en": null
+          }
         },
         {
           "source_graph": "candidate-intake",
           "source_predicate_id": "prefigures",
-          "scope": "edge"
+          "scope": "edge",
+          "labels": {
+            "default": "предвосхищает",
+            "ru": "предвосхищает",
+            "en": null
+          }
         },
         {
           "source_graph": "canon",
           "source_predicate_id": "prepares",
-          "scope": "edge"
+          "scope": "edge",
+          "labels": {
+            "default": "подготавливает",
+            "ru": "подготавливает",
+            "en": null
+          }
         },
         {
           "source_graph": "candidate-intake",
           "source_predicate_id": "prepares",
-          "scope": "edge"
+          "scope": "edge",
+          "labels": {
+            "default": "подготавливает",
+            "ru": "подготавливает",
+            "en": null
+          }
         },
         {
           "source_graph": "canon",
           "source_predicate_id": "prevented_by",
-          "scope": "edge"
+          "scope": "edge",
+          "labels": {
+            "default": "предотвращается через",
+            "ru": "предотвращается через",
+            "en": null
+          }
         },
         {
           "source_graph": "candidate-intake",
           "source_predicate_id": "prevented_by",
-          "scope": "edge"
+          "scope": "edge",
+          "labels": {
+            "default": "предотвращается через",
+            "ru": "предотвращается через",
+            "en": null
+          }
         },
         {
           "source_graph": "canon",
           "source_predicate_id": "receives",
-          "scope": "edge"
+          "scope": "edge",
+          "labels": {
+            "default": "получает",
+            "ru": "получает",
+            "en": null
+          }
         },
         {
           "source_graph": "candidate-intake",
           "source_predicate_id": "receives",
-          "scope": "edge"
+          "scope": "edge",
+          "labels": {
+            "default": "получает",
+            "ru": "получает",
+            "en": null
+          }
         },
         {
           "source_graph": "canon",
           "source_predicate_id": "reflects",
-          "scope": "edge"
+          "scope": "edge",
+          "labels": {
+            "default": "отражает",
+            "ru": "отражает",
+            "en": null
+          }
         },
         {
           "source_graph": "candidate-intake",
           "source_predicate_id": "reflects",
-          "scope": "edge"
+          "scope": "edge",
+          "labels": {
+            "default": "отражает",
+            "ru": "отражает",
+            "en": null
+          }
         },
         {
           "source_graph": "canon",
           "source_predicate_id": "requires",
-          "scope": "edge"
+          "scope": "edge",
+          "labels": {
+            "default": "требует",
+            "ru": "требует",
+            "en": null
+          }
         },
         {
           "source_graph": "candidate-intake",
           "source_predicate_id": "requires",
-          "scope": "edge"
+          "scope": "edge",
+          "labels": {
+            "default": "требует",
+            "ru": "требует",
+            "en": null
+          }
         },
         {
           "source_graph": "canon",
           "source_predicate_id": "subset_of",
-          "scope": "edge"
+          "scope": "edge",
+          "labels": {
+            "default": "является подмножеством",
+            "ru": "является подмножеством",
+            "en": null
+          }
         },
         {
           "source_graph": "candidate-intake",
           "source_predicate_id": "subset_of",
-          "scope": "edge"
+          "scope": "edge",
+          "labels": {
+            "default": "является подмножеством",
+            "ru": "является подмножеством",
+            "en": null
+          }
         },
         {
           "source_graph": "canon",
           "source_predicate_id": "supported_by",
-          "scope": "edge"
+          "scope": "edge",
+          "labels": {
+            "default": "поддерживается",
+            "ru": "поддерживается",
+            "en": null
+          }
         },
         {
           "source_graph": "candidate-intake",
           "source_predicate_id": "supported_by",
-          "scope": "edge"
+          "scope": "edge",
+          "labels": {
+            "default": "поддерживается",
+            "ru": "поддерживается",
+            "en": null
+          }
         },
         {
           "source_graph": "canon",
           "source_predicate_id": "targets",
-          "scope": "edge"
+          "scope": "edge",
+          "labels": {
+            "default": "направлено к",
+            "ru": "направлено к",
+            "en": null
+          }
         },
         {
           "source_graph": "candidate-intake",
           "source_predicate_id": "targets",
-          "scope": "edge"
+          "scope": "edge",
+          "labels": {
+            "default": "направлено к",
+            "ru": "направлено к",
+            "en": null
+          }
         },
         {
           "source_graph": "canon",
           "source_predicate_id": "uses_image_of",
-          "scope": "edge"
+          "scope": "edge",
+          "labels": {
+            "default": "использует образ",
+            "ru": "использует образ",
+            "en": null
+          }
         },
         {
           "source_graph": "candidate-intake",
           "source_predicate_id": "uses_image_of",
-          "scope": "edge"
+          "scope": "edge",
+          "labels": {
+            "default": "использует образ",
+            "ru": "использует образ",
+            "en": null
+          }
         },
         {
           "source_graph": "canon",
           "source_predicate_id": "uses_surface",
-          "scope": "edge"
+          "scope": "edge",
+          "labels": {
+            "default": "использует языковую поверхность",
+            "ru": "использует языковую поверхность",
+            "en": null
+          }
         },
         {
           "source_graph": "candidate-intake",
           "source_predicate_id": "uses_surface",
-          "scope": "edge"
+          "scope": "edge",
+          "labels": {
+            "default": "использует языковую поверхность",
+            "ru": "использует языковую поверхность",
+            "en": null
+          }
         }
       ],
       "supersedes_relation_type_id": null

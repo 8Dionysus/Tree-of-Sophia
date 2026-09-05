@@ -66,7 +66,8 @@
       "required": ["source_graph", "source_kind_id"],
       "properties": {
         "source_graph": {"$ref": "#/$defs/nonEmptyString"},
-        "source_kind_id": {"$ref": "#/$defs/nonEmptyString"}
+        "source_kind_id": {"$ref": "#/$defs/nonEmptyString"},
+        "labels": {"$ref": "#/$defs/localizedLabel"}
       }
     },
     "typeEntry": {

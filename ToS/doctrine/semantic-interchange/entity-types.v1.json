@@ -1,7 +1,7 @@
 {
   "schema_version": "tos_semantic_entity_type_registry_v1",
   "registry_id": "tos.semantic.entity-types",
-  "registry_version": 2,
+  "registry_version": 3,
   "property_definitions": [
     {"property_id": "tos.property.time-sort-start", "field": "semantics.time.sort_start", "labels": {"default": "Comparable start", "ru": "Сравнимое начало", "en": "Comparable start"}, "definition": "Inclusive lower date key: astronomical year * 10000 + month * 100 + day, proleptic Gregorian only. Not a timestamp or duration; absent for unparsed or incompatible calendars.", "value_type": "number", "applies_to": ["tos.entity.thing"], "required": false, "inherited": true, "unit": null, "language": null, "operators": ["eq", "gt", "gte", "lt", "lte", "exists"]},
     {"property_id": "tos.property.time-sort-end", "field": "semantics.time.sort_end", "labels": {"default": "Comparable end", "ru": "Сравнимый конец", "en": "Comparable end"}, "definition": "Inclusive upper date key widened to source precision. Intersect [a,b] with start <= b AND end >= a. Missing bounds are unknown, not infinite.", "value_type": "number", "applies_to": ["tos.entity.thing"], "required": false, "inherited": true, "unit": null, "language": null, "operators": ["eq", "gt", "gte", "lt", "lte", "exists"]},
@@ -820,14 +820,14 @@
       "lifecycle": "stable",
       "owner_ref": "ToS/derived-exports/AGENTS.md",
       "source_mappings": [
-        {"source_graph": "philosophy", "source_kind_id": "atlas"},
-        {"source_graph": "philosophy", "source_kind_id": "atlas-node-type"},
-        {"source_graph": "philosophy", "source_kind_id": "atlas-relation-kind"},
-        {"source_graph": "philosophy", "source_kind_id": "graph-view"},
-        {"source_graph": "philosophy", "source_kind_id": "view-section"},
-        {"source_graph": "philosophy", "source_kind_id": "master-table"},
-        {"source_graph": "philosophy", "source_kind_id": "master-table-row"},
-        {"source_graph": "philosophy", "source_kind_id": "prepared-dossier"}
+        {"source_graph":"philosophy","source_kind_id":"atlas","labels":{"default":"Philosophical atlas","ru":"Философский атлас","en":"Philosophical atlas"}},
+        {"source_graph":"philosophy","source_kind_id":"atlas-node-type","labels":{"default":"Atlas object type","ru":"Тип объекта атласа","en":"Atlas object type"}},
+        {"source_graph":"philosophy","source_kind_id":"atlas-relation-kind","labels":{"default":"Atlas relation kind","ru":"Вид связи атласа","en":"Atlas relation kind"}},
+        {"source_graph":"philosophy","source_kind_id":"graph-view","labels":{"default":"Graph view","ru":"Представление графа","en":"Graph view"}},
+        {"source_graph":"philosophy","source_kind_id":"view-section","labels":{"default":"View section","ru":"Раздел представления","en":"View section"}},
+        {"source_graph":"philosophy","source_kind_id":"master-table","labels":{"default":"Source table","ru":"Исходная таблица","en":"Source table"}},
+        {"source_graph":"philosophy","source_kind_id":"master-table-row","labels":{"default":"Source table row","ru":"Строка исходной таблицы","en":"Source table row"}},
+        {"source_graph":"philosophy","source_kind_id":"prepared-dossier","labels":{"default":"Prepared dossier","ru":"Подготовленное досье","en":"Prepared dossier"}}
       ],
       "supersedes_type_id": null
     },

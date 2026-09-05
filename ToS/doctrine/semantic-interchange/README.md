@@ -13,6 +13,15 @@ cardinality posture, evidence posture, and review requirement. Every mapping
 also retains the exact source-native `kind_id` or `predicate_id`; the stable
 family never erases the authored subtype.
 
+Source mappings may carry localized `labels` for the exact native kind or
+predicate. These labels override the family label for display only; explicit
+instance display remains stronger. Registry version 3 carries the Russian
+predicate vocabulary from `ToS/canon/registries/predicates.csv` verbatim into
+both canon and candidate-intake mappings, and distinguishes the eight atlas
+metadata kinds. This does not change source status, domain/range, identity or
+review requirements. The source CSV remains the owner of its wording; the
+access contract test checks crosswalk parity rather than accepting new meaning.
+
 Unknown source vocabulary is represented by the explicit
 `tos.entity.unmapped` or `tos.relation.unmapped` fallback. It must never be
 silently coerced into the nearest familiar type. A new stable type is added by

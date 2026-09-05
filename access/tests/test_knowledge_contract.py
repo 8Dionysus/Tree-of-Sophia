@@ -29,6 +29,40 @@ from tos_access.knowledge import (  # noqa: E402
 
 
 class KnowledgeContractTests(unittest.TestCase):
+    def test_registered_predicates_keep_the_source_russian_vocabulary(self):
+        import csv
+        from tos_access.knowledge import _normalize_relation
+        root = ACCESS_ROOT.parent
+        registry = json.loads((root / 'ToS/doctrine/semantic-interchange/relation-types.v1.json').read_text())
+        family = next(r for r in registry['relations'] if r['relation_type_id'] == 'tos.relation.canon-registered-predicate')
+        with (root / family['owner_ref']).open() as stream:
+            labels = {row['predicate_id']: row['predicate_ru'] for row in csv.DictReader(stream)}
+        for mapping in family['source_mappings']:
+            predicate = mapping['source_predicate_id']
+            with self.subTest(source=mapping['source_graph'], predicate=predicate):
+                self.assertEqual(mapping.get('labels', {}).get('ru'), labels[predicate])
+                edge = _normalize_relation({'edge_id': 'e', 'from_id': 'a', 'to_id': 'b', 'predicate_id': predicate},
+                    mapping['source_graph'], {}, relation_type_entries={family['relation_type_id']: family},
+                    relation_type_mappings={(mapping['source_graph'], predicate, mapping['scope']): family['relation_type_id']})
+                self.assertEqual(edge['display']['label']['ru'], labels[predicate])
+                self.assertEqual(edge['predicate_id'], predicate)
+
+    def test_entity_mapping_label_is_scoped_and_does_not_replace_authored_display(self):
+        entry = {'type_id': 'tos.entity.meta', 'parent_type_ids': [],
+                 'labels': {'default': 'Metadata', 'ru': 'Метаданные'},
+                 'source_mappings': [{'source_graph': 'philosophy', 'source_kind_id': 'graph-view',
+                                      'labels': {'default': 'Graph view', 'ru': 'Представление графа'}}]}
+        options = {'entity_type_entries': {'tos.entity.meta': entry},
+                   'entity_type_mappings': {(source, 'graph-view'): 'tos.entity.meta' for source in ('philosophy', 'repository')}}
+        item = {'node_id': 'v', 'node_type': 'graph-view'}
+        node = _normalize_node(item, 'philosophy', **options)
+        self.assertEqual(node['display']['kind_label']['ru'], 'Представление графа')
+        self.assertEqual(node['type_id'], 'tos.entity.meta')
+        other = _normalize_node(item, 'repository', **options)
+        self.assertEqual(other['display']['kind_label']['ru'], 'Метаданные')
+        authored = _normalize_node({**item, 'display': {'kind_label': {'ru': 'Авторская подпись'}}}, 'philosophy', **options)
+        self.assertEqual(authored['display']['kind_label']['ru'], 'Авторская подпись')
+
     def test_synthesized_description_keeps_machine_metadata_out_of_prose(self):
         node = _normalize_node({
             'node_id': 'work:sample', 'label': 'Так говорил Заратустра',

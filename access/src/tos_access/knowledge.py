@@ -851,6 +851,12 @@ def _normalize_node(
             lambda: _normalize_node(item, source_graph, native_id=native_id, identity_id=identity_id,
                 kind_id=kind_id, source_kind_id=source_kind_id, entity_type_entries=entity_type_entries,
                 entity_type_mappings=entity_type_mappings, fallback_type_id=fallback_type_id))
+    for mapping in (type_entry or {}).get("source_mappings", []):
+        if mapping.get("source_graph") == source_graph and mapping.get("source_kind_id") == semantic_kind and mapping.get("labels"):
+            # Keep the full family as the shared cache dependency; specialize
+            # only its display, not hierarchy, identity or authored labels.
+            type_entry = {**type_entry, "labels": mapping["labels"]}
+            break
     refs = _source_refs(item)
     attributes = dict(properties)
     for key, value in item.items():
