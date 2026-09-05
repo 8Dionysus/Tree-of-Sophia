@@ -8,6 +8,7 @@ import struct
 import copy
 import calendar
 from collections import Counter
+from functools import lru_cache
 from typing import Any, Iterable
 from .normalization_cache import active_cache
 from .processing import Input
@@ -1681,13 +1682,20 @@ def _finalize_knowledge_node(node, claim_update, inherited_views):
 
 def _final_node_value(node, claim_update, inherited_views):
     result = copy.deepcopy(node)
+    changed = not result.get('content_revision')
     if claim_update is not None:
         claim, trace = copy.deepcopy(claim_update)
         result.setdefault('semantics', {})['claim'] = claim
         result['attributes']['claim_trace'] = trace
+        changed = True
     if inherited_views:
-        result['view_ids'] = sorted({*_strings(result.get('view_ids')), *inherited_views})
-    _stamp_content_revision(result)
+        views = sorted({*_strings(result.get('view_ids')), *inherited_views})
+        changed = changed or views != result.get('view_ids')
+        result['view_ids'] = views
+    # Normalization already stamped the complete base node. Keep that revision
+    # if finalization did not change content, while preserving copy isolation.
+    if changed:
+        _stamp_content_revision(result)
     return result
 
 
@@ -2206,8 +2214,8 @@ def normalize_lens_spec(value: Any) -> dict[str, Any]:
     if unknown_sources:
         raise ValueError(f"unsupported knowledge sources: {', '.join(unknown_sources)}")
 
-    seed_value = _strict_object(value.get("seed"), "seed", {"focus_node_id", "node_ids", "text_query"})
-    focus_value = seed_value.get("focus_node_id")
+    selection = _strict_object(value.get("seed"), "seed", {"focus_node_id", "node_ids", "text_query"})
+    focus_value = selection.get("focus_node_id")
     if focus_value is None:
         focus_node_id = None
     else:
@@ -2216,8 +2224,8 @@ def normalize_lens_spec(value: Any) -> dict[str, Any]:
             raise ValueError("seed.focus_node_id must be a non-empty string or null")
         if len(focus_node_id) > 1024:
             raise ValueError("seed.focus_node_id exceeds 1024 characters")
-    node_ids = _strict_strings(seed_value.get("node_ids"), "seed.node_ids", maximum=100)
-    text_query = _string(seed_value.get("text_query")) or ""
+    node_ids = _strict_strings(selection.get("node_ids"), "seed.node_ids", maximum=100)
+    text_query = _string(selection.get("text_query")) or ""
     if len(text_query) > 256:
         raise ValueError("seed.text_query exceeds 256 characters")
 
@@ -2439,6 +2447,13 @@ def _groups(nodes: list[dict[str, Any]], relations: list[dict[str, Any]], fields
     return groups
 
 
+@lru_cache(maxsize=4096)
+def _short_digest_string(value: str) -> bytes:
+    """Reuse bounded small wire tokens; the caller bypasses long text values."""
+    encoded = value.encode("utf-8")
+    return b"s" + str(len(encoded)).encode("ascii") + b":" + encoded
+
+
 def _stable_digest(value: Any) -> str:
     digest = hashlib.sha256()
 
@@ -2457,11 +2472,14 @@ def _stable_digest(value: Any) -> str:
             digest.update(struct.pack(">d", number).hex().encode("ascii"))
             digest.update(b";")
         elif isinstance(item, str):
-            encoded = item.encode("utf-8")
-            digest.update(b"s")
-            digest.update(str(len(encoded)).encode("ascii"))
-            digest.update(b":")
-            digest.update(encoded)
+            if len(item) <= 256:
+                digest.update(_short_digest_string(item))
+            else:
+                encoded = item.encode("utf-8")
+                digest.update(b"s")
+                digest.update(str(len(encoded)).encode("ascii"))
+                digest.update(b":")
+                digest.update(encoded)
         elif isinstance(item, list):
             digest.update(b"a")
             digest.update(str(len(item)).encode("ascii"))
@@ -2575,7 +2593,7 @@ def execute_knowledge_lens(graph: dict[str, Any], spec_value: Any) -> dict[str, 
     relations = [item for item in _objects(graph.get("relations")) if item.get("source_graph") in sources]
     all_nodes_by_id = {str(item["id"]): item for item in nodes}
     focus_node = _resolve_focus_node(nodes, spec["seed"]["focus_node_id"])
-    seed_ids = set(spec["seed"]["node_ids"])
+    selected_ids = set(spec["seed"]["node_ids"])
     text_query = str(spec["seed"]["text_query"]).lower()
 
     candidates = []
@@ -2587,7 +2605,7 @@ def execute_knowledge_lens(graph: dict[str, Any], spec_value: Any) -> dict[str, 
     path_proofs = {}
     if spec["node_query"]["enabled"]:
         for node in nodes:
-            if seed_ids and not seed_ids.intersection({str(node["id"]), str(node["native_id"]), str(node["entity_id"])}):
+            if selected_ids and not selected_ids.intersection({str(node["id"]), str(node["native_id"]), str(node["entity_id"])}):
                 continue
             if text_query and text_query not in _searchable(node):
                 continue
@@ -2933,9 +2951,9 @@ def _attribute_catalog(items: list[dict[str, Any]], kind: str) -> list[dict[str,
         for field, value in _attribute_values(attributes):
             if not _allowed_field(field, kind):
                 continue
-            entry = stats.setdefault(
-                field,
-                {
+            entry = stats.get(field)
+            if entry is None:
+                entry = stats[field] = {
                     "field": field,
                     "item_count": 0,
                     "value_types": Counter(),
@@ -2943,19 +2961,22 @@ def _attribute_catalog(items: list[dict[str, Any]], kind: str) -> list[dict[str,
                     "sources": set(),
                     "examples": [],
                     "_example_keys": set(),
-                },
-            )
+                }
             entry["item_count"] += 1
             entry["value_types"][_json_value_kind(value)] += 1
             entry["sources"].add(str(item.get("source_graph") or ""))
             candidates = value if isinstance(value, list) else [value]
             if isinstance(value, list):
                 entry["array_item_types"].update(_json_value_kind(candidate) for candidate in candidates)
+            if len(entry["examples"]) >= 5:
+                continue
             for candidate in candidates:
+                if len(entry["examples"]) >= 5:
+                    break
                 if isinstance(candidate, (dict, list)) or candidate is None:
                     continue
                 encoded = json.dumps(candidate, ensure_ascii=False, sort_keys=True)
-                if len(encoded) > 180 or encoded in entry["_example_keys"] or len(entry["examples"]) >= 5:
+                if len(encoded) > 180 or encoded in entry["_example_keys"]:
                     continue
                 entry["_example_keys"].add(encoded)
                 entry["examples"].append(candidate)

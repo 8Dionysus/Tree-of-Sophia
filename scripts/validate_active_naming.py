@@ -78,6 +78,12 @@ ALLOWED_ACTIVE_CONTENT_REFERENCES = frozenset(
         "may_seed_drafts",
         "may_seed_gold",
         "seed_claim_ref",
+        # LensSpec selection grammar and its catalog pointer are API fields,
+        # not the retired tree-route vocabulary. Filesystem checks stay strict.
+        "seed.focus_node_id",
+        "seed.node_ids",
+        "seed.text_query",
+        "seed_field",
     }
 )
 # Exact names of external artifacts may contain retired route vocabulary even

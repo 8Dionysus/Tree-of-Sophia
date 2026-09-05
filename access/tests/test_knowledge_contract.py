@@ -29,6 +29,79 @@ from tos_access.knowledge import (  # noqa: E402
 
 
 class KnowledgeContractTests(unittest.TestCase):
+    def test_catalog_example_limit_does_not_limit_counts_or_types(self):
+        from tos_access.knowledge import _attribute_catalog
+        items = [{'source_graph': 'philosophy' if i < 5 else 'canon',
+                  'attributes': {'labels': [f'value-{i}', None, {'nested': i}]}}
+                 for i in range(8)]
+        entry, = _attribute_catalog(items, 'node')
+        self.assertEqual(entry, {'field': 'attributes.labels', 'item_count': 8,
+                                'value_types': {'array': 8},
+                                'array_item_types': {'string': 8, 'null': 8, 'object': 8},
+                                'sources': ['canon', 'philosophy'],
+                                'examples': [f'value-{i}' for i in range(5)]})
+
+    def test_finalization_reuses_unchanged_revision_without_aliasing_source(self):
+        from unittest.mock import patch
+        from tos_access.knowledge import _final_node_value, _stamp_content_revision
+        node = _normalize_node({'node_id': 'n', 'label': 'Ницше',
+                                'properties': {'nested': {'value': 'original'}},
+                                'view_ids': ['a', 'b']}, 'philosophy')
+        with patch('tos_access.knowledge._stamp_content_revision', wraps=_stamp_content_revision) as stamp:
+            unchanged = _final_node_value(node, None, [])
+            same_membership = _final_node_value(node, None, ['a'])
+            stamp.assert_not_called()
+            self.assertEqual(unchanged, node)
+            self.assertEqual(same_membership, node)
+            unchanged['attributes']['nested']['value'] = 'changed'
+            self.assertEqual(node['attributes']['nested']['value'], 'original')
+            changed = _final_node_value(node, None, ['c'])
+            stamp.assert_called_once()
+            self.assertEqual(changed['content_revision'], _content_revision(changed))
+            self.assertNotEqual(changed['content_revision'], node['content_revision'])
+        updated = _final_node_value(node, ({'subject': 'n'}, {'claim_ref': 'c'}), [])
+        self.assertEqual(updated['content_revision'], _content_revision(updated))
+        self.assertNotEqual(updated['content_revision'], node['content_revision'])
+
+    def test_stable_revision_wire_format_survives_repeated_and_unicode_values(self):
+        import hashlib
+        import struct
+        from tos_access.knowledge import _stable_digest
+
+        # Public revisions are shared with Worker cursors and inspector cards.
+        # This deliberately simple encoder specifies the existing byte protocol,
+        # independently of the production encoder's streaming or reuse strategy.
+        def wire(value):
+            if value is None:
+                return b'n;'
+            if isinstance(value, bool):
+                return b'b1;' if value else b'b0;'
+            if isinstance(value, (int, float)):
+                return b'd' + struct.pack('>d', float(value) or 0.0).hex().encode() + b';'
+            if isinstance(value, str):
+                payload = value.encode('utf-8')
+                return b's' + str(len(payload)).encode() + b':' + payload
+            if isinstance(value, list):
+                return b'a' + str(len(value)).encode() + b'[' + b''.join(map(wire, value)) + b']'
+            keys = sorted(value, key=str)
+            return b'o' + str(len(keys)).encode() + b'{' + b''.join(wire(str(k)) + wire(value[k]) for k in keys) + b'}'
+
+        scalars = [None, True, False, 0, -0.0, 1, 1.0, 2**53 + 1, -2.5, '',
+                   'Ницше', '𐀀', '\\"\n\x00', 'é', 'e\u0301', 'x' * 255, 'x' * 256, 'x' * 257]
+        cases = scalars + [scalars, {'nested': scalars, 'source_ref': 'ToS/public.json'}]
+        # More distinct small strings than a bounded encoder cache can retain.
+        cases.append([{'id': str(i), 'label': 'Ницше', 'enabled': True} for i in range(5000)])
+        for value in cases:
+            self.assertEqual(_stable_digest(value), hashlib.sha256(wire(value)).hexdigest())
+        self.assertEqual(_stable_digest({'b': 2, 'a': 1}), _stable_digest({'a': 1, 'b': 2}))
+        self.assertEqual(_stable_digest(0), _stable_digest(-0.0))
+        self.assertNotEqual(_stable_digest(True), _stable_digest(1))
+        for value in (float('nan'), float('inf'), -float('inf')):
+            with self.assertRaises(ValueError):
+                _stable_digest(value)
+        with self.assertRaises(TypeError):
+            _stable_digest({'unsupported': {1, 2}})
+
     def test_search_index_preserves_substring_filters_ranking_and_snapshot(self):
         from unittest.mock import patch
         from tos_access.knowledge import KnowledgeSearchIndex, search_knowledge_graph

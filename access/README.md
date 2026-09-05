@@ -312,6 +312,15 @@ to retain the timings and exact client/HTML hashes outside the checkout. This ch
 producer-consumer seam, not browser rendering, production or deployment. Neither
 command belongs in the fast test lane or modifies the UI checkout.
 
+Cold normalization preserves the existing public revision byte protocol. A
+bounded in-process cache reuses at most 4,096 short string tokens (up to 256
+characters); longer values are streamed without retention in that cache.
+Finalization still copies nodes for isolation, but reuses their existing
+content revision when neither claim metadata nor view membership changes.
+Catalog sampling stops after five examples per field while continuing to count
+every item, value type and source. These optimizations do not skip semantic
+validation or turn the build-time processing cache into a query dependency.
+
 
 ## Standalone archive
 
