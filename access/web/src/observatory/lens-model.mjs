@@ -1,4 +1,4 @@
-import {BUDGET,ContractError,RevisionError,checkRevision,validateLens} from './knowledge-client.mjs';
+import {BUDGET,ContractError,checkRevision,validateLens} from './knowledge-client.mjs';
 
 export const CUSTOM_LENS='observatory-custom';
 export const SAVED_LENSES_KEY='tos-observatory-lenses-v1';
@@ -86,11 +86,6 @@ export async function previewDraft(client,draft,context,signal){
   const packet=await client.compile(compileDraft(draft,context),signal,context.catalog.source_revision);
   summarizeLens(packet);drafts.set(packet,validateDraft(draft));return packet;
 }
-export async function confirmDraft(client,draft,context,preview,signal){
-  const packet=await previewDraft(client,draft,context,signal);
-  if(packet.fingerprint!==preview.fingerprint)throw new RevisionError();
-  return packet;
-}
 export function readSaved(storage){
   const text=storage.getItem(SAVED_LENSES_KEY);if(!text)return [];
   if(text.length>150000)bad('Сохранённые линзы превышают размер локального хранилища.');
@@ -100,4 +95,10 @@ export function saveDraft(storage,draft){
   const valid=decodeDraft(encodeDraft(draft)),entries=readSaved(storage),index=entries.findIndex(e=>e.name===valid.name);
   if(index<0){if(entries.length>=12)bad('Уже сохранено 12 линз. Дайте этой линзе имя одной из существующих, чтобы обновить её.');entries.push(valid);}else entries[index]=valid;
   storage.setItem(SAVED_LENSES_KEY,JSON.stringify(entries));return entries;
+}
+
+// Count identity changes even when two lenses return the same number of stars.
+export function lensDelta(before,after){
+  const diff=key=>{const a=new Set((before?.[key]||[]).map(n=>n.id)),b=new Set(after[key].map(n=>n.id));return {added:[...b].filter(id=>!a.has(id)).length,removed:[...a].filter(id=>!b.has(id)).length};};
+  return {nodes:diff('nodes'),relations:diff('relations')};
 }

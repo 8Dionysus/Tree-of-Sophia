@@ -38,3 +38,13 @@
 #sophia-gestures .sc-builder-open{margin-top:12px;border:1px solid #736344;border-radius:3px;background:#c9a96e0a;color:#e3c894;padding:12px;width:100%;font:12px system-ui,sans-serif}
 @container(max-width:1050px){#sophia-gestures .sc-builder{right:20px;width:44%;padding:14px 18px}}
 @container(max-width:650px){#sophia-gestures .sc-builder{top:auto;bottom:115px;left:15px;right:15px;width:auto;max-height:42dvh;padding:12px 17px}#sophia-gestures .sc-builder .sc-panel-top{position:absolute;right:10px;top:8px}#sophia-gestures .sc-builder .sc-panel-top>.sc-eyebrow{display:none}#sophia-gestures .sc-builder-heading{margin:0 25px 12px 0;gap:9px}#sophia-gestures .sc-builder-heading>span{font-size:26px}#sophia-gestures .sc-builder-heading h3{font-size:22px}#sophia-gestures .sc-builder-heading p{display:none}#sophia-gestures .sc-builder-result{margin-top:8px;padding-top:7px}#sophia-gestures .sc-builder-result strong{font-size:18px}#sophia-gestures .sc-builder-footer{gap:6px;margin-top:8px}#sophia-gestures .sc-builder-button,#sophia-gestures .sc-builder-primary{padding:7px 9px;font-size:10px}}
+#sophia-gestures .sc-builder-choice-controls{display:grid;grid-template-columns:minmax(0,1fr) 135px;gap:7px}
+#sophia-gestures .sc-builder .sc-builder-choice-controls select{font-size:10px;padding-left:6px;padding-right:3px}
+#sophia-gestures .sc-builder-choice-group{border-bottom:1px solid #28394d;padding:0 1px 6px;margin:0 0 7px}
+#sophia-gestures .sc-builder-choice-group>summary{font-size:11px;color:#c6b58f;padding:7px 0}
+#sophia-gestures .sc-builder-choice-group[data-group=technical]>summary{color:#92a2b8}
+#sophia-gestures .sc-builder-choice-group .sc-builder-choice{padding-left:4px}
+#sophia-gestures .sc-builder-choice-group .sc-builder-note{margin:2px 0 8px}
+#sophia-gestures .sc-builder-options{max-height:none;overflow:visible}
+#sophia-gestures .sc-builder-status{max-height:60px;overflow:auto}
+@container(max-width:650px){#sophia-gestures .sc-builder-choice-controls{grid-template-columns:minmax(0,1fr) 116px}#sophia-gestures .sc-builder-options{max-height:none;overflow:visible}}

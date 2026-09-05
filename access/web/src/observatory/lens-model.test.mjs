@@ -1,8 +1,8 @@
 import {test} from 'vitest';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
-import {BUDGET,ContractError,RevisionError} from './knowledge-client.mjs';
-import {constructorCatalog,initialDraft,compileDraft,encodeDraft,decodeDraft,summarizeLens,previewDraft,confirmDraft,draftForPacket,readSaved,saveDraft,SAVED_LENSES_KEY} from './lens-model.mjs';
+import {BUDGET,ContractError} from './knowledge-client.mjs';
+import {constructorCatalog,initialDraft,compileDraft,encodeDraft,decodeDraft,summarizeLens,previewDraft,draftForPacket,readSaved,saveDraft,SAVED_LENSES_KEY} from './lens-model.mjs';
 
 const schema=JSON.parse(readFileSync(new URL('../../../contracts/lens-spec.v1.schema.json',import.meta.url),'utf8'));
 const boundary={is_source:false,is_canon:false,writes_to_tree:false};
@@ -58,13 +58,13 @@ test('preview reports selector scope, added context and limits without claiming 
   p.inclusion.nodes[raw.id].kind='endpoint';assert.equal(summarizeLens(p).context,1);
   p.counts.nodes=2;assert.throws(()=>summarizeLens(p),ContractError);
 });
-test('apply recompiles the same definition and rejects content drift even at the same source revision',async()=>{
-  const calls=[];let current=packet();const client={compile:async(spec,signal,revision)=>{calls.push({spec,signal,revision});return current;}};
+test('live compile binds the current snapshot and retains the exact owned definition for links',async()=>{
+  const calls=[],current=packet();const client={compile:async(spec,signal,revision)=>{calls.push({spec,signal,revision});return current;}};
   const value=draft(),preview=await previewDraft(client,value,context);
   assert.deepEqual(draftForPacket(preview),value);assert.equal(calls[0].revision,catalog.source_revision);
-  await confirmDraft(client,value,context,preview);assert.deepEqual(calls[0].spec,calls[1].spec);
-  current={...packet(),fingerprint:'d'.repeat(64)};
-  await assert.rejects(()=>confirmDraft(client,value,context,preview),RevisionError);
+  assert.deepEqual(calls[0].spec,compileDraft(value,context));
+  value.name='Later edit';assert.notEqual(draftForPacket(preview).name,value.name);
+  assert.deepEqual(decodeDraft(encodeDraft(draftForPacket(preview))),draft());
 });
 test('local definitions update by name without touching another storage key or corrupt data',()=>{
   const data=new Map(),storage={getItem:key=>data.get(key)||null,setItem:(key,value)=>data.set(key,value)};

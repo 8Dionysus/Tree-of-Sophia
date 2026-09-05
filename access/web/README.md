@@ -83,16 +83,24 @@ CSP is required.
   not masquerade as conditions on traversal context; the preview distinguishes
   selected roots, returned context and truncation.
 - `lens-model.mjs` compiles these controls through the existing lens API, bounded
-  to 40 nodes, 80 relations and depth 3. Preview leaves the scene intact; apply
-  recompiles and checks the fingerprint before replacing it, retaining camera
-  pose and established star positions. Closing, changing conditions or changing
-  the area invalidates pending work. Empty results and failures keep the graph.
+  to 40 nodes, 80 relations and depth 3. Changes compile after a 400ms pause
+  and update the scene directly, retaining camera pose and established star
+  positions. The status shows applied counts or explains an unchanged result.
+  Closing, changing conditions or changing the area invalidates pending work. Empty results and failures keep the graph.
   The original-view action restores its scene and camera bookmark.
   Up to 12 definitions are saved under a separate browser-local storage key,
   updated by name. URL links carry validated conditions and exact original-area
   IDs, not data snapshots or authority; reopening recompiles current data.
   Arbitrary backend LensSpecs, server persistence and paginated custom-lens
   expansion are outside this first constructor slice.
+- `lens-vocabulary.mjs` groups choices by advertised registry roles and relation
+  definitions, filters them by exact source mappings, and sorts readable labels
+  or catalog-wide frequency. Groups start collapsed and share one panel scroll;
+  search or existing selections open their groups. Selected
+  filters outside the current sources remain visible and removable; unknown
+  mappings remain discoverable. This is presentation, not a new semantic registry.
+  Search spans all groups; longer groups reveal further choices without losing
+  selection. Changing the vocabulary list never silently changes the query.
 - `webmcp.ts` can restrict registration to commands implemented by the active
   shell. IDs, source references and deep links are returned intact. Legacy
   saved path comparison remains on compatibility routes. Path start/find,
@@ -202,3 +210,12 @@ sources, active predicates and full deep link. Saved links recompile current
 data; they are not frozen research snapshots. CI, production deployment,
 large-corpus performance profiling and physical gesture acceptance were not
 performed in this slice.
+
+## Lens interaction correction (2026-09-05)
+
+Operator feedback rejected the original two-step count-preview/apply flow as
+unresponsive. Conditions now update the actual graph after a short pause, with
+explicit same-composition and empty-result messages. Technical and substantive
+choices are grouped using the backend registry. The prior slice's two-step
+interaction is superseded; its camera, budget and source-ownership boundaries
+remain. Validation for this correction is recorded in the task's commit review.
