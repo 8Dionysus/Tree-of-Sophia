@@ -1,8 +1,10 @@
 import importlib.util
 import json
+import sqlite3
 from pathlib import Path
 from tempfile import TemporaryDirectory
 import unittest
+from unittest import mock
 
 
 SCRIPT_PATH = Path(__file__).resolve().parents[1] / "scripts" / "validate_active_naming.py"
@@ -248,6 +250,215 @@ class ValidateActiveNamingTests(unittest.TestCase):
 
         self.assertTrue(any(old_experience_version("7") in issue for issue in issues))
         self.assertFalse(any("legacy" in issue for issue in issues))
+
+    def test_feedback_cache_reuses_content_but_keeps_paths_and_edits_live(self) -> None:
+        with TemporaryDirectory(prefix="tos-active-naming-cache-") as raw_root:
+            root = Path(raw_root)
+            clean = root / "clean.txt"
+            bad = root / "bad.txt"
+            clean.write_text("plain-text", encoding="utf-8")
+            retired_content = retired_s_token() + "-route"
+            bad.write_text(retired_content, encoding="utf-8")
+            retired_dir = root / "mechanics" / "experience" / old_experience_version("7")
+            retired_dir.mkdir(parents=True)
+            cache_path = root.parent / f"{root.name}-cache.sqlite"
+
+            original_root = validate_active_naming.REPO_ROOT
+            original_check = validate_active_naming.retired_content_issue
+            validate_active_naming.REPO_ROOT = root
+            try:
+                with mock.patch.object(
+                    validate_active_naming,
+                    "retired_content_issue",
+                    wraps=original_check,
+                ) as check:
+                    first = validate_active_naming.validate(feedback_cache=cache_path)
+                self.assertEqual(check.call_count, 2)
+
+                with mock.patch.object(
+                    validate_active_naming,
+                    "retired_content_issue",
+                    wraps=original_check,
+                ) as check:
+                    second = validate_active_naming.validate(feedback_cache=cache_path)
+                self.assertEqual(first, second)
+                self.assertEqual(check.call_count, 0)
+                self.assertTrue(any(old_experience_version("7") in issue for issue in second))
+
+                bad.write_text("fixed-text", encoding="utf-8")
+                with mock.patch.object(
+                    validate_active_naming,
+                    "retired_content_issue",
+                    wraps=original_check,
+                ) as check:
+                    repaired = validate_active_naming.validate(feedback_cache=cache_path)
+                self.assertEqual(check.call_count, 1)
+                self.assertFalse(any("bad.txt" in issue for issue in repaired))
+
+                renamed_name = retired_s_token() + "-route.txt"
+                renamed = root / renamed_name
+                bad.rename(renamed)
+                renamed_result = validate_active_naming.validate(feedback_cache=cache_path)
+                self.assertTrue(any(renamed_name in issue for issue in renamed_result))
+            finally:
+                validate_active_naming.REPO_ROOT = original_root
+                cache_path.unlink(missing_ok=True)
+
+    def test_feedback_cache_recomputes_corrupt_rows_and_rejects_repository_paths(self) -> None:
+        with TemporaryDirectory(prefix="tos-active-naming-cache-corrupt-") as raw_root:
+            root = Path(raw_root)
+            bad = root / "bad.txt"
+            retired_content = retired_s_token() + "-route"
+            bad.write_text(retired_content, encoding="utf-8")
+            cache_path = root.parent / f"{root.name}-corrupt.sqlite"
+
+            original_root = validate_active_naming.REPO_ROOT
+            original_check = validate_active_naming.retired_content_issue
+            validate_active_naming.REPO_ROOT = root
+            try:
+                self.assertTrue(validate_active_naming.validate(feedback_cache=cache_path))
+                cache = validate_active_naming.FeedbackContentCache(cache_path)
+                policy = cache.policy
+                digest = cache.content_digest(retired_content)
+                cache.close()
+                with sqlite3.connect(cache_path) as connection:
+                    connection.execute(
+                        "UPDATE content_results SET result_json=? WHERE policy=? AND content_digest=?",
+                        ("not-json", policy, digest),
+                    )
+
+                with mock.patch.object(
+                    validate_active_naming,
+                    "retired_content_issue",
+                    wraps=original_check,
+                ) as check:
+                    issues = validate_active_naming.validate(feedback_cache=cache_path)
+                self.assertEqual(check.call_count, 1)
+                self.assertTrue(any("bad.txt" in issue for issue in issues))
+                with self.assertRaises(ValueError):
+                    validate_active_naming.validate(feedback_cache=root / "inside.sqlite")
+
+                cache_path.unlink()
+                self.assertTrue(validate_active_naming.validate(feedback_cache=cache_path))
+                cache = validate_active_naming.FeedbackContentCache(cache_path)
+                policy = cache.policy
+                digest = cache.content_digest(retired_content)
+                cache.close()
+                with sqlite3.connect(cache_path) as connection:
+                    connection.execute(
+                        "UPDATE content_results SET result_json=? WHERE policy=? AND content_digest=?",
+                        (sqlite3.Binary(b"\xff"), policy, digest),
+                    )
+
+                with mock.patch.object(
+                    validate_active_naming,
+                    "retired_content_issue",
+                    wraps=original_check,
+                ) as check:
+                    issues = validate_active_naming.validate(feedback_cache=cache_path)
+                self.assertEqual(check.call_count, 1)
+                self.assertTrue(any("bad.txt" in issue for issue in issues))
+
+                cache_path.write_bytes(b"not a sqlite database")
+                with mock.patch.object(
+                    validate_active_naming,
+                    "retired_content_issue",
+                    wraps=original_check,
+                ) as check:
+                    issues = validate_active_naming.validate(feedback_cache=cache_path)
+                self.assertEqual(check.call_count, 1)
+                self.assertTrue(any("bad.txt" in issue for issue in issues))
+            finally:
+                validate_active_naming.REPO_ROOT = original_root
+                cache_path.unlink(missing_ok=True)
+
+    def test_feedback_cache_policy_binds_validator_source_and_python(self) -> None:
+        with TemporaryDirectory(prefix="tos-active-naming-cache-policy-") as raw_root:
+            cache_path = Path(raw_root) / "policy.sqlite"
+            first = validate_active_naming.FeedbackContentCache(cache_path)
+            first_policy = first.policy
+            first.close()
+            with mock.patch.object(Path, "read_bytes", return_value=b"different-validator"):
+                second = validate_active_naming.FeedbackContentCache(cache_path)
+                second_policy = second.policy
+                second.close()
+            self.assertNotEqual(first_policy, second_policy)
+
+    def test_feedback_cache_lock_falls_back_without_waiting(self) -> None:
+        with TemporaryDirectory(prefix="tos-active-naming-cache-lock-") as raw_root:
+            root = Path(raw_root)
+            bad = root / "bad.txt"
+            retired_content = retired_s_token() + "-route"
+            bad.write_text(retired_content, encoding="utf-8")
+            cache_path = root.parent / f"{root.name}-lock.sqlite"
+
+            validate_active_naming.FeedbackContentCache(cache_path).close()
+            holder = sqlite3.connect(cache_path, timeout=0.0)
+            holder.execute("BEGIN EXCLUSIVE")
+            original_root = validate_active_naming.REPO_ROOT
+            original_check = validate_active_naming.retired_content_issue
+            validate_active_naming.REPO_ROOT = root
+            try:
+                with mock.patch.object(
+                    validate_active_naming.sqlite3,
+                    "connect",
+                    wraps=sqlite3.connect,
+                ) as connect:
+                    with mock.patch.object(
+                        validate_active_naming,
+                        "retired_content_issue",
+                        wraps=original_check,
+                    ) as check:
+                        issues = validate_active_naming.validate(feedback_cache=cache_path)
+                self.assertEqual(connect.call_args.kwargs["timeout"], 0.0)
+                self.assertEqual(check.call_count, 1)
+                self.assertTrue(any("bad.txt" in issue for issue in issues))
+            finally:
+                validate_active_naming.REPO_ROOT = original_root
+                holder.rollback()
+                holder.close()
+                cache_path.unlink(missing_ok=True)
+
+    def test_feedback_cache_closes_connection_when_setup_fails(self) -> None:
+        class TrackingConnection:
+            def __init__(self, *, fail_execute: bool = False) -> None:
+                self.fail_execute = fail_execute
+                self.closed = False
+
+            def execute(self, *args: object) -> "TrackingConnection":
+                if self.fail_execute:
+                    raise sqlite3.OperationalError("schema setup failed")
+                return self
+
+            def commit(self) -> None:
+                return None
+
+            def close(self) -> None:
+                self.closed = True
+
+        schema_connection = TrackingConnection(fail_execute=True)
+        with mock.patch.object(
+            validate_active_naming.sqlite3,
+            "connect",
+            return_value=schema_connection,
+        ):
+            with self.assertRaises(sqlite3.OperationalError):
+                validate_active_naming.FeedbackContentCache(Path("unused-schema.sqlite"))
+        self.assertTrue(schema_connection.closed)
+
+        policy_connection = TrackingConnection()
+        with mock.patch.object(
+            validate_active_naming.sqlite3,
+            "connect",
+            return_value=policy_connection,
+        ), mock.patch.object(
+            Path,
+            "read_bytes",
+            side_effect=OSError("policy source unavailable"),
+        ):
+            with self.assertRaises(OSError):
+                validate_active_naming.FeedbackContentCache(Path("unused-policy.sqlite"))
+        self.assertTrue(policy_connection.closed)
 
     def test_mechanics_topology_checks_active_targets_not_historical_keys(self) -> None:
         retired_path = "ToS/doctrine/NO_DIRECT_" + "CONSTITUTION" + "_" + "RUNTIME" + "_WRITE.md"

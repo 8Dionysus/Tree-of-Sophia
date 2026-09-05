@@ -1,9 +1,12 @@
 #!/usr/bin/env python3
 from __future__ import annotations
 
+import argparse
+import hashlib
 import json
 import os
 import re
+import sqlite3
 import sys
 from pathlib import Path
 
@@ -137,6 +140,107 @@ RETIRED_NORMALIZED_LABELS = (
     "constitution" + "-" + "runtime",
 )
 NORMALIZED_SEPARATOR_PATTERN = re.compile(r"[_\s]+")
+_FEEDBACK_CACHE_MISS = object()
+
+
+class FeedbackContentCache:
+    """Best-effort local cache for the pure content-result check.
+
+    This cache is intentionally not part of the validator's source of truth.
+    The caller opts in with an external path for repeated local feedback; the
+    release lane never supplies one. Cache rows are only trusted as local
+    performance hints, while malformed storage falls back to recomputation.
+    """
+
+    def __init__(self, path: Path) -> None:
+        self.path = path
+        connection: sqlite3.Connection | None = None
+        try:
+            # Feedback is optional; lock contention should immediately fall
+            # back to the uncached validator instead of delaying a local run.
+            connection = sqlite3.connect(path, timeout=0.0)
+            connection.execute(
+                """
+                CREATE TABLE IF NOT EXISTS content_results (
+                    policy TEXT NOT NULL,
+                    content_digest TEXT NOT NULL,
+                    result_json TEXT NOT NULL,
+                    PRIMARY KEY (policy, content_digest)
+                )
+                """
+            )
+            connection.commit()
+            source_bytes = Path(__file__).resolve().read_bytes()
+            policy = hashlib.sha256(
+                source_bytes + sys.version.encode("utf-8")
+            ).hexdigest()
+            # A validator-source or Python-version change makes every prior
+            # row stale. Keep only the active policy so an edit-heavy local
+            # cache does not grow one full content corpus per source revision.
+            connection.execute(
+                "DELETE FROM content_results WHERE policy != ?",
+                (policy,),
+            )
+            connection.commit()
+        except BaseException:
+            if connection is not None:
+                try:
+                    connection.close()
+                except Exception:
+                    pass
+            raise
+        self.connection = connection
+        self.policy = policy
+        self.hits = 0
+        self.misses = 0
+
+    @staticmethod
+    def content_digest(text: str) -> str:
+        return hashlib.sha256(text.encode("utf-8")).hexdigest()
+
+    def lookup(self, text: str) -> object:
+        digest = self.content_digest(text)
+        row = self.connection.execute(
+            "SELECT result_json FROM content_results WHERE policy=? AND content_digest=?",
+            (self.policy, digest),
+        ).fetchone()
+        if row is None:
+            self.misses += 1
+            return _FEEDBACK_CACHE_MISS
+        try:
+            result = json.loads(row[0])
+        except (TypeError, UnicodeDecodeError, json.JSONDecodeError):
+            self.connection.execute(
+                "DELETE FROM content_results WHERE policy=? AND content_digest=?",
+                (self.policy, digest),
+            )
+            self.misses += 1
+            return _FEEDBACK_CACHE_MISS
+        if result is not None and not isinstance(result, str):
+            self.connection.execute(
+                "DELETE FROM content_results WHERE policy=? AND content_digest=?",
+                (self.policy, digest),
+            )
+            self.misses += 1
+            return _FEEDBACK_CACHE_MISS
+        self.hits += 1
+        return result
+
+    def store(self, text: str, result: str | None) -> None:
+        self.connection.execute(
+            "INSERT OR REPLACE INTO content_results(policy, content_digest, result_json) VALUES (?, ?, ?)",
+            (
+                self.policy,
+                self.content_digest(text),
+                json.dumps(result, ensure_ascii=False),
+            ),
+        )
+
+    def close(self) -> None:
+        try:
+            self.connection.commit()
+        finally:
+            self.connection.close()
 
 
 def relative(path: Path) -> str:
@@ -280,62 +384,158 @@ def active_content_text(rel: str, text: str) -> str:
     return text
 
 
-def validate() -> list[str]:
+def _path_is_within(path: Path, root: Path) -> bool:
+    try:
+        path.relative_to(root)
+    except ValueError:
+        return False
+    return True
+
+
+def feedback_cache_path(path: Path) -> Path:
+    """Resolve and reject a feedback cache path inside the repository."""
+    repository_root = REPO_ROOT.resolve()
+    requested = path.expanduser()
+    absolute = requested.absolute()
+    resolved = requested.resolve()
+    if _path_is_within(absolute, repository_root) or _path_is_within(
+        resolved, repository_root
+    ):
+        raise ValueError("feedback cache must be outside the repository")
+    return resolved
+
+
+def validate(*, feedback_cache: Path | None = None) -> list[str]:
     issues: list[str] = []
+    cache: FeedbackContentCache | None = None
+    cache_stats: tuple[Path, int, int] | None = None
+    cache_warning_reported = False
+    if feedback_cache is not None:
+        cache_path = feedback_cache_path(feedback_cache)
+        try:
+            cache_path.parent.mkdir(parents=True, exist_ok=True)
+            cache = FeedbackContentCache(cache_path)
+        except (OSError, sqlite3.Error) as exc:
+            print(
+                f"[feedback-cache] unavailable; recomputing uncached: {exc}",
+                file=sys.stderr,
+            )
+
+    def check_content(text: str) -> str | None:
+        nonlocal cache, cache_stats, cache_warning_reported
+        if cache is None:
+            return retired_content_issue(text)
+        try:
+            cached = cache.lookup(text)
+            if cached is not _FEEDBACK_CACHE_MISS:
+                return cached  # type: ignore[return-value]
+            result = retired_content_issue(text)
+            cache.store(text, result)
+            return result
+        except (OSError, sqlite3.Error) as exc:
+            if not cache_warning_reported:
+                print(
+                    f"[feedback-cache] read/write failure; recomputing uncached: {exc}",
+                    file=sys.stderr,
+                )
+                cache_warning_reported = True
+            cache_stats = (cache.path, cache.hits, cache.misses)
+            try:
+                cache.close()
+            except (OSError, sqlite3.Error):
+                pass
+            cache = None
+            return retired_content_issue(text)
+
     # Walk top-down so excluded trees are pruned before their entries are
     # materialized. Path.rglob() enumerated those trees first and only then
     # discarded them in is_excluded(), which was needlessly expensive for a
     # repository with generated/read-model directories.
-    for dirpath, dirnames, filenames in os.walk(REPO_ROOT, topdown=True, followlinks=False):
-        rel_root = Path(dirpath).relative_to(REPO_ROOT)
-        active_dirnames: list[str] = []
-        for dirname in sorted(dirnames):
-            rel_path = rel_root / dirname
-            if _is_excluded_relative(rel_path):
-                continue
-            rel = rel_path.as_posix()
-            path_issue = retired_path_issue(rel)
-            if path_issue:
-                issues.append(f"{rel}: retired active name in path: {path_issue}")
-            if rel.startswith(EXPERIENCE_ROUTE_PREFIX):
-                path_issue = retired_experience_pass_issue(rel)
+    try:
+        for dirpath, dirnames, filenames in os.walk(REPO_ROOT, topdown=True, followlinks=False):
+            rel_root = Path(dirpath).relative_to(REPO_ROOT)
+            active_dirnames: list[str] = []
+            for dirname in sorted(dirnames):
+                rel_path = rel_root / dirname
+                if _is_excluded_relative(rel_path):
+                    continue
+                rel = rel_path.as_posix()
+                path_issue = retired_path_issue(rel)
                 if path_issue:
-                    issues.append(f"{rel}: retired experience pass marker in path: {path_issue}")
-            active_dirnames.append(dirname)
-        dirnames[:] = active_dirnames
+                    issues.append(f"{rel}: retired active name in path: {path_issue}")
+                if rel.startswith(EXPERIENCE_ROUTE_PREFIX):
+                    path_issue = retired_experience_pass_issue(rel)
+                    if path_issue:
+                        issues.append(f"{rel}: retired experience pass marker in path: {path_issue}")
+                active_dirnames.append(dirname)
+            dirnames[:] = active_dirnames
 
-        for filename in sorted(filenames):
-            rel_path = rel_root / filename
-            if _is_excluded_relative(rel_path):
-                continue
-            rel = rel_path.as_posix()
-            path = Path(dirpath) / filename
-            path_issue = retired_path_issue(rel)
-            if path_issue:
-                issues.append(f"{rel}: retired active name in path: {path_issue}")
-            if rel.startswith(EXPERIENCE_ROUTE_PREFIX):
-                path_issue = retired_experience_pass_issue(rel)
+            for filename in sorted(filenames):
+                rel_path = rel_root / filename
+                if _is_excluded_relative(rel_path):
+                    continue
+                rel = rel_path.as_posix()
+                path = Path(dirpath) / filename
+                path_issue = retired_path_issue(rel)
                 if path_issue:
-                    issues.append(f"{rel}: retired experience pass marker in path: {path_issue}")
-            if not path.is_file() or path.suffix not in TEXT_SUFFIXES:
-                continue
-            try:
-                text = path.read_text(encoding="utf-8")
-            except UnicodeDecodeError:
-                continue
-            text = active_content_text(rel, text)
-            content_issue = retired_content_issue(text)
-            if content_issue:
-                issues.append(f"{rel}: retired active path/id reference in content: {content_issue}")
-            if rel.startswith(EXPERIENCE_ROUTE_PREFIX):
-                content_issue = retired_experience_pass_issue(text)
+                    issues.append(f"{rel}: retired active name in path: {path_issue}")
+                if rel.startswith(EXPERIENCE_ROUTE_PREFIX):
+                    path_issue = retired_experience_pass_issue(rel)
+                    if path_issue:
+                        issues.append(f"{rel}: retired experience pass marker in path: {path_issue}")
+                if not path.is_file() or path.suffix not in TEXT_SUFFIXES:
+                    continue
+                try:
+                    text = path.read_text(encoding="utf-8")
+                except UnicodeDecodeError:
+                    continue
+                text = active_content_text(rel, text)
+                content_issue = check_content(text)
                 if content_issue:
-                    issues.append(f"{rel}: retired experience pass marker in content: {content_issue}")
+                    issues.append(f"{rel}: retired active path/id reference in content: {content_issue}")
+                if rel.startswith(EXPERIENCE_ROUTE_PREFIX):
+                    content_issue = retired_experience_pass_issue(text)
+                    if content_issue:
+                        issues.append(f"{rel}: retired experience pass marker in content: {content_issue}")
+    finally:
+        if cache is not None:
+            cache_stats = (cache.path, cache.hits, cache.misses)
+            try:
+                cache.close()
+            except (OSError, sqlite3.Error) as exc:
+                if not cache_warning_reported:
+                    print(
+                        f"[feedback-cache] close failure; validation result may include cache hits and cache writes may be incomplete: {exc}",
+                        file=sys.stderr,
+                    )
+        if cache_stats is not None:
+            path, hits, misses = cache_stats
+            print(
+                f"[feedback-cache] local-only path={path} hits={hits} misses={misses}",
+                file=sys.stderr,
+            )
     return issues
 
 
-def main() -> int:
-    issues = validate()
+def main(argv: list[str] | None = None) -> int:
+    parser = argparse.ArgumentParser(
+        description="Validate active naming paths and content."
+    )
+    parser.add_argument(
+        "--feedback-cache",
+        type=Path,
+        metavar="PATH",
+        help=(
+            "opt-in local SQLite cache for pure content checks; PATH must be "
+            "outside the repository and is never used by release/CI lanes"
+        ),
+    )
+    args = parser.parse_args(argv)
+    try:
+        issues = validate(feedback_cache=args.feedback_cache)
+    except ValueError as exc:
+        print(f"Active naming validation configuration failed: {exc}", file=sys.stderr)
+        return 2
     if issues:
         print("Active naming validation failed.", file=sys.stderr)
         for issue in issues:
