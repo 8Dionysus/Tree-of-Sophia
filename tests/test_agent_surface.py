@@ -1,19 +1,34 @@
 from __future__ import annotations
 
+import json
 import os
+import subprocess
 import sys
 import tempfile
 import unittest
-import json
 from pathlib import Path
+from typing import Any, NamedTuple
 from unittest import mock
-
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "scripts"))
 
 import build_agent_surface_currentness as builder  # noqa: E402
 import validate_agent_surface as validator  # noqa: E402
+
+
+class _MeasurementResult(NamedTuple):
+    value: Any = None
+    error: tuple[type[Exception], str] | None = None
+
+
+class _ReceiptMeasurementFixture(NamedTuple):
+    digest: str
+    base_ref: str
+    manifest_text: str
+    candidate_seal: _MeasurementResult
+    source_epoch: _MeasurementResult
+    generated_measurements: _MeasurementResult
 
 
 class AgentSurfaceTests(unittest.TestCase):
@@ -29,6 +44,101 @@ class AgentSurfaceTests(unittest.TestCase):
         "tracked_size",
         "generated_delta_and_tracked_size",
     )
+
+    @classmethod
+    def setUpClass(cls) -> None:
+        super().setUpClass()
+        cls._receipt_fixture: _ReceiptMeasurementFixture | None = None
+        cls._real_candidate_seal = validator._v2_candidate_seal
+        cls._real_source_epoch = validator._v2_source_epoch
+        cls._real_generated_measurements = validator._v2_changed_generated_measurements
+
+    @staticmethod
+    def _capture_measurement(operation: Any, *args: Any) -> _MeasurementResult:
+        try:
+            return _MeasurementResult(value=operation(*args))
+        except (OSError, ValueError) as exc:
+            return _MeasurementResult(error=(type(exc), str(exc)))
+
+    @classmethod
+    def _receipt_measurement_fixture(cls) -> _ReceiptMeasurementFixture:
+        if cls._receipt_fixture is not None:
+            return cls._receipt_fixture
+        family_manifest, receipt, digest, _ = cls._current_receipt_case()
+        base_ref = receipt["base_ref"]
+        manifest_text = json.dumps(
+            family_manifest,
+            ensure_ascii=False,
+            sort_keys=True,
+            separators=(",", ":"),
+        )
+        cls._receipt_fixture = _ReceiptMeasurementFixture(
+            digest=digest,
+            base_ref=base_ref,
+            manifest_text=manifest_text,
+            candidate_seal=cls._capture_measurement(
+                cls._real_candidate_seal, ROOT, digest
+            ),
+            source_epoch=cls._capture_measurement(cls._real_source_epoch, ROOT),
+            generated_measurements=cls._capture_measurement(
+                cls._real_generated_measurements,
+                ROOT,
+                family_manifest,
+                base_ref,
+            ),
+        )
+        return cls._receipt_fixture
+
+    @staticmethod
+    def _replay_measurement(result: _MeasurementResult) -> Any:
+        if result.error is not None:
+            error_type, message = result.error
+            raise error_type(message)
+        return result.value
+
+    def setUp(self) -> None:
+        super().setUp()
+        if not self._testMethodName.startswith(("test_current_receipt_", "test_historical_v4_receipt_")):
+            return
+        fixture = type(self)._receipt_measurement_fixture()
+
+        def candidate_seal(root: Path, digest: str) -> tuple[str, int]:
+            if root == ROOT and digest == fixture.digest:
+                return type(self)._replay_measurement(fixture.candidate_seal)
+            return type(self)._real_candidate_seal(root, digest)
+
+        def source_epoch(root: Path) -> str:
+            if root == ROOT:
+                return type(self)._replay_measurement(fixture.source_epoch)
+            return type(self)._real_source_epoch(root)
+
+        def generated_measurements(
+            root: Path,
+            manifest: dict[str, Any],
+            base_ref: str,
+        ) -> tuple[int, int]:
+            manifest_text = json.dumps(
+                manifest,
+                ensure_ascii=False,
+                sort_keys=True,
+                separators=(",", ":"),
+            )
+            if (
+                root == ROOT
+                and base_ref == fixture.base_ref
+                and manifest_text == fixture.manifest_text
+            ):
+                return type(self)._replay_measurement(fixture.generated_measurements)
+            return type(self)._real_generated_measurements(root, manifest, base_ref)
+
+        for target, replacement in (
+            ("_v2_candidate_seal", candidate_seal),
+            ("_v2_source_epoch", source_epoch),
+            ("_v2_changed_generated_measurements", generated_measurements),
+        ):
+            patch = mock.patch.object(validator, target, side_effect=replacement)
+            patch.start()
+            self.addCleanup(patch.stop)
 
     @staticmethod
     def _budget_case(
@@ -1544,6 +1654,104 @@ class AgentSurfaceTests(unittest.TestCase):
             ),
             issues,
         )
+
+    def test_identity_measurements_recheck_changed_checkout(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            subprocess.run(("git", "-c", "init.defaultBranch=main", "init", "-q"), cwd=root, check=True)
+            manifest_path = root / "kag/indexes/index_family.manifest.json"
+            generated_path = root / "kag/indexes/generated.json"
+            source_path = root / "src/source.py"
+            manifest_path.parent.mkdir(parents=True)
+            generated_path.write_text("before", encoding="utf-8")
+            source_path.parent.mkdir(parents=True)
+            source_path.write_text("before", encoding="utf-8")
+            manifest = {
+                "schema_version": "aoa-repo-local-kag-family-manifest-v3",
+                "shards": [{"path": "kag/indexes/generated.json"}],
+            }
+            manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
+            subprocess.run(("git", "add", "."), cwd=root, check=True)
+            subprocess.run(
+                (
+                    "git",
+                    "-c",
+                    "user.name=validation-test",
+                    "-c",
+                    "user.email=validation-test@example.invalid",
+                    "commit",
+                    "-qm",
+                    "initial",
+                ),
+                cwd=root,
+                check=True,
+            )
+            base_ref = subprocess.run(
+                ("git", "rev-parse", "HEAD"),
+                cwd=root,
+                check=True,
+                capture_output=True,
+                text=True,
+            ).stdout.strip()
+            digest = "d" * 64
+            before = (
+                validator._v2_candidate_seal(root, digest),
+                validator._v2_source_epoch(root),
+                validator._v2_changed_generated_measurements(root, manifest, base_ref),
+            )
+
+            generated_path.write_text("after", encoding="utf-8")
+            source_path.write_text("after", encoding="utf-8")
+            subprocess.run(("git", "add", "."), cwd=root, check=True)
+            subprocess.run(
+                (
+                    "git",
+                    "-c",
+                    "user.name=validation-test",
+                    "-c",
+                    "user.email=validation-test@example.invalid",
+                    "commit",
+                    "-qm",
+                    "changed",
+                ),
+                cwd=root,
+                check=True,
+            )
+            after = (
+                validator._v2_candidate_seal(root, digest),
+                validator._v2_source_epoch(root),
+                validator._v2_changed_generated_measurements(root, manifest, base_ref),
+            )
+
+            self.assertNotEqual(before[0], after[0])
+            self.assertNotEqual(before[1], after[1])
+            self.assertNotEqual(before[2], after[2])
+
+    def test_public_validation_rechecks_generated_input_between_calls(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            identity_root = Path(temporary)
+            subprocess.run(
+                ("git", "-c", "init.defaultBranch=main", "init", "-q"),
+                cwd=identity_root,
+                check=True,
+            )
+            marker = identity_root / "kag/indexes/generated.json"
+            marker.parent.mkdir(parents=True)
+            marker.write_text("before", encoding="utf-8")
+            identity_digest = "e" * 64
+            expected = validator._v2_candidate_seal(identity_root, identity_digest)
+
+            def generated_family_check(*_args: object, **_kwargs: object) -> list[validator.Issue]:
+                actual = validator._v2_candidate_seal(identity_root, identity_digest)
+                return [] if actual == expected else [("kag/indexes/generated.json", "candidate changed")]
+
+            with mock.patch.object(validator, "generated_family_issues", side_effect=generated_family_check):
+                self.assertEqual([], validator.validate_manifest(ROOT))
+                marker.write_text("after", encoding="utf-8")
+                self.assertEqual(
+                    [("kag/indexes/generated.json", "candidate changed")],
+                    validator.validate_manifest(ROOT),
+                )
 
     def test_current_receipt_requires_procedure_manifest_contents(self) -> None:
         family_manifest, receipt, digest, receipt_path = self._current_receipt_case()
