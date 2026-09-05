@@ -9,8 +9,8 @@
     "contract_version": "aoa-kag:budget-receipt-candidate-identity-v2",
     "excluded_path": "kag/receipts/index_family_budget/a081e0924969413ab9bffefe6cc2a6fac91a2af1830c7f77cfc50674bede2db0.json",
     "family_digest": "a081e0924969413ab9bffefe6cc2a6fac91a2af1830c7f77cfc50674bede2db0",
-    "file_count": 5122,
-    "seal": "d46a1839ab787ec827b0f3ae2f60f24ca092f79a235378aa67284b9f0a8c1fa1",
+    "file_count": 5120,
+    "seal": "ecdb3d5496047340887a6eb252aa35456d6532f2671a583f96457c777625ff48",
     "source_epoch": "sha256:7d2b9e3d476c255f69c30512b3e58300cf35bc433deecf564d39733a4f10bf3d",
     "source_snapshot": "sha256:d1022e54b38c7ee079bd1c0535e60f2ffb34e321bbc160e7ffd761009da10321"
   },
@@ -600,9 +600,9 @@
         "state": "present"
       },
       {
-        "bytes": 7765,
-        "content_digest": "320608860cc49fa224a913b37b0024b25fa0a72666a833c4f780a0412219e243",
-        "git_blob": "sha1:745f202addd6df3bb89e212a5b194ae7d7f70fc6",
+        "bytes": 8135,
+        "content_digest": "f37f0980fc0985d0dc5ea175d90c64164d0b94e08f85a139955e89d2c2d7da40",
+        "git_blob": "sha1:2380703d832c0fc9a08172250fe142be34a1bcc3",
         "path": "scripts/validate_nested_agents.py",
         "state": "present"
       },
@@ -1160,7 +1160,7 @@
         "state": "present"
       }
     ],
-    "identity_digest": "33949617e358f1caeb15a3ed6b5bbc91f294e7bda9b60b9255e316aa6a19b6f1",
+    "identity_digest": "4197827cbb9bf4874a96698c2d11d2588d362821a9341792ae550ce3b7b8fc32",
     "owner": "aoa-kag",
     "procedure_manifest": {
       "action_inputs": [
@@ -1360,9 +1360,9 @@
       "schema_path": "schemas/repo-local-kag-budget-producer-manifest.schema.json"
     },
     "revision_binding": "content-addressed-procedure-import-closure-portable-runtime-contract-and-descriptor-io-v1",
-    "source_digest": "df3b43c667409671f5b5fc71b847a54b0f5aed3b4d9cafb2ca7046896f5c2c37"
+    "source_digest": "4882f50ab3a09b04b02715510f2e5dbec13fa60a5032f98e9e043dc9e79f812e"
   },
-  "reason": "TOS-D-0043 and TOS-D-0044 operator-approved historical-tree retirement and permanent source-current KAG unfreeze; close obsolete active archive eligibility while preserving current owner evidence and standing budget limits.",
+  "reason": "TOS-D-0043 and TOS-D-0044: operator-approved historical-tree retirement and permanent KAG unfreeze; final candidate with exact CI-pinned producer; standing budgets unchanged.",
   "repo": "Tree-of-Sophia",
   "schema_version": "aoa-repo-local-kag-budget-receipt-v2",
   "scope": "generated_delta_and_tracked_size",
