@@ -37,7 +37,7 @@
         "schema_version": "aoa-repo-local-kag-repository-index-v2"
       },
       {
-        "content_digest": "0e43b9175eea9ccb9cbac26f879b44ebeec87c7883a079ad9fe7c85c10cd9363",
+        "content_digest": "f9777b1c70ce7446e81e1943b92572d016bcd47357598b295968a074501936e2",
         "kind": "event",
         "path": "kag/indexes/repo_event_index.json",
         "records": 501,
@@ -62,7 +62,7 @@
   },
   "family_identity": {
     "artifact_kind": "repo_local_kag_portable_family",
-    "content_digest": "ddb19c89a673d2d64c76fd71213c6f9d5c1d7dcd6085ac1f626fa910b4488810",
+    "content_digest": "8034501bf4912bc13a1bca091d13032a9c40a169ecbfa91ed434c9b7c287273a",
     "local_id": "family:repo-local:portable-record-corpus",
     "schema_ref": "aoa-kag:schemas/repo-local-kag-family-manifest.schema.json",
     "source_snapshot": "sha256:aad26607be57b3561e621e76d1f735b91392d3d9acd35550c6f4cbed6e40cd5f"
@@ -3274,12 +3274,12 @@
       "records": 27
     },
     {
-      "bytes": 58989,
-      "digest": "sha256:ad751f6dba1faa29eee595b6f3f9077fb8027d33e98dc2390379768d3aaf1e96",
+      "bytes": 58092,
+      "digest": "sha256:7065d0b81a5f59b7df1b4a0c1543e28a35f936d6deb690ff92e85ecaabcfced8",
       "kind": "event",
       "path": "kag/indexes/shards/event/d.jsonl",
       "range": "d",
-      "records": 29
+      "records": 28
     },
     {
       "bytes": 30614,
@@ -3698,12 +3698,12 @@
       "records": 2
     },
     {
-      "bytes": 17817,
-      "digest": "sha256:5ee431bac6354c6af9b1977067ae4fbfe535c1dd779c046bc826c39d4408a47e",
+      "bytes": 19042,
+      "digest": "sha256:82f08820fb7577c17071c9d3f431e0d91a01c0e22825f1e000681ffd4665980e",
       "kind": "event",
       "path": "kag/indexes/shards/event/ee.jsonl",
       "range": "ee",
-      "records": 5
+      "records": 6
     },
     {
       "bytes": 1470,
@@ -6251,9 +6251,9 @@
     "anchor_records": 43905,
     "canonical_records": 48502,
     "event_records": 501,
-    "shard_bytes": 47682954,
+    "shard_bytes": 47683282,
     "shards": 652,
     "source_records": 4062,
-    "tracked_bytes": 47860697
+    "tracked_bytes": 47861025
   }
 }
