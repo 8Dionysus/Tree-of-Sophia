@@ -9,6 +9,11 @@ Tracking starts with the community-docs baseline for this repository.
 
 ### Changed
 
+- Speeds up focused source-witness negatives by testing the same payload and
+  rights guards used by full corpus validation, without rebuilding unrelated
+  schema and corpus checks. The aggregate planting CLI test uses minimal
+  package inputs; separate real DOCX readiness integrations remain in place.
+
 - Moves the public `treeofsophia.com` access product from an operator-machine
   Cloudflare Tunnel to a repository-driven Cloudflare Worker with Static
   Assets and a generated D1 read model. Merges to `main` can rebuild and

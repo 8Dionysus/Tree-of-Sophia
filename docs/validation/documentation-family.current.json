@@ -34,9 +34,9 @@
   },
   "coverage": {
     "excluded_generated_carrier_rules": 3,
-    "excluded_tracked_path_count": 598,
+    "excluded_tracked_path_count": 599,
     "human_scope": {
-      "bytes": 4730792,
+      "bytes": 4731097,
       "count": 926,
       "excluded_skill_launch_metadata": 25,
       "family_counts": {
@@ -96,9 +96,9 @@
           "lines": 202
         },
         "root": {
-          "bytes": 174721,
+          "bytes": 175026,
           "count": 14,
-          "lines": 3016
+          "lines": 3021
         },
         "scripts": {
           "bytes": 7115,
@@ -121,14 +121,14 @@
           "lines": 60739
         }
       },
-      "lines": 83256
+      "lines": 83261
     },
     "surface_kind_counts": {
       "executable": 206,
       "human": 951,
       "structured": 2304
     },
-    "tracked_path_count": 4059,
+    "tracked_path_count": 4060,
     "tracked_surface_count": 3461,
     "unhandled_family_count": 0,
     "unhandled_paths": []
@@ -139,7 +139,7 @@
       "surface_kind_counts": {
         "human": 14
       },
-      "tracked_surface_bytes": 174721,
+      "tracked_surface_bytes": 175026,
       "tracked_surface_count": 14
     },
     {
@@ -240,7 +240,7 @@
         "executable": 106,
         "human": 2
       },
-      "tracked_surface_bytes": 3626435,
+      "tracked_surface_bytes": 3628053,
       "tracked_surface_count": 108
     },
     {
@@ -250,7 +250,7 @@
         "human": 2,
         "structured": 1
       },
-      "tracked_surface_bytes": 1353088,
+      "tracked_surface_bytes": 1354428,
       "tracked_surface_count": 62
     },
     {
@@ -285,7 +285,7 @@
   "source_map": "docs/validation/documentation_family_map.json",
   "source_map_sha256": "d70a5059be9cc7547289e4c8be380d23b3aeb9e53bb10e4cb82abf2177ea0896",
   "tracked_source": "git ls-files -z",
-  "tracked_surface_digest": "df64c0e58bf9bb5fecc89bd28d254514015e3bec3013c0e70b465a155a78da73",
+  "tracked_surface_digest": "315881b41934e3d86a6c7f105f36bab09120145adfcae36e3236eac7df35cce0",
   "tracked_surfaces": [
     {
       "bytes": 1413,
@@ -332,7 +332,7 @@
       "currentness": "tracked_source_snapshot",
       "family_id": "agents-other",
       "path": ".agents/agents-route.current.json",
-      "sha256": "706e9d753e1110a16f7b81434b22957bef90d6e1a2d18062c41d4fc08cdcbefc",
+      "sha256": "ca34a5ffb2d168ebeb8a66e176c3f7c03c828594f15476b95e8c3b90a95a59c2",
       "surface_kind": "structured"
     },
     {
@@ -1680,11 +1680,11 @@
       "surface_kind": "human"
     },
     {
-      "bytes": 100369,
+      "bytes": 100674,
       "currentness": "tracked_source_snapshot",
       "family_id": "root",
       "path": "CHANGELOG.md",
-      "sha256": "04272c810c11931d7b49a25f1519030d60cc0206104fdf17728058c6ca3fe47b",
+      "sha256": "11e06165510c36e3a8dc06a4520df8f3e3edc97dbe2bc2c7c409c58309c44a80",
       "surface_kind": "human"
     },
     {
@@ -27376,11 +27376,11 @@
       "surface_kind": "executable"
     },
     {
-      "bytes": 707286,
+      "bytes": 708904,
       "currentness": "tracked_source_snapshot",
       "family_id": "scripts",
       "path": "scripts/validate_source_witness_foundation.py",
-      "sha256": "8d6c13399d5d92961ee23e9937ca58503337a883d97edab7007285fa609d643d",
+      "sha256": "80d8f84b3b11ae834d554ccb0922a7f34354a7dbe573748e4bfe11a3b5952f3f",
       "surface_kind": "executable"
     },
     {
@@ -27752,11 +27752,11 @@
       "surface_kind": "executable"
     },
     {
-      "bytes": 44301,
+      "bytes": 44934,
       "currentness": "tracked_source_snapshot",
       "family_id": "tests",
       "path": "tests/test_prepared_dossier_pipeline.py",
-      "sha256": "31b8cc6fbdffab7421e40f30a386759893e19ffd614ca222cbd8dff3f13ba494",
+      "sha256": "faf3fe3f0dced0cd78ee67aba9696f4fb1fded70e3d9c60ee74a24a0d9bc3e6f",
       "surface_kind": "executable"
     },
     {
@@ -27800,11 +27800,11 @@
       "surface_kind": "executable"
     },
     {
-      "bytes": 524790,
+      "bytes": 525497,
       "currentness": "tracked_source_snapshot",
       "family_id": "tests",
       "path": "tests/test_source_witness_foundation.py",
-      "sha256": "0fc45edfb57d1e1fe2de460d69c607eb7d5432fdb7af9f74d77100d6258f2d5c",
+      "sha256": "8debe1d6295baa8a0a05e00c15cb00e7e51441f14988aa21d35c1afd1f4f5661",
       "surface_kind": "executable"
     },
     {

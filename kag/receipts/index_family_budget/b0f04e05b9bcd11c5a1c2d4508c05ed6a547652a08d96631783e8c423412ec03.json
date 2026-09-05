@@ -1,0 +1,1371 @@
+{
+  "allowed_bytes": 16670839,
+  "allowed_tracked_bytes": 47851706,
+  "approved_by": "repository-owner",
+  "base_ref": "7bc3ca9f228fe7dbeff9a29ba4c1420e6ce88f9b",
+  "candidate_identity": {
+    "algorithm": "sha256:canonical-json-file-inventory-v2",
+    "base_ref": "7bc3ca9f228fe7dbeff9a29ba4c1420e6ce88f9b",
+    "contract_version": "aoa-kag:budget-receipt-candidate-identity-v2",
+    "excluded_path": "kag/receipts/index_family_budget/b0f04e05b9bcd11c5a1c2d4508c05ed6a547652a08d96631783e8c423412ec03.json",
+    "family_digest": "b0f04e05b9bcd11c5a1c2d4508c05ed6a547652a08d96631783e8c423412ec03",
+    "file_count": 5124,
+    "seal": "175caa94d9c37b97155513e75236ac1028cbeb99f79d7bfe1edd61fbcbaf47db",
+    "source_epoch": "sha256:64a6c2d0757e153fdce1036fb052bb734ea60499df0d903d45a1ab24ab455415",
+    "source_snapshot": "sha256:590b7466cb14c34a8678e7eb5f2b8057f2c8fa6b64d48e65e934976a7dd37e5c"
+  },
+  "changed_generated_bytes": 16670839,
+  "changed_generated_files": 173,
+  "decision_ref": "aoa-kag:docs/decisions/AOA-KAG-D-0017-portable-content-addressed-repository-family.md",
+  "default_limit_bytes": 1048576,
+  "head_family_digest": "b0f04e05b9bcd11c5a1c2d4508c05ed6a547652a08d96631783e8c423412ec03",
+  "head_source_snapshot": "sha256:590b7466cb14c34a8678e7eb5f2b8057f2c8fa6b64d48e65e934976a7dd37e5c",
+  "producer_identity": {
+    "action": {
+      "bytes": 5200,
+      "content_digest": "31a155aefaaeb638622b9153b5712f2bfac3356c6bd64d921c429ced2c3c7311",
+      "git_blob": "sha1:76741523dfc95fb24ffc1cfbebf5c86a1768380d",
+      "path": ".github/actions/repo-local-kag-index/action.yml",
+      "state": "present"
+    },
+    "contract_version": "aoa-kag:budget-receipt-producer-identity-v4",
+    "execution_inputs": {
+      "action_inputs": {
+        "event-history-ref": {
+          "bytes": 40,
+          "kind": "git-ref",
+          "state": "set",
+          "value_digest": "43f90d197745695a01765cee0ba60e755e509483a470c5915a7a0858b010deb7"
+        },
+        "history-ref": {
+          "bytes": 40,
+          "kind": "git-ref",
+          "state": "set",
+          "value_digest": "43f90d197745695a01765cee0ba60e755e509483a470c5915a7a0858b010deb7"
+        },
+        "output": {
+          "bytes": 37,
+          "kind": "relative-path",
+          "state": "set",
+          "value_digest": "ba839ffc03614b67e111dd7704c623c08d1f50bc2a8e0b694f76fac14dfe062a"
+        },
+        "repo-root": {
+          "bytes": 12,
+          "kind": "path",
+          "state": "set",
+          "value_digest": "21dba821671dd5da139d85927c06f360ae3bcc5751db42dae6d309553c903d79"
+        }
+      },
+      "command_targets": {
+        "artifact_root": null,
+        "base_ref": "7bc3ca9f228fe7dbeff9a29ba4c1420e6ce88f9b",
+        "event_history_ref": "7bc3ca9f228fe7dbeff9a29ba4c1420e6ce88f9b",
+        "externalized": false,
+        "family_mode": "portable",
+        "history_ref": "7bc3ca9f228fe7dbeff9a29ba4c1420e6ce88f9b",
+        "output": "kag/indexes/source_surface_index.json",
+        "repo_root": {
+          "path_digest": "21dba821671dd5da139d85927c06f360ae3bcc5751db42dae6d309553c903d79",
+          "resolved_path_digest": "21dba821671dd5da139d85927c06f360ae3bcc5751db42dae6d309553c903d79"
+        }
+      },
+      "dependencies": [
+        {
+          "artifact_bytes": 64,
+          "artifact_digest": "9edb127ba084a4f946ada5dbafdebeca76ce0830d748daaa918d706cd8ca533e",
+          "artifact_files": 1,
+          "declared_version": ">=3.11",
+          "name": "python",
+          "path_digest": "748218fa4b2d15dca24128878a38a31690d8b5c2fa637bff46dd3d7bd0bd5b38",
+          "required": true,
+          "resolved_version": ">=3.11",
+          "state": "available"
+        },
+        {
+          "artifact_bytes": 64,
+          "artifact_digest": "e534ebea0527e1410b31e641b9eecb89d843bcbab370fbd4c57252d62bb0dcf6",
+          "artifact_files": 1,
+          "declared_version": "6.0.3",
+          "name": "PyYAML",
+          "path_digest": "8220e394aa9d2f0206680a6262fa03eb781f0fae98642c318a395b1953e70a92",
+          "required": true,
+          "resolved_version": "6.0.3",
+          "state": "available"
+        },
+        {
+          "artifact_bytes": 64,
+          "artifact_digest": "b8804a112d788d53bb483a91f625d2959640eda14f11322133759c416eb3adf8",
+          "artifact_files": 1,
+          "declared_version": "4.23.0",
+          "name": "jsonschema",
+          "path_digest": "edb03b9e303abf24f3091737e84dab55637ca9f81c969fd122a7b1399ee0c66f",
+          "required": true,
+          "resolved_version": "4.23.0",
+          "state": "available"
+        },
+        {
+          "artifact_bytes": 64,
+          "artifact_digest": "ff0b137e11008f7b0b6be11b2a319d77452dac5b3bd4f886714a716edd05b1c6",
+          "artifact_files": 1,
+          "declared_version": "0.49.2",
+          "name": "jsonschema-rs",
+          "path_digest": "a99ab470449c3913d672dd449c908a4ee37b66e40dc290009e2cda45f398210b",
+          "required": false,
+          "resolved_version": null,
+          "state": "declared"
+        }
+      ],
+      "dynamic_imports": [],
+      "environment": [
+        {
+          "bytes": 0,
+          "kind": "environment",
+          "name": "AOA_KAG_FORCE_COLD_SCHEMA_COMPILATION",
+          "role": "validator engine rollback",
+          "state": "unset",
+          "value_digest": "5a42f60a790863f8c06e57327bf7116900a94dc23154b1e785a0b734d7afaf74"
+        },
+        {
+          "bytes": 0,
+          "kind": "environment",
+          "name": "AOA_KAG_FORCE_PYTHON_SCHEMA_VALIDATION",
+          "role": "validator engine rollback",
+          "state": "unset",
+          "value_digest": "5a42f60a790863f8c06e57327bf7116900a94dc23154b1e785a0b734d7afaf74"
+        }
+      ],
+      "interpreter": {
+        "artifact_digest": "93c136e9b19bb00375bd9cf2bb73f4d23df3a1bf70adecd8d186bd067c20cfe9",
+        "implementation": "cpython",
+        "invoked_path_digest": "d2c68400f17d98c00601a6731293f7f8c7abd735a42c07a4e1c119493e9d66aa",
+        "resolved_path_digest": "d2c68400f17d98c00601a6731293f7f8c7abd735a42c07a4e1c119493e9d66aa",
+        "version": ">=3.11"
+      },
+      "manifest_digest": "b5b79f703fb2ff851fe51c9cfb6bed07127bb346918c7eeee45ad84c39af730b",
+      "non_python_inputs": [
+        {
+          "bytes": 5200,
+          "content_digest": "31a155aefaaeb638622b9153b5712f2bfac3356c6bd64d921c429ced2c3c7311",
+          "path": ".github/actions/repo-local-kag-index/action.yml"
+        },
+        {
+          "bytes": 8510,
+          "content_digest": "b5b79f703fb2ff851fe51c9cfb6bed07127bb346918c7eeee45ad84c39af730b",
+          "path": "config/repo-local-kag-budget-producer.json"
+        },
+        {
+          "bytes": 4171,
+          "content_digest": "3a32c6d593d88526044b87d2908357c6abfef4ddd4c91fd508b848abadd3b08e",
+          "path": "schemas/domain-index-catalog.schema.json"
+        },
+        {
+          "bytes": 3174,
+          "content_digest": "e2830a5b37174863afe2576c839041137f104239253642a54af4d75c95ac2e34",
+          "path": "schemas/kag-artifact-locator.schema.json"
+        },
+        {
+          "bytes": 6618,
+          "content_digest": "ccc39147e7413be5e24f71384fe361d7a175c86b204152c373094a9e666b8c90",
+          "path": "schemas/kag-mcp-capabilities.schema.json"
+        },
+        {
+          "bytes": 10670,
+          "content_digest": "1516bc25755b26c156a58709c5e7600e276daa21f115d7cdc61031cbd67162d5",
+          "path": "schemas/kag-mcp-result.schema.json"
+        },
+        {
+          "bytes": 3726,
+          "content_digest": "f435f52f6c179a2d765fdd6c99c25e9ae612fa13814fa722e2a4516033013291",
+          "path": "schemas/repo-local-kag-budget-producer-manifest.schema.json"
+        },
+        {
+          "bytes": 15673,
+          "content_digest": "eb1878afac28e4d4c02a193abdafc22fd677afec5434513d2e38855b73c43979",
+          "path": "schemas/repo-local-kag-budget-receipt.schema.json"
+        },
+        {
+          "bytes": 5760,
+          "content_digest": "e351805ebad68471da7471cc185dfaa3dd3c19191a97807df2591d895355c3ee",
+          "path": "schemas/repo-local-kag-corpus-manifest.schema.json"
+        },
+        {
+          "bytes": 11102,
+          "content_digest": "2de05083ffb332057b8e2341f7789c14c7ce23e41bc45689ebd7f66b079cacc0",
+          "path": "schemas/repo-local-kag-coverage.schema.json"
+        },
+        {
+          "bytes": 10502,
+          "content_digest": "74a4bf00acc3adc88b9a383119b3b5b962528ead31d05dac05d59f31bcbef6ec",
+          "path": "schemas/repo-local-kag-distribution-manifest.schema.json"
+        },
+        {
+          "bytes": 9829,
+          "content_digest": "58cab982a2a221a2afc71ab11ff7f6b76adb083546bd6c1b43cc852efc7d4afc",
+          "path": "schemas/repo-local-kag-family-manifest.schema.json"
+        },
+        {
+          "bytes": 9692,
+          "content_digest": "5dae90151fe9d01295dd8f6926a0d4960e9f4c2c83b7a2e5606e3acd5a03d6f6",
+          "path": "schemas/repo-local-kag-federation.schema.json"
+        },
+        {
+          "bytes": 3085,
+          "content_digest": "d88cbca895c50b9242696dc5f11cdbcdf5de97abd24db5f31b0a59b1acafc53f",
+          "path": "schemas/repo-local-kag-hot-profile.schema.json"
+        },
+        {
+          "bytes": 20391,
+          "content_digest": "8dfcd806e1bd43e2064b91cdf620e217f53dd4e222d2b73195263cef3939055d",
+          "path": "schemas/repo-local-kag-index.schema.json"
+        },
+        {
+          "bytes": 10167,
+          "content_digest": "a7c309613dbb59cbf792ff12fb4573c971cd245cfdb7cbca6d15c84bcd9301e7",
+          "path": "schemas/repo-local-kag-query-result.schema.json"
+        },
+        {
+          "bytes": 20876,
+          "content_digest": "7335d46c5716fa05577e52925815bf922f16df7a19303e06541d8b25f26f1fe2",
+          "path": "schemas/repo-local-kag-repository-index.schema.json"
+        },
+        {
+          "bytes": 5531,
+          "content_digest": "e90abfe7d3ed50b0fbef24f39b7c570c64792ef2184b7b5f6562a6c2b4e41568",
+          "path": "schemas/repo-local-kag-retrieval-bundle.schema.json"
+        },
+        {
+          "bytes": 12426,
+          "content_digest": "d9ef49f181b766238f7847b4e6204dddd9c83ad0b56f01122db9711e0c622876",
+          "path": "schemas/repo-local-kag-retrieval-plan.schema.json"
+        }
+      ],
+      "schema_version": "aoa-kag:budget-receipt-producer-runtime-inputs-v2"
+    },
+    "files": [
+      {
+        "bytes": 5200,
+        "content_digest": "31a155aefaaeb638622b9153b5712f2bfac3356c6bd64d921c429ced2c3c7311",
+        "git_blob": "sha1:76741523dfc95fb24ffc1cfbebf5c86a1768380d",
+        "path": ".github/actions/repo-local-kag-index/action.yml",
+        "state": "present"
+      },
+      {
+        "bytes": 8510,
+        "content_digest": "b5b79f703fb2ff851fe51c9cfb6bed07127bb346918c7eeee45ad84c39af730b",
+        "git_blob": "sha1:0f63e3a776d6e15c75d992252a66515b8e82fd7b",
+        "path": "config/repo-local-kag-budget-producer.json",
+        "state": "present"
+      },
+      {
+        "bytes": 16136,
+        "content_digest": "9e7f42b9975e2a7412543a5d2b29a2c5d1e11051e0593872a14e9e801a4cd076",
+        "git_blob": "sha1:feb3e52079dcd38c42f8aa48dc83964b14ed2606",
+        "path": "mechanics/questbook/parts/quest-store/scripts/validate_quest_store.py",
+        "state": "present"
+      },
+      {
+        "bytes": 4171,
+        "content_digest": "3a32c6d593d88526044b87d2908357c6abfef4ddd4c91fd508b848abadd3b08e",
+        "git_blob": "sha1:bf6b3ee8f36978eaf1c1a53a2181b34e19ed2b63",
+        "path": "schemas/domain-index-catalog.schema.json",
+        "state": "present"
+      },
+      {
+        "bytes": 3174,
+        "content_digest": "e2830a5b37174863afe2576c839041137f104239253642a54af4d75c95ac2e34",
+        "git_blob": "sha1:5e84139f0c964a64623816ba68bcd1b1d2ad53b3",
+        "path": "schemas/kag-artifact-locator.schema.json",
+        "state": "present"
+      },
+      {
+        "bytes": 6618,
+        "content_digest": "ccc39147e7413be5e24f71384fe361d7a175c86b204152c373094a9e666b8c90",
+        "git_blob": "sha1:742bb05d7b0535d968e0d126c398b8e2b40bf75d",
+        "path": "schemas/kag-mcp-capabilities.schema.json",
+        "state": "present"
+      },
+      {
+        "bytes": 10670,
+        "content_digest": "1516bc25755b26c156a58709c5e7600e276daa21f115d7cdc61031cbd67162d5",
+        "git_blob": "sha1:eb20c1b5e990e1b5a9a0b40252884ebe611e0758",
+        "path": "schemas/kag-mcp-result.schema.json",
+        "state": "present"
+      },
+      {
+        "bytes": 3726,
+        "content_digest": "f435f52f6c179a2d765fdd6c99c25e9ae612fa13814fa722e2a4516033013291",
+        "git_blob": "sha1:cf6a71a90e43569a5265b8f77d65dcc60ff80a27",
+        "path": "schemas/repo-local-kag-budget-producer-manifest.schema.json",
+        "state": "present"
+      },
+      {
+        "bytes": 15673,
+        "content_digest": "eb1878afac28e4d4c02a193abdafc22fd677afec5434513d2e38855b73c43979",
+        "git_blob": "sha1:eb61ffc3a108239a0207753a35a22715e015410b",
+        "path": "schemas/repo-local-kag-budget-receipt.schema.json",
+        "state": "present"
+      },
+      {
+        "bytes": 5760,
+        "content_digest": "e351805ebad68471da7471cc185dfaa3dd3c19191a97807df2591d895355c3ee",
+        "git_blob": "sha1:6bda350231d2135b7ce3ae57f174f0dbd67ecf3d",
+        "path": "schemas/repo-local-kag-corpus-manifest.schema.json",
+        "state": "present"
+      },
+      {
+        "bytes": 11102,
+        "content_digest": "2de05083ffb332057b8e2341f7789c14c7ce23e41bc45689ebd7f66b079cacc0",
+        "git_blob": "sha1:ba682de0e0d2750c1d0041587c0f2654586834d8",
+        "path": "schemas/repo-local-kag-coverage.schema.json",
+        "state": "present"
+      },
+      {
+        "bytes": 10502,
+        "content_digest": "74a4bf00acc3adc88b9a383119b3b5b962528ead31d05dac05d59f31bcbef6ec",
+        "git_blob": "sha1:a5e5106df7452a40f989da3a92f9463d422befce",
+        "path": "schemas/repo-local-kag-distribution-manifest.schema.json",
+        "state": "present"
+      },
+      {
+        "bytes": 9829,
+        "content_digest": "58cab982a2a221a2afc71ab11ff7f6b76adb083546bd6c1b43cc852efc7d4afc",
+        "git_blob": "sha1:7e498b05713d1c3779d23715633d0149e878e09d",
+        "path": "schemas/repo-local-kag-family-manifest.schema.json",
+        "state": "present"
+      },
+      {
+        "bytes": 9692,
+        "content_digest": "5dae90151fe9d01295dd8f6926a0d4960e9f4c2c83b7a2e5606e3acd5a03d6f6",
+        "git_blob": "sha1:752af017e59dc438067728f0d25ba9834ba3dfbc",
+        "path": "schemas/repo-local-kag-federation.schema.json",
+        "state": "present"
+      },
+      {
+        "bytes": 3085,
+        "content_digest": "d88cbca895c50b9242696dc5f11cdbcdf5de97abd24db5f31b0a59b1acafc53f",
+        "git_blob": "sha1:40d1cf070d9fa461727c34455d6bdd477173c15c",
+        "path": "schemas/repo-local-kag-hot-profile.schema.json",
+        "state": "present"
+      },
+      {
+        "bytes": 20391,
+        "content_digest": "8dfcd806e1bd43e2064b91cdf620e217f53dd4e222d2b73195263cef3939055d",
+        "git_blob": "sha1:f543f3d2ed9d3bbb550bdd342c39ff2f5a465990",
+        "path": "schemas/repo-local-kag-index.schema.json",
+        "state": "present"
+      },
+      {
+        "bytes": 10167,
+        "content_digest": "a7c309613dbb59cbf792ff12fb4573c971cd245cfdb7cbca6d15c84bcd9301e7",
+        "git_blob": "sha1:6df2653bcdf228630f17793cae0aa6b00f9b1596",
+        "path": "schemas/repo-local-kag-query-result.schema.json",
+        "state": "present"
+      },
+      {
+        "bytes": 20876,
+        "content_digest": "7335d46c5716fa05577e52925815bf922f16df7a19303e06541d8b25f26f1fe2",
+        "git_blob": "sha1:c449bd9b1396e3bb8937f7235499bba8148a733f",
+        "path": "schemas/repo-local-kag-repository-index.schema.json",
+        "state": "present"
+      },
+      {
+        "bytes": 5531,
+        "content_digest": "e90abfe7d3ed50b0fbef24f39b7c570c64792ef2184b7b5f6562a6c2b4e41568",
+        "git_blob": "sha1:4281b2ccaff4ae6a1faa25a2c872e0fdc5727bb7",
+        "path": "schemas/repo-local-kag-retrieval-bundle.schema.json",
+        "state": "present"
+      },
+      {
+        "bytes": 12426,
+        "content_digest": "d9ef49f181b766238f7847b4e6204dddd9c83ad0b56f01122db9711e0c622876",
+        "git_blob": "sha1:3a8877a5529e21eded85f96b51495d97411eb4b0",
+        "path": "schemas/repo-local-kag-retrieval-plan.schema.json",
+        "state": "present"
+      },
+      {
+        "bytes": 2227,
+        "content_digest": "d67c6d3205c964d8600a214679e9e72b0be0028d9f64c34ee0d48a83e5c808b3",
+        "git_blob": "sha1:b731032d3ac50ae2f1924d434c5102c94e345edc",
+        "path": "scripts/assemble_repo_local_kag_family.py",
+        "state": "present"
+      },
+      {
+        "bytes": 23102,
+        "content_digest": "fd8e91dd25918f39b04085dac9efc4937e7196bc16983b1958c46d80da24ba9e",
+        "git_blob": "sha1:8e2cd91342feaa72c63ff841f4c94e5d2d63dba8",
+        "path": "scripts/coverage_run.py",
+        "state": "present"
+      },
+      {
+        "bytes": 100268,
+        "content_digest": "823c3feb6b0384b03548ca47dd605358b8f440fdc4c8d512b51ca3e64b613dd6",
+        "git_blob": "sha1:c35be1e565ad155ff83b8ba6f6d5ab4ac663d494",
+        "path": "scripts/generate_repo_local_kag_coverage.py",
+        "state": "present"
+      },
+      {
+        "bytes": 152814,
+        "content_digest": "2cb5ef8b3c6e7e5f5c5c39a3adf08a93be32a10897514028dfb4e31031a644b3",
+        "git_blob": "sha1:1a38ea65c05ad363e0b240db5b5b201ee69ebc10",
+        "path": "scripts/generate_repo_local_kag_index.py",
+        "state": "present"
+      },
+      {
+        "bytes": 450,
+        "content_digest": "6a02c2987236de7f2a72183a91d44c7d644460fccfeaa0a31654ff526847885b",
+        "git_blob": "sha1:97d24a52a30bb3d6b44c9931d821a04d854a03f2",
+        "path": "scripts/generation/__init__.py",
+        "state": "present"
+      },
+      {
+        "bytes": 6810,
+        "content_digest": "e39e19e1c990ce2aab1a91ccd9ffc1e3fca4e366573bba060dc57efaed0058e8",
+        "git_blob": "sha1:f2c7a9b6556f13f6661d92d985677442fc5ac1cf",
+        "path": "scripts/generation/common.py",
+        "state": "present"
+      },
+      {
+        "bytes": 22371,
+        "content_digest": "22eede89fd7a9df4f9ca76942ebcd6ce104b54eff75f5182961fc89fb0507311",
+        "git_blob": "sha1:0a69acd83fccdc7eafb0b8fe15d532df16e98375",
+        "path": "scripts/generation/consumer.py",
+        "state": "present"
+      },
+      {
+        "bytes": 46300,
+        "content_digest": "17b159ac0a0a2bb81599c589afd8120a57925ffe13cfeab8d78cac99fd6e3c0a",
+        "git_blob": "sha1:075e78e5c94446d79cf3e96f1eccfb37c43b1c1f",
+        "path": "scripts/generation/context.py",
+        "state": "present"
+      },
+      {
+        "bytes": 38632,
+        "content_digest": "e5912d381c4e7103bb1cc5b4903398200fa4a9b7315619494df592825cfbae14",
+        "git_blob": "sha1:1ea27a135287255ec5489ddceee7bdf76fb4ee83",
+        "path": "scripts/generation/federation.py",
+        "state": "present"
+      },
+      {
+        "bytes": 19163,
+        "content_digest": "01316d199fba0b510a12b48df6b33d740af19ec993193694caa78fb33a054602",
+        "git_blob": "sha1:da0c43482ab4f515aa9699a0d149ffd8f1a15648",
+        "path": "scripts/generation/governance.py",
+        "state": "present"
+      },
+      {
+        "bytes": 24234,
+        "content_digest": "dbe833440f48b82fe13df0b6e6ba8ee44cff4d963c4d1b1a8662d5304e1ea8b8",
+        "git_blob": "sha1:cc27009f3fa1f878d3e215e7f83de1af27f15764",
+        "path": "scripts/generation/handoff.py",
+        "state": "present"
+      },
+      {
+        "bytes": 6331,
+        "content_digest": "6546946ccfd61baf38cc3d8d0cbfb5b54cb03bdfd7dca7d096a3488333e0bcc3",
+        "git_blob": "sha1:320b2ac110c5ee0464ede477fe1e81ea4aa13b09",
+        "path": "scripts/generation/markdown.py",
+        "state": "present"
+      },
+      {
+        "bytes": 31200,
+        "content_digest": "60f587f284d130af3cff97feec9c20d0e4636da533528ef0348fb0abd222c13a",
+        "git_blob": "sha1:7224e9c1e14af56c9b985771b9f8ad1bcc5b1a1f",
+        "path": "scripts/generation/provider_map.py",
+        "state": "present"
+      },
+      {
+        "bytes": 440,
+        "content_digest": "307d4469e5840942212369d2dc2fe875aee1602b398ca8ba5818132fd301484f",
+        "git_blob": "sha1:51f6c0215f4e27633103a11bba2ee151c94a7bd3",
+        "path": "scripts/generation/registry.py",
+        "state": "present"
+      },
+      {
+        "bytes": 8474,
+        "content_digest": "c96e892dcb29bb9ff51303c4d6319ddf41b850d61d0e6b13a1ca9d88819683da",
+        "git_blob": "sha1:ed6a176f99dde75a40d1967eb4d6ce14fff9f152",
+        "path": "scripts/generation/regrounding.py",
+        "state": "present"
+      },
+      {
+        "bytes": 27988,
+        "content_digest": "b579949c1492174863f65ca43325d5cf045fb990a18a988993616a884ea25684",
+        "git_blob": "sha1:c0a130cc9cbbacc8f7a2da279caca21d9d2f4aea",
+        "path": "scripts/generation/source_refs.py",
+        "state": "present"
+      },
+      {
+        "bytes": 11697,
+        "content_digest": "1d5d78c74c664790d758eacc9e145d2e9ed2e0f92489f91fd6108a263a5ffc51",
+        "git_blob": "sha1:777c96c84175986b23fbb5c4dcd48ffff09a2890",
+        "path": "scripts/generation/technique.py",
+        "state": "present"
+      },
+      {
+        "bytes": 52367,
+        "content_digest": "2f2cc181b2c4b49c2801b51bf11b97745360f8d9fc4ad95f7b5beec2ef4fd8fd",
+        "git_blob": "sha1:905ee3757f77f0f73d14674ffe63fa2cdbe5fb8a",
+        "path": "scripts/generation/tos.py",
+        "state": "present"
+      },
+      {
+        "bytes": 7296,
+        "content_digest": "c6a96f781ab1dc12daf3479473b6c04db50ee5751e00acb71420f6ed5f72a117",
+        "git_blob": "sha1:9839e4a9839a6116037e77a6abf9aaf83b9e75bc",
+        "path": "scripts/generation/writer.py",
+        "state": "present"
+      },
+      {
+        "bytes": 107,
+        "content_digest": "6f5f91ecea0b45804880d74cd879dbbb5f06b8740316e1820b207a049bb12585",
+        "git_blob": "sha1:8919855aba7818b1377e8520a21f9361ccd388ff",
+        "path": "scripts/kag_generation.py",
+        "state": "present"
+      },
+      {
+        "bytes": 235877,
+        "content_digest": "b61699486f778ebf2022444f55fd8ac2c5a2191b3668cde1203a465803336dfc",
+        "git_blob": "sha1:a5ca0b05c5193bef5545353726c7357f372bca13",
+        "path": "scripts/prepare_landing.py",
+        "state": "present"
+      },
+      {
+        "bytes": 4785,
+        "content_digest": "ed7d1cf84b1dd23ff0080de1ad0becd192eac667c5d49a239d9bed5b9b8f82ec",
+        "git_blob": "sha1:1acbdeb08c38f0091be14a7bdb7d511a3a164a55",
+        "path": "scripts/provider_registry.py",
+        "state": "present"
+      },
+      {
+        "bytes": 301,
+        "content_digest": "3d21d72d467f252c733fffcde1308fa245b529b39cd55d8c6ac7c7dc1122978d",
+        "git_blob": "sha1:6002430549388b6d647dce3a506ca61f9cee406b",
+        "path": "scripts/repo_local/__init__.py",
+        "state": "present"
+      },
+      {
+        "bytes": 7636,
+        "content_digest": "de6b29262812a3a4a1438212fa174444f1d38c88b352e099e99eae5001e1e222",
+        "git_blob": "sha1:1850431b955fd3c2b932609e2b87f52b6a00bd91",
+        "path": "scripts/repo_local/history.py",
+        "state": "present"
+      },
+      {
+        "bytes": 4539,
+        "content_digest": "faeb98c98407674183c413c13ef9fb670b0f7b4100b76ebece02650b4b779673",
+        "git_blob": "sha1:9ddcc9cf93ae7f983173bd12914f445a73a687d2",
+        "path": "scripts/repo_local/identity.py",
+        "state": "present"
+      },
+      {
+        "bytes": 26653,
+        "content_digest": "80b3ef8f05d525e78c720a2cb9251ae40903fb5eab51a1e2e875ca039a44ddb7",
+        "git_blob": "sha1:a930e13782f41633a67674433bcb2a32091eb92d",
+        "path": "scripts/repo_local/indexes.py",
+        "state": "present"
+      },
+      {
+        "bytes": 150172,
+        "content_digest": "a483ee03ed61ad71c4473851c1eed64d5210366ed55f752fc3006ba91a4d520d",
+        "git_blob": "sha1:d459daa2ab05149ed8ba26b878a8c1e6ec73f3ab",
+        "path": "scripts/repo_local/portable_family.py",
+        "state": "present"
+      },
+      {
+        "bytes": 36812,
+        "content_digest": "b3ff9fd1379ddd9d0e82d72c810057a47682952d718a6ec2b9674a9ad0b44e4a",
+        "git_blob": "sha1:e35aa2c2e3811c38de11181445b14d3a703c9336",
+        "path": "scripts/repo_local/structure.py",
+        "state": "present"
+      },
+      {
+        "bytes": 91556,
+        "content_digest": "d28a3aacb2eab37216a9953032b2a641a4def730bd7cf06834e94072da946fed",
+        "git_blob": "sha1:24e2440bbc928f379ca04a69c8351f470b4544ab",
+        "path": "scripts/repo_local/tiered_family.py",
+        "state": "present"
+      },
+      {
+        "bytes": 23451,
+        "content_digest": "b9d624ef2f650915b5b26db72938d727a7d611a8e840d9c99555796a42b62133",
+        "git_blob": "sha1:2a78cd59ee412db929491385be749aea18e87a7d",
+        "path": "scripts/repo_local_kag_gate.py",
+        "state": "present"
+      },
+      {
+        "bytes": 24185,
+        "content_digest": "e5b3dd121bda6d77eca602f94d36db6e762d9adf4c6623e295e707aa22b1fd0a",
+        "git_blob": "sha1:55839f0b1e2e3d0bdf512ebde571466cdddadade",
+        "path": "scripts/validate_mechanics_skeleton.py",
+        "state": "present"
+      },
+      {
+        "bytes": 8135,
+        "content_digest": "f37f0980fc0985d0dc5ea175d90c64164d0b94e08f85a139955e89d2c2d7da40",
+        "git_blob": "sha1:2380703d832c0fc9a08172250fe142be34a1bcc3",
+        "path": "scripts/validate_nested_agents.py",
+        "state": "present"
+      },
+      {
+        "bytes": 2128,
+        "content_digest": "ab0904b38a80b68f8ed0c5c8d661367fabb10991a83317563f40034cea2e3e87",
+        "git_blob": "sha1:45baf5104e33e6849162bd64829e4bdfcb0bf6bf",
+        "path": "scripts/validate_repo_local_kag_family.py",
+        "state": "present"
+      },
+      {
+        "bytes": 373,
+        "content_digest": "6ee56e633cad27e9b8c257452ea37b3d49d1810b9567fde1e945f882549be0b9",
+        "git_blob": "sha1:5ace8b8771150247812342cfea9bbf4332a001c9",
+        "path": "scripts/validators/__init__.py",
+        "state": "present"
+      },
+      {
+        "bytes": 3081,
+        "content_digest": "4fd6c39399171c86af3331fbf7fa4a5faead4f7d6c188e9f1a467a98992507de",
+        "git_blob": "sha1:2682d001cde044c00ac403dbb2457f4cfc2baef7",
+        "path": "scripts/validators/common.py",
+        "state": "present"
+      },
+      {
+        "bytes": 60,
+        "content_digest": "388ad98934bc6ca3fdffdecb5b72c7b9feb6153934f883a1ea56f9ed8018ccf3",
+        "git_blob": "sha1:7b69bdd49d74c1f9ad03b75e8c11954db6c017b8",
+        "path": "scripts/validators/example_contracts.py",
+        "state": "present"
+      },
+      {
+        "bytes": 400,
+        "content_digest": "674efddad639d7e3354aaaa0a43a241adbfe78eccc1d43fdba43b82a06348933",
+        "git_blob": "sha1:63d84071fee4b08c20308bf3edc4012b7cb99d17",
+        "path": "scripts/validators/examples/__init__.py",
+        "state": "present"
+      },
+      {
+        "bytes": 5271,
+        "content_digest": "8d7da31751a3a07a13aac1cb199aa71ed6b09526ada1fab077f056a3756d63d7",
+        "git_blob": "sha1:7366bc101ac9ddd6c6340754e875dedeb72f28c1",
+        "path": "scripts/validators/examples/bridge_examples.py",
+        "state": "present"
+      },
+      {
+        "bytes": 8569,
+        "content_digest": "ee914623a396225464c30e87695e67ffa242d40cece7cf0b4cb16f1ab6e4c955",
+        "git_blob": "sha1:bfb04ff2b7f980761c3f1e021651ac90541e2dd1",
+        "path": "scripts/validators/examples/counterpart_examples.py",
+        "state": "present"
+      },
+      {
+        "bytes": 424,
+        "content_digest": "56d963d49474f8bde711591adee057eb948882a9c01cc31edf7d8efb298e6ec7",
+        "git_blob": "sha1:121c48da02d0c8c65b78879f5835b8ff050ad3b5",
+        "path": "scripts/validators/examples/cross_source_examples.py",
+        "state": "present"
+      },
+      {
+        "bytes": 486,
+        "content_digest": "83c1f70e1779f9d23a4cb80478fc7a4417c60d8e7a61595615dbb8241df1a52f",
+        "git_blob": "sha1:c3ba32b7cddff43d78547086536b1168d876453c",
+        "path": "scripts/validators/examples/exposure_review_examples.py",
+        "state": "present"
+      },
+      {
+        "bytes": 6248,
+        "content_digest": "c7a3c7412fc1c0df542f2a068b525e2ee8d94e0010c8299b51ae1e43178785ca",
+        "git_blob": "sha1:00b119807ef6adbeb192d3a7497f18a3a4e6eeb1",
+        "path": "scripts/validators/examples/federation_examples.py",
+        "state": "present"
+      },
+      {
+        "bytes": 3832,
+        "content_digest": "92200e32c72017706138510fe1c42c546aedce6a9886828268321347987f927b",
+        "git_blob": "sha1:71ec55b80bac73190dc34c04b942b85cb5858764",
+        "path": "scripts/validators/examples/governance_examples.py",
+        "state": "present"
+      },
+      {
+        "bytes": 3961,
+        "content_digest": "644eee55dc57c29c3d339b69c74787f4ebad7376fdd4a71c82353e495a44a879",
+        "git_blob": "sha1:770c9a4d717c3d280605e0ceb320abfd1fe2b691",
+        "path": "scripts/validators/examples/reasoning_handoff_examples.py",
+        "state": "present"
+      },
+      {
+        "bytes": 329,
+        "content_digest": "25e4af8dc8c287372edc0207f6fe1f8c7d91b1d12ccec6cb12f2027ecdf5c425",
+        "git_blob": "sha1:61a7f689ca13e7560d475a355547667e3890d576",
+        "path": "scripts/validators/examples/recurrence_examples.py",
+        "state": "present"
+      },
+      {
+        "bytes": 388,
+        "content_digest": "c26e8f352f822dff590eb4518efd2d54edeebdaf027c42f5c9ff0e4165838660",
+        "git_blob": "sha1:9ea64208bcff35c0c501789d6cf738bfaf00a46a",
+        "path": "scripts/validators/examples/tiny_consumer_bundle_examples.py",
+        "state": "present"
+      },
+      {
+        "bytes": 7224,
+        "content_digest": "cdd07f3a5420ab5065d717a089dff234950af07165b3c1bd97661b9d036e32a8",
+        "git_blob": "sha1:0a0a2a22420ee3ee360d53b6c4433c3d45e81439",
+        "path": "scripts/validators/examples/tos_examples.py",
+        "state": "present"
+      },
+      {
+        "bytes": 436,
+        "content_digest": "fd38115f71d84168b2ed3d95f1908ba577264b0280d04f077f544af29e82e573",
+        "git_blob": "sha1:aae88df56cd596085aa0d19e09c26edbae4f2dd0",
+        "path": "scripts/validators/expected/__init__.py",
+        "state": "present"
+      },
+      {
+        "bytes": 4107,
+        "content_digest": "fb4444a6522210da1f65153ba7fb60cdb9c05638f974ff0491ca067bb49b56b6",
+        "git_blob": "sha1:f634b5a2dc693b3201eba5358c6aa118264718d7",
+        "path": "scripts/validators/expected/consumer_contracts.py",
+        "state": "present"
+      },
+      {
+        "bytes": 15214,
+        "content_digest": "1462a326a7dbdf623cc22457d82eeb1a94ee0033ee0db644737cd51b5ef005b6",
+        "git_blob": "sha1:67b71769cd55555176b8e58647765bdf290d9c85",
+        "path": "scripts/validators/expected/core.py",
+        "state": "present"
+      },
+      {
+        "bytes": 1125,
+        "content_digest": "35151888fa6fc06a895562ca0a357ab6692921bc9dee6d9d4066102399ebef5d",
+        "git_blob": "sha1:4dc16f896d31e435a90780ca8820604aec6c977f",
+        "path": "scripts/validators/expected/cross_source_contracts.py",
+        "state": "present"
+      },
+      {
+        "bytes": 1157,
+        "content_digest": "aff015d798b482cf47ecf17fefba19d607a7988302ab2023f06515776b8d1ee4",
+        "git_blob": "sha1:93bf4e001de485a0655628b3de8607aa8a369739",
+        "path": "scripts/validators/expected/docs_contracts.py",
+        "state": "present"
+      },
+      {
+        "bytes": 5138,
+        "content_digest": "0968b133848b7caa251cad592ac7d7d972782304c903f7e4330785c941c384d2",
+        "git_blob": "sha1:0c953684fb89cd3b7d7bfd3439bb6901aee98269",
+        "path": "scripts/validators/expected/federation_contracts.py",
+        "state": "present"
+      },
+      {
+        "bytes": 3053,
+        "content_digest": "0793c5ceb4b5f2507baba74b298b0d6eb88285df9a1eba68a4b3bf286a9fdd28",
+        "git_blob": "sha1:1de704d7fba94d6484af4571fa6d1db1ab822a6e",
+        "path": "scripts/validators/expected/governance_contracts.py",
+        "state": "present"
+      },
+      {
+        "bytes": 3843,
+        "content_digest": "55aa27ff3140e07aef31acb83a2abfc0893a9824ee9961a1f9a89a105861889e",
+        "git_blob": "sha1:0c8ace65d1c2c838abf43ab14f5ec32639887ec3",
+        "path": "scripts/validators/expected/handoff_contracts.py",
+        "state": "present"
+      },
+      {
+        "bytes": 4661,
+        "content_digest": "3cf9612e0859d0d1275e382a79cc7cde46662ab08bf538146a7954a2c7b25df5",
+        "git_blob": "sha1:3048c902ecfbebf08560d7df0a9645e1950f0dca",
+        "path": "scripts/validators/expected/recurrence_contracts.py",
+        "state": "present"
+      },
+      {
+        "bytes": 1845,
+        "content_digest": "0d881b71dcacdd6ecea78d0d141ca76f9d85e95c05e7c745d8a2b86a20edc8e0",
+        "git_blob": "sha1:c8596aa7ab8d1af106ed9960f80278e9237b7d9a",
+        "path": "scripts/validators/expected/registry_contracts.py",
+        "state": "present"
+      },
+      {
+        "bytes": 582,
+        "content_digest": "e6e5886e2519e0a8ab44279f9d9cf75aae475a169e6330babd30cb7536c1fb82",
+        "git_blob": "sha1:25bfd1845968c781033eec981e645fd69373e6da",
+        "path": "scripts/validators/expected/registry_surface_inputs.py",
+        "state": "present"
+      },
+      {
+        "bytes": 1340,
+        "content_digest": "fa7300fe6174f8f86ac214875625fa3484c53a1f7971043cf3f540821cd97a84",
+        "git_blob": "sha1:d0dc39a968a777fd1b804b0537f2107b14ab36ea",
+        "path": "scripts/validators/expected/technique_contracts.py",
+        "state": "present"
+      },
+      {
+        "bytes": 6917,
+        "content_digest": "960b77d1c333d54e4583ba965edbe7519ef51544d864339290863636716214ad",
+        "git_blob": "sha1:bb410c6b2d1b2d2706e40d9a2c49c54f6c6239fd",
+        "path": "scripts/validators/expected/tos_contracts.py",
+        "state": "present"
+      },
+      {
+        "bytes": 60,
+        "content_digest": "5d72ec8d74fa25daa9adb3f318a443b6a328da4564868043939926e6bfdfbfee",
+        "git_blob": "sha1:8fcc3954b6c9c019cc5bb902e918a040ad5b7722",
+        "path": "scripts/validators/expected_contracts.py",
+        "state": "present"
+      },
+      {
+        "bytes": 931,
+        "content_digest": "ec014703b21141ed600402b42a0e744f2cb666ecbdcba328942e6711e6e50426",
+        "git_blob": "sha1:3b646501c9c6815eabac0098702c05c39263a60e",
+        "path": "scripts/validators/generation.py",
+        "state": "present"
+      },
+      {
+        "bytes": 13222,
+        "content_digest": "0feb082f29cb367bed2d9aad7570d5f9e63fd07c0069ededa6d5a702e169f79b",
+        "git_blob": "sha1:3e34a3c01afdb4ec43f755f3b14c6787b4449ee6",
+        "path": "scripts/validators/local_contracts.py",
+        "state": "present"
+      },
+      {
+        "bytes": 47712,
+        "content_digest": "4d5f6a291f1ded875883df45e422a5b3cbccf9b220b0342351fc508fede190a8",
+        "git_blob": "sha1:121bfd8d55e1ebdfd05e914c9394670b44c46a23",
+        "path": "scripts/validators/local_kag_subtree.py",
+        "state": "present"
+      },
+      {
+        "bytes": 61,
+        "content_digest": "c4b99c327562a2a7d52455ab5f513bdbca5dceaeb1cc323ab9eeb05966850223",
+        "git_blob": "sha1:7856540311d258827e4aff0621fc93d975e594d7",
+        "path": "scripts/validators/manifest_contracts.py",
+        "state": "present"
+      },
+      {
+        "bytes": 554,
+        "content_digest": "e004b5e6522f4e16a595aba3e52b2614829743bff4a94c5fbef6a2f61a01fac6",
+        "git_blob": "sha1:09318a1c0d4cc3e51e80e922e23a1f277fd14883",
+        "path": "scripts/validators/manifests/__init__.py",
+        "state": "present"
+      },
+      {
+        "bytes": 7212,
+        "content_digest": "0b088d07fa15b21b0db81f3bd2ab5a96b42fe1289793f7714a72b02074c83180",
+        "git_blob": "sha1:7b7f7e853b08b0f8676a1b9aaf956864fe34f3c0",
+        "path": "scripts/validators/manifests/counterpart_federation_exposure_review.py",
+        "state": "present"
+      },
+      {
+        "bytes": 8893,
+        "content_digest": "5de6532e864a3cb991735545abb308f03fd0dd96fdad5c76d4889961d7ab805a",
+        "git_blob": "sha1:069ba6ab090f8d594e726669f9d9ab728e31e1bd",
+        "path": "scripts/validators/manifests/cross_source_node_projection.py",
+        "state": "present"
+      },
+      {
+        "bytes": 9356,
+        "content_digest": "be7f539648b013df687a0c2911b18ef64e8768e67ddeba71976699a434bec8f5",
+        "git_blob": "sha1:3e433e1711dc9844b37a10ddaaba2c59e7ddeda3",
+        "path": "scripts/validators/manifests/federation_export_registry.py",
+        "state": "present"
+      },
+      {
+        "bytes": 12327,
+        "content_digest": "1e149f72383c0823ef9a155d478b1f60a09f4726c74c0bbbecc0fb820105ac0d",
+        "git_blob": "sha1:702c6d0364c01b2dc4b1c7445e578aa3e0b50d25",
+        "path": "scripts/validators/manifests/federation_spine.py",
+        "state": "present"
+      },
+      {
+        "bytes": 15775,
+        "content_digest": "c5646374a164f6d96666a4d42654d0a868a63a22b5269a1475b03d325c5cd519",
+        "git_blob": "sha1:fe2b68e21b682e2298399d76748d05d6cdbc140a",
+        "path": "scripts/validators/manifests/governance.py",
+        "state": "present"
+      },
+      {
+        "bytes": 5089,
+        "content_digest": "f9e39541f772aea77ea5dd728cb9adc5eaf822c871a20904cc66d8b8c662417e",
+        "git_blob": "sha1:78d1bfacf6c4473f01a76061974cca028a7442ac",
+        "path": "scripts/validators/manifests/reasoning_handoff.py",
+        "state": "present"
+      },
+      {
+        "bytes": 5022,
+        "content_digest": "73eb46de83bb26740a1c33e76f8f7ad986d3cdd9336b4331e43880bd257a45ad",
+        "git_blob": "sha1:8b5cf0c5c2068c20efedea4b1876669e7a952c38",
+        "path": "scripts/validators/manifests/return_regrounding.py",
+        "state": "present"
+      },
+      {
+        "bytes": 9478,
+        "content_digest": "7333322eecdb9afce3f4c45a6dff4fd030880adffb4dc90a19ca6b01fd1fc4b9",
+        "git_blob": "sha1:31a91c19e785cea61b531f5d4e88c335d6682bb8",
+        "path": "scripts/validators/manifests/source_owned_export.py",
+        "state": "present"
+      },
+      {
+        "bytes": 5010,
+        "content_digest": "6dacf5d21af783722b2a110cf5d07af8c33efd61f5e6e92590f9cd7cee13a9e8",
+        "git_blob": "sha1:f7c55c5ad5a4220c0369785ee3685fa22bbf46b6",
+        "path": "scripts/validators/manifests/technique_lift.py",
+        "state": "present"
+      },
+      {
+        "bytes": 4410,
+        "content_digest": "72ccde2cf5a5b75c090ecdbecfa384b90f8df95e11514fb518a8ebbc8eca8068",
+        "git_blob": "sha1:fd2eb6862b97f294e2d127fe0ca0be491f113aef",
+        "path": "scripts/validators/manifests/tiny_consumer_bundle.py",
+        "state": "present"
+      },
+      {
+        "bytes": 4278,
+        "content_digest": "4d5c0b581fbe781069a2a7be2393a0b1fa3928d87270092dc8ace6eb4f4bb38d",
+        "git_blob": "sha1:8f38940ebb523bb15de05fe04a62a6a6d60daaac",
+        "path": "scripts/validators/manifests/tos_retrieval_axis.py",
+        "state": "present"
+      },
+      {
+        "bytes": 4979,
+        "content_digest": "4519a8fca6318f77a9a26ae299fefbc551b96066809dd286733e554efb2c081e",
+        "git_blob": "sha1:99200730600d6f72a70ebc91419061b01cba8737",
+        "path": "scripts/validators/manifests/tos_text_chunk_map.py",
+        "state": "present"
+      },
+      {
+        "bytes": 5716,
+        "content_digest": "a9c1771c8304c388db0185a7b3b668dcc4fa5045ef7ac29c5a051c5c216a9817",
+        "git_blob": "sha1:54944da78374b55fefc1ce3a9c8ed4fce2959cf1",
+        "path": "scripts/validators/manifests/tos_zarathustra_route.py",
+        "state": "present"
+      },
+      {
+        "bytes": 6348,
+        "content_digest": "894a2dff9235723ad96af880a4f59fa55a7a6a98ecb7a0529e1d0e9f1c885e52",
+        "git_blob": "sha1:775138ae8a8672afa441747ca136ca5320c67109",
+        "path": "scripts/validators/manifests/tos_zarathustra_route_retrieval.py",
+        "state": "present"
+      },
+      {
+        "bytes": 58,
+        "content_digest": "675374983dc8bf983db065b0b67c4fc5cedfb59a3877f997b4882730db79bbe1",
+        "git_blob": "sha1:744bf89a5eebb69244ad534046a3f0647e5b7d47",
+        "path": "scripts/validators/orchestration/__init__.py",
+        "state": "present"
+      },
+      {
+        "bytes": 1476,
+        "content_digest": "6c9b4bfa85ebd379d8c909d4cd33b670a768e638738af5b1e65f9695f4503399",
+        "git_blob": "sha1:00b41e68f81c852e9e5de8234d7d5844ff41c509",
+        "path": "scripts/validators/orchestration/examples.py",
+        "state": "present"
+      },
+      {
+        "bytes": 2020,
+        "content_digest": "c97013ba133bd4e4898af4d997e57aeaae29a14175b017311748205bc85a04cb",
+        "git_blob": "sha1:90fb387cbe7dd6443d467e3769cbcc82b42412dc",
+        "path": "scripts/validators/orchestration/expected_payloads.py",
+        "state": "present"
+      },
+      {
+        "bytes": 3097,
+        "content_digest": "a3ae7e165693eaddb73d1e6bb2ba1a1eaddddea04a917db40faa67144becbe4c",
+        "git_blob": "sha1:8fe5238431dfad39b07ddeb40a89509b2d5617d8",
+        "path": "scripts/validators/orchestration/generated_structures.py",
+        "state": "present"
+      },
+      {
+        "bytes": 3996,
+        "content_digest": "d2728a28d76d9a1bfb296f247521955e6d91c75d96e014061facae833f21e30e",
+        "git_blob": "sha1:9e0a60c3e4463f43be989488a0bcc6d64a961927",
+        "path": "scripts/validators/orchestration/generated_text.py",
+        "state": "present"
+      },
+      {
+        "bytes": 2213,
+        "content_digest": "df9fdde9eba4306fefe9476197672e88c5a3023664643aef64ef3d71b2a63077",
+        "git_blob": "sha1:3fe0422e134531ce5c2e7cd1a8c3b725b925f90a",
+        "path": "scripts/validators/orchestration/manifests.py",
+        "state": "present"
+      },
+      {
+        "bytes": 3887,
+        "content_digest": "beac07edc13ff8fa5303c284e136a009a4dceea2812108dbc53f46d723076992",
+        "git_blob": "sha1:238834d485fe139cf58baa66dd713a3b0da8e740",
+        "path": "scripts/validators/orchestration/runner.py",
+        "state": "present"
+      },
+      {
+        "bytes": 3555,
+        "content_digest": "72497dfb9fc2ca9464c816b1b90ae3ffc034fbb08a1092ea447c9b7a0d5e1956",
+        "git_blob": "sha1:f816497142d33c738b7cabcc1c257529feeacecf",
+        "path": "scripts/validators/orchestration/static_surfaces.py",
+        "state": "present"
+      },
+      {
+        "bytes": 6713,
+        "content_digest": "1d7f4946a4329781460738216cb18ecf8d1141b56ac30f97c5ed9b49d5e23725",
+        "git_blob": "sha1:9eab1263e70f574d1365598f06ddae3424adcb56",
+        "path": "scripts/validators/orchestration/status.py",
+        "state": "present"
+      },
+      {
+        "bytes": 65,
+        "content_digest": "bce6b7417bd7a1347b45f86cc887172149ce1c085b2d071091db9d750271d995",
+        "git_blob": "sha1:2341b92b43fb248ee9ef2316f6e3b1e17de21c50",
+        "path": "scripts/validators/orchestrator.py",
+        "state": "present"
+      },
+      {
+        "bytes": 538,
+        "content_digest": "5ecb299fcf597827bed0d624a778081ec5a20e1a19db7707073df5d0a1107f7e",
+        "git_blob": "sha1:b743a41f777cf42995f28ac6344049153989e12a",
+        "path": "scripts/validators/projection/__init__.py",
+        "state": "present"
+      },
+      {
+        "bytes": 5244,
+        "content_digest": "0432de68f7fb723747fe9a73282f40f1d2555148c70e2374af4b97e99228970b",
+        "git_blob": "sha1:7333a0e3c61d89ccc80655a41ba9d9e4eeae0dba",
+        "path": "scripts/validators/projection/counterpart_federation_exposure_review.py",
+        "state": "present"
+      },
+      {
+        "bytes": 3968,
+        "content_digest": "953a060155f3b107aa29ab355bd58a90bc7eb568f3e3eda99343ed9d80cc8aaf",
+        "git_blob": "sha1:6a6941d8b4dca89b50f7f605c7f0749597241e31",
+        "path": "scripts/validators/projection/cross_source_node_projection.py",
+        "state": "present"
+      },
+      {
+        "bytes": 9639,
+        "content_digest": "5d625cac3504346185a099b1d775db1391cba98038c899e49edbcab1ad27e8f8",
+        "git_blob": "sha1:41ce67726bf8968f6322da4f4f291e40b1aca764",
+        "path": "scripts/validators/projection/federation_export_registry.py",
+        "state": "present"
+      },
+      {
+        "bytes": 11482,
+        "content_digest": "7289402f251913e1f4e1a7a900a7bd4e3334f7ee527f987b3b16796383869200",
+        "git_blob": "sha1:61d28abe04cd27a6b9457f0206db1c4c916c22e6",
+        "path": "scripts/validators/projection/federation_spine.py",
+        "state": "present"
+      },
+      {
+        "bytes": 14239,
+        "content_digest": "a23e176d2a79ab654a2b115e88f5c341c9ac7ea2f3dccb715f109e6d8e09d8f8",
+        "git_blob": "sha1:0f9333a4ae0de06fbc076b2b3c90ebf95f9647a6",
+        "path": "scripts/validators/projection/governance.py",
+        "state": "present"
+      },
+      {
+        "bytes": 17181,
+        "content_digest": "ee45a5fc1ff59f9664e7878fe66fbab19840cfbb4b275b513a037300ac0c102b",
+        "git_blob": "sha1:feeba3b7c8ab94f80496de4573b59bd75291776a",
+        "path": "scripts/validators/projection/reasoning_handoff.py",
+        "state": "present"
+      },
+      {
+        "bytes": 26923,
+        "content_digest": "e2690ce23fda09c097200dca10a51bc4340ac818a4391a2305af07c7a68d6190",
+        "git_blob": "sha1:cdbcbf34a0e0750f60508bdff3c71fedadab1c1c",
+        "path": "scripts/validators/projection/registry.py",
+        "state": "present"
+      },
+      {
+        "bytes": 9927,
+        "content_digest": "150e94b723a77bed1f3a36b49325d20044100c2298b4104d1d5307485116f190",
+        "git_blob": "sha1:fe3ff4868018d271370f07bcf6d176f5855bae1c",
+        "path": "scripts/validators/projection/return_regrounding.py",
+        "state": "present"
+      },
+      {
+        "bytes": 12656,
+        "content_digest": "03a0ad07cc018c2445f522104a7a63635756784953a813e4b6cc9c5d96681aab",
+        "git_blob": "sha1:bac5dfb7ad95fa7b3af951f74bf173e91ea4052d",
+        "path": "scripts/validators/projection/technique.py",
+        "state": "present"
+      },
+      {
+        "bytes": 3466,
+        "content_digest": "6e49fa823cbfe5c9af33a28fd59b83f790dc26b1cf8ed0050c23d22f61c6846e",
+        "git_blob": "sha1:a6bffef15bfdf288a6abb661dd6918d9a40f2656",
+        "path": "scripts/validators/projection/tiny_consumer_bundle.py",
+        "state": "present"
+      },
+      {
+        "bytes": 3236,
+        "content_digest": "d8e8daffff30516b2316e9d16ee99ef3f580e1995d3b0b4cc73f0d2c493cb5ab",
+        "git_blob": "sha1:da8e67dc5ef4c979a4489669f7a7768b2ce19cd1",
+        "path": "scripts/validators/projection/tos_retrieval_axis.py",
+        "state": "present"
+      },
+      {
+        "bytes": 10107,
+        "content_digest": "e67f803aa5ac1075ff7836d4dba5aeca77c8fabefa5af4c69b455cf40bc7899a",
+        "git_blob": "sha1:af6e18ea9b0e1d1bc862b4da291991d846772c43",
+        "path": "scripts/validators/projection/tos_text_chunk_map.py",
+        "state": "present"
+      },
+      {
+        "bytes": 11442,
+        "content_digest": "f29df9d76ffaa7dfea92ecc36d7e6ad1cb37621a48e279d07a200f362c85fb0d",
+        "git_blob": "sha1:b9a269c1f1971924a895f28fc6f48282a3640a50",
+        "path": "scripts/validators/projection/tos_zarathustra_route.py",
+        "state": "present"
+      },
+      {
+        "bytes": 11238,
+        "content_digest": "ac9be2b2f1ac8cf04572a6d2d4b0d4a8c10f70a0ffddf1e8eb688e1b4c84f43e",
+        "git_blob": "sha1:f91c97993aeceb355438147d3d814e0a852c4344",
+        "path": "scripts/validators/projection/tos_zarathustra_route_retrieval.py",
+        "state": "present"
+      },
+      {
+        "bytes": 62,
+        "content_digest": "7f17dee490475866571fd12b79cd48eabea9c6cb1a98f5d2e69bde736fa0329a",
+        "git_blob": "sha1:5bc46d90f6de97fb42e1a7f7cfabe0d931cc6400",
+        "path": "scripts/validators/projection_parity.py",
+        "state": "present"
+      },
+      {
+        "bytes": 7478,
+        "content_digest": "73acc239d2f20a77e1e12fe849ece667d690ba904b58f9974d1969bd061e9a2d",
+        "git_blob": "sha1:e16b72bc0d3759d39188d4a63b824bbe2394b659",
+        "path": "scripts/validators/provider_registry.py",
+        "state": "present"
+      },
+      {
+        "bytes": 68783,
+        "content_digest": "a19f1643c40e617a79eb56ff2ed01909b7ddfc2fd95860b17dae71c51ca49a74",
+        "git_blob": "sha1:7c7255485583220a59e0ec7a85b3be1924ebd903",
+        "path": "scripts/validators/repo_local_kag_index.py",
+        "state": "present"
+      },
+      {
+        "bytes": 9938,
+        "content_digest": "3506791e898910a61e4bc836006ac77b3b4fb50ed9db707e765af7db5e5527d8",
+        "git_blob": "sha1:072d7824f089e7b76b7260728acfb94289e79aaf",
+        "path": "scripts/validators/schema_surfaces.py",
+        "state": "present"
+      },
+      {
+        "bytes": 3710,
+        "content_digest": "fd67f283e56ef1a715bb43c7fbe588edfecd5ab73a2cacc3cc41ba12d38158fd",
+        "git_blob": "sha1:01f82b31d2ce2cbf2998c8095f02d6010d331fb9",
+        "path": "scripts/validators/sibling_readiness.py",
+        "state": "present"
+      },
+      {
+        "bytes": 5203,
+        "content_digest": "24e1e26064e8993e9ce73e8450821c9fc673188d7b34041be85d6248566f03da",
+        "git_blob": "sha1:ba133f17b5c68e60088f06102876f824ed326cb7",
+        "path": "scripts/validators/source_refs.py",
+        "state": "present"
+      }
+    ],
+    "identity_digest": "85516e8e9dc0f2f4cd80fd33c0974e5be5f5d62ed3cfa49bdf12115d5549d60a",
+    "owner": "aoa-kag",
+    "procedure_manifest": {
+      "action_inputs": [
+        "repo-root",
+        "output",
+        "history-ref",
+        "event-history-ref"
+      ],
+      "action_path": ".github/actions/repo-local-kag-index/action.yml",
+      "closure_mode": "ast-import-closure-portable-runtime-contract-v1",
+      "dependencies": [
+        {
+          "name": "python",
+          "version": ">=3.11"
+        },
+        {
+          "name": "PyYAML",
+          "version": "6.0.3"
+        },
+        {
+          "name": "jsonschema",
+          "version": "4.23.0"
+        },
+        {
+          "name": "jsonschema-rs",
+          "required": false,
+          "version": "0.49.2"
+        }
+      ],
+      "dynamic_import_policy": "fail-closed-unresolved-local-v1",
+      "dynamic_imports": [
+        {
+          "kind": "spec_from_file_location",
+          "source": "scripts/validators/local_contracts.py",
+          "target": "mechanics/questbook/parts/quest-store/scripts/validate_quest_store.py"
+        },
+        {
+          "kind": "module_from_spec",
+          "source": "scripts/validators/local_contracts.py",
+          "target": "mechanics/questbook/parts/quest-store/scripts/validate_quest_store.py"
+        }
+      ],
+      "environment": [
+        {
+          "name": "AOA_KAG_FORCE_COLD_SCHEMA_COMPILATION",
+          "role": "validator engine rollback"
+        },
+        {
+          "name": "AOA_KAG_FORCE_PYTHON_SCHEMA_VALIDATION",
+          "role": "validator engine rollback"
+        }
+      ],
+      "manifest_digest": "b5b79f703fb2ff851fe51c9cfb6bed07127bb346918c7eeee45ad84c39af730b",
+      "manifest_path": "config/repo-local-kag-budget-producer.json",
+      "python_entrypoints": [
+        "scripts/generate_repo_local_kag_index.py",
+        "scripts/assemble_repo_local_kag_family.py",
+        "scripts/repo_local/portable_family.py",
+        "scripts/repo_local/tiered_family.py",
+        "scripts/repo_local_kag_gate.py",
+        "scripts/validate_repo_local_kag_family.py",
+        "scripts/validators/repo_local_kag_index.py"
+      ],
+      "python_import_closure": [
+        "mechanics/questbook/parts/quest-store/scripts/validate_quest_store.py",
+        "scripts/assemble_repo_local_kag_family.py",
+        "scripts/coverage_run.py",
+        "scripts/generate_repo_local_kag_coverage.py",
+        "scripts/generate_repo_local_kag_index.py",
+        "scripts/generation/__init__.py",
+        "scripts/generation/common.py",
+        "scripts/generation/consumer.py",
+        "scripts/generation/context.py",
+        "scripts/generation/federation.py",
+        "scripts/generation/governance.py",
+        "scripts/generation/handoff.py",
+        "scripts/generation/markdown.py",
+        "scripts/generation/provider_map.py",
+        "scripts/generation/registry.py",
+        "scripts/generation/regrounding.py",
+        "scripts/generation/source_refs.py",
+        "scripts/generation/technique.py",
+        "scripts/generation/tos.py",
+        "scripts/generation/writer.py",
+        "scripts/kag_generation.py",
+        "scripts/prepare_landing.py",
+        "scripts/provider_registry.py",
+        "scripts/repo_local/__init__.py",
+        "scripts/repo_local/history.py",
+        "scripts/repo_local/identity.py",
+        "scripts/repo_local/indexes.py",
+        "scripts/repo_local/portable_family.py",
+        "scripts/repo_local/structure.py",
+        "scripts/repo_local/tiered_family.py",
+        "scripts/repo_local_kag_gate.py",
+        "scripts/validate_mechanics_skeleton.py",
+        "scripts/validate_nested_agents.py",
+        "scripts/validate_repo_local_kag_family.py",
+        "scripts/validators/__init__.py",
+        "scripts/validators/common.py",
+        "scripts/validators/example_contracts.py",
+        "scripts/validators/examples/__init__.py",
+        "scripts/validators/examples/bridge_examples.py",
+        "scripts/validators/examples/counterpart_examples.py",
+        "scripts/validators/examples/cross_source_examples.py",
+        "scripts/validators/examples/exposure_review_examples.py",
+        "scripts/validators/examples/federation_examples.py",
+        "scripts/validators/examples/governance_examples.py",
+        "scripts/validators/examples/reasoning_handoff_examples.py",
+        "scripts/validators/examples/recurrence_examples.py",
+        "scripts/validators/examples/tiny_consumer_bundle_examples.py",
+        "scripts/validators/examples/tos_examples.py",
+        "scripts/validators/expected/__init__.py",
+        "scripts/validators/expected/consumer_contracts.py",
+        "scripts/validators/expected/core.py",
+        "scripts/validators/expected/cross_source_contracts.py",
+        "scripts/validators/expected/docs_contracts.py",
+        "scripts/validators/expected/federation_contracts.py",
+        "scripts/validators/expected/governance_contracts.py",
+        "scripts/validators/expected/handoff_contracts.py",
+        "scripts/validators/expected/recurrence_contracts.py",
+        "scripts/validators/expected/registry_contracts.py",
+        "scripts/validators/expected/registry_surface_inputs.py",
+        "scripts/validators/expected/technique_contracts.py",
+        "scripts/validators/expected/tos_contracts.py",
+        "scripts/validators/expected_contracts.py",
+        "scripts/validators/generation.py",
+        "scripts/validators/local_contracts.py",
+        "scripts/validators/local_kag_subtree.py",
+        "scripts/validators/manifest_contracts.py",
+        "scripts/validators/manifests/__init__.py",
+        "scripts/validators/manifests/counterpart_federation_exposure_review.py",
+        "scripts/validators/manifests/cross_source_node_projection.py",
+        "scripts/validators/manifests/federation_export_registry.py",
+        "scripts/validators/manifests/federation_spine.py",
+        "scripts/validators/manifests/governance.py",
+        "scripts/validators/manifests/reasoning_handoff.py",
+        "scripts/validators/manifests/return_regrounding.py",
+        "scripts/validators/manifests/source_owned_export.py",
+        "scripts/validators/manifests/technique_lift.py",
+        "scripts/validators/manifests/tiny_consumer_bundle.py",
+        "scripts/validators/manifests/tos_retrieval_axis.py",
+        "scripts/validators/manifests/tos_text_chunk_map.py",
+        "scripts/validators/manifests/tos_zarathustra_route.py",
+        "scripts/validators/manifests/tos_zarathustra_route_retrieval.py",
+        "scripts/validators/orchestration/__init__.py",
+        "scripts/validators/orchestration/examples.py",
+        "scripts/validators/orchestration/expected_payloads.py",
+        "scripts/validators/orchestration/generated_structures.py",
+        "scripts/validators/orchestration/generated_text.py",
+        "scripts/validators/orchestration/manifests.py",
+        "scripts/validators/orchestration/runner.py",
+        "scripts/validators/orchestration/static_surfaces.py",
+        "scripts/validators/orchestration/status.py",
+        "scripts/validators/orchestrator.py",
+        "scripts/validators/projection/__init__.py",
+        "scripts/validators/projection/counterpart_federation_exposure_review.py",
+        "scripts/validators/projection/cross_source_node_projection.py",
+        "scripts/validators/projection/federation_export_registry.py",
+        "scripts/validators/projection/federation_spine.py",
+        "scripts/validators/projection/governance.py",
+        "scripts/validators/projection/reasoning_handoff.py",
+        "scripts/validators/projection/registry.py",
+        "scripts/validators/projection/return_regrounding.py",
+        "scripts/validators/projection/technique.py",
+        "scripts/validators/projection/tiny_consumer_bundle.py",
+        "scripts/validators/projection/tos_retrieval_axis.py",
+        "scripts/validators/projection/tos_text_chunk_map.py",
+        "scripts/validators/projection/tos_zarathustra_route.py",
+        "scripts/validators/projection/tos_zarathustra_route_retrieval.py",
+        "scripts/validators/projection_parity.py",
+        "scripts/validators/provider_registry.py",
+        "scripts/validators/repo_local_kag_index.py",
+        "scripts/validators/schema_surfaces.py",
+        "scripts/validators/sibling_readiness.py",
+        "scripts/validators/source_refs.py"
+      ],
+      "schema_inputs": [
+        "schemas/domain-index-catalog.schema.json",
+        "schemas/kag-artifact-locator.schema.json",
+        "schemas/kag-mcp-capabilities.schema.json",
+        "schemas/kag-mcp-result.schema.json",
+        "schemas/repo-local-kag-budget-receipt.schema.json",
+        "schemas/repo-local-kag-corpus-manifest.schema.json",
+        "schemas/repo-local-kag-coverage.schema.json",
+        "schemas/repo-local-kag-distribution-manifest.schema.json",
+        "schemas/repo-local-kag-family-manifest.schema.json",
+        "schemas/repo-local-kag-federation.schema.json",
+        "schemas/repo-local-kag-hot-profile.schema.json",
+        "schemas/repo-local-kag-index.schema.json",
+        "schemas/repo-local-kag-query-result.schema.json",
+        "schemas/repo-local-kag-retrieval-bundle.schema.json",
+        "schemas/repo-local-kag-retrieval-plan.schema.json",
+        "schemas/repo-local-kag-repository-index.schema.json",
+        "schemas/repo-local-kag-budget-producer-manifest.schema.json"
+      ],
+      "schema_path": "schemas/repo-local-kag-budget-producer-manifest.schema.json"
+    },
+    "revision_binding": "content-addressed-procedure-import-closure-portable-runtime-contract-and-descriptor-io-v1",
+    "source_digest": "4882f50ab3a09b04b02715510f2e5dbec13fa60a5032f98e9e043dc9e79f812e"
+  },
+  "reason": "Reviewed Tree validation follow-up: extract existing source-witness payload and rights guards for focused negatives and use minimal package inputs for aggregate readiness wiring while retaining full-corpus foundation and real DOCX integrations; regenerate exact source-bound KAG companions.",
+  "repo": "Tree-of-Sophia",
+  "schema_version": "aoa-repo-local-kag-budget-receipt-v2",
+  "scope": "generated_delta_and_tracked_size",
+  "tracked_bytes": 47851706,
+  "tracked_bytes_max": 11534336
+}

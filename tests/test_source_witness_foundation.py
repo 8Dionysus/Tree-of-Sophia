@@ -12526,8 +12526,14 @@ class SourceWitnessFoundationTests(unittest.TestCase):
                 return False
             return original_git_tracked(repo_root, path)
 
+        issues: list[tuple[str, str]] = []
         with patch.object(foundation, "_git_tracked", side_effect=pretend_untracked):
-            issues = foundation.validate_foundation(REPO_ROOT)
+            foundation._validate_artifact_representation_payload(
+                REPO_ROOT,
+                representation_path,
+                representation,
+                issues=issues,
+            )
 
         self.assertIn(
             (
@@ -12543,21 +12549,26 @@ class SourceWitnessFoundationTests(unittest.TestCase):
                 "**/representations/*/representation.json"
             )
         )[0]
-        original_load_json = foundation._load_json
-
-        def load_malformed_payload(
-            path: Path,
-            repo_root: Path,
-            issues: list[tuple[str, str]],
-        ) -> dict | None:
-            payload = original_load_json(path, repo_root, issues)
-            if path == representation_path and payload is not None:
-                payload = copy.deepcopy(payload)
-                payload["payload"] = None
-            return payload
-
-        with patch.object(foundation, "_load_json", side_effect=load_malformed_payload):
-            issues = foundation.validate_foundation(REPO_ROOT)
+        representation = json.loads(representation_path.read_text(encoding="utf-8"))
+        representation["payload"] = None
+        representation_validator, _ = foundation._schema_validator(
+            foundation.SCHOLARLY_COMPOSITE_FILE_REPRESENTATION_SCHEMA,
+            REPO_ROOT,
+        )
+        issues: list[tuple[str, str]] = []
+        foundation._validate_payload(
+            representation,
+            representation_validator,
+            foundation._relative(representation_path, REPO_ROOT),
+            issues,
+        )
+        foundation._validate_composite_representation_payload(
+            REPO_ROOT,
+            representation_path,
+            representation,
+            require_local_payloads=False,
+            issues=issues,
+        )
 
         location = foundation._relative(representation_path, REPO_ROOT)
         self.assertTrue(
@@ -12576,6 +12587,10 @@ class SourceWitnessFoundationTests(unittest.TestCase):
         )
         representation = json.loads(representation_path.read_text(encoding="utf-8"))
         rights_path = REPO_ROOT / representation["rights_ref"]
+        rights_validator, _ = foundation._schema_validator(
+            foundation.RIGHTS_SCHEMA,
+            REPO_ROOT,
+        )
         original_load_json = foundation._load_json
 
         def load_malformed_rights(
@@ -12589,8 +12604,15 @@ class SourceWitnessFoundationTests(unittest.TestCase):
                 payload["scope_refs"] = None
             return payload
 
+        issues: list[tuple[str, str]] = []
         with patch.object(foundation, "_load_json", side_effect=load_malformed_rights):
-            issues = foundation.validate_foundation(REPO_ROOT)
+            foundation._validate_artifact_representation_rights(
+                REPO_ROOT,
+                representation_path,
+                representation,
+                rights_validator=rights_validator,
+                issues=issues,
+            )
 
         location = foundation._relative(rights_path, REPO_ROOT)
         self.assertTrue(
