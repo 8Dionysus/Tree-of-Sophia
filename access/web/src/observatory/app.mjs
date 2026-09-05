@@ -3,11 +3,14 @@ import './scene.css';
 import './connected.css';
 import './workspace.css';
 import './evidence.css';
+import './navigation.css';
 import {mountScene} from './scene.js';
 import {createTools} from './workspace.mjs';
 import {createPanelHost} from './panels.mjs';
 import {createEvidencePanel} from './evidence-panel.mjs';
 import {evidenceRoute} from './evidence-model.mjs';
+import {createNavigationPanel} from './navigation-panel.mjs';
+import {pathAvailable} from './navigation-model.mjs';
 import {createPageCommandRegistry} from '../page-commands';
 import {createWebMCPAdapter} from '../webmcp';
 import {KnowledgeClient,focusSpec,relationSpec,localized,DEFAULT_FOCUS} from './knowledge-client.mjs';
@@ -15,7 +18,7 @@ import {KnowledgeClient,focusSpec,relationSpec,localized,DEFAULT_FOCUS} from './
 const host=document.getElementById('app');
 host.innerHTML=shell;
 const root=host.firstElementChild;
-let scene,tools,evidence,registry,syncing=false,lastContext='';
+let scene,tools,evidence,navigation,registry,syncing=false,lastContext='';
 const client=new KnowledgeClient();
 function selected(){
   if(tools?.auxiliarySelection)return tools.auxiliarySelection;
@@ -26,7 +29,7 @@ function selected(){
     label:localized(raw.display.title||raw.display.label),subtitle:localized(raw.display.statement),
     from_id:raw.from_id,to_id:raw.to_id,predicate_id:raw.predicate_id,source_refs:raw.source_refs,
     authority_posture:raw.epistemic?.authority_layer,review_posture:raw.epistemic?.review_posture,
-    canon_status:raw.epistemic?.canon_status,reroutable:false,evidence_available:Boolean(evidenceRoute(raw))};
+    canon_status:raw.epistemic?.canon_status,reroutable:pathAvailable(raw),path_available:pathAvailable(raw),evidence_available:Boolean(evidenceRoute(raw))};
 }
 function sync(){
   if(!scene)return;
@@ -35,16 +38,18 @@ function sync(){
   if(packet?.focus?.node_id)url.searchParams.set('focus',packet.focus.node_id);
   if(selection&&!tools?.auxiliarySelection)url.searchParams.set('selection',selection.id);else url.searchParams.delete('selection');
   history.replaceState(null,'',url);
-  const key=JSON.stringify([packet?.source_revision,packet?.focus,selection,root.dataset.lens]);
+  const key=JSON.stringify([packet?.source_revision,packet?.focus,selection,root.dataset.lens,navigation?.startId]);
   if(key!==lastContext){lastContext=key;if(!syncing)registry?.notifyStateChange();}
   tools?.selectionChanged();
   evidence?.selectionChanged();
+  navigation?.selectionChanged();
 }
 const commit=action=>{syncing=true;try{return action();}finally{syncing=false;sync();}};
 scene=mountScene(root,{initialFocus:new URLSearchParams(location.search).get('focus')||DEFAULT_FOCUS,onChange:()=>{tools?.clearAuxiliarySelection();sync();}});
 const panels=createPanelHost(root,scene);
 tools=createTools(root,scene,{selected,panels,onChange:()=>{if(!syncing)registry?.notifyStateChange();sync();}});
 evidence=createEvidencePanel(root,scene,panels,{selected,onUserAction:()=>registry?.notifyStateChange()});
+navigation=createNavigationPanel(root,scene,panels,{selected,commit,onUserAction:()=>registry?.notifyStateChange()});
 const handlers={
   ...tools.handlers,
   ...evidence.handlers,
@@ -75,12 +80,7 @@ const handlers={
     scene.invalidate();return {query,result_count:packet.counts.matching_nodes+packet.counts.matching_relations,
       results:[...searchHits.values()].map(raw=>({id:raw.id,label:localized(raw.display.title||raw.display.label),kind:raw.kind_id||'relation',summary:localized(raw.display.summary||raw.display.statement)}))};
   },
-  'tos.page.show-neighborhood':async(input,{signal})=>{
-    scene.ui.cancelPending();
-    const id=selected()?.id;if(!id||selected().kind!=='node')throw new Error('Сначала выберите звезду.');
-    const packet=await client.compile(focusSpec(id,{depth:Math.max(1,Math.min(3,Number(input.depth)||1))}),signal,scene.port.packet.source_revision);signal.throwIfAborted();commit(()=>scene.port.setGraph(packet,{selectFocus:true}));
-    return {node:{node_id:id},neighbors:packet.nodes.map(n=>({node_id:n.id,label:localized(n.display.title)})),edges:packet.relations.map(r=>({edge_id:r.id}))};
-  },
+  ...navigation.handlers,
   'tos.page.clear-focus':()=>commit(()=>{scene.closeInspector(false,true);scene.overview();return {cleared:true};}),
 };
 const searchHits=new Map();let searchRevision=null;
@@ -89,7 +89,7 @@ for(const id of Object.keys(tools.handlers)){
   const handler=handlers[id];handlers[id]=(input,execution)=>commit(()=>handler(input,execution));
 }
 registry=createPageCommandRegistry(()=>({mode:'philosophy',view_id:'observatory',graph_mode:'nodes',selected:selected(),
-  path_start_node_id:null,active_layers:['knowledge'],active_predicates:['overview'],deep_link:location.href,research_workspace:tools.workspace.summary()}),handlers);
+  path_start_node_id:navigation.startId,active_layers:['knowledge'],active_predicates:['overview'],deep_link:location.href,research_workspace:tools.workspace.summary()}),handlers);
 const allowed=new Set(['tos.page.context','tos.page.cancel',...Object.keys(handlers)]);
 root.querySelector('#sc-query').addEventListener('input',()=>registry.notifyStateChange());
 const webmcp=createWebMCPAdapter(registry,document,allowed);

@@ -151,6 +151,8 @@ export function mountScene(root, {onChange=()=>{}, initialFocus}={}) {
     node:id=>nodes.find(n=>n.id===id)?.raw,
     relation:id=>relationRecords.find(r=>r.id===id),
     neighbors:id=>relationRecords.filter(r=>r.from_id===id||r.to_id===id),
+    captureView:()=>captureView(),
+    restoreView(state){if(!state?.graph?.packet)return;remember();restoreView(state);},
     setGraph(packet,{selectFocus=false,initial=false}={}){
       if(!initial)remember();
       knowledgeUI?.cancelInspector();
@@ -197,9 +199,13 @@ export function mountScene(root, {onChange=()=>{}, initialFocus}={}) {
     q('.sc-context-sub').textContent=selectedRelation?'Выбрана связь':selected>=0?'Фокус: '+nodes[selected].name:scenePacket?nodes.length+' звёзд · '+edges.length+' связей':'Загружаем область…';
     root.dataset.history=String(history.length);layoutDirty=true;onChange(scenePort);
   }
-  function remember(){if(suppressHistory)return;const state={graph:captureGraph(),selected,panelOpen:!panel.hidden||overlayReturnPanel,lens,targets:nodes.map(n=>n.target.slice()),yaw:tyaw,pitch:tpitch,zoom:tzoom,pan:{...tpan},windowPosition:{...windowPosition},cardTab};if(JSON.stringify(state)!==JSON.stringify(history.at(-1))){history.push(state);if(history.length>24)history.shift()}updateContext();}
+  function captureView(){return {graph:captureGraph(),selected,panelOpen:!panel.hidden||overlayReturnPanel,lens,targets:nodes.map(n=>n.target.slice()),yaw:tyaw,pitch:tpitch,zoom:tzoom,pan:{...tpan},windowPosition:{...windowPosition},cardTab};}
+  function remember(){if(suppressHistory)return;const state=captureView();if(JSON.stringify(state)!==JSON.stringify(history.at(-1))){history.push(state);if(history.length>24)history.shift()}updateContext();}
   function back(){
     const state=history.pop();if(!state)return;
+    restoreView(state);
+  }
+  function restoreView(state){
     endWheelResponse();
     closeSearch(false,false);closeLenses(false,false);restoreGraph(state.graph);selected=state.selected;hover=-1;lens=state.lens;nodes.forEach((n,i)=>n.target=state.targets[i].slice());tyaw=state.yaw;tpitch=state.pitch;tzoom=state.zoom;tpan={...state.pan};windowPosition={...state.windowPosition};
     updateLensUI();if(selected>=0||selectedRelation){fillCard();setCardTab(state.cardTab);panel.hidden=!state.panelOpen;placePanel(false)}else panel.hidden=true;

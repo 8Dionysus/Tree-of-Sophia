@@ -53,9 +53,30 @@ CSP is required.
 - `panels.mjs` coordinates auxiliary window visibility and resize invalidation.
   Registering another panel does not change the camera or painter. This is a local
   UI seam; integration with the backend UI constructor remains a later slice.
+- `navigation-panel.mjs` presents paged connections, start/end selection, bounded
+  alternative paths, temporary query exclusions, and a return to the starting
+  camera/view. An exploration page keeps its own schema and query provenance;
+  it is not cast to a LensResult. Requests use 10 primary nodes and 14 relations
+  so even focus and endpoint context fit the 40-node scene. Pages replace the
+  visible area; they are not accumulated into an unbounded graph. Continuation
+  checks snapshot, query, focus and page sequence, and shows cumulative counts
+  explicitly as counts for this traversal, not the corpus total.
+- `navigation-model.mjs` uses the existing philosophy path service only for
+  records with explicit `source_graph=philosophy` and `native_id`. Every returned
+  route is compiled through native-ID filters on that source, then bound to
+  exact knowledge IDs with endpoint, direction, exclusion and provenance checks.
+  A route has at most 8 edges, a request at most 5 alternatives, and only one
+  route is displayed at a time. The old path service has no atomic revision
+  token; surrounding source/content checks and current hop validation do not
+  prove snapshot atomicity. Other knowledge layers support neighborhood
+  exploration but do not yet have a path-between-two-objects backend contract.
+  Query exclusions stay in this panel; they do not edit the graph or the local
+  research journal. Saved route comparisons remain a later integration slice.
 - `webmcp.ts` can restrict registration to commands implemented by the active
   shell. IDs, source references and deep links are returned intact. Legacy
-  path comparison and exclusions remain on compatibility routes. Evidence and
+  saved path comparison remains on compatibility routes. Path start/find,
+  rerouting without a selected relation, and neighborhood opening are available
+  in the Observatory; path tools require the explicit source capability. Evidence and
   reading comparison are also available in the Observatory when the selection
   has an explicit evidence route, independently of path-routing capability.
 
@@ -107,5 +128,22 @@ scrolling, source-panel handoff, keyboard tabs/Escape, offline error/retry and a
 390×844 sheet with no horizontal overflow. The source-navigation work correctly
 shows provenance with an unconnected evidence route. Camera/input and GPU painter
 code stayed unchanged; only panel obstacle discovery changed in the scene module.
-Large-data performance, alternative-path UI and the backend constructor remain
-subsequent slices; this does not renew physical trackpad acceptance.
+Large-data performance and the backend constructor remain subsequent slices;
+this does not renew physical trackpad acceptance.
+
+## Connections and paths slice verification (2026-09-05)
+
+63 frontend tests, TypeScript, Vite, 39 base access tests and standalone source
+validation passed. Real HTTP checks bound two paths from the A01 clay tablet to
+the Uruk III corpus; excluding one first hop leaves one alternative, excluding
+both yields a bounded no-path result. Exploration resumes with the same snapshot
+and closed endpoints. Browser checks covered endpoint search with disambiguation,
+variant switching, exclusion, identical camera before/after switching and return,
+restoration of the original node set, four Zarathustra exploration pages, and
+WebMCP start/find/neighborhood commands. Unsupported source-navigation paths
+show a capability message. A 390×844 panel measured 360×354.48 (42dvh); a
+1280×720 panel measured 450×440, with no horizontal page overflow at either size.
+The painter, scene CSS, input/focus code and classic app source stayed unchanged.
+New gesture-device acceptance, full performance profiling, CI and deployment
+were not run. The backend integration still needs its independently reviewed
+commits and regenerated shared companions when the branches are combined.

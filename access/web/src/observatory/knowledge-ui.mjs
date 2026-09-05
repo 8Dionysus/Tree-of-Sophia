@@ -131,7 +131,7 @@ export function attachKnowledgeUI(root,port,{client=new KnowledgeClient(),initia
         const b=button(label+': '+localized(node?.display.title,id),()=>chooseNode(id,port.packet.source_revision),'sc-neighbor sc-relation-row');list.append(b);
       }
     }
-    sourceDetails(raw,kind);q('.sc-provenance').append(button('Основания и прочтения',()=>root.dispatchEvent(new CustomEvent('sophia-evidence',{detail:{raw,kind}}))),button('Открыть источники',()=>root.dispatchEvent(new CustomEvent('sophia-sources',{detail:{raw,kind}}))));port.cardChanged();
+    sourceDetails(raw,kind);q('.sc-provenance').append(button('Основания и прочтения',()=>root.dispatchEvent(new CustomEvent('sophia-evidence',{detail:{raw,kind}}))),button('Открыть источники',()=>root.dispatchEvent(new CustomEvent('sophia-sources',{detail:{raw,kind}}))),button(kind==='node'?'Проложить маршрут':'Другой путь',()=>root.dispatchEvent(new CustomEvent('sophia-navigate',{detail:{raw,kind,tab:'paths'}}))));port.cardChanged();
   }
   async function showCard(kind,raw){
     cancelInspector();const revision=port.packet?.source_revision;if(!revision)return;
@@ -150,7 +150,7 @@ export function attachKnowledgeUI(root,port,{client=new KnowledgeClient(),initia
     }
   }
   q('.sc-open-neighborhood').addEventListener('click',()=>{
-    const id=port.selection.nodeId;if(id)loadFocus(id,{expected:port.packet.source_revision,depth:1});
+    const raw=port.node(port.selection.nodeId);if(raw)root.dispatchEvent(new CustomEvent('sophia-navigate',{detail:{raw,kind:'node',tab:'neighbors'}}));
   });
   addEventListener('pagehide',cancelPending);
   return {loadFocus,chooseNode,chooseRelation,searchRow,search,showCard,cancelSearch,cancelInspector,cancelPending,willSelect,

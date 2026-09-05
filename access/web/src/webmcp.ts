@@ -185,14 +185,14 @@ function compactPathResult(result: Record<string, unknown>): unknown {
   if (!value) return result;
   const paths = Array.isArray(value.paths) ? value.paths as Array<Record<string, unknown>> : [];
   const first = paths[0] || {};
-  const nodeIds = Array.isArray(first.node_ids) ? first.node_ids.map((id) => clipped(id)).slice(0, 10) : [];
+  const nodeIds = Array.isArray(first.node_ids) ? first.node_ids.map(identity).slice(0, 10) : [];
   const edgeIds = Array.isArray(first.edge_ids) ? first.edge_ids : [];
   const context = result.context as Record<string, unknown> | undefined;
   return {
-    finding: value.found ? "alternative route found and shown on the page" : "no route found within the requested bounds",
+    finding: value.found ? "route found and shown on the page" : "no route found within the requested bounds",
     found: value.found === true,
-    from_id: clipped(value.from_id),
-    to_id: clipped(value.to_id),
+    from_id: identity(value.from_id),
+    to_id: identity(value.to_id),
     route_count: Number(value.path_count || paths.length || 0),
     first_route_node_ids: nodeIds,
     first_route_edge_count: edgeIds.length,
@@ -200,7 +200,8 @@ function compactPathResult(result: Record<string, unknown>): unknown {
     page_updated: true,
     context_revision: result.context_revision,
     deep_link: context?.deep_link,
-    next_actions: value.found ? ["save the route for comparison", "inspect its uncertain edges"] : ["widen the route bounds", "restore an excluded edge"],
+    exploration_truncated: value.exploration_truncated === true,
+    next_actions: value.next_actions || (value.found ? ["save the route for comparison", "inspect its uncertain edges"] : ["widen the route bounds", "restore an excluded edge"]),
   };
 }
 
@@ -210,15 +211,19 @@ function compactNeighborhoodResult(result: Record<string, unknown>): unknown {
   const node = value?.node as Record<string, unknown> | undefined;
   const neighbors = Array.isArray(value?.neighbors) ? value.neighbors as Array<Record<string, unknown>> : [];
   const edges = Array.isArray(value?.edges) ? value.edges as Array<Record<string, unknown>> : [];
+  const page = value?.page as Record<string, unknown> | undefined;
   return {
     selection: {
-      id: clipped(node?.node_id || node?.id, 96),
+      id: identity(node?.node_id || node?.id),
       label: clipped(node?.label || node?.title, 120),
     },
     neighbor_count: neighbors.length,
     relation_count: edges.length,
+    scope: page ? "exploration-page" : "bounded-neighborhood",
+    page_number: page?.number,
+    has_more: page ? Boolean(page.next_cursor) : undefined,
     neighbors: neighbors.slice(0, 6).map((item) => ({
-      id: clipped(item.node_id || item.id, 72),
+      id: identity(item.node_id || item.id),
       label: clipped(item.label || item.title, 72),
       kind: clipped(item.node_type, 36),
     })),
@@ -537,7 +542,8 @@ function dynamicTools(registry: PageCommandRegistry, context: PageContext): WebM
         inputSchema: objectSchema({ depth: { type: "integer", minimum: 1, maximum: 3 } }),
         annotations: { readOnlyHint: false },
       }, context.revision, compactNeighborhoodResult),
-      commandTool(registry, "tos.page.start-path", {
+    );
+    if (selected.path_available !== false) tools.push(commandTool(registry, "tos.page.start-path", {
         name: "tos.page.start-path",
         title: "Start a path from this node",
         description: `Use the currently selected node ${selected.id} as the deictic start of the next path query.`,
@@ -545,7 +551,7 @@ function dynamicTools(registry: PageCommandRegistry, context: PageContext): WebM
         annotations: { readOnlyHint: false },
       }, context.revision),
     );
-    if (context.path_start_node_id && context.path_start_node_id !== selected.id) {
+    if (selected.path_available !== false && context.path_start_node_id && context.path_start_node_id !== selected.id) {
       tools.push(
         commandTool(registry, "tos.page.find-path", {
           name: "tos.page.find-path-to-selection",

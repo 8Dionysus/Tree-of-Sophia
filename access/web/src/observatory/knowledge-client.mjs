@@ -42,9 +42,9 @@ function checkItems(items,kind) {
   }
   return ids;
 }
-export function validateLens(packet,expected=null) {
+function validateArea(packet,expected=null) {
   checkRevision(packet,expected);
-  if(packet.schema!=='tos_lens_result_v1'||packet.authority_boundary?.is_source!==false
+  if(packet.authority_boundary?.is_source!==false
     ||packet.authority_boundary?.is_canon!==false
     ||packet.authority_boundary?.writes_to_tree!==false)throw new ContractError('Неподдерживаемый контракт области.');
   if(!Array.isArray(packet.nodes)||!Array.isArray(packet.relations)
@@ -52,6 +52,33 @@ export function validateLens(packet,expected=null) {
   const ids=checkItems(packet.nodes,'node');checkItems(packet.relations,'relation');
   if(packet.relations.some(r=>!ids.has(r.from_id)||!ids.has(r.to_id)))throw new ContractError('Связь не содержит оба конца в области.');
   if(packet.focus&&!ids.has(packet.focus.node_id))throw new ContractError('Центр отсутствует в области.');
+  return packet;
+}
+export function validateLens(packet,expected=null) {
+  if(packet?.schema!=='tos_lens_result_v1')throw new ContractError('Неподдерживаемый контракт линзы.');
+  return validateArea(packet,expected);
+}
+// Exploration pages remain exploration packets; they are never relabelled as a LensResult.
+export function validateExploration(packet,expected=null,previous=null) {
+  validateArea(packet,expected);
+  const page=packet.page,ids=new Set(packet.nodes.map(n=>n.id));
+  if(packet.schema!=='tos_exploration_result_v1'||packet.writes_to_tree!==false
+    ||!/^[a-f0-9]{64}$/.test(packet.snapshot_revision||'')
+    ||!['paused','complete','limit_reached'].includes(packet.status)
+    ||!packet.focus||!Number.isInteger(page?.number)||page.number<1
+    ||page.scope!=='resumable-neighborhood'||page.returned_nodes!==packet.nodes.length
+    ||page.returned_relations!==packet.relations.length
+    ||!Array.isArray(page.primary_node_ids)||!Array.isArray(page.context_node_ids)
+    ||page.primary_node_ids.length+page.context_node_ids.length!==ids.size
+    ||new Set([...page.primary_node_ids,...page.context_node_ids]).size!==ids.size
+    ||[...page.primary_node_ids,...page.context_node_ids].some(id=>!ids.has(id))
+    ||packet.counts?.scope!=='cumulative-discovered-not-global-total'
+    ||packet.inclusion?.authority!=='query-execution-not-semantic-proof'
+    ||(packet.status==='paused'?!/^[a-f0-9]{64}$/.test(page.next_cursor||''):page.next_cursor!==null))throw new ContractError('Неполная страница раскрытия связей.');
+  if(previous&&(packet.snapshot_revision!==previous.snapshot_revision
+    ||packet.focus.node_id!==previous.focus.node_id
+    ||page.number!==previous.page.number+1
+    ||JSON.stringify(packet.query)!==JSON.stringify(previous.query)))throw new RevisionError();
   return packet;
 }
 // Abort and generation checking are both needed: a completed response can race
@@ -101,6 +128,11 @@ export class KnowledgeClient {
     checkItems(packet.nodes,'node');checkItems(packet.relations,'relation');return packet;
   }
   async compile(spec,signal,expected=null){return validateLens(await this.request('/lenses/compile',{signal,body:spec}),expected);}
+  async explore(query,signal,expected,previous=null){
+    const packet=validateExploration(await this.request('/explore',{signal,body:query}),expected,previous);
+    if(!previous&&Object.entries(query).some(([key,value])=>JSON.stringify(packet.query?.[key])!==JSON.stringify(value)))throw new ContractError('Сервер вернул другую область раскрытия.');
+    return packet;
+  }
   async inspect(kind,id,signal,expected,contentRevision) {
     const packet=checkRevision(await this.request('/'+(kind==='node'?'nodes/':'relations/')+encodeURIComponent(id)+(kind==='node'?'?relation_limit=0':''),{signal}),expected);
     if(packet.schema!==(kind==='node'?'tos_knowledge_node_packet_v1':'tos_knowledge_relation_packet_v1'))throw new ContractError('Неверная карточка.');
@@ -119,7 +151,8 @@ export class KnowledgeClient {
 const slots=[[0,5,70],[-124,-134,-190],[143,-97,210],[151,91,-45],[-106,135,185],[-230,-47,95],[-54,-70,300],[63,157,245],[-29,74,-225],[-403,100,-460],[-474,-2,-335],[-309,184,-350],[-506,141,-560],[-365,-18,-420],[346,17,-140],[412,-98,-315],[490,65,-275],[344,157,120],[470,202,-410]];
 function hash(id){let value=2166136261;for(const c of id)value=Math.imul(value^c.codePointAt(0),16777619);return value>>>0;}
 export function projectLens(packet,previous=[]) {
-  validateLens(packet);const existing=new Map(previous.map(n=>[n.id,n])),degree=new Map();
+  if(packet.schema==='tos_exploration_result_v1')validateExploration(packet);else validateLens(packet);
+  const existing=new Map(previous.map(n=>[n.id,n])),degree=new Map();
   for(const r of packet.relations){degree.set(r.from_id,(degree.get(r.from_id)||0)+1);degree.set(r.to_id,(degree.get(r.to_id)||0)+1);}
   const focus=packet.focus?.node_id;
   const ordered=packet.nodes.slice().sort((a,b)=>(b.id===focus)-(a.id===focus)
