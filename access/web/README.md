@@ -51,6 +51,10 @@ CSP is required.
   The old endpoint has no revision token: these checks are not an atomic snapshot
   guarantee, and evidence responses are deliberately not cached.
 - `panels.mjs` coordinates auxiliary window visibility and resize invalidation.
+  On desktop, a tool inherits the inspector's free side (or opens opposite the
+  selected star) so the window does not cover the focus. Tool-to-tool handoffs
+  retain that side; mobile sheets retain their bottom placement. This changes
+  neither the camera nor the painter.
   Registering another panel does not change the camera or painter. This is a local
   UI seam; integration with the backend UI constructor remains a later slice.
 - `navigation-panel.mjs` presents paged connections, start/end selection, bounded
