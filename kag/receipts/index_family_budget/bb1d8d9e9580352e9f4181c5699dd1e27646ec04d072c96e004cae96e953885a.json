@@ -7,19 +7,19 @@
     "algorithm": "sha256:canonical-json-file-inventory-v2",
     "base_ref": "b22f91573c6995765e36cddd272462e0afbfd1d7",
     "contract_version": "aoa-kag:budget-receipt-candidate-identity-v2",
-    "excluded_path": "kag/receipts/index_family_budget/bdb738ef32197047fa2e63ba6fc738eae88772dac3ff5d8327be3afc1f60877f.json",
-    "family_digest": "bdb738ef32197047fa2e63ba6fc738eae88772dac3ff5d8327be3afc1f60877f",
+    "excluded_path": "kag/receipts/index_family_budget/bb1d8d9e9580352e9f4181c5699dd1e27646ec04d072c96e004cae96e953885a.json",
+    "family_digest": "bb1d8d9e9580352e9f4181c5699dd1e27646ec04d072c96e004cae96e953885a",
     "file_count": 5120,
-    "seal": "d2674c343cb5c471a9e5e42c2c401077aa65110d18137838d555627b670691b3",
-    "source_epoch": "sha256:1e5f07e09a6f8739e2d98b8fdab6eb0a943a9bb7b91513253977da7696a0bc06",
-    "source_snapshot": "sha256:354ae94681dd7d896d83794f9e85e3ed8d8f2bca4299bb34bceaf9d647b5907c"
+    "seal": "879312fd7afe1b470a5dada1e275a0a4fcf3d3943a3ec84d58aa110c66e7914b",
+    "source_epoch": "sha256:c11b906ef1716b8b6b0e723c9e5ad5acff4b158ee6f267874ddbffcdeeaaea21",
+    "source_snapshot": "sha256:28493e3a1a7cf2eff7c829da99b8f58e1df618fa414d754e95dd94bb74388d9e"
   },
   "changed_generated_bytes": 43884816,
   "changed_generated_files": 520,
   "decision_ref": "aoa-kag:docs/decisions/AOA-KAG-D-0017-portable-content-addressed-repository-family.md",
   "default_limit_bytes": 1048576,
-  "head_family_digest": "bdb738ef32197047fa2e63ba6fc738eae88772dac3ff5d8327be3afc1f60877f",
-  "head_source_snapshot": "sha256:354ae94681dd7d896d83794f9e85e3ed8d8f2bca4299bb34bceaf9d647b5907c",
+  "head_family_digest": "bb1d8d9e9580352e9f4181c5699dd1e27646ec04d072c96e004cae96e953885a",
+  "head_source_snapshot": "sha256:28493e3a1a7cf2eff7c829da99b8f58e1df618fa414d754e95dd94bb74388d9e",
   "producer_identity": {
     "action": {
       "bytes": 5200,
@@ -1362,7 +1362,7 @@
     "revision_binding": "content-addressed-procedure-import-closure-portable-runtime-contract-and-descriptor-io-v1",
     "source_digest": "4882f50ab3a09b04b02715510f2e5dbec13fa60a5032f98e9e043dc9e79f812e"
   },
-  "reason": "TOS-D-0043 and TOS-D-0044: retire historical trees and permanently resume source-current KAG, preserving upstream validation optimizations; exact pinned producer and current main base.",
+  "reason": "approved ToS canonical currentness repair; exact pinned producer parity",
   "repo": "Tree-of-Sophia",
   "schema_version": "aoa-repo-local-kag-budget-receipt-v2",
   "scope": "generated_delta_and_tracked_size",
