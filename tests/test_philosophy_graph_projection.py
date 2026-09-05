@@ -240,7 +240,9 @@ class PhilosophyGraphProjectionTest(unittest.TestCase):
             self.assertTrue(set(cluster["member_edge_ids"]) <= edge_ids)
 
     def test_source_ref_clusters_only_include_edges_with_same_source_ref(self) -> None:
-        payload = build_payload()
+        # Builder parity is checked separately; inspect that same committed
+        # projection here, as the other graph-invariant tests do.
+        payload = self.load_projection()
         edges = {edge["edge_id"]: edge for edge in payload["edges"]}
         source_ref_clusters = [
             cluster
