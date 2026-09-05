@@ -10,7 +10,6 @@ import re
 import stat
 import subprocess
 import sys
-from functools import lru_cache
 from pathlib import Path
 from typing import Any, Mapping
 
@@ -1081,7 +1080,6 @@ def _v2_candidate_inventory(root: Path, excluded_path: Path) -> list[dict[str, A
     return inventory
 
 
-@lru_cache(maxsize=16)
 def _v2_candidate_seal(root: Path, digest: str) -> tuple[str, int]:
     excluded_path = Path("kag/receipts/index_family_budget") / f"{digest}.json"
     inventory = _v2_candidate_inventory(root, excluded_path)
@@ -1131,7 +1129,6 @@ def _v2_git_nul_paths(root: Path, *arguments: str) -> set[Path]:
     return paths
 
 
-@lru_cache(maxsize=16)
 def _v2_source_epoch(root: Path) -> str:
     """Compute aoa-kag's source epoch from the current clean Git index."""
     head = subprocess.run(
@@ -1391,16 +1388,12 @@ def _v2_expected_generated_paths(
     return head_paths, base_paths
 
 
-@lru_cache(maxsize=16)
-def _v2_changed_generated_measurements_cached(
+def _v2_changed_generated_measurements(
     root: Path,
-    manifest_text: str,
+    manifest: Mapping[str, Any],
     base_ref: str,
 ) -> tuple[int, int]:
-    """Compute generated delta for one immutable manifest/base pair."""
-    manifest = json.loads(manifest_text)
-    if not isinstance(manifest, Mapping):
-        raise ValueError("current family manifest must be an object")
+    """Recompute the generated delta from the bound base and current family."""
     resolved = subprocess.run(
         ("git", "rev-parse", "--verify", f"{base_ref}^{{commit}}"),
         cwd=root,
@@ -1425,28 +1418,6 @@ def _v2_changed_generated_measurements_cached(
         changed_files += 1
         changed_bytes += max(len(old or b""), len(new or b""))
     return changed_bytes, changed_files
-
-
-def _v2_changed_generated_measurements(
-    root: Path,
-    manifest: Mapping[str, Any],
-    base_ref: str,
-) -> tuple[int, int]:
-    """Reuse generated-delta work for receipt mutations in one checkout."""
-    manifest_text = json.dumps(
-        manifest,
-        ensure_ascii=False,
-        sort_keys=True,
-        separators=(",", ":"),
-    )
-    return _v2_changed_generated_measurements_cached(root, manifest_text, base_ref)
-
-
-def clear_v2_validation_caches() -> None:
-    """Drop workspace identity caches after mutating a checkout in-process."""
-    _v2_candidate_seal.cache_clear()
-    _v2_source_epoch.cache_clear()
-    _v2_changed_generated_measurements_cached.cache_clear()
 
 
 def _v2_non_python_input_issues(
@@ -2554,7 +2525,6 @@ def validate_manifest(
     *,
     fetch_missing_budget_base: bool = False,
 ) -> list[Issue]:
-    clear_v2_validation_caches()
     issues: list[Issue] = []
     manifest_path = root / MANIFEST_PATH
     try:
