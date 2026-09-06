@@ -694,16 +694,63 @@ class KnowledgeContractTests(unittest.TestCase):
 
     def test_temporal_parsing_never_accepts_invalid_dates_or_loses_bounds(self):
         self.assertNotEqual(_normalized_time("2026-99-99")["normalization_status"], "source-literal-parsed")
-        value = _normalized_time({"start": "1900", "end": "1800"})
+        explicit = {'calendar': 'proleptic-gregorian', 'year_numbering': 'astronomical'}
+        value = _normalized_time({"start": "1900", "end": "1800", **explicit})
         self.assertEqual(value["interval"], {"start": "1900", "end": "1800"})
         self.assertIn("reversed-interval", value["issues"])
-        ancient = _normalized_time({'start': '-0500', 'end': '-0400'})
+        ancient = _normalized_time({'start': '-0500', 'end': '-0400', **explicit})
         self.assertEqual(ancient['issues'], [])
         self.assertLess(ancient['sort_start'], ancient['sort_end'])
         self.assertEqual(_normalized_time('2000-02')['sort_end'], 20000229)
         self.assertNotIn('sort_start', _normalized_time({'year': 1883, 'month': 'unknown'}))
         self.assertNotIn('sort_start', _normalized_time({'year': 1883, 'calendar': 'julian'}))
-        self.assertEqual(_normalized_time({'temporal': {'start': '1883', 'end': '1885'}})['sort_end'], 18851231)
+        self.assertEqual(_normalized_time({'temporal': {'start': '1883', 'end': '1885', **explicit}})['sort_end'], 18851231)
+
+    def test_structured_time_does_not_invent_calendar_numbering_or_precision(self):
+        explicit = {'calendar': 'proleptic-gregorian', 'year_numbering': 'astronomical'}
+        for value in (
+            {'year': 1883}, {'value': '1883', 'calendar': 'gregorian'},
+            {'start': '1883', 'end': '1885'},
+            {'value': '1883', **explicit, 'certainty': 'approximate'},
+            {'value': '1883', **explicit, 'precision': 'unknown'},
+            {'year': 1883.5, **explicit}, {'year': True, **explicit},
+            {'year': 1883, 'month': 2, 'day': 30, **explicit},
+            {'value': '-0500', **explicit, 'year_numbering': 'historical'},
+            {'start': '1883', **explicit},
+        ):
+            with self.subTest(value=value):
+                normalized = _normalized_time(value)
+                self.assertNotIn('sort_start', normalized)
+                self.assertEqual(normalized['raw'], value)
+                self.assertTrue(normalized['issues'])
+        self.assertEqual(_normalized_time({'value': '-0500', **explicit})['sort_start'], -4999899)
+
+    def test_nested_time_context_preserves_calendar_and_reports_conflicts(self):
+        explicit = {'calendar': 'gregorian', 'year_numbering': 'astronomical'}
+        inner = {'start': '1883', 'end': '1885', **explicit}
+        self.assertEqual(_normalized_time({'interval': inner})['sort_end'], 18851231)
+        self.assertEqual(_normalized_time({'temporal': {'interval': inner}})['sort_end'], 18851231)
+        for value in (
+            {'interval': {**inner, 'calendar': 'julian'}},
+            {'interval': inner, 'calendar': 'julian'},
+            {'temporal': {'value': '1883', **explicit}, 'certainty': 'uncertain'},
+            {'start': {'value': '1883', **explicit, 'calendar': 'julian'}, 'end': '1885', **explicit},
+            {'interval': inner, 'year_numbering': 'historical'},
+        ):
+            with self.subTest(value=value):
+                normalized = _normalized_time(value)
+                self.assertNotIn('sort_start', normalized)
+                self.assertEqual(normalized['raw'], value)
+
+    def test_relative_and_unknown_time_do_not_borrow_absolute_dates(self):
+        for value in (
+            {'kind': 'relative-order', 'relative': {'relation': 'before', 'anchor_ref': 'tos.historical-event.fixture'}},
+            {'kind': 'unknown-date', 'certainty': 'unknown'},
+        ):
+            normalized = _normalized_time(value)
+            self.assertEqual(normalized['raw'], value)
+            self.assertNotIn('sort_start', normalized)
+            self.assertEqual(normalized['normalization_status'], 'structured-source')
 
     def test_registry_supersession_resolves_and_is_acyclic(self):
         entities = copy.deepcopy(self.entity_type_registry)

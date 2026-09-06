@@ -114,13 +114,54 @@ existing assessment journal and optional `assessment_refs`; a reference does
 not itself grant admission. There is no embedded human-signature requirement.
 The compatibility `review_status=unreviewed` describes the initial source
 record, not the current scoped admission, which the historical graph adapter
-does not yet materialize. Three registered predicates are executable:
+does not yet materialize. Four registered predicates are executable (relation
+registry version 5 adds historical dating):
 
 | Predicate | Domain → range | Qualification |
 | --- | --- | --- |
 | `historical_participant` | historical situation → Agent or Organization | `qualifiers.participation_role` is required source wording, not a new Agent type or a reviewed role-registry ID |
 | `historical_place` | historical situation → Place | location does not imply political belonging, residence or influence |
 | `historical_work` | historical situation → Work | topical association does not imply creation, reading, publication, reception or influence |
+| `historical_dating` | historical situation → TemporalAssertion value | historical time, not witness creation, data capture or record revision |
+
+A dating value has an explicit `kind` (`date-assertion`, `interval-assertion`,
+`relative-order`, or `unknown-date`), `role=historical-time`, `calendar`,
+`year_numbering`, `certainty`, and exact `source_wording` with its language
+(which may be unknown). A date uses `value`; an interval uses `interval.start`
+and/or `interval.end`; a relative date uses `relative.relation` (before, after,
+during, overlaps) and a resolved historical `anchor_ref`. Unknown dates have
+none of those absolute/relative values. Open bounds are absence, not infinity.
+Additional uninterpreted fields live in `extensions` and survive inspection.
+
+For example, the **synthetic, not historical evidence** value
+`{"kind":"date-assertion","role":"historical-time","calendar":null,"year_numbering":null,"certainty":"approximate","value":"1883","source_wording":{"text":"Около 1883 года — тест","language":"ru"}}`
+remains searchable and inspectable, but has no invented numerical bounds.
+The enclosing Claim still supplies the subject, evidence, maker, exact version,
+provenance, epistemic state, alternatives and assessment route. An exact date
+value can belong to a disputed or negated Claim; comparison never accepts it.
+Competing datings use separate Claim IDs, not overwritten event metadata.
+
+Relative anchor edges run from the dating Claim to the referenced historical
+situation as `has_historical_date_anchor`. They allow forward and reverse focus
+through the ordinary Claim topology, retain the exact relative qualifier, and
+never infer an absolute date, transitive closure, causality or true chronology.
+The source wording becomes the temporal value's readable title and description;
+assertion contexts remain mandatory in compact delivery. This is source-copy
+display, not translation, assessment, or a complete seven-role Forms adapter.
+
+Comparable structured values require an explicit Gregorian/proleptic-Gregorian
+calendar, astronomical year numbering, exact precision/certainty, valid date
+parts and two ordered interval bounds. Approximate, uncertain, unknown,
+unsupported-calendar/numbering, conflicting nested contexts and open intervals
+retain their complete raw values and issue codes without comparison keys.
+The reader performs no calendar conversion or uncertainty expansion. Bare
+legacy `YYYY[-MM[-DD]]` string values keep their documented proleptic-Gregorian,
+astronomical shorthand; this compatibility rule is not applied to structured
+objects with missing calendar or numbering. This narrows old numeric search
+results where the previous reader invented such context, without changing
+source bytes. Filter the ordinary `semantics.time.sort_start/sort_end` fields
+for comparable proposed date ranges; inspect excluded raw values and their
+issues instead of interpreting exclusion as absence in history.
 
 The catalog emits additional family files only when source records exist and
 names each new entry's `source_schema_ref` plus `extension_schema_refs` in the
@@ -139,8 +180,10 @@ The ordinary access catalog, focus, type-ancestry filters, Claim inspection,
 and adjacent metadata-form reader consume these records without a new UI.
 The source-form command adapter can prepare/create/revise those adjacent forms;
 it still cannot create or change the historical subject itself. The profile
-adds no automatic dates: event time, witness time and capture time remain
-separate. A complete dating, role, biography, causal and reception grammar,
+adds no automatic dates: historical dating Claims, witness dating, capture
+provenance and Claim revisions remain separate. As-of knowledge reconstruction,
+calendar conversion, uncertainty-aware interval algebra, the full role,
+biography, causal and reception grammar,
 source-visible historical assessment and actual UI acceptance remain open.
 
 Validation: `python -m unittest discover -s tests -p test_source_witness_bibliographic_graph.py`, then the existing knowledge

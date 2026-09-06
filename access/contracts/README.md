@@ -29,6 +29,19 @@ cardinality, and evidence/review posture. Raw source kinds and predicates stay
 present beside those stable IDs; unknown vocabulary stays visibly unmapped.
 Bibliographic claims remain reified, and exact declared references — never
 name similarity — create cross-layer grounding routes.
+Structured `semantics.time` comparisons require declared Gregorian or
+proleptic-Gregorian calendar and astronomical year numbering. Missing or
+unsupported context, approximate/uncertain dates, invalid parts, conflicting
+nested context and incomplete/reversed intervals preserve `raw` and `issues`
+without `sort_start/sort_end`; no calendar conversion or uncertainty expansion
+is implicit. Bare legacy `YYYY[-MM[-DD]]` strings retain proleptic-Gregorian,
+astronomical shorthand. Relative and unknown dating assertions remain
+addressable without absolute order keys. Numeric filters select proposed
+values, not accepted historical facts; assertion contexts still govern their
+reading. These fields are materialized by the Python producer and transported
+unchanged to D1; existing read snapshots require regeneration to gain this
+correction. Processor dependency digests invalidate affected normalization
+cache entries, not source history.
 `seed.focus_node_id` and `tos.knowledge.focus` make the selected center
 machine-readable in both request and result. Resolution is exact normalized
 ID first, then stable entity ID, then unique native ID; ambiguity is rejected. Catalog entity routes connect

@@ -100,6 +100,7 @@ RELATION_FIELDS = {
 ENTITY_REGISTRY_REF = "ToS/doctrine/semantic-interchange/entity-types.v1.json"
 RELATION_REGISTRY_REF = "ToS/doctrine/semantic-interchange/relation-types.v1.json"
 _TEMPORAL_CLAIM_PREDICATES = {
+    "historical_dating",
     "author_received_finished_copies_on",
     "first_publication_chronology",
     "official_publication_on",
@@ -719,15 +720,23 @@ def _node_display(
 ) -> dict[str, Any]:
     existing = _existing_display(item)
     properties = item.get("properties") if isinstance(item.get("properties"), dict) else {}
+    time_value = properties.get('value') if kind_id == 'temporal-assertion' else None
+    time_wording = time_value.get('source_wording') if isinstance(time_value, dict) else None
+    time_wording = time_wording if isinstance(time_wording, dict) else {}
+    time_text = _string(time_wording.get('text'))
     explicit_label = (
         _string(item.get("label"))
         or _string(item.get("canonical_label"))
         or _string(properties.get("preferred_label"))
+        or time_text
     )
     path_label = _string(item.get("title")) or _string(item.get("name")) or _string(item.get("path")) or _string(item.get("declared_path"))
     label = explicit_label or path_label or _humanize(str(item.get("node_id") or item.get("id") or "node"))
     labels = _multilingual_labels(item)
     title = _localized_from(existing.get("title"), label)
+    time_language = _string(time_wording.get('language'))
+    if time_text and time_language and _form_key(time_language) and title.get(time_language) is None:
+        title[time_language] = time_text
     for language, value in _form_items(labels).items():
         if title.get(language) is None:
             title[language] = value
@@ -767,6 +776,7 @@ def _node_display(
                 properties.get("role"),
                 properties.get("purpose"),
                 properties.get("comment"),
+                time_text,
             )
             if _string(value)
         ),
@@ -898,6 +908,18 @@ def _semantic_entity_id(
     return normalized_id
 
 
+def _time_comparison_issues(value: dict[str, Any]) -> list[str]:
+    """Calendar conversion and uncertainty expansion are not reader authority."""
+    issues = []
+    if value.get('calendar') not in ('gregorian', 'proleptic-gregorian'):
+        issues.append('calendar-not-comparable')
+    if value.get('year_numbering') != 'astronomical':
+        issues.append('year-numbering-not-comparable')
+    if value.get('precision') in ('approximate', 'uncertain', 'unknown') or value.get('certainty', 'exact') != 'exact':
+        issues.append('non-exact-date')
+    return issues
+
+
 def _normalized_time(value: Any, *, raw_source_field: str | None = None) -> dict[str, Any] | None:
     if isinstance(value, str) and value.strip():
         raw = value.strip()
@@ -931,51 +953,80 @@ def _normalized_time(value: Any, *, raw_source_field: str | None = None) -> dict
         }
     if not isinstance(value, dict):
         return None
+    # A nested representation may inherit an explicitly declared context, but
+    # conflicting calendars/numbering cannot silently pick one interpretation.
+    for wrapper in ('temporal', 'interval'):
+        if not isinstance(value.get(wrapper), dict):
+            continue
+        inner = copy.deepcopy(value[wrapper])
+        conflicts = []
+        for key in ('calendar', 'year_numbering', 'certainty', 'precision', 'role'):
+            if key in value:
+                if key in inner and inner[key] != value[key]:
+                    conflicts.append(f'conflicting-{key}')
+                else:
+                    inner[key] = value[key]
+        result = _normalized_time(inner, raw_source_field=raw_source_field)
+        if result is None:
+            return None
+        result['raw'] = copy.deepcopy(value)
+        if 'source_wording' in value:
+            result['source_wording'] = copy.deepcopy(value['source_wording'])
+        result['issues'] = list(dict.fromkeys([*result.get('issues', []), *conflicts]))
+        if conflicts:
+            for key in ('sort_start', 'sort_end', 'comparison_calendar', 'year_numbering'):
+                result.pop(key, None)
+        if wrapper == 'interval':
+            result['interval'] = copy.deepcopy(value['interval'])
+            result['kind'] = _string(value.get('chronology_kind')) or 'interval-assertion'
+            for key in ('sequence_posture', 'publication_posture', 'scope', 'stages', 'ordering_warning'):
+                if key in value:
+                    result[key] = copy.deepcopy(value[key])
+        return result
+    common = {'calendar': value.get('calendar'), 'role': value.get('role'),
+              'declared_year_numbering': value.get('year_numbering'),
+              'certainty': value.get('certainty'), 'source_wording': copy.deepcopy(value.get('source_wording')),
+              'normalization_status': 'structured-source', 'source_field': raw_source_field,
+              'raw': copy.deepcopy(value)}
     if "start" in value or "end" in value:
         bounds = {key: copy.deepcopy(value[key]) for key in ("start", "end") if key in value}
-        issues = []
-        parsed = [_normalized_time(bounds.get(key)) for key in ("start", "end")]
-        if all(p and p.get("normalization_status") == "source-literal-parsed" for p in parsed):
-            if parsed[0]["sort_start"] > parsed[1]["sort_end"]:
+        issues = _time_comparison_issues(value)
+        parsed = []
+        for key in ('start', 'end'):
+            bound = bounds.get(key)
+            if isinstance(bound, dict):
+                bound = copy.deepcopy(bound)
+                for context in ('calendar', 'year_numbering', 'certainty'):
+                    if context in bound and context in value and bound[context] != value[context]:
+                        issues.append(f'conflicting-{context}')
+                    elif context in value:
+                        bound[context] = value[context]
+            parsed.append(_normalized_time(bound))
+        if all(p and 'sort_start' in p for p in parsed):
+            if not issues and parsed[0]["sort_start"] > parsed[1]["sort_end"]:
                 issues.append("reversed-interval")
-        return {"kind": "interval-assertion", "interval": bounds, "raw": copy.deepcopy(value),
-                "normalization_status": "structured-source", "source_field": raw_source_field,
-                "issues": issues,
+        else:
+            issues.append('incomplete-or-unparsed-interval')
+        return {**common, "kind": "interval-assertion", "interval": bounds,
+                "issues": list(dict.fromkeys(issues)),
                 **({"sort_start": parsed[0]["sort_start"], "sort_end": parsed[1]["sort_end"],
                     "comparison_calendar": "proleptic-gregorian", "year_numbering": "astronomical"}
-                   if not issues and all(p and 'sort_start' in p for p in parsed)
-                   and value.get('calendar') in (None, 'gregorian', 'proleptic-gregorian') else {})}
-    if isinstance(value.get("interval"), dict):
-        normalized = _normalized_time({**value['interval'], 'calendar': value.get('calendar')}) or {}
-        return {
-            **{key: normalized[key] for key in ('sort_start', 'sort_end', 'comparison_calendar', 'year_numbering') if key in normalized},
-            "kind": _string(value.get("chronology_kind")) or "interval-assertion",
-            "calendar": _string(value.get("calendar")),
-            "interval": dict(value["interval"]),
-            "sequence_posture": value.get("sequence_posture"),
-            "publication_posture": value.get("publication_posture"),
-            "scope": value.get("scope"),
-            "stages": list(value.get("stages")) if isinstance(value.get("stages"), list) else [],
-            "ordering_warning": value.get("ordering_warning"),
-            "normalization_status": "structured-source",
-            "source_field": raw_source_field,
-            "raw": copy.deepcopy(value),
-            "issues": (_normalized_time(value["interval"]) or {}).get("issues", []),
-        }
-    temporal = value.get("temporal") if isinstance(value.get("temporal"), dict) else value
-    if temporal is not value and ('start' in temporal or 'end' in temporal or 'interval' in temporal):
-        result = _normalized_time(temporal, raw_source_field=raw_source_field)
-        if result is not None:
-            result['raw'] = copy.deepcopy(value)
-        return result
+                   if not issues else {})}
+    if value.get('kind') in ('relative-order', 'unknown-date'):
+        return {**common, 'kind': value['kind'], 'relative': copy.deepcopy(value.get('relative')),
+                'issues': ['no-absolute-date-bounds']}
+    temporal = value
     if any(
         key in temporal
         for key in ("date", "value", "period", "start", "end", "year", "month", "day")
     ):
         value_from_parts = None
-        issues = []
+        issues = _time_comparison_issues(temporal)
         if temporal.get("year") is not None:
             try:
+                if any(not isinstance(temporal[key], int) or isinstance(temporal[key], bool)
+                       for key in ('year', 'month', 'day') if key in temporal):
+                    raise ValueError('date parts must be integers')
                 year = int(temporal['year'])
                 value_from_parts = ('-' if year < 0 else '') + f'{abs(year):04d}'
                 if temporal.get("month") is not None:
@@ -992,8 +1043,9 @@ def _normalized_time(value: Any, *, raw_source_field: str | None = None) -> dict
         if literal is not None and (not parsed or parsed.get('precision') is None):
             issues.append('unparsed-date-value')
         return {
+            **common,
             **({key: parsed[key] for key in ('sort_start', 'sort_end', 'comparison_calendar', 'year_numbering') if key in parsed}
-               if parsed and temporal.get('calendar') in (None, 'gregorian', 'proleptic-gregorian') and not issues else {}),
+               if parsed and not issues else {}),
             "kind": _string(temporal.get("kind")) or "date-assertion",
             "calendar": _string(temporal.get("calendar")),
             "value": temporal.get("value", temporal.get("date", value_from_parts)),

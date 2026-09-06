@@ -51,7 +51,7 @@ VALIDATION_REFS = (
     "scripts/validate_source_witness_bibliographic_graph.py",
     "tests/test_source_witness_bibliographic_graph.py",
 )
-HISTORICAL_PREDICATES = {'historical_participant', 'historical_place', 'historical_work'}
+HISTORICAL_PREDICATES = {'historical_participant', 'historical_place', 'historical_work', 'historical_dating'}
 HISTORICAL_REGISTRY_REFS = (
     'ToS/doctrine/semantic-interchange/entity-types.v1.json',
     'ToS/doctrine/semantic-interchange/relation-types.v1.json',
@@ -280,8 +280,14 @@ def _validate_historical_claim(claim: dict[str, Any], objects: dict[str, dict[st
         raise BibliographicGraphBuildError(f"{claim['claim_id']}: historical claim schema violation")
     relation = predicates[claim['predicate']]
     for field, allowed in (('subject_ref', relation['domain_type_ids']), ('object', relation['range_type_ids'])):
-        record = objects.get(claim[field])
-        current = mappings.get(record['record_type']) if record else None
+        if field == 'object' and claim['predicate'] == 'historical_dating':
+            current = 'tos.entity.temporal-assertion'
+            anchor = claim[field].get('relative', {}).get('anchor_ref')
+            if anchor is not None and (anchor not in objects or objects[anchor]['record_type'] not in OPTIONAL_RECORD_FILES):
+                raise BibliographicGraphBuildError(f"{claim['claim_id']}: unresolved historical date anchor")
+        else:
+            record = objects.get(claim[field])
+            current = mappings.get(record['record_type']) if record else None
         pending, ancestry = [current], set()
         while pending:
             kind = pending.pop()
@@ -846,7 +852,7 @@ def _validate_cross_references(payload: dict[str, Any]) -> None:
             edges[edge_id]["to_id"]
             for edge_id in trace["edge_ids"]
             if edges[edge_id]["edge_kind"]
-            in {"has_normalized_place", "has_normalized_agent"}
+            in {"has_normalized_place", "has_normalized_agent", "has_historical_date_anchor"}
         }
         if normalized_edge_targets != set(trace["normalized_identity_node_ids"]):
             raise BibliographicGraphBuildError(
@@ -1035,10 +1041,13 @@ def build_payload(repo_root: Path = REPO_ROOT) -> dict[str, Any]:
         edge_specs.extend(("reviewed_by", node_id) for node_id in sorted(review_node_ids))
 
         normalized_identity_node_ids: list[str] = []
-        for edge_kind, normalized_ref in _provision_identity_edges(
+        identity_edges = _provision_identity_edges(
             claim,
             objects=objects,
-        ):
+        )
+        if claim['predicate'] == 'historical_dating' and claim['object'].get('relative'):
+            identity_edges.append(('has_historical_date_anchor', claim['object']['relative']['anchor_ref']))
+        for edge_kind, normalized_ref in identity_edges:
             normalized_node = _identity_node(objects[normalized_ref])
             _add_node(nodes, normalized_node)
             normalized_node_id = str(normalized_node["node_id"])

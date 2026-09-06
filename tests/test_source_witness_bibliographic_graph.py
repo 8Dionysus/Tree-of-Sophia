@@ -160,6 +160,108 @@ class SourceWitnessBibliographicGraphTest(unittest.TestCase):
             self.assertNotEqual(nodes['tos.event.historical-fixture-capture']['type_id'],
                                 nodes[event['record_id']]['type_id'])
 
+    def test_historical_datings_reach_existing_filters_and_preserve_competing_source_readings(self):
+        with self.historical_fixture() as (root, history, real, claims, rebuild):
+            from tos_access.knowledge import execute_knowledge_lens, validate_knowledge_semantics
+            baseline = copy.deepcopy(claims[0])
+            date = {'kind': 'date-assertion', 'role': 'historical-time',
+                    'calendar': 'proleptic-gregorian', 'year_numbering': 'astronomical',
+                    'certainty': 'exact', 'value': '1883',
+                    'source_wording': {'text': '1883 год — спорная тестовая датировка', 'language': 'ru'},
+                    'extensions': {'unread': {'calendar_source': None}}}
+            variants = [date, {**date, 'value': '1885'}, {**date, 'certainty': 'approximate'},
+                        {**date, 'calendar': 'julian'}, {**date, 'calendar': None}]
+            for index, value in enumerate(variants):
+                claims.append({**baseline, 'claim_id': f'tos.claim.historical-date-{index}',
+                               'predicate': 'historical_dating', 'object': value, 'epistemic_status': 'disputed'})
+            claims[-5]['alternative_claim_refs'] = [claims[-4]['claim_id']]
+            projection = rebuild()
+            graph, entities, relations = self.historical_knowledge(root, projection)
+            report = validate_knowledge_semantics(graph, entities, relations)
+            self.assertTrue(report['valid'], report['violations'])
+            dates = [node for node in graph['nodes'] if node['type_id'] == 'tos.entity.temporal-assertion']
+            self.assertEqual(len(dates), 5)
+            for node in dates:
+                value = node['attributes']['value']
+                self.assertEqual(node['semantics']['time']['raw'], value)
+                self.assertEqual(node['display']['title']['ru'], value['source_wording']['text'])
+                self.assertNotEqual(node['entity_id'], node['attributes']['claim_ref'])
+                self.assertTrue(node['semantics']['assertion_contexts'])
+            selected = execute_knowledge_lens(graph, {'schema_version': 'tos_lens_spec_v1',
+                'lens_id': 'historical-date-overlap', 'node_query': {'filters': [
+                    {'field': 'semantics.time.sort_start', 'op': 'lte', 'value': 18841231},
+                    {'field': 'semantics.time.sort_end', 'op': 'gte', 'value': 18830101}]},
+                'detail': 'compact'})
+            self.assertEqual(len(selected['nodes']), 1)
+            self.assertEqual(selected['nodes'][0]['semantics']['time']['raw'], date)
+            self.assertTrue(selected['nodes'][0]['semantics']['assertion_contexts'])
+            self.assertFalse(any('time' in node['semantics'] for node in graph['nodes']
+                                 if node['type_id'] == 'tos.entity.historical-event'))
+            # A correction revises the same Claim; it never changes the episode
+            # identity or erases the independently retained competing dating.
+            prior_claim = next(node for node in graph['nodes'] if node['entity_id'] == claims[-5]['claim_id'])
+            claims[-5]['claim_version'] += 1
+            claims[-5]['object'] = {**date, 'value': '1884'}
+            revised, _, _ = self.historical_knowledge(root, rebuild())
+            corrected = next(node for node in revised['nodes'] if node['entity_id'] == prior_claim['entity_id'])
+            self.assertNotEqual(corrected['content_revision'], prior_claim['content_revision'])
+            self.assertEqual(corrected['attributes']['source_claim']['alternative_claim_refs'], [claims[-4]['claim_id']])
+
+    def test_historical_relative_unknown_and_open_interval_dates_are_addressable_without_invented_bounds(self):
+        with self.historical_fixture() as (root, history, real, claims, rebuild):
+            from tos_access.knowledge import focus_knowledge_node, validate_knowledge_semantics
+            baseline = copy.deepcopy(claims[0])
+            context = {'role': 'historical-time', 'calendar': None, 'year_numbering': None,
+                       'certainty': 'unknown', 'source_wording': {'text': 'Условная датировка', 'language': 'ru'}}
+            values = [{**context, 'kind': 'unknown-date'},
+                      {**context, 'kind': 'relative-order', 'certainty': 'uncertain',
+                       'relative': {'relation': 'before', 'anchor_ref': history[1][1]['record_id']}},
+                      {**context, 'kind': 'interval-assertion', 'interval': {'start': '1883'}}]
+            for index, value in enumerate(values):
+                claims.append({**baseline, 'claim_id': f'tos.claim.historical-relative-{index}',
+                               'predicate': 'historical_dating', 'object': value})
+            projection = rebuild()
+            graph, entities, relations = self.historical_knowledge(root, projection)
+            report = validate_knowledge_semantics(graph, entities, relations)
+            self.assertTrue(report['valid'], report['violations'])
+            dates = [node for node in graph['nodes'] if node['type_id'] == 'tos.entity.temporal-assertion']
+            self.assertEqual(len(dates), 3)
+            for node in dates:
+                self.assertNotIn('sort_start', node['semantics']['time'])
+                self.assertEqual(node['semantics']['time']['raw'], node['attributes']['value'])
+            anchors = [edge for edge in graph['relations'] if edge['relation_type_id'] == 'tos.relation.historical-date-anchor']
+            self.assertEqual(len(anchors), 1)
+            self.assertTrue(anchors[0]['semantics']['assertion_contexts'])
+            focused = focus_knowledge_node(graph, history[0][1]['record_id'], depth=2)
+            self.assertIn(history[1][1]['record_id'], {node['entity_id'] for node in focused['nodes']})
+            back = focus_knowledge_node(graph, history[1][1]['record_id'], depth=2)
+            self.assertIn(history[0][1]['record_id'], {node['entity_id'] for node in back['nodes']})
+
+    def test_historical_dating_requires_its_time_role_and_resolved_typed_anchors(self):
+        with self.historical_fixture() as (root, history, real, claims, rebuild):
+            baseline = copy.deepcopy(claims[0])
+            value = {'kind': 'date-assertion', 'role': 'historical-time', 'calendar': None,
+                     'year_numbering': None, 'certainty': 'uncertain', 'value': '1883',
+                     'source_wording': {'text': 'Тестовая датировка', 'language': 'ru'}}
+            for malformed in ({**value, 'role': 'witness-time'}, {**value, 'role': 'data-capture-time'},
+                              {**value, 'calendar': 1883}, {**value, 'source_wording': {'text': ' '}}):
+                claims[:] = [{**baseline, 'predicate': 'historical_dating', 'object': malformed}]
+                with self.subTest(value=malformed), self.assertRaisesRegex(BibliographicGraphBuildError, 'schema violation'):
+                    rebuild()
+            relative = {key: item for key, item in value.items() if key != 'value'}
+            relative.update(kind='relative-order', relative={'relation': 'before', 'anchor_ref': 'tos.historical-event.missing'})
+            claims[:] = [{**baseline, 'predicate': 'historical_dating', 'object': relative}]
+            with self.assertRaisesRegex(BibliographicGraphBuildError, 'unresolved historical date anchor'):
+                rebuild()
+            claims[0]['object'] = value
+            path = root / 'ToS/doctrine/semantic-interchange/relation-types.v1.json'
+            registry = json.loads(path.read_text())
+            next(item for item in registry['relations'] if item['relation_type_id'] ==
+                 'tos.relation.historical-dating')['range_type_ids'] = ['tos.entity.work']
+            path.write_text(json.dumps(registry))
+            with self.assertRaisesRegex(BibliographicGraphBuildError, 'domain/range'):
+                rebuild()
+
     def test_historical_claims_enforce_source_schema_and_registered_endpoints(self):
         with self.historical_fixture() as (root, history, real, claims, rebuild):
             original = copy.deepcopy(claims)
