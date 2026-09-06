@@ -19,7 +19,7 @@
 network, model calls or source writes. It distinguishes substantive assessment
 from current admission. The caller supplies trusted policy, grants, competence,
 current exact records and complete bounded subject history; submitted prose
-cannot provide its own authority. This pure engine is not yet a durable command
+cannot provide its own authority. This pure engine is not a command
 adapter or proof of agent competence. Local invariant checks belong to
 `mechanics/growth-cycle/tests/test_knowledge_assessment.py` and the existing
 `mechanics_local` discovery lane.
@@ -53,8 +53,82 @@ proof, trusted runtime identity, semantic quality or a deployed growth API.
 Materialization currently bounds one history at 1,024 assessment events and
 each batch at 1 MiB; it refuses truncation. Larger histories need a source-owned
 checkpoint/archive reader, not deletion of history. Orphan retention, actual
-source-adapter binding, cross-object transactions and research/UI integration
+corpus-adapter binding, cross-object transactions and research/UI integration
 remain foundation work; this journal alone does not close the Growth profile.
+
+### Local account command contract
+
+The journal also offers `run_local_command(owner_config, request)` and a CLI:
+
+```bash
+python mechanics/growth-cycle/parts/branch-growth-cycle/scripts/assessment_journal.py \
+  --owner-config /absolute/operator-selected/owner.json < request.json
+```
+
+This is an explicit local owner operation, never part of read-only `access`.
+The operator/command issuer selects the configuration independently of incoming
+requests. It must contain already authorized policy, grants, calibrated
+competence, source scope and an execution profile whose provenance the issuer
+has checked. The command does not create these records or approve its own model.
+Unix UID authenticates an account, **not** a model invocation or competence.
+Processes sharing that UID share this trust boundary; use a separately owned
+runtime adapter for mutually untrusted agents or remote callers.
+
+The configuration is one bounded (8 MiB) agreed source snapshot, not a second
+authoritative corpus. It has exactly these fields:
+
+| Field | Owner value |
+| --- | --- |
+| `schema_version` | `tos_local_assessment_owner_v1` |
+| `uid`, `principal_id` | actual local account UID and its delegated reviewer identity |
+| `execution_profile` | exact current `{id, version, digest}`; independent of assessment prose |
+| `policy` | one record envelope |
+| `authorities`, `competencies`, `records` | bounded lists of current record envelopes (at most 1,024 each) |
+| `subjects` | at most 1,024 IDs mapped to trusted scopes |
+| `journal_directory` | an existing, dedicated absolute owner directory |
+
+A record envelope is `{id, version, payload, origin_id}` (null origin is allowed
+where independent-source support is not claimed). A subject scope is exactly
+`{record, assertion_layer, risk, languages, maker_id, requested_use, access_allowed}`;
+`record` is its exact ref. Unknown source fields are retained inside `payload`,
+not interpreted as commands. Publish an updated configuration atomically when
+source, permissions, policy or calibration changes. Each command samples it
+once; configuration publishers must preserve the agreed snapshot during the
+operation. This is not a cross-file transaction with a concurrently edited
+corpus. A subsequent call loads current configuration and rechecks admission.
+
+Both request operations use `schema_version: tos_local_assessment_command_v1`,
+`operation` (`append` or `inspect`), `subject_id`, `expected_subject` (exact ref)
+and `expected_snapshot` (`sha256:` plus canonical-JSON configuration digest).
+`append` additionally requires `command_id`, `expected_revision` (null for an
+empty journal, otherwise its 64-character head hash) and `assessments` (raw
+assessment objects, not caller-supplied authenticated submissions). No other
+request fields are accepted. There is no submitted UID, clock, grant, risk,
+configuration path, shell command or execution binding. The issuer provides
+the snapshot reference to callers; request code never chooses its own trust root.
+
+The CLI accepts at most 1 MiB of JSON on stdin, refuses duplicate keys and
+nonfinite numbers, and never executes source instructions. Protected owner
+paths must have no symlinks and no group/other write permissions; root-owned
+sticky ancestors are allowed, but not as the final owner directory. Setuid
+execution is refused. Owner directory contents must remain protected from
+untrusted same-account processes; filesystem ownership is not a sandbox.
+The local entrypoint also checks each accessed journal descendant; new subject
+directories and locks are private even under a permissive process umask.
+
+Success exits 0 with `tos_local_assessment_result_v1`, the owner snapshot,
+`authentication: local-unix-account` and the journal `result`. A commit can
+record rejection/defer/dispute without admitting the assertion. An exact replay
+returns the historical receipt and **fresh** current admission separately.
+Errors exit 2 with `tos_local_assessment_error_v1` and a nonreflective exception
+class (`JournalConflict`, `AssessmentRejected`, `JournalBusy`, `PermissionError`,
+etc.); source/configuration text is not echoed. Conflicts require rereading
+current state; busy writers require retry, never deleting their journal.
+
+Tests exercise the real CLI inspect/error boundary and local command append,
+replay, revocation, protected paths and adversarial requests with synthetic
+review records. No real-language calibration or authenticated remote/model
+execution is inferred from these checks.
 
 ## Human-form materialization
 

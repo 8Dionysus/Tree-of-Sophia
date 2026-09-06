@@ -1,8 +1,9 @@
 """Source-owner assessment journal; immutable batches and an atomic head pointer.
 
-This is a local Unix storage adapter, not an HTTP authentication boundary.
-Only the owning command service supplies the trusted engine, subject context
-and authenticated Submission bindings. Source records remain authoritative;
+This is a local Unix storage/command adapter, not an HTTP authentication boundary.
+The owner service, or independently selected protected local configuration,
+supplies trusted engine, subject context and Submission bindings. Source records
+remain authoritative;
 this journal records assessments and their commit-time qualification, not a
 second corpus or an independently authoritative cached admission database.
 """
@@ -10,12 +11,14 @@ from __future__ import annotations
 
 from contextlib import contextmanager
 from dataclasses import dataclass
+from datetime import datetime, timezone
 import fcntl
 import hashlib
 import json
 import os
 from pathlib import Path
 import re
+import stat
 import tempfile
 import time
 from typing import Any, Iterator, Sequence
@@ -23,7 +26,7 @@ from jsonschema import ValidationError
 
 from knowledge_assessment import (
     AssessmentEngine, MAX_ASSESSMENTS, MAX_RECORD_BYTES, SubjectContext,
-    Submission, _canonical, _instant, _validators,
+    Record, Submission, _canonical, _instant, _validators,
 )
 
 
@@ -88,11 +91,12 @@ class AssessmentJournal:
     """
 
     def __init__(self, directory: Path, *, contract_root: Path | None = None,
-                 lock_timeout_seconds: float = 5.0):
+                 lock_timeout_seconds: float = 5.0, protected_storage: bool = False):
         self.directory = directory.resolve()
         if not 0 <= lock_timeout_seconds <= 60:
             raise ValueError('lock timeout must be between zero and sixty seconds')
         self.lock_timeout_seconds = lock_timeout_seconds
+        self.protected_storage = protected_storage
         if not self.directory.parent.is_dir():
             raise ValueError('the configured owner parent directory must already exist')
         self.validator = _validators((contract_root or Path(__file__).resolve().parents[5]).resolve())['-batch']
@@ -103,11 +107,19 @@ class AssessmentJournal:
 
     @contextmanager
     def _locked(self, home: Path) -> Iterator[None]:
-        self.directory.mkdir(exist_ok=True)
+        self.directory.mkdir(mode=0o700, exist_ok=True)
         _sync_directory(self.directory.parent)
-        home.mkdir(exist_ok=True)
+        home.mkdir(mode=0o700, exist_ok=True)
         _sync_directory(self.directory)
-        with (home / '.writer.lock').open('a+b') as lock:
+        if self.protected_storage:
+            os.close(_owned_path(home, directory=True))
+        lock_path = home / '.writer.lock'
+        descriptor = os.open(lock_path, os.O_RDWR | os.O_CREAT | os.O_NOFOLLOW | os.O_NONBLOCK, 0o600)
+        with os.fdopen(descriptor, 'a+b') as lock:
+            if not stat.S_ISREG(os.fstat(lock.fileno()).st_mode):
+                raise JournalCorruption('writer lock must be a regular file')
+            if self.protected_storage:
+                os.close(_owned_path(lock_path))
             deadline = time.monotonic() + self.lock_timeout_seconds
             while True:
                 try:
@@ -125,11 +137,15 @@ class AssessmentJournal:
 
     def _load(self, subject_id: str) -> tuple[str | None, list[dict[str, Any]]]:
         home = self._home(subject_id)
+        if self.protected_storage and (home.exists() or home.is_symlink()):
+            os.close(_owned_path(home, directory=True))
         head = home / 'head'
         if head.is_symlink():
             raise JournalCorruption('a head pointer cannot be a symlink')
         if not head.exists():
             return None, []
+        if self.protected_storage:
+            os.close(_owned_path(head))
         if not head.is_file() or head.stat().st_size > 65:
             raise JournalCorruption('invalid head pointer')
         try:
@@ -145,6 +161,8 @@ class AssessmentJournal:
                     raise JournalCorruption('invalid or cyclic head chain')
                 seen.add(cursor)
                 path = home / (cursor + '.json')
+                if self.protected_storage:
+                    os.close(_owned_path(path))
                 if path.stat().st_size > MAX_RECORD_BYTES:
                     raise JournalCorruption('batch exceeds its record size limit')
                 batch = json.loads(path.read_text(encoding='utf-8'))
@@ -200,6 +218,8 @@ class AssessmentJournal:
 
     def _write_blob(self, home: Path, revision: str, payload: bytes) -> None:
         target = home / (revision + '.json')
+        if self.protected_storage and (target.exists() or target.is_symlink()):
+            os.close(_owned_path(target))
         if target.exists():
             if target.read_bytes() != payload:
                 raise JournalCorruption('immutable batch name has conflicting bytes')
@@ -291,3 +311,182 @@ class AssessmentJournal:
             self._write_blob(home, revision, payload)
             self._publish_head(home, revision)
             return {'revision': revision, 'receipt': batch, 'replayed': False, 'current_admission': result}
+
+
+def _owned_path(path: Path, *, directory: bool = False) -> int:
+    """Open a local owner path without following links, including ancestors.
+
+    The owner UID and root are trusted. Other local users, request contents,
+    and symlink targets are not. A root-owned sticky ancestor (e.g. /tmp) is
+    allowed, but never as the final owner directory. Same-UID hostile code is
+    outside this Unix account boundary; this is not a setuid service.
+    """
+    uid = os.getuid()
+    if os.geteuid() != uid or not path.is_absolute() or '..' in path.parts:
+        raise PermissionError('an absolute owner path and non-setuid process are required')
+    descriptor = os.open('/', os.O_RDONLY | os.O_DIRECTORY)
+    try:
+        for index, part in enumerate(path.parts[1:]):
+            final = index == len(path.parts) - 2
+            flags = os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK
+            if not final or directory:
+                flags |= os.O_DIRECTORY
+            child = os.open(part, flags, dir_fd=descriptor)
+            os.close(descriptor)
+            descriptor = child
+            info = os.fstat(descriptor)
+            sticky_ancestor = (not final and stat.S_ISDIR(info.st_mode)
+                               and info.st_uid == 0 and info.st_mode & stat.S_ISVTX)
+            if (info.st_uid not in (0, uid)
+                    or (info.st_mode & 0o022 and not sticky_ancestor)
+                    or (final and not directory and not stat.S_ISREG(info.st_mode))):
+                raise PermissionError('owner path is not protected from other local users')
+        if directory and path == Path('/'):
+            raise PermissionError('a dedicated owner directory is required')
+        return descriptor
+    except BaseException:
+        os.close(descriptor)
+        raise
+
+
+def _json_object(encoded: bytes) -> dict[str, Any]:
+    def pairs(items):
+        result = {}
+        for key, value in items:
+            if key in result:
+                raise ValueError('duplicate JSON key')
+            result[key] = value
+        return result
+    payload = json.loads(encoded, object_pairs_hook=pairs)
+    if not isinstance(payload, dict):
+        raise ValueError('a JSON object is required')
+    _canonical(payload)  # Refuse nonfinite numbers, including JSON decoder extensions.
+    return payload
+
+
+def _keys(payload: Any, expected: set[str]) -> None:
+    if not isinstance(payload, dict) or set(payload) != expected:
+        raise ValueError('command/configuration fields do not match the declared contract')
+
+
+def run_local_command(owner_config: Path, request: dict[str, Any], *,
+                      contract_root: Path | None = None) -> dict[str, Any]:
+    """Apply one command as the configured local account, never a claimed UID.
+
+    The operator selects the owner configuration independently of the request.
+    Its issuer must have checked policy, grants, calibration, exact source
+    snapshot and execution provenance. Unix ownership authenticates the local
+    account only; it does not attest that a particular model produced the prose.
+    """
+    descriptor = _owned_path(owner_config)
+    with os.fdopen(descriptor, 'rb') as stream:
+        encoded = stream.read(8 * MAX_RECORD_BYTES + 1)
+    if len(encoded) > 8 * MAX_RECORD_BYTES:
+        raise ValueError('owner configuration exceeds the 8 MiB snapshot budget')
+    config = _json_object(encoded)
+    _keys(config, {'schema_version', 'uid', 'principal_id', 'execution_profile',
+                   'policy', 'authorities', 'competencies', 'records', 'subjects',
+                   'journal_directory'})
+    if (config['schema_version'] != 'tos_local_assessment_owner_v1'
+            or type(config['uid']) is not int or config['uid'] != os.getuid()
+            or not isinstance(config['principal_id'], str) or not config['principal_id'].strip()):
+        raise PermissionError('configuration does not bind this local account')
+    snapshot = 'sha256:' + _digest(config)
+    if len(_canonical(request)) > MAX_RECORD_BYTES:
+        raise ValueError('command exceeds the 1 MiB input budget')
+    operation = request.get('operation') if isinstance(request, dict) else None
+    fields = {'schema_version', 'operation', 'subject_id', 'expected_subject', 'expected_snapshot'}
+    if operation == 'append':
+        fields |= {'command_id', 'expected_revision', 'assessments'}
+    elif operation != 'inspect':
+        raise ValueError('unknown assessment command')
+    _keys(request, fields)
+    if request['schema_version'] != 'tos_local_assessment_command_v1':
+        raise ValueError('unknown assessment command version')
+    if request['expected_snapshot'] != snapshot:
+        raise JournalConflict('expected owner snapshot is stale')
+
+    def record(value):
+        _keys(value, {'id', 'version', 'payload', 'origin_id'})
+        return Record.from_payload(**value)
+
+    for key in ('authorities', 'competencies', 'records'):
+        if not isinstance(config[key], list) or len(config[key]) > MAX_ASSESSMENTS:
+            raise ValueError('owner record collections must be bounded lists')
+    engine = AssessmentEngine(contract_root or Path(__file__).resolve().parents[5],
+                              record(config['policy']),
+                              [record(item) for item in config['authorities']],
+                              [record(item) for item in config['competencies']],
+                              [record(item) for item in config['records']])
+    subjects = config['subjects']
+    identifier = request['subject_id']
+    if (not isinstance(subjects, dict) or len(subjects) > MAX_ASSESSMENTS
+            or not isinstance(identifier, str) or identifier not in subjects):
+        raise PermissionError('subject is outside the configured command scope')
+    scope = subjects[identifier]
+    _keys(scope, {'record', 'assertion_layer', 'risk', 'languages', 'maker_id',
+                  'requested_use', 'access_allowed'})
+    current = engine.records.get(identifier)
+    if (current is None or _canonical(current.ref) != _canonical(scope['record'])
+            or _canonical(current.ref) != _canonical(request['expected_subject'])):
+        raise JournalConflict('expected subject or owner scope is stale')
+    if (not isinstance(scope['languages'], list) or not scope['languages']
+            or any(not isinstance(item, str) or not item for item in scope['languages'])
+            or any(not isinstance(scope[key], str) or not scope[key]
+                   for key in ('assertion_layer', 'risk', 'maker_id', 'requested_use'))):
+        raise ValueError('owner subject scope is incomplete')
+    if scope['access_allowed'] is not True:
+        raise PermissionError('subject access is not allowed')
+    context = SubjectContext(current, scope['assertion_layer'], scope['risk'],
+                             tuple(scope['languages']), scope['maker_id'], scope['requested_use'], True)
+    execution = config['execution_profile']
+    _keys(execution, {'id', 'version', 'digest'})
+    executor = engine.records.get(execution['id'])
+    if executor is None or _canonical(executor.ref) != _canonical(execution):
+        raise PermissionError('configured execution profile is not current')
+    directory = Path(config['journal_directory'])
+    descriptor = _owned_path(directory, directory=True)
+    os.close(descriptor)
+    journal = AssessmentJournal(directory, contract_root=contract_root, protected_storage=True)
+    now = datetime.now(timezone.utc).isoformat()
+    if operation == 'inspect':
+        result = journal.inspect(engine, context, now=now)
+    else:
+        assessments = request['assessments']
+        revision = request['expected_revision']
+        if (not isinstance(assessments, list) or not assessments
+                or len(assessments) > MAX_ASSESSMENTS
+                or any(not isinstance(item, dict) for item in assessments)
+                or (revision is not None and (not isinstance(revision, str)
+                                              or not re.fullmatch(r'[a-f0-9]{64}', revision)))):
+            raise ValueError('invalid assessment batch or expected revision')
+        reviews = [Submission(item, config['principal_id'], executor) for item in assessments]
+        result = journal.append(engine, context, reviews, command_id=request['command_id'],
+                                expected_revision=revision, now=now)
+    return {'schema_version': 'tos_local_assessment_result_v1', 'owner_snapshot': snapshot,
+            'authentication': 'local-unix-account', 'result': result}
+
+
+def main() -> int:
+    import argparse
+    import sys
+    parser = argparse.ArgumentParser(description='Local source-owner assessment commands; JSON on stdin.')
+    parser.add_argument('--owner-config', type=Path, required=True,
+                        help='operator-selected protected configuration; never take this path from the request')
+    args = parser.parse_args()
+    try:
+        encoded = sys.stdin.buffer.read(MAX_RECORD_BYTES + 1)
+        if len(encoded) > MAX_RECORD_BYTES:
+            raise ValueError('command exceeds the 1 MiB input budget')
+        result = run_local_command(args.owner_config, _json_object(encoded))
+    except (OSError, ValueError, TypeError, KeyError, RecursionError, ValidationError) as exc:
+        # No source/configuration payload or exception text is reflected.
+        print(json.dumps({'schema_version': 'tos_local_assessment_error_v1',
+                          'error': type(exc).__name__}))
+        return 2
+    print(json.dumps(result, ensure_ascii=False, allow_nan=False))
+    return 0
+
+
+if __name__ == '__main__':
+    raise SystemExit(main())

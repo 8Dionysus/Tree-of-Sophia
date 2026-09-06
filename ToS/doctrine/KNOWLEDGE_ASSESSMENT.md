@@ -116,6 +116,15 @@ superseded decision. A historical commit receipt never substitutes for a fresh
 admission check. Its Unix storage adapter requires a trusted command owner;
 file hashes and mechanically valid receipt fields are not remote authentication.
 
+Its local command entrypoint takes a protected, independently selected owner
+configuration and binds the actual Unix account to its delegated principal.
+Incoming requests cannot supply grants, scope, clocks or execution bindings.
+The command's snapshot and expected-subject checks preserve exact dependencies;
+the issuer still owns source currentness, calibration and verified execution
+provenance. Local account authentication does not attest a particular model
+invocation and cannot isolate hostile processes sharing that account. The
+bounded input/output and storage contract lives in the mechanic README.
+
 The engine enforces the declared relationship and authority invariants. Actual
 agent accuracy, calibrated languages, trusted command binding, existing-corpus
 migration and consumer integration remain separate required evidence in the
