@@ -41,6 +41,39 @@ a character limit. If the bounded result cannot contain it, the result is
 
 ## Three production modes
 
+### Language and linguistic derivation
+
+An optional `language_context` binds one exact source-owned metadata object
+with `language`, `script`, `relation` and `source`. The relation distinguishes
+`unknown`, `original`, `translation`, `transliteration` and `adaptation`.
+Original is relative to this subject and owner scope, not a claim that a text
+is the earliest historical witness, authentic, author-final or unmediated.
+Unknown metadata is not promoted to original by an ID, the preferred label,
+the interface language or the fact that rendering copied a source field.
+
+The submitted binding must equal the separately supplied `FormScope` binding.
+The metadata and, for a derived linguistic form, its complete source wording
+are explicit form bindings, current dependencies and mandatory output context.
+Additional source qualifications survive intact. `original` and `unknown`
+have no derivation source; the other relations require an exact source field.
+A form cannot translate itself. Form language and script must match the
+metadata. Language, linguistic derivation and the rendering operation remain
+separate: a source-copy can copy an already translated field; a freeform
+translation still requires current competent assessment.
+
+The materializer verifies reference closure, not the linguistic declaration's
+truth. Its source owner supplies the access-filtered, appropriately assessed
+metadata; putting a declaration in a submitted record does not grant it that
+scope. A correction creates a successor form binding and invalidates affected
+assessments. No current source declaration means the original-role reader
+reports unavailable. Readers can select an explicitly declared original
+without adjudicating competing originals or certifying historical priority.
+Linguistic provenance remains in the context envelope; it need not be pasted
+as raw metadata or source text into a template's human wording. This does not
+relax the template's separately required semantic guards.
+
+### Rendering operations
+
 - **Source-copy:** copy one complete, nonempty source field. Source-bound
   language and script metadata are supplied separately; absent metadata stays
   unknown rather than borrowing the interface language. This does not assess
@@ -115,3 +148,6 @@ private source layers. It has no growth-command or publication authority.
 Each set is bounded at 2 MiB input, 32 current forms and 256 KiB output.
 The initial Jenseits set contains original-name, Russian-name and source-note
 copies, not a new translation, historical assessment or complete Forms profile.
+Its original-name ID is not language-context evidence. The current metadata
+adapter does not yet supply this context; adding it requires source-owned
+metadata and successor form bindings, not a reader heuristic.

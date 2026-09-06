@@ -24,7 +24,7 @@
       "type": "object", "additionalProperties": false, "required": ["state", "reason", "form", "packet"],
       "properties": {
         "state": {"enum": ["ready", "missing", "unavailable", "ambiguous", "over-budget"]},
-        "reason": {"enum": ["exact-language", "less-specific-language", "automatic", "fallback", "no-ready-form", "multiple-forms", "original-role-not-declared", "inspect-exact-form"]},
+        "reason": {"enum": ["exact-language", "less-specific-language", "automatic", "fallback", "original", "no-ready-form", "multiple-forms", "original-role-not-declared", "inspect-exact-form"]},
         "form": {"anyOf": [{"$ref": "#/$defs/exactFormRef"}, {"type": "null"}]},
         "packet": {"type": ["object", "null"], "description": "Intact ToS-owned tos_human_form_materialization_v1, including all mandatory context and separate source-snapshot admission. Source contract: ToS/contracts/human-form.schema.json#/$defs/materialization; this transport does not re-assess it."}
       },

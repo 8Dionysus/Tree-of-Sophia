@@ -75,3 +75,10 @@ restricted, stale and assessment-required states have no emitted wording.
 Rendering mechanics do not prove an adapter's authentication, a template's
 semantic quality, an agent's real-language competence or UI consumption.
 `mechanics/growth-cycle/tests/test_human_forms.py` protects these boundaries.
+
+Optional `FormScope.language_context` names exact source-owned language and
+linguistic-derivation metadata. The form must bind the same object and any
+translation/transliteration/adaptation source field. Both remain current
+dependencies and mandatory context; source-copy is not a declaration of
+originality. These checks preserve the source owner's declaration without
+performing linguistic assessment or granting a submission its own scope.

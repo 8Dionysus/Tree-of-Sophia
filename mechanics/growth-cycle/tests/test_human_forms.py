@@ -95,6 +95,82 @@ class HumanFormTests(unittest.TestCase):
         self.payload['script'] = None
         self.assertEqual(self.render(scope=replace(self.scope, source_languages=()))['state'], 'ready')
 
+    def linguistic_context(self, relation='original', source=None):
+        record = Record.from_payload('tos.record.form-language', 1, {
+            'relation': relation, 'language': self.payload['language'], 'script': self.payload['script'],
+            'source': source.ref if source else None, 'x-source-qualification': {'unknown': None}})
+        binding = SourceBinding(record, '')
+        self.payload['language_context'] = binding.ref
+        self.payload['bindings']['language_context'] = binding.ref
+        self.scope = replace(self.scope, language_context=binding)
+        return record, binding
+
+    def test_original_language_context_is_source_bound_not_inferred_from_copy(self):
+        self.assertNotIn('language_context', self.render())
+        metadata, binding = self.linguistic_context()
+        result = self.render(records=[self.subject, metadata])
+        self.assertEqual(result['state'], 'ready')
+        self.assertEqual(result['language_context'], {'binding': binding.ref, 'value': metadata.payload})
+        self.assertIn(metadata.ref, result['dependencies'])
+        self.assertEqual(result['context'][-1]['value'], metadata.payload)
+        self.assertFalse(result['standalone_reading'])
+        self.assertIsNone(result['admission'])
+        sys.path.insert(0, str(ROOT / 'access/src'))
+        from tos_access.knowledge import select_human_forms
+        carrier = {'content_revision': 'c' * 64, 'attributes': {
+            'source_record': {'record_id': self.subject.id, 'record_version': self.subject.version},
+            'source_sha256': self.subject.ref['digest'].removeprefix('sha256:'), 'human_forms': [result]}}
+        selected = select_human_forms(carrier, 'original')['roles']['statement']
+        self.assertEqual(selected['state'], 'ready')
+        self.assertEqual(selected['packet'], result)
+
+    def test_submitted_language_context_cannot_assign_its_own_owner_scope(self):
+        metadata, _ = self.linguistic_context()
+        self.assertEqual(self.render(records=[self.subject, metadata],
+            scope=replace(self.scope, language_context=None))['issues'], ['language-context.outside-owner-scope'])
+        del self.payload['language_context']
+        self.assertEqual(self.render(records=[self.subject, metadata])['issues'], ['language-context.outside-owner-scope'])
+
+    def test_linguistic_derivation_keeps_exact_source_wording_and_context(self):
+        origin = Record.from_payload('tos.record.form-original', 1, {'text': 'Attribution not established.'})
+        source = SourceBinding(origin, '/text')
+        for relation in ('translation', 'transliteration', 'adaptation'):
+            with self.subTest(relation=relation):
+                metadata, _ = self.linguistic_context(relation, source)
+                self.payload['bindings']['linguistic_source'] = source.ref
+                result = self.render(records=[self.subject, metadata, origin])
+                self.assertEqual(result['state'], 'ready')
+                self.assertEqual(result['context'][-1]['binding'], source.ref)
+                self.assertEqual(result['context'][-1]['value'], origin.payload['text'])
+                self.assertIn(origin.ref, result['dependencies'])
+        del self.payload['bindings']['linguistic_source']
+        self.assertEqual(self.render(records=[self.subject, metadata, origin])['issues'], ['context.omitted'])
+
+    def test_language_context_correction_is_a_dependency_not_silent_metadata(self):
+        metadata, _ = self.linguistic_context()
+        changed = Record.from_payload(metadata.id, 2, {**metadata.payload, 'relation': 'unknown'})
+        self.assertEqual(self.render(records=[self.subject, changed])['state'], 'stale')
+        self.assertEqual(self.render(records=[self.subject])['state'], 'unavailable')
+        self.payload['script'] = None
+        self.assertEqual(self.render(records=[self.subject, metadata])['issues'], ['language-context.language-or-script-mismatch'])
+
+    def test_original_cannot_hide_a_translation_source_or_translate_itself(self):
+        for relation, source in [('original', self.wording), ('translation', None), ('translation', self.wording)]:
+            metadata, _ = self.linguistic_context(relation, source)
+            result = self.render(records=[self.subject, metadata])
+            self.assertEqual(result['state'], 'invalid')
+            self.assertIsNone(result['display_text'])
+
+    def test_template_keeps_linguistic_provenance_separate_from_human_wording(self):
+        metadata, _ = self.linguistic_context()
+        template = self.template()
+        self.payload['content'] = {'kind': 'template', 'template': template.ref}
+        result = self.render(records=[self.subject, metadata], templates=[template])
+        self.assertEqual(result['state'], 'ready')
+        self.assertNotIn('x-source-qualification', result['display_text'])
+        self.assertEqual(result['language_context']['value'], metadata.payload)
+        self.assertEqual(result['context'][-1]['value'], metadata.payload)
+
     def test_form_cannot_omit_or_rebind_mandatory_context(self):
         del self.payload['bindings']['negated']
         self.assertEqual(self.render()['issues'], ['context.omitted'])
@@ -217,8 +293,9 @@ class HumanFormTests(unittest.TestCase):
         fixture.setUp()
         self.payload['content'] = {'kind': 'freeform', 'text': 'Синтетический пересказ с отрицанием.'}
         self.payload['language'] = 'ru'
+        metadata, _ = self.linguistic_context('translation', self.wording)
         fixture.subject = self.form()
-        fixture.records.extend([self.subject, fixture.subject])
+        fixture.records.extend([self.subject, fixture.subject, metadata])
         fixture.competencies = [Record.from_payload(c.id, c.version, {**c.payload,
             'assertion_layers': [*c.payload['assertion_layers'], 'human_projection']}) for c in fixture.competencies]
         fixture.authorities = [Record.from_payload(a.id, a.version, {**a.payload,
@@ -226,12 +303,18 @@ class HumanFormTests(unittest.TestCase):
             'subject_prefixes': ['tos.form.'], 'competence_refs': [fixture.competencies[i].ref]})
             for i, a in enumerate(fixture.authorities)]
         review = fixture.review(profile='interpretation')
-        result = self.render(engine=fixture.engine(), reviews=[review], now=assessment_fixture.NOW)
+        result = self.render(records=[self.subject, metadata], engine=fixture.engine(), reviews=[review], now=assessment_fixture.NOW)
         self.assertEqual(result['state'], 'ready')
         self.assertEqual(result['admission']['reviewer_kinds'], ['agent'])
         self.assertFalse(result['admission']['is_semantic_evaluation'])
+        self.assertEqual(result['language_context']['value']['relation'], 'translation')
+        # Even a same-ID metadata correction invalidates an engine snapshot.
+        fixture.records = [record for record in fixture.records if record.id != metadata.id]
+        self.assertEqual(self.render(records=[self.subject, metadata], engine=fixture.engine(),
+            reviews=[review], now=assessment_fixture.NOW)['state'], 'stale')
+        fixture.records.append(metadata)
         fixture.authorities = [Record.from_payload(a.id, a.version, {**a.payload, 'state': 'revoked'}) for a in fixture.authorities]
-        result = self.render(engine=fixture.engine(), reviews=[review], now=assessment_fixture.NOW)
+        result = self.render(records=[self.subject, metadata], engine=fixture.engine(), reviews=[review], now=assessment_fixture.NOW)
         self.assertEqual(result['state'], 'needs-assessment')
         self.assertIsNone(result['display_text'])
 

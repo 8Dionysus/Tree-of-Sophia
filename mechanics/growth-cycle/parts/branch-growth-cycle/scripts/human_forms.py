@@ -45,6 +45,7 @@ class FormScope:
     requested_use: str
     access_allowed: bool = False
     source_languages: tuple[tuple[SourceBinding, str | None, str | None], ...] = ()
+    language_context: SourceBinding | None = None
 
 
 @lru_cache(maxsize=8)
@@ -54,7 +55,8 @@ def _validators(root: Path):
     for schema in schemas:
         Draft202012Validator.check_schema(schema)
     registry = Registry().with_resources((schema['$id'], Resource.from_contents(schema)) for schema in schemas)
-    return tuple(Draft202012Validator(schema, registry=registry) for schema in schemas[1:])
+    return (*tuple(Draft202012Validator(schema, registry=registry) for schema in schemas[1:]),
+            Draft202012Validator({'$ref': schemas[1]['$id'] + '#/$defs/languageContext'}, registry=registry))
 
 
 def _canonical(value: Any) -> str:
@@ -116,7 +118,7 @@ policy result bound to this exact form and current dependency snapshot.
             or len(scope.source_languages) > 256
             or form.size_bytes + sum(record.size_bytes for record in (*records, *templates, *prior_forms)) > MAX_INPUT_BYTES):
         return stop('over-budget', 'form.input-budget-exceeded-narrow-snapshot')
-    form_validator, template_validator = _validators(root)
+    form_validator, template_validator, language_context_validator = _validators(root)
     payload = form.payload
     if not form_validator.is_valid(payload):
         return stop('invalid', 'form.schema')
@@ -126,6 +128,8 @@ policy result bound to this exact form and current dependency snapshot.
         return stop('invalid', 'form.identity-or-subject')
     if payload['language'] is not None and payload['language'].casefold() not in {language.casefold() for language in scope.languages}:
         return stop('invalid', 'form.language-outside-scope')
+    if payload.get('language_context') != (scope.language_context.ref if scope.language_context else None):
+        return stop('invalid', 'language-context.outside-owner-scope')
     if form.version == 1:
         if payload['revises'] is not None:
             return stop('invalid', 'form.initial-version-has-predecessor')
@@ -160,8 +164,35 @@ policy result bound to this exact form and current dependency snapshot.
             return stop('invalid', 'binding.pointer:' + slot)
         dependencies.append(source.ref)
     binding_keys = {_canonical(binding): slot for slot, binding in payload['bindings'].items()}
+    required_context = list(scope.required_context)
+    if scope.language_context is not None:
+        metadata_slot = binding_keys.get(_canonical(scope.language_context.ref))
+        if metadata_slot is None:
+            return stop('invalid', 'context.omitted')
+        metadata = values[metadata_slot]
+        if not language_context_validator.is_valid(metadata):
+            return stop('invalid', 'language-context.schema')
+        if (metadata['language'], metadata['script']) != (payload['language'], payload['script']):
+            return stop('invalid', 'language-context.language-or-script-mismatch')
+        required_context.append(scope.language_context)
+        if metadata['source'] is not None:
+            source = metadata['source']
+            if (source['record']['id'] == form.id or
+                    (payload['content']['kind'] == 'source-copy' and
+                     source == payload['bindings'].get(payload['content']['slot']))):
+                return stop('invalid', 'language-context.self-derivation')
+            source_slot = binding_keys.get(_canonical(source))
+            if source_slot is None:
+                return stop('invalid', 'context.omitted')
+            original = values[source_slot]
+            if not isinstance(original, str) or not original.strip():
+                return stop('invalid', 'language-context.source-requires-complete-nonempty-string')
+            required_context.append(SourceBinding(current[source['record']['id']], source['pointer']))
+        result['language_context'] = {'binding': scope.language_context.ref, 'value': metadata}
+    if len(required_context) > 256:
+        return stop('over-budget', 'form.input-budget-exceeded-narrow-snapshot')
     context_bytes = 0
-    for required in scope.required_context:
+    for required in required_context:
         slot = binding_keys.get(_canonical(required.ref))
         if slot is None:
             return stop('invalid', 'context.omitted')
@@ -214,6 +245,8 @@ policy result bound to this exact form and current dependency snapshot.
                 return stop('over-budget', 'form.output-budget-exceeded-do-not-truncate')
             parts.append(part)
         used_bindings = {_canonical(payload['bindings'][slot]) for slot in used}
+        # Semantic guards must be rendered. Linguistic provenance is retained
+        # in the output context, not pasted as JSON into the human wording.
         if any(_canonical(required.ref) not in used_bindings for required in scope.required_context):
             return stop('invalid', 'template.context-not-rendered')
         wording = ''.join(parts)

@@ -116,6 +116,27 @@ class KnowledgeContractTests(unittest.TestCase):
         self.assertLessEqual(_form_delivery_cost(result), HUMAN_FORM_SELECTION_BUDGET)
         self.assertLessEqual(len(json.dumps(result, ensure_ascii=False).encode()), HUMAN_FORM_SELECTION_BUDGET)
 
+    def test_original_selection_requires_intact_source_bound_language_context(self):
+        from tos_access.knowledge import select_human_forms
+        node = self.human_form_node()
+        packet = node['attributes']['human_forms'][0]
+        self.assertEqual(select_human_forms(node, 'original')['roles']['statement']['state'], 'unavailable')
+        metadata = {'binding': {'record': {'id': 'tos.record.language-context', 'version': 1,
+                                         'digest': 'sha256:' + 'd' * 64}, 'pointer': ''},
+                    'value': {'language': 'fr', 'script': 'Latn', 'relation': 'original', 'source': None,
+                              'x-source': {'unknown': False}}}
+        packet['language_context'] = metadata
+        packet['dependencies'].append(metadata['binding']['record'])
+        self.assertEqual(select_human_forms(node, 'original')['state'], 'invalid')
+        packet['context'].append({'slot': 'language_context', **copy.deepcopy(metadata)})
+        selected = select_human_forms(node, 'original')['roles']['statement']
+        self.assertEqual(selected['state'], 'ready')
+        self.assertEqual(selected['reason'], 'original')
+        self.assertEqual(selected['packet'], packet)
+        # False and zero in a source qualification cannot collapse under equality.
+        packet['context'][-1]['value']['x-source']['unknown'] = 0
+        self.assertEqual(select_human_forms(node, 'original')['state'], 'invalid')
+
     def test_registered_predicates_keep_the_source_russian_vocabulary(self):
         import csv
         from tos_access.knowledge import _normalize_relation

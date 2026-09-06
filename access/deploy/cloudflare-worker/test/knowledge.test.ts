@@ -267,6 +267,40 @@ test('display selection keeps fallback, original language and ambiguity observab
   assert.deepEqual(ambiguous.available_keys, ['FR', 'default', 'fr']);
 });
 
+test('source linguistic context controls original selection without an inferred historical claim', () => {
+  // Synthetic context added to the transport fixture is not a Jenseits source judgment.
+  const node = realFormNode();
+  const packet = (node.attributes.human_forms as Record<string, unknown>[])[0]!;
+  const metadata = {binding: {record: {id: 'tos.record.language-contract', version: 1, digest: 'sha256:' + 'd'.repeat(64)}, pointer: ''},
+    value: {language: packet.language, script: packet.script, relation: 'original', source: null, 'x-unknown': false}};
+  packet.language_context = metadata;
+  (packet.dependencies as Record<string, unknown>[]).push(metadata.binding.record);
+  (packet.context as Record<string, unknown>[]).push({slot: 'language_context', ...structuredClone(metadata)});
+  const absent = structuredClone(node);
+  (absent.attributes.human_forms as Record<string, unknown>[])[0]!.context = [];
+  const changed = structuredClone(node);
+  const context = (changed.attributes.human_forms as Record<string, unknown>[])[0]!.context as Record<string, unknown>[];
+  (context.at(-1)!.value as Record<string, unknown>)['x-unknown'] = 0;
+  const multiple = structuredClone(node);
+  const another = structuredClone(packet);
+  another.form = {...another.form as Record<string, unknown>, id: 'tos.form.competing-original'};
+  (multiple.attributes.human_forms as Record<string, unknown>[]).push(another);
+  const missingDependency = structuredClone(node);
+  (missingDependency.attributes.human_forms as Record<string, unknown>[])[0]!.dependencies = [];
+  const cases = [node, absent, changed, multiple, missingDependency];
+  const python = JSON.parse(execFileSync('python3', ['-c',
+    "import sys,json;sys.path.insert(0,'access/src');from tos_access.knowledge import select_human_forms;print(json.dumps([select_human_forms(n,'original') for n in json.load(sys.stdin)]))"],
+    {cwd: fileURLToPath(new URL('../../../../', import.meta.url)), input: JSON.stringify(cases), encoding:'utf8'}));
+  const results = cases.map(item => selectHumanForms(item, 'original'));
+  assert.deepEqual(results, python);
+  assert.equal(results[0]!.roles.name!.reason, 'original');
+  assert.deepEqual(results[0]!.roles.name!.packet, packet);
+  assert.equal(results[1]!.state, 'invalid');
+  assert.equal(results[2]!.state, 'invalid');
+  assert.equal(results[3]!.roles.name!.state, 'ambiguous');
+  assert.equal(results[4]!.state, 'invalid');
+});
+
 test("edge lens engine composes an unknown declarative lens", async () => {
   const spec = normalizeLensSpec({
     schema_version: "tos_lens_spec_v1",

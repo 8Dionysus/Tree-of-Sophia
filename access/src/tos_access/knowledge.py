@@ -541,6 +541,42 @@ def _exact_form_ref(value: Any) -> bool:
             and isinstance(value['digest'], str) and bool(re.fullmatch(r'sha256:[a-f0-9]{64}', value['digest'])))
 
 
+def _form_language_context_valid(packet: dict[str, Any]) -> bool:
+    """Check transported context closure, not the source owner's assessment."""
+    if 'language_context' not in packet:
+        return True
+    context = packet['language_context']
+    if not isinstance(context, dict) or set(context) != {'binding', 'value'}:
+        return False
+    binding, value = context['binding'], context['value']
+
+    def valid_binding(item):
+        return (isinstance(item, dict) and set(item) == {'record', 'pointer'}
+                and _exact_form_ref(item['record']) and isinstance(item['pointer'], str)
+                and bool(re.fullmatch(r'(?:/(?:[^~/]|~[01])*)*', item['pointer'])))
+
+    def same(left, right):
+        return json.dumps(left, sort_keys=True, ensure_ascii=False) == json.dumps(right, sort_keys=True, ensure_ascii=False)
+
+    def dependency(ref):
+        return isinstance(packet.get('dependencies'), list) and any(
+            _exact_form_ref(item) and item == ref for item in packet['dependencies'])
+
+    if (not valid_binding(binding) or not dependency(binding['record']) or not isinstance(value, dict)
+            or not {'language', 'script', 'relation', 'source'} <= value.keys()
+            or 'script' not in packet
+            or value['language'] != packet.get('language') or value['script'] != packet.get('script')
+            or (value['script'] is not None and (not isinstance(value['script'], str) or not re.fullmatch(r'[A-Za-z]{4}', value['script'])))
+            or value['relation'] not in ('unknown', 'original', 'translation', 'transliteration', 'adaptation')
+            or not any(same(entry['binding'], binding) and same(entry['value'], value) for entry in packet['context'])):
+        return False
+    source = value['source']
+    if value['relation'] in ('original', 'unknown'):
+        return source is None
+    return valid_binding(source) and dependency(source['record']) and any(same(entry['binding'], source) and isinstance(entry['value'], str)
+                                         and bool(entry['value'].strip()) for entry in packet['context'])
+
+
 def select_human_forms(item: dict[str, Any], language: str = 'auto') -> dict[str, Any]:
     """Deliver source materializations intact; do not re-assess or rank truth.
 
@@ -613,15 +649,20 @@ forms. A source-snapshot admission is not a freshly evaluated runtime grant.
                        or not isinstance(entry['binding'].get('pointer'), str) for entry in context)):
             return stop('invalid', 'forms.incomplete-ready-packet')
         ready.append(packet)
+        if not _form_language_context_valid(packet):
+            return stop('invalid', 'forms.invalid-language-context')
     if _form_delivery_cost(result) > HUMAN_FORM_SELECTION_BUDGET:
         return stop('over-budget', 'forms.inspect-collection-separately')
     for role in HUMAN_FORM_ROLES:
         candidates = [packet for packet in ready if packet['role'] == role]
         selected, reason = candidates, 'automatic' if language == 'auto' else 'fallback'
         if language == 'original':
-            result['roles'][role] = {**empty(), 'state': 'unavailable', 'reason': 'original-role-not-declared'}
-            continue
-        if language != 'auto':
+            selected = [packet for packet in candidates if packet.get('language_context', {}).get('value', {}).get('relation') == 'original']
+            if not selected:
+                result['roles'][role] = {**empty(), 'state': 'unavailable', 'reason': 'original-role-not-declared'}
+                continue
+            reason = 'original'
+        elif language != 'auto':
             candidate = language
             while candidate:
                 matching = [packet for packet in candidates if isinstance(packet['language'], str)

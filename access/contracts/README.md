@@ -97,9 +97,14 @@ removed to meet a scene character limit. Consumers must respect
 Selection uses exact case-insensitive language, then less-specific tags. A
 unique remaining form can be an observable fallback; multiple remaining forms
 are ambiguous, not a source-order vote. `auto` does not adjudicate alternatives.
-Explicit `original` selection currently reports that the source role is not
-declared: unknown language and source-copy derivation alone do not establish
-original-language authority. Source-snapshot assessments are transported, not
+Explicit `original` selects only an intact source-bound `language_context`
+declaring that relation. Multiple originals remain ambiguous; missing metadata
+reports `original-role-not-declared`. Unknown language, a form ID and source-copy
+derivation alone do not establish the relation. Linguistic metadata and source
+wording for translation/transliteration/adaptation must remain in the packet's
+mandatory context. This is a source declaration, not a judgment of historical
+priority. The current bibliographic adapter has not yet supplied this metadata.
+Source-snapshot assessments are transported, not
 reevaluated for current policy or runtime authorization. Missing, restricted,
 stale and needs-assessment input states are not silently replaced by accepted wording.
 

@@ -13,6 +13,7 @@
     "role": {"enum": ["name", "caption", "hover", "statement", "grounds", "history", "technical"]},
     "language": {"type": ["string", "null"], "pattern": "^(?:[A-Za-z]{2,8}(?:-[A-Za-z0-9]{1,8})*|[iIxX](?:-[A-Za-z0-9]{1,8})+)$(?![\\s\\S])"},
     "script": {"type": ["string", "null"], "pattern": "^[A-Za-z]{4}$(?![\\s\\S])"},
+    "language_context": {"$ref": "#/$defs/binding", "description": "Exact source-owned language and linguistic-derivation metadata; must match the source adapter scope and remain a bound dependency."},
     "creator_id": {"type": "string", "minLength": 1},
     "bindings": {
       "type": "object", "maxProperties": 256,
@@ -32,6 +33,23 @@
     "revises": {"oneOf": [{"type": "null"}, {"$ref": "knowledge-assessment.schema.json#/$defs/exactRef"}]}
   },
   "$defs": {
+    "languageContext": {
+      "type": "object", "required": ["language", "script", "relation", "source"],
+      "properties": {
+        "language": {"type": ["string", "null"], "pattern": "^(?:[A-Za-z]{2,8}(?:-[A-Za-z0-9]{1,8})*|[iIxX](?:-[A-Za-z0-9]{1,8})+)$(?![\\s\\S])"},
+        "script": {"type": ["string", "null"], "pattern": "^[A-Za-z]{4}$(?![\\s\\S])"},
+        "relation": {"enum": ["unknown", "original", "translation", "transliteration", "adaptation"]},
+        "source": {"oneOf": [{"type": "null"}, {"$ref": "#/$defs/binding"}]}
+      },
+      "allOf": [{"if": {"properties": {"relation": {"enum": ["translation", "transliteration", "adaptation"]}}},
+        "then": {"properties": {"source": {"$ref": "#/$defs/binding"}}},
+        "else": {"properties": {"source": {"type": "null"}}}}],
+      "description": "Source-declared linguistic context, not an assessment or historical originality verdict. Additional source qualifications are preserved intact. Original is relative to the stated subject and source-owner scope."
+    },
+    "boundLanguageContext": {
+      "type": "object", "additionalProperties": false, "required": ["binding", "value"],
+      "properties": {"binding": {"$ref": "#/$defs/binding"}, "value": {"$ref": "#/$defs/languageContext"}}
+    },
     "materialization": {
       "type": "object", "additionalProperties": false,
       "required": ["schema_version", "form", "subject", "state", "display_text", "context", "issues", "admission", "performs_semantic_assessment"],
@@ -50,6 +68,7 @@
         "performs_semantic_assessment": {"const": false},
         "role": {"enum": ["name", "caption", "hover", "statement", "grounds", "history", "technical"]},
         "language": {"type": ["string", "null"]}, "script": {"type": ["string", "null"]},
+        "language_context": {"$ref": "#/$defs/boundLanguageContext"},
         "derivation": {"enum": ["source-copy", "template", "freeform"]},
         "dependencies": {"type": "array", "items": {"$ref": "knowledge-assessment.schema.json#/$defs/exactRef"}},
         "standalone_reading": {"type": "boolean"}

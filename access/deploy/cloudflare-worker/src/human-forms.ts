@@ -25,6 +25,38 @@ function sameRef(value: unknown, expected: ExactRef): boolean {
   return exactRef(value) && value.id === expected.id && value.version === expected.version && value.digest === expected.digest;
 }
 
+function jsonIdentity(value: unknown): string {
+  if (Array.isArray(value)) return '[' + value.map(jsonIdentity).join(',') + ']';
+  if (value !== null && typeof value === 'object') {
+    return '{' + Object.entries(value).sort(([a], [b]) => a < b ? -1 : a > b ? 1 : 0)
+      .map(([key, member]) => JSON.stringify(key) + ':' + jsonIdentity(member)).join(',') + '}';
+  }
+  return JSON.stringify(value);
+}
+
+function languageContextValid(packet: Item): boolean {
+  if (!Object.hasOwn(packet, 'language_context')) return true;
+  const context = record(packet.language_context), binding = record(context.binding), value = record(context.value);
+  const validBinding = (raw: unknown) => {
+    const item = record(raw);
+    return Object.keys(item).sort().join(',') === 'pointer,record' && exactRef(item.record)
+      && typeof item.pointer === 'string' && /^(?:\/(?:[^~/]|~[01])*)*$(?![\s\S])/.test(item.pointer);
+  };
+  const entries = packet.context as Item[];
+  const dependency = (ref: unknown) => Array.isArray(packet.dependencies)
+    && packet.dependencies.some(item => exactRef(item) && jsonIdentity(item) === jsonIdentity(ref));
+  if (Object.keys(context).sort().join(',') !== 'binding,value' || !validBinding(binding)
+    || !dependency(binding.record)
+    || !['language', 'script', 'relation', 'source'].every(key => Object.hasOwn(value, key))
+    || value.language !== packet.language || value.script !== packet.script
+    || (value.script !== null && (typeof value.script !== 'string' || !/^[A-Za-z]{4}$(?![\s\S])/.test(value.script)))
+    || typeof value.relation !== 'string' || !['unknown', 'original', 'translation', 'transliteration', 'adaptation'].includes(value.relation)
+    || !entries.some(entry => jsonIdentity(entry.binding) === jsonIdentity(binding) && jsonIdentity(entry.value) === jsonIdentity(value))) return false;
+  if (value.relation === 'original' || value.relation === 'unknown') return value.source === null;
+  return validBinding(value.source) && dependency(record(value.source).record) && entries.some(entry => jsonIdentity(entry.binding) === jsonIdentity(value.source)
+    && typeof entry.value === 'string' && entry.value.trim().length > 0);
+}
+
 export function formDeliveryCost(value: unknown): number {
   if (typeof value === 'string') return new TextEncoder().encode(JSON.stringify(value)).length;
   if (value === null || typeof value === 'boolean') return 5;
@@ -98,16 +130,20 @@ export function selectHumanForms(item: Item, language = 'auto') {
           || !exactRef(binding.record) || typeof binding.pointer !== 'string';
       })) return stop('invalid', 'forms.incomplete-ready-packet');
     ready.push(packet);
+    if (!languageContextValid(packet)) return stop('invalid', 'forms.invalid-language-context');
   }
   if (formDeliveryCost(result) > HUMAN_FORM_SELECTION_BUDGET) return stop('over-budget', 'forms.inspect-collection-separately');
   for (const role of HUMAN_FORM_ROLES) {
     const candidates = ready.filter(packet => packet.role === role);
     let selected = candidates, reason = language === 'auto' ? 'automatic' : 'fallback';
     if (language === 'original') {
-      result.roles[role] = {...empty(), state: 'unavailable', reason: 'original-role-not-declared'};
-      continue;
-    }
-    if (language !== 'auto') {
+      selected = candidates.filter(packet => record(record(packet.language_context).value).relation === 'original');
+      if (!selected.length) {
+        result.roles[role] = {...empty(), state: 'unavailable', reason: 'original-role-not-declared'};
+        continue;
+      }
+      reason = 'original';
+    } else if (language !== 'auto') {
       let candidate = language;
       while (candidate) {
         const matching = candidates.filter(packet => typeof packet.language === 'string' && packet.language.toLowerCase() === candidate.toLowerCase());
