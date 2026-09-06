@@ -56,8 +56,8 @@ fallback order is `default`, `ru`, `en`, `original`, then remaining keys sorted;
 this order does not assert that fallback text has the requested UI language.
 Malformed/unknown source structures remain in the lossless source record, not
 silently interpreted as translations. Per-form source, script, translation
-assessment and qualifier-aware selection remain foundation work; this legacy
-map alone is not the complete Forms contract.
+assessment and qualifier-aware prose remain foundation work; this legacy map
+alone is not the complete Forms contract.
 
 Lens language preferences accept those keys. Safe display filters, sorts and
 groups accept `display.<field>.<language>` for the declared node or relation
@@ -65,6 +65,42 @@ display fields. The catalog's `human_languages` section lists observed fields
 and nonempty availability counts without claiming semantic readiness. Local
 Python and the Worker/D1 reader share this grammar; changing preferences never
 alters corpus identity or imports new knowledge.
+
+Lens results additionally return `display_selection` per carrier. Selection
+tries an exact case-insensitive language key, then progressively less-specific
+tags, then the compatibility fallback order above. It never translates. The
+packet names the requested language, selected source key, actual language when
+known, fallback reason and available alternatives. Conflicting case aliases
+produce `ambiguous-language-key` with no selected text. `original` gets its
+language only from applicable source metadata, never from the UI preference;
+the title's source language is not applied to the summary. An unspecified
+`default` language remains unknown. Source-unavailable description placeholders
+have `content_available: false` even when their compatibility text is nonempty.
+The same applies to titles supplied only by an ID/path fallback; an actual
+source name stays available without implying that its quality was assessed.
+Selections bind the normalized `content_revision` and source form pointer;
+they do not change that revision. `essential_context_pointers` identify the
+assertion contexts which must accompany any reading of the selected wording.
+Search, inspection and resumable exploration still return the form maps, not
+language-selected packets. Consumer rendering/assessment remains a separate
+integration requirement; selection itself does not certify safe abbreviation.
+
+`semantics.assertion_contexts` preserves source-declared claim fields in both
+full and compact carriers. Each value names its source JSON Pointer and the
+digest of the exact supplied public source record. False, null, empty and
+absent remain distinct. An embedded owner claim takes precedence over carrier
+conveniences; contradictory conveniences remain explicit in `conflicts`.
+Qualifier objects, competing claims, counterevidence, confidence meaning,
+maker and separate epistemic/review states survive compact delivery. Unknown
+qualifier members are preserved without claimed interpretation. Bibliographic
+edges bind their exact referenced claim context; a review or evidence node that
+merely cites a claim cannot supply its governing assertion. Multiple source
+records for the same claim keep all differing contexts, without automatic
+adjudication or blocking unrelated records; malformed reference extensions
+remain preserved but are not used as join keys. These contexts are
+not assessments or admissions, and a historical review status is not current
+permission to use the claim. Human rendering must use the context rather than
+reading an endpoint sentence as unconditional truth.
 
 The `tos-lens-execution-v2` capability revision adds optional `path_query`,
 `explain`, and `pagination` fields to the existing v1 request family. Existing

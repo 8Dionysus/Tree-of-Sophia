@@ -452,6 +452,69 @@ def _lens_localized(value: Any, fallback: str, name: str) -> dict[str, str | Non
     return _localized_from(value, fallback)
 
 
+def select_display_form(value: Any, requested_language: str = 'auto', *, original_language: str | None = None) -> dict[str, Any]:
+    """Select existing wording, with observable fallback; never translate it.
+
+    Exact case-insensitive language match precedes less-specific tags, then
+    compatibility roles. Conflicting case aliases remain ambiguous. Tag
+    truncation is a reader fallback, not an assertion of linguistic equivalence.
+    """
+    forms = {key: text for key, text in _form_items(value).items() if text is not None}
+    available = sorted(forms)
+    selected = None
+    reason = 'missing'
+    if requested_language not in {'auto', 'original'}:
+        candidate = requested_language
+        while candidate:
+            matches = [key for key in available if key.lower() == candidate.lower()]
+            if len(matches) > 1:
+                return {'requested_language': requested_language, 'selected_key': None,
+                        'actual_language': None, 'text': None, 'reason': 'ambiguous-language-key',
+                        'available_keys': available}
+            if matches:
+                selected = matches[0]
+                reason = 'exact-language' if candidate == requested_language else 'less-specific-language'
+                break
+            candidate = candidate.rsplit('-', 1)[0] if '-' in candidate else ''
+            if candidate and len(candidate.rsplit('-', 1)[-1]) == 1:
+                candidate = candidate.rsplit('-', 1)[0] if '-' in candidate else ''
+    elif requested_language == 'original' and 'original' in forms:
+        selected, reason = 'original', 'original-role'
+    if selected is None:
+        selected = next((key for key in ('default', 'ru', 'en', 'original', *available) if key in forms), None)
+        if selected is not None:
+            reason = 'automatic' if requested_language == 'auto' else 'fallback'
+    actual_language = (original_language if selected == 'original' else selected
+                       if selected not in {None, 'default'} else None)
+    return {'requested_language': requested_language, 'selected_key': selected,
+            'actual_language': actual_language, 'text': forms.get(selected),
+            'reason': reason, 'available_keys': available}
+
+
+def _display_selection(item: dict[str, Any], language: str = 'auto') -> dict[str, Any]:
+    display = item.get('display') or {}
+    semantics = item.get('semantics') or {}
+    language_context = semantics.get('language_context') or {}
+    source_language = language_context.get('language')
+    original_language = _string(source_language.get('original_language')) if isinstance(source_language, dict) else None
+    if original_language is not None and not _LANGUAGE_KEY.fullmatch(original_language):
+        original_language = None
+    fields = ('label', 'inverse_label', 'statement', 'explanation') if 'from_id' in item else ('title', 'kind_label', 'summary')
+    selected = {}
+    for field in fields:
+        selection = select_display_form(display.get(field), language, original_language=original_language if field == 'title' else None)
+        missing_content = ((field == 'title' and display.get('provenance', {}).get('source_title_available') is False)
+                           or (field == 'summary' and display.get('provenance', {}).get('source_summary_available') is False)
+                           or (field == 'explanation' and display.get('provenance', {}).get('source_explanation_available') is False))
+        selected[field] = {**selection, 'content_available': selection['text'] is not None and not missing_content,
+                           'source_form_pointer': f"/display/{field}/{selection['selected_key']}" if selection['selected_key'] else None}
+    return {'schema_version': 'tos_display_selection_v1', 'content_revision': item.get('content_revision'),
+            'fields': selected,
+            'essential_context_pointers': [f'/semantics/assertion_contexts/{index}'
+                                           for index, _ in enumerate(semantics.get('assertion_contexts', []))],
+            'performs_translation': False, 'is_semantic_assessment': False}
+
+
 def _source_refs(item: dict[str, Any], *fallbacks: str | None) -> list[str]:
     refs: set[str] = set(_strings(item.get("source_refs")))
     for key in ("source_ref", "source_path", "path", "owner_surface"):
@@ -559,6 +622,13 @@ def _node_display(
         "projected-label" if explicit_label else ("projected-path" if path_label else "identifier-fallback"),
     )
     provenance.setdefault("summary", state)
+    # Presence is not quality assessment. Paths/IDs are useful navigation but
+    # do not manufacture a supplied name for the subject.
+    provenance.setdefault("source_title_available", bool(
+        _display_text(existing.get('title')) or explicit_label or _string(item.get('title'))
+        or _string(item.get('name'))
+        or _display_text({key: value for key, value in title.items() if key != 'default'})
+    ))
     provenance.setdefault("source_summary_available", bool(authored_summary))
     return {
         "title": title,
@@ -773,6 +843,12 @@ def _node_semantics(
 ) -> dict[str, Any]:
     properties = item.get("properties") if isinstance(item.get("properties"), dict) else {}
     semantics: dict[str, Any] = {}
+    multilingual = item.get('multilingual')
+    if isinstance(multilingual, dict):
+        semantics['language_context'] = {key: copy.deepcopy(value) for key, value in multilingual.items() if key != 'label'}
+    context = _assertion_context(item)
+    if context is not None:
+        semantics['assertion_contexts'] = [context]
     if properties.get("packet_id"):
         semantics["annotation"] = {"packet_id": properties["packet_id"], "packet_version": properties.get("packet_version"),
                                    "content_available": properties.get("content_available"),
@@ -914,6 +990,52 @@ def _source_record(item: dict[str, Any], attributes: dict[str, Any]) -> dict[str
                           for key in attributes}}
 
 
+_ASSERTION_FIELDS = (
+    'claim_id', 'claim_ref', 'claim_version', 'claim_type', 'assertion_layer',
+    'subject_ref', 'predicate', 'object', 'proposition', 'qualifiers', 'polarity',
+    'negated', 'condition', 'conditions', 'attribution', 'scope', 'temporal_context',
+    'spatial_context', 'epistemic_status', 'review_status', 'claim_status',
+    'review_refs', 'reviews', 'assessment_refs', 'confidence', 'maker', 'method_ref',
+    'evidence_refs', 'counterevidence_refs', 'alternative_claim_refs',
+    'competing_claim_refs', 'supersedes_claim_ref', 'provenance_event_ref', 'visibility',
+)
+_ASSERTION_TRIGGERS = frozenset(_ASSERTION_FIELDS) - {
+    'subject_ref', 'predicate', 'object', 'scope', 'temporal_context',
+    'spatial_context', 'visibility', 'confidence', 'maker', 'method_ref',
+}
+
+
+def _assertion_context(item: dict[str, Any]) -> dict[str, Any] | None:
+    """Lossless declared assertion fields, not inferred truth or admission.
+
+    Prefer a source owner's embedded exact claim over projection conveniences.
+    Conflicting conveniences remain visible instead of silently winning. Null,
+    false, an empty collection and an absent field remain different states.
+    Unknown qualifier members are copied, never interpreted by their names.
+    """
+    properties = item.get('properties') if isinstance(item.get('properties'), dict) else {}
+    embedded = properties.get('source_claim')
+    layers = [(item, ''), (properties, '/properties')]
+    if isinstance(embedded, dict):
+        layers.append((embedded, '/properties/source_claim'))
+    if not any(any(key in layer for key in _ASSERTION_TRIGGERS) for layer, _ in layers):
+        return None
+    fields, conflicts = {}, []
+    for layer, prefix in layers:
+        for key in _ASSERTION_FIELDS:
+            if key not in layer:
+                continue
+            entry = {'value': copy.deepcopy(layer[key]), 'source_pointer': f'{prefix}/{key}'}
+            if key in fields and _stable_digest(fields[key]['value']) != _stable_digest(entry['value']):
+                conflicts.append({'field': key, 'lower_priority': fields[key], 'higher_priority': entry})
+            fields[key] = entry
+    return {'schema_version': 'tos_assertion_context_v1',
+            'binding_role': 'carrier',
+            'source_record_digest': _stable_digest(item),
+            'source_refs': _source_refs(item), 'fields': fields, 'conflicts': conflicts,
+            'interpretation': 'source-declared-not-semantic-assessment'}
+
+
 def _relation_display(
     item: dict[str, Any],
     predicate_id: str,
@@ -1023,6 +1145,7 @@ def _normalize_relation(
     source_graph: str,
     nodes_by_id: dict[str, dict[str, Any]],
     *,
+    claim_contexts: list[dict[str, Any]] | None = None,
     native_id: str | None = None,
     identity_id: str | None = None,
     relation_type_entries: dict[str, dict[str, Any]] | None = None,
@@ -1050,12 +1173,14 @@ def _normalize_relation(
     if cache:
         identifier = f'{source_graph}:{identity_id or native}'
         dependencies = [Input('source-relation:' + identifier, item),
-                        Input(f'relation-type:{source_graph}:{predicate_id}', relation_type_entry)]
+                        Input(f'relation-type:{source_graph}:{predicate_id}', relation_type_entry),
+                        Input('relation-claim-contexts:' + identifier, claim_contexts)]
         dependencies.extend(cache.node_title(id, (nodes_by_id.get(id) or {}).get('display', {}).get('title'))
                             for id in dict.fromkeys((left_id, right_id)))
         return cache.normalize('relation', identifier,
             [source_graph, native, identity_id, relation_type_id, fallback_relation_type_id], dependencies,
             lambda: _normalize_relation(item, source_graph, nodes_by_id, native_id=native_id, identity_id=identity_id,
+                claim_contexts=claim_contexts,
                 relation_type_entries=relation_type_entries, relation_type_mappings=relation_type_mappings,
                 fallback_relation_type_id=fallback_relation_type_id))
     refs = _source_refs(item)
@@ -1069,6 +1194,12 @@ def _normalize_relation(
         } and key not in attributes:
             attributes[key] = value
     semantics: dict[str, Any] = {}
+    contexts = copy.deepcopy(claim_contexts or [])
+    direct_context = _assertion_context(item)
+    if direct_context is not None:
+        contexts.insert(0, direct_context)
+    if contexts:
+        semantics['assertion_contexts'] = contexts
     if relation_type_id == "tos.relation.has-normalized-place":
         semantics["space"] = {
             "roles": sorted(set(_strings(properties.get("spatial_roles")))),
@@ -1564,11 +1695,36 @@ def build_knowledge_graph(
             nodes.append(placeholder)
             nodes_by_id[identifier] = placeholder
 
+    claim_context_index: dict[tuple[str, str], list[dict[str, Any]]] = {}
+    for node in nodes:
+        # A review/evidence/value node may cite a claim without being its
+        # assertion. Only reified claim carriers can supply the governing body.
+        if node['kind_id'] not in {'claim', 'annotation-claim'}:
+            continue
+        for context in node.get('semantics', {}).get('assertion_contexts', []):
+            fields = context['fields']
+            claim_ref = fields.get('claim_id', fields.get('claim_ref', {})).get('value')
+            if isinstance(claim_ref, str):
+                key = (node['source_graph'], claim_ref)
+                bound_context = {**context, 'binding_role': 'referenced-claim'}
+                # Multiple source records are not adjudicated by this reader.
+                # Preserve their disagreement without stopping unrelated work.
+                contexts = claim_context_index.setdefault(key, [])
+                if bound_context not in contexts:
+                    contexts.append(bound_context)
+
+    def referenced_contexts(source_graph: str, item: dict[str, Any]) -> list[dict[str, Any]] | None:
+        claim_ref = item.get('claim_ref')
+        # An unknown extension shape remains in the source record. It is not
+        # a valid join key and must not crash or be coerced into a reference.
+        return claim_context_index.get((source_graph, claim_ref)) if isinstance(claim_ref, str) else None
+
     relations = [
         _normalize_relation(
             item,
             source_graph,
             nodes_by_id,
+            claim_contexts=referenced_contexts(source_graph, item),
             identity_id=identity,
             relation_type_entries=relation_entries,
             relation_type_mappings=relation_mappings,
@@ -2751,8 +2907,8 @@ def execute_knowledge_lens(graph: dict[str, Any], spec_value: Any) -> dict[str, 
                           'relations': {r['id']: {'kind': 'traversal' if r['id'] in traversed_relation_ids else 'endpoint-policy',
                                                   'endpoint_policy': endpoint_policy} for r in final_relations},
                           'authority': 'query-execution-not-semantic-proof'}} if spec['explain'] else {}),
-        "nodes": [_lens_carrier(item, spec['detail']) for item in final_nodes],
-        "relations": [_lens_carrier(item, spec['detail']) for item in final_relations],
+        "nodes": [_lens_carrier(item, spec['detail'], language=spec['language']) for item in final_nodes],
+        "relations": [_lens_carrier(item, spec['detail'], language=spec['language']) for item in final_relations],
         "groups": groups,
         "facets": {
             "node_kinds": dict(sorted(Counter(str(item["kind_id"]) for item in final_nodes).items())),
@@ -2798,10 +2954,10 @@ def execute_knowledge_lens(graph: dict[str, Any], spec_value: Any) -> dict[str, 
     })
 
 
-def _lens_carrier(item: dict[str, Any], detail: str) -> dict[str, Any]:
-    if detail == 'full':
-        return item
-    return {**{key: value for key, value in item.items() if key != 'source_record'}, 'attributes': {}}
+def _lens_carrier(item: dict[str, Any], detail: str, *, language: str | None = None) -> dict[str, Any]:
+    result = item if detail == 'full' else {**{key: value for key, value in item.items() if key != 'source_record'}, 'attributes': {}}
+    # Selection belongs to delivery, not the immutable normalized content digest.
+    return {**result, 'display_selection': _display_selection(item, language)} if language is not None else result
 
 
 def focus_knowledge_node(

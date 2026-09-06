@@ -178,6 +178,52 @@ function localized(value: unknown, fallback: string): LocalizedText {
   };
 }
 
+export function selectDisplayForm(value: unknown, requestedLanguage = 'auto', originalLanguage: unknown = null): Item {
+  const forms = Object.fromEntries(Object.entries(record(value)).filter(([key, value]) => formKey(key) && text(value) !== null).map(([key, value]) => [key, text(value)]));
+  const available = Object.keys(forms).sort();
+  let selected: string | null = null, reason = 'missing';
+  if (requestedLanguage !== 'auto' && requestedLanguage !== 'original') {
+    let candidate = requestedLanguage;
+    while (candidate) {
+      const matches = available.filter(key => key.toLowerCase() === candidate.toLowerCase());
+      if (matches.length > 1) return {requested_language: requestedLanguage, selected_key: null, actual_language: null,
+        text: null, reason: 'ambiguous-language-key', available_keys: available};
+      if (matches.length) { selected = matches[0]!; reason = candidate === requestedLanguage ? 'exact-language' : 'less-specific-language'; break; }
+      candidate = candidate.includes('-') ? candidate.slice(0, candidate.lastIndexOf('-')) : '';
+      if (candidate && candidate.split('-').at(-1)!.length === 1) candidate = candidate.includes('-') ? candidate.slice(0, candidate.lastIndexOf('-')) : '';
+    }
+  } else if (requestedLanguage === 'original' && Object.hasOwn(forms, 'original')) {
+    selected = 'original'; reason = 'original-role';
+  }
+  if (selected === null) {
+    selected = ['default', 'ru', 'en', 'original', ...available].find(key => Object.hasOwn(forms, key)) ?? null;
+    if (selected !== null) reason = requestedLanguage === 'auto' ? 'automatic' : 'fallback';
+  }
+  return {requested_language: requestedLanguage, selected_key: selected,
+    actual_language: selected === 'original' ? originalLanguage : selected === 'default' ? null : selected,
+    text: selected === null ? null : forms[selected], reason, available_keys: available};
+}
+
+function displaySelection(item: KnowledgeNode | KnowledgeRelation, language: string): Item {
+  const display = record(item.display), semantics = record(item.semantics);
+  const declaredLanguage = text(record(record(semantics.language_context).language).original_language);
+  const originalLanguage = declaredLanguage && LANGUAGE_KEY.test(declaredLanguage) ? declaredLanguage : null;
+  const fieldNames = 'from_id' in item ? ['label', 'inverse_label', 'statement', 'explanation'] : ['title', 'kind_label', 'summary'];
+  const fields = Object.fromEntries(fieldNames.map(field => {
+    const selection = selectDisplayForm(display[field], language, field === 'title' ? originalLanguage : null);
+    const provenance = record(display.provenance);
+    const missing = (field === 'title' && provenance.source_title_available === false)
+      || (field === 'summary' && provenance.source_summary_available === false)
+      || (field === 'explanation' && provenance.source_explanation_available === false);
+    return [field, {...selection, content_available: selection.text !== null && !missing,
+      source_form_pointer: selection.selected_key ? `/display/${field}/${selection.selected_key}` : null}];
+  }));
+  const contexts = Array.isArray(semantics.assertion_contexts) ? semantics.assertion_contexts : [];
+  return {schema_version: 'tos_display_selection_v1', content_revision: item.content_revision, fields,
+    essential_context_pointers: contexts.map((_, index) => `/semantics/assertion_contexts/${index}`),
+    performs_translation: false, is_semantic_assessment: false};
+}
+
 function lensLocalized(value: unknown, fallback: string, name: string): LocalizedText {
   if (value === undefined || value === null) return localized(undefined, fallback);
   if (typeof value === "string") {
@@ -542,10 +588,9 @@ async function digest(value: unknown): Promise<string> {
   return [...new Uint8Array(hash)].map((item) => item.toString(16).padStart(2, "0")).join("");
 }
 
-function lensCarrier<T extends KnowledgeNode | KnowledgeRelation>(item: T, detail: LensSpec['detail']): T {
-  if (detail === 'full') return item;
-  const result = { ...item, attributes: {} };
-  delete result.source_record;
+function lensCarrier<T extends KnowledgeNode | KnowledgeRelation>(item: T, detail: LensSpec['detail'], language: string): T {
+  const result = {...item, display_selection: displaySelection(item, language)};
+  if (detail !== 'full') { result.attributes = {}; delete result.source_record; }
   return result;
 }
 
@@ -629,8 +674,8 @@ export async function finalizeKnowledgeLens(
     presentation: spec.presentation,
     focus,
     ...(spec.explain ? { inclusion } : {}),
-    nodes: finalNodes.map((item) => lensCarrier(item, spec.detail)),
-    relations: finalRelations.map((item) => lensCarrier(item, spec.detail)),
+    nodes: finalNodes.map((item) => lensCarrier(item, spec.detail, spec.language)),
+    relations: finalRelations.map((item) => lensCarrier(item, spec.detail, spec.language)),
     groups,
     facets: {
       node_kinds: countBy(finalNodes.map((item) => item.kind_id)),

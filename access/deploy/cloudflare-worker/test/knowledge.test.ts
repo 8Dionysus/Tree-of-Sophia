@@ -6,7 +6,7 @@ import { build } from 'esbuild';
 import { Miniflare, convertV4MiniflareOptions } from "miniflare";
 import { executeKnowledgeLensD1, knowledgeSearchD1, knowledgeNodeD1, knowledgeRelationD1 } from "../src/knowledge-store.ts";
 
-import { executeKnowledgeLens, focusKnowledgeNode, normalizeLensSpec, type KnowledgeGraph } from "../src/knowledge.ts";
+import { executeKnowledgeLens, focusKnowledgeNode, normalizeLensSpec, selectDisplayForm, type KnowledgeGraph } from "../src/knowledge.ts";
 
 const graph: KnowledgeGraph = {
   schema: "tos_knowledge_graph_v1",
@@ -130,6 +130,11 @@ test("indexed D1 path conditions and inclusion agree with the pure engine", asyn
     // New language/script keys pass through all three execution backends.
     scoped.nodes[0]!.display.title['grc-Grek'] = 'λόγος';
     scoped.relations[0]!.display.statement.fr = 'Attribution non établie.';
+    scoped.relations[0]!.semantics.assertion_contexts = [{schema_version: 'tos_assertion_context_v1',
+      binding_role: 'carrier', source_record_digest: '1'.repeat(64), source_refs: ['ToS/e'],
+      fields: {polarity: {value: 'negative', source_pointer: '/polarity'},
+        qualifiers: {value: {'x-unknown': false}, source_pointer: '/qualifiers'}},
+      conflicts: [], interpretation: 'source-declared-not-semantic-assessment'}];
     await db.prepare('UPDATE knowledge_nodes SET json=? WHERE id=?').bind(JSON.stringify(scoped.nodes[0]), 'philosophy:a').run();
     await db.prepare('UPDATE knowledge_relations SET json=? WHERE id=?').bind(JSON.stringify(scoped.relations[0]), 'philosophy:e').run();
     const languageSpec = {...base, language: 'fr-CA', title: {'fr-CA': 'Lecture'}, detail: 'compact',
@@ -143,10 +148,40 @@ test("indexed D1 path conditions and inclusion agree with the pure engine", asyn
       {cwd: fileURLToPath(new URL('../../../../', import.meta.url)), input: JSON.stringify({graph: scoped, spec: languageSpec}), encoding:'utf8'}));
     assert.deepEqual(languageResult, pythonLanguage);
     assert.equal((languageResult.relations as KnowledgeGraph['relations'])[0]!.display.statement.fr, 'Attribution non établie.');
+    const selected = (languageResult.relations as KnowledgeGraph['relations'])[0]!.display_selection as {
+      fields: {statement: {selected_key: string; reason: string}};
+      content_revision: string; essential_context_pointers: string[];
+    };
+    assert.equal(selected.fields.statement.selected_key, 'fr');
+    assert.equal(selected.fields.statement.reason, 'less-specific-language');
+    assert.equal(selected.content_revision, scoped.relations[0]!.content_revision);
+    assert.deepEqual(selected.essential_context_pointers, ['/semantics/assertion_contexts/0']);
     scoped.nodes[1]!.source_graph = 'repository';
     await db.prepare("UPDATE knowledge_nodes SET source_graph='repository', json=? WHERE id=?").bind(JSON.stringify(scoped.nodes[1]), 'philosophy:b').run();
     assert.deepEqual(await executeKnowledgeLensD1(db,joined), await executeKnowledgeLens(scoped,joined));
   } finally { await mf.dispose(); }
+});
+
+test('display selection keeps fallback, original language and ambiguity observable', () => {
+  const forms = {default: 'Unspecified language', original: 'λόγος', fr: 'mot',
+    'zh-Hant': '詞', de: 'Wort', 'x-research': 'Unassessed wording'};
+  for (const [requested, key, reason] of [
+    ['FR', 'fr', 'exact-language'], ['fr-CA', 'fr', 'less-specific-language'],
+    ['zh-Hant-TW', 'zh-Hant', 'less-specific-language'], ['de-DE-u-co-phonebk', 'de', 'less-specific-language'],
+    ['x-research', 'x-research', 'exact-language'], ['es', 'default', 'fallback'],
+    ['auto', 'default', 'automatic'], ['original', 'original', 'original-role'],
+  ]) {
+    const result = selectDisplayForm(forms, requested, 'grc-Grek');
+    assert.equal(result.selected_key, key);
+    assert.equal(result.reason, reason);
+    assert.equal(result.actual_language, key === 'original' ? 'grc-Grek' : key === 'default' ? null : key);
+  }
+  assert.equal(selectDisplayForm(forms, 'original').actual_language, null);
+  assert.equal(selectDisplayForm({fr: null}, 'fr').reason, 'missing');
+  const ambiguous = selectDisplayForm({fr: 'oui', FR: 'non', default: 'fallback'}, 'fr-CA');
+  assert.equal(ambiguous.reason, 'ambiguous-language-key');
+  assert.equal(ambiguous.text, null);
+  assert.deepEqual(ambiguous.available_keys, ['FR', 'default', 'fr']);
 });
 
 test("edge lens engine composes an unknown declarative lens", async () => {

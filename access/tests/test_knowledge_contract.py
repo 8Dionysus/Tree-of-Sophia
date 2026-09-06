@@ -216,6 +216,139 @@ class KnowledgeContractTests(unittest.TestCase):
             with self.assertRaises(ValueError):
                 normalize_lens_spec({**spec, 'node_query': {'filters': [{'field': field, 'op': 'eq', 'value': 'no'}]}})
 
+    def test_assertion_context_survives_compact_without_collapsing_unknown_false_or_conflict(self):
+        from tos_access.knowledge import _lens_carrier, _normalize_relation, _stable_digest
+        claim = {'claim_id': 'tos.claim.fixture.negative', 'claim_version': 2,
+                 'polarity': 'negative', 'condition': None, 'qualifiers': {'x-unknown': {'value': False}},
+                 'confidence': {'value': 0.2, 'meaning': 'maker_declared_uncertainty_not_truth_probability'},
+                 'review_status': 'ambiguous', 'alternative_claim_refs': [],
+                 'competing_claim_refs': ['tos.claim.fixture.alternative']}
+        item = {'node_id': 'claim', 'node_type': 'claim', 'source_ref': 'ToS/fixture/claims.jsonl',
+                'properties': {'source_claim': claim, 'review_status': 'accepted'}}
+        node = _normalize_node(item, 'source-claims')
+        context, = node['semantics']['assertion_contexts']
+        self.assertEqual(context['source_record_digest'], _stable_digest(item))
+        for field, value in claim.items():
+            self.assertEqual(context['fields'][field]['value'], value)
+            self.assertEqual(context['fields'][field]['source_pointer'], '/properties/source_claim/' + field)
+        self.assertNotIn('attribution', context['fields'])
+        self.assertIsNone(context['fields']['condition']['value'])
+        self.assertEqual(context['fields']['alternative_claim_refs']['value'], [])
+        self.assertFalse(context['fields']['qualifiers']['value']['x-unknown']['value'])
+        self.assertEqual(context['conflicts'][0]['lower_priority']['value'], 'accepted')
+        self.assertEqual(context['conflicts'][0]['higher_priority']['value'], 'ambiguous')
+        typed_conflict = _normalize_node({'node_id': 'typed', 'qualifiers': {'value': False},
+            'properties': {'qualifiers': {'value': 0}}}, 'philosophy')['semantics']['assertion_contexts'][0]
+        self.assertEqual(len(typed_conflict['conflicts']), 1)
+        self.assertEqual(_lens_carrier(node, 'compact')['semantics'], node['semantics'])
+        relation = _normalize_relation({'edge_id': 'e', 'from_id': 'a', 'to_id': 'b',
+            'predicate_id': 'attributed_to', 'claim_ref': claim['claim_id']}, 'source-claims', {},
+            claim_contexts=[{**context, 'binding_role': 'referenced-claim'}])
+        contexts = _lens_carrier(relation, 'compact')['semantics']['assertion_contexts']
+        self.assertEqual([entry['binding_role'] for entry in contexts], ['carrier', 'referenced-claim'])
+        self.assertEqual(contexts[1]['fields']['competing_claim_refs']['value'], claim['competing_claim_refs'])
+        self.assertEqual(node['source_record']['payload'], item)
+        schema = json.loads((ACCESS_ROOT / 'contracts/knowledge-graph.v1.schema.json').read_text())
+        validator = Draft202012Validator({'$ref': '#/$defs/assertionContext', '$defs': schema['$defs']})
+        for entry in contexts:
+            validator.validate(entry)
+
+    def test_display_selection_reports_exact_fallback_missing_and_ambiguous_forms(self):
+        from tos_access.knowledge import select_display_form
+        forms = {'default': 'Unspecified language', 'original': 'λόγος', 'fr': 'mot',
+                 'zh-Hant': '詞', 'de': 'Wort', 'x-research': 'Unassessed wording'}
+        for requested, key, reason in (
+            ('FR', 'fr', 'exact-language'), ('fr-CA', 'fr', 'less-specific-language'),
+            ('zh-Hant-TW', 'zh-Hant', 'less-specific-language'),
+            ('de-DE-u-co-phonebk', 'de', 'less-specific-language'),
+            ('x-research', 'x-research', 'exact-language'),
+            ('es', 'default', 'fallback'), ('auto', 'default', 'automatic'),
+            ('original', 'original', 'original-role'),
+        ):
+            with self.subTest(requested=requested):
+                result = select_display_form(forms, requested, original_language='grc-Grek')
+                self.assertEqual((result['selected_key'], result['reason'], result['text']),
+                                 (key, reason, forms[key]))
+                expected_language = 'grc-Grek' if key == 'original' else None if key == 'default' else key
+                self.assertEqual(result['actual_language'], expected_language)
+        self.assertIsNone(select_display_form(forms, 'original')['actual_language'])
+        self.assertEqual(select_display_form({'fr': None}, 'fr')['reason'], 'missing')
+        conflicting = select_display_form({'fr': 'oui', 'FR': 'non', 'default': 'fallback'}, 'fr-CA')
+        self.assertEqual(conflicting['reason'], 'ambiguous-language-key')
+        self.assertIsNone(conflicting['text'])
+        self.assertEqual(conflicting['available_keys'], ['FR', 'default', 'fr'])
+
+    def test_lens_display_selection_binds_revision_and_preserves_essential_context(self):
+        from tos_access.knowledge import _lens_carrier
+        node = _normalize_node({'node_id': 'c', 'node_type': 'claim',
+            'multilingual': {'label': {'original': 'λόγος'},
+                            'language': {'original_language': 'grc-Grek', 'script': 'Grek'}},
+            'properties': {'claim_id': 'claim.c', 'polarity': 'negative', 'review_status': 'contested'}}, 'philosophy')
+        schema = json.loads((ACCESS_ROOT / 'contracts/knowledge-graph.v1.schema.json').read_text())
+        validator = Draft202012Validator({'$ref': '#/$defs/displaySelection', '$defs': schema['$defs']})
+        before = copy.deepcopy(node)
+        for language in ('original', 'fr-CA', 'auto'):
+            full = _lens_carrier(node, 'full', language=language)
+            compact = _lens_carrier(node, 'compact', language=language)
+            selection = compact['display_selection']
+            validator.validate(selection)
+            self.assertEqual(selection, full['display_selection'])
+            self.assertEqual(selection['content_revision'], node['content_revision'])
+            self.assertFalse(selection['fields']['summary']['content_available'])
+            self.assertEqual(selection['essential_context_pointers'], ['/semantics/assertion_contexts/0'])
+            self.assertEqual(compact['semantics']['assertion_contexts'], node['semantics']['assertion_contexts'])
+            if language == 'original':
+                self.assertEqual(selection['fields']['title']['actual_language'], 'grc-Grek')
+                self.assertIsNone(selection['fields']['summary']['actual_language'])
+        self.assertEqual(node, before)
+        for item in ({'node_id': 'only-id'}, {'node_id': 'only-path', 'path': 'ToS/fixture.json'}):
+            missing = _lens_carrier(_normalize_node(item, 'philosophy'), 'compact', language='auto')
+            self.assertFalse(missing['display_selection']['fields']['title']['content_available'])
+        self.assertTrue(_lens_carrier(node, 'compact', language='original')['display_selection']['fields']['title']['content_available'])
+        for unknown in ('grc', {'original_language': {'x-undecoded': 'grc'}}, {'original_language': 'not_a_tag'}):
+            malformed = _normalize_node({'node_id': 'u', 'multilingual': {
+                'label': {'original': 'λόγος'}, 'language': unknown}}, 'philosophy')
+            result = _lens_carrier(malformed, 'compact', language='original')
+            self.assertIsNone(result['display_selection']['fields']['title']['actual_language'])
+            self.assertEqual(result['semantics']['language_context']['language'], unknown)
+
+    def test_claim_context_change_invalidates_dependent_relation_without_reprocessing_others(self):
+        from tos_access.knowledge import _normalize_relation, _assertion_context
+        from tos_access.normalization_cache import NormalizationCache
+        source = {'node_id': 'claim', 'properties': {'claim_id': 'c', 'polarity': 'negative'}}
+        edge = {'edge_id': 'dependent', 'from_id': 'a', 'to_id': 'b', 'predicate_id': 'attributed_to', 'claim_ref': 'c'}
+        unrelated = {'edge_id': 'other', 'from_id': 'x', 'to_id': 'y', 'predicate_id': 'next'}
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / 'steps.sqlite'
+            with NormalizationCache(path, 'processor-v1'):
+                original = _normalize_relation(edge, 'philosophy', {}, claim_contexts=[_assertion_context(source)])
+                other = _normalize_relation(unrelated, 'philosophy', {})
+            source['properties']['polarity'] = 'uncertain'
+            with NormalizationCache(path, 'processor-v1') as cache:
+                revised = _normalize_relation(edge, 'philosophy', {}, claim_contexts=[_assertion_context(source)])
+                self.assertEqual(_normalize_relation(unrelated, 'philosophy', {}), other)
+            self.assertEqual((cache.misses, cache.hits), (1, 1))
+            self.assertNotEqual(revised['content_revision'], original['content_revision'])
+            self.assertEqual(revised['source_record'], original['source_record'])
+            self.assertEqual(revised['id'], original['id'])
+
+    def test_context_join_preserves_disagreeing_records_and_unknown_reference_shape(self):
+        philosophy = {'nodes': [
+            {'node_id': 'c1', 'node_type': 'claim', 'properties': {'claim_id': 'c', 'polarity': 'negative'}},
+            {'node_id': 'c2', 'node_type': 'claim', 'properties': {'claim_id': 'c', 'polarity': 'positive'}},
+        ], 'edges': [
+            {'edge_id': 'e', 'from_id': 'c1', 'to_id': 'c2', 'predicate_id': 'related', 'claim_ref': 'c'},
+            {'edge_id': 'unknown', 'from_id': 'c1', 'to_id': 'c2', 'claim_ref': {'new-shape': ['c']}},
+        ]}
+        graph = build_knowledge_graph({}, philosophy)
+        edge = next(edge for edge in graph['relations'] if edge['native_id'] == 'e')
+        contexts = [entry for entry in edge['semantics']['assertion_contexts'] if entry['binding_role'] == 'referenced-claim']
+        self.assertEqual({entry['fields']['polarity']['value'] for entry in contexts}, {'negative', 'positive'})
+        self.assertEqual(len({entry['source_record_digest'] for entry in contexts}), 2)
+        unknown = next(edge for edge in graph['relations'] if edge['native_id'] == 'unknown')
+        self.assertEqual(unknown['source_record']['payload']['claim_ref'], {'new-shape': ['c']})
+        self.assertEqual(len(unknown['semantics']['assertion_contexts']), 1)
+
     def test_finalization_reuses_unchanged_revision_without_aliasing_source(self):
         from unittest.mock import patch
         from tos_access.knowledge import _final_node_value, _stamp_content_revision
@@ -1024,9 +1157,26 @@ class KnowledgeContractTests(unittest.TestCase):
 
         nodes_by_id = {node['id']: node for node in graph['nodes']}
         claims = [node for node in graph['nodes'] if node['type_id'] == 'tos.entity.claim']
+        from tos_access.knowledge import _ASSERTION_FIELDS, _lens_carrier
+        contexts_by_claim = {}
         for claim in claims:
             target = nodes_by_id[claim['semantics']['claim']['object_node_id']]
             self.assertNotEqual(claim['entity_id'], target['entity_id'])
+            context, = claim['semantics']['assertion_contexts']
+            source = claim['source_record']['payload']['properties']['source_claim']
+            for field in set(source) & set(_ASSERTION_FIELDS):
+                self.assertEqual(context['fields'][field]['value'], source[field])
+            self.assertEqual(context['source_record_digest'], claim['source_record']['digest'])
+            self.assertEqual(context['conflicts'], [])
+            self.assertEqual(_lens_carrier(claim, 'compact')['semantics']['assertion_contexts'], [context])
+            contexts_by_claim[source['claim_id']] = context
+        for relation in graph['relations']:
+            claim_ref = relation['attributes'].get('claim_ref')
+            if relation['source_graph'] != 'source-claims' or claim_ref not in contexts_by_claim:
+                continue
+            governed, = [context for context in _lens_carrier(relation, 'compact')['semantics']['assertion_contexts']
+                         if context['binding_role'] == 'referenced-claim']
+            self.assertEqual(governed, {**contexts_by_claim[claim_ref], 'binding_role': 'referenced-claim'})
         subject_edge = next(edge for edge in graph['relations'] if edge['relation_type_id'] == 'tos.relation.has-subject')
         graph['relations'].append({**subject_edge, 'id': subject_edge['id'] + ':duplicate-subject'})
         report = validate_knowledge_semantics(graph, self.entity_type_registry, self.relation_type_registry)

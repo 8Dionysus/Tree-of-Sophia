@@ -67,6 +67,8 @@
       "type": "object",
       "additionalProperties": false,
       "properties": {
+        "language_context": {"type": "object"},
+        "assertion_contexts": {"type": "array", "items": {"$ref": "#/$defs/assertionContext"}},
         "type_ancestors": {"type": "array", "items": {"type": "string"}},
         "annotation": {"type": "object"},
         "claim": {"type": "object"},
@@ -79,9 +81,51 @@
       "type": "object",
       "additionalProperties": false,
       "properties": {
+        "assertion_contexts": {"type": "array", "items": {"$ref": "#/$defs/assertionContext"}},
         "time": {"type": "object"},
         "space": {"type": "object"},
         "responsibility": {"type": "object"}
+      }
+    },
+    "assertionField": {
+      "type": "object", "additionalProperties": false, "required": ["value", "source_pointer"],
+      "properties": {"value": {}, "source_pointer": {"type": "string", "pattern": "^/"}}
+    },
+    "assertionContext": {
+      "type": "object", "additionalProperties": false,
+      "required": ["schema_version", "binding_role", "source_record_digest", "source_refs", "fields", "conflicts", "interpretation"],
+      "properties": {
+        "schema_version": {"const": "tos_assertion_context_v1"},
+        "binding_role": {"enum": ["carrier", "referenced-claim"]},
+        "source_record_digest": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+        "source_refs": {"type": "array", "items": {"type": "string", "minLength": 1}},
+        "fields": {"type": "object", "additionalProperties": {"$ref": "#/$defs/assertionField"}},
+        "conflicts": {"type": "array", "items": {
+          "type": "object", "additionalProperties": false, "required": ["field", "lower_priority", "higher_priority"],
+          "properties": {"field": {"type": "string"}, "lower_priority": {"$ref": "#/$defs/assertionField"}, "higher_priority": {"$ref": "#/$defs/assertionField"}}
+        }},
+        "interpretation": {"const": "source-declared-not-semantic-assessment"}
+      }
+    },
+    "displaySelection": {
+      "type": "object", "additionalProperties": false,
+      "required": ["schema_version", "content_revision", "fields", "essential_context_pointers", "performs_translation", "is_semantic_assessment"],
+      "properties": {
+        "schema_version": {"const": "tos_display_selection_v1"},
+        "content_revision": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+        "fields": {"type": "object", "additionalProperties": {
+          "type": "object", "additionalProperties": false,
+          "required": ["requested_language", "selected_key", "actual_language", "text", "reason", "available_keys", "content_available", "source_form_pointer"],
+          "properties": {
+            "requested_language": {"type": "string"}, "selected_key": {"type": ["string", "null"]},
+            "actual_language": {"type": ["string", "null"]}, "text": {"type": ["string", "null"]},
+            "reason": {"enum": ["exact-language", "less-specific-language", "original-role", "automatic", "fallback", "missing", "ambiguous-language-key"]},
+            "available_keys": {"type": "array", "items": {"type": "string"}},
+            "content_available": {"type": "boolean"}, "source_form_pointer": {"type": ["string", "null"]}
+          }
+        }},
+        "essential_context_pointers": {"type": "array", "items": {"type": "string", "pattern": "^/semantics/assertion_contexts/"}},
+        "performs_translation": {"const": false}, "is_semantic_assessment": {"const": false}
       }
     },
     "nodeDisplay": {
@@ -136,6 +180,7 @@
         "type_mapping": {"$ref": "#/$defs/semanticMapping"},
         "content_revision": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
         "display": {"$ref": "#/$defs/nodeDisplay"},
+        "display_selection": {"$ref": "#/$defs/displaySelection"},
         "epistemic": {"$ref": "#/$defs/epistemic"},
         "graph_layers": {"type": "array", "items": {"$ref": "#/$defs/nonEmptyString"}, "uniqueItems": true},
         "view_ids": {"type": "array", "items": {"$ref": "#/$defs/nonEmptyString"}, "uniqueItems": true},
@@ -164,6 +209,7 @@
         "predicate_mapping": {"$ref": "#/$defs/semanticMapping"},
         "content_revision": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
         "display": {"$ref": "#/$defs/relationDisplay"},
+        "display_selection": {"$ref": "#/$defs/displaySelection"},
         "epistemic": {"$ref": "#/$defs/epistemic"},
         "graph_layers": {"type": "array", "items": {"$ref": "#/$defs/nonEmptyString"}, "uniqueItems": true},
         "view_ids": {"type": "array", "items": {"$ref": "#/$defs/nonEmptyString"}, "uniqueItems": true},
