@@ -2241,7 +2241,7 @@
         "active repository text surfaces"
       ],
       "writes": [],
-      "side_effects": "validation output only",
+      "side_effects": "validation output only by default; --feedback-cache may write a caller-selected SQLite cache outside the repository",
       "validation_lane": "active_naming",
       "ci_inclusion": "release",
       "test_target": "tests/test_validate_active_naming.py",
