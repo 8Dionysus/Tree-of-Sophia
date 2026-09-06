@@ -843,6 +843,21 @@
       "disposition": "keep"
     },
     {
+      "path": "mechanics/growth-cycle/tests/test_human_forms.py",
+      "home": "mechanics/growth-cycle/tests",
+      "home_scope": "mechanic-level",
+      "family": "human_form_source_and_assessment_contract",
+      "validation_lane": "mechanics_local",
+      "owner_surface": "ToS/doctrine/HUMAN_FORMS.md",
+      "protects": "exact subject/source bindings, mandatory context, finite template slots, source language, revision, output budget and current freeform assessment; not historical truth or real linguistic quality",
+      "coverage_authority": "mechanics_local lane discovery",
+      "mode": "blocking",
+      "runtime_cost": "fast",
+      "focused_target": "mechanics/growth-cycle/tests/test_human_forms.py",
+      "failure_route": "Fix the source human-form contract or materializer; preserve mandatory context and current assessment boundaries.",
+      "disposition": "keep"
+    },
+    {
       "path": "tests/test_validate_tiny_entry_route.py",
       "home": "tests",
       "home_scope": "root",

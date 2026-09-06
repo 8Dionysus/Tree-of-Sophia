@@ -27,6 +27,7 @@ SCRIPT_REFERENCE_RE = re.compile(
     r"(?<![A-Za-z0-9_.-])((?:\.\./)*(?:scripts|mechanics)/[A-Za-z0-9_./-]+\.(?:py|sh))"
 )
 SCRIPT_INVENTORY_PATH = Path("docs/validation/script_inventory.json")
+TEST_INVENTORY_PATH = Path("tests/test_inventory.json")
 ROUTE_MAP_MARKERS = (
     "## Task-to-owner map",
     "## Progressive disclosure",
@@ -162,20 +163,22 @@ def resolve_doc_reference(repo_root: Path, source_path: Path, reference: str) ->
     return None
 
 
-def load_inventory_paths(repo_root: Path, issues: list[Issue]) -> set[str]:
-    path = repo_root / SCRIPT_INVENTORY_PATH
+def load_inventory_paths(repo_root: Path, issues: list[Issue], *,
+                         inventory_path: Path = SCRIPT_INVENTORY_PATH,
+                         key: str = "script_surfaces", kind: str = "script") -> set[str]:
+    path = repo_root / inventory_path
     try:
         payload = json.loads(path.read_text(encoding="utf-8"))
     except FileNotFoundError:
-        issues.append((SCRIPT_INVENTORY_PATH.as_posix(), "missing script inventory for route references"))
+        issues.append((inventory_path.as_posix(), f"missing {kind} inventory for route references"))
         return set()
     except json.JSONDecodeError as exc:
-        issues.append((SCRIPT_INVENTORY_PATH.as_posix(), f"invalid script inventory: {exc}"))
+        issues.append((inventory_path.as_posix(), f"invalid {kind} inventory: {exc}"))
         return set()
 
-    entries = payload.get("script_surfaces") if isinstance(payload, dict) else None
+    entries = payload.get(key) if isinstance(payload, dict) else None
     if not isinstance(entries, list):
-        issues.append((SCRIPT_INVENTORY_PATH.as_posix(), "script inventory must contain a script_surfaces list"))
+        issues.append((inventory_path.as_posix(), f"{kind} inventory must contain a {key} list"))
         return set()
     paths: set[str] = set()
     for entry in entries:
@@ -235,6 +238,7 @@ def validate_route_map(
 
 def validate_documentation_references(repo_root: Path, issues: list[Issue]) -> None:
     inventory_paths = load_inventory_paths(repo_root, issues)
+    test_inventory_paths = None
     for path in current_mechanics_markdown(repo_root):
         relative = path.relative_to(repo_root).as_posix()
         text = path.read_text(encoding="utf-8")
@@ -265,11 +269,16 @@ def validate_documentation_references(repo_root: Path, issues: list[Issue]) -> N
                 issues.append((relative, f"stale executable reference: {reference}"))
                 continue
             resolved_relative = resolved.relative_to(repo_root).as_posix()
-            if resolved_relative not in inventory_paths:
+            is_test = 'tests' in Path(resolved_relative).parts and resolved.name.startswith('test') and resolved.suffix == '.py'
+            if is_test and test_inventory_paths is None:
+                test_inventory_paths = load_inventory_paths(repo_root, issues,
+                    inventory_path=TEST_INVENTORY_PATH, key='tests', kind='test')
+            owning_inventory = test_inventory_paths if is_test else inventory_paths
+            if resolved_relative not in (owning_inventory or set()):
                 issues.append(
                     (
                         relative,
-                        f"executable reference is absent from script inventory: {resolved_relative}",
+                        f"executable reference is absent from {'test' if is_test else 'script'} inventory: {resolved_relative}",
                     )
                 )
 

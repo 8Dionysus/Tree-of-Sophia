@@ -81,6 +81,14 @@ Use it only when drift is philosophically load-bearing.
 These fields do not change the required minimum node contract.
 They make multilingual witness surfaces inspectable without splitting node identity by language.
 
+## Human representations
+
+[HUMAN_FORMS](HUMAN_FORMS.md) governs versioned names, captions, hover text,
+exact statements, grounds, history and technical readings of the same subject.
+Forms bind source records and mandatory context; source-copy, admitted-template
+rendering and assessed freeform wording remain distinct. This is an additive
+form contract, not a replacement for a node's source or witness layers.
+
 ## Lineage before archive
 
 ToS grows best when lineage is clearer than storage.

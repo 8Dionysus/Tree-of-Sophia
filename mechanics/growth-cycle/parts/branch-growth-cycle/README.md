@@ -55,3 +55,23 @@ each batch at 1 MiB; it refuses truncation. Larger histories need a source-owned
 checkpoint/archive reader, not deletion of history. Orphan retention, actual
 source-adapter binding, cross-object transactions and research/UI integration
 remain foundation work; this journal alone does not close the Growth profile.
+
+## Human-form materialization
+
+`scripts/human_forms.py` renders the source-owned
+`ToS/doctrine/HUMAN_FORMS.md` contract. `materialize_form` takes an immutable
+form record, trusted `FormScope`, exact access-filtered source records and an
+owner-admitted template set. `SourceBinding` identifies a whole JSON field, not
+an executable expression. Required context comes from the source owner, not
+the proposed wording. Freeform rendering requires the existing assessment
+engine and authenticated reviews/history against the current form and source
+snapshot; it cannot use a submitted positive status as permission.
+
+This pure operation writes nothing and does not call a model. The result's
+wording and context are a single read contract; `standalone_reading: false`
+forbids consuming the string as an unqualified assertion. The current output
+budget is 64 KiB with explicit refusal, not semantic truncation. Missing,
+restricted, stale and assessment-required states have no emitted wording.
+Rendering mechanics do not prove an adapter's authentication, a template's
+semantic quality, an agent's real-language competence or UI consumption.
+`mechanics/growth-cycle/tests/test_human_forms.py` protects these boundaries.

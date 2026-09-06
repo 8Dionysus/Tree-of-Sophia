@@ -356,6 +356,20 @@
       "disposition": "keep"
     },
     {
+      "path": "mechanics/growth-cycle/parts/branch-growth-cycle/scripts/human_forms.py",
+      "family": "human_form_materialization",
+      "organ_lane": "mechanics/part-owned",
+      "owner_surface": "mechanics/growth-cycle/parts/branch-growth-cycle/README.md",
+      "source_truth": ["ToS/doctrine/HUMAN_FORMS.md", "ToS/contracts/human-form.schema.json", "ToS/contracts/human-form-template.schema.json"],
+      "reads": ["source form schemas and caller-supplied exact source records, mandatory context, admitted templates and current assessment inputs"],
+      "writes": [],
+      "side_effects": "none; bounded pure rendering with current freeform policy application, not source judgment or runtime authentication",
+      "validation_lane": "mechanics_local",
+      "ci_inclusion": "release",
+      "test_target": "mechanics/growth-cycle/tests/test_human_forms.py",
+      "disposition": "keep"
+    },
+    {
       "path": "scripts/AGENTS.md",
       "family": "script_route_card",
       "organ_lane": "route-card",

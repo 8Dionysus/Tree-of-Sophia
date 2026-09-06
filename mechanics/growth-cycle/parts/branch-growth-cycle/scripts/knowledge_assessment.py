@@ -61,6 +61,10 @@ class Record:
         return json.loads(self._bytes)
 
     @property
+    def size_bytes(self) -> int:
+        return len(self._bytes)
+
+    @property
     def ref(self) -> dict[str, Any]:
         return {"id": self.id, "version": self.version,
                 "digest": "sha256:" + hashlib.sha256(self._bytes).hexdigest()}
