@@ -70,6 +70,26 @@ class ValidationLanesTestCase(unittest.TestCase):
         self.assertEqual(tests, [steps[-1]])
         self.assertEqual(tests[0][0], "run tests")
 
+    def test_release_uses_one_pytest_collection_with_duration_diagnostics(self) -> None:
+        steps = validation_lanes.command_sequence("release_check", REPO_ROOT)
+        command = steps[-1][1]
+
+        self.assertEqual(
+            command[1:],
+            [
+                "-m",
+                "pytest",
+                "-q",
+                "-p",
+                "no:cacheprovider",
+                "--durations=20",
+                "tests",
+            ],
+        )
+        self.assertEqual(Path(command[0]).name, Path(sys.executable).name)
+        self.assertEqual(command.count("pytest"), 1)
+        self.assertNotIn("unittest", command)
+
     def test_large_generated_checks_rebuild_once_in_the_validator(self) -> None:
         manifest = json.loads(
             (REPO_ROOT / "docs" / "validation" / "validation_lanes.json").read_text(encoding="utf-8")

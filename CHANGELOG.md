@@ -9,6 +9,11 @@ Tracking starts with the community-docs baseline for this repository.
 
 ### Changed
 
+- Runs the root validation collection once through pytest, retaining all
+  `unittest.TestCase` coverage while including the eight top-level pytest
+  regressions previously omitted by unittest discovery; the same route emits
+  bounded slow-test diagnostics without duplicating the full suite.
+
 - Searches active naming references from retired-token occurrences instead of
   rechecking every unrelated path-shaped word. Length-preserving case mapping
   retains Unicode boundaries, exact allowlists, and original diagnostics while

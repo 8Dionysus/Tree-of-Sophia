@@ -43,4 +43,4 @@ jobs:
         run: python mechanics/boundary-bridge/parts/public-mirror-sync/scripts/validate_tree_example_sync.py
 
       - name: Run tests
-        run: python -m unittest discover -s tests
+        run: python -m pytest -q -p no:cacheprovider tests

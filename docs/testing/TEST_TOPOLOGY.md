@@ -28,7 +28,7 @@ nearest route cards and named validation lanes.
 
 | Home Scope | Current Homes | Protects | Coverage Authority | Failure Route |
 | --- | --- | --- | --- | --- |
-| `root` | `tests/` | Repo-wide route docs, source-home schema, generated parity, validator behavior, validation authority, and release contour. | `tests/AGENTS.md` root unittest discovery | Fix the named owner surface before editing test expectations. |
+| `root` | `tests/` | Repo-wide route docs, source-home schema, generated parity, validator behavior, validation authority, and release contour. | `tests/AGENTS.md` root test collection (including unittest cases) | Fix the named owner surface before editing test expectations. |
 | `product-local` | `access/tests/` | Portable root discovery, shared query adapters, native MCP construction, browser action ABI, and standalone installation posture. | `access/AGENTS.md` and the `standalone_access` lane | Fix the access core, adapter, contract, profile, or bundle boundary first. |
 | `mechanic-level` | `mechanics/experience/tests/`; `mechanics/questbook/tests/`; future `mechanics/<slug>/tests/` | One mechanic package's active topology or package-wide contracts. | package lane plus `mechanics_local` discovery | Fix the owning mechanic package, `PARTS.md`, schemas, examples, or local validator first. |
 | `part-local` | `mechanics/agon/parts/threshold-registry/tests/`; future `mechanics/<slug>/parts/<part>/tests/` | One mechanic part, its generated companion, registry, or handoff packet. | `mechanics_local` lane discovery | Fix the part-local source, builder, validator, and schema before widening to release. |

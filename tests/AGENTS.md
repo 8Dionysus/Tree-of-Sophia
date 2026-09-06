@@ -20,7 +20,7 @@ replace eval/proof authority.
 | output | focused regression signal tied to an owner surface |
 | owner | `docs/testing/TEST_TOPOLOGY.md`, `tests/AGENTS.md`, and `tests/test_inventory.json` |
 | next route | failing test -> owner surface -> validator or builder -> focused test -> release lane when needed |
-| tools | `unittest`, local fixtures, schema validators, temporary repos |
+| tools | standard test runner (including unittest.TestCase), local fixtures, schema validators, temporary repos |
 | check | focused test module first, then the broad test route in `tests/VALIDATION.md` |
 
 ## Boundaries
