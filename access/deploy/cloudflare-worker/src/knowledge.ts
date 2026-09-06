@@ -3,6 +3,7 @@ import { normalizePagination, paginateLens, type Pagination } from './lens-pagin
 export type Item = Record<string, unknown>;
 
 export type LocalizedText = {
+  [language: string]: string | null | undefined;
   default: string;
   ru: string | null;
   en: string | null;
@@ -88,7 +89,7 @@ export type LensSpec = {
   lens_id: string;
   title: LocalizedText;
   description: LocalizedText;
-  language: "auto" | "ru" | "en" | "original";
+  language: string;
   sources: string[];
   seed: { focus_node_id: string | null; node_ids: string[]; text_query: string };
   node_query: { enabled: boolean; match: "all" | "any"; filters: LensFilter[] };
@@ -158,13 +159,22 @@ function humanize(value: string): string {
   return value.replace(/[-_.]+/g, " ").trim() || "unnamed";
 }
 
+// Transport syntax only, not registration or linguistic quality validation.
+const LANGUAGE_KEY = /^(?:[A-Za-z]{2,8}(?:-[A-Za-z0-9]{1,8})*|[iIxX](?:-[A-Za-z0-9]{1,8})+)$(?![\s\S])/;
+function formKey(key: string): boolean {
+  return key === 'default' || key === 'original' || LANGUAGE_KEY.test(key);
+}
+
 function localized(value: unknown, fallback: string): LocalizedText {
   const source = record(value);
+  const forms = Object.fromEntries(Object.entries(source).filter(([key]) => formKey(key)).map(([key, item]) => [key, text(item)]));
+  const keys = ['default', 'ru', 'en', 'original', ...Object.keys(forms).filter(key => !['default', 'ru', 'en', 'original'].includes(key)).sort()];
   return {
-    default: text(source.default) ?? text(source.ru) ?? text(source.en) ?? text(value) ?? fallback,
     ru: text(source.ru),
     en: text(source.en),
     original: text(source.original),
+    ...forms,
+    default: keys.map(key => forms[key]).find(value => typeof value === 'string') ?? text(value) ?? fallback,
   };
 }
 
@@ -179,7 +189,8 @@ function lensLocalized(value: unknown, fallback: string, name: string): Localize
     throw new Error(`${name} must be a non-empty string or localized object`);
   }
   const source = value as Item;
-  onlyKeys(source, ["default", "ru", "en", "original"], name);
+  const unknown = Object.keys(source).filter(key => !formKey(key)).sort();
+  if (unknown.length) throw new Error(`unknown ${name} fields: ${unknown.join(', ')}`);
   for (const [key, item] of Object.entries(source)) {
     if (item !== null && typeof item !== "string") throw new Error(`${name}.${key} must be a string or null`);
   }
@@ -189,6 +200,9 @@ function lensLocalized(value: unknown, fallback: string, name: string): Localize
 
 function allowedField(field: string, kind: "node" | "relation"): boolean {
   if ((kind === "node" ? NODE_FIELDS : RELATION_FIELDS).has(field)) return true;
+  const parts = field.split('.');
+  const displayFields = kind === 'node' ? ['title', 'kind_label', 'summary'] : ['label', 'inverse_label', 'statement', 'explanation'];
+  if (parts.length === 3 && parts[0] === 'display' && displayFields.includes(parts[1]!) && formKey(parts[2]!)) return true;
   return ATTRIBUTE_FIELD.test(field) && !field.split(".").some((segment) => UNSAFE_PATH_SEGMENTS.has(segment));
 }
 
@@ -361,8 +375,8 @@ export function normalizeLensSpec(value: unknown): LensSpec {
 
   const limits = strictRecord(source.limits, "limits", ["nodes", "relations", "groups"]);
   const language = text(source.language) ?? "auto";
-  if (language !== "auto" && language !== "ru" && language !== "en" && language !== "original") {
-    throw new Error("language must be auto, ru, en, or original");
+  if (language !== "auto" && language !== "original" && !LANGUAGE_KEY.test(language)) {
+    throw new Error("language must be auto, original, or a language tag");
   }
   return {
     schema_version: "tos_lens_spec_v1",

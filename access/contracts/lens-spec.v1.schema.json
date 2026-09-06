@@ -10,7 +10,7 @@
     "lens_id": {"type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$"},
     "title": {"$ref": "#/$defs/localizedInput"},
     "description": {"$ref": "#/$defs/localizedInput"},
-    "language": {"enum": ["auto", "ru", "en", "original"]},
+    "language": {"type": "string", "pattern": "^(?:auto|original|[A-Za-z]{2,8}(?:-[A-Za-z0-9]{1,8})*|[iIxX](?:-[A-Za-z0-9]{1,8})+)$(?![\\s\\S])"},
     "pagination": {"anyOf": [{"type": "null"}, {
       "type": "object", "additionalProperties": false,
       "properties": {
@@ -113,6 +113,9 @@
         {
           "type": "object",
           "additionalProperties": false,
+          "patternProperties": {
+            "^(?:[A-Za-z]{2,8}(?:-[A-Za-z0-9]{1,8})*|[iIxX](?:-[A-Za-z0-9]{1,8})+)$(?![\\s\\S])": {"type": ["string", "null"]}
+          },
           "properties": {
             "default": {"type": "string", "minLength": 1},
             "ru": {"type": ["string", "null"]},
@@ -128,6 +131,7 @@
     },
     "nodeField": {
       "anyOf": [
+        {"type": "string", "pattern": "^display\\.(?:title|kind_label|summary)\\.(?:default|original|[A-Za-z]{2,8}(?:-[A-Za-z0-9]{1,8})*|[iIxX](?:-[A-Za-z0-9]{1,8})+)$(?![\\s\\S])"},
         {"enum": [
           "id", "entity_id", "native_id", "source_graph", "kind_id", "type_id", "type_mapping.status", "type_mapping.source_kind_id", "display.title.default", "display.title.ru", "display.title.en",
           "display.kind_label.default", "display.summary.default", "display.summary.ru", "display.summary.en", "display.summary_state",
@@ -139,6 +143,7 @@
     },
     "relationField": {
       "anyOf": [
+        {"type": "string", "pattern": "^display\\.(?:label|inverse_label|statement|explanation)\\.(?:default|original|[A-Za-z]{2,8}(?:-[A-Za-z0-9]{1,8})*|[iIxX](?:-[A-Za-z0-9]{1,8})+)$(?![\\s\\S])"},
         {"enum": [
           "id", "native_id", "source_graph", "from_id", "to_id", "predicate_id", "relation_type_id", "predicate_mapping.status", "predicate_mapping.source_predicate_id", "display.label.default", "display.label.ru",
           "display.label.en", "display.statement.default", "display.explanation.default", "display.explanation_state",

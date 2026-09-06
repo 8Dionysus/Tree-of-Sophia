@@ -53,6 +53,9 @@
     "localizedLabel": {
       "type": "object",
       "additionalProperties": false,
+      "patternProperties": {
+        "^(?:[A-Za-z]{2,8}(?:-[A-Za-z0-9]{1,8})*|[iIxX](?:-[A-Za-z0-9]{1,8})+)$(?![\\s\\S])": {"type": ["string", "null"], "minLength": 1}
+      },
       "required": ["default", "ru", "en"],
       "properties": {
         "default": {"$ref": "#/$defs/nonEmptyString"},

@@ -127,6 +127,22 @@ test("indexed D1 path conditions and inclusion agree with the pure engine", asyn
       assert.equal(packet.source_revision, graph.source_revision);
     }
     const scoped = structuredClone(graph);
+    // New language/script keys pass through all three execution backends.
+    scoped.nodes[0]!.display.title['grc-Grek'] = 'λόγος';
+    scoped.relations[0]!.display.statement.fr = 'Attribution non établie.';
+    await db.prepare('UPDATE knowledge_nodes SET json=? WHERE id=?').bind(JSON.stringify(scoped.nodes[0]), 'philosophy:a').run();
+    await db.prepare('UPDATE knowledge_relations SET json=? WHERE id=?').bind(JSON.stringify(scoped.relations[0]), 'philosophy:e').run();
+    const languageSpec = {...base, language: 'fr-CA', title: {'fr-CA': 'Lecture'}, detail: 'compact',
+      node_query: {filters: [{field: 'display.title.grc-Grek', op: 'eq', value: 'λόγος'}]},
+      relation_query: {filters: [{field: 'display.statement.fr', op: 'contains', value: 'non'}]},
+      composition: {endpoint_policy: 'either'}};
+    const languageResult = await executeKnowledgeLensD1(db, languageSpec);
+    assert.deepEqual(languageResult, await executeKnowledgeLens(scoped, languageSpec));
+    const pythonLanguage = JSON.parse(execFileSync('python3', ['-c',
+      "import sys,json;sys.path.insert(0,'access/src');from tos_access.knowledge import execute_knowledge_lens;p=json.load(sys.stdin);print(json.dumps(execute_knowledge_lens(p['graph'],p['spec'])))"],
+      {cwd: fileURLToPath(new URL('../../../../', import.meta.url)), input: JSON.stringify({graph: scoped, spec: languageSpec}), encoding:'utf8'}));
+    assert.deepEqual(languageResult, pythonLanguage);
+    assert.equal((languageResult.relations as KnowledgeGraph['relations'])[0]!.display.statement.fr, 'Attribution non établie.');
     scoped.nodes[1]!.source_graph = 'repository';
     await db.prepare("UPDATE knowledge_nodes SET source_graph='repository', json=? WHERE id=?").bind(JSON.stringify(scoped.nodes[1]), 'philosophy:b').run();
     assert.deepEqual(await executeKnowledgeLensD1(db,joined), await executeKnowledgeLens(scoped,joined));
@@ -152,6 +168,25 @@ test("edge lens engine composes an unknown declarative lens", async () => {
   assert.equal(result.presentation.layout, "semantic");
   assert.equal(result.fingerprint.length, 64);
   assert.equal(result.authority_boundary.is_source, false);
+});
+
+test('language fallback does not manufacture a translation or discard private-use forms', () => {
+  for (const key of ['fr', 'zh-Hant', 'x-research', 'original']) {
+    const spec = normalizeLensSpec({schema_version: 'tos_lens_spec_v1', lens_id: 'languages',
+      language: key, title: {[key]: 'Exact source wording.'}});
+    assert.equal(spec.title.default, 'Exact source wording.');
+    assert.equal(spec.title[key], 'Exact source wording.');
+    assert.equal(spec.title.ru, null);
+    assert.equal(spec.title.en, null);
+  }
+  for (const key of ['fr\n', 'fr_CA', '__proto__', 'script.js']) {
+    assert.throws(() => normalizeLensSpec({schema_version: 'tos_lens_spec_v1', lens_id: 'invalid-language',
+      title: {[key]: 'not a declared form key'}}), /unknown title fields/);
+  }
+  for (const field of ['display.title.__proto__', 'display.title.fr.name', 'display.summary_state.fr']) {
+    assert.throws(() => normalizeLensSpec({schema_version: 'tos_lens_spec_v1', lens_id: 'unsafe-language',
+      node_query: {filters: [{field, op: 'eq', value: 'no'}]}}), /unsupported node filter field/);
+  }
 });
 
 test("edge lens validator rejects unsafe paths and unbounded requests", () => {
@@ -184,7 +219,7 @@ test("edge lens validator rejects unsafe paths and unbounded requests", () => {
     /title must be a non-empty string or localized object/,
   );
   assert.throws(
-    () => normalizeLensSpec({ schema_version: "tos_lens_spec_v1", lens_id: "bad-title-field", title: { default: "valid", html: "no" } }),
+    () => normalizeLensSpec({ schema_version: "tos_lens_spec_v1", lens_id: "bad-title-field", title: { default: "valid", html_markup: "no" } }),
     /unknown title fields/,
   );
   assert.throws(

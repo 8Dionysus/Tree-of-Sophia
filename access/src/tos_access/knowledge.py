@@ -399,25 +399,34 @@ def _localized(
     }
 
 
+# A transport envelope for language tags, not an IANA registry or linguistic
+# assessment. Preserve spelling (including private-use tags); never infer that
+# an original form is a translation in the requested interface language.
+_LANGUAGE_KEY = re.compile(r"^(?:[A-Za-z]{2,8}(?:-[A-Za-z0-9]{1,8})*|[iIxX](?:-[A-Za-z0-9]{1,8})+)$(?![\s\S])")
+
+
+def _form_key(key: str) -> bool:
+    return key in {"default", "original"} or bool(_LANGUAGE_KEY.fullmatch(key))
+
+
+def _form_items(value: Any) -> dict[str, str | None]:
+    return {key: _string(item) for key, item in value.items() if _form_key(key)} if isinstance(value, dict) else {}
+
+
 def _localized_from(value: Any, fallback: str) -> dict[str, str | None]:
     if isinstance(value, dict):
         # Source wording (including original-only prose) outranks an invented
         # endpoint formula. A missing translation must not reverse a negation.
-        default = (_string(value.get("default")) or _string(value.get("ru"))
-                   or _string(value.get("en")) or _string(value.get("original")) or fallback)
-        return _localized(
-            default,
-            ru=_string(value.get("ru")),
-            en=_string(value.get("en")),
-            original=_string(value.get("original")),
-        )
+        forms = _form_items(value)
+        return {**_localized(fallback), **forms, "default": _display_text(forms) or fallback}
     return _localized(_string(value) or fallback)
 
 
 def _display_text(value: Any) -> str | None:
     """Recognize source prose in any declared display language, without translating it."""
     if isinstance(value, dict):
-        return next((_string(value.get(key)) for key in ('default', 'ru', 'en', 'original')
+        keys = ['default', 'ru', 'en', 'original', *sorted(set(_form_items(value)) - {'default', 'ru', 'en', 'original'})]
+        return next((_string(value.get(key)) for key in keys
                      if _string(value.get(key))), None)
     return _string(value)
 
@@ -432,7 +441,7 @@ def _lens_localized(value: Any, fallback: str, name: str) -> dict[str, str | Non
         return _localized(normalized)
     if not isinstance(value, dict):
         raise ValueError(f"{name} must be a non-empty string or localized object")
-    unknown = sorted(set(value) - {"default", "ru", "en", "original"})
+    unknown = sorted(key for key in value if not _form_key(key))
     if unknown:
         raise ValueError(f"unknown {name} fields: {', '.join(unknown)}")
     for key, item in value.items():
@@ -483,12 +492,9 @@ def _node_display(
     label = explicit_label or path_label or _humanize(str(item.get("node_id") or item.get("id") or "node"))
     labels = _multilingual_labels(item)
     title = _localized_from(existing.get("title"), label)
-    if title["ru"] is None:
-        title["ru"] = _string(labels.get("ru"))
-    if title["en"] is None:
-        title["en"] = _string(labels.get("en"))
-    if title["original"] is None:
-        title["original"] = _string(labels.get("original"))
+    for language, value in _form_items(labels).items():
+        if title.get(language) is None:
+            title[language] = value
     variant_labels = properties.get("variant_labels")
     if isinstance(variant_labels, list):
         for variant in variant_labels:
@@ -496,17 +502,19 @@ def _node_display(
                 continue
             language = _string(variant.get("language"))
             value = _string(variant.get("value"))
-            if language in {"ru", "en"} and value and title[language] is None:
+            if language and _form_key(language) and value and title.get(language) is None:
                 title[language] = value
+    if not _display_text(existing.get("title")) and not explicit_label and not path_label:
+        title["default"] = _display_text({key: value for key, value in title.items() if key != 'default'}) or label
 
     registry_labels = type_entry.get("labels") if isinstance(type_entry, dict) and isinstance(type_entry.get("labels"), dict) else {}
     kind_label = _localized_from(
         existing.get("kind_label"),
         _string(registry_labels.get("default")) or _humanize(kind_id),
     )
-    for language in ("ru", "en"):
-        if kind_label[language] is None:
-            kind_label[language] = _string(registry_labels.get(language))
+    for language, value in _form_items(registry_labels).items():
+        if kind_label.get(language) is None:
+            kind_label[language] = value
     authored_summary = next(
         (
             _string(value)
@@ -932,10 +940,11 @@ def _relation_display(
         or _humanize(predicate_id)
     )
     label = _localized_from(existing.get("label"), label_fallback)
-    for language in ("ru", "en"):
-        if label[language] is None:
-            # A family label is not a translation of every concrete predicate.
-            label[language] = _string(registry_labels.get(language)) if exact_type_label else None
+    if exact_type_label:
+        for language, value in _form_items(registry_labels).items():
+            if label.get(language) is None:
+                # A family label is not a translation of every concrete predicate.
+                label[language] = value
     inverse = existing.get("inverse_label")
     registry_inverse = (
         relation_type_entry.get("inverse_labels")
@@ -957,7 +966,7 @@ def _relation_display(
     statement = _localized_from(existing.get("statement"), statement_default)
     statement["default"] = statement_default if not _string(statement.get("default")) else statement["default"]
     if not _display_text(existing.get("statement")):
-        for language in ("ru", "en"):
+        for language in sorted(set(label) - {'default', 'original'}):
             if not label[language]:
                 continue
             left_labels = ((left or {}).get("display") or {}).get("title") or {}
@@ -2035,6 +2044,10 @@ def _allowed_field(field: str, kind: str) -> bool:
     fields = NODE_FIELDS if kind == "node" else RELATION_FIELDS
     if field in fields:
         return True
+    parts = field.split('.')
+    display_fields = {'title', 'kind_label', 'summary'} if kind == 'node' else {'label', 'inverse_label', 'statement', 'explanation'}
+    if len(parts) == 3 and parts[0] == 'display' and parts[1] in display_fields and _form_key(parts[2]):
+        return True
     if not _ATTRIBUTE_FIELD.fullmatch(field):
         return False
     return not any(segment in _UNSAFE_PATH_SEGMENTS for segment in field.split("."))
@@ -2301,8 +2314,8 @@ def normalize_lens_spec(value: Any) -> dict[str, Any]:
     detail = value.get('detail', 'full')
     if detail not in {'full', 'compact'}:
         raise ValueError('detail must be full or compact')
-    if language not in {"auto", "ru", "en", "original"}:
-        raise ValueError("language must be auto, ru, en, or original")
+    if language not in {"auto", "original"} and not _LANGUAGE_KEY.fullmatch(language):
+        raise ValueError("language must be auto, original, or a language tag")
     explain = value.get('explain', False)
     if not isinstance(explain, bool):
         raise ValueError('explain must be a boolean')
@@ -2998,6 +3011,17 @@ def _attribute_catalog(items: list[dict[str, Any]], kind: str) -> list[dict[str,
     return result
 
 
+def _display_field_catalog(items: list[dict[str, Any]], kind: str) -> list[dict[str, Any]]:
+    counts: Counter[str] = Counter()
+    for item in items:
+        for field, forms in (item.get('display') or {}).items():
+            for language, text in _form_items(forms).items():
+                path = f'display.{field}.{language}'
+                if text and _allowed_field(path, kind):
+                    counts[path] += 1
+    return [{'field': field, 'available_item_count': count} for field, count in sorted(counts.items())]
+
+
 def _facet_catalog(items: list[dict[str, Any]], fields: Iterable[str]) -> dict[str, list[dict[str, Any]]]:
     result: dict[str, list[dict[str, Any]]] = {}
     for field in fields:
@@ -3344,6 +3368,15 @@ def knowledge_catalog(
             },
             "node_fields": sorted(NODE_FIELDS),
             "relation_fields": sorted(RELATION_FIELDS),
+            "human_languages": {
+                "key_pattern": _LANGUAGE_KEY.pattern,
+                "reserved_roles": ["default", "original"],
+                "registration_verified": False,
+                "node_fields": _display_field_catalog(nodes, 'node'),
+                "relation_fields": _display_field_catalog(relations, 'relation'),
+                "fallback_order": ["default", "ru", "en", "original", "remaining-keys-sorted"],
+                "boundary": "Availability is not translation, semantic quality, or interface-language equivalence.",
+            },
             "attribute_field_pattern": _ATTRIBUTE_FIELD.pattern,
             "node_attribute_fields": _attribute_catalog(nodes, "node"),
             "relation_attribute_fields": _attribute_catalog(relations, "relation"),

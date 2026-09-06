@@ -48,6 +48,11 @@ repository paths, machine statuses, or internal review terminology. Those
 values remain available in structured attributes, provenance and source refs.
 Synthesized relationship statements use available localized endpoint and
 predicate labels; source-supplied prose and translations are preserved verbatim.
+Language/script keys are extensible (including `grc-Grek`, `zh-Hant` and
+private-use tags); the catalog exposes observed display fields and availability.
+Fallback preserves available source wording without pretending to translate it.
+See the [language transport contract](contracts/README.md) for compatibility
+roles, fallback order and the still-distinct full Forms work.
 
 Clients discover the construction vocabulary through `tos knowledge catalog`
 or `GET /api/knowledge/catalog`. The catalog reports current kinds,

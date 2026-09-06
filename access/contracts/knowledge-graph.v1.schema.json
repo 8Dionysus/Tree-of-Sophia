@@ -25,6 +25,10 @@
     "localizedText": {
       "type": "object",
       "additionalProperties": false,
+      "description": "Language-tag transport envelope; key syntax does not verify registration, language, translation or semantic quality. default and original are roles, not language tags.",
+      "patternProperties": {
+        "^(?:[A-Za-z]{2,8}(?:-[A-Za-z0-9]{1,8})*|[iIxX](?:-[A-Za-z0-9]{1,8})+)$(?![\\s\\S])": {"$ref": "#/$defs/nullableString"}
+      },
       "required": ["default", "ru", "en", "original"],
       "properties": {
         "default": {"$ref": "#/$defs/nonEmptyString"},

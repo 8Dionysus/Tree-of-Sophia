@@ -46,6 +46,26 @@ and CLI. Contract file
 paths remain provenance; clients use the packet instead of assuming repository
 filesystem access.
 
+Localized text and registry labels retain extensible language/script keys
+(for example `grc-Grek`, `zh-Hant`, `fr-CA`, or private-use `x-research`).
+`default` and `original` remain compatibility roles, not language declarations.
+The key pattern is a transport envelope, not an IANA registration check or a
+judgment of translation quality. An absent translation stays null: source prose
+in any supported key outranks a synthetic endpoint sentence. The deterministic
+fallback order is `default`, `ru`, `en`, `original`, then remaining keys sorted;
+this order does not assert that fallback text has the requested UI language.
+Malformed/unknown source structures remain in the lossless source record, not
+silently interpreted as translations. Per-form source, script, translation
+assessment and qualifier-aware selection remain foundation work; this legacy
+map alone is not the complete Forms contract.
+
+Lens language preferences accept those keys. Safe display filters, sorts and
+groups accept `display.<field>.<language>` for the declared node or relation
+display fields. The catalog's `human_languages` section lists observed fields
+and nonempty availability counts without claiming semantic readiness. Local
+Python and the Worker/D1 reader share this grammar; changing preferences never
+alters corpus identity or imports new knowledge.
+
 The `tos-lens-execution-v2` capability revision adds optional `path_query`,
 `explain`, and `pagination` fields to the existing v1 request family. Existing
 requests are accepted; consumers should discover the current schemas rather

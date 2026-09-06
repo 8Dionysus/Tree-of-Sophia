@@ -153,6 +153,69 @@ class KnowledgeContractTests(unittest.TestCase):
         display = _relation_display({}, 'authored_by', None, None, [])
         self.assertEqual(display['provenance']['statement'], 'endpoint-label-synthesis')
 
+    def test_language_forms_survive_source_normalization_schema_and_compact_delivery(self):
+        from tos_access.knowledge import _normalize_relation, _lens_carrier, _display_field_catalog
+        schema = json.loads((ACCESS_ROOT / 'contracts/knowledge-graph.v1.schema.json').read_text())
+        validator = Draft202012Validator({'$ref': '#/$defs/localizedText', '$defs': schema['$defs']})
+        # Synthetic prose checks transport fidelity, not historical attribution.
+        for language in ('fr', 'de-Latn', 'zh-Hant', 'grc-Grek', 'x-research', 'i-klingon'):
+            with self.subTest(language=language):
+                prose = 'Attribution non établie; sous réserve de nouvelles sources.'
+                item = {'edge_id': 'r', 'from_id': 'a', 'to_id': 'b', 'predicate_id': 'authored_by',
+                        'display': {'statement': {language: prose}, 'explanation': {language: prose}}}
+                relation = _normalize_relation(item, 'philosophy', {})
+                for carrier in (relation, _lens_carrier(relation, 'compact')):
+                    for field in ('statement', 'explanation'):
+                        forms = carrier['display'][field]
+                        validator.validate(forms)
+                        self.assertEqual(forms[language], prose)
+                        self.assertEqual(forms['default'], prose)
+                        self.assertIsNone(forms['ru'])
+                        self.assertIsNone(forms['en'])
+                    self.assertEqual(carrier['display']['provenance']['statement'], 'source-derived')
+                self.assertEqual(relation['source_record']['payload'], item)
+                self.assertIn({'field': f'display.statement.{language}', 'available_item_count': 1},
+                              _display_field_catalog([relation], 'relation'))
+
+    def test_multilingual_source_titles_and_registry_labels_keep_new_languages(self):
+        from tos_access.knowledge import _node_display, _relation_display
+        node = _node_display({'node_id': 'technical-id', 'multilingual': {'label': {'grc-Grek': 'λόγος'}},
+                              'properties': {'variant_labels': [{'language': 'la-Latn', 'value': 'ratio'}]}},
+                             'concept', [], {'labels': {'default': 'concept', 'fr': 'concept philosophique'}})
+        self.assertEqual(node['title']['default'], 'λόγος')
+        self.assertEqual(node['title']['grc-Grek'], 'λόγος')
+        self.assertEqual(node['title']['la-Latn'], 'ratio')
+        self.assertEqual(node['kind_label']['fr'], 'concept philosophique')
+        relation = _relation_display({}, 'related', None, None, [],
+                                     {'labels': {'default': 'related', 'fr': 'en relation avec'}})
+        self.assertEqual(relation['label']['fr'], 'en relation avec')
+        self.assertIn('en relation avec', relation['statement']['fr'])
+
+    def test_language_query_and_registry_schemas_share_the_transport_contract(self):
+        schema = json.loads((ACCESS_ROOT / 'contracts/lens-spec.v1.schema.json').read_text())
+        spec = {'schema_version': 'tos_lens_spec_v1', 'lens_id': 'language-test', 'language': 'fr-CA',
+                'title': {'fr-CA': 'Lecture'},
+                'node_query': {'filters': [{'field': 'display.title.grc-Grek', 'op': 'eq', 'value': 'λόγος'}]},
+                'relation_query': {'filters': [{'field': 'display.statement.fr', 'op': 'contains', 'value': 'non'}]}}
+        Draft202012Validator(schema).validate(spec)
+        normalized = normalize_lens_spec(spec)
+        Draft202012Validator(schema).validate(normalized)
+        self.assertEqual(normalized['title']['default'], 'Lecture')
+        self.assertEqual(normalized['title']['fr-CA'], 'Lecture')
+        for key in ('fr\n', 'fr_CA', '__proto__', 'script.js'):
+            invalid = {**spec, 'title': {key: 'not a declared form key'}}
+            self.assertFalse(Draft202012Validator(schema).is_valid(invalid))
+            with self.assertRaises(ValueError):
+                normalize_lens_spec(invalid)
+        for path in ('semantic-entity-type-registry.schema.json', 'semantic-relation-type-registry.schema.json'):
+            registry = json.loads((ACCESS_ROOT.parent / 'ToS/contracts' / path).read_text())
+            validator = Draft202012Validator({'$ref': '#/$defs/localizedLabel', '$defs': registry['$defs']})
+            validator.validate({'default': 'Thing', 'ru': None, 'en': None, 'fr-CA': 'Objet'})
+            self.assertFalse(validator.is_valid({'default': 'Thing', 'ru': None, 'en': None, 'fr-CA': 42}))
+        for field in ('display.title.__proto__', 'display.title.fr.name', 'display.summary_state.fr'):
+            with self.assertRaises(ValueError):
+                normalize_lens_spec({**spec, 'node_query': {'filters': [{'field': field, 'op': 'eq', 'value': 'no'}]}})
+
     def test_finalization_reuses_unchanged_revision_without_aliasing_source(self):
         from unittest.mock import patch
         from tos_access.knowledge import _final_node_value, _stamp_content_revision
@@ -1188,7 +1251,7 @@ class KnowledgeContractTests(unittest.TestCase):
             with self.assertRaises(ValueError):
                 normalize_lens_spec(invalid)
 
-        for invalid_localized in (42, {"default": ""}, {"default": "valid", "html": "no"}):
+        for invalid_localized in (42, {"default": ""}, {"default": "valid", "html_markup": "no"}):
             invalid = {
                 "schema_version": "tos_lens_spec_v1",
                 "lens_id": "invalid-localized",
