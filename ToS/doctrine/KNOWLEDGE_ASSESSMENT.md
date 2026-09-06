@@ -124,6 +124,12 @@ the issuer still owns source currentness, calibration and verified execution
 provenance. Local account authentication does not attest a particular model
 invocation and cannot isolate hostile processes sharing that account. The
 bounded input/output and storage contract lives in the mechanic README.
+The source-bound configuration reads exact current corpus, claim and form
+records from their authored files instead of trusting copied target bodies.
+Its snapshot retains full record content and separate file-byte fixity;
+source-owned maker/layer and nonpublic-claim restrictions cannot be replaced
+by an inline record. Discovering command context does not grant admission,
+and an unreviewed real source remains unreviewed until qualified assessment.
 
 The engine enforces the declared relationship and authority invariants. Actual
 agent accuracy, calibrated languages, trusted command binding, existing-corpus

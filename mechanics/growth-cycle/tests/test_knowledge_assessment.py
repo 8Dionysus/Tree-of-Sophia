@@ -247,6 +247,134 @@ class AssessmentPolicyTests(unittest.TestCase):
             self.assertEqual(json.loads(result.stdout)['schema_version'], 'tos_local_assessment_error_v1')
             self.assertNotIn('must-not-reflect', result.stdout + result.stderr)
 
+    def real_source_command_fixture(self):
+        from assessment_journal import _source_records
+        path, config, _ = self.local_command_fixture()
+        work_home = 'ToS/source-witnesses/works/friedrich-nietzsche/jenseits-von-gut-und-boese'
+        claim_id = 'tos.claim.topology.work-expression.friedrich-nietzsche.jenseits-von-gut-und-boese.has-expression.de-naumann-1886'
+        bindings = [
+            {'path': 'ToS/source-witnesses/relations/work-expression/work-expression-claims.jsonl',
+             'record_id': claim_id, 'origin_id': None},
+            {'path': work_home + '/work.json',
+             'record_id': 'tos.work.friedrich-nietzsche.jenseits-von-gut-und-boese', 'origin_id': None},
+            {'path': work_home + '/expressions/de-naumann-1886/expression.json',
+             'record_id': 'tos.expression.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886', 'origin_id': None},
+            {'path': work_home + '/work.human-forms.json',
+             'record_id': 'tos.form.jenseits-von-gut-und-boese.name-original', 'origin_id': None},
+        ]
+        records, fixity = _source_records(ROOT, bindings)
+        claim = Record.from_payload(**records[0])
+        config.update(schema_version='tos_local_assessment_owner_v2', source_root=str(ROOT),
+                      source_records=bindings, records=[], authorities=[], competencies=[],
+                      execution_profile=None, principal_id=f'unix:{os.getuid()}',
+                      subjects={claim_id: {'record': claim.ref,
+                                          'assertion_layer': claim.payload['assertion_layer'],
+                                          'maker_id': claim.payload['maker']['agent_ref'],
+                                          'risk': 'low', 'languages': ['und'],
+                                          'requested_use': 'research', 'access_allowed': True}})
+        path.write_text(json.dumps(config), encoding='utf-8')
+        request = {'schema_version': 'tos_local_assessment_command_v1', 'operation': 'describe', 'subject_id': claim_id}
+        return path, config, request, records, fixity
+
+    def test_real_jenseits_source_bindings_preserve_full_records_and_unreviewed_state(self):
+        import hashlib
+        import subprocess
+        path, config, request, records, fixity = self.real_source_command_fixture()
+        before = [(ROOT / binding['path']).read_bytes() for binding in config['source_records']]
+        command = [sys.executable, str(ROOT / 'mechanics/growth-cycle/parts/branch-growth-cycle/scripts/assessment_journal.py'),
+                   '--owner-config', str(path)]
+        reply = subprocess.run(command, input=json.dumps(request), capture_output=True, text=True, timeout=10)
+        self.assertEqual(reply.returncode, 0, reply.stderr + reply.stdout)
+        result = json.loads(reply.stdout)
+        context = result['result']['command_context']
+        self.assertEqual(context['subject'], Record.from_payload(**records[0]).ref)
+        self.assertEqual(context['scope']['maker_id'], records[0]['payload']['maker']['agent_ref'])
+        self.assertFalse(context['grants_authority'])
+        self.assertEqual(len(context['source_records']), 4)
+        self.assertEqual(context['source_records'][0]['record'], Record.from_payload(**records[0]).ref)
+        self.assertEqual(context['source_records'][0]['file_digest'], fixity[0]['digest'])
+        self.assertFalse(result['result']['current_admission']['can_use'])
+        self.assertEqual(result['result']['current_admission']['status'], 'unreviewed')
+        self.assertEqual(records[0]['payload']['reviews'], [])
+        self.assertEqual(records[1]['payload'], json.loads(before[1]))
+        self.assertEqual(records[2]['payload'], json.loads(before[2]))
+        self.assertEqual(records[3]['payload'], json.loads(before[3])['forms'][0])
+        self.assertEqual(fixity[0]['digest'], 'sha256:' + hashlib.sha256(before[0]).hexdigest())
+        inspect = {**request, 'operation': 'inspect', 'expected_subject': context['subject'],
+                   'expected_snapshot': result['owner_snapshot']}
+        self.assertEqual(self.run_local(path, inspect)['result']['batch_count'], 0)
+        with self.assertRaises(ValueError):
+            self.run_local(path, {**inspect, 'operation': 'append', 'command_id': 'no-executor',
+                                  'expected_revision': None, 'assessments': [self.review().assessment]})
+        self.assertEqual(before, [(ROOT / binding['path']).read_bytes() for binding in config['source_records']])
+        self.assertFalse(list((path.parent / 'journal').iterdir()))
+
+    def test_source_bound_scope_and_inline_shadowing_cannot_replace_owner_fields(self):
+        path, config, request, records, _ = self.real_source_command_fixture()
+        scope = config['subjects'][request['subject_id']]
+        for key, value in (('maker_id', 'invented-other-maker'), ('assertion_layer', 'textual_observation')):
+            original = scope[key]
+            scope[key] = value
+            path.write_text(json.dumps(config), encoding='utf-8')
+            with self.assertRaises(PermissionError):
+                self.run_local(path, request)
+            scope[key] = original
+        config['records'] = [records[0]]
+        path.write_text(json.dumps(config), encoding='utf-8')
+        with self.assertRaises(ValueError):
+            self.run_local(path, request)
+
+    def test_changed_real_source_copy_invalidates_snapshot_without_ocr_or_global_scan(self):
+        from assessment_journal import JournalConflict
+        path, config, request, records, _ = self.real_source_command_fixture()
+        copy_root = path.parent / 'source-copy'
+        for binding in config['source_records']:
+            target = copy_root / binding['path']
+            target.parent.mkdir(parents=True, exist_ok=True)
+            target.write_bytes((ROOT / binding['path']).read_bytes())
+        config['source_root'] = str(copy_root)
+        path.write_text(json.dumps(config), encoding='utf-8')
+        first = self.run_local(path, request)
+        inspect = {**request, 'operation': 'inspect', 'expected_subject': Record.from_payload(**records[0]).ref,
+                   'expected_snapshot': first['owner_snapshot']}
+        work_path = copy_root / config['source_records'][1]['path']
+        body = json.loads(work_path.read_bytes())
+        body['future_extension'] = {'language': 'unmapped', 'opaque': [False, None, 0]}
+        body['record_version'] += 1
+        work_path.write_text(json.dumps(body), encoding='utf-8')
+        with self.assertRaises(JournalConflict):
+            self.run_local(path, inspect)
+        from assessment_journal import _source_records
+        self.assertEqual(_source_records(copy_root, config['source_records'])[0][1]['payload'], body)
+        second = self.run_local(path, request)
+        self.assertNotEqual(first['owner_snapshot'], second['owner_snapshot'])
+        self.assertFalse(second['result']['current_admission']['can_use'])
+
+    def test_source_selector_refuses_private_unknown_duplicate_and_escaping_records(self):
+        from assessment_journal import _source_records
+        path, config, request, records, _ = self.real_source_command_fixture()
+        copy_root = path.parent / 'source-copy'
+        target = copy_root / config['source_records'][0]['path']
+        target.parent.mkdir(parents=True)
+        binding = config['source_records'][0]
+        body = records[0]['payload']
+        for mutation in ('private', 'missing-visibility', 'unknown-family', 'duplicate'):
+            value = copy.deepcopy(body)
+            if mutation == 'private': value['visibility'] = 'local_only'
+            if mutation == 'missing-visibility': del value['visibility']
+            if mutation == 'unknown-family': value['schema_version'] = 'unknown-source-v99'
+            raw = json.dumps(value) + '\n'
+            target.write_text(raw * (2 if mutation == 'duplicate' else 1), encoding='utf-8')
+            with self.subTest(mutation=mutation), self.assertRaises((ValueError, PermissionError)):
+                _source_records(copy_root, [binding])
+        for location in ('../outside.json', 'ToS/source-witnesses/../secret.json',
+                         'ToS/source-witnesses/payload/private.json', '/absolute/file.json'):
+            with self.subTest(location=location), self.assertRaises(PermissionError):
+                _source_records(copy_root, [{**binding, 'path': location}])
+        target.write_text(json.dumps(body) + '\n', encoding='utf-8')
+        with self.assertRaises(ValueError):
+            _source_records(copy_root, [binding, binding])
+
     def test_agent_admission_without_human_review_and_without_source_mutation(self):
         review = self.review()
         before = copy.deepcopy(review.assessment)

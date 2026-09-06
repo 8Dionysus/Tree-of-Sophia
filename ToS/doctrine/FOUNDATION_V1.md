@@ -179,6 +179,23 @@ snapshot/subject/head, защищённые пути и отказ на подм
 append/replay и текущий отзыв допуска, CLI inspect/error и инертность команд
 в source payload. Это аутентификация аккаунта, не отдельного model invocation;
 реальная калибровка, corpus adapter и изоляция чужих процессов остаются открыты.
+Конфигурация v2 добавляет ограниченный прямой reader исходных corpus/claim/form
+records и `describe` для получения текущих command refs. Реальный Jenseits
+Work → Expression Claim и его источники проходят CLI без копии корпуса в
+конфигурации; исходный `unreviewed` сохраняется. На временных копиях проверены
+изменение источника, непрозрачное расширение, подмена maker/layer, дубли,
+nonpublic visibility и path escape. Это ещё не исполняемая агентная оценка.
+
+На 2026-09-06 отдельный маршрут source-visible linguistic reviewer не запущен:
+запрос `aoa-models` для `source-visible-linguistic-review` и указанного в его
+read-only realization exact runtime subject вернул 0 candidates
+(`aoa-models@24835f908bf032767e3ee4f3bd57cd832e0c7fa1`, result digest
+`sha256:25905a48d9567d3a12676dae9ee8d6bd87493930a85772237c1960c324759e3c`).
+Существующая model claim ограничена currentness hypothesis, без behavioral
+fit и independent review. Следующий владелец этого допуска — `aoa-models`;
+требуется предметно подходящее reviewed fit evidence, не подмена его каталогом
+или собственным `verified`. Этот результат не удостоверяет текущую активацию
+runtime и не закрывает ни агентную компетенцию ToS, ни всю цель Foundation.
 
 Языковой транспорт `access` и schemas словарей теперь сохраняют расширяемые
 языковые/письменные ключи вместо фиксированного набора ru/en. Исходная фраза

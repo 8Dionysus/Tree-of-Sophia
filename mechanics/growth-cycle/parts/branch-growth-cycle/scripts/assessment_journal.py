@@ -14,6 +14,7 @@ from dataclasses import dataclass
 from datetime import datetime, timezone
 import fcntl
 import hashlib
+import io
 import json
 import os
 from pathlib import Path
@@ -369,6 +370,86 @@ def _keys(payload: Any, expected: set[str]) -> None:
         raise ValueError('command/configuration fields do not match the declared contract')
 
 
+def _source_records(root: Path, bindings: Any) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+    """Resolve bounded, explicit public metadata inputs, never crawl a corpus.
+
+    Record identity selects JSONL entries and current forms, not line numbers
+    or labels. Unknown fields stay in the exact payload; only the declared
+    identity envelope is interpreted. This does not replace source validators.
+    """
+    if not isinstance(bindings, list) or len(bindings) > MAX_ASSESSMENTS:
+        raise ValueError('source bindings must be a bounded list')
+    os.close(_owned_path(root, directory=True))
+    families = {'tos_corpus_record_v1': ('record_id', 'record_version'),
+                'tos_claim_packet_v1': ('claim_id', 'claim_version'),
+                'tos_human_form_v1': ('form_id', 'form_version')}
+    files, resolved, fixity, total, selected = {}, [], [], 0, set()
+    for binding in bindings:
+        _keys(binding, {'path', 'record_id', 'origin_id'})
+        identifier = binding['record_id']
+        if not isinstance(identifier, str) or not identifier or identifier in selected:
+            raise ValueError('source bindings must select distinct record identities')
+        selected.add(identifier)
+        relative = binding['path']
+        if not isinstance(relative, str):
+            raise ValueError('source path must be a repository-relative string')
+        path = Path(relative)
+        if (path.is_absolute() or path.as_posix() != relative or '..' in path.parts
+                or path.parts[:2] != ('ToS', 'source-witnesses')
+                or any(part in ('payload', 'local-content') for part in path.parts)
+                or path.suffix not in ('.json', '.jsonl')):
+            raise PermissionError('source binding must name an explicit source-witness metadata file')
+        if relative not in files:
+            descriptor = _owned_path(root / path)
+            with os.fdopen(descriptor, 'rb') as stream:
+                before = os.fstat(stream.fileno())
+                raw = stream.read(8 * MAX_RECORD_BYTES - total + 1)
+                after = os.fstat(stream.fileno())
+            if (before.st_size, before.st_mtime_ns, before.st_ctime_ns) != (after.st_size, after.st_mtime_ns, after.st_ctime_ns):
+                raise JournalConflict('source file changed during read')
+            total += len(raw)
+            if total > 8 * MAX_RECORD_BYTES:
+                raise ValueError('source files exceed the shared 8 MiB read budget')
+            if path.suffix == '.jsonl':
+                rows = []
+                for line in io.BytesIO(raw):
+                    if not line.strip():
+                        continue
+                    if len(rows) == MAX_ASSESSMENTS:
+                        raise ValueError('source file exceeds bounded record selection')
+                    rows.append(_json_object(line))
+            else:
+                payload = _json_object(raw)
+                rows = payload.get('forms') if payload.get('schema_version') == 'tos_human_form_set_v1' else [payload]
+            if not isinstance(rows, list) or len(rows) > MAX_ASSESSMENTS:
+                raise ValueError('source file exceeds bounded record selection')
+            indexed = {}
+            for row in rows:
+                if not isinstance(row, dict):
+                    raise ValueError('source records must be JSON objects')
+                family = families.get(row.get('schema_version'))
+                if family is None:
+                    continue  # Opaque neighboring records are neither dropped from source nor interpreted.
+                identity, version = family
+                item = Record.from_payload(row[identity], row[version], row)
+                if item.id in indexed:
+                    raise ValueError('source file repeats a current record identity')
+                indexed[item.id] = item
+            files[relative] = indexed
+            fixity.append({'path': relative, 'digest': 'sha256:' + hashlib.sha256(raw).hexdigest()})
+        if identifier not in files[relative]:
+            raise ValueError('source record is missing or has an unsupported identity family')
+        record = files[relative][identifier]
+        payload = record.payload
+        if (payload['schema_version'] == 'tos_claim_packet_v1'
+                and payload.get('visibility') not in ('public', 'public_metadata_only')):
+            raise PermissionError('nonpublic claims need a separately authorized source adapter')
+        origin = binding['origin_id']
+        Record.from_payload(record.id, record.version, payload, origin_id=origin)
+        resolved.append({'id': record.id, 'version': record.version, 'payload': payload, 'origin_id': origin})
+    return resolved, fixity
+
+
 def run_local_command(owner_config: Path, request: dict[str, Any], *,
                       contract_root: Path | None = None) -> dict[str, Any]:
     """Apply one command as the configured local account, never a claimed UID.
@@ -384,26 +465,36 @@ def run_local_command(owner_config: Path, request: dict[str, Any], *,
     if len(encoded) > 8 * MAX_RECORD_BYTES:
         raise ValueError('owner configuration exceeds the 8 MiB snapshot budget')
     config = _json_object(encoded)
-    _keys(config, {'schema_version', 'uid', 'principal_id', 'execution_profile',
-                   'policy', 'authorities', 'competencies', 'records', 'subjects',
-                   'journal_directory'})
-    if (config['schema_version'] != 'tos_local_assessment_owner_v1'
+    fields = {'schema_version', 'uid', 'principal_id', 'execution_profile',
+              'policy', 'authorities', 'competencies', 'records', 'subjects', 'journal_directory'}
+    source_bound = config.get('schema_version') == 'tos_local_assessment_owner_v2'
+    if source_bound:
+        fields |= {'source_root', 'source_records'}
+    _keys(config, fields)
+    if (config['schema_version'] not in ('tos_local_assessment_owner_v1', 'tos_local_assessment_owner_v2')
             or type(config['uid']) is not int or config['uid'] != os.getuid()
             or not isinstance(config['principal_id'], str) or not config['principal_id'].strip()):
         raise PermissionError('configuration does not bind this local account')
     snapshot = 'sha256:' + _digest(config)
+    sourced = []
+    if source_bound:
+        sourced, fixity = _source_records(Path(config['source_root']), config['source_records'])
+        snapshot = 'sha256:' + _digest({'configuration': config, 'source_files': fixity,
+                                       'resolved_records': sourced})
     if len(_canonical(request)) > MAX_RECORD_BYTES:
         raise ValueError('command exceeds the 1 MiB input budget')
     operation = request.get('operation') if isinstance(request, dict) else None
-    fields = {'schema_version', 'operation', 'subject_id', 'expected_subject', 'expected_snapshot'}
+    fields = {'schema_version', 'operation', 'subject_id'}
+    if operation != 'describe':
+        fields |= {'expected_subject', 'expected_snapshot'}
     if operation == 'append':
         fields |= {'command_id', 'expected_revision', 'assessments'}
-    elif operation != 'inspect':
+    elif operation not in ('inspect', 'describe'):
         raise ValueError('unknown assessment command')
     _keys(request, fields)
     if request['schema_version'] != 'tos_local_assessment_command_v1':
         raise ValueError('unknown assessment command version')
-    if request['expected_snapshot'] != snapshot:
+    if operation != 'describe' and request['expected_snapshot'] != snapshot:
         raise JournalConflict('expected owner snapshot is stale')
 
     def record(value):
@@ -413,11 +504,15 @@ def run_local_command(owner_config: Path, request: dict[str, Any], *,
     for key in ('authorities', 'competencies', 'records'):
         if not isinstance(config[key], list) or len(config[key]) > MAX_ASSESSMENTS:
             raise ValueError('owner record collections must be bounded lists')
+    if len(config['records']) + len(sourced) > MAX_ASSESSMENTS:
+        raise ValueError('combined owner/source records exceed snapshot budget')
+    if {item['id'] for item in config['records']} & {item['id'] for item in sourced}:
+        raise ValueError('inline records cannot shadow source-bound records')
     engine = AssessmentEngine(contract_root or Path(__file__).resolve().parents[5],
                               record(config['policy']),
                               [record(item) for item in config['authorities']],
                               [record(item) for item in config['competencies']],
-                              [record(item) for item in config['records']])
+                              [record(item) for item in [*config['records'], *sourced]])
     subjects = config['subjects']
     identifier = request['subject_id']
     if (not isinstance(subjects, dict) or len(subjects) > MAX_ASSESSMENTS
@@ -428,7 +523,7 @@ def run_local_command(owner_config: Path, request: dict[str, Any], *,
                   'requested_use', 'access_allowed'})
     current = engine.records.get(identifier)
     if (current is None or _canonical(current.ref) != _canonical(scope['record'])
-            or _canonical(current.ref) != _canonical(request['expected_subject'])):
+            or (operation != 'describe' and _canonical(current.ref) != _canonical(request['expected_subject']))):
         raise JournalConflict('expected subject or owner scope is stale')
     if (not isinstance(scope['languages'], list) or not scope['languages']
             or any(not isinstance(item, str) or not item for item in scope['languages'])
@@ -437,21 +532,41 @@ def run_local_command(owner_config: Path, request: dict[str, Any], *,
         raise ValueError('owner subject scope is incomplete')
     if scope['access_allowed'] is not True:
         raise PermissionError('subject access is not allowed')
+    if identifier in {item['id'] for item in sourced}:
+        body = current.payload
+        if body['schema_version'] == 'tos_claim_packet_v1':
+            maker = body.get('maker')
+            if (scope['assertion_layer'] != body.get('assertion_layer')
+                    or not isinstance(maker, dict) or scope['maker_id'] != maker.get('agent_ref')):
+                raise PermissionError('configured scope disagrees with source-owned claim layer or maker')
+        elif body['schema_version'] == 'tos_human_form_v1':
+            if scope['assertion_layer'] != 'human_projection' or scope['maker_id'] != body.get('creator_id'):
+                raise PermissionError('configured scope disagrees with source-owned form layer or maker')
     context = SubjectContext(current, scope['assertion_layer'], scope['risk'],
                              tuple(scope['languages']), scope['maker_id'], scope['requested_use'], True)
-    execution = config['execution_profile']
-    _keys(execution, {'id', 'version', 'digest'})
-    executor = engine.records.get(execution['id'])
-    if executor is None or _canonical(executor.ref) != _canonical(execution):
-        raise PermissionError('configured execution profile is not current')
     directory = Path(config['journal_directory'])
     descriptor = _owned_path(directory, directory=True)
     os.close(descriptor)
     journal = AssessmentJournal(directory, contract_root=contract_root, protected_storage=True)
     now = datetime.now(timezone.utc).isoformat()
-    if operation == 'inspect':
+    if operation in ('inspect', 'describe'):
         result = journal.inspect(engine, context, now=now)
+        if operation == 'describe':
+            result['command_context'] = {'subject': current.ref, 'policy': engine.policy.ref,
+                                         'scope': scope, 'supported_operations': ['describe', 'inspect', 'append'],
+                                         'grants_authority': False}
+            if source_bound:
+                digests = {item['path']: item['digest'] for item in fixity}
+                result['command_context']['source_records'] = [
+                    {'record': record(item).ref, 'path': binding['path'],
+                     'file_digest': digests[binding['path']], 'origin_id': item['origin_id']}
+                    for item, binding in zip(sourced, config['source_records'], strict=True)]
     else:
+        execution = config['execution_profile']
+        _keys(execution, {'id', 'version', 'digest'})
+        executor = engine.records.get(execution['id'])
+        if executor is None or _canonical(executor.ref) != _canonical(execution):
+            raise PermissionError('configured execution profile is not current')
         assessments = request['assessments']
         revision = request['expected_revision']
         if (not isinstance(assessments, list) or not assessments

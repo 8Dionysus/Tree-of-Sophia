@@ -333,7 +333,7 @@
       "organ_lane": "mechanics/part-owned",
       "owner_surface": "mechanics/growth-cycle/parts/branch-growth-cycle/README.md",
       "source_truth": ["ToS/doctrine/KNOWLEDGE_ASSESSMENT.md", "ToS/contracts/knowledge-assessment-batch.schema.json"],
-      "reads": ["configured source-owner assessment hash chain and trusted engine/context/authenticated submissions", "local CLI: independently selected protected owner snapshot and bounded JSON request on stdin"],
+      "reads": ["configured source-owner assessment hash chain and trusted engine/context/authenticated submissions", "local CLI: independently selected protected owner snapshot, explicit bounded source-witness corpus/claim/form files, and bounded JSON request on stdin"],
       "writes": ["immutable assessment batches and atomic per-subject head in the explicitly configured owner directory"],
       "side_effects": "Unix UID/path checks, file locking and fsync; appends qualified assessment history, not source assertions, model attestation, canon, public API authorization or publication",
       "validation_lane": "mechanics_local",

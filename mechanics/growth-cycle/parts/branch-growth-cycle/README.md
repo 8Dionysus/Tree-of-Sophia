@@ -97,7 +97,7 @@ once; configuration publishers must preserve the agreed snapshot during the
 operation. This is not a cross-file transaction with a concurrently edited
 corpus. A subsequent call loads current configuration and rechecks admission.
 
-Both request operations use `schema_version: tos_local_assessment_command_v1`,
+The `inspect` and `append` request operations use `schema_version: tos_local_assessment_command_v1`,
 `operation` (`append` or `inspect`), `subject_id`, `expected_subject` (exact ref)
 and `expected_snapshot` (`sha256:` plus canonical-JSON configuration digest).
 `append` additionally requires `command_id`, `expected_revision` (null for an
@@ -125,7 +125,61 @@ class (`JournalConflict`, `AssessmentRejected`, `JournalBusy`, `PermissionError`
 etc.); source/configuration text is not echoed. Conflicts require rereading
 current state; busy writers require retry, never deleting their journal.
 
-Tests exercise the real CLI inspect/error boundary and local command append,
+`describe` takes exactly `{schema_version, operation, subject_id}` and returns
+the current owner snapshot, subject and policy refs, trusted scope, journal
+revision and freshly checked admission in `result.command_context` and the
+usual journal result. `supported_operations` describes command grammar, not
+authorization (`grants_authority: false`). A caller can use those exact refs
+to construct `inspect` or `append`; it need not calculate the owner's snapshot
+or guess file/JSON selectors. Read operations need no configured execution
+profile: null is valid until an actual qualified writer binding exists.
+`append` still requires the independent current execution profile and grants.
+
+### Source-bound configuration v2
+
+`tos_local_assessment_owner_v2` retains the v1 fields and adds `source_root`
+(protected absolute repository root) and `source_records` (at most 1,024
+distinct `{path, record_id, origin_id}` bindings). Only explicit JSON/JSONL
+metadata files under `ToS/source-witnesses/` are read; payload/local-content
+paths, escapes and symlinks are refused. No directory discovery, network,
+OCR, global graph build or source write runs. The total source-file read
+budget is 8 MiB, each file selects at most 1,024 records, and inline plus
+source-selected records share the existing 1,024-record snapshot bound.
+
+The adapter understands the identity/version envelopes of corpus-record v1,
+claim-packet v1 and human-form v1. A JSONL record is selected by stable ID,
+not line number; a human-form set selects only its current `forms`, never
+`prior_forms`. Duplicate current IDs or selected bindings are errors. Source
+payload fields, including unknown extensions and historical review fields,
+retain the same JSON values without semantic promotion. Unknown
+identity families cannot be selected through this adapter and remain in the
+original source with an explicit unsupported-family error. The adapter is not
+a replacement for the corresponding source validator or full corpus mapping.
+
+Claims must explicitly allow `public` or `public_metadata_only` visibility;
+other or missing visibility requires a separately authorized adapter. A
+source-bound claim's maker and assertion layer must agree with the configured
+scope; a form binds its creator and the `human_projection` layer. Risk, use,
+access and calibrated languages still belong to the trusted issuer. Inline
+copies cannot shadow source-bound IDs. An origin ID is issuer-owned provenance,
+not manufactured from a file path or a count of copies.
+
+The owner snapshot binds the configuration, each exact source-file byte digest
+and every selected full record. In-read modification is refused. This does not
+make independently changing source files transactional: the issuer must keep
+the agreed multi-file snapshot stable during the operation. A source change
+invalidates an old command snapshot; a subject change also requires updating
+its owner scope. Canonical record refs remain distinct from file-byte fixity.
+`describe` exposes selected record refs, source paths, file digests and declared
+origins, not a second corpus body or permission to use the source text.
+
+The integration test reads the real Jenseits Work, 1886 German Expression,
+Work-to-Expression Claim and name form through this CLI, preserving empty
+assessment history as `unreviewed`. Mutation/refusal checks use explicitly
+temporary copies. This is real source/command integration, not a positive
+historical, linguistic or calibration verdict.
+
+Tests exercise the real CLI describe/inspect/error boundary and local command append,
 replay, revocation, protected paths and adversarial requests with synthetic
 review records. No real-language calibration or authenticated remote/model
 execution is inferred from these checks.
