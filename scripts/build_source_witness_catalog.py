@@ -28,7 +28,15 @@ RECORD_FILES = {
     "item": "items.jsonl",
     "link": "links.jsonl",
 }
-SOURCE_BASENAMES = {record_type: f"{record_type}.json" for record_type in RECORD_FILES}
+OPTIONAL_RECORD_FILES = {
+    "historical-event": "historical-events.jsonl",
+    "historical-process": "historical-processes.jsonl",
+    "historical-state": "historical-states.jsonl",
+}
+SOURCE_BASENAMES = {
+    record_type: f"{record_type}.json"
+    for record_type in (*RECORD_FILES, *OPTIONAL_RECORD_FILES)
+}
 CLAIM_SOURCE_BASENAMES = (
     "membership-claims.jsonl",
     "responsibility-claims.jsonl",
@@ -40,6 +48,7 @@ CLAIM_SOURCE_BASENAMES = (
     "edition-item-claims.jsonl",
     "expression-derivation-claims.jsonl",
     "object-link-claims.jsonl",
+    "historical-claims.jsonl",
 )
 TRACKED_CLAIM_VISIBILITIES = {"public_metadata_only", "public"}
 LINK_FIELDS = (
@@ -70,7 +79,7 @@ def canonical_json(payload: object) -> str:
 
 def collect_records(repo_root: Path = REPO_ROOT) -> dict[str, list[dict[str, Any]]]:
     source_root = repo_root / SOURCE_ROOT
-    records: dict[str, list[dict[str, Any]]] = {record_type: [] for record_type in RECORD_FILES}
+    records: dict[str, list[dict[str, Any]]] = {record_type: [] for record_type in SOURCE_BASENAMES}
     seen_ids: dict[str, str] = {}
 
     for record_type, basename in SOURCE_BASENAMES.items():
@@ -88,6 +97,9 @@ def collect_records(repo_root: Path = REPO_ROOT) -> dict[str, list[dict[str, Any
                 raise CatalogBuildError(
                     f"{relative}: record_type must be {record_type!r} for {basename}"
                 )
+            if record_type in OPTIONAL_RECORD_FILES:
+                if payload.get('visibility') not in TRACKED_CLAIM_VISIBILITIES:
+                    raise CatalogBuildError(f"{relative}: historical record visibility is not public metadata")
             record_id = payload.get("record_id")
             if not isinstance(record_id, str) or not record_id:
                 raise CatalogBuildError(f"{relative}: missing record_id")
@@ -102,6 +114,8 @@ def collect_records(repo_root: Path = REPO_ROOT) -> dict[str, list[dict[str, Any
             records[record_type].append(
                 {
                     "schema_version": "tos_source_witness_catalog_entry_v1",
+                    **({'source_schema_ref': 'ToS/contracts/historical-record.schema.json'}
+                       if record_type in OPTIONAL_RECORD_FILES else {}),
                     "record_id": record_id,
                     "record_type": record_type,
                     "preferred_label": payload.get("preferred_label", ""),
@@ -114,7 +128,8 @@ def collect_records(repo_root: Path = REPO_ROOT) -> dict[str, list[dict[str, Any
 
     for entries in records.values():
         entries.sort(key=lambda entry: entry["record_id"])
-    return records
+    return {kind: entries for kind, entries in records.items()
+            if kind in RECORD_FILES or entries}
 
 
 def collect_claims(repo_root: Path = REPO_ROOT) -> list[dict[str, Any]]:
@@ -166,6 +181,8 @@ def collect_claims(repo_root: Path = REPO_ROOT) -> list[dict[str, Any]]:
                 ).hexdigest()
                 entry = {
                     "schema_version": "tos_source_witness_claim_catalog_entry_v1",
+                    **({'source_schema_ref': 'ToS/contracts/historical-claim.schema.json'}
+                       if payload.get('schema_version') == 'tos_historical_claim_v1' else {}),
                     "claim_id": claim_id,
                     "claim_type": payload.get("claim_type"),
                     "assertion_layer": payload.get("assertion_layer"),
@@ -207,7 +224,9 @@ def render_outputs(repo_root: Path = REPO_ROOT) -> dict[Path, str]:
     outputs: dict[Path, str] = {}
     digest_parts: list[str] = []
 
-    for record_type, filename in RECORD_FILES.items():
+    record_files = {**RECORD_FILES, **{kind: filename for kind, filename in OPTIONAL_RECORD_FILES.items()
+                                    if kind in records}}
+    for record_type, filename in record_files.items():
         lines = [canonical_json(entry) for entry in records[record_type]]
         text = "\n".join(lines) + ("\n" if lines else "")
         relative = CATALOG_ROOT / filename
@@ -230,9 +249,14 @@ def render_outputs(repo_root: Path = REPO_ROOT) -> dict[Path, str]:
         "generated_by": "scripts/build_source_witness_catalog.py",
         "record_schema_ref": "ToS/contracts/corpus-record.schema.json",
         "claim_schema_ref": "ToS/contracts/claim-packet.schema.json",
+        **({'extension_schema_refs': sorted({entry['source_schema_ref']
+                                            for entries in [*records.values(), claims] for entry in entries
+                                            if 'source_schema_ref' in entry})}
+           if any(kind in records for kind in OPTIONAL_RECORD_FILES)
+           or any('source_schema_ref' in entry for entry in claims) else {}),
         "record_files": {
             record_type: (CATALOG_ROOT / filename).as_posix()
-            for record_type, filename in RECORD_FILES.items()
+            for record_type, filename in record_files.items()
         },
         "claim_file": CLAIM_CATALOG_PATH.as_posix(),
         "counts": counts,

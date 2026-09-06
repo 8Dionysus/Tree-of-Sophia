@@ -24,6 +24,8 @@
     "generated_by": {"const": "scripts/build_source_witness_catalog.py"},
     "record_schema_ref": {"const": "ToS/contracts/corpus-record.schema.json"},
     "claim_schema_ref": {"const": "ToS/contracts/claim-packet.schema.json"},
+    "extension_schema_refs": {"type": "array", "minItems": 1, "uniqueItems": true,
+      "items": {"enum": ["ToS/contracts/historical-record.schema.json", "ToS/contracts/historical-claim.schema.json"]}},
     "record_files": {
       "type": "object",
       "additionalProperties": false,
@@ -37,7 +39,10 @@
         "edition": {"const": "ToS/source-witnesses/catalog/editions.jsonl"},
         "collection": {"const": "ToS/source-witnesses/catalog/collections.jsonl"},
         "item": {"const": "ToS/source-witnesses/catalog/items.jsonl"},
-        "link": {"const": "ToS/source-witnesses/catalog/links.jsonl"}
+        "link": {"const": "ToS/source-witnesses/catalog/links.jsonl"},
+        "historical-event": {"const": "ToS/source-witnesses/catalog/historical-events.jsonl"},
+        "historical-process": {"const": "ToS/source-witnesses/catalog/historical-processes.jsonl"},
+        "historical-state": {"const": "ToS/source-witnesses/catalog/historical-states.jsonl"}
       }
     },
     "claim_file": {"const": "ToS/source-witnesses/catalog/claims.jsonl"},
@@ -68,6 +73,9 @@
         "collection": {"type": "integer", "minimum": 0},
         "item": {"type": "integer", "minimum": 0},
         "link": {"type": "integer", "minimum": 0},
+        "historical-event": {"type": "integer", "minimum": 0},
+        "historical-process": {"type": "integer", "minimum": 0},
+        "historical-state": {"type": "integer", "minimum": 0},
         "object_total": {"type": "integer", "minimum": 1},
         "claim": {"type": "integer", "minimum": 0},
         "total": {"type": "integer", "minimum": 1}
@@ -92,8 +100,9 @@
       ],
       "properties": {
         "schema_version": {"const": "tos_source_witness_catalog_entry_v1"},
+        "source_schema_ref": {"const": "ToS/contracts/historical-record.schema.json"},
         "record_id": {"type": "string", "minLength": 1},
-        "record_type": {"enum": ["agent", "place", "organization", "work", "expression", "edition", "collection", "item", "link"]},
+        "record_type": {"enum": ["agent", "place", "organization", "work", "expression", "edition", "collection", "item", "link", "historical-event", "historical-process", "historical-state"]},
         "preferred_label": {"type": "string", "minLength": 1},
         "identity_status": {"enum": ["provisional", "verified", "disputed", "superseded"]},
         "source_record_ref": {"type": "string", "pattern": "^ToS/source-witnesses/.+\\.json$"},
@@ -136,6 +145,7 @@
         "schema_version": {
           "const": "tos_source_witness_claim_catalog_entry_v1"
         },
+        "source_schema_ref": {"const": "ToS/contracts/historical-claim.schema.json"},
         "claim_id": {"$ref": "#/$defs/tosId"},
         "claim_type": {
           "enum": [
@@ -247,7 +257,7 @@
         },
         "source_claim_file_ref": {
           "type": "string",
-          "pattern": "^ToS/source-witnesses/.+/(membership|responsibility|publication|provision-activity|work-chronology|work-expression|expression-edition|edition-item|expression-derivation|object-link)-claims\\.jsonl$"
+          "pattern": "^ToS/source-witnesses/.+/(membership|responsibility|publication|provision-activity|work-chronology|work-expression|expression-edition|edition-item|expression-derivation|object-link|historical)-claims\\.jsonl$"
         },
         "source_claim_line": {"type": "integer", "minimum": 1},
         "claim_sha256": {
@@ -258,7 +268,7 @@
     },
     "tosId": {
       "type": "string",
-      "pattern": "^tos\\.(agent|place|organization|work|expression|edition|collection|item|link|file|passage|region|anchor|occurrence|lexeme|annotation|sign|concept|claim|relation|rights|review|event)\\.[a-z0-9]+(?:[.-][a-z0-9]+)*$"
+      "pattern": "^tos\\.(agent|place|organization|work|expression|edition|collection|item|link|file|passage|region|anchor|occurrence|lexeme|annotation|sign|concept|claim|relation|rights|review|event|historical-event|historical-process|historical-state)\\.[a-z0-9]+(?:[.-][a-z0-9]+)*$"
     }
   }
 }

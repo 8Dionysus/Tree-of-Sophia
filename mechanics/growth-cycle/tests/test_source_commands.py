@@ -113,6 +113,40 @@ class SourceCommandTests(unittest.TestCase):
         self.assertEqual(result['materializations'][0]['state'], 'ready')
         self.assertEqual(json.loads(self.target.read_bytes())['prior_forms'], [])
 
+    def test_historical_record_uses_same_command_abi_without_source_rewrite_or_admission(self):
+        self.relative = 'ToS/source-witnesses/history/synthetic/historical-event.json'
+        self.source = self.root / self.relative
+        self.source.parent.mkdir(parents=True)
+        source = {'schema_version': 'tos_historical_record_v1', 'record_type': 'historical-event',
+                  'record_id': 'tos.historical-event.command-fixture', 'record_version': 1,
+                  'preferred_label': 'Условный эпизод, не исторический факт', 'variant_labels': [],
+                  'identity_status': 'provisional', 'same_as_posture': 'no_equivalence_claim',
+                  'source_refs': ['test:synthetic'], 'external_identifiers': [],
+                  'visibility': 'public_metadata_only'}
+        self.source.write_text(json.dumps(source))
+        before = self.source.read_bytes()
+        self.target = self.source.with_name('historical-event.human-forms.json')
+        self.config['source_path'] = self.relative
+        self.save_config()
+        prepared = commands.run_local_command(self.owner, {'schema_version': 'tos_local_source_command_v1',
+            'operation': 'prepare', 'form_id': 'tos.form.test.new', 'field_id': 'metadata.preferred-name'})
+        request = {'schema_version': 'tos_local_source_command_v1', 'operation': 'apply',
+            'command_id': 'historical-form', 'expected_source': prepared['source'],
+            'expected_revision': prepared['revision'], 'expected_configuration': prepared['owner_configuration'],
+            'changes': [prepared['prepared_change']]}
+        process = subprocess.run([sys.executable, str(MECHANIC / 'source_commands.py'), '--owner-config', str(self.owner)],
+                                 input=json.dumps(request), text=True, capture_output=True)
+        self.assertEqual(process.returncode, 0, process.stderr)
+        result = json.loads(process.stdout)
+        self.assertEqual(result['materializations'][0]['display_text'], source['preferred_label'])
+        self.assertFalse(result['grants_admission'])
+        self.assertEqual(self.source.read_bytes(), before)
+        stored = self.target.read_bytes()
+        self.source.write_text(json.dumps({**source, 'visibility': 'local_only'}))
+        with self.assertRaisesRegex(PermissionError, 'visibility'):
+            self.run_request(request)
+        self.assertEqual(self.target.read_bytes(), stored)
+
     def test_discovered_field_prepares_a_source_bound_change_without_json_path_guessing(self):
         context = self.describe()
         field = next(field for field in context['source_fields'] if field['field_id'] == 'metadata.variant-name:0')

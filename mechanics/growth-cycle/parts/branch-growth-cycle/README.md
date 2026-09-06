@@ -147,7 +147,8 @@ budget is 8 MiB, each file selects at most 1,024 records, and inline plus
 source-selected records share the existing 1,024-record snapshot bound.
 
 The adapter understands the identity/version envelopes of corpus-record v1,
-claim-packet v1 and human-form v1. A JSONL record is selected by stable ID,
+claim-packet v1, historical-record v1, historical-claim v1 and human-form v1.
+A JSONL record is selected by stable ID,
 not line number; a human-form set selects only its current `forms`, never
 `prior_forms`. Duplicate current IDs or selected bindings are errors. Source
 payload fields, including unknown extensions and historical review fields,
@@ -156,7 +157,7 @@ identity families cannot be selected through this adapter and remain in the
 original source with an explicit unsupported-family error. The adapter is not
 a replacement for the corresponding source validator or full corpus mapping.
 
-Claims must explicitly allow `public` or `public_metadata_only` visibility;
+Claims and historical records must explicitly allow `public` or `public_metadata_only` visibility;
 other or missing visibility requires a separately authorized adapter. A
 source-bound claim's maker and assertion layer must agree with the configured
 scope; a form binds its creator and the `human_projection` layer. Risk, use,
@@ -214,7 +215,7 @@ performing linguistic assessment or granting a submission its own scope.
 ## Local source growth commands
 
 `scripts/source_commands.py` is the explicit source-write entrypoint. Its first
-adapter creates and revises forms adjacent to one bibliographic source record;
+adapter creates and revises forms adjacent to one bibliographic or historical source record;
 it does not expose writes through `access`, create a second corpus database or
 mutate the subject. The normative identity/admission boundary remains in
 `ToS/doctrine/HUMAN_FORMS.md`. The same CLI serves a human or an agent:
@@ -238,7 +239,9 @@ The independently selected protected configuration has exactly these fields:
 
 The issuer must allocate noncolliding form identities before delegating them;
 this bounded adapter does not scan other subjects or issue globally unique IDs.
-The subject must already be owned, public bibliographic metadata. The command
+The subject must already be owned, public metadata. Historical-record v1
+requires explicit `public` or `public_metadata_only` visibility on every call,
+including replay. The command
 does not validate its historical truth, reclassify private text as metadata or
 authorize a generic new corpus schema.
 

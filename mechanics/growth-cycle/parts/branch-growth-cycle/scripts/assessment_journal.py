@@ -381,7 +381,9 @@ def _source_records(root: Path, bindings: Any) -> tuple[list[dict[str, Any]], li
         raise ValueError('source bindings must be a bounded list')
     os.close(_owned_path(root, directory=True))
     families = {'tos_corpus_record_v1': ('record_id', 'record_version'),
+                'tos_historical_record_v1': ('record_id', 'record_version'),
                 'tos_claim_packet_v1': ('claim_id', 'claim_version'),
+                'tos_historical_claim_v1': ('claim_id', 'claim_version'),
                 'tos_human_form_v1': ('form_id', 'form_version')}
     files, resolved, fixity, total, selected = {}, [], [], 0, set()
     for binding in bindings:
@@ -441,9 +443,9 @@ def _source_records(root: Path, bindings: Any) -> tuple[list[dict[str, Any]], li
             raise ValueError('source record is missing or has an unsupported identity family')
         record = files[relative][identifier]
         payload = record.payload
-        if (payload['schema_version'] == 'tos_claim_packet_v1'
+        if (payload['schema_version'] in {'tos_claim_packet_v1', 'tos_historical_claim_v1', 'tos_historical_record_v1'}
                 and payload.get('visibility') not in ('public', 'public_metadata_only')):
-            raise PermissionError('nonpublic claims need a separately authorized source adapter')
+            raise PermissionError('nonpublic records need a separately authorized source adapter')
         origin = binding['origin_id']
         Record.from_payload(record.id, record.version, payload, origin_id=origin)
         resolved.append({'id': record.id, 'version': record.version, 'payload': payload, 'origin_id': origin})
@@ -534,7 +536,7 @@ def run_local_command(owner_config: Path, request: dict[str, Any], *,
         raise PermissionError('subject access is not allowed')
     if identifier in {item['id'] for item in sourced}:
         body = current.payload
-        if body['schema_version'] == 'tos_claim_packet_v1':
+        if body['schema_version'] in {'tos_claim_packet_v1', 'tos_historical_claim_v1'}:
             maker = body.get('maker')
             if (scope['assertion_layer'] != body.get('assertion_layer')
                     or not isinstance(maker, dict) or scope['maker_id'] != maker.get('agent_ref')):

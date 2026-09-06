@@ -10,7 +10,9 @@ from pathlib import Path
 from typing import Any, Iterable
 
 from jsonschema import Draft202012Validator
+from referencing import Registry, Resource
 from source_witness_human_forms import load_metadata_forms
+from build_source_witness_catalog import OPTIONAL_RECORD_FILES
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
@@ -49,6 +51,31 @@ VALIDATION_REFS = (
     "scripts/validate_source_witness_bibliographic_graph.py",
     "tests/test_source_witness_bibliographic_graph.py",
 )
+HISTORICAL_PREDICATES = {'historical_participant', 'historical_place', 'historical_work'}
+HISTORICAL_REGISTRY_REFS = (
+    'ToS/doctrine/semantic-interchange/entity-types.v1.json',
+    'ToS/doctrine/semantic-interchange/relation-types.v1.json',
+)
+
+
+def historical_schema_validator(repo_root: Path, *, claim: bool = False) -> Draft202012Validator:
+    names = (('claim-packet.schema.json', 'knowledge-assessment.schema.json', 'historical-claim.schema.json')
+             if claim else ('corpus-record.schema.json', 'historical-record.schema.json'))
+    schemas = [load_json(repo_root / 'ToS/contracts' / name) for name in names]
+    registry = Registry().with_resources((schema['$id'], Resource.from_contents(schema)) for schema in schemas)
+    return Draft202012Validator(schemas[-1], registry=registry)
+
+
+def _object_catalog_refs(repo_root: Path) -> dict[str, str]:
+    declared = load_json(repo_root / CATALOG_MANIFEST_REF).get('record_files', {})
+    refs = dict(OBJECT_CATALOG_REFS)
+    for kind, filename in OPTIONAL_RECORD_FILES.items():
+        if kind in declared:
+            expected = (CATALOG_ROOT / filename).as_posix()
+            if declared[kind] != expected:
+                raise BibliographicGraphBuildError(f'{kind}: unexpected historical catalog path')
+            refs[kind] = expected
+    return refs
 
 
 class BibliographicGraphBuildError(ValueError):
@@ -125,7 +152,7 @@ def validate_payload_schema(payload: dict[str, Any], repo_root: Path = REPO_ROOT
 
 
 def _catalog_input_digests(repo_root: Path) -> dict[str, str]:
-    refs = [CATALOG_MANIFEST_REF, CLAIM_CATALOG_REF, *OBJECT_CATALOG_REFS.values()]
+    refs = [CATALOG_MANIFEST_REF, CLAIM_CATALOG_REF, *_object_catalog_refs(repo_root).values()]
     digests: dict[str, str] = {}
     for ref in refs:
         path = repo_root / ref
@@ -137,7 +164,8 @@ def _catalog_input_digests(repo_root: Path) -> dict[str, str]:
 
 def _load_object_catalog(repo_root: Path) -> dict[str, dict[str, Any]]:
     objects: dict[str, dict[str, Any]] = {}
-    for expected_type, relative in OBJECT_CATALOG_REFS.items():
+    historical_validator = None
+    for expected_type, relative in _object_catalog_refs(repo_root).items():
         path = repo_root / relative
         for line_number, entry in iter_jsonl(path, repo_root):
             location = f"{relative}:{line_number}"
@@ -162,6 +190,15 @@ def _load_object_catalog(repo_root: Path) -> dict[str, dict[str, Any]]:
                 raise BibliographicGraphBuildError(
                     f"{location}: source record digest differs from {source_ref}"
                 )
+            if expected_type in OPTIONAL_RECORD_FILES:
+                if historical_validator is None:
+                    historical_validator = historical_schema_validator(repo_root)
+                if (entry.get('source_schema_ref') != 'ToS/contracts/historical-record.schema.json'
+                        or not historical_validator.is_valid(source_payload)
+                        or source_payload.get('record_id') != record_id
+                        or source_payload.get('record_type') != expected_type
+                        or source_payload.get('visibility') not in {'public', 'public_metadata_only'}):
+                    raise BibliographicGraphBuildError(f'{location}: invalid or nonpublic historical record')
             material = dict(entry)
             material["_source_record"] = source_payload
             try:
@@ -196,9 +233,9 @@ def _load_claim_catalog(repo_root: Path) -> list[dict[str, Any]]:
             raise BibliographicGraphBuildError(
                 f"{location}: bibliographic projection cannot admit {claim_type!r}"
             )
-        if claim_type == "relation" and entry.get("predicate") != "is_derivative_of":
+        if claim_type == "relation" and entry.get("predicate") not in {'is_derivative_of', *HISTORICAL_PREDICATES}:
             raise BibliographicGraphBuildError(
-                f"{location}: relation claim is outside the bounded Expression-derivation profile"
+                f"{location}: relation claim is outside the bounded Expression-derivation profile and the historical profile"
             )
         if entry.get("assertion_layer") not in {
             "bibliographic_assertion",
@@ -214,6 +251,46 @@ def _load_claim_catalog(repo_root: Path) -> list[dict[str, Any]]:
         claims.append(entry)
     claims.sort(key=lambda entry: str(entry["claim_id"]))
     return claims
+
+
+def _historical_claim_contract(repo_root: Path) -> tuple:
+    """Compile once per build; do not cache across source/configuration changes."""
+    entities, relations = [load_json(repo_root / ref) for ref in HISTORICAL_REGISTRY_REFS]
+    entries = {item['type_id']: item for item in entities['types']}
+    mappings = {mapping['source_kind_id']: item['type_id'] for item in entities['types']
+                for mapping in item['source_mappings'] if mapping['source_graph'] == 'source-claims'}
+    predicates = {}
+    for predicate in HISTORICAL_PREDICATES:
+        candidates = [item for item in relations['relations']
+                      if any(mapping['source_graph'] == 'source-claims'
+                             and mapping['scope'] == 'claim-predicate'
+                             and mapping['source_predicate_id'] == predicate
+                             for mapping in item['source_mappings'])]
+        if len(candidates) != 1:
+            raise BibliographicGraphBuildError('historical predicate must have exactly one registry mapping')
+        predicates[predicate] = candidates[0]
+    return historical_schema_validator(repo_root, claim=True), entries, mappings, predicates
+
+
+def _validate_historical_claim(claim: dict[str, Any], objects: dict[str, dict[str, Any]],
+                               contract: tuple) -> None:
+    """Apply the owner schema and registry domains, never evaluate historical truth."""
+    validator, entries, mappings, predicates = contract
+    if not validator.is_valid(claim):
+        raise BibliographicGraphBuildError(f"{claim['claim_id']}: historical claim schema violation")
+    relation = predicates[claim['predicate']]
+    for field, allowed in (('subject_ref', relation['domain_type_ids']), ('object', relation['range_type_ids'])):
+        record = objects.get(claim[field])
+        current = mappings.get(record['record_type']) if record else None
+        pending, ancestry = [current], set()
+        while pending:
+            kind = pending.pop()
+            if kind in ancestry:
+                continue
+            ancestry.add(kind)
+            pending.extend(entries.get(kind, {}).get('parent_type_ids', []))
+        if not ancestry.intersection(allowed):
+            raise BibliographicGraphBuildError(f"{claim['claim_id']}: historical {field} violates registry domain/range")
 
 
 def _load_source_claim(
@@ -242,6 +319,9 @@ def _load_source_claim(
         raise BibliographicGraphBuildError(
             f"{source_ref}:{source_line}: canonical claim digest differs from catalog"
         )
+    if (claim.get('schema_version') == 'tos_historical_claim_v1'
+            and entry.get('source_schema_ref') != 'ToS/contracts/historical-claim.schema.json'):
+        raise BibliographicGraphBuildError(f'{source_ref}:{source_line}: historical claim schema route drifted')
     projected_fields = (
         "claim_type",
         "assertion_layer",
@@ -797,6 +877,12 @@ def build_payload(repo_root: Path = REPO_ROOT) -> dict[str, Any]:
 
     input_digests = _catalog_input_digests(repo_root)
     objects = _load_object_catalog(repo_root)
+    historical = any(entry['record_type'] in OPTIONAL_RECORD_FILES for entry in objects.values())
+    if historical:
+        for ref in (*HISTORICAL_REGISTRY_REFS, 'ToS/contracts/corpus-record.schema.json',
+                    'ToS/contracts/claim-packet.schema.json', 'ToS/contracts/historical-record.schema.json',
+                    'ToS/contracts/historical-claim.schema.json', 'ToS/contracts/knowledge-assessment.schema.json'):
+            input_digests[ref] = file_digest(repo_root / ref)
     for entry in objects.values():
         if '_human_forms_source_ref' in entry:
             input_digests[entry['_human_forms_source_ref']] = entry['_human_forms_sha256']
@@ -809,6 +895,8 @@ def build_payload(repo_root: Path = REPO_ROOT) -> dict[str, Any]:
             f"{CATALOG_MANIFEST_REF}: claim count differs from the claim catalog"
         )
     claim_entries = _load_claim_catalog(repo_root)
+    historical_contract = (_historical_claim_contract(repo_root)
+                           if any(entry.get('predicate') in HISTORICAL_PREDICATES for entry in claim_entries) else None)
 
     events = _scan_index(
         repo_root,
@@ -828,8 +916,16 @@ def build_payload(repo_root: Path = REPO_ROOT) -> dict[str, Any]:
     visibility_counts: Counter[str] = Counter()
     claim_ids = {str(entry["claim_id"]) for entry in claim_entries}
 
+    # A historical subject remains addressable before it has any assertions.
+    # No participant, date or causal edge is inferred from its label or notes.
+    for record in objects.values():
+        if record['record_type'] in OPTIONAL_RECORD_FILES:
+            _add_node(nodes, _identity_node(record))
+
     for entry in claim_entries:
         claim = _load_source_claim(entry, repo_root=repo_root)
+        if claim.get('predicate') in HISTORICAL_PREDICATES:
+            _validate_historical_claim(claim, objects, historical_contract)
         claim_id = str(claim["claim_id"])
         subject_ref = str(claim["subject_ref"])
         subject_entry = objects.get(subject_ref)
@@ -1039,10 +1135,10 @@ def build_payload(repo_root: Path = REPO_ROOT) -> dict[str, Any]:
         "source_refs": {
             "catalog_manifest_ref": CATALOG_MANIFEST_REF,
             "claim_catalog_ref": CLAIM_CATALOG_REF,
-            "object_catalog_refs": OBJECT_CATALOG_REFS,
+            "object_catalog_refs": _object_catalog_refs(repo_root),
         },
         "input_digests": input_digests,
-        "graph_layers": ["bibliographic"],
+        "graph_layers": ["bibliographic", "historical"] if historical else ["bibliographic"],
         "relation_model": {
             "assertion_form": "reified_claim_node",
             "direct_subject_object_edges": False,

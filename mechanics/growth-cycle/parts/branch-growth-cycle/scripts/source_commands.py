@@ -126,8 +126,11 @@ def _validate_history(payload):
 def _snapshot(source_path):
     source_raw = _read(source_path, MAX_COMMAND_BYTES)
     source = _json_object(source_raw)
-    if source.get('schema_version') != 'tos_corpus_record_v1':
+    if source.get('schema_version') not in {'tos_corpus_record_v1', 'tos_historical_record_v1'}:
         raise ValueError('source-command adapter does not understand this source family')
+    if (source.get('schema_version') == 'tos_historical_record_v1'
+            and source.get('visibility') not in {'public', 'public_metadata_only'}):
+        raise PermissionError('historical source visibility is outside the public-metadata adapter')
     subject = Record.from_payload(source['record_id'], source['record_version'], source)
     target = source_path.with_name(source_path.stem + '.human-forms.json')
     try:

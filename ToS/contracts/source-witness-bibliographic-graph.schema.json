@@ -92,7 +92,10 @@
             },
             "item": {
               "const": "ToS/source-witnesses/catalog/items.jsonl"
-            }
+            },
+            "historical-event": {"const": "ToS/source-witnesses/catalog/historical-events.jsonl"},
+            "historical-process": {"const": "ToS/source-witnesses/catalog/historical-processes.jsonl"},
+            "historical-state": {"const": "ToS/source-witnesses/catalog/historical-states.jsonl"}
           }
         }
       }
@@ -108,9 +111,7 @@
       }
     },
     "graph_layers": {
-      "const": [
-        "bibliographic"
-      ]
+      "enum": [["bibliographic"], ["bibliographic", "historical"]]
     },
     "relation_model": {
       "type": "object",
@@ -152,19 +153,19 @@
       "properties": {
         "source_claims": {
           "type": "integer",
-          "minimum": 1
+          "minimum": 0
         },
         "nodes": {
           "type": "integer",
-          "minimum": 1
+          "minimum": 0
         },
         "edges": {
           "type": "integer",
-          "minimum": 1
+          "minimum": 0
         },
         "claim_traces": {
           "type": "integer",
-          "minimum": 1
+          "minimum": 0
         },
         "direct_subject_object_edges": {
           "const": 0
@@ -185,21 +186,21 @@
     },
     "nodes": {
       "type": "array",
-      "minItems": 1,
+      "minItems": 0,
       "items": {
         "$ref": "#/$defs/node"
       }
     },
     "edges": {
       "type": "array",
-      "minItems": 1,
+      "minItems": 0,
       "items": {
         "$ref": "#/$defs/edge"
       }
     },
     "claim_traces": {
       "type": "array",
-      "minItems": 1,
+      "minItems": 0,
       "items": {
         "$ref": "#/$defs/claimTrace"
       }

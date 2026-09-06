@@ -89,3 +89,69 @@ Missing reviews, unresolved source endpoints and synthesized descriptions remain
 visible gaps. Broad legacy relation families retain native predicates; mapping
 coverage does not prove their philosophical endpoint semantics. Tightening such
 source assertions requires source-visible review, not inference from labels.
+
+## Historical situations: source profile
+
+Registry version 4 introduces `historical-event`, `historical-process`, and
+`historical-state` under the abstract `historical-situation`. These are
+source-described historical identities, not replacements for the authored
+semantic `event`/`state`, the claim-scoped `provision-activity`, or a provenance
+event. Duration alone never changes an event into a process or state.
+
+`tos_historical_record_v1` reuses the source metadata properties of the
+unchanged corpus-record contract and carries these kinds in adjacent
+`historical-event.json`, `historical-process.json`, or `historical-state.json`
+records under the source-witness home, normally `history/<subject>/`. Each
+uses its own `tos.historical-<kind>.*` prefix and explicit visibility. Correcting
+wording changes `record_version`, not the referent ID. Changing the kind to
+another historical family requires an explicit identity transition; no
+automatic reclassification, merge, split, or causal inference is provided.
+
+`historical-claims.jsonl` uses `tos_historical_claim_v1`, reusing Claim fields with
+`claim_type=relation`, `assertion_layer=scholarly_report`, separate evidence,
+maker and provenance. Current decisions bind the exact record through the
+existing assessment journal and optional `assessment_refs`; a reference does
+not itself grant admission. There is no embedded human-signature requirement.
+The compatibility `review_status=unreviewed` describes the initial source
+record, not the current scoped admission, which the historical graph adapter
+does not yet materialize. Three registered predicates are executable:
+
+| Predicate | Domain → range | Qualification |
+| --- | --- | --- |
+| `historical_participant` | historical situation → Agent or Organization | `qualifiers.participation_role` is required source wording, not a new Agent type or a reviewed role-registry ID |
+| `historical_place` | historical situation → Place | location does not imply political belonging, residence or influence |
+| `historical_work` | historical situation → Work | topical association does not imply creation, reading, publication, reception or influence |
+
+The catalog emits additional family files only when source records exist and
+names each new entry's `source_schema_ref` plus `extension_schema_refs` in the
+manifest. Its old singular schema refs still describe the legacy families.
+The earlier corpus and Claim schema bytes remain unchanged so historical
+provenance input digests are not rewritten to describe a later contract.
+The existing bibliographic Claim carrier includes the `historical` layer for
+this bounded extension, keeps every historical identity addressable even with
+no claims, and retains complete source records and assertion qualifiers. It
+validates the source schema and the current registry's inherited domain/range;
+it does not establish that an event happened. Private historical metadata is
+refused, not silently projected or dropped. Other historical predicates are
+not admitted by this carrier until their owner contract is implemented.
+
+The ordinary access catalog, focus, type-ancestry filters, Claim inspection,
+and adjacent metadata-form reader consume these records without a new UI.
+The source-form command adapter can prepare/create/revise those adjacent forms;
+it still cannot create or change the historical subject itself. The profile
+adds no automatic dates: event time, witness time and capture time remain
+separate. A complete dating, role, biography, causal and reception grammar,
+source-visible historical assessment and actual UI acceptance remain open.
+
+Validation: `python -m unittest discover -s tests -p test_source_witness_bibliographic_graph.py`, then the existing knowledge
+contract test and source-witness catalog/graph `--check` commands. The temporary
+historical associations in these tests are synthetic, even where their
+Agent/Place/Work endpoints are unchanged real corpus records. They are never
+historical evidence. No corpus migration is implied.
+
+This is additive for existing records, not transparent to an old closed-schema
+reader presented with a new kind or schema family. Upgrade the catalog/schema/graph consumer
+together before publishing historical records. Optional catalog files are
+selected by the current manifest, so a leftover file from an earlier snapshot
+does not restore a removed family. A reader rollback does not erase source
+records, historical judgments, or their separate assessment history.

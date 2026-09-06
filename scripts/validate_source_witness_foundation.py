@@ -32,6 +32,7 @@ from build_source_witness_catalog import (
     CATALOG_ROOT,
     CLAIM_CATALOG_PATH,
     RECORD_FILES,
+    OPTIONAL_RECORD_FILES,
     SOURCE_BASENAMES,
     SOURCE_ROOT,
     CatalogBuildError,
@@ -7503,12 +7504,19 @@ def validate_foundation(repo_root: Path, *, require_local_payloads: bool = False
 
     records_by_id: dict[str, tuple[dict[str, Any], Path]] = {}
     item_records: dict[str, tuple[dict[str, Any], Path]] = {}
+    historical_validator = None
     for path in _record_paths(repo_root):
         payload = _load_json(path, repo_root, issues)
         if payload is None:
             continue
         location = _relative(path, repo_root)
-        _validate_payload(payload, corpus_validator, location, issues)
+        if payload.get('record_type') in OPTIONAL_RECORD_FILES:
+            if historical_validator is None:
+                from source_witness_bibliographic_graph_common import historical_schema_validator
+                historical_validator = historical_schema_validator(repo_root)
+            _validate_payload(payload, historical_validator, location, issues)
+        else:
+            _validate_payload(payload, corpus_validator, location, issues)
         _validate_source_refs(repo_root, payload, location, issues)
         record_id = payload.get("record_id")
         if isinstance(record_id, str):
@@ -15275,6 +15283,17 @@ def validate_foundation(repo_root: Path, *, require_local_payloads: bool = False
     except CatalogBuildError as exc:
         issues.append((CATALOG_ROOT.as_posix(), str(exc)))
 
+    if (any(payload.get('record_type') in OPTIONAL_RECORD_FILES for payload, _ in records_by_id.values())
+            or next((repo_root / SOURCE_ROOT).rglob('historical-claims.jsonl'), None) is not None):
+        # Reuse the source-returnable graph boundary: source schemas, actual
+        # registry domains, exact catalogs, evidence, and provenance resolution.
+        # This is read-only and does not authorize the historical assertions.
+        from source_witness_bibliographic_graph_common import BibliographicGraphBuildError, build_payload
+        try:
+            build_payload(repo_root)
+        except BibliographicGraphBuildError as exc:
+            issues.append((SOURCE_ROOT.as_posix(), f'historical source profile: {exc}'))
+
     catalog_manifest_path = repo_root / CATALOG_ROOT / "catalog.manifest.json"
     catalog_manifest = _load_json(catalog_manifest_path, repo_root, issues)
     if catalog_manifest is not None:
@@ -15289,7 +15308,9 @@ def validate_foundation(repo_root: Path, *, require_local_payloads: bool = False
         entry_class = validator_for(entry_schema)
         entry_class.check_schema(entry_schema)
         entry_validator = entry_class(entry_schema, format_checker=FormatChecker())
-        for filename in RECORD_FILES.values():
+        record_files = {**RECORD_FILES, **{kind: filename for kind, filename in OPTIONAL_RECORD_FILES.items()
+                                         if kind in (catalog_manifest or {}).get('record_files', {})}}
+        for filename in record_files.values():
             catalog_path = repo_root / CATALOG_ROOT / filename
             for index, entry in enumerate(_load_jsonl(catalog_path, repo_root, issues), start=1):
                 _validate_payload(
@@ -15443,7 +15464,7 @@ def main(argv: list[str] | None = None) -> int:
 
     payload_posture = "required and fixity-checked" if args.require_local_payloads else "optional; present bytes fixity-checked"
     print(f"[ok] validated source-witness evidence spine ({payload_posture})")
-    print("[boundary] mechanics only: bibliographic, textual, rights, translation, semantic, and review truth remain human-evidence questions")
+    print("[boundary] mechanics only: source-visible assessment remains with authorized competent humans or agents; rights, consent, canon and publication retain their owners")
     return 0
 
 

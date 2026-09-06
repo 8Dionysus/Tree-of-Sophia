@@ -110,6 +110,13 @@ where `<class>` is one of `agent`, `work`, `expression`, `edition`,
 `lexeme`, `annotation`, `sign`, `concept`, `claim`, `relation`, `rights`,
 `review`, or `event`.
 
+The historical-situation profile adds `historical-event`, `historical-process`
+and `historical-state`. These identities are separate from provenance
+`event` records and authored semantic Event/State nodes. Their participants,
+places and associated Works remain evidence-bearing Claims; a historical
+description is neither a cause nor an admission. The executable source and
+consumer contract is in [semantic interchange](semantic-interchange/README.md#historical-situations-source-profile).
+
 Rules:
 
 - an ID is never reused for a different referent;

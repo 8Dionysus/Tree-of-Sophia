@@ -333,7 +333,7 @@
       "organ_lane": "mechanics/part-owned",
       "owner_surface": "mechanics/growth-cycle/parts/branch-growth-cycle/README.md",
       "source_truth": ["ToS/doctrine/KNOWLEDGE_ASSESSMENT.md", "ToS/contracts/knowledge-assessment-batch.schema.json"],
-      "reads": ["configured source-owner assessment hash chain and trusted engine/context/authenticated submissions", "local CLI: independently selected protected owner snapshot, explicit bounded source-witness corpus/claim/form files, and bounded JSON request on stdin"],
+      "reads": ["configured source-owner assessment hash chain and trusted engine/context/authenticated submissions", "local CLI: independently selected protected owner snapshot, explicit bounded source-witness corpus/claim/historical-record/historical-claim/form files, and bounded JSON request on stdin"],
       "writes": ["immutable assessment batches and atomic per-subject head in the explicitly configured owner directory"],
       "side_effects": "Unix UID/path checks, file locking and fsync; appends qualified assessment history, not source assertions, model attestation, canon, public API authorization or publication",
       "validation_lane": "mechanics_local",
@@ -347,7 +347,7 @@
       "organ_lane": "mechanics/part-owned",
       "owner_surface": "mechanics/growth-cycle/parts/branch-growth-cycle/README.md",
       "source_truth": ["ToS/doctrine/HUMAN_FORMS.md", "ToS/contracts/human-form.schema.json", "ToS/contracts/human-form-set.schema.json"],
-      "reads": ["independently selected protected local owner delegation, explicit corpus record and adjacent source form set", "bounded JSON command on stdin and the source metadata field catalog"],
+      "reads": ["independently selected protected local owner delegation, explicit corpus or historical record and adjacent source form set", "bounded JSON command on stdin and the source metadata field catalog"],
       "writes": ["one adjacent source form set with current forms, retained predecessors and command receipts; sibling writer lock and invocation-local publication staging file"],
       "side_effects": "Unix account/path checks, bounded locking, fsync and atomic source-set publication; no subject/payload/graph writes, model calls, semantic assessment, admission or deployment",
       "validation_lane": "mechanics_local",
@@ -646,7 +646,15 @@
         "ToS/source-witnesses/**/edition-item-claims.jsonl",
         "ToS/source-witnesses/**/*provenance*.jsonl",
         "ToS/source-witnesses/**/*anchor*.jsonl",
-        "ToS/contracts/source-witness-bibliographic-graph.schema.json"
+        "ToS/contracts/source-witness-bibliographic-graph.schema.json",
+        "ToS/contracts/corpus-record.schema.json",
+        "ToS/contracts/claim-packet.schema.json",
+        "ToS/doctrine/semantic-interchange/entity-types.v1.json",
+        "ToS/doctrine/semantic-interchange/relation-types.v1.json",
+        "ToS/contracts/historical-record.schema.json",
+        "ToS/contracts/historical-claim.schema.json",
+        "ToS/contracts/knowledge-assessment.schema.json",
+        "ToS/source-witnesses/**/historical-claims.jsonl"
       ],
       "reads": [
         "source-witness catalog plus exact claim, identity, evidence, anchor, provenance, review surfaces and adjacent human-form sets"

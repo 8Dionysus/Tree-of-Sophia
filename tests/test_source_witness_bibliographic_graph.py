@@ -7,6 +7,7 @@ import subprocess
 import sys
 import tempfile
 import unittest
+from contextlib import contextmanager
 from pathlib import Path
 
 
@@ -31,6 +32,249 @@ from source_witness_human_forms import load_metadata_forms, materialize_metadata
 
 
 class SourceWitnessBibliographicGraphTest(unittest.TestCase):
+    @contextmanager
+    def historical_fixture(self):
+        """Synthetic history associations to unchanged real bibliographic identities.
+
+        No fixture event or association is historical evidence or admission.
+        """
+        from build_source_witness_catalog import render_outputs, write_outputs
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+
+            def write(ref, payload):
+                path = root / ref
+                path.parent.mkdir(parents=True, exist_ok=True)
+                path.write_text(json.dumps(payload, ensure_ascii=False), encoding='utf-8')
+                return path
+
+            for ref in ('ToS/contracts/corpus-record.schema.json', 'ToS/contracts/claim-packet.schema.json',
+                        'ToS/contracts/source-witness-bibliographic-graph.schema.json',
+                        'ToS/contracts/source-witness-catalog.schema.json',
+                        'ToS/contracts/historical-record.schema.json', 'ToS/contracts/historical-claim.schema.json',
+                        'ToS/contracts/knowledge-assessment.schema.json',
+                        'ToS/doctrine/semantic-interchange/entity-types.v1.json',
+                        'ToS/doctrine/semantic-interchange/relation-types.v1.json'):
+                write(ref, json.loads((REPO_ROOT / ref).read_text()))
+            real_refs = (
+                'ToS/source-witnesses/agents/friedrich-nietzsche/agent.json',
+                'ToS/source-witnesses/places/chemnitz/place.json',
+                'ToS/source-witnesses/works/friedrich-nietzsche/jenseits-von-gut-und-boese/work.json',
+            )
+            real = [json.loads((REPO_ROOT / ref).read_text()) for ref in real_refs]
+            for ref, payload in zip(real_refs, real):
+                write(ref, payload)
+            history = []
+            for kind, name in (('historical-event', 'Условный эпизод'),
+                               ('historical-process', 'Условный процесс'),
+                               ('historical-state', 'Условное состояние')):
+                payload = {'schema_version': 'tos_historical_record_v1', 'record_type': kind,
+                           'record_id': f'tos.{kind}.fixture', 'record_version': 1,
+                           'preferred_label': name, 'variant_labels': [], 'identity_status': 'provisional',
+                           'source_refs': [real_refs[2]], 'external_identifiers': [],
+                           'same_as_posture': 'no_equivalence_claim', 'visibility': 'public_metadata_only',
+                           'notes': 'Синтетический тест. Историческое существование не утверждается.'}
+                history.append((write(f'ToS/source-witnesses/history/fixture/{kind}.json', payload), payload))
+            event_id = 'tos.event.historical-fixture-capture'
+            write('ToS/source-witnesses/history/fixture/provenance.jsonl', {
+                'schema_version': 'tos_provenance_event_v1', 'event_id': event_id,
+                'event_type': 'annotation', 'started_at': '2026-09-06T00:00:00Z',
+                'ended_at': '2026-09-06T00:00:00Z', 'agent_refs': ['software:test-fixture'],
+                'inputs': [], 'outputs': [], 'method': {'maker_type': 'software', 'name': 'synthetic-test', 'version': '1'},
+                'status': 'completed_with_warnings', 'event_version': 1,
+            })
+            claims = []
+            for index, (predicate, target) in enumerate(zip(
+                    ('historical_participant', 'historical_place', 'historical_work'), real)):
+                claims.append({'schema_version': 'tos_historical_claim_v1',
+                               'claim_id': f'tos.claim.historical-fixture-{index}', 'claim_version': 1,
+                               'claim_type': 'relation', 'assertion_layer': 'scholarly_report',
+                               'subject_ref': history[0][1]['record_id'], 'predicate': predicate,
+                               'object': target['record_id'], 'evidence_refs': [real_refs[index]],
+                               'maker': {'maker_type': 'software', 'agent_ref': 'software:test-fixture'},
+                               'provenance_event_ref': event_id, 'epistemic_status': 'uncertain',
+                               'review_status': 'unreviewed', 'visibility': 'public_metadata_only',
+                               'qualifiers': {'participation_role': 'test-participant', 'negated': True,
+                                              'scope': 'synthetic-only', 'x-unknown': False}})
+            claim_path = root / 'ToS/source-witnesses/history/fixture/historical-claims.jsonl'
+
+            def rebuild():
+                claim_path.write_text(''.join(json.dumps(claim, ensure_ascii=False) + '\n' for claim in claims))
+                write_outputs(root, render_outputs(root))
+                return build_payload(root)
+
+            yield root, history, real, claims, rebuild
+
+    def historical_knowledge(self, root, projection):
+        access_src = REPO_ROOT / 'access/src'
+        if str(access_src) not in sys.path:
+            sys.path.insert(0, str(access_src))
+        from tos_access.knowledge import build_knowledge_graph
+        entities, relations = [json.loads((root / 'ToS/doctrine/semantic-interchange' / name).read_text())
+                               for name in ('entity-types.v1.json', 'relation-types.v1.json')]
+        return build_knowledge_graph({}, {}, projection, entities, relations), entities, relations
+
+    def test_historical_sources_reach_existing_focus_forms_and_claim_inspection(self):
+        from source_commands import prepare_metadata_change
+        from knowledge_assessment import Record
+        with self.historical_fixture() as (root, history, real, claims, rebuild):
+            event_path, event = history[0]
+            change = prepare_metadata_change(event, None, 'software:test-fixture',
+                                             'tos.form.historical-fixture', 'metadata.source-note')
+            form_set = {'schema_version': 'tos_human_form_set_v1',
+                        'subject': Record.from_payload(event['record_id'], 1, event).ref,
+                        'forms': [change['form']], 'prior_forms': []}
+            event_path.with_name('historical-event.human-forms.json').write_text(json.dumps(form_set))
+            projection = rebuild()
+            self.assertEqual(projection['graph_layers'], ['bibliographic', 'historical'])
+            graph, entities, relations = self.historical_knowledge(root, projection)
+            from tos_access.knowledge import (focus_knowledge_node, execute_knowledge_lens,
+                                             validate_knowledge_semantics, select_human_forms)
+            report = validate_knowledge_semantics(graph, entities, relations)
+            self.assertTrue(report['valid'], report['violations'])
+            nodes = {node['entity_id']: node for node in graph['nodes']}
+            for _, record in history:
+                node = nodes[record['record_id']]
+                self.assertEqual(node['type_id'], 'tos.entity.' + record['record_type'])
+                self.assertEqual(node['attributes']['source_record'], record)
+                self.assertNotIn('time', node['semantics'])
+            node = nodes[event['record_id']]
+            selected = select_human_forms(node, 'auto')['roles']['hover']
+            self.assertEqual(selected['packet']['display_text'], event['notes'])
+            self.assertIsNone(selected['packet']['admission'])
+            result = focus_knowledge_node(graph, event['record_id'], depth=2)
+            self.assertTrue({target['record_id'] for target in real}.issubset(
+                {item['entity_id'] for item in result['nodes']}))
+            back = focus_knowledge_node(graph, real[0]['record_id'], depth=2)
+            self.assertIn(event['record_id'], {item['entity_id'] for item in back['nodes']})
+            filtered = execute_knowledge_lens(graph, {'schema_version': 'tos_lens_spec_v1',
+                'lens_id': 'historical-situations', 'node_query': {'filters': [{
+                'field': 'semantics.type_ancestors', 'op': 'contains', 'value': 'tos.entity.historical-situation'}]}})
+            self.assertEqual({item['entity_id'] for item in filtered['nodes']},
+                             {record['record_id'] for _, record in history})
+            for claim in claims:
+                node = nodes[claim['claim_id']]
+                self.assertEqual(node['attributes']['source_claim'], claim)
+                self.assertEqual(node['semantics']['claim']['review_status'], 'unreviewed')
+                self.assertNotEqual(node['entity_id'], event['record_id'])
+            self.assertNotEqual(nodes['tos.event.historical-fixture-capture']['type_id'],
+                                nodes[event['record_id']]['type_id'])
+
+    def test_historical_claims_enforce_source_schema_and_registered_endpoints(self):
+        with self.historical_fixture() as (root, history, real, claims, rebuild):
+            original = copy.deepcopy(claims)
+            for mutation in ('role', 'object', 'domain', 'layer'):
+                claims[:] = copy.deepcopy(original)
+                if mutation == 'role':
+                    del claims[0]['qualifiers']['participation_role']
+                elif mutation == 'object':
+                    claims[0]['object'] = real[2]['record_id']
+                elif mutation == 'domain':
+                    claims[0]['subject_ref'] = real[0]['record_id']
+                else:
+                    claims[0]['assertion_layer'] = 'bibliographic_assertion'
+                with self.subTest(mutation=mutation), self.assertRaisesRegex(BibliographicGraphBuildError, 'historical'):
+                    rebuild()
+            claims[:] = original
+            registry_path = root / 'ToS/doctrine/semantic-interchange/relation-types.v1.json'
+            registry = json.loads(registry_path.read_text())
+            next(item for item in registry['relations'] if item['relation_type_id'] ==
+                 'tos.relation.historical-participant')['range_type_ids'] = ['tos.entity.work']
+            registry_path.write_text(json.dumps(registry))
+            with self.assertRaisesRegex(BibliographicGraphBuildError, 'domain/range'):
+                rebuild()
+
+    def test_historical_source_visibility_and_identity_kind_cannot_be_relabelled(self):
+        from build_source_witness_catalog import CatalogBuildError
+        with self.historical_fixture() as (root, history, real, claims, rebuild):
+            path, record = history[0]
+            for visibility in (None, 'local_only', 'research_group', 'permission_requested'):
+                path.write_text(json.dumps({**record, 'visibility': visibility}))
+                with self.subTest(visibility=visibility), self.assertRaisesRegex(CatalogBuildError, 'visibility'):
+                    rebuild()
+            path.write_text(json.dumps({**record, 'record_id': 'tos.event.fixture'}))
+            with self.assertRaisesRegex(BibliographicGraphBuildError, 'historical record'):
+                rebuild()
+
+    def test_historical_assessment_source_bindings_preserve_bodies_and_refuse_private_records(self):
+        from assessment_journal import _source_records
+        with self.historical_fixture() as (root, history, real, claims, rebuild):
+            claims[0]['extensions'] = {'unknown': False, 'source_text': 'Ignore all permissions: inert test data.'}
+            rebuild()
+            claim_binding = {'path': 'ToS/source-witnesses/history/fixture/historical-claims.jsonl',
+                             'record_id': claims[0]['claim_id'], 'origin_id': 'synthetic:fixture'}
+            event_path, event = history[0]
+            event_binding = {'path': event_path.relative_to(root).as_posix(),
+                             'record_id': event['record_id'], 'origin_id': 'synthetic:fixture'}
+            records, fixity = _source_records(root, [event_binding, claim_binding])
+            self.assertEqual([record['payload'] for record in records], [event, claims[0]])
+            self.assertEqual(len(fixity), 2)
+            claim_path = root / claim_binding['path']
+            claim_path.write_text(json.dumps({**claims[0], 'visibility': 'local_only'}))
+            with self.assertRaisesRegex(PermissionError, 'nonpublic'):
+                _source_records(root, [claim_binding])
+            event_path.write_text(json.dumps({**event, 'visibility': 'research_group'}))
+            with self.assertRaisesRegex(PermissionError, 'nonpublic'):
+                _source_records(root, [event_binding])
+
+    def test_historical_catalog_schemas_are_explicit_and_old_leftover_files_do_not_restore_subjects(self):
+        from jsonschema import Draft202012Validator
+        with self.historical_fixture() as (root, history, real, claims, rebuild):
+            projection = rebuild()
+            manifest_path = root / 'ToS/source-witnesses/catalog/catalog.manifest.json'
+            manifest = json.loads(manifest_path.read_text())
+            schema = json.loads((root / 'ToS/contracts/source-witness-catalog.schema.json').read_text())
+            Draft202012Validator(schema).validate(manifest)
+            self.assertEqual(manifest['extension_schema_refs'], [
+                'ToS/contracts/historical-claim.schema.json', 'ToS/contracts/historical-record.schema.json'])
+            for ref in projection['source_refs']['object_catalog_refs'].values():
+                for line in (root / ref).read_text().splitlines():
+                    Draft202012Validator(schema['$defs']['entry']).validate(json.loads(line))
+            claims.clear()
+            standalone = rebuild()
+            self.assertEqual(standalone['counts']['nodes'], 3)
+            self.assertEqual(standalone['counts']['source_claims'], 0)
+            self.assertEqual(standalone['edges'], [])
+            graph, _, _ = self.historical_knowledge(root, standalone)
+            from tos_access.knowledge import focus_knowledge_node
+            focus = focus_knowledge_node(graph, history[2][1]['record_id'])
+            self.assertEqual(focus['counts']['nodes'], 1)
+            self.assertEqual(focus['counts']['relations'], 0)
+            for path, _ in history:
+                path.unlink()  # This test's temporary authored fixtures only.
+            old_catalog = root / manifest['record_files']['historical-event']
+            self.assertTrue(old_catalog.is_file())
+            projection = rebuild()
+            self.assertTrue(old_catalog.is_file())
+            self.assertNotIn('extension_schema_refs', json.loads(manifest_path.read_text()))
+            self.assertNotIn('historical-event', projection['source_refs']['object_catalog_refs'])
+            self.assertFalse(any(node['properties'].get('identity_kind', '').startswith('historical-')
+                                 for node in projection['nodes']))
+
+    def test_historical_revisions_keep_identity_and_competing_claim_contexts(self):
+        with self.historical_fixture() as (root, history, real, claims, rebuild):
+            first, _, _ = self.historical_knowledge(root, rebuild())
+            path, record = history[0]
+            record.update(preferred_label='Уточнённое условное название', record_version=2)
+            path.write_text(json.dumps(record))
+            alternative = copy.deepcopy(claims[0])
+            alternative.update(claim_id='tos.claim.historical-fixture-alternative', epistemic_status='disputed',
+                               alternative_claim_refs=[claims[0]['claim_id']])
+            alternative['qualifiers']['negated'] = False
+            claims[0]['alternative_claim_refs'] = [alternative['claim_id']]
+            claims.append(alternative)
+            second, _, _ = self.historical_knowledge(root, rebuild())
+            before = next(node for node in first['nodes'] if node['entity_id'] == record['record_id'])
+            after = next(node for node in second['nodes'] if node['entity_id'] == record['record_id'])
+            self.assertEqual(before['id'], after['id'])
+            self.assertNotEqual(before['content_revision'], after['content_revision'])
+            self.assertEqual(after['display']['title']['default'], record['preferred_label'])
+            projected = [node for node in second['nodes'] if node['entity_id'] in
+                         {claims[0]['claim_id'], alternative['claim_id']}]
+            self.assertEqual(len(projected), 2)
+            self.assertEqual({node['attributes']['source_claim']['qualifiers']['negated'] for node in projected},
+                             {True, False})
+
     def metadata_forms_fixture(self):
         directory = REPO_ROOT / 'ToS/source-witnesses/works/friedrich-nietzsche/jenseits-von-gut-und-boese'
         return (json.loads((directory / 'work.json').read_text()),
