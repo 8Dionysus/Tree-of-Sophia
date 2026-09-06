@@ -1156,6 +1156,18 @@ class KnowledgeContractTests(unittest.TestCase):
         self.assertEqual(graph["counts"]["semantic_validation"]["violations"], [])
 
         nodes_by_id = {node['id']: node for node in graph['nodes']}
+        # The real source form set travels through the existing graph and full
+        # inspection. It is not yet a scene/hover selection contract.
+        from tos_access.knowledge import inspect_knowledge_node
+        form_subject = 'tos.work.friedrich-nietzsche.jenseits-von-gut-und-boese'
+        source_identity = next(node for node in bibliographic['nodes']
+                               if node['properties'].get('identity_ref') == form_subject)
+        packet = inspect_knowledge_node(graph, form_subject, relation_limit=0)
+        projected_identity = next(node for node in packet['matches'] if node['source_graph'] == 'source-claims')
+        self.assertEqual(projected_identity['attributes']['human_forms'], source_identity['properties']['human_forms'])
+        self.assertEqual(len(projected_identity['attributes']['human_forms']), 3)
+        self.assertTrue(all(form['context'] and form['admission'] is None
+                            for form in projected_identity['attributes']['human_forms']))
         claims = [node for node in graph['nodes'] if node['type_id'] == 'tos.entity.claim']
         from tos_access.knowledge import _ASSERTION_FIELDS, _lens_carrier
         contexts_by_claim = {}

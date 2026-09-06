@@ -27,9 +27,91 @@ from source_witness_bibliographic_graph_common import (  # noqa: E402
     query_projection,
     render_payload,
 )
+from source_witness_human_forms import load_metadata_forms, materialize_metadata_forms
 
 
 class SourceWitnessBibliographicGraphTest(unittest.TestCase):
+    def metadata_forms_fixture(self):
+        directory = REPO_ROOT / 'ToS/source-witnesses/works/friedrich-nietzsche/jenseits-von-gut-und-boese'
+        return (json.loads((directory / 'work.json').read_text()),
+                json.loads((directory / 'work.human-forms.json').read_text()))
+
+    def test_real_metadata_forms_are_exact_source_bound_with_context(self):
+        source, forms = self.metadata_forms_fixture()
+        results = materialize_metadata_forms(source, forms, access_allowed=True)
+        self.assertEqual([r['state'] for r in results], ['ready'] * 3)
+        self.assertEqual([r['display_text'] for r in results],
+                         [source['preferred_label'], source['variant_labels'][0]['value'], source['notes']])
+        self.assertEqual([r['language'] for r in results], [None, 'ru', None])
+        self.assertTrue(all(r['context'] and not r['standalone_reading'] for r in results))
+        self.assertTrue(all(r['admission'] is None for r in results))
+        self.assertIn('verified', [c['value'] for c in results[1]['context']])
+
+    def test_generated_graph_carries_current_forms_without_mutating_the_subject(self):
+        source, forms = self.metadata_forms_fixture()
+        graph = self.load_projection()
+        node = next(node for node in graph['nodes']
+                    if node['properties'].get('identity_ref') == source['record_id'])
+        self.assertEqual(node['properties']['source_record'], source)
+        self.assertNotIn('human_forms', node['properties']['source_record'])
+        self.assertEqual(node['properties']['human_forms'],
+                         materialize_metadata_forms(source, forms, access_allowed=True))
+        source_ref = node['properties']['human_forms_source_ref']
+        self.assertEqual(graph['input_digests'][source_ref],
+                         hashlib.sha256((REPO_ROOT / source_ref).read_bytes()).hexdigest())
+
+    def test_metadata_adapter_refuses_missing_context_stale_source_and_freeform(self):
+        source, forms = self.metadata_forms_fixture()
+        del forms['forms'][0]['bindings']['identity_status']
+        self.assertEqual(materialize_metadata_forms(source, forms, access_allowed=True)[0]['state'], 'invalid')
+        forms['forms'][0]['content'] = {'kind': 'freeform', 'text': 'An unaudited summary.'}
+        self.assertEqual(materialize_metadata_forms(source, forms, access_allowed=True)[0]['state'], 'unavailable')
+        source['notes'] += ' changed'
+        stale = materialize_metadata_forms(source, forms, access_allowed=True)
+        self.assertTrue(all(form['state'] == 'stale' and form['display_text'] is None for form in stale))
+        source['record_id'] = 'tos.work.unrelated'
+        with self.assertRaisesRegex(ValueError, 'another source subject'):
+            materialize_metadata_forms(source, forms, access_allowed=True)
+
+    def test_metadata_forms_have_a_schema_and_a_whole_set_input_budget(self):
+        source, forms = self.metadata_forms_fixture()
+        forms['accepted'] = True
+        with self.assertRaisesRegex(ValueError, 'schema'):
+            materialize_metadata_forms(source, forms, access_allowed=True)
+        del forms['accepted']
+        forms['forms'][0]['content'] = {'kind': 'freeform', 'text': '界' * 710000}
+        with self.assertRaisesRegex(ValueError, 'input budget'):
+            materialize_metadata_forms(source, forms, access_allowed=True)
+
+    def test_metadata_forms_cannot_self_authorize_access_or_overwrite_predecessors(self):
+        source, forms = self.metadata_forms_fixture()
+        results = materialize_metadata_forms(source, forms, access_allowed=False)
+        self.assertTrue(all(r['state'] == 'restricted' and r['display_text'] is None for r in results))
+        old = copy.deepcopy(forms['forms'][0])
+        from knowledge_assessment import Record
+        forms['forms'][0]['form_version'] = 2
+        forms['forms'][0]['revises'] = Record.from_payload(old['form_id'], old['form_version'], old).ref
+        self.assertEqual(materialize_metadata_forms(source, forms, access_allowed=True)[0]['state'], 'unavailable')
+        forms['prior_forms'].append(old)
+        self.assertEqual(materialize_metadata_forms(source, forms, access_allowed=True)[0]['state'], 'ready')
+
+    def test_metadata_form_loader_is_adjacent_and_confined_to_source_home(self):
+        source, forms = self.metadata_forms_fixture()
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            home = root / 'ToS/source-witnesses/works/example'
+            home.mkdir(parents=True)
+            path = home / 'work.json'
+            path.write_text(json.dumps(source))
+            ref = path.relative_to(root).as_posix()
+            self.assertIsNone(load_metadata_forms(root, ref, source, access_allowed=True))
+            (home / 'work.human-forms.json').write_text(json.dumps(forms))
+            result = load_metadata_forms(root, ref, source, access_allowed=True)
+            self.assertEqual(result[0], 'ToS/source-witnesses/works/example/work.human-forms.json')
+            self.assertEqual(len(result[2]), 3)
+            with self.assertRaises(ValueError):
+                load_metadata_forms(root, 'outside.json', source, access_allowed=True)
+
     def load_projection(self) -> dict[str, object]:
         return json.loads(GRAPH_PATH.read_text(encoding="utf-8"))
 

@@ -10,6 +10,7 @@ from pathlib import Path
 from typing import Any, Iterable
 
 from jsonschema import Draft202012Validator
+from source_witness_human_forms import load_metadata_forms
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
@@ -163,6 +164,15 @@ def _load_object_catalog(repo_root: Path) -> dict[str, dict[str, Any]]:
                 )
             material = dict(entry)
             material["_source_record"] = source_payload
+            try:
+                forms = load_metadata_forms(repo_root, source_ref, source_payload, access_allowed=True)
+            except (ValueError, OSError) as exc:
+                raise BibliographicGraphBuildError(f"{location}: invalid adjacent human forms: {exc}") from exc
+            if forms is not None:
+                forms_ref, forms_raw, forms_materialized = forms
+                material['_human_forms'] = forms_materialized
+                material['_human_forms_source_ref'] = forms_ref
+                material['_human_forms_sha256'] = hashlib.sha256(forms_raw).hexdigest()
             objects[record_id] = material
     return objects
 
@@ -349,6 +359,9 @@ def _identity_node(entry: dict[str, Any]) -> dict[str, Any]:
         "source_sha256": entry["record_sha256"],
         "properties": {
             **source_record,
+            **({'human_forms': entry['_human_forms'],
+                'human_forms_source_ref': entry['_human_forms_source_ref']}
+               if '_human_forms' in entry else {}),
             "identity_ref": entry["record_id"],
             "identity_kind": entry["record_type"],
             "preferred_label": entry["preferred_label"],
@@ -784,6 +797,10 @@ def build_payload(repo_root: Path = REPO_ROOT) -> dict[str, Any]:
 
     input_digests = _catalog_input_digests(repo_root)
     objects = _load_object_catalog(repo_root)
+    for entry in objects.values():
+        if '_human_forms_source_ref' in entry:
+            input_digests[entry['_human_forms_source_ref']] = entry['_human_forms_sha256']
+    input_digests = dict(sorted(input_digests.items()))
     catalog_claim_count = sum(
         1 for _line_number, _entry in iter_jsonl(repo_root / CLAIM_CATALOG_REF, repo_root)
     )

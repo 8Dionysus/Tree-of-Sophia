@@ -89,3 +89,29 @@ language, revision, refusal and agent-policy revocation. Source adapters,
 real-language calibration, all-corpus forms and actual UI consumption remain
 required work in [the foundation coverage map](FOUNDATION_V1.md), not facts
 established by those tests.
+
+## Bibliographic metadata adapter
+
+An adjacent `<record-stem>.human-forms.json` may hold a
+`tos_human_form_set_v1` with current forms and retained predecessors, bound to
+the exact bibliographic record. The set does not change the subject record or
+its ID. Updating the subject makes its forms `stale` without blocking other
+graph objects until the source owner rebinds successor forms; older wording and exact dependencies remain in
+`prior_forms`. The set is not an independent corpus registry or an admission
+receipt.
+
+`scripts/source_witness_human_forms.py` provides the first metadata-only
+adapter: whole `preferred_label` and `variant_labels/*/value` names, and whole
+`notes` hover text. Identity status and equivalence posture remain mandatory;
+a variant also retains all its source metadata, including unknown members.
+Missing source language/script remain unknown. Other roles, templates and
+freeform wording are explicitly unavailable on this adapter, not automatically
+accepted. Declared creator identity is provenance, not authentication.
+
+The existing bibliographic graph builder carries the materializations and
+adjacent source return in identity properties, with the set's input digest.
+This route uses already public bibliographic metadata, not payload text or
+private source layers. It has no growth-command or publication authority.
+Each set is bounded at 2 MiB input, 32 current forms and 256 KiB output.
+The initial Jenseits set contains original-name, Russian-name and source-note
+copies, not a new translation, historical assessment or complete Forms profile.

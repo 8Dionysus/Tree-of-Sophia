@@ -15,6 +15,7 @@ judgment true.
 | `semantic-entity-type-registry.schema.json` | versioned stable `tos.entity.*` hierarchy and source-kind crosswalk with explicit lifecycle, owner, human labels, and an unmapped fallback |
 | `semantic-relation-type-registry.schema.json` | versioned stable `tos.relation.*` hierarchy and source-predicate crosswalk with domain/range, directionality, cardinality, evidence/review posture, and an unmapped fallback |
 | `human-form.schema.json` / `human-form-template.schema.json` | exact subject/source-bound human representation and finite owner-admitted template, distinct from subject identity; mandatory context, source-copy, deterministic rendering and current assessed freeform use follow `ToS/doctrine/HUMAN_FORMS.md` |
+| `human-form-set.schema.json` | adjacent exact-subject collection of current human forms and retained predecessors; discovery and metadata-only adapter limits follow `HUMAN_FORMS.md` |
 | `source-item-manifest.schema.json` | immutable local payload inventory, digest, and tracked companion refs |
 | `source-resource-inventory.schema.json` | text-free PDF or bundled-DjVu page, EPUB member/spine, TEI page-break/division, and provider DjVu/ABBYY OCR-page inventory with geometry, ordering, counts, member fixity, and one-way fingerprints |
 | `lexical-index-plan.schema.json` | source-gated exact-form observation plan with explicit local source-bearing versus tracked hash-only outputs, field-by-field authority, rights routing, and a semantic non-effect boundary |

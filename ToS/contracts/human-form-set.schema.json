@@ -1,0 +1,15 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://treeofsophia.local/ToS/contracts/human-form-set.schema.json",
+  "title": "Adjacent source human forms and retained predecessors",
+  "type": "object", "additionalProperties": false,
+  "required": ["schema_version", "subject", "forms", "prior_forms"],
+  "properties": {
+    "schema_version": {"const": "tos_human_form_set_v1"},
+    "subject": {"$ref": "knowledge-assessment.schema.json#/$defs/exactRef"},
+    "forms": {"type": "array", "minItems": 1, "maxItems": 32,
+      "items": {"$ref": "human-form.schema.json"}},
+    "prior_forms": {"type": "array", "maxItems": 256,
+      "items": {"$ref": "human-form.schema.json"}}
+  }
+}
