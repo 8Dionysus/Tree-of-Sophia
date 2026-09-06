@@ -1,4 +1,5 @@
 import { normalizePagination, paginateLens, type Pagination } from './lens-pagination.ts';
+import { selectHumanForms } from './human-forms.ts';
 
 export type Item = Record<string, unknown>;
 
@@ -11,6 +12,7 @@ export type LocalizedText = {
 };
 
 export type KnowledgeNode = {
+  human_form_selection?: ReturnType<typeof selectHumanForms>;
   source_record?: Item;
   id: string;
   entity_id: string;
@@ -36,6 +38,7 @@ export type KnowledgeNode = {
 };
 
 export type KnowledgeRelation = {
+  human_form_selection?: ReturnType<typeof selectHumanForms>;
   source_record?: Item;
   id: string;
   native_id: string;
@@ -421,8 +424,8 @@ export function normalizeLensSpec(value: unknown): LensSpec {
 
   const limits = strictRecord(source.limits, "limits", ["nodes", "relations", "groups"]);
   const language = text(source.language) ?? "auto";
-  if (language !== "auto" && language !== "original" && !LANGUAGE_KEY.test(language)) {
-    throw new Error("language must be auto, original, or a language tag");
+  if (language.length > 128 || (language !== "auto" && language !== "original" && !LANGUAGE_KEY.test(language))) {
+    throw new Error("language must be auto, original, or a language tag of at most 128 characters");
   }
   return {
     schema_version: "tos_lens_spec_v1",
@@ -589,7 +592,8 @@ async function digest(value: unknown): Promise<string> {
 }
 
 function lensCarrier<T extends KnowledgeNode | KnowledgeRelation>(item: T, detail: LensSpec['detail'], language: string): T {
-  const result = {...item, display_selection: displaySelection(item, language)};
+    const result = {...item, display_selection: displaySelection(item, language)};
+    if (Object.hasOwn(item.attributes, 'human_forms')) Object.assign(result, {human_form_selection: selectHumanForms(item, language)});
   if (detail !== 'full') { result.attributes = {}; delete result.source_record; }
   return result;
 }

@@ -10,7 +10,7 @@
     "lens_id": {"type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$"},
     "title": {"$ref": "#/$defs/localizedInput"},
     "description": {"$ref": "#/$defs/localizedInput"},
-    "language": {"type": "string", "pattern": "^(?:auto|original|[A-Za-z]{2,8}(?:-[A-Za-z0-9]{1,8})*|[iIxX](?:-[A-Za-z0-9]{1,8})+)$(?![\\s\\S])"},
+    "language": {"type": "string", "maxLength": 128, "pattern": "^(?:auto|original|[A-Za-z]{2,8}(?:-[A-Za-z0-9]{1,8})*|[iIxX](?:-[A-Za-z0-9]{1,8})+)$(?![\\s\\S])"},
     "pagination": {"anyOf": [{"type": "null"}, {
       "type": "object", "additionalProperties": false,
       "properties": {

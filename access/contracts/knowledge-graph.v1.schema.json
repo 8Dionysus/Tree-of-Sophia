@@ -14,6 +14,48 @@
     "authority_boundary": {"$ref": "#/$defs/authorityBoundary"}
   },
   "$defs": {
+    "exactFormRef": {
+      "type": "object", "additionalProperties": false, "required": ["id", "version", "digest"],
+      "properties": {"id": {"type": "string", "minLength": 1},
+        "version": {"type": "integer", "minimum": 1, "maximum": 9007199254740991},
+        "digest": {"type": "string", "pattern": "^sha256:[a-f0-9]{64}$(?![\\s\\S])"}}
+    },
+    "humanFormRoleSelection": {
+      "type": "object", "additionalProperties": false, "required": ["state", "reason", "form", "packet"],
+      "properties": {
+        "state": {"enum": ["ready", "missing", "unavailable", "ambiguous", "over-budget"]},
+        "reason": {"enum": ["exact-language", "less-specific-language", "automatic", "fallback", "no-ready-form", "multiple-forms", "original-role-not-declared", "inspect-exact-form"]},
+        "form": {"anyOf": [{"$ref": "#/$defs/exactFormRef"}, {"type": "null"}]},
+        "packet": {"type": ["object", "null"], "description": "Intact ToS-owned tos_human_form_materialization_v1, including all mandatory context and separate source-snapshot admission. Source contract: ToS/contracts/human-form.schema.json#/$defs/materialization; this transport does not re-assess it."}
+      },
+      "allOf": [{"if": {"properties": {"state": {"const": "ready"}}},
+        "then": {"properties": {"form": {"$ref": "#/$defs/exactFormRef"}, "packet": {"type": "object"}}},
+        "else": {"properties": {"packet": {"type": "null"}}}}]
+    },
+    "humanFormSelection": {
+      "type": "object", "additionalProperties": false,
+      "required": ["schema_version", "content_revision", "requested_language", "source_ref", "state", "roles", "candidates", "issues", "performs_translation", "performs_assessment"],
+      "properties": {
+        "schema_version": {"const": "tos_human_form_selection_v1"},
+        "content_revision": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+        "requested_language": {"type": "string", "maxLength": 128},
+        "source_ref": {"type": ["string", "null"], "maxLength": 2048},
+        "state": {"enum": ["available", "invalid", "over-budget"]},
+        "roles": {"type": "object", "required": ["name", "caption", "hover", "statement", "grounds", "history", "technical"],
+          "propertyNames": {"enum": ["name", "caption", "hover", "statement", "grounds", "history", "technical"]},
+          "additionalProperties": {"$ref": "#/$defs/humanFormRoleSelection"}},
+        "candidates": {"type": "array", "maxItems": 32, "items": {
+          "type": "object", "additionalProperties": false, "required": ["form", "role", "language", "state", "source_pointer"],
+          "properties": {"form": {"$ref": "#/$defs/exactFormRef"},
+            "role": {"enum": [null, "name", "caption", "hover", "statement", "grounds", "history", "technical"]},
+            "language": {"type": ["string", "null"]},
+            "state": {"enum": ["ready", "invalid", "unavailable", "stale", "restricted", "needs-assessment", "over-budget"]},
+            "source_pointer": {"type": "string", "pattern": "^/attributes/human_forms/[0-9]+$"}}
+        }},
+        "issues": {"type": "array", "items": {"type": "string"}},
+        "performs_translation": {"const": false}, "performs_assessment": {"const": false}
+      }
+    },
     "sourceRecord": {
       "type": "object", "additionalProperties": false,
       "required": ["payload", "digest", "transform_version", "field_map"],
@@ -181,6 +223,7 @@
         "content_revision": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
         "display": {"$ref": "#/$defs/nodeDisplay"},
         "display_selection": {"$ref": "#/$defs/displaySelection"},
+        "human_form_selection": {"$ref": "#/$defs/humanFormSelection"},
         "epistemic": {"$ref": "#/$defs/epistemic"},
         "graph_layers": {"type": "array", "items": {"$ref": "#/$defs/nonEmptyString"}, "uniqueItems": true},
         "view_ids": {"type": "array", "items": {"$ref": "#/$defs/nonEmptyString"}, "uniqueItems": true},
@@ -210,6 +253,7 @@
         "content_revision": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
         "display": {"$ref": "#/$defs/relationDisplay"},
         "display_selection": {"$ref": "#/$defs/displaySelection"},
+        "human_form_selection": {"$ref": "#/$defs/humanFormSelection"},
         "epistemic": {"$ref": "#/$defs/epistemic"},
         "graph_layers": {"type": "array", "items": {"$ref": "#/$defs/nonEmptyString"}, "uniqueItems": true},
         "view_ids": {"type": "array", "items": {"$ref": "#/$defs/nonEmptyString"}, "uniqueItems": true},

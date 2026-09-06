@@ -515,6 +515,138 @@ def _display_selection(item: dict[str, Any], language: str = 'auto') -> dict[str
             'performs_translation': False, 'is_semantic_assessment': False}
 
 
+HUMAN_FORM_ROLES = ('name', 'caption', 'hover', 'statement', 'grounds', 'history', 'technical')
+HUMAN_FORM_SELECTION_BUDGET = 16_384
+
+
+def _form_delivery_cost(value: Any) -> int:
+    """Conservative JSON byte ceiling, shared with the Worker (not token cost)."""
+    if isinstance(value, str):
+        return len(json.dumps(value, ensure_ascii=False).encode('utf-8', errors='backslashreplace'))
+    if value is None or isinstance(value, bool):
+        return 5
+    if isinstance(value, (int, float)):
+        return max(32, len(str(value)))
+    if isinstance(value, list):
+        return 2 + sum(1 + _form_delivery_cost(member) for member in value)
+    if isinstance(value, dict):
+        return 2 + sum(2 + _form_delivery_cost(key) + _form_delivery_cost(member) for key, member in value.items())
+    raise ValueError('human form contains a non-JSON value')
+
+
+def _exact_form_ref(value: Any) -> bool:
+    return (isinstance(value, dict) and set(value) == {'id', 'version', 'digest'}
+            and isinstance(value['id'], str) and bool(value['id'])
+            and type(value['version']) is int and 1 <= value['version'] <= 9_007_199_254_740_991
+            and isinstance(value['digest'], str) and bool(re.fullmatch(r'sha256:[a-f0-9]{64}', value['digest'])))
+
+
+def select_human_forms(item: dict[str, Any], language: str = 'auto') -> dict[str, Any]:
+    """Deliver source materializations intact; do not re-assess or rank truth.
+
+The initial adapter binds bibliographic records. Other owners must supply an
+equally explicit source record binding before this reader can select their
+forms. A source-snapshot admission is not a freshly evaluated runtime grant.
+"""
+    if not isinstance(language, str) or len(language) > 128 or (language not in {'auto', 'original'} and not _LANGUAGE_KEY.fullmatch(language)):
+        raise ValueError('invalid human form language preference')
+    if not isinstance(item.get('content_revision'), str) or not re.fullmatch(r'[a-f0-9]{64}', item['content_revision']):
+        raise ValueError('human forms require a content revision')
+    attributes = item.get('attributes') if isinstance(item.get('attributes'), dict) else {}
+    forms = attributes.get('human_forms', [])
+    empty = lambda: {'state': 'missing', 'reason': 'no-ready-form', 'form': None, 'packet': None}
+    result = {'schema_version': 'tos_human_form_selection_v1', 'content_revision': item.get('content_revision'),
+              'requested_language': language, 'source_ref': attributes.get('human_forms_source_ref'),
+              'state': 'available', 'roles': {role: empty() for role in HUMAN_FORM_ROLES},
+              'candidates': [], 'issues': [], 'performs_translation': False, 'performs_assessment': False}
+    if not isinstance(result['source_ref'], str) or len(result['source_ref'].encode('utf-16-le', errors='surrogatepass')) // 2 > 2048:
+        result['source_ref'] = None
+
+    def stop(state, issue):
+        packet = {**result, 'state': state, 'roles': {role: empty() for role in HUMAN_FORM_ROLES},
+                'source_ref': None if state == 'over-budget' else result['source_ref'],
+                'candidates': [], 'issues': [issue]}
+        if _form_delivery_cost(packet) > HUMAN_FORM_SELECTION_BUDGET:
+            packet['source_ref'] = None
+        return packet
+
+    if not isinstance(forms, list) or len(forms) > 32:
+        return stop('invalid', 'forms.invalid-or-excessive-collection')
+    if not forms:
+        return result if _form_delivery_cost(result) <= HUMAN_FORM_SELECTION_BUDGET else stop('over-budget', 'forms.inspect-collection-separately')
+    record = attributes.get('source_record')
+    if not isinstance(record, dict):
+        return stop('invalid', 'forms.missing-source-record-binding')
+    subject = {'id': record.get('record_id'), 'version': record.get('record_version'),
+               'digest': 'sha256:' + str(attributes.get('source_sha256', ''))}
+    if not _exact_form_ref(subject):
+        return stop('invalid', 'forms.invalid-source-record-binding')
+    ready, seen = [], set()
+    for index, packet in enumerate(forms):
+        if (not isinstance(packet, dict) or packet.get('schema_version') != 'tos_human_form_materialization_v1'
+                or not _exact_form_ref(packet.get('form')) or not _exact_form_ref(packet.get('subject')) or packet.get('subject') != subject
+                or packet.get('performs_semantic_assessment') is not False):
+            return stop('invalid', 'forms.invalid-packet-or-source-binding')
+        if packet['form']['id'] in seen:
+            return stop('invalid', 'forms.duplicate-current-identity')
+        seen.add(packet['form']['id'])
+        state, role, actual_language = packet.get('state'), packet.get('role'), packet.get('language')
+        if not isinstance(state, str) or state not in {'ready', 'invalid', 'unavailable', 'stale', 'restricted', 'needs-assessment', 'over-budget'}:
+            return stop('invalid', 'forms.unknown-materialization-state')
+        if (role is not None and role not in HUMAN_FORM_ROLES) or (actual_language is not None and
+                (not isinstance(actual_language, str) or not _LANGUAGE_KEY.fullmatch(actual_language))):
+            return stop('invalid', 'forms.invalid-role-or-language')
+        result['candidates'].append({'form': packet['form'], 'role': role, 'language': actual_language,
+                                     'state': state, 'source_pointer': f'/attributes/human_forms/{index}'})
+        if state != 'ready':
+            if 'display_text' not in packet or packet['display_text'] is not None or packet.get('context') != []:
+                return stop('invalid', 'forms.nonready-packet-has-wording')
+            continue
+        context = packet.get('context')
+        if ('language' not in packet or role not in HUMAN_FORM_ROLES or not isinstance(packet.get('display_text'), str)
+                or not packet['display_text'].strip() or not isinstance(context, list) or len(context) > 256
+                or (actual_language is not None and (not isinstance(actual_language, str) or not _LANGUAGE_KEY.fullmatch(actual_language)))
+                or not isinstance(packet.get('standalone_reading'), bool)
+                or (context and packet['standalone_reading'] is not False)
+                or any(not isinstance(entry, dict) or not {'slot', 'binding', 'value'} <= entry.keys()
+                       or not isinstance(entry['binding'], dict) or not _exact_form_ref(entry['binding'].get('record'))
+                       or not isinstance(entry['binding'].get('pointer'), str) for entry in context)):
+            return stop('invalid', 'forms.incomplete-ready-packet')
+        ready.append(packet)
+    if _form_delivery_cost(result) > HUMAN_FORM_SELECTION_BUDGET:
+        return stop('over-budget', 'forms.inspect-collection-separately')
+    for role in HUMAN_FORM_ROLES:
+        candidates = [packet for packet in ready if packet['role'] == role]
+        selected, reason = candidates, 'automatic' if language == 'auto' else 'fallback'
+        if language == 'original':
+            result['roles'][role] = {**empty(), 'state': 'unavailable', 'reason': 'original-role-not-declared'}
+            continue
+        if language != 'auto':
+            candidate = language
+            while candidate:
+                matching = [packet for packet in candidates if isinstance(packet['language'], str)
+                            and packet['language'].lower() == candidate.lower()]
+                if matching:
+                    selected = matching
+                    reason = 'exact-language' if candidate == language else 'less-specific-language'
+                    break
+                candidate = candidate.rsplit('-', 1)[0] if '-' in candidate else ''
+                if candidate and len(candidate.rsplit('-', 1)[-1]) == 1:
+                    candidate = candidate.rsplit('-', 1)[0] if '-' in candidate else ''
+        if len(selected) > 1:
+            result['roles'][role] = {**empty(), 'state': 'ambiguous', 'reason': 'multiple-forms'}
+        elif selected:
+            packet = selected[0]
+            result['roles'][role] = {'state': 'ready', 'reason': reason, 'form': packet['form'], 'packet': packet}
+            if _form_delivery_cost(result) > HUMAN_FORM_SELECTION_BUDGET:
+                result['roles'][role] = {'state': 'over-budget', 'reason': 'inspect-exact-form', 'form': packet['form'], 'packet': None}
+        elif any(packet.get('state') != 'ready' for packet in forms):
+            result['roles'][role]['state'] = 'unavailable'
+    if _form_delivery_cost(result) > HUMAN_FORM_SELECTION_BUDGET:
+        return stop('over-budget', 'forms.inspect-collection-separately')
+    return copy.deepcopy(result)
+
+
 def _source_refs(item: dict[str, Any], *fallbacks: str | None) -> list[str]:
     refs: set[str] = set(_strings(item.get("source_refs")))
     for key in ("source_ref", "source_path", "path", "owner_surface"):
@@ -2470,8 +2602,8 @@ def normalize_lens_spec(value: Any) -> dict[str, Any]:
     detail = value.get('detail', 'full')
     if detail not in {'full', 'compact'}:
         raise ValueError('detail must be full or compact')
-    if language not in {"auto", "original"} and not _LANGUAGE_KEY.fullmatch(language):
-        raise ValueError("language must be auto, original, or a language tag")
+    if len(language) > 128 or (language not in {"auto", "original"} and not _LANGUAGE_KEY.fullmatch(language)):
+        raise ValueError("language must be auto, original, or a language tag of at most 128 characters")
     explain = value.get('explain', False)
     if not isinstance(explain, bool):
         raise ValueError('explain must be a boolean')
@@ -2957,7 +3089,11 @@ def execute_knowledge_lens(graph: dict[str, Any], spec_value: Any) -> dict[str, 
 def _lens_carrier(item: dict[str, Any], detail: str, *, language: str | None = None) -> dict[str, Any]:
     result = item if detail == 'full' else {**{key: value for key, value in item.items() if key != 'source_record'}, 'attributes': {}}
     # Selection belongs to delivery, not the immutable normalized content digest.
-    return {**result, 'display_selection': _display_selection(item, language)} if language is not None else result
+    if language is not None:
+        result = {**result, 'display_selection': _display_selection(item, language)}
+        if 'human_forms' in (item.get('attributes') or {}):
+            result['human_form_selection'] = select_human_forms(item, language)
+    return result
 
 
 def focus_knowledge_node(

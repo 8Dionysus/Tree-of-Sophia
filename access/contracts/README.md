@@ -85,6 +85,36 @@ Search, inspection and resumable exploration still return the form maps, not
 language-selected packets. Consumer rendering/assessment remains a separate
 integration requirement; selection itself does not certify safe abbreviation.
 
+Where the source supplies explicit Forms, lens carriers also return
+`human_form_selection` in full and compact results. It is separate from the
+legacy display map above. The seven roles are name, caption, hover, statement,
+grounds, history and technical. Each reports a selected exact form and intact
+materialization, a missing/unavailable state, ambiguity, or an exact reference
+requiring inspection. Mandatory context is part of the selected packet, never
+removed to meet a scene character limit. Consumers must respect
+`standalone_reading: false` even when a legacy display string is also present.
+
+Selection uses exact case-insensitive language, then less-specific tags. A
+unique remaining form can be an observable fallback; multiple remaining forms
+are ambiguous, not a source-order vote. `auto` does not adjudicate alternatives.
+Explicit `original` selection currently reports that the source role is not
+declared: unknown language and source-copy derivation alone do not establish
+original-language authority. Source-snapshot assessments are transported, not
+reevaluated for current policy or runtime authorization. Missing, restricted,
+stale and needs-assessment input states are not silently replaced by accepted wording.
+
+The initial adapter binds the exact bibliographic record ID, version and
+source digest. Other source owners still need their own binding adapter.
+Candidates retain their exact form refs and pointers into full inspection;
+compact attributes stay empty. The role packet itself retains context,
+dependencies and provenance. Inputs are capped at 32 source materializations;
+delivery has a 16 KiB conservative JSON-byte budget. Oversized forms return a
+ref, not a substring; an oversized candidate inventory requires full
+inspection. Language preferences are bounded at 128 characters independently
+of whether the current query finds Forms. This is a request budget, not a
+closed language vocabulary. Local Python and Worker/D1 run the same selection
+contract; actual UI consumption remains a separate integration requirement.
+
 `semantics.assertion_contexts` preserves source-declared claim fields in both
 full and compact carriers. Each value names its source JSON Pointer and the
 digest of the exact supplied public source record. False, null, empty and

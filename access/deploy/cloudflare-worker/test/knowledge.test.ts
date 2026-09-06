@@ -7,6 +7,13 @@ import { Miniflare, convertV4MiniflareOptions } from "miniflare";
 import { executeKnowledgeLensD1, knowledgeSearchD1, knowledgeNodeD1, knowledgeRelationD1 } from "../src/knowledge-store.ts";
 
 import { executeKnowledgeLens, focusKnowledgeNode, normalizeLensSpec, selectDisplayForm, type KnowledgeGraph } from "../src/knowledge.ts";
+import { selectHumanForms, formDeliveryCost, HUMAN_FORM_SELECTION_BUDGET } from '../src/human-forms.ts';
+
+function realFormNode(): KnowledgeGraph['nodes'][number] {
+  return JSON.parse(execFileSync('python3', ['-c',
+    "import sys,json,pathlib;sys.path.insert(0,'access/src');from tos_access.knowledge import _normalize_node;g=json.loads(pathlib.Path('ToS/derived-exports/graph/source-witness-bibliographic-claims.min.json').read_text());n=next(n for n in g['nodes'] if n['properties'].get('human_forms'));print(json.dumps(_normalize_node(n,'source-claims')))"],
+    {cwd: fileURLToPath(new URL('../../../../', import.meta.url)), encoding:'utf8'}));
+}
 
 const graph: KnowledgeGraph = {
   schema: "tos_knowledge_graph_v1",
@@ -156,10 +163,86 @@ test("indexed D1 path conditions and inclusion agree with the pure engine", asyn
     assert.equal(selected.fields.statement.reason, 'less-specific-language');
     assert.equal(selected.content_revision, scoped.relations[0]!.content_revision);
     assert.deepEqual(selected.essential_context_pointers, ['/semantics/assertion_contexts/0']);
+    const sourceFormNode = realFormNode();
+    scoped.nodes.push(sourceFormNode);
+    await db.prepare('INSERT INTO knowledge_nodes VALUES (?,?,?,?,?,?,?,?,?)').bind(sourceFormNode.id, sourceFormNode.entity_id,
+      sourceFormNode.native_id, sourceFormNode.source_graph, sourceFormNode.kind_id, sourceFormNode.type_id,
+      sourceFormNode.display.title.default.toLowerCase(), JSON.stringify(sourceFormNode).toLowerCase(), JSON.stringify(sourceFormNode)).run();
+    const formSpec = {...base, sources: ['source-claims'], language: 'ru', detail: 'compact',
+      seed: {focus_node_id: sourceFormNode.id}, node_query: {enabled: false}, relation_query: {enabled: false}};
+    const formResult = await executeKnowledgeLensD1(db, formSpec);
+    assert.deepEqual(formResult, await executeKnowledgeLens(scoped, formSpec));
+    const pythonForms = JSON.parse(execFileSync('python3', ['-c',
+      "import sys,json;sys.path.insert(0,'access/src');from tos_access.knowledge import execute_knowledge_lens;p=json.load(sys.stdin);print(json.dumps(execute_knowledge_lens(p['graph'],p['spec'])))"],
+      {cwd: fileURLToPath(new URL('../../../../', import.meta.url)), input: JSON.stringify({graph: scoped, spec: formSpec}), encoding:'utf8'}));
+    assert.deepEqual(formResult, pythonForms);
+    const delivered = (formResult.nodes as KnowledgeGraph['nodes'])[0]!;
+    assert.deepEqual(delivered.attributes, {});
+    const selectedForms = delivered.human_form_selection as ReturnType<typeof selectHumanForms>;
+    assert.equal(selectedForms.roles.name!.state, 'ready');
+    assert.equal(selectedForms.roles.hover!.state, 'ready');
+    assert.equal(selectedForms.roles.name!.packet!.display_text, 'По ту сторону добра и зла');
+    assert.equal(selectedForms.roles.name!.packet!.standalone_reading, false);
     scoped.nodes[1]!.source_graph = 'repository';
     await db.prepare("UPDATE knowledge_nodes SET source_graph='repository', json=? WHERE id=?").bind(JSON.stringify(scoped.nodes[1]), 'philosophy:b').run();
     assert.deepEqual(await executeKnowledgeLensD1(db,joined), await executeKnowledgeLens(scoped,joined));
   } finally { await mf.dispose(); }
+});
+
+test('source human forms preserve ambiguity, exact context and bounded delivery across Python and Worker', () => {
+  const node = realFormNode();
+  const cases: {item: Record<string, unknown>; language: string}[] = ['ru', 'ru-RU', 'auto', 'original', 'fr'].map(language => ({item: node, language}));
+  const changed = structuredClone(node);
+  changed.attributes.source_sha256 = '0'.repeat(64);
+  cases.push({item: changed, language: 'ru'});
+  const large = structuredClone(node);
+  const largeForms = large.attributes.human_forms as Record<string, unknown>[];
+  largeForms[1]!.display_text = '界'.repeat(16000);
+  cases.push({item: large, language: 'ru'});
+  const restricted = structuredClone(node);
+  for (const packet of restricted.attributes.human_forms as Record<string, unknown>[]) {
+    Object.assign(packet, {state: 'restricted', display_text: null, context: []});
+  }
+  cases.push({item: restricted, language: 'ru'});
+  const leaked = structuredClone(restricted);
+  (leaked.attributes.human_forms as Record<string, unknown>[])[0]!.display_text = 'must not be emitted';
+  cases.push({item: leaked, language: 'ru'});
+  const invalidVersion = structuredClone(node);
+  ((invalidVersion.attributes.human_forms as Record<string, unknown>[])[0]!.subject as Record<string, unknown>).version = true;
+  cases.push({item: invalidVersion, language: 'ru'});
+  const nullForms = structuredClone(node);
+  nullForms.attributes.human_forms = null;
+  cases.push({item: nullForms, language: 'ru'});
+  const missingLanguage = structuredClone(node);
+  delete (missingLanguage.attributes.human_forms as Record<string, unknown>[])[0]!.language;
+  cases.push({item: missingLanguage, language: 'ru'});
+  const missingNull = structuredClone(restricted);
+  delete (missingNull.attributes.human_forms as Record<string, unknown>[])[0]!.display_text;
+  cases.push({item: missingNull, language: 'ru'});
+  const python = JSON.parse(execFileSync('python3', ['-c',
+    "import sys,json;sys.path.insert(0,'access/src');from tos_access.knowledge import select_human_forms;p=json.load(sys.stdin);print(json.dumps([select_human_forms(c['item'],c['language']) for c in p]))"],
+    {cwd: fileURLToPath(new URL('../../../../', import.meta.url)), input: JSON.stringify(cases), encoding:'utf8'}));
+  const results = cases.map(({item, language}) => selectHumanForms(item, language));
+  assert.deepEqual(results, python);
+  assert.equal(results[0]!.roles.name!.state, 'ready');
+  assert.equal(results[1]!.roles.name!.reason, 'less-specific-language');
+  assert.equal(results[2]!.roles.name!.state, 'ambiguous');
+  assert.equal(results[3]!.roles.name!.reason, 'original-role-not-declared');
+  assert.equal(results[5]!.state, 'invalid');
+  assert.equal(results[6]!.roles.name!.state, 'over-budget');
+  assert.ok(results[6]!.roles.name!.form);
+  assert.equal(results[6]!.roles.name!.packet, null);
+  assert.equal(results[7]!.roles.name!.state, 'unavailable');
+  assert.equal(results[8]!.state, 'invalid');
+  assert.equal(results[9]!.state, 'invalid');
+  for (const result of results.slice(10)) assert.equal(result.state, 'invalid');
+  for (const result of results) {
+    assert.ok(formDeliveryCost(result) <= HUMAN_FORM_SELECTION_BUDGET);
+    assert.ok(new TextEncoder().encode(JSON.stringify(result)).length <= HUMAN_FORM_SELECTION_BUDGET);
+  }
+  // Returned delivery objects cannot mutate the cached source graph.
+  results[0]!.roles.name!.packet!.display_text = 'modified only in the result';
+  assert.equal(selectHumanForms(node, 'ru').roles.name!.packet!.display_text, 'По ту сторону добра и зла');
 });
 
 test('display selection keeps fallback, original language and ambiguity observable', () => {
@@ -206,6 +289,11 @@ test("edge lens engine composes an unknown declarative lens", async () => {
 });
 
 test('language fallback does not manufacture a translation or discard private-use forms', () => {
+  const languageLimit = 'fr' + '-abcdefgh'.repeat(14);
+  assert.equal(languageLimit.length, 128);
+  const bounded = {schema_version: 'tos_lens_spec_v1', lens_id: 'bounded-language', language: languageLimit};
+  assert.equal(normalizeLensSpec(bounded).language, languageLimit);
+  assert.throws(() => normalizeLensSpec({...bounded, language: 'fra' + languageLimit.slice(2)}), /128/);
   for (const key of ['fr', 'zh-Hant', 'x-research', 'original']) {
     const spec = normalizeLensSpec({schema_version: 'tos_lens_spec_v1', lens_id: 'languages',
       language: key, title: {[key]: 'Exact source wording.'}});

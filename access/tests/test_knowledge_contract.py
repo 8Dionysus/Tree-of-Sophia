@@ -29,6 +29,93 @@ from tos_access.knowledge import (  # noqa: E402
 
 
 class KnowledgeContractTests(unittest.TestCase):
+    def human_form_node(self):
+        subject = {'id': 'tos.record.form-fixture', 'version': 1, 'digest': 'sha256:' + 'a' * 64}
+        packet = {'schema_version': 'tos_human_form_materialization_v1',
+                  'form': {'id': 'tos.form.fixture-fr', 'version': 1, 'digest': 'sha256:' + 'b' * 64},
+                  'subject': subject, 'state': 'ready', 'role': 'statement', 'language': 'fr', 'script': 'Latn',
+                  'display_text': 'Cette attribution n’est pas établie.',
+                  'context': [{'slot': 'qualifiers', 'binding': {'record': subject, 'pointer': '/qualifiers'},
+                               'value': {'negated': True, 'x-unknown': False, 'confidence': 0, 'condition': None}}],
+                  'issues': [], 'admission': None, 'performs_semantic_assessment': False,
+                  'standalone_reading': False, 'derivation': 'source-copy', 'dependencies': [subject]}
+        return {'content_revision': 'c' * 64, 'attributes': {
+            'source_record': {'record_id': subject['id'], 'record_version': subject['version']},
+            'source_sha256': 'a' * 64, 'human_forms_source_ref': 'ToS/example.human-forms.json', 'human_forms': [packet]}}
+
+    def test_source_form_selection_keeps_exact_wording_context_and_language_fallback(self):
+        from tos_access.knowledge import select_human_forms
+        node = self.human_form_node()
+        before = copy.deepcopy(node)
+        for language, reason in [('FR', 'exact-language'), ('fr-CA', 'less-specific-language'),
+                                 ('auto', 'automatic'), ('de', 'fallback')]:
+            result = select_human_forms(node, language)
+            selected = result['roles']['statement']
+            self.assertEqual(selected['state'], 'ready')
+            self.assertEqual(selected['reason'], reason)
+            self.assertEqual(selected['packet'], node['attributes']['human_forms'][0])
+            self.assertEqual(result['content_revision'], node['content_revision'])
+            self.assertFalse(result['performs_assessment'])
+            schema = json.loads((ACCESS_ROOT / 'contracts/knowledge-graph.v1.schema.json').read_text())
+            registry = Registry().with_resource(schema['$id'], Resource.from_contents(schema))
+            Draft202012Validator({'$ref': schema['$id'] + '#/$defs/humanFormSelection'}, registry=registry).validate(result)
+        self.assertEqual(select_human_forms(node, 'original')['roles']['statement']['state'], 'unavailable')
+        self.assertEqual(node, before)
+        result['roles']['statement']['packet']['display_text'] = 'result-only mutation'
+        self.assertEqual(node, before)
+
+    def test_source_form_selection_does_not_adjudicate_competing_forms(self):
+        from tos_access.knowledge import select_human_forms
+        node = self.human_form_node()
+        alternative = copy.deepcopy(node['attributes']['human_forms'][0])
+        alternative['form']['id'] = 'tos.form.competing-fr'
+        alternative['form']['digest'] = 'sha256:' + 'e' * 64
+        alternative['display_text'] = 'Une autre lecture demeure possible.'
+        node['attributes']['human_forms'].append(alternative)
+        result = select_human_forms(node, 'fr')
+        self.assertEqual(result['roles']['statement']['state'], 'ambiguous')
+        self.assertIsNone(result['roles']['statement']['packet'])
+
+        for key in ('language', 'display_text'):
+            broken = self.human_form_node()
+            del broken['attributes']['human_forms'][0][key]
+            self.assertEqual(select_human_forms(broken, 'fr')['state'], 'invalid')
+        broken = self.human_form_node()
+        broken['attributes']['human_forms'] = None
+        self.assertEqual(select_human_forms(broken, 'fr')['state'], 'invalid')
+        self.assertEqual(len(result['candidates']), 2)
+        alternative['language'] = 'de'
+        self.assertEqual(select_human_forms(node, 'fr')['roles']['statement']['state'], 'ready')
+        self.assertEqual(select_human_forms(node, 'auto')['roles']['statement']['state'], 'ambiguous')
+
+    def test_source_form_binding_and_nonready_states_cannot_emit_wording(self):
+        from tos_access.knowledge import select_human_forms
+        node = self.human_form_node()
+        node['attributes']['source_sha256'] = 'd' * 64
+        self.assertEqual(select_human_forms(node, 'fr')['state'], 'invalid')
+        node = self.human_form_node()
+        packet = node['attributes']['human_forms'][0]
+        packet['state'] = 'restricted'
+        self.assertEqual(select_human_forms(node, 'fr')['state'], 'invalid')
+        packet.update(display_text=None, context=[])
+        result = select_human_forms(node, 'fr')
+        self.assertEqual(result['candidates'][0]['state'], 'restricted')
+        self.assertEqual(result['roles']['statement']['state'], 'unavailable')
+        self.assertIsNone(result['roles']['statement']['packet'])
+
+    def test_source_form_budget_returns_a_ref_instead_of_truncating_context(self):
+        from tos_access.knowledge import select_human_forms, HUMAN_FORM_SELECTION_BUDGET, _form_delivery_cost
+        node = self.human_form_node()
+        packet = node['attributes']['human_forms'][0]
+        packet['context'][0]['value']['long_qualification'] = '界' * 15000
+        result = select_human_forms(node, 'fr')
+        selected = result['roles']['statement']
+        self.assertEqual(selected['state'], 'over-budget')
+        self.assertEqual(selected['form'], packet['form'])
+        self.assertIsNone(selected['packet'])
+        self.assertLessEqual(_form_delivery_cost(result), HUMAN_FORM_SELECTION_BUDGET)
+        self.assertLessEqual(len(json.dumps(result, ensure_ascii=False).encode()), HUMAN_FORM_SELECTION_BUDGET)
+
     def test_registered_predicates_keep_the_source_russian_vocabulary(self):
         import csv
         from tos_access.knowledge import _normalize_relation
@@ -202,6 +289,16 @@ class KnowledgeContractTests(unittest.TestCase):
         Draft202012Validator(schema).validate(normalized)
         self.assertEqual(normalized['title']['default'], 'Lecture')
         self.assertEqual(normalized['title']['fr-CA'], 'Lecture')
+        # This is a request-size boundary, not a source-language vocabulary.
+        language_limit = 'fr' + '-abcdefgh' * 13 + '-abcdefgh'
+        self.assertEqual(len(language_limit), 128)
+        bounded = {**spec, 'language': language_limit}
+        Draft202012Validator(schema).validate(bounded)
+        self.assertEqual(normalize_lens_spec(bounded)['language'], language_limit)
+        excessive = {**spec, 'language': 'fra' + language_limit[2:]}
+        self.assertFalse(Draft202012Validator(schema).is_valid(excessive))
+        with self.assertRaises(ValueError):
+            normalize_lens_spec(excessive)
         for key in ('fr\n', 'fr_CA', '__proto__', 'script.js'):
             invalid = {**spec, 'title': {key: 'not a declared form key'}}
             self.assertFalse(Draft202012Validator(schema).is_valid(invalid))
@@ -1168,6 +1265,15 @@ class KnowledgeContractTests(unittest.TestCase):
         self.assertEqual(len(projected_identity['attributes']['human_forms']), 3)
         self.assertTrue(all(form['context'] and form['admission'] is None
                             for form in projected_identity['attributes']['human_forms']))
+        from tos_access.knowledge import _lens_carrier
+        selected_identity = _lens_carrier(projected_identity, 'compact', language='ru')
+        self.assertEqual(selected_identity['attributes'], {})
+        self.assertEqual(selected_identity['human_form_selection']['roles']['name']['packet'],
+                         source_identity['properties']['human_forms'][1])
+        self.assertEqual(selected_identity['human_form_selection']['roles']['hover']['packet'],
+                         source_identity['properties']['human_forms'][2])
+        Draft202012Validator({'$ref': self.schemas['knowledge-graph.v1.schema.json']['$id'] + '#/$defs/node'},
+                            registry=self.registry).validate(selected_identity)
         claims = [node for node in graph['nodes'] if node['type_id'] == 'tos.entity.claim']
         from tos_access.knowledge import _ASSERTION_FIELDS, _lens_carrier
         contexts_by_claim = {}
