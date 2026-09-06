@@ -49,8 +49,8 @@ and the `public_entry` sequence in `docs/validation/validation_lanes.json`.
 payload structure for this seam.
 The release lane pairs it with canon, intake, route-card, and public-entry
 validators when broader route assurance is needed.
-`python -m unittest discover -s tests` strengthens repo-local contract and
-schema coverage around that same bounded route.
+`python -m pytest -q -p no:cacheprovider --durations=20 tests` strengthens
+repo-local contract and schema coverage around that same bounded route.
 
 ## Regeneration
 

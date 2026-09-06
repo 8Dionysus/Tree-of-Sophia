@@ -860,7 +860,7 @@
       },
       {
         "label": "run tests",
-        "command": ["python", "-m", "unittest", "discover", "-s", "tests"]
+        "command": ["python", "-m", "pytest", "-q", "-p", "no:cacheprovider", "--durations=20", "tests"]
       }
     ],
     "mechanics_local": [

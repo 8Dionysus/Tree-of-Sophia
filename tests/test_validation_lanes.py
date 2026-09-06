@@ -69,6 +69,10 @@ class ValidationLanesTestCase(unittest.TestCase):
         self.assertEqual(checks + tests, steps)
         self.assertEqual(tests, [steps[-1]])
         self.assertEqual(tests[0][0], "run tests")
+        test_command = tests[0][1]
+        self.assertIn("pytest", test_command)
+        self.assertIn("tests", test_command)
+        self.assertNotIn("unittest", test_command)
 
     def test_large_generated_checks_rebuild_once_in_the_validator(self) -> None:
         manifest = json.loads(
