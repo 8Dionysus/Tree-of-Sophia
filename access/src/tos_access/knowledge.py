@@ -401,7 +401,10 @@ def _localized(
 
 def _localized_from(value: Any, fallback: str) -> dict[str, str | None]:
     if isinstance(value, dict):
-        default = _string(value.get("default")) or _string(value.get("ru")) or _string(value.get("en")) or fallback
+        # Source wording (including original-only prose) outranks an invented
+        # endpoint formula. A missing translation must not reverse a negation.
+        default = (_string(value.get("default")) or _string(value.get("ru"))
+                   or _string(value.get("en")) or _string(value.get("original")) or fallback)
         return _localized(
             default,
             ru=_string(value.get("ru")),
@@ -992,7 +995,8 @@ def _relation_display(
     provenance = dict(existing.get("provenance")) if isinstance(existing.get("provenance"), dict) else {}
     provenance.setdefault("label", "projected-predicate-label" if existing.get("label") or _string(properties.get("relation_label"))
                           else "registry-label" if exact_type_label and registry_labels else "identifier-fallback")
-    provenance.setdefault("statement", "endpoint-label-synthesis")
+    provenance.setdefault("statement", "source-derived" if _display_text(existing.get("statement"))
+                          else "endpoint-label-synthesis")
     provenance.setdefault("explanation", state)
     provenance.setdefault("source_explanation_available", bool(explanation_value))
     return {

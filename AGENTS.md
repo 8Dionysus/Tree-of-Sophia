@@ -58,7 +58,7 @@ Root human orientation remains in [README](README.md); current direction in
 
 ## Boundary Law
 
-- Preserve source -> proposal -> review -> canon or explicit deferral ->
+- Preserve source -> proposal -> review -> scoped admission, canon or explicit deferral ->
   derived projection. A deterministic output or green validator cannot accept
   source, translation, semantics, rights, or canon.
 - Keep bibliographic witnesses, physical artifacts, scholarly composites,
@@ -74,8 +74,10 @@ Root human orientation remains in [README](README.md); current direction in
   tracked.
 - ToS-owned standalone projection access routes to `access/`; ecosystem stack
   orchestration and runtime authority route to their owning AoA layers.
-- Manual source-visible review owns textual, translation, semantic, rights,
-  and canon judgment. Validators prove only their declared mechanics.
+- Source-visible assessment by an authorized, competent human or agent owns
+  textual and semantic judgment under `ToS/doctrine/KNOWLEDGE_ASSESSMENT.md`.
+  Rights, personal consent, publication and canon retain their actual owner
+  authority. Validators prove only their declared mechanics.
 - Route runtime, proof, memory authority, KAG substrate, federation, SDK,
   playbook, skill, technique, and cross-owner statistics to their owners.
 - Keep private payloads, secrets, provider credentials, and operator evidence

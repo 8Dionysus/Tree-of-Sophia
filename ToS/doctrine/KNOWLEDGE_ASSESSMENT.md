@@ -1,0 +1,122 @@
+# Knowledge assessment and scoped admission
+
+ToS knowledge may grow faster than a human can review individual records.
+Content assessment by an authorized, competent agent is a first-class review
+act. It is not merely a proposal awaiting a mandatory human signature.
+Operator direction remains the source of delegated authority; neither a model
+answer nor a green validator creates that authority.
+
+## Separate questions
+
+| Question | Owning record or boundary |
+| --- | --- |
+| What is asserted, about which object and source version? | source-owned assertion and exact references |
+| What did a reviewer conclude, and why? | immutable assessment with evidence, counterevidence, method and reviewer identity |
+| May that reviewer make this kind of decision? | trusted authority grant and competence evidence |
+| May this result be used for this purpose now? | versioned admission policy applied to current dependencies |
+| Is it public, licensed, author-confirmed or canonical? | the corresponding rights, consent, publication or canon owner |
+
+An assessment is substantive judgment. An admission result is a disposable
+application of policy to those judgments, not a second copy of source truth.
+Neither kind of reviewer is infallible. Reviewer kind, disagreement, confidence,
+usage permission and visibility are independent dimensions.
+
+## Exactness and authority
+
+An assessment binds one exact assertion-record version and digest, one exact
+policy, a profile, an authority grant and competence evidence. Its evidence
+returns to exact available records and meaningful source locators. References
+use SHA-256 over canonical UTF-8 JSON: sorted keys, no insignificant whitespace,
+unescaped Unicode, finite JSON numbers. This record digest is not a claim about
+original file bytes; byte fixity keeps its separate source contract.
+
+The authenticated principal and target's layer, risk, languages, maker and
+visibility come from the trusted command/owner adapter. They must never be
+reconstructed from a submitted assessment or from instructions in a source.
+The policy engine accepts trusted grants and competence records separately
+from incoming judgments. A submitter cannot appoint itself, add a grant to the
+request, claim another reviewer's identity or lower the target's risk.
+
+The trusted execution profile binds procedure, model and material configuration
+to competence. A changed model or configuration does not inherit an earlier
+calibration merely by repeating a method name. Assessment prose cites that
+profile; its actual binding is supplied independently by the execution adapter.
+
+Grants may cover many records of a type/language/use. They are not per-record
+human approvals. The trusted issuer must verify their source and current
+competence evidence; the engine checks exact references, scope, time and
+revocation. A self-declared `verified` string in model output is not a trusted
+competence record. Local pure-function tests do not prove remote authentication
+or linguistic competence; those require the command adapter and actual
+source-visible evaluation.
+
+## Profiles and uncertainty
+
+The initial policy covers source observation, scholarly reporting, language,
+translation, interpretation, historical claims and human projection for
+research use. Identity judgments and high-consequence judgments require a
+stronger review profile. Research admission neither publishes protected text
+nor rewrites historical `accepted` fields or canon.
+
+Policies state allowed layers, risks, languages, uses, reviewer kinds, evidence
+requirements and independence requirements. A requested profile cannot widen
+the target's trusted scope. Distinct names, calls or copies of one source do not
+multiply independent evidence. Reviewer independence groups and source origins
+belong to trusted provenance, not the submitted vote. Quorums are necessary
+policy conditions, never sufficient proof of philosophical truth.
+
+Positive judgments require source support and an explicit counterevidence-search
+posture. A negative or deferred judgment need not invent supporting evidence.
+Unknown and conflicting findings remain inspectable. An admissible rejection
+and admission yield disagreement, not a majority-erased alternative. A dispute
+can be researched without pretending that its assertion has been settled.
+
+## History and withdrawal
+
+Assessment events are immutable. Correction creates a new assessment and exact
+supersession links for the same subject. An actor may supersede its own prior
+judgment within its current authority; superseding another actor's decision
+requires an explicit stronger grant. Withdrawal does not erase the old event,
+accept another candidate, or silently revive a superseded decision.
+
+Policy change, source correction, revoked competence or authority, and withdrawal
+invalidate dependent admission results. They do not rewrite the recorded past
+act. Serving uses the agreed snapshot; historical inspection names its snapshot.
+An invalid new assessment cannot suppress a valid earlier one.
+
+## Succession of existing contracts
+
+This law replaces a universal human-only requirement for new competence-scoped
+research assessment. Existing v1/v2 formats that explicitly record human review
+retain their historical meaning. Their records are not relabeled as agent
+review, nor is schema relaxation used to fabricate a past act. New assessments
+may address an existing assertion exactly through an adapter; scoped admission
+is exposed separately from its old embedded human-review field.
+
+Human authorship and personal consent cannot be fabricated. Rights permissions,
+publication and canon transitions still require their actual owner authority;
+research review does not acquire them. Human work is required by a concrete
+decision boundary, not by the mere fact that knowledge is philosophical.
+
+## Executable surfaces
+
+- `ToS/contracts/knowledge-assessment.schema.json`
+- `ToS/contracts/knowledge-assessment-policy.schema.json`
+- `ToS/contracts/knowledge-assessment-authority.schema.json`
+- `ToS/contracts/knowledge-assessment-competence.schema.json`
+- `ToS/contracts/knowledge-assessment-batch.schema.json`
+- `ToS/doctrine/semantic-interchange/assessment-policy.v1.json`
+- `mechanics/growth-cycle/parts/branch-growth-cycle/scripts/knowledge_assessment.py`
+- `mechanics/growth-cycle/parts/branch-growth-cycle/scripts/assessment_journal.py`
+
+The source-owner journal preserves immutable qualified events and an atomic
+current-head selection. It supplies committed history separately from new
+submissions, so grant revocation or policy change cannot resurrect an earlier
+superseded decision. A historical commit receipt never substitutes for a fresh
+admission check. Its Unix storage adapter requires a trusted command owner;
+file hashes and mechanically valid receipt fields are not remote authentication.
+
+The engine enforces the declared relationship and authority invariants. Actual
+agent accuracy, calibrated languages, trusted command binding, existing-corpus
+migration and consumer integration remain separate required evidence in the
+[foundation-v1 coverage record](FOUNDATION_V1.md).

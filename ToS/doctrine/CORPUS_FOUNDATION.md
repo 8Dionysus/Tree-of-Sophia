@@ -248,8 +248,12 @@ algorithm ignores it. Source-observed layout is not accepted linguistic
 analysis; machine, model, imported, and synthetic results cannot accept
 themselves. A sampled review may calibrate a method but cannot silently accept
 a complete segmentation. Acceptance requires a separate source-visible
-real-human review over the exact frozen layer, declared scope, and relevant
-competence. Model subwords and virtual nodes cannot promote themselves to an
+human or agent assessment over the exact frozen layer, declared scope, and
+relevant competence under [KNOWLEDGE_ASSESSMENT](KNOWLEDGE_ASSESSMENT.md).
+Research admission can cover a method-qualified batch without a human signature
+per unit; it must not extrapolate a sample beyond the admitted scope. Existing
+human-only packet formats preserve their history and require an explicit
+assessment adapter. Model subwords and virtual nodes cannot promote themselves to an
 occurrence, lexeme, sense, sign, concept, relation, or graph fact.
 
 TEI, CoNLL-U, Web Annotation, ISO/LAF-family JSON, retrieval chunks, and graph
@@ -313,8 +317,9 @@ The semantic identities remain distinct:
 - `occurrence_id` identifies one addressable appearance in an exact witness;
 - `lexeme_id` identifies a linguistic normalization whose membership remains
   a versioned claim;
-- `sign_id` is assigned only after an evidence-bearing human promotion
-  decision over a concrete candidate;
+- `sign_id` is assigned only after an evidence-bearing, competence-scoped
+  promotion decision over a concrete candidate; issuing identity is not proof
+  of truth or a canon decision;
 - `concept_id` identifies a contestable interpretation family, not a hidden
   synonym for a sign;
 - `claim_id` identifies one versioned assertion with maker, time, method,
@@ -374,13 +379,19 @@ A claim records:
 - maker and method, including software/model/configuration where applicable;
 - creation time and rights/visibility constraints;
 - alternatives, counterevidence, and relations to prior versions;
-- human review state, reviewer, rationale, and decision event.
+- assessment history, reviewer kind and identity, rationale, exact decision
+  event, competence, authority and policy; current admission remains separate.
 
 Allowed review states include `unreviewed`, `accepted`, `accepted_with_limits`,
 `rejected`, `ambiguous`, `deferred`, and `superseded`.
 
 Confidence is the maker's declared uncertainty, not an objective probability
 that the claim is true.
+
+Legacy embedded human-review fields retain the meaning of their original
+schema. New agent assessments bind the exact assertion through the current
+[assessment contract](../contracts/knowledge-assessment.schema.json), not by
+relabeling that history. An accepted research use need not wait for canon.
 
 A generated claim catalog may expose subject, predicate, object, evidence,
 maker, provenance, review posture, exact source line, and canonical source
@@ -406,8 +417,12 @@ on the source string. Its packet must be able to retain:
   rhythm, imagery, syntax, fluency, and intervention;
 - accepted, rejected, and unresolved alternatives with reviewer rationale.
 
-Automatic metrics and LLM judges are diagnostics. Independent human review
-owns promotion.
+Automatic metrics do not themselves make a substantive decision. A model
+self-rating is not evidence of authority or competence. Independent,
+source-visible human or agent assessment can own scoped translation admission
+under [KNOWLEDGE_ASSESSMENT](KNOWLEDGE_ASSESSMENT.md). A verified method may be
+reused within its scope; independence is not inferred from repeated calls to
+one model. Rights and publication remain separate decisions.
 
 ## Rights and visibility inheritance
 
@@ -456,9 +471,11 @@ artifact, and ordered source anchors. The
 mapping receives a stable opaque identity and a separate versioned claim;
 cardinality, order, omission/addition, technique, certainty, maker,
 competition, supersession, and review are not compressed into one confidence
-score. A machine, model, imported memory, or exchange file may propose but
-cannot accept. Acceptance requires a distinct source-and-target-visible
-real-human review with declared competence and a frozen unassisted baseline.
+score. An imported memory, exchange file, generated answer or green validator
+cannot grant itself admission authority. Acceptance requires a distinct
+source-and-target-visible assessment with trusted authority, declared
+competence and a frozen unassisted baseline, by a human or qualified agent.
+Historical human-only formats are adapted explicitly, not silently retyped.
 The most restrictive source, target, or packet visibility follows every
 derivative. TEI, Web Annotation, XLIFF, TMX, and graph views are therefore
 rebuildable projections, never the authority for the alignment or translation.

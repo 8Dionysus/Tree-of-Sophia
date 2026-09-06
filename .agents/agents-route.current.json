@@ -38,15 +38,15 @@
       "whitespace_tokens": 227
     },
     {
-      "bytes": 6667,
+      "bytes": 6830,
       "inheritance_stack": [
         "AGENTS.md"
       ],
-      "lines": 124,
+      "lines": 126,
       "path": "AGENTS.md",
-      "sha256": "c8abb30137d4391f94500d7b54f760ac56abfb602b325a5ce98b82a271d4280b",
+      "sha256": "75a692a21ed0e6f3753dd951e6b54bc780af6a8680daec34a34eca7e935bf323",
       "tracked": true,
-      "whitespace_tokens": 865
+      "whitespace_tokens": 883
     },
     {
       "bytes": 5102,
@@ -692,16 +692,16 @@
       "whitespace_tokens": 314
     },
     {
-      "bytes": 6403,
+      "bytes": 6605,
       "inheritance_stack": [
         "AGENTS.md",
         "scripts/AGENTS.md"
       ],
-      "lines": 111,
+      "lines": 113,
       "path": "scripts/AGENTS.md",
-      "sha256": "62df46271ad59752c12c1ce67c88cd98425ce66ec67504689a07d4231f15a892",
+      "sha256": "3582ebc06fddd074edc9a07ed976aab0433a2c2f0edfabb70373bf88abba2927",
       "tracked": true,
-      "whitespace_tokens": 802
+      "whitespace_tokens": 826
     },
     {
       "bytes": 2106,
@@ -745,13 +745,13 @@
   "generated_by": "scripts/build_agents_route_currentness.py",
   "influencing_surfaces": [
     {
-      "bytes": 6667,
+      "bytes": 6830,
       "exists": true,
-      "lines": 124,
+      "lines": 126,
       "path": "AGENTS.md",
       "role": "active prompt-light repository identity, owner routes, semantic boundaries, validation selection, and completion",
-      "sha256": "c8abb30137d4391f94500d7b54f760ac56abfb602b325a5ce98b82a271d4280b",
-      "whitespace_tokens": 865
+      "sha256": "75a692a21ed0e6f3753dd951e6b54bc780af6a8680daec34a34eca7e935bf323",
+      "whitespace_tokens": 883
     },
     {
       "bytes": 6008,
@@ -907,13 +907,13 @@
       "whitespace_tokens": 1820
     },
     {
-      "bytes": 176072,
+      "bytes": 178224,
       "exists": true,
-      "lines": 3175,
+      "lines": 3203,
       "path": "docs/validation/script_inventory.json",
       "role": "deterministic script coverage and side-effect inventory",
-      "sha256": "ef83046966a304549e96c4a20f2491fa311d8dd456c0695292ed77164b9b4a1e",
-      "whitespace_tokens": 9211
+      "sha256": "c612d85201c89c19ed433e987f6f2f56bc73f1cdee842391da32b021c74873a6",
+      "whitespace_tokens": 9328
     },
     {
       "bytes": 5208,
@@ -1003,7 +1003,7 @@
   "source_inventory_sha256": "e951ecec4cf9ab9f58677e6131cfe03e4c2177d32448814707809b88780d01a1",
   "task_routes": [
     {
-      "additional_context_tokens": 14005,
+      "additional_context_tokens": 14166,
       "completion_evidence": [
         {
           "bytes": 6242,
@@ -1039,7 +1039,7 @@
         "ToS/AGENTS.md",
         "ToS/source-witnesses/AGENTS.md"
       ],
-      "inherited_context_tokens": 2358,
+      "inherited_context_tokens": 2376,
       "on_demand_surfaces": [
         {
           "bytes": 82650,
@@ -1051,13 +1051,13 @@
           "whitespace_tokens": 10471
         },
         {
-          "bytes": 25998,
+          "bytes": 27275,
           "exists": true,
-          "lines": 491,
+          "lines": 508,
           "path": "ToS/doctrine/CORPUS_FOUNDATION.md",
           "role": "on_demand",
-          "sha256": "5e0574e67b18356b3d467d0b1c4d668dafeb1b4553d4567b7f1fd37aba6b5a54",
-          "whitespace_tokens": 3534
+          "sha256": "ab65d94cf612671f773494b5f9ef68a1e202f26f995c618809ecea5145127b40",
+          "whitespace_tokens": 3695
         }
       ],
       "owner_exists": true,
@@ -1097,7 +1097,7 @@
       ]
     },
     {
-      "additional_context_tokens": 14005,
+      "additional_context_tokens": 14166,
       "completion_evidence": [
         {
           "bytes": 6242,
@@ -1109,13 +1109,13 @@
           "whitespace_tokens": 800
         },
         {
-          "bytes": 25998,
+          "bytes": 27275,
           "exists": true,
-          "lines": 491,
+          "lines": 508,
           "path": "ToS/doctrine/CORPUS_FOUNDATION.md",
           "role": "completion",
-          "sha256": "5e0574e67b18356b3d467d0b1c4d668dafeb1b4553d4567b7f1fd37aba6b5a54",
-          "whitespace_tokens": 3534
+          "sha256": "ab65d94cf612671f773494b5f9ef68a1e202f26f995c618809ecea5145127b40",
+          "whitespace_tokens": 3695
         },
         {
           "bytes": 707286,
@@ -1133,16 +1133,16 @@
         "ToS/AGENTS.md",
         "ToS/doctrine/AGENTS.md"
       ],
-      "inherited_context_tokens": 1773,
+      "inherited_context_tokens": 1791,
       "on_demand_surfaces": [
         {
-          "bytes": 25998,
+          "bytes": 27275,
           "exists": true,
-          "lines": 491,
+          "lines": 508,
           "path": "ToS/doctrine/CORPUS_FOUNDATION.md",
           "role": "on_demand",
-          "sha256": "5e0574e67b18356b3d467d0b1c4d668dafeb1b4553d4567b7f1fd37aba6b5a54",
-          "whitespace_tokens": 3534
+          "sha256": "ab65d94cf612671f773494b5f9ef68a1e202f26f995c618809ecea5145127b40",
+          "whitespace_tokens": 3695
         },
         {
           "bytes": 82650,
@@ -1227,7 +1227,7 @@
         "ToS/AGENTS.md",
         "ToS/contracts/AGENTS.md"
       ],
-      "inherited_context_tokens": 1895,
+      "inherited_context_tokens": 1913,
       "on_demand_surfaces": [
         {
           "bytes": 15934,
@@ -1321,7 +1321,7 @@
         "ToS/AGENTS.md",
         "ToS/contracts/AGENTS.md"
       ],
-      "inherited_context_tokens": 1895,
+      "inherited_context_tokens": 1913,
       "on_demand_surfaces": [
         {
           "bytes": 12129,
@@ -1424,7 +1424,7 @@
         "ToS/AGENTS.md",
         "ToS/candidate-intake/AGENTS.md"
       ],
-      "inherited_context_tokens": 1803,
+      "inherited_context_tokens": 1821,
       "on_demand_surfaces": [
         {
           "bytes": 24528,
@@ -1546,7 +1546,7 @@
         "ToS/philosophy/AGENTS.md",
         "ToS/philosophy/graph-workbench/AGENTS.md"
       ],
-      "inherited_context_tokens": 2271,
+      "inherited_context_tokens": 2289,
       "on_demand_surfaces": [
         {
           "bytes": 4103,
@@ -1657,7 +1657,7 @@
         "AGENTS.md",
         "access/AGENTS.md"
       ],
-      "inherited_context_tokens": 1050,
+      "inherited_context_tokens": 1068,
       "on_demand_surfaces": [
         {
           "bytes": 5310,
@@ -1769,7 +1769,7 @@
         "ToS/AGENTS.md",
         "ToS/zarathustra/AGENTS.md"
       ],
-      "inherited_context_tokens": 2046,
+      "inherited_context_tokens": 2064,
       "on_demand_surfaces": [
         {
           "bytes": 7231,
@@ -1881,7 +1881,7 @@
         "mechanics/AGENTS.md",
         "mechanics/boundary-bridge/AGENTS.md"
       ],
-      "inherited_context_tokens": 1358,
+      "inherited_context_tokens": 1376,
       "on_demand_surfaces": [
         {
           "bytes": 8201,
@@ -1984,7 +1984,7 @@
         "docs/AGENTS.md",
         "docs/decisions/AGENTS.md"
       ],
-      "inherited_context_tokens": 1626,
+      "inherited_context_tokens": 1644,
       "on_demand_surfaces": [
         {
           "bytes": 4593,
@@ -2063,13 +2063,13 @@
       "additional_context_tokens": 5646,
       "completion_evidence": [
         {
-          "bytes": 6403,
+          "bytes": 6605,
           "exists": true,
-          "lines": 111,
+          "lines": 113,
           "path": "scripts/AGENTS.md",
           "role": "completion",
-          "sha256": "62df46271ad59752c12c1ce67c88cd98425ce66ec67504689a07d4231f15a892",
-          "whitespace_tokens": 802
+          "sha256": "3582ebc06fddd074edc9a07ed976aab0433a2c2f0edfabb70373bf88abba2927",
+          "whitespace_tokens": 826
         },
         {
           "bytes": 34292,
@@ -2104,7 +2104,7 @@
         "AGENTS.md",
         "scripts/AGENTS.md"
       ],
-      "inherited_context_tokens": 1667,
+      "inherited_context_tokens": 1709,
       "on_demand_surfaces": [
         {
           "bytes": 1969,
@@ -2154,13 +2154,13 @@
       ],
       "owner_exists": true,
       "owner_handoff": {
-        "bytes": 6403,
+        "bytes": 6605,
         "exists": true,
-        "lines": 111,
+        "lines": 113,
         "path": "scripts/AGENTS.md",
         "role": "owner_handoff",
-        "sha256": "62df46271ad59752c12c1ce67c88cd98425ce66ec67504689a07d4231f15a892",
-        "whitespace_tokens": 802
+        "sha256": "3582ebc06fddd074edc9a07ed976aab0433a2c2f0edfabb70373bf88abba2927",
+        "whitespace_tokens": 826
       },
       "owner_handoff_context_tokens": 0,
       "owner_in_inheritance_stack": true,
@@ -2242,7 +2242,7 @@
         "AGENTS.md",
         ".agents/AGENTS.md"
       ],
-      "inherited_context_tokens": 1065,
+      "inherited_context_tokens": 1083,
       "on_demand_surfaces": [
         {
           "bytes": 7957,
@@ -2353,7 +2353,7 @@
         "AGENTS.md",
         "evals/AGENTS.md"
       ],
-      "inherited_context_tokens": 1072,
+      "inherited_context_tokens": 1090,
       "on_demand_surfaces": [
         {
           "bytes": 868,
@@ -2464,7 +2464,7 @@
         "AGENTS.md",
         "stats/AGENTS.md"
       ],
-      "inherited_context_tokens": 1159,
+      "inherited_context_tokens": 1177,
       "on_demand_surfaces": [
         {
           "bytes": 2059,
@@ -2575,7 +2575,7 @@
         "AGENTS.md",
         "kag/AGENTS.md"
       ],
-      "inherited_context_tokens": 1177,
+      "inherited_context_tokens": 1195,
       "on_demand_surfaces": [
         {
           "bytes": 1154,
@@ -2686,7 +2686,7 @@
         "AGENTS.md",
         "memo/AGENTS.md"
       ],
-      "inherited_context_tokens": 1179,
+      "inherited_context_tokens": 1197,
       "on_demand_surfaces": [
         {
           "bytes": 680,

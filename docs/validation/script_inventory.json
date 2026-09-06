@@ -328,6 +328,34 @@
       "disposition": "keep"
     },
     {
+      "path": "mechanics/growth-cycle/parts/branch-growth-cycle/scripts/assessment_journal.py",
+      "family": "knowledge_assessment_journal",
+      "organ_lane": "mechanics/part-owned",
+      "owner_surface": "mechanics/growth-cycle/parts/branch-growth-cycle/README.md",
+      "source_truth": ["ToS/doctrine/KNOWLEDGE_ASSESSMENT.md", "ToS/contracts/knowledge-assessment-batch.schema.json"],
+      "reads": ["configured source-owner assessment hash chain and trusted engine/context/authenticated submissions"],
+      "writes": ["immutable assessment batches and atomic per-subject head in the explicitly configured owner directory"],
+      "side_effects": "Unix file locking and fsync; appends qualified assessment history, not source assertions, canon, public API authorization or publication",
+      "validation_lane": "mechanics_local",
+      "ci_inclusion": "release",
+      "test_target": "mechanics/growth-cycle/tests/test_knowledge_assessment.py",
+      "disposition": "keep"
+    },
+    {
+      "path": "mechanics/growth-cycle/parts/branch-growth-cycle/scripts/knowledge_assessment.py",
+      "family": "knowledge_assessment_policy",
+      "organ_lane": "mechanics/part-owned",
+      "owner_surface": "mechanics/growth-cycle/parts/branch-growth-cycle/README.md",
+      "source_truth": ["ToS/doctrine/KNOWLEDGE_ASSESSMENT.md", "ToS/doctrine/semantic-interchange/assessment-policy.v1.json", "ToS/contracts/knowledge-assessment.schema.json", "ToS/contracts/knowledge-assessment-policy.schema.json", "ToS/contracts/knowledge-assessment-authority.schema.json", "ToS/contracts/knowledge-assessment-competence.schema.json", "ToS/contracts/knowledge-assessment-batch.schema.json"],
+      "reads": ["assessment schemas and caller-supplied trusted snapshot, policy, authority, competence and authenticated assessment bindings"],
+      "writes": [],
+      "side_effects": "none; pure policy application, not semantic assessment or remote authentication",
+      "validation_lane": "mechanics_local",
+      "ci_inclusion": "release",
+      "test_target": "mechanics/growth-cycle/tests/test_knowledge_assessment.py",
+      "disposition": "keep"
+    },
+    {
       "path": "scripts/AGENTS.md",
       "family": "script_route_card",
       "organ_lane": "route-card",

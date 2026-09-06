@@ -1,0 +1,65 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://treeofsophia.local/ToS/contracts/knowledge-assessment-batch.schema.json",
+  "title": "Immutable source-owner batch of qualified assessment events",
+  "type": "object", "additionalProperties": false,
+  "required": ["schema_version", "subject_id", "sequence", "previous_revision", "recorded_at", "request", "request_digest", "events", "qualification", "admission_at_commit"],
+  "properties": {
+    "schema_version": {"const": "tos_assessment_batch_v1"},
+    "subject_id": {"type": "string", "minLength": 1},
+    "sequence": {"type": "integer", "minimum": 1},
+    "previous_revision": {"type": ["string", "null"], "pattern": "^[a-f0-9]{64}$"},
+    "recorded_at": {"type": "string", "format": "date-time"},
+    "request_digest": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "request": {
+      "type": "object", "additionalProperties": false,
+      "required": ["command_id", "subject", "events", "expected_revision", "layer", "risk", "languages", "maker_id", "use"],
+      "properties": {
+        "command_id": {"type": "string", "minLength": 1, "maxLength": 256},
+        "subject": {"$ref": "knowledge-assessment.schema.json#/$defs/exactRef"},
+        "events": {"type": "array", "minItems": 1, "maxItems": 1024, "items": {"$ref": "#/$defs/event"}},
+        "expected_revision": {"type": ["string", "null"], "pattern": "^[a-f0-9]{64}$"},
+        "layer": {"type": "string", "minLength": 1},
+        "risk": {"enum": ["low", "moderate", "high"]},
+        "languages": {"type": "array", "minItems": 1, "items": {"type": "string", "minLength": 1}},
+        "maker_id": {"type": "string", "minLength": 1},
+        "use": {"type": "string", "minLength": 1}
+      }
+    },
+    "events": {"type": "array", "minItems": 1, "maxItems": 1024, "uniqueItems": true, "items": {"$ref": "#/$defs/event"}},
+    "qualification": {
+      "description": "Trusted writer's mechanical qualification receipt; not substantive competence, rights or publication approval.",
+      "type": "object", "additionalProperties": false,
+      "required": ["all_new_events_qualified", "policy", "is_semantic_evaluation"],
+      "properties": {
+        "all_new_events_qualified": {"const": true},
+        "policy": {"$ref": "knowledge-assessment.schema.json#/$defs/exactRef"},
+        "is_semantic_evaluation": {"const": false}
+      }
+    },
+    "admission_at_commit": {
+      "description": "Historical decision only. A reader must recompute current admission against current dependencies.",
+      "type": "object",
+      "required": ["schema_version", "status", "can_use", "is_semantic_evaluation", "subject", "policy"],
+      "properties": {
+        "schema_version": {"const": "tos_knowledge_admission_v1"},
+        "status": {"enum": ["admitted", "admitted-with-limits", "disputed", "rejected", "deferred", "unreviewed"]},
+        "can_use": {"type": "boolean"},
+        "is_semantic_evaluation": {"const": false},
+        "subject": {"$ref": "knowledge-assessment.schema.json#/$defs/exactRef"},
+        "policy": {"$ref": "knowledge-assessment.schema.json#/$defs/exactRef"}
+      }
+    }
+  },
+  "$defs": {
+    "event": {
+      "type": "object", "additionalProperties": false,
+      "required": ["assessment", "principal_id", "execution_profile"],
+      "properties": {
+        "assessment": {"$ref": "knowledge-assessment.schema.json"},
+        "principal_id": {"type": "string", "minLength": 1},
+        "execution_profile": {"$ref": "knowledge-assessment.schema.json#/$defs/exactRef"}
+      }
+    }
+  }
+}

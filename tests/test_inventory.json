@@ -828,6 +828,21 @@
       "disposition": "keep"
     },
     {
+      "path": "mechanics/growth-cycle/tests/test_knowledge_assessment.py",
+      "home": "mechanics/growth-cycle/tests",
+      "home_scope": "mechanic-level",
+      "family": "knowledge_assessment_policy_invariants",
+      "validation_lane": "mechanics_local",
+      "owner_surface": "ToS/doctrine/KNOWLEDGE_ASSESSMENT.md",
+      "protects": "exact-version scoped admission, trusted authority and competence, independent origins, disagreement and non-erasing supersession; atomic journal replay, concurrency, corruption and restart; not substantive competence or runtime authentication",
+      "coverage_authority": "mechanics_local lane discovery",
+      "mode": "blocking",
+      "runtime_cost": "fast",
+      "focused_target": "mechanics/growth-cycle/tests/test_knowledge_assessment.py",
+      "failure_route": "Fix the ToS assessment contracts/policy or growth-cycle engine; do not weaken exact bindings or turn fixtures into competence claims.",
+      "disposition": "keep"
+    },
+    {
       "path": "tests/test_validate_tiny_entry_route.py",
       "home": "tests",
       "home_scope": "root",

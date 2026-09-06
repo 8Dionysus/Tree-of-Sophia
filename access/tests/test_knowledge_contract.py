@@ -126,6 +126,33 @@ class KnowledgeContractTests(unittest.TestCase):
                                 'sources': ['canon', 'philosophy'],
                                 'examples': [f'value-{i}' for i in range(5)]})
 
+    def test_original_only_relation_prose_survives_compact_delivery(self):
+        from tos_access.knowledge import _lens_carrier, _normalize_relation
+        source_text = 'Werk B stammt nicht von Person A.'
+        item = {'edge_id': 'source-negative', 'from_id': 'b', 'to_id': 'a',
+                'predicate_id': 'authored_by', 'source_ref': 'ToS/fixture/attribution.json',
+                'display': {'statement': {'original': source_text}}}
+        relation = _normalize_relation(item, 'philosophy', {})
+        for carrier in (relation, _lens_carrier(relation, 'compact')):
+            with self.subTest(compact='source_record' not in carrier):
+                # Both the agent/default reader and UI localized() must receive
+                # the source negation, not an affirmative endpoint synthesis.
+                self.assertEqual(carrier['display']['statement']['default'], source_text)
+                self.assertEqual(carrier['display']['statement']['original'], source_text)
+                self.assertIsNone(carrier['display']['statement']['ru'])
+                self.assertIsNone(carrier['display']['statement']['en'])
+                self.assertEqual(carrier['display']['provenance']['statement'], 'source-derived')
+        self.assertEqual(relation['source_record']['payload'], item)
+
+    def test_statement_provenance_distinguishes_source_text_from_endpoint_synthesis(self):
+        from tos_access.knowledge import _relation_display
+        for source in ('Exact source wording.', {'ru': 'Точная исходная формулировка'},
+                       {'original': 'Nicht belegt.'}):
+            display = _relation_display({'display': {'statement': source}}, 'authored_by', None, None, [])
+            self.assertEqual(display['provenance']['statement'], 'source-derived')
+        display = _relation_display({}, 'authored_by', None, None, [])
+        self.assertEqual(display['provenance']['statement'], 'endpoint-label-synthesis')
+
     def test_finalization_reuses_unchanged_revision_without_aliasing_source(self):
         from unittest.mock import patch
         from tos_access.knowledge import _final_node_value, _stamp_content_revision
