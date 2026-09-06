@@ -10,6 +10,28 @@
     "forms": {"type": "array", "minItems": 1, "maxItems": 32,
       "items": {"$ref": "human-form.schema.json"}},
     "prior_forms": {"type": "array", "maxItems": 256,
-      "items": {"$ref": "human-form.schema.json"}}
+      "items": {"$ref": "human-form.schema.json"}},
+    "growth_history": {"type": "array", "maxItems": 256,
+      "items": {"$ref": "#/$defs/growthReceipt"},
+      "description": "Optional source-command receipts, committed atomically with forms and predecessors; not semantic assessments or admission."}
+  },
+  "$defs": {
+    "growthReceipt": {
+      "type": "object", "additionalProperties": false,
+      "required": ["command_id", "request_digest", "principal_id", "authority_ref", "owner_configuration", "recorded_at", "source", "previous_revision", "results"],
+      "properties": {
+        "command_id": {"type": "string", "minLength": 1, "maxLength": 256},
+        "request_digest": {"$ref": "#/$defs/digest"},
+        "principal_id": {"type": "string", "minLength": 1},
+        "authority_ref": {"type": "string", "minLength": 1},
+        "owner_configuration": {"$ref": "#/$defs/digest"},
+        "recorded_at": {"type": "string", "format": "date-time"},
+        "source": {"$ref": "knowledge-assessment.schema.json#/$defs/exactRef"},
+        "previous_revision": {"oneOf": [{"type": "null"}, {"$ref": "#/$defs/digest"}]},
+        "results": {"type": "array", "minItems": 1, "maxItems": 32,
+          "items": {"$ref": "knowledge-assessment.schema.json#/$defs/exactRef"}}
+      }
+    },
+    "digest": {"type": "string", "pattern": "^sha256:[a-f0-9]{64}$(?![\\s\\S])"}
   }
 }

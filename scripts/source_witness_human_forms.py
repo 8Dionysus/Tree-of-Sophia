@@ -8,7 +8,6 @@ from __future__ import annotations
 from functools import lru_cache
 import json
 from pathlib import Path
-import re
 import sys
 
 from jsonschema import Draft202012Validator
@@ -33,6 +32,29 @@ def _validator():
     return Draft202012Validator(schemas[-1], registry=registry)
 
 
+def metadata_field_catalog(source: dict) -> list[dict]:
+    """Semantic field selectors for this adapter; callers never guess pointers.
+
+    Variant ordinals are snapshot-local, not stable name identities. An exact
+    source ref must accompany prepared commands, so reordering is a conflict.
+    """
+    context = ['/' + key for key in ('identity_status', 'same_as_posture') if key in source]
+    result = []
+    for key, field_id, role in (('preferred_label', 'metadata.preferred-name', 'name'),
+                                ('notes', 'metadata.source-note', 'hover')):
+        if isinstance(source.get(key), str) and source[key].strip():
+            result.append({'field_id': field_id, 'pointer': '/' + key, 'role': role,
+                           'language': None, 'script': None, 'context': list(context)})
+    for index, variant in enumerate(source.get('variant_labels', [])):
+        if isinstance(variant, dict) and isinstance(variant.get('value'), str) and variant['value'].strip():
+            base = f'/variant_labels/{index}/'
+            result.append({'field_id': f'metadata.variant-name:{index}', 'pointer': base + 'value',
+                           'role': 'name', 'language': variant.get('language'), 'script': variant.get('script'),
+                           'context': [*context, *(base + key.replace('~', '~0').replace('/', '~1')
+                                                  for key in variant if key != 'value')]})
+    return result
+
+
 def materialize_metadata_forms(source: dict, form_set: dict, *, access_allowed: bool) -> list[dict]:
     """The caller supplies a current, public-metadata source record.
 
@@ -52,39 +74,32 @@ explicitly unavailable, not silently rendered under a more permissive role.
     stale_subject = form_set['subject'] != subject.ref
     prior = [Record.from_payload(value['form_id'], value['form_version'], value)
              for value in form_set['prior_forms']]
+    fields = {(field['role'], field['pointer']): field for field in metadata_field_catalog(source)}
     seen, results, output_bytes = set(), [], 0
     for value in form_set['forms']:
         if value['form_id'] in seen:
             raise ValueError('duplicate current human-form identity')
         seen.add(value['form_id'])
         form = Record.from_payload(value['form_id'], value['form_version'], value)
+        stale_form = stale_subject or (value['subject']['id'] == subject.id and value['subject'] != subject.ref)
         content = value['content']
         selected = value['bindings'].get(content.get('slot')) if content['kind'] == 'source-copy' else None
         pointer = selected['pointer'] if selected else None
-        required = [SourceBinding(subject, '/' + key) for key in ('identity_status', 'same_as_posture') if key in source]
+        required = []
         language, script, supported = None, None, False
         if selected and selected['record'] == subject.ref:
-            if value['role'] == 'name' and pointer == '/preferred_label':
-                supported = True
-            elif value['role'] == 'hover' and pointer == '/notes':
-                supported = True
-            elif value['role'] == 'name' and (match := re.fullmatch(r'/variant_labels/(0|[1-9][0-9]*)/value', pointer)):
-                index = int(match.group(1))
-                variants = source.get('variant_labels', [])
-                if index < len(variants) and isinstance(variants[index], dict):
-                    variant = variants[index]
-                    language, script = variant.get('language'), variant.get('script')
-                    required.extend(SourceBinding(subject, f'/variant_labels/{index}/' + key)
-                                    for key in variant if key != 'value')
-                    supported = True
+            field = fields.get((value['role'], pointer))
+            if field is not None:
+                language, script, supported = field['language'], field['script'], True
+                required = [SourceBinding(subject, pointer) for pointer in field['context']]
         scope = FormScope(subject, tuple(required), value['creator_id'], 'low',
                           (language,) if isinstance(language, str) else (), 'research',
                           access_allowed=access_allowed,
                           source_languages=((SourceBinding(subject, pointer), language, script),) if supported else ())
-        if (stale_subject or not supported) and access_allowed is True:
+        if (stale_form or not supported) and access_allowed is True:
             result = {'schema_version': 'tos_human_form_materialization_v1', 'form': form.ref,
-                      'subject': subject.ref, 'state': 'stale' if stale_subject else 'unavailable', 'display_text': None,
-                      'context': [], 'issues': ['metadata-adapter.subject-changed' if stale_subject else
+                      'subject': subject.ref, 'state': 'stale' if stale_form else 'unavailable', 'display_text': None,
+                      'context': [], 'issues': ['metadata-adapter.subject-changed' if stale_form else
                                                 'metadata-adapter.unsupported-role-or-production-mode'],
                       'admission': None, 'performs_semantic_assessment': False}
         else:

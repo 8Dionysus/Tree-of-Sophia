@@ -858,6 +858,21 @@
       "disposition": "keep"
     },
     {
+      "path": "mechanics/growth-cycle/tests/test_source_commands.py",
+      "home": "mechanics/growth-cycle/tests",
+      "home_scope": "mechanic-level",
+      "family": "source_growth_command_contract",
+      "validation_lane": "mechanics_local",
+      "owner_surface": "mechanics/growth-cycle/parts/branch-growth-cycle/README.md",
+      "protects": "local-account source form create/revise, semantic field discovery, exact snapshots, atomic history, replay, revocation and failure recovery; current catalog field preparation without source writes; not substantive admission or whole-corpus migration",
+      "coverage_authority": "mechanics_local lane discovery",
+      "mode": "blocking",
+      "runtime_cost": "fast",
+      "focused_target": "mechanics/growth-cycle/tests/test_source_commands.py",
+      "failure_route": "Fix the source-command adapter, source form contract or metadata field catalog; do not discard history or infer semantic admission.",
+      "disposition": "keep"
+    },
+    {
       "path": "tests/test_validate_tiny_entry_route.py",
       "home": "tests",
       "home_scope": "root",

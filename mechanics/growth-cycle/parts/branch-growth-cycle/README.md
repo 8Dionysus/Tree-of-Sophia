@@ -210,3 +210,99 @@ translation/transliteration/adaptation source field. Both remain current
 dependencies and mandatory context; source-copy is not a declaration of
 originality. These checks preserve the source owner's declaration without
 performing linguistic assessment or granting a submission its own scope.
+
+## Local source growth commands
+
+`scripts/source_commands.py` is the explicit source-write entrypoint. Its first
+adapter creates and revises forms adjacent to one bibliographic source record;
+it does not expose writes through `access`, create a second corpus database or
+mutate the subject. The normative identity/admission boundary remains in
+`ToS/doctrine/HUMAN_FORMS.md`. The same CLI serves a human or an agent:
+
+```bash
+python mechanics/growth-cycle/parts/branch-growth-cycle/scripts/source_commands.py \
+  --owner-config /absolute/operator-selected/source-owner.json < request.json
+```
+
+The independently selected protected configuration has exactly these fields:
+
+| Field | Meaning |
+| --- | --- |
+| `schema_version` | `tos_local_source_command_owner_v1` |
+| `uid`, `principal_id` | actual Unix account and delegated source-form creator |
+| `source_root`, `source_path` | absolute protected repository root and exact relative `ToS/source-witnesses/.../*.json` corpus record |
+| `authority_ref` | issuer-provided reference to the source-write delegation, not a semantic assessment |
+| `allowed_form_ids` | at most 32 exact existing or newly delegated `tos.form.*` identities |
+| `allowed_operations` | a subset of `form.create`, `form.revise`; empty revokes writes |
+| `expires_at` | timezone-aware exclusive expiry |
+
+The issuer must allocate noncolliding form identities before delegating them;
+this bounded adapter does not scan other subjects or issue globally unique IDs.
+The subject must already be owned, public bibliographic metadata. The command
+does not validate its historical truth, reclassify private text as metadata or
+authorize a generic new corpus schema.
+
+All requests use `schema_version: tos_local_source_command_v1`:
+
+1. `{"schema_version":"tos_local_source_command_v1","operation":"describe"}`
+   returns current exact source, configuration digest, form-set byte revision,
+   current form refs, reader states, operation/ID scope and `source_fields`.
+2. `prepare` adds `form_id` and `field_id` from that catalog. Select
+   `metadata.preferred-name`, `metadata.source-note` or an advertised
+   `metadata.variant-name:N`. The variant ordinal is snapshot-local, not name
+   identity. Preparation returns one `prepared_change`, selecting create or
+   revise and binding the full source field, current predecessor, creator,
+   language and every mandatory qualifier. It performs no write or admission.
+3. `apply` adds `command_id`, `expected_source`, `expected_configuration`,
+   `expected_revision` and `changes`. Copy the expected values from the prepared
+   result's `source`, `owner_configuration` and `revision` respectively.
+   `changes` is a list of 1–32 unique-ID changes, each exactly
+   `{operation, expected_form, form}`. A create expects null and version 1;
+   a revision expects the exact current form, advances one version and binds
+   it in `revises`. The caller can submit the complete form contract for a
+   freeform/template proposal, but cannot submit admission, grant or scope.
+
+Success is `tos_local_source_command_result_v1`, exit 0. `receipt` records the
+historical commit and `replayed` distinguishes retries; the remaining refs and
+materializations describe the current snapshot. `grants_admission` is always
+false. A committed unsupported/freeform proposal remains unavailable in this
+metadata-only reader and routes to the form/assessment owner. `describe` and
+`prepare` never create a file. Errors exit 2 with
+`tos_local_source_command_error_v1` and an exception class, not echoed input.
+
+The sole content target is `<source-stem>.human-forms.json`. An atomic rename
+commits all related changes, predecessors and the optional `growth_history`
+receipt together; there is no detached receipt that can claim an absent write.
+Duplicate commands must have identical canonical request digests. Current
+delegation is checked before replay, and the old receipt never replaces fresh
+reader state. Conflicts require fresh discovery, not overwriting another
+writer's revision. Historical form sets without command receipts are supported
+without inventing past authorization.
+
+A sibling `.<set-name>.writer.lock` coordinates command writers with a
+five-second bounded wait (`JournalBusy` means retry, not restart/delete).
+Lock and unpublished staging files are local operation state, not corpus
+records or files to include in a source commit.
+Protected-path and UID rules match the assessment entrypoint: no symlinks,
+setuid execution or other-account writable paths; same-account hostile code is
+outside the boundary. Temporary publication files are mode 0600 and fsynced
+before rename; the parent is fsynced after it. On abrupt process loss, an
+unpublished `.pending` file may remain and is never a committed form set.
+Only an ordinary exception removes that invocation's own unpublished file.
+Source/configuration publishers and ordinary editors must remain quiescent
+during the operation; final rereads detect changes but are not a transaction
+over independently edited files. Cross-subject transactions remain unimplemented.
+
+Requests/source/configuration are bounded at 1 MiB each; the set at 2 MiB,
+32 current and 256 prior forms, and 256 command receipts. Reaching a bound
+refuses new work without deleting history. Use exact successor corrections for
+semantic rollback; reverting a derived reader does not erase these sources.
+Do not remove committed receipts to reuse a command ID. Graph/catalog rebuild,
+publication, model execution and assessment are separate owner operations.
+
+`mechanics/growth-cycle/tests/test_source_commands.py` tests the actual CLI,
+creation/revision batches, restart/replay, concurrent writers, loss before/after
+publication, revocation, protected paths, inert input, preparation and partial
+source rebinding. Its catalog-wide test prepares existing public bibliographic
+fields **in memory** and verifies source-byte preservation. It is not evidence
+of an actual whole-corpus migration or substantive source/translation quality.

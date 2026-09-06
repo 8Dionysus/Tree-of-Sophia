@@ -342,6 +342,20 @@
       "disposition": "keep"
     },
     {
+      "path": "mechanics/growth-cycle/parts/branch-growth-cycle/scripts/source_commands.py",
+      "family": "source_growth_commands",
+      "organ_lane": "mechanics/part-owned",
+      "owner_surface": "mechanics/growth-cycle/parts/branch-growth-cycle/README.md",
+      "source_truth": ["ToS/doctrine/HUMAN_FORMS.md", "ToS/contracts/human-form.schema.json", "ToS/contracts/human-form-set.schema.json"],
+      "reads": ["independently selected protected local owner delegation, explicit corpus record and adjacent source form set", "bounded JSON command on stdin and the source metadata field catalog"],
+      "writes": ["one adjacent source form set with current forms, retained predecessors and command receipts; sibling writer lock and invocation-local publication staging file"],
+      "side_effects": "Unix account/path checks, bounded locking, fsync and atomic source-set publication; no subject/payload/graph writes, model calls, semantic assessment, admission or deployment",
+      "validation_lane": "mechanics_local",
+      "ci_inclusion": "release",
+      "test_target": "mechanics/growth-cycle/tests/test_source_commands.py",
+      "disposition": "keep"
+    },
+    {
       "path": "mechanics/growth-cycle/parts/branch-growth-cycle/scripts/knowledge_assessment.py",
       "family": "knowledge_assessment_policy",
       "organ_lane": "mechanics/part-owned",

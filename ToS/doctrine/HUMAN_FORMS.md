@@ -151,3 +151,51 @@ copies, not a new translation, historical assessment or complete Forms profile.
 Its original-name ID is not language-context evidence. The current metadata
 adapter does not yet supply this context; adding it requires source-owned
 metadata and successor form bindings, not a reader heuristic.
+
+## Source commands and retained change history
+
+The source owner may delegate `form.create` and `form.revise` for explicitly
+named form identities of one bibliographic subject. This is permission to
+record source-owned forms, not permission to assess them, admit their wording,
+publish them or change rights. Human and agent callers use the same command
+grammar. The independently chosen owner configuration binds the local account,
+creator, exact source route, authority reference, allowed operations/IDs and
+expiry; submitted prose cannot supply or widen that scope.
+
+`mechanics/growth-cycle/parts/branch-growth-cycle/scripts/source_commands.py`
+implements this first Growth adapter. Discovery names semantic metadata fields;
+preparation constructs complete source-copy bindings from the same field and
+context rules as the existing bibliographic reader. Preparation writes nothing.
+Application compares exact source, configuration and form-set revisions, then
+commits the bounded related changes, unchanged neighboring forms, predecessors
+and command receipt in one adjacent form-set file. Stable IDs stay stable;
+successors advance exactly one version and cite the retained predecessor.
+
+An optional `growth_history` in `tos_human_form_set_v1` records command identity,
+input digest, authenticated account principal, delegated authority reference,
+configuration digest, time, exact source and resulting form refs. Historical
+sets need no fabricated receipt. An exact retry returns its historical receipt
+and current reader state separately, including after source change; it cannot
+resurrect stale wording. Current revocation still denies a write-command retry.
+No command removes predecessors or silently truncates history.
+
+Readers pinned to the earlier closed form-set schema must update before
+consuming the optional history extension; they may reject the newer set, never
+strip its receipts to make it appear compatible. A reader rollback leaves the
+new source set and its history intact.
+
+Freeform and template records can be retained as source proposals; this
+metadata adapter still cannot materialize them as accepted wording. A proposed
+source-copy must satisfy the actual reader, including mandatory context and
+source language constraints. After a source correction, updating one form
+does not update or erase the others: their unchanged exact bindings remain
+explicitly stale. Neither successful preparation nor a source-write receipt
+proves substantive quality or calibrated agent competence.
+
+The atomicity boundary is one form set, not all subjects or the independently
+edited source/configuration files. Cooperating command writers share a bounded
+Unix lock; the issuer must keep other source/configuration writers quiescent
+during the operation. Existing source records, payloads, graph exports and
+read-only access remain untouched by the command. Per-set limits remain
+32 current forms, 256 retained forms, 256 receipts and 2 MiB; reaching a limit
+requires an explicit owner continuation design, never history deletion.
