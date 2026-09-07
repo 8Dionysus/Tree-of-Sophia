@@ -1,3 +1,4 @@
+import {createReadingMemory} from './reading-state.mjs';
 import {createToSQueryOperations} from '../query-operations';
 import {KnowledgeClient,RequestSlots,RequestError,localized} from './knowledge-client.mjs';
 import {loadEvidence,compareEvidence,sourceRefs,selectionSummary} from './evidence-model.mjs';
@@ -32,8 +33,9 @@ export function createEvidencePanel(root,scene,panels,{selected,onUserAction}){
   panel.innerHTML='<div class="sc-panel-top"><span class="sc-eyebrow">ЛИСТ ИССЛЕДОВАНИЯ</span><button type="button" class="sc-icon sc-evidence-close" aria-label="Закрыть основания"><i data-lucide="x" aria-hidden="true"></i></button></div><div class="sc-evidence-heading"><span class="sc-evidence-symbol" aria-hidden="true">✧</span><div><p class="sc-evidence-kind"></p><h3></h3></div></div><div class="sc-evidence-tabs" role="tablist" aria-label="Основания и сравнение"></div><div class="sc-evidence-body" id="sc-evidence-content" role="tabpanel" tabindex="0"></div><div class="sc-evidence-status" role="status"></div><div class="sc-evidence-footer"><span>От мысли — к источнику</span></div>';
   root.append(panel);
   const body=panel.querySelector('.sc-evidence-body'),status=panel.querySelector('.sc-evidence-status'),tabs=panel.querySelector('.sc-evidence-tabs');
+  const reading=createReadingMemory(body),rememberedTabs=new Map();let comparisonChoice=0;
   let target=null,result=null,failure=null,active='grounds',focusReturn=null,viewKey='',requestId=0;
-  panels.register('evidence',panel,()=>{requests.cancelAll();body.setAttribute('aria-busy','false');});
+  panels.register('evidence',panel,()=>{reading.capture();requests.cancelAll();body.setAttribute('aria-busy','false');});
   function close(){panels.close('evidence');onUserAction();
     const star=[...root.querySelectorAll('.sc-node')].find(node=>node.dataset.id===target?.raw.id&&!node.hidden);
     (focusReturn?.isConnected&&!focusReturn.closest('[hidden]')?focusReturn:star||root.querySelector('.sc-overview')).focus();
@@ -47,7 +49,7 @@ export function createEvidencePanel(root,scene,panels,{selected,onUserAction}){
   tabs.addEventListener('keydown',event=>{if(!['ArrowLeft','ArrowRight','Home','End'].includes(event.key))return;event.preventDefault();
     const next=event.key==='Home'?0:event.key==='End'?1:1-tabButtons.indexOf(event.target);onUserAction();switchTab(tabIds[next]);tabButtons[next].focus();
   });
-  function switchTab(tab){active=tab;panel.dataset.tab=tab;
+  function switchTab(tab){reading.capture();active=tab;rememberedTabs.set(viewKey,tab);if(rememberedTabs.size>48)rememberedTabs.delete(rememberedTabs.keys().next().value);panel.dataset.tab=tab;
     tabButtons.forEach((button,index)=>{button.setAttribute('aria-selected',String(tabIds[index]===tab));button.tabIndex=tabIds[index]===tab?0:-1;});
     body.setAttribute('aria-labelledby','sc-evidence-'+tab);render();
   }
@@ -110,8 +112,9 @@ export function createEvidencePanel(root,scene,panels,{selected,onUserAction}){
       const right=el('div','','sc-reading-alternative');
       const label=el('label','Сопоставить с');label.htmlFor='sc-reading-choice';const select=el('select');select.id=label.htmlFor;
       for(const [index,reading]of readings.entries()){const option=el('option',`${index+1}. ${human(reading.label)}${reading.route?' · '+reading.route:''}`);option.value=String(index);select.append(option);}
+      select.value=String(Math.min(comparisonChoice,readings.length-1));
       const card=el('div');const update=()=>{card.replaceChildren(readingCard(readings[Number(select.value)],'ДРУГОЕ ПРОЧТЕНИЕ'));scene.invalidate();};
-      select.addEventListener('change',()=>{onUserAction();update();});right.append(label,select,card);update();spread.append(right);
+      select.addEventListener('change',()=>{onUserAction();comparisonChoice=Number(select.value);update();});right.append(label,select,card);update();spread.append(right);
     }else spread.append(section('Других прочтений не показано',['В полученной области нет других оспаривающих связей. Это не означает согласия или доказанности.'],'sc-reading-empty'));
     append(spread);
     const coverage=packet.coverage;
@@ -120,17 +123,18 @@ export function createEvidencePanel(root,scene,panels,{selected,onUserAction}){
     append(points('Что остаётся открытым',comparison.gaps));
   }
   function render(){
-    body.replaceChildren();status.textContent='';body.setAttribute('aria-busy',String(!result&&!failure));
+    reading.capture();reading.enter(viewKey+'|'+active);body.replaceChildren();status.textContent='';body.setAttribute('aria-busy',String(!result&&!failure));
     if(failure){append(section('Не удалось прочитать основания',[failure.message]),button('Повторить',()=>{onUserAction();void open(target,active).catch(()=>{});},'sc-evidence-source'));}
     else if(!result){append(el('div','Собираю источники и прочтения…','sc-evidence-loading'));}
     else if(active==='grounds')renderGrounds();else renderComparison();
-    body.scrollTop=0;scene.invalidate();
+    reading.restore();scene.invalidate();
   }
-  async function open(source,tab='grounds',{signal,limit=60}={}){
+  async function open(source,tab=null,{signal,limit=60}={}){
     if(!source?.raw)throw new Error('Сначала выберите звезду или отношение.');
     const ticket=++requestId;
-    focusReturn=document.activeElement;panels.open('evidence');target=source;result=null;failure=null;
-    const revision=scene.port.packet?.source_revision;viewKey=JSON.stringify([source.raw.id,source.kind,revision]);
+    reading.capture();const revision=scene.port.packet?.source_revision,nextKey=JSON.stringify([source.raw.id,source.kind,revision]);
+    if(nextKey!==viewKey)comparisonChoice=0;
+    focusReturn=document.activeElement;panels.open('evidence');target=source;result=null;failure=null;viewKey=nextKey;tab=tab||rememberedTabs.get(viewKey)||'grounds';
     panel.dataset.itemId=source.raw.id;panel.querySelector('h3').textContent=human(localized(source.raw.display.title||source.raw.display.label));
     panel.querySelector('.sc-evidence-kind').textContent=source.kind==='relation'?'ОТНОШЕНИЕ':localized(source.raw.display.kind_label,'УЗЕЛ').toUpperCase();
     switchTab(tab);tabButtons[tabIds.indexOf(tab)].focus();
@@ -155,6 +159,7 @@ export function createEvidencePanel(root,scene,panels,{selected,onUserAction}){
     if(!loaded.packet)throw new Error('Для этого объекта маршрут Evidence Lens сейчас недоступен.');
     return tab==='compare'?compareEvidence(loaded,selection):{...loaded.packet,binding:loaded.binding,agent_summary:{...loaded.packet.agent_summary,selection:raw.id}};
   }
+  panels.configure('evidence',{onResume:()=>{if(!result)void open(target,active).catch(()=>{});else reading.restore();}});
   refreshIcons();window.addEventListener('pagehide',()=>requests.cancelAll());
   return {selectionChanged,handlers:{'tos.page.inspect-epistemic':(input,execution)=>command('grounds',input,execution),'tos.page.compare-readings':(input,execution)=>command('compare',input,execution)}};
 }

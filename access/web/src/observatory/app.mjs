@@ -4,12 +4,18 @@ import './connected.css';
 import './workspace.css';
 import './evidence.css';
 import './navigation.css';
+import './lens.css';
+import './reading.css';
+import {createStudio} from './studio.mjs';
+import {createSceneFeedback} from './scene-feedback.mjs';
 import {mountScene} from './scene.js';
 import {createTools} from './workspace.mjs';
 import {createPanelHost} from './panels.mjs';
 import {createEvidencePanel} from './evidence-panel.mjs';
 import {evidenceRoute} from './evidence-model.mjs';
 import {createNavigationPanel} from './navigation-panel.mjs';
+import {createLensPanel} from './lens-panel.mjs';
+import {draftForPacket,encodeDraft} from './lens-model.mjs';
 import {pathAvailable} from './navigation-model.mjs';
 import {createPageCommandRegistry} from '../page-commands';
 import {createWebMCPAdapter} from '../webmcp';
@@ -18,7 +24,8 @@ import {KnowledgeClient,focusSpec,relationSpec,localized,DEFAULT_FOCUS} from './
 const host=document.getElementById('app');
 host.innerHTML=shell;
 const root=host.firstElementChild;
-let scene,tools,evidence,navigation,registry,syncing=false,lastContext='';
+const initialRoute=location.search;
+let scene,tools,evidence,navigation,builder,studio,registry,syncing=false,lastContext='';
 const client=new KnowledgeClient();
 function selected(){
   if(tools?.auxiliarySelection)return tools.auxiliarySelection;
@@ -35,21 +42,35 @@ function sync(){
   if(!scene)return;
   const selection=selected(),packet=scene.port.packet;
   const url=new URL(location.href);
-  if(packet?.focus?.node_id)url.searchParams.set('focus',packet.focus.node_id);
+  if(packet?.focus?.node_id)url.searchParams.set('focus',packet.focus.node_id);else if(packet)url.searchParams.delete('focus');
+  if(packet){const draft=draftForPacket(packet);if(draft)url.searchParams.set('lens',encodeDraft(draft));else url.searchParams.delete('lens');}
   if(selection&&!tools?.auxiliarySelection)url.searchParams.set('selection',selection.id);else url.searchParams.delete('selection');
   history.replaceState(null,'',url);
-  const key=JSON.stringify([packet?.source_revision,packet?.focus,selection,root.dataset.lens,navigation?.startId]);
+  const key=JSON.stringify([packet?.source_revision,packet?.fingerprint,packet?.focus,selection,root.dataset.lens,navigation?.startId]);
   if(key!==lastContext){lastContext=key;if(!syncing)registry?.notifyStateChange();}
   tools?.selectionChanged();
   evidence?.selectionChanged();
   navigation?.selectionChanged();
+  builder?.selectionChanged();
+  studio?.selectionChanged();
 }
 const commit=action=>{syncing=true;try{return action();}finally{syncing=false;sync();}};
-scene=mountScene(root,{initialFocus:new URLSearchParams(location.search).get('focus')||DEFAULT_FOCUS,onChange:()=>{tools?.clearAuxiliarySelection();sync();}});
-const panels=createPanelHost(root,scene);
+scene=mountScene(root,{autoStart:false,initialFocus:new URLSearchParams(location.search).get('focus')||DEFAULT_FOCUS,initialLens:new URLSearchParams(location.search).get('lens'),onChange:()=>{tools?.clearAuxiliarySelection();sync();}});
+const panels=createPanelHost(root,scene,{onUserAction:()=>registry?.notifyStateChange()});
 tools=createTools(root,scene,{selected,panels,onChange:()=>{if(!syncing)registry?.notifyStateChange();sync();}});
 evidence=createEvidencePanel(root,scene,panels,{selected,onUserAction:()=>registry?.notifyStateChange()});
 navigation=createNavigationPanel(root,scene,panels,{selected,commit,onUserAction:()=>registry?.notifyStateChange()});
+builder=createLensPanel(root,scene,panels,{onUserAction:()=>registry?.notifyStateChange()});
+const userAction=()=>registry?.notifyStateChange();
+for(const [id,title,selector]of [['search','Поиск','.sc-search-open'],['lenses','Линзы','.sc-lenses-open'],['workspace','Исследование','.sc-workspace-open'],['navigation','Маршруты','.sc-navigation-open']]){const opener=root.querySelector(selector);panels.addTool(id,{title,opener,launch:()=>opener.click()});}
+function selectedSource(){const selection=scene.port.selection,kind=selection.relationId?'relation':'node',raw=kind==='relation'?scene.port.relation(selection.relationId):scene.port.node(selection.nodeId);return raw?{raw,kind}:null;}
+for(const [id,title,icon,event]of [['builder','Конструктор линз','◈',null],['evidence','Основания','✧','sophia-evidence'],['sources','Источники','◇','sophia-sources']]){
+  const opener=document.createElement('button');opener.type='button';opener.className='sc-control sc-tool-shortcut';opener.setAttribute('aria-label',title);const symbol=document.createElement('b');symbol.textContent=icon;const label=document.createElement('span');label.textContent=title;opener.append(symbol,label);root.querySelector('.sc-header-actions').append(opener);
+  const launch=()=>{userAction();if(id==='builder')root.querySelector('.sc-builder-open').click();else{const source=selectedSource();if(source)root.dispatchEvent(new CustomEvent(event,{detail:source}));else scene.port.announce('Сначала выберите звезду или связь.');}};
+  opener.addEventListener('click',launch);panels.addTool(id,{title,opener,launch,available:()=>id==='builder'||Boolean(selectedSource())});
+}
+studio=createStudio(root,scene,panels,{initialRoute,onUserAction:userAction});
+createSceneFeedback(root,scene);
 const handlers={
   ...tools.handlers,
   ...evidence.handlers,
@@ -88,8 +109,13 @@ const searchHits=new Map();let searchRevision=null;
 for(const id of Object.keys(tools.handlers)){
   const handler=handlers[id];handlers[id]=(input,execution)=>commit(()=>handler(input,execution));
 }
-registry=createPageCommandRegistry(()=>({mode:'philosophy',view_id:'observatory',graph_mode:'nodes',selected:selected(),
-  path_start_node_id:navigation.startId,active_layers:['knowledge'],active_predicates:['overview'],deep_link:location.href,research_workspace:tools.workspace.summary()}),handlers);
+registry=createPageCommandRegistry(()=>{
+  const draft=draftForPacket(scene.port.packet);
+  return {mode:'philosophy',view_id:'observatory',graph_mode:'nodes',selected:selected(),path_start_node_id:navigation.startId,
+    active_layers:draft?[...draft.sources]:['knowledge'],
+    active_predicates:draft?(draft.relations?(draft.predicates.length?[...draft.predicates]:[...new Set(scene.port.packet.relations.map(r=>r.predicate_id))]):[]):['overview'],
+    deep_link:location.href,research_workspace:tools.workspace.summary()};
+},handlers);
 const allowed=new Set(['tos.page.context','tos.page.cancel',...Object.keys(handlers)]);
 root.querySelector('#sc-query').addEventListener('input',()=>registry.notifyStateChange());
 const webmcp=createWebMCPAdapter(registry,document,allowed);
@@ -97,6 +123,9 @@ webmcp.subscribeStatus(status=>tools.agentStatus(status));
 void webmcp.start();
 window.addEventListener('pagehide',()=>webmcp.stop());
 window.addEventListener('pageshow',event=>{if(event.persisted)void webmcp.start();});
-// Restore a selected object only after its containing snapshot is ready.
-const restoreId=new URLSearchParams(location.search).get('selection');
-if(restoreId){const observer=new MutationObserver(()=>{if(!scene.port.packet)return;observer.disconnect();commit(()=>{if(scene.port.node(restoreId))scene.port.selectNode(restoreId);else if(scene.port.relation(restoreId))scene.port.selectRelation(restoreId);});});observer.observe(root,{attributes:true,attributeFilter:['data-graph-revision']});}
+// A saved local pose takes precedence only for its matching route (or home).
+void studio.start().then(restored=>{
+  if(restored)return;const restoreId=new URLSearchParams(initialRoute).get('selection');if(!restoreId)return;
+  const restore=()=>{if(!scene.port.packet)return;observer.disconnect();commit(()=>{if(scene.port.node(restoreId))scene.port.selectNode(restoreId);else if(scene.port.relation(restoreId))scene.port.selectRelation(restoreId);});};
+  const observer=new MutationObserver(restore);observer.observe(root,{attributes:true,attributeFilter:['data-graph-revision']});restore();
+});

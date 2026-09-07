@@ -1,0 +1,74 @@
+/* Quiet, adjustable reading surfaces around the accepted scene. */
+#sophia-gestures .sc-reading-return{flex:none;min-height:0}
+#sophia-gestures .sc-reading-return:has(button[hidden]){display:none}
+#sophia-gestures .sc-reading-return button{border:0;background:none;padding:9px 0 2px;color:#cbb68f;font-size:11px}
+#sophia-gestures .sc-panel-size{flex:none;margin-left:auto;margin-right:7px;background:none;border:1px solid #344052;border-radius:3px;color:#b8c5d4;min-width:28px;height:28px}
+#sophia-gestures .sc-panel-top>.sc-eyebrow{min-width:0}
+#sophia-gestures .sc-panel-resize{position:absolute;right:0;bottom:0;width:25px;height:25px;background:transparent;border:0;color:#7c91aa;cursor:nwse-resize;touch-action:none;font-size:18px}
+#sophia-gestures .sc-panel[data-dock=right] .sc-panel-resize{left:0;right:auto;cursor:nesw-resize;transform:scaleX(-1)}
+#sophia-gestures .sc-panel[data-panel-id]{overflow:hidden}
+#sophia-gestures .sc-panel[data-panel-id]>.sc-panel-top{flex-shrink:0}
+@container(min-width:651px){
+  #sophia-gestures .sc-panel[data-panel-id]{width:clamp(300px,var(--sc-panel-width,450px),min(760px,48%));height:var(--sc-panel-height,auto);max-height:calc(100% - var(--sc-tool-top,205px) - 98px)}
+  #sophia-gestures .sc-panel[data-dock]{top:var(--sc-tool-top,205px);bottom:auto;right:28px;left:auto}
+  #sophia-gestures .sc-panel[data-dock=left]{left:28px;right:auto}
+  #sophia-gestures .sc-inspector[data-panel-id]{width:clamp(300px,var(--sc-panel-width,370px),min(760px,48%))}
+}
+#sophia-gestures :is(.sc-evidence-body,.sc-workspace-body,#so-about){scrollbar-gutter:stable;overflow-wrap:anywhere}
+#sophia-gestures :is(.sc-description,.sc-source-text,.sc-reading-text,.sc-evidence-finding p){font:16px/1.85 Georgia,'Times New Roman',serif;letter-spacing:.04px;white-space:pre-wrap;color:#dddcd6;max-width:68ch}
+#sophia-gestures .sc-workspace .sc-source-text{font:16px/1.85 Georgia,'Times New Roman',serif}
+#sophia-gestures[data-reading-size=large] :is(.sc-description,.sc-source-text,.sc-reading-text,.sc-evidence-finding p){font-size:19px;line-height:1.9}
+#sophia-gestures[data-reading-size=large] :is(.sc-workspace,.sc-evidence) :is(p,li):not(.sc-muted):not(.sc-evidence-note){font-size:15px;line-height:1.85}
+#sophia-gestures[data-label-size=large] .sc-node .sc-node-label{font-size:15px}
+#sophia-gestures .sc-inclusion-legend{display:flex;flex-wrap:wrap;gap:6px 15px;margin-top:8px;max-width:min(440px,80vw);font:10px/1.6 system-ui,sans-serif;color:#9dacc1;pointer-events:none}
+#sophia-gestures .sc-inclusion-legend [data-role=matched]{color:#cdb68e}
+#sophia-gestures .sc-node[data-inclusion=context]{--sc-inclusion-light:151 190 219;--sc-inclusion-opacity:.4}
+#sophia-gestures .sc-node:is([data-inclusion=matched],[data-inclusion=focus]){--sc-inclusion-light:226 188 121;--sc-inclusion-opacity:.75}
+#sophia-gestures .sc-node[data-inclusion]:not([data-inclusion=""])::after{content:'';position:absolute;width:56px;height:56px;left:50%;top:50%;transform:translate(-50%,-50%);border:0;border-radius:50%;background:radial-gradient(circle,rgb(var(--sc-inclusion-light)/.26),rgb(var(--sc-inclusion-light)/.09) 28%,transparent 70%);opacity:var(--sc-inclusion-opacity);pointer-events:none;transition:opacity .18s ease-out}
+#sophia-gestures .sc-node:is(:hover,:focus-visible)::after{opacity:1}
+#sophia-gestures .sc-node[data-hint-open=true]{z-index:2}
+#sophia-gestures .sc-inclusion-hint{position:absolute;width:224px;max-width:calc(100cqw - 32px);padding:9px 12px;border:1px solid #344457;border-radius:4px;background:#0c1522f2;color:#cbd6e3;font:11px/1.7 system-ui,sans-serif;letter-spacing:.1px;text-align:left;white-space:normal;pointer-events:auto;cursor:default}
+#sophia-gestures .sc-node[data-entering=true]::before{content:'';position:absolute;inset:6px;border:1px solid #d8bc8480;border-radius:50%;pointer-events:none;animation:sc-arrival 1.6s ease-out both}
+@keyframes sc-arrival{0%{transform:scale(.6);opacity:0}20%{opacity:.85}100%{transform:scale(1.6);opacity:0}}
+#sophia-gestures .sc-studio{display:flex;flex-direction:column;padding:17px 22px;background:linear-gradient(145deg,#121b29,#0c1420 70%);border-color:#465060;box-shadow:0 22px 65px #0008}
+#sophia-gestures .sc-studio h3{font:400 27px/1.3 Georgia,serif;color:#e9dfcb;margin:14px 0 18px;flex:none}
+#sophia-gestures .sc-studio-tabs{display:flex;gap:25px;border-bottom:1px solid #334051;flex:none}
+#sophia-gestures .sc-studio-tabs button{background:none;border:0;padding:0 0 11px;color:#a6b6ca;border-bottom:2px solid transparent}
+#sophia-gestures .sc-studio-tabs [aria-selected=true]{border-color:#c2a675;color:#e6ce9d}
+#sophia-gestures .sc-studio-body{overflow:auto;min-height:0;overscroll-behavior:contain;scrollbar-width:thin;scrollbar-color:#425065 transparent;padding:7px 3px 10px 0}
+#sophia-gestures .sc-studio-note{font:11px/1.8 system-ui,sans-serif;color:#a5b5c8;margin:14px 0;overflow-wrap:anywhere}
+#sophia-gestures .sc-studio-field{display:block;font-size:11px;color:#b4c2d3;margin:15px 0}
+#sophia-gestures .sc-studio :is(input[type=text],select){display:block;width:100%;margin-top:7px;min-height:37px;padding:7px 10px;border:1px solid #3d4c61;border-radius:3px;background:#0b1421;color:#e2e5e8;font:13px/1.6 system-ui,sans-serif}
+#sophia-gestures .sc-studio-body button,#sophia-gestures .sc-studio-retry{border:1px solid #3c4b5e;border-radius:3px;background:#172435;color:#dfc89d;padding:8px 11px;text-align:left;line-height:1.6}
+#sophia-gestures .sc-studio-retry{flex:none;font-size:11px;margin:5px 0}
+#sophia-gestures .sc-studio-body button:disabled{opacity:.45}
+#sophia-gestures .sc-studio-empty{font:17px/1.8 Georgia,serif;color:#aebdcf;margin:28px 0}
+#sophia-gestures .sc-place{border-top:1px solid #2f3d50;margin-top:22px;padding-top:15px;overflow-wrap:anywhere}
+#sophia-gestures .sc-place .sc-place-open{border:0;background:none;padding:0;font:20px/1.5 Georgia,serif;color:#e2cfaa}
+#sophia-gestures .sc-place small{display:block;color:#94a7bf;font-size:10px;margin-top:5px}
+#sophia-gestures .sc-place-actions{display:flex;flex-wrap:wrap;gap:12px;margin:11px 0}
+#sophia-gestures .sc-place-actions button,#sophia-gestures .sc-studio-body .sc-studio-subtle{border:0;background:none;padding:3px 0;font-size:10px;color:#b4c4d8}
+#sophia-gestures .sc-studio-status{flex:none;margin:8px 0 4px;color:#d8bc84;font:11px/1.8 system-ui,sans-serif;max-height:65px;overflow:auto;overflow-wrap:anywhere}
+#sophia-gestures .sc-tool-choice{display:flex;align-items:center;gap:9px;border-bottom:1px solid #253448;padding:9px 0}
+#sophia-gestures .sc-tool-choice input{accent-color:#d2b781;width:17px;height:17px;flex:none}
+#sophia-gestures .sc-tool-choice button:nth-child(2){flex:1;border:0;background:none;padding:5px}
+#sophia-gestures .sc-tool-shortcut b{font-size:18px;font-weight:400;color:#d2bc94;line-height:16px}
+#sophia-gestures .sc-header-actions{max-width:calc(100% - 240px);overflow-x:auto;scrollbar-width:none;padding:5px}
+#sophia-gestures .sc-header-actions>.sc-control{flex-shrink:0}
+#sophia-gestures .sc-studio-open{position:sticky;right:0;z-index:1;box-shadow:-8px 0 12px #05080f}
+@container(max-width:1050px){#sophia-gestures .sc-header-actions .sc-control span,#sophia-gestures .sc-header-actions kbd{display:none}}
+@container(max-width:650px){
+  #sophia-gestures .sc-panel[data-panel-id]:not(.sc-inspector){top:auto;bottom:115px;left:15px;right:15px;width:auto;height:auto;max-height:42dvh;padding:12px 17px}
+  #sophia-gestures .sc-panel-size,#sophia-gestures .sc-panel-resize{display:none}
+  #sophia-gestures .sc-header{gap:8px;padding-inline:16px}
+  #sophia-gestures .sc-header-actions{max-width:calc(100% - 153px);gap:4px;padding-inline:0}
+  #sophia-gestures .sc-brand{font-size:18px;gap:6px}
+  #sophia-gestures .sc-brand-sub{font-size:7px;letter-spacing:1.5px}
+  #sophia-gestures .sc-sigil{font-size:30px}
+  #sophia-gestures .sc-studio-open span{display:none}
+  #sophia-gestures .sc-studio h3{font-size:23px;margin:5px 0 10px}
+  #sophia-gestures .sc-inclusion-legend{gap:4px 10px;font-size:9px;max-width:85vw}
+  #sophia-gestures .sc-inspector .sc-neighbors{display:flex}
+  #sophia-gestures :is(.sc-description,.sc-source-text,.sc-reading-text){font-size:15px}
+}
+@media(prefers-reduced-motion:reduce){#sophia-gestures .sc-panel:not([hidden]),#sophia-gestures .sc-node[data-entering=true]::before{animation:none}#sophia-gestures .sc-node[data-entering=true]::before{opacity:.45}#sophia-gestures .sc-node[data-inclusion]:not([data-inclusion=""])::after{transition:none}}

@@ -1,0 +1,86 @@
+import {KnowledgeClient,RequestSlots,localized} from './knowledge-client.mjs';
+import {capturePlace,readPlaces,savePlace,readResume,reopenPlace,PLACES_KEY,RESUME_KEY} from './place-model.mjs';
+import {DEFAULT_INTERFACE} from './interface-model.mjs';
+import {refreshIcons} from './icons';
+const el=(tag,text='',className='')=>{const e=document.createElement(tag);e.textContent=text;e.className=className;return e;};
+const button=(text,action)=>{const b=el('button',text);b.type='button';b.addEventListener('click',action);return b;};
+export function createStudio(root,scene,panels,{initialRoute,onUserAction}){
+  const client=new KnowledgeClient(),requests=new RequestSlots();let storage=null,entries=[],failure='',notice='',active='places',busy=false,applying=false,started=false,autoSave=true,timer=null,lastPacket=null,deleted=null,retry=null,restoreId=0;
+  try{storage=localStorage;entries=readPlaces(storage);}catch(error){failure=error.message;}
+  const opener=button('',()=>{onUserAction();show();});opener.className='sc-control sc-studio-open';opener.setAttribute('aria-label','Места и инструменты');opener.setAttribute('aria-expanded','false');opener.innerHTML='<i data-lucide="bookmark" aria-hidden="true"></i><span>Моё пространство</span>';
+  root.querySelector('.sc-header-actions').append(opener);
+  const panel=el('section','','sc-panel sc-studio');panel.hidden=true;panel.setAttribute('aria-label','Места и инструменты');
+  panel.innerHTML='<div class="sc-panel-top"><span class="sc-eyebrow">МОЁ ПРОСТРАНСТВО</span><button type="button" class="sc-icon sc-studio-close" aria-label="Закрыть места и инструменты"><i data-lucide="x" aria-hidden="true"></i></button></div><h3>Места мысли</h3><div class="sc-studio-tabs" role="tablist" aria-label="Рабочее окружение"></div><div class="sc-studio-body" role="tabpanel" tabindex="0"></div><p class="sc-studio-status" role="status"></p>';root.append(panel);
+  const body=panel.querySelector('.sc-studio-body'),status=panel.querySelector('.sc-studio-status');body.id='sc-studio-content';
+  const retryButton=button('Повторить открытие места',()=>{onUserAction();void restore(retry);});retryButton.className='sc-studio-retry';retryButton.hidden=true;status.after(retryButton);
+  function cancel(){restoreId++;requests.cancelAll();busy=false;}
+  panels.register('studio',panel,()=>{cancel();opener.setAttribute('aria-expanded','false');});
+  panels.configure('studio',{onResume:render});
+  const tabs=['places','tools'].map((id,i)=>{const b=button(i?'Инструменты':'Места',()=>{onUserAction();cancel();active=id;render();});b.id='sc-studio-'+id;b.setAttribute('role','tab');b.setAttribute('aria-controls',body.id);panel.querySelector('.sc-studio-tabs').append(b);
+    b.addEventListener('keydown',event=>{if(['ArrowLeft','ArrowRight','Home','End'].includes(event.key)){event.preventDefault();const index=event.key==='Home'?0:event.key==='End'?1:1-i;tabs[index].click();tabs[index].focus();}});return b;});
+  function close(){panels.close('studio');opener.focus();}
+  panel.querySelector('.sc-studio-close').addEventListener('click',close);panel.addEventListener('keydown',e=>{if(e.key==='Escape'){e.preventDefault();e.stopPropagation();close();}});
+  function show(){panels.open('studio');opener.setAttribute('aria-expanded','true');render();tabs[active==='places'?0:1].focus();}
+  function report(error){failure=error.message||'Не удалось выполнить действие.';renderStatus();}
+  function safe(work){try{onUserAction();work();}catch(error){report(error);}}
+  const areaName=()=>localized(scene.port.node(scene.port.selection.nodeId||scene.port.packet?.focus?.node_id)?.display.title,'Моё место');
+  function capture(name,id){if(!scene.port.packet?.nodes.length)throw new Error('Сначала дождитесь загрузки области.');return capturePlace(scene.port.packet,scene.port.capturePlace(),{name:name.slice(0,64),id,route:location.search});}
+  function persist(name,id){if(!storage)throw new Error('Локальное хранилище недоступно.');entries=savePlace(storage,capture(name,id));failure='';notice='Место сохранено в этом браузере.';render();}
+  function saveResume(){
+    if(!started||!autoSave||applying||busy||!storage||!scene.port.packet?.nodes.length)return;
+    try{const text=JSON.stringify(capture(areaName(),'resume'));if(storage.getItem(RESUME_KEY)!==text)storage.setItem(RESUME_KEY,text);}catch(error){failure='Не удалось сохранить последний вид. '+error.message;renderStatus();}
+  }
+  function schedule(){clearTimeout(timer);timer=setTimeout(saveResume,800);}
+  async function restore(place,{initial=false}={}){
+    cancel();const turn=restoreId;scene.ui.cancelPending();busy=true;retry=place;failure='';notice='Возвращаюсь к месту…';renderStatus();
+    try{
+      const answer=await requests.run('place',signal=>reopenPlace(client,place,signal));if(!answer.current||turn!==restoreId)return false;
+      applying=true;try{scene.port.setGraph(answer.value.packet,{initial});scene.port.restorePlace(answer.value.pose);}finally{applying=false;}
+      notice=answer.value.changed?'Место открыто. Данные обновились с последнего посещения.':'Место открыто.';retry=null;autoSave=true;
+      // Showing a saved card may close this tool through the panel host.
+      busy=false;schedule();if(!initial&&!panel.hidden)render();scene.port.announce(notice);return true;
+    }catch(error){if(turn===restoreId)report(error);return false;}finally{if(turn===restoreId){busy=false;renderStatus();}}
+  }
+  function renderStatus(){status.textContent=failure||notice||panels.storageError||'';panel.setAttribute('aria-busy',String(busy));body.querySelectorAll('[data-place-action]').forEach(b=>b.disabled=busy);retryButton.hidden=active!=='places'||!retry||!failure;retryButton.disabled=busy;}
+  function field(label,input){const wrap=el('label',label,'sc-studio-field');wrap.append(input);return wrap;}
+  function renderPlaces(){
+    body.append(el('p','Сохраните область, линзу и ракурс. При возвращении данные проверяются заново.','sc-studio-note'));
+    const form=el('form'),input=el('input');input.type='text';input.maxLength=64;input.value=areaName().slice(0,64);input.required=true;input.setAttribute('aria-label','Название места');
+    const save=el('button','Сохранить текущее место');save.type='submit';save.dataset.placeAction='save';save.disabled=busy||!scene.port.packet;
+    form.append(field('Название места',input),save);form.addEventListener('submit',e=>{e.preventDefault();safe(()=>persist(input.value.trim(),crypto.randomUUID()));});body.append(form);
+    for(const place of entries){const row=el('article','','sc-place');const open=button(place.name,()=>{onUserAction();void restore(place);});open.className='sc-place-open';open.dataset.placeAction='open';row.append(open,el('small',new Date(place.savedAt).toLocaleDateString('ru',{day:'numeric',month:'long'})+' · '+place.pose.vertices.length+' звёзд при сохранении'));
+      const actions=el('div','','sc-place-actions');actions.append(button('Обновить этим видом',()=>safe(()=>persist(place.name,place.id))),button('Удалить',()=>safe(()=>{deleted=place;entries=entries.filter(e=>e.id!==place.id);storage.setItem(PLACES_KEY,JSON.stringify(entries));notice='Место удалено.';render();})));row.append(actions);body.append(row);}
+    if(deleted)body.append(button('Вернуть удалённое место',()=>safe(()=>{entries=savePlace(storage,deleted);deleted=null;notice='Место восстановлено.';render();})));
+    if(!entries.length)body.append(el('p','Здесь появятся места, к которым хочется вернуться.','sc-studio-empty'));
+    const last=button('Забыть последний вид',()=>safe(()=>{storage?.removeItem(RESUME_KEY);autoSave=false;notice='Автовозврат отключён до следующего открытия страницы.';renderStatus();}));last.className='sc-studio-subtle';body.append(el('p','Последний вид запоминается автоматически в этом браузере.','sc-studio-note'),last);
+  }
+  function option(label,key,values){const select=el('select');for(const [value,text]of values){const opt=el('option',text);opt.value=value;select.append(opt);}select.value=panels.preferences[key];select.addEventListener('change',()=>safe(()=>{panels.setPreferences({...panels.preferences,[key]:select.value});renderStatus();}));return field(label,select);}
+  function renderTools(){
+    body.append(el('p','Закрепите нужное в верхней панели. Все инструменты доступны и отсюда.','sc-studio-note'));
+    const preferences=panels.preferences,available=panels.toolList(),ordered=[...preferences.pinned,...available.map(t=>t.id).filter(id=>!preferences.pinned.includes(id))];
+    for(const id of ordered){const tool=available.find(t=>t.id===id);if(!tool)continue;const row=el('div','','sc-tool-choice'),check=el('input');check.type='checkbox';check.checked=preferences.pinned.includes(id);check.setAttribute('aria-label','Закрепить: '+tool.title);
+      check.addEventListener('change',()=>safe(()=>{const current=panels.preferences;panels.setPreferences({...current,pinned:check.checked?[...current.pinned,id]:current.pinned.filter(i=>i!==id)});renderToolsOnly(id);}));
+      const launch=button(tool.title,()=>safe(()=>panels.launch(id)));launch.disabled=!tool.available;row.append(check,launch);
+      if(check.checked){const up=button('↑',()=>safe(()=>{const current=panels.preferences,index=current.pinned.indexOf(id);if(index>0){[current.pinned[index-1],current.pinned[index]]=[current.pinned[index],current.pinned[index-1]];panels.setPreferences(current);renderToolsOnly(id);}}));up.setAttribute('aria-label','Выше: '+tool.title);up.disabled=preferences.pinned[0]===id;row.append(up);}body.append(row);
+    }
+    body.append(option('Сторона окна','dock',[['auto','По свободному месту'],['left','Слева'],['right','Справа']]),option('Текст для чтения','text',[['comfortable','Обычный'],['large','Крупнее']]),option('Подписи звёзд','labels',[['normal','Обычные'],['large','Крупнее']]));
+    body.append(button('Восстановить исходное расположение',()=>safe(()=>{panels.setPreferences(structuredClone(DEFAULT_INTERFACE));notice='Исходные настройки восстановлены.';render();})));
+    body.append(el('p','Размер окна меняется кнопкой ↔ или за угол. На клавиатуре: стрелки на уголке, Home — сброс.','sc-studio-note'));
+  }
+  function renderToolsOnly(id){render();[...body.querySelectorAll('input')].find(input=>input.getAttribute('aria-label')==='Закрепить: '+panels.toolList().find(t=>t.id===id)?.title)?.focus();}
+  function render(){const top=body.scrollTop;body.replaceChildren();panel.querySelector('h3').textContent=active==='places'?'Места мысли':'Мои инструменты';tabs.forEach((b,i)=>{const selected=active===(i?'tools':'places');b.setAttribute('aria-selected',String(selected));b.tabIndex=selected?0:-1;});body.setAttribute('aria-labelledby','sc-studio-'+active);if(active==='places')renderPlaces();else renderTools();body.scrollTop=top;renderStatus();scene.invalidate();}
+  root.addEventListener('pointerdown',e=>{if(busy&&!panel.contains(e.target)){cancel();notice='Возвращение прервано вашим действием.';renderStatus();}},{capture:true});
+  root.addEventListener('wheel',e=>{if(!e.target.closest('.sc-panel')){if(busy){cancel();notice='Возвращение прервано вашим действием.';renderStatus();}schedule();}},{passive:true});
+  root.addEventListener('keydown',e=>{if(busy&&!panel.contains(e.target)&&!['Tab','Shift','Control','Meta','Alt'].includes(e.key)){cancel();notice='Возвращение прервано вашим действием.';renderStatus();}},{capture:true});
+  root.addEventListener('pointerup',schedule,{passive:true});root.addEventListener('keyup',schedule,{passive:true});
+  window.addEventListener('pagehide',()=>{clearTimeout(timer);saveResume();cancel();});document.addEventListener('visibilitychange',()=>{if(document.hidden)saveResume();});
+  refreshIcons();
+  return {
+    selectionChanged(){if(!applying&&scene.port.packet!==lastPacket){if(busy)cancel();lastPacket=scene.port.packet;}schedule();},
+    async start(){
+      let resume=null;try{if(storage)resume=readResume(storage,initialRoute);}catch(error){autoSave=false;report(error);}
+      if(resume){const restored=await restore(resume,{initial:true});started=true;if(restored){void scene.ui.start({skipScene:true});schedule();return true;}autoSave=false;show();}
+      started=true;void scene.ui.start();return false;
+    },
+  };
+}

@@ -1,3 +1,4 @@
+import {createReadingMemory} from './reading-state.mjs';
 import {KnowledgeClient,RequestSlots,RevisionError,localized} from './knowledge-client.mjs';
 import {createToSQueryOperations} from '../query-operations';
 import {pathAvailable,pathSearchSpec,explorationQuery,loadPaths} from './navigation-model.mjs';
@@ -17,7 +18,8 @@ export function createNavigationPanel(root,scene,panels,{selected,commit,onUserA
   panel.innerHTML='<div class="sc-panel-top"><span class="sc-eyebrow">АТЛАС ПЕРЕХОДОВ</span><button type="button" class="sc-icon sc-nav-close" aria-label="Закрыть маршруты"><i data-lucide="x" aria-hidden="true"></i></button></div><div class="sc-nav-heading"><span aria-hidden="true">⟡</span><h3>Продолжить мысль</h3></div><div class="sc-nav-tabs" role="tablist" aria-label="Способ исследования"></div><div class="sc-nav-body" id="sc-nav-body" role="tabpanel" tabindex="0"></div><div class="sc-nav-status" role="status"></div><div class="sc-nav-footer"></div>';
   root.append(panel);
   const body=panel.querySelector('.sc-nav-body'),status=panel.querySelector('.sc-nav-status'),footer=panel.querySelector('.sc-nav-footer');
-  function cancel(){ticket++;requests.cancelAll();clearTimeout(searchTimer);busy=false;}
+  const reading=createReadingMemory(body);
+  function cancel(){reading.capture();ticket++;requests.cancelAll();clearTimeout(searchTimer);busy=false;}
   panels.register('navigation',panel,cancel);
   const opener=button('',()=>{onUserAction();open();},'sc-control sc-navigation-open');opener.setAttribute('aria-label','Связи и маршруты');
   opener.innerHTML='<i data-lucide="route" aria-hidden="true"></i><span>Маршруты</span>';
@@ -162,6 +164,7 @@ export function createNavigationPanel(root,scene,panels,{selected,commit,onUserA
     });body.append(list);
   }
   function render(){
+    reading.capture();reading.enter(JSON.stringify([revision,focus?.id,mode,index]));
     tabs.forEach((tab,i)=>{const active=mode===(i?'paths':'neighbors');tab.setAttribute('aria-selected',String(active));tab.tabIndex=active?0:-1;});
     body.setAttribute('aria-labelledby','sc-nav-tab-'+mode);body.setAttribute('aria-busy',String(busy));body.replaceChildren();
     if(mode==='paths')renderPaths();else renderNeighbors();
@@ -169,7 +172,7 @@ export function createNavigationPanel(root,scene,panels,{selected,commit,onUserA
     footer.replaceChildren();
     if(bookmark){footer.append(button('↶ К исходному виду',()=>{onUserAction();const saved=bookmark;bookmark=null;panels.close('navigation');applying=true;try{scene.port.restoreView(saved);}finally{applying=false;}},'sc-nav-return'));}
     else footer.append(el('span','От звезды — к созвездию'));
-    scene.invalidate();
+    reading.restore();scene.invalidate();
   }
   async function fromCard({raw,kind,tab}){
     fresh();if(!bookmark)bookmark=scene.port.captureView();open(tab||'paths');
@@ -205,6 +208,7 @@ export function createNavigationPanel(root,scene,panels,{selected,commit,onUserA
     direction=input.direction||'outgoing';maxDepth=Number(input.max_depth)||6;alternativeLimit=Number(input.alternative_limit)||3;
     return find(signal);
   }
+  panels.configure('navigation',{onResume:()=>{reading.restore();render();}});
   refreshIcons();window.addEventListener('pagehide',cancel);
   return {selectionChanged,get startId(){return start?.id||null;},handlers:{
     'tos.page.start-path':()=>{const raw=current();if(!pathAvailable(raw))throw new Error('Выберите звезду философского графа.');fresh();if(!bookmark)bookmark=scene.port.captureView();start=raw;end=null;result=null;excluded=[];open('paths');return {path_start_node_id:start.id};},

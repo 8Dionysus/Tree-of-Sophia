@@ -56,7 +56,7 @@ CSP is required.
   retain that side; mobile sheets retain their bottom placement. This changes
   neither the camera nor the painter.
   Registering another panel does not change the camera or painter. This is a local
-  UI seam; integration with the backend UI constructor remains a later slice.
+  UI seam shared by evidence, navigation and the lens constructor.
 - `navigation-panel.mjs` presents paged connections, start/end selection, bounded
   alternative paths, temporary query exclusions, and a return to the starting
   camera/view. An exploration page keeps its own schema and query provenance;
@@ -76,6 +76,31 @@ CSP is required.
   exploration but do not yet have a path-between-two-objects backend contract.
   Query exclusions stay in this panel; they do not edit the graph or the local
   research journal. Saved route comparisons remain a later integration slice.
+- `lens-panel.mjs` adds the constructor under **Линзы → Конструктор линз**.
+  It selects roots from the original area, an exact focused star, or the whole
+  tree, with source, text, kind, predicate, direction and depth controls. All
+  vocabulary comes from the live catalog and LensSpec schema. Root filters do
+  not masquerade as conditions on traversal context; the preview distinguishes
+  selected roots, returned context and truncation.
+- `lens-model.mjs` compiles these controls through the existing lens API, bounded
+  to 40 nodes, 80 relations and depth 3. Changes compile after a 400ms pause
+  and update the scene directly, retaining camera pose and established star
+  positions. The status shows applied counts or explains an unchanged result.
+  Closing, changing conditions or changing the area invalidates pending work. Empty results and failures keep the graph.
+  The original-view action restores its scene and camera bookmark.
+  Up to 12 definitions are saved under a separate browser-local storage key,
+  updated by name. URL links carry validated conditions and exact original-area
+  IDs, not data snapshots or authority; reopening recompiles current data.
+  Arbitrary backend LensSpecs, server persistence and paginated custom-lens
+  expansion are outside this first constructor slice.
+- `lens-vocabulary.mjs` groups choices by advertised registry roles and relation
+  definitions, filters them by exact source mappings, and sorts readable labels
+  or catalog-wide frequency. Groups start collapsed and share one panel scroll;
+  search or existing selections open their groups. Selected
+  filters outside the current sources remain visible and removable; unknown
+  mappings remain discoverable. This is presentation, not a new semantic registry.
+  Search spans all groups; longer groups reveal further choices without losing
+  selection. Changing the vocabulary list never silently changes the query.
 - `webmcp.ts` can restrict registration to commands implemented by the active
   shell. IDs, source references and deep links are returned intact. Legacy
   saved path comparison remains on compatibility routes. Path start/find,
@@ -167,3 +192,94 @@ selection/inspection and exploration continuation. This does not renew physical
 trackpad acceptance, prove atomicity of the legacy evidence/path endpoints, or
 establish production performance. Cold local graph construction remains slow;
 CI, clean release/archive validation and deployment are separate gates.
+
+## Lens constructor verification (2026-09-05)
+
+71 frontend tests, TypeScript, Vite, 110 access tests and standalone source
+validation passed. The live backend advertised 7 sources, 79 node kinds and
+115 predicates. Real HTTP checks covered exact area roots, global source/kind
+filtering (10 displayed of 40 selected works), empty results and focus traversal.
+Browser checks covered preview without changing the graph, apply and return
+with identical camera pose, saved-definition selection, link reload, empty
+results, actual offline failure and retry, and closing during a delayed apply.
+The latter retained the previous graph. At 390×844 the sheet measured
+360×354.48 with a 195.48px scrolling body and no horizontal page overflow.
+The scene changed only to pass an initial lens link; camera, gestures, painter
+and scene styling remain unchanged. Browser context includes the custom lens
+sources, active predicates and full deep link. Saved links recompile current
+data; they are not frozen research snapshots. CI, production deployment,
+large-corpus performance profiling and physical gesture acceptance were not
+performed in this slice.
+
+## Lens interaction correction (2026-09-05)
+
+Operator feedback rejected the original two-step count-preview/apply flow as
+unresponsive. Conditions now update the actual graph after a short pause, with
+explicit same-composition and empty-result messages. Technical and substantive
+choices are grouped using the backend registry. The prior slice's two-step
+interaction is superseded; its camera, budget and source-ownership boundaries
+remain. Validation for this correction is recorded in the task's commit review.
+
+## Reading continuity and personal space (2026-09-05)
+
+The next UI slice builds on the live lens constructor at `6440248cf`:
+
+- `reading-state.mjs` keeps bounded page-local reading positions by exact object,
+  source revision and section. It restores expanded references and a text anchor
+  after tab changes or asynchronous content arrival. The panel host captures before
+  hiding a surface. A contextual return trail goes from sources to evidence and
+  back to the selected card; another graph/selection cannot reuse that trail.
+- The registered panel host supports remembered window sizes, pointer and keyboard
+  resizing, and automatic/left/right docking. The scene stays dominant: desktop
+  sheets are limited to 48% width and mobile sheets to 42dvh. Long descriptions
+  and available source text use a readable serif measure, with a larger-text option.
+  This does not manufacture full text when the owner API only provides metadata
+  and source links. External source links keep their existing explicit routes.
+- `scene-feedback.mjs` marks additions briefly and differentiates selector/focus
+  from traversal/endpoint inclusion using the advertised query-execution evidence.
+  These cues describe inclusion in a view, not truth or semantic importance.
+  Existing ID-based positions survive changes; the GPU painter is unchanged.
+- `place-model.mjs` and `view-state.mjs` store at most 12 named places: bounded
+  query/draft, opaque identities, layout and camera, selection, and card section.
+  They never persist source packets or resumable exploration cursors. Reopening
+  always makes a fresh validated read; changed source revisions are reported.
+  An exploration page saves its visible IDs as a bounded view, not its traversal
+  continuation. Empty or failed reads leave the current scene in place.
+- `studio.mjs` adds **Моё пространство → Места / Инструменты**. The last view is
+  remembered locally and restored on a matching URL or home; an explicit different
+  deep link takes precedence. Named places support update, removal and immediate
+  undo. Storage failures remain visible and do not replace a damaged place list.
+- `interface-model.mjs` restricts composition to the registered local adapters.
+  Search, lenses, research, navigation, lens constructor, evidence and sources can
+  be pinned and reordered; all remain available in the tool list. Preferences
+  contain no executable code, service endpoints or additional write authority.
+  Existing WebMCP and backend action contracts remain the execution boundary.
+
+Camera changes in this slice are limited to the validated saved-view bridge,
+initial-load sequencing, and card-section/read-position restoration. Accepted
+wheel/pinch/pan gains, projection and GPU painting remain the baseline. New
+visual arrival effects respect reduced motion. Small-screen connection lists,
+previously hidden by prototype CSS, are available again. Resize grips support
+arrows and Home; tabs retain roving keyboard focus.
+
+Verification for this slice is local. Physical device feel, cross-device account
+sync, arbitrary remote panel plugins and production rollout are separate scopes.
+
+Validation: 84 frontend tests, TypeScript, Vite build, and the `standalone_access`
+lane (110 tests plus source-profile validation) passed. Browser checks covered
+named-place save/open, exact desktop and mobile camera restoration after reload,
+reading return (636px to 636px), resize controls and keyboard arrows, tool pinning,
+docking and text preferences, offline failure/retry, and closing a delayed read.
+Twenty repeated studio open/tab/close cycles retained the camera and graph.
+At 390x844 the sheet measured 360x354.48 without horizontal page overflow; reduced
+motion held the background clock still. Actual custom views at 10 and 40 nodes
+showed the corresponding inclusion marks. One 40-node/25-relation sample measured
+2.80ms drawing and 22.40ms frame intervals under concurrent host load. This is a
+bounded responsiveness check, not sustained 60fps or whole-corpus profiling.
+
+The operator rejected the persistent inclusion diamonds. Inclusion now uses a
+subtle warm halo for matched/focus nodes and a quieter cool halo for context.
+A bounded explanation appears on hover or keyboard focus, is linked through
+`aria-describedby`, and can be dismissed with Escape or a scene gesture. Tooltip
+placement is measured on opening only; it follows the existing node transform.
+The painter, camera and gesture handlers are unchanged by this presentation fix.

@@ -29,21 +29,21 @@
     "metric": "whitespace_tokens_v1",
     "posture": "summary_first_records_on_demand",
     "record_loading": "machine readers may select records by family_id or path; do not load the full carrier into an always-on prompt",
-    "tracked_surface_count": 3511,
+    "tracked_surface_count": 3765,
     "unhandled_family_count": 0
   },
   "coverage": {
     "excluded_generated_carrier_rules": 3,
-    "excluded_tracked_path_count": 625,
+    "excluded_tracked_path_count": 658,
     "human_scope": {
-      "bytes": 4850511,
-      "count": 952,
+      "bytes": 5159850,
+      "count": 978,
       "excluded_skill_launch_metadata": 25,
       "family_counts": {
         "access": {
-          "bytes": 67311,
+          "bytes": 84419,
           "count": 8,
-          "lines": 1127
+          "lines": 1372
         },
         "agents-other": {
           "bytes": 17683,
@@ -56,9 +56,9 @@
           "lines": 6530
         },
         "docs": {
-          "bytes": 504086,
-          "count": 68,
-          "lines": 8254
+          "bytes": 517340,
+          "count": 70,
+          "lines": 8460
         },
         "evals": {
           "bytes": 3954,
@@ -81,9 +81,9 @@
           "lines": 49
         },
         "mechanics": {
-          "bytes": 151128,
+          "bytes": 199516,
           "count": 155,
-          "lines": 3877
+          "lines": 4625
         },
         "memo": {
           "bytes": 4538,
@@ -96,14 +96,14 @@
           "lines": 202
         },
         "root": {
-          "bytes": 174721,
+          "bytes": 174884,
           "count": 14,
-          "lines": 3016
+          "lines": 3018
         },
         "scripts": {
-          "bytes": 7094,
+          "bytes": 7296,
           "count": 2,
-          "lines": 128
+          "lines": 130
         },
         "stats": {
           "bytes": 4561,
@@ -116,20 +116,20 @@
           "lines": 55
         },
         "tos": {
-          "bytes": 3550036,
-          "count": 546,
-          "lines": 60832
+          "bytes": 3780260,
+          "count": 570,
+          "lines": 63946
         }
       },
-      "lines": 85221
+      "lines": 89538
     },
     "surface_kind_counts": {
-      "executable": 220,
-      "human": 977,
-      "structured": 2314
+      "executable": 233,
+      "human": 1003,
+      "structured": 2529
     },
-    "tracked_path_count": 4136,
-    "tracked_surface_count": 3511,
+    "tracked_path_count": 4423,
+    "tracked_surface_count": 3765,
     "unhandled_family_count": 0,
     "unhandled_paths": []
   },
@@ -139,7 +139,7 @@
       "surface_kind_counts": {
         "human": 14
       },
-      "tracked_surface_bytes": 174721,
+      "tracked_surface_bytes": 174884,
       "tracked_surface_count": 14
     },
     {
@@ -158,7 +158,7 @@
         "human": 5,
         "structured": 3
       },
-      "tracked_surface_bytes": 166587,
+      "tracked_surface_bytes": 166592,
       "tracked_surface_count": 8
     },
     {
@@ -173,11 +173,11 @@
       "family_id": "tos",
       "surface_kind_counts": {
         "executable": 4,
-        "human": 546,
-        "structured": 2230
+        "human": 570,
+        "structured": 2445
       },
-      "tracked_surface_bytes": 215634836,
-      "tracked_surface_count": 2780
+      "tracked_surface_bytes": 219280654,
+      "tracked_surface_count": 3019
     },
     {
       "family_id": "access",
@@ -186,17 +186,17 @@
         "human": 8,
         "structured": 22
       },
-      "tracked_surface_bytes": 1019864,
+      "tracked_surface_bytes": 1118945,
       "tracked_surface_count": 60
     },
     {
       "family_id": "docs",
       "surface_kind_counts": {
-        "human": 68,
+        "human": 70,
         "structured": 6
       },
-      "tracked_surface_bytes": 775165,
-      "tracked_surface_count": 74
+      "tracked_surface_bytes": 801182,
+      "tracked_surface_count": 76
     },
     {
       "family_id": "evals",
@@ -227,21 +227,21 @@
     {
       "family_id": "mechanics",
       "surface_kind_counts": {
-        "executable": 15,
+        "executable": 26,
         "human": 155,
         "structured": 33
       },
-      "tracked_surface_bytes": 395863,
-      "tracked_surface_count": 203
+      "tracked_surface_bytes": 832348,
+      "tracked_surface_count": 214
     },
     {
       "family_id": "scripts",
       "surface_kind_counts": {
-        "executable": 106,
+        "executable": 108,
         "human": 2
       },
-      "tracked_surface_bytes": 3640994,
-      "tracked_surface_count": 108
+      "tracked_surface_bytes": 3699826,
+      "tracked_surface_count": 110
     },
     {
       "family_id": "tests",
@@ -250,7 +250,7 @@
         "human": 2,
         "structured": 1
       },
-      "tracked_surface_bytes": 1347337,
+      "tracked_surface_bytes": 1441004,
       "tracked_surface_count": 62
     },
     {
@@ -285,7 +285,7 @@
   "source_map": "docs/validation/documentation_family_map.json",
   "source_map_sha256": "d70a5059be9cc7547289e4c8be380d23b3aeb9e53bb10e4cb82abf2177ea0896",
   "tracked_source": "git ls-files -z",
-  "tracked_surface_digest": "7343f392fee939536c1fccd18f98441390cf8cd7dfd386ce1302c89737c1e504",
+  "tracked_surface_digest": "f1fdb71bf3a02c75521fdbab3f2baae73527eed76b3ae6c9d52572e4b73ccc4d",
   "tracked_surfaces": [
     {
       "bytes": 1489,
@@ -328,11 +328,11 @@
       "surface_kind": "structured"
     },
     {
-      "bytes": 86864,
+      "bytes": 86869,
       "currentness": "tracked_source_snapshot",
       "family_id": "agents-other",
       "path": ".agents/agents-route.current.json",
-      "sha256": "07deef6e6eefe36241fbe64f3564000eaa17333d5c8232fde6d8b48c34a32f8c",
+      "sha256": "b7e3ab9b41d1ed6e45d9ffef622a5f531a87160bea77b2b4b4f3dd7bdf0bbe06",
       "surface_kind": "structured"
     },
     {
@@ -1680,11 +1680,11 @@
       "surface_kind": "human"
     },
     {
-      "bytes": 6667,
+      "bytes": 6830,
       "currentness": "tracked_source_snapshot",
       "family_id": "root",
       "path": "AGENTS.md",
-      "sha256": "c8abb30137d4391f94500d7b54f760ac56abfb602b325a5ce98b82a271d4280b",
+      "sha256": "75a692a21ed0e6f3753dd951e6b54bc780af6a8680daec34a34eca7e935bf323",
       "surface_kind": "human"
     },
     {
@@ -2976,11 +2976,11 @@
       "surface_kind": "human"
     },
     {
-      "bytes": 42574,
+      "bytes": 43070,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/contracts/CORPUS_CONTRACTS.md",
-      "sha256": "d268cfadfd22f12b6bdc6a34c20a0929ebb724078f209d583d7429c03b324be5",
+      "sha256": "65d7f04fbaa72002581be7674251dc8a68179d406b977bfaf3c5537c8cbc8a2e",
       "surface_kind": "human"
     },
     {
@@ -3048,11 +3048,11 @@
       "surface_kind": "structured"
     },
     {
-      "bytes": 5748,
+      "bytes": 7003,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/contracts/corpus-record.schema.json",
-      "sha256": "2f319b7bb1fe146d42422685e5d3c727aa2cde539919c18ff6d6ac4f9b1a6019",
+      "sha256": "baccf59bc5c6ffd1560848610ac812751d1e5182c89658814eeb2eedde4b6db1",
       "surface_kind": "structured"
     },
     {
@@ -3069,6 +3069,14 @@
       "family_id": "tos",
       "path": "ToS/contracts/critical-edition-witness-admission.schema.json",
       "sha256": "a05e3b7503f259be9b75e6d7dc980825ed631909b7207212e337750666fd919b",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1169,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/contracts/document-record.schema.json",
+      "sha256": "2075e4bfbe0d9acd75af51920ca5ac043b667316650494daebd65c31a862e481",
       "surface_kind": "structured"
     },
     {
@@ -3173,6 +3181,102 @@
       "family_id": "tos",
       "path": "ToS/contracts/hierarchical-target-numbered-unit-page-map.schema.json",
       "sha256": "15460cd8b6db0d6367c5ba3da7ec449d32767c2b6619fb34155461de1e0a2c7e",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 7584,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/contracts/historical-claim.schema.json",
+      "sha256": "c64323ceb75498e98b58b661b602cbebad4a4e61b72ed8f5f9973cad75d13236",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3705,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/contracts/historical-record.schema.json",
+      "sha256": "252cffe61616fd258254b71f42872ee2c8b9446901bd4383e47d21bf4e1376c2",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 5748,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/contracts/history/2f319b7bb1fe146d42422685e5d3c727aa2cde539919c18ff6d6ac4f9b1a6019.json",
+      "sha256": "2f319b7bb1fe146d42422685e5d3c727aa2cde539919c18ff6d6ac4f9b1a6019",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1733,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/contracts/history/README.md",
+      "sha256": "b54bc90121adc63c0f99f33d95aa14848c217e0c9255d5a65eede2697b1ff637",
+      "surface_kind": "human"
+    },
+    {
+      "bytes": 2486,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/contracts/human-form-set.schema.json",
+      "sha256": "e2d5ea3dcb3c779466adcca2940165ec8def74f0bc2dd783666e5d08bf52aff2",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1527,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/contracts/human-form-template.schema.json",
+      "sha256": "558527b3c0de451a7210fe2c62503bc5ce9592bbf2d2390aba9a1b5f8ab4e91e",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 6119,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/contracts/human-form.schema.json",
+      "sha256": "784c9ea1253a5d12fa3010372759e87c42da309c10003024741d313604d5cd14",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 2011,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/contracts/knowledge-assessment-authority.schema.json",
+      "sha256": "8ae72f8e24ffba3bec8c7f4ff0d3c56d90e9e4f33b4795aabe217df3dd5e50cd",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3566,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/contracts/knowledge-assessment-batch.schema.json",
+      "sha256": "66144d009da2268001b356ba4ef39da09dc408e43b1edceee9c6a3c17ea924ea",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1586,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/contracts/knowledge-assessment-competence.schema.json",
+      "sha256": "b0f6466b7eb175b9c9b4f1e5f4df0f93c853d0ebc9acb5f3606fe052ede19cb1",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 2094,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/contracts/knowledge-assessment-policy.schema.json",
+      "sha256": "77d4956a4d9f6f5ea8a78a338a655d39957c9cbe0a5d425bab77ca3ad301b511",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3571,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/contracts/knowledge-assessment.schema.json",
+      "sha256": "83163d105944db9a54bd57a8e730c3d459a00239de0df65cb63ac18c305e60be",
       "surface_kind": "structured"
     },
     {
@@ -3544,11 +3648,11 @@
       "surface_kind": "structured"
     },
     {
-      "bytes": 4349,
+      "bytes": 6201,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/contracts/semantic-entity-type-registry.schema.json",
-      "sha256": "68ac8f98fa74eca31365ca172a0400ba19399819d21e501eac9c687481736361",
+      "sha256": "25554397df09e181b7b1977e13a27794f8f0c93278101fec35400dec96ba8cea",
       "surface_kind": "structured"
     },
     {
@@ -3560,11 +3664,11 @@
       "surface_kind": "structured"
     },
     {
-      "bytes": 5152,
+      "bytes": 6862,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/contracts/semantic-relation-type-registry.schema.json",
-      "sha256": "4a1088b3fda433b1bf232680e183539dbc9f8defb0a35ffb71ee674abfd6f6ad",
+      "sha256": "4c8a5cf3515dc2d48f2347a0640a78419b5ec1c029da4f536578e9a690661438",
       "surface_kind": "structured"
     },
     {
@@ -3597,6 +3701,14 @@
       "family_id": "tos",
       "path": "ToS/contracts/source-anchor.schema.json",
       "sha256": "6b493f99d06aa76e3254eb2cd3f46907969a3ad43416e100333ead20f6244e8c",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3538,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/contracts/source-claim-record.schema.json",
+      "sha256": "2c744903214248c4de29a17e1e21e67745cf838da46508cc05ec4dac6aa75430",
       "surface_kind": "structured"
     },
     {
@@ -3640,6 +3752,22 @@
       "surface_kind": "structured"
     },
     {
+      "bytes": 2463,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/contracts/source-metadata-record.schema.json",
+      "sha256": "14f8023f09c47bc82e409b1572c6491e1a841e0dcf72df4b105d707d05b0108b",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 604,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/contracts/source-relation-claim.schema.json",
+      "sha256": "14a7bbf923b30ced37953649cfced1b10069adb2f63266c56aea7f115318defe",
+      "surface_kind": "structured"
+    },
+    {
       "bytes": 7441,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
@@ -3664,19 +3792,19 @@
       "surface_kind": "structured"
     },
     {
-      "bytes": 13973,
+      "bytes": 14868,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/contracts/source-witness-bibliographic-graph.schema.json",
-      "sha256": "b5b0d51092bfbc9537c6d6dbd9c42e981a472f28e0dbaecfa10130ee6609e216",
+      "sha256": "af41495dcaf64dd6cf98b5c9e08eb499f48febce47d138d6b5ad03a2446a8298",
       "surface_kind": "structured"
     },
     {
-      "bytes": 8796,
+      "bytes": 11393,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/contracts/source-witness-catalog.schema.json",
-      "sha256": "881251d96225be2fe80ba2cab6f8663a310de801f7d3f5db645ea8b422dfa0e1",
+      "sha256": "c1cc929b365f7d1413e11b8f26f05509c1b7db1080b4350536a6915da681c5bd",
       "surface_kind": "structured"
     },
     {
@@ -3912,11 +4040,11 @@
       "surface_kind": "human"
     },
     {
-      "bytes": 4121930,
+      "bytes": 5749212,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/derived-exports/graph/source-witness-bibliographic-claims.min.json",
-      "sha256": "d66ce588ad556756107f336d1efd26efdb4e07e9991797cfb8abc173782495fa",
+      "sha256": "091985ba5f0fa1aed2c7f97a439234db09ccf476da72cc913de81234782e7fc2",
       "surface_kind": "structured"
     },
     {
@@ -3992,11 +4120,11 @@
       "surface_kind": "structured"
     },
     {
-      "bytes": 56704815,
+      "bytes": 57065680,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/derived-exports/tos_corpus_index.min.json",
-      "sha256": "a1296c7b6670985657dc06ee4e0f4792ab8b93bdaad907aa6e647685041c3148",
+      "sha256": "869f76640459c3b3230adc9215a4a841622b3674069f238b8d46824213823c5a",
       "surface_kind": "structured"
     },
     {
@@ -4048,11 +4176,11 @@
       "surface_kind": "human"
     },
     {
-      "bytes": 25998,
+      "bytes": 31693,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/doctrine/CORPUS_FOUNDATION.md",
-      "sha256": "5e0574e67b18356b3d467d0b1c4d668dafeb1b4553d4567b7f1fd37aba6b5a54",
+      "sha256": "1ed2eb501634915cc58d3828c88f3910acbbe4f0b8712a6c985f9c9f4a24be0e",
       "surface_kind": "human"
     },
     {
@@ -4072,6 +4200,22 @@
       "surface_kind": "human"
     },
     {
+      "bytes": 63871,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/doctrine/FOUNDATION_V1.md",
+      "sha256": "b7df323c976cad82437e1de303953ca6d9d85fd00e2283d05c2371ee1c354598",
+      "surface_kind": "human"
+    },
+    {
+      "bytes": 17412,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/doctrine/HUMAN_FORMS.md",
+      "sha256": "a4e9208821b14ade132e309ad9ee4381f0b6b89ae3e2ff1bb908f05a5d92628b",
+      "surface_kind": "human"
+    },
+    {
       "bytes": 1340,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
@@ -4080,11 +4224,19 @@
       "surface_kind": "human"
     },
     {
-      "bytes": 22927,
+      "bytes": 8178,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/doctrine/KNOWLEDGE_ASSESSMENT.md",
+      "sha256": "e503cfdcda400a2924967ebf6ad4d0d3816323269989024cccd0e2918427870f",
+      "surface_kind": "human"
+    },
+    {
+      "bytes": 23841,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/doctrine/KNOWLEDGE_MODEL.md",
-      "sha256": "fa735f25f4a221d3690498999198c52743b35b687103b92fb5b3c80991cf84d2",
+      "sha256": "2374b6ce31fb73732932d313a214f1241a9655a62d1fce630aba65c4c3ccf13e",
       "surface_kind": "human"
     },
     {
@@ -4096,11 +4248,11 @@
       "surface_kind": "human"
     },
     {
-      "bytes": 4152,
+      "bytes": 4564,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/doctrine/NODE_CONTRACT.md",
-      "sha256": "325c8b016e3acfe617163a3ce108f0d5b07787e9f19bc04d8ce18dcc4d8d9e79",
+      "sha256": "973f826f2f2d0b1f7ac91db1fe01765cc03234918c6d7d36e6564e503140cd91",
       "surface_kind": "human"
     },
     {
@@ -4168,27 +4320,35 @@
       "surface_kind": "human"
     },
     {
-      "bytes": 5144,
+      "bytes": 25619,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/doctrine/semantic-interchange/README.md",
-      "sha256": "e60fdbab2ec947129dde5d839367a5f6a098aa2272e4bab30a22067ba272331d",
+      "sha256": "b6d71fa8e596578291124f6cd414dc493895a598555b8adcd72c1879d3ab8886",
       "surface_kind": "human"
     },
     {
-      "bytes": 55223,
+      "bytes": 3638,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
-      "path": "ToS/doctrine/semantic-interchange/entity-types.v1.json",
-      "sha256": "1eef02159690fac005345a2a5c1f00a7918f3d7b59b9326935832b79f0ea34c6",
+      "path": "ToS/doctrine/semantic-interchange/assessment-policy.v1.json",
+      "sha256": "6cde2acad54c3922443b77a1afb085fec63a034cd95a631facdb839187f420b6",
       "surface_kind": "structured"
     },
     {
-      "bytes": 108173,
+      "bytes": 65587,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/doctrine/semantic-interchange/entity-types.v1.json",
+      "sha256": "198f6d7898d0f82209b2e37a31c5e2055037b39e7632139874a3f25d6f9ffed9",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 123774,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/doctrine/semantic-interchange/relation-types.v1.json",
-      "sha256": "c0627d344e0a1a7a7eb096b2c9ee98ab2d3e615b13c8799128ef138a90227620",
+      "sha256": "23f7419ef61bf235e8ba943f792aeacbdca6185ac8fc4697c8f4d6786233a56d",
       "surface_kind": "structured"
     },
     {
@@ -15896,11 +16056,27 @@
       "surface_kind": "human"
     },
     {
+      "bytes": 3195,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/research-packets/foundation-laboratory-2026-07/JENSEITS_1886_HISTORICAL_EPISODE_RESEARCH.md",
+      "sha256": "d42bd276dc0b323e98283fa7f8e7514ed9267212aa2a5352ba9da54256e475b2",
+      "surface_kind": "human"
+    },
+    {
       "bytes": 20800,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/research-packets/foundation-laboratory-2026-07/JENSEITS_1886_IA_GOOGLE_HARVARD_LAYERED_RIGHTS_ASSESSMENT.md",
       "sha256": "263a5b9f4bb80b1188626eb66c78ad25fd23b74bab39f9a7dcbe9baf3a319842",
+      "surface_kind": "human"
+    },
+    {
+      "bytes": 3758,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/research-packets/foundation-laboratory-2026-07/JENSEITS_1886_LETTER_705_SOURCE_READING_V1.md",
+      "sha256": "1b04b5277aa74df1b4697bcc4ad69eb13914bb576702c9be8367f46413f1d7ed",
       "surface_kind": "human"
     },
     {
@@ -18008,12 +18184,172 @@
       "surface_kind": "human"
     },
     {
+      "bytes": 5548,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/review-ledger/2026-09-07-claim-statement-forms.md",
+      "sha256": "35108eb096d6a2986351b93216dd044ef4f50e0bc83719d031a3a8565b40f2f2",
+      "surface_kind": "human"
+    },
+    {
+      "bytes": 3577,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/review-ledger/2026-09-07-declared-assessment-source-adapter.md",
+      "sha256": "0780a557760977f78b01c9f101390cf9b73550d3363e4b6c43a233444aecc1b0",
+      "surface_kind": "human"
+    },
+    {
+      "bytes": 4651,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/review-ledger/2026-09-07-declared-claim-creation.md",
+      "sha256": "f8a0d79bdfed705b83e31402dca5068395c03ceb3bd601301fc31c7e0caac7d5",
+      "surface_kind": "human"
+    },
+    {
+      "bytes": 4715,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/review-ledger/2026-09-07-declared-profile-source-creation.md",
+      "sha256": "605772cc74c34f3c5a80b07667a388ad6b64ad213e0e1941f2e971bbaa283792",
+      "surface_kind": "human"
+    },
+    {
+      "bytes": 6468,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/review-ledger/2026-09-07-declared-source-profile-readers.md",
+      "sha256": "6682aa064e9a970832ebf8bbbbd67223d8bb3018f58096a4b817e392c954ae40",
+      "surface_kind": "human"
+    },
+    {
+      "bytes": 6375,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/review-ledger/2026-09-07-document-claim-profiles.md",
+      "sha256": "1af44bc79e17e5490da56a36398174cdf2ccadfe5c6d584a548ba9796b37effc",
+      "surface_kind": "human"
+    },
+    {
+      "bytes": 2709,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/review-ledger/2026-09-07-historical-contract-inputs.md",
+      "sha256": "99508e854be9ccaac6e02b2347699e3e9eed0a5b6e05d1da879f9b3261c1621a",
+      "surface_kind": "human"
+    },
+    {
+      "bytes": 12359,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/review-ledger/2026-09-07-historical-source-creation.md",
+      "sha256": "c7a326e33f7c4d971e42766d8e57d78f01755d6573ded2df322c011491dfebaf",
+      "surface_kind": "human"
+    },
+    {
+      "bytes": 6661,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/review-ledger/2026-09-07-indexed-inspection.md",
+      "sha256": "38aac189531d18f0291c0816e96e462972f7113845598997da2f8c65a6992e3c",
+      "surface_kind": "human"
+    },
+    {
+      "bytes": 4337,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/review-ledger/2026-09-07-letter-705-claim-creation.md",
+      "sha256": "f98c73c08bad4305780e7e887e62321c96eca5b92ac426e78482921feaf463f9",
+      "surface_kind": "human"
+    },
+    {
+      "bytes": 4632,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/review-ledger/2026-09-07-letter-705-source-creation.md",
+      "sha256": "9445b4ed9b8d510831dcface379b44ba3f177d3f77da4afb8cf634ee418fcb52",
+      "surface_kind": "human"
+    },
+    {
+      "bytes": 7623,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/review-ledger/2026-09-07-native-identity-creation.md",
+      "sha256": "505699287a9360e672d4447f1b5725b793e0ab014ab9eb90688d2c0d67232aae",
+      "surface_kind": "human"
+    },
+    {
+      "bytes": 5810,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/review-ledger/2026-09-07-normalization-revision-codec.md",
+      "sha256": "c42e4e904c367bee254c1d61ebfb4e8cbecee2a5a0684554d065861d6ef94bc7",
+      "surface_kind": "human"
+    },
+    {
+      "bytes": 3407,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/review-ledger/2026-09-07-overview-provenance-boundary.md",
+      "sha256": "a1d63b986f630516a519c6bdb6cee8b4a21c6e9569b021c78af6c1dc6fc617fc",
+      "surface_kind": "human"
+    },
+    {
+      "bytes": 8237,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/review-ledger/2026-09-07-physical-artifact-reader.md",
+      "sha256": "bd50c0bcea7b2be9051813fa5cbc728cc575229c8784469876bb0c59cb39b0eb",
+      "surface_kind": "human"
+    },
+    {
+      "bytes": 2450,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/review-ledger/2026-09-07-source-field-languages.md",
+      "sha256": "10e07550b52c17f3115761567d324843858ba035c860bf8685ad6b194256884f",
+      "surface_kind": "human"
+    },
+    {
+      "bytes": 109778,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/review-ledger/2026-09-07-source-metadata-forms-migration.json",
+      "sha256": "a0162c4be816cb062e0eca07c538bdada82a743ebef7ee376a73aa159058d8aa",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 7094,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/review-ledger/2026-09-07-source-metadata-forms-migration.md",
+      "sha256": "89fdbeac2a71ce065c4ad6852d7060ba0d0f5e49912d89cfe2018dced11bda42",
+      "surface_kind": "human"
+    },
+    {
+      "bytes": 7334,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/review-ledger/2026-09-07-source-record-revisions.md",
+      "sha256": "64d26fbbe6e96ac7a873cfb8afb736b0b7234d6736e3865f1b32101cc0541fb3",
+      "surface_kind": "human"
+    },
+    {
       "bytes": 1285,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/review-ledger/AGENTS.md",
       "sha256": "9cb76c7834f483401c7092be2074f1a08ee45e6ff2941ece3546de0b777babc1",
       "surface_kind": "human"
+    },
+    {
+      "bytes": 2175,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/.record-revisions/ac9cc78d41d05c3e41695ff972cc9885ba985a7dc0499cd58d9ff5b5efc5c3ca-faec2c379d51938d44a4ea73fea63797a6e029997d976ad4ecefd7e93cc1a717/manifest.json",
+      "sha256": "f200caea39bee3f829c0566b765413bee8a7e0f14607f015e296adbdb04a4025",
+      "surface_kind": "structured"
     },
     {
       "bytes": 6242,
@@ -18032,11 +18368,11 @@
       "surface_kind": "human"
     },
     {
-      "bytes": 82650,
+      "bytes": 82748,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/source-witnesses/README.md",
-      "sha256": "0a4fd36249eb975ba9c08ac6a64153af4f0e44a5d5eeb6d9152f3b2300355d45",
+      "sha256": "f3b264a4e0e26fca19634a9a294eb85b896af33e943d825b462178e7619098b3",
       "surface_kind": "human"
     },
     {
@@ -18200,11 +18536,27 @@
       "surface_kind": "human"
     },
     {
+      "bytes": 6972,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/agents/agnete-wisti-lassen/agent.human-forms.json",
+      "sha256": "560b03570fb293d743fb151893ca1dbef5c7462311c858d2c6665e7616996b5c",
+      "surface_kind": "structured"
+    },
+    {
       "bytes": 1217,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/source-witnesses/agents/agnete-wisti-lassen/agent.json",
       "sha256": "f3f92d3199eeb708d5c04e657e2591f3059eeb076db4e1b1d1d071b75c30ffe8",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 6954,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/agents/albert-tobias-clay/agent.human-forms.json",
+      "sha256": "7b83ca5a22a074c9ba9b5a99165bd8b7f9774935f13c93952d115cefd4906557",
       "surface_kind": "structured"
     },
     {
@@ -18216,11 +18568,27 @@
       "surface_kind": "structured"
     },
     {
+      "bytes": 6900,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/agents/andrew-r-george/agent.human-forms.json",
+      "sha256": "8e71d523ef923c30b8809e2ec45a7815e54aaa989f890e65dbd4039a13f11b00",
+      "surface_kind": "structured"
+    },
+    {
       "bytes": 1407,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/source-witnesses/agents/andrew-r-george/agent.json",
       "sha256": "08b8a3f0320af52bb450c4c6f64e6b99dffe7f65447721b299c91200bcc033e1",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 6846,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/agents/bendt-alster/agent.human-forms.json",
+      "sha256": "f8410f5d83d182dc5622f0a1da943cc3d462cfcadbf55db635fade9e6bcb968e",
       "surface_kind": "structured"
     },
     {
@@ -18232,11 +18600,27 @@
       "surface_kind": "structured"
     },
     {
+      "bytes": 7062,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/agents/charles-wycliffe-goodwin/agent.human-forms.json",
+      "sha256": "c2f6e6436108a9d09b025ca1683b9470ac80f2f7afdd14655f011c2fca1b2b59",
+      "surface_kind": "structured"
+    },
+    {
       "bytes": 1178,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/source-witnesses/agents/charles-wycliffe-goodwin/agent.json",
       "sha256": "ef233daa3364656abd03f440eeeeb070076db5b042e13fcc2a91a3857b7c796c",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 4314,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/agents/claus-wilcke/agent.human-forms.json",
+      "sha256": "465d8a74198b7e5d5d017b09362ae92ff520546b4ffdfd8068513dc92a347106",
       "surface_kind": "structured"
     },
     {
@@ -18248,11 +18632,67 @@
       "surface_kind": "structured"
     },
     {
+      "bytes": 3716,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/agents/constantin-georg-naumann/agent.human-forms.json",
+      "sha256": "4609772a94ce97afc0abc54990cb542b6054617afd6f4a4336a01f38cc8fdd45",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1545,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/agents/constantin-georg-naumann/agent.json",
+      "sha256": "679a76196ee51d2077e010059ae7fd59ddd407d4ea9d979460ffe3d70244d2be",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 244,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/agents/constantin-georg-naumann/source-create-environment.json",
+      "sha256": "0976562dbd82ac21a81cda5c4ccbb0b8c545c54bb686181fc225a32aed6170b3",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1414,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/agents/constantin-georg-naumann/source-create-receipt.json",
+      "sha256": "374d14f5deb551c5d2dc43172b6106d0b4eb8ec52ac9d8a3a828c0e83882c052",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 2012,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/agents/constantin-georg-naumann/source-create-request.json",
+      "sha256": "fe3cd8e30cd8935cc1ce30407af1ca61769ef44e78d3212e22541a88472f0f51",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 4446,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/agents/denise-schmandt-besserat/agent.human-forms.json",
+      "sha256": "8804d3d5988974aad235fe73c1a022cb0918aac01cfdabb2034e220851b65266",
+      "surface_kind": "structured"
+    },
+    {
       "bytes": 1039,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/source-witnesses/agents/denise-schmandt-besserat/agent.json",
       "sha256": "994a13037abd8df03fc35179edff9335f07dc4e47285d1b7d6f7304669872951",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 4314,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/agents/eckart-frahm/agent.human-forms.json",
+      "sha256": "efe556bdb5361587fb15192eb7954cbe5eab69ffdecbbc7cc18bcc5ab89ed4df",
       "surface_kind": "structured"
     },
     {
@@ -18264,11 +18704,27 @@
       "surface_kind": "structured"
     },
     {
+      "bytes": 4336,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/agents/eleanor-robson/agent.human-forms.json",
+      "sha256": "839d5175b5b94365eb043b9224657b2e2e8ff87e9b33dbf2036faf7810ee04ce",
+      "surface_kind": "structured"
+    },
+    {
       "bytes": 871,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/source-witnesses/agents/eleanor-robson/agent.json",
       "sha256": "c98faca3fab20e0ea33bf77d31861c7acba399b82fd70da5f5a33af20e4d7944",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 7045,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/agents/esther-fluckiger-hawker/agent.human-forms.json",
+      "sha256": "c555255c2cc2b00a0ecfb28c2cda1e1c57f30b84e60e4d6bfd6b951c582dcd8b",
       "surface_kind": "structured"
     },
     {
@@ -18280,11 +18736,27 @@
       "surface_kind": "structured"
     },
     {
+      "bytes": 6972,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/agents/friedrich-nietzsche/agent.human-forms.json",
+      "sha256": "25114a88356f09e04ec7d2aa538a8925109f4a3cc87cdcc9423b5657ee8e1c7d",
+      "surface_kind": "structured"
+    },
+    {
       "bytes": 1293,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/source-witnesses/agents/friedrich-nietzsche/agent.json",
       "sha256": "49352dc6ae11c5d0ba800e737a7a407b7813f3585850eacbeacd1fdf059f8aab",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 6865,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/agents/gabor-zolyomi/agent.human-forms.json",
+      "sha256": "670ca789c4b366187a8a1f9415372dd1fc142610f8c0f7bc4cf940888389098b",
       "surface_kind": "structured"
     },
     {
@@ -18296,11 +18768,27 @@
       "surface_kind": "structured"
     },
     {
+      "bytes": 4369,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/agents/graham-cunningham/agent.human-forms.json",
+      "sha256": "0ec42347fbe37d0c42c7118690275752464027dc2af6c6e80a0bff49bdac6917",
+      "surface_kind": "structured"
+    },
+    {
       "bytes": 872,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/source-witnesses/agents/graham-cunningham/agent.json",
       "sha256": "63231573cc2344522506ad77eebe6e632baef019c6add8027c67bbef4a25c8a1",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 6865,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/agents/hans-j-nissen/agent.human-forms.json",
+      "sha256": "d1588f21339c2f45b847230c6e79fbc913bb6f89a4a2280035e603aa5e6f1e0f",
       "surface_kind": "structured"
     },
     {
@@ -18312,11 +18800,27 @@
       "surface_kind": "structured"
     },
     {
+      "bytes": 6954,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/agents/harry-a-hoffner-jr/agent.human-forms.json",
+      "sha256": "a66ae6e3509f686c3fc9c4dec4bfede846d4c887259aceb713651302c2d15beb",
+      "surface_kind": "structured"
+    },
+    {
       "bytes": 1106,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/source-witnesses/agents/harry-a-hoffner-jr/agent.json",
       "sha256": "99d24e9a56b2df9cd6f51cfa40c19c457dfeb9317f59b3efa5ab89a08e48b9ae",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 4380,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/agents/henry-van-de-velde/agent.human-forms.json",
+      "sha256": "a3dbb48f51587d65516646700f6264c8ac64fe4e3d46cd3f03f33451cc09fe6b",
       "surface_kind": "structured"
     },
     {
@@ -18328,11 +18832,27 @@
       "surface_kind": "structured"
     },
     {
+      "bytes": 4325,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/agents/jana-matuszak/agent.human-forms.json",
+      "sha256": "434eaff987ce14105b976f62f4ebc2ae7b758f923d2ae3f4e3a63bc6efbb1c98",
+      "surface_kind": "structured"
+    },
+    {
       "bytes": 923,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/source-witnesses/agents/jana-matuszak/agent.json",
       "sha256": "f35823dc7c2dfa4a8b440d7a9d19242dbab0491a30590294f6085a3f2ce4c867",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 4325,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/agents/jarle-ebeling/agent.human-forms.json",
+      "sha256": "fc0c2297bf76888641f69c4e79b5e3064354b367a84dc5c9db10af81364ec93c",
       "surface_kind": "structured"
     },
     {
@@ -18344,11 +18864,27 @@
       "surface_kind": "structured"
     },
     {
+      "bytes": 4314,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/agents/jeremy-black/agent.human-forms.json",
+      "sha256": "ea44c1b58c74b0a8af0d12d48a2779f39bf5ca10007b3e78bc1060bcc191866e",
+      "surface_kind": "structured"
+    },
+    {
       "bytes": 890,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/source-witnesses/agents/jeremy-black/agent.json",
       "sha256": "b57351149b841d683aec7f34209eb28fda99ad95571bbc5191030552b4719c74",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 4292,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/agents/jon-taylor/agent.human-forms.json",
+      "sha256": "bab3b9a47b91e91ddf07ca614534f0102f6334d213780f45b22d995c10b1a959",
       "surface_kind": "structured"
     },
     {
@@ -18360,11 +18896,27 @@
       "surface_kind": "structured"
     },
     {
+      "bytes": 6828,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/agents/k-a-svasyan/agent.human-forms.json",
+      "sha256": "ea7d127e6d325376f4cdd4166e7cd67440f147762da1da30b485f7b549cd306c",
+      "surface_kind": "structured"
+    },
+    {
       "bytes": 1626,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/source-witnesses/agents/k-a-svasyan/agent.json",
       "sha256": "041f8136c79f65ba61c4887aff886de36eaee5319f16ab353907310e8a9a77e7",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 4391,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/agents/kathryn-erin-kelley/agent.human-forms.json",
+      "sha256": "e77b64f52abfa6dc66641496d03a8ec9055a4cbce331b5761be78ede37137f32",
       "surface_kind": "structured"
     },
     {
@@ -18376,11 +18928,27 @@
       "surface_kind": "structured"
     },
     {
+      "bytes": 4369,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/agents/klaus-wagensonner/agent.human-forms.json",
+      "sha256": "d9b7ddfd43ca12e71387b3cb51982d897c50da332c84be937958825cf96840d5",
+      "surface_kind": "structured"
+    },
+    {
       "bytes": 1026,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/source-witnesses/agents/klaus-wagensonner/agent.json",
       "sha256": "b6f295a86eb368487d8d69df8384d696586024b84c0477e5cdc696359065c739",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 4292,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/agents/logan-born/agent.human-forms.json",
+      "sha256": "c9bb57de161f48029e8793d28e28feafe33b48cf2fc227b343d1bfa8239c0a32",
       "surface_kind": "structured"
     },
     {
@@ -18392,11 +18960,27 @@
       "surface_kind": "structured"
     },
     {
+      "bytes": 6991,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/agents/madeleine-fitzgerald/agent.human-forms.json",
+      "sha256": "22ee4f473e2988e8dfd66fe29bf8df31ea8c855a742c35c497f980ee91fffa9a",
+      "surface_kind": "structured"
+    },
+    {
       "bytes": 1279,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/source-witnesses/agents/madeleine-fitzgerald/agent.json",
       "sha256": "48a96f332620940d0007eea799b88192ddcb46ff753ddabcbc32623d85d0a3c0",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 4358,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/agents/margaret-w-green/agent.human-forms.json",
+      "sha256": "272e5182269947c6d990ab7cf7da145a5064703b85be491643debb89f604ea0c",
       "surface_kind": "structured"
     },
     {
@@ -18408,11 +18992,27 @@
       "surface_kind": "structured"
     },
     {
+      "bytes": 6864,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/agents/martha-t-roth/agent.human-forms.json",
+      "sha256": "f09ebf9199a0f4b0b2bedc2f72ca237fc709970b1e9f9f11cdd7db96cf5cb1ba",
+      "surface_kind": "structured"
+    },
+    {
       "bytes": 1245,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/source-witnesses/agents/martha-t-roth/agent.json",
       "sha256": "105f3810d562cc978f2cbeae3c8526a6d2db5b212aa4f7bd68e61f3e4466540f",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 6936,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/agents/morris-jastrow-jr/agent.human-forms.json",
+      "sha256": "348ca4d5cffb9f311f6b785e5c14551af992c75974ce9e2b0502ff476ff777c3",
       "surface_kind": "structured"
     },
     {
@@ -18424,11 +19024,27 @@
       "surface_kind": "structured"
     },
     {
+      "bytes": 9303,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/agents/n-polilov/agent.human-forms.json",
+      "sha256": "48fc36e0251fbf097006258240af559fe665d7c9971c26cfa77772cd5a64a539",
+      "surface_kind": "structured"
+    },
+    {
       "bytes": 1874,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/source-witnesses/agents/n-polilov/agent.json",
       "sha256": "9259d5eba57399cb98a1c457410e94b61124bed5d1ed1dcf849f2851fe7f9f72",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 9403,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/agents/niek-veldhuis/agent.human-forms.json",
+      "sha256": "9ae68a94e5f177ca61515cf09f7074112d63aa807d1ef8074079d2803b1621a2",
       "surface_kind": "structured"
     },
     {
@@ -18440,11 +19056,27 @@
       "surface_kind": "structured"
     },
     {
+      "bytes": 6846,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/agents/paul-delnero/agent.human-forms.json",
+      "sha256": "9976dcf37b7f2802d0a282d93d9b4e99e49955f13f297d3092873718424d74c2",
+      "surface_kind": "structured"
+    },
+    {
       "bytes": 1275,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/source-witnesses/agents/paul-delnero/agent.json",
       "sha256": "456788adcf64c8b0ea9a7a66a6c1a15608ce772c166f8c511540f1cb5760be8a",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 4325,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/agents/peter-damerow/agent.human-forms.json",
+      "sha256": "946afffb435b720c4403dec6dfaaceee30fe47b8a13b03c847d8fbe9e337ec23",
       "surface_kind": "structured"
     },
     {
@@ -18456,11 +19088,27 @@
       "surface_kind": "structured"
     },
     {
+      "bytes": 4369,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/agents/piotr-michalowski/agent.human-forms.json",
+      "sha256": "1ca3afcf3040225eeffd00cb0d97fd318607b9df16b4aac4babeef8796ff0b78",
+      "surface_kind": "structured"
+    },
+    {
       "bytes": 870,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/source-witnesses/agents/piotr-michalowski/agent.json",
       "sha256": "3f6089fc36d45941ea28fb1deecce1ef16479d3402d598142ba083018dd3291d",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 4358,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/agents/rainer-m-boehmer/agent.human-forms.json",
+      "sha256": "5d129640794950b6a483ec12ff7862daebab2619eefeddd7d40e9ea579779b34",
       "surface_kind": "structured"
     },
     {
@@ -18472,11 +19120,27 @@
       "surface_kind": "structured"
     },
     {
+      "bytes": 4325,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/agents/raoul-richter/agent.human-forms.json",
+      "sha256": "e661926618d4bf66dd4e0387a7d96fb4d0c6c7e61f30728391afb781ee952dff",
+      "surface_kind": "structured"
+    },
+    {
       "bytes": 981,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/source-witnesses/agents/raoul-richter/agent.json",
       "sha256": "58a4db9b7185796eceb74b415733be1a44729457876c70d353aa6a73ea28152a",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 4358,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/agents/robert-k-englund/agent.human-forms.json",
+      "sha256": "8be7bf9c73b1cf782dc6f5b9d295fbff2aa60ddf7e2570e14f8f393f4c1e69b7",
       "surface_kind": "structured"
     },
     {
@@ -18488,11 +19152,27 @@
       "surface_kind": "structured"
     },
     {
+      "bytes": 6774,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/agents/s-p-nani/agent.human-forms.json",
+      "sha256": "e3a899f84be892ccdadaee68c9b5fcb20ea489f1bfb4b2c407e21f9f447c21a3",
+      "surface_kind": "structured"
+    },
+    {
       "bytes": 1359,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/source-witnesses/agents/s-p-nani/agent.json",
       "sha256": "e84f6959311e9121330b661d0051a6d0ab8bb358f829b25febb4b5dafe563e16",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 4380,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/agents/salvatore-f-monaco/agent.human-forms.json",
+      "sha256": "bccbc941ec1a5cce1457d4769a97d2e0c8c90a3e9e9391ce51867c73e627aafe",
       "surface_kind": "structured"
     },
     {
@@ -18504,6 +19184,14 @@
       "surface_kind": "structured"
     },
     {
+      "bytes": 6918,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/agents/stephen-j-tinney/agent.human-forms.json",
+      "sha256": "76e9479678764bef5cdd1d146d70a74dd918723482640077a16a6385f0d877af",
+      "surface_kind": "structured"
+    },
+    {
       "bytes": 1240,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
@@ -18512,11 +19200,27 @@
       "surface_kind": "structured"
     },
     {
+      "bytes": 6828,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/agents/v-a-flerova/agent.human-forms.json",
+      "sha256": "8e872d165577f20d214c078125f72adddea3b70f66005c58dd8516d41c8e8b63",
+      "surface_kind": "structured"
+    },
+    {
       "bytes": 1356,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/source-witnesses/agents/v-a-flerova/agent.json",
       "sha256": "7c5ab30db0992aa1b493469e82434c0f272075c54b468725a22bbf4131bd1699",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 14559,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/agents/yuliy-antonovsky/agent.human-forms.json",
+      "sha256": "a9b6668852b8eae8e9e3aa81bcdcc95012dd1281800a3b64e72f8f62775c6872",
       "surface_kind": "structured"
     },
     {
@@ -19064,11 +19768,11 @@
       "surface_kind": "human"
     },
     {
-      "bytes": 1447,
+      "bytes": 2070,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/source-witnesses/catalog/catalog.manifest.json",
-      "sha256": "16460091d28967adc553b04ecb9be48bd03534bb85c7d4747713e930f4931f4e",
+      "sha256": "b15c34f76afe685e2bf0c43744d28068c24a1ac2c896ee43116fe834a1f6651d",
       "surface_kind": "structured"
     },
     {
@@ -19080,11 +19784,27 @@
       "surface_kind": "human"
     },
     {
+      "bytes": 8034,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/collections/friedrich-nietzsche/nietzsches-werke-erste-abtheilung-band-viii-naumann-1906/collection.human-forms.json",
+      "sha256": "09cd022c73c28da454cccde957bfe1ed725fb17715127c0e420dfe6eb522c621",
+      "surface_kind": "structured"
+    },
+    {
       "bytes": 1610,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/source-witnesses/collections/friedrich-nietzsche/nietzsches-werke-erste-abtheilung-band-viii-naumann-1906/collection.json",
       "sha256": "85576c9048a06f2c6bd3a8657cdfd74784734944be64a685dd11b23c6a0a14ad",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 4952,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/collections/friedrich-nietzsche/nietzsches-werke-erste-abtheilung-band-viii-naumann-1906/editions/leipzig-c-g-naumann-1906/edition.human-forms.json",
+      "sha256": "adc332579eb04e1de2983fe50020f4f471da0a95214b763bb1ea4ee6f848cb84",
       "surface_kind": "structured"
     },
     {
@@ -19102,6 +19822,14 @@
       "path": "ToS/source-witnesses/collections/friedrich-nietzsche/nietzsches-werke-erste-abtheilung-band-viii-naumann-1906/editions/leipzig-c-g-naumann-1906/items/internet-archive-google-stanford-djvu-xml/forensic-report.md",
       "sha256": "7c729c245846e443906c2b9d34038e1d13ce18f2648e984a67de5b9a95c9f780",
       "surface_kind": "human"
+    },
+    {
+      "bytes": 14633,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/collections/friedrich-nietzsche/nietzsches-werke-erste-abtheilung-band-viii-naumann-1906/editions/leipzig-c-g-naumann-1906/items/internet-archive-google-stanford-djvu-xml/item.human-forms.json",
+      "sha256": "443a2a71edb7999e0e4a9a25304699f73c484b775fa7fafb6b83e2b90608526c",
+      "surface_kind": "structured"
     },
     {
       "bytes": 3414,
@@ -19158,6 +19886,14 @@
       "path": "ToS/source-witnesses/collections/friedrich-nietzsche/nietzsches-werke-erste-abtheilung-band-viii-naumann-1906/editions/leipzig-c-g-naumann-1906/items/wikimedia-commons-stanford-scan-djvu/forensic-report.md",
       "sha256": "7cba39d41c96648269260e9cd6d27f855db6b4597284d8aa72a8e83a048b210c",
       "surface_kind": "human"
+    },
+    {
+      "bytes": 8286,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/collections/friedrich-nietzsche/nietzsches-werke-erste-abtheilung-band-viii-naumann-1906/editions/leipzig-c-g-naumann-1906/items/wikimedia-commons-stanford-scan-djvu/item.human-forms.json",
+      "sha256": "68f390e828192fcfd0327fab123ffbb8b58fa6ad10875612930ed38367ec3213",
+      "surface_kind": "structured"
     },
     {
       "bytes": 3044,
@@ -19224,11 +19960,27 @@
       "surface_kind": "structured"
     },
     {
+      "bytes": 4886,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/collections/friedrich-nietzsche/works-in-two-volumes-volume-2-mysl-1996/collection.human-forms.json",
+      "sha256": "f5a148e876b20437cc7c2a561a3ab257d8c74c9278399769f5cf76ffdb558dc7",
+      "surface_kind": "structured"
+    },
+    {
       "bytes": 2416,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/source-witnesses/collections/friedrich-nietzsche/works-in-two-volumes-volume-2-mysl-1996/collection.json",
       "sha256": "cb9f065a4c925bcef4b77011ff87316e3fb254e8b4aa3748c4e4db9b1f172048",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 4930,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/collections/friedrich-nietzsche/works-in-two-volumes-volume-2-mysl-1996/editions/moscow-mysl-1996-volume-2/edition.human-forms.json",
+      "sha256": "961f2217a67afde7ee254d4cf65adf4e98a9a40aa90fad7a9cbcae8ac0b9883d",
       "surface_kind": "structured"
     },
     {
@@ -19246,6 +19998,14 @@
       "path": "ToS/source-witnesses/collections/friedrich-nietzsche/works-in-two-volumes-volume-2-mysl-1996/editions/moscow-mysl-1996-volume-2/items/operator-pdf/forensic-report.md",
       "sha256": "deca8c828a7f5212b58392f08d91e37adc5de3dbf56736b573d9ba4538fa06da",
       "surface_kind": "human"
+    },
+    {
+      "bytes": 4963,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/collections/friedrich-nietzsche/works-in-two-volumes-volume-2-mysl-1996/editions/moscow-mysl-1996-volume-2/items/operator-pdf/item.human-forms.json",
+      "sha256": "0a5e7f26e5852d2a52bedc642f1a2076c8d04c9fffc78f6d7b947a897c77ac15",
+      "surface_kind": "structured"
     },
     {
       "bytes": 944,
@@ -19296,11 +20056,27 @@
       "surface_kind": "structured"
     },
     {
+      "bytes": 8215,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/collections/proto-cuneiform-scholarship/zeichenliste-der-archaischen-texte-aus-uruk-atu-2-green-nissen-1987/collection.human-forms.json",
+      "sha256": "398a38ad911a32e8a575e773f5305ba08f4f6fba4bea0e56b0459dee5dd283eb",
+      "surface_kind": "structured"
+    },
+    {
       "bytes": 2109,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/source-witnesses/collections/proto-cuneiform-scholarship/zeichenliste-der-archaischen-texte-aus-uruk-atu-2-green-nissen-1987/collection.json",
       "sha256": "095865d9d393e68b10b316220705714df819e568dfe3881cbb09d61c2910ecb8",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 5095,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/collections/proto-cuneiform-scholarship/zeichenliste-der-archaischen-texte-aus-uruk-atu-2-green-nissen-1987/editions/berlin-gebr-mann-1987/edition.human-forms.json",
+      "sha256": "c8496eeec553e4b88a4ebb137fd43b2baa364ce66d6edfa46e3a53f216a36a10",
       "surface_kind": "structured"
     },
     {
@@ -20464,6 +21240,94 @@
       "surface_kind": "structured"
     },
     {
+      "bytes": 6426,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/documents/friedrich-nietzsche/naumann-letter-705/letter.human-forms.json",
+      "sha256": "813b70713039f44915db81644d1994f1bd22d380ed422d0bcdf829eaac4f2256",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 2762,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/documents/friedrich-nietzsche/naumann-letter-705/letter.json",
+      "sha256": "7438af2a6b90c1a705c04c650a74e0635525c0450f303079a20d47b372446b6e",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 244,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/documents/friedrich-nietzsche/naumann-letter-705/source-create-environment.json",
+      "sha256": "0976562dbd82ac21a81cda5c4ccbb0b8c545c54bb686181fc225a32aed6170b3",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1490,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/documents/friedrich-nietzsche/naumann-letter-705/source-create-receipt.json",
+      "sha256": "1d7d2f6a4a34dcf2bb7984af181bdd92171e99bc9394b876013164d78adc76ee",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3234,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/documents/friedrich-nietzsche/naumann-letter-705/source-create-request.json",
+      "sha256": "8394a1a4945d58518d5e3e039d0dfe0a3161e505b11766c41b4da702d0fc8c0a",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 7536,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/history/friedrich-nietzsche/jenseits-1886-commission/historical-event.human-forms.json",
+      "sha256": "88ae46917090bcd5a263c5a0594b3ac16e2a92b926faa3dccf40a7ebdd06f016",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 2942,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/history/friedrich-nietzsche/jenseits-1886-commission/historical-event.json",
+      "sha256": "3cccbb7f974e91e218fa00a14190d16d48b2b4f5b1a28b6fe5cc01cdfec2bf2b",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 244,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/history/friedrich-nietzsche/jenseits-1886-commission/source-create-environment.json",
+      "sha256": "0976562dbd82ac21a81cda5c4ccbb0b8c545c54bb686181fc225a32aed6170b3",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1686,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/history/friedrich-nietzsche/jenseits-1886-commission/source-create-receipt.json",
+      "sha256": "71df760471d0339be0b56b56188bf83b9c6ffd4f32feb19c4daaf5a322a88e01",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 5263,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/history/friedrich-nietzsche/jenseits-1886-commission/source-create-request.json",
+      "sha256": "a2202ec14fa92ac8b3f56fb1c590ea6b6d816fa2579ee010d5d9db0b0deff730",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 7128,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/history/friedrich-nietzsche/jenseits-1886-commission/source-revision-history.json",
+      "sha256": "5e3fe0ad75130ab86cb2f184379e3083c8fb0af4a96ba05117daa69fb13c17de",
+      "surface_kind": "structured"
+    },
+    {
       "bytes": 1381,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
@@ -20504,11 +21368,27 @@
       "surface_kind": "structured"
     },
     {
+      "bytes": 7566,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/organizations/bratya-v-i-i-linnik-printing-saint-petersburg/organization.human-forms.json",
+      "sha256": "83cfdbf15a3cd295fc58f544ae76e934c3fc5ecb24b91f7a0098eae6fcdb658c",
+      "surface_kind": "structured"
+    },
+    {
       "bytes": 1328,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/source-witnesses/organizations/bratya-v-i-i-linnik-printing-saint-petersburg/organization.json",
       "sha256": "9deaff1b29b4b589ed430f3cc39fd4fb9a639526cfbd7cc097fd689ab375d4ca",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 9903,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/organizations/c-g-naumann-verlag-leipzig/organization.human-forms.json",
+      "sha256": "1453f3a16d03629ba345b4c05be7ef493e227773f8d61d470ae699df367996b2",
       "surface_kind": "structured"
     },
     {
@@ -20520,11 +21400,27 @@
       "surface_kind": "structured"
     },
     {
+      "bytes": 7278,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/organizations/druckerei-c-g-naumann-leipzig/organization.human-forms.json",
+      "sha256": "f1fc742a216f97477ccd4163b5c9b03cd15d2605616ed2d4bda0bf8b6c704658",
+      "surface_kind": "structured"
+    },
+    {
       "bytes": 1437,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/source-witnesses/organizations/druckerei-c-g-naumann-leipzig/organization.json",
       "sha256": "35fa0109a77ceb0783858b3d210f84cd47b3cfc927921c9298ec01710f5db1c0",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 7494,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/organizations/energiya-typolithography-saint-petersburg/organization.human-forms.json",
+      "sha256": "81a17f4cbbb03abed3d9e8256334dddf3e13d9c21618f63ea99fcd3f400623da",
       "surface_kind": "structured"
     },
     {
@@ -20536,11 +21432,27 @@
       "surface_kind": "structured"
     },
     {
+      "bytes": 10403,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/organizations/ernst-schmeitzner-verlagsbuchhandlung-chemnitz/organization.human-forms.json",
+      "sha256": "97014acc2fd816e2022a6fe11a80310a9293ab18375eddf9b82acc92e48c5ad9",
+      "surface_kind": "structured"
+    },
+    {
       "bytes": 1486,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/source-witnesses/organizations/ernst-schmeitzner-verlagsbuchhandlung-chemnitz/organization.json",
       "sha256": "f5ec3ee783c43df0d500811bf01cd36d7024c9e65ab663e4892ad1fc6fbeea2c",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 10178,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/organizations/insel-verlag-anton-kippenberg-leipzig/organization.human-forms.json",
+      "sha256": "f15d85b9a0aa0682768b7fbfd37c759a1ed3bb48e1e976167c3504e0379dfc4b",
       "surface_kind": "structured"
     },
     {
@@ -20552,11 +21464,27 @@
       "surface_kind": "structured"
     },
     {
+      "bytes": 10303,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/organizations/m-m-stasyulevich-printing-saint-petersburg/organization.human-forms.json",
+      "sha256": "94b46e0fef5d270b9ee36777c28592e428348046a4111a590e497468fa4b7dff",
+      "surface_kind": "structured"
+    },
+    {
       "bytes": 1557,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/source-witnesses/organizations/m-m-stasyulevich-printing-saint-petersburg/organization.json",
       "sha256": "35b49ba5546b0240f6470d056110c946d3b61551b518046b7b41e8189acca7b5",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 7404,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/organizations/prometey-publishing-saint-petersburg/organization.human-forms.json",
+      "sha256": "6c9714e768cc3a58e7a27e818b894e4e30ee688e1b21e5ec01fbd75b777e7ca6",
       "surface_kind": "structured"
     },
     {
@@ -20568,11 +21496,27 @@
       "surface_kind": "structured"
     },
     {
+      "bytes": 7440,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/organizations/reader-journal-editorial-office-moscow/organization.human-forms.json",
+      "sha256": "9af9b8ef255935d6bab301504213111b18bee17b70a316e41de350d861b153a9",
+      "surface_kind": "structured"
+    },
+    {
       "bytes": 1281,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/source-witnesses/organizations/reader-journal-editorial-office-moscow/organization.json",
       "sha256": "bb66fcf8bfec53fcc5e2cf2eefa0d54ffac10ab4d4c5e4932ac3ead72845b8af",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 7224,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/organizations/yale-babylonian-collection/organization.human-forms.json",
+      "sha256": "ecb8aec92524fee40afe27c2a056a464274c95aef62d548cc1c088b12fc589ef",
       "surface_kind": "structured"
     },
     {
@@ -20584,11 +21528,27 @@
       "surface_kind": "structured"
     },
     {
+      "bytes": 7350,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/organizations/zhizn-dlya-vsekh-saint-petersburg/organization.human-forms.json",
+      "sha256": "5faef4ea6ef84f21386c24621b354b8a7625dcec30ac3ff5acb2e11733eeec51",
+      "surface_kind": "structured"
+    },
+    {
       "bytes": 1364,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/source-witnesses/organizations/zhizn-dlya-vsekh-saint-petersburg/organization.json",
       "sha256": "e3a0aa87fb24a4bbf7dc89585a0b26ce911258c58e38a858a29bf0193eb8b53d",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 6774,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/places/chemnitz/place.human-forms.json",
+      "sha256": "29671184daddc75006db3a0b6a3e6a4bc1fbd04d0ca39e28a101e0b6adb02490",
       "surface_kind": "structured"
     },
     {
@@ -20600,6 +21560,14 @@
       "surface_kind": "structured"
     },
     {
+      "bytes": 6756,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/places/leipzig/place.human-forms.json",
+      "sha256": "1cf165b2299479984499175c3379db18a6cc29fbd1787c68b23c243e6eb6fd10",
+      "surface_kind": "structured"
+    },
+    {
       "bytes": 1041,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
@@ -20608,11 +21576,27 @@
       "surface_kind": "structured"
     },
     {
+      "bytes": 6738,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/places/moscow/place.human-forms.json",
+      "sha256": "1bf76d7793feb965d3b22f9d53dbda7a1144741fb59edee23f03c1fad32c3b20",
+      "surface_kind": "structured"
+    },
+    {
       "bytes": 1124,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/source-witnesses/places/moscow/place.json",
       "sha256": "65de66df5d91254c273e9463f45414cf8f6646506166763df7db2076d4564530",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 6918,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/places/saint-petersburg/place.human-forms.json",
+      "sha256": "23b3dc1734e825be962d5cfc367cb083716e5c628d64349e4e6574d6990ca8ea",
       "surface_kind": "structured"
     },
     {
@@ -20638,6 +21622,86 @@
       "path": "ToS/source-witnesses/relations/expression-derivation/README.md",
       "sha256": "3dd1765185343f697c4034e6665a5c6d43def49592292fdf43a1f8e927a85149",
       "surface_kind": "human"
+    },
+    {
+      "bytes": 3501,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/relations/nietzsche-letter-705-addressee/source-claims.2c4c3a4f5cb2cbf1713ebdaa0b27dfcb0729cf980f33591a6e1e2ea6296b8d25.human-forms.json",
+      "sha256": "637fbeb41a4cd470dd174c7da35e09a34ddd53f86db5ccaa11c81ea89bdb5d50",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 244,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/relations/nietzsche-letter-705-addressee/source-create-environment.json",
+      "sha256": "0976562dbd82ac21a81cda5c4ccbb0b8c545c54bb686181fc225a32aed6170b3",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 2473,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/relations/nietzsche-letter-705-addressee/source-create-receipt.json",
+      "sha256": "fcbc3d80dd0a10d09cd8d150603928d2699dd6b887cc4ca5a12e87af3d3d68ed",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3210,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/relations/nietzsche-letter-705-addressee/source-create-request.json",
+      "sha256": "bd62648fbb1831560ac96452247cb89df4f3a746b2d4aa90dd72e118f6c58b72",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3498,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/relations/nietzsche-letter-705/source-claims.4ad96451aba00fea963c09fccfb1129ec388e641d3b95a978120a59fd158ec8e.human-forms.json",
+      "sha256": "c852340453732df836ec659de17f1885c731ae77e10c3d6b89c75e4a306fc18c",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3567,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/relations/nietzsche-letter-705/source-claims.59ac2d7de67c8cc48e7537acc03fcffb7dd072829f8eb4f2dca80f3b2fe2c99c.human-forms.json",
+      "sha256": "79f29f28d9e70a83b9948b934f375b19bfaf4b1073b6d5485035b5118252896d",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3582,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/relations/nietzsche-letter-705/source-claims.6376bfba334f2f29608f78669d1a8a36705d3be3c1d558ca8e8e54dddb59a8fd.human-forms.json",
+      "sha256": "470aee638b2fa240272e7382e78f980e71493541672479d936bea1e70b251f0d",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 244,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/relations/nietzsche-letter-705/source-create-environment.json",
+      "sha256": "0976562dbd82ac21a81cda5c4ccbb0b8c545c54bb686181fc225a32aed6170b3",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3934,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/relations/nietzsche-letter-705/source-create-receipt.json",
+      "sha256": "61c327a6488f67066e75418c932d24e77fcac57ab79b65a96f2cb8064b315137",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 7791,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/relations/nietzsche-letter-705/source-create-request.json",
+      "sha256": "eb5b78159bb1d6d80a896ba4e5cb303ec367d316a73806dffc106ea71b714d30",
+      "surface_kind": "structured"
     },
     {
       "bytes": 1578,
@@ -21168,11 +22232,27 @@
       "surface_kind": "structured"
     },
     {
+      "bytes": 9803,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/akkadian-law/laws-of-hammurapi/work.human-forms.json",
+      "sha256": "4270f0da58978cfffed41efd9d5a62c17c9e52ffb7efae93aa8f62ecead1ad8b",
+      "surface_kind": "structured"
+    },
+    {
       "bytes": 1697,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/source-witnesses/works/akkadian-law/laws-of-hammurapi/work.json",
       "sha256": "a901441bd1604131777b38f4381dd2d23e530af69d7d84c78951e957adb9d629",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 10403,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/akkadian-literature/old-babylonian-gilgamesh-tradition/work.human-forms.json",
+      "sha256": "8cb865ec163f05ae5f63c31cdfcd989f6b918b9063e5f034247f976e0b6308b1",
       "surface_kind": "structured"
     },
     {
@@ -21184,6 +22264,14 @@
       "surface_kind": "structured"
     },
     {
+      "bytes": 7729,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/digital-cuneiform-corpora/cuneiform-digital-library-initiative/work.human-forms.json",
+      "sha256": "5c2784e9fc3c267cf85f211152738d68e71d568861b2f0c1debeb08d2ce255ca",
+      "surface_kind": "structured"
+    },
+    {
       "bytes": 1961,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
@@ -21192,11 +22280,27 @@
       "surface_kind": "structured"
     },
     {
+      "bytes": 7873,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/digital-sumerian-corpora/electronic-text-corpus-of-sumerian-literature/work.human-forms.json",
+      "sha256": "7879ea5096bdc625c57faf1ff009b923ef3154afd0103cc33c2fa342f456a37f",
+      "surface_kind": "structured"
+    },
+    {
       "bytes": 2462,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/source-witnesses/works/digital-sumerian-corpora/electronic-text-corpus-of-sumerian-literature/work.json",
       "sha256": "6d844846fc519a1b220f83836f32276573bd7aa365e11a1e8706ea16b3f7a7d6",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 5667,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/egyptian-scholarship/on-four-songs-contained-in-an-egyptian-papyrus-in-the-british-museum/expressions/en-goodwin-1874/editions/london-society-of-biblical-archaeology-1874/edition.human-forms.json",
+      "sha256": "857d58b1c1c8dcdc96cda7d87f1846b475fcd6cf74c457c51e08f277ba112007",
       "surface_kind": "structured"
     },
     {
@@ -21214,6 +22318,14 @@
       "path": "ToS/source-witnesses/works/egyptian-scholarship/on-four-songs-contained-in-an-egyptian-papyrus-in-the-british-museum/expressions/en-goodwin-1874/editions/london-society-of-biblical-archaeology-1874/items/internet-archive-nls-scan-pdf/forensic-report.md",
       "sha256": "e187280f4d5fe164a1713652e68fa5f6757237ca1841d864d312fb925e2c1669",
       "surface_kind": "human"
+    },
+    {
+      "bytes": 9042,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/egyptian-scholarship/on-four-songs-contained-in-an-egyptian-papyrus-in-the-british-museum/expressions/en-goodwin-1874/editions/london-society-of-biblical-archaeology-1874/items/internet-archive-nls-scan-pdf/item.human-forms.json",
+      "sha256": "4bb8f6845d5252eb8687b6498cebb5b9225f077aad326f69a8e69d2db05fc2ad",
+      "surface_kind": "structured"
     },
     {
       "bytes": 2463,
@@ -21256,11 +22368,27 @@
       "surface_kind": "structured"
     },
     {
+      "bytes": 5392,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/egyptian-scholarship/on-four-songs-contained-in-an-egyptian-papyrus-in-the-british-museum/expressions/en-goodwin-1874/expression.human-forms.json",
+      "sha256": "787ec4f5a7a0372e15ab12f4f65299437403ba3325586bbb656b8a1131095c85",
+      "surface_kind": "structured"
+    },
+    {
       "bytes": 1626,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/source-witnesses/works/egyptian-scholarship/on-four-songs-contained-in-an-egyptian-papyrus-in-the-british-museum/expressions/en-goodwin-1874/expression.json",
       "sha256": "9241d5b76e0ea853d954a5add3f6ab2b2e7ffbf48316d6bfa64dd0e209436f36",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 8214,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/egyptian-scholarship/on-four-songs-contained-in-an-egyptian-papyrus-in-the-british-museum/work.human-forms.json",
+      "sha256": "c3c4a94a6c33ae7bdd97afac7562447e90c66ae58ae8cd337d23e86c83ec359a",
       "surface_kind": "structured"
     },
     {
@@ -21416,6 +22544,14 @@
       "surface_kind": "structured"
     },
     {
+      "bytes": 7944,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/de-naumann-1891-part-4/editions/leipzig-naumann-1891-part-4/edition.human-forms.json",
+      "sha256": "3c8e7ff2959b6e49f8ed6ba5a52101042d7939a4b95b43e196a6bab413533af8",
+      "surface_kind": "structured"
+    },
+    {
       "bytes": 1915,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
@@ -21430,6 +22566,14 @@
       "path": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/de-naumann-1891-part-4/editions/leipzig-naumann-1891-part-4/items/dta-sub-goettingen-corrected-tei-p5/forensic-report.md",
       "sha256": "ce3e866646237ee12385b37a3706d64fd961ddfdc3de8416db57c3832bb3801e",
       "surface_kind": "human"
+    },
+    {
+      "bytes": 11605,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/de-naumann-1891-part-4/editions/leipzig-naumann-1891-part-4/items/dta-sub-goettingen-corrected-tei-p5/item.human-forms.json",
+      "sha256": "e02b889fcb55648750b759df11d0ddae245cf260b5e7b0d8c3f6e5673e53b7b7",
+      "surface_kind": "structured"
     },
     {
       "bytes": 2417,
@@ -21472,11 +22616,27 @@
       "surface_kind": "structured"
     },
     {
+      "bytes": 7908,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/de-naumann-1891-part-4/expression.human-forms.json",
+      "sha256": "bc94dbb64e81c7022c304899cc80e17d06b7d4fae9da6aec37c43ca0d5c598bd",
+      "surface_kind": "structured"
+    },
+    {
       "bytes": 1723,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/de-naumann-1891-part-4/expression.json",
       "sha256": "41e9224e923e9e5543758b765303b80c0dce3e8c3f06a3d87ba0a3abfdba8186",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 4952,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/de-naumann-1893/editions/leipzig-c-g-naumann-1893/edition.human-forms.json",
+      "sha256": "ab7bc012ccf3455a9a00af9ca1ddba1320499450a841a835d9be65fb85d69945",
       "surface_kind": "structured"
     },
     {
@@ -21494,6 +22654,14 @@
       "path": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/de-naumann-1893/editions/leipzig-c-g-naumann-1893/items/internet-archive-cornell-auto-epub/forensic-report.md",
       "sha256": "e122eaefeca1b45b5aed7e34e327cc9f239db8a063ac781534d565ed918f0069",
       "surface_kind": "human"
+    },
+    {
+      "bytes": 5205,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/de-naumann-1893/editions/leipzig-c-g-naumann-1893/items/internet-archive-cornell-auto-epub/item.human-forms.json",
+      "sha256": "f3a43da46024ddf14b2918decde02843f611fa79eee3cf78a5e4b43a178c82dc",
+      "surface_kind": "structured"
     },
     {
       "bytes": 2008,
@@ -21536,6 +22704,14 @@
       "surface_kind": "human"
     },
     {
+      "bytes": 5227,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/de-naumann-1893/editions/leipzig-c-g-naumann-1893/items/internet-archive-image-container-pdf/item.human-forms.json",
+      "sha256": "247178b6873b76d67930714de34667b4867a3f845087640cb01941c6b7ee0913",
+      "surface_kind": "structured"
+    },
+    {
       "bytes": 2241,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
@@ -21576,11 +22752,27 @@
       "surface_kind": "structured"
     },
     {
+      "bytes": 4886,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/de-naumann-1893/expression.human-forms.json",
+      "sha256": "19c91dab73799269b3b6124c9a0ecf7bbc6e8f999838e4ad2b182d78148aab21",
+      "surface_kind": "structured"
+    },
+    {
       "bytes": 1118,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/de-naumann-1893/expression.json",
       "sha256": "f1efb53f0168953dc371dc31253bddf4f50feb98ee8d8ef3b785a2e3ac32fa3b",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 8034,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/de-schmeitzner-1883-part-1/editions/chemnitz-schmeitzner-1883-part-1/edition.human-forms.json",
+      "sha256": "450d41745b642989e72e07c19cc8359eae06f961eb8515a988ec016a0d7e8626",
       "surface_kind": "structured"
     },
     {
@@ -21598,6 +22790,14 @@
       "path": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/de-schmeitzner-1883-part-1/editions/chemnitz-schmeitzner-1883-part-1/items/dta-sbb-corrected-tei-p5/forensic-report.md",
       "sha256": "feed5f5563ce90c43fd2f82ef9739a3abef32bd43f3a7657a7e7d07f1ddb77d2",
       "surface_kind": "human"
+    },
+    {
+      "bytes": 11430,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/de-schmeitzner-1883-part-1/editions/chemnitz-schmeitzner-1883-part-1/items/dta-sbb-corrected-tei-p5/item.human-forms.json",
+      "sha256": "27fcf40871c12bef89c9fedd5eacc0d0ffa10af7280b528d426d7c63e4a7dc53",
+      "surface_kind": "structured"
     },
     {
       "bytes": 2390,
@@ -21640,11 +22840,27 @@
       "surface_kind": "structured"
     },
     {
+      "bytes": 7980,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/de-schmeitzner-1883-part-1/expression.human-forms.json",
+      "sha256": "cb2288bb057b609c9cb02d6eb44097a69ffbb9aea7f17697f5b0b80dca5b43c0",
+      "surface_kind": "structured"
+    },
+    {
       "bytes": 1718,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/de-schmeitzner-1883-part-1/expression.json",
       "sha256": "5412636a27c7e21291545ec9ec9aec1a40cc1ae58150489af190f03140f1ac69",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 8034,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/de-schmeitzner-1883-part-2/editions/chemnitz-schmeitzner-1883-part-2/edition.human-forms.json",
+      "sha256": "3a2991d49dedfaa82b796617f633c10123be2588de49db61df49cdb6e0579512",
       "surface_kind": "structured"
     },
     {
@@ -21662,6 +22878,14 @@
       "path": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/de-schmeitzner-1883-part-2/editions/chemnitz-schmeitzner-1883-part-2/items/dta-sbb-corrected-tei-p5/forensic-report.md",
       "sha256": "e74fa2b0732da2f4c6cf4e51b07e0e37ff1ca4cfa2c465a30b5074046417d44e",
       "surface_kind": "human"
+    },
+    {
+      "bytes": 11430,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/de-schmeitzner-1883-part-2/editions/chemnitz-schmeitzner-1883-part-2/items/dta-sbb-corrected-tei-p5/item.human-forms.json",
+      "sha256": "de680ff697ff9e2a05c6074c0caf167545d1c89303adee644f28961e99ea91ae",
+      "surface_kind": "structured"
     },
     {
       "bytes": 2390,
@@ -21704,11 +22928,27 @@
       "surface_kind": "structured"
     },
     {
+      "bytes": 7980,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/de-schmeitzner-1883-part-2/expression.human-forms.json",
+      "sha256": "c88d516d34414339893c59cc31fadf2b24ecfba574d9170e18bd2dc2fb105aff",
+      "surface_kind": "structured"
+    },
+    {
       "bytes": 1723,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/de-schmeitzner-1883-part-2/expression.json",
       "sha256": "cbc3ecee6045a23f626d7602ca2051339c7896622c0846392154f015e8cd8996",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 8034,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/de-schmeitzner-1884-part-3/editions/chemnitz-schmeitzner-1884-part-3/edition.human-forms.json",
+      "sha256": "e1a988b5eeb986fb711d4a84bd9253e748d09ebdf589f1a2ef7f6d303868ce4d",
       "surface_kind": "structured"
     },
     {
@@ -21726,6 +22966,14 @@
       "path": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/de-schmeitzner-1884-part-3/editions/chemnitz-schmeitzner-1884-part-3/items/dta-sbb-corrected-tei-p5/forensic-report.md",
       "sha256": "782dd4178fed09c74ce0c390d006990fd639dbe66589d05208c36db90369c214",
       "surface_kind": "human"
+    },
+    {
+      "bytes": 11430,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/de-schmeitzner-1884-part-3/editions/chemnitz-schmeitzner-1884-part-3/items/dta-sbb-corrected-tei-p5/item.human-forms.json",
+      "sha256": "6afacd6d96682794bc3ddd96ae14bbe20209220c4ec41fc2cab5df00590373d0",
+      "surface_kind": "structured"
     },
     {
       "bytes": 2390,
@@ -21768,11 +23016,27 @@
       "surface_kind": "structured"
     },
     {
+      "bytes": 7980,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/de-schmeitzner-1884-part-3/expression.human-forms.json",
+      "sha256": "b2caebef76f73891e6b4afe9e17e334112bdff82a2133ed828566f2328722275",
+      "surface_kind": "structured"
+    },
+    {
       "bytes": 1723,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/de-schmeitzner-1884-part-3/expression.json",
       "sha256": "648ff57a0f95689b30b4c99cf2993b9fa6ed97238572d03ae68d1444f5be5821",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 5117,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-antonovsky-1900/editions/saint-petersburg-unknown-publisher-1900/edition.human-forms.json",
+      "sha256": "672afd3f7f70f465b7cf1c1923b8c05bd0e8061171cd7de1f0f35df1fb4b8166",
       "surface_kind": "structured"
     },
     {
@@ -21784,11 +23048,27 @@
       "surface_kind": "structured"
     },
     {
+      "bytes": 4919,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-antonovsky-1900/expression.human-forms.json",
+      "sha256": "d6dd4d638ce77c73727344fc1190ac5408683c2470e64cf015399e21b4c711f7",
+      "surface_kind": "structured"
+    },
+    {
       "bytes": 2862,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-antonovsky-1900/expression.json",
       "sha256": "f3e88a6caeafa0b76b06521bfc77eefb6d9f06d93fef7edd04997aab4bf7e30e",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 5337,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-antonovsky-1903/editions/saint-petersburg-altshuler-typography-1903-second-corrected/edition.human-forms.json",
+      "sha256": "d9337799ebca12bc6bf79d2f74d77ae530208bbf44d43c5acd2eaf0578383a1a",
       "surface_kind": "structured"
     },
     {
@@ -21800,11 +23080,27 @@
       "surface_kind": "structured"
     },
     {
+      "bytes": 4919,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-antonovsky-1903/expression.human-forms.json",
+      "sha256": "52090986c28d56bee3c16fba7e8f3d058823652f9c85fd658e61126a5652077f",
+      "surface_kind": "structured"
+    },
+    {
       "bytes": 2760,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-antonovsky-1903/expression.json",
       "sha256": "96eabf7e0d299342ffeb75dfc90d71a7f332a77c494691d176499f9b067cf922",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 5315,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-antonovsky-1907/editions/saint-petersburg-vaisberg-gershunin-typography-1907-third/edition.human-forms.json",
+      "sha256": "b28d8bd2ea2d7fb426618a537159f1088334f195005cfcbdc423f2f18ee6a623",
       "surface_kind": "structured"
     },
     {
@@ -21816,11 +23112,27 @@
       "surface_kind": "structured"
     },
     {
+      "bytes": 4919,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-antonovsky-1907/expression.human-forms.json",
+      "sha256": "ff7aa9677c70c3cee68c2f7ad111f6408592ad3be7d72ee692f2b46a718d0315",
+      "surface_kind": "structured"
+    },
+    {
       "bytes": 4255,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-antonovsky-1907/expression.json",
       "sha256": "e474e4164fe760d23fc1d4ed45a48ef071c8ea4b48b6dcc9e3f9c9e0c4d4a64d",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 5095,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-antonovsky-1911/editions/saint-petersburg-prometey-1911-fourth/edition.human-forms.json",
+      "sha256": "eddbf7783218f45d07c3c9f961d055bb45beac72c38f628284d0cd0172d08a35",
       "surface_kind": "structured"
     },
     {
@@ -21838,6 +23150,14 @@
       "path": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-antonovsky-1911/editions/saint-petersburg-prometey-1911-fourth/items/rsl-neb-scan-pdf/forensic-report.md",
       "sha256": "0ed56f28f8345520cd8bfe3afa5e9e9b8e975540c4bc036f470ef6fff225b9de",
       "surface_kind": "human"
+    },
+    {
+      "bytes": 5040,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-antonovsky-1911/editions/saint-petersburg-prometey-1911-fourth/items/rsl-neb-scan-pdf/item.human-forms.json",
+      "sha256": "f9a46c5cad3d2025da2e37d8e53aa491e444a8e0e57b8a00f4a177eac3ee1db8",
+      "surface_kind": "structured"
     },
     {
       "bytes": 1833,
@@ -21880,11 +23200,27 @@
       "surface_kind": "structured"
     },
     {
+      "bytes": 4919,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-antonovsky-1911/expression.human-forms.json",
+      "sha256": "40f910e57e904c38ef0f0de8f81de1dd53f9e4fa500f5f70fd31ded4baa75673",
+      "surface_kind": "structured"
+    },
+    {
       "bytes": 1773,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-antonovsky-1911/expression.json",
       "sha256": "057464160cdc38726be59c3744e9f7a132d6bdb53555c54ccc0a050438435f33",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 5106,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-antonovsky-1913/editions/saint-petersburg-zhizn-dlya-vsekh-1913/edition.human-forms.json",
+      "sha256": "a6fe1ed01d9e1b6faaf1920b2898fdf80e9934fab82b6a2164be2fab2aa664eb",
       "surface_kind": "structured"
     },
     {
@@ -21902,6 +23238,14 @@
       "path": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-antonovsky-1913/editions/saint-petersburg-zhizn-dlya-vsekh-1913/items/wikimedia-commons-penza-scan-pdf/forensic-report.md",
       "sha256": "17aee3dd595b86e8479eb0f19b1c56a7d05c350daa9bc8ee12413aad1d48e953",
       "surface_kind": "human"
+    },
+    {
+      "bytes": 5216,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-antonovsky-1913/editions/saint-petersburg-zhizn-dlya-vsekh-1913/items/wikimedia-commons-penza-scan-pdf/item.human-forms.json",
+      "sha256": "b3103c17c612acdcd3e0f0fe8e455c9ece3569affb0ac169a93c8c02537c7bf0",
+      "surface_kind": "structured"
     },
     {
       "bytes": 2296,
@@ -21944,11 +23288,27 @@
       "surface_kind": "structured"
     },
     {
+      "bytes": 4919,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-antonovsky-1913/expression.human-forms.json",
+      "sha256": "2ae9e810191204226a5de9da259e7d852bf304cf2b2f954d0e7dd74730fff21a",
+      "surface_kind": "structured"
+    },
+    {
       "bytes": 1697,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-antonovsky-1913/expression.json",
       "sha256": "026ba7d878b6913d479de4d679dbdeb4b2e735d0980cd338a9625144805b83d6",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 5128,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-antonovsky-cultural-revolution/editions/moscow-cultural-revolution-2007-volume-4/edition.human-forms.json",
+      "sha256": "661a58aceb51dd1cd4a884a3f9d9c8dc291b9faff6363c52cf12328db634fab7",
       "surface_kind": "structured"
     },
     {
@@ -21966,6 +23326,14 @@
       "path": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-antonovsky-cultural-revolution/editions/moscow-cultural-revolution-2007-volume-4/items/operator-pdf/forensic-report.md",
       "sha256": "83dd09f0bfb646a54071196ad6d5c969a2db1e81ea05f1156b7fafd9cd7b34e7",
       "surface_kind": "human"
+    },
+    {
+      "bytes": 5216,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-antonovsky-cultural-revolution/editions/moscow-cultural-revolution-2007-volume-4/items/operator-pdf/item.human-forms.json",
+      "sha256": "bb12b775d10f2e382c3e0050b4cdd6eaccc469d41a4494c1b4e47d2d5e52061a",
+      "surface_kind": "structured"
     },
     {
       "bytes": 1054,
@@ -22000,6 +23368,14 @@
       "surface_kind": "structured"
     },
     {
+      "bytes": 5084,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-antonovsky-cultural-revolution/expression.human-forms.json",
+      "sha256": "6320b20f5847fe1a59d9be1aaad0b60dacb9393be16c2afe32a35565d100a892",
+      "surface_kind": "structured"
+    },
+    {
       "bytes": 1823,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
@@ -22008,11 +23384,27 @@
       "surface_kind": "structured"
     },
     {
+      "bytes": 4974,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-antonovsky-mysl-1996/expression.human-forms.json",
+      "sha256": "fd3987323d896d38051332c195ba09941498895e3a333bdd4ff3c17395a6f274",
+      "surface_kind": "structured"
+    },
+    {
       "bytes": 1588,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-antonovsky-mysl-1996/expression.json",
       "sha256": "9588d08b4a60f5142e374bc60800d953221cba80d91f39142be1a725e7c12bcb",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 8340,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-nani-1899-nine-fragments/editions/saint-petersburg-stasyulevich-1899-nine-fragments/edition.human-forms.json",
+      "sha256": "c5b4978450236220fb31e7f236c15ad8eeff115dd3a8150cb57a22116005178d",
       "surface_kind": "structured"
     },
     {
@@ -22030,6 +23422,14 @@
       "path": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-nani-1899-nine-fragments/editions/saint-petersburg-stasyulevich-1899-nine-fragments/items/rsl-rusneb-parallel-scan-pdf/forensic-report.md",
       "sha256": "99cade06d48a24338cdd761cec11613ca185135b1e312d0f2d1be2435bb2ec43",
       "surface_kind": "human"
+    },
+    {
+      "bytes": 5271,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-nani-1899-nine-fragments/editions/saint-petersburg-stasyulevich-1899-nine-fragments/items/rsl-rusneb-parallel-scan-pdf/item.human-forms.json",
+      "sha256": "f474f80e6169df3306e7c782f37555891b499daf47bbace1d6ca889d219b8b23",
+      "surface_kind": "structured"
     },
     {
       "bytes": 2142,
@@ -22072,11 +23472,27 @@
       "surface_kind": "structured"
     },
     {
+      "bytes": 7998,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-nani-1899-nine-fragments/expression.human-forms.json",
+      "sha256": "324d5888394977ca712cee424b4866a54b28f7a1f712f6502fa392f0a771ad61",
+      "surface_kind": "structured"
+    },
+    {
       "bytes": 2152,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-nani-1899-nine-fragments/expression.json",
       "sha256": "8213cefea54b6f1d75546464536b45f78f3b13c1b16a1f5c7c0aeef5ff6a56c8",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 5073,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-reader-1899-uncredited/editions/moscow-reader-editorial-office-1899/edition.human-forms.json",
+      "sha256": "c42f92a6fd932a60d83cbe5a4357ee01f69c8a3d4f8445d639726d6390a86ff0",
       "surface_kind": "structured"
     },
     {
@@ -22094,6 +23510,14 @@
       "path": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-reader-1899-uncredited/editions/moscow-reader-editorial-office-1899/items/rnl-rusneb-fragment-pdf-parts/forensic-report.md",
       "sha256": "0db9dc0d019ddc3b13f41752a4c2943f0fd2c6b4c7d804ebd50a7a39387aa994",
       "surface_kind": "human"
+    },
+    {
+      "bytes": 5260,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-reader-1899-uncredited/editions/moscow-reader-editorial-office-1899/items/rnl-rusneb-fragment-pdf-parts/item.human-forms.json",
+      "sha256": "9c0bc75ce27987fa1a0158ab62de0886465fe2bdaa6e96910acccf38a69d96dc",
+      "surface_kind": "structured"
     },
     {
       "bytes": 2220,
@@ -22133,6 +23557,14 @@
       "family_id": "tos",
       "path": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-reader-1899-uncredited/editions/moscow-reader-editorial-office-1899/items/rnl-rusneb-fragment-pdf-parts/source-metadata-snapshot.json",
       "sha256": "f548405b0267a8664c1c156dc270782250ca2d4a90d26884b488cf85b13f9712",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 4996,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-reader-1899-uncredited/expression.human-forms.json",
+      "sha256": "725b5f83dc11bf0cad11ac86059be6e3092a7dfb2e909c4d7e3a6f9855746d77",
       "surface_kind": "structured"
     },
     {
@@ -23096,6 +24528,14 @@
       "surface_kind": "structured"
     },
     {
+      "bytes": 10152,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/work.human-forms.json",
+      "sha256": "c564124234387852ab89df7bf629a97238142506558b31474aa62d67d6d5b961",
+      "surface_kind": "structured"
+    },
+    {
       "bytes": 4412,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
@@ -23120,11 +24560,27 @@
       "surface_kind": "structured"
     },
     {
+      "bytes": 4886,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/friedrich-nietzsche/der-antichrist/expressions/de-naumann-1906-volume-8/expression.human-forms.json",
+      "sha256": "024ceb6ec406b2a0b0bfd2499d43c274970916e1f31a0074ff9fdc0e5add7e9a",
+      "surface_kind": "structured"
+    },
+    {
       "bytes": 1566,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/source-witnesses/works/friedrich-nietzsche/der-antichrist/expressions/de-naumann-1906-volume-8/expression.json",
       "sha256": "f511984203cf46927fa2eb537058d426b576e6c3bc92999e6488d90180b74756",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 4842,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/friedrich-nietzsche/der-antichrist/expressions/ru-flerova-mysl-1996/expression.human-forms.json",
+      "sha256": "f4947a74c79e9d842309aaf5cd7af2e3d9391da4be04e04769b021b29ba55f03",
       "surface_kind": "structured"
     },
     {
@@ -23152,11 +24608,27 @@
       "surface_kind": "structured"
     },
     {
+      "bytes": 7224,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/friedrich-nietzsche/der-antichrist/work.human-forms.json",
+      "sha256": "4c61ae08f910ce378612e25ef634b72ed4ffb145d9f250c93d3765d3008c80cf",
+      "surface_kind": "structured"
+    },
+    {
       "bytes": 2896,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/source-witnesses/works/friedrich-nietzsche/der-antichrist/work.json",
       "sha256": "a1676c7cc71549f3f168b888427aae92a2310d063131fbb281dbcde8666f0c63",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 7746,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/friedrich-nietzsche/der-fall-wagner/expressions/de-naumann-1888/editions/leipzig-c-g-naumann-1888/edition.human-forms.json",
+      "sha256": "4d380188181f26284e1743fabc5681550387decef7d690aa7187733ffd2e2ff5",
       "surface_kind": "structured"
     },
     {
@@ -23174,6 +24646,14 @@
       "path": "ToS/source-witnesses/works/friedrich-nietzsche/der-fall-wagner/expressions/de-naumann-1888/editions/leipzig-c-g-naumann-1888/items/mdz-bamberg-scan-pdf/forensic-report.md",
       "sha256": "6aa88005166f6e3621e6cfa2c042b74e9eb15677d05ceceeb9904b583b00a4f1",
       "surface_kind": "human"
+    },
+    {
+      "bytes": 7908,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/friedrich-nietzsche/der-fall-wagner/expressions/de-naumann-1888/editions/leipzig-c-g-naumann-1888/items/mdz-bamberg-scan-pdf/item.human-forms.json",
+      "sha256": "f2ed8768ae44e6936bc0deef966476e5bc28b8510f6c16abb48ec4b79367294d",
+      "surface_kind": "structured"
     },
     {
       "bytes": 2522,
@@ -23216,11 +24696,27 @@
       "surface_kind": "structured"
     },
     {
+      "bytes": 4798,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/friedrich-nietzsche/der-fall-wagner/expressions/de-naumann-1888/expression.human-forms.json",
+      "sha256": "49bb09acaac2d897c615a7b14e8dba36b2a4a027642b0609c83016153072660f",
+      "surface_kind": "structured"
+    },
+    {
       "bytes": 1289,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/source-witnesses/works/friedrich-nietzsche/der-fall-wagner/expressions/de-naumann-1888/expression.json",
       "sha256": "f1f0d733ce79305bba83cbbf434a2a0199c225d75578581e4bd7a693efff8fb2",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 4853,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/friedrich-nietzsche/der-fall-wagner/expressions/ru-polilov-mysl-1996/expression.human-forms.json",
+      "sha256": "375b88c55157fe19e5f4490bc09d43225b6407b5727343b9ede9bbe3f764335a",
       "surface_kind": "structured"
     },
     {
@@ -23232,11 +24728,27 @@
       "surface_kind": "structured"
     },
     {
+      "bytes": 7242,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/friedrich-nietzsche/der-fall-wagner/work.human-forms.json",
+      "sha256": "354b81a36185c6693ad68e62c65a4d1fdcd117baa6aea1635aad64625c8c2b69",
+      "surface_kind": "structured"
+    },
+    {
       "bytes": 3250,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/source-witnesses/works/friedrich-nietzsche/der-fall-wagner/work.json",
       "sha256": "b5317b7c3a3e8d940149f13a6c87936c6a86fd270120bace5b6b1c703441adb1",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 7656,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/friedrich-nietzsche/ecce-homo/expressions/de-richter-insel-1908/editions/leipzig-insel-verlag-1908/edition.human-forms.json",
+      "sha256": "0464fb47b3351056af98751c920f1da3fb6f67d8ce639e85316a376a329d28f2",
       "surface_kind": "structured"
     },
     {
@@ -23254,6 +24766,14 @@
       "path": "ToS/source-witnesses/works/friedrich-nietzsche/ecce-homo/expressions/de-richter-insel-1908/editions/leipzig-insel-verlag-1908/items/wikimedia-commons-getty-scan-pdf/forensic-report.md",
       "sha256": "4ccb29f256705cb82e8d06bfb526ec8021e1fbc018fbe8d5f8777676e0a24d13",
       "surface_kind": "human"
+    },
+    {
+      "bytes": 8124,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/friedrich-nietzsche/ecce-homo/expressions/de-richter-insel-1908/editions/leipzig-insel-verlag-1908/items/wikimedia-commons-getty-scan-pdf/item.human-forms.json",
+      "sha256": "8e63c374321a885459746ccc3ee248999f0c1a8e63efcb82244e46fa02a94661",
+      "surface_kind": "structured"
     },
     {
       "bytes": 3007,
@@ -23296,11 +24816,27 @@
       "surface_kind": "structured"
     },
     {
+      "bytes": 7638,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/friedrich-nietzsche/ecce-homo/expressions/de-richter-insel-1908/expression.human-forms.json",
+      "sha256": "10fccaee1a31478e4534f1f8e54b22accff2063fcc1daa11551c6965c881108f",
+      "surface_kind": "structured"
+    },
+    {
       "bytes": 1776,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/source-witnesses/works/friedrich-nietzsche/ecce-homo/expressions/de-richter-insel-1908/expression.json",
       "sha256": "6cc5eac5e030efff629e5a4a1c7d0ae2238c8678c26d6e02bf57075bc4570651",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 4820,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/friedrich-nietzsche/ecce-homo/expressions/ru-antonovsky-mysl-1996/expression.human-forms.json",
+      "sha256": "d0331c7df394798774c9db4e6f39432955fc5516e4c03b5e00fef5bd53ae4253",
       "surface_kind": "structured"
     },
     {
@@ -23312,11 +24848,27 @@
       "surface_kind": "structured"
     },
     {
+      "bytes": 7134,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/friedrich-nietzsche/ecce-homo/work.human-forms.json",
+      "sha256": "3e5c73de3029b6cb27bf1a674115a91dca3ee29f7e006559329a0103f7fcf3b4",
+      "surface_kind": "structured"
+    },
+    {
       "bytes": 2723,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/source-witnesses/works/friedrich-nietzsche/ecce-homo/work.json",
       "sha256": "71ecbcc8431bd140603eb7d37e347d7f498bc85ec0ea7f140e7b390d49662e14",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 7800,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/friedrich-nietzsche/goetzen-daemmerung/expressions/de-naumann-1889/editions/leipzig-c-g-naumann-1889/edition.human-forms.json",
+      "sha256": "6e1a0940cbcf538629bb224e22c8c5b2ccf535ca2f964540ef633b437a61a9eb",
       "surface_kind": "structured"
     },
     {
@@ -23334,6 +24886,14 @@
       "path": "ToS/source-witnesses/works/friedrich-nietzsche/goetzen-daemmerung/expressions/de-naumann-1889/editions/leipzig-c-g-naumann-1889/items/mdz-bsb-scan-pdf/forensic-report.md",
       "sha256": "5bfbe29bae875dfcedf954f1f293ad929a6daf4ca8d36660ffbabb44bf41bc71",
       "surface_kind": "human"
+    },
+    {
+      "bytes": 7890,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/friedrich-nietzsche/goetzen-daemmerung/expressions/de-naumann-1889/editions/leipzig-c-g-naumann-1889/items/mdz-bsb-scan-pdf/item.human-forms.json",
+      "sha256": "126b65f0fb57bb22ee68c1f8f97c3dfa20a53c9f67749867384f20e0e724f0d8",
+      "surface_kind": "structured"
     },
     {
       "bytes": 2561,
@@ -23376,6 +24936,14 @@
       "surface_kind": "structured"
     },
     {
+      "bytes": 4831,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/friedrich-nietzsche/goetzen-daemmerung/expressions/de-naumann-1889/expression.human-forms.json",
+      "sha256": "579336a295259d8a215fa20349cc2b207611d85e897a1e227a6fabe415bf4d27",
+      "surface_kind": "structured"
+    },
+    {
       "bytes": 1334,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
@@ -23384,11 +24952,27 @@
       "surface_kind": "structured"
     },
     {
+      "bytes": 4886,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/friedrich-nietzsche/goetzen-daemmerung/expressions/ru-polilov-mysl-1996/expression.human-forms.json",
+      "sha256": "01e09641b8c39c2d87e8d076f39f478a433857aa8991b839144525bc575d6a72",
+      "surface_kind": "structured"
+    },
+    {
       "bytes": 1379,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/source-witnesses/works/friedrich-nietzsche/goetzen-daemmerung/expressions/ru-polilov-mysl-1996/expression.json",
       "sha256": "e0cfe05323aa55cc61ff54d99ae111f68c76f5848ec46066fd56cb723f42a6f6",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 7296,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/friedrich-nietzsche/goetzen-daemmerung/work.human-forms.json",
+      "sha256": "96cd9150683474c15d4aea6710d97b51d7472746117e49e61062d8fd5111dc87",
       "surface_kind": "structured"
     },
     {
@@ -23424,6 +25008,14 @@
       "surface_kind": "structured"
     },
     {
+      "bytes": 7944,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/friedrich-nietzsche/jenseits-von-gut-und-boese/expressions/de-naumann-1886/editions/leipzig-c-g-naumann-1886/edition.human-forms.json",
+      "sha256": "1e6da26588a15ce7b3ed1721e3e9a775b80ad2e436fb39d13d8f668a72762642",
+      "surface_kind": "structured"
+    },
+    {
       "bytes": 2541,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
@@ -23438,6 +25030,14 @@
       "path": "ToS/source-witnesses/works/friedrich-nietzsche/jenseits-von-gut-und-boese/expressions/de-naumann-1886/editions/leipzig-c-g-naumann-1886/items/internet-archive-google-harvard-scan-pdf/forensic-report.md",
       "sha256": "2b9b2ba405833280b527039861957ffc9fe2315cc50d8b70f6ac96e4661b2cd6",
       "surface_kind": "human"
+    },
+    {
+      "bytes": 8466,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/friedrich-nietzsche/jenseits-von-gut-und-boese/expressions/de-naumann-1886/editions/leipzig-c-g-naumann-1886/items/internet-archive-google-harvard-scan-pdf/item.human-forms.json",
+      "sha256": "65b705745698e2847c79579dddcb88b308e7a7417c59d4c9da21f20a7ce5f2fa",
+      "surface_kind": "structured"
     },
     {
       "bytes": 3082,
@@ -23488,11 +25088,27 @@
       "surface_kind": "structured"
     },
     {
+      "bytes": 4919,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/friedrich-nietzsche/jenseits-von-gut-und-boese/expressions/de-naumann-1886/expression.human-forms.json",
+      "sha256": "3020011f2445a3a24f5418afa6903cba2035186806efa666c59d095dd2ddc1ef",
+      "surface_kind": "structured"
+    },
+    {
       "bytes": 1331,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/source-witnesses/works/friedrich-nietzsche/jenseits-von-gut-und-boese/expressions/de-naumann-1886/expression.json",
       "sha256": "abd4a28fc2107116f75537755a729389cfc37f3e92d257fc5e00292c94edb1d8",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 4974,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/friedrich-nietzsche/jenseits-von-gut-und-boese/expressions/ru-polilov-mysl-1996/expression.human-forms.json",
+      "sha256": "7e638989ff76c81adf772908d763ed46a25c15907b9b2e017958abbd73368ac7",
       "surface_kind": "structured"
     },
     {
@@ -23509,6 +25125,14 @@
       "family_id": "tos",
       "path": "ToS/source-witnesses/works/friedrich-nietzsche/jenseits-von-gut-und-boese/expressions/ru-polilov-mysl-1996/structure/mysl-1996-volume-2-operator-pdf/numbered-unit-page-map.json",
       "sha256": "e2621e08e49bc7f96a8c6dd6c45d32f90fdf3a9e280644e0adbefd5d2c7e09f6",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 5958,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/friedrich-nietzsche/jenseits-von-gut-und-boese/work.human-forms.json",
+      "sha256": "f9593132876236175032ea252895bac2cb8007137aacdcb9848d069dae2a2a35",
       "surface_kind": "structured"
     },
     {
@@ -23536,6 +25160,14 @@
       "surface_kind": "structured"
     },
     {
+      "bytes": 8034,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/friedrich-nietzsche/zur-genealogie-der-moral/expressions/de-naumann-1892-second/editions/leipzig-c-g-naumann-1892-second-edition/edition.human-forms.json",
+      "sha256": "5c14218f843cdb7f0fb03539ef14b8e083993990907a67c5b7deb24e609a79ad",
+      "surface_kind": "structured"
+    },
+    {
       "bytes": 2346,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
@@ -23550,6 +25182,14 @@
       "path": "ToS/source-witnesses/works/friedrich-nietzsche/zur-genealogie-der-moral/expressions/de-naumann-1892-second/editions/leipzig-c-g-naumann-1892-second-edition/items/wikimedia-commons-unc-scan-pdf/forensic-report.md",
       "sha256": "4815d73347c24bcf3b7e9db3ed5a5ec638ab05b6b10b7598e3b0cad9375ac1d0",
       "surface_kind": "human"
+    },
+    {
+      "bytes": 8376,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/friedrich-nietzsche/zur-genealogie-der-moral/expressions/de-naumann-1892-second/editions/leipzig-c-g-naumann-1892-second-edition/items/wikimedia-commons-unc-scan-pdf/item.human-forms.json",
+      "sha256": "47127766271f619578b3c21ad6147b42c8f31f6ad8a1e4ef520a7b55c19205be",
+      "surface_kind": "structured"
     },
     {
       "bytes": 3054,
@@ -23600,11 +25240,27 @@
       "surface_kind": "structured"
     },
     {
+      "bytes": 4974,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/friedrich-nietzsche/zur-genealogie-der-moral/expressions/de-naumann-1892-second/expression.human-forms.json",
+      "sha256": "862462f138fab6bf57f9d7362e378e6643d682942eb23f80afcfcdf790a77e6e",
+      "surface_kind": "structured"
+    },
+    {
       "bytes": 1464,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/source-witnesses/works/friedrich-nietzsche/zur-genealogie-der-moral/expressions/de-naumann-1892-second/expression.json",
       "sha256": "0aa3d4d8c2b1dfe57e7323bf3d2948cbf1605c8d6b64721fc29b557d51f85c6f",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 4952,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/friedrich-nietzsche/zur-genealogie-der-moral/expressions/ru-svasyan-mysl-1996/expression.human-forms.json",
+      "sha256": "88c904a6b28a7dfea0fb945ff088c6987180290c57dee9219db51da895b48b20",
       "surface_kind": "structured"
     },
     {
@@ -23632,6 +25288,14 @@
       "surface_kind": "structured"
     },
     {
+      "bytes": 7404,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/friedrich-nietzsche/zur-genealogie-der-moral/work.human-forms.json",
+      "sha256": "b8a643370c84fb4d90f6c0dc35a88c359e86e513d63555aa9400750cd9f0a3ce",
+      "surface_kind": "structured"
+    },
+    {
       "bytes": 2708,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
@@ -23640,11 +25304,27 @@
       "surface_kind": "structured"
     },
     {
+      "bytes": 8340,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/mesopotamian-scholarship/ancient-mesopotamia-speaks-highlights-of-the-yale-babylonian-collection/work.human-forms.json",
+      "sha256": "b15c5eee5ed213b5a2cae54f651309046a86411c7ddcc9111c4a6bd9fdfdf4e7",
+      "surface_kind": "structured"
+    },
+    {
       "bytes": 3430,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/source-witnesses/works/mesopotamian-scholarship/ancient-mesopotamia-speaks-highlights-of-the-yale-babylonian-collection/work.json",
       "sha256": "b8fd7553ce6ca8c122f6f3388e554e549b1535cd85fcd12af1853ab475b9fe2a",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 5425,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/old-babylonian-scholarship/an-old-babylonian-version-of-the-gilgamesh-epic/expressions/en-jastrow-clay-1920/editions/new-haven-yale-university-press-1920/edition.human-forms.json",
+      "sha256": "1c40a7a6813ef1426f38eb20f8094f3f0cd034bb5d9c1fefca1faf1524cdbae4",
       "surface_kind": "structured"
     },
     {
@@ -23662,6 +25342,14 @@
       "path": "ToS/source-witnesses/works/old-babylonian-scholarship/an-old-babylonian-version-of-the-gilgamesh-epic/expressions/en-jastrow-clay-1920/editions/new-haven-yale-university-press-1920/items/commons-internet-archive-robarts-scan-djvu/forensic-report.md",
       "sha256": "e71e1a3d2dc77cb914bcb8b6ac0624721cb1f0af2d797bc99cd51dadbe368e54",
       "surface_kind": "human"
+    },
+    {
+      "bytes": 9096,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/old-babylonian-scholarship/an-old-babylonian-version-of-the-gilgamesh-epic/expressions/en-jastrow-clay-1920/editions/new-haven-yale-university-press-1920/items/commons-internet-archive-robarts-scan-djvu/item.human-forms.json",
+      "sha256": "f8ee6ba07000a0ac546dd1b3142b8932d28cd38b522620fa4c334c066cad0dbf",
+      "surface_kind": "structured"
     },
     {
       "bytes": 2792,
@@ -23704,11 +25392,27 @@
       "surface_kind": "structured"
     },
     {
+      "bytes": 5282,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/old-babylonian-scholarship/an-old-babylonian-version-of-the-gilgamesh-epic/expressions/en-jastrow-clay-1920/expression.human-forms.json",
+      "sha256": "a96c55d16d789307028e28d1510819e4769dd078162e28eb47ac4a9ce5a91a9d",
+      "surface_kind": "structured"
+    },
+    {
       "bytes": 1990,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/source-witnesses/works/old-babylonian-scholarship/an-old-babylonian-version-of-the-gilgamesh-epic/expressions/en-jastrow-clay-1920/expression.json",
       "sha256": "bad56e2cff9e4f433e95e1a25feab487a4c0f9b70044a98edd09ce4c0232dbc2",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 7944,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/old-babylonian-scholarship/an-old-babylonian-version-of-the-gilgamesh-epic/work.human-forms.json",
+      "sha256": "263c72e4894d041b7e751cea85826ab19995b8f0d266594244fd79ba7c88232a",
       "surface_kind": "structured"
     },
     {
@@ -23720,11 +25424,27 @@
       "surface_kind": "structured"
     },
     {
+      "bytes": 4666,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/old-babylonian-scholarship/education-mesopotamian/work.human-forms.json",
+      "sha256": "8f4cd9a8bee0a9ae2e88929718b58cb5cb0138b5f2f7861fd20d3ee245028450",
+      "surface_kind": "structured"
+    },
+    {
       "bytes": 1661,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/source-witnesses/works/old-babylonian-scholarship/education-mesopotamian/work.json",
       "sha256": "83921b5a0bd50b07575b443b1a8086f4c71ec375dc10bbec1eb87e0e75931262",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 7638,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/old-babylonian-scholarship/elementary-education-at-nippur/work.human-forms.json",
+      "sha256": "fefc5f546d4c1932edb7ba5ed526018f7b91b5099159a8b4ea33abb8506c205b",
       "surface_kind": "structured"
     },
     {
@@ -23736,11 +25456,27 @@
       "surface_kind": "structured"
     },
     {
+      "bytes": 4798,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/old-babylonian-scholarship/gesetze-in-sumerischer-sprache/work.human-forms.json",
+      "sha256": "23f8684414cc3b3f2df4c46f7bb34c70a9c6a826cb43ced19a7e2cf4af372a6f",
+      "surface_kind": "structured"
+    },
+    {
       "bytes": 2503,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/source-witnesses/works/old-babylonian-scholarship/gesetze-in-sumerischer-sprache/work.json",
       "sha256": "83b54a9da7c744feb661a39487e30aae39dc3dc85b21cd1ad3305f597f6c05fb",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 4985,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/old-babylonian-scholarship/law-collections-from-mesopotamia-and-asia-minor/work.human-forms.json",
+      "sha256": "6f81a69f9a5c1f57a71eb36ca0983f1c84211c835859654ecb299cc84e7d7b48",
       "surface_kind": "structured"
     },
     {
@@ -23752,11 +25488,27 @@
       "surface_kind": "structured"
     },
     {
+      "bytes": 4974,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/old-babylonian-scholarship/laws-of-lipit-ishtar-wilcke-encyclopedia-entry/work.human-forms.json",
+      "sha256": "732cc0d613d9a0b615a5a55862558f39f668eb33f461283c8b1c096f07247db0",
+      "surface_kind": "structured"
+    },
+    {
       "bytes": 2419,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/source-witnesses/works/old-babylonian-scholarship/laws-of-lipit-ishtar-wilcke-encyclopedia-entry/work.json",
       "sha256": "4e045443728ca518dcdc3a91fb04dc5f45a491ef141915dc090b61c67c8d81cb",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 4974,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/old-babylonian-scholarship/sumerian-extract-tablets-and-scribal-education/work.human-forms.json",
+      "sha256": "dddf0cdb223fa0620ba4147f5e988f989a3f0a33860a46643b33061f7ea31d6a",
       "surface_kind": "structured"
     },
     {
@@ -23768,11 +25520,27 @@
       "surface_kind": "structured"
     },
     {
+      "bytes": 7566,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/old-babylonian-scholarship/texts-tablets-and-teaching/work.human-forms.json",
+      "sha256": "f710382aa411798416397b6b8467febf842e047f803511e9072ef81560834f4d",
+      "surface_kind": "structured"
+    },
+    {
       "bytes": 2080,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/source-witnesses/works/old-babylonian-scholarship/texts-tablets-and-teaching/work.json",
       "sha256": "71eca51a47ffed4e45e9515fc98b4ad64bb836e6cc8e1973d88c242e1b095124",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 4974,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/old-babylonian-scholarship/the-babylonian-gilgamesh-epic-critical-edition/work.human-forms.json",
+      "sha256": "16ff2638851bd9f80e4d0e1de8dbd8e72eaa791e49dd9a73828ba1fdf6290bfe",
       "surface_kind": "structured"
     },
     {
@@ -23784,11 +25552,27 @@
       "surface_kind": "structured"
     },
     {
+      "bytes": 7818,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/old-babylonian-scholarship/the-epic-of-gilgamesh-george-translation/work.human-forms.json",
+      "sha256": "ec6a8924a8f34775f239101f73ae2ec7f2c1e91c5a7d757841593fbdc2af69d4",
+      "surface_kind": "structured"
+    },
+    {
       "bytes": 3488,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/source-witnesses/works/old-babylonian-scholarship/the-epic-of-gilgamesh-george-translation/work.json",
       "sha256": "3a0d124cb0a20bad54d8e2a99684d4aa0c988bd2e6193ed930a0cf7cbdf21d75",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 7386,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/old-babylonian-scholarship/the-tablet-house/work.human-forms.json",
+      "sha256": "e7b5b5d3b28b17aa957fc6c35f2e5c2cc8fa440d68645a1574c13396ba2b35a9",
       "surface_kind": "structured"
     },
     {
@@ -23800,11 +25584,27 @@
       "surface_kind": "structured"
     },
     {
+      "bytes": 4952,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/old-babylonian-scholarship/the-textual-criticism-of-sumerian-literature/work.human-forms.json",
+      "sha256": "cd060ab90d53d7db0cde623121062e46cf7821b08ceeb31830324a01a816d25d",
+      "surface_kind": "structured"
+    },
+    {
       "bytes": 2539,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/source-witnesses/works/old-babylonian-scholarship/the-textual-criticism-of-sumerian-literature/work.json",
       "sha256": "517db8dc58bb0cb1f13f32d79475133652dc19e280420a41c43d3d83c20ca078",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 5117,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/proto-cuneiform-scholarship/a-quantitative-analysis-of-proto-cuneiform-sign-use-in-archaic-tribute/work.human-forms.json",
+      "sha256": "af9324bcac8b1fbcad1b9aa35c2c7009928345677b2e80d61ee92ae9de205ae8",
       "surface_kind": "structured"
     },
     {
@@ -23816,11 +25616,27 @@
       "surface_kind": "structured"
     },
     {
+      "bytes": 10904,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/proto-cuneiform-scholarship/archaic-administrative-texts-from-uruk-the-early-campaigns/work.human-forms.json",
+      "sha256": "a394bcae2152271143691e28c8cea6525f3f1149bfa0fcce8ace871ed41c940b",
+      "surface_kind": "structured"
+    },
+    {
       "bytes": 3514,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/source-witnesses/works/proto-cuneiform-scholarship/archaic-administrative-texts-from-uruk-the-early-campaigns/work.json",
       "sha256": "04818ee69bbce455b222273d873d89c54e47110afff037d6060e2003a3e42caa",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 7278,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/proto-cuneiform-scholarship/atu-2-green-sign-list/work.human-forms.json",
+      "sha256": "090b1478bfa7061b90bfbed77f634008c249886ff5626c4ee4af424848512285",
       "surface_kind": "structured"
     },
     {
@@ -23832,11 +25648,27 @@
       "surface_kind": "structured"
     },
     {
+      "bytes": 4897,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/proto-cuneiform-scholarship/before-writing-volume-i-from-counting-to-cuneiform/work.human-forms.json",
+      "sha256": "63da90258743d2193f7e32a80b3c86813f73cc063df75be4107362e72a96954d",
+      "surface_kind": "structured"
+    },
+    {
       "bytes": 2156,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/source-witnesses/works/proto-cuneiform-scholarship/before-writing-volume-i-from-counting-to-cuneiform/work.json",
       "sha256": "48fe33e337a4602680546d0706c67545b965f2d0121ab4af2f9bb5aa3a85e9eb",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 4567,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/proto-cuneiform-scholarship/britannica-cuneiform/work.human-forms.json",
+      "sha256": "a5f4701fa432bc45f0370ef8344238a58899f2787bd08f7690bba9d97756e9bd",
       "surface_kind": "structured"
     },
     {
@@ -23848,11 +25680,27 @@
       "surface_kind": "structured"
     },
     {
+      "bytes": 10830,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/proto-cuneiform-scholarship/die-lexikalischen-listen-der-archaischen-texte-aus-uruk/work.human-forms.json",
+      "sha256": "63b1d9c88e572dab4b8c034a562bd591a1ab6cecd60dbb3dd062d5c2ee0e53f6",
+      "surface_kind": "structured"
+    },
+    {
       "bytes": 3193,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/source-witnesses/works/proto-cuneiform-scholarship/die-lexikalischen-listen-der-archaischen-texte-aus-uruk/work.json",
       "sha256": "cb4465b7e3db742d1f695173648be1c3023c71e325806f78f1d42fb8be01571b",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 4930,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/proto-cuneiform-scholarship/die-zahlzeichensysteme-der-archaischen-texte-aus-uruk/work.human-forms.json",
+      "sha256": "99c5fbee7860fb78974fcc80dc20db798ec4a11af39793f5323ed901f1272ee5",
       "surface_kind": "structured"
     },
     {
@@ -23864,11 +25712,27 @@
       "surface_kind": "structured"
     },
     {
+      "bytes": 4963,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/proto-cuneiform-scholarship/getty-mesopotamia-civilization-begins-digital-experience/work.human-forms.json",
+      "sha256": "61098ccba1941ab2f1483845a91698545300b541f687e9a44f2ea011f5594f9c",
+      "surface_kind": "structured"
+    },
+    {
       "bytes": 1992,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/source-witnesses/works/proto-cuneiform-scholarship/getty-mesopotamia-civilization-begins-digital-experience/work.json",
       "sha256": "62d6c30882ab658520dc5fd53fd84db38426cdafc73c6c04aca9cf8d5d7718fe",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 4611,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/proto-cuneiform-scholarship/n16-in-the-archaic-texts/work.human-forms.json",
+      "sha256": "430479af1751d24a3556181b45d9ad1c69ec144365f396a4f892a5ee999bd6f6",
       "surface_kind": "structured"
     },
     {
@@ -23880,11 +25744,27 @@
       "surface_kind": "structured"
     },
     {
+      "bytes": 7800,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/proto-cuneiform-scholarship/pisan-dub-ba-and-the-direction-of-cuneiform-script/work.human-forms.json",
+      "sha256": "903f7740ad3a97326af3643a341707a7f41c291d1de62710bceee71d8e665489",
+      "surface_kind": "structured"
+    },
+    {
       "bytes": 2335,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/source-witnesses/works/proto-cuneiform-scholarship/pisan-dub-ba-and-the-direction-of-cuneiform-script/work.json",
       "sha256": "e4dc4a5c3ab893ab963f20c9d1ddc74097fb3f185b6a6b46a7e4b85b911b2416",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 4457,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/proto-cuneiform-scholarship/uruk-and-i/work.human-forms.json",
+      "sha256": "dd0a76f4fa57507661afa97a8c8dfe99ff61003f9b3abc0cf9926cd7db9ce873",
       "surface_kind": "structured"
     },
     {
@@ -23896,11 +25776,27 @@
       "surface_kind": "structured"
     },
     {
+      "bytes": 9878,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/sumerian-law/laws-of-lipit-ishtar/work.human-forms.json",
+      "sha256": "9f4dc384038c397f5c8103e7410a4c921ed842d9f63b4bdfc929d6ade70873e0",
+      "surface_kind": "structured"
+    },
+    {
       "bytes": 1698,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/source-witnesses/works/sumerian-law/laws-of-lipit-ishtar/work.json",
       "sha256": "6fba191cba9445357437cb653e9d594a8d13231febe09273bafebde53b681747",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 9778,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/sumerian-law/laws-of-ur-namma/work.human-forms.json",
+      "sha256": "f2fe9c04efbecb73c713b07cb421fb528719e77b422deaa81537730b7c65ced4",
       "surface_kind": "structured"
     },
     {
@@ -23912,11 +25808,27 @@
       "surface_kind": "structured"
     },
     {
+      "bytes": 12934,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/sumerian-literature/instructions-of-shuruppag/work.human-forms.json",
+      "sha256": "302521c403dd28772430f5bce738336d5e3df343c2fbc709245ebf872dcf90fa",
+      "surface_kind": "structured"
+    },
+    {
       "bytes": 2131,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/source-witnesses/works/sumerian-literature/instructions-of-shuruppag/work.json",
       "sha256": "e43921f85e69fb07406fdfcfea1dabd0ef2a4dab3482e3533f3dadfc792d831e",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 11078,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/sumerian-scholarship/the-instructions-of-shurruppak-a-sumerian-proverb-collection/work.human-forms.json",
+      "sha256": "388806ec917831ce0e183aade9f29b7331d25d89e840ce396e269d250bb1fda4",
       "surface_kind": "structured"
     },
     {
@@ -24032,19 +25944,19 @@
       "surface_kind": "human"
     },
     {
-      "bytes": 28712,
+      "bytes": 30432,
       "currentness": "tracked_source_snapshot",
       "family_id": "access",
       "path": "access/README.md",
-      "sha256": "a5b4f54c01f088bcf9dc048224cde77f7015a2bf0da429858540a45787dacdb4",
+      "sha256": "6b7778a2955b8e9dc6e19e757839d0648ddc109049706c2d5a5a3ad6831387e3",
       "surface_kind": "human"
     },
     {
-      "bytes": 5310,
+      "bytes": 12579,
       "currentness": "tracked_source_snapshot",
       "family_id": "access",
       "path": "access/contracts/README.md",
-      "sha256": "d468a93e61a06db60ad672d76d97b293564d2b0f9cac446943b4e8e90e7e93fa",
+      "sha256": "53e2c89a7322dee81877eff32f26ba271e9ddfd0090688ba45557ddedf179a39",
       "surface_kind": "human"
     },
     {
@@ -24072,27 +25984,27 @@
       "surface_kind": "structured"
     },
     {
-      "bytes": 4298,
+      "bytes": 4365,
       "currentness": "tracked_source_snapshot",
       "family_id": "access",
       "path": "access/contracts/exploration-result.v1.schema.json",
-      "sha256": "df4f32658917f4fdb89257fe99c9a7b01cf3d6c3c795d40ef0bc02e6d412e289",
+      "sha256": "16627061eca561c4521edc3b4f08bda675e9d0157d40b8f9d6dbaa5f5b53a694",
       "surface_kind": "structured"
     },
     {
-      "bytes": 6347,
+      "bytes": 6934,
       "currentness": "tracked_source_snapshot",
       "family_id": "access",
       "path": "access/contracts/knowledge-api.v1.json",
-      "sha256": "d79ee693bdd166e958c8807a7254507c7f1d47fca977e590ab96d33949f5e527",
+      "sha256": "08b3f661da909533df048c2be408b5af3ed0930eed08825c85e7d3c748600022",
       "surface_kind": "structured"
     },
     {
-      "bytes": 8145,
+      "bytes": 15061,
       "currentness": "tracked_source_snapshot",
       "family_id": "access",
       "path": "access/contracts/knowledge-graph.v1.schema.json",
-      "sha256": "8fd40ef23274c0d0ee4fb3f80bb7f86ea1e8954e5d337615a43e68f5acdc19ef",
+      "sha256": "9e10765bff6b29baf1029c48d8c5aa2f27c554b713344d99cdbeae5623d403d5",
       "surface_kind": "structured"
     },
     {
@@ -24104,11 +26016,11 @@
       "surface_kind": "structured"
     },
     {
-      "bytes": 10078,
+      "bytes": 10739,
       "currentness": "tracked_source_snapshot",
       "family_id": "access",
       "path": "access/contracts/lens-spec.v1.schema.json",
-      "sha256": "340b8b7f3999c5fb2a73ff51341155721de042a310f6b6e22a12a77b9e1724a6",
+      "sha256": "00a261282a0408aa9a99cdad6e17d63cc0c4122742f148ccca37eaa20972948e",
       "surface_kind": "structured"
     },
     {
@@ -24344,11 +26256,11 @@
       "surface_kind": "executable"
     },
     {
-      "bytes": 123901,
+      "bytes": 124566,
       "currentness": "tracked_source_snapshot",
       "family_id": "access",
       "path": "access/src/tos_access/core.py",
-      "sha256": "75c20cab927f15719823b220b2a7a7ffc190eb02e4b7b70598718d7454b1aaf7",
+      "sha256": "88976fefc7306e11f6ee955244fab1b6416d61ac79d3ac690c7a0c817aaefa29",
       "surface_kind": "executable"
     },
     {
@@ -24360,11 +26272,11 @@
       "surface_kind": "executable"
     },
     {
-      "bytes": 14058,
+      "bytes": 14196,
       "currentness": "tracked_source_snapshot",
       "family_id": "access",
       "path": "access/src/tos_access/exploration.py",
-      "sha256": "a9e057c12667adb26e87acc9c2f6e44d5e1c9360ea17bed476c3d0516622f446",
+      "sha256": "bf286189de1ad42a8ec1a8c8b77e6a574dc8f8f6e357dad5e260d3c2e34545cc",
       "surface_kind": "executable"
     },
     {
@@ -24376,11 +26288,11 @@
       "surface_kind": "executable"
     },
     {
-      "bytes": 168848,
+      "bytes": 202006,
       "currentness": "tracked_source_snapshot",
       "family_id": "access",
       "path": "access/src/tos_access/knowledge.py",
-      "sha256": "2ec119bc42402885f914319244ff4e93cc8f8049430872e84e173792923457a6",
+      "sha256": "ca66bc7bcdfbe3298c9912b473852320c5eb9af49fb3133d1cdeb50893cf284c",
       "surface_kind": "executable"
     },
     {
@@ -24416,11 +26328,11 @@
       "surface_kind": "executable"
     },
     {
-      "bytes": 93226,
+      "bytes": 95242,
       "currentness": "tracked_source_snapshot",
       "family_id": "access",
       "path": "access/tests/test_access_contract.py",
-      "sha256": "3e29338b510c3dd26382c10df15c64e5a5e742b267868b6d01e2e3eeb4306d92",
+      "sha256": "a00488854dc306888435061aec94025aafceb5017519597d2b0c13644a510690",
       "surface_kind": "executable"
     },
     {
@@ -24456,11 +26368,11 @@
       "surface_kind": "executable"
     },
     {
-      "bytes": 63709,
+      "bytes": 101474,
       "currentness": "tracked_source_snapshot",
       "family_id": "access",
       "path": "access/tests/test_knowledge_contract.py",
-      "sha256": "0bfcdb142a6f0bf6b7be5cf9990e01c5c23d0885cfe5adf738efd38d12d66b64",
+      "sha256": "4b9c382ad13815292778219fca40e129c7eb8cf3b33390735773cadb0a562f48",
       "surface_kind": "executable"
     },
     {
@@ -24472,11 +26384,11 @@
       "surface_kind": "executable"
     },
     {
-      "bytes": 10921,
+      "bytes": 19040,
       "currentness": "tracked_source_snapshot",
       "family_id": "access",
       "path": "access/web/README.md",
-      "sha256": "ad85d3a56e8811da48558b566a28dd4a028a5559ac4166a0addc70c75a69c3a4",
+      "sha256": "fe7184f879c52ecc2d593efe25789d50058e02d43274706c931319b36e9654c5",
       "surface_kind": "human"
     },
     {
@@ -24960,6 +26872,22 @@
       "surface_kind": "human"
     },
     {
+      "bytes": 3684,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "docs",
+      "path": "docs/decisions/TOS-D-0051-competent-agent-assessment-and-scoped-admission.md",
+      "sha256": "95650de2dd0cca3ac9b96ed17462545c220d3d0b4c3be5ca720a16b8ac9ba5ee",
+      "surface_kind": "human"
+    },
+    {
+      "bytes": 3781,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "docs",
+      "path": "docs/decisions/TOS-D-0052-historical-contract-input-bytes.md",
+      "sha256": "6906cea888acaa850ceba00b1b75995d0bb1858376b602c3a55de034ca65856e",
+      "surface_kind": "human"
+    },
+    {
       "bytes": 483,
       "currentness": "tracked_source_snapshot",
       "family_id": "docs",
@@ -24968,51 +26896,51 @@
       "surface_kind": "human"
     },
     {
-      "bytes": 9403,
+      "bytes": 9833,
       "currentness": "tracked_source_snapshot",
       "family_id": "docs",
       "path": "docs/decisions/indexes/by-date.md",
-      "sha256": "692f412c441f82ea9ab339b98cc5b75eca4aad343fcca42d67d966fbcc99c4cd",
+      "sha256": "b4a10fcd9893334c54a99574557ecfebf1a6c145b8b731f17ad5997ce6d71974",
       "surface_kind": "human"
     },
     {
-      "bytes": 44638,
+      "bytes": 45753,
       "currentness": "tracked_source_snapshot",
       "family_id": "docs",
       "path": "docs/decisions/indexes/by-guard.md",
-      "sha256": "47c57455cf591b150a75b124bc20518afd2ee107f9fc8adb2cad4ada94c06892",
+      "sha256": "82043f283e85e03e47b772c5e8227b1f94bb051a9365a38bb5230d9ecd1a606e",
       "surface_kind": "human"
     },
     {
-      "bytes": 24534,
+      "bytes": 25361,
       "currentness": "tracked_source_snapshot",
       "family_id": "docs",
       "path": "docs/decisions/indexes/by-number.md",
-      "sha256": "afedfee5ec0a1df8f9c47294ae7441fa3a388ceb4b0a9ea508985e49e74e3593",
+      "sha256": "62b038388871f07314974f7718292776033bceb15accffd673a8308d0c53f3ba",
       "surface_kind": "human"
     },
     {
-      "bytes": 37739,
+      "bytes": 38801,
       "currentness": "tracked_source_snapshot",
       "family_id": "docs",
       "path": "docs/decisions/indexes/by-surface.md",
-      "sha256": "92d578d048b82de682258b6c4daad0f7122fc86110efbfdc828e7ea9b9ad66dc",
+      "sha256": "97e6103a49b6f1df9f566f6259731b783979992fabaa55caaec299c8426adc21",
       "surface_kind": "human"
     },
     {
-      "bytes": 40349,
+      "bytes": 41591,
       "currentness": "tracked_source_snapshot",
       "family_id": "docs",
       "path": "docs/decisions/indexes/by-tos-layer.md",
-      "sha256": "b7b5f0e6e0d0264854664c0ecebedf7a1dfbe2047dc0b901003d60d246b3397f",
+      "sha256": "770c4f1678620978079c0c0a7e088880ef3a53ce856c146e6ea93030d069656c",
       "surface_kind": "human"
     },
     {
-      "bytes": 36152,
+      "bytes": 37265,
       "currentness": "tracked_source_snapshot",
       "family_id": "docs",
       "path": "docs/decisions/indexes/by-tree-class.md",
-      "sha256": "142f216f9b507f2bc8569222576f7dd878f6ec5ac3aee08d4ac6f33fd775437b",
+      "sha256": "7761e8da4868ce4cca0d96d25fa88d66d2b59ab0b433895dfbce32d6d1b67436",
       "surface_kind": "human"
     },
     {
@@ -25080,11 +27008,11 @@
       "surface_kind": "structured"
     },
     {
-      "bytes": 176072,
+      "bytes": 188835,
       "currentness": "tracked_source_snapshot",
       "family_id": "docs",
       "path": "docs/validation/script_inventory.json",
-      "sha256": "ef83046966a304549e96c4a20f2491fa311d8dd456c0695292ed77164b9b4a1e",
+      "sha256": "ffc23d64dd2518ede94acda9cf9b48f6f17c0dcd7e1dccc3f99221dbbc1ebc00",
       "surface_kind": "structured"
     },
     {
@@ -25584,11 +27512,11 @@
       "surface_kind": "human"
     },
     {
-      "bytes": 9571,
+      "bytes": 9926,
       "currentness": "tracked_source_snapshot",
       "family_id": "mechanics",
       "path": "mechanics/audit/parts/review-ledger-route/docs/REVIEW_CHECKLIST.md",
-      "sha256": "85f0ab24e8a90d15b1ac4a97a521f1da86a8f58d8160fcfbd384d43904b0646c",
+      "sha256": "877a9a3df1b04b151d6a88dbab50143953f3c1588ba5ef06d1461784bea20366",
       "surface_kind": "human"
     },
     {
@@ -26368,11 +28296,11 @@
       "surface_kind": "human"
     },
     {
-      "bytes": 566,
+      "bytes": 47801,
       "currentness": "tracked_source_snapshot",
       "family_id": "mechanics",
       "path": "mechanics/growth-cycle/parts/branch-growth-cycle/README.md",
-      "sha256": "e487957e7cc84f760ac79de7f9882bd2648a8a4076f59e35c071fc4cba5ba5d3",
+      "sha256": "faec3743b9d7c901f47f4d5bd4ff4d60f977e7ba8f02bedfbe1a34cbc6f91e0f",
       "surface_kind": "human"
     },
     {
@@ -26384,11 +28312,11 @@
       "surface_kind": "human"
     },
     {
-      "bytes": 1994,
+      "bytes": 2792,
       "currentness": "tracked_source_snapshot",
       "family_id": "mechanics",
       "path": "mechanics/growth-cycle/parts/branch-growth-cycle/docs/HUMAN_CURATED_EXPANSION.md",
-      "sha256": "ceaa1dd42e5877c56e3db048369ffbaa248cf48358c375af711167e0bcfeb4da",
+      "sha256": "3f62d005c122b24bf21bc2b11980c5612184b85a94555dad4c7a56fd3c25159b",
       "surface_kind": "human"
     },
     {
@@ -26398,6 +28326,94 @@
       "path": "mechanics/growth-cycle/parts/branch-growth-cycle/docs/PRE_EXPANSION_SOIL.md",
       "sha256": "ddc7077a0b218054e975c5717dbf79aa8fcaf420c9fcc97a7cf88604def53f35",
       "surface_kind": "human"
+    },
+    {
+      "bytes": 37788,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "mechanics",
+      "path": "mechanics/growth-cycle/parts/branch-growth-cycle/scripts/assessment_journal.py",
+      "sha256": "d7ca96668bb76c68ce22a58ae5c5f3d0e51282fa0f50480b81dcd34ea5414b42",
+      "surface_kind": "executable"
+    },
+    {
+      "bytes": 14393,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "mechanics",
+      "path": "mechanics/growth-cycle/parts/branch-growth-cycle/scripts/human_forms.py",
+      "sha256": "67aa34c00a944269db54b0521b3be00c416394075cc215a5ef0d80770a6bcafc",
+      "surface_kind": "executable"
+    },
+    {
+      "bytes": 21922,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "mechanics",
+      "path": "mechanics/growth-cycle/parts/branch-growth-cycle/scripts/knowledge_assessment.py",
+      "sha256": "1de2aa706ba3a0d597319d7f7f164eb3827fa6e431bf746e11742bd509f3c2dd",
+      "surface_kind": "executable"
+    },
+    {
+      "bytes": 19277,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "mechanics",
+      "path": "mechanics/growth-cycle/parts/branch-growth-cycle/scripts/source_claim_commands.py",
+      "sha256": "277a0b8de30216bc1ee3f9fc3eda1b3608a06ff406678b0caf8b528054ab805e",
+      "surface_kind": "executable"
+    },
+    {
+      "bytes": 65218,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "mechanics",
+      "path": "mechanics/growth-cycle/parts/branch-growth-cycle/scripts/source_commands.py",
+      "sha256": "628a60b0b76cf8bfc306d257b02ed02105393d45506cae590d9c62f20e57ac83",
+      "surface_kind": "executable"
+    },
+    {
+      "bytes": 21233,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "mechanics",
+      "path": "mechanics/growth-cycle/parts/branch-growth-cycle/scripts/source_revisions.py",
+      "sha256": "b3334244ab5bcefe3f1be9494b16deae321fe5b5e529eb51602089f80c132322",
+      "surface_kind": "executable"
+    },
+    {
+      "bytes": 20734,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "mechanics",
+      "path": "mechanics/growth-cycle/tests/test_human_forms.py",
+      "sha256": "1adfde041a50eb24fe6a4508e5a3b959a2db2002cbedc2cd37987801169f14b3",
+      "surface_kind": "executable"
+    },
+    {
+      "bytes": 58879,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "mechanics",
+      "path": "mechanics/growth-cycle/tests/test_knowledge_assessment.py",
+      "sha256": "a2c3ff26076125dc1fff66e54c6a420c3640cf4732d8a2462f8f5c8c8a370b1f",
+      "surface_kind": "executable"
+    },
+    {
+      "bytes": 28727,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "mechanics",
+      "path": "mechanics/growth-cycle/tests/test_source_claim_commands.py",
+      "sha256": "12ce7e66b2a9f6b033628bf88fb77ae5c252d73986c812fbec84b0eee47664e2",
+      "surface_kind": "executable"
+    },
+    {
+      "bytes": 79962,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "mechanics",
+      "path": "mechanics/growth-cycle/tests/test_source_commands.py",
+      "sha256": "60315510d3704a2c621c777a6c6326d87e02cc96ec2d1de2fdaccb5996e734d2",
+      "surface_kind": "executable"
+    },
+    {
+      "bytes": 19964,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "mechanics",
+      "path": "mechanics/growth-cycle/tests/test_source_revisions.py",
+      "sha256": "369173e742cc9b507f26f8f1440a2c95358eade56f07eb2843f3602d77cdaff6",
+      "surface_kind": "executable"
     },
     {
       "bytes": 584,
@@ -26976,11 +28992,11 @@
       "surface_kind": "human"
     },
     {
-      "bytes": 6403,
+      "bytes": 6605,
       "currentness": "tracked_source_snapshot",
       "family_id": "scripts",
       "path": "scripts/AGENTS.md",
-      "sha256": "62df46271ad59752c12c1ce67c88cd98425ce66ec67504689a07d4231f15a892",
+      "sha256": "3582ebc06fddd074edc9a07ed976aab0433a2c2f0edfabb70373bf88abba2927",
       "surface_kind": "human"
     },
     {
@@ -27232,11 +29248,11 @@
       "surface_kind": "executable"
     },
     {
-      "bytes": 12033,
+      "bytes": 19059,
       "currentness": "tracked_source_snapshot",
       "family_id": "scripts",
       "path": "scripts/build_source_witness_catalog.py",
-      "sha256": "7a5572506fe924ee3b1b3af4b54ed1ac9b963e9d15a6d6be5fdc8fdf3de587e0",
+      "sha256": "77bbd08abb1b605ae856d713a2417fbf01549945642d8947ab02954484b72091",
       "surface_kind": "executable"
     },
     {
@@ -27576,19 +29592,35 @@
       "surface_kind": "executable"
     },
     {
-      "bytes": 51324,
+      "bytes": 20976,
       "currentness": "tracked_source_snapshot",
       "family_id": "scripts",
-      "path": "scripts/source_witness_bibliographic_graph_common.py",
-      "sha256": "e15fdfd0ffc073a1417a3e5748e70049648ff21c4e5bb9d5dcda6d1f69e2af6c",
+      "path": "scripts/source_record_profiles.py",
+      "sha256": "ca42d333f9c5c64355f175a929106c03e9f9034b54714a2fa17a58874f2f1165",
       "surface_kind": "executable"
     },
     {
-      "bytes": 45058,
+      "bytes": 64919,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "scripts",
+      "path": "scripts/source_witness_bibliographic_graph_common.py",
+      "sha256": "3706358e1dfb67106ee5909e33172e9fc2056acdda9634841973bd0c9f98d9de",
+      "surface_kind": "executable"
+    },
+    {
+      "bytes": 10799,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "scripts",
+      "path": "scripts/source_witness_human_forms.py",
+      "sha256": "fbea0ed79c463fd21f689dabbb2f343ea6e57e25cf3232968402fabd3a4f1a10",
+      "surface_kind": "executable"
+    },
+    {
+      "bytes": 46855,
       "currentness": "tracked_source_snapshot",
       "family_id": "scripts",
       "path": "scripts/tos_corpus_index_common.py",
-      "sha256": "44db8a3cf4b375d4abed8c0ce843f1b093e9ab57ae9e793cec529c41870ad085",
+      "sha256": "6fb03f2287bfc52741543e418c81548011b2c7baf9f12410f811a50e5da5d6a4",
       "surface_kind": "executable"
     },
     {
@@ -27688,11 +29720,11 @@
       "surface_kind": "executable"
     },
     {
-      "bytes": 22132,
+      "bytes": 22791,
       "currentness": "tracked_source_snapshot",
       "family_id": "scripts",
       "path": "scripts/validate_mechanics_topology.py",
-      "sha256": "7d0d2a90172710c88833908f0cef22a61e7f90f8a7709f807b92a7c14923e287",
+      "sha256": "e133b1c109a16a4e9b478565e2dfc4bd655422ead3ffe8c5d16d903c0e1ef07d",
       "surface_kind": "executable"
     },
     {
@@ -27768,19 +29800,19 @@
       "surface_kind": "executable"
     },
     {
-      "bytes": 3423,
+      "bytes": 3636,
       "currentness": "tracked_source_snapshot",
       "family_id": "scripts",
       "path": "scripts/validate_source_witness_bibliographic_graph.py",
-      "sha256": "ac571c6cdc5c1aa0e60f0e1a3a29950f57d687857eba43740ef5ef752fece9b2",
+      "sha256": "3be48e193b74e561ca8aefcac61fd8092757ef1ae9ae9925578e185911bfd8d9",
       "surface_kind": "executable"
     },
     {
-      "bytes": 707286,
+      "bytes": 710851,
       "currentness": "tracked_source_snapshot",
       "family_id": "scripts",
       "path": "scripts/validate_source_witness_foundation.py",
-      "sha256": "8d6c13399d5d92961ee23e9937ca58503337a883d97edab7007285fa609d643d",
+      "sha256": "cd54e82f4cafdb36647ab3c169883d7968151d71552148198d8aaf08226476c4",
       "surface_kind": "executable"
     },
     {
@@ -28040,11 +30072,11 @@
       "surface_kind": "executable"
     },
     {
-      "bytes": 62279,
+      "bytes": 68734,
       "currentness": "tracked_source_snapshot",
       "family_id": "tests",
       "path": "tests/test_inventory.json",
-      "sha256": "bc7f72aca79e1338a45845642dde37dddc6b0f28796749310bf394c378ef0262",
+      "sha256": "92809045457e064872d098753ff8f32d00e6630a12d7232ba91d76a05192c948",
       "surface_kind": "structured"
     },
     {
@@ -28064,11 +30096,11 @@
       "surface_kind": "executable"
     },
     {
-      "bytes": 6461,
+      "bytes": 7739,
       "currentness": "tracked_source_snapshot",
       "family_id": "tests",
       "path": "tests/test_mechanics_route_docs.py",
-      "sha256": "f6995646d2038fb61fc6fe6a3233aa5af74a6cf013f5b02388008090330773e1",
+      "sha256": "eb136a58150ef1fb23a744c5d9759d55431b20923849e4ee86ee773f059804f4",
       "surface_kind": "executable"
     },
     {
@@ -28192,19 +30224,19 @@
       "surface_kind": "executable"
     },
     {
-      "bytes": 47908,
+      "bytes": 129281,
       "currentness": "tracked_source_snapshot",
       "family_id": "tests",
       "path": "tests/test_source_witness_bibliographic_graph.py",
-      "sha256": "a7ae642cb10979b9a7661b40bb6b74544bb16d1768fcd9b4dd416de47497a340",
+      "sha256": "c21012de9438a5bf3bfc18bca6a9f2d36f27878207738279e3a3428b607f99cf",
       "surface_kind": "executable"
     },
     {
-      "bytes": 524790,
+      "bytes": 529351,
       "currentness": "tracked_source_snapshot",
       "family_id": "tests",
       "path": "tests/test_source_witness_foundation.py",
-      "sha256": "0fc45edfb57d1e1fe2de460d69c607eb7d5432fdb7af9f74d77100d6258f2d5c",
+      "sha256": "184eef6be3678dd764231af3ed3846903f1ca57d27c788f0421d8e3fe14a7729",
       "surface_kind": "executable"
     },
     {

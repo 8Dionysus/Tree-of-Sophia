@@ -1,0 +1,50 @@
+#sophia-gestures .sc-builder{right:28px;top:182px;width:min(450px,42%);max-height:calc(100dvh - 280px);padding:17px 22px 14px;display:flex;flex-direction:column;background:linear-gradient(145deg,#151f2d,#0a121ef5 75%);border-color:#485565;box-shadow:0 22px 65px #0008}
+#sophia-gestures .sc-builder:not([hidden]){animation:so-window-in .18s ease-out}
+#sophia-gestures .sc-builder-heading{display:flex;gap:14px;align-items:center;margin:14px 0 20px;flex-shrink:0}
+#sophia-gestures .sc-builder-heading>span{font:36px Georgia,serif;color:#dec591;text-shadow:0 0 18px #dec59125}
+#sophia-gestures .sc-builder-heading h3{font:400 27px/1.25 Georgia,serif;color:#eee3cc;margin:0}
+#sophia-gestures .sc-builder-heading p{font:11px/1.7 system-ui,sans-serif;color:#a7b8cc;margin:6px 0 0}
+#sophia-gestures .sc-builder-body{min-height:0;overflow:auto;overscroll-behavior:contain;scrollbar-width:thin;scrollbar-color:#425065 transparent;padding:0 5px 0 0}
+#sophia-gestures .sc-builder-field{display:block;font:11px/1.6 system-ui,sans-serif;color:#b1bfd0;margin:0 0 15px;min-width:0}
+#sophia-gestures .sc-builder-field>span{display:block;margin-bottom:6px}
+#sophia-gestures .sc-builder :is(input[type=text],input[type=search],select){width:100%;min-height:35px;background:#0d1725;border:1px solid #3b4c62;border-radius:3px;color:#dce4ef;padding:7px 9px;font:12px system-ui,sans-serif}
+#sophia-gestures .sc-builder input::placeholder{color:#8196b0}
+#sophia-gestures .sc-builder input[type=checkbox]{accent-color:#d2b684;width:15px;height:15px;margin:0;flex:none}
+#sophia-gestures .sc-builder-sources{margin:19px 0;padding:10px 0 14px;border:0;border-bottom:1px solid #2e3d50;display:grid;grid-template-columns:1fr 1fr;gap:11px 14px}
+#sophia-gestures .sc-builder-sources legend{padding:0;color:#c9b994;font:11px/1.7 system-ui,sans-serif;letter-spacing:.4px}
+#sophia-gestures .sc-builder-sources label,#sophia-gestures .sc-builder-choice,#sophia-gestures .sc-builder-toggle{display:flex;gap:8px;align-items:center;font:11px/1.6 system-ui,sans-serif;color:#bfcddd;overflow-wrap:anywhere}
+#sophia-gestures .sc-builder-toggle{margin:19px 0 13px}
+#sophia-gestures .sc-builder-choices{border:1px solid #314256;border-radius:3px;background:#0c162322;margin:14px 0;padding:0 11px 7px}
+#sophia-gestures .sc-builder-choices summary{padding:11px 0 5px;color:#c9d5e4;font:12px/1.6 system-ui,sans-serif;cursor:pointer}
+#sophia-gestures .sc-builder-choices[open] summary{padding-bottom:12px}
+#sophia-gestures .sc-builder-options{max-height:145px;overflow:auto;overscroll-behavior:contain;scrollbar-width:thin;margin:10px 0}
+#sophia-gestures .sc-builder-choice{min-height:31px;padding:4px 1px}
+#sophia-gestures .sc-builder-choice small{display:block;font:10px/1.5 system-ui,sans-serif;color:#8297b0}
+#sophia-gestures .sc-builder-grid{display:grid;grid-template-columns:1fr 1fr;gap:0 12px;margin-top:20px}
+#sophia-gestures .sc-builder-note{font:11px/1.8 system-ui,sans-serif;color:#94a9c2;margin:10px 0;overflow-wrap:anywhere}
+#sophia-gestures .sc-builder-focus{font:18px/1.5 Georgia,serif;color:#e1d4b9;margin:5px 0}
+#sophia-gestures .sc-builder-result{border-top:1px solid #354254;margin-top:12px;padding-top:12px;flex-shrink:0}
+#sophia-gestures .sc-builder-result strong{display:block;font:400 21px/1.5 Georgia,serif;color:#e1d3b5}
+#sophia-gestures .sc-builder-result p{font:10px/1.6 system-ui,sans-serif;color:#9db0c8;margin:5px 0}
+#sophia-gestures .sc-builder-result .sc-builder-warning{color:#d3b68c}
+#sophia-gestures .sc-builder-status{flex-shrink:0;font:11px/1.7 system-ui,sans-serif;color:#d7b991;overflow-wrap:anywhere}
+#sophia-gestures .sc-builder-status:not(:empty){margin-top:8px}
+#sophia-gestures .sc-builder-footer{display:flex;flex-wrap:wrap;gap:8px;margin-top:11px;flex-shrink:0}
+#sophia-gestures .sc-builder-button,#sophia-gestures .sc-builder-primary{border:1px solid #41536b;border-radius:3px;background:#132030;color:#c4d3e5;padding:8px 12px;min-height:34px;font:11px system-ui,sans-serif}
+#sophia-gestures .sc-builder-primary{background:#bca37312;border-color:#86704c;color:#eed7aa}
+#sophia-gestures .sc-builder button:disabled{opacity:.45;cursor:default}
+#sophia-gestures .sc-builder-link{background:none;border:0;color:#bea986;padding:4px 0;font:10px/1.6 system-ui,sans-serif;text-align:left}
+#sophia-gestures .sc-builder :is(button,input,select,summary):focus-visible{outline:1px solid #dec18a;outline-offset:3px}
+#sophia-gestures .sc-builder-open{margin-top:12px;border:1px solid #736344;border-radius:3px;background:#c9a96e0a;color:#e3c894;padding:12px;width:100%;font:12px system-ui,sans-serif}
+@container(max-width:1050px){#sophia-gestures .sc-builder{right:20px;width:44%;padding:14px 18px}}
+@container(max-width:650px){#sophia-gestures .sc-builder{top:auto;bottom:115px;left:15px;right:15px;width:auto;max-height:42dvh;padding:12px 17px}#sophia-gestures .sc-builder .sc-panel-top{position:absolute;right:10px;top:8px}#sophia-gestures .sc-builder .sc-panel-top>.sc-eyebrow{display:none}#sophia-gestures .sc-builder-heading{margin:0 25px 12px 0;gap:9px}#sophia-gestures .sc-builder-heading>span{font-size:26px}#sophia-gestures .sc-builder-heading h3{font-size:22px}#sophia-gestures .sc-builder-heading p{display:none}#sophia-gestures .sc-builder-result{margin-top:8px;padding-top:7px}#sophia-gestures .sc-builder-result strong{font-size:18px}#sophia-gestures .sc-builder-footer{gap:6px;margin-top:8px}#sophia-gestures .sc-builder-button,#sophia-gestures .sc-builder-primary{padding:7px 9px;font-size:10px}}
+#sophia-gestures .sc-builder-choice-controls{display:grid;grid-template-columns:minmax(0,1fr) 135px;gap:7px}
+#sophia-gestures .sc-builder .sc-builder-choice-controls select{font-size:10px;padding-left:6px;padding-right:3px}
+#sophia-gestures .sc-builder-choice-group{border-bottom:1px solid #28394d;padding:0 1px 6px;margin:0 0 7px}
+#sophia-gestures .sc-builder-choice-group>summary{font-size:11px;color:#c6b58f;padding:7px 0}
+#sophia-gestures .sc-builder-choice-group[data-group=technical]>summary{color:#92a2b8}
+#sophia-gestures .sc-builder-choice-group .sc-builder-choice{padding-left:4px}
+#sophia-gestures .sc-builder-choice-group .sc-builder-note{margin:2px 0 8px}
+#sophia-gestures .sc-builder-options{max-height:none;overflow:visible}
+#sophia-gestures .sc-builder-status{max-height:60px;overflow:auto}
+@container(max-width:650px){#sophia-gestures .sc-builder-choice-controls{grid-template-columns:minmax(0,1fr) 116px}#sophia-gestures .sc-builder-options{max-height:none;overflow:visible}}

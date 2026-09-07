@@ -1,8 +1,11 @@
+import {createReadingMemory} from './reading-state.mjs';
 import {KnowledgeClient,RequestSlots,RevisionError,ContractError,localized,focusSpec,relationSpec,DEFAULT_FOCUS} from './knowledge-client.mjs';
+import {decodeDraft,constructorCatalog,previewDraft} from './lens-model.mjs';
 
-export function attachKnowledgeUI(root,port,{client=new KnowledgeClient(),initialFocus=DEFAULT_FOCUS}={}) {
+export function attachKnowledgeUI(root,port,{client=new KnowledgeClient(),initialFocus=DEFAULT_FOCUS,initialLens}={}) {
   const q=s=>root.querySelector(s),slots=new RequestSlots(),cache=new Map();
   let searchTimer=0,retryAction=null,searchOffset=0;
+  const cardReading=createReadingMemory(q('#so-about')),relationsReading=createReadingMemory(q('#so-relations'));
   const text=(tag,className,value)=>{const el=document.createElement(tag);el.className=className;el.textContent=value;return el;};
   function button(label,action,className='sc-neighbor'){
     const b=text('button',className,label);b.type='button';b.addEventListener('click',action);return b;
@@ -107,6 +110,7 @@ export function attachKnowledgeUI(root,port,{client=new KnowledgeClient(),initia
   }
   function endpointName(id){return localized(port.node(id)?.display?.title,id);}
   function renderCard(kind,raw,endpoints=[]){
+    const readingKey=JSON.stringify([port.packet?.source_revision,kind,raw.id,raw.content_revision]);cardReading.capture();relationsReading.capture();cardReading.enter(readingKey);relationsReading.enter(readingKey);
     q('.sc-node-title').textContent=localized(kind==='node'?raw.display.title:raw.display.label,raw.id);
     q('.sc-node-original').textContent=kind==='node'?(raw.display.title.original||raw.display.title.en||''):localized(raw.display.statement);
     q('.sc-kind').textContent=kind==='node'?localized(raw.display.kind_label,raw.kind_id).toUpperCase():'ОТНОШЕНИЕ';
@@ -131,7 +135,7 @@ export function attachKnowledgeUI(root,port,{client=new KnowledgeClient(),initia
         const b=button(label+': '+localized(node?.display.title,id),()=>chooseNode(id,port.packet.source_revision),'sc-neighbor sc-relation-row');list.append(b);
       }
     }
-    sourceDetails(raw,kind);q('.sc-provenance').append(button('Основания и прочтения',()=>root.dispatchEvent(new CustomEvent('sophia-evidence',{detail:{raw,kind}}))),button('Открыть источники',()=>root.dispatchEvent(new CustomEvent('sophia-sources',{detail:{raw,kind}}))),button(kind==='node'?'Проложить маршрут':'Другой путь',()=>root.dispatchEvent(new CustomEvent('sophia-navigate',{detail:{raw,kind,tab:'paths'}}))));port.cardChanged();
+    sourceDetails(raw,kind);q('.sc-provenance').append(button('Основания и прочтения',()=>root.dispatchEvent(new CustomEvent('sophia-evidence',{detail:{raw,kind}}))),button('Открыть источники',()=>root.dispatchEvent(new CustomEvent('sophia-sources',{detail:{raw,kind}}))),button(kind==='node'?'Проложить маршрут':'Другой путь',()=>root.dispatchEvent(new CustomEvent('sophia-navigate',{detail:{raw,kind,tab:'paths'}}))));cardReading.restore();relationsReading.restore();port.cardChanged();
   }
   async function showCard(kind,raw){
     cancelInspector();const revision=port.packet?.source_revision;if(!revision)return;
@@ -152,10 +156,16 @@ export function attachKnowledgeUI(root,port,{client=new KnowledgeClient(),initia
   q('.sc-open-neighborhood').addEventListener('click',()=>{
     const raw=port.node(port.selection.nodeId);if(raw)root.dispatchEvent(new CustomEvent('sophia-navigate',{detail:{raw,kind:'node',tab:'neighbors'}}));
   });
+  async function loadLensLink(){
+    root.dataset.dataState='loading';notice('Открываю линзу…');
+    try{const result=await slots.run('scene',async signal=>{const draft=decodeDraft(initialLens),context=await constructorCatalog(client,signal);return previewDraft(client,draft,context,signal);});
+      if(!result.current)return;port.setGraph(result.value,{initial:true});notice('');port.announce('Линза загружена. Узлов: '+result.value.nodes.length+'. Связей: '+result.value.relations.length+'.');
+    }catch(error){root.dataset.dataState='error';notifyFailure(error,loadLensLink);}
+  }
   addEventListener('pagehide',cancelPending);
-  return {loadFocus,chooseNode,chooseRelation,searchRow,search,showCard,cancelSearch,cancelInspector,cancelPending,willSelect,
-    async start(){
-      loadFocus(initialFocus,{initial:true,selectFocus:false});
+  return {captureReading:()=>{cardReading.capture();relationsReading.capture();},restoreReading:()=>{cardReading.restore();relationsReading.restore();},loadFocus,chooseNode,chooseRelation,searchRow,search,showCard,cancelSearch,cancelInspector,cancelPending,willSelect,
+    async start({skipScene=false}={}){
+      if(!skipScene){if(initialLens)void loadLensLink();else loadFocus(initialFocus,{initial:true,selectFocus:false});}
       try{const result=await slots.run('capabilities',signal=>client.capabilities(signal));if(result.current)root.dataset.explorationAvailable=String(result.value.available===true);}catch{root.dataset.explorationAvailable='false';}
     },
   };
