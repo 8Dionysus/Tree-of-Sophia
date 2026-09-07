@@ -346,9 +346,9 @@
       "family": "source_growth_commands",
       "organ_lane": "mechanics/part-owned",
       "owner_surface": "mechanics/growth-cycle/parts/branch-growth-cycle/README.md",
-      "source_truth": ["ToS/doctrine/HUMAN_FORMS.md", "ToS/doctrine/CORPUS_FOUNDATION.md", "ToS/contracts/human-form.schema.json", "ToS/contracts/human-form-set.schema.json", "ToS/contracts/historical-record.schema.json", "ToS/contracts/historical-claim.schema.json"],
-      "reads": ["independently selected protected local owner delegation, explicit corpus or historical record and adjacent source form set", "bounded JSON command on stdin and the source metadata field catalog", "historical creation: authored records, claims, forms, provenance, anchors, referenced metadata and historical schema/registry contracts for identity and dependency closure"],
-      "writes": ["one adjacent source form set with current forms, retained predecessors and command receipts; sibling writer lock and invocation-local publication staging file", "separately delegated historical creation: new subject directory containing record, claims, forms and creation receipt; global create lock and staging outside source-witnesses"],
+      "source_truth": ["ToS/doctrine/HUMAN_FORMS.md", "ToS/doctrine/CORPUS_FOUNDATION.md", "ToS/contracts/human-form.schema.json", "ToS/contracts/human-form-set.schema.json", "ToS/contracts/historical-record.schema.json", "ToS/contracts/historical-claim.schema.json", "ToS/contracts/provenance-event-v2.schema.json"],
+      "reads": ["independently selected protected local owner delegation, explicit corpus or historical record and adjacent source form set", "bounded JSON command on stdin and the source metadata field catalog", "historical creation: authored records, claims, forms, provenance, anchors, referenced metadata and historical schema/registry contracts for identity and dependency closure", "v2 creation: executing script and Python executable bytes, runtime/Unicode versions and process argv digest; no environment variables or private configuration disclosure"],
+      "writes": ["one adjacent source form set with current forms, retained predecessors and command receipts; sibling writer lock and invocation-local publication staging file", "separately delegated historical creation: new subject directory containing record, claims, forms and creation receipt; v2 adds canonical request, environment description and serialization provenance; global create lock and staging outside source-witnesses"],
       "side_effects": "Unix account/path checks, bounded locking, fsync and atomic form-set or no-replace new-subject publication; no existing-subject revision, payload/graph writes, model calls, semantic assessment, admission or deployment",
       "validation_lane": "mechanics_local",
       "ci_inclusion": "release",
@@ -654,10 +654,11 @@
         "ToS/contracts/historical-record.schema.json",
         "ToS/contracts/historical-claim.schema.json",
         "ToS/contracts/knowledge-assessment.schema.json",
+        "ToS/contracts/provenance-event-v2.schema.json",
         "ToS/source-witnesses/**/historical-claims.jsonl"
       ],
       "reads": [
-        "source-witness catalog plus exact claim, identity, evidence, anchor, provenance, review surfaces and adjacent human-form sets"
+        "source-witness catalog plus exact claim, identity, evidence, anchor, provenance, review surfaces and adjacent human-form sets; v2 provenance schema and existing source-foundation cross-field checks"
       ],
       "writes": [],
       "side_effects": "library only",

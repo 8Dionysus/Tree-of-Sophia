@@ -114,6 +114,33 @@ class SourceWitnessBibliographicGraphTest(unittest.TestCase):
                                for name in ('entity-types.v1.json', 'relation-types.v1.json')]
         return build_knowledge_graph({}, {}, projection, entities, relations), entities, relations
 
+    def test_provenance_v2_is_preserved_without_retyping_activity_as_historical_time(self):
+        with self.historical_fixture() as (root, history, real, claims, rebuild):
+            ref = 'ToS/contracts/provenance-event-v2.schema.json'
+            (root / ref).write_bytes((REPO_ROOT / ref).read_bytes())
+            # Reuse the explicitly synthetic execution fixture, not a new
+            # attestation that this test ran the fixture's recorded operation.
+            event = json.loads((REPO_ROOT / 'ToS/research-packets/foundation-laboratory-2026-07/provenance-event-v2-abc/variant-a.event.v2.json').read_bytes())
+            path = root / 'ToS/source-witnesses/history/fixture/provenance-v2.jsonl'
+            path.write_text(json.dumps(event) + '\n')
+            claims[0]['provenance_event_ref'] = event['event_id']
+            projection = rebuild()
+            node = next(node for node in projection['nodes']
+                        if node['properties'].get('event_ref') == event['event_id'])
+            self.assertEqual(node['properties']['source_event'], event)
+            self.assertEqual(node['properties']['started_at'], event['activity']['started_at'])
+            self.assertEqual(node['properties']['event_type'], event['activity']['event_type'])
+            self.assertIn(ref, projection['input_digests'])
+            for mutate in (lambda value: value['rights_and_visibility'].update(content_visibility='local_only'),
+                           lambda value: value.update(derivations=[]),
+                           lambda value: value['activity'].update(ended_at='1900-01-01T00:00:00Z'),
+                           lambda value: value['activity'].pop('status')):
+                invalid = copy.deepcopy(event)
+                mutate(invalid)
+                path.write_text(json.dumps(invalid) + '\n')
+                with self.assertRaisesRegex(BibliographicGraphBuildError, 'provenance v2'):
+                    rebuild()
+
     def test_catalogue_subjects_remain_focusable_without_claims(self):
         with self.historical_fixture() as (root, history, real, claims, rebuild):
             claims.clear()

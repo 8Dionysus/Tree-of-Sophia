@@ -112,3 +112,42 @@ consumer integration remain open. The legacy private full-corpus validation
 blocker is not repaired or worked around here. Full release/CI, merge,
 deployment, Worker/D1 and actual UI interaction are not claimed. Foundation v1
 is not complete.
+
+## Serialization provenance extension
+
+Follow-up baseline: `d45a865a4739dc9a543091f7b4d260116b417a64`.
+The v1 command's requirement for a pre-existing provenance event cannot
+honestly record its own new materialization. A separately selected v2 owner
+configuration therefore delegates one new event ID; it does not borrow an
+unrelated earlier research event or alter legacy records.
+
+The same atomic directory now includes the canonical request, path-free runtime
+description and a v2 serialization event. The event describes completed buffer
+serialization before staging/commit, not future publication. Buffer digests
+are explicit, stored-byte fixity remains unattested, and the receipt externally
+binds the exact event bytes. Its own software executor and script/runtime
+digests do not impersonate the caller's research/model provenance. Actual
+process argv is digest-only to avoid disclosing private configuration paths.
+No model is called or substantive decision made. Review, rights and admission
+boundaries remain unchanged.
+
+The graph preserves the complete original v2 record and uses its activity
+fields only as execution metadata. Existing v1 behavior remains unchanged.
+Schema and existing provenance cross-field checks reject private visibility,
+malformed events, inverted execution time and missing output derivations.
+Derivation means technical serialization from the request, not historical
+influence or proof of the supplied claims.
+
+The synthetic v2 command test verifies failure-before-publication, successful
+atomic creation, exact request/environment/input/output hashes, schema and
+cross-field validity, original event delivery through the existing graph,
+byte-identical replay and current event-ID revocation. No real historical
+source was materialized in this extension. Upstream research capture, actual
+historical-route completion, incremental indexing and production consumption
+remain open with the same owners.
+
+Local verification: 88 Growth tests passed, the 47-test bibliographic graph
+suite passed, and the final focused v2 graph test passed after adding the
+cross-field negatives. Source-home validation, current source catalog parity
+and diff whitespace checks passed. The schema check is not a signed execution
+attestation or substantive review. No CI/merge/deployment claim is made.

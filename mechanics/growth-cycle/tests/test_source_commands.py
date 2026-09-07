@@ -405,6 +405,65 @@ class SourceCommandTests(unittest.TestCase):
 
 
 class HistoricalCreationTests(unittest.TestCase):
+    def test_v2_creation_captures_own_provenance_atomically_and_replays_exact_bytes(self):
+        with self.creation() as (root, owner, config, request, rebuild, fixture):
+            schema_ref = 'ToS/contracts/provenance-event-v2.schema.json'
+            (root / schema_ref).write_bytes((ROOT / schema_ref).read_bytes())
+            config.update(schema_version='tos_local_historical_create_owner_v2',
+                          provenance_event_id='tos.event.creation-fixture')
+            owner.write_text(json.dumps(config))
+            for claim in request['claims']:
+                claim['provenance_event_ref'] = config['provenance_event_id']
+            discovery = commands.run_local_command(owner, {
+                'schema_version': 'tos_local_source_command_v1', 'operation': 'describe'})
+            request['expected_configuration'] = discovery['owner_configuration']
+            preview = commands.run_local_command(owner, {
+                'schema_version': 'tos_local_source_command_v1', 'operation': 'prepare-create',
+                **{key: request[key] for key in ('record', 'claims', 'forms')}})
+            request['expected_dependencies'] = preview['expected_dependencies']
+            target = (root / config['source_path']).parent
+            self.assertFalse(target.exists())
+            invalid = copy.deepcopy(request)
+            invalid['claims'][0]['provenance_event_ref'] = 'tos.event.not-delegated'
+            with self.assertRaises(PermissionError):
+                commands.run_local_command(owner, invalid)
+            self.assertFalse(target.exists())
+            with patch.object(commands, '_publish_new_directory', side_effect=OSError('interrupted')):
+                with self.assertRaises(OSError):
+                    commands.run_local_command(owner, request)
+            self.assertFalse(target.exists())
+            result = commands.run_local_command(owner, request)
+            before = {path.name: path.read_bytes() for path in target.iterdir()}
+            event = json.loads(before['source-create-provenance.jsonl'])
+            commands._validator_for_provenance(root).validate(event)
+            from validate_source_witness_foundation import _provenance_v2_semantic_issues
+            self.assertEqual(_provenance_v2_semantic_issues(event), [])
+            self.assertEqual(event['event_id'], config['provenance_event_id'])
+            self.assertEqual(event['responsibility'][0]['agent_kind'], 'software')
+            self.assertEqual(event['method']['model_invocations'], [])
+            self.assertFalse(event['review_and_authority']['promotion_authorized'])
+            self.assertEqual(json.loads(before['source-create-request.json']), request)
+            for binding in [event['method']['configuration_binding'],
+                            event['method']['environment']['environment_profile_binding']]:
+                self.assertEqual(hashlib.sha256((root / binding['ref']).read_bytes()).hexdigest(), binding['sha256'])
+            for entity in [*event['entities']['inputs'], *event['entities']['outputs']]:
+                raw = (root / entity['entity_ref']).read_bytes()
+                self.assertEqual(hashlib.sha256(raw).hexdigest(), entity['sha256'])
+                self.assertEqual(len(raw), entity['size_bytes'])
+            for name, spec in result['receipt']['files'].items():
+                self.assertEqual(spec['sha256'], commands._digest(before[name]))
+            projection = rebuild()
+            self.assertTrue(any(node['properties'].get('source_event') == event for node in projection['nodes']))
+            retry = commands.run_local_command(owner, request)
+            self.assertTrue(retry['replayed'])
+            self.assertEqual(retry['receipt'], result['receipt'])
+            self.assertEqual({path.name: path.read_bytes() for path in target.iterdir()}, before)
+            config['provenance_event_id'] = 'tos.event.reassigned'
+            owner.write_text(json.dumps(config))
+            with self.assertRaises(PermissionError):
+                commands.run_local_command(owner, request)
+            self.assertEqual({path.name: path.read_bytes() for path in target.iterdir()}, before)
+
     @contextmanager
     def creation(self):
         sys.path.insert(0, str(ROOT / 'tests'))

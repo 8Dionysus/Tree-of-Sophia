@@ -362,13 +362,41 @@ protected metadata, not payloads or traversal paths. This resolves references,
 not historical truth, source quality, competence or admission. Unknown source
 extensions and claim qualifiers are retained verbatim as JSON values.
 
-Publication creates exactly four files in the new directory: the typed
+With the v1 configuration publication creates exactly four files in the new directory: the typed
 record, `historical-claims.jsonl`, the adjacent human-form set, and
 `source-create-receipt.json`. They keep the existing source formats and
 readers; there is no new source envelope or duplicate graph store. The receipt
 binds the canonical request, account/delegation, exact subject, observed
 dependency digest and each output's bytes/digest. It records this source
 transaction, not a claim's research provenance or an assessment event.
+
+New materialization can select `tos_local_historical_create_owner_v2` with
+the same fields plus one exact `provenance_event_id` (`tos.event.*`). All new
+claims must bind that ID, which must not exist in the authored provenance
+index. The ID remains part of current delegated scope on replay. The v1 route
+retains its existing-event meaning; it does not retroactively acquire v2 evidence.
+
+V2 atomically adds `source-create-request.json` (canonical request including
+the protected configuration's digest, not its contents),
+`source-create-environment.json` (runtime facts without local paths), and
+`source-create-provenance.jsonl`. `prepare-create` lists these under
+`capture_at_apply`; their runtime bytes do not exist at preview time.
+The creation receipt binds every output including the exact event bytes, and
+the event points back to that receipt without a self-hash. Existing graph
+readers preserve the original public-metadata v2 event alongside normalized
+activity fields. Historical dating remains in historical claims.
+
+The recorded activity is completed **buffer serialization**, before staging
+and the atomic commit. Digests are captured from buffers; independent stored-byte
+fixity is explicitly not attested. Its software executor, script/runtime
+digests, Unicode version, withheld process-argv digest, request/environment
+bindings, derivations and measured pre-commit wall duration are captured by
+the command itself. The event is unsigned and only partially specified for
+replay. Upstream source reading, author/model reasoning and substantive
+assessment are not captured or impersonated. No model is invoked. Publication,
+rights, competence and admission are not granted by this event. A failed
+publication exposes none of these source files; retry preserves the successful
+event rather than generating a second historical execution record.
 
 The files are staged under `ToS/.source-create-*.pending`, **outside** the
 source-witness scanner root. Fsync precedes a Linux `renameat2(RENAME_NOREPLACE)`

@@ -526,8 +526,22 @@ def _claim_node(entry: dict[str, Any], claim: dict[str, Any]) -> dict[str, Any]:
     }
 
 
-def _event_node(indexed: dict[str, Any]) -> dict[str, Any]:
+def _event_node(indexed: dict[str, Any], *, repo_root: Path = REPO_ROOT) -> dict[str, Any]:
     event = indexed["payload"]
+    if event.get('schema_version') == 'tos_provenance_event_v2':
+        from validate_source_witness_foundation import _provenance_v2_semantic_issues
+        schema = load_json(repo_root / 'ToS/contracts/provenance-event-v2.schema.json')
+        if not Draft202012Validator(schema).is_valid(event):
+            raise BibliographicGraphBuildError('invalid provenance v2 source event')
+        if _provenance_v2_semantic_issues(event):
+            raise BibliographicGraphBuildError('inconsistent provenance v2 source event')
+        if event['rights_and_visibility']['content_visibility'] not in {
+                'tracked_public_metadata', 'public_content', 'public_synthetic'}:
+            raise BibliographicGraphBuildError('nonpublic provenance v2 source event')
+        activity = event['activity']
+        agents = list(dict.fromkeys(item['agent_ref'] for item in event['responsibility']))
+    else:
+        activity, agents = event, event['agent_refs']
     return {
         "node_id": _node_id("provenance_event", str(event["event_id"])),
         "node_kind": "provenance_event",
@@ -537,12 +551,12 @@ def _event_node(indexed: dict[str, Any]) -> dict[str, Any]:
         "properties": {
             **dict(event),
             "event_ref": event["event_id"],
-            "event_type": event["event_type"],
-            "started_at": event["started_at"],
-            "ended_at": event["ended_at"],
-            "agent_refs": event["agent_refs"],
+            "event_type": activity["event_type"],
+            "started_at": activity["started_at"],
+            "ended_at": activity["ended_at"],
+            "agent_refs": agents,
             "method": event["method"],
-            "status": event["status"],
+            "status": activity["status"],
             "event_version": event["event_version"],
             "source_event": dict(event),
         },
@@ -962,7 +976,10 @@ def build_payload(repo_root: Path = REPO_ROOT) -> dict[str, Any]:
             raise BibliographicGraphBuildError(
                 f"{claim_id}: provenance event {event_ref!r} does not resolve"
             )
-        event_node = _event_node(indexed_event)
+        if indexed_event['payload'].get('schema_version') == 'tos_provenance_event_v2':
+            schema_ref = 'ToS/contracts/provenance-event-v2.schema.json'
+            input_digests[schema_ref] = file_digest(repo_root / schema_ref)
+        event_node = _event_node(indexed_event, repo_root=repo_root)
         _add_node(nodes, event_node)
 
         maker = claim["maker"]

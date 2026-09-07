@@ -14,13 +14,15 @@ import fcntl
 import hashlib
 import json
 import os
+import platform
 from pathlib import Path
 import re
 import stat
 import sys
 import tempfile
 import time
-from jsonschema import ValidationError
+import unicodedata
+from jsonschema import Draft202012Validator, ValidationError
 
 from assessment_journal import (
     JournalBusy, JournalConflict, JournalCorruption, _json_object, _keys,
@@ -35,6 +37,7 @@ from source_witness_human_forms import MAX_SET_BYTES, _validator, materialize_me
 
 OPERATIONS = ('form.create', 'form.revise')
 CREATION_OPERATION = 'historical.create'
+CREATION_CONFIGS = {'tos_local_historical_create_owner_v1', 'tos_local_historical_create_owner_v2'}
 MAX_COMMAND_BYTES = 1_048_576
 
 
@@ -57,11 +60,13 @@ def _read(path, limit):
 def _configuration(path):
     raw = _read(path, MAX_COMMAND_BYTES)
     config = _json_object(raw)
-    creation = config.get('schema_version') == 'tos_local_historical_create_owner_v1'
+    creation = config.get('schema_version') in CREATION_CONFIGS
+    captures_provenance = config.get('schema_version') == 'tos_local_historical_create_owner_v2'
     _keys(config, {'schema_version', 'uid', 'principal_id', 'source_root', 'source_path',
                    'authority_ref', 'allowed_form_ids', 'allowed_operations', 'expires_at'}
-          | ({'record_id', 'allowed_claim_ids', 'maker_type'} if creation else set()))
-    if (config['schema_version'] not in {'tos_local_source_command_owner_v1', 'tos_local_historical_create_owner_v1'}
+          | ({'record_id', 'allowed_claim_ids', 'maker_type'} if creation else set())
+          | ({'provenance_event_id'} if captures_provenance else set()))
+    if (config['schema_version'] not in {'tos_local_source_command_owner_v1', *CREATION_CONFIGS}
             or type(config['uid']) is not int or config['uid'] != os.getuid()
             or any(not isinstance(config[key], str) or not config[key].strip()
                    for key in ('principal_id', 'authority_ref'))
@@ -85,6 +90,9 @@ def _configuration(path):
                 or any(not isinstance(value, str) or not re.fullmatch(r'tos\.claim\.[a-z0-9]+(?:[.-][a-z0-9]+)*', value) for value in values)
                 or len(set(values)) != len(values)):
             raise ValueError('invalid historical claim identity scope')
+        if captures_provenance and (not isinstance(config['provenance_event_id'], str)
+                or not re.fullmatch(r'tos\.event\.[a-z0-9]+(?:[.-][a-z0-9]+)*', config['provenance_event_id'])):
+            raise ValueError('invalid delegated provenance identity')
     root = Path(config['source_root'])
     os.close(_owned_path(root, directory=True))
     relative = Path(config['source_path'])
@@ -287,7 +295,9 @@ def _historical_scope(config, request):
         if (not isinstance(claim, dict) or claim.get('claim_id') not in config['allowed_claim_ids']
                 or not isinstance(claim.get('maker'), dict)
                 or claim['maker'].get('agent_ref') != config['principal_id']
-                or claim['maker'].get('maker_type') != config['maker_type']):
+                or claim['maker'].get('maker_type') != config['maker_type']
+                or (config.get('provenance_event_id')
+                    and claim.get('provenance_event_ref') != config['provenance_event_id'])):
             raise PermissionError('historical claim identity or maker is not delegated')
     for selection in selections:
         _keys(selection, {'form_id', 'field_id'})
@@ -338,6 +348,9 @@ def _historical_creation(config, request):
         'source_record_ref': config['source_path'], 'record_sha256': _digest(_canonical(source))[7:]}
     claim_ids = {claim['claim_id'] for claim in existing_claims}
     events = _scan_index(root, filename_pattern='*provenance*.jsonl', id_field='event_id')
+    new_event = config.get('provenance_event_id')
+    if new_event in events:
+        raise JournalConflict('provenance identity already exists')
     anchors = _scan_index(root, filename_pattern='*anchor*.jsonl', id_field='anchor_id')
     contract = _historical_claim_contract(root)
     evidence = []
@@ -356,7 +369,9 @@ def _historical_creation(config, request):
         claim_ids.add(claim['claim_id'])
         try:
             _validate_historical_claim(claim, objects, contract)
-            if claim['provenance_event_ref'] not in events:
+            if new_event and claim['provenance_event_ref'] != new_event:
+                raise PermissionError('new claims must bind the delegated creation provenance')
+            if claim['provenance_event_ref'] not in events and claim['provenance_event_ref'] != new_event:
                 raise ValueError('claim must refer to an existing provenance event')
             for ref in [*claim['evidence_refs'], *claim.get('counterevidence_refs', [])]:
                 if ref.startswith('ToS/'):
@@ -391,7 +406,10 @@ def _historical_creation(config, request):
              'historical-claims.jsonl': b''.join(_canonical(claim) + b'\n' for claim in claims)}
     if any(len(raw) > MAX_SET_BYTES for raw in files.values()):
         raise ValueError('initial source file exceeds its byte budget')
+    provenance_contract = ({'ToS/contracts/provenance-event-v2.schema.json':
+        _digest(_read(root / 'ToS/contracts/provenance-event-v2.schema.json', MAX_SET_BYTES))} if new_event else {})
     dependencies = _digest(_canonical({'records': records, 'claims': existing_claims,
+        'provenance_contract': provenance_contract,
         'events': events, 'anchors': anchors, 'evidence': evidence, 'forms': form_inputs,
         'contracts': {ref: _digest(_read(root / ref, MAX_SET_BYTES)) for ref in (
             'ToS/contracts/historical-record.schema.json', 'ToS/contracts/corpus-record.schema.json',
@@ -408,6 +426,100 @@ def _historical_creation(config, request):
             'ToS/contracts/human-form.schema.json', 'ToS/contracts/human-form-set.schema.json',
             'ToS/contracts/human-form-template.schema.json')}}))
     return subject, files, dependencies
+
+
+def _validator_for_provenance(root):
+    return Draft202012Validator(_json_object(_read(
+        root / 'ToS/contracts/provenance-event-v2.schema.json', MAX_SET_BYTES)))
+
+
+def _capture_creation_provenance(config, request, files, started_at, started_ns):
+    """Capture buffer serialization, not upstream research or future publication.
+
+    The event and its hash-bearing receipt travel with the atomic directory.
+    Output digests describe serialized buffers, not an independent disk audit.
+    """
+    base = Path(config['source_path']).parent
+    script_ref = Path(__file__).resolve().relative_to(ROOT).as_posix()
+    script_hash = _digest(_read(ROOT / script_ref, MAX_SET_BYTES))[7:]
+    runtime = Path(sys.executable).resolve()
+    with runtime.open('rb') as stream:
+        runtime_hash = hashlib.file_digest(stream, 'sha256').hexdigest()
+    environment = {'runtime': platform.python_implementation(),
+        'runtime_version': platform.python_version(), 'runtime_artifact_sha256': runtime_hash,
+        'backend': 'python-standard-library-and-jsonschema', 'hardware_target': 'cpu',
+        'unicode_version': unicodedata.unidata_version}
+    original_outputs = dict(files)
+    files['source-create-request.json'] = _canonical(request) + b'\n'
+    files['source-create-environment.json'] = _canonical(environment) + b'\n'
+    binding = lambda name: {'ref': (base / name).as_posix(), 'sha256': _digest(files[name])[7:]}
+    ended_at = datetime.now(timezone.utc).isoformat()
+    def entity(name, raw, role):
+        return {'entity_ref': (base / name).as_posix(), 'role': role,
+            'sha256': _digest(raw)[7:], 'size_bytes': len(raw),
+            'media_type': 'application/x-ndjson' if name.endswith('.jsonl') else 'application/json',
+            'availability': 'owner_local', 'content_disclosure': 'public_metadata_only',
+            'fixity_verified': False, 'fixity_verified_at': None}
+    event = {
+        '$schema': 'https://tree-of-sophia.local/ToS/contracts/provenance-event-v2.schema.json',
+        'schema_version': 'tos_provenance_event_v2', 'event_id': config['provenance_event_id'],
+        'event_version': 1, 'supersedes_event_ref': None,
+        'record_binding': {'manifest_ref': (base / 'source-create-receipt.json').as_posix(),
+            'digest_algorithm': 'sha256', 'digest_scope': 'exact_event_record_bytes'},
+        'activity': {'event_type': 'annotation', 'started_at': started_at, 'ended_at': ended_at,
+            'status': 'completed_with_warnings', 'terminal_reason': None, 'exit_code': 0,
+            'warnings': ['Completed serialization only; atomic publication occurs afterward.',
+                         'Buffer hashes are captured; independent stored-byte fixity is not attested.']},
+        'entities': {'inputs': [entity('source-create-request.json', files['source-create-request.json'],
+                                      'caller-supplied-metadata-request')],
+            'outputs': [entity(name, raw, 'serialized-source-metadata') for name, raw in original_outputs.items()],
+            'byproducts': [entity('source-create-environment.json', files['source-create-environment.json'],
+                                 'runtime-description')]},
+        'derivations': [{'derivation_id': config['provenance_event_id'].replace('tos.event.', 'tos.derivation.', 1) + f'.output-{index}',
+            'input_entity_ref': (base / 'source-create-request.json').as_posix(),
+            'output_entity_ref': (base / name).as_posix(), 'relation': 'was_derived_from',
+            'influence_asserted': True,
+            'description': 'Technical metadata selection and serialization from the supplied request, not historical influence.'}
+            for index, name in enumerate(original_outputs)],
+        'responsibility': [{'agent_ref': 'software:tos-source-commands', 'agent_kind': 'software',
+            'role': 'executor', 'responsibility_posture': 'performed',
+            'evidence_binding': {'ref': script_ref, 'sha256': script_hash},
+            'human_evidence_status': 'not_applicable'}],
+        'method': {'procedure': {'name': 'historical-source-metadata-serialization', 'version': '2',
+            'purpose': 'Serialize supplied historical metadata and source-copy forms without judging their content.'},
+            'command_capture': {'disclosure': 'withheld_digest_only', 'argv': None,
+                'argv_sha256': _digest(_canonical(sys.argv))[7:],
+                'withholding_reason': 'Process argv can contain private owner configuration paths; request is bound separately.'},
+            'configuration_binding': binding('source-create-request.json'),
+            'software_components': [{'name': 'ToS source commands', 'version': '2', 'role': 'serialization-runner',
+                'artifact_ref': script_ref, 'artifact_sha256': script_hash, 'verification_status': 'verified'},
+                {'name': environment['runtime'], 'version': environment['runtime_version'], 'role': 'language-runtime',
+                 'artifact_ref': 'runtime:python-executable', 'artifact_sha256': runtime_hash, 'verification_status': 'verified'}],
+            'model_invocations': [],
+            'environment': {**environment, 'environment_profile_binding': binding('source-create-environment.json')}},
+        'manual_changes': {'status': 'none_declared', 'change_receipts': [],
+            'statement': 'No manual editing inside this serialization operation; caller authorship is outside its scope.'},
+        'measurements': [{'metric': 'wall_duration_ms', 'status': 'measured',
+            'value': (time.perf_counter_ns() - started_ns) / 1_000_000, 'unit': 'ms',
+            'method': 'perf_counter_ns from pre-serialization validation through capture; excludes staging and commit.',
+            'evidence_binding': None}],
+        'evidence_authentication': {'capture_posture': 'tool_captured', 'signature_status': 'unsigned',
+            'signature_bindings': [], 'verification_status': 'unverified',
+            'producer_control_boundary': 'The same unsigned process serializes and records; hashes do not authenticate execution truth.'},
+        'rights_and_visibility': {'rights_record_bindings': [], 'intended_uses': ['local_research', 'public_metadata'],
+            'content_visibility': 'tracked_public_metadata', 'publication_authorized': False, 'publication_authority_bindings': []},
+        'review_and_authority': {'mechanical_validation': 'not_run', 'human_review_status': 'not_performed',
+            'review_bindings': [], 'accepted_uses': [], 'promotion_authorized': False, 'competence_evidence_bindings': []},
+        'reproducibility': {'classification': 'partially_specified',
+            'known_gaps': ['Upstream research, source reading and model invocations are not captured by this operation.',
+                           'Dependencies are bound by the creation receipt; no complete runtime environment is archived.',
+                           'Runtime timestamps and durations are not deterministic.'],
+            'replay_scope': 'Supplied JSON and source-copy serialization only; not historical or semantic correctness.'},
+        'authority_boundary': {'validator_role': 'mechanics_and_closure_only_not_truth',
+            'claims_not_established': ['execution_truth', 'content_truth', 'source_fidelity', 'translation_quality',
+                'semantic_correctness', 'rights_clearance', 'human_review', 'publication_authority', 'canon_authority']}}
+    _validator_for_provenance(Path(config['source_root'])).validate(event)
+    files['source-create-provenance.jsonl'] = _canonical(event) + b'\n'
 
 
 def _publish_new_directory(staging, target):
@@ -454,6 +566,7 @@ def _create_historical(owner_config, config, configuration, source_path, request
             'allowed_form_ids': config['allowed_form_ids'], 'expected_source': None, 'expected_revision': None,
             'record_schema_ref': 'ToS/contracts/historical-record.schema.json',
             'claim_schema_ref': 'ToS/contracts/historical-claim.schema.json',
+            'creation_provenance_event_id': config.get('provenance_event_id'),
             'receipt': receipt, 'replayed': replayed, 'grants_admission': False}
     if request['operation'] == 'describe':
         return result()
@@ -472,6 +585,8 @@ def _create_historical(owner_config, config, configuration, source_path, request
         response = result()
         response.update(prepared_source=subject.ref, expected_dependencies=dependencies,
                         prepared_files={name: {'sha256': _digest(raw), 'bytes': len(raw)} for name, raw in files.items()})
+        response['capture_at_apply'] = (['source-create-request.json', 'source-create-environment.json',
+            'source-create-provenance.jsonl'] if config.get('provenance_event_id') else [])
         return response
     if not isinstance(request['command_id'], str) or not 1 <= len(request['command_id']) <= 256:
         raise ValueError('command identity must contain one to 256 characters')
@@ -497,9 +612,12 @@ def _create_historical(owner_config, config, configuration, source_path, request
         if (request['expected_configuration'] != configuration or request['expected_source'] is not None
                 or request['expected_revision'] is not None):
             raise JournalConflict('creation requires exact delegation and absent source/revision')
+        started_at, started_ns = datetime.now(timezone.utc).isoformat(), time.perf_counter_ns()
         subject, files, dependencies = _historical_creation(config, request)
         if request['expected_dependencies'] != dependencies:
             raise JournalConflict('prepared creation dependencies are stale')
+        if config.get('provenance_event_id'):
+            _capture_creation_provenance(config, request, files, started_at, started_ns)
         receipt = {'schema_version': 'tos_local_historical_create_receipt_v1',
             'command_id': request['command_id'], 'request_digest': request_digest,
             'principal_id': config['principal_id'], 'authority_ref': config['authority_ref'],
@@ -533,7 +651,7 @@ def run_local_command(owner_config: Path, request: dict):
         raise ValueError('source command exceeds the 1 MiB input budget')
     request = _json_object(_canonical(request))  # Freeze caller-owned mutable input.
     config, configuration, source_path = _configuration(owner_config)
-    if config['schema_version'] == 'tos_local_historical_create_owner_v1':
+    if config['schema_version'] in CREATION_CONFIGS:
         return _create_historical(owner_config, config, configuration, source_path, request)
     operation = request.get('operation')
     fields = {'schema_version', 'operation'}
