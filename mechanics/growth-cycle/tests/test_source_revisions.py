@@ -187,8 +187,8 @@ class SourceRevisionTests(unittest.TestCase):
         self.assertEqual(self.run_command('inspect-version', source=second['expected_source'])['record']['record_version'], 2)
         from build_source_witness_catalog import collect_records
         records = collect_records(self.root)
-        self.assertEqual(len(records['historical-event']), 1)
-        self.assertEqual(records['historical-event'][0]['record_id'], self.record['record_id'])
+        self.assertEqual(len(records[self.record['record_type']]), 1)
+        self.assertEqual(records[self.record['record_type']][0]['record_id'], self.record['record_id'])
 
     def test_changed_companion_symlink_nested_package_and_budget_are_not_silently_discarded(self):
         request = self.request()
@@ -258,7 +258,7 @@ source_commands.run_local_command(Path(sys.argv[2]), json.load(sys.stdin))
 
     def test_form_only_writer_and_record_revision_share_one_stable_writer_boundary(self):
         revision_request = self.request()
-        form_config = {key: value for key, value in self.config.items() if key not in {'record_id', 'allowed_fields'}}
+        form_config = {key: value for key, value in self.config.items() if key not in {'record_id', 'allowed_fields', 'profile_type_id'}}
         form_config.update(schema_version='tos_local_source_command_owner_v1', allowed_operations=['form.revise'])
         form_owner = self.root / 'form-owner.json'
         form_owner.write_text(json.dumps(form_config))
@@ -313,6 +313,80 @@ source_commands.run_local_command(Path(sys.argv[2]), json.load(sys.stdin))
             retry = commands.run_local_command(owner, initial)
             self.assertTrue(retry['replayed'])
             self.assertEqual(retry['receipt'], created['receipt'])
+
+
+class ProfileSourceRevisionTests(SourceRevisionTests):
+    """The same transactional contract must hold for a declared Letter profile."""
+
+    def setUp(self):
+        super().setUp()
+        for name in ('document-record.schema.json', 'source-metadata-record.schema.json'):
+            (self.root / 'ToS/contracts' / name).write_bytes((ROOT / 'ToS/contracts' / name).read_bytes())
+        oldpath, oldforms = self.path, self.formpath
+        self.relative = str(Path(self.relative).with_name('letter.json'))
+        self.path = self.root / self.relative
+        self.formpath = self.path.with_name('letter.human-forms.json')
+        self.record.update(schema_version='tos_document_record_v1', record_type='letter',
+                           record_id='tos.letter.revision-fixture')
+        self.path.write_text(json.dumps(self.record, indent=3))
+        changes = [commands.prepare_metadata_change(self.record, None, 'test:author', **item) for item in self.selections]
+        forms = commands._apply(None, commands.Record.from_payload(self.record['record_id'], 1, self.record), changes)
+        self.formpath.write_text(json.dumps(forms, indent=3))
+        oldpath.unlink()
+        oldforms.unlink()
+        self.config.update(schema_version='tos_local_profile_revision_owner_v1',
+            profile_type_id='tos.entity.letter', source_path=self.relative, record_id=self.record['record_id'])
+        self.owner.write_text(json.dumps(self.config))
+        self.original = self.package()
+
+    def test_profile_authority_and_schema_drift_fail_without_writes(self):
+        request = self.request()
+        registry_path = self.root / 'ToS/doctrine/semantic-interchange/entity-types.v1.json'
+        registry = json.loads(registry_path.read_bytes())
+        registry['registry_version'] += 1
+        registry_path.write_text(json.dumps(registry))
+        with self.assertRaises(commands.JournalConflict):
+            commands.run_local_command(self.owner, request)
+        self.assertEqual(self.package(), self.original)
+        self.config['profile_type_id'] = 'tos.entity.document'
+        self.owner.write_text(json.dumps(self.config))
+        with self.assertRaises(PermissionError):
+            self.run_command('describe')
+        self.assertEqual(self.package(), self.original)
+        self.config['profile_type_id'] = 'tos.entity.letter'
+        self.owner.write_text(json.dumps(self.config))
+        request = self.request()
+        schema = self.root / 'ToS/contracts/document-record.schema.json'
+        schema.write_bytes(schema.read_bytes() + b'\n')
+        with self.assertRaises(commands.JournalConflict):
+            commands.run_local_command(self.owner, request)
+        self.assertEqual(self.package(), self.original)
+
+    def test_legacy_revision_grant_does_not_gain_profile_authority(self):
+        self.config.pop('profile_type_id')
+        self.config['schema_version'] = commands.REVISION_CONFIG
+        self.owner.write_text(json.dumps(self.config))
+        with self.assertRaises(ValueError):
+            self.run_command('describe')
+        self.assertEqual(self.package(), self.original)
+
+    def test_profile_revision_does_not_grant_identity_visibility_or_schema_transitions(self):
+        request = self.request()
+        for field, value in (('record_type', 'document'), ('schema_version', 'tos_document_record_v99'),
+                             ('record_version', 12), ('identity_status', 'verified'),
+                             ('visibility', 'local_only'), ('supersedes_ref', 'tos.letter.other')):
+            invalid = copy.deepcopy(request)
+            invalid['fields'][field] = value
+            with self.subTest(field=field), self.assertRaises(PermissionError):
+                commands.run_local_command(self.owner, invalid)
+            self.assertEqual(self.package(), self.original)
+        # An existing unsupported record is refused, not silently rewritten
+        # using the nearest schema version or a looser metadata envelope.
+        self.path.write_text(json.dumps({**self.record, 'schema_version': 'tos_document_record_v99'}))
+        before = self.package()
+        with self.assertRaises(ValueError):
+            self.run_command('describe')
+        self.assertEqual(self.package(), before)
 
 
 if __name__ == '__main__':

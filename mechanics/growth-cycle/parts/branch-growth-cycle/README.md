@@ -482,7 +482,8 @@ changing it after preparation requires a new preparation.
 
 Ordinary `form.create`/`form.revise` may subsequently address the same declared
 metadata profile under their own existing form configuration. This does not
-grant source creation to a form writer. General source-record revision,
+grant source creation to a form writer. Profile source-record revision uses
+its separate [delegation below](#versioned-source-correction);
 subject-specific relations, substantive assessment, identity merge/split,
 publication and admission remain separate operations. A metadata declaration
 does not implement them or declare an entire subject profile finished.
@@ -560,10 +561,20 @@ assessment quality.
 
 `tos_local_source_revision_owner_v1` independently delegates `record.revise`
 through the same `source_commands.py` CLI. Its fields match the form-owner
-configuration, plus exact `record_id` and `allowed_fields`. This adapter
-currently understands the existing historical record schema only; the exact
-typed basename and public-metadata visibility are required. It does not
-revise claims, identities, rights, visibility or assessment decisions.
+configuration, plus exact `record_id` and `allowed_fields`. This historical
+configuration keeps its existing schema and ID scope. A separate
+`tos_local_profile_revision_owner_v1` adds `profile_type_id` and selects the
+current declared `source_record_profile`, including Document, Letter or a
+new supported metadata kind added through that registry. It uses the same
+revision transaction, not another per-kind writer. The exact declared basename,
+ID prefix, source schema version and public-metadata visibility are required.
+Existing form, creation and historical-only grants gain no new permissions.
+Neither revision configuration
+revises claims, identities, rights, visibility or assessment decisions.
+The profile route also cannot change the record kind, source schema version,
+identity status or supersession links; those require their own transitions.
+It does not
+create or migrate an undeclared source format.
 `allowed_operations` is a subset of `["record.revise"]` and `allowed_fields`
 is a subset of `preferred_label`, `variant_labels`, `notes`, `field_languages`,
 `source_refs`, `extensions`. Changing an allowed value is an explicit authored
@@ -574,10 +585,16 @@ The request has `schema_version: tos_local_source_command_v1`:
 
 - `describe` returns the current exact `source`, whole-package `revision`,
   `owner_configuration`, allowed fields/operations/forms and materializations.
+  The profile route additionally returns `profile_type_id` and the exact
+  `source_record_profile`; consumers do not guess schemas from a filename.
 - `prepare-revise` adds `fields` (nonempty field-value patch), `forms`
   (`{form_id, field_id}` selections) and a bounded authored `reason`.
   It returns the next source/form refs, prepared materializations and
   `expected_dependencies`, without creating locks, archives or source files.
+  Profile dependencies include the consumed registry, registry schema, exact
+  source schema and its declared local dependencies, plus reader/command/form
+  implementation inputs. A changed dependency invalidates an uncommitted
+  preparation, even when the source record itself is unchanged.
 - `record.revise` adds `command_id`, `expected_source`, `expected_revision`,
   `expected_configuration`, `expected_dependencies`, copied from preparation.
   Source ID/type stay fixed and `record_version` advances exactly once.
@@ -646,7 +663,7 @@ paths while correcting related record/forms atomically. Separate file renames
 would expose partial changes; a new pointer-only source store would require
 migrating every existing reader. The accepted cost is bounded package copying
 and Linux-specific exchange, not global corpus copying or an indexed writer.
-General multi-subject changes, other record families, claim correction and
+General multi-subject changes, native non-profile record correction, claim correction and
 automatic retirement of abandoned staging remain separate Growth work.
 
 ### Declared source Claim creation

@@ -135,8 +135,14 @@ be implemented. Source-write commands remain separately delegated: the
 `source.create` now creates an initial public-metadata subject and its forms
 from an independently selected profile configuration. It reuses the exact
 reader/schema route, not a new per-type Python branch, and grants neither
-claims nor admission. Historical creation with initial claims and historical
-record revision retain their narrower, separate contracts.
+claims nor admission. Historical creation with initial claims retains its
+narrower contract. The separately delegated `record.revise` profile
+configuration corrects the same declared metadata kinds through the existing
+source-revision transaction. It preserves stable identity, the exact prior
+flat source package and forms, and validates the current registry/schema
+dependencies before publication. It cannot change type, source schema version,
+identity status, rights or admission. Native non-profile records and Claims
+retain separate write routes.
 
 The reader rejects duplicate kind/prefix/basename/catalog ownership, mappings
 owned by another type, abstract identity instances, reserved native-adapter

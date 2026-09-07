@@ -774,6 +774,32 @@ class HistoricalCreationTests(unittest.TestCase):
             with self.assertRaises(ValueError):
                 commands.run_local_command(owner, request)
 
+            # Source correction uses the same declared profile without a new
+            # kind branch; it is not inherited from form or creation authority.
+            revise_config = {key: config[key] for key in ('uid', 'principal_id', 'source_root', 'source_path',
+                'authority_ref', 'allowed_form_ids', 'expires_at', 'record_id', 'profile_type_id')}
+            revise_config.update(schema_version=commands.PROFILE_REVISION_CONFIG,
+                allowed_operations=['record.revise'], allowed_fields=['notes'])
+            owner.write_text(json.dumps(revise_config))
+            proposal = {'fields': {'notes': 'Corrected synthetic message; not historical evidence.'},
+                        'forms': request['forms'], 'reason': 'Test profile source correction after form revision.'}
+            prepared = commands.run_local_command(owner, {'schema_version': 'tos_local_source_command_v1',
+                'operation': 'prepare-revise', **proposal})
+            self.assertEqual(prepared['profile_type_id'], entry['type_id'])
+            revised = commands.run_local_command(owner, {'schema_version': 'tos_local_source_command_v1',
+                'operation': 'record.revise', 'command_id': 'synthetic:revise-profile-record',
+                'expected_configuration': prepared['owner_configuration'], 'expected_source': prepared['source'],
+                'expected_revision': prepared['revision'], 'expected_dependencies': prepared['expected_dependencies'],
+                **proposal})
+            self.assertEqual(revised['source']['version'], 2)
+            graph, _, _ = fixture.historical_knowledge(root, rebuild())
+            node = next(node for node in graph['nodes'] if node['entity_id'] == source['record_id'])
+            self.assertEqual(node['attributes']['source_record'], {**source, **proposal['fields'], 'record_version': 2})
+            self.assertTrue(all(view['state'] == 'ready' and view['admission'] is None
+                                for view in node['attributes']['human_forms']))
+            owner.write_text(json.dumps(config))
+            self.assertEqual(commands.run_local_command(owner, request)['receipt'], result['receipt'])
+
     def test_profile_creation_uses_shared_transaction_without_granting_claims_or_admission(self):
         """Generic operation on an existing declared profile; synthetic data only."""
         with self.creation() as (root, owner, config, request, rebuild, fixture):

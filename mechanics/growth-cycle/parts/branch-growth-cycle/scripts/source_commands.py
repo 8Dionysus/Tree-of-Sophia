@@ -42,6 +42,7 @@ CREATION_CONFIGS = {'tos_local_historical_create_owner_v1', 'tos_local_historica
 PROFILE_CONFIG = 'tos_local_profile_create_owner_v1'
 CORPUS_CONFIG = 'tos_local_corpus_create_owner_v1'
 REVISION_CONFIG = 'tos_local_source_revision_owner_v1'
+PROFILE_REVISION_CONFIG = 'tos_local_profile_revision_owner_v1'
 CLAIM_CONFIG = 'tos_local_claim_create_owner_v1'
 CLAIM_FORM_CONFIG = 'tos_local_claim_form_owner_v1'
 REVISION_FIELDS = {'preferred_label', 'variant_labels', 'notes', 'field_languages', 'source_refs', 'extensions'}
@@ -73,7 +74,8 @@ def _configuration(path):
     creation = config.get('schema_version') in CREATION_CONFIGS
     profile_creation = config.get('schema_version') == PROFILE_CONFIG
     corpus_creation = config.get('schema_version') == CORPUS_CONFIG
-    revision = config.get('schema_version') == REVISION_CONFIG
+    profile_revision = config.get('schema_version') == PROFILE_REVISION_CONFIG
+    revision = config.get('schema_version') in {REVISION_CONFIG, PROFILE_REVISION_CONFIG}
     claim_forms = config.get('schema_version') == CLAIM_FORM_CONFIG
     captures_provenance = profile_creation or corpus_creation or config.get('schema_version') == 'tos_local_historical_create_owner_v2'
     _keys(config, {'schema_version', 'uid', 'principal_id', 'source_root', 'source_path',
@@ -82,9 +84,10 @@ def _configuration(path):
           | ({'record_id', 'profile_type_id', 'maker_type'} if profile_creation else set())
           | ({'record_id', 'record_type', 'maker_type'} if corpus_creation else set())
           | ({'record_id', 'allowed_fields'} if revision else set())
+          | ({'profile_type_id'} if profile_revision else set())
           | ({'claim_id'} if claim_forms else set())
           | ({'provenance_event_id'} if captures_provenance else set()))
-    if (config['schema_version'] not in {'tos_local_source_command_owner_v1', REVISION_CONFIG, PROFILE_CONFIG, CORPUS_CONFIG, CLAIM_FORM_CONFIG, *CREATION_CONFIGS}
+    if (config['schema_version'] not in {'tos_local_source_command_owner_v1', REVISION_CONFIG, PROFILE_REVISION_CONFIG, PROFILE_CONFIG, CORPUS_CONFIG, CLAIM_FORM_CONFIG, *CREATION_CONFIGS}
             or type(config['uid']) is not int or config['uid'] != os.getuid()
             or any(not isinstance(config[key], str) or not config[key].strip()
                    for key in ('principal_id', 'authority_ref'))
@@ -104,7 +107,7 @@ def _configuration(path):
         if (not isinstance(values, list) or any(not isinstance(value, str) or value not in REVISION_FIELDS for value in values)
                 or len(set(values)) != len(values)
                 or not isinstance(config['record_id'], str)
-                or not re.fullmatch(r'tos\.historical-(event|process|state)\.[a-z0-9]+(?:[.-][a-z0-9]+)*', config['record_id'])):
+                or not profile_revision and not re.fullmatch(r'tos\.historical-(event|process|state)\.[a-z0-9]+(?:[.-][a-z0-9]+)*', config['record_id'])):
             raise ValueError('invalid source revision identity or field scope')
     if creation:
         if (not isinstance(config['record_id'], str)
@@ -133,17 +136,17 @@ def _configuration(path):
         claim_forms_path(root / relative, config['claim_id'])
         _, _, contracts = _claim_form_source(root / relative, root, config['claim_id'])
         return config, _digest(_canonical({'configuration': config, 'source_contracts': contracts})), root / relative
-    if (creation or revision) and (relative.name != config['record_id'].split('.')[1] + '.json'
+    if (creation or revision and not profile_revision) and (relative.name != config['record_id'].split('.')[1] + '.json'
                      or len(relative.parts) < 5):
         raise PermissionError('historical creation requires its typed record in a new subject directory')
-    if profile_creation or corpus_creation:
+    if profile_creation or corpus_creation or profile_revision:
         profile = _configured_corpus_profile(config) if corpus_creation else _configured_profile(config)[1]
         if (not isinstance(config['record_id'], str)
                 or not re.fullmatch(re.escape(profile['id_prefix']) + r'[a-z0-9]+(?:[.-][a-z0-9]+)*', config['record_id'])
-                or config['maker_type'] not in {'human', 'software', 'model'}
+                or not profile_revision and config['maker_type'] not in {'human', 'software', 'model'}
                 or relative.name != profile['source_basename'] or len(relative.parts) < 5
                 or 'catalog' in relative.parts):
-            raise PermissionError('profile creation requires its delegated identity and typed source path')
+            raise PermissionError('profile writing requires its delegated identity and typed source path')
     return config, _digest(_canonical(config)), root / relative
 
 
@@ -167,7 +170,7 @@ def _configured_profile(config, profiles=None):
     entry = next((entry for entry in profiles.registry['types']
                   if entry['type_id'] == config['profile_type_id']), None)
     if entry is None or 'source_record_profile' not in entry:
-        raise PermissionError('creation requires an explicitly declared source metadata profile')
+        raise PermissionError('writing requires an explicitly declared source metadata profile')
     return profiles, entry['source_record_profile']
 
 
@@ -906,7 +909,7 @@ def run_local_command(owner_config: Path, request: dict):
         return run_command(owner_config, config, configuration, source_path, request)
     if config['schema_version'] in {*CREATION_CONFIGS, PROFILE_CONFIG, CORPUS_CONFIG}:
         return _create_source(owner_config, config, configuration, source_path, request)
-    if config['schema_version'] == REVISION_CONFIG:
+    if config['schema_version'] in {REVISION_CONFIG, PROFILE_REVISION_CONFIG}:
         from source_revisions import run_revision
         return run_revision(owner_config, config, configuration, source_path, request)
     claim_id = config['claim_id'] if config['schema_version'] == CLAIM_FORM_CONFIG else None

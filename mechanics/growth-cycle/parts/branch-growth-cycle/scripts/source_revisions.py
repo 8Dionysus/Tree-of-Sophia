@@ -1,4 +1,4 @@
-"""Bounded historical-record correction with exact retained source packages.
+"""Bounded source-metadata correction with exact retained source packages.
 
 Called only by the separately delegated source command route. No admission,
 claim rewriting, model execution, payload access or graph publication.
@@ -89,16 +89,31 @@ def _history(files, record):
     return history
 
 
-def _dependencies(root):
-    return source._digest(source._canonical({str(path): source._digest(source._read(base / path, source.MAX_SET_BYTES))
-        for base, paths in ((root, ('ToS/contracts/historical-record.schema.json', 'ToS/contracts/corpus-record.schema.json')),
-            (source.ROOT, ('mechanics/growth-cycle/parts/branch-growth-cycle/scripts/source_commands.py',
-                'mechanics/growth-cycle/parts/branch-growth-cycle/scripts/source_revisions.py',
-                'mechanics/growth-cycle/parts/branch-growth-cycle/scripts/human_forms.py',
-                'mechanics/growth-cycle/parts/branch-growth-cycle/scripts/knowledge_assessment.py',
-                'scripts/source_witness_human_forms.py', 'ToS/contracts/human-form.schema.json',
-                'ToS/contracts/human-form-set.schema.json', 'ToS/contracts/human-form-template.schema.json')))
-        for path in paths}))
+def _validate_record(config, record):
+    root = Path(config['source_root'])
+    if config['schema_version'] == source.PROFILE_REVISION_CONFIG:
+        profiles, profile = source._configured_profile(config)
+        profiles.validate(profile['record_type'], record)
+        return profiles.input_digests
+    if record.get('schema_version') != 'tos_historical_record_v1':
+        raise PermissionError('legacy revision requires the historical source schema')
+    from source_witness_bibliographic_graph_common import historical_schema_validator
+    historical_schema_validator(root).validate(record)
+    return {path: source._digest(source._read(root / path, source.MAX_SET_BYTES))
+            for path in ('ToS/contracts/historical-record.schema.json', 'ToS/contracts/corpus-record.schema.json')}
+
+
+def _dependencies(config, record):
+    inputs = _validate_record(config, record)
+    for path in ('mechanics/growth-cycle/parts/branch-growth-cycle/scripts/source_commands.py',
+                 'mechanics/growth-cycle/parts/branch-growth-cycle/scripts/source_revisions.py',
+                 'mechanics/growth-cycle/parts/branch-growth-cycle/scripts/human_forms.py',
+                 'mechanics/growth-cycle/parts/branch-growth-cycle/scripts/knowledge_assessment.py',
+                 'scripts/source_record_profiles.py', 'scripts/source_witness_human_forms.py',
+                 'ToS/contracts/human-form.schema.json', 'ToS/contracts/human-form-set.schema.json',
+                 'ToS/contracts/human-form-template.schema.json'):
+        inputs[path] = source._digest(source._read(source.ROOT / path, source.MAX_SET_BYTES))
+    return source._digest(source._canonical(inputs))
 
 
 def _scope(config, request):
@@ -123,10 +138,9 @@ def _scope(config, request):
 
 
 def _proposal(config, path, files, record, request):
-    from source_witness_bibliographic_graph_common import historical_schema_validator
     _scope(config, request)
     revised = {**record, **request['fields'], 'record_version': record['record_version'] + 1}
-    historical_schema_validator(Path(config['source_root'])).validate(revised)
+    _validate_record(config, revised)
     subject = source.Record.from_payload(revised['record_id'], revised['record_version'], revised)
     formname = path.stem + '.human-forms.json'
     payload = source._json_object(files[formname]) if formname in files else None
@@ -268,11 +282,10 @@ def run_revision(owner, config, configuration, path, request):
     def inspect():
         files = _package(path.parent)
         record = source._json_object(files[path.name])
-        if (record.get('schema_version') != 'tos_historical_record_v1' or record.get('record_id') != config['record_id']
+        if (record.get('record_id') != config['record_id']
                 or record.get('visibility') not in {'public', 'public_metadata_only'}):
             raise PermissionError('source revision subject or visibility is outside this adapter')
-        from source_witness_bibliographic_graph_common import historical_schema_validator
-        historical_schema_validator(root).validate(record)
+        _validate_record(config, record)
         subject = source.Record.from_payload(record['record_id'], record['record_version'], record)
         history = _history(files, record)
         return files, record, subject, history
@@ -285,6 +298,9 @@ def run_revision(owner, config, configuration, path, request):
             'revision': _revision(files), 'command_operations': ['describe', 'prepare-revise', 'record.revise', 'inspect-version'],
             'supported_operations': ['record.revise'], 'allowed_operations': config['allowed_operations'],
             'allowed_fields': config['allowed_fields'], 'allowed_form_ids': config['allowed_form_ids'],
+            **({'profile_type_id': config['profile_type_id'],
+                'source_record_profile': source._configured_profile(config)[1]}
+               if config['schema_version'] == source.PROFILE_REVISION_CONFIG else {}),
             'receipt': receipt, 'replayed': replayed, 'grants_admission': False,
             'materializations': source.materialize_metadata_forms(record, payload, access_allowed=True) if payload else []}
 
@@ -304,7 +320,7 @@ def run_revision(owner, config, configuration, path, request):
             raise ValueError('source revision history capacity reached')
         revised, proposed, _, views, refs = _proposal(config, path, files, record, request)
         return {**result(files, record, subject), 'prepared_source': proposed.ref, 'prepared_forms': refs,
-                'prepared_materializations': views, 'expected_dependencies': _dependencies(root)}
+                'prepared_materializations': views, 'expected_dependencies': _dependencies(config, record)}
     if not isinstance(request['command_id'], str) or not 1 <= len(request['command_id']) <= 256:
         raise ValueError('invalid source revision command identity')
     digest = source._digest(source._canonical(request))
@@ -320,7 +336,7 @@ def run_revision(owner, config, configuration, path, request):
                 _read_archive(root, config, receipt)
                 source._sync_directory(path.parent.parent)
                 return result(files, record, subject, receipt, True)
-        revision, dependencies = _revision(files), _dependencies(root)
+        revision, dependencies = _revision(files), _dependencies(config, record)
         if (request['expected_configuration'] != configuration or request['expected_source'] != subject.ref
                 or request['expected_revision'] != revision or request['expected_dependencies'] != dependencies):
             raise source.JournalConflict('source revision snapshot or dependencies are stale')
@@ -342,7 +358,7 @@ def run_revision(owner, config, configuration, path, request):
         staging = _stage(root, output, '.source-revision-')
         try:
             if (_package(path.parent) != files or source._configuration(owner)[1] != configuration
-                    or _dependencies(root) != dependencies):
+                    or _dependencies(config, record) != dependencies):
                 raise source.JournalConflict('source revision inputs changed before publication')
             _exchange(staging, path.parent)
         finally:
