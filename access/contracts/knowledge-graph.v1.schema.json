@@ -8,6 +8,18 @@
   "properties": {
     "schema": {"const": "tos_knowledge_graph_v1"},
     "source_revision": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "query_properties": {"type": "array", "description": "Source-registry query bindings included in this graph snapshot; no request can override them.", "items": {
+      "type": "object", "additionalProperties": false,
+      "required": ["property_id", "field", "value_type", "applies_to", "inherited", "operators"],
+      "properties": {
+        "property_id": {"type": "string", "pattern": "^tos\\.property\\.[a-z0-9-]+$"},
+        "field": {"type": "string", "minLength": 1},
+        "value_type": {"enum": ["string", "number", "boolean", "string-array"]},
+        "applies_to": {"type": "array", "minItems": 1, "items": {"type": "string", "pattern": "^tos\\.entity\\."}},
+        "inherited": {"type": "boolean"},
+        "operators": {"type": "array", "minItems": 1, "items": {"enum": ["eq", "neq", "in", "contains", "prefix", "exists", "gt", "gte", "lt", "lte"]}}
+      }
+    }},
     "nodes": {"type": "array", "items": {"$ref": "#/$defs/node"}},
     "relations": {"type": "array", "items": {"$ref": "#/$defs/relation"}},
     "counts": {"type": "object"},

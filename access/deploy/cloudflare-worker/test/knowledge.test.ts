@@ -127,6 +127,59 @@ test("indexed D1 path conditions and inclusion agree with the pure engine", asyn
     const python = (spec: unknown, source = graph) => JSON.parse(execFileSync('python3', ['-c',
       "import sys,json;sys.path.insert(0,'access/src');from tos_access.knowledge import execute_knowledge_lens;p=json.load(sys.stdin);print(json.dumps(execute_knowledge_lens(p['graph'],p['spec'])))"],
       {cwd: fileURLToPath(new URL('../../../../', import.meta.url)), input: JSON.stringify({graph:source,spec}), encoding:'utf8'}));
+    const propertyGraph = structuredClone(graph);
+    propertyGraph.query_properties = [{property_id: 'tos.property.fixture-score', field: 'attributes.score',
+      value_type: 'number', applies_to: ['tos.entity.concept'], inherited: true, operators: ['eq', 'neq', 'gt', 'exists']}];
+    propertyGraph.nodes[0]!.attributes.score = 3;
+    propertyGraph.nodes[1]!.semantics.type_ancestors = ['tos.entity.concept'];
+    // The third node has the same physical field but is outside the property's declared type.
+    propertyGraph.nodes[2]!.attributes.score = 9;
+    propertyGraph.query_properties.push(
+      {property_id: 'tos.property.fixture-word', field: 'attributes.word', value_type: 'string',
+        applies_to: ['tos.entity.concept'], inherited: false, operators: ['eq', 'contains', 'prefix']},
+      {property_id: 'tos.property.fixture-flag', field: 'attributes.flag', value_type: 'boolean',
+        applies_to: ['tos.entity.concept'], inherited: false, operators: ['eq', 'neq']},
+      {property_id: 'tos.property.fixture-tags', field: 'attributes.tags', value_type: 'string-array',
+        applies_to: ['tos.entity.concept'], inherited: false, operators: ['eq', 'in', 'contains']});
+    Object.assign(propertyGraph.nodes[0]!.attributes, {word: 'Свобода Ω 🦉\u0000fin', flag: false, tags: ['Мысль', 'Freiheit']});
+    await db.prepare("UPDATE edge_meta SET json_chunk=? WHERE key='knowledge_top'").bind(JSON.stringify({
+      source_revision: graph.source_revision, authority_boundary: graph.authority_boundary,
+      query_properties: propertyGraph.query_properties})).run();
+    for (const n of propertyGraph.nodes) await db.prepare('UPDATE knowledge_nodes SET json=? WHERE id=?').bind(JSON.stringify(n), n.id).run();
+    for (const [op, value] of [['eq', 3], ['neq', 9], ['gt', 2], ['exists', false]] as const) {
+      const node_query = {filters: [{property_id: 'tos.property.fixture-score', op, value}]};
+      for (const path of [false, true]) for (const detail of ['compact', 'full']) {
+        const spec = {...base, detail, ...(path ? {path_query: [{path_id: 'property-target', steps: [{node_query}]}]} : {node_query})};
+        const pure = await executeKnowledgeLens(propertyGraph, spec);
+        assert.deepEqual(pure, python(spec, propertyGraph));
+        assert.deepEqual(await executeKnowledgeLensD1(db, spec), pure);
+        assert.equal(JSON.stringify(pure.lens).includes('_property_binding'), false);
+      }
+    }
+    for (const change of [{property_id: 'tos.property.unknown'}, {op: 'contains'}, {value: true},
+                         {value: '3'}, {field: 'attributes.score'}, {property_id: 'tos.property.bad\r'},
+                         {property_id: 'tos.property.bad\n'}, {property_id: null}]) {
+      const spec = {...base, node_query: {filters: [{property_id: 'tos.property.fixture-score', op: 'eq', value: 3, ...change}]}};
+      await assert.rejects(executeKnowledgeLens(propertyGraph, spec));
+      await assert.rejects(executeKnowledgeLensD1(db, spec));
+    }
+    for (const [name, op, value] of [['word', 'eq', 'Свобода Ω 🦉\u0000fin'], ['word', 'contains', 'Ω 🦉'],
+        ['word', 'prefix', 'Свобода Ω 🦉\u0000fi'], ['word', 'prefix', ''],
+        ['word', 'prefix', 'Свобода'], ['word', 'prefix', 'свобода'], ['word', 'contains', ['Свобода']],
+        ['flag', 'eq', false], ['flag', 'neq', true], ['tags', 'eq', 'Мысль'],
+        ['tags', 'in', ['Freiheit']], ['tags', 'contains', ['Мысль', 'Freiheit']]] as const) {
+      const spec = {...base, node_query: {filters: [{property_id: 'tos.property.fixture-' + name, op, value}]}};
+      const pure = await executeKnowledgeLens(propertyGraph, spec);
+      assert.deepEqual(pure, python(spec, propertyGraph));
+      assert.deepEqual(await executeKnowledgeLensD1(db, spec), pure);
+    }
+    // Returning to the old snapshot removes the binding as well as the synthetic values.
+    await db.prepare("UPDATE edge_meta SET json_chunk=? WHERE key='knowledge_top'").bind(JSON.stringify({
+      source_revision: graph.source_revision, authority_boundary: graph.authority_boundary})).run();
+    for (const n of graph.nodes) await db.prepare('UPDATE knowledge_nodes SET json=? WHERE id=?').bind(JSON.stringify(n), n.id).run();
+    const absentProperty = {...base, node_query: {filters: [{property_id: 'tos.property.fixture-score', op: 'eq', value: 3}]}};
+    await assert.rejects(executeKnowledgeLens(graph, absentProperty));
+    await assert.rejects(executeKnowledgeLensD1(db, absentProperty));
     const carriers = structuredClone(graph);
     carriers.nodes[1]!.entity_id = carriers.nodes[0]!.entity_id;
     await db.prepare('UPDATE knowledge_nodes SET entity_id=?, json=? WHERE id=?')

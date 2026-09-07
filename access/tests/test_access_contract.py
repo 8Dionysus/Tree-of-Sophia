@@ -575,6 +575,11 @@ class CoreContractTests(unittest.TestCase):
                 self.assertNotEqual(edge_build.data_revision(FakeCore()), baseline)
                 graph["nodes"][0]["content_revision"] = "b" * 64
 
+                graph['query_properties'] = [{'property_id': 'tos.property.test', 'field': 'attributes.test'}]
+                self.assertNotEqual(edge_build.data_revision(FakeCore()), baseline)
+                graph.pop('query_properties')
+                self.assertEqual(edge_build.data_revision(FakeCore()), baseline)
+
                 source_paths[0].write_text('{"revision":"changed"}', encoding="utf-8")
                 self.assertNotEqual(edge_build.data_revision(FakeCore()), baseline)
 

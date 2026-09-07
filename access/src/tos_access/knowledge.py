@@ -2052,6 +2052,9 @@ def build_knowledge_graph(
     graph = {
         "schema": "tos_knowledge_graph_v1",
         "source_revision": source_revision,
+        "query_properties": [{key: copy.deepcopy(definition[key]) for key in
+                              ('property_id', 'field', 'value_type', 'applies_to', 'inherited', 'operators')}
+                             for definition in entity_registry.get('property_definitions', [])],
         "nodes": nodes,
         "relations": relations,
         "counts": {
@@ -2512,11 +2515,17 @@ def _normalize_filter_group(value: Any, kind: str) -> dict[str, Any]:
     for item in filters:
         if not isinstance(item, dict):
             raise ValueError(f"{kind} filters must be objects")
-        unknown = sorted(set(item) - {"field", "op", "value"})
+        unknown = sorted(set(item) - {"field", "property_id", "op", "value"})
         if unknown:
             raise ValueError(f"unknown {kind} filter fields: {', '.join(unknown)}")
-        field = _string(item.get("field")) or ""
-        if not _allowed_field(field, kind):
+        if ('field' in item) == ('property_id' in item):
+            raise ValueError(f"{kind} filter requires exactly one field or property_id")
+        property_id = item.get('property_id')
+        if 'property_id' in item and (kind != 'node' or not isinstance(property_id, str)
+                                     or not re.fullmatch(r'tos\.property\.[a-z0-9-]+', property_id)):
+            raise ValueError('property_id must identify a registered node property')
+        field = property_id or _string(item.get("field")) or ""
+        if property_id is None and not _allowed_field(field, kind):
             raise ValueError(f"unsupported {kind} filter field: {field}")
         operator = _string(item.get("op")) or ""
         if operator not in FILTER_OPERATORS:
@@ -2534,8 +2543,45 @@ def _normalize_filter_group(value: Any, kind: str) -> dict[str, Any]:
             isinstance(filter_value, bool) or not isinstance(filter_value, (int, float))
         ):
             raise ValueError(f"{kind} numeric filter {field} requires a number value")
-        normalized.append({"field": field, "op": operator, "value": filter_value})
+        normalized.append({('property_id' if property_id else 'field'): field, "op": operator, "value": filter_value})
     return {"enabled": enabled, "match": match, "filters": normalized}
+
+
+def _bind_query_properties(graph: dict[str, Any], spec: dict[str, Any]) -> dict[str, Any]:
+    """Resolve semantic selectors from the same graph snapshot, never request data.
+
+    Internal binding details never replace the caller's semantic LensSpec.
+    Older graphs without a binding cannot guess the meaning of a property ID.
+    """
+    definitions = graph.get('query_properties', [])
+    bindings = {d['property_id']: d for d in definitions}
+    if len(bindings) != len(definitions):
+        raise ValueError('ambiguous snapshot property identity')
+    compiled = copy.deepcopy(spec)
+    groups = [compiled['node_query']]
+    groups.extend(step['node_query'] for path in compiled['path_query'] for step in path['steps'])
+    for group in groups:
+        for rule in group['filters']:
+            if 'property_id' not in rule:
+                continue
+            identifier = rule['property_id']
+            definition = bindings.get(identifier)
+            if definition is None:
+                raise ValueError(f'unknown snapshot property_id: {identifier}')
+            if not _allowed_field(definition['field'], 'node') or rule['op'] not in definition['operators']:
+                raise ValueError(f'unsupported property operation: {identifier} {rule["op"]}')
+            if rule['op'] != 'exists':
+                values = rule['value'] if isinstance(rule['value'], list) else [rule['value']]
+                value_type = definition['value_type']
+                for value in values:
+                    valid = {'string': isinstance(value, str), 'string-array': isinstance(value, str),
+                             'number': isinstance(value, (int, float)) and not isinstance(value, bool),
+                             'boolean': isinstance(value, bool)}
+                    if not valid.get(value_type, False):
+                        raise ValueError(f'property {identifier} requires {value_type} query values')
+            rule['field'] = definition['field']
+            rule['_property_binding'] = definition
+    return compiled
 
 
 def _normalize_sorts(value: Any, kind: str) -> list[dict[str, str]]:
@@ -2785,11 +2831,26 @@ def _number(value: Any) -> float | None:
 
 
 def _matches_filter(item: dict[str, Any], rule: dict[str, Any]) -> bool:
+    definition = rule.get('_property_binding')
+    if definition is not None:
+        types = {item.get('type_id')}
+        if definition['inherited']:
+            types.update(item.get('semantics', {}).get('type_ancestors', []))
+        if not types.intersection(definition['applies_to']):
+            return False
     actual = _field(item, str(rule["field"]))
     expected = rule["value"]
     operator = rule["op"]
     if operator == "exists":
         return (actual is not None) is bool(expected)
+    if definition is not None and actual is None:
+        return False  # Unknown is not proof of inequality or an empty value.
+    if definition is not None and isinstance(actual, str) and operator in {'contains', 'prefix'}:
+        # Semantic string values are exact code points. No locale or hidden
+        # normalization is inferred, and SQLite needs no lossy ASCII folding.
+        if not isinstance(expected, str):
+            return False
+        return expected in actual if operator == 'contains' else actual.startswith(expected)
     if operator == "eq":
         return actual == expected or (isinstance(actual, list) and expected in actual)
     if operator == "neq":
@@ -3182,7 +3243,8 @@ def _focus_payload(
 
 
 def execute_knowledge_lens(graph: dict[str, Any], spec_value: Any) -> dict[str, Any]:
-    spec = normalize_lens_spec(spec_value)
+    public_spec = normalize_lens_spec(spec_value)
+    spec = _bind_query_properties(graph, public_spec)
     sources = set(spec["sources"])
     nodes = [item for item in _objects(graph.get("nodes")) if item.get("source_graph") in sources]
     relations = [item for item in _objects(graph.get("relations")) if item.get("source_graph") in sources]
@@ -3330,9 +3392,9 @@ def execute_knowledge_lens(graph: dict[str, Any], spec_value: Any) -> dict[str, 
     truncated_nodes = max(0, len(matched_node_ids) - spec["limits"]["nodes"])
     truncated_relations = max(0, eligible_relation_count - len(final_relations))
     fingerprint_material = {
-        "execution_version": "tos-lens-execution-v5",
+        "execution_version": "tos-lens-execution-v6",
         "source_revision": graph.get("source_revision"),
-        "lens": {k: v for k, v in spec.items() if k != 'pagination'},
+        "lens": {k: v for k, v in public_spec.items() if k != 'pagination'},
         "nodes": [[item["id"], item["content_revision"]] for item in final_nodes],
         "relations": [[item["id"], item["content_revision"]] for item in final_relations],
         "groups": groups,
@@ -3340,7 +3402,7 @@ def execute_knowledge_lens(graph: dict[str, Any], spec_value: Any) -> dict[str, 
     result = paginate_lens({
         "schema": "tos_lens_result_v1",
         "source_revision": str(graph.get("source_revision") or ""),
-        "lens": spec,
+        "lens": public_spec,
         "fingerprint": _stable_digest(fingerprint_material),
         "presentation": spec["presentation"],
         "focus": focus,
@@ -3944,7 +4006,14 @@ def knowledge_catalog(
         },
         "lenses": saved_lens_specs(corpus, philosophy),
         "capabilities": {
-            "execution_version": "tos-lens-execution-v2",
+            "execution_version": "tos-lens-execution-v6",
+            "property_filters": {"selector": "property_id", "scope": "node-query-and-path-node-query",
+                                 "binding": "same-graph-snapshot", "field_and_property_id": "mutually-exclusive",
+                                 "unknown_value": "does-not-match-except-exists-false",
+                                 "outside_applicable_type": "does-not-match",
+                                 "unknown_property": "error", "operators": "declared-per-property",
+                                 "string_comparison": "exact-codepoints-no-casefold-or-normalization",
+                                 "units_and_languages": "source-declared-no-implicit-conversion"},
             "path_query": {"conditions": 4, "steps_per_condition": 4,
                            "quantifiers": ["exists", "not_exists"], "combination": "all",
                            "scope": "node-selector-roots-and-selected-sources", "walks_may_revisit_nodes": True},

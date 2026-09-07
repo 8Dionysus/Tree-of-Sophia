@@ -216,13 +216,16 @@ export type KnowledgeRelation = {
 export type KnowledgeGraph = {
   schema: "tos_knowledge_graph_v1";
   source_revision: string;
+  query_properties?: QueryProperty[];
   nodes: KnowledgeNode[];
   relations: KnowledgeRelation[];
   counts: Item;
   authority_boundary: Item;
 };
 
-export type LensFilter = { field: string; op: string; value: unknown };
+export type QueryProperty = {property_id: string; field: string; value_type: 'string' | 'number' | 'boolean' | 'string-array';
+  applies_to: string[]; inherited: boolean; operators: string[]};
+export type LensFilter = { field?: string; property_id?: string; op: string; value: unknown; _property_binding?: QueryProperty };
 export type SortRule = { field: string; direction: "asc" | "desc" };
 export type PathCondition = {
   path_id: string;
@@ -447,9 +450,15 @@ function filterGroup(value: unknown, kind: "node" | "relation"): { enabled: bool
   const rawFilters = source.filters ?? [];
   if (!Array.isArray(rawFilters) || rawFilters.length > 32) throw new Error(`${kind}_query.filters must contain at most 32 filters`);
   const filters = rawFilters.map((raw): LensFilter => {
-    const item = strictRecord(raw, `${kind} filter`, ["field", "op", "value"]);
-    const field = text(item.field) ?? "";
-    if (!allowedField(field, kind)) throw new Error(`unsupported ${kind} filter field: ${field}`);
+    const item = strictRecord(raw, `${kind} filter`, ["field", "property_id", "op", "value"]);
+    if (('field' in item) === ('property_id' in item)) throw new Error(`${kind} filter requires exactly one field or property_id`);
+    const property = item.property_id;
+    if ('property_id' in item && (kind !== 'node' || typeof property !== 'string'
+        || !/^tos\.property\.[a-z0-9-]+$(?![\s\S])/.test(property))) {
+      throw new Error('property_id must identify a registered node property');
+    }
+    const field = typeof property === 'string' ? property : text(item.field) ?? "";
+    if (!property && !allowedField(field, kind)) throw new Error(`unsupported ${kind} filter field: ${field}`);
     const op = text(item.op) ?? "";
     if (!(OPERATORS as readonly string[]).includes(op)) throw new Error(`unsupported ${kind} filter operator: ${op}`);
     if (!("value" in item)) throw new Error(`${kind} filter ${field} is missing value`);
@@ -462,9 +471,32 @@ function filterGroup(value: unknown, kind: "node" | "relation"): { enabled: bool
     if (["gt", "gte", "lt", "lte"].includes(op) && typeof normalizedValue !== "number") {
       throw new Error(`${kind} numeric filter ${field} requires a number value`);
     }
-    return { field, op, value: normalizedValue };
+    return { ...(property ? {property_id: field} : {field}), op, value: normalizedValue };
   });
   return { enabled, match, filters };
+}
+
+export function bindQueryProperties(definitions: QueryProperty[], spec: LensSpec): LensSpec {
+  const bindings = new Map(definitions.map(d => [d.property_id, d]));
+  if (bindings.size !== definitions.length) throw new Error('ambiguous snapshot property identity');
+  const compiled = structuredClone(spec);
+  const groups = [compiled.node_query, ...compiled.path_query.flatMap(path => path.steps.map(step => step.node_query))];
+  for (const group of groups) for (const rule of group.filters) {
+    if (!rule.property_id) continue;
+    const definition = bindings.get(rule.property_id);
+    if (!definition) throw new Error(`unknown snapshot property_id: ${rule.property_id}`);
+    if (!allowedField(definition.field, 'node') || !definition.operators.includes(rule.op)) {
+      throw new Error(`unsupported property operation: ${rule.property_id} ${rule.op}`);
+    }
+    if (rule.op !== 'exists') {
+      const values = Array.isArray(rule.value) ? rule.value : [rule.value];
+      const type = definition.value_type === 'string-array' ? 'string' : definition.value_type;
+      if (values.some(value => typeof value !== type)) throw new Error(`property ${rule.property_id} requires ${type} query values`);
+    }
+    rule.field = definition.field;
+    rule._property_binding = definition;
+  }
+  return compiled;
 }
 
 function sortRules(value: unknown, kind: "node" | "relation"): SortRule[] {
@@ -624,9 +656,19 @@ function numeric(value: unknown): number | null {
 }
 
 function matchesFilter(item: Item, rule: LensFilter): boolean {
+  if (!rule.field) throw new Error('unbound property filter');
+  const definition = rule._property_binding;
+  if (definition) {
+    const types = [item.type_id, ...(definition.inherited ? strings(record(item.semantics).type_ancestors) : [])];
+    if (!definition.applies_to.some(type => types.includes(type))) return false;
+  }
   const actual = fieldValue(item, rule.field);
   const expected = rule.value;
   if (rule.op === "exists") return (actual !== null && actual !== undefined) === Boolean(expected);
+  if (definition && (actual === null || actual === undefined)) return false;
+  if (definition && typeof actual === 'string' && ['contains', 'prefix'].includes(rule.op)) {
+    return typeof expected === 'string' && (rule.op === 'contains' ? actual.includes(expected) : actual.startsWith(expected));
+  }
   if (rule.op === "eq") return actual === expected || (Array.isArray(actual) && actual.includes(expected));
   if (rule.op === "neq") return !matchesFilter(item, { ...rule, op: "eq" });
   if (rule.op === "in") {
@@ -812,7 +854,7 @@ export async function finalizeKnowledgeLens(
   const truncatedNodes = Math.max(0, executionCounts.matched_nodes - spec.limits.nodes);
   const truncatedRelations = Math.max(0, executionCounts.eligible_relations - finalRelations.length);
   const fingerprint = await digest({
-    execution_version: "tos-lens-execution-v5",
+    execution_version: "tos-lens-execution-v6",
     source_revision: sourceRevision,
     lens: Object.fromEntries(Object.entries(spec).filter(([key]) => key !== 'pagination')),
     nodes: finalNodes.map((item) => [item.id, item.content_revision ?? ""]),
@@ -875,7 +917,8 @@ export async function finalizeKnowledgeLens(
 }
 
 export async function executeKnowledgeLens(graph: KnowledgeGraph, specValue: unknown): Promise<Item & { nodes: KnowledgeNode[]; relations: KnowledgeRelation[]; presentation: LensSpec["presentation"]; fingerprint: string; authority_boundary: Item }> {
-  const spec = normalizeLensSpec(specValue);
+  const publicSpec = normalizeLensSpec(specValue);
+  const spec = bindQueryProperties(graph.query_properties ?? [], publicSpec);
   const sourceRevision = graph.source_revision || await digest({ nodes: graph.nodes, relations: graph.relations });
   const sourceSet = new Set(spec.sources);
   const nodes = graph.nodes.filter((item) => sourceSet.has(item.source_graph));
@@ -1043,7 +1086,7 @@ export async function executeKnowledgeLens(graph: KnowledgeGraph, specValue: unk
 
   const matchedNodeIds = new Set(base.map((item) => item.id));
   if (focusNode) matchedNodeIds.add(focusNode.id);
-  return finalizeKnowledgeLens(graph.authority_boundary, sourceRevision, spec, selectedNodes.values(), selectedRelations, {
+  return finalizeKnowledgeLens(graph.authority_boundary, sourceRevision, publicSpec, selectedNodes.values(), selectedRelations, {
     available_nodes: nodes.length,
     available_relations: relations.length,
     matched_nodes: matchedNodeIds.size,

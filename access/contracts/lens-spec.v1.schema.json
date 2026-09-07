@@ -167,9 +167,11 @@
     "nodeFilter": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["field", "op", "value"],
+      "required": ["op", "value"],
+      "oneOf": [{"required": ["field"]}, {"required": ["property_id"]}],
       "properties": {
         "field": {"$ref": "#/$defs/nodeField"},
+        "property_id": {"type": "string", "pattern": "^tos\\.property\\.[a-z0-9-]+$(?![\\s\\S])", "description": "A property from the snapshot catalog; its declared operations, value type and applicable entity types are enforced at execution."},
         "op": {"enum": ["eq", "neq", "in", "contains", "prefix", "exists", "gt", "gte", "lt", "lte"]},
         "value": {"$ref": "#/$defs/filterValue"}
       },

@@ -3,6 +3,7 @@ import {
   finalizeKnowledgeLens,
   focusLensSpec,
   normalizeLensSpec,
+  bindQueryProperties,
   OVERVIEW_EXCLUDED_PREDICATES,
   OVERVIEW_EXCLUDED_RELATION_TYPES,
   type FocusKnowledgeOptions,
@@ -13,6 +14,7 @@ import {
   type SortRule,
   type PathCondition,
   type Inclusion,
+  type QueryProperty,
 } from "./knowledge.ts";
 import { jsonRows, meta, rows } from "./store.ts";
 
@@ -86,6 +88,23 @@ function equalityFilter(alias: string, field: string, kind: ItemKind, expected: 
 }
 
 function filterFragment(alias: string, rule: LensFilter, kind: ItemKind): SqlFragment {
+  if (!rule.field) throw new Error('unbound property filter');
+  if (rule._property_binding) {
+    const definition = rule._property_binding;
+    const { _property_binding, ...plain } = rule;
+    const expression = fieldExpression(alias, rule.field, kind);
+    const inner = definition.value_type === 'string' && ['contains', 'prefix'].includes(rule.op)
+      ? {sql: typeof rule.value !== 'string' ? '0 = 1'
+            : `instr(${expression}, ?) ${rule.op === 'contains' ? '> 0' : '= 1'}`,
+         bindings: typeof rule.value !== 'string' ? [] : [rule.value]}
+      : filterFragment(alias, plain, kind);
+    const types = JSON.stringify(definition.applies_to);
+    const applies = definition.inherited
+      ? `(${alias}.type_id IN (SELECT value FROM json_each(?)) OR EXISTS (SELECT 1 FROM json_each(json_extract(${alias}.json, '$.semantics.type_ancestors')) a WHERE a.value IN (SELECT value FROM json_each(?))))`
+      : `${alias}.type_id IN (SELECT value FROM json_each(?))`;
+    return {sql: `(${applies} AND ${rule.op === 'exists' ? '' : fieldExpression(alias, rule.field, kind) + ' IS NOT NULL AND '}(${inner.sql}))`,
+      bindings: [...(definition.inherited ? [types, types] : [types]), ...inner.bindings]};
+  }
   const expression = fieldExpression(alias, rule.field, kind);
   const type = jsonTypeExpression(alias, rule.field);
   if (rule.op === "exists") {
@@ -336,7 +355,9 @@ function neighborIds(relation: RelationHeader, nodeId: string, direction: LensSp
 }
 
 async function executeKnowledgeLensD1Unchecked(db: D1Database, specValue: unknown): Promise<Item> {
-  const spec = normalizeLensSpec(specValue);
+  const publicSpec = normalizeLensSpec(specValue);
+  const knowledgeTop = await meta<Item>(db, 'knowledge_top');
+  const spec = bindQueryProperties((knowledgeTop.query_properties ?? []) as QueryProperty[], publicSpec);
   const focusNode = await resolveFocusNodeD1(db, spec.seed.focus_node_id, spec.sources);
   const source = sourceFragment("n", spec.sources);
   const nodeParts: SqlFragment[] = [source, groupFragment("n", spec.node_query, "node")];
@@ -372,7 +393,7 @@ async function executeKnowledgeLensD1Unchecked(db: D1Database, specValue: unknow
   const focusSelectorWhere = focusNode
     ? joinFragments([...nodeParts, { sql: "n.id = ?", bindings: [focusNode.id] }])
     : null;
-  const [availableNodes, availableRelations, matchedNodes, focusSelectorMatches, matchedRelations, baseRows, knowledgeTop] = await Promise.all([
+  const [availableNodes, availableRelations, matchedNodes, focusSelectorMatches, matchedRelations, baseRows] = await Promise.all([
     count(db, "knowledge_nodes n", availableNodeWhere),
     count(db, "knowledge_relations r", availableRelationWhere),
     spec.node_query.enabled ? count(db, "knowledge_nodes n", nodeWhere) : Promise.resolve(0),
@@ -390,7 +411,6 @@ async function executeKnowledgeLensD1Unchecked(db: D1Database, specValue: unknow
         spec.limits.nodes,
       )
       : Promise.resolve([]),
-    meta<Item>(db, "knowledge_top"),
   ]);
 
   const baseNodes = asNodes(baseRows);
@@ -480,7 +500,7 @@ async function executeKnowledgeLensD1Unchecked(db: D1Database, specValue: unknow
   const authority = knowledgeTop.authority_boundary && typeof knowledgeTop.authority_boundary === "object"
     ? knowledgeTop.authority_boundary as Item
     : {};
-  return finalizeKnowledgeLens(authority, String(knowledgeTop.source_revision ?? ""), spec, selectedNodes, selectedRelations, {
+  return finalizeKnowledgeLens(authority, String(knowledgeTop.source_revision ?? ""), publicSpec, selectedNodes, selectedRelations, {
     available_nodes: availableNodes,
     available_relations: availableRelations,
     matched_nodes: matchedNodes + (focusNode && focusSelectorMatches === 0 ? 1 : 0),

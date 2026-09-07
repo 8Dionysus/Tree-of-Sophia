@@ -30,6 +30,58 @@ from tos_access.knowledge import (  # noqa: E402
 
 
 class KnowledgeContractTests(unittest.TestCase):
+    def test_property_ids_execute_from_snapshot_catalog_with_type_and_missing_guards(self):
+        entities = copy.deepcopy(self.entity_type_registry)
+        definition = {'property_id': 'tos.property.fixture-score', 'field': 'attributes.fixture_score',
+            'labels': {'default': 'Fixture score', 'en': 'Fixture score', 'ru': 'Оценка теста'},
+            'definition': 'Synthetic numeric value, not a historical judgment.', 'value_type': 'number',
+            'applies_to': ['tos.entity.concept'], 'required': False, 'inherited': True,
+            'unit': None, 'language': None, 'operators': ['eq', 'neq', 'gt', 'exists']}
+        entities['property_definitions'].append(definition)
+        graph = build_knowledge_graph(*self.fixture(), entity_type_registry=entities,
+                                      relation_type_registry=self.relation_type_registry)
+        node = next(n for n in graph['nodes'] if n['type_id'] == 'tos.entity.concept')
+        node['attributes']['fixture_score'] = 3
+        before = copy.deepcopy(graph)
+        spec = {'schema_version': 'tos_lens_spec_v1', 'lens_id': 'property-test',
+            'node_query': {'filters': [{'property_id': definition['property_id'], 'op': 'gt', 'value': 2}]},
+            'relation_query': {'enabled': False}, 'detail': 'compact', 'explain': True}
+        Draft202012Validator(self.schemas['lens-spec.v1.schema.json']).validate(spec)
+        result = execute_knowledge_lens(graph, spec)
+        self.assertEqual([n['id'] for n in result['nodes']], [node['id']])
+        self.assertEqual(result['lens']['node_query'], normalize_lens_spec(spec)['node_query'])
+        self.assertEqual(result['nodes'][0]['attributes'], {})
+        self.assertEqual(graph, before)
+        for change in ({'property_id': 'tos.property.unknown'}, {'op': 'contains'}, {'value': True},
+                       {'value': '3'}, {'field': definition['field']}):
+            invalid = copy.deepcopy(spec)
+            invalid['node_query']['filters'][0].update(change)
+            with self.subTest(change=change), self.assertRaises(ValueError):
+                execute_knowledge_lens(graph, invalid)
+        for value in (None, False, '', 'tos.property.bad\r', 'tos.property.bad\n', 'attributes.score'):
+            invalid = copy.deepcopy(spec)
+            invalid['node_query']['filters'][0]['property_id'] = value
+            with self.subTest(property_id=value), self.assertRaises(ValueError):
+                normalize_lens_spec(invalid)
+            self.assertFalse(Draft202012Validator(self.schemas['lens-spec.v1.schema.json']).is_valid(invalid))
+        unsafe = copy.deepcopy(graph)
+        unsafe['query_properties'][-1]['field'] = 'attributes.__proto__.secret'
+        with self.assertRaises(ValueError):
+            execute_knowledge_lens(unsafe, spec)
+        ambiguous = copy.deepcopy(graph)
+        ambiguous['query_properties'].append(ambiguous['query_properties'][-1])
+        with self.assertRaises(ValueError):
+            execute_knowledge_lens(ambiguous, spec)
+        # Unrelated types and unknown values are not proven unequal.
+        spec['node_query']['filters'][0].update(op='neq', value=9)
+        self.assertEqual([n['id'] for n in execute_knowledge_lens(graph, spec)['nodes']], [node['id']])
+        node['attributes'].pop('fixture_score')
+        self.assertEqual(execute_knowledge_lens(graph, spec)['nodes'], [])
+        spec['node_query']['filters'][0].update(op='exists', value=False)
+        found = execute_knowledge_lens(graph, spec)['nodes']
+        self.assertIn(node['id'], {n['id'] for n in found})
+        self.assertTrue(all('tos.entity.concept' in [n['type_id'], *n['semantics']['type_ancestors']] for n in found))
+
     def test_compact_scene_conserves_records_and_endpoint_closure_across_claim_topologies(self):
         from tos_access.knowledge import knowledge_scene
         prototype = build_knowledge_graph(*self.fixture())

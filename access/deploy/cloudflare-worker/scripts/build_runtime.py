@@ -829,6 +829,10 @@ def data_revision(core: ToSAccessCore) -> str:
     knowledge = core.knowledge_graph()
     digest.update(str(knowledge.get("source_revision") or "").encode("utf-8"))
     digest.update(b"\0")
+    # Query bindings are serving metadata, not row content. A code-only
+    # introduction/removal of this plane must not skip its D1 metadata update.
+    digest.update(compact_json(knowledge.get('query_properties', [])).encode('utf-8'))
+    digest.update(b"\0")
     for collection in ("nodes", "relations"):
         digest.update(collection.encode("utf-8"))
         digest.update(b"\0")

@@ -69,6 +69,14 @@ depending on browser-owned view logic. A LensSpec can select sources, start
 from nodes or relations, filter, traverse, close relation endpoints, group,
 sort, and provide presentation hints under explicit resource limits.
 
+Registered properties can be queried without knowing their internal paths.
+For example, `{"property_id":"tos.property.time-role","op":"eq","value":"historical-time"}`
+is a node filter, also usable at a path step. Discover the actual descriptor
+and operators in `semantic_registries.properties`; an unknown property is an
+error, not an empty success. Values remain source-declared and type-scoped;
+missing values are not proven unequal. See the [property-filter contract](contracts/README.md)
+for exact string/array semantics and snapshot compatibility.
+
 The versioned ToS registries define the stable entity hierarchy and relation
 contracts consumed by this graph. They keep Agent roles as relations, separate
 Work/Expression/Edition/Item/File/Link, distinguish Place from a navigation

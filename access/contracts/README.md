@@ -157,6 +157,28 @@ than pinning old response-key sets. Normalized requests include their defaults.
 Fingerprints include the execution version and exclude delivery pagination;
 they must not be treated as permanent entity identity.
 
+Execution v6 adds `property_id` filters to `node_query` and each path step's
+`node_query`. Choose exactly one `field` or `property_id`; the catalog's
+`semantic_registries.properties` supplies stable IDs, definitions, value types,
+operators, units, language and applicable entity types. Resolution uses
+`query_properties` from the same graph snapshot, including the D1 metadata
+snapshot, not a separately refreshed dictionary or request-supplied mapping.
+The public result retains the semantic selector; internal paths are compilation
+details. Unknown IDs, conflicting selectors, undeclared operations and wrong
+value types fail before execution. Missing bindings in an older snapshot fail
+closed; legacy `field` requests remain supported.
+
+Property filters apply only to their declared types and, when requested by the
+descriptor, descendants. Missing/null values do not match any comparison,
+including `neq`; `exists: false` finds unavailable values only within that type
+scope, not globally nonexistent things. String comparison is exact code-point
+comparison, including `contains`/`prefix`: no case folding, Unicode
+normalization, translation, calendar or unit conversion is inferred. Declared
+string-array properties use scalar membership for `eq`, overlap for `in` and
+all-membership for `contains`. The existing technical-field semantics do not
+change. Relation properties, semantic sorting and grouping remain separate
+extensions; this node-property contract does not pretend to implement them.
+
 Path conditions join at node-selector roots and stay within `sources` at every
 step. Inclusion records are execution witnesses, never philosophical proof.
 Delivery cursors partition a bounded lens result with explicit repeated

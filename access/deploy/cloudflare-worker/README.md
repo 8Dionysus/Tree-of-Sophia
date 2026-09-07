@@ -53,6 +53,16 @@ filters and bounded traversal; a Worker request never materializes the full
 knowledge graph in memory. The lens `POST` is a structured read query and does
 not create server state.
 
+Execution v6 resolves node `property_id` selectors through the snapshot's
+`knowledge_top.query_properties`, including path steps. SQL enforces the
+property's declared type scope and missing-value semantics; pure TypeScript
+and Python use the same contract. The read-model revision includes these
+bindings so a code-only introduction of serving metadata cannot be skipped as
+an API-only rebuild. Existing row data is not reinterpreted; the staged metadata
+update remains revision-guarded. An older snapshot without a binding rejects
+the selector until the matching read model is supplied. This is not automatic
+deployment authorization.
+
 Large lossless JSON fields are inserted in deterministic UTF-8 chunks only
 when one statement would exceed the D1 statement ceiling, then reconstructed
 in the staged row before table swap. Contract tests use isolated synthetic D1
