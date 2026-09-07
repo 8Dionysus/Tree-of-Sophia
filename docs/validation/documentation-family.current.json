@@ -29,15 +29,15 @@
     "metric": "whitespace_tokens_v1",
     "posture": "summary_first_records_on_demand",
     "record_loading": "machine readers may select records by family_id or path; do not load the full carrier into an always-on prompt",
-    "tracked_surface_count": 4288,
+    "tracked_surface_count": 4307,
     "unhandled_family_count": 0
   },
   "coverage": {
     "excluded_generated_carrier_rules": 3,
-    "excluded_tracked_path_count": 987,
+    "excluded_tracked_path_count": 991,
     "human_scope": {
-      "bytes": 5388329,
-      "count": 1007,
+      "bytes": 5400834,
+      "count": 1009,
       "excluded_skill_launch_metadata": 25,
       "family_counts": {
         "access": {
@@ -116,20 +116,20 @@
           "lines": 55
         },
         "tos": {
-          "bytes": 3983552,
-          "count": 598,
-          "lines": 67067
+          "bytes": 3996057,
+          "count": 600,
+          "lines": 67272
         }
       },
-      "lines": 93025
+      "lines": 93230
     },
     "surface_kind_counts": {
       "executable": 234,
-      "human": 1032,
-      "structured": 3022
+      "human": 1034,
+      "structured": 3039
     },
-    "tracked_path_count": 5275,
-    "tracked_surface_count": 4288,
+    "tracked_path_count": 5298,
+    "tracked_surface_count": 4307,
     "unhandled_family_count": 0,
     "unhandled_paths": []
   },
@@ -173,11 +173,11 @@
       "family_id": "tos",
       "surface_kind_counts": {
         "executable": 4,
-        "human": 598,
-        "structured": 2938
+        "human": 600,
+        "structured": 2955
       },
-      "tracked_surface_bytes": 227257465,
-      "tracked_surface_count": 3540
+      "tracked_surface_bytes": 227507734,
+      "tracked_surface_count": 3559
     },
     {
       "family_id": "access",
@@ -231,7 +231,7 @@
         "human": 155,
         "structured": 33
       },
-      "tracked_surface_bytes": 954812,
+      "tracked_surface_bytes": 955765,
       "tracked_surface_count": 215
     },
     {
@@ -250,7 +250,7 @@
         "human": 2,
         "structured": 1
       },
-      "tracked_surface_bytes": 1524355,
+      "tracked_surface_bytes": 1531560,
       "tracked_surface_count": 62
     },
     {
@@ -285,7 +285,7 @@
   "source_map": "docs/validation/documentation_family_map.json",
   "source_map_sha256": "d70a5059be9cc7547289e4c8be380d23b3aeb9e53bb10e4cb82abf2177ea0896",
   "tracked_source": "git ls-files -z",
-  "tracked_surface_digest": "433cef96bae809bb55781341d8e8cea6a2291178a98ad2dd91effde75e5ec354",
+  "tracked_surface_digest": "8be9e12ca8777bb35ba67b594499445ea99b7a4c209a6b163d9c9423c8c85ece",
   "tracked_surfaces": [
     {
       "bytes": 1489,
@@ -332,7 +332,7 @@
       "currentness": "tracked_source_snapshot",
       "family_id": "agents-other",
       "path": ".agents/agents-route.current.json",
-      "sha256": "ad9004d9935724863c845eeeb949397e012cd51cc958a3650d392e0b3d02b092",
+      "sha256": "33774f0fde6740815f31a344fd6e2f3a9dcf82875d717930802acb95e2115304",
       "surface_kind": "structured"
     },
     {
@@ -3848,6 +3848,14 @@
       "surface_kind": "structured"
     },
     {
+      "bytes": 1050,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/contracts/source-structured-value.schema.json",
+      "sha256": "80f2450d6132e717df9bfa508f4571511c8e81daa5f3003a887176b69a67a4bb",
+      "surface_kind": "structured"
+    },
+    {
       "bytes": 1395,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
@@ -3869,6 +3877,14 @@
       "family_id": "tos",
       "path": "ToS/contracts/source-text-unit-packet-v1.schema.json",
       "sha256": "6ba96f4298cf5e88ae261c53c46c7d51681d0f0f0faf3bcecce2e309a0e071ab",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1866,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/contracts/source-textual-survival-claim.schema.json",
+      "sha256": "d6eb459fb8d83882d23a4ce24650706a868182759e7d38bc5dc0748a16f871e2",
       "surface_kind": "structured"
     },
     {
@@ -4152,11 +4168,11 @@
       "surface_kind": "human"
     },
     {
-      "bytes": 8752075,
+      "bytes": 8869612,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/derived-exports/graph/source-witness-bibliographic-claims.min.json",
-      "sha256": "a602c94a4281f0caa40491ba9d4a8fe6b6f0f2151feedc7d5eb51d960caaca0f",
+      "sha256": "0b08dc5b1949d4eb71acd2dfb9126061f64d9ad80f9888f97c5337a5739b76b7",
       "surface_kind": "structured"
     },
     {
@@ -4232,11 +4248,11 @@
       "surface_kind": "structured"
     },
     {
-      "bytes": 59647769,
+      "bytes": 59717099,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/derived-exports/tos_corpus_index.min.json",
-      "sha256": "6ca6a90bf9d2af770fe6ac7988007aab83650c95d419e7917b41d5de7f93f4ce",
+      "sha256": "6111d63bb3de2ae8cb31e5882b4c276aafca8103e9d7b7acf5f00eeb4cc52a29",
       "surface_kind": "structured"
     },
     {
@@ -4288,11 +4304,11 @@
       "surface_kind": "human"
     },
     {
-      "bytes": 32905,
+      "bytes": 33459,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/doctrine/CORPUS_FOUNDATION.md",
-      "sha256": "3dd63da5ac94a7164af5b0b476f1806d401ea3464fcd75b0a07aecdd41e968ab",
+      "sha256": "f261f7ffbad778e0abc03e40f6e77f079cb54c55013e38fe27eab3193ae06712",
       "surface_kind": "human"
     },
     {
@@ -4312,11 +4328,11 @@
       "surface_kind": "human"
     },
     {
-      "bytes": 78334,
+      "bytes": 78534,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/doctrine/FOUNDATION_V1.md",
-      "sha256": "f004d3241e29e8a2e2fbd8597f3ac449f03d7f8f683914582e1e00db31a13a72",
+      "sha256": "58382d1f1a2d237c8815f202466fa8aae85aeb066dfb6adeb83a50b6005530a6",
       "surface_kind": "human"
     },
     {
@@ -4432,11 +4448,11 @@
       "surface_kind": "human"
     },
     {
-      "bytes": 63998,
+      "bytes": 67052,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/doctrine/semantic-interchange/README.md",
-      "sha256": "c8a13b9a56a4190944e490a623f06eb8fdd53be8dab520e7b7ff56ffa5e4722e",
+      "sha256": "eb21f887f0577aa266d722ad00a149f2a9cbf69dbb4e654f6d7e519872c492ca",
       "surface_kind": "human"
     },
     {
@@ -4448,19 +4464,19 @@
       "surface_kind": "structured"
     },
     {
-      "bytes": 156221,
+      "bytes": 161257,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/doctrine/semantic-interchange/entity-types.v1.json",
-      "sha256": "4559ec02239cf666b0222f78001e554e65ebad0c99977f960276f68b9b7cf97e",
+      "sha256": "bba95a5a5d1ccf4f72cb38a52a492a8129ce78097ed4578272e17b0f1d6f72d0",
       "surface_kind": "structured"
     },
     {
-      "bytes": 236568,
+      "bytes": 241638,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/doctrine/semantic-interchange/relation-types.v1.json",
-      "sha256": "bff2981415d71d346e54d46577f5e9542604f37ed32414af25c332908445d521",
+      "sha256": "3a1a2cef32f25f0607821e648f7476c2518d6071014fbfdaab11c3e431d33f48",
       "surface_kind": "structured"
     },
     {
@@ -18552,6 +18568,22 @@
       "surface_kind": "human"
     },
     {
+      "bytes": 6523,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/review-ledger/2026-09-07-parmenides-survival-and-reader-review.md",
+      "sha256": "c65e8c85ddb7d42d2155c07437f0070f0d2a64049ec7ea1dc36896c0bbe857cc",
+      "surface_kind": "human"
+    },
+    {
+      "bytes": 2174,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/review-ledger/2026-09-07-parmenides-survival-source-reading.md",
+      "sha256": "48c17eefed327d02d29d19bbb1751c1f34e43653bf99ca583878868a853d7564",
+      "surface_kind": "human"
+    },
+    {
       "bytes": 8237,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
@@ -19760,6 +19792,46 @@
       "surface_kind": "structured"
     },
     {
+      "bytes": 6303,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/agents/parmenides-of-elea/agent.human-forms.json",
+      "sha256": "5d715812e9a3199adfa82b215e081af9e5d04ebcaea042442c7afdc26d2e4eeb",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1076,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/agents/parmenides-of-elea/agent.json",
+      "sha256": "61085fcc33e146c3909e5cebbab6234ab426720b9d890f610909bcee9c08bf76",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 244,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/agents/parmenides-of-elea/source-create-environment.json",
+      "sha256": "0976562dbd82ac21a81cda5c4ccbb0b8c545c54bb686181fc225a32aed6170b3",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1415,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/agents/parmenides-of-elea/source-create-receipt.json",
+      "sha256": "60dfc37561489360a7d011c0f60b66d299119fe45126f125608ad19390b43259",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1602,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/agents/parmenides-of-elea/source-create-request.json",
+      "sha256": "94a49f0ccad7c298d528666aeb95317ef7f209fea2e8dd853d7cde940cb01f3f",
+      "surface_kind": "structured"
+    },
+    {
       "bytes": 6846,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
@@ -20552,11 +20624,11 @@
       "surface_kind": "human"
     },
     {
-      "bytes": 6619,
+      "bytes": 6947,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/source-witnesses/catalog/catalog.manifest.json",
-      "sha256": "afc991f7e12eba51ead9685ca771e4a99ed643c004f7fa5984db688e0673dcdf",
+      "sha256": "99c39927f750c7b29e42311c93881982d739c5dc133af9f8457695f249b80da4",
       "surface_kind": "structured"
     },
     {
@@ -24109,6 +24181,46 @@
       "family_id": "tos",
       "path": "ToS/source-witnesses/relations/nietzsche-letter-705/source-create-request.json",
       "sha256": "eb5b78159bb1d6d80a896ba4e5cb303ec367d316a73806dffc106ea71b714d30",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3931,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/relations/parmenides-survival-research/source-claims.a07e384c5421e349b230a23e1e3190e4a36eb73297e8a3f9aae5662db3b15e09.human-forms.json",
+      "sha256": "32fa8b9d4f4e9e3357ecde328d9ef3ec6a2f88a12ad56124ef35e188da70df7d",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3687,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/relations/parmenides-survival-research/source-claims.e990370b63def0c24ddf47d80a0a34af4ccf5a7b789bf0c50fbaf309d3c5f4e4.human-forms.json",
+      "sha256": "638d37c046dd052583435ed809414281e8fcb98e147fccd331ec78fc0d6ae4d3",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 244,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/relations/parmenides-survival-research/source-create-environment.json",
+      "sha256": "0976562dbd82ac21a81cda5c4ccbb0b8c545c54bb686181fc225a32aed6170b3",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3299,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/relations/parmenides-survival-research/source-create-receipt.json",
+      "sha256": "fb00c6b833d84a18ee819d7dae90e5fca2f0eb5607c198fe05471ddf26e65e36",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 4885,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/relations/parmenides-survival-research/source-create-request.json",
+      "sha256": "fc9616a042f5c8813456abe9b1350b7485d8f7c733803fef01dd37516424bcc2",
       "surface_kind": "structured"
     },
     {
@@ -29768,6 +29880,46 @@
       "surface_kind": "structured"
     },
     {
+      "bytes": 244,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/parmenides-of-elea/poem/source-create-environment.json",
+      "sha256": "0976562dbd82ac21a81cda5c4ccbb0b8c545c54bb686181fc225a32aed6170b3",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1414,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/parmenides-of-elea/poem/source-create-receipt.json",
+      "sha256": "32480de6851c17bac09a4a86705cc3dba66007797db1c3d38542db456c3ff036",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1670,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/parmenides-of-elea/poem/source-create-request.json",
+      "sha256": "ec2189f89f043b80680e05daf7cda0bf4ff92c5b405b74fb903f0c91b8ac1d23",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 6361,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/parmenides-of-elea/poem/work.human-forms.json",
+      "sha256": "3b0026cd1b2b5d5b0fe1a65358feb36ecf52a6b973af5c4a3aa869b9a9cc3ef4",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1172,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/parmenides-of-elea/poem/work.json",
+      "sha256": "2a6f38e478e1751dc3c70b62d313deb5f0d6a3e72ba705bf80f6f1ec6c6794e0",
+      "surface_kind": "structured"
+    },
+    {
       "bytes": 5117,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
@@ -32584,11 +32736,11 @@
       "surface_kind": "executable"
     },
     {
-      "bytes": 97129,
+      "bytes": 98082,
       "currentness": "tracked_source_snapshot",
       "family_id": "mechanics",
       "path": "mechanics/growth-cycle/tests/test_source_commands.py",
-      "sha256": "bb5728b41a41f2d73de2b8e118a1e2a0490bb751bdbd03ab00a2f22de46ec803",
+      "sha256": "95d573f10d9d4538fb5bad5ab79c673f817775d6eec44a2b9274b7ff147efcaf",
       "surface_kind": "executable"
     },
     {
@@ -34408,11 +34560,11 @@
       "surface_kind": "executable"
     },
     {
-      "bytes": 212632,
+      "bytes": 219837,
       "currentness": "tracked_source_snapshot",
       "family_id": "tests",
       "path": "tests/test_source_witness_bibliographic_graph.py",
-      "sha256": "17c0f66aa454d4fc34b7fcb2fa506e2498dc92a7b999c9f616d27f1f9b0235f3",
+      "sha256": "cdb08e6197174c97b421a6d4a7b79bc1b45994310ba565b7e7328661eb03273f",
       "surface_kind": "executable"
     },
     {

@@ -34,6 +34,96 @@ from source_witness_human_forms import load_metadata_forms, materialize_metadata
 
 
 class SourceWitnessBibliographicGraphTest(unittest.TestCase):
+    def test_fragment_and_quotation_profiles_keep_research_identity_and_text_evidence_distinct(self):
+        from source_record_profiles import SourceRecordProfiles, SourceClaimProfiles, SourceProfileError
+        records = SourceRecordProfiles(REPO_ROOT)
+        relations = SourceClaimProfiles(REPO_ROOT)
+        subjects = {}
+        for kind, content in (
+            ('textual-fragment', {'fragment_account': 'A synthetic portion, not a physical fragment.',
+                'boundary_basis': 'A proposed editorial distinction; no exact text is stored.'}),
+            ('quotation-passage', {'quotation_account': 'A synthetic passage quoting another text.',
+                'location_account': 'A reported position in a containing work; not a resolved text anchor.'}),
+        ):
+            record = {'schema_version': 'tos_textual_passage_record_v1', 'record_type': kind,
+                'record_id': f'tos.{kind}.synthetic', 'record_version': 1,
+                'preferred_label': f'Synthetic {kind}', 'identity_status': 'provisional',
+                'source_refs': ['test:synthetic-source'], 'external_identifiers': [],
+                'same_as_posture': 'no_equivalence_claim', 'visibility': 'public_metadata_only',
+                'notes': 'A synthetic source-described referent; no text authenticity or historical assertion.',
+                'field_languages': {key: {'language': 'en', 'script': 'Latn'} for key in ('preferred_label', 'notes')},
+                'semantic_scope': {'scope_note': 'Synthetic unit only.', 'identity_criterion': 'The declared referent, not its name or record version.', 'language': 'en', 'script': 'Latn'},
+                'semantic_content': {**content, 'language': 'en', 'script': 'Latn', 'unknown': [False, None]}}
+            records.validate(kind, record)
+            subjects[kind] = record
+            for invalid in ({k: v for k, v in record.items() if k != 'semantic_scope'},
+                    {**record, 'notes': ' '}, {**record, 'record_id': 'tos.artifact.synthetic'},
+                    {**record, 'semantic_content': {'language': 'en', 'script': 'Latn'}},
+                    {**record, 'semantic_scope': {**record['semantic_scope'], 'identity_criterion': ' '}}):
+                with self.subTest(kind=kind, invalid=invalid), self.assertRaises(SourceProfileError):
+                    records.validate(kind, invalid)
+        objects = {r['record_id']: r for r in subjects.values()}
+        objects.update({'tos.work.synthetic': {'record_type': 'work'}, 'tos.agent.synthetic': {'record_type': 'agent'},
+                        'tos.artifact.synthetic': {'record_type': 'artifact'}})
+        fragment = subjects['textual-fragment']['record_id']
+        quotation = subjects['quotation-passage']['record_id']
+        associations = []
+        for i, (predicate, subject, target) in enumerate((
+            ('fragment_of', fragment, 'tos.work.synthetic'),
+            ('quotation_in', quotation, 'tos.work.synthetic'),
+            ('quotation_preserves_fragment', quotation, fragment),
+        )):
+            claim = {'schema_version': 'tos_textual_passage_claim_v1', 'claim_id': f'tos.claim.synthetic-passage-{i}',
+                'claim_version': 1, 'claim_type': 'relation', 'assertion_layer': 'scholarly_report',
+                'subject_ref': subject, 'predicate': predicate, 'object': target,
+                'evidence_refs': ['test:synthetic-only'], 'maker': {'maker_type': 'software', 'agent_ref': 'test:fixture'},
+                'provenance_event_ref': 'tos.event.synthetic-passage', 'epistemic_status': 'uncertain',
+                'review_status': 'unreviewed', 'visibility': 'public_metadata_only',
+                'qualifiers': {'statement': 'Synthetic reported association, not textual equivalence.',
+                    'statement_language': 'en', 'statement_script': 'Latn', 'scope_note': 'Synthetic scope only.'}}
+            relations.validate(claim, objects)
+            associations.append(claim)
+            for change in ({'object': 'tos.artifact.synthetic'}, {'subject_ref': 'tos.agent.synthetic'},
+                           {'subject_ref': target, 'object': subject}, {'evidence_refs': []},
+                           {'qualifiers': {k: v for k, v in claim['qualifiers'].items() if k != 'scope_note'}}):
+                with self.subTest(predicate=predicate, change=change), self.assertRaises(SourceProfileError):
+                    relations.validate({**claim, **change}, objects)
+        with self.historical_fixture() as (root, history, real, baseline, rebuild):
+            for name in ('source-metadata-record', 'semantic-description-record', 'textual-passage-record',
+                         'textual-passage-claim', 'source-claim-record', 'semantic-relation-type-registry'):
+                ref = f'ToS/contracts/{name}.schema.json'
+                (root / ref).write_bytes((REPO_ROOT / ref).read_bytes())
+            directory = root / 'ToS/source-witnesses/textual-passages/synthetic'
+            directory.mkdir(parents=True)
+            for kind, record in subjects.items():
+                (directory / (kind + '.json')).write_text(json.dumps(record))
+            for claim in associations:
+                if claim['object'] == 'tos.work.synthetic':
+                    claim['object'] = real[2]['record_id']
+                claim.update(evidence_refs=baseline[0]['evidence_refs'],
+                             provenance_event_ref=baseline[0]['provenance_event_ref'])
+            (directory / 'source-claims.jsonl').write_text(''.join(json.dumps(c) + '\n' for c in associations))
+            projection = rebuild()
+            _, entities, registry = self.historical_knowledge(root, projection)
+            import tos_corpus_index_common as corpus_builder
+            with patch.object(corpus_builder, 'REPO_ROOT', root), patch.object(corpus_builder, 'TOS_ROOT', root / 'ToS'):
+                navigation = corpus_builder.build_source_navigation([])
+            from tos_access.knowledge import build_knowledge_graph, focus_knowledge_node
+            graph = build_knowledge_graph({'source_navigation': navigation}, {}, projection, entities, registry)
+            for record in subjects.values():
+                carriers = [n for n in graph['nodes'] if n['entity_id'] == record['record_id']]
+                self.assertEqual({n['source_graph'] for n in carriers}, {'source-claims', 'source-navigation'})
+                for node in carriers:
+                    self.assertEqual(node['attributes']['source_record'], record)
+                    self.assertEqual(node['type_id'], 'tos.entity.' + record['record_type'])
+                    self.assertNotIn('tos.entity.artifact', node['semantics']['type_ancestors'])
+            for claim in associations:
+                node = next(n for n in graph['nodes'] if n['entity_id'] == claim['claim_id'])
+                self.assertEqual(node['attributes']['source_claim'], claim)
+                for center, other in ((claim['subject_ref'], claim['object']), (claim['object'], claim['subject_ref'])):
+                    focused = focus_knowledge_node(graph, center, depth=2)
+                    self.assertIn(other, {n['entity_id'] for n in focused['nodes']})
+
     def test_textual_survival_is_a_typed_claim_value_not_a_lost_work_identity(self):
         """Synthetic mechanics only: no assertion about a real work's survival."""
         from source_record_profiles import SourceClaimProfiles, SourceProfileError

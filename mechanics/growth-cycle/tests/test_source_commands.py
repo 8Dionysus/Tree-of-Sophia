@@ -826,6 +826,13 @@ class HistoricalCreationTests(unittest.TestCase):
             self.assertEqual(commands.run_local_command(owner, request)['receipt'], result['receipt'])
 
     def test_semantic_description_creation_and_correction_preserve_referent_and_scope(self):
+        passages = {
+            'textual-fragment': {'fragment_account': 'A synthetic textual portion, not a physical fragment.', 'boundary_basis': 'Proposed editorial boundary, not exact text.'},
+            'quotation-passage': {'quotation_account': 'A synthetic quoting passage, not its source fragment.', 'location_account': 'Reported place in the containing work, not a resolved anchor.'},
+        }
+        passage_properties = {'fragment_account': 'tos.property.fragment-account',
+            'boundary_basis': 'tos.property.fragment-boundary-basis',
+            'quotation_account': 'tos.property.quotation-account', 'location_account': 'tos.property.quotation-location'}
         formations = {
             'intellectual-school': {'formation_account': 'A synthetic school, not a building.', 'inquiry_lineage': 'A synthetic teaching and inquiry lineage.'},
             'intellectual-tradition': {'formation_account': 'A synthetic tradition, not a timeless doctrine.', 'transmission_account': 'Transmission and reworking with gaps.'},
@@ -867,10 +874,11 @@ class HistoricalCreationTests(unittest.TestCase):
             **practices,
             **social,
             **formations,
+            **passages,
         }
         for kind in ('crosscutting-concept', 'conception', *contents):
             with self.subTest(kind=kind), self.creation() as (root, owner, config, request, rebuild, fixture):
-                for name in ('source-metadata-record', 'semantic-description-record', 'thought-description-record', 'thought-topic-record', 'thought-practice-record', 'social-body-record', 'intellectual-formation-record', 'provenance-event-v2'):
+                for name in ('source-metadata-record', 'semantic-description-record', 'thought-description-record', 'thought-topic-record', 'thought-practice-record', 'social-body-record', 'intellectual-formation-record', 'textual-passage-record', 'provenance-event-v2'):
                     ref = 'ToS/contracts/' + name + '.schema.json'
                     (root / ref).write_bytes((ROOT / ref).read_bytes())
                 config.pop('allowed_claim_ids')
@@ -887,12 +895,13 @@ class HistoricalCreationTests(unittest.TestCase):
                     semantic_scope={'scope_note': 'Только синтетическая проверка.',
                         'identity_criterion': 'Постоянный предмет теста, не сходство имён.', 'language': 'ru', 'script': 'Cyrl'})
                 if kind in contents:
-                    source.update(schema_version=('tos_intellectual_formation_record_v1' if kind in formations else
+                    source.update(schema_version=('tos_textual_passage_record_v1' if kind in passages else
+                                  'tos_intellectual_formation_record_v1' if kind in formations else
                                   'tos_social_body_record_v1' if kind in social else
                                   'tos_thought_practice_record_v1' if kind in practices else
                                   'tos_thought_topic_record_v1' if kind in topics else 'tos_thought_description_record_v1'),
                                   semantic_content={**contents[kind], 'language': 'en', 'script': 'Latn'})
-                if kind in topics or kind in practices or kind in social or kind in formations:
+                if kind in topics or kind in practices or kind in social or kind in formations or kind in passages:
                     source['semantic_content']['x-uninterpreted'] = [None, False, {'source-field': 'retained'}]
                 request.pop('claims')
                 prepared = commands.run_local_command(owner, {'schema_version': 'tos_local_source_command_v1',
@@ -932,7 +941,7 @@ class HistoricalCreationTests(unittest.TestCase):
                 self.assertEqual(node['attributes']['source_record']['semantic_scope'], source['semantic_scope'])
                 if kind in contents:
                     self.assertEqual(node['attributes']['source_record']['semantic_content'], proposal['fields']['semantic_content'])
-                    if kind in topics or kind in practices or kind in social or kind in formations:
+                    if kind in topics or kind in practices or kind in social or kind in formations or kind in passages:
                         from tos_access.knowledge import execute_knowledge_lens, select_human_forms
                         for field in contents[kind]:
                             property_kind = ('distinction' if kind == 'opposition' and field == 'differentiation_criterion'
@@ -941,7 +950,8 @@ class HistoricalCreationTests(unittest.TestCase):
                             value = proposal['fields']['semantic_content'][field]
                             lens_result = execute_knowledge_lens(graph, {'schema_version': 'tos_lens_spec_v1',
                                 'lens_id': 'synthetic-content-property', 'node_query': {'filters': [{
-                                    'property_id': ('tos.property.formation-account' if field == 'formation_account'
+                                    'property_id': (passage_properties[field] if kind in passages else
+                                        'tos.property.formation-account' if field == 'formation_account'
                                         else f"tos.property.{property_kind}-{field.replace('_', '-')}"),
                                     'op': 'contains' if isinstance(value, list) else 'eq',
                                     'value': value[0] if isinstance(value, list) else value}]},

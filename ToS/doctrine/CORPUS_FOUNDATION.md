@@ -87,6 +87,14 @@ incompatible kind requires an explicit identity transition, never an edited
 prefix. Claims and their evaluations are not hidden in metadata convenience
 fields such as `sender_ref`, `language` or a mutable document year.
 
+The [fragment/quotation profiles](semantic-interchange/README.md#textual-fragments-and-quoting-passages)
+identify a textual portion separately from a particular passage transmitting
+it. Neither is a physical fragment, an editorial designation, the act of
+citation or an exact text-layer unit. Source-described extent and location
+remain qualified research accounts; source anchors and versioned text layers
+own exact wording. A translated quotation does not establish original-text
+equivalence, and a reconstruction does not become an ancient original.
+
 The [declared metadata profile](semantic-interchange/README.md#declared-source-metadata-profiles)
 binds compatible source kinds and schema versions to the common reader without
 promoting that metadata shape into a universal ontology. The profile belongs

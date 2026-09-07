@@ -783,6 +783,52 @@ catalog, graph and assessment input readers preserve the exact value and
 source bindings; receipt validity does not accept its historical content.
 Rolling back a derived reader does not erase the new sources or corrections.
 
+## Textual fragments and quoting passages
+
+Registry version 17 distinguishes an addressable `textual-fragment` from a
+`quotation-passage`. Both are intellectual identities using the existing
+declared metadata reader, not physical artifacts or semantic Claim identities.
+Their descriptions require substantive notes, an explicit scope/continuity
+criterion and language-bearing content. The fragment records its account and
+boundary basis; the quoting passage records its quotation and location
+accounts. An editorial number is a source designation, not proof of an
+original division or identity with another edition's fragment.
+
+A quoting passage is identified in its containing context. The same words
+quoted in another place do not create the same passage. A quotation is not
+necessarily an exact reproduction: selection, translation, interpolation,
+quotation/paraphrase uncertainty and attribution limits belong to the source
+account and its Claims. A bare bibliographic citation is not a quotation
+passage, and the act of quoting is not this intellectual portion.
+
+| Source predicate | Forward reading | Inverse reading | What does not follow |
+| --- | --- | --- | --- |
+| `fragment_of` | textual fragment belongs to an intellectual object | object has the proposed fragment | exact original boundaries or complete survival |
+| `quotation_in` | quoting passage is located in an intellectual object | object contains that passage | a particular physical copy or resolved text anchor |
+| `quotation_preserves_fragment` | quoting passage transmits the proposed fragment | fragment is transmitted through that quotation | exact equality, full coverage or authorial authenticity |
+
+These are separately identified, evidence-bearing Claims with a required
+statement, language/script and scope note. They are neither transitive rules
+nor direct graph facts. Competing identifications and preservation accounts
+may coexist; no unique-container cardinality silently accepts one claim over
+another. The normal focus operation supports either endpoint and the Claim
+center, retaining its complete context.
+
+`source.create`, profile metadata correction, source-copy human forms and
+Claim create/revise use the existing owner commands. Shared fields retain
+unknown content, while creation/form permission does not grant assessment.
+The four fragment/quotation content properties are discoverable in the
+semantic catalog; the UI requires no new screen or kind-specific branch.
+
+These metadata profiles do not contain exact source text. Acquisition,
+transcription, normalization, segmentation and exact source anchoring remain
+the versioned source-witness layer. A reported locator is not a mechanically
+resolved anchor, and a description of a fragment is not its reconstruction.
+Scholarly reconstruction remains with the scholarly-composite source route;
+its existing physical-member profile must not be populated with fictional
+artifacts to fit textual transmission. Compatible textual-composite coverage
+requires its own explicit owner extension and validation.
+
 ## Historical situations: source profile
 
 Registry version 4 introduces `historical-event`, `historical-process`, and

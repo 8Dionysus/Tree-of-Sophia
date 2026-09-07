@@ -1,0 +1,34 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://tree-of-sophia.local/ToS/contracts/textual-passage-record.schema.json",
+  "title": "Source-described textual fragment or quotation passage",
+  "description": "An intellectual portion or a particular quoting passage, not a physical fragment, exact transcription, editorial number, source anchor or Claim. Membership, preservation and containing-object relations remain separately grounded assertions.",
+  "allOf": [
+    {"$ref": "https://tree-of-sophia.local/ToS/contracts/source-metadata-record.schema.json"},
+    {"$ref": "https://tree-of-sophia.local/ToS/contracts/semantic-description-record.schema.json#/$defs/semanticDescriptionFields"},
+    {"$ref": "https://tree-of-sophia.local/ToS/contracts/semantic-description-record.schema.json#/$defs/semanticContentFields"},
+    {"properties": {
+      "schema_version": {"const": "tos_textual_passage_record_v1"},
+      "record_type": {"enum": ["textual-fragment", "quotation-passage"]}
+    }},
+    {"if": {"properties": {"record_type": {"const": "textual-fragment"}}},
+     "then": {"properties": {
+       "record_id": {"pattern": "^tos\\.textual-fragment\\."},
+       "supersedes_ref": {"type": ["string", "null"], "pattern": "^tos\\.textual-fragment\\."},
+       "semantic_content": {"required": ["fragment_account", "boundary_basis"], "properties": {
+         "fragment_account": {"type": "string", "pattern": "\\S", "description": "The textual portion identified by this research, including uncertain or disputed extent."},
+         "boundary_basis": {"type": "string", "pattern": "\\S", "description": "The criterion distinguishing this fragment. An editorial designation locates a proposal; it does not establish original boundaries, completeness or textual identity."}
+       }}
+     }}},
+    {"if": {"properties": {"record_type": {"const": "quotation-passage"}}},
+     "then": {"properties": {
+       "record_id": {"pattern": "^tos\\.quotation-passage\\."},
+       "supersedes_ref": {"type": ["string", "null"], "pattern": "^tos\\.quotation-passage\\."},
+       "semantic_content": {"required": ["quotation_account", "location_account"], "properties": {
+         "quotation_account": {"type": "string", "pattern": "\\S", "description": "The particular passage reported as quoting another text, with quotation/paraphrase or authenticity uncertainty where needed. Not the general act of citing a work."},
+         "location_account": {"type": "string", "pattern": "\\S", "description": "The source-reported position and boundary limits of this quoting passage. A citation is not an exact resolved anchor or an inspected manuscript."}
+       }}
+     }}}
+  ],
+  "unevaluatedProperties": false
+}
