@@ -117,6 +117,26 @@ CSP is required.
   IDs, not data snapshots or authority; reopening recompiles current data.
   Arbitrary backend LensSpecs, server persistence and paginated custom-lens
   expansion are outside this first constructor slice.
+- `lens-conditions.mjs` and `lens-condition-editor.mjs` add up to 12 conjunctive
+  conditions each for selector roots and relations. Named display/status fields
+  require catalog and schema support. Registered semantic properties additionally
+  require the `property_id` capability and schema selector; the UI sends that
+  identity unchanged and never substitutes its advertised internal field path.
+  Operations are the intersection of the property's declared operations, the
+  catalog value contracts, the LensSpec schema and supported value controls.
+  Text, numbers, booleans and lists retain their types; no implicit language,
+  unit or Unicode conversion is performed. Property definition and applicability
+  remain visible. Missing properties or operations block execution until the
+  condition is repaired or removed. Center-mode node conditions and disabled
+  relation conditions remain explicitly dormant in the definition.
+- The constructor separates edited conditions from the query of the displayed
+  packet. Empty results offer explicit scope/search/condition adjustments and
+  retain the previous graph; errors do the same. Recorded inclusion distinguishes
+  selector matches from traversal context and names delivered traversal witnesses.
+  A contextual button reopens the current lens, and previous/original view
+  actions preserve scene history, camera and the independent reading shelf.
+  Local definitions and links now use v2; v1 definitions migrate on read. Older
+  clients reject v2 instead of silently losing the new conditions.
 - `lens-vocabulary.mjs` groups choices by advertised registry roles and relation
   definitions, filters them by exact source mappings, and sorts readable labels
   or catalog-wide frequency. Groups start collapsed and share one panel scroll;

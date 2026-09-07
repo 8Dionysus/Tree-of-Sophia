@@ -221,7 +221,7 @@ export function mountScene(root, {client,onChange=()=>{}, initialFocus,initialLe
   function restoreView(state){
     endWheelResponse();
     closeSearch(false,false);closeLenses(false,false);restoreGraph(state.graph);selected=state.selected;hover=-1;lens=state.lens;nodes.forEach((n,i)=>n.target=state.targets[i].slice());tyaw=state.yaw;tpitch=state.pitch;tzoom=state.zoom;tpan={...state.pan};windowPosition={...state.windowPosition};
-    updateLensUI();if(selected>=0||selectedRelation){fillCard();setCardTab(state.cardTab);panel.hidden=!state.panelOpen;placePanel(false)}else panel.hidden=true;
+    updateLensUI();if(selected>=0||selectedRelation){fillCard();setCardTab(state.cardTab,{preserveCamera:true});panel.hidden=!state.panelOpen;placePanel(false)}else panel.hidden=true;
     updateSelection();updateContext();announce(selected>=0?'Возврат: '+nodes[selected].name:'Возврат к предыдущему виду');if(!history.length)q('.sc-overview').focus();settling=1;kick();
   }
   function focus(i,approach=true,{gentle=false}={}){

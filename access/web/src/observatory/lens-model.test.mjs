@@ -50,7 +50,7 @@ test('all builder routes keep the scene budget and reject vanished vocabulary',(
 test('links round-trip the owned definition and reject malformed or excessive carriers',()=>{
   const value={...draft(),name:'Линза «источники»'};
   assert.deepEqual(decodeDraft(encodeDraft(value)),value);
-  for(const text of ['{','null',JSON.stringify({...value,v:2}),JSON.stringify({...value,nodeIds:[raw.id,raw.id]}),'x'.repeat(12001)])assert.throws(()=>decodeDraft(text),ContractError);
+  for(const text of ['{','null',JSON.stringify({...value,v:3}),JSON.stringify({...value,nodeIds:[raw.id,raw.id]}),'x'.repeat(12001)])assert.throws(()=>decodeDraft(text),ContractError);
   assert.equal(decodeDraft(JSON.stringify({...value,authority:'canon'})).authority,undefined);
 });
 test('preview reports selector scope, added context and limits without claiming corpus totals',()=>{

@@ -1,4 +1,5 @@
 import {BUDGET,ContractError,checkRevision,validateLens} from './knowledge-client.mjs';
+import {validateConditions,compileConditions} from './lens-conditions.mjs';
 
 export const CUSTOM_LENS='observatory-custom';
 export const SAVED_LENSES_KEY='tos-observatory-lenses-v1';
@@ -8,7 +9,7 @@ const drafts=new WeakMap();
 export const draftForPacket=packet=>drafts.get(packet)||null;
 
 export function validateDraft(value){
-  if(!value||value.v!==1||typeof value.name!=='string'||!value.name.trim()||value.name.length>64
+  if(!value||![1,2].includes(value.v)||typeof value.name!=='string'||!value.name.trim()||value.name.length>64
     ||!['area','focus','all'].includes(value.scope)||!strings(value.sources,7)||!value.sources.length
     ||!strings(value.nodeIds,BUDGET.nodes)||!strings(value.kinds,100)||!strings(value.predicates,100)
     ||typeof value.query!=='string'||value.query.length>256
@@ -19,11 +20,15 @@ export function validateDraft(value){
   if(value.scope==='area'&&!value.nodeIds.length)bad('Исходная область пуста. Выберите поиск по древу.');
   if(value.scope==='focus'&&!value.focusId)bad('Сначала выберите звезду.');
   // Keep only owned fields when reading an untrusted link or local definition.
-  return {v:1,name:value.name.trim(),scope:value.scope,sources:[...value.sources],nodeIds:[...value.nodeIds],focusId:value.focusId,
+  // A v2 carrier prevents older clients from silently dropping new conditions.
+  // v1 definitions migrate only when they contain no unrecognized conditions.
+  if(value.v===1&&value.conditions!==undefined)bad('Версия сохранённой линзы не соответствует её условиям.');
+  const conditions=validateConditions(value.v===1?{nodes:[],relations:[]}:value.conditions);
+  return {v:2,name:value.name.trim(),scope:value.scope,sources:[...value.sources],nodeIds:[...value.nodeIds],focusId:value.focusId,
     query:value.query,kinds:[...value.kinds],predicates:[...value.predicates],depth:value.depth,direction:value.direction,
-    profile:value.profile,limit:value.limit,relations:value.relations};
+    profile:value.profile,limit:value.limit,relations:value.relations,conditions};
 }
-export function encodeDraft(draft){const text=JSON.stringify(validateDraft(draft));if(text.length>12000)bad('Описание линзы слишком велико для ссылки. Сузьте исходную область.');return text;}
+export function encodeDraft(draft){const text=JSON.stringify(validateDraft(draft));if(text.length>12000||new URLSearchParams({lens:text}).toString().length>40000)bad('Описание линзы слишком велико для ссылки. Сузьте исходную область или сократите значения условий.');return text;}
 export function decodeDraft(text){if(typeof text!=='string'||text.length>12000)bad('Ссылка на линзу слишком велика.');try{return validateDraft(JSON.parse(text));}catch(error){if(error instanceof ContractError)throw error;bad('Не удалось прочитать настройки линзы.');}}
 
 export async function constructorCatalog(client,signal){
@@ -50,9 +55,9 @@ export async function constructorCatalog(client,signal){
   return {catalog,schema};
 }
 export function initialDraft(packet,context){
-  return {v:1,name:'Моя линза',scope:packet?.nodes?.length?'area':'all',sources:[...context.catalog.capabilities.sources],
+  return {v:2,name:'Моя линза',scope:packet?.nodes?.length?'area':'all',sources:[...context.catalog.capabilities.sources],
     nodeIds:(packet?.nodes||[]).map(n=>n.id),focusId:packet?.focus?.node_id||null,query:'',kinds:[],predicates:[],
-    depth:0,direction:'either',profile:'all',limit:BUDGET.nodes,relations:true};
+    depth:0,direction:'either',profile:'all',limit:BUDGET.nodes,relations:true,conditions:{nodes:[],relations:[]}};
 }
 export function compileDraft(value,{catalog,schema}){
   const draft=validateDraft(value),caps=catalog.capabilities;
@@ -67,6 +72,9 @@ export function compileDraft(value,{catalog,schema}){
     relation_query:{enabled:draft.relations,filters:draft.predicates.length?[{field:'predicate_id',op:'in',value:draft.predicates}]:[]},
     traversal:{depth:draft.depth,direction:draft.direction,profile:draft.profile},composition:{endpoint_policy:'both'},
     limits:{nodes:draft.limit,relations:draft.relations?Math.min(BUDGET.relations,caps.maximums.relations,schema.properties.limits.properties.relations.maximum):0,groups:Math.min(8,caps.maximums.groups,schema.properties.limits.properties.groups.maximum)}};
+  // Dormant conditions remain in the local definition and visibly inactive.
+  if(draft.scope!=='focus')spec.node_query.filters.push(...compileConditions(draft.conditions.nodes,{catalog,schema},'nodes'));
+  if(draft.relations)spec.relation_query.filters.push(...compileConditions(draft.conditions.relations,{catalog,schema},'relations'));
   // In focus mode filters describe relations around the explicit center;
   // dormant root filters must not masquerade as conditions on neighbors.
   if(draft.scope==='focus')spec.node_query.filters=[];

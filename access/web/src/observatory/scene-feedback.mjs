@@ -1,3 +1,18 @@
+import {localized} from './knowledge-client.mjs';
+
+export function inclusionDescription(packet,nodeId){
+  if(packet?.inclusion?.authority!=='query-execution-not-semantic-proof')return '';
+  const cause=packet.inclusion.nodes?.[nodeId];
+  if(cause?.kind==='selector')return 'Эта звезда соответствует условиям выбора исходных узлов.';
+  if(cause?.kind==='focus')return 'Центр выбранной области.';
+  if(!['traversal','endpoint'].includes(cause?.kind))return '';
+  const relation=packet.relations.find(r=>r.id===cause.via_relation_id),via=packet.nodes.find(n=>n.id===cause.via_node_id);
+  const parts=['Эта звезда добавлена окружением; условия исходных узлов не обязаны выполняться.'];
+  if(relation)parts.push('Через связь «'+localized(relation.display?.label,relation.id)+'»'+(via?' с «'+localized(via.display?.title,via.id)+'»':'')+'.');
+  if(Number.isInteger(cause.depth)&&cause.depth>0)parts.push('Шаг от исходной области: '+cause.depth+'.');
+  return parts.join(' ');
+}
+
 export function inclusionRoles(packet){
   const result=new Map();
   if(packet?.inclusion?.authority!=='query-execution-not-semantic-proof')return result;
@@ -10,7 +25,6 @@ export function inclusionRoles(packet){
 export function createSceneFeedback(root,scene){
   const legend=document.createElement('div');legend.className='sc-inclusion-legend';legend.hidden=true;legend.title='Причина появления в области; не оценка истинности или значимости';root.querySelector('.sc-context').append(legend);
   let previous=null,timer=null,activeHint=null,hintId=0;
-  const descriptions={matched:'Эта звезда соответствует условиям линзы.',focus:'Центр выбранной области.',context:'Эта звезда добавлена через связи с выбранной областью.'};
   function hideHint(){if(!activeHint)return;activeHint.querySelector('.sc-inclusion-hint').hidden=true;delete activeHint.dataset.hintOpen;activeHint=null;}
   function showHint(element){
     if(!element||element.hidden||element===activeHint)return;
@@ -35,7 +49,7 @@ export function createSceneFeedback(root,scene){
     hideHint();clearTimeout(timer);const oldIds=new Set(previous?.nodes.map(n=>n.id)||[]),roles=inclusionRoles(packet),totals={matched:0,focus:0,context:0};
     for(const element of root.querySelectorAll('.sc-node')){const role=roles.get(element.dataset.id);element.dataset.inclusion=role||'';element.dataset.entering=String(Boolean(previous&&!oldIds.has(element.dataset.id)));
       let hint=element.querySelector('.sc-inclusion-hint');
-      if(role){totals[role]++;if(!hint){hint=document.createElement('span');hint.className='sc-inclusion-hint';hint.id='sc-inclusion-hint-'+(++hintId);hint.setAttribute('role','tooltip');element.append(hint);}hint.hidden=true;hint.textContent=descriptions[role];element.setAttribute('aria-describedby',hint.id);}
+      if(role){totals[role]++;if(!hint){hint=document.createElement('span');hint.className='sc-inclusion-hint';hint.id='sc-inclusion-hint-'+(++hintId);hint.setAttribute('role','tooltip');element.append(hint);}hint.hidden=true;hint.textContent=inclusionDescription(packet,element.dataset.id);element.setAttribute('aria-describedby',hint.id);}
       else{hint?.remove();element.removeAttribute('aria-describedby');}
     }
     legend.replaceChildren();for(const [role,label]of [['matched','По условиям'],['focus','Центр'],['context','Окружение']])if(totals[role]){const item=document.createElement('span');item.dataset.role=role;item.textContent=label+' '+totals[role];legend.append(item);}

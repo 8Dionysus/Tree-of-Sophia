@@ -1,6 +1,8 @@
 import {RequestSlots,localized} from './knowledge-client.mjs';
 import {constructorCatalog,initialDraft,compileDraft,previewDraft,summarizeLens,lensDelta,encodeDraft,draftForPacket,readSaved,saveDraft} from './lens-model.mjs';
 import {lensVocabulary,vocabularyGroups} from './lens-vocabulary.mjs';
+import {createConditionEditor} from './lens-condition-editor.mjs';
+import {conditionCatalog,conditionText} from './lens-conditions.mjs';
 import {refreshIcons} from './icons';
 
 const el=(tag,text='',className='')=>{const node=document.createElement(tag);node.textContent=text;node.className=className;return node;};
@@ -21,6 +23,28 @@ export function createLensPanel(root,scene,panels,{data:{client},onUserAction}){
   const opener=button('Конструктор линз',()=>{onUserAction();void open();},'sc-builder-open');
   root.querySelector('.sc-lenses').append(opener);
   const headerOpener=root.querySelector('.sc-lenses-open');
+  const activeQuery=button('',()=>{onUserAction();void open();},'sc-active-query');activeQuery.hidden=true;
+  activeQuery.setAttribute('aria-label','Условия отображённой области');root.querySelector('.sc-context').append(activeQuery);
+  function queryLines(value,lookup=context){
+    const nodeEntries=lookup?conditionCatalog(lookup,'nodes'):[],relationEntries=lookup?conditionCatalog(lookup,'relations'):[];
+    const lines=[value.scope==='area'?`Из исходной области · ${value.nodeIds.length}`:value.scope==='focus'?'От выбранной звезды':'По всему древу'];
+    lines.push('Источники: '+value.sources.map(id=>sourceNames[id]||id).join(', '));
+    if(value.scope!=='focus'){
+      if(value.query)lines.push('Поиск: «'+value.query+'»');
+      if(value.kinds.length)lines.push('Типы узлов: '+value.kinds.map(id=>localized(lookup?.catalog.node_kinds.find(k=>k.kind_id===id)?.display,id)).join(', '));
+      for(const rule of value.conditions.nodes)lines.push(conditionText(rule,nodeEntries));
+    }
+    if(value.relations){
+      if(value.predicates.length)lines.push('Типы связей: '+value.predicates.map(id=>localized(lookup?.catalog.predicates.find(k=>k.predicate_id===id)?.display,id)).join(', '));
+      for(const rule of value.conditions.relations)lines.push('Связь: '+conditionText(rule,relationEntries));
+      lines.push(`Окружение: ${value.depth} · ${({either:'в обе стороны',outgoing:'по связям',incoming:'против связей'})[value.direction]} · ${value.profile==='all'?'все типы':'обзор'}`);
+    }else lines.push('Без связей');
+    lines.push('До '+value.limit+' звёзд');return lines;
+  }
+  function updateActiveQuery(){
+    const value=draftForPacket(scene.port.packet);activeQuery.hidden=!value;
+    if(value){activeQuery.textContent='Линза: '+value.name+' · условия';activeQuery.title=queryLines(value,context?.catalog.source_revision===scene.port.packet.source_revision?context:null).join('\n');}
+  }
   const stop=()=>{generation++;clearTimeout(timer);timer=null;scheduled=false;requests.cancelAll();busy=false;};
   panels.register('builder',panel,stop);
   function close(){panels.close('builder');(returnFocus?.isConnected&&!returnFocus.closest('[hidden]')?returnFocus:headerOpener).focus();}
@@ -47,9 +71,9 @@ export function createLensPanel(root,scene,panels,{data:{client},onUserAction}){
     }catch(error){if(token===generation)failure=error.message||'Не удалось загрузить словарь данных.';}
     finally{if(token===generation){busy=false;render();}}
   }
-  function touch(){
+  function touch({composing=false}={}){
     onUserAction();stop();failure='';notice='';preview=null;applied=false;delta=null;
-    if(context&&!stale){scheduled=true;timer=setTimeout(()=>{timer=null;void run();},400);}
+    if(context&&!stale&&!composing){scheduled=true;timer=setTimeout(()=>{timer=null;void run();},400);}
     renderResult();
   }
   function field(label,input){const wrap=el('label','','sc-builder-field');wrap.append(el('span',label),input);return wrap;}
@@ -115,8 +139,10 @@ export function createLensPanel(root,scene,panels,{data:{client},onUserAction}){
       const query=el('input');query.type='search';query.maxLength=256;query.value=draft.query;query.placeholder='Имя, произведение, понятие…';query.addEventListener('input',()=>{draft.query=query.value;touch();});body.append(field('Слова в исходных узлах',query));
       body.append(choices('Типы узлов','kinds'));
     }
+    if(draft.scope!=='focus'||draft.conditions.nodes.length)body.append(createConditionEditor({draft,context,kind:'nodes',onChange:touch}));
     const relations=el('input');relations.type='checkbox';relations.checked=draft.relations;relations.addEventListener('change',()=>{draft.relations=relations.checked;touch();render();});const withRelations=el('label','','sc-builder-toggle');withRelations.append(relations,el('span','Показывать связи и окружение'));body.append(withRelations);
     if(draft.relations)body.append(choices('Типы связей','predicates'));
+    if(draft.relations||draft.conditions.relations.length)body.append(createConditionEditor({draft,context,kind:'relations',onChange:touch}));
     const options=el('div','','sc-builder-grid');
     if(draft.relations){options.append(select('Глубина','depth',[[0,'Только исходные'],[1,'1 шаг'],[2,'2 шага'],[3,'3 шага']]),select('Направление','direction',[['either','В обе стороны'],['outgoing','По связям →'],['incoming','Против связей ←']]),select('Подробность связей','profile',[['all','Все типы, включая текст'],['overview','Обзор без структуры текста']]));}
     options.append(select('Звёзд в области','limit',[[10,'До 10'],[20,'До 20'],[40,'До 40']]));body.append(options);
@@ -127,17 +153,36 @@ export function createLensPanel(root,scene,panels,{data:{client},onUserAction}){
     if(result.parentElement!==body)body.append(result);
     result.replaceChildren();footer.replaceChildren();status.textContent=stale?'Область изменилась. Откройте конструктор заново для нового вида.':failure||storageError||notice||(scheduled?'Обновлю пространство…':busy?'Обновляю пространство…':applied?(delta&&Object.values(delta).every(d=>d.added===0&&d.removed===0)?'Условия применены. Состав этой области совпал.':`В пространстве: ${count(preview.nodes.length,'звезда','звезды','звёзд')} · ${count(preview.relations.length,'связь','связи','связей')}`):preview&&!preview.nodes.length?'Ничего не найдено. Предыдущий вид сохранён.':'Измените условие — результат появится в пространстве.');
     if(context){
+      const edited=el('details','','sc-query-description');edited.append(el('summary','Редактируемые условия'));
+      const list=el('ul');for(const line of queryLines(draft))list.append(el('li',line));edited.append(list);result.append(edited);
+      const current=draftForPacket(scene.port.packet);
+      if(current&&(JSON.stringify(current)!==JSON.stringify(draft)||context.catalog.source_revision!==scene.port.packet.source_revision)){
+        const shown=el('details','','sc-query-description');shown.append(el('summary','Сейчас в пространстве: '+current.name));
+        const sameRevision=context.catalog.source_revision===scene.port.packet.source_revision;
+        if(!sameRevision)shown.append(el('p','Эта область получена из предыдущего снимка. Названия свойств из нового каталога к ней не применяются.'));
+        const lines=el('ul');for(const line of queryLines(current,sameRevision?context:null))lines.append(el('li',line));shown.append(lines);result.append(shown);
+      }
       if(preview){const summary=summarizeLens(preview);result.append(el('strong',`${count(summary.nodes,'звезда','звезды','звёзд')} · ${count(summary.relations,'связь','связи','связей')}`));
         result.append(el('p',`Условиями выбрано: ${summary.matched}. Из показанных узлов добавлено окружением: ${summary.context}.`));
         if(summary.limited)result.append(el('p','Результат ограничен размером области. Для другого среза уточните условия.','sc-builder-warning'));
         if(delta)result.append(el('p',`Изменение области: звёзды +${delta.nodes.added} / −${delta.nodes.removed}; связи +${delta.relations.added} / −${delta.relations.removed}.`));
-        if(!summary.nodes)result.append(el('p','Ничего не найдено. Пространство сохранено. Измените условия.'));
+        if(!summary.nodes){
+          result.append(el('p','В выбранных источниках и области совпадений нет. Это не означает, что таких материалов нет во всём древе.'));
+          const help=el('div','','sc-empty-actions');
+          if(draft.scope==='area')help.append(button('Искать по всему древу',()=>{draft.scope='all';touch();render();}));
+          if(draft.query)help.append(button('Убрать текстовый поиск',()=>{draft.query='';touch();render();}));
+          const kind=draft.scope!=='focus'&&draft.conditions.nodes.length?'nodes':draft.relations&&draft.conditions.relations.length?'relations':null;
+          if(kind)help.append(button('Убрать последнее условие '+(kind==='nodes'?'узла':'связи'),()=>{draft.conditions[kind].pop();touch();render();}));
+          result.append(help);
+        }
       }else result.append(el('p','Изменения применяются автоматически; исходный вид можно вернуть.'));
       const apply=button(busy?'Обновляю…':'Обновить пространство',()=>void run(),'sc-builder-primary');apply.disabled=busy||stale;footer.append(apply);
       const save=button('Сохранить линзу',()=>{onUserAction();try{compileDraft(draft,context);saved=saveDraft(localStorage,draft);storageError='';failure='';notice='Линза сохранена в этом браузере.';render();}catch(error){failure=error.message||'Не удалось сохранить линзу.';renderResult();}});save.disabled=busy||scheduled||stale;footer.append(save);
       if(failure)footer.append(button('Обновить каталог',()=>void loadCatalog(),'sc-builder-link'));
     }
-    const back=button('↶ К исходному виду',()=>{onUserAction();stop();applying=true;try{if(bookmark)scene.port.restoreView(bookmark);basePacket=scene.port.packet;applied=false;}finally{applying=false;}close();},'sc-builder-link');back.disabled=!bookmark;footer.append(back);
+    const previous=button('← Предыдущий вид',()=>{onUserAction();stop();root.querySelector('.sc-back').click();resetForArea();close();},'sc-builder-link');previous.disabled=root.dataset.history==='0';footer.append(previous);
+    const back=button('↶ К исходному виду',()=>{onUserAction();stop();applying=true;try{if(bookmark)scene.port.restoreView(bookmark);resetForArea();}finally{applying=false;}close();},'sc-builder-link');back.disabled=!bookmark;footer.append(back);
+    updateActiveQuery();
     scene.invalidate();
   }
   async function run(){
@@ -152,6 +197,7 @@ export function createLensPanel(root,scene,panels,{data:{client},onUserAction}){
     finally{if(token===generation){busy=false;renderResult();scene.invalidate();}}
   }
   function selectionChanged(){
+    updateActiveQuery();
     if(applying||panel.hidden||scene.port.packet===basePacket)return;
     stop();preview=null;stale=true;renderResult();
   }
