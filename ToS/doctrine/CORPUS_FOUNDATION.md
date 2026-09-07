@@ -348,6 +348,16 @@ downstream use. Existing `tos_provenance_event_v1` records retain their
 historical meaning. A v2 successor is created for new materialized work or a
 question-triggered migration, never for a bulk version-count increase.
 
+Historical schema inputs and current schema authority are separate. Required
+prior public schema bytes may be retained immutably in
+[`contracts/history/`](../contracts/history/README.md), addressed by their exact
+SHA-256 and original `$id`. This resolves recorded inputs without restamping
+old events; it neither replaces a missing active schema nor makes the old
+contract current. Current record/output validation remains independent.
+Ordinary source/evidence paths do not gain this schema-only fallback.
+The rationale and rejected alternatives are in
+[TOS-D-0052](../../docs/decisions/TOS-D-0052-historical-contract-input-bytes.md).
+
 ## Sign ladder
 
 ToS treats a sign as a layered family of addressable records rather than one

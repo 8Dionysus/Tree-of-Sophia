@@ -1723,6 +1723,58 @@ def _synthetic_discovery_record() -> dict:
 
 
 class SourceWitnessFoundationTests(unittest.TestCase):
+    def test_recorded_provenance_input_resolves_exact_current_or_retained_contract_bytes(self):
+        ref = 'ToS/contracts/example.schema.json'
+        payload = {'$schema': 'https://json-schema.org/draft/2020-12/schema',
+                   '$id': 'https://tree-of-sophia.local/' + ref, 'type': 'object'}
+        raw = (json.dumps(payload) + '\n').encode()
+        digest = hashlib.sha256(raw).hexdigest()
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            current = root / ref
+            current.parent.mkdir(parents=True)
+            current.write_bytes(raw)
+            archive = root / 'ToS/contracts/history' / (digest + '.json')
+            archive.parent.mkdir()
+            self.assertEqual(foundation._recorded_provenance_input_path(root, ref, digest), current)
+            current.write_text(json.dumps({**payload, 'description': 'A later source contract.'}))
+            self.assertIsNone(foundation._recorded_provenance_input_path(root, ref, digest))
+            archive.write_bytes(raw)
+            self.assertEqual(foundation._recorded_provenance_input_path(root, ref, digest), archive)
+            self.assertNotEqual(hashlib.sha256(current.read_bytes()).hexdigest(), digest)
+            archive.write_bytes(raw + b' ')
+            self.assertIsNone(foundation._recorded_provenance_input_path(root, ref, digest))
+            archive.unlink()
+            other = root / 'other.json'
+            other.write_bytes(raw)
+            archive.symlink_to(other)
+            self.assertIsNone(foundation._recorded_provenance_input_path(root, ref, digest))
+            archive.unlink()
+            archive.write_bytes(raw)
+            # An archive for one schema cannot supply another path or source metadata.
+            for other_ref in ('ToS/contracts/other.schema.json', 'ToS/source-witnesses/agents/example/agent.json',
+                              '../outside.json', '/absolute.json', 'https://example.invalid/input'):
+                if other_ref.startswith('ToS/'):
+                    candidate = root / other_ref
+                    candidate.parent.mkdir(parents=True, exist_ok=True)
+                    candidate.write_bytes(b'{}')
+                self.assertIsNone(foundation._recorded_provenance_input_path(root, other_ref, digest))
+            ordinary_ref = 'ToS/source-witnesses/agents/example/agent.json'
+            (root / ordinary_ref).write_bytes(raw)
+            self.assertEqual(foundation._recorded_provenance_input_path(root, ordinary_ref, digest), root / ordinary_ref)
+            for bad_raw in (json.dumps({**payload, '$id': 'https://example.invalid/other'}).encode(),
+                            json.dumps({**payload, 'description': 'x' * 1_048_576}).encode(), b'not JSON'):
+                bad_digest = hashlib.sha256(bad_raw).hexdigest()
+                (archive.parent / (bad_digest + '.json')).write_bytes(bad_raw)
+                self.assertIsNone(foundation._recorded_provenance_input_path(root, ref, bad_digest))
+            for invalid_digest in ('../../outside', 'SHA256:' + digest, '0' * 64, None):
+                self.assertIsNone(foundation._recorded_provenance_input_path(root, ref, invalid_digest))
+            current.unlink()
+            # Retained history never repairs a missing active source contract.
+            self.assertIsNone(foundation._recorded_provenance_input_path(root, ref, digest))
+            current.symlink_to(other)
+            self.assertIsNone(foundation._recorded_provenance_input_path(root, ref, digest))
+
     def test_source_anchor_v2_synthetic_abc_resolves_real_segments(self) -> None:
         issues, report = foundation.validate_source_anchor_v2_lab(REPO_ROOT)
 

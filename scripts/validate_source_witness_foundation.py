@@ -446,6 +446,45 @@ def _sha256(path: Path) -> str:
     return digest.hexdigest()
 
 
+def _recorded_provenance_input_path(repo_root: Path, ref: object, digest: object) -> Path | None:
+    """Resolve recorded input bytes without treating history as current law.
+
+    Only a named active ToS schema may use the bounded, content-addressed
+    historical-contract lane. Ordinary source/evidence inputs still require
+    their current exact bytes. No Git history, network or fallback search runs.
+    """
+    if (not isinstance(ref, str) or not isinstance(digest, str)
+            or re.fullmatch(r'[a-f0-9]{64}', digest) is None):
+        return None
+    relative = Path(ref)
+    if (relative.as_posix() != ref or relative.is_absolute() or '..' in relative.parts
+            or not relative.parts or relative.parts[0] != 'ToS'
+            or any((repo_root / Path(*relative.parts[:i])).is_symlink() for i in range(1, len(relative.parts) + 1))):
+        return None
+    current = repo_root / relative
+    try:
+        if not current.is_file():
+            return None
+        if _sha256(current) == digest:
+            return current
+        if re.fullmatch(r'ToS/contracts/[a-z][a-z0-9-]*\.schema\.json', ref) is None:
+            return None
+        history = repo_root / 'ToS/contracts/history'
+        archived = history / (digest + '.json')
+        if history.is_symlink() or archived.is_symlink() or not archived.is_file():
+            return None
+        with archived.open('rb') as stream:
+            raw = stream.read(1_048_577)
+        if len(raw) > 1_048_576 or hashlib.sha256(raw).hexdigest() != digest:
+            return None
+        schema = json.loads(raw)
+        if not isinstance(schema, dict) or schema.get('$id') != 'https://tree-of-sophia.local/' + ref:
+            return None
+        return archived
+    except (OSError, UnicodeDecodeError, json.JSONDecodeError):
+        return None
+
+
 def _validate_required_provenance_output_digests(
     repo_root: Path,
     event: dict[str, Any],
@@ -14163,8 +14202,7 @@ def validate_foundation(repo_root: Path, *, require_local_payloads: bool = False
                 )
             )
         for input_ref, input_digest in actual_inputs.items():
-            input_path = repo_root / str(input_ref)
-            if not input_path.is_file() or _sha256(input_path) != input_digest:
+            if _recorded_provenance_input_path(repo_root, input_ref, input_digest) is None:
                 issues.append(
                     (
                         EXPRESSION_DERIVATION_PROVENANCE.as_posix(),
@@ -14418,7 +14456,7 @@ def validate_foundation(repo_root: Path, *, require_local_payloads: bool = False
                                         f"input is missing: {input_ref}",
                                     )
                                 )
-                            elif _sha256(input_path) != input_digest:
+                            elif _recorded_provenance_input_path(repo_root, input_ref, input_digest) is None:
                                 issues.append(
                                     (
                                         location,
@@ -14980,7 +15018,7 @@ def validate_foundation(repo_root: Path, *, require_local_payloads: bool = False
                         f"work chronology provenance input is missing: {input_ref}",
                     )
                 )
-            elif _sha256(input_path) != input_digest:
+            elif _recorded_provenance_input_path(repo_root, input_ref, input_digest) is None:
                 issues.append(
                     (
                         WORK_CHRONOLOGY_PROVENANCE.as_posix(),

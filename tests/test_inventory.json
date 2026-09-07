@@ -464,7 +464,7 @@
       "mode": "blocking",
       "runtime_cost": "medium",
       "focused_target": "tests/test_source_witness_foundation.py",
-      "failure_route": "Fix source-witness records, contracts, catalog builder, or foundation validator before changing test expectations.",
+      "failure_route": "Fix source-witness records, contracts, catalog builder, or foundation validator before changing test expectations; preserve historical schema bytes and events rather than restamping input digests or replacing active contracts.",
       "disposition": "keep"
     },
     {
