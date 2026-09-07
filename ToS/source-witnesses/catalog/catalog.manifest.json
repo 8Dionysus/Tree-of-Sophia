@@ -39,6 +39,7 @@
     "biographical-episode": "ToS/source-witnesses/catalog/biographical-episodes.jsonl",
     "biographical-phase": "ToS/source-witnesses/catalog/biographical-phases.jsonl",
     "historical-period": "ToS/source-witnesses/catalog/historical-periods.jsonl",
+    "historical-generation": "ToS/source-witnesses/catalog/historical-generations.jsonl",
     "historical-environment": "ToS/source-witnesses/catalog/historical-environments.jsonl",
     "life-circumstance": "ToS/source-witnesses/catalog/life-circumstances.jsonl",
     "intellectual-school": "ToS/source-witnesses/catalog/intellectual-schools.jsonl",
@@ -78,7 +79,7 @@
   },
   "claim_file": "ToS/source-witnesses/catalog/claims.jsonl",
   "counts": {
-    "agent": 50,
+    "agent": 51,
     "place": 5,
     "organization": 11,
     "work": 41,
@@ -90,6 +91,7 @@
     "biographical-episode": 1,
     "biographical-phase": 1,
     "historical-period": 1,
+    "historical-generation": 2,
     "historical-environment": 1,
     "life-circumstance": 1,
     "intellectual-school": 1,
@@ -126,10 +128,10 @@
     "historical-event": 1,
     "historical-process": 1,
     "artifact": 18,
-    "object_total": 257,
-    "claim": 321,
-    "total": 578
+    "object_total": 260,
+    "claim": 323,
+    "total": 583
   },
-  "catalog_sha256": "e4a8294c7e0b30269a34265239597c08c2dab54900e1a608903d33d64b38cc02",
+  "catalog_sha256": "02404b353ba603351e5f8b34e13452ca74248f42322c3fb66a395d388a6916cd",
   "authority_boundary": "generated navigation over tracked object and claim records; not bibliographic, textual, rights, review, or semantic authority"
 }

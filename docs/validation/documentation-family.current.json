@@ -29,21 +29,21 @@
     "metric": "whitespace_tokens_v1",
     "posture": "summary_first_records_on_demand",
     "record_loading": "machine readers may select records by family_id or path; do not load the full carrier into an always-on prompt",
-    "tracked_surface_count": 4196,
+    "tracked_surface_count": 4249,
     "unhandled_family_count": 0
   },
   "coverage": {
     "excluded_generated_carrier_rules": 3,
-    "excluded_tracked_path_count": 964,
+    "excluded_tracked_path_count": 977,
     "human_scope": {
-      "bytes": 5354877,
-      "count": 1001,
+      "bytes": 5366667,
+      "count": 1003,
       "excluded_skill_launch_metadata": 25,
       "family_counts": {
         "access": {
-          "bytes": 93545,
+          "bytes": 93808,
           "count": 8,
-          "lines": 1510
+          "lines": 1514
         },
         "agents-other": {
           "bytes": 17683,
@@ -116,20 +116,20 @@
           "lines": 55
         },
         "tos": {
-          "bytes": 3951497,
-          "count": 592,
-          "lines": 66542
+          "bytes": 3963024,
+          "count": 594,
+          "lines": 66728
         }
       },
-      "lines": 92479
+      "lines": 92669
     },
     "surface_kind_counts": {
       "executable": 234,
-      "human": 1026,
-      "structured": 2936
+      "human": 1028,
+      "structured": 2987
     },
-    "tracked_path_count": 5160,
-    "tracked_surface_count": 4196,
+    "tracked_path_count": 5226,
+    "tracked_surface_count": 4249,
     "unhandled_family_count": 0,
     "unhandled_paths": []
   },
@@ -173,11 +173,11 @@
       "family_id": "tos",
       "surface_kind_counts": {
         "executable": 4,
-        "human": 592,
-        "structured": 2852
+        "human": 594,
+        "structured": 2903
       },
-      "tracked_surface_bytes": 226515368,
-      "tracked_surface_count": 3448
+      "tracked_surface_bytes": 226913361,
+      "tracked_surface_count": 3501
     },
     {
       "family_id": "access",
@@ -186,7 +186,7 @@
         "human": 8,
         "structured": 22
       },
-      "tracked_surface_bytes": 1181634,
+      "tracked_surface_bytes": 1183945,
       "tracked_surface_count": 60
     },
     {
@@ -285,7 +285,7 @@
   "source_map": "docs/validation/documentation_family_map.json",
   "source_map_sha256": "d70a5059be9cc7547289e4c8be380d23b3aeb9e53bb10e4cb82abf2177ea0896",
   "tracked_source": "git ls-files -z",
-  "tracked_surface_digest": "883c03d7b166c7297c00018b942a75616742ebce7fbac26c1ae2ec039a34895b",
+  "tracked_surface_digest": "46c47cbe643c7244c9c6915a36e2137d44c3b8ec85c4724cd3c598a0f0223c93",
   "tracked_surfaces": [
     {
       "bytes": 1489,
@@ -332,7 +332,7 @@
       "currentness": "tracked_source_snapshot",
       "family_id": "agents-other",
       "path": ".agents/agents-route.current.json",
-      "sha256": "5d8546adfe934756de1cd96dc1d1ed2a38d59af36e084e7aedbcc15242b4dc87",
+      "sha256": "ad9004d9935724863c845eeeb949397e012cd51cc958a3650d392e0b3d02b092",
       "surface_kind": "structured"
     },
     {
@@ -3200,6 +3200,22 @@
       "surface_kind": "structured"
     },
     {
+      "bytes": 3125,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/contracts/historical-context-claim.schema.json",
+      "sha256": "2e3ddc9c918dd2c5dc1a19f5593204e86c966141f458384634cbdc6bd445e380",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 10888,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/contracts/historical-context-record.schema.json",
+      "sha256": "c562f2aece107ecfa606ea0d5008bb25a7adc04590bc0d052bd34cd4647e033a",
+      "surface_kind": "structured"
+    },
+    {
       "bytes": 3705,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
@@ -3222,6 +3238,14 @@
       "path": "ToS/contracts/history/README.md",
       "sha256": "b54bc90121adc63c0f99f33d95aa14848c217e0c9255d5a65eede2697b1ff637",
       "surface_kind": "human"
+    },
+    {
+      "bytes": 7584,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/contracts/history/c64323ceb75498e98b58b661b602cbebad4a4e61b72ed8f5f9973cad75d13236.json",
+      "sha256": "c64323ceb75498e98b58b661b602cbebad4a4e61b72ed8f5f9973cad75d13236",
+      "surface_kind": "structured"
     },
     {
       "bytes": 2486,
@@ -4128,11 +4152,11 @@
       "surface_kind": "human"
     },
     {
-      "bytes": 8509774,
+      "bytes": 8614059,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/derived-exports/graph/source-witness-bibliographic-claims.min.json",
-      "sha256": "bc1feb32b5db484230c98df9354321348215f685a3ccfba2e88fe8839e7cd28b",
+      "sha256": "366c7a4ce9d7125af1f65474f373f04d4f875435ce5c0823ac4faa7d6a4f46b6",
       "surface_kind": "structured"
     },
     {
@@ -4208,11 +4232,11 @@
       "surface_kind": "structured"
     },
     {
-      "bytes": 59511660,
+      "bytes": 59580640,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/derived-exports/tos_corpus_index.min.json",
-      "sha256": "00c53582492ed9748ad4c19f88e644cb993ecc00b437e7a13980de94267ecff4",
+      "sha256": "741e53a9a0a720adea689a2943b74c2a0918a5e1d4f33569a70d64931707dfa0",
       "surface_kind": "structured"
     },
     {
@@ -4288,11 +4312,11 @@
       "surface_kind": "human"
     },
     {
-      "bytes": 77069,
+      "bytes": 77439,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/doctrine/FOUNDATION_V1.md",
-      "sha256": "3c1396b12bb8b3722486a87fa06f44772a970a18734739227283aa47ae8df847",
+      "sha256": "e649f6871bb2fc2714a3dc2850426f8683138ed0528d872f8030b81a9a4be049",
       "surface_kind": "human"
     },
     {
@@ -18272,6 +18296,22 @@
       "surface_kind": "human"
     },
     {
+      "bytes": 3530,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/review-ledger/2026-09-07-basel-biography-source-reading.md",
+      "sha256": "edf1c7589fb577cf1cd93b2fcb20d2d37a9c64a722446afa82256e2b1ff68f06",
+      "surface_kind": "human"
+    },
+    {
+      "bytes": 7627,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/review-ledger/2026-09-07-biographical-context-and-reader-review.md",
+      "sha256": "c6f2933186963ebcb27c98e635802fb3c331aa8f89e3a879a91aba1004524e6e",
+      "surface_kind": "human"
+    },
+    {
       "bytes": 6252,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
@@ -20400,11 +20440,11 @@
       "surface_kind": "human"
     },
     {
-      "bytes": 6434,
+      "bytes": 6556,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/source-witnesses/catalog/catalog.manifest.json",
-      "sha256": "82b5675089294368fa8d2129c522951ee5ee0360bc424ced1313c5fb7bc71a80",
+      "sha256": "646c82679369e780f9db8efdcd3ed8fc62c548a6bed0707412ab0ac73f82d275",
       "surface_kind": "structured"
     },
     {
@@ -21912,6 +21952,206 @@
       "surface_kind": "structured"
     },
     {
+      "bytes": 8956,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/history/basel-research/basel-appointment-environment/historical-environment.human-forms.json",
+      "sha256": "d940e71c1515f13623065af33d4fde062c5008fb14486e647734ee5a6008a6f0",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3021,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/history/basel-research/basel-appointment-environment/historical-environment.json",
+      "sha256": "f5d8eaeca45b3f2ddd8de9e99e8504253a998aedc740aa95fd8eeff989ae1d4a",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 244,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/history/basel-research/basel-appointment-environment/source-create-environment.json",
+      "sha256": "0976562dbd82ac21a81cda5c4ccbb0b8c545c54bb686181fc225a32aed6170b3",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1544,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/history/basel-research/basel-appointment-environment/source-create-receipt.json",
+      "sha256": "b4e75609afb012f4677dc666f9d56d35df4b55ff6645167459ffd05d612b0e30",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3525,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/history/basel-research/basel-appointment-environment/source-create-request.json",
+      "sha256": "e89256e9a90ed3df304a9f9bfcd15485beaef443f488958ca58a8fb816025a14",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 8875,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/history/basel-research/basel-chair-turnover-period/historical-period.human-forms.json",
+      "sha256": "c7aca9e25bb489f0fdf33650c326faabad2672b332e918744e90c6a2ee5595c8",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 2645,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/history/basel-research/basel-chair-turnover-period/historical-period.json",
+      "sha256": "92a12b91570018193dbbf66f6b4119b955dcfbed81135364df9957d7dbbaa928",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 244,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/history/basel-research/basel-chair-turnover-period/source-create-environment.json",
+      "sha256": "0976562dbd82ac21a81cda5c4ccbb0b8c545c54bb686181fc225a32aed6170b3",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1522,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/history/basel-research/basel-chair-turnover-period/source-create-receipt.json",
+      "sha256": "5f3c73b8490a35e6451b632bada9b6ce6411036528365894e737943b0ea80423",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3153,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/history/basel-research/basel-chair-turnover-period/source-create-request.json",
+      "sha256": "9d69ad3492399c326a5d3e998d6d8cabbb5721794655c7a5a2c203aed870a9c3",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 9041,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/history/basel-research/basel-discharge-petition/biographical-episode.human-forms.json",
+      "sha256": "a6d2f508d37b7479e308f7e09b4c9813facf0e4bcb4101c753d3c108cc928142",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 2532,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/history/basel-research/basel-discharge-petition/biographical-episode.json",
+      "sha256": "9cdbdaee1695c67945350c44110905500790ea9ae0bfb70d59d4adcad2310ff3",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 244,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/history/basel-research/basel-discharge-petition/source-create-environment.json",
+      "sha256": "0976562dbd82ac21a81cda5c4ccbb0b8c545c54bb686181fc225a32aed6170b3",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1532,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/history/basel-research/basel-discharge-petition/source-create-receipt.json",
+      "sha256": "a847759a0b90bf8df1decabcece8be3b013bb9e9a95cf1332403e71e397497ba",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3028,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/history/basel-research/basel-discharge-petition/source-create-request.json",
+      "sha256": "e3cf8864b4c7ae14e7e90cea899380efed73d0df6c4eec1356f22531547cf6dd",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 8910,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/history/basel-research/basel-teaching-illness/life-circumstance.human-forms.json",
+      "sha256": "b1074ae0876a8371899aa413fecbc71309405c133478b217ee8bed5136e8b51d",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3084,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/history/basel-research/basel-teaching-illness/life-circumstance.json",
+      "sha256": "a7605d0df2784c0b5f8d30700ee4e10b81adcc3a7bd76d76f629238934990877",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 244,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/history/basel-research/basel-teaching-illness/source-create-environment.json",
+      "sha256": "0976562dbd82ac21a81cda5c4ccbb0b8c545c54bb686181fc225a32aed6170b3",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1514,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/history/basel-research/basel-teaching-illness/source-create-receipt.json",
+      "sha256": "ad1bec514009b6ed106d40d5dcbbb7ea8b6ee7207ffb02596ca4cb2736fdfbf0",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3560,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/history/basel-research/basel-teaching-illness/source-create-request.json",
+      "sha256": "67db7f421b97b69635a7407e0f50256fec11f4cb54b4ea5e5ec0bb79dfdaa4b1",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 8711,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/history/basel-research/basel-teaching/biographical-phase.human-forms.json",
+      "sha256": "062773b0a11555f52094bc2cf15e6d43ef5d127274c71ef6576c7cb668d6c5f6",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 2599,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/history/basel-research/basel-teaching/biographical-phase.json",
+      "sha256": "8540ffe39f3db5ac6e5674201455d73e1ad7ffd7f6f0e60127d07bfc4c95019d",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 244,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/history/basel-research/basel-teaching/source-create-environment.json",
+      "sha256": "0976562dbd82ac21a81cda5c4ccbb0b8c545c54bb686181fc225a32aed6170b3",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1494,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/history/basel-research/basel-teaching/source-create-receipt.json",
+      "sha256": "b5db352e2b3b09d33e10c9b4a504eb2a864159b8ead995910c3ae1a85e8567a5",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3055,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/history/basel-research/basel-teaching/source-create-request.json",
+      "sha256": "f38174e86cbb2fcedde9075ee3a98ae7d5204cfa060302a04d3988b974bf82c0",
+      "surface_kind": "structured"
+    },
+    {
       "bytes": 7536,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
@@ -22376,6 +22616,46 @@
       "surface_kind": "structured"
     },
     {
+      "bytes": 6044,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/places/basel/place.human-forms.json",
+      "sha256": "a0b0114b11f8e1588899583113b85f226c1cfc9bfaf27bfdd4593e1b50a136ce",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1269,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/places/basel/place.json",
+      "sha256": "aaa2ceb722055583cf3c2fa70aa746c64ec3e0ec93d53e6be2a4706fb1a01560",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 244,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/places/basel/source-create-environment.json",
+      "sha256": "0976562dbd82ac21a81cda5c4ccbb0b8c545c54bb686181fc225a32aed6170b3",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1385,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/places/basel/source-create-receipt.json",
+      "sha256": "2dba4308d9d23abb6ed2acc5543b8d4a5d0949cc5c427f660ff4c8f3df6c82b8",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1779,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/places/basel/source-create-request.json",
+      "sha256": "f0e9907d6ee1f82054a2b3e8e60a4acd88a5c800c4f3101939838b8c6a62db73",
+      "surface_kind": "structured"
+    },
+    {
       "bytes": 6774,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
@@ -22446,6 +22726,150 @@
       "path": "ToS/source-witnesses/relations/README.md",
       "sha256": "9e2b33ef88272b0c2e544d695815ead850dd8d206bd899e744445d9af02969dc",
       "surface_kind": "human"
+    },
+    {
+      "bytes": 3713,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/relations/basel-biography-research/source-claims.1d174a2ff7131020b6cf5037acb11f471d655b2745e2d6e7a6b6163630a69902.human-forms.json",
+      "sha256": "f2f4bd1217497158e5475ef39aa2b975716b46f69715434948eee6d078d67208",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3657,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/relations/basel-biography-research/source-claims.1ded2a6448fad4060d926e6286b35d84e35289b5bde97191717d25cceb4cf50b.human-forms.json",
+      "sha256": "d607111046340d186f8ea8a20624047a021a5340823b0661ae26e71e9b178564",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3799,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/relations/basel-biography-research/source-claims.302efef8fcb3636747daa6f92ba72cafcd714967609987027003052fb9fc6e80.human-forms.json",
+      "sha256": "ecc06e85f0805b4c156a95843e484377b524f7472d190dcdfe55337f687df366",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3665,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/relations/basel-biography-research/source-claims.44010fe6470e7686217914bd5a4cc89f6671044ca347e5acf02d1eff73d4a217.human-forms.json",
+      "sha256": "c80c82be735cc680f1d16988a84f288b65b8028472545c0017821db62212da6d",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3705,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/relations/basel-biography-research/source-claims.44a0c9db1e3417d8a69912041c77d5ad93c426988e38127c2de50a8ce1b2e7bd.human-forms.json",
+      "sha256": "87bec62e2f96ac3348248f79d544a26ed26e9edc0afd09bed05d64116ff10da1",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3681,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/relations/basel-biography-research/source-claims.7b5a23a2e7a5359d5ff18975d77f4c8473082a25fdeace2fd426a3b4e5502a1d.human-forms.json",
+      "sha256": "8ed3a65aaea6bb38ab2cd9cab624c615c984e816e6bf1c23a033f72353dc46b6",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3705,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/relations/basel-biography-research/source-claims.7fea5b6cc333de3951436fc993382f86e61fe4220642123e81b28385b60ada89.human-forms.json",
+      "sha256": "a8959d09481dff00a992d02d1a01e25987895e14b6c8952fc4842dc72f6071ff",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3705,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/relations/basel-biography-research/source-claims.8257ad62be8619d78d1b5ac15ee570ee8b4cf22768b994f6b2eeabd12a5ea123.human-forms.json",
+      "sha256": "3d069c9450fe4b10f4e60ac2fafc189b74584749b203a908912270f86e34d90c",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3665,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/relations/basel-biography-research/source-claims.889a47598a4524a805d03436c915f637c487300957a96d60567ee0e62e40fefb.human-forms.json",
+      "sha256": "4b6758d398ec855220e60f8242a70d174bc70d66f4129ea8633d6c114e71756f",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3815,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/relations/basel-biography-research/source-claims.98b7f6fe2a9cf7c0f9581f38dab9d620ebbc3937d75ac1b59004928f97eaaa9f.human-forms.json",
+      "sha256": "46272b58e5bf75dfc9a4c5779ed2e1d25247065e89e0fb9bbc4f2fc678d96d8e",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3721,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/relations/basel-biography-research/source-claims.996535ee4870718527bd1f50e673c56ee729b67b69ca044eb2dfa57aa5a3b659.human-forms.json",
+      "sha256": "ab539052fac8203125750df36f5da1ffaa23d895737d6ed48b4f43a4c76cdfb9",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3863,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/relations/basel-biography-research/source-claims.9f14e3994a30a6134e257530e71ae476240e5877c1d517958d7bc1fc6e313071.human-forms.json",
+      "sha256": "672b3f68bec47ee269217451d86669451fa3f2debb98000f3c24b698ae2fb353",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3791,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/relations/basel-biography-research/source-claims.a2d4442adb11a3cac1231de1924e5b6e0028892e23fdea8d3b866dcfc7164448.human-forms.json",
+      "sha256": "f6f70cd7351ed3edbac3b75346dadf3dbc9e91c7b1899c68c09d2f19030bf639",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3673,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/relations/basel-biography-research/source-claims.b62c853a5bf36a5e5bfdc85b405587e0fb3a9686e265eb629be02dd335cc8a91.human-forms.json",
+      "sha256": "76e84677dd768eecf054d675cd70b1c4a1668d9ea1621eeaeaf4c5cab1c73b6f",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3753,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/relations/basel-biography-research/source-claims.e119b2972cd547d9bb2d67cd18636cecb42836bc55e4b97888772847fb896116.human-forms.json",
+      "sha256": "93b53c49bd1ff3333db0884bffbe1ba287e0da50dcbec30ef8e8749b541a52f4",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 244,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/relations/basel-biography-research/source-create-environment.json",
+      "sha256": "0976562dbd82ac21a81cda5c4ccbb0b8c545c54bb686181fc225a32aed6170b3",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 8709,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/relations/basel-biography-research/source-create-receipt.json",
+      "sha256": "56fb4c513ee4e629f95d171021cb6bc0f7dacc6118fdee417b84c8e243004487",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 32376,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/relations/basel-biography-research/source-create-request.json",
+      "sha256": "1692b16ee303fb49a4d0b88e796348aa60403622f3893c89e9b14effd3accb29",
+      "surface_kind": "structured"
     },
     {
       "bytes": 630,
@@ -29376,11 +29800,11 @@
       "surface_kind": "human"
     },
     {
-      "bytes": 37418,
+      "bytes": 37681,
       "currentness": "tracked_source_snapshot",
       "family_id": "access",
       "path": "access/README.md",
-      "sha256": "513f4d0b4f3b65e557d17a924111af17491f1ef851feccbf4a623175f0bacc30",
+      "sha256": "3385ca69baf8bd9ec93861099e518cf97e4eb5f011e40eadba52553080d858fe",
       "surface_kind": "human"
     },
     {
@@ -29720,11 +30144,11 @@
       "surface_kind": "executable"
     },
     {
-      "bytes": 217447,
+      "bytes": 217405,
       "currentness": "tracked_source_snapshot",
       "family_id": "access",
       "path": "access/src/tos_access/knowledge.py",
-      "sha256": "7bf661b2d77f8b8c9134853253e997f65db874cad521274ffb534cf75007ce3b",
+      "sha256": "116941324af250dccb986ca7fe257eb2d2b1a16a022bcd592759cae5ec7df947",
       "surface_kind": "executable"
     },
     {
@@ -29800,11 +30224,11 @@
       "surface_kind": "executable"
     },
     {
-      "bytes": 124695,
+      "bytes": 126785,
       "currentness": "tracked_source_snapshot",
       "family_id": "access",
       "path": "access/tests/test_knowledge_contract.py",
-      "sha256": "dc94dde31acb0ef2b89966dc8236313b2a18f257b649f596b155935af186ca32",
+      "sha256": "8807a7011491bc679124cd9e6c986523d38c9304b01370d596e25e78a0c1d454",
       "surface_kind": "executable"
     },
     {

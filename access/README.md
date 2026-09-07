@@ -38,6 +38,10 @@ repository structure. Every node carries both its stable `entity_id` /
 `type_id` and its source-native identity and kind, plus a localized title, kind label, summary,
 epistemic posture, provenance, source references, query attributes, and a
 lossless public `source_record` with digest and field mapping.
+Absent an explicit source posture, only the `canon` carrier defaults to
+`authority_layer: canon`; other carriers, including `source-claims`, default
+to `derived-export`. This transport default never supplies a canon status or
+changes the recorded review posture.
 Every relation likewise carries a stable `relation_type_id` beside the exact
 source predicate, localized labels, a readable endpoint statement, an
 explanation, provenance, and the same return route to source. When source prose

@@ -30,6 +30,39 @@ from tos_access.knowledge import (  # noqa: E402
 
 
 class KnowledgeContractTests(unittest.TestCase):
+    def test_source_claim_projection_never_infers_canon_authority(self):
+        corpus, philosophy = self.fixture()
+        source = {'nodes': [
+            {'node_id': 'identity:tos.agent.fixture', 'node_kind': 'identity',
+             'properties': {'identity_ref': 'tos.agent.fixture', 'identity_type': 'agent',
+                            'identity_status': 'provisional'}},
+            {'node_id': 'claim:tos.claim.fixture', 'node_kind': 'claim',
+             'properties': {'claim_ref': 'tos.claim.fixture', 'review_status': 'unreviewed'}},
+            {'node_id': 'evidence:fixture', 'node_kind': 'evidence', 'properties': {}},
+            {'node_id': 'literal:fixture', 'node_kind': 'literal', 'properties': {'value': 'unknown'}},
+        ], 'edges': []}
+        original = copy.deepcopy(source)
+        graph = build_knowledge_graph(corpus, philosophy, source)
+        carriers = [n for n in graph['nodes'] if n['source_graph'] == 'source-claims']
+        self.assertEqual(len(carriers), 4)
+        for node in carriers:
+            with self.subTest(kind=node['kind_id']):
+                self.assertEqual(node['epistemic']['authority_layer'], 'derived-export')
+                self.assertIsNone(node['epistemic']['canon_status'])
+        claim = next(n for n in carriers if n['native_id'] == 'claim:tos.claim.fixture')
+        self.assertEqual(claim['epistemic']['review_posture'], 'unreviewed')
+        self.assertEqual(source, original)
+        canonical = [n for n in graph['nodes'] if n['source_graph'] == 'canon']
+        self.assertTrue(canonical)
+        self.assertTrue(all(n['epistemic']['authority_layer'] == 'canon' for n in canonical))
+
+        source['nodes'][0]['properties']['authority_posture'] = 'source-witness'
+        explicit = build_knowledge_graph(corpus, philosophy, source)
+        identity = next(n for n in explicit['nodes']
+                        if n['native_id'] == 'identity:tos.agent.fixture')
+        self.assertEqual(identity['epistemic']['authority_layer'], 'source-witness')
+        self.assertIsNone(identity['epistemic']['canon_status'])
+
     def test_property_ids_execute_from_snapshot_catalog_with_type_and_missing_guards(self):
         entities = copy.deepcopy(self.entity_type_registry)
         definition = {'property_id': 'tos.property.fixture-score', 'field': 'attributes.fixture_score',

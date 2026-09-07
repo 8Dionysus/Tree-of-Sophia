@@ -1228,7 +1228,7 @@ def _normalize_node(
             "registry_ref": ENTITY_REGISTRY_REF,
         },
         "display": _node_display(item, semantic_kind, refs, type_entry),
-        "epistemic": _epistemic(item, "derived-export" if source_graph in {"philosophy", "repository", "source-navigation"} else "canon"),
+        "epistemic": _epistemic(item, "canon" if source_graph == "canon" else "derived-export"),
         "graph_layers": list(dict.fromkeys(_strings(item.get("graph_layers")))) or ([str(item["layer"])] if _string(item.get("layer")) else []),
         "view_ids": list(dict.fromkeys(_strings(item.get("view_ids")))),
         "source_refs": refs,
