@@ -151,3 +151,55 @@ suite passed, and the final focused v2 graph test passed after adding the
 cross-field negatives. Source-home validation, current source catalog parity
 and diff whitespace checks passed. The schema check is not a signed execution
 attestation or substantive review. No CI/merge/deployment claim is made.
+
+## First real source episode and consumer verification
+
+The v2 command then created
+`tos.historical-event.friedrich-nietzsche.jenseits-1886-commission` at
+`ToS/source-witnesses/history/friedrich-nietzsche/jenseits-1886-commission/`.
+The published evidence route and its limits are recorded in
+`ToS/research-packets/foundation-laboratory-2026-07/JENSEITS_1886_HISTORICAL_EPISODE_RESEARCH.md`.
+This is an attributed report from Sommer 2016, p. 6, not an inspected original
+letter. Three claims separately bind the reported commissioner, Work and date;
+the provisional subject and claims do not grant admission. No place or
+Naumann person/organization equivalence was invented.
+
+The actual seven-file package is 23,631 bytes. Its receipt binds six outputs;
+all byte counts/hashes, source/claim schemas, provenance cross-fields and two
+source-copy forms were checked against the published local files. A second
+CLI process returned `replayed: true` and the original creation timestamp.
+The human-form language fields remain null: the current legacy source record
+does not supply an independently typed language field, and an ID suffix does
+not establish language. This remains a Forms/profile gap, not claimed completion.
+
+The existing catalog and bibliographic graph were rebuilt through their
+builders. Exact-target storage reservations were acquired and released after
+terminal writes through the installed generic capacity-only accounting route;
+no new per-operation host policy entry, cleanup or deployment was needed.
+The generated graph contains 172 identities and 196 reified claims, including
+this new episode; these are coverage facts, not evidence of historical truth.
+
+Real materialization exposed two obsolete final-validator assumptions:
+bibliographic-only layers and v1-only method naming. Both now follow the
+already-owned schema/reader contracts. The regression tests exercise the
+actual final validator and reject an invented layer. Corpus-total assertions
+now check exact source-catalog claim coverage and unique identities instead
+of requiring test-code edits for every new source row.
+
+The normal read-only CLI resolves the historical ID to one object with three
+incident lines. A fresh `ToSAccessCore.discover` process returned the complete
+source record and all three claims unchanged, selected the exact source-note
+hover without admission, and reached the Work and Nietzsche through two-hop
+focus (10 nodes, 15 relations). Its source revision was
+`c34e0e076e25f796c6e222a9d8d27e5c445aa923576a30e1c670b750a9832fb0`.
+One local run measured cold inspection 20.069 s, focus 0.198 s, warm inspection
+0.000071 s, user/system CPU 19.556/0.688 s and maximum RSS 1,192,716 KiB.
+These single-process observations are not p95, production or growth-budget
+proof; cold cost remains a real scaling gap.
+
+Current source catalog parity, final graph validation and source-home checks
+passed. The final graph module passed all 48 tests in 52.978 seconds, including
+v1/v2 provenance and historical-layer final-validator checks. The artifact-bundle lane reported its existing frozen external
+admission, not a consumer trust verdict. The letter carrier, Naumann identity,
+environment/reception route, substantive assessment, all-profile growth,
+UI/Worker/D1 integration and full release/CI remain open.

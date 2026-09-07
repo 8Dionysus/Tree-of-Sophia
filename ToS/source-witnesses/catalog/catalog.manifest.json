@@ -5,6 +5,10 @@
   "generated_by": "scripts/build_source_witness_catalog.py",
   "record_schema_ref": "ToS/contracts/corpus-record.schema.json",
   "claim_schema_ref": "ToS/contracts/claim-packet.schema.json",
+  "extension_schema_refs": [
+    "ToS/contracts/historical-claim.schema.json",
+    "ToS/contracts/historical-record.schema.json"
+  ],
   "record_files": {
     "agent": "ToS/source-witnesses/catalog/agents.jsonl",
     "place": "ToS/source-witnesses/catalog/places.jsonl",
@@ -14,7 +18,8 @@
     "edition": "ToS/source-witnesses/catalog/editions.jsonl",
     "collection": "ToS/source-witnesses/catalog/collections.jsonl",
     "item": "ToS/source-witnesses/catalog/items.jsonl",
-    "link": "ToS/source-witnesses/catalog/links.jsonl"
+    "link": "ToS/source-witnesses/catalog/links.jsonl",
+    "historical-event": "ToS/source-witnesses/catalog/historical-events.jsonl"
   },
   "claim_file": "ToS/source-witnesses/catalog/claims.jsonl",
   "counts": {
@@ -27,10 +32,11 @@
     "collection": 3,
     "item": 21,
     "link": 5,
-    "object_total": 176,
-    "claim": 198,
-    "total": 374
+    "historical-event": 1,
+    "object_total": 177,
+    "claim": 201,
+    "total": 378
   },
-  "catalog_sha256": "2290cfc4b9f703d30da2bc4251099b98e99034929478c603cf7c6efb24efa89b",
+  "catalog_sha256": "776d8ffb85bebeb82d73ba0b7ac01123229414a9b9db9359210186ee69a07291",
   "authority_boundary": "generated navigation over tracked object and claim records; not bibliographic, textual, rights, review, or semantic authority"
 }

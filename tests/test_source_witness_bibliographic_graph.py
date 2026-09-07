@@ -7,7 +7,9 @@ import subprocess
 import sys
 import tempfile
 import unittest
+from collections import Counter
 from contextlib import contextmanager
+from unittest.mock import patch
 from pathlib import Path
 
 
@@ -131,6 +133,12 @@ class SourceWitnessBibliographicGraphTest(unittest.TestCase):
             self.assertEqual(node['properties']['started_at'], event['activity']['started_at'])
             self.assertEqual(node['properties']['event_type'], event['activity']['event_type'])
             self.assertIn(ref, projection['input_digests'])
+            import validate_source_witness_bibliographic_graph as validator
+            target = root / 'projection.json'
+            target.write_text(render_payload(projection))
+            with patch.object(validator, 'GRAPH_PATH', target), patch.object(
+                    validator, 'build_payload', return_value=projection):
+                self.assertEqual(validator.main(), 0)
             for mutate in (lambda value: value['rights_and_visibility'].update(content_visibility='local_only'),
                            lambda value: value.update(derivations=[]),
                            lambda value: value['activity'].update(ended_at='1900-01-01T00:00:00Z'),
@@ -513,19 +521,40 @@ class SourceWitnessBibliographicGraphTest(unittest.TestCase):
     def test_projection_is_claim_reified_and_complete(self) -> None:
         payload = self.load_projection()
         counts = payload["counts"]
-        self.assertEqual(counts["source_claims"], 193)
-        self.assertEqual(counts["claim_traces"], 193)
-        self.assertEqual(counts["nodes"], 690)
-        self.assertEqual(counts["edges"], 1312)
+        entries = _load_claim_catalog(REPO_ROOT)
+        self.assertEqual({trace['claim_ref'] for trace in payload['claim_traces']},
+                         {entry['claim_id'] for entry in entries})
+        self.assertEqual(counts["source_claims"], len(entries))
+        self.assertEqual(counts["claim_traces"], len(entries))
+        self.assertEqual(counts["nodes"], len({node['node_id'] for node in payload['nodes']}))
+        self.assertEqual(counts["edges"], len({edge['edge_id'] for edge in payload['edges']}))
         self.assertEqual(counts["direct_subject_object_edges"], 0)
         self.assertFalse(payload["relation_model"]["direct_subject_object_edges"])
-        self.assertEqual(payload["graph_layers"], ["bibliographic"])
-        self.assertEqual(payload["review_counts"], {"unreviewed": 193})
-        self.assertEqual(payload["visibility_counts"], {"public_metadata_only": 193})
+        manifest = json.loads((REPO_ROOT / 'ToS/source-witnesses/catalog/catalog.manifest.json').read_bytes())
+        historical = any(manifest['counts'].get(kind, 0) for kind in
+                         ('historical-event', 'historical-process', 'historical-state'))
+        self.assertEqual(payload["graph_layers"], ['bibliographic', 'historical'] if historical else ['bibliographic'])
+        self.assertEqual(payload["review_counts"], Counter(entry['review_status'] for entry in entries))
+        self.assertEqual(payload["visibility_counts"], Counter(entry['visibility'] for entry in entries))
         self.assertEqual(
             payload["projection_fingerprint"],
             _projection_fingerprint(payload),
         )
+
+    def test_final_validator_accepts_source_owned_historical_layer_but_no_invented_layer(self):
+        import validate_source_witness_bibliographic_graph as validator
+        with self.historical_fixture() as (root, history, real, claims, rebuild):
+            projection = rebuild()
+            target = root / 'projection.json'
+            target.write_text(render_payload(projection))
+            with patch.object(validator, 'GRAPH_PATH', target), patch.object(
+                    validator, 'build_payload', return_value=projection):
+                self.assertEqual(validator.main(), 0)
+                bad = copy.deepcopy(projection)
+                bad['graph_layers'].append('invented-unowned-layer')
+                target.write_text(render_payload(bad))
+                with self.assertRaises((BibliographicGraphBuildError, SystemExit)):
+                    validator.main()
 
     def test_every_edge_returns_to_claim_evidence_maker_event_and_review(self) -> None:
         payload = self.load_projection()
@@ -561,7 +590,9 @@ class SourceWitnessBibliographicGraphTest(unittest.TestCase):
             self.assertEqual(event["node_kind"], "provenance_event")
             self.assertTrue(event["properties"]["started_at"])
             self.assertTrue(event["properties"]["ended_at"])
-            self.assertTrue(event["properties"]["method"]["name"])
+            method = event['properties']['method']
+            procedure = method['procedure'] if event['properties'].get('schema_version') == 'tos_provenance_event_v2' else method
+            self.assertTrue(procedure['name'])
             self.assertEqual(maker["node_kind"], "maker")
             self.assertTrue(maker["properties"]["agent_ref"])
 
