@@ -26,6 +26,11 @@ class SourceRevisionTests(unittest.TestCase):
         self.path = self.root / self.relative
         self.path.parent.mkdir(parents=True)
         (self.root / 'ToS/contracts').mkdir()
+        registry = 'ToS/doctrine/semantic-interchange/entity-types.v1.json'
+        (self.root / registry).parent.mkdir(parents=True)
+        (self.root / registry).write_bytes((ROOT / registry).read_bytes())
+        contract = 'ToS/contracts/semantic-entity-type-registry.schema.json'
+        (self.root / contract).write_bytes((ROOT / contract).read_bytes())
         for name in ('historical-record.schema.json', 'corpus-record.schema.json'):
             (self.root / 'ToS/contracts' / name).write_bytes((ROOT / 'ToS/contracts' / name).read_bytes())
         self.record = {'schema_version': 'tos_historical_record_v1', 'record_type': 'historical-event',

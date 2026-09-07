@@ -11,6 +11,7 @@ from pathlib import Path
 from typing import Any
 
 from jsonschema import Draft202012Validator, FormatChecker
+from source_record_profiles import SourceRecordProfiles, SourceProfileError, METADATA_LINK_FIELDS
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
@@ -58,22 +59,7 @@ CLAIM_SOURCE_BASENAMES = (
     "historical-claims.jsonl",
 )
 TRACKED_CLAIM_VISIBILITIES = {"public_metadata_only", "public"}
-LINK_FIELDS = (
-    "work_ref",
-    "expression_claim_refs",
-    "responsibility_claim_refs",
-    "chronology_claim_refs",
-    "embodiment_claim_refs",
-    "derivation_claim_refs",
-    "embodies_expression_refs",
-    "publication_claim_refs",
-    "provision_activity_claim_refs",
-    "exemplar_claim_refs",
-    "collection_ref",
-    "membership_claim_refs",
-    "item_manifest_ref",
-    "association_claim_refs",
-)
+LINK_FIELDS = METADATA_LINK_FIELDS
 
 
 class CatalogBuildError(RuntimeError):
@@ -153,18 +139,28 @@ def artifact_display_fields(payload: dict) -> dict:
     }
 
 
-def collect_records(repo_root: Path = REPO_ROOT) -> dict[str, list[dict[str, Any]]]:
+def collect_records(repo_root: Path = REPO_ROOT, *, profiles: SourceRecordProfiles | None = None) -> dict[str, list[dict[str, Any]]]:
+    try:
+        return _collect_records(repo_root, profiles=profiles)
+    except SourceProfileError as exc:
+        raise CatalogBuildError(str(exc)) from exc
+
+
+def _collect_records(repo_root: Path, *, profiles: SourceRecordProfiles | None) -> dict[str, list[dict[str, Any]]]:
     source_root = repo_root / SOURCE_ROOT
-    records: dict[str, list[dict[str, Any]]] = {record_type: [] for record_type in SOURCE_BASENAMES}
+    profiles = profiles or SourceRecordProfiles(repo_root)
+    basenames = {**{kind: kind + '.json' for kind in RECORD_FILES}, **profiles.source_basenames}
+    records: dict[str, list[dict[str, Any]]] = {record_type: [] for record_type in basenames}
     seen_ids: dict[str, str] = {}
 
-    for record_type, basename in SOURCE_BASENAMES.items():
+    for record_type, basename in basenames.items():
         for path in sorted(source_root.rglob(basename)):
             if CATALOG_ROOT in path.relative_to(repo_root).parents:
                 continue
             relative = path.relative_to(repo_root).as_posix()
             try:
-                payload = json.loads(path.read_text(encoding="utf-8"))
+                payload = (profiles.load(record_type, relative) if record_type in profiles.profiles
+                           else json.loads(path.read_text(encoding="utf-8")))
             except (OSError, json.JSONDecodeError) as exc:
                 raise CatalogBuildError(f"{relative}: cannot read corpus record: {exc}") from exc
             if not isinstance(payload, dict):
@@ -173,9 +169,6 @@ def collect_records(repo_root: Path = REPO_ROOT) -> dict[str, list[dict[str, Any
                 raise CatalogBuildError(
                     f"{relative}: record_type must be {record_type!r} for {basename}"
                 )
-            if record_type in OPTIONAL_RECORD_FILES:
-                if payload.get('visibility') not in TRACKED_CLAIM_VISIBILITIES:
-                    raise CatalogBuildError(f"{relative}: historical record visibility is not public metadata")
             record_id = payload.get("record_id")
             if not isinstance(record_id, str) or not record_id:
                 raise CatalogBuildError(f"{relative}: missing record_id")
@@ -188,10 +181,9 @@ def collect_records(repo_root: Path = REPO_ROOT) -> dict[str, list[dict[str, Any
             digest = hashlib.sha256(canonical_json(payload).encode("utf-8")).hexdigest()
             links = {field: payload[field] for field in LINK_FIELDS if field in payload}
             records[record_type].append(
+                profiles.catalog_entry(record_type, payload, relative) if record_type in profiles.profiles else
                 {
                     "schema_version": "tos_source_witness_catalog_entry_v1",
-                    **({'source_schema_ref': 'ToS/contracts/historical-record.schema.json'}
-                       if record_type in OPTIONAL_RECORD_FILES else {}),
                     "record_id": record_id,
                     "record_type": record_type,
                     "preferred_label": payload.get("preferred_label", ""),
@@ -306,13 +298,15 @@ def collect_claims(repo_root: Path = REPO_ROOT) -> list[dict[str, Any]]:
 
 
 def render_outputs(repo_root: Path = REPO_ROOT) -> dict[Path, str]:
-    records = collect_records(repo_root)
+    profiles = SourceRecordProfiles(repo_root)
+    records = collect_records(repo_root, profiles=profiles)
     claims = collect_claims(repo_root)
     outputs: dict[Path, str] = {}
     digest_parts: list[str] = []
 
+    profile_files = profiles.catalog_files
     record_files = {**RECORD_FILES, **{kind: filename for kind, filename in
-                                    {**OPTIONAL_RECORD_FILES, **ADAPTED_RECORD_FILES}.items()
+                                    {**profile_files, **ADAPTED_RECORD_FILES}.items()
                                     if kind in records}}
     for record_type, filename in record_files.items():
         lines = [canonical_json(entry) for entry in records[record_type]]
@@ -340,7 +334,7 @@ def render_outputs(repo_root: Path = REPO_ROOT) -> dict[Path, str]:
         **({'extension_schema_refs': sorted({entry['source_schema_ref']
                                             for entries in [*records.values(), claims] for entry in entries
                                             if 'source_schema_ref' in entry})}
-           if any(kind in records for kind in (*OPTIONAL_RECORD_FILES, *ADAPTED_RECORD_FILES))
+           if any(kind in records for kind in (*profile_files, *ADAPTED_RECORD_FILES))
            or any('source_schema_ref' in entry for entry in claims) else {}),
         "record_files": {
             record_type: (CATALOG_ROOT / filename).as_posix()
@@ -386,7 +380,7 @@ def main() -> int:
 
     try:
         outputs = render_outputs(REPO_ROOT)
-    except CatalogBuildError as exc:
+    except (CatalogBuildError, SourceProfileError) as exc:
         print(f"Source-witness catalog build failed: {exc}", file=sys.stderr)
         return 1
 

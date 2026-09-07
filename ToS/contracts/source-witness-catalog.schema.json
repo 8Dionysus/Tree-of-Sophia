@@ -25,11 +25,12 @@
     "record_schema_ref": {"const": "ToS/contracts/corpus-record.schema.json"},
     "claim_schema_ref": {"const": "ToS/contracts/claim-packet.schema.json"},
     "extension_schema_refs": {"type": "array", "minItems": 1, "uniqueItems": true,
-      "items": {"enum": ["ToS/contracts/historical-record.schema.json", "ToS/contracts/historical-claim.schema.json",
-                         "ToS/contracts/artifact-source-witness.schema.json", "ToS/contracts/artifact-source-witness-v2.schema.json"]}},
+      "items": {"type": "string", "pattern": "^ToS/contracts/[a-z][a-z0-9-]*\\.schema\\.json$"}},
     "record_files": {
       "type": "object",
-      "additionalProperties": false,
+      "description": "Extra families must match the source-owned profile's catalog filename; schema validation alone does not prove that binding.",
+      "additionalProperties": {"type": "string", "pattern": "^ToS/source-witnesses/catalog/[a-z][a-z0-9-]*\\.jsonl$"},
+      "propertyNames": {"pattern": "^[a-z][a-z0-9-]*$"},
       "required": ["agent", "place", "organization", "work", "expression", "edition", "collection", "item", "link"],
       "properties": {
         "agent": {"const": "ToS/source-witnesses/catalog/agents.jsonl"},
@@ -50,7 +51,8 @@
     "claim_file": {"const": "ToS/source-witnesses/catalog/claims.jsonl"},
     "counts": {
       "type": "object",
-      "additionalProperties": false,
+      "additionalProperties": {"type": "integer", "minimum": 0},
+      "propertyNames": {"pattern": "^[a-z][a-z0-9_-]*$"},
       "required": [
         "agent",
         "place",
@@ -103,12 +105,10 @@
       ],
       "properties": {
         "schema_version": {"const": "tos_source_witness_catalog_entry_v1"},
-        "source_schema_ref": {"enum": ["ToS/contracts/historical-record.schema.json",
-                                       "ToS/contracts/artifact-source-witness.schema.json",
-                                       "ToS/contracts/artifact-source-witness-v2.schema.json"]},
+        "source_schema_ref": {"type": "string", "pattern": "^ToS/contracts/[a-z][a-z0-9-]*\\.schema\\.json$"},
         "label_source_pointer": {"const": "/custody/inventory_numbers/0"},
         "record_id": {"type": "string", "minLength": 1},
-        "record_type": {"enum": ["agent", "place", "organization", "work", "expression", "edition", "collection", "item", "link", "historical-event", "historical-process", "historical-state", "artifact"]},
+        "record_type": {"type": "string", "pattern": "^[a-z][a-z0-9-]*$"},
         "preferred_label": {"type": "string", "minLength": 1},
         "identity_status": {"enum": ["provisional", "verified", "disputed", "superseded", null]},
         "source_record_ref": {"type": "string", "pattern": "^ToS/source-witnesses/.+\\.json$"},
@@ -134,10 +134,12 @@
           }
         },
         "else": {
-          "properties": {"identity_status": {"type": "string"},
-                         "source_schema_ref": {"const": "ToS/contracts/historical-record.schema.json"}},
+          "properties": {"identity_status": {"type": "string"}},
           "not": {"required": ["label_source_pointer"]}
         }
+      }, {
+        "if": {"properties": {"record_type": {"not": {"enum": ["agent", "place", "organization", "work", "expression", "edition", "collection", "item", "link"]}}}},
+        "then": {"required": ["source_schema_ref"]}
       }]
     },
     "claim_entry": {

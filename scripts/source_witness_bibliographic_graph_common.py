@@ -12,6 +12,7 @@ from typing import Any, Iterable
 from jsonschema import Draft202012Validator
 from referencing import Registry, Resource
 from source_witness_human_forms import load_metadata_forms
+from source_record_profiles import SourceRecordProfiles, SourceProfileError
 from build_source_witness_catalog import (OPTIONAL_RECORD_FILES, ADAPTED_RECORD_FILES,
                                          CatalogBuildError, artifact_catalog_entry, load_artifact_record,
                                          artifact_display_fields)
@@ -68,10 +69,14 @@ def historical_schema_validator(repo_root: Path, *, claim: bool = False) -> Draf
     return Draft202012Validator(schemas[-1], registry=registry)
 
 
-def _object_catalog_refs(repo_root: Path) -> dict[str, str]:
+def _object_catalog_refs(repo_root: Path, profiles: SourceRecordProfiles | None = None) -> dict[str, str]:
     declared = load_json(repo_root / CATALOG_MANIFEST_REF).get('record_files', {})
     refs = dict(OBJECT_CATALOG_REFS)
-    for kind, filename in {**OPTIONAL_RECORD_FILES, **ADAPTED_RECORD_FILES}.items():
+    profiles = profiles or SourceRecordProfiles(repo_root)
+    allowed = {*OBJECT_CATALOG_REFS, 'link', *profiles.catalog_files, *ADAPTED_RECORD_FILES}
+    if set(declared) - allowed:
+        raise BibliographicGraphBuildError('catalog contains a family without an understood source profile')
+    for kind, filename in {**profiles.catalog_files, **ADAPTED_RECORD_FILES}.items():
         if kind in declared:
             expected = (CATALOG_ROOT / filename).as_posix()
             if declared[kind] != expected:
@@ -153,8 +158,8 @@ def validate_payload_schema(payload: dict[str, Any], repo_root: Path = REPO_ROOT
         )
 
 
-def _catalog_input_digests(repo_root: Path) -> dict[str, str]:
-    refs = [CATALOG_MANIFEST_REF, CLAIM_CATALOG_REF, *_object_catalog_refs(repo_root).values()]
+def _catalog_input_digests(repo_root: Path, profiles: SourceRecordProfiles | None = None) -> dict[str, str]:
+    refs = [CATALOG_MANIFEST_REF, CLAIM_CATALOG_REF, *_object_catalog_refs(repo_root, profiles).values()]
     digests: dict[str, str] = {}
     for ref in refs:
         path = repo_root / ref
@@ -164,11 +169,11 @@ def _catalog_input_digests(repo_root: Path) -> dict[str, str]:
     return dict(sorted(digests.items()))
 
 
-def _load_object_catalog(repo_root: Path) -> dict[str, dict[str, Any]]:
+def _load_object_catalog(repo_root: Path, profiles: SourceRecordProfiles | None = None) -> dict[str, dict[str, Any]]:
     objects: dict[str, dict[str, Any]] = {}
-    historical_validator = None
+    profiles = profiles or SourceRecordProfiles(repo_root)
     artifact_validators = {}
-    for expected_type, relative in _object_catalog_refs(repo_root).items():
+    for expected_type, relative in _object_catalog_refs(repo_root, profiles).items():
         path = repo_root / relative
         for line_number, entry in iter_jsonl(path, repo_root):
             location = f"{relative}:{line_number}"
@@ -189,23 +194,15 @@ def _load_object_catalog(repo_root: Path) -> dict[str, dict[str, Any]]:
                 )
             source_path = repo_root / source_ref
             try:
-                source_payload = (load_artifact_record(repo_root, source_ref) if expected_type == 'artifact'
+                source_payload = (profiles.verify_entry(expected_type, entry) if expected_type in profiles.profiles
+                                  else load_artifact_record(repo_root, source_ref) if expected_type == 'artifact'
                                   else load_json(source_path))
-            except CatalogBuildError as exc:
+            except (CatalogBuildError, SourceProfileError) as exc:
                 raise BibliographicGraphBuildError(str(exc)) from exc
             if canonical_digest(source_payload) != record_sha256:
                 raise BibliographicGraphBuildError(
                     f"{location}: source record digest differs from {source_ref}"
                 )
-            if expected_type in OPTIONAL_RECORD_FILES:
-                if historical_validator is None:
-                    historical_validator = historical_schema_validator(repo_root)
-                if (entry.get('source_schema_ref') != 'ToS/contracts/historical-record.schema.json'
-                        or not historical_validator.is_valid(source_payload)
-                        or source_payload.get('record_id') != record_id
-                        or source_payload.get('record_type') != expected_type
-                        or source_payload.get('visibility') not in {'public', 'public_metadata_only'}):
-                    raise BibliographicGraphBuildError(f'{location}: invalid or nonpublic historical record')
             if expected_type == 'artifact':
                 try:
                     expected = artifact_catalog_entry(repo_root, source_payload, source_ref, artifact_validators)
@@ -915,9 +912,13 @@ def build_payload(repo_root: Path = REPO_ROOT) -> dict[str, Any]:
             f"{CATALOG_MANIFEST_REF}: claim_file differs from {CLAIM_CATALOG_REF}"
         )
 
-    input_digests = _catalog_input_digests(repo_root)
-    objects = _load_object_catalog(repo_root)
-    historical = any(entry['record_type'] in OPTIONAL_RECORD_FILES for entry in objects.values())
+    profiles = SourceRecordProfiles(repo_root)
+    input_digests = _catalog_input_digests(repo_root, profiles)
+    objects = _load_object_catalog(repo_root, profiles)
+    used_profiles = {entry['record_type'] for entry in objects.values()} & profiles.profiles.keys()
+    profile_layers = {profiles.profiles[kind]['graph_layer'] for kind in used_profiles}
+    input_digests.update(profiles.input_digests)
+    historical = 'historical' in profile_layers
     physical = any(entry['record_type'] == 'artifact' for entry in objects.values())
     for entry in objects.values():
         if entry['record_type'] == 'artifact':
@@ -927,7 +928,8 @@ def build_payload(repo_root: Path = REPO_ROOT) -> dict[str, Any]:
         for ref in (*HISTORICAL_REGISTRY_REFS, 'ToS/contracts/corpus-record.schema.json',
                     'ToS/contracts/claim-packet.schema.json', 'ToS/contracts/historical-record.schema.json',
                     'ToS/contracts/historical-claim.schema.json', 'ToS/contracts/knowledge-assessment.schema.json'):
-            input_digests[ref] = file_digest(repo_root / ref)
+            if ref not in input_digests:
+                input_digests[ref] = file_digest(repo_root / ref)
     for entry in objects.values():
         if '_human_forms_source_ref' in entry:
             input_digests[entry['_human_forms_source_ref']] = entry['_human_forms_sha256']
@@ -1186,10 +1188,11 @@ def build_payload(repo_root: Path = REPO_ROOT) -> dict[str, Any]:
         "source_refs": {
             "catalog_manifest_ref": CATALOG_MANIFEST_REF,
             "claim_catalog_ref": CLAIM_CATALOG_REF,
-            "object_catalog_refs": _object_catalog_refs(repo_root),
+            "object_catalog_refs": _object_catalog_refs(repo_root, profiles),
         },
         "input_digests": input_digests,
         "graph_layers": ['bibliographic', *(['historical'] if historical else []),
+                         *(['source-profile'] if 'source-profile' in profile_layers else []),
                          *(['physical-artifact'] if physical else [])],
         "relation_model": {
             "assertion_form": "reified_claim_node",

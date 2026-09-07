@@ -31,6 +31,29 @@
     }
   },
   "$defs": {
+    "sourceRecordProfile": {
+      "type": "object", "additionalProperties": false,
+      "description": "A source-owned metadata reader contract, not an admission or write capability. Other source shapes retain their native adapters.",
+      "required": ["profile_version", "reader", "record_type", "id_prefix", "source_basename", "catalog_filename", "schemas", "graph_layer"],
+      "properties": {
+        "profile_version": {"type": "integer", "minimum": 1},
+        "reader": {"const": "corpus-metadata-v1"},
+        "record_type": {"type": "string", "pattern": "^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$"},
+        "id_prefix": {"type": "string", "pattern": "^tos\\.[a-z][a-z0-9-]*\\.$"},
+        "source_basename": {"type": "string", "pattern": "^[a-z][a-z0-9-]*\\.json$"},
+        "catalog_filename": {"type": "string", "pattern": "^[a-z][a-z0-9-]*\\.jsonl$"},
+        "schemas": {"type": "array", "minItems": 1, "maxItems": 16, "uniqueItems": true,
+          "items": {"type": "object", "additionalProperties": false,
+            "required": ["schema_version", "schema_ref", "schema_dependencies"],
+            "properties": {
+              "schema_version": {"type": "string", "minLength": 1},
+              "schema_ref": {"type": "string", "pattern": "^ToS/contracts/[a-z][a-z0-9-]*\\.schema\\.json$"},
+              "schema_dependencies": {"type": "array", "maxItems": 16, "uniqueItems": true,
+                "items": {"type": "string", "pattern": "^ToS/contracts/[a-z][a-z0-9-]*\\.schema\\.json$"}}
+            }}},
+        "graph_layer": {"enum": ["historical", "source-profile"]}
+      }
+    },
     "propertyDefinition": {
       "type": "object", "additionalProperties": false,
       "required": ["property_id", "field", "labels", "definition", "value_type", "applies_to", "required", "inherited", "unit", "language", "operators"],
@@ -90,6 +113,7 @@
       ],
       "properties": {
         "type_id": {"$ref": "#/$defs/typeId"},
+        "source_record_profile": {"$ref": "#/$defs/sourceRecordProfile"},
         "parent_type_ids": {
           "type": "array",
           "uniqueItems": true,

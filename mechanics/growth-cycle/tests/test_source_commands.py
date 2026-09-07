@@ -607,6 +607,16 @@ class HistoricalCreationTests(unittest.TestCase):
             self.assertEqual(replay['receipt'], result['receipt'])
             self.assertEqual({path.name: path.read_bytes() for path in target.iterdir()}, before)
 
+    def test_creation_conflicts_when_consumed_profile_contract_changes_after_prepare(self):
+        with self.creation() as (root, owner, config, request, rebuild, fixture):
+            ref = root / 'ToS/contracts/semantic-entity-type-registry.schema.json'
+            schema = json.loads(ref.read_bytes())
+            schema['description'] = 'Changed profile contract after this command was prepared.'
+            ref.write_text(json.dumps(schema))
+            with self.assertRaises(commands.JournalConflict):
+                commands.run_local_command(owner, request)
+            self.assertFalse((root / config['source_path']).parent.exists())
+
     def test_invalid_sources_claims_forms_and_scope_publish_nothing(self):
         mutations = [
             lambda r: r['record'].update(record_version=2),

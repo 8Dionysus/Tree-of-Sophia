@@ -90,6 +90,78 @@ visible gaps. Broad legacy relation families retain native predicates; mapping
 coverage does not prove their philosophical endpoint semantics. Tightening such
 source assertions requires source-visible review, not inference from labels.
 
+## Declared source-metadata profiles
+
+Entity registry version 7 gives the three historical identities an executable
+`source_record_profile`. This is a source-to-reader contract on the existing
+type entry, not a second type registry and not a claim that all source material
+has one shape. The first supported reader is `corpus-metadata-v1`; native
+physical-artifact records continue through their separate adapter below.
+
+A profile declares its revision, native record kind, persistent ID prefix,
+source basename, catalog filename, graph layer, and an explicit list of source
+schema versions with local schema refs and dependencies. Several schema
+versions may describe the same kind without changing its referent identity.
+Each record selects an understood route by its exact `schema_version`; no
+nearest-version guess, remote schema retrieval, code selection or dynamic
+execution is allowed. The current registry schema owns the descriptor shape.
+Names, notes, language declarations, source refs, external identifiers,
+identity posture and record version reuse the existing Corpus metadata
+properties. The profile's own schema adds its source-specific constraints;
+it cannot weaken those common metadata fields. No source is rewritten into a
+new schema merely to make it readable.
+
+The catalog, claim-graph identity reader, source-navigation reader and source
+validator use `scripts/source_record_profiles.py`. A new metadata kind in this
+reader is added as a source schema and a profile on its concrete identity type,
+with explicit mappings for both `source-claims` and `source-navigation`.
+It does not require another Python kind branch. The ordinary knowledge
+catalog and `tos.knowledge.contracts` expose the declaration, including when
+there are no instances. Catalog entry fields and their source digest are
+checked against the exact source record; all public fields, including
+uninterpreted `extensions`, survive inspection. Additional catalog families
+are admitted only by a declared profile, never by a permissive catalog schema
+alone. Missing or unrecognized profiles fail closed without deleting source.
+
+Adjacent human-form sets reuse the existing bounded metadata materializer.
+Complete source-copy names and notes retain language, script, context, exact
+source version, provenance and visible quality state. This reader does not
+create translations, assess wording, accept historical claims or infer edges
+from a metadata field. An addressable source record may have no Claims.
+General semantic predicates, roles, new production modes, growth permissions
+and admission are not granted by a metadata profile; their own contracts must
+be implemented. In particular the existing source-write commands remain
+separately delegated and historical subject creation/revision is still bounded
+to its implemented source family.
+
+The reader rejects duplicate kind/prefix/basename/catalog ownership, mappings
+owned by another type, abstract identity instances, reserved native-adapter
+collisions, unknown reader modes and schema versions, nonpublic visibility,
+duplicate JSON keys, nonfinite numbers, symlink paths, metadata above 1 MiB,
+undeclared schema dependencies and catalog/source drift. Schema resources are
+local and exact; consumed registry/schema bytes supply the graph dependency
+digests. Neither supported metadata nor a schema-valid record is accepted
+knowledge or permission to publish source contents.
+
+When a previous registry is supplied to the semantic validator, a changed
+profile must advance `profile_version`, preserve all earlier schema routes,
+and not repurpose its kind or ID prefix. Registry changes also advance the
+registry version. Compatible source evolution adds a schema route; an
+incompatible identity meaning needs an explicit successor and reference
+migration. A catalog path move likewise needs coordinated reference migration;
+it never changes the identity merely because a path changed.
+
+The first migration moves the three historical readers' hard-coded schema and
+catalog choices into their owner type entries. Existing historical and
+artifact source bytes are unchanged. An old reader must be upgraded together
+with its registry/catalog schema before consuming a new profile. Reader
+rollback does not erase source records, judgments, creation receipts, retained
+record history or human-form predecessors.
+
+This closes a metadata extension seam, not the complete Foundation profile
+grammar. The synthetic `fixture-document` in the reader test is not an actual
+letter, historical evidence, a material artifact or source admission.
+
 ## Physical artifacts: existing-source adapter
 
 Entity registry version 6 maps the existing `tos.artifact.*` identity to
@@ -231,8 +303,10 @@ not admitted by this carrier until their owner contract is implemented.
 
 The ordinary access catalog, focus, type-ancestry filters, Claim inspection,
 and adjacent metadata-form reader consume these records without a new UI.
-The source-form command adapter can prepare/create/revise those adjacent forms;
-it still cannot create or change the historical subject itself. The profile
+The source-form command adapter can prepare/create/revise those adjacent forms.
+Separately delegated historical subject creation and record correction now
+use the [source-owner command route](../../../mechanics/growth-cycle/parts/branch-growth-cycle/README.md#initial-historical-subject-creation).
+The metadata reader does not confer those permissions. The profile
 adds no automatic dates: historical dating Claims, witness dating, capture
 provenance and Claim revisions remain separate. As-of knowledge reconstruction,
 calendar conversion, uncertainty-aware interval algebra, the full role,

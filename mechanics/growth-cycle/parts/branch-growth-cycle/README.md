@@ -373,6 +373,13 @@ binds the canonical request, account/delegation, exact subject, observed
 dependency digest and each output's bytes/digest. It records this source
 transaction, not a claim's research provenance or an assessment event.
 
+The prepared dependency digest also binds the exact source-profile registry,
+profile contract and source schemas consumed while reading existing metadata,
+plus the shared reader implementation. Changing these after preparation
+causes a conflict before publication, including a schema edit that leaves
+the proposed source content otherwise valid. The declaration does not widen
+the separately delegated historical writer into a general profile writer.
+
 New materialization can select `tos_local_historical_create_owner_v2` with
 the same fields plus one exact `provenance_event_id` (`tos.event.*`). All new
 claims must bind that ID, which must not exist in the authored provenance

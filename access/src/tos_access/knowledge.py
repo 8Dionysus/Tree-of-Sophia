@@ -196,6 +196,21 @@ def validate_semantic_registries(
         for entry in _registry_items(previous, entries_key):
             if entry[id_key] not in now:
                 violations.append(f"registry removed historical identity {entry[id_key]}; retain a deprecated entry")
+            if entries_key == 'types' and entry.get('source_record_profile'):
+                old_profile = entry['source_record_profile']
+                profile = now.get(entry[id_key], {}).get('source_record_profile')
+                if not isinstance(profile, dict):
+                    violations.append(f"registry removed source reader for {entry[id_key]}; retain its historical routes")
+                    continue
+                if profile != old_profile and profile.get('profile_version', 0) <= old_profile.get('profile_version', 0):
+                    violations.append(f"changed source profile {entry[id_key]} must increase profile_version")
+                for field in ('record_type', 'id_prefix'):
+                    if profile.get(field) != old_profile.get(field):
+                        violations.append(f"source profile {entry[id_key]} repurposes {field}; use an explicit successor identity")
+                routes = {route.get('schema_version'): route for route in profile.get('schemas', [])}
+                for route in old_profile.get('schemas', []):
+                    if routes.get(route.get('schema_version')) != route:
+                        violations.append(f"source profile {entry[id_key]} removed or repurposed a historical schema route")
         if previous != current and current.get('registry_version', 0) <= previous.get('registry_version', 0):
             violations.append('changed registry must increase registry_version')
     properties_seen: set[str] = set()

@@ -32,15 +32,14 @@ from build_source_witness_catalog import (
     CATALOG_ROOT,
     CLAIM_CATALOG_PATH,
     RECORD_FILES,
-    OPTIONAL_RECORD_FILES,
     ADAPTED_RECORD_FILES,
-    SOURCE_BASENAMES,
     SOURCE_ROOT,
     CatalogBuildError,
     check_outputs,
     collect_records,
     render_outputs,
 )
+from source_record_profiles import SourceRecordProfiles, SourceProfileError
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
@@ -7069,7 +7068,9 @@ def validate_zarathustra_authored_canon_evidence_bridge(
 
 def _record_paths(repo_root: Path) -> Iterable[Path]:
     source_root = repo_root / SOURCE_ROOT
-    for record_type, basename in SOURCE_BASENAMES.items():
+    basenames = {**{kind: kind + '.json' for kind in RECORD_FILES},
+                 **SourceRecordProfiles(repo_root).source_basenames}
+    for record_type, basename in basenames.items():
         if record_type == "link":
             continue
         for path in sorted(source_root.rglob(basename)):
@@ -7505,17 +7506,17 @@ def validate_foundation(repo_root: Path, *, require_local_payloads: bool = False
 
     records_by_id: dict[str, tuple[dict[str, Any], Path]] = {}
     item_records: dict[str, tuple[dict[str, Any], Path]] = {}
-    historical_validator = None
+    profiles = SourceRecordProfiles(repo_root)
     for path in _record_paths(repo_root):
         payload = _load_json(path, repo_root, issues)
         if payload is None:
             continue
         location = _relative(path, repo_root)
-        if payload.get('record_type') in OPTIONAL_RECORD_FILES:
-            if historical_validator is None:
-                from source_witness_bibliographic_graph_common import historical_schema_validator
-                historical_validator = historical_schema_validator(repo_root)
-            _validate_payload(payload, historical_validator, location, issues)
+        if payload.get('record_type') in profiles.profiles:
+            try:
+                profiles.validate(payload['record_type'], payload)
+            except SourceProfileError as exc:
+                issues.append((location, str(exc)))
         else:
             _validate_payload(payload, corpus_validator, location, issues)
         _validate_source_refs(repo_root, payload, location, issues)
@@ -15281,10 +15282,10 @@ def validate_foundation(repo_root: Path, *, require_local_payloads: bool = False
         expected_outputs = render_outputs(repo_root)
         for message in check_outputs(repo_root, expected_outputs):
             issues.append((CATALOG_ROOT.as_posix(), message))
-    except CatalogBuildError as exc:
+    except (CatalogBuildError, SourceProfileError) as exc:
         issues.append((CATALOG_ROOT.as_posix(), str(exc)))
 
-    if (any(payload.get('record_type') in OPTIONAL_RECORD_FILES for payload, _ in records_by_id.values())
+    if (any(payload.get('record_type') in profiles.profiles for payload, _ in records_by_id.values())
             or next((repo_root / SOURCE_ROOT).rglob('historical-claims.jsonl'), None) is not None):
         # Reuse the source-returnable graph boundary: source schemas, actual
         # registry domains, exact catalogs, evidence, and provenance resolution.
@@ -15292,8 +15293,8 @@ def validate_foundation(repo_root: Path, *, require_local_payloads: bool = False
         from source_witness_bibliographic_graph_common import BibliographicGraphBuildError, build_payload
         try:
             build_payload(repo_root)
-        except BibliographicGraphBuildError as exc:
-            issues.append((SOURCE_ROOT.as_posix(), f'historical source profile: {exc}'))
+        except (BibliographicGraphBuildError, SourceProfileError) as exc:
+            issues.append((SOURCE_ROOT.as_posix(), f'declared source profile: {exc}'))
 
     catalog_manifest_path = repo_root / CATALOG_ROOT / "catalog.manifest.json"
     catalog_manifest = _load_json(catalog_manifest_path, repo_root, issues)
@@ -15310,7 +15311,7 @@ def validate_foundation(repo_root: Path, *, require_local_payloads: bool = False
         entry_class.check_schema(entry_schema)
         entry_validator = entry_class(entry_schema, format_checker=FormatChecker())
         record_files = {**RECORD_FILES, **{kind: filename for kind, filename in
-                                         {**OPTIONAL_RECORD_FILES, **ADAPTED_RECORD_FILES}.items()
+                                         {**profiles.catalog_files, **ADAPTED_RECORD_FILES}.items()
                                          if kind in (catalog_manifest or {}).get('record_files', {})}}
         for filename in record_files.values():
             catalog_path = repo_root / CATALOG_ROOT / filename

@@ -333,6 +333,7 @@ def _initial_historical_record(config, source):
 def _historical_creation(config, request):
     """Use authored catalogs and the existing historical reader's contracts."""
     from build_source_witness_catalog import collect_records, collect_claims
+    from source_record_profiles import SourceRecordProfiles
     from source_witness_bibliographic_graph_common import (
         _historical_claim_contract, _validate_historical_claim,
         _scan_index, _evidence_node, BibliographicGraphBuildError,
@@ -340,7 +341,8 @@ def _historical_creation(config, request):
     root = Path(config['source_root'])
     source, claims, selections = request['record'], request['claims'], request['forms']
     subject = _initial_historical_record(config, source)
-    records = collect_records(root)
+    profiles = SourceRecordProfiles(root)
+    records = collect_records(root, profiles=profiles)
     existing_claims = collect_claims(root)
     objects = {row['record_id']: row for rows in records.values() for row in rows}
     if source['record_id'] in objects:
@@ -423,6 +425,7 @@ def _historical_creation(config, request):
     provenance_contract = ({'ToS/contracts/provenance-event-v2.schema.json':
         _digest(_read(root / 'ToS/contracts/provenance-event-v2.schema.json', MAX_SET_BYTES))} if new_event else {})
     dependencies = _digest(_canonical({'records': records, 'claims': existing_claims,
+        'source_profiles': profiles.input_digests,
         'provenance_contract': provenance_contract,
         'events': events, 'anchors': anchors, 'evidence': evidence, 'forms': form_inputs,
         'contracts': {ref: _digest(_read(root / ref, MAX_SET_BYTES)) for ref in (
@@ -436,6 +439,7 @@ def _historical_creation(config, request):
             'mechanics/growth-cycle/parts/branch-growth-cycle/scripts/human_forms.py',
             'mechanics/growth-cycle/parts/branch-growth-cycle/scripts/knowledge_assessment.py',
             'scripts/source_witness_human_forms.py', 'scripts/build_source_witness_catalog.py',
+            'scripts/source_record_profiles.py',
             'scripts/source_witness_bibliographic_graph_common.py',
             'ToS/contracts/human-form.schema.json', 'ToS/contracts/human-form-set.schema.json',
             'ToS/contracts/human-form-template.schema.json')}}))

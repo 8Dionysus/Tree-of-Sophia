@@ -57,7 +57,9 @@
         },
         "object_catalog_refs": {
           "type": "object",
-          "additionalProperties": false,
+          "description": "Additional families require an exact source_record_profile binding in the entity registry; the reader verifies this beyond schema validation.",
+          "additionalProperties": {"type": "string", "pattern": "^ToS/source-witnesses/catalog/[a-z][a-z0-9-]*\\.jsonl$"},
+          "propertyNames": {"pattern": "^[a-z][a-z0-9-]*$"},
           "required": [
             "agent",
             "place",
@@ -112,9 +114,9 @@
       }
     },
     "graph_layers": {
-      "enum": [["bibliographic"], ["bibliographic", "historical"],
-               ["bibliographic", "physical-artifact"],
-               ["bibliographic", "historical", "physical-artifact"]]
+      "type": "array", "minItems": 1, "maxItems": 4, "uniqueItems": true,
+      "prefixItems": [{"const": "bibliographic"}],
+      "items": {"enum": ["historical", "source-profile", "physical-artifact"]}
     },
     "relation_model": {
       "type": "object",

@@ -68,6 +68,12 @@ membership or a stable Q-number supports return and comparison; it does not
 make the reconstruction an ancient original or its readings semantically
 fixed.
 
+The [declared metadata profile](semantic-interchange/README.md#declared-source-metadata-profiles)
+binds compatible source kinds and schema versions to the common reader without
+promoting that metadata shape into a universal ontology. The profile belongs
+to the source type registry; catalogs and projections execute it, retain the
+exact record, and cannot infer claims or grant source-write/admission powers.
+
 The [physical-artifact adapter](semantic-interchange/README.md#physical-artifacts-existing-source-adapter)
 projects native v1/v2 artifact metadata into the shared catalog and exact
 focus/inspection reader without replacing the authored record or inventing

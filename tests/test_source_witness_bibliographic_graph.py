@@ -51,6 +51,7 @@ class SourceWitnessBibliographicGraphTest(unittest.TestCase):
                 return path
 
             for ref in ('ToS/contracts/corpus-record.schema.json', 'ToS/contracts/claim-packet.schema.json',
+                        'ToS/contracts/semantic-entity-type-registry.schema.json',
                         'ToS/contracts/source-witness-bibliographic-graph.schema.json',
                         'ToS/contracts/source-witness-catalog.schema.json',
                         'ToS/contracts/historical-record.schema.json', 'ToS/contracts/historical-claim.schema.json',
@@ -115,6 +116,194 @@ class SourceWitnessBibliographicGraphTest(unittest.TestCase):
         entities, relations = [json.loads((root / 'ToS/doctrine/semantic-interchange' / name).read_text())
                                for name in ('entity-types.v1.json', 'relation-types.v1.json')]
         return build_knowledge_graph({}, {}, projection, entities, relations), entities, relations
+
+    def test_declared_metadata_profile_extends_both_readers_without_python_type_branch(self):
+        """A synthetic profile is a grammar test, not a historical letter."""
+        from build_source_witness_catalog import collect_records, CatalogBuildError
+        from source_commands import prepare_metadata_change, _apply
+        from knowledge_assessment import Record
+        import tos_corpus_index_common as corpus_builder
+        with self.historical_fixture() as (root, history, real, claims, rebuild):
+            registry_ref = 'ToS/doctrine/semantic-interchange/entity-types.v1.json'
+            registry = json.loads((root / registry_ref).read_bytes())
+            entry = copy.deepcopy(next(item for item in registry['types']
+                                       if item['type_id'] == 'tos.entity.historical-event'))
+            kind = 'fixture-document'
+            entry.update(type_id='tos.entity.' + kind, parent_type_ids=['tos.entity.identity'],
+                         definition='Synthetic independent document identity; not a physical carrier.',
+                         source_mappings=[{'source_graph': graph, 'source_kind_id': kind}
+                                          for graph in ('source-claims', 'source-navigation')],
+                         source_record_profile={
+                             'profile_version': 1, 'reader': 'corpus-metadata-v1',
+                             'record_type': kind, 'id_prefix': 'tos.fixture-document.',
+                             'source_basename': 'fixture-document.json',
+                             'catalog_filename': 'fixture-documents.jsonl',
+                             'schemas': [{'schema_version': 'tos_fixture_document_v1',
+                             'schema_ref': 'ToS/contracts/fixture-document.schema.json',
+                             'schema_dependencies': ['ToS/contracts/corpus-record.schema.json']}],
+                             'graph_layer': 'source-profile'})
+            registry['types'].append(entry)
+            (root / registry_ref).write_text(json.dumps(registry))
+            schema = json.loads((root / 'ToS/contracts/historical-record.schema.json').read_bytes())
+            schema.update(**{'$id': 'https://tree-of-sophia.local/ToS/contracts/fixture-document.schema.json'})
+            schema.pop('allOf')
+            schema['properties']['schema_version'] = {'const': 'tos_fixture_document_v1'}
+            schema['properties']['record_type'] = {'const': kind}
+            schema['properties']['record_id'] = {'type': 'string', 'pattern': '^tos\\.fixture-document\\.'}
+            (root / entry['source_record_profile']['schemas'][0]['schema_ref']).write_text(json.dumps(schema))
+            source = copy.deepcopy(history[0][1])
+            source.update(schema_version='tos_fixture_document_v1', record_type=kind,
+                          record_id='tos.fixture-document.synthetic', preferred_label='Условное письмо',
+                          field_languages={'preferred_label': {'language': 'ru', 'script': 'Cyrl'},
+                                           'notes': {'language': 'ru', 'script': 'Cyrl'}},
+                          extensions={'uninterpreted': [False, None, {'language': 'x-unknown', 'value': 'Ω'}]})
+            path = root / 'ToS/source-witnesses/documents/fixture/fixture-document.json'
+            path.parent.mkdir(parents=True)
+            path.write_text(json.dumps(source, ensure_ascii=False))
+            changes = [prepare_metadata_change(source, None, 'test:profile', form_id='tos.form.profile-' + role,
+                                               field_id=field) for role, field in
+                       (('name', 'metadata.preferred-name'), ('hover', 'metadata.source-note'))]
+            formset = _apply(None, Record.from_payload(source['record_id'], 1, source), changes)
+            path.with_name('fixture-document.human-forms.json').write_text(json.dumps(formset))
+            self.assertEqual(collect_records(root)[kind][0]['record_id'], source['record_id'])
+            projection = rebuild()
+            self.assertIn('source-profile', projection['graph_layers'])
+            graph_schema = json.loads((root / 'ToS/contracts/source-witness-bibliographic-graph.schema.json').read_bytes())
+            from jsonschema import Draft202012Validator
+            Draft202012Validator(graph_schema).validate(projection)
+            catalog_schema = json.loads((root / 'ToS/contracts/source-witness-catalog.schema.json').read_bytes())
+            Draft202012Validator(catalog_schema).validate(json.loads(
+                (root / 'ToS/source-witnesses/catalog/catalog.manifest.json').read_bytes()))
+            Draft202012Validator(catalog_schema['$defs']['entry']).validate(collect_records(root)[kind][0])
+            self.historical_knowledge(root, projection)
+            with patch.object(corpus_builder, 'REPO_ROOT', root), patch.object(corpus_builder, 'TOS_ROOT', root / 'ToS'):
+                navigation = corpus_builder.build_source_navigation([])
+            from tos_access.knowledge import build_knowledge_graph
+            relations = json.loads((root / 'ToS/doctrine/semantic-interchange/relation-types.v1.json').read_bytes())
+            graph = build_knowledge_graph({'source_navigation': navigation}, {}, projection, registry, relations)
+            carriers = [node for node in graph['nodes'] if node['entity_id'] == source['record_id']]
+            self.assertEqual(len(carriers), 2)
+            for node in carriers:
+                self.assertEqual(node['type_id'], entry['type_id'])
+                self.assertEqual(node['attributes']['source_record'], source)
+                self.assertEqual(node['source_record']['payload']['properties']['source_record'], source)
+                self.assertEqual(node['display']['title']['default'], source['preferred_label'])
+                forms = node['attributes']['human_forms']
+                self.assertEqual({form['state'] for form in forms}, {'ready'})
+                self.assertEqual({form['display_text'] for form in forms},
+                                 {source['preferred_label'], source['notes']})
+            from tos_access.knowledge import focus_knowledge_node, select_human_forms
+            focused = focus_knowledge_node(graph, source['record_id'], depth=1)
+            center = next(node for node in focused['nodes'] if node['id'] == focused['focus']['node_id'])
+            self.assertEqual(center['entity_id'], source['record_id'])
+            self.assertEqual(center['type_id'], entry['type_id'])
+            readable = select_human_forms(center, 'ru')
+            self.assertEqual(readable['roles']['hover']['packet']['display_text'], source['notes'])
+            self.assertIsNone(readable['roles']['hover']['packet']['admission'])
+            for field, value in [('visibility', 'local_only'), ('record_id', 'tos.work.false-identity'),
+                                 ('schema_version', 'tos_fixture_document_v2')]:
+                path.write_text(json.dumps({**source, field: value}))
+                with self.subTest(field=field), self.assertRaises(CatalogBuildError):
+                    collect_records(root)
+            self.assertEqual(source['extensions']['uninterpreted'][0], False)
+
+            # Add a compatible schema route without retyping the subject or
+            # discarding the old schema. This test is not a source revision.
+            from source_record_profiles import SourceRecordProfiles
+            descriptor = entry['source_record_profile']
+            newer_schema = copy.deepcopy(schema)
+            newer_schema['$id'] = 'https://tree-of-sophia.local/ToS/contracts/fixture-document-v2.schema.json'
+            newer_schema['properties']['schema_version'] = {'const': 'tos_fixture_document_v2'}
+            newer_schema['properties']['new_source_field'] = {'type': 'boolean'}
+            newer_schema['required'].append('new_source_field')
+            (root / 'ToS/contracts/fixture-document-v2.schema.json').write_text(json.dumps(newer_schema))
+            descriptor['profile_version'] = 2
+            descriptor['schemas'].append({'schema_version': 'tos_fixture_document_v2',
+                                         'schema_ref': 'ToS/contracts/fixture-document-v2.schema.json',
+                                         'schema_dependencies': ['ToS/contracts/corpus-record.schema.json']})
+            (root / registry_ref).write_text(json.dumps(registry))
+            reader = SourceRecordProfiles(root)
+            reader.validate(kind, source)
+            newer_source = {**source, 'schema_version': 'tos_fixture_document_v2',
+                            'record_version': 2, 'new_source_field': False}
+            reader.validate(kind, newer_source)
+            path.write_text(json.dumps(newer_source))
+            self.assertEqual(reader.verify_entry(kind, collect_records(root)[kind][0]), newer_source)
+            self.assertEqual(newer_source['record_id'], source['record_id'])
+            revised_graph, _, _ = self.historical_knowledge(root, rebuild())
+            revised_carrier = next(node for node in revised_graph['nodes'] if node['entity_id'] == source['record_id'])
+            self.assertEqual(revised_carrier['attributes']['source_record'], newer_source)
+            self.assertEqual({form['state'] for form in revised_carrier['attributes']['human_forms']}, {'stale'})
+
+            from tos_access.knowledge import validate_semantic_registries, knowledge_catalog
+            catalog = knowledge_catalog(graph, {}, {}, registry, relations)
+            discovered = next(item for item in catalog['semantic_registries']['entity_types']['entries']
+                              if item['type_id'] == entry['type_id'])
+            self.assertEqual(discovered['source_record_profile'], descriptor)
+            previous = copy.deepcopy(registry)
+            previous['registry_version'] -= 1
+            previous_type = previous['types'][-1]
+            previous_type['source_record_profile']['profile_version'] = 1
+            previous_type['source_record_profile']['schemas'].pop()
+            self.assertTrue(validate_semantic_registries(registry, relations,
+                            previous_entity_registry=previous)['valid'])
+            for mutate in (lambda p: p.update(profile_version=1), lambda p: p['schemas'].pop(0),
+                           lambda p: p.update(id_prefix='tos.reassigned.')):
+                invalid = copy.deepcopy(registry)
+                mutate(invalid['types'][-1]['source_record_profile'])
+                self.assertFalse(validate_semantic_registries(invalid, relations,
+                                 previous_entity_registry=previous)['valid'])
+
+    def test_source_profile_contract_rejects_collisions_and_invented_authority(self):
+        from source_record_profiles import SourceRecordProfiles, SourceProfileError
+        with self.historical_fixture() as (root, history, real, claims, rebuild):
+            ref = 'ToS/doctrine/semantic-interchange/entity-types.v1.json'
+            original = json.loads((root / ref).read_bytes())
+            for mutate in (
+                lambda entry: entry['source_record_profile'].update(reader='run-shell'),
+                lambda entry: entry['source_record_profile'].update(command='execute source prose'),
+                lambda entry: entry['source_record_profile'].update(id_prefix='tos.work.'),
+                lambda entry: entry['source_record_profile'].update(source_basename='../historical-event.json'),
+                lambda entry: entry['source_record_profile'].update(catalog_filename='agents.jsonl'),
+                lambda entry: entry['source_record_profile']['schemas'][0].update(schema_ref='/etc/passwd'),
+                lambda entry: entry['source_record_profile']['schemas'][0].update(schema_dependencies=['https://example.org/schema.json']),
+                lambda entry: entry['source_record_profile']['schemas'].append(copy.deepcopy(entry['source_record_profile']['schemas'][0])),
+                lambda entry: entry.update(abstract=True),
+                lambda entry: entry.update(source_mappings=entry['source_mappings'][:1]),
+            ):
+                registry = copy.deepcopy(original)
+                entry = next(item for item in registry['types'] if item['type_id'] == 'tos.entity.historical-event')
+                mutate(entry)
+                (root / ref).write_text(json.dumps(registry))
+                with self.subTest(mutation=repr(mutate)), self.assertRaises(SourceProfileError):
+                    SourceRecordProfiles(root)
+            (root / ref).write_text(json.dumps(original))
+            reader = SourceRecordProfiles(root)
+            path, source = history[0]
+            relative = path.relative_to(root).as_posix()
+            entry = reader.catalog_entry(source['record_type'], source, relative)
+            for field, value in [('preferred_label', 'Invented certainty'), ('links', {'work_ref': real[2]['record_id']}),
+                                 ('source_schema_ref', 'ToS/contracts/corpus-record.schema.json'),
+                                 ('record_sha256', '0' * 64), ('source_record_ref', '../outside.json')]:
+                with self.subTest(field=field), self.assertRaises(SourceProfileError):
+                    reader.verify_entry(source['record_type'], {**entry, field: value})
+            saved = path.read_bytes()
+            path.write_bytes(b'{"record_id":"first","record_id":"second"}')
+            with self.assertRaises(SourceProfileError):
+                reader.load(source['record_type'], relative)
+            path.write_bytes(b'{"number":1e309}')
+            with self.assertRaises(SourceProfileError):
+                reader.load(source['record_type'], relative)
+            path.write_bytes(b' ' * 1_048_577)
+            with self.assertRaises(SourceProfileError):
+                reader.load(source['record_type'], relative)
+            path.unlink()
+            path.symlink_to(history[1][0])
+            with self.assertRaises(SourceProfileError):
+                reader.load(source['record_type'], relative)
+            path.unlink()
+            path.write_bytes(saved)
+            self.assertEqual(reader.load(source['record_type'], relative), source)
 
     def test_physical_artifacts_keep_native_identity_source_and_non_authority(self):
         """Real existing metadata copied into an isolated reader; no new facts."""
@@ -508,7 +697,9 @@ class SourceWitnessBibliographicGraphTest(unittest.TestCase):
                 with self.subTest(visibility=visibility), self.assertRaisesRegex(CatalogBuildError, 'visibility'):
                     rebuild()
             path.write_text(json.dumps({**record, 'record_id': 'tos.event.fixture'}))
-            with self.assertRaisesRegex(BibliographicGraphBuildError, 'historical record'):
+            # Shared metadata validation now refuses the false identity before
+            # an invalid catalog can be emitted, not only in the graph reader.
+            with self.assertRaisesRegex(CatalogBuildError, 'identity'):
                 rebuild()
 
     def test_historical_assessment_source_bindings_preserve_bodies_and_refuse_private_records(self):
