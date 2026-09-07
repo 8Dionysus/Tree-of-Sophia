@@ -34,6 +34,7 @@ ROOT = Path(__file__).resolve().parents[5]
 if str(ROOT / 'scripts') not in sys.path:
     sys.path.insert(0, str(ROOT / 'scripts'))
 from source_witness_human_forms import MAX_SET_BYTES, _validator, materialize_metadata_forms, metadata_field_catalog
+from source_witness_human_forms import claim_field_catalog, claim_forms_path, materialize_claim_forms
 
 OPERATIONS = ('form.create', 'form.revise')
 CREATION_OPERATION = 'historical.create'
@@ -41,6 +42,7 @@ CREATION_CONFIGS = {'tos_local_historical_create_owner_v1', 'tos_local_historica
 PROFILE_CONFIG = 'tos_local_profile_create_owner_v1'
 REVISION_CONFIG = 'tos_local_source_revision_owner_v1'
 CLAIM_CONFIG = 'tos_local_claim_create_owner_v1'
+CLAIM_FORM_CONFIG = 'tos_local_claim_form_owner_v1'
 REVISION_FIELDS = {'preferred_label', 'variant_labels', 'notes', 'field_languages', 'source_refs', 'extensions'}
 MAX_COMMAND_BYTES = 1_048_576
 
@@ -70,14 +72,16 @@ def _configuration(path):
     creation = config.get('schema_version') in CREATION_CONFIGS
     profile_creation = config.get('schema_version') == PROFILE_CONFIG
     revision = config.get('schema_version') == REVISION_CONFIG
+    claim_forms = config.get('schema_version') == CLAIM_FORM_CONFIG
     captures_provenance = profile_creation or config.get('schema_version') == 'tos_local_historical_create_owner_v2'
     _keys(config, {'schema_version', 'uid', 'principal_id', 'source_root', 'source_path',
                    'authority_ref', 'allowed_form_ids', 'allowed_operations', 'expires_at'}
           | ({'record_id', 'allowed_claim_ids', 'maker_type'} if creation else set())
           | ({'record_id', 'profile_type_id', 'maker_type'} if profile_creation else set())
           | ({'record_id', 'allowed_fields'} if revision else set())
+          | ({'claim_id'} if claim_forms else set())
           | ({'provenance_event_id'} if captures_provenance else set()))
-    if (config['schema_version'] not in {'tos_local_source_command_owner_v1', REVISION_CONFIG, PROFILE_CONFIG, *CREATION_CONFIGS}
+    if (config['schema_version'] not in {'tos_local_source_command_owner_v1', REVISION_CONFIG, PROFILE_CONFIG, CLAIM_FORM_CONFIG, *CREATION_CONFIGS}
             or type(config['uid']) is not int or config['uid'] != os.getuid()
             or any(not isinstance(config[key], str) or not config[key].strip()
                    for key in ('principal_id', 'authority_ref'))
@@ -118,9 +122,14 @@ def _configuration(path):
     relative = Path(config['source_path'])
     if (relative.is_absolute() or relative.as_posix() != config['source_path']
             or '..' in relative.parts or relative.parts[:2] != ('ToS', 'source-witnesses')
-            or any(part in ('payload', 'local-content') for part in relative.parts)
-            or relative.suffix != '.json' or relative.name.endswith('.human-forms.json')):
+            or any(part in ('payload', 'local-content', 'catalog') for part in relative.parts)
+            or (relative.name != 'source-claims.jsonl' if claim_forms else relative.suffix != '.json')
+            or relative.name.endswith('.human-forms.json')):
         raise PermissionError('source-command target must be explicit source metadata')
+    if claim_forms:
+        claim_forms_path(root / relative, config['claim_id'])
+        _, _, contracts = _claim_form_source(root / relative, root, config['claim_id'])
+        return config, _digest(_canonical({'configuration': config, 'source_contracts': contracts})), root / relative
     if (creation or revision) and (relative.name != config['record_id'].split('.')[1] + '.json'
                      or len(relative.parts) < 5):
         raise PermissionError('historical creation requires its typed record in a new subject directory')
@@ -187,10 +196,43 @@ def _validate_history(payload):
                 raise JournalCorruption('receipt result is absent from retained forms')
 
 
-def _snapshot(source_path, root=None):
-    source_raw = _read(source_path, MAX_COMMAND_BYTES)
-    source = _json_object(source_raw)
-    if source.get('schema_version') not in {'tos_corpus_record_v1', 'tos_historical_record_v1'}:
+def _claim_form_source(source_path, root, claim_id):
+    """Select exactly one Claim from one bounded protected stream, not a corpus scan.
+
+    Checks profile/schema/layer/visibility. Endpoint existence and semantic
+    domain/range remain the source and graph validators' responsibility; a
+    form write cannot change or admit the Claim.
+    """
+    from source_record_profiles import SourceClaimProfiles
+    raw = _read(source_path, MAX_COMMAND_BYTES)
+    claims = [_json_object(line) for line in raw.splitlines() if line.strip()]
+    selected = [claim for claim in claims if claim.get('claim_id') == claim_id]
+    if len(selected) != 1:
+        raise ValueError('delegated Claim must resolve exactly once in the source stream')
+    source = selected[0]
+    profiles = SourceClaimProfiles(root)
+    profiles.validate(source)
+    total_bytes = len(raw)
+    for ref, digest in profiles.input_digests.items():
+        contract = _read(root / ref, MAX_COMMAND_BYTES)
+        total_bytes += len(contract)
+        if total_bytes > 8_388_608 or len(profiles.input_digests) > 128:
+            raise ValueError('Claim form source and contracts exceed the bounded input snapshot')
+        if hashlib.sha256(contract).hexdigest() != digest:
+            raise JournalConflict('Claim form source contract changed while resolving')
+    return raw, source, {ref: 'sha256:' + digest for ref, digest in profiles.input_digests.items()}
+
+
+def _snapshot(source_path, root=None, claim_id=None):
+    if claim_id is not None:
+        source_raw, source, _ = _claim_form_source(source_path, root, claim_id)
+        subject = Record.from_payload(source['claim_id'], source['claim_version'], source)
+        target = claim_forms_path(source_path, claim_id)
+    else:
+        source_raw = _read(source_path, MAX_COMMAND_BYTES)
+        source = _json_object(source_raw)
+        target = source_path.with_name(source_path.stem + '.human-forms.json')
+    if claim_id is None and source.get('schema_version') not in {'tos_corpus_record_v1', 'tos_historical_record_v1'}:
         if root is None:
             raise ValueError('source-command adapter does not understand this source family')
         from source_record_profiles import SourceRecordProfiles
@@ -202,8 +244,8 @@ def _snapshot(source_path, root=None):
     if (source.get('schema_version') == 'tos_historical_record_v1'
             and source.get('visibility') not in {'public', 'public_metadata_only'}):
         raise PermissionError('historical source visibility is outside the public-metadata adapter')
-    subject = Record.from_payload(source['record_id'], source['record_version'], source)
-    target = source_path.with_name(source_path.stem + '.human-forms.json')
+    if claim_id is None:
+        subject = Record.from_payload(source['record_id'], source['record_version'], source)
     try:
         raw = _read(target, MAX_SET_BYTES)
     except FileNotFoundError:
@@ -312,7 +354,16 @@ def _apply(payload, subject, changes):
 def prepare_metadata_change(source, payload, principal_id, form_id, field_id):
     """Construct a proposal from the reader's finite field catalog; grant nothing."""
     subject = Record.from_payload(source['record_id'], source['record_version'], source)
-    field = next((field for field in metadata_field_catalog(source) if field['field_id'] == field_id), None)
+    return _prepare_form_change(subject, metadata_field_catalog(source), payload, principal_id, form_id, field_id)
+
+
+def prepare_claim_change(source, payload, principal_id, form_id, field_id):
+    subject = Record.from_payload(source['claim_id'], source['claim_version'], source)
+    return _prepare_form_change(subject, claim_field_catalog(source), payload, principal_id, form_id, field_id)
+
+
+def _prepare_form_change(subject, fields, payload, principal_id, form_id, field_id):
+    field = next((field for field in fields if field['field_id'] == field_id), None)
     if field is None:
         raise ValueError('unknown metadata field selector')
     old = next((form for form in payload['forms'] if form['form_id'] == form_id), None) if payload else None
@@ -744,6 +795,10 @@ def run_local_command(owner_config: Path, request: dict):
     if config['schema_version'] == REVISION_CONFIG:
         from source_revisions import run_revision
         return run_revision(owner_config, config, configuration, source_path, request)
+    claim_id = config['claim_id'] if config['schema_version'] == CLAIM_FORM_CONFIG else None
+    field_catalog = claim_field_catalog if claim_id is not None else metadata_field_catalog
+    materialize = materialize_claim_forms if claim_id is not None else materialize_metadata_forms
+    prepare_change = prepare_claim_change if claim_id is not None else prepare_metadata_change
     operation = request.get('operation')
     fields = {'schema_version', 'operation'}
     if operation == 'apply':
@@ -755,7 +810,12 @@ def run_local_command(owner_config: Path, request: dict):
     _keys(request, fields)
     if request['schema_version'] != 'tos_local_source_command_v1':
         raise ValueError('unknown source command version')
-    snapshot = _snapshot(source_path, Path(config['source_root']))
+    snapshot = _snapshot(source_path, Path(config['source_root']), claim_id)
+    source_contracts = (_claim_form_source(source_path, Path(config['source_root']), claim_id)[2]
+                        if claim_id is not None else None)
+    if source_contracts is not None and configuration != _digest(_canonical({
+            'configuration': config, 'source_contracts': source_contracts})):
+        raise JournalConflict('Claim form source contracts changed before command preparation')
 
     def result(snapshot, receipt=None, replayed=False):
         _, source, subject, target, raw, payload = snapshot
@@ -767,10 +827,11 @@ def run_local_command(owner_config: Path, request: dict):
                 'supported_operations': list(OPERATIONS), 'allowed_operations': config['allowed_operations'],
                 'command_operations': ['describe', 'prepare', 'apply'],
                 'source_fields': [{key: value for key, value in field.items() if key not in ('pointer', 'context')}
-                                  for field in metadata_field_catalog(source)],
+                                  for field in field_catalog(source)],
                 'allowed_form_ids': config['allowed_form_ids'],
+                **({'source_contracts': source_contracts} if source_contracts is not None else {}),
                 'forms': [_form_ref(form) for form in payload['forms']] if payload else [],
-                'materializations': materialize_metadata_forms(source, payload, access_allowed=True) if payload else [],
+                'materializations': materialize(source, payload, access_allowed=True) if payload else [],
                 'receipt': receipt, 'replayed': replayed, 'grants_admission': False}
 
     if operation == 'describe':
@@ -779,7 +840,7 @@ def run_local_command(owner_config: Path, request: dict):
         source_raw, source, subject, target, raw, payload = snapshot
         if request['form_id'] not in config['allowed_form_ids']:
             raise PermissionError('prepared form is outside the delegated identity scope')
-        change = prepare_metadata_change(source, payload, config['principal_id'], request['form_id'], request['field_id'])
+        change = prepare_change(source, payload, config['principal_id'], request['form_id'], request['field_id'])
         if change['operation'] not in config['allowed_operations']:
             raise PermissionError('prepared operation is not delegated')
         response = result(snapshot)
@@ -791,10 +852,13 @@ def run_local_command(owner_config: Path, request: dict):
     request_digest = _digest(_canonical(request))
     with _locked(Path(config['source_root']) / 'ToS/source-witnesses/historical-create'), _locked(snapshot[3]):
         config, configuration, current_source_path = _configuration(owner_config)
-        if current_source_path != source_path:
+        if current_source_path != source_path or config.get('claim_id') != claim_id:
             raise JournalConflict('owner source route changed before the transaction')
+        if source_contracts is not None and configuration != _digest(_canonical({
+                'configuration': config, 'source_contracts': source_contracts})):
+            raise JournalConflict('Claim form source contracts changed before transaction')
         changes = _changes(request, config)  # Current revocation also applies to replay.
-        snapshot = _snapshot(source_path, Path(config['source_root']))
+        snapshot = _snapshot(source_path, Path(config['source_root']), claim_id)
         source_raw, source, subject, target, raw, payload = snapshot
         for receipt in payload.get('growth_history', []) if payload else []:
             if receipt['command_id'] == request['command_id']:
@@ -808,13 +872,14 @@ def run_local_command(owner_config: Path, request: dict):
         # Source-copy must satisfy the real existing reader, including its
         # independently selected mandatory context. Other modes are stored as
         # unassessed source proposals, never rendered by this metadata adapter.
-        views = {view['form']['id']: view for view in materialize_metadata_forms(source, value, access_allowed=True)}
+        views = {view['form']['id']: view for view in materialize(source, value, access_allowed=True)}
         for change in changes:
             if change['form']['content']['kind'] == 'source-copy' and views[change['form']['form_id']]['state'] != 'ready':
                 raise ValueError('source-copy does not satisfy the source metadata reader')
         receipt = {'command_id': request['command_id'], 'request_digest': request_digest,
                    'principal_id': config['principal_id'], 'authority_ref': config['authority_ref'],
                    'owner_configuration': configuration, 'recorded_at': datetime.now(timezone.utc).isoformat(),
+                   **({'source_contracts': source_contracts} if source_contracts is not None else {}),
                    'source': subject.ref, 'previous_revision': request['expected_revision'],
                    'results': [_form_ref(change['form']) for change in changes]}
         value.setdefault('growth_history', []).append(receipt)

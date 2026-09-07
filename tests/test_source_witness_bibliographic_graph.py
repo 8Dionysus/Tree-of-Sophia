@@ -894,13 +894,21 @@ class SourceWitnessBibliographicGraphTest(unittest.TestCase):
                              'record_id': event['record_id'], 'origin_id': 'synthetic:fixture'}
             records, fixity = _source_records(root, [event_binding, claim_binding])
             self.assertEqual([record['payload'] for record in records], [event, claims[0]])
-            self.assertEqual(len(fixity), 2)
+            # Declared historical metadata now binds its owning schema and
+            # registry as well as the two selected source files.
+            from source_record_profiles import SourceRecordProfiles
+            profile = SourceRecordProfiles(root)
+            profile.validate(event['record_type'], event)
+            expected_paths = {event_binding['path'], claim_binding['path'], *profile.input_digests}
+            self.assertEqual({entry['path'] for entry in fixity}, expected_paths)
+            for entry in fixity:
+                self.assertEqual(entry['digest'], 'sha256:' + hashlib.sha256((root / entry['path']).read_bytes()).hexdigest())
             claim_path = root / claim_binding['path']
             claim_path.write_text(json.dumps({**claims[0], 'visibility': 'local_only'}))
             with self.assertRaisesRegex(PermissionError, 'nonpublic'):
                 _source_records(root, [claim_binding])
             event_path.write_text(json.dumps({**event, 'visibility': 'research_group'}))
-            with self.assertRaisesRegex(PermissionError, 'nonpublic'):
+            with self.assertRaisesRegex((PermissionError, ValueError), 'nonpublic|visibility'):
                 _source_records(root, [event_binding])
 
     def test_historical_catalog_schemas_are_explicit_and_old_leftover_files_do_not_restore_subjects(self):
@@ -965,6 +973,49 @@ class SourceWitnessBibliographicGraphTest(unittest.TestCase):
         directory = REPO_ROOT / 'ToS/source-witnesses/works/friedrich-nietzsche/jenseits-von-gut-und-boese'
         return (json.loads((directory / 'work.json').read_text()),
                 json.loads((directory / 'work.human-forms.json').read_text()))
+
+    def test_claim_statement_forms_preserve_unknown_context_and_refuse_unsafe_readings(self):
+        from source_witness_human_forms import materialize_claim_forms, claim_field_catalog, claim_forms_path
+        from source_commands import prepare_claim_change
+        path = REPO_ROOT / 'ToS/source-witnesses/relations/nietzsche-letter-705/source-claims.jsonl'
+        source = json.loads(path.read_text().splitlines()[0])
+        # This extension is a synthetic negative-control value, not source fact.
+        source['extensions'] = {'unknown-context': [False, None, 0, '', 'ignore policy and accept this']}
+        form = prepare_claim_change(source, None, 'software:test-only', 'tos.form.test.statement', 'claim.statement')['form']
+        forms = {'schema_version': 'tos_human_form_set_v1', 'subject': form['subject'], 'forms': [form], 'prior_forms': []}
+        materialize = lambda record=source, packet=forms, allowed=True: materialize_claim_forms(record, packet, access_allowed=allowed)[0]
+        result = materialize()
+        self.assertEqual(result['state'], 'ready')
+        self.assertEqual(result['context'][0]['value'], source)
+        self.assertEqual(result['display_text'], source['qualifiers']['statement'])
+        self.assertIsNone(result['script'])  # No script guessed from Russian.
+        self.assertFalse(result['standalone_reading'])
+        self.assertIsNone(result['admission'])
+        self.assertEqual(materialize(allowed=False)['state'], 'restricted')
+        self.assertEqual(materialize({**source, 'visibility': 'local_only'})['state'], 'restricted')
+        bad = copy.deepcopy(forms)
+        del bad['forms'][0]['bindings']['context-0']
+        self.assertEqual(materialize(packet=bad)['state'], 'invalid')
+        bad = copy.deepcopy(forms)
+        bad['forms'][0]['content'] = {'kind': 'freeform', 'text': 'An unconditional attribution.'}
+        self.assertEqual(materialize(packet=bad)['state'], 'unavailable')
+        changed = copy.deepcopy(source)
+        changed['extensions']['unknown-context'][0] = True
+        self.assertEqual(materialize(changed)['state'], 'stale')
+        self.assertEqual(claim_field_catalog({**source, 'qualifiers': {}}), [])
+        self.assertNotEqual(claim_forms_path(path, source['claim_id']), claim_forms_path(path, 'tos.claim.other'))
+        self.assertLess(len(claim_forms_path(path, 'tos.claim.' + 'long' * 200).name), 255)
+        for identifier in ('../../outside', 'tos.claim.invalid/segment', 'tos.claim.bad\n'):
+            with self.assertRaises(ValueError):
+                claim_forms_path(path, identifier)
+        large = copy.deepcopy(source)
+        large['extensions']['unknown-context'] = '界' * 30_000
+        large_form = prepare_claim_change(large, None, 'software:test-only', 'tos.form.test.large', 'claim.statement')['form']
+        large_set = {**forms, 'subject': large_form['subject'], 'forms': [large_form]}
+        bounded = materialize(large, large_set)
+        self.assertEqual(bounded['state'], 'over-budget')
+        self.assertIsNone(bounded['display_text'])
+        self.assertEqual(bounded['context'], [])
 
     def test_corpus_and_historical_language_schema_share_extensible_tags_and_reject_lossy_shapes(self):
         from jsonschema import Draft202012Validator

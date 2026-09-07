@@ -11,7 +11,7 @@ from typing import Any, Iterable
 
 from jsonschema import Draft202012Validator
 from referencing import Registry, Resource
-from source_witness_human_forms import load_metadata_forms
+from source_witness_human_forms import load_metadata_forms, load_claim_forms
 from source_record_profiles import (SourceRecordProfiles, SourceClaimProfiles, SourceProfileError,
                                     SOURCE_CLAIM_BASENAME)
 from build_source_witness_catalog import (OPTIONAL_RECORD_FILES, ADAPTED_RECORD_FILES,
@@ -1008,6 +1008,15 @@ def build_payload(repo_root: Path = REPO_ROOT) -> dict[str, Any]:
         _add_node(nodes, object_node)
 
         claim_node = _claim_node(entry, claim)
+        if Path(entry['source_claim_file_ref']).name == SOURCE_CLAIM_BASENAME:
+            try:
+                forms = load_claim_forms(repo_root, entry['source_claim_file_ref'], claim, access_allowed=True)
+            except (ValueError, OSError) as exc:
+                raise BibliographicGraphBuildError(f'{claim_id}: invalid adjacent Claim forms: {exc}') from exc
+            if forms is not None:
+                forms_ref, forms_raw, materializations = forms
+                claim_node['properties'].update(human_forms=materializations, human_forms_source_ref=forms_ref)
+                input_digests[forms_ref] = hashlib.sha256(forms_raw).hexdigest()
         _add_node(nodes, claim_node)
 
         event_ref = str(claim["provenance_event_ref"])

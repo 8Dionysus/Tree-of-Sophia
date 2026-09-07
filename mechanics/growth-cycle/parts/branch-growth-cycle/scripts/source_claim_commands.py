@@ -159,8 +159,24 @@ def _prepare(config, claims):
 
 def _replay(target, config, request):
     os.close(source._owned_path(target, directory=True))
-    if {path.name for path in target.iterdir()} != PACKAGE_FILES:
+    names = {path.name for path in target.iterdir()}
+    form_targets = {source.claim_forms_path(target / SOURCE_CLAIM_BASENAME, claim['claim_id']).name: claim['claim_id']
+                    for claim in request['claims']}
+    allowed = PACKAGE_FILES | form_targets.keys() | {'.' + name + '.writer.lock' for name in form_targets}
+    if not PACKAGE_FILES <= names or names - allowed:
         raise source.JournalConflict('claim package is occupied or no longer an initial package')
+    # Only independently retained form sets of these exact Claims may extend
+    # the initial package. The creation receipt still binds its original five
+    # files, not the current form content or any semantic decision.
+    for name in names - PACKAGE_FILES:
+        raw = source._read(target / name, source.MAX_SET_BYTES)
+        if name in form_targets:
+            forms = source._json_object(raw)
+            source._validate_history(forms)
+            if forms['subject']['id'] != form_targets[name]:
+                raise source.JournalCorruption('adjacent Claim forms belong to another subject')
+        elif raw:
+            raise source.JournalCorruption('Claim form lock contains unexpected data')
     receipt = source._json_object(source._read(target / 'source-create-receipt.json', source.MAX_COMMAND_BYTES))
     if (receipt.get('schema_version') != 'tos_local_claim_create_receipt_v1'
             or receipt.get('command_id') != request['command_id']

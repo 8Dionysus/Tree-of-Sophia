@@ -90,12 +90,19 @@ export function selectHumanForms(item: Item, language = 'auto') {
   };
   if (!Array.isArray(forms) || forms.length > 32) return stop('invalid', 'forms.invalid-or-excessive-collection');
   if (!forms.length) return formDeliveryCost(result) <= HUMAN_FORM_SELECTION_BUDGET ? result : stop('over-budget', 'forms.inspect-collection-separately');
-  if (attributes.source_record === null || typeof attributes.source_record !== 'object' || Array.isArray(attributes.source_record)) {
+  if (attributes.source_record != null && attributes.source_claim != null) {
+    return stop('invalid', 'forms.ambiguous-source-record-binding');
+  }
+  const isClaim = attributes.source_record == null && attributes.source_claim !== null
+    && typeof attributes.source_claim === 'object' && !Array.isArray(attributes.source_claim);
+  const rawSource = isClaim ? attributes.source_claim : attributes.source_record;
+  if (rawSource === null || typeof rawSource !== 'object' || Array.isArray(rawSource)) {
     return stop('invalid', 'forms.missing-source-record-binding');
   }
-  const source = record(attributes.source_record);
-  const subject = {id: source.record_id, version: source.record_version, digest: 'sha256:' + String(attributes.source_sha256 ?? '')};
-  if (!exactRef(subject)) return stop('invalid', 'forms.invalid-source-record-binding');
+  const source = record(rawSource);
+  const subject = {id: source[isClaim ? 'claim_id' : 'record_id'], version: source[isClaim ? 'claim_version' : 'record_version'],
+    digest: 'sha256:' + String(attributes.source_sha256 ?? '')};
+  if (!exactRef(subject) || (isClaim && item.entity_id !== subject.id)) return stop('invalid', 'forms.invalid-source-record-binding');
   const ready: Item[] = [], seen = new Set<string>();
   for (const [index, raw] of forms.entries()) {
     const packet = record(raw);

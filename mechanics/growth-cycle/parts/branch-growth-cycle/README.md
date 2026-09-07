@@ -663,3 +663,39 @@ transaction; this is not a sandbox or a cross-file reader snapshot.
 Claim correction/history, scoped assessment/admission and human-form production
 remain their own operations. Initial creation alone does not complete Growth,
 all subject profiles, source quality, publication or the full foundation.
+
+### Forms of a declared Claim
+
+`tos_local_claim_form_owner_v1` is a separate delegation for the same
+`describe`, `prepare`, `apply` and `form.create`/`form.revise` grammar. Its
+fields equal `tos_local_source_command_owner_v1` plus one exact `claim_id`;
+`source_path` must instead identify one existing `source-claims.jsonl` below
+the source home, excluding catalog, payload and local-content paths. A
+`claims.create` permission never implicitly grants form writing or vice versa.
+
+Discovery advertises `claim.statement` only when the selected Claim has a
+complete statement. Preparation copies it and binds the entire Claim as
+mandatory context, using the same reader in
+[`HUMAN_FORMS.md`](../../../../ToS/doctrine/HUMAN_FORMS.md). The target is the
+adjacent `source-claims.<sha256-of-UTF-8-claim-id>.human-forms.json`, returned by
+discovery; no caller path or source row number chooses it. The source Claim
+bytes, IDs and initial review status are unchanged.
+
+Resolution reads only the selected protected stream (at most 1 MiB) and
+declared registry/schema inputs (at most 128, total snapshot at most 8 MiB).
+It requires exactly one occurrence of the selected ID, the current declared
+schema, predicate, assertion layer and public-metadata visibility. It does
+not crawl endpoint records: source and graph validators retain endpoint
+existence/domain/range checks. A form write is not Claim validation or admission.
+The source contracts appear in discovery and the new form receipt and are
+bound into `expected_configuration`; changing a source contract invalidates
+prepared writes. Current schema and visibility are also checked before replay.
+The existing form-set limits, shared locks, atomic rename, exact predecessor,
+source/conflict checks and local-account security boundary are reused.
+
+An initial `claims.create` retry permits separately retained form sets and
+their empty lock files only for its original Claim IDs. Their retained history
+and subject binding are checked, while its original five files and receipt
+stay byte-bound. Unknown extra files, aliases and mismatched form subjects
+remain conflicts/corruption; a creation retry does not vouch for current form
+quality. Claim revisions are still a distinct, unimplemented source operation.

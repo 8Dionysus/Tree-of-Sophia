@@ -187,6 +187,52 @@ access or a new source ontology.
 
 ## Source commands and retained change history
 
+### Declared Claim statements
+
+The shared `source-claims.jsonl` reader also accepts adjacent form sets for
+each separately identified Claim. The filename is
+`source-claims.<sha256-of-UTF-8-claim-id>.human-forms.json`; the exact subject
+reference inside the set remains identity authority. This bounded filename
+does not depend on row order, a mutable label or a user-supplied path. Moving
+the source stream still requires explicit companion/reference migration.
+
+`claim.statement` selects the complete nonempty `qualifiers.statement` string,
+with nullable `qualifiers.statement_language` and `statement_script` as source
+declarations. Their extensible tag grammar matches metadata forms. No field
+means no advertised statement, not a generated sentence, title or ID fallback.
+These declarations concern this wording, not the cited witness language or an
+assessment of translation/originality. Invalid declared tags are refused.
+
+The **entire exact Claim** is mandatory context, including its maker, endpoints,
+predicate, layer, epistemic and initial review status, evidence, alternatives,
+counterevidence, qualifications and unknown extensions. Thus a ready source-copy
+is never standalone: a consumer must retain this context or return a reference
+for inspection. The materializer refuses truncation and the existing bounded
+delivery can withhold an oversized packet without shortening its assertion.
+Templates, freeform paraphrase and derived linguistic-context admission remain
+unavailable on this adapter. Rendering does not reassess or grant use of a Claim.
+
+The graph builder validates the declared Claim profile, carries the forms on
+the Claim node (not its subject or object), and binds the adjacent file digest.
+Python and Worker/D1 choose forms from `source_claim.claim_id/claim_version`
+and the source digest. A carrier exposing both metadata and Claim bindings is
+ambiguous and refused. This does not alter the stronger source Claim or create
+a direct fact edge. Legacy Claim streams still need their own adapter migration.
+
+The separate `tos_local_claim_form_owner_v1` Growth delegation uses the common
+form commands below, selected by one exact `claim_id`. Its original creation
+receipt remains distinct from subsequent form receipts. The optional
+`growth_history[].source_contracts` retains exact registry/profile/schema input
+digests; these also contribute to the expected configuration digest. Older
+closed-schema readers must update or explicitly reject this additive receipt
+field, never discard it. Historical receipts are not retroactively populated.
+
+The three real letter-705 Claim statements have source-copy forms. Their
+wording remains Russian with unspecified script, their assertions remain
+unreviewed, and their materializations grant no semantic admission.
+
+### Command behavior
+
 The source owner may delegate `form.create` and `form.revise` for explicitly
 named form identities of one bibliographic subject. This is permission to
 record source-owned forms, not permission to assess them, admit their wording,

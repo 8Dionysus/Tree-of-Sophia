@@ -25,6 +25,12 @@
         "principal_id": {"type": "string", "minLength": 1},
         "authority_ref": {"type": "string", "minLength": 1},
         "owner_configuration": {"$ref": "#/$defs/digest"},
+        "source_contracts": {
+          "type": "object", "maxProperties": 128,
+          "propertyNames": {"type": "string", "pattern": "^ToS/(?:contracts|doctrine/semantic-interchange)/[^/]+\\.json$(?![\\s\\S])"},
+          "additionalProperties": {"$ref": "#/$defs/digest"},
+          "description": "Optional exact source profile/registry/schema inputs bound by the command configuration digest; historical receipts remain unchanged."
+        },
         "recorded_at": {"type": "string", "format": "date-time"},
         "source": {"$ref": "knowledge-assessment.schema.json#/$defs/exactRef"},
         "previous_revision": {"oneOf": [{"type": "null"}, {"$ref": "#/$defs/digest"}]},

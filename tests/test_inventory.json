@@ -879,7 +879,7 @@
       "family": "source_growth_command_contract",
       "validation_lane": "mechanics_local",
       "owner_surface": "mechanics/growth-cycle/parts/branch-growth-cycle/README.md",
-      "protects": "separately delegated declared Claim creation with exact selected input bindings, multi-subject atomic batches, source/schema freshness, current scope, collision and corruption refusals, process-loss recovery and CLI replay; no semantic admission or historical truth",
+      "protects": "separately delegated declared Claim creation with exact selected input bindings, multi-subject atomic batches, source/schema freshness, current scope, collision and corruption refusals, process-loss recovery and CLI replay; separately delegated Claim forms with whole-source context, exact identity/schema/visibility/language binding, source immutability, predecessor preparation, stale replay, shared graph/access delivery and compatible initial-creation replay; no semantic admission or historical truth",
       "coverage_authority": "mechanics_local lane discovery",
       "mode": "blocking",
       "runtime_cost": "fast",

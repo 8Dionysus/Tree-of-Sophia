@@ -606,7 +606,7 @@ def _form_language_context_valid(packet: dict[str, Any]) -> bool:
 def select_human_forms(item: dict[str, Any], language: str = 'auto') -> dict[str, Any]:
     """Deliver source materializations intact; do not re-assess or rank truth.
 
-The initial adapter binds bibliographic records. Other owners must supply an
+The adapters bind metadata records or a distinct declared Claim. Other owners must supply an
 equally explicit source record binding before this reader can select their
 forms. A source-snapshot admission is not a freshly evaluated runtime grant.
 """
@@ -637,11 +637,18 @@ forms. A source-snapshot admission is not a freshly evaluated runtime grant.
     if not forms:
         return result if _form_delivery_cost(result) <= HUMAN_FORM_SELECTION_BUDGET else stop('over-budget', 'forms.inspect-collection-separately')
     record = attributes.get('source_record')
+    claim = attributes.get('source_claim')
+    if record is not None and claim is not None:
+        return stop('invalid', 'forms.ambiguous-source-record-binding')
+    is_claim = record is None and isinstance(claim, dict)
+    if is_claim:
+        record = claim
     if not isinstance(record, dict):
         return stop('invalid', 'forms.missing-source-record-binding')
-    subject = {'id': record.get('record_id'), 'version': record.get('record_version'),
+    subject = {'id': record.get('claim_id' if is_claim else 'record_id'),
+               'version': record.get('claim_version' if is_claim else 'record_version'),
                'digest': 'sha256:' + str(attributes.get('source_sha256', ''))}
-    if not _exact_form_ref(subject):
+    if not _exact_form_ref(subject) or (is_claim and item.get('entity_id') != subject['id']):
         return stop('invalid', 'forms.invalid-source-record-binding')
     ready, seen = [], set()
     for index, packet in enumerate(forms):

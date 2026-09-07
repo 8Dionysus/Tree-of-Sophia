@@ -17,6 +17,142 @@ ROOT = fixtures.ROOT
 
 
 class SourceClaimCreationTests(unittest.TestCase):
+    def test_claim_forms_use_shared_commands_and_keep_exact_claim_context(self):
+        with self.creation() as (root, owner, config, claim, request, rebuild, graph_fixture):
+            claim['qualifiers'].update(statement='Не подтверждено; только условная тестовая атрибуция.',
+                                       statement_language='ru', statement_script='Cyrl')
+            preview = commands.run_local_command(owner, {
+                'schema_version': 'tos_local_source_command_v1', 'operation': 'prepare-create', 'claims': [claim]})
+            request.update(expected_dependencies=preview['expected_dependencies'], expected_inputs=preview['source_bindings'])
+            commands.run_local_command(owner, request)
+            source = root / config['source_path']
+            original = source.read_bytes()
+            form_config = {key: config[key] for key in ('uid', 'principal_id', 'source_root', 'source_path',
+                                                       'authority_ref', 'expires_at')}
+            form_config.update(schema_version='tos_local_claim_form_owner_v1', claim_id=claim['claim_id'],
+                allowed_operations=['form.create', 'form.revise'], allowed_form_ids=['tos.form.test.claim-statement'])
+            owner.write_text(json.dumps(form_config))
+            prepared = commands.run_local_command(owner, {'schema_version': 'tos_local_source_command_v1',
+                'operation': 'prepare', 'field_id': 'claim.statement', 'form_id': 'tos.form.test.claim-statement'})
+            self.assertEqual(prepared['source']['id'], claim['claim_id'])
+            self.assertNotEqual(prepared['source']['id'], claim['subject_ref'])
+            self.assertEqual(prepared['source_fields'], [{'field_id': 'claim.statement', 'role': 'statement',
+                                                         'language': 'ru', 'script': 'Cyrl'}])
+            form_request = {'schema_version': 'tos_local_source_command_v1', 'operation': 'apply',
+                'command_id': 'synthetic-claim-form', 'expected_source': prepared['source'],
+                'expected_configuration': prepared['owner_configuration'], 'expected_revision': prepared['revision'],
+                'changes': [prepared['prepared_change']]}
+            result = commands.run_local_command(owner, form_request)
+            view = result['materializations'][0]
+            self.assertEqual(view['state'], 'ready')
+            self.assertEqual(view['display_text'], claim['qualifiers']['statement'])
+            self.assertEqual(view['context'][0]['value'], claim)
+            self.assertFalse(view['standalone_reading'])
+            self.assertIsNone(view['admission'])
+            self.assertFalse(result['grants_admission'])
+            replay = commands.run_local_command(owner, form_request)
+            self.assertTrue(replay['replayed'])
+            self.assertEqual(replay['receipt'], result['receipt'])
+            self.assertEqual(source.read_bytes(), original)
+            graph, _, _ = graph_fixture.historical_knowledge(root, rebuild())
+            node = next(n for n in graph['nodes'] if n['entity_id'] == claim['claim_id'])
+            self.assertEqual(node['attributes']['human_forms'], result['materializations'])
+            self.assertEqual(node['attributes']['source_claim'], claim)
+            from tos_access.knowledge import select_human_forms
+            self.assertEqual(select_human_forms(node, 'ru')['roles']['statement']['packet'], view)
+            # Forms are separately owned descendants, not a mutation of the
+            # immutable creation receipt or a reason to repeat source creation.
+            owner.write_text(json.dumps(config))
+            replay_creation = commands.run_local_command(owner, request)
+            self.assertTrue(replay_creation['replayed'])
+            owner.write_text(json.dumps(form_config))
+            prepared_again = commands.run_local_command(owner, {'schema_version': 'tos_local_source_command_v1',
+                'operation': 'prepare', 'field_id': 'claim.statement', 'form_id': 'tos.form.test.claim-statement'})
+            self.assertEqual(prepared_again['prepared_change']['operation'], 'form.revise')
+            revised_request = {**form_request, 'command_id': 'synthetic-claim-form-revision',
+                'expected_revision': prepared_again['revision'], 'changes': [prepared_again['prepared_change']]}
+            revised = commands.run_local_command(owner, revised_request)
+            retained = json.loads((root / revised['target_path']).read_bytes())
+            self.assertEqual(retained['prior_forms'], [form_request['changes'][0]['form']])
+            self.assertEqual(retained['forms'][0]['form_version'], 2)
+            self.assertEqual(revised['receipt']['source_contracts'], prepared_again['source_contracts'])
+            cli = subprocess.run([sys.executable, str(fixtures.MECHANIC / 'source_commands.py'), '--owner-config', str(owner)],
+                input=json.dumps(revised_request), text=True, capture_output=True, timeout=30)
+            self.assertEqual(cli.returncode, 0, cli.stdout)
+            self.assertEqual(json.loads(cli.stdout)['receipt'], revised['receipt'])
+            # Mechanical reading does not invent a language/script or admit a
+            # statement after changes in qualifiers, assessment or source bytes.
+            altered = copy.deepcopy(claim)
+            altered['qualifiers']['negated'] = False
+            source.write_text(json.dumps(altered))
+            stale = commands.run_local_command(owner, form_request)
+            self.assertTrue(stale['replayed'])
+            self.assertEqual(stale['materializations'][0]['state'], 'stale')
+            self.assertIsNone(stale['materializations'][0]['display_text'])
+            self.assertIsNone(stale['materializations'][0]['admission'])
+
+    def test_claim_form_refusals_preserve_source_and_do_not_publish(self):
+        with self.creation() as (root, owner, config, claim, request, *_):
+            claim['qualifiers'].update(statement='Не доказано.', statement_language='x-fixture')
+            preview = commands.run_local_command(owner, {
+                'schema_version': 'tos_local_source_command_v1', 'operation': 'prepare-create', 'claims': [claim]})
+            request.update(expected_dependencies=preview['expected_dependencies'], expected_inputs=preview['source_bindings'])
+            commands.run_local_command(owner, request)
+            source = root / config['source_path']
+            original = source.read_bytes()
+            form_config = {key: config[key] for key in ('uid', 'principal_id', 'source_root', 'source_path',
+                                                       'authority_ref', 'expires_at')}
+            form_config.update(schema_version='tos_local_claim_form_owner_v1', claim_id=claim['claim_id'],
+                allowed_operations=['form.create', 'form.revise'], allowed_form_ids=['tos.form.test.claim'])
+            owner.write_text(json.dumps(form_config))
+            prepare = {'schema_version': 'tos_local_source_command_v1', 'operation': 'prepare',
+                       'field_id': 'claim.statement', 'form_id': 'tos.form.test.claim'}
+            prepared = commands.run_local_command(owner, prepare)
+            form_request = {'schema_version': 'tos_local_source_command_v1', 'operation': 'apply',
+                'command_id': 'synthetic-negative-claim-form', 'expected_source': prepared['source'],
+                'expected_configuration': prepared['owner_configuration'], 'expected_revision': None,
+                'changes': [prepared['prepared_change']]}
+            target = root / prepared['target_path']
+            for mutation in ('context', 'language', 'subject', 'role', 'maker'):
+                bad = copy.deepcopy(form_request)
+                form = bad['changes'][0]['form']
+                if mutation == 'context':
+                    del form['bindings']['context-0']
+                elif mutation == 'language':
+                    form['language'] = 'ru'
+                elif mutation == 'subject':
+                    form['subject']['id'] = claim['subject_ref']
+                elif mutation == 'role':
+                    form['role'] = 'caption'
+                else:
+                    form['creator_id'] = 'model:other'
+                with self.subTest(mutation=mutation), self.assertRaises((ValueError, PermissionError)):
+                    commands.run_local_command(owner, bad)
+                self.assertFalse(target.exists())
+            schema = root / 'ToS/contracts/source-relation-claim.schema.json'
+            schema.write_bytes(schema.read_bytes() + b'\n')
+            with self.assertRaises(commands.JournalConflict):
+                commands.run_local_command(owner, form_request)
+            self.assertFalse(target.exists())
+            for mutation in ({'claim_id': 'tos.claim.absent'}, {'claim_id': '../../escape'},
+                             {'source_path': 'ToS/source-witnesses/catalog/source-claims.jsonl'}):
+                owner.write_text(json.dumps({**form_config, **mutation}))
+                with self.subTest(config=mutation), self.assertRaises((ValueError, PermissionError, FileNotFoundError)):
+                    commands.run_local_command(owner, prepare)
+            owner.write_text(json.dumps(form_config))
+            for replacement in ({**claim, 'visibility': 'local_only'}, {**claim, 'schema_version': 'unknown'},
+                                {**claim, 'qualifiers': {'statement': 'test', 'statement_language': 'ru\n'}},
+                                {**claim, 'qualifiers': {'statement': 'test', 'statement_script': 'Cyrillic'}}):
+                source.write_text(json.dumps(replacement))
+                with self.assertRaises((ValueError, PermissionError)):
+                    commands.run_local_command(owner, prepare)
+            source.write_bytes(original + original)
+            with self.assertRaisesRegex(ValueError, 'exactly once'):
+                commands.run_local_command(owner, prepare)
+            source.write_bytes(original)
+            self.assertFalse(target.exists())
+
+
     @contextmanager
     def creation(self):
         fixture = fixtures.HistoricalCreationTests()

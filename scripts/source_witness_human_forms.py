@@ -1,4 +1,4 @@
-"""Read adjacent bibliographic forms through the source-owned materializer.
+"""Read adjacent metadata and declared Claim forms through the source materializer.
 
 This adapter copies already public metadata. It does not authenticate growth
 commands or authorize freeform wording, templates, private text or publication.
@@ -6,8 +6,10 @@ commands or authorize freeform wording, templates, private text or publication.
 from __future__ import annotations
 
 from functools import lru_cache
+import hashlib
 import json
 from pathlib import Path
+import re
 import sys
 
 from jsonschema import Draft202012Validator
@@ -75,6 +77,36 @@ def materialize_metadata_forms(source: dict, form_set: dict, *, access_allowed: 
 Only full names and notes are supported here. Unsupported forms remain
 explicitly unavailable, not silently rendered under a more permissive role.
 """
+    subject = Record.from_payload(source['record_id'], source['record_version'], source)
+    return _materialize_forms(subject, metadata_field_catalog(source), form_set, access_allowed=access_allowed)
+
+
+def claim_field_catalog(source: dict) -> list[dict]:
+    """Only the complete declared statement; the entire Claim guards its reading.
+
+    A source profile validates the Claim before calling this adapter. No label,
+    endpoint name, predicate or assessment is synthesized into a statement.
+    """
+    qualifiers = source.get('qualifiers') or {}
+    statement = qualifiers.get('statement')
+    if not isinstance(statement, str) or not statement.strip():
+        return []
+    language, script = qualifiers.get('statement_language'), qualifiers.get('statement_script')
+    if not _field_language_validator().is_valid({'notes': {'language': language, 'script': script}}):
+        raise ValueError('claim statement language/script violates the source-form contract')
+    return [{'field_id': 'claim.statement', 'pointer': '/qualifiers/statement', 'role': 'statement',
+             'language': language, 'script': script, 'context': ['']}]
+
+
+def materialize_claim_forms(source: dict, form_set: dict, *, access_allowed: bool) -> list[dict]:
+    """Render already validated public Claim metadata, never an admission."""
+    subject = Record.from_payload(source['claim_id'], source['claim_version'], source)
+    return _materialize_forms(subject, claim_field_catalog(source), form_set,
+                              access_allowed=access_allowed is True and
+                              source.get('visibility') in {'public', 'public_metadata_only'})
+
+
+def _materialize_forms(subject: Record, field_catalog: list[dict], form_set: dict, *, access_allowed: bool):
     input_bytes = 0
     for chunk in json.JSONEncoder(ensure_ascii=False, allow_nan=False).iterencode(form_set):
         input_bytes += len(chunk.encode('utf-8'))
@@ -82,13 +114,12 @@ explicitly unavailable, not silently rendered under a more permissive role.
             raise ValueError('human-form set exceeds input budget')
     if not _validator().is_valid(form_set):
         raise ValueError('human-form set schema is invalid')
-    subject = Record.from_payload(source['record_id'], source['record_version'], source)
     if form_set['subject']['id'] != subject.id:
         raise ValueError('human-form set belongs to another source subject')
     stale_subject = form_set['subject'] != subject.ref
     prior = [Record.from_payload(value['form_id'], value['form_version'], value)
              for value in form_set['prior_forms']]
-    fields = {(field['role'], field['pointer']): field for field in metadata_field_catalog(source)}
+    fields = {(field['role'], field['pointer']): field for field in field_catalog}
     seen, results, output_bytes = set(), [], 0
     for value in form_set['forms']:
         if value['form_id'] in seen:
@@ -131,6 +162,27 @@ def load_metadata_forms(repo_root: Path, source_ref: str, source: dict, *, acces
     source_path = (root / source_ref).resolve()
     source_path.relative_to(root / 'ToS/source-witnesses')
     path = source_path.with_name(source_path.stem + '.human-forms.json')
+    return _load_forms(root, source_path, path, source, materialize_metadata_forms, access_allowed)
+
+
+def claim_forms_path(source_path: Path, claim_id: str) -> Path:
+    """Bounded adjacent filename, stable under row reorder; never a caller path."""
+    if (source_path.name != 'source-claims.jsonl' or not isinstance(claim_id, str)
+            or not re.fullmatch(r'tos\.claim\.[a-z0-9]+(?:[.-][a-z0-9]+)*', claim_id)):
+        raise ValueError('Claim forms require a declared source stream and stable Claim identity')
+    suffix = hashlib.sha256(claim_id.encode('utf-8')).hexdigest()
+    return source_path.with_name(f'source-claims.{suffix}.human-forms.json')
+
+
+def load_claim_forms(repo_root: Path, source_ref: str, source: dict, *, access_allowed: bool):
+    root = repo_root.resolve()
+    source_path = (root / source_ref).resolve()
+    source_path.relative_to(root / 'ToS/source-witnesses')
+    path = claim_forms_path(source_path, source['claim_id'])
+    return _load_forms(root, source_path, path, source, materialize_claim_forms, access_allowed)
+
+
+def _load_forms(root, source_path, path, source, materializer, access_allowed):
     if not path.exists():
         return None
     resolved = path.resolve()
@@ -140,4 +192,4 @@ def load_metadata_forms(repo_root: Path, source_ref: str, source: dict, *, acces
     if len(raw) > MAX_SET_BYTES:
         raise ValueError('human-form set exceeds input budget')
     payload = json.loads(raw)
-    return path.relative_to(root).as_posix(), raw, materialize_metadata_forms(source, payload, access_allowed=access_allowed)
+    return path.relative_to(root).as_posix(), raw, materializer(source, payload, access_allowed=access_allowed)

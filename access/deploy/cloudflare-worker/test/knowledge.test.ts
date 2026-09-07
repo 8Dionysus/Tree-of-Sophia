@@ -11,8 +11,25 @@ import { selectHumanForms, formDeliveryCost, HUMAN_FORM_SELECTION_BUDGET } from 
 
 function realFormNode(): KnowledgeGraph['nodes'][number] {
   return JSON.parse(execFileSync('python3', ['-c',
-    "import sys,json,pathlib;sys.path.insert(0,'access/src');from tos_access.knowledge import _normalize_node;g=json.loads(pathlib.Path('ToS/derived-exports/graph/source-witness-bibliographic-claims.min.json').read_text());n=next(n for n in g['nodes'] if n['properties'].get('human_forms'));print(json.dumps(_normalize_node(n,'source-claims')))"],
+    "import sys,json,pathlib;sys.path.insert(0,'access/src');from tos_access.knowledge import _normalize_node;g=json.loads(pathlib.Path('ToS/derived-exports/graph/source-witness-bibliographic-claims.min.json').read_text());n=next(n for n in g['nodes'] if n['properties'].get('identity_ref')=='tos.work.friedrich-nietzsche.jenseits-von-gut-und-boese');print(json.dumps(_normalize_node(n,'source-claims')))"],
     {cwd: fileURLToPath(new URL('../../../../', import.meta.url)), encoding:'utf8'}));
+}
+
+function claimFormNode(): KnowledgeGraph['nodes'][number] {
+  // A disposable source-copy form of the real, unreviewed letter Claim;
+  // not a new historical assertion or an assessed source form.
+  return JSON.parse(execFileSync('python3', ['-c', [
+    "import sys,json,pathlib;sys.path[:0]=['access/src','mechanics/growth-cycle/parts/branch-growth-cycle/scripts']",
+    'from source_commands import prepare_claim_change, materialize_claim_forms',
+    'from tos_access.knowledge import _normalize_node',
+    "g=json.loads(pathlib.Path('ToS/derived-exports/graph/source-witness-bibliographic-claims.min.json').read_text())",
+    "n=next(n for n in g['nodes'] if n['properties'].get('claim_ref')=='tos.claim.nietzsche-letter-705.sender')",
+    "c=n['properties']['source_claim']",
+    "f=prepare_claim_change(c,None,'software:test-only','tos.form.test.claim','claim.statement')['form']",
+    "s={'schema_version':'tos_human_form_set_v1','subject':f['subject'],'forms':[f],'prior_forms':[]}",
+    "n['properties'].update(human_forms=materialize_claim_forms(c,s,access_allowed=True),human_forms_source_ref='test-only:source-copy')",
+    "print(json.dumps(_normalize_node(n,'source-claims')))"
+  ].join(';')], {cwd: fileURLToPath(new URL('../../../../', import.meta.url)), encoding:'utf8'}));
 }
 
 const graph: KnowledgeGraph = {
@@ -183,6 +200,22 @@ test("indexed D1 path conditions and inclusion agree with the pure engine", asyn
     assert.equal(selectedForms.roles.hover!.state, 'ready');
     assert.equal(selectedForms.roles.name!.packet!.display_text, 'По ту сторону добра и зла');
     assert.equal(selectedForms.roles.name!.packet!.standalone_reading, false);
+    const claimNode = claimFormNode();
+    scoped.nodes.push(claimNode);
+    await db.prepare('INSERT INTO knowledge_nodes VALUES (?,?,?,?,?,?,?,?,?)').bind(claimNode.id, claimNode.entity_id,
+      claimNode.native_id, claimNode.source_graph, claimNode.kind_id, claimNode.type_id,
+      claimNode.display.title.default.toLowerCase(), JSON.stringify(claimNode).toLowerCase(), JSON.stringify(claimNode)).run();
+    const claimSpec = {...formSpec, seed: {focus_node_id: claimNode.id}};
+    const claimResult = await executeKnowledgeLensD1(db, claimSpec);
+    assert.deepEqual(claimResult, await executeKnowledgeLens(scoped, claimSpec));
+    const pythonClaim = JSON.parse(execFileSync('python3', ['-c',
+      "import sys,json;sys.path.insert(0,'access/src');from tos_access.knowledge import execute_knowledge_lens;p=json.load(sys.stdin);print(json.dumps(execute_knowledge_lens(p['graph'],p['spec'])))"],
+      {cwd: fileURLToPath(new URL('../../../../', import.meta.url)), input: JSON.stringify({graph: scoped, spec: claimSpec}), encoding:'utf8'}));
+    assert.deepEqual(claimResult, pythonClaim);
+    const claimPacket = ((claimResult.nodes as KnowledgeGraph['nodes'])[0]!.human_form_selection as ReturnType<typeof selectHumanForms>).roles.statement!.packet!;
+    assert.equal(claimPacket.standalone_reading, false);
+    assert.equal(claimPacket.admission, null);
+    assert.deepEqual((claimPacket.context as {value: unknown}[])[0]!.value, claimNode.attributes.source_claim);
     scoped.nodes[1]!.source_graph = 'repository';
     await db.prepare("UPDATE knowledge_nodes SET source_graph='repository', json=? WHERE id=?").bind(JSON.stringify(scoped.nodes[1]), 'philosophy:b').run();
     assert.deepEqual(await executeKnowledgeLensD1(db,joined), await executeKnowledgeLens(scoped,joined));
@@ -243,6 +276,26 @@ test('source human forms preserve ambiguity, exact context and bounded delivery 
   // Returned delivery objects cannot mutate the cached source graph.
   results[0]!.roles.name!.packet!.display_text = 'modified only in the result';
   assert.equal(selectHumanForms(node, 'ru').roles.name!.packet!.display_text, 'По ту сторону добра и зла');
+});
+
+test('Claim forms bind the assertion rather than its object in Python and Worker', () => {
+  const node = claimFormNode();
+  const conflicting = structuredClone(node);
+  conflicting.attributes.source_record = {record_id: node.entity_id, record_version: 1};
+  const wrongIdentity = structuredClone(node);
+  wrongIdentity.entity_id = 'tos.letter.not-the-claim';
+  const changed = structuredClone(node);
+  (changed.attributes.source_claim as Record<string, unknown>).claim_version = 2;
+  const missing = structuredClone(node);
+  delete missing.attributes.source_claim;
+  const cases = [node, conflicting, wrongIdentity, changed, missing];
+  const python = JSON.parse(execFileSync('python3', ['-c',
+    "import sys,json;sys.path.insert(0,'access/src');from tos_access.knowledge import select_human_forms;print(json.dumps([select_human_forms(n,'ru') for n in json.load(sys.stdin)]))"],
+    {cwd: fileURLToPath(new URL('../../../../', import.meta.url)), input: JSON.stringify(cases), encoding:'utf8'}));
+  const results = cases.map(item => selectHumanForms(item, 'ru'));
+  assert.deepEqual(results, python);
+  assert.equal(results[0]!.roles.statement!.state, 'ready');
+  for (const result of results.slice(1)) assert.equal(result.state, 'invalid');
 });
 
 test('display selection keeps fallback, original language and ambiguity observable', () => {
