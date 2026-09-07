@@ -378,7 +378,8 @@ profile contract and source schemas consumed while reading existing metadata,
 plus the shared reader implementation. Changing these after preparation
 causes a conflict before publication, including a schema edit that leaves
 the proposed source content otherwise valid. The declaration does not widen
-the separately delegated historical writer into a general profile writer.
+the historical writer's delegated scope. General metadata creation uses its
+own explicit configuration below.
 
 New materialization can select `tos_local_historical_create_owner_v2` with
 the same fields plus one exact `provenance_event_id` (`tos.event.*`). All new
@@ -427,6 +428,49 @@ maker and ID revocations still apply. An occupied target without that matching
 receipt is a conflict, not a migration opportunity. The receipt describes the
 initial creation; subsequent ordinary form/source changes do not become its
 historical output. A reused command ID with changed input cannot overwrite it.
+
+### Declared-profile subject creation
+
+`tos_local_profile_create_owner_v1` delegates `source.create` through the same
+CLI and atomic directory transaction, independently of the historical route.
+Its exact fields are `schema_version`, `uid`, `principal_id`, `maker_type`,
+`source_root`, `source_path`, `record_id`, `profile_type_id`, `authority_ref`,
+`allowed_form_ids`, `allowed_operations`, `expires_at`, and `provenance_event_id`.
+Account, path protection, expiry and ID limits remain as above;
+`allowed_operations` is a subset of `["source.create"]`. No `allowed_claim_ids`
+field is accepted. The selected concrete identity type must already declare
+a valid `source_record_profile` in the source entity registry, with both
+readers mapped. Neither the request nor a source field selects a profile,
+executable, grant, path or schema not declared by that owner.
+
+`describe` returns `tos_local_source_create_result_v1`, `profile_type_id`,
+the complete `source_profile`, scope and configuration digest. `prepare`
+takes `record` and returns the exact proposed subject and the ordinary
+metadata field catalog. `prepare-create` takes only `record` and `forms`;
+`source.create` adds the same command/configuration/dependency/absent-version
+fields as historical creation. **Neither accepts `claims`, even an empty
+list.** The record must satisfy its exact declared source schema version and
+the shared metadata properties. Its ID, kind and basename must agree with
+the independently delegated profile. Unknown versions, catalog/payload paths,
+nonpublic metadata, pre-verified identities and noninitial versions fail.
+Unknown fields permitted by the source schema retain their JSON values.
+
+Creation emits six files: the native record, adjacent human-form set, request,
+environment, serialization provenance and `source-create-receipt.json` with
+`tos_local_source_create_receipt_v1`. There is no empty historical claim file
+and no conversion to `tos_historical_record_v1`. At least one source-bound
+name is required. Provenance identifies `source-profile-metadata-serialization`
+and retains the historical route's explicit buffer-capture and unsigned
+execution limits. Current revocations apply to exact retries. Dependencies
+include the new subject's schema even before its profile has any instances;
+changing it after preparation requires a new preparation.
+
+Ordinary `form.create`/`form.revise` may subsequently address the same declared
+metadata profile under their own existing form configuration. This does not
+grant source creation to a form writer. General source-record revision,
+subject-specific relations, substantive assessment, identity merge/split,
+publication and admission remain separate operations. A metadata declaration
+does not implement them or declare an entire subject profile finished.
 
 An abrupt process loss before commit may leave an invisible staging directory;
 retry does not delete or publish that abandoned directory. An ordinary exception

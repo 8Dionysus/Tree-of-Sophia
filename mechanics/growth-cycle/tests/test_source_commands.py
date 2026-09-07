@@ -467,6 +467,145 @@ class SourceCommandTests(unittest.TestCase):
 
 
 class HistoricalCreationTests(unittest.TestCase):
+    def test_new_profile_creation_and_later_forms_need_no_kind_branch(self):
+        """An uninstalled synthetic kind exercises extension, not historical truth."""
+        with self.creation() as (root, owner, config, request, rebuild, fixture):
+            registry_path = root / 'ToS/doctrine/semantic-interchange/entity-types.v1.json'
+            registry = json.loads(registry_path.read_bytes())
+            entry = copy.deepcopy(next(item for item in registry['types']
+                                       if item['type_id'] == 'tos.entity.historical-event'))
+            kind, schema_ref = 'fixture-message', 'ToS/contracts/fixture-message.schema.json'
+            entry.update(type_id='tos.entity.' + kind, parent_type_ids=['tos.entity.identity'],
+                         source_mappings=[{'source_graph': graph, 'source_kind_id': kind}
+                                          for graph in ('source-claims', 'source-navigation')])
+            entry['source_record_profile'].update(record_type=kind, id_prefix='tos.fixture-message.',
+                source_basename=kind + '.json', catalog_filename='fixture-messages.jsonl', graph_layer='source-profile',
+                schemas=[{'schema_version': 'tos_fixture_message_v1', 'schema_ref': schema_ref,
+                          'schema_dependencies': ['ToS/contracts/corpus-record.schema.json']}])
+            registry['types'].append(entry)
+            registry_path.write_text(json.dumps(registry))
+            schema = json.loads((root / 'ToS/contracts/historical-record.schema.json').read_bytes())
+            schema['$id'] = 'https://tree-of-sophia.local/' + schema_ref
+            schema.pop('allOf')
+            schema['properties'].update(schema_version={'const': 'tos_fixture_message_v1'},
+                record_type={'const': kind}, record_id={'type': 'string', 'pattern': r'^tos\.fixture-message\.'})
+            (root / schema_ref).write_text(json.dumps(schema))
+            contract = 'ToS/contracts/provenance-event-v2.schema.json'
+            (root / contract).write_bytes((ROOT / contract).read_bytes())
+            config.pop('allowed_claim_ids')
+            config.update(schema_version='tos_local_profile_create_owner_v1',
+                profile_type_id=entry['type_id'], allowed_operations=['source.create'],
+                record_id='tos.fixture-message.created',
+                source_path='ToS/source-witnesses/history/new-subject/' + kind + '.json',
+                provenance_event_id='tos.event.fixture-message-create')
+            owner.write_text(json.dumps(config))
+            source = request['record']
+            source.update(schema_version='tos_fixture_message_v1', record_type=kind,
+                          record_id=config['record_id'], preferred_label='Условное сообщение')
+            request.pop('claims')
+            describe = commands.run_local_command(owner, {'schema_version': 'tos_local_source_command_v1',
+                                                          'operation': 'describe'})
+            request.update(operation='source.create', expected_configuration=describe['owner_configuration'])
+            preview_request = {'schema_version': 'tos_local_source_command_v1', 'operation': 'prepare-create',
+                               'record': source, 'forms': request['forms']}
+            preview = commands.run_local_command(owner, preview_request)
+            request['expected_dependencies'] = preview['expected_dependencies']
+            schema['description'] = 'An uninstantiated profile schema changed after prepare.'
+            (root / schema_ref).write_text(json.dumps(schema))
+            with self.assertRaises(commands.JournalConflict):
+                commands.run_local_command(owner, request)
+            request['expected_dependencies'] = commands.run_local_command(owner, preview_request)['expected_dependencies']
+            for field, value in [('profile_type_id', 'tos.entity.work'),
+                                 ('record_id', 'tos.work.not-delegated'),
+                                 ('source_path', 'ToS/source-witnesses/catalog/new-subject/fixture-message.json')]:
+                owner.write_text(json.dumps({**config, field: value}))
+                with self.subTest(delegation=field), self.assertRaises(PermissionError):
+                    commands.run_local_command(owner, preview_request)
+            owner.write_text(json.dumps(config))
+            for field, value in [('schema_version', 'tos_fixture_message_v99'),
+                                 ('record_type', 'historical-event'), ('identity_status', 'verified'),
+                                 ('visibility', 'local_only'), ('record_version', 2)]:
+                with self.subTest(field=field), self.assertRaises((ValueError, PermissionError, commands.ValidationError)):
+                    commands.run_local_command(owner, {**preview_request, 'record': {**source, field: value}})
+            result = commands.run_local_command(owner, request)
+            self.assertFalse(result['replayed'])
+            self.assertTrue(commands.run_local_command(owner, request)['replayed'])
+            graph, _, _ = fixture.historical_knowledge(root, rebuild())
+            node = next(node for node in graph['nodes'] if node['entity_id'] == source['record_id'])
+            self.assertEqual(node['attributes']['source_record'], source)
+            # Profile metadata also stays writable through the existing form
+            # contract, without granting profile creation to that contract.
+            form_config = {key: config[key] for key in ('uid', 'principal_id', 'source_root', 'source_path',
+                                                       'authority_ref', 'allowed_form_ids', 'expires_at')}
+            form_config.update(schema_version='tos_local_source_command_owner_v1', allowed_operations=['form.revise'])
+            owner.write_text(json.dumps(form_config))
+            form_context = commands.run_local_command(owner, {'schema_version': 'tos_local_source_command_v1',
+                                                              'operation': 'describe'})
+            change = commands.run_local_command(owner, {'schema_version': 'tos_local_source_command_v1',
+                'operation': 'prepare', 'form_id': config['allowed_form_ids'][0], 'field_id': 'metadata.preferred-name'})
+            applied = commands.run_local_command(owner, {'schema_version': 'tos_local_source_command_v1',
+                'operation': 'apply', 'command_id': 'synthetic:revise-profile-form',
+                'expected_configuration': form_context['owner_configuration'], 'expected_source': form_context['source'],
+                'expected_revision': form_context['revision'], 'changes': [change['prepared_change']]})
+            self.assertEqual(applied['receipt']['results'][0]['version'], 2)
+            self.assertEqual(json.loads((root / config['source_path']).read_bytes()), source)
+            with self.assertRaises(ValueError):
+                commands.run_local_command(owner, request)
+
+    def test_profile_creation_uses_shared_transaction_without_granting_claims_or_admission(self):
+        """Generic operation on an existing declared profile; synthetic data only."""
+        with self.creation() as (root, owner, config, request, rebuild, fixture):
+            contract = 'ToS/contracts/provenance-event-v2.schema.json'
+            (root / contract).write_bytes((ROOT / contract).read_bytes())
+            config.pop('allowed_claim_ids')
+            config.update(schema_version='tos_local_profile_create_owner_v1',
+                          profile_type_id='tos.entity.historical-event',
+                          allowed_operations=['source.create'],
+                          provenance_event_id='tos.event.generic-creation-fixture')
+            owner.write_text(json.dumps(config))
+            describe = commands.run_local_command(owner, {'schema_version': 'tos_local_source_command_v1',
+                                                          'operation': 'describe'})
+            self.assertEqual(describe['supported_operations'], ['source.create'])
+            self.assertEqual(describe['source_profile']['record_type'], 'historical-event')
+            self.assertFalse(describe['grants_admission'])
+            request.pop('claims')
+            request.update(operation='source.create', expected_configuration=describe['owner_configuration'])
+            preview = commands.run_local_command(owner, {'schema_version': 'tos_local_source_command_v1',
+                'operation': 'prepare-create', **{key: request[key] for key in ('record', 'forms')}})
+            request['expected_dependencies'] = preview['expected_dependencies']
+            target = (root / config['source_path']).parent
+            self.assertFalse(target.exists())
+            with patch.object(commands, '_publish_new_directory', side_effect=OSError('interrupted')):
+                with self.assertRaises(OSError):
+                    commands.run_local_command(owner, request)
+            self.assertFalse(target.exists())
+            result = commands.run_local_command(owner, request)
+            self.assertEqual(result['schema_version'], 'tos_local_source_create_result_v1')
+            self.assertEqual(result['receipt']['schema_version'], 'tos_local_source_create_receipt_v1')
+            self.assertFalse(result['grants_admission'])
+            self.assertFalse((target / 'historical-claims.jsonl').exists())
+            before = {path.name: path.read_bytes() for path in target.iterdir()}
+            self.assertEqual(len(before), 6)
+            self.assertEqual(json.loads((root / config['source_path']).read_bytes()), request['record'])
+            provenance = json.loads(before['source-create-provenance.jsonl'])
+            commands._validator_for_provenance(root).validate(provenance)
+            self.assertEqual(provenance['method']['procedure']['name'], 'source-profile-metadata-serialization')
+            graph, _, _ = fixture.historical_knowledge(root, rebuild())
+            node = next(item for item in graph['nodes'] if item['entity_id'] == config['record_id'])
+            self.assertEqual(node['attributes']['source_record'], request['record'])
+            self.assertEqual({form['state'] for form in node['attributes']['human_forms']}, {'ready'})
+            process = subprocess.run([sys.executable, str(MECHANIC / 'source_commands.py'), '--owner-config', str(owner)],
+                input=json.dumps(request), text=True, capture_output=True)
+            self.assertEqual(process.returncode, 0, process.stderr + process.stdout)
+            self.assertTrue(json.loads(process.stdout)['replayed'])
+            with self.assertRaises(ValueError):
+                commands.run_local_command(owner, {**request, 'claims': []})
+            config['allowed_operations'] = []
+            owner.write_text(json.dumps(config))
+            with self.assertRaises(PermissionError):
+                commands.run_local_command(owner, request)
+            self.assertEqual({path.name: path.read_bytes() for path in target.iterdir()}, before)
+
     def test_v2_creation_captures_own_provenance_atomically_and_replays_exact_bytes(self):
         with self.creation() as (root, owner, config, request, rebuild, fixture):
             schema_ref = 'ToS/contracts/provenance-event-v2.schema.json'
@@ -725,7 +864,7 @@ class HistoricalCreationTests(unittest.TestCase):
 
     def test_dependency_drift_and_revocation_during_staging_refuse_publication(self):
         with self.creation() as (root, owner, config, request, rebuild, fixture):
-            original = commands._historical_creation
+            original = commands._prepare_creation
             calls = []
             def change_configuration(*args):
                 output = original(*args)
@@ -733,7 +872,7 @@ class HistoricalCreationTests(unittest.TestCase):
                 if len(calls) == 2:
                     owner.write_text(json.dumps({**config, 'allowed_operations': []}))
                 return output
-            with patch.object(commands, '_historical_creation', side_effect=change_configuration):
+            with patch.object(commands, '_prepare_creation', side_effect=change_configuration):
                 with self.assertRaises(commands.JournalConflict):
                     commands.run_local_command(owner, request)
             self.assertFalse((root / config['source_path']).parent.exists())
@@ -748,7 +887,7 @@ class HistoricalCreationTests(unittest.TestCase):
                     path.write_text(json.dumps(source))
                 calls.append(True)
                 return original(*args)
-            with patch.object(commands, '_historical_creation', side_effect=change_dependency):
+            with patch.object(commands, '_prepare_creation', side_effect=change_dependency):
                 with self.assertRaises(commands.JournalConflict):
                     commands.run_local_command(owner, request)
             self.assertFalse((root / config['source_path']).parent.exists())

@@ -1,4 +1,4 @@
-"""Explicit source-owner commands for forms and versioned historical subjects.
+"""Explicit source-owner commands for forms and declared metadata subjects.
 
 The independently selected protected configuration delegates local-account
 source writing, not semantic admission. Source prose cannot choose a path,
@@ -38,6 +38,7 @@ from source_witness_human_forms import MAX_SET_BYTES, _validator, materialize_me
 OPERATIONS = ('form.create', 'form.revise')
 CREATION_OPERATION = 'historical.create'
 CREATION_CONFIGS = {'tos_local_historical_create_owner_v1', 'tos_local_historical_create_owner_v2'}
+PROFILE_CONFIG = 'tos_local_profile_create_owner_v1'
 REVISION_CONFIG = 'tos_local_source_revision_owner_v1'
 REVISION_FIELDS = {'preferred_label', 'variant_labels', 'notes', 'field_languages', 'source_refs', 'extensions'}
 MAX_COMMAND_BYTES = 1_048_576
@@ -63,20 +64,22 @@ def _configuration(path):
     raw = _read(path, MAX_COMMAND_BYTES)
     config = _json_object(raw)
     creation = config.get('schema_version') in CREATION_CONFIGS
+    profile_creation = config.get('schema_version') == PROFILE_CONFIG
     revision = config.get('schema_version') == REVISION_CONFIG
-    captures_provenance = config.get('schema_version') == 'tos_local_historical_create_owner_v2'
+    captures_provenance = profile_creation or config.get('schema_version') == 'tos_local_historical_create_owner_v2'
     _keys(config, {'schema_version', 'uid', 'principal_id', 'source_root', 'source_path',
                    'authority_ref', 'allowed_form_ids', 'allowed_operations', 'expires_at'}
           | ({'record_id', 'allowed_claim_ids', 'maker_type'} if creation else set())
+          | ({'record_id', 'profile_type_id', 'maker_type'} if profile_creation else set())
           | ({'record_id', 'allowed_fields'} if revision else set())
           | ({'provenance_event_id'} if captures_provenance else set()))
-    if (config['schema_version'] not in {'tos_local_source_command_owner_v1', REVISION_CONFIG, *CREATION_CONFIGS}
+    if (config['schema_version'] not in {'tos_local_source_command_owner_v1', REVISION_CONFIG, PROFILE_CONFIG, *CREATION_CONFIGS}
             or type(config['uid']) is not int or config['uid'] != os.getuid()
             or any(not isinstance(config[key], str) or not config[key].strip()
                    for key in ('principal_id', 'authority_ref'))
             or _instant(config['expires_at']) <= datetime.now(timezone.utc)):
         raise PermissionError('source-command delegation is invalid or expired')
-    operations = (CREATION_OPERATION,) if creation else ('record.revise',) if revision else OPERATIONS
+    operations = ('source.create',) if profile_creation else (CREATION_OPERATION,) if creation else ('record.revise',) if revision else OPERATIONS
     for key, allowed in (('allowed_operations', operations), ('allowed_form_ids', None)):
         values = config[key]
         if (not isinstance(values, list) or len(values) > 32
@@ -102,7 +105,8 @@ def _configuration(path):
                 or any(not isinstance(value, str) or not re.fullmatch(r'tos\.claim\.[a-z0-9]+(?:[.-][a-z0-9]+)*', value) for value in values)
                 or len(set(values)) != len(values)):
             raise ValueError('invalid historical claim identity scope')
-        if captures_provenance and (not isinstance(config['provenance_event_id'], str)
+    if captures_provenance:
+        if (not isinstance(config['provenance_event_id'], str)
                 or not re.fullmatch(r'tos\.event\.[a-z0-9]+(?:[.-][a-z0-9]+)*', config['provenance_event_id'])):
             raise ValueError('invalid delegated provenance identity')
     root = Path(config['source_root'])
@@ -116,7 +120,25 @@ def _configuration(path):
     if (creation or revision) and (relative.name != config['record_id'].split('.')[1] + '.json'
                      or len(relative.parts) < 5):
         raise PermissionError('historical creation requires its typed record in a new subject directory')
+    if profile_creation:
+        _, profile = _configured_profile(config)
+        if (not isinstance(config['record_id'], str)
+                or not re.fullmatch(re.escape(profile['id_prefix']) + r'[a-z0-9]+(?:[.-][a-z0-9]+)*', config['record_id'])
+                or config['maker_type'] not in {'human', 'software', 'model'}
+                or relative.name != profile['source_basename'] or len(relative.parts) < 5
+                or 'catalog' in relative.parts):
+            raise PermissionError('profile creation requires its delegated identity and typed source path')
     return config, _digest(_canonical(config)), root / relative
+
+
+def _configured_profile(config, profiles=None):
+    from source_record_profiles import SourceRecordProfiles
+    profiles = profiles or SourceRecordProfiles(Path(config['source_root']))
+    entry = next((entry for entry in profiles.registry['types']
+                  if entry['type_id'] == config['profile_type_id']), None)
+    if entry is None or 'source_record_profile' not in entry:
+        raise PermissionError('creation requires an explicitly declared source metadata profile')
+    return profiles, entry['source_record_profile']
 
 
 def _form_ref(value):
@@ -161,11 +183,18 @@ def _validate_history(payload):
                 raise JournalCorruption('receipt result is absent from retained forms')
 
 
-def _snapshot(source_path):
+def _snapshot(source_path, root=None):
     source_raw = _read(source_path, MAX_COMMAND_BYTES)
     source = _json_object(source_raw)
     if source.get('schema_version') not in {'tos_corpus_record_v1', 'tos_historical_record_v1'}:
-        raise ValueError('source-command adapter does not understand this source family')
+        if root is None:
+            raise ValueError('source-command adapter does not understand this source family')
+        from source_record_profiles import SourceRecordProfiles
+        profiles = SourceRecordProfiles(root)
+        kind = source.get('record_type')
+        if kind not in profiles.profiles or source_path.name != profiles.profiles[kind]['source_basename']:
+            raise ValueError('source-command adapter does not understand this source family')
+        profiles.validate(kind, source)
     if (source.get('schema_version') == 'tos_historical_record_v1'
             and source.get('visibility') not in {'public', 'public_metadata_only'}):
         raise PermissionError('historical source visibility is outside the public-metadata adapter')
@@ -296,11 +325,11 @@ def prepare_metadata_change(source, payload, principal_id, form_id, field_id):
     return {'operation': selected_operation, 'expected_form': prior, 'form': form}
 
 
-def _historical_scope(config, request):
+def _creation_scope(config, request):
     """Current delegated IDs and maker apply even to an exact old retry."""
-    source, claims, selections = request['record'], request['claims'], request['forms']
+    source, claims, selections = request['record'], request.get('claims', []), request['forms']
     if not isinstance(source, dict) or source.get('record_id') != config['record_id']:
-        raise PermissionError('historical subject identity is not delegated')
+        raise PermissionError('source subject identity is not delegated')
     if not isinstance(claims, list) or len(claims) > 32:
         raise ValueError('at most thirty-two initial claims are supported')
     if not isinstance(selections, list) or not 1 <= len(selections) <= 32:
@@ -330,8 +359,24 @@ def _initial_historical_record(config, source):
     return Record.from_payload(source['record_id'], 1, source)
 
 
-def _historical_creation(config, request):
-    """Use authored catalogs and the existing historical reader's contracts."""
+def _initial_source_record(config, source, profiles=None):
+    if config['schema_version'] != PROFILE_CONFIG:
+        return _initial_historical_record(config, source)
+    profiles, profile = _configured_profile(config, profiles)
+    profiles.validate(profile['record_type'], source)
+    if (source['record_id'] != config['record_id'] or source['record_version'] != 1
+            or source.get('supersedes_ref') is not None or source['identity_status'] != 'provisional'
+            or source['same_as_posture'] != 'no_equivalence_claim'):
+        raise PermissionError('creation requires a delegated provisional initial identity')
+    return Record.from_payload(source['record_id'], 1, source)
+
+
+def _prepare_creation(config, request):
+    """Shared initial metadata serialization; historical claims stay optional.
+
+    The historical route alone admits initial claims under its own contract.
+    A profile declaration neither selects a writer nor authorizes claims.
+    """
     from build_source_witness_catalog import collect_records, collect_claims
     from source_record_profiles import SourceRecordProfiles
     from source_witness_bibliographic_graph_common import (
@@ -339,9 +384,9 @@ def _historical_creation(config, request):
         _scan_index, _evidence_node, BibliographicGraphBuildError,
     )
     root = Path(config['source_root'])
-    source, claims, selections = request['record'], request['claims'], request['forms']
-    subject = _initial_historical_record(config, source)
+    source, claims, selections = request['record'], request.get('claims', []), request['forms']
     profiles = SourceRecordProfiles(root)
+    subject = _initial_source_record(config, source, profiles)
     records = collect_records(root, profiles=profiles)
     existing_claims = collect_claims(root)
     objects = {row['record_id']: row for rows in records.values() for row in rows}
@@ -368,7 +413,7 @@ def _historical_creation(config, request):
     if new_event in events:
         raise JournalConflict('provenance identity already exists')
     anchors = _scan_index(root, filename_pattern='*anchor*.jsonl', id_field='anchor_id')
-    contract = _historical_claim_contract(root)
+    contract = _historical_claim_contract(root) if claims else None
     evidence = []
     for claim in claims:
         contract[0].validate(claim)
@@ -418,8 +463,9 @@ def _historical_creation(config, request):
         raise ValueError('a new subject requires a source-bound name form')
     encode = lambda value: (json.dumps(value, ensure_ascii=False, allow_nan=False, indent=2) + '\n').encode()
     filename = Path(config['source_path']).name
-    files = {filename: encode(source), filename[:-5] + '.human-forms.json': encode(forms),
-             'historical-claims.jsonl': b''.join(_canonical(claim) + b'\n' for claim in claims)}
+    files = {filename: encode(source), filename[:-5] + '.human-forms.json': encode(forms)}
+    if config['schema_version'] in CREATION_CONFIGS:
+        files['historical-claims.jsonl'] = b''.join(_canonical(claim) + b'\n' for claim in claims)
     if any(len(raw) > MAX_SET_BYTES for raw in files.values()):
         raise ValueError('initial source file exceeds its byte budget')
     provenance_contract = ({'ToS/contracts/provenance-event-v2.schema.json':
@@ -503,8 +549,9 @@ def _capture_creation_provenance(config, request, files, started_at, started_ns)
             'role': 'executor', 'responsibility_posture': 'performed',
             'evidence_binding': {'ref': script_ref, 'sha256': script_hash},
             'human_evidence_status': 'not_applicable'}],
-        'method': {'procedure': {'name': 'historical-source-metadata-serialization', 'version': '2',
-            'purpose': 'Serialize supplied historical metadata and source-copy forms without judging their content.'},
+        'method': {'procedure': {'name': ('source-profile-metadata-serialization' if config['schema_version'] == PROFILE_CONFIG
+                                        else 'historical-source-metadata-serialization'), 'version': '2',
+            'purpose': 'Serialize supplied source metadata and source-copy forms without judging their content.'},
             'command_capture': {'disclosure': 'withheld_digest_only', 'argv': None,
                 'argv_sha256': _digest(_canonical(sys.argv))[7:],
                 'withholding_reason': 'Process argv can contain private owner configuration paths; request is bound separately.'},
@@ -558,48 +605,54 @@ def _publish_new_directory(staging, target):
     _sync_directory(staging.parent)
 
 
-def _create_historical(owner_config, config, configuration, source_path, request):
+def _create_source(owner_config, config, configuration, source_path, request):
+    profile_creation = config['schema_version'] == PROFILE_CONFIG
+    creation_operation = 'source.create' if profile_creation else CREATION_OPERATION
+    claim_fields = set() if profile_creation else {'claims'}
     fields = {'schema_version', 'operation'}
-    if request.get('operation') == CREATION_OPERATION:
+    if request.get('operation') == creation_operation:
         fields |= {'command_id', 'expected_configuration', 'expected_source', 'expected_revision',
-                   'expected_dependencies', 'record', 'claims', 'forms'}
+                   'expected_dependencies', 'record', 'forms'} | claim_fields
     elif request.get('operation') == 'prepare':
         fields |= {'record'}
     elif request.get('operation') == 'prepare-create':
-        fields |= {'record', 'claims', 'forms'}
+        fields |= {'record', 'forms'} | claim_fields
     elif request.get('operation') != 'describe':
-        raise ValueError('unsupported historical source command')
+        raise ValueError('unsupported source creation command')
     _keys(request, fields)
     if request['schema_version'] != 'tos_local_source_command_v1':
         raise ValueError('unknown source command version')
     root, target = Path(config['source_root']), source_path.parent
     os.close(_owned_path(target.parent, directory=True))
+    profile = _configured_profile(config)[1] if profile_creation else None
     def result(receipt=None, replayed=False):
-        return {'schema_version': 'tos_local_historical_create_result_v1',
+        return {'schema_version': ('tos_local_source_create_result_v1' if profile_creation else 'tos_local_historical_create_result_v1'),
             'authentication': 'local-unix-account', 'owner_configuration': configuration,
             'source_path': config['source_path'], 'record_id': config['record_id'],
-            'target_exists': target.exists(), 'supported_operations': [CREATION_OPERATION],
-            'command_operations': ['describe', 'prepare', 'prepare-create', CREATION_OPERATION],
-            'allowed_operations': config['allowed_operations'], 'allowed_claim_ids': config['allowed_claim_ids'],
+            'target_exists': target.exists(), 'supported_operations': [creation_operation],
+            'command_operations': ['describe', 'prepare', 'prepare-create', creation_operation],
+            'allowed_operations': config['allowed_operations'],
+            **({'source_profile': profile, 'profile_type_id': config['profile_type_id']} if profile_creation else {
+                'allowed_claim_ids': config['allowed_claim_ids'],
+                'record_schema_ref': 'ToS/contracts/historical-record.schema.json',
+                'claim_schema_ref': 'ToS/contracts/historical-claim.schema.json'}),
             'allowed_form_ids': config['allowed_form_ids'], 'expected_source': None, 'expected_revision': None,
-            'record_schema_ref': 'ToS/contracts/historical-record.schema.json',
-            'claim_schema_ref': 'ToS/contracts/historical-claim.schema.json',
             'creation_provenance_event_id': config.get('provenance_event_id'),
             'receipt': receipt, 'replayed': replayed, 'grants_admission': False}
     if request['operation'] == 'describe':
         return result()
-    if CREATION_OPERATION not in config['allowed_operations']:
-        raise PermissionError('historical creation is not delegated')
+    if creation_operation not in config['allowed_operations']:
+        raise PermissionError('source creation is not delegated')
     if request['operation'] == 'prepare':
-        subject = _initial_historical_record(config, request['record'])
+        subject = _initial_source_record(config, request['record'])
         response = result()
         response['prepared_source'] = subject.ref
         response['source_fields'] = [{key: value for key, value in field.items() if key not in ('pointer', 'context')}
                                     for field in metadata_field_catalog(request['record'])]
         return response
-    _historical_scope(config, request)
+    _creation_scope(config, request)
     if request['operation'] == 'prepare-create':
-        subject, files, dependencies = _historical_creation(config, request)
+        subject, files, dependencies = _prepare_creation(config, request)
         response = result()
         response.update(prepared_source=subject.ref, expected_dependencies=dependencies,
                         prepared_files={name: {'sha256': _digest(raw), 'bytes': len(raw)} for name, raw in files.items()})
@@ -624,19 +677,19 @@ def _create_historical(owner_config, config, configuration, source_path, request
             if (receipt.get('command_id') != request['command_id'] or receipt.get('request_digest') != request_digest
                     or receipt.get('source_path') != config['source_path']):
                 raise JournalConflict('creation target or command identity is already occupied')
-            if _snapshot(source_path)[2].id != config['record_id']:
+            if _snapshot(source_path, root)[2].id != config['record_id']:
                 raise JournalCorruption('created subject identity has been replaced')
             return result(receipt, True)
         if (request['expected_configuration'] != configuration or request['expected_source'] is not None
                 or request['expected_revision'] is not None):
             raise JournalConflict('creation requires exact delegation and absent source/revision')
         started_at, started_ns = datetime.now(timezone.utc).isoformat(), time.perf_counter_ns()
-        subject, files, dependencies = _historical_creation(config, request)
+        subject, files, dependencies = _prepare_creation(config, request)
         if request['expected_dependencies'] != dependencies:
             raise JournalConflict('prepared creation dependencies are stale')
         if config.get('provenance_event_id'):
             _capture_creation_provenance(config, request, files, started_at, started_ns)
-        receipt = {'schema_version': 'tos_local_historical_create_receipt_v1',
+        receipt = {'schema_version': ('tos_local_source_create_receipt_v1' if profile_creation else 'tos_local_historical_create_receipt_v1'),
             'command_id': request['command_id'], 'request_digest': request_digest,
             'principal_id': config['principal_id'], 'authority_ref': config['authority_ref'],
             'owner_configuration': configuration, 'recorded_at': datetime.now(timezone.utc).isoformat(),
@@ -650,7 +703,7 @@ def _create_historical(owner_config, config, configuration, source_path, request
         try:
             for name, raw in files.items():
                 _publish(staging / name, raw)
-            current_dependencies = _historical_creation(config, request)[2]
+            current_dependencies = _prepare_creation(config, request)[2]
             if (_configuration(owner_config)[1] != configuration or current_dependencies != dependencies):
                 raise JournalConflict('creation configuration or source dependencies changed')
             _publish_new_directory(staging, target)
@@ -669,8 +722,8 @@ def run_local_command(owner_config: Path, request: dict):
         raise ValueError('source command exceeds the 1 MiB input budget')
     request = _json_object(_canonical(request))  # Freeze caller-owned mutable input.
     config, configuration, source_path = _configuration(owner_config)
-    if config['schema_version'] in CREATION_CONFIGS:
-        return _create_historical(owner_config, config, configuration, source_path, request)
+    if config['schema_version'] in {*CREATION_CONFIGS, PROFILE_CONFIG}:
+        return _create_source(owner_config, config, configuration, source_path, request)
     if config['schema_version'] == REVISION_CONFIG:
         from source_revisions import run_revision
         return run_revision(owner_config, config, configuration, source_path, request)
@@ -685,7 +738,7 @@ def run_local_command(owner_config: Path, request: dict):
     _keys(request, fields)
     if request['schema_version'] != 'tos_local_source_command_v1':
         raise ValueError('unknown source command version')
-    snapshot = _snapshot(source_path)
+    snapshot = _snapshot(source_path, Path(config['source_root']))
 
     def result(snapshot, receipt=None, replayed=False):
         _, source, subject, target, raw, payload = snapshot
@@ -724,7 +777,7 @@ def run_local_command(owner_config: Path, request: dict):
         if current_source_path != source_path:
             raise JournalConflict('owner source route changed before the transaction')
         changes = _changes(request, config)  # Current revocation also applies to replay.
-        snapshot = _snapshot(source_path)
+        snapshot = _snapshot(source_path, Path(config['source_root']))
         source_raw, source, subject, target, raw, payload = snapshot
         for receipt in payload.get('growth_history', []) if payload else []:
             if receipt['command_id'] == request['command_id']:

@@ -130,9 +130,13 @@ create translations, assess wording, accept historical claims or infer edges
 from a metadata field. An addressable source record may have no Claims.
 General semantic predicates, roles, new production modes, growth permissions
 and admission are not granted by a metadata profile; their own contracts must
-be implemented. In particular the existing source-write commands remain
-separately delegated and historical subject creation/revision is still bounded
-to its implemented source family.
+be implemented. Source-write commands remain separately delegated: the
+[source-owner command](../../../mechanics/growth-cycle/parts/branch-growth-cycle/README.md#declared-profile-subject-creation)
+`source.create` now creates an initial public-metadata subject and its forms
+from an independently selected profile configuration. It reuses the exact
+reader/schema route, not a new per-type Python branch, and grants neither
+claims nor admission. Historical creation with initial claims and historical
+record revision retain their narrower, separate contracts.
 
 The reader rejects duplicate kind/prefix/basename/catalog ownership, mappings
 owned by another type, abstract identity instances, reserved native-adapter
