@@ -172,6 +172,88 @@ This closes a metadata extension seam, not the complete Foundation profile
 grammar. The synthetic `fixture-document` in the reader test is not an actual
 letter, historical evidence, a material artifact or source admission.
 
+## Concepts, situated conceptions and transformations
+
+Entity registry version 9 adds `CrosscuttingConcept` as a subtype of the
+existing broad Concept family, and Conception as a distinct SemanticObject.
+Existing canon and philosophy Concept nodes keep their IDs, mappings and
+scoped meanings. For example, `tos.concept.becoming` remains the authored
+Zarathustra-prologue interpretation; it does not become a universal account
+of becoming. No projection infers equivalence with a new crosscutting subject.
+
+`semantic-metadata-v1` explicitly reads concrete semantic-family descriptions
+through the same metadata pipeline. It does not coerce them into the identity
+family used for bibliographic or historical subjects. The exact
+`semantic-description-record` schema requires substantive notes, declared
+wording languages and `semantic_scope`: a scope note and a referent continuity
+criterion with their own language/script. Those fields are source-described
+research commitments, not accepted universal definitions. Names alone are not
+a complete description. The mechanical check rejects blank descriptions but
+cannot establish the adequacy of a criterion or its philosophical content.
+
+Source-near descriptions live in
+`ToS/source-witnesses/semantic-descriptions/<stable-subject>/`. They describe
+the source-visible subject; interpretation, membership and comparison are
+separate source Claims, not a new canon or a replacement for philosophy and
+candidate-intake authoring. This route cannot ingest arbitrary research prose
+as accepted witness. Canon, admission and source interpretation retain their
+existing review and assessment owners. Initial records are provisional under
+the separately delegated `source.create`; mere reading grants no permission.
+
+Human-form names and notes carry the complete `semantic_scope` as mandatory
+context, alongside identity posture and wording language. Changing that scope
+stales exact-version forms and prepared dependent Claims. Source correction
+uses `record.revise` and retains prior bytes and form history. It changes the
+description version, not the conception's identity. The ordinary correction
+route cannot change the scope/identity criterion, kind, ID or admission. A
+different referent needs a separately created subject and an explicit grounded
+transition; it must not be smuggled in as a corrected note. Correctness of a
+same-referent prose correction remains a content-assessment question.
+
+Relation registry version 8 declares these grounded semantic predicates:
+
+| Predicate | Subject → object | Required distinction |
+| --- | --- | --- |
+| `conception_of` | Conception → CrosscuttingConcept | explain membership through the declared continuity criterion, not a shared name |
+| `conception_attributed_to` | Conception → Agent/Organization | attributed thinker or collective is not the researcher making the attribution |
+| `conception_expressed_in` | Conception → Work/Expression/Document | interpreted expression is not authorship, endorsement or complete textual coverage |
+| `conception_redefines` | Conception → Conception | changed definition, with retained and changed features |
+| `conception_rejects` | Conception → Conception | rejection of specified commitments, not necessarily the entire concept |
+| `conception_narrows` / `conception_expands` | Conception → Conception | a specified comparison dimension and restricted or extended scope |
+| `conception_secularizes` | Conception → Conception | specified theological commitments reworked in a non-theological register, not an automatic progress claim |
+| `conception_psychologizes` | Conception → Conception | mental-process explanation, not diagnosis of a person |
+| `conception_politicizes` | Conception → Conception | specified political reworking, not mere historical context |
+| `conception_inverts` | Conception → Conception | a specified ordering, valuation or explanatory direction reversed |
+
+The transforming conception is the subject; the conception it reworks is the
+object. Each predicate has forward/inverse Russian and English labels, a
+concrete domain/range and an explicit definition. None is transitive. There
+is no graph-wide acyclicity rule or one-conception/one-author restriction.
+These relations do not imply reading, direct influence, historical priority
+or a change in the general ontology's own commitments.
+
+`semantic-relation-v1` requires at least one specific semantic endpoint and
+allows the relation's declared specific identity endpoints. It cannot replace
+the old identity reader silently or use Thing/Identity/SemanticObject fallback
+roots. Its exact source schema requires a full statement, explicit wording
+language/script and `relation_basis`, as well as ordinary evidence, maker,
+provenance, uncertainty, counterevidence and separate assessment. Basis quality
+is not proved by a nonempty string. Negated, disputed and competing Claims
+remain distinct and source-returnable through the ordinary catalog, both
+graph readers, focus, inspection, compact Claim paths and `claims.create`.
+All source qualifications remain available; no unconditional shortcut edge
+or new assessment is synthesized. Unknown extension fields retain their bytes
+and do not select executable behavior.
+
+The common pipeline supports new concrete semantic metadata and relation
+profiles as registry/schema data, within these reader modes and independent
+write/assessment permissions. Source-mode changes require an explicit
+successor, not a higher version that silently retypes old records.
+The [decision rationale](../../../docs/decisions/TOS-D-0053-source-described-conceptions.md)
+explains the additive subtype and source/review boundary. These contracts and
+synthetic tests do not alone complete the real concept-history route, precise
+occurrence/argument/objection grammar, or substantive assessment of examples.
+
 ## Documents and declared source claims
 
 Entity registry version 8 adds Document under the broader IntellectualObject

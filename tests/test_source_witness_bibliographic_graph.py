@@ -148,6 +148,169 @@ class SourceWitnessBibliographicGraphTest(unittest.TestCase):
         with self.assertRaises(SourceProfileError):
             profiles.validate({**claim, 'predicate': 'correspondence_sender', 'subject_ref': 'tos.document.synthetic'}, objects)
 
+    def test_concept_and_conception_profiles_preserve_scope_and_claim_boundaries(self):
+        """Synthetic accounts test the grammar, not Nietzsche's philosophy."""
+        from source_record_profiles import SourceRecordProfiles, SourceClaimProfiles, SourceProfileError
+        profiles = SourceRecordProfiles(REPO_ROOT)
+        kinds = ('crosscutting-concept', 'conception')
+        for kind in kinds:
+            self.assertEqual(profiles.profiles[kind]['reader'], 'semantic-metadata-v1')
+        with self.historical_fixture() as (root, history, real, claims, rebuild):
+            for name in ('source-metadata-record', 'semantic-description-record', 'semantic-relation-claim',
+                         'source-claim-record', 'semantic-relation-type-registry'):
+                ref = 'ToS/contracts/' + name + '.schema.json'
+                (root / ref).write_bytes((REPO_ROOT / ref).read_bytes())
+            from source_commands import prepare_metadata_change, _apply
+            from knowledge_assessment import Record
+            records = []
+            for kind, suffix in (('crosscutting-concept', 'question'), ('conception', 'first'), ('conception', 'second')):
+                source = {**copy.deepcopy(history[0][1]), 'schema_version': 'tos_semantic_description_record_v1',
+                    'record_type': kind, 'record_id': f'tos.{kind}.synthetic-{suffix}',
+                    'preferred_label': 'Условная трактовка' if kind == 'conception' else 'Условный сквозной концепт',
+                    'notes': 'Синтетическое описание; сходство имён не доказывает общность содержания.',
+                    'field_languages': {'preferred_label': {'language': 'ru', 'script': 'Cyrl'},
+                                        'notes': {'language': 'ru', 'script': 'Cyrl'}},
+                    'semantic_scope': {'scope_note': 'Только искусственный пример проверки.',
+                        'identity_criterion': 'Точный предмет теста; изменение формулировки не создаёт другого предмета.',
+                        'language': 'ru', 'script': 'Cyrl'},
+                    'extensions': {'uninterpreted': [False, None, 'Ω']}}
+                profiles.validate(kind, source)
+                for change in ({'semantic_scope': {}}, {'notes': ' '}, {'record_type': 'concept'},
+                               {'record_id': 'tos.concept.becoming'}, {'conception_of': 'tos.concept.becoming'}):
+                    with self.subTest(kind=kind, change=change), self.assertRaises(SourceProfileError):
+                        profiles.validate(kind, {**source, **change})
+                path = root / f'ToS/source-witnesses/semantic-descriptions/synthetic-{suffix}/{kind}.json'
+                path.parent.mkdir(parents=True)
+                path.write_text(json.dumps(source, ensure_ascii=False))
+                changes = [prepare_metadata_change(source, None, 'test:semantic-profile',
+                    form_id=f'tos.form.synthetic-{suffix}-{role}', field_id=field) for role, field in
+                    (('name', 'metadata.preferred-name'), ('hover', 'metadata.source-note'))]
+                formset = _apply(None, Record.from_payload(source['record_id'], 1, source), changes)
+                path.with_name(kind + '.human-forms.json').write_text(json.dumps(formset))
+                records.append(source)
+            associations = []
+            for index, (predicate, subject, target) in enumerate((
+                ('conception_of', records[1], records[0]), ('conception_of', records[2], records[0]),
+                ('conception_attributed_to', records[1], real[0]),
+                ('conception_expressed_in', records[1], real[2]),
+                ('conception_redefines', records[2], records[1]),
+            )):
+                claim = {**copy.deepcopy(claims[0]), 'schema_version': 'tos_semantic_relation_claim_v1',
+                    'claim_id': f'tos.claim.synthetic-conception-{index}', 'predicate': predicate,
+                    'subject_ref': subject['record_id'], 'object': target['record_id'],
+                    'assertion_layer': 'semantic_interpretation',
+                    'qualifiers': {'statement': 'Синтетическая спорная связь; не исторический факт.',
+                        'statement_language': 'ru', 'statement_script': 'Cyrl', 'negated': index == 1,
+                        'relation_basis': 'Только искусственное основание для проверки контракта.'}}
+                associations.append(claim)
+            path.with_name('source-claims.jsonl').write_text(''.join(json.dumps(c) + '\n' for c in associations))
+            objects = {r['record_id']: r for r in [*records, *real]}
+            reader = SourceClaimProfiles(root)
+            for claim in associations:
+                reader.validate(claim, objects)
+                for change in ({'subject_ref': real[0]['record_id']}, {'object': real[1]['record_id']},
+                               {'qualifiers': {'statement': 'No basis'}}, {'evidence_refs': []},
+                               {'review_status': 'accepted'}, {'claim_id': claim['subject_ref']}):
+                    with self.subTest(predicate=claim['predicate'], change=change), self.assertRaises(SourceProfileError):
+                        reader.validate({**claim, **change}, objects)
+            graph, entities, relations = self.historical_knowledge(root, rebuild())
+            from tos_access.knowledge import focus_knowledge_node, select_human_forms
+            import tos_corpus_index_common as corpus_builder
+            from tos_access.knowledge import build_knowledge_graph
+            with patch.object(corpus_builder, 'REPO_ROOT', root), patch.object(corpus_builder, 'TOS_ROOT', root / 'ToS'):
+                navigation = corpus_builder.build_source_navigation([])
+            graph = build_knowledge_graph({'source_navigation': navigation}, {}, rebuild(), entities, relations)
+            for source in records:
+                self.assertEqual(sum(n['entity_id'] == source['record_id'] for n in graph['nodes']), 2)
+                node = next(n for n in graph['nodes'] if n['entity_id'] == source['record_id'])
+                self.assertEqual(node['attributes']['source_record'], source)
+                self.assertIn('tos.entity.semantic-object', node['semantics']['type_ancestors'])
+                self.assertNotIn('tos.entity.identity', node['semantics']['type_ancestors'])
+                packet = select_human_forms(node, 'ru')['roles']['hover']['packet']
+                self.assertEqual(packet['display_text'], source['notes'])
+                self.assertTrue(any(c['binding']['pointer'] == '/semantic_scope' and c['value'] == source['semantic_scope']
+                                    for c in packet['context']))
+                self.assertIsNone(packet['admission'])
+            for claim in associations:
+                node = next(n for n in graph['nodes'] if n['entity_id'] == claim['claim_id'])
+                self.assertEqual(node['attributes']['source_claim'], claim)
+                for center, other in ((claim['subject_ref'], claim['object']), (claim['object'], claim['subject_ref'])):
+                    focused = focus_knowledge_node(graph, center, depth=2)
+                    self.assertIn(other, {n['entity_id'] for n in focused['nodes']})
+            self.assertEqual(next(e for e in entities['types'] if e['type_id'] == 'tos.entity.concept')['source_mappings'],
+                [{'source_graph': 'canon', 'source_kind_id': 'concept'},
+                 {'source_graph': 'philosophy', 'source_kind_id': 'concept'}])
+
+    def test_semantic_profile_modes_cannot_retype_existing_identity_or_bypass_endpoint_scope(self):
+        from source_record_profiles import SourceRecordProfiles, SourceClaimProfiles, SourceProfileError
+        with self.historical_fixture() as (root, history, real, claims, rebuild):
+            entity_ref = 'ToS/doctrine/semantic-interchange/entity-types.v1.json'
+            relation_ref = 'ToS/doctrine/semantic-interchange/relation-types.v1.json'
+            contract = 'ToS/contracts/semantic-relation-type-registry.schema.json'
+            (root / contract).write_bytes((REPO_ROOT / contract).read_bytes())
+            entities = json.loads((root / entity_ref).read_bytes())
+            relations = json.loads((root / relation_ref).read_bytes())
+            for kind, change in (
+                ('conception', lambda e: e['source_record_profile'].update(reader='corpus-metadata-v1')),
+                ('conception', lambda e: e.update(parent_type_ids=['tos.entity.identity'])),
+                ('conception', lambda e: e.update(object_role='identity')),
+                ('conception', lambda e: e.update(abstract=True)),
+                ('historical-event', lambda e: e['source_record_profile'].update(reader='semantic-metadata-v1')),
+            ):
+                invalid = copy.deepcopy(entities)
+                change(next(e for e in invalid['types'] if e['type_id'] == 'tos.entity.' + kind))
+                (root / entity_ref).write_text(json.dumps(invalid))
+                with self.subTest(kind=kind, change=change), self.assertRaises(SourceProfileError):
+                    SourceRecordProfiles(root)
+            (root / entity_ref).write_text(json.dumps(entities))
+            for change in (
+                lambda e: e['source_claim_profile'].update(reader='identity-relation-v1'),
+                lambda e: e.update(domain_type_ids=['tos.entity.thing']),
+                lambda e: e.update(range_type_ids=['tos.entity.semantic-object']),
+                lambda e: e.update(domain_type_ids=['tos.entity.claim']),
+                lambda e: e.update(domain_type_ids=['tos.entity.agent'], range_type_ids=['tos.entity.work']),
+            ):
+                invalid = copy.deepcopy(relations)
+                change(next(e for e in invalid['relations'] if e['relation_type_id'] == 'tos.relation.conception-of'))
+                (root / relation_ref).write_text(json.dumps(invalid))
+                with self.subTest(change=change), self.assertRaises(SourceProfileError):
+                    SourceClaimProfiles(root)
+            from tos_access.knowledge import validate_semantic_registries
+            changed = copy.deepcopy(entities)
+            changed['registry_version'] += 1
+            profile = next(e for e in changed['types'] if e['type_id'] == 'tos.entity.conception')['source_record_profile']
+            profile.update(profile_version=2, reader='corpus-metadata-v1')
+            self.assertFalse(validate_semantic_registries(changed, relations, previous_entity_registry=entities)['valid'])
+
+    def test_conception_transformations_are_distinct_nontransitive_grounded_predicates(self):
+        from source_record_profiles import SourceClaimProfiles, SourceProfileError
+        profiles = SourceClaimProfiles(REPO_ROOT)
+        objects = {'tos.conception.subject': {'record_type': 'conception'},
+                   'tos.conception.object': {'record_type': 'conception'}}
+        transformations = ('redefines', 'rejects', 'narrows', 'expands', 'secularizes',
+                           'psychologizes', 'politicizes', 'inverts')
+        for transformation in transformations:
+            predicate = 'conception_' + transformation
+            relation = profiles.relations[predicate]
+            self.assertFalse(relation['transitive'])
+            self.assertEqual(relation['domain_type_ids'], ['tos.entity.conception'])
+            self.assertEqual(relation['range_type_ids'], ['tos.entity.conception'])
+            self.assertIsNone(relation['cardinality']['per_subject_max'])
+            claim = {'schema_version': 'tos_semantic_relation_claim_v1', 'claim_type': 'relation',
+                'claim_id': 'tos.claim.synthetic-' + transformation, 'claim_version': 1,
+                'subject_ref': 'tos.conception.subject', 'predicate': predicate, 'object': 'tos.conception.object',
+                'assertion_layer': 'semantic_interpretation', 'evidence_refs': ['test:synthetic'],
+                'maker': {'maker_type': 'software', 'agent_ref': 'software:synthetic'},
+                'provenance_event_ref': 'tos.event.synthetic', 'epistemic_status': 'uncertain',
+                'review_status': 'unreviewed', 'visibility': 'public_metadata_only',
+                'qualifiers': {'statement': 'Synthetic comparison only.', 'statement_language': 'en',
+                              'statement_script': 'Latn', 'relation_basis': 'Explicit synthetic comparison dimension.'}}
+            profiles.validate(claim, objects)
+            for qualifiers in ({**claim['qualifiers'], 'relation_basis': ' '},
+                               {**claim['qualifiers'], 'statement_language': 'not a language tag'}):
+                with self.subTest(transformation=transformation), self.assertRaises(SourceProfileError):
+                    profiles.validate({**claim, 'qualifiers': qualifiers}, objects)
+
     def test_declared_claim_profile_reads_new_predicate_without_python_branch(self):
         """Synthetic predicate/claim grammar, not evidence for any real event."""
         from build_source_witness_catalog import collect_claims, CatalogBuildError

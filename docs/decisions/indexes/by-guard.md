@@ -175,6 +175,10 @@
 - [TOS-D-0019 - Zarathustra Golden Growth Kernel](../TOS-D-0019-zarathustra-golden-growth-kernel.md) (`docs/decisions/TOS-D-0019-zarathustra-golden-growth-kernel.md`)
 - [TOS-D-0023 - Participant-Scoped Translation Exposure](../TOS-D-0023-participant-scoped-translation-exposure.md) (`docs/decisions/TOS-D-0023-participant-scoped-translation-exposure.md`)
 
+## identity preservation
+
+- [TOS-D-0053 - Source-described conceptions without retyping existing Concept nodes](../TOS-D-0053-source-described-conceptions.md) (`docs/decisions/TOS-D-0053-source-described-conceptions.md`)
+
 ## identity quarantine
 
 - [TOS-D-0036 - Partial Table II Medieval-Worlds Route](../TOS-D-0036-partial-table-ii-medieval-worlds-route.md) (`docs/decisions/TOS-D-0036-partial-table-ii-medieval-worlds-route.md`)
@@ -466,6 +470,7 @@
 - [TOS-D-0050 - Incremental checks with disposable bounded cache](../TOS-D-0050-incremental-checks-bounded-cache.md) (`docs/decisions/TOS-D-0050-incremental-checks-bounded-cache.md`)
 - [TOS-D-0051 - Competent agent assessment and scoped admission](../TOS-D-0051-competent-agent-assessment-and-scoped-admission.md) (`docs/decisions/TOS-D-0051-competent-agent-assessment-and-scoped-admission.md`)
 - [TOS-D-0052 - Preserve historical schema inputs without replacing current contracts](../TOS-D-0052-historical-contract-input-bytes.md) (`docs/decisions/TOS-D-0052-historical-contract-input-bytes.md`)
+- [TOS-D-0053 - Source-described conceptions without retyping existing Concept nodes](../TOS-D-0053-source-described-conceptions.md) (`docs/decisions/TOS-D-0053-source-described-conceptions.md`)
 
 ## source-home symmetry
 

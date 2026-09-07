@@ -1,8 +1,10 @@
 {
   "schema_version": "tos_semantic_entity_type_registry_v1",
   "registry_id": "tos.semantic.entity-types",
-  "registry_version": 8,
+  "registry_version": 9,
   "property_definitions": [
+{"property_id":"tos.property.semantic-scope-note","field":"attributes.source_record.semantic_scope.scope_note","labels":{"default":"Declared semantic scope","ru":"Заявленная область смысла","en":"Declared semantic scope"},"definition":"The described scope and limits of this research referent; it is not a canonical definition, historical date, or causal assertion.","value_type":"string","applies_to":["tos.entity.crosscutting-concept","tos.entity.conception"],"required":true,"inherited":true,"unit":null,"language":"source","operators":["eq","contains","exists"]},
+{"property_id":"tos.property.semantic-identity-criterion","field":"attributes.source_record.semantic_scope.identity_criterion","labels":{"default":"Referent continuity criterion","ru":"Критерий преемственности предмета","en":"Referent continuity criterion"},"definition":"The explicit research criterion for retaining this semantic subject through corrected descriptions; shared names or equal record versions are not identity evidence.","value_type":"string","applies_to":["tos.entity.crosscutting-concept","tos.entity.conception"],"required":true,"inherited":true,"unit":null,"language":"source","operators":["eq","contains","exists"]},
     {"property_id":"tos.property.time-calendar","field":"semantics.time.calendar","labels":{"default":"Declared calendar","ru":"Указанный календарь","en":"Declared calendar"},"definition":"Source-declared calendar, not an inferred conversion. A missing or null value is not Gregorian.","value_type":"string","applies_to":["tos.entity.temporal-assertion"],"required":false,"inherited":true,"unit":null,"language":null,"operators":["eq","in","exists"]},
     {"property_id":"tos.property.time-role","field":"semantics.time.role","labels":{"default":"Time role","ru":"Роль времени","en":"Time role"},"definition":"What the dating concerns. Historical time is separate from witness creation, data capture and knowledge revision.","value_type":"string","applies_to":["tos.entity.temporal-assertion"],"required":false,"inherited":true,"unit":null,"language":null,"operators":["eq","in","exists"]},
     {"property_id":"tos.property.time-certainty","field":"semantics.time.certainty","labels":{"default":"Dating precision posture","ru":"Характер точности датировки","en":"Dating precision posture"},"definition":"Exact, approximate, uncertain or unknown date value. Exactness at the declared precision is not evidence that the enclosing Claim is true or accepted.","value_type":"string","applies_to":["tos.entity.temporal-assertion"],"required":false,"inherited":true,"unit":null,"language":null,"operators":["eq","in","exists"]},
@@ -27,6 +29,98 @@
   ],
   "fallback_type_id": "tos.entity.unmapped",
   "types": [
+    {
+      "type_id": "tos.entity.crosscutting-concept",
+      "parent_type_ids": [
+        "tos.entity.concept"
+      ],
+      "abstract": false,
+      "object_role": "semantic",
+      "labels": {
+        "default": "Crosscutting concept",
+        "ru": "Сквозной концепт",
+        "en": "Crosscutting concept"
+      },
+      "definition": "A research referent whose explicit continuity criterion allows different situated conceptions without identifying their definitions. It is neither a bare shared name nor one definition imposed on all accounts. Membership requires grounded, contestable claims; existing scoped Concept nodes are not silently promoted to this subtype.",
+      "lifecycle": "stable",
+      "owner_ref": "ToS/doctrine/semantic-interchange/README.md",
+      "source_mappings": [
+        {
+          "source_graph": "source-claims",
+          "source_kind_id": "crosscutting-concept"
+        },
+        {
+          "source_graph": "source-navigation",
+          "source_kind_id": "crosscutting-concept"
+        }
+      ],
+      "source_record_profile": {
+        "profile_version": 1,
+        "reader": "semantic-metadata-v1",
+        "record_type": "crosscutting-concept",
+        "id_prefix": "tos.crosscutting-concept.",
+        "source_basename": "crosscutting-concept.json",
+        "catalog_filename": "crosscutting-concepts.jsonl",
+        "graph_layer": "source-profile",
+        "schemas": [
+          {
+            "schema_version": "tos_semantic_description_record_v1",
+            "schema_ref": "ToS/contracts/semantic-description-record.schema.json",
+            "schema_dependencies": [
+              "ToS/contracts/corpus-record.schema.json",
+              "ToS/contracts/source-metadata-record.schema.json"
+            ]
+          }
+        ]
+      },
+      "supersedes_type_id": null
+    },
+    {
+      "type_id": "tos.entity.conception",
+      "parent_type_ids": [
+        "tos.entity.semantic-object"
+      ],
+      "abstract": false,
+      "object_role": "semantic",
+      "labels": {
+        "default": "Conception",
+        "ru": "Трактовка",
+        "en": "Conception"
+      },
+      "definition": "A situated account of thought with its own referent identity and substantive description. Attribution, conceptual membership and expression need separate grounded claims. A historical transformation relates distinct conceptions; a corrected description increments this record version without creating a new conception. A language form or a Claim about the conception is not the conception.",
+      "lifecycle": "stable",
+      "owner_ref": "ToS/doctrine/semantic-interchange/README.md",
+      "source_mappings": [
+        {
+          "source_graph": "source-claims",
+          "source_kind_id": "conception"
+        },
+        {
+          "source_graph": "source-navigation",
+          "source_kind_id": "conception"
+        }
+      ],
+      "source_record_profile": {
+        "profile_version": 1,
+        "reader": "semantic-metadata-v1",
+        "record_type": "conception",
+        "id_prefix": "tos.conception.",
+        "source_basename": "conception.json",
+        "catalog_filename": "conceptions.jsonl",
+        "graph_layer": "source-profile",
+        "schemas": [
+          {
+            "schema_version": "tos_semantic_description_record_v1",
+            "schema_ref": "ToS/contracts/semantic-description-record.schema.json",
+            "schema_dependencies": [
+              "ToS/contracts/corpus-record.schema.json",
+              "ToS/contracts/source-metadata-record.schema.json"
+            ]
+          }
+        ]
+      },
+      "supersedes_type_id": null
+    },
     {
       "type_id": "tos.entity.document", "parent_type_ids": ["tos.entity.intellectual-object"],
       "abstract": false, "object_role": "identity",

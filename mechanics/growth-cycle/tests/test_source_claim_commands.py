@@ -17,6 +17,49 @@ ROOT = fixtures.ROOT
 
 
 class SourceClaimCreationTests(unittest.TestCase):
+    def test_semantic_claim_creation_uses_shared_writer_and_keeps_exact_source_scope(self):
+        with self.creation() as (root, owner, config, claim, request, rebuild, graph_fixture):
+            for name in ('source-metadata-record', 'semantic-description-record', 'semantic-relation-claim'):
+                ref = 'ToS/contracts/' + name + '.schema.json'
+                (root / ref).write_bytes((ROOT / ref).read_bytes())
+            source = {'schema_version': 'tos_semantic_description_record_v1', 'record_type': 'conception',
+                'record_id': 'tos.conception.synthetic-command', 'record_version': 1,
+                'preferred_label': 'Synthetic account', 'notes': 'Synthetic account, not attributed historical thought.',
+                'field_languages': {'preferred_label': {'language': 'en', 'script': 'Latn'},
+                                    'notes': {'language': 'en', 'script': 'Latn'}},
+                'semantic_scope': {'scope_note': 'A test fixture only.', 'identity_criterion': 'This exact test referent.',
+                                   'language': 'en', 'script': 'Latn'},
+                'identity_status': 'provisional', 'source_refs': claim['evidence_refs'],
+                'external_identifiers': [], 'same_as_posture': 'no_equivalence_claim', 'visibility': 'public_metadata_only'}
+            path = root / 'ToS/source-witnesses/semantic-descriptions/synthetic/conception.json'
+            path.parent.mkdir(parents=True)
+            path.write_text(json.dumps(source))
+            claim.update(schema_version='tos_semantic_relation_claim_v1', subject_ref=source['record_id'],
+                predicate='conception_attributed_to', assertion_layer='semantic_interpretation',
+                qualifiers={'statement': 'Synthetic disputed attribution, not a historical conclusion.',
+                    'statement_language': 'en', 'statement_script': 'Latn', 'negated': True,
+                    'relation_basis': 'Synthetic comparison for execution checks only.'})
+            config.update(allowed_subject_refs=[source['record_id']], allowed_predicates=[claim['predicate']])
+            owner.write_text(json.dumps(config))
+            preview = commands.run_local_command(owner, {'schema_version': 'tos_local_source_command_v1',
+                'operation': 'prepare-create', 'claims': [claim]})
+            request.update(expected_configuration=preview['owner_configuration'],
+                expected_dependencies=preview['expected_dependencies'], expected_inputs=preview['source_bindings'])
+            source['semantic_scope']['scope_note'] += ' Changed during preparation.'
+            path.write_text(json.dumps(source))
+            with self.assertRaises(commands.JournalConflict):
+                commands.run_local_command(owner, request)
+            preview = commands.run_local_command(owner, {'schema_version': 'tos_local_source_command_v1',
+                'operation': 'prepare-create', 'claims': [claim]})
+            request.update(expected_dependencies=preview['expected_dependencies'], expected_inputs=preview['source_bindings'])
+            result = commands.run_local_command(owner, request)
+            self.assertFalse(result['grants_admission'])
+            self.assertEqual(commands.run_local_command(owner, request)['receipt'], result['receipt'])
+            graph, _, _ = graph_fixture.historical_knowledge(root, rebuild())
+            node = next(n for n in graph['nodes'] if n['entity_id'] == claim['claim_id'])
+            self.assertEqual(node['attributes']['source_claim'], claim)
+            self.assertEqual(node['semantics']['claim']['relation_type_id'], 'tos.relation.conception-attributed-to')
+
     def test_claim_forms_use_shared_commands_and_keep_exact_claim_context(self):
         with self.creation() as (root, owner, config, claim, request, rebuild, graph_fixture):
             claim['qualifiers'].update(statement='Не подтверждено; только условная тестовая атрибуция.',

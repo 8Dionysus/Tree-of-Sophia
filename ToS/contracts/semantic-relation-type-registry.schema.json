@@ -38,7 +38,7 @@
       "required": ["profile_version", "reader", "assertion_layers", "schemas"],
       "properties": {
         "profile_version": {"type": "integer", "minimum": 1},
-        "reader": {"const": "identity-relation-v1"},
+        "reader": {"enum": ["identity-relation-v1", "semantic-relation-v1"]},
         "assertion_layers": {"type": "array", "minItems": 1, "uniqueItems": true,
           "items": {"enum": ["bibliographic_assertion", "scholarly_report", "textual_observation", "forensic_observation", "semantic_interpretation", "linguistic_analysis", "translation_alignment", "translation_judgment"]}},
         "schemas": {"type": "array", "minItems": 1, "maxItems": 16, "uniqueItems": true,

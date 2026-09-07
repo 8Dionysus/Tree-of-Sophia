@@ -457,7 +457,13 @@
         "assertion_layer": {
           "enum": [
             "bibliographic_assertion",
-            "scholarly_report"
+            "scholarly_report",
+            "textual_observation",
+            "forensic_observation",
+            "semantic_interpretation",
+            "linguistic_analysis",
+            "translation_alignment",
+            "translation_judgment"
           ]
         },
         "epistemic_status": {

@@ -93,6 +93,15 @@ promoting that metadata shape into a universal ontology. The profile belongs
 to the source type registry; catalogs and projections execute it, retain the
 exact record, and cannot infer claims or grant source-write/admission powers.
 
+Source-near semantic descriptions use the explicit
+[concept/conception profile](semantic-interchange/README.md#concepts-situated-conceptions-and-transformations),
+not the bibliographic identity family. Their declared research scope and
+continuity criterion are contestable and accompany human forms. A situated
+conception is not a record revision, word, Claim, or canon admission.
+Conceptual membership, attribution and transformation remain evidence-bearing
+Claims with their own source, interpretation and assessment posture. Existing
+scoped Concept nodes are not silently reclassified as crosscutting concepts.
+
 The [physical-artifact adapter](semantic-interchange/README.md#physical-artifacts-existing-source-adapter)
 projects native v1/v2 artifact metadata into the shared catalog and exact
 focus/inspection reader without replacing the authored record or inventing

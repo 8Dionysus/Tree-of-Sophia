@@ -122,3 +122,4 @@
 ## 2026-09-07
 
 - [TOS-D-0052 - Preserve historical schema inputs without replacing current contracts](../TOS-D-0052-historical-contract-input-bytes.md) (`docs/decisions/TOS-D-0052-historical-contract-input-bytes.md`)
+- [TOS-D-0053 - Source-described conceptions without retyping existing Concept nodes](../TOS-D-0053-source-described-conceptions.md) (`docs/decisions/TOS-D-0053-source-described-conceptions.md`)

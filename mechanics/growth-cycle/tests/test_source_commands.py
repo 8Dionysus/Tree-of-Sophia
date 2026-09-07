@@ -800,6 +800,61 @@ class HistoricalCreationTests(unittest.TestCase):
             owner.write_text(json.dumps(config))
             self.assertEqual(commands.run_local_command(owner, request)['receipt'], result['receipt'])
 
+    def test_semantic_description_creation_and_correction_preserve_referent_and_scope(self):
+        for kind in ('crosscutting-concept', 'conception'):
+            with self.subTest(kind=kind), self.creation() as (root, owner, config, request, rebuild, fixture):
+                for name in ('source-metadata-record', 'semantic-description-record', 'provenance-event-v2'):
+                    ref = 'ToS/contracts/' + name + '.schema.json'
+                    (root / ref).write_bytes((ROOT / ref).read_bytes())
+                config.pop('allowed_claim_ids')
+                config.update(schema_version=commands.PROFILE_CONFIG, profile_type_id='tos.entity.' + kind,
+                    allowed_operations=['source.create'], record_id=f'tos.{kind}.synthetic-create',
+                    source_path=f'ToS/source-witnesses/history/new-subject/{kind}.json',
+                    provenance_event_id=f'tos.event.synthetic-{kind}-create')
+                owner.write_text(json.dumps(config))
+                source = request['record']
+                source.update(schema_version='tos_semantic_description_record_v1', record_type=kind,
+                    record_id=config['record_id'], preferred_label='Условный предмет исследования',
+                    field_languages={'preferred_label': {'language': 'ru', 'script': 'Cyrl'},
+                                     'notes': {'language': 'ru', 'script': 'Cyrl'}},
+                    semantic_scope={'scope_note': 'Только синтетическая проверка.',
+                        'identity_criterion': 'Постоянный предмет теста, не сходство имён.', 'language': 'ru', 'script': 'Cyrl'})
+                request.pop('claims')
+                prepared = commands.run_local_command(owner, {'schema_version': 'tos_local_source_command_v1',
+                    'operation': 'prepare-create', 'record': source, 'forms': request['forms']})
+                request.update(operation='source.create', expected_configuration=prepared['owner_configuration'],
+                               expected_dependencies=prepared['expected_dependencies'])
+                result = commands.run_local_command(owner, request)
+                self.assertFalse(result['grants_admission'])
+                original = (root / config['source_path']).read_bytes()
+                revise_config = {key: config[key] for key in ('uid', 'principal_id', 'source_root', 'source_path',
+                    'authority_ref', 'allowed_form_ids', 'expires_at', 'record_id', 'profile_type_id')}
+                revise_config.update(schema_version=commands.PROFILE_REVISION_CONFIG,
+                    allowed_operations=['record.revise'], allowed_fields=['notes'])
+                owner.write_text(json.dumps(revise_config))
+                proposal = {'fields': {'notes': 'Уточнённое описание того же условного предмета; не исторический факт.'},
+                            'forms': request['forms'], 'reason': 'Correct description, not semantic transformation.'}
+                for fields in ({'semantic_scope': {**source['semantic_scope'], 'identity_criterion': 'A different subject'}},
+                               {'record_id': 'tos.conception.another'}, {'notes': ''}):
+                    with self.assertRaises((PermissionError, ValueError)):
+                        commands.run_local_command(owner, {'schema_version': 'tos_local_source_command_v1',
+                            'operation': 'prepare-revise', **proposal, 'fields': fields})
+                    self.assertEqual((root / config['source_path']).read_bytes(), original)
+                prepared = commands.run_local_command(owner, {'schema_version': 'tos_local_source_command_v1',
+                    'operation': 'prepare-revise', **proposal})
+                revised = commands.run_local_command(owner, {'schema_version': 'tos_local_source_command_v1',
+                    'operation': 'record.revise', 'command_id': 'synthetic:correct-description',
+                    'expected_configuration': prepared['owner_configuration'], 'expected_source': prepared['source'],
+                    'expected_revision': prepared['revision'], 'expected_dependencies': prepared['expected_dependencies'], **proposal})
+                self.assertEqual(revised['source']['id'], source['record_id'])
+                self.assertEqual(revised['source']['version'], 2)
+                graph, _, _ = fixture.historical_knowledge(root, rebuild())
+                node = next(n for n in graph['nodes'] if n['entity_id'] == source['record_id'])
+                self.assertEqual(node['attributes']['source_record']['semantic_scope'], source['semantic_scope'])
+                self.assertTrue(all(v['state'] == 'ready' and v['admission'] is None for v in node['attributes']['human_forms']))
+                owner.write_text(json.dumps(config))
+                self.assertEqual(commands.run_local_command(owner, request)['receipt'], result['receipt'])
+
     def test_profile_creation_uses_shared_transaction_without_granting_claims_or_admission(self):
         """Generic operation on an existing declared profile; synthetic data only."""
         with self.creation() as (root, owner, config, request, rebuild, fixture):

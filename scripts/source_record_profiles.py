@@ -100,6 +100,15 @@ def _schema_route(root, route, digests, cache, shared_refs=()):
                                 format_checker=FormatChecker()), registry
 
 
+def _type_ancestry(entities, type_id, visiting=frozenset()):
+    if type_id not in entities or type_id in visiting:
+        raise SourceProfileError('unknown or cyclic source type hierarchy')
+    result = {type_id}
+    for parent in entities[type_id]['parent_type_ids']:
+        result.update(_type_ancestry(entities, parent, visiting | {type_id}))
+    return result
+
+
 class SourceRecordProfiles:
     """One bounded registry/schema snapshot per source build, never global cache."""
 
@@ -112,6 +121,9 @@ class SourceRecordProfiles:
             raise SourceProfileError('entity registry violates its source contract')
         descriptor_contract = contract['$defs']['sourceRecordProfile']
         validator = Draft202012Validator(descriptor_contract)
+        entities = {entry['type_id']: entry for entry in self.registry['types']}
+        if len(entities) != len(self.registry['types']):
+            raise SourceProfileError('duplicate entity type identity')
         self.profiles = {}
         self.validators = {}
         self.metadata_validators = {}
@@ -125,7 +137,11 @@ class SourceRecordProfiles:
             if not validator.is_valid(profile):
                 raise SourceProfileError('source-record profile violates its declared contract')
             kind = profile['record_type']
-            if (entry.get('abstract') is not False or entry.get('object_role') != 'identity'
+            role, family = {'corpus-metadata-v1': ('identity', 'tos.entity.identity'),
+                            'semantic-metadata-v1': ('semantic', 'tos.entity.semantic-object')}[profile['reader']]
+            if (entry.get('abstract') is not False or entry.get('object_role') != role
+                    or family not in _type_ancestry(entities, entry['type_id'])
+                    or entry['type_id'] == family
                     or kind in RESERVED_KINDS or profile['source_basename'] in RESERVED_BASENAMES
                     or profile['catalog_filename'] in RESERVED_CATALOGS
                     or profile['id_prefix'] != f'tos.{kind}.'
@@ -225,7 +241,7 @@ class SourceRecordProfiles:
 
 
 class SourceClaimProfiles:
-    """Read declared evidence-bearing identity relations, without admission.
+    """Read declared evidence-bearing source relations, without admission.
 
     One shared source-claims.jsonl stream format serves new predicates. Legacy
     bibliographic/historical files retain their existing adapters and schemas.
@@ -270,11 +286,21 @@ class SourceClaimProfiles:
                     and mapping['scope'] == 'claim-predicate' and mapping['source_predicate_id'] == predicate
                     for mapping in other['source_mappings']) for other in self.registry['relations']):
                 raise SourceProfileError('source predicate has another relation owner')
+            semantic_endpoint = False
             for type_id in [*entry['domain_type_ids'], *entry['range_type_ids']]:
-                if type_id in {'tos.entity.thing', 'tos.entity.identity', 'tos.entity.unmapped', 'tos.entity.unresolved-endpoint'}:
-                    raise SourceProfileError('identity relation profile requires a specific domain and range')
-                if 'tos.entity.identity' not in self.ancestry(type_id):
-                    raise SourceProfileError('identity relation endpoint domain/range must be an identity family')
+                if type_id in {'tos.entity.thing', 'tos.entity.identity', 'tos.entity.semantic-object',
+                               'tos.entity.unmapped', 'tos.entity.unresolved-endpoint'}:
+                    raise SourceProfileError('source relation profile requires a specific domain and range')
+                ancestry = self.ancestry(type_id)
+                if profile['reader'] == 'identity-relation-v1':
+                    if 'tos.entity.identity' not in ancestry:
+                        raise SourceProfileError('identity relation endpoint domain/range must be an identity family')
+                else:
+                    semantic_endpoint |= 'tos.entity.semantic-object' in ancestry
+                    if not ancestry.intersection({'tos.entity.identity', 'tos.entity.semantic-object'}):
+                        raise SourceProfileError('semantic relation endpoint must be a specific semantic or identity family')
+            if profile['reader'] == 'semantic-relation-v1' and not semantic_endpoint:
+                raise SourceProfileError('semantic relation profile requires a semantic endpoint')
             self.profiles[predicate], self.relations[predicate] = profile, entry
             for route in profile['schemas']:
                 key = predicate, route['schema_version']
@@ -283,13 +309,7 @@ class SourceClaimProfiles:
                 self.schema_routes[key] = route
 
     def ancestry(self, type_id, visiting=frozenset()):
-        if type_id not in self.entities or type_id in visiting:
-            raise SourceProfileError('unknown or cyclic source identity type hierarchy')
-        parents = self.entities[type_id]['parent_type_ids']
-        result = {type_id}
-        for parent in parents:
-            result.update(self.ancestry(parent, visiting | {type_id}))
-        return result
+        return _type_ancestry(self.entities, type_id, visiting)
 
     def validate(self, claim, objects=None):
         if (not isinstance(claim, dict) or not isinstance(claim.get('predicate'), str)

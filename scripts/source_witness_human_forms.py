@@ -47,7 +47,7 @@ def metadata_field_catalog(source: dict) -> list[dict]:
     Variant ordinals are snapshot-local, not stable name identities. An exact
     source ref must accompany prepared commands, so reordering is a conflict.
     """
-    context = ['/' + key for key in ('identity_status', 'same_as_posture') if key in source]
+    context = ['/' + key for key in ('identity_status', 'same_as_posture', 'semantic_scope') if key in source]
     declarations = source.get('field_languages', {})
     if not _field_language_validator().is_valid(declarations):
         raise ValueError('source field-language declarations violate the source contract')

@@ -62,6 +62,7 @@
 - [TOS-D-0006 - Research Packet Authority Correction](../TOS-D-0006-research-packet-authority-correction.md) (`docs/decisions/TOS-D-0006-research-packet-authority-correction.md`)
 - [TOS-D-0007 - Doctrine Mechanics And Zarathustra Route Correction](../TOS-D-0007-doctrine-mechanics-and-zarathustra-route-correction.md) (`docs/decisions/TOS-D-0007-doctrine-mechanics-and-zarathustra-route-correction.md`)
 - [TOS-D-0019 - Zarathustra Golden Growth Kernel](../TOS-D-0019-zarathustra-golden-growth-kernel.md) (`docs/decisions/TOS-D-0019-zarathustra-golden-growth-kernel.md`)
+- [TOS-D-0053 - Source-described conceptions without retyping existing Concept nodes](../TOS-D-0053-source-described-conceptions.md) (`docs/decisions/TOS-D-0053-source-described-conceptions.md`)
 
 ## constructor backend
 
@@ -180,6 +181,7 @@
 
 - [TOS-D-0051 - Competent agent assessment and scoped admission](../TOS-D-0051-competent-agent-assessment-and-scoped-admission.md) (`docs/decisions/TOS-D-0051-competent-agent-assessment-and-scoped-admission.md`)
 - [TOS-D-0052 - Preserve historical schema inputs without replacing current contracts](../TOS-D-0052-historical-contract-input-bytes.md) (`docs/decisions/TOS-D-0052-historical-contract-input-bytes.md`)
+- [TOS-D-0053 - Source-described conceptions without retyping existing Concept nodes](../TOS-D-0053-source-described-conceptions.md) (`docs/decisions/TOS-D-0053-source-described-conceptions.md`)
 
 ## lineage
 
