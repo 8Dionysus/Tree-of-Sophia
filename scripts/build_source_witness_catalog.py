@@ -37,7 +37,8 @@ OPTIONAL_RECORD_FILES = {
     "historical-process": "historical-processes.jsonl",
     "historical-state": "historical-states.jsonl",
 }
-ADAPTED_RECORD_FILES = {"artifact": "artifacts.jsonl"}
+ADAPTED_RECORD_FILES = {"artifact": "artifacts.jsonl", "composite": "composites.jsonl"}
+COMPOSITE_SCHEMA = 'ToS/contracts/scholarly-composite-witness.schema.json'
 ARTIFACT_SCHEMAS = {
     'tos_artifact_source_witness_v1': 'ToS/contracts/artifact-source-witness.schema.json',
     'tos_artifact_source_witness_v2': 'ToS/contracts/artifact-source-witness-v2.schema.json',
@@ -140,6 +141,84 @@ def artifact_display_fields(payload: dict) -> dict:
     }
 
 
+def composite_catalog_entry(repo_root: Path, payload: dict, relative: str,
+                            validators: dict | None = None) -> dict:
+    """Return native scholarly identity without recasting it as an original.
+
+    Member/coverage observations remain exact source metadata, not accepted
+    relations. The source's identity status does not grant textual authority.
+    """
+    if payload.get('schema_version') != 'tos_scholarly_composite_witness_v1':
+        raise CatalogBuildError(f'{relative}: unsupported scholarly composite source schema')
+    validators = {} if validators is None else validators
+    if COMPOSITE_SCHEMA not in validators:
+        schema = json.loads((repo_root / COMPOSITE_SCHEMA).read_text(encoding='utf-8'))
+        validators[COMPOSITE_SCHEMA] = Draft202012Validator(schema, format_checker=FormatChecker())
+    if not validators[COMPOSITE_SCHEMA].is_valid(payload):
+        raise CatalogBuildError(f'{relative}: invalid or nonpublic scholarly composite metadata')
+    return {
+        'schema_version': 'tos_source_witness_catalog_entry_v1',
+        'source_schema_ref': COMPOSITE_SCHEMA,
+        'record_id': payload['composite_id'],
+        'record_type': 'composite',
+        'preferred_label': payload['preferred_label'],
+        'identity_status': payload['identity_status'],
+        'source_record_ref': relative,
+        'record_sha256': hashlib.sha256(canonical_json(payload).encode('utf-8')).hexdigest(),
+        'links': {},
+    }
+
+
+def load_composite_record(repo_root: Path, relative: str) -> dict:
+    """Bound a native metadata read to the scholarly-composite owner subtree."""
+    ref = Path(relative)
+    if (ref.is_absolute() or '..' in ref.parts or ref.as_posix() != relative
+            or ref.name != 'composite-witness.json'
+            or not ref.is_relative_to(SOURCE_ROOT / 'scholarly-composites')):
+        raise CatalogBuildError('scholarly composite source path is outside its owner subtree')
+    path = repo_root / ref
+    if path.is_symlink() or not path.is_file() or path.resolve() != path.absolute():
+        raise CatalogBuildError(f'{relative}: composite source must be a regular non-symlink path')
+    with path.open('rb') as handle:
+        raw = handle.read(1_048_577)
+    if len(raw) > 1_048_576:
+        raise CatalogBuildError(f'{relative}: composite metadata exceeds 1 MiB budget')
+    def unique_object(pairs):
+        result = {}
+        for key, value in pairs:
+            if key in result:
+                raise ValueError('duplicate JSON field')
+            result[key] = value
+        return result
+    def reject_nonfinite(value):
+        raise ValueError('nonfinite JSON number')
+    try:
+        payload = json.loads(raw, object_pairs_hook=unique_object, parse_constant=reject_nonfinite)
+        # Overflowing exponents can yield infinity without parse_constant.
+        json.dumps(payload, allow_nan=False)
+    except (ValueError, UnicodeError) as exc:
+        raise CatalogBuildError(f'{relative}: invalid scholarly composite JSON') from exc
+    if not isinstance(payload, dict):
+        raise CatalogBuildError(f'{relative}: scholarly composite record must be an object')
+    return payload
+
+
+def composite_display_fields(payload: dict) -> dict:
+    """Exact source fields, without guessed language or assessed human forms."""
+    return {
+        'description': payload['editorial_object']['description'],
+        'review_status': payload['authority']['review_status'],
+        'visibility': payload['authority']['visibility'],
+        'metadata_field_sources': {
+            'preferred_label': '/preferred_label',
+            'description': '/editorial_object/description',
+            'identity_status': '/identity_status',
+            'review_status': '/authority/review_status',
+            'visibility': '/authority/visibility',
+        },
+    }
+
+
 def collect_records(repo_root: Path = REPO_ROOT, *, profiles: SourceRecordProfiles | None = None) -> dict[str, list[dict[str, Any]]]:
     try:
         return _collect_records(repo_root, profiles=profiles)
@@ -206,6 +285,17 @@ def _collect_records(repo_root: Path, *, profiles: SourceRecordProfiles | None) 
         artifacts.append(entry)
     if artifacts:
         records['artifact'] = artifacts
+    composites = []
+    for path in sorted((source_root / 'scholarly-composites').rglob('composite-witness.json')):
+        relative = path.relative_to(repo_root).as_posix()
+        payload = load_composite_record(repo_root, relative)
+        entry = composite_catalog_entry(repo_root, payload, relative, validators)
+        if entry['record_id'] in seen_ids:
+            raise CatalogBuildError(f"{relative}: duplicate record_id {entry['record_id']!r}")
+        seen_ids[entry['record_id']] = relative
+        composites.append(entry)
+    if composites:
+        records.setdefault('composite', []).extend(composites)
     for entries in records.values():
         entries.sort(key=lambda entry: entry["record_id"])
     return {kind: entries for kind, entries in records.items()

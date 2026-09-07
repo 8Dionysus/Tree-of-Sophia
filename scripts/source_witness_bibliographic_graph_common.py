@@ -16,7 +16,8 @@ from source_record_profiles import (SourceRecordProfiles, SourceClaimProfiles, S
                                     SOURCE_CLAIM_BASENAME)
 from build_source_witness_catalog import (OPTIONAL_RECORD_FILES, ADAPTED_RECORD_FILES,
                                          CatalogBuildError, artifact_catalog_entry, load_artifact_record,
-                                         artifact_display_fields)
+                                         artifact_display_fields, composite_catalog_entry,
+                                         load_composite_record, composite_display_fields)
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
@@ -197,6 +198,7 @@ def _load_object_catalog(repo_root: Path, profiles: SourceRecordProfiles | None 
             try:
                 source_payload = (profiles.verify_entry(expected_type, entry) if expected_type in profiles.profiles
                                   else load_artifact_record(repo_root, source_ref) if expected_type == 'artifact'
+                                  else load_composite_record(repo_root, source_ref) if expected_type == 'composite'
                                   else load_json(source_path))
             except (CatalogBuildError, SourceProfileError) as exc:
                 raise BibliographicGraphBuildError(str(exc)) from exc
@@ -211,11 +213,21 @@ def _load_object_catalog(repo_root: Path, profiles: SourceRecordProfiles | None 
                     raise BibliographicGraphBuildError(str(exc)) from exc
                 if entry != expected:
                     raise BibliographicGraphBuildError(f'{location}: physical artifact catalog/source mapping drifted')
+            if expected_type == 'composite':
+                try:
+                    expected = composite_catalog_entry(repo_root, source_payload, source_ref, artifact_validators)
+                except CatalogBuildError as exc:
+                    raise BibliographicGraphBuildError(str(exc)) from exc
+                if entry != expected:
+                    raise BibliographicGraphBuildError(f'{location}: scholarly composite catalog/source mapping drifted')
             material = dict(entry)
             material["_source_record"] = source_payload
             if expected_type == 'artifact' and source_path.with_name('artifact-witness.human-forms.json').exists():
                 raise BibliographicGraphBuildError(
                     f'{location}: artifact human forms require a native-subject adapter, not Corpus coercion')
+            if expected_type == 'composite' and source_path.with_name('composite-witness.human-forms.json').exists():
+                raise BibliographicGraphBuildError(
+                    f'{location}: composite human forms require a native-subject adapter, not Corpus coercion')
             try:
                 forms = load_metadata_forms(repo_root, source_ref, source_payload, access_allowed=True)
             except (ValueError, OSError) as exc:
@@ -479,6 +491,7 @@ def _identity_node(entry: dict[str, Any]) -> dict[str, Any]:
             **({'label_source_pointer': entry['label_source_pointer']}
                if 'label_source_pointer' in entry else {}),
             **(artifact_display_fields(source_record) if entry['record_type'] == 'artifact' else {}),
+            **(composite_display_fields(source_record) if entry['record_type'] == 'composite' else {}),
             "source_record": source_record,
         },
     }
@@ -930,8 +943,9 @@ def build_payload(repo_root: Path = REPO_ROOT) -> dict[str, Any]:
     input_digests.update(profiles.input_digests)
     historical = 'historical' in profile_layers
     physical = any(entry['record_type'] == 'artifact' for entry in objects.values())
+    scholarly = any(entry['record_type'] == 'composite' for entry in objects.values())
     for entry in objects.values():
-        if entry['record_type'] == 'artifact':
+        if entry['record_type'] in {'artifact', 'composite'}:
             ref = entry['source_schema_ref']
             input_digests[ref] = file_digest(repo_root / ref)
     if historical:
@@ -1221,7 +1235,8 @@ def build_payload(repo_root: Path = REPO_ROOT) -> dict[str, Any]:
         "input_digests": input_digests,
         "graph_layers": ['bibliographic', *(['historical'] if historical else []),
                          *(['source-profile'] if 'source-profile' in profile_layers else []),
-                         *(['physical-artifact'] if physical else [])],
+                         *(['physical-artifact'] if physical else []),
+                         *(['scholarly-composite'] if scholarly else [])],
         "relation_model": {
             "assertion_form": "reified_claim_node",
             "direct_subject_object_edges": False,

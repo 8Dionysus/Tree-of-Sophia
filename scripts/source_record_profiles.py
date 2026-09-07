@@ -30,8 +30,8 @@ CLAIM_SHARED_REFS = ('ToS/contracts/claim-packet.schema.json',
                      'ToS/contracts/knowledge-assessment.schema.json', CLAIM_BASE_REF)
 MAX_CLAIM_FILE_BYTES = 16_777_216
 RESERVED_KINDS = {'agent', 'place', 'organization', 'work', 'expression', 'edition',
-                  'collection', 'item', 'link', 'artifact'}
-RESERVED_BASENAMES = {kind + '.json' for kind in RESERVED_KINDS} | {'artifact-witness.json'}
+                  'collection', 'item', 'link', 'artifact', 'composite'}
+RESERVED_BASENAMES = {kind + '.json' for kind in RESERVED_KINDS} | {'artifact-witness.json', 'composite-witness.json'}
 RESERVED_CATALOGS = {kind + 's.jsonl' for kind in RESERVED_KINDS} | {'claims.jsonl'}
 METADATA_LINK_FIELDS = (
     'work_ref', 'expression_claim_refs', 'responsibility_claim_refs', 'chronology_claim_refs',

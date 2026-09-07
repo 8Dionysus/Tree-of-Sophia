@@ -29,15 +29,15 @@
     "metric": "whitespace_tokens_v1",
     "posture": "summary_first_records_on_demand",
     "record_loading": "machine readers may select records by family_id or path; do not load the full carrier into an always-on prompt",
-    "tracked_surface_count": 4307,
+    "tracked_surface_count": 4338,
     "unhandled_family_count": 0
   },
   "coverage": {
     "excluded_generated_carrier_rules": 3,
-    "excluded_tracked_path_count": 991,
+    "excluded_tracked_path_count": 999,
     "human_scope": {
-      "bytes": 5400834,
-      "count": 1009,
+      "bytes": 5411077,
+      "count": 1011,
       "excluded_skill_launch_metadata": 25,
       "family_counts": {
         "access": {
@@ -116,20 +116,20 @@
           "lines": 55
         },
         "tos": {
-          "bytes": 3996057,
-          "count": 600,
-          "lines": 67272
+          "bytes": 4006300,
+          "count": 602,
+          "lines": 67443
         }
       },
-      "lines": 93230
+      "lines": 93401
     },
     "surface_kind_counts": {
       "executable": 234,
-      "human": 1034,
-      "structured": 3039
+      "human": 1036,
+      "structured": 3068
     },
-    "tracked_path_count": 5298,
-    "tracked_surface_count": 4307,
+    "tracked_path_count": 5337,
+    "tracked_surface_count": 4338,
     "unhandled_family_count": 0,
     "unhandled_paths": []
   },
@@ -173,11 +173,11 @@
       "family_id": "tos",
       "surface_kind_counts": {
         "executable": 4,
-        "human": 600,
-        "structured": 2955
+        "human": 602,
+        "structured": 2984
       },
-      "tracked_surface_bytes": 227507734,
-      "tracked_surface_count": 3559
+      "tracked_surface_bytes": 227901304,
+      "tracked_surface_count": 3590
     },
     {
       "family_id": "access",
@@ -240,7 +240,7 @@
         "executable": 108,
         "human": 2
       },
-      "tracked_surface_bytes": 3706239,
+      "tracked_surface_bytes": 3712976,
       "tracked_surface_count": 110
     },
     {
@@ -250,7 +250,7 @@
         "human": 2,
         "structured": 1
       },
-      "tracked_surface_bytes": 1531560,
+      "tracked_surface_bytes": 1540611,
       "tracked_surface_count": 62
     },
     {
@@ -285,7 +285,7 @@
   "source_map": "docs/validation/documentation_family_map.json",
   "source_map_sha256": "d70a5059be9cc7547289e4c8be380d23b3aeb9e53bb10e4cb82abf2177ea0896",
   "tracked_source": "git ls-files -z",
-  "tracked_surface_digest": "8be9e12ca8777bb35ba67b594499445ea99b7a4c209a6b163d9c9423c8c85ece",
+  "tracked_surface_digest": "7deaa4a8fe8f3f7fcfd34b927a11d472a86700bf28b176a1b3e6c90e7987d60e",
   "tracked_surfaces": [
     {
       "bytes": 1489,
@@ -332,7 +332,7 @@
       "currentness": "tracked_source_snapshot",
       "family_id": "agents-other",
       "path": ".agents/agents-route.current.json",
-      "sha256": "33774f0fde6740815f31a344fd6e2f3a9dcf82875d717930802acb95e2115304",
+      "sha256": "0456c8d3d503a6334c9a93a24d41ad25c30d9d3e0b6ac4624f8f2acaa3826ef4",
       "surface_kind": "structured"
     },
     {
@@ -3888,19 +3888,19 @@
       "surface_kind": "structured"
     },
     {
-      "bytes": 15086,
+      "bytes": 15109,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/contracts/source-witness-bibliographic-graph.schema.json",
-      "sha256": "d982538458ba47d4303bdf345229aaa0fc08898974e7d440029c1954972794e8",
+      "sha256": "ea4ff0db2cee281ff0f6511e3bc378e70bda11dfd4496b423d9ccc867b731374",
       "surface_kind": "structured"
     },
     {
-      "bytes": 11393,
+      "bytes": 11792,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/contracts/source-witness-catalog.schema.json",
-      "sha256": "c1cc929b365f7d1413e11b8f26f05509c1b7db1080b4350536a6915da681c5bd",
+      "sha256": "439adc3c1796720b5163c621cdbb9f5f169c09c63167a8dc876489a8838bf3b7",
       "surface_kind": "structured"
     },
     {
@@ -3909,6 +3909,22 @@
       "family_id": "tos",
       "path": "ToS/contracts/target-numbered-unit-page-map.schema.json",
       "sha256": "42806fc3505678c19cded6c6095f93f82063c94a378b55aae4577331d5ed7c73",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1381,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/contracts/textual-passage-claim.schema.json",
+      "sha256": "9de2713aa7fb847ddbfb1a3f0f97c1e412da94f1b333147aab105183b1c34bd2",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 2728,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/contracts/textual-passage-record.schema.json",
+      "sha256": "76ade1e7a83e0080f0158a188ce3af381a83031c1caf017ebc4028f9a2abe056",
       "surface_kind": "structured"
     },
     {
@@ -4168,11 +4184,11 @@
       "surface_kind": "human"
     },
     {
-      "bytes": 8869612,
+      "bytes": 9021096,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/derived-exports/graph/source-witness-bibliographic-claims.min.json",
-      "sha256": "0b08dc5b1949d4eb71acd2dfb9126061f64d9ad80f9888f97c5337a5739b76b7",
+      "sha256": "400e0912b6b62a22d61c6c5d0a3cd18a751157dd44ffc66e4933d0b35baf5cc8",
       "surface_kind": "structured"
     },
     {
@@ -4248,11 +4264,11 @@
       "surface_kind": "structured"
     },
     {
-      "bytes": 59717099,
+      "bytes": 59864767,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/derived-exports/tos_corpus_index.min.json",
-      "sha256": "6111d63bb3de2ae8cb31e5882b4c276aafca8103e9d7b7acf5f00eeb4cc52a29",
+      "sha256": "acc7aab5044e715596c7631f636a17e77b537bf0a49f5c6d23b265d7ab6caf21",
       "surface_kind": "structured"
     },
     {
@@ -4304,11 +4320,11 @@
       "surface_kind": "human"
     },
     {
-      "bytes": 33459,
+      "bytes": 33881,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/doctrine/CORPUS_FOUNDATION.md",
-      "sha256": "f261f7ffbad778e0abc03e40f6e77f079cb54c55013e38fe27eab3193ae06712",
+      "sha256": "f710a7bfd2cf6cf97784e95802f0920d52438cc05a3ecb196f009b67c33fc76f",
       "surface_kind": "human"
     },
     {
@@ -4328,11 +4344,11 @@
       "surface_kind": "human"
     },
     {
-      "bytes": 78534,
+      "bytes": 78793,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/doctrine/FOUNDATION_V1.md",
-      "sha256": "58382d1f1a2d237c8815f202466fa8aae85aeb066dfb6adeb83a50b6005530a6",
+      "sha256": "e7fe0efeb71967eacfb358ccd57643565f3edf9d339b565b3d63e85f7af44278",
       "surface_kind": "human"
     },
     {
@@ -4448,11 +4464,11 @@
       "surface_kind": "human"
     },
     {
-      "bytes": 67052,
+      "bytes": 68879,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/doctrine/semantic-interchange/README.md",
-      "sha256": "eb21f887f0577aa266d722ad00a149f2a9cbf69dbb4e654f6d7e519872c492ca",
+      "sha256": "9abae86fe4dc74c17d36b9e0e9b82b67af53b4f3a45c7c81fcaedb5ac6123fd7",
       "surface_kind": "human"
     },
     {
@@ -4464,11 +4480,11 @@
       "surface_kind": "structured"
     },
     {
-      "bytes": 161257,
+      "bytes": 162133,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/doctrine/semantic-interchange/entity-types.v1.json",
-      "sha256": "bba95a5a5d1ccf4f72cb38a52a492a8129ce78097ed4578272e17b0f1d6f72d0",
+      "sha256": "fd196ef22566c159d74abb1287d19a9611fb434c796d36b4ab618184063fbba2",
       "surface_kind": "structured"
     },
     {
@@ -18344,6 +18360,22 @@
       "surface_kind": "human"
     },
     {
+      "bytes": 5556,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/review-ledger/2026-09-07-burnet-fragment-quotation-and-reader-review.md",
+      "sha256": "07874989e81b82bcc70984fbb8867bd3a53c191868418ee60496cb2efac8b3bc",
+      "surface_kind": "human"
+    },
+    {
+      "bytes": 2179,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/review-ledger/2026-09-07-burnet-fragment-quotation-source-reading.md",
+      "sha256": "1a218e546f85aa3ddcfcfcb1eb1b534dcd07b1a2188deddf42abe648f2702ebd",
+      "surface_kind": "human"
+    },
+    {
       "bytes": 6252,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
@@ -19453,6 +19485,46 @@
       "family_id": "tos",
       "path": "ToS/source-witnesses/agents/jeremy-black/agent.json",
       "sha256": "b57351149b841d683aec7f34209eb28fda99ad95571bbc5191030552b4719c74",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 6161,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/agents/john-burnet/agent.human-forms.json",
+      "sha256": "8ba0c07002e24389543b1865c9c4abcfb5893390e0103423932d06403b101629",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1120,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/agents/john-burnet/agent.json",
+      "sha256": "bfba8f774b77aeebd1abb9a6a5bba076898cf47ea63c56df298e4956d1866eef",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 244,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/agents/john-burnet/source-create-environment.json",
+      "sha256": "0976562dbd82ac21a81cda5c4ccbb0b8c545c54bb686181fc225a32aed6170b3",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1394,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/agents/john-burnet/source-create-receipt.json",
+      "sha256": "6127ebaf56fe26b7cbdeca654a750094d679e3eb9c25b4032ceabd991726258f",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1630,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/agents/john-burnet/source-create-request.json",
+      "sha256": "a5c7682ddd80e6d98f46ff18395491c2e2b97f31a705f15dfab54febe17158e7",
       "surface_kind": "structured"
     },
     {
@@ -20624,11 +20696,11 @@
       "surface_kind": "human"
     },
     {
-      "bytes": 6947,
+      "bytes": 7095,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/source-witnesses/catalog/catalog.manifest.json",
-      "sha256": "99c39927f750c7b29e42311c93881982d739c5dc133af9f8457695f249b80da4",
+      "sha256": "3cc0d99d241b5bb5cf8c55a9a81b4c4c243c3d7fd22683f321d086147bfc53d1",
       "surface_kind": "structured"
     },
     {
@@ -23213,6 +23285,62 @@
       "family_id": "tos",
       "path": "ToS/source-witnesses/relations/basel-print-research/source-create-request.json",
       "sha256": "78690aa2398ae9bb1cb39463955743effa2a231805467a9eefa71dcfbb96ae0b",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3680,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/relations/burnet-fragments-research/source-claims.62e688d4b6165495368d0845b902b4820acd8209e86098700c63ac7a352cc231.human-forms.json",
+      "sha256": "64c97b68fa3b7e4cf767292ab95530bd96d9db4f5b7a1909c3e3976fc90f82dd",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3656,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/relations/burnet-fragments-research/source-claims.9d5d12c56e7f6b027520b154611926aa7e0016ab1d5f342ad71f126c58645557.human-forms.json",
+      "sha256": "7b88ae99a3fb099bd1f7b4f47e16ae5ffc7fd048c1e3c7768d1a63168cf9653e",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3648,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/relations/burnet-fragments-research/source-claims.bfd90c4eb1c497da27e51d425be238bd8ebd71aa4798f504db7dc5f1f11c04a0.human-forms.json",
+      "sha256": "424aaf5012d6358b3dddc4e84f227ea5c33aeab0739cb5c2e977aace335597af",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3538,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/relations/burnet-fragments-research/source-claims.cf4ac46f05c6296f073f05af410e68d5d10c58572447e79ca2c3ecb42fb52e3a.human-forms.json",
+      "sha256": "06fe0b98d6bc163f1fa1c7881a41f9ddaa5f21a1474cd081f0e5d24575f9688e",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 244,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/relations/burnet-fragments-research/source-create-environment.json",
+      "sha256": "0976562dbd82ac21a81cda5c4ccbb0b8c545c54bb686181fc225a32aed6170b3",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 4007,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/relations/burnet-fragments-research/source-create-receipt.json",
+      "sha256": "c317d33781eb5574d250e6d74a3b76376b06d3b59d4fb04b18ee0c5660de671b",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 6841,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/relations/burnet-fragments-research/source-create-request.json",
+      "sha256": "65de9136aee42c4f12ce2ee2bd129514018895ec7253ae51f647a55c0aadfd22",
       "surface_kind": "structured"
     },
     {
@@ -26472,6 +26600,86 @@
       "surface_kind": "structured"
     },
     {
+      "bytes": 8989,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/textual-passages/burnet-parmenides-eight/quotation-passage.human-forms.json",
+      "sha256": "6778b979aba4fc6deebd3e885a3a0d29eba3a46053fb8486104aa707d2663494",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 2452,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/textual-passages/burnet-parmenides-eight/quotation-passage.json",
+      "sha256": "877e7785833e3d71a61c4ceadec6aae47fac8339e6b6ba38cd4bc9d1398f1aeb",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 244,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/textual-passages/burnet-parmenides-eight/source-create-environment.json",
+      "sha256": "0976562dbd82ac21a81cda5c4ccbb0b8c545c54bb686181fc225a32aed6170b3",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1502,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/textual-passages/burnet-parmenides-eight/source-create-receipt.json",
+      "sha256": "7c595b8662f20f05a0881d24d42c02484211f379f1592b9afb8439c24583a280",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 2908,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/textual-passages/burnet-parmenides-eight/source-create-request.json",
+      "sha256": "887bd132210dfbcd87b324b96ce527b8c7de60cb3a38be786469fad686776498",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 244,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/textual-passages/parmenides-poem-eight/source-create-environment.json",
+      "sha256": "0976562dbd82ac21a81cda5c4ccbb0b8c545c54bb686181fc225a32aed6170b3",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1470,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/textual-passages/parmenides-poem-eight/source-create-receipt.json",
+      "sha256": "4a1fa7e9b1dc8ef9b9f74ce512d16576aad2971b241f2446d3c90e0cbd1d9cca",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 2751,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/textual-passages/parmenides-poem-eight/source-create-request.json",
+      "sha256": "d298b15a855ac3bac9aa59cef2d00cbaaf29a7efa1ee5cc254ef4ac8502eaae2",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 8336,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/textual-passages/parmenides-poem-eight/textual-fragment.human-forms.json",
+      "sha256": "6a5d0feb75487856869312e7993fe15bc106814dbcfdd83fd0c3a92ed4f93973",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 2299,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/textual-passages/parmenides-poem-eight/textual-fragment.json",
+      "sha256": "143b8705da02fc967ca10745bf2f0082c913e4e75561cc5aad75fa9cbc314489",
+      "surface_kind": "structured"
+    },
+    {
       "bytes": 9803,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
@@ -29541,6 +29749,46 @@
       "family_id": "tos",
       "path": "ToS/source-witnesses/works/friedrich-nietzsche/zur-genealogie-der-moral/work.json",
       "sha256": "ab47e5b4c637173c635cf20c4ff8bee8a5891be56b534a51cc1b8a4dd966a5fc",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 244,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/john-burnet/early-greek-philosophy/source-create-environment.json",
+      "sha256": "0976562dbd82ac21a81cda5c4ccbb0b8c545c54bb686181fc225a32aed6170b3",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1433,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/john-burnet/early-greek-philosophy/source-create-receipt.json",
+      "sha256": "d199f5535139c1a0cb63b8004f63200a4b81bec95cfd966d7387c0b6b77ce71f",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1755,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/john-burnet/early-greek-philosophy/source-create-request.json",
+      "sha256": "8715f2c29b64fc963b410fbcf8496f3a46e9a80a89125a8cd25e15a655a24c71",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 6573,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/john-burnet/early-greek-philosophy/work.human-forms.json",
+      "sha256": "ee7ba1729e1a698e710a08441b4824c67666f46660f8a2e6256d7edfa2b3d300",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1257,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/john-burnet/early-greek-philosophy/work.json",
+      "sha256": "602f077174cbebfe64675f855ddcb29abc6988507cffd56546526e0a8201d6a2",
       "surface_kind": "structured"
     },
     {
@@ -33584,11 +33832,11 @@
       "surface_kind": "executable"
     },
     {
-      "bytes": 19059,
+      "bytes": 23629,
       "currentness": "tracked_source_snapshot",
       "family_id": "scripts",
       "path": "scripts/build_source_witness_catalog.py",
-      "sha256": "77bbd08abb1b605ae856d713a2417fbf01549945642d8947ab02954484b72091",
+      "sha256": "79553d82e9064b2030a5209c9df3219c911a87afe4246c07c95579130de4656f",
       "surface_kind": "executable"
     },
     {
@@ -33928,19 +34176,19 @@
       "surface_kind": "executable"
     },
     {
-      "bytes": 26352,
+      "bytes": 26391,
       "currentness": "tracked_source_snapshot",
       "family_id": "scripts",
       "path": "scripts/source_record_profiles.py",
-      "sha256": "6f9943200618dcb3521044b4eb17bc1bb60b65ca0ffc06aaa91e754dc014b743",
+      "sha256": "2f31ba2f4d7d7de1e50047604f63d3f0e0e3f60aafada2a038507ba3039661b6",
       "surface_kind": "executable"
     },
     {
-      "bytes": 65080,
+      "bytes": 66337,
       "currentness": "tracked_source_snapshot",
       "family_id": "scripts",
       "path": "scripts/source_witness_bibliographic_graph_common.py",
-      "sha256": "e0c2ba8ee80158730e2533cc8b95090bf2d51a1c64d77719724e229a02207cff",
+      "sha256": "7044365774c23550a700ac12e547b1914d36879806936404b259b56965dec1a1",
       "surface_kind": "executable"
     },
     {
@@ -33952,11 +34200,11 @@
       "surface_kind": "executable"
     },
     {
-      "bytes": 47693,
+      "bytes": 48564,
       "currentness": "tracked_source_snapshot",
       "family_id": "scripts",
       "path": "scripts/tos_corpus_index_common.py",
-      "sha256": "eba73e23e36e189034bf821ab2fc645604cefcd41e7c043b4cf0fb2f73f4523a",
+      "sha256": "4129037835174009be4f8e0ebfc8d860a39ddd4b2f7ce270623735e4f52e1b0b",
       "surface_kind": "executable"
     },
     {
@@ -34560,11 +34808,11 @@
       "surface_kind": "executable"
     },
     {
-      "bytes": 219837,
+      "bytes": 228888,
       "currentness": "tracked_source_snapshot",
       "family_id": "tests",
       "path": "tests/test_source_witness_bibliographic_graph.py",
-      "sha256": "cdb08e6197174c97b421a6d4a7b79bc1b45994310ba565b7e7328661eb03273f",
+      "sha256": "0574ea8d4f57a62a00fa12507230a890ede4b9c0acc9fe3a5e614134e1c3baf4",
       "surface_kind": "executable"
     },
     {

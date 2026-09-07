@@ -785,6 +785,9 @@ Rolling back a derived reader does not erase the new sources or corrections.
 
 ## Textual fragments and quoting passages
 
+The independently mapped scholarly-composite route below retains the modern
+reconstruction object; it must not be substituted for either passage identity.
+
 Registry version 17 distinguishes an addressable `textual-fragment` from a
 `quotation-passage`. Both are intellectual identities using the existing
 declared metadata reader, not physical artifacts or semantic Claim identities.
@@ -828,6 +831,34 @@ Scholarly reconstruction remains with the scholarly-composite source route;
 its existing physical-member profile must not be populated with fictional
 artifacts to fit textual transmission. Compatible textual-composite coverage
 requires its own explicit owner extension and validation.
+
+## Scholarly composites: existing source adapter
+
+Registry version 18 maps the native `tos.composite.*` identity to
+`tos.entity.composite`, an intellectual object rather than a physical artifact
+or the reconstructed original. Native `tos_scholarly_composite_witness_v1`
+records remain unchanged in `scholarly-composites/`. The bounded adapter reads
+only that owner's `composite-witness.json` files and preserves their exact
+record, digest, identity status, preferred label, editorial description,
+provider observations, members, coverage, rights and authority limits.
+
+The catalog is a source-bound mapping, not another authored record. Both
+source-navigation and source-claim carriers expose the same persistent ID;
+the scene maps them to one vertex while inspection retains the carriers.
+The stored metadata does not silently produce witness-membership Claims,
+accept a reconstruction, establish an ancient recension or infer time from an
+editorial label. The native metadata description is available; qualified,
+language-declared human forms are still a separate growth route. Unsupported
+adjacent Corpus-form files fail closed rather than acquiring fabricated
+`record_id` semantics.
+
+Unknown versions, nonpublic metadata, identity/schema/digest drift, duplicate
+identities, unsafe paths, duplicate JSON keys and over-budget records are
+rejected by the native source route. Rolling back the reader leaves the source
+records intact. An ordinary declared metadata profile cannot replace this
+native namespace. Textual reconstruction growth needs an explicit compatible
+owner extension; the v1 physical-member observations must not be populated
+with invented artifacts.
 
 ## Historical situations: source profile
 

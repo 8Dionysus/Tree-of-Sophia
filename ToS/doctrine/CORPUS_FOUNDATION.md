@@ -123,6 +123,12 @@ projects native v1/v2 artifact metadata into the shared catalog and exact
 focus/inspection reader without replacing the authored record or inventing
 relations to Works, texts, composites or visual representations.
 
+The [scholarly-composite adapter](semantic-interchange/README.md#scholarly-composites-existing-source-adapter)
+likewise retains native composite identities and complete v1 records in both
+readers. Source-reported members and coverage remain observations inside their
+original records; catalog inclusion does not create accepted membership edges,
+identify the reconstructed ancient object, or resolve an exact text layer.
+
 Responsibility claims retain their role-specific subject and Agent object:
 Work author, Expression translator, Edition editor, paratext author, designer,
 publisher, copyist, corrector, and rights holder are not interchangeable

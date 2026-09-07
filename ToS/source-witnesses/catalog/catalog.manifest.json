@@ -15,6 +15,7 @@
     "ToS/contracts/historical-context-record.schema.json",
     "ToS/contracts/historical-record.schema.json",
     "ToS/contracts/intellectual-formation-record.schema.json",
+    "ToS/contracts/scholarly-composite-witness.schema.json",
     "ToS/contracts/semantic-description-record.schema.json",
     "ToS/contracts/semantic-relation-claim.schema.json",
     "ToS/contracts/social-body-record.schema.json",
@@ -80,7 +81,8 @@
     "letter": "ToS/source-witnesses/catalog/letters.jsonl",
     "historical-event": "ToS/source-witnesses/catalog/historical-events.jsonl",
     "historical-process": "ToS/source-witnesses/catalog/historical-processes.jsonl",
-    "artifact": "ToS/source-witnesses/catalog/artifacts.jsonl"
+    "artifact": "ToS/source-witnesses/catalog/artifacts.jsonl",
+    "composite": "ToS/source-witnesses/catalog/composites.jsonl"
   },
   "claim_file": "ToS/source-witnesses/catalog/claims.jsonl",
   "counts": {
@@ -135,10 +137,11 @@
     "historical-event": 1,
     "historical-process": 1,
     "artifact": 18,
-    "object_total": 268,
+    "composite": 10,
+    "object_total": 278,
     "claim": 331,
-    "total": 599
+    "total": 609
   },
-  "catalog_sha256": "9db7b8093d483f130108c76ee8b01fad051bbfcbfb6fed8da54bdf827a61749d",
+  "catalog_sha256": "e17b2736a67049ede54b5e2c985acb8bf102261bc39527474260270884f6229d",
   "authority_boundary": "generated navigation over tracked object and claim records; not bibliographic, textual, rights, review, or semantic authority"
 }

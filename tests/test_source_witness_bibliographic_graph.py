@@ -1549,6 +1549,17 @@ class SourceWitnessBibliographicGraphTest(unittest.TestCase):
                 with self.subTest(mutation=repr(mutate)), self.assertRaises(SourceProfileError):
                     SourceRecordProfiles(root)
             (root / ref).write_text(json.dumps(original))
+            native_collision = copy.deepcopy(original)
+            composite = next(item for item in native_collision['types'] if item['type_id'] == 'tos.entity.composite')
+            profile = copy.deepcopy(next(item['source_record_profile'] for item in native_collision['types']
+                                         if item['type_id'] == 'tos.entity.historical-event'))
+            profile.update(record_type='composite', id_prefix='tos.composite.',
+                           source_basename='composite.json', catalog_filename='composites.jsonl')
+            composite['source_record_profile'] = profile
+            (root / ref).write_text(json.dumps(native_collision))
+            with self.assertRaisesRegex(SourceProfileError, 'adapter collision'):
+                SourceRecordProfiles(root)
+            (root / ref).write_text(json.dumps(original))
             reader = SourceRecordProfiles(root)
             path, source = history[0]
             relative = path.relative_to(root).as_posix()
@@ -1575,6 +1586,126 @@ class SourceWitnessBibliographicGraphTest(unittest.TestCase):
             path.unlink()
             path.write_bytes(saved)
             self.assertEqual(reader.load(source['record_type'], relative), source)
+
+    def test_native_composites_keep_exact_source_identity_and_unassessed_members(self):
+        """Real metadata in an isolated reader, not new historical evidence."""
+        from build_source_witness_catalog import collect_records
+        import tos_corpus_index_common as corpus_builder
+        with self.historical_fixture() as (root, history, real, claims, rebuild):
+            originals = []
+            for ref in (
+                'ToS/source-witnesses/scholarly-composites/synoptic/akkadian/old-babylonian-gilgamesh-fragments/composite-witness.json',
+                'ToS/source-witnesses/scholarly-composites/critical/egyptian/book-of-the-dead-naville-1886/composite-witness.json',
+            ):
+                path = root / ref
+                path.parent.mkdir(parents=True)
+                raw = (REPO_ROOT / ref).read_bytes()
+                path.write_bytes(raw)
+                source = json.loads(raw)
+                originals.append((ref, raw, source))
+                for planting_ref in source['philosophy_planting_refs']:
+                    planting = root / planting_ref
+                    planting.parent.mkdir(parents=True, exist_ok=True)
+                    planting.write_bytes((REPO_ROOT / planting_ref).read_bytes())
+            schema_ref = 'ToS/contracts/scholarly-composite-witness.schema.json'
+            (root / schema_ref).write_bytes((REPO_ROOT / schema_ref).read_bytes())
+            entries = collect_records(root)['composite']
+            self.assertEqual({entry['record_id'] for entry in entries},
+                             {source['composite_id'] for _, _, source in originals})
+            projection = rebuild()
+            self.assertIn('scholarly-composite', projection['graph_layers'])
+            self.assertIn(schema_ref, projection['input_digests'])
+            _, entities, relations = self.historical_knowledge(root, projection)
+            with patch.object(corpus_builder, 'REPO_ROOT', root), patch.object(corpus_builder, 'TOS_ROOT', root / 'ToS'):
+                diagnostics = []
+                navigation = corpus_builder.build_source_navigation(diagnostics)
+            self.assertEqual(diagnostics, [])
+            from tos_access.knowledge import build_knowledge_graph, focus_knowledge_node, select_human_forms
+            graph = build_knowledge_graph({'source_navigation': navigation}, {}, projection, entities, relations)
+            for ref, raw, source in originals:
+                carriers = [node for node in graph['nodes'] if node['entity_id'] == source['composite_id']]
+                self.assertEqual({node['source_graph'] for node in carriers}, {'source-claims', 'source-navigation'})
+                for node in carriers:
+                    self.assertEqual(node['type_id'], 'tos.entity.composite')
+                    self.assertEqual(node['attributes']['source_record'], source)
+                    self.assertEqual(node['display']['title']['default'], source['preferred_label'])
+                    self.assertEqual(node['display']['summary']['default'], source['editorial_object']['description'])
+                    self.assertEqual(node['epistemic']['review_posture'], source['authority']['review_status'])
+                    self.assertNotIn('time', node['semantics'])
+                    self.assertNotIn('tos.entity.artifact', node['semantics']['type_ancestors'])
+                    self.assertNotEqual(select_human_forms(node)['roles']['hover']['state'], 'ready')
+                identity = next(node for node in projection['nodes']
+                                if node['properties'].get('identity_ref') == source['composite_id'])
+                self.assertEqual(identity['properties']['identity_status'], source['identity_status'])
+                self.assertFalse(identity['properties']['authority']['source_text_admitted'])
+                self.assertFalse(identity['properties']['authority']['canon_authority'])
+                self.assertFalse(any(identity['node_id'] in (edge['from_id'], edge['to_id'])
+                                     for edge in projection['edges']))
+                focused = focus_knowledge_node(graph, source['composite_id'], depth=1)
+                vertices = [vertex for vertex in focused['scene']['vertices']
+                            if vertex['entity_id'] == source['composite_id']]
+                self.assertEqual(len(vertices), 1)
+                self.assertEqual(focused['scene']['focus_vertex_id'], vertices[0]['id'])
+                self.assertIn(focused['focus']['node_id'], vertices[0]['node_ids'])
+                self.assertEqual((root / ref).read_bytes(), raw)
+
+    def test_native_composite_adapter_rejects_nonpublic_drift_and_identity_collisions(self):
+        from build_source_witness_catalog import collect_records, CatalogBuildError
+        with self.historical_fixture() as (root, history, real, claims, rebuild):
+            ref = 'ToS/source-witnesses/scholarly-composites/synoptic/akkadian/old-babylonian-gilgamesh-fragments/composite-witness.json'
+            path = root / ref
+            path.parent.mkdir(parents=True)
+            source = json.loads((REPO_ROOT / ref).read_bytes())
+            schema_ref = 'ToS/contracts/scholarly-composite-witness.schema.json'
+            (root / schema_ref).write_bytes((REPO_ROOT / schema_ref).read_bytes())
+            for change in (
+                lambda value: value['authority'].update(visibility='local_only'),
+                lambda value: value['authority'].update(source_text_admitted=True),
+                lambda value: value['editorial_object'].update(ancient_original=True),
+                lambda value: value.update(schema_version='unknown'),
+                lambda value: value.update(composite_id='tos.artifact.synthetic'),
+            ):
+                candidate = copy.deepcopy(source)
+                change(candidate)
+                path.write_text(json.dumps(candidate))
+                with self.assertRaises(CatalogBuildError):
+                    collect_records(root)
+            path.write_text(json.dumps(source))
+            rebuild()
+            catalog = root / 'ToS/source-witnesses/catalog/composites.jsonl'
+            entry = json.loads(catalog.read_bytes())
+            for key, value in (('preferred_label', 'Invented title'), ('identity_status', 'verified'),
+                               ('record_id', 'tos.composite.other'), ('record_sha256', '0' * 64),
+                               ('source_schema_ref', 'ToS/contracts/corpus-record.schema.json'),
+                               ('source_record_ref', '/tmp/composite-witness.json')):
+                catalog.write_text(json.dumps({**entry, key: value}) + '\n')
+                with self.subTest(field=key), self.assertRaises(BibliographicGraphBuildError):
+                    build_payload(root)
+            catalog.write_text(json.dumps(entry) + '\n')
+            duplicate = path.parent / 'duplicate' / path.name
+            duplicate.parent.mkdir()
+            duplicate.write_bytes(path.read_bytes())
+            with self.assertRaisesRegex(CatalogBuildError, 'duplicate'):
+                collect_records(root)
+            duplicate.unlink()
+            duplicate.symlink_to(path)
+            with self.assertRaisesRegex(CatalogBuildError, 'non-symlink'):
+                collect_records(root)
+            duplicate.unlink()
+            original = path.read_bytes()
+            for raw in (b'{"composite_id":"first","composite_id":"second"}', b'{"value":1e309}', b'{"value":NaN}'):
+                path.write_bytes(raw)
+                with self.assertRaises(CatalogBuildError):
+                    collect_records(root)
+            path.write_bytes(original)
+            forms = path.with_name('composite-witness.human-forms.json')
+            forms.write_text('{}')
+            with self.assertRaisesRegex(BibliographicGraphBuildError, 'native-subject adapter'):
+                build_payload(root)
+            forms.unlink()
+            path.write_bytes(b' ' * 1_048_577)
+            with self.assertRaisesRegex(CatalogBuildError, 'budget'):
+                collect_records(root)
 
     def test_physical_artifacts_keep_native_identity_source_and_non_authority(self):
         """Real existing metadata copied into an isolated reader; no new facts."""
@@ -2238,7 +2369,8 @@ class SourceWitnessBibliographicGraphTest(unittest.TestCase):
                                                   for entry in entries)
         self.assertEqual(payload["graph_layers"], ['bibliographic', *(['historical'] if historical else []),
                          *(['source-profile'] if declared_profile else []),
-                         *(['physical-artifact'] if manifest['counts'].get('artifact') else [])])
+                         *(['physical-artifact'] if manifest['counts'].get('artifact') else []),
+                         *(['scholarly-composite'] if manifest['counts'].get('composite') else [])])
         self.assertEqual(payload["review_counts"], Counter(entry['review_status'] for entry in entries))
         self.assertEqual(payload["visibility_counts"], Counter(entry['visibility'] for entry in entries))
         self.assertEqual(

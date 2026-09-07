@@ -12,7 +12,8 @@ from typing import Any
 
 from jsonschema import Draft202012Validator
 from build_source_witness_catalog import (artifact_catalog_entry, artifact_display_fields,
-                                         load_artifact_record, canonical_json, RECORD_FILES, ADAPTED_RECORD_FILES)
+                                         load_artifact_record, canonical_json, RECORD_FILES, ADAPTED_RECORD_FILES,
+                                         composite_catalog_entry, load_composite_record, composite_display_fields)
 from source_witness_human_forms import load_metadata_forms
 from source_record_profiles import SourceRecordProfiles
 
@@ -741,10 +742,16 @@ def build_source_navigation(diagnostics: list[dict[str, str]]) -> dict[str, Any]
                     continue
                 source_record = (profiles.verify_entry(record_type, entry) if record_type in profiles.profiles
                                  else load_artifact_record(REPO_ROOT, source_ref) if record_type == 'artifact'
+                                 else load_composite_record(REPO_ROOT, source_ref) if record_type == 'composite'
                                  else load_json(REPO_ROOT / source_ref))
                 if record_type == 'artifact' and entry != artifact_catalog_entry(
                         REPO_ROOT, source_record, source_ref, artifact_validators):
                     raise ValueError(f'{source_ref}: physical artifact catalog/source mapping drifted')
+                if record_type == 'composite' and entry != composite_catalog_entry(
+                        REPO_ROOT, source_record, source_ref, artifact_validators):
+                    raise ValueError(f'{source_ref}: scholarly composite catalog/source mapping drifted')
+                if record_type == 'composite' and (REPO_ROOT / source_ref).with_name('composite-witness.human-forms.json').exists():
+                    raise ValueError(f'{source_ref}: composite human forms require a native-subject adapter')
                 native_metadata = record_type in RECORD_FILES and record_type != 'link'
                 if native_metadata:
                     if (not corpus_validator.is_valid(source_record)
@@ -757,6 +764,8 @@ def build_source_navigation(diagnostics: list[dict[str, str]]) -> dict[str, Any]
                 properties["source_record"] = dict(source_record)
                 if record_type == 'artifact':
                     properties.update(artifact_display_fields(source_record))
+                if record_type == 'composite':
+                    properties.update(composite_display_fields(source_record))
                 if record_type in profiles.profiles or native_metadata:
                     forms = load_metadata_forms(REPO_ROOT, source_ref, source_record, access_allowed=True)
                     if forms is not None:

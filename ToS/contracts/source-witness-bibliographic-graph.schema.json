@@ -114,9 +114,9 @@
       }
     },
     "graph_layers": {
-      "type": "array", "minItems": 1, "maxItems": 4, "uniqueItems": true,
+      "type": "array", "minItems": 1, "maxItems": 5, "uniqueItems": true,
       "prefixItems": [{"const": "bibliographic"}],
-      "items": {"enum": ["historical", "source-profile", "physical-artifact"]}
+      "items": {"enum": ["historical", "source-profile", "physical-artifact", "scholarly-composite"]}
     },
     "relation_model": {
       "type": "object",

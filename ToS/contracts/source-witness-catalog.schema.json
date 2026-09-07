@@ -45,7 +45,8 @@
         "historical-event": {"const": "ToS/source-witnesses/catalog/historical-events.jsonl"},
         "historical-process": {"const": "ToS/source-witnesses/catalog/historical-processes.jsonl"},
         "historical-state": {"const": "ToS/source-witnesses/catalog/historical-states.jsonl"},
-        "artifact": {"const": "ToS/source-witnesses/catalog/artifacts.jsonl"}
+        "artifact": {"const": "ToS/source-witnesses/catalog/artifacts.jsonl"},
+        "composite": {"const": "ToS/source-witnesses/catalog/composites.jsonl"}
       }
     },
     "claim_file": {"const": "ToS/source-witnesses/catalog/claims.jsonl"},
@@ -137,6 +138,12 @@
           "properties": {"identity_status": {"type": "string"}},
           "not": {"required": ["label_source_pointer"]}
         }
+      }, {
+        "if": {"properties": {"record_type": {"const": "composite"}}},
+        "then": {"required": ["source_schema_ref"], "properties": {
+          "record_id": {"pattern": "^tos\\.composite\\."},
+          "source_schema_ref": {"const": "ToS/contracts/scholarly-composite-witness.schema.json"}
+        }}
       }, {
         "if": {"properties": {"record_type": {"not": {"enum": ["agent", "place", "organization", "work", "expression", "edition", "collection", "item", "link"]}}}},
         "then": {"required": ["source_schema_ref"]}
