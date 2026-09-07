@@ -1,0 +1,206 @@
+{
+  "forms": [
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:b45642671d576a7affb0a0e7867df91d3831d2e8575e0619957478f73b6120af",
+            "id": "tos.composite.sumerian.old-babylonian-literary-catalogue-witnesses",
+            "version": 2
+          }
+        },
+        "context-1": {
+          "pointer": "/layer_separation",
+          "record": {
+            "digest": "sha256:b45642671d576a7affb0a0e7867df91d3831d2e8575e0619957478f73b6120af",
+            "id": "tos.composite.sumerian.old-babylonian-literary-catalogue-witnesses",
+            "version": 2
+          }
+        },
+        "context-2": {
+          "pointer": "/authority",
+          "record": {
+            "digest": "sha256:b45642671d576a7affb0a0e7867df91d3831d2e8575e0619957478f73b6120af",
+            "id": "tos.composite.sumerian.old-babylonian-literary-catalogue-witnesses",
+            "version": 2
+          }
+        },
+        "context-3": {
+          "pointer": "/rights_ref",
+          "record": {
+            "digest": "sha256:b45642671d576a7affb0a0e7867df91d3831d2e8575e0619957478f73b6120af",
+            "id": "tos.composite.sumerian.old-babylonian-literary-catalogue-witnesses",
+            "version": 2
+          }
+        },
+        "wording": {
+          "pointer": "/preferred_label",
+          "record": {
+            "digest": "sha256:b45642671d576a7affb0a0e7867df91d3831d2e8575e0619957478f73b6120af",
+            "id": "tos.composite.sumerian.old-babylonian-literary-catalogue-witnesses",
+            "version": 2
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "agent:codex-tos-foundation",
+      "form_id": "tos.form.composite.sumerian.old-babylonian-literary-catalogue-witnesses.source-name",
+      "form_version": 2,
+      "language": null,
+      "revises": {
+        "digest": "sha256:32dfd36a27f143060df1c63272a25f086ec3ef481d4edc2bdc9c9bb9aa5bdd74",
+        "id": "tos.form.composite.sumerian.old-babylonian-literary-catalogue-witnesses.source-name",
+        "version": 1
+      },
+      "role": "name",
+      "schema_version": "tos_human_form_v1",
+      "script": null,
+      "subject": {
+        "digest": "sha256:b45642671d576a7affb0a0e7867df91d3831d2e8575e0619957478f73b6120af",
+        "id": "tos.composite.sumerian.old-babylonian-literary-catalogue-witnesses",
+        "version": 2
+      }
+    },
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "",
+          "record": {
+            "digest": "sha256:b45642671d576a7affb0a0e7867df91d3831d2e8575e0619957478f73b6120af",
+            "id": "tos.composite.sumerian.old-babylonian-literary-catalogue-witnesses",
+            "version": 2
+          }
+        },
+        "wording": {
+          "pointer": "/editorial_object/description",
+          "record": {
+            "digest": "sha256:b45642671d576a7affb0a0e7867df91d3831d2e8575e0619957478f73b6120af",
+            "id": "tos.composite.sumerian.old-babylonian-literary-catalogue-witnesses",
+            "version": 2
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "agent:codex-tos-foundation",
+      "form_id": "tos.form.composite.sumerian.old-babylonian-literary-catalogue-witnesses.source-note",
+      "form_version": 1,
+      "language": null,
+      "revises": null,
+      "role": "hover",
+      "schema_version": "tos_human_form_v1",
+      "script": null,
+      "subject": {
+        "digest": "sha256:b45642671d576a7affb0a0e7867df91d3831d2e8575e0619957478f73b6120af",
+        "id": "tos.composite.sumerian.old-babylonian-literary-catalogue-witnesses",
+        "version": 2
+      }
+    }
+  ],
+  "growth_history": [
+    {
+      "authority_ref": "operator:tos-foundation-v1-20260905",
+      "command_id": "native-forms:20260907:composite.sumerian.old-babylonian-literary-catalogue-witnesses",
+      "owner_configuration": "sha256:259869c0394f25c356c997e8be865a0644d626f6430c847d718a145d2273b9f4",
+      "previous_revision": null,
+      "principal_id": "agent:codex-tos-foundation",
+      "recorded_at": "2026-09-07T21:29:10.982830+00:00",
+      "request_digest": "sha256:6567f8ea5908f054066068eece309882b09dee750783ffc56d8b0313d396c341",
+      "results": [
+        {
+          "digest": "sha256:32dfd36a27f143060df1c63272a25f086ec3ef481d4edc2bdc9c9bb9aa5bdd74",
+          "id": "tos.form.composite.sumerian.old-babylonian-literary-catalogue-witnesses.source-name",
+          "version": 1
+        },
+        {
+          "digest": "sha256:4b192f57be1431a63c694d5185487168bdffdb810ebe688206966f075c4e8af1",
+          "id": "tos.form.composite.sumerian.old-babylonian-literary-catalogue-witnesses.source-note",
+          "version": 1
+        }
+      ],
+      "source": {
+        "digest": "sha256:b45642671d576a7affb0a0e7867df91d3831d2e8575e0619957478f73b6120af",
+        "id": "tos.composite.sumerian.old-babylonian-literary-catalogue-witnesses",
+        "version": 2
+      },
+      "source_contracts": {
+        "ToS/contracts/scholarly-composite-witness.schema.json": "sha256:d704fac5f02a747578b3ef6ddaf7f7af06c517c29c529d767ceaf5b84af25cd9"
+      }
+    },
+    {
+      "command_id": "native-forms:20260907:qualified-name:composite.sumerian.old-babylonian-literary-catalogue-witnesses",
+      "request_digest": "sha256:c068db2951c1315baf8223919b4cc52c8af6ac84cd616df0c9ebcef19e7c097c",
+      "principal_id": "agent:codex-tos-foundation",
+      "authority_ref": "operator:tos-foundation-v1-20260905",
+      "owner_configuration": "sha256:259869c0394f25c356c997e8be865a0644d626f6430c847d718a145d2273b9f4",
+      "recorded_at": "2026-09-07T21:40:11.720431+00:00",
+      "source_contracts": {
+        "ToS/contracts/scholarly-composite-witness.schema.json": "sha256:d704fac5f02a747578b3ef6ddaf7f7af06c517c29c529d767ceaf5b84af25cd9"
+      },
+      "source": {
+        "id": "tos.composite.sumerian.old-babylonian-literary-catalogue-witnesses",
+        "version": 2,
+        "digest": "sha256:b45642671d576a7affb0a0e7867df91d3831d2e8575e0619957478f73b6120af"
+      },
+      "previous_revision": "sha256:ca5b75f31dfaf9ff1c12c8102f8265a57df0249d6ea9b48bded38497e2c21646",
+      "results": [
+        {
+          "id": "tos.form.composite.sumerian.old-babylonian-literary-catalogue-witnesses.source-name",
+          "version": 2,
+          "digest": "sha256:56801e32c3e8d158188e6d9704aaf46ef88465cdda07ad17380e57ebb2e284c8"
+        }
+      ]
+    }
+  ],
+  "prior_forms": [
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "",
+          "record": {
+            "digest": "sha256:b45642671d576a7affb0a0e7867df91d3831d2e8575e0619957478f73b6120af",
+            "id": "tos.composite.sumerian.old-babylonian-literary-catalogue-witnesses",
+            "version": 2
+          }
+        },
+        "wording": {
+          "pointer": "/preferred_label",
+          "record": {
+            "digest": "sha256:b45642671d576a7affb0a0e7867df91d3831d2e8575e0619957478f73b6120af",
+            "id": "tos.composite.sumerian.old-babylonian-literary-catalogue-witnesses",
+            "version": 2
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "agent:codex-tos-foundation",
+      "form_id": "tos.form.composite.sumerian.old-babylonian-literary-catalogue-witnesses.source-name",
+      "form_version": 1,
+      "language": null,
+      "revises": null,
+      "role": "name",
+      "schema_version": "tos_human_form_v1",
+      "script": null,
+      "subject": {
+        "digest": "sha256:b45642671d576a7affb0a0e7867df91d3831d2e8575e0619957478f73b6120af",
+        "id": "tos.composite.sumerian.old-babylonian-literary-catalogue-witnesses",
+        "version": 2
+      }
+    }
+  ],
+  "schema_version": "tos_human_form_set_v1",
+  "subject": {
+    "id": "tos.composite.sumerian.old-babylonian-literary-catalogue-witnesses",
+    "version": 2,
+    "digest": "sha256:b45642671d576a7affb0a0e7867df91d3831d2e8575e0619957478f73b6120af"
+  }
+}

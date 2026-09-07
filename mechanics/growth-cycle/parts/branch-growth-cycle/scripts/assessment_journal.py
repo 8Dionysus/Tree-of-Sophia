@@ -394,12 +394,21 @@ def _source_records(root: Path, bindings: Any) -> tuple[list[dict[str, Any]], li
     files, resolved, fixity, total, selected = {}, [], [], 0, set()
     metadata_profiles, claim_profiles = None, None
     native_dependencies = {}
+    native_types = {}
     declared_claims = set()
 
     def declared_family(row, path):
         nonlocal metadata_profiles, claim_profiles
         # Owner-declared readers only. Unknown neighbors remain opaque, and
         # the selected record still fails if no exact schema route exists.
+        if path.name in {'artifact-witness.json', 'composite-witness.json'}:
+            from build_source_witness_catalog import native_witness_contract
+            schema_ref, identity, kind = native_witness_contract(row, path.as_posix())
+            schema = _read_json(root, schema_ref, native_dependencies)
+            if not Draft202012Validator(schema, format_checker=FormatChecker()).is_valid(row):
+                raise ValueError('native assessment source violates its exact public metadata schema')
+            native_types[row[identity]] = kind
+            return identity, 'record_version'
         if path.name == SOURCE_CLAIM_BASENAME:
             if claim_profiles is None:
                 claim_profiles = SourceClaimProfiles(root)
@@ -464,7 +473,7 @@ def _source_records(root: Path, bindings: Any) -> tuple[list[dict[str, Any]], li
                 if not isinstance(row, dict):
                     raise ValueError('source records must be JSON objects')
                 family = families.get(row.get('schema_version'))
-                if (family is None or path.name == SOURCE_CLAIM_BASENAME or path.name == 'composite.json'
+                if (family is None or path.name in {SOURCE_CLAIM_BASENAME, 'composite.json', 'composite-witness.json', 'artifact-witness.json'}
                         or (isinstance(row.get('record_type'), str) and path.suffix == '.json'
                             and path.name not in RESERVED_BASENAMES)):
                     family = declared_family(row, path)
@@ -491,11 +500,16 @@ def _source_records(root: Path, bindings: Any) -> tuple[list[dict[str, Any]], li
         # Endpoints must be in this independently selected source snapshot,
         # not inline shadows or discovered by crawling the surrounding corpus.
         objects = {item['id']: item['payload'] for item in resolved if 'record_type' in item['payload']}
+        # Typed endpoint descriptors serve domain/range validation only. The
+        # selected record above retains every original native field unchanged.
+        objects.update({identifier: {'record_type': kind} for identifier, kind in native_types.items()})
         paths = {binding['record_id']: Path(binding['path']) for binding in bindings}
         endpoint_ids = {identity for item in resolved if item['id'] in declared_claims
                         for identity in claim_profiles.identity_refs(item['payload'])}
         native_validator = None
         for identifier in endpoint_ids & objects.keys():
+            if identifier in native_types:
+                continue  # Its exact schema and canonical owner path were checked above.
             body = objects[identifier]
             kind = body.get('record_type')
             if (not isinstance(kind, str) or paths[identifier].name != kind + '.json'

@@ -1704,6 +1704,18 @@ class SourceWitnessBibliographicGraphTest(unittest.TestCase):
                         claim_profiles.validate({**claim, **change}, objects)
                 associations.append(claim)
             (path.parent / 'source-claims.jsonl').write_text(''.join(json.dumps(claim) + '\n' for claim in associations))
+            native_claim = {**copy.deepcopy(associations[0]), 'claim_id': 'tos.claim.synthetic-native-composite',
+                            'subject_ref': native['composite_id']}
+            native_claim_ref = native_path.with_name('source-claims.jsonl').relative_to(root).as_posix()
+            (root / native_claim_ref).write_text(json.dumps(native_claim) + '\n')
+            work_ref = 'ToS/source-witnesses/works/friedrich-nietzsche/jenseits-von-gut-und-boese/work.json'
+            native_bindings = [{'path': selected_path, 'record_id': identifier, 'origin_id': 'test:synthetic-only'}
+                for selected_path, identifier in ((native_ref, native['composite_id']),
+                    (work_ref, real[2]['record_id']), (native_claim_ref, native_claim['claim_id']))]
+            resolved, _ = _source_records(root, native_bindings)
+            self.assertEqual(next(row['payload'] for row in resolved if row['id'] == native['composite_id']), native)
+            with self.assertRaises(ValueError):
+                _source_records(root, native_bindings[1:])
             entries = collect_records(root)['composite']
             self.assertEqual({entry['record_id'] for entry in entries}, {record['record_id'], native['composite_id']})
             projection = rebuild()
@@ -1806,6 +1818,34 @@ class SourceWitnessBibliographicGraphTest(unittest.TestCase):
                 self.assertIn(focused['focus']['node_id'], vertices[0]['node_ids'])
                 self.assertEqual((root / ref).read_bytes(), raw)
 
+            # Add source-copy forms through the same finite preparation API;
+            # both derived carriers must consume them without source coercion.
+            from source_commands import prepare_metadata_change
+            for index, (ref, raw, source) in enumerate(originals):
+                form = prepare_metadata_change(source, None, 'test:copy-only',
+                    f'tos.form.test.native-{index}', 'metadata.source-note')['form']
+                forms = {'schema_version': 'tos_human_form_set_v1', 'subject': form['subject'],
+                         'forms': [form], 'prior_forms': []}
+                (root / ref).with_name('composite-witness.human-forms.json').write_text(json.dumps(forms))
+            projection = rebuild()
+            with patch.object(corpus_builder, 'REPO_ROOT', root), patch.object(corpus_builder, 'TOS_ROOT', root / 'ToS'):
+                diagnostics = []
+                navigation = corpus_builder.build_source_navigation(diagnostics)
+            self.assertEqual(diagnostics, [])
+            graph = build_knowledge_graph({'source_navigation': navigation}, {}, projection, entities, relations)
+            for ref, raw, source in originals:
+                carriers = [node for node in graph['nodes'] if node['entity_id'] == source['composite_id']]
+                self.assertEqual(len(carriers), 2)
+                for node in carriers:
+                    view = node['attributes']['human_forms'][0]
+                    self.assertEqual(view['state'], 'ready')
+                    self.assertEqual(view['display_text'], source['editorial_object']['description'])
+                    self.assertEqual(view['context'][0]['value'], source)
+                    self.assertIsNone(view['language'])
+                    self.assertIsNone(view['admission'])
+                    self.assertEqual(node['attributes']['source_record'], source)
+                self.assertEqual((root / ref).read_bytes(), raw)
+
     def test_native_composite_adapter_rejects_nonpublic_drift_and_identity_collisions(self):
         from build_source_witness_catalog import collect_records, CatalogBuildError
         with self.historical_fixture() as (root, history, real, claims, rebuild):
@@ -1868,7 +1908,7 @@ class SourceWitnessBibliographicGraphTest(unittest.TestCase):
             path.write_bytes(original)
             forms = path.with_name('composite-witness.human-forms.json')
             forms.write_text('{}')
-            with self.assertRaisesRegex(BibliographicGraphBuildError, 'native-subject adapter'):
+            with self.assertRaisesRegex(BibliographicGraphBuildError, 'human-form set schema'):
                 build_payload(root)
             forms.unlink()
             path.write_bytes(b' ' * 1_048_577)
@@ -1951,6 +1991,31 @@ class SourceWitnessBibliographicGraphTest(unittest.TestCase):
                 centered = next(item for item in selected['nodes'] if item['id'] == selected['focus']['node_id'])
                 self.assertEqual(centered['display']['title']['default'], source['custody']['inventory_numbers'][0])
                 self.assertEqual(centered['display']['summary']['default'], source['path_identity']['note'])
+
+            from source_commands import prepare_metadata_change
+            for index, (ref, source) in enumerate(originals):
+                form = prepare_metadata_change(source, None, 'test:copy-only',
+                    f'tos.form.test.native-artifact-{index}', 'metadata.source-note')['form']
+                (root / ref).with_name('artifact-witness.human-forms.json').write_text(json.dumps({
+                    'schema_version': 'tos_human_form_set_v1', 'subject': form['subject'],
+                    'forms': [form], 'prior_forms': []}))
+            projection = rebuild()
+            with patch.object(corpus_builder, 'REPO_ROOT', root), patch.object(corpus_builder, 'TOS_ROOT', root / 'ToS'):
+                diagnostics = []
+                navigation = corpus_builder.build_source_navigation(diagnostics)
+            self.assertEqual(diagnostics, [])
+            combined = build_knowledge_graph({'source_navigation': navigation}, {}, projection, *registries)
+            for ref, source in originals:
+                shared = [item for item in combined['nodes'] if item['entity_id'] == source['artifact_id']]
+                self.assertEqual(len(shared), 2)
+                for node in shared:
+                    view = node['attributes']['human_forms'][0]
+                    self.assertEqual(view['state'], 'ready')
+                    self.assertEqual(view['display_text'], source['path_identity']['note'])
+                    self.assertEqual(view['context'][0]['value'], source)
+                    self.assertIsNone(view['language'])
+                    self.assertIsNone(view['admission'])
+                    self.assertEqual(node['attributes']['source_record'], source)
 
     def test_artifact_adapter_refuses_private_unknown_tampered_or_duplicate_metadata(self):
         from build_source_witness_catalog import collect_records, CatalogBuildError
@@ -2363,6 +2428,70 @@ class SourceWitnessBibliographicGraphTest(unittest.TestCase):
         directory = REPO_ROOT / 'ToS/source-witnesses/works/friedrich-nietzsche/jenseits-von-gut-und-boese'
         return (json.loads((directory / 'work.json').read_text()),
                 json.loads((directory / 'work.human-forms.json').read_text()))
+
+    def test_native_witness_forms_keep_exact_identity_context_and_unknown_language(self):
+        from source_commands import prepare_metadata_change
+        from knowledge_assessment import Record
+        paths = list((REPO_ROOT / 'ToS/source-witnesses/scholarly-composites').rglob('composite-witness.json'))
+        paths += list((REPO_ROOT / 'ToS/source-witnesses/artifacts').rglob('artifact-witness.json'))
+        self.assertTrue(paths)
+        for path in paths:
+            with self.subTest(source=path.name):
+                raw = path.read_bytes()
+                source = json.loads(raw)
+                identity = source.get('composite_id', source.get('artifact_id'))
+                subject = Record.from_payload(identity, source['record_version'], source)
+                form = prepare_metadata_change(source, None, 'test:source-copy',
+                    'tos.form.test.native', 'metadata.source-note')['form']
+                forms = {'schema_version': 'tos_human_form_set_v1', 'subject': subject.ref,
+                         'forms': [form], 'prior_forms': []}
+                view = materialize_metadata_forms(source, forms, access_allowed=True)[0]
+                self.assertEqual(view['state'], 'ready')
+                self.assertEqual(view['subject'], subject.ref)
+                self.assertEqual(view['context'][0]['value'], source)
+                self.assertIsNone(view['language'])
+                self.assertIsNone(view['script'])
+                self.assertIsNone(view['admission'])
+                self.assertFalse(view['standalone_reading'])
+                self.assertNotIn('record_id', source)
+                self.assertEqual(path.read_bytes(), raw)
+                omitted = copy.deepcopy(forms)
+                del omitted['forms'][0]['bindings']['context-0']
+                self.assertEqual(materialize_metadata_forms(source, omitted, access_allowed=True)[0]['state'], 'invalid')
+                changed = copy.deepcopy(source)
+                changed['authority']['review_status'] = 'changed-after-copy'
+                self.assertEqual(materialize_metadata_forms(changed, forms, access_allowed=True)[0]['state'], 'stale')
+                self.assertEqual(materialize_metadata_forms(source, forms, access_allowed=False)[0]['state'], 'restricted')
+                # Scene names do not need a second copy of the whole witness;
+                # its complete hover and qualified name must fit together.
+                name = prepare_metadata_change(source, None, 'test:source-copy',
+                    'tos.form.' + identity.removeprefix('tos.') + '.source-name', 'metadata.preferred-name')['form']
+                form['form_id'] = 'tos.form.' + identity.removeprefix('tos.') + '.source-note'
+                compact_forms = {**forms, 'forms': [name, form]}
+                views = materialize_metadata_forms(source, compact_forms, access_allowed=True)
+                if str(REPO_ROOT / 'access/src') not in sys.path:
+                    sys.path.insert(0, str(REPO_ROOT / 'access/src'))
+                from tos_access.knowledge import select_human_forms
+                node = {'entity_id': identity, 'content_revision': 'a' * 64, 'attributes': {
+                    'source_record': source, 'source_sha256': subject.ref['digest'].removeprefix('sha256:'),
+                    'human_forms': views, 'human_forms_source_ref': path.with_name(path.stem + '.human-forms.json').relative_to(REPO_ROOT).as_posix()}}
+                delivered = select_human_forms(node, 'ru')
+                self.assertEqual(delivered['roles']['name']['state'], 'ready')
+                self.assertEqual(delivered['roles']['hover']['state'], 'ready')
+                name_context = {c['binding']['pointer']: c['value'] for c in views[0]['context']}
+                self.assertEqual(name_context['/authority'], source['authority'])
+                self.assertEqual(name_context['/layer_separation'], source['layer_separation'])
+                self.assertEqual(name_context['/rights_ref'], source['rights_ref'])
+                for slot in name['bindings']:
+                    if slot == 'wording':
+                        continue
+                    missing_context = copy.deepcopy(compact_forms)
+                    del missing_context['forms'][0]['bindings'][slot]
+                    self.assertEqual(materialize_metadata_forms(source, missing_context, access_allowed=True)[0]['state'], 'invalid')
+                if 'custody' in source:
+                    self.assertEqual(name_context['/custody'], source['custody'])
+                else:
+                    self.assertEqual(name_context['/identity_status'], source['identity_status'])
 
     def test_claim_statement_forms_preserve_unknown_context_and_refuse_unsafe_readings(self):
         from source_witness_human_forms import materialize_claim_forms, claim_field_catalog, claim_forms_path

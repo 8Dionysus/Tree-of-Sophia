@@ -100,9 +100,20 @@ export function selectHumanForms(item: Item, language = 'auto') {
     return stop('invalid', 'forms.missing-source-record-binding');
   }
   const source = record(rawSource);
-  const subject = {id: source[isClaim ? 'claim_id' : 'record_id'], version: source[isClaim ? 'claim_version' : 'record_version'],
+  const nativeIdentities: Record<string, string> = {
+    tos_scholarly_composite_witness_v1: 'composite_id',
+    tos_artifact_source_witness_v1: 'artifact_id',
+    tos_artifact_source_witness_v2: 'artifact_id',
+  };
+  const nativeIdentity = !isClaim && typeof source.schema_version === 'string' && Object.hasOwn(nativeIdentities, source.schema_version)
+    ? nativeIdentities[source.schema_version] : undefined;
+  if (nativeIdentity && (Object.hasOwn(source, 'record_id') || typeof source[nativeIdentity] !== 'string'
+      || !(source[nativeIdentity] as string).startsWith('tos.' + nativeIdentity.replace(/_id$/, '') + '.'))) {
+    return stop('invalid', 'forms.invalid-source-record-binding');
+  }
+  const subject = {id: source[isClaim ? 'claim_id' : nativeIdentity ?? 'record_id'], version: source[isClaim ? 'claim_version' : 'record_version'],
     digest: 'sha256:' + String(attributes.source_sha256 ?? '')};
-  if (!exactRef(subject) || (isClaim && item.entity_id !== subject.id)) return stop('invalid', 'forms.invalid-source-record-binding');
+  if (!exactRef(subject) || ((isClaim || nativeIdentity) && item.entity_id !== subject.id)) return stop('invalid', 'forms.invalid-source-record-binding');
   const ready: Item[] = [], seen = new Set<string>();
   for (const [index, raw] of forms.entries()) {
     const packet = record(raw);

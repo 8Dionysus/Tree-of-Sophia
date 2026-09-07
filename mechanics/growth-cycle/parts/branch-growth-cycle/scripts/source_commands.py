@@ -22,7 +22,7 @@ import sys
 import tempfile
 import time
 import unicodedata
-from jsonschema import Draft202012Validator, ValidationError
+from jsonschema import Draft202012Validator, ValidationError, FormatChecker
 
 from assessment_journal import (
     JournalBusy, JournalConflict, JournalCorruption, _json_object, _keys,
@@ -35,6 +35,7 @@ if str(ROOT / 'scripts') not in sys.path:
     sys.path.insert(0, str(ROOT / 'scripts'))
 from source_witness_human_forms import MAX_SET_BYTES, _validator, materialize_metadata_forms, metadata_field_catalog
 from source_witness_human_forms import claim_field_catalog, claim_forms_path, materialize_claim_forms
+from source_witness_human_forms import metadata_subject
 
 OPERATIONS = ('form.create', 'form.revise')
 CREATION_OPERATION = 'historical.create'
@@ -144,6 +145,10 @@ def _configuration(path):
     if claim_forms:
         claim_forms_path(root / relative, config['claim_id'])
         _, _, contracts = _claim_form_source(root / relative, root, config['claim_id'])
+        return config, _digest(_canonical({'configuration': config, 'source_contracts': contracts})), root / relative
+    if not (creation or revision or profile_creation or corpus_creation) and relative.name in {
+            'artifact-witness.json', 'composite-witness.json'}:
+        _, _, contracts = _native_form_source(root / relative, root)
         return config, _digest(_canonical({'configuration': config, 'source_contracts': contracts})), root / relative
     if (creation or revision and not profile_revision) and (relative.name != config['record_id'].split('.')[1] + '.json'
                      or len(relative.parts) < 5):
@@ -259,16 +264,32 @@ def _claim_form_source(source_path, root, claim_id):
     return raw, source, {ref: 'sha256:' + digest for ref, digest in profiles.input_digests.items()}
 
 
+def _native_form_source(source_path, root):
+    from build_source_witness_catalog import native_witness_contract
+    raw = _read(source_path, MAX_COMMAND_BYTES)
+    source = _json_object(raw)
+    schema_ref, _, _ = native_witness_contract(source, source_path.relative_to(root).as_posix())
+    schema_raw = _read(root / schema_ref, MAX_COMMAND_BYTES)
+    if not Draft202012Validator(_json_object(schema_raw), format_checker=FormatChecker()).is_valid(source):
+        raise ValueError('native form source violates its exact public metadata schema')
+    return raw, source, {schema_ref: _digest(schema_raw)}
+
+
 def _snapshot(source_path, root=None, claim_id=None):
     if claim_id is not None:
         source_raw, source, _ = _claim_form_source(source_path, root, claim_id)
         subject = Record.from_payload(source['claim_id'], source['claim_version'], source)
         target = claim_forms_path(source_path, claim_id)
+    elif source_path.name in {'artifact-witness.json', 'composite-witness.json'}:
+        if root is None:
+            raise ValueError('native witness forms require the explicit source owner')
+        source_raw, source, _ = _native_form_source(source_path, root)
+        target = source_path.with_name(source_path.stem + '.human-forms.json')
     else:
         source_raw = _read(source_path, MAX_COMMAND_BYTES)
         source = _json_object(source_raw)
         target = source_path.with_name(source_path.stem + '.human-forms.json')
-    if claim_id is None and (source.get('schema_version') not in {'tos_corpus_record_v1', 'tos_historical_record_v1'}
+    if claim_id is None and source_path.name not in {'artifact-witness.json', 'composite-witness.json'} and (source.get('schema_version') not in {'tos_corpus_record_v1', 'tos_historical_record_v1'}
                              or source_path.name == 'composite.json'):
         if root is None:
             raise ValueError('source-command adapter does not understand this source family')
@@ -283,7 +304,7 @@ def _snapshot(source_path, root=None, claim_id=None):
             and source.get('visibility') not in {'public', 'public_metadata_only'}):
         raise PermissionError('historical source visibility is outside the public-metadata adapter')
     if claim_id is None:
-        subject = Record.from_payload(source['record_id'], source['record_version'], source)
+        subject = metadata_subject(source)
     try:
         raw = _read(target, MAX_SET_BYTES)
     except FileNotFoundError:
@@ -391,7 +412,7 @@ def _apply(payload, subject, changes):
 
 def prepare_metadata_change(source, payload, principal_id, form_id, field_id):
     """Construct a proposal from the reader's finite field catalog; grant nothing."""
-    subject = Record.from_payload(source['record_id'], source['record_version'], source)
+    subject = metadata_subject(source)
     return _prepare_form_change(subject, metadata_field_catalog(source), payload, principal_id, form_id, field_id)
 
 
@@ -962,7 +983,9 @@ def run_local_command(owner_config: Path, request: dict):
         raise ValueError('unknown source command version')
     snapshot = _snapshot(source_path, Path(config['source_root']), claim_id)
     source_contracts = (_claim_form_source(source_path, Path(config['source_root']), claim_id)[2]
-                        if claim_id is not None else None)
+                        if claim_id is not None else
+                        _native_form_source(source_path, Path(config['source_root']))[2]
+                        if source_path.name in {'artifact-witness.json', 'composite-witness.json'} else None)
     if source_contracts is not None and configuration != _digest(_canonical({
             'configuration': config, 'source_contracts': source_contracts})):
         raise JournalConflict('Claim form source contracts changed before command preparation')

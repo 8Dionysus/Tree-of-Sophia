@@ -164,8 +164,13 @@ inline records and corpus discovery cannot supply missing endpoints. Native
 Corpus endpoints must satisfy their original schema, ID family and basename;
 declared endpoints satisfy their metadata profile. Concrete inherited
 domain/range, layer and visibility are then checked by the Claim profile.
-This is not a replacement for whole-corpus reference, provenance, rights or
-source assessment; native non-Corpus artifact inputs still need their adapter.
+Native `artifact-witness.json` v1/v2 and `composite-witness.json` v1 inputs use
+their exact owner schema and actual identity field, retaining the unchanged
+payload. Their schema digests join the source-bound snapshot. Typed endpoint
+descriptors support declared Claim domain/range checks but never become
+replacement source records. A legacy schema label cannot bypass either native
+filename. This is not a replacement for whole-corpus reference, provenance,
+rights or substantive source assessment.
 
 Claims and historical records must explicitly allow `public` or `public_metadata_only` visibility;
 other or missing visibility requires a separately authorized adapter. A
@@ -234,6 +239,13 @@ adapter creates and revises forms adjacent to one bibliographic or historical so
 that adapter does not mutate the subject. The separately delegated historical
 creation adapter below publishes a new subject with its initial claims and
 forms. Neither exposes writes through `access` or creates a second corpus database.
+The same form-only delegation also supports the native physical-witness and
+scholarly-composite paths described in
+[`HUMAN_FORMS.md`](../../../../ToS/doctrine/HUMAN_FORMS.md#native-material-witnesses-and-scholarly-composites).
+It verifies the native public-metadata schema and exact owner path on every
+call, including replay, and exposes its digest in `source_contracts` and the
+receipt. Schema drift invalidates prepared writes. Native identity and source
+bytes stay unchanged; form permission does not grant native source rewriting.
 The normative identity/admission boundary remains in
 `ToS/doctrine/HUMAN_FORMS.md`. The same CLI serves a human or an agent:
 

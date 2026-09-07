@@ -224,12 +224,6 @@ def _load_object_catalog(repo_root: Path, profiles: SourceRecordProfiles | None 
                     raise BibliographicGraphBuildError(f'{location}: scholarly composite catalog/source mapping drifted')
             material = dict(entry)
             material["_source_record"] = source_payload
-            if expected_type == 'artifact' and source_path.with_name('artifact-witness.human-forms.json').exists():
-                raise BibliographicGraphBuildError(
-                    f'{location}: artifact human forms require a native-subject adapter, not Corpus coercion')
-            if native_composite and source_path.with_name('composite-witness.human-forms.json').exists():
-                raise BibliographicGraphBuildError(
-                    f'{location}: composite human forms require a native-subject adapter, not Corpus coercion')
             try:
                 forms = load_metadata_forms(repo_root, source_ref, source_payload, access_allowed=True)
             except (ValueError, OSError) as exc:

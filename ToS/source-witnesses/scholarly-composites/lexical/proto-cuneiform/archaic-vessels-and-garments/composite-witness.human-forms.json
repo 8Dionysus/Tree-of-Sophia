@@ -1,0 +1,206 @@
+{
+  "forms": [
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:fd589913a6c06778ae391cce433bc91ca7cf44c4dcb1ad00a187ff8b2f07abbd",
+            "id": "tos.composite.proto-cuneiform.archaic-vessels-and-garments",
+            "version": 1
+          }
+        },
+        "context-1": {
+          "pointer": "/layer_separation",
+          "record": {
+            "digest": "sha256:fd589913a6c06778ae391cce433bc91ca7cf44c4dcb1ad00a187ff8b2f07abbd",
+            "id": "tos.composite.proto-cuneiform.archaic-vessels-and-garments",
+            "version": 1
+          }
+        },
+        "context-2": {
+          "pointer": "/authority",
+          "record": {
+            "digest": "sha256:fd589913a6c06778ae391cce433bc91ca7cf44c4dcb1ad00a187ff8b2f07abbd",
+            "id": "tos.composite.proto-cuneiform.archaic-vessels-and-garments",
+            "version": 1
+          }
+        },
+        "context-3": {
+          "pointer": "/rights_ref",
+          "record": {
+            "digest": "sha256:fd589913a6c06778ae391cce433bc91ca7cf44c4dcb1ad00a187ff8b2f07abbd",
+            "id": "tos.composite.proto-cuneiform.archaic-vessels-and-garments",
+            "version": 1
+          }
+        },
+        "wording": {
+          "pointer": "/preferred_label",
+          "record": {
+            "digest": "sha256:fd589913a6c06778ae391cce433bc91ca7cf44c4dcb1ad00a187ff8b2f07abbd",
+            "id": "tos.composite.proto-cuneiform.archaic-vessels-and-garments",
+            "version": 1
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "agent:codex-tos-foundation",
+      "form_id": "tos.form.composite.proto-cuneiform.archaic-vessels-and-garments.source-name",
+      "form_version": 2,
+      "language": null,
+      "revises": {
+        "digest": "sha256:b7fe6567c443b184a7851b13382f5b38048266b7c51985a6cbda70c97257a6c7",
+        "id": "tos.form.composite.proto-cuneiform.archaic-vessels-and-garments.source-name",
+        "version": 1
+      },
+      "role": "name",
+      "schema_version": "tos_human_form_v1",
+      "script": null,
+      "subject": {
+        "digest": "sha256:fd589913a6c06778ae391cce433bc91ca7cf44c4dcb1ad00a187ff8b2f07abbd",
+        "id": "tos.composite.proto-cuneiform.archaic-vessels-and-garments",
+        "version": 1
+      }
+    },
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "",
+          "record": {
+            "digest": "sha256:fd589913a6c06778ae391cce433bc91ca7cf44c4dcb1ad00a187ff8b2f07abbd",
+            "id": "tos.composite.proto-cuneiform.archaic-vessels-and-garments",
+            "version": 1
+          }
+        },
+        "wording": {
+          "pointer": "/editorial_object/description",
+          "record": {
+            "digest": "sha256:fd589913a6c06778ae391cce433bc91ca7cf44c4dcb1ad00a187ff8b2f07abbd",
+            "id": "tos.composite.proto-cuneiform.archaic-vessels-and-garments",
+            "version": 1
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "agent:codex-tos-foundation",
+      "form_id": "tos.form.composite.proto-cuneiform.archaic-vessels-and-garments.source-note",
+      "form_version": 1,
+      "language": null,
+      "revises": null,
+      "role": "hover",
+      "schema_version": "tos_human_form_v1",
+      "script": null,
+      "subject": {
+        "digest": "sha256:fd589913a6c06778ae391cce433bc91ca7cf44c4dcb1ad00a187ff8b2f07abbd",
+        "id": "tos.composite.proto-cuneiform.archaic-vessels-and-garments",
+        "version": 1
+      }
+    }
+  ],
+  "growth_history": [
+    {
+      "authority_ref": "operator:tos-foundation-v1-20260905",
+      "command_id": "native-forms:20260907:composite.proto-cuneiform.archaic-vessels-and-garments",
+      "owner_configuration": "sha256:d74be64b30cc107faacbbd1e1dc4207a4ce14059f15a7255d84fedb192741c2a",
+      "previous_revision": null,
+      "principal_id": "agent:codex-tos-foundation",
+      "recorded_at": "2026-09-07T21:29:10.714419+00:00",
+      "request_digest": "sha256:4546c93a9f38159ee35c6284642f3295f38b05a4eed15fa9024b8a5933bfbcaa",
+      "results": [
+        {
+          "digest": "sha256:b7fe6567c443b184a7851b13382f5b38048266b7c51985a6cbda70c97257a6c7",
+          "id": "tos.form.composite.proto-cuneiform.archaic-vessels-and-garments.source-name",
+          "version": 1
+        },
+        {
+          "digest": "sha256:9a23b5119b0dc232d88a8f061ec3a158c3f1d10cec52243e4c604db7641b99d4",
+          "id": "tos.form.composite.proto-cuneiform.archaic-vessels-and-garments.source-note",
+          "version": 1
+        }
+      ],
+      "source": {
+        "digest": "sha256:fd589913a6c06778ae391cce433bc91ca7cf44c4dcb1ad00a187ff8b2f07abbd",
+        "id": "tos.composite.proto-cuneiform.archaic-vessels-and-garments",
+        "version": 1
+      },
+      "source_contracts": {
+        "ToS/contracts/scholarly-composite-witness.schema.json": "sha256:d704fac5f02a747578b3ef6ddaf7f7af06c517c29c529d767ceaf5b84af25cd9"
+      }
+    },
+    {
+      "command_id": "native-forms:20260907:qualified-name:composite.proto-cuneiform.archaic-vessels-and-garments",
+      "request_digest": "sha256:20a77636a2cefde404da0a7e2e625b1f7bb0317e90ac4063742331f492189901",
+      "principal_id": "agent:codex-tos-foundation",
+      "authority_ref": "operator:tos-foundation-v1-20260905",
+      "owner_configuration": "sha256:d74be64b30cc107faacbbd1e1dc4207a4ce14059f15a7255d84fedb192741c2a",
+      "recorded_at": "2026-09-07T21:40:11.446535+00:00",
+      "source_contracts": {
+        "ToS/contracts/scholarly-composite-witness.schema.json": "sha256:d704fac5f02a747578b3ef6ddaf7f7af06c517c29c529d767ceaf5b84af25cd9"
+      },
+      "source": {
+        "id": "tos.composite.proto-cuneiform.archaic-vessels-and-garments",
+        "version": 1,
+        "digest": "sha256:fd589913a6c06778ae391cce433bc91ca7cf44c4dcb1ad00a187ff8b2f07abbd"
+      },
+      "previous_revision": "sha256:5d9edb5a822f5a1a742d5aab3e15dafa1a53acafb48123d02c0c5486fdb71d12",
+      "results": [
+        {
+          "id": "tos.form.composite.proto-cuneiform.archaic-vessels-and-garments.source-name",
+          "version": 2,
+          "digest": "sha256:bf881541df29ccab2987dfcbee540c8b66e5600e94595c6511af391fc7c8bc80"
+        }
+      ]
+    }
+  ],
+  "prior_forms": [
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "",
+          "record": {
+            "digest": "sha256:fd589913a6c06778ae391cce433bc91ca7cf44c4dcb1ad00a187ff8b2f07abbd",
+            "id": "tos.composite.proto-cuneiform.archaic-vessels-and-garments",
+            "version": 1
+          }
+        },
+        "wording": {
+          "pointer": "/preferred_label",
+          "record": {
+            "digest": "sha256:fd589913a6c06778ae391cce433bc91ca7cf44c4dcb1ad00a187ff8b2f07abbd",
+            "id": "tos.composite.proto-cuneiform.archaic-vessels-and-garments",
+            "version": 1
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "agent:codex-tos-foundation",
+      "form_id": "tos.form.composite.proto-cuneiform.archaic-vessels-and-garments.source-name",
+      "form_version": 1,
+      "language": null,
+      "revises": null,
+      "role": "name",
+      "schema_version": "tos_human_form_v1",
+      "script": null,
+      "subject": {
+        "digest": "sha256:fd589913a6c06778ae391cce433bc91ca7cf44c4dcb1ad00a187ff8b2f07abbd",
+        "id": "tos.composite.proto-cuneiform.archaic-vessels-and-garments",
+        "version": 1
+      }
+    }
+  ],
+  "schema_version": "tos_human_form_set_v1",
+  "subject": {
+    "id": "tos.composite.proto-cuneiform.archaic-vessels-and-garments",
+    "version": 1,
+    "digest": "sha256:fd589913a6c06778ae391cce433bc91ca7cf44c4dcb1ad00a187ff8b2f07abbd"
+  }
+}

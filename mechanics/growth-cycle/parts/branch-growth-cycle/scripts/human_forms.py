@@ -268,6 +268,10 @@ policy result bound to this exact form and current dependency snapshot.
         wording = content['text']
     if not wording.strip():
         return stop('invalid', 'form.empty')
+    # Field bindings/context remain separate and exact. Dependencies identify
+    # records, not uses of those records: repetition must not consume delivery
+    # budget or imply independent support. Different IDs/versions/digests stay.
+    dependencies = list({_canonical(ref): ref for ref in dependencies}.values())
     result.update(state='ready', display_text=wording, role=payload['role'], language=payload['language'],
                   script=payload['script'], derivation=content['kind'], dependencies=dependencies,
                   standalone_reading=not result['context'])

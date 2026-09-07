@@ -646,10 +646,19 @@ forms. A source-snapshot admission is not a freshly evaluated runtime grant.
         record = claim
     if not isinstance(record, dict):
         return stop('invalid', 'forms.missing-source-record-binding')
-    subject = {'id': record.get('claim_id' if is_claim else 'record_id'),
+    native_identity = {
+        'tos_scholarly_composite_witness_v1': 'composite_id',
+        'tos_artifact_source_witness_v1': 'artifact_id',
+        'tos_artifact_source_witness_v2': 'artifact_id',
+    }.get(record.get('schema_version')) if not is_claim and isinstance(record.get('schema_version'), str) else None
+    if native_identity and ('record_id' in record or
+            not isinstance(record.get(native_identity), str) or
+            not record[native_identity].startswith('tos.' + native_identity.removesuffix('_id') + '.')):
+        return stop('invalid', 'forms.invalid-source-record-binding')
+    subject = {'id': record.get('claim_id' if is_claim else native_identity or 'record_id'),
                'version': record.get('claim_version' if is_claim else 'record_version'),
                'digest': 'sha256:' + str(attributes.get('source_sha256', ''))}
-    if not _exact_form_ref(subject) or (is_claim and item.get('entity_id') != subject['id']):
+    if not _exact_form_ref(subject) or ((is_claim or native_identity) and item.get('entity_id') != subject['id']):
         return stop('invalid', 'forms.invalid-source-record-binding')
     ready, seen = [], set()
     for index, packet in enumerate(forms):

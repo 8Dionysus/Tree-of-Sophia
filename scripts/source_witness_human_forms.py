@@ -25,6 +25,18 @@ from knowledge_assessment import Record
 MAX_SET_BYTES = 2_097_152
 MAX_SET_OUTPUT_BYTES = 262_144
 
+NATIVE_IDENTITIES = {
+    'tos_scholarly_composite_witness_v1': 'composite_id',
+    'tos_artifact_source_witness_v1': 'artifact_id',
+    'tos_artifact_source_witness_v2': 'artifact_id',
+}
+
+
+def metadata_subject(source: dict) -> Record:
+    """Bind the unchanged validated payload using its actual identity field."""
+    identity = NATIVE_IDENTITIES.get(source.get('schema_version'), 'record_id')
+    return Record.from_payload(source[identity], source['record_version'], source)
+
 
 @lru_cache(maxsize=1)
 def _validator():
@@ -47,6 +59,18 @@ def metadata_field_catalog(source: dict) -> list[dict]:
     Variant ordinals are snapshot-local, not stable name identities. An exact
     source ref must accompany prepared commands, so reordering is a conflict.
     """
+    native = NATIVE_IDENTITIES.get(source.get('schema_version'))
+    if native is not None:
+        # These original schemas declare no field language. Do not infer one
+        # from a provider, script, territory or the reader's interface locale.
+        pointers = (('/preferred_label', '/editorial_object/description') if native == 'composite_id'
+                    else ('/custody/inventory_numbers/0', '/path_identity/note'))
+        name_context = ['/identity_status' if native == 'composite_id' else '/custody',
+                        '/layer_separation', '/authority', '/rights_ref']
+        return [{'field_id': field_id, 'pointer': pointer, 'role': role,
+                 'language': None, 'script': None, 'context': name_context if role == 'name' else ['']}
+                for pointer, field_id, role in zip(pointers,
+                    ('metadata.preferred-name', 'metadata.source-note'), ('name', 'hover'))]
     context = ['/' + key for key in ('identity_status', 'same_as_posture', 'semantic_scope', 'semantic_content') if key in source]
     declarations = source.get('field_languages', {})
     if not _field_language_validator().is_valid(declarations):
@@ -77,7 +101,9 @@ def materialize_metadata_forms(source: dict, form_set: dict, *, access_allowed: 
 Only full names and notes are supported here. Unsupported forms remain
 explicitly unavailable, not silently rendered under a more permissive role.
 """
-    subject = Record.from_payload(source['record_id'], source['record_version'], source)
+    subject = metadata_subject(source)
+    if source.get('schema_version') in NATIVE_IDENTITIES:
+        access_allowed = access_allowed is True and source.get('authority', {}).get('visibility') in {'public', 'public_metadata_only'}
     return _materialize_forms(subject, metadata_field_catalog(source), form_set, access_allowed=access_allowed)
 
 

@@ -752,8 +752,6 @@ def build_source_navigation(diagnostics: list[dict[str, str]]) -> dict[str, Any]
                 if native_composite and entry != composite_catalog_entry(
                         REPO_ROOT, source_record, source_ref, artifact_validators):
                     raise ValueError(f'{source_ref}: scholarly composite catalog/source mapping drifted')
-                if native_composite and (REPO_ROOT / source_ref).with_name('composite-witness.human-forms.json').exists():
-                    raise ValueError(f'{source_ref}: composite human forms require a native-subject adapter')
                 native_metadata = record_type in RECORD_FILES and record_type != 'link'
                 if native_metadata:
                     if (not corpus_validator.is_valid(source_record)
@@ -768,7 +766,7 @@ def build_source_navigation(diagnostics: list[dict[str, str]]) -> dict[str, Any]
                     properties.update(artifact_display_fields(source_record))
                 if native_composite:
                     properties.update(composite_display_fields(source_record))
-                if (record_type in profiles.profiles and not native_composite) or native_metadata:
+                if record_type in profiles.profiles or native_metadata or record_type == 'artifact' or native_composite:
                     forms = load_metadata_forms(REPO_ROOT, source_ref, source_record, access_allowed=True)
                     if forms is not None:
                         forms_ref, _forms_raw, materialized = forms

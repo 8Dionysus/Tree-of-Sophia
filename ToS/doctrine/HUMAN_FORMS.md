@@ -163,6 +163,10 @@ immutable account of the original serialization, not a mutable currentness seal.
 
 The existing bibliographic graph builder carries the materializations and
 adjacent source return in identity properties, with the set's input digest.
+Materialized `dependencies` enumerate each exact record ref once. Repeated
+field uses retain their own bindings/context but neither inflate independent
+support nor duplicate record-level delivery cost. Different identities,
+versions or digests are never coalesced merely because their wording agrees.
 
 This route uses already public bibliographic metadata, not payload text or
 private source layers. It has no growth-command or publication authority.
@@ -184,6 +188,43 @@ the exact preceding package and form lineage; an old assessment does not bind
 the new source digest. The operation and byte-history contract live in
 `mechanics/growth-cycle/parts/branch-growth-cycle/README.md`, not in read-only
 access or a new source ontology.
+
+### Native material witnesses and scholarly composites
+
+The same adjacent form-set grammar also binds the unchanged
+`tos_artifact_source_witness_v1/v2` and
+`tos_scholarly_composite_witness_v1` records. Their actual `artifact_id` or
+`composite_id` and `record_version` form the subject ref; no `record_id` is
+injected into their source payload. Native schema and owner path are checked
+before a form command or an assessment-source selection.
+
+For a physical witness, `metadata.preferred-name` copies the complete first
+custody inventory number, and `metadata.source-note` copies `path_identity.note`.
+The former is an attributed inventory label, not an assessed object title.
+For a scholarly composite, these selectors copy `preferred_label` and
+`editorial_object.description`. The name requires complete authority,
+layer-separation and rights-reference fields, plus composite identity status
+or artifact custody attribution. The hover requires the entire native record,
+preserving members, coverage, provider observations, rights and authority
+limits. This avoids repeating the whole source twice in compact delivery
+without dropping the name's essential qualifications. Omitting required
+context is invalid. A changed source makes
+the former form stale; a restricted source emits no wording.
+
+These native schemas have no field-language declarations. The copy's language
+and script therefore stay null; source territory, ancient language, provider,
+English-looking wording and interface locale cannot supply them implicitly.
+Linguistic attribution, translation and independent content assessment remain
+separate work. A source-copy is mechanically ready, not semantically admitted.
+Freeform production retains the existing assessment boundary.
+
+Both source-claim and source-navigation readers carry the same forms and exact
+subject payload. The standard local form command creates/revises only the
+adjacent set, and binds the consumed native schema digest into its prepared
+configuration and receipt. Source-bound assessment configuration can select
+the native subject and its forms by their actual IDs and exact file digests;
+selection is not a substantive assessment or a permission grant. Native
+source correction/creation is not granted by this form adapter.
 
 ## Source commands and retained change history
 

@@ -84,6 +84,77 @@ class SourceCommandTests(unittest.TestCase):
         self.assertEqual(replay['receipt'], changed['receipt'])
         self.assertEqual(self.source.read_bytes(), self.original_source)
 
+    def test_native_witness_forms_use_original_subject_and_bind_source_schema(self):
+        originals = sorted((ROOT / 'ToS/source-witnesses/scholarly-composites').rglob('composite-witness.json'))[:1]
+        originals += sorted((ROOT / 'ToS/source-witnesses/artifacts').rglob('artifact-witness.json'))[:1]
+        from build_source_witness_catalog import ARTIFACT_SCHEMAS, COMPOSITE_SCHEMA
+        for original in originals:
+            with self.subTest(source=original):
+                relative = original.relative_to(ROOT).as_posix()
+                path = self.root / relative
+                path.parent.mkdir(parents=True)
+                raw = original.read_bytes()
+                path.write_bytes(raw)
+                source = json.loads(raw)
+                schema_ref = ARTIFACT_SCHEMAS.get(source['schema_version'], COMPOSITE_SCHEMA)
+                schema_path = self.root / schema_ref
+                schema_path.parent.mkdir(parents=True, exist_ok=True)
+                schema_raw = (ROOT / schema_ref).read_bytes()
+                schema_path.write_bytes(schema_raw)
+                self.config['source_path'] = relative
+                self.save_config()
+                description = self.describe()
+                identifier = source.get('composite_id', source.get('artifact_id'))
+                self.assertEqual(description['source'], Record.from_payload(identifier, source['record_version'], source).ref)
+                self.assertEqual(description['source_contracts'][schema_ref], 'sha256:' + hashlib.sha256(schema_raw).hexdigest())
+                prepared = self.run_request({'schema_version': 'tos_local_source_command_v1', 'operation': 'prepare',
+                    'form_id': 'tos.form.test.new', 'field_id': 'metadata.source-note'})
+                request = {'schema_version': 'tos_local_source_command_v1', 'operation': 'apply',
+                    'command_id': 'test:native-form', 'expected_source': prepared['source'],
+                    'expected_revision': prepared['revision'], 'expected_configuration': prepared['owner_configuration'],
+                    'changes': [prepared['prepared_change']]}
+                schema_path.write_bytes(schema_raw + b'\n')
+                with self.assertRaises(commands.JournalConflict):
+                    self.run_request(request)
+                schema_path.write_bytes(schema_raw)
+                result = self.run_request(request)
+                self.assertEqual(result['materializations'][0]['state'], 'ready')
+                self.assertEqual(result['materializations'][0]['context'][0]['value'], source)
+                self.assertIsNone(result['materializations'][0]['language'])
+                self.assertFalse(result['grants_admission'])
+                self.assertEqual(self.run_request(request)['receipt'], result['receipt'])
+                self.assertEqual(path.read_bytes(), raw)
+                from assessment_journal import _source_records
+                binding = {'path': relative, 'record_id': identifier, 'origin_id': 'test:exact-native-source'}
+                resolved, fixity = _source_records(self.root, [binding])
+                self.assertEqual(resolved[0], {'id': identifier, 'version': source['record_version'],
+                    'payload': source, 'origin_id': binding['origin_id']})
+                self.assertIn({'path': schema_ref, 'digest': 'sha256:' + hashlib.sha256(schema_raw).hexdigest()}, fixity)
+                forged = {**source, 'schema_version': 'tos_corpus_record_v1', 'record_id': identifier}
+                path.write_text(json.dumps(forged))
+                with self.assertRaises((ValueError, PermissionError)):
+                    self.describe()
+                with self.assertRaises((ValueError, PermissionError)):
+                    _source_records(self.root, [binding])
+                path.write_bytes(raw)
+                private = copy.deepcopy(source)
+                private['authority']['visibility'] = 'local_only'
+                path.write_text(json.dumps(private))
+                with self.assertRaises((ValueError, PermissionError)):
+                    self.run_request(request)  # Revoked visibility applies to exact replay too.
+                with self.assertRaises((ValueError, PermissionError)):
+                    _source_records(self.root, [binding])
+                path.write_bytes(raw)
+                self.config['source_path'] = 'ToS/source-witnesses/works/native/' + path.name
+                outside = self.root / self.config['source_path']
+                outside.parent.mkdir(parents=True, exist_ok=True)
+                outside.write_bytes(raw)
+                self.save_config()
+                with self.assertRaises((ValueError, PermissionError)):
+                    self.describe()
+                with self.assertRaises((ValueError, PermissionError)):
+                    _source_records(self.root, [{**binding, 'path': self.config['source_path']}])
+
     def test_create_and_revise_together_or_neither_and_no_implicit_acceptance(self):
         request = self.request()
         proposed = {**copy.deepcopy(request['changes'][0]['form']), 'form_id': 'tos.form.test.new',

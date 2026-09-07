@@ -68,6 +68,24 @@ class CatalogBuildError(RuntimeError):
     pass
 
 
+def native_witness_contract(payload: dict, relative: str) -> tuple[str, str, str]:
+    """Resolve a native subject's exact owner path, schema and identity field.
+
+    Callers retain their own protected byte-read, schema validation and digest
+    checks. This descriptor neither rewrites a payload nor supplies authority.
+    """
+    ref = Path(relative)
+    composite = payload.get('schema_version') == 'tos_scholarly_composite_witness_v1'
+    schema_ref = COMPOSITE_SCHEMA if composite else ARTIFACT_SCHEMAS.get(payload.get('schema_version'))
+    subtree, basename, identity, kind = (
+        ('scholarly-composites', 'composite-witness.json', 'composite_id', 'composite') if composite else
+        ('artifacts', 'artifact-witness.json', 'artifact_id', 'artifact'))
+    if (schema_ref is None or ref.is_absolute() or '..' in ref.parts or ref.as_posix() != relative
+            or ref.name != basename or not ref.is_relative_to(SOURCE_ROOT / subtree)):
+        raise ValueError('native witness schema and owner path do not agree')
+    return schema_ref, identity, kind
+
+
 def canonical_json(payload: object) -> str:
     return json.dumps(payload, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
 

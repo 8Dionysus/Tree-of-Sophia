@@ -452,6 +452,33 @@ class KnowledgeContractTests(unittest.TestCase):
         result['roles']['statement']['packet']['display_text'] = 'result-only mutation'
         self.assertEqual(node, before)
 
+    def test_native_form_selection_requires_exact_schema_identity_and_carrier(self):
+        from tos_access.knowledge import select_human_forms
+        for schema, identity in [('tos_scholarly_composite_witness_v1', 'composite_id'),
+                                 ('tos_artifact_source_witness_v1', 'artifact_id'),
+                                 ('tos_artifact_source_witness_v2', 'artifact_id')]:
+            node = self.human_form_node()
+            source = node['attributes']['source_record']
+            source.pop('record_id')
+            identifier = 'tos.' + identity.removesuffix('_id') + '.synthetic'
+            node['attributes']['human_forms'][0]['subject']['id'] = identifier
+            source.update(schema_version=schema, **{identity: identifier})
+            node['entity_id'] = source[identity]
+            original = copy.deepcopy(node)
+            selected = select_human_forms(node, 'fr')
+            self.assertEqual(selected['roles']['statement']['state'], 'ready')
+            self.assertEqual(node, original)
+            for change in ('unknown-schema', 'wrong-carrier', 'shadow-record-id'):
+                bad = copy.deepcopy(node)
+                if change == 'unknown-schema':
+                    bad['attributes']['source_record']['schema_version'] = 'unknown'
+                elif change == 'wrong-carrier':
+                    bad['entity_id'] = 'tos.record.other'
+                else:
+                    bad['attributes']['source_record']['record_id'] = source[identity]
+                with self.subTest(schema=schema, change=change):
+                    self.assertEqual(select_human_forms(bad, 'fr')['state'], 'invalid')
+
     def test_source_form_selection_does_not_adjudicate_competing_forms(self):
         from tos_access.knowledge import select_human_forms
         node = self.human_form_node()

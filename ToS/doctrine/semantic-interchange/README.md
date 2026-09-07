@@ -847,10 +847,12 @@ source-navigation and source-claim carriers expose the same persistent ID;
 the scene maps them to one vertex while inspection retains the carriers.
 The stored metadata does not silently produce witness-membership Claims,
 accept a reconstruction, establish an ancient recension or infer time from an
-editorial label. The native metadata description is available; qualified,
-language-declared human forms are still a separate growth route. Unsupported
-adjacent Corpus-form files fail closed rather than acquiring fabricated
-`record_id` semantics.
+editorial label. The native metadata description and adjacent source-copy
+forms are available through the [native human-form adapter](../HUMAN_FORMS.md#native-material-witnesses-and-scholarly-composites).
+Forms bind `composite_id` and the exact unchanged record, not a fabricated
+Corpus `record_id`. Language remains unknown unless separately established;
+copying the description is not its assessment. Native subjects/forms can be
+explicit source-bound assessment inputs without becoming admitted knowledge.
 
 Unknown versions, nonpublic metadata, identity/schema/digest drift, duplicate
 identities, unsafe paths, duplicate JSON keys and over-budget records are

@@ -400,6 +400,42 @@ test('source human forms preserve ambiguity, exact context and bounded delivery 
   assert.equal(selectHumanForms(node, 'ru').roles.name!.packet!.display_text, 'По ту сторону добра и зла');
 });
 
+test('native witness forms bind unchanged identities in Python and Worker', () => {
+  for (const [schema, field, prefix] of [
+    ['tos_scholarly_composite_witness_v1', 'composite_id', 'tos.composite.'],
+    ['tos_artifact_source_witness_v1', 'artifact_id', 'tos.artifact.'],
+    ['tos_artifact_source_witness_v2', 'artifact_id', 'tos.artifact.'],
+  ] as const) {
+    // Synthetic envelopes test the consumer binding, not historical metadata.
+    const node = realFormNode();
+    const source = node.attributes.source_record as Record<string, unknown>;
+    const old = source.record_id;
+    const identifier = prefix + 'synthetic-form';
+    const replaced = JSON.parse(JSON.stringify(node).replaceAll(String(old), identifier)) as typeof node;
+    const nativeSource = replaced.attributes.source_record as Record<string, unknown>;
+    delete nativeSource.record_id;
+    nativeSource.schema_version = schema;
+    nativeSource[field] = identifier;
+    replaced.entity_id = identifier;
+    const badCarrier = structuredClone(replaced);
+    badCarrier.entity_id = prefix + 'other';
+    const shadow = structuredClone(replaced);
+    (shadow.attributes.source_record as Record<string, unknown>).record_id = identifier;
+    const cases = [replaced, badCarrier, shadow, ...['unknown', '__proto__', 'constructor', [], {}].map(schemaVersion => {
+      const changed = structuredClone(replaced);
+      (changed.attributes.source_record as Record<string, unknown>).schema_version = schemaVersion;
+      return changed;
+    })];
+    const python = JSON.parse(execFileSync('python3', ['-c',
+      "import sys,json;sys.path.insert(0,'access/src');from tos_access.knowledge import select_human_forms;print(json.dumps([select_human_forms(n,'ru') for n in json.load(sys.stdin)]))"],
+      {cwd: fileURLToPath(new URL('../../../../', import.meta.url)), input: JSON.stringify(cases), encoding:'utf8'}));
+    const results = cases.map(item => selectHumanForms(item, 'ru'));
+    assert.deepEqual(results, python);
+    assert.equal(results[0]!.roles.name!.state, 'ready');
+    for (const result of results.slice(1)) assert.equal(result.state, 'invalid');
+  }
+});
+
 test('Claim forms bind the assertion rather than its object in Python and Worker', () => {
   const node = claimFormNode();
   const conflicting = structuredClone(node);
