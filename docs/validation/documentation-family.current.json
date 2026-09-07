@@ -29,15 +29,15 @@
     "metric": "whitespace_tokens_v1",
     "posture": "summary_first_records_on_demand",
     "record_loading": "machine readers may select records by family_id or path; do not load the full carrier into an always-on prompt",
-    "tracked_surface_count": 4249,
+    "tracked_surface_count": 4271,
     "unhandled_family_count": 0
   },
   "coverage": {
     "excluded_generated_carrier_rules": 3,
-    "excluded_tracked_path_count": 977,
+    "excluded_tracked_path_count": 983,
     "human_scope": {
-      "bytes": 5366667,
-      "count": 1003,
+      "bytes": 5376188,
+      "count": 1005,
       "excluded_skill_launch_metadata": 25,
       "family_counts": {
         "access": {
@@ -116,20 +116,20 @@
           "lines": 55
         },
         "tos": {
-          "bytes": 3963024,
-          "count": 594,
-          "lines": 66728
+          "bytes": 3972545,
+          "count": 596,
+          "lines": 66887
         }
       },
-      "lines": 92669
+      "lines": 92828
     },
     "surface_kind_counts": {
       "executable": 234,
-      "human": 1028,
-      "structured": 2987
+      "human": 1030,
+      "structured": 3007
     },
-    "tracked_path_count": 5226,
-    "tracked_surface_count": 4249,
+    "tracked_path_count": 5254,
+    "tracked_surface_count": 4271,
     "unhandled_family_count": 0,
     "unhandled_paths": []
   },
@@ -173,11 +173,11 @@
       "family_id": "tos",
       "surface_kind_counts": {
         "executable": 4,
-        "human": 594,
-        "structured": 2903
+        "human": 596,
+        "structured": 2923
       },
-      "tracked_surface_bytes": 226913361,
-      "tracked_surface_count": 3501
+      "tracked_surface_bytes": 227108821,
+      "tracked_surface_count": 3523
     },
     {
       "family_id": "access",
@@ -285,7 +285,7 @@
   "source_map": "docs/validation/documentation_family_map.json",
   "source_map_sha256": "d70a5059be9cc7547289e4c8be380d23b3aeb9e53bb10e4cb82abf2177ea0896",
   "tracked_source": "git ls-files -z",
-  "tracked_surface_digest": "46c47cbe643c7244c9c6915a36e2137d44c3b8ec85c4724cd3c598a0f0223c93",
+  "tracked_surface_digest": "f82ccf0a0563d5a583144b6af258ee2e2139c6eeb69dcf30f2417c711b05ef0e",
   "tracked_surfaces": [
     {
       "bytes": 1489,
@@ -4152,11 +4152,11 @@
       "surface_kind": "human"
     },
     {
-      "bytes": 8614059,
+      "bytes": 8690728,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/derived-exports/graph/source-witness-bibliographic-claims.min.json",
-      "sha256": "366c7a4ce9d7125af1f65474f373f04d4f875435ce5c0823ac4faa7d6a4f46b6",
+      "sha256": "ad2aae8f1d5699e695319f6907119f77816e58333a280e2c006b6b1e434cc31b",
       "surface_kind": "structured"
     },
     {
@@ -4232,11 +4232,11 @@
       "surface_kind": "structured"
     },
     {
-      "bytes": 59580640,
+      "bytes": 59621302,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/derived-exports/tos_corpus_index.min.json",
-      "sha256": "741e53a9a0a720adea689a2943b74c2a0918a5e1d4f33569a70d64931707dfa0",
+      "sha256": "31361584f51017e57ef418b6173c176af00804695e9b492280bb53179a12ae4c",
       "surface_kind": "structured"
     },
     {
@@ -4312,11 +4312,11 @@
       "surface_kind": "human"
     },
     {
-      "bytes": 77439,
+      "bytes": 77744,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/doctrine/FOUNDATION_V1.md",
-      "sha256": "e649f6871bb2fc2714a3dc2850426f8683138ed0528d872f8030b81a9a4be049",
+      "sha256": "bf4ba3bb3a2c615fa73e792ac2b88b7f919e8cdce0dc9452c4759b0da1d0cb50",
       "surface_kind": "human"
     },
     {
@@ -18376,6 +18376,22 @@
       "surface_kind": "human"
     },
     {
+      "bytes": 6725,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/review-ledger/2026-09-07-generation98-and-reader-review.md",
+      "sha256": "2299ce6c132046e6351c6eef79b8607ef76a5a17009c22d282c09fceec8c2d31",
+      "surface_kind": "human"
+    },
+    {
+      "bytes": 2491,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/review-ledger/2026-09-07-generation98-source-reading.md",
+      "sha256": "53a95c0b084134100ffa22993561166efc051d6d372ab33af703065cbfd134ad",
+      "surface_kind": "human"
+    },
+    {
       "bytes": 2709,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
@@ -19520,6 +19536,46 @@
       "surface_kind": "structured"
     },
     {
+      "bytes": 8840,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/agents/miguel-de-unamuno/agent.human-forms.json",
+      "sha256": "660d68d23fb7038b27dbbd2e7782d2fcbfe0e57cb5a729df00faf10b28544099",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1399,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/agents/miguel-de-unamuno/agent.json",
+      "sha256": "24e85492a1af0524571e6bd1e2f4d9660afc310b420aed291d0000b64e42993a",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 244,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/agents/miguel-de-unamuno/source-create-environment.json",
+      "sha256": "0976562dbd82ac21a81cda5c4ccbb0b8c545c54bb686181fc225a32aed6170b3",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1403,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/agents/miguel-de-unamuno/source-create-receipt.json",
+      "sha256": "6d50f0a028a4c60dac39ccb30895a9c4753325e465c6666c08f062ac2f3fbb0a",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1924,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/agents/miguel-de-unamuno/source-create-request.json",
+      "sha256": "83120b312258dceea2ed5872bd8ed92c15fe0a0eb9ce59b90873d65b3b5c6b5b",
+      "surface_kind": "structured"
+    },
+    {
       "bytes": 6197,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
@@ -20444,7 +20500,7 @@
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/source-witnesses/catalog/catalog.manifest.json",
-      "sha256": "646c82679369e780f9db8efdcd3ed8fc62c548a6bed0707412ab0ac73f82d275",
+      "sha256": "0fa3db8692c1ee15c1ab8645bb23069a2b8b9ff62e648e380f6e3b0eafb24404",
       "surface_kind": "structured"
     },
     {
@@ -22240,6 +22296,86 @@
       "surface_kind": "structured"
     },
     {
+      "bytes": 11901,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/history/generation98-research/azorin-1913/historical-generation.human-forms.json",
+      "sha256": "00e8fabee8b17cbcba6f87d727a553fe795b484364b1ba264b19751d6e4672df",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 2544,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/history/generation98-research/azorin-1913/historical-generation.json",
+      "sha256": "783e1ad92ca7b66d8f714bc1b1953ddf7b744cf57ec2f03c8caf21af892ea3f6",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 244,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/history/generation98-research/azorin-1913/source-create-environment.json",
+      "sha256": "0976562dbd82ac21a81cda5c4ccbb0b8c545c54bb686181fc225a32aed6170b3",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1496,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/history/generation98-research/azorin-1913/source-create-receipt.json",
+      "sha256": "cd8b49e2de3f3123d7a62a2ff4a334a8c445177952309446af5598eaf89e0861",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3023,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/history/generation98-research/azorin-1913/source-create-request.json",
+      "sha256": "a05c62e6d7077463729a2a17dd1f25e1541b5be733b3df0f6d18dabaa6c5b544",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 11940,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/history/generation98-research/salinas-1934/historical-generation.human-forms.json",
+      "sha256": "ef3e4791032eebb5faec8a837c046f61e2071d7112ab82e277f5a973fb209acf",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 2559,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/history/generation98-research/salinas-1934/historical-generation.json",
+      "sha256": "82e42d3e2ee9f7e832b20a6884490f9ed79000d8617afc851b10b9ca9af82ba3",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 244,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/history/generation98-research/salinas-1934/source-create-environment.json",
+      "sha256": "0976562dbd82ac21a81cda5c4ccbb0b8c545c54bb686181fc225a32aed6170b3",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1499,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/history/generation98-research/salinas-1934/source-create-receipt.json",
+      "sha256": "2614bb07a0d61576692b4ea452950772295be7a1028ba4a53b6b8d39fcf04ba0",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3043,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/history/generation98-research/salinas-1934/source-create-request.json",
+      "sha256": "5e819957d500dc5e75a754dc4f566facea870ba5b45ea9f91b3030a412d698df",
+      "surface_kind": "structured"
+    },
+    {
       "bytes": 8448,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
@@ -22957,6 +23093,46 @@
       "family_id": "tos",
       "path": "ToS/source-witnesses/relations/formation-research/source-create-request.json",
       "sha256": "138edeacf0c105f646f4cebb792ebf09d1a8ce0505b029f4e5185544a864f311",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3703,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/relations/generation98-research/source-claims.56a5acd6c107a7e66ee3e18fabd83ae84915b25532bb37cda4bebaf5a45ce19f.human-forms.json",
+      "sha256": "6e440bfe916b0573b558bb607bc396aa5f929c229290707f1d81bb7e92c68ae5",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3711,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/relations/generation98-research/source-claims.fffdcc000bbcc095948d27bf5c578c8c8b349bca99da684115ad4122d1d73dbf.human-forms.json",
+      "sha256": "3313d6d7d721e76e207cd4076099a9f89cb50ab5c5a51cd6566093e5704655d1",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 244,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/relations/generation98-research/source-create-environment.json",
+      "sha256": "0976562dbd82ac21a81cda5c4ccbb0b8c545c54bb686181fc225a32aed6170b3",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 2978,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/relations/generation98-research/source-create-receipt.json",
+      "sha256": "fc3996fc575c452a4bb72ce88611a5ec9ebcaf0ad21b1579a8516774aac83d10",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 5669,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/relations/generation98-research/source-create-request.json",
+      "sha256": "5ea4623ada8fe2b84a3b162056af3135c9ddb83e6544396190eb9d874e3a6d95",
       "surface_kind": "structured"
     },
     {

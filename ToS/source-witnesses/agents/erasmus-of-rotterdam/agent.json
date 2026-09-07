@@ -1,0 +1,41 @@
+{
+  "external_identifiers": [],
+  "field_languages": {
+    "notes": {
+      "language": "ru",
+      "script": "Cyrl"
+    },
+    "preferred_label": {
+      "language": "ru",
+      "script": "Cyrl"
+    }
+  },
+  "identity_status": "provisional",
+  "notes": "Идентификация по имени редактора в каталоге GG 17; эта запись сама не устанавливает авторство, должность или вероисповедание.",
+  "preferred_label": "Эразм Роттердамский",
+  "record_id": "tos.agent.erasmus-of-rotterdam",
+  "record_type": "agent",
+  "record_version": 1,
+  "same_as_posture": "no_equivalence_claim",
+  "schema_version": "tos_corpus_record_v1",
+  "source_refs": [
+    "ToS/review-ledger/2026-09-07-basel-print-environment-source-reading.md",
+    "https://ub.unibas.ch/cmsdata/spezialkataloge/gg/higg0017.html"
+  ],
+  "variant_labels": [
+    {
+      "language": "en",
+      "script": "Latn",
+      "source_ref": "ToS/review-ledger/2026-09-07-basel-print-environment-source-reading.md",
+      "status": "unverified",
+      "value": "Erasmus of Rotterdam"
+    },
+    {
+      "language": "de",
+      "script": "Latn",
+      "source_ref": "https://ub.unibas.ch/cmsdata/spezialkataloge/gg/higg0017.html",
+      "status": "unverified",
+      "value": "Erasmus von Rotterdam"
+    }
+  ]
+}
