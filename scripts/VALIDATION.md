@@ -16,6 +16,37 @@ standalone candidate is built.
 Run the narrowest affected lane first. A builder may mutate only its declared
 generated outputs; validator success does not create source or runtime truth.
 
+## Local changed-path feedback
+
+For a normal local edit, the release entrypoint accepts one or more explicit
+repository-relative paths:
+
+```bash
+python scripts/release_check.py \
+  --feedback \
+  --changed-path access/src/tos_access/core.py
+```
+
+The entrypoint maps only reviewed implementation paths to existing focused
+test files and unions the targets for a multi-file edit. The currently narrow
+routes are the portable access product/deploy, active-naming validator,
+bibliographic-graph implementation scripts, and corpus-index implementation
+scripts. The access contract test is an explicit special case because its
+helper is imported by the other access tests. Other test files are not selected
+by filename prefix. ToS data, schemas, generated outputs, canon, and other
+shared or unreviewed paths remain deliberately unresolved and fall back to the
+complete release oracle. It is intentionally not a second validation manifest
+or test inventory: `docs/validation/validation_lanes.json` remains command
+authority, while `tests/test_inventory.json` remains descriptive coverage
+metadata.
+
+An unsupported, shared, or topology-drifted path falls back to the complete
+manifest-owned release sequence. A malformed path is rejected with exit 2;
+it is not treated as a fallback request. The feedback path reuses the release
+pytest flags and only replaces the final `tests` operand with existing focused
+targets. It is local edit feedback; it does not alter the release command,
+release phase split, CI, or acceptance boundary.
+
 ## Local active-naming feedback
 
 The blocking `active_naming` lane intentionally remains the ordinary uncached

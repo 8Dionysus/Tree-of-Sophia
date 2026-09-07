@@ -2003,10 +2003,12 @@
         "docs/validation/validation_lanes.json"
       ],
       "reads": [
-        "docs/validation/validation_lanes.json"
+        "docs/validation/validation_lanes.json",
+        "the explicit reviewed route table in this script",
+        "existing focused test files for route availability"
       ],
       "writes": [],
-      "side_effects": "runs the complete command sequence or one complementary CI partition from lane authority",
+      "side_effects": "runs the complete command sequence or one complementary CI partition from lane authority; local feedback may run an existing focused test subset and never changes release or CI posture",
       "validation_lane": "release",
       "ci_inclusion": "release",
       "test_target": "tests/test_validation_lanes.py",
