@@ -164,7 +164,8 @@ def _archive_path(config, revision):
     return Path('ToS/source-witnesses/.record-revisions') / (identifier + '-' + revision.removeprefix('sha256:'))
 
 
-def _read_archive(root, config, receipt):
+def _read_archive_files(root, config, receipt):
+    """Verify a byte-bound package independently of its selected record shape."""
     relative = _archive_path(config, receipt['previous_revision'])
     if receipt['archive_path'] != relative.as_posix():
         raise source.JournalCorruption('archive locator is not derived from exact subject and package')
@@ -189,6 +190,13 @@ def _read_archive(root, config, receipt):
         locations[name] = {'archive_path': (relative / blob).as_posix(), 'sha256': binding['sha256'], 'bytes': binding['bytes']}
     if _revision(restored) != receipt['previous_revision']:
         raise source.JournalCorruption('archive package digest is invalid')
+    if set(contents) != {binding['blob'] for binding in manifest['files'].values()}:
+        raise source.JournalCorruption('archive contains unbound files')
+    return restored, locations
+
+
+def _read_archive(root, config, receipt):
+    restored, locations = _read_archive_files(root, config, receipt)
     old = source._json_object(restored[Path(config['source_path']).name])
     if source.Record.from_payload(old['record_id'], old['record_version'], old).ref != receipt['previous_source']:
         raise source.JournalCorruption('archived source bytes do not bind the previous source ref')
@@ -196,8 +204,6 @@ def _read_archive(root, config, receipt):
         revised = {**old, **receipt['request']['fields'], 'record_version': old['record_version'] + 1}
         if source.Record.from_payload(revised['record_id'], revised['record_version'], revised).ref != receipt['source']:
             raise source.JournalCorruption('retained request does not produce the recorded source successor')
-    if set(contents) != {binding['blob'] for binding in manifest['files'].values()}:
-        raise source.JournalCorruption('archive contains unbound files')
     return restored, locations
 
 
@@ -221,11 +227,12 @@ def _discard_staging(staging, files):
         staging.rmdir()
 
 
-def _archive(root, config, files, subject, revision):
+def _archive(root, config, files, subject, revision, *, reader=None):
+    reader = reader or _read_archive
     relative = _archive_path(config, revision)
     receipt = {'archive_path': relative.as_posix(), 'previous_source': subject.ref, 'previous_revision': revision}
     if (root / relative).exists():
-        if _read_archive(root, config, receipt)[0] != files:
+        if reader(root, config, receipt)[0] != files:
             raise source.JournalCorruption('existing archive does not preserve this package')
         return relative
     target = root / relative
@@ -242,7 +249,7 @@ def _archive(root, config, files, subject, revision):
         source._publish_new_directory(staging, target)
     finally:
         _discard_staging(staging, archived)
-    if _read_archive(root, config, receipt)[0] != files:
+    if reader(root, config, receipt)[0] != files:
         raise source.JournalCorruption('stored archive differs from prior source bytes')
     return relative
 

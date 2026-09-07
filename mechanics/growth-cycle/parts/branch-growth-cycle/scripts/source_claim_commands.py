@@ -89,9 +89,18 @@ def _scope(config, claims):
 
 
 def _prepare(config, claims):
+    _scope(config, claims)
+    return _ground_claims(config, claims, initial=True)
+
+
+def _ground_claims(config, claims, *, initial):
+    """Source grounding shared by separately authorized creation and correction.
+
+    This function grants no write scope. Callers validate their own exact
+    operation, immutable subject identity and current delegation first.
+    """
     from build_source_witness_catalog import collect_records, collect_claims
     from source_witness_bibliographic_graph_common import _scan_index, _evidence_node
-    _scope(config, claims)
     root = Path(config['source_root'])
     metadata = SourceRecordProfiles(root)
     records = collect_records(root, profiles=metadata)
@@ -102,15 +111,15 @@ def _prepare(config, claims):
     profiles = SourceClaimProfiles(root)
     events = _scan_index(root, filename_pattern='*provenance*.jsonl', id_field='event_id')
     anchors = _scan_index(root, filename_pattern='*anchor*.jsonl', id_field='anchor_id')
-    if config['provenance_event_id'] in events:
+    if initial and config['provenance_event_id'] in events:
         raise source.JournalConflict('provenance event identity already exists')
     evidence = []
     for claim in claims:
         profiles.validate(claim, objects)
-        if (claim['claim_version'] != 1 or claim.get('assessment_refs')
+        if initial and (claim['claim_version'] != 1 or claim.get('assessment_refs')
                 or claim.get('supersedes_claim_ref') is not None):
             raise PermissionError('initial claim creation does not revise or assess claims')
-        if claim['claim_id'] in identifiers:
+        if initial and claim['claim_id'] in identifiers:
             raise source.JournalConflict('claim identity already exists')
         identifiers.add(claim['claim_id'])
         for ref in [*claim['evidence_refs'], *claim.get('counterevidence_refs', [])]:
@@ -160,15 +169,26 @@ def _prepare(config, claims):
 def _replay(target, config, request):
     os.close(source._owned_path(target, directory=True))
     names = {path.name for path in target.iterdir()}
+    from claim_revisions import HISTORY, creation_source_files
+    from source_revisions import _package
+    if HISTORY in names:
+        current_files = _package(target)
+        original_files = creation_source_files(current_files, config)
+    else:
+        # Unrevised creation retains its prior file/size contract. The bounded
+        # revision package budget must not retroactively narrow this reader.
+        current_files = {name: source._read(target / name, source.MAX_SET_BYTES)
+                         for name in PACKAGE_FILES if name in names}
+        original_files = current_files
     form_targets = {source.claim_forms_path(target / SOURCE_CLAIM_BASENAME, claim['claim_id']).name: claim['claim_id']
                     for claim in request['claims']}
-    allowed = PACKAGE_FILES | form_targets.keys() | {'.' + name + '.writer.lock' for name in form_targets}
+    allowed = PACKAGE_FILES | form_targets.keys() | {'.' + name + '.writer.lock' for name in form_targets} | {HISTORY}
     if not PACKAGE_FILES <= names or names - allowed:
         raise source.JournalConflict('claim package is occupied or no longer an initial package')
     # Only independently retained form sets of these exact Claims may extend
     # the initial package. The creation receipt still binds its original five
     # files, not the current form content or any semantic decision.
-    for name in names - PACKAGE_FILES:
+    for name in names - PACKAGE_FILES - {HISTORY}:
         raw = source._read(target / name, source.MAX_SET_BYTES)
         if name in form_targets:
             forms = source._json_object(raw)
@@ -197,11 +217,13 @@ def _replay(target, config, request):
     if set(receipt.get('files', {})) != PACKAGE_FILES - {'source-create-receipt.json'}:
         raise source.JournalCorruption('claim creation receipt file closure changed')
     for name, binding in receipt['files'].items():
-        raw = source._read(target / name, source.MAX_SET_BYTES)
+        raw = original_files[name]
         if binding != {'sha256': source._digest(raw), 'bytes': len(raw)}:
             raise source.JournalCorruption('created claim package bytes changed')
-    if (source._read(target / 'source-create-request.json', source.MAX_SET_BYTES) != source._canonical(request) + b'\n'
-            or source._read(target / SOURCE_CLAIM_BASENAME, source.MAX_SET_BYTES) !=
+    if any(current_files[name] != original_files[name] for name in PACKAGE_FILES - {SOURCE_CLAIM_BASENAME}):
+        raise source.JournalCorruption('Claim correction rewrote immutable creation evidence')
+    if (original_files['source-create-request.json'] != source._canonical(request) + b'\n'
+            or original_files[SOURCE_CLAIM_BASENAME] !=
                b''.join(source._canonical(claim) + b'\n' for claim in request['claims'])):
         raise source.JournalCorruption('claim package differs from the retained original command')
     return receipt

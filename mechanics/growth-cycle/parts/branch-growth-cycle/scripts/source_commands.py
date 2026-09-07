@@ -43,6 +43,7 @@ PROFILE_CONFIG = 'tos_local_profile_create_owner_v1'
 CORPUS_CONFIG = 'tos_local_corpus_create_owner_v1'
 REVISION_CONFIG = 'tos_local_source_revision_owner_v1'
 PROFILE_REVISION_CONFIG = 'tos_local_profile_revision_owner_v1'
+CLAIM_REVISION_CONFIG = 'tos_local_claim_revision_owner_v1'
 CLAIM_CONFIG = 'tos_local_claim_create_owner_v1'
 CLAIM_FORM_CONFIG = 'tos_local_claim_form_owner_v1'
 REVISION_FIELDS = {'preferred_label', 'variant_labels', 'notes', 'field_languages', 'source_refs', 'extensions',
@@ -71,6 +72,9 @@ def _configuration(path):
     config = _json_object(raw)
     if config.get('schema_version') == CLAIM_CONFIG:
         from source_claim_commands import configuration
+        return configuration(config)
+    if config.get('schema_version') == CLAIM_REVISION_CONFIG:
+        from claim_revisions import configuration
         return configuration(config)
     creation = config.get('schema_version') in CREATION_CONFIGS
     profile_creation = config.get('schema_version') == PROFILE_CONFIG
@@ -923,6 +927,9 @@ def run_local_command(owner_config: Path, request: dict):
     config, configuration, source_path = _configuration(owner_config)
     if config['schema_version'] == CLAIM_CONFIG:
         from source_claim_commands import run_command
+        return run_command(owner_config, config, configuration, source_path, request)
+    if config['schema_version'] == CLAIM_REVISION_CONFIG:
+        from claim_revisions import run_command
         return run_command(owner_config, config, configuration, source_path, request)
     if config['schema_version'] in {*CREATION_CONFIGS, PROFILE_CONFIG, CORPUS_CONFIG}:
         return _create_source(owner_config, config, configuration, source_path, request)

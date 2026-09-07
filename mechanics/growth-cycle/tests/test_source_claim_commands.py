@@ -17,6 +17,330 @@ ROOT = fixtures.ROOT
 
 
 class SourceClaimCreationTests(unittest.TestCase):
+    @contextmanager
+    def correction(self):
+        """An ordinary created synthetic Claim and a separate correction grant."""
+        with self.creation() as (root, owner, creator, claim, creation, *_):
+            claim['qualifiers'].update(statement='Условная тестовая атрибуция; не исторический факт.',
+                statement_language='ru', statement_script='Cyrl')
+            prepared = commands.run_local_command(owner, {'schema_version': 'tos_local_source_command_v1',
+                'operation': 'prepare-create', 'claims': [claim]})
+            creation.update(expected_dependencies=prepared['expected_dependencies'], expected_inputs=prepared['source_bindings'])
+            commands.run_local_command(owner, creation)
+            config = {key: creator[key] for key in ('uid', 'source_root', 'source_path', 'expires_at')}
+            config.update(schema_version='tos_local_claim_revision_owner_v1', principal_id='test:claim-corrector',
+                authority_ref='test:explicit-correction-not-assessment', claim_id=claim['claim_id'],
+                allowed_operations=['claim.revise'], allowed_fields=['qualifiers', 'evidence_refs', 'alternative_claim_refs'],
+                allowed_evidence_refs=creator['allowed_evidence_refs'], allowed_form_ids=['tos.form.test.corrected'])
+            owner.write_text(json.dumps(config))
+            proposal = {'schema_version': 'tos_local_source_command_v1', 'operation': 'prepare-revise',
+                'fields': {'qualifiers': {'statement': 'Уточнённая условная атрибуция; не исторический факт.'}},
+                'forms': [{'form_id': 'tos.form.test.corrected', 'field_id': 'claim.statement'}],
+                'reason': 'Synthetic correction for writer boundary validation.'}
+            preview = commands.run_local_command(owner, proposal)
+            request = {**proposal, 'operation': 'claim.revise', 'command_id': 'synthetic:correction',
+                'expected_configuration': preview['owner_configuration'], 'expected_source': preview['source'],
+                'expected_revision': preview['revision'], 'expected_dependencies': preview['expected_dependencies'],
+                'expected_inputs': preview['source_bindings']}
+            yield root, owner, config, claim, request
+
+    def test_claim_correction_crash_before_and_after_exchange_recovers_exactly_once(self):
+        for after in (False, True):
+            with self.subTest(after=after), self.correction() as (root, owner, config, claim, request):
+                path = root / config['source_path']
+                original = {p.name: p.read_bytes() for p in path.parent.iterdir()}
+                program = '''import json, os, sys
+from pathlib import Path
+sys.path.insert(0, sys.argv[1])
+import source_commands, source_revisions
+exchange = source_revisions._exchange
+def lose_process(*args):
+    if sys.argv[3] == 'after':
+        exchange(*args)
+    os._exit(73)
+source_revisions._exchange = lose_process
+source_commands.run_local_command(Path(sys.argv[2]), json.load(sys.stdin))
+'''
+                stopped = subprocess.run([sys.executable, '-c', program, str(fixtures.MECHANIC),
+                    str(owner), 'after' if after else 'before'], input=json.dumps(request),
+                    text=True, capture_output=True, timeout=30)
+                self.assertEqual(stopped.returncode, 73, stopped.stderr)
+                abandoned = list((root / 'ToS').glob('.claim-revision-*.pending'))
+                self.assertEqual(len(abandoned), 1)
+                retained = {p.name: p.read_bytes() for p in abandoned[0].iterdir()}
+                if after:
+                    self.assertEqual(retained, original)
+                else:
+                    self.assertEqual({p.name: p.read_bytes() for p in path.parent.iterdir()}, original)
+                recovered = commands.run_local_command(owner, request)
+                self.assertEqual(recovered['replayed'], after)
+                self.assertEqual(recovered['source']['version'], 2)
+                self.assertEqual({p.name: p.read_bytes() for p in abandoned[0].iterdir()}, retained)
+                previous = commands.run_local_command(owner, {'schema_version': 'tos_local_source_command_v1',
+                    'operation': 'inspect-version', 'source': request['expected_source']})
+                self.assertEqual(previous['record'], claim)
+                self.assertEqual(len(json.loads(path.with_name('claim-revision-history.json').read_bytes())['receipts']), 1)
+                self.assertEqual(commands.run_local_command(owner, request)['receipt'], recovered['receipt'])
+
+    def test_competing_claim_corrections_have_one_winner_and_idempotent_retries(self):
+        with self.correction() as (root, owner, config, claim, request):
+            other = copy.deepcopy(request)
+            other['command_id'] = 'synthetic:competing-correction'
+            other['fields']['qualifiers']['statement'] = 'Конкурирующее условное уточнение.'
+            def attempt(value):
+                try:
+                    return commands.run_local_command(owner, value)
+                except commands.JournalConflict:
+                    return None
+            with ThreadPoolExecutor(max_workers=2) as pool:
+                results = list(pool.map(attempt, [request, other]))
+            self.assertEqual(sum(r is not None for r in results), 1)
+            winner = next(r for r in results if r is not None)
+            winning_request = winner['receipt']['request']
+            with ThreadPoolExecutor(max_workers=2) as pool:
+                retries = list(pool.map(lambda _: commands.run_local_command(owner, winning_request), range(2)))
+            self.assertTrue(all(r['replayed'] and r['receipt'] == winner['receipt'] for r in retries))
+            path = root / config['source_path']
+            self.assertEqual(json.loads(path.read_bytes())['claim_version'], 2)
+            self.assertEqual(len(json.loads(path.with_name('claim-revision-history.json').read_bytes())['receipts']), 1)
+
+    def test_claim_correction_source_contract_and_reference_drift_refuse_without_writes(self):
+        with self.correction() as (root, owner, config, claim, request):
+            path = root / config['source_path']
+            original = {p.name: p.read_bytes() for p in path.parent.iterdir()}
+            for ref in ('ToS/contracts/source-relation-claim.schema.json', claim['evidence_refs'][0],
+                        'ToS/source-witnesses/works/friedrich-nietzsche/jenseits-von-gut-und-boese/work.json'):
+                target = root / ref
+                raw = target.read_bytes()
+                target.write_bytes(raw + b'\n')
+                with self.subTest(ref=ref), self.assertRaises(commands.JournalConflict):
+                    commands.run_local_command(owner, request)
+                target.write_bytes(raw)
+                self.assertEqual({p.name: p.read_bytes() for p in path.parent.iterdir()}, original)
+            for invalid in ({'expected_inputs': {}}, {'fields': {'alternative_claim_refs': ['tos.claim.absent']}},
+                            {'fields': {'qualifiers': {'statement_language': 'ru\n'}}}):
+                with self.subTest(invalid=invalid), self.assertRaises((ValueError, commands.ValidationError)):
+                    commands.run_local_command(owner, {**request, **invalid})
+                self.assertEqual({p.name: p.read_bytes() for p in path.parent.iterdir()}, original)
+
+    def test_claim_correction_revocation_and_missing_or_corrupt_history_fail_closed(self):
+        with self.correction() as (root, owner, config, claim, request):
+            commands.run_local_command(owner, request)
+            path = root / config['source_path']
+            committed = {p.name: p.read_bytes() for p in path.parent.iterdir()}
+            owner.write_text(json.dumps({**config, 'allowed_operations': []}))
+            with self.assertRaises(PermissionError):
+                commands.run_local_command(owner, request)
+            owner.write_text(json.dumps(config))
+            prior = commands.run_local_command(owner, {'schema_version': 'tos_local_source_command_v1',
+                'operation': 'inspect-version', 'source': request['expected_source']})
+            archived = root / prior['files'][path.name]['archive_path']
+            raw = archived.read_bytes()
+            archived.write_bytes(b'corrupt synthetic archive')
+            with self.assertRaises(commands.JournalCorruption):
+                commands.run_local_command(owner, request)
+            archived.write_bytes(raw)
+            moved = archived.with_suffix('.temporarily-absent')
+            archived.rename(moved)
+            with self.assertRaises((commands.JournalCorruption, FileNotFoundError)):
+                commands.run_local_command(owner, request)
+            moved.rename(archived)
+            history = path.with_name('claim-revision-history.json')
+            history_raw = history.read_bytes()
+            hidden_history = history.with_suffix('.temporarily-absent')
+            history.rename(hidden_history)
+            with self.assertRaises(commands.JournalCorruption):
+                commands.run_local_command(owner, request)
+            hidden_history.rename(history)
+            history.write_text(json.dumps({**json.loads(history_raw), 'receipts': []}))
+            with self.assertRaises(commands.JournalCorruption):
+                commands.run_local_command(owner, request)
+            history.write_bytes(history_raw)
+            self.assertTrue(commands.run_local_command(owner, request)['replayed'])
+            self.assertEqual({p.name: p.read_bytes() for p in path.parent.iterdir()}, committed)
+
+    def test_claim_form_writer_and_correction_cannot_publish_mixed_source_versions(self):
+        with self.correction() as (root, owner, config, claim, request):
+            form_config = {key: value for key, value in config.items()
+                           if key not in {'allowed_fields', 'allowed_evidence_refs'}}
+            form_config.update(schema_version='tos_local_claim_form_owner_v1',
+                allowed_operations=['form.create', 'form.revise'])
+            form_owner = root / 'form-owner.json'
+            form_owner.write_text(json.dumps(form_config))
+            prepared = commands.run_local_command(form_owner, {'schema_version': 'tos_local_source_command_v1',
+                'operation': 'prepare', **request['forms'][0]})
+            form_request = {'schema_version': 'tos_local_source_command_v1', 'operation': 'apply',
+                'command_id': 'synthetic:concurrent-form', 'expected_source': prepared['source'],
+                'expected_configuration': prepared['owner_configuration'], 'expected_revision': prepared['revision'],
+                'changes': [prepared['prepared_change']]}
+            def attempt(item):
+                try:
+                    return commands.run_local_command(*item)
+                except commands.JournalConflict:
+                    return None
+            with ThreadPoolExecutor(max_workers=2) as pool:
+                results = list(pool.map(attempt, [(owner, request), (form_owner, form_request)]))
+            self.assertEqual(sum(r is not None for r in results), 1)
+            context = commands.run_local_command(owner, {'schema_version': 'tos_local_source_command_v1', 'operation': 'describe'})
+            self.assertTrue(all(v['state'] == 'ready' for v in context['materializations']))
+            path = root / config['source_path']
+            form_path = commands.claim_forms_path(path, claim['claim_id'])
+            old = json.loads(form_path.read_bytes())
+            proposal = {key: request[key] for key in ('schema_version', 'fields', 'forms', 'reason')}
+            proposal.update(operation='prepare-revise', fields={'qualifiers': {'statement': 'Следующее условное уточнение.'}})
+            # A different form ID is not permission to silently retire an existing form.
+            config['allowed_form_ids'].append('tos.form.test.replacement')
+            owner.write_text(json.dumps(config))
+            with self.assertRaisesRegex(ValueError, 'every current form'):
+                commands.run_local_command(owner, {**proposal,
+                    'forms': [{'form_id': 'tos.form.test.replacement', 'field_id': 'claim.statement'}]})
+            preview = commands.run_local_command(owner, proposal)
+            commands.run_local_command(owner, {**proposal, 'operation': 'claim.revise', 'command_id': 'synthetic:next',
+                'expected_configuration': preview['owner_configuration'], 'expected_source': preview['source'],
+                'expected_revision': preview['revision'], 'expected_dependencies': preview['expected_dependencies'],
+                'expected_inputs': preview['source_bindings']})
+            retained = json.loads(form_path.read_bytes())
+            self.assertEqual(retained['prior_forms'], [*old['prior_forms'], *old['forms']])
+            self.assertEqual(retained['forms'][0]['form_version'], old['forms'][0]['form_version'] + 1)
+
+    def test_claim_correction_midstage_scope_and_dependency_changes_refuse_publication(self):
+        import source_revisions as packages
+        for revoke in (False, True):
+            with self.subTest(revoke=revoke), self.correction() as (root, owner, config, claim, request):
+                path = root / config['source_path']
+                original = {p.name: p.read_bytes() for p in path.parent.iterdir()}
+                stage = packages._stage
+                def drift(*args):
+                    staging = stage(*args)
+                    if args[-1] == '.claim-revision-':
+                        if revoke:
+                            owner.write_text(json.dumps({**config, 'allowed_operations': []}))
+                        else:
+                            schema = root / 'ToS/contracts/source-relation-claim.schema.json'
+                            schema.write_bytes(schema.read_bytes() + b'\n')
+                    return staging
+                with patch.object(packages, '_stage', side_effect=drift), self.assertRaises(commands.JournalConflict):
+                    commands.run_local_command(owner, request)
+                self.assertEqual({p.name: p.read_bytes() for p in path.parent.iterdir()}, original)
+
+    def test_claim_revision_preserves_shared_stream_siblings_history_and_creation_replay(self):
+        """Synthetic correction: no historical judgment or research admission."""
+        with self.creation() as (root, owner, creator, claim, creation, rebuild, graph_fixture):
+            claim['qualifiers'].update(statement='Условное исходное утверждение, не исторический факт.',
+                statement_language='ru', statement_script='Cyrl', uninterpreted={'values': [None, False, 'Ω']})
+            sibling = {**copy.deepcopy(claim), 'claim_id': claim['claim_id'] + '-sibling'}
+            creator['allowed_claim_ids'].append(sibling['claim_id'])
+            owner.write_text(json.dumps(creator))
+            prepared = commands.run_local_command(owner, {'schema_version': 'tos_local_source_command_v1',
+                'operation': 'prepare-create', 'claims': [claim, sibling]})
+            creation.update(claims=[claim, sibling], expected_configuration=prepared['owner_configuration'],
+                expected_dependencies=prepared['expected_dependencies'], expected_inputs=prepared['source_bindings'])
+            created = commands.run_local_command(owner, creation)
+            path = root / creator['source_path']
+            original = {p.name: p.read_bytes() for p in path.parent.iterdir()}
+            config = {key: creator[key] for key in ('uid', 'source_root', 'source_path', 'expires_at')}
+            config.update(schema_version='tos_local_claim_revision_owner_v1', principal_id='test:claim-corrector',
+                authority_ref='test:explicit-claim-correction-not-assessment', claim_id=claim['claim_id'],
+                allowed_operations=['claim.revise'], allowed_fields=['qualifiers', 'counterevidence_refs'],
+                allowed_evidence_refs=creator['allowed_evidence_refs'], allowed_form_ids=['tos.form.test.revised-claim'])
+            owner.write_text(json.dumps(config))
+            proposal = {'schema_version': 'tos_local_source_command_v1', 'operation': 'prepare-revise',
+                'fields': {'qualifiers': {'statement': 'Уточнённое условное утверждение с явной оговоркой.'}},
+                'forms': [{'form_id': 'tos.form.test.revised-claim', 'field_id': 'claim.statement'}],
+                'reason': 'Synthetic source correction; preserve unknown qualifiers and all siblings.'}
+            preview = commands.run_local_command(owner, proposal)
+            self.assertEqual(original, {p.name: p.read_bytes() for p in path.parent.iterdir()})
+            request = {**proposal, 'operation': 'claim.revise', 'command_id': 'test:claim-revision-1',
+                'expected_configuration': preview['owner_configuration'], 'expected_source': preview['source'],
+                'expected_revision': preview['revision'], 'expected_dependencies': preview['expected_dependencies'],
+                'expected_inputs': preview['source_bindings']}
+            for changes in ({'fields': {'object': sibling['object']}}, {'fields': {'review_status': 'accepted'}},
+                    {'fields': {'claim_version': 100}}, {'fields': {'counterevidence_refs': ['ToS/not-delegated.md']}},
+                    {'forms': []}, {'expected_source': {**preview['source'], 'digest': 'sha256:' + '0' * 64}},
+                    {'expected_dependencies': 'sha256:' + '0' * 64}):
+                with self.subTest(changes=changes), self.assertRaises((ValueError, PermissionError)):
+                    commands.run_local_command(owner, {**request, **changes})
+                self.assertEqual(original, {p.name: p.read_bytes() for p in path.parent.iterdir()})
+            revised = commands.run_local_command(owner, request)
+            self.assertFalse(revised['grants_admission'])
+            self.assertEqual(revised['receipt']['source_bindings'], preview['source_bindings'])
+            self.assertFalse(revised['replayed'])
+            rows = path.read_bytes().splitlines(keepends=True)
+            self.assertEqual(rows[1], original[path.name].splitlines(keepends=True)[1])
+            current = json.loads(rows[0])
+            self.assertEqual(current, {**claim, 'claim_version': 2,
+                'qualifiers': {**claim['qualifiers'], **proposal['fields']['qualifiers']}})
+            for name in original.keys() - {path.name}:
+                self.assertEqual((path.parent / name).read_bytes(), original[name])
+            self.assertEqual(revised['source']['id'], claim['claim_id'])
+            self.assertEqual(revised['source']['version'], 2)
+            self.assertEqual(revised['materializations'][0]['display_text'], current['qualifiers']['statement'])
+            self.assertEqual(revised['materializations'][0]['context'][0]['value'], current)
+            self.assertIsNone(revised['materializations'][0]['admission'])
+            previous = commands.run_local_command(owner, {'schema_version': 'tos_local_source_command_v1',
+                'operation': 'inspect-version', 'source': request['expected_source']})
+            self.assertEqual(previous['record'], claim)
+            for name, binding in previous['files'].items():
+                self.assertEqual((root / binding['archive_path']).read_bytes(), original[name])
+            after = {p.name: p.read_bytes() for p in path.parent.iterdir()}
+            process = subprocess.run([sys.executable, str(fixtures.MECHANIC / 'source_commands.py'),
+                '--owner-config', str(owner)], input=json.dumps(request), text=True, capture_output=True, timeout=30)
+            self.assertEqual(process.returncode, 0, process.stdout + process.stderr)
+            replay = json.loads(process.stdout)
+            self.assertTrue(replay['replayed'])
+            self.assertEqual(replay['receipt'], revised['receipt'])
+            self.assertEqual(after, {p.name: p.read_bytes() for p in path.parent.iterdir()})
+            graph, _, _ = graph_fixture.historical_knowledge(root, rebuild())
+            node = next(n for n in graph['nodes'] if n['entity_id'] == claim['claim_id'])
+            self.assertEqual(node['attributes']['source_claim'], current)
+            self.assertEqual(node['attributes']['human_forms'], revised['materializations'])
+            owner.write_text(json.dumps(creator))
+            replay_creation = commands.run_local_command(owner, creation)
+            self.assertTrue(replay_creation['replayed'])
+            self.assertEqual(replay_creation['receipt'], created['receipt'])
+            self.assertEqual(path.read_bytes(), b''.join(rows))
+            # One shared history must cover interleaved revisions of different
+            # Claims, while each Claim keeps its own version and form lineage.
+            for index, selected in enumerate((sibling, claim), start=2):
+                config['claim_id'] = selected['claim_id']
+                form_id = 'tos.form.test.revised-sibling' if selected is sibling else 'tos.form.test.revised-claim'
+                config['allowed_form_ids'] = [form_id]
+                owner.write_text(json.dumps(config))
+                fields = {'qualifiers': {'statement': f'Условное уточнение {index}; не историческое свидетельство.'}}
+                next_proposal = {**proposal, 'fields': fields,
+                    'forms': [{'form_id': form_id, 'field_id': 'claim.statement'}]}
+                prepared = commands.run_local_command(owner, next_proposal)
+                next_request = {**next_proposal, 'operation': 'claim.revise', 'command_id': f'test:claim-revision-{index}',
+                    'expected_configuration': prepared['owner_configuration'], 'expected_source': prepared['source'],
+                    'expected_revision': prepared['revision'], 'expected_dependencies': prepared['expected_dependencies'],
+                    'expected_inputs': prepared['source_bindings']}
+                unchanged_index = 0 if selected is sibling else 1
+                sibling_bytes = path.read_bytes().splitlines(keepends=True)[unchanged_index]
+                commands.run_local_command(owner, next_request)
+                self.assertEqual(path.read_bytes().splitlines(keepends=True)[unchanged_index], sibling_bytes)
+            replay = commands.run_local_command(owner, request)
+            self.assertTrue(replay['replayed'])
+            self.assertEqual(replay['receipt'], revised['receipt'])
+            self.assertEqual(replay['source']['version'], 3)
+            self.assertEqual(len(json.loads(path.with_name('claim-revision-history.json').read_bytes())['receipts']), 3)
+            history_path = path.with_name('claim-revision-history.json')
+            history_raw = history_path.read_bytes()
+            history = json.loads(history_raw)
+            history_path.write_text(json.dumps({**history, 'receipts': history['receipts'][1:]}))
+            with self.assertRaises(commands.JournalCorruption):
+                commands.run_local_command(owner, request)
+            history_path.write_bytes(history_raw)
+            committed_stream = path.read_bytes()
+            corrupt = [json.loads(line) for line in committed_stream.splitlines()]
+            corrupt[1]['qualifiers']['statement'] = 'Unrecorded sibling corruption, synthetic only.'
+            path.write_bytes(b''.join(commands._canonical(c) + b'\n' for c in corrupt))
+            with self.assertRaises(commands.JournalCorruption):
+                commands.run_local_command(owner, {'schema_version': 'tos_local_source_command_v1', 'operation': 'describe'})
+            path.write_bytes(committed_stream)  # Restore only this temporary fixture.
+            owner.write_text(json.dumps(creator))
+            self.assertEqual(commands.run_local_command(owner, creation)['receipt'], created['receipt'])
+            self.assertEqual(path.read_bytes(), committed_stream)
+
     def test_argument_chain_creation_is_atomic_scoped_and_source_bound(self):
         with self.creation() as (root, owner, config, base, request, rebuild, fixture):
             for name in ('source-metadata-record', 'semantic-description-record', 'thought-description-record',

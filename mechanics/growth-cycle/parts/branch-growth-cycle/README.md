@@ -676,7 +676,7 @@ paths while correcting related record/forms atomically. Separate file renames
 would expose partial changes; a new pointer-only source store would require
 migrating every existing reader. The accepted cost is bounded package copying
 and Linux-specific exchange, not global corpus copying or an indexed writer.
-General multi-subject changes, native non-profile record correction, claim correction and
+General multi-subject changes, native non-profile record correction and
 automatic retirement of abandoned staging remain separate Growth work.
 
 ### Declared source Claim creation
@@ -781,4 +781,71 @@ their empty lock files only for its original Claim IDs. Their retained history
 and subject binding are checked, while its original five files and receipt
 stay byte-bound. Unknown extra files, aliases and mismatched form subjects
 remain conflicts/corruption; a creation retry does not vouch for current form
-quality. Claim revisions are still a distinct, unimplemented source operation.
+quality. Declared Claim corrections use the separate operation below.
+
+### Correction of a declared source Claim
+
+`scripts/claim_revisions.py` implements `claim.revise` through the same explicit
+source command entrypoint. The selected Claim keeps its ID, predicate,
+endpoints, assertion layer, original maker/provenance and initial review flag.
+Its `claim_version` advances once. The correction issuer and reason belong to
+the new history receipt; the original maker is origin attribution, not a claim
+that the original actor authored every later correction. Assessment, identity
+merge/split, reattribution, visibility and publication are separate operations.
+
+The protected `tos_local_claim_revision_owner_v1` configuration contains exactly
+`uid`, `principal_id`, `source_root`, `source_path`, `authority_ref`, `expires_at`,
+`claim_id`, `allowed_operations`, `allowed_fields`, `allowed_evidence_refs` and
+`allowed_form_ids`. The path selects an existing `source-claims.jsonl` below
+`ToS/source-witnesses/`, outside catalog/payload/local-content. Only
+`claim.revise` may be delegated. Allowed fields are a subset of `qualifiers`,
+`evidence_refs`, `counterevidence_refs`, `alternative_claim_refs`,
+`supporting_quotes`, `epistemic_status` and `confidence`; the exact Claim schema
+still constrains their values. A qualifier patch merges its explicit top-level
+keys and preserves unmentioned keys. Other selected fields are replaced as
+explicit values. New or changed evidence lists require the independent exact
+allowlist. Unchanged evidence remains checked and source-bound.
+
+Requests use `tos_local_source_command_v1` and the record-correction grammar:
+
+- `describe` returns the selected exact source, whole-package revision and
+  permitted operation/fields/forms without writing.
+- `prepare-revise` takes `fields`, `forms` and an authored `reason`, and returns
+  the proposed source/forms, `expected_dependencies` and `source_bindings`.
+- `claim.revise` additionally takes `command_id`, `expected_configuration`,
+  `expected_source`, `expected_revision`, `expected_dependencies` and
+  `expected_inputs` (the exact prepared `source_bindings`).
+- `inspect-version` takes an exact predecessor `source` and returns its Claim
+  and every archived package byte binding. It does not select an archive path
+  from request prose or return an uncommitted archive as history.
+
+The current profile, inherited endpoint domain/range, source evidence and
+alternative Claim refs are checked by the same grounding used for creation.
+Selected source paths, raw/canonical digests and versions survive in request
+and receipt, not just an opaque dependency digest. Existing selected-Claim
+forms must all be explicitly rebound; source copies include a ready statement
+and the full qualified Claim context. Prior forms and exact prior source refs
+remain retained. A sibling's form identity cannot be reused. This route does
+not turn a newly written form into a calibrated or admitted interpretation.
+
+Only the selected JSONL row is serialized; all other rows retain exact bytes
+and order. Stream, selected forms and `claim-revision-history.json` are committed
+in one directory exchange using the existing stable source writer lock and
+byte-verified `.record-revisions/` archive. Other companion bytes remain intact.
+The shared history orders corrections of different Claims, reconstructs each
+successive stream, and rejects unrecorded changes, missing predecessors and a
+noninitial stream without history. The initial baseline has all Claim versions
+1; importing a higher-version stream needs an explicit history migration,
+not an invented version-1 origin. Initial creation replay verifies its original
+five files through the earliest archive while leaving current corrections alone.
+
+The same 64-file/8-MiB flat-package, 2-MiB file, 128-correction and existing
+form-history limits apply; the Claim stream additionally stays within 1 MiB.
+Exact retries return the old receipt and fresh current source/forms separately,
+and current revocation still blocks a retry. Crash recovery, abandoned staging,
+Linux exchange, same-account trust and concurrent-reader limits are those of
+record correction above. Every archive remains source history, not a duplicate
+current Claim catalog or a cache to discard. This implementation still scans
+source metadata for grounding and can inspect up to 128 bounded archives. It
+does not prove an indexed writer, constant-cost history access, an incremental
+graph rebuild or global cross-subject transaction support.
