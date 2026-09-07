@@ -897,6 +897,22 @@ class HistoricalCreationTests(unittest.TestCase):
             self.assertEqual(commands.run_local_command(owner, request)['receipt'], result['receipt'])
 
     def test_semantic_description_creation_and_correction_preserve_referent_and_scope(self):
+        reception = {
+            'reception-process': {'engagement_basis': 'Documented response, not inferred agreement.'},
+            'historical-canonization': {'engagement_basis': 'Historical selection practices.',
+                'selection_basis': 'Criteria of this historical community.', 'authority_scope': 'Not ToS admission.'},
+            'historical-forgetting': {'evidence_boundary': 'Attested decline in this context, not a missing catalog row.'},
+            'rediscovery-episode': {'prior_access_boundary': 'Renewed access for this community; known elsewhere is possible.'},
+            'intellectual-legacy': {'transmission_basis': 'Attested persistence with changes; no automatic direct influence.'},
+        }
+        reception = {kind: {'reception_account': 'A synthetic account of the later history.',
+            'receiving_context': 'The receiving community and limits of this test.', **content}
+            for kind, content in reception.items()}
+        reception_properties = {
+            'reception_account': 'tos.property.reception-history-reception-account',
+            'receiving_context': 'tos.property.reception-history-receiving-context',
+            'engagement_basis': 'tos.property.reception-process-engagement-basis',
+        }
         passages = {
             'composite': {'composition_account': 'A synthetic scholarly arrangement, not an ancient original.', 'editorial_method': 'Synthetic selection and ordering.', 'coverage_account': 'Partial, with unknown gaps.'},
             'textual-fragment': {'fragment_account': 'A synthetic textual portion, not a physical fragment.', 'boundary_basis': 'Proposed editorial boundary, not exact text.'},
@@ -950,10 +966,11 @@ class HistoricalCreationTests(unittest.TestCase):
             **social,
             **formations,
             **passages,
+            **reception,
         }
         for kind in ('crosscutting-concept', 'conception', *contents):
             with self.subTest(kind=kind), self.creation() as (root, owner, config, request, rebuild, fixture):
-                for name in ('source-metadata-record', 'semantic-description-record', 'thought-description-record', 'thought-topic-record', 'thought-practice-record', 'social-body-record', 'intellectual-formation-record', 'textual-passage-record', 'scholarly-composite-record', 'provenance-event-v2'):
+                for name in ('source-metadata-record', 'semantic-description-record', 'thought-description-record', 'thought-topic-record', 'thought-practice-record', 'social-body-record', 'intellectual-formation-record', 'textual-passage-record', 'scholarly-composite-record', 'reception-record', 'provenance-event-v2'):
                     ref = 'ToS/contracts/' + name + '.schema.json'
                     (root / ref).write_bytes((ROOT / ref).read_bytes())
                 config.pop('allowed_claim_ids')
@@ -971,13 +988,14 @@ class HistoricalCreationTests(unittest.TestCase):
                         'identity_criterion': 'Постоянный предмет теста, не сходство имён.', 'language': 'ru', 'script': 'Cyrl'})
                 if kind in contents:
                     source.update(schema_version=('tos_scholarly_composite_record_v1' if kind == 'composite' else
+                                  'tos_reception_record_v1' if kind in reception else
                                   'tos_textual_passage_record_v1' if kind in passages else
                                   'tos_intellectual_formation_record_v1' if kind in formations else
                                   'tos_social_body_record_v1' if kind in social else
                                   'tos_thought_practice_record_v1' if kind in practices else
                                   'tos_thought_topic_record_v1' if kind in topics else 'tos_thought_description_record_v1'),
                                   semantic_content={**contents[kind], 'language': 'en', 'script': 'Latn'})
-                if kind in topics or kind in practices or kind in social or kind in formations or kind in passages:
+                if kind in topics or kind in practices or kind in social or kind in formations or kind in passages or kind in reception:
                     source['semantic_content']['x-uninterpreted'] = [None, False, {'source-field': 'retained'}]
                 request.pop('claims')
                 if kind == 'composite':
@@ -1024,7 +1042,7 @@ class HistoricalCreationTests(unittest.TestCase):
                 self.assertEqual(node['attributes']['source_record']['semantic_scope'], source['semantic_scope'])
                 if kind in contents:
                     self.assertEqual(node['attributes']['source_record']['semantic_content'], proposal['fields']['semantic_content'])
-                    if kind in topics or kind in practices or kind in social or kind in formations or kind in passages:
+                    if kind in topics or kind in practices or kind in social or kind in formations or kind in passages or kind in reception:
                         from tos_access.knowledge import execute_knowledge_lens, select_human_forms
                         for field in contents[kind]:
                             property_kind = ('distinction' if kind == 'opposition' and field == 'differentiation_criterion'
@@ -1034,6 +1052,7 @@ class HistoricalCreationTests(unittest.TestCase):
                             lens_result = execute_knowledge_lens(graph, {'schema_version': 'tos_lens_spec_v1',
                                 'lens_id': 'synthetic-content-property', 'node_query': {'filters': [{
                                     'property_id': (passage_properties[field] if kind in passages else
+                                        reception_properties[field] if kind in reception and field in reception_properties else
                                         'tos.property.formation-account' if field == 'formation_account'
                                         else f"tos.property.{property_kind}-{field.replace('_', '-')}"),
                                     'op': 'contains' if isinstance(value, list) else 'eq',

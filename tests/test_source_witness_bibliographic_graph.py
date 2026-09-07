@@ -34,6 +34,89 @@ from source_witness_human_forms import load_metadata_forms, materialize_metadata
 
 
 class SourceWitnessBibliographicGraphTest(unittest.TestCase):
+    def test_reception_profiles_keep_historical_recognition_and_knowledge_admission_distinct(self):
+        """Synthetic reception contracts; no claim that any history occurred."""
+        from source_record_profiles import SourceRecordProfiles, SourceClaimProfiles, SourceProfileError
+        records, relations = SourceRecordProfiles(REPO_ROOT), SourceClaimProfiles(REPO_ROOT)
+        contents = {
+            'reception-process': {'engagement_basis': 'Documented reading and response, not inferred influence.'},
+            'historical-canonization': {'engagement_basis': 'A source-described selection practice.',
+                'selection_basis': 'The stated criteria of the historical selection.',
+                'authority_scope': 'Only the specified historical community, not ToS admission.'},
+            'historical-forgetting': {'evidence_boundary': 'A scoped report of diminished transmission; database absence proves nothing.'},
+            'rediscovery-episode': {'prior_access_boundary': 'New access for this community, not first knowledge by anyone.'},
+            'intellectual-legacy': {'transmission_basis': 'A source-described persistence with changes; similarity is insufficient.'},
+        }
+        for kind, content in contents.items():
+            source = {'schema_version': 'tos_reception_record_v1', 'record_type': kind,
+                'record_id': f'tos.{kind}.synthetic-reception', 'record_version': 1,
+                'preferred_label': 'Условная история рецепции', 'notes': 'Только синтетическая проверка.',
+                'field_languages': {key: {'language': 'ru', 'script': 'Cyrl'} for key in ('preferred_label', 'notes')},
+                'identity_status': 'provisional', 'same_as_posture': 'no_equivalence_claim',
+                'source_refs': ['test:synthetic-reception'], 'external_identifiers': [], 'visibility': 'public_metadata_only',
+                'semantic_scope': {'scope_note': 'The declared historical scope only.',
+                    'identity_criterion': 'One researched process, episode or state, not the current description.',
+                    'language': 'en', 'script': 'Latn'},
+                'semantic_content': {'reception_account': 'An attributed historical account, not an assessment.',
+                    'receiving_context': 'The particular audience and research limits.',
+                    **content, 'language': 'en', 'script': 'Latn', 'uninterpreted': [None, False]}}
+            with self.subTest(kind=kind):
+                records.validate(kind, source)
+                ancestry = relations.ancestry('tos.entity.' + kind)
+                self.assertIn('tos.entity.reception-history', ancestry)
+                self.assertIn('tos.entity.historical-situation', ancestry)
+                self.assertEqual('tos.entity.historical-event' in ancestry, kind == 'rediscovery-episode')
+                self.assertEqual('tos.entity.historical-state' in ancestry, kind == 'intellectual-legacy')
+                self.assertEqual('tos.entity.historical-process' in ancestry,
+                                 kind in {'reception-process', 'historical-canonization', 'historical-forgetting'})
+                self.assertNotIn('tos.entity.semantic-object', ancestry)
+                for field in ('reception_account', 'receiving_context', *content, 'language', 'script'):
+                    invalid = copy.deepcopy(source); invalid['semantic_content'].pop(field)
+                    with self.assertRaises(SourceProfileError):
+                        records.validate(kind, invalid)
+                for field in ('reception_account', 'receiving_context', *content):
+                    invalid = copy.deepcopy(source); invalid['semantic_content'][field] = ' '
+                    with self.assertRaises(SourceProfileError):
+                        records.validate(kind, invalid)
+                for update in ({'record_id': 'tos.historical-event.synthetic-reception'},
+                               {'schema_version': 'tos_historical_record_v1'}, {'semantic_scope': {}},
+                               {'admission': 'accepted'}, {'canon_status': 'accepted'}):
+                    with self.assertRaises(SourceProfileError):
+                        records.validate(kind, {**source, **update})
+        cases = [('receives', 'reception-process', 'work'),
+                 ('historically_canonizes', 'historical-canonization', 'conception'),
+                 ('historically_forgets', 'historical-forgetting', 'intellectual-tradition'),
+                 ('rediscovers', 'rediscovery-episode', 'artifact'),
+                 ('legacy_of', 'intellectual-legacy', 'agent'),
+                 ('reception_carrier', 'rediscovery-episode', 'work')]
+        objects = {f'tos.{kind}.synthetic-reception': {'record_type': kind}
+                   for kind in (*contents, 'work', 'conception', 'intellectual-tradition', 'artifact', 'agent', 'place')}
+        for predicate, left, right in cases:
+            claim = {'schema_version': 'tos_historical_context_claim_v1', 'claim_type': 'relation',
+                'claim_id': 'tos.claim.synthetic-reception', 'claim_version': 1,
+                'subject_ref': f'tos.{left}.synthetic-reception', 'predicate': predicate,
+                'object': f'tos.{right}.synthetic-reception', 'assertion_layer': 'scholarly_report',
+                'evidence_refs': ['test:synthetic-reception'], 'provenance_event_ref': 'tos.event.synthetic-reception',
+                'maker': {'maker_type': 'software', 'agent_ref': 'software:synthetic-test'},
+                'epistemic_status': 'disputed', 'review_status': 'unreviewed', 'visibility': 'public_metadata_only',
+                'qualifiers': {'statement': 'An attributed relationship, not ToS canon or an unqualified fact.',
+                    'statement_language': 'en', 'statement_script': 'Latn',
+                    'relation_basis': 'Synthetic source report, not graph proximity.',
+                    'context_scope': 'The particular receiving community only.',
+                    'time_scope_note': 'Historical bounds unknown; not the record creation time.',
+                    'uninterpreted': {'retained': [None, False]}}}
+            with self.subTest(predicate=predicate):
+                relations.validate(claim, objects)
+                self.assertFalse(relations.relations[predicate]['transitive'])
+                for field in ('statement', 'statement_language', 'statement_script', 'relation_basis', 'context_scope', 'time_scope_note'):
+                    invalid = copy.deepcopy(claim); invalid['qualifiers'].pop(field)
+                    with self.assertRaises(SourceProfileError):
+                        relations.validate(invalid, objects)
+                for update in ({'subject_ref': 'tos.place.synthetic-reception'},
+                               {'object': 'tos.place.synthetic-reception'}, {'assertion_layer': 'canon_judgment'}):
+                    with self.assertRaises(SourceProfileError):
+                        relations.validate({**claim, **update}, objects)
+
     def test_fragment_and_quotation_profiles_keep_research_identity_and_text_evidence_distinct(self):
         from source_record_profiles import SourceRecordProfiles, SourceClaimProfiles, SourceProfileError
         records = SourceRecordProfiles(REPO_ROOT)

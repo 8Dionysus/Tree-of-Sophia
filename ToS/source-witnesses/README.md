@@ -130,6 +130,12 @@ navigation category are not interchangeable. Adjacent native Corpus and
 declared-profile human forms reach both source graph carriers with their exact
 bindings and quality gaps; catalog presence does not admit their content.
 
+Source-described reception, legacy, historical canon formation, forgetting and
+rediscovery use the [reception profiles](../doctrine/semantic-interchange/README.md#reception-historical-recognition-and-later-life).
+Their historical scope and receiving context remain content. Claims separately
+identify targets, carriers, participants and dates; a historical canon is not a
+ToS admission, and catalog absence is not evidence of forgetting.
+
 Object and claim records own stable ToS IDs. The catalog is their rebuildable
 navigation projection: `claims.jsonl` makes tracked membership, responsibility,
 publication, provision activity, chronology, and identity-ladder assertions

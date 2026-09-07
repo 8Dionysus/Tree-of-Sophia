@@ -29,15 +29,15 @@
     "metric": "whitespace_tokens_v1",
     "posture": "summary_first_records_on_demand",
     "record_loading": "machine readers may select records by family_id or path; do not load the full carrier into an always-on prompt",
-    "tracked_surface_count": 4387,
+    "tracked_surface_count": 4408,
     "unhandled_family_count": 0
   },
   "coverage": {
     "excluded_generated_carrier_rules": 3,
-    "excluded_tracked_path_count": 1003,
+    "excluded_tracked_path_count": 1018,
     "human_scope": {
-      "bytes": 5471311,
-      "count": 1018,
+      "bytes": 5487406,
+      "count": 1020,
       "excluded_skill_launch_metadata": 25,
       "family_counts": {
         "access": {
@@ -116,20 +116,20 @@
           "lines": 55
         },
         "tos": {
-          "bytes": 4051659,
-          "count": 608,
-          "lines": 68176
+          "bytes": 4067754,
+          "count": 610,
+          "lines": 68430
         }
       },
-      "lines": 94342
+      "lines": 94596
     },
     "surface_kind_counts": {
       "executable": 234,
-      "human": 1043,
-      "structured": 3110
+      "human": 1045,
+      "structured": 3129
     },
-    "tracked_path_count": 5390,
-    "tracked_surface_count": 4387,
+    "tracked_path_count": 5426,
+    "tracked_surface_count": 4408,
     "unhandled_family_count": 0,
     "unhandled_paths": []
   },
@@ -173,11 +173,11 @@
       "family_id": "tos",
       "surface_kind_counts": {
         "executable": 4,
-        "human": 608,
-        "structured": 3026
+        "human": 610,
+        "structured": 3045
       },
-      "tracked_surface_bytes": 227878863,
-      "tracked_surface_count": 3638
+      "tracked_surface_bytes": 228138287,
+      "tracked_surface_count": 3659
     },
     {
       "family_id": "access",
@@ -231,7 +231,7 @@
         "human": 155,
         "structured": 33
       },
-      "tracked_surface_bytes": 1012624,
+      "tracked_surface_bytes": 1014193,
       "tracked_surface_count": 215
     },
     {
@@ -250,7 +250,7 @@
         "human": 2,
         "structured": 1
       },
-      "tracked_surface_bytes": 1562865,
+      "tracked_surface_bytes": 1569954,
       "tracked_surface_count": 62
     },
     {
@@ -285,7 +285,7 @@
   "source_map": "docs/validation/documentation_family_map.json",
   "source_map_sha256": "d70a5059be9cc7547289e4c8be380d23b3aeb9e53bb10e4cb82abf2177ea0896",
   "tracked_source": "git ls-files -z",
-  "tracked_surface_digest": "005d3eacc49b4a6027f49df351742dee101e2690119eba6277c60e79db2725cd",
+  "tracked_surface_digest": "aa152c89ee1758d74a3e07417f3ef642eba3b08f7e6958ac479c6eedf51bef3e",
   "tracked_surfaces": [
     {
       "bytes": 1489,
@@ -332,7 +332,7 @@
       "currentness": "tracked_source_snapshot",
       "family_id": "agents-other",
       "path": ".agents/agents-route.current.json",
-      "sha256": "8c5e478b4ea5700e54fba4fb40ff2c77d5ff098c44c310dbfba2bdcd6d560c7f",
+      "sha256": "8795e78811cbf3f3db25705a4b55dd52d032a34f844cc319f6e140cafe9dce6c",
       "surface_kind": "structured"
     },
     {
@@ -3640,6 +3640,14 @@
       "surface_kind": "structured"
     },
     {
+      "bytes": 7339,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/contracts/reception-record.schema.json",
+      "sha256": "914f802eaa47b3ecf7182ab1e32b8fd3f52e78163d2c8394bfe5108582742cb0",
+      "surface_kind": "structured"
+    },
+    {
       "bytes": 4193,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
@@ -4200,11 +4208,11 @@
       "surface_kind": "human"
     },
     {
-      "bytes": 8850912,
+      "bytes": 8947802,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/derived-exports/graph/source-witness-bibliographic-claims.min.json",
-      "sha256": "19839bf28383b51ea42c958474d247757091c2b740e898e33c70a0a3bfee6781",
+      "sha256": "0f0cfca6d89aea5fbcd8b6f073284a688c10cabb89c85e9eb6823033a35230d3",
       "surface_kind": "structured"
     },
     {
@@ -4280,11 +4288,11 @@
       "surface_kind": "structured"
     },
     {
-      "bytes": 59687682,
+      "bytes": 59734374,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/derived-exports/tos_corpus_index.min.json",
-      "sha256": "b2a66f2295a964b3d390d152eca54db4b4b7af2e33f798c395dd9aef7d44cf0d",
+      "sha256": "4118ea9fb124bfe560a954da8084316965255d33335d28b845dd15f062da21ac",
       "surface_kind": "structured"
     },
     {
@@ -4360,11 +4368,11 @@
       "surface_kind": "human"
     },
     {
-      "bytes": 80791,
+      "bytes": 81242,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/doctrine/FOUNDATION_V1.md",
-      "sha256": "dafd89fe29e2904807a63ab2d3eb1aae847b49a5a10df7843d5eae3bb263dee1",
+      "sha256": "06eb9e325a94647bddf68497dc95ffd678bdb5c8452ee67552a9540e278684b5",
       "surface_kind": "human"
     },
     {
@@ -4480,11 +4488,11 @@
       "surface_kind": "human"
     },
     {
-      "bytes": 71869,
+      "bytes": 75531,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/doctrine/semantic-interchange/README.md",
-      "sha256": "b92725d3d24b1256e91057cc882d2827283a6e37a85bbbd451d44035f5c8cea2",
+      "sha256": "4d9abc7b7caaf202793b6aaa2554136c7d565af21145ff56b19ad6c3d74f62c6",
       "surface_kind": "human"
     },
     {
@@ -4496,19 +4504,19 @@
       "surface_kind": "structured"
     },
     {
-      "bytes": 164565,
+      "bytes": 176475,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/doctrine/semantic-interchange/entity-types.v1.json",
-      "sha256": "b803a7a0f9fc08f33a5cfe0a73a125d1314117f86e178c950690a5b6364916d3",
+      "sha256": "0709b5501c85372549b7d7961d83a08fde566df117aacc6c0a95722cf01fb1ca",
       "surface_kind": "structured"
     },
     {
-      "bytes": 248328,
+      "bytes": 258710,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/doctrine/semantic-interchange/relation-types.v1.json",
-      "sha256": "0790115e2535331dd8018eaf279e029d1d20608cd68ee53e9c74edc7cefeb53a",
+      "sha256": "4836c10c2b9dd666562f42bd4ac897949204ae98b49222c08fc69e9486dda57b",
       "surface_kind": "structured"
     },
     {
@@ -18704,6 +18712,22 @@
       "surface_kind": "human"
     },
     {
+      "bytes": 8258,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/review-ledger/2026-09-07-reception-profile-review.md",
+      "sha256": "5e1b8f701be8aa6c5884c8bb35f922f1170126ea4069cfd3735486a629cfc7ef",
+      "surface_kind": "human"
+    },
+    {
+      "bytes": 3285,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/review-ledger/2026-09-07-reception-source-reading.md",
+      "sha256": "d5b75bbe875dccb62c4a99f101eb84f49f3688498cf294286cd0f634bcf498e1",
+      "surface_kind": "human"
+    },
+    {
       "bytes": 5277,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
@@ -18824,6 +18848,14 @@
       "surface_kind": "structured"
     },
     {
+      "bytes": 3536,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/.record-revisions/7f31b93429b93601994a679ec6ff56930604455bf7ad496a0b768b59d73e6baa-af0ed4e11ff3917865d785af1873f40b8026b1d244feb1bcdde95c3cf8c3d138/manifest.json",
+      "sha256": "1fa823ab265d1755c33eb08c6bb4c07dcd86604939fe4069abfe5757e81ee50e",
+      "surface_kind": "structured"
+    },
+    {
       "bytes": 19526,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
@@ -18880,11 +18912,11 @@
       "surface_kind": "human"
     },
     {
-      "bytes": 83660,
+      "bytes": 84099,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/source-witnesses/README.md",
-      "sha256": "25c87418fffc88b75e9070fc127e3c151e59ce3a9ca4c794fdade40ef26f9b7f",
+      "sha256": "eaacc8d87571ed7a03e786977f4a3cc9de1fd0ba165e21c8e9a2221a11c63077",
       "surface_kind": "human"
     },
     {
@@ -20904,11 +20936,11 @@
       "surface_kind": "human"
     },
     {
-      "bytes": 7214,
+      "bytes": 7491,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/source-witnesses/catalog/catalog.manifest.json",
-      "sha256": "0ece44ff64c4b6c36fe564f269e5a318a85c0b2433f6b0dc98ca9f2b50274b20",
+      "sha256": "00398a782fc6b4fec3b526dc970c775fd88c4d9d3e9df4b73eb52eae31546f49",
       "surface_kind": "structured"
     },
     {
@@ -22824,6 +22856,86 @@
       "surface_kind": "structured"
     },
     {
+      "bytes": 9149,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/history/gilgamesh-reception/jastrow-critical-response-1920/reception-process.human-forms.json",
+      "sha256": "c79e2fecf5d979e3d8eb2eec7a13e80b6f34f33281895d10bf526ff321f660f6",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 2729,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/history/gilgamesh-reception/jastrow-critical-response-1920/reception-process.json",
+      "sha256": "c08a579bbc775d0a2e6478ae0aed8abc34e3320fc5f71d080ef192417b10faef",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 244,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/history/gilgamesh-reception/jastrow-critical-response-1920/source-create-environment.json",
+      "sha256": "0976562dbd82ac21a81cda5c4ccbb0b8c545c54bb686181fc225a32aed6170b3",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1548,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/history/gilgamesh-reception/jastrow-critical-response-1920/source-create-receipt.json",
+      "sha256": "a8ea9f5279bed47761666e2e8cc4426935937ca666f3d75c19c6bd6a345cf3b9",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3263,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/history/gilgamesh-reception/jastrow-critical-response-1920/source-create-request.json",
+      "sha256": "e2c67d0a2c20d4d79a9c2d063c49b500e234686b723ab0a4fa98b10bd5d7e671",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 8807,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/history/gilgamesh-reception/penn-access-1914/rediscovery-episode.human-forms.json",
+      "sha256": "68201cd90f99da36132bcd49977ebba4f1cb1a94e7056613f0194c96b83ccea0",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 2648,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/history/gilgamesh-reception/penn-access-1914/rediscovery-episode.json",
+      "sha256": "68c1c71dbcdeaa4f277851fae1143c1e75caefe027520b14a4ec5d379310fccb",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 244,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/history/gilgamesh-reception/penn-access-1914/source-create-environment.json",
+      "sha256": "0976562dbd82ac21a81cda5c4ccbb0b8c545c54bb686181fc225a32aed6170b3",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1514,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/history/gilgamesh-reception/penn-access-1914/source-create-receipt.json",
+      "sha256": "5aebcccd96f0adad1b4914560e294160f201ee0c8c5b8e67ee1ff9a585402c4f",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3126,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/history/gilgamesh-reception/penn-access-1914/source-create-request.json",
+      "sha256": "024d67f7ddcd20925b7d6b9a90577547b6baa89de585d5f8fab8e1a7500e48b1",
+      "surface_kind": "structured"
+    },
+    {
       "bytes": 8448,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
@@ -23733,6 +23845,62 @@
       "family_id": "tos",
       "path": "ToS/source-witnesses/relations/generation98-research/source-create-request.json",
       "sha256": "5ea4623ada8fe2b84a3b162056af3135c9ddb83e6544396190eb9d874e3a6d95",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 6506,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/relations/gilgamesh-reception/claim-revision-history.json",
+      "sha256": "36b4785416def885c77cf9c6781f391ea6947393d1630935357f1234fc729d4b",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3758,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/relations/gilgamesh-reception/source-claims.05f7bf1fa8758a1e7ce76f3a9f51a658876cc5b02139f87f49d80b4702b4509e.human-forms.json",
+      "sha256": "4640282bca650448768a4606f67d53480a02605b703cfcc32986e6286cdf1b35",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 5191,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/relations/gilgamesh-reception/source-claims.7f31b93429b93601994a679ec6ff56930604455bf7ad496a0b768b59d73e6baa.human-forms.json",
+      "sha256": "729712a2279a33d7ee2533e66e1d124344060f000d91892c15a5489417db1abe",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3742,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/relations/gilgamesh-reception/source-claims.b03a6322385be0b2735f121028002c05f2d70482f74cc5aecc84027bbd16d1ff.human-forms.json",
+      "sha256": "5b04be1e173a19d6e1e7c504b39b10d274b0965a1ac122de70f28411934a6a67",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 244,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/relations/gilgamesh-reception/source-create-environment.json",
+      "sha256": "0976562dbd82ac21a81cda5c4ccbb0b8c545c54bb686181fc225a32aed6170b3",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 4125,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/relations/gilgamesh-reception/source-create-receipt.json",
+      "sha256": "50bee5c49021f3cd210aee879cff67f107a08560eb44787b58e3675267d6b9a3",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 9465,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/relations/gilgamesh-reception/source-create-request.json",
+      "sha256": "82474793a20e40a50324becc3b2a20fe4f047f578857de4b458b73f25a5415bd",
       "surface_kind": "structured"
     },
     {
@@ -33376,11 +33544,11 @@
       "surface_kind": "executable"
     },
     {
-      "bytes": 104204,
+      "bytes": 105773,
       "currentness": "tracked_source_snapshot",
       "family_id": "mechanics",
       "path": "mechanics/growth-cycle/tests/test_source_commands.py",
-      "sha256": "1bb383514db5f7d0912646b20c2f02476b785ecc2d16291caa788f9dfdde6712",
+      "sha256": "bd7fcec4399002e263212ac9c0ce7a62cff52d6ea31763a9d90d19b26579765d",
       "surface_kind": "executable"
     },
     {
@@ -35200,11 +35368,11 @@
       "surface_kind": "executable"
     },
     {
-      "bytes": 250969,
+      "bytes": 258058,
       "currentness": "tracked_source_snapshot",
       "family_id": "tests",
       "path": "tests/test_source_witness_bibliographic_graph.py",
-      "sha256": "4939c04a1dbcbb8dce83d0e1cf3fba05332c9a9a1617dcdc3b02f19a70ed78b3",
+      "sha256": "421cda83707245cab2e43bd3929a02220776869e440589066547ba59ed69307f",
       "surface_kind": "executable"
     },
     {

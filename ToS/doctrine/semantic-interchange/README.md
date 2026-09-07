@@ -738,6 +738,57 @@ profile/schema boundary, relative-date anchoring, reverse navigation and
 language-selected forms. Synthetic examples do not prove real historical
 content, biography-lens completeness, assessment quality or UI acceptance.
 
+## Reception, historical recognition and later life
+
+Entity registry version 20 adds five source profiles under the abstract
+`reception-history`, itself a HistoricalSituation. The shared
+[`reception-record.schema.json`](../../contracts/reception-record.schema.json)
+requires an attributed reception account and receiving context, in addition to
+the source metadata, research scope and continuity criterion. Its fields are
+discoverable, inherited properties, not an untyped substitute for relationships.
+
+| Profile | Required distinction |
+| --- | --- |
+| ReceptionProcess → HistoricalProcess | `engagement_basis`: documented practices of reading, response or transmission; not similarity alone. |
+| HistoricalCanonization → ReceptionProcess | `selection_basis` and `authority_scope`: criteria and authority of a particular historical community, never ToS admission. |
+| HistoricalForgetting → HistoricalProcess | `evidence_boundary`: support for diminished transmission in the receiving context; missing catalog rows do not establish forgetting. |
+| RediscoveryEpisode → HistoricalEvent | `prior_access_boundary`: renewed access or attention for whom, not first knowledge by anyone. |
+| IntellectualLegacy → HistoricalState | `transmission_basis`: continuity, transformations and gaps, not automatic direct influence. |
+
+Correcting an account preserves the historical referent. Splitting a process,
+changing its identity criterion or identifying another community's episode is
+not an ordinary description correction. No profile requires one universal
+periodization or claims that silence proves a total historical absence.
+
+Relation registry version 19 adds `receives`, `historically_canonizes`,
+`historically_forgets`, `rediscovers`, `legacy_of` and `reception_carrier`.
+Each has a concrete domain, typed targets and inverse reading. Targets include
+intellectual objects, specified thought profiles, agents and intellectual
+formations; rediscovery additionally supports physical artifacts. The carrier
+relation identifies an intellectual object or artifact conveying reception,
+not necessarily its target or the evidence used by the researcher.
+All six use reified, non-transitive scholarly-report Claims through the
+existing historical-context Claim schema. Statement, language/script, relation
+basis, context scope and time-scope note are mandatory. A free-text date note
+does not become a chronological index; the separate historical dating profile
+remains available. Participants and places reuse existing HistoricalSituation
+predicates. A receiving community can remain a qualified description until a
+separate identity and participation Claim are warranted.
+
+The existing `source.create`, `record.revise`, `claims.create`, `claim.revise`
+and source-copy form commands operate these profiles without a new reader or
+write permission. Both graph carriers retain the complete original record and
+unknown content extensions; human packets retain their bound context. Tests
+cover required content, type and layer errors, historical versus ToS authority,
+creation, exact retry, correction, prior versions, property filters and forms.
+They do not prove the historical judgments or the quality of generated wording.
+
+The [Pennsylvania-tablet source reading](../../review-ledger/2026-09-07-reception-source-reading.md)
+now supplies a scoped access episode and critical reception process through
+these commands. Their [local reader review](../../review-ledger/2026-09-07-reception-profile-review.md)
+keeps the existing artifact, ancient transmission cluster and modern scholarly
+Work separate, with three same-origin, unreviewed Claims and no admission.
+
 ## Structured values and textual survival
 
 Registry version 16 adds `structured-value-v1` to the declared source Claim

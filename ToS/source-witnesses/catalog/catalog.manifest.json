@@ -15,6 +15,7 @@
     "ToS/contracts/historical-context-record.schema.json",
     "ToS/contracts/historical-record.schema.json",
     "ToS/contracts/intellectual-formation-record.schema.json",
+    "ToS/contracts/reception-record.schema.json",
     "ToS/contracts/scholarly-composite-claim.schema.json",
     "ToS/contracts/scholarly-composite-record.schema.json",
     "ToS/contracts/scholarly-composite-witness.schema.json",
@@ -42,6 +43,8 @@
     "collection": "ToS/source-witnesses/catalog/collections.jsonl",
     "item": "ToS/source-witnesses/catalog/items.jsonl",
     "link": "ToS/source-witnesses/catalog/links.jsonl",
+    "reception-process": "ToS/source-witnesses/catalog/reception-processes.jsonl",
+    "rediscovery-episode": "ToS/source-witnesses/catalog/rediscovery-episodes.jsonl",
     "composite": "ToS/source-witnesses/catalog/composites.jsonl",
     "textual-fragment": "ToS/source-witnesses/catalog/textual-fragments.jsonl",
     "quotation-passage": "ToS/source-witnesses/catalog/quotation-passages.jsonl",
@@ -97,6 +100,8 @@
     "collection": 3,
     "item": 21,
     "link": 5,
+    "reception-process": 1,
+    "rediscovery-episode": 1,
     "composite": 11,
     "textual-fragment": 1,
     "quotation-passage": 1,
@@ -140,10 +145,10 @@
     "historical-event": 1,
     "historical-process": 1,
     "artifact": 18,
-    "object_total": 279,
-    "claim": 335,
-    "total": 614
+    "object_total": 281,
+    "claim": 338,
+    "total": 619
   },
-  "catalog_sha256": "9839f25a2978195ed6437c1e731fcf7cbc1b71462e3ab786cdb32370fd3aaf24",
+  "catalog_sha256": "fd7068af97b6d381808124c4346820c0036dc4b89e0634300f7e4f38ad3da5f2",
   "authority_boundary": "generated navigation over tracked object and claim records; not bibliographic, textual, rights, review, or semantic authority"
 }
