@@ -738,6 +738,51 @@ profile/schema boundary, relative-date anchoring, reverse navigation and
 language-selected forms. Synthetic examples do not prove real historical
 content, biography-lens completeness, assessment quality or UI acceptance.
 
+## Structured values and textual survival
+
+Registry version 16 adds `structured-value-v1` to the declared source Claim
+reader. It is not a universal object serializer. Each profile specifies one
+`value_kind`, mapped to exactly one concrete subtype of `tos.entity.literal`,
+and an exact local schema route; its subject must belong to a specific
+identity or semantic family. That kind is immutable across profile revisions.
+An incompatible meaning needs a successor, not a changed mapping.
+
+The shared value contract requires the declared kind and nonempty wording
+with explicit language/script, including honest unknowns. A profile schema
+cannot weaken it. Permitted unknown fields survive as uninterpreted data.
+Fields named `date`, `places` or `relative` do not create time, geography,
+identity dependencies or executable instructions. The established temporal
+reader keeps its own stronger grammar and explicit anchor dependency.
+
+`textual_survival` connects IntellectualObject to a Claim-scoped
+TextualSurvival value. `complete`, `fragmentary`, `not_extant` and `unknown`
+describe the **reported text scope**, with mandatory scope and coverage notes.
+They are not confidence, admission, access rights, loss of a particular copy,
+or intrinsic Work types. A quotation or reconstruction does not establish
+complete survival of the original. Unknown status does not mean absence;
+competing reports and corrections preserve their own Claim lineage.
+
+The literal stays separately focusable through its Claim; two Claims carrying
+equal values do not acquire shared subject identity. Exact wording supplies
+its source-language name and summary; the enclosing assertion remains
+inspectable, with evidence, attribution, uncertainty and current assessment
+limits. `tos.property.textual-survival-status` is queryable through the ordinary
+semantic catalog and filters. No kind-specific UI or text-interpretation model
+call is added by this reader.
+
+Exact graph traces also bind each literal to the governing Claim context in
+its own delivered node. Focusing a value cannot drop the Claim's negation,
+qualification or uncertainty. This applies to legacy literal carriers too;
+it neither rewrites their source payload nor merges the value with the Claim.
+The final-node cache binds that context as an explicit dependency.
+
+Creation and value correction require separate v3 grants in the
+[source command](../../../mechanics/growth-cycle/parts/branch-growth-cycle/README.md#declared-source-claim-creation).
+V1 identity/descriptive and v2 temporal permissions are not widened. Source,
+catalog, graph and assessment input readers preserve the exact value and
+source bindings; receipt validity does not accept its historical content.
+Rolling back a derived reader does not erase the new sources or corrections.
+
 ## Historical situations: source profile
 
 Registry version 4 introduces `historical-event`, `historical-process`, and

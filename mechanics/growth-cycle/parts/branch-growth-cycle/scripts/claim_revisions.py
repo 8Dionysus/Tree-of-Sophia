@@ -20,13 +20,13 @@ MODULE_REF = 'mechanics/growth-cycle/parts/branch-growth-cycle/scripts/claim_rev
 
 
 def configuration(config):
-    values_allowed = config['schema_version'] == source.CLAIM_VALUE_REVISION_CONFIG
+    values_allowed = config['schema_version'] in {source.CLAIM_VALUE_REVISION_CONFIG, source.CLAIM_STRUCTURED_REVISION_CONFIG}
     allowed_fields = FIELDS | ({'object'} if values_allowed else set())
     source._keys(config, {'schema_version', 'uid', 'principal_id', 'source_root', 'source_path',
         'authority_ref', 'expires_at', 'claim_id', 'allowed_operations', 'allowed_fields',
         'allowed_evidence_refs', 'allowed_form_ids'}
         | ({'allowed_object_values', 'allowed_object_refs'} if values_allowed else set()))
-    if (config['schema_version'] not in {source.CLAIM_REVISION_CONFIG, source.CLAIM_VALUE_REVISION_CONFIG}
+    if (config['schema_version'] not in {source.CLAIM_REVISION_CONFIG, source.CLAIM_VALUE_REVISION_CONFIG, source.CLAIM_STRUCTURED_REVISION_CONFIG}
             or type(config['uid']) is not int or config['uid'] != os.getuid()
             or any(not isinstance(config[k], str) or not config[k].strip() for k in ('principal_id', 'authority_ref'))
             or source._instant(config['expires_at']) <= datetime.now(timezone.utc)
@@ -173,16 +173,17 @@ def creation_source_files(files, config):
             if history['receipts'] else files)
 
 
-def _scope(config, request):
+def _scope(config, request, record):
     if OPERATION not in config['allowed_operations']:
         raise PermissionError('Claim correction is not delegated')
     fields = request['fields']
     if not isinstance(fields, dict) or not fields or not set(fields) <= set(config['allowed_fields']):
         raise PermissionError('Claim correction fields exceed the delegated scope')
     if 'object' in fields:
-        from source_claim_commands import value_is_delegated
+        from source_claim_commands import value_is_delegated, _value_scope
         if not value_is_delegated(config, fields['object']):
             raise PermissionError('Claim value correction is not explicitly delegated')
+        _value_scope(config, {**record, 'object': fields['object']}, SourceClaimProfiles(Path(config['source_root'])))
     for name in ('evidence_refs', 'counterevidence_refs'):
         if name in fields and (not isinstance(fields[name], list)
                 or any(not isinstance(ref, str) or ref not in config['allowed_evidence_refs'] for ref in fields[name])):
@@ -201,7 +202,7 @@ def _scope(config, request):
 
 
 def _proposal(config, path, files, record, request):
-    _scope(config, request)
+    _scope(config, request, record)
     revised = _advance(record, request['fields'])
     from source_claim_commands import _ground_claims
     _, grounding, bindings = _ground_claims(config, [revised], initial=False)
@@ -281,7 +282,7 @@ def run_command(owner, config, configuration_digest, path, request):
                 return {**result(files, record), 'record': _claims(archived[path.name])[config['claim_id']],
                     'inspected_source': request['source'], 'files': locations}
         raise source.JournalConflict('exact Claim version is not retained in this delegated history')
-    _scope(config, request)
+    _scope(config, request, record)
     if operation == 'prepare-revise':
         if len(history['receipts']) >= packages.MAX_REVISIONS:
             raise ValueError('Claim correction history capacity reached')

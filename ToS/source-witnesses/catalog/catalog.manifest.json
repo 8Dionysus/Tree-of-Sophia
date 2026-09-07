@@ -21,6 +21,7 @@
     "ToS/contracts/social-relation-claim.schema.json",
     "ToS/contracts/source-relation-claim.schema.json",
     "ToS/contracts/source-temporal-claim.schema.json",
+    "ToS/contracts/source-textual-survival-claim.schema.json",
     "ToS/contracts/thought-description-record.schema.json",
     "ToS/contracts/thought-practice-record.schema.json",
     "ToS/contracts/thought-relation-claim.schema.json",
@@ -79,10 +80,10 @@
   },
   "claim_file": "ToS/source-witnesses/catalog/claims.jsonl",
   "counts": {
-    "agent": 52,
+    "agent": 53,
     "place": 5,
     "organization": 11,
-    "work": 41,
+    "work": 42,
     "expression": 28,
     "edition": 23,
     "collection": 3,
@@ -128,10 +129,10 @@
     "historical-event": 1,
     "historical-process": 1,
     "artifact": 18,
-    "object_total": 262,
-    "claim": 325,
-    "total": 587
+    "object_total": 264,
+    "claim": 327,
+    "total": 591
   },
-  "catalog_sha256": "82fd5b080e8966124f9960699c9e1a5f0e33e576fcb4e5d649f42ba8a6ae68de",
+  "catalog_sha256": "35d21632d0d8ebf067aaa9d13b54bbd7b7df06236eaa6e7103fc02f1f617e7a1",
   "authority_boundary": "generated navigation over tracked object and claim records; not bibliographic, textual, rights, review, or semantic authority"
 }

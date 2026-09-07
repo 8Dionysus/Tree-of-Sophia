@@ -21,12 +21,12 @@ PACKAGE_FILES = {SOURCE_CLAIM_BASENAME, 'source-create-request.json', 'source-cr
 
 
 def configuration(config):
-    values_allowed = config['schema_version'] == source.CLAIM_VALUE_CONFIG
+    values_allowed = config['schema_version'] in {source.CLAIM_VALUE_CONFIG, source.CLAIM_STRUCTURED_CONFIG}
     source._keys(config, {'schema_version', 'uid', 'principal_id', 'maker_type', 'source_root',
         'source_path', 'authority_ref', 'expires_at', 'provenance_event_id', 'allowed_operations',
         'allowed_claim_ids', 'allowed_subject_refs', 'allowed_object_refs', 'allowed_predicates',
         'allowed_evidence_refs'} | ({'allowed_object_values'} if values_allowed else set()))
-    if (config['schema_version'] not in {source.CLAIM_CONFIG, source.CLAIM_VALUE_CONFIG} or type(config['uid']) is not int
+    if (config['schema_version'] not in {source.CLAIM_CONFIG, source.CLAIM_VALUE_CONFIG, source.CLAIM_STRUCTURED_CONFIG} or type(config['uid']) is not int
             or config['uid'] != os.getuid() or config['maker_type'] not in {'human', 'software', 'model'}
             or any(not isinstance(config[key], str) or not config[key].strip()
                    for key in ('principal_id', 'authority_ref'))
@@ -72,10 +72,13 @@ def validate_value_scope(config):
 
 def value_is_delegated(config, value):
     """Exact data allowlist, not executable matching expressions or entity scope."""
-    if (config['schema_version'] not in {source.CLAIM_VALUE_CONFIG, source.CLAIM_VALUE_REVISION_CONFIG}
+    if (config['schema_version'] not in {source.CLAIM_VALUE_CONFIG, source.CLAIM_VALUE_REVISION_CONFIG,
+                                       source.CLAIM_STRUCTURED_CONFIG, source.CLAIM_STRUCTURED_REVISION_CONFIG}
             or not isinstance(value, dict)
             or source._canonical(value) not in {source._canonical(v) for v in config['allowed_object_values']}):
         return False
+    if config['schema_version'] in {source.CLAIM_STRUCTURED_CONFIG, source.CLAIM_STRUCTURED_REVISION_CONFIG}:
+        return True  # Exact bytes only; _value_scope checks declared identity dependencies.
     relative = value.get('relative')
     return (relative is None or isinstance(relative, dict)
             and relative.get('anchor_ref') in config['allowed_object_refs'])
@@ -87,6 +90,7 @@ def _scope(config, claims):
         raise PermissionError('claim creation is not delegated')
     if not isinstance(claims, list) or not 1 <= len(claims) <= 32:
         raise ValueError('one to thirty-two initial claims are required')
+    profiles = SourceClaimProfiles(Path(config['source_root']))
     seen = set()
     for claim in claims:
         if (not isinstance(claim, dict) or not isinstance(claim.get('claim_id'), str)
@@ -100,6 +104,7 @@ def _scope(config, claims):
                 or claim['maker'].get('maker_type') != config['maker_type']
                 or claim.get('provenance_event_ref') != config['provenance_event_id']):
             raise PermissionError('claim identity, endpoints, predicate or maker is not delegated')
+        _value_scope(config, claim, profiles)
         if claim['claim_id'] in seen:
             raise source.JournalConflict('claim identity repeats in the batch')
         seen.add(claim['claim_id'])
@@ -108,6 +113,20 @@ def _scope(config, claims):
             if (not isinstance(refs, list) or any(not isinstance(ref, str)
                     or ref not in config['allowed_evidence_refs'] for ref in refs)):
                 raise PermissionError('claim evidence is not delegated')
+
+
+def _value_scope(config, claim, profiles):
+    """Check declared value scope before new writes and exact replays alike."""
+    if (profiles.profiles[claim['predicate']]['reader'] == 'structured-value-v1'
+            and config['schema_version'] in {source.CLAIM_VALUE_CONFIG, source.CLAIM_VALUE_REVISION_CONFIG}):
+        raise PermissionError('structured value creation or correction requires separate v3 delegation')
+    value = claim['object']
+    relative = value.get('relative') if isinstance(value, dict) else None
+    if (profiles.is_temporal(claim) and 'allowed_object_refs' in config
+            and isinstance(value, dict) and value.get('kind') == 'relative-order'
+            and (not isinstance(relative, dict) or relative.get('anchor_ref') not in config['allowed_object_refs'])):
+        # A subject grant does not grant use of the same identity as an anchor.
+        raise PermissionError('declared value identity dependencies are not delegated')
 
 
 def _prepare(config, claims):
@@ -138,6 +157,7 @@ def _ground_claims(config, claims, *, initial):
     evidence = []
     for claim in claims:
         profiles.validate(claim, objects)
+        _value_scope(config, claim, profiles)
         if initial and (claim['claim_version'] != 1 or claim.get('assessment_refs')
                 or claim.get('supersedes_claim_ref') is not None):
             raise PermissionError('initial claim creation does not revise or assess claims')
@@ -172,7 +192,7 @@ def _ground_claims(config, claims, *, initial):
             'schema_version': payload.get('schema_version'), 'record_version': payload.get('record_version')}
     values = {claim['claim_id']: {'value': claim['object'], 'sha256': source._digest(source._canonical(claim['object'])),
         'type_ids': profiles.relations[claim['predicate']]['range_type_ids']}
-        for claim in claims if profiles.is_temporal(claim)}
+        for claim in claims if profiles.is_value(claim)}
     if values:
         source_bindings['values'] = values
     for node in evidence:

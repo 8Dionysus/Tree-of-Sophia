@@ -243,6 +243,10 @@ def _load_claim_catalog(repo_root: Path, profiles=None) -> list[dict[str, Any]]:
         seen.add(claim_id)
         if entry.get("source_claim_file_ref") == OBJECT_LINK_CLAIM_REF:
             continue
+        if entry.get("visibility") not in {"public", "public_metadata_only"}:
+            raise BibliographicGraphBuildError(
+                f"{location}: visibility is not safe for the tracked graph"
+            )
         profiled = Path(str(entry.get('source_claim_file_ref', ''))).name == SOURCE_CLAIM_BASENAME
         if profiled:
             profiles = profiles or SourceClaimProfiles(repo_root)
@@ -261,10 +265,6 @@ def _load_claim_catalog(repo_root: Path, profiles=None) -> list[dict[str, Any]]:
         if entry.get("assertion_layer") not in layers:
             raise BibliographicGraphBuildError(
                 f"{location}: assertion_layer is outside the bibliographic graph profile"
-            )
-        if entry.get("visibility") not in {"public", "public_metadata_only"}:
-            raise BibliographicGraphBuildError(
-                f"{location}: visibility is not safe for the tracked graph"
             )
         claims.append(entry)
     claims.sort(key=lambda entry: str(entry["claim_id"]))

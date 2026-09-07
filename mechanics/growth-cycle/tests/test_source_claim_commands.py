@@ -17,6 +17,168 @@ ROOT = fixtures.ROOT
 
 
 class SourceClaimCreationTests(unittest.TestCase):
+    def test_v3_relative_self_anchor_requires_separate_object_scope(self):
+        """Subject permission cannot silently authorize its use as a value anchor."""
+        with self.creation() as (root, owner, creator, claim, *_):
+            ref = 'ToS/contracts/source-temporal-claim.schema.json'
+            (root / ref).write_bytes((ROOT / ref).read_bytes())
+            subject = 'tos.historical-event.fixture'
+            value = {'kind': 'relative-order', 'role': 'historical-time', 'calendar': None,
+                'year_numbering': None, 'certainty': 'uncertain',
+                'source_wording': {'text': 'Synthetic self-relative assertion; not a historical fact.', 'language': 'en'},
+                'relative': {'relation': 'during', 'anchor_ref': subject}}
+            claim.update(schema_version='tos_source_temporal_claim_v1', subject_ref=subject,
+                predicate='historical_dating', object=value,
+                qualifiers={'statement': 'Synthetic self-relative assertion; not a historical fact.',
+                            'statement_language': 'en', 'statement_script': 'Latn'})
+            creator.update(schema_version='tos_local_claim_create_owner_v3',
+                allowed_subject_refs=[subject], allowed_predicates=['historical_dating'],
+                allowed_object_values=[value], allowed_object_refs=[])
+            owner.write_text(json.dumps(creator))
+            proposal = {'schema_version': 'tos_local_source_command_v1', 'operation': 'prepare-create', 'claims': [claim]}
+            with self.assertRaises(PermissionError):
+                commands.run_local_command(owner, proposal)
+            path = root / creator['source_path']
+            self.assertFalse(path.exists())
+            creator['allowed_object_refs'] = [subject]
+            owner.write_text(json.dumps(creator))
+            preview = commands.run_local_command(owner, proposal)
+            request = {**proposal, 'operation': 'claims.create', 'command_id': 'synthetic:self-anchor',
+                'expected_configuration': preview['owner_configuration'], 'expected_revision': None,
+                'expected_dependencies': preview['expected_dependencies'], 'expected_inputs': preview['source_bindings']}
+            commands.run_local_command(owner, request)
+            original = path.read_bytes()
+            owner.write_text(json.dumps({**creator, 'allowed_object_refs': []}))
+            with self.assertRaises(PermissionError):
+                commands.run_local_command(owner, request)
+            self.assertEqual(path.read_bytes(), original)
+            revised = {**value, 'source_wording': {'text': 'Corrected synthetic self-relative assertion.', 'language': 'en'}}
+            config = {key: creator[key] for key in ('uid', 'principal_id', 'source_root', 'source_path', 'authority_ref', 'expires_at')}
+            config.update(schema_version='tos_local_claim_revision_owner_v3', claim_id=claim['claim_id'],
+                allowed_operations=['claim.revise'], allowed_fields=['object'], allowed_object_values=[revised],
+                allowed_object_refs=[], allowed_evidence_refs=creator['allowed_evidence_refs'],
+                allowed_form_ids=['tos.form.synthetic-self-anchor'])
+            owner.write_text(json.dumps(config))
+            change = {'schema_version': 'tos_local_source_command_v1', 'operation': 'prepare-revise',
+                'fields': {'object': revised},
+                'forms': [{'form_id': 'tos.form.synthetic-self-anchor', 'field_id': 'claim.statement'}],
+                'reason': 'Correct synthetic wording, not identity.'}
+            with self.assertRaises(PermissionError):
+                commands.run_local_command(owner, change)
+            self.assertEqual(path.read_bytes(), original)
+            config['allowed_object_refs'] = [subject]
+            owner.write_text(json.dumps(config))
+            prepared = commands.run_local_command(owner, change)
+            self.assertEqual(prepared['source_bindings']['values'][claim['claim_id']]['value'], revised)
+            correction = {**change, 'operation': 'claim.revise', 'command_id': 'synthetic:self-anchor-correct',
+                'expected_configuration': prepared['owner_configuration'], 'expected_source': prepared['source'],
+                'expected_revision': prepared['revision'], 'expected_dependencies': prepared['expected_dependencies'],
+                'expected_inputs': prepared['source_bindings']}
+            commands.run_local_command(owner, correction)
+            corrected = path.read_bytes()
+            owner.write_text(json.dumps({**config, 'allowed_object_refs': []}))
+            with self.assertRaises(PermissionError):
+                commands.run_local_command(owner, correction)
+            self.assertEqual(path.read_bytes(), corrected)
+
+    def test_structured_values_need_v3_and_round_trip_through_correction_and_reader(self):
+        """Synthetic survival reports; complete mechanics is not source acceptance."""
+        with self.creation() as (root, owner, creator, claim, _, rebuild, fixture):
+            for name in ('source-structured-value', 'source-textual-survival-claim'):
+                ref = f'ToS/contracts/{name}.schema.json'
+                (root / ref).write_bytes((ROOT / ref).read_bytes())
+            value = {'kind': 'textual-survival', 'status': 'fragmentary',
+                'scope_note': 'Synthetic text, not one copy.', 'coverage_note': 'Only a test of a quoted fragment.',
+                'source_wording': {'text': 'Фрагментарная сохранность — тест.', 'language': 'ru', 'script': 'Cyrl'},
+                'extensions': {'date': '1886', 'relative': {'anchor_ref': 'tos.work.unresolved'}, 'unknown': [False, None]}}
+            claim.update(schema_version='tos_source_textual_survival_claim_v1', predicate='textual_survival', object=value,
+                qualifiers={'statement': 'Условное сообщение о фрагментарном сохранении; не исторический факт.',
+                    'statement_language': 'ru', 'statement_script': 'Cyrl'})
+            creator.update(schema_version='tos_local_claim_create_owner_v2', allowed_predicates=['textual_survival'],
+                allowed_object_refs=[], allowed_object_values=[value])
+            proposal = {'schema_version': 'tos_local_source_command_v1', 'operation': 'prepare-create', 'claims': [claim]}
+            owner.write_text(json.dumps(creator))
+            with self.assertRaisesRegex(PermissionError, 'v3'):
+                commands.run_local_command(owner, proposal)
+            creator['schema_version'] = 'tos_local_claim_create_owner_v3'
+            owner.write_text(json.dumps(creator))
+            preview = commands.run_local_command(owner, proposal)
+            self.assertEqual(set(preview['source_bindings']['objects']), {claim['subject_ref']})
+            self.assertEqual(preview['source_bindings']['values'][claim['claim_id']]['value'], value)
+            request = {**proposal, 'operation': 'claims.create', 'command_id': 'synthetic:structured-create',
+                'expected_configuration': preview['owner_configuration'], 'expected_revision': None,
+                'expected_dependencies': preview['expected_dependencies'], 'expected_inputs': preview['source_bindings']}
+            for change in ({'allowed_object_values': []}, {'allowed_predicates': ['authored_by']}):
+                owner.write_text(json.dumps({**creator, **change}))
+                with self.assertRaises(PermissionError):
+                    commands.run_local_command(owner, request)
+                self.assertFalse((root / creator['source_path']).exists())
+            owner.write_text(json.dumps(creator))
+            result = commands.run_local_command(owner, request)
+            self.assertFalse(result['grants_admission'])
+            self.assertTrue(commands.run_local_command(owner, request)['replayed'])
+            path = root / creator['source_path']
+            original = path.read_bytes()
+            owner.write_text(json.dumps({**creator, 'schema_version': 'tos_local_claim_create_owner_v2'}))
+            with self.assertRaisesRegex(PermissionError, 'v3'):
+                commands.run_local_command(owner, request)
+            self.assertEqual(path.read_bytes(), original)
+            owner.write_text(json.dumps(creator))
+            graph, _, _ = fixture.historical_knowledge(root, rebuild())
+            literal = next(n for n in graph['nodes'] if n['type_id'] == 'tos.entity.textual-survival')
+            self.assertEqual(literal['attributes']['value'], value)
+            self.assertNotEqual(literal['entity_id'], claim['claim_id'])
+            self.assertNotEqual(literal['entity_id'], claim['subject_ref'])
+            self.assertEqual(literal['display']['title']['ru'], value['source_wording']['text'])
+            self.assertNotIn('time', literal['semantics'])
+            self.assertEqual(literal['epistemic']['authority_layer'], 'derived-export')
+            self.assertFalse(any('unresolved' == n['type_id'].split('.')[-1] for n in graph['nodes']))
+            updated = {**copy.deepcopy(value), 'status': 'unknown',
+                'source_wording': {'text': 'Сохранность не установлена — тест.', 'language': 'ru', 'script': 'Cyrl'}}
+            config = {key: creator[key] for key in ('uid', 'principal_id', 'source_root', 'source_path', 'authority_ref', 'expires_at')}
+            config.update(schema_version='tos_local_claim_revision_owner_v2', claim_id=claim['claim_id'],
+                allowed_operations=['claim.revise'], allowed_fields=['object', 'qualifiers'], allowed_object_values=[updated],
+                allowed_object_refs=[], allowed_evidence_refs=creator['allowed_evidence_refs'],
+                allowed_form_ids=['tos.form.synthetic-survival'])
+            change = {'schema_version': 'tos_local_source_command_v1', 'operation': 'prepare-revise',
+                'fields': {'object': updated, 'qualifiers': {'statement': 'В условном тесте сохранность не установлена.'}},
+                'forms': [{'form_id': 'tos.form.synthetic-survival', 'field_id': 'claim.statement'}],
+                'reason': 'Correct this synthetic report, without changing the work identity.'}
+            owner.write_text(json.dumps(config))
+            with self.assertRaisesRegex(PermissionError, 'v3'):
+                commands.run_local_command(owner, change)
+            self.assertEqual(path.read_bytes(), original)
+            config['schema_version'] = 'tos_local_claim_revision_owner_v3'
+            owner.write_text(json.dumps(config))
+            prepared = commands.run_local_command(owner, change)
+            correction = {**change, 'operation': 'claim.revise', 'command_id': 'synthetic:structured-correct',
+                'expected_configuration': prepared['owner_configuration'], 'expected_source': prepared['source'],
+                'expected_revision': prepared['revision'], 'expected_dependencies': prepared['expected_dependencies'],
+                'expected_inputs': prepared['source_bindings']}
+            corrected = commands.run_local_command(owner, correction)
+            self.assertEqual(corrected['source']['version'], 2)
+            self.assertEqual({f['state'] for f in corrected['materializations']}, {'ready'})
+            prior = commands.run_local_command(owner, {'schema_version': 'tos_local_source_command_v1',
+                'operation': 'inspect-version', 'source': prepared['source']})
+            self.assertEqual(prior['record'], claim)
+            self.assertEqual((root / prior['files'][path.name]['archive_path']).read_bytes(), original)
+            self.assertTrue(commands.run_local_command(owner, correction)['replayed'])
+            owner.write_text(json.dumps({**config, 'schema_version': 'tos_local_claim_revision_owner_v2'}))
+            with self.assertRaisesRegex(PermissionError, 'v3'):
+                commands.run_local_command(owner, correction)
+            owner.write_text(json.dumps({**config, 'allowed_object_values': []}))
+            with self.assertRaises(PermissionError):
+                commands.run_local_command(owner, correction)
+            owner.write_text(json.dumps(creator))
+            self.assertTrue(commands.run_local_command(owner, request)['replayed'])
+            graph, _, _ = fixture.historical_knowledge(root, rebuild())
+            literal = next(n for n in graph['nodes'] if n['type_id'] == 'tos.entity.textual-survival')
+            self.assertEqual(literal['attributes']['value'], updated)
+            self.assertEqual(literal['display']['title']['ru'], updated['source_wording']['text'])
+            node = next(n for n in graph['nodes'] if n['entity_id'] == claim['claim_id'])
+            self.assertEqual(node['attributes']['source_claim']['claim_version'], 2)
+            self.assertEqual(node['semantics']['claim']['relation_type_id'], 'tos.relation.textual-survival')
+
     def test_temporal_profile_value_grammar_and_new_predicate_are_data_driven(self):
         from build_source_witness_catalog import collect_records
         from source_record_profiles import SourceClaimProfiles, SourceProfileError

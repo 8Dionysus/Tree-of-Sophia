@@ -206,7 +206,7 @@ def validate_semantic_registries(
                     continue
                 if profile != old_profile and profile.get('profile_version', 0) <= old_profile.get('profile_version', 0):
                     violations.append(f"changed source profile {entry[id_key]} must increase profile_version")
-                for field in ('record_type', 'id_prefix', 'reader'):
+                for field in ('record_type', 'id_prefix', 'reader', 'value_kind'):
                     if profile.get(field) != old_profile.get(field):
                         violations.append(f"source profile {entry[id_key]} repurposes {field}; use an explicit successor identity")
                 if entries_key == 'relations':
@@ -753,7 +753,8 @@ def _node_display(
 ) -> dict[str, Any]:
     existing = _existing_display(item)
     properties = item.get("properties") if isinstance(item.get("properties"), dict) else {}
-    time_value = properties.get('value') if kind_id == 'temporal-assertion' else None
+    time_value = properties.get('value') if (kind_id == 'temporal-assertion'
+        or item.get('node_kind') == 'literal' and (type_entry or {}).get('object_role') == 'literal') else None
     time_wording = time_value.get('source_wording') if isinstance(time_value, dict) else None
     time_wording = time_wording if isinstance(time_wording, dict) else {}
     time_text = _string(time_wording.get('text'))
@@ -903,6 +904,8 @@ def _source_claim_kind(item: dict[str, Any], claim_predicate: str | None = None,
         return node_kind
     if source_profile and source_profile.get('reader') == 'historical-temporal-v1':
         return 'temporal-assertion'
+    if source_profile and source_profile.get('reader') == 'structured-value-v1':
+        return source_profile['value_kind']
     value = properties.get("value")
     if claim_predicate == "provision_activity" or (
         isinstance(value, dict) and _string(value.get("provision_kind"))
@@ -1120,10 +1123,14 @@ def _node_semantics(
                                   "contract_ref": "ToS/contracts/semantic-annotation-packet-v2.schema.json"}
     if source_graph == "source-claims":
         value = properties.get("value")
-        time = _normalized_time(value, raw_source_field="properties.value")
+        # Legacy value adapters retain their established inference. A declared
+        # literal subtype owns its meaning: fields named date/places in an
+        # unfamiliar structured value are not an implicit temporal/spatial ABI.
+        legacy_value = source_kind_id in {'literal', 'temporal-assertion', 'provision-activity'}
+        time = _normalized_time(value, raw_source_field="properties.value") if legacy_value else None
         if time:
             semantics["time"] = time
-        if isinstance(value, dict):
+        if legacy_value and isinstance(value, dict):
             places = [dict(place) for place in _objects(value.get("places"))]
             if places:
                 semantics["space"] = {
@@ -1996,7 +2003,7 @@ def build_knowledge_graph(
         for source_graph, item, identity in relation_sources
     ]
 
-    claim_updates = {}
+    claim_updates, literal_contexts = {}, {}
     for claim_ref, trace in claim_traces.items():
         claim_node_id = f"source-claims:{trace.get('claim_node_id')}"
         claim_node = nodes_by_id.get(claim_node_id)
@@ -2011,6 +2018,12 @@ def build_knowledge_graph(
         object_id = f"source-claims:{trace.get('object_node_id')}"
         subject = nodes_by_id.get(subject_id)
         object_node = nodes_by_id.get(object_id)
+        raw_object = bibliographic_nodes_by_native.get(trace.get('object_node_id'), {})
+        if raw_object.get('node_kind') == 'literal' and object_node is not None:
+            contexts = literal_contexts.setdefault(object_id, [])
+            for context in claim_context_index.get(('source-claims', claim_ref), []):
+                if context not in contexts:
+                    contexts.append(context)
         claim_updates[claim_node_id] = ({
             **dict(claim_node.get("semantics", {}).get("claim") or {}),
             "claim_id": claim_ref,
@@ -2040,7 +2053,8 @@ def build_knowledge_graph(
         for endpoint in (str(relation["from_id"]), str(relation["to_id"])):
             inherited_views.setdefault(endpoint, set()).update(view_ids)
     nodes = [_finalize_knowledge_node(node, claim_updates.get(node['id']),
-                                      sorted(inherited_views.get(node['id'], set()))) for node in nodes]
+                                      sorted(inherited_views.get(node['id'], set())),
+                                      literal_contexts.get(node['id'])) for node in nodes]
     nodes.sort(key=lambda item: (str(item["source_graph"]), str(item["id"])))
     relations.sort(key=lambda item: (str(item["source_graph"]), str(item["id"])))
     source_counts = Counter(str(item["source_graph"]) for item in nodes)
@@ -2101,7 +2115,7 @@ def build_knowledge_graph(
     return graph
 
 
-def _finalize_knowledge_node(node, claim_update, inherited_views):
+def _finalize_knowledge_node(node, claim_update, inherited_views, claim_contexts=None):
     cache = active_cache.get()
     if cache:
         identifier = node['id']
@@ -2109,11 +2123,12 @@ def _finalize_knowledge_node(node, claim_update, inherited_views):
             Input('base-node:' + identifier, node),
             Input('claim-finalization:' + identifier, claim_update),
             Input('inherited-views:' + identifier, inherited_views),
-        ], lambda: _final_node_value(node, claim_update, inherited_views))
-    return _final_node_value(node, claim_update, inherited_views)
+            Input('literal-claim-contexts:' + identifier, claim_contexts),
+        ], lambda: _final_node_value(node, claim_update, inherited_views, claim_contexts))
+    return _final_node_value(node, claim_update, inherited_views, claim_contexts)
 
 
-def _final_node_value(node, claim_update, inherited_views):
+def _final_node_value(node, claim_update, inherited_views, claim_contexts=None):
     result = copy.deepcopy(node)
     changed = not result.get('content_revision')
     if claim_update is not None:
@@ -2121,6 +2136,12 @@ def _final_node_value(node, claim_update, inherited_views):
         result.setdefault('semantics', {})['claim'] = claim
         result['attributes']['claim_trace'] = trace
         changed = True
+    if claim_contexts:
+        contexts = result.setdefault('semantics', {}).setdefault('assertion_contexts', [])
+        for context in claim_contexts:
+            if context not in contexts:
+                contexts.append(copy.deepcopy(context))
+                changed = True
     if inherited_views:
         views = sorted({*_strings(result.get('view_ids')), *inherited_views})
         changed = changed or views != result.get('view_ids')

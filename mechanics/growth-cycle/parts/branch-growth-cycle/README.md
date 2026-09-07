@@ -684,7 +684,7 @@ automatic retirement of abandoned staging remain separate Growth work.
 The same `source_commands.py --owner-config /absolute/owner.json` entrypoint
 dispatches separately delegated `claims.create` to `scripts/source_claim_commands.py`.
 It creates one atomic package of up to 32 declared source Claims
-over existing subjects and identity or explicitly delegated temporal values,
+over existing subjects and identity or explicitly delegated typed values,
 including different subjects and profiles in the same batch.
 It neither creates those identities nor revises existing Claims. Read-only
 access remains separate; a metadata/form delegation does not grant this route.
@@ -701,11 +701,20 @@ The protected `tos_local_claim_create_owner_v1` configuration has exactly:
   authorized by the source owner; this allowlist is not rights clearance.
 
 `tos_local_claim_create_owner_v2` has those same fields plus the required
-`allowed_object_values`: at most 32 distinct exact JSON objects. Only v2 can
-delegate temporal value objects; old v1 grants retain identity-only scope.
+`allowed_object_values`: at most 32 distinct exact JSON objects. This v2 grant
+delegates temporal value objects; old v1 grants retain identity-only scope.
 For a relative date, its `anchor_ref` must additionally appear in
 `allowed_object_refs` and resolve as a historical situation. Source prose,
 schema declarations and the ability to inspect a value do not grant writes.
+
+`tos_local_claim_create_owner_v3` has the same exact fields and bounds as v2
+and can additionally delegate `structured-value-v1` profiles. Its exact-value
+allowlist is data, not a predicate language; the source profile still validates
+the specific literal kind, shape and domain. Unknown nested references are
+not resolved or executed. Temporal values retain their declared anchor scope.
+An anchor needs object permission even when it is also the Claim subject.
+A v2 configuration cannot acquire this wider reader through a registry update;
+current value/profile permissions are checked on exact replays too.
 
 The request uses `schema_version: tos_local_source_command_v1`:
 
@@ -829,6 +838,14 @@ separate Claim IDs. An object correction replaces the complete explicitly
 supplied value; callers preserve unknown extensions in that value. The old
 complete value remains retained in the exact predecessor archive. A v1 grant
 cannot gain this operation through a new source schema or a replay.
+
+`tos_local_claim_revision_owner_v3` retains the v2 configuration shape and
+adds correction of declared structured values. It preserves the selected
+Claim's predicate, subject, attribution, exact predecessor bytes and current
+source-copy forms. Its old and new values must satisfy that same profile;
+changing value kind is not a correction route. The exact allowlist and current
+revocation checks apply to preparation, commit and replay. V2 remains temporal;
+descriptive v1 correction still cannot replace any object value.
 
 Requests use `tos_local_source_command_v1` and the record-correction grammar:
 

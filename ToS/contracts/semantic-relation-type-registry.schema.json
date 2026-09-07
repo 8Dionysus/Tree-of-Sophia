@@ -38,7 +38,8 @@
       "required": ["profile_version", "reader", "assertion_layers", "schemas"],
       "properties": {
         "profile_version": {"type": "integer", "minimum": 1},
-        "reader": {"enum": ["identity-relation-v1", "semantic-relation-v1", "historical-temporal-v1"]},
+        "reader": {"enum": ["identity-relation-v1", "semantic-relation-v1", "historical-temporal-v1", "structured-value-v1"]},
+        "value_kind": {"type": "string", "pattern": "^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$", "description": "Exact source-claims mapping of one concrete literal subtype; neither an identity nor executable reference extraction."},
         "assertion_layers": {"type": "array", "minItems": 1, "uniqueItems": true,
           "items": {"enum": ["bibliographic_assertion", "scholarly_report", "textual_observation", "forensic_observation", "semantic_interpretation", "linguistic_analysis", "translation_alignment", "translation_judgment"]}},
         "schemas": {"type": "array", "minItems": 1, "maxItems": 16, "uniqueItems": true,
@@ -50,7 +51,9 @@
               "schema_dependencies": {"type": "array", "maxItems": 16, "uniqueItems": true,
                 "items": {"type": "string", "pattern": "^ToS/contracts/[a-z][a-z0-9-]*\\.schema\\.json$"}}
             }}}
-      }
+      },
+      "allOf": [{"if": {"properties": {"reader": {"const": "structured-value-v1"}}},
+        "then": {"required": ["value_kind"]}, "else": {"not": {"required": ["value_kind"]}}}]
     },
     "nonEmptyString": {"type": "string", "minLength": 1},
     "typeId": {

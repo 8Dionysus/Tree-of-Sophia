@@ -34,6 +34,123 @@ from source_witness_human_forms import load_metadata_forms, materialize_metadata
 
 
 class SourceWitnessBibliographicGraphTest(unittest.TestCase):
+    def test_textual_survival_is_a_typed_claim_value_not_a_lost_work_identity(self):
+        """Synthetic mechanics only: no assertion about a real work's survival."""
+        from source_record_profiles import SourceClaimProfiles, SourceProfileError
+        profiles = SourceClaimProfiles(REPO_ROOT)
+        value = {'kind': 'textual-survival', 'status': 'fragmentary',
+            'scope_note': 'The text of this synthetic work, not one physical copy.',
+            'coverage_note': 'Reported quotations only; completeness is not established.',
+            'source_wording': {'text': 'Сохранилось фрагментарно — только тест.', 'language': 'ru', 'script': 'Cyrl'},
+            'extensions': {'date': '1886', 'relative': {'anchor_ref': 'tos.work.unresolved'}, 'unknown': [False, None]}}
+        claim = {'schema_version': 'tos_source_textual_survival_claim_v1', 'claim_id': 'tos.claim.synthetic-survival',
+            'claim_version': 1, 'claim_type': 'relation', 'assertion_layer': 'scholarly_report',
+            'subject_ref': 'tos.work.synthetic', 'predicate': 'textual_survival', 'object': value,
+            'evidence_refs': ['test:synthetic-only'], 'maker': {'maker_type': 'software', 'agent_ref': 'test:fixture'},
+            'provenance_event_ref': 'tos.event.synthetic-survival', 'epistemic_status': 'uncertain',
+            'review_status': 'unreviewed', 'visibility': 'public_metadata_only',
+            'qualifiers': {'statement': 'Only a synthetic, uncertain report of fragmentary survival.',
+                'statement_language': 'en', 'statement_script': 'Latn'}}
+        objects = {'tos.work.synthetic': {'record_type': 'work'}}
+        original = copy.deepcopy(claim)
+        profiles.validate(claim, objects)
+        self.assertTrue(profiles.is_value(claim))
+        self.assertFalse(profiles.is_temporal(claim))
+        self.assertEqual(profiles.identity_refs(claim), {'tos.work.synthetic'})
+        self.assertEqual(claim, original)
+        relation = profiles.relations['textual_survival']
+        self.assertEqual(relation['range_type_ids'], ['tos.entity.textual-survival'])
+        self.assertFalse(relation['transitive'])
+        self.assertIn('tos.entity.literal', profiles.ancestry('tos.entity.textual-survival'))
+        self.assertNotIn('tos.entity.identity', profiles.ancestry('tos.entity.textual-survival'))
+        for status in ('complete', 'fragmentary', 'not_extant', 'unknown'):
+            profiles.validate({**claim, 'object': {**value, 'status': status}}, objects)
+        for replacement in ('tos.work.synthetic', {**value, 'status': 'accepted'},
+                {**value, 'kind': 'unknown-value'}, {**value, 'coverage_note': ' '},
+                {k: v for k, v in value.items() if k != 'source_wording'}):
+            with self.subTest(value=replacement), self.assertRaises(SourceProfileError):
+                profiles.validate({**claim, 'object': replacement}, objects)
+        for kind in ('agent', 'place', 'historical-event'):
+            with self.subTest(kind=kind), self.assertRaises(SourceProfileError):
+                profiles.validate(claim, {'tos.work.synthetic': {'record_type': kind}})
+
+    def test_structured_value_profile_extends_by_data_without_temporal_or_identity_guessing(self):
+        from source_record_profiles import SourceClaimProfiles, SourceProfileError
+        with self.historical_fixture() as (root, history, real, claims, rebuild):
+            for name in ('semantic-relation-type-registry', 'source-claim-record', 'source-structured-value'):
+                ref = f'ToS/contracts/{name}.schema.json'
+                (root / ref).write_bytes((REPO_ROOT / ref).read_bytes())
+            entity_ref = 'ToS/doctrine/semantic-interchange/entity-types.v1.json'
+            relation_ref = 'ToS/doctrine/semantic-interchange/relation-types.v1.json'
+            entities = json.loads((root / entity_ref).read_bytes())
+            registry = json.loads((root / relation_ref).read_bytes())
+            entity = copy.deepcopy(next(e for e in entities['types'] if e['type_id'] == 'tos.entity.textual-survival'))
+            entity.update(type_id='tos.entity.fixture-value', source_mappings=[
+                {'source_graph': 'source-claims', 'source_kind_id': 'fixture-value'}])
+            entities['types'].append(entity)
+            (root / entity_ref).write_text(json.dumps(entities))
+            relation = copy.deepcopy(next(e for e in registry['relations'] if e['relation_type_id'] == 'tos.relation.textual-survival'))
+            relation.update(relation_type_id='tos.relation.fixture-value', range_type_ids=['tos.entity.fixture-value'],
+                source_mappings=[{'source_graph': 'source-claims', 'source_predicate_id': 'fixture_value', 'scope': 'claim-predicate'}])
+            profile = relation['source_claim_profile']
+            profile['value_kind'] = 'fixture-value'
+            profile['schemas'] = [{'schema_version': 'tos_fixture_value_v1',
+                'schema_ref': 'ToS/contracts/fixture-value.schema.json', 'schema_dependencies': []}]
+            registry['relations'].append(relation)
+            (root / relation_ref).write_text(json.dumps(registry))
+            # A deliberately permissive domain schema cannot weaken the shared value law.
+            schema = {'$schema': 'https://json-schema.org/draft/2020-12/schema',
+                '$id': 'https://tree-of-sophia.local/ToS/contracts/fixture-value.schema.json', 'type': 'object'}
+            (root / 'ToS/contracts/fixture-value.schema.json').write_text(json.dumps(schema))
+            value = {'kind': 'fixture-value', 'date': '1886', 'relative': {'anchor_ref': 'tos.work.unresolved'},
+                'source_wording': {'text': 'Условное значение, не дата.', 'language': 'ru', 'script': 'Cyrl'},
+                'unknown': [False, None, {'instruction': 'Source data, never executable authority.'}]}
+            claim = {**copy.deepcopy(claims[0]), 'schema_version': 'tos_fixture_value_v1',
+                'claim_id': 'tos.claim.fixture-value-a', 'subject_ref': real[2]['record_id'],
+                'predicate': 'fixture_value', 'object': value}
+            claim['qualifiers']['negated'] = True
+            other = {**copy.deepcopy(claim), 'claim_id': 'tos.claim.fixture-value-b'}
+            path = root / 'ToS/source-witnesses/history/fixture/source-claims.jsonl'
+            path.write_text(json.dumps(claim) + '\n' + json.dumps(other) + '\n')
+            reader = SourceClaimProfiles(root)
+            self.assertEqual(reader.identity_refs(claim), {claim['subject_ref']})
+            for bad in ({k: v for k, v in value.items() if k != 'source_wording'},
+                        {**value, 'kind': 'textual-survival'},
+                        {**value, 'source_wording': {'text': ' ', 'language': 'ru', 'script': 'Cyrl'}},
+                        {**value, 'source_wording': {'text': 'test', 'language': 'ru\n', 'script': 'Cyrl'}}):
+                with self.subTest(value=bad), self.assertRaises(SourceProfileError):
+                    reader.validate({**claim, 'object': bad})
+            graph, entity_registry, relation_registry = self.historical_knowledge(root, rebuild())
+            nodes = [n for n in graph['nodes'] if n['type_id'] == 'tos.entity.fixture-value']
+            self.assertEqual(len(nodes), 2)
+            self.assertEqual(len({n['entity_id'] for n in nodes}), 2)
+            for node in nodes:
+                self.assertEqual(node['attributes']['value'], value)
+                self.assertNotIn('time', node['semantics'])
+                self.assertEqual(node['display']['title']['ru'], value['source_wording']['text'])
+                contexts = node['semantics']['assertion_contexts']
+                self.assertTrue(any(c['binding_role'] == 'referenced-claim'
+                    and c['fields']['qualifiers']['value']['negated'] is True for c in contexts))
+            from tos_access.knowledge import knowledge_catalog, focus_knowledge_node, validate_semantic_registries
+            catalog = knowledge_catalog(graph, {}, {}, entity_registry, relation_registry)
+            descriptor = next(e for e in catalog['semantic_registries']['relation_types']['entries']
+                              if e['relation_type_id'] == relation['relation_type_id'])
+            self.assertEqual(descriptor['source_claim_profile'], profile)
+            focused = focus_knowledge_node(graph, nodes[0]['entity_id'], depth=2)
+            self.assertIn(claim['subject_ref'], {n['entity_id'] for n in focused['nodes']})
+            changed = copy.deepcopy(registry)
+            changed['registry_version'] += 1
+            changed['relations'][-1]['source_claim_profile'].update(profile_version=2, value_kind='textual-survival')
+            self.assertFalse(validate_semantic_registries(entities, changed, previous_relation_registry=registry)['valid'])
+            for update in ({'range_type_ids': ['tos.entity.literal']}, {'range_type_ids': ['tos.entity.work']},
+                           {'range_type_ids': ['tos.entity.fixture-value', 'tos.entity.textual-survival']},
+                           {'domain_type_ids': ['tos.entity.literal']}):
+                invalid = copy.deepcopy(registry)
+                invalid['relations'][-1].update(update)
+                (root / relation_ref).write_text(json.dumps(invalid))
+                with self.subTest(update=update), self.assertRaises(SourceProfileError):
+                    SourceClaimProfiles(root)
+
     def test_historical_context_profiles_keep_biography_period_and_cohort_distinct(self):
         """Synthetic source contracts; no historical or causal acceptance."""
         from source_record_profiles import SourceRecordProfiles, SourceClaimProfiles, SourceProfileError
