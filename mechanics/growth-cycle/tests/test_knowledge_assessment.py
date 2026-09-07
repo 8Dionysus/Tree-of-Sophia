@@ -309,6 +309,245 @@ class AssessmentPolicyTests(unittest.TestCase):
         self.assertEqual(before, [(ROOT / binding['path']).read_bytes() for binding in config['source_records']])
         self.assertFalse(list((path.parent / 'journal').iterdir()))
 
+    def assessed_form_fixture(self):
+        """Synthetic wording over a copied source; no real language calibration."""
+        from assessment_journal import _source_records
+        path, config, _, records, fixity = self.real_source_command_fixture()
+        root = path.parent / 'sources'
+        for item in fixity:
+            target = root / item['path']
+            target.parent.mkdir(parents=True, exist_ok=True)
+            target.write_bytes((ROOT / item['path']).read_bytes())
+        source = Record.from_payload(**records[1])
+        form = {'schema_version': 'tos_human_form_v1', 'form_id': 'tos.form.fixture-assessed',
+                'form_version': 1, 'subject': source.ref, 'role': 'hover',
+                'language': 'ru', 'script': 'Cyrl', 'creator_id': 'fixture-writer', 'revises': None,
+                'bindings': {'context': {'record': source.ref, 'pointer': ''}},
+                'content': {'kind': 'freeform', 'text': 'Синтетическая формулировка для проверки механики.'}}
+        form_path = root / config['source_records'][3]['path']
+        form_path.write_text(json.dumps({'schema_version': 'tos_human_form_set_v1', 'subject': source.ref,
+                                        'forms': [form], 'prior_forms': []}))
+        self.subject = Record.from_payload(form['form_id'], 1, form)
+        self.source = source
+        self.context = SubjectContext(self.subject, 'human_projection', 'low', ('ru', 'de'),
+                                      'fixture-writer', 'research', True)
+        self.records = [self.subject, self.source, self.source_b, self.eval_evidence, self.executor]
+        for index in range(len(self.authorities)):
+            competence = self.competencies[index]
+            self.competencies[index] = Record.from_payload(competence.id, competence.version,
+                {**competence.payload, 'assertion_layers': ['human_projection']})
+            authority = self.authorities[index]
+            self.authorities[index] = Record.from_payload(authority.id, authority.version,
+                {**authority.payload, 'assertion_layers': ['human_projection'],
+                 'subject_prefixes': ['tos.form.'], 'competence_refs': [self.competencies[index].ref]})
+        _, template, _ = self.local_command_fixture()
+        config.update(template, schema_version='tos_local_assessment_owner_v2', source_root=str(root),
+                      journal_directory=str(path.parent / 'journal'),
+                      records=[row for row in template['records'] if row['id'] not in (self.subject.id, source.id)],
+                      source_records=[{**config['source_records'][1], 'origin_id': 'fixture-source-origin'},
+                                      {**config['source_records'][3], 'record_id': self.subject.id}])
+        path.write_text(json.dumps(config))
+        return path, config, form_path, source
+
+    def test_assessed_source_form_materialization_uses_current_journal_and_revocation(self):
+        path, config, form_path, source = self.assessed_form_fixture()
+        describe = {'schema_version': 'tos_local_assessment_command_v1', 'operation': 'describe',
+                    'subject_id': self.subject.id}
+        description = self.run_local(path, describe)
+        self.assertIn('materialize-form', description['result']['command_context']['supported_operations'])
+        request = {**describe, 'operation': 'materialize-form', 'expected_subject': self.subject.ref,
+                   'expected_snapshot': description['owner_snapshot']}
+        pending = self.run_local(path, request)['result']
+        self.assertEqual(pending['materialization']['state'], 'needs-assessment')
+        self.assertIsNone(pending['materialization']['display_text'])
+        self.assertEqual(pending['batch_count'], 0)
+        self.assertFalse(list((path.parent / 'journal').iterdir()))
+        review = self.review(profile='interpretation')
+        append = {**request, 'operation': 'append', 'command_id': 'fixture-form-review',
+                  'expected_revision': None, 'assessments': [review.assessment]}
+        self.assertTrue(self.run_local(path, append)['result']['current_admission']['can_use'])
+        before = form_path.read_bytes()
+        ready = self.run_local(path, request)['result']
+        self.assertEqual(ready['materialization']['state'], 'ready')
+        self.assertEqual(ready['materialization']['display_text'], self.subject.payload['content']['text'])
+        self.assertEqual(ready['materialization']['context'][0]['value'], source.payload)
+        self.assertEqual(ready['materialization']['admission'], ready['current_admission'])
+        self.assertEqual(form_path.read_bytes(), before)
+        config['authorities'][0]['payload']['state'] = 'revoked'
+        path.write_text(json.dumps(config))
+        fresh = self.run_local(path, describe)
+        denied = self.run_local(path, {**request, 'expected_snapshot': fresh['owner_snapshot']})['result']
+        self.assertEqual(denied['materialization']['state'], 'needs-assessment')
+        self.assertIsNone(denied['materialization']['display_text'])
+        self.assertEqual(denied['revision'], ready['revision'])
+        self.assertEqual(form_path.read_bytes(), before)
+
+    def test_assessed_form_materialization_requires_source_closure_and_exact_adjacent_history(self):
+        from assessment_journal import JournalConflict
+        for mutation in ('inline-subject', 'omitted-context', 'wrong-adjacent-path', 'missing-predecessor',
+                         'valid-successor', 'changed-source', 'untrusted-language-context'):
+            with self.subTest(mutation=mutation):
+                path, config, form_path, source = self.assessed_form_fixture()
+                package = json.loads(form_path.read_text())
+                form = package['forms'][0]
+                expected_state, expected_error = None, None
+                if mutation == 'inline-subject':
+                    config['source_records'] = config['source_records'][1:]
+                    config['records'].append({'id': source.id, 'version': source.version,
+                        'payload': source.payload, 'origin_id': 'fixture-source-origin'})
+                    expected_error = PermissionError
+                elif mutation == 'omitted-context':
+                    form['bindings'] = {}
+                    expected_state = 'invalid'
+                elif mutation == 'wrong-adjacent-path':
+                    form_path = form_path.with_name('other.human-forms.json')
+                    config['source_records'][1]['path'] = form_path.relative_to(Path(config['source_root'])).as_posix()
+                    expected_error = ValueError
+                elif mutation in ('missing-predecessor', 'valid-successor'):
+                    old = copy.deepcopy(form)
+                    form.update(form_version=2, revises=Record.from_payload(old['form_id'], 1, old).ref)
+                    if mutation == 'valid-successor':
+                        package['prior_forms'] = [old]
+                    expected_state = 'unavailable' if mutation == 'missing-predecessor' else 'needs-assessment'
+                elif mutation == 'changed-source':
+                    source_path = Path(config['source_root']) / config['source_records'][0]['path']
+                    source_path.write_text(json.dumps({**source.payload, 'record_version': source.version + 1}))
+                    expected_error = JournalConflict
+                else:
+                    form['language_context'] = {'record': source.ref, 'pointer': '/untrusted'}
+                    form['bindings']['language'] = form['language_context']
+                    expected_state = 'invalid'
+                current = Record.from_payload(form['form_id'], form['form_version'], form)
+                config['subjects'][current.id]['record'] = current.ref
+                form_path.write_text(json.dumps(package))
+                path.write_text(json.dumps(config))
+                describe = {'schema_version': 'tos_local_assessment_command_v1', 'operation': 'describe',
+                            'subject_id': current.id}
+                described = self.run_local(path, describe)
+                request = {**describe, 'operation': 'materialize-form', 'expected_subject': current.ref,
+                           'expected_snapshot': described['owner_snapshot']}
+                before = form_path.read_bytes()
+                if expected_error:
+                    with self.assertRaises(expected_error):
+                        self.run_local(path, request)
+                else:
+                    result = self.run_local(path, request)['result']['materialization']
+                    self.assertEqual(result['state'], expected_state)
+                    self.assertIsNone(result['display_text'])
+                self.assertEqual(form_path.read_bytes(), before)
+                self.assertFalse(list((path.parent / 'journal').iterdir()))
+
+    def test_assessed_form_command_rejects_request_authority_and_reports_cli_contract(self):
+        from assessment_journal import JournalConflict, run_local_command
+        import subprocess
+        path, config, _, _ = self.assessed_form_fixture()
+        describe = {'schema_version': 'tos_local_assessment_command_v1', 'operation': 'describe',
+                    'subject_id': self.subject.id}
+        description = run_local_command(path, describe)
+        request = {**describe, 'operation': 'materialize-form', 'expected_subject': self.subject.ref,
+                   'expected_snapshot': description['owner_snapshot']}
+        for key, value in (('authority', self.authorities[0].payload), ('form_language_context', None),
+                           ('now', NOW), ('access_allowed', True), ('assessments', [])):
+            with self.subTest(key=key), self.assertRaises(ValueError):
+                self.run_local(path, {**request, key: value})
+        with self.assertRaises(JournalConflict):
+            self.run_local(path, {**request, 'expected_snapshot': 'sha256:' + '0' * 64})
+        command = [sys.executable, str(ROOT / 'mechanics/growth-cycle/parts/branch-growth-cycle/scripts/assessment_journal.py'),
+                   '--owner-config', str(path)]
+        result = subprocess.run(command, input=json.dumps(request), capture_output=True, text=True, timeout=10)
+        self.assertEqual(result.returncode, 0, result.stderr + result.stdout)
+        packet = json.loads(result.stdout)
+        self.assertEqual(packet['schema_version'], 'tos_local_assessment_result_v1')
+        self.assertEqual(packet['result']['materialization']['state'], 'needs-assessment')
+        config['subjects'][self.subject.id]['access_allowed'] = False
+        path.write_text(json.dumps(config))
+        with self.assertRaises(PermissionError):
+            self.run_local(path, describe)
+
+    def test_assessed_form_withdrawal_and_successor_never_reuse_old_admission(self):
+        path, config, form_path, _ = self.assessed_form_fixture()
+        describe = {'schema_version': 'tos_local_assessment_command_v1', 'operation': 'describe',
+                    'subject_id': self.subject.id}
+        description = self.run_local(path, describe)
+        request = {**describe, 'operation': 'materialize-form', 'expected_subject': self.subject.ref,
+                   'expected_snapshot': description['owner_snapshot']}
+        assessment = self.review(profile='interpretation').assessment
+        append = {**request, 'operation': 'append', 'command_id': 'admit-form',
+                  'expected_revision': None, 'assessments': [assessment]}
+        admitted = self.run_local(path, append)['result']
+        self.assertEqual(self.run_local(path, request)['result']['materialization']['state'], 'ready')
+        withdrawal = self.review(profile='interpretation', decision='withdraw', name='tos.review.fixture-withdraw').assessment
+        withdrawal['supersedes'] = [Record.from_payload(assessment['assessment_id'], 1, assessment).ref]
+        self.run_local(path, {**append, 'command_id': 'withdraw-form', 'expected_revision': admitted['revision'],
+                              'assessments': [withdrawal]})
+        withdrawn = self.run_local(path, request)['result']
+        self.assertEqual(withdrawn['materialization']['state'], 'needs-assessment')
+        self.assertIsNone(withdrawn['materialization']['display_text'])
+        self.assertNotEqual(withdrawn['revision'], admitted['revision'])
+        package = json.loads(form_path.read_text())
+        old = package['forms'][0]
+        form = {**copy.deepcopy(old), 'form_version': 2, 'revises': self.subject.ref,
+                'content': {'kind': 'freeform', 'text': 'Новая синтетическая версия.'}}
+        current = Record.from_payload(form['form_id'], 2, form)
+        package.update(forms=[form], prior_forms=[old])
+        form_path.write_text(json.dumps(package))
+        config['subjects'][current.id]['record'] = current.ref
+        path.write_text(json.dumps(config))
+        described = self.run_local(path, describe)
+        revised = self.run_local(path, {**request, 'expected_subject': current.ref,
+                                        'expected_snapshot': described['owner_snapshot']})['result']
+        self.assertEqual(revised['materialization']['state'], 'needs-assessment')
+        self.assertEqual(revised['revision'], withdrawn['revision'])
+        self.assertEqual(json.loads(form_path.read_text())['prior_forms'], [old])
+
+    def test_assessed_form_linguistic_context_is_separately_owner_bound(self):
+        path, config, form_path, source = self.assessed_form_fixture()
+        source_path = Path(config['source_root']) / config['source_records'][0]['path']
+        body = {**source.payload, 'fixture_language_context': {
+            'language': 'ru', 'script': 'Cyrl', 'relation': 'unknown', 'source': None}}
+        source = Record.from_payload(source.id, source.version, body)
+        source_path.write_text(json.dumps(body))
+        package = json.loads(form_path.read_text())
+        form = package['forms'][0]
+        language = {'record': source.ref, 'pointer': '/fixture_language_context'}
+        form.update(subject=source.ref, language_context=language,
+                    bindings={'context': {'record': source.ref, 'pointer': ''}, 'language': language})
+        package['subject'] = source.ref
+        current = Record.from_payload(form['form_id'], 1, form)
+        config['subjects'][current.id].update(record=current.ref, form_language_context=language)
+        path.write_text(json.dumps(config))
+        form_path.write_text(json.dumps(package))
+        describe = {'schema_version': 'tos_local_assessment_command_v1', 'operation': 'describe', 'subject_id': current.id}
+        description = self.run_local(path, describe)
+        request = {**describe, 'operation': 'materialize-form', 'expected_subject': current.ref,
+                   'expected_snapshot': description['owner_snapshot']}
+        result = self.run_local(path, request)['result']['materialization']
+        self.assertEqual(result['state'], 'needs-assessment')
+        del config['subjects'][current.id]['form_language_context']
+        path.write_text(json.dumps(config))
+        fresh = self.run_local(path, describe)
+        denied = self.run_local(path, {**request, 'expected_snapshot': fresh['owner_snapshot']})['result']['materialization']
+        self.assertEqual(denied['state'], 'invalid')
+        self.assertIn('language-context.outside-owner-scope', denied['issues'])
+
+    def test_assessed_form_unknown_production_shapes_fail_closed(self):
+        for content in (None, [], 0, False, 'freeform', {'kind': 'future-mode'}):
+            with self.subTest(content=content):
+                path, config, form_path, _ = self.assessed_form_fixture()
+                package = json.loads(form_path.read_text())
+                form = package['forms'][0]
+                form['content'] = content
+                current = Record.from_payload(form['form_id'], 1, form)
+                config['subjects'][current.id]['record'] = current.ref
+                path.write_text(json.dumps(config))
+                form_path.write_text(json.dumps(package))
+                describe = {'schema_version': 'tos_local_assessment_command_v1', 'operation': 'describe', 'subject_id': current.id}
+                result = self.run_local(path, describe)
+                self.assertNotIn('materialize-form', result['result']['command_context']['supported_operations'])
+                with self.assertRaises(PermissionError):
+                    self.run_local(path, {**describe, 'operation': 'materialize-form', 'expected_subject': current.ref,
+                                          'expected_snapshot': result['owner_snapshot']})
+
     def declared_source_bindings(self):
         return [
             {'path': 'ToS/source-witnesses/relations/nietzsche-letter-705/source-claims.jsonl',

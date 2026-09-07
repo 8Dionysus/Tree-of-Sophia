@@ -371,7 +371,7 @@ def _keys(payload: Any, expected: set[str]) -> None:
         raise ValueError('command/configuration fields do not match the declared contract')
 
 
-def _source_records(root: Path, bindings: Any) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+def _source_records(root: Path, bindings: Any, *, form_sets: dict | None = None) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
     """Resolve bounded, explicit public metadata inputs, never crawl a corpus.
 
     Record identity selects JSONL entries and current forms, not line numbers
@@ -466,6 +466,8 @@ def _source_records(root: Path, bindings: Any) -> tuple[list[dict[str, Any]], li
             else:
                 payload = _json_object(raw)
                 rows = payload.get('forms') if payload.get('schema_version') == 'tos_human_form_set_v1' else [payload]
+                if form_sets is not None and payload.get('schema_version') == 'tos_human_form_set_v1':
+                    form_sets[relative] = payload
             if not isinstance(rows, list) or len(rows) > MAX_ASSESSMENTS:
                 raise ValueError('source file exceeds bounded record selection')
             indexed = {}
@@ -549,6 +551,61 @@ def _source_records(root: Path, bindings: Any) -> tuple[list[dict[str, Any]], li
     return resolved, fixity
 
 
+def _materialize_source_form(config, sourced, form_sets, engine, context, history, *, now, contract_root):
+    """Render the selected form from this exact source/journal snapshot only.
+
+    This owner lane requires whole-subject context for assessed freeform. It
+    does not make submitted bindings the authority for dropping qualifications.
+    Existing source-copy/template adapters retain their separate contracts.
+    """
+    from human_forms import FormScope, SourceBinding, materialize_form
+    from source_witness_human_forms import _validator, claim_forms_path
+    form = context.record
+    body = form.payload
+    selected = {row['id'] for row in sourced}
+    if (form.id not in selected or body.get('schema_version') != 'tos_human_form_v1'
+            or not isinstance(body.get('content'), dict) or body['content'].get('kind') != 'freeform'):
+        raise PermissionError('assessed materialization requires an explicitly selected freeform source form')
+    subject_ref = body.get('subject')
+    subject = engine.records.get(subject_ref.get('id')) if isinstance(subject_ref, dict) else None
+    if subject is None or subject.id not in selected or subject.id == form.id:
+        raise PermissionError('form subject must be explicitly selected from source')
+    if subject.ref != subject_ref:
+        raise JournalConflict('form binds a different subject snapshot')
+    paths = {binding['record_id']: Path(binding['path']) for binding in config['source_records']}
+    source_path, form_path = paths[subject.id], paths[form.id]
+    expected = (claim_forms_path(source_path, subject.id) if source_path.name == 'source-claims.jsonl'
+                else source_path.with_name(source_path.stem + '.human-forms.json'))
+    package = form_sets.get(form_path.as_posix())
+    if form_path != expected or package is None or not _validator().is_valid(package):
+        raise ValueError('form must belong to its validated adjacent source set')
+    if package['subject'] != subject.ref:
+        raise JournalConflict('form set binds a different subject snapshot')
+    if sum(row == body for row in package['forms']) != 1:
+        raise ValueError('current form does not resolve uniquely in its source set')
+    for binding in body['bindings'].values():
+        if binding['record']['id'] not in selected:
+            raise PermissionError('form bindings require explicit source-selected records')
+    language = config['subjects'][form.id].get('form_language_context')
+    language_binding = None
+    if language is not None:
+        _keys(language, {'record', 'pointer'})
+        record_ref = language['record']
+        record = engine.records.get(record_ref.get('id')) if isinstance(record_ref, dict) else None
+        if (record is None or record.id not in selected or record.id == form.id
+                or record.ref != record_ref or not isinstance(language['pointer'], str)
+                or (language['pointer'] and not language['pointer'].startswith('/'))):
+            raise PermissionError('linguistic context must bind an exact selected source field')
+        language_binding = SourceBinding(record, language['pointer'])
+    prior = [Record.from_payload(row['form_id'], row['form_version'], row) for row in package['prior_forms']]
+    scope = FormScope(subject, (SourceBinding(subject, ''),), context.maker_id, context.risk,
+                      context.languages, context.requested_use, access_allowed=context.access_allowed,
+                      language_context=language_binding)
+    return materialize_form(contract_root, form, scope,
+                            [engine.records[identity] for identity in selected], prior_forms=prior,
+                            engine=engine, trusted_history=history, now=now)
+
+
 def run_local_command(owner_config: Path, request: dict[str, Any], *,
                       contract_root: Path | None = None) -> dict[str, Any]:
     """Apply one command as the configured local account, never a claimed UID.
@@ -575,9 +632,9 @@ def run_local_command(owner_config: Path, request: dict[str, Any], *,
             or not isinstance(config['principal_id'], str) or not config['principal_id'].strip()):
         raise PermissionError('configuration does not bind this local account')
     snapshot = 'sha256:' + _digest(config)
-    sourced = []
+    sourced, form_sets = [], {}
     if source_bound:
-        sourced, fixity = _source_records(Path(config['source_root']), config['source_records'])
+        sourced, fixity = _source_records(Path(config['source_root']), config['source_records'], form_sets=form_sets)
         snapshot = 'sha256:' + _digest({'configuration': config, 'source_files': fixity,
                                        'resolved_records': sourced})
     if len(_canonical(request)) > MAX_RECORD_BYTES:
@@ -588,7 +645,7 @@ def run_local_command(owner_config: Path, request: dict[str, Any], *,
         fields |= {'expected_subject', 'expected_snapshot'}
     if operation == 'append':
         fields |= {'command_id', 'expected_revision', 'assessments'}
-    elif operation not in ('inspect', 'describe'):
+    elif operation not in ('inspect', 'describe', 'materialize-form'):
         raise ValueError('unknown assessment command')
     _keys(request, fields)
     if request['schema_version'] != 'tos_local_assessment_command_v1':
@@ -618,8 +675,10 @@ def run_local_command(owner_config: Path, request: dict[str, Any], *,
             or not isinstance(identifier, str) or identifier not in subjects):
         raise PermissionError('subject is outside the configured command scope')
     scope = subjects[identifier]
-    _keys(scope, {'record', 'assertion_layer', 'risk', 'languages', 'maker_id',
-                  'requested_use', 'access_allowed'})
+    scope_fields = {'record', 'assertion_layer', 'risk', 'languages', 'maker_id', 'requested_use', 'access_allowed'}
+    if source_bound and 'form_language_context' in scope:
+        scope_fields.add('form_language_context')
+    _keys(scope, scope_fields)
     current = engine.records.get(identifier)
     if (current is None or _canonical(current.ref) != _canonical(scope['record'])
             or (operation != 'describe' and _canonical(current.ref) != _canonical(request['expected_subject']))):
@@ -643,16 +702,29 @@ def run_local_command(owner_config: Path, request: dict[str, Any], *,
                 raise PermissionError('configured scope disagrees with source-owned form layer or maker')
     context = SubjectContext(current, scope['assertion_layer'], scope['risk'],
                              tuple(scope['languages']), scope['maker_id'], scope['requested_use'], True)
+    source_form = source_bound and identifier in {item['id'] for item in sourced} and current.payload.get('schema_version') == 'tos_human_form_v1'
+    if 'form_language_context' in scope and not source_form:
+        raise PermissionError('form linguistic context is outside a source-form scope')
     directory = Path(config['journal_directory'])
     descriptor = _owned_path(directory, directory=True)
     os.close(descriptor)
     journal = AssessmentJournal(directory, contract_root=contract_root, protected_storage=True)
     now = datetime.now(timezone.utc).isoformat()
-    if operation in ('inspect', 'describe'):
+    if operation == 'materialize-form':
+        if not source_form:
+            raise PermissionError('form materialization requires a source-bound form scope')
+        revision, chain = journal._load(identifier)
+        materialized = _materialize_source_form(config, sourced, form_sets, engine, context,
+            journal._history(chain), now=now, contract_root=contract_root or Path(__file__).resolve().parents[5])
+        result = {'revision': revision, 'batch_count': len(chain),
+                  'current_admission': materialized['admission'], 'materialization': materialized}
+    elif operation in ('inspect', 'describe'):
         result = journal.inspect(engine, context, now=now)
         if operation == 'describe':
             result['command_context'] = {'subject': current.ref, 'policy': engine.policy.ref,
-                                         'scope': scope, 'supported_operations': ['describe', 'inspect', 'append'],
+                                         'scope': scope, 'supported_operations': ['describe', 'inspect', 'append',
+                                             *(['materialize-form'] if source_form and isinstance(current.payload.get('content'), dict)
+                                               and current.payload['content'].get('kind') == 'freeform' else [])],
                                          'grants_authority': False}
             if source_bound:
                 digests = {item['path']: item['digest'] for item in fixity}

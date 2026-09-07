@@ -123,6 +123,17 @@ real-language calibration, all-corpus forms and actual UI consumption remain
 required work in [the foundation coverage map](FOUNDATION_V1.md), not facts
 established by those tests.
 
+The source-bound assessment journal now exposes a local `materialize-form`
+operation for stored freeform proposals. It supplies current authenticated
+policy/history and exact selected source records to the same pure materializer;
+the proposed form cannot supply its own authority. This lane requires complete
+subject context and retains predecessor forms from their exact adjacent set.
+Linguistic context, when used, is separately selected by the source owner.
+See the [command contract](../../mechanics/growth-cycle/parts/branch-growth-cycle/README.md#assessed-form-materialization).
+This is current local materialization, not automatic admission or publication
+of a new public graph snapshot. The metadata-only graph adapter below still
+refuses unassessed freeform wording.
+
 ## Bibliographic metadata adapter
 
 An adjacent `<record-stem>.human-forms.json` may hold a

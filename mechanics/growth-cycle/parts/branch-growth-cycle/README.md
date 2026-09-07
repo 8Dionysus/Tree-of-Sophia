@@ -135,6 +135,50 @@ or guess file/JSON selectors. Read operations need no configured execution
 profile: null is valid until an actual qualified writer binding exists.
 `append` still requires the independent current execution profile and grants.
 
+### Assessed form materialization
+
+For an explicitly source-selected `tos_human_form_v1` with `content.kind=freeform`,
+`describe` also discovers `materialize-form`. Its request has the same exact
+fields as `inspect`, with `operation: materialize-form`; no proposed wording,
+assessment, clock, permission or configuration path is accepted in the request.
+This operation is available only with source-bound configuration v2. It reads
+the current source snapshot and the complete committed journal history once,
+then calls the existing human-form materializer and assessment policy engine.
+It performs no model call, journal append, source write or graph publication.
+
+The selected form must be in the validated adjacent form set of its explicitly
+selected subject, with exact source/set/form refs. Every content binding must
+also resolve from explicitly selected source records; inline copies cannot
+supply missing source dependencies. The complete subject is mandatory context
+for this freeform lane. The set's exact retained `prior_forms`, read within the
+same bounded source snapshot, support successor validation without treating
+them as current assessment targets. Existing metadata source-copy and trusted
+template contracts are not expanded by this operation.
+
+A source-form subject scope may additionally declare `form_language_context`:
+an exact `{record, pointer}` binding or null. This is selected independently in
+the protected owner configuration, not copied from the submitted form. A
+non-null binding must refer to a selected source record other than the form;
+the existing language-context schema, derivation source and binding checks
+then apply. The owner still needs evidence for that linguistic declaration;
+the command does not infer originality, translation or language competence.
+Other subject scopes cannot carry this field.
+
+The normal result adds `materialization` beside `revision`, `batch_count` and
+`current_admission`. The latter is the same policy result carried by the form,
+or null when structural/access/context validation prevented policy application.
+Only a mechanically valid form with current scoped admission emits wording.
+Missing assessment, revoked authority, withdrawal or a successor without a
+current review emits no wording. The full-subject context and existing 64 KiB
+materialization ceiling remain; this is not a guarantee that every result fits
+the smaller public scene-selection budget. Source and journal snapshots, not an
+old ready packet, govern each invocation.
+
+This joins the local source/journal command to human-form output. Public graph
+snapshot publication and fresh-reader consumption remain separate integration
+work. A synthetic admitted test proves this boundary's behavior, not a real
+reviewer's competence or actual corpus admission.
+
 ### Source-bound configuration v2
 
 `tos_local_assessment_owner_v2` retains the v1 fields and adds `source_root`

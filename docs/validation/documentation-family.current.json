@@ -29,15 +29,15 @@
     "metric": "whitespace_tokens_v1",
     "posture": "summary_first_records_on_demand",
     "record_loading": "machine readers may select records by family_id or path; do not load the full carrier into an always-on prompt",
-    "tracked_surface_count": 4356,
+    "tracked_surface_count": 4385,
     "unhandled_family_count": 0
   },
   "coverage": {
     "excluded_generated_carrier_rules": 3,
     "excluded_tracked_path_count": 1003,
     "human_scope": {
-      "bytes": 5439864,
-      "count": 1015,
+      "bytes": 5450777,
+      "count": 1016,
       "excluded_skill_launch_metadata": 25,
       "family_counts": {
         "access": {
@@ -81,9 +81,9 @@
           "lines": 49
         },
         "mechanics": {
-          "bytes": 209640,
+          "bytes": 212440,
           "count": 155,
-          "lines": 4775
+          "lines": 4819
         },
         "memo": {
           "bytes": 4538,
@@ -116,20 +116,20 @@
           "lines": 55
         },
         "tos": {
-          "bytes": 4026619,
-          "count": 605,
-          "lines": 67775
+          "bytes": 4034732,
+          "count": 606,
+          "lines": 67906
         }
       },
-      "lines": 93837
+      "lines": 94012
     },
     "surface_kind_counts": {
       "executable": 234,
-      "human": 1040,
-      "structured": 3082
+      "human": 1041,
+      "structured": 3110
     },
-    "tracked_path_count": 5359,
-    "tracked_surface_count": 4356,
+    "tracked_path_count": 5388,
+    "tracked_surface_count": 4385,
     "unhandled_family_count": 0,
     "unhandled_paths": []
   },
@@ -173,11 +173,11 @@
       "family_id": "tos",
       "surface_kind_counts": {
         "executable": 4,
-        "human": 605,
-        "structured": 2998
+        "human": 606,
+        "structured": 3026
       },
-      "tracked_surface_bytes": 227627518,
-      "tracked_surface_count": 3607
+      "tracked_surface_bytes": 227860522,
+      "tracked_surface_count": 3636
     },
     {
       "family_id": "access",
@@ -231,7 +231,7 @@
         "human": 155,
         "structured": 33
       },
-      "tracked_surface_bytes": 967208,
+      "tracked_surface_bytes": 992014,
       "tracked_surface_count": 215
     },
     {
@@ -285,7 +285,7 @@
   "source_map": "docs/validation/documentation_family_map.json",
   "source_map_sha256": "d70a5059be9cc7547289e4c8be380d23b3aeb9e53bb10e4cb82abf2177ea0896",
   "tracked_source": "git ls-files -z",
-  "tracked_surface_digest": "0648fe560ddfc8999ebdfd2dffcd8909d031574de0db5f1206996e8605090996",
+  "tracked_surface_digest": "08d593b062a57eb635fc2bbe3ae438fb222d86d76ef8faa909def7aeee5af1bc",
   "tracked_surfaces": [
     {
       "bytes": 1489,
@@ -4200,11 +4200,11 @@
       "surface_kind": "human"
     },
     {
-      "bytes": 8849792,
+      "bytes": 8850912,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/derived-exports/graph/source-witness-bibliographic-claims.min.json",
-      "sha256": "c0de6abd1c28c4e838aeb128253ccbadb9fddada5a46f0311b6c20e45ecd4600",
+      "sha256": "19839bf28383b51ea42c958474d247757091c2b740e898e33c70a0a3bfee6781",
       "surface_kind": "structured"
     },
     {
@@ -4280,11 +4280,11 @@
       "surface_kind": "structured"
     },
     {
-      "bytes": 59686027,
+      "bytes": 59687415,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/derived-exports/tos_corpus_index.min.json",
-      "sha256": "4e776b87aea72dea1ec1b10a456699f23dfe8a2e3ff070e5b7c00d3a5f45650a",
+      "sha256": "6174a119d153b7819a6dbc5a44fd77144ff52b2c6b423a305eaa1a940fa2eb90",
       "surface_kind": "structured"
     },
     {
@@ -4360,19 +4360,19 @@
       "surface_kind": "human"
     },
     {
-      "bytes": 79449,
+      "bytes": 80306,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/doctrine/FOUNDATION_V1.md",
-      "sha256": "c54dd2f5246aff8c18fb4fe3643808c2153ad431081cd4b96fcaa866654760b8",
+      "sha256": "6e4656bc72d094e9f3d4ebfa6ee37afed7e714ea52825c17141e60b37f19fd06",
       "surface_kind": "human"
     },
     {
-      "bytes": 19979,
+      "bytes": 20756,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/doctrine/HUMAN_FORMS.md",
-      "sha256": "fd09671b6b25c659b4f77715032e94eb803e5ca44931b947c3911a7c79b561dd",
+      "sha256": "cd7d5bc6f7739daf8ec920c95becb377a32009c221f9589f2b298077c3f97fa1",
       "surface_kind": "human"
     },
     {
@@ -18624,6 +18624,14 @@
       "surface_kind": "human"
     },
     {
+      "bytes": 6479,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/review-ledger/2026-09-07-native-witness-forms-and-assessment-input-review.md",
+      "sha256": "9cdef95eed0bd53a7096eadd21aae2ef80169315cc1fa6220285287d0375052b",
+      "surface_kind": "human"
+    },
+    {
       "bytes": 5810,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
@@ -20208,6 +20216,14 @@
       "surface_kind": "human"
     },
     {
+      "bytes": 8075,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/artifacts/egyptian/deir-el-bersha/sen-inner-coffin-b3l-ea30842/artifact-witness.human-forms.json",
+      "sha256": "6103fa71c0f3551bc9f141142390568734ff2a804868b53efa7c5668f750c209",
+      "surface_kind": "structured"
+    },
+    {
       "bytes": 6777,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
@@ -20240,6 +20256,14 @@
       "surface_kind": "structured"
     },
     {
+      "bytes": 7931,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/artifacts/egyptian/deir-el-medina/museo-egizio-cgt-54014/artifact-witness.human-forms.json",
+      "sha256": "0460e5241d80a58195a16e4fb6f83ffccbeccec6286451ec5bdf8e5ac981b544",
+      "surface_kind": "structured"
+    },
+    {
       "bytes": 6441,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
@@ -20269,6 +20293,14 @@
       "family_id": "tos",
       "path": "ToS/source-witnesses/artifacts/egyptian/deir-el-medina/museo-egizio-cgt-54014/rights.json",
       "sha256": "1a6346ab8026e86a15d223480204ccd4029b5378c88b037fb76bf74f8a8d2aee",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 7763,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/artifacts/egyptian/lisht-south/met-khety-32-1-133/artifact-witness.human-forms.json",
+      "sha256": "db1ca3410aaa1bc0668d46c1c4fc40637b70d0510f472510f43fe36dc2a9e340",
       "surface_kind": "structured"
     },
     {
@@ -20320,6 +20352,14 @@
       "surface_kind": "structured"
     },
     {
+      "bytes": 7667,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/artifacts/egyptian/meir/met-khnumnakht-15-2-2/artifact-witness.human-forms.json",
+      "sha256": "c03062807592e2bc717e8b250f3d8c952c3bdce105fadc6b449cfe949485b9c9",
+      "surface_kind": "structured"
+    },
+    {
       "bytes": 5831,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
@@ -20368,6 +20408,14 @@
       "surface_kind": "structured"
     },
     {
+      "bytes": 8027,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/artifacts/egyptian/saqqara/papyrus-of-nebseny-ea9900-frame-1/artifact-witness.human-forms.json",
+      "sha256": "02b1350a1a8b6c86562cbe3d4d6f4f0763b4d55e3a1d61294dbcb3b91ceeece3",
+      "surface_kind": "structured"
+    },
+    {
       "bytes": 7931,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
@@ -20381,6 +20429,14 @@
       "family_id": "tos",
       "path": "ToS/source-witnesses/artifacts/egyptian/saqqara/papyrus-of-nebseny-ea9900-frame-1/rights.json",
       "sha256": "72a1550356fa4a1a4f33995518671b61e4804ba12660b6495057a0748a8c5714",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 7595,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/artifacts/egyptian/saqqara/pyramid-of-unas/artifact-witness.human-forms.json",
+      "sha256": "faf9be2c823904cc4f79e5eff5f2730d7e55ca1e2490ef23a73cfad2808b7d74",
       "surface_kind": "structured"
     },
     {
@@ -20400,6 +20456,14 @@
       "surface_kind": "structured"
     },
     {
+      "bytes": 8045,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/artifacts/egyptian/thebes/bnf-papyrus-prisse-egyptien-183-194/artifact-witness.human-forms.json",
+      "sha256": "5d31b1e838cdb5700109f9058d26a4df09960f16221046aea1c7675598d87207",
+      "surface_kind": "structured"
+    },
+    {
       "bytes": 8343,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
@@ -20413,6 +20477,14 @@
       "family_id": "tos",
       "path": "ToS/source-witnesses/artifacts/egyptian/thebes/bnf-papyrus-prisse-egyptien-183-194/rights.json",
       "sha256": "34dd9750da96f273a26955c212f62ea2a86fd0a0b5f786646638ef8125d044c5",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 7931,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/artifacts/egyptian/thebes/papyrus-of-ani-ea10470-frame-3/artifact-witness.human-forms.json",
+      "sha256": "25694233d64e74a2b6896f3ea11ce1e56e34fec28f123d76c45a7b039a2c5f21",
       "surface_kind": "structured"
     },
     {
@@ -20445,6 +20517,14 @@
       "family_id": "tos",
       "path": "ToS/source-witnesses/artifacts/egyptian/thebes/papyrus-of-ani-ea10470-frame-3/rights.json",
       "sha256": "66d27ea5855482ff53c35c8965b09919a7d1df0e71e871137670c55d31877e40",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 7715,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/artifacts/egyptian/unknown/papyrus-berlin-p3024/artifact-witness.human-forms.json",
+      "sha256": "4d2874764b5fabf3116bda0f194cdfbe366c21cfdd746cca970e17c1f322c696",
       "surface_kind": "structured"
     },
     {
@@ -20493,6 +20573,14 @@
       "family_id": "tos",
       "path": "ToS/source-witnesses/artifacts/egyptian/unknown/papyrus-berlin-p3024/rights.json",
       "sha256": "5d2828af62e1fb5d49d7660f2a9c4b9e2a8a4bc9ad8987a72e82d34bb384191e",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 7859,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/artifacts/egyptian/unknown/papyrus-harris-500-ea10060/artifact-witness.human-forms.json",
+      "sha256": "659a25944b424efab6af924f367bf8c9683a330c81fad057b56f3f1ec8cf324e",
       "surface_kind": "structured"
     },
     {
@@ -20576,6 +20664,14 @@
       "surface_kind": "structured"
     },
     {
+      "bytes": 7787,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/artifacts/old-babylonian/susa/hammurabi-stele-sb-8/artifact-witness.human-forms.json",
+      "sha256": "ffa8e7de8fb613725023bac6350b8c33be920af33ce67d750b0da9afa51e8ea7",
+      "surface_kind": "structured"
+    },
+    {
       "bytes": 9054,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
@@ -20608,6 +20704,14 @@
       "surface_kind": "structured"
     },
     {
+      "bytes": 7757,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/artifacts/old-babylonian/uncertain/penn-cbs-07771/artifact-witness.human-forms.json",
+      "sha256": "972e249bfb03726879860597d665c0ce0edf647c083eb08989e6d602b2d61138",
+      "surface_kind": "structured"
+    },
+    {
       "bytes": 7780,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
@@ -20632,6 +20736,14 @@
       "surface_kind": "human"
     },
     {
+      "bytes": 7685,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/artifacts/proto-cuneiform/uruk/w-12256-i-k-l-o/artifact-witness.human-forms.json",
+      "sha256": "ad73be2a5401c43b1d95fde80c3edf6d22ee454e0f9ce3fd200ad500f0700d1f",
+      "surface_kind": "structured"
+    },
+    {
       "bytes": 6658,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
@@ -20645,6 +20757,14 @@
       "family_id": "tos",
       "path": "ToS/source-witnesses/artifacts/proto-cuneiform/uruk/w-12256-i-k-l-o/rights.json",
       "sha256": "905537bbcd5aac269ecd5343fa99d61a27747c650e3850447a5031fcc1b596f7",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 7757,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/artifacts/sumerian/adab/oim-a00645-plus-a00649a-i/artifact-witness.human-forms.json",
+      "sha256": "6a264de32afaf2b71720cbd7c7943708c53bcaf084585fbbacf2a59ebe10ea66",
       "surface_kind": "structured"
     },
     {
@@ -20664,6 +20784,14 @@
       "surface_kind": "structured"
     },
     {
+      "bytes": 7709,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/artifacts/sumerian/nippur/istanbul-ist-ni-03191/artifact-witness.human-forms.json",
+      "sha256": "335401ed09dbd38e56d59592ac0aa5786834a750f9cc13d39dcfff7c2ea42b67",
+      "surface_kind": "structured"
+    },
+    {
       "bytes": 6650,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
@@ -20677,6 +20805,14 @@
       "family_id": "tos",
       "path": "ToS/source-witnesses/artifacts/sumerian/nippur/istanbul-ist-ni-03191/rights.json",
       "sha256": "f1dfc05633baa5273bd4bd18d7795c187d9d66f3834f6a98a829b6f7872ada7f",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 7613,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/artifacts/sumerian/uncertain/im-070204-plus/artifact-witness.human-forms.json",
+      "sha256": "2502bed69ad398372e6f3eaed947c907137d3b8715cd5f8e5b002bd4233da270",
       "surface_kind": "structured"
     },
     {
@@ -20696,6 +20832,14 @@
       "surface_kind": "structured"
     },
     {
+      "bytes": 7637,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/artifacts/sumerian/uncertain/louvre-ao-05393/artifact-witness.human-forms.json",
+      "sha256": "6ffcea82629c530a67269e81764eb007edc0338c0f6b5aad5cee43abfa4c354f",
+      "surface_kind": "structured"
+    },
+    {
       "bytes": 7286,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
@@ -20709,6 +20853,14 @@
       "family_id": "tos",
       "path": "ToS/source-witnesses/artifacts/sumerian/uncertain/louvre-ao-05393/rights.json",
       "sha256": "a6e4c41522c9cb56ae473fa172bb513a5dc9914baa47e8fe5a8b0ca4fda72f4c",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 7637,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/artifacts/sumerian/uncertain/louvre-ao-05473/artifact-witness.human-forms.json",
+      "sha256": "294d6031f4f8fa6af1afc0e7e977f8b6059c04be2569940bf64aad93f831fd67",
       "surface_kind": "structured"
     },
     {
@@ -24576,6 +24728,14 @@
       "surface_kind": "human"
     },
     {
+      "bytes": 12530,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/scholarly-composites/critical/akkadian/laws-of-hammurapi/composite-witness.human-forms.json",
+      "sha256": "8a4033054dc63ec6c118af04f10c3ebd4029320aceeba19a42480c2328f76f5b",
+      "surface_kind": "structured"
+    },
+    {
       "bytes": 7296,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
@@ -24608,6 +24768,14 @@
       "surface_kind": "structured"
     },
     {
+      "bytes": 7759,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/scholarly-composites/critical/egyptian/book-of-the-dead-naville-1886/composite-witness.human-forms.json",
+      "sha256": "db727c74e9c67d6867d9dccfe6af4dcc97434cf0697b9766555791049862fa6f",
+      "surface_kind": "structured"
+    },
+    {
       "bytes": 8378,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
@@ -24637,6 +24805,14 @@
       "family_id": "tos",
       "path": "ToS/source-witnesses/scholarly-composites/critical/egyptian/book-of-the-dead-naville-1886/rights.json",
       "sha256": "cb35800336f6c9fc8994aedd5f3547dc3019c415687a41345438f65c767aed03",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 7759,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/scholarly-composites/critical/egyptian/pyramid-texts-sethe-1908-1910/composite-witness.human-forms.json",
+      "sha256": "9424fdea0b2eae45e454b5b87d3688aacdfa25e402e1dd1b09d3f9520d803fdc",
       "surface_kind": "structured"
     },
     {
@@ -24688,6 +24864,14 @@
       "surface_kind": "structured"
     },
     {
+      "bytes": 7663,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/scholarly-composites/critical/sumerian/instructions-of-shuruppag/composite-witness.human-forms.json",
+      "sha256": "c2ba77bd00455bc2ae13cf9257cd7778a29e959b4618a8da2bcf2853df55adaa",
+      "surface_kind": "structured"
+    },
+    {
       "bytes": 10262,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
@@ -24736,6 +24920,14 @@
       "surface_kind": "structured"
     },
     {
+      "bytes": 7543,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/scholarly-composites/critical/sumerian/laws-of-lipit-ishtar/composite-witness.human-forms.json",
+      "sha256": "a25d432bbf2351352c135d13ce26b9e6c191d3ed443bc442570ce71df0262e32",
+      "surface_kind": "structured"
+    },
+    {
       "bytes": 8084,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
@@ -24781,6 +24973,14 @@
       "family_id": "tos",
       "path": "ToS/source-witnesses/scholarly-composites/critical/sumerian/laws-of-lipit-ishtar/rights.json",
       "sha256": "731def5bbf6db834a353e2549f9ed6e0698d06bd804456ed0b130994f6b645ba",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 7447,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/scholarly-composites/critical/sumerian/laws-of-ur-namma/composite-witness.human-forms.json",
+      "sha256": "c65877a42ea77b49781454e1b67299808c4e63c3fe0b4ba8a94d4c9e991e3d65",
       "surface_kind": "structured"
     },
     {
@@ -24864,6 +25064,14 @@
       "surface_kind": "human"
     },
     {
+      "bytes": 7903,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/scholarly-composites/lexical/proto-cuneiform/archaic-vessels-and-garments/composite-witness.human-forms.json",
+      "sha256": "2a91245f703a57e12c3d8445c84f5f3f8eb3cc6c42bfc559dc653a1b1b664a01",
+      "surface_kind": "structured"
+    },
+    {
       "bytes": 7409,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
@@ -24877,6 +25085,14 @@
       "family_id": "tos",
       "path": "ToS/source-witnesses/scholarly-composites/lexical/proto-cuneiform/archaic-vessels-and-garments/rights.json",
       "sha256": "b6c0458bf4f53f4af58a0c272565c4c2a03de9d75dc32e2457ed8f903c22b182",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 7879,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/scholarly-composites/synoptic/akkadian/old-babylonian-gilgamesh-fragments/composite-witness.human-forms.json",
+      "sha256": "91618acea2c807b6af65f3a0ba254974febd93f873edc02518f360488eea35a4",
       "surface_kind": "structured"
     },
     {
@@ -24896,6 +25112,14 @@
       "surface_kind": "structured"
     },
     {
+      "bytes": 7615,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/scholarly-composites/synoptic/egyptian/harpers-songs-witnesses/composite-witness.human-forms.json",
+      "sha256": "f8d2474a46229ee4e2c43243885388212f3e2e071408795e9eaff0f705a20208",
+      "surface_kind": "structured"
+    },
+    {
       "bytes": 7537,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
@@ -24909,6 +25133,14 @@
       "family_id": "tos",
       "path": "ToS/source-witnesses/scholarly-composites/synoptic/egyptian/harpers-songs-witnesses/rights.json",
       "sha256": "cdeb1fad76e50f4beeb1db9efb6461cf9bbaea128afae828aef8e55a0b9e617c",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 8095,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/scholarly-composites/synoptic/sumerian/old-babylonian-literary-catalogue-witnesses/composite-witness.human-forms.json",
+      "sha256": "1900842a2cc6a32088cddc0428a25499cfe42326dfdd2e75f3978b29d8aac4b7",
       "surface_kind": "structured"
     },
     {
@@ -33016,11 +33248,11 @@
       "surface_kind": "human"
     },
     {
-      "bytes": 57925,
+      "bytes": 60725,
       "currentness": "tracked_source_snapshot",
       "family_id": "mechanics",
       "path": "mechanics/growth-cycle/parts/branch-growth-cycle/README.md",
-      "sha256": "72f48322092e7510d6ac955b269b94a59e74e151b490d21ec9dff1864d02f63c",
+      "sha256": "28dc26f7755012da085da1249c86d450fa0fad74324ebabc624e7833f2171add",
       "surface_kind": "human"
     },
     {
@@ -33048,11 +33280,11 @@
       "surface_kind": "human"
     },
     {
-      "bytes": 38954,
+      "bytes": 44185,
       "currentness": "tracked_source_snapshot",
       "family_id": "mechanics",
       "path": "mechanics/growth-cycle/parts/branch-growth-cycle/scripts/assessment_journal.py",
-      "sha256": "277781a0d2f73c59067269d76caf34ee06f7dab1c22d9a881482a60ec1815fcb",
+      "sha256": "da5bcb79d96bc18275439c657b20e58532635e0d5fba859a1be2c86440e13983",
       "surface_kind": "executable"
     },
     {
@@ -33112,11 +33344,11 @@
       "surface_kind": "executable"
     },
     {
-      "bytes": 58879,
+      "bytes": 75654,
       "currentness": "tracked_source_snapshot",
       "family_id": "mechanics",
       "path": "mechanics/growth-cycle/tests/test_knowledge_assessment.py",
-      "sha256": "a2c3ff26076125dc1fff66e54c6a420c3640cf4732d8a2462f8f5c8c8a370b1f",
+      "sha256": "c07c7be1a3463ecbe9b7c79a8ffbb0f6e42cab16f8554e2e17c0079a3ec8e8ee",
       "surface_kind": "executable"
     },
     {
