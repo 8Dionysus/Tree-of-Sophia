@@ -515,6 +515,11 @@ class KnowledgeContractTests(unittest.TestCase):
         scalars = [None, True, False, 0, -0.0, 1, 1.0, 2**53 + 1, -2.5, '',
                    'Ницше', '𐀀', '\\"\n\x00', 'é', 'e\u0301', 'x' * 255, 'x' * 256, 'x' * 257]
         cases = scalars + [scalars, {'nested': scalars, 'source_ref': 'ToS/public.json'}]
+        # Object keys take the same wire path as string values, including the
+        # uncached long-key path. UTF-8 byte lengths are not character counts.
+        cases.extend({key: {'nested': key}} for key in
+                     ('', '𐀀' * 256, 'é' * 257, 'x' * 4096, '\\"\n\x00'))
+        cases.append({10: 'numeric-key', '2': 'string-key', None: 'null-key'})
         # More distinct small strings than a bounded encoder cache can retain.
         cases.append([{'id': str(i), 'label': 'Ницше', 'enabled': True} for i in range(5000)])
         for value in cases:

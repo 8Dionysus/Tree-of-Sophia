@@ -2852,46 +2852,58 @@ def _short_digest_string(value: str) -> bytes:
 
 def _stable_digest(value: Any) -> str:
     digest = hashlib.sha256()
+    write = digest.update
 
     def update(item: Any) -> None:
-        if item is None:
-            digest.update(b"n;")
+        # Strings dominate both source records and normalized packets. Object
+        # keys are already known to be strings after coercion below; neither
+        # needs to traverse the scalar/container dispatch again.
+        if isinstance(item, str):
+            if len(item) <= 256:
+                write(_short_digest_string(item))
+            else:
+                encoded = item.encode("utf-8")
+                write(b"s")
+                write(str(len(encoded)).encode("ascii"))
+                write(b":")
+                write(encoded)
+        elif item is None:
+            write(b"n;")
         elif isinstance(item, bool):
-            digest.update(b"b1;" if item else b"b0;")
+            write(b"b1;" if item else b"b0;")
         elif isinstance(item, (int, float)):
             number = float(item)
             if not math.isfinite(number):
                 raise ValueError("stable digest cannot encode a non-finite number")
             if number == 0:
                 number = 0.0
-            digest.update(b"d")
-            digest.update(struct.pack(">d", number).hex().encode("ascii"))
-            digest.update(b";")
-        elif isinstance(item, str):
-            if len(item) <= 256:
-                digest.update(_short_digest_string(item))
-            else:
-                encoded = item.encode("utf-8")
-                digest.update(b"s")
-                digest.update(str(len(encoded)).encode("ascii"))
-                digest.update(b":")
-                digest.update(encoded)
+            write(b"d")
+            write(struct.pack(">d", number).hex().encode("ascii"))
+            write(b";")
         elif isinstance(item, list):
-            digest.update(b"a")
-            digest.update(str(len(item)).encode("ascii"))
-            digest.update(b"[")
+            write(b"a")
+            write(str(len(item)).encode("ascii"))
+            write(b"[")
             for child in item:
                 update(child)
-            digest.update(b"]")
+            write(b"]")
         elif isinstance(item, dict):
             keys = sorted(item, key=str)
-            digest.update(b"o")
-            digest.update(str(len(keys)).encode("ascii"))
-            digest.update(b"{")
+            write(b"o")
+            write(str(len(keys)).encode("ascii"))
+            write(b"{")
             for key in keys:
-                update(str(key))
+                text = str(key)
+                if len(text) <= 256:
+                    write(_short_digest_string(text))
+                else:
+                    encoded = text.encode("utf-8")
+                    write(b"s")
+                    write(str(len(encoded)).encode("ascii"))
+                    write(b":")
+                    write(encoded)
                 update(item[key])
-            digest.update(b"}")
+            write(b"}")
         else:
             raise TypeError(f"stable digest cannot encode {type(item).__name__}")
 
