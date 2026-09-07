@@ -15286,7 +15286,8 @@ def validate_foundation(repo_root: Path, *, require_local_payloads: bool = False
         issues.append((CATALOG_ROOT.as_posix(), str(exc)))
 
     if (any(payload.get('record_type') in profiles.profiles for payload, _ in records_by_id.values())
-            or next((repo_root / SOURCE_ROOT).rglob('historical-claims.jsonl'), None) is not None):
+            or next((repo_root / SOURCE_ROOT).rglob('historical-claims.jsonl'), None) is not None
+            or next((repo_root / SOURCE_ROOT).rglob('source-claims.jsonl'), None) is not None):
         # Reuse the source-returnable graph boundary: source schemas, actual
         # registry domains, exact catalogs, evidence, and provenance resolution.
         # This is read-only and does not authorize the historical assertions.

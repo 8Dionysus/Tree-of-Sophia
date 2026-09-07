@@ -68,6 +68,25 @@ membership or a stable Q-number supports return and comparison; it does not
 make the reconstruction an ancient original or its readings semantically
 fixed.
 
+`tos.document.*` identifies a persistent communicative or documentary
+intellectual object without requiring it to be a Work or follow a linear
+Work/Expression/Edition chain. `tos.letter.*` is its addressed-correspondence
+subtype. These are not the physical manuscript, catalog record, transcription,
+published edition or digital representation. Sender, addressee and author are
+contextual roles, not types of people. Date/place of composition, dispatch,
+receipt, custody and later reading remain separate claims. Unknown participants
+or an unsent letter do not invalidate its documentary identity. A copy does not
+by itself settle either shared documentary identity or physical identity.
+
+The source metadata and its exact human forms use the declared reader and
+`source.create` contract. The shared metadata schema reuses Corpus field law;
+the document schema adds only its own identity constraints. Language/genre
+combinations do not create more subclasses. Description correction preserves
+the subject ID and previous record versions; a change of referent or an
+incompatible kind requires an explicit identity transition, never an edited
+prefix. Claims and their evaluations are not hidden in metadata convenience
+fields such as `sender_ref`, `language` or a mutable document year.
+
 The [declared metadata profile](semantic-interchange/README.md#declared-source-metadata-profiles)
 binds compatible source kinds and schema versions to the common reader without
 promoting that metadata shape into a universal ontology. The profile belongs
@@ -127,6 +146,10 @@ and `historical-state`. These identities are separate from provenance
 places and associated Works remain evidence-bearing Claims; a historical
 description is neither a cause nor an admission. The executable source and
 consumer contract is in [semantic interchange](semantic-interchange/README.md#historical-situations-source-profile).
+
+The documentary profile adds `document` and `letter`. Their ID prefixes name
+referent families, not languages, archival repositories, mutable shelfmarks or
+the shape of one graph projection.
 
 An explicitly delegated initial historical creation can publish one new
 provisional identity, its separately identified initial claims and source-bound

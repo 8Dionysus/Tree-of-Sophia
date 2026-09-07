@@ -11,7 +11,8 @@ from pathlib import Path
 from typing import Any
 
 from jsonschema import Draft202012Validator, FormatChecker
-from source_record_profiles import SourceRecordProfiles, SourceProfileError, METADATA_LINK_FIELDS
+from source_record_profiles import (SourceRecordProfiles, SourceClaimProfiles, SourceProfileError,
+                                    SOURCE_CLAIM_BASENAME, METADATA_LINK_FIELDS)
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
@@ -211,26 +212,39 @@ def _collect_records(repo_root: Path, *, profiles: SourceRecordProfiles | None) 
             if kind in RECORD_FILES or entries}
 
 
-def collect_claims(repo_root: Path = REPO_ROOT) -> list[dict[str, Any]]:
+def collect_claims(repo_root: Path = REPO_ROOT, *, input_digests=None) -> list[dict[str, Any]]:
+    try:
+        return _collect_claims(repo_root, input_digests=input_digests)
+    except SourceProfileError as error:
+        raise CatalogBuildError(str(error)) from error
+
+
+def _collect_claims(repo_root: Path, *, input_digests=None) -> list[dict[str, Any]]:
     source_root = repo_root / SOURCE_ROOT
     claims: list[dict[str, Any]] = []
     seen_ids: dict[str, str] = {}
+    profiles = None
 
-    for basename in CLAIM_SOURCE_BASENAMES:
+    for basename in (*CLAIM_SOURCE_BASENAMES, SOURCE_CLAIM_BASENAME):
         for path in sorted(source_root.rglob(basename)):
             relative = path.relative_to(repo_root).as_posix()
+            profiled = basename == SOURCE_CLAIM_BASENAME
             try:
-                lines = path.read_text(encoding="utf-8").splitlines()
+                if profiled:
+                    profiles = profiles or SourceClaimProfiles(repo_root)
+                    rows = profiles.read_rows(relative)
+                else:
+                    rows = enumerate(path.read_text(encoding="utf-8").splitlines(), start=1)
             except OSError as exc:
                 raise CatalogBuildError(
                     f"{relative}: cannot read claim packets: {exc}"
                 ) from exc
-            for line_number, raw_line in enumerate(lines, start=1):
-                if not raw_line.strip():
+            for line_number, raw_line in rows:
+                if not profiled and not raw_line.strip():
                     continue
                 location = f"{relative}:{line_number}"
                 try:
-                    payload = json.loads(raw_line)
+                    payload = raw_line if profiled else json.loads(raw_line)
                 except json.JSONDecodeError as exc:
                     raise CatalogBuildError(
                         f"{location}: cannot parse claim packet: {exc}"
@@ -262,6 +276,8 @@ def collect_claims(repo_root: Path = REPO_ROOT) -> list[dict[str, Any]]:
                     "schema_version": "tos_source_witness_claim_catalog_entry_v1",
                     **({'source_schema_ref': 'ToS/contracts/historical-claim.schema.json'}
                        if payload.get('schema_version') == 'tos_historical_claim_v1' else {}),
+                    **({'source_schema_ref': profiles.schema_routes[payload['predicate'], payload['schema_version']]['schema_ref']}
+                       if profiled else {}),
                     "claim_id": claim_id,
                     "claim_type": payload.get("claim_type"),
                     "assertion_layer": payload.get("assertion_layer"),
@@ -293,6 +309,8 @@ def collect_claims(repo_root: Path = REPO_ROOT) -> list[dict[str, Any]]:
                     entry["qualifiers"] = payload["qualifiers"]
                 claims.append(entry)
 
+    if input_digests is not None and profiles is not None:
+        input_digests.update(profiles.input_digests)
     claims.sort(key=lambda entry: entry["claim_id"])
     return claims
 

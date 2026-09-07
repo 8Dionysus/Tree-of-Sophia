@@ -166,6 +166,65 @@ This closes a metadata extension seam, not the complete Foundation profile
 grammar. The synthetic `fixture-document` in the reader test is not an actual
 letter, historical evidence, a material artifact or source admission.
 
+## Documents and declared source claims
+
+Entity registry version 8 adds Document under the broader IntellectualObject
+root and Letter under Document. Neither inherits Work or Artifact. Their
+descriptions, versions and source-copy forms use `source-metadata-record` and
+`document-record` schemas through the existing profile reader and separately
+delegated `source.create`. Correcting description does not change the referent.
+Unknown participants are possible; language, genre and a missing dispatch
+claim do not create or destroy a Letter subtype. Native manuscript carriers
+keep the Artifact adapter.
+
+Relation registry version 7 declares `source_claim_profile` on concrete
+evidence-bearing relations. One `source-claims.jsonl` source stream format
+serves these profiles. `identity-relation-v1` reads an exact source schema
+route plus the common source-claim record contract, enforces the relation's
+specific domain/range with type ancestry, and retains the full source Claim.
+The catalog, graph, ordinary semantic catalog and inspection expose the same
+declaration and source ref. A new predicate in this reader is data in the
+relation registry and its source schema, not another Python predicate branch.
+
+| Predicate | Subject → object | Distinction retained |
+| --- | --- | --- |
+| `correspondence_sender` | Letter → Agent/Organization | sender is not automatically author, courier or copyist |
+| `correspondence_addressee` | Letter → Agent/Organization | intended recipient is not proof of delivery, reading or agreement |
+| `document_carried_by` | Document → Artifact | document is not its carrier; copies, custody and textual equivalence need their own claims |
+| `historical_document` | HistoricalSituation → Document | association with a historical reconstruction is not causal influence |
+| `document_concerns_work` | Document → Work | source-attributed identification need not be a literal mention in the document |
+| `authored_by` | Work/Document → Agent | authorship stays distinct from sending, possession or intended readership |
+
+The existing authorship relation is extended to Documents without retyping
+the seven existing Works, changing their source claims, or inventing a second
+author relation. Its inverse Russian wording now covers both Works and
+Documents. Competing attributions are separate Claims; the number of authors
+is not limited by the one-subject/one-object structure of one Claim.
+
+Shared source-claim metadata preserves evidence, counterevidence, maker,
+provenance, confidence, exact assessment refs, alternatives, qualifiers and
+unknown extensions. Its `unreviewed` carrier flag is not current admission.
+The specific schema and the common record rules both apply; a permissive
+profile schema cannot erase the shared floor. Legacy bibliographic and
+historical claim files keep their own schemas and adapters. Existing source
+records or reviews are not relabeled into this format.
+
+The reader refuses unknown predicates/versions, a missing/abstract or multiply
+owned mapping, broad Thing/Identity fallback domains, nonidentity or unresolved
+endpoints, wrong domain/range, unlisted assertion layers, nonpublic visibility,
+duplicate JSON fields, nonfinite values, remote/undeclared schema resources
+and symlink or payload/catalog paths. Each record is bounded to 1 MiB and each
+shared claim file to 16 MiB; exceeding the bound fails rather than truncates.
+Consumed schema/registry digests feed the graph and source-create dependency
+checks. A previous-registry comparison requires profile-version advance,
+retained historical schema/layer routes and no silent predicate/reader reuse.
+
+Reading a valid claim does not substantively assess or admit it. This first
+claim-profile reader handles identity endpoints, not arbitrary literal values,
+temporal objects, new inference rules, claim-writing permissions or automatic
+assessment. Those need their own implemented contracts; the metadata and
+claim reader alone do not finish the documentary or other Foundation profiles.
+
 ## Physical artifacts: existing-source adapter
 
 Entity registry version 6 maps the existing `tos.artifact.*` identity to

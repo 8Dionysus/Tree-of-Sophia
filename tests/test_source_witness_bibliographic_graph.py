@@ -117,6 +117,186 @@ class SourceWitnessBibliographicGraphTest(unittest.TestCase):
                                for name in ('entity-types.v1.json', 'relation-types.v1.json')]
         return build_knowledge_graph({}, {}, projection, entities, relations), entities, relations
 
+    def test_documentary_claims_keep_roles_carrier_and_historical_context_distinct(self):
+        from source_record_profiles import SourceClaimProfiles, SourceProfileError
+        profiles = SourceClaimProfiles(REPO_ROOT)
+        objects = {f'tos.{kind}.synthetic': {'record_type': kind} for kind in
+                   ('letter', 'document', 'agent', 'organization', 'artifact', 'work', 'historical-event')}
+        cases = [('correspondence_sender', 'letter', 'agent'),
+                 ('correspondence_addressee', 'letter', 'organization'),
+                 ('document_carried_by', 'letter', 'artifact'),
+                 ('document_carried_by', 'document', 'artifact'),
+                 ('historical_document', 'historical-event', 'letter'),
+                 ('document_concerns_work', 'letter', 'work'),
+                 ('authored_by', 'document', 'agent'), ('authored_by', 'work', 'agent')]
+        for predicate, subject, target in cases:
+            with self.subTest(predicate=predicate, subject=subject):
+                claim = {'schema_version': 'tos_source_relation_claim_v1', 'claim_type': 'relation',
+                    'claim_id': 'tos.claim.synthetic-document-role', 'claim_version': 1,
+                    'subject_ref': f'tos.{subject}.synthetic', 'predicate': predicate,
+                    'object': f'tos.{target}.synthetic', 'assertion_layer': 'scholarly_report',
+                    'evidence_refs': ['test:synthetic-no-historical-proof'],
+                    'maker': {'maker_type': 'software', 'agent_ref': 'software:synthetic'},
+                    'provenance_event_ref': 'tos.event.synthetic', 'epistemic_status': 'reported',
+                    'review_status': 'unreviewed', 'visibility': 'public_metadata_only',
+                    'extensions': {'uninterpreted': [None, False]}}
+                profiles.validate(claim, objects)
+                for modified in ({'subject_ref': 'tos.agent.synthetic'}, {'object': 'tos.historical-event.synthetic'},
+                                 {'review_status': 'accepted'}, {'object': {'label': 'not-an-identity'}}):
+                    with self.assertRaises(SourceProfileError):
+                        profiles.validate({**claim, **modified}, objects)
+        with self.assertRaises(SourceProfileError):
+            profiles.validate({**claim, 'predicate': 'correspondence_sender', 'subject_ref': 'tos.document.synthetic'}, objects)
+
+    def test_declared_claim_profile_reads_new_predicate_without_python_branch(self):
+        """Synthetic predicate/claim grammar, not evidence for any real event."""
+        from build_source_witness_catalog import collect_claims, CatalogBuildError
+        with self.historical_fixture() as (root, history, real, claims, rebuild):
+            registry_ref = 'ToS/doctrine/semantic-interchange/relation-types.v1.json'
+            registry = json.loads((root / registry_ref).read_bytes())
+            entry = copy.deepcopy(next(row for row in registry['relations']
+                                       if row['relation_type_id'] == 'tos.relation.historical-participant'))
+            entry.update(relation_type_id='tos.relation.fixture-person-reference',
+                source_mappings=[{'source_graph': 'source-claims', 'scope': 'claim-predicate',
+                                  'source_predicate_id': 'fixture_person_reference'}],
+                source_claim_profile={'profile_version': 1, 'reader': 'identity-relation-v1',
+                    'assertion_layers': ['scholarly_report'],
+                    'schemas': [{'schema_version': 'tos_fixture_identity_relation_v1',
+                        'schema_ref': 'ToS/contracts/fixture-identity-relation.schema.json',
+                        'schema_dependencies': ['ToS/contracts/claim-packet.schema.json',
+                                                'ToS/contracts/knowledge-assessment.schema.json']}]})
+            registry['relations'].append(entry)
+            (root / registry_ref).write_text(json.dumps(registry))
+            contract = 'ToS/contracts/semantic-relation-type-registry.schema.json'
+            (root / contract).write_bytes((REPO_ROOT / contract).read_bytes())
+            contract = 'ToS/contracts/source-claim-record.schema.json'
+            (root / contract).write_bytes((REPO_ROOT / contract).read_bytes())
+            schema = json.loads((root / 'ToS/contracts/historical-claim.schema.json').read_bytes())
+            schema['$id'] = 'https://tree-of-sophia.local/ToS/contracts/fixture-identity-relation.schema.json'
+            schema.pop('allOf')
+            schema['properties'].update(schema_version={'const': 'tos_fixture_identity_relation_v1'},
+                predicate={'const': 'fixture_person_reference'}, subject_ref={'type': 'string'}, object={'type': 'string'})
+            (root / 'ToS/contracts/fixture-identity-relation.schema.json').write_text(json.dumps(schema))
+            claim = {**copy.deepcopy(claims[0]), 'schema_version': 'tos_fixture_identity_relation_v1',
+                     'claim_id': 'tos.claim.fixture-person-reference', 'predicate': 'fixture_person_reference',
+                     'extensions': {'uninterpreted': [False, None, 'Ω']}}
+            path = root / 'ToS/source-witnesses/history/fixture/source-claims.jsonl'
+            path.write_text(json.dumps(claim) + '\n')
+            self.assertIn(claim['claim_id'], {row['claim_id'] for row in collect_claims(root)})
+            graph, entity_registry, relation_registry = self.historical_knowledge(root, rebuild())
+            from tos_access.knowledge import knowledge_catalog
+            catalog = knowledge_catalog(graph, {}, {}, entity_registry, relation_registry)
+            discovered = next(row for row in catalog['semantic_registries']['relation_types']['entries']
+                              if row['relation_type_id'] == entry['relation_type_id'])
+            self.assertEqual(discovered['source_claim_profile'], entry['source_claim_profile'])
+            claim_node = next(node for node in graph['nodes'] if node['entity_id'] == claim['claim_id'])
+            meaning = claim_node['semantics']['claim']
+            self.assertEqual(meaning['relation_type_id'], entry['relation_type_id'])
+            self.assertEqual(meaning['subject_entity_id'], claim['subject_ref'])
+            self.assertEqual(meaning['object_entity_id'], claim['object'])
+            self.assertEqual(claim_node['attributes']['source_claim'], claim)
+            from tos_access.knowledge import focus_knowledge_node
+            for center, other in ((claim['subject_ref'], claim['object']), (claim['object'], claim['subject_ref'])):
+                focused = focus_knowledge_node(graph, center, depth=2)
+                self.assertIn(other, {node['entity_id'] for node in focused['nodes']})
+            projection = rebuild()
+            self.assertIn('source-profile', projection['graph_layers'])
+            self.assertIn('ToS/contracts/fixture-identity-relation.schema.json', projection['input_digests'])
+            self.assertEqual(next(row for row in collect_claims(root) if row['claim_id'] == claim['claim_id'])
+                             ['source_schema_ref'], entry['source_claim_profile']['schemas'][0]['schema_ref'])
+            for modified in ({'object': real[2]['record_id']}, {'subject_ref': real[0]['record_id']},
+                             {'object': 'tos.agent.unresolved'}, {'object': {'value': 'not-an-identity'}},
+                             {'predicate': 'undeclared'}, {'schema_version': 'tos_future_claim_v99'},
+                             {'visibility': 'local_only'}, {'assertion_layer': 'canon_judgment'}):
+                path.write_text(json.dumps({**claim, **modified}) + '\n')
+                with self.subTest(modified=modified), self.assertRaises((CatalogBuildError, BibliographicGraphBuildError, ValueError)):
+                    rebuild()
+            path.write_text(json.dumps(claim) + '\n')
+            self.historical_knowledge(root, rebuild())
+            from source_record_profiles import SourceClaimProfiles, SourceProfileError
+            for mutate in (
+                lambda row: row.update(abstract=True),
+                lambda row: row.update(evidence_required=False),
+                lambda row: row.update(domain_type_ids=['tos.entity.thing']),
+                lambda row: row.update(range_type_ids=['tos.entity.temporal-assertion']),
+                lambda row: row['source_claim_profile'].update(reader='execute-source'),
+                lambda row: row['source_claim_profile'].update(command='untrusted source prose'),
+                lambda row: row['source_claim_profile']['schemas'][0].update(schema_ref='https://example.org/schema.json'),
+                lambda row: row['source_claim_profile']['schemas'].append(copy.deepcopy(row['source_claim_profile']['schemas'][0])),
+            ):
+                invalid = copy.deepcopy(registry)
+                mutate(invalid['relations'][-1])
+                (root / registry_ref).write_text(json.dumps(invalid))
+                with self.assertRaises(SourceProfileError):
+                    SourceClaimProfiles(root)
+            (root / registry_ref).write_text(json.dumps(registry))
+            profile_reader = SourceClaimProfiles(root)
+            for modified in ({'predicate': []}, {'schema_version': {}}, {'evidence_refs': []},
+                             {'review_status': 'accepted'}):
+                with self.assertRaises(SourceProfileError):
+                    profile_reader.validate({**claim, **modified})
+            path.write_text(json.dumps(claim)[:-1] + ', "predicate": "fixture_person_reference"}\n')
+            with self.assertRaises(CatalogBuildError):
+                collect_claims(root)
+            path.write_text(json.dumps(claim) + '\n')
+
+            from tos_access.knowledge import validate_semantic_registries
+            entities = json.loads((root / 'ToS/doctrine/semantic-interchange/entity-types.v1.json').read_bytes())
+            changed = copy.deepcopy(registry)
+            changed['registry_version'] += 1
+            changed['relations'][-1]['source_claim_profile']['assertion_layers'].append('textual_observation')
+            self.assertFalse(validate_semantic_registries(entities, changed, previous_relation_registry=registry)['valid'])
+            changed['relations'][-1]['source_claim_profile']['profile_version'] += 1
+            self.assertTrue(validate_semantic_registries(entities, changed, previous_relation_registry=registry)['valid'])
+            changed['relations'][-1]['source_mappings'][0]['source_predicate_id'] = 'silently_repurposed'
+            self.assertFalse(validate_semantic_registries(entities, changed, previous_relation_registry=registry)['valid'])
+
+    def test_document_profile_and_claims_reach_shared_reader_together(self):
+        """Actual document/letter contracts on synthetic data, not a real letter."""
+        with self.historical_fixture() as (root, history, real, claims, rebuild):
+            for name in ('semantic-relation-type-registry', 'source-metadata-record',
+                         'document-record', 'source-claim-record', 'source-relation-claim'):
+                ref = f'ToS/contracts/{name}.schema.json'
+                (root / ref).write_bytes((REPO_ROOT / ref).read_bytes())
+            records = []
+            for kind in ('document', 'letter'):
+                record = {**copy.deepcopy(history[0][1]), 'record_type': kind,
+                          'schema_version': 'tos_document_record_v1', 'record_id': f'tos.{kind}.synthetic',
+                          'preferred_label': f'Synthetic {kind}',
+                          'extensions': {'uninterpreted': [False, None, 'Ω']}}
+                ref = f'ToS/source-witnesses/documents/synthetic/{kind}.json'
+                (root / ref).parent.mkdir(parents=True, exist_ok=True)
+                (root / ref).write_text(json.dumps(record))
+                records.append(record)
+            associations = []
+            for index, (subject, predicate, target) in enumerate((
+                (records[1]['record_id'], 'correspondence_sender', real[0]['record_id']),
+                (history[0][1]['record_id'], 'historical_document', records[1]['record_id']),
+                (records[0]['record_id'], 'document_concerns_work', real[2]['record_id']),
+            )):
+                associations.append({**copy.deepcopy(claims[0]),
+                    'schema_version': 'tos_source_relation_claim_v1',
+                    'claim_id': f'tos.claim.synthetic-document-{index}',
+                    'subject_ref': subject, 'predicate': predicate, 'object': target,
+                    'counterevidence_refs': [claims[2]['evidence_refs'][0]],
+                    'extensions': {'uninterpreted': [False, None, 'Ω']}})
+            (root / 'ToS/source-witnesses/documents/synthetic/source-claims.jsonl').write_text(
+                ''.join(json.dumps(claim) + '\n' for claim in associations))
+            graph, _, _ = self.historical_knowledge(root, rebuild())
+            from tos_access.knowledge import focus_knowledge_node
+            for record in records:
+                node = next(node for node in graph['nodes'] if node['entity_id'] == record['record_id'])
+                self.assertEqual(node['attributes']['source_record'], record)
+                self.assertEqual(node['type_id'], 'tos.entity.' + record['record_type'])
+            for claim in associations:
+                node = next(node for node in graph['nodes'] if node['entity_id'] == claim['claim_id'])
+                self.assertEqual(node['attributes']['source_claim'], claim)
+                self.assertNotEqual(node['entity_id'], claim['object'])
+                for center, other in ((claim['subject_ref'], claim['object']),
+                                      (claim['object'], claim['subject_ref'])):
+                    focused = focus_knowledge_node(graph, center, depth=2)
+                    self.assertIn(other, {node['entity_id'] for node in focused['nodes']})
+
     def test_declared_metadata_profile_extends_both_readers_without_python_type_branch(self):
         """A synthetic profile is a grammar test, not a historical letter."""
         from build_source_witness_catalog import collect_records, CatalogBuildError

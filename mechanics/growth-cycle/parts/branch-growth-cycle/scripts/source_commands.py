@@ -388,7 +388,8 @@ def _prepare_creation(config, request):
     profiles = SourceRecordProfiles(root)
     subject = _initial_source_record(config, source, profiles)
     records = collect_records(root, profiles=profiles)
-    existing_claims = collect_claims(root)
+    claim_profile_inputs = {}
+    existing_claims = collect_claims(root, input_digests=claim_profile_inputs)
     objects = {row['record_id']: row for rows in records.values() for row in rows}
     if source['record_id'] in objects:
         raise JournalConflict('subject identity already exists in authored sources')
@@ -472,6 +473,7 @@ def _prepare_creation(config, request):
         _digest(_read(root / 'ToS/contracts/provenance-event-v2.schema.json', MAX_SET_BYTES))} if new_event else {})
     dependencies = _digest(_canonical({'records': records, 'claims': existing_claims,
         'source_profiles': profiles.input_digests,
+        'source_claim_profiles': claim_profile_inputs,
         'provenance_contract': provenance_contract,
         'events': events, 'anchors': anchors, 'evidence': evidence, 'forms': form_inputs,
         'contracts': {ref: _digest(_read(root / ref, MAX_SET_BYTES)) for ref in (

@@ -1,7 +1,7 @@
 {
   "schema_version": "tos_semantic_entity_type_registry_v1",
   "registry_id": "tos.semantic.entity-types",
-  "registry_version": 7,
+  "registry_version": 8,
   "property_definitions": [
     {"property_id":"tos.property.time-calendar","field":"semantics.time.calendar","labels":{"default":"Declared calendar","ru":"Указанный календарь","en":"Declared calendar"},"definition":"Source-declared calendar, not an inferred conversion. A missing or null value is not Gregorian.","value_type":"string","applies_to":["tos.entity.temporal-assertion"],"required":false,"inherited":true,"unit":null,"language":null,"operators":["eq","in","exists"]},
     {"property_id":"tos.property.time-role","field":"semantics.time.role","labels":{"default":"Time role","ru":"Роль времени","en":"Time role"},"definition":"What the dating concerns. Historical time is separate from witness creation, data capture and knowledge revision.","value_type":"string","applies_to":["tos.entity.temporal-assertion"],"required":false,"inherited":true,"unit":null,"language":null,"operators":["eq","in","exists"]},
@@ -27,6 +27,34 @@
   ],
   "fallback_type_id": "tos.entity.unmapped",
   "types": [
+    {
+      "type_id": "tos.entity.document", "parent_type_ids": ["tos.entity.intellectual-object"],
+      "abstract": false, "object_role": "identity",
+      "labels": {"default": "Document", "ru": "Документ", "en": "Document"},
+      "definition": "A persistent communicative or documentary intellectual object that need not be a Work. Its identity is distinct from a physical carrier, textual realization, catalog record and digital file. Corrected descriptions do not create another document; an attribution of shared content or identity requires a separate claim.",
+      "lifecycle": "stable", "owner_ref": "ToS/doctrine/CORPUS_FOUNDATION.md",
+      "source_mappings": [{"source_graph": "source-claims", "source_kind_id": "document"}, {"source_graph": "source-navigation", "source_kind_id": "document"}],
+      "source_record_profile": {
+        "profile_version": 1, "reader": "corpus-metadata-v1", "record_type": "document", "id_prefix": "tos.document.",
+        "source_basename": "document.json", "catalog_filename": "documents.jsonl", "graph_layer": "source-profile",
+        "schemas": [{"schema_version": "tos_document_record_v1", "schema_ref": "ToS/contracts/document-record.schema.json", "schema_dependencies": ["ToS/contracts/corpus-record.schema.json", "ToS/contracts/source-metadata-record.schema.json"]}]
+      },
+      "supersedes_type_id": null
+    },
+    {
+      "type_id": "tos.entity.letter", "parent_type_ids": ["tos.entity.document"],
+      "abstract": false, "object_role": "identity",
+      "labels": {"default": "Letter", "ru": "Письмо", "en": "Letter"},
+      "definition": "A document constituted as addressed correspondence. Sender, addressee, author, dispatch and reception are distinct context-bound claims, not subclasses or mandatory known facts. An unsent draft may be correspondence without an asserted dispatch; a copy is not automatically the same carrier or another letter.",
+      "lifecycle": "stable", "owner_ref": "ToS/doctrine/CORPUS_FOUNDATION.md",
+      "source_mappings": [{"source_graph": "source-claims", "source_kind_id": "letter"}, {"source_graph": "source-navigation", "source_kind_id": "letter"}],
+      "source_record_profile": {
+        "profile_version": 1, "reader": "corpus-metadata-v1", "record_type": "letter", "id_prefix": "tos.letter.",
+        "source_basename": "letter.json", "catalog_filename": "letters.jsonl", "graph_layer": "source-profile",
+        "schemas": [{"schema_version": "tos_document_record_v1", "schema_ref": "ToS/contracts/document-record.schema.json", "schema_dependencies": ["ToS/contracts/corpus-record.schema.json", "ToS/contracts/source-metadata-record.schema.json"]}]
+      },
+      "supersedes_type_id": null
+    },
     {"type_id":"tos.entity.artifact","parent_type_ids":["tos.entity.identity"],"abstract":false,"object_role":"identity","labels":{"default":"Physical artifact","ru":"Физический артефакт","en":"Physical artifact"},"definition":"A persistent physical source-object identity, including a manuscript carrier. It is not its inventory number, catalog record, intellectual work, reconstructed composite, transcription or digital representation. Description changes do not change the artifact ID. Source metadata navigation alone does not assert any carrier-to-text, custody or historical relation.","lifecycle":"stable","owner_ref":"ToS/doctrine/CORPUS_FOUNDATION.md","source_mappings":[{"source_graph":"source-claims","source_kind_id":"artifact"},{"source_graph":"source-navigation","source_kind_id":"artifact"}],"supersedes_type_id":null},
     {"type_id":"tos.entity.historical-situation","parent_type_ids":["tos.entity.identity"],"abstract":true,"object_role":"root","labels":{"default":"Historical situation","ru":"Историческая ситуация","en":"Historical situation"},"definition":"Root for source-described happenings, developments and persisting conditions in the historical world; not semantic Event/State, a dating assertion, or a provenance activity.","lifecycle":"stable","owner_ref":"ToS/doctrine/semantic-interchange/README.md","source_mappings":[],"supersedes_type_id":null},
     {"type_id":"tos.entity.historical-event","source_record_profile":{"profile_version":1,"reader":"corpus-metadata-v1","record_type":"historical-event","id_prefix":"tos.historical-event.","source_basename":"historical-event.json","catalog_filename":"historical-events.jsonl","graph_layer":"historical","schemas":[{"schema_version":"tos_historical_record_v1","schema_ref":"ToS/contracts/historical-record.schema.json","schema_dependencies":["ToS/contracts/corpus-record.schema.json"]}]},"parent_type_ids":["tos.entity.historical-situation"],"abstract":false,"object_role":"identity","labels":{"default":"Historical event","ru":"Историческое событие","en":"Historical event"},"definition":"A source-described occurrence treated as one happening. Its identity is independent of labels, disputed dating, participants, and correction of its description. An interpretation of its significance is a separate claim.","lifecycle":"stable","owner_ref":"ToS/doctrine/semantic-interchange/README.md","source_mappings":[{"source_graph":"source-claims","source_kind_id":"historical-event"},{"source_graph":"source-navigation","source_kind_id":"historical-event"}],"supersedes_type_id":null},
@@ -104,7 +132,7 @@
       "abstract": true,
       "object_role": "identity",
       "labels": {"default": "Intellectual object", "ru": "Интеллектуальный объект", "en": "Intellectual object"},
-      "definition": "Root for the ToS bibliographic identity ladder and its aggregates.",
+      "definition": "Root for persistent intellectual creations, communicative documents, realizations and aggregates. The bibliographic ladder is one profile under this root, not a required shape for every document.",
       "lifecycle": "stable",
       "owner_ref": "ToS/doctrine/CORPUS_FOUNDATION.md",
       "source_mappings": [],

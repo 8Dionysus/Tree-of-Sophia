@@ -1125,7 +1125,7 @@ class KnowledgeContractTests(unittest.TestCase):
         self.assertNotIn("tos.entity.author", entity_types)
         self.assertEqual(
             relation_types["tos.relation.authored-by"]["domain_type_ids"],
-            ["tos.entity.work"],
+            ["tos.entity.work", "tos.entity.document"],
         )
         self.assertEqual(
             relation_types["tos.relation.authored-by"]["range_type_ids"],

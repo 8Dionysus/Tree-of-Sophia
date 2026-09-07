@@ -196,9 +196,10 @@ def validate_semantic_registries(
         for entry in _registry_items(previous, entries_key):
             if entry[id_key] not in now:
                 violations.append(f"registry removed historical identity {entry[id_key]}; retain a deprecated entry")
-            if entries_key == 'types' and entry.get('source_record_profile'):
-                old_profile = entry['source_record_profile']
-                profile = now.get(entry[id_key], {}).get('source_record_profile')
+            profile_key = 'source_record_profile' if entries_key == 'types' else 'source_claim_profile'
+            if entry.get(profile_key):
+                old_profile = entry[profile_key]
+                profile = now.get(entry[id_key], {}).get(profile_key)
                 if not isinstance(profile, dict):
                     violations.append(f"registry removed source reader for {entry[id_key]}; retain its historical routes")
                     continue
@@ -207,6 +208,15 @@ def validate_semantic_registries(
                 for field in ('record_type', 'id_prefix'):
                     if profile.get(field) != old_profile.get(field):
                         violations.append(f"source profile {entry[id_key]} repurposes {field}; use an explicit successor identity")
+                if entries_key == 'relations':
+                    old_predicates = {mapping.get('source_predicate_id') for mapping in entry.get('source_mappings', [])
+                                      if mapping.get('source_graph') == 'source-claims' and mapping.get('scope') == 'claim-predicate'}
+                    new_predicates = {mapping.get('source_predicate_id') for mapping in now.get(entry[id_key], {}).get('source_mappings', [])
+                                      if mapping.get('source_graph') == 'source-claims' and mapping.get('scope') == 'claim-predicate'}
+                    if new_predicates != old_predicates or profile.get('reader') != old_profile.get('reader'):
+                        violations.append(f"source claim profile {entry[id_key]} repurposes its predicate or reader; use an explicit successor identity")
+                    if not set(old_profile.get('assertion_layers', [])).issubset(profile.get('assertion_layers', [])):
+                        violations.append(f"source claim profile {entry[id_key]} removes a historical assertion layer; use an explicit successor identity")
                 routes = {route.get('schema_version'): route for route in profile.get('schemas', [])}
                 for route in old_profile.get('schemas', []):
                     if routes.get(route.get('schema_version')) != route:

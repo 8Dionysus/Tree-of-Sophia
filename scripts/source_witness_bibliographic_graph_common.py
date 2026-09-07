@@ -12,7 +12,8 @@ from typing import Any, Iterable
 from jsonschema import Draft202012Validator
 from referencing import Registry, Resource
 from source_witness_human_forms import load_metadata_forms
-from source_record_profiles import SourceRecordProfiles, SourceProfileError
+from source_record_profiles import (SourceRecordProfiles, SourceClaimProfiles, SourceProfileError,
+                                    SOURCE_CLAIM_BASENAME)
 from build_source_witness_catalog import (OPTIONAL_RECORD_FILES, ADAPTED_RECORD_FILES,
                                          CatalogBuildError, artifact_catalog_entry, load_artifact_record,
                                          artifact_display_fields)
@@ -228,7 +229,7 @@ def _load_object_catalog(repo_root: Path, profiles: SourceRecordProfiles | None 
     return objects
 
 
-def _load_claim_catalog(repo_root: Path) -> list[dict[str, Any]]:
+def _load_claim_catalog(repo_root: Path, profiles=None) -> list[dict[str, Any]]:
     path = repo_root / CLAIM_CATALOG_REF
     claims: list[dict[str, Any]] = []
     seen: set[str] = set()
@@ -242,19 +243,22 @@ def _load_claim_catalog(repo_root: Path) -> list[dict[str, Any]]:
         seen.add(claim_id)
         if entry.get("source_claim_file_ref") == OBJECT_LINK_CLAIM_REF:
             continue
+        profiled = Path(str(entry.get('source_claim_file_ref', ''))).name == SOURCE_CLAIM_BASENAME
+        if profiled:
+            profiles = profiles or SourceClaimProfiles(repo_root)
+            if entry.get('predicate') not in profiles.profiles:
+                raise BibliographicGraphBuildError(f'{location}: source predicate has no declared claim profile')
         claim_type = entry.get("claim_type")
         if claim_type not in {"bibliographic", "relation"}:
             raise BibliographicGraphBuildError(
                 f"{location}: bibliographic projection cannot admit {claim_type!r}"
             )
-        if claim_type == "relation" and entry.get("predicate") not in {'is_derivative_of', *HISTORICAL_PREDICATES}:
+        if not profiled and claim_type == "relation" and entry.get("predicate") not in {'is_derivative_of', *HISTORICAL_PREDICATES}:
             raise BibliographicGraphBuildError(
                 f"{location}: relation claim is outside the bounded Expression-derivation profile and the historical profile"
             )
-        if entry.get("assertion_layer") not in {
-            "bibliographic_assertion",
-            "scholarly_report",
-        }:
+        layers = profiles.profiles[entry['predicate']]['assertion_layers'] if profiled else {'bibliographic_assertion', 'scholarly_report'}
+        if entry.get("assertion_layer") not in layers:
             raise BibliographicGraphBuildError(
                 f"{location}: assertion_layer is outside the bibliographic graph profile"
             )
@@ -317,6 +321,7 @@ def _load_source_claim(
     entry: dict[str, Any],
     *,
     repo_root: Path,
+    profiles=None,
 ) -> dict[str, Any]:
     source_ref = entry.get("source_claim_file_ref")
     source_line = entry.get("source_claim_line")
@@ -325,7 +330,10 @@ def _load_source_claim(
             f"{entry.get('claim_id')}: source claim file and line are required"
         )
     source_path = repo_root / source_ref
-    rows = dict(iter_jsonl(source_path, repo_root))
+    profiled = source_path.name == SOURCE_CLAIM_BASENAME
+    if profiled:
+        profiles = profiles or SourceClaimProfiles(repo_root)
+    rows = dict(profiles.read_rows(source_ref) if profiled else iter_jsonl(source_path, repo_root))
     claim = rows.get(source_line)
     if claim is None:
         raise BibliographicGraphBuildError(
@@ -342,6 +350,8 @@ def _load_source_claim(
     if (claim.get('schema_version') == 'tos_historical_claim_v1'
             and entry.get('source_schema_ref') != 'ToS/contracts/historical-claim.schema.json'):
         raise BibliographicGraphBuildError(f'{source_ref}:{source_line}: historical claim schema route drifted')
+    if profiled and entry.get('source_schema_ref') != profiles.schema_routes[claim['predicate'], claim['schema_version']]['schema_ref']:
+        raise BibliographicGraphBuildError(f'{source_ref}:{source_line}: source claim schema route drifted')
     projected_fields = (
         "claim_type",
         "assertion_layer",
@@ -934,14 +944,15 @@ def build_payload(repo_root: Path = REPO_ROOT) -> dict[str, Any]:
         if '_human_forms_source_ref' in entry:
             input_digests[entry['_human_forms_source_ref']] = entry['_human_forms_sha256']
     input_digests = dict(sorted(input_digests.items()))
-    catalog_claim_count = sum(
-        1 for _line_number, _entry in iter_jsonl(repo_root / CLAIM_CATALOG_REF, repo_root)
-    )
+    raw_claim_entries = [entry for _line_number, entry in iter_jsonl(repo_root / CLAIM_CATALOG_REF, repo_root)]
+    catalog_claim_count = len(raw_claim_entries)
     if manifest.get("counts", {}).get("claim") != catalog_claim_count:
         raise BibliographicGraphBuildError(
             f"{CATALOG_MANIFEST_REF}: claim count differs from the claim catalog"
         )
-    claim_entries = _load_claim_catalog(repo_root)
+    claim_profiles = (SourceClaimProfiles(repo_root) if any(
+        Path(str(entry.get('source_claim_file_ref', ''))).name == SOURCE_CLAIM_BASENAME for entry in raw_claim_entries) else None)
+    claim_entries = _load_claim_catalog(repo_root, claim_profiles)
     historical_contract = (_historical_claim_contract(repo_root)
                            if any(entry.get('predicate') in HISTORICAL_PREDICATES for entry in claim_entries) else None)
 
@@ -970,7 +981,9 @@ def build_payload(repo_root: Path = REPO_ROOT) -> dict[str, Any]:
         _add_node(nodes, _identity_node(record))
 
     for entry in claim_entries:
-        claim = _load_source_claim(entry, repo_root=repo_root)
+        claim = _load_source_claim(entry, repo_root=repo_root, profiles=claim_profiles)
+        if Path(entry['source_claim_file_ref']).name == SOURCE_CLAIM_BASENAME:
+            claim_profiles.validate(claim, objects)
         if claim.get('predicate') in HISTORICAL_PREDICATES:
             _validate_historical_claim(claim, objects, historical_contract)
         claim_id = str(claim["claim_id"])
@@ -1179,6 +1192,10 @@ def build_payload(repo_root: Path = REPO_ROOT) -> dict[str, Any]:
     node_kind_counts = Counter(str(node["node_kind"]) for node in nodes_list)
     edge_kind_counts = Counter(str(edge["edge_kind"]) for edge in edges)
 
+    if claim_profiles is not None:
+        input_digests.update(claim_profiles.input_digests)
+        input_digests = dict(sorted(input_digests.items()))
+        profile_layers.add('source-profile')
     payload: dict[str, Any] = {
         "schema_version": "tos_source_witness_bibliographic_graph_v1",
         "schema_ref": SCHEMA_REF,

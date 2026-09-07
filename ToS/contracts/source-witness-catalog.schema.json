@@ -169,7 +169,7 @@
         "schema_version": {
           "const": "tos_source_witness_claim_catalog_entry_v1"
         },
-        "source_schema_ref": {"const": "ToS/contracts/historical-claim.schema.json"},
+        "source_schema_ref": {"type": "string", "pattern": "^ToS/contracts/[a-z][a-z0-9-]*\\.schema\\.json$"},
         "claim_id": {"$ref": "#/$defs/tosId"},
         "claim_type": {
           "enum": [
@@ -198,7 +198,7 @@
             "canon_judgment"
           ]
         },
-        "subject_ref": {"$ref": "#/$defs/tosId"},
+        "subject_ref": {"type": "string", "pattern": "^tos\\.[a-z][a-z0-9-]*\\.[a-z0-9]+(?:[.-][a-z0-9]+)*$"},
         "predicate": {"type": "string", "pattern": "^[a-z][a-z0-9_.-]*$"},
         "object": {
           "oneOf": [

@@ -1,4 +1,4 @@
-"""Execute declared source-metadata profiles from the existing type registry.
+"""Execute declared source record/claim profiles from existing type registries.
 
 This reader selects no executable and grants no write or semantic authority.
 The source schema, exact metadata, and profile stay separate from disposable
@@ -20,6 +20,13 @@ CONTRACT_REF = 'ToS/contracts/semantic-entity-type-registry.schema.json'
 CORPUS_REF = 'ToS/contracts/corpus-record.schema.json'
 SOURCE_ROOT = Path('ToS/source-witnesses')
 MAX_RECORD_BYTES = 1_048_576
+SOURCE_CLAIM_BASENAME = 'source-claims.jsonl'
+CLAIM_REGISTRY_REF = 'ToS/doctrine/semantic-interchange/relation-types.v1.json'
+CLAIM_CONTRACT_REF = 'ToS/contracts/semantic-relation-type-registry.schema.json'
+CLAIM_BASE_REF = 'ToS/contracts/source-claim-record.schema.json'
+CLAIM_SHARED_REFS = ('ToS/contracts/claim-packet.schema.json',
+                     'ToS/contracts/knowledge-assessment.schema.json', CLAIM_BASE_REF)
+MAX_CLAIM_FILE_BYTES = 16_777_216
 RESERVED_KINDS = {'agent', 'place', 'organization', 'work', 'expression', 'edition',
                   'collection', 'item', 'link', 'artifact'}
 RESERVED_BASENAMES = {kind + '.json' for kind in RESERVED_KINDS} | {'artifact-witness.json'}
@@ -70,6 +77,27 @@ def _read_json(root: Path, ref: str, digests: dict | None = None) -> dict:
     if digests is not None:
         digests[ref] = hashlib.sha256(raw).hexdigest()
     return value
+
+
+def _schema_route(root, route, digests, cache, shared_refs=()):
+    """Exact local resources only; neither metadata nor a claim selects code."""
+    refs = list(dict.fromkeys([*shared_refs, *route['schema_dependencies'], route['schema_ref']]))
+    resources = {}
+    for ref in refs:
+        if ref not in cache:
+            schema = _read_json(root, ref, digests)
+            if schema.get('$id') not in {'https://tree-of-sophia.local/' + ref,
+                                          'https://treeofsophia.local/' + ref}:
+                raise SourceProfileError(f'{ref}: schema identity differs from its declared owner path')
+            Draft202012Validator.check_schema(schema)
+            cache[ref] = schema
+        schema = cache[ref]
+        if schema['$id'] in resources:
+            raise SourceProfileError('duplicate schema resource identity')
+        resources[schema['$id']] = Resource.from_contents(schema)
+    registry = Registry().with_resources(resources.items())
+    return Draft202012Validator(cache[route['schema_ref']], registry=registry,
+                                format_checker=FormatChecker()), registry
 
 
 class SourceRecordProfiles:
@@ -137,30 +165,14 @@ class SourceRecordProfiles:
             raise SourceProfileError(f'{kind}: unsupported source schema version')
         if key not in self.validators:
             route = self.schema_routes[key]
-            refs = [CORPUS_REF, *route['schema_dependencies'], route['schema_ref']]
-            for ref in dict.fromkeys(refs):
-                if ref not in self.schemas:
-                    schema = _read_json(self.root, ref, self.input_digests)
-                    if schema.get('$id') not in {'https://tree-of-sophia.local/' + ref,
-                                                  'https://treeofsophia.local/' + ref}:
-                        raise SourceProfileError(f'{kind}: source schema identity differs from its declared owner path')
-                    self.schemas[ref] = schema
-            schemas = [self.schemas[ref] for ref in dict.fromkeys(refs)]
-            resources = {}
-            for schema in schemas:
-                Draft202012Validator.check_schema(schema)
-                if schema['$id'] in resources:
-                    raise SourceProfileError(f'{kind}: duplicate schema resource identity')
-                resources[schema['$id']] = Resource.from_contents(schema)
-            registry = Registry().with_resources(resources.items())
-            self.validators[key] = Draft202012Validator(self.schemas[route['schema_ref']], registry=registry,
-                                                         format_checker=FormatChecker())
+            self.validators[key], registry = _schema_route(self.root, route, self.input_digests,
+                                                           self.schemas, [CORPUS_REF])
             fields = ('preferred_label', 'variant_labels', 'field_languages', 'identity_status',
                       'source_refs', 'external_identifiers', 'same_as_posture', 'record_version', 'notes')
             common = {'type': 'object',
                       'required': ['preferred_label', 'identity_status', 'source_refs',
                                    'external_identifiers', 'same_as_posture', 'record_version'],
-                      'properties': {field: {'$ref': schemas[0]['$id'] + '#/properties/' + field}
+                      'properties': {field: {'$ref': self.schemas[CORPUS_REF]['$id'] + '#/properties/' + field}
                                      for field in fields}}
             self.metadata_validators[key] = Draft202012Validator(common, registry=registry,
                                                                  format_checker=FormatChecker())
@@ -210,3 +222,131 @@ class SourceRecordProfiles:
         if entry != self.catalog_entry(kind, source, entry['source_record_ref']):
             raise SourceProfileError(f'{kind}: catalog/source profile mapping drifted')
         return source
+
+
+class SourceClaimProfiles:
+    """Read declared evidence-bearing identity relations, without admission.
+
+    One shared source-claims.jsonl stream format serves new predicates. Legacy
+    bibliographic/historical files retain their existing adapters and schemas.
+    """
+
+    def __init__(self, root: Path):
+        self.root, self.input_digests = root, {}
+        self.registry = _read_json(root, CLAIM_REGISTRY_REF, self.input_digests)
+        contract = _read_json(root, CLAIM_CONTRACT_REF, self.input_digests)
+        if not Draft202012Validator(contract).is_valid(self.registry):
+            raise SourceProfileError('relation registry violates its source contract')
+        entity_registry = _read_json(root, REGISTRY_REF, self.input_digests)
+        entity_contract = _read_json(root, CONTRACT_REF, self.input_digests)
+        if not Draft202012Validator(entity_contract).is_valid(entity_registry):
+            raise SourceProfileError('entity registry violates its source contract')
+        self.entities = {entry['type_id']: entry for entry in entity_registry['types']}
+        if len(self.entities) != len(entity_registry['types']):
+            raise SourceProfileError('duplicate entity type identity')
+        self.mappings, self.profiles, self.relations = {}, {}, {}
+        self.schema_routes, self.schemas, self.validators, self.base_validators = {}, {}, {}, {}
+        if len({entry['relation_type_id'] for entry in self.registry['relations']}) != len(self.registry['relations']):
+            raise SourceProfileError('duplicate relation type identity')
+        for entry in entity_registry['types']:
+            for mapping in entry['source_mappings']:
+                if mapping['source_graph'] != 'source-claims':
+                    continue
+                kind = mapping['source_kind_id']
+                if kind in self.mappings:
+                    raise SourceProfileError('source kind has more than one identity mapping')
+                self.mappings[kind] = entry['type_id']
+        for entry in self.registry['relations']:
+            profile = entry.get('source_claim_profile')
+            if profile is None:
+                continue
+            mappings = [mapping for mapping in entry['source_mappings']
+                        if mapping['source_graph'] == 'source-claims' and mapping['scope'] == 'claim-predicate']
+            if (len(mappings) != 1 or entry['abstract'] or entry['assertion_mode'] != 'reified-claim'
+                    or not entry['evidence_required']):
+                raise SourceProfileError('source claim profile requires one reified evidence-bearing predicate mapping')
+            predicate = mappings[0]['source_predicate_id']
+            if any(other is not entry and any(mapping['source_graph'] == 'source-claims'
+                    and mapping['scope'] == 'claim-predicate' and mapping['source_predicate_id'] == predicate
+                    for mapping in other['source_mappings']) for other in self.registry['relations']):
+                raise SourceProfileError('source predicate has another relation owner')
+            for type_id in [*entry['domain_type_ids'], *entry['range_type_ids']]:
+                if type_id in {'tos.entity.thing', 'tos.entity.identity', 'tos.entity.unmapped', 'tos.entity.unresolved-endpoint'}:
+                    raise SourceProfileError('identity relation profile requires a specific domain and range')
+                if 'tos.entity.identity' not in self.ancestry(type_id):
+                    raise SourceProfileError('identity relation endpoint domain/range must be an identity family')
+            self.profiles[predicate], self.relations[predicate] = profile, entry
+            for route in profile['schemas']:
+                key = predicate, route['schema_version']
+                if key in self.schema_routes:
+                    raise SourceProfileError('duplicate claim schema-version route')
+                self.schema_routes[key] = route
+
+    def ancestry(self, type_id, visiting=frozenset()):
+        if type_id not in self.entities or type_id in visiting:
+            raise SourceProfileError('unknown or cyclic source identity type hierarchy')
+        parents = self.entities[type_id]['parent_type_ids']
+        result = {type_id}
+        for parent in parents:
+            result.update(self.ancestry(parent, visiting | {type_id}))
+        return result
+
+    def validate(self, claim, objects=None):
+        if (not isinstance(claim, dict) or not isinstance(claim.get('predicate'), str)
+                or not isinstance(claim.get('schema_version'), str)):
+            raise SourceProfileError('source claim must declare a string predicate and schema version')
+        predicate = claim.get('predicate')
+        key = predicate, claim.get('schema_version')
+        if key not in self.schema_routes:
+            raise SourceProfileError('unrecognized source claim predicate or schema version')
+        if (claim.get('claim_type') != 'relation' or not isinstance(claim.get('subject_ref'), str)
+                or not isinstance(claim.get('object'), str)
+                or claim.get('assertion_layer') not in self.profiles[predicate]['assertion_layers']
+                or claim.get('visibility') not in {'public', 'public_metadata_only'}
+                or claim.get('claim_id') in (claim.get('subject_ref'), claim.get('object'))):
+            raise SourceProfileError('source claim identity, endpoints, layer or visibility violates its profile')
+        if key not in self.validators:
+            self.validators[key], registry = _schema_route(self.root, self.schema_routes[key], self.input_digests,
+                                                           self.schemas, CLAIM_SHARED_REFS)
+            self.base_validators[key] = Draft202012Validator(self.schemas[CLAIM_BASE_REF], registry=registry,
+                                                             format_checker=FormatChecker())
+        try:
+            if not self.validators[key].is_valid(claim) or not self.base_validators[key].is_valid(claim):
+                raise SourceProfileError('source claim violates its exact schema or shared record contract')
+        except Unresolvable as error:
+            raise SourceProfileError('source claim schema has an undeclared dependency') from error
+        if objects is not None:
+            relation = self.relations[predicate]
+            for field, allowed in (('subject_ref', relation['domain_type_ids']), ('object', relation['range_type_ids'])):
+                record = objects.get(claim[field])
+                kind = self.mappings.get(record['record_type']) if record else None
+                if kind is None or not self.ancestry(kind).intersection(allowed):
+                    raise SourceProfileError(f'source claim {field} violates registry domain/range or is unresolved')
+
+    def read_rows(self, ref):
+        path = Path(ref)
+        if (path.is_absolute() or '..' in path.parts or path.as_posix() != ref
+                or not path.is_relative_to(SOURCE_ROOT) or path.name != SOURCE_CLAIM_BASENAME
+                or any(part in {'catalog', 'payload', 'local-content'} for part in path.parts)):
+            raise SourceProfileError('source claim path is outside its metadata home')
+        target = self.root / path
+        if target.is_symlink() or not target.is_file() or target.resolve() != target.absolute():
+            raise SourceProfileError('source claims must be a regular non-symlink file')
+        with target.open('rb') as stream:
+            raw = stream.read(MAX_CLAIM_FILE_BYTES + 1)
+        if len(raw) > MAX_CLAIM_FILE_BYTES:
+            raise SourceProfileError('source claim file exceeds 16 MiB')
+        for number, line in enumerate(raw.splitlines(), start=1):
+            if not line.strip():
+                continue
+            if len(line) > MAX_RECORD_BYTES:
+                raise SourceProfileError('source claim exceeds 1 MiB')
+            try:
+                claim = json.loads(line, object_pairs_hook=_unique_object, parse_constant=_nonfinite)
+                if not isinstance(claim, dict):
+                    raise SourceProfileError('source claim must be an object')
+                json.dumps(claim, allow_nan=False)
+            except (ValueError, UnicodeError) as error:
+                raise SourceProfileError('source claim is not strict JSON') from error
+            self.validate(claim)
+            yield number, claim

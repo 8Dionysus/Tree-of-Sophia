@@ -467,6 +467,51 @@ class SourceCommandTests(unittest.TestCase):
 
 
 class HistoricalCreationTests(unittest.TestCase):
+    def test_document_and_letter_profiles_create_distinct_intellectual_sources(self):
+        from source_record_profiles import SourceRecordProfiles
+        live_profiles = SourceRecordProfiles(ROOT)
+        for kind in ('document', 'letter'):
+            with self.subTest(kind=kind):
+                self.assertIn(kind, live_profiles.profiles)
+                with self.creation() as (root, owner, config, request, rebuild, fixture):
+                    for ref in ('ToS/contracts/source-metadata-record.schema.json',
+                                'ToS/contracts/document-record.schema.json',
+                                'ToS/contracts/provenance-event-v2.schema.json'):
+                        (root / ref).write_bytes((ROOT / ref).read_bytes())
+                    config.pop('allowed_claim_ids')
+                    config.update(schema_version=commands.PROFILE_CONFIG, profile_type_id='tos.entity.' + kind,
+                        allowed_operations=['source.create'], record_id='tos.' + kind + '.synthetic-creation',
+                        source_path='ToS/source-witnesses/history/new-subject/' + kind + '.json',
+                        provenance_event_id='tos.event.' + kind + '-synthetic-creation')
+                    owner.write_text(json.dumps(config))
+                    source = request['record']
+                    source.update(schema_version='tos_document_record_v1', record_type=kind,
+                        record_id=config['record_id'], preferred_label='Условный документ' if kind == 'document' else 'Условное письмо',
+                        field_languages={'preferred_label': {'language': 'ru', 'script': 'Cyrl'},
+                                         'notes': {'language': 'ru', 'script': 'Cyrl'}})
+                    request.pop('claims')
+                    preview_request = {'schema_version': 'tos_local_source_command_v1', 'operation': 'prepare-create',
+                                       'record': source, 'forms': request['forms']}
+                    describe = commands.run_local_command(owner, {'schema_version': 'tos_local_source_command_v1',
+                                                                  'operation': 'describe'})
+                    preview = commands.run_local_command(owner, preview_request)
+                    request.update(operation='source.create', expected_configuration=describe['owner_configuration'],
+                                   expected_dependencies=preview['expected_dependencies'])
+                    for modified in ({'record_id': 'tos.work.false-equivalence'}, {'language': 'de'},
+                                     {'sender_ref': 'tos.agent.friedrich-nietzsche'}):
+                        with self.assertRaises((ValueError, PermissionError, commands.ValidationError)):
+                            commands.run_local_command(owner, {**preview_request, 'record': {**source, **modified}})
+                    commands.run_local_command(owner, request)
+                    graph, _, _ = fixture.historical_knowledge(root, rebuild())
+                    node = next(node for node in graph['nodes'] if node['entity_id'] == source['record_id'])
+                    self.assertEqual(node['attributes']['source_record'], source)
+                    self.assertIn('tos.entity.intellectual-object', node['semantics']['type_ancestors'])
+                    self.assertIn('tos.entity.document', node['semantics']['type_ancestors'])
+                    self.assertNotIn('tos.entity.work', node['semantics']['type_ancestors'])
+                    self.assertNotIn('tos.entity.artifact', node['semantics']['type_ancestors'])
+                    self.assertEqual({form['state'] for form in node['attributes']['human_forms']}, {'ready'})
+                    self.assertEqual({form['language'] for form in node['attributes']['human_forms']}, {'ru'})
+
     def test_new_profile_creation_and_later_forms_need_no_kind_branch(self):
         """An uninstalled synthetic kind exercises extension, not historical truth."""
         with self.creation() as (root, owner, config, request, rebuild, fixture):
