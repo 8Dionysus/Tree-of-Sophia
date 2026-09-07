@@ -170,6 +170,9 @@ class SourceWitnessBibliographicGraphTest(unittest.TestCase):
         from knowledge_assessment import Record
         with self.historical_fixture() as (root, history, real, claims, rebuild):
             event_path, event = history[0]
+            event['field_languages'] = {'notes': {'language': 'ru', 'script': 'Cyrl',
+                'source_ref': 'test:synthetic-language-metadata', 'independent_language_review': False}}
+            event_path.write_text(json.dumps(event))
             change = prepare_metadata_change(event, None, 'software:test-fixture',
                                              'tos.form.historical-fixture', 'metadata.source-note')
             form_set = {'schema_version': 'tos_human_form_set_v1',
@@ -193,6 +196,11 @@ class SourceWitnessBibliographicGraphTest(unittest.TestCase):
             selected = select_human_forms(node, 'auto')['roles']['hover']
             self.assertEqual(selected['packet']['display_text'], event['notes'])
             self.assertIsNone(selected['packet']['admission'])
+            self.assertEqual((selected['packet']['language'], selected['packet']['script']), ('ru', 'Cyrl'))
+            self.assertEqual(next(item['value'] for item in selected['packet']['context']
+                                 if item['binding']['pointer'] == '/field_languages/notes'),
+                             event['field_languages']['notes'])
+            self.assertNotIn('language_context', selected['packet'])
             result = focus_knowledge_node(graph, event['record_id'], depth=2)
             self.assertTrue({target['record_id'] for target in real}.issubset(
                 {item['entity_id'] for item in result['nodes']}))
@@ -432,6 +440,28 @@ class SourceWitnessBibliographicGraphTest(unittest.TestCase):
         directory = REPO_ROOT / 'ToS/source-witnesses/works/friedrich-nietzsche/jenseits-von-gut-und-boese'
         return (json.loads((directory / 'work.json').read_text()),
                 json.loads((directory / 'work.human-forms.json').read_text()))
+
+    def test_corpus_and_historical_language_schema_share_extensible_tags_and_reject_lossy_shapes(self):
+        from jsonschema import Draft202012Validator
+        from source_witness_bibliographic_graph_common import historical_schema_validator
+        source, _ = self.metadata_forms_fixture()
+        schema = json.loads((REPO_ROOT / 'ToS/contracts/corpus-record.schema.json').read_bytes())
+        corpus_validator = Draft202012Validator(schema)
+        with self.historical_fixture() as (root, history, real, claims, rebuild):
+            validator = historical_schema_validator(root)
+            event = history[0][1]
+            for language in ('ru', 'zh-Hant', 'x-private', 'i-enochian', 'abcdefgh-Latn', None):
+                metadata = {'notes': {'language': language, 'script': 'Cyrl',
+                                     'future_qualification': {'negative': False, 'unknown': None}}}
+                corpus_validator.validate({**source, 'field_languages': metadata})
+                validator.validate({**event, 'field_languages': metadata})
+            for metadata in (None, {'notes': {'language': 'ru'}},
+                             {'notes': {'language': 'ru\n', 'script': None}},
+                             {'notes': {'language': 'ru', 'script': 'Cyrillic'}},
+                             {'unowned': {'language': 'ru', 'script': None}}):
+                with self.subTest(metadata=metadata):
+                    self.assertFalse(corpus_validator.is_valid({**source, 'field_languages': metadata}))
+                    self.assertFalse(validator.is_valid({**event, 'field_languages': metadata}))
 
     def test_real_metadata_forms_are_exact_source_bound_with_context(self):
         source, forms = self.metadata_forms_fixture()

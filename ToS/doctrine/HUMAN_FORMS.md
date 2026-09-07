@@ -141,6 +141,26 @@ Missing source language/script remain unknown. Other roles, templates and
 freeform wording are explicitly unavailable on this adapter, not automatically
 accepted. Declared creator identity is provenance, not authentication.
 
+Corpus and historical records may declare `field_languages.preferred_label`
+and `field_languages.notes`, each with explicit `language` and `script`
+(independently nullable). These describe the exact metadata wording, not the
+language of a Work, Expression, cited source or interface. The adapter binds
+the whole declaration as mandatory context, including additional qualifications;
+omitting it invalidates the proposed form. A declaration without its complete
+wording field is refused. Variant names retain their existing local language
+and optional script fields. Tags use an extensible structural grammar, including
+private-use tags; a structurally accepted tag is not a certification of registry
+membership or language competence.
+
+Field language is not `language_context`: it does not establish originality,
+translation, transliteration or adaptation. Those still require their exact
+source-owned linguistic derivation. Adding or correcting a declaration changes
+the source record version/digest; existing forms remain stale until explicit
+successor bindings are made, and predecessors remain retained. Readers with
+the earlier closed corpus schema must update to accept this optional additive
+field; they must not strip it. The existing source-creation receipt remains an
+immutable account of the original serialization, not a mutable currentness seal.
+
 The existing bibliographic graph builder carries the materializations and
 adjacent source return in identity properties, with the set's input digest.
 This route uses already public bibliographic metadata, not payload text or

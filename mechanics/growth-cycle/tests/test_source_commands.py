@@ -175,6 +175,68 @@ class SourceCommandTests(unittest.TestCase):
         self.assertEqual(revision['prepared_change']['operation'], 'form.revise')
         self.assertEqual(revision['prepared_change']['form']['revises'], result['forms'][-1])
 
+    def test_explicit_field_language_survives_preparation_and_revision_without_becoming_original(self):
+        source = json.loads(self.original_source)
+        source['record_version'] += 1
+        metadata = {'language': 'ru', 'script': 'Cyrl',
+                    'source_ref': 'test:synthetic-language-declaration',
+                    'qualification': {'independently_assessed': False, 'future': None}}
+        source['field_languages'] = {'notes': metadata}
+        self.source.write_text(json.dumps(source))
+        before = self.source.read_bytes()
+        identifier = self.original_set['forms'][2]['form_id']
+        prepared = commands.run_local_command(self.owner, {'schema_version': 'tos_local_source_command_v1',
+            'operation': 'prepare', 'form_id': identifier, 'field_id': 'metadata.source-note'})
+        form = prepared['prepared_change']['form']
+        self.assertEqual((form['language'], form['script']), ('ru', 'Cyrl'))
+        self.assertNotIn('language_context', form)  # A language tag does not declare an original or translation.
+        request = {'schema_version': 'tos_local_source_command_v1', 'operation': 'apply',
+            'command_id': 'declared-field-language', 'expected_source': prepared['source'],
+            'expected_revision': prepared['revision'], 'expected_configuration': prepared['owner_configuration'],
+            'changes': [prepared['prepared_change']]}
+        missing = copy.deepcopy(request)
+        missing['changes'][0]['form']['bindings'] = {key: value for key, value in form['bindings'].items()
+            if value['pointer'] != '/field_languages/notes'}
+        with self.assertRaises(ValueError):
+            self.run_request(missing)
+        process = subprocess.run([sys.executable, str(MECHANIC / 'source_commands.py'), '--owner-config', str(self.owner)],
+            input=json.dumps(request), text=True, capture_output=True)
+        self.assertEqual(process.returncode, 0, process.stderr)
+        result = json.loads(process.stdout)
+        view = result['materializations'][2]
+        self.assertEqual(view['state'], 'ready')
+        self.assertEqual((view['language'], view['script']), ('ru', 'Cyrl'))
+        self.assertEqual(view['display_text'], source['notes'])
+        self.assertIsNone(view['admission'])
+        self.assertNotIn('language_context', view)
+        self.assertEqual(next(item['value'] for item in view['context']
+                             if item['binding']['pointer'] == '/field_languages/notes'), metadata)
+        stored = json.loads(self.target.read_bytes())
+        self.assertEqual(stored['prior_forms'], [self.original_set['forms'][2]])
+        self.assertEqual(self.source.read_bytes(), before)
+
+    def test_field_language_metadata_is_explicit_and_bounded_not_inferred_from_expression_or_ui(self):
+        source = json.loads(self.original_source)
+        source['language'] = 'de'  # Language of an Expression is not language of its catalog notes.
+        fields = commands.metadata_field_catalog(source)
+        self.assertIsNone(next(field for field in fields if field['field_id'] == 'metadata.source-note')['language'])
+        for metadata in ({'language': 'x-test', 'script': None},
+                         {'language': None, 'script': 'Latn'},
+                         {'language': 'i-enochian', 'script': None}):
+            with self.subTest(metadata=metadata):
+                source['field_languages'] = {'preferred_label': metadata}
+                field = commands.metadata_field_catalog(source)[0]
+                self.assertEqual((field['language'], field['script']), (metadata['language'], metadata['script']))
+        for metadata in (None, {'notes': {'language': 'ru'}},
+                         {'notes': {'language': 'ru\n', 'script': None}},
+                         {'notes': {'language': 12, 'script': None}},
+                         {'notes': {'language': 'ru', 'script': 'Cyrillic'}},
+                         {'unowned-field': {'language': 'ru', 'script': None}}):
+            with self.subTest(invalid=metadata):
+                source['field_languages'] = metadata
+                with self.assertRaises(ValueError):
+                    commands.metadata_field_catalog(source)
+
     def test_source_correction_rebinds_selected_forms_and_preserves_unmodified_stale_forms(self):
         source = json.loads(self.original_source)
         source['record_version'] += 1

@@ -32,6 +32,13 @@ def _validator():
     return Draft202012Validator(schemas[-1], registry=registry)
 
 
+@lru_cache(maxsize=1)
+def _field_language_validator():
+    schema = json.loads((ROOT / 'ToS/contracts/corpus-record.schema.json').read_text())
+    registry = Registry().with_resource(schema['$id'], Resource.from_contents(schema))
+    return Draft202012Validator({'$ref': schema['$id'] + '#/properties/field_languages'}, registry=registry)
+
+
 def metadata_field_catalog(source: dict) -> list[dict]:
     """Semantic field selectors for this adapter; callers never guess pointers.
 
@@ -39,12 +46,19 @@ def metadata_field_catalog(source: dict) -> list[dict]:
     source ref must accompany prepared commands, so reordering is a conflict.
     """
     context = ['/' + key for key in ('identity_status', 'same_as_posture') if key in source]
+    declarations = source.get('field_languages', {})
+    if not _field_language_validator().is_valid(declarations):
+        raise ValueError('source field-language declarations violate the source contract')
+    if any(not isinstance(source.get(key), str) or not source[key].strip() for key in declarations):
+        raise ValueError('source field-language declaration has no complete wording field')
     result = []
     for key, field_id, role in (('preferred_label', 'metadata.preferred-name', 'name'),
                                 ('notes', 'metadata.source-note', 'hover')):
         if isinstance(source.get(key), str) and source[key].strip():
+            declaration = declarations.get(key, {})
             result.append({'field_id': field_id, 'pointer': '/' + key, 'role': role,
-                           'language': None, 'script': None, 'context': list(context)})
+                           'language': declaration.get('language'), 'script': declaration.get('script'),
+                           'context': [*context, *(['/field_languages/' + key] if key in declarations else [])]})
     for index, variant in enumerate(source.get('variant_labels', [])):
         if isinstance(variant, dict) and isinstance(variant.get('value'), str) and variant['value'].strip():
             base = f'/variant_labels/{index}/'

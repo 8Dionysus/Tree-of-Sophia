@@ -125,6 +125,13 @@ research provenance, an assessment or historical acceptance. This bounded
 operation does not revise existing subjects or turn a directory into corpus
 identity. Catalog and graph publication remain weaker, separate operations.
 
+Catalog wording may carry explicit per-field language/script declarations in
+`field_languages`; these are distinct from an Expression's `language` and from
+the linguistic originality or translation of a human form. The shared
+[human-forms adapter](HUMAN_FORMS.md#bibliographic-metadata-adapter) retains each
+declaration and its qualifications as exact source-bound context. A corrected
+declaration advances the record and successor form bindings, not the subject ID.
+
 Rules:
 
 - an ID is never reused for a different referent;
