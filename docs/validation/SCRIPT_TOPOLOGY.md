@@ -231,10 +231,12 @@ related checks.
 
 ## Skill Helper Scripts
 
-`.agents/skills/*/scripts/*.py` helpers are deterministic contract tools for
-local skill material. They can model dry-run, readiness, and risk contracts, but
-they do not become ToS runtime policy enforcement or release blockers unless a
-future owner decision explicitly promotes one concrete check.
+The selected profile may carry deterministic contract helpers for owner skill
+material. Tree-of-Sophia does not mirror those helpers under `.agents/skills`;
+their source owner decides whether a helper can model dry-run, readiness, or
+risk contracts. A helper does not become ToS runtime policy enforcement or a
+release blocker unless a future owner decision explicitly promotes one concrete
+check.
 
 ## Promotion Rule
 

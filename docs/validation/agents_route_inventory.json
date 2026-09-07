@@ -297,18 +297,18 @@
       "handoff_routes": [".github/AGENTS.md", "docs/RELEASING.md"]
     },
     {
-      "id": "agent_skill",
-      "prompt": "Add or refresh one agent skill package while preserving discovery metadata, on-demand companions, and the stronger skill owner.",
-      "target": ".agents/skills/aoa-change-protocol/SKILL.md",
+      "id": "agent_profile",
+      "prompt": "Bind or inspect the OS-user agent skill profile while preserving owner handles, progressive disclosure, and the stronger skill owner.",
+      "target": ".agents/README.md",
       "owner_route": ".agents/AGENTS.md",
-      "required_scopes": ["skill discovery", "triggered body", "on-demand companion", "activation metadata", "source owner"],
-      "required_markers": ["model-facing", "owning homes", "skill", "validate_nested_agents"],
+      "required_scopes": ["profile discovery", "triggered body", "owner-port route", "profile binding", "profile source"],
+      "required_markers": ["model-facing", "owning homes", "profile-owned discovery", "validate_nested_agents"],
       "boundary_markers": ["proof authority", "runtime", "source surfaces"],
-      "on_demand_surfaces": [".agents/README.md", ".agents/skills/aoa-change-protocol/SKILL.md", ".agents/skills/aoa-change-protocol/agents/openai.yaml"],
+      "on_demand_surfaces": [".agents/README.md", ".agents/agent-surface.manifest.json", "docs/validation/agents_route_inventory.json"],
       "validation_lanes": ["agent_surface", "route_docs"],
       "validation_paths": ["scripts/build_agent_surface_currentness.py", "scripts/validate_agent_surface.py", "scripts/validate_nested_agents.py"],
       "completion_evidence": [".agents/AGENTS.md", ".agents/agent-surface.manifest.json", ".agents/agent-surface.current.json", "scripts/validate_agent_surface.py"],
-      "handoff_routes": [".agents/skills/aoa-change-protocol/SKILL.md"]
+      "handoff_routes": ["aoa-skills", "aoa-agents"]
     },
     {
       "id": "eval_port",

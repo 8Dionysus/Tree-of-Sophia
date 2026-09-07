@@ -215,16 +215,19 @@ class AgentSurfaceTests(unittest.TestCase):
         self.assertEqual(
             current["package_inventory"],
             {
-                "agents_metadata": 25,
-                "assets": 56,
-                "checks": 16,
-                "examples": 25,
-                "references": 58,
-                "scripts": 6,
-                "skill_entrypoints": 25,
+                "agents_metadata": 0,
+                "assets": 0,
+                "checks": 0,
+                "examples": 0,
+                "references": 0,
+                "scripts": 0,
+                "skill_entrypoints": 0,
+                "profile_skill_bindings": 18,
             },
         )
-        self.assertEqual(len(current["packages"]), 25)
+        self.assertEqual(len(current["packages"]), 0)
+        self.assertEqual(len(current["profile_binding"]["skill_ids"]), 18)
+        self.assertEqual(current["legacy_projection"]["entry_count"], 25)
         self.assertEqual(max(current["task_probe_depths"].values()), 5)
         self.assertEqual(validator.validate_manifest(ROOT), [])
 
@@ -247,9 +250,14 @@ class AgentSurfaceTests(unittest.TestCase):
             )
         )
 
-    def test_external_owner_reference_is_not_a_local_companion_route(self) -> None:
-        package = ROOT / ".agents/skills/aoa-summon"
-        self.assertEqual(validator._check_local_reference_routes(ROOT, package), [])
+    def test_selected_profile_replaces_repository_local_projection(self) -> None:
+        manifest = builder.load_manifest(ROOT)
+        self.assertFalse((ROOT / ".agents/skills").exists())
+        self.assertEqual(validator.profile_binding_issues(manifest)[0], [])
+        self.assertEqual(set(current_skill for current_skill in builder.profile_skill_ids(manifest)), validator.EXPECTED_PROFILE_SKILLS)
+        self.assertEqual(builder.legacy_projection_ids(manifest), [
+            entry["legacy_name"] for entry in manifest["legacy_projection_migration"]["entries"]
+        ])
 
     def test_ignored_package_artifacts_are_not_currentness_inputs(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:

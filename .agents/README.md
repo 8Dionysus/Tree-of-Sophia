@@ -1,106 +1,102 @@
 # Tree-of-Sophia model-facing route
 
 This is the human entrypoint for the repository's model-facing companion
-surface. It maps selection and handoff; it does not replace a skill body, an
-owner port, an AGENTS.md contract, or an AoA owner.
+surface. It maps selection and handoff; it does not replace an owner skill,
+an owner port, an `AGENTS.md` contract, or an AoA source.
+
+## Profile-owned discovery
+
+Tree-of-Sophia has no repository-local projection of shared or sibling-owned
+skills. The selected Codex user profile `os-user-default` is the one discovery
+carrier for the current bundles. Its authored binding is recorded in
+`agent-surface.manifest.json`; the profile source and installer remain owned by
+`aoa-skills`.
+
+The binding selects seven shared `aoa-skills` bundles, nine admitted owner-port
+bundles from `aoa-evals`, `aoa-memo`, `aoa-stats`, `aoa-kag`, `aoa-agents`,
+`abyss-machine`, and `abyss-stack`, plus two `.aoa` session-memory owner links.
+The profile uses Codex user scope and managed copies. The binding records
+selection and ownership only; it does not prove installation, current live
+visibility, invocation, runtime health, behavior, or acceptance.
+
+The old 25 Tree-of-Sophia names remain in the authored migration crosswalk.
+Each row is either a current owner skill, a merged capability mode, or a
+workflow/guard owner object. A crosswalk row is not a package. Deferred
+`engineering-shape` and `verification` modes remain deferred, and runtime
+approval, preview, stack, infrastructure, and commit effects remain with their
+named owners.
 
 ## Read by load moment
 
 | Moment | Carrier | What it owns | Next route |
 | --- | --- | --- | --- |
-| always discovered | skill frontmatter description and agents/openai.yaml | short selection signal and display/activation metadata | trigger the selected package only when its boundary fits |
-| triggered | skills/*/SKILL.md | procedure, authority boundary, refusal/return semantics, provenance, uncertainty, and negative controls | nearest repository or stronger AoA owner named by the skill |
-| on demand | references/ and examples/ | schema, rationale, or a worked shape needed by the current task | return to the triggered skill and its owner route |
-| executable or review | scripts/ and checks/ | local helper or review checklist; neither is philosophical authority | use the named owner-local or validation lane |
-| portable package support | assets/ | package UI assets | keep portable copies aligned with the aoa-skills source owner |
+| always discovered | the selected profile package description and activation metadata | short selection signal and display policy | trigger the selected profile bundle only when its boundary fits |
+| triggered | the selected profile package body | procedure, authority boundary, refusal/return semantics, and negative controls | nearest repository owner or stronger AoA owner named by the bundle |
+| on demand | references and examples in the selected profile package | schema, rationale, or a worked shape | return to the triggered body and its owner route |
+| executable or review | owner-provided helpers and checks | local helper or review aid; neither is philosophical authority | use the named owner validation lane |
+| owner port | `evals/`, `stats/`, `kag/`, and `memo/` | local intake and handoff pressure | the named sibling owner |
 
-The machine map is agent-surface.manifest.json. The generated structural read
-model is agent-surface.current.json. The map is authored here; the currentness
-file is rebuilt, never hand-edited.
-
-The cross-corpus family map is [docs/validation/documentation_family_map.json](../docs/validation/documentation_family_map.json).
-Its generated currentness carrier is on demand; it joins exact tracked
-documentation, structured, and executable surfaces without replacing this
-skill/port map or any stronger owner.
-
-## Skill families
-
-The repository carries 25 portable skill entrypoints. Their source owner is
-8Dionysus/aoa-skills; this directory is the local model-facing export.
-
-| Family | Use | Next organ |
-| --- | --- | --- |
-| engineering core | authority, boundaries, bounded repository change, contracts, logic seams, invariants, and tests | the nearest source, mechanic, docs, or test owner and its narrow validator |
-| risk controls | approval, preview, local stack, infrastructure change, and public-safe sharing | approval/dry-run carrier, runtime owner, or sanitized sharing owner; status and receipts stay outside this map |
-| session growth | reviewed-session diagnosis, repair, closeout, route forks, progression, quest, automation, commit, and bounded delegation | a reviewed session packet and the named AoA skill/owner; never a live-session snapshot |
-
-The SKILL.md body is loaded only after a package is selected. References,
-examples, checks, scripts, and assets are task-local reads. A green helper or
-validator proves only its declared mechanics; it does not admit a source,
-claim, canon object, runtime, graph, eval verdict, memory, or release.
+The machine map is `agent-surface.manifest.json`. The generated structural
+read model is `agent-surface.current.json`. The map is authored here; the
+currentness file is rebuilt, never hand-edited. The generated file records zero
+repository-local package entries, the 18 selected profile bindings, the 25-row
+legacy crosswalk, task-probe depth, and owner-port inputs.
+The manifest is a machine validation and migration input; discovery starts from
+this entrypoint and reads the manifest on demand.
 
 ## Owner-port routes
 
-These ports expose local pressure while preserving stronger owners.
-
 | Local port | Consumer and load moment | Canonical owner | Currentness and next organ |
 | --- | --- | --- | --- |
-| evals/PORT.yaml | eval pressure intake before suite or verdict work | aoa-evals | local packet/route shape; hand to aoa-evals for selection, proof, scoring, or verdict |
-| stats/port.manifest.json | an owner-local measurement question or reference packet | aoa-stats for shared grammar; ToS authors the question | manifest, source rows, route map, and reference packet; return to the atlas owner, then central stats composition |
-| kag/manifest.json | a downstream KAG/MCP consumer requests the portable provider family | aoa-kag for registry/composition; ToS derived exports remain source | source export, derived seam, local manifest/index family, and provider records; return to ToS/derived-exports/ and the KAG seam |
-| memo/PORT.yaml | a reviewed candidate needs a tree-local memory intake | aoa-memo | candidate-only local route and generated index; reviewed handoff goes to aoa-memo, never directly to durable memory |
+| `evals/PORT.yaml` | eval pressure before suite or verdict work | `aoa-evals` | local packet/route shape; hand to central selection/proof/verdict owner |
+| `stats/port.manifest.json` | an owner-local measurement question or reference packet | `aoa-stats` for shared grammar; ToS for the question | source rows, route map, and reference packet; return to atlas and stats owners |
+| `kag/manifest.json` | a downstream KAG/MCP consumer requests the provider family | `aoa-kag` for registry/composition; ToS derived exports remain source | derived export, local provider family, and downstream registry/MCP consumer |
+| `memo/PORT.yaml` | reviewed evidence suggests a tree-local memory candidate | `aoa-memo` | candidate-only local route; reviewed handoff goes to the stronger memory owner |
 
-Local ports can be reference, candidate, generated, or receipt carriers. They
-do not become live status, runtime truth, central eval authority, KAG substrate
+Local ports can carry reference, candidate, generated, or receipt data. They do
+not become live status, runtime truth, central eval authority, KAG substrate
 authority, or durable memory authority by being present in Git.
 
 ## Task probes
 
-Use the task probe matrix in the machine map for the smallest chain below.
+Use the task-probe matrix in the machine map for the smallest chain below.
 
 | Task pressure | First route | Required chain | Negative control |
 | --- | --- | --- | --- |
-| source authority | aoa-source-of-truth-check | canonical file -> owner -> downstream projection only after source | do not promote a generated view, KAG record, or receipt to source |
-| bounded context | aoa-bounded-context-map | contexts -> interfaces -> nearest owner contract | do not invent a new taxonomy when the boundary is already clear |
-| repository change | aoa-change-protocol | root/nearest card -> bounded diff -> narrow check -> report | do not widen scope or hide an owner handoff in a copied procedure |
-| session diagnosis/repair | aoa-session-self-diagnose -> aoa-session-self-repair | reviewed evidence -> diagnosis -> repair packet -> owner health check | do not diagnose live/unreviewed evidence or repair without a packet |
-| approval or dry-run | aoa-approval-gate-check or aoa-dry-run-first | authority classification -> preview/confirmation -> owner carrier | dry-run does not grant authorization; approval does not replace preview |
-| eval intake | evals/PORT.yaml -> aoa-evals | local pressure -> central selection/proof/verdict owner | local eval notes are not a verdict |
-| owner-local stats | stats/port.manifest.json -> aoa-stats | question -> declared measurement -> evidence-linked packet -> central grammar | reference snapshot is not live state |
-| KAG currentness | kag/AGENTS.md -> kag/manifest.json | source export -> derived seam -> local provider validation -> downstream registry/MCP | local provider is not runtime graph authority |
-| memo candidate | memo/PORT.yaml -> aoa-memo | candidate-only write -> validation -> reviewed owner intake | candidate, index, or receipt is not durable memory |
+| source authority | `aoa-knowledge-stewardship` | canonical source -> named owner -> projection after source | generated view, receipt, or ADR is not source authority |
+| bounded context | deferred `aoa-skills` engineering-shape mode | contexts -> interfaces -> nearest owner contract -> narrow check | do not make a deferred mode look installed |
+| repository change | host-agent repository-change workflow | root/nearest card -> bounded diff -> focused validation -> report | route prose does not own the repository effect |
+| session diagnosis/repair | `aoa-session-recovery` | reviewed evidence -> diagnosis -> repair packet -> owner health check | do not diagnose live/unreviewed evidence or repair without a packet |
+| approval or dry-run | host runtime approval or target runtime preview | authority classification -> preview -> explicit confirmation -> owner carrier | dry-run does not grant authorization |
+| eval intake | `evals/PORT.yaml` -> `aoa-evals` | local pressure -> local validation -> central selection/proof/verdict | local packet is not a verdict |
+| owner-local stats | `stats/port.manifest.json` -> `aoa-stats` | question -> measurement -> evidence-linked packet -> shared grammar | reference snapshot is not live state |
+| KAG currentness | `kag/manifest.json` -> `aoa-kag` | source export -> derived seam -> provider validation -> registry/MCP | local provider is not runtime graph authority |
+| memo candidate | `memo/PORT.yaml` -> `aoa-memo` | candidate-only route -> local validation -> reviewed owner intake | candidate, index, or receipt is not durable memory |
 
 ## Context and safety
 
-The map records a soft context budget: discovery descriptions stay under 100
-words and use one-line scalars, triggered bodies stay under 2,000 words, and
-mandatory task-probe reading reaches at most five local route hops. Folded and
-literal multiline descriptions are rejected until their full YAML scalar can be
-counted. These are drift signals, not a claim that a task is semantically
-complete. The generated companion records measured package bytes, digests, word
-counts, companion counts, activation metadata, and the declared owner-port input
-set.
+The map records a soft context budget: profile descriptions stay under 100
+words, triggered bodies stay under 2,000 words, and mandatory task-probe
+reading reaches at most five local route hops. These are drift signals, not a
+claim that a task is semantically complete.
 
 Public authored model-facing docs do not carry host-local paths, secrets,
 session snapshots, provider internals, transient runtime claims, or operator
-evidence. Put those in task-local files, tool/MCP resources, status surfaces,
+evidence. Put those in task-local files, tool resources, owner status surfaces,
 or typed receipts owned by the relevant organ.
-
-Identical reference schemas and logo assets are intentionally retained inside
-portable skill packages. Their repetition is an upstream packaging concern;
-deduplication belongs in aoa-skills, followed by a local export refresh. This
-map does not make a copied packet a second source owner.
 
 ## Validation
 
-The focused command is the agent_surface lane in
-docs/validation/validation_lanes.json: python scripts/validate_agent_surface.py
---check --fetch-budget-bases.
-The explicit preflight fetches each missing receipt-bound base commit by its
-exact immutable ref, so this documented lane also works in a shallow clone;
-without the flag, an unavailable base remains a fail-closed validation error.
-It checks manifest/package parity, metadata activation parity, on-demand route
-resolution, owner-port inputs, task-probe negative controls, public-safe
-authored surfaces, and generated currentness. Release checks call the same
-lane, including the KAG family digest/receipt binding; skill-local helper
-scripts remain advisory unless their own owner explicitly promotes them.
+The focused command is the `agent_surface` lane in
+`docs/validation/validation_lanes.json`:
+
+```bash
+python scripts/build_agent_surface_currentness.py
+python scripts/validate_agent_surface.py --check --fetch-budget-bases
+```
+
+The builder proves parity for the authored map and generated read model. The
+validator proves profile-binding shape, zero local projections, crosswalk
+coverage, owner-port inputs, task-probe negative controls, and public safety.
+Neither command proves profile installation, fresh-session discovery, model
+behavior, owner acceptance, CI, merge, deployment, runtime health, or release.

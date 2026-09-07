@@ -1,16 +1,16 @@
 {
   "cards": [
     {
-      "bytes": 1413,
+      "bytes": 1660,
       "inheritance_stack": [
         "AGENTS.md",
         ".agents/AGENTS.md"
       ],
-      "lines": 39,
+      "lines": 44,
       "path": ".agents/AGENTS.md",
-      "sha256": "de8b1aca122e532aa3f82b5130b52d881d20940280d268becffe9c62233a8a14",
+      "sha256": "db9ab1e395dc66c5de56b2f328a7291b7bf80febcfb72626294249268074f01e",
       "tracked": true,
-      "whitespace_tokens": 194
+      "whitespace_tokens": 221
     },
     {
       "bytes": 1629,
@@ -813,31 +813,31 @@
       "whitespace_tokens": 1140
     },
     {
-      "bytes": 7957,
+      "bytes": 7003,
       "exists": true,
-      "lines": 106,
+      "lines": 102,
       "path": ".agents/README.md",
       "role": "model-facing skill and owner-port progressive-disclosure entrypoint",
-      "sha256": "ffa6b5eb46f84abc317907a52c56ae6d17aa4993f989f7e242f52db74ceb36d1",
-      "whitespace_tokens": 1181
+      "sha256": "e4dbf117344fdf874737357dd7c3fb8acedff904f84324f72dfaf4056c81ae53",
+      "whitespace_tokens": 1033
     },
     {
-      "bytes": 20962,
+      "bytes": 33809,
       "exists": true,
-      "lines": 329,
+      "lines": 890,
       "path": ".agents/agent-surface.manifest.json",
       "role": "skill, owner-port, carrier, and task-probe map",
-      "sha256": "988c2870e6ceb2cb6357e66668d14f2815a93e53560adbfab17f05eb473e0ef0",
-      "whitespace_tokens": 1587
+      "sha256": "eac3203c75ec19180b2f35b1b08520fc12f799959d92e7dd804f7d2c647394f1",
+      "whitespace_tokens": 2469
     },
     {
-      "bytes": 40779,
+      "bytes": 8240,
       "exists": true,
-      "lines": 1110,
+      "lines": 256,
       "path": ".agents/agent-surface.current.json",
       "role": "generated skill/port currentness read model",
-      "sha256": "a10d245c14291b39f3bc86fc96a13e6815c31d1ae7bff478c7ba0633ff46caad",
-      "whitespace_tokens": 2631
+      "sha256": "33b4fb060a2c32832f0245a802f39dbf68dfb7c0b3dcad03d234a55ba2f042e5",
+      "whitespace_tokens": 392
     },
     {
       "bytes": 33237,
@@ -885,22 +885,22 @@
       "whitespace_tokens": 945
     },
     {
-      "bytes": 14345,
+      "bytes": 14444,
       "exists": true,
-      "lines": 245,
+      "lines": 247,
       "path": "docs/validation/SCRIPT_TOPOLOGY.md",
       "role": "script ownership, inventory, and command-plane boundary",
-      "sha256": "93066602818ca4a1932fa7fc3198ffc6847bd1e80f0364b23f78e835d04b55d6",
-      "whitespace_tokens": 1820
+      "sha256": "709302f72340774f165a7a9e014296386bfe1f5364755c39ea9da12aa1fb4623",
+      "whitespace_tokens": 1837
     },
     {
-      "bytes": 172588,
+      "bytes": 168656,
       "exists": true,
-      "lines": 3107,
+      "lines": 2999,
       "path": "docs/validation/script_inventory.json",
       "role": "deterministic script coverage and side-effect inventory",
-      "sha256": "b6873cb081f13175917818bc8b3af9e79b79b13768d12687e0dc2a46d43cec64",
-      "whitespace_tokens": 8982
+      "sha256": "826b797104fd7c1cb693ec094ee91d998bbcd4b159b87aea2f21887c88ca6cc6",
+      "whitespace_tokens": 8736
     },
     {
       "bytes": 6060,
@@ -987,7 +987,7 @@
     "near_duplicate_cards": "manual review"
   },
   "source_inventory": "docs/validation/agents_route_inventory.json",
-  "source_inventory_sha256": "e951ecec4cf9ab9f58677e6131cfe03e4c2177d32448814707809b88780d01a1",
+  "source_inventory_sha256": "582165a341a91a61cfbfedc45d6feabeecfaac8ff97cb3bc83696b3534212dfd",
   "task_routes": [
     {
       "additional_context_tokens": 14005,
@@ -2047,7 +2047,7 @@
       ]
     },
     {
-      "additional_context_tokens": 5623,
+      "additional_context_tokens": 5640,
       "completion_evidence": [
         {
           "bytes": 6403,
@@ -2112,13 +2112,13 @@
           "whitespace_tokens": 2436
         },
         {
-          "bytes": 14345,
+          "bytes": 14444,
           "exists": true,
-          "lines": 245,
+          "lines": 247,
           "path": "docs/validation/SCRIPT_TOPOLOGY.md",
           "role": "on_demand",
-          "sha256": "93066602818ca4a1932fa7fc3198ffc6847bd1e80f0364b23f78e835d04b55d6",
-          "whitespace_tokens": 1820
+          "sha256": "709302f72340774f165a7a9e014296386bfe1f5364755c39ea9da12aa1fb4623",
+          "whitespace_tokens": 1837
         },
         {
           "bytes": 4943,
@@ -2185,113 +2185,113 @@
       ]
     },
     {
-      "additional_context_tokens": 1985,
+      "additional_context_tokens": 4961,
       "completion_evidence": [
         {
-          "bytes": 1413,
+          "bytes": 1660,
           "exists": true,
-          "lines": 39,
+          "lines": 44,
           "path": ".agents/AGENTS.md",
           "role": "completion",
-          "sha256": "de8b1aca122e532aa3f82b5130b52d881d20940280d268becffe9c62233a8a14",
-          "whitespace_tokens": 194
+          "sha256": "db9ab1e395dc66c5de56b2f328a7291b7bf80febcfb72626294249268074f01e",
+          "whitespace_tokens": 221
         },
         {
-          "bytes": 20962,
+          "bytes": 33809,
           "exists": true,
-          "lines": 329,
+          "lines": 890,
           "path": ".agents/agent-surface.manifest.json",
           "role": "completion",
-          "sha256": "988c2870e6ceb2cb6357e66668d14f2815a93e53560adbfab17f05eb473e0ef0",
-          "whitespace_tokens": 1587
+          "sha256": "eac3203c75ec19180b2f35b1b08520fc12f799959d92e7dd804f7d2c647394f1",
+          "whitespace_tokens": 2469
         },
         {
-          "bytes": 40779,
+          "bytes": 8240,
           "exists": true,
-          "lines": 1110,
+          "lines": 256,
           "path": ".agents/agent-surface.current.json",
           "role": "completion",
-          "sha256": "a10d245c14291b39f3bc86fc96a13e6815c31d1ae7bff478c7ba0633ff46caad",
-          "whitespace_tokens": 2631
+          "sha256": "33b4fb060a2c32832f0245a802f39dbf68dfb7c0b3dcad03d234a55ba2f042e5",
+          "whitespace_tokens": 392
         },
         {
-          "bytes": 118434,
+          "bytes": 128808,
           "exists": true,
-          "lines": 2745,
+          "lines": 2942,
           "path": "scripts/validate_agent_surface.py",
           "role": "completion",
-          "sha256": "82356c1379d6c4473a03a5fc55c89ec18ac86a29aa304f8ff305044c6c463225",
-          "whitespace_tokens": 9261
+          "sha256": "513285acb32594d22f1852311a9df24f8c5da1647cfa22e204713202de495a22",
+          "whitespace_tokens": 10085
         }
       ],
-      "id": "agent_skill",
+      "id": "agent_profile",
       "inheritance_stack": [
         "AGENTS.md",
         ".agents/AGENTS.md"
       ],
-      "inherited_context_tokens": 1059,
+      "inherited_context_tokens": 1086,
       "on_demand_surfaces": [
         {
-          "bytes": 7957,
+          "bytes": 7003,
           "exists": true,
-          "lines": 106,
+          "lines": 102,
           "path": ".agents/README.md",
           "role": "on_demand",
-          "sha256": "ffa6b5eb46f84abc317907a52c56ae6d17aa4993f989f7e242f52db74ceb36d1",
-          "whitespace_tokens": 1181
+          "sha256": "e4dbf117344fdf874737357dd7c3fb8acedff904f84324f72dfaf4056c81ae53",
+          "whitespace_tokens": 1033
         },
         {
-          "bytes": 5586,
+          "bytes": 33809,
           "exists": true,
-          "lines": 96,
-          "path": ".agents/skills/aoa-change-protocol/SKILL.md",
+          "lines": 890,
+          "path": ".agents/agent-surface.manifest.json",
           "role": "on_demand",
-          "sha256": "b2520cd09af06053bd8832ff9f2ed2997831054445477273cd26e3b945850d89",
-          "whitespace_tokens": 769
+          "sha256": "eac3203c75ec19180b2f35b1b08520fc12f799959d92e7dd804f7d2c647394f1",
+          "whitespace_tokens": 2469
         },
         {
-          "bytes": 395,
+          "bytes": 22513,
           "exists": true,
-          "lines": 10,
-          "path": ".agents/skills/aoa-change-protocol/agents/openai.yaml",
+          "lines": 370,
+          "path": "docs/validation/agents_route_inventory.json",
           "role": "on_demand",
-          "sha256": "19c9d8c484b85bfac8beba4916f17a68935973577f4c74d80181463009bfa38b",
-          "whitespace_tokens": 35
+          "sha256": "582165a341a91a61cfbfedc45d6feabeecfaac8ff97cb3bc83696b3534212dfd",
+          "whitespace_tokens": 1459
         }
       ],
       "owner_exists": true,
       "owner_handoff": {
-        "bytes": 1413,
+        "bytes": 1660,
         "exists": true,
-        "lines": 39,
+        "lines": 44,
         "path": ".agents/AGENTS.md",
         "role": "owner_handoff",
-        "sha256": "de8b1aca122e532aa3f82b5130b52d881d20940280d268becffe9c62233a8a14",
-        "whitespace_tokens": 194
+        "sha256": "db9ab1e395dc66c5de56b2f328a7291b7bf80febcfb72626294249268074f01e",
+        "whitespace_tokens": 221
       },
       "owner_handoff_context_tokens": 0,
       "owner_in_inheritance_stack": true,
       "owner_route": ".agents/AGENTS.md",
-      "target": ".agents/skills/aoa-change-protocol/SKILL.md",
+      "target": ".agents/README.md",
       "target_exists": true,
       "validation_paths": [
         {
-          "bytes": 14740,
+          "bytes": 18371,
           "exists": true,
-          "lines": 397,
+          "lines": 486,
           "path": "scripts/build_agent_surface_currentness.py",
           "role": "validation",
-          "sha256": "d24264b87251bcc64190f264b4f810233913e05a41d4e1e1aa825120bb5cb8c0",
-          "whitespace_tokens": 1255
+          "sha256": "bec1595a29029189e0ec0dad9bdfdcc92142cafcb78a042101c9765e8344aaff",
+          "whitespace_tokens": 1492
         },
         {
-          "bytes": 118434,
+          "bytes": 128808,
           "exists": true,
-          "lines": 2745,
+          "lines": 2942,
           "path": "scripts/validate_agent_surface.py",
           "role": "validation",
-          "sha256": "82356c1379d6c4473a03a5fc55c89ec18ac86a29aa304f8ff305044c6c463225",
-          "whitespace_tokens": 9261
+          "sha256": "513285acb32594d22f1852311a9df24f8c5da1647cfa22e204713202de495a22",
+          "whitespace_tokens": 10085
         },
         {
           "bytes": 23014,
