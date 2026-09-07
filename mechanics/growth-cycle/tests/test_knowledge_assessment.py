@@ -19,6 +19,7 @@ from unittest.mock import patch
 
 ROOT = Path(__file__).resolve().parents[3]
 sys.path.insert(0, str(ROOT / "mechanics/growth-cycle/parts/branch-growth-cycle/scripts"))
+sys.path.insert(0, str(ROOT / 'scripts'))  # Source-to-graph assessment adapter contract.
 
 from knowledge_assessment import AssessmentEngine, Record, SubjectContext, Submission
 
@@ -547,6 +548,243 @@ class AssessmentPolicyTests(unittest.TestCase):
                 with self.assertRaises(PermissionError):
                     self.run_local(path, {**describe, 'operation': 'materialize-form', 'expected_subject': current.ref,
                                           'expected_snapshot': result['owner_snapshot']})
+
+    def test_assessed_graph_snapshot_uses_current_owner_and_keeps_source_packet(self):
+        from source_witness_human_forms import AssessedFormSnapshot, materialize_metadata_forms
+        sys.path.insert(0, str(ROOT / 'access/src'))
+        from tos_access.knowledge import select_human_forms
+        path, config, form_path, source = self.assessed_form_fixture()
+        package = json.loads(form_path.read_text())
+        nodes = [{'node_id': 'fixture:source', 'source_ref': config['source_records'][0]['path'],
+                  'source_sha256': source.ref['digest'].removeprefix('sha256:'),
+                  'properties': {'source_record': source.payload,
+                      'human_forms_source_ref': config['source_records'][1]['path'],
+                      'human_forms': materialize_metadata_forms(source.payload, package, access_allowed=True)}}]
+        before = copy.deepcopy(nodes)
+        snapshot = AssessedFormSnapshot(path, [self.subject.id])
+        pending = snapshot.materialize(nodes)
+        self.assertEqual(nodes, before)
+        self.assertEqual(pending[0]['properties']['human_forms'][0]['state'], 'needs-assessment')
+        describe = self.run_local(path, {'schema_version': 'tos_local_assessment_command_v1',
+                    'operation': 'describe', 'subject_id': self.subject.id})
+        self.run_local(path, {'schema_version': 'tos_local_assessment_command_v1', 'operation': 'append',
+            'subject_id': self.subject.id, 'expected_subject': self.subject.ref,
+            'expected_snapshot': describe['owner_snapshot'], 'command_id': 'fixture-projection-review',
+            'expected_revision': None, 'assessments': [self.review(profile='interpretation').assessment]})
+        from assessment_journal import JournalConflict
+        with self.assertRaises(JournalConflict):
+            snapshot.verify_current()
+        fresh = AssessedFormSnapshot(path, [self.subject.id])
+        ready = fresh.materialize(nodes)
+        fresh.verify_current()
+        packet = ready[0]['properties']['human_forms'][0]
+        self.assertEqual(packet['display_text'], self.subject.payload['content']['text'])
+        self.assertEqual(packet['context'][0]['value'], source.payload)
+        self.assertEqual(packet['assessment_snapshot']['publication_authorized'], False)
+        from jsonschema import Draft202012Validator
+        from referencing import Registry, Resource
+        schemas = [json.loads((ROOT / 'ToS/contracts' / name).read_text())
+                   for name in ('human-form.schema.json', 'knowledge-assessment.schema.json')]
+        registry = Registry().with_resources((schema['$id'], Resource.from_contents(schema)) for schema in schemas)
+        validator = Draft202012Validator({'$ref': schemas[0]['$id'] + '#/$defs/materialization'}, registry=registry)
+        validator.validate(packet)
+        validator.validate(pending[0]['properties']['human_forms'][0])
+        invalid = copy.deepcopy(packet)
+        invalid['assessment_snapshot']['publication_authorized'] = True
+        self.assertFalse(validator.is_valid(invalid))
+        carrier = {'content_revision': 'a' * 64, 'attributes': {**ready[0]['properties'],
+                   'source_sha256': source.ref['digest'].removeprefix('sha256:')}}
+        self.assertEqual(select_human_forms(carrier, 'ru')['roles']['hover']['packet'], packet)
+        self.assertNotIn(str(path), json.dumps(ready))
+        self.assertNotIn(str(path.parent / 'journal'), json.dumps(ready))
+
+    def test_assessed_graph_snapshot_rejects_unmatched_inputs_and_never_mutates_on_failure(self):
+        from source_witness_human_forms import AssessedFormSnapshot, materialize_metadata_forms
+        from assessment_journal import JournalConflict
+        path, config, form_path, source = self.assessed_form_fixture()
+        node = {'node_id': 'fixture:source', 'source_ref': config['source_records'][0]['path'],
+                'source_sha256': source.ref['digest'].removeprefix('sha256:'),
+                'properties': {'source_record': source.payload,
+                    'human_forms_source_ref': config['source_records'][1]['path'],
+                    'human_forms': materialize_metadata_forms(source.payload, json.loads(form_path.read_text()), access_allowed=True)}}
+        for mutation in ('source', 'form', 'source-path', 'form-path', 'missing'):
+            with self.subTest(mutation=mutation):
+                changed = copy.deepcopy(node)
+                if mutation == 'source':
+                    changed['properties']['source_record']['notes'] = 'Different source.'
+                elif mutation == 'form':
+                    changed['properties']['human_forms'][0]['form']['digest'] = 'sha256:' + '0' * 64
+                elif mutation == 'source-path':
+                    changed['source_ref'] = 'ToS/source-witnesses/wrong.json'
+                elif mutation == 'form-path':
+                    changed['properties']['human_forms_source_ref'] = 'ToS/source-witnesses/wrong.human-forms.json'
+                else:
+                    changed['properties']['human_forms'] = []
+                before = copy.deepcopy(changed)
+                with self.assertRaises((ValueError, JournalConflict)):
+                    AssessedFormSnapshot(path, [self.subject.id]).materialize([changed])
+                self.assertEqual(changed, before)
+        for ids in ([], [self.subject.id, self.subject.id], ['not-a-form'], 'tos.form.not-a-list'):
+            with self.subTest(ids=ids), self.assertRaises(ValueError):
+                AssessedFormSnapshot(path, ids)
+
+    def test_assessed_graph_snapshot_detects_source_grant_and_expiry_drift(self):
+        from source_witness_human_forms import AssessedFormSnapshot, materialize_metadata_forms
+        from assessment_journal import JournalConflict
+        from datetime import datetime
+        path, config, form_path, source = self.assessed_form_fixture()
+        node = {'node_id': 'fixture:source', 'source_ref': config['source_records'][0]['path'],
+                'source_sha256': source.ref['digest'].removeprefix('sha256:'),
+                'properties': {'source_record': source.payload,
+                    'human_forms_source_ref': config['source_records'][1]['path'],
+                    'human_forms': materialize_metadata_forms(source.payload, json.loads(form_path.read_text()), access_allowed=True)}}
+        describe = self.run_local(path, {'schema_version': 'tos_local_assessment_command_v1',
+                    'operation': 'describe', 'subject_id': self.subject.id})
+        self.run_local(path, {'schema_version': 'tos_local_assessment_command_v1', 'operation': 'append',
+            'subject_id': self.subject.id, 'expected_subject': self.subject.ref,
+            'expected_snapshot': describe['owner_snapshot'], 'command_id': 'fixture-snapshot-review',
+            'expected_revision': None, 'assessments': [self.review(profile='interpretation').assessment]})
+        snapshot = AssessedFormSnapshot(path, [self.subject.id])
+        snapshot.materialize([node])
+        with patch('assessment_journal.datetime') as clock:
+            clock.now.return_value = datetime.fromisoformat('2026-10-02T00:00:00+00:00')
+            with self.assertRaises(JournalConflict):
+                snapshot.verify_current()
+        config['authorities'][0]['payload']['state'] = 'revoked'
+        path.write_text(json.dumps(config))
+        with self.assertRaises(JournalConflict):
+            snapshot.verify_current()
+        fresh = AssessedFormSnapshot(path, [self.subject.id])
+        self.assertEqual(fresh.materialize([node])[0]['properties']['human_forms'][0]['state'], 'needs-assessment')
+        source_path = Path(config['source_root']) / config['source_records'][0]['path']
+        source_path.write_text(json.dumps({**source.payload, 'record_version': source.version + 1}))
+        with self.assertRaises(JournalConflict):
+            fresh.verify_current()
+
+    def test_assessed_form_runs_through_both_existing_builders_and_common_reader(self):
+        """Real Jenseits identity, synthetic review; not corpus admission."""
+        sys.path.insert(0, str(ROOT / 'tests'))
+        sys.path.insert(0, str(ROOT / 'access/src'))
+        from test_source_witness_bibliographic_graph import SourceWitnessBibliographicGraphTest
+        from source_witness_human_forms import AssessedFormSnapshot
+        from source_witness_bibliographic_graph_common import build_payload
+        import tos_corpus_index_common as corpus
+        from tos_access.knowledge import build_knowledge_graph, select_human_forms, focus_knowledge_node
+        path, config, form_path, source = self.assessed_form_fixture()
+        form_bytes = form_path.read_bytes()
+        with SourceWitnessBibliographicGraphTest().historical_fixture() as (root, _, _, _, rebuild):
+            target = root / config['source_records'][1]['path']
+            target.write_bytes(form_bytes)
+            config['source_root'] = str(root)
+            path.write_text(json.dumps(config))
+            ordinary = rebuild()
+            description = self.run_local(path, {'schema_version': 'tos_local_assessment_command_v1',
+                'operation': 'describe', 'subject_id': self.subject.id})
+            append = {'schema_version': 'tos_local_assessment_command_v1', 'operation': 'append',
+                'subject_id': self.subject.id, 'expected_subject': self.subject.ref,
+                'expected_snapshot': description['owner_snapshot'], 'command_id': 'fixture-reader-review',
+                'expected_revision': None, 'assessments': [self.review(profile='interpretation').assessment]}
+            self.run_local(path, append)
+            snapshot = AssessedFormSnapshot(path, [self.subject.id])
+            projected = build_payload(root, assessed_forms=snapshot)
+            with patch.object(corpus, 'REPO_ROOT', root), patch.object(corpus, 'TOS_ROOT', root / 'ToS'):
+                navigation = corpus.build_source_navigation([], assessed_forms=snapshot)
+            snapshot.verify_current()
+            entities, relations = [json.loads((root / 'ToS/doctrine/semantic-interchange' / name).read_text())
+                                   for name in ('entity-types.v1.json', 'relation-types.v1.json')]
+            combined = build_knowledge_graph({'source_navigation': navigation}, {}, projected, entities, relations)
+            with self.assertRaisesRegex(ValueError, 'assessment snapshot'):
+                build_knowledge_graph({'source_navigation': navigation}, {}, ordinary, entities, relations)
+            inconsistent = copy.deepcopy(navigation)
+            carrier = next(node for node in inconsistent['nodes'] if 'human_forms' in node['properties'])
+            carrier['properties']['human_forms'][0]['assessment_snapshot']['journal_revision'] = '0' * 64
+            with self.assertRaisesRegex(ValueError, 'assessment snapshot'):
+                build_knowledge_graph({'source_navigation': inconsistent}, {}, projected, entities, relations)
+            inconsistent = copy.deepcopy(navigation)
+            carrier = next(node for node in inconsistent['nodes'] if 'human_forms' in node['properties'])
+            carrier['properties']['human_forms'][0]['assessment_snapshot']['publication_authorized'] = 0
+            with self.assertRaisesRegex(ValueError, 'assessment snapshot'):
+                build_knowledge_graph({'source_navigation': inconsistent}, {}, projected, entities, relations)
+            carriers = [node for node in combined['nodes'] if node.get('entity_id') == source.id]
+            self.assertEqual(len(carriers), 2)
+            packets = [select_human_forms(node, 'ru')['roles']['hover']['packet'] for node in carriers]
+            self.assertEqual(packets[0], packets[1])
+            self.assertEqual(packets[0]['display_text'], self.subject.payload['content']['text'])
+            focused = focus_knowledge_node(combined, source.id, depth=1)
+            centered = next(node for node in focused['nodes'] if node['id'] == focused['focus']['node_id'])
+            self.assertEqual(select_human_forms(centered, 'ru')['roles']['hover']['packet'], packets[0])
+            self.assertEqual(target.read_bytes(), form_bytes)
+            self.assertNotEqual(projected['projection_fingerprint'], ordinary['projection_fingerprint'])
+            self.assertIn('local research candidate', projected['authority_boundary']['projection_role'])
+            self.assertEqual(build_payload(root), ordinary)
+            config['authorities'][0]['payload']['state'] = 'revoked'
+            path.write_text(json.dumps(config))
+            refreshed = build_payload(root, assessed_forms=AssessedFormSnapshot(path, [self.subject.id]))
+            self.assertNotEqual(refreshed['projection_fingerprint'], projected['projection_fingerprint'])
+            node = next(node for node in refreshed['nodes'] if node['properties'].get('identity_ref') == source.id)
+            self.assertEqual(node['properties']['human_forms'][0]['state'], 'needs-assessment')
+            self.assertIsNone(node['properties']['human_forms'][0]['display_text'])
+
+    def test_assessed_builder_cli_and_atomic_candidate_cannot_replace_source_or_existing_files(self):
+        import argparse
+        from source_witness_human_forms import (AssessedFormSnapshot, materialize_metadata_forms,
+            add_assessed_build_arguments, assessed_build_input, write_assessed_candidate)
+        path, config, form_path, source = self.assessed_form_fixture()
+        parser = argparse.ArgumentParser()
+        add_assessed_build_arguments(parser)
+        standard = ROOT / 'ToS/derived-exports/graph/source-witness-bibliographic-claims.min.json'
+        self.assertEqual(assessed_build_input(parser.parse_args([]), ROOT, standard), (None, standard))
+        base = ['--assessment-owner-config', str(path), '--assessed-form-id', self.subject.id]
+        for args in (base, ['--output', str(path.parent / 'candidate.json')],
+                     [*base, '--output', str(standard)],
+                     [*base, '--output', str(ROOT / 'ToS/local-candidate.json')]):
+            with self.subTest(args=args), self.assertRaises(ValueError):
+                assessed_build_input(parser.parse_args(args), ROOT, standard)
+        target = path.parent / 'candidate.json'
+        snapshot, destination = assessed_build_input(parser.parse_args([*base, '--output', str(target)]), ROOT, standard)
+        nodes = [{'node_id': 'fixture:source', 'source_ref': config['source_records'][0]['path'],
+                  'source_sha256': source.ref['digest'].removeprefix('sha256:'),
+                  'properties': {'source_record': source.payload,
+                      'human_forms_source_ref': config['source_records'][1]['path'],
+                      'human_forms': materialize_metadata_forms(source.payload, json.loads(form_path.read_text()), access_allowed=True)}}]
+        rendered = json.dumps(snapshot.materialize(nodes), ensure_ascii=False)
+        write_assessed_candidate(destination, rendered, snapshot)
+        self.assertEqual(target.read_text(), rendered)
+        self.assertEqual(target.stat().st_mode & 0o777, 0o600)
+        with self.assertRaises(FileExistsError):
+            write_assessed_candidate(destination, 'must not replace', snapshot)
+        self.assertEqual(target.read_text(), rendered)
+        failed = target.with_name('failed.json')
+        with patch('os.link', side_effect=OSError('synthetic filesystem failure')), self.assertRaises(OSError):
+            write_assessed_candidate(failed, rendered, snapshot)
+        self.assertFalse(failed.exists())
+        self.assertEqual(list(target.parent.glob('.tos-assessed-*')), [])
+        config['subjects'][self.subject.id]['access_allowed'] = False
+        path.write_text(json.dumps(config))
+        from assessment_journal import JournalConflict
+        with self.assertRaises((PermissionError, JournalConflict)):
+            write_assessed_candidate(failed, rendered, snapshot)
+        self.assertFalse(failed.exists())
+
+    def test_assessed_graph_recomputes_submitted_ready_flags_and_enforces_output_budget(self):
+        from source_witness_human_forms import AssessedFormSnapshot, materialize_metadata_forms
+        import source_witness_human_forms as adapter
+        path, config, form_path, source = self.assessed_form_fixture()
+        nodes = [{'node_id': 'fixture:source', 'source_ref': config['source_records'][0]['path'],
+                  'source_sha256': source.ref['digest'].removeprefix('sha256:'),
+                  'properties': {'source_record': source.payload,
+                      'human_forms_source_ref': config['source_records'][1]['path'],
+                      'human_forms': materialize_metadata_forms(source.payload, json.loads(form_path.read_text()), access_allowed=True)}}]
+        packet = nodes[0]['properties']['human_forms'][0]
+        packet.update(state='ready', display_text='Untrusted ready flag', admission={'can_use': True},
+                      assessment_snapshot={'publication_authorized': True})
+        before = copy.deepcopy(nodes)
+        materialized = AssessedFormSnapshot(path, [self.subject.id]).materialize(nodes)
+        self.assertEqual(materialized[0]['properties']['human_forms'][0]['state'], 'needs-assessment')
+        self.assertIsNone(materialized[0]['properties']['human_forms'][0]['display_text'])
+        with patch.object(adapter, 'MAX_SET_OUTPUT_BYTES', 100), self.assertRaisesRegex(ValueError, 'output budget'):
+            AssessedFormSnapshot(path, [self.subject.id]).materialize(nodes)
+        self.assertEqual(nodes, before)
 
     def declared_source_bindings(self):
         return [

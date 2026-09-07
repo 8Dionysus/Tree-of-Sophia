@@ -209,6 +209,15 @@ source refs remain unchanged. `folded_vertex_ids` names presentation omissions,
 not deletions. A partial page may retain a Claim until a later, sufficiently
 complete view; consumers must not infer missing legs from other snapshots.
 
+Explicit local assessed-form projections may carry the source-owned
+`assessment_snapshot` annotation. The shared graph constructor requires exact
+source and selected-packet parity between bibliographic and navigation carriers;
+it refuses a mixed pair instead of choosing one carrier's wording. Python and
+Worker form selection validate the annotation's transport shape, including the
+absence of publication/runtime authority. Neither performs a fresh assessment
+or authenticates a model invocation. The source owner controls currentness and
+publication; see [local assessed snapshots](../ToS/doctrine/HUMAN_FORMS.md#local-assessed-research-snapshots).
+
 ## Constructor boundaries
 
 Construction coverage is deliberately bounded: selectors, type ancestry,

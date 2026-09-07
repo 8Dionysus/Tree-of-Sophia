@@ -650,12 +650,12 @@
         "ToS/contracts/source-witness-bibliographic-graph.schema.json"
       ],
       "reads": [
-        "public-safe source-witness object/claim catalog and the exact claim, evidence, anchor, and provenance records to which it returns"
+        "public-safe source-witness object/claim catalog and the exact claim, evidence, anchor, and provenance records to which it returns; optional explicit protected assessment input through source_witness_human_forms for a local candidate only"
       ],
       "writes": [
-        "ToS/derived-exports/graph/source-witness-bibliographic-claims.min.json unless --check is used"
+        "ToS/derived-exports/graph/source-witness-bibliographic-claims.min.json unless --check is used; explicit assessed mode instead atomically creates one separate new mode-0600 local candidate"
       ],
-      "side_effects": "tracked generated claim-reified bibliographic graph with no direct subject-object truth edges",
+      "side_effects": "tracked generated claim-reified bibliographic graph with no direct subject-object truth edges; optional local assessed output never replaces the standard public export or grants publication/runtime authority",
       "validation_lane": "graph_exports",
       "ci_inclusion": "release",
       "test_target": "tests/test_source_witness_bibliographic_graph.py",
@@ -681,9 +681,9 @@
       "organ_lane": "shared-library",
       "owner_surface": "ToS/doctrine/HUMAN_FORMS.md",
       "source_truth": ["ToS/contracts/corpus-record.schema.json", "ToS/contracts/historical-record.schema.json", "ToS/contracts/human-form-set.schema.json", "ToS/contracts/human-form.schema.json", "ToS/source-witnesses/**/*.human-forms.json"],
-      "reads": ["exact current bibliographic/historical metadata or a validated declared Claim, source-declared field language/script, and adjacent bounded human-form set; Claim statement reading binds the entire Claim as mandatory context"],
-      "writes": [],
-      "side_effects": "read-only source adapter; no assessment, template admission, growth authentication or private payload access",
+      "reads": ["exact current bibliographic/historical/native-witness metadata or a validated declared Claim, source-declared field language/script, and adjacent bounded human-form set; Claim statement reading binds the entire Claim as mandatory context", "optional independently selected protected source-bound assessment configuration and committed journal through the owner command; current admission is recomputed without model calls"],
+      "writes": ["only when explicitly called by a local assessed builder: one separate new mode-0600 candidate using exclusive staging, fsync and atomic no-replace link"],
+      "side_effects": "default read-only metadata adapter; optional local research assembly checks exact source/form paths, config/journal drift and output bounds; no source/journal mutation, substantive assessment, template admission, public-safety clearance or runtime grant",
       "validation_lane": "graph_exports",
       "ci_inclusion": "focused-tests",
       "test_target": "tests/test_source_witness_bibliographic_graph.py",
@@ -720,7 +720,7 @@
         "ToS/source-witnesses/**/historical-claims.jsonl"
       ],
       "reads": [
-        "source-witness catalog plus exact claim, identity, evidence, anchor, provenance, review surfaces and adjacent human-form sets; v2 provenance schema and existing source-foundation cross-field checks"
+        "source-witness catalog plus exact claim, identity, evidence, anchor, provenance, review surfaces and adjacent human-form sets; v2 provenance schema and existing source-foundation cross-field checks; optional caller-selected assessed snapshot through the owner command"
       ],
       "writes": [],
       "side_effects": "library only",
@@ -1869,9 +1869,9 @@
         "ToS/contracts/tos-corpus-index.schema.json"
       ],
       "writes": [
-        "ToS/derived-exports/tos_corpus_index.min.json unless --check is used"
+        "ToS/derived-exports/tos_corpus_index.min.json unless --check is used; explicit assessed mode instead atomically creates one separate new mode-0600 local candidate"
       ],
-      "side_effects": "tracked generated corpus index for graph/read-model review",
+      "side_effects": "tracked generated corpus index for graph/read-model review; optional protected assessed input produces only a separate local research candidate, not public export or runtime authorization",
       "validation_lane": "graph_exports",
       "ci_inclusion": "release",
       "test_target": "tests/test_tos_corpus_index.py",
@@ -2328,7 +2328,8 @@
       ],
       "reads": [
         "ToS/source_home.manifest.json",
-        "ToS/**"
+        "ToS/**",
+        "optional caller-selected assessed snapshot through the protected source/journal command"
       ],
       "writes": [],
       "side_effects": "library only",

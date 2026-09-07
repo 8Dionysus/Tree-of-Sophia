@@ -11,7 +11,7 @@ from typing import Any, Iterable
 
 from jsonschema import Draft202012Validator
 from referencing import Registry, Resource
-from source_witness_human_forms import load_metadata_forms, load_claim_forms
+from source_witness_human_forms import AssessedFormSnapshot, load_metadata_forms, load_claim_forms
 from source_record_profiles import (SourceRecordProfiles, SourceClaimProfiles, SourceProfileError,
                                     SOURCE_CLAIM_BASENAME)
 from build_source_witness_catalog import (OPTIONAL_RECORD_FILES, ADAPTED_RECORD_FILES,
@@ -920,7 +920,7 @@ def _projection_fingerprint(payload: dict[str, Any]) -> str:
     return canonical_digest(material)
 
 
-def build_payload(repo_root: Path = REPO_ROOT) -> dict[str, Any]:
+def build_payload(repo_root: Path = REPO_ROOT, *, assessed_forms: AssessedFormSnapshot | None = None) -> dict[str, Any]:
     manifest = load_json(repo_root / CATALOG_MANIFEST_REF)
     if manifest.get("schema_version") != "tos_source_witness_catalog_v3":
         raise BibliographicGraphBuildError(
@@ -1276,6 +1276,15 @@ def build_payload(repo_root: Path = REPO_ROOT) -> dict[str, Any]:
         },
         "validation_refs": list(VALIDATION_REFS),
     }
+    if assessed_forms is not None:
+        if not isinstance(assessed_forms, AssessedFormSnapshot):
+            raise TypeError('assessed forms require an explicit protected owner snapshot')
+        payload['nodes'] = assessed_forms.materialize(nodes_list)
+        payload['authority_boundary']['projection_role'] = (
+            'local research candidate with current source-bound form assessment; '
+            'not the standard public export or a current runtime grant')
+        payload['authority_boundary']['does_not_establish'].append(
+            'publication clearance for assessed forms, assessment limits or source context')
     payload["projection_fingerprint"] = _projection_fingerprint(payload)
     validate_payload_schema(payload, repo_root)
     _validate_cross_references(payload)

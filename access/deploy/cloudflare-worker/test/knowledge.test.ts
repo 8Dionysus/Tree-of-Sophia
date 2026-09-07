@@ -15,6 +15,20 @@ function realFormNode(): KnowledgeGraph['nodes'][number] {
     {cwd: fileURLToPath(new URL('../../../../', import.meta.url)), encoding:'utf8'}));
 }
 
+function assessedFormNode(): KnowledgeGraph['nodes'][number] {
+  // Synthetic admission of existing source-copy wording, not a real review.
+  const node = realFormNode();
+  const packet = structuredClone((node.attributes.human_forms as Record<string, unknown>[]).find(p => p.role === 'hover')!);
+  Object.assign(packet, {derivation: 'freeform', assessment_snapshot: {
+    owner_snapshot: 'sha256:' + 'd'.repeat(64), journal_revision: 'e'.repeat(64), journal_batches: 1,
+    publication_authorized: false, current_runtime_grant: false},
+    admission: {schema_version: 'tos_knowledge_admission_v1', subject: structuredClone(packet.form),
+      policy: {id: 'tos.policy.fixture', version: 1, digest: 'sha256:' + 'f'.repeat(64)},
+      status: 'admitted', can_use: true, is_semantic_evaluation: false, use: 'research'}});
+  node.attributes.human_forms = [packet];
+  return node;
+}
+
 function claimFormNode(): KnowledgeGraph['nodes'][number] {
   // A disposable source-copy form of the real, unreviewed letter Claim;
   // not a new historical assertion or an assessed source form.
@@ -291,6 +305,28 @@ test("indexed D1 path conditions and inclusion agree with the pure engine", asyn
     assert.equal(selectedForms.roles.hover!.state, 'ready');
     assert.equal(selectedForms.roles.name!.packet!.display_text, 'По ту сторону добра и зла');
     assert.equal(selectedForms.roles.name!.packet!.standalone_reading, false);
+    const assessedNode = assessedFormNode();
+    const sourceFormIndex = scoped.nodes.findIndex(node => node.id === sourceFormNode.id);
+    for (const state of ['ready', 'needs-assessment', 'invalid']) {
+      const candidate = structuredClone(assessedNode);
+      const packet = (candidate.attributes.human_forms as Record<string, unknown>[])[0]!;
+      if (state === 'needs-assessment') Object.assign(packet, {state, display_text: null, context: [], admission: null});
+      if (state === 'invalid') (packet.assessment_snapshot as Record<string, unknown>).publication_authorized = true;
+      scoped.nodes[sourceFormIndex] = candidate;
+      await db.prepare('UPDATE knowledge_nodes SET json=? WHERE id=?').bind(JSON.stringify(candidate), candidate.id).run();
+      const edge = await executeKnowledgeLensD1(db, formSpec);
+      assert.deepEqual(edge, await executeKnowledgeLens(scoped, formSpec));
+      const pythonAssessed = JSON.parse(execFileSync('python3', ['-c',
+        "import sys,json;sys.path.insert(0,'access/src');from tos_access.knowledge import execute_knowledge_lens;p=json.load(sys.stdin);print(json.dumps(execute_knowledge_lens(p['graph'],p['spec'])))"],
+        {cwd: fileURLToPath(new URL('../../../../', import.meta.url)), input: JSON.stringify({graph: scoped, spec: formSpec}), encoding:'utf8'}));
+      assert.deepEqual(edge, pythonAssessed);
+      const forms = ((edge.nodes as KnowledgeGraph['nodes'])[0]!.human_form_selection as ReturnType<typeof selectHumanForms>);
+      assert.equal(forms.roles.hover!.state === 'ready', state === 'ready');
+      if (state === 'ready') assert.deepEqual(forms.roles.hover!.packet, packet);
+      if (state === 'invalid') assert.equal(forms.state, 'invalid');
+    }
+    scoped.nodes[sourceFormIndex] = sourceFormNode;
+    await db.prepare('UPDATE knowledge_nodes SET json=? WHERE id=?').bind(JSON.stringify(sourceFormNode), sourceFormNode.id).run();
     const claimNode = claimFormNode();
     scoped.nodes.push(claimNode);
     await db.prepare('INSERT INTO knowledge_nodes VALUES (?,?,?,?,?,?,?,?,?)').bind(claimNode.id, claimNode.entity_id,
@@ -342,6 +378,34 @@ test("indexed D1 path conditions and inclusion agree with the pure engine", asyn
       }
     }
   } finally { await mf.dispose(); }
+});
+
+test('assessed forms preserve snapshot limits and reject malformed authority across Python and Worker', () => {
+  const node = assessedFormNode();
+  const cases = [node];
+  for (const [key, value] of [['publication_authorized', true], ['current_runtime_grant', true], ['owner_snapshot', 'unknown'],
+    ['journal_revision', null], ['journal_batches', false], ['journal_batches', 9007199254740992]]) {
+    const broken = structuredClone(node);
+    ((broken.attributes.human_forms as Record<string, unknown>[])[0]!.assessment_snapshot as Record<string, unknown>)[String(key)] = value;
+    cases.push(broken);
+  }
+  for (const change of ['missing-admission', 'rejected', 'malformed-status', 'wrong-subject', 'boolean-version', 'empty-journal']) {
+    const broken = structuredClone(node);
+    const packet = (broken.attributes.human_forms as Record<string, unknown>[])[0]!;
+    const admission = packet.admission as Record<string, unknown>;
+    if (change === 'missing-admission') delete packet.admission;
+    else if (change === 'empty-journal') Object.assign(packet.assessment_snapshot as object, {journal_batches: 0, journal_revision: null});
+    else if (change === 'rejected' || change === 'malformed-status') admission.status = change === 'rejected' ? 'rejected' : ['admitted'];
+    else (admission.subject as Record<string, unknown>)[change === 'boolean-version' ? 'version' : 'id'] = change === 'boolean-version' ? true : 'tos.form.other';
+    cases.push(broken);
+  }
+  const python = JSON.parse(execFileSync('python3', ['-c',
+    "import sys,json;sys.path.insert(0,'access/src');from tos_access.knowledge import select_human_forms;print(json.dumps([select_human_forms(n,'ru') for n in json.load(sys.stdin)]))"],
+    {cwd: fileURLToPath(new URL('../../../../', import.meta.url)), input: JSON.stringify(cases), encoding:'utf8'}));
+  const results = cases.map(item => selectHumanForms(item, 'ru'));
+  assert.deepEqual(results, python);
+  assert.equal(results[0]!.roles.hover!.state, 'ready');
+  assert.ok(results.slice(1).every(result => result.state === 'invalid'));
 });
 
 test('source human forms preserve ambiguity, exact context and bounded delivery across Python and Worker', () => {

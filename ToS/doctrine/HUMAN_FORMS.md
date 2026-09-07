@@ -134,6 +134,57 @@ This is current local materialization, not automatic admission or publication
 of a new public graph snapshot. The metadata-only graph adapter below still
 refuses unassessed freeform wording.
 
+### Local assessed research snapshots
+
+The existing bibliographic-graph and corpus-index builders can additionally
+receive one explicitly constructed `AssessedFormSnapshot`. Its protected
+configuration and selected form IDs come from the source owner, never from a
+graph node, source text, query, model response or stored ready packet. The
+adapter replaces only the selected forms on their existing exact source
+carriers. Source and form references and paths must match the independently
+resolved journal inputs. No subject, relation, claim or source is invented.
+
+Each selected form is freshly materialized through the journal command. A
+second collection compares the same source/configuration snapshot and committed
+journal heads before returning the graph. A source, grant, assessment or
+time-dependent admission change aborts assembly rather than mixing old and new
+packets. The issuer must keep source/configuration inputs stable for assembly,
+as with the underlying command. This observes a vector of committed heads; it
+does not add cross-subject assessment transactions or promise a live runtime
+grant after the snapshot was captured. Missing or negative assessment still
+returns a nonready form without wording, rather than blocking unrelated source
+copies. An explicit selection that cannot resolve fails visibly.
+
+The materialization's `assessment_snapshot` carries the owner-snapshot digest,
+journal revision and batch count, with `publication_authorized=false` and
+`current_runtime_grant=false`. It carries no configuration or journal filesystem
+path. Wording and complete required context stay in the same packet; the
+64 KiB packet and 256 KiB per-carrier form-set limits include this binding and
+refuse truncation. At most 256 form IDs may be selected per owner snapshot.
+The source-claim and source-navigation carriers deliver the same packet through
+the common reader and focus operation; access performs no assessment command.
+When these two carriers represent the same subject, the common reader requires
+identical source bodies and selected assessed packets. Mixing ordinary and
+assessed carriers, different journal observations or different wording fails
+assembly. Python and Worker consumers reject malformed snapshot annotations;
+these checks validate transport, not a fresh grant or the substance of a review.
+The optional `assessment_snapshot` field extends the closed materialization
+schema. Consumers using an older copy must update that schema before accepting
+these local packets; silently stripping the annotation is not a migration.
+
+This optional input produces a **local research candidate**, not the standard
+public export. Context and assessment limits still need their own public-safety
+and artifact-consumer clearance before publication or runtime connection. The
+ordinary deterministic builders and source-parity checks use no private owner
+configuration and keep their existing output. See the
+[local builder commands](../../mechanics/growth-cycle/parts/branch-growth-cycle/README.md#local-assessed-graph-builds).
+The local CLI requires a separate new JSON target outside repository sources
+(or within private `.git` state), atomically creates it with mode `0600`, and
+never replaces an existing file. `--check` compares that candidate with current
+source/journal inputs without rewriting it. A failed build leaves the prior
+reader snapshot and all source/journal history intact; it is not a reader
+switch or a public publication decision.
+
 ## Bibliographic metadata adapter
 
 An adjacent `<record-stem>.human-forms.json` may hold a

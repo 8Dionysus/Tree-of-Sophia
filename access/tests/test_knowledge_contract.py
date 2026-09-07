@@ -452,6 +452,46 @@ class KnowledgeContractTests(unittest.TestCase):
         result['roles']['statement']['packet']['display_text'] = 'result-only mutation'
         self.assertEqual(node, before)
 
+    def test_assessed_form_snapshot_is_a_bounded_observation_not_runtime_or_public_authority(self):
+        from tos_access.knowledge import select_human_forms
+        node = self.human_form_node()
+        packet = node['attributes']['human_forms'][0]
+        packet.update(derivation='freeform', assessment_snapshot={
+            'owner_snapshot': 'sha256:' + 'd' * 64, 'journal_revision': 'e' * 64,
+            'journal_batches': 1, 'publication_authorized': False, 'current_runtime_grant': False},
+            admission={'schema_version': 'tos_knowledge_admission_v1', 'subject': copy.deepcopy(packet['form']),
+                'policy': {'id': 'tos.policy.fixture', 'version': 1, 'digest': 'sha256:' + 'f' * 64},
+                'status': 'admitted', 'can_use': True, 'is_semantic_evaluation': False, 'use': 'research'})
+        ready = select_human_forms(node, 'fr')
+        self.assertEqual(ready['roles']['statement']['packet'], packet)
+        for key, value in (('publication_authorized', True), ('current_runtime_grant', True),
+                           ('owner_snapshot', 'unknown'), ('journal_revision', None), ('journal_batches', False),
+                           ('journal_batches', 9_007_199_254_740_992)):
+            with self.subTest(key=key, value=value):
+                broken = copy.deepcopy(node)
+                broken['attributes']['human_forms'][0]['assessment_snapshot'][key] = value
+                self.assertEqual(select_human_forms(broken, 'fr')['issues'], ['forms.invalid-assessment-snapshot'])
+        for mutation in ('missing-admission', 'rejected', 'malformed-status', 'wrong-subject', 'boolean-version', 'empty-journal'):
+            with self.subTest(mutation=mutation):
+                broken = copy.deepcopy(node)
+                body = broken['attributes']['human_forms'][0]
+                if mutation == 'missing-admission':
+                    del body['admission']
+                elif mutation == 'empty-journal':
+                    body['assessment_snapshot'].update(journal_batches=0, journal_revision=None)
+                elif mutation in ('rejected', 'malformed-status'):
+                    body['admission']['status'] = 'rejected' if mutation == 'rejected' else ['admitted']
+                elif mutation == 'boolean-version':
+                    body['admission']['subject']['version'] = True
+                else:
+                    body['admission']['subject']['id'] = 'tos.form.other'
+                self.assertEqual(select_human_forms(broken, 'fr')['state'], 'invalid')
+        packet.update(state='needs-assessment', display_text=None, context=[], admission=None)
+        packet['assessment_snapshot'].update(journal_batches=0, journal_revision=None)
+        pending = select_human_forms(node, 'fr')
+        self.assertEqual(pending['candidates'][0]['state'], 'needs-assessment')
+        self.assertIsNone(pending['roles']['statement']['packet'])
+
     def test_native_form_selection_requires_exact_schema_identity_and_carrier(self):
         from tos_access.knowledge import select_human_forms
         for schema, identity in [('tos_scholarly_composite_witness_v1', 'composite_id'),

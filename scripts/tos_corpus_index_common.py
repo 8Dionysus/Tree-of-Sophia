@@ -14,7 +14,7 @@ from jsonschema import Draft202012Validator
 from build_source_witness_catalog import (artifact_catalog_entry, artifact_display_fields,
                                          load_artifact_record, canonical_json, RECORD_FILES, ADAPTED_RECORD_FILES,
                                          composite_catalog_entry, load_composite_record, composite_display_fields, COMPOSITE_SCHEMA)
-from source_witness_human_forms import load_metadata_forms
+from source_witness_human_forms import AssessedFormSnapshot, load_metadata_forms
 from source_record_profiles import SourceRecordProfiles
 
 
@@ -614,7 +614,8 @@ def project_text_packet(packet: dict[str, Any], source_ref: str) -> tuple[list[d
     return nodes, edges
 
 
-def build_source_navigation(diagnostics: list[dict[str, str]]) -> dict[str, Any]:
+def build_source_navigation(diagnostics: list[dict[str, str]], *,
+                            assessed_forms: AssessedFormSnapshot | None = None) -> dict[str, Any]:
     """Join authored topology and source records into a read-only descent graph."""
 
     nodes: dict[str, dict[str, Any]] = {}
@@ -973,14 +974,21 @@ def build_source_navigation(diagnostics: list[dict[str, str]]) -> dict[str, Any]
                 }
             )
 
+    projected_nodes = [nodes[key] for key in sorted(nodes)]
+    if assessed_forms is not None:
+        if not isinstance(assessed_forms, AssessedFormSnapshot):
+            raise TypeError('assessed forms require an explicit protected owner snapshot')
+        projected_nodes = assessed_forms.materialize(projected_nodes)
     return {
         "schema_version": "tos_source_navigation_v1",
         "authority_boundary": (
             "generated read-only navigation; authored branch manifests, source records, claims, "
             "item manifests, and rights records retain authority"
+            + ('; local assessed research candidate, not public clearance or a current runtime grant'
+               if assessed_forms is not None else '')
         ),
         "counts": {"nodes": len(nodes), "edges": len(edges), "rights": len(rights)},
-        "nodes": [nodes[key] for key in sorted(nodes)],
+        "nodes": projected_nodes,
         "edges": [edges[key] for key in sorted(edges)],
         "rights": sorted(rights, key=lambda item: item["rights_id"]),
     }
@@ -999,7 +1007,7 @@ def validate_payload_schema(payload: dict[str, Any]) -> None:
         raise ValueError(f"schema violation at {path.lstrip('.') or '<root>'}: {error.message}")
 
 
-def build_payload() -> dict[str, Any]:
+def build_payload(*, assessed_forms: AssessedFormSnapshot | None = None) -> dict[str, Any]:
     diagnostics: list[dict[str, str]] = []
     tracked_paths = tracked_tos_paths()
     source_home = load_json(TOS_ROOT / "source_home.manifest.json")
@@ -1008,7 +1016,7 @@ def build_payload() -> dict[str, Any]:
     nodes = build_nodes(diagnostics, tracked_paths)
     relation_packs, relation_edges = build_relations(diagnostics, tracked_paths)
     resources = build_resources(tracked_paths)
-    source_navigation = build_source_navigation(diagnostics)
+    source_navigation = build_source_navigation(diagnostics, assessed_forms=assessed_forms)
     payload: dict[str, Any] = {
         "schema_version": "tos_corpus_index_v1",
         "schema_ref": SCHEMA_REF,

@@ -7,9 +7,11 @@ import argparse
 
 from source_witness_bibliographic_graph_common import (
     GRAPH_PATH,
+    REPO_ROOT,
     build_payload,
     render_payload,
 )
+from source_witness_human_forms import add_assessed_build_arguments, assessed_build_input, write_assessed_candidate
 
 
 def main() -> int:
@@ -19,8 +21,23 @@ def main() -> int:
         action="store_true",
         help="verify generated parity without rewriting the projection",
     )
+    add_assessed_build_arguments(parser)
     args = parser.parse_args()
-    rendered = render_payload(build_payload())
+    try:
+        assessed, target = assessed_build_input(args, REPO_ROOT, GRAPH_PATH)
+    except ValueError as exc:
+        parser.error(str(exc))
+    rendered = render_payload(build_payload(assessed_forms=assessed))
+    if assessed is not None:
+        if args.check:
+            assessed.verify_current()
+            if target.read_text(encoding='utf-8') != rendered:
+                raise SystemExit('local assessed graph differs from current source/journal inputs')
+            print('[ok] local assessed graph matches current source/journal inputs; no publication clearance')
+        else:
+            write_assessed_candidate(target, rendered, assessed)
+            print(f'[ok] wrote local assessed graph candidate: {target}')
+        return 0
     if args.check:
         try:
             current = GRAPH_PATH.read_text(encoding="utf-8")

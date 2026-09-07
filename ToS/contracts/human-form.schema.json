@@ -65,6 +65,7 @@
         }},
         "issues": {"type": "array", "items": {"type": "string"}},
         "admission": {"type": ["object", "null"]},
+        "assessment_snapshot": {"$ref": "#/$defs/assessmentSnapshot"},
         "performs_semantic_assessment": {"const": false},
         "role": {"enum": ["name", "caption", "hover", "statement", "grounds", "history", "technical"]},
         "language": {"type": ["string", "null"]}, "script": {"type": ["string", "null"]},
@@ -82,6 +83,21 @@
         },
         "else": {"properties": {"display_text": {"type": "null"}, "context": {"maxItems": 0}, "issues": {"minItems": 1}}}
       }]
+    },
+    "assessmentSnapshot": {
+      "type": "object",
+      "required": ["owner_snapshot", "journal_revision", "journal_batches", "publication_authorized", "current_runtime_grant"],
+      "properties": {
+        "owner_snapshot": {"type": "string", "pattern": "^sha256:[a-f0-9]{64}$(?![\\s\\S])"},
+        "journal_revision": {"type": ["string", "null"], "pattern": "^[a-f0-9]{64}$(?![\\s\\S])"},
+        "journal_batches": {"type": "integer", "minimum": 0, "maximum": 9007199254740991},
+        "publication_authorized": {"const": false},
+        "current_runtime_grant": {"const": false}
+      },
+      "allOf": [{"if": {"properties": {"journal_batches": {"const": 0}}},
+        "then": {"properties": {"journal_revision": {"type": "null"}}},
+        "else": {"properties": {"journal_revision": {"type": "string"}}}}],
+      "description": "Observed source/configuration and committed journal binding for a local research candidate; not publication clearance, model authentication or a current runtime grant. Unknown observation metadata is retained, not interpreted."
     },
     "binding": {
       "type": "object", "additionalProperties": false, "required": ["record", "pointer"],

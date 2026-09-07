@@ -57,6 +57,25 @@ function languageContextValid(packet: Item): boolean {
     && typeof entry.value === 'string' && entry.value.trim().length > 0);
 }
 
+function assessmentSnapshotValid(packet: Item): boolean {
+  if (!Object.hasOwn(packet, 'assessment_snapshot')) return true;
+  const snapshot = record(packet.assessment_snapshot);
+  if (typeof snapshot.owner_snapshot !== 'string' || !/^sha256:[a-f0-9]{64}$(?![\s\S])/.test(snapshot.owner_snapshot)
+    || typeof snapshot.journal_batches !== 'number' || !Number.isSafeInteger(snapshot.journal_batches) || snapshot.journal_batches < 0
+    || snapshot.publication_authorized !== false || snapshot.current_runtime_grant !== false
+    || !Object.hasOwn(snapshot, 'journal_revision')) return false;
+  const revision = snapshot.journal_revision;
+  if ((revision === null) !== (snapshot.journal_batches === 0)
+    || (revision !== null && (typeof revision !== 'string' || !/^[a-f0-9]{64}$(?![\s\S])/.test(revision)))) return false;
+  if (packet.state !== 'ready') return true;
+  const admission = record(packet.admission);
+  return snapshot.journal_batches > 0 && packet.derivation === 'freeform' && admission.schema_version === 'tos_knowledge_admission_v1'
+    && exactRef(packet.form) && sameRef(admission.subject, packet.form) && exactRef(admission.policy)
+    && typeof admission.status === 'string' && ['admitted', 'admitted-with-limits'].includes(admission.status)
+    && admission.can_use === true && admission.is_semantic_evaluation === false
+    && typeof admission.use === 'string' && admission.use.length > 0;
+}
+
 export function formDeliveryCost(value: unknown): number {
   if (typeof value === 'string') return new TextEncoder().encode(JSON.stringify(value)).length;
   if (value === null || typeof value === 'boolean') return 5;
@@ -125,6 +144,7 @@ export function selectHumanForms(item: Item, language = 'auto') {
     seen.add(packet.form.id);
     const state = packet.state, role = packet.role ?? null, actualLanguage = packet.language ?? null;
     if (typeof state !== 'string' || !STATES.includes(state)) return stop('invalid', 'forms.unknown-materialization-state');
+    if (!assessmentSnapshotValid(packet)) return stop('invalid', 'forms.invalid-assessment-snapshot');
     if ((role !== null && (typeof role !== 'string' || !HUMAN_FORM_ROLES.includes(role)))
       || (actualLanguage !== null && (typeof actualLanguage !== 'string' || !LANGUAGE.test(actualLanguage)))) {
       return stop('invalid', 'forms.invalid-role-or-language');

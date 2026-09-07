@@ -1,11 +1,13 @@
 """Read adjacent metadata and declared Claim forms through the source materializer.
 
-This adapter copies already public metadata. It does not authenticate growth
-commands or authorize freeform wording, templates, private text or publication.
+The default adapter copies already public metadata. Explicit local snapshots
+can read protected source/journal inputs for current freeform policy admission.
+Neither route performs substantive assessment or authorizes public release.
 """
 from __future__ import annotations
 
 from functools import lru_cache
+import copy
 import hashlib
 import json
 from pathlib import Path
@@ -24,6 +26,169 @@ from knowledge_assessment import Record
 
 MAX_SET_BYTES = 2_097_152
 MAX_SET_OUTPUT_BYTES = 262_144
+
+
+class AssessedFormSnapshot:
+    """Explicit local research input, never an implicit public-export source.
+
+    The caller independently selects a protected assessment configuration and
+    a bounded set of form IDs. Existing graph packets identify the exact
+    source/form versions; they cannot provide grants or ready wording. A
+    double collection checks observed source/configuration and journal drift.
+    This captures committed heads, not a live runtime permission or a new
+    cross-subject journal transaction. The source owner must keep its inputs
+    stable for assembly, as for the underlying source-bound command.
+    """
+
+    def __init__(self, owner_config: Path, form_ids: list[str]):
+        if (not isinstance(form_ids, list) or not 1 <= len(form_ids) <= 256
+                or any(not isinstance(value, str) or not re.fullmatch(r'tos\.form\.[a-z0-9]+(?:[.-][a-z0-9]+)*', value)
+                       for value in form_ids) or len(set(form_ids)) != len(form_ids)):
+            raise ValueError('assessed graph input requires 1..256 distinct form IDs')
+        self.owner_config = Path(owner_config)
+        self.form_ids = frozenset(form_ids)
+        self._snapshot = None
+        self._observed = {}
+
+    def _resolve(self, subject, form_ref, source_path, form_path):
+        from assessment_journal import JournalConflict, run_local_command
+        identity = form_ref['id']
+        described = run_local_command(self.owner_config, {
+            'schema_version': 'tos_local_assessment_command_v1', 'operation': 'describe', 'subject_id': identity})
+        context = described['result']['command_context']
+        snapshot = described['owner_snapshot']
+        if self._snapshot is not None and snapshot != self._snapshot:
+            raise JournalConflict('assessment graph inputs changed during assembly')
+        selected = {row['record']['id']: row for row in context.get('source_records', [])}
+        if (context['subject'] != form_ref or 'materialize-form' not in context['supported_operations']
+                or selected.get(identity, {}).get('path') != form_path
+                or selected.get(subject.id, {}).get('path') != source_path
+                or selected.get(subject.id, {}).get('record') != subject.ref):
+            raise JournalConflict('graph and assessment owner bind different source/form inputs')
+        request = {'schema_version': 'tos_local_assessment_command_v1', 'operation': 'materialize-form',
+                   'subject_id': identity, 'expected_subject': form_ref, 'expected_snapshot': snapshot}
+        reply = run_local_command(self.owner_config, request)
+        result = reply['result']
+        packet = result['materialization']
+        if packet['subject'] != subject.ref or packet['form'] != form_ref:
+            raise JournalConflict('materialized form does not belong to the graph source')
+        prior = self._observed.get(identity)
+        if prior is not None and (prior['request'] != request or prior['reply'] != reply):
+            raise JournalConflict('assessment graph form changed during assembly')
+        self._snapshot = snapshot
+        self._observed[identity] = {'request': request, 'reply': copy.deepcopy(reply)}
+        return {**copy.deepcopy(packet), 'assessment_snapshot': {
+            'owner_snapshot': snapshot, 'journal_revision': result['revision'],
+            'journal_batches': result['batch_count'], 'publication_authorized': False,
+            'current_runtime_grant': False}}
+
+    def verify_current(self):
+        """Fail on observed change; do not silently rebuild only part of a graph."""
+        from assessment_journal import JournalConflict, run_local_command
+        if set(self._observed) != self.form_ids:
+            raise ValueError('selected assessed forms are not all present in the graph')
+        for identity in sorted(self._observed):
+            observed = self._observed[identity]
+            current = run_local_command(self.owner_config, observed['request'])
+            if current != observed['reply']:
+                raise JournalConflict('assessment graph snapshot changed before return')
+
+    def materialize(self, nodes: list[dict]) -> list[dict]:
+        """Replace selected forms on existing source carriers, without mutation.
+
+        Both bibliographic and corpus-navigation carriers keep full source
+        records in properties. No unrelated node, edge or source is created.
+        The result is local research material: assessment limits and explicit
+        source context have not received a separate public-safety clearance.
+        """
+        from assessment_journal import JournalConflict
+        output, seen = [], set()
+        for node in nodes:
+            properties = node.get('properties', {})
+            packets = properties.get('human_forms', [])
+            selected = [packet for packet in packets if packet.get('form', {}).get('id') in self.form_ids]
+            if not selected:
+                output.append(node)
+                continue
+            source, claim = properties.get('source_record'), properties.get('source_claim')
+            if (source is None) == (claim is None):
+                raise ValueError('assessed forms require one exact source carrier')
+            subject = (metadata_subject(source) if source is not None
+                       else Record.from_payload(claim['claim_id'], claim['claim_version'], claim))
+            digest = node.get('source_sha256', properties.get('source_sha256'))
+            if digest != subject.ref['digest'].removeprefix('sha256:'):
+                raise JournalConflict('assessed graph source body and digest disagree')
+            replacement = copy.deepcopy(node)
+            for index, packet in enumerate(packets):
+                identity = packet.get('form', {}).get('id')
+                if identity not in self.form_ids:
+                    continue
+                if identity in seen or packet.get('subject') != subject.ref:
+                    raise ValueError('selected form must have one exact source carrier')
+                seen.add(identity)
+                replacement['properties']['human_forms'][index] = self._resolve(
+                    subject, packet['form'], node.get('source_ref'), properties.get('human_forms_source_ref'))
+                if len(json.dumps(replacement['properties']['human_forms'][index], ensure_ascii=False,
+                                  separators=(',', ':')).encode()) > 65_536:
+                    raise ValueError('assessed form with snapshot binding exceeds its output budget')
+            if len(json.dumps(replacement['properties']['human_forms'], ensure_ascii=False,
+                              separators=(',', ':')).encode()) > MAX_SET_OUTPUT_BYTES:
+                raise ValueError('assessed form set exceeds its output budget')
+            output.append(replacement)
+        if seen != self.form_ids:
+            raise ValueError('selected assessed forms are not all present in the graph')
+        self.verify_current()
+        return output
+
+
+def add_assessed_build_arguments(parser):
+    """The two existing builders share one explicit, local-only CLI seam."""
+    parser.add_argument('--assessment-owner-config', type=Path,
+                        help='independently selected protected configuration for a local research candidate')
+    parser.add_argument('--assessed-form-id', action='append', default=[],
+                        help='exact source form ID to materialize; repeat for a bounded selection')
+    parser.add_argument('--output', type=Path,
+                        help='new local candidate JSON, outside source surfaces; required with assessment input')
+
+
+def assessed_build_input(args, repo_root, standard_path):
+    if args.assessment_owner_config is None:
+        if args.assessed_form_id or args.output is not None:
+            raise ValueError('assessed form/output selection requires --assessment-owner-config')
+        return None, standard_path
+    if args.output is None:
+        raise ValueError('assessed build requires a separate --output; standard public export is not a target')
+    target, root = args.output.resolve(), repo_root.resolve()
+    if (target.suffix != '.json' or target == standard_path.resolve()
+            or (target.is_relative_to(root) and not target.is_relative_to(root / '.git'))):
+        raise ValueError('local assessed output must be JSON outside repository sources (or within .git)')
+    return AssessedFormSnapshot(args.assessment_owner_config, args.assessed_form_id), target
+
+
+def write_assessed_candidate(target, rendered, snapshot):
+    """Publish one complete local candidate without replacing any existing file.
+
+    This filesystem publication is not a public release or artifact admission.
+    A final currentness check follows serialization and precedes file creation.
+    """
+    import os
+    import tempfile
+    snapshot.verify_current()
+    target.parent.mkdir(parents=True, exist_ok=True)
+    descriptor, temporary = tempfile.mkstemp(prefix='.tos-assessed-', dir=target.parent)
+    try:
+        with os.fdopen(descriptor, 'w', encoding='utf-8') as stream:
+            stream.write(rendered)
+            stream.flush()
+            os.fsync(stream.fileno())
+        os.link(temporary, target)  # Atomic complete visibility; never overwrite.
+        directory = os.open(target.parent, os.O_RDONLY | os.O_DIRECTORY)
+        try:
+            os.fsync(directory)
+        finally:
+            os.close(directory)
+    finally:
+        os.unlink(temporary)  # Only the exclusive staging file created above.
 
 NATIVE_IDENTITIES = {
     'tos_scholarly_composite_witness_v1': 'composite_id',

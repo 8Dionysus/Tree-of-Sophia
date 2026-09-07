@@ -174,12 +174,63 @@ materialization ceiling remain; this is not a guarantee that every result fits
 the smaller public scene-selection budget. Source and journal snapshots, not an
 old ready packet, govern each invocation.
 
-This joins the local source/journal command to human-form output. Public graph
-snapshot publication and fresh-reader consumption remain separate integration
-work. A synthetic admitted test proves this boundary's behavior, not a real
-reviewer's competence or actual corpus admission.
+This joins the local source/journal command to human-form output. The local
+graph route below carries the result into the common reader; public snapshot
+publication and runtime connection remain separate integration work. A
+synthetic admitted test proves this boundary's behavior, not a real reviewer's
+competence or actual corpus admission.
+
+### Local assessed graph builds
+
+The existing bibliographic and corpus-index builders accept an explicit
+protected source-bound assessment configuration and a bounded selection of
+freeform IDs. Without these flags they keep the ordinary metadata-only public
+build and its source-parity check. With them, a separate new local JSON target
+is mandatory; no standard export or other repository source can be overwritten.
+
+```bash
+python scripts/build_source_witness_bibliographic_graph.py \
+  --assessment-owner-config /absolute/private/assessment-owner.json \
+  --assessed-form-id tos.form.example.research-hover-ru \
+  --output /absolute/private/claims-candidate.json
+python scripts/build_tos_corpus_index.py \
+  --assessment-owner-config /absolute/private/assessment-owner.json \
+  --assessed-form-id tos.form.example.research-hover-ru \
+  --output /absolute/private/corpus-candidate.json
+```
+
+The paths and ID above are placeholders for owner-selected inputs, not issued
+grants. Reserve storage through the host owner before a large artifact write.
+Each output is atomically created with mode `0600` and no replacement; adding
+`--check` compares an existing candidate to current source/journal inputs and
+writes nothing. These are local research candidates, not public-safe artifact
+bundles, live grants, reader switches or publication decisions. The ordinary
+source-parity query reader intentionally does not load them as standard exports.
+
+For coherent in-process assembly, create one
+`source_witness_human_forms.AssessedFormSnapshot(owner_config, form_ids)` and
+pass that same instance as `assessed_forms` to both existing `build_payload`
+functions (`source_witness_bibliographic_graph_common` and
+`tos_corpus_index_common`). Pass both resulting projections to the common
+`tos_access.knowledge.build_knowledge_graph`, then call `verify_current()`
+before returning or persisting the result. Separate CLI invocations are not a
+transaction across both files; common-reader carrier parity rejects a mixed
+pair. Double collection observes source/configuration and committed per-form
+journal changes; it is not a lock across all subjects or a runtime lease.
+
+Selected forms must resolve exactly once on each projection's existing source
+carrier, with matching source/form refs and owner-selected paths. Current
+policy admission governs wording; pending, withdrawn or restricted forms stay
+nonready without blocking unrelated source copies. The full source context and
+assessment observation travel together under the existing output limits. See
+the [source contract](../../../../ToS/doctrine/HUMAN_FORMS.md#local-assessed-research-snapshots)
+for budgets and consumer compatibility.
 
 ### Source-bound configuration v2
+
+The protected source/journal input may also be used by the
+[local assessed graph builders](#local-assessed-graph-builds). This remains
+separate from source modification and from public export or runtime admission.
 
 `tos_local_assessment_owner_v2` retains the v1 fields and adds `source_root`
 (protected absolute repository root) and `source_records` (at most 1,024

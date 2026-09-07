@@ -604,6 +604,65 @@ def _form_language_context_valid(packet: dict[str, Any]) -> bool:
                                          and bool(entry['value'].strip()) for entry in packet['context'])
 
 
+def _assessment_snapshot_valid(packet: dict[str, Any]) -> bool:
+    """Validate a transported observation's limits, never evaluate a grant."""
+    if 'assessment_snapshot' not in packet:
+        return True
+    snapshot = packet['assessment_snapshot']
+    if (not isinstance(snapshot, dict)
+            or not isinstance(snapshot.get('owner_snapshot'), str)
+            or not re.fullmatch(r'sha256:[a-f0-9]{64}', snapshot['owner_snapshot'])
+            or type(snapshot.get('journal_batches')) is not int or not 0 <= snapshot['journal_batches'] <= 9_007_199_254_740_991
+            or snapshot.get('publication_authorized') is not False
+            or snapshot.get('current_runtime_grant') is not False
+            or 'journal_revision' not in snapshot):
+        return False
+    revision = snapshot['journal_revision']
+    if ((revision is None) != (snapshot['journal_batches'] == 0)
+            or (revision is not None and (not isinstance(revision, str) or not re.fullmatch(r'[a-f0-9]{64}', revision)))):
+        return False
+    if packet.get('state') != 'ready':
+        return True
+    admission = packet.get('admission')
+    return (snapshot['journal_batches'] > 0 and packet.get('derivation') == 'freeform' and isinstance(admission, dict)
+            and admission.get('schema_version') == 'tos_knowledge_admission_v1'
+            and _exact_form_ref(admission.get('subject')) and admission['subject'] == packet.get('form')
+            and _exact_form_ref(admission.get('policy'))
+            and isinstance(admission.get('status'), str) and admission['status'] in {'admitted', 'admitted-with-limits'}
+            and admission.get('can_use') is True and admission.get('is_semantic_evaluation') is False
+            and isinstance(admission.get('use'), str) and bool(admission['use']))
+
+
+def _require_assessed_carrier_parity(left: dict[str, Any], right: dict[str, Any]) -> None:
+    """One source record cannot carry two different assessment snapshots."""
+    attributes = [node.get('attributes', {}) for node in (left, right)]
+    collections = [value.get('human_forms', []) for value in attributes]
+    selected = set()
+    for collection in collections:
+        if isinstance(collection, list):
+            for packet in collection:
+                if isinstance(packet, dict) and 'assessment_snapshot' in packet:
+                    if not _exact_form_ref(packet.get('form')):
+                        raise ValueError('invalid form assessment snapshot in source carrier')
+                    selected.add(packet['form']['id'])
+    if not selected:
+        return
+    def same(first, second):
+        # Python equality collapses false/zero; source qualifications must not.
+        return json.dumps(first, sort_keys=True, allow_nan=False) == json.dumps(second, sort_keys=True, allow_nan=False)
+
+    if (any(not isinstance(collection, list) for collection in collections)
+            or not same(attributes[0].get('source_record'), attributes[1].get('source_record'))
+            or not same(attributes[0].get('source_claim'), attributes[1].get('source_claim'))):
+        raise ValueError('source carriers disagree on form assessment snapshot')
+    for identity in selected:
+        matches = [[packet for packet in collection if isinstance(packet, dict)
+                    and isinstance(packet.get('form'), dict) and packet['form'].get('id') == identity]
+                   for collection in collections]
+        if any(len(found) != 1 for found in matches) or not same(matches[0], matches[1]):
+            raise ValueError('source carriers disagree on form assessment snapshot')
+
+
 def select_human_forms(item: dict[str, Any], language: str = 'auto') -> dict[str, Any]:
     """Deliver source materializations intact; do not re-assess or rank truth.
 
@@ -672,6 +731,8 @@ forms. A source-snapshot admission is not a freshly evaluated runtime grant.
         state, role, actual_language = packet.get('state'), packet.get('role'), packet.get('language')
         if not isinstance(state, str) or state not in {'ready', 'invalid', 'unavailable', 'stale', 'restricted', 'needs-assessment', 'over-budget'}:
             return stop('invalid', 'forms.unknown-materialization-state')
+        if not _assessment_snapshot_valid(packet):
+            return stop('invalid', 'forms.invalid-assessment-snapshot')
         if (role is not None and role not in HUMAN_FORM_ROLES) or (actual_language is not None and
                 (not isinstance(actual_language, str) or not _LANGUAGE_KEY.fullmatch(actual_language))):
             return stop('invalid', 'forms.invalid-role-or-language')
@@ -1864,6 +1925,7 @@ def build_knowledge_graph(
         for navigation in representations.get("source-navigation", [])
     ]
     for entity_id, claim_representation, navigation_representation in representation_pairs:
+        _require_assessed_carrier_parity(claim_representation, navigation_representation)
         relation_sources.append(
             (
                 "semantic-interchange",
