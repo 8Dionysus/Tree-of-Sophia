@@ -4,6 +4,7 @@ from __future__ import annotations
 import copy
 import hashlib
 from concurrent.futures import ThreadPoolExecutor
+from contextlib import contextmanager
 import json
 import os
 from pathlib import Path
@@ -401,6 +402,252 @@ class SourceCommandTests(unittest.TestCase):
         with self.assertRaises(OSError):
             self.run_request(request)
         self.assertEqual(other.read_bytes(), saved)
+
+
+class HistoricalCreationTests(unittest.TestCase):
+    @contextmanager
+    def creation(self):
+        sys.path.insert(0, str(ROOT / 'tests'))
+        from test_source_witness_bibliographic_graph import SourceWitnessBibliographicGraphTest
+        fixture = SourceWitnessBibliographicGraphTest()
+        with fixture.historical_fixture() as (root, history, real, old_claims, rebuild):
+            rebuild()
+            source = {**copy.deepcopy(history[0][1]), 'record_id': 'tos.historical-event.creation-fixture',
+                      'extensions': {'unknown': {'negative': False, 'missing': None}}}
+            claims = [{**copy.deepcopy(claim), 'claim_id': f'tos.claim.creation-fixture-{index}',
+                       'subject_ref': source['record_id']} for index, claim in enumerate(old_claims)]
+            relative = 'ToS/source-witnesses/history/new-subject/historical-event.json'
+            config = {'schema_version': 'tos_local_historical_create_owner_v1', 'uid': os.getuid(),
+                'principal_id': 'software:test-fixture', 'maker_type': 'software',
+                'source_root': str(root), 'source_path': relative, 'record_id': source['record_id'],
+                'authority_ref': 'synthetic-test-only:creation-not-assessment',
+                'allowed_form_ids': ['tos.form.creation-name', 'tos.form.creation-hover'],
+                'allowed_claim_ids': [claim['claim_id'] for claim in claims],
+                'allowed_operations': [commands.CREATION_OPERATION], 'expires_at': '2099-01-01T00:00:00Z'}
+            owner = root / 'owner.json'
+            owner.write_text(json.dumps(config))
+            context = commands.run_local_command(owner, {'schema_version': 'tos_local_source_command_v1', 'operation': 'describe'})
+            self.assertFalse(context['target_exists'])
+            self.assertEqual(context['allowed_operations'], ['historical.create'])
+            request = {'schema_version': 'tos_local_source_command_v1', 'operation': 'historical.create',
+                'command_id': 'synthetic:create-first', 'expected_configuration': context['owner_configuration'],
+                'expected_source': None, 'expected_revision': None, 'record': source, 'claims': claims,
+                'forms': [{'form_id': 'tos.form.creation-name', 'field_id': 'metadata.preferred-name'},
+                          {'form_id': 'tos.form.creation-hover', 'field_id': 'metadata.source-note'}]}
+            prepared = commands.run_local_command(owner, {'schema_version': 'tos_local_source_command_v1',
+                'operation': 'prepare', 'record': source})
+            self.assertFalse((root / relative).parent.exists())
+            self.assertEqual(prepared['prepared_source'], Record.from_payload(source['record_id'], 1, source).ref)
+            self.assertEqual({field['field_id'] for field in prepared['source_fields']},
+                             {'metadata.preferred-name', 'metadata.source-note'})
+            preview = commands.run_local_command(owner, {'schema_version': 'tos_local_source_command_v1',
+                'operation': 'prepare-create', **{key: request[key] for key in ('record', 'claims', 'forms')}})
+            request['expected_dependencies'] = preview['expected_dependencies']
+            self.assertFalse((root / relative).parent.exists())
+            self.assertFalse((root / 'ToS/source-witnesses/.historical-create.writer.lock').exists())
+            yield root, owner, config, request, rebuild, fixture
+
+    def test_complete_creation_reaches_existing_catalog_graph_and_restart_without_admission(self):
+        with self.creation() as (root, owner, config, request, rebuild, fixture):
+            preview = commands.run_local_command(owner, {'schema_version': 'tos_local_source_command_v1',
+                'operation': 'prepare-create', **{key: request[key] for key in ('record', 'claims', 'forms')}})
+            result = commands.run_local_command(owner, request)
+            target = (root / config['source_path']).parent
+            self.assertFalse(result['replayed'])
+            self.assertFalse(result['grants_admission'])
+            self.assertEqual(result['receipt']['files'], preview['prepared_files'])
+            self.assertEqual(json.loads((root / config['source_path']).read_bytes()), request['record'])
+            self.assertEqual([json.loads(line) for line in (target / 'historical-claims.jsonl').read_text().splitlines()], request['claims'])
+            before = {path.name: path.read_bytes() for path in target.iterdir()}
+            for name, spec in result['receipt']['files'].items():
+                self.assertEqual(spec, {'sha256': commands._digest(before[name]), 'bytes': len(before[name])})
+            projection = rebuild()
+            graph, _, _ = fixture.historical_knowledge(root, projection)
+            subject = next(node for node in graph['nodes'] if node.get('entity_id') == config['record_id'])
+            self.assertEqual(subject['type_id'], 'tos.entity.historical-event')
+            self.assertEqual(subject['attributes']['source_record'], request['record'])
+            from tos_access.knowledge import focus_knowledge_node, select_human_forms
+            selected = select_human_forms(subject, 'auto')['roles']['hover']['packet']
+            self.assertEqual(selected['display_text'], request['record']['notes'])
+            self.assertIsNone(selected['admission'])
+            neighbors = focus_knowledge_node(graph, config['record_id'], depth=2)
+            self.assertTrue({claim['object'] for claim in request['claims']}.issubset(
+                {node['entity_id'] for node in neighbors['nodes']}))
+            forms = commands._snapshot(root / config['source_path'])[-1]
+            views = commands.materialize_metadata_forms(request['record'], forms, access_allowed=True)
+            self.assertTrue(all(view['state'] == 'ready' and view['admission'] is None for view in views))
+            for claim in request['claims']:
+                self.assertTrue(any(node.get('entity_id') == claim['claim_id'] for node in graph['nodes']))
+            process = subprocess.run([sys.executable, str(MECHANIC / 'source_commands.py'), '--owner-config', str(owner)],
+                input=json.dumps(request), text=True, capture_output=True)
+            self.assertEqual(process.returncode, 0, process.stderr + process.stdout)
+            replay = json.loads(process.stdout)
+            self.assertTrue(replay['replayed'])
+            self.assertEqual(replay['receipt'], result['receipt'])
+            self.assertEqual({path.name: path.read_bytes() for path in target.iterdir()}, before)
+
+    def test_invalid_sources_claims_forms_and_scope_publish_nothing(self):
+        mutations = [
+            lambda r: r['record'].update(record_version=2),
+            lambda r: r['record'].update(visibility='local_only'),
+            lambda r: r['record'].update(record_id='tos.historical-event.outside'),
+            lambda r: r['record'].update(identity_status='established'),
+            lambda r: r['claims'][0]['maker'].update(agent_ref='impostor'),
+            lambda r: r['claims'][0]['maker'].update(maker_type='human'),
+            lambda r: r['claims'][0].update(object='tos.work.missing'),
+            lambda r: r['claims'][0].update(subject_ref='tos.historical-event.fixture'),
+            lambda r: r['claims'][0].update(claim_id='tos.claim.outside'),
+            lambda r: r['claims'][0].update(provenance_event_ref='tos.event.missing'),
+            lambda r: r['claims'][0].update(evidence_refs=['ToS/../../owner.json']),
+            lambda r: r['claims'][0].update(evidence_refs=['ToS/missing.json']),
+            lambda r: r['claims'][0].update(review_status='accepted'),
+            lambda r: r['claims'].append(copy.deepcopy(r['claims'][0])),
+            lambda r: r['forms'][0].update(form_id='tos.form.outside'),
+            lambda r: r['forms'][0].update(field_id='metadata.absent'),
+            lambda r: r['forms'].pop(0),
+            lambda r: r.update(expected_revision='sha256:' + '0' * 64),
+            lambda r: r.update(expected_dependencies='sha256:' + '0' * 64),
+            lambda r: r.update(authority_ref='source prose cannot grant authority'),
+        ]
+        with self.creation() as (root, owner, config, request, rebuild, fixture):
+            before = rebuild()
+            for index, mutate in enumerate(mutations):
+                invalid = copy.deepcopy(request)
+                mutate(invalid)
+                with self.subTest(index=index), self.assertRaises((ValueError, OSError, commands.ValidationError)):
+                    commands.run_local_command(owner, invalid)
+                self.assertFalse((root / config['source_path']).parent.exists())
+            self.assertEqual(rebuild(), before)
+            self.assertEqual(list((root / 'ToS').glob('.source-create-*.pending')), [])
+
+    def test_visibility_before_commit_and_recovery_after_response_loss(self):
+        from build_source_witness_catalog import collect_records
+        with self.creation() as (root, owner, config, request, rebuild, fixture):
+            target = (root / config['source_path']).parent
+            publish = commands._publish_new_directory
+            def inspect_before_commit(staging, destination):
+                self.assertFalse(target.exists())
+                self.assertEqual(len(list(staging.iterdir())), 4)
+                self.assertFalse(any(row['record_id'] == config['record_id']
+                    for rows in collect_records(root).values() for row in rows))
+                raise OSError('synthetic failure before publication')
+            with patch.object(commands, '_publish_new_directory', side_effect=inspect_before_commit):
+                with self.assertRaises(OSError):
+                    commands.run_local_command(owner, request)
+            self.assertFalse(target.exists())
+            self.assertEqual(list((root / 'ToS').glob('.source-create-*.pending')), [])
+            def commit_then_fail(staging, destination):
+                publish(staging, destination)
+                raise OSError('synthetic response loss')
+            with patch.object(commands, '_publish_new_directory', side_effect=commit_then_fail):
+                with self.assertRaises(OSError):
+                    commands.run_local_command(owner, request)
+            self.assertTrue(commands.run_local_command(owner, request)['replayed'])
+            self.assertEqual(len(list(target.iterdir())), 4)
+
+    def test_concurrency_no_replace_and_current_revocation(self):
+        with self.creation() as (root, owner, config, request, rebuild, fixture):
+            target = (root / config['source_path']).parent
+            rename = commands._publish_new_directory
+            def create_empty_competitor(staging, destination):
+                destination.mkdir()
+                rename(staging, destination)
+            with patch.object(commands, '_publish_new_directory', side_effect=create_empty_competitor):
+                with self.assertRaises(commands.JournalConflict):
+                    commands.run_local_command(owner, request)
+            self.assertEqual(list(target.iterdir()), [])
+            target.rmdir()  # Exact empty synthetic competing directory only.
+            with ThreadPoolExecutor(2) as pool:
+                results = list(pool.map(lambda _: commands.run_local_command(owner, request), range(2)))
+            self.assertEqual(sorted(result['replayed'] for result in results), [False, True])
+            different = {**request, 'command_id': 'different-command'}
+            with self.assertRaises(commands.JournalConflict):
+                commands.run_local_command(owner, different)
+            for field in ('allowed_claim_ids', 'allowed_form_ids'):
+                limited = {**config, field: []}
+                owner.write_text(json.dumps(limited))
+                with self.subTest(field=field), self.assertRaises(PermissionError):
+                    commands.run_local_command(owner, request)
+            config['allowed_operations'] = []
+            owner.write_text(json.dumps(config))
+            with self.assertRaises(PermissionError):
+                commands.run_local_command(owner, request)
+
+    def test_abrupt_process_loss_leaves_only_invisible_staging_and_retry_does_not_delete_it(self):
+        from build_source_witness_catalog import collect_records
+        with self.creation() as (root, owner, config, request, rebuild, fixture):
+            code = ('import json, os, pathlib, sys; sys.path.insert(0, sys.argv[1]); '
+                    'import source_commands as c; '
+                    'c._publish_new_directory = lambda *args: os._exit(73); '
+                    'c.run_local_command(pathlib.Path(sys.argv[2]), json.load(sys.stdin))')
+            process = subprocess.run([sys.executable, '-c', code, str(MECHANIC), str(owner)],
+                input=json.dumps(request), text=True, capture_output=True)
+            self.assertEqual(process.returncode, 73, process.stderr + process.stdout)
+            abandoned = list((root / 'ToS').glob('.source-create-*.pending'))
+            self.assertEqual(len(abandoned), 1)
+            saved = {p.name: p.read_bytes() for p in abandoned[0].iterdir()}
+            self.assertFalse(any(row['record_id'] == config['record_id']
+                for rows in collect_records(root).values() for row in rows))
+            self.assertFalse(commands.run_local_command(owner, request)['replayed'])
+            self.assertEqual({p.name: p.read_bytes() for p in abandoned[0].iterdir()}, saved)
+            self.assertTrue(commands.run_local_command(owner, request)['replayed'])
+
+    def test_dependency_drift_and_revocation_during_staging_refuse_publication(self):
+        with self.creation() as (root, owner, config, request, rebuild, fixture):
+            original = commands._historical_creation
+            calls = []
+            def change_configuration(*args):
+                output = original(*args)
+                calls.append(True)
+                if len(calls) == 2:
+                    owner.write_text(json.dumps({**config, 'allowed_operations': []}))
+                return output
+            with patch.object(commands, '_historical_creation', side_effect=change_configuration):
+                with self.assertRaises(commands.JournalConflict):
+                    commands.run_local_command(owner, request)
+            self.assertFalse((root / config['source_path']).parent.exists())
+            owner.write_text(json.dumps(config))
+            calls.clear()
+            def change_dependency(*args):
+                if calls:
+                    path = root / 'ToS/source-witnesses/places/chemnitz/place.json'
+                    source = json.loads(path.read_bytes())
+                    source['notes'] = 'Synthetic concurrent correction.'
+                    source['record_version'] += 1
+                    path.write_text(json.dumps(source))
+                calls.append(True)
+                return original(*args)
+            with patch.object(commands, '_historical_creation', side_effect=change_dependency):
+                with self.assertRaises(commands.JournalConflict):
+                    commands.run_local_command(owner, request)
+            self.assertFalse((root / config['source_path']).parent.exists())
+            self.assertEqual(list((root / 'ToS').glob('.source-create-*.pending')), [])
+            with self.assertRaisesRegex(commands.JournalConflict, 'dependencies are stale'):
+                commands.run_local_command(owner, request)
+
+    def test_allocated_identity_collisions_and_symlinks_are_not_overwritten(self):
+        with self.creation() as (root, owner, config, request, rebuild, fixture):
+            source = root / config['source_path']
+            other = root / 'ToS/source-witnesses/history/other-subject'
+            other.mkdir()
+            (other / source.name).write_text(json.dumps(request['record']))
+            with self.assertRaises(commands.JournalConflict):
+                commands.run_local_command(owner, request)
+            (other / source.name).unlink()  # Only the deliberate synthetic duplicate.
+            old_path = root / 'ToS/source-witnesses/history/fixture/historical-event.json'
+            old = json.loads(old_path.read_bytes())
+            subject = Record.from_payload(old['record_id'], old['record_version'], old)
+            change = commands.prepare_metadata_change(old, None, config['principal_id'],
+                request['forms'][0]['form_id'], 'metadata.preferred-name')
+            old_forms = old_path.with_name('historical-event.human-forms.json')
+            old_forms.write_text(json.dumps(commands._apply(None, subject, [change])))
+            with self.assertRaises(commands.JournalConflict):
+                commands.run_local_command(owner, request)
+            old_forms.unlink()  # Only the deliberate synthetic colliding form.
+            source.parent.symlink_to(other, target_is_directory=True)
+            with self.assertRaises(OSError):
+                commands.run_local_command(owner, request)
+            self.assertEqual(list(other.iterdir()), [])
 
 
 if __name__ == '__main__':

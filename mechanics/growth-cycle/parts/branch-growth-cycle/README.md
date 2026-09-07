@@ -216,8 +216,10 @@ performing linguistic assessment or granting a submission its own scope.
 
 `scripts/source_commands.py` is the explicit source-write entrypoint. Its first
 adapter creates and revises forms adjacent to one bibliographic or historical source record;
-it does not expose writes through `access`, create a second corpus database or
-mutate the subject. The normative identity/admission boundary remains in
+that adapter does not mutate the subject. The separately delegated historical
+creation adapter below publishes a new subject with its initial claims and
+forms. Neither exposes writes through `access` or creates a second corpus database.
+The normative identity/admission boundary remains in
 `ToS/doctrine/HUMAN_FORMS.md`. The same CLI serves a human or an agent:
 
 ```bash
@@ -309,3 +311,97 @@ publication, revocation, protected paths, inert input, preparation and partial
 source rebinding. Its catalog-wide test prepares existing public bibliographic
 fields **in memory** and verifies source-byte preservation. It is not evidence
 of an actual whole-corpus migration or substantive source/translation quality.
+
+### Initial historical subject creation
+
+The same CLI also accepts a separately selected
+`tos_local_historical_create_owner_v1` configuration. It has the same account,
+root, exact source path, authority, expiry and form-ID fields as the form
+adapter, plus `record_id`, `allowed_claim_ids` (at most 32 exact `tos.claim.*`
+IDs) and `maker_type` (`human`, `software` or `model`). Its
+`allowed_operations` is a subset of `["historical.create"]`; the old form
+configuration cannot grant this operation. Claim maker identity and kind must
+match the issuer-selected principal and kind, including on replay.
+
+The exact source basename must match `historical-event.json`,
+`historical-process.json` or `historical-state.json` and the delegated ID.
+Its subject directory must not exist; its parent must already be protected
+and owned. The adapter will not create a directory hierarchy, merge into an
+existing directory, change another subject, or change an existing version.
+The issuer's storage, rights and public-metadata decisions remain necessary;
+an operation scope does not itself establish those permissions.
+
+Requests retain `schema_version: tos_local_source_command_v1`:
+
+- `describe` returns operation/identity scope, source and claim schema refs,
+  configuration digest and `target_exists`; it does not create a lock or file.
+- `prepare` adds only `record`. It validates the proposed initial record and
+  returns `prepared_source` and its semantic `source_fields`, without a write.
+  A proposed exact source ref is not an existing source or a reservation.
+- `prepare-create` adds `record`, `claims` and `forms` as below. It validates
+  the complete proposal against current sources and returns `prepared_files`
+  (byte counts/digests) and `expected_dependencies`, without a lock or write.
+  Dependencies include the executing source/renderer implementation and form
+  schemas as well as the selected source tree's historical contracts.
+- `historical.create` adds `command_id`, `expected_configuration` from
+  discovery, `expected_dependencies` from the complete preview,
+  `expected_source: null`, `expected_revision: null`, the full
+  `record`, `claims` (0–32 complete historical-claim records), and `forms`
+  (1–32 `{form_id, field_id}` source-copy selections from preparation).
+  At least one name form is required. Form IDs are allocated independently
+  of their current wording or selected field; later changes use `form.revise`.
+
+The initial record has version 1, `provisional` identity,
+`no_equivalence_claim` and public-metadata visibility. Claims have version 1,
+their own delegated IDs, the new subject, unchanged scholarly-report and
+unreviewed posture, and no supplied assessment or supersession. Typed endpoints,
+relative date anchors, existing provenance events, evidence/counterevidence
+and alternative-claim closure are checked using the authored catalogs and
+the existing graph reader's schema/registry rules. Evidence paths must name
+protected metadata, not payloads or traversal paths. This resolves references,
+not historical truth, source quality, competence or admission. Unknown source
+extensions and claim qualifiers are retained verbatim as JSON values.
+
+Publication creates exactly four files in the new directory: the typed
+record, `historical-claims.jsonl`, the adjacent human-form set, and
+`source-create-receipt.json`. They keep the existing source formats and
+readers; there is no new source envelope or duplicate graph store. The receipt
+binds the canonical request, account/delegation, exact subject, observed
+dependency digest and each output's bytes/digest. It records this source
+transaction, not a claim's research provenance or an assessment event.
+
+The files are staged under `ToS/.source-create-*.pending`, **outside** the
+source-witness scanner root. Fsync precedes a Linux `renameat2(RENAME_NOREPLACE)`
+commit of the complete directory; both parents are then synced. Missing
+no-replace support or a cross-filesystem route fails without a copying fallback.
+Even an empty competing destination is never replaced. A bounded global
+`.historical-create.writer.lock` under source-witnesses coordinates these
+create commands. Identity collision checks and dependency rereads currently
+scan authored metadata; this is not yet an indexed or incremental writer.
+Ordinary editors and other metadata/configuration publishers must remain
+quiescent through the transaction. Final rereads detect drift, but do not
+provide a transaction over uncooperative same-account writers.
+
+`tos_local_historical_create_result_v1` returns the retained creation receipt
+and `replayed`, never a current assessment. An exact retry after response loss
+returns the old receipt without rewriting source files. Current operation,
+maker and ID revocations still apply. An occupied target without that matching
+receipt is a conflict, not a migration opportunity. The receipt describes the
+initial creation; subsequent ordinary form/source changes do not become its
+historical output. A reused command ID with changed input cannot overwrite it.
+
+An abrupt process loss before commit may leave an invisible staging directory;
+retry does not delete or publish that abandoned directory. An ordinary exception
+removes only its own unpublished staging files. Committed sources and receipts
+are never removed by retry or derived-reader rollback. The request/configuration
+budget is 1 MiB; each source output is bounded at 2 MiB, with the existing form
+and rendering limits. These are safety ceilings, not latency guarantees.
+
+Catalog/graph rebuild and public publication remain separate operations. A
+builder traversing across a concurrent creation may need a fresh build; this
+adapter does not make several catalog files one snapshot. Synthetic integration
+tests cover the existing catalog → graph → access reader, scope and reference
+refusals, competing writers, process loss before commit, response loss after
+commit, and restart/replay. They do not establish a real historical episode,
+atomic revisions of an existing subject, all-profile growth or real-agent
+assessment quality.

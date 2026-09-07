@@ -117,6 +117,14 @@ places and associated Works remain evidence-bearing Claims; a historical
 description is neither a cause nor an admission. The executable source and
 consumer contract is in [semantic interchange](semantic-interchange/README.md#historical-situations-source-profile).
 
+An explicitly delegated initial historical creation can publish one new
+provisional identity, its separately identified initial claims and source-bound
+human forms together through the [source-owner command](../../mechanics/growth-cycle/parts/branch-growth-cycle/README.md#initial-historical-subject-creation).
+The creation receipt binds the exact initial files; it is not the claims'
+research provenance, an assessment or historical acceptance. This bounded
+operation does not revise existing subjects or turn a directory into corpus
+identity. Catalog and graph publication remain weaker, separate operations.
+
 Rules:
 
 - an ID is never reused for a different referent;
