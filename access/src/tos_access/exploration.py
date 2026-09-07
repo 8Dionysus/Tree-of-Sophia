@@ -15,11 +15,11 @@ from collections import OrderedDict, defaultdict
 
 from .knowledge import (
     KNOWLEDGE_SOURCES, OVERVIEW_EXCLUDED_PREDICATES, OVERVIEW_EXCLUDED_RELATION_TYPES, _lens_carrier,
-    _resolve_focus_node, _stable_digest,
+    _resolve_focus_node, _stable_digest, knowledge_scene,
 )
 from .lens_pagination import KnowledgeRevisionConflict
 
-EXECUTION_VERSION = "tos-exploration-execution-v2"
+EXECUTION_VERSION = "tos-exploration-execution-v3"
 
 
 class ExplorationExpired(ValueError):
@@ -246,6 +246,8 @@ class ExplorationService:
             "query": query, "focus": {"node_id": focus}, "status": status, "limit_reason": limit_reason,
             "nodes": [_lens_carrier(self.nodes[id], "compact") for id in sorted(selected)],
             "relations": [_lens_carrier(self.relations[id], "compact") for id in emitted],
+            "scene": knowledge_scene([self.nodes[id] for id in selected],
+                                     [self.relations[id] for id in emitted], focus),
             "page": {"number": state["page_number"], "primary_node_ids": primary,
                      "context_node_ids": sorted(selected - set(primary)), "next_cursor": None,
                      "returned_nodes": len(selected), "returned_relations": len(emitted),

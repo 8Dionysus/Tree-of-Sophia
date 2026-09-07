@@ -129,6 +129,35 @@ The result includes the normalized items, groups, facets, source revision,
 per-item content revisions, and a deterministic fingerprint. The public
 schemas and operation map live under `access/contracts/`.
 
+Lens results and resumable exploration pages also deliver `scene`
+(`tos_knowledge_scene_v1`, defined in the knowledge-graph schema). This is a
+packet-local map, not a replacement graph: `vertices[].node_ids` partition
+the returned exact carrier IDs, grouping only an identical declared `tos.*`
+entity ID. Names, similarity, `same_as` and native-ID fallbacks never merge
+vertices. A Claim retains its own identity, distinct from its subject/object.
+`vertices[].id` stays stable when another carrier of that subject appears in
+a later lens/page; it is a presentation key, not an inspection or query ID.
+
+`representative_node_id` chooses only the default card/display carrier, in
+source-navigation, canon, source-claims, philosophy, candidate-intake,
+repository, semantic-interchange order, then Unicode code-point ID order.
+This is not a verdict on competing records or forms. Consumers inspect each
+original `node_id` and `content_revision`; they must not relabel or merge its
+content. `focus_vertex_id` locates the focused carrier in the scene.
+`arcs` point back to each exact `relation_id` with mapped scene endpoints.
+Only a typed `tos.relation.projects` link within the same vertex is omitted
+from arcs and listed in `collapsed_relation_ids`; it remains inspectable in
+`relations`. Other self-relations and parallel assertions remain distinct.
+
+The map is computed **after** source filtering and delivery pagination. It
+does not discover other carriers, widen a query, compact Claim paths, change
+admission or bypass a page budget. Its work/storage are bounded by the returned
+packet, with sorting at most O((nodes + relations) log(nodes + relations)).
+Older packets may lack `scene`; consumers must then preserve exact carrier
+vertices, not invent a grouping heuristic. Execution v3 fingerprints/checkpoints
+separate this delivery from older cached responses. UI adoption and
+identity-aware neighborhood traversal are separate consumer/query changes.
+
 ## Constructor boundaries
 
 Construction coverage is deliberately bounded: selectors, type ancestry,

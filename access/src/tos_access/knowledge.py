@@ -2952,6 +2952,46 @@ def _stamp_content_revision(item: dict[str, Any]) -> None:
     item["content_revision"] = _content_revision(item)
 
 
+_CARRIER_SOURCE_PRIORITY = {
+    'source-navigation': 0, 'canon': 1, 'source-claims': 2, 'philosophy': 3,
+    'candidate-intake': 4, 'repository': 5, 'semantic-interchange': 6,
+}
+
+
+def knowledge_scene(nodes, relations, focus_node_id=None):
+    """Packet-local presentation mapping, never a corpus identity merge.
+
+    Only declared persistent ToS IDs group carriers. Normalizer fallback IDs
+    remain separate. Exact carrier records, assertions and revisions stay in
+    the enclosing packet; every relation is accounted for even when collapsed.
+    """
+    groups, by_node = {}, {}
+    for node in nodes:
+        entity = node.get('entity_id')
+        entity = entity if isinstance(entity, str) and entity.startswith('tos.') else None
+        vertex_id = 'tos-scene:entity:' + entity if entity else 'tos-scene:carrier:' + node['id']
+        by_node[node['id']] = vertex_id
+        groups.setdefault(vertex_id, {'entity_id': entity, 'nodes': []})['nodes'].append(node)
+    vertices = []
+    for vertex_id, group in sorted(groups.items()):
+        representative = min(group['nodes'], key=lambda n: (
+            _CARRIER_SOURCE_PRIORITY.get(n.get('source_graph'), 99), n['id']))
+        vertices.append({'id': vertex_id, 'entity_id': group['entity_id'],
+                         'node_ids': sorted(n['id'] for n in group['nodes']),
+                         'representative_node_id': representative['id']})
+    arcs, collapsed = [], []
+    for relation in sorted(relations, key=lambda r: r['id']):
+        left, right = by_node[relation['from_id']], by_node[relation['to_id']]
+        if left == right and relation.get('relation_type_id') == 'tos.relation.projects':
+            collapsed.append(relation['id'])
+        else:
+            arcs.append({'relation_id': relation['id'], 'from_id': left, 'to_id': right})
+    return {'schema_version': 'tos_knowledge_scene_v1', 'vertices': vertices, 'arcs': arcs,
+            'collapsed_relation_ids': collapsed, 'focus_vertex_id': by_node.get(focus_node_id),
+            'scope': 'returned-packet-only', 'identity_rule': 'declared-tos-entity-id',
+            'authority': 'presentation-mapping-not-semantic-admission'}
+
+
 def _resolve_focus_node(nodes: list[dict[str, Any]], requested_id: str | None) -> dict[str, Any] | None:
     if requested_id is None:
         return None
@@ -2960,18 +3000,9 @@ def _resolve_focus_node(nodes: list[dict[str, Any]], requested_id: str | None) -
         return exact[0]
     entity_matches = [item for item in nodes if str(item.get("entity_id")) == requested_id]
     if entity_matches:
-        source_priority = {
-            "source-navigation": 0,
-            "canon": 1,
-            "source-claims": 2,
-            "philosophy": 3,
-            "candidate-intake": 4,
-            "repository": 5,
-            "semantic-interchange": 6,
-        }
         return min(
             entity_matches,
-            key=lambda item: (source_priority.get(str(item.get("source_graph")), 99), str(item.get("id"))),
+            key=lambda item: (_CARRIER_SOURCE_PRIORITY.get(str(item.get("source_graph")), 99), str(item.get("id"))),
         )
     native = [item for item in nodes if str(item.get("native_id")) == requested_id]
     if not native:
@@ -3160,14 +3191,14 @@ def execute_knowledge_lens(graph: dict[str, Any], spec_value: Any) -> dict[str, 
     truncated_nodes = max(0, len(matched_node_ids) - spec["limits"]["nodes"])
     truncated_relations = max(0, eligible_relation_count - len(final_relations))
     fingerprint_material = {
-        "execution_version": "tos-lens-execution-v2",
+        "execution_version": "tos-lens-execution-v3",
         "source_revision": graph.get("source_revision"),
         "lens": {k: v for k, v in spec.items() if k != 'pagination'},
         "nodes": [[item["id"], item["content_revision"]] for item in final_nodes],
         "relations": [[item["id"], item["content_revision"]] for item in final_relations],
         "groups": groups,
     }
-    return paginate_lens({
+    result = paginate_lens({
         "schema": "tos_lens_result_v1",
         "source_revision": str(graph.get("source_revision") or ""),
         "lens": spec,
@@ -3223,6 +3254,9 @@ def execute_knowledge_lens(graph: dict[str, Any], spec_value: Any) -> dict[str, 
             "writes_to_tree": False,
         },
     })
+    result['scene'] = knowledge_scene(result['nodes'], result['relations'],
+                                      result['focus']['node_id'] if result['focus'] else None)
+    return result
 
 
 def _lens_carrier(item: dict[str, Any], detail: str, *, language: str | None = None) -> dict[str, Any]:

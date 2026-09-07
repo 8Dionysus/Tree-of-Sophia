@@ -3,6 +3,51 @@ import { selectHumanForms } from './human-forms.ts';
 
 export type Item = Record<string, unknown>;
 
+const CARRIER_SOURCE_PRIORITY: Record<string, number> = {
+  'source-navigation': 0, canon: 1, 'source-claims': 2, philosophy: 3,
+  'candidate-intake': 4, repository: 5, 'semantic-interchange': 6,
+};
+
+// Presentation identity only. The enclosing packet owns exact records,
+// revisions, wording and inspection; this does not adjudicate same_as claims.
+export function knowledgeScene(nodes: Item[], relations: Item[], focusNodeId: string | null = null) {
+  const groups = new Map<string, {entity_id: string | null; nodes: Item[]}>();
+  const byNode = new Map<string, string>();
+  const compare = (a: string, b: string) => {
+    const left = Array.from(a), right = Array.from(b);
+    for (let i = 0; i < Math.min(left.length, right.length); i++) {
+      const delta = left[i]!.codePointAt(0)! - right[i]!.codePointAt(0)!;
+      if (delta) return delta;
+    }
+    return left.length - right.length;
+  };
+  for (const node of nodes) {
+    const entity = typeof node.entity_id === 'string' && node.entity_id.startsWith('tos.') ? node.entity_id : null;
+    const id = entity ? 'tos-scene:entity:' + entity : 'tos-scene:carrier:' + String(node.id);
+    byNode.set(String(node.id), id);
+    if (!groups.has(id)) groups.set(id, {entity_id: entity, nodes: []});
+    groups.get(id)!.nodes.push(node);
+  }
+  const vertices = [...groups].sort(([a], [b]) => compare(a, b)).map(([id, group]) => {
+    const ordered = group.nodes.slice().sort((a, b) =>
+      (CARRIER_SOURCE_PRIORITY[String(a.source_graph)] ?? 99) - (CARRIER_SOURCE_PRIORITY[String(b.source_graph)] ?? 99)
+      || compare(String(a.id), String(b.id)));
+    return {id, entity_id: group.entity_id, node_ids: group.nodes.map(n => String(n.id)).sort(compare),
+      representative_node_id: String(ordered[0]!.id)};
+  });
+  const arcs: {relation_id: string; from_id: string; to_id: string}[] = [], collapsed: string[] = [];
+  for (const relation of relations.slice().sort((a, b) => compare(String(a.id), String(b.id)))) {
+    const left = byNode.get(String(relation.from_id)), right = byNode.get(String(relation.to_id));
+    if (!left || !right) throw new Error('scene relation endpoint missing from returned packet');
+    if (left === right && relation.relation_type_id === 'tos.relation.projects') collapsed.push(String(relation.id));
+    else arcs.push({relation_id: String(relation.id), from_id: left, to_id: right});
+  }
+  return {schema_version: 'tos_knowledge_scene_v1', vertices, arcs, collapsed_relation_ids: collapsed,
+    focus_vertex_id: focusNodeId === null ? null : byNode.get(focusNodeId) ?? null,
+    scope: 'returned-packet-only', identity_rule: 'declared-tos-entity-id',
+    authority: 'presentation-mapping-not-semantic-admission'};
+}
+
 export type LocalizedText = {
   [language: string]: string | null | undefined;
   default: string;
@@ -663,7 +708,7 @@ export async function finalizeKnowledgeLens(
   const truncatedNodes = Math.max(0, executionCounts.matched_nodes - spec.limits.nodes);
   const truncatedRelations = Math.max(0, executionCounts.eligible_relations - finalRelations.length);
   const fingerprint = await digest({
-    execution_version: "tos-lens-execution-v2",
+    execution_version: "tos-lens-execution-v3",
     source_revision: sourceRevision,
     lens: Object.fromEntries(Object.entries(spec).filter(([key]) => key !== 'pagination')),
     nodes: finalNodes.map((item) => [item.id, item.content_revision ?? ""]),
@@ -671,7 +716,7 @@ export async function finalizeKnowledgeLens(
     groups,
   });
   const countBy = (values: string[]): Item => Object.fromEntries([...new Set(values)].sort().map((value) => [value, values.filter((item) => item === value).length]));
-  return paginateLens({
+  const result = paginateLens({
     schema: "tos_lens_result_v1",
     source_revision: sourceRevision,
     lens: spec,
@@ -720,6 +765,8 @@ export async function finalizeKnowledgeLens(
       writes_to_tree: false,
     },
   }, spec.pagination);
+  return {...result, scene: knowledgeScene(result.nodes, result.relations,
+    result.focus ? String((result.focus as Item).node_id) : null)};
 }
 
 export async function executeKnowledgeLens(graph: KnowledgeGraph, specValue: unknown): Promise<Item & { nodes: KnowledgeNode[]; relations: KnowledgeRelation[]; presentation: LensSpec["presentation"]; fingerprint: string; authority_boundary: Item }> {

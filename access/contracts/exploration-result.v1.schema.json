@@ -6,7 +6,8 @@
   "required": ["schema", "execution_version", "snapshot_revision", "source_revision", "query", "focus", "status", "limit_reason", "nodes", "relations", "page", "counts", "inclusion", "authority_boundary", "writes_to_tree"],
   "properties": {
     "schema": {"const": "tos_exploration_result_v1"},
-    "execution_version": {"enum": ["tos-exploration-execution-v1", "tos-exploration-d1-execution-v1", "tos-exploration-execution-v2", "tos-exploration-d1-execution-v2"]},
+    "execution_version": {"enum": ["tos-exploration-execution-v1", "tos-exploration-d1-execution-v1", "tos-exploration-execution-v2", "tos-exploration-d1-execution-v2", "tos-exploration-execution-v3", "tos-exploration-d1-execution-v3"]},
+    "scene": {"$ref": "knowledge-graph.v1.schema.json#/$defs/scene"},
     "snapshot_revision": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
     "source_revision": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
     "query": {"$ref": "exploration-request.v1.schema.json#/oneOf/1"},

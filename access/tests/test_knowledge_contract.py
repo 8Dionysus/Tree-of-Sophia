@@ -29,6 +29,63 @@ from tos_access.knowledge import (  # noqa: E402
 
 
 class KnowledgeContractTests(unittest.TestCase):
+    def test_scene_groups_only_declared_identity_and_preserves_exact_carriers(self):
+        graph = build_knowledge_graph(*self.fixture())
+        prototype, edge = graph['nodes'][0], graph['relations'][0]
+        graph['nodes'] = [{**prototype, 'id': id, 'native_id': id, 'entity_id': entity,
+                           'source_graph': source}
+                          for id, entity, source in [
+                              ('nav', 'tos.test.person', 'source-navigation'),
+                              ('claim-carrier', 'tos.test.person', 'source-claims'),
+                              ('namesake', 'tos.test.other', 'source-claims'),
+                              ('assertion', 'tos.claim.test', 'source-claims')]]
+        graph['relations'] = [
+            {**edge, 'id': 'projection', 'from_id': 'claim-carrier', 'to_id': 'nav',
+             'relation_type_id': 'tos.relation.projects'},
+            {**edge, 'id': 'assertion-subject', 'from_id': 'assertion', 'to_id': 'claim-carrier'},
+            {**edge, 'id': 'contested-equivalence', 'from_id': 'nav', 'to_id': 'namesake',
+             'relation_type_id': 'tos.relation.same-as'},
+            {**edge, 'id': 'self-relation', 'from_id': 'nav', 'to_id': 'claim-carrier'},
+        ]
+        before = copy.deepcopy(graph)
+        spec = {'schema_version': 'tos_lens_spec_v1', 'lens_id': 'scene-contract',
+                'seed': {'focus_node_id': 'claim-carrier'}, 'traversal': {'depth': 0}}
+        result = execute_knowledge_lens(graph, spec)
+        scene = result['scene']
+        self.assertEqual(len(scene['vertices']), 3)
+        person = next(v for v in scene['vertices'] if v['entity_id'] == 'tos.test.person')
+        self.assertEqual(person['node_ids'], ['claim-carrier', 'nav'])
+        self.assertEqual(person['representative_node_id'], 'nav')
+        self.assertEqual(scene['focus_vertex_id'], person['id'])
+        self.assertEqual(scene['collapsed_relation_ids'], ['projection'])
+        self.assertEqual({a['relation_id'] for a in scene['arcs']},
+                         {'assertion-subject', 'contested-equivalence', 'self-relation'})
+        self.assertEqual(next(a for a in scene['arcs'] if a['relation_id'] == 'self-relation')['from_id'], person['id'])
+        for item in result['nodes']:
+            original = next(n for n in before['nodes'] if n['id'] == item['id'])
+            self.assertEqual({k: item[k] for k in original}, original)
+        self.assertEqual(graph, before)
+        Draft202012Validator(self.schemas['lens-result.v1.schema.json'], registry=self.registry).validate(result)
+        graph['nodes'].reverse()
+        graph['relations'].reverse()
+        self.assertEqual(execute_knowledge_lens(graph, spec)['scene'], scene)
+        # Source filters and paging cannot leak a carrier excluded from this packet.
+        for update in ({'sources': ['source-claims']}, {'pagination': {'nodes': 1, 'relations': 1}}):
+            page = execute_knowledge_lens(graph, {**spec, **update})
+            self.assertEqual({id for v in page['scene']['vertices'] for id in v['node_ids']},
+                             {n['id'] for n in page['nodes']})
+            self.assertEqual({a['relation_id'] for a in page['scene']['arcs']} | set(page['scene']['collapsed_relation_ids']),
+                             {r['id'] for r in page['relations']})
+            self.assertEqual(next(v for v in page['scene']['vertices'] if 'claim-carrier' in v['node_ids'])['id'], person['id'])
+        # Fallback/native IDs are not evidence that different carriers coincide.
+        from tos_access.knowledge import knowledge_scene
+        for node in graph['nodes']:
+            node['entity_id'] = 'unqualified-shared-value'
+        fallback = knowledge_scene(graph['nodes'], graph['relations'])
+        self.assertEqual(len(fallback['vertices']), 4)
+        self.assertTrue(all(v['entity_id'] is None for v in fallback['vertices']))
+        self.assertEqual(fallback['collapsed_relation_ids'], [])
+
     def test_overview_does_not_infer_proximity_from_shared_record_maker(self):
         from tos_access.exploration import ExplorationService
         graph = build_knowledge_graph(*self.fixture())

@@ -14,6 +14,7 @@
     "lens": {"$ref": "lens-spec.v1.schema.json"},
     "fingerprint": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
     "presentation": {"type": "object"},
+    "scene": {"$ref": "knowledge-graph.v1.schema.json#/$defs/scene"},
     "page": {
       "type": "object", "additionalProperties": false,
       "required": ["next_cursor", "has_more", "primary_node_ids", "context_node_ids", "returned_nodes", "returned_relations", "scope", "counts_scope"],

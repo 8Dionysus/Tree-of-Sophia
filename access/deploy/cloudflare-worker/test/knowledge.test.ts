@@ -124,9 +124,23 @@ test("indexed D1 path conditions and inclusion agree with the pure engine", asyn
     }
     await db.prepare('UPDATE knowledge_relations SET relation_type_id=?, json=? WHERE id=?')
       .bind(graph.relations[0]!.relation_type_id, JSON.stringify(graph.relations[0]), graph.relations[0]!.id).run();
-    const python = (spec: unknown) => JSON.parse(execFileSync('python3', ['-c',
+    const python = (spec: unknown, source = graph) => JSON.parse(execFileSync('python3', ['-c',
       "import sys,json;sys.path.insert(0,'access/src');from tos_access.knowledge import execute_knowledge_lens;p=json.load(sys.stdin);print(json.dumps(execute_knowledge_lens(p['graph'],p['spec'])))"],
-      {cwd: fileURLToPath(new URL('../../../../', import.meta.url)), input: JSON.stringify({graph,spec}), encoding:'utf8'}));
+      {cwd: fileURLToPath(new URL('../../../../', import.meta.url)), input: JSON.stringify({graph:source,spec}), encoding:'utf8'}));
+    const carriers = structuredClone(graph);
+    carriers.nodes[1]!.entity_id = carriers.nodes[0]!.entity_id;
+    await db.prepare('UPDATE knowledge_nodes SET entity_id=?, json=? WHERE id=?')
+      .bind(carriers.nodes[1]!.entity_id, JSON.stringify(carriers.nodes[1]), carriers.nodes[1]!.id).run();
+    for (const paging of [null, {nodes: 1, relations: 1}]) {
+      const spec = {...focused, pagination: paging};
+      const pure = await executeKnowledgeLens(carriers, spec);
+      assert.deepEqual(await executeKnowledgeLensD1(db, spec), pure);
+      assert.deepEqual(pure, python(spec, carriers));
+      const scene = pure.scene as {vertices: {node_ids: string[]}[]};
+      assert.equal(scene.vertices.filter(v => v.node_ids.includes('philosophy:a'))[0]!.node_ids.length, 2);
+    }
+    await db.prepare('UPDATE knowledge_nodes SET entity_id=?, json=? WHERE id=?')
+      .bind(graph.nodes[1]!.entity_id, JSON.stringify(graph.nodes[1]), graph.nodes[1]!.id).run();
     const whole = await executeKnowledgeLens(graph, focused);
     const nodeIds: string[] = [], relationIds: string[] = [];
     let cursor: string | null = null;

@@ -14,6 +14,33 @@
     "authority_boundary": {"$ref": "#/$defs/authorityBoundary"}
   },
   "$defs": {
+    "scene": {
+      "type": "object", "additionalProperties": false,
+      "required": ["schema_version", "vertices", "arcs", "collapsed_relation_ids", "focus_vertex_id", "scope", "identity_rule", "authority"],
+      "properties": {
+        "schema_version": {"const": "tos_knowledge_scene_v1"},
+        "scope": {"const": "returned-packet-only"},
+        "identity_rule": {"const": "declared-tos-entity-id"},
+        "authority": {"const": "presentation-mapping-not-semantic-admission"},
+        "focus_vertex_id": {"type": ["string", "null"]},
+        "collapsed_relation_ids": {"type": "array", "uniqueItems": true, "items": {"type": "string", "minLength": 1}},
+        "vertices": {"type": "array", "items": {
+          "type": "object", "additionalProperties": false,
+          "required": ["id", "entity_id", "node_ids", "representative_node_id"],
+          "properties": {
+            "id": {"type": "string", "minLength": 1},
+            "entity_id": {"type": ["string", "null"], "pattern": "^tos\\."},
+            "node_ids": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"type": "string", "minLength": 1}},
+            "representative_node_id": {"type": "string", "minLength": 1}
+          }
+        }},
+        "arcs": {"type": "array", "items": {
+          "type": "object", "additionalProperties": false, "required": ["relation_id", "from_id", "to_id"],
+          "properties": {"relation_id": {"type": "string", "minLength": 1},
+            "from_id": {"type": "string", "minLength": 1}, "to_id": {"type": "string", "minLength": 1}}
+        }}
+      }
+    },
     "exactFormRef": {
       "type": "object", "additionalProperties": false, "required": ["id", "version", "digest"],
       "properties": {"id": {"type": "string", "minLength": 1},

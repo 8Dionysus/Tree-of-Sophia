@@ -8,6 +8,7 @@ import {fileURLToPath} from 'node:url';
 import {build} from 'esbuild';
 import {Miniflare, convertV4MiniflareOptions} from 'miniflare';
 import {ADJACENCY_SQL, exploreD1, explorationCapabilitiesD1, normalizeExploration} from '../src/exploration.ts';
+import {knowledgeScene, type Item} from '../src/knowledge.ts';
 
 const migration = readFileSync(new URL('../migrations/0001-exploration.sql', import.meta.url), 'utf8').replace(/^--.*$/gm, '').trim();
 const repo = fileURLToPath(new URL('../../../../', import.meta.url));
@@ -32,6 +33,8 @@ async function collect(db: D1Database, query: unknown) {
   const pages = []; let page = await exploreD1(db, query);
   for (let count = 0; count < 2000; count++) {
     pages.push(page);
+    const focus = page.focus as {node_id: string};
+    assert.deepEqual(page.scene, knowledgeScene(page.nodes as Item[], page.relations as Item[], focus.node_id));
     const cursor = (page.page as {next_cursor:string|null}).next_cursor;
     if (!cursor) return pages;
     page = await exploreD1(db, {cursor});

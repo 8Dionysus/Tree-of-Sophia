@@ -93,6 +93,10 @@ class ExplorationTests(unittest.TestCase):
                             self.assertEqual(pages[-1]["status"], "complete")
                             for p in pages:
                                 ids = {n["id"] for n in p["nodes"]}
+                                self.assertEqual({id for v in p['scene']['vertices'] for id in v['node_ids']}, ids)
+                                self.assertEqual({a['relation_id'] for a in p['scene']['arcs']}
+                                                 | set(p['scene']['collapsed_relation_ids']),
+                                                 {r['id'] for r in p['relations']})
                                 self.assertLessEqual(p["page"]["work_units"], 7)
                                 self.assertLessEqual(len(p["page"]["primary_node_ids"]), size)
                                 self.assertLessEqual(len(p["relations"]), size)
