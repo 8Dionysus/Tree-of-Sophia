@@ -20,10 +20,11 @@ import os
 from pathlib import Path
 import re
 import stat
+import sys
 import tempfile
 import time
 from typing import Any, Iterator, Sequence
-from jsonschema import ValidationError
+from jsonschema import Draft202012Validator, FormatChecker, ValidationError
 
 from knowledge_assessment import (
     AssessmentEngine, MAX_ASSESSMENTS, MAX_RECORD_BYTES, SubjectContext,
@@ -380,12 +381,44 @@ def _source_records(root: Path, bindings: Any) -> tuple[list[dict[str, Any]], li
     if not isinstance(bindings, list) or len(bindings) > MAX_ASSESSMENTS:
         raise ValueError('source bindings must be a bounded list')
     os.close(_owned_path(root, directory=True))
+    scripts = str(Path(__file__).resolve().parents[5] / 'scripts')
+    if scripts not in sys.path:
+        sys.path.insert(0, scripts)
+    from source_record_profiles import (SourceRecordProfiles, SourceClaimProfiles, SOURCE_CLAIM_BASENAME,
+                                        RESERVED_BASENAMES, _read_json, CORPUS_REF)
     families = {'tos_corpus_record_v1': ('record_id', 'record_version'),
                 'tos_historical_record_v1': ('record_id', 'record_version'),
                 'tos_claim_packet_v1': ('claim_id', 'claim_version'),
                 'tos_historical_claim_v1': ('claim_id', 'claim_version'),
                 'tos_human_form_v1': ('form_id', 'form_version')}
     files, resolved, fixity, total, selected = {}, [], [], 0, set()
+    metadata_profiles, claim_profiles = None, None
+    native_dependencies = {}
+    declared_claims = set()
+
+    def declared_family(row, path):
+        nonlocal metadata_profiles, claim_profiles
+        # Owner-declared readers only. Unknown neighbors remain opaque, and
+        # the selected record still fails if no exact schema route exists.
+        if path.name == SOURCE_CLAIM_BASENAME:
+            if claim_profiles is None:
+                claim_profiles = SourceClaimProfiles(root)
+            key = row.get('predicate'), row.get('schema_version')
+            if not all(isinstance(value, str) for value in key) or key not in claim_profiles.schema_routes:
+                return None
+            claim_profiles.validate(row)
+            declared_claims.add(row['claim_id'])
+            return 'claim_id', 'claim_version'
+        kind = row.get('record_type')
+        if isinstance(kind, str) and path.name == kind + '.json':
+            if metadata_profiles is None:
+                metadata_profiles = SourceRecordProfiles(root)
+            if kind not in metadata_profiles.profiles:
+                return None
+            metadata_profiles.validate(kind, row)
+            return 'record_id', 'record_version'
+        return None
+
     for binding in bindings:
         _keys(binding, {'path', 'record_id', 'origin_id'})
         identifier = binding['record_id']
@@ -398,7 +431,7 @@ def _source_records(root: Path, bindings: Any) -> tuple[list[dict[str, Any]], li
         path = Path(relative)
         if (path.is_absolute() or path.as_posix() != relative or '..' in path.parts
                 or path.parts[:2] != ('ToS', 'source-witnesses')
-                or any(part in ('payload', 'local-content') for part in path.parts)
+                or any(part in ('payload', 'local-content', 'catalog') for part in path.parts)
                 or path.suffix not in ('.json', '.jsonl')):
             raise PermissionError('source binding must name an explicit source-witness metadata file')
         if relative not in files:
@@ -430,6 +463,10 @@ def _source_records(root: Path, bindings: Any) -> tuple[list[dict[str, Any]], li
                 if not isinstance(row, dict):
                     raise ValueError('source records must be JSON objects')
                 family = families.get(row.get('schema_version'))
+                if (family is None or path.name == SOURCE_CLAIM_BASENAME
+                        or (isinstance(row.get('record_type'), str) and path.suffix == '.json'
+                            and path.name not in RESERVED_BASENAMES)):
+                    family = declared_family(row, path)
                 if family is None:
                     continue  # Opaque neighboring records are neither dropped from source nor interpreted.
                 identity, version = family
@@ -449,6 +486,51 @@ def _source_records(root: Path, bindings: Any) -> tuple[list[dict[str, Any]], li
         origin = binding['origin_id']
         Record.from_payload(record.id, record.version, payload, origin_id=origin)
         resolved.append({'id': record.id, 'version': record.version, 'payload': payload, 'origin_id': origin})
+    if claim_profiles is not None:
+        # Endpoints must be in this independently selected source snapshot,
+        # not inline shadows or discovered by crawling the surrounding corpus.
+        objects = {item['id']: item['payload'] for item in resolved if 'record_type' in item['payload']}
+        paths = {binding['record_id']: Path(binding['path']) for binding in bindings}
+        endpoint_ids = {item['payload'][field] for item in resolved if item['id'] in declared_claims
+                        for field in ('subject_ref', 'object')}
+        native_validator = None
+        for identifier in endpoint_ids & objects.keys():
+            body = objects[identifier]
+            kind = body.get('record_type')
+            if (not isinstance(kind, str) or paths[identifier].name != kind + '.json'
+                    or not identifier.startswith('tos.' + kind + '.')):
+                raise ValueError('claim endpoint identity and source basename disagree')
+            if body.get('schema_version') == 'tos_corpus_record_v1':
+                if native_validator is None:
+                    schema = _read_json(root, CORPUS_REF, native_dependencies)
+                    native_validator = Draft202012Validator(schema, format_checker=FormatChecker())
+                if not native_validator.is_valid(body):
+                    raise ValueError('claim endpoint violates the native corpus source schema')
+            else:
+                if metadata_profiles is None:
+                    metadata_profiles = SourceRecordProfiles(root)
+                if kind not in metadata_profiles.profiles:
+                    raise ValueError('claim endpoint has no declared source metadata profile')
+                metadata_profiles.validate(kind, body)
+        for item in resolved:
+            if item['id'] in declared_claims:
+                claim_profiles.validate(item['payload'], objects)
+    dependencies = dict(native_dependencies)
+    for profiles in (metadata_profiles, claim_profiles):
+        if profiles is not None:
+            for ref, digest in profiles.input_digests.items():
+                if ref in dependencies and dependencies[ref] != digest:
+                    raise JournalConflict('source profile dependency changed during resolution')
+                dependencies[ref] = digest
+    for ref, digest in sorted(dependencies.items()):
+        with os.fdopen(_owned_path(root / ref), 'rb') as stream:
+            raw = stream.read(8 * MAX_RECORD_BYTES - total + 1)
+        total += len(raw)
+        if total > 8 * MAX_RECORD_BYTES:
+            raise ValueError('source and profile files exceed the shared 8 MiB read budget')
+        if hashlib.sha256(raw).hexdigest() != digest:
+            raise JournalConflict('source profile dependency changed during resolution')
+        fixity.append({'path': ref, 'digest': 'sha256:' + digest})
     return resolved, fixity
 
 
@@ -536,7 +618,7 @@ def run_local_command(owner_config: Path, request: dict[str, Any], *,
         raise PermissionError('subject access is not allowed')
     if identifier in {item['id'] for item in sourced}:
         body = current.payload
-        if body['schema_version'] in {'tos_claim_packet_v1', 'tos_historical_claim_v1'}:
+        if 'claim_id' in body and 'claim_version' in body:
             maker = body.get('maker')
             if (scope['assertion_layer'] != body.get('assertion_layer')
                     or not isinstance(maker, dict) or scope['maker_id'] != maker.get('agent_ref')):
@@ -563,6 +645,8 @@ def run_local_command(owner_config: Path, request: dict[str, Any], *,
                     {'record': record(item).ref, 'path': binding['path'],
                      'file_digest': digests[binding['path']], 'origin_id': item['origin_id']}
                     for item, binding in zip(sourced, config['source_records'], strict=True)]
+                paths = {binding['path'] for binding in config['source_records']}
+                result['command_context']['source_contracts'] = [item for item in fixity if item['path'] not in paths]
     else:
         execution = config['execution_profile']
         _keys(execution, {'id', 'version', 'digest'})

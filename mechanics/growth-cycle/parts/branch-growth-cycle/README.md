@@ -147,15 +147,25 @@ budget is 8 MiB, each file selects at most 1,024 records, and inline plus
 source-selected records share the existing 1,024-record snapshot bound.
 
 The adapter understands the identity/version envelopes of corpus-record v1,
-claim-packet v1, historical-record v1, historical-claim v1 and human-form v1.
+claim-packet v1, historical-claim v1 and human-form v1. Declared metadata
+profiles (including historical records, Document and Letter) and the shared
+`source-claims.jsonl` stream use the existing source-profile readers and their
+exact registry/schema versions. A legacy schema name cannot bypass the
+declared stream or metadata file's contract.
 A JSONL record is selected by stable ID,
 not line number; a human-form set selects only its current `forms`, never
 `prior_forms`. Duplicate current IDs or selected bindings are errors. Source
 payload fields, including unknown extensions and historical review fields,
 retain the same JSON values without semantic promotion. Unknown
 identity families cannot be selected through this adapter and remain in the
-original source with an explicit unsupported-family error. The adapter is not
-a replacement for the corresponding source validator or full corpus mapping.
+original source with an explicit unsupported-family error. Every endpoint of
+a selected declared Claim must be selected explicitly in `source_records`;
+inline records and corpus discovery cannot supply missing endpoints. Native
+Corpus endpoints must satisfy their original schema, ID family and basename;
+declared endpoints satisfy their metadata profile. Concrete inherited
+domain/range, layer and visibility are then checked by the Claim profile.
+This is not a replacement for whole-corpus reference, provenance, rights or
+source assessment; native non-Corpus artifact inputs still need their adapter.
 
 Claims and historical records must explicitly allow `public` or `public_metadata_only` visibility;
 other or missing visibility requires a separately authorized adapter. A
@@ -165,14 +175,19 @@ access and calibrated languages still belong to the trusted issuer. Inline
 copies cannot shadow source-bound IDs. An origin ID is issuer-owned provenance,
 not manufactured from a file path or a count of copies.
 
-The owner snapshot binds the configuration, each exact source-file byte digest
-and every selected full record. In-read modification is refused. This does not
+The owner snapshot binds the configuration, each exact source-file byte digest,
+every selected full record, and consumed registry/schema byte digests. Source
+and profile files together share the 8 MiB unique-input budget. Profile inputs
+are ownership-checked and rehashed after resolution; observed drift is refused.
+In-read source modification is refused. This does not
 make independently changing source files transactional: the issuer must keep
 the agreed multi-file snapshot stable during the operation. A source change
 invalidates an old command snapshot; a subject change also requires updating
 its owner scope. Canonical record refs remain distinct from file-byte fixity.
 `describe` exposes selected record refs, source paths, file digests and declared
-origins, not a second corpus body or permission to use the source text.
+origins, plus `source_contracts` with the exact consumed contract paths/digests,
+not a second corpus body or permission to use the source text. Changing an
+otherwise valid schema or registry invalidates the old command snapshot.
 
 The integration test reads the real Jenseits Work, 1886 German Expression,
 Work-to-Expression Claim and name form through this CLI, preserving empty

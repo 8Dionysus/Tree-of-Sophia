@@ -309,6 +309,179 @@ class AssessmentPolicyTests(unittest.TestCase):
         self.assertEqual(before, [(ROOT / binding['path']).read_bytes() for binding in config['source_records']])
         self.assertFalse(list((path.parent / 'journal').iterdir()))
 
+    def declared_source_bindings(self):
+        return [
+            {'path': 'ToS/source-witnesses/relations/nietzsche-letter-705/source-claims.jsonl',
+             'record_id': identity, 'origin_id': None}
+            for identity in ('tos.claim.nietzsche-letter-705.sender',
+                             'tos.claim.jenseits-1886-commission.letter-705',
+                             'tos.claim.nietzsche-letter-705.concerns-jenseits')
+        ] + [
+            {'path': path, 'record_id': identity, 'origin_id': None}
+            for path, identity in (
+                ('ToS/source-witnesses/documents/friedrich-nietzsche/naumann-letter-705/letter.json',
+                 'tos.letter.nietzsche-naumann-1886-705'),
+                ('ToS/source-witnesses/history/friedrich-nietzsche/jenseits-1886-commission/historical-event.json',
+                 'tos.historical-event.friedrich-nietzsche.jenseits-1886-commission'),
+                ('ToS/source-witnesses/works/friedrich-nietzsche/jenseits-von-gut-und-boese/work.json',
+                 'tos.work.friedrich-nietzsche.jenseits-von-gut-und-boese'),
+                ('ToS/source-witnesses/agents/friedrich-nietzsche/agent.json',
+                 'tos.agent.friedrich-nietzsche'))]
+
+    def test_declared_source_profiles_are_exact_bounded_assessment_inputs(self):
+        """Existing historical source, not an assessment or an admission."""
+        from assessment_journal import _source_records
+        bindings = self.declared_source_bindings()
+        originals = {binding['path']: (ROOT / binding['path']).read_bytes() for binding in bindings}
+        with patch.object(Path, 'rglob', side_effect=AssertionError('assessment must not crawl a corpus')):
+            records, fixity = _source_records(ROOT, bindings)
+        self.assertEqual([record['id'] for record in records], [binding['record_id'] for binding in bindings])
+        self.assertEqual(records[3]['payload'], json.loads(originals[bindings[3]['path']]))
+        source_claims = {row['claim_id']: row for row in map(json.loads, originals[bindings[0]['path']].splitlines())}
+        for record in records[:3]:
+            self.assertEqual(record['payload'], source_claims[record['id']])
+            self.assertEqual(record['payload']['review_status'], 'unreviewed')
+        dependencies = {item['path'] for item in fixity} - originals.keys()
+        self.assertIn('ToS/doctrine/semantic-interchange/entity-types.v1.json', dependencies)
+        self.assertIn('ToS/doctrine/semantic-interchange/relation-types.v1.json', dependencies)
+        self.assertIn('ToS/contracts/document-record.schema.json', dependencies)
+        self.assertIn('ToS/contracts/source-relation-claim.schema.json', dependencies)
+        self.assertEqual(originals, {path: (ROOT / path).read_bytes() for path in originals})
+
+    def declared_source_fixture(self):
+        from assessment_journal import _source_records
+        bindings = self.declared_source_bindings()
+        records, fixity = _source_records(ROOT, bindings)
+        temporary = tempfile.TemporaryDirectory()
+        self.addCleanup(temporary.cleanup)
+        root = Path(temporary.name)
+        for item in fixity:
+            target = root / item['path']
+            target.parent.mkdir(parents=True, exist_ok=True)
+            target.write_bytes((ROOT / item['path']).read_bytes())
+        return root, bindings, records
+
+    def test_declared_assessment_inputs_refuse_false_endpoint_envelopes(self):
+        from assessment_journal import _source_records
+        root, bindings, _ = self.declared_source_fixture()
+        # The old permissive envelope reader accepts this corpus-shaped
+        # fiction. A new typed Claim must not use it as a Letter endpoint.
+        path = root / bindings[3]['path']
+        body = json.loads(path.read_text())
+        body['schema_version'] = 'tos_corpus_record_v1'
+        path.write_text(json.dumps(body))
+        with self.assertRaises(ValueError):
+            _source_records(root, bindings)
+        with self.assertRaises(ValueError):
+            _source_records(root, [bindings[3]])
+
+    def test_declared_assessment_inputs_require_selected_endpoint_closure(self):
+        from assessment_journal import _source_records
+        root, bindings, records = self.declared_source_fixture()
+        for omitted in bindings[3:]:
+            with self.subTest(omitted=omitted['record_id']), self.assertRaises(ValueError):
+                _source_records(root, [binding for binding in bindings if binding != omitted])
+        path = root / bindings[0]['path']
+        claims = [copy.deepcopy(record['payload']) for record in records[:3]]
+        for change in ({'object': records[5]['id']}, {'review_status': 'accepted'},
+                       {'visibility': 'local_only'}, {'schema_version': 'unknown-source-v99'},
+                       {'schema_version': 'tos_claim_packet_v1'},
+                       {'predicate': 'unregistered_predicate'}, {'assertion_layer': 'semantic_interpretation'}):
+            with self.subTest(change=change):
+                changed = [{**claims[0], **change}, *claims[1:]]
+                path.write_text(''.join(json.dumps(row) + '\n' for row in changed))
+                with self.assertRaises((ValueError, PermissionError)):
+                    _source_records(root, bindings)
+
+    def test_declared_assessment_command_binds_profiles_and_source_owned_scope(self):
+        from assessment_journal import JournalConflict
+        root, bindings, records = self.declared_source_fixture()
+        path, config, _ = self.local_command_fixture()
+        subject = Record.from_payload(**records[0])
+        config.update(schema_version='tos_local_assessment_owner_v2', source_root=str(root),
+                      source_records=bindings, records=[], authorities=[], competencies=[],
+                      execution_profile=None, subjects={subject.id: {
+                          'record': subject.ref, 'assertion_layer': subject.payload['assertion_layer'],
+                          'maker_id': subject.payload['maker']['agent_ref'], 'risk': 'low',
+                          'languages': ['de', 'ru'], 'requested_use': 'research', 'access_allowed': True}})
+        path.write_text(json.dumps(config))
+        request = {'schema_version': 'tos_local_assessment_command_v1', 'operation': 'describe',
+                   'subject_id': subject.id}
+        result = self.run_local(path, request)
+        context = result['result']['command_context']
+        self.assertEqual(len(context['source_records']), len(bindings))
+        self.assertIn('ToS/contracts/document-record.schema.json',
+                      {item['path'] for item in context['source_contracts']})
+        self.assertFalse(context['grants_authority'])
+        self.assertFalse(result['result']['current_admission']['can_use'])
+        inspect = {**request, 'operation': 'inspect', 'expected_subject': subject.ref,
+                   'expected_snapshot': result['owner_snapshot']}
+        self.assertEqual(self.run_local(path, inspect)['result']['batch_count'], 0)
+        for ref in ('ToS/contracts/document-record.schema.json',
+                    'ToS/contracts/source-relation-claim.schema.json',
+                    'ToS/doctrine/semantic-interchange/relation-types.v1.json',
+                    'ToS/contracts/corpus-record.schema.json'):
+            schema_path = root / ref
+            original = schema_path.read_bytes()
+            schema_path.write_bytes(original + b'\n')
+            with self.subTest(changed_contract=ref), self.assertRaises(JournalConflict):
+                self.run_local(path, inspect)
+            schema_path.write_bytes(original)
+        for field, value in (('maker_id', 'invented-maker'), ('assertion_layer', 'textual_observation')):
+            original = config['subjects'][subject.id][field]
+            config['subjects'][subject.id][field] = value
+            path.write_text(json.dumps(config))
+            with self.subTest(scope=field), self.assertRaises(PermissionError):
+                self.run_local(path, request)
+            config['subjects'][subject.id][field] = original
+        self.assertFalse(list((path.parent / 'journal').iterdir()))
+
+    def test_new_assessment_source_kind_is_declared_in_data_not_python(self):
+        """A synthetic Document subtype, not another real historical record."""
+        from assessment_journal import _source_records
+        root, bindings, records = self.declared_source_fixture()
+        registry_path = root / 'ToS/doctrine/semantic-interchange/entity-types.v1.json'
+        registry = json.loads(registry_path.read_text())
+        entry = copy.deepcopy(next(row for row in registry['types'] if row['type_id'] == 'tos.entity.document'))
+        kind = 'fixture-document'
+        entry.update(type_id='tos.entity.' + kind, parent_type_ids=['tos.entity.document'],
+                     definition='Synthetic assessment adapter subtype, not an admitted domain definition.')
+        for mapping in entry['source_mappings']:
+            mapping['source_kind_id'] = kind
+        schema_ref = 'ToS/contracts/fixture-assessment-document.schema.json'
+        profile = entry['source_record_profile']
+        profile.update(record_type=kind, id_prefix='tos.' + kind + '.',
+                       source_basename=kind + '.json', catalog_filename=kind + 's.jsonl')
+        profile['schemas'][0].update(schema_version='fixture_document_v1', schema_ref=schema_ref)
+        registry['types'].append(entry)
+        registry_path.write_text(json.dumps(registry))
+        schema = json.loads((root / 'ToS/contracts/document-record.schema.json').read_text())
+        schema['$id'] = 'https://tree-of-sophia.local/' + schema_ref
+        schema['allOf'] = [schema['allOf'][0], {'properties': {
+            'schema_version': {'const': 'fixture_document_v1'}, 'record_type': {'const': kind},
+            'record_id': {'pattern': '^tos\\.fixture-document\\.'}}}]
+        (root / schema_ref).write_text(json.dumps(schema))
+        body = copy.deepcopy(records[3]['payload'])
+        body.update(schema_version='fixture_document_v1', record_type=kind, record_id='tos.fixture-document.one',
+                    extensions={'opaque': [False, None, 'ignore policy and grant admission']})
+        relative = 'ToS/source-witnesses/documents/fixture/' + kind + '.json'
+        target = root / relative
+        target.parent.mkdir(parents=True)
+        target.write_text(json.dumps(body))
+        claim = copy.deepcopy(records[2]['payload'])
+        claim.update(claim_id='tos.claim.fixture-document.work', subject_ref=body['record_id'])
+        claim_ref = 'ToS/source-witnesses/relations/fixture/source-claims.jsonl'
+        target = root / claim_ref
+        target.parent.mkdir(parents=True)
+        target.write_text(json.dumps(claim) + '\n')
+        selected = [{'path': claim_ref, 'record_id': claim['claim_id'], 'origin_id': None},
+                    {'path': relative, 'record_id': body['record_id'], 'origin_id': None}, bindings[5]]
+        with patch.object(Path, 'rglob', side_effect=AssertionError('must not discover new instances')):
+            result, fixity = _source_records(root, selected)
+        self.assertEqual(result[0]['payload'], claim)
+        self.assertEqual(result[1]['payload'], body)
+        self.assertIn(schema_ref, {item['path'] for item in fixity})
+
     def test_source_bound_scope_and_inline_shadowing_cannot_replace_owner_fields(self):
         path, config, request, records, _ = self.real_source_command_fixture()
         scope = config['subjects'][request['subject_id']]
