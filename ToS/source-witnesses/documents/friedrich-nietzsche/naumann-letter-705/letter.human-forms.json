@@ -1,0 +1,194 @@
+{
+  "schema_version": "tos_human_form_set_v1",
+  "subject": {
+    "id": "tos.letter.nietzsche-naumann-1886-705",
+    "version": 1,
+    "digest": "sha256:848c8221bfa02a9f2cea9729c4ea28765c828e18c444d399d48ea8b7856922b5"
+  },
+  "forms": [
+    {
+      "schema_version": "tos_human_form_v1",
+      "form_id": "tos.form.nietzsche-naumann-letter-705-name-ru",
+      "form_version": 1,
+      "subject": {
+        "id": "tos.letter.nietzsche-naumann-1886-705",
+        "version": 1,
+        "digest": "sha256:848c8221bfa02a9f2cea9729c4ea28765c828e18c444d399d48ea8b7856922b5"
+      },
+      "role": "name",
+      "language": "ru",
+      "script": "Cyrl",
+      "creator_id": "model:codex",
+      "revises": null,
+      "bindings": {
+        "wording": {
+          "record": {
+            "id": "tos.letter.nietzsche-naumann-1886-705",
+            "version": 1,
+            "digest": "sha256:848c8221bfa02a9f2cea9729c4ea28765c828e18c444d399d48ea8b7856922b5"
+          },
+          "pointer": "/preferred_label"
+        },
+        "context-0": {
+          "record": {
+            "id": "tos.letter.nietzsche-naumann-1886-705",
+            "version": 1,
+            "digest": "sha256:848c8221bfa02a9f2cea9729c4ea28765c828e18c444d399d48ea8b7856922b5"
+          },
+          "pointer": "/identity_status"
+        },
+        "context-1": {
+          "record": {
+            "id": "tos.letter.nietzsche-naumann-1886-705",
+            "version": 1,
+            "digest": "sha256:848c8221bfa02a9f2cea9729c4ea28765c828e18c444d399d48ea8b7856922b5"
+          },
+          "pointer": "/same_as_posture"
+        },
+        "context-2": {
+          "record": {
+            "id": "tos.letter.nietzsche-naumann-1886-705",
+            "version": 1,
+            "digest": "sha256:848c8221bfa02a9f2cea9729c4ea28765c828e18c444d399d48ea8b7856922b5"
+          },
+          "pointer": "/field_languages/preferred_label"
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      }
+    },
+    {
+      "schema_version": "tos_human_form_v1",
+      "form_id": "tos.form.nietzsche-naumann-letter-705-note-ru",
+      "form_version": 1,
+      "subject": {
+        "id": "tos.letter.nietzsche-naumann-1886-705",
+        "version": 1,
+        "digest": "sha256:848c8221bfa02a9f2cea9729c4ea28765c828e18c444d399d48ea8b7856922b5"
+      },
+      "role": "hover",
+      "language": "ru",
+      "script": "Cyrl",
+      "creator_id": "model:codex",
+      "revises": null,
+      "bindings": {
+        "wording": {
+          "record": {
+            "id": "tos.letter.nietzsche-naumann-1886-705",
+            "version": 1,
+            "digest": "sha256:848c8221bfa02a9f2cea9729c4ea28765c828e18c444d399d48ea8b7856922b5"
+          },
+          "pointer": "/notes"
+        },
+        "context-0": {
+          "record": {
+            "id": "tos.letter.nietzsche-naumann-1886-705",
+            "version": 1,
+            "digest": "sha256:848c8221bfa02a9f2cea9729c4ea28765c828e18c444d399d48ea8b7856922b5"
+          },
+          "pointer": "/identity_status"
+        },
+        "context-1": {
+          "record": {
+            "id": "tos.letter.nietzsche-naumann-1886-705",
+            "version": 1,
+            "digest": "sha256:848c8221bfa02a9f2cea9729c4ea28765c828e18c444d399d48ea8b7856922b5"
+          },
+          "pointer": "/same_as_posture"
+        },
+        "context-2": {
+          "record": {
+            "id": "tos.letter.nietzsche-naumann-1886-705",
+            "version": 1,
+            "digest": "sha256:848c8221bfa02a9f2cea9729c4ea28765c828e18c444d399d48ea8b7856922b5"
+          },
+          "pointer": "/field_languages/notes"
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      }
+    },
+    {
+      "schema_version": "tos_human_form_v1",
+      "form_id": "tos.form.nietzsche-naumann-letter-705-heading-de",
+      "form_version": 1,
+      "subject": {
+        "id": "tos.letter.nietzsche-naumann-1886-705",
+        "version": 1,
+        "digest": "sha256:848c8221bfa02a9f2cea9729c4ea28765c828e18c444d399d48ea8b7856922b5"
+      },
+      "role": "name",
+      "language": "de",
+      "script": "Latn",
+      "creator_id": "model:codex",
+      "revises": null,
+      "bindings": {
+        "wording": {
+          "record": {
+            "id": "tos.letter.nietzsche-naumann-1886-705",
+            "version": 1,
+            "digest": "sha256:848c8221bfa02a9f2cea9729c4ea28765c828e18c444d399d48ea8b7856922b5"
+          },
+          "pointer": "/variant_labels/0/value"
+        },
+        "context-0": {
+          "record": {
+            "id": "tos.letter.nietzsche-naumann-1886-705",
+            "version": 1,
+            "digest": "sha256:848c8221bfa02a9f2cea9729c4ea28765c828e18c444d399d48ea8b7856922b5"
+          },
+          "pointer": "/identity_status"
+        },
+        "context-1": {
+          "record": {
+            "id": "tos.letter.nietzsche-naumann-1886-705",
+            "version": 1,
+            "digest": "sha256:848c8221bfa02a9f2cea9729c4ea28765c828e18c444d399d48ea8b7856922b5"
+          },
+          "pointer": "/same_as_posture"
+        },
+        "context-2": {
+          "record": {
+            "id": "tos.letter.nietzsche-naumann-1886-705",
+            "version": 1,
+            "digest": "sha256:848c8221bfa02a9f2cea9729c4ea28765c828e18c444d399d48ea8b7856922b5"
+          },
+          "pointer": "/variant_labels/0/language"
+        },
+        "context-3": {
+          "record": {
+            "id": "tos.letter.nietzsche-naumann-1886-705",
+            "version": 1,
+            "digest": "sha256:848c8221bfa02a9f2cea9729c4ea28765c828e18c444d399d48ea8b7856922b5"
+          },
+          "pointer": "/variant_labels/0/script"
+        },
+        "context-4": {
+          "record": {
+            "id": "tos.letter.nietzsche-naumann-1886-705",
+            "version": 1,
+            "digest": "sha256:848c8221bfa02a9f2cea9729c4ea28765c828e18c444d399d48ea8b7856922b5"
+          },
+          "pointer": "/variant_labels/0/source_ref"
+        },
+        "context-5": {
+          "record": {
+            "id": "tos.letter.nietzsche-naumann-1886-705",
+            "version": 1,
+            "digest": "sha256:848c8221bfa02a9f2cea9729c4ea28765c828e18c444d399d48ea8b7856922b5"
+          },
+          "pointer": "/variant_labels/0/status"
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      }
+    }
+  ],
+  "prior_forms": []
+}

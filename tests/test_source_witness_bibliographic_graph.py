@@ -1088,7 +1088,14 @@ class SourceWitnessBibliographicGraphTest(unittest.TestCase):
         manifest = json.loads((REPO_ROOT / 'ToS/source-witnesses/catalog/catalog.manifest.json').read_bytes())
         historical = any(manifest['counts'].get(kind, 0) for kind in
                          ('historical-event', 'historical-process', 'historical-state'))
+        registry = json.loads((REPO_ROOT / 'ToS/doctrine/semantic-interchange/entity-types.v1.json').read_bytes())
+        declared_profile = any(manifest['counts'].get(entry['source_record_profile']['record_type'], 0)
+                               for entry in registry['types']
+                               if entry.get('source_record_profile', {}).get('graph_layer') == 'source-profile')
+        declared_profile = declared_profile or any(Path(entry['source_claim_file_ref']).name == 'source-claims.jsonl'
+                                                  for entry in entries)
         self.assertEqual(payload["graph_layers"], ['bibliographic', *(['historical'] if historical else []),
+                         *(['source-profile'] if declared_profile else []),
                          *(['physical-artifact'] if manifest['counts'].get('artifact') else [])])
         self.assertEqual(payload["review_counts"], Counter(entry['review_status'] for entry in entries))
         self.assertEqual(payload["visibility_counts"], Counter(entry['visibility'] for entry in entries))
