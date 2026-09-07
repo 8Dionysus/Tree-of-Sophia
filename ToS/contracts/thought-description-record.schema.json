@@ -6,13 +6,10 @@
   "allOf": [
     {"$ref": "https://tree-of-sophia.local/ToS/contracts/source-metadata-record.schema.json"},
     {"$ref": "https://tree-of-sophia.local/ToS/contracts/semantic-description-record.schema.json#/$defs/semanticDescriptionFields"},
-    {"required": ["semantic_content"], "properties": {
+    {"$ref": "https://tree-of-sophia.local/ToS/contracts/semantic-description-record.schema.json#/$defs/semanticContentFields"},
+    {"properties": {
       "schema_version": {"const": "tos_thought_description_record_v1"},
-      "record_type": {"enum": ["thesis", "argument", "inference-step", "objection"]},
-      "semantic_content": {"type": "object", "required": ["language", "script"], "properties": {
-        "language": {"anyOf": [{"$ref": "https://tree-of-sophia.local/ToS/contracts/corpus-record.schema.json#/$defs/languageTagOrUnd"}, {"type": "null"}]},
-        "script": {"$ref": "https://tree-of-sophia.local/ToS/contracts/corpus-record.schema.json#/$defs/scriptTagOrNull"}
-      }}
+      "record_type": {"enum": ["thesis", "argument", "inference-step", "objection"]}
     }},
     {"if": {"properties": {"record_type": {"const": "thesis"}}}, "then": {"properties": {
       "record_id": {"pattern": "^tos\\.thesis\\."},

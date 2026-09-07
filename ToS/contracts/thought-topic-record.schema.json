@@ -11,9 +11,9 @@
       "$ref": "https://tree-of-sophia.local/ToS/contracts/semantic-description-record.schema.json#/$defs/semanticDescriptionFields"
     },
     {
-      "required": [
-        "semantic_content"
-      ],
+      "$ref": "https://tree-of-sophia.local/ToS/contracts/semantic-description-record.schema.json#/$defs/semanticContentFields"
+    },
+    {
       "properties": {
         "schema_version": {
           "const": "tos_thought_topic_record_v1"
@@ -29,28 +29,6 @@
             "distinction",
             "opposition"
           ]
-        },
-        "semantic_content": {
-          "type": "object",
-          "required": [
-            "language",
-            "script"
-          ],
-          "properties": {
-            "language": {
-              "anyOf": [
-                {
-                  "$ref": "https://tree-of-sophia.local/ToS/contracts/corpus-record.schema.json#/$defs/languageTagOrUnd"
-                },
-                {
-                  "type": "null"
-                }
-              ]
-            },
-            "script": {
-              "$ref": "https://tree-of-sophia.local/ToS/contracts/corpus-record.schema.json#/$defs/scriptTagOrNull"
-            }
-          }
         }
       }
     },

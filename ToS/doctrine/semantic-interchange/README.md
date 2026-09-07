@@ -305,6 +305,73 @@ identity and existing mappings remain authoritative until an explicit mapping
 or revision is reviewed. This section defines an executable extension, not a
 claim that the whole Foundation thought domain or its real assessment is done.
 
+## Methods, hypothetical inquiry, imagery and valuation
+
+Entity registry version 12 adds ten source-described profiles through the
+same semantic metadata reader and source-owner commands. The shared
+`semanticContentFields` contract owns the language/script declaration for
+reasoning, inquiry and practice content. Existing record shapes are unchanged;
+`thought-practice-record.schema.json` adds only the following requirements.
+
+| Profile | Required content | Boundary |
+| --- | --- | --- |
+| ThoughtMethod / Метод мышления | `method_account`, `applicability_conditions` | a described inquiry method, not executable code or the existing atlas Method category |
+| ThoughtOperation / Операция мышления | `operation_account`, `prerequisites` | what is done conceptually, not a callable source operation or authority grant |
+| ThoughtMove / Ход мысли | `movement_account`, `context_requirement` | a described reframing or movement, not a record correction or automatic historical succession |
+| ThoughtExperiment / Мысленный эксперимент | `scenario_account`, `assumptions`, `assumption_coverage`, `examined_consequence` | a hypothetical inquiry, not an actual event or accepted consequence |
+| ThoughtImage / Образ мысли | `image_account`, `image_mode` | an imaginative presentation, not a raster file, physical artifact or eyewitness observation |
+| RhetoricalFigure / Риторическая фигура | `figure_account` | a described expressive arrangement, not an atlas historical figure |
+| Metaphor / Метафора | inherited `figure_account`, `source_domain`, `target_domain`, `mapping_basis` | a subtype of RhetoricalFigure; proposed transfer, not literal identity |
+| Value / Ценность | `value_account`, `valuation_context` | a source-described evaluative criterion, not a scalar value or an adopted ToS norm |
+| Ideal / Идеал | `ideal_account`, `realization_posture` | a normative or proposed model, not proof of an actual bearer |
+| OntologicalCommitment / Онтологическое обязательство | `commitment_account`, `commitment_force` | an account's scoped commitment, possibly conditional, not an ontology imposed on the core |
+
+Conditions, prerequisites and assumptions are string arrays: empty means none
+recorded, not proof that none exist. Assumption coverage is `explicit_only`,
+`reconstructed_partial`, `claimed_complete` or `unknown`. Realization posture
+is `normative_model`, `proposed_realization`, `claimed_realized` or `unknown`.
+Neither a completeness claim nor a realization claim verifies itself. The
+remaining account fields retain source-described wording without mandating one
+philosophical or aesthetic taxonomy. Values need not become separate entities;
+these profiles are for referents whose independent identity is useful.
+
+All 22 added content properties are discoverable and executable by semantic
+property ID, including array membership filters. Metaphor inherits the same
+RhetoricalFigure account property, not a renamed duplicate. Short human forms
+carry the complete scope and content; conditions and normative posture are not
+optional technical details. The ordinary create/correct/read/form route retains
+unknown nested fields, exact predecessor bytes and one subject ID. Source
+content cannot supply a command, choose a reader implementation or grant itself
+assessment/admission powers. Schema validity does not assess descriptive quality.
+
+Relation registry version 11 adds thirteen specific, nontransitive reified
+Claims with language, statement, grounds, uncertainty and separate assessment:
+
+| Predicate | Subject → object | Scope |
+| --- | --- | --- |
+| `method_uses_operation` | ThoughtMethod → ThoughtOperation | conceptual use, not execution |
+| `move_uses_operation` | ThoughtMove → ThoughtOperation | operation within this movement, not identity |
+| `experiment_uses_method` | ThoughtExperiment → ThoughtMethod | method used by this hypothetical inquiry |
+| `experiment_assumes_thesis` | ThoughtExperiment → Thesis | granted for the trial, not asserted true |
+| `experiment_tests_thesis` | ThoughtExperiment → Thesis | proposition under examination, not a successful result |
+| `experiment_adopts_commitment` | ThoughtExperiment → OntologicalCommitment | adoption within the scenario and its conditions, not actuality or core law |
+| `conception_has_commitment` | Conception → OntologicalCommitment | commitment with the account's scope and force |
+| `thought_uses_image` | Conception/Argument/Thesis/ThoughtExperiment/Position/Ideal → ThoughtImage | expressive use, not evidential proof |
+| `thought_uses_figure` | same domain → RhetoricalFigure, including Metaphor | interpreted expressive arrangement, not literal identity |
+| `ideal_exemplifies_value` | Ideal → Value | normative exemplification, not an actual person |
+| `position_affirms_value` | Position → Value | scoped valuation, not ToS endorsement |
+| `method_guided_by_value` | ThoughtMethod → Value | a methodological norm, not a runtime budget |
+| `image_presents_conception` | ThoughtImage → Conception | may present a critical target; endorsement is not inferred |
+
+Each has an explicit inverse reading. `thought_expressed_in` and
+`thought_attributed_to` include the ten new kinds without strengthening their
+existing meanings. Partial reconstructions need not fabricate every assumption,
+operation or bearer to validate. Competing interpretation Claims remain possible.
+No global experiment completeness, one-figure taxonomy or historical order is
+imposed. Existing atlas Method and Figure entries and canon Analogy/Principle
+nodes retain their original identities, types and owner routes. A new source
+profile adds data and contracts, not a per-kind Python branch or a UI screen.
+
 ## Concepts, situated conceptions and transformations
 
 Entity registry version 9 adds `CrosscuttingConcept` as a subtype of the

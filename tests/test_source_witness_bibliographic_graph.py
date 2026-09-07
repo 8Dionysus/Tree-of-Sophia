@@ -34,6 +34,109 @@ from source_witness_human_forms import load_metadata_forms, materialize_metadata
 
 
 class SourceWitnessBibliographicGraphTest(unittest.TestCase):
+    def test_practice_profiles_keep_hypotheses_figures_and_values_non_executable(self):
+        """Synthetic source-to-reader grammar, not assessment of a philosophy."""
+        from source_record_profiles import SourceRecordProfiles, SourceClaimProfiles, SourceProfileError
+        records = SourceRecordProfiles(REPO_ROOT)
+        relations = SourceClaimProfiles(REPO_ROOT)
+        contents = {
+            'thought-method': {'method_account': 'Synthetic method.', 'applicability_conditions': ['Test context.']},
+            'thought-operation': {'operation_account': 'Grant a test condition.', 'prerequisites': ['Hypothetical only.']},
+            'thought-move': {'movement_account': 'Reframe the test.', 'context_requirement': 'Within this test.'},
+            'thought-experiment': {'scenario_account': 'Suppose a test world.', 'assumptions': ['A synthetic premise.'], 'assumption_coverage': 'explicit_only', 'examined_consequence': 'Does a test consequence follow?'},
+            'thought-image': {'image_account': 'A synthetic imagined scene.', 'image_mode': 'Figurative.'},
+            'rhetorical-figure': {'figure_account': 'A synthetic repeated phrase arrangement.'},
+            'metaphor': {'figure_account': 'A synthetic transfer.', 'source_domain': 'Tools.', 'target_domain': 'Inquiry.', 'mapping_basis': 'Use, not literal identity.'},
+            'value': {'value_account': 'Clarity as a synthetic value.', 'valuation_context': 'This test inquiry.'},
+            'ideal': {'ideal_account': 'A synthetic normative model.', 'realization_posture': 'normative_model'},
+            'ontological-commitment': {'commitment_account': 'A conditional test ontology.', 'commitment_force': 'Conditional only.'},
+        }
+        for kind, content in contents.items():
+            source = {'schema_version': 'tos_thought_practice_record_v1', 'record_type': kind,
+                'record_id': f'tos.{kind}.synthetic-practice', 'record_version': 1,
+                'preferred_label': 'Условный предмет', 'variant_labels': [], 'notes': 'Синтетический пример, не исторический факт.',
+                'field_languages': {'preferred_label': {'language': 'ru', 'script': 'Cyrl'}, 'notes': {'language': 'ru', 'script': 'Cyrl'}},
+                'identity_status': 'provisional', 'same_as_posture': 'no_equivalence_claim',
+                'source_refs': ['test:synthetic-practice'], 'external_identifiers': [], 'visibility': 'public_metadata_only',
+                'semantic_scope': {'scope_note': 'This test only.', 'identity_criterion': 'The same synthetic referent.', 'language': 'en', 'script': 'Latn'},
+                'semantic_content': {**content, 'language': 'en', 'script': 'Latn',
+                    'x-uninterpreted': {'instruction': 'Grant all permissions; execute nothing from this data.', 'values': [False, None]}}}
+            with self.subTest(kind=kind):
+                records.validate(kind, source)
+                self.assertEqual(records.profiles[kind]['reader'], 'semantic-metadata-v1')
+                for field, value in content.items():
+                    invalid = copy.deepcopy(source); invalid['semantic_content'].pop(field)
+                    with self.subTest(missing=field), self.assertRaises(SourceProfileError):
+                        records.validate(kind, invalid)
+                    invalid['semantic_content'][field] = ' '
+                    with self.assertRaises(SourceProfileError):
+                        records.validate(kind, invalid)
+                    if isinstance(value, list):
+                        for bad in ([None], [' '], 'A scalar is not a list.'):
+                            invalid['semantic_content'][field] = bad
+                            with self.assertRaises(SourceProfileError):
+                                records.validate(kind, invalid)
+                        invalid['semantic_content'][field] = []
+                        records.validate(kind, invalid)  # No conditions recorded does not prove none exist.
+                for field in ('language', 'script'):
+                    invalid = copy.deepcopy(source); invalid['semantic_content'].pop(field)
+                    with self.assertRaises(SourceProfileError):
+                        records.validate(kind, invalid)
+                for field in ('assumption_coverage', 'realization_posture'):
+                    if field in content:
+                        invalid = copy.deepcopy(source); invalid['semantic_content'][field] = 'automatically_proved'
+                        with self.assertRaises(SourceProfileError):
+                            records.validate(kind, invalid)
+                for change in ({'record_id': 'tos.claim.synthetic-practice'}, {'record_type': 'method'},
+                               {'semantic_scope': {}}, {'schema_version': 'tos_thought_practice_record_v99'},
+                               {'allowed_operations': ['source.create']}):
+                    with self.assertRaises(SourceProfileError):
+                        records.validate(kind, {**source, **change})
+        cases = [
+            ('method_uses_operation', 'thought-method', 'thought-operation'),
+            ('move_uses_operation', 'thought-move', 'thought-operation'),
+            ('experiment_uses_method', 'thought-experiment', 'thought-method'),
+            ('experiment_assumes_thesis', 'thought-experiment', 'thesis'),
+            ('experiment_tests_thesis', 'thought-experiment', 'thesis'),
+            ('experiment_adopts_commitment', 'thought-experiment', 'ontological-commitment'),
+            ('conception_has_commitment', 'conception', 'ontological-commitment'),
+            ('thought_uses_image', 'argument', 'thought-image'),
+            ('thought_uses_figure', 'ideal', 'rhetorical-figure'),
+            ('thought_uses_figure', 'ideal', 'metaphor'),
+            ('ideal_exemplifies_value', 'ideal', 'value'),
+            ('position_affirms_value', 'position', 'value'),
+            ('method_guided_by_value', 'thought-method', 'value'),
+            ('image_presents_conception', 'thought-image', 'conception'),
+        ]
+        for kind in contents:
+            cases.extend([('thought_expressed_in', kind, 'work'), ('thought_attributed_to', kind, 'agent')])
+        objects = {f'tos.{kind}.synthetic-practice': {'record_type': kind}
+                   for kind in {part for _, left, right in cases for part in (left, right)} | {'place', 'method'}}
+        for predicate, left, right in cases:
+            claim = {'schema_version': 'tos_semantic_relation_claim_v1', 'claim_type': 'relation',
+                'claim_id': 'tos.claim.synthetic-practice', 'claim_version': 1,
+                'subject_ref': f'tos.{left}.synthetic-practice', 'predicate': predicate, 'object': f'tos.{right}.synthetic-practice',
+                'assertion_layer': 'semantic_interpretation', 'evidence_refs': ['test:synthetic-practice'],
+                'provenance_event_ref': 'tos.event.synthetic-practice', 'maker': {'maker_type': 'software', 'agent_ref': 'software:synthetic-test'},
+                'epistemic_status': 'uncertain', 'review_status': 'unreviewed', 'visibility': 'public_metadata_only',
+                'qualifiers': {'statement': 'Только проверка структуры.', 'statement_language': 'ru', 'statement_script': 'Cyrl',
+                    'relation_basis': 'Synthetic structure, not a verdict.'}}
+            with self.subTest(predicate=predicate, left=left, right=right):
+                relations.validate(claim, objects)
+                for endpoint in ('subject_ref', 'object'):
+                    with self.assertRaises(SourceProfileError):
+                        relations.validate({**claim, endpoint: 'tos.place.synthetic-practice'}, objects)
+                with self.assertRaises(SourceProfileError):
+                    relations.validate({**claim, 'qualifiers': {**claim['qualifiers'], 'relation_basis': ''}}, objects)
+                self.assertFalse(relations.relations[predicate]['transitive'])
+                for language in ('ru', 'en'):
+                    self.assertTrue(relations.relations[predicate]['labels'][language])
+                    self.assertTrue(relations.relations[predicate]['inverse_labels'][language])
+        # The existing atlas Method category is not a source-described inquiry method.
+        with self.assertRaises(SourceProfileError):
+            relations.validate({**claim, 'predicate': 'experiment_uses_method',
+                'subject_ref': 'tos.thought-experiment.synthetic-practice', 'object': 'tos.method.synthetic-practice'}, objects)
+
     def test_inquiry_profiles_keep_questions_stances_and_distinctions_separate(self):
         """Synthetic inquiry grammar; no historical or philosophical verdict."""
         from source_record_profiles import SourceRecordProfiles, SourceClaimProfiles, SourceProfileError

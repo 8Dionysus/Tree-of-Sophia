@@ -801,6 +801,18 @@ class HistoricalCreationTests(unittest.TestCase):
             self.assertEqual(commands.run_local_command(owner, request)['receipt'], result['receipt'])
 
     def test_semantic_description_creation_and_correction_preserve_referent_and_scope(self):
+        practices = {
+            'thought-method': {'method_account': 'Synthetic inquiry method, not executable code.', 'applicability_conditions': ['Only within the test assumptions.']},
+            'thought-operation': {'operation_account': 'Provisionally grant a synthetic condition.', 'prerequisites': ['Suspend actuality claims.']},
+            'thought-move': {'movement_account': 'Reframe a synthetic alternative.', 'context_requirement': 'Within the test question.'},
+            'thought-experiment': {'scenario_account': 'Suppose a synthetic world.', 'assumptions': ['Only the test condition is granted.'], 'assumption_coverage': 'reconstructed_partial', 'examined_consequence': 'Would the synthetic consequence follow?'},
+            'thought-image': {'image_account': 'A synthetic imagined scene, not a digital image file.', 'image_mode': 'Figurative presentation.'},
+            'rhetorical-figure': {'figure_account': 'A synthetic repeated arrangement, not a historical person.'},
+            'metaphor': {'figure_account': 'A synthetic figurative transfer.', 'source_domain': 'Tools.', 'target_domain': 'Test inquiry.', 'mapping_basis': 'Use, not literal material identity.'},
+            'value': {'value_account': 'Synthetic clarity as a value, not a scalar.', 'valuation_context': 'Only this synthetic inquiry.'},
+            'ideal': {'ideal_account': 'A synthetic normative model, not an actual agent.', 'realization_posture': 'normative_model'},
+            'ontological-commitment': {'commitment_account': 'A conditional synthetic ontology, not ToS core law.', 'commitment_force': 'Conditional on the synthetic assumptions.'},
+        }
         topics = {
             'aspect': {'perspective_account': 'A synthetic perspective on agency, not a new conception.'},
             'philosophical-category': {'category_account': 'Time as a synthetic philosophical category, not a datatype.'},
@@ -817,10 +829,11 @@ class HistoricalCreationTests(unittest.TestCase):
             'inference-step': {'transition_account': 'A synthetic transition.', 'reasoning_mode': 'reductio'},
             'objection': {'challenge_account': 'The synthetic transition is under examination.'},
             **topics,
+            **practices,
         }
         for kind in ('crosscutting-concept', 'conception', *contents):
             with self.subTest(kind=kind), self.creation() as (root, owner, config, request, rebuild, fixture):
-                for name in ('source-metadata-record', 'semantic-description-record', 'thought-description-record', 'thought-topic-record', 'provenance-event-v2'):
+                for name in ('source-metadata-record', 'semantic-description-record', 'thought-description-record', 'thought-topic-record', 'thought-practice-record', 'provenance-event-v2'):
                     ref = 'ToS/contracts/' + name + '.schema.json'
                     (root / ref).write_bytes((ROOT / ref).read_bytes())
                 config.pop('allowed_claim_ids')
@@ -837,9 +850,10 @@ class HistoricalCreationTests(unittest.TestCase):
                     semantic_scope={'scope_note': 'Только синтетическая проверка.',
                         'identity_criterion': 'Постоянный предмет теста, не сходство имён.', 'language': 'ru', 'script': 'Cyrl'})
                 if kind in contents:
-                    source.update(schema_version=('tos_thought_topic_record_v1' if kind in topics else 'tos_thought_description_record_v1'),
+                    source.update(schema_version=('tos_thought_practice_record_v1' if kind in practices else
+                                  'tos_thought_topic_record_v1' if kind in topics else 'tos_thought_description_record_v1'),
                                   semantic_content={**contents[kind], 'language': 'en', 'script': 'Latn'})
-                if kind in topics:
+                if kind in topics or kind in practices:
                     source['semantic_content']['x-uninterpreted'] = [None, False, {'source-field': 'retained'}]
                 request.pop('claims')
                 prepared = commands.run_local_command(owner, {'schema_version': 'tos_local_source_command_v1',
@@ -879,15 +893,19 @@ class HistoricalCreationTests(unittest.TestCase):
                 self.assertEqual(node['attributes']['source_record']['semantic_scope'], source['semantic_scope'])
                 if kind in contents:
                     self.assertEqual(node['attributes']['source_record']['semantic_content'], proposal['fields']['semantic_content'])
-                    if kind in topics:
+                    if kind in topics or kind in practices:
                         from tos_access.knowledge import execute_knowledge_lens, select_human_forms
-                        property_kind = 'distinction' if kind == 'opposition' and wording == 'differentiation_criterion' else kind
-                        lens_result = execute_knowledge_lens(graph, {'schema_version': 'tos_lens_spec_v1',
-                            'lens_id': 'synthetic-inquiry-property', 'node_query': {'filters': [{
-                                'property_id': f"tos.property.{property_kind}-{wording.replace('_', '-')}",
-                                'op': 'eq', 'value': proposal['fields']['semantic_content'][wording]}]},
-                            'relation_query': {'enabled': False}, 'detail': 'full'})
-                        self.assertEqual([n['entity_id'] for n in lens_result['nodes']], [source['record_id']])
+                        for field in contents[kind]:
+                            property_kind = ('distinction' if kind == 'opposition' and field == 'differentiation_criterion'
+                                else 'rhetorical-figure' if kind == 'metaphor' and field == 'figure_account' else kind)
+                            value = proposal['fields']['semantic_content'][field]
+                            lens_result = execute_knowledge_lens(graph, {'schema_version': 'tos_lens_spec_v1',
+                                'lens_id': 'synthetic-content-property', 'node_query': {'filters': [{
+                                    'property_id': f"tos.property.{property_kind}-{field.replace('_', '-')}",
+                                    'op': 'contains' if isinstance(value, list) else 'eq',
+                                    'value': value[0] if isinstance(value, list) else value}]},
+                                'relation_query': {'enabled': False}, 'detail': 'full'})
+                            self.assertEqual([n['entity_id'] for n in lens_result['nodes']], [source['record_id']])
                         context = select_human_forms(node, 'ru')['roles']['hover']['packet']['context']
                         self.assertTrue(any(c['binding']['pointer'] == '/semantic_content'
                             and c['value'] == proposal['fields']['semantic_content'] for c in context))

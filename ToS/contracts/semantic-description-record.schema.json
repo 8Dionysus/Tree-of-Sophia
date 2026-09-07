@@ -18,6 +18,12 @@
                               "supersedes_ref": {"type": ["string", "null"], "pattern": "^tos\\.conception\\."}}}}
   ],
   "$defs": {
+    "semanticContentFields": {"required": ["semantic_content"], "properties": {
+      "semantic_content": {"type": "object", "required": ["language", "script"], "properties": {
+        "language": {"anyOf": [{"$ref": "https://tree-of-sophia.local/ToS/contracts/corpus-record.schema.json#/$defs/languageTagOrUnd"}, {"type": "null"}]},
+        "script": {"$ref": "https://tree-of-sophia.local/ToS/contracts/corpus-record.schema.json#/$defs/scriptTagOrNull"}
+      }}
+    }},
     "semanticDescriptionFields": {"required": ["notes", "semantic_scope", "field_languages"], "properties": {
       "notes": {"type": "string", "pattern": "\\S", "description": "Substantive source-grounded account, including limits and uncertainty; a label alone is not a description. Content quality needs source-visible assessment."},
       "field_languages": {"required": ["preferred_label", "notes"]},
