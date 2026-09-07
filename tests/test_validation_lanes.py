@@ -74,6 +74,104 @@ class ValidationLanesTestCase(unittest.TestCase):
         self.assertIn("tests", test_command)
         self.assertNotIn("unittest", test_command)
 
+    def test_feedback_maps_product_source_to_existing_access_tests(self) -> None:
+        selected = release_check.feedback_test_paths(("access/src/tos_access/core.py",), REPO_ROOT)
+
+        self.assertEqual(
+            selected,
+            (
+                "access/tests/test_access_contract.py",
+                "access/tests/test_cloudflare_tunnel_deploy.py",
+                "access/tests/test_http_security.py",
+            ),
+        )
+
+    def test_feedback_maps_active_naming_script_to_its_direct_test(self) -> None:
+        self.assertEqual(
+            release_check.feedback_test_paths(
+                ("scripts/validate_active_naming.py",), REPO_ROOT
+            ),
+            ("tests/test_validate_active_naming.py",),
+        )
+
+    def test_feedback_unions_independent_implementation_routes(self) -> None:
+        selected = release_check.feedback_test_paths(
+            (
+                "scripts/validate_active_naming.py",
+                "access/src/tos_access/core.py",
+                "scripts/source_witness_bibliographic_graph_common.py",
+                "scripts/tos_corpus_index_common.py",
+                "scripts/release_check.py",
+            ),
+            REPO_ROOT,
+        )
+
+        expected = (
+            "access/tests/test_access_contract.py",
+            "access/tests/test_cloudflare_tunnel_deploy.py",
+            "access/tests/test_http_security.py",
+            "tests/test_source_witness_bibliographic_graph.py",
+            "tests/test_tos_corpus_index.py",
+            "tests/test_validate_active_naming.py",
+            "tests/test_validation_lanes.py",
+        )
+        self.assertEqual(selected, expected)
+
+    def test_feedback_explicit_access_contract_test_covers_its_helper_consumers(self) -> None:
+        self.assertEqual(
+            release_check.feedback_test_paths(
+                ("access/tests/test_access_contract.py",), REPO_ROOT
+            ),
+            (
+                "access/tests/test_access_contract.py",
+                "access/tests/test_cloudflare_tunnel_deploy.py",
+                "access/tests/test_http_security.py",
+            ),
+        )
+
+    def test_feedback_unknown_shared_and_unsupported_paths_fall_back(self) -> None:
+        for path in (
+            "README.md",
+            "ToS/source-witnesses/README.md",
+            "ToS/source-witnesses/catalog/works.jsonl",
+            "ToS/derived-exports/graph/source-witness-bibliographic-claims.min.json",
+            "ToS/derived-exports/tos_corpus_index.min.json",
+            "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/"
+            "alignments/translation/dta-first-editions-to-antonovsky-1911-paragraph-v1/"
+            "coverage-receipt.v1.json",
+            "ToS/canon/concept/becoming/node.json",
+            "mechanics/experience/AGENTS.md",
+            "ToS/contracts/tos-node.schema.json",
+            "ToS/contracts/source-witness-bibliographic-graph.schema.json",
+            "access/web/src/main.ts",
+            "mechanics/release-support/README.md",
+            "tests/conftest.py",
+            "tests/test_source_witness_foundation.py",
+            "tests/test_zarathustra_authored_canon_evidence_bridge.py",
+        ):
+            with self.subTest(path=path):
+                self.assertIsNone(release_check.feedback_test_paths((path,), REPO_ROOT))
+
+    def test_feedback_returns_full_fallback_when_focus_test_is_missing(self) -> None:
+        missing_repo = REPO_ROOT / "does-not-exist"
+        self.assertIsNone(
+            release_check.feedback_test_paths(("access/src/tos_access/core.py",), missing_repo)
+        )
+
+    def test_feedback_rejects_unsafe_paths(self) -> None:
+        for path in ("../README.md", "/tmp/README.md", "tests\\test.py"):
+            with self.subTest(path=path), self.assertRaises(ValueError):
+                release_check.feedback_test_paths((path,), REPO_ROOT)
+
+    def test_feedback_command_reuses_manifest_pytest_flags(self) -> None:
+        steps = validation_lanes.command_sequence("release_check", REPO_ROOT)
+        target = ("tests/test_validate_active_naming.py",)
+
+        command = release_check.feedback_pytest_command(steps, target)
+
+        self.assertEqual(command[:-1], steps[-1][1][:-1])
+        self.assertEqual(command[-1], target[0])
+
     def test_large_generated_checks_rebuild_once_in_the_validator(self) -> None:
         manifest = json.loads(
             (REPO_ROOT / "docs" / "validation" / "validation_lanes.json").read_text(encoding="utf-8")
